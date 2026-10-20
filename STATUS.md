@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-19 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-10-20 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -24,9 +24,11 @@ tenth review `study\35` §3 item 1; the areas it left are M4's). Twenty-two M3 s
 cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
-23 screens as the old compiler's build. Upstream is at 355 of 399. `main` is at the merge of `newer-changes` (pull
-request 10, `5db547a`, 2026-10-19), which holds every change up to `libqb-object-flags` and `const-rulings`; the
-extension's first release is tagged `vscode-v0.2.0` there.
+23 screens as the old compiler's build; its scripts are whole games now, held to line coverage
+(`cws-whole-game`). Upstream is at 355 of 399; the verification families are a suite of the new compiler, 2628
+programs on `tests\verification\pass.list`. `main` is at the merge of `newer-changes` (pull request 11,
+`c8ac126`, 2026-10-20), which holds every change up to `verification-compare`, `cws-whole-game` and
+`cpp-failure-errors`; the extension's first release is tagged `vscode-v0.2.0`.
 
 ## Waiting on the user
 
@@ -47,13 +49,11 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. `cpp-failure-errors` is built (a C++ build that fails in both compilers is an error in the program: an
-   `$EXEICON` file that is no icon before the C++, and the toolchain's errors that name a `DECLARE LIBRARY`
-   function at the BASIC line; the six programs of the known bug on `tests\verification\pass.list`): the user
-   commits it. Pull request 11 (`verification-compare`, `cws-whole-game`) waits on the full set of a merge.
-2. M4's parity work; the upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
-   around `.` and `_CONTINUE` (2 programs each). The verification families are a suite of the new compiler since
-   `verification-compare` (`tests\verification\`); its `known.list` holds more such lines.
+1. M4's parity work. Its first step, `m4-checker-groups` (the checker's state in four groups, and how a value is
+   used an argument of the expression check, `ROADMAP.md`'s M4 item), is built and waits to be archived. The
+   upstream report's first lines are `_DEVICES`, the `$EXEICON` relative names, blanks
+   around `.` and `_CONTINUE` (2 programs each). `tests\verification\known.list` (215 programs, each with its
+   reason) holds more such lines.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 
@@ -87,6 +87,12 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 22 | `2026-10-18-m3-constant-evaluation` | the `CONST` evaluator in full: `_FLOAT` in software, its lanes and typing by text, every function (math functions certified, else D-026), suffixed constants, the auto-included constants, `$COLOR`; the dependency `astro-float-num` |
 
 ## Numbers at the last full runs
+
+**At the merge into `main` of pull request 11** (2026-10-20, `c8ac126`): the full set was not run; the closing set
+of `cpp-failure-errors`, the last change in it, on the merged compiler (`close.py --check` passes) stands for it:
+tier 1 398 of 398; `slice.list` 469 of 469, upstream `pass.list` 355 of 355 and `tests\verification\pass.list`
+2628 of 2628 (`--pass-cache`); the call-site check 1888 of 1888 equal; the 43 command-line tests that build pass;
+the old compiler's wording 877 notes, all the recorded message.
 
 **At the merge into `main` of pull request 10** (2026-10-19, the full set on the tree of `5db547a`, no pass cache,
 `--jobs 8 --build-cache`): the full corpus suite 477 pass, 5 known failures and `218_fre` (only marked errors),

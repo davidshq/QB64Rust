@@ -21,7 +21,7 @@ impl Checker<'_> {
     /// `CONST name = value, ...`. Defines no statement: uses of the constants become literals.
     pub(super) fn const_stmt(&mut self, stmt: ast::ConstStmt) -> R<()> {
         // A label before it on its line is no problem here (the old compiler fails, `DIVERGENCES.md` D-008).
-        self.const_at = Some(self.main_offset(stmt.node().key()));
+        self.stmt.const_at = Some(self.main_offset(stmt.node().key()));
         let in_colors = self.color_file == Some(stmt.node().span().file);
         for item in stmt.items() {
             let name_tok = self.need(item.name(), item.node().span())?;
@@ -54,7 +54,7 @@ impl Checker<'_> {
                 if c.ty != ty || c.value != value {
                     return Err(self.in_use(name_tok));
                 }
-                self.names.push((SymbolKind::Const(id), name_tok.span));
+                self.stmt.names.push((SymbolKind::Const(id), name_tok.span));
                 continue;
             }
             self.before_const(name_tok, &name)?;
@@ -75,7 +75,7 @@ impl Checker<'_> {
             if fell_back {
                 self.fell_back.insert(id);
             }
-            self.names.push((SymbolKind::Const(id), name_tok.span));
+            self.stmt.names.push((SymbolKind::Const(id), name_tok.span));
         }
         Ok(())
     }
@@ -174,7 +174,7 @@ impl Checker<'_> {
             let NumLit::Int { value, ty, qb } = literal::constant_literal(v, to) else {
                 unreachable!("an integer constant is an integer literal");
             };
-            self.names.push((SymbolKind::Const(id), t.span));
+            self.stmt.names.push((SymbolKind::Const(id), t.span));
             return Ok(Expr {
                 span,
                 ty,
@@ -183,7 +183,7 @@ impl Checker<'_> {
             });
         }
         let (ty, value) = self.problem(consteval::convert(c.ty, c.value, to), t.span)?;
-        self.names.push((SymbolKind::Const(id), t.span));
+        self.stmt.names.push((SymbolKind::Const(id), t.span));
         Ok(literal_expr(span, ty, value))
     }
 
@@ -229,7 +229,7 @@ impl Checker<'_> {
                         if self.color_consts.contains(&id)
                             && self
                                 .first_color
-                                .zip(self.const_at)
+                                .zip(self.stmt.const_at)
                                 .is_some_and(|(color, at)| at < color)
                         {
                             let msg = format!(
@@ -242,7 +242,7 @@ impl Checker<'_> {
                         if self.fell_back.contains(&id) {
                             consteval::fell_back();
                         }
-                        self.names.push((SymbolKind::Const(id), t.span));
+                        self.stmt.names.push((SymbolKind::Const(id), t.span));
                         Ok(v)
                     }
                     // Measured, `verification\v43_x06`: `CHR$ 65` is an error.

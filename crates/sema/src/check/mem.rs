@@ -4,7 +4,7 @@
 //! (`StmtKind::MemGet`, `MemPut`, `MemFill`): what they may name, and the old compiler's errors (measured,
 //! `verification\v32_x01_accepted`, `v32_x02`–`x116`).
 
-use super::expr::conv;
+use super::expr::{Use, conv};
 use super::places::{numeric_type, unsigned_of};
 use super::{Checker, R};
 use crate::builtins::{Rule, Supported};
@@ -16,10 +16,10 @@ use qb64rust_syntax::tree::Node;
 
 impl Checker<'_> {
     /// `_MEM(reference)` and `_MEM(offset, size)` (`element` false), or `_MEMELEMENT(reference)`. A block: only
-    /// the value stored into a place of type `_MEM` (design D2; the checker's `mem_store`).
-    pub(super) fn mem_fn(&mut self, call: ast::CallExpr, element: bool, span: Span) -> R<Expr> {
+    /// the value stored into a place of type `_MEM` (design D2; [`Use::Stored`]).
+    pub(super) fn mem_fn(&mut self, call: ast::CallExpr, element: bool, span: Span, use_: Use) -> R<Expr> {
         let word = if element { "_MEMELEMENT" } else { "_MEM" };
-        if !std::mem::take(&mut self.mem_store) {
+        if use_ != Use::Stored {
             let msg = format!("`{word}` gives a `_MEM` block, which can only be stored into a `_MEM` variable");
             return Err(self.error(span, msg));
         }
@@ -80,7 +80,7 @@ impl Checker<'_> {
         own_lock
             && matches!(v.storage, crate::Storage::Param(_))
             && v.dim_count().is_none()
-            && !self.dim_facts.iter().any(|f| match f {
+            && !self.dims.dim_facts.iter().any(|f| match f {
                 super::DimFact::Count { array, .. } => array == p,
                 super::DimFact::Same { arg, param, .. } => arg == p || param == p,
             })
@@ -168,7 +168,7 @@ impl Checker<'_> {
                         return Ok(Named::Ref(Reference::Array(array)));
                     }
                 } else if let Some(array) = self.find_array(&name, suffix) {
-                    self.names.push((SymbolKind::Var(array), t.span));
+                    self.stmt.names.push((SymbolKind::Var(array), t.span));
                     return Ok(Named::Ref(Reference::Array(ArrayRef::Var(array))));
                 }
                 let msg = format!("`{word}` of a name that is no array, written with `()`");
@@ -200,10 +200,7 @@ impl Checker<'_> {
             | ast::Expr::Bin(_) => {}
         }
         // A place of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
-        let outer = self.len_place.replace(span);
-        let e = self.expr(node);
-        self.len_place = outer;
-        let e = e?;
+        let e = self.expr_as(node, Use::Place)?;
         match &e.kind {
             ExprKind::Load(place) => Ok(Named::Ref(Reference::Place(place.clone()))),
             ExprKind::Int(_)
@@ -329,10 +326,10 @@ enum Named {
 impl Checker<'_> {
     /// `_MEMGET(block, offset, type)` (design D4; measured, `verification\v32_x01_accepted`, `x47`–`x56`): the
     /// value of a numeric type, `STRING * n` or a user type at an offset of a block. A user type's value stands only
-    /// as the value stored into a place of that type (the checker's `mem_store`; "Number required for function" as
-    /// a value of `PRINT`, `x55`).
-    pub(super) fn mem_get_fn(&mut self, call: ast::CallExpr, span: Span) -> R<Expr> {
-        let whole = std::mem::take(&mut self.mem_store);
+    /// as the value stored into a place of that type ([`Use::Stored`]; "Number required for function" as a value of
+    /// `PRINT`, `x55`).
+    pub(super) fn mem_get_fn(&mut self, call: ast::CallExpr, span: Span, use_: Use) -> R<Expr> {
+        let whole = use_ == Use::Stored;
         let list = call.arg_list();
         let positions = list.map(|l| l.args()).unwrap_or_default();
         let (b, o, of) = match (&positions[..], list.and_then(|l| l.type_arg())) {

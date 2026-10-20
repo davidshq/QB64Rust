@@ -36,7 +36,7 @@ impl Checker<'_> {
             } else if let Some(l) = ast::LabelDef::cast(stmt)
                 && skips.usable(stmt)
             {
-                self.stmt_error = false;
+                self.stmt.stmt_error = false;
                 let _ = self.declare_label(l, body);
                 self.flush_names();
             }
@@ -158,7 +158,7 @@ impl Checker<'_> {
         });
         self.labels_by_name.insert(key, id);
         self.label_of_def.insert(node.key(), id);
-        self.names.push((SymbolKind::Label(id), t.span));
+        self.stmt.names.push((SymbolKind::Label(id), t.span));
         Ok(())
     }
 
@@ -173,7 +173,7 @@ impl Checker<'_> {
         // The name of a SUB and a colon, with no jump to the name: a call of the SUB.
         if let Some(&proc) = self.sub_call_lines.get(&l.node().key()) {
             if let Some(t) = l.name() {
-                self.names.push((SymbolKind::Proc(proc), t.span));
+                self.stmt.names.push((SymbolKind::Proc(proc), t.span));
             }
             self.push(l.node(), StmtKind::Call { proc, args: Vec::new() });
             return Ok(());
@@ -236,7 +236,7 @@ impl Checker<'_> {
             };
             return Err(self.error(t.span, msg));
         };
-        self.names.push((SymbolKind::Label(id), t.span));
+        self.stmt.names.push((SymbolKind::Label(id), t.span));
         Ok(id)
     }
 
@@ -277,7 +277,7 @@ impl Checker<'_> {
                 format!("`RESTORE {shown}`: more than one SUB, FUNCTION or the main module has a label `{shown}`");
             return Err(self.error(t.span, msg));
         }
-        self.names.push((SymbolKind::Label(id), t.span));
+        self.stmt.names.push((SymbolKind::Label(id), t.span));
         self.push(node, StmtKind::Restore(Some(id)));
         Ok(())
     }

@@ -58,7 +58,7 @@ impl Checker<'_> {
         if !skips.usable(header) {
             return None;
         }
-        self.stmt_error = false;
+        self.stmt.stmt_error = false;
         let result = self.unjoined(NoJoin::Header, check).ok();
         self.flush_names();
         result
@@ -239,7 +239,7 @@ impl Checker<'_> {
         let t = self.need(next.name(), next.node().span())?;
         let (name, suffix) = self.split_name(t)?;
         if self.lookup_var(name, suffix) == Some(var) {
-            self.names.push((SymbolKind::Var(var), t.span));
+            self.stmt.names.push((SymbolKind::Var(var), t.span));
             return Ok(());
         }
         let msg = format!(
@@ -471,7 +471,7 @@ impl Checker<'_> {
     /// its header has a parse error; then the statements inside are checked one by one, as everywhere else.
     fn marked_block(&mut self, node: Node, block: BlockParts, skips: &Skips) {
         if block.header.is_none_or(|h| skips.usable(h)) && !skips.past_cap(node) {
-            self.stmt_error = false;
+            self.stmt.stmt_error = false;
             let _ = self.error(first_token_span(node), block.error);
             self.flush_names();
         }

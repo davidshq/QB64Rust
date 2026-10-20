@@ -1,7 +1,7 @@
 //! Calls of built-in functions: one checker for every function `sema` compiles (design D2 of `m2-core-builtins`).
 //! Which functions, their rules and result types: `crate::builtins`.
 
-use super::expr::conv;
+use super::expr::{Use, conv};
 use super::ops::{held, rotated, widest};
 use super::places::numeric_type;
 use super::{Checker, R};
@@ -74,13 +74,12 @@ fn takes_as_is(rule: Rule) -> bool {
 impl Checker<'_> {
     /// A call of a supported built-in. `list` is `None` for the bare name (`ERR`, `_PI`); a function that needs an
     /// argument gets the arity error here, like any other wrong number of arguments.
-    pub(super) fn builtin(&mut self, s: Supported, list: Option<ast::ArgList>, span: Span) -> R<Expr> {
+    pub(super) fn builtin(&mut self, s: Supported, list: Option<ast::ArgList>, span: Span, use_: Use) -> R<Expr> {
         let name = s.name;
         // A block is only stored into a `_MEM` place (design D2 of `m3-mem`): measured, "TYPE '_MEM' required for
         // function" as an argument (`verification\v32_x03`, `x93`–`x96`), "Invalid expression" with a member read
         // (`x02`, `x114`), and a C++ build that fails when it is stored into a number (`x80`).
-        let mem_store = std::mem::take(&mut self.mem_store);
-        if MEM_RESULTS.contains(&name) && !mem_store {
+        if MEM_RESULTS.contains(&name) && use_ != Use::Stored {
             let msg = format!("`{name}` gives a `_MEM` block, which can only be stored into a `_MEM` variable");
             return Err(self.error(span, msg));
         }
@@ -332,7 +331,7 @@ impl Checker<'_> {
         };
         match crate::RuntimePart::of_dependency(dependency) {
             Some(part) => {
-                self.runtime_parts.insert(part);
+                self.settings.runtime_parts.insert(part);
                 Ok(())
             }
             None => Err(self.unsupported(span, format!("`{name}`: a part of the runtime that is not built yet"))),
@@ -407,9 +406,7 @@ impl Checker<'_> {
         let span = node.node().span();
         if !self.gives_block(node) {
             // A place of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
-            let outer = self.len_place.replace(span);
-            let e = self.expr(node);
-            self.len_place = outer;
+            let e = self.expr_as(node, Use::Place);
             if let ExprKind::Load(place) = e?.kind
                 && self.prog.is_mem(self.prog.place_ty(&place))
             {
@@ -445,12 +442,9 @@ impl Checker<'_> {
         if whole && self.member_array(node)?.is_some() {
             return Err(self.unsupported(node.node().span(), "`LEN` of a whole member array"));
         }
-        // A whole `TYPE` variable, element or member is a place here, not a value (`Checker::load`). A `LEN` in an
-        // index of this argument sets its own and gives this one back, as the place is loaded after its index.
-        let outer = self.len_place.replace(node.node().span());
-        let e = self.expr(node);
-        self.len_place = outer;
-        let e = e?;
+        // A whole `TYPE` variable, element or member is a place here, not a value (`Checker::load`); an index of
+        // this argument is a value.
+        let e = self.expr_as(node, Use::Place)?;
         // A parameter declared `STRING * n` or `t$n`, named alone: n (design D6; measured, `v21_f_fixed_param`: only
         // here, `LEN(t + "!")` is the string's real length).
         if let (ExprKind::Load(Place::Var(v)), ast::Expr::NameRef(_)) = (&e.kind, node)
@@ -839,13 +833,11 @@ impl Checker<'_> {
                 let msg = format!("a variable that is no array as the array of `{name}`");
                 return Err(self.unsupported(span, msg));
             };
-            self.names.push((crate::SymbolKind::Var(array), t.span));
+            self.stmt.names.push((crate::SymbolKind::Var(array), t.span));
             (array, Vec::new())
         } else {
             // An element of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
-            let outer = self.len_place.replace(span);
-            let e = self.expr(node);
-            self.len_place = outer;
+            let e = self.expr_as(node, Use::Place);
             match e?.kind {
                 ExprKind::Load(Place::Element {
                     array: crate::ArrayRef::Var(array),
@@ -990,7 +982,7 @@ impl Checker<'_> {
                 let msg = format!("an array that is not declared as the variable of `{name}`");
                 return Err(self.unsupported(span, msg));
             };
-            self.names.push((crate::SymbolKind::Var(array), t.span));
+            self.stmt.names.push((crate::SymbolKind::Var(array), t.span));
             let ty = self.prog.var(array).ty;
             if ty == Ty::Str {
                 // Measured: "Cannot pass array of variable-length strings" (`v30_x38`).
@@ -1003,9 +995,7 @@ impl Checker<'_> {
             });
         }
         // A place of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
-        let outer = self.len_place.replace(span);
-        let e = self.expr(node);
-        self.len_place = outer;
+        let e = self.expr_as(node, Use::Place);
         let ExprKind::Load(place) = e?.kind else {
             return Err(self.error(span, format!("`{name}` needs a variable here")));
         };
@@ -1104,7 +1094,7 @@ impl Checker<'_> {
             });
         }
         if form.id.get().callname == "sub__echo" {
-            self.echoes.push(node.span());
+            self.settings.echoes.push(node.span());
         }
         // `LOCK #1, TO 4`: the old compiler takes `TO` for the first record's name ("Name already in use (TO)",
         // measured, `verification\v30_x50`); the template alone would take the record as left out.

@@ -25,6 +25,7 @@ mod proc;
 mod whole;
 
 use blocks::nested_statements;
+use expr::Use;
 use whole::{without_parens, written_whole};
 
 use crate::{ConstId, LabelId, Place, ProcId, Program, Shape, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
@@ -56,7 +57,6 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         .map(|t| (t.span.file, map.file(t.span.file).line_col(t.span.start).0))
         .collect();
     let mut c = Checker {
-        fold,
         map,
         program,
         continued,
@@ -69,7 +69,6 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         param_scopes: Vec::new(),
         broken: HashSet::new(),
         static_procs: HashSet::new(),
-        static_scope: false,
         dim_shared: HashSet::new(),
         dim_shared_plain: HashMap::new(),
         labels_by_name: HashMap::new(),
@@ -78,60 +77,39 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         doubt_words: HashSet::new(),
         sub_call_lines: HashMap::new(),
         diags: Diagnostics::new(),
-        stmt_error: false,
-        console: false,
-        console_only: false,
-        window_hidden: false,
-        asserts: false,
-        exe_icon: None,
-        version_info: None,
-        version_lines: [None; crate::VERSION_STRINGS],
-        echoes: Vec::new(),
-        runtime_parts: std::collections::BTreeSet::new(),
-        names: Vec::new(),
+        at: FileState::new(),
+        settings: Settings::new(fold),
+        stmt: StmtState::default(),
+        dims: DimSolver::default(),
         consts_main: HashMap::new(),
         consts_local: HashMap::new(),
         auto_consts: HashMap::new(),
         fell_back: HashSet::new(),
         used_names: HashMap::new(),
         used_local: HashMap::new(),
-        explicit: false,
         sinks: Vec::new(),
         bad_next: None,
         types_by_name: HashMap::new(),
         types_seen: HashSet::new(),
         type_defs: HashSet::new(),
         dim_shared_array_plain: HashMap::new(),
-        len_place: None,
-        mem_store: false,
         types_marked: HashSet::new(),
-        follow_on: false,
         param_len: HashMap::new(),
         fixed_params: HashMap::new(),
-        defaults: DEFAULTS_AT_START,
         proc_defaults: HashMap::new(),
-        option_base: 0,
-        dynamic_mode: false,
         implicit_names: HashSet::new(),
-        explicit_array: false,
-        no_join: None,
-        dim_facts: Vec::new(),
-        dims_open: HashSet::new(),
-        copy_checks: Vec::new(),
         type_bases: HashMap::new(),
         type_flags: HashSet::new(),
         type_const_bounds: HashMap::new(),
         auto_file: program.after_last_line.map(|t| program.tree(t).file),
         auto_procs: HashSet::new(),
         hidden_procs: Vec::new(),
-        checking: true,
         embeds: Vec::new(),
         embed_parents: HashMap::new(),
         color_file: program.colors.map(|t| program.tree(t).file),
         color_consts: HashSet::new(),
         color_set: None,
         first_color: None,
-        const_at: None,
     };
     c.first_color = c.first_color_line(program);
     let skips = Skips::new(program);
@@ -141,9 +119,9 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // An option is also in force by its precompiler flag, when its only line stands in the `$IF` branch the flag
     // switches off and so is not in the trees (measured, `verification\v26_x54`, `x55`; design D7 of
     // `m2-console-screenhide`).
-    c.explicit = has(b"_EXPLICIT") || program.flags.explicit();
+    c.settings.explicit = has(b"_EXPLICIT") || program.flags.explicit();
     // Measured likewise for arrays (`verification\v24_x256`, `x257`): either option, above or below the use.
-    c.explicit_array = c.explicit || has(b"_EXPLICITARRAY") || program.flags.explicit_array();
+    c.settings.explicit_array = c.settings.explicit || has(b"_EXPLICITARRAY") || program.flags.explicit_array();
     // The main file's statements, and the same with every include statement followed by what it includes (pass 1
     // reads the user types and procedures of included files from these; pass 2 and the label pre-pass descend into
     // includes as they meet them).
@@ -185,9 +163,9 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     let mut declared = Vec::new();
     for &def in &defs {
         let header = def.header().unwrap();
-        c.defaults = c.defaults_at(def);
+        c.at.defaults = c.defaults_at(def);
         let id = if skips.usable(header.node()) {
-            c.stmt_error = false;
+            c.stmt.stmt_error = false;
             let id = c.declare_proc(header);
             c.flush_names();
             id
@@ -213,8 +191,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         c.declare_library(block, &skips, &mut externals);
     }
     for (def, id) in declared {
-        c.stmt_error = false;
-        c.defaults = c.defaults_at(def);
+        c.stmt.stmt_error = false;
+        c.at.defaults = c.defaults_at(def);
         let ok = c.declare_params(def.header().unwrap(), id).is_ok();
         c.flush_names();
         if ok {
@@ -224,7 +202,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         }
     }
     for d in externals {
-        c.stmt_error = false;
+        c.stmt.stmt_error = false;
         let id = d.id();
         let ok = c.external_params(d).is_ok();
         c.flush_names();
@@ -247,7 +225,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // Pass 2: everything in file order (procedures where they stand, included files at their include). The
     // default types start again and are set by each `DEFxxx` as it is met. The helpers of the file included after
     // the last line are known only in that file.
-    c.defaults = DEFAULTS_AT_START;
+    c.at.defaults = DEFAULTS_AT_START;
     c.collect_embeds();
     for (name, _) in &c.hidden_procs {
         c.procs_by_name.remove(name);
@@ -269,28 +247,28 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // when the metacommand that set it stands in a `$IF` branch the flag itself switches off (design D1 of
     // `m2-console-screenhide`; measured, `verification\v26_x26`, `x38`). "No window" comes from the lines that are
     // compiled, so a `$CONSOLE:ONLY` in such a branch leaves the window.
-    c.console |= program.flags.console();
+    c.settings.console |= program.flags.console();
     // So are assertions: the old compiler writes the global from the feature's state, which a `$ASSERTS` met in any
     // round sets (`qb64pe.bas` 13088).
-    c.asserts |= program.flags.get(qb64rust_syntax::pp::Feature::Asserts) != 0;
-    if !c.console {
+    c.settings.asserts |= program.flags.get(qb64rust_syntax::pp::Feature::Asserts) != 0;
+    if !c.settings.console {
         // A program with neither metacommand is one with a window and no console (design D1 of
         // `m3-window-output`; measured, `verification\v27_*`: `console=0`, the same statement code).
         // Measured: "_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first" (`verification\v26_x17`).
-        for at in std::mem::take(&mut c.echoes) {
+        for at in std::mem::take(&mut c.settings.echoes) {
             c.diags
                 .error(at, "`_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`");
         }
     }
     c.check_manifest_fields();
     c.prog.settings = crate::Settings {
-        console: c.console,
-        window: !c.console_only,
-        window_hidden: c.window_hidden,
-        asserts: c.asserts,
-        runtime_parts: std::mem::take(&mut c.runtime_parts),
-        exe_icon: c.exe_icon.take().map(|(icon, _)| icon),
-        version_info: c.version_info.take(),
+        console: c.settings.console,
+        window: !c.settings.console_only,
+        window_hidden: c.settings.window_hidden,
+        asserts: c.settings.asserts,
+        runtime_parts: std::mem::take(&mut c.settings.runtime_parts),
+        exe_icon: c.settings.exe_icon.take().map(|(icon, _)| icon),
+        version_info: c.settings.version_info.take(),
         embedded: c.embedded_files(),
     };
     (c.prog, c.diags)
@@ -505,12 +483,11 @@ struct Checker<'a> {
     /// Procedures whose parameter list has an error: calls of them fail without a second error.
     broken: HashSet<ProcId>,
     /// Procedures with `STATIC` after their header, and whether the body being checked still gives its own
-    /// variables and arrays the life of the program: it does from its header to the end of its first `STATIC`
+    /// ([`FileState::static_scope`]) variables and arrays the life of the program: it does from its header to the end of its first `STATIC`
     /// statement, and below that statement it is a procedure like any other (measured,
     /// `verification\v24_x279`; the old compiler's flag for it is reset by that statement, `qb64pe.bas` 5827,
     /// 8805, 9558).
     static_procs: HashSet<ProcId>,
-    static_scope: bool,
     /// Main-module variables declared with `DIM SHARED` so far (in file order), and the plain names they typed.
     dim_shared: HashSet<VarId>,
     dim_shared_plain: HashMap<String, Ty>,
@@ -524,7 +501,121 @@ struct Checker<'a> {
     /// The lines that are a SUB's name and a colon and call the SUB.
     sub_call_lines: HashMap<(TreeId, u32), ProcId>,
     diags: Diagnostics,
-    stmt_error: bool,
+    /// What follows the file as it is read.
+    at: FileState,
+    /// What the program's metacommands and options set wherever they stand.
+    settings: Settings,
+    /// The statement being checked.
+    stmt: StmtState,
+    /// The number of dimensions of the arrays whose number is found after the walk.
+    dims: DimSolver,
+    /// Constants by name (without suffix): the main module's so far, and those of the procedure being checked.
+    consts_main: HashMap<String, ConstId>,
+    consts_local: HashMap<String, ConstId>,
+    /// The auto-included constants named so far, by their place in the file: the constant each became, or why
+    /// its value is not computed yet (`auto.rs`).
+    auto_consts: HashMap<usize, Result<ConstId, String>>,
+    /// The constants whose value took a correctly rounded one where the old compiler's depends on the machine
+    /// (`DIVERGENCES.md` D-026): a `CONST` that names one warns too, and so does a use of an auto-included one.
+    fell_back: HashSet<ConstId>,
+    /// The first use or declaration of each variable name so far, anywhere, and in the procedure being checked:
+    /// a later `CONST` of the name is an error there (design D6).
+    used_names: HashMap<String, Span>,
+    used_local: HashMap<String, Span>,
+    /// The statement lists of the blocks being checked, innermost last; [`Self::push`] adds to the last one.
+    sinks: Vec<Vec<Stmt>>,
+    /// The last `NEXT` statement (by key) whose variable did not match its `FOR` (`check\blocks.rs`).
+    bad_next: Option<(TreeId, u32)>,
+    /// The user types by name.
+    types_by_name: HashMap<String, TypeId>,
+    /// The main module's `TYPE` blocks met in pass 1 (by key), and those of them that define a type.
+    types_seen: HashSet<(TreeId, u32)>,
+    type_defs: HashSet<(TreeId, u32)>,
+    /// Element types of the plain names of main-module `DIM SHARED` arrays declared so far.
+    dim_shared_array_plain: HashMap<String, Ty>,
+    /// Main-module `TYPE` blocks (by key) that pass 1 marked "not supported yet".
+    types_marked: HashSet<(TreeId, u32)>,
+    /// The parameters declared `STRING * n` or `t$n`, with n: `STRING` parameters whose `LEN` is n (design D6 of
+    /// `m2-numeric-types`).
+    param_len: HashMap<VarId, u32>,
+    /// The `t$n` parameters by procedure, name and n: the name `t$n` in the body means the parameter (`t$` is
+    /// another variable).
+    fixed_params: HashMap<(ProcId, String, u32), VarId>,
+    /// Per `ProcDef` and `DeclareLibraryBlock` node (by key): the table at its header.
+    proc_defaults: HashMap<(TreeId, u32), [Ty; 27]>,
+    /// The names met as `name(…)` or in `LBOUND`/`UBOUND` that name no array and for which none was made, with a
+    /// "not supported yet" mark ([`Self::implicit_array`]). An `ERASE` of such a name is marked too, where any
+    /// other name that is no array is an error.
+    implicit_names: HashSet<String>,
+    /// Per `TYPE` block (by key): `OPTION BASE` as it stands at the block, which the bounds of its member arrays
+    /// go by ([`Self::collect_block_settings`]).
+    type_bases: HashMap<(TreeId, u32), i64>,
+    /// The `TYPE` blocks (by key) that stand below a `$UNSTABLE:TYPEFIELDS`, where the member markers are allowed
+    /// ([`Self::collect_block_settings`]).
+    type_flags: HashSet<(TreeId, u32)>,
+    /// The `TYPE` blocks (by key, with their type) with a dynamic member array whose bounds name a `CONST`: they
+    /// are read when pass 2 reaches the block, below the constants above it ([`Self::type_block`]).
+    type_const_bounds: HashMap<(TreeId, u32), TypeId>,
+    /// The source file of QB64pe's file included after the last line, when the program has it (design D7 of
+    /// `m3-network-embed`).
+    auto_file: Option<FileId>,
+    /// The procedures of that file, and those of them the program's own code cannot call (`_WhatIsMyIP$`): they
+    /// are out of [`Self::procs_by_name`] while the program's own statements are checked.
+    auto_procs: HashSet<ProcId>,
+    hidden_procs: Vec<(String, ProcId)>,
+    /// The program's compiled `$EMBED` lines in file order, and each included tree's `$INCLUDE` (design D1 of
+    /// `m3-network-embed`, `check\embed.rs`).
+    embeds: Vec<embed::EmbedLine>,
+    embed_parents: HashMap<TreeId, (TreeId, u32)>,
+    /// QB64pe's colour file of `$COLOR` (design D8 of `m3-constant-evaluation`), its constants, the set the first
+    /// `$COLOR` checked chose (1 `:0`, 2 `:32`), and the place in the old compiler's first pass (an offset of the
+    /// main file, [`Self::main_offset`]) of the first `$COLOR` line ([`StmtState::const_at`] is that place of the
+    /// `CONST` being checked).
+    color_file: Option<FileId>,
+    color_consts: HashSet<ConstId>,
+    color_set: Option<u8>,
+    first_color: Option<u32>,
+}
+
+/// What follows the file as it is read ([`Checker::at`]): each holds from the statement that sets it on, in file
+/// order.
+struct FileState {
+    /// The default type of a name without a suffix or `AS` clause, by its first letter: A to Z, then `_` (design
+    /// D2). It is the table at the point of the file being read: pass 1 sets it from [`Checker::proc_defaults`] for
+    /// each header, pass 2 changes it at each `DEFxxx` and `_DEFINE` statement, wherever that stands.
+    defaults: [Ty; 27],
+    /// `OPTION BASE` as it stands at this point of the file, 0 or 1 (design D3): the lower bound of a dimension
+    /// written without `TO`. Like the default types it follows the file and nothing else.
+    option_base: i64,
+    /// `$DYNAMIC` is in effect at this point of the file (the last of `'$DYNAMIC` and `'$STATIC` above it): a `DIM`
+    /// with constant bounds then makes a dynamic array. It follows the file too (measured,
+    /// `verification\v24_b_metacommand*`).
+    dynamic_mode: bool,
+    /// No `$CHECKING:OFF` is in force at this point of the file (design D8; read in that file only).
+    checking: bool,
+    /// Whether the body being checked still gives its own variables and arrays the life of the program
+    /// ([`Checker::static_procs`]).
+    static_scope: bool,
+    /// The follow-on rule is on (design D10): a declaration was marked "not supported yet", so real errors are
+    /// dropped from here on.
+    follow_on: bool,
+}
+
+impl FileState {
+    fn new() -> FileState {
+        FileState {
+            defaults: DEFAULTS_AT_START,
+            option_base: 0,
+            dynamic_mode: false,
+            checking: true,
+            static_scope: false,
+            follow_on: false,
+        }
+    }
+}
+
+/// What the program's metacommands and options set wherever they stand, read after the walk ([`Checker::settings`]).
+struct Settings {
     /// The program's console and window, from the metacommands of its compiled code, wherever they stand (design
     /// D1 of `m2-console-screenhide`): a `$CONSOLE` or `$CONSOLE:ONLY` was met; a `$CONSOLE:ONLY` was met (the
     /// program has no window); the last of `$SCREENHIDE` and `$SCREENSHOW` met was `$SCREENHIDE`.
@@ -544,115 +635,61 @@ struct Checker<'a> {
     echoes: Vec<Span>,
     /// The optional parts of the runtime the built-ins met so far need.
     runtime_parts: std::collections::BTreeSet<crate::RuntimePart>,
-    fold: bool,
-    /// Names resolved in the current statement, for the symbol table.
-    names: Vec<(SymbolKind, Span)>,
-    /// Constants by name (without suffix): the main module's so far, and those of the procedure being checked.
-    consts_main: HashMap<String, ConstId>,
-    consts_local: HashMap<String, ConstId>,
-    /// The auto-included constants named so far, by their place in the file: the constant each became, or why
-    /// its value is not computed yet (`auto.rs`).
-    auto_consts: HashMap<usize, Result<ConstId, String>>,
-    /// The constants whose value took a correctly rounded one where the old compiler's depends on the machine
-    /// (`DIVERGENCES.md` D-026): a `CONST` that names one warns too, and so does a use of an auto-included one.
-    fell_back: HashSet<ConstId>,
-    /// The first use or declaration of each variable name so far, anywhere, and in the procedure being checked:
-    /// a later `CONST` of the name is an error there (design D6).
-    used_names: HashMap<String, Span>,
-    used_local: HashMap<String, Span>,
     /// `OPTION _EXPLICIT` stands somewhere in the program (it applies to the whole program, design D7).
     explicit: bool,
-    /// The statement lists of the blocks being checked, innermost last; [`Self::push`] adds to the last one.
-    sinks: Vec<Vec<Stmt>>,
-    /// The last `NEXT` statement (by key) whose variable did not match its `FOR` (`check\blocks.rs`).
-    bad_next: Option<(TreeId, u32)>,
-    /// The user types by name.
-    types_by_name: HashMap<String, TypeId>,
-    /// The main module's `TYPE` blocks met in pass 1 (by key), and those of them that define a type.
-    types_seen: HashSet<(TreeId, u32)>,
-    type_defs: HashSet<(TreeId, u32)>,
-    /// Element types of the plain names of main-module `DIM SHARED` arrays declared so far.
-    dim_shared_array_plain: HashMap<String, Ty>,
-    /// The span of a `LEN` argument being typed: a whole user-type place loaded with exactly this span is taken as
-    /// a place (its size), not rejected as a value.
-    len_place: Option<Span>,
-    /// The value being typed is stored into a place of type `_MEM`, so a built-in that gives a block may stand
-    /// there (design D2 of `m3-mem`); the call takes it, so it holds for that call alone.
-    mem_store: bool,
-    /// Main-module `TYPE` blocks (by key) that pass 1 marked "not supported yet".
-    types_marked: HashSet<(TreeId, u32)>,
-    /// The follow-on rule is on (design D10): a declaration was marked "not supported yet", so real errors are
-    /// dropped from here on.
-    follow_on: bool,
-    /// The parameters declared `STRING * n` or `t$n`, with n: `STRING` parameters whose `LEN` is n (design D6 of
-    /// `m2-numeric-types`).
-    param_len: HashMap<VarId, u32>,
-    /// The `t$n` parameters by procedure, name and n: the name `t$n` in the body means the parameter (`t$` is
-    /// another variable).
-    fixed_params: HashMap<(ProcId, String, u32), VarId>,
-    /// The default type of a name without a suffix or `AS` clause, by its first letter: A to Z, then `_` (design
-    /// D2). It is the table at the point of the file being read: pass 1 sets it from [`Self::proc_defaults`] for
-    /// each header, pass 2 changes it at each `DEFxxx` and `_DEFINE` statement, wherever that stands.
-    defaults: [Ty; 27],
-    /// Per `ProcDef` and `DeclareLibraryBlock` node (by key): the table at its header.
-    proc_defaults: HashMap<(TreeId, u32), [Ty; 27]>,
-    /// `OPTION BASE` as it stands at this point of the file, 0 or 1 (design D3): the lower bound of a dimension
-    /// written without `TO`. Like the default types it follows the file and nothing else.
-    option_base: i64,
-    /// `$DYNAMIC` is in effect at this point of the file (the last of `'$DYNAMIC` and `'$STATIC` above it): a `DIM`
-    /// with constant bounds then makes a dynamic array. It follows the file too (measured,
-    /// `verification\v24_b_metacommand*`).
-    dynamic_mode: bool,
-    /// The names met as `name(…)` or in `LBOUND`/`UBOUND` that name no array and for which none was made, with a
-    /// "not supported yet" mark ([`Self::implicit_array`]). An `ERASE` of such a name is marked too, where any
-    /// other name that is no array is an error.
-    implicit_names: HashSet<String>,
     /// `OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY` stands somewhere in the program: an array used without
     /// `DIM` is an error.
     explicit_array: bool,
+    /// Integer constant folding is on (off for tests only, [`check_with`]).
+    fold: bool,
+}
+
+impl Settings {
+    fn new(fold: bool) -> Settings {
+        Settings {
+            console: false,
+            console_only: false,
+            window_hidden: false,
+            asserts: false,
+            exe_icon: None,
+            version_info: None,
+            version_lines: [None; crate::VERSION_STRINGS],
+            echoes: Vec::new(),
+            runtime_parts: std::collections::BTreeSet::new(),
+            explicit: false,
+            explicit_array: false,
+            fold,
+        }
+    }
+}
+
+/// The statement being checked ([`Checker::stmt`]).
+#[derive(Default)]
+struct StmtState {
+    /// The statement had a real error or a "not supported yet" mark (at most one per statement).
+    stmt_error: bool,
+    /// Names resolved in the current statement, for the symbol table.
+    names: Vec<(SymbolKind, Span)>,
     /// What is being checked is a place where an allocation that runs first in the statement would not be what
-    /// the old compiler does ([`Self::implicit_array`], [`Self::unjoined`]).
+    /// the old compiler does ([`Checker::implicit_array`], [`Checker::unjoined`]).
     no_join: Option<NoJoin>,
+    /// The place in the old compiler's first pass of the `CONST` being checked ([`Checker::color_file`]).
+    const_at: Option<u32>,
+}
+
+/// The number of dimensions of the arrays whose number is not known where they are declared, found after every
+/// body is checked ([`Checker::dims`], [`Checker::solve_dims`]).
+#[derive(Default)]
+struct DimSolver {
     /// What says how many dimensions an array has whose number is not known where it is declared, in file order
-    /// ([`DimFact`]); read after every body is checked ([`Self::solve_dims`]).
+    /// ([`DimFact`]).
     dim_facts: Vec<DimFact>,
     /// The arrays listed by `COMMON a()` or `STATIC a()` that were passed to an array parameter before anything
     /// gave them a number of dimensions: theirs is found with the parameter's.
     dims_open: HashSet<VarId>,
     /// The checks of `_ARRAYCOPY` statements whose sides' numbers of dimensions were not known where they stand,
-    /// run after [`Self::solve_dims`] (design D3 of `m3-arraycopy`).
+    /// run after [`Checker::solve_dims`] (design D3 of `m3-arraycopy`).
     copy_checks: Vec<arraycopy::CopyCheck>,
-    /// Per `TYPE` block (by key): `OPTION BASE` as it stands at the block, which the bounds of its member arrays
-    /// go by ([`Self::collect_block_settings`]).
-    type_bases: HashMap<(TreeId, u32), i64>,
-    /// The `TYPE` blocks (by key) that stand below a `$UNSTABLE:TYPEFIELDS`, where the member markers are allowed
-    /// ([`Self::collect_block_settings`]).
-    type_flags: HashSet<(TreeId, u32)>,
-    /// The `TYPE` blocks (by key, with their type) with a dynamic member array whose bounds name a `CONST`: they
-    /// are read when pass 2 reaches the block, below the constants above it ([`Self::type_block`]).
-    type_const_bounds: HashMap<(TreeId, u32), TypeId>,
-    /// The source file of QB64pe's file included after the last line, when the program has it (design D7 of
-    /// `m3-network-embed`).
-    auto_file: Option<FileId>,
-    /// The procedures of that file, and those of them the program's own code cannot call (`_WhatIsMyIP$`): they
-    /// are out of [`Self::procs_by_name`] while the program's own statements are checked.
-    auto_procs: HashSet<ProcId>,
-    hidden_procs: Vec<(String, ProcId)>,
-    /// No `$CHECKING:OFF` is in force at this point of the file (design D8; read in that file only).
-    checking: bool,
-    /// The program's compiled `$EMBED` lines in file order, and each included tree's `$INCLUDE` (design D1 of
-    /// `m3-network-embed`, `check\embed.rs`).
-    embeds: Vec<embed::EmbedLine>,
-    embed_parents: HashMap<TreeId, (TreeId, u32)>,
-    /// QB64pe's colour file of `$COLOR` (design D8 of `m3-constant-evaluation`), its constants, the set the first
-    /// `$COLOR` checked chose (1 `:0`, 2 `:32`), and the place in the old compiler's first pass (an offset of the
-    /// main file, [`Self::main_offset`]) of the first `$COLOR` line; `const_at` is that place of the `CONST` being
-    /// checked.
-    color_file: Option<FileId>,
-    color_consts: HashSet<ConstId>,
-    color_set: Option<u8>,
-    first_color: Option<u32>,
-    const_at: Option<u32>,
 }
 
 /// What pass 1 keeps as it walks the file in order to the `TYPE` blocks: `OPTION BASE` and whether
@@ -719,9 +756,9 @@ impl Checker<'_> {
     /// marked "not supported yet" earlier in file order) it is dropped: the statement fails without a diagnostic,
     /// and the program is rejected by that mark already.
     fn error(&mut self, span: Span, msg: impl Into<String>) -> Failed {
-        if !self.stmt_error {
-            self.stmt_error = true;
-            if !self.follow_on {
+        if !self.stmt.stmt_error {
+            self.stmt.stmt_error = true;
+            if !self.at.follow_on {
                 self.diags.error(span, msg);
             }
         }
@@ -730,8 +767,8 @@ impl Checker<'_> {
 
     /// Like [`Self::error`], for a construct not handled yet: marked "not supported yet", `msg` names it.
     fn unsupported(&mut self, span: Span, msg: impl Into<String>) -> Failed {
-        if !self.stmt_error {
-            self.stmt_error = true;
+        if !self.stmt.stmt_error {
+            self.stmt.stmt_error = true;
             self.diags.unsupported(span, msg);
         }
         Failed
@@ -769,8 +806,8 @@ impl Checker<'_> {
 
     /// Records the names of the statement just checked, unless it had an error (one error per statement).
     fn flush_names(&mut self) {
-        let names = std::mem::take(&mut self.names);
-        if !self.stmt_error {
+        let names = std::mem::take(&mut self.stmt.names);
+        if !self.stmt.stmt_error {
             self.prog.symbols.record(names);
         }
     }
@@ -810,7 +847,7 @@ impl Checker<'_> {
     fn proc_def(&mut self, def: ast::ProcDef, skips: &Skips) {
         if self.cur.is_some() || !self.sinks.is_empty() {
             if let Some(h) = def.header().filter(|h| skips.usable(h.node())) {
-                self.stmt_error = false;
+                self.stmt.stmt_error = false;
                 let _ = self.error(
                     first_token_span(h.node()),
                     "a SUB or FUNCTION from an included file cannot stand inside a SUB, FUNCTION or block",
@@ -821,10 +858,10 @@ impl Checker<'_> {
         let Some(&id) = self.proc_of_def.get(&def.node().key()) else {
             return;
         };
-        self.prog.procs[id.0 as usize].checked = self.checking;
+        self.prog.procs[id.0 as usize].checked = self.at.checking;
         self.cur = Some(id);
         self.local = self.param_scopes[id.0 as usize].clone();
-        self.static_scope = self.static_procs.contains(&id);
+        self.at.static_scope = self.static_procs.contains(&id);
         self.consts_local.clear();
         self.used_local.clear();
         for s in def.body() {
@@ -843,11 +880,11 @@ impl Checker<'_> {
     fn collect_defaults(&mut self, node: Node, skips: &Skips) {
         if let Some(s) = ast::DefTypeStmt::cast(node) {
             if skips.usable(node) {
-                let (stmt_error, names) = (self.stmt_error, std::mem::take(&mut self.names));
+                let (stmt_error, names) = (self.stmt.stmt_error, std::mem::take(&mut self.stmt.names));
                 // With the statement's error "already reported", nothing is recorded.
-                self.stmt_error = true;
+                self.stmt.stmt_error = true;
                 let _ = self.def_type(s);
-                (self.stmt_error, self.names) = (stmt_error, names);
+                (self.stmt.stmt_error, self.stmt.names) = (stmt_error, names);
             }
             return;
         }
@@ -855,7 +892,7 @@ impl Checker<'_> {
             return;
         }
         if ast::ProcDef::cast(node).is_some() || ast::DeclareLibraryBlock::cast(node).is_some() {
-            self.proc_defaults.insert(node.key(), self.defaults);
+            self.proc_defaults.insert(node.key(), self.at.defaults);
         }
         if ast::MetaCommentStmt::cast(node).is_some() {
             let program = self.program;
@@ -936,12 +973,12 @@ impl Checker<'_> {
         if !skips.usable(stmt) {
             return;
         }
-        self.stmt_error = false;
+        self.stmt.stmt_error = false;
         let marks = self.diags.unsupported_count();
         self.statement(stmt);
         self.flush_names();
         if self.diags.unsupported_count() > marks && is_declaration(stmt) {
-            self.follow_on = true;
+            self.at.follow_on = true;
         }
     }
 
@@ -953,7 +990,7 @@ impl Checker<'_> {
     /// stands at the later of two that disagree. A parameter that nothing says anything about keeps no number:
     /// no array is ever passed to it.
     fn solve_dims(&mut self) {
-        let facts = std::mem::take(&mut self.dim_facts);
+        let facts = std::mem::take(&mut self.dims.dim_facts);
         // Classes of arrays that have one number: each array's parent, and the number at each root.
         let mut parent: HashMap<VarId, VarId> = HashMap::new();
         let mut number: HashMap<VarId, usize> = HashMap::new();
@@ -988,7 +1025,7 @@ impl Checker<'_> {
                             } else {
                                 format!("`{shown}` has {n} dimension{}, not {count}", plural(n))
                             };
-                            self.stmt_error = false;
+                            self.stmt.stmt_error = false;
                             let _ = self.error(span, msg);
                         }
                     }
@@ -1012,7 +1049,7 @@ impl Checker<'_> {
                                 "is passed to an array parameter"
                             };
                             let msg = format!("`{shown}` has {n} dimension{}, and {to} that has {m}", plural(n));
-                            self.stmt_error = false;
+                            self.stmt.stmt_error = false;
                             let _ = self.error(span, msg);
                         }
                         (n, m) => {
@@ -1038,9 +1075,9 @@ impl Checker<'_> {
 
     /// Runs `check` as a part of the statement where a joined allocation has no place (`why`).
     fn unjoined<T>(&mut self, why: NoJoin, check: impl FnOnce(&mut Self) -> R<T>) -> R<T> {
-        let before = self.no_join.replace(why);
+        let before = self.stmt.no_join.replace(why);
         let result = check(self);
-        self.no_join = before;
+        self.stmt.no_join = before;
         result
     }
 
@@ -1230,22 +1267,22 @@ impl Checker<'_> {
             Err(self.error(tok.span, "`$INCLUDEONCE` must stand alone on its line"))
         } else if let Some(m) = console_meta(raw) {
             match m {
-                Ok(ConsoleMeta::Console) => self.console = true,
+                Ok(ConsoleMeta::Console) => self.settings.console = true,
                 Ok(ConsoleMeta::ConsoleOnly) => {
                     // Each one selects the console where it stands (measured, `verification\v26_x25`).
-                    self.console = true;
-                    self.console_only = true;
+                    self.settings.console = true;
+                    self.settings.console_only = true;
                     self.push(node, StmtKind::ConsoleOnly);
                 }
                 // The last of the two in the file counts (`qb64pe.bas` 3615–3624).
-                Ok(ConsoleMeta::ScreenHide) => self.window_hidden = true,
-                Ok(ConsoleMeta::ScreenShow) => self.window_hidden = false,
+                Ok(ConsoleMeta::ScreenHide) => self.settings.window_hidden = true,
+                Ok(ConsoleMeta::ScreenShow) => self.settings.window_hidden = false,
                 // The global `asserts` (design D1 of `m3-asserts-debug-zlib`); `$ASSERTS:CONSOLE` gives a console as
                 // `$CONSOLE` does (`qb64pe.bas` 1984; measured, `verification\v33_a06`).
-                Ok(ConsoleMeta::Asserts) => self.asserts = true,
+                Ok(ConsoleMeta::Asserts) => self.settings.asserts = true,
                 Ok(ConsoleMeta::AssertsConsole) => {
-                    self.asserts = true;
-                    self.console = true;
+                    self.settings.asserts = true;
+                    self.settings.console = true;
                 }
                 // No debugger code is written (user, design D2): only the flags, which the parser settles, and the
                 // old compiler's warning from the command line (`qb64pe.bas` 3556).
@@ -1273,7 +1310,7 @@ impl Checker<'_> {
         } else if self.in_after_last_line(tok.span) && (line == b"$CHECKING:OFF" || line == b"$CHECKING:ON") {
             // Only in QB64pe's file included after the last line (design D8 of `m3-network-embed`): the procedures
             // below `$CHECKING:OFF` have no event checks. Anywhere else it is "not supported yet" (below).
-            self.checking = line == b"$CHECKING:ON";
+            self.at.checking = line == b"$CHECKING:ON";
             Ok(())
         } else if line.starts_with(b"$COLOR") {
             // The parser included the colour file (design D8 of `m3-constant-evaluation`); measured,
@@ -1312,7 +1349,7 @@ impl Checker<'_> {
     /// takes any line that starts with `$EXEICON` in upper case; the name stands between the line's first two
     /// `'`, and the rest of the line is dropped (the lexer makes one token of a metacommand's whole line).
     fn exe_icon_meta(&mut self, node: Node, tok: Tok) -> R<()> {
-        if let Some((_, first)) = &self.exe_icon {
+        if let Some((_, first)) = &self.settings.exe_icon {
             // Before the line's own name is read (`e27`). The old compiler names a line of the main file: for a
             // first one inside an included file the line of its `$INCLUDE` (`e31`).
             let line = self.main_line(*first);
@@ -1346,7 +1383,7 @@ impl Checker<'_> {
             shown,
             span: tok.span,
         };
-        self.exe_icon = Some((icon, node.key()));
+        self.settings.exe_icon = Some((icon, node.key()));
         Ok(())
     }
 
@@ -1376,7 +1413,7 @@ impl Checker<'_> {
             if let Err(msg) = version_number(&key, &value) {
                 return Err(self.error(tok.span, msg));
             }
-            let info = self.version_info.get_or_insert_with(Default::default);
+            let info = self.settings.version_info.get_or_insert_with(Default::default);
             // The string version of the same name takes the digits while it is empty (`v40_b`, `v40_c`).
             let (number, string) = if key == "FILEVERSION#" {
                 (&mut info.file_version, crate::VersionInfo::FILE_VERSION)
@@ -1400,13 +1437,13 @@ impl Checker<'_> {
         };
         // `RemoveStringEnclosingPair`: one pair of `'` around a value longer than one byte.
         let quoted = value.len() > 1 && value.first() == Some(&b'\'') && value.last() == Some(&b'\'');
-        let info = self.version_info.get_or_insert_with(Default::default);
+        let info = self.settings.version_info.get_or_insert_with(Default::default);
         info.strings[i] = if quoted {
             value[1..value.len() - 1].to_vec()
         } else {
             value.clone()
         };
-        self.version_lines[i] = Some(tok.span);
+        self.settings.version_lines[i] = Some(tok.span);
         if !quoted {
             // The old compiler's warning with the value on the next line (`qb64pe.bas` 3727; `v40_d`), given with
             // `-w` as every warning is.
@@ -1421,11 +1458,11 @@ impl Checker<'_> {
     /// Windows does not start (measured, `verification\v40_g2`–`g6`). Checked after the walk, at the line that set
     /// the value kept, so a bad value replaced by a later line compiles.
     fn check_manifest_fields(&mut self) {
-        let Some(info) = &self.version_info else {
+        let Some(info) = &self.settings.version_info else {
             return;
         };
         for i in crate::VersionInfo::MANIFEST {
-            let (Some(span), Some(why)) = (self.version_lines[i], manifest_refusal(&info.strings[i])) else {
+            let (Some(span), Some(why)) = (self.settings.version_lines[i], manifest_refusal(&info.strings[i])) else {
                 continue;
             };
             let key = crate::VersionInfo::STRING_KEYS[i];
@@ -1509,8 +1546,8 @@ impl Checker<'_> {
             Err(msg) => Err(self.error(tok.span, msg)),
             Ok(d) => {
                 match d.memory {
-                    Some(MemoryMode::Static) => self.dynamic_mode = false,
-                    Some(MemoryMode::Dynamic) => self.dynamic_mode = true,
+                    Some(MemoryMode::Static) => self.at.dynamic_mode = false,
+                    Some(MemoryMode::Dynamic) => self.at.dynamic_mode = true,
                     None => {}
                 }
                 Ok(())
@@ -1557,7 +1594,7 @@ impl Checker<'_> {
                         let whole = self.lookup_var(name, suffix).filter(|&v| self.is_whole_type(v));
                         match whole {
                             Some(v) => {
-                                self.names.push((SymbolKind::Var(v), t.span));
+                                self.stmt.names.push((SymbolKind::Var(v), t.span));
                                 Place::Var(v)
                             }
                             None => {
@@ -1590,10 +1627,7 @@ impl Checker<'_> {
             // A built-in that gives a block, stored into a `_MEM` place: a copy of its 56 bytes (design D2 of
             // `m3-mem`); a value of a user type `_MEMGET` reads, stored into a place of that type (design D4;
             // measured, `verification\v32_x01_accepted`).
-            self.mem_store = true;
-            let value = self.expr(value_node);
-            self.mem_store = false;
-            let value = value?;
+            let value = self.expr_as(value_node, Use::Stored)?;
             if value.ty != ty {
                 // Measured for two user types: "Expected = similar user defined type" (`v24_x208`).
                 let msg = format!("a value of `TYPE {}` is required here", self.prog.type_name(ty));

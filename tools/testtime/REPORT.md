@@ -3,19 +3,19 @@
 Made by `python tools\testtime\test_time.py` from the transcripts of the Claude Code sessions; do not edit.
 What the columns mean, and what the numbers cannot say: `README.md` beside this file.
 
-347 sessions from 2026-10-02 to 2026-10-20; 6061 runs on record.
+350 sessions from 2026-10-02 to 2026-10-20; 6084 runs on record.
 
 ## In all
 
 | | Time | Share of active time |
 |---|---|---|
-| Active time (Claude working, the user not waited for) | 117 h 35 min | |
-| Inside commands of any kind | 50 h 26 min | 43% |
-| **Waiting for test runs** | 21 h 58 min | 19% |
+| Active time (Claude working, the user not waited for) | 118 h 02 min | |
+| Inside commands of any kind | 50 h 37 min | 43% |
+| **Waiting for test runs** | 22 h 02 min | 19% |
 | Waiting for measurements with the old compiler | 4 h 03 min | 3% |
-| Waiting for builds | 3 h 36 min | 3% |
-| Everything else (reading, thinking, writing code and documents, other commands) | 87 h 57 min | 75% |
-| Test runs and measurements in the background (not waited for) | 17 h 38 min | |
+| Waiting for builds | 3 h 37 min | 3% |
+| Everything else (reading, thinking, writing code and documents, other commands) | 88 h 18 min | 75% |
+| Test runs and measurements in the background (not waited for) | 17 h 49 min | |
 
 ## By day
 
@@ -39,7 +39,7 @@ What the columns mean, and what the numbers cannot say: `README.md` beside this 
 | 2026-10-17 | 30 | 11 h 13 min | 1 h 17 min | 10 min 07 s | 21 min 44 s | 12% | 338 | 3 h 05 min |
 | 2026-10-18 | 8 | 2 h 23 min | 42 min 59 s | 54 s | 7 min 58 s | 30% | 117 | 35 min 46 s |
 | 2026-10-19 | 20 | 7 h 03 min | 1 h 42 min | 11 min 38 s | 15 min 52 s | 24% | 337 | 2 h 27 min |
-| 2026-10-20 | 5 | 1 h 14 min | 35 min 36 s | 38 s | 3 min 05 s | 48% | 70 | 22 min 07 s |
+| 2026-10-20 | 8 | 1 h 40 min | 39 min 46 s | 38 s | 4 min 19 s | 39% | 87 | 33 min 09 s |
 
 A day's runs are those started on it; a session that runs past midnight has its active time on the day it
 started, so a share above 100% can show on the day after.
@@ -48,26 +48,26 @@ started, so a share above 100% can show on the day after.
 
 | Bucket | Kind | Runs | Total | Median | Longest | Passed | Failed | Result not known |
 |---|---|---|---|---|---|---|---|---|
-| test | slice list | 169 | 7 h 39 min | 2 min 01 s | 11 min 24 s | 110 | 7 | 52 |
-| test | tier 1, part (cargo test -p) | 878 | 5 h 19 min | 6 s | 2 h 05 min | 566 | 189 | 123 |
-| test | tier 1 (cargo test) | 677 | 3 h 53 min | 14 s | 3 min 18 s | 153 | 197 | 327 |
-| test | upstream pass list | 93 | 3 h 08 min | 1 min 38 s | 11 min 17 s | 62 | 2 | 29 |
-| test | call-site check | 150 | 2 h 31 min | 16 s | 10 min 04 s | 99 | 30 | 21 |
-| test | repo check | 645 | 1 h 57 min | 6 s | 3 min 45 s | 560 | 50 | 35 |
+| test | slice list | 171 | 7 h 43 min | 2 min 01 s | 11 min 24 s | 112 | 7 | 52 |
+| test | tier 1, part (cargo test -p) | 881 | 5 h 20 min | 6 s | 2 h 05 min | 568 | 189 | 124 |
+| test | tier 1 (cargo test) | 679 | 3 h 55 min | 14 s | 3 min 18 s | 153 | 197 | 329 |
+| test | upstream pass list | 94 | 3 h 09 min | 1 min 33 s | 11 min 17 s | 63 | 2 | 29 |
+| test | call-site check | 151 | 2 h 34 min | 16 s | 10 min 04 s | 100 | 30 | 21 |
+| test | repo check | 647 | 1 h 58 min | 6 s | 3 min 45 s | 562 | 50 | 35 |
 | test | full corpus | 35 | 1 h 23 min | 1 min 23 s | 14 min 36 s | 0 | 23 | 12 |
-| test | fmt | 534 | 1 h 21 min | 5 s | 2 min 30 s | 1 | 59 | 474 |
-| test | clippy | 446 | 1 h 13 min | 6 s | 1 min 51 s | 93 | 71 | 282 |
+| test | fmt | 536 | 1 h 22 min | 5 s | 2 min 30 s | 1 | 59 | 476 |
+| test | clippy | 448 | 1 h 13 min | 6 s | 1 min 51 s | 94 | 71 | 283 |
 | test | differential pass list | 55 | 1 h 12 min | 54 s | 6 min 15 s | 29 | 3 | 23 |
 | test | extension tests (npm) | 161 | 1 h 07 min | 12 s | 8 min 52 s | 103 | 8 | 50 |
 | test | full upstream suite | 35 | 47 min 15 s | 44 s | 8 min 48 s | 0 | 24 | 11 |
 | test | corpus, selected programs | 214 | 46 min 28 s | 7 s | 2 min 02 s | 165 | 26 | 23 |
-| test | openspec validate | 287 | 26 min 35 s | 3 s | 39 s | 188 | 73 | 26 |
+| test | openspec validate | 289 | 26 min 42 s | 3 s | 39 s | 189 | 74 | 26 |
 | test | tests of the Python tools | 135 | 21 min 44 s | 5 s | 1 min 11 s | 100 | 22 | 13 |
 | test | upstream, selected programs | 71 | 17 min 45 s | 10 s | 56 s | 44 | 21 | 6 |
 | test | call-site self-test | 23 | 5 min 39 s | 7 s | 1 min 58 s | 22 | 0 | 1 |
 | test | pass list checked from a full run | 17 | 1 min 47 s | 2 s | 1 min 08 s | 5 | 12 | 0 |
 | test | other suite | 1 | 20 s | 20 s | 20 s | 1 | 0 | 0 |
-| measure | verification programs (old compiler) | 239 | 2 h 45 min | 10 s | 24 min 51 s | | | |
+| measure | verification programs (old compiler) | 240 | 2 h 48 min | 10 s | 24 min 51 s | | | |
 | measure | recording expected results (old compiler) | 196 | 1 h 50 min | 8 s | 21 min 41 s | | | |
 | measure | full corpus (old compiler) | 14 | 1 h 48 min | 6 min 14 s | 15 min 56 s | | | |
 | measure | old compiler run directly | 220 | 1 h 13 min | 3 s | 10 min 03 s | | | |
@@ -77,7 +77,7 @@ started, so a share above 100% can show on the day after.
 | measure | upstream pass list (old compiler) | 4 | 14 min 43 s | 2 min 38 s | 6 min 51 s | | | |
 | measure | full upstream suite (old compiler) | 4 | 9 min 33 s | 3 min 00 s | 3 min 31 s | | | |
 | measure | upstream, selected programs (old compiler) | 5 | 18 s | 4 s | 6 s | | | |
-| build | cargo build | 647 | 3 h 54 min | 11 s | 10 min 02 s | 203 | 118 | 326 |
+| build | cargo build | 652 | 3 h 55 min | 11 s | 10 min 02 s | 203 | 119 | 330 |
 | build | extension build (npm) | 33 | 7 min 57 s | 10 s | 41 s | 0 | 0 | 33 |
 
 ## Runs repeated with nothing edited
@@ -191,8 +191,9 @@ shows it archived (by `openspec archive` or by moving its folder); it ends where
 | const-rulings | archived, not seen | 2 | 2026-10-19 16:19 | 2026-10-19 16:56 (last seen) | 36 min 14 s | 1 min 47 s | 0 s | 0 s | 0 s | 0 s | 0 | 0 s | 0 (0 s) | 0 s |  |
 | verification-compare | archived, not seen | 5 | 2026-10-19 17:31 | 2026-10-20 12:22 (last seen) | 18 h 50 min | 1 h 37 min | 24 min 48 s | 1 min 51 s | 6 min 22 s | 43 min 16 s | 11 | 3 min 18 s | 3 (3 h 31 min) | 1 h 44 min |  |
 | cws-whole-game | archived, not seen | 3 | 2026-10-19 22:38 | 2026-10-20 12:06 (last seen) | 13 h 28 min | 1 h 44 min | 22 min 52 s | 9 min 18 s | 1 min 34 s | 9 min 39 s | 4 | 2 min 28 s | 2 (32 min 22 s) | 17 min 00 s |  |
-| cpp-failure-errors | open | 2 | 2026-10-20 12:36 | 2026-10-20 14:07 (last seen) | 1 h 30 min | 34 min 48 s | 16 min 19 s | 31 s | 1 min 59 s | 12 min 27 s | 11 | 3 min 00 s | 0 (0 s) | 0 s |  |
-| (no change named) |  | 347 | 2026-10-02 14:19 | 2026-10-20 14:02 |  | 26 h 57 min | 1 h 43 min | 1 h 27 min | 11 min 22 s | 3 h 00 min | 56 | 10 min 01 s | 45 (19 h 20 min) | 6 h 14 min |  |
+| cpp-failure-errors | archived | 2 | 2026-10-20 12:36 | 2026-10-20 14:10 | 1 h 33 min | 37 min 36 s | 16 min 22 s | 31 s | 1 min 59 s | 12 min 27 s | 11 | 3 min 00 s | 0 (0 s) | 0 s | 3 min 24 s |
+| m4-checker-groups | open | 2 | 2026-10-20 14:17 | 2026-10-20 14:39 (last seen) | 21 min 49 s | 17 min 50 s | 4 min 00 s | 0 s | 1 min 14 s | 11 min 02 s | 0 | 1 min 23 s | 0 (0 s) | 0 s |  |
+| (no change named) |  | 350 | 2026-10-02 14:19 | 2026-10-20 14:23 |  | 27 h 03 min | 1 h 43 min | 1 h 27 min | 11 min 22 s | 3 h 00 min | 56 | 10 min 01 s | 45 (19 h 20 min) | 6 h 14 min |  |
 
 ## By kind of work
 
@@ -201,25 +202,25 @@ are not shares of time: the transcript does not say how long a piece of writing 
 
 | Kind of work | Actions | Bytes written | Share of bytes written |
 |---|---|---|---|
-| product code | 3745 | 3209368 | 29% |
+| product code | 3782 | 3222161 | 29% |
 | tests and fixtures | 2538 | 2087635 | 19% |
 | measurement preparation | 535 | 516885 | 5% |
-| documents and planning | 3575 | 4197317 | 37% |
+| documents and planning | 3596 | 4215383 | 37% |
 | generated files | 3 | 293 | 0% |
-| scratch files | 638 | 1212291 | 11% |
-| reading | 4490 | 0 |  |
-| test runs | 3074 | 0 |  |
-| measurement runs | 618 | 0 |  |
-| builds | 492 | 0 |  |
-| other commands | 11391 | 0 |  |
-| other | 209 | 8028 | 0% |
+| scratch files | 640 | 1213329 | 11% |
+| reading | 4495 | 0 |  |
+| test runs | 3089 | 0 |  |
+| measurement runs | 619 | 0 |  |
+| builds | 497 | 0 |  |
+| other commands | 11451 | 0 |  |
+| other | 211 | 8028 | 0% |
 
 Actions per change:
 
 | Change | product code | tests and fixtures | measurement preparation | documents and planning | generated files | scratch files | reading | test runs | measurement runs | builds | other commands | other |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | const-rulings | 0 | 0 | 0 | 9 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| cpp-failure-errors | 23 | 3 | 0 | 12 | 0 | 1 | 7 | 31 | 4 | 5 | 58 | 0 |
+| cpp-failure-errors | 23 | 3 | 0 | 16 | 0 | 1 | 7 | 32 | 4 | 5 | 63 | 1 |
 | cws-whole-game | 12 | 66 | 3 | 21 | 0 | 28 | 94 | 51 | 13 | 3 | 243 | 1 |
 | extension-diagnostics | 57 | 11 | 0 | 16 | 0 | 3 | 31 | 36 | 0 | 4 | 88 | 1 |
 | extension-vsix | 135 | 10 | 0 | 32 | 0 | 1 | 33 | 45 | 0 | 5 | 120 | 5 |
@@ -263,7 +264,8 @@ Actions per change:
 | m3-versioninfo | 31 | 8 | 1 | 29 | 0 | 1 | 24 | 41 | 1 | 3 | 105 | 3 |
 | m3-whole-array-assign | 31 | 16 | 3 | 56 | 0 | 6 | 38 | 35 | 9 | 5 | 147 | 1 |
 | m3-window-output | 40 | 77 | 1 | 91 | 0 | 23 | 118 | 38 | 9 | 5 | 71 | 2 |
+| m4-checker-groups | 37 | 0 | 0 | 12 | 0 | 2 | 4 | 13 | 1 | 5 | 31 | 0 |
 | test-parallel-runs | 0 | 10 | 0 | 15 | 0 | 0 | 14 | 6 | 0 | 0 | 20 | 1 |
 | test-while-building | 7 | 10 | 0 | 14 | 0 | 1 | 9 | 15 | 0 | 1 | 30 | 0 |
 | verification-compare | 9 | 59 | 4 | 20 | 0 | 3 | 38 | 55 | 14 | 8 | 176 | 6 |
-| (no change named) | 271 | 512 | 180 | 535 | 0 | 147 | 1318 | 394 | 133 | 33 | 2898 | 97 |
+| (no change named) | 271 | 512 | 180 | 540 | 0 | 147 | 1319 | 395 | 133 | 33 | 2922 | 98 |

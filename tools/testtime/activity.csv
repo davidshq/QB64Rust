@@ -102,6 +102,14 @@ version,session,change,category,actions,bytes
 1,06acca35,m3-typefields,scratch files,3,3920
 1,06acca35,m3-typefields,test runs,25,0
 1,06acca35,m3-typefields,tests and fixtures,15,11998
+1,0753fe94,m4-checker-groups,builds,5,0
+1,0753fe94,m4-checker-groups,documents and planning,8,1168
+1,0753fe94,m4-checker-groups,measurement runs,1,0
+1,0753fe94,m4-checker-groups,other commands,26,0
+1,0753fe94,m4-checker-groups,product code,37,12793
+1,0753fe94,m4-checker-groups,reading,4,0
+1,0753fe94,m4-checker-groups,scratch files,2,1038
+1,0753fe94,m4-checker-groups,test runs,12,0
 1,07b00272,,documents and planning,3,326
 1,07b00272,,other commands,12,0
 1,07b00272,,reading,13,0
@@ -1140,6 +1148,10 @@ version,session,change,category,actions,bytes
 1,6e612bb3,extension-vsix,reading,9,0
 1,6e612bb3,extension-vsix,test runs,15,0
 1,6e612bb3,extension-vsix,tests and fixtures,3,1815
+1,6f06a685,,documents and planning,5,1623
+1,6f06a685,,other commands,9,0
+1,6f06a685,,reading,1,0
+1,6f06a685,,test runs,1,0
 1,6f06e603,,other commands,14,0
 1,6f06e603,,reading,3,0
 1,6f06e603,,test runs,1,0
@@ -1197,6 +1209,11 @@ version,session,change,category,actions,bytes
 1,729041fe,m3-constant-evaluation,tests and fixtures,26,21629
 1,73a9cfe7,,other commands,2,0
 1,741137ec,,other commands,4,0
+1,745c79bc,,other,1,0
+1,745c79bc,,other commands,14,0
+1,745c79bc,m4-checker-groups,documents and planning,4,11742
+1,745c79bc,m4-checker-groups,other commands,5,0
+1,745c79bc,m4-checker-groups,test runs,1,0
 1,749d54cb,,other commands,1,0
 1,752e15a1,,documents and planning,4,10676
 1,752e15a1,,measurement preparation,20,17128
@@ -2269,11 +2286,13 @@ version,session,change,category,actions,bytes
 1,e3272f48,m3-errorline-chr-const,scratch files,2,1912
 1,e3272f48,m3-errorline-chr-const,test runs,2,0
 1,e386a939,,other commands,1,0
-1,e3961321,cpp-failure-errors,documents and planning,1,550
-1,e3961321,cpp-failure-errors,other commands,6,0
+1,e3961321,,other commands,1,0
+1,e3961321,cpp-failure-errors,documents and planning,5,4083
+1,e3961321,cpp-failure-errors,other,1,0
+1,e3961321,cpp-failure-errors,other commands,11,0
 1,e3961321,cpp-failure-errors,product code,4,1020
 1,e3961321,cpp-failure-errors,reading,2,0
-1,e3961321,cpp-failure-errors,test runs,3,0
+1,e3961321,cpp-failure-errors,test runs,4,0
 1,e3fa5b59,,measurement preparation,9,18729
 1,e3fa5b59,,measurement runs,1,0
 1,e3fa5b59,,other commands,22,0

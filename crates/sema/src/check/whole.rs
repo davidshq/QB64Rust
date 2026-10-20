@@ -105,7 +105,7 @@ impl Checker<'_> {
         }
         let (name, suffix) = self.split_name(t)?;
         if let Some(v) = self.find_array(&name, suffix) {
-            self.names.push((SymbolKind::Var(v), t.span));
+            self.stmt.names.push((SymbolKind::Var(v), t.span));
             return Ok(ArrayRef::Var(v));
         }
         let shown = show_bytes(self.text(t.span));
@@ -150,10 +150,10 @@ impl Checker<'_> {
             (None, None, ArrayRef::Var(t), ArrayRef::Var(f)) => {
                 for v in [*t, *f] {
                     if !matches!(self.prog.var(v).storage, Storage::Param(_)) {
-                        self.dims_open.insert(v);
+                        self.dims.dims_open.insert(v);
                     }
                 }
-                self.dim_facts.push(DimFact::Same {
+                self.dims.dim_facts.push(DimFact::Same {
                     arg: *f,
                     param: *t,
                     shown: show_bytes(self.text(st.span)),

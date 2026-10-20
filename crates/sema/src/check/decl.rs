@@ -280,7 +280,7 @@ impl Checker<'_> {
                 let msg = format!("this name as the length of a `STRING * n`: `{shown}`");
                 return Err(self.unsupported(size.span, msg));
             };
-            self.names.push((SymbolKind::Const(c), size.span));
+            self.stmt.names.push((SymbolKind::Const(c), size.span));
             return match fixed_len(i128::from(v)) {
                 Some(n) => Ok(n),
                 None => Err(self.error(size.span, FIXED_LEN_ERROR)),
@@ -305,7 +305,7 @@ impl Checker<'_> {
     /// or `_DEFINE` above this line set for its first letter (design D2). A name that starts with an underscore
     /// has an entry of its own.
     pub(super) fn default_ty(&self, name: &str) -> Ty {
-        self.defaults[letter_slot(name.as_bytes().first().copied().unwrap_or(b'_'))]
+        self.at.defaults[letter_slot(name.as_bytes().first().copied().unwrap_or(b'_'))]
     }
 
     /// `DEFINT a-z, x` (and `DEFLNG`, `DEFSNG`, `DEFDBL`, `DEFSTR`) and `_DEFINE a-z, x AS type`: from this line
@@ -337,7 +337,7 @@ impl Checker<'_> {
             ranges.push((a.min(b), a.max(b)));
         }
         for (a, b) in ranges {
-            self.defaults[a..=b].fill(ty);
+            self.at.defaults[a..=b].fill(ty);
         }
         Ok(())
     }
@@ -374,7 +374,7 @@ impl Checker<'_> {
     /// `STATIC` after its header, down to its first `STATIC` statement (measured, `verification\v24_g_local`,
     /// `v24_f_implicit_sub`, `v24_x279`; slice `s56_proc_arrays`).
     pub(super) fn local_storage(&self, p: ProcId) -> Storage {
-        if self.static_scope {
+        if self.at.static_scope {
             Storage::Static(p)
         } else {
             Storage::Local(p)
@@ -456,7 +456,7 @@ impl Checker<'_> {
                     return Err(self.unsupported(t.span, msg));
                 }
                 self.reserved(t, &key.0, suffix)?;
-                if self.explicit {
+                if self.settings.explicit {
                     return Err(self.undeclared(t, ty));
                 }
                 let id = self.new_var(key.0.clone(), ty, storage);
@@ -466,7 +466,7 @@ impl Checker<'_> {
         };
         let (name, storage) = (self.prog.var(id).name.clone(), self.prog.var(id).storage);
         self.note_var_name(&name, storage, t);
-        self.names.push((SymbolKind::Var(id), t.span));
+        self.stmt.names.push((SymbolKind::Var(id), t.span));
         Ok(id)
     }
 
@@ -481,7 +481,7 @@ impl Checker<'_> {
                 && suffix.is_none_or(|s| suffix_fits(s, ty))
             {
                 let v = proc.result.expect("a FUNCTION has a result variable");
-                self.names.push((SymbolKind::Var(v), t.span));
+                self.stmt.names.push((SymbolKind::Var(v), t.span));
                 return Ok(v);
             }
             if proc.external.is_some() {
@@ -652,7 +652,7 @@ impl Checker<'_> {
                 // The name still refers to the typed variable.
                 let id = self.scope().vars[&(name.clone(), plain_ty)];
                 self.note_var_name(&name, storage, name_tok);
-                self.names.push((SymbolKind::Var(id), name_tok.span));
+                self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
                 continue;
             }
             let key = (name.clone(), ty);
@@ -676,7 +676,7 @@ impl Checker<'_> {
             let id = self.new_var(name.clone(), ty, storage);
             self.scope().vars.insert(key, id);
             self.note_var_name(&name, storage, name_tok);
-            self.names.push((SymbolKind::Var(id), name_tok.span));
+            self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
             if suffix.is_none() && typed {
                 // `DIM x AS T` changes what the plain name means.
                 self.scope().plain.insert(name.clone(), ty);
@@ -742,7 +742,7 @@ impl Checker<'_> {
             node,
         );
         // Below its first `STATIC` statement a procedure with `STATIC` after its header is one like any other.
-        self.static_scope = false;
+        self.at.static_scope = false;
         done
     }
 
@@ -859,7 +859,7 @@ impl Checker<'_> {
                 }
                 return Err(self.error(t.span, format!("`{shown}` is no declared array (`ERASE`)")));
             };
-            self.names.push((SymbolKind::Var(array), t.span));
+            self.stmt.names.push((SymbolKind::Var(array), t.span));
             let var = self.prog.var(array);
             let kind = match var.shape {
                 // An array parameter is cleared or released by what is passed (measured,
@@ -891,7 +891,7 @@ impl Checker<'_> {
             "_EXPLICIT" | "_EXPLICITARRAY" => Ok(()),
             "BASE" => {
                 let base = self.need(stmt.base(), node.span())?;
-                self.option_base = match option_base_of(self.text(base.span)) {
+                self.at.option_base = match option_base_of(self.text(base.span)) {
                     Some(n) => n,
                     None => return Err(self.error(base.span, "`OPTION BASE` takes `0` or `1`")),
                 };
@@ -979,7 +979,7 @@ impl Checker<'_> {
                 Some(&id) => id,
                 None => {
                     self.reserved(name_tok, &name, suffix)?;
-                    if self.explicit {
+                    if self.settings.explicit {
                         // Measured: also when the main module declares the name later in the file
                         // (`v17_f_explicit_shared_before_dim`) or with another type (`..._shared_other_type`).
                         return Err(self.undeclared(name_tok, ty));
@@ -995,7 +995,7 @@ impl Checker<'_> {
                 self.main.plain.insert(name.clone(), ty);
                 self.local.plain.insert(name, ty);
             }
-            self.names.push((SymbolKind::Var(id), name_tok.span));
+            self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
         }
         Ok(())
     }
@@ -1018,7 +1018,7 @@ impl Checker<'_> {
             return Err(self.error(name_tok.span, msg));
         };
         if let Some(&own) = self.local.arrays.get(&key) {
-            self.names.push((SymbolKind::Var(own), name_tok.span));
+            self.stmt.names.push((SymbolKind::Var(own), name_tok.span));
             return Ok(());
         }
         if typed && self.local.array_plain.get(&name).is_some_and(|&t| t != ty) {
@@ -1029,7 +1029,7 @@ impl Checker<'_> {
         if typed {
             self.local.array_plain.insert(name, ty);
         }
-        self.names.push((SymbolKind::Var(id), name_tok.span));
+        self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
         Ok(())
     }
 }

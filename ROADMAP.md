@@ -150,9 +150,9 @@ item 1). Three changes, in this order, before the work of M4 goes on:
 - [x] The extension's diagnostics on save from the new compiler instead of `qb64pe -z`: columns and several
       errors per run (`DECISIONS.md` 2026-10-02)
 - [x] The extension published as a `.vsix` (`vscode-v0.2.0`, 2026-10-19)
-- [ ] The verification families run against the new compiler as a suite, so their recordings become regression
+- [x] The verification families run against the new compiler as a suite, so their recordings become regression
       tests and a change no longer writes slice programs by hand for forms a family covers (tenth review
-      `study\35` §3 item 2, user 2026-10-18)
+      `study\35` §3 item 2, user 2026-10-18; `verification-compare`, `tests\verification\`)
 
 ## M4. Parity
 

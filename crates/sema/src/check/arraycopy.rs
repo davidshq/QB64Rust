@@ -324,7 +324,7 @@ impl Checker<'_> {
             return Err(self.error(span, msg));
         }
         if !known {
-            self.copy_checks.push(CopyCheck {
+            self.dims.copy_checks.push(CopyCheck {
                 form,
                 from: from.clone(),
                 to: to.clone(),
@@ -366,7 +366,7 @@ impl Checker<'_> {
         if suffix.is_none()
             && let Some(v) = self.find_array(&name, None)
         {
-            self.names.push((SymbolKind::Var(v), t.span));
+            self.stmt.names.push((SymbolKind::Var(v), t.span));
             return Ok((ArrayRef::Var(v), shown));
         }
         let msg = if suffix.is_some() {
@@ -391,7 +391,7 @@ impl Checker<'_> {
     /// every array parameter's number found ([`Checker::solve_dims`]); a number still not known counts as 0, which
     /// is the old compiler's "cannot determine the array dimensions" (`x75`).
     pub(super) fn run_copy_checks(&mut self) {
-        for check in std::mem::take(&mut self.copy_checks) {
+        for check in std::mem::take(&mut self.dims.copy_checks) {
             let side = |c: &Self, (array, shown): &(ArrayRef, String)| Side {
                 ty: c.prog.array_ty(array),
                 dims: c.prog.array_dims(array).unwrap_or(0),
@@ -402,7 +402,7 @@ impl Checker<'_> {
                 .or_else(|| range_count(check.form, &s, check.ranges))
                 .or_else(|| start_count(check.form, &d, check.starts));
             if let Some(msg) = msg {
-                self.stmt_error = false;
+                self.stmt.stmt_error = false;
                 let _ = self.error(check.span, msg);
             }
         }

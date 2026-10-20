@@ -3,7 +3,7 @@
 //! (`verification\v18_*`, `study\00` §5); what was not measured is "not supported yet".
 
 use super::decl::Declarer;
-use super::expr::is_builtin_function;
+use super::expr::{Use, is_builtin_function};
 use super::{Checker, DimFact, Failed, NoJoin, R, Scope, Skips};
 use crate::{AllocMode, BinOp, ConvKind, StmtKind, UnOp};
 use crate::{ArrayRef, Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType};
@@ -75,7 +75,7 @@ impl Checker<'_> {
             if !skips.usable(s) {
                 continue;
             }
-            self.stmt_error = false;
+            self.stmt.stmt_error = false;
             let marks = self.diags.unsupported_count();
             if self.declare_type(b).is_ok() {
                 self.type_defs.insert(s.key());
@@ -189,7 +189,7 @@ impl Checker<'_> {
     /// Pass 2 at a `TYPE` block of [`Checker::type_const_bounds`]: the first bounds of its dynamic member arrays
     /// that name a `CONST`, now that the constants above the block are known.
     fn type_const_bounds(&mut self, b: ast::TypeBlock, id: TypeId) {
-        self.stmt_error = false;
+        self.stmt.stmt_error = false;
         let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
         let names = b.fields().flat_map(|field| field.names().collect::<Vec<_>>());
         for (i, f) in names.enumerate() {
@@ -344,7 +344,7 @@ impl Checker<'_> {
         let node = b.node();
         if self.types_seen.contains(&node.key()) {
             if self.types_marked.contains(&node.key()) {
-                self.follow_on = true;
+                self.at.follow_on = true;
             }
             if let Some(&id) = self.type_const_bounds.get(&node.key()) {
                 self.type_const_bounds(b, id);
@@ -355,10 +355,10 @@ impl Checker<'_> {
             return;
         };
         if skips.usable(header) {
-            self.stmt_error = false;
+            self.stmt.stmt_error = false;
             let _ = self.unsupported(header.span(), "`TYPE` blocks inside a SUB, FUNCTION or block");
             self.flush_names();
-            self.follow_on = true;
+            self.at.follow_on = true;
         }
     }
 
@@ -482,7 +482,7 @@ impl Checker<'_> {
         let lives = matches!(storage, Storage::Main | Storage::Static(_));
         let static_bounds = constant
             .clone()
-            .filter(|_| by == Declarer::Dim && lives && !self.dynamic_mode);
+            .filter(|_| by == Declarer::Dim && lives && !self.at.dynamic_mode);
         // `STATIC a(bounds)` is no static array: a dynamic one that is allocated when the program starts, below
         // `$DYNAMIC` or not ([`Shape::Dynamic`], `at_start`; read from the old compiler's C++ and measured,
         // `verification\v24_x278`, `v24_b_metacommand_sub`, slice `s56_proc_arrays`).
@@ -526,7 +526,7 @@ impl Checker<'_> {
             // procedures (measured, `verification\v24_x248`). In a procedure this may be a shared array of the
             // main module: a `DIM` of it there, with constant bounds too, raises error 10 when it runs (`x270`,
             // `x271`).
-            self.names.push((SymbolKind::Var(id), name_tok.span));
+            self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
             self.push(stmt, allocate(id));
             return Ok(());
         }
@@ -592,7 +592,7 @@ impl Checker<'_> {
         if shared {
             self.dim_shared.insert(id);
         }
-        self.names.push((SymbolKind::Var(id), name_tok.span));
+        self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
         if dynamic {
             self.push(stmt, allocate(id));
         }
@@ -653,7 +653,11 @@ impl Checker<'_> {
             let (low, low_value) = match low {
                 Some((e, value)) => (e, value),
                 None => {
-                    let base = if self.is_plain_zero(upper) { 0 } else { self.option_base };
+                    let base = if self.is_plain_zero(upper) {
+                        0
+                    } else {
+                        self.at.option_base
+                    };
                     let e = Expr {
                         span: up.span,
                         ty: Ty::I64,
@@ -814,14 +818,14 @@ impl Checker<'_> {
         // The name of a supported built-in statement that is no function is that error for certain (`v39_x11`:
         // `l = _SNDPLAY(h)`).
         if underscore
-            && !self.follow_on
+            && !self.at.follow_on
             && !is_builtin_function(name, suffix)
             && !crate::builtins::stmt_lookup(name, suffix == Some(Ty::Str)).is_empty()
         {
             self.implicit_names.insert(name.to_string());
             return Err(self.error(t.span, format!("`{shown}(...)`: `{shown}` is a built-in statement")));
         }
-        if self.follow_on || underscore || self.procs_by_name.contains_key(name) {
+        if self.at.follow_on || underscore || self.procs_by_name.contains_key(name) {
             return Err(self.not_an_array(t, name));
         }
         if is_builtin_function(name, suffix) {
@@ -852,7 +856,7 @@ impl Checker<'_> {
         }
         self.reserved(t, name, suffix)?;
         let ty = self.array_key_ty(name, suffix);
-        if self.explicit_array {
+        if self.settings.explicit_array {
             // Measured: "Array 'z' (SINGLE) not defined" (`v24_x105`, `x256`, `x257`).
             let msg = format!(
                 "array `{shown}` ({}) is not declared (`OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`)",
@@ -860,17 +864,17 @@ impl Checker<'_> {
             );
             return Err(self.error(t.span, msg));
         }
-        if self.no_join == Some(NoJoin::RedimBound) {
+        if self.stmt.no_join == Some(NoJoin::RedimBound) {
             // Measured (`v24_x266`, `x268`): dynamic wherever it stands, and allocated as the `REDIM` allocates.
             self.implicit_names.insert(name.to_string());
             let msg = format!("`{shown}(...)`: an array first used in a bound of `REDIM`, without `DIM`");
             return Err(self.unsupported(t.span, msg));
         }
-        let base = self.option_base;
+        let base = self.at.option_base;
         // In a procedure with `STATIC` after its header the array lives for the program: a static one that
         // works, or below `$DYNAMIC` a dynamic one that nothing allocates (measured, `v24_f_implicit_sub`,
         // `v24_x120`).
-        let static_proc = self.cur.filter(|_| self.static_scope);
+        let static_proc = self.cur.filter(|_| self.at.static_scope);
         let (storage, shape) = match (self.cur, static_proc) {
             (Some(p), None) => (
                 Storage::Local(p),
@@ -879,14 +883,14 @@ impl Checker<'_> {
                     at_start: None,
                 },
             ),
-            (_, Some(p)) if self.dynamic_mode => (
+            (_, Some(p)) if self.at.dynamic_mode => (
                 Storage::Static(p),
                 Shape::Dynamic {
                     dims: Some(dims),
                     at_start: None,
                 },
             ),
-            (None, _) if self.dynamic_mode => (
+            (None, _) if self.at.dynamic_mode => (
                 Storage::Main,
                 Shape::Dynamic {
                     dims: Some(dims),
@@ -903,13 +907,13 @@ impl Checker<'_> {
                 (owner.map_or(Storage::Main, Storage::Static), Shape::Static { bounds })
             }
         };
-        let allocated_here = self.cur.is_none() && self.dynamic_mode;
+        let allocated_here = self.cur.is_none() && self.at.dynamic_mode;
         // The allocation runs where the name is evaluated, which is the start of the statement only when the
         // statement writes its code after evaluating all its parts ([`NoJoin`]). Measured for the line of a
         // block (`v24_x262`): before an `IF`, a `FOR`, a `WHILE`, a `DO WHILE` and a `SELECT CASE`, inside the
         // block for an `ELSEIF` (not reached: not allocated) and a `LOOP UNTIL` (on every round); what an error
         // in it skips there was not measured.
-        let place = match self.no_join {
+        let place = match self.stmt.no_join {
             Some(NoJoin::Header) if allocated_here => Some("the line of a block (`IF`, `FOR`, `DO`, …)"),
             Some(NoJoin::Item) if allocated_here => {
                 Some("a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`")
@@ -974,7 +978,7 @@ impl Checker<'_> {
             return n;
         }
         if self.open_dims(array) {
-            self.dim_facts.push(DimFact::Count {
+            self.dims.dim_facts.push(DimFact::Count {
                 array,
                 shown: show_bytes(self.text(t.span)),
                 count: first,
@@ -993,7 +997,7 @@ impl Checker<'_> {
     /// Whether an array's number of dimensions is found from everything that names it, after the bodies: an
     /// array parameter, and a listed array passed to one while it had no number.
     pub(super) fn open_dims(&self, array: VarId) -> bool {
-        matches!(self.prog.var(array).storage, Storage::Param(_)) || self.dims_open.contains(&array)
+        matches!(self.prog.var(array).storage, Storage::Param(_)) || self.dims.dims_open.contains(&array)
     }
 
     /// The element `array(index, …)` named by a call node: one index per dimension, each converted to `_INTEGER64`
@@ -1013,7 +1017,7 @@ impl Checker<'_> {
     fn element_at(&mut self, array: VarId, args: Vec<ast::Expr>, t: Tok, span: Span) -> R<Place> {
         let dims = self.settle_dims(array, args.len(), t, span);
         let index = self.indexes(args, dims, t, span)?;
-        self.names.push((SymbolKind::Var(array), t.span));
+        self.stmt.names.push((SymbolKind::Var(array), t.span));
         Ok(Place::Element {
             array: ArrayRef::Var(array),
             index,
@@ -1216,7 +1220,7 @@ impl Checker<'_> {
         if let Some(v) = self.lookup_var(head.to_string(), None)
             && matches!(self.prog.var(v).ty, Ty::User(_))
         {
-            self.names.push((SymbolKind::Var(v), t.span));
+            self.stmt.names.push((SymbolKind::Var(v), t.span));
             return self.members(Place::Var(v), path, suffix, t).map(Some);
         }
         if matches!(self.array_key_ty(head, None), Ty::User(_)) && self.find_array(head, None).is_some() {
@@ -1486,13 +1490,13 @@ impl Checker<'_> {
                     return Err(self.error(upper.node().span(), msg));
                 }
                 // Not measured: whether the number 0 keeps its rule of a `DIM` here (0 to 0 under base 1).
-                None if self.option_base != 0 && self.is_plain_zero(upper) => {
+                None if self.at.option_base != 0 && self.is_plain_zero(upper) => {
                     let msg = format!("`REDIM {shown}(0)` of a member array under `OPTION BASE 1`");
                     return Err(self.unsupported(upper.node().span(), msg));
                 }
                 // The upper bound alone goes by `OPTION BASE` as it stands at the `REDIM` (measured,
                 // `verification\v24_x322`, `x323`).
-                None => self.option_base,
+                None => self.at.option_base,
             };
             let u = self.constant_bound(upper)?;
             given.push((l, u));
@@ -1609,7 +1613,7 @@ impl Checker<'_> {
                     .lookup_var(name, suffix)
                     .filter(|&v| matches!(self.prog.var(v).ty, Ty::User(_)));
                 Ok(var.map(|v| {
-                    self.names.push((SymbolKind::Var(v), t.span));
+                    self.stmt.names.push((SymbolKind::Var(v), t.span));
                     Place::Var(v)
                 }))
             }
@@ -1633,9 +1637,9 @@ impl Checker<'_> {
     /// invalid", also as an argument for a parameter that is no user type, `verification\v24_x214`). A `_BIT`
     /// place's value is held in its storage type and believed the place's `_BIT` type ([`Ty::held_value`]); a
     /// `STRING * n` place's value is a `STRING`.
-    pub(super) fn load(&mut self, place: Place, span: Span) -> R<Expr> {
+    pub(super) fn load(&mut self, place: Place, span: Span, use_: Use) -> R<Expr> {
         let ty = self.prog.place_ty(&place);
-        if self.len_place == Some(span) && matches!(ty, Ty::User(_)) {
+        if use_ == Use::Place && matches!(ty, Ty::User(_)) {
             // `LEN` of a whole `TYPE` place (`check\builtins.rs`): its size, never a value.
             return Ok(Expr {
                 span,
@@ -1690,7 +1694,7 @@ impl Checker<'_> {
                 if !self.open_dims(a) && !common {
                     self.settle_dims(a, 1, t, span);
                 }
-                self.names.push((SymbolKind::Var(a), t.span));
+                self.stmt.names.push((SymbolKind::Var(a), t.span));
                 ArrayRef::Var(a)
             }
             (None, ast::Expr::Call(c)) if c.arg_list().is_some_and(|l| l.args().is_empty()) => {
@@ -1740,10 +1744,7 @@ impl Checker<'_> {
             return Err(self.error(span, format!("`{word}` takes 1 argument")));
         };
         // An element or variable of a user type is a place here, not a value, as for `LEN` ([`Self::load`]).
-        let outer = self.len_place.replace(arg.node().span());
-        let e = self.expr(arg);
-        self.len_place = outer;
-        let e = e?;
+        let e = self.expr_as(arg, Use::Place)?;
         let ExprKind::Load(place) = e.kind else {
             // Measured: "Expected reference to a variable/array" for a literal, an expression, a function call
             // (`v28_x36`, `x37`, `x40`, `x41`).

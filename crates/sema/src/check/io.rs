@@ -2,6 +2,7 @@
 //! a file, `WRITE`, `INPUT` and `LINE INPUT`, `CLOSE`. What each accepts and rejects is measured
 //! (`verification\v22_b_*`, `v22_x21`–`x60`; `study\00` §5).
 
+use super::expr::Use;
 use super::{Checker, NoJoin, R};
 use crate::builtins::{qb_bits, stmt_lookup};
 use crate::{
@@ -72,7 +73,7 @@ impl Checker<'_> {
     /// measured, `verification\v30_x13`). A file number is no part of it: the parser reads `#` as an item's error.
     pub(super) fn lprint(&mut self, stmt: ast::LprintStmt) -> R<()> {
         // The old compiler links the printer part of the runtime for any `LPRINT` (`qb64pe.bas` 27717).
-        self.runtime_parts.insert(crate::RuntimePart::Printer);
+        self.settings.runtime_parts.insert(crate::RuntimePart::Printer);
         let usings: Vec<_> = stmt.usings().collect();
         self.print_like(stmt.node(), PrintTo::Printer, &usings, stmt.parts().collect())
     }
@@ -219,9 +220,7 @@ impl Checker<'_> {
             return Err(self.unsupported(span, format!("a whole array as the string of `{what}`")));
         }
         // A place of a user type is a place here, so that it gets this statement's error and not an expression's.
-        let outer = self.len_place.replace(span);
-        let e = self.expr(node);
-        self.len_place = outer;
+        let e = self.expr_as(node, Use::Place);
         let ExprKind::Load(place) = e?.kind else {
             return Err(self.error(
                 span,

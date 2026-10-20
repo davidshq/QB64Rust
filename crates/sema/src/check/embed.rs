@@ -252,7 +252,7 @@ impl Checker<'_> {
             return Err(self.error(t.span, msg));
         };
         self.embeds[i].used = true;
-        self.runtime_parts.insert(crate::RuntimePart::Embed);
+        self.settings.runtime_parts.insert(crate::RuntimePart::Embed);
         Ok(Expr {
             span,
             ty: Ty::Str,

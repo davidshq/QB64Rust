@@ -74,7 +74,7 @@ impl Checker<'_> {
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);
-        self.names.push((SymbolKind::Proc(id), name_tok.span));
+        self.stmt.names.push((SymbolKind::Proc(id), name_tok.span));
         Ok(id)
     }
 
@@ -117,7 +117,7 @@ impl Checker<'_> {
     /// parameters are unknown.
     fn not_broken(&mut self, p: ProcId) -> R<()> {
         if self.broken.contains(&p) {
-            self.stmt_error = true;
+            self.stmt.stmt_error = true;
             return Err(Failed);
         }
         Ok(())
@@ -147,7 +147,7 @@ impl Checker<'_> {
                 self.fixed_params.insert(key, v);
                 self.param_len.insert(v, n);
                 self.prog.procs[id.0 as usize].params.push(v);
-                self.names.push((SymbolKind::Var(v), name_tok.span));
+                self.stmt.names.push((SymbolKind::Var(v), name_tok.span));
                 continue;
             }
             let (name, suffix) = self.split_name(name_tok)?;
@@ -219,7 +219,7 @@ impl Checker<'_> {
                 self.param_len.insert(v, n);
             }
             self.prog.procs[id.0 as usize].params.push(v);
-            self.names.push((SymbolKind::Var(v), name_tok.span));
+            self.stmt.names.push((SymbolKind::Var(v), name_tok.span));
         }
         if let ProcKind::Function(ty) = self.prog.proc(id).kind {
             let name = self.prog.proc(id).name.clone();
@@ -286,7 +286,7 @@ impl Checker<'_> {
             scope.array_plain.insert(name, ty);
         }
         self.prog.procs[id.0 as usize].params.push(v);
-        self.names.push((SymbolKind::Var(v), name_tok.span));
+        self.stmt.names.push((SymbolKind::Var(v), name_tok.span));
         Ok(())
     }
 
@@ -328,7 +328,7 @@ impl Checker<'_> {
         let p = self.cur?;
         let (name, n) = fixed_name(self.text(t.span))?;
         let v = *self.fixed_params.get(&(p, name, n?))?;
-        self.names.push((SymbolKind::Var(v), t.span));
+        self.stmt.names.push((SymbolKind::Var(v), t.span));
         Some(v)
     }
 
@@ -378,7 +378,7 @@ impl Checker<'_> {
                 }
                 let nodes = self.present_args(stmt.arg_list())?;
                 let args = self.args(p, name_tok, &nodes, node.span())?;
-                self.names.push((SymbolKind::Proc(p), name_tok.span));
+                self.stmt.names.push((SymbolKind::Proc(p), name_tok.span));
                 self.push(node, StmtKind::Call { proc: p, args });
                 Ok(())
             }
@@ -634,7 +634,7 @@ impl Checker<'_> {
                 return Err(self.error(span, msg));
             }
             let count = self.prog.array_dims(&array).expect("a member array has its bounds");
-            self.dim_facts.push(DimFact::Count {
+            self.dims.dim_facts.push(DimFact::Count {
                 array: param,
                 shown: self.prog.var(param).name.to_ascii_lowercase(),
                 count,
@@ -688,7 +688,7 @@ impl Checker<'_> {
             },
             None => {
                 if !matches!(self.prog.var(array).storage, Storage::Param(_)) {
-                    self.dims_open.insert(array);
+                    self.dims.dims_open.insert(array);
                 }
                 DimFact::Same {
                     arg: array,
@@ -699,8 +699,8 @@ impl Checker<'_> {
                 }
             }
         };
-        self.dim_facts.push(fact);
-        self.names.push((SymbolKind::Var(array), t.span));
+        self.dims.dim_facts.push(fact);
+        self.stmt.names.push((SymbolKind::Var(array), t.span));
         Ok(Arg::Array(ArrayRef::Var(array)))
     }
 
@@ -735,7 +735,7 @@ impl Checker<'_> {
         }
         let nodes = self.present_args(args)?;
         let args = self.args(p, t, &nodes, span)?;
-        self.names.push((SymbolKind::Proc(p), t.span));
+        self.stmt.names.push((SymbolKind::Proc(p), t.span));
         Ok(Expr {
             span,
             ty: ty.held_value(),
