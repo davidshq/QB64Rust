@@ -96,7 +96,6 @@ compiled but not checked by a run:
 | A whole array `e()` as the string of `FIELD`, `LSET` or `RSET` | The old compiler takes it as the array's first element with no bounds check (of an array that is not allocated: whatever lies there). "Not supported yet"; also under "QB64pe behaviours to review" | `verification\v30_x109`, `x153` |
 | A whole array `a()` as a value of `PRINT USING` or as a part of `_IIF` | An error here, as a whole array is in every expression; the old compiler takes it as element 0 | `verification\v30_x18`, `x99` |
 | `GET #1, , und()` and `PUT` with an array that is not declared | The old compiler accepts it, also `und$()`, although a declared array of variable-length strings is rejected; "not supported yet" | `verification\v30_x176`–`x178`; `tests\frontend\file_get_put_ir.bas` has the declared forms |
-| `GET #1, , a` where only an array `a` declared with `DIM … AS` exists | The old compiler makes a new SINGLE scalar `a` (`verification\v30_x67`); a plain scalar beside an array typed by `DIM … AS` is marked everywhere (the row of `m2-defxxx-common-arrays`) | `verification\v30_x67` |
 | An `_UNSIGNED _INTEGER64` literal above the `_INTEGER64` range (`18446744073709551615`) | "Not supported yet: unsigned literals", older than this step; the slice programs make the value by `u = 0: u = u - 1` | `tests\corpus\slice\s78_choice_min_shifts.bas` |
 | `LPRINT` and `CHAIN` are compiled, and no test runs them | `LPRINT` prints a page on the default printer; `CHAIN` starts `qb64pe.exe -c` beside the program through `cmd` (user, `DECISIONS.md` 2026-10-13). `238_chain` on `slice.list` reaches `sub_chain` with a name that is not there; no test chains to a program that exists (gap noted by the user, `DECISIONS.md` 2026-10-16). Their calls are compared by `tests\callsite\lprint_*.bas` and `chain_*.bas`; `s82_print_using_file` and `s87_chain_not_reached` hold them as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
 | What a format of `PRINT USING` prints, and what a file holds after `GET` and `PUT`, are shown once per topic | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; more lines would test libqb | Design, Non-Goals |
@@ -113,10 +112,9 @@ What the old compiler accepts and the new one still marks "not supported yet":
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `_MEM`, `_MEMELEMENT`, `_MEMGET`, `_MEMPUT` and `_MEMFILL` of a value of a `TYPE` that holds a `STRING` | Such a value holds the pointer of its string; what the old compiler's helpers give for it was not measured | `sema\src\check\mem.rs`, `block_reference`, `bytes_reference` |
+| `_MEM`, `_MEMELEMENT`, `_MEMGET`, `_MEMPUT` and `_MEMFILL` of a value of a `TYPE` that holds a `STRING` | Such a value holds the pointer of its string; what the old compiler's helpers give for it was not measured, but for `_MEM` of a whole array of it: no error, 48 bytes for 4 elements of a `STRING` and a LONG (`verification\v48_x11`; `LEN` of the same array is an error) | `sema\src\check\mem.rs`, `block_reference`, `bytes_reference` |
 | A reference through an element of a member array that is not its last step (`x(0).n(1).q`), or to a member array of user-type elements | The old compiler's rules for such paths were not measured | `unmeasured_path` |
 | `_MEM(nx())` of a name that is no array; `_OFFSET` of an element, member or array of variable-length strings; `_MEMGET`, `_MEMPUT` and `_MEMFILL` with an element or member of them | Not measured (what `_MEM` and `_MEMPUT` do with such strings and arrays of them is: errors, `verification\v32_x15`, `x16`, `x39`) | `check\mem.rs` |
-| `LEN(p(0).a())`, `LEN` of a whole member array | The old compiler takes it (`qb64pe.bas` 20652); its size was not measured. Holds `arrays/test_mem_vs_len` | `check\builtins.rs`, `len` |
 | `$CHECKING:OFF` and the forms the old compiler writes without checks (`sub__memfill_nochecks`, the inline checks left out) | Decided with the proposal: a step of its own (`DECISIONS.md` 2026-10-14) | design of `m3-mem`, Non-Goals |
 
 (`_INFLATE$`, `_DEFLATE$`, `_BASE64ENCODE$` and `_BASE64DECODE$`, the last row here, came in with
@@ -225,6 +223,19 @@ marks "not supported yet", and what is left out:
 | `ON STRIG(1 GOSUB h` and `ON TIMER(1 GOSUB h`: a keyword where `,` or `)` is expected in an argument list is "not supported yet" (the old compiler: "Expected )") | The parser's general mark for a word inside an argument list, not `ON STRIG`'s | `verification\v47_x08` |
 | `C:name` in `$EXEICON` and `$EMBED` | The rows of `m3-sound` and `m3-network-embed` above | design D3 |
 | A test with a game controller attached | The tests run with none; the call-site check holds every call (`event_strig_*`, `stick_*`, `strig_*`, `device*`, …) | design Non-Goals |
+
+**Left marked by `m4-names-arrays`** (2026-10-21: a scalar and an array of one name, `REDIM name [AS type]` in a
+procedure, `TYPE` blocks anywhere, `LEN` of a whole array). What the old compiler accepts and the new one still
+marks "not supported yet", what it accepts and the old compiler rejects, and what is left out:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| An array without `AS` beside one listed by `COMMON name() AS type` (`COMMON SHARED g() AS DOUBLE: DIM g(3)`) | Not measured; the old compiler keeps a list of its own for `COMMON` (`qb64pe.bas` 9296) | design D2; `tests\frontend\names_arrays_errors.bas` |
+| `LEN(x())` and `_MEM(x())` of a name that is no array | The old compiler makes `x` an array used without `DIM` there (`LEN` 44: 11 SINGLEs); `x()` with nothing between the parentheses makes none here | `verification\v48_x04`, `x14` |
+| `LEN` of a whole array of a `TYPE` with a `_DYNAMIC` member array, and of a whole `_DYNAMIC` member array | Not measured (`LEN` of such a value is an error, `v35_x20`) | `check\builtins.rs` `len_whole` |
+| `LEN` of a whole member array of variable-length strings (`TYPE t: s(3) AS STRING …`, `LEN(x.s())`) | The old compiler gives 32 for four elements, likely 8 bytes (a pointer) each, where a whole array of strings is an error (`v48_x01`); one program only, and a number no program can use: other bounds, dimensions and the C++ it writes not measured | `verification\v48_x30`; `tests\frontend\names_arrays_errors.bas` |
+| A parameter typed by a `TYPE` whose block stands below the procedure's header is accepted; the old compiler rejects it ("Illegal SUB/FUNCTION parameter") | Found by `v48`; true of top-level blocks before the change. A known bug in `STATUS.md` | `verification\v48_x12`, `x25` |
+| A whole array as a value (`PRINT a()`, `SWAP x(), y()`, `READ a()`), the old compiler's errors for names that are no array or no SUB, a built-in's name with a type suffix (`LEN$`, `base$`) | Left for later by the user (`DECISIONS.md` 2026-10-20) | design Non-Goals |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -347,6 +358,9 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `_STATUSCODE` of a negative handle that was never opened (`_STATUSCODE(-5)`) ends the program with an access violation (exit 139), where `_CONNECTED`, `_CONNECTIONADDRESS$`, `EOF`, `LOF`, `GET` and `PUT` of it raise error 52 (the user kept QB64pe's way for now, `DECISIONS.md` 2026-10-17) | Error 52, as the other functions raise. libqb's (`func__statusCode`), so a change is a change to the runtime | `m3-network-embed` (`verification\v44_x59`, `x60`–`x68`) |
 | `$EMBED` takes any line that starts with the word (`$EMBEDX:'…'`, `$EMBED '…''h'` without the colon and the comma) and drops the rest of its line; two files are the same only when their names are the same text with the folder in front (`./a/../a/f` embeds `./a/f` a second time, `./d\f` embeds `./d/f`; only `./` and `.\` count as one) (the user kept QB64pe's way, `DECISIONS.md` 2026-10-17) | Reject what is not `$EMBED:'file','handle'` alone on its line; compare the files themselves | `m3-network-embed` (`verification\v44_a_embed`, `x22`, `x35`, `x39`, `x69`, `x70`) |
 | `_DECODEURL$` turns a `%` whose next two characters are not hexadecimal into a byte 0 (`%zz` is one byte 0, `abc%` ends with one) (the user kept QB64pe's way, `DECISIONS.md` 2026-10-17) | Keep such a `%` as it is | `m3-network-embed` (`verification\v44_d_url`) |
+| A plain name beside an array typed by `DIM … AS` is silently a scalar of another type: after `DIM a(3) AS INTEGER`, `a = 1.5` stores into a new SINGLE `a`, and `PUT #1, , a` writes its 4 bytes instead of the array | An error or a warning for a plain scalar beside a typed array of its name | `m4-names-arrays` (`verification\v48_a_scalar_array`, `v30_x67`) |
+| `DIM c(3)` without `AS` beside `DIM c(2) AS DOUBLE` silently makes a second array, reachable only as `c!`: the plain `c(1)` below it is still the DOUBLE one, and `UBOUND(c)` 2; a `REDIM c(3)` gives the DOUBLE array new bounds instead. In a SUB beside a shared typed array, and beside a `STATIC c() AS DOUBLE` list nothing has reached, the new array takes the plain name | One rule for the plain name, or an error for the second declaration | `m4-names-arrays` (`verification\v48_x16`–`x24`, `v24_x126`) |
+| A `TYPE` block in a SUB, a FUNCTION or a block (also one never run, `IF 0 THEN`) defines a type of the whole program, usable above its block and in every procedure; a second block of the name anywhere is "Name already in use" | Types scoped to their procedure, as a local variable is | `m4-names-arrays` (`verification\v48_c_type_anywhere`, `v48_x05`) |
 
 ## Other ideas raised during the study
 

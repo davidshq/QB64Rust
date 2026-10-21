@@ -20,9 +20,8 @@ types_errors.bas:26:8: error: `C` is not a member of `TYPE PT` (`c`)
 types_errors.bas:27:9: error: a name with a type suffix cannot have an `AS` clause
 types_errors.bas:27:9: note: QB64pe: DIM: Expected ,
 types_errors.bas:28:5: error: not supported yet: the `TYPE` variable `p` as a `FOR` variable
-types_errors.bas:31:5: error: not supported yet: `p.x` in a SUB or FUNCTION that does not share the `TYPE` variable `P`
-types_errors.bas:34:5: error: not supported yet: `TYPE` blocks inside a SUB, FUNCTION or block
-types_errors.bas:38:1: error: not supported yet: a `TYPE` without members
-types_errors.bas:39:5: error: expected a field (`name AS type` or `AS type name, ...`) or `END TYPE`
-types_errors.bas:39:5: note: QB64pe: Expected element-name AS type, AS type element-list, or END TYPE
-types_errors.bas:40:1: error: `END TYPE` without `TYPE`
+types_errors.bas:30:5: error: not supported yet: `p.x` in a SUB or FUNCTION that does not share the `TYPE` variable `P`
+types_errors.bas:32:1: error: not supported yet: a `TYPE` without members
+types_errors.bas:33:5: error: expected a field (`name AS type` or `AS type name, ...`) or `END TYPE`
+types_errors.bas:33:5: note: QB64pe: Expected element-name AS type, AS type element-list, or END TYPE
+types_errors.bas:34:1: error: `END TYPE` without `TYPE`

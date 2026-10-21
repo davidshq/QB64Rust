@@ -1239,6 +1239,22 @@ fn strig_handlers_build_and_run() {
     assert_eq!(build_and_run(&d, program), "e 5 \n-1 \n");
 }
 
+/// `LEN` of a whole array built and run (design D5 of `m4-names-arrays`; `verification\v48_d_len_whole`): a
+/// static, a fixed-length-string, a user-type and a whole member array, a dynamic one before and after `ERASE`, and
+/// an array parameter.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn len_of_whole_arrays_builds_and_runs() {
+    let d = scratch("len-whole");
+    let program = "$CONSOLE:ONLY\nTYPE test\na(1 TO 50) AS LONG\nEND TYPE\n\
+                   DIM a(3 TO 7) AS INTEGER, f(4) AS STRING * 3, parent(1) AS test\n\
+                   n = 7\nREDIM d(3 TO n) AS INTEGER\n\
+                   PRINT LEN(a()); LEN(f()); LEN(parent(0).a()); LEN(parent()); LEN(d())\n\
+                   ERASE d\nPRINT LEN(d())\nparam a()\nSYSTEM\n\
+                   SUB param (x() AS INTEGER)\nPRINT LEN(x())\nEND SUB\n";
+    assert_eq!(build_and_run(&d, program), " 10  15  200  400  10 \n 0 \n 10 \n");
+}
+
 /// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies the target's
 /// number of elements, as the old compiler does, but nothing when the source has fewer (`DIVERGENCES.md` D-022: the
 /// old compiler reads past the source's block, `verification\v36_x52`, `v38_d`).

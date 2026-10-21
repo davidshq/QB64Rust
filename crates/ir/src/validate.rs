@@ -287,7 +287,8 @@ impl Validator<'_> {
                         | ExprKind::StrCompare { .. }
                         | ExprKind::Choice { .. }
                         | ExprKind::CallProc { .. }
-                        | ExprKind::AddressOf(_) => false,
+                        | ExprKind::AddressOf(_)
+                        | ExprKind::ArrayBytes(_) => false,
                     };
                     let to = place_ty_checked(self.p, place);
                     if !built_in || to.is_some_and(|t| t != value.ty) {
@@ -1093,6 +1094,18 @@ impl Validator<'_> {
                     for i in index {
                         self.value(i, owner, at);
                     }
+                }
+            }
+            // `LEN` of a whole array: a LONG, of an array whose elements have a size (no `STRING`, no `_BIT`).
+            ExprKind::ArrayBytes(array) => {
+                self.array_ref(&ArrayRef::Var(*array), owner, at, "LEN");
+                let a = self.p.var(*array);
+                // Elements of a size fixed when compiling, as `sema` holds them (`LEN`, `m4-names-arrays`).
+                let unsized_ty = matches!(a.ty, Ty::Str | Ty::Bit { .. })
+                    || crate::holds_strings(&self.p.types, a.ty)
+                    || crate::owns_desc(&self.p.types, a.ty);
+                if v.ty != Ty::I32 || unsized_ty {
+                    self.problem(format!("{at}: the bytes of {} ({:?}) typed {:?}", a.name, a.ty, v.ty));
                 }
             }
             // An array's bytes have no value: they stand only in a function's `Slot::Block` ([`Validator::bytes`]).
@@ -2290,6 +2303,53 @@ mod tests {
                 format!("{at}: argument 2 of _UCharPos takes an array's bytes, not a value"),
                 format!("{at}: the bytes of D as a value"),
                 format!("{at}: the bytes of D as a value"),
+            ]
+        );
+    }
+
+    /// `LEN` of a whole array: only of elements of a size fixed when compiling, a LONG.
+    #[test]
+    fn array_bytes() {
+        let mut p = user_types();
+        p.types[0].members.push(crate::Member {
+            name: "S".into(),
+            ty: Ty::Str,
+            bounds: Vec::new(),
+            dynamic: false,
+        });
+        p.types[1].members.push(crate::Member {
+            name: "V".into(),
+            ty: Ty::I32,
+            bounds: vec![(0, 3)],
+            dynamic: true,
+        });
+        let array = |name: &str, ty| Var {
+            ty,
+            shape: Shape::Static { bounds: vec![(0, 5)] },
+            ..var(name, Storage::Global)
+        };
+        p.vars.extend([
+            array("N", Ty::I32),
+            array("A", Ty::Str),
+            array("U", Ty::User(crate::TypeId(0))),
+            array("W", Ty::User(crate::TypeId(1))),
+        ]);
+        let bytes = |ty, v: u32| Op::Raise(expr(ty, ExprKind::ArrayBytes(VarId(v))));
+        p.main.stmts[0].ops.extend([
+            bytes(Ty::I32, 4),
+            bytes(Ty::I64, 4),
+            bytes(Ty::I32, 5),
+            bytes(Ty::I32, 6),
+            bytes(Ty::I32, 7),
+        ]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: the bytes of N (I32) typed I64"),
+                format!("{at}: the bytes of A (Str) typed I32"),
+                format!("{at}: the bytes of U (User(TypeId(0))) typed I32"),
+                format!("{at}: the bytes of W (User(TypeId(1))) typed I32"),
             ]
         );
     }

@@ -1,0 +1,13 @@
+1. in a list after an array:
+ 300000  4  4 
+ 500000  6  4 
+2. run twice in one call:
+ 0  0 [] 5  1.5 [x] 4  4 
+ 0  0 [] 5  1.5 [x] 4  4 
+3. in a SUB ... STATIC:
+ 1  .5 
+ 2  1 
+4. in a FUNCTION:
+ 3.2  4.2 
+5. main's i untouched: 0 
+exit=0

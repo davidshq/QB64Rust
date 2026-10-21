@@ -81,6 +81,8 @@ arrays/nonzero_bounds_positive
 arrays/put_get_write_read_UDT_fixed_string
 arrays/put_get_write_read_fixed_string
 arrays/retain_test
+arrays/size
+arrays/t001_whole_array_core
 arrays/t002_whole_array_udt_ownership
 arrays/t003_whole_array_member_assign
 arrays/t024_whole_target_bare_source
@@ -194,6 +196,8 @@ arrays/t_qb64pe_refactor_raw_redim_preserve
 arrays/t_qb64pe_refactor_retain_coordinate_payloads
 arrays/t_qb64pe_refactor_retain_descriptor_udt
 arrays/t_qb64pe_refactor_retain_nested_owner_array
+arrays/test_mem_vs_len
+arrays/test_mem_vs_len_classic
 arrays/type_dynamic_string_member_array_param
 arrays/type_dynamic_string_slot_32bit
 arrays/type_inline_nested_descriptor_preserve
@@ -358,6 +362,7 @@ types/static_array
 types/static_bad_bit_no_length
 types/static_bad_string_no_length
 types/udt
+types/udt_array
 versioninfo/test
 versioninfo2/test
 versioninfo3/test

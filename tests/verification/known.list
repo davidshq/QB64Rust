@@ -14,7 +14,6 @@ v16_m3_sub_header	not supported yet
 v16_m3_suffix	not supported yet
 v16_m4_line_if_jump_colon	not supported yet
 v16_m4_single_if_else	not supported yet
-v16_m4_type_in_sub	not supported yet
 v16_m5_put_graphics_no_array	not supported yet
 v16_m6_unknown_meta	not supported yet
 v16_m7_bare	not supported yet
@@ -35,9 +34,7 @@ v17_g_long_min_div	D-006
 v17_g_precedence	D-005
 v18_b_index_raises	D-004
 v18_b_member_store	D-004
-v18_d_index_none	not supported yet
 v18_h_string_member	D-004
-v18_h_type_in_sub	not supported yet
 v20_x03_len_suffix	not supported yet
 v20_x06_function_as_statement	not supported yet
 v21_b_bit_overlap	D-009
@@ -64,7 +61,6 @@ v22_x70_read_whole_array	not supported yet
 v22_x79_read_function	not supported yet
 v22_x84_read_paren_variable	not supported yet
 v22_x86_restore_missing_line_number	not supported yet
-v24_d_erase	not supported yet
 v24_h_member_store	D-004
 v24_x07_define_unknown_type	not supported yet
 v24_x106_implicit_assign_function_later	not supported yet
@@ -74,7 +70,6 @@ v24_x112_implicit_underscore_name	not supported yet
 v24_x119_implicit_function_no_args	not supported yet
 v24_x11_define_no_letters	not supported yet
 v24_x121_static_variable_bound	not supported yet
-v24_x126_static_list_other_type	not supported yet
 v24_x195_member_variable_bound	not supported yet
 v24_x196_member_const_bound	not supported yet
 v24_x19_defint_as	not supported yet
@@ -130,8 +125,6 @@ v30_x176_get_undeclared_array	not supported yet
 v30_x177_put_undeclared_array	not supported yet
 v30_x178_get_undeclared_string_array	not supported yet
 v30_x18_using_whole_array	not supported yet
-v30_x47_get_array_no_parentheses	not supported yet
-v30_x67_put_array_name_and_scalar	not supported yet
 v30_x99_iif_array_parts	not supported yet
 v31_x01_accepted	not supported yet
 v32_a_blocks	D-016
@@ -208,3 +201,9 @@ v45_x64	not supported yet
 v47_x08	not supported yet: a keyword where `,` or `)` is expected in an argument list (`ON STRIG(1 GOSUB h`)
 v47_x17	not supported yet: a declaration with blanks around `.` (`DIM a . b`, SOMEDAY.md)
 v47_x18	not supported yet: a declaration with blanks around `.` (`SUB a . b`, SOMEDAY.md)
+v48_x04_len_not_array	not supported yet: `LEN(x())` of a name that is no array, an array used without `DIM` there (SOMEDAY.md)
+v48_x11_mem_type_string_member	not supported yet: `_MEM` of an array of a `TYPE` with a `STRING` member
+v48_x12_type_param_above	bug: a parameter typed by a `TYPE` whose block stands below the procedure is accepted (the old compiler: "Illegal SUB/FUNCTION parameter")
+v48_x14_len_whole_scalar_parens	not supported yet: `LEN(x())` of a name that is no array, an array used without `DIM` there (SOMEDAY.md)
+v48_x25_type_param_top_below	bug: a parameter typed by a `TYPE` whose block stands below the procedure is accepted (the old compiler: "Illegal SUB/FUNCTION parameter")
+v48_x30_len_whole_string_member_array	not supported yet: `LEN` of a whole member array of variable-length strings (SOMEDAY.md)

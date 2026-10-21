@@ -25,8 +25,9 @@ cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` an
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
 23 screens as the old compiler's build; its scripts are whole games now, held to line coverage
-(`cws-whole-game`). Upstream is at 355 of 399; the verification families are a suite of the new compiler, 2628
-programs on `tests\verification\pass.list`. `main` is at the merge of `newer-changes` (pull request 11,
+(`cws-whole-game`). Upstream is at 363 of 403; the verification families are a suite of the new compiler, 2670
+programs on `tests\verification\pass.list`. M4 has two changes built and archived on `m4`, not yet merged into
+`main`: `m4-checker-groups` and `m4-devices-continue-paths` (`56a3269`). `main` is at the merge of `newer-changes` (pull request 11,
 `c8ac126`, 2026-10-20), which holds every change up to `verification-compare`, `cws-whole-game` and
 `cpp-failure-errors`; the extension's first release is tagged `vscode-v0.2.0`.
 
@@ -49,14 +50,12 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. M4's parity work. Its first step, `m4-checker-groups` (the checker's state in four groups, and how a value is
-   used an argument of the expression check, `ROADMAP.md`'s M4 item), is built and archived
-   (`openspec\changes\archive\2026-10-20-m4-checker-groups`). Its second, `m4-devices-continue-paths`
-   (`_CONTINUE`, blanks around `.`, relative `$EXEICON` and `$EMBED` names, device input and `ON STRIG`), is built
-   and its closing set passes (`close.py --check`); it waits for the user's review before it is archived. The
-   upstream report's first line now is `REDIM i` without bounds in a SUB or FUNCTION (2 programs), then one program
-   each (`_CAST`, `_CLIPBOARD$`, `_FILES$`, …). `tests\verification\known.list` (209 programs, each with its
-   reason) holds more such lines.
+1. The third change of M4, `m4-names-arrays`, is built and closed (`close.py --check` passes); it waits for the
+   user's review and archive.
+2. The merge of `m4` into `main` with the full set (working rule 9) after it.
+3. Then the remaining built-ins of the upstream report (`_CAST`, `_CLIPBOARD$`, `_FILES$`, `_MD5$`, `_OS$`,
+   `CLEAR`, one upstream program each). `tests\verification\known.list` (207 programs, each with its reason) holds
+   more such lines.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 
@@ -173,7 +172,10 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
-None.
+- A SUB or FUNCTION parameter typed by a `TYPE` whose block stands below the procedure's header in the file is
+  accepted; the old compiler rejects it ("Illegal SUB/FUNCTION parameter", `verification\v48_x12`, `x25`, on
+  `tests\verification\known.list`). A program it rejects, never a wrong output. Found by `m4-names-arrays`; true of
+  top-level blocks before that change.
 
 ## Queued for later milestones
 

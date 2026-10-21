@@ -90,7 +90,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         sinks: Vec::new(),
         bad_next: None,
         types_by_name: HashMap::new(),
-        types_seen: HashSet::new(),
+        type_blocks: Vec::new(),
         type_defs: HashSet::new(),
         dim_shared_array_plain: HashMap::new(),
         types_marked: HashSet::new(),
@@ -147,7 +147,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     for &stmt in &top {
         c.collect_block_settings(stmt, &skips, &mut at_block);
     }
-    c.declare_types(&statements, &skips);
+    let type_blocks = std::mem::take(&mut c.type_blocks);
+    c.declare_types(&type_blocks, &skips);
     // The default types follow the file (design D2): the table as it stands at each procedure's header.
     for &stmt in &top {
         c.collect_defaults(stmt, &skips);
@@ -528,12 +529,13 @@ struct Checker<'a> {
     bad_next: Option<(TreeId, u32)>,
     /// The user types by name.
     types_by_name: HashMap<String, TypeId>,
-    /// The main module's `TYPE` blocks met in pass 1 (by key), and those of them that define a type.
-    types_seen: HashSet<(TreeId, u32)>,
+    /// Every `TYPE` block of the program in file order, wherever it stands, as pass 1 lists them.
+    type_blocks: Vec<ast::TypeBlock<'a>>,
+    /// The `TYPE` blocks of pass 1 (by key) that define a type.
     type_defs: HashSet<(TreeId, u32)>,
     /// Element types of the plain names of main-module `DIM SHARED` arrays declared so far.
     dim_shared_array_plain: HashMap<String, Ty>,
-    /// Main-module `TYPE` blocks (by key) that pass 1 marked "not supported yet".
+    /// `TYPE` blocks (by key) that pass 1 marked "not supported yet".
     types_marked: HashSet<(TreeId, u32)>,
     /// The parameters declared `STRING * n` or `t$n`, with n: `STRING` parameters whose `LEN` is n (design D6 of
     /// `m2-numeric-types`).
@@ -905,7 +907,9 @@ impl Checker<'_> {
             self.collect_defaults(n, skips);
         }
     }
+}
 
+impl<'a> Checker<'a> {
     /// Pass 1 of `OPTION BASE` (design D8 of `m2-defxxx-common-arrays`; measured, `verification\v24_x182`,
     /// `x183`, `x217`): the `TYPE` blocks are read before the statements, and a member array declared without
     /// `TO` starts at the base in effect where its block stands. Walks the file in order as
@@ -913,11 +917,14 @@ impl Checker<'_> {
     /// whether or not it runs) and keeps the base at each `TYPE` block. A statement with an error changes
     /// nothing here and is reported by pass 2.
     ///
+    /// The walk lists every `TYPE` block in file order, in the main module, a procedure or a block alike, for
+    /// [`Self::declare_types`] (design D4 of `m4-names-arrays`).
+    ///
     /// `$UNSTABLE:TYPEFIELDS` is read in the same walk (design D1 of `m3-typefields`; `qb64pe.bas` 2071–2090):
     /// the old compiler sets the flag as it reads the lines in order, before its first pass, so it allows the
     /// markers in the blocks below it, also after the first statement, and not in a `$IF` branch that is not taken
     /// (measured, `verification\v35_x14`, `x15`, `x45`, `x47`).
-    fn collect_block_settings(&mut self, node: Node, skips: &Skips, at: &mut BlockSettings) {
+    fn collect_block_settings(&mut self, node: Node<'a>, skips: &Skips, at: &mut BlockSettings) {
         if let Some(s) = ast::OptionStmt::cast(node) {
             let digits = s.base().filter(|_| skips.usable(node)).map(|t| self.text(t.span));
             if let Some(n) = digits.and_then(decl::option_base_of) {
@@ -935,7 +942,8 @@ impl Checker<'_> {
         if ast::InactiveCode::cast(node).is_some() {
             return;
         }
-        if ast::TypeBlock::cast(node).is_some() {
+        if let Some(b) = ast::TypeBlock::cast(node) {
+            self.type_blocks.push(b);
             self.type_bases.insert(node.key(), at.base);
             if at.typefields {
                 self.type_flags.insert(node.key());
@@ -953,7 +961,9 @@ impl Checker<'_> {
             self.collect_block_settings(n, skips, at);
         }
     }
+}
 
+impl Checker<'_> {
     /// The default types at a procedure's header.
     fn defaults_at(&self, def: ast::ProcDef) -> [Ty; 27] {
         self.defaults_at_node(def.node())

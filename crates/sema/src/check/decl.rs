@@ -447,14 +447,8 @@ impl Checker<'_> {
         let id = match found {
             Some(id) => id,
             None => {
-                let typed_array = self.scope().array_plain.contains_key(&key.0)
-                    || (self.cur.is_some() && self.dim_shared_array_plain.contains_key(&key.0));
-                if suffix.is_none() && typed_array {
-                    // Whether `DIM a(3) AS LONG` types the plain scalar `a` too was not measured.
-                    let shown = show_bytes(self.text(t.span));
-                    let msg = format!("the plain scalar `{shown}` beside an array typed by `DIM … AS`");
-                    return Err(self.unsupported(t.span, msg));
-                }
+                // Beside an array typed by `DIM … AS` the plain scalar is a variable of its own, of the default type
+                // (measured, `verification\v48_a_scalar_array`, `v30_x67`, `v18_d_index_none`).
                 self.reserved(t, &key.0, suffix)?;
                 if self.settings.explicit {
                     return Err(self.undeclared(t, ty));
@@ -612,18 +606,13 @@ impl Checker<'_> {
             let typed = as_clause.is_some() || list_ty.is_some();
             // With nothing between the parentheses, and in a `REDIM` without parentheses, the name is declared as
             // a scalar and no array is made (measured in the main module, `verification\v24_b_dim_empty*`,
-            // `v24_x43`, `x44`, `x86`) and in a procedure (`v24_x273`). `STATIC a()` lists an array (measured,
-            // `v24_g_local`).
+            // `v24_x43`, `x44`, `x86`) and in a procedure (`v24_x273`, `v48_b_redim_scalar`: as `DIM`, and a run
+            // changes nothing). `STATIC a()` lists an array (measured, `v24_g_local`).
             if let Some(bounds) = item.bounds()
                 && (!bounds.ranges().is_empty() || matches!(by, Declarer::Static | Declarer::Common))
             {
                 self.declare_array(typed, bounds, (name_tok, name, suffix, ty), storage, shared, by, stmt)?;
                 continue;
-            }
-            if matches!(by, Declarer::Redim { .. }) && storage != Storage::Main && item.bounds().is_none() {
-                let shown = show_bytes(self.text(name_tok.span));
-                let msg = format!("`REDIM {shown}` without bounds in a SUB or FUNCTION");
-                return Err(self.unsupported(name_tok.span, msg));
             }
             if name.contains('.') && matches!(ty, Ty::User(_)) {
                 let shown = show_bytes(self.text(name_tok.span));

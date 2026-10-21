@@ -221,7 +221,8 @@ impl Checker<'_> {
             | ExprKind::MemOf { .. }
             | ExprKind::MemAt { .. }
             | ExprKind::AddressOf(_)
-            | ExprKind::MemRead { .. } => Ok(Named::Value(e)),
+            | ExprKind::MemRead { .. }
+            | ExprKind::ArrayBytes(_) => Ok(Named::Value(e)),
         }
     }
 
@@ -526,7 +527,7 @@ impl Checker<'_> {
     /// element cannot be _BIT aligned", `v32_x38`, `x46`), not a whole array of variable-length strings ("Cannot
     /// pass array of variable-length strings", `x39`). An element or member of variable-length strings, a `TYPE`
     /// that holds a `STRING` and the paths [`Self::unmeasured_path`] names are not measured.
-    fn bytes_reference(&mut self, of: &Reference, word: &str, at: Span) -> R<()> {
+    pub(super) fn bytes_reference(&mut self, of: &Reference, word: &str, at: Span) -> R<()> {
         let ty = self.reference_ty(of);
         let root = self.prog.var(of.root()).ty;
         if matches!(ty, Ty::Bit { .. }) || matches!(root, Ty::Bit { .. }) {

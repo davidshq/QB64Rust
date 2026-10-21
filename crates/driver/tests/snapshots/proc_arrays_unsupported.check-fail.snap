@@ -5,5 +5,3 @@ expression: snap
 proc_arrays_unsupported.bas:11:13: error: not supported yet: `STATIC v(...)` with a bound that is not one number or one constant
 proc_arrays_unsupported.bas:14:13: error: not supported yet: `STATIC v(...)` with a bound that is not one number or one constant
 proc_arrays_unsupported.bas:17:12: error: not supported yet: `STATIC sh(...)` beside a shared array of the main module
-proc_arrays_unsupported.bas:21:9: error: not supported yet: an array `a` beside a variable or array typed by `DIM … AS`
-proc_arrays_unsupported.bas:24:11: error: not supported yet: `REDIM e` without bounds in a SUB or FUNCTION

@@ -103,7 +103,7 @@ job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 202
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:upstream-membership -->
-**Upstream progress: 363 of 403**: the programs of `pass.list` of the suite's 404 programs less the 1 of `deferred.list`.
+**Upstream progress: 368 of 404**: the programs of `pass.list` of the suite's 404 programs less the 0 of `deferred.list`.
 <!-- /counts:upstream-membership -->
 
 <!-- counts:upstream-results -->

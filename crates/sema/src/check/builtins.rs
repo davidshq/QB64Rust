@@ -427,8 +427,6 @@ impl Checker<'_> {
         let [node] = nodes[..] else {
             return Err(self.error(span, arity(s.name, 1, 1)));
         };
-        // A whole member array (`LEN(p(0).a())`), which the old compiler takes (`qb64pe.bas` 20652; upstream
-        // `arrays/test_mem_vs_len`), is not measured here.
         let empty = |l: Option<ast::ArgList>| l.is_some_and(|l| l.args().is_empty());
         let whole = match node {
             ast::Expr::Call(c) => empty(c.arg_list()),
@@ -439,8 +437,8 @@ impl Checker<'_> {
             | ast::Expr::Prefix(_)
             | ast::Expr::Bin(_) => false,
         };
-        if whole && self.member_array(node)?.is_some() {
-            return Err(self.unsupported(node.node().span(), "`LEN` of a whole member array"));
+        if whole && let Some(e) = self.len_whole(node, span)? {
+            return Ok(e);
         }
         // A whole `TYPE` variable, element or member is a place here, not a value (`Checker::load`); an index of
         // this argument is a value.
@@ -476,23 +474,8 @@ impl Checker<'_> {
             // Measured: "Variable/element cannot be _BIT aligned" (`verification\v21_x18`, `x19`).
             return Err(self.error(e.span, "`LEN` of a `_BIT` variable"));
         }
-        if crate::holds_strings(&self.prog.types, ty) {
-            // Measured: "UDT must have fixed size" (`verification\v24_x206`).
-            let msg = format!(
-                "`LEN` of a `TYPE {}` value: a `TYPE` with a `STRING` member has no fixed size",
-                self.prog.type_name(ty)
-            );
-            return Err(self.error(e.span, msg));
-        }
-        if crate::owns_desc(&self.prog.types, ty) {
-            // Measured: "_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays"
-            // (`verification\v35_x20`, `x64`).
-            let msg = format!(
-                "`LEN` of a `TYPE {}` value: a `TYPE` with a dynamic member array has no fixed size",
-                self.prog.type_name(ty)
-            );
-            return Err(self.error(e.span, msg));
-        }
+        // Measured: "UDT must have fixed size" (`verification\v24_x206`).
+        self.len_fixed_size(ty, false, e.span)?;
         // The index of an element is not evaluated (the old compiler takes the element type's size).
         let size = crate::size_of(&self.prog.types, ty);
         Ok(Expr {
@@ -501,6 +484,80 @@ impl Checker<'_> {
             qb: Ty::I32,
             kind: ExprKind::Int(i64::from(size)),
         })
+    }
+
+    /// `LEN(a())` and `LEN(v.m())`, `LEN(a(i).m())` (design D5 of `m4-names-arrays`; `qb64pe.bas` 20961, its "-5"
+    /// size; measured, `verification\v48_d_len_whole`): the bytes of all elements of a whole array, a LONG. Of a
+    /// member array the size is known when compiling, and the index on the way to it is not evaluated, as for
+    /// `LEN` of an element. `None` for a name that is no array, which goes on as any other argument (a whole array
+    /// that is not declared stays marked there).
+    fn len_whole(&mut self, node: ast::Expr, span: Span) -> R<Option<Expr>> {
+        let at = node.node().span();
+        let lng = |kind| Expr {
+            span,
+            ty: Ty::I32,
+            qb: Ty::I32,
+            kind,
+        };
+        if let Some((array, _, _)) = self.member_array(node)? {
+            if self.prog.array_ty(&array) == Ty::Str {
+                // The old compiler gives a number (32 for four elements, `verification\v48_x30`) where a whole
+                // array of strings is an error (`x01`); not measured further.
+                let msg = "`LEN` of a whole member array of variable-length strings";
+                return Err(self.unsupported(at, msg));
+            }
+            // Before the size: an array of a `TYPE` with a `STRING` member has none (`size_of`).
+            self.bytes_reference(&crate::Reference::Array(array.clone()), "LEN", at)?;
+            let crate::ArrayRef::Member { base, member } = &array else {
+                unreachable!("`member_array` gives a member array");
+            };
+            let m = self.prog.member(self.prog.place_ty(base), *member);
+            let size = crate::size_of(&self.prog.types, m.ty) * m.count();
+            return Ok(Some(lng(ExprKind::Int(i64::from(size)))));
+        }
+        let ast::Expr::Call(c) = node else {
+            return Ok(None);
+        };
+        // A dotted name here is a plain array's (measured, `verification\v48_x29`): `member_array` took the name
+        // whose first part is a `TYPE` variable.
+        let t = self.need(c.name(), at)?;
+        let (name, suffix) = self.split_name(t)?;
+        let Some(array) = self.find_array(&name, suffix) else {
+            return Ok(None);
+        };
+        // Measured: "UDT must have fixed size" (`verification\v48_x03`), where `_MEM` of the array is no error
+        // (`x11`).
+        self.len_fixed_size(self.prog.var(array).ty, true, at)?;
+        let of = crate::Reference::Array(crate::ArrayRef::Var(array));
+        self.bytes_reference(&of, "LEN", at)?;
+        self.stmt.names.push((crate::SymbolKind::Var(array), t.span));
+        Ok(Some(lng(ExprKind::ArrayBytes(array))))
+    }
+
+    /// That `LEN` of a value of `ty` (`array`: of a whole array of `ty`) has a size fixed when compiling: not of a
+    /// `TYPE` that holds a `STRING` ("UDT must have fixed size"), nor of one that owns a dynamic member array (of a
+    /// value measured: "_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays",
+    /// `verification\v35_x20`, `x64`; of an array not measured).
+    fn len_fixed_size(&mut self, ty: Ty, array: bool, at: Span) -> R<()> {
+        let name = self.prog.type_name(ty);
+        let of = if array {
+            format!("an array of `TYPE {name}`")
+        } else {
+            format!("a `TYPE {name}` value")
+        };
+        if crate::holds_strings(&self.prog.types, ty) {
+            let msg = format!("`LEN` of {of}: a `TYPE` with a `STRING` member has no fixed size");
+            return Err(self.error(at, msg));
+        }
+        if crate::owns_desc(&self.prog.types, ty) {
+            if array {
+                let msg = "`LEN` of a whole array of a `TYPE` with a dynamic member array";
+                return Err(self.unsupported(at, msg));
+            }
+            let msg = format!("`LEN` of {of}: a `TYPE` with a dynamic member array has no fixed size");
+            return Err(self.error(at, msg));
+        }
+        Ok(())
     }
 
     /// `VAL(s$)` is `_FLOAT`; `VAL(s$, type)` with a type name (D4; measured `v20_b_result_types`, the C++): SINGLE,
@@ -858,6 +915,7 @@ impl Checker<'_> {
                 | ExprKind::MemAt { .. }
                 | ExprKind::AddressOf(_)
                 | ExprKind::MemRead { .. }
+                | ExprKind::ArrayBytes(_)
                 | ExprKind::Convert { .. }
                 | ExprKind::Binary { .. }
                 | ExprKind::Unary { .. }
@@ -1113,7 +1171,11 @@ impl Checker<'_> {
 fn calls_procedure(e: &Expr) -> bool {
     match &e.kind {
         ExprKind::CallProc { .. } => true,
-        ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) | ExprKind::VarSeg { .. } => false,
+        ExprKind::Int(_)
+        | ExprKind::Float(_)
+        | ExprKind::Str(_)
+        | ExprKind::VarSeg { .. }
+        | ExprKind::ArrayBytes(_) => false,
         ExprKind::Load(place) => place.indexes().iter().any(|i| calls_procedure(i)),
         ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(calls_procedure),
         ExprKind::VarPtr { index, .. } | ExprKind::Block { index, .. } => index.iter().any(calls_procedure),

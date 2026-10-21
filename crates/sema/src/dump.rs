@@ -823,6 +823,9 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
             expr(p, offset, depth + 1, out);
             expr(p, size, depth + 1, out);
         }
+        ExprKind::ArrayBytes(array) => {
+            writeln!(out, "{pad}ArrayBytes {} : {types}", var_name(p, *array)).unwrap();
+        }
         ExprKind::Convert { how, from } => {
             writeln!(out, "{pad}Convert {how:?} : {types}").unwrap();
             expr(p, from, depth + 1, out);

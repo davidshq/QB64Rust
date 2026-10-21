@@ -366,6 +366,15 @@ version,session,change,category,actions,bytes
 1,28867a87,m3-versioninfo,reading,19,0
 1,28867a87,m3-versioninfo,test runs,30,0
 1,28867a87,m3-versioninfo,tests and fixtures,8,13484
+1,296d5982,,documents and planning,6,1832
+1,296d5982,,other,1,0
+1,296d5982,,other commands,60,0
+1,296d5982,,test runs,1,0
+1,296d5982,m4-names-arrays,documents and planning,18,34763
+1,296d5982,m4-names-arrays,other commands,30,0
+1,296d5982,m4-names-arrays,reading,2,0
+1,296d5982,m4-names-arrays,scratch files,1,738
+1,296d5982,m4-names-arrays,test runs,1,0
 1,2a17bf8b,m3-asserts-debug-zlib,other,1,0
 1,2a17bf8b,m3-asserts-debug-zlib,other commands,6,0
 1,2a17bf8b,m3-asserts-debug-zlib,reading,1,0
@@ -1246,6 +1255,16 @@ version,session,change,category,actions,bytes
 1,7702bcbf,libqb-object-flags,reading,5,0
 1,7702bcbf,libqb-object-flags,test runs,13,0
 1,7702bcbf,libqb-object-flags,tests and fixtures,5,1281
+1,77b521c3,m4-names-arrays,builds,13,0
+1,77b521c3,m4-names-arrays,documents and planning,45,22775
+1,77b521c3,m4-names-arrays,measurement preparation,6,6983
+1,77b521c3,m4-names-arrays,measurement runs,9,0
+1,77b521c3,m4-names-arrays,other commands,58,0
+1,77b521c3,m4-names-arrays,product code,39,13206
+1,77b521c3,m4-names-arrays,reading,73,0
+1,77b521c3,m4-names-arrays,scratch files,4,3347
+1,77b521c3,m4-names-arrays,test runs,28,0
+1,77b521c3,m4-names-arrays,tests and fixtures,26,8015
 1,77c77d98,,builds,1,0
 1,77c77d98,,documents and planning,13,8329
 1,77c77d98,,measurement preparation,18,4214
@@ -1661,11 +1680,11 @@ version,session,change,category,actions,bytes
 1,9ddab112,m4-devices-continue-paths,documents and planning,1,564
 1,9ddab112,m4-devices-continue-paths,generated files,1,552
 1,9ddab112,m4-devices-continue-paths,measurement runs,1,0
-1,9ddab112,m4-devices-continue-paths,other commands,29,0
+1,9ddab112,m4-devices-continue-paths,other commands,33,0
 1,9ddab112,m4-devices-continue-paths,product code,5,2797
 1,9ddab112,m4-devices-continue-paths,reading,3,0
-1,9ddab112,m4-devices-continue-paths,test runs,7,0
-1,9ddab112,m4-devices-continue-paths,tests and fixtures,4,3158
+1,9ddab112,m4-devices-continue-paths,test runs,8,0
+1,9ddab112,m4-devices-continue-paths,tests and fixtures,7,3762
 1,9de12d67,,reading,1,0
 1,9de12d67,m3-declare-library,other commands,1,0
 1,a02fed14,m3-typefields,other commands,1,0
@@ -1763,6 +1782,12 @@ version,session,change,category,actions,bytes
 1,a7eece6b,m3-typefields,other commands,26,0
 1,a7eece6b,m3-typefields,scratch files,6,4090
 1,a7eece6b,m3-typefields,test runs,3,0
+1,a8f847eb,,other commands,2,0
+1,a8f847eb,m4-devices-continue-paths,other,1,0
+1,a8f847eb,m4-devices-continue-paths,other commands,5,0
+1,a8f847eb,m4-devices-continue-paths,reading,3,0
+1,a8f847eb,m4-devices-continue-paths,scratch files,2,3032
+1,a8f847eb,m4-devices-continue-paths,test runs,2,0
 1,aa7df950,,other commands,1,0
 1,aa7df950,m2-control-flow-slice,builds,5,0
 1,aa7df950,m2-control-flow-slice,documents and planning,11,6722
@@ -2273,6 +2298,18 @@ version,session,change,category,actions,bytes
 1,de4c4433,,reading,5,0
 1,de4c4433,,test runs,8,0
 1,de4c4433,,tests and fixtures,9,1407
+1,df731c60,,other,1,0
+1,df731c60,,other commands,4,0
+1,df731c60,,reading,5,0
+1,df731c60,m4-names-arrays,builds,1,0
+1,df731c60,m4-names-arrays,documents and planning,4,2167
+1,df731c60,m4-names-arrays,measurement preparation,8,2341
+1,df731c60,m4-names-arrays,measurement runs,6,0
+1,df731c60,m4-names-arrays,other commands,31,0
+1,df731c60,m4-names-arrays,product code,11,6698
+1,df731c60,m4-names-arrays,reading,16,0
+1,df731c60,m4-names-arrays,test runs,10,0
+1,df731c60,m4-names-arrays,tests and fixtures,2,425
 1,df7ceeaa,,other commands,8,0
 1,df7ceeaa,,scratch files,1,2162
 1,e08a2555,,other commands,15,0

@@ -609,6 +609,7 @@ fn val(p: &Program, v: &Expr) -> String {
             format!("VarPtr {}({}):{}", var(p, *array), i.join(", "), ty(p, v.ty))
         }
         ExprKind::VarSeg { array } => format!("VarSeg {}:{}", var(p, *array), ty(p, v.ty)),
+        ExprKind::ArrayBytes(array) => format!("ArrayBytes {}:{}", var(p, *array), ty(p, v.ty)),
         ExprKind::MemOf { of, element, .. } => {
             let word = if *element { "MemElement" } else { "Mem" };
             format!("{word} {}:{}", reference_text(p, of), ty(p, v.ty))

@@ -1,0 +1,9 @@
+1. a type of a SUB used above it in the main module: 3  4  8 
+2. as another SUB's parameter type and a FUNCTION's:useit 3  6 
+3. the SUB itself: 5  8 
+4. a type of an IF block, used above it: 4  8 
+5. a type of a FOR loop, used below it: 5 abc 5 
+6. a type of a FUNCTION, used in the main module: 2.5  8 
+7. a type of a SUB never called, in a SELECT CASE:-1  1 
+8. an array of a SUB's type: 9  8 
+exit=0

@@ -1,0 +1,14 @@
+1. plain scalar beside a typed array: 1.5  7  4  2 
+2. a! against a: 2.5  2.5 
+3. beside a STRING array: 2.5 x 4 
+4. read before any store: 0  4 
+5. scalar used above the typed array: 1.25  3  4  2 
+6. array without AS beside a typed scalar:str 1.25  4 
+7. array without AS beside a typed array: .3333333333333333  8  1.333333333333333  8  2  1.333333333333333 
+8. typed array after an array without AS: 2  1.5  4  4 
+9. typed array beside a scalar typed otherwise:dd 5  2  4 
+10. PUT and GET of the plain name: 4  2.25 
+11. in a SUB: 2.5  9  4  7  .5  4  .25  4 
+12. a shared array seen in a SUB: 3.5  4  4 
+    main's sh: 0  4 
+exit=0

@@ -205,6 +205,7 @@ impl Emitter<'_> {
             }
             ExprKind::MemRead { block, offset, of } => self.mem_read(block, offset, *of),
             ExprKind::AddressOf(of) => self.address_of(of),
+            ExprKind::ArrayBytes(array) => self.len_whole(*array),
             ExprKind::MemAt { offset, size } => {
                 format!("func__mem_at_offset({},{})", self.value(offset), self.value(size))
             }

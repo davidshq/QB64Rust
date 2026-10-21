@@ -2,6 +2,6 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-mem_follow_on.bas:9:5: error: cannot store a string in a number variable
-mem_follow_on.bas:9:5: note: QB64pe: Illegal string-number conversion
-mem_follow_on.bas:11:5: error: not supported yet: `TYPE` blocks inside a SUB, FUNCTION or block
+mem_follow_on.bas:10:5: error: cannot store a string in a number variable
+mem_follow_on.bas:10:5: note: QB64pe: Illegal string-number conversion
+mem_follow_on.bas:11:6: error: not supported yet: a `TYPE` named like a keyword or built-in: `cos`

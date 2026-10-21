@@ -28,7 +28,7 @@ impl Checker<'_> {
         } else if let Some(b) = ast::SelectBlock::cast(node) {
             self.select_block(b, skips);
         } else if let Some(b) = ast::TypeBlock::cast(node) {
-            self.type_block(b, skips);
+            self.type_block(b);
         } else if ast::DeclareLibraryBlock::cast(node).is_some() {
             // Its declarations were entered in pass 1 (`library.rs`), where they stand in the file.
         } else if let Some(block) = block_parts(node) {

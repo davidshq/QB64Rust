@@ -274,7 +274,7 @@ impl Facts for Expr {
             ExprKind::Bound { .. } => true,
             // The index check of the element; a segment is the array's and reads no element.
             ExprKind::VarPtr { .. } => true,
-            ExprKind::VarSeg { .. } => false,
+            ExprKind::VarSeg { .. } | ExprKind::ArrayBytes(_) => false,
             // An element given is checked against the bounds.
             ExprKind::Block { index, .. } => !index.is_empty(),
             ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.may_raise(),
@@ -302,7 +302,7 @@ impl Facts for Expr {
                 ExprKind::VarPtr { index, .. } | ExprKind::Block { index, .. } => {
                     index.iter().any(|i| i.uses_strings(p))
                 }
-                ExprKind::VarSeg { .. } => false,
+                ExprKind::VarSeg { .. } | ExprKind::ArrayBytes(_) => false,
                 ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.uses_strings(p),
                 ExprKind::Binary { lhs, rhs, .. }
                 | ExprKind::Concat(lhs, rhs)

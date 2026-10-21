@@ -61,17 +61,16 @@ const MAX_ELEMENTS: i64 = i32::MAX as i64;
 impl Checker<'_> {
     // ---- user types ----
 
-    /// Pass 1: the `TYPE` blocks of the main module, so a type may be used above its block (measured,
-    /// `v18_h_type_before_block`). A block with an error is not entered; its uses are "not supported yet".
-    pub(super) fn declare_types(&mut self, statements: &[Node], skips: &Skips) {
-        for &s in statements {
-            let Some(b) = ast::TypeBlock::cast(s) else {
-                continue;
-            };
+    /// Pass 1: every `TYPE` block in file order, in the main module, a procedure or a block, each a type of the
+    /// whole program, so a type may be used above its block (measured, `v18_h_type_before_block`,
+    /// `v48_c_type_anywhere`; the old compiler's prepass, `qb64pe.bas` 2483). A block with an error is not entered;
+    /// its uses are "not supported yet".
+    pub(super) fn declare_types(&mut self, blocks: &[ast::TypeBlock], skips: &Skips) {
+        for &b in blocks {
+            let s = b.node();
             if skips.past_cap(s) {
                 break;
             }
-            self.types_seen.insert(s.key());
             if !skips.usable(s) {
                 continue;
             }
@@ -110,7 +109,8 @@ impl Checker<'_> {
             return Err(self.unsupported(name_tok.span, msg));
         }
         if self.types_by_name.contains_key(&name) {
-            return Err(self.unsupported(name_tok.span, format!("a second `TYPE {shown}`")));
+            // Measured: "Name already in use", wherever the two blocks stand (`verification\v48_x05`).
+            return Err(self.in_use(name_tok));
         }
         // `OPTION BASE` as it stands at the block: the lower bound of a member array's dimension without `TO`.
         let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
@@ -127,7 +127,7 @@ impl Checker<'_> {
                 let bounds = match f.bounds() {
                     // The first bounds of a dynamic member array may name a `CONST` (measured,
                     // `verification\v35_x17`): they are read in pass 2, where the constants above the block are
-                    // known; until then each dimension is 0 TO 0.
+                    // known, in a procedure its own (`v48_x27`, `x28`); until then each dimension is 0 TO 0.
                     Some(bounds) if dynamic && names_constants(bounds) => {
                         const_bounds = true;
                         vec![(0, 0); bounds.ranges().len()]
@@ -338,27 +338,15 @@ impl Checker<'_> {
         }
     }
 
-    /// A `TYPE` block met in pass 2: one of the main module's was handled in pass 1; one inside a procedure or a
-    /// block (accepted by the old compiler inside a SUB, `v18_h_type_in_sub`) is not supported yet.
-    pub(super) fn type_block(&mut self, b: ast::TypeBlock, skips: &Skips) {
+    /// A `TYPE` block met in pass 2, wherever it stands: pass 1 declared it ([`Self::declare_types`]). A block
+    /// pass 1 marked starts the follow-on rule here, in file order.
+    pub(super) fn type_block(&mut self, b: ast::TypeBlock) {
         let node = b.node();
-        if self.types_seen.contains(&node.key()) {
-            if self.types_marked.contains(&node.key()) {
-                self.at.follow_on = true;
-            }
-            if let Some(&id) = self.type_const_bounds.get(&node.key()) {
-                self.type_const_bounds(b, id);
-            }
-            return;
-        }
-        let Some(header) = b.header().map(|h| h.node()) else {
-            return;
-        };
-        if skips.usable(header) {
-            self.stmt.stmt_error = false;
-            let _ = self.unsupported(header.span(), "`TYPE` blocks inside a SUB, FUNCTION or block");
-            self.flush_names();
+        if self.types_marked.contains(&node.key()) {
             self.at.follow_on = true;
+        }
+        if let Some(&id) = self.type_const_bounds.get(&node.key()) {
+            self.type_const_bounds(b, id);
         }
     }
 
@@ -442,7 +430,37 @@ impl Checker<'_> {
         // declared with `AS`, by `REDIM` or by `DIM`. With `AS` and another type than that array's it is "Name
         // already in use", between `STRING` and `STRING * n` or two lengths "Type mismatch" (`v24_x39`, `x41`,
         // `x42`).
-        let plain_array = self.array_plain_ty(&name);
+        let untyped = suffix.is_none() && !typed;
+        let mut plain_array = self.array_plain_ty(&name);
+        // Between two arrays of one name the plain name stays with the one typed by `AS` (measured,
+        // `verification\v48_x16`–`x24`), but for an array listed by `STATIC a() AS type` that nothing has reached:
+        // the old compiler makes no array for the list until then (`qb64pe.bas` 9260), so an array without `AS`
+        // is the only one of the name (`v24_x126`, `v48_a_scalar_array`).
+        let listed_typed = plain_array
+            .filter(|&t| untyped && t != ty)
+            .and_then(|t| self.scope().arrays.get(&(name.clone(), t)).copied())
+            .map(|v| self.prog.var(v))
+            .filter(|v| v.dim_count().is_none());
+        let takes_plain = match listed_typed.map(|v| v.storage) {
+            Some(Storage::Static(_)) => {
+                plain_array = None;
+                true
+            }
+            Some(Storage::Main) => {
+                // Listed by `COMMON a() AS type`: not measured.
+                let msg = format!("an array `{shown}` without `AS` beside one listed by `COMMON … AS`");
+                return Err(self.unsupported(name_tok.span, msg));
+            }
+            // In a procedure, its own array without `AS` takes the plain name from a shared typed one of the
+            // main module (measured, `v48_x20`).
+            _ => {
+                untyped
+                    && !redim
+                    && self.cur.is_some()
+                    && !self.local.array_plain.contains_key(&name)
+                    && plain_array.is_some_and(|t| t != ty)
+            }
+        };
         let ty = match (redim && suffix.is_none(), typed, plain_array) {
             (true, false, Some(adopted)) => adopted,
             (true, true, Some(other)) if other != ty => {
@@ -530,14 +548,8 @@ impl Checker<'_> {
             self.push(stmt, allocate(id));
             return Ok(());
         }
-        // A typed array beside a scalar of the name typed alike is measured (`v24_x56`,
-        // `v24_b_dim_empty_then_dim`); how a plain array name and another typed scalar or typed array of the name
-        // interact was not.
-        let plain_scalar = self.scope().plain.get(&name).copied();
-        if suffix.is_none() && (plain_array.is_some() || plain_scalar.is_some_and(|t| !(typed && t == ty))) {
-            let msg = format!("an array `{shown}` beside a variable or array typed by `DIM … AS`");
-            return Err(self.unsupported(name_tok.span, msg));
-        }
+        // A scalar of the name, typed by `AS` or not, is another variable (measured, `v24_x56`,
+        // `v24_b_dim_empty_then_dim`, `v48_a_scalar_array`).
         let shape = match static_bounds.or(start_bounds) {
             Some(bounds) => {
                 let mut count: i64 = 1;
@@ -588,6 +600,8 @@ impl Checker<'_> {
             if shared {
                 self.dim_shared_array_plain.insert(name, ty);
             }
+        } else if takes_plain {
+            self.scope().array_plain.insert(name, ty);
         }
         if shared {
             self.dim_shared.insert(id);
@@ -2064,7 +2078,8 @@ fn constant(e: &Expr) -> Option<Num> {
         | ExprKind::MemOf { .. }
         | ExprKind::MemAt { .. }
         | ExprKind::AddressOf(_)
-        | ExprKind::MemRead { .. } => None,
+        | ExprKind::MemRead { .. }
+        | ExprKind::ArrayBytes(_) => None,
         ExprKind::Unary { op, operand } => match (op, constant(operand)?) {
             (UnOp::Neg, Num::Float(f)) => Some(Num::Float(-f)),
             (op, Num::Int(i)) => Some(Num::Int(super::ops::fold_unary(*op, i, e.ty))),

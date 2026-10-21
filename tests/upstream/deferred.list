@@ -1,4 +1,3 @@
 # Upstream programs that need a feature deferred to SOMEDAY.md (spec testing/upstream-tests, "Upstream progress"),
 # with the features each one uses. Found by pattern ($UNSTABLE:TYPEFIELDS, REDIM _RETAIN, _ARRAYCOPY, NAME() = ...)
 # and checked by eye, 2026-10-04 (task 6.3 of m2-upstream-tests). Progress is reported over the other programs.
-arrays/t001_whole_array_core  # a plain scalar beside an array typed by DIM ... AS

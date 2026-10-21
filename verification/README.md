@@ -69,6 +69,18 @@ Small programs behind `study\09`, `study\10` and later measurements:
   argument, as a variable; `ON STRIG`'s operand and handler errors; an odd button number of `ON STRIG` or the
   switch, error 5 at run time in libqb, `x13`, `x27`; the device functions' argument errors; `DIM a . b` and
   `SUB a . b`, both accepted; `s$ . x`, rejected)
+- `v48*`: the four parts of `m4-names-arrays`, measured as its task 1.1: `v48_a_scalar_array` a scalar and an
+  array of one name, one typed by `AS` (the plain scalar is of the default type; between two arrays the one typed
+  by `AS` keeps the plain name; in a SUB, beside a shared one, `PUT` and `GET`), `v48_b_redim_scalar` `REDIM name
+  [AS type]` in a SUB, a FUNCTION and a `SUB … STATIC` (a second run keeps the value), `v48_c_type_anywhere`
+  `TYPE` blocks in a SUB, a FUNCTION, an `IF`, a `FOR` and a `SELECT CASE`, each a type of the whole program,
+  `v48_d_len_whole` `LEN` of a whole array and a whole member array (0 after `ERASE`), `v48_x01`–`x26` one
+  accepted or rejected form each (the `LEN` errors; `_MEM` of an array of a `TYPE` with a `STRING` member, no
+  error; a second `TYPE` block of a name; a parameter typed by a block below its SUB, rejected; `x16`–`x24` which
+  array a plain name names, after `qb64pe.bas` 9260: a list `STATIC c() AS type` makes no array until reached);
+  `x27`–`x30` from the change's review: a `TYPE` block in a SUB bounds its `_DYNAMIC` member array by the SUB's
+  own `CONST`, also where the main module has one of the name; `LEN` of a whole array with a dotted name; `LEN` of
+  a whole member array of variable-length strings, no error (32 for four elements)
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

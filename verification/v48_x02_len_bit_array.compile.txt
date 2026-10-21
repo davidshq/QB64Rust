@@ -1,0 +1,5 @@
+
+Variable/element cannot be _BIT aligned
+Caused by (or after):PRINT LEN ( B ( ) )
+LINE 4:PRINT LEN(b())
+exit=1

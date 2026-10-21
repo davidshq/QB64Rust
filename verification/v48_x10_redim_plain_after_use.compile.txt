@@ -1,0 +1,5 @@
+
+Name already in use (i)
+Caused by (or after):REDIM I
+LINE 9:REDIM i
+exit=1

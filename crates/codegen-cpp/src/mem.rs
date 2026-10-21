@@ -187,6 +187,13 @@ impl Emitter<'_> {
         }
     }
 
+    /// `LEN(a())` (design D5 of `m4-names-arrays`): the old compiler's "-5" size of the whole array (`qb64pe.bas`
+    /// 20971), a LONG.
+    pub(crate) fn len_whole(&mut self, a: VarId) -> String {
+        let bytes = self.bytes_count(&Reference::Array(ArrayRef::Var(a)));
+        format!("((int32)({bytes}))")
+    }
+
     /// The block of `_MEMGET`, `_MEMPUT`, `_MEMFILL` and the `_MEMGET` function: the address of its place, a
     /// variable spelled as the old compiler spells it (`(((char*)__UDT_M)+((0+0)))`).
     fn block_at(&mut self, block: &Place) -> String {
@@ -332,7 +339,8 @@ impl Emitter<'_> {
             | ExprKind::MemOf { .. }
             | ExprKind::MemAt { .. }
             | ExprKind::AddressOf(_)
-            | ExprKind::MemRead { .. } => self.value(v),
+            | ExprKind::MemRead { .. }
+            | ExprKind::ArrayBytes(_) => self.value(v),
         }
     }
 

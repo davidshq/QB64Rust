@@ -1,0 +1,10 @@
+1. numbers and dimensions: 10  2  48  5  96  16 
+2. fixed-length strings and user types: 48  15 
+3. a dynamic array, before and after ERASE: 10  0  24 
+4. a whole member array: 200  400  4 
+ 24  26 
+5. in an expression: 4  4  1  26 
+6. an implicit array: 44 
+7. an array parameter, a shared array: 10  40 
+8. a suffixed array, a default-typed one: 24  24 
+exit=0

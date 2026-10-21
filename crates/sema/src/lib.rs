@@ -1063,6 +1063,9 @@ pub enum ExprKind {
         offset: Box<Expr>,
         of: Ty,
     },
+    /// `LEN(a())` of an array variable (design D5 of `m4-names-arrays`): the bytes of all its elements, 0 while a
+    /// dynamic array is not allocated, typed LONG. It reads the array's descriptor only and raises nothing.
+    ArrayBytes(VarId),
 }
 
 /// What `_MEMPUT` writes or `_MEMFILL` fills with (design D4 of `m3-mem`).

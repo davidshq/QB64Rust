@@ -55,6 +55,7 @@
 `KILL` needs its arguments	Syntax error - Reference: KILL fileSpec$
 `KILL` takes {#} argument	Syntax error - Reference: KILL fileSpec$
 `LEN` cannot be used in a `CONST`	Unexpected element 'LEN'
+`LEN` cannot take an array of variable-length strings	Cannot pass array of variable-length strings
 `LEN` needs a string or a variable, element or member	String expression or variable name required in LEN statement
 `LEN` of a `{}` value: a `TYPE` with a dynamic member array has no fixed size	_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
 `LEN` takes {#} argument	Incorrect number of arguments - Reference: LEN(literalTextOrVariable$)

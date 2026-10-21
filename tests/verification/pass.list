@@ -122,6 +122,7 @@ v16_m4_next_wrong_var
 v16_m4_select_forms
 v16_m4_select_stmt_before_case
 v16_m4_type_forms
+v16_m4_type_in_sub
 v16_m4_type_missing_end
 v16_m4_type_stmt_inside
 v16_m4_wend_closing_do
@@ -287,6 +288,7 @@ v18_d_index_big
 v18_d_index_count_fewer
 v18_d_index_count_more
 v18_d_index_float
+v18_d_index_none
 v18_d_index_string
 v18_d_multi
 v18_d_multi_order
@@ -327,6 +329,7 @@ v18_h_member_suffix
 v18_h_member_suffix_wrong
 v18_h_scalar_to_whole
 v18_h_type_before_block
+v18_h_type_in_sub
 v18_h_type_local
 v18_h_type_members
 v18_h_type_name_conflict
@@ -684,6 +687,7 @@ v24_b_unallocated
 v24_c_preserve
 v24_c_redim
 v24_c_redim_shared
+v24_d_erase
 v24_d_erase_then_dim
 v24_e_option_base
 v24_f_implicit
@@ -731,6 +735,7 @@ v24_x122_static_twice
 v24_x123_static_list_twice
 v24_x124_static_list_then_static
 v24_x125_dim_then_static
+v24_x126_static_list_other_type
 v24_x127_static_main
 v24_x128_dim_shared_in_sub
 v24_x129_redim_shared_in_sub
@@ -1541,6 +1546,7 @@ v30_x43_put_whole_fixed_string_array
 v30_x44_put_whole_type_array
 v30_x45_put_whole_dynamic_array
 v30_x46_put_two_dimensions
+v30_x47_get_array_no_parentheses
 v30_x48_put_member_array
 v30_x50_lock_to_alone
 v30_x51_lock_alone
@@ -1556,6 +1562,7 @@ v30_x63_exit_select_after_end_select
 v30_x64_exit_select_in_sub_called_from_case
 v30_x65_exit_select_single_line_else
 v30_x66_exit_case_before_nested_select
+v30_x67_put_array_name_and_scalar
 v30_x70_iif_string_and_number
 v30_x71_iif_number_and_string
 v30_x72_iif_string_condition
@@ -2669,3 +2676,31 @@ v47_x28
 v47_x29
 v47_x30
 v47_x31
+v48_a_scalar_array
+v48_b_redim_scalar
+v48_c_type_anywhere
+v48_d_len_whole
+v48_x01_len_string_array
+v48_x02_len_bit_array
+v48_x03_len_type_string_member
+v48_x05_type_twice_in_subs
+v48_x06_redim_shared_scalar_in_sub
+v48_x07_deflng_scalar_beside_array
+v48_x08_type_in_sub_option_base
+v48_x09_redim_scalar_after_use
+v48_x10_redim_plain_after_use
+v48_x13_len_type_string_member_elem
+v48_x15_redim_list_scalars_in_sub
+v48_x16_main_redim_typed_then_untyped
+v48_x17_sub_dim_typed_then_untyped
+v48_x18_sub_static_bounds_then_untyped
+v48_x19_sub_static_list_typed_alone
+v48_x20_shared_typed_then_sub_untyped
+v48_x21_sub_static_list_typed_use
+v48_x22_main_untyped_then_typed_then_use
+v48_x23_sub_typed_scalar_then_untyped_array_then_typed
+v48_x24_main_untyped_after_typed_above_use
+v48_x26_type_local_dim_above_block
+v48_x27_type_in_sub_const_shadowed
+v48_x28_type_in_sub_const_local
+v48_x29_len_whole_dotted_name

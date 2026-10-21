@@ -367,17 +367,18 @@ knows but the new one does not yet (such as the constants of the auto-included f
 supported yet", not as reserved names.
 
 #### Scenario: Unsupported declaration
-- **WHEN** a program has a `TYPE` block inside an `IF` block, and after it `PRINT 1`
+- **WHEN** a program has the block `TYPE cos … END TYPE` (a `TYPE` named like a built-in function), and after it
+  `PRINT 1`
 - **THEN** the only error is the "not supported yet" error at the `TYPE` block
 
 #### Scenario: Real error after an unsupported declaration
-- **WHEN** a program has a `TYPE` block inside an `IF` block and, later, a statement that stores a string in a
-  number variable
+- **WHEN** a program has the block `TYPE cos … END TYPE` and, later, a statement that stores a string in a number
+  variable
 - **THEN** the only error is the "not supported yet" error at the `TYPE` block, and the compile fails
 
 #### Scenario: Real error before an unsupported declaration
-- **WHEN** a program has a statement that stores a string in a number variable and, later, a `TYPE` block inside an
-  `IF` block
+- **WHEN** a program has a statement that stores a string in a number variable and, later, the block `TYPE cos …
+  END TYPE`
 - **THEN** both errors are reported
 
 #### Scenario: Auto-included constant
