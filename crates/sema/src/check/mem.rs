@@ -6,7 +6,7 @@
 
 use super::expr::{Use, conv};
 use super::places::{numeric_type, unsigned_of};
-use super::{Checker, R};
+use super::{Checker, R, split_unsigned};
 use crate::builtins::{Rule, Supported};
 use crate::{ArrayRef, Expr, ExprKind, MemValue, Place, Reference, StmtKind, SymbolKind, Ty};
 use qb64rust_base::{Span, show_bytes};
@@ -389,10 +389,8 @@ impl Checker<'_> {
             .map(|&w| self.word(w))
             .collect();
         let size = tokens.iter().find(|w| w.kind == SyntaxKind::Number).copied();
-        let (unsigned, text) = match words.split_first() {
-            Some((first, rest)) if first == "_UNSIGNED" => (true, rest.join(" ")),
-            _ => (false, words.join(" ")),
-        };
+        let (unsigned, rest) = split_unsigned(&words);
+        let text = rest.join(" ");
         match (text.as_str(), size) {
             // Measured: "Invalid TYPE name" (`v32_x120`).
             ("STRING", _) if unsigned => Err(self.error(at, "`_UNSIGNED STRING` is no type")),
@@ -507,11 +505,8 @@ impl Checker<'_> {
     /// * n`, a user type and `_BIT` "_MEMPUT requires numeric type" (`v32_x27`–`x30`, `x57`–`x59`), anything else
     /// "Invalid type" (`x31`).
     fn mem_value_type(&mut self, a: ast::AsClause, word: &str) -> R<Ty> {
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
-        let text = match words.split_first() {
-            Some((first, rest)) if first == "_UNSIGNED" => rest.join(" "),
-            _ => words.join(" "),
-        };
+        let words = self.as_words(a);
+        let text = split_unsigned(&words).1.join(" ");
         let at = a.node().span();
         let numeric = numeric_type(&text).is_some_and(|t| !matches!(t, Ty::Bit { .. }));
         if numeric && a.size().is_none() {
@@ -608,22 +603,7 @@ impl Checker<'_> {
         let held = match ty {
             Ty::Bit { signed: true, .. } => Ty::I64,
             Ty::Bit { signed: false, .. } => Ty::U64,
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::FixedStr(_)
-            | Ty::User(_) => ty,
+            crate::numeric_value_types!() | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => ty,
         };
         let value = if make {
             if e.ty == Ty::Str {
@@ -723,10 +703,8 @@ impl Checker<'_> {
             .map(|&w| self.word(w))
             .collect();
         let sized = tokens.iter().any(|w| w.kind == SyntaxKind::Number);
-        let (unsigned, text) = match words.split_first() {
-            Some((first, rest)) if first == "_UNSIGNED" => (true, rest.join(" ")),
-            _ => (false, words.join(" ")),
-        };
+        let (unsigned, rest) = split_unsigned(&words);
+        let text = rest.join(" ");
         if sized {
             return Err(self.error(at, format!("`{name}` takes no width or length in its type")));
         }

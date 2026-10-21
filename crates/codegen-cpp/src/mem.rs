@@ -12,26 +12,9 @@ use crate::Emitter;
 use crate::decl::{dim_count, lock_slot};
 use crate::names::c_type;
 use crate::place::fixed_at;
-use qb64rust_ir::{ArrayRef, Conv, Expr, ExprKind, MemValue, Place, Program, Reference, Ty, VarId};
-
-/// The numeric types a block or an address may be of: every one but `_BIT`, as a pattern.
-macro_rules! numeric {
-    () => {
-        Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-    };
-}
+use qb64rust_ir::{
+    ArrayRef, Conv, Expr, ExprKind, MemValue, Place, Program, Reference, Ty, VarId, numeric_types, numeric_value_types,
+};
 
 /// The type value of a block (`qb64pe.bas` 14731, `Type2MemTypeValue`): a number's bytes plus 128 for an integer
 /// (and 1024 when unsigned, 8192 for an `_OFFSET`) or 256 for a float; 512 for a fixed-length string, its length
@@ -131,7 +114,7 @@ impl Emitter<'_> {
                 match v.ty {
                     Ty::User(_) => format!("(((char*){n}[0])+(((0)*{}+0)))", self.ty_size(v.ty)),
                     Ty::FixedStr(k) => format!("(&((uint8*)({n}[0]))[(0)*{k}])"),
-                    numeric!() => format!("(&({}))", self.element_at(*a, "0")),
+                    numeric_value_types!() => format!("(&({}))", self.element_at(*a, "0")),
                     Ty::Str | Ty::Bit { .. } => unreachable!("the address of an array of {:?} (`validate`)", v.ty),
                 }
             }
@@ -145,7 +128,7 @@ impl Emitter<'_> {
                 match ty {
                     Ty::FixedStr(_) | Ty::Str => format!("{n}->chr"),
                     Ty::User(_) => format!("(((char*){n})+((0+0)))"),
-                    numeric!() => n,
+                    numeric_value_types!() => n,
                     Ty::Bit { .. } => unreachable!("the address of a `_BIT` (`validate`)"),
                 }
             }
@@ -158,7 +141,7 @@ impl Emitter<'_> {
                 match v.ty {
                     Ty::User(_) => format!("(((char*){n}[0])+((({flat})*{}+0)))", self.ty_size(v.ty)),
                     Ty::FixedStr(_) => format!("{}->chr", self.element_at(*a, &flat)),
-                    numeric!() => format!("(&({}))", self.element_at(*a, &flat)),
+                    numeric_value_types!() => format!("(&({}))", self.element_at(*a, &flat)),
                     Ty::Str | Ty::Bit { .. } => unreachable!("the address of an element of {:?} (`validate`)", v.ty),
                 }
             }
@@ -213,7 +196,7 @@ impl Emitter<'_> {
         match of {
             Ty::FixedStr(n) => format!("qbs_new_txt_len((char*){at},{n})"),
             Ty::User(_) => format!("((void*)+{at})"),
-            numeric!() => format!("*({}*)({at})", c_type(of)),
+            numeric_value_types!() => format!("*({}*)({at})", c_type(of)),
             Ty::Str | Ty::Bit { .. } => unreachable!("`_MEMGET` of a {of:?} (`validate`)"),
         }
     }
@@ -417,7 +400,7 @@ impl Emitter<'_> {
                         element_size: k,
                         lock: self.array_lock(*a),
                     },
-                    numeric!() | Ty::Str | Ty::Bit { .. } => Block {
+                    numeric_types!() | Ty::Str => Block {
                         address: format!("(&({}))", self.element_at(*a, "0")),
                         size: format!("{all}-({size}*(0))"),
                         type_value: type_value(self.p, ty) + ARRAY,
@@ -465,7 +448,7 @@ impl Emitter<'_> {
                             lock: sf,
                         }
                     }
-                    numeric!() | Ty::Str | Ty::Bit { .. } => {
+                    numeric_types!() | Ty::Str => {
                         let size = self.ty_size(ty);
                         Block {
                             address: n,
@@ -512,7 +495,7 @@ impl Emitter<'_> {
                             lock: self.array_lock(*a),
                         }
                     }
-                    numeric!() | Ty::Str | Ty::Bit { .. } => Block {
+                    numeric_types!() | Ty::Str => Block {
                         address: format!("(&({}))", self.element_at(*a, &flat)),
                         size: if element {
                             size.to_string()
@@ -581,7 +564,7 @@ impl Emitter<'_> {
                 size: size.to_string(),
                 type_value: match ty {
                     Ty::User(_) => USER,
-                    numeric!() | Ty::FixedStr(_) | Ty::Str | Ty::Bit { .. } => type_value(self.p, ty),
+                    numeric_types!() | Ty::FixedStr(_) | Ty::Str => type_value(self.p, ty),
                 },
                 element_size: size,
                 lock: sf,

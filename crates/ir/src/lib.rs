@@ -92,8 +92,10 @@ pub use validate::validate;
 use qb64rust_base::{FileId, Span};
 
 /// The [`Ty`] variants nothing produces yet, and those no value of reaches the IR yet, as patterns, and the reasons
-/// their arms give.
-pub use qb64rust_sema::{BIT_VALUE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, place_only_types};
+/// their arms give; the numeric variants as patterns, with `_BIT` and without it.
+pub use qb64rust_sema::{
+    BIT_VALUE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, numeric_types, numeric_value_types, place_only_types,
+};
 /// Types, operators and conversion kinds are `sema`'s (`study\archive\20` §3.4): integers by width, floats by width
 /// (`F80` is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
 pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, UnOp, UserType};
@@ -122,6 +124,9 @@ pub use qb64rust_sema::{Event, KeyForm};
 pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName};
 /// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
 pub use qb64rust_sema::{PrintTo, UsingValue};
+/// Whether a procedure is a SUB or a FUNCTION of a type, and the optional parts of the runtime a program needs, are
+/// `sema`'s as well: the lowering only copied them variant for variant (as it did the values, above).
+pub use qb64rust_sema::{ProcKind, RuntimePart};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
 /// holds a `STRING` of its own, which has no such size, or owns dynamic member arrays.
 pub use qb64rust_sema::{holds_strings, owns_desc, size_of};
@@ -202,34 +207,21 @@ pub struct Var {
     pub conventional: bool,
 }
 
+/// The variable's [`Shape`], asked through the variable.
 impl Var {
     pub fn is_array(&self) -> bool {
-        !matches!(self.shape, Shape::Scalar)
+        self.shape.is_array()
     }
 
-    /// The number of dimensions of an array, where it is known; `None` for a scalar too.
+    /// See [`Shape::dim_count`]: `None` for a scalar too.
     pub fn dim_count(&self) -> Option<usize> {
-        match &self.shape {
-            Shape::Scalar => None,
-            Shape::Static { bounds } => Some(bounds.len()),
-            Shape::Dynamic { dims, .. } => *dims,
-        }
+        self.shape.dim_count()
     }
 
-    /// The bounds of a static array; empty for anything else.
+    /// See [`Shape::bounds`]: empty for anything but a static array.
     pub fn bounds(&self) -> &[(i64, i64)] {
-        match &self.shape {
-            Shape::Static { bounds } => bounds,
-            Shape::Scalar | Shape::Dynamic { .. } => &[],
-        }
+        self.shape.bounds()
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ProcKind {
-    Sub,
-    /// A FUNCTION returning a value of this type.
-    Function(Ty),
 }
 
 /// A SUB or FUNCTION.
@@ -832,31 +824,6 @@ pub struct Settings {
     pub exe_icon: bool,
     /// The executable carries a version resource and a manifest (`$VERSIONINFO`).
     pub version_info: Option<VersionInfo>,
-}
-
-/// An optional part of the runtime.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum RuntimePart {
-    /// Setting the window's icon from an image.
-    Icon,
-    /// libqb's audio.
-    Audio,
-    /// The printer.
-    Printer,
-    /// The image decoders and encoders.
-    ImageCodec,
-    /// FreeType, for fonts loaded from a file.
-    Font,
-    /// Images of the desktop and the clipboard.
-    ScreenImage,
-    /// Checksums, compression and base64.
-    DataProcessing,
-    /// TCP/IP and HTTP.
-    Sockets,
-    /// The files built into the executable.
-    Embed,
-    /// Game controllers, the keyboard and the mouse as devices.
-    DeviceInput,
 }
 
 impl Program {

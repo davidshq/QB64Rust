@@ -50,13 +50,13 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. The fourth change of M4, `m4-builtins-param-types` (`_CAST`, `_CLIPBOARD$`, `_FILES$`, `_MD5$`, `_OS$`,
-   `CLEAR`, and a parameter's `TYPE` above its procedure), is built and closed (`close.py --check` passes); it
-   waits for the user's review and archive. `m4-names-arrays` is archived (`3da44a7`).
-2. The merge of `m4` into `main` with the full set (working rule 9) after it: four changes.
-3. Then the upstream report's remaining lines: `$CHECKING`, the old compiler's own sources (`qb64pe\*`), `_LOG*`,
-   `ON ERROR GOTO _LASTHANDLER`/`_NEWHANDLER`. `tests\verification\known.list` (209 programs, each with its reason)
-   holds more such lines.
+1. `dry-cleanup` (the numeric types as two pattern macros, `clear_temp` once, smaller helpers; no output
+   changes) is built, closed (`close.py --check` passes) and archived.
+2. Then the merge of `m4` into `main` with the full set (working rule 9): eight changes are unmerged since the
+   last (`0991f38`), `dry-cleanup` among them. It may run in a worktree while the next change is designed.
+3. Then `m4-handlers-logging-checking` (planned, not started): `$CHECKING`, `_LOG*`, `ON ERROR GOTO
+   _LASTHANDLER`/`_NEWHANDLER`. Then the upstream report's remaining lines: the old compiler's own sources
+   (`qb64pe\*`). `tests\verification\known.list` (209 programs, each with its reason) holds more such lines.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 

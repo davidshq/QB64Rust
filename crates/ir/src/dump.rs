@@ -504,20 +504,7 @@ fn ty(p: &Program, t: Ty) -> String {
         Ty::User(id) => format!("T:{}", p.user_type(id).name),
         Ty::Bit { width, signed: true } => format!("Bit{width}"),
         Ty::Bit { width, signed: false } => format!("UBit{width}"),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str => format!("{t:?}"),
+        crate::numeric_value_types!() | Ty::Str => format!("{t:?}"),
         Ty::FixedStr(n) => format!("Str*{n}"),
     }
 }

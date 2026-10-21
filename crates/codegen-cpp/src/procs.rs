@@ -5,7 +5,7 @@ use crate::Emitter;
 use crate::decl::{declare, dim_count, is_qbs, lock_slot};
 use crate::names::{c_type, proc_name, var_name};
 use qb64rust_base::to_u32;
-use qb64rust_ir::{Body, LabelId, Proc, ProcId, ProcKind, Storage, Ty, Var};
+use qb64rust_ir::{Body, LabelId, Proc, ProcId, ProcKind, Storage, Ty, Var, numeric_types};
 use std::fmt::Write as _;
 
 /// The prologue of a procedure, after its signature line (`study\02` §8, verbatim from the old compiler).
@@ -197,21 +197,7 @@ impl<'a> Emitter<'a> {
             footer.push(match self.p.var(r).ty {
                 Ty::FixedStr(_) => "return tqbs;".to_string(),
                 Ty::Str => format!("qbs_maketmp({n});return {n};"),
-                Ty::I8
-                | Ty::U8
-                | Ty::I16
-                | Ty::U16
-                | Ty::I32
-                | Ty::U32
-                | Ty::I64
-                | Ty::U64
-                | Ty::Off
-                | Ty::UOff
-                | Ty::Bit { .. }
-                | Ty::F32
-                | Ty::F64
-                | Ty::F80
-                | Ty::User(_) => format!("return *{n};"),
+                numeric_types!() | Ty::User(_) => format!("return *{n};"),
             });
         }
         footer.push("}".to_string());

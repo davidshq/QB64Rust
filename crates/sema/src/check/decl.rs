@@ -2,7 +2,7 @@
 
 use super::places::{numeric_type, unsigned_of};
 use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name, suffix_fits};
-use super::{Checker, Failed, R, Scope};
+use super::{Checker, Failed, R, Scope, split_unsigned};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
 use crate::{
@@ -199,11 +199,8 @@ impl Checker<'_> {
     /// [`Self::type_of`]; `consts` false where no constant is known yet (a `TYPE` member, read in pass 1).
     pub(super) fn type_of_in(&mut self, a: ast::AsClause, consts: bool) -> R<Ty> {
         let span = a.node().span();
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
-        let (unsigned, rest) = match words.split_first() {
-            Some((first, rest)) if first == "_UNSIGNED" => (true, rest),
-            _ => (false, &words[..]),
-        };
+        let words = self.as_words(a);
+        let (unsigned, rest) = split_unsigned(&words);
         let text = rest.join(" ");
         if unsigned && text.is_empty() {
             // Measured: "Unknown type" (`v21_x08_unsigned_alone`).
@@ -347,7 +344,7 @@ impl Checker<'_> {
     /// convert type (…) to symbol" (`v24_x05`, `x08`), though `DIM` takes `_UNSIGNED STRING`.
     fn default_type_of(&mut self, a: ast::AsClause) -> R<Ty> {
         let span = a.node().span();
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
+        let words = self.as_words(a);
         if words == ["_UNSIGNED", "STRING"] {
             return Err(self.error(span, "a default type cannot be `_UNSIGNED STRING`"));
         }

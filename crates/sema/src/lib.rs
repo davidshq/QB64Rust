@@ -176,22 +176,7 @@ impl Ty {
                 (false, true) => Ty::I64,
                 (false, false) => Ty::U64,
             },
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::FixedStr(_)
-            | Ty::User(_) => self,
+            crate::numeric_value_types!() | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => self,
         }
     }
 
@@ -204,22 +189,7 @@ impl Ty {
     pub fn held_value(self) -> Ty {
         match self {
             Ty::FixedStr(_) => Ty::Str,
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::Bit { .. }
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::User(_) => self.storage(),
+            crate::numeric_types!() | Ty::Str | Ty::User(_) => self.storage(),
         }
     }
 
@@ -228,22 +198,7 @@ impl Ty {
     pub fn believed_value(self) -> Ty {
         match self {
             Ty::FixedStr(_) => Ty::Str,
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::Bit { .. }
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::User(_) => self,
+            crate::numeric_types!() | Ty::Str | Ty::User(_) => self,
         }
     }
 
@@ -258,22 +213,7 @@ impl Ty {
     pub fn printed(self) -> Ty {
         match self {
             Ty::Bit { .. } => Ty::I64,
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::FixedStr(_)
-            | Ty::User(_) => self,
+            crate::numeric_value_types!() | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => self,
         }
     }
 
@@ -318,6 +258,38 @@ macro_rules! place_only_types {
 /// The reason in an `unreachable!` arm for `_BIT` where a value's type is matched: a `_BIT` value is held in its
 /// storage type ([`Ty::held_value`]); `_BIT` is the type of a place only.
 pub const BIT_VALUE_UNREACHABLE: &str = "a `_BIT` value is held in its storage type (`Ty::held_value`)";
+
+/// A pattern of every numeric [`Ty`] variant: the ten integer types, `_BIT * n`, `SINGLE`, `DOUBLE` and `_FLOAT`,
+/// for an arm on a place's or a declared type where `_BIT` is a number like the others. It keeps a `match`
+/// exhaustive without a `_ =>` arm (`crates\README.md`, "Lints").
+#[macro_export]
+macro_rules! numeric_types {
+    () => {
+        $crate::numeric_value_types!() | $crate::Ty::Bit { .. }
+    };
+}
+
+/// A pattern of the numeric [`Ty`] variants a value can have: those of [`numeric_types`] but `_BIT * n`, whose value
+/// is held in its storage type ([`BIT_VALUE_UNREACHABLE`]), for an arm on a value's type, or where another arm takes
+/// `_BIT`.
+#[macro_export]
+macro_rules! numeric_value_types {
+    () => {
+        $crate::Ty::I8
+            | $crate::Ty::U8
+            | $crate::Ty::I16
+            | $crate::Ty::U16
+            | $crate::Ty::I32
+            | $crate::Ty::U32
+            | $crate::Ty::I64
+            | $crate::Ty::U64
+            | $crate::Ty::Off
+            | $crate::Ty::UOff
+            | $crate::Ty::F32
+            | $crate::Ty::F64
+            | $crate::Ty::F80
+    };
+}
 
 /// The kind of conversion of a numeric value from `from` to `to` (design D5 of `m2-numeric-types`): `Widen` where
 /// every value of `from` is one of `to` (an integer to a wider one that keeps its sign, a float to a wider float),
@@ -370,22 +342,7 @@ pub fn holds_strings(types: &[UserType], t: Ty) -> bool {
             .members
             .iter()
             .any(|m| m.ty == Ty::Str || holds_strings(types, m.ty)),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::Bit { .. }
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str
-        | Ty::FixedStr(_) => false,
+        crate::numeric_types!() | Ty::Str | Ty::FixedStr(_) => false,
     }
 }
 
@@ -398,22 +355,7 @@ pub fn owns_desc(types: &[UserType], t: Ty) -> bool {
             .members
             .iter()
             .any(|m| m.dynamic || owns_desc(types, m.ty)),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::Bit { .. }
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str
-        | Ty::FixedStr(_) => false,
+        crate::numeric_types!() | Ty::Str | Ty::FixedStr(_) => false,
     }
 }
 
@@ -596,6 +538,29 @@ pub enum Shape {
     },
 }
 
+impl Shape {
+    pub fn is_array(&self) -> bool {
+        !matches!(self, Shape::Scalar)
+    }
+
+    /// The number of dimensions of an array, where it is known; `None` for a scalar too.
+    pub fn dim_count(&self) -> Option<usize> {
+        match self {
+            Shape::Scalar => None,
+            Shape::Static { bounds } => Some(bounds.len()),
+            Shape::Dynamic { dims, .. } => *dims,
+        }
+    }
+
+    /// The bounds of a static array; empty for anything else.
+    pub fn bounds(&self) -> &[(i64, i64)] {
+        match self {
+            Shape::Static { bounds } => bounds,
+            Shape::Scalar | Shape::Dynamic { .. } => &[],
+        }
+    }
+}
+
 /// What an [`StmtKind::Allocate`] does with an array that is allocated already (design D4 of
 /// `m2-defxxx-common-arrays`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -635,26 +600,20 @@ pub struct Var {
     pub conventional: bool,
 }
 
+/// The variable's [`Shape`], asked through the variable.
 impl Var {
     pub fn is_array(&self) -> bool {
-        !matches!(self.shape, Shape::Scalar)
+        self.shape.is_array()
     }
 
-    /// The number of dimensions of an array, where it is known; `None` for a scalar too.
+    /// See [`Shape::dim_count`]: `None` for a scalar too.
     pub fn dim_count(&self) -> Option<usize> {
-        match &self.shape {
-            Shape::Scalar => None,
-            Shape::Static { bounds } => Some(bounds.len()),
-            Shape::Dynamic { dims, .. } => *dims,
-        }
+        self.shape.dim_count()
     }
 
-    /// The bounds of a static array; empty for anything else.
+    /// See [`Shape::bounds`]: empty for anything but a static array.
     pub fn bounds(&self) -> &[(i64, i64)] {
-        match &self.shape {
-            Shape::Static { bounds } => bounds,
-            Shape::Scalar | Shape::Dynamic { .. } => &[],
-        }
+        self.shape.bounds()
     }
 }
 
@@ -1789,20 +1748,7 @@ impl Program {
             Ty::Bit { width: 1, .. } => t.qb_name().to_string(),
             Ty::Bit { width, .. } => format!("{} * {width}", t.qb_name()),
             Ty::FixedStr(n) => format!("STRING * {n}"),
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str => t.qb_name().to_string(),
+            crate::numeric_value_types!() | Ty::Str => t.qb_name().to_string(),
         }
     }
 

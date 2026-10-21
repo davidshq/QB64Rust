@@ -1134,22 +1134,7 @@ fn convert_held(to: Ty, a: &Expr) -> Ty {
 pub fn qb_bits(t: Ty) -> Option<u32> {
     match t {
         Ty::Bit { width, .. } => Some(u32::from(width)),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str
-        | Ty::FixedStr(_)
-        | Ty::User(_) => t.int_bits(),
+        crate::numeric_value_types!() | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => t.int_bits(),
     }
 }
 

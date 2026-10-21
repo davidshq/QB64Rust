@@ -4,29 +4,11 @@
 use crate::Emitter;
 use crate::names::{c_type, int_const, var_name};
 use qb64rust_base::to_u32;
-use qb64rust_ir::{Member, MemberId, ProcId, Shape, Storage, Ty, TypeId, Var, holds_strings, owns_desc, size_of};
+use qb64rust_ir::{
+    Member, MemberId, ProcId, Shape, Storage, Ty, TypeId, Var, holds_strings, numeric_types, numeric_value_types,
+    owns_desc, size_of,
+};
 use std::fmt::Write as _;
-
-/// The numeric types as a pattern: each is stored as one C scalar ([`c_type`]); a declaration of any of them is
-/// emitted alike.
-macro_rules! numbers {
-    () => {
-        Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::Bit { .. }
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-    };
-}
 
 /// A part of a value of a user type that holds strings or owns dynamic member arrays ([`Emitter::parts`]).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -47,7 +29,7 @@ pub(crate) enum Part {
 pub(crate) fn is_qbs(t: Ty) -> bool {
     match t {
         Ty::Str | Ty::FixedStr(_) => true,
-        numbers!() | Ty::User(_) => false,
+        numeric_types!() | Ty::User(_) => false,
     }
 }
 
@@ -59,7 +41,7 @@ pub(crate) fn declare(v: &Var, n: &str) -> String {
     match v.ty {
         Ty::Str | Ty::FixedStr(_) => format!("qbs *{n}=NULL;\n"),
         Ty::User(_) => format!("void *{n}=NULL;\n"),
-        t @ numbers!() => format!("{} *{n}=NULL;\n", c_type(t)),
+        t @ numeric_types!() => format!("{} *{n}=NULL;\n", c_type(t)),
     }
 }
 
@@ -181,7 +163,7 @@ impl Emitter<'_> {
         match t {
             Ty::Str => 8,
             Ty::User(id) => self.layout(id).1,
-            numbers!() | Ty::FixedStr(_) => size_of(&self.p.types, t),
+            numeric_types!() | Ty::FixedStr(_) => size_of(&self.p.types, t),
         }
     }
 
@@ -238,7 +220,7 @@ impl Emitter<'_> {
                 .iter()
                 .map(|m| self.file_size(m.ty) * m.count())
                 .sum(),
-            numbers!() | Ty::Str | Ty::FixedStr(_) => self.ty_size(t),
+            numeric_types!() | Ty::Str | Ty::FixedStr(_) => self.ty_size(t),
         }
     }
 
@@ -373,7 +355,7 @@ impl Emitter<'_> {
                 let strings = self.new_value(v.ty, &format!("(char*){n}"));
                 format!("if({n}==NULL){{\n{n}=(void*)mem_static_malloc({size});\nmemset({n},0,{size});\n{strings}}}\n")
             }
-            t @ numbers!() => format!(
+            t @ numeric_types!() => format!(
                 "if({n}==NULL){{\n{n}=({c}*)mem_static_malloc({size});\n*{n}=0;\n}}\n",
                 c = c_type(t),
                 size = self.ty_size(t)
@@ -453,21 +435,7 @@ impl Emitter<'_> {
     pub(crate) fn array_bytes(&self, t: Ty, count: &str) -> String {
         match t {
             Ty::Bit { width, .. } => format!("{count}*{width}/8+1"),
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::FixedStr(_)
-            | Ty::User(_) => format!("{count}*{}", self.ty_size(t)),
+            numeric_value_types!() | Ty::FixedStr(_) | Ty::User(_) => format!("{count}*{}", self.ty_size(t)),
             Ty::Str => unreachable!("a string array holds pointers"),
         }
     }
@@ -475,19 +443,7 @@ impl Emitter<'_> {
     /// Whether an array of this element type can be one in conventional memory (`sema` allows numbers only).
     fn may_be_conventional(t: Ty) -> bool {
         match t {
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80 => true,
+            numeric_value_types!() => true,
             Ty::Bit { .. } | Ty::FixedStr(_) | Ty::User(_) | Ty::Str => false,
         }
     }
@@ -599,7 +555,7 @@ impl Emitter<'_> {
             Ty::Str => format!("{n}->len=0;\n"),
             Ty::User(_) if self.has_life(v.ty) => self.zero_value(v.ty, &format!("(char*){n}")),
             Ty::User(_) => format!("memset((void*){n},0,{});\n", self.ty_size(v.ty)),
-            numbers!() => format!("*{n}=0;\n"),
+            numeric_types!() => format!("*{n}=0;\n"),
             Ty::FixedStr(k) => format!("memset((void*)({n}->chr),0,{k});\n"),
         }
     }

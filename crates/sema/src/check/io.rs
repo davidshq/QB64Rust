@@ -232,21 +232,7 @@ impl Checker<'_> {
             Ty::FixedStr(_) if fixed => Ok(place),
             // Measured: "Fixed length strings cannot be used in a FIELD statement" (`v30_x100`, `x107`, `x108`).
             Ty::FixedStr(_) => Err(self.error(span, format!("`{what}` cannot take a fixed-length string"))),
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::Bit { .. }
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::User(_) => Err(self.error(
+            crate::numeric_types!() | Ty::User(_) => Err(self.error(
                 span,
                 format!("`{what}` needs a string variable, not a number or a `TYPE` value"),
             )),

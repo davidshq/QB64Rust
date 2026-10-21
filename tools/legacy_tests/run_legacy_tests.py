@@ -162,6 +162,7 @@ from pathlib import Path
 from clone_lock import (
     BUSY_EXIT,
     CLONE_BUSY,
+    clear_temp,
     clone_lock_kind,
     lock_clone,
     lock_folder,
@@ -263,25 +264,6 @@ def new_compiler_rejection(rc: int, out: bytes) -> str:
     if total <= marked:
         return f"only errors marked not supported yet ({lines[-1]})"
     return ""
-
-
-def clear_temp(qb_root: Path) -> None:
-    """Empties the clone's internal/temp before a qb64pe compile, as the bash runners do."""
-    temp = qb_root / "internal" / "temp"
-    if not temp.is_dir():
-        return
-    for p in temp.iterdir():
-        # temp.bin is tracked in the clone (the Makefile's clean keeps it too); qb64pe.exe rewrites
-        # it, another compiler would not, and deleting it would change the clone.
-        if p.name == "temp.bin":
-            continue
-        if p.is_dir():
-            shutil.rmtree(p, ignore_errors=True)
-        else:
-            try:
-                p.unlink()
-            except OSError:
-                pass
 
 
 # qb64pe several at a time (--jobs with qb64pe, corpus suite). qb64pe builds inside its own folder:

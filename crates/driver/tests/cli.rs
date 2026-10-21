@@ -453,21 +453,10 @@ fn wide_bit_scalars_do_not_overlap() {
 #[ignore = "needs the QB64pe reference clone"]
 fn extra_linker_flags_link_the_screen_state_file() {
     let d = scratch("extra-link");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT \"hi\"\nSYSTEM\n").unwrap();
-    let exe = d.join("p.exe");
-    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
-    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
-    let state = d.join("state.txt");
-    let run = run(
-        unattended(&exe).current_dir(&d).env("QB64_SCREEN_STATE", &state),
-        None,
-        PROGRAM_LIMIT,
-        "program",
-    );
+    let exe = build_with_screen_state(&d, "$CONSOLE:ONLY\nPRINT \"hi\"\nSYSTEM\n");
+    let run = run_screen_state(&d, &exe, None, None);
     assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
-    let text = std::fs::read(&state).unwrap();
+    let text = std::fs::read(d.join("state.txt")).unwrap();
     assert!(
         text.starts_with(b"screen-state 1\npages 8 display 0 write image read image\n"),
         "{}",
@@ -484,31 +473,15 @@ fn extra_linker_flags_link_the_screen_state_file() {
 #[ignore = "needs the QB64pe reference clone"]
 fn screen_state_prompt_that_never_comes() {
     let d = scratch("prompt");
-    std::fs::write(
-        d.join("p.bas"),
+    let exe = build_with_screen_state(
+        &d,
         "SCREEN 13\nLINE (0, 0)-(9, 9), 4, BF\nDO: k$ = INKEY$: LOOP WHILE k$ = \"\"\nSYSTEM\n",
-    )
-    .unwrap();
-    std::fs::write(d.join("p.keys"), "# nothing is announced\nprompt\ntext x\n").unwrap();
-    let exe = d.join("p.exe");
-    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
-    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
-    let state = d.join("state.txt");
-    let run = run(
-        unattended(&exe)
-            .current_dir(&d)
-            .env("QB64_SCREEN_STATE", &state)
-            .env("QB64_SCREEN_KEYS", d.join("p.keys"))
-            // Long enough that the box is drawn on a loaded machine (500 ms failed once, `study\archive\30` §8).
-            .env("QB64_SCREEN_PROMPT_MS", "5000"),
-        None,
-        PROGRAM_LIMIT,
-        "program",
     );
+    let keys = "# nothing is announced\nprompt\ntext x\n";
+    // Long enough that the box is drawn on a loaded machine (500 ms failed once, `study\archive\30` §8).
+    let run = run_screen_state(&d, &exe, Some(keys), Some("5000"));
     assert_eq!(run.status.code(), Some(124));
-    let text = std::fs::read(&state).unwrap();
+    let text = std::fs::read(d.join("state.txt")).unwrap();
     assert!(text.starts_with(b"screen-state 1\n"), "{}", text.escape_ascii());
     assert!(
         text.windows(10).any(|w| w == b"p 04*10 00"),
@@ -536,25 +509,10 @@ fn screen_state_wait_no_rule_answers() {
              DO: k$ = INKEY$: LOOP WHILE k$ = \"\"\n"
         )
     };
-    std::fs::write(d.join("p.bas"), format!("SCREEN 13\n{}{}SYSTEM\n", wait(7), wait(9))).unwrap();
-    std::fs::write(d.join("p.keys"), "rule 7 key space\nplay until 14:M\ntext e\n").unwrap();
-    let exe = d.join("p.exe");
-    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
-    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
-    let state = d.join("state.txt");
-    let run = run(
-        unattended(&exe)
-            .current_dir(&d)
-            .env("QB64_SCREEN_STATE", &state)
-            .env("QB64_SCREEN_KEYS", d.join("p.keys")),
-        None,
-        PROGRAM_LIMIT,
-        "program",
-    );
+    let exe = build_with_screen_state(&d, &format!("SCREEN 13\n{}{}SYSTEM\n", wait(7), wait(9)));
+    let run = run_screen_state(&d, &exe, Some("rule 7 key space\nplay until 14:M\ntext e\n"), None);
     assert_eq!(run.status.code(), Some(125));
-    let text = std::fs::read(&state).unwrap();
+    let text = std::fs::read(d.join("state.txt")).unwrap();
     assert!(text.starts_with(b"screen-state 1\n"), "{}", text.escape_ascii());
     assert!(
         text.ends_with(b"p.keys line 2: no rule for the wait at place 9\n"),
@@ -571,28 +529,14 @@ fn screen_state_wait_no_rule_answers() {
 #[ignore = "needs the QB64pe reference clone"]
 fn screen_state_mistake_in_a_mouse_step() {
     let d = scratch("mouse-step");
-    std::fs::write(d.join("p.bas"), "SCREEN 13\nPSET (1, 1), 4\nSYSTEM\n").unwrap();
-    let exe = d.join("p.exe");
-    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
-    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
+    let exe = build_with_screen_state(&d, "SCREEN 13\nPSET (1, 1), 4\nSYSTEM\n");
     for (keys, line) in [
         ("mouse 40 30\npress 9\n", 2),
         ("# a move needs x and y\nmouse 10\npress 1\n", 2),
         ("mouse 4 3\nrelease 0\n", 2),
         ("wheel 0\n", 1),
     ] {
-        std::fs::write(d.join("p.keys"), keys).unwrap();
-        let run = run(
-            unattended(&exe)
-                .current_dir(&d)
-                .env("QB64_SCREEN_STATE", d.join("state.txt"))
-                .env("QB64_SCREEN_KEYS", d.join("p.keys")),
-            None,
-            PROGRAM_LIMIT,
-            "program",
-        );
+        let run = run_screen_state(&d, &exe, Some(keys), None);
         assert_eq!(run.status.code(), Some(125), "{keys:?}");
         let err = run.stderr.escape_ascii().to_string();
         assert!(
@@ -609,35 +553,45 @@ fn screen_state_mistake_in_a_mouse_step() {
 #[ignore = "needs the QB64pe reference clone"]
 fn screen_state_mouse_step_of_a_hidden_window() {
     let d = scratch("mouse-hidden");
-    std::fs::write(
-        d.join("p.bas"),
+    let exe = build_with_screen_state(
+        &d,
         "$SCREENHIDE\nSCREEN 13\nDO: k$ = INKEY$: LOOP WHILE k$ = \"\"\nSYSTEM\n",
-    )
-    .unwrap();
-    std::fs::write(d.join("p.keys"), "mouse 1 1\ntext x\n").unwrap();
-    let exe = d.join("p.exe");
-    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
-    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
-    let state = d.join("state.txt");
-    let run = run(
-        unattended(&exe)
-            .current_dir(&d)
-            .env("QB64_SCREEN_STATE", &state)
-            .env("QB64_SCREEN_KEYS", d.join("p.keys"))
-            .env("QB64_SCREEN_PROMPT_MS", "500"),
-        None,
-        PROGRAM_LIMIT,
-        "program",
     );
+    let run = run_screen_state(&d, &exe, Some("mouse 1 1\ntext x\n"), Some("500"));
     assert_eq!(run.status.code(), Some(124));
-    let text = std::fs::read(&state).unwrap();
+    let text = std::fs::read(d.join("state.txt")).unwrap();
     assert!(
         text.ends_with(b"p.keys line 1: the window never showed the screen\n"),
         "{}",
         text.escape_ascii()
     );
+}
+
+/// Writes `p.bas` in `d` and builds it with the screen-state file of `tools/screen` on the link line
+/// (`-f:ExtraLinkerFlags=`); the executable.
+fn build_with_screen_state(d: &Path, program: &str) -> PathBuf {
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
+    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
+    let o = qb64rust_build(d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    exe
+}
+
+/// Runs a program of [`build_with_screen_state`] in `d`, its state written to `state.txt` there; with `keys`, given
+/// a keys file `p.keys` of that text, and with `prompt_ms`, that time for a `prompt` (`QB64_SCREEN_PROMPT_MS`).
+fn run_screen_state(d: &Path, exe: &Path, keys: Option<&str>, prompt_ms: Option<&str>) -> Output {
+    let mut cmd = unattended(exe);
+    cmd.current_dir(d).env("QB64_SCREEN_STATE", d.join("state.txt"));
+    if let Some(keys) = keys {
+        std::fs::write(d.join("p.keys"), keys).unwrap();
+        cmd.env("QB64_SCREEN_KEYS", d.join("p.keys"));
+    }
+    if let Some(ms) = prompt_ms {
+        cmd.env("QB64_SCREEN_PROMPT_MS", ms);
+    }
+    run(&mut cmd, None, PROGRAM_LIMIT, "program")
 }
 
 /// The smallest icon file: one image of 16 by 16 pixels with 32 bits each, every pixel of colour `fill` (four

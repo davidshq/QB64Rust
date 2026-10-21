@@ -18,8 +18,8 @@
 //! [`OnError::Skip`] branches.
 
 use crate::{
-    Body, EventHandler, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId, ProcKind, Program,
-    Resume, Stmt, Storage, Ty, Var, VarId, When,
+    Body, EventHandler, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId, Program, Resume,
+    Stmt, Storage, Ty, Var, VarId, When,
 };
 use qb64rust_base::{Span, to_u32};
 use qb64rust_sema as sema;
@@ -47,10 +47,7 @@ pub fn lower(p: &sema::Program) -> Program {
         let body = Lowerer::new(p, &ids, Some(sema::ProcId(i)), &mut vars, &mut counts).body(&q.stmts);
         procs.push(Proc {
             name: q.name.clone(),
-            kind: match q.kind {
-                sema::ProcKind::Sub => ProcKind::Sub,
-                sema::ProcKind::Function(t) => ProcKind::Function(t),
-            },
+            kind: q.kind,
             params: q.params.iter().map(|v| VarId(v.0)).collect(),
             result: q.result.map(|v| VarId(v.0)),
             body,
@@ -72,23 +69,7 @@ pub fn lower(p: &sema::Program) -> Program {
             window: p.settings.window,
             window_hidden: p.settings.window_hidden,
             asserts: p.settings.asserts,
-            runtime_parts: p
-                .settings
-                .runtime_parts
-                .iter()
-                .map(|part| match part {
-                    sema::RuntimePart::Icon => crate::RuntimePart::Icon,
-                    sema::RuntimePart::Audio => crate::RuntimePart::Audio,
-                    sema::RuntimePart::Printer => crate::RuntimePart::Printer,
-                    sema::RuntimePart::ImageCodec => crate::RuntimePart::ImageCodec,
-                    sema::RuntimePart::Font => crate::RuntimePart::Font,
-                    sema::RuntimePart::ScreenImage => crate::RuntimePart::ScreenImage,
-                    sema::RuntimePart::DataProcessing => crate::RuntimePart::DataProcessing,
-                    sema::RuntimePart::Sockets => crate::RuntimePart::Sockets,
-                    sema::RuntimePart::Embed => crate::RuntimePart::Embed,
-                    sema::RuntimePart::DeviceInput => crate::RuntimePart::DeviceInput,
-                })
-                .collect(),
+            runtime_parts: p.settings.runtime_parts.clone(),
             exe_icon: p.settings.exe_icon.is_some(),
             version_info: p.settings.version_info.clone(),
         },

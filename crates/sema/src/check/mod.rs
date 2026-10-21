@@ -808,6 +808,11 @@ impl Checker<'_> {
         show_bytes(&self.text(t.span).to_ascii_uppercase())
     }
 
+    /// The words of the type an `AS` clause names, each as [`Self::word`] gives it (`_UNSIGNED`, `INTEGER`).
+    fn as_words(&self, a: ast::AsClause) -> Vec<String> {
+        a.type_words().map(|t| self.word(t)).collect()
+    }
+
     /// Whether `span` lies in QB64pe's file included after the last line (design D7 of `m3-network-embed`).
     fn in_after_last_line(&self, span: Span) -> bool {
         self.auto_file == Some(span.file)
@@ -1768,4 +1773,13 @@ fn expand<'t>(program: &'t ParsedProgram, nodes: impl IntoIterator<Item = Node<'
 /// The span of a statement's first token (where a "not supported yet" mark goes, design D10).
 fn first_token_span(node: Node) -> Span {
     node.first_token().map_or(node.span(), |t| t.span)
+}
+
+/// The words of an `AS` clause ([`Checker::as_words`]) split at a leading `_UNSIGNED`: whether there is one, and
+/// the words after it.
+fn split_unsigned(words: &[String]) -> (bool, &[String]) {
+    match words.split_first() {
+        Some((first, rest)) if first == "_UNSIGNED" => (true, rest),
+        _ => (false, words),
+    }
 }

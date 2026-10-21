@@ -23,23 +23,7 @@ pub(super) fn supported_builtin(name: &str, suffix: Option<Ty>) -> Option<Suppor
         None => lookup(name, false),
         Some(Ty::Str) => lookup(name, true),
         // No built-in is written with a number suffix.
-        Some(
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::Bit { .. }
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::User(_),
-        ) => None,
+        Some(crate::numeric_types!() | Ty::User(_)) => None,
         Some(crate::place_only_types!()) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
     }
 }

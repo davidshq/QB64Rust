@@ -10,7 +10,7 @@ use qb64rust_builtins::passing::plan;
 use qb64rust_ir::builtins::{
     Rule, Slot, StmtRule, StmtSlot, cpp_arithmetic, find, int_entry, radix_width, slots, stmt_find, stmt_slots,
 };
-use qb64rust_ir::{Expr, ExprKind, Facts, Place, StmtArg, Ty, VarId};
+use qb64rust_ir::{Expr, ExprKind, Facts, Place, StmtArg, Ty, VarId, numeric_value_types};
 
 impl Emitter<'_> {
     /// A built-in call. A built-in no rule covers (`ERR`, `ERL` are `Fixed`; every call `sema` makes has a rule) is
@@ -344,19 +344,7 @@ impl Emitter<'_> {
                 "byte_element((uint64)(((char*){n}[0])+((({flat})*{size}+0))),\
                  ({size}*({n}[2]&1)*{counts})-((({flat})*{size}+0)),{t})"
             ),
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80 => format!(
+            numeric_value_types!() => format!(
                 "byte_element((uint64)(&({})),(({size}*({n}[2]&1)*{counts})-({size}*({flat}))),{t})",
                 self.element_at(array, &flat)
             ),

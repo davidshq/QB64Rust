@@ -42,6 +42,7 @@ sys.path.insert(0, str(REPO / "tools" / "legacy_tests"))
 from clone_lock import (  # pylint: disable=wrong-import-position,import-error
     BUSY_EXIT,
     CLONE_BUSY,
+    clear_temp,
     lock_clone,
 )
 from compiler_copy import header, run_copy  # pylint: disable=wrong-import-position,import-error
@@ -298,23 +299,6 @@ def extract(fragment: str, line: int, name: str) -> list[str]:
 
 
 # ---- the two compilers ---------------------------------------------------------------------------
-
-
-def clear_temp(qb_root: Path) -> None:
-    """Empties the clone's internal/temp, keeping the tracked temp.bin (as tools/legacy_tests does)."""
-    temp = qb_root / "internal" / "temp"
-    if not temp.is_dir():
-        return
-    for p in temp.iterdir():
-        if p.name == "temp.bin":
-            continue
-        if p.is_dir():
-            shutil.rmtree(p, ignore_errors=True)
-        else:
-            try:
-                p.unlink()
-            except OSError:
-                pass
 
 
 def last_line(text: str) -> str:

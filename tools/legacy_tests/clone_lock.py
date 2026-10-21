@@ -15,6 +15,9 @@ to date, alone while they are built. So a run of qb64rust takes no lock of the c
 a run of qb64pe, unless its programs are in the clone's own test folders, where it runs them: then it
 shares the clone's lock (clone_lock_kind), and a run of qb64pe waits for it.
 
+clear_temp empties internal/temp before a qb64pe compile; it is here because both tools do it under
+lock_clone (design D2 of dry-cleanup).
+
 lock_folder is the same lock for a folder of private copies (run_legacy_tests.py --jobs with qb64pe)
 and for a folder of results, where the runner builds and runs each program; those are exclusive.
 
@@ -32,6 +35,7 @@ read-only and gets no lock file. Use worktrees, not clones, for a second checkou
 from __future__ import annotations
 
 import os
+import shutil
 import time
 from pathlib import Path
 
@@ -160,3 +164,23 @@ def lock_clone(wait: bool = False, shared: bool = False):
     """The lock of the reference clone (lock_file's result): exclusive for a run that uses qb64pe in
     the clone, shared for a run of qb64rust that runs programs in the clone's folders."""
     return lock_file(CLONE_LOCK_DIR / "in-use.lock", wait, CLONE_WAITING, shared)
+
+
+def clear_temp(qb_root: Path) -> None:
+    """Empties the clone's internal/temp before a qb64pe compile, as the bash runners do (the test
+    runner and the call-site tool, each under lock_clone)."""
+    temp = qb_root / "internal" / "temp"
+    if not temp.is_dir():
+        return
+    for p in temp.iterdir():
+        # temp.bin is tracked in the clone (the Makefile's clean keeps it too); qb64pe.exe rewrites
+        # it, another compiler would not, and deleting it would change the clone.
+        if p.name == "temp.bin":
+            continue
+        if p.is_dir():
+            shutil.rmtree(p, ignore_errors=True)
+        else:
+            try:
+                p.unlink()
+            except OSError:
+                pass

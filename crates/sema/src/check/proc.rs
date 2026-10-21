@@ -51,16 +51,24 @@ impl Checker<'_> {
         if self.procs_by_name.contains_key(&name) {
             return Err(self.in_use(name_tok));
         }
-        let id = ProcId(to_u32(self.prog.procs.len()));
+        let id = self.new_proc(name.clone(), kind);
         if header.static_word().is_some() {
             self.static_procs.insert(id);
         }
         if auto {
             self.auto_procs.insert(id);
             if !keyword {
-                self.hidden_procs.push((name.clone(), id));
+                self.hidden_procs.push((name, id));
             }
         }
+        self.stmt.names.push((SymbolKind::Proc(id), name_tok.span));
+        Ok(id)
+    }
+
+    /// Enters a procedure of this name and kind, with no parameters or statements yet, and its scope of
+    /// parameters.
+    fn new_proc(&mut self, name: String, kind: ProcKind) -> ProcId {
+        let id = ProcId(to_u32(self.prog.procs.len()));
         self.prog.procs.push(Proc {
             name: name.clone(),
             kind,
@@ -74,8 +82,7 @@ impl Checker<'_> {
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);
-        self.stmt.names.push((SymbolKind::Proc(id), name_tok.span));
-        Ok(id)
+        id
     }
 
     /// Enters the name of a procedure whose header has an error (already reported) as a broken procedure: calls
@@ -96,20 +103,7 @@ impl Checker<'_> {
         } else {
             ProcKind::Sub
         };
-        let id = ProcId(to_u32(self.prog.procs.len()));
-        self.prog.procs.push(Proc {
-            name: name.clone(),
-            kind,
-            params: Vec::new(),
-            result: None,
-            stmts: Vec::new(),
-            line: 0,
-            end_line: 0,
-            external: None,
-            checked: true,
-        });
-        self.param_scopes.push(Scope::default());
-        self.procs_by_name.insert(name, id);
+        let id = self.new_proc(name, kind);
         self.broken.insert(id);
     }
 
@@ -331,13 +325,13 @@ impl Checker<'_> {
 
     /// Whether an `AS` clause is `STRING * n`.
     pub(super) fn fixed_string_size(&self, a: ast::AsClause) -> bool {
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
+        let words = self.as_words(a);
         a.size().is_some() && words == ["STRING"]
     }
 
     /// Whether an `AS` clause is `_UNSIGNED STRING`, with a length or not.
     fn unsigned_string(&self, a: ast::AsClause) -> bool {
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
+        let words = self.as_words(a);
         words == ["_UNSIGNED", "STRING"]
     }
 

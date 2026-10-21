@@ -42,8 +42,8 @@ input and writes nothing):
 
 | Bucket | Kinds |
 |---|---|
-| `test` | Checks of this project's own work: tier 1 (`cargo test`, whole or a part), `clippy`, `fmt`, the corpus, upstream and differential runs with the new compiler (slice list, pass lists, selected programs, full suites), the call-site check and its self-test, the tests of the Python tools, the extension's tests, the repo check, `openspec validate` |
-| `measure` | Finding out what QB64pe does: the verification programs, recording expected results, any suite run with the old compiler, the old compiler run directly |
+| `test` | Checks of this project's own work: tier 1 (`cargo test`, whole or a part), `clippy`, `fmt`, the corpus, upstream, differential and verification runs with the new compiler (slice list, pass lists, selected programs, full suites), the call-site check and its self-test, the coverage check of Civil War Strategy's scripts, the wording check (`old_wording.py --check`), the tests of the Python tools, the extension's tests, the repo check, `openspec validate` |
+| `measure` | Finding out what QB64pe does: the verification programs with the old compiler, recording expected results, any suite run with the old compiler, the old compiler run directly |
 | `build` | `cargo build`, the extension's build. A `cargo test` builds too; that time is in the test |
 
 A command line is read statement by statement (split at `;`, `&&`, `||` and line ends), so two runs of the
@@ -69,7 +69,8 @@ are when the record is made again.
 `result` is what the transcript shows of a test run or a build; a measurement has none.
 
 - **By its output**, where the run says it: the runner's summary line (`"FAIL": 0`), `test result: ok` or
-  `FAILED` of `cargo test`, the counts of the call-site check and of the repo check, `is valid` of `openspec
+  `FAILED` of `cargo test`, the counts of the call-site check, the repo check and the wording check, `check: PASS`
+  or `FAIL` of the coverage check, `is valid` of `openspec
   validate`, `OK` or `FAILED (` of the Python tests, `passing` and `failing` of the extension's tests, a compile
   error, a clippy warning, `Diff in` of `cargo fmt --check`.
 - **By the exit code**, only when the command is that one statement with no pipe after it: with a pipe
@@ -164,6 +165,10 @@ command or text is written: only the change's name, the kind and the counts.
 - **A command that reaches its time limit is not stopped: it goes on in the background** (the limit is two
   minutes unless the command asks for more; five and ten were asked for). Such a run is two rows: the time waited
   for, and the rest in the background, which carries the result.
+- **Commands sent together count the time they cover once.** Several sent in one message are carried out one
+  after another or side by side, and each is timed from when it was sent; so a command's time starts when those
+  sent before it have ended. The rows of sessions whose transcripts were gone by 2026-10-21, when this rule came
+  in, keep the old count (fmt sent beside `cargo test` counted the time of both).
 - **A background run counts until its end was reported** to the session; one whose session ended first is left
   out.
 - **Which change a run belonged to** is a guess ("Changes" above), and how long a kind of work took is not known

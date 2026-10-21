@@ -11,7 +11,7 @@ use crate::Emitter;
 use crate::decl::{Part, count_of, dim_slot, lock_slot};
 use crate::names::{bare, int_const};
 use crate::owner::dyn_fn;
-use qb64rust_ir::{AllocMode, ArrayRef, Conv, Expr, ExprKind, Facts, Ty, Var, VarId};
+use qb64rust_ir::{AllocMode, ArrayRef, Conv, Expr, ExprKind, Facts, Ty, Var, VarId, numeric_value_types};
 
 /// The name of the descriptor of a dynamic member array that [`Emitter::allocate`] allocates.
 const DYN_DESC: &str = "dyn_d";
@@ -506,21 +506,7 @@ impl Emitter<'_> {
             let element = match t {
                 Ty::Bit { width, .. } => format!("({width}/8+1)"),
                 Ty::FixedStr(_) => size.to_string(),
-                Ty::I8
-                | Ty::U8
-                | Ty::I16
-                | Ty::U16
-                | Ty::I32
-                | Ty::U32
-                | Ty::I64
-                | Ty::U64
-                | Ty::Off
-                | Ty::UOff
-                | Ty::F32
-                | Ty::F64
-                | Ty::F80
-                | Ty::Str
-                | Ty::User(_) => format!("({size})"),
+                numeric_value_types!() | Ty::Str | Ty::User(_) => format!("({size})"),
             };
             out.push(format!(
                 "if (whole_arr_total>(18446744073709551615ull/(uint64){element})) error(257);"

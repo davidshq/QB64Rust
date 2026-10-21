@@ -322,7 +322,7 @@ impl Checker<'_> {
     /// "Cannot use _BIT inside user defined types", `verification\v21_x25`, `x26`).
     fn member_type(&mut self, a: ast::AsClause) -> R<Ty> {
         let span = a.node().span();
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
+        let words = self.as_words(a);
         let text = words.join(" ");
         if let Some(t) = self.user_type_of(&text) {
             return Ok(t);
@@ -1974,21 +1974,7 @@ fn layout_bytes(types: &[UserType], t: Ty) -> u64 {
                 }
             })
             .sum(),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::Bit { .. }
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::FixedStr(_) => u64::from(crate::size_of(types, t)),
+        crate::numeric_types!() | Ty::FixedStr(_) => u64::from(crate::size_of(types, t)),
     }
 }
 

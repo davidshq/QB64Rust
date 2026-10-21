@@ -121,22 +121,7 @@ fn place_ty_checked(p: &Program, place: &Place) -> Option<Ty> {
 fn member_checked<'p>(p: &'p Program, base: &Place, member: MemberId) -> Option<&'p Member> {
     match place_ty_checked(p, base)? {
         Ty::User(t) => p.types.get(t.0 as usize)?.members.get(member.0 as usize),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::Bit { .. }
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str
-        | Ty::FixedStr(_) => None,
+        crate::numeric_types!() | Ty::Str | Ty::FixedStr(_) => None,
     }
 }
 
