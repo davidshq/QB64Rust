@@ -1,0 +1,27 @@
+ha 5 
+hb 6 
+hc 7 
+hb 8 
+ha 9 
+1. three deep and back
+ha 10 
+2. LASTHANDLER with nothing kept, then ha
+hc 19 
+3. after ON ERROR GOTO 0
+hc 12 
+ha 13 
+4. a plain label between
+hb 20 
+hc 21 
+hb 22 
+ha 14 
+5. f =hc 32 
+ 4 
+ha 15 
+hb 16 
+ha 17 
+6. the same label twice
+
+Runtime error: Line: 48 (in main module)
+Function not defined
+exit=0

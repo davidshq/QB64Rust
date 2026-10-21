@@ -786,7 +786,7 @@ impl Checker<'_> {
                     );
                     return Ok(());
                 }
-                StmtRule::Swap | StmtRule::MidAssign => {}
+                StmtRule::Swap | StmtRule::MidAssign | StmtRule::Log(_) => {}
             }
         }
         Err(self.error(name.span, format!("`{shown}` needs its arguments")))
@@ -1139,7 +1139,7 @@ impl Checker<'_> {
                         format!("argument {k} of `{}`", form.name)
                     };
                     match form.rule {
-                        StmtRule::Plain | StmtRule::Graphics | StmtRule::File => {
+                        StmtRule::Plain | StmtRule::Graphics | StmtRule::File | StmtRule::Log(_) => {
                             StmtArg::Value(self.slot_arg(Rule::Plain, slot, k - 1, e, &which)?)
                         }
                         StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
@@ -1168,6 +1168,14 @@ impl Checker<'_> {
         {
             let msg = format!("`{}` needs the first record before `TO`", form.name);
             return Err(self.error(node.span(), msg));
+        }
+        if let StmtRule::Log(level) = form.rule {
+            let [StmtArg::Value(msg)] = &args[..] else {
+                unreachable!("`{}`: a log form's template has one string slot", form.name)
+            };
+            let msg = msg.clone();
+            self.push(node, StmtKind::Log { level, msg });
+            return Ok(());
         }
         self.push(node, StmtKind::Builtin { id: form.id, args });
         Ok(())

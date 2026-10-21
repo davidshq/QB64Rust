@@ -8,7 +8,7 @@
 //!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 
-use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit_ir_with, frontend_at, lower, report};
+use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit_ir_with, frontend_at, log_folder, lower, report};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -327,7 +327,10 @@ fn run() -> Result<ExitCode, String> {
 
     let ir = lower(&fe);
     settings.flags = build::make_flags(&ir.settings);
-    let fragments = emit_ir_with(&fe, &ir, &resolved, o.coverage);
+    // A log statement names a relative source file from the working folder, as the old compiler does from its
+    // start folder (design D2 of `m4-handlers-logging-checking`).
+    let log_folder = std::env::current_dir().ok().map(|d| log_folder(&d));
+    let fragments = emit_ir_with(&fe, &ir, &resolved, o.coverage, log_folder.as_deref());
     let build_dir = build::build_dir(&exe);
     if o.cpp_only {
         let temp = build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;

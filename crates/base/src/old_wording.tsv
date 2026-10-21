@@ -3,6 +3,7 @@
 # {n:U|SU} in one of these forms (= as written, U capitals, P no (), S no () and no suffix; no note when the
 # forms give different texts)>
 `$ASSERTS` must stand alone on its line	Syntax error
+`$CHECKING` takes `{}` or `{}`, alone on its line	Syntax error
 `$COLOR` takes `:0` or `:32`, alone on its line	Syntax error
 `$CONSOLE:ONLY` must stand alone on its line	Syntax error
 `$CONSOLE` must stand alone on its line	Syntax error
@@ -171,6 +172,8 @@
 `_LIMIT` takes {#} argument	Syntax error - Reference: _LIMIT framesPerSecond!
 `_LOADIMAGE` takes {#} to {#} arguments	Incorrect number of arguments - Reference: _LOADIMAGE(fileName$[, [mode&][, requirements$]])
 `_LOADIMAGE` with empty parentheses	Expected (...)
+`_LOGINFO` needs a string	Illegal string-number conversion
+`_LOGMINLEVEL` with empty parentheses	Expected (...)
 `_MAPUNICODE` takes {#} argument	Incorrect number of arguments - Reference: _MAPUNICODE(asciiCode%)
 `_MEMELEMENT` cannot take a variable-length string	_MEMELEMENT cannot reference variable-length strings
 `_MEMELEMENT` takes an element, not a whole member array	Expected array index
@@ -332,6 +335,7 @@
 `{}` with empty parentheses	Expected (...)
 `{}`: `_ASSERT` is a built-in statement	Invalid array name
 `{}`: `_LIMIT` is a built-in statement	Invalid array name
+`{}`: `_LOGINFO` is a built-in statement	Invalid array name
 `{}`: `_SNDPLAY` is a built-in statement	Invalid array name
 `{}`: `{}` is an array; a member needs an index	Invalid expression
 `{}`: a member array takes its bounds by `REDIM`	DIM: Expected ,
@@ -458,6 +462,7 @@ names starting with `_` are reserved: `_CONTINUE`	Invalid variable name
 names starting with `_` are reserved: `_CWD`	Invalid variable name
 names starting with `_` are reserved: `_ERRORLINE`	Expected variable =, look for conflict with a CONST name
 names starting with `_` are reserved: `_INCLERRORFILE`	Invalid variable name
+names starting with `_` are reserved: `_LOGMINLEVEL`	Expected variable =, look for conflict with a CONST name
 names starting with `_` are reserved: `_OS`	Invalid variable name
 names starting with `_` are reserved: `_SCREENX`	Expected variable =, look for conflict with a CONST name
 names starting with `_` are reserved: `_SNDPLAY`	Invalid variable name

@@ -145,7 +145,7 @@ pub fn dump(p: &Program) -> String {
             )
             .unwrap(),
         }
-        writeln!(out, "{}", if proc.checked { "" } else { " unchecked" }).unwrap();
+        writeln!(out).unwrap();
         if let Some(e) = &proc.external {
             let byval: Vec<&str> = e.byval.iter().map(|&b| if b { "byval" } else { "ref" }).collect();
             writeln!(
@@ -210,17 +210,25 @@ fn body(p: &Program, b: &Body, out: &mut String) {
     let labels = |at: usize, out: &mut String| {
         for (i, l) in b.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
             let name = label(b, LabelId(to_u32(i)));
-            writeln!(out, "Label {name} line {}{}", l.line, in_main(l.include_line)).unwrap();
+            let unchecked = if l.checked { "" } else { " unchecked" };
+            writeln!(
+                out,
+                "Label {name} line {}{}{unchecked}",
+                l.line,
+                in_main(l.include_line)
+            )
+            .unwrap();
         }
     };
     for (i, s) in b.stmts.iter().enumerate() {
         labels(i, out);
         writeln!(
             out,
-            "Stmt line {}{}{}",
+            "Stmt line {}{}{}{}",
             s.line,
             in_main(s.include_line),
-            if s.may_raise { " may_raise" } else { "" }
+            if s.may_raise { " may_raise" } else { "" },
+            if s.checked { "" } else { " unchecked" }
         )
         .unwrap();
         for op in &s.ops {
@@ -263,7 +271,10 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::Exit => writeln!(out, "  Exit").unwrap(),
                 Op::SetHandler(Some(l)) => writeln!(out, "  SetHandler {}", label(&p.main, *l)).unwrap(),
                 Op::SetHandler(None) => writeln!(out, "  SetHandler none").unwrap(),
+                Op::NewHandler(l) => writeln!(out, "  NewHandler {}", label(&p.main, *l)).unwrap(),
+                Op::LastHandler => writeln!(out, "  LastHandler").unwrap(),
                 Op::Raise(v) => writeln!(out, "  Raise {}", val(p, v)).unwrap(),
+                Op::Log { level, msg } => writeln!(out, "  Log {level:?} {}", val(p, msg)).unwrap(),
                 Op::Resume(Resume::Retry) => writeln!(out, "  Resume Retry").unwrap(),
                 Op::Resume(Resume::Next) => writeln!(out, "  Resume Next").unwrap(),
                 Op::Resume(Resume::To(l)) => writeln!(out, "  Resume To {}", label(&p.main, *l)).unwrap(),

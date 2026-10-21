@@ -306,6 +306,17 @@ version,session,change,category,actions,bytes
 1,2010f174,,other commands,1,0
 1,21104885,,other commands,1,0
 1,21104885,m3-images-fonts-mouse,other commands,2,0
+1,21a4bf91,,other commands,1,0
+1,21a4bf91,m4-handlers-logging-checking,builds,15,0
+1,21a4bf91,m4-handlers-logging-checking,documents and planning,29,15209
+1,21a4bf91,m4-handlers-logging-checking,measurement preparation,11,9867
+1,21a4bf91,m4-handlers-logging-checking,measurement runs,6,0
+1,21a4bf91,m4-handlers-logging-checking,other commands,203,0
+1,21a4bf91,m4-handlers-logging-checking,product code,30,13687
+1,21a4bf91,m4-handlers-logging-checking,reading,12,0
+1,21a4bf91,m4-handlers-logging-checking,scratch files,8,29701
+1,21a4bf91,m4-handlers-logging-checking,test runs,53,0
+1,21a4bf91,m4-handlers-logging-checking,tests and fixtures,36,17895
 1,21f63db5,,other commands,3,0
 1,21f63db5,,reading,11,0
 1,21f63db5,,test runs,1,0
@@ -1130,6 +1141,10 @@ version,session,change,category,actions,bytes
 1,6ca4385f,m3-mem,scratch files,26,40614
 1,6ca4385f,m3-mem,test runs,54,0
 1,6ca4385f,m3-mem,tests and fixtures,16,13071
+1,6cb56095,,documents and planning,1,288
+1,6cb56095,,reading,1,0
+1,6cb56095,dry-cleanup,other commands,2,0
+1,6cb56095,m4-handlers-logging-checking,other commands,1,0
 1,6d30f8f6,,reading,1,0
 1,6d30f8f6,m2-defxxx-common-arrays,builds,7,0
 1,6d30f8f6,m2-defxxx-common-arrays,documents and planning,29,41635

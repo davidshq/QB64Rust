@@ -231,7 +231,8 @@ impl Validator<'_> {
                 self.value(bytes, owner, at);
                 self.mem_value(value, owner, at);
             }
-            Op::End(None) | Op::System(None) | Op::Exit | Op::SetHandler(None) | Op::Return(None) => {}
+            Op::End(None) | Op::System(None) | Op::Exit | Op::SetHandler(None) | Op::LastHandler | Op::Return(None) => {
+            }
             Op::End(Some(code)) | Op::System(Some(code)) => {
                 if code.ty == Ty::Str {
                     self.problem(format!("{at}: an exit code of type {:?}", code.ty));
@@ -239,7 +240,7 @@ impl Validator<'_> {
                 self.value(code, owner, at);
             }
             Op::Resume(Resume::Retry | Resume::Next) => {}
-            Op::SetHandler(Some(l)) => self.main_label(*l, at, "handler"),
+            Op::SetHandler(Some(l)) | Op::NewHandler(l) => self.main_label(*l, at, "handler"),
             Op::Resume(Resume::To(l)) => self.main_label(*l, at, "resume"),
             Op::Return(Some(l)) => self.main_label(*l, at, "return"),
             Op::Jump(l) => self.own_label(*l, b, at, "jump"),
@@ -298,6 +299,12 @@ impl Validator<'_> {
                 }
             }
             Op::Raise(v) => self.value(v, owner, at),
+            Op::Log { msg, .. } => {
+                if msg.ty != Ty::Str {
+                    self.problem(format!("{at}: a log message of type {:?}", msg.ty));
+                }
+                self.value(msg, owner, at);
+            }
             // An allocation names an array of either kind (of a static one it raises an error when it runs), with
             // one pair of `I64` bounds per dimension, or a dynamic member array, with any number of them.
             Op::Allocate { array, bounds, .. } => {
@@ -657,6 +664,11 @@ impl Validator<'_> {
         match form.rule {
             // `File`: the template's slots, the third the bytes of a place or of a whole array, or nothing.
             StmtRule::Plain | StmtRule::Graphics | StmtRule::File => {}
+            // `sema` makes a log statement no call.
+            StmtRule::Log(_) => {
+                self.problem(format!("{at}: {name} is written as an `Op::Log`, not as a call"));
+                return;
+            }
             // Any number of file numbers.
             StmtRule::Close => {
                 for (k, arg) in args.iter().enumerate() {
@@ -1277,6 +1289,7 @@ mod tests {
             ops,
             may_raise: false,
             own: false,
+            checked: true,
         }
     }
 
@@ -1287,6 +1300,7 @@ mod tests {
             include_line: None,
             file: None,
             at,
+            checked: true,
         }
     }
 
@@ -1336,7 +1350,6 @@ mod tests {
                 line: 3,
                 end_line: 5,
                 external: None,
-                checked: true,
             }],
             main: Body {
                 labels: vec![label(0)],
@@ -1554,7 +1567,6 @@ mod tests {
                 c_name: "f".into(),
                 byval: vec![true],
             }),
-            checked: true,
         });
         let call = |a: Arg| Op::Call {
             proc: ProcId(1),

@@ -1,0 +1,4 @@
+min level 2 
+f$ = yy
+done
+exit=0

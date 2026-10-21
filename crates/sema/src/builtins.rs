@@ -153,6 +153,9 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // bare only. The tests set the clipboard (design D3).
     ("_OS$", Rule::Plain),
     ("_CLIPBOARD$", Rule::Plain),
+    // The runtime log's minimum level (design D2 of `m4-handlers-logging-checking`; `verification\v50_b_log`): no
+    // slot, called bare only.
+    ("_LOGMINLEVEL", Rule::Plain),
     // `RND` and `TIMER` (`verification\v22_d_random`): one optional slot each, so both are also called bare. `RND`
     // is a `float`; `TIMER` is believed SINGLE and held DOUBLE (libqb's `func_timer` returns `double`).
     ("RND", Rule::Plain),
@@ -423,6 +426,10 @@ pub enum StmtRule {
     /// nothing ([`Slot::Bytes`]). The variable decides the runtime's entry: none, the file's record buffer; a
     /// variable-length string, the string itself; anything else, its bytes.
     File,
+    /// `_LOGTRACE`, `_LOGINFO`, `_LOGWARN` and `_LOGERROR msg$` (design D2 of `m4-handlers-logging-checking`): the
+    /// plain entry's one string slot, then not its call but [`crate::StmtKind::Log`], which the old compiler writes
+    /// itself with the statement's file, procedure and line (`emit\logging.bas`).
+    Log(crate::LogLevel),
 }
 
 /// Every built-in statement `sema` compiles as a call of the runtime, as written, and its rule. A name stands for
@@ -585,6 +592,11 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     // plain call of its row, `sub_clear`, which includes the program's `clear.txt`; its arguments are ignored. Not
     // in a SUB or FUNCTION and with no parenthesis in its arguments (`check\builtins.rs`, `clear_form`).
     ("CLEAR", StmtRule::Plain),
+    // The runtime log's statements (design D2 of `m4-handlers-logging-checking`; `verification\v50_b_log`).
+    ("_LOGTRACE", StmtRule::Log(crate::LogLevel::Trace)),
+    ("_LOGINFO", StmtRule::Log(crate::LogLevel::Info)),
+    ("_LOGWARN", StmtRule::Log(crate::LogLevel::Warn)),
+    ("_LOGERROR", StmtRule::Log(crate::LogLevel::Error)),
 ];
 
 /// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
@@ -648,7 +660,7 @@ pub fn stmt_lookup(name: &str, string: bool) -> Vec<StmtSupported> {
         })
         .flat_map(|&(written, rule)| {
             let forms = match rule {
-                StmtRule::Plain => find_statements(name.as_bytes(), string),
+                StmtRule::Plain | StmtRule::Log(_) => find_statements(name.as_bytes(), string),
                 StmtRule::Graphics => find_statements(name.as_bytes(), string)
                     .into_iter()
                     .filter(|id| id.get().callname.starts_with("sub_graphics_"))
@@ -1187,6 +1199,10 @@ fn table_ty(b: &Builtin) -> Ty {
         Some("_FLOAT") => Ty::F80,
         Some("STRING") => Ty::Str,
         Some("_UNSIGNED _OFFSET") => Ty::UOff,
+        // `_LOGMINLEVEL`: QB64pe's row sets `ideret` where it means `id.ret` (`subs_functions.bas` 4383), so the table
+        // has no type; the type it means, as libqb's `uint32_t func__logminlevel()` returns 1 to 5 (design D2 of
+        // `m4-handlers-logging-checking`).
+        None if b.callname == "func__logminlevel" => Ty::I32,
         other => unreachable!("return type {other:?} of a plain supported built-in"),
     }
 }

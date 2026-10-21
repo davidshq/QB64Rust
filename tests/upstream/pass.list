@@ -315,7 +315,9 @@ include_paths/include_multiple
 include_paths/include_relative
 keyboard/devices_windows
 libz/test
+logging/commands
 logging/consts
+mem/mem_checking_off
 midi/midisoundbank_embed_test
 midi/midisoundbank_file_test
 midi/midisoundbank_memory_test
@@ -324,6 +326,7 @@ noprompt/noprompt-continue
 noprompt/noprompt-continue-fatal
 noprompt/noprompt-y
 offset/offset_test
+on_error/errtest
 operators_test/op_exp
 overloaded/test
 paint/tile_border_black_bg
@@ -348,6 +351,7 @@ rotations/test
 screenimage/test
 single'quote'test/single'quote'test
 sockets/test
+source_ordering/checking_off
 source_ordering/data_positioning
 source_ordering/define
 source_ordering/goto_gosub

@@ -1,0 +1,17 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+checking_errors.bas:5:1: error: `$CHECKING` takes `:OFF` or `:ON`, alone on its line
+checking_errors.bas:5:1: note: QB64pe: Syntax error
+checking_errors.bas:6:1: error: `$CHECKING` takes `:OFF` or `:ON`, alone on its line
+checking_errors.bas:6:1: note: QB64pe: Syntax error
+checking_errors.bas:7:1: error: `$CHECKING` takes `:OFF` or `:ON`, alone on its line
+checking_errors.bas:7:1: note: QB64pe: Syntax error
+checking_errors.bas:8:1: error: `$CHECKING` takes `:OFF` or `:ON`, alone on its line
+checking_errors.bas:8:1: note: QB64pe: Syntax error
+checking_errors.bas:9:1: error: `$CHECKING` takes `:OFF` or `:ON`, alone on its line
+checking_errors.bas:9:1: note: QB64pe: Syntax error
+checking_errors.bas:10:12: error: a metacommand must stand at the start of a line
+checking_errors.bas:10:12: note: QB64pe: Unexpected character on line

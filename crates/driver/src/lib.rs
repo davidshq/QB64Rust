@@ -320,15 +320,18 @@ pub fn emit(fe: &Frontend, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragmen
 
 /// The C++ fragments of `ir`, the IR of `fe`'s program.
 pub fn emit_ir(fe: &Frontend, ir: &qb64rust_ir::Program, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragments {
-    emit_ir_with(fe, ir, resolved, false)
+    emit_ir_with(fe, ir, resolved, false, None)
 }
 
-/// [`emit_ir`], with a counter at each source statement for `--coverage` (design D1 of `cws-whole-game`).
+/// [`emit_ir`], with a counter at each source statement for `--coverage` (design D1 of `cws-whole-game`), and the
+/// folder put before a relative file name in a log statement's entry (`log_folder`, the working folder with its
+/// separator for a build; design D2 of `m4-handlers-logging-checking`).
 pub fn emit_ir_with(
     fe: &Frontend,
     ir: &qb64rust_ir::Program,
     resolved: &Resolved,
     coverage: bool,
+    log_folder: Option<&str>,
 ) -> qb64rust_codegen_cpp::Fragments {
     let included = fe
         .map
@@ -341,7 +344,26 @@ pub fn emit_ir_with(
         files: coverage_files(fe),
         position: &position,
     });
-    qb64rust_codegen_cpp::emit_with(ir, &fe.map.file(fe.file).name, &included, resolved, coverage.as_ref())
+    qb64rust_codegen_cpp::emit_with(
+        ir,
+        &fe.map.file(fe.file).name,
+        &included,
+        resolved,
+        coverage.as_ref(),
+        log_folder,
+    )
+}
+
+/// The log folder of [`emit_ir_with`] for a build from `dir`: the folder with a separator after it unless it ends
+/// in one (a drive's root, `C:\`), as the old compiler's `_STARTDIR$` gives it (libqb's `func__cwd`). A name that
+/// is not ASCII is written as UTF-8, where the old compiler has the bytes of the system's code page
+/// (`DIVERGENCES.md`).
+pub fn log_folder(dir: &Path) -> String {
+    let mut folder = dir.display().to_string();
+    if !folder.ends_with(['/', '\\']) {
+        folder.push(std::path::MAIN_SEPARATOR);
+    }
+    folder
 }
 
 /// Each file of the program by its index, for a coverage record: its path relative to the main file's folder (an
@@ -373,7 +395,7 @@ pub fn fnv1a64(bytes: &[u8]) -> u64 {
 
 /// `--dump cpp`; with `coverage`, the C++ of a `--coverage` build.
 pub fn dump_cpp(fe: &Frontend, resolved: &Resolved, coverage: bool) -> String {
-    qb64rust_codegen_cpp::dump(&emit_ir_with(fe, &lower(fe), resolved, coverage))
+    qb64rust_codegen_cpp::dump(&emit_ir_with(fe, &lower(fe), resolved, coverage, None))
 }
 
 #[cfg(test)]
@@ -462,5 +484,14 @@ mod tests {
         ] {
             assert_eq!(beside(Path::new(main), rest), PathBuf::from(expected), "{main} {rest}");
         }
+    }
+
+    /// The log folder takes one separator, none at a drive's root, which already ends in one.
+    #[test]
+    fn log_folder_ends_in_one_separator() {
+        let sep = std::path::MAIN_SEPARATOR;
+        assert_eq!(log_folder(Path::new("C:/work")), format!("C:/work{sep}"));
+        assert_eq!(log_folder(Path::new("C:\\")), "C:\\");
+        assert_eq!(log_folder(Path::new("/")), "/");
     }
 }

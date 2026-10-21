@@ -126,7 +126,8 @@ fn on_error(p: &mut Parser) {
     p.bump(); // ON
     p.bump(); // ERROR
     p.bump(); // GOTO
-    if (p.at_word("_NEWHANDLER") || p.at_word("_LASTHANDLER")) && p.nth(1) == Some(Ident) {
+    // `_LASTHANDLER label` and `_NEWHANDLER 0` too, so that the checker gives their errors.
+    if (p.at_word("_NEWHANDLER") || p.at_word("_LASTHANDLER")) && matches!(p.nth(1), Some(Ident | Number)) {
         p.bump();
     }
     if p.at(Ident) || p.at(Number) {

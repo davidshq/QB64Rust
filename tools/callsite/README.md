@@ -82,6 +82,10 @@ normalises them:
    `func_coth`, `const-rulings`): every call of the built-in takes the path of a row of `DIVERGENCES.md` (D-031), so
    the new compiler calls a wrapper in its globals that traces the row and calls libqb's function with the same
    arguments. The wrappers are listed in `WRAPPERS`.
+8. **The scratch folder at the start of a string literal is written `<work>`** (`m4-handlers-logging-checking`): a
+   log statement names its file by its full path (`sub__loginfo("C:\\…\\qb64rust-callsite-…\\log_info.bas", …)`),
+   and the old compiler's answer may come from the cache, written in another run's folder. Only the folder goes; the
+   file's name and everything after it are compared.
 
 Only rule 7 names built-ins. The two token lists must then be equal.
 

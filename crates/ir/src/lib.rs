@@ -122,11 +122,11 @@ pub use qb64rust_sema::{Event, KeyForm};
 /// The `DECLARE LIBRARY` blocks and the C function behind a library procedure are `sema`'s (design D1 of
 /// `m3-declare-library`): the names as written. Finding the files they name is the driver's.
 pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName};
-/// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
-pub use qb64rust_sema::{PrintTo, UsingValue};
 /// Whether a procedure is a SUB or a FUNCTION of a type, and the optional parts of the runtime a program needs, are
 /// `sema`'s as well: the lowering only copied them variant for variant (as it did the values, above).
-pub use qb64rust_sema::{ProcKind, RuntimePart};
+pub use qb64rust_sema::{LogLevel, ProcKind, RuntimePart};
+/// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
+pub use qb64rust_sema::{PrintTo, UsingValue};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
 /// holds a `STRING` of its own, which has no such size, or owns dynamic member arrays.
 pub use qb64rust_sema::{holds_strings, owns_desc, size_of};
@@ -151,6 +151,8 @@ pub struct Label {
     /// The file of a BASIC label (`None` for one the lowering made).
     pub file: Option<FileId>,
     pub at: usize,
+    /// A BASIC label above which no `$CHECKING:OFF` is in force has the event check ([`Stmt::checked`]).
+    pub checked: bool,
 }
 
 /// Where a resume continues.
@@ -243,9 +245,6 @@ pub struct Proc {
     /// sake: nothing stores into them. A `BYVAL` parameter takes an [`Arg::Value`] or an [`Arg::Null`], another
     /// one an [`Arg::Ref`] or an [`Arg::Temp`]; only a library procedure takes those two.
     pub external: Option<External>,
-    /// Its statements are written with the event check between them; false below `$CHECKING:OFF` (design D8 of
-    /// `m3-network-embed`), where each statement is written alone and a label has no event check.
-    pub checked: bool,
 }
 
 /// What the error rule and the emitter ask of a value, a place or an argument of the shared tree.
@@ -644,8 +643,18 @@ pub enum Op {
     /// Make the statements from a label the program's error handler, or (`None`) remove it. One handler for the
     /// whole program, also when set inside a procedure.
     SetHandler(Option<LabelId>),
+    /// Keep the active handler (none too) at the front of the program's list of kept handlers, then make the
+    /// statements from a label of the main module the handler (`ON ERROR GOTO _NEWHANDLER label`). `SetHandler(None)`
+    /// empties the list.
+    NewHandler(LabelId),
+    /// Make the handler kept last the handler again and drop it from the list; with none kept, no handler
+    /// (`ON ERROR GOTO _LASTHANDLER`).
+    LastHandler,
     /// Raise the runtime error with this number (an `I32`).
     Raise(Expr),
+    /// An entry of the runtime's log at `level` with the message `msg` (a `Str`), naming the statement's file,
+    /// procedure and line (`_LOGINFO msg$` and the others; design D2 of `m4-handlers-logging-checking`).
+    Log { level: LogLevel, msg: Expr },
     /// End the running handler and continue as stated; outside a handler it raises error 20.
     Resume(Resume),
     /// Continue at a label of this body; not taken while an error is pending.
@@ -696,6 +705,8 @@ impl Op {
             | Op::System(None)
             | Op::Exit
             | Op::SetHandler(_)
+            | Op::NewHandler(_)
+            | Op::LastHandler
             | Op::Jump(_)
             | Op::Gosub(_)
             | Op::Restore { .. }
@@ -720,6 +731,7 @@ impl Op {
             Op::CopyWhole { from, to } => from.may_raise() || to.may_raise(),
             Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
             Op::Branch { cond, .. } => cond.may_raise(),
+            Op::Log { msg, .. } => msg.may_raise(),
             Op::End(Some(code)) | Op::System(Some(code)) => code.may_raise(),
             // A file may not be open, a console input may meet the end of the input, the data may be used up; a
             // format may have no field for a value; a printer may not be there.
@@ -774,6 +786,10 @@ pub struct Stmt {
     /// Made by the lowering for a block, standing for no source statement of its own: the jump at the end of a
     /// `THEN` part and the end of a `CASE`. A coverage build gives it no counter (design D1 of `cws-whole-game`).
     pub own: bool,
+    /// No `$CHECKING:OFF` is in force (a statement the lowering made for a block: at the block's header). Below OFF
+    /// the statement is written without its event check and its index checks (design D3, D4 of
+    /// `m4-handlers-logging-checking`).
+    pub checked: bool,
 }
 
 /// A sequence of statements: the main module's, or a procedure's.

@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):_LOGINFO "a",1 , "b",1
+LINE 3:_LOGINFO "a", "b"
+exit=1

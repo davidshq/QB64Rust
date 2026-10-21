@@ -78,7 +78,6 @@ impl Checker<'_> {
             line: 0,
             end_line: 0,
             external: None,
-            checked: true,
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);
@@ -384,7 +383,8 @@ impl Checker<'_> {
             Some(_) => Vec::new(),
         };
         let plain = match plain[..] {
-            [form] if form.rule == StmtRule::Plain => {
+            // A log statement's entry is the plain one of its row, with no template (`_LOGINFO msg$`).
+            [form] if matches!(form.rule, StmtRule::Plain | StmtRule::Log(_)) => {
                 let b = form.id.get();
                 (b.specialformat.is_none() || matches!(b.template()[..], [Item::Arg])).then_some(form)
             }

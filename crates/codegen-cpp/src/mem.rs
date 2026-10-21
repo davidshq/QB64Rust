@@ -186,13 +186,28 @@ impl Emitter<'_> {
         }
     }
 
+    /// [`Self::block_at`] where it is written, and nothing below `$CHECKING:OFF`, where the block is not (and its
+    /// index expressions would make temporaries for nothing). Taken before the offset, as the old compiler does.
+    fn checked_block(&mut self, block: &Place) -> String {
+        if self.checking {
+            self.block_at(block)
+        } else {
+            String::new()
+        }
+    }
+
     /// `_MEMGET(block, offset, type)`: the runtime's checked address of the bytes (a buffer of zero bytes after
-    /// an error), read as the type (`qb64pe.bas` 20573–20630; measured, `verification\v32_x01_accepted`).
+    /// an error), read as the type (`qb64pe.bas` 20573–20630; measured, `verification\v32_x01_accepted`). Below
+    /// `$CHECKING:OFF` the offset itself, with no block (design D4 of `m4-handlers-logging-checking`).
     pub(crate) fn mem_read(&mut self, block: &Place, offset: &Expr, of: Ty) -> String {
-        let blk = self.block_at(block);
+        let blk = self.checked_block(block);
         let off = self.value(offset);
         let size = self.ty_size(of);
-        let at = format!("func__memget((mem_block*){blk},{off},{size})");
+        let at = if self.checking {
+            format!("func__memget((mem_block*){blk},{off},{size})")
+        } else {
+            off
+        };
         match of {
             Ty::FixedStr(n) => format!("qbs_new_txt_len((char*){at},{n})"),
             Ty::User(_) => format!("((void*)+{at})"),
@@ -202,11 +217,19 @@ impl Emitter<'_> {
     }
 
     /// `_MEMGET block, offset, variable`, written inline as the old compiler writes it (`qb64pe.bas` 10168–10260;
-    /// measured, `verification\v32_x01_accepted`): the offset into `tmp_long`, the checks, and the copy.
+    /// measured, `verification\v32_x01_accepted`): the offset into `tmp_long`, the checks, and the copy. Below
+    /// `$CHECKING:OFF` only the copy, from the offset itself (10228–10234).
     pub(crate) fn mem_get_stmt(&mut self, block: &Place, offset: &Expr, target: &Reference, out: &mut Vec<String>) {
-        let blk = self.block_at(block);
+        let blk = self.checked_block(block);
         let off = self.value(offset);
         let (address, size) = (self.address(target), self.bytes_count(target));
+        if !self.checking {
+            out.push(match copy_width(&size) {
+                Some(t) => format!("*({t}*){address}=*({t}*)({off});"),
+                None => format!("memmove({address},(uint8_t*){off},{size});"),
+            });
+            return;
+        }
         let copy = match copy_width(&size) {
             Some(t) => format!("*({t}*){address}=*({t}*)tmp_long;"),
             None => format!("memmove({address},(void*)tmp_long,{size});"),
@@ -217,50 +240,84 @@ impl Emitter<'_> {
 
     /// `_MEMPUT block, offset, value`, written inline (`qb64pe.bas` 10266–10398): a string that is no variable held
     /// in `g_tmp_str` first, then the offset into `tmp_long`, the checks, and the copy of the value's bytes; a
-    /// value `AS type` stored through a pointer of that type.
+    /// value `AS type` stored through a pointer of that type. Below `$CHECKING:OFF` only the copy, to the offset
+    /// itself (10328–10334, 10376).
     pub(crate) fn mem_put_stmt(&mut self, block: &Place, offset: &Expr, value: &MemValue, out: &mut Vec<String>) {
-        let blk = self.block_at(block);
-        let (size, copy) = match value {
+        let blk = self.checked_block(block);
+        // What is copied: a value of a C type, `width` bytes from an address, or bytes moved from an address.
+        enum Source {
+            Typed { t: &'static str, v: String },
+            Width { t: &'static str, address: String },
+            Moved { address: String, size: String },
+        }
+        let (size, source) = match value {
             MemValue::Typed { value, ty } => {
-                let v = self.stored(value);
-                (
-                    self.ty_size(*ty).to_string(),
-                    format!("*({}*)tmp_long={v};", c_type(*ty)),
-                )
+                let source = Source::Typed {
+                    t: c_type(*ty),
+                    v: self.stored(value),
+                };
+                (self.ty_size(*ty).to_string(), source)
             }
             MemValue::Bytes(of) => {
                 let (address, size) = (self.address(of), self.bytes_count(of));
-                let copy = match copy_width(&size) {
-                    Some(t) => format!("*({t}*)tmp_long=*({t}*){address};"),
-                    None => format!("memmove((void*)tmp_long,{address},{size});"),
-                };
-                (size, copy)
+                match copy_width(&size) {
+                    Some(t) => (size, Source::Width { t, address }),
+                    None => (size.clone(), Source::Moved { address, size }),
+                }
             }
             MemValue::Str(s) => {
                 let s = self.value(s);
                 out.push(format!("g_tmp_str={s};"));
-                (
-                    "g_tmp_str->len".to_string(),
-                    "memmove((void*)tmp_long,g_tmp_str->chr,g_tmp_str->len);".to_string(),
-                )
+                let source = Source::Moved {
+                    address: "g_tmp_str->chr".into(),
+                    size: "g_tmp_str->len".into(),
+                };
+                ("g_tmp_str->len".to_string(), source)
             }
         };
+        // The copy to the address `to`, a C++ pointer expression.
+        let copy = |to: &str| match &source {
+            Source::Typed { t, v } => format!("*({t}*){to}={v};"),
+            Source::Width { t, address } => format!("*({t}*){to}=*({t}*){address};"),
+            Source::Moved { address, size } => format!("memmove({to},{address},{size});"),
+        };
+        let moved = matches!(source, Source::Moved { .. });
         let off = self.value(offset);
+        if !self.checking {
+            out.push(copy(&if moved {
+                format!("(uint8_t*){off}")
+            } else {
+                format!("({off})")
+            }));
+            return;
+        }
         out.push(format!("tmp_long={off};"));
-        mem_checked(&blk, &size, &copy, out);
+        mem_checked(
+            &blk,
+            &size,
+            &copy(if moved { "(void*)tmp_long" } else { "tmp_long" }),
+            out,
+        );
     }
 
     /// `_MEMFILL block, offset, bytes, value` (`qb64pe.bas` 10405–10500): a call of the runtime, by the value's
     /// type for a value `AS type` (`sub__memfill_2`), with the value's bytes otherwise (`sub__memfill`), a string
-    /// that is no variable held in `tmp_long` first.
+    /// that is no variable held in `tmp_long` first. Below `$CHECKING:OFF` the runtime's `_nochecks` entries,
+    /// without the block (10465–10497).
     pub(crate) fn mem_fill_stmt(
         &mut self,
         (block, offset, bytes): (&Place, &Expr, &Expr),
         value: &MemValue,
         out: &mut Vec<String>,
     ) {
-        let blk = self.block_at(block);
+        let blk = self.checked_block(block);
         let (off, count) = (self.value(offset), self.value(bytes));
+        // What follows `sub__memfill` in the entry's name, and the block argument before the offset.
+        let (nochecks, blk) = if self.checking {
+            ("", format!("(mem_block*){blk},"))
+        } else {
+            ("_nochecks", String::new())
+        };
         match value {
             MemValue::Typed { value, ty } => {
                 let v = self.stored(value);
@@ -276,19 +333,19 @@ impl Emitter<'_> {
                         unreachable!("`_MEMFILL … AS` a {ty:?} (`validate`)")
                     }
                 };
-                out.push(format!("sub__memfill_{entry}((mem_block*){blk},{off},{count},{v});"));
+                out.push(format!("sub__memfill{nochecks}_{entry}({blk}{off},{count},{v});"));
             }
             MemValue::Bytes(of) => {
                 let (address, size) = (self.address(of), self.bytes_count(of));
                 out.push(format!(
-                    "sub__memfill((mem_block*){blk},{off},{count},(ptrszint){address},{size});"
+                    "sub__memfill{nochecks}({blk}{off},{count},(ptrszint){address},{size});"
                 ));
             }
             MemValue::Str(s) => {
                 let s = self.value(s);
                 out.push(format!("tmp_long=(ptrszint){s};"));
                 out.push(format!(
-                    "sub__memfill((mem_block*){blk},{off},{count},(ptrszint)((qbs*)tmp_long)->chr,((qbs*)tmp_long)->len);"
+                    "sub__memfill{nochecks}({blk}{off},{count},(ptrszint)((qbs*)tmp_long)->chr,((qbs*)tmp_long)->len);"
                 ));
             }
         }

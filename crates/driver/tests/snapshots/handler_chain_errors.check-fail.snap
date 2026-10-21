@@ -1,0 +1,13 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+handler_chain_errors.bas:6:28: error: No label allowed after _LASTHANDLER
+handler_chain_errors.bas:7:28: error: No label allowed after _LASTHANDLER
+handler_chain_errors.bas:8:15: error: Expected: ON ERROR GOTO [_NEWHANDLER] label
+handler_chain_errors.bas:9:27: error: Zero not allowed after _NEWHANDLER
+handler_chain_errors.bas:10:27: error: label `nowhere` is not defined in the main module
+handler_chain_errors.bas:10:27: note: QB64pe: Label 'nowhere' not defined
+handler_chain_errors.bas:11:19: error: expected the end of the statement
+handler_chain_errors.bas:17:31: error: `ON ERROR GOTO` needs a label of the main module, not one of this SUB or FUNCTION: `inner`

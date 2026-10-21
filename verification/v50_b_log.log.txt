@@ -1,0 +1,17 @@
+INFO QB64 <verification>\v50_b_log.bas: Main QB64 Code: 8: info main
+WARN QB64 <verification>\v50_b_log.bas: Main QB64 Code: 9: warn main
+ERROR QB64 <verification>\v50_b_log.bas: Main QB64 Code: 10: error main
+#1  in Main QB64 code
+INFO QB64 <verification>\v50_b_log.bas: Main QB64 Code: 11: info  22
+INFO QB64 <verification>\v50_b_log.bas: Main QB64 Code: 12: 
+INFO QB64 <verification>\v50_b_log.bas: Main QB64 Code: 13: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+INFO QB64 <verification>\v50_b_log.bas: S (QB64): 23: info s
+ERROR QB64 <verification>\v50_b_log.bas: S (QB64): 24: error s
+#1  in S() (QB64)
+#2  in Main QB64 code
+WARN QB64 <verification>\v50_b_log.bas: F (QB64): 28: warn f y
+INFO QB64 <verification>\v50_b_log.bas: A__ASCII_CHR_046__B (QB64): 33: info a.b
+INFO QB64 <verification>\v50_inc/log.bi: Main QB64 Code: 2: info inc
+ERROR QB64 <verification>\v50_inc/log.bi: Main QB64 Code: 3: error inc
+#1  in Main QB64 code
+WARN QB64 <verification>\v50_inc/logsub.bm: INC_SUB (QB64): 3: warn inc_sub

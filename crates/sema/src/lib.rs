@@ -494,6 +494,29 @@ pub enum Resume {
     To(LabelId),
 }
 
+/// The level of a log statement's entry, lowest first (libqb's `loglevel`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LogLevel {
+    Trace,
+    Info,
+    Warn,
+    Error,
+}
+
+/// What `ON ERROR GOTO` does to the error handler (spec `language/error-handling`; the chain: design D1 of
+/// `m4-handlers-logging-checking`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ErrorHandler {
+    /// `ON ERROR GOTO label` (`Some`): the handler becomes `label`, the kept ones stay. `ON ERROR GOTO 0` (`None`):
+    /// no handler, and none kept.
+    Set(Option<LabelId>),
+    /// `ON ERROR GOTO _NEWHANDLER label`: the active handler is kept, then `label` becomes the handler.
+    New(LabelId),
+    /// `ON ERROR GOTO _LASTHANDLER`: the handler kept last becomes the handler again and is forgotten; with none
+    /// kept, no handler.
+    Last,
+}
+
 /// Where a variable lives (design D2, D6 of `m2-procedures-and-errors`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Storage {
@@ -744,9 +767,6 @@ pub struct Proc {
     /// A procedure declared in a `DECLARE LIBRARY` block (design D1 of `m3-declare-library`): its C function. It has
     /// no statements.
     pub external: Option<External>,
-    /// Its statements check for events and errors between them; false for a procedure below `$CHECKING:OFF`,
-    /// which only QB64pe's file included after the last line has here (design D8 of `m3-network-embed`).
-    pub checked: bool,
 }
 
 /// The C function behind a procedure of a `DECLARE LIBRARY` block.
@@ -1352,8 +1372,11 @@ pub enum StmtKind {
     Call { proc: ProcId, args: Vec<Arg> },
     /// `EXIT SUB` / `EXIT FUNCTION`: leaves the procedure (either word leaves either kind, measured).
     Exit,
-    /// `ON ERROR GOTO label` (`Some`) or `ON ERROR GOTO 0` (`None`): sets or removes the program's error handler.
-    OnError(Option<LabelId>),
+    /// `ON ERROR GOTO …`: sets, removes, keeps or brings back the program's error handler ([`ErrorHandler`]).
+    OnError(ErrorHandler),
+    /// `_LOGTRACE`, `_LOGINFO`, `_LOGWARN` or `_LOGERROR msg$`: an entry of the runtime's log at the level, naming
+    /// the statement's file, procedure and line (design D2 of `m4-handlers-logging-checking`).
+    Log { level: LogLevel, msg: Expr },
     /// `RESUME ...`: ends the running error handler.
     Resume(Resume),
     /// `ERROR n`: raises error `n`, already converted to LONG (rounded half to even).
@@ -1511,6 +1534,10 @@ pub struct Stmt {
     pub line: u32,
     /// In an included file, the line of the main file that `_ERRORLINE` gives (the outermost `$INCLUDE`'s).
     pub include_line: Option<u32>,
+    /// No `$CHECKING:OFF` is in force where the statement stands, in source order through procedures and included
+    /// files (a block's statement: at its header). Below OFF the statement has no check for events and errors after
+    /// it and no index checks (design D3 of `m4-handlers-logging-checking`).
+    pub checked: bool,
     pub kind: StmtKind,
 }
 

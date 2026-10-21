@@ -50,13 +50,14 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. `dry-cleanup` (the numeric types as two pattern macros, `clear_temp` once, smaller helpers; no output
-   changes) is built, closed (`close.py --check` passes) and archived.
-2. Then the merge of `m4` into `main` with the full set (working rule 9): eight changes are unmerged since the
-   last (`0991f38`), `dry-cleanup` among them. It may run in a worktree while the next change is designed.
-3. Then `m4-handlers-logging-checking` (planned, not started): `$CHECKING`, `_LOG*`, `ON ERROR GOTO
-   _LASTHANDLER`/`_NEWHANDLER`. Then the upstream report's remaining lines: the old compiler's own sources
-   (`qb64pe\*`). `tests\verification\known.list` (209 programs, each with its reason) holds more such lines.
+1. `m4-handlers-logging-checking` (the handler chain, the log statements and `_LOGMINLEVEL`, `$CHECKING`
+   anywhere, the verification suite's compare of a program's log) is built and closed; it is archived once the
+   user has reviewed it.
+2. Then the merge of `m4` into `main` with the full set (working rule 9): nine changes are unmerged since the
+   last (`0991f38`), this one among them. It may run in a worktree while the next change is designed.
+3. Then the upstream report's remaining lines: the old compiler's own sources (`qb64pe\*`), which need about
+   thirty more built-ins and name rules and use the handler chain. `tests\verification\known.list` (208
+   programs, each with its reason) holds more such lines.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 

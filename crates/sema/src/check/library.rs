@@ -218,7 +218,6 @@ impl<'a> Checker<'a> {
                 c_name,
                 byval: Vec::new(),
             }),
-            checked: true,
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);

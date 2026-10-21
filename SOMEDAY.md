@@ -115,7 +115,6 @@ What the old compiler accepts and the new one still marks "not supported yet":
 | `_MEM`, `_MEMELEMENT`, `_MEMGET`, `_MEMPUT` and `_MEMFILL` of a value of a `TYPE` that holds a `STRING` | Such a value holds the pointer of its string; what the old compiler's helpers give for it was not measured, but for `_MEM` of a whole array of it: no error, 48 bytes for 4 elements of a `STRING` and a LONG (`verification\v48_x11`; `LEN` of the same array is an error) | `sema\src\check\mem.rs`, `block_reference`, `bytes_reference` |
 | A reference through an element of a member array that is not its last step (`x(0).n(1).q`), or to a member array of user-type elements | The old compiler's rules for such paths were not measured | `unmeasured_path` |
 | `_MEM(nx())` of a name that is no array; `_OFFSET` of an element, member or array of variable-length strings; `_MEMGET`, `_MEMPUT` and `_MEMFILL` with an element or member of them | Not measured (what `_MEM` and `_MEMPUT` do with such strings and arrays of them is: errors, `verification\v32_x15`, `x16`, `x39`) | `check\mem.rs` |
-| `$CHECKING:OFF` and the forms the old compiler writes without checks (`sub__memfill_nochecks`, the inline checks left out) | Decided with the proposal: a step of its own (`DECISIONS.md` 2026-10-14) | design of `m3-mem`, Non-Goals |
 
 (`_INFLATE$`, `_DEFLATE$`, `_BASE64ENCODE$` and `_BASE64DECODE$`, the last row here, came in with
 `m3-asserts-debug-zlib`.)
@@ -151,7 +150,6 @@ Windows). What the old compiler accepts and the new one still marks "not support
 |---|---|---|
 | A library FUNCTION beside a program SUB of the same name (`x22`) | The old compiler accepts both; which one a use names was not measured | `verification\v37_x22`; `sema\src\check\library.rs` |
 | `ALIAS` in a `DECLARE SUB` outside a library block (`DECLARE SUB s ALIAS t ()`, `x08`) | The old compiler accepts it and ignores it; this compiler marks it "not supported yet" (user, `verification-compare`; until then the parser's error "expected the end of the statement", `m3-declare-library` design D1, task 2.2) | `verification\v37_x08`; `tests\frontend\declare_alias_marked.bas` |
-| `on_error/errtest`, the ninth upstream program with a block | It also needs `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`, which stay "not supported yet" (left out of the change, user, 2026-10-15) | `DECISIONS.md` 2026-10-15 |
 | Linux and macOS libraries (`.so`, `.dylib`, `/usr/lib`, `dlopen`) and the IDE's folder in the lookup | The project is Windows only | design Non-Goals |
 
 **Left marked by `m3-sound-handles`** (the sixteenth step of M3, 2026-10-16: `_SNDOPEN`, the `_SND*` family,
@@ -178,7 +176,6 @@ marked; left out:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `_ARRAYCOPY` under `$CHECKING:OFF` (`verification\v41_x62`, not run with this compiler) | `$CHECKING` is marked "not supported yet" by itself | task 3.4 |
 
 **Left marked by `m3-events`** (the nineteenth step of M3, 2026-10-17: `ON TIMER`, `ON KEY`, the switches,
 `_FREETIMER`, `KEY`'s own forms). What the old compiler accepts and the new one still marks "not supported yet":
@@ -198,7 +195,6 @@ left out:
 | `_EMBEDDED` without its `$` (`x19`) and `_OPENCLIENT&("x")` (`x46`), "Invalid array name" in the old compiler | Every `_name(...)` that names no array is "not supported yet", as `_DEFLATE("x")` (`v33_x25`–`x29`) | `tests\frontend\network_errors.bas` |
 | `_EMBEDDED$` with its argument in parentheses (`_EMBEDDED$(("h"))`) | Not measured | `sema\src\check\embed.rs` |
 | Two absolute `$EMBED` names of one file written differently (`<drive>/d/f` and `<drive>\d\f`, or with `..`): "was already embedded" in the old compiler, which resolves the folder first (`CHDIR`, `_CWD$`, `qb64pe.bas` 3765–3777); compared as written here, so both are accepted | Not measured: a recording would hold a local folder (`CLAUDE.md` rule 2); `sema` reads no folder | `sema\src\check\embed.rs` `same_file` |
-| `$CHECKING:OFF` and `:ON` in a program's own code | Read in `afterlastline.bm` only, whose procedures have no array, `_MEM` or `ON ERROR`; elsewhere the statements it changes need more than the event check left out | design D8 |
 | Compressing an embedded file as the old compiler does when that saves a fifth | The program sees the same bytes; only the executable's size differs (design D4) | design D4 |
 | An HTTP download from a real server (`http/read_example`) | The page it downloads changed; it compiles and stays a known failure | `tools\legacy_tests\known_failures.txt` |
 
@@ -242,6 +238,15 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 | Form | Why it waits | Details |
 |---|---|---|
 | `_CAST&(LONG, 1)`, `_FILES("*")`, `PRINT _OS`: a new built-in named with another suffix or without its `$` | The old compiler's errors ("Invalid array name", "Invalid variable name") wait with a built-in's name with a type suffix, above | `verification\v49_x16`, `x42`, `x47` |
+
+**Left marked by `m4-handlers-logging-checking`** (2026-10-21: the handler chain, the log statements and
+`_LOGMINLEVEL`, `$CHECKING` anywhere):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `ON ERROR GOTO _NEWHANDLER 10`: a line number as the handler | Line numbers as labels are "not supported yet" everywhere | `verification\v50_x13` (on `tests\verification\known.list`) |
+| `ON ERROR GOTO foo h`: another word before the label | Rejected here as a parse error; the old compiler's message is "Expected: ON ERROR GOTO [_NEWHANDLER] label". Taking any two words would read a keyword after a label as the label | `verification\v50_x26`; design D1 of the change |
+| A log statement in an included file found in the compiler root (`--include-root`) | Its entry names the file by the working folder and the name relative to the compiler root, a path that does not exist; the old compiler names it by the path as written. No program logs from such a file | Design D2 of the change (`codegen-cpp` `lib.rs`, the log folder) |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -371,6 +376,8 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `CLEAR` with a parenthesis anywhere in its arguments is "Incorrect number of arguments", also inside an expression (`CLEAR , , LEN("a")`), though its arguments are ignored | Accept any numeric expression | `m4-builtins-param-types` (`verification\v49_x33`) |
 | `_CAST` of a float constant outside the integer type's range gives whatever g++ folds it to, another value on each build (`_CAST(LONG, 1E20)`: `1008726880`, then `-360710944`) | A defined value (saturated, or the x86 value `-2147483648` a variable gives), with a `DIVERGENCES.md` row | `m4-builtins-param-types` (`verification\v49_x18`, design D2) |
 | `_CLIPBOARD$ = s$` puts `s$` on the clipboard only up to its first NUL | Keep the whole string | `m4-builtins-param-types` (`verification\v49_d_clipboard`) |
+| An error raised below `$CHECKING:OFF` waits until the next checked statement, and libqb's routines do nothing meanwhile (a `PRINT` prints nothing); the handler then runs for that checked statement, so `RESUME` runs it again, not the statement that raised the error, and `RESUME NEXT` skips it | None in the compiler if kept: it is what OFF leaves out. A change would service the error at `$CHECKING:ON` | `m4-handlers-logging-checking` (`verification\v50_c_checking`) |
+| `ERROR 11` (division by zero) is a critical error in this libqb: it ends the program, and no `ON ERROR` handler catches it, as QB 4.5's would | A trappable error 11, as the other errors are. libqb's (`error_handle.cpp`), so a change is a change to the runtime | `m4-handlers-logging-checking` (found writing `verification\v50_a_chain`, design D1) |
 
 ## Other ideas raised during the study
 

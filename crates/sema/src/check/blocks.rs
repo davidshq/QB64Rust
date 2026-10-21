@@ -15,6 +15,18 @@ use qb64rust_syntax::tree::{Node, Tok};
 impl Checker<'_> {
     /// A block statement of any kind; false for any other statement.
     pub(super) fn block_statement(&mut self, node: Node, skips: &Skips) -> bool {
+        // A block's own statements check as `$CHECKING` stood at its header, whatever a line inside it sets (design
+        // D3 of `m4-handlers-logging-checking`); [`Self::push`] gave them the state at their end.
+        let checked = self.at.checking;
+        let before = self.sink().len();
+        let handled = self.block_statement_kind(node, skips);
+        for s in &mut self.sink()[before..] {
+            s.checked = checked;
+        }
+        handled
+    }
+
+    fn block_statement_kind(&mut self, node: Node, skips: &Skips) -> bool {
         if let Some(b) = ast::IfBlock::cast(node) {
             self.if_block(b, skips);
         } else if let Some(s) = ast::IfStmt::cast(node) {

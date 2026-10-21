@@ -1,0 +1,18 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 5
+  Log Trace Const "trace"
+Stmt line 6 may_raise
+  Log Info Concat(Const "info ", CallBuiltin STR:Str [Some(CallBuiltin _LOGMINLEVEL:I32 [])])
+Stmt line 7
+  Log Warn Const "warn"
+Stmt line 8
+  Log Error Const "error"
+Stmt line 9
+  System

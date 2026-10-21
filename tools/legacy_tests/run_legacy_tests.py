@@ -85,6 +85,9 @@ it records, with any other compiler it compares (verification_compare). Recordin
   * writes <name>.compile.txt (the compiler's stdout and stderr, then "exit=<code>") and
     <name>.out.txt (the program's stdout and stderr, "(timed out after 60 s)" after a timeout, then
     "exit=<code>"; or "(not compiled)" when there is no exe), and prints the latter
+  * the run's log goes to a file (QB64PE_LOG_HANDLERS=file); when it holds entries of scope QB64 (the
+    program's own: _LOGINFO and the rest), they are written to <name>.log.txt with their stack frames,
+    without timestamps and frame addresses, the folder masked (program_log); else a stale one is removed
   * exit codes are written as Git Bash reports them (bash_exit_code): the files were recorded by a
     shell script and stay comparable. One program at a time
   * <name>.root: files the program names relative to the compiler's own folder ($EXEICON, $EMBED), one
@@ -101,6 +104,7 @@ Comparing (tests/verification/README.md; spec testing/verification-suite):
   * "(not compiled)" passes on a rejection by the rule above; any other recording passes when the run's
     verification_text (the folder masked, the exit= line as Git Bash writes it) equals it, CRLF as LF,
     after tests/verification/normalize/<name>.normalize on both sides; no <name>.out.txt fails
+  * the run's program_log equals <name>.log.txt, or is empty when there is none; else the stage "log"
   * the trace of divergences as in the corpus, the sidecar tests/verification/divergences/<name>.divergences;
     a program of tests/verification/known.list that fails is a known failure (KFAIL)
   * --list (one name per line), --jobs, --build-cache, --pass-cache and --check-list as for the corpus
@@ -1299,6 +1303,8 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
             env["QB64PE_NOPROMPT"] = np_file.read_text(encoding="latin-1").strip()
         stdin_file = tdir / f"{name}.stdin"
         run_out = results / f"{name}-out.txt"
+        log = results / f"{name}-log.txt"
+        log_env(env, log)
         # A hung program (e.g. screen PRINT with a comma under a redirected $CONSOLE) would block
         # forever.
         rc, timed_out = run_proc(
@@ -1312,9 +1318,18 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
             ask_first=True,  # as `timeout` did under run.sh: the pending prompt is recorded
         )
         out = verification_text(run_out.read_bytes(), rc, timed_out, tdir)
+        logged = program_log(log, tdir)
     else:
         out = NOT_COMPILED
+        logged = b""
     changes.append(write_recorded(tdir / f"{name}.out.txt", out))
+    # <name>.log.txt: only for a program that logged entries of its own.
+    log_file = tdir / f"{name}.log.txt"
+    if logged:
+        changes.append(write_recorded(log_file, logged))
+    elif log_file.is_file():
+        log_file.unlink()
+        changes.append(f"removed {log_file.name}")
     r.detail = "; ".join(c for c in changes if c)
     r.seconds = round(time.time() - t0, 1)
     return r
@@ -1388,6 +1403,38 @@ def verification_text(out: bytes, rc: int | None, timed_out: bool, folder: Path)
     if timed_out:
         return text + f"(timed out after {VERIFICATION_RUN_TIMEOUT} s)\nexit=124\n".encode()
     return text + f"exit={bash_exit_code(rc)}\n".encode()
+
+
+LOG_ENTRY = re.compile(rb"^\[[^\]]*\] (\S+ (\S+) .*)$")
+LOG_FRAME = re.compile(rb"^(#\d+\s+)\[0x[^\]]*\] (in .*)$")
+
+
+def log_env(env: dict, log: Path) -> None:
+    """Sends the runtime's log of the run to log, cleared first: libqb appends to it."""
+    log.unlink(missing_ok=True)
+    env["QB64PE_LOG_HANDLERS"] = "file"
+    env["QB64PE_LOG_FILE_PATH"] = str(log)
+
+
+def program_log(log: Path, folder: Path) -> bytes:
+    """The text of <name>.log.txt for a run that wrote log in folder: the entries of scope QB64 (the
+    program's own) with the stack frames that follow them, without each entry's timestamp and each
+    frame's address, the folder masked, LF line ends; b"" when the program logged nothing."""
+    if not log.is_file():
+        return b""
+    kept: list[bytes] = []
+    keep_frames = False
+    for line in log.read_bytes().replace(b"\r\n", b"\n").split(b"\n"):
+        entry = LOG_ENTRY.match(line)
+        if entry:
+            keep_frames = entry.group(2) == b"QB64"
+            if keep_frames:
+                kept.append(entry.group(1))
+            continue
+        frame = LOG_FRAME.match(line)
+        if frame and keep_frames:
+            kept.append(frame.group(1) + frame.group(2))
+    return mask_folder(b"".join(k + b"\n" for k in kept), folder)
 
 
 def family(name: str) -> str | None:
@@ -1490,6 +1537,8 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
 
     if recorded is None:
         return fail("expected", f"nothing recorded to compare: no {recorded_file.name}")
+    log_file = root / f"{name}.log.txt"
+    recorded_log = log_file.read_bytes().replace(b"\r\n", b"\n") if log_file.is_file() else b""
     if family(name) == "v37":
         missing = [lib for lib in V37_LIBRARIES if not (root / lib).is_file()]
         if missing:
@@ -1565,6 +1614,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
         parts = [
             bas.read_bytes(),
             recorded,
+            read(log_file),
             read(stdin_file),
             env["QB64PE_NOPROMPT"].encode(),
             read(normalize),
@@ -1594,6 +1644,8 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
     run_out = results / f"{name}-out.txt"
     trace = results / f"{name}-divergences.txt"
     set_trace(env, trace)
+    log = results / f"{name}-log.txt"
+    log_env(env, log)
     rc, timed_out = run_proc(
         cmd,
         work,
@@ -1610,6 +1662,9 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
     got = norm_output(apply_normalize(actual, rules))
     if want != got:
         return fail("result", f"differs from {recorded_file.name}, {first_difference(want, got)}")
+    got_log = program_log(log, work)
+    if recorded_log != got_log:
+        return fail("log", f"differs from {log_file.name}, {first_difference(recorded_log, got_log)}")
     odd = unexpected_rows(trace, allowed_rows(divergences))
     if odd:
         return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")

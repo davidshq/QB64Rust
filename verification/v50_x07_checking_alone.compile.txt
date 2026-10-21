@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ CHECKING
+LINE 3:$CHECKING
+exit=1

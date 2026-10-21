@@ -1,0 +1,54 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+line 2: ConsoleOnly
+line 7: Print newline
+  Str
+    Str "checked" : Str
+line 9: unchecked Print newline
+  Str
+    Str "unchecked" : Str
+line 10: unchecked Assign X:F32
+  Convert Nearest : F32
+    Int 1 : I16
+line 11: unchecked If (END IF line 15)
+  If line 11
+    Var X : F32
+    line 12: unchecked Print newline
+      Str
+        Str "inside" : Str
+    line 14: Print newline
+      Str
+        Str "inside, checked" : Str
+line 16: Print newline
+  Str
+    Str "after the block" : Str
+line 18: unchecked Label LBL
+line 19: unchecked For I:F32 counting in F64 (NEXT line 21)
+  From
+    Convert Nearest : F64
+      Int 1 : I16
+  To
+    Convert Nearest : F64
+      Int 2 : I16
+  Body
+    line 20: unchecked Print newline
+      Num
+        Var I : F32
+line 23: Print newline
+  Num
+    CallProc F : F32
+line 3: unchecked Print newline
+  Str
+    Str "in the include" : Str
+line 25: unchecked Print newline
+  Str
+    Str "after the include" : Str
+line 27: System
+FUNCTION F : F32
+  result F:F32
+line 31: unchecked Assign F (result):F32
+  Convert Nearest : F32
+    Int 2 : I16

@@ -510,3 +510,5 @@ slice/s149_devices_console
 slice/s150_builtins_more
 slice/s151_clear
 slice/s152_library_cast
+# m4-handlers-logging-checking: the handler chain, the log statements and _LOGMINLEVEL, $CHECKING:OFF
+slice/s153_handlers_log_checking

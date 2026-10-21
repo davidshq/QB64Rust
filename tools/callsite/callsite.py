@@ -97,6 +97,10 @@ SUFFIXED = re.compile(r"^(\d+)(ull|ll|u)$")
 # with the same arguments (rule 7).
 WRAPPERS = {"qbr_coth": "func_coth"}
 
+# Rule 8: the scratch folder the programs are compiled in, where a string literal starts with it (a log statement
+# names its file by its full path). The old compiler's answer may come from the cache, written in another folder.
+WORK = re.compile(r'"[^"\n]*?qb64rust-callsite-[A-Za-z0-9_]+(?:\\\\|/)')
+
 
 def tokenize(text: str) -> list[str]:
     return TOKEN.findall(text)
@@ -255,6 +259,7 @@ def normalise(lines: list[str]) -> list[str]:
     """The normalised tokens of a statement's C++ lines."""
     kept = [ln.strip() for ln in lines]
     kept = [ln for ln in kept if not any(f.match(ln) for f in FRAME)]
+    kept = [WORK.sub('"<work>/', ln) for ln in kept]
     tokens = [WRAPPERS.get(t, t) for t in tokenize("\n".join(kept))]
     return rename(flatten(norm_seq(parse(tokens), False)))
 
@@ -627,6 +632,14 @@ def self_test() -> int:
     for other in (["d=func_sec(e);"], ["d=func_coth(f);"]):
         if normalise(other) == normalise(["d=qbr_coth(e);"]):
             failures.append(f"qbr_coth(e) and {other[0]} compare equal")
+    # Rule 8: the scratch folder, from any run, and only at the start of a string literal.
+    a = 'sub__loginfo("<tmp>\\\\qb64rust-callsite-ab_1\\\\p.bas", "Main QB64 Code", 4, s);'
+    b = 'sub__loginfo("<tmp>\\\\qb64rust-callsite-cd_2\\\\p.bas", "Main QB64 Code", 4, s);'
+    if normalise([a]) != normalise([b]):
+        failures.append("the scratch folders of two runs compare unequal")
+    for other in (a.replace("p.bas", "q.bas"), a.replace(", 4,", ", 5,")):
+        if normalise([other]) == normalise([a]):
+            failures.append(f"{other} and {a} compare equal")
     src = b"$CONSOLE:ONLY\nDIM s AS STRING\n' a comment\nKILL s\n\nEND\n"
     if statement_line(src) != 4:
         failures.append("statement_line: expected line 4")

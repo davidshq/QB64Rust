@@ -54,7 +54,6 @@ pub fn lower(p: &sema::Program) -> Program {
             line: q.line,
             end_line: q.end_line,
             external: q.external.clone(),
-            checked: q.checked,
         });
     }
     let program = Program {
@@ -117,6 +116,8 @@ struct Lowerer<'a> {
     joined: Vec<(Span, u32, Op)>,
     /// The [`sema::Stmt::include_line`] of the statement being lowered.
     include_line: Option<u32>,
+    /// The [`sema::Stmt::checked`] of the statement being lowered: a block's, for what the lowering makes of it.
+    checked: bool,
 }
 
 impl<'a> Lowerer<'a> {
@@ -139,6 +140,7 @@ impl<'a> Lowerer<'a> {
                 include_line: l.include_line,
                 file: Some(l.file),
                 at: 0,
+                checked: true,
             })
             .collect();
         Lowerer {
@@ -154,6 +156,7 @@ impl<'a> Lowerer<'a> {
             case_end: None,
             joined: Vec::new(),
             include_line: None,
+            checked: true,
         }
     }
 
@@ -187,8 +190,10 @@ impl<'a> Lowerer<'a> {
         for s in stmts {
             // Every statement lowered from `s` stands where `s` stands: a block does not cross a file.
             let outer = std::mem::replace(&mut self.include_line, s.include_line);
+            let outer_checked = std::mem::replace(&mut self.checked, s.checked);
             self.stmt(s);
             self.include_line = outer;
+            self.checked = outer_checked;
         }
     }
 
@@ -200,6 +205,7 @@ impl<'a> Lowerer<'a> {
             include_line: self.include_line,
             file: None,
             at: usize::MAX,
+            checked: self.checked,
         });
         LabelId(to_u32(self.labels.len() - 1))
     }
@@ -252,6 +258,7 @@ impl<'a> Lowerer<'a> {
             ops,
             may_raise,
             own,
+            checked: self.checked,
         });
     }
 
@@ -259,6 +266,7 @@ impl<'a> Lowerer<'a> {
         let op = match &s.kind {
             sema::StmtKind::Label(l) => {
                 let l = self.ids.get(*l);
+                self.labels[l.0 as usize].checked = s.checked;
                 self.place(l);
                 return;
             }
@@ -367,7 +375,11 @@ impl<'a> Lowerer<'a> {
             sema::StmtKind::End(code) => Op::End(code.clone()),
             sema::StmtKind::System(code) => Op::System(code.clone()),
             sema::StmtKind::Exit => Op::Exit,
-            sema::StmtKind::OnError(l) => Op::SetHandler(l.map(|l| self.ids.get(l))),
+            sema::StmtKind::OnError(h) => match *h {
+                sema::ErrorHandler::Set(l) => Op::SetHandler(l.map(|l| self.ids.get(l))),
+                sema::ErrorHandler::New(l) => Op::NewHandler(self.ids.get(l)),
+                sema::ErrorHandler::Last => Op::LastHandler,
+            },
             sema::StmtKind::OnEvent { event, handler } => Op::OnEvent {
                 event: event.clone(),
                 handler: match handler {
@@ -385,6 +397,10 @@ impl<'a> Lowerer<'a> {
                 sema::Resume::To(l) => Resume::To(self.ids.get(*l)),
             }),
             sema::StmtKind::Error(code) => Op::Raise(code.clone()),
+            sema::StmtKind::Log { level, msg } => Op::Log {
+                level: *level,
+                msg: msg.clone(),
+            },
             sema::StmtKind::Assign { place, value } => Op::Assign {
                 place: place.clone(),
                 value: value.clone(),
@@ -662,11 +678,17 @@ impl<'a> Lowerer<'a> {
             m.binary(BinOp::And, Ty::I32, neg_v(), below),
             m.binary(BinOp::And, Ty::I32, not_neg, above),
         );
+        // The old compiler's test is `if (value>final) break;`, which an error left pending does not stop. Below
+        // `$CHECKING:OFF` one may be pending from any earlier statement, so there the test takes its value (else the
+        // loop would never end, `verification\v50_c_checking`). With checking on at the header the step statement
+        // above takes the header's flag, and its event check services any error the body left (one raised below
+        // OFF too), so the two are the same, and `Skip` keeps a checked program's C++ as it was (design D4 of
+        // `m4-handlers-logging-checking`).
         let test = Op::Branch {
             cond: past,
             when: When::NonZero,
             to: exit,
-            on_error: OnError::Skip,
+            on_error: if s.checked { OnError::Skip } else { OnError::UseValue },
         };
         self.emit(s.span, end_line, vec![store, test, Op::Jump(lbody)]);
         self.place(exit);

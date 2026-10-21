@@ -90,6 +90,20 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `TYPE` above (in a SUB, after a `DECLARE`, in an included file in `v49_inc\`), `v49_x01`–`x66` one accepted or
   rejected form each (`x18`: a float constant out of range in `_CAST`, undefined in C++, a different value on each
   build; `x30`–`x38` `CLEAR`'s forms, `CALL CLEAR` accepted; `x60`–`x66` where a parameter's `TYPE` may stand)
+- `v50*`: the handler chain, the log statements and `$CHECKING` of `m4-handlers-logging-checking`, measured as its
+  task 1.2: `v50_a_chain` `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER` (three deep and back, nothing kept, after
+  `ON ERROR GOTO 0`, a plain label between, in a SUB and a FUNCTION; error 11 is left out, a critical error no
+  handler catches), `v50_b_log` the four log statements and `_LOGMINLEVEL` (2 with the runner's log file), its
+  entries in `v50_b_log.log.txt` (the file as a full path, an included one as its includer's folder and the path
+  as written; the procedure's C name; a message cut at 199 bytes; include files in `v50_inc\`), `v50_c_checking`
+  an error raised below `$CHECKING:OFF` (nothing of libqb runs while it is pending; it is serviced at the next
+  checked statement, and `RESUME` runs that statement again), a SUB and an included file below OFF, an `ON
+  TIMER` that comes due there, `v50_d_mem` `_MEMGET`, `_MEMPUT` and `_MEMFILL` below OFF (`_FLOAT` left out: the
+  old compiler's build crashed on it with checking on too), `v50_e_index` array, member-array and dynamic
+  member-array elements below OFF, `v50_x01`–`x28` one accepted or rejected form each (`x12` `$CHECKING:OFF` in an
+  `IF` block accepted, `x13` a line number after `_NEWHANDLER`, `x16` `_LOGINFO ("a")` with its log; `x27`, `x28`
+  a label with a leading `_` after `_NEWHANDLER`: not defined, and "Invalid name" where it is defined, added on the
+  change's review)
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

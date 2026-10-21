@@ -140,7 +140,6 @@ v33_x28_base64decode_no_dollar	not supported yet
 v33_x29_crc32_dollar	not supported yet
 v33_x49_debug_vwatch_sub	D-017
 v33_x50_assert_dollar	not supported yet
-v33_x54_debug_checking_off	not supported yet
 v34_d2_redim_bound_redims	D-018
 v34_d3_preserve_bound_redims	D-018
 v34_d_retain_bound_redims	D-018
@@ -179,7 +178,6 @@ v40_g6_byte_e9_in_name	not recorded
 v41_b_kinds	D-025
 v41_i_float	D-025
 v41_j_outside	D-004
-v41_x62_checking_off	not supported yet
 v42_x46_line_number	not supported yet
 v43_a_errorline	not supported yet
 v43_x32	not supported yet
@@ -208,3 +206,4 @@ v48_x30_len_whole_string_member_array	not supported yet: `LEN` of a whole member
 v49_x16_cast_no_dollar_suffix	not supported yet
 v49_x18_cast_out_of_range	varies: a float constant out of range in `_CAST`; g++ gives another value on each build, in the old compiler too (design D2 of `m4-builtins-param-types`)
 v49_x42_files_no_dollar	not supported yet
+v50_x13_newhandler_line_number	not supported yet: line numbers

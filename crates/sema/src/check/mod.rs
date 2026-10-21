@@ -600,7 +600,8 @@ struct FileState {
     /// with constant bounds then makes a dynamic array. It follows the file too (measured,
     /// `verification\v24_b_metacommand*`).
     dynamic_mode: bool,
-    /// No `$CHECKING:OFF` is in force at this point of the file (design D8; read in that file only).
+    /// No `$CHECKING:OFF` is in force at this point of the file (design D3 of `m4-handlers-logging-checking`): each
+    /// statement takes it ([`Stmt::checked`]).
     checking: bool,
     /// Whether the body being checked still gives its own variables and arrays the life of the program
     /// ([`Checker::static_procs`]).
@@ -872,7 +873,6 @@ impl Checker<'_> {
         let Some(&id) = self.proc_of_def.get(&def.node().key()) else {
             return;
         };
-        self.prog.procs[id.0 as usize].checked = self.at.checking;
         self.cur = Some(id);
         self.local = self.param_scopes[id.0 as usize].clone();
         self.at.static_scope = self.static_procs.contains(&id);
@@ -1115,6 +1115,7 @@ impl Checker<'_> {
             span,
             line,
             include_line,
+            checked: self.at.checking,
             kind,
         };
         self.sink().push(stmt);
@@ -1336,11 +1337,16 @@ impl Checker<'_> {
                 Err(msg) => return Err(self.error(tok.span, msg)),
             }
             Ok(())
-        } else if self.in_after_last_line(tok.span) && (line == b"$CHECKING:OFF" || line == b"$CHECKING:ON") {
-            // Only in QB64pe's file included after the last line (design D8 of `m3-network-embed`): the procedures
-            // below `$CHECKING:OFF` have no event checks. Anywhere else it is "not supported yet" (below).
+        } else if line == b"$CHECKING:OFF" || line == b"$CHECKING:ON" {
+            // For the lines after it in source order (design D3 of `m4-handlers-logging-checking`).
             self.at.checking = line == b"$CHECKING:ON";
             Ok(())
+        } else if line
+            .strip_prefix(b"$CHECKING".as_slice())
+            .is_some_and(|rest| matches!(rest.first(), None | Some(b':' | b' ' | b'\t')))
+        {
+            // The old compiler's "Syntax error" for any other text (measured, `verification\v50_x07`–`x11`).
+            Err(self.error(tok.span, "`$CHECKING` takes `:OFF` or `:ON`, alone on its line"))
         } else if line.starts_with(b"$COLOR") {
             // The parser included the colour file (design D8 of `m3-constant-evaluation`); measured,
             // `verification\v45_x45`, `x46`, `x51`–`x53`: the other set after one is an error, and so is any other

@@ -188,6 +188,7 @@ impl Emitter<'_> {
         let form = stmt_find(id).unwrap_or_else(|| unreachable!("{} is no compiled statement", id.get().name));
         match form.rule {
             StmtRule::Plain | StmtRule::Graphics => out.push(self.plain_stmt(id, args)),
+            StmtRule::Log(_) => unreachable!("a log statement is an `Op::Log` (`validate`)"),
             StmtRule::File => out.push(self.file_get_put(id, args)),
             // One call per number, in order; every file when there is none.
             StmtRule::Close => {
