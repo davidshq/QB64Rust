@@ -348,10 +348,11 @@ impl Emitter<'_> {
 /// A `BYVAL` argument as the old compiler writes it: the value converted to the parameter's type, but with no cast
 /// where C converts it the same way (measured, `verification\v37_b`, `v37_e`): an integer to another integer or to
 /// a float, a float to another float. So with a header the C++ overload follows the argument's BASIC type
-/// (`h_over(1)` for a `DOUBLE` parameter takes the `int` one). A float to an integer keeps its rounding (`qbr`).
+/// (`h_over(1)` for a `DOUBLE` parameter takes the `int` one). A float to an integer keeps its rounding (`qbr`), and
+/// a `_CAST` its cast, which the overload then follows (corpus `slice\s152_library_cast`).
 pub(crate) fn byval_value(v: &Expr) -> &Expr {
     if let ExprKind::Convert { how, from } = &v.kind
-        && *how != Conv::RoundEven
+        && !matches!(how, Conv::RoundEven | Conv::Cast)
     {
         return byval_value(from);
     }

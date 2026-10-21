@@ -1,0 +1,5 @@
+
+Cannot convert type (_MEM) to symbol
+Caused by (or after):X = _CAST ( _MEM , 1 )
+LINE 3:x = _CAST(_MEM, 1)
+exit=1

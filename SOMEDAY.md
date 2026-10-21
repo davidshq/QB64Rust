@@ -234,8 +234,14 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 | `LEN(x())` and `_MEM(x())` of a name that is no array | The old compiler makes `x` an array used without `DIM` there (`LEN` 44: 11 SINGLEs); `x()` with nothing between the parentheses makes none here | `verification\v48_x04`, `x14` |
 | `LEN` of a whole array of a `TYPE` with a `_DYNAMIC` member array, and of a whole `_DYNAMIC` member array | Not measured (`LEN` of such a value is an error, `v35_x20`) | `check\builtins.rs` `len_whole` |
 | `LEN` of a whole member array of variable-length strings (`TYPE t: s(3) AS STRING …`, `LEN(x.s())`) | The old compiler gives 32 for four elements, likely 8 bytes (a pointer) each, where a whole array of strings is an error (`v48_x01`); one program only, and a number no program can use: other bounds, dimensions and the C++ it writes not measured | `verification\v48_x30`; `tests\frontend\names_arrays_errors.bas` |
-| A parameter typed by a `TYPE` whose block stands below the procedure's header is accepted; the old compiler rejects it ("Illegal SUB/FUNCTION parameter") | Found by `v48`; true of top-level blocks before the change. A known bug in `STATUS.md` | `verification\v48_x12`, `x25` |
 | A whole array as a value (`PRINT a()`, `SWAP x(), y()`, `READ a()`), the old compiler's errors for names that are no array or no SUB, a built-in's name with a type suffix (`LEN$`, `base$`) | Left for later by the user (`DECISIONS.md` 2026-10-20) | design Non-Goals |
+
+**Left marked by `m4-builtins-param-types`** (2026-10-21: `_CAST`, `_CLIPBOARD$`, `_FILES$`, `_MD5$`, `_OS$`,
+`CLEAR`, a parameter's `TYPE` above its procedure):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `_CAST&(LONG, 1)`, `_FILES("*")`, `PRINT _OS`: a new built-in named with another suffix or without its `$` | The old compiler's errors ("Invalid array name", "Invalid variable name") wait with a built-in's name with a type suffix, above | `verification\v49_x16`, `x42`, `x47` |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -361,6 +367,10 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A plain name beside an array typed by `DIM … AS` is silently a scalar of another type: after `DIM a(3) AS INTEGER`, `a = 1.5` stores into a new SINGLE `a`, and `PUT #1, , a` writes its 4 bytes instead of the array | An error or a warning for a plain scalar beside a typed array of its name | `m4-names-arrays` (`verification\v48_a_scalar_array`, `v30_x67`) |
 | `DIM c(3)` without `AS` beside `DIM c(2) AS DOUBLE` silently makes a second array, reachable only as `c!`: the plain `c(1)` below it is still the DOUBLE one, and `UBOUND(c)` 2; a `REDIM c(3)` gives the DOUBLE array new bounds instead. In a SUB beside a shared typed array, and beside a `STATIC c() AS DOUBLE` list nothing has reached, the new array takes the plain name | One rule for the plain name, or an error for the second declaration | `m4-names-arrays` (`verification\v48_x16`–`x24`, `v24_x126`) |
 | A `TYPE` block in a SUB, a FUNCTION or a block (also one never run, `IF 0 THEN`) defines a type of the whole program, usable above its block and in every procedure; a second block of the name anywhere is "Name already in use" | Types scoped to their procedure, as a local variable is | `m4-names-arrays` (`verification\v48_c_type_anywhere`, `v48_x05`) |
+| A parameter's `TYPE` must be defined above its SUB or FUNCTION ("Illegal SUB/FUNCTION parameter"), also one in the procedure's own body, though a `TYPE` block anywhere serves `DIM … AS` above it | One rule for both: any `TYPE` of the program serves a parameter too | `m4-builtins-param-types` (`verification\v49_x60`–`x65`, `v48_x12`, `x25`) |
+| `CLEAR` with a parenthesis anywhere in its arguments is "Incorrect number of arguments", also inside an expression (`CLEAR , , LEN("a")`), though its arguments are ignored | Accept any numeric expression | `m4-builtins-param-types` (`verification\v49_x33`) |
+| `_CAST` of a float constant outside the integer type's range gives whatever g++ folds it to, another value on each build (`_CAST(LONG, 1E20)`: `1008726880`, then `-360710944`) | A defined value (saturated, or the x86 value `-2147483648` a variable gives), with a `DIVERGENCES.md` row | `m4-builtins-param-types` (`verification\v49_x18`, design D2) |
+| `_CLIPBOARD$ = s$` puts `s$` on the clipboard only up to its first NUL | Keep the whole string | `m4-builtins-param-types` (`verification\v49_d_clipboard`) |
 
 ## Other ideas raised during the study
 

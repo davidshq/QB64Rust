@@ -261,6 +261,18 @@ version,session,change,category,actions,bytes
 1,1c9984e0,m2-console-screenhide,test runs,13,0
 1,1c9984e0,m2-console-screenhide,tests and fixtures,12,7712
 1,1ca14e17,m3-errorline-chr-const,other commands,1,0
+1,1de8b923,,other,1,0
+1,1de8b923,,other commands,29,0
+1,1de8b923,m4-builtins-param-types,builds,4,0
+1,1de8b923,m4-builtins-param-types,documents and planning,23,30323
+1,1de8b923,m4-builtins-param-types,measurement preparation,1,1096
+1,1de8b923,m4-builtins-param-types,measurement runs,11,0
+1,1de8b923,m4-builtins-param-types,other commands,90,0
+1,1de8b923,m4-builtins-param-types,product code,19,8171
+1,1de8b923,m4-builtins-param-types,reading,14,0
+1,1de8b923,m4-builtins-param-types,scratch files,3,8673
+1,1de8b923,m4-builtins-param-types,test runs,31,0
+1,1de8b923,m4-builtins-param-types,tests and fixtures,1,765
 1,1e0539b4,,other commands,1,0
 1,1e0539b4,,reading,10,0
 1,1e0539b4,m2-procedures-and-errors,documents and planning,17,16386
@@ -1191,6 +1203,11 @@ version,session,change,category,actions,bytes
 1,702e0e5b,m2-workspace-and-slice,reading,4,0
 1,702e0e5b,m2-workspace-and-slice,test runs,32,0
 1,702e0e5b,m2-workspace-and-slice,tests and fixtures,6,9991
+1,70323a4c,m4-names-arrays,other,1,0
+1,70323a4c,m4-names-arrays,other commands,6,0
+1,70323a4c,m4-names-arrays,reading,5,0
+1,70323a4c,m4-names-arrays,scratch files,1,1639
+1,70323a4c,m4-names-arrays,test runs,2,0
 1,718cad48,m2-numeric-types,other commands,2,0
 1,718cad48,m2-numeric-types,reading,1,0
 1,718cad48,m2-numeric-types,test runs,1,0

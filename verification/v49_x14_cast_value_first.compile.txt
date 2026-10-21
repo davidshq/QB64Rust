@@ -1,0 +1,5 @@
+
+Cannot convert type (1%) to symbol
+Caused by (or after):X = _CAST ( 1 , LONG )
+LINE 3:x = _CAST(1, LONG)
+exit=1

@@ -67,7 +67,8 @@ fn takes_as_is(rule: Rule) -> bool {
         | Rule::Own
         | Rule::Mk(_)
         | Rule::Cv(_)
-        | Rule::Embedded => false,
+        | Rule::Embedded
+        | Rule::Cast => false,
     }
 }
 
@@ -105,6 +106,7 @@ impl Checker<'_> {
             Rule::Own => return Err(self.error(span, format!("`{name}` needs its argument"))),
             Rule::Mk(_) | Rule::Cv(_) => return self.number_bytes(s, list, span),
             Rule::Embedded => return self.embedded(s, list, span),
+            Rule::Cast => return self.cast(list, span),
             Rule::Plain
             | Rule::ResultOfArg
             | Rule::IntFix
@@ -1098,8 +1100,29 @@ impl Checker<'_> {
         self.stmt_call(node, form, matched)
     }
 
+    /// The two errors the old compiler makes for `CLEAR` before its form (design D4 of `m4-builtins-param-types`,
+    /// `qb64pe.bas` 11318): in a SUB or FUNCTION ("CLEAR cannot be used inside a SUB/FUNCTION", `verification\v49_x30`,
+    /// `x31`), and a parenthesis anywhere in its arguments ("Incorrect number of arguments", `x32`, `x33`; `CLEAR ,
+    /// , LEN("a")` too). `CALL CLEAR` is `CLEAR` (`x36`).
+    fn clear_form(&mut self, node: Node, matched: &[Matched]) -> R<()> {
+        if self.cur.is_some() {
+            return Err(self.error(node.span(), "`CLEAR` cannot be used in a SUB or FUNCTION"));
+        }
+        let paren = matched.iter().any(|m| match m {
+            Matched::Arg(Some(e)) => e.node().tokens().into_iter().any(|t| t.kind == LParen),
+            Matched::Arg(None) | Matched::Word(_) => false,
+        });
+        if paren {
+            return Err(self.error(node.span(), "`CLEAR` takes no parenthesis in its arguments"));
+        }
+        Ok(())
+    }
+
     /// The typed statement of a form and what its template's arguments and choices matched.
     fn stmt_call(&mut self, node: Node, form: StmtSupported, matched: Vec<Matched>) -> R<()> {
+        if form.id.get().callname == "sub_clear" {
+            self.clear_form(node, &matched)?;
+        }
         self.runtime_part(form.id, form.name, node.span())?;
         let slots = stmt_slots(form.id);
         let count = slots.iter().filter(|s| matches!(s, StmtSlot::Arg { .. })).count();

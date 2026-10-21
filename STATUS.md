@@ -50,12 +50,13 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. The third change of M4, `m4-names-arrays`, is built and closed (`close.py --check` passes); it waits for the
-   user's review and archive.
-2. The merge of `m4` into `main` with the full set (working rule 9) after it.
-3. Then the remaining built-ins of the upstream report (`_CAST`, `_CLIPBOARD$`, `_FILES$`, `_MD5$`, `_OS$`,
-   `CLEAR`, one upstream program each). `tests\verification\known.list` (207 programs, each with its reason) holds
-   more such lines.
+1. The fourth change of M4, `m4-builtins-param-types` (`_CAST`, `_CLIPBOARD$`, `_FILES$`, `_MD5$`, `_OS$`,
+   `CLEAR`, and a parameter's `TYPE` above its procedure), is built and closed (`close.py --check` passes); it
+   waits for the user's review and archive. `m4-names-arrays` is archived (`3da44a7`).
+2. The merge of `m4` into `main` with the full set (working rule 9) after it: four changes.
+3. Then the upstream report's remaining lines: `$CHECKING`, the old compiler's own sources (`qb64pe\*`), `_LOG*`,
+   `ON ERROR GOTO _LASTHANDLER`/`_NEWHANDLER`. `tests\verification\known.list` (209 programs, each with its reason)
+   holds more such lines.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 
@@ -172,10 +173,8 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
-- A SUB or FUNCTION parameter typed by a `TYPE` whose block stands below the procedure's header in the file is
-  accepted; the old compiler rejects it ("Illegal SUB/FUNCTION parameter", `verification\v48_x12`, `x25`, on
-  `tests\verification\known.list`). A program it rejects, never a wrong output. Found by `m4-names-arrays`; true of
-  top-level blocks before that change.
+None (the parameter typed by a `TYPE` below its procedure, found by `m4-names-arrays`, is fixed by
+`m4-builtins-param-types`).
 
 ## Queued for later milestones
 

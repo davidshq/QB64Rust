@@ -1255,6 +1255,18 @@ fn len_of_whole_arrays_builds_and_runs() {
     assert_eq!(build_and_run(&d, program), " 10  15  200  400  10 \n 0 \n 10 \n");
 }
 
+/// `_CAST` built and run (design D2 of `m4-builtins-param-types`; `verification\v49_a_cast`): an integer narrowed
+/// to its low bits, a float truncated toward zero, the result in arithmetic and in `HEX$` as the type named.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn cast_builds_and_runs() {
+    let d = scratch("cast");
+    let program = "$CONSOLE:ONLY\nn& = 300: f! = -6.75\n\
+                   PRINT _CAST(_BYTE, n&); _CAST(INTEGER, 2.5); _CAST(LONG, f!); _CAST(_UNSIGNED _BYTE, -1) + 1\n\
+                   PRINT HEX$(_CAST(_BYTE, -1)); \" \"; HEX$(_CAST(INTEGER, -1))\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), " 44  2 -6  256 \nFF FFFF\n");
+}
+
 /// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies the target's
 /// number of elements, as the old compiler does, but nothing when the source has fewer (`DIVERGENCES.md` D-022: the
 /// old compiler reads past the source's block, `verification\v36_x52`, `v38_d`).

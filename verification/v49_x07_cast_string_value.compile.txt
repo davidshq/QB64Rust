@@ -1,0 +1,5 @@
+
+Expected numeric argument
+Caused by (or after):X = _CAST ( LONG , "1",1 )
+LINE 3:x = _CAST(LONG, "1")
+exit=1

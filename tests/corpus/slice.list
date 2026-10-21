@@ -507,3 +507,6 @@ slice/s146_const_edges
 slice/s147_continue
 slice/s148_dot_blanks
 slice/s149_devices_console
+slice/s150_builtins_more
+slice/s151_clear
+slice/s152_library_cast

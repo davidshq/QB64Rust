@@ -81,6 +81,15 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `x27`–`x30` from the change's review: a `TYPE` block in a SUB bounds its `_DYNAMIC` member array by the SUB's
   own `CONST`, also where the main module has one of the name; `LEN` of a whole array with a dotted name; `LEN` of
   a whole member array of variable-length strings, no error (32 for four elements)
+- `v49*`: the built-ins and the parameter types of `m4-builtins-param-types`, measured as its task 1.1:
+  `v49_a_cast` `_CAST` to every numeric type (a float truncated toward zero; the result seen as the type named),
+  `v49_b_files` `_FILES$` of a folder, a pattern and no match (a folder's name ends in a backslash; a bare call with
+  no listing is error 5), `v49_c_md5_os` `_MD5$` and `_OS$`, `v49_d_clipboard` `_CLIPBOARD$` (the text up to its
+  first NUL), `v49_e_clear` what `CLEAR` resets (every kind of variable, `STATIC`, `DATA`, files, dynamic arrays
+  released) and `v49_e2_clear_gosub` `RETURN` after it (error 3), `v49_f_param_type` a parameter typed by a
+  `TYPE` above (in a SUB, after a `DECLARE`, in an included file in `v49_inc\`), `v49_x01`–`x66` one accepted or
+  rejected form each (`x18`: a float constant out of range in `_CAST`, undefined in C++, a different value on each
+  build; `x30`–`x38` `CLEAR`'s forms, `CALL CLEAR` accepted; `x60`–`x66` where a parameter's `TYPE` may stand)
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

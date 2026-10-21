@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _CLIPBOARD$ = text$
+Caused by (or after):CALL _CLIPBOARD$ ( "abc",3 )
+LINE 3:CALL _CLIPBOARD$("abc")
+exit=1

@@ -1,0 +1,21 @@
+bare first: [error 5 at 12 
+all: .\
+all: ..\
+all: f1.txt
+all: f2.txt
+all: f3.txt
+all: g.dat
+all: sub\
+after the end: [error 5 at 15 
+txt: f1.txt
+txt: f2.txt
+txt: f3.txt
+*.*: 6 
+no match: []
+folder: [.\] next: [..\]
+file: [g.dat]
+first of two: [f1.txt]
+restarted: [g.dat] []
+no folder: []
+done
+exit=0

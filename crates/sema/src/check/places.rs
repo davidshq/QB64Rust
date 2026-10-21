@@ -66,7 +66,7 @@ impl Checker<'_> {
     /// `v48_c_type_anywhere`; the old compiler's prepass, `qb64pe.bas` 2483). A block with an error is not entered;
     /// its uses are "not supported yet".
     pub(super) fn declare_types(&mut self, blocks: &[ast::TypeBlock], skips: &Skips) {
-        for &b in blocks {
+        for (k, &b) in blocks.iter().enumerate() {
             let s = b.node();
             if skips.past_cap(s) {
                 break;
@@ -76,8 +76,9 @@ impl Checker<'_> {
             }
             self.stmt.stmt_error = false;
             let marks = self.diags.unsupported_count();
-            if self.declare_type(b).is_ok() {
+            if let Ok(id) = self.declare_type(b) {
                 self.type_defs.insert(s.key());
+                self.type_order.insert(id, k);
             } else if self.diags.unsupported_count() > marks {
                 // Pass 2 starts the follow-on rule when it reaches this block (design D10).
                 self.types_marked.insert(s.key());
@@ -86,7 +87,7 @@ impl Checker<'_> {
         }
     }
 
-    fn declare_type(&mut self, b: ast::TypeBlock) -> R<()> {
+    fn declare_type(&mut self, b: ast::TypeBlock) -> R<TypeId> {
         let span = b.node().span();
         let header = self.need(b.header(), span)?;
         let name_tok = self.need(header.name(), header.node().span())?;
@@ -183,7 +184,7 @@ impl Checker<'_> {
         if const_bounds {
             self.type_const_bounds.insert(b.node().key(), id);
         }
-        Ok(())
+        Ok(id)
     }
 
     /// Pass 2 at a `TYPE` block of [`Checker::type_const_bounds`]: the first bounds of its dynamic member arrays
@@ -2069,7 +2070,7 @@ fn constant(e: &Expr) -> Option<Num> {
                 }
                 (ConvKind::Widen, Num::Float(f)) => Some(Num::Float(f)),
                 (ConvKind::Nearest, Num::Float(f)) => whole(f).then_some(Num::Float(f)),
-                (ConvKind::RoundEven, Num::Int(_)) | (ConvKind::Truncate, Num::Float(_)) => None,
+                (ConvKind::RoundEven, Num::Int(_)) | (ConvKind::Truncate, Num::Float(_)) | (ConvKind::Cast, _) => None,
             }
         }
         ExprKind::VarPtr { .. }

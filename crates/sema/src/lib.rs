@@ -868,6 +868,10 @@ pub enum ConvKind {
     RoundEven,
     /// To the nearest value of a float type: integer to float, or float to a narrower float.
     Nearest,
+    /// `_CAST(type, value)`: the C++ cast `((ctype)(value))` from any number to any number, a float truncated toward
+    /// zero (design D2 of `m4-builtins-param-types`). Never folded: a float constant out of the integer's range is
+    /// undefined in C++, and the value is the one g++ gives, as in the old compiler.
+    Cast,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

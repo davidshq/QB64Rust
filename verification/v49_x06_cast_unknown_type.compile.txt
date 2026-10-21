@@ -1,0 +1,5 @@
+
+Cannot convert type (foo) to symbol
+Caused by (or after):X = _CAST ( FOO , 1 )
+LINE 3:x = _CAST(foo, 1)
+exit=1

@@ -76,6 +76,9 @@ pub enum Rule {
     /// `_EMBEDDED$("handle")`: one string literal naming the handle of a `$EMBED` line above the call (design D2 of
     /// `m3-network-embed`, `check\embed.rs`); the plain call of its row.
     Embedded,
+    /// `_CAST(type, value)`: no call but [`crate::ConvKind::Cast`] of the value to the numeric type named (design D2
+    /// of `m4-builtins-param-types`, `check\mem.rs` `cast`).
+    Cast,
 }
 
 /// Every built-in function `sema` compiles, as written (with its required suffix), and its rule. The coverage check
@@ -143,6 +146,13 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_FILEEXISTS", Rule::Plain),
     ("_DIREXISTS", Rule::Plain),
     ("_CWD$", Rule::Plain),
+    // `_FILES$[(spec$)]` (design D1 of `m4-builtins-param-types`; `verification\v49_b_files`): one optional slot, so
+    // it is also called bare, for the next entry of the listing.
+    ("_FILES$", Rule::Plain),
+    // The system's name and the clipboard's text (same design, `v49_c_md5_os`, `v49_d_clipboard`): no slot, called
+    // bare only. The tests set the clipboard (design D3).
+    ("_OS$", Rule::Plain),
+    ("_CLIPBOARD$", Rule::Plain),
     // `RND` and `TIMER` (`verification\v22_d_random`): one optional slot each, so both are also called bare. `RND`
     // is a `float`; `TIMER` is believed SINGLE and held DOUBLE (libqb's `func_timer` returns `double`).
     ("RND", Rule::Plain),
@@ -363,6 +373,9 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_INFLATE$", Rule::Plain),
     ("_BASE64ENCODE$", Rule::Plain),
     ("_BASE64DECODE$", Rule::Plain),
+    // `_MD5$(s$)` (design D1 of `m4-builtins-param-types`; `verification\v49_c_md5_os`): the plain call of its row,
+    // with libqb's font part, where the old compiler's dependency puts it.
+    ("_MD5$", Rule::Plain),
     // The network functions (design D5 of `m3-network-embed`; `verification\v44_b`, `x40`–`x46`, `x59`–`x68`): each
     // the plain call of its row. `_OPENHOST` and `_OPENCLIENT` need libqb's sockets part
     // ([`crate::RuntimePart::Sockets`]); `_CONNECTIONADDRESS` is written with or without its `$`.
@@ -375,6 +388,9 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // The bytes of a file `$EMBED` builds into the executable (design D2 of `m3-network-embed`;
     // `verification\v44_a_embed`, `x10`–`x21`, `x25`, `x32`–`x37`).
     ("_EMBEDDED$", Rule::Embedded),
+    // A number converted to a numeric type as a C++ cast (design D2 of `m4-builtins-param-types`;
+    // `verification\v49_a_cast`, `x01`–`x18`).
+    ("_CAST", Rule::Cast),
 ];
 
 /// The built-in functions whose result is a block of the predefined type `_MEM` (design D2 of `m3-mem`), as
@@ -562,6 +578,13 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     // `_ASSERT condition[, message$]` (design D3 of `m3-asserts-debug-zlib`; `verification\v33_a*`, `x17`–`x24`):
     // the plain call of its row, which checks nothing without `$ASSERTS` (the program's global `asserts`).
     ("_ASSERT", StmtRule::Plain),
+    // `_CLIPBOARD$ = s$` (design D1 of `m4-builtins-param-types`; `verification\v49_d_clipboard`): the plain call of
+    // its row, run by the tests (design D3).
+    ("_CLIPBOARD$", StmtRule::Plain),
+    // `CLEAR [a][, [b][, c]]` (design D4 of `m4-builtins-param-types`; `verification\v49_e_clear`, `x30`–`x38`): the
+    // plain call of its row, `sub_clear`, which includes the program's `clear.txt`; its arguments are ignored. Not
+    // in a SUB or FUNCTION and with no parenthesis in its arguments (`check\builtins.rs`, `clear_form`).
+    ("CLEAR", StmtRule::Plain),
 ];
 
 /// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
@@ -803,7 +826,8 @@ pub fn slot_count(id: BuiltinId) -> usize {
             | Rule::Own
             | Rule::Mk(_)
             | Rule::Cv(_)
-            | Rule::Embedded,
+            | Rule::Embedded
+            | Rule::Cast,
         )
         | None => id.get().arg_types.len(),
     }
@@ -826,7 +850,7 @@ pub fn slots(s: Supported) -> Vec<(Slot, bool)> {
         Rule::Own => Vec::new(),
         // Checked by their rule (`check\mem.rs`, `number_bytes`): a number or a string, and for `_MK$` and
         // `_CV` first a type.
-        Rule::Mk(_) | Rule::Cv(_) => Vec::new(),
+        Rule::Mk(_) | Rule::Cv(_) | Rule::Cast => Vec::new(),
         // One string literal, checked by its rule (`check\embed.rs`).
         Rule::Embedded => vec![(Slot::Str, false)],
         Rule::Plain
@@ -990,6 +1014,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
         Rule::Own => unreachable!("an expression of its own (check::mem)"),
         Rule::Mk(_) | Rule::Cv(_) => unreachable!("typed by their type (check::mem)"),
         Rule::Embedded => unreachable!("typed by its rule (check::embed)"),
+        Rule::Cast => unreachable!("a conversion, no call (check::mem)"),
     }
 }
 

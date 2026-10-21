@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):PRINT _FILES ( "*",1 )
+LINE 3:PRINT _FILES("*")
+exit=1

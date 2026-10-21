@@ -1,0 +1,21 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 5
+  SelectConsole
+Stmt line 7 may_raise
+  Builtin _CLIPBOARD [Value(Var S:Str)]
+Stmt line 8 may_raise
+  Builtin _CLIPBOARD [Value(Var F:Str)]
+Stmt line 9 may_raise
+  Builtin CLEAR [Absent, Absent, Absent]
+Stmt line 10 may_raise
+  Builtin CLEAR [Value(Var K:I32), Absent, Value(Const 100:I32)]
+Stmt line 11 may_raise
+  Builtin CLEAR [Absent, Value(Const 2:I32), Absent]
+Stmt line 12 may_raise
+  Builtin CLEAR [Absent, Absent, Absent]
+Stmt line 13
+  System

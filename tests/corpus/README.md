@@ -52,13 +52,13 @@ Written by `python tools\legacy_tests\counts.py` (`tools\legacy_tests\README.md`
 and `slice.list` hold, and what the last full run of the release build gave.
 
 <!-- counts:corpus-membership -->
-`slice.list` names **472** tests (a program, or a script of a screen program: `<name>.<script>.keys`). By folder:
+`slice.list` names **475** tests (a program, or a script of a screen program: `<name>.<script>.keys`). By folder:
 
 | Folder | Programs | `.output` | `.err` | `.norun` | `.screen` | In `slice.list` |
 |---|---|---|---|---|---|---|
 | `runtime_comparison` | 261 | 235 | 20 | 1 | 0 | 236 |
 | `screen` | 69 | 69 | 0 | 0 | 69 | 78 |
-| `slice` | 156 | 156 | 0 | 0 | 0 | 156 |
+| `slice` | 159 | 159 | 0 | 0 | 0 | 159 |
 | `verification` | 2 | 2 | 0 | 0 | 0 | 2 |
 <!-- /counts:corpus-membership -->
 

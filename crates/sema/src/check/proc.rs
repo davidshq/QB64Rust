@@ -123,13 +123,33 @@ impl Checker<'_> {
         Ok(())
     }
 
+    /// Whether a parameter's type may stand in a header with `above` `TYPE` blocks above it (`None` for a header of
+    /// a `DECLARE LIBRARY` block, which `check\library.rs` holds to its own rule). Design D5 of
+    /// `m4-builtins-param-types`; measured: "Illegal SUB/FUNCTION parameter" for a `TYPE` defined below the header,
+    /// at the top level, in the procedure's own body or in a procedure below, for a scalar and an array parameter,
+    /// called or not (`verification\v48_x12`, `x25`, `v49_x60`–`x65`); a `DECLARE` line changes nothing (`x64`).
+    fn type_above(&mut self, above: Option<usize>, ty: Ty, span: Span) -> R<()> {
+        let (Some(above), Ty::User(t)) = (above, ty) else {
+            return Ok(());
+        };
+        if self.type_order.get(&t).is_some_and(|&k| k >= above) {
+            let msg = format!(
+                "the `TYPE {}` of a parameter must be defined above its SUB or FUNCTION",
+                self.prog.type_name(ty)
+            );
+            return Err(self.error(span, msg));
+        }
+        Ok(())
+    }
+
     /// Creates the parameter variables and the FUNCTION's result variable.
     pub(super) fn declare_params(&mut self, header: ast::ProcHeader, id: ProcId) -> R<()> {
         let mut scope = Scope::default();
+        let above = self.types_above.get(&header.node().key()).copied();
         for param in header.params() {
             let name_tok = self.need(param.name(), param.node().span())?;
             if param.array_parens().is_some() {
-                self.declare_array_param(param, name_tok, id, &mut scope)?;
+                self.declare_array_param(param, name_tok, id, above, &mut scope)?;
                 continue;
             }
             if let Some((name, n)) = self.fixed_suffix(name_tok)? {
@@ -186,6 +206,7 @@ impl Checker<'_> {
                     _ => self.type_of(a)?,
                 },
             };
+            self.type_above(above, ty, param.node().span())?;
             // A parameter of a user type is the place passed ([`Self::type_arg`]). A library procedure's `_BIT`
             // parameter is the error of its use (`library.rs`).
             if let Ty::Bit { .. } = ty
@@ -236,7 +257,14 @@ impl Checker<'_> {
     /// a scalar parameter cannot be. It is an array of the procedure's scope whose number of dimensions is found
     /// after the bodies ([`Checker::solve_dims`]). A scalar parameter of the same name is another variable; a
     /// second array parameter of the name and type is "Name already in use".
-    fn declare_array_param(&mut self, param: ast::Param, name_tok: Tok, id: ProcId, scope: &mut Scope) -> R<()> {
+    fn declare_array_param(
+        &mut self,
+        param: ast::Param,
+        name_tok: Tok,
+        id: ProcId,
+        above: Option<usize>,
+        scope: &mut Scope,
+    ) -> R<()> {
         let shown = show_bytes(self.text(name_tok.span));
         if self.fixed_suffix(name_tok)?.is_some() {
             // As `DIM a$3(2)`: not measured.
@@ -261,6 +289,7 @@ impl Checker<'_> {
                 _ => self.type_of(a)?,
             },
         };
+        self.type_above(above, ty, param.node().span())?;
         self.reserved(name_tok, &name, suffix)?;
         if self.procs_by_name.contains_key(&name) || scope.arrays.contains_key(&(name.clone(), ty)) {
             return Err(self.in_use(name_tok));

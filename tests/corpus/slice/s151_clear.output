@@ -1,0 +1,16 @@
+c= 1 
+c= 2 
+read 1 
+ 0  0  4  0  0  0  0  0  0  0  0  0  7 
+ 0  0  0  0  0  3  0 
+freefile 1 
+read 1 
+c= 1 
+dynamic:error 9 
+strings:error 9 
+again: 2  0 
+z 0 
+z 0 
+z 0 
+error 3 
+after return

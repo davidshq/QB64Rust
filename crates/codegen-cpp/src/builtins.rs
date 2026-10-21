@@ -135,7 +135,7 @@ impl Emitter<'_> {
                 format!("{f}<{}>({value},{count})", cpp_arithmetic(ty))
             }
             Rule::Choice => unreachable!("`_IIF` is an `ExprKind::Choice`"),
-            Rule::Own => unreachable!("`{}` is an expression of its own", s.name),
+            Rule::Own | Rule::Cast => unreachable!("`{}` is an expression of its own", s.name),
             // `l2string(x)`, `string2l(s)`; a `_BIT` with its width (`bit2string(1,x)`, `string2bit(s,1)`). The type
             // is the rule's, or for `_MK$` and `_CV` the one their first slot holds (`qb64pe.bas` 21217–21296).
             Rule::Mk(fixed) | Rule::Cv(fixed) => {

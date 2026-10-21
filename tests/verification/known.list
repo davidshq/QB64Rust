@@ -203,7 +203,8 @@ v47_x17	not supported yet: a declaration with blanks around `.` (`DIM a . b`, SO
 v47_x18	not supported yet: a declaration with blanks around `.` (`SUB a . b`, SOMEDAY.md)
 v48_x04_len_not_array	not supported yet: `LEN(x())` of a name that is no array, an array used without `DIM` there (SOMEDAY.md)
 v48_x11_mem_type_string_member	not supported yet: `_MEM` of an array of a `TYPE` with a `STRING` member
-v48_x12_type_param_above	bug: a parameter typed by a `TYPE` whose block stands below the procedure is accepted (the old compiler: "Illegal SUB/FUNCTION parameter")
 v48_x14_len_whole_scalar_parens	not supported yet: `LEN(x())` of a name that is no array, an array used without `DIM` there (SOMEDAY.md)
-v48_x25_type_param_top_below	bug: a parameter typed by a `TYPE` whose block stands below the procedure is accepted (the old compiler: "Illegal SUB/FUNCTION parameter")
 v48_x30_len_whole_string_member_array	not supported yet: `LEN` of a whole member array of variable-length strings (SOMEDAY.md)
+v49_x16_cast_no_dollar_suffix	not supported yet
+v49_x18_cast_out_of_range	varies: a float constant out of range in `_CAST`; g++ gives another value on each build, in the old compiler too (design D2 of `m4-builtins-param-types`)
+v49_x42_files_no_dollar	not supported yet

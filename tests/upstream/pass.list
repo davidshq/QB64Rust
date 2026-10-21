@@ -62,6 +62,7 @@ arrays/91_type_codegen_nested_inline_owner
 arrays/92_type_codegen_dynamic_varstrings
 arrays/93_type_codegen_dynamic_owner_udt
 arrays/94_type_codegen_inline_descriptor_udt
+arrays/95_type_codegen_clear_inline_owner
 arrays/ArrayCopyTest
 arrays/ArrayCopyTest_1
 arrays/ArrayCopyTest_2
@@ -210,6 +211,7 @@ audio_handle_test/handle_test
 audio_mem_test/newsound_test
 audio_mem_test/sndopen_mem_test
 audio_out/test
+audio_sound_test/sound_test
 audio_test/test
 auto_include/am-trigger
 auto_include/color0
@@ -224,6 +226,8 @@ basic/val_typed_floating_precision
 basic/val_typed_large_integer_decimal
 basic/val_typed_nondecimal_precision
 basic/val_typed_tostr_overload
+cast/cast_test
+clipboard/clipboard_test
 colors/color_with_dest
 colors/test
 console/test
@@ -267,6 +271,7 @@ embed/test
 embed_relative/test
 environ/set_environ
 filename/filename.extra.extension
+filesystem/filesys_test
 font/test
 func_tostr/double
 func_tostr/float
@@ -293,6 +298,7 @@ glut/title_func
 glut/windowhandle
 glut/windowhasfocus
 glut/windowsizelimit
+hash/test
 http/invalid_url
 http/statuscode_invalid_handle
 icon/test

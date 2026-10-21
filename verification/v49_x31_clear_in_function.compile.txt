@@ -1,0 +1,5 @@
+
+CLEAR cannot be used inside a SUB/FUNCTION
+Caused by (or after):CLEAR
+LINE 6:CLEAR
+exit=1

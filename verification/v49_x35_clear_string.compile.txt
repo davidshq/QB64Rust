@@ -1,0 +1,5 @@
+
+1st sub argument requires a number
+Caused by (or after):CLEAR "a",1
+LINE 3:CLEAR "a"
+exit=1

@@ -100,6 +100,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         implicit_names: HashSet::new(),
         type_bases: HashMap::new(),
         type_flags: HashSet::new(),
+        types_above: HashMap::new(),
+        type_order: HashMap::new(),
         type_const_bounds: HashMap::new(),
         auto_file: program.after_last_line.map(|t| program.tree(t).file),
         auto_procs: HashSet::new(),
@@ -555,6 +557,11 @@ struct Checker<'a> {
     /// The `TYPE` blocks (by key) that stand below a `$UNSTABLE:TYPEFIELDS`, where the member markers are allowed
     /// ([`Self::collect_block_settings`]).
     type_flags: HashSet<(TreeId, u32)>,
+    /// Per SUB or FUNCTION header (by key): the number of `TYPE` blocks above it in the file, the first of
+    /// [`Self::type_blocks`] (design D5 of `m4-builtins-param-types`).
+    types_above: HashMap<(TreeId, u32), usize>,
+    /// Per user type: the index of its block in [`Self::type_blocks`].
+    type_order: HashMap<TypeId, usize>,
     /// The `TYPE` blocks (by key, with their type) with a dynamic member array whose bounds name a `CONST`: they
     /// are read when pass 2 reaches the block, below the constants above it ([`Self::type_block`]).
     type_const_bounds: HashMap<(TreeId, u32), TypeId>,
@@ -941,6 +948,10 @@ impl<'a> Checker<'a> {
         }
         if ast::InactiveCode::cast(node).is_some() {
             return;
+        }
+        // A parameter's type must be defined above the header, which the walk reaches before the body.
+        if let Some(h) = ast::ProcDef::cast(node).and_then(|d| d.header()) {
+            self.types_above.insert(h.node().key(), self.type_blocks.len());
         }
         if let Some(b) = ast::TypeBlock::cast(node) {
             self.type_blocks.push(b);

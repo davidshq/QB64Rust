@@ -589,21 +589,19 @@ impl Checker<'_> {
             | Rule::Rotate
             | Rule::Choice
             | Rule::Own
-            | Rule::Embedded => unreachable!("`{name}` is no conversion between a number and its bytes"),
+            | Rule::Embedded
+            | Rule::Cast => unreachable!("`{name}` is no conversion between a number and its bytes"),
         };
-        let positions = list.map(|l| l.args()).unwrap_or_default();
-        let type_arg = list.and_then(|l| l.type_arg());
-        let (ty, node) = match (fixed, &positions[..], type_arg) {
-            (Some(t), &[Some(node)], None) => (t, node),
-            (None, &[None, Some(node)], Some(t)) => (self.bytes_type(t, name)?, node),
-            // Measured: "Cannot convert type (K) to symbol" (`v32_x113`).
-            (None, &[Some(first), Some(_)], None) => {
-                let msg = format!("the first argument of `{name}` is a type name");
-                return Err(self.error(first.node().span(), msg));
-            }
-            // Measured: "Incorrect number of arguments" (`v32_x107`–`x109`, `x112`).
-            (Some(_), _, _) => return Err(self.error(span, format!("`{name}` takes 1 argument"))),
-            (None, _, _) => return Err(self.error(span, format!("`{name}` takes a type and 1 argument"))),
+        // Measured: "Incorrect number of arguments" (`v32_x107`–`x109`, `x112`).
+        let (ty, node) = match fixed {
+            Some(t) => match (list.map(|l| l.args()).as_deref(), list.and_then(|l| l.type_arg())) {
+                (Some(&[Some(node)]), None) => (t, node),
+                _ => return Err(self.error(span, format!("`{name}` takes 1 argument"))),
+            },
+            None => match self.type_then_value(list, name, "a type name")? {
+                Some((t, node)) => (self.bytes_type(t, name)?, node),
+                None => return Err(self.error(span, format!("`{name}` takes a type and 1 argument"))),
+            },
         };
         let e = self.expr(node)?;
         // A `_BIT` is passed and read as an `_INTEGER64` (`qb64pe.bas` 21243, 21284).
@@ -666,6 +664,50 @@ impl Checker<'_> {
             qb: result,
             kind: ExprKind::Call { builtin: s.id, args },
         })
+    }
+
+    /// `_CAST(type, value)` (design D2 of `m4-builtins-param-types`): the value converted by a C++ cast to the
+    /// numeric type named, held and believed as that type. Measured (`verification\v49_x01`–`x16`): `STRING`,
+    /// `_BIT` and `_UNSIGNED _BIT` "_CAST TYPE unsupported"; any other name that is no numeric type, or a value
+    /// first, "Cannot convert type (…) to symbol"; a string or a whole user-type value "Expected numeric argument";
+    /// any other count "Incorrect number of arguments".
+    pub(super) fn cast(&mut self, list: Option<ast::ArgList>, span: Span) -> R<Expr> {
+        let Some((t, node)) = self.type_then_value(list, "_CAST", "a numeric type name")? else {
+            return Err(self.error(span, "`_CAST` takes a type and 1 argument"));
+        };
+        let ty = self.bytes_type(t, "_CAST")?;
+        if let Ty::Bit { .. } = ty {
+            return Err(self.error(t.span(), "`_CAST` takes no `_BIT` type"));
+        }
+        let e = self.expr(node)?;
+        // A `STRING * n` place loads as a `Str` value.
+        if matches!(e.ty, Ty::Str | Ty::User(_)) {
+            return Err(self.error(e.span, "`_CAST` needs a number"));
+        }
+        Ok(Expr {
+            span,
+            ..conv(e, ty, crate::ConvKind::Cast)
+        })
+    }
+
+    /// The arguments of `_MK$`, `_CV` and `_CAST`: a type name, then a value. `None` for any other count, which each
+    /// reports in its own words; a value first is an error, the first argument of `name` is `what` (measured:
+    /// "Cannot convert type (…) to symbol", `verification\v32_x113`, `v49_x01`–`x16`).
+    fn type_then_value<'a>(
+        &mut self,
+        list: Option<ast::ArgList<'a>>,
+        name: &str,
+        what: &str,
+    ) -> R<Option<(Node<'a>, ast::Expr<'a>)>> {
+        let positions = list.map(|l| l.args()).unwrap_or_default();
+        match (&positions[..], list.and_then(|l| l.type_arg())) {
+            (&[None, Some(node)], Some(t)) => Ok(Some((t, node))),
+            (&[Some(first), Some(_)], None) => {
+                let msg = format!("the first argument of `{name}` is {what}");
+                Err(self.error(first.node().span(), msg))
+            }
+            _ => Ok(None),
+        }
     }
 
     /// The type `_MK$` and `_CV` take first: a numeric type, `_BIT` and `_UNSIGNED _BIT` one bit wide. Measured:

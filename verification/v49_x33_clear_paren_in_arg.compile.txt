@@ -1,0 +1,5 @@
+
+Incorrect number of arguments
+Caused by (or after):CLEAR , , LEN ( "a",1 )
+LINE 3:CLEAR , , LEN("a")
+exit=1

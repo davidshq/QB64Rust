@@ -16,7 +16,6 @@ upstream/arrays/39_err_member_must_be_const.bas
 upstream/arrays/40_err_undefined_type.bas
 upstream/arrays/42_err_solved_bug_Incorrect_nr_of_args.bas
 upstream/arrays/43_err_solved_bug_Incorrect_nr_of_args.bas
-upstream/arrays/45_err_solved_bug_Incorrect_nr_of_args.bas
 upstream/const/bad_single_arg.bas
 upstream/const/not_bad_identifier.bas
 upstream/const/undefined_argument.bas
