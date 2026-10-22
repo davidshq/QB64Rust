@@ -1,0 +1,3 @@
+[abcdefg]
+[m   ]
+exit=0

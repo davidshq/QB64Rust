@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _FULLPATH$(pathName$)
+Caused by (or after):PRINT _FULLPATH$ ( ".",1 , ".",1 )
+LINE 4:PRINT _FULLPATH$(".", ".")
+exit=1

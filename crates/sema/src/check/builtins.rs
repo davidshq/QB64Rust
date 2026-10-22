@@ -786,7 +786,7 @@ impl Checker<'_> {
                     );
                     return Ok(());
                 }
-                StmtRule::Swap | StmtRule::MidAssign | StmtRule::Log(_) => {}
+                StmtRule::Swap | StmtRule::MidAssign | StmtRule::AscAssign | StmtRule::Log(_) => {}
             }
         }
         Err(self.error(name.span, format!("`{shown}` needs its arguments")))
@@ -1142,7 +1142,7 @@ impl Checker<'_> {
                         StmtRule::Plain | StmtRule::Graphics | StmtRule::File | StmtRule::Log(_) => {
                             StmtArg::Value(self.slot_arg(Rule::Plain, slot, k - 1, e, &which)?)
                         }
-                        StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
+                        StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign | StmtRule::AscAssign => {
                             unreachable!("`{}` has a node of its own (`check\\io.rs`)", form.name)
                         }
                     }

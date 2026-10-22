@@ -374,6 +374,7 @@ impl<'a> Lowerer<'a> {
             sema::StmtKind::ConsoleOnly => Op::SelectConsole,
             sema::StmtKind::End(code) => Op::End(code.clone()),
             sema::StmtKind::System(code) => Op::System(code.clone()),
+            sema::StmtKind::Stop => Op::Stop,
             sema::StmtKind::Exit => Op::Exit,
             sema::StmtKind::OnError(h) => match *h {
                 sema::ErrorHandler::Set(l) => Op::SetHandler(l.map(|l| self.ids.get(l))),

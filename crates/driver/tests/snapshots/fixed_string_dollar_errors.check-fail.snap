@@ -1,0 +1,8 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+fixed_string_dollar_errors.bas:7:5: error: `a$`: an array of variable-length strings beside the `STRING * n` one
+fixed_string_dollar_errors.bas:7:5: note: QB64pe: Type mismatch
+fixed_string_dollar_errors.bas:9:7: error: not supported yet: `c$` declared beside a `STRING * n` array of the name
+fixed_string_dollar_errors.bas:11:15: error: not supported yet: `s$` in `COMMON` beside a `STRING * n` variable of the name

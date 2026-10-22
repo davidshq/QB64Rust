@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):X = _WRITEFILE ( "v52_x62.tmp",11 , "a",1 )
+LINE 4:x = _WRITEFILE("v52_x62.tmp", "a")
+exit=1

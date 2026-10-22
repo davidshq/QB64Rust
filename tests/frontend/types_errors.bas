@@ -1,8 +1,9 @@
 ' TEST: check-fail
 $CONSOLE:ONLY
 ' User types (m2-arrays-and-types tasks 4.1, 4.2): the old compiler's errors as real errors (verification\v18_h_*),
-' and what is not supported yet: a TYPE variable as FOR variable, `p.x` in a SUB that does not share `p` (a TYPE
-' inside a SUB compiles since m4-names-arrays: names_arrays_typed.bas). The TYPE blocks marked "not supported yet" stand last: a marked declaration drops
+' and what is not supported yet: a TYPE variable as FOR variable (a TYPE inside a SUB compiles since
+' m4-names-arrays: names_arrays_typed.bas; `p.x` in a SUB that does not share `p` is a plain variable of the SUB's
+' own since m4-qb64pe-sources, verification\v52_x65). The TYPE blocks marked "not supported yet" stand last: a marked declaration drops
 ' the real errors after it (the follow-on rule of m2-parser-breadth, design D10), and a TYPE may be used above
 ' its block. (Whole values, parameters of a user type and STRING members: type_whole_errors.bas; member arrays:
 ' member_arrays_errors.bas.)

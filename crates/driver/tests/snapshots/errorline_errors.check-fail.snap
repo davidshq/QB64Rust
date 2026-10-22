@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 151
 expression: snap
 ---
 errorline_errors.bas:7:7: error: `_ERRORLINE` takes 0 arguments
@@ -8,7 +9,8 @@ errorline_errors.bas:8:1: error: `_ERRORLINE` is a function, not a statement
 errorline_errors.bas:8:1: note: QB64pe: Syntax error
 errorline_errors.bas:9:20: error: `_ERRORMESSAGE$` needs a number
 errorline_errors.bas:10:5: error: `_ERRORMESSAGE$` takes 0 or 1 arguments
-errorline_errors.bas:11:7: error: not supported yet: `_ERRORMESSAGE(...)` (an array used without `DIM`, or no FUNCTION of this name)
+errorline_errors.bas:11:7: error: `_ERRORMESSAGE(...)`: `_ERRORMESSAGE` is written with `$`
+errorline_errors.bas:11:7: note: QB64pe: Invalid array name
 errorline_errors.bas:12:5: error: `_INCLERRORFILE$` with empty parentheses
 errorline_errors.bas:12:5: note: QB64pe: Expected (...)
 errorline_errors.bas:13:1: error: names starting with `_` are reserved: `_ERRORLINE`

@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):PRINT _FULLPATH ( ".",1 )
+LINE 4:PRINT _FULLPATH(".")
+exit=1

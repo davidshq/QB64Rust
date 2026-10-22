@@ -1,0 +1,26 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+qb64pe_builtins_errors.bas:7:7: error: `_INSTRREV` takes 2 or 3 arguments
+qb64pe_builtins_errors.bas:7:7: note: QB64pe: Incorrect number of arguments - Reference: _INSTRREV([start%,] baseString$, searchString$)
+qb64pe_builtins_errors.bas:8:7: error: `_INSTRREV` takes 2 or 3 arguments
+qb64pe_builtins_errors.bas:8:7: note: QB64pe: Incorrect number of arguments - Reference: _INSTRREV([start%,] baseString$, searchString$)
+qb64pe_builtins_errors.bas:9:20: error: argument 2 of `_INSTRREV` needs a string
+qb64pe_builtins_errors.bas:10:17: error: argument 1 of `_INSTRREV` needs a number
+qb64pe_builtins_errors.bas:11:18: error: `_READFILE$` needs a string
+qb64pe_builtins_errors.bas:12:1: error: `_WRITEFILE` takes 2 arguments
+qb64pe_builtins_errors.bas:12:1: note: QB64pe: Syntax error - Reference: _WRITEFILE fileSpec$, contents$
+qb64pe_builtins_errors.bas:13:17: error: argument 2 of `_WRITEFILE` needs a string
+qb64pe_builtins_errors.bas:14:16: error: cannot read the arguments of `_WRITEFILE`
+qb64pe_builtins_errors.bas:14:16: note: QB64pe: Syntax error - Reference: _WRITEFILE fileSpec$, contents$
+qb64pe_builtins_errors.bas:15:5: error: `_WRITEFILE(...)`: `_WRITEFILE` is a built-in statement
+qb64pe_builtins_errors.bas:15:5: note: QB64pe: Invalid array name
+qb64pe_builtins_errors.bas:16:1: error: `_READFILE$` is a function, not a statement
+qb64pe_builtins_errors.bas:16:1: note: QB64pe: Syntax error
+qb64pe_builtins_errors.bas:17:7: error: `_FULLPATH$` takes 1 argument
+qb64pe_builtins_errors.bas:18:15: error: `_ARCSEC` needs a number
+qb64pe_builtins_errors.bas:18:15: note: QB64pe: Number required for function
+qb64pe_builtins_errors.bas:19:7: error: `_SECH` takes 1 argument
+qb64pe_builtins_errors.bas:19:7: note: QB64pe: Incorrect number of arguments - Reference: _SECH(value)

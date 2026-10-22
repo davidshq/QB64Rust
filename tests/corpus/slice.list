@@ -512,3 +512,5 @@ slice/s151_clear
 slice/s152_library_cast
 # m4-handlers-logging-checking: the handler chain, the log statements and _LOGMINLEVEL, $CHECKING:OFF
 slice/s153_handlers_log_checking
+# m4-qb64pe-sources: _INSTRREV, the whole-file functions, _FULLPATH$, the five functions, the ASC statement, STOP, reserved words with $, the $ name of a STRING * n array or variable, a dotted name in a FUNCTION
+slice/s154_qb64pe_sources_builtins

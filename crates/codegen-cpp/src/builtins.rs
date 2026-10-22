@@ -259,6 +259,35 @@ impl Emitter<'_> {
                 let v = self.value(v);
                 out.push(format!("sub_mid({target},{start},{length},{v},{passed});"));
             }
+            // Inline, as the old compiler writes it (`qb64pe.bas` 8410–8436): the place, the position and the
+            // value in that order, each skipped once an error is pending; error 5 for an empty string or a
+            // position outside it.
+            StmtRule::AscAssign => {
+                let [StmtArg::Place(target), position, StmtArg::Value(v)] = args else {
+                    unreachable!("the slots of the `ASC` statement (`validate`)");
+                };
+                out.push(format!("tqbs={}; if (!is_error_pending()){{", self.place_ref(target)));
+                match position {
+                    StmtArg::Value(p) => {
+                        out.push(format!("tmp_fileno={}; if (!is_error_pending()){{", self.value(p)));
+                        out.push(format!("tmp_long={}; if (!is_error_pending()){{", self.value(v)));
+                        out.push(
+                            "if ((tmp_fileno>0)&&(tmp_fileno<=tqbs->len)){tqbs->chr[tmp_fileno-1]=tmp_long;}else{error(5);}"
+                                .into(),
+                        );
+                        out.push("}}}".into());
+                    }
+                    StmtArg::Absent
+                    | StmtArg::Place(_)
+                    | StmtArg::Block { .. }
+                    | StmtArg::Bytes(_)
+                    | StmtArg::Word(_) => {
+                        out.push(format!("tmp_long={}; if (!is_error_pending()){{", self.value(v)));
+                        out.push("if (tqbs->len){tqbs->chr[0]=tmp_long;}else{error(5);}".into());
+                        out.push("}}".into());
+                    }
+                }
+            }
         }
         if args.iter().any(|a| a.uses_strings(self.p)) {
             out.push("qbs_cleanup(qbs_tmp_base,0);".into());

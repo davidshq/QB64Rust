@@ -1,0 +1,5 @@
+
+Expected ASC ( string-variable , ...
+Caused by (or after):ASC ( F$ ) = 65
+LINE 4:ASC(f$) = 65
+exit=1

@@ -57,14 +57,20 @@ push shows them (the user is not concerned with CI, working rule 9).
    391 of 404; the wording table's notes for messages with a `/`) is built, reviewed and archived
    (2026-10-21); its specs are merged. One recording waits for the next batch with the clone: a `TYPE` whose
    name starts with `STRING` (its archived `tasks.md`, "Workflow follow-up").
-3. Then the upstream report's remaining lines: the old compiler's own sources (`qb64pe\*`), which need about
-   thirty more built-ins and name rules and use the handler chain. `tests\verification\known.list` (209
-   programs, each with its reason) holds more such lines.
+3. `m4-qb64pe-sources` (the ten upstream programs `qb64pe/*`, which include the old compiler's own sources:
+   `_INSTRREV`, `_READFILE$`, `_WRITEFILE`, `_FULLPATH$`, the five functions, the `ASC` statement, `STOP`,
+   reserved words with a suffix, the `$` name of a `STRING * n` array or variable) is built and waits for the
+   user's review; upstream at 401 of 404 (the three left are out of scope: `http/read_example`, `opengl/test`,
+   `const/math_funcs`). Then the rest of `qb64pe.bas` through its own include files, smallest first.
+   `tests\verification\known.list` (198 programs, each with its reason) holds more such lines.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks"). `screen/g12_game.files`
 (a script of Civil War Strategy) timed out waiting for a key prompt (exit 124 after 30 s) in three of three
 closing runs of the slice list without folding at `--jobs 8` (2026-10-21), and passed each time when run alone
-(the runner's retry, 2.6 s) and among the 78 screen programs at `--jobs 8`.
+(the runner's retry, 2.6 s) and among the 78 screen programs at `--jobs 8`. Again at the close of
+`m4-qb64pe-sources` (2026-10-21), where a timeout left the game's `SHELL "copy cws.his oldhist.ory"` running
+(a `cmd.exe` waiting, it seems, at copy's prompt), which held the script's result folder: every later run of that
+script failed with `PermissionError` until the `cmd.exe` was stopped.
 
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
@@ -189,8 +195,10 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
-None (the parameter typed by a `TYPE` below its procedure, found by `m4-names-arrays`, is fixed by
-`m4-builtins-param-types`).
+- `tests\corpus\slice\s150_builtins_more` stores and reads the system clipboard, so it can fail when another run
+  uses the clipboard at the same time (seen once in the no-fold run at the close of `m4-qb64pe-sources`: `LEN` of
+  `"a" + CHR$(0) + "b"` read back as 3, not 1; it passed alone). Run the no-fold list by itself, not beside
+  another slice run.
 
 ## Queued for later milestones
 

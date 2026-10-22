@@ -308,6 +308,7 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     expr(p, code, d + 1, out);
                 }
             }
+            StmtKind::Stop => line(out, "Stop"),
             StmtKind::Exit => line(out, "Exit"),
             StmtKind::ExitLoop(k) => line(out, &format!("Exit {k:?}")),
             StmtKind::Continue => line(out, "Continue"),

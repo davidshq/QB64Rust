@@ -1,0 +1,54 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY A:Str*4 dynamic, 1 dimension
+ARRAY B:Str(0 TO 2)
+ARRAY H:Str*8(0 TO 5)
+line 2: ConsoleOnly
+line 8: Allocate A:Str*4 (Redim)
+  Lower
+    Int 1 : I64
+  Upper
+    Int 3 : I64
+line 11: Assign X:Str
+  Element A(…) : Str
+    Int 2 : I64
+line 12: Assign A(…):Str*4
+  Index
+    Int 1 : I64
+  Value
+    Str "zz" : Str
+line 13: Assign N:F32
+  Convert Nearest : F32
+    UBound A : I64
+line 14: Assign X:Str
+  Var S : Str
+line 15: Assign S:Str*4
+  Str "x" : Str
+line 18: Assign S:Str*4
+  Str "v" : Str
+line 19: Assign B(…):Str
+  Index
+    Int 1 : I64
+  Value
+    Str "q" : Str
+line 20: Call T
+SUB T
+  static W:Str*2
+line 22: Assign H(…):Str*8
+  Index
+    Int 1 : I64
+  Value
+    Str "x" : Str
+line 23: Assign P:Str*1
+  Str "\" : Str
+line 24: Print newline
+  Num
+    Call LEN : I32
+      Element H(…) : Str
+        Int 1 : I64
+  Str
+    Var P : Str
+line 27: Assign W (static):Str*2
+  Str "ab" : Str

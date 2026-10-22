@@ -231,8 +231,13 @@ impl Validator<'_> {
                 self.value(bytes, owner, at);
                 self.mem_value(value, owner, at);
             }
-            Op::End(None) | Op::System(None) | Op::Exit | Op::SetHandler(None) | Op::LastHandler | Op::Return(None) => {
-            }
+            Op::End(None)
+            | Op::System(None)
+            | Op::Stop
+            | Op::Exit
+            | Op::SetHandler(None)
+            | Op::LastHandler
+            | Op::Return(None) => {}
             Op::End(Some(code)) | Op::System(Some(code)) => {
                 if code.ty == Ty::Str {
                     self.problem(format!("{at}: an exit code of type {:?}", code.ty));
@@ -729,6 +734,31 @@ impl Validator<'_> {
                     }
                 }
                 if v.ty != Ty::Str {
+                    self.problem(format!("{at}: {name} stores a value of type {:?}", v.ty));
+                }
+                self.value(v, owner, at);
+                return;
+            }
+            // A string place, a LONG position or nothing, a LONG value.
+            StmtRule::AscAssign => {
+                let [StmtArg::Place(target), position, StmtArg::Value(v)] = args else {
+                    self.problem(format!("{at}: {name} without a place, a position slot and a value"));
+                    return;
+                };
+                self.place(target, owner, at);
+                if place_ty_checked(self.p, target).is_some_and(|t| !t.is_string()) {
+                    self.problem(format!("{at}: the target of {name} is no string"));
+                }
+                match position {
+                    StmtArg::Value(p) if p.ty == Ty::I32 => self.value(p, owner, at),
+                    StmtArg::Absent => {}
+                    StmtArg::Value(_)
+                    | StmtArg::Place(_)
+                    | StmtArg::Block { .. }
+                    | StmtArg::Bytes(_)
+                    | StmtArg::Word(_) => self.problem(format!("{at}: slot 2 of {name} is no LONG value")),
+                }
+                if v.ty != Ty::I32 {
                     self.problem(format!("{at}: {name} stores a value of type {:?}", v.ty));
                 }
                 self.value(v, owner, at);

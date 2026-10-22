@@ -112,7 +112,27 @@ Small programs behind `study\09`, `study\10` and later measurements:
   expression (`LBOUND((a))` and `LBOUND(n)` of a scalar accepted), `x40`–`x54` operators and names in a `CONST`
   (`x50`: `x = OR` outside one), `x60`–`x89` type names by place (`DIM`, `REDIM`, `STATIC`, `COMMON`, `SHARED`,
   parameters, `DECLARE LIBRARY`, `_DEFINE`; `STRING` with a word glued to it; `* n` after other words;
-  `_UNSIGNED`); numbers 16–19, 55–59 not used
+  `_UNSIGNED`), `x90` a `TYPE` named `StringList` (a name that starts with `STRING`) in `DIM`, `DIM SHARED`,
+  `REDIM`, `STATIC` and a parameter: accepted; numbers 16–19, 55–59 not used
+- `v52*`: what the ten `qb64pe/*` upstream programs of `m4-qb64pe-sources` need, measured as its tasks 1.1 and 1.2:
+  `v52_a_instrrev` `_INSTRREV` with and without a start (an empty string or search string, a start of 0, below 0,
+  beyond the length, of other types), `v52_b_math` `_ARCSEC`, `_ARCCSC`, `_ARCCOT`, `_SECH`, `_CSCH` of each type
+  and at the edges of their domains (outside one: error 5 and 0), `v52_c_files` `_READFILE$`, `_WRITEFILE` and
+  `_FULLPATH$` (errors 53 and 76; `_FULLPATH$(".")` is not `_CWD$ + "\"`), `v52_d_asc` the `ASC` statement
+  (positions, an empty string: error 5, values converted to LONG and cut to a byte, every kind of string place,
+  the place, position and value evaluated in that order); `x01`–`x09` the `ASC` statement's rejected forms,
+  `x10`–`x19` `STOP` (ends as `SYSTEM` without a prompt, in a window too; its expression checked as a number, not
+  evaluated), `x20`–`x37` `key$`, `exp$`, `base$` in each place (`FUNCTION exp$` and `CONST key$` rejected, `DIM
+  key$ AS STRING` its own error), `x39`–`x49` the `$` name of a `STRING * n` array or variable (the same array or
+  variable; `DIM a$(3)` beside the array "Type mismatch", `DIM s$` beside the variable the same variable),
+  `x50`–`x64` the new built-ins' rejected forms, `x65`, `x66` a dotted name in a procedure beside a main-module
+  `TYPE` variable it does not share (a variable of its own), `x67`, `x68` `CONST exp$` and `CONST key!` ("Name
+  already in use", as `x32`), `x69`–`x72` the other declarers of `s$` beside a `STRING * n` variable `s` (`REDIM
+  s$` and, in a SUB, `STATIC s$` the same variable; `SHARED s$` in a SUB a variable-length one of its own; `STATIC`
+  in the main module rejected), `x73`, `x74` `DIM` and `STATIC` mixed in a SUB (`s$` the fixed-length variable
+  either way); `v52_builtin_name_suffixes.py` and its `.txt`, the sibling of
+  `v15_builtin_names`: every keyword and built-in name with each other suffix, `variable`, `statement` or
+  `rejected`; numbers 38 not used
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

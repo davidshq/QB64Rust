@@ -1,0 +1,5 @@
+
+Expected =
+Caused by (or after):ASC ( A$ )
+LINE 5:ASC(a$)
+exit=1

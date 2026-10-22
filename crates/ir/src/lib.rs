@@ -631,6 +631,8 @@ pub enum Op {
     End(Option<Expr>),
     /// End the program at once (`SYSTEM`); the code as for [`Op::End`].
     System(Option<Expr>),
+    /// End the program at once (`STOP`): as [`Op::System`] without a code, but without its test for `SUB _GL`.
+    Stop,
     /// A SUB call; one argument per parameter. Always may raise.
     Call { proc: ProcId, args: Vec<Arg> },
     /// A built-in statement that is one call of the runtime (design D2 of `m2-builtin-statements`): the built-in by
@@ -703,6 +705,7 @@ impl Op {
             Op::SelectConsole
             | Op::End(None)
             | Op::System(None)
+            | Op::Stop
             | Op::Exit
             | Op::SetHandler(_)
             | Op::NewHandler(_)

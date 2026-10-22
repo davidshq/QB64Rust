@@ -356,6 +356,16 @@ precomp-flags/explicitarr
 precomp-flags/socket
 print/auto_semicolon_insertion
 putimage/putimage_test
+qb64pe/dwd
+qb64pe/element
+qb64pe/element_createElementString
+qb64pe/element_getStringValue
+qb64pe/element_getnextelement
+qb64pe/element_getprevelement
+qb64pe/file
+qb64pe/hasFunctionElement
+qb64pe/prepass
+qb64pe/string
 rotations/test
 screenimage/test
 single'quote'test/single'quote'test

@@ -12,9 +12,10 @@ use crate::consteval::{self, FloatTy, Problem, Value};
 use crate::literal::{self, NumLit};
 use crate::{BinOp, Const, ConstId, Expr, ExprKind, Storage, SymbolKind, Ty, UnOp};
 use qb64rust_base::{Span, show_bytes, to_u32};
-use qb64rust_builtins::find_function_form;
+use qb64rust_builtins::{find_any, find_function_form};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
+use qb64rust_syntax::is_keyword;
 use qb64rust_syntax::tree::Tok;
 
 impl Checker<'_> {
@@ -29,6 +30,15 @@ impl Checker<'_> {
             let value_node = self.need(item.value(), item.node().span())?;
             let (name, suffix) = self.split_name(name_tok)?;
             if self.procs_by_name.contains_key(&name) {
+                return Err(self.in_use(name_tok));
+            }
+            if !matches!(suffix, None | Some(Ty::I32))
+                && !name.starts_with('_')
+                && (is_keyword(name.as_bytes()) || find_any(name.as_bytes()).any(|b| b.musthave.is_none()))
+            {
+                // Unlike a variable's, a constant's name is looked up without its suffix: a keyword, or a built-in
+                // without a required suffix, is taken whatever the suffix (`qb64pe.bas` 2651–2692; measured,
+                // `verification\v52_x32`, `x67`, `x68`: `CONST key$`, `exp$`, `key!`).
                 return Err(self.in_use(name_tok));
             }
             self.reserved(name_tok, &name, suffix)?;

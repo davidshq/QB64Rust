@@ -17,6 +17,7 @@
 `ABS` needs a number	Number required for function
 `ABS` takes {#} argument	Incorrect number of arguments - Reference: ABS(numericalValue)
 `ASC` in a `CONST` cannot take an empty string	ASC cannot apply to empty string
+`ASC` needs a variable here	Expected ASC ( string-variable , ...
 `ASC` takes {#} or {#} arguments	Incorrect number of arguments - Reference: ASC(text$[, position%])
 `BEEP` takes {#} arguments	SUB does not require any arguments
 `BSAVE` takes {#} arguments	Syntax error - Reference: BSAVE saveFile$, VARPTR(array(index)), fileSize&
@@ -153,6 +154,7 @@
 `_ADLER32` needs a string	String required for function
 `_ARCCSC` in a `CONST` needs a value of at least {#} in size	ABS(_ARCCSC) value < {1:=|U|P|PU|S|SU}
 `_ARCSEC` in a `CONST` needs a value of at least {#} in size	ABS(_ARCSEC) value < {1:=|U|P|PU|S|SU}
+`_ARCSEC` needs a number	Number required for function
 `_AXIS` needs a number	Number required for function
 `_BLEND` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _BLEND[(imageHandle&)]
 `_BUTTON` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _BUTTON(button_number%)
@@ -194,6 +196,7 @@
 `_IIF` cannot be used in a `CONST`	Unexpected element '_IIF'
 `_IIF` is a function, not a statement	Syntax error
 `_IIF` takes {#} arguments	Incorrect number of arguments - Reference: _IIF(expression, truePart, falsePart)
+`_INSTRREV` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _INSTRREV([start%,] baseString$, searchString$)
 `_LIMIT` needs its arguments	Syntax error - Reference: _LIMIT framesPerSecond!
 `_LIMIT` takes {#} argument	Syntax error - Reference: _LIMIT framesPerSecond!
 `_LOADIMAGE` takes {#} to {#} arguments	Incorrect number of arguments - Reference: _LOADIMAGE(fileName$[, [mode&][, requirements$]])
@@ -280,6 +283,7 @@
 `_SCREENSHOW` takes {#} arguments	SUB does not require any arguments
 `_SCREENX` takes {#} arguments	Incorrect number of arguments - Reference: _SCREENX
 `_SCREENX` with empty parentheses	Expected (...)
+`_SECH` takes {#} argument	Incorrect number of arguments - Reference: _SECH(value)
 `_SHL` cannot be used in a `CONST`	Unexpected element '_SHL'
 `_SHL` takes {#} arguments	Incorrect number of arguments - Reference: _SHL(numericalVariable, numericalValue)
 `_SNDCLOSE` takes {#} argument	Syntax error - Reference: _SNDCLOSE handle&
@@ -318,6 +322,7 @@
 `_WINDOWHANDLE` needs a number	Number required for function
 `_WINDOWHANDLE` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _WINDOWHANDLE[(handleType&)]
 `_WINDOWHANDLE` with empty parentheses	Expected (...)
+`_WRITEFILE` takes {#} arguments	Syntax error - Reference: _WRITEFILE fileSpec$, contents$
 `{}` cannot be `_UNSIGNED`	Type cannot be _UNSIGNED
 `{}` cannot be used in a `CONST`	Unexpected element '{1:U|PU}'
 `{}` comes before `SHARED` in a `REDIM`	Invalid variable name
@@ -375,12 +380,23 @@
 `{}` takes {#} arguments, not {#}	Incorrect number of arguments - Reference: {1:=|P}(a AS LONG, b AS LONG)
 `{}` with empty parentheses	Expected (...)
 `{}`: `_ASSERT` is a built-in statement	Invalid array name
+`{}`: `_BASE64DECODE` is written with `$`	Invalid array name
+`{}`: `_BASE64ENCODE` is written with `$`	Invalid array name
+`{}`: `_DEFLATE` is written with `$`	Invalid array name
+`{}`: `_EMBEDDED` is written with `$`	Invalid array name
+`{}`: `_ERRORMESSAGE` is written with `$`	Invalid array name
+`{}`: `_FILES` is written with `$`	Invalid array name
+`{}`: `_FULLPATH` is written with `$`	Invalid array name
+`{}`: `_INFLATE` is written with `$`	Invalid array name
 `{}`: `_LIMIT` is a built-in statement	Invalid array name
 `{}`: `_LOGINFO` is a built-in statement	Invalid array name
+`{}`: `_READFILE` is written with `$`	Invalid array name
 `{}`: `_SNDPLAY` is a built-in statement	Invalid array name
+`{}`: `_WRITEFILE` is a built-in statement	Invalid array name
 `{}`: `{}` is an array; a member needs an index	Invalid expression
 `{}`: a member array takes its bounds by `REDIM`	DIM: Expected ,
 `{}`: a type suffix before `.`	Invalid symbol
+`{}`: an array of variable-length strings beside the `{}` one	Type mismatch
 `{}`: more than one SUB, FUNCTION or the main module has a label `{}`	Ambiguous DATA label
 `{}`: the member is LONG, not INTEGER	Incorrect symbol after element name
 a SUB name cannot have a type suffix: `{}`	Type symbols after a SUB name are invalid
@@ -459,6 +475,7 @@ cannot read the arguments of `BEEP`	SUB does not require any arguments
 cannot read the arguments of `KILL`	Invalid expression
 cannot read the arguments of `_MEMGET`	Name already in use (AS)
 cannot read the arguments of `_SNDVOL`	Syntax error - Reference: _SNDVOL handle&, volume!
+cannot read the arguments of `_WRITEFILE`	Syntax error - Reference: _WRITEFILE fileSpec$, contents$
 cannot store a number in a string variable	Illegal string-number conversion
 cannot store a string in a number variable	Illegal string-number conversion
 duplicate label: `{}`	Duplicate label ({1:=|P|S})
@@ -530,6 +547,9 @@ the FUNCTION's own name cannot be a target of `SWAP`	Expected variable
 the FUNCTION's own name cannot be a target of `{}`	{1:=|U|P|PU} expects a string variable/array-element as its first argument
 the SUB `{}` needs its argument after its name	Expected argument after SUB
 the SUB `{}` of an event handler may have one parameter at most	SUB requires more than one argument
+the `ASC` statement needs `{}` after its arguments	Expected =
+the `ASC` statement needs a string variable as its first argument	Expected ASC ( string-variable , ...
+the `ASC` statement takes a variable and a position	Invalid expression
 the `FOR` variable `{}` must be a number, not a string	Unsupported variable used in FOR statement
 the `_BIT` variable `{}` cannot be a `FOR` variable	Unsupported variable used in FOR statement
 the `{}` of a library parameter must be defined above the block	Illegal SUB/FUNCTION parameter
@@ -555,6 +575,7 @@ the embed handle `{}` is named by no `$EMBED` line above	Embed-Handle '{1:=|P|S}
 the embed handle of `{}` must be one string literal, not an expression	Embed-Handle must be a single literal string in quotes, not a variable
 the exit code of `END` must be a number	Illegal string-number conversion
 the exit code of `SYSTEM` must be a number	Illegal string-number conversion
+the expression after `STOP` must be a number	Illegal string-number conversion
 the file number of `FIELD` must be a number	Illegal string-number conversion
 the file number of `PRINT #` must be a number	Illegal string-number conversion
 the first argument of `{}` must be an `_OFFSET` value	Expected _MEM(_OFFSET-value,...)
@@ -574,6 +595,7 @@ the operator `AND` cannot start a value	Unexpected element 'AND'
 the operator `MOD` cannot start a value	Unexpected element 'MOD'
 the operator `OR` cannot start a value	Unexpected element 'OR'
 the parameter of the SUB `{}` of an event handler must be an integer	Only SUB arguments of integer-type allowed
+the position of the `ASC` statement must be a number	Illegal string-number conversion
 the seconds of `ON TIMER` must be a number	Illegal string-number conversion
 the signs before a value in a `CONST` amount to `+`, which cannot start a value	Unexpected element '+'
 the source of `{}` must be an array named without a type suffix: `{}`	_ArrayCopy source must be an array
@@ -590,6 +612,7 @@ the type `{}` of a member list is no type	Expected element-name AS type, AS type
 the type `{}` of a parameter is no type	Illegal SUB/FUNCTION parameter
 the value `{}` cannot be used in a `CONST`	Unexpected element '{1:=|U|P|PU|S|SU}'
 the value of `ON … GOTO` must be a number	Expected numeric expression
+the value of the `ASC` statement must be a number	Illegal string-number conversion
 this `$IF` already has an `$ELSE`	$IF block already has $ELSE statement in it
 this `BLOAD` statement matches none of its forms: `BLOAD ?[,?]`	Syntax error - Reference: BLOAD fileName$, VARPTR(imageArray%(index))
 this `CIRCLE` statement matches none of its forms: `{}`	Syntax error - Reference: CIRCLE [STEP] (x!, y!), radius![, [color&] [, [start!] [, [end!] [, aspect!]]]]

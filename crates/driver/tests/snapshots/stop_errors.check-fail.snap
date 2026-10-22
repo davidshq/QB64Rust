@@ -1,0 +1,9 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+stop_errors.bas:4:6: error: the expression after `STOP` must be a number
+stop_errors.bas:4:6: note: QB64pe: Illegal string-number conversion
+stop_errors.bas:6:6: error: the expression after `STOP` must be a number
+stop_errors.bas:6:6: note: QB64pe: Illegal string-number conversion

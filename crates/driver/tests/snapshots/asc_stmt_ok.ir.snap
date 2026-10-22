@@ -1,0 +1,35 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+Settings: console, no window
+Array ARR:Str static (0 To 3)
+Array FARR:Str*2 static (0 To 2)
+Array UA:T:T static (0 To 2)
+Stmt line 2
+  SelectConsole
+Stmt line 12 may_raise
+  Builtin ASC [Place A:Str, Absent, Value(Const 65:I32)]
+Stmt line 13 may_raise
+  Builtin ASC [Place A:Str, Value(Const 2:I32), Value(Const 66:I32)]
+Stmt line 14 may_raise
+  Builtin ASC [Place FX:Str*4, Value(Const 4:I32), Value(Const 33:I32)]
+Stmt line 15 may_raise
+  Builtin ASC [Place ARR(Const 2:I64):Str, Value(Const 1:I32), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 16 may_raise
+  Builtin ASC [Place FARR(Const 1:I64):Str*2, Absent, Value((Var Q:I64 -> Convert I32 Truncate))]
+Stmt line 17 may_raise
+  Builtin ASC [Place U.V:Str, Value(((Const 2.6E+0:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Const 87:I32)]
+Stmt line 18 may_raise
+  Builtin ASC [Place U.F:Str*3, Absent, Value(Const 75:I32)]
+Stmt line 19 may_raise
+  Builtin ASC [Place UA(Const 1:I64).V:Str, Value((Var Q:I64 -> Convert I32 Truncate)), Value(Const 82:I32)]
+Stmt line 20 may_raise
+  Builtin ASC [Place ND:Str, Absent, Value(Const 65:I32)]
+Stmt line 21 may_raise
+  Call SETFIRST [Ref A:Str]
+Sub SETFIRST lines 22-24
+  param S:Str
+Stmt line 23 may_raise
+  Builtin ASC [Place S(param):Str, Absent, Value(Const 67:I32)]

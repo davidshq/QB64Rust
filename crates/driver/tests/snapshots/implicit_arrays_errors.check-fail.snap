@@ -1,6 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
+assertion_line: 151
 expression: snap
 ---
 implicit_arrays_errors.bas:9:1: error: `z` has 1 dimension, not 2
@@ -15,8 +15,7 @@ implicit_arrays_errors.bas:20:1: error: name already in use: `CLS`
 implicit_arrays_errors.bas:22:7: error: `later` is no declared array (`ERASE`)
 implicit_arrays_errors.bas:22:7: note: QB64pe: Undefined array passed to ERASE
 implicit_arrays_errors.bas:27:1: error: not supported yet: `_foo(...)` (an array used without `DIM`, or no FUNCTION of this name)
-implicit_arrays_errors.bas:28:1: error: not supported yet: `len%` as a name (a reserved word with this suffix is not measured)
-implicit_arrays_errors.bas:29:1: error: not supported yet: `abs$` as a name (a reserved word with this suffix is not measured)
+implicit_arrays_errors.bas:28:1: error: name already in use: `len%`
 implicit_arrays_errors.bas:30:1: error: not supported yet: `rnd(...)` as a place or an array (a built-in function's name)
 implicit_arrays_errors.bas:31:1: error: not supported yet: `f(...)` here (a FUNCTION of this name exists)
 implicit_arrays_errors.bas:32:14: error: not supported yet: `s(...)` (an array used without `DIM`, or no FUNCTION of this name)

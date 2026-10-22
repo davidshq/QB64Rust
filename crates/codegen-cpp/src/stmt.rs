@@ -55,6 +55,11 @@ impl Emitter<'_> {
                 out.push("close_program=1;".into());
                 out.push("end();".into());
             }
+            // `qb64pe.bas` 9918–9919.
+            Op::Stop => {
+                out.push("close_program=1;".into());
+                out.push("end();".into());
+            }
             Op::Exit => out.push("goto exit_subfunc;".into()),
             Op::SetHandler(Some(l)) => {
                 let n = self.handler(*l);

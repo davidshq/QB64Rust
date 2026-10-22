@@ -1368,6 +1368,9 @@ pub enum StmtKind {
     /// `SYSTEM [code]`: ends the program at once, without the "press any key" prompt of `END`; the code as for
     /// [`StmtKind::End`].
     System(Option<Expr>),
+    /// `STOP [expression]`: ends the program as [`StmtKind::System`] without a code does, but without its test for
+    /// `SUB _GL`; the expression is checked and dropped (design D5 of `m4-qb64pe-sources`; `qb64pe.bas` 9905).
+    Stop,
     /// A SUB call; one argument per parameter.
     Call { proc: ProcId, args: Vec<Arg> },
     /// `EXIT SUB` / `EXIT FUNCTION`: leaves the procedure (either word leaves either kind, measured).

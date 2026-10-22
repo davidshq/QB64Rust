@@ -1,0 +1,5 @@
+
+2nd function argument requires a string
+Caused by (or after):PRINT _INSTRREV ( 1 , 2 , "a",1 )
+LINE 4:PRINT _INSTRREV(1, 2, "a")
+exit=1

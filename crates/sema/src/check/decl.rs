@@ -141,9 +141,10 @@ impl Checker<'_> {
     ///   (`len&`, `cls`); a built-in with its required suffix (`left$`) is taken, the bare name (`left`) is free;
     /// - `WIDTH` is the one built-in without a required suffix that is still free (`width = 5` makes a variable).
     ///
-    /// Only the bare name and the `&` suffix were measured for keywords and built-ins without a required suffix;
-    /// other suffixes are "not supported yet". (The old compiler accepts `name$`, `not$` and `key$`, found in
-    /// `qbasic_testcases` in task 6.4 of `m2-parser-breadth`; the rule above is not "whatever suffix".)
+    /// With the other suffixes (`verification\v52_builtin_name_suffixes.txt`, design D6 of `m4-qb64pe-sources`,
+    /// checked by the same test): a keyword or a built-in written without a required suffix is free with `$`
+    /// (`key$`, `exp$`, `base$`), but for `DATA` and a name that a built-in takes with its `$` (`input$`, above),
+    /// and taken with every other suffix (`exp%`); a name taken only with `$` is free with every other one (`chr%`).
     pub(super) fn reserved(&mut self, t: Tok, name: &str, suffix: Option<Ty>) -> R<()> {
         // QB64pe's file included after the last line names its own variables and procedures with a leading `_`
         // (design D7 of `m3-network-embed`).
@@ -172,14 +173,8 @@ impl Checker<'_> {
         let word_taken =
             is_keyword(name.as_bytes()) || (name != "WIDTH" && find_any(name.as_bytes()).any(|b| b.musthave.is_none()));
         let with_dollar_taken = suffix == Some(Ty::Str) && find_any(name.as_bytes()).any(|b| b.musthave == Some("$"));
-        if with_dollar_taken || (word_taken && matches!(suffix, None | Some(Ty::I32))) {
+        if with_dollar_taken || (word_taken && (suffix != Some(Ty::Str) || name == "DATA")) {
             Err(self.in_use(t))
-        } else if word_taken {
-            let msg = format!(
-                "`{}` as a name (a reserved word with this suffix is not measured)",
-                show_bytes(self.text(t.span))
-            );
-            Err(self.unsupported(t.span, msg))
         } else {
             Ok(())
         }
@@ -196,6 +191,14 @@ impl Checker<'_> {
         if name == "_GL" && !function {
             // The SUB QB64 calls to draw with OpenGL (design D10 of `m2-parser-breadth`).
             return Err(self.unsupported(t.span, "`SUB _GL` (OpenGL)"));
+        }
+        if is_keyword(name.as_bytes()) && !name.starts_with('_') && !matches!(suffix, None | Some(Ty::I32)) {
+            // `v52_builtin_name_suffixes` measured variables only (design D6 of `m4-qb64pe-sources`).
+            let msg = format!(
+                "`{}` as a procedure name (a keyword with this suffix is not measured)",
+                show_bytes(self.text(t.span))
+            );
+            return Err(self.unsupported(t.span, msg));
         }
         if name.starts_with('_') || is_keyword(name.as_bytes()) {
             return self.reserved(t, name, suffix);
@@ -483,8 +486,17 @@ impl Checker<'_> {
     /// own (a parameter, a local one) of the name and the default type comes before a main-module `DIM SHARED … AS`
     /// of the name; where a `DEFxxx` in the body has changed the default, the name means the shared variable
     /// (measured, `verification\v24_a_param_shared`).
+    ///
+    /// `name$` where no variable of the name and `$` exists means the `STRING * n` variable of the name, if the
+    /// plain name means one (design D7 of `m4-qb64pe-sources`; measured, `verification\v52_x39`, `x43`, `x44`).
     fn var_key(&mut self, name: String, suffix: Option<Ty>) -> (String, Ty) {
         let ty = match suffix {
+            Some(Ty::Str) if self.find_var(&(name.clone(), Ty::Str)).is_none() => {
+                match self.var_key(name.clone(), None) {
+                    (n, t @ Ty::FixedStr(_)) => return (n, t),
+                    _ => Ty::Str,
+                }
+            }
             Some(t) => t,
             None => {
                 let in_proc = self.cur.is_some();
@@ -721,6 +733,23 @@ impl Checker<'_> {
             let typed_plain = self.scope().plain.get(&name).copied();
             if let (true, Some(plain_ty), false) = (suffix.is_none(), typed_plain, typed) {
                 // The name still refers to the typed variable.
+                let id = self.scope().vars[&(name.clone(), plain_ty)];
+                self.note_var_name(&name, storage, name_tok);
+                self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
+                continue;
+            }
+            // Measured likewise for `DIM s$`, `REDIM s$` and, in a procedure, `STATIC s$` after `s AS STRING * n`,
+            // `DIM` and `STATIC` mixed too (`verification\v52_x49`, `x69`, `x70`, `x73`, `x74`): `s$` stays the
+            // fixed-length variable ([`Self::var_key`]).
+            // `COMMON` is not measured.
+            if let (Some(Ty::Str), Some(plain_ty @ Ty::FixedStr(_)), false) = (suffix, typed_plain, typed)
+                && !self.scope().vars.contains_key(&(name.clone(), Ty::Str))
+            {
+                if by == Declarer::Common {
+                    let shown = show_bytes(self.text(name_tok.span));
+                    let msg = format!("`{shown}` in `COMMON` beside a `STRING * n` variable of the name");
+                    return Err(self.unsupported(name_tok.span, msg));
+                }
                 let id = self.scope().vars[&(name.clone(), plain_ty)];
                 self.note_var_name(&name, storage, name_tok);
                 self.stmt.names.push((SymbolKind::Var(id), name_tok.span));

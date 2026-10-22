@@ -654,6 +654,47 @@ impl Checker<'_> {
         Ok(())
     }
 
+    /// `ASC(s$[, position]) = code` ([`StmtRule::AscAssign`], design D4 of `m4-qb64pe-sources`); `call` is the left
+    /// side. Measured (`verification\v52_d_asc`, `v52_x01`–`x09`): the place a string variable, element or member of
+    /// either kind, else "Expected ASC ( string-variable , ..."; a string for the position or the value "Illegal
+    /// string-number conversion"; three arguments "Invalid expression". The position and the value are LONG.
+    pub(super) fn asc_assign(&mut self, node: Node, call: ast::CallExpr, value: ast::Expr) -> R<()> {
+        let [form] = stmt_lookup("ASC", false)[..] else {
+            unreachable!("`ASC` is one row with one stub entry");
+        };
+        let span = call.node().span();
+        let nodes = self.present_args(call.arg_list())?;
+        let (target, position) = match nodes[..] {
+            [t] => (t, None),
+            [t, p] => (t, Some(p)),
+            _ => return Err(self.error(span, "the `ASC` statement takes a variable and a position")),
+        };
+        if let ast::Expr::Paren(_) = target {
+            // Not measured.
+            return Err(self.unsupported(target.node().span(), "the target of the `ASC` statement in parentheses"));
+        }
+        let place = self.place_operand(target, "ASC")?;
+        if !self.prog.place_ty(&place).is_string() {
+            let msg = "the `ASC` statement needs a string variable as its first argument";
+            return Err(self.error(target.node().span(), msg));
+        }
+        let number = |c: &mut Self, n: ast::Expr, which: &str| -> R<StmtArg> {
+            let e = c.expr(n)?;
+            if e.ty == Ty::Str {
+                return Err(c.error(e.span, format!("the {which} of the `ASC` statement must be a number")));
+            }
+            Ok(StmtArg::Value(c.store(e, Ty::I32)?))
+        };
+        let position = match position {
+            Some(p) => number(self, p, "position")?,
+            None => StmtArg::Absent,
+        };
+        let v = number(self, value, "value")?;
+        let args = vec![StmtArg::Place(place), position, v];
+        self.push(node, StmtKind::Builtin { id: form.id, args });
+        Ok(())
+    }
+
     /// `CLOSE [[#]n, …]`: each number a LONG slot (measured: `CLOSE 1.5` closes file 2; a string is "Illegal
     /// string-number conversion").
     pub(super) fn close(&mut self, stmt: ast::CloseStmt) -> R<()> {

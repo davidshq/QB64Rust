@@ -232,6 +232,12 @@ plain name SHALL be dropped: `a . b` SHALL be `a.b` in every one of these uses (
 - **WHEN** `a.b = 3: PRINT a.b` runs, then `DIM a AS t` (a type with a LONG member `b`), then `PRINT a.b`
 - **THEN** it prints `3`, then `0`
 
+#### Scenario: Dotted name in a procedure that does not share the TYPE variable
+- **WHEN** the main module has `DIM v AS t` (not shared) and `v.m = 7`, and a SUB runs `PRINT v.m: v.m = 1.5: PRINT
+  v.m` twice
+- **THEN** each call prints ` 0 ` and ` 1.5 `, a variable of the SUB's own of the default type, and the main
+  module's `v.m` is still 7 (`verification/v52_x65`; under `DEFLNG` the variable is a LONG, `v52_x66`)
+
 #### Scenario: Unknown member
 - **WHEN** `a.c = 6` is compiled for a variable `a` of a type without a member `c`
 - **THEN** the compiler reports an error

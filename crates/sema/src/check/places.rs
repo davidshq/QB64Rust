@@ -511,6 +511,19 @@ impl Checker<'_> {
         // `x42`).
         let untyped = suffix.is_none() && !typed;
         let mut plain_array = self.array_plain_ty(&name);
+        // `a$(…)` beside a `STRING * n` array `a` means that array ([`Self::array_key_ty`]); a `DIM` of it is "Type
+        // mismatch" (measured, `verification\v52_x45`), the other declarers are not measured.
+        if suffix == Some(Ty::Str)
+            && let Some(Ty::FixedStr(_)) = plain_array
+            && self.array_of(&(name.clone(), Ty::Str)).is_none()
+        {
+            if by == Declarer::Dim {
+                let msg = format!("`{shown}`: an array of variable-length strings beside the `STRING * n` one");
+                return Err(self.error(name_tok.span, msg));
+            }
+            let msg = format!("`{shown}` declared beside a `STRING * n` array of the name");
+            return Err(self.unsupported(name_tok.span, msg));
+        }
         // Between two arrays of one name the plain name stays with the one typed by `AS` (measured,
         // `verification\v48_x16`–`x24`), but for an array listed by `STATIC a() AS type` that nothing has reached:
         // the old compiler makes no array for the list until then (`qb64pe.bas` 9260), so an array without `AS`
@@ -844,8 +857,16 @@ impl Checker<'_> {
         own.or(shared)
     }
 
-    /// The type an array's plain (suffix-less) name means here.
+    /// The type an array's plain (suffix-less) name means here. `name$` where no array of the name and `$` is
+    /// visible means the `STRING * n` array of the name, if the plain name means one (design D7 of
+    /// `m4-qb64pe-sources`; measured, `verification\v52_x40`–`x42`, `x47`, `x48`).
     fn array_key_ty(&mut self, name: &str, suffix: Option<Ty>) -> Ty {
+        if suffix == Some(Ty::Str)
+            && self.array_of(&(name.to_string(), Ty::Str)).is_none()
+            && let Some(t @ Ty::FixedStr(_)) = self.array_plain_ty(name)
+        {
+            return t;
+        }
         if let Some(t) = suffix {
             return t;
         }
@@ -918,12 +939,25 @@ impl Checker<'_> {
             self.implicit_names.insert(name.to_string());
             return Err(self.error(t.span, format!("`{shown}(...)`: `{shown}` is a built-in statement")));
         }
+        // A function whose every entry requires `$`, named without it: "Invalid array name" for certain (measured,
+        // `verification\v52_x55`, `x59`: `_READFILE("a")`, `_FULLPATH(".")`).
+        let needs_dollar =
+            |b: &qb64rust_builtins::Builtin| b.kind == qb64rust_builtins::Kind::Function && b.musthave == Some("$");
+        if underscore
+            && !self.at.follow_on
+            && suffix.is_none()
+            && find_any(name.as_bytes()).next().is_some()
+            && find_any(name.as_bytes()).all(needs_dollar)
+        {
+            self.implicit_names.insert(name.to_string());
+            return Err(self.error(t.span, format!("`{shown}(...)`: `{shown}` is written with `$`")));
+        }
         if self.at.follow_on || underscore || self.procs_by_name.contains_key(name) {
             return Err(self.not_an_array(t, name));
         }
         if is_builtin_function(name, suffix) {
-            // Measured for `rnd(1) = 2`: "Expected variable =" (`v24_x119`); the statements written like a store
-            // to a function (`ASC(s$, 2) = 65`) are not compiled yet.
+            // Measured for `rnd(1) = 2`: "Expected variable =" (`v24_x119`). The statements written like a store
+            // to a function, `MID$` and `ASC`, have their own arm of the assignment (`check\io.rs`).
             self.implicit_names.insert(name.to_string());
             let msg = format!("`{shown}(...)` as a place or an array (a built-in function's name)");
             return Err(self.unsupported(t.span, msg));
@@ -1330,26 +1364,18 @@ impl Checker<'_> {
                 format!("`{shown}`: `{head}` is an array; a member needs an index"),
             ));
         }
-        // In a procedure, beside a main-module `TYPE` variable the procedure does not see (the last case of
-        // `user_head`): not measured.
-        let shown = show_bytes(self.text(t.span));
-        let msg = format!("`{shown}` in a SUB or FUNCTION that does not share the `TYPE` variable `{head}`");
-        Err(self.unsupported(t.span, msg))
+        unreachable!("`user_head` holds for `{head}` only by a `TYPE` variable or array")
     }
 
     /// Whether `head`, the part of a dotted name before its first dot, names a `TYPE` variable or array where the
-    /// name stands, or (in a procedure) a main-module `TYPE` variable the procedure does not see. When it does not,
-    /// the dotted name is a plain variable's ([`Self::dotted_any`], [`Self::plain_spelled`]).
+    /// name stands. When it does not, the dotted name is a plain variable's ([`Self::dotted_any`],
+    /// [`Self::plain_spelled`]), also in a procedure beside a main-module `TYPE` variable it does not share: a
+    /// variable of the procedure's own, of the default type (measured, `verification\v52_x65`, `x66`; QB64pe's
+    /// `const_eval.bas` reads `num.typ` so in `LogicalNot&`).
     fn user_head(&mut self, head: &str) -> bool {
         self.lookup_var(head.to_string(), None)
             .is_some_and(|v| matches!(self.prog.var(v).ty, Ty::User(_)))
             || matches!(self.array_key_ty(head, None), Ty::User(_)) && self.find_array(head, None).is_some()
-            || self.cur.is_some()
-                && self
-                    .main
-                    .vars
-                    .keys()
-                    .any(|(n, ty)| n == head && matches!(ty, Ty::User(_)))
     }
 
     /// The members `path` (`b` or `b.c`, upper case) of `base`; `suffix` is on the last one, which must be its own

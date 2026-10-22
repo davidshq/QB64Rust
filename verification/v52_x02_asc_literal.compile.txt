@@ -1,0 +1,5 @@
+
+Expected ASC ( string-variable , ...
+Caused by (or after):ASC ( "ab",2 ) = 65
+LINE 4:ASC("ab") = 65
+exit=1

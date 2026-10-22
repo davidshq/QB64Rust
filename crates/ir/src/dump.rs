@@ -268,6 +268,7 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::System(None) => writeln!(out, "  System").unwrap(),
                 Op::End(Some(code)) => writeln!(out, "  End {}", val(p, code)).unwrap(),
                 Op::System(Some(code)) => writeln!(out, "  System {}", val(p, code)).unwrap(),
+                Op::Stop => writeln!(out, "  Stop").unwrap(),
                 Op::Exit => writeln!(out, "  Exit").unwrap(),
                 Op::SetHandler(Some(l)) => writeln!(out, "  SetHandler {}", label(&p.main, *l)).unwrap(),
                 Op::SetHandler(None) => writeln!(out, "  SetHandler none").unwrap(),

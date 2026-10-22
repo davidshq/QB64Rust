@@ -431,6 +431,11 @@ impl Checker<'_> {
             {
                 Err(self.error(name_tok.span, format!("`{shown}` is a function, not a statement")))
             }
+            // The `ASC` statement without its `= code` (measured: "Expected =", `verification\v52_x07`); its stub
+            // entry keeps it out of the arm above.
+            None if name == "ASC" && suffix.is_none() => {
+                Err(self.error(node.span(), "the `ASC` statement needs `= code` after its arguments"))
+            }
             _ if is_keyword(name.as_bytes()) || find_any(name.as_bytes()).next().is_some() => {
                 Err(self.unsupported(name_tok.span, format!("`{shown}`")))
             }

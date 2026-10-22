@@ -259,6 +259,16 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 | A variable as the length of `STRING * n` (`DIM s AS STRING * n`) | The old compiler: "Number/Constant expected after *". A name is marked here because it may be a constant not known yet | `verification\v51_x75` |
 | A name that is no type in an `AS` clause where no form was measured: `REDIM` of a member array, `_UNSIGNED` before a name in `SHARED`, a parameter or `_DEFINE` | Each place gives its own error in the old compiler (`v51`), so a place not measured keeps its mark | `check\decl.rs` `no_type` |
 
+**Left marked by `m4-qb64pe-sources`** (2026-10-21: `_INSTRREV`, the whole-file functions, `_FULLPATH$`, the five
+functions, the `ASC` statement, `STOP`, reserved words with a suffix, the `$` name of a `STRING * n` array or
+variable):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A procedure named after a reserved word with a suffix other than none and `&` (`FUNCTION exp$`) | `v52_builtin_name_suffixes` measured variables only; the old compiler rejects the form recorded. A sweep like it, of `FUNCTION` and `SUB`, would decide the rest (a `CONST` is decided: "Name already in use", `x32`, `x67`, `x68`) | `verification\v52_x28` (on `tests\verification\known.list`); design D6 of the change |
+| `REDIM`, `STATIC` or `COMMON` of `a$(…)` beside a `STRING * n` array `a`, and `COMMON SHARED s$` beside a `STRING * n` variable `s` | Only `DIM` was measured for the array ("Type mismatch", `v52_x45`), and every declarer but `COMMON` for the variable (`x49`, `x69`–`x72`) | Design D7 of the change |
+| `ASC((a$)) = 65`: the place in parentheses | Not measured, as for `MID$` | `check\io.rs` `asc_assign` |
+
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
 
@@ -391,6 +401,10 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `_CAST` of a float constant outside the integer type's range gives whatever g++ folds it to, another value on each build (`_CAST(LONG, 1E20)`: `1008726880`, then `-360710944`) | A defined value (saturated, or the x86 value `-2147483648` a variable gives), with a `DIVERGENCES.md` row | `m4-builtins-param-types` (`verification\v49_x18`, design D2) |
 | `_CLIPBOARD$ = s$` puts `s$` on the clipboard only up to its first NUL | Keep the whole string | `m4-builtins-param-types` (`verification\v49_d_clipboard`) |
 | An error raised below `$CHECKING:OFF` waits until the next checked statement, and libqb's routines do nothing meanwhile (a `PRINT` prints nothing); the handler then runs for that checked statement, so `RESUME` runs it again, not the statement that raised the error, and `RESUME NEXT` skips it | None in the compiler if kept: it is what OFF leaves out. A change would service the error at `$CHECKING:ON` | `m4-handlers-logging-checking` (`verification\v50_c_checking`) |
+| A reserved word is a variable's name with `$` (`key$`, `exp$`, `cls$`), but "Name already in use" with every other suffix (`key%`, `exp#`), and a word reserved only with `$` (`chr`) is free with every other suffix | One rule for every suffix | `m4-qb64pe-sources` (`verification\v52_builtin_name_suffixes.txt`) |
+| `STOP n` checks `n` as a number and never evaluates it: a FUNCTION in it is not called, and the exit code is 0 | Evaluate it, or make it the exit code as `SYSTEM n` does | `m4-qb64pe-sources` (`verification\v52_x12`, `x15`) |
+| `name$` is the `STRING * n` variable or array of the name; `DIM s$` beside such a variable declares nothing (`s$` stays the fixed-length one), while `DIM a$(3)` beside such an array is "Type mismatch" | One rule for both: `DIM` of the `$` name an error, or a variable-length string of its own | `m4-qb64pe-sources` (`verification\v52_x45`, `x49`) |
+| A dotted name in a SUB or FUNCTION beside a main-module `TYPE` variable it does not share (`num.typ`) is silently a new local variable of the default type; QB64pe's own `const_eval.bas` reads `num.typ` so in `LogicalNot&`, where it is always 0 | A warning, as for a name used before it is set | `m4-qb64pe-sources` (`verification\v52_x65`, `x66`) |
 | `ERROR 11` (division by zero) is a critical error in this libqb: it ends the program, and no `ON ERROR` handler catches it, as QB 4.5's would | A trappable error 11, as the other errors are. libqb's (`error_handle.cpp`), so a change is a change to the runtime | `m4-handlers-logging-checking` (found writing `verification\v50_a_chain`, design D1) |
 
 ## Other ideas raised during the study

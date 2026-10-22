@@ -1,0 +1,20 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+asc_stmt_errors.bas:7:5: error: the `ASC` statement needs a string variable as its first argument
+asc_stmt_errors.bas:7:5: note: QB64pe: Expected ASC ( string-variable , ...
+asc_stmt_errors.bas:8:5: error: `ASC` needs a variable here
+asc_stmt_errors.bas:8:5: note: QB64pe: Expected ASC ( string-variable , ...
+asc_stmt_errors.bas:9:8: error: the position of the `ASC` statement must be a number
+asc_stmt_errors.bas:9:8: note: QB64pe: Illegal string-number conversion
+asc_stmt_errors.bas:10:10: error: the value of the `ASC` statement must be a number
+asc_stmt_errors.bas:10:10: note: QB64pe: Illegal string-number conversion
+asc_stmt_errors.bas:11:1: error: the `ASC` statement takes a variable and a position
+asc_stmt_errors.bas:11:1: note: QB64pe: Invalid expression
+asc_stmt_errors.bas:12:5: error: `ASC` needs a variable here
+asc_stmt_errors.bas:12:5: note: QB64pe: Expected ASC ( string-variable , ...
+asc_stmt_errors.bas:13:5: error: name already in use: `f$`
+asc_stmt_errors.bas:14:1: error: the `ASC` statement needs `= code` after its arguments
+asc_stmt_errors.bas:14:1: note: QB64pe: Expected =

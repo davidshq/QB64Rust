@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):PRINT _ARCSEC ( "a",1 )
+LINE 4:PRINT _ARCSEC("a")
+exit=1

@@ -85,6 +85,8 @@ pub enum Rule {
 /// of tier 1 requires each to be called in a `slice.list` program and in a `typed` front-end test.
 pub const SUPPORTED: &[(&str, Rule)] = &[
     ("INSTR", Rule::Plain),
+    // The same shape as `INSTR`, from the end (design D2 of `m4-qb64pe-sources`; `verification\v52_a_instrrev`).
+    ("_INSTRREV", Rule::Plain),
     ("CHR$", Rule::Plain),
     // String functions (`v20_c_string_edges`).
     ("LEFT$", Rule::Plain),
@@ -146,6 +148,9 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_FILEEXISTS", Rule::Plain),
     ("_DIREXISTS", Rule::Plain),
     ("_CWD$", Rule::Plain),
+    // A whole file and a full path (design D2 of `m4-qb64pe-sources`; `verification\v52_c_files`).
+    ("_READFILE$", Rule::Plain),
+    ("_FULLPATH$", Rule::Plain),
     // `_FILES$[(spec$)]` (design D1 of `m4-builtins-param-types`; `verification\v49_b_files`): one optional slot, so
     // it is also called bare, for the next entry of the listing.
     ("_FILES$", Rule::Plain),
@@ -178,6 +183,13 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_COT", Rule::Plain),
     ("_CSC", Rule::Plain),
     ("_SEC", Rule::Plain),
+    // The same, for the upstream programs `qb64pe/*` (design D2 of `m4-qb64pe-sources`; `verification\v52_b_math`):
+    // libqb's own, error 5 and 0 outside the domain.
+    ("_ARCSEC", Rule::Plain),
+    ("_ARCCSC", Rule::Plain),
+    ("_ARCCOT", Rule::Plain),
+    ("_SECH", Rule::Plain),
+    ("_CSCH", Rule::Plain),
     // libqb's `func_coth` is the hyperbolic cotangent in this repo's copy of libqb (`DIVERGENCES.md` D-031).
     ("_COTH", Rule::Plain),
     ("_D2R", Rule::Plain),
@@ -418,6 +430,9 @@ pub enum StmtRule {
     /// `MID$(target$, start[, length]) = value$`: a string place, a LONG value, a LONG value or absent, a string
     /// value (measured, `verification\v22_d_mid`).
     MidAssign,
+    /// `ASC(s$[, position]) = code`: a string place, a LONG value or absent, a LONG value (design D4 of
+    /// `m4-qb64pe-sources`; measured, `verification\v52_d_asc`). The old compiler writes it inline.
+    AscAssign,
     /// Graphics `GET` and `PUT`: as [`StmtRule::Plain`], for the entries of the name whose call is libqb's
     /// `sub_graphics_…` only. The name's other entry is the file form ([`StmtRule::File`]).
     Graphics,
@@ -443,6 +458,8 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("CHDIR", StmtRule::Plain),
     ("NAME", StmtRule::Plain),
     ("ENVIRON", StmtRule::Plain),
+    // A whole file, two strings (design D3 of `m4-qb64pe-sources`; `verification\v52_c_files`).
+    ("_WRITEFILE", StmtRule::Plain),
     // Files (`verification\v22_b_*`): `OPEN` in both forms.
     ("OPEN", StmtRule::Plain),
     ("CLOSE", StmtRule::Close),
@@ -451,6 +468,7 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     // seed on the console (`verification\v22_e_randomize`).
     ("SWAP", StmtRule::Swap),
     ("MID$", StmtRule::MidAssign),
+    ("ASC", StmtRule::AscAssign),
     ("RANDOMIZE", StmtRule::Plain),
     // `SHELL` in its three forms (`verification\v22_d_shell`).
     ("SHELL", StmtRule::Plain),
@@ -670,7 +688,7 @@ pub fn stmt_lookup(name: &str, string: bool) -> Vec<StmtSupported> {
                     .filter(|id| matches!(id.get().callname, "sub_get" | "sub_put"))
                     .collect(),
                 // The statements the old compiler writes itself are named by their stub entry.
-                StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
+                StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign | StmtRule::AscAssign => {
                     find_stub(name.as_bytes(), string).into_iter().collect()
                 }
             };
@@ -1062,7 +1080,8 @@ fn held_override(callname: &str) -> Option<Ty> {
         "func_lof" | "func_loc" | "func_seek" => Some(Ty::I64),
         "func_timer" => Some(Ty::F64),
         // Believed `_FLOAT`; libqb's prototypes take and return a `double` (`extended_math.h`).
-        "func_cot" | "func_csc" | "func_sec" | "func_coth" | "func_deg2rad" | "func_rad2deg" => Some(Ty::F64),
+        "func_cot" | "func_csc" | "func_sec" | "func_coth" | "func_deg2rad" | "func_rad2deg" | "func_arcsec"
+        | "func_arccsc" | "func_arccot" | "func_sech" | "func_csch" => Some(Ty::F64),
         _ => None,
     }
 }

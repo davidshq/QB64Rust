@@ -1223,7 +1223,7 @@ impl Checker<'_> {
         } else if let Some(s) = ast::BuiltinStmt::cast(node) {
             self.builtin_stmt(s)
         } else if ast::StopStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`STOP`"))
+            self.stop(node)
         } else if ast::RunStmt::cast(node).is_some() {
             Err(self.unsupported(first_token_span(node), "`RUN`"))
         } else if let Some(s) = ast::CallStmt::cast(node) {
@@ -1305,6 +1305,19 @@ impl Checker<'_> {
             }
         };
         self.push(node, kind(code));
+        Ok(())
+    }
+
+    /// `STOP [expression]`: the expression is checked as a number and never evaluated (measured,
+    /// `verification\v52_x12`, `x13`, `x19`: a string is "Illegal string-number conversion").
+    fn stop(&mut self, node: Node) -> R<()> {
+        if let Some(x) = node.child_nodes().find_map(ast::Expr::cast) {
+            let e = self.expr(x)?;
+            if e.ty == Ty::Str {
+                return Err(self.error(e.span, "the expression after `STOP` must be a number"));
+            }
+        }
+        self.push(node, StmtKind::Stop);
         Ok(())
     }
 
@@ -1685,6 +1698,10 @@ impl Checker<'_> {
             // `MID$(s$, start[, length]) = value$` is a statement of its own, not a store into an array `MID$`.
             ast::Expr::Call(c) if c.name().is_some_and(|t| self.word(t) == "MID$") => {
                 return self.mid_assign(node, c, value_node);
+            }
+            // `ASC(s$[, position]) = code` likewise (design D4 of `m4-qb64pe-sources`).
+            ast::Expr::Call(c) if c.name().is_some_and(|t| self.word(t) == "ASC") => {
+                return self.asc_assign(node, c, value_node);
             }
             ast::Expr::Call(c) => self.call_place(c)?,
             ast::Expr::Field(f) => self.field_place(f)?,

@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _WRITEFILE fileSpec$, contents$
+Caused by (or after):_WRITEFILE "v52_x56.tmp",11
+LINE 4:_WRITEFILE "v52_x56.tmp"
+exit=1
