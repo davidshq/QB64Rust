@@ -32,7 +32,12 @@ demand: `_ACOS`, `_ASIN`, `_SINH`, `_COSH`, `_TANH`, `_CEIL`, `_COT`, `_CSC`, `_
 `_MEMELEMENT`, `_MEMNEW`, `_MEMIMAGE`, `_MEMSOUND`, `_MEMEXISTS`, `_MEMGET`, `_OFFSET`, and the conversions
 between a number and its bytes: `MKI$`, `MKL$`, `MKS$`, `MKD$`, `_MK$`, `CVI`, `CVL`, `CVS`, `CVD`, `_CV`, and the checksum, compression
 and base64 functions (`language/data-processing`): `_ADLER32`, `_CRC32`, `_DEFLATE$`, `_INFLATE$`,
-`_BASE64ENCODE$`, `_BASE64DECODE$`, and `_MD5$`, and `_CAST`, `_OS$`, `_CLIPBOARD$` and `_FILES$` (`language/file-io`). Any
+`_BASE64ENCODE$`, `_BASE64DECODE$`, and `_MD5$`, and `_CAST`, `_OS$`, `_CLIPBOARD$` and `_FILES$` (`language/file-io`),
+and the keyboard functions `_KEYHIT` and `_KEYDOWN` (`language/keyboard`), the window and console functions
+`_RESIZE`, `_RESIZEWIDTH`, `_RESIZEHEIGHT`, `_EXIT`, `_ACCEPTFILEDROP`, `_TOTALDROPPEDFILES`, `_DROPPEDFILE$`,
+`_MESSAGEBOX`, `_OPENFILEDIALOG$`, `_SAVEFILEDIALOG$`, `_SELECTFOLDERDIALOG$` (`language/console-and-window`),
+`_CONTROLCHR`, `_DEFAULTCOLOR` and `_BACKGROUNDCOLOR` (`language/screen-output`), and `_DIR$`, `_SHELLHIDE`,
+`_COMMANDCOUNT`, `_COMPILEDATE$`, `_COMPILETIME$` and `_READBIT`. Any
 other built-in function SHALL be reported "not supported yet". A supported function that needs an argument, named without one, SHALL be a compile error, as in the
 old compiler. An argument of any other numeric type SHALL be
 converted to its slot as an assignment would, except where the old compiler special-cases the argument's type
@@ -43,8 +48,8 @@ unsigned integer type `t` SHALL parse as libqb's unsigned `VAL` does (not narrow
 fixed-length string argument SHALL be a string.
 
 #### Scenario: Unsupported built-in
-- **WHEN** a program uses `k = _KEYHIT`
-- **THEN** the compiler reports `_KEYHIT` "not supported yet" and no other error for that expression
+- **WHEN** a program uses `k = _SETBIT(a, 1)`
+- **THEN** the compiler reports `_SETBIT` "not supported yet" and no other error for that expression
 
 #### Scenario: Supported built-in compiles
 - **WHEN** `PRINT LEFT$("hello", 2); LEN("abc")` is compiled and run
@@ -440,3 +445,29 @@ function's domain SHALL raise error 5 and return 0, as the old compiler's progra
 #### Scenario: The other domains
 - **WHEN** a program calls `_ARCCSC(-0.5)`, `_SECH(88.1)`, `_CSCH(88.1)` or `_CSCH(0)`
 - **THEN** each raises error 5 and returns 0
+
+### Requirement: The system's folders, commands and build
+`_DIR$(name$)`, `_SHELLHIDE(cmd$)`, `_COMMANDCOUNT`, `_COMPILEDATE$`, `_COMPILETIME$` and `_READBIT(a, b)` SHALL
+compile to the old compiler's runtime calls, with its result types (`_SHELLHIDE` an `_INTEGER64`, `_READBIT` an
+`_INTEGER64`), and SHALL give at run time what the old compiler's program gives. Their wrong forms SHALL be the old
+compiler's errors.
+
+#### Scenario: A folder of the system
+- **WHEN** `d$ = _DIR$("fonts"): PRINT RIGHT$(d$, 1) = "\"; _DIREXISTS(d$)` runs on Windows
+- **THEN** it prints `-1 -1 `, as with the old compiler
+
+#### Scenario: A command run hidden
+- **WHEN** `PRINT _SHELLHIDE("cmd /c exit 3")` runs on Windows
+- **THEN** it prints ` 3 `
+
+#### Scenario: No arguments on the command line
+- **WHEN** a program started with no arguments prints `_COMMANDCOUNT`
+- **THEN** it prints ` 0 `
+
+#### Scenario: The date and time of the build
+- **WHEN** `PRINT LEN(_COMPILEDATE$); LEN(_COMPILETIME$); MID$(_COMPILETIME$, 3, 1)` runs
+- **THEN** it prints ` 11  8 :`, the C++ compiler's `__DATE__` and `__TIME__`, as with the old compiler
+
+#### Scenario: A bit read
+- **WHEN** `PRINT _READBIT(5, 0); _READBIT(5, 1); _READBIT(5, 2)` runs
+- **THEN** it prints what the old compiler's program prints

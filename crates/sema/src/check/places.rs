@@ -1133,9 +1133,16 @@ impl Checker<'_> {
         let span = call.node().span();
         let args = self.present_args(call.arg_list())?;
         if args.is_empty() {
-            // `x()`: a whole array (whole-array assignment, array arguments), deferred (`SOMEDAY.md`).
-            let shown = show_bytes(self.text(t.span));
-            return Err(self.unsupported(span, format!("the whole array `{shown}()`")));
+            // `a()` where a value or a variable is taken: the array's first element in memory, with no index check,
+            // as the old compiler writes it (design D4 of `m4-line-numbers-whole-arrays`; measured,
+            // `verification\v54_c_whole_values`, `v54_d_whole_erased`, `v54_x05`–`x34`): an element with no indexes.
+            // The forms the old compiler rejects are refused before here (the whole value of an assignment,
+            // `check\whole.rs`; a scalar parameter, `check\proc.rs`; `SWAP` of two types, `check\io.rs`).
+            self.stmt.names.push((SymbolKind::Var(array), t.span));
+            return Ok(Place::Element {
+                array: ArrayRef::Var(array),
+                index: Vec::new(),
+            });
         }
         self.element_at(array, args, t, span)
     }

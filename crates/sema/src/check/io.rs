@@ -200,24 +200,21 @@ impl Checker<'_> {
     /// A string place as the target of `FIELD`, `LSET` or `RSET` (`what`): a variable, an element or a member.
     /// `fixed`: a `STRING * n` place is one too. Measured (`verification\v30_x100`–`x110`, `x140`–`x168`): a
     /// number, a `TYPE` value, a literal, an expression, a function's result and a `CONST` are errors. A whole
-    /// array `e()`, which the old compiler takes as the array's first element without a bounds check (`x109`,
-    /// `x153`), is not supported yet.
+    /// array `e()` is the array's first element without a bounds check, as the old compiler takes it (`x109`,
+    /// `x153`, `v54_x14`; design D4 of `m4-line-numbers-whole-arrays`).
     fn string_target(&mut self, node: ast::Expr, what: &str, fixed: bool) -> R<Place> {
         let span = node.node().span();
         if let ast::Expr::Call(c) = node
             && c.arg_list().is_some_and(|l| l.args().is_empty())
+            && let Some(t) = c.name()
+            && let (word, _) = self.split_name(t)?
+            && self.procs_by_name.contains_key(&word)
         {
-            if let Some(t) = c.name()
-                && let (word, _) = self.split_name(t)?
-                && self.procs_by_name.contains_key(&word)
-            {
-                // Measured: "Expected (...)" for a FUNCTION's name (`v30_x173`–`x175`).
-                return Err(self.error(
-                    span,
-                    format!("`{what}` needs a string variable, element or member here"),
-                ));
-            }
-            return Err(self.unsupported(span, format!("a whole array as the string of `{what}`")));
+            // Measured: "Expected (...)" for a FUNCTION's name (`v30_x173`–`x175`).
+            return Err(self.error(
+                span,
+                format!("`{what}` needs a string variable, element or member here"),
+            ));
         }
         // A place of a user type is a place here, so that it gets this statement's error and not an expression's.
         let e = self.expr_as(node, Use::Place);
@@ -471,7 +468,8 @@ impl Checker<'_> {
 
     /// A place a statement stores into (a target of `INPUT`, `LINE INPUT` or `READ`): a variable (created when it
     /// does not exist, as by an assignment), an element or a member. A whole `TYPE` variable is an error (measured,
-    /// `v22_x48`), as is the name of the FUNCTION the statement stands in; a whole array is not supported yet.
+    /// `v22_x48`), as is the name of the FUNCTION the statement stands in; a whole array is its first element
+    /// (design D4 of `m4-line-numbers-whole-arrays`).
     pub(super) fn target_place(&mut self, e: ast::Expr, what: &str) -> R<Place> {
         let span = e.node().span();
         let place = self.place_operand(e, what)?;
@@ -543,7 +541,7 @@ impl Checker<'_> {
 
     /// `READ target, …`. Measured (`verification\v22_x66`, `x67`, `x74`, `x75`, `x79`): a target that is no variable
     /// is "Expected variable". The old compiler takes a variable in parentheses (`READ (a)` reads into `a`,
-    /// `v22_x84`) and a whole array (`x70`); neither is supported yet.
+    /// `v22_x84`), not supported yet, and a whole array (`x70`), which reads one item into its first element.
     pub(super) fn read(&mut self, stmt: ast::ReadStmt) -> R<()> {
         let node = stmt.node();
         let mut targets = Vec::new();
@@ -570,8 +568,9 @@ impl Checker<'_> {
     /// `SWAP a, b` ([`StmtRule::Swap`]). Measured (`verification\v22_d_swap`, `v22_x91`–`x107`, `x135`): an operand
     /// that is no variable is "Expected variable", two types that differ "Type mismatch" (signedness does not
     /// count; `_OFFSET` is not `_INTEGER64`), two `TYPE`s that differ "Expected SWAP with similar user defined
-    /// type", a `_BIT` "Cannot SWAP bit-length variables". The old compiler also takes an operand in parentheses
-    /// and two whole arrays; neither is supported yet.
+    /// type", a `_BIT` "Cannot SWAP bit-length variables". The old compiler also takes an operand in parentheses,
+    /// not supported yet, and two whole arrays of one type, which swap their first elements (`v22_x101`,
+    /// `v54_c_whole_values`; of two types "Type mismatch", `v54_x10`).
     pub(super) fn swap(&mut self, stmt: ast::SwapStmt) -> R<()> {
         let node = stmt.node();
         let [form] = stmt_lookup("SWAP", false)[..] else {

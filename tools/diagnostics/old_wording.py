@@ -11,10 +11,10 @@ with -z (nothing built); its first error that is not "not supported yet", when i
 the old message names ("LINE n:"), is paired with the old message's first line.
 
 A message becomes a pattern: a backtick span whose words are all keywords or built-in names (`_MEM`, `SELECT
-CASE`, a metacommand) stays as written; any other span (a name as the program writes it) becomes `{}`, and a number
-outside the spans becomes {#}. In the old message each placeholder's text is looked for as a whole word, as written,
-in capitals, without its parentheses or type suffix, and replaced by {n} or {n:U} and so on (n counts the
-placeholders in order). A pattern is kept only when every pair of it gives the same old template, the template
+CASE`, a metacommand) stays as written; any other span (a name or a line number as the program writes it) becomes
+`{}`, and a number outside the spans becomes {#}. In the old message each placeholder's text is looked for as a
+whole word, as written, in capitals, without its parentheses or type suffix, and replaced by {n} or {n:U} and so on
+(n counts the placeholders in order). A pattern is kept only when every pair of it gives the same old template, the template
 differs from the message (ignoring case and backticks), names no file and holds no text of one program (a
 number or a name in capitals that is no keyword and not in the message). So a note is the old compiler's own
 wording of that error, never a guess.
@@ -66,7 +66,9 @@ def old_message(text: str) -> tuple[str, int] | None:
 
 def literal(span: str) -> bool:
     """A span that stays in the pattern: every word a keyword, a built-in name, a metacommand, a string or a
-    sign."""
+    sign. A span that is a number alone (a line number such as `010&` or `10.5`) is the program's text."""
+    if re.fullmatch(r"[0-9.]*[0-9][0-9.]*[%&!#~]*", span):
+        return False
     for word in span.split():
         word = word.removesuffix("()")
         if word.startswith(("$", '"')) or not re.search(r"[A-Za-z]", word):

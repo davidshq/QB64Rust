@@ -1,0 +1,5 @@
+
+Whole array cannot be passed to a scalar FUNCTION parameter
+Caused by (or after):PRINT F ( A ( ) )
+LINE 5:PRINT f(a())
+exit=1

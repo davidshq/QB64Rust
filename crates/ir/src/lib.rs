@@ -150,6 +150,9 @@ pub struct Label {
     pub include_line: Option<u32>,
     /// The file of a BASIC label (`None` for one the lowering made).
     pub file: Option<FileId>,
+    /// For a line number, the text `last_line` is set to after the label, for `ERL` (design D2 of
+    /// `m4-line-numbers-whole-arrays`).
+    pub line_number: Option<String>,
     pub at: usize,
     /// A BASIC label above which no `$CHECKING:OFF` is in force has the event check ([`Stmt::checked`]).
     pub checked: bool,

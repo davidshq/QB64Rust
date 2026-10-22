@@ -1,0 +1,2 @@
+[line one]
+exit=0

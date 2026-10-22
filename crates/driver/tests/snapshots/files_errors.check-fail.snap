@@ -42,8 +42,7 @@ files_errors.bas:40:7: error: `SEEK` takes 1 argument
 files_errors.bas:40:7: note: QB64pe: Incorrect number of arguments - Reference: SEEK(filenumber&)
 files_errors.bas:41:7: error: `LOF` with empty parentheses
 files_errors.bas:41:7: note: QB64pe: Expected (...)
-files_errors.bas:42:11: error: not supported yet: the whole array `arr()`
-files_errors.bas:43:7: error: expected an expression
-files_errors.bas:46:15: error: the FUNCTION's own name cannot be a target of `INPUT`
-files_errors.bas:50:20: error: the FUNCTION's own name cannot be a target of `LINE INPUT`
-files_errors.bas:50:20: note: QB64pe: Expected variable-name
+files_errors.bas:42:7: error: expected an expression
+files_errors.bas:45:15: error: the FUNCTION's own name cannot be a target of `INPUT`
+files_errors.bas:49:20: error: the FUNCTION's own name cannot be a target of `LINE INPUT`
+files_errors.bas:49:20: note: QB64pe: Expected variable-name

@@ -14,7 +14,6 @@
 `$RESIZE` takes its setting after a colon, not `=`	Invalid expression
 `$SCREENHIDE` must stand alone on its line	Syntax error
 `$SCREENSHOW` must stand alone on its line	Syntax error
-`10` is no SUB: `ON TIMER` needs `{}` or a SUB's name	Expected GOSUB/sub
 `ABS` needs a number	Number required for function
 `ABS` takes {#} argument	Incorrect number of arguments - Reference: ABS(numericalValue)
 `ASC` in a `CONST` cannot take an empty string	ASC cannot apply to empty string
@@ -89,6 +88,7 @@
 `ON KEY` takes one key number	Invalid expression
 `ON STRIG` needs its operands in parentheses	Expected (
 `ON TIMER` needs its operands in parentheses	Expected (
+`OPTION BASE` takes `{}` or `{}`	Expected OPTION BASE {1:=|U|P|PU|S|SU} or {2:=|U|P|PU|S|SU}
 `PCOPY` takes {#} arguments	Syntax error - Reference: PCOPY sourcePage%, destinationPage%
 `PEEK` needs a number	Number required for function
 `PEEK` takes {#} argument	Incorrect number of arguments - Reference: PEEK(segment_offset)
@@ -393,6 +393,7 @@
 `{}` is no type	Invalid type
 `{}` is no type: a fixed-length string is written `{}`	Expected STRING * number/constant
 `{}` is not a member of `TYPE _MEM` (`{}`)	Element not defined
+`{}` is not a valid label	Invalid label!
 `{}` is not available in QB64; use a FUNCTION	Command not implemented
 `{}` names no array here (an array passed in a SUB or FUNCTION must exist)	Expected (...)
 `{}` names no array here; a whole-array assignment needs an array on each side	Whole-array assignment requires empty parentheses on both sides
@@ -519,6 +520,7 @@ expected `,` between the two variables	Expected SWAP ... , ...
 expected `,` between two library names	Expected ,
 expected `AS` and a variable	Expected FIELD #filenumber, characters AS variable$, ...
 expected `OPTION BASE`, `OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`	Expected OPTION BASE or OPTION _EXPLICIT or OPTION _EXPLICITARRAY
+expected `{}` or `{}` after `OPTION BASE`	Expected OPTION BASE {1:=|U|P|PU|S|SU} or {2:=|U|P|PU|S|SU}
 expected `{}`, the parentheses around all that follows	Expected CALL sub-name (...)
 expected a field (`{}` or `{}`) or `END TYPE`	Expected element-{1:=|P|S}, AS type element-list, or END TYPE
 expected a name after `{}`	Expected (

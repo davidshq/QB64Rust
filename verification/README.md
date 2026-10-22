@@ -151,6 +151,22 @@ Small programs behind `study\09`, `study\10` and later measurements:
   equals sign for the colon: "Invalid expression"); numbers
   65–69 not used. The programs with a window and keys are screen programs of the corpus (`k02`–`k04`,
   `c15`–`c17`, `tests\corpus\screen\SOURCE.md`)
+- `v54*`: line numbers, unsigned literals and a whole array as a value, measured as task 1.1 of
+  `m4-line-numbers-whole-arrays`: `v54_a_line_numbers` `ERL` before any numbered line (0), after one, after an
+  unnumbered one (the last numbered line run, a numbered handler's too), for `10.5`, `20&`, `4294967296`, in a SUB
+  and after it, in an included file (`v54_inc\`), after `RESUME n`; `GOSUB` and `RETURN n`, `ON n GOSUB`, `ON ERROR
+  GOTO n` with numbers; `v54_b_unsigned_literals` an unsuffixed literal above 9223372036854775807 printed, in an
+  operation (`18446744073709551614 + 1` is -1), stored into `~&&`, `&&`, `DOUBLE`, in `HEX$` and `STR$` (in a
+  `CONST`, `x38`, it prints 9223372036854775807, D-027); `v54_c_whole_values` the element a whole array stands for (the first in
+  memory, `a(5)` of `a(5 TO 7)`), and `READ`, `INPUT #` and `SWAP` of whole arrays (one item, one element);
+  `v54_d_whole_erased` an erased array (0, no error); `x01`–`x38` one form each: the spellings of a line number
+  (`010` is `10`, a duplicate; `10.0`, `1.10`, `30#` their own; `010&` gives `ERL` 8, C++'s octal; 41 digits
+  "Invalid label!"), a number of another body and `RETURN n` in a SUB (errors), `IF c GOTO n`, `a()` in any
+  expression (accepted) and the forms rejected (an assignment's whole value, `SWAP` of two types, a member array,
+  a scalar parameter, `LEN` of strings), `-18446744073709551615` (1); `x39`–`x45`, with the review of the change:
+  `VARPTR(a())` (the first element's), `08&` and a number of 25 digits (the C++ build fails), an erased array of
+  `STRING` printed (empty) and read into (the text shows after later output), of `STRING * 20` printed (blanks),
+  `t.m&() = u.m&()` ("Expected array index")
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

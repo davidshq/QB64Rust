@@ -1,0 +1,5 @@
+
+Expected array index after a
+Caused by (or after):X = ( A ( ) )
+LINE 5:x = (a())
+exit=1

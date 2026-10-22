@@ -113,7 +113,7 @@ switch form outside the table's (`KEY(1) FREE`, `TIMER(1, 2) ON`).
 ### Requirement: Events the old compiler does not have
 `PEN`, `COM` and `UEVENT` used as events (`ON PEN GOSUB h`, `ON COM(1) GOSUB h`, `PEN ON`, `UEVENT ON`) SHALL be
 compile errors that are not "not supported yet", as they are to the old compiler. A line number as a handler target
-SHALL stay marked "not supported yet".
+SHALL be taken as a label is (`language/control-flow`, "Line numbers as jump targets").
 
 #### Scenario: PEN as an event
 - **WHEN** a program has `ON PEN GOSUB h` or `PEN ON`
@@ -125,8 +125,8 @@ SHALL stay marked "not supported yet".
   is reported "not supported yet"
 
 #### Scenario: A line number as the target
-- **WHEN** a program has `ON TIMER(1) GOSUB 100`
-- **THEN** the compiler reports "not supported yet", naming line numbers
+- **WHEN** a program has `ON TIMER(1) GOSUB 100` or `ON PLAY(5) GOSUB 10` and the line it names in the main module
+- **THEN** it compiles, and the handler runs at that line as recorded (`verification\v42_x46`, `v29_x64`)
 
 ### Requirement: Joystick-button handlers
 `ON STRIG(b) GOSUB label`, `ON STRIG(b, c) GOSUB label` and the same with a SUB's name and an optional argument

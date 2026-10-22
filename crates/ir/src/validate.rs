@@ -953,6 +953,8 @@ impl Validator<'_> {
             Place::Element { array, index } => {
                 match self.array_ref(array, owner, at, "an element") {
                     Some((_, Some(n))) if n == index.len() => {}
+                    // The first element of a whole array `a()` taken as a value ([`Place::Element`]).
+                    Some(_) if index.is_empty() && matches!(array, ArrayRef::Var(_)) => {}
                     // A dynamic member array has the number of dimensions of its last `REDIM`, checked when the
                     // element is used.
                     Some(_) if is_dynamic_member(self.p, array) => {}
@@ -1104,7 +1106,8 @@ impl Validator<'_> {
                     self.value(d, owner, at);
                 }
             }
-            // An offset or a segment is of an array in conventional memory; an offset has an index per dimension.
+            // An offset or a segment is of an array in conventional memory; an offset has an index per dimension,
+            // or none.
             ExprKind::VarPtr { array, .. } | ExprKind::VarSeg { array } => {
                 self.array_ref(&ArrayRef::Var(*array), owner, at, "address");
                 let a = self.p.var(*array);
@@ -1115,7 +1118,8 @@ impl Validator<'_> {
                     ));
                 }
                 if let ExprKind::VarPtr { index, .. } = &v.kind {
-                    if a.dim_count().is_some_and(|n| n != index.len()) {
+                    // No index: the first element of a whole array, `VARPTR(a())` (`v54_x39`).
+                    if !index.is_empty() && a.dim_count().is_some_and(|n| n != index.len()) {
                         self.problem(format!("{at}: {} indexes for {}", index.len(), a.name));
                     }
                     for i in index {
@@ -1329,6 +1333,7 @@ mod tests {
             line: 1,
             include_line: None,
             file: None,
+            line_number: None,
             at,
             checked: true,
         }

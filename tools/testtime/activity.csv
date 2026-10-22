@@ -267,6 +267,18 @@ version,session,change,category,actions,bytes
 1,18f5cee2,m2-defxxx-common-arrays,product code,2,590
 1,18f5cee2,m2-defxxx-common-arrays,reading,1,0
 1,18f5cee2,m2-defxxx-common-arrays,test runs,1,0
+1,194dc3a7,,other,1,0
+1,194dc3a7,,other commands,1,0
+1,194dc3a7,,reading,1,0
+1,194dc3a7,m4-line-numbers-whole-arrays,builds,3,0
+1,194dc3a7,m4-line-numbers-whole-arrays,documents and planning,11,4059
+1,194dc3a7,m4-line-numbers-whole-arrays,measurement preparation,8,2234
+1,194dc3a7,m4-line-numbers-whole-arrays,measurement runs,2,0
+1,194dc3a7,m4-line-numbers-whole-arrays,other commands,37,0
+1,194dc3a7,m4-line-numbers-whole-arrays,product code,14,5238
+1,194dc3a7,m4-line-numbers-whole-arrays,reading,17,0
+1,194dc3a7,m4-line-numbers-whole-arrays,test runs,12,0
+1,194dc3a7,m4-line-numbers-whole-arrays,tests and fixtures,9,2692
 1,1ad66ada,,documents and planning,7,1843
 1,1ad66ada,,other commands,8,0
 1,1ad66ada,,reading,20,0
@@ -899,6 +911,17 @@ version,session,change,category,actions,bytes
 1,5130390d,m3-sound,other commands,14,0
 1,5130390d,m3-sound,reading,4,0
 1,5130390d,m3-sound,test runs,5,0
+1,534d9b2d,,other commands,1,0
+1,534d9b2d,m4-line-numbers-whole-arrays,builds,7,0
+1,534d9b2d,m4-line-numbers-whole-arrays,documents and planning,25,16863
+1,534d9b2d,m4-line-numbers-whole-arrays,measurement preparation,6,5875
+1,534d9b2d,m4-line-numbers-whole-arrays,measurement runs,6,0
+1,534d9b2d,m4-line-numbers-whole-arrays,other commands,113,0
+1,534d9b2d,m4-line-numbers-whole-arrays,product code,1,936
+1,534d9b2d,m4-line-numbers-whole-arrays,reading,17,0
+1,534d9b2d,m4-line-numbers-whole-arrays,scratch files,9,39882
+1,534d9b2d,m4-line-numbers-whole-arrays,test runs,63,0
+1,534d9b2d,m4-line-numbers-whole-arrays,tests and fixtures,9,4680
 1,53e1c66f,,reading,1,0
 1,53e1c66f,m2-procedures-and-errors,documents and planning,1,31
 1,53e1c66f,m2-procedures-and-errors,other,2,0
@@ -1826,6 +1849,14 @@ version,session,change,category,actions,bytes
 1,a1bc4e14,,other commands,38,0
 1,a1bc4e14,,reading,28,0
 1,a1bc4e14,,tests and fixtures,8,13143
+1,a1c7adca,,other commands,1,0
+1,a1c7adca,m4-line-numbers-whole-arrays,builds,1,0
+1,a1c7adca,m4-line-numbers-whole-arrays,documents and planning,2,603
+1,a1c7adca,m4-line-numbers-whole-arrays,other,1,0
+1,a1c7adca,m4-line-numbers-whole-arrays,other commands,26,0
+1,a1c7adca,m4-line-numbers-whole-arrays,reading,1,0
+1,a1c7adca,m4-line-numbers-whole-arrays,scratch files,1,2668
+1,a1c7adca,m4-line-numbers-whole-arrays,test runs,18,0
 1,a23d75cf,,other commands,2,0
 1,a23d75cf,,reading,1,0
 1,a23d75cf,m2-console-screenhide,documents and planning,43,11616
@@ -2257,6 +2288,19 @@ version,session,change,category,actions,bytes
 1,cea10dd5,m4-checker-groups,reading,1,0
 1,cea10dd5,m4-checker-groups,test runs,1,0
 1,cf0a162a,m3-declare-library,other commands,1,0
+1,cf316d17,,builds,2,0
+1,cf316d17,,documents and planning,1,45
+1,cf316d17,,other,3,0
+1,cf316d17,,other commands,22,0
+1,cf316d17,,reading,2,0
+1,cf316d17,m4-line-numbers-whole-arrays,documents and planning,13,32794
+1,cf316d17,m4-line-numbers-whole-arrays,other commands,16,0
+1,cf316d17,m4-line-numbers-whole-arrays,scratch files,2,6478
+1,cf316d17,m4-line-numbers-whole-arrays,test runs,2,0
+1,cf316d17,m4-qb64pe-builtins,other,1,0
+1,cf316d17,m4-qb64pe-builtins,other commands,10,0
+1,cf316d17,m4-qb64pe-builtins,scratch files,1,2179
+1,cf316d17,m4-qb64pe-builtins,test runs,2,0
 1,cf4bfa06,,other commands,19,0
 1,cf4bfa06,,test runs,1,0
 1,cf4bfa06,m3-declare-library,documents and planning,2,21159
@@ -2545,9 +2589,10 @@ version,session,change,category,actions,bytes
 1,e619cc30,,other commands,1,0
 1,e619cc30,,reading,2,0
 1,e619cc30,m4-qb64pe-builtins,builds,2,0
+1,e619cc30,m4-qb64pe-builtins,documents and planning,1,2093
 1,e619cc30,m4-qb64pe-builtins,measurement preparation,4,897
 1,e619cc30,m4-qb64pe-builtins,measurement runs,1,0
-1,e619cc30,m4-qb64pe-builtins,other commands,49,0
+1,e619cc30,m4-qb64pe-builtins,other commands,52,0
 1,e619cc30,m4-qb64pe-builtins,product code,22,5644
 1,e619cc30,m4-qb64pe-builtins,test runs,22,0
 1,e619cc30,m4-qb64pe-builtins,tests and fixtures,7,3554

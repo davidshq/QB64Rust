@@ -2,18 +2,6 @@
 v04_accidental	D-009
 v05_label_const	D-008
 v05b_label_const_short	D-008
-v16_m3_basic	not supported yet
-v16_m3_decimal	not supported yet
-v16_m3_duplicate	not supported yet
-v16_m3_glued	not supported yet
-v16_m3_goto_missing	not supported yet
-v16_m3_indented	not supported yet
-v16_m3_number_then_label	not supported yet
-v16_m3_out_of_order	not supported yet
-v16_m3_sub_header	not supported yet
-v16_m3_suffix	not supported yet
-v16_m4_line_if_jump_colon	not supported yet
-v16_m4_single_if_else	not supported yet
 v16_m5_put_graphics_no_array	not supported yet
 v16_m6_unknown_meta	not supported yet
 v16_m7_bare	not supported yet
@@ -21,7 +9,6 @@ v16_m7_bare_blank	not supported yet
 v16_m7_block_across	not supported yet
 v16_m7_sub_across	not supported yet
 v17_b_if_then_label	not supported yet
-v17_b_if_then_line	not supported yet
 v17_c_for_type_member	not supported yet
 v17_d_resume_main_label_from_sub_both	not supported yet
 v17_d_resume_sub_label	not supported yet
@@ -43,19 +30,12 @@ v21_x54_fixed_function_sub_dup	not supported yet
 v21_x55_fixed_function_const	not supported yet
 v21_x56_fixed_function_call	not supported yet
 v21_x57_fixed_function_member	not supported yet
-v22_b_print	not supported yet
-v22_c_restore	not supported yet
-v22_d_swap	not supported yet
-v22_x101_swap_arrays	not supported yet
 v22_x103_swap_parens	not supported yet
 v22_x20_kill_suffix	not supported yet
-v22_x49_input_file_array	not supported yet
 v22_x57_write_semicolon	not supported yet
 v22_x58_write_console_semicolon	not supported yet
-v22_x70_read_whole_array	not supported yet
 v22_x79_read_function	not supported yet
 v22_x84_read_paren_variable	not supported yet
-v22_x86_restore_missing_line_number	not supported yet
 v24_h_member_store	D-004
 v24_x106_implicit_assign_function_later	not supported yet
 v24_x112_implicit_underscore_name	not supported yet
@@ -75,7 +55,6 @@ v24_x280_static_operator_bound	not supported yet
 v24_x312_member_erase_base	not supported yet
 v24_x313_member_index_order	D-004
 v24_x38_dynamic_bare_metacommand	not supported yet
-v25_signs	not supported yet
 v25_signs_const	D-028
 v26_x114_auto_const_accepted	D-027
 v26_x120_true_index	not supported yet
@@ -101,26 +80,15 @@ v28_x59_put_undeclared_name	not supported yet
 v28_x86_run_sub_name	not supported yet
 v28_x95_hex_of_varptr	not supported yet
 v29_b_sound_wait	varies: SOUND's time, the old build's too
-v29_x64_on_play_gosub	not supported yet
 v29_x78_beep_goto	not supported yet
 v29_x79_sound_goto	not supported yet
-v30_a_using_numbers	not supported yet
-v30_g_iif_min_max	not supported yet
-v30_h_shifts	not supported yet
-v30_x109_field_whole_array	not supported yet
-v30_x153_lset_whole_array	not supported yet
 v30_x176_get_undeclared_array	not supported yet
 v30_x177_put_undeclared_array	not supported yet
 v30_x178_get_undeclared_string_array	not supported yet
-v30_x18_using_whole_array	not supported yet
-v30_x99_iif_array_parts	not supported yet
 v31_x01_accepted	not supported yet
 v32_a_blocks	D-016
 v32_x89_call_memput	not supported yet
 v32_x91_call_memfill	not supported yet
-v33_c10_system_unsigned	not supported yet
-v33_d01_debug	not supported yet
-v33_d02_no_debug	not supported yet
 v33_x29_crc32_dollar	not supported yet
 v33_x49_debug_vwatch_sub	D-017
 v33_x50_assert_dollar	not supported yet
@@ -133,16 +101,8 @@ v35_x58_parent_index_outside	D-004
 v35_x62_targets_through_members	D-004
 v35_x65_files_nested	D-019
 v35_x67_get_erased_array	D-021
-v36_a_numbers	not supported yet
-v36_x24_suffix_mismatch	not supported yet
-v36_x37_print_whole	not supported yet
-v36_x38_suffix_both	not supported yet
-v36_x40_suffix_types_differ	not supported yet
-v36_x43_suffix_strings	not supported yet
-v36_x44_suffix_declared_as	not supported yet
 v36_x48_member_index_outside	D-004
 v36_x52_owner_bounds_differ	D-022
-v37_b_types	not supported yet
 v37_x08	not supported yet
 v37_x22	not supported yet
 v37_x57	D-032
@@ -162,8 +122,6 @@ v40_g6_byte_e9_in_name	not recorded
 v41_b_kinds	D-025
 v41_i_float	D-025
 v41_j_outside	D-004
-v42_x46_line_number	not supported yet
-v43_a_errorline	not supported yet
 v43_x32	not supported yet
 v44_x46	not supported yet
 v45_a_auto	D-027
@@ -187,7 +145,6 @@ v48_x14_len_whole_scalar_parens	not supported yet: `LEN(x())` of a name that is 
 v48_x30_len_whole_string_member_array	not supported yet: `LEN` of a whole member array of variable-length strings (SOMEDAY.md)
 v49_x16_cast_no_dollar_suffix	not supported yet
 v49_x18_cast_out_of_range	varies: a float constant out of range in `_CAST`; g++ gives another value on each build, in the old compiler too (design D2 of `m4-builtins-param-types`)
-v50_x13_newhandler_line_number	not supported yet: line numbers
 v51_x09_bound_const_suffix_only	not supported yet: a CONST in a member array bound
 v51_x10_bound_auto_const	not supported yet: a CONST in a member array bound
 v51_x11_bound_const_function	not supported yet: a CONST in a member array bound
@@ -196,3 +153,5 @@ v51_x34_lbound_paren_name	not supported yet: LBOUND of a parenthesised array nam
 v51_x50_assign_or_alone	not supported yet: an operator where a value is expected outside a CONST
 v51_x75_dim_string_star_var	not supported yet: a variable as the length of STRING * n
 v52_x28_exp_function_name	not supported yet
+v54_x26_negative_beyond	D-034
+v54_x38_const_unsigned	D-027

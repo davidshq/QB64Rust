@@ -470,6 +470,9 @@ pub struct Label {
     pub file: FileId,
     /// The procedure whose body holds the label; `None` for the main module.
     pub proc: Option<ProcId>,
+    /// For a line number, the text the old compiler sets `last_line` to after it, for `ERL` (design D2 of
+    /// `m4-line-numbers-whole-arrays`); `None` for a named label.
+    pub line_number: Option<String>,
     /// How many of the program's `DATA` items ([`Program::data`]) stand before the label in file order: where a
     /// `RESTORE` to it makes the next `READ` start.
     pub data_at: usize,
@@ -693,7 +696,8 @@ pub enum Place {
     /// A scalar variable.
     Var(VarId),
     /// An element of an array: one index per dimension, each already converted to `_INTEGER64`. An index outside
-    /// its dimension's bounds raises error 9.
+    /// its dimension's bounds raises error 9. With no index, the whole array `a()` taken as a value or a variable:
+    /// its first element in memory, unchecked (design D4 of `m4-line-numbers-whole-arrays`).
     Element { array: ArrayRef, index: Vec<Expr> },
     /// A member of a place whose type is a user type; never a member array, which is named only as an
     /// [`ArrayRef::Member`].

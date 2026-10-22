@@ -4,9 +4,9 @@
 //!
 //! A message is looked up by its key, made as the script makes it: a backtick span whose words are all reserved
 //! words or built-in names (`old_wording_words.txt`), metacommands, strings or signs stays as written; any other
-//! span (a name as the program writes it) becomes `` `{}` ``, and a number outside the spans `{#}`. The table's
-//! wording names them `{n}` (the n-th, in order), `{n:U}` in capitals, `{n:P}` without its `()`, `{n:S}` also
-//! without its type suffix.
+//! span (a name or a line number as the program writes it) becomes `` `{}` ``, and a number outside the spans
+//! `{#}`. The table's wording names them `{n}` (the n-th, in order), `{n:U}` in capitals, `{n:P}` without its
+//! `()`, `{n:S}` also without its type suffix.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
@@ -39,8 +39,13 @@ fn table() -> &'static HashMap<&'static str, &'static str> {
     })
 }
 
-/// Whether a span stays in a key as written.
+/// Whether a span stays in a key as written. A span that is a number alone (a line number such as `010&` or
+/// `10.5`) is the program's text.
 fn literal(span: &str) -> bool {
+    let number = span.trim_end_matches(['%', '&', '!', '#', '~']);
+    if number.bytes().any(|b| b.is_ascii_digit()) && number.bytes().all(|b| b.is_ascii_digit() || b == b'.') {
+        return false;
+    }
     span.split_whitespace().all(|word| {
         let word = word.strip_suffix("()").unwrap_or(word);
         word.starts_with(['$', '"'])
@@ -171,6 +176,14 @@ mod tests {
         assert_eq!(
             key("`A`, `TYPE T`, `$CONSOLE:ONLY`, `\"\"`").0,
             "`{}`, `{}`, `$CONSOLE:ONLY`, `\"\"`"
+        );
+        // A line number is the program's text, as `old_wording.py` takes it; a sign or a keyword span is not.
+        assert_eq!(
+            key("`010&` and `10.5` but `<>` and `STRING * 0`"),
+            (
+                "`{}` and `{}` but `<>` and `STRING * 0`".to_string(),
+                vec!["010&", "10.5"]
+            )
         );
     }
 

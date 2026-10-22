@@ -114,10 +114,12 @@ fn var_name(p: &Program, id: VarId) -> String {
     format!("{} ({class})", v.name)
 }
 
-/// A place as text: `X`, `X(…)` for an element (its indexes are printed by [`indexes`]), `P.M` for a member.
+/// A place as text: `X`, `X(…)` for an element (its indexes are printed by [`indexes`]), `X()` for the first
+/// element of a whole array taken as a value, `P.M` for a member.
 fn place_text(p: &Program, place: &Place) -> String {
     match place {
         Place::Var(v) => var_name(p, *v),
+        Place::Element { array, index } if index.is_empty() => format!("{}()", array_text(p, array)),
         Place::Element { array, .. } => format!("{}(…)", array_text(p, array)),
         Place::Member { base, member } => {
             let m = &p.member(p.place_ty(base), *member).name;

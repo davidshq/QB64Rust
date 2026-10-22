@@ -1,0 +1,7 @@
+1. 5 
+2. 0 
+3. after PRINT
+4. after READ
+5. after SWAP
+ok
+exit=0

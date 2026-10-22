@@ -23,7 +23,9 @@ files read and written by position `GET`, `PUT`, `FIELD`, `LSET`, `RSET`, `LOCK`
 `_DEPTHBUFFER`, `_CLEARCOLOR`, `_SETALPHA`, `_BLEND`, `_DONTBLEND`, `_PALETTECOLOR`, `_COPYPALETTE`,
 `_AUTODISPLAY`, `_CLIPBOARDIMAGE`, `_PRINTIMAGE`, `_FONT`, `_FREEFONT`, `_PRINTSTRING`, `_PRINTMODE`,
 `_UPRINTSTRING`, `_MAPUNICODE`, `_MOUSEMOVE`, and the statements of memory blocks (`language/mem-blocks`):
-`_MEMGET`, `_MEMPUT`, `_MEMFILL`, `_MEMCOPY`, `_MEMFREE`, and `_ASSERT` (`language/asserts-and-debug`), and `CLEAR` and `_CLIPBOARD$ = s$`. Any
+`_MEMGET`, `_MEMPUT`, `_MEMFILL`, `_MEMCOPY`, `_MEMFREE`, and `_ASSERT` (`language/asserts-and-debug`), and `CLEAR` and `_CLIPBOARD$ = s$`,
+and `_KEYCLEAR` (`language/keyboard`), `_RESIZE`, `_CONSOLE`, `_SCREENMOVE`, `_ACCEPTFILEDROP`, `_FINISHDROP`
+and `_MESSAGEBOX` (`language/console-and-window`), and `_CONTROLCHR` (`language/screen-output`). Any
 other built-in
 statement SHALL be reported "not supported yet" at its first word, and a supported
 statement used in a form this change leaves out SHALL be reported "not supported yet" at that form.

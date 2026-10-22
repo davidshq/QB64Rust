@@ -1275,8 +1275,10 @@ impl Checker<'_> {
             self.resume(s)
         } else if let Some(s) = ast::ErrorStmt::cast(node) {
             self.error_stmt(s)
-        } else if ast::LineNumber::cast(node).is_some() || ast::ImplicitGoto::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "line numbers"))
+        } else if let Some(s) = ast::LineNumber::cast(node) {
+            self.line_number_stmt(s)
+        } else if let Some(s) = ast::ImplicitGoto::cast(node) {
+            self.implicit_goto(s)
         } else if let Some(s) = ast::GotoStmt::cast(node) {
             self.goto(s)
         } else if let Some(s) = ast::GosubStmt::cast(node) {
@@ -1685,12 +1687,13 @@ impl Checker<'_> {
         // `a() = (b(1))`); a whole member array beside a side of another form keeps the errors it gets below.
         let source = without_parens(value_node);
         if written_whole(target_node) && written_whole(source) {
-            return self.copy_array(node, target_node, source);
-        }
-        if let Some((_, t)) = self.whole_array(target_node) {
+            // Not a copy with a type suffix on both names: an ordinary assignment of the first elements.
+            if self.copy_array(node, target_node, source)? {
+                return Ok(());
+            }
+        } else if let Some((_, t)) = self.whole_array(target_node) {
             return Err(self.half_whole(node, (target_node, t), source, false));
-        }
-        if let Some((_, t)) = self.whole_array(source) {
+        } else if let Some((_, t)) = self.whole_array(source) {
             return Err(self.half_whole(node, (source, t), target_node, true));
         }
         let place = match target_node {

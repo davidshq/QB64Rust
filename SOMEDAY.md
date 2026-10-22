@@ -78,7 +78,6 @@ accepts and the new one still marks "not supported yet", and what is compiled bu
 | Form | Why it waits | Details |
 |---|---|---|
 | An `$EXEICON` name with a drive and no slash after it (`C:game.ico`) | The old compiler looks for it in the folder it stands in on that drive (read in `qb64pe.bas` 3854–3873, not measured), which has no counterpart here. The other relative names are looked for under the compiler root since `m4-devices-continue-paths` (`DECISIONS.md` 2026-10-20) | `sema\src\check\mod.rs` `exe_icon_meta` |
-| `ON PLAY(n) GOSUB 10` and any `ON … GOSUB` or `ON … GOTO` whose target is a line number | Line numbers are not compiled yet, whatever the number of the `ON` is; with a label the statement compiles | `verification\v29_x64`; `tests\frontend\sound_typed.bas` |
 | `VARPTR$` in a `PLAY` string (`PLAY "X" + VARPTR$(a$)`) | `VARPTR$` is not compiled (the table above) | Not measured |
 | `BEEP` is compiled, and no test runs it | It rings the system's bell, which no volume silences (user, `DECISIONS.md` 2026-10-13). Its call is compared by `tests\callsite\beep_*.bas`, and `s74_sound_queue` holds it as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
 | What is heard is checked by no test | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; the samples would test libqb. The slice programs check what a program can observe: the queue, the waits, the errors | Design D6 of `m3-sound` |
@@ -93,10 +92,7 @@ compiled but not checked by a run:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A whole array `e()` as the string of `FIELD`, `LSET` or `RSET` | The old compiler takes it as the array's first element with no bounds check (of an array that is not allocated: whatever lies there). "Not supported yet"; also under "QB64pe behaviours to review" | `verification\v30_x109`, `x153` |
-| A whole array `a()` as a value of `PRINT USING` or as a part of `_IIF` | An error here, as a whole array is in every expression; the old compiler takes it as element 0 | `verification\v30_x18`, `x99` |
 | `GET #1, , und()` and `PUT` with an array that is not declared | The old compiler accepts it, also `und$()`, although a declared array of variable-length strings is rejected; "not supported yet" | `verification\v30_x176`–`x178`; `tests\frontend\file_get_put_ir.bas` has the declared forms |
-| An `_UNSIGNED _INTEGER64` literal above the `_INTEGER64` range (`18446744073709551615`) | "Not supported yet: unsigned literals", older than this step; the slice programs make the value by `u = 0: u = u - 1` | `tests\corpus\slice\s78_choice_min_shifts.bas` |
 | `LPRINT` and `CHAIN` are compiled, and no test runs them | `LPRINT` prints a page on the default printer; `CHAIN` starts `qb64pe.exe -c` beside the program through `cmd` (user, `DECISIONS.md` 2026-10-13). `238_chain` on `slice.list` reaches `sub_chain` with a name that is not there; no test chains to a program that exists (gap noted by the user, `DECISIONS.md` 2026-10-16). Their calls are compared by `tests\callsite\lprint_*.bas` and `chain_*.bas`; `s82_print_using_file` and `s87_chain_not_reached` hold them as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
 | What a format of `PRINT USING` prints, and what a file holds after `GET` and `PUT`, are shown once per topic | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; more lines would test libqb | Design, Non-Goals |
 
@@ -134,14 +130,6 @@ measured:
 |---|---|---|
 | `_OFFSET(x.v())` of a whole `_DYNAMIC` member array | Not measured (its `_MEM` is, `verification\v35_x66`) | `sema\src\check\mem.rs`, `unmeasured_path` |
 | `_MEMGET`, `_MEMPUT` and `_MEMFILL` with a `_DYNAMIC` member array or an element of one as the variable | Outside the change (its design, Non-Goals) | `check\mem.rs`, `bytes_reference` |
-
-**Left marked by `m3-whole-array-assign`** (2026-10-15: `a() = b()` with arrays and member arrays of every kind).
-What the old compiler accepts and the new one still marks "not supported yet":
-
-| Form | Why it waits | Details |
-|---|---|---|
-| A whole-array assignment with a type suffix on both names (`b%() = a%()`, `a&() = b%()`, `a$() = b$()`, also for arrays declared `AS INTEGER`) | The old compiler does not take the whole-array path for a suffixed name: it copies element 0 into element 0, converting, with no type check (`b%(1)` and `b%(2)` keep their values). Marked rather than copied so (user, 2026-10-15, as for a whole array in `FIELD`); also under "QB64pe behaviours to review" | `verification\v36_x24`, `x38`, `x40`, `x43`, `x44`, `v36_a` 7.–9.; `sema\src\check\whole.rs` |
-| A whole array as a value of `PRINT` (`PRINT a()`) | The old compiler prints element 0; a whole array in an expression is marked, as before the change | `verification\v36_x37`; `check\places.rs`, `element` |
 
 **Left marked by `m3-declare-library`** (the twelfth step of M3, 2026-10-16: `DECLARE LIBRARY` in its four forms on
 Windows). What the old compiler accepts and the new one still marks "not supported yet", or does otherwise:
@@ -182,7 +170,6 @@ marked; left out:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A line number as a handler (`ON TIMER(1) GOSUB 10`) | Line numbers are not compiled yet (the row of `ON PLAY` above) | `verification\v42_x46` |
 | A SUB of a `DECLARE LIBRARY` block as a handler | Not measured | `sema\src\check\events.rs` |
 
 **Left marked by `m3-network-embed`** (2026-10-17: `$EMBED`, `_EMBEDDED$`, the network functions, `_SOCKETS_`,
@@ -230,7 +217,7 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 | `LEN(x())` and `_MEM(x())` of a name that is no array | The old compiler makes `x` an array used without `DIM` there (`LEN` 44: 11 SINGLEs); `x()` with nothing between the parentheses makes none here | `verification\v48_x04`, `x14` |
 | `LEN` of a whole array of a `TYPE` with a `_DYNAMIC` member array, and of a whole `_DYNAMIC` member array | Not measured (`LEN` of such a value is an error, `v35_x20`) | `check\builtins.rs` `len_whole` |
 | `LEN` of a whole member array of variable-length strings (`TYPE t: s(3) AS STRING …`, `LEN(x.s())`) | The old compiler gives 32 for four elements, likely 8 bytes (a pointer) each, where a whole array of strings is an error (`v48_x01`); one program only, and a number no program can use: other bounds, dimensions and the C++ it writes not measured | `verification\v48_x30`; `tests\frontend\names_arrays_errors.bas` |
-| A whole array as a value (`PRINT a()`, `SWAP x(), y()`, `READ a()`), the old compiler's errors for names that are no array or no SUB, a built-in's name with a type suffix (`LEN$`, `base$`) | Left for later by the user (`DECISIONS.md` 2026-10-20) | design Non-Goals |
+| The old compiler's errors for names that are no array or no SUB, a built-in's name with a type suffix (`LEN$`, `base$`) | Left for later by the user (`DECISIONS.md` 2026-10-20; a whole array as a value, left with them, is built since `m4-line-numbers-whole-arrays`) | design Non-Goals |
 
 **Left marked by `m4-builtins-param-types`** (2026-10-21: `_CAST`, `_CLIPBOARD$`, `_FILES$`, `_MD5$`, `_OS$`,
 `CLEAR`, a parameter's `TYPE` above its procedure):
@@ -244,7 +231,6 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `ON ERROR GOTO _NEWHANDLER 10`: a line number as the handler | Line numbers as labels are "not supported yet" everywhere | `verification\v50_x13` (on `tests\verification\known.list`) |
 | `ON ERROR GOTO foo h`: another word before the label | Rejected here as a parse error; the old compiler's message is "Expected: ON ERROR GOTO [_NEWHANDLER] label". Taking any two words would read a keyword after a label as the label | `verification\v50_x26`; design D1 of the change |
 | A log statement in an included file found in the compiler root (`--include-root`) | Its entry names the file by the working folder and the name relative to the compiler root, a path that does not exist; the old compiler names it by the path as written. No program logs from such a file | Design D2 of the change (`codegen-cpp` `lib.rs`, the log folder) |
 
@@ -275,6 +261,14 @@ that `qb64pe.bas` needs):
 | Form | Why it waits | Details |
 |---|---|---|
 | `_SETBIT`, `_RESETBIT` and `_TOGGLEBIT`, the siblings of `_READBIT` | Not used by `qb64pe.bas`, so out of the change's scope; each is an inline function of libqb's `bitops.h`, as `_READBIT` is, and would be a plain row | Design, "Non-Goals"; `tests\frontend\unsupported.bas` uses `_SETBIT` and `_TOGGLEBIT` as its examples |
+
+**Left marked by `m4-line-numbers-whole-arrays`** (2026-10-22: line numbers, unsigned literals, a whole array as a
+value):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A negative integer literal beyond the `_INTEGER64` range (`-9223372036854775809`, `-18446744073709551615`) | "Overflow" here; the old compiler gives it `&&` and its C++ build decides the value (`-18446744073709551615` prints 1). No program needs it (`CLAUDE.md` working rule 12) | Design, "Non-Goals"; `verification\v54_x26` (on `tests\verification\known.list`) |
+| A whole array `x()` of a name that is no declared array, as a value | The old compiler makes an array used without `DIM` there; step 2 of the rest of M4 (`DECISIONS.md` 2026-10-22) | Design, "Non-Goals"; `check\places.rs` `implicit_array` |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -362,7 +356,12 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | A sound just opened, paused or stopped has `_SNDPAUSED` -1 (a sound that never played counts as paused) | 0 until the sound has been paused | Same (`v39_a_handles` 2., 7.) |
 | `_SNDLEN` of a `_SNDNEW` sound is a SINGLE widened to DOUBLE (`.1000000014901161` for 800 frames at 8000 Hz), and the length and position of a decoded sound are counted in frames of the device's rate (`.125` s reads `.1249886602163315` at 44100 Hz) | Compute in DOUBLE from the sound's own rate | Same (`v39_b_new_mem` 1., `v39_a_handles` 4.; `GetSoundDuration`, `GetSoundPosition`) |
 | `_SNDPLAYFILE`'s second argument (`sync`) is read and ignored; `_SNDBAL`'s fifth (the channel) is accepted though its reference shows four, and ignored | An error for an argument that does nothing, or drop it from the forms | Same (`verification\v39_x01_accepted`; `PlaySoundFile`, `SetSoundBalance`) |
-| A whole array `e()` where a string variable is expected (`FIELD #1, 4 AS e()`, `LSET e() = "x"`), as a value of `PRINT USING` and as a part of `_IIF` is accepted and is the array's first element, with no bounds check (not compiled here: marked, or an error) | An error, as for any other whole array in an expression | `verification\v30_x18`, `x99`, `x109`, `x153` |
+| A whole array `a()` in an expression is the array's first element in memory, with no bounds check (`a(5)` of `a(5 TO 7)`): `PRINT a()`, `a() + 1`, `-a()`, `(a())`, `ABS(a())`, `IF a() THEN`, `PRINT USING`, `_IIF`, `WRITE`, `PRINT #`, `x = a() + 1`, `VARPTR(a())`; only an assignment whose whole value is `a()` is an error | An error everywhere, as `x = a()` is | `m4-line-numbers-whole-arrays` design D4 (`verification\v54_c_whole_values`, `v54_x05`–`x34`, `x39`, `v30_x18`, `x99`, `v36_x37`) |
+| A whole array as the variable of `READ`, `INPUT`, `INPUT #` and `LINE INPUT #` takes one item into its first element; `SWAP x(), y()` swaps the two first elements (of two element types: "Type mismatch") | An error; or, for `SWAP`, swap the whole arrays | Same (`v54_c_whole_values`, `v22_x49`, `x70`, `x101`, `v54_x09`, `x10`, `x19`) |
+| A whole array `e()` where a string variable is expected (`FIELD #1, 4 AS e()`, `LSET e() = "x"`, `RSET`) is the array's first element | An error | Same (`verification\v30_x109`, `x153`, `v54_x14`) |
+| A whole array after `ERASE` read as a value gives 0, and a store into it (`READ a()`) raises nothing: the array's data points at libqb's `nothingvalue`, 8 bytes shared by every array that is not allocated, so the store is seen by the next read of any of them. Of strings: `PRINT s()` gives an empty string, of `STRING * 20` 20 blanks, and `READ s()` stores into memory that is no array's (its text then shows at the end of each later `PRINT`, in both compilers) | Error 9, as for an element of an erased array | Same (`v54_d_whole_erased`, `v54_x42`–`x44`) |
+| `ERL` is the last numbered line the program ran before the error, a numbered line of the error handler included: after a handler that starts with a numbered line, an error on an unnumbered line gives the handler's number | The last numbered line before the error in the program's text, as QuickBASIC's manual describes `ERL` | `m4-line-numbers-whole-arrays` (`verification\v54_a_line_numbers`) |
+| `ERL` is the line number's text read by C++: `010&` gives 8 (an octal literal), `1.10` and `1.1` are two lines that both give 1.1, as `10.0` and `10` give 10; `08&` and a number above 18446744073709551615 fail the old compiler's C++ build, and are an error here | The number's value; `1.10` and `1.1` one line, or an error | Same (`v54_x03`, `x12`, `x25`, `x40`, `x41`) |
 | `_MIN(nan, 1)` gives the value that is not a number and `_MIN(1, nan)` gives 1 (`std::min` compares once); `RSET` cuts a value that is too long at its end, as `LSET` does, where QuickBASIC's manual says nothing else | Document, or return the number in both orders | `verification\v30_g_iif_min_max`, `v30_l_lset_rset`; line 19 of `s78_choice_min_shifts` |
 | A field string keeps its field after `=` gives it another length, and gets its width and the buffer's bytes back at the next `LSET` to any field of the file or `GET` with no variable; a second `FIELD` on a file keeps the strings of the first as fields | QuickBASIC ends a string's field at an assignment. A decision for a strict mode | `verification\v30_j_field`; lines 6 to 9 of `s86_field_lset` |
 | A number that was never an image handle passed to `_WIDTH` (`_WIDTH(12345)`) raises nothing and gives the screen's width; `_SAVEIMAGE "x.png", 12345` writes a file and raises nothing; a freed handle raises 258 in both | Error 258 for any number that is no handle. libqb's, so a change is a change to the runtime | `m3-images-fonts-mouse` task 1.1 (`verification\v31_b_images`, `v31_c_save_load`) |
@@ -376,7 +375,7 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `ERASE` of a static array of a type with `_DYNAMIC` members releases each element's members and leaves them not allocated: every use raises error 9 until a `REDIM` of the member, while a variable's or a dynamic array's members always have their declared bounds when made | Give each member its declared bounds again, as `ERASE` of a static array gives its other members zero | `m3-typefields` (`verification\v35_b` 9., `x51`; `s116_dyn_member_parents` items 9 and 10) |
 | A whole-value copy of a type with `_DYNAMIC` members finds both places again for each of its statements (a test that they differ, each member, each element of an inline member array): `a(one(1)) = b(one(2))` calls `one` 8 times for a type of a LONG and a `_DYNAMIC` member, 12 times with a `STRING` beside them, 29 times for a nested owner type with strings | Evaluate each side once, then copy (as for the string case of plain types above) | `m3-typefields` task 4.3 (`verification\v35_x56`, `x61`; `s117_dyn_member_kinds` items 11, 12, 14, 15) |
 | A whole-value copy from a value whose `_DYNAMIC` member is not allocated (after `ERASE x.v`) keeps the target's member when the type holds no `STRING`, and leaves it not allocated when it holds one: the old compiler has two copy routines, `AppendDynUDTDescCopy` and `AppendDynUDTOwnCopyEx` | One rule: the target's member as the source's (not allocated) | `m3-typefields` task 4.3 (`verification\v35_x61` 3. and 4.; `s117_dyn_member_kinds` item 16) |
-| `b%() = a%()`, a whole-array assignment with a type suffix on both names, copies element 0 of `a%` into element 0 of `b%` (converting, `a&() = b%()`) and nothing else, with no check of types or bounds; with a suffix on one name only it is an error (not implemented here: marked, see "Left marked by `m3-whole-array-assign`") | Copy the whole array, as without the suffix | `m3-whole-array-assign` (`verification\v36_x24`, `x38`, `x40`, `x43`, `x44`) |
+| `b%() = a%()`, a whole-array assignment with a type suffix on both names, copies element 0 of `a%` into element 0 of `b%` (converting, `a&() = b%()`) and nothing else, with no check of types or bounds; with a suffix on one name only it is an error (built so since `m4-line-numbers-whole-arrays`) | Copy the whole array, as without the suffix | `m3-whole-array-assign` (`verification\v36_x24`, `x38`, `x40`, `x43`, `x44`) |
 | `_MEMELEMENT` of an element of a member array (`_MEMELEMENT(u.v(1))`) is the whole member array's bytes typed as one element (16, 132, 16 for four LONGs), and `_MEM` of a member is typed 32768 with element size 1 whatever the member's type, where `_MEMELEMENT` of it has the member's own type | One element, as for an array variable; the member's type for `_MEM` too | `m3-mem` task 1.1 (`verification\v32_a_blocks`) |
 | A `DECLARE LIBRARY` block that finds a header writes no prototype for any of its declarations, also for those of the block's other libraries: a function of a `.a` named beside a header must be declared by the header, or the C++ fails (`DECLARE LIBRARY "v37h", "./v37c"` with `c_half#`, which only `v37c` has) | A prototype for each declaration the header does not declare; that needs the header read, and a prototype could disagree with what it declares | `m3-declare-library` (`verification\v37_x23`, `x30`; design D3) |
 | A library FUNCTION's result is cast to its declared type, so a C `double` returned to a FUNCTION typed LONG (no suffix under `DEFLNG`) is truncated: 2.7 gives 2, where an assignment of 2.7 to a LONG gives 3 | Round as every other conversion to an integer does | `m3-declare-library` (`verification\v37_x63`; `slice\s121_library_numbers`, line `expr:`) |

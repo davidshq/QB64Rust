@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 error_handling_errors.bas:5:1: error: duplicate label: `a`
@@ -9,9 +8,12 @@ error_handling_errors.bas:6:15: error: label `nowhere` is not defined in the mai
 error_handling_errors.bas:6:15: note: QB64pe: Label 'nowhere' not defined
 error_handling_errors.bas:7:8: error: label `nowhere` is not defined in the main module
 error_handling_errors.bas:7:8: note: QB64pe: Label 'nowhere' not defined
-error_handling_errors.bas:8:15: error: not supported yet: line numbers
-error_handling_errors.bas:9:8: error: not supported yet: line numbers
+error_handling_errors.bas:8:15: error: label `10` is not defined in the main module
+error_handling_errors.bas:8:15: note: QB64pe: Label '10' not defined
+error_handling_errors.bas:9:8: error: label `10` is not defined in the main module
+error_handling_errors.bas:9:8: note: QB64pe: Label '10' not defined
 error_handling_errors.bas:10:15: error: `a$` is not a valid label
+error_handling_errors.bas:10:15: note: QB64pe: Invalid label!
 error_handling_errors.bas:11:7: error: `ERROR` needs a number
 error_handling_errors.bas:12:12: error: `CHR$` needs a number
 error_handling_errors.bas:13:7: error: `CHR$` takes 1 argument

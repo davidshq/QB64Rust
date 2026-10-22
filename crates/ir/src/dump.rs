@@ -220,9 +220,13 @@ fn body(p: &Program, b: &Body, out: &mut String) {
         for (i, l) in b.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
             let name = label(b, LabelId(to_u32(i)));
             let unchecked = if l.checked { "" } else { " unchecked" };
+            let last_line = l
+                .line_number
+                .as_ref()
+                .map_or_else(String::new, |n| format!(" last_line {n}"));
             writeln!(
                 out,
-                "Label {name} line {}{}{unchecked}",
+                "Label {name} line {}{}{last_line}{unchecked}",
                 l.line,
                 in_main(l.include_line)
             )

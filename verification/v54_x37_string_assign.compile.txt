@@ -1,0 +1,5 @@
+
+Expected array index after s
+Caused by (or after):X$ = S ( )
+LINE 5:x$ = s()
+exit=1

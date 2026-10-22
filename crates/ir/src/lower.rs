@@ -141,6 +141,7 @@ impl<'a> Lowerer<'a> {
                 line: l.line,
                 include_line: l.include_line,
                 file: Some(l.file),
+                line_number: l.line_number.clone(),
                 at: 0,
                 checked: true,
             })
@@ -206,6 +207,7 @@ impl<'a> Lowerer<'a> {
             line,
             include_line: self.include_line,
             file: None,
+            line_number: None,
             at: usize::MAX,
             checked: self.checked,
         });

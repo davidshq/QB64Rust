@@ -22,7 +22,10 @@ impl Emitter<'_> {
 
     /// The flat position of an element, with libqb's `array_check` per dimension (error 9 outside the bounds; it
     /// then gives 0, the first position, as the old compiler reads), first dimension fastest. Below
-    /// `$CHECKING:OFF` without it (`qb64pe.bas` 15627–15640, 16136–16149, 16335–16348).
+    /// `$CHECKING:OFF` without it (`qb64pe.bas` 15627–15640, 16136–16149, 16335–16348). With no index, 0: the
+    /// first element of a whole array taken as a value, unchecked as the old compiler writes it (design D4 of
+    /// `m4-line-numbers-whole-arrays`; an array not allocated points at libqb's `nothingvalue`, whose 8 bytes are
+    /// zeros).
     pub(crate) fn flat_index(&mut self, array: VarId, index: &[Expr]) -> String {
         let name = self.name(array);
         self.flat_index_in(&name, index)
@@ -32,6 +35,9 @@ impl Emitter<'_> {
     /// a dynamic member array's.
     fn flat_index_in(&mut self, desc: &str, index: &[Expr]) -> String {
         let n = index.len();
+        if n == 0 {
+            return "0".to_string();
+        }
         let parts: Vec<String> = index
             .iter()
             .enumerate()
