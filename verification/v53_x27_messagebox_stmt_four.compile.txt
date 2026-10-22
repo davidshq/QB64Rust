@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _MESSAGEBOX [title$][, message$][, iconType$]
+Caused by (or after):_MESSAGEBOX "a",1 , "b",1 , "ok",2 , "info",4
+LINE 6:_MESSAGEBOX "a", "b", "ok", "info"
+exit=1

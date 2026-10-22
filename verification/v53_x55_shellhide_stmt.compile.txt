@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_SHELLHIDE "cmd /c exit 0",13
+LINE 6:_SHELLHIDE "cmd /c exit 0"
+exit=1

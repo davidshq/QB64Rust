@@ -1,0 +1,25 @@
+start 7  0 
+screen 0 14  1 
+blink 31  7 
+screen 12 15  0 
+color 14, 1 14  1 
+screen 13 200  100 
+32 bits 4294967295  4278190080 
+color 32 4278256131  117703942 
+dest 0 4278256131  117703942 
+text image 7  0 
+256 image 15  0 
+32 image 4294967295  4278190080 
+256 after 9  3 
+32 after 4279246896  2151698528 
+screen after 4278256131  117703942 
+single handle 4279246896  2151698528 
+page 1 written 5  0 
+page 0 shown 15  0 
+page 7 15  0 
+page 8 15  0 
+error 258 
+error 258 
+error 258 
+after error 0  0 
+exit=0

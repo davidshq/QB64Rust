@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_DROPPEDFILE
+LINE 6:_DROPPEDFILE
+exit=1

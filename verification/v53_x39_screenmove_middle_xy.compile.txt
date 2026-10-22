@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SCREENMOVE x, y or _SCREENMOVE _Middle
+Caused by (or after):_SCREENMOVE _MIDDLE , 10 , 20
+LINE 6:_SCREENMOVE _MIDDLE, 10, 20
+exit=1

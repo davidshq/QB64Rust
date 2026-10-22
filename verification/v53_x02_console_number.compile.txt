@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _CONSOLE {On|Off}
+Caused by (or after):_CONSOLE 1
+LINE 6:_CONSOLE 1
+exit=1

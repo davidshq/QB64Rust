@@ -107,6 +107,9 @@ impl Checker<'_> {
             | Rule::Rotate => {}
         }
         self.runtime_part(s.id, name, span)?;
+        if matches!(name, "_COMPILEDATE$" | "_COMPILETIME$") {
+            self.settings.compile_stamp = true;
+        }
         let slots = slots(s);
         let filled = self.filled_slots(s, &slots, list, span)?;
         let mut args = Vec::with_capacity(slots.len());
@@ -1210,11 +1213,13 @@ fn calls_procedure(e: &Expr) -> bool {
     }
 }
 
-/// Whether slot `k` of a function stands alone in brackets after a comma in its template (`,[?]`), so that an
-/// argument list may leave it empty: the second slot of `?[,[?][,?]]`, not the second of `?[,?]`, nor the first of
-/// `INSTR`'s `[?],?,?` (`INSTR(, a$, b$)` is not measured and stays "not supported yet"). The rule goes by the
-/// template, not by name: a function added later whose template has such a slot (`_MESSAGEBOX`, `_SNDNEW`, …)
-/// accepts the gap at once, so its measurement includes one call with that slot left empty.
+/// Whether slot `k` of a function stands alone in brackets after a comma in its template (`,[?]`), or alone in
+/// brackets at its start with a bracketed comma after it (`[?][,`), so that an argument list may leave it empty: the
+/// second slot of `?[,[?][,?]]` and the first of `_MESSAGEBOX`'s `[?][,[?][,…]]` (measured,
+/// `verification\v53_x31`; the three file dialogs' call-site programs `func_*dialog_skip`), not the second of `?[,?]`, nor the first of `INSTR`'s `[?],?,?` (`INSTR(, a$, b$)` is
+/// not measured and stays "not supported yet"). The rule goes by the template, not by name: a function added later
+/// whose template has such a slot (`_SNDNEW`, …) accepts the gap at once, so its measurement includes one call with
+/// that slot left empty.
 fn may_be_left_out(b: &qb64rust_builtins::Builtin, k: usize) -> bool {
     let Some(format) = b.specialformat else {
         return false;
@@ -1225,7 +1230,12 @@ fn may_be_left_out(b: &qb64rust_builtins::Builtin, k: usize) -> bool {
         .enumerate()
         .filter(|&(_, &c)| c == b'?')
         .nth(k)
-        .is_some_and(|(i, _)| i > 1 && bytes[i - 2..i] == *b",[" && bytes.get(i + 1) == Some(&b']'))
+        .is_some_and(|(i, _)| {
+            let alone = bytes.get(i + 1) == Some(&b']');
+            let after_comma = i > 1 && bytes[i - 2..i] == *b",[";
+            let first = i == 1 && bytes[0] == b'[' && bytes.get(i + 2..i + 4) == Some(b"[,".as_slice());
+            alone && (after_comma || first)
+        })
 }
 
 /// The numbers of arguments a function's template allows, bit `n` for `n` arguments; `None` without a template.

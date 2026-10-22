@@ -163,6 +163,16 @@ pub fn emit_with(
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
     set("global.txt", e.global() + &e.library_globals());
+    // The window's resizing, which libqb reads from here (`qb64pe.bas` 13100–13106).
+    let mut dyninfo = String::new();
+    if p.settings.resize != qb64rust_ir::Resize::Off {
+        dyninfo.push_str("ScreenResize=1;\n");
+    }
+    let scale = p.settings.resize.scale();
+    if scale != 0 {
+        writeln!(dyninfo, "ScreenResizeScale={scale};").unwrap();
+    }
+    set("dyninfo.txt", dyninfo);
     // The libraries' headers and prototypes first: a program procedure's prototype names no type of theirs.
     set("regsf.txt", e.library_prototypes() + &e.prototypes());
     set("clear.txt", e.per_program_var(|v, n| e.clear(v, n)));

@@ -1,0 +1,13 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+Settings: console, no window, resizable, smoothed
+Stmt line 2
+  SelectConsole
+Stmt line 9 may_raise
+  Call S []
+Stmt line 10
+  System
+Sub S lines 11-13

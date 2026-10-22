@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _RESIZE [{ON|OFF}][, {_STRETCH|_SMOOTH}]
+Caused by (or after):_RESIZE 1
+LINE 6:_RESIZE 1
+exit=1

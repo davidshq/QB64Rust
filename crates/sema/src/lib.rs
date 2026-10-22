@@ -1584,8 +1584,13 @@ pub struct Settings {
     pub window_hidden: bool,
     /// `$ASSERTS` or `$ASSERTS:CONSOLE` stands in the program's compiled code: `_ASSERT` checks its condition.
     pub asserts: bool,
+    /// The last `$RESIZE` line in the file.
+    pub resize: Resize,
     /// The optional parts of the runtime the program's built-ins need (the table's `dependency` column).
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
+    /// The program calls `_COMPILEDATE$` or `_COMPILETIME$`, whose value is the time of the C++ build: no build of
+    /// it is reused from a cache of executables.
+    pub compile_stamp: bool,
     /// The icon `$EXEICON` gives the executable.
     pub exe_icon: Option<ExeIcon>,
     /// The version resource `$VERSIONINFO` gives the executable, when a line of it stands in the program.
@@ -1676,6 +1681,32 @@ impl ExeIcon {
 /// name still "not supported yet" (design D3 of `m4-devices-continue-paths`).
 pub fn drive_without_slash(name: &[u8]) -> bool {
     matches!(name, [drive, b':', rest @ ..] if drive.is_ascii_alphabetic() && !matches!(rest.first(), Some(b'/' | b'\\')))
+}
+
+/// Whether the user may resize the window and how the screen is scaled to it, from the last `$RESIZE` line (design D3
+/// of `m4-qb64pe-builtins`; `qb64pe.bas` 3626–3645 sets `ResizeOn` and `ResizeScale`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Resize {
+    /// No `$RESIZE` line, or `$RESIZE:OFF`.
+    #[default]
+    Off,
+    /// `$RESIZE:ON`: resizable, not scaled.
+    On,
+    /// `$RESIZE:STRETCH`: resizable, the screen stretched to the window.
+    Stretch,
+    /// `$RESIZE:SMOOTH`: resizable, stretched and smoothed.
+    Smooth,
+}
+
+impl Resize {
+    /// The old compiler's `ResizeScale`: 0 not scaled, 1 stretched, 2 smoothed.
+    pub fn scale(self) -> u8 {
+        match self {
+            Resize::Off | Resize::On => 0,
+            Resize::Stretch => 1,
+            Resize::Smooth => 2,
+        }
+    }
 }
 
 /// An optional part of the runtime that a built-in needs linked in.

@@ -2,8 +2,8 @@
 
 use crate::{
     Arg, ArrayRef, BinOp, Body, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue, OnError, Op, Place,
-    PrintItem, PrintTo, ProcKind, Program, Reference, Resume, RuntimePart, Settings, Shape, Source, StmtArg, Storage,
-    Ty, UsingValue, VarId, When,
+    PrintItem, PrintTo, ProcKind, Program, Reference, Resize, Resume, RuntimePart, Settings, Shape, Source, StmtArg,
+    Storage, Ty, UsingValue, VarId, When,
 };
 
 use qb64rust_base::{show_bytes, to_u32};
@@ -21,6 +21,15 @@ fn settings(s: &Settings) -> String {
     }
     if s.asserts {
         parts.push("asserts".to_string());
+    }
+    match s.resize {
+        Resize::Off => {}
+        Resize::On => parts.push("resizable".to_string()),
+        Resize::Stretch => parts.extend(["resizable".to_string(), "stretched".to_string()]),
+        Resize::Smooth => parts.extend(["resizable".to_string(), "smoothed".to_string()]),
+    }
+    if s.compile_stamp {
+        parts.push("compile time".to_string());
     }
     if !s.runtime_parts.is_empty() {
         let names: Vec<&str> = s

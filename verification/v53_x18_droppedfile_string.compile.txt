@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):F$ = _DROPPEDFILE ( "a",1 )
+LINE 6:f$ = _DROPPEDFILE("a")
+exit=1

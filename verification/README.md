@@ -133,6 +133,24 @@ Small programs behind `study\09`, `study\10` and later measurements:
   either way); `v52_builtin_name_suffixes.py` and its `.txt`, the sibling of
   `v15_builtin_names`: every keyword and built-in name with each other suffix, `variable`, `statement` or
   `rejected`; numbers 38 not used
+- `v53*`: the built-ins and `$RESIZE` that `qb64pe.bas` needs, measured as task 2.1 of `m4-qb64pe-builtins`:
+  `v53_a_window` (`$CONSOLE`) `_CONSOLE OFF` and `ON` with the console a pipe (output goes on while off), `_EXIT`
+  with no request (0), each form of the statement `_RESIZE`, the drop built-ins with nothing dropped
+  (`_DROPPEDFILE` with an index of 0 or below: empty, no error); `v53_b_colours` `_DEFAULTCOLOR` and
+  `_BACKGROUNDCOLOR` after `COLOR` in each kind of screen, of images of each depth, of pages (one that does not
+  exist: no error), of a handle of no image or a freed one (error 258, the value 0); `v53_c_system` `_DIR$` of each
+  name (the last character, whether it exists, whether it is the desktop's; never the path; the same on any
+  Windows machine: libqb asks for each folder with `CSIDL_FLAG_CREATE` and falls back to the user's profile, so
+  each exists, `filesystem.cpp` `FS_GetKnownDirectory`), `_SHELLHIDE` exit
+  codes (an empty command: error 5 and the value 1), `_COMMANDCOUNT`, the shapes of `_COMPILEDATE$` and
+  `_COMPILETIME$`, `_READBIT` of each type; `v53_d_keys` `_KEYHIT`, `_KEYDOWN` (0 and below: error 5) and
+  `_KEYCLEAR` (0, 4, -1: error 5) with no key; `x01`–`x64` one wrong form each of the new built-ins (all rejected
+  but `_MESSAGEBOX` and `_SELECTFOLDERDIALOG$` with no argument, `_MESSAGEBOX` statement and function with slots
+  left out, and `_SCREENMOVE` alone), `x70`–`x83` the forms of `$RESIZE` (any case, in `$CONSOLE:ONLY`, in a SUB,
+  two of them: accepted; alone, another word, a blank or a tab by the colon, anything after: "Syntax error"; an
+  equals sign for the colon: "Invalid expression"); numbers
+  65–69 not used. The programs with a window and keys are screen programs of the corpus (`k02`–`k04`,
+  `c15`–`c17`, `tests\corpus\screen\SOURCE.md`)
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

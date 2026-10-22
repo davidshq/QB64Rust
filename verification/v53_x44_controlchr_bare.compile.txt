@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _CONTROLCHR {On|Off}
+Caused by (or after):_CONTROLCHR
+LINE 6:_CONTROLCHR
+exit=1

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_EXIT
+LINE 6:_EXIT
+exit=1

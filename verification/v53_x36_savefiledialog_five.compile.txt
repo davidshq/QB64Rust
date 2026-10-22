@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _SAVEFILEDIALOG$([title$][, defaultPathAndFile$][, filterPatterns$][, singleFilterDescription$])
+Caused by (or after):F$ = _SAVEFILEDIALOG$ ( "a",1 , "b",1 , "c",1 , "d",1 , "e",1 )
+LINE 6:f$ = _SAVEFILEDIALOG$("a", "b", "c", "d", "e")
+exit=1

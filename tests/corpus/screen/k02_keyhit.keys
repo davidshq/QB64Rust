@@ -1,0 +1,9 @@
+# A letter, a capital, the up arrow, F1, Enter, then the left Shift key held and lifted.
+prompt
+text aZ
+key up
+key f1
+key enter
+hold lshift
+wait 100
+lift lshift

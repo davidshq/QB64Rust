@@ -273,7 +273,9 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         window: !c.settings.console_only,
         window_hidden: c.settings.window_hidden,
         asserts: c.settings.asserts,
+        resize: c.settings.resize,
         runtime_parts: std::mem::take(&mut c.settings.runtime_parts),
+        compile_stamp: c.settings.compile_stamp,
         exe_icon: c.settings.exe_icon.take().map(|(icon, _)| icon),
         version_info: c.settings.version_info.take(),
         embedded: c.embedded_files(),
@@ -330,6 +332,25 @@ fn console_meta(raw: &[u8]) -> Option<Result<ConsoleMeta, String>> {
         };
     }
     None
+}
+
+/// A `$RESIZE` line (design D3 of `m4-qb64pe-builtins`): the window's resizing and scaling ([`crate::Resize`]);
+/// `None` for any other metacommand. The old compiler compares the whole line in upper case, so anything else after
+/// `$RESIZE` is an error (measured, `verification\v53_x70`, `x71`, `x73`–`x75`, `x79`, `x81`–`x83`: "Syntax error",
+/// and "Invalid expression" for `$RESIZE=ON`).
+fn resize_meta(line: &[u8]) -> Option<Result<crate::Resize, &'static str>> {
+    let rest = line.strip_prefix(b"$RESIZE".as_slice())?;
+    if rest.first().is_some_and(|b| b.is_ascii_alphanumeric() || *b == b'_') {
+        return None;
+    }
+    Some(match rest {
+        b":OFF" => Ok(crate::Resize::Off),
+        b":ON" => Ok(crate::Resize::On),
+        b":STRETCH" => Ok(crate::Resize::Stretch),
+        b":SMOOTH" => Ok(crate::Resize::Smooth),
+        [b'=', ..] => Err("`$RESIZE` takes its setting after a colon, not `=`"),
+        _ => Err("expected `$RESIZE:ON`, `:OFF`, `:STRETCH` or `:SMOOTH`, alone on its line"),
+    })
 }
 
 /// The flag of a `$UNSTABLE` line (design D1 of `m3-typefields`; `qb64pe.bas` 2073–2089).
@@ -648,6 +669,10 @@ struct Settings {
     window_hidden: bool,
     /// A `$ASSERTS` or `$ASSERTS:CONSOLE` was met in the compiled code.
     asserts: bool,
+    /// The window's resizing and scaling, from the last `$RESIZE` met ([`resize_meta`]).
+    resize: crate::Resize,
+    /// A call of `_COMPILEDATE$` or `_COMPILETIME$` was met.
+    compile_stamp: bool,
     /// The first `$EXEICON` met, with the node it is (its tree and offset).
     exe_icon: Option<(crate::ExeIcon, (TreeId, u32))>,
     /// The fields the `$VERSIONINFO` lines met so far set, and the line that last set each string field (for the
@@ -675,6 +700,8 @@ impl Settings {
             console_only: false,
             window_hidden: false,
             asserts: false,
+            resize: crate::Resize::Off,
+            compile_stamp: false,
             exe_icon: None,
             version_info: None,
             version_lines: [None; crate::VERSION_STRINGS],
@@ -1370,6 +1397,10 @@ impl Checker<'_> {
                 Ok(ConsoleMeta::Debug) => self.diags.warning(tok.span, "$DEBUG features only work from the IDE"),
                 Err(msg) => return Err(self.error(tok.span, msg)),
             }
+            Ok(())
+        } else if let Some(r) = resize_meta(&line) {
+            // The last one in the file counts.
+            self.settings.resize = r.map_err(|msg| self.error(tok.span, msg))?;
             Ok(())
         } else if line.starts_with(b"$EXEICON") {
             self.exe_icon_meta(node, tok)

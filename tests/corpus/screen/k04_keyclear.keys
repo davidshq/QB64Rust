@@ -1,0 +1,9 @@
+# One letter at each wait: the program empties a buffer after each.
+prompt
+text a
+prompt
+text b
+prompt
+text c
+prompt
+text d

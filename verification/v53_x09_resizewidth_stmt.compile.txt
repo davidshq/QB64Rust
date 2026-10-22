@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_RESIZEWIDTH
+LINE 6:_RESIZEWIDTH
+exit=1

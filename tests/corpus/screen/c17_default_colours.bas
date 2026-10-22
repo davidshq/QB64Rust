@@ -1,0 +1,15 @@
+' Screen program (m4-qb64pe-builtins, task 2.1): _DEFAULTCOLOR and _BACKGROUNDCOLOR after COLOR in SCREEN 0,
+' SCREEN 12 and a 32-bit screen, kept and printed on the last screen, and of the screen's page 0 there.
+COLOR 14, 1
+a0 = _DEFAULTCOLOR: b0 = _BACKGROUNDCOLOR
+SCREEN 12
+COLOR 13, 2
+a12 = _DEFAULTCOLOR: b12 = _BACKGROUNDCOLOR
+SCREEN _NEWIMAGE(320, 200, 32)
+COLOR _RGB32(200, 100, 50), _RGB32(10, 20, 30)
+a32~& = _DEFAULTCOLOR: b32~& = _BACKGROUNDCOLOR
+PRINT a0; b0
+PRINT a12; b12
+PRINT HEX$(a32~&); " "; HEX$(b32~&)
+PRINT HEX$(_DEFAULTCOLOR(0)); " "; HEX$(_BACKGROUNDCOLOR(0))
+SYSTEM

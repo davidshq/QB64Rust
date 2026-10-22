@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _READBIT(numericalVariable, numericalValue)
+Caused by (or after):X = _READBIT ( 1 )
+LINE 6:x = _READBIT(1)
+exit=1

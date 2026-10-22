@@ -546,6 +546,35 @@ fn screen_state_mistake_in_a_mouse_step() {
     }
 }
 
+/// The same for the held keys (`tools/screen/README.md`): a `hold` of a key already held, a `lift` of one not held
+/// (another key than the held one too), and the `end` of a `repeat` block that leaves a key held. A key held at the
+/// end of the file is not a mistake: it stays down until the program exits.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn screen_state_mistake_in_a_held_key() {
+    let d = scratch("held-key");
+    let exe = build_with_screen_state(&d, "SCREEN 13\nPSET (1, 1), 4\nSYSTEM\n");
+    for (keys, line) in [
+        ("hold lshift\nhold lshift\n", 2),
+        ("lift up\n", 1),
+        ("hold rshift\nlift lshift\n", 2),
+        ("repeat 2\nhold up\nend\n", 3),
+        ("hold up\nrepeat 2\nlift up\nend\n", 4),
+    ] {
+        let run = run_screen_state(&d, &exe, Some(keys), None);
+        assert_eq!(run.status.code(), Some(125), "{keys:?}");
+        let err = run.stderr.escape_ascii().to_string();
+        assert!(
+            err.contains("p.keys line ") && err.contains(&format!("line {line}: not a step")),
+            "{keys:?}: {err}"
+        );
+    }
+    for keys in ["repeat 2\nhold up\nlift up\nend\n", "hold lshift\n"] {
+        let run = run_screen_state(&d, &exe, Some(keys), None);
+        assert_eq!(run.status.code(), Some(0), "{keys:?}");
+    }
+}
+
 /// A mouse step waits until the window shows the displayed page, since `_MOUSEX` maps an event by the frame libqb
 /// last drew (`tools/screen/README.md`). A window that never shows (`$SCREENHIDE`) ends the wait after its time
 /// with exit code 124 and a last line of the state that names the step.

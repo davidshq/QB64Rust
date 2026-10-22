@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _OPENFILEDIALOG$([title$][, defaultPathAndFile$][, filterPatterns$][, singleFilterDescription$][, allowMultipleSelects&])
+Caused by (or after):F$ = _OPENFILEDIALOG$ ( "t",1 , "",0 , "*.bas",5 , "BASIC",5 , 0 , 1 )
+LINE 6:f$ = _OPENFILEDIALOG$("t", "", "*.bas", "BASIC", 0, 1)
+exit=1

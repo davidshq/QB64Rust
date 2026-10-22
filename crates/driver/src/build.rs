@@ -383,6 +383,9 @@ pub struct Settings {
     /// The headers they found: in the build's key (the fragments name them by path only). The files a header
     /// itself includes are not (design D4 of `m3-declare-library`).
     pub headers: Vec<PathBuf>,
+    /// The program calls `_COMPILEDATE$` or `_COMPILETIME$`: its executable holds the time it was built, which is
+    /// in no fragment, so the build neither reuses nor fills the cache ([`CACHE_ENV`]).
+    pub uncached: bool,
 }
 
 /// The link command's extra part: the extra link flags, then each library file, in quotes if its path has a space.
@@ -406,7 +409,9 @@ pub fn license_path(exe: &Path) -> PathBuf {
 /// Builds the executable. The executable is linked inside the build folder (whose name has no spaces, see
 /// [`build_dir`]) and then moved to `exe`. On failure the build folder is kept and the make output is returned.
 pub fn build(roots: &Roots, build: &Path, exe: &Path, quiet: bool, settings: &Settings) -> Result<(), BuildError> {
-    let cache = std::env::var_os(CACHE_ENV).map(PathBuf::from);
+    let cache = std::env::var_os(CACHE_ENV)
+        .filter(|_| !settings.uncached)
+        .map(PathBuf::from);
     // A build that writes a licence file first removes the one at the output path, so it is never an earlier
     // build's; a build that writes none leaves it, as `qb64pe` does (measured 2026-10-16).
     let license = license_path(exe);
@@ -1144,7 +1149,9 @@ mod tests {
             window,
             window_hidden: false,
             asserts: false,
+            resize: qb64rust_ir::Resize::Off,
             runtime_parts: icon.then_some(qb64rust_ir::RuntimePart::Icon).into_iter().collect(),
+            compile_stamp: false,
             exe_icon: false,
             version_info: None,
         }

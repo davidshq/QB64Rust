@@ -269,6 +269,13 @@ variable):
 | `REDIM`, `STATIC` or `COMMON` of `a$(…)` beside a `STRING * n` array `a`, and `COMMON SHARED s$` beside a `STRING * n` variable `s` | Only `DIM` was measured for the array ("Type mismatch", `v52_x45`), and every declarer but `COMMON` for the variable (`x49`, `x69`–`x72`) | Design D7 of the change |
 | `ASC((a$)) = 65`: the place in parentheses | Not measured, as for `MID$` | `check\io.rs` `asc_assign` |
 
+**Left marked by `m4-qb64pe-builtins`** (2026-10-22: the keyboard, window, colour and system built-ins and `$RESIZE`
+that `qb64pe.bas` needs):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `_SETBIT`, `_RESETBIT` and `_TOGGLEBIT`, the siblings of `_READBIT` | Not used by `qb64pe.bas`, so out of the change's scope; each is an inline function of libqb's `bitops.h`, as `_READBIT` is, and would be a plain row | Design, "Non-Goals"; `tests\frontend\unsupported.bas` uses `_SETBIT` and `_TOGGLEBIT` as its examples |
+
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
 
@@ -405,6 +412,12 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `STOP n` checks `n` as a number and never evaluates it: a FUNCTION in it is not called, and the exit code is 0 | Evaluate it, or make it the exit code as `SYSTEM n` does | `m4-qb64pe-sources` (`verification\v52_x12`, `x15`) |
 | `name$` is the `STRING * n` variable or array of the name; `DIM s$` beside such a variable declares nothing (`s$` stays the fixed-length one), while `DIM a$(3)` beside such an array is "Type mismatch" | One rule for both: `DIM` of the `$` name an error, or a variable-length string of its own | `m4-qb64pe-sources` (`verification\v52_x45`, `x49`) |
 | A dotted name in a SUB or FUNCTION beside a main-module `TYPE` variable it does not share (`num.typ`) is silently a new local variable of the default type; QB64pe's own `const_eval.bas` reads `num.typ` so in `LogicalNot&`, where it is always 0 | A warning, as for a name used before it is set | `m4-qb64pe-sources` (`verification\v52_x65`, `x66`) |
+| `_CONSOLE OFF` only hides the console's window when the console is the program's own; output still goes to the console while it is off (with the console a pipe, nothing changes) | Stop the output while off, as the name suggests | `m4-qb64pe-builtins` (`verification\v53_a_window`; libqb `console.cpp`, `sub__console`) |
+| `_SHELLHIDE("")` raises error 5 and still gives 1 to an assignment that goes on under `RESUME NEXT` | Give 0 with the error, as the other functions that raise do | `m4-qb64pe-builtins` (`verification\v53_c_system`) |
+| `_DEFAULTCOLOR(n)` and `_BACKGROUNDCOLOR(n)` of a page number the screen does not have (`8` in `SCREEN 7`) give a colour and raise no error | Error 5, as a page outside the screen's range is elsewhere | `m4-qb64pe-builtins` (`verification\v53_b_colours`) |
+| `_READBIT(a, b)` with `b` outside 0 to 63 is a C++ shift by `b` (`bitops.h`), undefined behaviour: the result depends on the C++ compiler | Error 5, or 0 | `m4-qb64pe-builtins` (read in libqb; not measured, since the value is not defined) |
+| `_SCREENMOVE` with nothing after it is accepted (its template's two parts are both optional) | "Syntax error", as `_SCREENMOVE 10` is | `m4-qb64pe-builtins` (`verification\v53_x41`, `x40`) |
+| A `$RESIZE` line with a comment after it is "Syntax error", as for `$CONSOLE` | Accept the comment | `m4-qb64pe-builtins` (`verification\v53_x79`) |
 | `ERROR 11` (division by zero) is a critical error in this libqb: it ends the program, and no `ON ERROR` handler catches it, as QB 4.5's would | A trappable error 11, as the other errors are. libqb's (`error_handle.cpp`), so a change is a change to the runtime | `m4-handlers-logging-checking` (found writing `verification\v50_a_chain`, design D1) |
 
 ## Other ideas raised during the study

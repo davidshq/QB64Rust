@@ -55,8 +55,10 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 1. The merge of pull request 12 (`m4` into `main`); its full set ran on `fe5e2de` (below), with
    `g12_game.files` the one failure, from the test environment (still to watch, below).
-2. The rest of `qb64pe.bas` through its own include files, smallest first. `tests\verification\known.list` (197
-   programs, each with its reason) holds more such lines.
+2. `qb64pe.bas` compiles with no diagnostic since `m4-qb64pe-builtins` (built, not archived): `qb64rust -z` reports
+   nothing, and `-x` builds an executable, not run (the change's `tasks.md`, task 7.2). At the merge into `main`,
+   `ROADMAP.md` says that the compile half of M4's exit criterion is met. `tests\verification\known.list` (197
+   programs, each with its reason) holds the forms still marked.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at

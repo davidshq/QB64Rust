@@ -333,6 +333,12 @@ version,session,change,category,actions,bytes
 1,1f9f1e28,m2-numeric-types,test runs,17,0
 1,1f9f1e28,m2-numeric-types,tests and fixtures,16,11135
 1,2010f174,,other commands,1,0
+1,20b2aa2d,,other,1,0
+1,20b2aa2d,,other commands,43,0
+1,20b2aa2d,,scratch files,1,1166
+1,20b2aa2d,m4-qb64pe-builtins,documents and planning,20,37384
+1,20b2aa2d,m4-qb64pe-builtins,other commands,21,0
+1,20b2aa2d,m4-qb64pe-builtins,test runs,3,0
 1,21104885,,other commands,1,0
 1,21104885,m3-images-fonts-mouse,other commands,2,0
 1,21a4bf91,,other commands,1,0
@@ -1655,6 +1661,16 @@ version,session,change,category,actions,bytes
 1,8e1a13d1,extension-vsix,test runs,29,0
 1,8e1a13d1,extension-vsix,tests and fixtures,7,10720
 1,8e797edb,,other commands,2,0
+1,8f0a8bf1,m4-qb64pe-builtins,builds,4,0
+1,8f0a8bf1,m4-qb64pe-builtins,documents and planning,15,9735
+1,8f0a8bf1,m4-qb64pe-builtins,measurement preparation,7,8612
+1,8f0a8bf1,m4-qb64pe-builtins,measurement runs,6,0
+1,8f0a8bf1,m4-qb64pe-builtins,other commands,110,0
+1,8f0a8bf1,m4-qb64pe-builtins,product code,20,9493
+1,8f0a8bf1,m4-qb64pe-builtins,reading,10,0
+1,8f0a8bf1,m4-qb64pe-builtins,scratch files,5,14233
+1,8f0a8bf1,m4-qb64pe-builtins,test runs,59,0
+1,8f0a8bf1,m4-qb64pe-builtins,tests and fixtures,21,8533
 1,8f6b12de,,builds,3,0
 1,8f6b12de,,other,1,0
 1,8f6b12de,,other commands,31,0
@@ -2007,6 +2023,10 @@ version,session,change,category,actions,bytes
 1,b5cf0a5b,dry-cleanup,tests and fixtures,11,4368
 1,b5cf0a5b,m4-handlers-logging-checking,other,1,0
 1,b5cf0a5b,m4-handlers-logging-checking,other commands,2,0
+1,b65b861a,,measurement runs,1,0
+1,b65b861a,,other commands,12,0
+1,b65b861a,,product code,3,305
+1,b65b861a,,test runs,2,0
 1,b78cef6d,,documents and planning,26,9258
 1,b78cef6d,,other commands,14,0
 1,b78cef6d,,reading,13,0
@@ -2521,6 +2541,16 @@ version,session,change,category,actions,bytes
 1,e5c0a8a8,,other commands,7,0
 1,e5c0a8a8,,reading,2,0
 1,e5c0a8a8,,test runs,1,0
+1,e619cc30,,other,1,0
+1,e619cc30,,other commands,1,0
+1,e619cc30,,reading,2,0
+1,e619cc30,m4-qb64pe-builtins,builds,2,0
+1,e619cc30,m4-qb64pe-builtins,measurement preparation,4,897
+1,e619cc30,m4-qb64pe-builtins,measurement runs,1,0
+1,e619cc30,m4-qb64pe-builtins,other commands,49,0
+1,e619cc30,m4-qb64pe-builtins,product code,22,5644
+1,e619cc30,m4-qb64pe-builtins,test runs,22,0
+1,e619cc30,m4-qb64pe-builtins,tests and fixtures,7,3554
 1,e71524e4,,other commands,14,0
 1,e71524e4,,product code,4,874
 1,e71524e4,,reading,4,0
@@ -2722,8 +2752,8 @@ version,session,change,category,actions,bytes
 1,fc016671,m3-sound-handles,test runs,20,0
 1,fc016671,m3-sound-handles,tests and fixtures,11,20093
 1,fc70bf0d,,builds,1,0
-1,fc70bf0d,,documents and planning,6,3845
-1,fc70bf0d,,other commands,34,0
+1,fc70bf0d,,documents and planning,7,4064
+1,fc70bf0d,,other commands,35,0
 1,fc70bf0d,,reading,13,0
 1,fc70bf0d,,scratch files,1,1760
 1,fc70bf0d,,test runs,18,0

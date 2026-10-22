@@ -23,6 +23,7 @@
 #include <cstring>
 #include <fstream>
 #include <mutex>
+#include <set>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -237,8 +238,18 @@ const struct {
     {"f10", QBKC_F10},       {"f11", QBKC_F11},       {"f12", QBKC_F12},
 };
 
+// The modifier keys, for `hold` and `lift` only: the codes libqb's key callback passes for them (keyboard.cpp).
+const struct {
+    const char *name;
+    uint32_t code;
+} modifier_names[] = {
+    {"lshift", VK + QBVK_LSHIFT}, {"rshift", VK + QBVK_RSHIFT}, {"lctrl", VK + QBVK_LCTRL},
+    {"rctrl", VK + QBVK_RCTRL},   {"lalt", VK + QBVK_LALT},     {"ralt", VK + QBVK_RALT},
+};
+
 struct Step {
-    enum { Press, Wait, Repeat, Prompt, State, Digest, MouseMove, MouseDown, MouseUp, Wheel, Rule, PlayUntil } kind;
+    enum { Press, Wait, Repeat, Prompt, State, Digest, MouseMove, MouseDown, MouseUp, Wheel, Rule, PlayUntil, Hold, Lift }
+        kind;
     uint32_t value; // a key code, milliseconds, the line of a `prompt` or `play until`, or a mouse button
     // The pixel of a `mouse` step; the steps of a `wheel` in y; the place of a `rule` or `play until` in x and its
     // letter in y (-1: any letter).
@@ -261,6 +272,14 @@ uint32_t key_code(const std::string &name) {
         if (name == k.name)
             return k.code;
     return 0;
+}
+
+// A key of `hold` or `lift`: a name of `key` or a modifier.
+uint32_t held_key_code(const std::string &name) {
+    for (const auto &k : modifier_names)
+        if (name == k.name)
+            return k.code;
+    return key_code(name);
 }
 
 // The keys of "text <characters>" (the rest of the line) and "key <name>" parts, one after the other, as a `rule`
@@ -304,13 +323,22 @@ bool read_place(const std::string &s, int32_t &place, int32_t &letter) {
 // "digest", the mouse steps "mouse <x> <y>" (a move to pixel x, y of the window's content), "press <button>" and
 // "release <button>" (1 left, 2 right, 3 middle, at the last position), "wheel <n>" (n steps, negative up), the
 // steps by places "rule <place> <keys>" and "play until <place>", a block "repeat <n>" … "end" (its steps n times),
-// and as the last line "repeat <name>" (the key every 100 ms until the program exits: for END's "Press any key to
-// continue"). Returns the number of the first line that is none of these, or 0.
+// "hold <name>" and "lift <name>" (a key of `key` or a modifier, put down and left down until it is lifted), and as
+// the last line "repeat <name>" (the key every 100 ms until the program exits: for END's "Press any key to
+// continue"). A `hold` of a key already down, a `lift` of one that is not, and the `end` of a block that leaves
+// other keys down than it found are not steps either. Returns the number of the first line that is none of these,
+// or 0.
 int read_steps(const std::string &script, std::vector<Step> &steps) {
     std::istringstream in(script);
     std::string line;
     bool repeats = false;
-    std::vector<std::pair<int32_t, size_t>> blocks; // the open `repeat <n>` blocks: n, and their first step
+    struct Block {
+        int32_t times;
+        size_t first;            // its first step
+        std::set<uint32_t> held; // the keys down where it starts
+    };
+    std::vector<Block> blocks; // the open `repeat <n>` blocks
+    std::set<uint32_t> held;   // the keys down after the steps so far
     int n = 1;
     for (; std::getline(in, line); n++) {
         if (!line.empty() && line.back() == '\r')
@@ -331,11 +359,13 @@ int read_steps(const std::string &script, std::vector<Step> &steps) {
         } else if (verb == "repeat" && read_int(arg, false, count)) {
             if (count < 1)
                 return n;
-            blocks.push_back({count, steps.size()});
+            blocks.push_back({count, steps.size(), held});
         } else if (line == "end") {
-            if (blocks.empty())
+            // A block run again must find the keys as it found them the first time.
+            if (blocks.empty() || blocks.back().held != held)
                 return n;
-            const auto [times, first] = blocks.back();
+            const int32_t times = blocks.back().times;
+            const size_t first = blocks.back().first;
             blocks.pop_back();
             const std::vector<Step> body(steps.begin() + (std::ptrdiff_t)first, steps.end());
             for (int32_t k = 1; k < times; k++)
@@ -346,6 +376,12 @@ int read_steps(const std::string &script, std::vector<Step> &steps) {
                 return n;
             repeats = verb == "repeat";
             steps.push_back({repeats ? Step::Repeat : Step::Press, code});
+        } else if (verb == "hold" || verb == "lift") {
+            const uint32_t code = held_key_code(arg);
+            // `insert` and `erase` each change the set only for a key in the right state.
+            if (!code || (verb == "hold" ? !held.insert(code).second : held.erase(code) == 0))
+                return n;
+            steps.push_back({verb == "hold" ? Step::Hold : Step::Lift, code});
         } else if (verb == "rule") {
             const size_t sp2 = arg.find(' ');
             Step s{Step::Rule, 0};
@@ -398,10 +434,17 @@ void sleep_ms(uint32_t ms) {
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
 
-// A key goes in only when the INKEY$ buffer is empty: it holds 15 keys and drops what does not fit.
-void press(uint32_t code) {
+// A key goes in only when the INKEY$ buffer is empty: it holds 15 keys and drops what does not fit. A modifier
+// (a code from VK up) writes nothing there and does not wait.
+void wait_for_buffer(uint32_t code) {
+    if (code >= VK)
+        return;
     while (cmem[0x41a] != cmem[0x41c])
         sleep_ms(1);
+}
+
+void press(uint32_t code) {
+    wait_for_buffer(code);
     keyboard_keydown(code);
     keyboard_keyup(code);
 }
@@ -563,6 +606,12 @@ void feed(std::vector<Step> steps, std::string keys) {
             rules.push_back(s);
         } else if (s.kind == Step::PlayUntil) {
             play_until(keys.c_str(), s, prompts, limit_ms, rules, pending);
+        } else if (s.kind == Step::Hold) {
+            // A key still down when the program exits stays down: libqb ends with the process.
+            wait_for_buffer(s.value);
+            keyboard_keydown(s.value);
+        } else if (s.kind == Step::Lift) {
+            keyboard_keyup(s.value);
         } else {
             do {
                 press(s.value);

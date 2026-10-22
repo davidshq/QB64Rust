@@ -1,0 +1,5 @@
+
+1st sub argument requires a number
+Caused by (or after):_SCREENMOVE "a",1 , "b",1
+LINE 6:_SCREENMOVE "a", "b"
+exit=1

@@ -1,0 +1,6 @@
+
+Incorrect number of arguments - Reference: _CONTROLCHR
+Caused by (or after):X = _CONTROLCHR ( 1 )
+LINE 6:x = _CONTROLCHR(1)
+exit=1
+9

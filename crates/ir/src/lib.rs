@@ -124,7 +124,7 @@ pub use qb64rust_sema::{Event, KeyForm};
 pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName};
 /// Whether a procedure is a SUB or a FUNCTION of a type, and the optional parts of the runtime a program needs, are
 /// `sema`'s as well: the lowering only copied them variant for variant (as it did the values, above).
-pub use qb64rust_sema::{LogLevel, ProcKind, RuntimePart};
+pub use qb64rust_sema::{LogLevel, ProcKind, Resize, RuntimePart};
 /// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
 pub use qb64rust_sema::{PrintTo, UsingValue};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
@@ -837,8 +837,12 @@ pub struct Settings {
     pub window_hidden: bool,
     /// Assertions are checked (`$ASSERTS`): an `_ASSERT` whose condition is 0 raises an error.
     pub asserts: bool,
+    /// Whether the user may resize the window and how the screen is scaled to it (`$RESIZE`).
+    pub resize: Resize,
     /// The optional parts of the runtime the program's built-ins need, in order.
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
+    /// The program calls `_COMPILEDATE$` or `_COMPILETIME$`: its executable is never reused from a build cache.
+    pub compile_stamp: bool,
     /// The executable carries an icon (`$EXEICON`). Its file is the driver's to find, from the checked program.
     pub exe_icon: bool,
     /// The executable carries a version resource and a manifest (`$VERSIONINFO`).

@@ -4,8 +4,7 @@ $SCREENHIDE
 ' _DEST, _SOURCE, _CONSOLE and _ECHO rejected (m2-console-screenhide task 3.1; verification\v26_x18-x20,
 ' x63-x68, x71): the statements _DEST and _SOURCE with no argument, a string, two arguments; _CONSOLE as the
 ' target of an assignment; _ECHO with a number, no argument, two arguments; the functions with an argument or
-' with empty parentheses; after CALL with no argument or two. Left "not supported yet": the statement _CONSOLE
-' ON and OFF
+' with empty parentheses; after CALL with no argument or two
 DIM d AS LONG, s AS STRING
 _DEST
 _DEST "a"
@@ -26,5 +25,3 @@ d = _CONSOLE()
 CALL _DEST
 CALL _DEST(0, 1)
 CALL _ECHO
-_CONSOLE ON
-_CONSOLE OFF

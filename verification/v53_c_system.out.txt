@@ -1,0 +1,45 @@
+[desktop]-1 -1 -1 
+[documents]-1 -1  0 
+[music]-1 -1  0 
+[pictures]-1 -1  0 
+[videos]-1 -1  0 
+[downloads]-1 -1  0 
+[appdata]-1 -1  0 
+[localappdata]-1 -1  0 
+[programfiles]-1 -1  0 
+[programfiles x86]-1 -1  0 
+[temp]-1 -1  0 
+[home]-1 -1  0 
+[fonts]-1 -1  0 
+[userfont]-1 -1  0 
+[programdata]-1 -1  0 
+[bogus]-1 -1 -1 
+[]-1 -1 -1 
+[Fonts]-1 -1  0 
+[fonts]-1 -1  0 
+[my documents]-1 -1  0 
+[text]-1 -1  0 
+[TMP]-1 -1  0 
+-1 -1 
+ 0 
+ 3 
+ 300 
+ 2000000000000 
+-1 
+error 5 
+ 1 
+ 0 
+aaa 32 -1  32 9999 11 
+99:99:99 8 
+-1  0 -1 
+-1 -1 -1 
+-1  0 
+ 0 -1 -1 
+-1  0 
+-1  0 
+-1 -1 
+ 0 -1 -1 
+ 0 -1 
+-1 
+-1 
+exit=0

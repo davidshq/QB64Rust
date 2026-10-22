@@ -327,6 +327,7 @@ fn run() -> Result<ExitCode, String> {
 
     let ir = lower(&fe);
     settings.flags = build::make_flags(&ir.settings);
+    settings.uncached = ir.settings.compile_stamp;
     // A log statement names a relative source file from the working folder, as the old compiler does from its
     // start folder (design D2 of `m4-handlers-logging-checking`).
     let log_folder = std::env::current_dir().ok().map(|d| log_folder(&d));
