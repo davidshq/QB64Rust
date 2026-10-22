@@ -72,7 +72,8 @@ describe("build with qb64rust", function () {
 
     it("only unsupported forms: 'Build with QB64pe' builds that program once with QB64pe", async () => {
         const a = await api();
-        const uri = writeFile("rbuild/marked.bas", "$CONSOLE:ONLY\r\nPRINT _DEVICES\r\n");
+        // A form qb64rust marks "not supported yet" and QB64pe builds; `_DEVICES` was it until M4 built it.
+        const uri = writeFile("rbuild/marked.bas", "$CONSOLE:ONLY\r\nSUB _GL\r\nEND SUB\r\n");
         await open(uri);
         const offered: string[][] = [];
         const show = a.builder.showError;
@@ -82,7 +83,7 @@ describe("build with qb64rust", function () {
         };
         try {
             const exe = await vscode.commands.executeCommand<string | undefined>("qb64rust.build");
-            assert.deepStrictEqual(offered, [["QB64: build failed: not supported yet: `_DEVICES` (line 2)", "Build with QB64pe"]]);
+            assert.deepStrictEqual(offered, [["QB64: build failed: not supported yet: `SUB _GL` (OpenGL) (line 2)", "Build with QB64pe"]]);
             assert.strictEqual(exe, exeOf(uri));
             assert.ok(a.builder.lastCommand?.startsWith(compiler), a.builder.lastCommand);
             assert.deepStrictEqual(await buildDiagnostics(uri), []);
@@ -94,7 +95,7 @@ describe("build with qb64rust", function () {
 
     it("an unmarked error offers no QB64pe build", async () => {
         const a = await api();
-        const uri = writeFile("rbuild/mixed.bas", "x$ = 1\r\nPRINT _DEVICES\r\n");
+        const uri = writeFile("rbuild/mixed.bas", "x$ = 1\r\nSUB _GL\r\nEND SUB\r\n");
         await open(uri);
         const offered: string[][] = [];
         const show = a.builder.showError;

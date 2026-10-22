@@ -2108,6 +2108,7 @@ version,session,change,category,actions,bytes
 1,c47bc2ae,verification-compare,other,2,0
 1,c47bc2ae,verification-compare,other commands,42,0
 1,c47bc2ae,verification-compare,test runs,11,0
+1,c4c35015,,other commands,2,0
 1,c5364f40,,documents and planning,2,797
 1,c5364f40,,other commands,20,0
 1,c5364f40,,product code,1,106
@@ -2625,15 +2626,19 @@ version,session,change,category,actions,bytes
 1,f1f17f0a,m2-language-server,documents and planning,7,31847
 1,f1f17f0a,m2-language-server,other commands,2,0
 1,f1f17f0a,m2-language-server,test runs,1,0
-1,f2c52087,,other commands,1,0
+1,f2c52087,,documents and planning,1,208
+1,f2c52087,,other commands,4,0
+1,f2c52087,,test runs,1,0
 1,f2c52087,m4-qb64pe-sources,builds,1,0
 1,f2c52087,m4-qb64pe-sources,documents and planning,16,5361
 1,f2c52087,m4-qb64pe-sources,measurement preparation,2,674
 1,f2c52087,m4-qb64pe-sources,measurement runs,3,0
-1,f2c52087,m4-qb64pe-sources,other commands,49,0
+1,f2c52087,m4-qb64pe-sources,other,1,0
+1,f2c52087,m4-qb64pe-sources,other commands,57,0
 1,f2c52087,m4-qb64pe-sources,product code,3,1512
 1,f2c52087,m4-qb64pe-sources,reading,11,0
-1,f2c52087,m4-qb64pe-sources,test runs,25,0
+1,f2c52087,m4-qb64pe-sources,scratch files,1,3659
+1,f2c52087,m4-qb64pe-sources,test runs,27,0
 1,f2c52087,m4-qb64pe-sources,tests and fixtures,4,608
 1,f33a7dd7,,other commands,1,0
 1,f33a7dd7,m4-handlers-logging-checking,builds,1,0
@@ -2716,6 +2721,13 @@ version,session,change,category,actions,bytes
 1,fc016671,m3-sound-handles,scratch files,3,12605
 1,fc016671,m3-sound-handles,test runs,20,0
 1,fc016671,m3-sound-handles,tests and fixtures,11,20093
+1,fc70bf0d,,builds,1,0
+1,fc70bf0d,,documents and planning,6,3845
+1,fc70bf0d,,other commands,34,0
+1,fc70bf0d,,reading,13,0
+1,fc70bf0d,,scratch files,1,1760
+1,fc70bf0d,,test runs,18,0
+1,fc70bf0d,,tests and fixtures,1,242
 1,fc85f657,,reading,1,0
 1,fc85f657,m2-console-screenhide,builds,1,0
 1,fc85f657,m2-console-screenhide,documents and planning,22,8363

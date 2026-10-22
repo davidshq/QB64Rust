@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-20 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-10-22 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -25,13 +25,14 @@ cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` an
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
 23 screens as the old compiler's build; its scripts are whole games now, held to line coverage
-(`cws-whole-game`). Upstream is at 379 of 404; the verification families are a suite of the new compiler, 2791
-programs on `tests\verification\pass.list`. M4 has six changes built and archived on `m4`, in pull request 12
-(not yet merged into `main`): `m4-checker-groups`, `m4-devices-continue-paths`, `m4-names-arrays`,
-`m4-builtins-param-types`, `dry-cleanup` and `m4-handlers-logging-checking` (`6fcaab0`); the full set at a merge
-passed on its tree. `main` is at the merge of `newer-changes` (pull request 11,
-`c8ac126`, 2026-10-20), which holds every change up to `verification-compare`, `cws-whole-game` and
-`cpp-failure-errors`; the extension's first release is tagged `vscode-v0.2.0`.
+(`cws-whole-game`). Upstream is at 401 of 404 (the three left are out of scope: `http/read_example`,
+`opengl/test`, `const/math_funcs`); the verification families are a suite of the new compiler, 2959 programs on
+`tests\verification\pass.list`. M4 has eight changes built and archived on `m4`, in pull request 12:
+`m4-checker-groups`, `m4-devices-continue-paths`, `m4-names-arrays`, `m4-builtins-param-types`, `dry-cleanup`,
+`m4-handlers-logging-checking`, `m4-upstream-rejections` and `m4-qb64pe-sources` (`fe5e2de`); the full set at a
+merge ran on its tree (below). `main` is at the merge of `newer-changes` (pull request 11, `c8ac126`, 2026-10-20),
+which holds every change up to `verification-compare`, `cws-whole-game` and `cpp-failure-errors`; the
+extension's first release is tagged `vscode-v0.2.0`.
 
 ## Waiting on the user
 
@@ -52,25 +53,22 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. The merge of pull request 12 (`m4` into `main`); its full set passed (below).
-2. `m4-upstream-rejections` (the 12 upstream programs the old compiler rejects that had only marks, upstream at
-   391 of 404; the wording table's notes for messages with a `/`) is built, reviewed and archived
-   (2026-10-21); its specs are merged. One recording waits for the next batch with the clone: a `TYPE` whose
-   name starts with `STRING` (its archived `tasks.md`, "Workflow follow-up").
-3. `m4-qb64pe-sources` (the ten upstream programs `qb64pe/*`, which include the old compiler's own sources:
-   `_INSTRREV`, `_READFILE$`, `_WRITEFILE`, `_FULLPATH$`, the five functions, the `ASC` statement, `STOP`,
-   reserved words with a suffix, the `$` name of a `STRING * n` array or variable) is built and waits for the
-   user's review; upstream at 401 of 404 (the three left are out of scope: `http/read_example`, `opengl/test`,
-   `const/math_funcs`). Then the rest of `qb64pe.bas` through its own include files, smallest first.
-   `tests\verification\known.list` (198 programs, each with its reason) holds more such lines.
+1. The merge of pull request 12 (`m4` into `main`); its full set ran on `fe5e2de` (below), with
+   `g12_game.files` the one failure, from the test environment (still to watch, below).
+2. The rest of `qb64pe.bas` through its own include files, smallest first. `tests\verification\known.list` (197
+   programs, each with its reason) holds more such lines.
 
-Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks"). `screen/g12_game.files`
-(a script of Civil War Strategy) timed out waiting for a key prompt (exit 124 after 30 s) in three of three
-closing runs of the slice list without folding at `--jobs 8` (2026-10-21), and passed each time when run alone
-(the runner's retry, 2.6 s) and among the 78 screen programs at `--jobs 8`. Again at the close of
-`m4-qb64pe-sources` (2026-10-21), where a timeout left the game's `SHELL "copy cws.his oldhist.ory"` running
-(a `cmd.exe` waiting, it seems, at copy's prompt), which held the script's result folder: every later run of that
-script failed with `PermissionError` until the `cmd.exe` was stopped.
+Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
+`screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
+line 97 of its keys file) in every run of the slice list or the full corpus at `--jobs 8` since 2026-10-21: in
+the full set at the merge of pull request 12 the full corpus twice, the slice list and the slice list without
+folding (2026-10-22). The game hangs in `SHELL "copy cws.his oldhist.ory"`: libqb starts `cmd /c copy …` through
+`ShellExecuteEx` with a console of its own (`libqb\internal\c\libqb\src\shell.cpp`, `sub_shell`), and that
+`cmd.exe` neither copies nor ends until the game is killed at the timeout (about 30 s, watched once a second); the
+runner's retry, a moment later, still finds the script's folder in use and fails with `PermissionError`. The script passes run alone
+(3.1 s), as the first of 61 programs at `--jobs 8`, with its nine sibling scripts at `--jobs 8`, and in the
+coverage check; the failure comes only late in a long run, so it is taken as the test environment's, not the
+compiler's. Not yet known: what the `cmd.exe` waits on.
 
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
@@ -102,6 +100,16 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 22 | `2026-10-18-m3-constant-evaluation` | the `CONST` evaluator in full: `_FLOAT` in software, its lanes and typing by text, every function (math functions certified, else D-026), suffixed constants, the auto-included constants, `$COLOR`; the dependency `astro-float-num` |
 
 ## Numbers at the last full runs
+
+**At the merge into `main` of pull request 12, again** (2026-10-22, the full set on `fe5e2de`, the tree of the
+merge, in this checkout, no pass cache, `--jobs 8 --build-cache`): tier 1 408 of 408, fmt and clippy clean; the
+full corpus suite 495 pass, 5 known failures, `218_fre` (only marked errors) and `g12_game.files` (the timeout of
+"Still to watch"; the same in a second run with nothing beside it), `slice.list` judged from it 476 of 477, and 476
+of 477 with `QB64RUST_NO_FOLD=1` (the same script); the full upstream suite 401 pass, 2 rejected or with only marked
+errors or, for `const/math_funcs`, an output that differs (D-031), 1 known failure, `pass.list` judged from it 401
+of 401; the full verification suite 2960 pass, 196 known failures, `pass.list` judged from it 2959 of 2959
+(`v29_b_sound_wait` passed on `known.list` and stays there: SOUND's time varies); the differential pass list 59 of
+59; the call-site check 2074 of 2074 equal; the coverage check of Civil War Strategy's scripts passes.
 
 **At the merge into `main` of pull request 12** (2026-10-21, the full set on the tree of `6fcaab0`, which is the
 merged tree, in a worktree, no pass cache, `--jobs 8 --build-cache`): the full corpus suite 495 pass, 5 known

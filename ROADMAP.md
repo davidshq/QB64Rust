@@ -191,7 +191,10 @@ recorded decisions or measurements; listing an area does not settle those choice
 
 The parity work:
 
-- [ ] The corpus and the upstream tests outside `tests\upstream\deferred.list`
+- [ ] The corpus and the upstream tests outside `tests\upstream\deferred.list` (upstream 379 to 391 of 404 with
+      the old compiler's errors for its rejections, `m4-upstream-rejections`, and to 401 with the `qb64pe/*`
+      programs, which include the old compiler's sources, `m4-qb64pe-sources`; the three left are out of scope:
+      `http/read_example`, `opengl/test`, `const/math_funcs`)
 - [ ] Close the remaining compatibility gaps exposed by the full suites, including accepted programs still
       marked "not supported yet" and rejected programs receiving only that mark; keep false errors and parse
       gaps at zero (`tests\known_*.list`)
