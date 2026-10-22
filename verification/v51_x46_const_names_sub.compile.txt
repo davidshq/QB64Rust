@@ -1,0 +1,5 @@
+
+Unexpected element 'S'
+Caused by (or after):
+LINE 3:CONST C = S + 1
+exit=1

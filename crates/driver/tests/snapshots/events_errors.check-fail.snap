@@ -7,8 +7,11 @@ events_errors.bas:10:19: note: QB64pe: Label 'g' not defined
 events_errors.bas:11:19: error: label `nowhere` is not defined in the main module
 events_errors.bas:11:19: note: QB64pe: Label 'nowhere' not defined
 events_errors.bas:12:13: error: `nosuch` is no SUB: `ON TIMER` needs `GOSUB label` or a SUB's name
+events_errors.bas:12:13: note: QB64pe: Expected GOSUB/sub
 events_errors.bas:13:13: error: `f` is no SUB: `ON TIMER` needs `GOSUB label` or a SUB's name
+events_errors.bas:13:13: note: QB64pe: Expected GOSUB/sub
 events_errors.bas:14:13: error: `h` is no SUB: `ON TIMER` needs `GOSUB label` or a SUB's name
+events_errors.bas:14:13: note: QB64pe: Expected GOSUB/sub
 events_errors.bas:16:13: error: the SUB `needsarg` needs its argument after its name
 events_errors.bas:16:13: note: QB64pe: Expected argument after SUB
 events_errors.bas:17:22: error: the SUB `noparams` has no parameter

@@ -1,0 +1,93 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"CONST c = OR\\nCONST d = NOT OR\\nCONST e = 1 OR\\nCONST f = AND 1\\nCONST g = MOD\\nx = OR\\nPRINT x\\n\")"
+---
+SourceFile 0..90
+  ConstStmt 0..12
+    Ident CONST
+    Whitespace  
+    ConstItem 6..10
+      Ident c
+      Whitespace  
+      Eq =
+      Whitespace  
+    Error 10..12
+      Ident OR
+  Newline \x0A
+  ConstStmt 13..29
+    Ident CONST
+    Whitespace  
+    ConstItem 19..27
+      Ident d
+      Whitespace  
+      Eq =
+      Whitespace  
+      PrefixExpr 23..27
+        Ident NOT
+        Whitespace  
+    Error 27..29
+      Ident OR
+  Newline \x0A
+  ConstStmt 30..44
+    Ident CONST
+    Whitespace  
+    ConstItem 36..44
+      Ident e
+      Whitespace  
+      Eq =
+      Whitespace  
+      BinExpr 40..44
+        Literal 40..41
+          Number 1
+        Whitespace  
+        Ident OR
+  Newline \x0A
+  ConstStmt 45..60
+    Ident CONST
+    Whitespace  
+    ConstItem 51..55
+      Ident f
+      Whitespace  
+      Eq =
+      Whitespace  
+    Error 55..60
+      Ident AND
+      Whitespace  
+      Number 1
+  Newline \x0A
+  ConstStmt 61..74
+    Ident CONST
+    Whitespace  
+    ConstItem 67..71
+      Ident g
+      Whitespace  
+      Eq =
+      Whitespace  
+    Error 71..74
+      Ident MOD
+  Newline \x0A
+  AssignStmt 75..81
+    NameRef 75..76
+      Ident x
+    Whitespace  
+    Eq =
+    Whitespace  
+    Error 79..81
+      Ident OR
+  Newline \x0A
+  PrintStmt 82..89
+    Ident PRINT
+    Whitespace  
+    NameRef 88..89
+      Ident x
+  Newline \x0A
+t.bas:1:11: error: the operator `OR` cannot start a value
+t.bas:1:11: note: QB64pe: Unexpected element 'OR'
+t.bas:2:15: error: a value is expected after `NOT`, not the operator `OR`
+t.bas:2:15: note: QB64pe: Expected variable/value after 'NOT'
+t.bas:3:15: error: expected an expression
+t.bas:4:11: error: the operator `AND` cannot start a value
+t.bas:4:11: note: QB64pe: Unexpected element 'AND'
+t.bas:5:11: error: the operator `MOD` cannot start a value
+t.bas:5:11: note: QB64pe: Unexpected element 'MOD'
+t.bas:6:5: error: not supported yet: operator `OR` (expected an expression)

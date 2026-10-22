@@ -1,0 +1,5 @@
+
+Type cannot be _UNSIGNED
+Caused by (or after):DIM B AS _UNSIGNED NOSUCH
+LINE 3:DIM b AS _UNSIGNED nosuch
+exit=1

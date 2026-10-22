@@ -1,0 +1,5 @@
+
+Undefined type
+Caused by (or after):
+LINE 4:X AS _UNSIGNED NOSUCH
+exit=1

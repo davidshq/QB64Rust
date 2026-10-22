@@ -1,0 +1,5 @@
+
+Unknown type
+Caused by (or after):REDIM A ( 3 ) AS NOSUCH
+LINE 7:REDIM a(3) AS nosuch
+exit=1

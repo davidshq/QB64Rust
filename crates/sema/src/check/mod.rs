@@ -94,6 +94,10 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         type_defs: HashSet::new(),
         dim_shared_array_plain: HashMap::new(),
         types_marked: HashSet::new(),
+        types_failed: HashSet::new(),
+        const_names: Vec::new(),
+        consts_above: HashMap::new(),
+        consts_before: HashMap::new(),
         param_len: HashMap::new(),
         fixed_params: HashMap::new(),
         proc_defaults: HashMap::new(),
@@ -539,6 +543,16 @@ struct Checker<'a> {
     dim_shared_array_plain: HashMap<String, Ty>,
     /// `TYPE` blocks (by key) that pass 1 marked "not supported yet".
     types_marked: HashSet<(TreeId, u32)>,
+    /// The names of the `TYPE` blocks pass 1 did not enter (an error or a mark), in capitals: an `AS` clause that
+    /// names one is "not supported yet", not "Unknown type".
+    types_failed: HashSet<String>,
+    /// The name of every `CONST` of the program in file order, in capitals without suffix, and whether it stands
+    /// in a SUB or FUNCTION, as pass 1 walks to the `TYPE` blocks ([`Self::collect_block_settings`]); and for
+    /// each block (by key) how many stand above it and whether the block stands in one.
+    const_names: Vec<(String, bool)>,
+    consts_above: HashMap<(TreeId, u32), (usize, bool)>,
+    /// The same for each `CONST` statement (by key): how many of [`Self::const_names`] stand above it.
+    consts_before: HashMap<(TreeId, u32), usize>,
     /// The parameters declared `STRING * n` or `t$n`, with n: `STRING` parameters whose `LEN` is n (design D6 of
     /// `m2-numeric-types`).
     param_len: HashMap<VarId, u32>,
@@ -685,6 +699,8 @@ struct StmtState {
     no_join: Option<NoJoin>,
     /// The place in the old compiler's first pass of the `CONST` being checked ([`Checker::color_file`]).
     const_at: Option<u32>,
+    /// How many `CONST` names of the program stand above the `CONST` being checked ([`Checker::const_names`]).
+    consts_before: Option<usize>,
 }
 
 /// The number of dimensions of the arrays whose number is not known where they are declared, found after every
@@ -708,6 +724,8 @@ struct DimSolver {
 struct BlockSettings {
     base: i64,
     typefields: bool,
+    /// The walk is in a SUB or FUNCTION.
+    in_proc: bool,
 }
 
 /// One thing that says how many dimensions an array has, for an array whose number is found from everything that
@@ -930,7 +948,8 @@ impl<'a> Checker<'a> {
     /// nothing here and is reported by pass 2.
     ///
     /// The walk lists every `TYPE` block in file order, in the main module, a procedure or a block alike, for
-    /// [`Self::declare_types`] (design D4 of `m4-names-arrays`).
+    /// [`Self::declare_types`] (design D4 of `m4-names-arrays`), and the names of the `CONST`s above each, for
+    /// its member arrays' bounds (design D2 of `m4-upstream-rejections`).
     ///
     /// `$UNSTABLE:TYPEFIELDS` is read in the same walk (design D1 of `m3-typefields`; `qb64pe.bas` 2071–2090):
     /// the old compiler sets the flag as it reads the lines in order, before its first pass, so it allows the
@@ -954,11 +973,30 @@ impl<'a> Checker<'a> {
         if ast::InactiveCode::cast(node).is_some() {
             return;
         }
-        // A parameter's type must be defined above the header, which the walk reaches before the body.
-        if let Some(h) = ast::ProcDef::cast(node).and_then(|d| d.header()) {
-            self.types_above.insert(h.node().key(), self.type_blocks.len());
+        if let Some(d) = ast::ProcDef::cast(node) {
+            // A parameter's type must be defined above the header, which the walk reaches before the body.
+            if let Some(h) = d.header() {
+                self.types_above.insert(h.node().key(), self.type_blocks.len());
+            }
+            let outer = std::mem::replace(&mut at.in_proc, true);
+            for n in node.child_nodes() {
+                self.collect_block_settings(n, skips, at);
+            }
+            at.in_proc = outer;
+            return;
+        }
+        if let Some(s) = ast::ConstStmt::cast(node) {
+            self.consts_before.insert(node.key(), self.const_names.len());
+            for t in s.items().filter_map(ast::ConstItem::name) {
+                let word = self.text(t.span);
+                let name = show_bytes(&word[..decl::name_end(word)].to_ascii_uppercase());
+                self.const_names.push((name, at.in_proc));
+            }
+            return;
         }
         if let Some(b) = ast::TypeBlock::cast(node) {
+            self.consts_above
+                .insert(node.key(), (self.const_names.len(), at.in_proc));
             self.type_blocks.push(b);
             self.type_bases.insert(node.key(), at.base);
             if at.typefields {

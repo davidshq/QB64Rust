@@ -1,0 +1,5 @@
+
+Expected STRING * number/constant
+Caused by (or after):DIM S AS STRING2 * 2
+LINE 3:DIM s AS STRING2 * 2
+exit=1

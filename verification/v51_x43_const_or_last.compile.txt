@@ -1,0 +1,5 @@
+
+Expected variable/value after 'OR'
+Caused by (or after):
+LINE 3:CONST C = 1 OR
+exit=1

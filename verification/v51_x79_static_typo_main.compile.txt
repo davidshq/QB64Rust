@@ -1,0 +1,5 @@
+
+STATIC must be used within a SUB/FUNCTION
+Caused by (or after):STATIC B AS _BYTEF
+LINE 3:STATIC b AS _Bytef
+exit=1

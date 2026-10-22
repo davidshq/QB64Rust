@@ -146,6 +146,8 @@ SourceFile 0..207
       Ident SUB
     Newline \x0A
 t.bas:9:1: error: `_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop
+t.bas:9:1: note: QB64pe: _CONTINUE outside DO..LOOP/FOR..NEXT/WHILE..WEND block
 t.bas:10:17: error: `_CONTINUE` stands alone on its statement
 t.bas:10:17: note: QB64pe: Command not implemented
 t.bas:12:3: error: `_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop
+t.bas:12:3: note: QB64pe: _CONTINUE outside DO..LOOP/FOR..NEXT/WHILE..WEND block

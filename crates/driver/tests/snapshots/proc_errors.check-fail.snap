@@ -27,6 +27,7 @@ proc_errors.bas:24:10: note: QB64pe: Illegal string-number conversion
 proc_errors.bas:25:5: error: name already in use: `f!`
 proc_errors.bas:29:5: error: not supported yet: a SUB name with a type suffix
 proc_errors.bas:32:5: error: `DIM SHARED` cannot stand inside a SUB or FUNCTION
+proc_errors.bas:32:5: note: QB64pe: DIM/REDIM SHARED invalid within a SUB/FUNCTION
 proc_errors.bas:33:12: error: not supported yet: a `STATIC` `w` beside the `DIM SHARED` one
 proc_errors.bas:35:5: error: name already in use: `s`
 proc_errors.bas:37:1: error: not supported yet: `SHARED` in the main module

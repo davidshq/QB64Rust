@@ -8,7 +8,7 @@ use crate::literal::{self, NumLit};
 use crate::{
     AllocMode, ArrayRef, MemberId, Place, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId,
 };
-use qb64rust_base::{show_bytes, to_u32};
+use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{Kind, auto_constant, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
@@ -26,6 +26,34 @@ pub(super) enum Declarer {
     Redim {
         mode: AllocMode,
     },
+}
+
+/// Where an `AS` clause stands, for the error of one that names no type ([`Checker::no_type`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum AsPlace {
+    /// `DIM`, `REDIM`, `STATIC`, `COMMON`, and a `TYPE` member's built-in type.
+    Decl,
+    /// `SHARED` in a procedure.
+    Shared,
+    /// A parameter of a SUB or FUNCTION, of a library's too, and an array parameter.
+    Param,
+    /// `_DEFINE`.
+    Define,
+    /// Any other: a name that is no type stays "not supported yet".
+    Other,
+}
+
+/// How an `AS` clause names no type.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NoType {
+    /// A name that is no type word and no `TYPE`.
+    Plain,
+    /// A word that starts with `STRING` (`Stringfoobar`, `STRING2 * 2`).
+    Glued,
+    /// `* n` after a word other than `STRING` and `_BIT`.
+    Sized,
+    /// `_UNSIGNED` before a name that is no type word.
+    Unsigned,
 }
 
 impl Checker<'_> {
@@ -193,11 +221,17 @@ impl Checker<'_> {
     /// ignored before `STRING`; `_BIT * n` with n a number from 1 to 64; `STRING * n` with n a number or (where
     /// `consts`) a constant's name, read as [`fixed_len`] says (`v21_c_fixed_basics`, `v21_x31`–`x34`).
     pub(super) fn type_of(&mut self, a: ast::AsClause) -> R<Ty> {
-        self.type_of_in(a, true)
+        self.type_of_in(a, true, AsPlace::Decl)
     }
 
-    /// [`Self::type_of`]; `consts` false where no constant is known yet (a `TYPE` member, read in pass 1).
-    pub(super) fn type_of_in(&mut self, a: ast::AsClause, consts: bool) -> R<Ty> {
+    /// [`Self::type_of`] in another place.
+    pub(super) fn type_of_at(&mut self, a: ast::AsClause, place: AsPlace) -> R<Ty> {
+        self.type_of_in(a, true, place)
+    }
+
+    /// [`Self::type_of`]; `consts` false where no constant is known yet (a `TYPE` member, read in pass 1). `place`
+    /// says which error a name that is no type gives ([`Self::no_type`]).
+    pub(super) fn type_of_in(&mut self, a: ast::AsClause, consts: bool, place: AsPlace) -> R<Ty> {
         let span = a.node().span();
         let words = self.as_words(a);
         let (unsigned, rest) = split_unsigned(&words);
@@ -205,6 +239,15 @@ impl Checker<'_> {
         if unsigned && text.is_empty() {
             // Measured: "Unknown type" (`v21_x08_unsigned_alone`).
             return Err(self.error(span, "`_UNSIGNED` needs a type after it"));
+        }
+        // A word that starts with `STRING` and is not `STRING`, also after `_UNSIGNED` (`dim2`, `qb64pe.bas` 17879;
+        // measured, `verification\v51_x83`), unless a `TYPE` of the program has that name: the old compiler looks
+        // the user types up first (`dim2` 17860, `typname2typ` `type.bas` 559), so `TYPE StringList` is a type.
+        if rest.first().is_some_and(|w| w.len() > 6 && w.starts_with("STRING"))
+            && self.user_type_of(&text).is_none()
+            && !self.types_failed.contains(&text)
+        {
+            return Err(self.no_type(span, &words, place, NoType::Glued));
         }
         if let Some(size) = a.size() {
             return match text.as_str() {
@@ -217,7 +260,8 @@ impl Checker<'_> {
                 }
                 // Measured: `_UNSIGNED STRING * n` is a `STRING * n` (`v21_c_fixed_basics`).
                 "STRING" => Ok(Ty::FixedStr(self.fixed_len_of(size, consts)?)),
-                _ => Err(self.unsupported(span, format!("`{} * …`", words.join(" ")))),
+                _ if !unsigned => Err(self.no_type(span, &words, place, NoType::Sized)),
+                _ => Err(self.no_type(span, &words, place, NoType::Unsigned)),
             };
         }
         if text == "STRING" {
@@ -241,8 +285,49 @@ impl Checker<'_> {
             }
             return Ok(t);
         }
-        let msg = format!("the type `{}`", words.join(" "));
-        Err(self.unsupported(span, msg))
+        // A `TYPE` block that was not entered (an error or a mark) may define it.
+        if self.types_failed.contains(&text) {
+            let msg = format!("the type `{}`", words.join(" "));
+            return Err(self.unsupported(span, msg));
+        }
+        let kind = if unsigned { NoType::Unsigned } else { NoType::Plain };
+        Err(self.no_type(span, &words, place, kind))
+    }
+
+    /// The error of an `AS` clause that names no type, by where it stands, as measured
+    /// (`verification\v51_x60`–`x89`, upstream `types/*_bad_typename_*`): a form not measured in a place stays
+    /// "not supported yet". The old compiler's type reader (`typname2typ`, QB64pe `source\utilities\type.bas`
+    /// 559) compares whole words, so no word near a type's is one (`_BYTEF`, `BYTE` without its underscore).
+    fn no_type(&mut self, span: Span, words: &[String], place: AsPlace, kind: NoType) -> Failed {
+        let shown = words.join(" ");
+        let msg = match (place, kind) {
+            // "Unknown type" (`x60`, `x62`, `x64`, `x72`, `x80`, `x85`, `x86`, `x88`, `v24_x232`).
+            (AsPlace::Decl, NoType::Plain) => format!("no type is named `{shown}`"),
+            // "Expected STRING * number/constant", with or without `* n` and `_UNSIGNED` (`x67`, `x70`, `x83`).
+            (AsPlace::Decl, NoType::Glued) => {
+                format!("`{shown}` is no type: a fixed-length string is written `STRING * n`")
+            }
+            // "Unknown type" (`x65`, `x66`, `x76`–`x78`).
+            (AsPlace::Decl, NoType::Sized) => format!("only `STRING` and `_BIT` take `* n`, not `{shown}`"),
+            // "Type cannot be _UNSIGNED" (`x68`, `x71`, `x84` with `* n`), as for a float.
+            (AsPlace::Decl, NoType::Unsigned) => {
+                let text = split_unsigned(words).1.join(" ");
+                format!("`{text}` cannot be `_UNSIGNED`")
+            }
+            // "Cannot convert type (_BYTEF) to symbol" (`x61`, and `x82` for `_DEFINE`).
+            (AsPlace::Shared, NoType::Plain) => format!("the type `{shown}` of a `SHARED` name is no type"),
+            (AsPlace::Define, NoType::Plain) => format!("the type `{shown}` of `_DEFINE` is no type"),
+            // "Illegal SUB/FUNCTION parameter", also of a library procedure and an array parameter (`x63`, `x69`,
+            // `x74`, `x87`, `x89`).
+            (AsPlace::Param, NoType::Plain | NoType::Glued) => {
+                format!("the type `{shown}` of a parameter is no type")
+            }
+            _ => {
+                let msg = format!("the type `{shown}`");
+                return self.unsupported(span, msg);
+            }
+        };
+        self.error(span, msg)
     }
 
     /// The n of `_BIT * n`: a number from 1 to 64 (measured: 0 and 65 are errors, a constant's name "Number expected
@@ -348,7 +433,7 @@ impl Checker<'_> {
         if words == ["_UNSIGNED", "STRING"] {
             return Err(self.error(span, "a default type cannot be `_UNSIGNED STRING`"));
         }
-        let ty = self.type_of_in(a, false)?;
+        let ty = self.type_of_in(a, false, AsPlace::Define)?;
         if let Ty::User(_) = ty {
             return Err(self.error(span, "a default type cannot be a `TYPE`"));
         }
@@ -924,7 +1009,7 @@ impl Checker<'_> {
             return Err(self.unsupported(span, "`SHARED` in the main module"));
         }
         let list_ty = match stmt.as_clause() {
-            Some(a) => Some(self.type_of(a)?),
+            Some(a) => Some(self.type_of_at(a, AsPlace::Shared)?),
             None => None,
         };
         for item in stmt.items() {
@@ -945,7 +1030,7 @@ impl Checker<'_> {
                     }
                     (Some(t), None) => t,
                     (None, None) => self.default_ty(&name),
-                    (None, Some(a)) => self.type_of(a)?,
+                    (None, Some(a)) => self.type_of_at(a, AsPlace::Shared)?,
                 },
             };
             let typed = as_clause.is_some() || list_ty.is_some();

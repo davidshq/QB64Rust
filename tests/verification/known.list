@@ -40,8 +40,6 @@ v20_x06_function_as_statement	not supported yet
 v21_b_bit_overlap	D-009
 v21_e_scenarios	D-009
 v21_g_fixed_function_twice	D-014
-v21_x05_byte_no_underscore	not supported yet
-v21_x06_noprefix	not supported yet
 v21_x54_fixed_function_sub_dup	not supported yet
 v21_x55_fixed_function_const	not supported yet
 v21_x56_fixed_function_call	not supported yet
@@ -62,7 +60,6 @@ v22_x79_read_function	not supported yet
 v22_x84_read_paren_variable	not supported yet
 v22_x86_restore_missing_line_number	not supported yet
 v24_h_member_store	D-004
-v24_x07_define_unknown_type	not supported yet
 v24_x106_implicit_assign_function_later	not supported yet
 v24_x110_implicit_builtin_other_suffix	not supported yet
 v24_x111_implicit_builtin_len_suffix	not supported yet
@@ -70,10 +67,8 @@ v24_x112_implicit_underscore_name	not supported yet
 v24_x119_implicit_function_no_args	not supported yet
 v24_x11_define_no_letters	not supported yet
 v24_x121_static_variable_bound	not supported yet
-v24_x195_member_variable_bound	not supported yet
 v24_x196_member_const_bound	not supported yet
 v24_x19_defint_as	not supported yet
-v24_x232_dim_as_unknown_type	not supported yet
 v24_x238_power_negate	not supported yet
 v24_x262_implicit_dynamic_where	not supported yet
 v24_x264_implicit_dynamic_items	not supported yet
@@ -110,7 +105,6 @@ v28_x56_sadd_literal	not supported yet
 v28_x57_varptr_dollar_number_array	not supported yet
 v28_x59_put_undeclared_name	not supported yet
 v28_x86_run_sub_name	not supported yet
-v28_x89_on_strig_gosub_sub_name	not supported yet
 v28_x95_hex_of_varptr	not supported yet
 v29_b_sound_wait	varies: SOUND's time, the old build's too
 v29_x64_on_play_gosub	not supported yet
@@ -207,3 +201,10 @@ v49_x16_cast_no_dollar_suffix	not supported yet
 v49_x18_cast_out_of_range	varies: a float constant out of range in `_CAST`; g++ gives another value on each build, in the old compiler too (design D2 of `m4-builtins-param-types`)
 v49_x42_files_no_dollar	not supported yet
 v50_x13_newhandler_line_number	not supported yet: line numbers
+v51_x09_bound_const_suffix_only	not supported yet: a CONST in a member array bound
+v51_x10_bound_auto_const	not supported yet: a CONST in a member array bound
+v51_x11_bound_const_function	not supported yet: a CONST in a member array bound
+v51_x14_bound_const_function_of_const	not supported yet: a CONST in a member array bound
+v51_x34_lbound_paren_name	not supported yet: LBOUND of a parenthesised array name
+v51_x50_assign_or_alone	not supported yet: an operator where a value is expected outside a CONST
+v51_x75_dim_string_star_var	not supported yet: a variable as the length of STRING * n

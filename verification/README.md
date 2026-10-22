@@ -104,6 +104,15 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `IF` block accepted, `x13` a line number after `_NEWHANDLER`, `x16` `_LOGINFO ("a")` with its log; `x27`, `x28`
   a label with a leading `_` after `_NEWHANDLER`: not defined, and "Invalid name" where it is defined, added on the
   change's review)
+- `v51*`: the forms next to the upstream programs that `m4-upstream-rejections` turned into errors, measured as its
+  task 1.1, one accepted or rejected form each: `x01`–`x15` a member array's bound (a variable, an unknown name, a
+  `CONST` below the block or in a SUB, `LEN`, an element, a FUNCTION: rejected; a `CONST` above with a suffix,
+  `_PI`, `ABS(…)`: accepted), `x20`–`x27` a member's type (a later block's type, near words, `* n`: "Undefined
+  type"; an `AS type` list its own error), `x28`–`x39` `LBOUND` and `UBOUND` of an element, a value and an
+  expression (`LBOUND((a))` and `LBOUND(n)` of a scalar accepted), `x40`–`x54` operators and names in a `CONST`
+  (`x50`: `x = OR` outside one), `x60`–`x89` type names by place (`DIM`, `REDIM`, `STATIC`, `COMMON`, `SHARED`,
+  parameters, `DECLARE LIBRARY`, `_DEFINE`; `STRING` with a word glued to it; `* n` after other words;
+  `_UNSIGNED`); numbers 16–19, 55–59 not used
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

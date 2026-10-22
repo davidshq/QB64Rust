@@ -1,0 +1,5 @@
+
+Unknown type
+Caused by (or after):DIM SHARED B AS _BYTEF
+LINE 3:DIM SHARED b AS _Bytef
+exit=1

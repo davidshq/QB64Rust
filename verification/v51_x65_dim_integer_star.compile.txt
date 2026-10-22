@@ -1,0 +1,5 @@
+
+Unknown type
+Caused by (or after):DIM B AS INTEGER * 2
+LINE 3:DIM b AS INTEGER * 2
+exit=1

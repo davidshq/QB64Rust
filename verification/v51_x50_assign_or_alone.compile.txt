@@ -1,0 +1,5 @@
+
+Expected variable/value before 'OR'
+Caused by (or after):X = OR
+LINE 3:x = OR
+exit=1

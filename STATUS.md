@@ -25,9 +25,11 @@ cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` an
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
 23 screens as the old compiler's build; its scripts are whole games now, held to line coverage
-(`cws-whole-game`). Upstream is at 363 of 403; the verification families are a suite of the new compiler, 2670
-programs on `tests\verification\pass.list`. M4 has two changes built and archived on `m4`, not yet merged into
-`main`: `m4-checker-groups` and `m4-devices-continue-paths` (`56a3269`). `main` is at the merge of `newer-changes` (pull request 11,
+(`cws-whole-game`). Upstream is at 379 of 404; the verification families are a suite of the new compiler, 2791
+programs on `tests\verification\pass.list`. M4 has six changes built and archived on `m4`, in pull request 12
+(not yet merged into `main`): `m4-checker-groups`, `m4-devices-continue-paths`, `m4-names-arrays`,
+`m4-builtins-param-types`, `dry-cleanup` and `m4-handlers-logging-checking` (`6fcaab0`); the full set at a merge
+passed on its tree. `main` is at the merge of `newer-changes` (pull request 11,
 `c8ac126`, 2026-10-20), which holds every change up to `verification-compare`, `cws-whole-game` and
 `cpp-failure-errors`; the extension's first release is tagged `vscode-v0.2.0`.
 
@@ -50,16 +52,19 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. `m4-handlers-logging-checking` (the handler chain, the log statements and `_LOGMINLEVEL`, `$CHECKING`
-   anywhere, the verification suite's compare of a program's log) is built and closed; it is archived once the
-   user has reviewed it.
-2. Then the merge of `m4` into `main` with the full set (working rule 9): nine changes are unmerged since the
-   last (`0991f38`), this one among them. It may run in a worktree while the next change is designed.
+1. The merge of pull request 12 (`m4` into `main`); its full set passed (below).
+2. `m4-upstream-rejections` (the 12 upstream programs the old compiler rejects that had only marks, upstream at
+   391 of 404; the wording table's notes for messages with a `/`) is built, reviewed and archived
+   (2026-10-21); its specs are merged. One recording waits for the next batch with the clone: a `TYPE` whose
+   name starts with `STRING` (its archived `tasks.md`, "Workflow follow-up").
 3. Then the upstream report's remaining lines: the old compiler's own sources (`qb64pe\*`), which need about
-   thirty more built-ins and name rules and use the handler chain. `tests\verification\known.list` (208
+   thirty more built-ins and name rules and use the handler chain. `tests\verification\known.list` (209
    programs, each with its reason) holds more such lines.
 
-Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
+Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks"). `screen/g12_game.files`
+(a script of Civil War Strategy) timed out waiting for a key prompt (exit 124 after 30 s) in three of three
+closing runs of the slice list without folding at `--jobs 8` (2026-10-21), and passed each time when run alone
+(the runner's retry, 2.6 s) and among the 78 screen programs at `--jobs 8`.
 
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
@@ -91,6 +96,16 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 22 | `2026-10-18-m3-constant-evaluation` | the `CONST` evaluator in full: `_FLOAT` in software, its lanes and typing by text, every function (math functions certified, else D-026), suffixed constants, the auto-included constants, `$COLOR`; the dependency `astro-float-num` |
 
 ## Numbers at the last full runs
+
+**At the merge into `main` of pull request 12** (2026-10-21, the full set on the tree of `6fcaab0`, which is the
+merged tree, in a worktree, no pass cache, `--jobs 8 --build-cache`): the full corpus suite 495 pass, 5 known
+failures and `218_fre` (only marked errors), `slice.list` judged from it 476 of 476, and 476 of 476 with
+`QB64RUST_NO_FOLD=1`; the full upstream suite 379 pass, 24 rejected or with only marked errors or, for
+`const/math_funcs` alone, an output that differs (D-031), 1 known failure, `pass.list` judged from it 378 of 378
+(`arrays/45_err_solved_bug_Incorrect_nr_of_args` passed off the list and joined it: 379); the full verification
+suite 2793 pass, 205 known failures, `pass.list` judged from it 2790 of 2790 (`v28_x89_on_strig_gosub_sub_name`
+passed on `known.list` and moved: 2791; `v42_a_timer` passed only alone, timing-sensitive); the differential pass
+list 59 of 59; the call-site check 2036 of 2036 equal; the coverage check of Civil War Strategy's scripts passes.
 
 **At the merge into `main` of pull request 11** (2026-10-20, `c8ac126`): the full set was not run; the closing set
 of `cpp-failure-errors`, the last change in it, on the merged compiler (`close.py --check` passes) stands for it:

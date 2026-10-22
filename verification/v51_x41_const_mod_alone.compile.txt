@@ -1,0 +1,5 @@
+
+Unexpected element 'MOD'
+Caused by (or after):
+LINE 3:CONST C = MOD
+exit=1

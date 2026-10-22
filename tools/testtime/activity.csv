@@ -155,6 +155,14 @@ version,session,change,category,actions,bytes
 1,0b62e185,m3-sound,reading,2,0
 1,0b62e185,m3-sound,scratch files,2,7127
 1,0b62e185,m3-sound,test runs,2,0
+1,0bb959ca,,other commands,2,0
+1,0bb959ca,m4-upstream-rejections,builds,1,0
+1,0bb959ca,m4-upstream-rejections,documents and planning,4,1663
+1,0bb959ca,m4-upstream-rejections,other commands,15,0
+1,0bb959ca,m4-upstream-rejections,product code,1,618
+1,0bb959ca,m4-upstream-rejections,scratch files,2,235
+1,0bb959ca,m4-upstream-rejections,test runs,6,0
+1,0bb959ca,m4-upstream-rejections,tests and fixtures,1,787
 1,0ce06980,,other commands,1,0
 1,0d0a3828,,other commands,1,0
 1,0d0a3828,m3-constant-evaluation,other commands,1,0
@@ -208,6 +216,16 @@ version,session,change,category,actions,bytes
 1,11e6949c,m2-defxxx-common-arrays,scratch files,3,2924
 1,11e6949c,m2-defxxx-common-arrays,test runs,27,0
 1,11e6949c,m2-defxxx-common-arrays,tests and fixtures,42,30549
+1,1249708b,m4-upstream-rejections,builds,9,0
+1,1249708b,m4-upstream-rejections,documents and planning,21,22126
+1,1249708b,m4-upstream-rejections,measurement preparation,1,1083
+1,1249708b,m4-upstream-rejections,measurement runs,4,0
+1,1249708b,m4-upstream-rejections,other commands,147,0
+1,1249708b,m4-upstream-rejections,product code,27,17886
+1,1249708b,m4-upstream-rejections,reading,14,0
+1,1249708b,m4-upstream-rejections,scratch files,3,9188
+1,1249708b,m4-upstream-rejections,test runs,44,0
+1,1249708b,m4-upstream-rejections,tests and fixtures,9,4072
 1,12d91049,,other commands,1,0
 1,14f6ddf8,,builds,1,0
 1,14f6ddf8,,other commands,16,0
@@ -315,7 +333,7 @@ version,session,change,category,actions,bytes
 1,21a4bf91,m4-handlers-logging-checking,product code,30,13687
 1,21a4bf91,m4-handlers-logging-checking,reading,12,0
 1,21a4bf91,m4-handlers-logging-checking,scratch files,8,29701
-1,21a4bf91,m4-handlers-logging-checking,test runs,53,0
+1,21a4bf91,m4-handlers-logging-checking,test runs,54,0
 1,21a4bf91,m4-handlers-logging-checking,tests and fixtures,36,17895
 1,21f63db5,,other commands,3,0
 1,21f63db5,,reading,11,0
@@ -1026,6 +1044,18 @@ version,session,change,category,actions,bytes
 1,61cb4f0b,m2-procedures-and-errors,test runs,16,0
 1,61cb4f0b,m2-procedures-and-errors,tests and fixtures,6,3081
 1,61ebf359,,other commands,2,0
+1,644e42c0,,other,1,0
+1,644e42c0,,other commands,7,0
+1,644e42c0,,reading,1,0
+1,644e42c0,m4-handlers-logging-checking,builds,1,0
+1,644e42c0,m4-handlers-logging-checking,documents and planning,3,1381
+1,644e42c0,m4-handlers-logging-checking,measurement preparation,4,889
+1,644e42c0,m4-handlers-logging-checking,measurement runs,2,0
+1,644e42c0,m4-handlers-logging-checking,other commands,36,0
+1,644e42c0,m4-handlers-logging-checking,product code,10,3781
+1,644e42c0,m4-handlers-logging-checking,reading,6,0
+1,644e42c0,m4-handlers-logging-checking,test runs,12,0
+1,644e42c0,m4-handlers-logging-checking,tests and fixtures,2,582
 1,65b702f8,,other commands,1,0
 1,65b702f8,,reading,1,0
 1,65b702f8,m2-defxxx-common-arrays,builds,4,0
@@ -1253,6 +1283,11 @@ version,session,change,category,actions,bytes
 1,729041fe,m3-constant-evaluation,test runs,68,0
 1,729041fe,m3-constant-evaluation,tests and fixtures,26,21629
 1,73a9cfe7,,other commands,2,0
+1,740adcf0,,other commands,26,0
+1,740adcf0,,reading,1,0
+1,740adcf0,m4-upstream-rejections,documents and planning,6,26341
+1,740adcf0,m4-upstream-rejections,other commands,13,0
+1,740adcf0,m4-upstream-rejections,test runs,1,0
 1,741137ec,,other commands,4,0
 1,74587158,,other,1,0
 1,74587158,,other commands,46,0
@@ -2569,6 +2604,18 @@ version,session,change,category,actions,bytes
 1,f1f17f0a,m2-language-server,documents and planning,7,31847
 1,f1f17f0a,m2-language-server,other commands,2,0
 1,f1f17f0a,m2-language-server,test runs,1,0
+1,f33a7dd7,,other commands,1,0
+1,f33a7dd7,m4-handlers-logging-checking,builds,1,0
+1,f33a7dd7,m4-handlers-logging-checking,measurement preparation,2,64
+1,f33a7dd7,m4-handlers-logging-checking,other commands,36,0
+1,f33a7dd7,m4-handlers-logging-checking,reading,8,0
+1,f33a7dd7,m4-handlers-logging-checking,scratch files,1,2408
+1,f33a7dd7,m4-handlers-logging-checking,test runs,11,0
+1,f33a7dd7,m4-handlers-logging-checking,tests and fixtures,1,92
+1,f33a7dd7,m4-upstream-rejections,documents and planning,6,4217
+1,f33a7dd7,m4-upstream-rejections,other commands,11,0
+1,f33a7dd7,m4-upstream-rejections,reading,1,0
+1,f33a7dd7,m4-upstream-rejections,test runs,1,0
 1,f53ab0b0,,documents and planning,3,362
 1,f53ab0b0,,other commands,4,0
 1,f53ab0b0,,reading,3,0
@@ -2586,6 +2633,10 @@ version,session,change,category,actions,bytes
 1,f60344a6,m3-typefields,scratch files,1,993
 1,f60344a6,m3-typefields,test runs,12,0
 1,f60344a6,m3-typefields,tests and fixtures,6,3805
+1,f75a2529,m4-handlers-logging-checking,other,1,0
+1,f75a2529,m4-handlers-logging-checking,other commands,8,0
+1,f75a2529,m4-handlers-logging-checking,scratch files,1,1047
+1,f75a2529,m4-handlers-logging-checking,test runs,1,0
 1,f7bcc1d6,,documents and planning,3,344
 1,f7bcc1d6,,other commands,9,0
 1,f7bcc1d6,,product code,4,899

@@ -5,6 +5,7 @@ expression: snap
 names_arrays_errors.bas:21:11: error: `LEN` cannot take an array of variable-length strings
 names_arrays_errors.bas:21:11: note: QB64pe: Cannot pass array of variable-length strings
 names_arrays_errors.bas:22:11: error: `LEN` cannot take a `_BIT` variable or element
+names_arrays_errors.bas:22:11: note: QB64pe: Variable/element cannot be _BIT aligned
 names_arrays_errors.bas:23:11: error: `LEN` of an array of `TYPE TS`: a `TYPE` with a `STRING` member has no fixed size
 names_arrays_errors.bas:24:11: error: not supported yet: `LEN` of a whole dynamic member array
 names_arrays_errors.bas:25:11: error: not supported yet: `LEN` of a whole member array of variable-length strings

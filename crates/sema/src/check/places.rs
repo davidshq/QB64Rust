@@ -2,14 +2,14 @@
 //! arrays and their bounds, array elements, members and dotted names, `LBOUND`/`UBOUND`. Every rule is measured
 //! (`verification\v18_*`, `study\00` §5); what was not measured is "not supported yet".
 
-use super::decl::Declarer;
+use super::decl::{AsPlace, Declarer, name_end};
 use super::expr::{Use, is_builtin_function};
-use super::{Checker, DimFact, Failed, NoJoin, R, Scope, Skips};
+use super::{Checker, DimFact, Failed, NoJoin, R, Scope, Skips, split_unsigned};
 use crate::{AllocMode, BinOp, ConvKind, StmtKind, UnOp};
 use crate::{ArrayRef, Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType};
 use crate::{MEM_TYPE, Var, VarId, mem_type};
 use qb64rust_base::{Span, show_bytes, to_u32};
-use qb64rust_builtins::find_any;
+use qb64rust_builtins::{auto_constant, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
@@ -55,6 +55,16 @@ const TYPE_NAMES_TAKEN: &[&str] = &["LEN", "PRINT", "LONG"];
 const MEMBER_NAMES_FREE: &[&str] = &["LEFT", "LEN", "COLOR", "NAME"];
 const MEMBER_NAMES_TAKEN: &[&str] = &["PRINT"];
 
+/// When the bounds of a member array are read ([`Checker::member_bounds`]).
+#[derive(Clone, Copy, Debug)]
+enum Bounds {
+    /// In pass 1, before any `CONST` is evaluated, with the number of `CONST`s above the block and whether it
+    /// stands in a SUB or FUNCTION ([`Checker::const_names`]).
+    Pass1((usize, bool)),
+    /// In pass 2, where the constants above the block are known (the first bounds of a dynamic member array).
+    Pass2,
+}
+
 /// The most elements an array may have here (none of the inputs comes near it; measured, 10,000,001 LONGs work).
 const MAX_ELEMENTS: i64 = i32::MAX as i64;
 
@@ -79,9 +89,16 @@ impl Checker<'_> {
             if let Ok(id) = self.declare_type(b) {
                 self.type_defs.insert(s.key());
                 self.type_order.insert(id, k);
-            } else if self.diags.unsupported_count() > marks {
-                // Pass 2 starts the follow-on rule when it reaches this block (design D10).
-                self.types_marked.insert(s.key());
+            } else {
+                if self.diags.unsupported_count() > marks {
+                    // Pass 2 starts the follow-on rule when it reaches this block (design D10).
+                    self.types_marked.insert(s.key());
+                }
+                if let Some(t) = b.header().and_then(|h| h.name()) {
+                    let word = self.text(t.span);
+                    let name = show_bytes(&word[..name_end(word)].to_ascii_uppercase());
+                    self.types_failed.insert(name);
+                }
             }
             self.flush_names();
         }
@@ -115,12 +132,17 @@ impl Checker<'_> {
         }
         // `OPTION BASE` as it stands at the block: the lower bound of a member array's dimension without `TO`.
         let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
+        let above = self.consts_above.get(&b.node().key()).copied().unwrap_or((0, false));
         let mut members: Vec<Member> = Vec::new();
         let mut const_bounds = false;
         for field in b.fields() {
             let fspan = field.node().span();
             let a = self.need(field.as_clause(), fspan)?;
-            let ty = self.member_type(a)?;
+            let list = field
+                .names()
+                .next()
+                .is_some_and(|f| a.node().span().start < f.node().span().start);
+            let ty = self.member_type(a, list)?;
             for f in field.names() {
                 let t = self.need(f.name(), f.node().span())?;
                 let shown = show_bytes(self.text(t.span));
@@ -133,7 +155,7 @@ impl Checker<'_> {
                         const_bounds = true;
                         vec![(0, 0); bounds.ranges().len()]
                     }
-                    Some(bounds) => self.member_bounds(bounds, base, &shown, false)?,
+                    Some(bounds) => self.member_bounds(bounds, base, &shown, Bounds::Pass1(above))?,
                     None => Vec::new(),
                 };
                 let (mname, msuffix) = self.split_name(t)?;
@@ -201,7 +223,7 @@ impl Checker<'_> {
                 continue;
             }
             let shown = show_bytes(self.text(f.name().map_or(f.node().span(), |t| t.span)));
-            if let Ok(read) = self.member_bounds(bounds, base, &shown, true) {
+            if let Ok(read) = self.member_bounds(bounds, base, &shown, Bounds::Pass2) {
                 self.prog.types[id.0 as usize].members[i].bounds = read;
             }
         }
@@ -250,19 +272,12 @@ impl Checker<'_> {
     /// has no rule of its own here (`z(0)` under base 1 is "Invalid array bounds", as bounds in the wrong order
     /// are); nothing between the parentheses is "Array bounds missing".
     ///
-    /// A bound is a constant expression. The blocks are read before the program's `CONST`s, so a bound that
-    /// names one (accepted by the old compiler, `v24_x196`) cannot be told from a variable (its "TYPE member
-    /// array bounds must be numeric constant", `x195`): a bound that is not written with numbers alone is not
-    /// supported yet.
-    ///
-    /// `constants`: the constants above the block are known (pass 2, the first bounds of a dynamic member array).
-    fn member_bounds(
-        &mut self,
-        bounds: ast::ArrayBounds,
-        base: i64,
-        shown: &str,
-        constants: bool,
-    ) -> R<Vec<(i64, i64)>> {
+    /// A bound is a constant expression, read where the block stands: a name that is no `CONST` above it is "TYPE
+    /// member array bounds must be numeric constant" (`v24_x195`; `v51_x01`–`x08`: a variable, an unknown name, a
+    /// `CONST` below the block or in a SUB below it, `LEN`). The blocks are read before the program's `CONST`s
+    /// are evaluated, so a bound that names one above (accepted by the old compiler, `v24_x196`, `v51_x09`), or
+    /// may be one ([`Self::may_be_constant`]), is not supported yet.
+    fn member_bounds(&mut self, bounds: ast::ArrayBounds, base: i64, shown: &str, when: Bounds) -> R<Vec<(i64, i64)>> {
         let span = bounds.node().span();
         let ranges = bounds.ranges();
         if ranges.is_empty() {
@@ -273,10 +288,17 @@ impl Checker<'_> {
         for (lower, upper) in ranges {
             let upper = self.need(upper, span)?;
             for bound in lower.into_iter().chain([upper]) {
-                if !constants && !only_numbers(bound) {
+                let Bounds::Pass1(above) = when else {
+                    continue;
+                };
+                if only_numbers(bound) {
+                    continue;
+                }
+                if self.may_be_constant(bound, above) {
                     let msg = "a bound of a member array that is not written with numbers alone (a `CONST`)";
                     return Err(self.unsupported(bound.node().span(), msg));
                 }
+                return Err(self.error(bound.node().span(), "a bound of a member array must be a constant"));
             }
             let l = match lower {
                 Some(l) => self.constant_bound(l)?,
@@ -300,6 +322,38 @@ impl Checker<'_> {
         Ok(out)
     }
 
+    /// Whether a bound of a member array names what may be a constant where its block stands: a `CONST` above
+    /// the block in file order (of [`Checker::const_names`]; for a block of the main module one of the main
+    /// module, measured: a SUB's above it is the error, `verification\v51_x13`), a constant or function of
+    /// QB64pe's auto-included file, a function of the constant evaluator (`_PI` alone, `ABS(…)`: accepted,
+    /// `v51_x10`, `x11`, `x14`), or a dotted name (not measured). An array's element, a FUNCTION of the program
+    /// and `LEN` are none (`x05`, `x06`, `x12`, `x15`).
+    fn may_be_constant(&self, node: ast::Expr, above: (usize, bool)) -> bool {
+        let (count, in_proc) = above;
+        let known = |c: &Self, t: Tok| {
+            let word = c.text(t.span);
+            let name = show_bytes(&word[..name_end(word)].to_ascii_uppercase());
+            c.const_names[..count]
+                .iter()
+                .any(|(n, proc)| *n == name && (in_proc || !proc))
+                || auto_constant(name.as_bytes()).is_some()
+                || is_auto_include_name(name.as_bytes())
+                || crate::consteval::function_arity(&name).is_some()
+        };
+        match node {
+            ast::Expr::Literal(_) => false,
+            ast::Expr::Paren(p) => p.inner().is_some_and(|e| self.may_be_constant(e, above)),
+            ast::Expr::Prefix(p) => p.operand().is_some_and(|e| self.may_be_constant(e, above)),
+            ast::Expr::Bin(b) => {
+                b.lhs().is_some_and(|e| self.may_be_constant(e, above))
+                    || b.rhs().is_some_and(|e| self.may_be_constant(e, above))
+            }
+            ast::Expr::NameRef(n) => n.name().is_none_or(|t| known(self, t)),
+            ast::Expr::Call(c) => c.name().is_none_or(|t| known(self, t)),
+            ast::Expr::Field(_) => true,
+        }
+    }
+
     /// A bound that must be known when compiling (of a member array, in its `TYPE` block or in a `REDIM` of it),
     /// rounded half to even as any bound is. Measured for one that is not: "TYPE member array bounds must be
     /// numeric constant" (`verification\v24_x195`, `x220`).
@@ -320,18 +374,42 @@ impl Checker<'_> {
     /// `verification\v24_h_string_members`), a fixed-length string of n bytes (n a number: the block is read
     /// before any `CONST`), or a user type defined in an earlier block. A `_BIT` member is an error (measured:
     /// "Cannot use _BIT inside user defined types", `verification\v21_x25`, `x26`).
-    fn member_type(&mut self, a: ast::AsClause) -> R<Ty> {
+    ///
+    /// Any other name is "Undefined type", a type defined in a later block too (measured, `verification\v51_x20`–
+    /// `x25`, `x27`, upstream `arrays/40_err_undefined_type`), and before the names of an `AS type` list "Expected
+    /// element-name AS type, AS type element-list, or END TYPE" (`x26`). `list`: the clause stands before the
+    /// names.
+    fn member_type(&mut self, a: ast::AsClause, list: bool) -> R<Ty> {
         let span = a.node().span();
         let words = self.as_words(a);
         let text = words.join(" ");
         if let Some(t) = self.user_type_of(&text) {
             return Ok(t);
         }
-        let built_in = words.first().is_some_and(|w| w == "_UNSIGNED") || numeric_type(&text).is_some();
-        if !built_in && text != "STRING" {
-            return Err(self.unsupported(span, format!("the member type `{text}`")));
+        let (unsigned, rest) = split_unsigned(&words);
+        let base = rest.join(" ");
+        let sized = a.size().is_none() || base == "STRING" || base == "_BIT";
+        let built_in = numeric_type(&base).is_some()
+            || base == "STRING"
+            || (unsigned && (base.is_empty() || self.user_type_of(&base).is_some()));
+        if !(built_in && sized) {
+            // A block above that was not entered may define it.
+            if self.types_failed.contains(&base) {
+                return Err(self.unsupported(span, format!("the member type `{text}`")));
+            }
+            let shown = if a.size().is_some() {
+                format!("{text} * …")
+            } else {
+                text
+            };
+            let msg = if list {
+                format!("the type `{shown}` of a member list is no type")
+            } else {
+                format!("the member type `{shown}` is no type")
+            };
+            return Err(self.error(span, msg));
         }
-        let ty = self.type_of_in(a, false)?;
+        let ty = self.type_of_in(a, false, AsPlace::Decl)?;
         if let Ty::Bit { .. } = ty {
             Err(self.error(span, "a `TYPE` member cannot be a `_BIT`"))
         } else {
@@ -1584,7 +1662,7 @@ impl Checker<'_> {
             return Err(self.error(span, msg));
         }
         let as_ty = match item.as_clause() {
-            Some(a) => Some((self.type_of(a)?, a.node().span())),
+            Some(a) => Some((self.type_of_at(a, AsPlace::Other)?, a.node().span())),
             None => None,
         };
         if let Some((ty, at)) = as_ty
@@ -1809,6 +1887,46 @@ impl Checker<'_> {
         Ok(ArrayRef::Var(a))
     }
 
+    /// The diagnostic of `LBOUND` or `UBOUND` (`word`) whose array argument is no array (design D4 of
+    /// `m4-upstream-rejections`). Measured (`verification\v51_x28`–`x39`, upstream
+    /// `arrays/42_err_solved_bug_Incorrect_nr_of_args`, `43_…`): an element of a member array, of a single value
+    /// or of an array, is "Incorrect number of arguments"; an element of an array of a `TYPE` "Expected ."; of
+    /// another array, a call of a FUNCTION of the program, a literal and an operation "Syntax error". Any other
+    /// expression is not supported yet (`LBOUND((a))` is the array `a`, `x34`).
+    fn bound_of_other(&mut self, node: ast::Expr, word: &str) -> R<Failed> {
+        let span = node.node().span();
+        let msg = match node {
+            ast::Expr::Field(f) if f.arg_list().is_some() => {
+                let (place, _) = self.field_member(f)?;
+                self.is_member_array(&place)
+                    .then(|| format!("`{word}` takes a member array without its indexes"))
+            }
+            ast::Expr::Call(c) => {
+                let t = self.need(c.name(), span)?;
+                let (name, suffix) = self.split_name(t)?;
+                if let Some(place) = self.dotted_any(t, &name, suffix)? {
+                    self.is_member_array(&place)
+                        .then(|| format!("`{word}` takes a member array without its indexes"))
+                } else {
+                    match self.find_array(&name, suffix).map(|a| self.prog.var(a).ty) {
+                        Some(Ty::User(_)) => Some(format!("`{word}` takes the array's name, not an element of it")),
+                        Some(_) => Some(format!("`{word}` takes an array's name, not one of its elements")),
+                        None if self.procs_by_name.contains_key(&name) => {
+                            Some(format!("`{word}` takes an array, not a value"))
+                        }
+                        None => None,
+                    }
+                }
+            }
+            ast::Expr::Literal(_) | ast::Expr::Bin(_) => Some(format!("`{word}` takes an array, not a value")),
+            ast::Expr::NameRef(_) | ast::Expr::Field(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) => None,
+        };
+        Ok(match msg {
+            Some(msg) => self.error(span, msg),
+            None => self.unsupported(span, format!("`{word}` of this expression")),
+        })
+    }
+
     /// `LBOUND(array[, dimension])` and `UBOUND(…)` (design D4, measured `v18_e_bounds*`, `v18_f_*`). The array
     /// may be a member array, also written with empty parentheses (`verification\v24_h_member_arrays`,
     /// `v24_x201`, `x311`).
@@ -1859,9 +1977,7 @@ impl Checker<'_> {
                 | ast::Expr::Paren(_)
                 | ast::Expr::Prefix(_)
                 | ast::Expr::Bin(_)),
-            ) => {
-                return Err(self.unsupported(other.node().span(), format!("`{word}` of this expression")));
-            }
+            ) => return Err(self.bound_of_other(other, word)?),
         };
         let dim = match args.get(1) {
             Some(&d) => {

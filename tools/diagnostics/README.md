@@ -14,3 +14,10 @@ python tools\diagnostics\old_wording.py --check    # every note on a recorded re
 
 Run both when a change alters messages (a changed message loses its note until then; none is ever wrong) or adds
 recorded rejections. Never edit the table by hand.
+
+`test_old_wording.py` tests the rules that need no compiler (which old messages name a file: a masked folder, a
+backslash or a BASIC file's extension, not a `/` between words), run by CI:
+
+```
+python -m unittest discover -s tools\diagnostics -p "test_*.py"
+```

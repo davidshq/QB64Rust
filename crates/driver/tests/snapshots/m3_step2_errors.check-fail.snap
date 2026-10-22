@@ -42,13 +42,17 @@ m3_step2_errors.bas:37:1: error: `BSAVE` takes 3 arguments
 m3_step2_errors.bas:37:1: note: QB64pe: Syntax error - Reference: BSAVE saveFile$, VARPTR(array(index)), fileSize&
 m3_step2_errors.bas:38:7: error: argument 1 of `BSAVE` needs a string
 m3_step2_errors.bas:39:12: error: `VARPTR` needs a variable or an array element
+m3_step2_errors.bas:39:12: note: QB64pe: Expected reference to a variable/array
 m3_step2_errors.bas:40:12: error: `VARPTR` needs a variable or an array element
+m3_step2_errors.bas:40:12: note: QB64pe: Expected reference to a variable/array
 m3_step2_errors.bas:41:5: error: `VARSEG` takes 1 argument
 m3_step2_errors.bas:41:5: note: QB64pe: Expected (...)
 m3_step2_errors.bas:42:5: error: `VARPTR` takes 1 argument
 m3_step2_errors.bas:42:5: note: QB64pe: Incorrect number of arguments - Reference: VARPTR(variable_name[(reference_index%)])
 m3_step2_errors.bas:43:12: error: `VARSEG` needs a variable or an array element
+m3_step2_errors.bas:43:12: note: QB64pe: Expected reference to a variable/array
 m3_step2_errors.bas:44:12: error: `VARPTR` needs a variable or an array element
+m3_step2_errors.bas:44:12: note: QB64pe: Expected reference to a variable/array
 m3_step2_errors.bas:45:10: error: `PEEK` needs a number
 m3_step2_errors.bas:45:10: note: QB64pe: Number required for function
 m3_step2_errors.bas:46:1: error: `POKE` takes 2 arguments
@@ -70,5 +74,6 @@ m3_step2_errors.bas:55:1: error: `VARPTR` is a function, not a statement
 m3_step2_errors.bas:55:1: note: QB64pe: Syntax error
 m3_step2_errors.bas:56:4: error: this `DEF` statement matches none of its forms: `DEF {Seg}[=?]`
 m3_step2_errors.bas:57:13: error: `PUT` needs an array here
+m3_step2_errors.bas:57:13: note: QB64pe: Expected variable name/array element
 m3_step2_errors.bas:58:1: error: this is no form of graphics `GET`
 m3_step2_errors.bas:59:1: error: this is no form of graphics `PUT`

@@ -1,0 +1,29 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+bound_element_errors.bas:19:14: error: `UBOUND` takes a member array without its indexes
+bound_element_errors.bas:19:14: note: QB64pe: Incorrect number of arguments
+bound_element_errors.bas:20:14: error: `LBOUND` takes a member array without its indexes
+bound_element_errors.bas:20:14: note: QB64pe: Incorrect number of arguments
+bound_element_errors.bas:21:14: error: `LBOUND` takes a member array without its indexes
+bound_element_errors.bas:21:14: note: QB64pe: Incorrect number of arguments
+bound_element_errors.bas:22:14: error: `UBOUND` takes a member array without its indexes
+bound_element_errors.bas:22:14: note: QB64pe: Incorrect number of arguments
+bound_element_errors.bas:23:14: error: `UBOUND` takes a member array without its indexes
+bound_element_errors.bas:23:14: note: QB64pe: Incorrect number of arguments
+bound_element_errors.bas:24:14: error: `LBOUND` takes a member array without its indexes
+bound_element_errors.bas:24:14: note: QB64pe: Incorrect number of arguments
+bound_element_errors.bas:25:14: error: `LBOUND` takes the array's name, not an element of it
+bound_element_errors.bas:25:14: note: QB64pe: Expected .
+bound_element_errors.bas:26:14: error: `LBOUND` takes an array's name, not one of its elements
+bound_element_errors.bas:26:14: note: QB64pe: Syntax error
+bound_element_errors.bas:27:14: error: `LBOUND` takes an array, not a value
+bound_element_errors.bas:27:14: note: QB64pe: Syntax error
+bound_element_errors.bas:28:14: error: `LBOUND` takes an array's name, not one of its elements
+bound_element_errors.bas:28:14: note: QB64pe: Syntax error
+bound_element_errors.bas:29:14: error: `LBOUND` takes an array, not a value
+bound_element_errors.bas:29:14: note: QB64pe: Syntax error
+bound_element_errors.bas:30:14: error: `LBOUND` takes an array, not a value
+bound_element_errors.bas:30:14: note: QB64pe: Syntax error
+bound_element_errors.bas:32:14: error: not supported yet: `LBOUND` of this expression

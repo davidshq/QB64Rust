@@ -22,6 +22,7 @@ impl Checker<'_> {
     pub(super) fn const_stmt(&mut self, stmt: ast::ConstStmt) -> R<()> {
         // A label before it on its line is no problem here (the old compiler fails, `DIVERGENCES.md` D-008).
         self.stmt.const_at = Some(self.main_offset(stmt.node().key()));
+        self.stmt.consts_before = self.consts_before.get(&stmt.node().key()).copied();
         let in_colors = self.color_file == Some(stmt.node().span().file);
         for item in stmt.items() {
             let name_tok = self.need(item.name(), item.node().span())?;
@@ -78,6 +79,14 @@ impl Checker<'_> {
             self.stmt.names.push((SymbolKind::Const(id), name_tok.span));
         }
         Ok(())
+    }
+
+    /// Whether a `CONST` of this name stands above the one being checked, in any body ([`Checker::const_names`]);
+    /// true where that is not known.
+    fn const_above(&self, name: &str) -> bool {
+        self.stmt
+            .consts_before
+            .is_none_or(|n| self.const_names[..n].iter().any(|(c, _)| c == name))
     }
 
     /// The checks of a new constant's name against what came before it.
@@ -264,7 +273,14 @@ impl Checker<'_> {
                     (None, suffix) if find_function_form(name.as_bytes(), suffix == Some(Ty::Str)).is_some() => {
                         Err(self.error(t.span, format!("`{shown}` cannot be used in a `CONST`")))
                     }
-                    (None, _) => Err(self.unsupported(t.span, format!("`{shown}`, not a constant defined so far"))),
+                    // A `CONST` of this name above may be one this compiler did not take (an error, a mark, a body
+                    // not reached); any other name is an error (measured: "Unexpected element 'B'" for an
+                    // undefined name, a constant defined below, a SUB's, a label's, a FUNCTION's or an array's name,
+                    // upstream `const/undefined_argument*`, `verification` `v51_x44`-`x49`, `x52`, `x53`).
+                    (None, _) if self.const_above(&name) => {
+                        Err(self.unsupported(t.span, format!("`{shown}`, not a constant defined so far")))
+                    }
+                    (None, _) => Err(self.error(t.span, format!("`{shown}` is no constant defined above"))),
                 }
             }
             ast::Expr::Call(call) => {

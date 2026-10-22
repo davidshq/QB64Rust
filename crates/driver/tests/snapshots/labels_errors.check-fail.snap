@@ -14,6 +14,8 @@ labels_errors.bas:14:10: note: QB64pe: Label 'done' not defined
 labels_errors.bas:15:11: error: label `done` is not defined in this SUB or FUNCTION
 labels_errors.bas:15:11: note: QB64pe: Label 'done' not defined
 labels_errors.bas:16:19: error: `ON ERROR GOTO` needs a label of the main module, not one of this SUB or FUNCTION: `a`
+labels_errors.bas:16:19: note: QB64pe: Common label within a SUB/FUNCTION
 labels_errors.bas:17:12: error: `RETURN` with a label or line number is not allowed in a SUB or FUNCTION
+labels_errors.bas:17:12: note: QB64pe: RETURN linelabel/linenumber invalid within a SUB/FUNCTION
 labels_errors.bas:18:12: error: label `done` is not defined in this SUB or FUNCTION
 labels_errors.bas:18:12: note: QB64pe: Label 'done' not defined

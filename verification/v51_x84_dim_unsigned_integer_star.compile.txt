@@ -1,0 +1,5 @@
+
+Type cannot be _UNSIGNED
+Caused by (or after):DIM B AS _UNSIGNED INTEGER * 2
+LINE 3:DIM b AS _UNSIGNED INTEGER * 2
+exit=1

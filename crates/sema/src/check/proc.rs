@@ -1,6 +1,6 @@
 //! Procedures: headers and parameters (pass 1), calls and their arguments, `EXIT SUB`/`FUNCTION`.
 
-use super::decl::name_end;
+use super::decl::{AsPlace, name_end};
 use super::{Checker, DimFact, Failed, R, Scope};
 use crate::builtins::{StmtRule, stmt_lookup};
 use crate::literal;
@@ -196,7 +196,7 @@ impl Checker<'_> {
                         fixed = Some(self.fixed_param_len(size)?);
                         Ty::Str
                     }
-                    _ => self.type_of(a)?,
+                    _ => self.type_of_at(a, AsPlace::Param)?,
                 },
             };
             self.type_above(above, ty, param.node().span())?;
@@ -279,7 +279,7 @@ impl Checker<'_> {
             }
             (None, Some(a)) => match (self.fixed_string_size(a), a.size()) {
                 (true, Some(size)) => Ty::FixedStr(self.fixed_param_len(size)?),
-                _ => self.type_of(a)?,
+                _ => self.type_of_at(a, AsPlace::Param)?,
             },
         };
         self.type_above(above, ty, param.node().span())?;

@@ -1,0 +1,5 @@
+
+Illegal SUB/FUNCTION parameter
+Caused by (or after):
+LINE 5:FUNCTION F ( B AS NOSUCH )
+exit=1

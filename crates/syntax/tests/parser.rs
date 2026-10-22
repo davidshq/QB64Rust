@@ -124,6 +124,15 @@ fn const_errors() {
 }
 
 #[test]
+fn const_operator_operands() {
+    // In a `CONST`, an operator word where a value is expected is an error, also after `NOT`; `1 OR` at the end
+    // of the line is the plain error; outside a `CONST` the same word stays marked "not supported yet".
+    insta::assert_snapshot!(tree(
+        "CONST c = OR\nCONST d = NOT OR\nCONST e = 1 OR\nCONST f = AND 1\nCONST g = MOD\nx = OR\nPRINT x\n"
+    ));
+}
+
+#[test]
 fn option_forms() {
     insta::assert_snapshot!(tree(
         "OPTION BASE 1\nOPTION _EXPLICIT: DIM x\nOPTION _EXPLICITARRAY\nOPTION EXPLICIT\nSUB s\n  OPTION _EXPLICIT\nEND SUB\n"

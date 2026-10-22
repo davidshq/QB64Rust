@@ -3,9 +3,14 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 continue_errors.bas:8:1: error: `_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop
+continue_errors.bas:8:1: note: QB64pe: _CONTINUE outside DO..LOOP/FOR..NEXT/WHILE..WEND block
 continue_errors.bas:11:1: error: `_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop
+continue_errors.bas:11:1: note: QB64pe: _CONTINUE outside DO..LOOP/FOR..NEXT/WHILE..WEND block
 continue_errors.bas:13:13: error: `_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop
+continue_errors.bas:13:13: note: QB64pe: _CONTINUE outside DO..LOOP/FOR..NEXT/WHILE..WEND block
 continue_errors.bas:15:11: error: `_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop
+continue_errors.bas:15:11: note: QB64pe: _CONTINUE outside DO..LOOP/FOR..NEXT/WHILE..WEND block
 continue_errors.bas:18:5: error: `_CONTINUE` stands alone on its statement
 continue_errors.bas:18:5: note: QB64pe: Command not implemented
 continue_errors.bas:21:5: error: `_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop
+continue_errors.bas:21:5: note: QB64pe: _CONTINUE outside DO..LOOP/FOR..NEXT/WHILE..WEND block

@@ -165,22 +165,29 @@ recorded decisions or measurements; listing an area does not settle those choice
 
 - [x] The `$EXEICON` and `$EMBED` names relative to the old compiler's own folder (`icon/test`,
       `winresource/test`, `embed/test`; a `C:name` stays marked, `SOMEDAY.md`) (`m4-devices-continue-paths`)
-- [ ] Runtime error and source-location support: `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`; logging
-      built-ins (done: `_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$`, `_ERRORMESSAGE$`, and a joined line
-      numbered as its last, `m3-errorline-chr-const`; upstream 336 to 339 of 399)
-- [ ] `$CHECKING:OFF` and the corresponding unchecked code generation, including memory operations and
-      `_ARRAYCOPY` (read in `afterlastline.bm` only since `m3-network-embed`: no event checks there)
+- [x] Runtime error and source-location support: `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`; logging
+      built-ins (`_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$`, `_ERRORMESSAGE$`, and a joined line
+      numbered as its last, `m3-errorline-chr-const`; upstream 336 to 339 of 399; the handler chain, `_LOG*` and
+      `_LOGMINLEVEL`, `m4-handlers-logging-checking`)
+- [x] `$CHECKING:OFF` and the corresponding unchecked code generation, including memory operations and
+      `_ARRAYCOPY` (read in `afterlastline.bm` only since `m3-network-embed`: no event checks there): OFF and ON
+      anywhere, no event, error or index checks below OFF, the unchecked `_MEMGET`, `_MEMPUT` and `_MEMFILL`
+      (`m4-handlers-logging-checking`)
 - [ ] OpenGL user code (`SUB _GL`) and its integration with the existing runtime
-- [ ] Remaining built-in families and statements: clipboard text, `_FILES$`, `_MD5$`, `_OS$`, `_CAST` and
-      `CLEAR`; cover their forms through the call-site check and runnable tests where applicable (done: device
+- [x] Remaining built-in families and statements: clipboard text, `_FILES$`, `_MD5$`, `_OS$`, `_CAST` and
+      `CLEAR`; cover their forms through the call-site check and runnable tests where applicable (device
       input, `_DEVICES` and related functions, `STICK`, `STRIG()`, `ON STRIG` and `STRIG ON`, and `_CONTINUE`,
-      `m4-devices-continue-paths`; upstream 355 to 363, now of 403)
+      `m4-devices-continue-paths`; upstream 355 to 363, then of 403; the rest `m4-builtins-param-types`)
 - [ ] Remaining name, declaration and array rules: a scalar beside an array typed by `DIM ... AS`
       (`arrays/t001_whole_array_core`, the last deferred upstream program), implicit arrays and forward
-      procedure references, `REDIM` without bounds in procedures, and the remaining member-array forms
+      procedure references, `REDIM` without bounds in procedures, and the remaining member-array forms (done: a
+      scalar beside a typed array, `REDIM` of a scalar in a procedure, `TYPE` blocks anywhere,
+      `m4-names-arrays`; left by the user: a whole array as a value and the errors for names that are no array
+      or no SUB)
 - [ ] Remaining memory and conventional-memory references: string-bearing types, nested and dynamic member
       arrays, `LEN` of a whole member array, and the `VARPTR`/`VARSEG` forms deferred until a program needs them
-      (`SOMEDAY.md` records the individual forms and constraints)
+      (`SOMEDAY.md` records the individual forms and constraints) (done: `LEN` of a whole array and of a whole
+      member array, not a dynamic one, `m4-names-arrays`)
 
 The parity work:
 
@@ -188,8 +195,9 @@ The parity work:
 - [ ] Close the remaining compatibility gaps exposed by the full suites, including accepted programs still
       marked "not supported yet" and rejected programs receiving only that mark; keep false errors and parse
       gaps at zero (`tests\known_*.list`)
-- [ ] Bring the last deferred upstream program into the parity run when its scalar/array naming rule is built;
-      finish with no feature-deferred programs left (`tests\upstream\deferred.list`)
+- [x] Bring the last deferred upstream program into the parity run when its scalar/array naming rule is built;
+      finish with no feature-deferred programs left (`tests\upstream\deferred.list`, empty since
+      `m4-names-arrays`)
 - [ ] `qb64pe.bas`, reached through its own include files, smallest first (the idea of QB64Fresh's
       `qb64pe_incremental` tests, which compiled `qb64pe.bas` in phases through extracted sections and stubs; the
       idea is taken, not the files: the second review, `DECISIONS.md` 2026-10-04)

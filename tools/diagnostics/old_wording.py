@@ -146,6 +146,13 @@ def merge(pairs: list[tuple[str, list[tuple[int, frozenset[str]]]]]) -> str | No
     return re.sub("\x00(\\d+)\x00", lambda m: out[int(m.group(1))], text)
 
 
+def names_file(old: str) -> bool:
+    """Whether an old message names a file, so its note would be wrong for another program: a masked folder
+    (`<verification>`), a backslash, or a BASIC file's extension. A `/` alone is no path: the old compiler writes
+    "SUB/FUNCTION" and "variable/value" (m4-upstream-rejections); every recorded path also has one of these."""
+    return re.search(r"<[a-z]+>|\.bas\b|\.bi\b|\.bm\b|\\", old) is not None
+
+
 def recorded() -> list[tuple[Path, str, int, list[str]]]:
     """Every recorded rejection: the program, the old message, its line, extra compiler arguments."""
     out = []
@@ -242,7 +249,7 @@ def main() -> int:
         if old is None:
             disagree += 1
             continue
-        if re.search(r"<[a-z]+>|\.bas\b|\.bi\b|\.bm\b|[\\/]", old):
+        if names_file(old):
             files += 1
             continue
         # Text of one program that the pattern does not carry: a number ("1st", "line 4") or a name in capitals

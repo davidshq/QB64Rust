@@ -21,8 +21,11 @@ swap_mid_errors.bas:31:7: error: expected `,` between the two variables
 swap_mid_errors.bas:31:7: note: QB64pe: Expected SWAP ... , ...
 swap_mid_errors.bas:32:10: error: expected the end of the statement
 swap_mid_errors.bas:33:6: error: `MID$` needs a variable here
+swap_mid_errors.bas:33:6: note: QB64pe: MID$ expects a string variable/array-element as its first argument
 swap_mid_errors.bas:34:6: error: the `MID$` statement needs a string variable as its first argument
+swap_mid_errors.bas:34:6: note: QB64pe: MID$ expects a string variable/array-element as its first argument
 swap_mid_errors.bas:35:6: error: `MID$` needs a variable here
+swap_mid_errors.bas:35:6: note: QB64pe: MID$ expects a string variable/array-element as its first argument
 swap_mid_errors.bas:36:6: error: cannot assign to the constant `cs`
 swap_mid_errors.bas:37:9: error: the start of the `MID$` statement must be a number
 swap_mid_errors.bas:37:9: note: QB64pe: Illegal string-number conversion
@@ -50,3 +53,4 @@ swap_mid_errors.bas:50:1: error: name already in use: `TIMER`
 swap_mid_errors.bas:55:10: error: the FUNCTION's own name cannot be a target of `SWAP`
 swap_mid_errors.bas:55:10: note: QB64pe: Expected variable
 swap_mid_errors.bas:59:10: error: the FUNCTION's own name cannot be a target of `MID$`
+swap_mid_errors.bas:59:10: note: QB64pe: MID$ expects a string variable/array-element as its first argument

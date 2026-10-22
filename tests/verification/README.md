@@ -62,7 +62,7 @@ suite runs without it and the list is judged from that run with `--check-list te
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:verification-membership -->
-Of the 2996 programs of `verification\`, `pass.list` names **2788** and `known.list` 208.
+Of the 3078 programs of `verification\`, `pass.list` names **2869** and `known.list` 209.
 
 | Reason in `known.list` | Programs |
 |---|---|
@@ -89,12 +89,12 @@ Of the 2996 programs of `verification\`, `pass.list` names **2788** and `known.l
 | `D-031` | 2 |
 | `D-032` | 1 |
 | `not recorded` | 4 |
-| `not supported yet` | 151 |
+| `not supported yet` | 152 |
 | `recorded elsewhere` | 1 |
 | `varies` | 3 |
 <!-- /counts:verification-membership -->
 
 <!-- counts:verification-results -->
-Last full run: 2026-10-19, compiler build `603d24e63055`, folding on, `--jobs 8`, build cache, 5 min. Of 2842 programs: **2622 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 220 known failures (`target\legacy-tests\results-verification.json`).
-`pass.list` judged in it (`--check-list`): **2621 of 2621** pass.
+Last full run: 2026-10-21, compiler build `f1747945bc3e`, folding on, `--jobs 8`, build cache, 30 min. Of 2998 programs: **2793 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 205 known failures (`target\legacy-tests\results-verification.json`).
+`pass.list` judged in it (`--check-list`): **2791 of 2791** pass.
 <!-- /counts:verification-results -->

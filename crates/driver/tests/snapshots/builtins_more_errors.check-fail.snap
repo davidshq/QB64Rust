@@ -42,4 +42,6 @@ builtins_more_errors.bas:37:14: error: this `CLEAR` statement matches none of it
 builtins_more_errors.bas:37:14: note: QB64pe: Syntax error - Reference: CLEAR
 builtins_more_errors.bas:38:7: error: argument 1 of `CLEAR` needs a number
 builtins_more_errors.bas:41:5: error: `CLEAR` cannot be used in a SUB or FUNCTION
+builtins_more_errors.bas:41:5: note: QB64pe: CLEAR cannot be used inside a SUB/FUNCTION
 builtins_more_errors.bas:44:5: error: `CLEAR` cannot be used in a SUB or FUNCTION
+builtins_more_errors.bas:44:5: note: QB64pe: CLEAR cannot be used inside a SUB/FUNCTION

@@ -1,0 +1,5 @@
+
+Expected STRING * number/constant
+Caused by (or after):DIM S AS STRINGFOOBAR
+LINE 3:DIM s AS Stringfoobar
+exit=1

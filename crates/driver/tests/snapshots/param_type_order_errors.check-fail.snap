@@ -3,7 +3,12 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 param_type_order_errors.bas:16:12: error: the `TYPE LATE` of a parameter must be defined above its SUB or FUNCTION
+param_type_order_errors.bas:16:12: note: QB64pe: Illegal SUB/FUNCTION parameter
 param_type_order_errors.bas:18:18: error: the `TYPE LATE` of a parameter must be defined above its SUB or FUNCTION
+param_type_order_errors.bas:18:18: note: QB64pe: Illegal SUB/FUNCTION parameter
 param_type_order_errors.bas:20:26: error: the `TYPE LATE` of a parameter must be defined above its SUB or FUNCTION
+param_type_order_errors.bas:20:26: note: QB64pe: Illegal SUB/FUNCTION parameter
 param_type_order_errors.bas:22:15: error: the `TYPE OWN` of a parameter must be defined above its SUB or FUNCTION
+param_type_order_errors.bas:22:15: note: QB64pe: Illegal SUB/FUNCTION parameter
 param_type_order_errors.bas:27:15: error: the `TYPE LATER_T` of a parameter must be defined above its SUB or FUNCTION
+param_type_order_errors.bas:27:15: note: QB64pe: Illegal SUB/FUNCTION parameter

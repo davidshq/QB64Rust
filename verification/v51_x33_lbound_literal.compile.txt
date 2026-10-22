@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):PRINT LBOUND ( 5 )
+LINE 3:PRINT LBOUND(5)
+exit=1
