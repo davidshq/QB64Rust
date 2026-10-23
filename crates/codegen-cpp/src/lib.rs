@@ -31,6 +31,7 @@
 // The emitter by concern (design D6 of `m2-core-builtins`): each module adds the `Emitter` methods of its part.
 mod arrays;
 mod builtins;
+mod cmem;
 mod coverage;
 mod decl;
 mod events;
@@ -137,6 +138,7 @@ pub fn emit_with(
         line_file: line_name(source_name),
         included,
         skip: 0,
+        inside: Vec::new(),
         pass: 0,
         pass_decls: Vec::new(),
         byte_element: 0,
@@ -163,6 +165,16 @@ pub fn emit_with(
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
     set("global.txt", e.global() + &e.library_globals());
+    // The window's resizing, which libqb reads from here (`qb64pe.bas` 13100–13106).
+    let mut dyninfo = String::new();
+    if p.settings.resize != qb64rust_ir::Resize::Off {
+        dyninfo.push_str("ScreenResize=1;\n");
+    }
+    let scale = p.settings.resize.scale();
+    if scale != 0 {
+        writeln!(dyninfo, "ScreenResizeScale={scale};").unwrap();
+    }
+    set("dyninfo.txt", dyninfo);
     // The libraries' headers and prototypes first: a program procedure's prototype names no type of theirs.
     set("regsf.txt", e.library_prototypes() + &e.prototypes());
     set("clear.txt", e.per_program_var(|v, n| e.clear(v, n)));
@@ -212,6 +224,11 @@ pub fn emit_with(
         }
         text
     });
+    // The allocations other declarations add (`STATIC a(n)` beside a shared array), after every array's own.
+    for (id, bounds) in &p.start_allocations {
+        let v = p.var(*id);
+        maindata.push_str(&e.allocate_at_start(v, &names::var_name(p, v), bounds));
+    }
     maindata.push_str(&e.temps(None));
     for d in std::mem::take(&mut e.pass_decls) {
         maindata.push_str(&d);
@@ -291,6 +308,9 @@ struct Emitter<'a> {
     included: HashMap<FileId, (String, String)>,
     /// Counter for the `skipN` labels of PRINT statements.
     skip: u32,
+    /// The allocations of the op of items being written, each by the part it runs before (`io.rs`,
+    /// [`Emitter::allocs_before`]).
+    inside: Vec<(usize, qb64rust_ir::Allocation)>,
     /// Counter for the `passN` by-value temporaries.
     pass: u32,
     /// Declarations of the `passN` of the body being emitted.

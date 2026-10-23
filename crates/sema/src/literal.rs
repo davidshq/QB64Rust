@@ -248,8 +248,11 @@ pub fn number(text: &[u8], negative: bool) -> Result<NumLit, LitError> {
                 Ty::I32
             } else if magnitude <= i64::MAX as u128 {
                 Ty::I64
+            } else if magnitude <= u128::from(u64::MAX) {
+                // The old compiler adds `~&&` to such a literal (`qb64pe.bas` 23937).
+                return Ok(suffixed(value, Ty::U64));
             } else {
-                return Err(LitError::Unsupported("unsigned literals"));
+                return Err(LitError::Overflow);
             }
         }
         _ => return Err(LitError::Unsupported("this type suffix")),
@@ -528,8 +531,13 @@ mod tests {
         assert_eq!(int("5&&", false), (5, Ty::I64));
         assert_eq!(
             number(b"9223372036854775808", false),
-            Err(LitError::Unsupported("unsigned literals"))
+            number(b"9223372036854775808~&&", false)
         );
+        assert_eq!(int("18446744073709551615", false), (-1, Ty::U64));
+        assert_eq!(number(b"18446744073709551616", false), Err(LitError::Overflow));
+        // `DIVERGENCES.md` D-034: the old compiler gives these `&&`, and its C++ build decides the value.
+        assert_eq!(number(b"9223372036854775809", true), Err(LitError::Overflow));
+        assert_eq!(number(b"18446744073709551615", true), Err(LitError::Overflow));
     }
 
     #[test]

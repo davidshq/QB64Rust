@@ -6,7 +6,7 @@ use super::{Checker, Failed, R, Scope, split_unsigned};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
 use crate::{
-    AllocMode, ArrayRef, MemberId, Place, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId,
+    AllocMode, ArrayRef, Join, MemberId, Place, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId,
 };
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{Kind, auto_constant, find_any, is_auto_include_name};
@@ -65,7 +65,7 @@ impl Checker<'_> {
     /// in use" as a value, an assignment or in `DIM` (`verification\v21_x50` to `x53`). Used for variable names
     /// ([`Self::split_var_name`]) and calls only; elsewhere `name$n` stays unsupported.
     pub(super) fn proc_fixed_name(&self, t: Tok) -> Option<(String, Ty)> {
-        match fixed_name(self.text(t.span)) {
+        match fixed_name(&self.name_text(t)) {
             Some((name, Some(n))) if self.procs_by_name.contains_key(&name) => Some((name, Ty::FixedStr(n))),
             Some(_) | None => None,
         }
@@ -79,7 +79,7 @@ impl Checker<'_> {
         if let Some((name, ty)) = self.proc_fixed_name(t) {
             return Ok((name, Some(ty)));
         }
-        match fixed_name(self.text(t.span)) {
+        match fixed_name(&self.name_text(t)) {
             Some((name, Some(n))) => {
                 self.fixed_name_alone(t, &name)?;
                 Ok((name, Some(Ty::FixedStr(n))))
@@ -110,7 +110,8 @@ impl Checker<'_> {
     /// [`literal::suffix_type`]; `name$n` is not supported yet here (a variable's name is read by
     /// [`Self::split_var_name`], a FUNCTION `f$n` called by [`Self::proc_fixed_name`]).
     pub(super) fn split_name(&mut self, t: Tok) -> R<(String, Option<Ty>)> {
-        let bytes = self.text(t.span);
+        let text = self.name_text(t);
+        let bytes = &text[..];
         let end = name_end(bytes);
         let (name, suffix) = bytes.split_at(end);
         let name = show_bytes(&name.to_ascii_uppercase());
@@ -192,31 +193,29 @@ impl Checker<'_> {
             // The SUB QB64 calls to draw with OpenGL (design D10 of `m2-parser-breadth`).
             return Err(self.unsupported(t.span, "`SUB _GL` (OpenGL)"));
         }
+        // The old compiler's `regid` (`qb64pe.bas` 25881–25896): a procedure's name, without its suffix, clashes with
+        // a reserved word whatever the suffix, and with a built-in of its kind unless the built-in must have `$` and
+        // the procedure's name has none ("Name already in use"; measured, `verification\v52_x28`, `v55_x47`–`x49`,
+        // `x51`: `FUNCTION exp$`, `len$`, `abs%`, `timer#`; `chr&` is free).
+        let in_use = |c: &mut Self| {
+            let shown = show_bytes(c.text(t.span));
+            c.error(
+                t.span,
+                format!("`{shown}`: a procedure may not have the name of a keyword or a built-in"),
+            )
+        };
         if is_keyword(name.as_bytes()) && !name.starts_with('_') && !matches!(suffix, None | Some(Ty::I32)) {
-            // `v52_builtin_name_suffixes` measured variables only (design D6 of `m4-qb64pe-sources`).
-            let msg = format!(
-                "`{}` as a procedure name (a keyword with this suffix is not measured)",
-                show_bytes(self.text(t.span))
-            );
-            return Err(self.unsupported(t.span, msg));
+            return Err(in_use(self));
         }
         if name.starts_with('_') || is_keyword(name.as_bytes()) {
             return self.reserved(t, name, suffix);
         }
         let kind = if function { Kind::Function } else { Kind::Sub };
-        let mut same_kind = find_any(name.as_bytes()).filter(|b| b.kind == kind);
-        match suffix {
-            None | Some(Ty::I32) if same_kind.any(|b| b.musthave.is_none()) => Err(self.in_use(t)),
-            None | Some(Ty::I32) => Ok(()),
-            Some(_) if same_kind.next().is_some() => {
-                let msg = format!(
-                    "`{}` as a FUNCTION name (a built-in's name with this suffix is not measured)",
-                    show_bytes(self.text(t.span))
-                );
-                Err(self.unsupported(t.span, msg))
-            }
-            Some(_) => Ok(()),
+        let clash = |b: &qb64rust_builtins::Builtin| b.musthave != Some("$") || suffix == Some(Ty::Str);
+        if find_any(name.as_bytes()).filter(|b| b.kind == kind).any(clash) {
+            return Err(in_use(self));
         }
+        Ok(())
     }
 
     /// The type named by an `AS` clause: a numeric type, `STRING`, or a user type. As measured
@@ -354,11 +353,27 @@ impl Checker<'_> {
             if consts {
                 self.auto_const_use(&name, size.span)?;
             }
+            // Measured (design D11 of `m4-memory-records`): a string constant and a name that is no constant (a
+            // variable, a name never assigned) are "Number/Constant expected after *" (`verification\v51_x75`,
+            // `v56_x15`–`x17`); a float constant is rounded half to even, as `qbr` rounds (`v56_x14`, `x18`, `x29`).
+            let not_constant = |c: &mut Self| {
+                let msg = format!("the length of a `STRING * n` must be a number or a numeric constant: `{shown}`");
+                c.error(size.span, msg)
+            };
             let found = match (consts, suffix, self.visible_const(&name)) {
-                (true, None, Some(c)) => match self.prog.constant(c).value {
-                    Value::Int(v) => Some((c, v)),
-                    Value::UInt(_) | Value::Float(..) | Value::Str(_) => None,
+                (true, None, Some(c)) => match &self.prog.constant(c).value {
+                    Value::Int(v) => Some((c, *v)),
+                    v @ Value::Float(..) => crate::consteval::as_i64(v).ok().map(|n| (c, n)),
+                    Value::Str(_) => return Err(not_constant(self)),
+                    Value::UInt(_) => None,
                 },
+                (true, Some(_), Some(c)) if matches!(self.prog.constant(c).value, Value::Str(_)) => {
+                    return Err(not_constant(self));
+                }
+                // A `CONST` of the name elsewhere may be one this compiler did not take.
+                (true, None, None) if !self.const_names.iter().any(|(n, _)| *n == name) => {
+                    return Err(not_constant(self));
+                }
                 _ => None,
             };
             let Some((c, v)) = found else {
@@ -617,8 +632,10 @@ impl Checker<'_> {
         // allocation raises no second error, and `RESUME NEXT` goes on after the whole list.
         let mut last = true;
         for s in self.sink()[first..].iter_mut().rev() {
-            if let StmtKind::Allocate { joined, .. } = &mut s.kind {
-                *joined |= !last;
+            if let StmtKind::Allocate { join, .. } = &mut s.kind {
+                if !last && *join == Join::None {
+                    *join = Join::First;
+                }
                 last = false;
             }
         }
@@ -646,6 +663,17 @@ impl Checker<'_> {
             }
             let name_tok = self.need(item.name(), item.node().span())?;
             let (name, suffix) = self.split_var_name(name_tok)?;
+            if let Some(dot) = name.find('.')
+                && self.name_text(name_tok).len() != self.text(name_tok.span).len()
+                && self.user_head(&name[..dot])
+            {
+                // `DIM a . b AS LONG` beside a `TYPE` variable `a`: "DIM: Expected ," (measured,
+                // `verification\v55_x62`); without the variable it declares `a.b` (`v47_x17`).
+                let shown = show_bytes(self.text(name_tok.span));
+                let head = shown.split('.').next().unwrap_or_default().trim_end();
+                let msg = format!("`{shown}`: `{head}` is a `TYPE` variable, and a member is not declared");
+                return Err(self.error(name_tok.span, msg));
+            }
             if by == Declarer::Dim
                 && item.bounds().is_some()
                 && let Some(dot) = name.find('.')
@@ -914,7 +942,36 @@ impl Checker<'_> {
             (Some(p), false) => self.local_storage(p),
         };
         let by = Declarer::Redim { mode };
-        self.declare_items(stmt.items(), stmt.as_clause(), storage, shared, by, node)
+        let before = self.sink().len();
+        let done = self.declare_items(stmt.items(), stmt.as_clause(), storage, shared, by, node);
+        self.join_targets(before);
+        done
+    }
+
+    /// The targets of one `ERASE` or `REDIM`, the statements made since `before`, as parts of one statement when
+    /// a member array of one is found through an index, which may raise: each target is cleared in turn, and an
+    /// error is handled after the last, as the old compiler goes on with the other targets first (design D9 of
+    /// `m4-memory-records`; measured, `verification\v24_x312`).
+    fn join_targets(&mut self, before: usize) {
+        let sink = self.sink();
+        let made = &mut sink[before..];
+        let raises = made
+            .iter()
+            .any(|s| matches!(&s.kind, StmtKind::Clear { array, .. } if array.may_raise()));
+        let Some((_, first)) = made.split_last_mut() else {
+            return;
+        };
+        if !raises {
+            return;
+        }
+        for s in first {
+            if let StmtKind::Clear { join, .. } | StmtKind::Release { join, .. } | StmtKind::Allocate { join, .. } =
+                &mut s.kind
+                && *join == Join::None
+            {
+                *join = Join::First;
+            }
+        }
     }
 
     /// `ERASE name, …` (design D4 of `m2-defxxx-common-arrays`; measured, `verification\v24_d_*`, `v24_x57`–`x63`):
@@ -925,6 +982,13 @@ impl Checker<'_> {
     /// A member array (`ERASE t.v`, `ERASE a(1).v`, `ERASE x(0).n(1).q`) is cleared: its bounds never change
     /// (design D8; measured, `verification\v24_x188`, `x189`, `x224`, `x312`).
     pub(super) fn erase(&mut self, stmt: ast::EraseStmt) -> R<()> {
+        let before = self.sink().len();
+        let done = self.erase_targets(stmt);
+        self.join_targets(before);
+        done
+    }
+
+    fn erase_targets(&mut self, stmt: ast::EraseStmt) -> R<()> {
         let node = stmt.node();
         let targets = stmt.targets();
         let alone = targets.len() == 1;
@@ -977,9 +1041,11 @@ impl Checker<'_> {
                 _ if matches!(var.storage, Storage::Param(_)) => StmtKind::EraseParam { array },
                 Shape::Static { .. } => StmtKind::Clear {
                     array: ArrayRef::Var(array),
+                    join: Join::None,
                 },
                 Shape::Dynamic { .. } => StmtKind::Release {
                     array: ArrayRef::Var(array),
+                    join: Join::None,
                 },
                 Shape::Scalar => unreachable!("an array is no scalar"),
             };

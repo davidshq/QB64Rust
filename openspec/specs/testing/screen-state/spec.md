@@ -44,7 +44,9 @@ changed for it.
 With `QB64_SCREEN_KEYS=<file>` the same file SHALL give the program the keys the file lists, in order, as if
 typed: `text <printable ASCII>`, `key <name>` (Enter, Esc, Tab, Backspace, Space, the arrow and editing keys,
 F1 to F12), `wait <milliseconds>`, `prompt`, `state`, and as the last line `repeat <name>`, which presses the key
-until the program exits. No key SHALL be lost, whatever the number of keys and the speed of the program: a key is
+until the program exits. `hold <name>` SHALL put a key down and leave it down until `lift <name>` puts it up; its
+names are those of `key` and the modifier keys `lshift`, `rshift`, `lctrl`, `rctrl`, `lalt` and `ralt`. A key held
+at the end of the file SHALL stay down until the program exits. No key SHALL be lost, whatever the number of keys and the speed of the program: a key is
 given only when the program has read the ones before. A program announces that it waits for a key by adding 1
 (modulo 256) to byte 0x4F0 of conventional memory (`DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255`); the
 k-th `prompt` SHALL wait for the k-th announcement before the steps after it are taken. If it does not come
@@ -93,6 +95,15 @@ stderr.
 - **WHEN** the keys file starts with `prompt` and the program never writes byte 0x4F0
 - **THEN** the program is ended after 30 seconds with exit code 124, the state at that moment is written, and the
   last line of the state file names the line of the `prompt`
+
+#### Scenario: A key held and lifted
+- **WHEN** a program announces a wait, then loops until `_KEYDOWN(100304)`, prints it, loops until it is 0 and
+  prints it again, and the keys file is `prompt`, `hold lshift`, `wait 200`, `lift lshift`
+- **THEN** it prints `-1  0 `, and `_KEYHIT` reads 100304 and then -100304
+
+#### Scenario: A name that is not a key
+- **WHEN** a line reads `hold bogus` or `lift`
+- **THEN** the program exits with code 125 and stderr names the file and the line
 
 ### Requirement: Screen programs in the corpus
 A corpus program with a `<name>.screen` file SHALL be built with the state file and run with `QB64_SCREEN_STATE`

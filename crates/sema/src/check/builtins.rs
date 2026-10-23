@@ -9,8 +9,9 @@ use crate::builtins::{
     MEM_RESULTS, Rule, Slot, StmtRule, StmtSlot, StmtSupported, Supported, lookup, result_types, slots, stmt_lookup,
     stmt_slots,
 };
-use crate::{ConvKind, Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, StmtArg, StmtKind, Ty};
+use crate::{AddressWord, ConvKind, Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, StmtArg, StmtKind, Ty};
 use qb64rust_base::Span;
+use qb64rust_builtins::find_any;
 use qb64rust_builtins::template::{Atom, Item};
 use qb64rust_syntax::SyntaxKind::{self, Ident, LParen, RParen};
 use qb64rust_syntax::ast;
@@ -107,6 +108,9 @@ impl Checker<'_> {
             | Rule::Rotate => {}
         }
         self.runtime_part(s.id, name, span)?;
+        if matches!(name, "_COMPILEDATE$" | "_COMPILETIME$") {
+            self.settings.compile_stamp = true;
+        }
         let slots = slots(s);
         let filled = self.filled_slots(s, &slots, list, span)?;
         let mut args = Vec::with_capacity(slots.len());
@@ -136,20 +140,6 @@ impl Checker<'_> {
             } else {
                 format!("argument {} of `{name}`", k + 1)
             };
-            if let (Rule::Radix(_), ExprKind::Call { builtin, .. }) = (s.rule, &e.kind)
-                && builtin.get().ret.is_none()
-            {
-                // `_SCREENEXISTS`, which has no return type in the table: the old compiler passes the width 0
-                // here, not a LONG's (measured from its C++, design D6 of `m2-console-screenhide`).
-                let inner = builtin.get().name.to_ascii_uppercase();
-                return Err(self.unsupported(e.span, format!("`{inner}` as the argument of `{name}`")));
-            }
-            if let (Rule::Radix(_), ExprKind::VarPtr { .. } | ExprKind::VarSeg { .. }) = (s.rule, &e.kind) {
-                // The old compiler passes the width 0 here too, not an `_INTEGER64`'s (measured from its C++:
-                // `func_hex(…,0)`; accepted, `verification\v28_x95`).
-                let msg = format!("`VARPTR` or `VARSEG` as the argument of `{name}`");
-                return Err(self.unsupported(e.span, msg));
-            }
             args.push(Some(self.slot_arg(s.rule, slot, k, e, &which)?));
         }
         let (ty, qb) = if s.rule == Rule::Widest {
@@ -462,6 +452,10 @@ impl Checker<'_> {
         }
         // Measured: "UDT must have fixed size" (`verification\v24_x206`).
         self.len_fixed_size(ty, false, e.span)?;
+        if self.waits_for_layout(ty) {
+            let msg = "`LEN` of a `TYPE` above the block whose member array bounds name a `CONST`";
+            return Err(self.unsupported(e.span, msg));
+        }
         // The index of an element is not evaluated (the old compiler takes the element type's size).
         let size = crate::size_of(&self.prog.types, ty);
         Ok(Expr {
@@ -486,17 +480,27 @@ impl Checker<'_> {
             kind,
         };
         if let Some((array, _, _)) = self.member_array(node)? {
-            if self.prog.array_ty(&array) == Ty::Str {
-                // The old compiler gives a number (32 for four elements, `verification\v48_x30`) where a whole
-                // array of strings is an error (`x01`); not measured further.
-                let msg = "`LEN` of a whole member array of variable-length strings";
-                return Err(self.unsupported(at, msg));
-            }
-            // Before the size: an array of a `TYPE` with a `STRING` member has none (`size_of`).
-            self.bytes_reference(&crate::Reference::Array(array.clone()), "LEN", at)?;
             let crate::ArrayRef::Member { base, member } = &array else {
                 unreachable!("`member_array` gives a member array");
             };
+            if self.prog.array_ty(&array) == Ty::Str {
+                // The old compiler gives 8 bytes an element, a `STRING` member being its pointer, where a whole
+                // array of strings is an error (`x01`; design D10 of `m4-memory-records`; measured,
+                // `verification\v48_x30`, `v56_g1`: other bounds and dimensions, beside other members, of an
+                // element's member).
+                let m = self.prog.member(self.prog.place_ty(base), *member);
+                if m.dynamic || self.waits_for_layout(self.prog.place_ty(base)) {
+                    let msg = "`LEN` of a whole dynamic member array of variable-length strings";
+                    return Err(self.unsupported(at, msg));
+                }
+                return Ok(Some(lng(ExprKind::Int(8 * i64::from(m.count())))));
+            }
+            // Before the size: an array of a `TYPE` with a `STRING` member has none (`size_of`).
+            self.bytes_reference(&crate::Reference::Array(array.clone()), "LEN", at)?;
+            if self.waits_for_layout(self.prog.place_ty(base)) {
+                let msg = "`LEN` of a member array above its `TYPE` block, whose bounds name a `CONST`";
+                return Err(self.unsupported(at, msg));
+            }
             let m = self.prog.member(self.prog.place_ty(base), *member);
             let size = crate::size_of(&self.prog.types, m.ty) * m.count();
             return Ok(Some(lng(ExprKind::Int(i64::from(size)))));
@@ -508,8 +512,15 @@ impl Checker<'_> {
         // whose first part is a `TYPE` variable.
         let t = self.need(c.name(), at)?;
         let (name, suffix) = self.split_name(t)?;
-        let Some(array) = self.find_array(&name, suffix) else {
-            return Ok(None);
+        let array = match self.find_array(&name, suffix) {
+            Some(a) => a,
+            None if self.procs_by_name.contains_key(&name) || find_any(name.as_bytes()).next().is_some() => {
+                return Ok(None);
+            }
+            // A name that is no array: the implicit array of one dimension (measured, `verification\v48_x04`,
+            // `x14`, `v55_b_implicit_whole`: 44 for eleven `SINGLE` elements; design D5 of
+            // `m4-names-implicit-arrays`).
+            None => self.implicit_array(t, &name, suffix, 0, c.node())?,
         };
         // Measured: "UDT must have fixed size" (`verification\v48_x03`), where `_MEM` of the array is no error
         // (`x11`).
@@ -798,7 +809,8 @@ impl Checker<'_> {
     /// also a function, `SCREEN (12) = 12`, or has a leading underscore). The parser reads such a line as the
     /// statement with a comparison as its first argument, which is right only when something stands between the
     /// `)` and the `=` (`CLS (1) + 2 = 5` is `CLS` with a comparison, measured). `WIDTH` alone is different: the
-    /// old compiler makes `WIDTH (80) = 80` an element of an array named `WIDTH`.
+    /// old compiler makes `WIDTH (80) = 80` an element of an array named `WIDTH`, and the parser reads it as an
+    /// assignment (design D8 of `m4-names-implicit-arrays`).
     fn not_an_assignment(&mut self, node: Node, name: qb64rust_syntax::tree::Tok, shown: &str) -> R<()> {
         let tokens: Vec<_> = node.tokens().into_iter().filter(|t| !t.kind.is_trivia()).collect();
         if tokens.first().map(|t| t.span) != Some(name.span) || tokens.get(1).map(|t| t.kind) != Some(LParen) {
@@ -818,9 +830,6 @@ impl Checker<'_> {
         };
         if tokens.get(close + 2).map(|t| t.kind) != Some(SyntaxKind::Eq) {
             return Ok(());
-        }
-        if shown.eq_ignore_ascii_case("WIDTH") {
-            return Err(self.unsupported(name.span, "an array named `WIDTH`"));
         }
         Err(self.error(name.span, format!("name already in use: `{shown}`")))
     }
@@ -846,14 +855,113 @@ impl Checker<'_> {
         self.stmt_call(node, form, matched)
     }
 
-    /// The array of a graphics `GET` or `PUT` (design D5 of `m3-get-put-bload`; measured,
-    /// `verification\v28_x01`, `x10`–`x25`, `x58`–`x64`): an array as a whole (`a`, `a()`) or from an element
-    /// (`a(5)`, `b(2, 3)`), of numbers; static or dynamic, of this body or shared, or an array parameter.
-    ///
-    /// The old compiler also takes an array of a user type or of strings and, for a name that is no array, the
-    /// bytes of that plain variable; each is another text of its own and not supported yet. It writes the index
-    /// twice, so a FUNCTION in it is called twice (measured from its C++): an index with a call is not supported
-    /// yet either. Anything that is no variable is its error ("Expected variable name/array element").
+    /// The array's place of a graphics `GET` or `PUT` (design D5 of `m3-get-put-bload` and of `m4-memory-records`;
+    /// measured, `verification\v28_x01`, `x10`–`x25`, `x58`–`x64`, `v56_d`, and the old compiler's C++ of each
+    /// form): an array of numbers as [`Self::block_arg`] takes it, and otherwise the bytes from a place
+    /// ([`StmtArg::Rest`]): a plain variable, a string, a fixed-length string, a user-type variable or a member of
+    /// one, an element of an array of strings, fixed-length strings or a user type (also `a()`, its first), or a
+    /// member of one. A name alone is the array of numbers or of a user type of that name, else the scalar of that
+    /// name (an array of strings does not stand in the way: `GET …, sa` is the `SINGLE` `sa`), declared or
+    /// implicit; `x()` of a name that is no array is the implicit array. A user type that holds a `STRING` (whose
+    /// pointers `GET` would write over) and a `_BIT` are not supported yet, as is an index with a call, which the
+    /// old compiler writes twice.
+    fn graphics_arg(&mut self, node: ast::Expr, name: &str) -> R<StmtArg> {
+        let span = node.node().span();
+        let named = match &node {
+            ast::Expr::NameRef(n) => n.name().map(|t| (t, true)),
+            ast::Expr::Call(c) if c.arg_list().is_some_and(|l| l.args().is_empty()) => c.name().map(|t| (t, false)),
+            ast::Expr::Call(_)
+            | ast::Expr::Literal(_)
+            | ast::Expr::Field(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_) => None,
+        };
+        let place = if let Some((t, bare)) = named {
+            let (word, suffix) = self.split_name(t)?;
+            let array = match self.find_array(&word, suffix) {
+                Some(a) if !bare || !self.prog.var(a).ty.is_string() => Some(a),
+                Some(_) => None,
+                None if bare || word.contains('.') => None,
+                None => Some(self.implicit_array(t, &word, suffix, 0, node.node())?),
+            };
+            match array {
+                Some(array) => {
+                    let ty = self.prog.var(array).ty;
+                    if (ty.is_int() || ty.is_float()) && !matches!(ty, Ty::Bit { .. }) {
+                        return self.block_arg(node, name);
+                    }
+                    self.stmt.names.push((crate::SymbolKind::Var(array), t.span));
+                    Place::Element {
+                        array: crate::ArrayRef::Var(array),
+                        index: Vec::new(),
+                    }
+                }
+                None => self.graphics_place(node, name)?,
+            }
+        } else {
+            self.graphics_place(node, name)?
+        };
+        let root = self.prog.var(place.root()).ty;
+        if let Place::Element {
+            array: crate::ArrayRef::Var(array),
+            index,
+        } = &place
+            && (root.is_int() || root.is_float())
+            && !matches!(root, Ty::Bit { .. })
+        {
+            if index.iter().any(calls_procedure) {
+                let msg = format!("a call of a FUNCTION in the index of the array of `{name}`");
+                return Err(self.unsupported(span, msg));
+            }
+            return Ok(StmtArg::Block {
+                array: *array,
+                index: index.clone(),
+            });
+        }
+        let what = if matches!(self.prog.place_ty(&place), Ty::Bit { .. }) {
+            Some("a `_BIT`")
+        } else if crate::holds_strings(&self.prog.types, root)
+            || crate::owns_desc(&self.prog.types, root)
+            || self.prog.is_mem(root)
+        {
+            Some("a `TYPE` that holds a `STRING` or a dynamic member array")
+        } else if place.indexes().iter().any(|i| calls_procedure(i)) {
+            Some("a call of a FUNCTION in an index")
+        } else {
+            None
+        };
+        if let Some(what) = what {
+            return Err(self.unsupported(span, format!("{what} as the array of `{name}`")));
+        }
+        Ok(StmtArg::Rest(place))
+    }
+
+    /// A place as the array of a graphics `GET` or `PUT`: anything that is no variable is the old compiler's error.
+    fn graphics_place(&mut self, node: ast::Expr, name: &str) -> R<Place> {
+        let span = node.node().span();
+        if let ast::Expr::NameRef(n) = &node
+            && let Some(t) = n.name()
+        {
+            let (word, _) = self.split_name(t)?;
+            if self.visible_const(&word).is_some() {
+                // Measured: "Expected variable name/array element" (`verification\v28_x64`).
+                return Err(self.error(span, format!("`{name}` needs an array here")));
+            }
+        }
+        // An element or variable of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
+        let ExprKind::Load(place) = self.expr_as(node, Use::Place)?.kind else {
+            return Err(self.error(span, format!("`{name}` needs an array here")));
+        };
+        Ok(place)
+    }
+
+    /// The array of `_UCHARPOS`, `_WAVE` and `_SNDRAWBATCH`, and of a graphics `GET` or `PUT` of numbers (design D5
+    /// of `m3-get-put-bload`; measured, `verification\v28_x01`, `x10`–`x25`, `x58`–`x64`): an array as a whole
+    /// (`a`, `a()`) or from an element (`a(5)`, `b(2, 3)`), of numbers; static or dynamic, of this body or shared,
+    /// or an array parameter. The old compiler writes the index twice, so a FUNCTION in it is called twice
+    /// (measured from its C++): an index with a call is not supported yet. Anything that is no variable is its
+    /// error ("Expected variable name/array element").
     fn block_arg(&mut self, node: ast::Expr, name: &str) -> R<StmtArg> {
         let span = node.node().span();
         let whole = match node {
@@ -894,8 +1002,7 @@ impl Checker<'_> {
                 | ExprKind::Float(_)
                 | ExprKind::Str(_)
                 | ExprKind::Bound { .. }
-                | ExprKind::VarPtr { .. }
-                | ExprKind::VarSeg { .. }
+                | ExprKind::Address { .. }
                 | ExprKind::Block { .. }
                 | ExprKind::MemOf { .. }
                 | ExprKind::MemAt { .. }
@@ -943,10 +1050,18 @@ impl Checker<'_> {
         };
         // An array of strings or of a `TYPE` is this error, before `block_arg` would mark it.
         let (word, suffix) = self.split_name(t)?;
-        if let Some(array) = self.find_array(&word, suffix)
-            && !matches!(self.prog.var(array).ty, Ty::I32 | Ty::U32)
-        {
-            return Err(expected(self));
+        match self.find_array(&word, suffix) {
+            Some(array) if !matches!(self.prog.var(array).ty, Ty::I32 | Ty::U32) => return Err(expected(self)),
+            Some(_) => {}
+            // `nd&()` of a name that is no array: the array used without `DIM` (design D6 of `m4-memory-records`;
+            // measured, `verification\v31_x01_accepted`, `v56_e`).
+            None if c.arg_list().is_some_and(|l| l.args().is_empty())
+                && !word.contains('.')
+                && !self.procs_by_name.contains_key(&word) =>
+            {
+                self.implicit_array(t, &word, suffix, 0, c.node())?;
+            }
+            None => {}
         }
         let StmtArg::Block { array, index } = self.block_arg(node, name)? else {
             unreachable!("`block_arg` gives an array's bytes")
@@ -1014,20 +1129,33 @@ impl Checker<'_> {
             && let Some(t) = c.name()
         {
             let (word, suffix) = self.split_name(t)?;
-            let Some(array) = self.find_array(&word, suffix) else {
-                if word.contains('.') {
-                    // Measured: "Expected array index" (`v30_x48`: `PUT #1, 1, r.v()`).
-                    return Err(self.error(span, format!("`{name}` of a whole member array")));
+            let (array, made) = match self.find_array(&word, suffix) {
+                Some(array) => (array, false),
+                None => {
+                    if word.contains('.') {
+                        // Measured: "Expected array index" (`v30_x48`: `PUT #1, 1, r.v()`).
+                        return Err(self.error(span, format!("`{name}` of a whole member array")));
+                    }
+                    if self.procs_by_name.contains_key(&word) {
+                        // Measured: "Expected (...)" for a FUNCTION's name (`v30_x171`, `x172`).
+                        return Err(self.error(span, format!("`{name}` needs a variable here")));
+                    }
+                    // `und()` of a name that is no array: the array used without `DIM` (design D6 of
+                    // `m4-memory-records`; measured, `verification\v30_x176`–`x178`, `v56_e`).
+                    (self.implicit_array(t, &word, suffix, 0, c.node())?, true)
                 }
-                if self.procs_by_name.contains_key(&word) {
-                    // Measured: "Expected (...)" for a FUNCTION's name (`v30_x171`, `x172`).
-                    return Err(self.error(span, format!("`{name}` needs a variable here")));
-                }
-                let msg = format!("an array that is not declared as the variable of `{name}`");
-                return Err(self.unsupported(span, msg));
             };
             self.stmt.names.push((crate::SymbolKind::Var(array), t.span));
             let ty = self.prog.var(array).ty;
+            if ty == Ty::Str && made && name == "GET" {
+                // The old compiler reads into its first element as into a string variable (`sub_get2`; measured,
+                // `v30_x178`, `v56_e`), where an array declared before is its error; `PUT` is that error
+                // (`v56_e2`).
+                return Ok(StmtArg::Bytes(Place::Element {
+                    array: crate::ArrayRef::Var(array),
+                    index: Vec::new(),
+                }));
+            }
             if ty == Ty::Str {
                 // Measured: "Cannot pass array of variable-length strings" (`v30_x38`).
                 return Err(self.error(span, format!("`{name}` of a whole array of variable-length strings")));
@@ -1119,6 +1247,7 @@ impl Checker<'_> {
                     match form.id.get().callname {
                         "sub__wave" => self.typed_array_arg(arg, form.name, Ty::I8)?,
                         "sub__sndrawbatch" => self.typed_array_arg(arg, form.name, Ty::F32)?,
+                        "sub_graphics_get" | "sub_graphics_put" => self.graphics_arg(arg, form.name)?,
                         _ => self.block_arg(arg, form.name)?,
                     }
                 }
@@ -1189,11 +1318,15 @@ fn calls_procedure(e: &Expr) -> bool {
         ExprKind::Int(_)
         | ExprKind::Float(_)
         | ExprKind::Str(_)
-        | ExprKind::VarSeg { .. }
+        | ExprKind::Address {
+            word: AddressWord::VarSeg,
+            ..
+        }
         | ExprKind::ArrayBytes(_) => false,
         ExprKind::Load(place) => place.indexes().iter().any(|i| calls_procedure(i)),
         ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(calls_procedure),
-        ExprKind::VarPtr { index, .. } | ExprKind::Block { index, .. } => index.iter().any(calls_procedure),
+        ExprKind::Block { index, .. } => index.iter().any(calls_procedure),
+        ExprKind::Address { of, .. } => of.indexes().iter().any(|i| calls_procedure(i)),
         ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => calls_procedure(from),
         ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
             calls_procedure(lhs) || calls_procedure(rhs)
@@ -1210,11 +1343,13 @@ fn calls_procedure(e: &Expr) -> bool {
     }
 }
 
-/// Whether slot `k` of a function stands alone in brackets after a comma in its template (`,[?]`), so that an
-/// argument list may leave it empty: the second slot of `?[,[?][,?]]`, not the second of `?[,?]`, nor the first of
-/// `INSTR`'s `[?],?,?` (`INSTR(, a$, b$)` is not measured and stays "not supported yet"). The rule goes by the
-/// template, not by name: a function added later whose template has such a slot (`_MESSAGEBOX`, `_SNDNEW`, …)
-/// accepts the gap at once, so its measurement includes one call with that slot left empty.
+/// Whether slot `k` of a function stands alone in brackets after a comma in its template (`,[?]`), or alone in
+/// brackets at its start with a bracketed comma after it (`[?][,`), so that an argument list may leave it empty: the
+/// second slot of `?[,[?][,?]]` and the first of `_MESSAGEBOX`'s `[?][,[?][,…]]` (measured,
+/// `verification\v53_x31`; the three file dialogs' call-site programs `func_*dialog_skip`), not the second of `?[,?]`, nor the first of `INSTR`'s `[?],?,?` (`INSTR(, a$, b$)` is
+/// not measured and stays "not supported yet"). The rule goes by the template, not by name: a function added later
+/// whose template has such a slot (`_SNDNEW`, …) accepts the gap at once, so its measurement includes one call with
+/// that slot left empty.
 fn may_be_left_out(b: &qb64rust_builtins::Builtin, k: usize) -> bool {
     let Some(format) = b.specialformat else {
         return false;
@@ -1225,7 +1360,12 @@ fn may_be_left_out(b: &qb64rust_builtins::Builtin, k: usize) -> bool {
         .enumerate()
         .filter(|&(_, &c)| c == b'?')
         .nth(k)
-        .is_some_and(|(i, _)| i > 1 && bytes[i - 2..i] == *b",[" && bytes.get(i + 1) == Some(&b']'))
+        .is_some_and(|(i, _)| {
+            let alone = bytes.get(i + 1) == Some(&b']');
+            let after_comma = i > 1 && bytes[i - 2..i] == *b",[";
+            let first = i == 1 && bytes[0] == b'[' && bytes.get(i + 2..i + 4) == Some(b"[,".as_slice());
+            alone && (after_comma || first)
+        })
 }
 
 /// The numbers of arguments a function's template allows, bit `n` for `n` arguments; `None` without a template.

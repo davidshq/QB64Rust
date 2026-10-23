@@ -27,7 +27,8 @@ builtins_errors.bas:19:11: note: QB64pe: Expected STRING argument
 builtins_errors.bas:20:16: error: `VAL` cannot give a `STRING`
 builtins_errors.bas:20:16: note: QB64pe: VAL TYPE unsupported
 builtins_errors.bas:21:7: error: the second argument of `VAL` is a type name
-builtins_errors.bas:22:1: error: not supported yet: statement `LEN`
+builtins_errors.bas:22:1: error: `LEN` is a function, not a statement
+builtins_errors.bas:22:1: note: QB64pe: Syntax error
 builtins_errors.bas:23:11: error: `SQR` needs a number
 builtins_errors.bas:23:11: note: QB64pe: Number required for function
 builtins_errors.bas:24:11: error: `ABS` needs a number

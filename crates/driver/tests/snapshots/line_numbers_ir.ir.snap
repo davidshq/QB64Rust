@@ -1,0 +1,31 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Label 10 line 5 last_line 10
+Stmt line 5
+  Branch Zero -> @5 Skip: Var C:F32
+Stmt line 5
+  Jump 10p5
+Stmt line 5
+  Jump @4
+Label @5 line 5
+Stmt line 5
+  Jump 30d
+Label 10p5 line 6 last_line 10.5
+Label @4 line 5
+Stmt line 6
+  Branch Zero -> @6 Skip: Var C:F32
+Stmt line 6
+  Jump 020
+Label 30d line 7 last_line 30
+Label @6 line 6
+Stmt line 7 may_raise
+  Print console newline
+    Num CallBuiltin ERL:F64 []
+Label 020 line 8 last_line 020
+Stmt line 8
+  System

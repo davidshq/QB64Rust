@@ -4,12 +4,12 @@
 
 use super::decl::{AsPlace, Declarer, name_end};
 use super::expr::{Use, is_builtin_function};
-use super::{Checker, DimFact, Failed, NoJoin, R, Scope, Skips, split_unsigned};
-use crate::{AllocMode, BinOp, ConvKind, StmtKind, UnOp};
+use super::{Checker, DimFact, Failed, NoJoin, Placing, R, Scope, Skips, split_unsigned};
+use crate::{AddressWord, MEM_TYPE, ProcId, ProcKind, Program, Var, VarId, mem_type};
+use crate::{AllocMode, BinOp, ConvKind, Join, StmtKind, UnOp};
 use crate::{ArrayRef, Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType};
-use crate::{MEM_TYPE, Var, VarId, mem_type};
 use qb64rust_base::{Span, show_bytes, to_u32};
-use qb64rust_builtins::{auto_constant, find_any, is_auto_include_name};
+use qb64rust_builtins::{auto_constant, find_any, is_auto_include_function, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
@@ -135,6 +135,7 @@ impl Checker<'_> {
         let above = self.consts_above.get(&b.node().key()).copied().unwrap_or((0, false));
         let mut members: Vec<Member> = Vec::new();
         let mut const_bounds = false;
+        let mut pending = false;
         for field in b.fields() {
             let fspan = field.node().span();
             let a = self.need(field.as_clause(), fspan)?;
@@ -155,9 +156,25 @@ impl Checker<'_> {
                         const_bounds = true;
                         vec![(0, 0); bounds.ranges().len()]
                     }
-                    Some(bounds) => self.member_bounds(bounds, base, &shown, Bounds::Pass1(above))?,
+                    // A static member array's bound that names a `CONST` above the block, a constant of the
+                    // auto-included file or a function of the constant evaluator (design D7 of
+                    // `m4-memory-records`; `verification\v24_x196`, `v51_x09`–`x11`, `x14`): read in pass 2 as
+                    // well, where it changes the type's layout; until then 0 TO 0 ([`Checker::waits_for_layout`]).
+                    Some(bounds) => match self.member_bounds(bounds, base, &shown, Bounds::Pass1(above))? {
+                        Some(read) => read,
+                        None => {
+                            const_bounds = true;
+                            pending = true;
+                            vec![(0, 0); bounds.ranges().len()]
+                        }
+                    },
                     None => Vec::new(),
                 };
+                if super::proc::fixed_name(&self.name_text(t)).is_some() {
+                    // Measured: "Invalid name" (design D11 of `m4-memory-records`; `verification\v21_x57`,
+                    // `v56_x21`, `x22`).
+                    return Err(self.error(t.span, format!("a `TYPE` member cannot have a type suffix: `{shown}`")));
+                }
                 let (mname, msuffix) = self.split_name(t)?;
                 if msuffix.is_some() {
                     // Measured: "Invalid name" and "Expected element-name AS type" (`v18_h_member_decl_suffix*`).
@@ -206,11 +223,15 @@ impl Checker<'_> {
         if const_bounds {
             self.type_const_bounds.insert(b.node().key(), id);
         }
+        if pending {
+            self.layout_pending.insert(id);
+        }
         Ok(id)
     }
 
-    /// Pass 2 at a `TYPE` block of [`Checker::type_const_bounds`]: the first bounds of its dynamic member arrays
-    /// that name a `CONST`, now that the constants above the block are known.
+    /// Pass 2 at a `TYPE` block of [`Checker::type_const_bounds`]: the bounds of its member arrays that name a
+    /// `CONST`, now that the constants above the block are known: the first bounds of a dynamic one, and the bounds
+    /// of a static one, which lay the type out (design D7 of `m4-memory-records`).
     fn type_const_bounds(&mut self, b: ast::TypeBlock, id: TypeId) {
         self.stmt.stmt_error = false;
         let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
@@ -219,15 +240,40 @@ impl Checker<'_> {
             let Some(bounds) = f.bounds().filter(|&bounds| names_constants(bounds)) else {
                 continue;
             };
-            if !self.prog.types[id.0 as usize].members[i].dynamic {
-                continue;
-            }
             let shown = show_bytes(self.text(f.name().map_or(f.node().span(), |t| t.span)));
-            if let Ok(read) = self.member_bounds(bounds, base, &shown, Bounds::Pass2) {
+            if let Ok(Some(read)) = self.member_bounds(bounds, base, &shown, Bounds::Pass2) {
                 self.prog.types[id.0 as usize].members[i].bounds = read;
             }
         }
+        self.layout_pending.remove(&id);
+        let bytes: u64 = self.prog.types[id.0 as usize]
+            .members
+            .iter()
+            .map(|m| layout_bytes(&self.prog.types, m.ty) * u64::from(m.count()))
+            .fold(0, u64::saturating_add);
+        if bytes > MAX_ELEMENTS as u64 {
+            let at = b.header().map_or(b.node().span(), |h| h.node().span());
+            let _ = self.unsupported(at, "a `TYPE` of more than 2^31 bytes");
+        }
         self.flush_names();
+    }
+
+    /// Whether a value of type `t` is laid out by member array bounds that pass 2 has not read yet: a use of the
+    /// type above its block, which reads its size or bounds before they are known, is not supported yet (design D7
+    /// of `m4-memory-records`).
+    pub(super) fn waits_for_layout(&self, t: Ty) -> bool {
+        match t {
+            Ty::User(id) => {
+                self.layout_pending.contains(&id)
+                    || self
+                        .prog
+                        .user_type(id)
+                        .members
+                        .iter()
+                        .any(|m| self.waits_for_layout(m.ty))
+            }
+            crate::numeric_types!() | Ty::Str | Ty::FixedStr(_) => false,
+        }
     }
 
     /// The markers of one member name (design D2 of `m3-typefields`; `qb64pe.bas` 2213–2304; measured,
@@ -274,37 +320,52 @@ impl Checker<'_> {
     ///
     /// A bound is a constant expression, read where the block stands: a name that is no `CONST` above it is "TYPE
     /// member array bounds must be numeric constant" (`v24_x195`; `v51_x01`–`x08`: a variable, an unknown name, a
-    /// `CONST` below the block or in a SUB below it, `LEN`). The blocks are read before the program's `CONST`s
-    /// are evaluated, so a bound that names one above (accepted by the old compiler, `v24_x196`, `v51_x09`), or
-    /// may be one ([`Self::may_be_constant`]), is not supported yet.
-    fn member_bounds(&mut self, bounds: ast::ArrayBounds, base: i64, shown: &str, when: Bounds) -> R<Vec<(i64, i64)>> {
+    /// `CONST` below the block or in a SUB below it, `LEN`). The blocks are read in pass 1, before the program's
+    /// `CONST`s are evaluated, so bounds that name one above, or may be one ([`Self::may_be_constant`]; accepted by
+    /// the old compiler, `v24_x196`, `v51_x09`–`x11`, `x14`), are `None` there and read in pass 2.
+    fn member_bounds(
+        &mut self,
+        bounds: ast::ArrayBounds,
+        base: i64,
+        shown: &str,
+        when: Bounds,
+    ) -> R<Option<Vec<(i64, i64)>>> {
         let span = bounds.node().span();
         let ranges = bounds.ranges();
         if ranges.is_empty() {
             return Err(self.error(span, format!("the member array `{shown}` needs bounds")));
         }
+        if let Bounds::Pass1(above) = when {
+            let mut deferred = false;
+            for (lower, upper) in &ranges {
+                for &bound in lower.iter().chain(upper) {
+                    if only_numbers(bound) {
+                        continue;
+                    }
+                    if !self.may_be_constant(bound, above) {
+                        return Err(self.error(bound.node().span(), "a bound of a member array must be a constant"));
+                    }
+                    deferred = true;
+                }
+            }
+            if deferred {
+                return Ok(None);
+            }
+        }
         let mut out = Vec::new();
         let mut count: i64 = 1;
+        // In pass 2 a bound may name constants and the constant evaluator's functions (`_PI`, `ABS(…)`).
+        let read = |c: &mut Self, node: ast::Expr| match when {
+            Bounds::Pass1(_) => c.constant_bound(node),
+            Bounds::Pass2 => c.const_integer(node),
+        };
         for (lower, upper) in ranges {
             let upper = self.need(upper, span)?;
-            for bound in lower.into_iter().chain([upper]) {
-                let Bounds::Pass1(above) = when else {
-                    continue;
-                };
-                if only_numbers(bound) {
-                    continue;
-                }
-                if self.may_be_constant(bound, above) {
-                    let msg = "a bound of a member array that is not written with numbers alone (a `CONST`)";
-                    return Err(self.unsupported(bound.node().span(), msg));
-                }
-                return Err(self.error(bound.node().span(), "a bound of a member array must be a constant"));
-            }
             let l = match lower {
-                Some(l) => self.constant_bound(l)?,
+                Some(l) => read(self, l)?,
                 None => base,
             };
-            let u = self.constant_bound(upper)?;
+            let u = read(self, upper)?;
             if u < l {
                 let msg = format!("invalid bounds for `{shown}`: {l} TO {u}");
                 return Err(self.error(upper.node().span(), msg));
@@ -319,7 +380,7 @@ impl Checker<'_> {
             };
             out.push((l, u));
         }
-        Ok(out)
+        Ok(Some(out))
     }
 
     /// Whether a bound of a member array names what may be a constant where its block stands: a `CONST` above
@@ -571,9 +632,7 @@ impl Checker<'_> {
         let key = (name.clone(), ty);
         let existing = self.array_of(&key);
         let bounds_span = bounds.node().span();
-        if by == Declarer::Static {
-            self.static_array_free(existing, name_tok, &shown, listed)?;
-        }
+        let beside_shared = by == Declarer::Static && self.static_array_free(existing, name_tok, &shown, listed)?;
         if common && existing.is_some() {
             // Not measured: `COMMON a()` twice, or below a `DIM` or a use of the array.
             let msg = format!("`COMMON {shown}()` of an array that exists already");
@@ -582,7 +641,20 @@ impl Checker<'_> {
         let dims = if common {
             Vec::new()
         } else if redim {
-            self.unjoined(NoJoin::RedimBound, |c| c.dim_bounds(bounds, &shown))?
+            let vars = self.prog.vars.len();
+            let dims = self.unjoined(NoJoin::RedimBound(mode), |c| c.dim_bounds(bounds, &shown))?;
+            let shared = existing.is_some_and(|v| self.prog.var(v).storage == Storage::Main);
+            let new_array = self.prog.vars[vars..].iter().any(|v| !matches!(v.shape, Shape::Scalar));
+            if self.cur.is_some() && shared && new_array {
+                // Measured: in a procedure, a `REDIM` of a shared array whose bound first names an array used
+                // without `DIM` gives a local array of the name its bounds, and the shared one keeps its own
+                // (`verification\v24_x268` case 5, `v55_x84`); not built.
+                let msg = format!(
+                    "`REDIM {shown}(...)` of a shared array with a bound that names an array used without `DIM`"
+                );
+                return Err(self.unsupported(bounds_span, msg));
+            }
+            dims
         } else {
             self.dim_bounds(bounds, &shown)?
         };
@@ -597,19 +669,55 @@ impl Checker<'_> {
         // `$DYNAMIC` or not ([`Shape::Dynamic`], `at_start`; read from the old compiler's C++ and measured,
         // `verification\v24_x278`, `v24_b_metacommand_sub`, slice `s56_proc_arrays`).
         let by_static = by == Declarer::Static && !listed;
-        let start_bounds = constant.filter(|_| by_static);
+        // That allocation stands in the main module's code, where the old compiler writes the bounds as they are
+        // (design D4 of `m4-names-implicit-arrays`): a bound whose value is known when compiling is taken with it
+        // (`2 + 3`, a `CONST` of the procedure, `LEN("abc")`; measured, `verification\v24_x280`,
+        // `v55_c_static_bounds`, `v55_x73`).
+        let values: Option<Vec<(i64, i64)>> = dims
+            .iter()
+            .map(|d| Some((constant_int(&d.lower)?, constant_int(&d.upper)?)))
+            .collect();
+        let start_bounds = constant.or(values).filter(|_| by_static);
         if by_static && start_bounds.is_none() {
-            // That allocation stands in the main module's code, where the old compiler writes the bounds as they
-            // are: with a parameter its C++ build fails (`verification\v24_x121`), with `2 + 3` it works (`x280`).
-            // Bounds that are not constants by their spelling are not compiled yet.
-            let msg = format!("`STATIC {shown}(...)` with a bound that is not one number or one constant");
+            let local = |c: &Self, t: Tok| {
+                let name = c.word(t);
+                let name = &name[..name_end(name.as_bytes())];
+                let own = |v: VarId| c.prog.var(v).storage != Storage::Main;
+                c.cur.is_some() && c.local.vars.iter().any(|((n, _), &v)| n == name && own(v))
+            };
+            let tokens = bounds.node().tokens();
+            if tokens.iter().any(|&t| t.kind == SyntaxKind::Ident && local(self, t)) {
+                // A parameter or a variable of the procedure: the old compiler's C++ build fails (measured,
+                // `verification\v24_x121`).
+                let msg = format!(
+                    "`STATIC {shown}(...)`: a bound names a variable of the procedure, which the code that allocates \
+                     the array when the program starts cannot see (the old compiler's C++ build fails)"
+                );
+                return Err(self.error(bounds_span, msg));
+            }
+            // A shared variable or a FUNCTION: read when the start code runs, at the start and again when a
+            // handler is entered (`v55_x74`, `x75`).
+            let msg = format!("`STATIC {shown}(...)` with a bound whose value is not known when compiling");
             return Err(self.unsupported(bounds_span, msg));
+        }
+        if let (true, Some(id), Some(bounds)) = (beside_shared, existing, start_bounds.clone()) {
+            // `STATIC a(n)` beside a shared main-module array of the name and type names that array, and its
+            // allocation when the program starts is a second one of it, after its own (measured,
+            // `verification\v24_x272`, `v55_d1`, `d3`, `d4`; design D4 of `m4-names-implicit-arrays`).
+            if self.prog.var(id).dim_count() != Some(bounds.len()) {
+                // Not measured.
+                let msg = format!("`STATIC {shown}(...)` beside a shared array of another number of dimensions");
+                return Err(self.unsupported(bounds_span, msg));
+            }
+            self.prog.start_allocations.push((id, bounds));
+            self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
+            return Ok(());
         }
         let allocate = |array| StmtKind::Allocate {
             array: ArrayRef::Var(array),
             bounds: dims.iter().map(|d| (d.lower.clone(), d.upper.clone())).collect(),
             mode,
-            joined: false,
+            join: Join::None,
         };
         if let Some(id) = existing {
             let var = self.prog.var(id);
@@ -708,18 +816,23 @@ impl Checker<'_> {
     /// Whether `STATIC name(…)` may declare its array, given the array of that name and type visible here
     /// (`listed`: nothing stands between the parentheses). Measured: "Name already in use" after a `STATIC`, a
     /// `DIM` or a use without `DIM` of it in the procedure (`verification\v24_x122`, `x123`, `x125`, `x269`),
-    /// "Array already listed as STATIC" for bounds after `STATIC a()` (`x124`).
-    fn static_array_free(&mut self, existing: Option<VarId>, name_tok: Tok, shown: &str, listed: bool) -> R<()> {
+    /// "Array already listed as STATIC" for bounds after `STATIC a()` (`x124`). True when it names a shared array
+    /// of the main module, which `STATIC a(bounds)` allocates again when the program starts.
+    fn static_array_free(&mut self, existing: Option<VarId>, name_tok: Tok, shown: &str, listed: bool) -> R<bool> {
         if let Some(id) = existing {
             let var = self.prog.var(id);
             if matches!(var.storage, Storage::Param(_)) {
                 return Err(self.in_use(name_tok));
             }
             if var.storage == Storage::Main {
-                // Measured (`v24_x272`): the old compiler accepts it and the program ends when it starts
-                // ("Duplicate definition").
-                let msg = format!("`STATIC {shown}(...)` beside a shared array of the main module");
-                return Err(self.unsupported(name_tok.span, msg));
+                // A shared array of the main module (measured, `v24_x272`: the old compiler accepts it, and a static
+                // shared array then ends the program when it starts, "Duplicate definition"). `STATIC a()` beside
+                // one is not measured.
+                if listed {
+                    let msg = format!("`STATIC {shown}()` beside a shared array of the main module");
+                    return Err(self.unsupported(name_tok.span, msg));
+                }
+                return Ok(true);
             }
             if var.dim_count().is_none() && !listed {
                 let msg = format!("`{shown}` is already listed by `STATIC {shown}()`: `DIM` gives it its bounds");
@@ -727,7 +840,7 @@ impl Checker<'_> {
             }
             return Err(self.in_use(name_tok));
         }
-        Ok(())
+        Ok(false)
     }
 
     /// The bounds of a declaration, one entry per dimension, lower bound before upper as they are evaluated.
@@ -912,22 +1025,20 @@ impl Checker<'_> {
     /// What the array is depends on where the name stands:
     /// - in the main module a static array, `OPTION BASE` to 10 in each dimension, that exists from the start;
     /// - in the main module below `$DYNAMIC` a dynamic array, allocated with those bounds by an
-    ///   [`StmtKind::Allocate`] that runs as the first part of the statement that names it first (`joined`);
+    ///   [`StmtKind::Allocate`] that runs as part of the statement that names it first: its first part, or just
+    ///   before the item that names it ([`Join`]);
     /// - in a procedure a local dynamic array that nothing allocates, so that every use raises error 9 (as the
     ///   old compiler does; `DIVERGENCES-QB45.md` Q-009) until a `DIM` or `REDIM` of it in the procedure runs;
     /// - in a procedure with `STATIC` after its header a static array like the main module's that lives for the
     ///   program, and below `$DYNAMIC` a dynamic one that lives for the program and that nothing allocates.
     ///
-    /// Where the old compiler's allocation would not be the first thing its statement does, or would be another
-    /// kind of allocation, nothing is made and the use is marked "not supported yet" ([`NoJoin`]).
+    /// Where the old compiler's allocation would be another kind of allocation, nothing is made and the use is
+    /// marked "not supported yet" ([`NoJoin`]).
     ///
     /// After a declaration that was marked "not supported yet" (which may have declared this array) nothing is
     /// made: the name keeps the mark of [`Self::not_an_array`].
     pub(super) fn implicit_array(&mut self, t: Tok, name: &str, suffix: Option<Ty>, dims: usize, at: Node) -> R<VarId> {
         let shown = show_bytes(self.text(t.span));
-        // A name with one leading underscore is "Invalid array name" in the old compiler (`v24_x112`) unless it
-        // calls a built-in, and the table does not know every spelling of those (`_CONNECTIONADDRESS$`, the
-        // functions of the auto-included files): it keeps its mark.
         let underscore = name.starts_with('_') && !name.starts_with("__");
         // The name of a supported built-in statement that is no function is that error for certain (`v39_x11`:
         // `l = _SNDPLAY(h)`).
@@ -952,15 +1063,29 @@ impl Checker<'_> {
             self.implicit_names.insert(name.to_string());
             return Err(self.error(t.span, format!("`{shown}(...)`: `{shown}` is written with `$`")));
         }
-        if self.at.follow_on || underscore || self.procs_by_name.contains_key(name) {
+        // The functions of the auto-included files (`_ENCODEURL$`) as a place: not measured.
+        let auto = is_auto_include_function(name.as_bytes());
+        if self.at.follow_on || auto {
             return Err(self.not_an_array(t, name));
         }
-        if is_builtin_function(name, suffix) {
-            // Measured for `rnd(1) = 2`: "Expected variable =" (`v24_x119`). The statements written like a store
-            // to a function, `MID$` and `ASC`, have their own arm of the assignment (`check\io.rs`).
+        if underscore && !is_builtin_function(name, suffix) {
+            // Measured: "Invalid array name" for a name with one leading underscore that calls no built-in
+            // function with this spelling, as a place, a value or in `UBOUND` (`v24_x112`, `v26_x120`, `v33_x29`,
+            // `v44_x46`, `v49_x16`, `v55_x54`, `x55`, `x80`); the table knows every spelling of its functions
+            // (`qb64rust_builtins::calls_function`).
             self.implicit_names.insert(name.to_string());
-            let msg = format!("`{shown}(...)` as a place or an array (a built-in function's name)");
-            return Err(self.unsupported(t.span, msg));
+            let msg = format!("`{shown}(...)`: `{shown}` calls no built-in function and may not be an array");
+            return Err(self.error(t.span, msg));
+        }
+        if let Some(&p) = self.procs_by_name.get(name) {
+            self.implicit_names.insert(name.to_string());
+            return Err(self.not_a_variable(t, suffix, Some(p)));
+        }
+        if is_builtin_function(name, suffix) {
+            // The statements written like a store to a function, `MID$` and `ASC`, have their own arm of the
+            // assignment (`check\io.rs`).
+            self.implicit_names.insert(name.to_string());
+            return Err(self.not_a_variable(t, suffix, None));
         }
         if let Some(head) = name.split_once('.').map(|(head, _)| head) {
             // `p.m(1)` beside a `TYPE` variable or array `p` that the name does not reach as a member
@@ -976,11 +1101,15 @@ impl Checker<'_> {
                 return Err(self.unsupported(t.span, msg));
             }
         }
-        if dims == 0 {
-            // `x()`, a whole array, where it is no argument for an array parameter ([`Self::array_arg`]).
+        // `x()`, a whole array, where it is no argument for an array parameter ([`Self::array_arg`]): as a value the
+        // implicit array of one dimension, as for `LBOUND(x)`, whose whole value is its first element (measured,
+        // `verification\v48_x04`, `x14`, `v55_b_implicit_whole`; design D5 of `m4-names-implicit-arrays`). As a
+        // place (`x() = 1`, `READ x()`) not measured.
+        if dims == 0 && self.stmt.placing != Placing::Value {
             self.implicit_names.insert(name.to_string());
-            return Err(self.unsupported(at.span(), format!("the whole array `{shown}()`")));
+            return Err(self.unsupported(at.span(), format!("the whole array `{shown}()` as a place")));
         }
+        let dims = dims.max(1);
         self.reserved(t, name, suffix)?;
         let ty = self.array_key_ty(name, suffix);
         if self.settings.explicit_array {
@@ -991,18 +1120,34 @@ impl Checker<'_> {
             );
             return Err(self.error(t.span, msg));
         }
-        if self.stmt.no_join == Some(NoJoin::RedimBound) {
-            // Measured (`v24_x266`, `x268`): dynamic wherever it stands, and allocated as the `REDIM` allocates.
-            self.implicit_names.insert(name.to_string());
-            let msg = format!("`{shown}(...)`: an array first used in a bound of `REDIM`, without `DIM`");
-            return Err(self.unsupported(t.span, msg));
-        }
+        // First named in a bound of `REDIM`: in the main module dynamic wherever it stands, and allocated as the
+        // `REDIM` allocates, so a second run makes it anew or keeps it (measured, `verification\v24_x266`, `x268`;
+        // design D3 of `m4-names-implicit-arrays`); in a procedure its implicit array, which nothing allocates.
+        let redim = match self.stmt.no_join {
+            Some(NoJoin::RedimBound(mode)) => Some(mode),
+            Some(NoJoin::Item(_) | NoJoin::Header) | None => None,
+        };
         let base = self.at.option_base;
         // In a procedure with `STATIC` after its header the array lives for the program: a static one that
         // works, or below `$DYNAMIC` a dynamic one that nothing allocates (measured, `v24_f_implicit_sub`,
         // `v24_x120`).
         let static_proc = self.cur.filter(|_| self.at.static_scope);
+        if redim.is_some() && static_proc.is_some() {
+            // Not measured.
+            self.implicit_names.insert(name.to_string());
+            let msg = format!(
+                "`{shown}(...)`: an array first used in a bound of `REDIM`, without `DIM`, in a procedure with `STATIC`"
+            );
+            return Err(self.unsupported(t.span, msg));
+        }
         let (storage, shape) = match (self.cur, static_proc) {
+            (None, _) if redim.is_some() => (
+                Storage::Main,
+                Shape::Dynamic {
+                    dims: Some(dims),
+                    at_start: None,
+                },
+            ),
             (Some(p), None) => (
                 Storage::Local(p),
                 Shape::Dynamic {
@@ -1034,24 +1179,17 @@ impl Checker<'_> {
                 (owner.map_or(Storage::Main, Storage::Static), Shape::Static { bounds })
             }
         };
-        let allocated_here = self.cur.is_none() && self.at.dynamic_mode;
-        // The allocation runs where the name is evaluated, which is the start of the statement only when the
-        // statement writes its code after evaluating all its parts ([`NoJoin`]). Measured for the line of a
-        // block (`v24_x262`): before an `IF`, a `FOR`, a `WHILE`, a `DO WHILE` and a `SELECT CASE`, inside the
-        // block for an `ELSEIF` (not reached: not allocated) and a `LOOP UNTIL` (on every round); what an error
-        // in it skips there was not measured.
-        let place = match self.stmt.no_join {
-            Some(NoJoin::Header) if allocated_here => Some("the line of a block (`IF`, `FOR`, `DO`, …)"),
-            Some(NoJoin::Item) if allocated_here => {
-                Some("a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`")
-            }
-            _ => None,
+        let allocated_here = self.cur.is_none() && (self.at.dynamic_mode || redim.is_some());
+        // The allocation runs where the name is evaluated ([`NoJoin`]): the start of the statement, or just before
+        // the part of a statement of items that names it (measured, `verification\v24_x264`, `x265`; design D1 of
+        // `m4-names-implicit-arrays`). Measured for the line of a block (`v24_x262`, `v55_a_implicit_headers`):
+        // before an `IF`, a `FOR`, a `WHILE`, a `DO WHILE` and a `SELECT CASE`, inside the block for an `ELSEIF`
+        // (not reached: not allocated) and a `LOOP UNTIL` (on every round).
+        // In the line of a block the block's checker takes the allocation where it runs (`check\blocks.rs`).
+        let join = match self.stmt.no_join {
+            Some(NoJoin::Item(n)) => Join::Before(n),
+            _ => Join::First,
         };
-        if let Some(place) = place {
-            self.implicit_names.insert(name.to_string());
-            let msg = format!("`{shown}(...)`: an array below `$DYNAMIC` first used in {place}, without `DIM`");
-            return Err(self.unsupported(t.span, msg));
-        }
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
             conventional: false,
@@ -1071,12 +1209,40 @@ impl Checker<'_> {
             let kind = StmtKind::Allocate {
                 array: ArrayRef::Var(id),
                 bounds: vec![(bound(base), bound(10)); dims],
-                mode: AllocMode::Dim,
-                joined: true,
+                mode: redim.unwrap_or(AllocMode::Dim),
+                join,
             };
             self.push(at, kind);
         }
         Ok(id)
+    }
+
+    /// The error for `name(...)` at `t` where `name` is a SUB's or FUNCTION's (`proc`) or a built-in function's
+    /// name and no array, worded by what it stands for ([`Placing`]). Measured: a store is "Expected variable ="
+    /// (`verification\v24_x106`, `x119`, `v28_x53`, `v55_x10`, `x11`, `x20`; a SUB's name "SUB does not require any
+    /// arguments", `x76`), a target "Expected variable" (`v22_x79`, `v55_x13`–`x18`), a value "Name already in use"
+    /// for a SUB's or FUNCTION's name (`x77`, `x83`) and "Expected (...)" for a built-in's (`x78`); `_RGB(1) = 2` is
+    /// "Incorrect number of arguments" with `_RGB`'s reference (`x81`, `x82`).
+    pub(super) fn not_a_variable(&mut self, t: Tok, suffix: Option<Ty>, proc: Option<ProcId>) -> Failed {
+        let shown = show_bytes(self.text(t.span));
+        let kind = proc.map(|p| self.prog.proc(p).kind);
+        let what = match kind {
+            Some(ProcKind::Sub) => "a SUB",
+            Some(ProcKind::Function(_)) => "a FUNCTION",
+            None => "a built-in function",
+        };
+        let msg = match (self.stmt.placing, kind) {
+            (Placing::Store, Some(ProcKind::Sub)) => format!("`{shown}(...) =`: the SUB `{shown}` takes no index"),
+            // A suffix that does not fit the FUNCTION's type: "Name already in use" (`v55_x19`: `f&(3) = 5`).
+            (_, Some(ProcKind::Function(ty))) if suffix.is_some_and(|s| !super::proc::suffix_fits(s, ty)) => {
+                format!("`{shown}(...)`: a FUNCTION of this name has another type")
+            }
+            (Placing::Store, _) => format!("`{shown}(...) =`: `{shown}` is {what}, not a variable"),
+            (Placing::Target, _) => format!("`{shown}(...)`: `{shown}` is {what}; a variable is needed here"),
+            (Placing::Value, Some(_)) => format!("`{shown}(...)`: `{shown}` is {what}, not an array"),
+            (Placing::Value, None) => format!("`{shown}`: a built-in function's name, not an array"),
+        };
+        self.error(t.span, msg)
     }
 
     /// The message for `name(...)` that names no visible array where none is made for it
@@ -1133,9 +1299,16 @@ impl Checker<'_> {
         let span = call.node().span();
         let args = self.present_args(call.arg_list())?;
         if args.is_empty() {
-            // `x()`: a whole array (whole-array assignment, array arguments), deferred (`SOMEDAY.md`).
-            let shown = show_bytes(self.text(t.span));
-            return Err(self.unsupported(span, format!("the whole array `{shown}()`")));
+            // `a()` where a value or a variable is taken: the array's first element in memory, with no index check,
+            // as the old compiler writes it (design D4 of `m4-line-numbers-whole-arrays`; measured,
+            // `verification\v54_c_whole_values`, `v54_d_whole_erased`, `v54_x05`–`x34`): an element with no indexes.
+            // The forms the old compiler rejects are refused before here (the whole value of an assignment,
+            // `check\whole.rs`; a scalar parameter, `check\proc.rs`; `SWAP` of two types, `check\io.rs`).
+            self.stmt.names.push((SymbolKind::Var(array), t.span));
+            return Ok(Place::Element {
+                array: ArrayRef::Var(array),
+                index: Vec::new(),
+            });
         }
         self.element_at(array, args, t, span)
     }
@@ -1175,15 +1348,20 @@ impl Checker<'_> {
         Ok(index)
     }
 
-    /// The place an element-shaped call names, for a store or the base of a member: an array element, else "not
-    /// supported yet".
-    pub(super) fn call_place(&mut self, call: ast::CallExpr) -> R<Place> {
+    /// The place an element-shaped call names, for a store or the base of a member: an array element. `what` is
+    /// what the name stands for ([`Placing`]); the indexes are values.
+    pub(super) fn call_place(&mut self, call: ast::CallExpr, what: Placing) -> R<Place> {
         let span = call.node().span();
         let t = self.need(call.name(), span)?;
         let (name, suffix) = self.split_name(t)?;
-        if self.procs_by_name.contains_key(&name) {
-            let shown = show_bytes(self.text(t.span));
-            return Err(self.unsupported(t.span, format!("`{shown}(...)` here (a FUNCTION of this name exists)")));
+        if let Some(&p) = self.procs_by_name.get(&name) {
+            if is_auto_include_function(name.as_bytes()) {
+                // A function of the auto-included files (`_ENCODEURL$`) as a place: not measured.
+                let shown = show_bytes(self.text(t.span));
+                return Err(self.unsupported(t.span, format!("`{shown}(...)` here (a FUNCTION of this name exists)")));
+            }
+            let e = self.placing(what, |c| Ok(c.not_a_variable(t, suffix, Some(p))))?;
+            return Err(e);
         }
         if let Some(place) = self.dotted_call(call, t, &name, suffix)? {
             return Ok(place);
@@ -1192,7 +1370,7 @@ impl Checker<'_> {
             Some(a) => a,
             None => {
                 let dims = call.arg_list().map_or(0, |l| l.args().len());
-                self.implicit_array(t, &name, suffix, dims, call.node())?
+                self.placing(what, |c| c.implicit_array(t, &name, suffix, dims, call.node()))?
             }
         };
         self.element(call, array, t)
@@ -1372,7 +1550,7 @@ impl Checker<'_> {
     /// [`Self::plain_spelled`]), also in a procedure beside a main-module `TYPE` variable it does not share: a
     /// variable of the procedure's own, of the default type (measured, `verification\v52_x65`, `x66`; QB64pe's
     /// `const_eval.bas` reads `num.typ` so in `LogicalNot&`).
-    fn user_head(&mut self, head: &str) -> bool {
+    pub(super) fn user_head(&mut self, head: &str) -> bool {
         self.lookup_var(head.to_string(), None)
             .is_some_and(|v| matches!(self.prog.var(v).ty, Ty::User(_)))
             || matches!(self.array_key_ty(head, None), Ty::User(_)) && self.find_array(head, None).is_some()
@@ -1499,6 +1677,24 @@ impl Checker<'_> {
         Ok(Some((name, suffix, t)))
     }
 
+    /// The FUNCTION a member access on a plain name spells when no `TYPE` variable of its first part is visible:
+    /// `a . b(4)` calls the FUNCTION `a.b`, as the old compiler drops the blanks (measured, `verification\v55_x60`;
+    /// design D7 of `m4-names-implicit-arrays`). `None` for anything else.
+    pub(super) fn spelled_function(&mut self, f: ast::FieldExpr) -> R<Option<(ProcId, Option<Ty>, Tok)>> {
+        let Some((name, suffix, t)) = self.spelled_name(f)? else {
+            return Ok(None);
+        };
+        let head = &name[..name.find('.').expect("a spelled name has a dot")];
+        if self.user_head(head) {
+            return Ok(None);
+        }
+        let function = self
+            .procs_by_name
+            .get(&name)
+            .filter(|&&p| matches!(self.prog.proc(p).kind, ProcKind::Function(_)));
+        Ok(function.map(|&p| (p, suffix, t)))
+    }
+
     /// `base(…).member…` (a `FieldExpr`), with the index of a member array after it (`a(1).v(2)`). On a plain
     /// name with no `TYPE` variable of that name, the plain dotted variable or array element it spells (design D2
     /// of `m4-devices-continue-paths`).
@@ -1547,7 +1743,7 @@ impl Checker<'_> {
                     "a member of a block a built-in gives cannot be read: store it first",
                 ));
             }
-            ast::Expr::Call(c) => self.call_place(c)?,
+            ast::Expr::Call(c) => self.call_place(c, Placing::Value)?,
             ast::Expr::Field(inner) => self.field_place(inner)?,
             ast::Expr::NameRef(_) => unreachable!("a member access on a plain name is spelled above"),
             other @ (ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_)) => {
@@ -1671,6 +1867,10 @@ impl Checker<'_> {
             return Ok(false);
         };
         let shown = show_bytes(self.text(last_tok.span));
+        if self.waits_for_layout(self.prog.var(place.root()).ty) {
+            let msg = format!("`REDIM` of `{shown}` above its `TYPE` block, whose bounds name a `CONST`");
+            return Err(self.unsupported(span, msg));
+        }
         let Some((declared, member_ty, dynamic)) = self
             .member_of(&place)
             .filter(|m| m.is_array())
@@ -1788,7 +1988,7 @@ impl Checker<'_> {
             array,
             bounds: dims.into_iter().map(|d| (d.lower, d.upper)).collect(),
             mode,
-            joined: false,
+            join: Join::None,
         };
         self.push(stmt, kind);
         Ok(())
@@ -1816,15 +2016,22 @@ impl Checker<'_> {
     /// on with its other targets before the error is handled (measured, `verification\v24_x312`), each clear
     /// here is a statement of its own: such a target beside others is not supported yet.
     pub(super) fn clear_member_array(&mut self, array: ArrayRef, alone: bool, span: Span, stmt: Node) -> R<()> {
-        if array.may_raise() && !alone {
-            let msg = "a member array of an array element in a list of `ERASE` or `REDIM` targets";
-            return Err(self.unsupported(span, msg));
-        }
-        // `ERASE` of a dynamic member array releases it (design D4 of `m3-typefields`).
+        // `ERASE` of a dynamic member array releases it (design D4 of `m3-typefields`); beside other targets it is not
+        // measured.
         let kind = if self.is_dynamic_member(&array) {
-            StmtKind::Release { array }
+            if array.may_raise() && !alone {
+                let msg = "a dynamic member array of an array element in a list of `ERASE` targets";
+                return Err(self.unsupported(span, msg));
+            }
+            StmtKind::Release {
+                array,
+                join: Join::None,
+            }
         } else {
-            StmtKind::Clear { array }
+            StmtKind::Clear {
+                array,
+                join: Join::None,
+            }
         };
         self.push(stmt, kind);
         Ok(())
@@ -2023,59 +2230,151 @@ impl Checker<'_> {
         })
     }
 
-    /// `VARPTR(a(i))` and `VARSEG(a(i))` (`segment`) (design D3 and D4 of `m3-get-put-bload`; measured,
-    /// `verification\v28_b_bload`, `v28_d_varptr_index`, `v28_e_cmem_arrays`, `v28_x36`–`x41`). The argument is
-    /// a variable or an element, never a value. An array of the main module with numeric elements, static or
-    /// dynamic, named from any body, is put into conventional memory by being named here; every other kind of
-    /// variable needs another allocation and is not supported yet.
-    pub(super) fn var_address(&mut self, call: ast::CallExpr, segment: bool, span: Span) -> R<Expr> {
-        let word = if segment { "VARSEG" } else { "VARPTR" };
+    /// `VARPTR`, `VARSEG`, `SADD` and `VARPTR$` (design D3 and D4 of `m3-get-put-bload`, D1–D3 of
+    /// `m4-memory-records`; measured, `verification\v28_b_bload`, `v28_d_varptr_index`, `v28_e_cmem_arrays`,
+    /// `v28_x36`–`x41`, `x55`–`x57`, `v56_*`). The argument is a variable, an element or a member, never a value.
+    /// The variable it is part of, of the main module and named from any body, is put into conventional memory by
+    /// being named here. A variable of a procedure, a user type that holds a `STRING` (the old compiler's program
+    /// leaves its strings out there and crashes, `v56_a5`) and the forms the family did not measure are not
+    /// supported yet.
+    pub(super) fn var_address(&mut self, call: ast::CallExpr, word: AddressWord, span: Span) -> R<Expr> {
+        let name = word.name();
         let args = self.present_args(call.arg_list())?;
         let &[arg] = &args[..] else {
             // Measured: "Incorrect number of arguments" (`v28_x39`).
-            return Err(self.error(span, format!("`{word}` takes 1 argument")));
+            return Err(self.error(span, format!("`{name}` takes 1 argument")));
         };
         // An element or variable of a user type is a place here, not a value, as for `LEN` ([`Self::load`]).
         let e = self.expr_as(arg, Use::Place)?;
         let ExprKind::Load(place) = e.kind else {
+            if word == AddressWord::Sadd {
+                // Measured: the old compiler's message for a literal (`v28_x56`).
+                return Err(self.error(e.span, "`SADD` needs a variable-length string variable"));
+            }
             // Measured: "Expected reference to a variable/array" for a literal, an expression, a function call
             // (`v28_x36`, `x37`, `x40`, `x41`).
-            return Err(self.error(e.span, format!("`{word}` needs a variable or an array element")));
+            return Err(self.error(e.span, format!("`{name}` needs a variable or an array element")));
         };
-        let Place::Element {
-            array: ArrayRef::Var(array),
-            index,
-        } = place
-        else {
-            let what = match place {
-                Place::Var(_) => "a variable that is no array element",
-                Place::Element { .. } | Place::Member { .. } => "a member of a `TYPE`",
-            };
-            return Err(self.unsupported(e.span, format!("`{word}` of {what}")));
-        };
-        let v = self.prog.var(array);
-        let what = match (v.storage, v.ty) {
-            (Storage::Main, t) if (t.is_int() || t.is_float()) && !matches!(t, Ty::Bit { .. }) => None,
-            (Storage::Main, Ty::Str | Ty::FixedStr(_)) => Some("a string array"),
-            (Storage::Main, _) => Some("an array of a `TYPE` or of `_BIT`"),
-            (Storage::Param(_), _) => Some("an array parameter"),
-            (Storage::Static(_) | Storage::Local(_) | Storage::Result(_), _) => Some("an array of a SUB or FUNCTION"),
+        let ty = self.prog.place_ty(&place);
+        let whole = matches!(&place, Place::Element { index, .. } if index.is_empty());
+        let on_member = matches!(
+            &place,
+            Place::Member { .. }
+                | Place::Element {
+                    array: ArrayRef::Member { .. },
+                    ..
+                }
+        );
+        // The forms each function takes, by the old compiler's rules (`qb64pe.bas` 21306–21560).
+        match word {
+            AddressWord::Sadd => {
+                if ty == Ty::Str && !on_member {
+                    // A variable, an element, or `s$()`: its first element (`v56_x11`).
+                } else if let Ty::User(_) = ty {
+                    // Measured: "User defined types in expressions are invalid" (`v56_x09`).
+                    return Err(self.error(e.span, "`SADD` of a `TYPE` variable"));
+                } else if matches!(ty, Ty::FixedStr(_)) && !on_member {
+                    // Measured: the old compiler's message for a fixed-length string (`v28_x55`, `v56_x05`).
+                    return Err(self.error(e.span, "`SADD` needs a variable-length string variable"));
+                } else {
+                    // A number or a member fails the old compiler's C++ build (`v56_x03`, `x04`).
+                    return Err(self.error(e.span, "`SADD` of a number or of a member"));
+                }
+            }
+            AddressWord::VarPtrStr => {
+                if let Place::Element {
+                    array: ArrayRef::Var(_),
+                    ..
+                } = &place
+                    && ty != Ty::Str
+                {
+                    // Measured: the old compiler's message (`v28_x57`, `v56_x01`, `x02`).
+                    return Err(self.error(e.span, "`VARPTR$` of an element of an array that is not of strings"));
+                }
+                if on_member && (place.has_element() || !(ty.is_int() || ty.is_float())) {
+                    let msg = "`VARPTR$` of a member of an array element or of a member that is no number";
+                    return Err(self.unsupported(e.span, msg));
+                }
+            }
+            AddressWord::VarPtr | AddressWord::VarSeg => {
+                if let (AddressWord::VarPtr, Place::Var(_), Ty::User(_)) = (word, &place, ty) {
+                    // Measured: the old compiler's internal error (`v56_t02`); its `VARSEG` is 80 (`t03`).
+                    return Err(self.error(e.span, "`VARPTR` of a whole `TYPE` variable"));
+                }
+                if let (Place::Element { .. }, Ty::Bit { .. }) = (&place, ty) {
+                    if word == AddressWord::VarPtr {
+                        // Measured: "VARPTR cannot reference _BIT type arrays" (`v56_x07`).
+                        return Err(self.error(e.span, "`VARPTR` of an element of a `_BIT` array"));
+                    }
+                    return Err(self.unsupported(e.span, "`VARSEG` of a `_BIT` array"));
+                }
+                if whole && !(ty.is_int() || ty.is_float()) {
+                    let msg = format!("`{name}` of a whole array of strings or of a `TYPE`");
+                    return Err(self.unsupported(e.span, msg));
+                }
+                if on_member && !(ty.is_int() || ty.is_float()) {
+                    let msg = format!("`{name}` of a member that is no number");
+                    return Err(self.unsupported(e.span, msg));
+                }
+            }
+        }
+        let root = place.root();
+        let v = self.prog.var(root);
+        let what = match v.storage {
+            Storage::Main => None,
+            Storage::Param(_) => Some("a parameter"),
+            Storage::Static(_) | Storage::Local(_) | Storage::Result(_) => Some("a variable of a SUB or FUNCTION"),
         };
         if let Some(what) = what {
-            return Err(self.unsupported(e.span, format!("`{word}` of {what}")));
+            return Err(self.unsupported(e.span, format!("`{name}` of {what}")));
         }
-        self.prog.vars[array.0 as usize].conventional = true;
-        let kind = if segment {
-            ExprKind::VarSeg { array }
+        if crate::holds_strings(&self.prog.types, v.ty)
+            || crate::owns_desc(&self.prog.types, v.ty)
+            || self.prog.is_mem(v.ty)
+        {
+            let msg = format!("`{name}` of a `TYPE` that holds a `STRING`, in conventional memory");
+            return Err(self.unsupported(e.span, msg));
+        }
+        if through_dynamic_member(&self.prog, &place) {
+            return Err(self.unsupported(e.span, format!("`{name}` of a dynamic member array")));
+        }
+        self.prog.vars[root.0 as usize].conventional = true;
+        // `VARSEG` finds no element: of an array (not of strings), the whole array; of anything else, the variable.
+        let of = match (word, &self.prog.var(root).shape) {
+            (AddressWord::VarSeg, Shape::Scalar) => Place::Var(root),
+            (AddressWord::VarSeg, _) => Place::Element {
+                array: ArrayRef::Var(root),
+                index: Vec::new(),
+            },
+            _ => place,
+        };
+        let ty = if word == AddressWord::VarPtrStr {
+            Ty::Str
         } else {
-            ExprKind::VarPtr { array, index }
+            Ty::I64
         };
         Ok(Expr {
             span,
-            ty: Ty::I64,
-            qb: Ty::I64,
-            kind,
+            ty,
+            qb: ty,
+            kind: ExprKind::Address { word, of },
         })
+    }
+}
+
+/// Whether a dynamic member array lies on the way to a place.
+fn through_dynamic_member(prog: &Program, place: &Place) -> bool {
+    match place {
+        Place::Var(_) => false,
+        Place::Element {
+            array: ArrayRef::Var(_),
+            ..
+        } => false,
+        Place::Element {
+            array: ArrayRef::Member { base, member },
+            ..
+        } => prog.member(prog.place_ty(base), *member).dynamic || through_dynamic_member(prog, base),
+        Place::Member { base, .. } => through_dynamic_member(prog, base),
     }
 }
 
@@ -2171,6 +2470,35 @@ fn whole_to_int(r: f64) -> i64 {
     r as i64
 }
 
+/// The value of a `STATIC` array's bound (converted to `_INTEGER64`) when it is known when compiling: [`constant`]
+/// as a whole number, or `LEN` of a string literal (measured, `verification\v55_x73`), which the old compiler's
+/// start code computes from the text it writes.
+fn constant_int(e: &Expr) -> Option<i64> {
+    let inner = if let ExprKind::Convert {
+        how: ConvKind::Widen,
+        from,
+    } = &e.kind
+    {
+        from
+    } else {
+        e
+    };
+    if let ExprKind::Call { builtin, args } = &inner.kind
+        && builtin.get().name.eq_ignore_ascii_case("LEN")
+        && let [
+            Some(Expr {
+                kind: ExprKind::Str(s), ..
+            }),
+        ] = args.as_slice()
+    {
+        return i64::try_from(s.len()).ok();
+    }
+    match constant(e)? {
+        Num::Int(v) => Some(v),
+        Num::Float(_) => None,
+    }
+}
+
 /// The value of a typed expression made only of literals and constants, with the meaning its operators have at
 /// run time (an array bound is computed by the generated code, not by the `CONST` evaluator: `^` is
 /// left-associative here). Only what `f64` computes exactly is taken: integer arithmetic as the folding does it,
@@ -2201,8 +2529,7 @@ fn constant(e: &Expr) -> Option<Num> {
                 (ConvKind::RoundEven, Num::Int(_)) | (ConvKind::Truncate, Num::Float(_)) | (ConvKind::Cast, _) => None,
             }
         }
-        ExprKind::VarPtr { .. }
-        | ExprKind::VarSeg { .. }
+        ExprKind::Address { .. }
         | ExprKind::Block { .. }
         | ExprKind::MemOf { .. }
         | ExprKind::MemAt { .. }

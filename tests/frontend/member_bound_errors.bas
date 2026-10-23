@@ -5,7 +5,7 @@ $CONSOLE:ONLY
 ' arrays/39_err_member_must_be_const, verification v24_x195, v51_x01 to x08): a variable, an unknown name, a
 ' CONST below the block or in a SUB below it, LEN, an expression with a variable, a variable with a suffix. A
 ' bound that names a CONST above the block, also in an included file, or may be one (_PI, a function of the
-' constant evaluator) keeps its mark alone (v24_x196, v51_x09, x10).
+' constant evaluator) compiles since m4-memory-records (v24_x196, v51_x09, x10; member_const_bounds_typed.bas).
 '$INCLUDE:'inc/member_bound.bi'
 DIM AS _BYTE a
 a = 1

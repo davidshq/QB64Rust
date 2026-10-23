@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):$ RESIZE = ON
+LINE 1:$RESIZE=ON
+exit=1

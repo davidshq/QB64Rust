@@ -1,0 +1,341 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+static void qbr_diverged(int32 qbr_n){
+static int32 qbr_on=-1;
+static uint8 qbr_seen[100];
+static const char *qbr_path=NULL;
+if (qbr_on<0){qbr_path=getenv("QB64RUST_DIVERGENCES");qbr_on=qbr_path&&*qbr_path;}
+if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;
+qbr_seen[qbr_n]=1;
+FILE *qbr_f=fopen(qbr_path,"ab");
+if (qbr_f){fprintf(qbr_f,"D-%03d\n",(int)qbr_n);fclose(qbr_f);}
+}
+static void qbr_diverged_on(int32 qbr_n){
+if (new_error>=300&&new_error<=315) return;
+const char *qbr_np=getenv("QB64PE_NOPROMPT");
+if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);
+}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}return qb_l%qb_r;}
+int16 *__INTEGER_I=NULL;
+qbs *__STRING_S=NULL;
+qbs *__STRING8_FX=NULL;
+void *__UDT_R=NULL;
+int64 *__INTEGER64_Q=NULL;
+ptrszint *__ARRAY_STRING_SA=NULL;
+ptrszint *__ARRAY_STRING4_FA=NULL;
+ptrszint *__ARRAY_UDT_RA=NULL;
+float *__SINGLE_ZZ=NULL;
+float *__SINGLE_SA=NULL;
+ptrszint *__ARRAY_INTEGER_W=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> clear.txt <==
+*__INTEGER_I=0;
+__STRING_S->len=0;
+memset((void*)(__STRING8_FX->chr),0,8);
+memset((void*)__UDT_R,0,6);
+*__INTEGER64_Q=0;
+tmp_long=__ARRAY_STRING_SA[5];
+while(tmp_long--){
+(((qbs**)(__ARRAY_STRING_SA[0]))[tmp_long])->len=0;
+}
+memset((void*)(__ARRAY_STRING4_FA[0]),0,__ARRAY_STRING4_FA[5]*4);
+memset((void*)(__ARRAY_UDT_RA[0]),0,__ARRAY_UDT_RA[5]*6);
+*__SINGLE_ZZ=0;
+*__SINGLE_SA=0;
+memset((void*)(__ARRAY_INTEGER_W[0]),0,__ARRAY_INTEGER_W[5]*2);
+==> maindata.txt <==
+if(__INTEGER_I==NULL){
+__INTEGER_I=(int16*)mem_static_malloc(2);
+*__INTEGER_I=0;
+}
+if (!__STRING_S)__STRING_S=qbs_new(0,0);
+if(__STRING8_FX==NULL){
+__STRING8_FX=qbs_new_fixed((uint8*)mem_static_malloc(8),8,0);
+memset(__STRING8_FX->chr,0,8);
+}
+if(__UDT_R==NULL){
+__UDT_R=(void*)mem_static_malloc(6);
+memset(__UDT_R,0,6);
+}
+if(__INTEGER64_Q==NULL){
+__INTEGER64_Q=(int64*)mem_static_malloc(8);
+*__INTEGER64_Q=0;
+}
+if (!__ARRAY_STRING_SA){
+__ARRAY_STRING_SA=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_SA)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_SA[4]=0ll;
+__ARRAY_STRING_SA[5]=(3ll)-__ARRAY_STRING_SA[4]+1;
+if (__ARRAY_STRING_SA[5]<=0) error(5);
+__ARRAY_STRING_SA[6]=1;
+__ARRAY_STRING_SA[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING_SA[5]*ptrsz);
+tmp_long=__ARRAY_STRING_SA[5];
+while(tmp_long--){
+((qbs**)(__ARRAY_STRING_SA[0]))[tmp_long]=qbs_new(0,0);
+}
+__ARRAY_STRING_SA[2]=1+2;
+}
+if (!__ARRAY_STRING4_FA){
+__ARRAY_STRING4_FA=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING4_FA)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING4_FA[4]=1ll;
+__ARRAY_STRING4_FA[5]=(3ll)-__ARRAY_STRING4_FA[4]+1;
+if (__ARRAY_STRING4_FA[5]<=0) error(5);
+__ARRAY_STRING4_FA[6]=1;
+__ARRAY_STRING4_FA[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING4_FA[5]*4);
+memset((void*)(__ARRAY_STRING4_FA[0]),0,__ARRAY_STRING4_FA[5]*4);
+__ARRAY_STRING4_FA[2]=1+2;
+}
+if (!__ARRAY_UDT_RA){
+__ARRAY_UDT_RA=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_RA)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_RA[4]=1ll;
+__ARRAY_UDT_RA[5]=(3ll)-__ARRAY_UDT_RA[4]+1;
+if (__ARRAY_UDT_RA[5]<=0) error(5);
+__ARRAY_UDT_RA[6]=1;
+__ARRAY_UDT_RA[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_RA[5]*6);
+memset((void*)(__ARRAY_UDT_RA[0]),0,__ARRAY_UDT_RA[5]*6);
+__ARRAY_UDT_RA[2]=1+2;
+}
+if(__SINGLE_ZZ==NULL){
+__SINGLE_ZZ=(float*)mem_static_malloc(4);
+*__SINGLE_ZZ=0;
+}
+if(__SINGLE_SA==NULL){
+__SINGLE_SA=(float*)mem_static_malloc(4);
+*__SINGLE_SA=0;
+}
+if (!__ARRAY_INTEGER_W){
+__ARRAY_INTEGER_W=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_INTEGER_W)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_INTEGER_W[4]=0ll;
+__ARRAY_INTEGER_W[5]=(10ll)-__ARRAY_INTEGER_W[4]+1;
+if (__ARRAY_INTEGER_W[5]<=0) error(5);
+__ARRAY_INTEGER_W[6]=1;
+__ARRAY_INTEGER_W[0]=(ptrszint)mem_static_malloc(__ARRAY_INTEGER_W[5]*2);
+memset((void*)(__ARRAY_INTEGER_W[0]),0,__ARRAY_INTEGER_W[5]*2);
+__ARRAY_INTEGER_W[2]=1+2;
+}
+byte_element_struct *byte_element_1=NULL;
+if (!byte_element_1){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_1=(byte_element_struct*)(mem_static_pointer-12); else byte_element_1=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_2=NULL;
+if (!byte_element_2){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_2=(byte_element_struct*)(mem_static_pointer-12); else byte_element_2=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_3=NULL;
+if (!byte_element_3){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_3=(byte_element_struct*)(mem_static_pointer-12); else byte_element_3=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_4=NULL;
+if (!byte_element_4){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_4=(byte_element_struct*)(mem_static_pointer-12); else byte_element_4=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_5=NULL;
+if (!byte_element_5){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_5=(byte_element_struct*)(mem_static_pointer-12); else byte_element_5=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_6=NULL;
+if (!byte_element_6){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_6=(byte_element_struct*)(mem_static_pointer-12); else byte_element_6=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_7=NULL;
+if (!byte_element_7){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_7=(byte_element_struct*)(mem_static_pointer-12); else byte_element_7=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_8=NULL;
+if (!byte_element_8){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_8=(byte_element_struct*)(mem_static_pointer-12); else byte_element_8=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_9=NULL;
+if (!byte_element_9){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_9=(byte_element_struct*)(mem_static_pointer-12); else byte_element_9=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_10=NULL;
+if (!byte_element_10){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_10=(byte_element_struct*)(mem_static_pointer-12); else byte_element_10=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_11=NULL;
+if (!byte_element_11){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_11=(byte_element_struct*)(mem_static_pointer-12); else byte_element_11=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_12=NULL;
+if (!byte_element_12){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_12=(byte_element_struct*)(mem_static_pointer-12); else byte_element_12=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_13=NULL;
+if (!byte_element_13){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_13=(byte_element_struct*)(mem_static_pointer-12); else byte_element_13=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_14=NULL;
+if (!byte_element_14){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_14=(byte_element_struct*)(mem_static_pointer-12); else byte_element_14=(byte_element_struct*)mem_static_malloc(12);
+}
+byte_element_struct *byte_element_15=NULL;
+if (!byte_element_15){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_15=(byte_element_struct*)(mem_static_pointer-12); else byte_element_15=(byte_element_struct*)mem_static_malloc(12);
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "get_put_kinds_cpp.bas"
+do{
+#line 2 "get_put_kinds_cpp.bas"
+sub__dest(func__console());
+#line 2 "get_put_kinds_cpp.bas"
+sub__source(func__console());
+#line 2 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 15 "get_put_kinds_cpp.bas"
+do{
+#line 15 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)__INTEGER_I,2,byte_element_1),NULL,0);
+#line 15 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "get_put_kinds_cpp.bas"
+do{
+#line 16 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)__STRING_S->chr,__STRING_S->len,byte_element_2),NULL,0);
+#line 16 "get_put_kinds_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 16 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "get_put_kinds_cpp.bas"
+do{
+#line 17 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)__STRING8_FX->chr,8,byte_element_3),NULL,0);
+#line 17 "get_put_kinds_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 17 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "get_put_kinds_cpp.bas"
+do{
+#line 18 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)(((char*)__UDT_R)+((0+0))),6-((0+0)),byte_element_4),NULL,0);
+#line 18 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "get_put_kinds_cpp.bas"
+do{
+#line 19 "get_put_kinds_cpp.bas"
+sub_graphics_put(4,4,byte_element((uint64)(((char*)__UDT_R)+((0+2))),6-((0+2)),byte_element_5),1,NULL,0);
+#line 19 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "get_put_kinds_cpp.bas"
+do{
+#line 20 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)__SINGLE_ZZ,4,byte_element_6),NULL,0);
+#line 20 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "get_put_kinds_cpp.bas"
+do{
+#line 21 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)__SINGLE_SA,4,byte_element_7),NULL,0);
+#line 21 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "get_put_kinds_cpp.bas"
+do{
+#line 22 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)(((qbs**)(__ARRAY_STRING_SA[0]))[array_check((*__INTEGER64_Q)-__ARRAY_STRING_SA[4],__ARRAY_STRING_SA[5])])->chr,(((qbs**)(__ARRAY_STRING_SA[0]))[array_check((*__INTEGER64_Q)-__ARRAY_STRING_SA[4],__ARRAY_STRING_SA[5])])->len,byte_element_8),NULL,0);
+#line 22 "get_put_kinds_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 22 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "get_put_kinds_cpp.bas"
+do{
+#line 23 "get_put_kinds_cpp.bas"
+sub_graphics_put(4,4,byte_element((uint64)(((qbs**)(__ARRAY_STRING_SA[0]))[0])->chr,(((qbs**)(__ARRAY_STRING_SA[0]))[0])->len,byte_element_9),NULL,NULL,0);
+#line 23 "get_put_kinds_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 23 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "get_put_kinds_cpp.bas"
+do{
+#line 24 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)(&((uint8*)(__ARRAY_STRING4_FA[0]))[(array_check((*__INTEGER64_Q)-__ARRAY_STRING4_FA[4],__ARRAY_STRING4_FA[5]))*4]),((4*(__ARRAY_STRING4_FA[2]&1)*__ARRAY_STRING4_FA[5])-(4*(array_check((*__INTEGER64_Q)-__ARRAY_STRING4_FA[4],__ARRAY_STRING4_FA[5])))),byte_element_10),NULL,0);
+#line 24 "get_put_kinds_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 24 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "get_put_kinds_cpp.bas"
+do{
+#line 25 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)(&((uint8*)(__ARRAY_STRING4_FA[0]))[(0)*4]),((4*(__ARRAY_STRING4_FA[2]&1)*__ARRAY_STRING4_FA[5])-(4*(0))),byte_element_11),NULL,0);
+#line 25 "get_put_kinds_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 25 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 26 "get_put_kinds_cpp.bas"
+do{
+#line 26 "get_put_kinds_cpp.bas"
+sub_graphics_put(4,4,byte_element((uint64)(((char*)__ARRAY_UDT_RA[0])+(((array_check((*__INTEGER64_Q)-__ARRAY_UDT_RA[4],__ARRAY_UDT_RA[5]))*6+0))),(6*(__ARRAY_UDT_RA[2]&1)*__ARRAY_UDT_RA[5])-(((array_check((*__INTEGER64_Q)-__ARRAY_UDT_RA[4],__ARRAY_UDT_RA[5]))*6+0)),byte_element_12),5,NULL,0);
+#line 26 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 27 "get_put_kinds_cpp.bas"
+do{
+#line 27 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)(((char*)__ARRAY_UDT_RA[0])+(((0)*6+0))),(6*(__ARRAY_UDT_RA[2]&1)*__ARRAY_UDT_RA[5])-(((0)*6+0)),byte_element_13),NULL,0);
+#line 27 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(27);}while(r);
+#line 28 "get_put_kinds_cpp.bas"
+do{
+#line 28 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)(((char*)__ARRAY_UDT_RA[0])+(((array_check((*__INTEGER64_Q)-__ARRAY_UDT_RA[4],__ARRAY_UDT_RA[5]))*6+2))),(6*(__ARRAY_UDT_RA[2]&1)*__ARRAY_UDT_RA[5])-(((array_check((*__INTEGER64_Q)-__ARRAY_UDT_RA[4],__ARRAY_UDT_RA[5]))*6+2)),byte_element_14),NULL,0);
+#line 28 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(28);}while(r);
+#line 29 "get_put_kinds_cpp.bas"
+do{
+#line 29 "get_put_kinds_cpp.bas"
+sub_graphics_get(0,0,1,1,byte_element((uint64)(&(((int16*)(__ARRAY_INTEGER_W[0]))[0])),((2*(__ARRAY_INTEGER_W[2]&1)*__ARRAY_INTEGER_W[5])-(2*(0))),byte_element_15),NULL,0);
+#line 29 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 30 "get_put_kinds_cpp.bas"
+do{
+#line 30 "get_put_kinds_cpp.bas"
+if (sub_gl_called) error(271);
+#line 30 "get_put_kinds_cpp.bas"
+close_program=1;
+#line 30 "get_put_kinds_cpp.bas"
+end();
+#line 30 "get_put_kinds_cpp.bas"
+if(!qbevent)break;evnt(30);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_S);
+qbs_free(__STRING8_FX);
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt

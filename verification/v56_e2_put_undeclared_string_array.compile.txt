@@ -1,0 +1,5 @@
+
+Cannot pass array of variable-length strings
+Caused by (or after):PUT # 1 , 1 , UNS$ ( )
+LINE 5:PUT #1, 1, uns$()
+exit=1

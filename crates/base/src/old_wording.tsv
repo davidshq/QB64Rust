@@ -11,14 +11,17 @@
 `$ERROR`: STOP HERE	Compilation check failed: STOP HERE
 `$EXEICON` is already defined in line {#}	$EXEICON already defined in line {1:=|U|P|PU|S|SU}
 `$INCLUDEONCE` must stand alone on its line	Syntax error
+`$RESIZE` takes its setting after a colon, not `=`	Invalid expression
 `$SCREENHIDE` must stand alone on its line	Syntax error
 `$SCREENSHOW` must stand alone on its line	Syntax error
-`10` is no SUB: `ON TIMER` needs `{}` or a SUB's name	Expected GOSUB/sub
+`ABS` is a function, not a statement	Syntax error
 `ABS` needs a number	Number required for function
 `ABS` takes {#} argument	Incorrect number of arguments - Reference: ABS(numericalValue)
 `ASC` in a `CONST` cannot take an empty string	ASC cannot apply to empty string
 `ASC` needs a variable here	Expected ASC ( string-variable , ...
 `ASC` takes {#} or {#} arguments	Incorrect number of arguments - Reference: ASC(text$[, position%])
+`BEEP` is a built-in's name, not a label	Invalid label
+`BEEP` is a built-in's name, not a label to go to	Invalid label!
 `BEEP` takes {#} arguments	SUB does not require any arguments
 `BSAVE` takes {#} arguments	Syntax error - Reference: BSAVE saveFile$, VARPTR(array(index)), fileSize&
 `CASE` while the `IF` on line {#} is still open; expected `END IF` first	CASE without SELECT CASE
@@ -29,6 +32,7 @@
 `CLEAR` cannot be used in a SUB or FUNCTION	CLEAR cannot be used inside a SUB/FUNCTION
 `CLEAR` takes no parenthesis in its arguments	Incorrect number of arguments
 `CLOSE` needs file numbers	Illegal string-number conversion
+`CLS` is a built-in's name, not a label to go to	Invalid label!
 `COMMON` cannot stand inside a SUB or FUNCTION	COMMON cannot be used within a SUB/FUNCTION
 `COM` is not an event QB64pe traps, and no statement	Syntax error
 `COM` is not an event: `ON COM` cannot be trapped	Name already in use (COM)
@@ -70,6 +74,7 @@
 `LEN` cannot be used in a `CONST`	Unexpected element 'LEN'
 `LEN` cannot take a `_BIT` variable or element	Variable/element cannot be _BIT aligned
 `LEN` cannot take an array of variable-length strings	Cannot pass array of variable-length strings
+`LEN` is a function, not a statement	Syntax error
 `LEN` needs a string or a variable, element or member	String expression or variable name required in LEN statement
 `LEN` of a `_BIT` variable	Variable/element cannot be _BIT aligned
 `LEN` of a `{}` value: a `TYPE` with a dynamic member array has no fixed size	_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
@@ -88,6 +93,7 @@
 `ON KEY` takes one key number	Invalid expression
 `ON STRIG` needs its operands in parentheses	Expected (
 `ON TIMER` needs its operands in parentheses	Expected (
+`OPTION BASE` takes `{}` or `{}`	Expected OPTION BASE {1:=|U|P|PU|S|SU} or {2:=|U|P|PU|S|SU}
 `PCOPY` takes {#} arguments	Syntax error - Reference: PCOPY sourcePage%, destinationPage%
 `PEEK` needs a number	Number required for function
 `PEEK` takes {#} argument	Incorrect number of arguments - Reference: PEEK(segment_offset)
@@ -115,12 +121,15 @@
 `RSET` needs a string as its value	Illegal string-number conversion
 `RSET` needs a string variable, element or member here	Expected (...)
 `RSET` needs a string variable, not a number or a `TYPE` value	LSET/RSET expects a string variable/array-element as its first argument
+`SADD` needs a variable-length string variable	SADD only accepts variable-length string variables
+`SADD` of a `TYPE` variable	User defined types in expressions are invalid
 `SCREEN` takes {#} or {#} arguments	Incorrect number of arguments - Reference: SCREEN(x, y[, colorflag%])
 `SEEK` takes {#} argument	Incorrect number of arguments - Reference: SEEK(filenumber&)
 `SHARED` names an array with nothing between its parentheses: `{}`	Expected ()
 `SHELL` takes {#} argument	Incorrect number of arguments - Reference: SHELL(commandToRun$)
 `SIN` takes {#} argument	Incorrect number of arguments - Reference: SIN(radian_angle!)
 `SIN` with empty parentheses	Expected (...)
+`SOUND` is a built-in's name, not a label to go to	Invalid label!
 `SPC` needs a number	Number required for function
 `SQR` in a `CONST` cannot take a negative number	Argument to SQR cannot be negative
 `SQR` needs a number	Number required for function
@@ -144,11 +153,13 @@
 `VAL` needs a string	Expected STRING argument
 `VARPTR` is a function, not a statement	Syntax error
 `VARPTR` needs a variable or an array element	Expected reference to a variable/array
+`VARPTR` of an element of a `_BIT` array	VARPTR cannot reference _BIT type arrays
 `VARPTR` takes {#} argument	Incorrect number of arguments - Reference: VARPTR(variable_name[(reference_index%)])
 `VARSEG` needs a variable or an array element	Expected reference to a variable/array
 `VARSEG` takes {#} argument	Expected (...)
 `^(-8)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")	UNEXPECTED INTERNAL COMPILER ERROR!
 `^` cannot be used with an `_OFFSET`	Operator '^' cannot be used with an _OFFSET
+`_ACCEPTFILEDROP` takes {#} arguments	Incorrect number of arguments - Reference: _ACCEPTFILEDROP
 `_ACOS` needs a number	Number required for function
 `_ACOS` takes {#} argument	Incorrect number of arguments - Reference: _ACOS(cosine_value!)
 `_ADLER32` needs a string	String required for function
@@ -156,6 +167,7 @@
 `_ARCSEC` in a `CONST` needs a value of at least {#} in size	ABS(_ARCSEC) value < {1:=|U|P|PU|S|SU}
 `_ARCSEC` needs a number	Number required for function
 `_AXIS` needs a number	Number required for function
+`_BACKGROUNDCOLOR` is a function, not a statement	Syntax error
 `_BLEND` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _BLEND[(imageHandle&)]
 `_BUTTON` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _BUTTON(button_number%)
 `_CAST` cannot be used in a `CONST`	Unexpected element 'LONG'
@@ -168,17 +180,24 @@
 `_CLAMP` takes {#} arguments	Incorrect number of arguments - Reference: _Clamp(value, minimum, maximum)
 `_CLEARCOLOR` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _CLEARCOLOR[(sourceHandle&)]
 `_CLIPBOARDIMAGE` takes {#} arguments	Incorrect number of arguments - Reference: _CLIPBOARDIMAGE
+`_COMMANDCOUNT` takes {#} arguments	Incorrect number of arguments - Reference: _COMMANDCOUNT
+`_CONSOLE` takes {#} arguments	Incorrect number of arguments - Reference: _CONSOLE
 `_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop	_CONTINUE outside DO..LOOP/FOR..NEXT/WHILE..WEND block
 `_CONTINUE` stands alone on its statement	Command not implemented
+`_CONTROLCHR` takes {#} arguments	Incorrect number of arguments - Reference: _CONTROLCHR
 `_COPYIMAGE` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _COPYIMAGE(imageHandle&[, mode])
 `_CV` needs a string	_CV requires a STRING argument
 `_CV` takes a numeric type	_CV cannot return STRING type!
+`_DEFAULTCOLOR` needs a number	Number required for function
+`_DEFAULTCOLOR` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _DEFAULTCOLOR[(imageHandle&)]
 `_DELAY` needs a number	Number required for sub
 `_DESKTOPWIDTH` takes {#} arguments	Incorrect number of arguments - Reference: _DESKTOPWIDTH
 `_DEST` needs a number	Number required for sub
 `_DEST` takes {#} arguments	Incorrect number of arguments - Reference: _DEST
 `_DEVICES` takes {#} arguments	Incorrect number of arguments - Reference: _DEVICES
 `_DISPLAY` takes {#} arguments	SUB does not require any arguments
+`_DROPPEDFILE` is a function, not a statement	Syntax error
+`_DROPPEDFILE` needs a number	Number required for function
 `_DYNAMIC` and `_STATIC` mark member arrays only	_Dynamic and _Static can only be used on array members inside TYPE
 `_DYNAMIC` and `_STATIC` members need `$UNSTABLE:TYPEFIELDS` above the `TYPE` block	_Static/_Dynamic require $Unstable:TypeFields
 `_ECHO` needs a program with `$CONSOLE` or `$CONSOLE:ONLY`	_ECHO requires $CONSOLE or $CONSOLE:ONLY to be set first
@@ -188,7 +207,10 @@
 `_ERRORLINE` is a function, not a statement	Syntax error
 `_ERRORLINE` takes {#} arguments	Incorrect number of arguments - Reference: _ERRORLINE
 `_ERRORLINE` with empty parentheses	Expected (...)
+`_EXIT` is a function, not a statement	Syntax error
+`_EXIT` takes {#} arguments	Incorrect number of arguments - Reference: _EXIT
 `_FILEEXISTS` needs a string	String required for function
+`_FINISHDROP` takes {#} arguments	SUB does not require any arguments
 `_FONTWIDTH` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _FONTWIDTH[(fontHandle&)]
 `_FONT` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _FONT[(imageHandle&)]
 `_FREEIMAGE` needs a number	Number required for sub
@@ -197,6 +219,12 @@
 `_IIF` is a function, not a statement	Syntax error
 `_IIF` takes {#} arguments	Incorrect number of arguments - Reference: _IIF(expression, truePart, falsePart)
 `_INSTRREV` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _INSTRREV([start%,] baseString$, searchString$)
+`_KEYCLEAR` needs a number	Number required for sub
+`_KEYDOWN` is a function, not a statement	Syntax error
+`_KEYDOWN` needs a number	Number required for function
+`_KEYDOWN` takes {#} argument	Incorrect number of arguments - Reference: _KEYDOWN(code&)
+`_KEYHIT` is a function, not a statement	Syntax error
+`_KEYHIT` takes {#} arguments	Incorrect number of arguments - Reference: _KEYHIT
 `_LIMIT` needs its arguments	Syntax error - Reference: _LIMIT framesPerSecond!
 `_LIMIT` takes {#} argument	Syntax error - Reference: _LIMIT framesPerSecond!
 `_LOADIMAGE` takes {#} to {#} arguments	Incorrect number of arguments - Reference: _LOADIMAGE(fileName$[, [mode&][, requirements$]])
@@ -241,6 +269,7 @@
 `_MEM` needs a variable, an element or an array	Expected variable name/array element
 `_MEM` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _MEM(referenceVariable) or _MEM(offset, byteSize)
 `_MEM` with empty parentheses	Expected (...)
+`_MESSAGEBOX` takes {#} to {#} arguments	Incorrect number of arguments - Reference: _MESSAGEBOX&([title$][, message$][, dialogType$][, iconType$][, defaultButton&])
 `_MIN` cannot be used in a `CONST`	Unexpected element '_MIN'
 `_MOUSEBUTTON` takes {#} argument	Incorrect number of arguments - Reference: _MOUSEBUTTON(buttonNumber)
 `_MOUSEHIDDEN` takes {#} arguments	Incorrect number of arguments - Reference: _MOUSEHIDDEN
@@ -268,8 +297,11 @@
 `_PRINTIMAGE` takes {#} argument	Syntax error - Reference: _PRINTIMAGE imageHandle&
 `_PRINTMODE` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _PRINTMODE[(imageHandle&)]
 `_PRINTWIDTH` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _PRINTWIDTH(textToPrint$[, destinationHandle&])
+`_READBIT` takes {#} arguments	Incorrect number of arguments - Reference: _READBIT(numericalVariable, numericalValue)
 `_RED` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _RED(rgbaColorIndex&[, imageHandle&])
 `_RED` with empty parentheses	Expected (...)
+`_RESIZEWIDTH` is a function, not a statement	Syntax error
+`_RESIZE` takes {#} arguments	Incorrect number of arguments - Reference: _RESIZE
 `_RGB32` with empty parentheses	Expected (...)
 `_RGBA` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _RGBA(red&, green&, blue&, alpha&[, imageHandle&])
 `_RGB` is a function, not a statement	Syntax error
@@ -284,6 +316,9 @@
 `_SCREENX` takes {#} arguments	Incorrect number of arguments - Reference: _SCREENX
 `_SCREENX` with empty parentheses	Expected (...)
 `_SECH` takes {#} argument	Incorrect number of arguments - Reference: _SECH(value)
+`_SHELLHIDE` is a function, not a statement	Syntax error
+`_SHELLHIDE` needs a string	String required for function
+`_SHELLHIDE` takes {#} argument	Incorrect number of arguments - Reference: _SHELLHIDE(commandToRun$)
 `_SHL` cannot be used in a `CONST`	Unexpected element '_SHL'
 `_SHL` takes {#} arguments	Incorrect number of arguments - Reference: _SHL(numericalVariable, numericalValue)
 `_SNDCLOSE` takes {#} argument	Syntax error - Reference: _SNDCLOSE handle&
@@ -311,6 +346,7 @@
 `_STATUSCODE` needs a number	Number required for function
 `_TITLE` needs a string	String required for sub
 `_TITLE` takes {#} argument	Syntax error - Reference: _TITLE text$
+`_TOTALDROPPEDFILES` is a function, not a statement	Syntax error
 `_UCHARPOS` needs an array of LONG here	Expected LONG array-name
 `_UCHARPOS` takes {#} to {#} arguments	Incorrect number of arguments - Reference: _UCHARPOS&(text$[, posArray&([index&])][, utfEncoding&][, fontHandle&])
 `_UFONTHEIGHT` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _UFONTHEIGHT&[(fontHandle&)]
@@ -351,6 +387,7 @@
 `{}` is a FUNCTION; a whole-array assignment needs an array on each side	Expected (...)
 `{}` is a SUB; a whole-array assignment needs an array on each side	Name already in use ({1:=|P|S})
 `{}` is a `$COLOR` constant, which a `CONST` above the `$COLOR` line cannot name	Unexpected element '{1:U|PU|SU}'
+`{}` is a built-in's name, not a label to go to	Invalid label!
 `{}` is a function, not a statement	Syntax error
 `{}` is a member that is no array	Element is not an array
 `{}` is a member that is no array: it has no index	Element is not an array
@@ -363,15 +400,23 @@
 `{}` is no SUB: `ON TIMER` needs `{}` or a SUB's name	Expected GOSUB/sub
 `{}` is no constant defined above	Unexpected element '{1:U|PU}'
 `{}` is no declared array (`{}`)	Undefined array passed to {2:=|U|P|PU|S|SU}
+`{}` is no statement and no SUB	Syntax error
+`{}` is no statement: `BEEP` does not take this suffix	Syntax error
+`{}` is no statement: `CLS` does not take this suffix	Syntax error
+`{}` is no statement: `KILL` does not take this suffix	Syntax error
+`{}` is no statement: `PRINT` does not take this suffix	Syntax error
+`{}` is no statement: `_ASSERT` does not take this suffix	Syntax error
 `{}` is no type	Invalid type
 `{}` is no type: a fixed-length string is written `{}`	Expected STRING * number/constant
 `{}` is not a member of `TYPE _MEM` (`{}`)	Element not defined
+`{}` is not a valid label	Invalid label!
 `{}` is not available in QB64; use a FUNCTION	Command not implemented
 `{}` names no array here (an array passed in a SUB or FUNCTION must exist)	Expected (...)
 `{}` names no array here; a whole-array assignment needs an array on each side	Whole-array assignment requires empty parentheses on both sides
 `{}` names no type	Invalid TYPE name
 `{}` needs a variable here	{1:=|U|P|PU} expects a string variable/array-element as its first argument
 `{}` needs the name of a DLL in quotes	Expected {1:=|U|P|PU|S|SU} "..."
+`{}` of an element of an array that is not of strings	{1:=|U|P|PU} only accepts variable-length string arrays
 `{}` stands twice in a `REDIM`	Invalid variable name
 `{}` takes a numeric type	{1:S|SU} only accepts numeric types
 `{}` takes a type and {#} argument	Incorrect number of arguments - Reference: {1:=|U|P|PU}(numericalType, numericalValue)
@@ -379,10 +424,17 @@
 `{}` takes {#} argument, not {#}	Syntax error - Reference: {1:=|P|S} a AS LONG
 `{}` takes {#} arguments, not {#}	Incorrect number of arguments - Reference: {1:=|P}(a AS LONG, b AS LONG)
 `{}` with empty parentheses	Expected (...)
+`{}`: `ABS` is a built-in function; a variable is needed here	Expected variable
+`{}`: `LEN` is a built-in function, not a variable	String expression or variable name required in LEN statement
+`{}`: `STRIG` is a built-in function, not a variable	Expected variable =, look for conflict with a CONST name
+`{}`: `TAB` is a built-in function, not a variable	Expected variable =, look for conflict with a CONST name
+`{}`: `TAB` is a built-in function; a variable is needed here	Expected variable
+`{}`: `TIMER` is a built-in function, not a variable	Expected variable =, look for conflict with a CONST name
 `{}`: `_ASSERT` is a built-in statement	Invalid array name
 `{}`: `_BASE64DECODE` is written with `$`	Invalid array name
 `{}`: `_BASE64ENCODE` is written with `$`	Invalid array name
 `{}`: `_DEFLATE` is written with `$`	Invalid array name
+`{}`: `_DIR` is written with `$`	Invalid array name
 `{}`: `_EMBEDDED` is written with `$`	Invalid array name
 `{}`: `_ERRORMESSAGE` is written with `$`	Invalid array name
 `{}`: `_FILES` is written with `$`	Invalid array name
@@ -390,22 +442,41 @@
 `{}`: `_INFLATE` is written with `$`	Invalid array name
 `{}`: `_LIMIT` is a built-in statement	Invalid array name
 `{}`: `_LOGINFO` is a built-in statement	Invalid array name
+`{}`: `_OPENFILEDIALOG` is written with `$`	Invalid array name
 `{}`: `_READFILE` is written with `$`	Invalid array name
+`{}`: `_RGB` is a built-in function, not a variable	Incorrect number of arguments - Reference: _RGB(red&, green&, blue&[, imageHandle&])
+`{}`: `_RGB` is a built-in function; a variable is needed here	Incorrect number of arguments - Reference: _RGB(red&, green&, blue&[, imageHandle&])
 `{}`: `_SNDPLAY` is a built-in statement	Invalid array name
 `{}`: `_WRITEFILE` is a built-in statement	Invalid array name
+`{}`: `{}` calls no built-in function and may not be an array	Invalid array name
+`{}`: `{}` is a FUNCTION, not a variable	Expected variable =, look for conflict with a CONST name
+`{}`: `{}` is a FUNCTION; a variable is needed here	Expected variable
+`{}`: `{}` is a SUB, not an array	Name already in use ({2:=|P|S})
+`{}`: `{}` is a `TYPE` variable, and a member is not declared	DIM: Expected ,
+`{}`: `{}` is a built-in function, not a label	Syntax error
+`{}`: `{}` is a built-in function, not a variable	Expected variable =, look for conflict with a CONST name
+`{}`: `{}` is a built-in function; a variable is needed here	Expected variable
 `{}`: `{}` is an array; a member needs an index	Invalid expression
+`{}`: a FUNCTION of this name has another type	Name already in use (f)
+`{}`: a built-in function's name, not an array	Expected (...)
 `{}`: a member array takes its bounds by `REDIM`	DIM: Expected ,
+`{}`: a procedure may not have the name of a keyword or a built-in	Name already in use ({1:S})
 `{}`: a type suffix before `.`	Invalid symbol
 `{}`: an array of variable-length strings beside the `{}` one	Type mismatch
 `{}`: more than one SUB, FUNCTION or the main module has a label `{}`	Ambiguous DATA label
+`{}`: no SUB of this name	Expected CALL sub-name [(...)]
+`{}`: the SUB `{}` takes no index	SUB does not require any arguments
 `{}`: the member is LONG, not INTEGER	Incorrect symbol after element name
 a SUB name cannot have a type suffix: `{}`	Type symbols after a SUB name are invalid
 a SUB or FUNCTION cannot be defined inside another; expected `END SUB` before it	Expected END SUB/FUNCTION before SUB
+a SUB's name has no type suffix	Type symbols after a SUB name are invalid
 a `CASE` after `CASE ELSE` (`CASE ELSE` comes last)	Expected END SELECT
 a `CASE` of a numeric `SELECT CASE` needs a number	Expected numeric expression
 a `CASE` of a string `SELECT CASE` needs a string	Expected string expression
 a `COMMON` block name (`{}`) is not accepted	Invalid variable name
+a `CONST` name cannot have a `{}` suffix	Invalid constant type
 a `FOR` start, limit or step must be a number, not a string	Illegal string-number conversion
+a `FOR` variable cannot be an array element	Unsupported variable used in FOR statement
 a `REDIM` cannot change the array `{}` between `STRING` and `{}`	Type mismatch
 a `REDIM` takes one of `{}` and `{}`	Invalid variable name
 a `STRING` cannot be passed `{}`	STRINGs cannot be passed using {1:=|U|P|PU|S|SU}
@@ -482,6 +553,7 @@ duplicate label: `{}`	Duplicate label ({1:=|P|S})
 each range of `{}` is written `{}`	_ArrayCopy source dimension requires {2:=|P|S}
 expected `$ASSERTS` or `$ASSERTS:CONSOLE`	Syntax error
 expected `$CONSOLE` or `$CONSOLE:ONLY`	Syntax error
+expected `$RESIZE:ON`, `{}`, `{}` or `{}`, alone on its line	Syntax error
 expected `$UNSTABLE:` and a flag	Syntax error
 expected `,` after a quoted `DATA` item	Expected , after quoted string in DATA statement
 expected `,` between the parts of `FIELD`	Invalid expression
@@ -489,6 +561,7 @@ expected `,` between the two variables	Expected SWAP ... , ...
 expected `,` between two library names	Expected ,
 expected `AS` and a variable	Expected FIELD #filenumber, characters AS variable$, ...
 expected `OPTION BASE`, `OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`	Expected OPTION BASE or OPTION _EXPLICIT or OPTION _EXPLICITARRAY
+expected `{}` or `{}` after `OPTION BASE`	Expected OPTION BASE {1:=|U|P|PU|S|SU} or {2:=|U|P|PU|S|SU}
 expected `{}`, the parentheses around all that follows	Expected CALL sub-name (...)
 expected a field (`{}` or `{}`) or `END TYPE`	Expected element-{1:=|P|S}, AS type element-list, or END TYPE
 expected a name after `{}`	Expected (
@@ -511,6 +584,7 @@ name already in use: `LSET`	Name already in use (LSET)
 name already in use: `OFF`	Name already in use (OFF)
 name already in use: `ON`	Name already in use (ON)
 name already in use: `PCOPY`	Name already in use (PCOPY)
+name already in use: `PEN`	Name already in use (PEN)
 name already in use: `PLAY`	Expected variable =, look for conflict with a CONST name
 name already in use: `PSET`	Name already in use (PSET)
 name already in use: `SCREEN`	Incorrect number of arguments - Reference: SCREEN(x, y[, colorflag%])
@@ -521,13 +595,17 @@ name already in use: `USING`	Name already in use (USING)
 name already in use: `WAIT`	Name already in use (WAIT)
 name already in use: `{}` (a `CONST` of this name follows on line {#})	Name already in use ({1:S})
 name already in use: `{}```	Name already in use ({1:S})
+names starting with `_` are reserved: `_COMPILEDATE`	Invalid variable name
 names starting with `_` are reserved: `_CONSOLE`	Expected variable =, look for conflict with a CONST name
 names starting with `_` are reserved: `_CONTINUE`	Invalid variable name
 names starting with `_` are reserved: `_CWD`	Invalid variable name
 names starting with `_` are reserved: `_ERRORLINE`	Expected variable =, look for conflict with a CONST name
+names starting with `_` are reserved: `_FINISHDROP`	Invalid variable name
 names starting with `_` are reserved: `_INCLERRORFILE`	Invalid variable name
+names starting with `_` are reserved: `_KEYCLEAR`	Invalid variable name
 names starting with `_` are reserved: `_LOGMINLEVEL`	Expected variable =, look for conflict with a CONST name
 names starting with `_` are reserved: `_OS`	Invalid variable name
+names starting with `_` are reserved: `_SCREENMOVE`	Invalid variable name
 names starting with `_` are reserved: `_SCREENX`	Expected variable =, look for conflict with a CONST name
 names starting with `_` are reserved: `_SNDPLAY`	Invalid variable name
 names starting with `_` are reserved: `_STARTDIR`	Invalid variable name
@@ -583,6 +661,7 @@ the first character of the embed handle `{}` must be a letter	First char of Embe
 the format of `USING` must be a string	Expected PRINT USING formatstring ; ...
 the items of `PRINT #` need `;` or `,` between them	Expected operator in equation
 the key number of `ON KEY` must be a number	Illegal string-number conversion
+the length of a `{}` must be a number or a numeric constant: `{}`	Number/Constant expected after *
 the library FUNCTION `{}` cannot be called as a statement	Syntax error
 the member array `{}` cannot stand in a `REDIM` with the type before the names	Unknown type
 the member array `{}` is declared LONG: a `REDIM` cannot give it another type	REDIM type does not match the declared TYPE member array
@@ -630,9 +709,12 @@ this `SOUND` statement matches none of its forms: `{}`	Syntax error - Reference:
 this `STRIG` statement matches none of its forms: `{}`	Syntax error - Reference: STRIG(button%) {On|Off|Stop}
 this `TIMER` statement matches none of its forms: `{}`	Syntax error - Reference: TIMER[(number%)] {On|Off|Stop|Free}
 this `WIDTH` statement matches none of its forms: `{}`	Syntax error - Reference: WIDTH [columns%][, rows%] or WIDTH {file_number|device}, columnwidth%
+this `_ACCEPTFILEDROP` statement matches none of its forms: `{}`	Syntax error - Reference: {1:=|P|S}
 this `_ASSERT` statement matches none of its forms: `_ASSERT ?[,?]`	Syntax error - Reference: _ASSERT condition[, errorMessage$]
 this `_BLEND` statement matches none of its forms: `_BLEND [?]`	Syntax error - Reference: _BLEND [imageHandle&]
 this `_CLIPBOARDIMAGE` statement matches none of its forms: `_CLIPBOARDIMAGE =?`	Syntax error - Reference: _CLIPBOARDIMAGE = existingImageHandle&
+this `_CONSOLE` statement matches none of its forms: `{}`	Syntax error - Reference: {1:=|P|S}
+this `_CONTROLCHR` statement matches none of its forms: `{}`	Syntax error - Reference: {1:=|P|S}
 this `_COPYPALETTE` statement matches none of its forms: `_COPYPALETTE [?][,?]`	Syntax error - Reference: _COPYPALETTE [sourceImageHandle&[, destinationImageHandle&]]
 this `_DEPTHBUFFER` statement matches none of its forms: `{}`	Syntax error - Reference: _DEPTHBUFFER {On|Off|Lock|_Clear}[,handle&]
 this `_DEST` statement matches none of its forms: `_DEST ?`	Syntax error - Reference: _DEST imageHandle&
@@ -642,7 +724,9 @@ this `_FREEFONT` statement matches none of its forms: `_FREEFONT ?`	Syntax error
 this `_FREEIMAGE` statement matches none of its forms: `_FREEIMAGE [?]`	Syntax error - Reference: _FREEIMAGE handle&
 this `_FULLSCREEN` statement matches none of its forms: `{}`	Syntax error - Reference: {1:=|P|S}
 this `_ICON` statement matches none of its forms: `_ICON [?[,?]]`	Syntax error - Reference: _ICON [mainImageHandle&[, smallImageHandle&]]
+this `_KEYCLEAR` statement matches none of its forms: `_KEYCLEAR [?]`	Syntax error - Reference: _KEYCLEAR buffer&
 this `_MAPUNICODE` statement matches none of its forms: `{}`	Syntax error - Reference: _MAPUNICODE unicode& TO asciiCode%
+this `_MESSAGEBOX` statement matches none of its forms: `_MESSAGEBOX [?][,[?][,?]]`	Syntax error - Reference: _MESSAGEBOX [title$][, message$][, iconType$]
 this `_MIDISOUNDBANK` statement matches none of its forms: `_MIDISOUNDBANK ?[,?]`	Syntax error - Reference: _MIDISOUNDBANK fileName$[, capabilities$]
 this `_MOUSECURSOR` statement matches none of its forms: `_MOUSECURSOR ?[,(?,?)]`	Syntax error - Reference: _MOUSECURSOR imageHandle& [, (hotspotX&, hotspotY&)]
 this `_MOUSESHOW` statement matches none of its forms: `_MOUSESHOW [?]`	Syntax error - Reference: _MOUSESHOW [cursorShape$]
@@ -650,6 +734,7 @@ this `_PALETTECOLOR` statement matches none of its forms: `_PALETTECOLOR ?,?[,?]
 this `_PRINTMODE` statement matches none of its forms: `{}`	Syntax error - Reference: _PRINTMODE {_FillBackground|_KeepBackground|_OnlyBackground}[, imageHandle&]
 this `_PRINTSTRING` statement matches none of its forms: `{}`	Syntax error - Reference: _PRINTSTRING(x, y), text$[, imageHandle&]
 this `_SAVEIMAGE` statement matches none of its forms: `_SAVEIMAGE ?[,[?][,?]]`	Syntax error - Reference: _SAVEIMAGE fileName$[, imageHandle&][, requirements$])
+this `_SCREENMOVE` statement matches none of its forms: `{}`	Syntax error - Reference: _SCREENMOVE x, y or _SCREENMOVE _Middle
 this `_SNDBAL` statement matches none of its forms: `_SNDBAL ?,[?][,[?][,[?][,[?]]]]`	Syntax error - Reference: _SNDBAL handle&[, x!][, y!][, z!]
 this `_SNDPLAYCOPY` statement matches none of its forms: `_SNDPLAYCOPY ?[,[?][,[?][,[?][,[?]]]]]`	Syntax error - Reference: _SNDPLAYCOPY handle&[, volume!][, x!][, y!][, z!]
 this `_SNDPLAYFILE` statement matches none of its forms: `_SNDPLAYFILE ?[,[?][,?]]`	Syntax error - Reference: _SNDPLAYFILE fileName$[, , volume!]

@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):X = _SCREENMOVE
+LINE 6:x = _SCREENMOVE
+exit=1

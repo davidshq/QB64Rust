@@ -36,5 +36,6 @@ SourceFile 0..60
       Ident OPTION
   Newline \x0A
 t.bas:1:12: error: expected `0` or `1` after `OPTION BASE`
+t.bas:1:12: note: QB64pe: Expected OPTION BASE 0 or 1
 t.bas:2:8: error: expected `BASE`, `_EXPLICIT` or `_EXPLICITARRAY` after `OPTION`
 t.bas:3:18: error: expected the end of the statement

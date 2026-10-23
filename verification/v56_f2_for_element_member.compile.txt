@@ -1,0 +1,5 @@
+
+Unsupported variable used in FOR statement
+Caused by (or after):FOR AR ( I ) . V = 1 TO 3
+LINE 14:FOR ar(i).v = 1 TO 3: PRINT ar(1).v; ar(2).v; i;: i = 2: NEXT: PRINT ar(1).v; ar(2).v
+exit=1

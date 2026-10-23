@@ -571,7 +571,10 @@ SHALL NOT change.
 `name(index, …)` where no array of that name and type is visible, the name with its suffix may be a variable, no
 SUB or FUNCTION of that name exists and the spelling calls no built-in function SHALL make an array of the scope
 it stands in, with the bounds `OPTION BASE` to 10 in each of as many dimensions as indexes are written;
-`LBOUND(name)` and `UBOUND(name)` of such a name SHALL make one of one dimension. In the main module, and in a
+`LBOUND(name)` and `UBOUND(name)` of such a name, and the whole array `name()`, SHALL make one of one dimension
+(`name()` then stands for its first element, requirement "A whole array as a value", and `LEN(name())` is its size
+in bytes). `WIDTH (n) = v` SHALL store into an implicit array named `WIDTH`, and `WIDTH(n)` in an expression read
+it, as in the old compiler (`verification\v27_x51`). In the main module, and in a
 `SUB … STATIC` or `FUNCTION … STATIC`, the array SHALL be static (dynamic in the main module while `$DYNAMIC` is
 in effect, requirement "Dynamic arrays"). In any other procedure, and in every procedure while `$DYNAMIC` is in
 effect, it SHALL be a local dynamic array that is not allocated, so that every use raises error 9 until a `DIM`
@@ -581,7 +584,9 @@ scalar variable of the name, also one typed with `AS`, and a `CONST` of the name
 being an array and SHALL NOT give it their type. `ERASE` of an implicit array SHALL clear a static one and
 release a dynamic one; above its first use in the file it SHALL be a compile error. A later `DIM` of a static
 one, and a use with another number of indexes, SHALL be compile errors. A name that may not be a variable (one leading underscore, a keyword, a built-in statement)
-and a store to a spelling that is a FUNCTION or a built-in function SHALL be compile errors.
+and a store to a spelling that is a FUNCTION or a built-in function SHALL be compile errors that are not "not
+supported yet", as the old compiler's are ("Invalid array name", "Expected variable =";
+requirement "Names that call no built-in" of `language/builtin-functions`).
 
 #### Scenario: Zero to ten
 - **WHEN** `z(10) = 4: PRINT z(10); UBOUND(z)` runs, and then `z(11) = 1` under a handler that prints `ERR`
@@ -633,7 +638,20 @@ and a store to a spelling that is a FUNCTION or a built-in function SHALL be com
 #### Scenario: Names that are no arrays
 - **WHEN** `_foo(1) = 2`, `to(1) = 5`, `cls(1) = 5`, `rnd(1) = 2`, or `f(3) = 5` with a FUNCTION `f` defined below,
   is compiled
-- **THEN** each is a compile error
+- **THEN** each is a compile error that is not "not supported yet" (`verification\v24_x112`, `x119`, `x106`)
+
+#### Scenario: The whole array of a name that is no array
+- **WHEN** `x = 1: PRINT LEN(x())` runs, and `PRINT LEN(nothing())`
+- **THEN** each prints ` 44 `: eleven `SINGLE` elements (`verification\v48_x04`, `x14`)
+
+#### Scenario: The whole array of a name that is no array, in a SUB
+- **WHEN** a SUB that is not `STATIC` runs `PRINT LEN(u()); u()` with no array `u` declared, under a handler
+  that prints `ERR`
+- **THEN** it prints ` 0  0 ` and the handler does not run (`verification\v55_b_implicit_whole`, `v55_x72`)
+
+#### Scenario: An array named WIDTH
+- **WHEN** a program has `WIDTH = 80`, `WIDTH (80) = 80` and `PRINT WIDTH(1)`
+- **THEN** it compiles, as with the old compiler (`verification\v27_x51`)
 
 ### Requirement: Arrays in procedures
 In a SUB or FUNCTION, `DIM` and `REDIM` of an array SHALL make a dynamic array that is new on every call and
@@ -651,9 +669,13 @@ compile error with or without parentheses (`v48_x06`).
 a dynamic array that is allocated when the program starts, below `$DYNAMIC` or not: `ERASE` SHALL release it (a
 use then raises error 9), a `REDIM` SHALL give it other bounds, and the next error that reaches a handler SHALL
 allocate it again, empty, if it was released (the old compiler writes its allocation where the main module
-starts, which a handler enters again). With a bound that is not one number or one constant it SHALL be reported
-"not supported yet" (the old compiler writes the bound into the main module's code: its C++ build fails for a
-parameter or a local variable and works for `2 + 3`). `STATIC name()` SHALL declare a dynamic array that lives
+starts, which a handler enters again). The old compiler writes the bounds into the main module's code as they
+are. So a bound whose value is known when compiling (`2 + 3`, an expression of constants) SHALL be taken with
+that value, and a bound that names a parameter or a local variable of the procedure SHALL be a compile error that
+is not "not supported yet" (the old compiler's C++ build fails, `verification\v24_x121`). `LEN` of a string
+literal SHALL be taken with its value (`verification\v55_x73`). A bound that names a shared main-module variable
+or calls a FUNCTION SHALL stay "not supported yet": the old compiler reads it when its start code runs, at the
+start and again when a handler is entered (`v55_x74`, `x75`). `STATIC name()` SHALL declare a dynamic array that lives
 for the program and is not allocated: a `DIM` of it in the same procedure SHALL allocate it (raising error 10 on
 a later call), a `REDIM` SHALL give it new elements and a `REDIM _PRESERVE` keep them; its number of dimensions
 SHALL come from what names it first, a `DIM`, a `REDIM`, an index or `LBOUND`/`UBOUND`, and another number later
@@ -677,8 +699,10 @@ module.
 
 `STATIC` of an array declared, used or listed already in the procedure, `DIM SHARED` and `REDIM SHARED` inside a
 procedure, `SHARED name(bounds)` with bounds, and `STATIC` in the main module SHALL be compile errors. `STATIC
-name(bounds)` beside a shared main-module array of that name and type SHALL be reported "not supported yet" (the
-old compiler's program ends when it starts).
+name(bounds)` beside a shared main-module array of that name and type SHALL name that array in the procedure. Its
+allocation when the program starts SHALL be a second allocation of the shared array, after the array's own: a
+static shared array then ends the program at the start with "Duplicate definition", before any `ON ERROR` runs,
+as in the old compiler (`verification\v24_x272`, `v55_d_static_shared`).
 
 #### Scenario: New on each call
 - **WHEN** a SUB with `DIM t(5) AS LONG: PRINT t(1): t(1) = 7` is called twice
@@ -738,8 +762,16 @@ old compiler's program ends when it starts).
 - **THEN** each is a compile error
 
 #### Scenario: STATIC with a bound that is not constant
-- **WHEN** a SUB with a parameter `n` holds `STATIC v(n) AS LONG`, or one holds `STATIC v(2 + 3) AS LONG`
-- **THEN** each is reported "not supported yet"
+- **WHEN** a SUB with a parameter `n` holds `STATIC v(n) AS LONG`, and one with `STATIC v(2 + 3) AS LONG: v(1) =
+  v(1) + 1: PRINT v(1); UBOUND(v)` is called twice
+- **THEN** the first is a compile error that is not "not supported yet" (`verification\v24_x121`); the second
+  prints ` 1  5 `, then ` 2  5 ` (`v24_x280`)
+
+#### Scenario: STATIC beside a shared array
+- **WHEN** the main module has `ON ERROR GOTO h` and `DIM SHARED a(3) AS LONG`, and a SUB below holds `STATIC a(5)
+  AS LONG`
+- **THEN** the program ends when it starts with "Duplicate definition" on line 1, and the handler does not run
+  (`verification\v24_x272`)
 
 #### Scenario: ERASE of a STATIC array
 - **WHEN** a SUB with `STATIC c(2) AS LONG: c(1) = c(1) + 1: PRINT c(1);: ERASE c: PRINT c(1);` is called twice
@@ -826,9 +858,9 @@ A `TYPE` member SHALL be declarable as an array with constant bounds, as `name(b
 `AS type name(bounds), …` list, of any type a member may have and of one or more dimensions. A dimension without
 `TO` SHALL start at the `OPTION BASE` in effect where the `TYPE` block stands; the literal 0 has no rule of its
 own there (`z(0)` under base 1 is a compile error, as are bounds that are not constant, reversed or missing).
-A bound written with numbers alone, also as an expression of numbers, SHALL be accepted; one that names a
-`CONST`, which the old compiler accepts, SHALL be reported "not supported yet" (the blocks are read before the
-program's constants).
+A bound written with numbers alone, also as an expression of numbers, SHALL be accepted; so SHALL one that names
+a `CONST` above the block, a constant of the auto-included file or a function of the constant evaluator, with
+the value of that expression, as in the old compiler (requirement "Member array bounds that name no constant").
 Below `$UNSTABLE:TYPEFIELDS` (`language/unstable-features`) a member array SHALL take the marker `_STATIC` or
 `_DYNAMIC` before its name, after its name or bounds, or after its type, and in an `AS type` list after the
 bounds of a name or before it, where it marks that name alone. `_STATIC` SHALL change nothing: the member array
@@ -859,8 +891,10 @@ array written with empty parentheses SHALL be an argument for an array parameter
 procedure works on its elements, with the member's bounds, as on a static array (`ERASE` clears, `REDIM` raises
 error 10); an index outside its bounds on the way SHALL raise error 9 and the procedure SHALL NOT be entered.
 `SWAP` SHALL take an element of a member array as an argument by reference takes it. A member array of an array
-element beside other targets of one `ERASE` or `REDIM`, and an element of a member array as a target of `INPUT`,
-`READ` or the `MID$` statement, SHALL be reported "not supported yet".
+element beside other targets of one `ERASE` or `REDIM` SHALL be cleared in its turn, and the statement SHALL go on
+with the other targets after an index on the way raised an error, as in the old compiler
+(`verification\v24_x312`). An element of a member array as a target of `INPUT`, `READ` or the `MID$` statement
+SHALL be reported "not supported yet".
 
 #### Scenario: Element of a member array
 - **WHEN** a type has `v(0 TO 3) AS LONG`, and `DIM t AS` that type`: t.v(2) = 7: PRINT t.v(2); t.v(3)` runs
@@ -908,8 +942,14 @@ element beside other targets of one `ERASE` or `REDIM`, and an element of a memb
 - **THEN** the handler prints 9 and the elements of `a(0).v` are 0, as with the old compiler
 
 #### Scenario: Bound named by a constant
-- **WHEN** a `TYPE` block has `v(top) AS LONG` below `CONST top = 3`
-- **THEN** the compiler reports it "not supported yet" (the old compiler compiles it)
+- **WHEN** `CONST top = 3` stands above a `TYPE t1` block with `v(top) AS LONG` and `w(top * 2 - 1) AS LONG`, and
+  `DIM t AS t1: PRINT UBOUND(t.v); UBOUND(t.w); LEN(t)` runs (`verification\v24_x196`)
+- **THEN** it prints ` 3  5  40 `
+
+#### Scenario: Member arrays of elements in one ERASE or REDIM
+- **WHEN** the program `verification\v24_x312_member_erase_base` runs `ERASE a(1).s, a(2).v: ERASE a(3).s` and
+  `REDIM a(2).v(0 TO 3), a(2).s(0 TO 1)`, among the other forms of that program
+- **THEN** it prints what the old compiler's program printed
 
 #### Scenario: Forms that are compile errors
 - **WHEN** `t.v = 5`, `PRINT t.v()`, `t.v(1, 2) = 5`, `t.v("a") = 5`, `PRINT t.id(1)`, `PRINT LBOUND(t.id)` or
@@ -1193,6 +1233,8 @@ A whole-array assignment SHALL be a compile error, as in the old compiler, when 
 (kind, width, sign, `STRING * n` length, user type), when the numbers of dimensions differ, and when one side is
 `name()` and the other is not a whole array (a scalar, an element, an expression, a literal, a FUNCTION, a constant,
 an undeclared name). A scalar or element target with a whole array as its value SHALL be a compile error too.
+With a type suffix on the last name of both sides (`b%() = a%()`), the statement SHALL compile as the old
+compiler takes it: an assignment of one element to one element (requirement "A whole array as a value").
 
 #### Scenario: Types that differ
 - **WHEN** `a() = b()` is compiled for `LONG` and `INTEGER`, `LONG` and `_UNSIGNED LONG`, `SINGLE` and `DOUBLE`,
@@ -1214,8 +1256,13 @@ an undeclared name). A scalar or element target with a whole array as its value 
   empty parentheses on both sides")
 
 #### Scenario: Suffixes on both names
-- **WHEN** `b%() = a%()` is compiled
-- **THEN** it is reported "not supported yet" (the old compiler copies element 0 into element 0)
+- **WHEN** `a%(0) = 1: a%(1) = 2: b%(2) = 9: b%() = a%(): PRINT b%(0); b%(1); b%(2)` runs
+- **THEN** it prints ` 1  0  9 `: only the first element is copied, as recorded (`verification\v36_x38`)
+
+#### Scenario: Suffixes on both names, types that differ
+- **WHEN** `a&() = b%()` is compiled for `DIM a&(2), b%(2)`
+- **THEN** it compiles and runs, as recorded (`verification\v36_x24`); the element is converted as an
+  assignment converts it
 
 ### Requirement: Whole-array assignment of member arrays
 A member array written with empty parentheses (`x.v()`, `e(1).v()`, a `_DYNAMIC` member) SHALL be a side of a
@@ -1488,9 +1535,10 @@ is not measured and SHALL be reported "not supported yet".
 ### Requirement: LEN of a whole array
 `LEN(name())` of an array, and `LEN` of a whole member array (`LEN(v.m())`, `LEN(a(i).m())`), SHALL give the size in
 bytes of all its elements, as `_MEM` of it gives: the number of elements times the element's size. A dynamic array
-that is not allocated SHALL give 0. A whole dynamic member array, and `LEN(name())` of a name that is no array
-(the old compiler makes it an array used without `DIM`, `verification\v48_x04`, `x14`), SHALL be reported "not
-supported yet".
+that is not allocated SHALL give 0. `LEN(name())` of a name that is no array SHALL be the size of the array used
+without `DIM` that it makes (requirement "Implicit arrays"). `LEN` of a whole member array of variable-length
+strings SHALL give the old compiler's number, 8 bytes per element (`verification\v48_x30`). A whole dynamic
+member array SHALL be reported "not supported yet".
 
 #### Scenario: Numbers and dimensions
 - **WHEN** `DIM a(3 TO 7) AS INTEGER, b(1, 2) AS DOUBLE: PRINT LEN(a()); LEN(a(3)); LEN(b())` runs
@@ -1519,6 +1567,11 @@ supported yet".
 - **WHEN** `DIM f(3) AS LONG: PRINT LEN(f()) / 4; LEN(f()) \ 4; LEN(f()) MOD 3` runs
 - **THEN** it prints ` 4  4  1 `
 
+#### Scenario: A whole member array of strings
+- **WHEN** a `TYPE t` has `s(3) AS STRING`, and `DIM x AS t: PRINT LEN(x.s())` runs (`verification\v48_x30`), and
+  the other bounds and dimensions of `verification\v56_g1_len_string_member_arrays`
+- **THEN** it prints ` 32 `, and `v56_g1` prints what the old compiler's program printed
+
 ### Requirement: Arrays LEN does not take
 `LEN` of a whole array of variable-length strings, of a user type with a `STRING` member, and of a `_BIT` array
 SHALL be compile errors, as in the old compiler ("Cannot pass array of variable-length strings", "UDT must have
@@ -1537,8 +1590,8 @@ fixed size", "Variable/element cannot be _BIT aligned"; `verification\v48_x01`�
 A bound of a member array in a `TYPE` block that names no `CONST` standing above the block SHALL be the compile
 error "TYPE member array bounds must be numeric constant", as the old compiler gives it (measured,
 `verification\v51_x01`–`x15`). A bound that names a `CONST` above the block, a constant of the auto-included file
-or a function of the constant evaluator (`_PI`, `ABS(…)`) SHALL stay "not supported yet" (requirement "Member
-arrays").
+or a function of the constant evaluator (`_PI`, `ABS(…)`) SHALL be taken with its value, rounded as any bound is
+(requirement "Member arrays").
 
 #### Scenario: A variable as the bound
 - **WHEN** a program does `DIM AS _BYTE a`, `a = 1` and declares `array (a) AS LONG` in a `TYPE` block (upstream
@@ -1561,8 +1614,14 @@ arrays").
 - **THEN** it is the same compile error
 
 #### Scenario: A CONST as the bound
-- **WHEN** `CONST top = 3` stands above a `TYPE` block with the member `v(top) AS LONG` (`verification\v24_x196`)
-- **THEN** the only diagnostic is "not supported yet" at the bound
+- **WHEN** `CONST top = 3` stands above a `TYPE` block with the member `v(top) AS LONG` (`verification\v24_x196`),
+  or `v(top%)` (`v51_x09`)
+- **THEN** it compiles with no diagnostic
+
+#### Scenario: An auto-included constant or a function as the bound
+- **WHEN** a `TYPE t1` block has `v(_PI) AS LONG`, `v(ABS(-3)) AS LONG` or, below `CONST top = 3`, `v(ABS(top)) AS
+  LONG`, and `DIM t AS t1: PRINT UBOUND(t.v)` runs (`verification\v51_x10`, `x11`, `x14`)
+- **THEN** each prints ` 3 `
 
 ### Requirement: Undefined member types
 A member of a `TYPE` block declared `AS name`, where `name` is no type word of the old compiler and no `TYPE` of
@@ -1668,3 +1727,116 @@ not measured in these places SHALL stay "not supported yet".
 - **WHEN** a SUB has `SHARED b AS _Bytef`, or the parameter `(b AS _Bytef)` (`verification\v51_x61`, `x63`)
 - **THEN** it is the compile error "Cannot convert type (_BYTEF) to symbol", and "Illegal SUB/FUNCTION
   parameter"
+
+### Requirement: A whole array as a value
+Where the old compiler takes a whole array `a()` of a declared array in place of a value or a variable, it SHALL
+compile and stand for its first element in memory, with no bounds check (design D4, `verification\v54`). The
+places are any
+expression and the variable of `READ`, `INPUT`, `INPUT #`, `LINE INPUT #`, `SWAP`, `FIELD`, `LSET` and `RSET`, each
+taking one item; `LEN(a())` keeps its meaning. Each place is a row of `SOMEDAY.md`'s "QB64pe behaviours to review"
+(user, 2026-10-22).
+
+#### Scenario: PRINT a whole array
+- **WHEN** `DIM a(2) AS LONG: PRINT a(): PRINT "ok"` runs
+- **THEN** it prints ` 0 ` and `ok`, as recorded (`verification\v36_x37`)
+
+#### Scenario: READ into a whole array
+- **WHEN** `DIM a(3) AS LONG: READ a(): PRINT a(0); a(3)` runs with `DATA 1,2,3,4`
+- **THEN** it prints ` 1  0 `: one item is read, into the first element (`verification\v22_x70`)
+
+#### Scenario: SWAP two whole arrays
+- **WHEN** `x(0) = 1: y(0) = 2: SWAP x(), y(): PRINT x(0); y(0)` runs for two `LONG` arrays
+- **THEN** it prints ` 2  1 ` (`verification\v22_x101`)
+
+#### Scenario: PRINT USING and _IIF
+- **WHEN** `PRINT USING "##"; a()` and `PRINT _IIF(0, a(), b())` run for two `LONG` arrays of zeros
+- **THEN** each prints the first element's value, as recorded (`verification\v30_x18`, `v30_x99`)
+
+#### Scenario: A lower bound other than 0, two dimensions
+- **WHEN** `DIM a(5 TO 7) AS LONG: a(5) = 55: PRINT a()` runs, and `PRINT b()` for `DIM b(1 TO 2, 1 TO 3)` with
+  `b(1, 1) = 11`
+- **THEN** it prints ` 55 ` and ` 11 ` (`verification\v54_c_whole_values`)
+
+#### Scenario: In an expression
+- **WHEN** `PRINT a() + 1`, `PRINT -a()`, `PRINT (a())`, `PRINT ABS(a())`, `IF a() THEN`, `x = a() + 1` and
+  `b(1) = a() * 2` run for a `LONG` array with `a(0) = 4`
+- **THEN** each uses 4, as recorded (`verification\v54_x05`, `x06`, `x16`, `x17`, `x28`, `x33`, `x34`)
+
+#### Scenario: READ and INPUT # take one item
+- **WHEN** `READ r()` for `DIM r(1 TO 3)` with `DATA 7,8`, then `READ ss()` for an array of `STRING`, and
+  `INPUT #1, n()` for `DIM n(2 TO 4)` from a file of the lines `41` and `42`
+- **THEN** `r(1)` is 7, `ss(0)` is `8`, `n(2)` is 41, and the other elements stay 0 (`verification\v54_c`)
+
+#### Scenario: An erased array
+- **WHEN** `REDIM a(2) AS LONG: ERASE a: PRINT a()`, then `READ a()` and `SWAP a(), b()` of two erased arrays run
+  under a handler
+- **THEN** it prints ` 0 ` and no error is raised (`verification\v54_d_whole_erased`)
+
+### Requirement: A whole array where the old compiler rejects it
+A whole array as a value where the old compiler rejects one SHALL stay a compile error: as the whole value of an
+assignment (`x = a()`, `x = (a())`, `a() = b() + 1`), in `SWAP` with an array of another element type, as a
+whole member array `t.m()`, as the argument of a scalar parameter, and in `LEN` of variable-length strings.
+
+#### Scenario: Assigned to a scalar
+- **WHEN** `x = a()`, `x = (a())` or `x$ = s()` is compiled
+- **THEN** it is a compile error, as in requirement "Whole-array assignment checks" (`verification\v54_x29`,
+  `x37`)
+
+#### Scenario: SWAP of two types
+- **WHEN** `SWAP a(), b()` is compiled for a `LONG` and an `INTEGER` array
+- **THEN** it is a compile error (`verification\v54_x10`)
+
+#### Scenario: A member array
+- **WHEN** `PRINT t.m()` is compiled for a member array `m`
+- **THEN** it is a compile error (`verification\v54_x27`)
+
+### Requirement: Where an implicit array is allocated
+Below `$DYNAMIC` in the main module, the allocation of an array used without `DIM` SHALL run where the old
+compiler's code evaluates the name. Inside a statement, that is after the items or targets before the one that
+names it, and in a console `INPUT` after the prompt and before the line is read. On a block's line, it is before
+an `IF`, `FOR`, `WHILE`, `DO` with its test at the top or `SELECT CASE`, once. For `ELSEIF`, `CASE` and a test at
+`LOOP`, it is each time that part's test runs.
+
+#### Scenario: A later item of PRINT
+- **WHEN** below `$DYNAMIC`, `PRINT " x"; dp(1); " y";` runs twice under a handler that prints `ERR` and resumes
+  next
+- **THEN** it prints ` x 0  y`, then ` x` and the handler prints 10 (`verification\v24_x264`)
+
+#### Scenario: WRITE writes its separator first
+- **WHEN** below `$DYNAMIC`, `WRITE i, dr(1)` runs for `i` = 1 and 2 under the same handler
+- **THEN** it prints `1,0`, then `2,` and the handler prints 10 (`verification\v24_x264`)
+
+#### Scenario: INPUT shows its prompt and reads nothing
+- **WHEN** below `$DYNAMIC`, `INPUT a, ia(1), b` runs twice under the same handler, then `INPUT "p"; ib(1), a`
+  runs, with the lines `1,2,3` and `4,5` typed
+- **THEN** the second `INPUT` shows `? `, the handler prints 10, and the next `INPUT` reads `4,5`
+  (`verification\v24_x265`)
+
+#### Scenario: The line of a block
+- **WHEN** the programs of `verification\v24_x262` run: an array first named in the line of an `IF`, a `FOR`, a
+  `WHILE`, a `DO WHILE`, a `LOOP UNTIL`, a `SELECT CASE`, a later `CASE` and an `ELSEIF`
+- **THEN** each prints what the old compiler printed: the `WHILE` and `DO WHILE` raise no error on their second
+  round, the `LOOP UNTIL` raises error 10 on its second, and the `ELSEIF` not reached allocates nothing (its
+  `UBOUND` raises error 9)
+
+#### Scenario: An error of the allocation in a block's line
+- **WHEN** the programs of `verification\v55_a_implicit_headers` run, the allocation in the line of each block
+  raising error 10 on its second run under `RESUME NEXT`
+- **THEN** each goes on where the old compiler's program went on, as recorded: an `IF`, a `CASE`, a `WHILE` and
+  a `DO` tested at the top run their body though the test is false, a `LOOP UNTIL` leaves its loop, an `ELSEIF`
+  runs no branch's first statement, a `FOR` runs its body with its variable as it was, and after a `SELECT CASE`
+  the `CASE` tests run as usual
+
+### Requirement: Declared names with blanks around the dot
+A name written with blanks around a dot after a plain name SHALL be the name without those blanks where it is
+declared too: `DIM a . b AS LONG` SHALL declare the variable `a.b`, and `SUB a . b` the SUB `a.b`, as at a use
+(requirement "Member access and dotted names"). A form `verification\v55` does not record SHALL stay "not
+supported yet".
+
+#### Scenario: DIM with blanks around the dot
+- **WHEN** `DIM a . b AS LONG: a.b = 3: PRINT a.b; a . b` runs
+- **THEN** it prints ` 3  3 ` (`verification\v47_x17`)
+
+#### Scenario: A SUB with blanks around the dot
+- **WHEN** `a . b 3` runs for `SUB a . b (n)` that prints `n`
+- **THEN** it prints ` 3 ` (`verification\v47_x18`)

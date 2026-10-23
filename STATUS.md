@@ -55,8 +55,15 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 1. The merge of pull request 12 (`m4` into `main`); its full set ran on `fe5e2de` (below), with
    `g12_game.files` the one failure, from the test environment (still to watch, below).
-2. The rest of `qb64pe.bas` through its own include files, smallest first. `tests\verification\known.list` (197
-   programs, each with its reason) holds more such lines.
+2. `qb64pe.bas` compiles with no diagnostic since `m4-qb64pe-builtins` (archived, specs synced): `qb64rust -z` reports
+   nothing, and `-x` builds an executable, not run (the change's `tasks.md`, task 7.2). At the merge into `main`,
+   `ROADMAP.md` says that the compile half of M4's exit criterion is met.
+3. The rest of M4 is a plan of six steps (`DECISIONS.md` 2026-10-22). Steps 1, 2 and 3,
+   `m4-line-numbers-whole-arrays`, `m4-names-implicit-arrays` and `m4-memory-records` (variables in conventional
+   memory, `SADD`, `VARPTR$`, every place of graphics `GET`/`PUT`, member bounds that name a `CONST`, a member as the
+   `FOR` variable), are done (archived, specs synced). Next is step 4, **the statements and metacommands left, with the
+   shrink-only lists of tier 1**, by the demand report over `tests\verification\known.list` (47 programs marked
+   "not supported yet", each with its reason).
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
@@ -206,7 +213,10 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 - `tests\corpus\slice\s150_builtins_more` stores and reads the system clipboard, so it can fail when another run
   uses the clipboard at the same time (seen once in the no-fold run at the close of `m4-qb64pe-sources`: `LEN` of
   `"a" + CHR$(0) + "b"` read back as 3, not 1; it passed alone). Run the no-fold list by itself, not beside
-  another slice run.
+  another slice run. At the close of `m4-line-numbers-whole-arrays` (2026-10-22) it failed on every run, also alone,
+  and so did the old compiler's own `verification\v49_d_clipboard.exe`: libqb's `_CLIPBOARD$` gives its internal copy
+  (all 3 bytes) whenever `OpenClipboard` fails, so any program of the machine that opens the clipboard after a
+  change (a clipboard history) is enough. Not the compiler's.
 
 ## Queued for later milestones
 

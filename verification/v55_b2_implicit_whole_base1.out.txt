@@ -1,0 +1,4 @@
+1. OPTION BASE 1, LEN(x()) and bounds: 40  1  10 
+2. below $DYNAMIC, LEN(y()) twice: 40  [error 10 ]
+3. below $DYNAMIC, PRINT z() twice: 0  [error 10 ]
+exit=0

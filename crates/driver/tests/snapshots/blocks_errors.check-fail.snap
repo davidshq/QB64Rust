@@ -26,5 +26,5 @@ blocks_errors.bas:21:23: error: `NEXT i` does not close `FOR i%`
 blocks_errors.bas:21:23: note: QB64pe: Incorrect variable after NEXT
 blocks_errors.bas:24:10: error: `NEXT i` does not close `FOR j`
 blocks_errors.bas:24:10: note: QB64pe: Incorrect variable after NEXT
-blocks_errors.bas:25:8: error: expected `=`
-blocks_errors.bas:26:5: error: not supported yet: `TYPE` member `t.x` as a `FOR` variable
+blocks_errors.bas:25:8: error: a `FOR` variable cannot be an array element
+blocks_errors.bas:25:8: note: QB64pe: Unsupported variable used in FOR statement

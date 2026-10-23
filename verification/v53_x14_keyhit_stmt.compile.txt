@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_KEYHIT
+LINE 6:_KEYHIT
+exit=1

@@ -86,6 +86,8 @@ One step per line; `#` starts a comment.
 |---|---|
 | `text <characters>` | Each printable ASCII character |
 | `key <name>` | `enter esc tab backspace space up down left right home end pageup pagedown insert delete f1` … `f12` |
+| `hold <name>` | The key goes down and stays down (`_KEYDOWN` sees it) until `lift`: a name of `key`, or a modifier `lshift rshift lctrl rctrl lalt ralt`. A key that writes to the `INKEY$` buffer waits for it to be empty first, as `key` does; a modifier does not wait. A key still held at the end stays down until the program exits |
+| `lift <name>` | The held key goes up |
 | `wait <ms>` | A pause |
 | `prompt` | Wait until the program announces its next wait for a key (below) |
 | `state` | Write the state of the screen now, before the state at exit |
@@ -100,7 +102,8 @@ One step per line; `#` starts a comment.
 
 A key is given only when the program's `INKEY$` buffer is empty, so none is lost however many there are (the
 buffer holds 15) and nothing depends on timing. A line that is none of these (a button that is not 1 to 3, a
-`mouse` step without its second number, `wheel 0`), or a file that cannot be read, ends the program with exit
+`mouse` step without its second number, `wheel 0`, a `hold` of a key already held, a `lift` of one not held, the
+`end` of a `repeat` block that leaves other keys held than it found), or a file that cannot be read, ends the program with exit
 code 125 before it runs and a message on stderr that names the file and the line.
 
 **Mouse steps** go into libqb's queue of mouse events at once (`Mouse_QueuePositionEvent`,

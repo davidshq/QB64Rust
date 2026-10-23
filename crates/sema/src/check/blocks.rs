@@ -5,7 +5,7 @@
 use super::{Checker, NoJoin, R, Skips, first_token_span};
 use crate::{
     BinOp, Branch, Case, CaseItem, Expr, ExprKind, LoopKind, LoopTest, PLACE_ONLY_UNREACHABLE, Place, Stmt, StmtKind,
-    SymbolKind, TestAt, Ty, VarId,
+    SymbolKind, TestAt, Ty,
 };
 use qb64rust_base::show_bytes;
 use qb64rust_syntax::SyntaxKind;
@@ -76,6 +76,22 @@ impl Checker<'_> {
         result
     }
 
+    /// [`Self::header`] for a header tested each time its part of the block runs (`ELSEIF`, a test at `LOOP`, a
+    /// `CASE`): the allocations its check makes are its own, run first in its test, not statements before the block
+    /// (design D2 of `m4-names-implicit-arrays`; measured, `verification\v24_x262`, `v55_a_implicit_headers`).
+    fn part_header<T>(
+        &mut self,
+        header: Option<Node>,
+        skips: &Skips,
+        check: impl FnOnce(&mut Self) -> R<T>,
+    ) -> (Option<T>, Vec<Stmt>) {
+        let before = self.sink().len();
+        let result = self.header(header, skips, check);
+        let allocs = self.sink().split_off(before);
+        debug_assert!(allocs.iter().all(|s| matches!(s.kind, StmtKind::Allocate { .. })));
+        (result, allocs)
+    }
+
     /// A condition of `IF`, `ELSEIF`, `WHILE`, `DO` or `LOOP`: any number (true when not zero). A string is an
     /// error, with a message per statement in the old compiler (measured, `verification\v17_c_err_*_string`).
     fn condition(&mut self, cond: Option<ast::Expr>, span: qb64rust_base::Span, what: &str) -> R<Expr> {
@@ -95,16 +111,27 @@ impl Checker<'_> {
         let mut branches = Some(Vec::new());
         let first = b.if_branch().map(|f| (f.header(), f.body().collect::<Vec<_>>()));
         let others = b.else_if_branches().map(|e| (e.header(), e.body().collect::<Vec<_>>()));
-        for (header, body) in first.into_iter().chain(others) {
+        for (k, (header, body)) in first.into_iter().chain(others).enumerate() {
             let line = header.map_or(0, |h| self.line(first_token_span(h.node())));
-            let cond = self.header(header.map(|h| h.node()), skips, |c| {
+            let check = |c: &mut Self| {
                 let h = header.expect("checked by `header`");
                 let what = h.keyword().map_or("IF".to_string(), |k| c.word(k));
                 c.condition(h.condition(), h.node().span(), &what)
-            });
+            };
+            // The `IF`'s allocations stand before the statement, an `ELSEIF`'s run with its test.
+            let (cond, allocs) = if k == 0 {
+                (self.header(header.map(|h| h.node()), skips, check), Vec::new())
+            } else {
+                self.part_header(header.map(|h| h.node()), skips, check)
+            };
             let body = self.block_body(body.into_iter(), skips);
             match (cond, &mut branches) {
-                (Some(cond), Some(list)) => list.push(Branch { cond, body, line }),
+                (Some(cond), Some(list)) => list.push(Branch {
+                    cond,
+                    body,
+                    line,
+                    allocs,
+                }),
                 _ => branches = None,
             }
         }
@@ -131,7 +158,12 @@ impl Checker<'_> {
         let else_ = s.else_branch().map(|b| self.block_body(b.statements(), skips));
         if let Some(cond) = cond {
             let line = self.line(first_token_span(s.node()));
-            let branches = vec![Branch { cond, body, line }];
+            let branches = vec![Branch {
+                cond,
+                body,
+                line,
+                allocs: Vec::new(),
+            }];
             let kind = StmtKind::If {
                 branches,
                 else_,
@@ -161,7 +193,7 @@ impl Checker<'_> {
                 return;
             }
             if self
-                .header(Some(next.node()), skips, |c| c.next_var(next_name, var, name))
+                .header(Some(next.node()), skips, |c| c.next_var(next_name, &var, name))
                 .is_none()
             {
                 self.bad_next = Some(key);
@@ -184,11 +216,11 @@ impl Checker<'_> {
     /// `FOR var = start TO end [STEP step]`: the variable (and its name token), the type the loop counts in, and
     /// the three values converted to it.
     #[expect(clippy::type_complexity, reason = "one use; the parts of `StmtKind::For`")]
-    fn for_header(&mut self, h: ast::ForHeader) -> R<((VarId, Tok), Ty, Expr, Expr, Option<Expr>)> {
+    fn for_header(&mut self, h: ast::ForHeader) -> R<((Place, Tok), Ty, Expr, Expr, Option<Expr>)> {
         let span = h.node().span();
         let name = self.need(h.var().and_then(|v| v.name()), span)?;
-        let var = self.for_var(name)?;
-        let temp = for_temp(self.prog.var(var).ty);
+        let var = self.for_var(name, h.var_args())?;
+        let temp = for_temp(self.prog.place_ty(&var));
         let limit = |c: &mut Self, e: Option<ast::Expr>| -> R<Expr> {
             let node = c.need(e, span)?;
             let e = c.expr(node)?;
@@ -207,13 +239,41 @@ impl Checker<'_> {
         Ok(((var, name), temp, start, end, step))
     }
 
-    /// The `FOR` variable: a numeric scalar variable (measured, `v17_c_err_for_*`, `v17_c_for_array`).
-    fn for_var(&mut self, t: Tok) -> R<VarId> {
+    /// The `FOR` variable: a numeric scalar variable (measured, `v17_c_err_for_*`, `v17_c_for_array`), or a
+    /// numeric member of a `TYPE` variable reached through members (design D8 of `m4-memory-records`; measured,
+    /// `v17_c_for_type_member`, `v56_f1`, `f4`). Its indexes, when written (`FOR r.m(i) = …`), are those of an
+    /// element of a member array, which the old compiler finds again at every pass (`v56_f3`): not supported yet;
+    /// of anything else they are an error (`v17_c_for_array`).
+    fn for_var(&mut self, t: Tok, args: Option<ast::ArgList>) -> R<Place> {
         let shown = show_bytes(self.text(t.span));
         let (name, suffix) = self.split_name(t)?;
-        if name.contains('.') {
-            // A `TYPE` member, which the old compiler takes (`v17_c_for_type_member`).
-            return Err(self.unsupported(t.span, format!("`TYPE` member `{shown}` as a `FOR` variable")));
+        if let Some(args) = args {
+            if name.contains('.')
+                && let Some(Place::Member { base, member }) = self.dotted_any(t, &name, suffix)?
+                && self.prog.member(self.prog.place_ty(&base), member).is_array()
+            {
+                let msg = format!("an element of the member array `{shown}` as a `FOR` variable");
+                return Err(self.unsupported(args.node().span(), msg));
+            }
+            return Err(self.error(args.node().span(), "a `FOR` variable cannot be an array element"));
+        }
+        if name.contains('.')
+            && let Some(place) = self.dotted(t, &name, suffix)?
+        {
+            return match self.prog.place_ty(&place) {
+                crate::numeric_value_types!() => Ok(place),
+                Ty::Str | Ty::FixedStr(_) => {
+                    // Measured: "Unsupported variable used in FOR statement" (`verification\v56_x13`).
+                    Err(self.error(
+                        t.span,
+                        format!("the `FOR` variable `{shown}` must be a number, not a string"),
+                    ))
+                }
+                Ty::Bit { .. } | Ty::User(_) => {
+                    let msg = format!("the member `{shown}` of a `TYPE` as a `FOR` variable");
+                    Err(self.unsupported(t.span, msg))
+                }
+            };
         }
         if self.procs_by_name.contains_key(&name) {
             return Err(self.unsupported(
@@ -242,16 +302,21 @@ impl Checker<'_> {
                 format!("the `_BIT` variable `{shown}` cannot be a `FOR` variable"),
             ));
         }
-        Ok(var)
+        Ok(Place::Var(var))
     }
 
     /// A variable named by `NEXT` for the loop of `var` (named at `for_name`): the same variable, by name and type
-    /// (measured: `NEXT i!` closes `FOR i`, `NEXT i` does not close `FOR i%`). It is looked up, never created.
-    fn next_var(&mut self, next: ast::NameRef, var: VarId, for_name: Tok) -> R<()> {
+    /// (measured: `NEXT i!` closes `FOR i`, `NEXT i` does not close `FOR i%`). It is looked up, never created. A
+    /// member is named as the `FOR` names it (`NEXT r.v`, `verification\v56_f1`).
+    fn next_var(&mut self, next: ast::NameRef, var: &Place, for_name: Tok) -> R<()> {
         let t = self.need(next.name(), next.node().span())?;
         let (name, suffix) = self.split_name(t)?;
-        if self.lookup_var(name, suffix) == Some(var) {
-            self.stmt.names.push((SymbolKind::Var(var), t.span));
+        if let Place::Var(var) = *var {
+            if self.lookup_var(name, suffix) == Some(var) {
+                self.stmt.names.push((SymbolKind::Var(var), t.span));
+                return Ok(());
+            }
+        } else if (name, suffix) == self.split_name(for_name)? {
             return Ok(());
         }
         let msg = format!(
@@ -270,10 +335,11 @@ impl Checker<'_> {
         });
         let body = self.block_body(b.body(), skips);
         let end = b.end();
-        let bottom = self.header(end.map(|e| e.node()), skips, |c| {
+        let (bottom, allocs) = self.part_header(end.map(|e| e.node()), skips, |c| {
             let e = end.expect("checked");
             c.loop_test(e.cond_word(), e.condition(), e.node().span(), TestAt::Bottom)
         });
+        let bottom = bottom.map(|t| t.map(|t| LoopTest { allocs, ..t }));
         let end_at = end.map(|e| first_token_span(e.node()));
         let end_line = end_at.map_or(0, |s| self.line(s));
         if let (Some(top), Some(bottom)) = (top, bottom) {
@@ -303,7 +369,12 @@ impl Checker<'_> {
         let until = self.word(word) == "UNTIL";
         let what = if at == TestAt::Top { "DO" } else { "LOOP" };
         let cond = self.condition(cond, span, what)?;
-        Ok(Some(LoopTest { at, until, cond }))
+        Ok(Some(LoopTest {
+            at,
+            until,
+            cond,
+            allocs: Vec::new(),
+        }))
     }
 
     fn while_block(&mut self, b: ast::WhileBlock, skips: &Skips) {
@@ -351,17 +422,22 @@ impl Checker<'_> {
             }
             let line = h.map_or(0, |h| self.line(first_token_span(h.node())));
             let is_else = h.and_then(|h| h.else_word()).is_some();
-            let items = match (&head, is_else) {
-                (_, true) => None,
-                (Some((selector, _, _)), false) => self.header(h.map(|h| h.node()), skips, |c| {
+            let (items, allocs) = match (&head, is_else) {
+                (_, true) => (None, Vec::new()),
+                (Some((selector, _, _)), false) => self.part_header(h.map(|h| h.node()), skips, |c| {
                     c.case_items(h.expect("checked by `header`"), selector)
                 }),
-                (None, false) => None,
+                (None, false) => (None, Vec::new()),
             };
             let body = self.block_body(clause.body(), skips);
             match (is_else, items, &mut cases) {
                 (true, _, _) => else_ = Some(body),
-                (false, Some(items), Some(list)) => list.push(Case { items, body, line }),
+                (false, Some(items), Some(list)) => list.push(Case {
+                    items,
+                    body,
+                    line,
+                    allocs,
+                }),
                 (false, _, _) => cases = None,
             }
         }

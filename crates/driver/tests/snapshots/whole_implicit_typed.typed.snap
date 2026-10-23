@@ -1,0 +1,75 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY X:F32(0 TO 10)
+ARRAY XD:F64(0 TO 10)
+ARRAY XS:Str(0 TO 10)
+ARRAY Y:F32(0 TO 10)
+ARRAY A:F32(0 TO 100)
+ARRAY W:F32(0 TO 10)
+ARRAY V:F64(0 TO 10)
+ARRAY U (local):F32 dynamic, 1 dimension
+DATA 0: 3
+line 2: ConsoleOnly
+line 8: Assign X:F32
+  Convert Nearest : F32
+    Int 1 : I16
+line 9: Print newline
+  Num
+    ArrayBytes X : I32
+  Num
+    Element X() : F32
+  Num
+    Var X : F32
+line 10: Print newline
+  Num
+    ArrayBytes XD : I32
+  Str
+    Str "[" : Str
+  Str
+    Element XS() : Str
+  Str
+    Str "]" : Str
+line 11: Print
+  Num
+    ArrayBytes Y : I32
+line 12: Assign Y(…):F32
+  Index
+    Int 5 : I64
+  Value
+    Convert Nearest : F32
+      Int 1 : I16
+line 13: Print newline
+  Num
+    Element Y(…) : F32
+      Int 5 : I64
+  Num
+    UBound Y : I64
+line 15: Assign A(…):F32
+  Index
+    Convert Widen : I64
+      ArrayBytes W : I32
+  Value
+    Convert Nearest : F32
+      Int 1 : I16
+line 17: Read
+  target A(…) : F32
+    Convert Widen : I64
+      ArrayBytes V : I32
+line 18: Print newline
+  Num
+    Element A(…) : F32
+      Int 44 : I64
+  Num
+    Element A(…) : F32
+      Int 88 : I64
+line 19: Call S
+line 20: System
+SUB S
+  local U:F32
+line 23: Print newline
+  Num
+    ArrayBytes U (local) : I32
+  Num
+    Element U (local)() : F32

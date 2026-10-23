@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):CHR$ ( 65 )
+LINE 5:CHR$(65)
+exit=1

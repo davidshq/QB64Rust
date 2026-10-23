@@ -250,11 +250,15 @@ impl<'a> Emitter<'a> {
         self.checking = true;
     }
 
-    /// The labels that stand before statement `at`; a user label with the old compiler's event check where it is
+    /// The labels that stand before statement `at`; a line number with the old compiler's store of `last_line`
+    /// (for `ERL`, `qb64pe.bas` 3979, also below `$CHECKING:OFF`), and a user label with its event check where it is
     /// `checked`.
     fn labels(&self, at: usize, out: &mut String) {
         for (i, l) in self.body.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
             let mut lines = vec![format!("{}:;", self.local_label(LabelId(to_u32(i))))];
+            if let Some(n) = &l.line_number {
+                lines.push(format!("last_line={n};"));
+            }
             if l.name.is_some() && l.checked {
                 lines.push(format!(
                     "if(qbevent){{evnt({});r=0;}}",

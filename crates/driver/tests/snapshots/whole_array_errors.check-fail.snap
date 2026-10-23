@@ -52,11 +52,10 @@ whole_array_errors.bas:54:1: error: `a()` is a whole array, and `b%()`, named wi
 whole_array_errors.bas:54:1: note: QB64pe: Expected array index after a
 whole_array_errors.bas:55:8: error: `b()` is a whole array, and `a%()`, named with a type suffix, is not one here
 whole_array_errors.bas:55:8: note: QB64pe: Expected array index after b
-whole_array_errors.bas:56:1: error: not supported yet: whole-array assignment of arrays named with a type suffix
-whole_array_errors.bas:58:6: error: `a()` is a whole array, and the other side of `=` is not one
-whole_array_errors.bas:58:6: note: QB64pe: Expected array index after a
-whole_array_errors.bas:59:1: error: both sides of a whole-array assignment need an array name with empty parentheses
-whole_array_errors.bas:59:1: note: QB64pe: Whole-array assignment requires empty parentheses on both sides
-whole_array_errors.bas:60:7: error: `S` is a SUB; a whole-array assignment needs an array on each side
-whole_array_errors.bas:60:7: note: QB64pe: Name already in use (S)
-whole_array_errors.bas:69:5: error: `p` has 1 dimension, not 2
+whole_array_errors.bas:57:6: error: `a()` is a whole array, and the other side of `=` is not one
+whole_array_errors.bas:57:6: note: QB64pe: Expected array index after a
+whole_array_errors.bas:58:1: error: both sides of a whole-array assignment need an array name with empty parentheses
+whole_array_errors.bas:58:1: note: QB64pe: Whole-array assignment requires empty parentheses on both sides
+whole_array_errors.bas:59:7: error: `S` is a SUB; a whole-array assignment needs an array on each side
+whole_array_errors.bas:59:7: note: QB64pe: Name already in use (S)
+whole_array_errors.bas:68:5: error: `p` has 1 dimension, not 2

@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):D$ = _COMPILEDATE
+LINE 6:d$ = _COMPILEDATE
+exit=1

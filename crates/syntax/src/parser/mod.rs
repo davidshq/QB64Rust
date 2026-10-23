@@ -593,7 +593,9 @@ impl<'a> Parser<'a, '_> {
             || (matches!(self.nth(1), Some(LParen | Dot)) && self.parens_then_eq() && !self.comma_outside_parens())
         {
             assign::assign_stmt(self)
-        } else if keywords::is_keyword(name_part(self.nth_text(0))) {
+        } else if keywords::is_keyword(name_part(self.nth_text(0))) && name_part(self.nth_text(0)) == self.nth_text(0) {
+            // A keyword the parser has no rule for. Written with a type suffix (`PRINT$ "a"`) it is read as a call
+            // below, and `sema` judges the word.
             self.not_supported_statement()
         } else {
             // A SUB call without `CALL`, or a built-in statement (`CLS`); `sema` tells them apart.
@@ -715,6 +717,15 @@ impl<'a> Parser<'a, '_> {
             let word = word.to_ascii_uppercase();
             let span = self.current_span();
             self.error_at(span, format!("`{word}` is not an event QB64pe traps, and no statement"));
+            self.rest_into_error_node();
+            return;
+        }
+        let mut entries = qb64rust_builtins::find_any(name_part(self.nth_text(0))).peekable();
+        if entries.peek().is_some() && entries.all(|b| b.kind == qb64rust_builtins::Kind::Function) {
+            // A built-in function that is a keyword here, used as a statement (`LEN("a")`, `LEN "a"`): "Syntax
+            // error" (measured, `verification\v20_x06_function_as_statement`, `v55_x29`).
+            let span = self.current_span();
+            self.error_at(span, format!("`{word}` is a function, not a statement"));
             self.rest_into_error_node();
             return;
         }

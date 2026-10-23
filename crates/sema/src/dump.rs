@@ -114,10 +114,12 @@ fn var_name(p: &Program, id: VarId) -> String {
     format!("{} ({class})", v.name)
 }
 
-/// A place as text: `X`, `X(…)` for an element (its indexes are printed by [`indexes`]), `P.M` for a member.
+/// A place as text: `X`, `X(…)` for an element (its indexes are printed by [`indexes`]), `X()` for the first
+/// element of a whole array taken as a value, `P.M` for a member.
 fn place_text(p: &Program, place: &Place) -> String {
     match place {
         Place::Var(v) => var_name(p, *v),
+        Place::Element { array, index } if index.is_empty() => format!("{}()", array_text(p, array)),
         Place::Element { array, .. } => format!("{}(…)", array_text(p, array)),
         Place::Member { base, member } => {
             let m = &p.member(p.place_ty(base), *member).name;
@@ -359,6 +361,11 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                             heading(out, &format!("bytes of place {} : {t}", place_text(p, place)));
                             indexes(p, place, d + 2, out);
                         }
+                        StmtArg::Rest(place) => {
+                            let t = ty(p, p.place_ty(place));
+                            heading(out, &format!("bytes from {} : {t}", place_text(p, place)));
+                            indexes(p, place, d + 2, out);
+                        }
                         StmtArg::Word(w) => heading(out, &format!("word {w}")),
                         StmtArg::Absent => heading(out, "(absent)"),
                     }
@@ -391,10 +398,14 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 array,
                 bounds,
                 mode,
-                joined,
+                join,
             } => {
                 let t = ty(p, p.array_ty(array));
-                let joined = if *joined { ", with the next statement" } else { "" };
+                let joined = match join {
+                    crate::Join::None => String::new(),
+                    crate::Join::First => ", with the next statement".to_string(),
+                    crate::Join::Before(n) => format!(", before part {n} of the next statement"),
+                };
                 line(
                     out,
                     &format!("Allocate {}:{t} ({mode:?}{joined})", array_text(p, array)),
@@ -413,16 +424,26 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     expr(p, upper, d + 2, out);
                 }
             }
-            StmtKind::Clear { array } => {
+            StmtKind::Clear { array, join } => {
                 let t = ty(p, p.array_ty(array));
-                line(out, &format!("Clear {}:{t}", array_text(p, array)));
+                let joined = if *join == crate::Join::First {
+                    " (with the next statement)"
+                } else {
+                    ""
+                };
+                line(out, &format!("Clear {}:{t}{joined}", array_text(p, array)));
                 for e in array.indexes() {
                     expr(p, e, d + 1, out);
                 }
             }
-            StmtKind::Release { array } => {
+            StmtKind::Release { array, join } => {
                 let t = ty(p, p.array_ty(array));
-                line(out, &format!("Release {}:{t}", array_text(p, array)));
+                let joined = if *join == crate::Join::First {
+                    " (with the next statement)"
+                } else {
+                    ""
+                };
+                line(out, &format!("Release {}:{t}{joined}", array_text(p, array)));
                 for e in array.indexes() {
                     expr(p, e, d + 1, out);
                 }
@@ -595,6 +616,7 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                         out,
                         &format!("{} line {}", if i == 0 { "If" } else { "ElseIf" }, b.line),
                     );
+                    stmts(p, &b.allocs, d + 2, out);
                     expr(p, &b.cond, d + 2, out);
                     stmts(p, &b.body, d + 2, out);
                 }
@@ -613,13 +635,12 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 end_line,
                 ..
             } => {
-                let v = p.var(*var);
                 line(
                     out,
                     &format!(
                         "For {}:{} counting in {} (NEXT line {end_line})",
-                        var_name(p, *var),
-                        ty(p, v.ty),
+                        place_text(p, var),
+                        ty(p, p.place_ty(var)),
                         ty(p, *temp)
                     ),
                 );
@@ -641,6 +662,7 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 if let Some(t) = test {
                     let word = if t.until { "Until" } else { "While" };
                     heading(out, &format!("{word} at {:?}", t.at));
+                    stmts(p, &t.allocs, d + 2, out);
                     expr(p, &t.cond, d + 2, out);
                 }
                 heading(out, "Body");
@@ -720,6 +742,7 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 expr(p, selector, d + 2, out);
                 for c in cases {
                     heading(out, &format!("Case line {}", c.line));
+                    stmts(p, &c.allocs, d + 2, out);
                     for item in &c.items {
                         match item {
                             CaseItem::Is(op, v) => {
@@ -797,13 +820,10 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
                 expr(p, d, depth + 1, out);
             }
         }
-        ExprKind::VarPtr { array, index } => {
-            writeln!(out, "{pad}VarPtr {} : {types}", var_name(p, *array)).unwrap();
-            for i in index {
-                expr(p, i, depth + 1, out);
-            }
+        ExprKind::Address { word, of } => {
+            writeln!(out, "{pad}{word:?} {} : {types}", place_text(p, of)).unwrap();
+            indexes(p, of, depth + 1, out);
         }
-        ExprKind::VarSeg { array } => writeln!(out, "{pad}VarSeg {} : {types}", var_name(p, *array)).unwrap(),
         ExprKind::Block { array, index } => {
             writeln!(out, "{pad}Bytes {} : {types}", var_name(p, *array)).unwrap();
             for i in index {

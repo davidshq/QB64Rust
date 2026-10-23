@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):D$ = _DIR ( "fonts",5 )
+LINE 6:d$ = _DIR("fonts")
+exit=1

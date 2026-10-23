@@ -1,0 +1,150 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "tree(\"DIM a . b AS LONG, c . d . e(3), f . g$\\nDIM SHARED h . i\\nREDIM j(1) . k(2)\\na . b 3\\nCALL a . b(3)\\nSUB a . b (n) STATIC\\nEND SUB\\nFUNCTION f . g$\\nEND FUNCTION\\n\")"
+---
+SourceFile 0..155
+  DimStmt 0..39
+    Ident DIM
+    Whitespace  
+    DimItem 4..17
+      SpacedName 4..9
+        Ident a
+        Whitespace  
+        Dot .
+        Whitespace  
+        Ident b
+      Whitespace  
+      AsClause 10..17
+        Ident AS
+        Whitespace  
+        Ident LONG
+    Comma ,
+    Whitespace  
+    DimItem 19..31
+      SpacedName 19..28
+        Ident c
+        Whitespace  
+        Dot .
+        Whitespace  
+        Ident d
+        Whitespace  
+        Dot .
+        Whitespace  
+        Ident e
+      ArrayBounds 28..31
+        LParen (
+        Literal 29..30
+          Number 3
+        RParen )
+    Comma ,
+    Whitespace  
+    DimItem 33..39
+      SpacedName 33..39
+        Ident f
+        Whitespace  
+        Dot .
+        Whitespace  
+        Ident g$
+  Newline \x0A
+  DimStmt 40..56
+    Ident DIM
+    Whitespace  
+    Ident SHARED
+    Whitespace  
+    DimItem 51..56
+      SpacedName 51..56
+        Ident h
+        Whitespace  
+        Dot .
+        Whitespace  
+        Ident i
+  Newline \x0A
+  RedimStmt 57..74
+    Ident REDIM
+    Whitespace  
+    DimItem 63..74
+      Ident j
+      ArrayBounds 64..67
+        LParen (
+        Literal 65..66
+          Number 1
+        RParen )
+      Whitespace  
+      Dot .
+      Whitespace  
+      Ident k
+      ArrayBounds 71..74
+        LParen (
+        Literal 72..73
+          Number 2
+        RParen )
+  Newline \x0A
+  CallStmt 75..82
+    NameRef 75..80
+      SpacedName 75..80
+        Ident a
+        Whitespace  
+        Dot .
+        Whitespace  
+        Ident b
+    Whitespace  
+    ArgList 81..82
+      Literal 81..82
+        Number 3
+  Newline \x0A
+  CallStmt 83..96
+    Ident CALL
+    Whitespace  
+    NameRef 88..93
+      SpacedName 88..93
+        Ident a
+        Whitespace  
+        Dot .
+        Whitespace  
+        Ident b
+    ArgList 93..96
+      LParen (
+      Literal 94..95
+        Number 3
+      RParen )
+  Newline \x0A
+  ProcDef 97..126
+    ProcHeader 97..117
+      Ident SUB
+      Whitespace  
+      SpacedName 101..106
+        Ident a
+        Whitespace  
+        Dot .
+        Whitespace  
+        Ident b
+      Whitespace  
+      ParamList 107..110
+        LParen (
+        Param 108..109
+          Ident n
+        RParen )
+      Whitespace  
+      Ident STATIC
+    Newline \x0A
+    ProcEnd 118..125
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+  ProcDef 126..155
+    ProcHeader 126..141
+      Ident FUNCTION
+      Whitespace  
+      SpacedName 135..141
+        Ident f
+        Whitespace  
+        Dot .
+        Whitespace  
+        Ident g$
+    Newline \x0A
+    ProcEnd 142..154
+      Ident END
+      Whitespace  
+      Ident FUNCTION
+    Newline \x0A

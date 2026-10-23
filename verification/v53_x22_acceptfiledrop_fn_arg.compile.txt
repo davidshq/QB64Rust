@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _ACCEPTFILEDROP
+Caused by (or after):X = _ACCEPTFILEDROP ( 1 )
+LINE 6:x = _ACCEPTFILEDROP(1)
+exit=1

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):ABS
+LINE 5:abs: DATA 1
+exit=1

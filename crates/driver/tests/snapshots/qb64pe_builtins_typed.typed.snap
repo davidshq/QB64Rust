@@ -57,3 +57,147 @@ line 20: Assign F:F80
   Convert Widen : F80
     Call _CSCH : F64 (qb F80)
       Var F : F80
+line 23: Assign N:I32
+  Call _KEYHIT : I32
+line 24: Assign N:I32
+  Call _KEYDOWN : I32
+    Int 100304 : I32
+line 25: Assign I:I16
+  Convert Truncate : I16
+    Call _KEYDOWN : I32
+      Convert Truncate : I32
+        Convert RoundEven : I64
+          Var S : F32
+line 29: Assign N:I32
+  Call _RESIZE : I32
+line 30: Assign N:I32
+  Binary Add : I32 (qb I64)
+    Call _RESIZEWIDTH : I32
+    Call _RESIZEHEIGHT : I32
+line 31: Assign N:I32
+  Call _EXIT : I32
+line 32: Assign N:I32
+  Call _ACCEPTFILEDROP : I32
+line 33: Assign N:I32
+  Call _TOTALDROPPEDFILES : I32
+line 34: Assign A:Str
+  Call _DROPPEDFILE : Str
+    (absent)
+line 35: Assign A:Str
+  Call _DROPPEDFILE : Str
+    (absent)
+line 36: Assign A:Str
+  Call _DROPPEDFILE : Str
+    Var N : I32
+line 37: Assign A:Str
+  Call _DROPPEDFILE : Str
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 41: Assign N:I32
+  Call _MESSAGEBOX : I32
+    (absent)
+    (absent)
+    (absent)
+    (absent)
+    (absent)
+line 42: Assign N:I32
+  Call _MESSAGEBOX : I32
+    Str "t" : Str
+    Str "m" : Str
+    (absent)
+    (absent)
+    (absent)
+line 43: Assign N:I32
+  Call _MESSAGEBOX : I32
+    Var A : Str
+    Var FX : Str
+    Str "yesno" : Str
+    Str "warning" : Str
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64
+line 44: Assign N:I32
+  Call _MESSAGEBOX : I32
+    (absent)
+    Str "m" : Str
+    (absent)
+    (absent)
+    Int 0 : I32
+line 45: Assign A:Str
+  Call _OPENFILEDIALOG : Str
+    (absent)
+    (absent)
+    (absent)
+    (absent)
+    (absent)
+line 46: Assign A:Str
+  Call _OPENFILEDIALOG : Str
+    Str "t" : Str
+    Var A : Str
+    Str "*.bas" : Str
+    Str "BASIC" : Str
+    Convert Widen : I32
+      Var I : I16
+line 47: Assign A:Str
+  Call _SAVEFILEDIALOG : Str
+    Var FX : Str
+    (absent)
+    (absent)
+    (absent)
+line 48: Assign A:Str
+  Call _SELECTFOLDERDIALOG : Str
+    (absent)
+    (absent)
+line 49: Assign A:Str
+  Call _SELECTFOLDERDIALOG : Str
+    Str "t" : Str
+    Var A : Str
+line 53: Assign N:I32
+  Call _CONTROLCHR : I32
+line 54: Assign C:U32
+  Call _DEFAULTCOLOR : U32
+    (absent)
+line 55: Assign C:U32
+  Call _DEFAULTCOLOR : U32
+    Var N : I32
+line 56: Assign C:U32
+  Call _BACKGROUNDCOLOR : U32
+    (absent)
+line 57: Assign C:U32
+  Call _BACKGROUNDCOLOR : U32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var S : F32
+line 63: Assign A:Str
+  Call _DIR : Str
+    Str "fonts" : Str
+line 64: Assign A:Str
+  Call _DIR : Str
+    Var FX : Str
+line 65: Assign Q:I64
+  Call _SHELLHIDE : I64
+    Str "cmd /c exit 3" : Str
+line 66: Assign N:I32
+  Call _COMMANDCOUNT : I32
+line 67: Assign A:Str
+  Concat : Str
+    Call _COMPILEDATE : Str
+    Call _COMPILETIME : Str
+line 68: Assign Q:I64
+  Call _READBIT : I64
+    Convert Truncate : U64
+      Var N : I32
+    Int 0 : I32
+line 69: Assign Q:I64
+  Call _READBIT : I64
+    Var UQ : U64
+    Int 63 : I32
+line 70: Assign Q:I64
+  Call _READBIT : I64
+    Convert Truncate : U64
+      Convert RoundEven : I64
+        Var S : F32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var D : F64

@@ -2,8 +2,9 @@
 $CONSOLE:ONLY
 ' Fixed-length strings (m2-numeric-types tasks 7.1, 7.2): the old compiler's rejections as real errors
 ' (verification\v21_x31-x34: a length of 0, an expression, a float, a negative number; 2147483648 is negative in 32
-' bits, which fails the old compiler's C++ build; `$0`), a string FOR variable; then what is not supported yet: a
-' length named by a float constant, an array named with `$n`, `$n` beside a constant of its name (assigned, in
+' bits, which fails the old compiler's C++ build; `$0`), a string FOR variable; then what is not supported yet (a
+' length named by a float constant compiles since m4-memory-records, rounded half to even, verification\v56_x14):
+' an array named with `$n`, `$n` beside a constant of its name (assigned, in
 ' `DIM`, in `SHARED`) or beside a `STRING * n` parameter of its name, a member whose length is a constant's name, a
 ' suffix on a fixed-length member.
 ' The marked declarations stand last: they drop the real errors after them (the follow-on rule).

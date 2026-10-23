@@ -1,0 +1,5 @@
+
+Type mismatch
+Caused by (or after):SWAP A ( ) , B ( )
+LINE 5:SWAP a(), b()
+exit=1

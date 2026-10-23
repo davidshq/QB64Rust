@@ -2,8 +2,8 @@
 $CONSOLE:ONLY
 ' The forms of SOUND, PLAY and BEEP the old compiler rejects (m3-sound tasks 2.1 and 2.3; verification\v29_x*, the 36
 ' rejected programs, one line each but x80, which is the last PLAY: line with GOTO PLAY). Each is an error that is
-' not "not supported yet", but for two: GOTO BEEP and GOTO SOUND ("Invalid label!" there, x78, x79) keep the mark a
-' jump to a built-in statement's name has. PLAY ON, PLAY OFF and PLAY STOP are no event switches (x61-x63)
+' not "not supported yet"; GOTO BEEP and GOTO SOUND are "Invalid label!" (x78, x79; m4-names-implicit-arrays task
+' 2.4). PLAY ON, PLAY OFF and PLAY STOP are no event switches (x61-x63)
 DIM i AS INTEGER, l AS LONG, d AS DOUBLE, t AS STRING
 SOUND 440
 SOUND 440, 1, .5, 0, 4, .5, 1, 2

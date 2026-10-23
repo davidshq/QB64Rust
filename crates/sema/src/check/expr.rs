@@ -4,9 +4,9 @@ use super::builtins::supported_builtin;
 use super::ops::{Op, TypeError, Typed, Typing, fold_binary, fold_unary, left_operand, op_typing, wrap};
 use super::{Checker, Failed, R};
 use crate::literal::{self, LitError, NumLit};
-use crate::{BinOp, ConvKind, Expr, ExprKind, Place, ProcId, ProcKind, Ty, UnOp};
+use crate::{AddressWord, BinOp, ConvKind, Expr, ExprKind, Place, ProcId, ProcKind, Ty, UnOp};
 use qb64rust_base::show_bytes;
-use qb64rust_builtins::find_any;
+use qb64rust_builtins::Written;
 use qb64rust_syntax::SyntaxKind::{self, Minus, Number};
 use qb64rust_syntax::ast;
 use qb64rust_syntax::tree::Tok;
@@ -97,6 +97,9 @@ impl Checker<'_> {
             ast::Expr::Bin(bin) => self.binary(bin),
             ast::Expr::Call(call) => self.call(call, use_),
             ast::Expr::Field(field) => {
+                if let Some((p, suffix, t)) = self.spelled_function(field)? {
+                    return self.call_function(p, t, suffix, field.arg_list(), span);
+                }
                 let place = self.field_place(field)?;
                 self.load(place, span, use_)
             }
@@ -344,8 +347,10 @@ impl Checker<'_> {
         match (proc_name.as_str(), suffix) {
             ("LBOUND", None) => return self.bound_fn(node, false, span),
             ("UBOUND", None) => return self.bound_fn(node, true, span),
-            ("VARPTR", None) => return self.var_address(node, false, span),
-            ("VARSEG", None) => return self.var_address(node, true, span),
+            ("VARPTR", None) => return self.var_address(node, AddressWord::VarPtr, span),
+            ("VARSEG", None) => return self.var_address(node, AddressWord::VarSeg, span),
+            ("SADD", None) => return self.var_address(node, AddressWord::Sadd, span),
+            ("VARPTR", Some(Ty::Str)) => return self.var_address(node, AddressWord::VarPtrStr, span),
             ("_MEM", None) => return self.mem_fn(node, false, span, use_),
             ("_MEMELEMENT", None) => return self.mem_fn(node, true, span, use_),
             ("_OFFSET", None) => return self.offset_fn(node, span),
@@ -423,15 +428,12 @@ impl Checker<'_> {
 /// Whether `name` with `suffix` names a built-in function as it must be written: `LEN` bare, `LEFT$` with its `$`
 /// (a bare `left` is free, design D3); one that may have its `$` (`_CONNECTIONADDRESS`) either way.
 pub(super) fn is_builtin_function(name: &str, suffix: Option<Ty>) -> bool {
-    find_any(name.as_bytes()).any(|b| {
-        b.kind == qb64rust_builtins::Kind::Function
-            && match b.musthave {
-                None if b.mayhave == Some("$") => suffix.is_none() || suffix == Some(Ty::Str),
-                None => suffix.is_none(),
-                Some("$") => suffix == Some(Ty::Str),
-                Some(_) => false,
-            }
-    })
+    let written = match suffix {
+        None => Written::Bare,
+        Some(Ty::Str) => Written::Dollar,
+        Some(_) => Written::Other,
+    };
+    qb64rust_builtins::calls_function(name.as_bytes(), written)
 }
 
 pub(super) fn conv(e: Expr, to: Ty, how: ConvKind) -> Expr {

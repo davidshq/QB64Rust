@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _SELECTFOLDERDIALOG$([title$][, defaultPath$])
+Caused by (or after):F$ = _SELECTFOLDERDIALOG$ ( "a",1 , "b",1 , "c",1 )
+LINE 6:f$ = _SELECTFOLDERDIALOG$("a", "b", "c")
+exit=1

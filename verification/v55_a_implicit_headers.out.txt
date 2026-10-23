@@ -1,0 +1,19 @@
+1. IF a(1) = 0 THEN, a block, twice: then after [error 10 ] then after
+2. one-line IF b(1) = 0 THEN ... ELSE ..., twice: then after [error 10 ] then after
+3. ELSEIF c(1) = 0, twice: elseif after [error 10 ] elseif after
+4. ELSEIF not reached, then reached: if after elseif after 10 
+5. LOOP UNTIL d(1) = 0, the loop run twice: body 1  after body 1  [error 10 ] after
+6. LOOP WHILE dd(1) <> 0, the loop run twice: body 1  after body 1  [error 10 ] after
+7. a later CASE e(1) + 5, twice: five after [error 10 ] five after
+8. a CASE after one that matched: one [error 9 ]9. SELECT CASE g(1), twice: zero after [error 10 ] zero after
+10. FOR k = m(1) TO 1, twice: body 0  body 1  after [error 10 ] body 2  after
+11. WHILE n(1) < 1, twice: body after [error 10 ] body after
+12. DO WHILE o(1) < 1, twice: body after [error 10 ] body after
+13. CASE IS > p(1), CASE p2(1) TO 9, twice: range after [error 10 ] less after
+14. WHILE q(1) > 0, false, twice: after [error 10 ] body after
+15. DO UNTIL r(1) = 0, true, twice: after [error 10 ] body after
+16. IF s(1) <> 0, false, twice: after [error 10 ] then after
+17. FOR k = t(1) + 5 TO 1, no pass, twice: after 5  [error 10 ] body 5  after 6 
+18. SELECT CASE u(1) + 3, no CASE matches, twice: after [error 10 ] after
+19. ELSEIF v(1) <> 0, false, twice: else after [error 10 ] after
+exit=0

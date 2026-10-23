@@ -10,7 +10,9 @@ behaviour of `qb64pe.exe` 4.7.0 (`16f629784e`) in its **default** build; each in
 
 ### Requirement: Integer literal typing
 An integer literal without a type suffix SHALL have the smallest of INTEGER, LONG and `_INTEGER64` that holds its
-value. One exception, as in the old compiler: `-2147483648` SHALL be `_INTEGER64`, not LONG.
+value. Two exceptions, as in the old compiler: `-2147483648` SHALL be `_INTEGER64`, not LONG; and a literal
+without a minus above 9223372036854775807, up to 18446744073709551615, SHALL be `_UNSIGNED _INTEGER64`, as if
+written with `~&&` (`qb64pe.bas` adds that suffix).
 
 A decimal literal with the suffix of an integer type (`%`, `&`, `&&`, `%%`, `~%%`, `~%`, `~&`, `~&&`, and the
 `_BIT` suffixes `` ` ``, `` `n ``, `` ~` ``, `` ~`n ``) SHALL be believed to have the suffix's type, in range or not,
@@ -49,6 +51,18 @@ on a number with a decimal point or an exponent, SHALL be compile errors, as in 
 #### Scenario: LONG's minimum is `_INTEGER64`
 - **WHEN** a program prints `-2147483648`
 - **THEN** the value is typed `_INTEGER64` and prints as `-2147483648 `
+
+#### Scenario: Literal above the _INTEGER64 range
+- **WHEN** a program prints `18446744073709551615`, `18446744073709551614 + 1` and `9223372036854775808 / 2`,
+  and stores `18446744073709551615` into a `~&&`, an `&&` and a `DOUBLE` variable
+- **THEN** it prints ` 18446744073709551615 `, `-1 ` (the sum takes the type an operation of `~&&` and INTEGER
+  has, as `18446744073709551614~&& + 1` does) and ` 4.611686018427388D+18 `, and the variables hold
+  18446744073709551615, -1 and 1.844674407370955D+19, as recorded (`verification\v22_b_print`, `v25_signs`,
+  `v54_b_unsigned_literals`)
+
+#### Scenario: Literal beyond 64 bits
+- **WHEN** a program contains `PRINT 18446744073709551616`
+- **THEN** it is a compile error
 
 #### Scenario: Unsigned literal
 - **WHEN** a program prints `4294967295~&` and `255~%%`

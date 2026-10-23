@@ -2,20 +2,20 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-auto_const_errors.bas:12:7: error: names starting with `_` are reserved: `_TRUE`
-auto_const_errors.bas:13:7: error: names starting with `_` are reserved: `_ONE_MB`
-auto_const_errors.bas:14:5: error: names starting with `_` are reserved: `_TRUE`
-auto_const_errors.bas:15:1: error: cannot assign to the constant `_TRUE`
-auto_const_errors.bas:16:9: error: type mismatch
-auto_const_errors.bas:17:5: error: the constant `_TRUE` cannot be a `FOR` variable
-auto_const_errors.bas:17:5: note: QB64pe: Unsupported variable used in FOR statement
-auto_const_errors.bas:18:7: error: cannot assign to the constant `_TRUE`
-auto_const_errors.bas:19:6: error: cannot assign to the constant `_TRUE`
-auto_const_errors.bas:20:9: error: cannot assign to the constant `_TRUE`
-auto_const_errors.bas:21:7: error: names starting with `_` are reserved: `_MYOWN`
-auto_const_errors.bas:22:9: error: `LEN` needs a string or a variable, element or member
-auto_const_errors.bas:22:9: note: QB64pe: String expression or variable name required in LEN statement
-auto_const_errors.bas:23:1: error: cannot assign to the constant `_STR_EMPTY`
-auto_const_errors.bas:24:5: error: not supported yet: `_TRUE(...)` (an array used without `DIM`, or no FUNCTION of this name)
-auto_const_errors.bas:33:19: error: not supported yet: this name as the length of a `STRING * n`: `_E`
-auto_const_errors.bas:37:5: error: names starting with `_` are reserved: `_FALSE`
+auto_const_errors.bas:13:7: error: names starting with `_` are reserved: `_TRUE`
+auto_const_errors.bas:14:7: error: names starting with `_` are reserved: `_ONE_MB`
+auto_const_errors.bas:15:5: error: names starting with `_` are reserved: `_TRUE`
+auto_const_errors.bas:16:1: error: cannot assign to the constant `_TRUE`
+auto_const_errors.bas:17:9: error: type mismatch
+auto_const_errors.bas:18:5: error: the constant `_TRUE` cannot be a `FOR` variable
+auto_const_errors.bas:18:5: note: QB64pe: Unsupported variable used in FOR statement
+auto_const_errors.bas:19:7: error: cannot assign to the constant `_TRUE`
+auto_const_errors.bas:20:6: error: cannot assign to the constant `_TRUE`
+auto_const_errors.bas:21:9: error: cannot assign to the constant `_TRUE`
+auto_const_errors.bas:22:7: error: names starting with `_` are reserved: `_MYOWN`
+auto_const_errors.bas:23:9: error: `LEN` needs a string or a variable, element or member
+auto_const_errors.bas:23:9: note: QB64pe: String expression or variable name required in LEN statement
+auto_const_errors.bas:24:1: error: cannot assign to the constant `_STR_EMPTY`
+auto_const_errors.bas:25:5: error: `_TRUE(...)`: `_TRUE` calls no built-in function and may not be an array
+auto_const_errors.bas:25:5: note: QB64pe: Invalid array name
+auto_const_errors.bas:38:5: error: names starting with `_` are reserved: `_FALSE`

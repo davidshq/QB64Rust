@@ -133,6 +133,85 @@ Small programs behind `study\09`, `study\10` and later measurements:
   either way); `v52_builtin_name_suffixes.py` and its `.txt`, the sibling of
   `v15_builtin_names`: every keyword and built-in name with each other suffix, `variable`, `statement` or
   `rejected`; numbers 38 not used
+- `v53*`: the built-ins and `$RESIZE` that `qb64pe.bas` needs, measured as task 2.1 of `m4-qb64pe-builtins`:
+  `v53_a_window` (`$CONSOLE`) `_CONSOLE OFF` and `ON` with the console a pipe (output goes on while off), `_EXIT`
+  with no request (0), each form of the statement `_RESIZE`, the drop built-ins with nothing dropped
+  (`_DROPPEDFILE` with an index of 0 or below: empty, no error); `v53_b_colours` `_DEFAULTCOLOR` and
+  `_BACKGROUNDCOLOR` after `COLOR` in each kind of screen, of images of each depth, of pages (one that does not
+  exist: no error), of a handle of no image or a freed one (error 258, the value 0); `v53_c_system` `_DIR$` of each
+  name (the last character, whether it exists, whether it is the desktop's; never the path; the same on any
+  Windows machine: libqb asks for each folder with `CSIDL_FLAG_CREATE` and falls back to the user's profile, so
+  each exists, `filesystem.cpp` `FS_GetKnownDirectory`), `_SHELLHIDE` exit
+  codes (an empty command: error 5 and the value 1), `_COMMANDCOUNT`, the shapes of `_COMPILEDATE$` and
+  `_COMPILETIME$`, `_READBIT` of each type; `v53_d_keys` `_KEYHIT`, `_KEYDOWN` (0 and below: error 5) and
+  `_KEYCLEAR` (0, 4, -1: error 5) with no key; `x01`–`x64` one wrong form each of the new built-ins (all rejected
+  but `_MESSAGEBOX` and `_SELECTFOLDERDIALOG$` with no argument, `_MESSAGEBOX` statement and function with slots
+  left out, and `_SCREENMOVE` alone), `x70`–`x83` the forms of `$RESIZE` (any case, in `$CONSOLE:ONLY`, in a SUB,
+  two of them: accepted; alone, another word, a blank or a tab by the colon, anything after: "Syntax error"; an
+  equals sign for the colon: "Invalid expression"); numbers
+  65–69 not used. The programs with a window and keys are screen programs of the corpus (`k02`–`k04`,
+  `c15`–`c17`, `tests\corpus\screen\SOURCE.md`)
+- `v54*`: line numbers, unsigned literals and a whole array as a value, measured as task 1.1 of
+  `m4-line-numbers-whole-arrays`: `v54_a_line_numbers` `ERL` before any numbered line (0), after one, after an
+  unnumbered one (the last numbered line run, a numbered handler's too), for `10.5`, `20&`, `4294967296`, in a SUB
+  and after it, in an included file (`v54_inc\`), after `RESUME n`; `GOSUB` and `RETURN n`, `ON n GOSUB`, `ON ERROR
+  GOTO n` with numbers; `v54_b_unsigned_literals` an unsuffixed literal above 9223372036854775807 printed, in an
+  operation (`18446744073709551614 + 1` is -1), stored into `~&&`, `&&`, `DOUBLE`, in `HEX$` and `STR$` (in a
+  `CONST`, `x38`, it prints 9223372036854775807, D-027); `v54_c_whole_values` the element a whole array stands for (the first in
+  memory, `a(5)` of `a(5 TO 7)`), and `READ`, `INPUT #` and `SWAP` of whole arrays (one item, one element);
+  `v54_d_whole_erased` an erased array (0, no error); `x01`–`x38` one form each: the spellings of a line number
+  (`010` is `10`, a duplicate; `10.0`, `1.10`, `30#` their own; `010&` gives `ERL` 8, C++'s octal; 41 digits
+  "Invalid label!"), a number of another body and `RETURN n` in a SUB (errors), `IF c GOTO n`, `a()` in any
+  expression (accepted) and the forms rejected (an assignment's whole value, `SWAP` of two types, a member array,
+  a scalar parameter, `LEN` of strings), `-18446744073709551615` (1); `x39`–`x45`, with the review of the change:
+  `VARPTR(a())` (the first element's), `08&` and a number of 25 digits (the C++ build fails), an erased array of
+  `STRING` printed (empty) and read into (the text shows after later output), of `STRING * 20` printed (blanks),
+  `t.m&() = u.m&()` ("Expected array index")
+- `v55*`: names and implicit arrays, measured as task 1.1 of `m4-names-implicit-arrays`:
+  `v55_a_implicit_headers` below `$DYNAMIC`, an array first named in the line of each kind of block, run twice
+  under `RESUME NEXT` (the second allocation raises error 10: the `IF`, a `CASE` and a loop tested at the top run
+  their body though the test is false, `LOOP UNTIL` leaves, an `ELSEIF` skips its branch's first statement, a
+  `FOR` runs its body with the variable as it was; a `CASE` after one that matched allocates nothing);
+  `v55_b_implicit_whole`, `v55_b2_implicit_whole_base1` the whole array `x()` of a name that is no array (`LEN`
+  44 for `SINGLE`, 40 under `OPTION BASE 1`; in a SUB 0 and no error); `v55_c_static_bounds` `STATIC` bounds that
+  are expressions of constants (taken with their value); `v55_d1`–`d4` `STATIC a(5)` beside a shared array (a
+  dynamic one is allocated by it, error 10 at the main `DIM`; one of another type is another array; "Duplicate
+  definition" also when the SUB is never called); `x01`–`x75` one form each: built-in names as a place or a target
+  (all rejected, "Expected variable =", "Expected variable" or the statement's own error), statements with a
+  suffix, names that are no SUB as a statement, after `CALL` or `THEN`, functions as statements ("Syntax error",
+  "Expected CALL sub-name"), jumps to built-in names ("Invalid label!", "Invalid label") and lines named like a
+  built-in function ("Syntax error"), FUNCTIONs named like built-ins with a suffix ("Name already in use"; `chr&`
+  accepted), one leading underscore ("Invalid array name", "Invalid name"; `_CONNECTIONADDRESS$` and `__foo(1)`
+  accepted), declared names with blanks around a dot (accepted; beside a `TYPE` variable "DIM: Expected ,"),
+  `WIDTH (3) = 5` (an array), `x()` then `x(1, 2)` and `LEN(xs$())` (rejected), `STATIC` bounds of `LEN("abc")`
+  (3), a shared variable (its value when the start code runs, 0) and a FUNCTION (what it prints is lost); by the
+  change's review, `x85` the whole array `x()` in an index of a store and of a `READ` target (a value: `LEN` 44 and
+  88)
+- `v56*`: memory and record forms, measured as task 1.1 of `m4-memory-records`: `v56_a1`–`a7` the offsets
+  `VARPTR` gives in conventional memory (taken from 65520 down, in the order of declaration, no alignment;
+  `COMMON SHARED` first; every `_BIT` scalar takes 4 bytes there, named or not; a string's descriptor 4 bytes, a
+  fixed-length string its bytes then a descriptor; a static array of strings a descriptor per element, last first,
+  a dynamic one when `REDIM` runs; arrays of numbers, fixed-length strings and a `TYPE` elsewhere), a string's
+  descriptor through every kind of assignment (its `VARPTR` never changes), `PEEK` and `POKE` through them, a
+  whole array of strings, fixed-length strings or a `TYPE` named without an index (the implicit `SINGLE` scalar);
+  `a5` a `TYPE` with a `STRING` member in conventional memory (its strings are never made: the program crashes,
+  exit 139); `b1`–`b5` `VARPTR$` (a type byte, then the offset; of a fixed-length string the descriptor's offset)
+  and `SADD`; `c` `HEX$`, `OCT$`, `_BIN$` of `VARPTR`, `VARSEG` and `_SCREENEXISTS` (width 0: `HEX$` of -1 is
+  empty); `d` graphics `GET`/`PUT` of a plain variable, a string (its characters), a member (from it to the end of
+  the variable), an undeclared name, an element of an array of strings (its characters) and of fixed-length
+  strings or a `TYPE` (to the array's end), error 5 when too small; `e`, `e2` file `GET` of `und()`, `unl&()`,
+  `und$()` (element 0, as a string) and `_UCHARPOS` of `nd&()`, `PUT` of `uns$()` rejected; `f1`–`f4` `FOR` over
+  a member (`r.v`, `ro.n.v`; `r.m(i)` evaluates its index at every pass); `g1`, `g2` `LEN` of a whole member array
+  of strings (8 bytes an element) and `_MEM` of a `TYPE` with a `STRING` member; `t01`–`t09` `VARPTR`, `VARSEG` and
+  `VARPTR$` of `TYPE` variables, members and elements (`VARPTR(r)` of a `TYPE` variable is the old compiler's
+  internal error; `VARPTR$(r.v)` gives the variable's offset, not the member's); `x01`–`x30` one form each:
+  `VARPTR$` of an element of fixed-length strings or a `TYPE`, `SADD` of a number, a member, an element of
+  fixed-length strings or a `TYPE` (rejected), `VARPTR` of a `_BIT` scalar (accepted) and of a `_BIT` array,
+  `VARPTR$` and `SADD` of `sa()` (element 0), `FOR` over a whole member array or a fixed-length string member,
+  `STRING * n` with a float `CONST` (rounded half to even), a string `CONST`, an unknown name or a variable, the
+  name `fs$5` as a SUB, a `CONST` or a member (rejected) and as a parameter (accepted), `LEN` of a `TYPE` with a
+  `STRING` member ("UDT must have fixed size"), `VARPTR` of members of such a `TYPE`, `STRING * n` of a member
+  with a `CONST`
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

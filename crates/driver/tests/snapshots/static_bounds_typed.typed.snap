@@ -1,0 +1,30 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY A (static):I32 dynamic, 1 dimension, allocated at the start (0 TO 4)
+ARRAY B (static):I32 dynamic, 2 dimensions, allocated at the start (0 TO 5, 0 TO 3)
+ARRAY C (static):I32 dynamic, 1 dimension, allocated at the start (-1 TO 4)
+ARRAY D (static):I32 dynamic, 1 dimension, allocated at the start (0 TO 5)
+ARRAY E (static):I32 dynamic, 1 dimension, allocated at the start (0 TO 3)
+line 2: ConsoleOnly
+line 7: Call S
+line 8: System
+SUB S
+  static A:I32
+  static B:I32
+  static C:I32
+  static D:I32
+  static E:I32
+line 17: Print newline
+  Num
+    UBound A (static) : I64
+  Num
+    UBound B (static) : I64
+      Int 2 : I32
+  Num
+    LBound C (static) : I64
+  Num
+    UBound D (static) : I64
+  Num
+    UBound E (static) : I64

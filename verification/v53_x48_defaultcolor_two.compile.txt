@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _DEFAULTCOLOR[(imageHandle&)]
+Caused by (or after):X = _DEFAULTCOLOR ( 1 , 2 )
+LINE 6:x = _DEFAULTCOLOR(1, 2)
+exit=1

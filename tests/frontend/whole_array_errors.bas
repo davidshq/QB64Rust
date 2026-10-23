@@ -2,7 +2,7 @@
 $CONSOLE:ONLY
 ' Whole-array assignment, the forms the old compiler rejects (m3-whole-array-assign task 2.3, design D2), each a
 ' real error (measured, verification\v36_x01-x13, x15, x16, x18, x19, x21-x23, x26, x29, x34, x35, x41, x42,
-' x45, x53-x55); a type suffix on both names is "not supported yet" (x38).
+' x45, x53-x55); a type suffix on both names compiles since m4-line-numbers-whole-arrays (x38).
 TYPE t1
     x AS LONG
 END TYPE
@@ -50,10 +50,9 @@ r() = a()
 f4() = f8()
 ' "Cannot assign arrays with different dimensions" (x08).
 a() = m2()
-' A suffix on one name only (x41, x42), on both (x38).
+' A suffix on one name only (x41, x42).
 a() = b%()
 a%() = b()
-b%() = a%()
 ' The value in parentheses, as without them (x53, x54); a SUB as the source (x55: "Name already in use").
 n = (a())
 a() = (b(1))

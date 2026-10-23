@@ -207,8 +207,7 @@ impl Checker<'_> {
             | ExprKind::Float(_)
             | ExprKind::Str(_)
             | ExprKind::Bound { .. }
-            | ExprKind::VarPtr { .. }
-            | ExprKind::VarSeg { .. }
+            | ExprKind::Address { .. }
             | ExprKind::Block { .. }
             | ExprKind::Convert { .. }
             | ExprKind::Binary { .. }
@@ -262,10 +261,8 @@ impl Checker<'_> {
         if element && matches!(of, Reference::Array(ArrayRef::Member { .. })) {
             return Err(self.error(at, "`_MEMELEMENT` takes an element, not a whole member array"));
         }
-        if crate::holds_strings(&self.prog.types, root) {
-            let msg = format!("`{word}` of a value of a `TYPE` with a `STRING` member");
-            return Err(self.unsupported(at, msg));
-        }
+        // A value of a `TYPE` with a `STRING` member is its bytes, 8 for each `STRING` (its pointer), as for any
+        // other `TYPE` (design D10 of `m4-memory-records`; measured, `verification\v48_x11`, `v56_g2`).
         // A whole dynamic member array and an element of one, also of a user type's values: the block of its
         // descriptor (measured, `verification\v35_x23`, `x24`, `x66`).
         if let Reference::Place(Place::Element {

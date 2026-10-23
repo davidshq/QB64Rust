@@ -32,7 +32,12 @@ demand: `_ACOS`, `_ASIN`, `_SINH`, `_COSH`, `_TANH`, `_CEIL`, `_COT`, `_CSC`, `_
 `_MEMELEMENT`, `_MEMNEW`, `_MEMIMAGE`, `_MEMSOUND`, `_MEMEXISTS`, `_MEMGET`, `_OFFSET`, and the conversions
 between a number and its bytes: `MKI$`, `MKL$`, `MKS$`, `MKD$`, `_MK$`, `CVI`, `CVL`, `CVS`, `CVD`, `_CV`, and the checksum, compression
 and base64 functions (`language/data-processing`): `_ADLER32`, `_CRC32`, `_DEFLATE$`, `_INFLATE$`,
-`_BASE64ENCODE$`, `_BASE64DECODE$`, and `_MD5$`, and `_CAST`, `_OS$`, `_CLIPBOARD$` and `_FILES$` (`language/file-io`). Any
+`_BASE64ENCODE$`, `_BASE64DECODE$`, and `_MD5$`, and `_CAST`, `_OS$`, `_CLIPBOARD$` and `_FILES$` (`language/file-io`),
+and the keyboard functions `_KEYHIT` and `_KEYDOWN` (`language/keyboard`), the window and console functions
+`_RESIZE`, `_RESIZEWIDTH`, `_RESIZEHEIGHT`, `_EXIT`, `_ACCEPTFILEDROP`, `_TOTALDROPPEDFILES`, `_DROPPEDFILE$`,
+`_MESSAGEBOX`, `_OPENFILEDIALOG$`, `_SAVEFILEDIALOG$`, `_SELECTFOLDERDIALOG$` (`language/console-and-window`),
+`_CONTROLCHR`, `_DEFAULTCOLOR` and `_BACKGROUNDCOLOR` (`language/screen-output`), and `_DIR$`, `_SHELLHIDE`,
+`_COMMANDCOUNT`, `_COMPILEDATE$`, `_COMPILETIME$` and `_READBIT`. Any
 other built-in function SHALL be reported "not supported yet". A supported function that needs an argument, named without one, SHALL be a compile error, as in the
 old compiler. An argument of any other numeric type SHALL be
 converted to its slot as an assignment would, except where the old compiler special-cases the argument's type
@@ -43,8 +48,8 @@ unsigned integer type `t` SHALL parse as libqb's unsigned `VAL` does (not narrow
 fixed-length string argument SHALL be a string.
 
 #### Scenario: Unsupported built-in
-- **WHEN** a program uses `k = _KEYHIT`
-- **THEN** the compiler reports `_KEYHIT` "not supported yet" and no other error for that expression
+- **WHEN** a program uses `k = _SETBIT(a, 1)`
+- **THEN** the compiler reports `_SETBIT` "not supported yet" and no other error for that expression
 
 #### Scenario: Supported built-in compiles
 - **WHEN** `PRINT LEFT$("hello", 2); LEN("abc")` is compiled and run
@@ -440,3 +445,57 @@ function's domain SHALL raise error 5 and return 0, as the old compiler's progra
 #### Scenario: The other domains
 - **WHEN** a program calls `_ARCCSC(-0.5)`, `_SECH(88.1)`, `_CSCH(88.1)` or `_CSCH(0)`
 - **THEN** each raises error 5 and returns 0
+
+### Requirement: The system's folders, commands and build
+`_DIR$(name$)`, `_SHELLHIDE(cmd$)`, `_COMMANDCOUNT`, `_COMPILEDATE$`, `_COMPILETIME$` and `_READBIT(a, b)` SHALL
+compile to the old compiler's runtime calls, with its result types (`_SHELLHIDE` an `_INTEGER64`, `_READBIT` an
+`_INTEGER64`), and SHALL give at run time what the old compiler's program gives. Their wrong forms SHALL be the old
+compiler's errors.
+
+#### Scenario: A folder of the system
+- **WHEN** `d$ = _DIR$("fonts"): PRINT RIGHT$(d$, 1) = "\"; _DIREXISTS(d$)` runs on Windows
+- **THEN** it prints `-1 -1 `, as with the old compiler
+
+#### Scenario: A command run hidden
+- **WHEN** `PRINT _SHELLHIDE("cmd /c exit 3")` runs on Windows
+- **THEN** it prints ` 3 `
+
+#### Scenario: No arguments on the command line
+- **WHEN** a program started with no arguments prints `_COMMANDCOUNT`
+- **THEN** it prints ` 0 `
+
+#### Scenario: The date and time of the build
+- **WHEN** `PRINT LEN(_COMPILEDATE$); LEN(_COMPILETIME$); MID$(_COMPILETIME$, 3, 1)` runs
+- **THEN** it prints ` 11  8 :`, the C++ compiler's `__DATE__` and `__TIME__`, as with the old compiler
+
+#### Scenario: A bit read
+- **WHEN** `PRINT _READBIT(5, 0); _READBIT(5, 1); _READBIT(5, 2)` runs
+- **THEN** it prints what the old compiler's program prints
+
+### Requirement: Names that call no built-in
+A name with one leading underscore and parentheses that calls no built-in function with that spelling, a
+built-in function's name used as a variable, and a built-in function used as a statement SHALL be compile errors
+that are not "not supported yet", as the old compiler's are. A form `verification\v55` does not record SHALL
+stay "not supported yet".
+
+#### Scenario: A name with one leading underscore
+- **WHEN** `_foo(1) = 2`, `n = _TRUE(1)`, `PRINT _CRC32$("x")`, `x = _CAST&(LONG, 1)`, `PRINT _OPENCLIENT&("x")`
+  or `s = _IIF$(-1, "yes", "no")` is compiled
+- **THEN** each is a compile error that is not "not supported yet" (`verification\v24_x112`, `v26_x120`,
+  `v33_x29`, `v49_x16`, `v44_x46`, `tests\snippets\qb64fresh\inline_conditional_functions__iif_string`)
+
+#### Scenario: A built-in function's name as a variable
+- **WHEN** `rnd(1) = 2`, `TAB(5) = 1`, `READ ABS(a)`, `INPUT ABS(a)`, `LINE INPUT CHR$(1)` or `SWAP ABS(a), b` is
+  compiled
+- **THEN** each is a compile error that is not "not supported yet" (the old compiler: "Expected variable =" for a
+  store, "Expected variable" for the others; `verification\v24_x119`, `v28_x53`, `v22_x79`, `v55_x13`–`x15`)
+
+#### Scenario: A built-in function as a statement
+- **WHEN** `LEN("a")`, `LEN "a"` or `ABS(1)` stands alone on a line
+- **THEN** each is a compile error that is not "not supported yet" (the old compiler: "Syntax error";
+  `verification\v20_x06_function_as_statement`, `v55_x29`, `x31`)
+
+#### Scenario: Every spelling of the table calls its function
+- **WHEN** each function of the built-in table is called by each spelling the table gives it (its name with each
+  suffix it may or must have), the functions of the files QB64pe includes by itself among them
+- **THEN** none is "Invalid array name"

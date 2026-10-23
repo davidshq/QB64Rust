@@ -103,6 +103,9 @@ pub enum SyntaxKind {
     FormArg,
     DimStmt,
     DimItem,
+    /// A declared name written with blanks around its dots (`DIM a . b`, `SUB a . b`): `Ident (Dot Ident)+`, which
+    /// the old compiler reads as the name `a.b` (design D7 of `m4-names-implicit-arrays`).
+    SpacedName,
     /// `AS <type words>`; in a `TypeField` also `* <size>` (`AS STRING * 8`).
     AsClause,
     AssignStmt,

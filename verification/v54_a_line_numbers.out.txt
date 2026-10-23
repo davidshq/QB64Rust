@@ -1,0 +1,34 @@
+1. before any numbered line
+  handler 900: ERR 5 ERL 0 
+2. line 10
+  handler 900: ERR 5 ERL 10 
+3. an unnumbered line after 10
+  handler 900: ERR 5 ERL 900 
+4. line 10.5
+  handler 900: ERR 5 ERL 10.5 
+5. line 20&
+  handler 900: ERR 5 ERL 20 
+6. line 4294967296
+  handler 900: ERR 5 ERL 4294967296 
+7. line 30, then a SUB with line 30 and 40
+  in s before its line 30: ERL  handler 900: ERR 5 ERL 30 
+  line 30 of s
+  handler 900: ERR 5 ERL 30 
+  line 40 of s
+8. back from the SUB
+  handler 900: ERR 5 ERL 40 
+  in the included file, before its line 50
+  handler 900: ERR 5 ERL 900 
+  line 50 of the included file
+  handler 900: ERR 5 ERL 50 
+9. after the included file
+  handler 900: ERR 5 ERL 900 
+  in GOSUB 100
+11. at 200 after RETURN 200
+  at 310
+12. back from ON 2 GOSUB
+  handler 920: ERR 6 ERL 310 
+14. at 400 after RESUME 400
+  handler 900: ERR 5 ERL 400 
+15. after RESUME NEXT: 400 
+exit=0

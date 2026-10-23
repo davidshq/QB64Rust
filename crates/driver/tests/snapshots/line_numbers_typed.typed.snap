@@ -1,0 +1,45 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+DATA 0: 1
+line 2: ConsoleOnly
+line 7: OnError 900
+line 8: OnError _NEWHANDLER 900
+line 9: OnTimer Gosub 10
+  Seconds
+    Convert Nearest : F64
+      Int 1 : I16
+line 10: Goto 10p5
+line 11: Label 10
+line 11: Print newline
+  Str
+    Str "ten" : Str
+line 12: Label 10p5
+line 12: Gosub 20
+line 13: OnGoto 30d, 40s
+  Int 1 : I32
+line 14: Label 30d
+line 14: If (END IF line 14)
+  If line 14
+    Var C : F32
+    line 14: Goto 40s
+  Else
+    line 14: Goto 10p5
+line 15: Label 40s
+line 15: If (END IF line 15)
+  If line 15
+    Var C : F32
+    line 15: Goto 50
+line 16: Label 50
+line 16: Restore 60 (item 0)
+line 17: Label 60
+line 18: Call S
+line 19: System
+line 20: Label 20
+line 20: Return 50
+line 21: Label 900
+line 21: Resume To 50
+SUB S
+line 23: Label 10
+line 23: Goto 10

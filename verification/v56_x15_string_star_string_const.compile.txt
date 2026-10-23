@@ -1,0 +1,5 @@
+
+Number/Constant expected after *
+Caused by (or after):DIM S AS STRING * N$
+LINE 4:DIM s AS STRING * n$
+exit=1

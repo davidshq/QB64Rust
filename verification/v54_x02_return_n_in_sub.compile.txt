@@ -1,0 +1,5 @@
+
+RETURN linelabel/linenumber invalid within a SUB/FUNCTION
+Caused by (or after):RETURN 20
+LINE 12:RETURN 20
+exit=1

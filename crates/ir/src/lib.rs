@@ -107,16 +107,17 @@ pub use qb64rust_sema::DataItem;
 pub use qb64rust_sema::VersionInfo;
 /// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
 pub use qb64rust_sema::builtins;
-/// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
-/// `m2-defxxx-common-arrays`), as is what an allocation does with an array that is allocated already.
-pub use qb64rust_sema::{AllocMode, Shape};
 /// Values, places and arguments are `sema`'s typed tree too (design D10 of `m2-arrays-and-types`: the lowering did
 /// no work on them, only a variant-for-variant copy). The emitter ignores an [`Expr`]'s `span` and `qb`. Variable and
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
 /// ([`Program::vars`]).
 pub use qb64rust_sema::{
-    Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference, StmtArg, VarId,
+    AddressWord, Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference, StmtArg,
+    VarId,
 };
+/// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
+/// `m2-defxxx-common-arrays`), as is what an allocation does with an array that is allocated already.
+pub use qb64rust_sema::{AllocMode, Shape};
 /// The event of an [`Op::OnEvent`] and the forms of [`Op::Key`] are `sema`'s (design D3 of `m3-events`).
 pub use qb64rust_sema::{Event, KeyForm};
 /// The `DECLARE LIBRARY` blocks and the C function behind a library procedure are `sema`'s (design D1 of
@@ -124,7 +125,7 @@ pub use qb64rust_sema::{Event, KeyForm};
 pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName};
 /// Whether a procedure is a SUB or a FUNCTION of a type, and the optional parts of the runtime a program needs, are
 /// `sema`'s as well: the lowering only copied them variant for variant (as it did the values, above).
-pub use qb64rust_sema::{LogLevel, ProcKind, RuntimePart};
+pub use qb64rust_sema::{LogLevel, ProcKind, Resize, RuntimePart};
 /// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
 pub use qb64rust_sema::{PrintTo, UsingValue};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
@@ -150,6 +151,9 @@ pub struct Label {
     pub include_line: Option<u32>,
     /// The file of a BASIC label (`None` for one the lowering made).
     pub file: Option<FileId>,
+    /// For a line number, the text `last_line` is set to after the label, for `ERL` (design D2 of
+    /// `m4-line-numbers-whole-arrays`).
+    pub line_number: Option<String>,
     pub at: usize,
     /// A BASIC label above which no `$CHECKING:OFF` is in force has the event check ([`Stmt::checked`]).
     pub checked: bool,
@@ -263,9 +267,9 @@ impl Facts for Expr {
             ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
             ExprKind::Load(place) => Facts::may_raise(place),
             ExprKind::Bound { .. } => true,
-            // The index check of the element; a segment is the array's and reads no element.
-            ExprKind::VarPtr { .. } => true,
-            ExprKind::VarSeg { .. } | ExprKind::ArrayBytes(_) => false,
+            // The index checks on the way to the place; a segment is the array's and reads no element.
+            ExprKind::Address { of, .. } => !of.indexes().is_empty(),
+            ExprKind::ArrayBytes(_) => false,
             // An element given is checked against the bounds.
             ExprKind::Block { index, .. } => !index.is_empty(),
             ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.may_raise(),
@@ -290,10 +294,9 @@ impl Facts for Expr {
                 ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
                 ExprKind::Load(place) => place.uses_strings(p),
                 ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(|d| d.uses_strings(p)),
-                ExprKind::VarPtr { index, .. } | ExprKind::Block { index, .. } => {
-                    index.iter().any(|i| i.uses_strings(p))
-                }
-                ExprKind::VarSeg { .. } | ExprKind::ArrayBytes(_) => false,
+                ExprKind::Block { index, .. } => index.iter().any(|i| i.uses_strings(p)),
+                ExprKind::Address { of, .. } => of.indexes().iter().any(|i| i.uses_strings(p)),
+                ExprKind::ArrayBytes(_) => false,
                 ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.uses_strings(p),
                 ExprKind::Binary { lhs, rhs, .. }
                 | ExprKind::Concat(lhs, rhs)
@@ -360,7 +363,7 @@ impl Facts for StmtArg {
             StmtArg::Place(place) => Facts::may_raise(place),
             // The index check of the element the bytes start at.
             StmtArg::Block { index, .. } => !index.is_empty(),
-            StmtArg::Bytes(place) => Facts::may_raise(place),
+            StmtArg::Bytes(place) | StmtArg::Rest(place) => Facts::may_raise(place),
             StmtArg::Word(_) | StmtArg::Absent => false,
         }
     }
@@ -369,7 +372,9 @@ impl Facts for StmtArg {
     fn uses_strings(&self, p: &Program) -> bool {
         match self {
             StmtArg::Value(v) => v.uses_strings(p),
-            StmtArg::Place(place) | StmtArg::Bytes(place) => place.uses_strings(p) || p.place_ty(place).is_string(),
+            StmtArg::Place(place) | StmtArg::Bytes(place) | StmtArg::Rest(place) => {
+                place.uses_strings(p) || p.place_ty(place).is_string()
+            }
             StmtArg::Block { index, .. } => index.iter().any(|i| i.uses_strings(p)),
             StmtArg::Word(_) | StmtArg::Absent => false,
         }
@@ -408,6 +413,17 @@ pub enum PrintItem {
     Num(Expr),
     /// Move to the next print zone.
     Zone,
+}
+
+/// An allocation that runs inside a statement of items, just before one of its parts ([`Op::Print`],
+/// [`Op::PrintUsing`], [`Op::Write`], [`Op::Input`], [`Op::Read`]): what [`Op::Allocate`] does, at that point (the
+/// array used without `DIM` below `$DYNAMIC` that the part names first; design D1 of `m4-names-implicit-arrays`).
+/// Its error is pending as any error of the part is: the part checks it where it checks its own.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Allocation {
+    pub array: ArrayRef,
+    pub bounds: Vec<(Expr, Expr)>,
+    pub mode: AllocMode,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -526,11 +542,13 @@ pub enum Op {
     },
     /// Items in order, to the program's destination of text, to the file with a number (an `I32`) or to the
     /// printer ([`PrintTo`]); a raising item skips the rest, including the line end. In a file a
-    /// [`PrintItem::Zone`] is 14 columns wide, on the console 10 (the runtime's).
+    /// [`PrintItem::Zone`] is 14 columns wide, on the console 10 (the runtime's). Each of `allocs` runs just
+    /// before the item of its index (an [`Allocation`]).
     Print {
         to: PrintTo,
         items: Vec<PrintItem>,
         newline: bool,
+        allocs: Vec<(usize, Allocation)>,
     },
     /// Formatted output (design D1 of `m3-console-files`; measured, `study\00` §5, the `v30` paragraph), in this
     /// order:
@@ -548,13 +566,15 @@ pub enum Op {
     ///    stays pending.
     ///
     /// **The statement is one unit**: no other rule of the IR for a pending error applies inside it. At least
-    /// one value. Always may raise.
+    /// one value. Always may raise. Each of `allocs` runs just before its part: the parts are numbered `before`'s
+    /// items first, then the format, then the values.
     PrintUsing {
         to: PrintTo,
         before: Vec<PrintItem>,
         format: Expr,
         values: Vec<UsingValue>,
         newline: bool,
+        allocs: Vec<(usize, Allocation)>,
     },
     /// Name parts of the record buffer of the random file with this number (an `I32`) by strings, in order from
     /// the buffer's first byte (design D3 of `m3-console-files`; measured, `study\00` §5): each part a place of
@@ -603,25 +623,34 @@ pub enum Op {
     Lset { right: bool, target: Place, value: Expr },
     /// The items ([`PrintItem::Str`] in double quotes, [`PrintItem::Num`] without blanks) separated by commas, to
     /// the console or to a file, then a line end if `newline`; without it the last item is followed by a comma
-    /// too. A raising item skips the rest.
+    /// too. A raising item skips the rest. Each of `allocs` runs just before the item of its index, after the
+    /// separator of the item before it.
     Write {
         to: Option<Expr>,
         items: Vec<PrintItem>,
         newline: bool,
+        allocs: Vec<(usize, Allocation)>,
     },
     /// Read one field per target, or (`line`) one whole line into the single string target, from a file or the
     /// console. A numeric target takes the field's value in its own type; a value outside the type's range raises
     /// error 6. The targets are stored in order, each by the rule of its place; see the crate documentation for the
-    /// pending-error checks. At least one target; none is of a user type.
+    /// pending-error checks. At least one target; none is of a user type. Each of `allocs` runs just before the
+    /// target of its index: from a file before its read, from the console in the phase that evaluates the targets'
+    /// indexes, after the prompt and before the line is read.
     Input {
         from: Source,
         line: bool,
         targets: Vec<Place>,
+        allocs: Vec<(usize, Allocation)>,
     },
     /// Read the next item of the program's data ([`Program::data`]) into each target in turn, each stored by the
     /// rule of its place. A numeric target takes the item's value in its own type. No point of it checks for a
-    /// pending error: see the crate documentation. At least one target; none is of a user type.
-    Read(Vec<Place>),
+    /// pending error: see the crate documentation. At least one target; none is of a user type. Each of `allocs`
+    /// runs just before the target of its index.
+    Read {
+        targets: Vec<Place>,
+        allocs: Vec<(usize, Allocation)>,
+    },
     /// Make the next [`Op::Read`] start at item `at` of [`Program::data`] (at its end: nothing is left to read).
     /// `label` is the BASIC label, in upper case, that gave the position; `None` for the start of the data (`at`
     /// is 0). The emitter may name the position after it.
@@ -747,16 +776,25 @@ impl Op {
             | Op::Lset { .. }
             | Op::Write { to: Some(_), .. }
             | Op::Input { .. }
-            | Op::Read(_) => true,
+            | Op::Read { .. } => true,
             Op::Print {
                 to: PrintTo::Screen,
                 items,
+                allocs,
                 ..
             }
-            | Op::Write { to: None, items, .. } => items.iter().any(|i| match i {
-                PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
-                PrintItem::Zone => false,
-            }),
+            | Op::Write {
+                to: None,
+                items,
+                allocs,
+                ..
+            } => {
+                !allocs.is_empty()
+                    || items.iter().any(|i| match i {
+                        PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
+                        PrintItem::Zone => false,
+                    })
+            }
         }
     }
 }
@@ -815,6 +853,11 @@ pub struct Program {
     /// The program's data: the items of every `DATA` statement, in the order [`Op::Read`] takes them. How they are
     /// stored in the executable is the emitter's.
     pub data: Vec<DataItem>,
+    /// Allocations of arrays of [`Storage::Global`] in `Dim` mode with these bounds (each pair a dimension's),
+    /// run when the program starts after every array's own start (`sema`'s [`qb64rust_sema::Program`]'s
+    /// `start_allocations`: `STATIC a(n)` beside a shared array of the name). The array is allocated already
+    /// when it is static, and its program then ends at the start with error 10, before any handler is set.
+    pub start_allocations: Vec<(VarId, Vec<(i64, i64)>)>,
     /// The `DECLARE LIBRARY` blocks in file order; [`External::library`] indexes it. A `DYNAMIC` library is loaded,
     /// and each of its functions found, when the program starts: a library that cannot be loaded raises error
     /// 259, a function it does not hold error 260, before the first statement (measured, `verification\v37_j`).
@@ -837,8 +880,12 @@ pub struct Settings {
     pub window_hidden: bool,
     /// Assertions are checked (`$ASSERTS`): an `_ASSERT` whose condition is 0 raises an error.
     pub asserts: bool,
+    /// Whether the user may resize the window and how the screen is scaled to it (`$RESIZE`).
+    pub resize: Resize,
     /// The optional parts of the runtime the program's built-ins need, in order.
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
+    /// The program calls `_COMPILEDATE$` or `_COMPILETIME$`: its executable is never reused from a build cache.
+    pub compile_stamp: bool,
     /// The executable carries an icon (`$EXEICON`). Its file is the driver's to find, from the checked program.
     pub exe_icon: bool,
     /// The executable carries a version resource and a manifest (`$VERSIONINFO`).

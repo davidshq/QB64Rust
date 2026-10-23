@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):X = _FINISHDROP
+LINE 6:x = _FINISHDROP
+exit=1

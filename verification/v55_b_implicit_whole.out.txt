@@ -1,0 +1,13 @@
+1. a scalar x, LEN(x()) and x(): 44  0  1 
+2. a name never used, LEN(nothing()) and nothing(): 44  0 
+3. xs$() (LEN of it is an error, v55_x70):[]
+4. xd#() and xl&(), LEN: 88  44 
+5. y() then y(5) = 1: 44  1  10  0 
+6. w(3) = 2 then LEN(w()) and w(): 44  0 
+7. v(0) = 9 then v(): 9 
+8. in a SUB, LEN(u()): 0 
+9. in a SUB, u(): 0 
+10. the SUB again:
+8. in a SUB, LEN(u()): 0 
+9. in a SUB, u(): 0 
+exit=0

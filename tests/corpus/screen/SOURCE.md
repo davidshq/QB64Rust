@@ -146,3 +146,16 @@ reaches `INKEY$`, so the tool's wait for an empty `INKEY$` buffer does not hold 
 | Program | Covers |
 |---|---|
 | `k01_on_key` | `ON KEY` of F1, the up arrow and a user key (`KEY 15` with flags 0 and the scancode of A), each switched on; F1 switched off reaching `INKEY$` (two bytes, 59); the soft-key line of `KEY ON` with a soft key set by `KEY 2, "two"`, and `KEY LIST` |
+
+Written by `m4-qb64pe-builtins` (task 2.1, 2026-10-22) and recorded the same way. The keyboard programs announce
+each wait and read `_KEYHIT` or `_KEYDOWN`; they empty the `INKEY$` buffer as they go, so no key of the keys file
+waits on it. `k03` uses the keys file's `hold` and `lift` (`tools\screen\README.md`).
+
+| Program | Covers |
+|---|---|
+| `k02_keyhit` | `_KEYHIT` with nothing typed (0), then the codes of a letter, a capital, the up arrow, F1, Enter and the left Shift key going down and up |
+| `k03_keydown` | `_KEYDOWN` of the left Shift key held and lifted (`-1`, then `0`), the `_KEYHIT` codes it left, the space bar held (the Shift key not down) and what `INKEY$` got |
+| `k04_keyclear` | `_KEYCLEAR 1`, `2`, `CALL _KEYCLEAR(3)` and `_KEYCLEAR` with no argument, each after a key, and what each buffer still holds; `_KEYCLEAR 0` and `4` (error 5) |
+| `c15_resize` | `$RESIZE:ON` with no resize by the user: `_RESIZE`, `_RESIZEWIDTH`, `_RESIZEHEIGHT` at the start, after half a second and after `_RESIZE OFF` (all 0; the same in both runs of the recording, so the functions run: design D2) |
+| `c16_controlchr` | `_CONTROLCHR` on (the start): `CHR$(12)` clears, TAB, the cursor moves 28 to 31, `CHR$(11)` and `CHR$(13)` act; off: the characters 0 to 31 as glyphs on one row, a bell and a line feed between two letters; the function both ways |
+| `c17_default_colours` | `_DEFAULTCOLOR` and `_BACKGROUNDCOLOR` after `COLOR` in `SCREEN 0`, `SCREEN 12` and a 32-bit screen, and of page 0 there |

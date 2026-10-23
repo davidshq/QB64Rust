@@ -365,8 +365,7 @@ impl Emitter<'_> {
             | ExprKind::Str(_)
             | ExprKind::Load(_)
             | ExprKind::Bound { .. }
-            | ExprKind::VarPtr { .. }
-            | ExprKind::VarSeg { .. }
+            | ExprKind::Address { .. }
             | ExprKind::Block { .. }
             | ExprKind::Convert { .. }
             | ExprKind::Binary { .. }

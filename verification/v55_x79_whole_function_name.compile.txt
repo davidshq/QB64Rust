@@ -1,0 +1,5 @@
+
+Expected (...)
+Caused by (or after):PRINT LEN ( SIN ( ) )
+LINE 5:PRINT LEN(sin())
+exit=1

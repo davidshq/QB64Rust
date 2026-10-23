@@ -470,6 +470,9 @@ pub struct Label {
     pub file: FileId,
     /// The procedure whose body holds the label; `None` for the main module.
     pub proc: Option<ProcId>,
+    /// For a line number, the text the old compiler sets `last_line` to after it, for `ERL` (design D2 of
+    /// `m4-line-numbers-whole-arrays`); `None` for a named label.
+    pub line_number: Option<String>,
     /// How many of the program's `DATA` items ([`Program::data`]) stand before the label in file order: where a
     /// `RESTORE` to it makes the next `READ` start.
     pub data_at: usize,
@@ -584,6 +587,20 @@ impl Shape {
     }
 }
 
+/// Where an [`StmtKind::Allocate`] runs (design D1 of `m4-names-implicit-arrays`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Join {
+    /// A statement of its own.
+    None,
+    /// The first part of the statement that follows it.
+    First,
+    /// Part of the statement that follows it, just before its part `n`, as the old compiler writes it: the `n`-th
+    /// item of a `PRINT`, `PRINT #` or `WRITE` (`PrintItem::Zone`s counted), of a `PRINT USING` its items before
+    /// `USING`, then the format, then the values, the `n`-th target of `READ`, `INPUT` or `LINE INPUT` (measured,
+    /// `verification\v24_x264`, `x265`).
+    Before(usize),
+}
+
 /// What an [`StmtKind::Allocate`] does with an array that is allocated already (design D4 of
 /// `m2-defxxx-common-arrays`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -617,9 +634,10 @@ pub struct Var {
     pub ty: Ty,
     pub storage: Storage,
     pub shape: Shape,
-    /// An array a `VARPTR` or `VARSEG` of the program names: it lives in libqb's conventional memory, where
-    /// `DEF SEG` with `PEEK`, `POKE`, `BLOAD` and `BSAVE` reach it (design D4 of `m3-get-put-bload`). Only an
-    /// array of the main module with numeric elements is one.
+    /// A variable or array of the main module that a `VARPTR`, `VARSEG`, `SADD` or `VARPTR$` of the program names:
+    /// it lives in libqb's conventional memory, where `DEF SEG` with `PEEK`, `POKE`, `BLOAD` and `BSAVE` reach it
+    /// (design D4 of `m3-get-put-bload`, D1 of `m4-memory-records`). Never one of a procedure, of `_BIT` elements,
+    /// or of a user type that holds a `STRING`.
     pub conventional: bool,
 }
 
@@ -693,7 +711,8 @@ pub enum Place {
     /// A scalar variable.
     Var(VarId),
     /// An element of an array: one index per dimension, each already converted to `_INTEGER64`. An index outside
-    /// its dimension's bounds raises error 9.
+    /// its dimension's bounds raises error 9. With no index, the whole array `a()` taken as a value or a variable:
+    /// its first element in memory, unchecked (design D4 of `m4-line-numbers-whole-arrays`).
     Element { array: ArrayRef, index: Vec<Expr> },
     /// A member of a place whose type is a user type; never a member array, which is named only as an
     /// [`ArrayRef::Member`].
@@ -926,6 +945,31 @@ pub struct Expr {
     pub kind: ExprKind,
 }
 
+/// The function of an [`ExprKind::Address`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AddressWord {
+    /// `VARPTR`: the place's offset.
+    VarPtr,
+    /// `VARSEG`: the segment the place lies in.
+    VarSeg,
+    /// `SADD`: the offset of a variable-length string's characters.
+    Sadd,
+    /// `VARPTR$`: a type byte and the offset, as a string of three bytes.
+    VarPtrStr,
+}
+
+impl AddressWord {
+    /// The function's name as the program writes it.
+    pub fn name(self) -> &'static str {
+        match self {
+            AddressWord::VarPtr => "VARPTR",
+            AddressWord::VarSeg => "VARSEG",
+            AddressWord::Sadd => "SADD",
+            AddressWord::VarPtrStr => "VARPTR$",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExprKind {
     Int(i64),
@@ -945,19 +989,18 @@ pub enum ExprKind {
         array: ArrayRef,
         dim: Option<Box<Expr>>,
     },
-    /// `VARPTR(a(i))`: the offset of an element in its array, in bytes: its flat position, bounds check included,
-    /// times the size of an element. Typed `_INTEGER64` (measured, `verification\v28_d_varptr_index`: an index
-    /// outside the bounds raises error 9 and gives 0). The array is one in conventional memory
-    /// ([`Var::conventional`]).
-    VarPtr {
-        array: VarId,
-        index: Vec<Expr>,
-    },
-    /// `VARSEG(a(i))`: the segment of the array's data in conventional memory, typed `_INTEGER64`. The index
-    /// is not part of it: the old compiler does not evaluate it (measured, `v28_d_varptr_index`: a FUNCTION in it
-    /// is not called, an index outside the bounds raises nothing).
-    VarSeg {
-        array: VarId,
+    /// `VARPTR`, `VARSEG`, `SADD` or `VARPTR$` of a place of the main module whose variable lives in libqb's
+    /// conventional memory ([`Var::conventional`]; design D2 and D3 of `m4-memory-records`): typed `_INTEGER64`,
+    /// `VARPTR$` a string.
+    ///
+    /// `VARPTR` of an element is its flat position, bounds check included, times the size of an element (measured,
+    /// `verification\v28_d_varptr_index`: an index outside the bounds raises error 9 and gives 0), plus a member's
+    /// offset; of a variable, or a member of one, its offset in the block. `VARSEG` names no index: of an array,
+    /// other than one of strings, `of` is the whole array (`a()`; the old compiler does not evaluate the index:
+    /// a FUNCTION in it is not called, an index outside the bounds raises nothing), of anything else the variable.
+    Address {
+        word: AddressWord,
+        of: Place,
     },
     /// The bytes of a numeric array from an element (the first, for a whole array `a()`) to its end, as a
     /// function's [`builtins::Slot::Block`]: the array of `_UCHARPOS` (`qb64pe.bas` 20903; design D1 of
@@ -1153,6 +1196,13 @@ pub enum StmtArg {
     /// first element. The index is used twice, for the address and for the number of bytes left, so it is one
     /// that reads only: no call of a SUB or FUNCTION (measured: the old compiler evaluates it twice).
     Block { array: VarId, index: Vec<Expr> },
+    /// The array's place of a graphics `GET` or `PUT` that is no array of numbers (design D5 of
+    /// `m4-memory-records`; the old compiler's C++ of `verification\v56_d`): the bytes from the place to the end of
+    /// its variable, or of its array when it lies in one (an element of an array of fixed-length strings or of a
+    /// user type, also with no index, or a member of one); of a variable-length string, or an element of an array
+    /// of them, its characters. Never of a `_BIT` or of a user type that holds a `STRING`. Its indexes read only,
+    /// as [`StmtArg::Block`]'s.
+    Rest(Place),
     /// The bytes of one place, which `GET` on a file reads into and `PUT` writes from (design D2 of
     /// `m3-console-files`; measured, `verification\v30_d_binary`, `v30_e_random`): a number's bytes, the
     /// characters of a fixed-length string, the bytes of a value of a user type without a `STRING` in it; of a
@@ -1258,10 +1308,10 @@ pub enum StmtKind {
     /// converted to `_INTEGER64`, evaluated in order. The array may be a static one: the statement then raises
     /// error 10 and its bounds are not evaluated. A `DIM` that declares a static array is no statement.
     ///
-    /// `joined`: it is no statement of its own but the first part of the statement that follows it (the
+    /// `join`: whether it is a statement of its own or part of the statement that follows it ([`Join`]; the
     /// allocation of an array used without `DIM` below `$DYNAMIC`, which the statement that names it first
-    /// does; measured, `verification\v24_x101`): an error it raises is an error of that statement, so the stores
-    /// of the statement are skipped by their rule and `RESUME NEXT` goes on after the statement.
+    /// does; measured, `verification\v24_x101`, `x264`, `x265`): an error it raises is then an error of that
+    /// statement, so the stores of the statement are skipped by their rule and `RESUME NEXT` goes on after it.
     ///
     /// The array may be a dynamic member array (design D5 of `m3-typefields`): the place it is part of is found
     /// once, before the bounds, and not guarded (an index outside its bounds on the way raises error 9 and the
@@ -1270,7 +1320,7 @@ pub enum StmtKind {
         array: ArrayRef,
         bounds: Vec<(Expr, Expr)>,
         mode: AllocMode,
-        joined: bool,
+        join: Join,
     },
     /// `ERASE` of a static array: every element becomes zero, an empty string or NUL bytes; the bounds stay.
     ///
@@ -1279,11 +1329,15 @@ pub enum StmtKind {
     /// part of is found once, and the clear is not guarded: an index outside its bounds on the way raises error
     /// 9 and the member array of that array's first element is cleared, as it is after any other error the
     /// index raises.
-    Clear { array: ArrayRef },
+    ///
+    /// `join`: [`Join::First`] for a target of an `ERASE` or `REDIM` of several targets but the last, when one of
+    /// them may raise: the targets are then parts of one statement, each cleared in turn, and an error is handled
+    /// after the last (design D9 of `m4-memory-records`; measured, `verification\v24_x312`).
+    Clear { array: ArrayRef, join: Join },
     /// `ERASE` of a dynamic array: its elements are released and it is not allocated afterwards. Of one that is
     /// not allocated it does nothing. The array may be a dynamic member array, whose place is found as for
-    /// [`StmtKind::Allocate`].
-    Release { array: ArrayRef },
+    /// [`StmtKind::Allocate`]. `join` as for [`StmtKind::Clear`].
+    Release { array: ArrayRef, join: Join },
     /// `ERASE` of an array parameter: a [`StmtKind::Clear`] when the array passed is a static one, a
     /// [`StmtKind::Release`] when it is dynamic, which is known when the statement runs.
     EraseParam { array: VarId },
@@ -1406,7 +1460,9 @@ pub enum StmtKind {
     /// `FOR var = start TO end [STEP step]` … `NEXT`. `start`, `end` and `step` are converted to `temp`, the type
     /// the loop counts in (wider than `var`'s, `study\02` §6.5, measured); each pass stores the count into `var`.
     For {
-        var: VarId,
+        /// A variable, or a member of a `TYPE` variable through members only (no index: design D8 of
+        /// `m4-memory-records`).
+        var: Place,
         temp: Ty,
         start: Expr,
         end: Expr,
@@ -1485,6 +1541,9 @@ pub struct Case {
     pub body: Vec<Stmt>,
     /// 1-based source line of the `CASE`.
     pub line: u32,
+    /// The allocations its items make ([`StmtKind::Allocate`]), which run first each time the `CASE` is tested
+    /// (design D2 of `m4-names-implicit-arrays`).
+    pub allocs: Vec<Stmt>,
 }
 
 /// An item of a `CASE`, compared with the selector. Every value is already converted to the type the comparison is
@@ -1505,6 +1564,9 @@ pub struct Branch {
     pub body: Vec<Stmt>,
     /// 1-based source line of the `IF` or `ELSEIF`.
     pub line: u32,
+    /// The allocations an `ELSEIF`'s condition makes ([`StmtKind::Allocate`]), which run first each time it is
+    /// tested (design D2 of `m4-names-implicit-arrays`); those of the `IF` stand before the statement.
+    pub allocs: Vec<Stmt>,
 }
 
 /// The condition of a `DO` loop.
@@ -1515,6 +1577,9 @@ pub struct LoopTest {
     /// `UNTIL` (leave when true) rather than `WHILE` (leave when false).
     pub until: bool,
     pub cond: Expr,
+    /// The allocations a test at `LOOP` makes ([`StmtKind::Allocate`]), which run first each time it is tested
+    /// (design D2 of `m4-names-implicit-arrays`); those of a test at `DO` stand before the statement.
+    pub allocs: Vec<Stmt>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1559,6 +1624,11 @@ pub struct Program {
     /// stand, an included file's at its include, also those in a block that never runs (measured,
     /// `verification\v22_c_order`).
     pub data: Vec<DataItem>,
+    /// The allocations another declaration adds to the start code of a main-module array, in file order: `STATIC
+    /// a(bounds)` in a procedure beside a shared array of that name and type allocates the shared array when the
+    /// program starts, after its own allocation (`Dim` mode, each pair a dimension's bounds; measured,
+    /// `verification\v24_x272`, `v55_d1`–`d4`; design D4 of `m4-names-implicit-arrays`).
+    pub start_allocations: Vec<(VarId, Vec<(i64, i64)>)>,
     /// Every `CONST`, in source order.
     pub consts: Vec<Const>,
     /// The user types, in source order.
@@ -1584,8 +1654,13 @@ pub struct Settings {
     pub window_hidden: bool,
     /// `$ASSERTS` or `$ASSERTS:CONSOLE` stands in the program's compiled code: `_ASSERT` checks its condition.
     pub asserts: bool,
+    /// The last `$RESIZE` line in the file.
+    pub resize: Resize,
     /// The optional parts of the runtime the program's built-ins need (the table's `dependency` column).
     pub runtime_parts: std::collections::BTreeSet<RuntimePart>,
+    /// The program calls `_COMPILEDATE$` or `_COMPILETIME$`, whose value is the time of the C++ build: no build of
+    /// it is reused from a cache of executables.
+    pub compile_stamp: bool,
     /// The icon `$EXEICON` gives the executable.
     pub exe_icon: Option<ExeIcon>,
     /// The version resource `$VERSIONINFO` gives the executable, when a line of it stands in the program.
@@ -1676,6 +1751,32 @@ impl ExeIcon {
 /// name still "not supported yet" (design D3 of `m4-devices-continue-paths`).
 pub fn drive_without_slash(name: &[u8]) -> bool {
     matches!(name, [drive, b':', rest @ ..] if drive.is_ascii_alphabetic() && !matches!(rest.first(), Some(b'/' | b'\\')))
+}
+
+/// Whether the user may resize the window and how the screen is scaled to it, from the last `$RESIZE` line (design D3
+/// of `m4-qb64pe-builtins`; `qb64pe.bas` 3626–3645 sets `ResizeOn` and `ResizeScale`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Resize {
+    /// No `$RESIZE` line, or `$RESIZE:OFF`.
+    #[default]
+    Off,
+    /// `$RESIZE:ON`: resizable, not scaled.
+    On,
+    /// `$RESIZE:STRETCH`: resizable, the screen stretched to the window.
+    Stretch,
+    /// `$RESIZE:SMOOTH`: resizable, stretched and smoothed.
+    Smooth,
+}
+
+impl Resize {
+    /// The old compiler's `ResizeScale`: 0 not scaled, 1 stretched, 2 smoothed.
+    pub fn scale(self) -> u8 {
+        match self {
+            Resize::Off | Resize::On => 0,
+            Resize::Stretch => 1,
+            Resize::Smooth => 2,
+        }
+    }
 }
 
 /// An optional part of the runtime that a built-in needs linked in.

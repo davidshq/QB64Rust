@@ -1,0 +1,5 @@
+
+Expected CALL sub-name [(...)]
+Caused by (or after):CALL NOSUB
+LINE 5:CALL nosub
+exit=1

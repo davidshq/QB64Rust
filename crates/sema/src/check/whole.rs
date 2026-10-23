@@ -3,7 +3,7 @@
 //! checks (`EmitAssignWhole`, `qb64pe.bas` 16675) and its guard of an assignment with a whole array on one side
 //! only (`CheckAsgRHS`, 16809). What runs is the IR's `Op::CopyArray`.
 
-use super::{Checker, DimFact, Failed, R};
+use super::{Checker, DimFact, Failed, Placing, R};
 use crate::{ArrayRef, ExprKind, Place, ProcKind, StmtKind, Storage, SymbolKind};
 use qb64rust_base::{Span, show_bytes};
 use qb64rust_syntax::ast;
@@ -35,11 +35,14 @@ pub(super) fn without_parens(mut e: ast::Expr) -> ast::Expr {
 }
 
 impl Checker<'_> {
-    /// `to() = from()` with both sides written whole. In order:
+    /// `to() = from()` with both sides written whole; `false` when it is no copy, for `assign` to go on with as an
+    /// ordinary assignment. In order:
     ///
-    /// 1. A type suffix on the last name of both sides is "not supported yet" (user, 2026-10-15: the old compiler
-    ///    takes the path of an ordinary assignment and copies element 0 into element 0, `v36_x24`, `x38`, `x40`,
-    ///    `x43`, `x44`); on one side only it is the error at the other (`x41`, `x42`).
+    /// 1. A type suffix on the last name of one side only is the error at the other (`x41`, `x42`). On both it is
+    ///    no copy (`b%() = a%()`): the old compiler takes the path of an ordinary assignment and stores the first
+    ///    element of `from` into the first of `to`, converting (measured, `v36_x24`, `x38`, `x40`, `x43`, `x44`;
+    ///    built as QB64pe has it, user, 2026-10-22, design D4 of `m4-line-numbers-whole-arrays`). A member array
+    ///    there gets the error of an element with no index (`v54_x45`).
     /// 2. Each side is an array (the target's resolved first): a member array, or an array visible here. A name
     ///    that names none (undeclared, a `CONST`) is the old compiler's "Whole-array assignment requires empty
     ///    parentheses on both sides" (`x15`, `x16`, `x29`); a SUB or FUNCTION is an error of its own (`x18`, `x55`).
@@ -47,14 +50,12 @@ impl Checker<'_> {
     ///    different element sizes" (`x05`–`x12`, `x19`, `x21`–`x23`, `x34`, `x35`).
     /// 4. One number of dimensions; where one is not known yet (an array parameter, `COMMON a()`), a fact about it
     ///    ([`Checker::solve_dims`]; `x08`, `x17`, `x39`, `x45`).
-    pub(super) fn copy_array(&mut self, node: Node, target: ast::Expr, source: ast::Expr) -> R<()> {
+    pub(super) fn copy_array(&mut self, node: Node, target: ast::Expr, source: ast::Expr) -> R<bool> {
         let span = node.span();
         let (tt, st) = (self.last_name(target, span)?, self.last_name(source, span)?);
         let suffixed = |c: &mut Self, t: Tok| c.split_name(t).map(|(_, suffix)| suffix.is_some());
         match (suffixed(self, tt)?, suffixed(self, st)?) {
-            (true, true) => {
-                return Err(self.unsupported(span, "whole-array assignment of arrays named with a type suffix"));
-            }
+            (true, true) => return Ok(false),
             (false, true) => return Err(self.suffixed_side(target, tt, st)),
             (true, false) => return Err(self.suffixed_side(source, st, tt)),
             (false, false) => {}
@@ -74,7 +75,7 @@ impl Checker<'_> {
         }
         self.copy_dims((&to, tt), (&from, st), span)?;
         self.push(node, StmtKind::CopyArray { from, to });
-        Ok(())
+        Ok(true)
     }
 
     /// The last name of a side written whole: a name's token, or the last member's.
@@ -208,7 +209,7 @@ impl Checker<'_> {
                 let (place, _) = self.field_member(f)?;
                 Ok(self.is_member_array(&place))
             }
-            ast::Expr::Call(c) if target => Ok(matches!(self.call_place(c)?, Place::Element { .. })),
+            ast::Expr::Call(c) if target => Ok(matches!(self.call_place(c, Placing::Value)?, Place::Element { .. })),
             ast::Expr::Field(f) if target => Ok(matches!(self.field_place(f)?, Place::Element { .. })),
             ast::Expr::Call(_) | ast::Expr::Field(_) => {
                 Ok(matches!(self.expr(e)?.kind, ExprKind::Load(Place::Element { .. })))

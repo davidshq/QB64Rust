@@ -1,0 +1,88 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY A:I32(5 TO 7)
+ARRAY B:I32(0 TO 2)
+ARRAY S:Str(0 TO 2)
+ARRAY T:Str(0 TO 2)
+ARRAY A:I16(0 TO 2)
+ARRAY B:I16(0 TO 2)
+ARRAY C:I32(0 TO 2)
+DATA 0: 1
+DATA 1: x
+line 2: ConsoleOnly
+line 9: Print newline
+  Num
+    Element A() : I32
+  Num
+    Convert Widen : I64
+      Neg : I32 (qb I64)
+        Element A() : I32
+  Num
+    Element A() : I32
+  Num
+    Call ABS : I32
+      Element A() : I32
+  Num
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Element A() : I32
+        Int 1 : I32
+line 10: If (END IF line 10)
+  If line 10
+    Element A() : I32
+    line 10: Assign X:I32
+      Binary Mul : I32 (qb I64)
+        Element A() : I32
+        Int 2 : I32
+line 11: PrintUsing newline
+  Format
+    Str "##" : Str
+  Num as I64
+    Element A() : I32
+  Num as I64
+    Choice : I32
+      Int 0 : I16
+      Element A() : I32
+      Element B() : I32
+line 12: Write newline
+  Str
+    Element S() : Str
+line 13: Read
+  target A() : I32
+  target S() : Str
+line 14: Input from a file
+  File
+    Int 1 : I32
+  target B() : I32
+line 15: LineInput from a file
+  File
+    Int 1 : I32
+  target S() : Str
+line 16: Builtin SWAP
+  place A() : I32
+  place B() : I32
+line 17: Builtin SWAP
+  place S() : Str
+  place T() : Str
+line 18: Field
+  File
+    Int 1 : I32
+  place S() : Str
+  Width
+    Int 4 : I32
+line 19: Lset S() : Str
+  Str "x" : Str
+line 19: Rset T() : Str
+  Str "y" : Str
+line 20: Assign B():I16
+  Index
+  Value
+    Element A() : I16
+line 21: Assign C():I32
+  Index
+  Value
+    Convert Widen : I32
+      Element B() : I16
+line 23: System

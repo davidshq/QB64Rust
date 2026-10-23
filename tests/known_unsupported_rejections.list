@@ -5,8 +5,4 @@ corpus/runtime_comparison/218_fre.bas
 snippets/qb64fresh/arrays__redim_dynamic_array.bas
 snippets/qb64fresh/arrays__redim_preserve.bas
 snippets/qb64fresh/error_detection__invalid_syntax.bas
-snippets/qb64fresh/error_detection__undefined_sub_call.bas
-snippets/qb64fresh/file_io_runtime_stubs__shellhide_generates_ffi_call.bas
-snippets/qb64fresh/inline_conditional_functions__iif_string.bas
 snippets/qb64fresh/shared_variables__shared_outside_procedure_error.bas
-snippets/qb64fresh/system_statements__shellhide_statement.bas

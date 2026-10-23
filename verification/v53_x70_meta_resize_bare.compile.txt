@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ RESIZE
+LINE 1:$RESIZE
+exit=1

@@ -1,0 +1,5 @@
+
+Expected array index
+Caused by (or after):FOR R . M = 1 TO 2
+LINE 13:FOR r.m = 1 TO 2: NEXT
+exit=1

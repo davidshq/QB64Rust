@@ -83,6 +83,14 @@ fn main() {
         writeln!(out, "    {n:?},").unwrap();
     }
     out.push_str("];\n");
+    // The FUNCTIONs of those files, upper case, without suffix, as declared (`_IKW_ENCODEURL`).
+    out.push_str("pub static AUTO_INCLUDE_FUNCTIONS: &[&str] = &[\n");
+    for r in doc["auto_include"].as_array().expect("auto_include array") {
+        if r.get("kind").and_then(|v| v.as_str()) == Some("function") && r.get("condition").is_none() {
+            writeln!(out, "    {:?},", r["name"].as_str().expect("name")).unwrap();
+        }
+    }
+    out.push_str("];\n");
     // The constants of the file included before the first line, in file order, each with its type suffix and the
     // text of its expression as a Windows 64-bit build reads it (design D8 of `m2-console-screenhide`).
     out.push_str("pub static AUTO_CONSTANTS: &[AutoConstant] = &[\n");

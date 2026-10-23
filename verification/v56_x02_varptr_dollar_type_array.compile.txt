@@ -1,0 +1,5 @@
+
+VARPTR$ only accepts variable-length string arrays
+Caused by (or after):SHOW VARPTR$ ( RA ( 2 ) )
+LINE 14:show VARPTR$(ra(2))
+exit=1

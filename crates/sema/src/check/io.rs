@@ -3,7 +3,7 @@
 //! (`verification\v22_b_*`, `v22_x21`–`x60`; `study\00` §5).
 
 use super::expr::Use;
-use super::{Checker, NoJoin, R};
+use super::{Checker, NoJoin, Placing, R};
 use crate::builtins::{qb_bits, stmt_lookup};
 use crate::{
     DataItem, Expr, ExprKind, InputSource, Place, PrintItem, PrintTo, StmtArg, StmtKind, Storage, Ty, UsingValue,
@@ -109,7 +109,7 @@ impl Checker<'_> {
                     let item = if items.is_empty() && !file {
                         self.print_item(*n)?
                     } else {
-                        self.unjoined(NoJoin::Item, |c| c.print_item(*n))?
+                        self.unjoined(NoJoin::Item(items.len()), |c| c.print_item(*n))?
                     };
                     items.push(item);
                     newline = true;
@@ -122,7 +122,7 @@ impl Checker<'_> {
             return Ok(());
         };
         let first = items.is_empty() && !file;
-        let (format, values, newline) = self.using(using, usings.get(1), &parts, first)?;
+        let (format, values, newline) = self.using(using, usings.get(1), &parts, (first, items.len()))?;
         let kind = StmtKind::PrintUsing {
             to,
             before: items,
@@ -138,20 +138,22 @@ impl Checker<'_> {
     /// the line ends (design D1 of `m3-console-files`). Measured (`verification\v30_x01`–`x19`; `study\00` §5):
     /// the format is a string and is followed by `;` (a `,` is "Expected PRINT USING formatstring ; ..."); at
     /// least one value follows; the values stand between `;` or `,`, which mean the same, and none may be left
-    /// out; a second `USING` is an error. `first`: nothing of the statement is evaluated before the format.
+    /// out; a second `USING` is an error. `first`: nothing of the statement is evaluated before the format;
+    /// `before`: how many items stand before `USING`, which numbers the format and the values as parts of the
+    /// statement ([`crate::Join::Before`]).
     fn using(
         &mut self,
         using: ast::UsingClause,
         second: Option<&ast::UsingClause>,
         parts: &[PrintPart],
-        first: bool,
+        (first, before): (bool, usize),
     ) -> R<(Expr, Vec<UsingValue>, bool)> {
         let span = using.node().span();
         let node = self.need(using.format(), span)?;
         let format = if first {
             self.expr(node)?
         } else {
-            self.unjoined(NoJoin::Item, |c| c.expr(node))?
+            self.unjoined(NoJoin::Item(before), |c| c.expr(node))?
         };
         if format.ty != Ty::Str {
             return Err(self.error(format.span, "the format of `USING` must be a string"));
@@ -184,7 +186,7 @@ impl Checker<'_> {
                         // Measured: "Expected operator in equation", also next to a string (`v30_x08`).
                         return Err(self.error(at, "the values of `USING` need `;` or `,` between them"));
                     }
-                    let e = self.unjoined(NoJoin::Item, |c| c.expr(*n))?;
+                    let e = self.unjoined(NoJoin::Item(before + 1 + values.len()), |c| c.expr(*n))?;
                     values.push(using_value(e, *n));
                     after_value = true;
                 }
@@ -200,24 +202,21 @@ impl Checker<'_> {
     /// A string place as the target of `FIELD`, `LSET` or `RSET` (`what`): a variable, an element or a member.
     /// `fixed`: a `STRING * n` place is one too. Measured (`verification\v30_x100`–`x110`, `x140`–`x168`): a
     /// number, a `TYPE` value, a literal, an expression, a function's result and a `CONST` are errors. A whole
-    /// array `e()`, which the old compiler takes as the array's first element without a bounds check (`x109`,
-    /// `x153`), is not supported yet.
+    /// array `e()` is the array's first element without a bounds check, as the old compiler takes it (`x109`,
+    /// `x153`, `v54_x14`; design D4 of `m4-line-numbers-whole-arrays`).
     fn string_target(&mut self, node: ast::Expr, what: &str, fixed: bool) -> R<Place> {
         let span = node.node().span();
         if let ast::Expr::Call(c) = node
             && c.arg_list().is_some_and(|l| l.args().is_empty())
+            && let Some(t) = c.name()
+            && let (word, _) = self.split_name(t)?
+            && self.procs_by_name.contains_key(&word)
         {
-            if let Some(t) = c.name()
-                && let (word, _) = self.split_name(t)?
-                && self.procs_by_name.contains_key(&word)
-            {
-                // Measured: "Expected (...)" for a FUNCTION's name (`v30_x173`–`x175`).
-                return Err(self.error(
-                    span,
-                    format!("`{what}` needs a string variable, element or member here"),
-                ));
-            }
-            return Err(self.unsupported(span, format!("a whole array as the string of `{what}`")));
+            // Measured: "Expected (...)" for a FUNCTION's name (`v30_x173`–`x175`).
+            return Err(self.error(
+                span,
+                format!("`{what}` needs a string variable, element or member here"),
+            ));
         }
         // A place of a user type is a place here, so that it gets this statement's error and not an expression's.
         let e = self.expr_as(node, Use::Place);
@@ -316,7 +315,7 @@ impl Checker<'_> {
         for part in stmt.parts() {
             match part {
                 PrintPart::Expr(n) => {
-                    items.push(self.unjoined(NoJoin::Item, |c| c.print_item(n))?);
+                    items.push(self.unjoined(NoJoin::Item(items.len()), |c| c.print_item(n))?);
                     newline = true;
                 }
                 PrintPart::Comma(t) | PrintPart::Semicolon(t) => {
@@ -439,7 +438,7 @@ impl Checker<'_> {
         for part in parts {
             match part {
                 PrintPart::Expr(n) => {
-                    let place = self.unjoined(NoJoin::Item, |c| c.target_place(n, what))?;
+                    let place = self.unjoined(NoJoin::Item(targets.len()), |c| c.target_place(n, what))?;
                     // Measured: "INPUT cannot handle _BIT array elements" for the console form (the runtime
                     // stores through an address, which a packed element has none of; `verification\v24_x253`).
                     // `INPUT #` and `READ` store into one (`v24_x251`, `x252`).
@@ -471,7 +470,8 @@ impl Checker<'_> {
 
     /// A place a statement stores into (a target of `INPUT`, `LINE INPUT` or `READ`): a variable (created when it
     /// does not exist, as by an assignment), an element or a member. A whole `TYPE` variable is an error (measured,
-    /// `v22_x48`), as is the name of the FUNCTION the statement stands in; a whole array is not supported yet.
+    /// `v22_x48`), as is the name of the FUNCTION the statement stands in; a whole array is its first element
+    /// (design D4 of `m4-line-numbers-whole-arrays`).
     pub(super) fn target_place(&mut self, e: ast::Expr, what: &str) -> R<Place> {
         let span = e.node().span();
         let place = self.place_operand(e, what)?;
@@ -499,7 +499,7 @@ impl Checker<'_> {
                     }
                 }
             }
-            ast::Expr::Call(c) => self.call_place(c)?,
+            ast::Expr::Call(c) => self.call_place(c, Placing::Target)?,
             ast::Expr::Field(f) => self.field_place(f)?,
             ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_) => {
                 return Err(self.error(span, format!("`{what}` needs a variable here")));
@@ -543,7 +543,7 @@ impl Checker<'_> {
 
     /// `READ target, …`. Measured (`verification\v22_x66`, `x67`, `x74`, `x75`, `x79`): a target that is no variable
     /// is "Expected variable". The old compiler takes a variable in parentheses (`READ (a)` reads into `a`,
-    /// `v22_x84`) and a whole array (`x70`); neither is supported yet.
+    /// `v22_x84`), not supported yet, and a whole array (`x70`), which reads one item into its first element.
     pub(super) fn read(&mut self, stmt: ast::ReadStmt) -> R<()> {
         let node = stmt.node();
         let mut targets = Vec::new();
@@ -555,7 +555,7 @@ impl Checker<'_> {
             let target = if targets.is_empty() {
                 self.target_place(e, "READ")?
             } else {
-                self.unjoined(NoJoin::Item, |c| c.target_place(e, "READ"))?
+                self.unjoined(NoJoin::Item(targets.len()), |c| c.target_place(e, "READ"))?
             };
             self.read_only_member(&target, e.node().span())?;
             targets.push(target);
@@ -570,8 +570,9 @@ impl Checker<'_> {
     /// `SWAP a, b` ([`StmtRule::Swap`]). Measured (`verification\v22_d_swap`, `v22_x91`–`x107`, `x135`): an operand
     /// that is no variable is "Expected variable", two types that differ "Type mismatch" (signedness does not
     /// count; `_OFFSET` is not `_INTEGER64`), two `TYPE`s that differ "Expected SWAP with similar user defined
-    /// type", a `_BIT` "Cannot SWAP bit-length variables". The old compiler also takes an operand in parentheses
-    /// and two whole arrays; neither is supported yet.
+    /// type", a `_BIT` "Cannot SWAP bit-length variables". The old compiler also takes an operand in parentheses,
+    /// not supported yet, and two whole arrays of one type, which swap their first elements (`v22_x101`,
+    /// `v54_c_whole_values`; of two types "Type mismatch", `v54_x10`).
     pub(super) fn swap(&mut self, stmt: ast::SwapStmt) -> R<()> {
         let node = stmt.node();
         let [form] = stmt_lookup("SWAP", false)[..] else {

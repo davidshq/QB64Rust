@@ -514,3 +514,20 @@ slice/s152_library_cast
 slice/s153_handlers_log_checking
 # m4-qb64pe-sources: _INSTRREV, the whole-file functions, _FULLPATH$, the five functions, the ASC statement, STOP, reserved words with $, the $ name of a STRING * n array or variable, a dotted name in a FUNCTION
 slice/s154_qb64pe_sources_builtins
+# m4-qb64pe-builtins: the built-ins qb64pe.bas needs; the keyboard from keys files with hold and lift (tests/corpus/screen/SOURCE.md)
+screen/k02_keyhit
+screen/k03_keydown
+screen/k04_keyclear
+# m4-qb64pe-builtins: _CONSOLE ON and OFF, _EXIT, the drop built-ins with nothing dropped; _SCREENMOVE and the dialogs as code not reached
+slice/s155_console_on_off
+# m4-qb64pe-builtins: $RESIZE:ON and the _RESIZE functions with no resize by the user (tests/corpus/screen/SOURCE.md)
+screen/c15_resize
+# m4-qb64pe-builtins: _CONTROLCHR, _DEFAULTCOLOR and _BACKGROUNDCOLOR (tests/corpus/screen/SOURCE.md)
+screen/c16_controlchr
+screen/c17_default_colours
+# m4-qb64pe-builtins: _DIR$ (no path printed), _SHELLHIDE, _COMMANDCOUNT, _COMPILEDATE$, _COMPILETIME$, _READBIT
+slice/s156_system_builtins
+# m4-names-implicit-arrays: an array named WIDTH, beside the statement
+slice/s157_width_array
+# m4-memory-records: VARPTR, VARSEG, SADD and VARPTR$ of variables in conventional memory
+slice/s158_varptr_strings

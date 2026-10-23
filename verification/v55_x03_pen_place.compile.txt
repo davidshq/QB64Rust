@@ -1,0 +1,5 @@
+
+Name already in use (PEN)
+Caused by (or after):PEN ( 1 ) = 2
+LINE 5:PEN(1) = 2
+exit=1

@@ -13,6 +13,7 @@ data_errors.bas:19:9: note: QB64pe: Label 'nowhere' not defined
 data_errors.bas:20:9: error: `RESTORE twice`: more than one SUB, FUNCTION or the main module has a label `twice`
 data_errors.bas:20:9: note: QB64pe: Ambiguous DATA label
 data_errors.bas:21:9: error: `n&` is not a valid label
+data_errors.bas:21:9: note: QB64pe: Invalid label!
 data_errors.bas:22:10: error: expected `,` after a quoted `DATA` item
 data_errors.bas:22:10: note: QB64pe: Expected , after quoted string in DATA statement
 data_errors.bas:27:13: error: `RESTORE twice`: more than one SUB, FUNCTION or the main module has a label `twice`

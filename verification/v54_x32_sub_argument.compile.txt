@@ -1,0 +1,5 @@
+
+Whole array cannot be passed to a scalar SUB parameter
+Caused by (or after):S A ( )
+LINE 5:s a()
+exit=1

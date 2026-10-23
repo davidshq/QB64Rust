@@ -1,0 +1,8 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+static_bounds_errors.bas:16:13: error: `STATIC a(...)`: a bound names a variable of the procedure, which the code that allocates the array when the program starts cannot see (the old compiler's C++ build fails)
+static_bounds_errors.bas:21:13: error: `STATIC b(...)`: a bound names a variable of the procedure, which the code that allocates the array when the program starts cannot see (the old compiler's C++ build fails)
+static_bounds_errors.bas:29:13: error: not supported yet: `STATIC d(...)` with a bound whose value is not known when compiling
+static_bounds_errors.bas:33:13: error: not supported yet: `STATIC e(...)` with a bound whose value is not known when compiling

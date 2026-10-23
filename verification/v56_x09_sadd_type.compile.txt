@@ -1,0 +1,5 @@
+
+User defined types in expressions are invalid
+Caused by (or after):PRINT SADD ( R )
+LINE 14:PRINT SADD(r)
+exit=1

@@ -3,9 +3,9 @@
 
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
-    Arg, ArrayRef, Body, BuiltinId, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue, Member, MemberId,
-    Op, Place, PrintItem, PrintTo, ProcId, ProcKind, Program, Reference, Resume, Shape, Source, StmtArg, Storage, Ty,
-    UsingValue, Var, VarId,
+    AddressWord, Arg, ArrayRef, Body, BuiltinId, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue,
+    Member, MemberId, Op, Place, PrintItem, PrintTo, ProcId, ProcKind, Program, Reference, Resume, Shape, Source,
+    StmtArg, Storage, Ty, UsingValue, Var, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -17,6 +17,20 @@ pub fn validate(p: &Program) -> Result<(), Vec<String>> {
     // Its text has to go somewhere.
     if !p.settings.console && !p.settings.window {
         v.problem("settings: neither a console nor a window".to_string());
+    }
+    // A start allocation names a global array of as many dimensions as it has bounds.
+    for (array, bounds) in &p.start_allocations {
+        if v.var_exists(*array, "a start allocation") {
+            let var = p.var(*array);
+            let dims = var.dim_count();
+            if var.storage != Storage::Global || dims.is_none_or(|n| n != bounds.len()) {
+                v.problem(format!(
+                    "a start allocation of {}, no global array of {} dimensions",
+                    var.name,
+                    bounds.len()
+                ));
+            }
+        }
     }
     for (i, proc) in p.procs.iter().enumerate() {
         let id = ProcId(qb64rust_base::to_u32(i));
@@ -268,8 +282,7 @@ impl Validator<'_> {
                         | ExprKind::Str(_)
                         | ExprKind::Load(_)
                         | ExprKind::Bound { .. }
-                        | ExprKind::VarPtr { .. }
-                        | ExprKind::VarSeg { .. }
+                        | ExprKind::Address { .. }
                         | ExprKind::Block { .. }
                         | ExprKind::Convert { .. }
                         | ExprKind::Binary { .. }
@@ -437,11 +450,12 @@ impl Validator<'_> {
                     self.value(v, owner, at);
                 }
             }
-            Op::Print { to, items, .. } => {
+            Op::Print { to, items, allocs, .. } => {
                 if let PrintTo::File(n) = to {
                     self.file_number(n, owner, at);
                 }
                 self.print_items(items, false, owner, at);
+                self.allocations(allocs, items.len(), b, owner, at);
             }
             // One unit with its own error checks (the crate documentation's rules for a pending error do not
             // apply inside it): a string format, at least one value, each value of the kind its variant says.
@@ -450,8 +464,10 @@ impl Validator<'_> {
                 before,
                 format,
                 values,
+                allocs,
                 ..
             } => {
+                self.allocations(allocs, before.len() + 1 + values.len(), b, owner, at);
                 if let PrintTo::File(n) = to {
                     self.file_number(n, owner, at);
                 }
@@ -484,11 +500,12 @@ impl Validator<'_> {
                     }
                 }
             }
-            Op::Write { to, items, .. } => {
+            Op::Write { to, items, allocs, .. } => {
                 if let Some(n) = to {
                     self.file_number(n, owner, at);
                 }
                 self.print_items(items, true, owner, at);
+                self.allocations(allocs, items.len(), b, owner, at);
             }
             // A file number, and at least one part: a place of a variable-length string and a width of type I32.
             Op::Field { file, parts } => {
@@ -518,7 +535,13 @@ impl Validator<'_> {
                 }
                 self.value(value, owner, at);
             }
-            Op::Input { from, line, targets } => {
+            Op::Input {
+                from,
+                line,
+                targets,
+                allocs,
+            } => {
+                self.allocations(allocs, targets.len(), b, owner, at);
                 match from {
                     Source::File(n) => self.file_number(n, owner, at),
                     Source::Console { .. } => {}
@@ -540,7 +563,8 @@ impl Validator<'_> {
                     }
                 }
             }
-            Op::Read(targets) => {
+            Op::Read { targets, allocs } => {
+                self.allocations(allocs, targets.len(), b, owner, at);
                 if targets.is_empty() {
                     self.problem(format!("{at}: a Read without a target"));
                 }
@@ -636,6 +660,32 @@ impl Validator<'_> {
         }
     }
 
+    /// The allocations an op of `parts` parts runs before them ([`crate::Allocation`]): each before a part that
+    /// exists, in the order of the parts, and each an allocation as [`Op::Allocate`] is one.
+    fn allocations(
+        &mut self,
+        allocs: &[(usize, crate::Allocation)],
+        parts: usize,
+        b: &Body,
+        owner: Option<ProcId>,
+        at: &At,
+    ) {
+        if allocs.windows(2).any(|w| w[0].0 > w[1].0) {
+            self.problem(format!("{at}: allocations out of the order of their parts"));
+        }
+        for (n, a) in allocs {
+            if *n >= parts {
+                self.problem(format!("{at}: an allocation before part {n} of {parts}"));
+            }
+            let op = Op::Allocate {
+                array: a.array.clone(),
+                bounds: a.bounds.clone(),
+                mode: a.mode,
+            };
+            self.op(&op, b, owner, at);
+        }
+    }
+
     /// The items of a print or (`write`) a write, which has no zones.
     fn print_items(&mut self, items: &[PrintItem], write: bool, owner: Option<ProcId>, at: &At) {
         for i in items {
@@ -682,6 +732,7 @@ impl Validator<'_> {
                         StmtArg::Place(_)
                         | StmtArg::Block { .. }
                         | StmtArg::Bytes(_)
+                        | StmtArg::Rest(_)
                         | StmtArg::Word(_)
                         | StmtArg::Absent => {
                             self.problem(format!("{at}: slot {} of {name} is no value", k + 1));
@@ -729,7 +780,11 @@ impl Validator<'_> {
                 match length {
                     StmtArg::Value(l) => self.value(l, owner, at),
                     StmtArg::Absent => {}
-                    StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Bytes(_) | StmtArg::Word(_) => {
+                    StmtArg::Place(_)
+                    | StmtArg::Block { .. }
+                    | StmtArg::Bytes(_)
+                    | StmtArg::Rest(_)
+                    | StmtArg::Word(_) => {
                         self.problem(format!("{at}: slot 3 of {name} is no value"));
                     }
                 }
@@ -756,6 +811,7 @@ impl Validator<'_> {
                     | StmtArg::Place(_)
                     | StmtArg::Block { .. }
                     | StmtArg::Bytes(_)
+                    | StmtArg::Rest(_)
                     | StmtArg::Word(_) => self.problem(format!("{at}: slot 2 of {name} is no LONG value")),
                 }
                 if v.ty != Ty::I32 {
@@ -845,6 +901,21 @@ impl Validator<'_> {
                         self.value(i, owner, at);
                     }
                 }
+                // The bytes from a place of graphics `GET` and `PUT` that is no array of numbers.
+                (StmtSlot::Arg { slot, .. }, StmtArg::Rest(place)) => {
+                    if *slot != Slot::Block {
+                        self.problem(format!("{at}: slot {k} of {name} holds the bytes from a place"));
+                    }
+                    self.place(place, owner, at);
+                    let root = self.p.var(place.root()).ty;
+                    if let Some(t) = place_ty_checked(self.p, place)
+                        && (matches!(t, Ty::Bit { .. })
+                            || crate::holds_strings(&self.p.types, root)
+                            || crate::owns_desc(&self.p.types, root))
+                    {
+                        self.problem(format!("{at}: the bytes from a {t:?} in a {root:?}"));
+                    }
+                }
                 (StmtSlot::Choice { alts, .. }, StmtArg::Word(w)) => {
                     if w >= alts {
                         self.problem(format!("{at}: slot {k} of {name} names word {w} of {alts}"));
@@ -860,7 +931,11 @@ impl Validator<'_> {
                 }
                 (
                     StmtSlot::Choice { .. },
-                    StmtArg::Value(_) | StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Bytes(_),
+                    StmtArg::Value(_)
+                    | StmtArg::Place(_)
+                    | StmtArg::Block { .. }
+                    | StmtArg::Bytes(_)
+                    | StmtArg::Rest(_),
                 ) => {
                     self.problem(format!("{at}: slot {k} of {name} is a choice, not an argument"));
                 }
@@ -953,6 +1028,8 @@ impl Validator<'_> {
             Place::Element { array, index } => {
                 match self.array_ref(array, owner, at, "an element") {
                     Some((_, Some(n))) if n == index.len() => {}
+                    // The first element of a whole array `a()` taken as a value ([`Place::Element`]).
+                    Some(_) if index.is_empty() && matches!(array, ArrayRef::Var(_)) => {}
                     // A dynamic member array has the number of dimensions of its last `REDIM`, checked when the
                     // element is used.
                     Some(_) if is_dynamic_member(self.p, array) => {}
@@ -1104,23 +1181,26 @@ impl Validator<'_> {
                     self.value(d, owner, at);
                 }
             }
-            // An offset or a segment is of an array in conventional memory; an offset has an index per dimension.
-            ExprKind::VarPtr { array, .. } | ExprKind::VarSeg { array } => {
-                self.array_ref(&ArrayRef::Var(*array), owner, at, "address");
-                let a = self.p.var(*array);
+            // An address of a place of a variable in conventional memory: `VARPTR$` a string, the others
+            // `_INTEGER64`; `SADD` of a string, `VARSEG` of a variable or a whole array (it reads no element).
+            ExprKind::Address { word, of } => {
+                self.place(of, owner, at);
+                let a = self.p.var(of.root());
                 if !a.conventional {
                     self.problem(format!(
                         "{at}: an address of {}, which is not in conventional memory",
                         a.name
                     ));
                 }
-                if let ExprKind::VarPtr { index, .. } = &v.kind {
-                    if a.dim_count().is_some_and(|n| n != index.len()) {
-                        self.problem(format!("{at}: {} indexes for {}", index.len(), a.name));
-                    }
-                    for i in index {
-                        self.value(i, owner, at);
-                    }
+                let typed = if *word == AddressWord::VarPtrStr {
+                    Ty::Str
+                } else {
+                    Ty::I64
+                };
+                let sadd = *word != AddressWord::Sadd || place_ty_checked(self.p, of) == Some(Ty::Str);
+                let seg = *word != AddressWord::VarSeg || of.indexes().is_empty();
+                if v.ty != typed || !sadd || !seg {
+                    self.problem(format!("{at}: {} of {} typed {:?}", word.name(), a.name, v.ty));
                 }
             }
             // `LEN` of a whole array: a LONG, of an array whose elements have a size (no `STRING`, no `_BIT`).
@@ -1329,6 +1409,7 @@ mod tests {
             line: 1,
             include_line: None,
             file: None,
+            line_number: None,
             at,
             checked: true,
         }
@@ -1393,6 +1474,7 @@ mod tests {
             },
             types: Vec::new(),
             data: Vec::new(),
+            start_allocations: Vec::new(),
             libraries: Vec::new(),
             settings: Settings {
                 console: true,
@@ -1729,7 +1811,10 @@ mod tests {
         });
         // The end of the data is a position; the start needs no label.
         p.main.stmts[0].ops.extend([
-            Op::Read(vec![Place::Var(VarId(0))]),
+            Op::Read {
+                targets: vec![Place::Var(VarId(0))],
+                allocs: Vec::new(),
+            },
             Op::Restore { at: 0, label: None },
             Op::Restore {
                 at: 1,
@@ -1738,8 +1823,14 @@ mod tests {
         ]);
         assert_eq!(problems(&p), Vec::<String>::new());
         p.main.stmts[0].ops.extend([
-            Op::Read(Vec::new()),
-            Op::Read(vec![Place::Var(VarId(9))]),
+            Op::Read {
+                targets: Vec::new(),
+                allocs: Vec::new(),
+            },
+            Op::Read {
+                targets: vec![Place::Var(VarId(9))],
+                allocs: Vec::new(),
+            },
             Op::Restore {
                 at: 2,
                 label: Some("L".into()),

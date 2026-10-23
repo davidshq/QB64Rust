@@ -1,0 +1,45 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 16
+  AssignAll
+    for1.value(temp):I32 = Const 1:I32
+    for1.limit(temp):I32 = Const 3:I32
+    for1.step(temp):I32 = Const 2:I32
+    for1.negative(temp):I32 = Lt:I32(Var for1.step(temp):I32, Const 0:I32)
+  Jump @1
+Label @0 line 16
+Stmt line 17
+  AssignAll
+    for2.value(temp):F64 = (Const 0:I16 -> Convert F64 Nearest)
+    for2.limit(temp):F64 = (Const 1:I16 -> Convert F64 Nearest)
+    for2.step(temp):F64 = Const 0.5E+0:F64
+    for2.negative(temp):I32 = Lt:I32(Var for2.step(temp):F64, Const 0:F64)
+  Jump @4
+Label @3 line 17
+Stmt line 17
+  Assign for2.value(temp):F64 = Add:F64(Var for2.step(temp):F64, (Load RO.N.S:F32 -> Convert F64 Widen))
+Label @4 line 17
+Stmt line 17
+  Assign RO.N.S:F32 = (Var for2.value(temp):F64 -> Convert F32 Nearest)
+  Branch NonZero -> @5 Skip: Or:I32(And:I32(Var for2.negative(temp):I32, Lt:I32(Var for2.value(temp):F64, Var for2.limit(temp):F64)), And:I32(Not:I32(Var for2.negative(temp):I32), Gt:I32(Var for2.value(temp):F64, Var for2.limit(temp):F64)))
+  Jump @3
+Label @5 line 17
+Stmt line 18
+  Assign for1.value(temp):I32 = Add:I32(Var for1.step(temp):I32, (Load R.V:I16 -> Convert I32 Widen)) wrap
+Label @1 line 18
+Stmt line 18
+  Assign R.V:I16 = (Var for1.value(temp):I32 -> Convert I16 Truncate)
+  Branch NonZero -> @2 Skip: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)))
+  Jump @0
+Label @2 line 18
+Stmt line 19
+  Print console newline
+    Num Load R.V:I16
+    Num Load RO.N.S:F32
+Stmt line 20
+  System

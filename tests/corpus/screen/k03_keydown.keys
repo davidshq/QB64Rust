@@ -1,0 +1,9 @@
+# The left Shift key held for a while, then the space bar.
+prompt
+hold lshift
+wait 200
+lift lshift
+prompt
+hold space
+wait 200
+lift space

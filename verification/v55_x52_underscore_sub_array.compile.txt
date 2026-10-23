@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 7:SUB _FOO ( N )
+exit=1

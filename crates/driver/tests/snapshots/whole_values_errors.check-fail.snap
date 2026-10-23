@@ -1,0 +1,17 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+whole_values_errors.bas:11:1: error: `t.m&()` is a member array: an index is expected between the parentheses
+whole_values_errors.bas:12:5: error: `a()` is a whole array, and the other side of `=` is not one
+whole_values_errors.bas:12:5: note: QB64pe: Expected array index after a
+whole_values_errors.bas:13:6: error: `a()` is a whole array, and the other side of `=` is not one
+whole_values_errors.bas:13:6: note: QB64pe: Expected array index after a
+whole_values_errors.bas:14:6: error: `s()` is a whole array, and the other side of `=` is not one
+whole_values_errors.bas:14:6: note: QB64pe: Expected array index after s
+whole_values_errors.bas:15:1: error: `SWAP` needs two variables of the same type
+whole_values_errors.bas:16:7: error: `t.m()` is a member array: an index is expected between the parentheses
+whole_values_errors.bas:17:3: error: the whole array `a()` cannot be passed to a parameter that is no array
+whole_values_errors.bas:18:9: error: the whole array `a()` cannot be passed to a parameter that is no array
+whole_values_errors.bas:19:11: error: `LEN` cannot take an array of variable-length strings
+whole_values_errors.bas:19:11: note: QB64pe: Cannot pass array of variable-length strings

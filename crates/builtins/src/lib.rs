@@ -195,6 +195,40 @@ pub fn is_auto_include_name(name: &[u8]) -> bool {
         .is_ok()
 }
 
+/// How a name is written after its letters, as the suffix rules of the table tell spellings apart.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Written {
+    /// No suffix.
+    Bare,
+    /// `$`.
+    Dollar,
+    /// Any other type suffix.
+    Other,
+}
+
+/// Whether `name` (without suffix, any case) written so calls a built-in function of the table: written with the
+/// suffix the function must have, or bare or with the one it may have.
+pub fn calls_function(name: &[u8], written: Written) -> bool {
+    find_any(name).any(|b| {
+        b.kind == Kind::Function
+            && match (b.musthave, b.mayhave) {
+                (None, Some("$")) => written != Written::Other,
+                (None, _) => written == Written::Bare,
+                (Some("$"), _) => written == Written::Dollar,
+                (Some(_), _) => false,
+            }
+    })
+}
+
+/// Whether `name` (without suffix, any case) is one of the FUNCTIONs of QB64pe's always-included BASIC files, by
+/// the name a program calls it with: without `_IKW` (`_ENCODEURL` for `_IKW_EncodeURL$`, `afterlastline.bm`).
+pub fn is_auto_include_function(name: &[u8]) -> bool {
+    AUTO_INCLUDE_FUNCTIONS.iter().any(|f| {
+        let called = f.strip_prefix("_IKW").unwrap_or(f);
+        called.as_bytes().eq_ignore_ascii_case(name)
+    })
+}
+
 /// Every entry (function or SUB form) for a name without suffix, compared without regard to ASCII case.
 pub fn find_any(name: &[u8]) -> impl Iterator<Item = &'static Builtin> + '_ {
     BUILTINS
@@ -320,5 +354,45 @@ mod tests {
     #[test]
     fn table_is_complete() {
         assert_eq!(BUILTINS.len(), 455);
+    }
+
+    /// Every spelling the table gives a function calls it (design D6 of `m4-names-implicit-arrays`): what a name
+    /// with one leading underscore that calls nothing ("Invalid array name") is told apart from. The functions of
+    /// the always-included files are called by their name without `_IKW`.
+    #[test]
+    fn every_function_spelling_calls_its_function() {
+        let mut spellings = 0;
+        for b in BUILTINS.iter().filter(|b| b.kind == Kind::Function) {
+            let written = match (b.musthave, b.mayhave) {
+                (Some("$"), _) => vec![Written::Dollar],
+                (Some(other), _) => panic!("{}: a required suffix other than `$`: {other}", b.name),
+                (None, Some("$")) => vec![Written::Bare, Written::Dollar],
+                (None, Some(other)) => panic!("{}: an optional suffix other than `$`: {other}", b.name),
+                (None, None) => vec![Written::Bare],
+            };
+            for w in written {
+                assert!(calls_function(b.name.as_bytes(), w), "{} {w:?}", b.name);
+                spellings += 1;
+            }
+            assert!(!calls_function(b.name.as_bytes(), Written::Other), "{}", b.name);
+        }
+        assert!(spellings > 280, "{spellings}");
+        assert!(calls_function(b"_connectionaddress", Written::Dollar));
+        assert!(calls_function(b"_CONNECTIONADDRESS", Written::Bare));
+        assert!(
+            !calls_function(b"_CRC32", Written::Dollar),
+            "measured: `verification\\v33_x29`"
+        );
+        assert!(
+            !calls_function(b"_IIF", Written::Dollar),
+            "measured: `verification\\v55_x55`"
+        );
+        assert_eq!(AUTO_INCLUDE_FUNCTIONS.len(), 3);
+        for f in AUTO_INCLUDE_FUNCTIONS {
+            let called = f.strip_prefix("_IKW").unwrap_or(f);
+            assert!(is_auto_include_function(called.as_bytes()), "{f}");
+        }
+        assert!(is_auto_include_function(b"_EncodeURL"));
+        assert!(!is_auto_include_function(b"_IKW_ENCODEURL"));
     }
 }

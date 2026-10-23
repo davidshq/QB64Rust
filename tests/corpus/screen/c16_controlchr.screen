@@ -1,0 +1,72 @@
+screen-state 1
+pages 8 display 0 write 0 read 0
+page 0 mode 0 text 80x25 bits 16 font 16 cursor 1,17 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "k0                                                                              "
+a 07*80
+t "                                                                                "
+a 07*80
+= 2
+t "x       y                                                                       "
+a 07*80
+t "abdc                                                                            "
+a 07*80
+t "     f                                                                          "
+a 07*80
+t "    e g                                                                         "
+a 07*80
+t "                                                                                "
+a 07*80
+t "         hh                                                                     "
+a 07*80
+t "i                                                                               "
+a 07*80
+t "         j                                                                      "
+a 07*80
+t "                                                                                "
+a 07*80
+t "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F                                                "
+a 07*80
+t "a\x07\x0Ab-1                                                                          "
+a 07*80
+t " 0                                                                              "
+a 07*80
+t "                                                                                "
+a 07*80
+= 8
+page 1 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 2 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 3 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 4 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 5 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 6 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 7 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+end

@@ -2,13 +2,14 @@
 //!
 //! Labels belong to a body, the main module or one procedure (design D5): each body's labels are entered in a pass
 //! before the statements, so a jump may name a label further down, also one inside a block. A jump names a label
-//! of its own body; `ON ERROR GOTO` names one of the main module's, from any body (all measured).
+//! of its own body; `ON ERROR GOTO` names one of the main module's, from any body (all measured). A line number is
+//! a label whose name is the number as the old compiler spells it (design D1 of `m4-line-numbers-whole-arrays`).
 
-use super::{Checker, R, Skips, nested_statements};
+use super::{Checker, Failed, R, Skips, nested_statements};
 use crate::builtins::stmt_lookup;
 use crate::{ConvKind, ErrorHandler, Label, LabelId, ProcId, ProcKind, Resume, StmtKind, SymbolKind, Ty};
 use qb64rust_base::{Span, show_bytes, to_u32};
-use qb64rust_builtins::find_any;
+use qb64rust_builtins::{Kind, find_any};
 use qb64rust_syntax::SyntaxKind::{
     GosubStmt, GotoStmt, Ident, Number, OnErrorStmt, OnEventStmt, OnJumpStmt, RestoreStmt, ResumeStmt, ReturnStmt,
 };
@@ -38,6 +39,12 @@ impl Checker<'_> {
             {
                 self.stmt.stmt_error = false;
                 let _ = self.declare_label(l, body);
+                self.flush_names();
+            } else if let Some(l) = ast::LineNumber::cast(stmt)
+                && skips.usable(stmt)
+            {
+                self.stmt.stmt_error = false;
+                let _ = self.declare_line_number(l, body);
                 self.flush_names();
             }
         }
@@ -129,6 +136,14 @@ impl Checker<'_> {
             return Ok(());
         }
         if find_any(name.as_bytes()).next().is_some() {
+            if find_any(name.as_bytes()).all(|b| b.kind == Kind::Function) {
+                // `validlabel` refuses the name, and the line is then a statement that is a function: "Syntax
+                // error" (measured, `verification\v55_x35`, `x44`: `abs:`, `LEN:`).
+                return Err(self.error(
+                    t.span,
+                    format!("`{shown}:`: `{shown}` is a built-in function, not a label"),
+                ));
+            }
             return Err(self.unsupported(t.span, format!("the label `{shown}:` (`{shown}` is a built-in)")));
         }
         // `validname` refuses a single leading `_` for a label too (measured, "Invalid name",
@@ -145,9 +160,50 @@ impl Checker<'_> {
                 return Ok(());
             }
         }
+        self.enter_label(node, t, name, None, body)?;
+        if reserved {
+            return Err(self.error(t.span, format!("names starting with `_` are reserved: `{shown}`")));
+        }
+        Ok(())
+    }
+
+    /// Enters a line number of `body` as a label (design D1 of `m4-line-numbers-whole-arrays`).
+    fn declare_line_number(&mut self, l: ast::LineNumber, body: Option<ProcId>) -> R<()> {
+        let node = l.node();
+        let t = self.need(l.number(), node.span())?;
+        let Some((name, last_line)) = line_label_name(self.text(t.span)) else {
+            let msg = format!("`{}` is not a valid line number", show_bytes(self.text(t.span)));
+            return Err(self.error(t.span, msg));
+        };
+        let why = cpp_line_problem(&last_line);
+        self.enter_label(node, t, name, Some(last_line.clone()), body)?;
+        if let Some(why) = why {
+            let shown = show_bytes(self.text(t.span));
+            let msg = format!("`{shown}` cannot be built as a line number: C++ reads `{last_line}` {why}");
+            return Err(self.error(t.span, msg));
+        }
+        Ok(())
+    }
+
+    /// Enters the label `name` of `body` defined by `node` at `t`; "duplicate label" when the body has one, with a
+    /// whole line number by its name, as the old compiler shows it (`010` as `10`, `v54_x04`).
+    fn enter_label(
+        &mut self,
+        node: Node,
+        t: Tok,
+        name: String,
+        line_number: Option<String>,
+        body: Option<ProcId>,
+    ) -> R<()> {
         let key = (body, name);
         if self.labels_by_name.contains_key(&key) {
-            return Err(self.error(t.span, format!("duplicate label: `{shown}`")));
+            let shown = if line_number.is_some() && key.1.bytes().all(|b| b.is_ascii_digit()) {
+                key.1.clone()
+            } else {
+                show_bytes(self.text(t.span))
+            };
+            let msg = format!("duplicate label: `{shown}`");
+            return Err(self.error(t.span, msg));
         }
         let id = LabelId(to_u32(self.prog.labels.len()));
         let line = self.line(t.span);
@@ -158,23 +214,36 @@ impl Checker<'_> {
             include_line,
             file: t.span.file,
             proc: body,
+            line_number,
             data_at: 0,
         });
         self.labels_by_name.insert(key, id);
         self.label_of_def.insert(node.key(), id);
         self.stmt.names.push((SymbolKind::Label(id), t.span));
-        if reserved {
-            return Err(self.error(t.span, format!("names starting with `_` are reserved: `{shown}`")));
-        }
+        Ok(())
+    }
+
+    /// A label or line number in pass 2, entered by [`Self::declare_labels`]: it stands before the next statement
+    /// of its body. `false` when `node` has no entry.
+    fn placed_label(&mut self, node: Node) -> bool {
+        let Some(&id) = self.label_of_def.get(&node.key()) else {
+            return false;
+        };
+        // Pass 2 is in file order, so the items collected so far are those before the label.
+        self.prog.labels[id.0 as usize].data_at = self.prog.data.len();
+        self.push(node, StmtKind::Label(id));
+        true
+    }
+
+    /// A line number in pass 2. One without an entry had an error in its declaration, already reported.
+    pub(super) fn line_number_stmt(&mut self, l: ast::LineNumber) -> R<()> {
+        self.placed_label(l.node());
         Ok(())
     }
 
     /// A label in pass 2: it stands before the next statement of its body.
     pub(super) fn label_stmt(&mut self, l: ast::LabelDef) -> R<()> {
-        if let Some(&id) = self.label_of_def.get(&l.node().key()) {
-            // Pass 2 is in file order, so the items collected so far are those before the label.
-            self.prog.labels[id.0 as usize].data_at = self.prog.data.len();
-            self.push(l.node(), StmtKind::Label(id));
+        if self.placed_label(l.node()) {
             return Ok(());
         }
         // The name of a SUB and a colon, with no jump to the name: a call of the SUB.
@@ -193,14 +262,27 @@ impl Checker<'_> {
         }
     }
 
-    /// Whether a label of this name gets a mark in place of an entry ([`Self::declare_label`]): the name of a
-    /// built-in, or of a SUB or FUNCTION where the label could not be told from a call.
+    /// Whether a label of this name gets a mark in place of an entry ([`Self::declare_label`]): the name of a SUB
+    /// or FUNCTION where the label could not be told from a call.
     fn marked_label_name(&self, name: &str) -> bool {
-        find_any(name.as_bytes()).next().is_some()
-            || self
-                .procs_by_name
-                .get(name)
-                .is_some_and(|&p| self.unclear_proc_label(p, name))
+        self.procs_by_name
+            .get(name)
+            .is_some_and(|&p| self.unclear_proc_label(p, name))
+    }
+
+    /// The error for a jump to a label that is not defined, named `shown` at `t`, when `name` is a built-in's: the
+    /// old compiler's `validlabel` refuses every name of a built-in, so no line defines such a label and every
+    /// jump to it is an error: "Invalid label!" after `GOTO` and `ON … GOTO` (`goto`), "Invalid label" after
+    /// `GOSUB`, `RESTORE` and `ON ERROR GOTO` (`qb64pe.bas` 27121–27166; measured, `verification\v27_x63`, `v29_x78`,
+    /// `x79`, `v55_x36`–`x38`, `x42`, `x43`, `x45`).
+    fn builtin_label(&mut self, t: Tok, name: &str, shown: &str, goto: bool) -> Option<Failed> {
+        find_any(name.as_bytes()).next()?;
+        let msg = if goto {
+            format!("`{shown}` is a built-in's name, not a label to go to")
+        } else {
+            format!("`{shown}` is a built-in's name, not a label")
+        };
+        Some(self.error(t.span, msg))
     }
 
     /// Whether the procedure is a SUB that can be called without an argument.
@@ -216,17 +298,46 @@ impl Checker<'_> {
         self.broken.contains(&p) || (self.callable_bare(p) && self.doubt_words.contains(name))
     }
 
+    /// The name a jump's target `t` names: a label's name in upper case, or a line number's name
+    /// ([`line_label_name`]).
+    fn target_name(&mut self, t: Tok) -> R<String> {
+        let shown = show_bytes(self.text(t.span));
+        let name = if t.kind == Number {
+            line_label_name(self.text(t.span)).map(|(name, _)| name)
+        } else {
+            let (name, suffix) = self.split_name(t)?;
+            suffix.is_none().then_some(name)
+        };
+        // Measured: a number of more than 40 characters is "Invalid label!" (`verification\v54_x20`).
+        match name {
+            Some(name) => Ok(name),
+            None => Err(self.error(t.span, format!("`{shown}` is not a valid label"))),
+        }
+    }
+
+    /// Whether `t` is the `0` of `ON ERROR GOTO 0` or `RESUME 0` (any number of zeros, as the old compiler's line
+    /// formatter writes them), which names no line.
+    fn is_zero(&self, t: Tok) -> bool {
+        let text = self.text(t.span);
+        t.kind == Number && !text.is_empty() && text.iter().all(|&b| b == b'0')
+    }
+
     /// A label of `body` named at `t`: `ON ERROR GOTO` and `RESUME` in the main module, and every jump.
     pub(super) fn label_ref(&mut self, t: Tok, body: Option<ProcId>) -> R<LabelId> {
+        self.label_for(t, body, false)
+    }
+
+    /// [`Self::label_ref`] for `GOTO` and `ON … GOTO` (`goto`), whose error for a built-in's name is worded apart.
+    fn label_for(&mut self, t: Tok, body: Option<ProcId>, goto: bool) -> R<LabelId> {
         let shown = show_bytes(self.text(t.span));
-        let (name, suffix) = self.split_name(t)?;
-        if suffix.is_some() {
-            return Err(self.error(t.span, format!("`{shown}` is not a valid label")));
-        }
+        let name = self.target_name(t)?;
         let Some(&id) = self.labels_by_name.get(&(body, name.clone())) else {
+            if let Some(e) = self.builtin_label(t, &name, &shown, goto) {
+                return Err(e);
+            }
             // A label with such a name is "not supported yet" (`declare_label`), so it may exist.
             if self.marked_label_name(&name) {
-                let msg = format!("a label with the name of a SUB, FUNCTION or built-in: `{shown}`");
+                let msg = format!("a label with the name of a SUB or FUNCTION: `{shown}`");
                 return Err(self.unsupported(t.span, msg));
             }
             // Nothing hides a label: one is entered wherever its line parses, also inside a block, an included
@@ -249,22 +360,16 @@ impl Checker<'_> {
 
     /// `RESTORE` or `RESTORE label`. The label has no scope (`qb64pe.bas`: "a RESTORE label has no scope, therefore,
     /// only one instance of that label may exist"; measured, `verification\v22_c_restore`, `v22_x65`, `x72`, `x83`):
-    /// it may stand in any body, and a name that two bodies have is "Ambiguous DATA label". A line number is not
-    /// supported yet.
+    /// it may stand in any body, and a name that two bodies have is "Ambiguous DATA label". A line number is a
+    /// label as any other (`v22_c_restore`, `v22_x86`).
     pub(super) fn restore(&mut self, s: ast::RestoreStmt) -> R<()> {
         let node = s.node();
         let Some(t) = s.target() else {
             self.push(node, StmtKind::Restore(None));
             return Ok(());
         };
-        if t.kind == Number {
-            return Err(self.unsupported(t.span, "line numbers"));
-        }
         let shown = show_bytes(self.text(t.span));
-        let (name, suffix) = self.split_name(t)?;
-        if suffix.is_some() {
-            return Err(self.error(t.span, format!("`{shown}` is not a valid label")));
-        }
+        let name = self.target_name(t)?;
         let mut found = self
             .labels_by_name
             .iter()
@@ -272,9 +377,12 @@ impl Checker<'_> {
             .map(|(_, &id)| id);
         let (first, second) = (found.next(), found.next());
         let Some(id) = first else {
+            if let Some(e) = self.builtin_label(t, &name, &shown, false) {
+                return Err(e);
+            }
             // A label with such a name is "not supported yet" (`declare_label`), so it may exist.
             if self.marked_label_name(&name) {
-                let msg = format!("a label with the name of a SUB, FUNCTION or built-in: `{shown}`");
+                let msg = format!("a label with the name of a SUB or FUNCTION: `{shown}`");
                 return Err(self.unsupported(t.span, msg));
             }
             return Err(self.error(t.span, format!("label `{shown}` is not defined")));
@@ -289,19 +397,25 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// The target of `GOTO`, `GOSUB` or `RETURN`: a label of the current body. A number is a line number.
-    fn jump_target(&mut self, t: Tok) -> R<LabelId> {
-        if t.kind == Number {
-            return Err(self.unsupported(t.span, "line numbers"));
-        }
-        self.label_ref(t, self.cur)
+    /// The target of `GOTO` (`goto`), `GOSUB` or `RETURN`: a label or line number of the current body.
+    fn jump_target(&mut self, t: Tok, goto: bool) -> R<LabelId> {
+        self.label_for(t, self.cur, goto)
     }
 
     /// `GOTO label`.
     pub(super) fn goto(&mut self, s: ast::GotoStmt) -> R<()> {
         let node = s.node();
         let t = self.need(s.target(), node.span())?;
-        let l = self.jump_target(t)?;
+        let l = self.jump_target(t, true)?;
+        self.push(node, StmtKind::Goto(l));
+        Ok(())
+    }
+
+    /// `THEN 10` or `ELSE 20` of a single-line `IF`: a `GOTO` (`verification\v17_b_if_then_line`).
+    pub(super) fn implicit_goto(&mut self, s: ast::ImplicitGoto) -> R<()> {
+        let node = s.node();
+        let t = self.need(s.number(), node.span())?;
+        let l = self.jump_target(t, true)?;
         self.push(node, StmtKind::Goto(l));
         Ok(())
     }
@@ -310,15 +424,14 @@ impl Checker<'_> {
     pub(super) fn gosub(&mut self, s: ast::GosubStmt) -> R<()> {
         let node = s.node();
         let t = self.need(s.target(), node.span())?;
-        let l = self.jump_target(t)?;
+        let l = self.jump_target(t, false)?;
         self.push(node, StmtKind::Gosub(l));
         Ok(())
     }
 
     /// `ON n GOTO l1, l2, …` / `ON n GOSUB …` (design D8 of `m2-core-builtins`, `qb64pe.bas` 27620): `n` converted
     /// to LONG as the old compiler does, a float through `qbr_float_to_long` (narrowed to SINGLE, then rounded half
-    /// to even), an integer keeping its low 32 bits; each target a label of this body (line numbers are not
-    /// supported yet).
+    /// to even), an integer keeping its low 32 bits; each target a label or line number of this body.
     pub(super) fn on_jump(&mut self, s: ast::OnJumpStmt) -> R<()> {
         let node = s.node();
         let span = node.span();
@@ -344,7 +457,7 @@ impl Checker<'_> {
             let Some(t) = t else {
                 return Err(self.unsupported(span, "an omitted target of `ON … GOTO`/`ON … GOSUB`"));
             };
-            targets.push(self.jump_target(t)?);
+            targets.push(self.jump_target(t, !gosub)?);
         }
         self.push(node, StmtKind::OnJump { value, gosub, targets });
         Ok(())
@@ -360,19 +473,10 @@ impl Checker<'_> {
                 let msg = "`RETURN` with a label or line number is not allowed in a SUB or FUNCTION";
                 return Err(self.error(t.span, msg));
             }
-            Some(t) => Some(self.jump_target(t)?),
+            Some(t) => Some(self.jump_target(t, false)?),
         };
         self.push(node, StmtKind::Return(target));
         Ok(())
-    }
-
-    /// The number after `GOTO` or `RESUME`: only `0` is supported (other numbers are line numbers).
-    fn zero(&mut self, t: Tok) -> R<()> {
-        if self.text(t.span) == b"0" {
-            Ok(())
-        } else {
-            Err(self.unsupported(t.span, "line numbers"))
-        }
     }
 
     /// `ON ERROR GOTO label`, `0`, `_NEWHANDLER label` or `_LASTHANDLER`, with the chain's errors as the old compiler
@@ -387,7 +491,7 @@ impl Checker<'_> {
             Some(w) if self.word(w) == "_LASTHANDLER" => {
                 return Err(self.error(t.span, "No label allowed after _LASTHANDLER"));
             }
-            Some(_) if t.kind == Number && self.text(t.span) == b"0" => {
+            Some(_) if self.is_zero(t) => {
                 return Err(self.error(t.span, "Zero not allowed after _NEWHANDLER"));
             }
             Some(_) => true,
@@ -411,12 +515,11 @@ impl Checker<'_> {
             );
             return Err(self.unsupported(t.span, msg));
         }
-        let handler = if t.kind == Number && !new {
-            self.zero(t)?;
+        let handler = if !new && self.is_zero(t) {
             None
         } else {
             if self.cur.is_some() {
-                let (name, _) = self.split_name(t)?;
+                let name = self.target_name(t)?;
                 if self.labels_by_name.contains_key(&(self.cur, name)) {
                     let msg = format!(
                         "`ON ERROR GOTO` needs a label of the main module, not one of this SUB or FUNCTION: `{}`",
@@ -443,17 +546,14 @@ impl Checker<'_> {
         let target = s.target();
         let is_next = target.is_some_and(|t| t.kind != Number && self.word(t) == "NEXT");
         if self.cur.is_some() {
-            if let Some(t) = target.filter(|t| t.kind != Number && !is_next) {
+            if let Some(t) = target.filter(|&t| !is_next && !self.is_zero(t)) {
                 self.label_ref(t, self.cur)?;
             }
             return Err(self.unsupported(node.span(), "`RESUME` inside a SUB or FUNCTION"));
         }
         let resume = match target {
             None => Resume::Retry,
-            Some(t) if t.kind == Number => {
-                self.zero(t)?;
-                Resume::Retry
-            }
+            Some(t) if self.is_zero(t) => Resume::Retry,
             Some(_) if is_next => Resume::Next,
             Some(t) => Resume::To(self.label_ref(t, None)?),
         };
@@ -473,4 +573,63 @@ impl Checker<'_> {
         self.push(node, StmtKind::Error(code));
         Ok(())
     }
+}
+
+/// The name a line number gives its line, and the text the old compiler sets `last_line` to after it, as it spells
+/// them (`validlabel`, `qb64pe.bas` 27121, on the text its line formatter keeps, 24688 and 24847; measured,
+/// `verification\v54_x03`, `x04`, `x11`, `x12`, `x20`, `x23`–`x25`): a whole number without a suffix by its digits
+/// without leading zeros (`010` is `10`); one with a decimal point or a suffix by its text as written, `.` as `p`,
+/// `#` as a trailing `d` and `!` as `s`, any other suffix left off (`10&` is `10`; `10.0` and `30#` are their own).
+/// `last_line` gets the digits and the point (`010&` writes `010`, which C++ reads as octal: `ERL` 8, as in the old
+/// compiler). `None` where the old compiler takes the text for no label: an exponent, a `$`, two points, a point
+/// alone, a name of more than 40 characters.
+pub(crate) fn line_label_name(text: &[u8]) -> Option<(String, String)> {
+    let end = text
+        .iter()
+        .position(|&b| !(b.is_ascii_digit() || b == b'.'))
+        .unwrap_or(text.len());
+    let (number, suffix) = text.split_at(end);
+    // Only digits and points: one character each.
+    let number: String = number.iter().map(|&b| char::from(b)).collect();
+    let points = number.matches('.').count();
+    if number.is_empty() || number == "." || points > 1 {
+        return None;
+    }
+    if suffix.iter().any(|&b| b.is_ascii_alphabetic() || b == b'$') {
+        return None;
+    }
+    let (name, last_line) = if points == 0 && suffix.is_empty() {
+        let digits = number.trim_start_matches('0');
+        let digits = if digits.is_empty() { "0" } else { digits };
+        (digits.to_string(), digits.to_string())
+    } else {
+        let mut name = number.replace('.', "p");
+        match suffix {
+            b"#" => name.push('d'),
+            b"!" => name.push('s'),
+            _ => {}
+        }
+        (name, number)
+    };
+    (name.len() <= 40).then_some((name, last_line))
+}
+
+/// Why the C++ build rejects `last_line=<text>;` for a line number's `last_line` text, or `None` when it takes
+/// it: a whole number with a leading 0 is octal there, so an 8 or 9 is no digit of it, and an integer above
+/// `u64::MAX` has no C++ type. The old compiler writes the text as it is, and its C++ build fails (measured,
+/// `verification\v54_x40`, `x41`). A text with a point is a floating literal and always taken.
+fn cpp_line_problem(text: &str) -> Option<&'static str> {
+    if text.contains('.') {
+        return None;
+    }
+    let (digits, radix) = match text.strip_prefix('0') {
+        Some(rest) if !rest.is_empty() => (rest, 8),
+        _ => (text, 10),
+    };
+    if radix == 8 && digits.bytes().any(|b| b == b'8' || b == b'9') {
+        return Some("as an octal number, which has no digit 8 or 9");
+    }
+    u64::from_str_radix(digits, radix)
+        .is_err()
+        .then_some("as an integer above 18446744073709551615, which no C++ type holds")
 }

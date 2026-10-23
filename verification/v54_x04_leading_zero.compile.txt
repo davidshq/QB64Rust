@@ -1,0 +1,5 @@
+
+Duplicate label (10)
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 6:010 PRINT "at 010": ERROR 5
+exit=1

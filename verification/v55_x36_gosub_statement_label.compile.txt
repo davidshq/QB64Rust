@@ -1,0 +1,5 @@
+
+Invalid label
+Caused by (or after):GOSUB BEEP
+LINE 6:GOSUB BEEP
+exit=1

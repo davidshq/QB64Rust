@@ -1,0 +1,5 @@
+
+2nd function argument requires a number
+Caused by (or after):X = _READBIT ( 1 , "a",1 )
+LINE 6:x = _READBIT(1, "a")
+exit=1

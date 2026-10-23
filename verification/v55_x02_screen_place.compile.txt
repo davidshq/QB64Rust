@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: SCREEN(x, y[, colorflag%])
+Caused by (or after):SCREEN ( 1 ) = 2
+LINE 5:SCREEN(1) = 2
+exit=1

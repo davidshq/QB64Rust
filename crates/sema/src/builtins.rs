@@ -233,11 +233,13 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("SPC", Rule::Plain),
     // `PEEK(offset)`: a LONG, in the segment `DEF SEG` set (`verification\v28_b_bload`).
     ("PEEK", Rule::Plain),
-    // `VARPTR(a(i))` and `VARSEG(a(i))`: written by the compiler, an `_INTEGER64` to `PRINT` and to operators
-    // against the table's LONG (`qb64pe.bas` 21328; measured, `verification\v28_d_varptr_index`); checked as
-    // [`ExprKind::VarPtr`] and [`ExprKind::VarSeg`].
+    // `VARPTR`, `VARSEG` and `SADD`: written by the compiler, an `_INTEGER64` to `PRINT` and to operators against
+    // the table's LONG (`qb64pe.bas` 21328; measured, `verification\v28_d_varptr_index`), and `VARPTR$`, a string;
+    // checked as [`ExprKind::Address`].
     ("VARPTR", Rule::Fixed(Ty::I64)),
     ("VARSEG", Rule::Fixed(Ty::I64)),
+    ("SADD", Rule::Fixed(Ty::I64)),
+    ("VARPTR$", Rule::Fixed(Ty::Str)),
     // `_RGB32` with one to four LONG slots (libqb has an entry for each number of arguments) and `_RGBA32` with
     // four: an `_UNSIGNED LONG`. `_FULLSCREEN` has no slot and is called bare only, a LONG ([`NEVER_RUN`]).
     ("_RGB32", Rule::GivenArgs(1)),
@@ -406,6 +408,43 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // A number converted to a numeric type as a C++ cast (design D2 of `m4-builtins-param-types`;
     // `verification\v49_a_cast`, `x01`–`x18`).
     ("_CAST", Rule::Cast),
+    // The built-ins `qb64pe.bas` needs (design D1 of `m4-qb64pe-builtins`; `verification\v53_*`), each the plain call
+    // of its row. The keyboard (`v53_d_keys`, `x13`–`x17`; screen programs `k02`–`k04`): `_KEYHIT` has no slot and is
+    // called bare only; `_KEYDOWN(code)` a LONG slot. Both LONG.
+    ("_KEYHIT", Rule::Plain),
+    ("_KEYDOWN", Rule::Plain),
+    // The window (`v53_a_window`, `x08`, `x09`, `x22`, `x24`, `x25`; screen program `c15_resize`): no slot and called
+    // bare only, a LONG, but `_DROPPEDFILE[$][(index)]`, a string with one optional slot, written with or without
+    // its `$`. `_EXIT` gives 0 with no request to end; the drop functions with nothing dropped, 0 and "".
+    ("_RESIZE", Rule::Plain),
+    ("_RESIZEWIDTH", Rule::Plain),
+    ("_RESIZEHEIGHT", Rule::Plain),
+    ("_EXIT", Rule::Plain),
+    ("_ACCEPTFILEDROP", Rule::Plain),
+    ("_TOTALDROPPEDFILES", Rule::Plain),
+    ("_DROPPEDFILE", Rule::Plain),
+    // The dialogs (`v53_x26`–`x38`): compiled and never run ([`NEVER_RUN`]). Optional string slots and, for
+    // `_MESSAGEBOX` and `_OPENFILEDIALOG$`, a last LONG one; `_MESSAGEBOX` a LONG, the others strings.
+    ("_MESSAGEBOX", Rule::Plain),
+    ("_OPENFILEDIALOG$", Rule::Plain),
+    ("_SAVEFILEDIALOG$", Rule::Plain),
+    ("_SELECTFOLDERDIALOG$", Rule::Plain),
+    // The screen's colours and control characters (`v53_b_colours`, `x46`–`x49`; screen programs `c16`, `c17`):
+    // `_CONTROLCHR` has no slot and is called bare only, a LONG; `_DEFAULTCOLOR` and `_BACKGROUNDCOLOR` an
+    // `_UNSIGNED LONG` with one optional LONG slot, an image or a page (error 258 for no image).
+    ("_CONTROLCHR", Rule::Plain),
+    ("_DEFAULTCOLOR", Rule::Plain),
+    ("_BACKGROUNDCOLOR", Rule::Plain),
+    // The system (`v53_c_system`, `x50`–`x61`, `x64`): `_DIR$(name$)` a folder of the machine (no test prints it,
+    // design D5); `_SHELLHIDE(cmd$)` an `_INTEGER64`, as the `SHELL` function; `_COMMANDCOUNT` a LONG and
+    // `_COMPILEDATE$`, `_COMPILETIME$` strings, no slot and called bare only (the two are written into `main.txt`,
+    // `codegen-cpp`); `_READBIT(a, bit)` an `_INTEGER64` of an `_UNSIGNED _INTEGER64` and a LONG slot.
+    ("_DIR$", Rule::Plain),
+    ("_SHELLHIDE", Rule::Plain),
+    ("_COMMANDCOUNT", Rule::Plain),
+    ("_COMPILEDATE$", Rule::Plain),
+    ("_COMPILETIME$", Rule::Plain),
+    ("_READBIT", Rule::Plain),
 ];
 
 /// The built-in functions whose result is a block of the predefined type `_MEM` (design D2 of `m3-mem`), as
@@ -615,6 +654,22 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_LOGINFO", StmtRule::Log(crate::LogLevel::Info)),
     ("_LOGWARN", StmtRule::Log(crate::LogLevel::Warn)),
     ("_LOGERROR", StmtRule::Log(crate::LogLevel::Error)),
+    // The statements `qb64pe.bas` needs (design D1 of `m4-qb64pe-builtins`; `verification\v53_*`), each the plain
+    // call of its row and template. `_KEYCLEAR [buffer]` (`v53_d_keys`, `x10`–`x12`).
+    ("_KEYCLEAR", StmtRule::Plain),
+    // The window and console (`v53_a_window`, `x01`–`x07`, `x21`, `x23`): `_RESIZE [{ON|OFF}][, {_STRETCH|_SMOOTH}]`,
+    // `_CONSOLE {ON|OFF}` (it shows or hides a console of the program's own; output goes on), `_ACCEPTFILEDROP
+    // [{ON|OFF}]` and `_FINISHDROP`.
+    ("_RESIZE", StmtRule::Plain),
+    ("_CONSOLE", StmtRule::Plain),
+    ("_ACCEPTFILEDROP", StmtRule::Plain),
+    ("_FINISHDROP", StmtRule::Plain),
+    // Compiled and never run ([`NEVER_RUN`]; `v53_x26`–`x31`, `x39`–`x43`): `_SCREENMOVE {_MIDDLE | x, y}` (alone
+    // too, as the old compiler accepts) and `_MESSAGEBOX [title$][, message$][, icon$]`.
+    ("_SCREENMOVE", StmtRule::Plain),
+    ("_MESSAGEBOX", StmtRule::Plain),
+    // `_CONTROLCHR {ON|OFF}` (`v53_x44`, `x45`; screen program `c16_controlchr`).
+    ("_CONTROLCHR", StmtRule::Plain),
 ];
 
 /// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
@@ -656,6 +711,13 @@ pub const NEVER_RUN: &[&str] = &[
     "_CLIPBOARDIMAGE",
     "_PRINTIMAGE",
     "_DEPTHBUFFER",
+    // `_SCREENMOVE` moves a window on the user's desktop, as `_SCREENX` and its kin read one; each dialog waits for a
+    // person (design D2 of `m4-qb64pe-builtins`).
+    "_SCREENMOVE",
+    "_MESSAGEBOX",
+    "_OPENFILEDIALOG$",
+    "_SAVEFILEDIALOG$",
+    "_SELECTFOLDERDIALOG$",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.
@@ -1233,7 +1295,16 @@ fn table_ty(b: &Builtin) -> Ty {
 ///
 /// A `_BIT * n` (a place or a literal) has n bits, `HEX$` (n + 3) \ 4 digits, whether a place or not (measured,
 /// `v21_d_builtins`: `HEX$` of a `_BIT * 3` holding -4 is `C`; the numeric-semantics scenario `HEX$(-1`5)` is `FF`).
+///
+/// `VARPTR`, `VARSEG` and `SADD` are 64 bits and no place: 0. So is a built-in with no return type in the table,
+/// `_SCREENEXISTS` (design D4 of `m4-memory-records`; the old compiler's C++, `func_hex(func_windowexists(),0)`,
+/// `verification\v56_c_radix_width`).
 pub fn radix_width(bits_per_digit: u32, arg: &Expr) -> Option<u32> {
+    if let ExprKind::Call { builtin, .. } = &arg.kind
+        && builtin.get().ret.is_none()
+    {
+        return Some(0);
+    }
     if let Ty::Bit { width, .. } = arg.qb {
         let bits = u32::from(width);
         return Some(if bits_per_digit == 4 { bits.div_ceil(4) } else { bits });

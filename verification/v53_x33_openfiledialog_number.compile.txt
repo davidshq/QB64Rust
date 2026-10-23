@@ -1,0 +1,5 @@
+
+1st function argument requires a string
+Caused by (or after):F$ = _OPENFILEDIALOG$ ( 1 )
+LINE 6:f$ = _OPENFILEDIALOG$(1)
+exit=1

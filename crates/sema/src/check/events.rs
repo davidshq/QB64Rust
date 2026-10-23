@@ -82,10 +82,7 @@ impl Checker<'_> {
         let words = s.handler_words();
         let handler = match words[..] {
             [g, target] if self.word(g) == "GOSUB" => {
-                if target.kind == Number {
-                    return Err(self.unsupported(target.span, "line numbers"));
-                }
-                // The main module's label, also from a SUB or FUNCTION (measured, `v42_x01`, `x02`, `x37`, `x50`).
+                // The main module's label or line number, also from a SUB or FUNCTION (measured, `v42_x01`, `x02`, `x37`, `x50`).
                 Handler::Label(self.label_ref(target, None)?)
             }
             [target] if self.word(target) != "GOSUB" => self.event_sub(s, &word, target)?,
