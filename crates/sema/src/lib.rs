@@ -587,6 +587,20 @@ impl Shape {
     }
 }
 
+/// Where an [`StmtKind::Allocate`] runs (design D1 of `m4-names-implicit-arrays`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Join {
+    /// A statement of its own.
+    None,
+    /// The first part of the statement that follows it.
+    First,
+    /// Part of the statement that follows it, just before its part `n`, as the old compiler writes it: the `n`-th
+    /// item of a `PRINT`, `PRINT #` or `WRITE` (`PrintItem::Zone`s counted), of a `PRINT USING` its items before
+    /// `USING`, then the format, then the values, the `n`-th target of `READ`, `INPUT` or `LINE INPUT` (measured,
+    /// `verification\v24_x264`, `x265`).
+    Before(usize),
+}
+
 /// What an [`StmtKind::Allocate`] does with an array that is allocated already (design D4 of
 /// `m2-defxxx-common-arrays`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1262,10 +1276,10 @@ pub enum StmtKind {
     /// converted to `_INTEGER64`, evaluated in order. The array may be a static one: the statement then raises
     /// error 10 and its bounds are not evaluated. A `DIM` that declares a static array is no statement.
     ///
-    /// `joined`: it is no statement of its own but the first part of the statement that follows it (the
+    /// `join`: whether it is a statement of its own or part of the statement that follows it ([`Join`]; the
     /// allocation of an array used without `DIM` below `$DYNAMIC`, which the statement that names it first
-    /// does; measured, `verification\v24_x101`): an error it raises is an error of that statement, so the stores
-    /// of the statement are skipped by their rule and `RESUME NEXT` goes on after the statement.
+    /// does; measured, `verification\v24_x101`, `x264`, `x265`): an error it raises is then an error of that
+    /// statement, so the stores of the statement are skipped by their rule and `RESUME NEXT` goes on after it.
     ///
     /// The array may be a dynamic member array (design D5 of `m3-typefields`): the place it is part of is found
     /// once, before the bounds, and not guarded (an index outside its bounds on the way raises error 9 and the
@@ -1274,7 +1288,7 @@ pub enum StmtKind {
         array: ArrayRef,
         bounds: Vec<(Expr, Expr)>,
         mode: AllocMode,
-        joined: bool,
+        join: Join,
     },
     /// `ERASE` of a static array: every element becomes zero, an empty string or NUL bytes; the bounds stay.
     ///
@@ -1489,6 +1503,9 @@ pub struct Case {
     pub body: Vec<Stmt>,
     /// 1-based source line of the `CASE`.
     pub line: u32,
+    /// The allocations its items make ([`StmtKind::Allocate`]), which run first each time the `CASE` is tested
+    /// (design D2 of `m4-names-implicit-arrays`).
+    pub allocs: Vec<Stmt>,
 }
 
 /// An item of a `CASE`, compared with the selector. Every value is already converted to the type the comparison is
@@ -1509,6 +1526,9 @@ pub struct Branch {
     pub body: Vec<Stmt>,
     /// 1-based source line of the `IF` or `ELSEIF`.
     pub line: u32,
+    /// The allocations an `ELSEIF`'s condition makes ([`StmtKind::Allocate`]), which run first each time it is
+    /// tested (design D2 of `m4-names-implicit-arrays`); those of the `IF` stand before the statement.
+    pub allocs: Vec<Stmt>,
 }
 
 /// The condition of a `DO` loop.
@@ -1519,6 +1539,9 @@ pub struct LoopTest {
     /// `UNTIL` (leave when true) rather than `WHILE` (leave when false).
     pub until: bool,
     pub cond: Expr,
+    /// The allocations a test at `LOOP` makes ([`StmtKind::Allocate`]), which run first each time it is tested
+    /// (design D2 of `m4-names-implicit-arrays`); those of a test at `DO` stand before the statement.
+    pub allocs: Vec<Stmt>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1563,6 +1586,11 @@ pub struct Program {
     /// stand, an included file's at its include, also those in a block that never runs (measured,
     /// `verification\v22_c_order`).
     pub data: Vec<DataItem>,
+    /// The allocations another declaration adds to the start code of a main-module array, in file order: `STATIC
+    /// a(bounds)` in a procedure beside a shared array of that name and type allocates the shared array when the
+    /// program starts, after its own allocation (`Dim` mode, each pair a dimension's bounds; measured,
+    /// `verification\v24_x272`, `v55_d1`–`d4`; design D4 of `m4-names-implicit-arrays`).
+    pub start_allocations: Vec<(VarId, Vec<(i64, i64)>)>,
     /// Every `CONST`, in source order.
     pub consts: Vec<Const>,
     /// The user types, in source order.

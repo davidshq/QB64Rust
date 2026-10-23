@@ -1,0 +1,108 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Array A:F32 dynamic, dimensions: 1
+Array C:F32 dynamic, dimensions: 1
+Array M:F32 dynamic, dimensions: 1
+Array N:F32 dynamic, dimensions: 1
+Array R:F32 dynamic, dimensions: 1
+Array D:F32 dynamic, dimensions: 1
+Array G:F32 dynamic, dimensions: 1
+Array E:F32 dynamic, dimensions: 1
+Stmt line 2
+  SelectConsole
+Stmt line 9 may_raise
+  Allocate Dim A:F32
+    Const 0:I64 To Const 10:I64
+  Branch Zero -> @0 Skip: Eq:I32(Load A(Const 1:I64):F32, (Const 0:I16 -> Convert F32 Nearest))
+Stmt line 9
+  Print console newline
+    Num Const 1:I16
+Label @0 line 9
+Stmt line 10
+  Branch Zero -> @2 Skip: Eq:I32(Var I:I32, Const 0:I32)
+Stmt line 11
+  Print console newline
+    Num Const 2:I16
+Stmt line 14
+  Jump @1
+Label @2 line 14
+Stmt line 12 may_raise
+  Allocate Dim C:F32
+    Const 0:I64 To Const 10:I64
+  Branch Zero -> @1 UseValue: Eq:I32(Load C(Const 1:I64):F32, (Const 0:I16 -> Convert F32 Nearest))
+Stmt line 13
+  Print console newline
+    Num Const 3:I16
+Label @1 line 14
+Stmt line 15 may_raise
+  Allocate Dim M:F32
+    Const 0:I64 To Const 10:I64
+  AssignAll
+    for1.value(temp):I64 = (Load M(Const 1:I64):F32 -> Convert I64 RoundEven)
+    for1.limit(temp):I64 = Const 1:I64
+    for1.step(temp):I64 = Const 1:I64
+    for1.negative(temp):I32 = Lt:I32(Var for1.step(temp):I64, Const 0:I64)
+  Jump @4
+Label @3 line 15
+Stmt line 16
+  Assign for1.value(temp):I64 = Add:I64(Var for1.step(temp):I64, (Var K:I32 -> Convert I64 Widen)) wrap
+Label @4 line 16
+Stmt line 16
+  Assign K:I32 = (Var for1.value(temp):I64 -> Convert I32 Truncate)
+  Branch NonZero -> @5 Skip: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):I64, Var for1.limit(temp):I64)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):I64, Var for1.limit(temp):I64)))
+  Jump @3
+Label @5 line 16
+Stmt line 17 may_raise
+  Allocate Dim N:F32
+    Const 0:I64 To Const 10:I64
+  Branch Zero -> @7 Skip: Gt:I32(Load N(Const 1:I64):F32, (Const 0:I16 -> Convert F32 Nearest))
+Stmt line 17
+  Jump @8
+Label @6 line 17
+Stmt line 17 may_raise
+  Branch Zero -> @7 Skip: Gt:I32(Load N(Const 1:I64):F32, (Const 0:I16 -> Convert F32 Nearest))
+Label @8 line 17
+Stmt line 18
+  Jump @6
+Label @7 line 18
+Stmt line 19 may_raise
+  Allocate Dim R:F32
+    Const 0:I64 To Const 10:I64
+  Branch NonZero -> @10 Skip: Eq:I32(Load R(Const 1:I64):F32, (Const 0:I16 -> Convert F32 Nearest))
+Stmt line 19
+  Jump @11
+Label @9 line 19
+Stmt line 19 may_raise
+  Branch NonZero -> @10 Skip: Eq:I32(Load R(Const 1:I64):F32, (Const 0:I16 -> Convert F32 Nearest))
+Label @11 line 19
+Stmt line 20
+  Jump @9
+Label @10 line 20
+Label @12 line 21
+Stmt line 22 may_raise
+  Allocate Dim D:F32
+    Const 0:I64 To Const 10:I64
+  Branch Zero -> @12 Skip: Eq:I32(Load D(Const 1:I64):F32, (Const 0:I16 -> Convert F32 Nearest))
+Label @13 line 22
+Stmt line 23 may_raise
+  Allocate Dim G:F32
+    Const 0:I64 To Const 10:I64
+  Assign 1SELECT:F32 = Load G(Const 1:I64):F32
+Stmt line 24
+  Branch Zero -> @15 Skip: Eq:I32(Var 1SELECT:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 26
+  Jump @14
+Label @15 line 26
+Stmt line 25 may_raise
+  Allocate Dim E:F32
+    Const 0:I64 To Const 10:I64
+  Branch Zero -> @16 Skip: Eq:I32(Var 1SELECT:F32, Add:F32(Load E(Const 1:I64):F32, (Const 5:I16 -> Convert F32 Nearest)))
+Stmt line 26
+  Jump @14
+Label @14 line 26
+Label @16 line 26
+Stmt line 27
+  System

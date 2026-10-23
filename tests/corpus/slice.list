@@ -527,3 +527,5 @@ screen/c16_controlchr
 screen/c17_default_colours
 # m4-qb64pe-builtins: _DIR$ (no path printed), _SHELLHIDE, _COMMANDCOUNT, _COMPILEDATE$, _COMPILETIME$, _READBIT
 slice/s156_system_builtins
+# m4-names-implicit-arrays: an array named WIDTH, beside the statement
+slice/s157_width_array

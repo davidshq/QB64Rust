@@ -473,6 +473,23 @@ version,session,change,category,actions,bytes
 1,2ce405fc,m3-redim-retain,tests and fixtures,13,14241
 1,2d594c56,,other commands,1,0
 1,2d594c56,m2-builtin-statements,other commands,2,0
+1,2df6a99b,,builds,2,0
+1,2df6a99b,,other commands,35,0
+1,2df6a99b,,reading,6,0
+1,2df6a99b,m4-names-implicit-arrays,documents and planning,17,43030
+1,2df6a99b,m4-names-implicit-arrays,other commands,22,0
+1,2df6a99b,m4-names-implicit-arrays,reading,7,0
+1,2df6a99b,m4-names-implicit-arrays,scratch files,5,5935
+1,2df6a99b,m4-names-implicit-arrays,test runs,2,0
+1,2ebb1b77,,other commands,1,0
+1,2ebb1b77,m4-names-implicit-arrays,builds,1,0
+1,2ebb1b77,m4-names-implicit-arrays,measurement preparation,3,502
+1,2ebb1b77,m4-names-implicit-arrays,measurement runs,1,0
+1,2ebb1b77,m4-names-implicit-arrays,other commands,32,0
+1,2ebb1b77,m4-names-implicit-arrays,product code,12,3399
+1,2ebb1b77,m4-names-implicit-arrays,reading,4,0
+1,2ebb1b77,m4-names-implicit-arrays,test runs,6,0
+1,2ebb1b77,m4-names-implicit-arrays,tests and fixtures,2,488
 1,2fb1a2c1,,other commands,1,0
 1,2fb1a2c1,m3-declare-library,builds,12,0
 1,2fb1a2c1,m3-declare-library,documents and planning,2,4039
@@ -1849,14 +1866,14 @@ version,session,change,category,actions,bytes
 1,a1bc4e14,,other commands,38,0
 1,a1bc4e14,,reading,28,0
 1,a1bc4e14,,tests and fixtures,8,13143
-1,a1c7adca,,other commands,1,0
+1,a1c7adca,,other commands,3,0
 1,a1c7adca,m4-line-numbers-whole-arrays,builds,1,0
 1,a1c7adca,m4-line-numbers-whole-arrays,documents and planning,2,603
 1,a1c7adca,m4-line-numbers-whole-arrays,other,1,0
 1,a1c7adca,m4-line-numbers-whole-arrays,other commands,26,0
 1,a1c7adca,m4-line-numbers-whole-arrays,reading,1,0
 1,a1c7adca,m4-line-numbers-whole-arrays,scratch files,1,2668
-1,a1c7adca,m4-line-numbers-whole-arrays,test runs,18,0
+1,a1c7adca,m4-line-numbers-whole-arrays,test runs,19,0
 1,a23d75cf,,other commands,2,0
 1,a23d75cf,,reading,1,0
 1,a23d75cf,m2-console-screenhide,documents and planning,43,11616
@@ -1867,6 +1884,7 @@ version,session,change,category,actions,bytes
 1,a23d75cf,m2-console-screenhide,reading,5,0
 1,a23d75cf,m2-console-screenhide,scratch files,1,1028
 1,a23d75cf,m2-console-screenhide,test runs,9,0
+1,a3c2b7ef,,other commands,1,0
 1,a441ea2b,,other,1,0
 1,a441ea2b,,other commands,4,0
 1,a441ea2b,,reading,1,0
@@ -2105,6 +2123,17 @@ version,session,change,category,actions,bytes
 1,bbbe9d60,m2-builtin-statements,reading,3,0
 1,bbbe9d60,m2-builtin-statements,scratch files,1,4383
 1,bbbe9d60,m2-builtin-statements,test runs,3,0
+1,bcbe710d,m4-names-implicit-arrays,builds,34,0
+1,bcbe710d,m4-names-implicit-arrays,documents and planning,26,22082
+1,bcbe710d,m4-names-implicit-arrays,generated files,1,76
+1,bcbe710d,m4-names-implicit-arrays,measurement preparation,11,9244
+1,bcbe710d,m4-names-implicit-arrays,measurement runs,10,0
+1,bcbe710d,m4-names-implicit-arrays,other commands,296,0
+1,bcbe710d,m4-names-implicit-arrays,product code,105,56277
+1,bcbe710d,m4-names-implicit-arrays,reading,29,0
+1,bcbe710d,m4-names-implicit-arrays,scratch files,17,24001
+1,bcbe710d,m4-names-implicit-arrays,test runs,79,0
+1,bcbe710d,m4-names-implicit-arrays,tests and fixtures,25,12464
 1,bf859517,,other commands,2,0
 1,bf859517,m2-control-flow-slice,builds,3,0
 1,bf859517,m2-control-flow-slice,documents and planning,6,5748

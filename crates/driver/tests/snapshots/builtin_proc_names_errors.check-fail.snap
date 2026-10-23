@@ -1,0 +1,18 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+builtin_proc_names_errors.bas:10:10: error: `exp$`: a procedure may not have the name of a keyword or a built-in
+builtin_proc_names_errors.bas:10:10: note: QB64pe: Name already in use (exp)
+builtin_proc_names_errors.bas:14:10: error: `len$`: a procedure may not have the name of a keyword or a built-in
+builtin_proc_names_errors.bas:14:10: note: QB64pe: Name already in use (len)
+builtin_proc_names_errors.bas:18:10: error: `abs%`: a procedure may not have the name of a keyword or a built-in
+builtin_proc_names_errors.bas:18:10: note: QB64pe: Name already in use (abs)
+builtin_proc_names_errors.bas:22:10: error: `timer#`: a procedure may not have the name of a keyword or a built-in
+builtin_proc_names_errors.bas:22:10: note: QB64pe: Name already in use (timer)
+builtin_proc_names_errors.bas:26:5: error: a SUB's name has no type suffix
+builtin_proc_names_errors.bas:26:5: note: QB64pe: Type symbols after a SUB name are invalid
+builtin_proc_names_errors.bas:29:5: error: a SUB's name has no type suffix
+builtin_proc_names_errors.bas:29:5: note: QB64pe: Type symbols after a SUB name are invalid
+builtin_proc_names_errors.bas:32:5: error: a SUB's name has no type suffix
+builtin_proc_names_errors.bas:32:5: note: QB64pe: Type symbols after a SUB name are invalid

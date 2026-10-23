@@ -137,6 +137,7 @@ pub fn emit_with(
         line_file: line_name(source_name),
         included,
         skip: 0,
+        inside: Vec::new(),
         pass: 0,
         pass_decls: Vec::new(),
         byte_element: 0,
@@ -222,6 +223,11 @@ pub fn emit_with(
         }
         text
     });
+    // The allocations other declarations add (`STATIC a(n)` beside a shared array), after every array's own.
+    for (id, bounds) in &p.start_allocations {
+        let v = p.var(*id);
+        maindata.push_str(&e.allocate_at_start(v, &names::var_name(p, v), bounds));
+    }
     maindata.push_str(&e.temps(None));
     for d in std::mem::take(&mut e.pass_decls) {
         maindata.push_str(&d);
@@ -301,6 +307,9 @@ struct Emitter<'a> {
     included: HashMap<FileId, (String, String)>,
     /// Counter for the `skipN` labels of PRINT statements.
     skip: u32,
+    /// The allocations of the op of items being written, each by the part it runs before (`io.rs`,
+    /// [`Emitter::allocs_before`]).
+    inside: Vec<(usize, qb64rust_ir::Allocation)>,
     /// Counter for the `passN` by-value temporaries.
     pass: u32,
     /// Declarations of the `passN` of the body being emitted.

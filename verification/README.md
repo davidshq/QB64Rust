@@ -167,6 +167,26 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `VARPTR(a())` (the first element's), `08&` and a number of 25 digits (the C++ build fails), an erased array of
   `STRING` printed (empty) and read into (the text shows after later output), of `STRING * 20` printed (blanks),
   `t.m&() = u.m&()` ("Expected array index")
+- `v55*`: names and implicit arrays, measured as task 1.1 of `m4-names-implicit-arrays`:
+  `v55_a_implicit_headers` below `$DYNAMIC`, an array first named in the line of each kind of block, run twice
+  under `RESUME NEXT` (the second allocation raises error 10: the `IF`, a `CASE` and a loop tested at the top run
+  their body though the test is false, `LOOP UNTIL` leaves, an `ELSEIF` skips its branch's first statement, a
+  `FOR` runs its body with the variable as it was; a `CASE` after one that matched allocates nothing);
+  `v55_b_implicit_whole`, `v55_b2_implicit_whole_base1` the whole array `x()` of a name that is no array (`LEN`
+  44 for `SINGLE`, 40 under `OPTION BASE 1`; in a SUB 0 and no error); `v55_c_static_bounds` `STATIC` bounds that
+  are expressions of constants (taken with their value); `v55_d1`–`d4` `STATIC a(5)` beside a shared array (a
+  dynamic one is allocated by it, error 10 at the main `DIM`; one of another type is another array; "Duplicate
+  definition" also when the SUB is never called); `x01`–`x75` one form each: built-in names as a place or a target
+  (all rejected, "Expected variable =", "Expected variable" or the statement's own error), statements with a
+  suffix, names that are no SUB as a statement, after `CALL` or `THEN`, functions as statements ("Syntax error",
+  "Expected CALL sub-name"), jumps to built-in names ("Invalid label!", "Invalid label") and lines named like a
+  built-in function ("Syntax error"), FUNCTIONs named like built-ins with a suffix ("Name already in use"; `chr&`
+  accepted), one leading underscore ("Invalid array name", "Invalid name"; `_CONNECTIONADDRESS$` and `__foo(1)`
+  accepted), declared names with blanks around a dot (accepted; beside a `TYPE` variable "DIM: Expected ,"),
+  `WIDTH (3) = 5` (an array), `x()` then `x(1, 2)` and `LEN(xs$())` (rejected), `STATIC` bounds of `LEN("abc")`
+  (3), a shared variable (its value when the start code runs, 0) and a FUNCTION (what it prints is lost); by the
+  change's review, `x85` the whole array `x()` in an index of a store and of a `READ` target (a value: `LEN` 44 and
+  88)
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

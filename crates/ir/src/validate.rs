@@ -18,6 +18,20 @@ pub fn validate(p: &Program) -> Result<(), Vec<String>> {
     if !p.settings.console && !p.settings.window {
         v.problem("settings: neither a console nor a window".to_string());
     }
+    // A start allocation names a global array of as many dimensions as it has bounds.
+    for (array, bounds) in &p.start_allocations {
+        if v.var_exists(*array, "a start allocation") {
+            let var = p.var(*array);
+            let dims = var.dim_count();
+            if var.storage != Storage::Global || dims.is_none_or(|n| n != bounds.len()) {
+                v.problem(format!(
+                    "a start allocation of {}, no global array of {} dimensions",
+                    var.name,
+                    bounds.len()
+                ));
+            }
+        }
+    }
     for (i, proc) in p.procs.iter().enumerate() {
         let id = ProcId(qb64rust_base::to_u32(i));
         for (k, param) in proc.params.iter().enumerate() {
@@ -437,11 +451,12 @@ impl Validator<'_> {
                     self.value(v, owner, at);
                 }
             }
-            Op::Print { to, items, .. } => {
+            Op::Print { to, items, allocs, .. } => {
                 if let PrintTo::File(n) = to {
                     self.file_number(n, owner, at);
                 }
                 self.print_items(items, false, owner, at);
+                self.allocations(allocs, items.len(), b, owner, at);
             }
             // One unit with its own error checks (the crate documentation's rules for a pending error do not
             // apply inside it): a string format, at least one value, each value of the kind its variant says.
@@ -450,8 +465,10 @@ impl Validator<'_> {
                 before,
                 format,
                 values,
+                allocs,
                 ..
             } => {
+                self.allocations(allocs, before.len() + 1 + values.len(), b, owner, at);
                 if let PrintTo::File(n) = to {
                     self.file_number(n, owner, at);
                 }
@@ -484,11 +501,12 @@ impl Validator<'_> {
                     }
                 }
             }
-            Op::Write { to, items, .. } => {
+            Op::Write { to, items, allocs, .. } => {
                 if let Some(n) = to {
                     self.file_number(n, owner, at);
                 }
                 self.print_items(items, true, owner, at);
+                self.allocations(allocs, items.len(), b, owner, at);
             }
             // A file number, and at least one part: a place of a variable-length string and a width of type I32.
             Op::Field { file, parts } => {
@@ -518,7 +536,13 @@ impl Validator<'_> {
                 }
                 self.value(value, owner, at);
             }
-            Op::Input { from, line, targets } => {
+            Op::Input {
+                from,
+                line,
+                targets,
+                allocs,
+            } => {
+                self.allocations(allocs, targets.len(), b, owner, at);
                 match from {
                     Source::File(n) => self.file_number(n, owner, at),
                     Source::Console { .. } => {}
@@ -540,7 +564,8 @@ impl Validator<'_> {
                     }
                 }
             }
-            Op::Read(targets) => {
+            Op::Read { targets, allocs } => {
+                self.allocations(allocs, targets.len(), b, owner, at);
                 if targets.is_empty() {
                     self.problem(format!("{at}: a Read without a target"));
                 }
@@ -633,6 +658,32 @@ impl Validator<'_> {
                     )),
                 }
             }
+        }
+    }
+
+    /// The allocations an op of `parts` parts runs before them ([`crate::Allocation`]): each before a part that
+    /// exists, in the order of the parts, and each an allocation as [`Op::Allocate`] is one.
+    fn allocations(
+        &mut self,
+        allocs: &[(usize, crate::Allocation)],
+        parts: usize,
+        b: &Body,
+        owner: Option<ProcId>,
+        at: &At,
+    ) {
+        if allocs.windows(2).any(|w| w[0].0 > w[1].0) {
+            self.problem(format!("{at}: allocations out of the order of their parts"));
+        }
+        for (n, a) in allocs {
+            if *n >= parts {
+                self.problem(format!("{at}: an allocation before part {n} of {parts}"));
+            }
+            let op = Op::Allocate {
+                array: a.array.clone(),
+                bounds: a.bounds.clone(),
+                mode: a.mode,
+            };
+            self.op(&op, b, owner, at);
         }
     }
 
@@ -1398,6 +1449,7 @@ mod tests {
             },
             types: Vec::new(),
             data: Vec::new(),
+            start_allocations: Vec::new(),
             libraries: Vec::new(),
             settings: Settings {
                 console: true,
@@ -1734,7 +1786,10 @@ mod tests {
         });
         // The end of the data is a position; the start needs no label.
         p.main.stmts[0].ops.extend([
-            Op::Read(vec![Place::Var(VarId(0))]),
+            Op::Read {
+                targets: vec![Place::Var(VarId(0))],
+                allocs: Vec::new(),
+            },
             Op::Restore { at: 0, label: None },
             Op::Restore {
                 at: 1,
@@ -1743,8 +1798,14 @@ mod tests {
         ]);
         assert_eq!(problems(&p), Vec::<String>::new());
         p.main.stmts[0].ops.extend([
-            Op::Read(Vec::new()),
-            Op::Read(vec![Place::Var(VarId(9))]),
+            Op::Read {
+                targets: Vec::new(),
+                allocs: Vec::new(),
+            },
+            Op::Read {
+                targets: vec![Place::Var(VarId(9))],
+                allocs: Vec::new(),
+            },
             Op::Restore {
                 at: 2,
                 label: Some("L".into()),

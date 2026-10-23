@@ -3,7 +3,7 @@
 //! checks (`EmitAssignWhole`, `qb64pe.bas` 16675) and its guard of an assignment with a whole array on one side
 //! only (`CheckAsgRHS`, 16809). What runs is the IR's `Op::CopyArray`.
 
-use super::{Checker, DimFact, Failed, R};
+use super::{Checker, DimFact, Failed, Placing, R};
 use crate::{ArrayRef, ExprKind, Place, ProcKind, StmtKind, Storage, SymbolKind};
 use qb64rust_base::{Span, show_bytes};
 use qb64rust_syntax::ast;
@@ -209,7 +209,7 @@ impl Checker<'_> {
                 let (place, _) = self.field_member(f)?;
                 Ok(self.is_member_array(&place))
             }
-            ast::Expr::Call(c) if target => Ok(matches!(self.call_place(c)?, Place::Element { .. })),
+            ast::Expr::Call(c) if target => Ok(matches!(self.call_place(c, Placing::Value)?, Place::Element { .. })),
             ast::Expr::Field(f) if target => Ok(matches!(self.field_place(f)?, Place::Element { .. })),
             ast::Expr::Call(_) | ast::Expr::Field(_) => {
                 Ok(matches!(self.expr(e)?.kind, ExprKind::Load(Place::Element { .. })))

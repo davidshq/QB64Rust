@@ -252,32 +252,53 @@ impl Emitter<'_> {
                 }
             }
             Op::Print {
-                to: PrintTo::File(n),
+                to,
                 items,
                 newline,
-            } => self.file_print(n, items, *newline, out),
-            Op::Print {
-                to: PrintTo::Screen,
-                items,
-                newline,
-            } => self.print(false, items, *newline, out),
-            Op::Print {
-                to: PrintTo::Printer,
-                items,
-                newline,
-            } => self.print(true, items, *newline, out),
+                allocs,
+            } => {
+                self.inside.clone_from(allocs);
+                match to {
+                    PrintTo::File(n) => self.file_print(n, items, *newline, out),
+                    PrintTo::Screen => self.print(false, items, *newline, out),
+                    PrintTo::Printer => self.print(true, items, *newline, out),
+                }
+            }
             Op::PrintUsing {
                 to,
                 before,
                 format,
                 values,
                 newline,
-            } => self.print_using(to, before, format, values, *newline, out),
-            Op::Write { to, items, newline } => self.write(to.as_ref(), items, *newline, out),
+                allocs,
+            } => {
+                self.inside.clone_from(allocs);
+                self.print_using(to, before, format, values, *newline, out);
+            }
+            Op::Write {
+                to,
+                items,
+                newline,
+                allocs,
+            } => {
+                self.inside.clone_from(allocs);
+                self.write(to.as_ref(), items, *newline, out);
+            }
             Op::Field { file, parts } => self.field(file, parts, out),
             Op::Lset { right, target, value } => self.lset(*right, target, value, out),
-            Op::Input { from, line, targets } => self.input(from, *line, targets, out),
-            Op::Read(targets) => self.read(targets, out),
+            Op::Input {
+                from,
+                line,
+                targets,
+                allocs,
+            } => {
+                self.inside.clone_from(allocs);
+                self.input(from, *line, targets, out);
+            }
+            Op::Read { targets, allocs } => {
+                self.inside.clone_from(allocs);
+                self.read(targets, out);
+            }
             Op::Restore { label, .. } => self.restore(label.as_deref(), out),
         }
     }

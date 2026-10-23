@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):CLS$
+LINE 5:CLS$
+exit=1

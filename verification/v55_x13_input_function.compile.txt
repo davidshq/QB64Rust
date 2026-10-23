@@ -1,0 +1,5 @@
+
+Expected variable
+Caused by (or after):INPUT ABS ( A )
+LINE 5:INPUT ABS(a)
+exit=1

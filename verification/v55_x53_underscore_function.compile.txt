@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 5:FUNCTION _BAR ( N )
+exit=1

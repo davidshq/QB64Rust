@@ -201,14 +201,8 @@ pub(super) fn dim_item(p: &mut Parser) -> bool {
         return false;
     }
     p.start_node(DimItem);
-    p.bump();
-    if !p.redim_items && p.at(Dot) {
-        // `DIM a . b AS LONG`: the old compiler drops the blanks (`verification\v47_x17`); not built here (design of
-        // `m4-devices-continue-paths`, "Non-Goals").
-        let span = p.current_span();
-        p.unsupported_at(span, "a declared name with blanks around `.`");
-        p.finish_node();
-        return false;
+    if p.redim_items || !declared_name(p) {
+        p.bump();
     }
     let mut ok = !p.at(LParen) || array_bounds(p);
     while ok && p.redim_items && p.at(Dot) {
@@ -218,6 +212,23 @@ pub(super) fn dim_item(p: &mut Parser) -> bool {
     let ok = ok && (!p.at_word("AS") || as_clause(p));
     p.finish_node();
     ok
+}
+
+/// At a name, a name written with blanks around its dots (`a . b`, `a . b . c$`) as a `SpacedName`: the old
+/// compiler drops the blanks as it reads the line (measured, `verification\v47_x17`, `x18`, `v55_x59`–`x65`; design
+/// D7 of `m4-names-implicit-arrays`). False, with nothing read, for a name without such a dot after it.
+pub(super) fn declared_name(p: &mut Parser) -> bool {
+    if !(p.at(Ident) && p.nth(1) == Some(Dot) && p.nth(2) == Some(Ident)) {
+        return false;
+    }
+    p.start_node(SpacedName);
+    p.bump();
+    while p.at(Dot) && p.nth(1) == Some(Ident) {
+        p.bump();
+        p.bump();
+    }
+    p.finish_node();
+    true
 }
 
 /// `CONST name[suffix] = expr {, name[suffix] = expr}`; each item a `ConstItem`.

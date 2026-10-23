@@ -413,6 +413,17 @@ pub enum PrintItem {
     Zone,
 }
 
+/// An allocation that runs inside a statement of items, just before one of its parts ([`Op::Print`],
+/// [`Op::PrintUsing`], [`Op::Write`], [`Op::Input`], [`Op::Read`]): what [`Op::Allocate`] does, at that point (the
+/// array used without `DIM` below `$DYNAMIC` that the part names first; design D1 of `m4-names-implicit-arrays`).
+/// Its error is pending as any error of the part is: the part checks it where it checks its own.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Allocation {
+    pub array: ArrayRef,
+    pub bounds: Vec<(Expr, Expr)>,
+    pub mode: AllocMode,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Op {
     /// Send output to (and read input from) the console instead of a window.
@@ -529,11 +540,13 @@ pub enum Op {
     },
     /// Items in order, to the program's destination of text, to the file with a number (an `I32`) or to the
     /// printer ([`PrintTo`]); a raising item skips the rest, including the line end. In a file a
-    /// [`PrintItem::Zone`] is 14 columns wide, on the console 10 (the runtime's).
+    /// [`PrintItem::Zone`] is 14 columns wide, on the console 10 (the runtime's). Each of `allocs` runs just
+    /// before the item of its index (an [`Allocation`]).
     Print {
         to: PrintTo,
         items: Vec<PrintItem>,
         newline: bool,
+        allocs: Vec<(usize, Allocation)>,
     },
     /// Formatted output (design D1 of `m3-console-files`; measured, `study\00` §5, the `v30` paragraph), in this
     /// order:
@@ -551,13 +564,15 @@ pub enum Op {
     ///    stays pending.
     ///
     /// **The statement is one unit**: no other rule of the IR for a pending error applies inside it. At least
-    /// one value. Always may raise.
+    /// one value. Always may raise. Each of `allocs` runs just before its part: the parts are numbered `before`'s
+    /// items first, then the format, then the values.
     PrintUsing {
         to: PrintTo,
         before: Vec<PrintItem>,
         format: Expr,
         values: Vec<UsingValue>,
         newline: bool,
+        allocs: Vec<(usize, Allocation)>,
     },
     /// Name parts of the record buffer of the random file with this number (an `I32`) by strings, in order from
     /// the buffer's first byte (design D3 of `m3-console-files`; measured, `study\00` §5): each part a place of
@@ -606,25 +621,34 @@ pub enum Op {
     Lset { right: bool, target: Place, value: Expr },
     /// The items ([`PrintItem::Str`] in double quotes, [`PrintItem::Num`] without blanks) separated by commas, to
     /// the console or to a file, then a line end if `newline`; without it the last item is followed by a comma
-    /// too. A raising item skips the rest.
+    /// too. A raising item skips the rest. Each of `allocs` runs just before the item of its index, after the
+    /// separator of the item before it.
     Write {
         to: Option<Expr>,
         items: Vec<PrintItem>,
         newline: bool,
+        allocs: Vec<(usize, Allocation)>,
     },
     /// Read one field per target, or (`line`) one whole line into the single string target, from a file or the
     /// console. A numeric target takes the field's value in its own type; a value outside the type's range raises
     /// error 6. The targets are stored in order, each by the rule of its place; see the crate documentation for the
-    /// pending-error checks. At least one target; none is of a user type.
+    /// pending-error checks. At least one target; none is of a user type. Each of `allocs` runs just before the
+    /// target of its index: from a file before its read, from the console in the phase that evaluates the targets'
+    /// indexes, after the prompt and before the line is read.
     Input {
         from: Source,
         line: bool,
         targets: Vec<Place>,
+        allocs: Vec<(usize, Allocation)>,
     },
     /// Read the next item of the program's data ([`Program::data`]) into each target in turn, each stored by the
     /// rule of its place. A numeric target takes the item's value in its own type. No point of it checks for a
-    /// pending error: see the crate documentation. At least one target; none is of a user type.
-    Read(Vec<Place>),
+    /// pending error: see the crate documentation. At least one target; none is of a user type. Each of `allocs`
+    /// runs just before the target of its index.
+    Read {
+        targets: Vec<Place>,
+        allocs: Vec<(usize, Allocation)>,
+    },
     /// Make the next [`Op::Read`] start at item `at` of [`Program::data`] (at its end: nothing is left to read).
     /// `label` is the BASIC label, in upper case, that gave the position; `None` for the start of the data (`at`
     /// is 0). The emitter may name the position after it.
@@ -750,16 +774,25 @@ impl Op {
             | Op::Lset { .. }
             | Op::Write { to: Some(_), .. }
             | Op::Input { .. }
-            | Op::Read(_) => true,
+            | Op::Read { .. } => true,
             Op::Print {
                 to: PrintTo::Screen,
                 items,
+                allocs,
                 ..
             }
-            | Op::Write { to: None, items, .. } => items.iter().any(|i| match i {
-                PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
-                PrintItem::Zone => false,
-            }),
+            | Op::Write {
+                to: None,
+                items,
+                allocs,
+                ..
+            } => {
+                !allocs.is_empty()
+                    || items.iter().any(|i| match i {
+                        PrintItem::Str(v) | PrintItem::Num(v) => v.may_raise(),
+                        PrintItem::Zone => false,
+                    })
+            }
         }
     }
 }
@@ -818,6 +851,11 @@ pub struct Program {
     /// The program's data: the items of every `DATA` statement, in the order [`Op::Read`] takes them. How they are
     /// stored in the executable is the emitter's.
     pub data: Vec<DataItem>,
+    /// Allocations of arrays of [`Storage::Global`] in `Dim` mode with these bounds (each pair a dimension's),
+    /// run when the program starts after every array's own start (`sema`'s [`qb64rust_sema::Program`]'s
+    /// `start_allocations`: `STATIC a(n)` beside a shared array of the name). The array is allocated already
+    /// when it is static, and its program then ends at the start with error 10, before any handler is set.
+    pub start_allocations: Vec<(VarId, Vec<(i64, i64)>)>,
     /// The `DECLARE LIBRARY` blocks in file order; [`External::library`] indexes it. A `DYNAMIC` library is loaded,
     /// and each of its functions found, when the program starts: a library that cannot be loaded raises error
     /// 259, a function it does not hold error 260, before the first statement (measured, `verification\v37_j`).

@@ -1,0 +1,5 @@
+
+Expected variable =, look for conflict with a CONST name
+Caused by (or after):CHR$ ( 1 ) = "a",1
+LINE 5:CHR$(1) = "a"
+exit=1

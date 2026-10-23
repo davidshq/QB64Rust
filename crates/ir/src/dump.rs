@@ -210,6 +210,17 @@ fn print_items(p: &Program, items: &[PrintItem], out: &mut String) {
     }
 }
 
+/// The allocations an op of items runs before its parts ([`crate::Allocation`]).
+fn allocations(p: &Program, allocs: &[(usize, crate::Allocation)], out: &mut String) {
+    for (n, a) in allocs {
+        let (array, t) = (array_text(p, &a.array), ty(p, p.array_ty(&a.array)));
+        writeln!(out, "    Allocate {:?} {array}:{t} before part {n}", a.mode).unwrap();
+        for (lower, upper) in &a.bounds {
+            writeln!(out, "      {} To {}", val(p, lower), val(p, upper)).unwrap();
+        }
+    }
+}
+
 /// The main file's line of a statement or label of an included file (`_ERRORLINE`'s), when it has one.
 fn in_main(include_line: Option<u32>) -> String {
     include_line.map_or_else(String::new, |l| format!(" in main line {l}"))
@@ -369,10 +380,16 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     let (ranges, starts) = (ranges.join(", "), starts.join(", "));
                     writeln!(out, "  ArrayCopy {from}({ranges}) -> {to}({starts}):{t}").unwrap();
                 }
-                Op::Print { to, items, newline } => {
+                Op::Print {
+                    to,
+                    items,
+                    newline,
+                    allocs,
+                } => {
                     let to = print_to(p, to);
                     writeln!(out, "  Print {to}{}", if *newline { " newline" } else { "" }).unwrap();
                     print_items(p, items, out);
+                    allocations(p, allocs, out);
                 }
                 Op::PrintUsing {
                     to,
@@ -380,6 +397,7 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     format,
                     values,
                     newline,
+                    allocs,
                 } => {
                     let to = print_to(p, to);
                     writeln!(out, "  PrintUsing {to}{}", if *newline { " newline" } else { "" }).unwrap();
@@ -394,6 +412,7 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                             UsingValue::Blanks(e) => writeln!(out, "    Blanks {}", val(p, e)).unwrap(),
                         }
                     }
+                    allocations(p, allocs, out);
                 }
                 Op::Field { file, parts } => {
                     writeln!(out, "  Field file {}", val(p, file)).unwrap();
@@ -407,15 +426,26 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     let t = ty(p, p.place_ty(target));
                     writeln!(out, "  {word} {}:{t} = {}", place_text(p, target), val(p, value)).unwrap();
                 }
-                Op::Write { to, items, newline } => {
+                Op::Write {
+                    to,
+                    items,
+                    newline,
+                    allocs,
+                } => {
                     let to = match to {
                         None => "console".to_string(),
                         Some(n) => format!("file {}", val(p, n)),
                     };
                     writeln!(out, "  Write {to}{}", if *newline { " newline" } else { "" }).unwrap();
                     print_items(p, items, out);
+                    allocations(p, allocs, out);
                 }
-                Op::Input { from, line, targets } => {
+                Op::Input {
+                    from,
+                    line,
+                    targets,
+                    allocs,
+                } => {
                     let word = if *line { "LineInput" } else { "Input" };
                     let from = match from {
                         Source::File(n) => format!("file {}", val(p, n)),
@@ -433,12 +463,14 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                     for place in targets {
                         writeln!(out, "    Target {}:{}", place_text(p, place), ty(p, p.place_ty(place))).unwrap();
                     }
+                    allocations(p, allocs, out);
                 }
-                Op::Read(targets) => {
+                Op::Read { targets, allocs } => {
                     writeln!(out, "  Read").unwrap();
                     for place in targets {
                         writeln!(out, "    Target {}:{}", place_text(p, place), ty(p, p.place_ty(place))).unwrap();
                     }
+                    allocations(p, allocs, out);
                 }
                 Op::Restore { at, label } => match label {
                     Some(l) => writeln!(out, "  Restore item {at} ({l})").unwrap(),

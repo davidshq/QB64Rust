@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):PRINT$ "a",1
+LINE 5:PRINT$ "a"
+exit=1

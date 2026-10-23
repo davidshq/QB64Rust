@@ -1,0 +1,5 @@
+
+Invalid label
+Caused by (or after):RESTORE BEEP
+LINE 6:RESTORE BEEP
+exit=1

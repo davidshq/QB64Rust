@@ -175,6 +175,16 @@ fn member_access() {
     insta::assert_snapshot!(tree("PRINT a(1).b.c(2), a(2) .b, a(2). b, a.b\na(i).x(j).y = q(1).r\n"));
 }
 
+/// A declared name with blanks around its dots is one `SpacedName` (design D7 of `m4-names-implicit-arrays`): in
+/// `DIM`, `DIM SHARED` and a list, with bounds and a suffix, a SUB and a FUNCTION with `STATIC`, and a call
+/// statement with and without `CALL`. `REDIM` keeps its member path.
+#[test]
+fn declared_names_with_blanks_around_dots() {
+    insta::assert_snapshot!(tree(
+        "DIM a . b AS LONG, c . d . e(3), f . g$\nDIM SHARED h . i\nREDIM j(1) . k(2)\na . b 3\nCALL a . b(3)\nSUB a . b (n) STATIC\nEND SUB\nFUNCTION f . g$\nEND FUNCTION\n"
+    ));
+}
+
 #[test]
 fn exit_declare_shared_static() {
     insta::assert_snapshot!(tree(

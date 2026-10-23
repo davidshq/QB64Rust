@@ -37,6 +37,11 @@ impl Parser<'_, '_> {
         if self.at_word("KEY") && self.key_own_form() {
             return true;
         }
+        if self.at_word("WIDTH") && self.nth(1) == Some(LParen) && self.parens_then_eq() {
+            // `WIDTH (3) = 5`: a store into an array named `WIDTH`, used without `DIM` (measured,
+            // `verification\v27_x51`, `v55_x66`, `x67`; design D8 of `m4-names-implicit-arrays`).
+            return false;
+        }
         if self.at_word("PALETTE") && self.nth_is_word(1, "USING") {
             // `PALETTE USING array(index)`: the old compiler reads it by hand, outside the statement's template
             // (`PALETTE [?,?]`), so no form of the table matches it. Marked, not a syntax error.
@@ -341,6 +346,18 @@ impl Parser<'_, '_> {
             }
         }
         let span = self.next_span(furthest.min(self.statement_len()));
+        let function = forms.iter().any(|(b, _)| b.kind == qb64rust_builtins::Kind::Function)
+            || qb64rust_builtins::find_any(name.as_bytes()).any(|b| b.kind == qb64rust_builtins::Kind::Function);
+        if function && self.nth(1) == Some(LParen) && self.parens_then_eq() {
+            // A store to a name that is a statement and a function (`TIMER(1) = 2`): "Expected variable ="
+            // (measured, `verification\v55_x01`, `x04`), not the statement's reference.
+            self.error_at(
+                span,
+                format!("`{name}(...) =`: `{name}` is a built-in function, not a variable"),
+            );
+            self.recover();
+            return;
+        }
         self.error_at(
             span,
             format!(

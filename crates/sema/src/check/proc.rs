@@ -33,7 +33,8 @@ impl Checker<'_> {
         let kind = if function {
             ProcKind::Function(suffix.unwrap_or_else(|| self.default_ty(&name)))
         } else if suffix.is_some() {
-            return Err(self.unsupported(name_tok.span, "a SUB name with a type suffix"));
+            // Measured: "Type symbols after a SUB name are invalid" (`verification\v42_x56`, `v55_x46`, `x50`).
+            return Err(self.error(name_tok.span, "a SUB's name has no type suffix"));
         } else {
             ProcKind::Sub
         };
@@ -315,7 +316,7 @@ impl Checker<'_> {
     /// A name `t$n` (a fixed-length string's suffix): its name in upper case and n; `None` for any other name. n
     /// is read as the old compiler reads it ([`fixed_len`]).
     fn fixed_suffix(&mut self, t: Tok) -> R<Option<(String, u32)>> {
-        match fixed_name(self.text(t.span)) {
+        match fixed_name(&self.name_text(t)) {
             None => Ok(None),
             Some((name, Some(n))) => Ok(Some((name, n))),
             Some((_, None)) => Err(self.error(t.span, FIXED_LEN_ERROR)),
@@ -348,7 +349,7 @@ impl Checker<'_> {
     /// In a procedure, the `t$n` parameter a name token names, if any.
     pub(super) fn fixed_param_ref(&mut self, t: Tok) -> Option<VarId> {
         let p = self.cur?;
-        let (name, n) = fixed_name(self.text(t.span))?;
+        let (name, n) = fixed_name(&self.name_text(t))?;
         let v = *self.fixed_params.get(&(p, name, n?))?;
         self.stmt.names.push((SymbolKind::Var(v), t.span));
         Some(v)
@@ -396,11 +397,6 @@ impl Checker<'_> {
             Some((p, ProcKind::Sub)) if suffix.is_none() => {
                 if let Some(bad) = stmt.unparsed_args() {
                     let span = bad.span();
-                    if self.text(span).first() == Some(&b'.') {
-                        // `a . b 3`, a call of the SUB `a.b` written with blanks around its dot (`v47_x18`).
-                        let msg = format!("a call of the SUB `{shown}.…` written with blanks around `.`");
-                        return Err(self.unsupported(span, msg));
-                    }
                     let msg = format!("cannot read the arguments of `{shown}`; expected expressions separated by `,`");
                     return Err(self.error(span, msg));
                 }
@@ -436,13 +432,34 @@ impl Checker<'_> {
             None if name == "ASC" && suffix.is_none() => {
                 Err(self.error(node.span(), "the `ASC` statement needs `= code` after its arguments"))
             }
+            // A SUB written with a type suffix: not measured.
+            Some((_, ProcKind::Sub)) => {
+                let msg = format!("`{shown}` as a statement (a SUB of this name, written with a suffix)");
+                Err(self.unsupported(name_tok.span, msg))
+            }
+            // A built-in statement or a keyword written with a suffix it does not take: "Syntax error" (measured,
+            // `verification\v22_x20`, `v33_x50`, `v55_x21`–`x23`: `KILL$`, `_ASSERT$`, `CLS$`, `BEEP%`, `PRINT$`).
+            _ if suffix.is_some() && !takes_suffix(&name, suffix) => {
+                let msg = format!("`{shown}` is no statement: `{name}` does not take this suffix");
+                Err(self.error(name_tok.span, msg))
+            }
             _ if is_keyword(name.as_bytes()) || find_any(name.as_bytes()).next().is_some() => {
                 Err(self.unsupported(name_tok.span, format!("`{shown}`")))
             }
-            _ => {
+            // The old compiler's own calls `CALL ABSOLUTE` and `CALL INTERRUPT[X]` (`qb64pe.bas` 10606–10687), and a
+            // name with a leading underscore, which may be a built-in the table does not hold (the OpenGL
+            // statements of `SUB _GL`, `_glBindTexture`).
+            _ if name.starts_with('_') || matches!(name.as_str(), "ABSOLUTE" | "INTERRUPT" | "INTERRUPTX") => {
                 let msg = format!("`{shown}` as a statement (no SUB of this name)");
                 Err(self.unsupported(name_tok.span, msg))
             }
+            // A name that is no SUB, no keyword and no built-in, with or without arguments, also after `THEN`:
+            // "Syntax error"; after `CALL` "Expected CALL sub-name [(...)]" (measured, `verification\v17_b_if_then_label`,
+            // `v55_x24`–`x28`, `x33`, `x34`).
+            _ if stmt.call_keyword().is_some() => {
+                Err(self.error(name_tok.span, format!("`CALL {shown}`: no SUB of this name")))
+            }
+            _ => Err(self.error(name_tok.span, format!("`{shown}` is no statement and no SUB"))),
         }
     }
 
@@ -782,6 +799,17 @@ impl Checker<'_> {
 /// `fs$("a")` calls `fs$5`, `fs$4("a")` is "Name already in use", `verification\v21_g_fixed_function`).
 pub(super) fn suffix_fits(suffix: Ty, function: Ty) -> bool {
     suffix == function || (suffix == Ty::Str && matches!(function, Ty::FixedStr(_)))
+}
+
+/// Whether `name` written with `suffix` may stand as a statement word: true for a word that is no keyword and no
+/// built-in statement (the rules after it judge those), and for a built-in statement that must have `$` (`MID$`)
+/// written with it.
+fn takes_suffix(name: &str, suffix: Option<Ty>) -> bool {
+    let mut stmts = find_any(name.as_bytes()).filter(|b| b.kind == Kind::Sub).peekable();
+    if !is_keyword(name.as_bytes()) && stmts.peek().is_none() {
+        return true;
+    }
+    suffix == Some(Ty::Str) && stmts.any(|b| b.musthave == Some("$"))
 }
 
 /// Whether a place of integer type `place` is passed by reference to a parameter of integer type `param` of

@@ -1,0 +1,5 @@
+
+Invalid label
+Caused by (or after):ON ERROR GOTO BEEP
+LINE 6:ON ERROR GOTO BEEP
+exit=1

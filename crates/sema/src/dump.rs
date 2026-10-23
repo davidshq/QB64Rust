@@ -393,10 +393,14 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 array,
                 bounds,
                 mode,
-                joined,
+                join,
             } => {
                 let t = ty(p, p.array_ty(array));
-                let joined = if *joined { ", with the next statement" } else { "" };
+                let joined = match join {
+                    crate::Join::None => String::new(),
+                    crate::Join::First => ", with the next statement".to_string(),
+                    crate::Join::Before(n) => format!(", before part {n} of the next statement"),
+                };
                 line(
                     out,
                     &format!("Allocate {}:{t} ({mode:?}{joined})", array_text(p, array)),
@@ -597,6 +601,7 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                         out,
                         &format!("{} line {}", if i == 0 { "If" } else { "ElseIf" }, b.line),
                     );
+                    stmts(p, &b.allocs, d + 2, out);
                     expr(p, &b.cond, d + 2, out);
                     stmts(p, &b.body, d + 2, out);
                 }
@@ -643,6 +648,7 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 if let Some(t) = test {
                     let word = if t.until { "Until" } else { "While" };
                     heading(out, &format!("{word} at {:?}", t.at));
+                    stmts(p, &t.allocs, d + 2, out);
                     expr(p, &t.cond, d + 2, out);
                 }
                 heading(out, "Body");
@@ -722,6 +728,7 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 expr(p, selector, d + 2, out);
                 for c in cases {
                     heading(out, &format!("Case line {}", c.line));
+                    stmts(p, &c.allocs, d + 2, out);
                     for item in &c.items {
                         match item {
                             CaseItem::Is(op, v) => {

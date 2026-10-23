@@ -6,7 +6,7 @@ use super::{Checker, Failed, R, Scope, split_unsigned};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
 use crate::{
-    AllocMode, ArrayRef, MemberId, Place, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId,
+    AllocMode, ArrayRef, Join, MemberId, Place, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId,
 };
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{Kind, auto_constant, find_any, is_auto_include_name};
@@ -65,7 +65,7 @@ impl Checker<'_> {
     /// in use" as a value, an assignment or in `DIM` (`verification\v21_x50` to `x53`). Used for variable names
     /// ([`Self::split_var_name`]) and calls only; elsewhere `name$n` stays unsupported.
     pub(super) fn proc_fixed_name(&self, t: Tok) -> Option<(String, Ty)> {
-        match fixed_name(self.text(t.span)) {
+        match fixed_name(&self.name_text(t)) {
             Some((name, Some(n))) if self.procs_by_name.contains_key(&name) => Some((name, Ty::FixedStr(n))),
             Some(_) | None => None,
         }
@@ -79,7 +79,7 @@ impl Checker<'_> {
         if let Some((name, ty)) = self.proc_fixed_name(t) {
             return Ok((name, Some(ty)));
         }
-        match fixed_name(self.text(t.span)) {
+        match fixed_name(&self.name_text(t)) {
             Some((name, Some(n))) => {
                 self.fixed_name_alone(t, &name)?;
                 Ok((name, Some(Ty::FixedStr(n))))
@@ -110,7 +110,8 @@ impl Checker<'_> {
     /// [`literal::suffix_type`]; `name$n` is not supported yet here (a variable's name is read by
     /// [`Self::split_var_name`], a FUNCTION `f$n` called by [`Self::proc_fixed_name`]).
     pub(super) fn split_name(&mut self, t: Tok) -> R<(String, Option<Ty>)> {
-        let bytes = self.text(t.span);
+        let text = self.name_text(t);
+        let bytes = &text[..];
         let end = name_end(bytes);
         let (name, suffix) = bytes.split_at(end);
         let name = show_bytes(&name.to_ascii_uppercase());
@@ -192,31 +193,29 @@ impl Checker<'_> {
             // The SUB QB64 calls to draw with OpenGL (design D10 of `m2-parser-breadth`).
             return Err(self.unsupported(t.span, "`SUB _GL` (OpenGL)"));
         }
+        // The old compiler's `regid` (`qb64pe.bas` 25881–25896): a procedure's name, without its suffix, clashes with
+        // a reserved word whatever the suffix, and with a built-in of its kind unless the built-in must have `$` and
+        // the procedure's name has none ("Name already in use"; measured, `verification\v52_x28`, `v55_x47`–`x49`,
+        // `x51`: `FUNCTION exp$`, `len$`, `abs%`, `timer#`; `chr&` is free).
+        let in_use = |c: &mut Self| {
+            let shown = show_bytes(c.text(t.span));
+            c.error(
+                t.span,
+                format!("`{shown}`: a procedure may not have the name of a keyword or a built-in"),
+            )
+        };
         if is_keyword(name.as_bytes()) && !name.starts_with('_') && !matches!(suffix, None | Some(Ty::I32)) {
-            // `v52_builtin_name_suffixes` measured variables only (design D6 of `m4-qb64pe-sources`).
-            let msg = format!(
-                "`{}` as a procedure name (a keyword with this suffix is not measured)",
-                show_bytes(self.text(t.span))
-            );
-            return Err(self.unsupported(t.span, msg));
+            return Err(in_use(self));
         }
         if name.starts_with('_') || is_keyword(name.as_bytes()) {
             return self.reserved(t, name, suffix);
         }
         let kind = if function { Kind::Function } else { Kind::Sub };
-        let mut same_kind = find_any(name.as_bytes()).filter(|b| b.kind == kind);
-        match suffix {
-            None | Some(Ty::I32) if same_kind.any(|b| b.musthave.is_none()) => Err(self.in_use(t)),
-            None | Some(Ty::I32) => Ok(()),
-            Some(_) if same_kind.next().is_some() => {
-                let msg = format!(
-                    "`{}` as a FUNCTION name (a built-in's name with this suffix is not measured)",
-                    show_bytes(self.text(t.span))
-                );
-                Err(self.unsupported(t.span, msg))
-            }
-            Some(_) => Ok(()),
+        let clash = |b: &qb64rust_builtins::Builtin| b.musthave != Some("$") || suffix == Some(Ty::Str);
+        if find_any(name.as_bytes()).filter(|b| b.kind == kind).any(clash) {
+            return Err(in_use(self));
         }
+        Ok(())
     }
 
     /// The type named by an `AS` clause: a numeric type, `STRING`, or a user type. As measured
@@ -617,8 +616,10 @@ impl Checker<'_> {
         // allocation raises no second error, and `RESUME NEXT` goes on after the whole list.
         let mut last = true;
         for s in self.sink()[first..].iter_mut().rev() {
-            if let StmtKind::Allocate { joined, .. } = &mut s.kind {
-                *joined |= !last;
+            if let StmtKind::Allocate { join, .. } = &mut s.kind {
+                if !last && *join == Join::None {
+                    *join = Join::First;
+                }
                 last = false;
             }
         }
@@ -646,6 +647,17 @@ impl Checker<'_> {
             }
             let name_tok = self.need(item.name(), item.node().span())?;
             let (name, suffix) = self.split_var_name(name_tok)?;
+            if let Some(dot) = name.find('.')
+                && self.name_text(name_tok).len() != self.text(name_tok.span).len()
+                && self.user_head(&name[..dot])
+            {
+                // `DIM a . b AS LONG` beside a `TYPE` variable `a`: "DIM: Expected ," (measured,
+                // `verification\v55_x62`); without the variable it declares `a.b` (`v47_x17`).
+                let shown = show_bytes(self.text(name_tok.span));
+                let head = shown.split('.').next().unwrap_or_default().trim_end();
+                let msg = format!("`{shown}`: `{head}` is a `TYPE` variable, and a member is not declared");
+                return Err(self.error(name_tok.span, msg));
+            }
             if by == Declarer::Dim
                 && item.bounds().is_some()
                 && let Some(dot) = name.find('.')

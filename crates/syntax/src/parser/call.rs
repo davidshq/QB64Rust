@@ -41,7 +41,10 @@ pub(crate) fn call_stmt(p: &mut Parser) {
     // (`CALL _DEST(h)`).
     super::expr::note_url_name(p);
     p.start_node(NameRef);
-    p.bump();
+    // `a . b 3`, `CALL a . b(3)`: the SUB `a.b` (measured, `verification\v47_x18`, `v55_x61`).
+    if !super::decl::declared_name(p) {
+        p.bump();
+    }
     p.finish_node();
     if explicit {
         if p.at(LParen) {

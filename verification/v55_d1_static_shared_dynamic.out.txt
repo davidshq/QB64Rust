@@ -1,0 +1,6 @@
+main, before the DIM:
+ [error 10 ]main, after the DIM: 5 
+SUB: 7  5 
+SUB: 8  5 
+main: 9  5 
+exit=0

@@ -1,0 +1,215 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY DP:F32 dynamic, 1 dimension
+ARRAY PA:F32 dynamic, 1 dimension
+ARRAY PZ:F32 dynamic, 1 dimension
+ARRAY DR:F32 dynamic, 1 dimension
+ARRAY DQ:F32 dynamic, 1 dimension
+ARRAY RD:F32 dynamic, 1 dimension
+ARRAY IA:F32 dynamic, 1 dimension
+ARRAY IB:F32 dynamic, 1 dimension
+ARRAY LS:Str dynamic, 1 dimension
+ARRAY FA:F32 dynamic, 1 dimension
+ARRAY FL:Str dynamic, 1 dimension
+ARRAY FP:F32 dynamic, 1 dimension
+ARRAY FW:F32 dynamic, 1 dimension
+ARRAY FU:F32 dynamic, 1 dimension
+ARRAY FV:F32 dynamic, 1 dimension
+ARRAY FS:Str dynamic, 1 dimension
+DATA 0: 1
+DATA 1: 2
+DATA 2: 3
+DATA 3: 4
+DATA 4: 5
+line 2: ConsoleOnly
+line 8: Allocate DP:F32 (Dim, before part 1 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 8: Print newline
+  Str
+    Str " x" : Str
+  Num
+    Element DP(…) : F32
+      Int 1 : I64
+  Str
+    Str " y" : Str
+line 9: Allocate PA:F32 (Dim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 9: Allocate PZ:F32 (Dim, before part 3 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 9: Print newline
+  Num
+    Element PA(…) : F32
+      Int 1 : I64
+  Str
+    Str " z" : Str
+  Zone
+  Num
+    Element PZ(…) : F32
+      Int 1 : I64
+line 10: Allocate DR:F32 (Dim, before part 1 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 10: Write newline
+  Num
+    Var I : I32
+  Num
+    Element DR(…) : F32
+      Int 1 : I64
+line 11: Allocate DQ:F32 (Dim, before part 1 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 11: Read
+  target A : I32
+  target DQ(…) : F32
+    Int 1 : I64
+  target B : I32
+line 12: Allocate RD:F32 (Dim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 12: Read
+  target RD(…) : F32
+    Int 1 : I64
+  target A : I32
+line 13: Allocate IA:F32 (Dim, before part 1 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 13: Input from the console question
+  target A : I32
+  target IA(…) : F32
+    Int 1 : I64
+  target B : I32
+line 14: Allocate IB:F32 (Dim, before part 0 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 14: Input from the console prompt "p" question
+  target IB(…) : F32
+    Int 1 : I64
+  target A : I32
+line 15: Allocate LS:Str (Dim, before part 0 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 15: LineInput from the console
+  target LS(…) : Str
+    Int 1 : I64
+line 16: Builtin OPEN
+  Str "x.txt" : Str
+  word 2
+  (absent)
+  (absent)
+  word 0
+  Int 1 : I32
+  (absent)
+  (absent)
+line 17: Allocate FA:F32 (Dim, before part 1 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 17: Input from a file
+  File
+    Int 1 : I32
+  target A : I32
+  target FA(…) : F32
+    Int 1 : I64
+  target B : I32
+line 18: Allocate FL:Str (Dim, before part 0 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 18: LineInput from a file
+  File
+    Int 1 : I32
+  target FL(…) : Str
+    Int 1 : I64
+line 19: Allocate FP:F32 (Dim, before part 1 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 19: Print to a file newline
+  File
+    Int 1 : I32
+  Num
+    Var A : I32
+  Num
+    Element FP(…) : F32
+      Int 1 : I64
+  Num
+    Var B : I32
+line 20: Allocate FW:F32 (Dim, before part 1 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 20: Write to a file newline
+  File
+    Int 1 : I32
+  Num
+    Var A : I32
+  Num
+    Element FW(…) : F32
+      Int 1 : I64
+  Num
+    Var B : I32
+line 21: Allocate FU:F32 (Dim, before part 2 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 21: PrintUsing newline
+  Format
+    Str "##" : Str
+  Num as I64
+    Var A : I32
+  Num as F32
+    Element FU(…) : F32
+      Int 1 : I64
+line 22: Allocate FV:F32 (Dim, before part 1 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 22: PrintUsing newline
+  Format
+    Str "##" : Str
+  Num as F32
+    Element FV(…) : F32
+      Int 1 : I64
+line 23: Allocate FS:Str (Dim, before part 1 of the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 23: PrintUsing newline
+  Str
+    Str "a" : Str
+  Format
+    Element FS(…) : Str
+      Int 1 : I64
+  Num as I64
+    Var A : I32
+line 24: System

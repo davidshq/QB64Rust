@@ -1,0 +1,5 @@
+
+Expected variable
+Caused by (or after):LINE INPUT CHR$ ( 1 )
+LINE 5:LINE INPUT CHR$(1)
+exit=1

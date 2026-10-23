@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _RGB(red&, green&, blue&[, imageHandle&])
+Caused by (or after):_RGB ( 1 ) = 2
+LINE 5:_RGB(1) = 2
+exit=1

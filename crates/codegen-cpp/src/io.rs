@@ -57,6 +57,20 @@ pub(crate) fn input_type_code(ty: Ty, place: &Place) -> u32 {
 }
 
 impl Emitter<'_> {
+    /// The allocations of the op of items being written that run just before its part `n` (design D1 of
+    /// `m4-names-implicit-arrays`), where the old compiler writes them: between the code of the parts.
+    fn allocs_before(&mut self, n: usize, out: &mut Vec<String>) {
+        let here: Vec<_> = self
+            .inside
+            .iter()
+            .filter(|(k, _)| *k == n)
+            .map(|(_, a)| a.clone())
+            .collect();
+        for a in here {
+            self.allocate(&a.array, &a.bounds, a.mode, out);
+        }
+    }
+
     fn skip_label(&mut self) -> String {
         self.skip += 1;
         format!("skip{}", self.skip)
@@ -103,7 +117,8 @@ impl Emitter<'_> {
     /// pending.
     fn screen_items(&mut self, printer: bool, items: &[PrintItem], skip: &str, out: &mut Vec<String>) {
         let (print, makefit) = screen_entries(printer);
-        for item in items {
+        for (k, item) in items.iter().enumerate() {
+            self.allocs_before(k, out);
             let text = match item {
                 PrintItem::Zone => {
                     out.push("tab();".into());
@@ -181,10 +196,12 @@ impl Emitter<'_> {
             }
         }
         out.push("tmp_long=0;".into());
+        self.allocs_before(before.len(), out);
         out.push(format!("{fmt}=qbs_new(0,0); qbs_set({fmt},{});", self.value(format)));
         // After the format a statement that prints to a file leaves by its first label.
         out.push(test(if file { &skip } else { &skip_pu }));
-        for v in values {
+        for (k, v) in values.iter().enumerate() {
+            self.allocs_before(before.len() + 1 + k, out);
             match v {
                 UsingValue::Str(e) => {
                     out.push(format!("tmp_long=print_using({fmt},tmp_long,tqbs,{});", self.value(e)));
@@ -290,6 +307,7 @@ impl Emitter<'_> {
         let test = format!("if (is_error_pending()) goto {skip};");
         let mut i = 0;
         while i < items.len() {
+            self.allocs_before(i, out);
             let (text, extra_space, zone) = match &items[i] {
                 PrintItem::Zone => ("nothingstring".to_string(), 0, true),
                 PrintItem::Str(v) => (self.value(v), 0, false),
@@ -324,6 +342,7 @@ impl Emitter<'_> {
         };
         let quote = format!("qbs_new_txt_len({},1)", c_string(b"\""));
         for (k, item) in items.iter().enumerate() {
+            self.allocs_before(k, out);
             let last = k + 1 == items.len();
             let mut text = match item {
                 PrintItem::Num(v) => format!("qbs_ltrim(qbs_str(({})({})))", c_type(v.ty), self.value(v)),
@@ -360,7 +379,8 @@ impl Emitter<'_> {
             }
             Source::Console { .. } => unreachable!("handled above"),
         }
-        for place in targets {
+        for (k, place) in targets.iter().enumerate() {
+            self.allocs_before(k, out);
             let ty = self.p.place_ty(place);
             if ty.is_string() {
                 let f = if line {
@@ -404,6 +424,7 @@ impl Emitter<'_> {
             out.push("qbs_print(qbs_new_txt(\"? \"),0);".into());
         }
         for (place, k) in targets.iter().zip(1..) {
+            self.allocs_before(k - 1, out);
             let ty = self.p.place_ty(place);
             let (code, address) = if ty.is_string() {
                 let code = if line { "ISSTRING+512" } else { "ISSTRING" };
@@ -426,7 +447,8 @@ impl Emitter<'_> {
     /// (libqb's readers return at once while one is pending).
     pub(crate) fn read(&mut self, targets: &[Place], out: &mut Vec<String>) {
         const ARGS: &str = "data,&data_offset,data_size";
-        for place in targets {
+        for (k, place) in targets.iter().enumerate() {
+            self.allocs_before(k, out);
             let ty = self.p.place_ty(place);
             let read = match ty {
                 Ty::Str | Ty::FixedStr(_) => {

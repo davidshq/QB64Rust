@@ -62,7 +62,7 @@ suite runs without it and the list is judged from that run with `--check-list te
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:verification-membership -->
-Of the 3287 programs of `verification\`, `pass.list` names **3131** and `known.list` 156.
+Of the 3380 programs of `verification\`, `pass.list` names **3251** and `known.list` 129.
 
 | Reason in `known.list` | Programs |
 |---|---|
@@ -86,11 +86,11 @@ Of the 3287 programs of `verification\`, `pass.list` names **3131** and `known.l
 | `D-027` | 5 |
 | `D-028` | 2 |
 | `D-029` | 2 |
-| `D-031` | 2 |
+| `D-031` | 3 |
 | `D-032` | 1 |
 | `D-034` | 1 |
 | `not recorded` | 4 |
-| `not supported yet` | 97 |
+| `not supported yet` | 69 |
 | `recorded elsewhere` | 1 |
 | `varies` | 3 |
 <!-- /counts:verification-membership -->

@@ -1,0 +1,5 @@
+1. main, REDIM sd(ASC() + 5): [error 5 ] 5 
+2. SUB, REDIM sd(ASC() + 6): [error 5 ] 6 
+3. SUB, REDIM sd(lc(1) + 4), lc local: [error 9 ] in q: 4  6 
+4. SUB, REDIM sd(lc(1) + 4) twice: [error 9 ] in q: 4  [error 9 ] in q: 4  6 
+exit=0

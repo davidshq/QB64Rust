@@ -19,13 +19,15 @@ proc_errors.bas:14:1: error: `EXIT FUNCTION` must be inside a SUB or FUNCTION
 proc_errors.bas:15:7: error: name already in use: `s`
 proc_errors.bas:16:7: error: name already in use: `f%`
 proc_errors.bas:17:1: error: not supported yet: calling the FUNCTION `f` as a statement
-proc_errors.bas:18:1: error: not supported yet: `nothere` as a statement (no SUB of this name)
+proc_errors.bas:18:1: error: `nothere` is no statement and no SUB
+proc_errors.bas:18:1: note: QB64pe: Syntax error
 proc_errors.bas:19:1: error: not supported yet: `FILES`
 proc_errors.bas:20:1: error: name already in use: `y`
 proc_errors.bas:24:10: error: cannot store a string in a number variable
 proc_errors.bas:24:10: note: QB64pe: Illegal string-number conversion
 proc_errors.bas:25:5: error: name already in use: `f!`
-proc_errors.bas:29:5: error: not supported yet: a SUB name with a type suffix
+proc_errors.bas:29:5: error: a SUB's name has no type suffix
+proc_errors.bas:29:5: note: QB64pe: Type symbols after a SUB name are invalid
 proc_errors.bas:32:5: error: `DIM SHARED` cannot stand inside a SUB or FUNCTION
 proc_errors.bas:32:5: note: QB64pe: DIM/REDIM SHARED invalid within a SUB/FUNCTION
 proc_errors.bas:33:12: error: not supported yet: a `STATIC` `w` beside the `DIM SHARED` one

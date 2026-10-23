@@ -90,15 +90,8 @@ pub(super) fn proc_header(p: &mut Parser, library: bool, declare: bool) {
         p.finish_node();
         return;
     }
-    p.bump();
-    if p.at(Dot) {
-        // `SUB a . b`: the old compiler drops the blanks (`verification\v47_x18`); not built here (design of
-        // `m4-devices-continue-paths`, "Non-Goals").
-        let span = p.current_span();
-        p.unsupported_at(span, "a procedure name with blanks around `.`");
-        p.recover();
-        p.finish_node();
-        return;
+    if !super::decl::declared_name(p) {
+        p.bump();
     }
     if library && p.at_word("ALIAS") {
         p.bump();

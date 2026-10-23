@@ -724,6 +724,8 @@ struct StmtState {
     /// What is being checked is a place where an allocation that runs first in the statement would not be what
     /// the old compiler does ([`Checker::implicit_array`], [`Checker::unjoined`]).
     no_join: Option<NoJoin>,
+    /// What the name being checked stands for ([`Checker::placing`]).
+    placing: Placing,
     /// The place in the old compiler's first pass of the `CONST` being checked ([`Checker::color_file`]).
     const_at: Option<u32>,
     /// How many `CONST` names of the program stand above the `CONST` being checked ([`Checker::const_names`]).
@@ -779,6 +781,19 @@ enum DimFact {
     },
 }
 
+/// What a name with an index that names no array stands for, by which the old compiler words its error
+/// ([`Checker::implicit_array`], [`Checker::call_place`]; measured, `verification\v55_x10`–`x20`, `x76`–`x79`).
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+enum Placing {
+    /// A value: "Name already in use" for a SUB's or FUNCTION's name, "Expected (...)" for a built-in function's.
+    #[default]
+    Value,
+    /// The place of an assignment: "Expected variable =".
+    Store,
+    /// A target of `READ`, `INPUT`, `LINE INPUT` or an operand of `SWAP`: "Expected variable".
+    Target,
+}
+
 /// Where an array used without `DIM` is not made by its first use ([`Checker::implicit_array`]): the old
 /// compiler allocates it where the name is evaluated, which is the start of the statement only when the
 /// statement writes all its code after evaluating all its parts.
@@ -787,15 +802,15 @@ enum NoJoin {
     /// The line of a block (`IF`, `ELSEIF`, `FOR`, `DO`, `LOOP`, `WHILE`, `SELECT CASE`, `CASE`), which is no
     /// statement of its own (measured, `verification\v24_x262`).
     Header,
-    /// An item of a statement that works item by item, after the part of it that runs first: a later item of
-    /// `PRINT` or `READ`, an item of `WRITE` or of `PRINT #`, a target of `INPUT` or `LINE INPUT` (measured,
-    /// `verification\v24_x264`, `x265`: the earlier items are printed or read, the prompt is shown, then the
-    /// allocation raises its error).
-    Item,
+    /// Part `n` of a statement that works item by item, after the part of it that runs first: a later item of
+    /// `PRINT` or `READ`, an item of `WRITE` or of `PRINT #`, a target of `INPUT` or `LINE INPUT`, the format or a
+    /// value of `PRINT USING` (measured, `verification\v24_x264`, `x265`: the earlier items are printed or read,
+    /// the prompt is shown, then the allocation raises its error). The allocation runs there ([`crate::Join::Before`]).
+    Item(usize),
     /// A bound of `REDIM`: the array is then dynamic, also where `$DYNAMIC` is not in effect, and is allocated in
-    /// the `REDIM`'s own way, so a second run makes it anew or keeps it and raises nothing (measured,
+    /// the `REDIM`'s own way (its mode), so a second run makes it anew or keeps it and raises nothing (measured,
     /// `verification\v24_x266`, `x268`).
-    RedimBound,
+    RedimBound(crate::AllocMode),
 }
 
 /// Every default type is SINGLE until a `DEFxxx` or `_DEFINE` says otherwise.
@@ -851,7 +866,19 @@ impl Checker<'_> {
 
     /// The token in upper case, other than printable ASCII escaped (`\xC9`).
     fn word(&self, t: Tok) -> String {
-        show_bytes(&self.text(t.span).to_ascii_uppercase())
+        show_bytes(&self.name_text(t).to_ascii_uppercase())
+    }
+
+    /// The text of a name's token without blanks: a declared name written with blanks around its dots (`DIM a .
+    /// b`) is one token over all of it ([`ast::DimItem::name`]), which the old compiler reads as `a.b` (design D7 of
+    /// `m4-names-implicit-arrays`). Any other name's text has no blank.
+    fn name_text(&self, t: Tok) -> std::borrow::Cow<'_, [u8]> {
+        let bytes = self.text(t.span);
+        if bytes.iter().any(|&b| b == b' ' || b == b'\t') {
+            std::borrow::Cow::Owned(bytes.iter().copied().filter(|&b| b != b' ' && b != b'\t').collect())
+        } else {
+            std::borrow::Cow::Borrowed(bytes)
+        }
     }
 
     /// The words of the type an `AS` clause names, each as [`Self::word`] gives it (`_UNSIGNED`, `INTEGER`).
@@ -1162,6 +1189,14 @@ impl Checker<'_> {
                 *dims = Some(n);
             }
         }
+    }
+
+    /// Runs `check` on a name that stands for `what` ([`Placing`]).
+    fn placing<T>(&mut self, what: Placing, check: impl FnOnce(&mut Self) -> R<T>) -> R<T> {
+        let before = std::mem::replace(&mut self.stmt.placing, what);
+        let result = check(self);
+        self.stmt.placing = before;
+        result
     }
 
     /// Runs `check` as a part of the statement where a joined allocation has no place (`why`).
@@ -1737,7 +1772,7 @@ impl Checker<'_> {
             ast::Expr::Call(c) if c.name().is_some_and(|t| self.word(t) == "ASC") => {
                 return self.asc_assign(node, c, value_node);
             }
-            ast::Expr::Call(c) => self.call_place(c)?,
+            ast::Expr::Call(c) => self.call_place(c, Placing::Store)?,
             ast::Expr::Field(f) => self.field_place(f)?,
             e @ (ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_)) => {
                 return Err(self.error(e.node().span(), "cannot assign to this expression"));

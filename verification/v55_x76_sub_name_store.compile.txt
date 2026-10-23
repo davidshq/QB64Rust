@@ -1,0 +1,5 @@
+
+SUB does not require any arguments
+Caused by (or after):S ( 3 ) = 5
+LINE 5:s(3) = 5
+exit=1

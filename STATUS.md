@@ -59,11 +59,11 @@ push shows them (the user is not concerned with CI, working rule 9).
    nothing, and `-x` builds an executable, not run (the change's `tasks.md`, task 7.2). At the merge into `main`,
    `ROADMAP.md` says that the compile half of M4's exit criterion is met.
 3. The rest of M4 is a plan of six steps (`DECISIONS.md` 2026-10-22). Step 1, `m4-line-numbers-whole-arrays`, is
-   done (archived, specs synced). Next is step 2, **names and implicit arrays** (design D6 of that
-   change): an array used without `DIM` in the forms still marked, `LEN(x())` of an undeclared array, a built-in's
-   name as an array, a place, a label or with a suffix, names with blanks around `.`, the old compiler's errors for
-   names that are no array or no SUB. `tests\verification\known.list` (156 programs, each with its reason) holds the
-   forms still marked.
+   done (archived, specs synced). Step 2, `m4-names-implicit-arrays`, is built and closed (`close.py --check`
+   passes), waiting for the user's review before it is archived. Next is step 3, **memory and record forms**:
+   `GET`/`PUT` of a variable that is no array or of an undeclared array, `VARPTR`/`VARSEG` of a variable that is no
+   array element, and the other forms the demand report over `tests\verification\known.list` (129 programs, each
+   with its reason) puts there.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at

@@ -1,0 +1,74 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY E.F:I32(0 TO 3)
+line 2: ConsoleOnly
+line 11: Assign A.B:I32
+  Int 3 : I32
+line 11: Assign C.D:I16
+  Int 2 : I16
+line 11: Assign E.F(…):I32
+  Index
+    Int 1 : I64
+  Value
+    Int 4 : I32
+line 11: Assign G.H:Str
+  Str "s" : Str
+line 11: Assign K.M:I32
+  Int 5 : I32
+line 12: Print newline
+  Num
+    Var A.B : I32
+  Num
+    Var A.B : I32
+  Num
+    Var C.D : I16
+  Num
+    Element E.F(…) : I32
+      Int 1 : I64
+  Str
+    Var G.H : Str
+line 13: Call S.T
+  temp
+    Convert Nearest : F32
+      Int 3 : I16
+line 14: Call S.T
+  temp
+    Convert Nearest : F32
+      Int 4 : I16
+line 15: Print newline
+  Num
+    CallProc U.V : F32
+      temp
+        Convert Nearest : F32
+          Int 3 : I16
+  Num
+    CallProc U.V : F32
+      temp
+        Convert Nearest : F32
+          Int 4 : I16
+line 16: Call W.X
+line 17: System
+SUB S.T
+  param N:F32
+line 20: Print newline
+  Num
+    Var N (param) : F32
+  Num
+    Var K.M : I32
+FUNCTION U.V : F32
+  param N:F32
+  result U.V:F32
+line 24: Assign U.V (result):F32
+  Binary Mul : F32
+    Var N (param) : F32
+    Convert Nearest : F32
+      Int 2 : I16
+SUB W.X
+  static Y:F32
+line 28: Assign Y (static):F32
+  Binary Add : F32
+    Var Y (static) : F32
+    Convert Nearest : F32
+      Int 1 : I16

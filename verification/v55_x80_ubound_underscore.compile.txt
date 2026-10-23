@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):PRINT UBOUND ( _FOO )
+LINE 5:PRINT UBOUND(_foo)
+exit=1

@@ -1,0 +1,99 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY RC:F32 dynamic, 1 dimension
+ARRAY RB:F32 dynamic, 1 dimension
+ARRAY RQ:F32 dynamic, 1 dimension
+ARRAY RP:F32 dynamic, 1 dimension
+ARRAY RA:F32 dynamic, 1 dimension
+ARRAY RE:F32 dynamic, 1 dimension
+ARRAY RD:F32 dynamic, 1 dimension
+ARRAY DW:F32 dynamic, 1 dimension
+ARRAY DV:F32 dynamic, 1 dimension
+ARRAY LC (local):F32 dynamic, 1 dimension
+ARRAY X (local):F32 dynamic, 1 dimension
+line 2: ConsoleOnly
+line 8: Allocate RC:F32 (Redim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 8: Allocate RB:F32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Binary Add : F32
+        Element RC(…) : F32
+          Int 1 : I64
+        Convert Nearest : F32
+          Var I : I32
+line 9: Allocate RQ:F32 (Preserve, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 9: Allocate RP:F32 (Preserve)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Binary Add : F32
+        Element RQ(…) : F32
+          Int 1 : I64
+        Convert Nearest : F32
+          Var I : I32
+line 11: Allocate RA:F32 (Redim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert Widen : I64
+      Binary Add : I32 (qb I64)
+        Var I : I32
+        Int 1 : I32
+line 11: Allocate RE:F32 (Redim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 11: Allocate RD:F32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Binary Add : F32
+        Element RE(…) : F32
+          Int 1 : I64
+        Convert Nearest : F32
+          Var I : I32
+line 12: Allocate DW:F32 (Dim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 10 : I64
+line 12: Allocate DV:F32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Binary Add : F32
+        Element DW(…) : F32
+          Int 1 : I64
+        Convert Nearest : F32
+          Int 3 : I16
+line 14: Call S
+line 15: System
+SUB S
+  local LC:F32
+  local X:F32
+line 18: Allocate X (local):F32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Binary Add : F32
+        Element LC (local)(…) : F32
+          Int 1 : I64
+        Convert Nearest : F32
+          Int 4 : I16

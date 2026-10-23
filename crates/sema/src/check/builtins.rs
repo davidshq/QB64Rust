@@ -11,6 +11,7 @@ use crate::builtins::{
 };
 use crate::{ConvKind, Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, StmtArg, StmtKind, Ty};
 use qb64rust_base::Span;
+use qb64rust_builtins::find_any;
 use qb64rust_builtins::template::{Atom, Item};
 use qb64rust_syntax::SyntaxKind::{self, Ident, LParen, RParen};
 use qb64rust_syntax::ast;
@@ -511,8 +512,15 @@ impl Checker<'_> {
         // whose first part is a `TYPE` variable.
         let t = self.need(c.name(), at)?;
         let (name, suffix) = self.split_name(t)?;
-        let Some(array) = self.find_array(&name, suffix) else {
-            return Ok(None);
+        let array = match self.find_array(&name, suffix) {
+            Some(a) => a,
+            None if self.procs_by_name.contains_key(&name) || find_any(name.as_bytes()).next().is_some() => {
+                return Ok(None);
+            }
+            // A name that is no array: the implicit array of one dimension (measured, `verification\v48_x04`,
+            // `x14`, `v55_b_implicit_whole`: 44 for eleven `SINGLE` elements; design D5 of
+            // `m4-names-implicit-arrays`).
+            None => self.implicit_array(t, &name, suffix, 0, c.node())?,
         };
         // Measured: "UDT must have fixed size" (`verification\v48_x03`), where `_MEM` of the array is no error
         // (`x11`).
@@ -801,7 +809,8 @@ impl Checker<'_> {
     /// also a function, `SCREEN (12) = 12`, or has a leading underscore). The parser reads such a line as the
     /// statement with a comparison as its first argument, which is right only when something stands between the
     /// `)` and the `=` (`CLS (1) + 2 = 5` is `CLS` with a comparison, measured). `WIDTH` alone is different: the
-    /// old compiler makes `WIDTH (80) = 80` an element of an array named `WIDTH`.
+    /// old compiler makes `WIDTH (80) = 80` an element of an array named `WIDTH`, and the parser reads it as an
+    /// assignment (design D8 of `m4-names-implicit-arrays`).
     fn not_an_assignment(&mut self, node: Node, name: qb64rust_syntax::tree::Tok, shown: &str) -> R<()> {
         let tokens: Vec<_> = node.tokens().into_iter().filter(|t| !t.kind.is_trivia()).collect();
         if tokens.first().map(|t| t.span) != Some(name.span) || tokens.get(1).map(|t| t.kind) != Some(LParen) {
@@ -821,9 +830,6 @@ impl Checker<'_> {
         };
         if tokens.get(close + 2).map(|t| t.kind) != Some(SyntaxKind::Eq) {
             return Ok(());
-        }
-        if shown.eq_ignore_ascii_case("WIDTH") {
-            return Err(self.unsupported(name.span, "an array named `WIDTH`"));
         }
         Err(self.error(name.span, format!("name already in use: `{shown}`")))
     }

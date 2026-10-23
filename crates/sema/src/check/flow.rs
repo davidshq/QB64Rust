@@ -5,11 +5,11 @@
 //! of its own body; `ON ERROR GOTO` names one of the main module's, from any body (all measured). A line number is
 //! a label whose name is the number as the old compiler spells it (design D1 of `m4-line-numbers-whole-arrays`).
 
-use super::{Checker, R, Skips, nested_statements};
+use super::{Checker, Failed, R, Skips, nested_statements};
 use crate::builtins::stmt_lookup;
 use crate::{ConvKind, ErrorHandler, Label, LabelId, ProcId, ProcKind, Resume, StmtKind, SymbolKind, Ty};
 use qb64rust_base::{Span, show_bytes, to_u32};
-use qb64rust_builtins::find_any;
+use qb64rust_builtins::{Kind, find_any};
 use qb64rust_syntax::SyntaxKind::{
     GosubStmt, GotoStmt, Ident, Number, OnErrorStmt, OnEventStmt, OnJumpStmt, RestoreStmt, ResumeStmt, ReturnStmt,
 };
@@ -136,6 +136,14 @@ impl Checker<'_> {
             return Ok(());
         }
         if find_any(name.as_bytes()).next().is_some() {
+            if find_any(name.as_bytes()).all(|b| b.kind == Kind::Function) {
+                // `validlabel` refuses the name, and the line is then a statement that is a function: "Syntax
+                // error" (measured, `verification\v55_x35`, `x44`: `abs:`, `LEN:`).
+                return Err(self.error(
+                    t.span,
+                    format!("`{shown}:`: `{shown}` is a built-in function, not a label"),
+                ));
+            }
             return Err(self.unsupported(t.span, format!("the label `{shown}:` (`{shown}` is a built-in)")));
         }
         // `validname` refuses a single leading `_` for a label too (measured, "Invalid name",
@@ -254,14 +262,27 @@ impl Checker<'_> {
         }
     }
 
-    /// Whether a label of this name gets a mark in place of an entry ([`Self::declare_label`]): the name of a
-    /// built-in, or of a SUB or FUNCTION where the label could not be told from a call.
+    /// Whether a label of this name gets a mark in place of an entry ([`Self::declare_label`]): the name of a SUB
+    /// or FUNCTION where the label could not be told from a call.
     fn marked_label_name(&self, name: &str) -> bool {
-        find_any(name.as_bytes()).next().is_some()
-            || self
-                .procs_by_name
-                .get(name)
-                .is_some_and(|&p| self.unclear_proc_label(p, name))
+        self.procs_by_name
+            .get(name)
+            .is_some_and(|&p| self.unclear_proc_label(p, name))
+    }
+
+    /// The error for a jump to a label that is not defined, named `shown` at `t`, when `name` is a built-in's: the
+    /// old compiler's `validlabel` refuses every name of a built-in, so no line defines such a label and every
+    /// jump to it is an error: "Invalid label!" after `GOTO` and `ON … GOTO` (`goto`), "Invalid label" after
+    /// `GOSUB`, `RESTORE` and `ON ERROR GOTO` (`qb64pe.bas` 27121–27166; measured, `verification\v27_x63`, `v29_x78`,
+    /// `x79`, `v55_x36`–`x38`, `x42`, `x43`, `x45`).
+    fn builtin_label(&mut self, t: Tok, name: &str, shown: &str, goto: bool) -> Option<Failed> {
+        find_any(name.as_bytes()).next()?;
+        let msg = if goto {
+            format!("`{shown}` is a built-in's name, not a label to go to")
+        } else {
+            format!("`{shown}` is a built-in's name, not a label")
+        };
+        Some(self.error(t.span, msg))
     }
 
     /// Whether the procedure is a SUB that can be called without an argument.
@@ -303,12 +324,20 @@ impl Checker<'_> {
 
     /// A label of `body` named at `t`: `ON ERROR GOTO` and `RESUME` in the main module, and every jump.
     pub(super) fn label_ref(&mut self, t: Tok, body: Option<ProcId>) -> R<LabelId> {
+        self.label_for(t, body, false)
+    }
+
+    /// [`Self::label_ref`] for `GOTO` and `ON … GOTO` (`goto`), whose error for a built-in's name is worded apart.
+    fn label_for(&mut self, t: Tok, body: Option<ProcId>, goto: bool) -> R<LabelId> {
         let shown = show_bytes(self.text(t.span));
         let name = self.target_name(t)?;
         let Some(&id) = self.labels_by_name.get(&(body, name.clone())) else {
+            if let Some(e) = self.builtin_label(t, &name, &shown, goto) {
+                return Err(e);
+            }
             // A label with such a name is "not supported yet" (`declare_label`), so it may exist.
             if self.marked_label_name(&name) {
-                let msg = format!("a label with the name of a SUB, FUNCTION or built-in: `{shown}`");
+                let msg = format!("a label with the name of a SUB or FUNCTION: `{shown}`");
                 return Err(self.unsupported(t.span, msg));
             }
             // Nothing hides a label: one is entered wherever its line parses, also inside a block, an included
@@ -348,9 +377,12 @@ impl Checker<'_> {
             .map(|(_, &id)| id);
         let (first, second) = (found.next(), found.next());
         let Some(id) = first else {
+            if let Some(e) = self.builtin_label(t, &name, &shown, false) {
+                return Err(e);
+            }
             // A label with such a name is "not supported yet" (`declare_label`), so it may exist.
             if self.marked_label_name(&name) {
-                let msg = format!("a label with the name of a SUB, FUNCTION or built-in: `{shown}`");
+                let msg = format!("a label with the name of a SUB or FUNCTION: `{shown}`");
                 return Err(self.unsupported(t.span, msg));
             }
             return Err(self.error(t.span, format!("label `{shown}` is not defined")));
@@ -365,16 +397,16 @@ impl Checker<'_> {
         Ok(())
     }
 
-    /// The target of `GOTO`, `GOSUB` or `RETURN`: a label or line number of the current body.
-    fn jump_target(&mut self, t: Tok) -> R<LabelId> {
-        self.label_ref(t, self.cur)
+    /// The target of `GOTO` (`goto`), `GOSUB` or `RETURN`: a label or line number of the current body.
+    fn jump_target(&mut self, t: Tok, goto: bool) -> R<LabelId> {
+        self.label_for(t, self.cur, goto)
     }
 
     /// `GOTO label`.
     pub(super) fn goto(&mut self, s: ast::GotoStmt) -> R<()> {
         let node = s.node();
         let t = self.need(s.target(), node.span())?;
-        let l = self.jump_target(t)?;
+        let l = self.jump_target(t, true)?;
         self.push(node, StmtKind::Goto(l));
         Ok(())
     }
@@ -383,7 +415,7 @@ impl Checker<'_> {
     pub(super) fn implicit_goto(&mut self, s: ast::ImplicitGoto) -> R<()> {
         let node = s.node();
         let t = self.need(s.number(), node.span())?;
-        let l = self.jump_target(t)?;
+        let l = self.jump_target(t, true)?;
         self.push(node, StmtKind::Goto(l));
         Ok(())
     }
@@ -392,7 +424,7 @@ impl Checker<'_> {
     pub(super) fn gosub(&mut self, s: ast::GosubStmt) -> R<()> {
         let node = s.node();
         let t = self.need(s.target(), node.span())?;
-        let l = self.jump_target(t)?;
+        let l = self.jump_target(t, false)?;
         self.push(node, StmtKind::Gosub(l));
         Ok(())
     }
@@ -425,7 +457,7 @@ impl Checker<'_> {
             let Some(t) = t else {
                 return Err(self.unsupported(span, "an omitted target of `ON … GOTO`/`ON … GOSUB`"));
             };
-            targets.push(self.jump_target(t)?);
+            targets.push(self.jump_target(t, !gosub)?);
         }
         self.push(node, StmtKind::OnJump { value, gosub, targets });
         Ok(())
@@ -441,7 +473,7 @@ impl Checker<'_> {
                 let msg = "`RETURN` with a label or line number is not allowed in a SUB or FUNCTION";
                 return Err(self.error(t.span, msg));
             }
-            Some(t) => Some(self.jump_target(t)?),
+            Some(t) => Some(self.jump_target(t, false)?),
         };
         self.push(node, StmtKind::Return(target));
         Ok(())

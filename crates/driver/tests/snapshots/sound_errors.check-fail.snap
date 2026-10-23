@@ -50,6 +50,8 @@ sound_errors.bas:39:5: error: name already in use: `BEEP`
 sound_errors.bas:39:5: note: QB64pe: Name already in use (BEEP)
 sound_errors.bas:40:6: error: cannot read the arguments of `BEEP`
 sound_errors.bas:40:6: note: QB64pe: SUB does not require any arguments
-sound_errors.bas:42:6: error: not supported yet: a label with the name of a SUB, FUNCTION or built-in: `BEEP`
-sound_errors.bas:44:6: error: not supported yet: a label with the name of a SUB, FUNCTION or built-in: `SOUND`
-sound_errors.bas:45:6: error: not supported yet: a label with the name of a SUB, FUNCTION or built-in: `PLAY`
+sound_errors.bas:42:6: error: `BEEP` is a built-in's name, not a label to go to
+sound_errors.bas:42:6: note: QB64pe: Invalid label!
+sound_errors.bas:44:6: error: `SOUND` is a built-in's name, not a label to go to
+sound_errors.bas:44:6: note: QB64pe: Invalid label!
+sound_errors.bas:45:6: error: `PLAY` is a built-in's name, not a label to go to

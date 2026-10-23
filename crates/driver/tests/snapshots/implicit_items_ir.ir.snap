@@ -1,0 +1,132 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Data 0: 1
+Data 1: 2
+Data 2: 3
+Data 3: 4
+Data 4: 5
+Array DP:F32 dynamic, dimensions: 1
+Array PA:F32 dynamic, dimensions: 1
+Array PZ:F32 dynamic, dimensions: 1
+Array DR:F32 dynamic, dimensions: 1
+Array DQ:F32 dynamic, dimensions: 1
+Array RD:F32 dynamic, dimensions: 1
+Array IA:F32 dynamic, dimensions: 1
+Array IB:F32 dynamic, dimensions: 1
+Array LS:Str dynamic, dimensions: 1
+Array FA:F32 dynamic, dimensions: 1
+Array FL:Str dynamic, dimensions: 1
+Array FP:F32 dynamic, dimensions: 1
+Array FW:F32 dynamic, dimensions: 1
+Array FU:F32 dynamic, dimensions: 1
+Array FV:F32 dynamic, dimensions: 1
+Array FS:Str dynamic, dimensions: 1
+Stmt line 2
+  SelectConsole
+Stmt line 8 may_raise
+  Print console newline
+    Str Const " x"
+    Num Load DP(Const 1:I64):F32
+    Str Const " y"
+    Allocate Dim DP:F32 before part 1
+      Const 0:I64 To Const 10:I64
+Stmt line 9 may_raise
+  Allocate Dim PA:F32
+    Const 0:I64 To Const 10:I64
+  Print console newline
+    Num Load PA(Const 1:I64):F32
+    Str Const " z"
+    Zone
+    Num Load PZ(Const 1:I64):F32
+    Allocate Dim PZ:F32 before part 3
+      Const 0:I64 To Const 10:I64
+Stmt line 10 may_raise
+  Write console newline
+    Num Var I:I32
+    Num Load DR(Const 1:I64):F32
+    Allocate Dim DR:F32 before part 1
+      Const 0:I64 To Const 10:I64
+Stmt line 11 may_raise
+  Read
+    Target A:I32
+    Target DQ(Const 1:I64):F32
+    Target B:I32
+    Allocate Dim DQ:F32 before part 1
+      Const 0:I64 To Const 10:I64
+Stmt line 12 may_raise
+  Allocate Dim RD:F32
+    Const 0:I64 To Const 10:I64
+  Read
+    Target RD(Const 1:I64):F32
+    Target A:I32
+Stmt line 13 may_raise
+  Input console question
+    Target A:I32
+    Target IA(Const 1:I64):F32
+    Target B:I32
+    Allocate Dim IA:F32 before part 1
+      Const 0:I64 To Const 10:I64
+Stmt line 14 may_raise
+  Input console prompt "p" question
+    Target IB(Const 1:I64):F32
+    Target A:I32
+    Allocate Dim IB:F32 before part 0
+      Const 0:I64 To Const 10:I64
+Stmt line 15 may_raise
+  LineInput console
+    Target LS(Const 1:I64):Str
+    Allocate Dim LS:Str before part 0
+      Const 0:I64 To Const 10:I64
+Stmt line 16 may_raise
+  Builtin OPEN form 1 [Value(Const "x.txt"), Word 2, Absent, Absent, Word 0, Value(Const 1:I32), Absent, Absent]
+Stmt line 17 may_raise
+  Input file Const 1:I32
+    Target A:I32
+    Target FA(Const 1:I64):F32
+    Target B:I32
+    Allocate Dim FA:F32 before part 1
+      Const 0:I64 To Const 10:I64
+Stmt line 18 may_raise
+  LineInput file Const 1:I32
+    Target FL(Const 1:I64):Str
+    Allocate Dim FL:Str before part 0
+      Const 0:I64 To Const 10:I64
+Stmt line 19 may_raise
+  Print file Const 1:I32 newline
+    Num Var A:I32
+    Num Load FP(Const 1:I64):F32
+    Num Var B:I32
+    Allocate Dim FP:F32 before part 1
+      Const 0:I64 To Const 10:I64
+Stmt line 20 may_raise
+  Write file Const 1:I32 newline
+    Num Var A:I32
+    Num Load FW(Const 1:I64):F32
+    Num Var B:I32
+    Allocate Dim FW:F32 before part 1
+      Const 0:I64 To Const 10:I64
+Stmt line 21 may_raise
+  PrintUsing console newline
+    Format Const "##"
+    Num as I64: Var A:I32
+    Num as F32: Load FU(Const 1:I64):F32
+    Allocate Dim FU:F32 before part 2
+      Const 0:I64 To Const 10:I64
+Stmt line 22 may_raise
+  PrintUsing console newline
+    Format Const "##"
+    Num as F32: Load FV(Const 1:I64):F32
+    Allocate Dim FV:F32 before part 1
+      Const 0:I64 To Const 10:I64
+Stmt line 23 may_raise
+  PrintUsing console newline
+    Str Const "a"
+    Format Load FS(Const 1:I64):Str
+    Num as I64: Var A:I32
+    Allocate Dim FS:Str before part 1
+      Const 0:I64 To Const 10:I64
+Stmt line 24
+  System

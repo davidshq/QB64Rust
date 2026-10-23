@@ -1,0 +1,5 @@
+
+Name already in use (abs)
+Caused by (or after):
+LINE 5:FUNCTION ABS% ( A )
+exit=1

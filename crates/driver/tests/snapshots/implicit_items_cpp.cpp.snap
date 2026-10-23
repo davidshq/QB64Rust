@@ -1,0 +1,2219 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+static void qbr_diverged(int32 qbr_n){
+static int32 qbr_on=-1;
+static uint8 qbr_seen[100];
+static const char *qbr_path=NULL;
+if (qbr_on<0){qbr_path=getenv("QB64RUST_DIVERGENCES");qbr_on=qbr_path&&*qbr_path;}
+if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;
+qbr_seen[qbr_n]=1;
+FILE *qbr_f=fopen(qbr_path,"ab");
+if (qbr_f){fprintf(qbr_f,"D-%03d\n",(int)qbr_n);fclose(qbr_f);}
+}
+static void qbr_diverged_on(int32 qbr_n){
+if (new_error>=300&&new_error<=315) return;
+const char *qbr_np=getenv("QB64PE_NOPROMPT");
+if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);
+}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}return qb_l%qb_r;}
+int32 *__LONG_I=NULL;
+int32 *__LONG_A=NULL;
+int32 *__LONG_B=NULL;
+ptrszint *__ARRAY_SINGLE_DP=NULL;
+ptrszint *__ARRAY_SINGLE_PA=NULL;
+ptrszint *__ARRAY_SINGLE_PZ=NULL;
+ptrszint *__ARRAY_SINGLE_DR=NULL;
+ptrszint *__ARRAY_SINGLE_DQ=NULL;
+ptrszint *__ARRAY_SINGLE_RD=NULL;
+ptrszint *__ARRAY_SINGLE_IA=NULL;
+ptrszint *__ARRAY_SINGLE_IB=NULL;
+ptrszint *__ARRAY_STRING_LS=NULL;
+ptrszint *__ARRAY_SINGLE_FA=NULL;
+ptrszint *__ARRAY_STRING_FL=NULL;
+ptrszint *__ARRAY_SINGLE_FP=NULL;
+ptrszint *__ARRAY_SINGLE_FW=NULL;
+ptrszint *__ARRAY_SINGLE_FU=NULL;
+ptrszint *__ARRAY_SINGLE_FV=NULL;
+ptrszint *__ARRAY_STRING_FS=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=10;
+uint8 inline_data[]={
+49,44,50,44,51,44,52,44,53,44,
+0};
+uint8 *data=&inline_data[0];
+==> clear.txt <==
+*__LONG_I=0;
+*__LONG_A=0;
+*__LONG_B=0;
+if (__ARRAY_SINGLE_DP[2]&1){
+if (__ARRAY_SINGLE_DP[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_DP[0])); else free((void*)(__ARRAY_SINGLE_DP[0]));
+__ARRAY_SINGLE_DP[2]^=1;
+__ARRAY_SINGLE_DP[4]=2147483647;
+__ARRAY_SINGLE_DP[5]=0;
+__ARRAY_SINGLE_DP[6]=0;
+__ARRAY_SINGLE_DP[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_SINGLE_PA[2]&1){
+if (__ARRAY_SINGLE_PA[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_PA[0])); else free((void*)(__ARRAY_SINGLE_PA[0]));
+__ARRAY_SINGLE_PA[2]^=1;
+__ARRAY_SINGLE_PA[4]=2147483647;
+__ARRAY_SINGLE_PA[5]=0;
+__ARRAY_SINGLE_PA[6]=0;
+__ARRAY_SINGLE_PA[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_SINGLE_PZ[2]&1){
+if (__ARRAY_SINGLE_PZ[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_PZ[0])); else free((void*)(__ARRAY_SINGLE_PZ[0]));
+__ARRAY_SINGLE_PZ[2]^=1;
+__ARRAY_SINGLE_PZ[4]=2147483647;
+__ARRAY_SINGLE_PZ[5]=0;
+__ARRAY_SINGLE_PZ[6]=0;
+__ARRAY_SINGLE_PZ[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_SINGLE_DR[2]&1){
+if (__ARRAY_SINGLE_DR[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_DR[0])); else free((void*)(__ARRAY_SINGLE_DR[0]));
+__ARRAY_SINGLE_DR[2]^=1;
+__ARRAY_SINGLE_DR[4]=2147483647;
+__ARRAY_SINGLE_DR[5]=0;
+__ARRAY_SINGLE_DR[6]=0;
+__ARRAY_SINGLE_DR[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_SINGLE_DQ[2]&1){
+if (__ARRAY_SINGLE_DQ[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_DQ[0])); else free((void*)(__ARRAY_SINGLE_DQ[0]));
+__ARRAY_SINGLE_DQ[2]^=1;
+__ARRAY_SINGLE_DQ[4]=2147483647;
+__ARRAY_SINGLE_DQ[5]=0;
+__ARRAY_SINGLE_DQ[6]=0;
+__ARRAY_SINGLE_DQ[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_SINGLE_RD[2]&1){
+if (__ARRAY_SINGLE_RD[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_RD[0])); else free((void*)(__ARRAY_SINGLE_RD[0]));
+__ARRAY_SINGLE_RD[2]^=1;
+__ARRAY_SINGLE_RD[4]=2147483647;
+__ARRAY_SINGLE_RD[5]=0;
+__ARRAY_SINGLE_RD[6]=0;
+__ARRAY_SINGLE_RD[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_SINGLE_IA[2]&1){
+if (__ARRAY_SINGLE_IA[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_IA[0])); else free((void*)(__ARRAY_SINGLE_IA[0]));
+__ARRAY_SINGLE_IA[2]^=1;
+__ARRAY_SINGLE_IA[4]=2147483647;
+__ARRAY_SINGLE_IA[5]=0;
+__ARRAY_SINGLE_IA[6]=0;
+__ARRAY_SINGLE_IA[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_SINGLE_IB[2]&1){
+if (__ARRAY_SINGLE_IB[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_IB[0])); else free((void*)(__ARRAY_SINGLE_IB[0]));
+__ARRAY_SINGLE_IB[2]^=1;
+__ARRAY_SINGLE_IB[4]=2147483647;
+__ARRAY_SINGLE_IB[5]=0;
+__ARRAY_SINGLE_IB[6]=0;
+__ARRAY_SINGLE_IB[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_STRING_LS[2]&1){
+tmp_long=__ARRAY_STRING_LS[5];
+while(tmp_long--){
+qbs_free(((qbs**)(__ARRAY_STRING_LS[0]))[tmp_long]);
+}
+free((void*)(__ARRAY_STRING_LS[0]));
+__ARRAY_STRING_LS[2]^=1;
+__ARRAY_STRING_LS[4]=2147483647;
+__ARRAY_STRING_LS[5]=0;
+__ARRAY_STRING_LS[6]=0;
+__ARRAY_STRING_LS[0]=(ptrszint)&nothingstring;
+}
+if (__ARRAY_SINGLE_FA[2]&1){
+if (__ARRAY_SINGLE_FA[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_FA[0])); else free((void*)(__ARRAY_SINGLE_FA[0]));
+__ARRAY_SINGLE_FA[2]^=1;
+__ARRAY_SINGLE_FA[4]=2147483647;
+__ARRAY_SINGLE_FA[5]=0;
+__ARRAY_SINGLE_FA[6]=0;
+__ARRAY_SINGLE_FA[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_STRING_FL[2]&1){
+tmp_long=__ARRAY_STRING_FL[5];
+while(tmp_long--){
+qbs_free(((qbs**)(__ARRAY_STRING_FL[0]))[tmp_long]);
+}
+free((void*)(__ARRAY_STRING_FL[0]));
+__ARRAY_STRING_FL[2]^=1;
+__ARRAY_STRING_FL[4]=2147483647;
+__ARRAY_STRING_FL[5]=0;
+__ARRAY_STRING_FL[6]=0;
+__ARRAY_STRING_FL[0]=(ptrszint)&nothingstring;
+}
+if (__ARRAY_SINGLE_FP[2]&1){
+if (__ARRAY_SINGLE_FP[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_FP[0])); else free((void*)(__ARRAY_SINGLE_FP[0]));
+__ARRAY_SINGLE_FP[2]^=1;
+__ARRAY_SINGLE_FP[4]=2147483647;
+__ARRAY_SINGLE_FP[5]=0;
+__ARRAY_SINGLE_FP[6]=0;
+__ARRAY_SINGLE_FP[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_SINGLE_FW[2]&1){
+if (__ARRAY_SINGLE_FW[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_FW[0])); else free((void*)(__ARRAY_SINGLE_FW[0]));
+__ARRAY_SINGLE_FW[2]^=1;
+__ARRAY_SINGLE_FW[4]=2147483647;
+__ARRAY_SINGLE_FW[5]=0;
+__ARRAY_SINGLE_FW[6]=0;
+__ARRAY_SINGLE_FW[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_SINGLE_FU[2]&1){
+if (__ARRAY_SINGLE_FU[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_FU[0])); else free((void*)(__ARRAY_SINGLE_FU[0]));
+__ARRAY_SINGLE_FU[2]^=1;
+__ARRAY_SINGLE_FU[4]=2147483647;
+__ARRAY_SINGLE_FU[5]=0;
+__ARRAY_SINGLE_FU[6]=0;
+__ARRAY_SINGLE_FU[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_SINGLE_FV[2]&1){
+if (__ARRAY_SINGLE_FV[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_FV[0])); else free((void*)(__ARRAY_SINGLE_FV[0]));
+__ARRAY_SINGLE_FV[2]^=1;
+__ARRAY_SINGLE_FV[4]=2147483647;
+__ARRAY_SINGLE_FV[5]=0;
+__ARRAY_SINGLE_FV[6]=0;
+__ARRAY_SINGLE_FV[0]=(ptrszint)nothingvalue;
+}
+if (__ARRAY_STRING_FS[2]&1){
+tmp_long=__ARRAY_STRING_FS[5];
+while(tmp_long--){
+qbs_free(((qbs**)(__ARRAY_STRING_FS[0]))[tmp_long]);
+}
+free((void*)(__ARRAY_STRING_FS[0]));
+__ARRAY_STRING_FS[2]^=1;
+__ARRAY_STRING_FS[4]=2147483647;
+__ARRAY_STRING_FS[5]=0;
+__ARRAY_STRING_FS[6]=0;
+__ARRAY_STRING_FS[0]=(ptrszint)&nothingstring;
+}
+==> maindata.txt <==
+if(__LONG_I==NULL){
+__LONG_I=(int32*)mem_static_malloc(4);
+*__LONG_I=0;
+}
+if(__LONG_A==NULL){
+__LONG_A=(int32*)mem_static_malloc(4);
+*__LONG_A=0;
+}
+if(__LONG_B==NULL){
+__LONG_B=(int32*)mem_static_malloc(4);
+*__LONG_B=0;
+}
+if (!__ARRAY_SINGLE_DP){
+__ARRAY_SINGLE_DP=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_DP)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_DP[2]=0;
+__ARRAY_SINGLE_DP[4]=2147483647;
+__ARRAY_SINGLE_DP[5]=0;
+__ARRAY_SINGLE_DP[6]=0;
+__ARRAY_SINGLE_DP[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_SINGLE_PA){
+__ARRAY_SINGLE_PA=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_PA)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_PA[2]=0;
+__ARRAY_SINGLE_PA[4]=2147483647;
+__ARRAY_SINGLE_PA[5]=0;
+__ARRAY_SINGLE_PA[6]=0;
+__ARRAY_SINGLE_PA[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_SINGLE_PZ){
+__ARRAY_SINGLE_PZ=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_PZ)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_PZ[2]=0;
+__ARRAY_SINGLE_PZ[4]=2147483647;
+__ARRAY_SINGLE_PZ[5]=0;
+__ARRAY_SINGLE_PZ[6]=0;
+__ARRAY_SINGLE_PZ[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_SINGLE_DR){
+__ARRAY_SINGLE_DR=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_DR)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_DR[2]=0;
+__ARRAY_SINGLE_DR[4]=2147483647;
+__ARRAY_SINGLE_DR[5]=0;
+__ARRAY_SINGLE_DR[6]=0;
+__ARRAY_SINGLE_DR[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_SINGLE_DQ){
+__ARRAY_SINGLE_DQ=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_DQ)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_DQ[2]=0;
+__ARRAY_SINGLE_DQ[4]=2147483647;
+__ARRAY_SINGLE_DQ[5]=0;
+__ARRAY_SINGLE_DQ[6]=0;
+__ARRAY_SINGLE_DQ[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_SINGLE_RD){
+__ARRAY_SINGLE_RD=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_RD)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_RD[2]=0;
+__ARRAY_SINGLE_RD[4]=2147483647;
+__ARRAY_SINGLE_RD[5]=0;
+__ARRAY_SINGLE_RD[6]=0;
+__ARRAY_SINGLE_RD[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_SINGLE_IA){
+__ARRAY_SINGLE_IA=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_IA)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_IA[2]=0;
+__ARRAY_SINGLE_IA[4]=2147483647;
+__ARRAY_SINGLE_IA[5]=0;
+__ARRAY_SINGLE_IA[6]=0;
+__ARRAY_SINGLE_IA[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_SINGLE_IB){
+__ARRAY_SINGLE_IB=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_IB)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_IB[2]=0;
+__ARRAY_SINGLE_IB[4]=2147483647;
+__ARRAY_SINGLE_IB[5]=0;
+__ARRAY_SINGLE_IB[6]=0;
+__ARRAY_SINGLE_IB[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_STRING_LS){
+__ARRAY_STRING_LS=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_LS)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_LS[2]=0;
+__ARRAY_STRING_LS[4]=2147483647;
+__ARRAY_STRING_LS[5]=0;
+__ARRAY_STRING_LS[6]=0;
+__ARRAY_STRING_LS[0]=(ptrszint)&nothingstring;
+}
+if (!__ARRAY_SINGLE_FA){
+__ARRAY_SINGLE_FA=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_FA)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_FA[2]=0;
+__ARRAY_SINGLE_FA[4]=2147483647;
+__ARRAY_SINGLE_FA[5]=0;
+__ARRAY_SINGLE_FA[6]=0;
+__ARRAY_SINGLE_FA[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_STRING_FL){
+__ARRAY_STRING_FL=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_FL)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_FL[2]=0;
+__ARRAY_STRING_FL[4]=2147483647;
+__ARRAY_STRING_FL[5]=0;
+__ARRAY_STRING_FL[6]=0;
+__ARRAY_STRING_FL[0]=(ptrszint)&nothingstring;
+}
+if (!__ARRAY_SINGLE_FP){
+__ARRAY_SINGLE_FP=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_FP)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_FP[2]=0;
+__ARRAY_SINGLE_FP[4]=2147483647;
+__ARRAY_SINGLE_FP[5]=0;
+__ARRAY_SINGLE_FP[6]=0;
+__ARRAY_SINGLE_FP[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_SINGLE_FW){
+__ARRAY_SINGLE_FW=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_FW)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_FW[2]=0;
+__ARRAY_SINGLE_FW[4]=2147483647;
+__ARRAY_SINGLE_FW[5]=0;
+__ARRAY_SINGLE_FW[6]=0;
+__ARRAY_SINGLE_FW[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_SINGLE_FU){
+__ARRAY_SINGLE_FU=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_FU)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_FU[2]=0;
+__ARRAY_SINGLE_FU[4]=2147483647;
+__ARRAY_SINGLE_FU[5]=0;
+__ARRAY_SINGLE_FU[6]=0;
+__ARRAY_SINGLE_FU[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_SINGLE_FV){
+__ARRAY_SINGLE_FV=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_FV)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_FV[2]=0;
+__ARRAY_SINGLE_FV[4]=2147483647;
+__ARRAY_SINGLE_FV[5]=0;
+__ARRAY_SINGLE_FV[6]=0;
+__ARRAY_SINGLE_FV[0]=(ptrszint)nothingvalue;
+}
+if (!__ARRAY_STRING_FS){
+__ARRAY_STRING_FS=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_FS)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_FS[2]=0;
+__ARRAY_STRING_FS[4]=2147483647;
+__ARRAY_STRING_FS[5]=0;
+__ARRAY_STRING_FS[6]=0;
+__ARRAY_STRING_FS[0]=(ptrszint)&nothingstring;
+}
+static qbs *print_using_format8;
+static qbs *print_using_format9;
+static qbs *print_using_format10;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "implicit_items_cpp.bas"
+do{
+#line 2 "implicit_items_cpp.bas"
+sub__dest(func__console());
+#line 2 "implicit_items_cpp.bas"
+sub__source(func__console());
+#line 2 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 8 "implicit_items_cpp.bas"
+do{
+#line 8 "implicit_items_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 8 "implicit_items_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len(" x",2));
+#line 8 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 8 "implicit_items_cpp.bas"
+makefit(tqbs);
+#line 8 "implicit_items_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_DP[2]&2){
+#line 8 "implicit_items_cpp.bas"
+error(10);
+#line 8 "implicit_items_cpp.bas"
+}else{
+#line 8 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_DP[2]&1){
+#line 8 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 8 "implicit_items_cpp.bas"
+}else{
+#line 8 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 8 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 8 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 8 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 8 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 8 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 8 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 8 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 8 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 8 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 8 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 8 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 8 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 8 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 8 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 8 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 8 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 8 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 8 "implicit_items_cpp.bas"
+}
+#line 8 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 8 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 8 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 8 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 8 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_DP[2]&4){
+#line 8 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DP[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 8 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_DP[0]) error(257);
+#line 8 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_DP[0]),0,(size_t)alloc_req_bytes);
+#line 8 "implicit_items_cpp.bas"
+}else{
+#line 8 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DP[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 8 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_DP[0]) error(257);
+#line 8 "implicit_items_cpp.bas"
+}
+#line 8 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DP[2]|=1;
+#line 8 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DP[4]=alloc_new_desc[4];
+#line 8 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DP[5]=alloc_new_desc[5];
+#line 8 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DP[6]=alloc_new_desc[6];
+#line 8 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DP[7]=alloc_new_desc[7];
+#line 8 "implicit_items_cpp.bas"
+}
+#line 8 "implicit_items_cpp.bas"
+}
+#line 8 "implicit_items_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((float)(((float*)(__ARRAY_SINGLE_DP[0]))[array_check((1ll)-__ARRAY_SINGLE_DP[4],__ARRAY_SINGLE_DP[5])])),qbs_new_txt(" ")));
+#line 8 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 8 "implicit_items_cpp.bas"
+makefit(tqbs);
+#line 8 "implicit_items_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "implicit_items_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len(" y",2));
+#line 8 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 8 "implicit_items_cpp.bas"
+makefit(tqbs);
+#line 8 "implicit_items_cpp.bas"
+qbs_print(tqbs,0);
+#line 8 "implicit_items_cpp.bas"
+qbs_print(nothingstring,1);
+#line 8 "implicit_items_cpp.bas"
+skip1:
+#line 8 "implicit_items_cpp.bas"
+qbs_free(tqbs);
+#line 8 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 8 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(8);}while(r);
+#line 9 "implicit_items_cpp.bas"
+do{
+#line 9 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_PA[2]&2){
+#line 9 "implicit_items_cpp.bas"
+error(10);
+#line 9 "implicit_items_cpp.bas"
+}else{
+#line 9 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_PA[2]&1){
+#line 9 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 9 "implicit_items_cpp.bas"
+}else{
+#line 9 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 9 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 9 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 9 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 9 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 9 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 9 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 9 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 9 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 9 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 9 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 9 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 9 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 9 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 9 "implicit_items_cpp.bas"
+}
+#line 9 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 9 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 9 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_PA[2]&4){
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PA[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 9 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_PA[0]) error(257);
+#line 9 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_PA[0]),0,(size_t)alloc_req_bytes);
+#line 9 "implicit_items_cpp.bas"
+}else{
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PA[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 9 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_PA[0]) error(257);
+#line 9 "implicit_items_cpp.bas"
+}
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PA[2]|=1;
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PA[4]=alloc_new_desc[4];
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PA[5]=alloc_new_desc[5];
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PA[6]=alloc_new_desc[6];
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PA[7]=alloc_new_desc[7];
+#line 9 "implicit_items_cpp.bas"
+}
+#line 9 "implicit_items_cpp.bas"
+}
+#line 9 "implicit_items_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 9 "implicit_items_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((float)(((float*)(__ARRAY_SINGLE_PA[0]))[array_check((1ll)-__ARRAY_SINGLE_PA[4],__ARRAY_SINGLE_PA[5])])),qbs_new_txt(" ")));
+#line 9 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 9 "implicit_items_cpp.bas"
+makefit(tqbs);
+#line 9 "implicit_items_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "implicit_items_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len(" z",2));
+#line 9 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 9 "implicit_items_cpp.bas"
+makefit(tqbs);
+#line 9 "implicit_items_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "implicit_items_cpp.bas"
+tab();
+#line 9 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_PZ[2]&2){
+#line 9 "implicit_items_cpp.bas"
+error(10);
+#line 9 "implicit_items_cpp.bas"
+}else{
+#line 9 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_PZ[2]&1){
+#line 9 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 9 "implicit_items_cpp.bas"
+}else{
+#line 9 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 9 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 9 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 9 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 9 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 9 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 9 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 9 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 9 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 9 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 9 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 9 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 9 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 9 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 9 "implicit_items_cpp.bas"
+}
+#line 9 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 9 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 9 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 9 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_PZ[2]&4){
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PZ[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 9 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_PZ[0]) error(257);
+#line 9 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_PZ[0]),0,(size_t)alloc_req_bytes);
+#line 9 "implicit_items_cpp.bas"
+}else{
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PZ[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 9 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_PZ[0]) error(257);
+#line 9 "implicit_items_cpp.bas"
+}
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PZ[2]|=1;
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PZ[4]=alloc_new_desc[4];
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PZ[5]=alloc_new_desc[5];
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PZ[6]=alloc_new_desc[6];
+#line 9 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_PZ[7]=alloc_new_desc[7];
+#line 9 "implicit_items_cpp.bas"
+}
+#line 9 "implicit_items_cpp.bas"
+}
+#line 9 "implicit_items_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((float)(((float*)(__ARRAY_SINGLE_PZ[0]))[array_check((1ll)-__ARRAY_SINGLE_PZ[4],__ARRAY_SINGLE_PZ[5])])),qbs_new_txt(" ")));
+#line 9 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 9 "implicit_items_cpp.bas"
+makefit(tqbs);
+#line 9 "implicit_items_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "implicit_items_cpp.bas"
+qbs_print(nothingstring,1);
+#line 9 "implicit_items_cpp.bas"
+skip2:
+#line 9 "implicit_items_cpp.bas"
+qbs_free(tqbs);
+#line 9 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 9 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 10 "implicit_items_cpp.bas"
+do{
+#line 10 "implicit_items_cpp.bas"
+qbs_print(qbs_add(qbs_ltrim(qbs_str((int32)(*__LONG_I))),qbs_new_txt_len(",",1)),0);
+#line 10 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 10 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_DR[2]&2){
+#line 10 "implicit_items_cpp.bas"
+error(10);
+#line 10 "implicit_items_cpp.bas"
+}else{
+#line 10 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_DR[2]&1){
+#line 10 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 10 "implicit_items_cpp.bas"
+}else{
+#line 10 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 10 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 10 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 10 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 10 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 10 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 10 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 10 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 10 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 10 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 10 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 10 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 10 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 10 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 10 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 10 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 10 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 10 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 10 "implicit_items_cpp.bas"
+}
+#line 10 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 10 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 10 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 10 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 10 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_DR[2]&4){
+#line 10 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DR[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 10 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_DR[0]) error(257);
+#line 10 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_DR[0]),0,(size_t)alloc_req_bytes);
+#line 10 "implicit_items_cpp.bas"
+}else{
+#line 10 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DR[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 10 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_DR[0]) error(257);
+#line 10 "implicit_items_cpp.bas"
+}
+#line 10 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DR[2]|=1;
+#line 10 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DR[4]=alloc_new_desc[4];
+#line 10 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DR[5]=alloc_new_desc[5];
+#line 10 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DR[6]=alloc_new_desc[6];
+#line 10 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DR[7]=alloc_new_desc[7];
+#line 10 "implicit_items_cpp.bas"
+}
+#line 10 "implicit_items_cpp.bas"
+}
+#line 10 "implicit_items_cpp.bas"
+qbs_print(qbs_ltrim(qbs_str((float)(((float*)(__ARRAY_SINGLE_DR[0]))[array_check((1ll)-__ARRAY_SINGLE_DR[4],__ARRAY_SINGLE_DR[5])]))),1);
+#line 10 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 10 "implicit_items_cpp.bas"
+skip3:
+#line 10 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 10 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 11 "implicit_items_cpp.bas"
+do{
+#line 11 "implicit_items_cpp.bas"
+*__LONG_A=func_read_float(data,&data_offset,data_size,138412064);
+#line 11 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_DQ[2]&2){
+#line 11 "implicit_items_cpp.bas"
+error(10);
+#line 11 "implicit_items_cpp.bas"
+}else{
+#line 11 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_DQ[2]&1){
+#line 11 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 11 "implicit_items_cpp.bas"
+}else{
+#line 11 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 11 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 11 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 11 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 11 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 11 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 11 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 11 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 11 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 11 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 11 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 11 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 11 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 11 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 11 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 11 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 11 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 11 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 11 "implicit_items_cpp.bas"
+}
+#line 11 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 11 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 11 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 11 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 11 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_DQ[2]&4){
+#line 11 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DQ[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 11 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_DQ[0]) error(257);
+#line 11 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_DQ[0]),0,(size_t)alloc_req_bytes);
+#line 11 "implicit_items_cpp.bas"
+}else{
+#line 11 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DQ[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 11 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_DQ[0]) error(257);
+#line 11 "implicit_items_cpp.bas"
+}
+#line 11 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DQ[2]|=1;
+#line 11 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DQ[4]=alloc_new_desc[4];
+#line 11 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DQ[5]=alloc_new_desc[5];
+#line 11 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DQ[6]=alloc_new_desc[6];
+#line 11 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_DQ[7]=alloc_new_desc[7];
+#line 11 "implicit_items_cpp.bas"
+}
+#line 11 "implicit_items_cpp.bas"
+}
+#line 11 "implicit_items_cpp.bas"
+tmp_long=array_check((1ll)-__ARRAY_SINGLE_DQ[4],__ARRAY_SINGLE_DQ[5]);
+#line 11 "implicit_items_cpp.bas"
+if (!is_error_pending()) ((float*)(__ARRAY_SINGLE_DQ[0]))[tmp_long]=func_read_float(data,&data_offset,data_size,683671584);
+#line 11 "implicit_items_cpp.bas"
+*__LONG_B=func_read_float(data,&data_offset,data_size,138412064);
+#line 11 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 11 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 12 "implicit_items_cpp.bas"
+do{
+#line 12 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_RD[2]&2){
+#line 12 "implicit_items_cpp.bas"
+error(10);
+#line 12 "implicit_items_cpp.bas"
+}else{
+#line 12 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_RD[2]&1){
+#line 12 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 12 "implicit_items_cpp.bas"
+}else{
+#line 12 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 12 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 12 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 12 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 12 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 12 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 12 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 12 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 12 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 12 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 12 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 12 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 12 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 12 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 12 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 12 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 12 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 12 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 12 "implicit_items_cpp.bas"
+}
+#line 12 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 12 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 12 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 12 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 12 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_RD[2]&4){
+#line 12 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_RD[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 12 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_RD[0]) error(257);
+#line 12 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_RD[0]),0,(size_t)alloc_req_bytes);
+#line 12 "implicit_items_cpp.bas"
+}else{
+#line 12 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_RD[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 12 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_RD[0]) error(257);
+#line 12 "implicit_items_cpp.bas"
+}
+#line 12 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_RD[2]|=1;
+#line 12 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_RD[4]=alloc_new_desc[4];
+#line 12 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_RD[5]=alloc_new_desc[5];
+#line 12 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_RD[6]=alloc_new_desc[6];
+#line 12 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_RD[7]=alloc_new_desc[7];
+#line 12 "implicit_items_cpp.bas"
+}
+#line 12 "implicit_items_cpp.bas"
+}
+#line 12 "implicit_items_cpp.bas"
+tmp_long=array_check((1ll)-__ARRAY_SINGLE_RD[4],__ARRAY_SINGLE_RD[5]);
+#line 12 "implicit_items_cpp.bas"
+if (!is_error_pending()) ((float*)(__ARRAY_SINGLE_RD[0]))[tmp_long]=func_read_float(data,&data_offset,data_size,683671584);
+#line 12 "implicit_items_cpp.bas"
+*__LONG_A=func_read_float(data,&data_offset,data_size,138412064);
+#line 12 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 12 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 13 "implicit_items_cpp.bas"
+do{
+#line 13 "implicit_items_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 13 "implicit_items_cpp.bas"
+qbs_input_variabletypes[1]=32;
+#line 13 "implicit_items_cpp.bas"
+qbs_input_variableoffsets[1]=&(*__LONG_A);
+#line 13 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_IA[2]&2){
+#line 13 "implicit_items_cpp.bas"
+error(10);
+#line 13 "implicit_items_cpp.bas"
+}else{
+#line 13 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_IA[2]&1){
+#line 13 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 13 "implicit_items_cpp.bas"
+}else{
+#line 13 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 13 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 13 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 13 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 13 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 13 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 13 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 13 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 13 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 13 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 13 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 13 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 13 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 13 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 13 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 13 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 13 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 13 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 13 "implicit_items_cpp.bas"
+}
+#line 13 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 13 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 13 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 13 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 13 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_IA[2]&4){
+#line 13 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IA[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 13 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_IA[0]) error(257);
+#line 13 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_IA[0]),0,(size_t)alloc_req_bytes);
+#line 13 "implicit_items_cpp.bas"
+}else{
+#line 13 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IA[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 13 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_IA[0]) error(257);
+#line 13 "implicit_items_cpp.bas"
+}
+#line 13 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IA[2]|=1;
+#line 13 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IA[4]=alloc_new_desc[4];
+#line 13 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IA[5]=alloc_new_desc[5];
+#line 13 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IA[6]=alloc_new_desc[6];
+#line 13 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IA[7]=alloc_new_desc[7];
+#line 13 "implicit_items_cpp.bas"
+}
+#line 13 "implicit_items_cpp.bas"
+}
+#line 13 "implicit_items_cpp.bas"
+qbs_input_variabletypes[2]=545259552;
+#line 13 "implicit_items_cpp.bas"
+qbs_input_variableoffsets[2]=&(((float*)(__ARRAY_SINGLE_IA[0]))[array_check((1ll)-__ARRAY_SINGLE_IA[4],__ARRAY_SINGLE_IA[5])]);
+#line 13 "implicit_items_cpp.bas"
+qbs_input_variabletypes[3]=32;
+#line 13 "implicit_items_cpp.bas"
+qbs_input_variableoffsets[3]=&(*__LONG_B);
+#line 13 "implicit_items_cpp.bas"
+qbs_input(3,1);
+#line 13 "implicit_items_cpp.bas"
+if (stop_program) end();
+#line 13 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 13 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "implicit_items_cpp.bas"
+do{
+#line 14 "implicit_items_cpp.bas"
+qbs_print(qbs_new_txt_len("p",1),0);
+#line 14 "implicit_items_cpp.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 14 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_IB[2]&2){
+#line 14 "implicit_items_cpp.bas"
+error(10);
+#line 14 "implicit_items_cpp.bas"
+}else{
+#line 14 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_IB[2]&1){
+#line 14 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 14 "implicit_items_cpp.bas"
+}else{
+#line 14 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 14 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 14 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 14 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 14 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 14 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 14 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 14 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 14 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 14 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 14 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 14 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 14 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 14 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 14 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 14 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 14 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 14 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 14 "implicit_items_cpp.bas"
+}
+#line 14 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 14 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 14 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 14 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 14 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_IB[2]&4){
+#line 14 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IB[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 14 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_IB[0]) error(257);
+#line 14 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_IB[0]),0,(size_t)alloc_req_bytes);
+#line 14 "implicit_items_cpp.bas"
+}else{
+#line 14 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IB[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 14 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_IB[0]) error(257);
+#line 14 "implicit_items_cpp.bas"
+}
+#line 14 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IB[2]|=1;
+#line 14 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IB[4]=alloc_new_desc[4];
+#line 14 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IB[5]=alloc_new_desc[5];
+#line 14 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IB[6]=alloc_new_desc[6];
+#line 14 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_IB[7]=alloc_new_desc[7];
+#line 14 "implicit_items_cpp.bas"
+}
+#line 14 "implicit_items_cpp.bas"
+}
+#line 14 "implicit_items_cpp.bas"
+qbs_input_variabletypes[1]=545259552;
+#line 14 "implicit_items_cpp.bas"
+qbs_input_variableoffsets[1]=&(((float*)(__ARRAY_SINGLE_IB[0]))[array_check((1ll)-__ARRAY_SINGLE_IB[4],__ARRAY_SINGLE_IB[5])]);
+#line 14 "implicit_items_cpp.bas"
+qbs_input_variabletypes[2]=32;
+#line 14 "implicit_items_cpp.bas"
+qbs_input_variableoffsets[2]=&(*__LONG_A);
+#line 14 "implicit_items_cpp.bas"
+qbs_input(2,1);
+#line 14 "implicit_items_cpp.bas"
+if (stop_program) end();
+#line 14 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 14 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "implicit_items_cpp.bas"
+do{
+#line 15 "implicit_items_cpp.bas"
+if (__ARRAY_STRING_LS[2]&2){
+#line 15 "implicit_items_cpp.bas"
+error(10);
+#line 15 "implicit_items_cpp.bas"
+}else{
+#line 15 "implicit_items_cpp.bas"
+if (__ARRAY_STRING_LS[2]&1){
+#line 15 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 15 "implicit_items_cpp.bas"
+}else{
+#line 15 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 15 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 15 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 15 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 15 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(8);
+#line 15 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 15 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 15 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 15 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 15 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 15 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 15 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 15 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 15 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 15 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 15 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 15 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 15 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 15 "implicit_items_cpp.bas"
+}
+#line 15 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 15 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 15 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 15 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 15 "implicit_items_cpp.bas"
+__ARRAY_STRING_LS[0]=(ptrszint)malloc((size_t)alloc_req_bytes);
+#line 15 "implicit_items_cpp.bas"
+if (!__ARRAY_STRING_LS[0]) error(257);
+#line 15 "implicit_items_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 15 "implicit_items_cpp.bas"
+while(tmp_long--) ((qbs**)(__ARRAY_STRING_LS[0]))[tmp_long]=qbs_new(0,0);
+#line 15 "implicit_items_cpp.bas"
+__ARRAY_STRING_LS[2]|=1;
+#line 15 "implicit_items_cpp.bas"
+__ARRAY_STRING_LS[4]=alloc_new_desc[4];
+#line 15 "implicit_items_cpp.bas"
+__ARRAY_STRING_LS[5]=alloc_new_desc[5];
+#line 15 "implicit_items_cpp.bas"
+__ARRAY_STRING_LS[6]=alloc_new_desc[6];
+#line 15 "implicit_items_cpp.bas"
+__ARRAY_STRING_LS[7]=alloc_new_desc[7];
+#line 15 "implicit_items_cpp.bas"
+}
+#line 15 "implicit_items_cpp.bas"
+}
+#line 15 "implicit_items_cpp.bas"
+qbs_input_variabletypes[1]=ISSTRING+512;
+#line 15 "implicit_items_cpp.bas"
+qbs_input_variableoffsets[1]=(((qbs**)(__ARRAY_STRING_LS[0]))[array_check((1ll)-__ARRAY_STRING_LS[4],__ARRAY_STRING_LS[5])]);
+#line 15 "implicit_items_cpp.bas"
+qbs_input(1,1);
+#line 15 "implicit_items_cpp.bas"
+if (stop_program) end();
+#line 15 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 15 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "implicit_items_cpp.bas"
+do{
+#line 16 "implicit_items_cpp.bas"
+sub_open(qbs_new_txt_len("x.txt",5),3,NULL,NULL,1,NULL,0);
+#line 16 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 16 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "implicit_items_cpp.bas"
+do{
+#line 17 "implicit_items_cpp.bas"
+tmp_fileno=1;
+#line 17 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip4;
+#line 17 "implicit_items_cpp.bas"
+*__LONG_A=func_file_input_float(tmp_fileno,138412064);
+#line 17 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip4;
+#line 17 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FA[2]&2){
+#line 17 "implicit_items_cpp.bas"
+error(10);
+#line 17 "implicit_items_cpp.bas"
+}else{
+#line 17 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FA[2]&1){
+#line 17 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 17 "implicit_items_cpp.bas"
+}else{
+#line 17 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 17 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 17 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 17 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 17 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 17 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 17 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 17 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 17 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 17 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 17 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 17 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 17 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 17 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 17 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 17 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 17 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 17 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 17 "implicit_items_cpp.bas"
+}
+#line 17 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 17 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 17 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 17 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 17 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FA[2]&4){
+#line 17 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FA[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 17 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_FA[0]) error(257);
+#line 17 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_FA[0]),0,(size_t)alloc_req_bytes);
+#line 17 "implicit_items_cpp.bas"
+}else{
+#line 17 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FA[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 17 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_FA[0]) error(257);
+#line 17 "implicit_items_cpp.bas"
+}
+#line 17 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FA[2]|=1;
+#line 17 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FA[4]=alloc_new_desc[4];
+#line 17 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FA[5]=alloc_new_desc[5];
+#line 17 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FA[6]=alloc_new_desc[6];
+#line 17 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FA[7]=alloc_new_desc[7];
+#line 17 "implicit_items_cpp.bas"
+}
+#line 17 "implicit_items_cpp.bas"
+}
+#line 17 "implicit_items_cpp.bas"
+tmp_long=array_check((1ll)-__ARRAY_SINGLE_FA[4],__ARRAY_SINGLE_FA[5]);
+#line 17 "implicit_items_cpp.bas"
+if (!is_error_pending()) ((float*)(__ARRAY_SINGLE_FA[0]))[tmp_long]=func_file_input_float(tmp_fileno,683671584);
+#line 17 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip4;
+#line 17 "implicit_items_cpp.bas"
+*__LONG_B=func_file_input_float(tmp_fileno,138412064);
+#line 17 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip4;
+#line 17 "implicit_items_cpp.bas"
+skip4:
+#line 17 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 17 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "implicit_items_cpp.bas"
+do{
+#line 18 "implicit_items_cpp.bas"
+tmp_fileno=1;
+#line 18 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip5;
+#line 18 "implicit_items_cpp.bas"
+if (__ARRAY_STRING_FL[2]&2){
+#line 18 "implicit_items_cpp.bas"
+error(10);
+#line 18 "implicit_items_cpp.bas"
+}else{
+#line 18 "implicit_items_cpp.bas"
+if (__ARRAY_STRING_FL[2]&1){
+#line 18 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 18 "implicit_items_cpp.bas"
+}else{
+#line 18 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 18 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 18 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 18 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 18 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(8);
+#line 18 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 18 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 18 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 18 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 18 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 18 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 18 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 18 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 18 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 18 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 18 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 18 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 18 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 18 "implicit_items_cpp.bas"
+}
+#line 18 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 18 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 18 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 18 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 18 "implicit_items_cpp.bas"
+__ARRAY_STRING_FL[0]=(ptrszint)malloc((size_t)alloc_req_bytes);
+#line 18 "implicit_items_cpp.bas"
+if (!__ARRAY_STRING_FL[0]) error(257);
+#line 18 "implicit_items_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 18 "implicit_items_cpp.bas"
+while(tmp_long--) ((qbs**)(__ARRAY_STRING_FL[0]))[tmp_long]=qbs_new(0,0);
+#line 18 "implicit_items_cpp.bas"
+__ARRAY_STRING_FL[2]|=1;
+#line 18 "implicit_items_cpp.bas"
+__ARRAY_STRING_FL[4]=alloc_new_desc[4];
+#line 18 "implicit_items_cpp.bas"
+__ARRAY_STRING_FL[5]=alloc_new_desc[5];
+#line 18 "implicit_items_cpp.bas"
+__ARRAY_STRING_FL[6]=alloc_new_desc[6];
+#line 18 "implicit_items_cpp.bas"
+__ARRAY_STRING_FL[7]=alloc_new_desc[7];
+#line 18 "implicit_items_cpp.bas"
+}
+#line 18 "implicit_items_cpp.bas"
+}
+#line 18 "implicit_items_cpp.bas"
+sub_file_line_input_string(tmp_fileno,(((qbs**)(__ARRAY_STRING_FL[0]))[array_check((1ll)-__ARRAY_STRING_FL[4],__ARRAY_STRING_FL[5])]));
+#line 18 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip5;
+#line 18 "implicit_items_cpp.bas"
+skip5:
+#line 18 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 18 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "implicit_items_cpp.bas"
+do{
+#line 19 "implicit_items_cpp.bas"
+tab_spc_cr_size=2;
+#line 19 "implicit_items_cpp.bas"
+tab_fileno=tmp_fileno=1;
+#line 19 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 19 "implicit_items_cpp.bas"
+sub_file_print(tmp_fileno,qbs_str((int32)(*__LONG_A)),1,0,0);
+#line 19 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 19 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FP[2]&2){
+#line 19 "implicit_items_cpp.bas"
+error(10);
+#line 19 "implicit_items_cpp.bas"
+}else{
+#line 19 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FP[2]&1){
+#line 19 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 19 "implicit_items_cpp.bas"
+}else{
+#line 19 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 19 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 19 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 19 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 19 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 19 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 19 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 19 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 19 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 19 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 19 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 19 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 19 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 19 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 19 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 19 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 19 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 19 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 19 "implicit_items_cpp.bas"
+}
+#line 19 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 19 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 19 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 19 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 19 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FP[2]&4){
+#line 19 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FP[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 19 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_FP[0]) error(257);
+#line 19 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_FP[0]),0,(size_t)alloc_req_bytes);
+#line 19 "implicit_items_cpp.bas"
+}else{
+#line 19 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FP[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 19 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_FP[0]) error(257);
+#line 19 "implicit_items_cpp.bas"
+}
+#line 19 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FP[2]|=1;
+#line 19 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FP[4]=alloc_new_desc[4];
+#line 19 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FP[5]=alloc_new_desc[5];
+#line 19 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FP[6]=alloc_new_desc[6];
+#line 19 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FP[7]=alloc_new_desc[7];
+#line 19 "implicit_items_cpp.bas"
+}
+#line 19 "implicit_items_cpp.bas"
+}
+#line 19 "implicit_items_cpp.bas"
+sub_file_print(tmp_fileno,qbs_str((float)(((float*)(__ARRAY_SINGLE_FP[0]))[array_check((1ll)-__ARRAY_SINGLE_FP[4],__ARRAY_SINGLE_FP[5])])),1,0,0);
+#line 19 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 19 "implicit_items_cpp.bas"
+sub_file_print(tmp_fileno,qbs_str((int32)(*__LONG_B)),1,0,1);
+#line 19 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 19 "implicit_items_cpp.bas"
+skip6:
+#line 19 "implicit_items_cpp.bas"
+tab_spc_cr_size=1;
+#line 19 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 19 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "implicit_items_cpp.bas"
+do{
+#line 20 "implicit_items_cpp.bas"
+tab_spc_cr_size=2;
+#line 20 "implicit_items_cpp.bas"
+tab_fileno=tmp_fileno=1;
+#line 20 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip7;
+#line 20 "implicit_items_cpp.bas"
+sub_file_print(tmp_fileno,qbs_add(qbs_ltrim(qbs_str((int32)(*__LONG_A))),qbs_new_txt_len(",",1)),0,0,0);
+#line 20 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip7;
+#line 20 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FW[2]&2){
+#line 20 "implicit_items_cpp.bas"
+error(10);
+#line 20 "implicit_items_cpp.bas"
+}else{
+#line 20 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FW[2]&1){
+#line 20 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 20 "implicit_items_cpp.bas"
+}else{
+#line 20 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 20 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 20 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 20 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 20 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 20 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 20 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 20 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 20 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 20 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 20 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 20 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 20 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 20 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 20 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 20 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 20 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 20 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 20 "implicit_items_cpp.bas"
+}
+#line 20 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 20 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 20 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 20 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 20 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FW[2]&4){
+#line 20 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FW[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 20 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_FW[0]) error(257);
+#line 20 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_FW[0]),0,(size_t)alloc_req_bytes);
+#line 20 "implicit_items_cpp.bas"
+}else{
+#line 20 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FW[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 20 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_FW[0]) error(257);
+#line 20 "implicit_items_cpp.bas"
+}
+#line 20 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FW[2]|=1;
+#line 20 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FW[4]=alloc_new_desc[4];
+#line 20 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FW[5]=alloc_new_desc[5];
+#line 20 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FW[6]=alloc_new_desc[6];
+#line 20 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FW[7]=alloc_new_desc[7];
+#line 20 "implicit_items_cpp.bas"
+}
+#line 20 "implicit_items_cpp.bas"
+}
+#line 20 "implicit_items_cpp.bas"
+sub_file_print(tmp_fileno,qbs_add(qbs_ltrim(qbs_str((float)(((float*)(__ARRAY_SINGLE_FW[0]))[array_check((1ll)-__ARRAY_SINGLE_FW[4],__ARRAY_SINGLE_FW[5])]))),qbs_new_txt_len(",",1)),0,0,0);
+#line 20 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip7;
+#line 20 "implicit_items_cpp.bas"
+sub_file_print(tmp_fileno,qbs_ltrim(qbs_str((int32)(*__LONG_B))),0,0,1);
+#line 20 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip7;
+#line 20 "implicit_items_cpp.bas"
+skip7:
+#line 20 "implicit_items_cpp.bas"
+tab_spc_cr_size=1;
+#line 20 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 20 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "implicit_items_cpp.bas"
+do{
+#line 21 "implicit_items_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 21 "implicit_items_cpp.bas"
+tmp_long=0;
+#line 21 "implicit_items_cpp.bas"
+print_using_format8=qbs_new(0,0); qbs_set(print_using_format8,qbs_new_txt_len("##",2));
+#line 21 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip_pu8;
+#line 21 "implicit_items_cpp.bas"
+tmp_long=print_using_integer64(print_using_format8,*__LONG_A,tmp_long,tqbs);
+#line 21 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip_pu8;
+#line 21 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FU[2]&2){
+#line 21 "implicit_items_cpp.bas"
+error(10);
+#line 21 "implicit_items_cpp.bas"
+}else{
+#line 21 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FU[2]&1){
+#line 21 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 21 "implicit_items_cpp.bas"
+}else{
+#line 21 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 21 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 21 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 21 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 21 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 21 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 21 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 21 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 21 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 21 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 21 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 21 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 21 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 21 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 21 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 21 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 21 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 21 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 21 "implicit_items_cpp.bas"
+}
+#line 21 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 21 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 21 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 21 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 21 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FU[2]&4){
+#line 21 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FU[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 21 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_FU[0]) error(257);
+#line 21 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_FU[0]),0,(size_t)alloc_req_bytes);
+#line 21 "implicit_items_cpp.bas"
+}else{
+#line 21 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FU[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 21 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_FU[0]) error(257);
+#line 21 "implicit_items_cpp.bas"
+}
+#line 21 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FU[2]|=1;
+#line 21 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FU[4]=alloc_new_desc[4];
+#line 21 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FU[5]=alloc_new_desc[5];
+#line 21 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FU[6]=alloc_new_desc[6];
+#line 21 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FU[7]=alloc_new_desc[7];
+#line 21 "implicit_items_cpp.bas"
+}
+#line 21 "implicit_items_cpp.bas"
+}
+#line 21 "implicit_items_cpp.bas"
+tmp_long=print_using_single(print_using_format8,((float*)(__ARRAY_SINGLE_FU[0]))[array_check((1ll)-__ARRAY_SINGLE_FU[4],__ARRAY_SINGLE_FU[5])],tmp_long,tqbs);
+#line 21 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip_pu8;
+#line 21 "implicit_items_cpp.bas"
+skip_pu8:
+#line 21 "implicit_items_cpp.bas"
+if (is_error_pending()){
+#line 21 "implicit_items_cpp.bas"
+g_tmp_long=new_error; new_error=0; qbs_print(tqbs,0); new_error=g_tmp_long;
+#line 21 "implicit_items_cpp.bas"
+}else{
+#line 21 "implicit_items_cpp.bas"
+qbs_print(tqbs,1);
+#line 21 "implicit_items_cpp.bas"
+}
+#line 21 "implicit_items_cpp.bas"
+qbs_free(tqbs);
+#line 21 "implicit_items_cpp.bas"
+qbs_free(print_using_format8);
+#line 21 "implicit_items_cpp.bas"
+skip8:
+#line 21 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 21 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "implicit_items_cpp.bas"
+do{
+#line 22 "implicit_items_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 22 "implicit_items_cpp.bas"
+tmp_long=0;
+#line 22 "implicit_items_cpp.bas"
+print_using_format9=qbs_new(0,0); qbs_set(print_using_format9,qbs_new_txt_len("##",2));
+#line 22 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip_pu9;
+#line 22 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FV[2]&2){
+#line 22 "implicit_items_cpp.bas"
+error(10);
+#line 22 "implicit_items_cpp.bas"
+}else{
+#line 22 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FV[2]&1){
+#line 22 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 22 "implicit_items_cpp.bas"
+}else{
+#line 22 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 22 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 22 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 22 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 22 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 22 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 22 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 22 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 22 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 22 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 22 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 22 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 22 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 22 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 22 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 22 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 22 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 22 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 22 "implicit_items_cpp.bas"
+}
+#line 22 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 22 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 22 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 22 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 22 "implicit_items_cpp.bas"
+if (__ARRAY_SINGLE_FV[2]&4){
+#line 22 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FV[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 22 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_FV[0]) error(257);
+#line 22 "implicit_items_cpp.bas"
+memset((void*)(__ARRAY_SINGLE_FV[0]),0,(size_t)alloc_req_bytes);
+#line 22 "implicit_items_cpp.bas"
+}else{
+#line 22 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FV[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 22 "implicit_items_cpp.bas"
+if (!__ARRAY_SINGLE_FV[0]) error(257);
+#line 22 "implicit_items_cpp.bas"
+}
+#line 22 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FV[2]|=1;
+#line 22 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FV[4]=alloc_new_desc[4];
+#line 22 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FV[5]=alloc_new_desc[5];
+#line 22 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FV[6]=alloc_new_desc[6];
+#line 22 "implicit_items_cpp.bas"
+__ARRAY_SINGLE_FV[7]=alloc_new_desc[7];
+#line 22 "implicit_items_cpp.bas"
+}
+#line 22 "implicit_items_cpp.bas"
+}
+#line 22 "implicit_items_cpp.bas"
+tmp_long=print_using_single(print_using_format9,((float*)(__ARRAY_SINGLE_FV[0]))[array_check((1ll)-__ARRAY_SINGLE_FV[4],__ARRAY_SINGLE_FV[5])],tmp_long,tqbs);
+#line 22 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip_pu9;
+#line 22 "implicit_items_cpp.bas"
+skip_pu9:
+#line 22 "implicit_items_cpp.bas"
+if (is_error_pending()){
+#line 22 "implicit_items_cpp.bas"
+g_tmp_long=new_error; new_error=0; qbs_print(tqbs,0); new_error=g_tmp_long;
+#line 22 "implicit_items_cpp.bas"
+}else{
+#line 22 "implicit_items_cpp.bas"
+qbs_print(tqbs,1);
+#line 22 "implicit_items_cpp.bas"
+}
+#line 22 "implicit_items_cpp.bas"
+qbs_free(tqbs);
+#line 22 "implicit_items_cpp.bas"
+qbs_free(print_using_format9);
+#line 22 "implicit_items_cpp.bas"
+skip9:
+#line 22 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 22 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "implicit_items_cpp.bas"
+do{
+#line 23 "implicit_items_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 23 "implicit_items_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("a",1));
+#line 23 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip10;
+#line 23 "implicit_items_cpp.bas"
+makefit(tqbs);
+#line 23 "implicit_items_cpp.bas"
+qbs_print(tqbs,0);
+#line 23 "implicit_items_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("",0));
+#line 23 "implicit_items_cpp.bas"
+tmp_long=0;
+#line 23 "implicit_items_cpp.bas"
+if (__ARRAY_STRING_FS[2]&2){
+#line 23 "implicit_items_cpp.bas"
+error(10);
+#line 23 "implicit_items_cpp.bas"
+}else{
+#line 23 "implicit_items_cpp.bas"
+if (__ARRAY_STRING_FS[2]&1){
+#line 23 "implicit_items_cpp.bas"
+if (!error_occurred) error(10);
+#line 23 "implicit_items_cpp.bas"
+}else{
+#line 23 "implicit_items_cpp.bas"
+int64 alloc_new_desc[8];
+#line 23 "implicit_items_cpp.bas"
+uint64 alloc_req_elems=1;
+#line 23 "implicit_items_cpp.bas"
+uint64 alloc_req_bytes;
+#line 23 "implicit_items_cpp.bas"
+uint64 alloc_dim_value;
+#line 23 "implicit_items_cpp.bas"
+uint64 alloc_bytes_per_element=(uint64)(8);
+#line 23 "implicit_items_cpp.bas"
+alloc_new_desc[4]=0ll;
+#line 23 "implicit_items_cpp.bas"
+alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
+#line 23 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 23 "implicit_items_cpp.bas"
+alloc_new_desc[6]=1;
+#line 23 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 23 "implicit_items_cpp.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 23 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 23 "implicit_items_cpp.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 23 "implicit_items_cpp.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 23 "implicit_items_cpp.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 23 "implicit_items_cpp.bas"
+if (alloc_dim_value){
+#line 23 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 23 "implicit_items_cpp.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 23 "implicit_items_cpp.bas"
+}
+#line 23 "implicit_items_cpp.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 23 "implicit_items_cpp.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 23 "implicit_items_cpp.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 23 "implicit_items_cpp.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 23 "implicit_items_cpp.bas"
+__ARRAY_STRING_FS[0]=(ptrszint)malloc((size_t)alloc_req_bytes);
+#line 23 "implicit_items_cpp.bas"
+if (!__ARRAY_STRING_FS[0]) error(257);
+#line 23 "implicit_items_cpp.bas"
+tmp_long=(ptrszint)alloc_req_elems;
+#line 23 "implicit_items_cpp.bas"
+while(tmp_long--) ((qbs**)(__ARRAY_STRING_FS[0]))[tmp_long]=qbs_new(0,0);
+#line 23 "implicit_items_cpp.bas"
+__ARRAY_STRING_FS[2]|=1;
+#line 23 "implicit_items_cpp.bas"
+__ARRAY_STRING_FS[4]=alloc_new_desc[4];
+#line 23 "implicit_items_cpp.bas"
+__ARRAY_STRING_FS[5]=alloc_new_desc[5];
+#line 23 "implicit_items_cpp.bas"
+__ARRAY_STRING_FS[6]=alloc_new_desc[6];
+#line 23 "implicit_items_cpp.bas"
+__ARRAY_STRING_FS[7]=alloc_new_desc[7];
+#line 23 "implicit_items_cpp.bas"
+}
+#line 23 "implicit_items_cpp.bas"
+}
+#line 23 "implicit_items_cpp.bas"
+print_using_format10=qbs_new(0,0); qbs_set(print_using_format10,(((qbs**)(__ARRAY_STRING_FS[0]))[array_check((1ll)-__ARRAY_STRING_FS[4],__ARRAY_STRING_FS[5])]));
+#line 23 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip_pu10;
+#line 23 "implicit_items_cpp.bas"
+tmp_long=print_using_integer64(print_using_format10,*__LONG_A,tmp_long,tqbs);
+#line 23 "implicit_items_cpp.bas"
+if (is_error_pending()) goto skip_pu10;
+#line 23 "implicit_items_cpp.bas"
+skip_pu10:
+#line 23 "implicit_items_cpp.bas"
+if (is_error_pending()){
+#line 23 "implicit_items_cpp.bas"
+g_tmp_long=new_error; new_error=0; qbs_print(tqbs,0); new_error=g_tmp_long;
+#line 23 "implicit_items_cpp.bas"
+}else{
+#line 23 "implicit_items_cpp.bas"
+qbs_print(tqbs,1);
+#line 23 "implicit_items_cpp.bas"
+}
+#line 23 "implicit_items_cpp.bas"
+qbs_free(tqbs);
+#line 23 "implicit_items_cpp.bas"
+qbs_free(print_using_format10);
+#line 23 "implicit_items_cpp.bas"
+skip10:
+#line 23 "implicit_items_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 23 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "implicit_items_cpp.bas"
+do{
+#line 24 "implicit_items_cpp.bas"
+if (sub_gl_called) error(271);
+#line 24 "implicit_items_cpp.bas"
+close_program=1;
+#line 24 "implicit_items_cpp.bas"
+end();
+#line 24 "implicit_items_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+sub_end();
+return;
+}
+==> empty: regsf.txt dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt

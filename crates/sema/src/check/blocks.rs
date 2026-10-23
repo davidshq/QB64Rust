@@ -76,6 +76,22 @@ impl Checker<'_> {
         result
     }
 
+    /// [`Self::header`] for a header tested each time its part of the block runs (`ELSEIF`, a test at `LOOP`, a
+    /// `CASE`): the allocations its check makes are its own, run first in its test, not statements before the block
+    /// (design D2 of `m4-names-implicit-arrays`; measured, `verification\v24_x262`, `v55_a_implicit_headers`).
+    fn part_header<T>(
+        &mut self,
+        header: Option<Node>,
+        skips: &Skips,
+        check: impl FnOnce(&mut Self) -> R<T>,
+    ) -> (Option<T>, Vec<Stmt>) {
+        let before = self.sink().len();
+        let result = self.header(header, skips, check);
+        let allocs = self.sink().split_off(before);
+        debug_assert!(allocs.iter().all(|s| matches!(s.kind, StmtKind::Allocate { .. })));
+        (result, allocs)
+    }
+
     /// A condition of `IF`, `ELSEIF`, `WHILE`, `DO` or `LOOP`: any number (true when not zero). A string is an
     /// error, with a message per statement in the old compiler (measured, `verification\v17_c_err_*_string`).
     fn condition(&mut self, cond: Option<ast::Expr>, span: qb64rust_base::Span, what: &str) -> R<Expr> {
@@ -95,16 +111,27 @@ impl Checker<'_> {
         let mut branches = Some(Vec::new());
         let first = b.if_branch().map(|f| (f.header(), f.body().collect::<Vec<_>>()));
         let others = b.else_if_branches().map(|e| (e.header(), e.body().collect::<Vec<_>>()));
-        for (header, body) in first.into_iter().chain(others) {
+        for (k, (header, body)) in first.into_iter().chain(others).enumerate() {
             let line = header.map_or(0, |h| self.line(first_token_span(h.node())));
-            let cond = self.header(header.map(|h| h.node()), skips, |c| {
+            let check = |c: &mut Self| {
                 let h = header.expect("checked by `header`");
                 let what = h.keyword().map_or("IF".to_string(), |k| c.word(k));
                 c.condition(h.condition(), h.node().span(), &what)
-            });
+            };
+            // The `IF`'s allocations stand before the statement, an `ELSEIF`'s run with its test.
+            let (cond, allocs) = if k == 0 {
+                (self.header(header.map(|h| h.node()), skips, check), Vec::new())
+            } else {
+                self.part_header(header.map(|h| h.node()), skips, check)
+            };
             let body = self.block_body(body.into_iter(), skips);
             match (cond, &mut branches) {
-                (Some(cond), Some(list)) => list.push(Branch { cond, body, line }),
+                (Some(cond), Some(list)) => list.push(Branch {
+                    cond,
+                    body,
+                    line,
+                    allocs,
+                }),
                 _ => branches = None,
             }
         }
@@ -131,7 +158,12 @@ impl Checker<'_> {
         let else_ = s.else_branch().map(|b| self.block_body(b.statements(), skips));
         if let Some(cond) = cond {
             let line = self.line(first_token_span(s.node()));
-            let branches = vec![Branch { cond, body, line }];
+            let branches = vec![Branch {
+                cond,
+                body,
+                line,
+                allocs: Vec::new(),
+            }];
             let kind = StmtKind::If {
                 branches,
                 else_,
@@ -270,10 +302,11 @@ impl Checker<'_> {
         });
         let body = self.block_body(b.body(), skips);
         let end = b.end();
-        let bottom = self.header(end.map(|e| e.node()), skips, |c| {
+        let (bottom, allocs) = self.part_header(end.map(|e| e.node()), skips, |c| {
             let e = end.expect("checked");
             c.loop_test(e.cond_word(), e.condition(), e.node().span(), TestAt::Bottom)
         });
+        let bottom = bottom.map(|t| t.map(|t| LoopTest { allocs, ..t }));
         let end_at = end.map(|e| first_token_span(e.node()));
         let end_line = end_at.map_or(0, |s| self.line(s));
         if let (Some(top), Some(bottom)) = (top, bottom) {
@@ -303,7 +336,12 @@ impl Checker<'_> {
         let until = self.word(word) == "UNTIL";
         let what = if at == TestAt::Top { "DO" } else { "LOOP" };
         let cond = self.condition(cond, span, what)?;
-        Ok(Some(LoopTest { at, until, cond }))
+        Ok(Some(LoopTest {
+            at,
+            until,
+            cond,
+            allocs: Vec::new(),
+        }))
     }
 
     fn while_block(&mut self, b: ast::WhileBlock, skips: &Skips) {
@@ -351,17 +389,22 @@ impl Checker<'_> {
             }
             let line = h.map_or(0, |h| self.line(first_token_span(h.node())));
             let is_else = h.and_then(|h| h.else_word()).is_some();
-            let items = match (&head, is_else) {
-                (_, true) => None,
-                (Some((selector, _, _)), false) => self.header(h.map(|h| h.node()), skips, |c| {
+            let (items, allocs) = match (&head, is_else) {
+                (_, true) => (None, Vec::new()),
+                (Some((selector, _, _)), false) => self.part_header(h.map(|h| h.node()), skips, |c| {
                     c.case_items(h.expect("checked by `header`"), selector)
                 }),
-                (None, false) => None,
+                (None, false) => (None, Vec::new()),
             };
             let body = self.block_body(clause.body(), skips);
             match (is_else, items, &mut cases) {
                 (true, _, _) => else_ = Some(body),
-                (false, Some(items), Some(list)) => list.push(Case { items, body, line }),
+                (false, Some(items), Some(list)) => list.push(Case {
+                    items,
+                    body,
+                    line,
+                    allocs,
+                }),
                 (false, _, _) => cases = None,
             }
         }

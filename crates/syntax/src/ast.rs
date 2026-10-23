@@ -142,6 +142,17 @@ fn child<'a, T>(node: Node<'a>, cast: fn(Node<'a>) -> Option<T>) -> Option<T> {
     node.child_nodes().find_map(cast)
 }
 
+/// A declared name written with blanks around its dots (a `SpacedName` child of `node`), as one `Ident` token over
+/// it: its text holds the blanks, which the reader of the name drops (design D7 of `m4-names-implicit-arrays`).
+fn spaced_name(node: Node) -> Option<Tok> {
+    node.child_nodes()
+        .find(|n| n.kind() == SyntaxKind::SpacedName)
+        .map(|n| Tok {
+            kind: Ident,
+            span: n.span(),
+        })
+}
+
 impl<'a> SourceFile<'a> {
     /// The statement nodes, `Error` nodes included (a statement the parser could not handle).
     pub fn statements(self) -> impl Iterator<Item = Node<'a>> + 'a {
@@ -657,9 +668,15 @@ impl<'a> ProcHeader<'a> {
         self.0.child_tokens().next()
     }
 
-    /// The procedure's name, with its suffix.
+    /// The procedure's name, with its suffix; one written with blanks around its dots as one token over it.
     pub fn name(self) -> Option<Tok> {
-        self.0.child_tokens().nth(1).filter(|t| t.kind == Ident)
+        spaced_name(self.0).or_else(|| self.0.child_tokens().nth(1).filter(|t| t.kind == Ident))
+    }
+
+    /// How many of the header's own tokens the keyword and the name are: a name with blanks around its dots is
+    /// a node of its own.
+    fn head_tokens(self) -> usize {
+        if spaced_name(self.0).is_some() { 1 } else { 2 }
     }
 
     pub fn param_list(self) -> Option<ParamList<'a>> {
@@ -673,7 +690,7 @@ impl<'a> ProcHeader<'a> {
 
     /// The C name after `ALIAS` (a string or a name; only inside `DECLARE LIBRARY`).
     pub fn alias(self) -> Option<Tok> {
-        let mut tokens = self.0.child_tokens().skip(2);
+        let mut tokens = self.0.child_tokens().skip(self.head_tokens());
         tokens.next().filter(|t| t.kind == Ident)?;
         tokens.next()
     }
@@ -681,7 +698,8 @@ impl<'a> ProcHeader<'a> {
     /// The `STATIC` word after the header (`SUB s (x) STATIC`: every local is static).
     pub fn static_word(self) -> Option<Tok> {
         let last = self.0.child_tokens().filter(|t| t.kind != Newline).last()?;
-        (self.0.child_tokens().count() > 2 && last.kind == Ident && self.alias() != Some(last)).then_some(last)
+        let after_name = self.0.child_tokens().count() > self.head_tokens();
+        (after_name && last.kind == Ident && self.alias() != Some(last)).then_some(last)
     }
 }
 
@@ -1486,9 +1504,9 @@ impl<'a> DefFnStmt<'a> {
 }
 
 impl<'a> DimItem<'a> {
-    /// The declared name, with its suffix.
+    /// The declared name, with its suffix; one written with blanks around its dots as one token over it.
     pub fn name(self) -> Option<Tok> {
-        self.0.child_tokens().find(|t| t.kind == Ident)
+        spaced_name(self.0).or_else(|| self.0.child_tokens().find(|t| t.kind == Ident))
     }
 
     pub fn as_clause(self) -> Option<AsClause<'a>> {
@@ -1611,9 +1629,10 @@ impl Literal<'_> {
 }
 
 impl NameRef<'_> {
-    /// The name, with its suffix.
+    /// The name, with its suffix; the name of a call statement written with blanks around its dots (`a . b 3`) as
+    /// one token over it.
     pub fn name(self) -> Option<Tok> {
-        self.0.child_tokens().find(|t| t.kind == Ident)
+        spaced_name(self.0).or_else(|| self.0.child_tokens().find(|t| t.kind == Ident))
     }
 }
 

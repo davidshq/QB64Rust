@@ -18,8 +18,8 @@
 //! [`OnError::Skip`] branches.
 
 use crate::{
-    Body, EventHandler, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId, Program, Resume,
-    Stmt, Storage, Ty, Var, VarId, When,
+    Allocation, Body, EventHandler, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId,
+    Program, Resume, Stmt, Storage, Ty, Var, VarId, When,
 };
 use qb64rust_base::{Span, to_u32};
 use qb64rust_sema as sema;
@@ -62,6 +62,7 @@ pub fn lower(p: &sema::Program) -> Program {
         main,
         types: p.types.clone(),
         data: p.data.clone(),
+        start_allocations: p.start_allocations.clone(),
         libraries: p.libraries.clone(),
         settings: crate::Settings {
             console: p.settings.console,
@@ -113,9 +114,12 @@ struct Lowerer<'a> {
     /// The label an `EXIT CASE` jumps to, waiting to be placed at the end of the next `CASE` body that closes
     /// ([`Lowerer::case_end`]).
     case_end: Option<LabelId>,
-    /// Operations that belong to the next statement and run first in it (`joined` of
+    /// Operations that belong to the next statement and run first in it ([`sema::Join::First`] of
     /// [`sema::StmtKind::Allocate`]), each with the span and line it was written at.
     joined: Vec<(Span, u32, Op)>,
+    /// Allocations that belong inside the next statement, just before one of its parts ([`sema::Join::Before`]),
+    /// which the next op of items takes ([`Allocation`]).
+    inside: Vec<(usize, Allocation)>,
     /// The [`sema::Stmt::include_line`] of the statement being lowered.
     include_line: Option<u32>,
     /// The [`sema::Stmt::checked`] of the statement being lowered: a block's, for what the lowering makes of it.
@@ -158,6 +162,7 @@ impl<'a> Lowerer<'a> {
             selects: Vec::new(),
             case_end: None,
             joined: Vec::new(),
+            inside: Vec::new(),
             include_line: None,
             checked: true,
         }
@@ -267,6 +272,21 @@ impl<'a> Lowerer<'a> {
     }
 
     fn stmt(&mut self, s: &sema::Stmt) {
+        // `sema` makes an allocation inside a statement only before a statement of items, which takes it.
+        debug_assert!(
+            self.inside.is_empty()
+                || matches!(
+                    s.kind,
+                    sema::StmtKind::Allocate { .. }
+                        | sema::StmtKind::Print { .. }
+                        | sema::StmtKind::PrintUsing { .. }
+                        | sema::StmtKind::Write { .. }
+                        | sema::StmtKind::Input { .. }
+                        | sema::StmtKind::Read(_)
+                ),
+            "an allocation inside a statement before {:?}",
+            s.kind
+        );
         let op = match &s.kind {
             sema::StmtKind::Label(l) => {
                 let l = self.ids.get(*l);
@@ -289,6 +309,7 @@ impl<'a> Lowerer<'a> {
                     at: sema::TestAt::Top,
                     until: false,
                     cond: cond.clone(),
+                    allocs: Vec::new(),
                 };
                 let end = (*end_line, end_at.unwrap_or(s.span));
                 return self.loop_block(s, sema::LoopKind::While, Some(&test), body, end);
@@ -418,14 +439,23 @@ impl<'a> Lowerer<'a> {
                 array,
                 bounds,
                 mode,
-                joined,
+                join,
             } => {
+                if let sema::Join::Before(n) = join {
+                    let a = Allocation {
+                        array: array.clone(),
+                        bounds: bounds.clone(),
+                        mode: *mode,
+                    };
+                    self.inside.push((*n, a));
+                    return;
+                }
                 let op = Op::Allocate {
                     array: array.clone(),
                     bounds: bounds.clone(),
                     mode: *mode,
                 };
-                if *joined {
+                if *join == sema::Join::First {
                     self.joined.push((s.span, s.line, op));
                     return;
                 }
@@ -453,6 +483,7 @@ impl<'a> Lowerer<'a> {
                 to: to.clone(),
                 items: print_items(items),
                 newline: *newline,
+                allocs: std::mem::take(&mut self.inside),
             },
             sema::StmtKind::PrintUsing {
                 to,
@@ -466,6 +497,7 @@ impl<'a> Lowerer<'a> {
                 format: format.clone(),
                 values: values.clone(),
                 newline: *newline,
+                allocs: std::mem::take(&mut self.inside),
             },
             sema::StmtKind::MemGet { block, offset, target } => Op::MemGet {
                 block: block.clone(),
@@ -501,13 +533,18 @@ impl<'a> Lowerer<'a> {
                 to: to.clone(),
                 items: print_items(items),
                 newline: *newline,
+                allocs: std::mem::take(&mut self.inside),
             },
             sema::StmtKind::Input { from, line, targets } => Op::Input {
                 from: from.clone(),
                 line: *line,
                 targets: targets.clone(),
+                allocs: std::mem::take(&mut self.inside),
             },
-            sema::StmtKind::Read(targets) => Op::Read(targets.clone()),
+            sema::StmtKind::Read(targets) => Op::Read {
+                targets: targets.clone(),
+                allocs: std::mem::take(&mut self.inside),
+            },
             sema::StmtKind::Restore(None) => Op::Restore { at: 0, label: None },
             sema::StmtKind::Restore(Some(l)) => {
                 let l = self.p.label(*l);
@@ -548,7 +585,9 @@ impl<'a> Lowerer<'a> {
                 to: next,
                 on_error,
             };
-            self.emit(b.cond.span, b.line, vec![branch]);
+            let mut ops = allocations(&b.allocs);
+            ops.push(branch);
+            self.emit(b.cond.span, b.line, ops);
             self.stmts_of(&b.body);
             if next != end {
                 self.emit_own(s.span, end_line, vec![Op::Jump(end)]);
@@ -574,32 +613,49 @@ impl<'a> Lowerer<'a> {
     ) {
         let top = self.label(s.line);
         let exit = self.label(end_line);
-        self.place(top);
         // `WHILE c` and `DO WHILE c` leave when `c` is zero, `DO UNTIL c` when it is not.
         let leave = |t: &sema::LoopTest| if t.until { When::NonZero } else { When::Zero };
-        if let Some(t) = test.filter(|t| t.at == sema::TestAt::Top) {
-            let branch = Op::Branch {
-                cond: t.cond.clone(),
-                when: leave(t),
-                to: exit,
-                on_error: OnError::Skip,
-            };
-            self.emit(s.span, s.line, vec![branch]);
+        let top_test = test.filter(|t| t.at == sema::TestAt::Top).map(|t| Op::Branch {
+            cond: t.cond.clone(),
+            when: leave(t),
+            to: exit,
+            on_error: OnError::Skip,
+        });
+        // An allocation of the loop's line runs once, in the statement of its first test (measured,
+        // `verification\v24_x262` case 7, `v55_a_implicit_headers` cases 11, 12, 14, 15: an error of it enters the
+        // body): that test is written apart, before the top the loop goes back to (design D2 of
+        // `m4-names-implicit-arrays`).
+        if let Some(first) = top_test.clone().filter(|_| !self.joined.is_empty()) {
+            let body = self.label(s.line);
+            self.emit(s.span, s.line, vec![first]);
+            self.emit_own(s.span, s.line, vec![Op::Jump(body)]);
+            self.place(top);
+            self.emit(s.span, s.line, vec![top_test.expect("a test at the top")]);
+            self.place(body);
+        } else {
+            self.place(top);
+            if let Some(branch) = top_test {
+                self.emit(s.span, s.line, vec![branch]);
+            }
         }
         self.exits.push((kind, exit, None));
         self.stmts_of(body);
         self.place_continue();
         let back = match test.filter(|t| t.at == sema::TestAt::Bottom) {
             // `LOOP WHILE c` goes back when `c` is not zero, `LOOP UNTIL c` when it is.
-            Some(t) => Op::Branch {
-                cond: t.cond.clone(),
-                when: if t.until { When::Zero } else { When::NonZero },
-                to: top,
-                on_error: OnError::Skip,
-            },
-            None => Op::Jump(top),
+            Some(t) => {
+                let mut ops = allocations(&t.allocs);
+                ops.push(Op::Branch {
+                    cond: t.cond.clone(),
+                    when: if t.until { When::Zero } else { When::NonZero },
+                    to: top,
+                    on_error: OnError::Skip,
+                });
+                ops
+            }
+            None => vec![Op::Jump(top)],
         };
-        self.emit(end_at, end_line, vec![back]);
+        self.emit(end_at, end_line, back);
         self.place(exit);
     }
 
@@ -762,13 +818,14 @@ impl<'a> Lowerer<'a> {
             });
             let first = tests.next().expect("a `CASE` has an item");
             let cond = tests.fold(first, |acc, t| m.binary(BinOp::OrElse, Ty::I32, acc, t));
-            let branch = Op::Branch {
+            let mut ops = allocations(&c.allocs);
+            ops.push(Op::Branch {
                 cond,
                 when: When::Zero,
                 to: next,
                 on_error: OnError::Skip,
-            };
-            self.emit(s.span, c.line, vec![branch]);
+            });
+            self.emit(s.span, c.line, ops);
             self.selects.push((end, false));
             self.stmts_of(&c.body);
             self.selects.pop();
@@ -965,6 +1022,27 @@ impl Make {
         let how = sema::conversion(v.ty, to);
         self.expr(to, ExprKind::Convert { how, from: Box::new(v) })
     }
+}
+
+/// The allocations of a part of a block's line ([`sema::Branch::allocs`], [`sema::LoopTest::allocs`],
+/// [`sema::Case::allocs`]), as operations that run first in the statement of that part's test.
+fn allocations(stmts: &[sema::Stmt]) -> Vec<Op> {
+    stmts
+        .iter()
+        .map(|s| {
+            let sema::StmtKind::Allocate {
+                array, bounds, mode, ..
+            } = &s.kind
+            else {
+                unreachable!("an allocation of a block's line, not {:?}", s.kind);
+            };
+            Op::Allocate {
+                array: array.clone(),
+                bounds: bounds.clone(),
+                mode: *mode,
+            }
+        })
+        .collect()
 }
 
 fn print_items(items: &[sema::PrintItem]) -> Vec<PrintItem> {

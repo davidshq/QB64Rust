@@ -3,7 +3,7 @@
 //! (`verification\v22_b_*`, `v22_x21`–`x60`; `study\00` §5).
 
 use super::expr::Use;
-use super::{Checker, NoJoin, R};
+use super::{Checker, NoJoin, Placing, R};
 use crate::builtins::{qb_bits, stmt_lookup};
 use crate::{
     DataItem, Expr, ExprKind, InputSource, Place, PrintItem, PrintTo, StmtArg, StmtKind, Storage, Ty, UsingValue,
@@ -109,7 +109,7 @@ impl Checker<'_> {
                     let item = if items.is_empty() && !file {
                         self.print_item(*n)?
                     } else {
-                        self.unjoined(NoJoin::Item, |c| c.print_item(*n))?
+                        self.unjoined(NoJoin::Item(items.len()), |c| c.print_item(*n))?
                     };
                     items.push(item);
                     newline = true;
@@ -122,7 +122,7 @@ impl Checker<'_> {
             return Ok(());
         };
         let first = items.is_empty() && !file;
-        let (format, values, newline) = self.using(using, usings.get(1), &parts, first)?;
+        let (format, values, newline) = self.using(using, usings.get(1), &parts, (first, items.len()))?;
         let kind = StmtKind::PrintUsing {
             to,
             before: items,
@@ -138,20 +138,22 @@ impl Checker<'_> {
     /// the line ends (design D1 of `m3-console-files`). Measured (`verification\v30_x01`–`x19`; `study\00` §5):
     /// the format is a string and is followed by `;` (a `,` is "Expected PRINT USING formatstring ; ..."); at
     /// least one value follows; the values stand between `;` or `,`, which mean the same, and none may be left
-    /// out; a second `USING` is an error. `first`: nothing of the statement is evaluated before the format.
+    /// out; a second `USING` is an error. `first`: nothing of the statement is evaluated before the format;
+    /// `before`: how many items stand before `USING`, which numbers the format and the values as parts of the
+    /// statement ([`crate::Join::Before`]).
     fn using(
         &mut self,
         using: ast::UsingClause,
         second: Option<&ast::UsingClause>,
         parts: &[PrintPart],
-        first: bool,
+        (first, before): (bool, usize),
     ) -> R<(Expr, Vec<UsingValue>, bool)> {
         let span = using.node().span();
         let node = self.need(using.format(), span)?;
         let format = if first {
             self.expr(node)?
         } else {
-            self.unjoined(NoJoin::Item, |c| c.expr(node))?
+            self.unjoined(NoJoin::Item(before), |c| c.expr(node))?
         };
         if format.ty != Ty::Str {
             return Err(self.error(format.span, "the format of `USING` must be a string"));
@@ -184,7 +186,7 @@ impl Checker<'_> {
                         // Measured: "Expected operator in equation", also next to a string (`v30_x08`).
                         return Err(self.error(at, "the values of `USING` need `;` or `,` between them"));
                     }
-                    let e = self.unjoined(NoJoin::Item, |c| c.expr(*n))?;
+                    let e = self.unjoined(NoJoin::Item(before + 1 + values.len()), |c| c.expr(*n))?;
                     values.push(using_value(e, *n));
                     after_value = true;
                 }
@@ -313,7 +315,7 @@ impl Checker<'_> {
         for part in stmt.parts() {
             match part {
                 PrintPart::Expr(n) => {
-                    items.push(self.unjoined(NoJoin::Item, |c| c.print_item(n))?);
+                    items.push(self.unjoined(NoJoin::Item(items.len()), |c| c.print_item(n))?);
                     newline = true;
                 }
                 PrintPart::Comma(t) | PrintPart::Semicolon(t) => {
@@ -436,7 +438,7 @@ impl Checker<'_> {
         for part in parts {
             match part {
                 PrintPart::Expr(n) => {
-                    let place = self.unjoined(NoJoin::Item, |c| c.target_place(n, what))?;
+                    let place = self.unjoined(NoJoin::Item(targets.len()), |c| c.target_place(n, what))?;
                     // Measured: "INPUT cannot handle _BIT array elements" for the console form (the runtime
                     // stores through an address, which a packed element has none of; `verification\v24_x253`).
                     // `INPUT #` and `READ` store into one (`v24_x251`, `x252`).
@@ -497,7 +499,7 @@ impl Checker<'_> {
                     }
                 }
             }
-            ast::Expr::Call(c) => self.call_place(c)?,
+            ast::Expr::Call(c) => self.call_place(c, Placing::Target)?,
             ast::Expr::Field(f) => self.field_place(f)?,
             ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_) => {
                 return Err(self.error(span, format!("`{what}` needs a variable here")));
@@ -553,7 +555,7 @@ impl Checker<'_> {
             let target = if targets.is_empty() {
                 self.target_place(e, "READ")?
             } else {
-                self.unjoined(NoJoin::Item, |c| c.target_place(e, "READ"))?
+                self.unjoined(NoJoin::Item(targets.len()), |c| c.target_place(e, "READ"))?
             };
             self.read_only_member(&target, e.node().span())?;
             targets.push(target);

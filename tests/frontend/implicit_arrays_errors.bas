@@ -21,9 +21,9 @@ cls(1) = 5
 ' ERASE above the first use: "Undefined array passed to ERASE".
 ERASE later
 later(1) = 5
-' Not made an array, and marked: one leading underscore (the old compiler: "Invalid array name", unless the
-' name calls a built-in the table does not know), a built-in's name with another suffix, a built-in function's
-' own spelling as a place, a FUNCTION and a SUB of the name, the whole array.
+' Not made an array: one leading underscore (the old compiler: "Invalid array name"), a built-in's name with
+' another suffix, a built-in function's own spelling as a place ("Expected variable ="), a FUNCTION and a SUB of
+' the name (verification\v24_x106, v55_x83: "Name already in use"); the whole array (marked).
 _foo(1) = 2
 len%(3) = 1
 abs$(1) = "x"
@@ -31,21 +31,6 @@ rnd(1) = 2
 f(3) = 5
 PRINT LBOUND(s)
 whole() = 1
-' Below $DYNAMIC, a first use in the line of a block: where its allocation runs differs by block (v24_x262).
-'$DYNAMIC
-IF hd(1) = 0 THEN PRINT 1
-DO
-LOOP UNTIL hl(1) = 0
-' Below $DYNAMIC, a first use in a statement that works item by item, after the part that runs first: the old
-' compiler prints or reads the earlier items, or shows the prompt, before it allocates (v24_x264, x265). The
-' first item of a console PRINT and the first target of READ are accepted.
-PRINT pf(1); " x"; pl(1)
-READ rf(1), rl(1)
-WRITE wf(1)
-PRINT #1, ff(1)
-INPUT it(1)
-LINE INPUT "p"; li$(1)
-'$STATIC
 ' A name written like an element of a member array, of a member the type does not have: "Element not defined".
 TYPE pt
     x AS LONG

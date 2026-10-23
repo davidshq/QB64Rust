@@ -1,0 +1,5 @@
+
+Name already in use (s)
+Caused by (or after):PRINT LBOUND ( S )
+LINE 5:PRINT LBOUND(s)
+exit=1
