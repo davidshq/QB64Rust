@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/frontend.rs
+assertion_line: 151
 expression: snap
 ---
 Settings: console, no window
@@ -22,7 +23,7 @@ Stmt line 14 may_raise
 Stmt line 15 may_raise
   Assign A(Const 3:I64):I16 = Const 7:I16
 Stmt line 16 may_raise
-  Builtin DEF [Word 0, Value((VarSeg A:I64 -> Convert I32 Truncate))]
+  Builtin DEF [Word 0, Value((VarSeg A():I64 -> Convert I32 Truncate))]
 Stmt line 17 may_raise
   Builtin DEF [Word 0, Value(((Var S:F32 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
 Stmt line 18 may_raise
@@ -40,7 +41,7 @@ Stmt line 23 may_raise
 Stmt line 24 may_raise
   Builtin BSAVE [Value(Concat(Var T:Str, Const ".bin")), Value((VarPtr A(Const 1:I64):I64 -> Convert I32 Truncate)), Value(Const 20:I32)]
 Stmt line 25
-  Assign Q:I64 = Add:I64(VarSeg DY:I64, VarSeg CM:I64) wrap
+  Assign Q:I64 = Add:I64(VarSeg DY():I64, VarSeg CM():I64) wrap
 Stmt line 26 may_raise
   Assign L:I32 = (VarPtr DY(Const 3:I64):I64 -> Convert I32 Truncate)
 Stmt line 27 may_raise
@@ -57,7 +58,7 @@ Stmt line 32
   System
 Sub FILL lines 34-38
 Stmt line 35 may_raise
-  Builtin DEF [Word 0, Value((VarSeg G:I64 -> Convert I32 Truncate))]
+  Builtin DEF [Word 0, Value((VarSeg G():I64 -> Convert I32 Truncate))]
 Stmt line 36 may_raise
   Builtin POKE [Value((VarPtr G(Const 6:I64):I64 -> Convert I32 Truncate)), Value(Const 9:I32)]
 Stmt line 37 may_raise

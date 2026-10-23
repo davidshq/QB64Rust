@@ -344,6 +344,9 @@ impl Emitter<'_> {
         if v.is_array() {
             return self.alloc_array(v, n);
         }
+        if self.in_dblock(v) {
+            return self.alloc_dblock(v, n);
+        }
         match v.ty {
             Ty::Str => format!("if (!{n}){n}=qbs_new(0,0);\n"),
             // NUL bytes, as the old compiler allocates them (`DIVERGENCES-QB45.md` Q-005).
@@ -395,10 +398,12 @@ impl Emitter<'_> {
         }
         let count = self.element_count(v, n);
         if v.ty == Ty::Str {
+            // In conventional memory each element's descriptor is there; the pointers are not (`qb64pe.bas` 15150).
+            let new = if v.conventional { "qbs_new_cmem" } else { "qbs_new" };
             write!(
                 out,
                 "{n}[0]=(ptrszint)mem_static_malloc({count}*ptrsz);\ntmp_long={count};\nwhile(tmp_long--){{\n\
-                 ((qbs**)({n}[0]))[tmp_long]=qbs_new(0,0);\n}}\n"
+                 ((qbs**)({n}[0]))[tmp_long]={new}(0,0);\n}}\n"
             )
             .unwrap();
         } else if v.conventional {
@@ -440,12 +445,39 @@ impl Emitter<'_> {
         }
     }
 
-    /// Whether an array of this element type can be one in conventional memory (`sema` allows numbers only).
-    fn may_be_conventional(t: Ty) -> bool {
+    /// Whether an array of this element type can have its blocks in conventional memory: one of numbers, or of a
+    /// fixed-length string or user type that an array in conventional memory has (design D1 of
+    /// `m4-memory-records`; tested only there, so that no other program's C++ changes). An array of strings keeps
+    /// its pointers elsewhere ([`Self::string_new`]).
+    fn may_be_conventional(&self, t: Ty) -> bool {
         match t {
             numeric_value_types!() => true,
-            Ty::Bit { .. } | Ty::FixedStr(_) | Ty::User(_) | Ty::Str => false,
+            Ty::FixedStr(_) | Ty::User(_) => self.p.vars.iter().any(|v| v.conventional && v.is_array() && v.ty == t),
+            Ty::Bit { .. } | Ty::Str => false,
         }
+    }
+
+    /// The text that makes `count` (a C expression) new empty strings of a dynamic array `n` into `block`, last
+    /// first: `qbs_new_cmem` when its descriptor has flag 4, as the old compiler writes it for every array of strings
+    /// (`qb64pe.bas` 15313, 15376), when the program has an array of strings in conventional memory.
+    pub(crate) fn string_new(&self, n: &str, block: &str, count: &str) -> Vec<String> {
+        let each = |new: &str| format!("while(tmp_long--) ((qbs**)({block}))[tmp_long]={new}(0,0);");
+        let mut out = vec![format!("tmp_long={count};")];
+        if self
+            .p
+            .vars
+            .iter()
+            .any(|v| v.conventional && v.is_array() && v.ty == Ty::Str)
+        {
+            out.push(format!("if ({n}[2]&4){{"));
+            out.push(each("qbs_new_cmem"));
+            out.push("}else{".to_string());
+            out.push(each("qbs_new"));
+            out.push("}".to_string());
+        } else {
+            out.push(each("qbs_new"));
+        }
+        out
     }
 
     /// The lines that make a zeroed block of `alloc_req_bytes` bytes for the array `n` and store it in `target`
@@ -457,7 +489,7 @@ impl Emitter<'_> {
             format!("{target}=(ptrszint)calloc((size_t)alloc_req_bytes,1);"),
             format!("if (!{target}) error(257);"),
         ];
-        if !Self::may_be_conventional(t) {
+        if !self.may_be_conventional(t) {
             return plain;
         }
         let mut out = vec![
@@ -475,7 +507,7 @@ impl Emitter<'_> {
     /// The statement that frees the block `block` of the array `n`: to conventional memory when the array's
     /// descriptor has flag 4 ([`Self::new_block`]).
     pub(crate) fn free_block(&self, t: Ty, n: &str, block: &str) -> String {
-        if Self::may_be_conventional(t) {
+        if self.may_be_conventional(t) {
             format!("if ({n}[2]&4) cmem_dynamic_free((uint8*)({block})); else free((void*)({block}));")
         } else {
             format!("free((void*)({block}));")

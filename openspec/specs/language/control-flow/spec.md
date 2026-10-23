@@ -28,8 +28,26 @@ after `v` has been assigned, as in the old compiler: `a`, `b` and `s` converted 
 than `v` (8-bit `_BYTE` or `_UNSIGNED _BYTE` → INTEGER, 16-bit INTEGER or `_UNSIGNED INTEGER` → LONG, every
 32-bit and 64-bit integer type, signed or unsigned, and `_OFFSET` → `_INTEGER64`, SINGLE → DOUBLE, DOUBLE and
 `_FLOAT` → `_FLOAT`), and the direction taken from the sign of `s` at the header. `v` SHALL be a numeric scalar
-variable; a string, a `_BIT` or `_BIT * n` variable, a constant or an array element SHALL be a compile error, and so
-SHALL a string `a`, `b` or `s`.
+variable, or a numeric member of a `TYPE` variable reached through members only (`r.v`, `r.n.v`), as in the old
+compiler; a string, a `_BIT` or `_BIT * n` variable, a constant, an array element, a member of an array element
+(`a(i).v`), a string member and a whole member array SHALL be a compile error, and so SHALL a string `a`, `b` or
+`s`. An element of a member array (`r.m(i)`), whose index the old compiler evaluates at every pass, SHALL be
+reported "not supported yet".
+
+#### Scenario: A member as the variable
+- **WHEN** a `TYPE t` has `v AS LONG`, and `DIM r AS t: FOR r.v = 1 TO 2: PRINT r.v: NEXT` runs
+  (`verification\v17_c_for_type_member`)
+- **THEN** it prints ` 1 ` and ` 2 `
+
+#### Scenario: Members measured
+- **WHEN** the programs `verification\v56_f1_for_member` and `v56_f4_for_nested_member` run
+- **THEN** each prints what the old compiler's program printed
+
+#### Scenario: Members rejected or marked
+- **WHEN** `FOR ar(i).v = 1 TO 3` (`verification\v56_f2`), `FOR r.m = 1 TO 2` or `FOR rs.z = 1 TO 2` for a
+  `STRING * 2` member is compiled, and in another program `FOR r.m(i) = 1 TO 3` (`v56_f3`)
+- **THEN** the first three are compile errors that are not "not supported yet", and the last is reported "not
+  supported yet"
 
 #### Scenario: Limits rounded to the wider type
 - **WHEN** `FOR i% = 1 TO 2.6: PRINT i%;: NEXT: PRINT i%` runs

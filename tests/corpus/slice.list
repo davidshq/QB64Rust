@@ -529,3 +529,5 @@ screen/c17_default_colours
 slice/s156_system_builtins
 # m4-names-implicit-arrays: an array named WIDTH, beside the statement
 slice/s157_width_array
+# m4-memory-records: VARPTR, VARSEG, SADD and VARPTR$ of variables in conventional memory
+slice/s158_varptr_strings

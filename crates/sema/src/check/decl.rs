@@ -353,11 +353,27 @@ impl Checker<'_> {
             if consts {
                 self.auto_const_use(&name, size.span)?;
             }
+            // Measured (design D11 of `m4-memory-records`): a string constant and a name that is no constant (a
+            // variable, a name never assigned) are "Number/Constant expected after *" (`verification\v51_x75`,
+            // `v56_x15`–`x17`); a float constant is rounded half to even, as `qbr` rounds (`v56_x14`, `x18`, `x29`).
+            let not_constant = |c: &mut Self| {
+                let msg = format!("the length of a `STRING * n` must be a number or a numeric constant: `{shown}`");
+                c.error(size.span, msg)
+            };
             let found = match (consts, suffix, self.visible_const(&name)) {
-                (true, None, Some(c)) => match self.prog.constant(c).value {
-                    Value::Int(v) => Some((c, v)),
-                    Value::UInt(_) | Value::Float(..) | Value::Str(_) => None,
+                (true, None, Some(c)) => match &self.prog.constant(c).value {
+                    Value::Int(v) => Some((c, *v)),
+                    v @ Value::Float(..) => crate::consteval::as_i64(v).ok().map(|n| (c, n)),
+                    Value::Str(_) => return Err(not_constant(self)),
+                    Value::UInt(_) => None,
                 },
+                (true, Some(_), Some(c)) if matches!(self.prog.constant(c).value, Value::Str(_)) => {
+                    return Err(not_constant(self));
+                }
+                // A `CONST` of the name elsewhere may be one this compiler did not take.
+                (true, None, None) if !self.const_names.iter().any(|(n, _)| *n == name) => {
+                    return Err(not_constant(self));
+                }
                 _ => None,
             };
             let Some((c, v)) = found else {
@@ -926,7 +942,36 @@ impl Checker<'_> {
             (Some(p), false) => self.local_storage(p),
         };
         let by = Declarer::Redim { mode };
-        self.declare_items(stmt.items(), stmt.as_clause(), storage, shared, by, node)
+        let before = self.sink().len();
+        let done = self.declare_items(stmt.items(), stmt.as_clause(), storage, shared, by, node);
+        self.join_targets(before);
+        done
+    }
+
+    /// The targets of one `ERASE` or `REDIM`, the statements made since `before`, as parts of one statement when
+    /// a member array of one is found through an index, which may raise: each target is cleared in turn, and an
+    /// error is handled after the last, as the old compiler goes on with the other targets first (design D9 of
+    /// `m4-memory-records`; measured, `verification\v24_x312`).
+    fn join_targets(&mut self, before: usize) {
+        let sink = self.sink();
+        let made = &mut sink[before..];
+        let raises = made
+            .iter()
+            .any(|s| matches!(&s.kind, StmtKind::Clear { array, .. } if array.may_raise()));
+        let Some((_, first)) = made.split_last_mut() else {
+            return;
+        };
+        if !raises {
+            return;
+        }
+        for s in first {
+            if let StmtKind::Clear { join, .. } | StmtKind::Release { join, .. } | StmtKind::Allocate { join, .. } =
+                &mut s.kind
+                && *join == Join::None
+            {
+                *join = Join::First;
+            }
+        }
     }
 
     /// `ERASE name, …` (design D4 of `m2-defxxx-common-arrays`; measured, `verification\v24_d_*`, `v24_x57`–`x63`):
@@ -937,6 +982,13 @@ impl Checker<'_> {
     /// A member array (`ERASE t.v`, `ERASE a(1).v`, `ERASE x(0).n(1).q`) is cleared: its bounds never change
     /// (design D8; measured, `verification\v24_x188`, `x189`, `x224`, `x312`).
     pub(super) fn erase(&mut self, stmt: ast::EraseStmt) -> R<()> {
+        let before = self.sink().len();
+        let done = self.erase_targets(stmt);
+        self.join_targets(before);
+        done
+    }
+
+    fn erase_targets(&mut self, stmt: ast::EraseStmt) -> R<()> {
         let node = stmt.node();
         let targets = stmt.targets();
         let alone = targets.len() == 1;
@@ -989,9 +1041,11 @@ impl Checker<'_> {
                 _ if matches!(var.storage, Storage::Param(_)) => StmtKind::EraseParam { array },
                 Shape::Static { .. } => StmtKind::Clear {
                     array: ArrayRef::Var(array),
+                    join: Join::None,
                 },
                 Shape::Dynamic { .. } => StmtKind::Release {
                     array: ArrayRef::Var(array),
+                    join: Join::None,
                 },
                 Shape::Scalar => unreachable!("an array is no scalar"),
             };

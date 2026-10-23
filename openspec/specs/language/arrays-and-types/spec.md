@@ -858,9 +858,9 @@ A `TYPE` member SHALL be declarable as an array with constant bounds, as `name(b
 `AS type name(bounds), …` list, of any type a member may have and of one or more dimensions. A dimension without
 `TO` SHALL start at the `OPTION BASE` in effect where the `TYPE` block stands; the literal 0 has no rule of its
 own there (`z(0)` under base 1 is a compile error, as are bounds that are not constant, reversed or missing).
-A bound written with numbers alone, also as an expression of numbers, SHALL be accepted; one that names a
-`CONST`, which the old compiler accepts, SHALL be reported "not supported yet" (the blocks are read before the
-program's constants).
+A bound written with numbers alone, also as an expression of numbers, SHALL be accepted; so SHALL one that names
+a `CONST` above the block, a constant of the auto-included file or a function of the constant evaluator, with
+the value of that expression, as in the old compiler (requirement "Member array bounds that name no constant").
 Below `$UNSTABLE:TYPEFIELDS` (`language/unstable-features`) a member array SHALL take the marker `_STATIC` or
 `_DYNAMIC` before its name, after its name or bounds, or after its type, and in an `AS type` list after the
 bounds of a name or before it, where it marks that name alone. `_STATIC` SHALL change nothing: the member array
@@ -891,8 +891,10 @@ array written with empty parentheses SHALL be an argument for an array parameter
 procedure works on its elements, with the member's bounds, as on a static array (`ERASE` clears, `REDIM` raises
 error 10); an index outside its bounds on the way SHALL raise error 9 and the procedure SHALL NOT be entered.
 `SWAP` SHALL take an element of a member array as an argument by reference takes it. A member array of an array
-element beside other targets of one `ERASE` or `REDIM`, and an element of a member array as a target of `INPUT`,
-`READ` or the `MID$` statement, SHALL be reported "not supported yet".
+element beside other targets of one `ERASE` or `REDIM` SHALL be cleared in its turn, and the statement SHALL go on
+with the other targets after an index on the way raised an error, as in the old compiler
+(`verification\v24_x312`). An element of a member array as a target of `INPUT`, `READ` or the `MID$` statement
+SHALL be reported "not supported yet".
 
 #### Scenario: Element of a member array
 - **WHEN** a type has `v(0 TO 3) AS LONG`, and `DIM t AS` that type`: t.v(2) = 7: PRINT t.v(2); t.v(3)` runs
@@ -940,8 +942,14 @@ element beside other targets of one `ERASE` or `REDIM`, and an element of a memb
 - **THEN** the handler prints 9 and the elements of `a(0).v` are 0, as with the old compiler
 
 #### Scenario: Bound named by a constant
-- **WHEN** a `TYPE` block has `v(top) AS LONG` below `CONST top = 3`
-- **THEN** the compiler reports it "not supported yet" (the old compiler compiles it)
+- **WHEN** `CONST top = 3` stands above a `TYPE t1` block with `v(top) AS LONG` and `w(top * 2 - 1) AS LONG`, and
+  `DIM t AS t1: PRINT UBOUND(t.v); UBOUND(t.w); LEN(t)` runs (`verification\v24_x196`)
+- **THEN** it prints ` 3  5  40 `
+
+#### Scenario: Member arrays of elements in one ERASE or REDIM
+- **WHEN** the program `verification\v24_x312_member_erase_base` runs `ERASE a(1).s, a(2).v: ERASE a(3).s` and
+  `REDIM a(2).v(0 TO 3), a(2).s(0 TO 1)`, among the other forms of that program
+- **THEN** it prints what the old compiler's program printed
 
 #### Scenario: Forms that are compile errors
 - **WHEN** `t.v = 5`, `PRINT t.v()`, `t.v(1, 2) = 5`, `t.v("a") = 5`, `PRINT t.id(1)`, `PRINT LBOUND(t.id)` or
@@ -1527,9 +1535,10 @@ is not measured and SHALL be reported "not supported yet".
 ### Requirement: LEN of a whole array
 `LEN(name())` of an array, and `LEN` of a whole member array (`LEN(v.m())`, `LEN(a(i).m())`), SHALL give the size in
 bytes of all its elements, as `_MEM` of it gives: the number of elements times the element's size. A dynamic array
-that is not allocated SHALL give 0. A whole dynamic member array, and `LEN(name())` of a name that is no array
-(the old compiler makes it an array used without `DIM`, `verification\v48_x04`, `x14`), SHALL be reported "not
-supported yet".
+that is not allocated SHALL give 0. `LEN(name())` of a name that is no array SHALL be the size of the array used
+without `DIM` that it makes (requirement "Implicit arrays"). `LEN` of a whole member array of variable-length
+strings SHALL give the old compiler's number, 8 bytes per element (`verification\v48_x30`). A whole dynamic
+member array SHALL be reported "not supported yet".
 
 #### Scenario: Numbers and dimensions
 - **WHEN** `DIM a(3 TO 7) AS INTEGER, b(1, 2) AS DOUBLE: PRINT LEN(a()); LEN(a(3)); LEN(b())` runs
@@ -1558,6 +1567,11 @@ supported yet".
 - **WHEN** `DIM f(3) AS LONG: PRINT LEN(f()) / 4; LEN(f()) \ 4; LEN(f()) MOD 3` runs
 - **THEN** it prints ` 4  4  1 `
 
+#### Scenario: A whole member array of strings
+- **WHEN** a `TYPE t` has `s(3) AS STRING`, and `DIM x AS t: PRINT LEN(x.s())` runs (`verification\v48_x30`), and
+  the other bounds and dimensions of `verification\v56_g1_len_string_member_arrays`
+- **THEN** it prints ` 32 `, and `v56_g1` prints what the old compiler's program printed
+
 ### Requirement: Arrays LEN does not take
 `LEN` of a whole array of variable-length strings, of a user type with a `STRING` member, and of a `_BIT` array
 SHALL be compile errors, as in the old compiler ("Cannot pass array of variable-length strings", "UDT must have
@@ -1576,8 +1590,8 @@ fixed size", "Variable/element cannot be _BIT aligned"; `verification\v48_x01`�
 A bound of a member array in a `TYPE` block that names no `CONST` standing above the block SHALL be the compile
 error "TYPE member array bounds must be numeric constant", as the old compiler gives it (measured,
 `verification\v51_x01`–`x15`). A bound that names a `CONST` above the block, a constant of the auto-included file
-or a function of the constant evaluator (`_PI`, `ABS(…)`) SHALL stay "not supported yet" (requirement "Member
-arrays").
+or a function of the constant evaluator (`_PI`, `ABS(…)`) SHALL be taken with its value, rounded as any bound is
+(requirement "Member arrays").
 
 #### Scenario: A variable as the bound
 - **WHEN** a program does `DIM AS _BYTE a`, `a = 1` and declares `array (a) AS LONG` in a `TYPE` block (upstream
@@ -1600,8 +1614,14 @@ arrays").
 - **THEN** it is the same compile error
 
 #### Scenario: A CONST as the bound
-- **WHEN** `CONST top = 3` stands above a `TYPE` block with the member `v(top) AS LONG` (`verification\v24_x196`)
-- **THEN** the only diagnostic is "not supported yet" at the bound
+- **WHEN** `CONST top = 3` stands above a `TYPE` block with the member `v(top) AS LONG` (`verification\v24_x196`),
+  or `v(top%)` (`v51_x09`)
+- **THEN** it compiles with no diagnostic
+
+#### Scenario: An auto-included constant or a function as the bound
+- **WHEN** a `TYPE t1` block has `v(_PI) AS LONG`, `v(ABS(-3)) AS LONG` or, below `CONST top = 3`, `v(ABS(top)) AS
+  LONG`, and `DIM t AS t1: PRINT UBOUND(t.v)` runs (`verification\v51_x10`, `x11`, `x14`)
+- **THEN** each prints ` 3 `
 
 ### Requirement: Undefined member types
 A member of a `TYPE` block declared `AS name`, where `name` is no type word of the old compiler and no `TYPE` of

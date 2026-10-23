@@ -2,13 +2,11 @@
 v04_accidental	D-009
 v05_label_const	D-008
 v05b_label_const_short	D-008
-v16_m5_put_graphics_no_array	not supported yet
 v16_m6_unknown_meta	not supported yet
 v16_m7_bare	not supported yet
 v16_m7_bare_blank	not supported yet
 v16_m7_block_across	not supported yet
 v16_m7_sub_across	not supported yet
-v17_c_for_type_member	not supported yet
 v17_d_resume_main_label_from_sub_both	not supported yet
 v17_d_resume_sub_label	not supported yet
 v17_d_return_label_none	D-003
@@ -24,21 +22,16 @@ v18_h_string_member	D-004
 v21_b_bit_overlap	D-009
 v21_e_scenarios	D-009
 v21_g_fixed_function_twice	D-014
-v21_x54_fixed_function_sub_dup	not supported yet
-v21_x55_fixed_function_const	not supported yet
 v21_x56_fixed_function_call	not supported yet
-v21_x57_fixed_function_member	not supported yet
 v22_x103_swap_parens	not supported yet
 v22_x57_write_semicolon	not supported yet
 v22_x58_write_console_semicolon	not supported yet
 v22_x84_read_paren_variable	not supported yet
 v24_h_member_store	D-004
 v24_x11_define_no_letters	not supported yet
-v24_x196_member_const_bound	not supported yet
 v24_x19_defint_as	not supported yet
 v24_x238_power_negate	not supported yet
 v24_x268_implicit_in_redim_bounds	not supported yet: case 5, in a SUB, `REDIM` of a shared array with a bound that names an array used without `DIM` (v55_x84)
-v24_x312_member_erase_base	not supported yet
 v24_x313_member_index_order	D-004
 v24_x38_dynamic_bare_metacommand	not supported yet
 v25_signs_const	D-028
@@ -46,26 +39,12 @@ v26_x114_auto_const_accepted	D-027
 v26_x128_call_swap	not supported yet
 v26_x27_flag_between	not supported yet
 v26_x34_flag_between_const	not supported yet
-v26_x74_window_accepted	not supported yet
+v26_x74_window_accepted	not supported yet: the function `_SCREENHIDE`
 v27_x50_point_first_left_out	not supported yet
 v27_x64_palette_using	not supported yet
-v28_x01_accepted	not supported yet
-v28_x12_get_string_array	not supported yet
-v28_x13_get_fixed_string_array_element	not supported yet
-v28_x20_put_string_array	not supported yet
-v28_x23_put_string_variable	not supported yet
 v28_x49_rgb32_argument_left_out	not supported yet
-v28_x55_sadd_fixed_string	not supported yet
-v28_x56_sadd_literal	not supported yet
-v28_x57_varptr_dollar_number_array	not supported yet
-v28_x59_put_undeclared_name	not supported yet
 v28_x86_run_sub_name	not supported yet
-v28_x95_hex_of_varptr	not supported yet
 v29_b_sound_wait	varies: SOUND's time, the old build's too
-v30_x176_get_undeclared_array	not supported yet
-v30_x177_put_undeclared_array	not supported yet
-v30_x178_get_undeclared_string_array	not supported yet
-v31_x01_accepted	not supported yet
 v32_a_blocks	D-016
 v32_x89_call_memput	not supported yet
 v32_x91_call_memfill	not supported yet
@@ -113,18 +92,17 @@ v45_x38	D-029
 v45_x40	D-028
 v45_x64	not supported yet
 v47_x08	not supported yet: a keyword where `,` or `)` is expected in an argument list (`ON STRIG(1 GOSUB h`)
-v48_x11_mem_type_string_member	not supported yet: `_MEM` of an array of a `TYPE` with a `STRING` member
-v48_x30_len_whole_string_member_array	not supported yet: `LEN` of a whole member array of variable-length strings (SOMEDAY.md)
 v49_x18_cast_out_of_range	varies: a float constant out of range in `_CAST`; g++ gives another value on each build, in the old compiler too (design D2 of `m4-builtins-param-types`)
-v51_x09_bound_const_suffix_only	not supported yet: a CONST in a member array bound
-v51_x10_bound_auto_const	not supported yet: a CONST in a member array bound
-v51_x11_bound_const_function	not supported yet: a CONST in a member array bound
-v51_x14_bound_const_function_of_const	not supported yet: a CONST in a member array bound
 v51_x34_lbound_paren_name	not supported yet: LBOUND of a parenthesised array name
 v51_x50_assign_or_alone	not supported yet: an operator where a value is expected outside a CONST
-v51_x75_dim_string_star_var	not supported yet: a variable as the length of STRING * n
 v54_x26_negative_beyond	D-034
 v54_x38_const_unsigned	D-027
 v55_x74_static_bound_shared	not supported yet: a `STATIC` bound the start code reads (a shared variable, a FUNCTION)
 v55_x75_static_bound_function	not supported yet: a `STATIC` bound the start code reads (a shared variable, a FUNCTION)
 v55_x84_redim_shared_implicit_bound	not supported yet: in a SUB, `REDIM` of a shared array with a bound that names an array used without `DIM`
+v56_a5_type_string_member	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
+v56_f3_for_member_array_element	not supported yet: `FOR` over an element of a member array
+v56_x08_varptr_string_member	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
+v56_x26_varptr_type_string_member_long	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
+v56_x27_varptr_element_string_member	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
+v56_x30_string_star_member_const	not supported yet: a CONST as the length of a `STRING * n` member

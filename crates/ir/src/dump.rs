@@ -527,6 +527,9 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                             StmtArg::Bytes(place) => {
                                 format!("BytesOf {}:{}", place_text(p, place), ty(p, p.place_ty(place)))
                             }
+                            StmtArg::Rest(place) => {
+                                format!("BytesFrom {}:{}", place_text(p, place), ty(p, p.place_ty(place)))
+                            }
                             StmtArg::Word(w) => format!("Word {w}"),
                             StmtArg::Absent => "Absent".to_string(),
                         })
@@ -648,11 +651,7 @@ fn val(p: &Program, v: &Expr) -> String {
             let d = dim.as_deref().map_or("1".to_string(), |d| val(p, d));
             format!("{word} {}({d}):{}", array_text(p, array), ty(p, v.ty))
         }
-        ExprKind::VarPtr { array, index } => {
-            let i: Vec<String> = index.iter().map(|i| val(p, i)).collect();
-            format!("VarPtr {}({}):{}", var(p, *array), i.join(", "), ty(p, v.ty))
-        }
-        ExprKind::VarSeg { array } => format!("VarSeg {}:{}", var(p, *array), ty(p, v.ty)),
+        ExprKind::Address { word, of } => format!("{word:?} {}:{}", place_text(p, of), ty(p, v.ty)),
         ExprKind::ArrayBytes(array) => format!("ArrayBytes {}:{}", var(p, *array), ty(p, v.ty)),
         ExprKind::MemOf { of, element, .. } => {
             let word = if *element { "MemElement" } else { "Mem" };

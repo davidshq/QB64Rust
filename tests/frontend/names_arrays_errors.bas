@@ -3,8 +3,9 @@ $CONSOLE:ONLY
 ' Names, declarations and arrays (m4-names-arrays): what stays marked or is an error. A second TYPE block of a
 ' name, wherever it stands, is "Name already in use" (design D4, verification\v48_x05). LEN of a whole array of
 ' variable-length strings, of _BIT and of a TYPE with a STRING member are errors (D5, v48_x01-x03); of a whole
-' dynamic member array and of a whole member array of strings (v48_x30: the old compiler gives a number), marked;
-' of a name that is no array, accepted since m4-names-implicit-arrays (v48_x14). An array without AS beside one
+' dynamic member array, marked; of a whole member array of strings (v48_x30), accepted since m4-memory-records
+' (string_members_typed.bas); of a name that is no array, accepted since m4-names-implicit-arrays (v48_x14). An
+' array without AS beside one
 ' listed by
 ' COMMON ... AS (design D2: not measured) is marked; the marked declaration stands last (the follow-on rule).
 $UNSTABLE:TYPEFIELDS
@@ -23,7 +24,6 @@ PRINT LEN(s())
 PRINT LEN(bits())
 PRINT LEN(sa())
 PRINT LEN(o.m())
-PRINT LEN(ss.s())
 PRINT LEN(nothing())
 TYPE twice
     x AS LONG

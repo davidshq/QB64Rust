@@ -31,6 +31,7 @@
 // The emitter by concern (design D6 of `m2-core-builtins`): each module adds the `Emitter` methods of its part.
 mod arrays;
 mod builtins;
+mod cmem;
 mod coverage;
 mod decl;
 mod events;

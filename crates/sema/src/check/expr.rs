@@ -4,7 +4,7 @@ use super::builtins::supported_builtin;
 use super::ops::{Op, TypeError, Typed, Typing, fold_binary, fold_unary, left_operand, op_typing, wrap};
 use super::{Checker, Failed, R};
 use crate::literal::{self, LitError, NumLit};
-use crate::{BinOp, ConvKind, Expr, ExprKind, Place, ProcId, ProcKind, Ty, UnOp};
+use crate::{AddressWord, BinOp, ConvKind, Expr, ExprKind, Place, ProcId, ProcKind, Ty, UnOp};
 use qb64rust_base::show_bytes;
 use qb64rust_builtins::Written;
 use qb64rust_syntax::SyntaxKind::{self, Minus, Number};
@@ -347,8 +347,10 @@ impl Checker<'_> {
         match (proc_name.as_str(), suffix) {
             ("LBOUND", None) => return self.bound_fn(node, false, span),
             ("UBOUND", None) => return self.bound_fn(node, true, span),
-            ("VARPTR", None) => return self.var_address(node, false, span),
-            ("VARSEG", None) => return self.var_address(node, true, span),
+            ("VARPTR", None) => return self.var_address(node, AddressWord::VarPtr, span),
+            ("VARSEG", None) => return self.var_address(node, AddressWord::VarSeg, span),
+            ("SADD", None) => return self.var_address(node, AddressWord::Sadd, span),
+            ("VARPTR", Some(Ty::Str)) => return self.var_address(node, AddressWord::VarPtrStr, span),
             ("_MEM", None) => return self.mem_fn(node, false, span, use_),
             ("_MEMELEMENT", None) => return self.mem_fn(node, true, span, use_),
             ("_OFFSET", None) => return self.offset_fn(node, span),

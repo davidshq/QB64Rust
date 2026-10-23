@@ -50,7 +50,7 @@ line 12: Assign L:I32
           Var S : F32
 line 13: Assign Q:I64
   Binary Add : I64
-    VarPtr A : I64
+    VarPtr A(…) : I64
       Convert Widen : I64
         Var I : I16
     Int 1 : I64
@@ -58,12 +58,12 @@ line 14: Assign S:F32
   Convert Nearest : F32
     Binary Div : F80
       Convert Nearest : F80
-        VarSeg A : I64
+        VarSeg A() : I64
       Convert Nearest : F80
         Int 4 : I16
 line 15: Assign I:I16
   Convert Truncate : I16
-    VarPtr A : I64
+    VarPtr A(…) : I64
       Int 2 : I64
 line 16: Assign U:U32
   Binary Add : U32 (qb I64)
@@ -110,7 +110,7 @@ line 19: Assign T:Str
     Call TIME : Str
 line 20: Print newline
   Num
-    VarPtr A : I64
+    VarPtr A(…) : I64
       Int 2 : I64
   Num
     Call _RGB32 : U32

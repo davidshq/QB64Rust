@@ -233,11 +233,13 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("SPC", Rule::Plain),
     // `PEEK(offset)`: a LONG, in the segment `DEF SEG` set (`verification\v28_b_bload`).
     ("PEEK", Rule::Plain),
-    // `VARPTR(a(i))` and `VARSEG(a(i))`: written by the compiler, an `_INTEGER64` to `PRINT` and to operators
-    // against the table's LONG (`qb64pe.bas` 21328; measured, `verification\v28_d_varptr_index`); checked as
-    // [`ExprKind::VarPtr`] and [`ExprKind::VarSeg`].
+    // `VARPTR`, `VARSEG` and `SADD`: written by the compiler, an `_INTEGER64` to `PRINT` and to operators against
+    // the table's LONG (`qb64pe.bas` 21328; measured, `verification\v28_d_varptr_index`), and `VARPTR$`, a string;
+    // checked as [`ExprKind::Address`].
     ("VARPTR", Rule::Fixed(Ty::I64)),
     ("VARSEG", Rule::Fixed(Ty::I64)),
+    ("SADD", Rule::Fixed(Ty::I64)),
+    ("VARPTR$", Rule::Fixed(Ty::Str)),
     // `_RGB32` with one to four LONG slots (libqb has an entry for each number of arguments) and `_RGBA32` with
     // four: an `_UNSIGNED LONG`. `_FULLSCREEN` has no slot and is called bare only, a LONG ([`NEVER_RUN`]).
     ("_RGB32", Rule::GivenArgs(1)),
@@ -1293,7 +1295,16 @@ fn table_ty(b: &Builtin) -> Ty {
 ///
 /// A `_BIT * n` (a place or a literal) has n bits, `HEX$` (n + 3) \ 4 digits, whether a place or not (measured,
 /// `v21_d_builtins`: `HEX$` of a `_BIT * 3` holding -4 is `C`; the numeric-semantics scenario `HEX$(-1`5)` is `FF`).
+///
+/// `VARPTR`, `VARSEG` and `SADD` are 64 bits and no place: 0. So is a built-in with no return type in the table,
+/// `_SCREENEXISTS` (design D4 of `m4-memory-records`; the old compiler's C++, `func_hex(func_windowexists(),0)`,
+/// `verification\v56_c_radix_width`).
 pub fn radix_width(bits_per_digit: u32, arg: &Expr) -> Option<u32> {
+    if let ExprKind::Call { builtin, .. } = &arg.kind
+        && builtin.get().ret.is_none()
+    {
+        return Some(0);
+    }
     if let Ty::Bit { width, .. } = arg.qb {
         let bits = u32::from(width);
         return Some(if bits_per_digit == 4 { bits.div_ceil(4) } else { bits });

@@ -1,0 +1,41 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE T1
+  S:Str(0 TO 3)
+TYPE T2
+  ID:I16
+  S:Str(1 TO 2, 0 TO 2)
+  V:I32
+TYPE TS
+  N:Str
+  V:I32
+TYPE _MEM
+  OFFSET:Off
+  SIZE:Off
+  $_LOCK_ID:I64
+  $_LOCK_OFFSET:Off
+  TYPE:Off
+  ELEMENTSIZE:Off
+  IMAGE:I32
+  SOUND:I32
+ARRAY YA:T:T2(0 TO 2)
+ARRAY A:T:TS(0 TO 3)
+line 2: ConsoleOnly
+line 19: Print newline
+  Num
+    Int 32 : I32
+  Num
+    Int 48 : I32
+  Num
+    Int 48 : I32
+line 20: Assign M:T:_MEM
+  Mem A() : T:_MEM
+line 21: Assign M:T:_MEM
+  Mem A(…) : T:_MEM
+    Int 2 : I64
+line 22: Assign M:T:_MEM
+  MemElement A(…) : T:_MEM
+    Int 1 : I64
+line 23: System

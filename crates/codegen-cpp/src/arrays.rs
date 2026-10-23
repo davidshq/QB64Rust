@@ -296,8 +296,7 @@ impl Emitter<'_> {
             }
             let keep = mode == AllocMode::Preserve;
             if string {
-                out.push("tmp_long=(ptrszint)alloc_req_elems;".into());
-                out.push("while(tmp_long--) ((qbs**)(preserve_new_ptr))[tmp_long]=qbs_new(0,0);".into());
+                out.extend(self.string_new(n, "preserve_new_ptr", "(ptrszint)alloc_req_elems"));
                 if retain {
                     retain_walk(
                         out,
@@ -388,8 +387,7 @@ impl Emitter<'_> {
         if string {
             out.push(format!("{n}[0]=(ptrszint)malloc((size_t)alloc_req_bytes);"));
             out.push(format!("if (!{n}[0]) error(257);"));
-            out.push("tmp_long=(ptrszint)alloc_req_elems;".into());
-            out.push(format!("while(tmp_long--) ((qbs**)({n}[0]))[tmp_long]=qbs_new(0,0);"));
+            out.extend(self.string_new(n, &format!("{n}[0]"), "(ptrszint)alloc_req_elems"));
         } else {
             out.extend(self.new_block(t, n, &format!("{n}[0]")));
             let block = format!("{n}[0]");

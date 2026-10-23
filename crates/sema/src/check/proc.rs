@@ -28,6 +28,11 @@ impl Checker<'_> {
         let fixed = if function { self.fixed_suffix(name_tok)? } else { None };
         let (name, suffix) = match fixed {
             Some((name, n)) => (name, Some(Ty::FixedStr(n))),
+            // `SUB f$n`: a suffix, the old compiler's error below (design D11 of `m4-memory-records`; measured,
+            // `verification\v21_x54`, `v56_x19`).
+            None if !function && fixed_name(&self.name_text(name_tok)).is_some() => {
+                return Err(self.error(name_tok.span, "a SUB's name has no type suffix"));
+            }
             None => self.split_name(name_tok)?,
         };
         let kind = if function {

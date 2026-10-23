@@ -1,0 +1,40 @@
+d  16 0 2 0 1 2 3 4
+q  16 0 2 0 1 2 3 4
+t  16 0 2 0 1 2 3 4 32
+fx  16 0 2 0 1 2 3 4
+r 8 50397186
+error 5 at line 29
+r1.y 0 0
+zz#  16 0 2 0 1 2 3 4
+sa(2)  16 0 2 0 1 2 3 4
+sa()  16 0 2 0 1 2 3 4
+fa(2)  16 0 2 0 1 2 3 4
+fa()  16 0 2 0 1 2 3 4
+ra(2) 16 33619970 1027 0
+ra(1).y 131088 513 33620995
+ra() 16 33619970 1027
+error 5 at line 50
+error 5 at line 51
+error 5 at line 52
+error 5 at line 53
+error 5 at line 54
+d 1 2 3 4
+q 1 2 3 4
+t 1 2 3 4
+fx 1 2 3 4
+r 1 0 3 0
+zz# 1 2 3 4
+sa(2) 1 2 3 4
+sa() 1 2 3 4
+error 5 at line 64
+fa(2) 0 0 0 0
+fa() 1 2 3 4
+error 5 at line 66
+ra(2) 0 0 0 0
+ra() 1 2 3 4
+r1.y 0 0 0 0
+error 5 at line 69
+never% 0 0 0 0
+error 5 at line 70
+sa(1) 0 0 0 0
+exit=0

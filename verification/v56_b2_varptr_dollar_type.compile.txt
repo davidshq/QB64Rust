@@ -1,0 +1,5 @@
+
+UNEXPECTED INTERNAL COMPILER ERROR!
+Caused by (or after):PRINT VARPTR ( R )
+LINE 14:show VARPTR$(r): PRINT VARPTR(r)
+exit=1

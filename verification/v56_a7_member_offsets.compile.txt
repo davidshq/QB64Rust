@@ -1,0 +1,5 @@
+
+UNEXPECTED INTERNAL COMPILER ERROR!
+Caused by (or after):PRINT "r",1 ; VARPTR ( R ) ; VARPTR ( R . M ( 0 ) ) ; VARPTR ( R . M ( 2 ) ) ; VARPTR ( R . V ) ; VARSEG ( R . M ( 2 ) )
+LINE 15:PRINT "r"; VARPTR(r); VARPTR(r.m(0)); VARPTR(r.m(2)); VARPTR(r.v); VARSEG(r.m(2))
+exit=1

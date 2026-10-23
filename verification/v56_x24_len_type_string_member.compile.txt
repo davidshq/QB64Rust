@@ -1,0 +1,5 @@
+
+UDT must have fixed size
+Caused by (or after):PRINT LEN ( X )
+LINE 8:PRINT LEN(x)
+exit=1

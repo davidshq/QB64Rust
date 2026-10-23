@@ -1,0 +1,17 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+memory_records_errors.bas:10:20: error: the length of a `STRING * n` must be a number or a numeric constant: `v`
+memory_records_errors.bas:10:20: note: QB64pe: Number/Constant expected after *
+memory_records_errors.bas:11:20: error: the length of a `STRING * n` must be a number or a numeric constant: `never`
+memory_records_errors.bas:11:20: note: QB64pe: Number/Constant expected after *
+memory_records_errors.bas:12:20: error: the length of a `STRING * n` must be a number or a numeric constant: `n$`
+memory_records_errors.bas:12:20: note: QB64pe: Number/Constant expected after *
+memory_records_errors.bas:13:7: error: a `CONST` name cannot have a `STRING * n` suffix
+memory_records_errors.bas:13:7: note: QB64pe: Invalid constant type
+memory_records_errors.bas:15:5: error: a `TYPE` member cannot have a type suffix: `fs$5`
+memory_records_errors.bas:15:5: note: QB64pe: Invalid name
+memory_records_errors.bas:18:11: error: not supported yet: `LEN` of a `TYPE` above the block whose member array bounds name a `CONST`
+memory_records_errors.bas:25:5: error: a SUB's name has no type suffix
+memory_records_errors.bas:25:5: note: QB64pe: Type symbols after a SUB name are invalid

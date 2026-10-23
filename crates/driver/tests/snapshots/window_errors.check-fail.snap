@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 window_errors.bas:14:5: error: `_SCREENEXISTS` takes 0 arguments
@@ -77,6 +76,3 @@ window_errors.bas:51:1: note: QB64pe: Syntax error
 window_errors.bas:52:5: error: `_DESKTOPWIDTH` takes 0 arguments
 window_errors.bas:52:5: note: QB64pe: Incorrect number of arguments - Reference: _DESKTOPWIDTH
 window_errors.bas:53:5: error: not supported yet: `_SCREENHIDE`
-window_errors.bas:54:10: error: not supported yet: `_SCREENEXISTS` as the argument of `HEX$`
-window_errors.bas:55:10: error: not supported yet: `_SCREENEXISTS` as the argument of `OCT$`
-window_errors.bas:56:11: error: not supported yet: `_SCREENEXISTS` as the argument of `_BIN$`

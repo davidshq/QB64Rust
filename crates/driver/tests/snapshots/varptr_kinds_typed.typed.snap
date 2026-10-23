@@ -1,0 +1,102 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE T
+  A:I32
+  M:I16(0 TO 3)
+TYPE O
+  Z:I16
+  N:T:T
+ARRAY NA:I32(0 TO 5)
+ARRAY SA:Str(1 TO 3)
+ARRAY FA:Str*2(0 TO 2)
+ARRAY RA:T:T(1 TO 4)
+line 2: ConsoleOnly
+line 18: Assign L:I64
+  Binary Add : I64
+    Binary Add : I64
+      VarPtr I : I64
+      VarSeg D : I64
+    VarPtr BT : I64
+line 19: Assign L:I64
+  Binary Add : I64
+    Binary Add : I64
+      VarPtr S : I64
+      VarPtr FX : I64
+    VarSeg FX : I64
+line 20: Assign L:I64
+  Binary Add : I64
+    Binary Add : I64
+      Binary Add : I64
+        Binary Add : I64
+          VarPtr R.A : I64
+          VarPtr R.M(…) : I64
+            Int 2 : I64
+        VarPtr RO.N.M(…) : I64
+          Int 1 : I64
+      VarSeg R : I64
+    VarSeg RO : I64
+line 21: Assign L:I64
+  Binary Add : I64
+    Binary Add : I64
+      VarPtr NA(…) : I64
+        Int 3 : I64
+      VarSeg NA() : I64
+    VarPtr NA() : I64
+line 22: Assign L:I64
+  Binary Add : I64
+    Binary Add : I64
+      Binary Add : I64
+        VarPtr SA(…) : I64
+          Int 2 : I64
+        VarSeg SA() : I64
+      VarPtr FA(…) : I64
+        Int 1 : I64
+    VarSeg FA() : I64
+line 23: Assign L:I64
+  Binary Add : I64
+    Binary Add : I64
+      VarPtr RA(…) : I64
+        Int 2 : I64
+      VarPtr RA(…).M(…) : I64
+        Int 3 : I64
+        Int 1 : I64
+    VarSeg RA() : I64
+line 24: Assign L:I64
+  Binary Add : I64
+    Binary Add : I64
+      Sadd S : I64
+      Sadd SA(…) : I64
+        Int 1 : I64
+    Sadd SA() : I64
+line 25: Assign V:Str
+  Concat : Str
+    Concat : Str
+      Concat : Str
+        Concat : Str
+          Concat : Str
+            Concat : Str
+              Concat : Str
+                VarPtrStr I : Str
+                VarPtrStr BT : Str
+              VarPtrStr S : Str
+            VarPtrStr FX : Str
+          VarPtrStr R : Str
+        VarPtrStr R.A : Str
+      VarPtrStr SA(…) : Str
+        Int 3 : I64
+    VarPtrStr SA() : Str
+line 26: Assign V:Str
+  Concat : Str
+    Concat : Str
+      Concat : Str
+        Call HEX : Str
+          VarPtr I : I64
+        Call OCT : Str
+          VarSeg I : I64
+      Call _BIN : Str
+        Sadd S : I64
+    Call HEX : Str
+      Call _SCREENEXISTS : I32
+line 27: System

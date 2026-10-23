@@ -107,6 +107,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         types_above: HashMap::new(),
         type_order: HashMap::new(),
         type_const_bounds: HashMap::new(),
+        layout_pending: HashSet::new(),
         auto_file: program.after_last_line.map(|t| program.tree(t).file),
         auto_procs: HashSet::new(),
         hidden_procs: Vec::new(),
@@ -597,9 +598,12 @@ struct Checker<'a> {
     types_above: HashMap<(TreeId, u32), usize>,
     /// Per user type: the index of its block in [`Self::type_blocks`].
     type_order: HashMap<TypeId, usize>,
-    /// The `TYPE` blocks (by key, with their type) with a dynamic member array whose bounds name a `CONST`: they
-    /// are read when pass 2 reaches the block, below the constants above it ([`Self::type_block`]).
+    /// The `TYPE` blocks (by key, with their type) with a member array whose bounds name a `CONST`: they are read
+    /// when pass 2 reaches the block, below the constants above it ([`Self::type_block`]).
     type_const_bounds: HashMap<(TreeId, u32), TypeId>,
+    /// The user types whose layout waits for such bounds of a static member array, until pass 2 reaches their
+    /// block ([`Self::waits_for_layout`]; design D7 of `m4-memory-records`).
+    layout_pending: HashSet<TypeId>,
     /// The source file of QB64pe's file included after the last line, when the program has it (design D7 of
     /// `m3-network-embed`).
     auto_file: Option<FileId>,

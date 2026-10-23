@@ -1,0 +1,5 @@
+
+VARPTR cannot reference _BIT type arrays
+Caused by (or after):PRINT VARPTR ( BA ( 2 ) )
+LINE 14:PRINT VARPTR(ba(2))
+exit=1

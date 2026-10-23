@@ -28,7 +28,8 @@ A store to a member SHALL be a compile error, as in the old compiler.
 ### Requirement: A block of a reference
 `_MEM(reference)` SHALL give the block of a variable, a fixed-length string, an element (from it to the array's
 end), a whole array `a()`, a member or a member array, and `_MEMELEMENT(reference)` the block of the one element
-or value, with the old compiler's `SIZE`, `TYPE` and `ELEMENTSIZE`. A reference the old compiler rejects (a
+or value, with the old compiler's `SIZE`, `TYPE` and `ELEMENTSIZE`; for a value of a `TYPE` with a `STRING`
+member, a `STRING` member counts 8 bytes, as in the old compiler. A reference the old compiler rejects (a
 variable-length string) SHALL be a compile error with its message.
 
 #### Scenario: Whole array, element and element alone
@@ -43,6 +44,11 @@ variable-length string) SHALL be a compile error with its message.
 #### Scenario: Variable-length string
 - **WHEN** `DIM s AS STRING, m AS _MEM: m = _MEM(s)` is compiled
 - **THEN** it is a compile error ("_MEM cannot reference variable-length strings")
+
+#### Scenario: A TYPE with a STRING member
+- **WHEN** a `TYPE ts` has `n AS STRING` and `v AS LONG`, and `DIM a(3) AS ts, m AS _MEM: m = _MEM(a()): PRINT
+  m.SIZE` runs (`verification\v48_x11`), and the forms of `verification\v56_g2_mem_string_member_types`
+- **THEN** it prints ` 48 `, and `v56_g2` prints what the old compiler's program printed
 
 ### Requirement: A block of an address
 `_MEM(offset, size)` SHALL give a block of `size` bytes at `offset`, which SHALL be an `_OFFSET` value; any other

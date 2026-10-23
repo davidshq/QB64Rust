@@ -1,0 +1,30 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE T1
+  V:I32(0 TO 3)
+  W:I32(0 TO 5)
+  P:I16(0 TO 3)
+  A:I8(1 TO 2)
+TYPE T2
+  ID:I16
+  INNER:T:T1
+line 2: ConsoleOnly
+line 19: Print newline
+  Num
+    UBound X.V : I64
+  Num
+    UBound X.W : I64
+  Num
+    UBound X.P : I64
+  Num
+    UBound X.A : I64
+  Num
+    Int 50 : I32
+  Num
+    Int 52 : I32
+  Num
+    Int 24 : I32
+line 20: Clear X.W:I32
+line 21: System

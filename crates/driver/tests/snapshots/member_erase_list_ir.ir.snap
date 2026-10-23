@@ -1,0 +1,24 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Member array T1.V:I32 (0 To 3)
+Member array T1.S:Str (0 To 1)
+Array A:T:T1 static (0 To 3)
+Array B:I16 static (0 To 5)
+Stmt line 2
+  SelectConsole
+Stmt line 12 may_raise
+  Clear A((Var I:I16 -> Convert I64 Widen)).S:Str
+  Clear B:I16
+  Clear A(Const 2:I64).V:I32
+Stmt line 13 may_raise
+  Clear A(Const 2:I64).V:I32
+  Clear A((Var I:I16 -> Convert I64 Widen)).S:Str
+Stmt line 14
+  Clear B:I16
+Stmt line 14
+  Clear B:I16
+Stmt line 15
+  System

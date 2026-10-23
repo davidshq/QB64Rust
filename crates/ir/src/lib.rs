@@ -107,16 +107,17 @@ pub use qb64rust_sema::DataItem;
 pub use qb64rust_sema::VersionInfo;
 /// Which built-in functions are compiled and the rule each follows; the emitter writes a call by its rule.
 pub use qb64rust_sema::builtins;
-/// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
-/// `m2-defxxx-common-arrays`), as is what an allocation does with an array that is allocated already.
-pub use qb64rust_sema::{AllocMode, Shape};
 /// Values, places and arguments are `sema`'s typed tree too (design D10 of `m2-arrays-and-types`: the lowering did
 /// no work on them, only a variant-for-variant copy). The emitter ignores an [`Expr`]'s `span` and `qb`. Variable and
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
 /// ([`Program::vars`]).
 pub use qb64rust_sema::{
-    Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference, StmtArg, VarId,
+    AddressWord, Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference, StmtArg,
+    VarId,
 };
+/// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
+/// `m2-defxxx-common-arrays`), as is what an allocation does with an array that is allocated already.
+pub use qb64rust_sema::{AllocMode, Shape};
 /// The event of an [`Op::OnEvent`] and the forms of [`Op::Key`] are `sema`'s (design D3 of `m3-events`).
 pub use qb64rust_sema::{Event, KeyForm};
 /// The `DECLARE LIBRARY` blocks and the C function behind a library procedure are `sema`'s (design D1 of
@@ -266,9 +267,9 @@ impl Facts for Expr {
             ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
             ExprKind::Load(place) => Facts::may_raise(place),
             ExprKind::Bound { .. } => true,
-            // The index check of the element; a segment is the array's and reads no element.
-            ExprKind::VarPtr { .. } => true,
-            ExprKind::VarSeg { .. } | ExprKind::ArrayBytes(_) => false,
+            // The index checks on the way to the place; a segment is the array's and reads no element.
+            ExprKind::Address { of, .. } => !of.indexes().is_empty(),
+            ExprKind::ArrayBytes(_) => false,
             // An element given is checked against the bounds.
             ExprKind::Block { index, .. } => !index.is_empty(),
             ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.may_raise(),
@@ -293,10 +294,9 @@ impl Facts for Expr {
                 ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) => false,
                 ExprKind::Load(place) => place.uses_strings(p),
                 ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(|d| d.uses_strings(p)),
-                ExprKind::VarPtr { index, .. } | ExprKind::Block { index, .. } => {
-                    index.iter().any(|i| i.uses_strings(p))
-                }
-                ExprKind::VarSeg { .. } | ExprKind::ArrayBytes(_) => false,
+                ExprKind::Block { index, .. } => index.iter().any(|i| i.uses_strings(p)),
+                ExprKind::Address { of, .. } => of.indexes().iter().any(|i| i.uses_strings(p)),
+                ExprKind::ArrayBytes(_) => false,
                 ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.uses_strings(p),
                 ExprKind::Binary { lhs, rhs, .. }
                 | ExprKind::Concat(lhs, rhs)
@@ -363,7 +363,7 @@ impl Facts for StmtArg {
             StmtArg::Place(place) => Facts::may_raise(place),
             // The index check of the element the bytes start at.
             StmtArg::Block { index, .. } => !index.is_empty(),
-            StmtArg::Bytes(place) => Facts::may_raise(place),
+            StmtArg::Bytes(place) | StmtArg::Rest(place) => Facts::may_raise(place),
             StmtArg::Word(_) | StmtArg::Absent => false,
         }
     }
@@ -372,7 +372,9 @@ impl Facts for StmtArg {
     fn uses_strings(&self, p: &Program) -> bool {
         match self {
             StmtArg::Value(v) => v.uses_strings(p),
-            StmtArg::Place(place) | StmtArg::Bytes(place) => place.uses_strings(p) || p.place_ty(place).is_string(),
+            StmtArg::Place(place) | StmtArg::Bytes(place) | StmtArg::Rest(place) => {
+                place.uses_strings(p) || p.place_ty(place).is_string()
+            }
             StmtArg::Block { index, .. } => index.iter().any(|i| i.uses_strings(p)),
             StmtArg::Word(_) | StmtArg::Absent => false,
         }

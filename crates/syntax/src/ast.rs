@@ -1181,6 +1181,11 @@ impl<'a> ForHeader<'a> {
         child(self.0, NameRef::cast)
     }
 
+    /// The indexes after the loop variable's name (`FOR r.m(i) = …`); `None` without them.
+    pub fn var_args(self) -> Option<ArgList<'a>> {
+        child(self.0, ArgList::cast)
+    }
+
     pub fn start(self) -> Option<Expr<'a>> {
         let eq = self.0.child_tokens().find(|t| t.kind == Eq)?;
         expr_after(self.0, eq.span.end)

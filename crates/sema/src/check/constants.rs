@@ -28,6 +28,11 @@ impl Checker<'_> {
         for item in stmt.items() {
             let name_tok = self.need(item.name(), item.node().span())?;
             let value_node = self.need(item.value(), item.node().span())?;
+            if super::proc::fixed_name(&self.name_text(name_tok)).is_some() {
+                // Measured: "Invalid constant type" (design D11 of `m4-memory-records`; `verification\v21_x55`,
+                // `v56_x20`).
+                return Err(self.error(name_tok.span, "a `CONST` name cannot have a `STRING * n` suffix"));
+            }
             let (name, suffix) = self.split_name(name_tok)?;
             if self.procs_by_name.contains_key(&name) {
                 return Err(self.in_use(name_tok));
@@ -211,6 +216,22 @@ impl Checker<'_> {
             Problem::Error(msg) => self.error(span, msg),
             Problem::Unsupported(what) => self.unsupported(span, what),
         })
+    }
+
+    /// A constant expression where the old compiler reads a whole number with its constant evaluator, rounded as
+    /// `qbr` rounds (half to even): a member array's bound that names a constant (design D7 of
+    /// `m4-memory-records`; measured, `verification\v51_x10`, `x11`, `x14`) and the length of `STRING * n` (D11,
+    /// `v56_x14`, `x29`). A string is an error.
+    pub(super) fn const_integer(&mut self, node: ast::Expr) -> R<i64> {
+        let span = node.node().span();
+        consteval::take_fallback();
+        let value = self.const_value(node)?;
+        let value = self.problem(consteval::reread(value, true), span)?;
+        let (_, value) = self.problem(consteval::settle(value, None), span)?;
+        if let Value::Str(_) = value {
+            return Err(self.error(span, "a whole number is needed here, not a string"));
+        }
+        self.problem(consteval::as_i64(&value), span)
     }
 
     /// The value of a `CONST` expression, as the old evaluator computes it. Operands are literals and constants

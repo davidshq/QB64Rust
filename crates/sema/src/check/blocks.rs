@@ -5,7 +5,7 @@
 use super::{Checker, NoJoin, R, Skips, first_token_span};
 use crate::{
     BinOp, Branch, Case, CaseItem, Expr, ExprKind, LoopKind, LoopTest, PLACE_ONLY_UNREACHABLE, Place, Stmt, StmtKind,
-    SymbolKind, TestAt, Ty, VarId,
+    SymbolKind, TestAt, Ty,
 };
 use qb64rust_base::show_bytes;
 use qb64rust_syntax::SyntaxKind;
@@ -193,7 +193,7 @@ impl Checker<'_> {
                 return;
             }
             if self
-                .header(Some(next.node()), skips, |c| c.next_var(next_name, var, name))
+                .header(Some(next.node()), skips, |c| c.next_var(next_name, &var, name))
                 .is_none()
             {
                 self.bad_next = Some(key);
@@ -216,11 +216,11 @@ impl Checker<'_> {
     /// `FOR var = start TO end [STEP step]`: the variable (and its name token), the type the loop counts in, and
     /// the three values converted to it.
     #[expect(clippy::type_complexity, reason = "one use; the parts of `StmtKind::For`")]
-    fn for_header(&mut self, h: ast::ForHeader) -> R<((VarId, Tok), Ty, Expr, Expr, Option<Expr>)> {
+    fn for_header(&mut self, h: ast::ForHeader) -> R<((Place, Tok), Ty, Expr, Expr, Option<Expr>)> {
         let span = h.node().span();
         let name = self.need(h.var().and_then(|v| v.name()), span)?;
-        let var = self.for_var(name)?;
-        let temp = for_temp(self.prog.var(var).ty);
+        let var = self.for_var(name, h.var_args())?;
+        let temp = for_temp(self.prog.place_ty(&var));
         let limit = |c: &mut Self, e: Option<ast::Expr>| -> R<Expr> {
             let node = c.need(e, span)?;
             let e = c.expr(node)?;
@@ -239,13 +239,41 @@ impl Checker<'_> {
         Ok(((var, name), temp, start, end, step))
     }
 
-    /// The `FOR` variable: a numeric scalar variable (measured, `v17_c_err_for_*`, `v17_c_for_array`).
-    fn for_var(&mut self, t: Tok) -> R<VarId> {
+    /// The `FOR` variable: a numeric scalar variable (measured, `v17_c_err_for_*`, `v17_c_for_array`), or a
+    /// numeric member of a `TYPE` variable reached through members (design D8 of `m4-memory-records`; measured,
+    /// `v17_c_for_type_member`, `v56_f1`, `f4`). Its indexes, when written (`FOR r.m(i) = …`), are those of an
+    /// element of a member array, which the old compiler finds again at every pass (`v56_f3`): not supported yet;
+    /// of anything else they are an error (`v17_c_for_array`).
+    fn for_var(&mut self, t: Tok, args: Option<ast::ArgList>) -> R<Place> {
         let shown = show_bytes(self.text(t.span));
         let (name, suffix) = self.split_name(t)?;
-        if name.contains('.') {
-            // A `TYPE` member, which the old compiler takes (`v17_c_for_type_member`).
-            return Err(self.unsupported(t.span, format!("`TYPE` member `{shown}` as a `FOR` variable")));
+        if let Some(args) = args {
+            if name.contains('.')
+                && let Some(Place::Member { base, member }) = self.dotted_any(t, &name, suffix)?
+                && self.prog.member(self.prog.place_ty(&base), member).is_array()
+            {
+                let msg = format!("an element of the member array `{shown}` as a `FOR` variable");
+                return Err(self.unsupported(args.node().span(), msg));
+            }
+            return Err(self.error(args.node().span(), "a `FOR` variable cannot be an array element"));
+        }
+        if name.contains('.')
+            && let Some(place) = self.dotted(t, &name, suffix)?
+        {
+            return match self.prog.place_ty(&place) {
+                crate::numeric_value_types!() => Ok(place),
+                Ty::Str | Ty::FixedStr(_) => {
+                    // Measured: "Unsupported variable used in FOR statement" (`verification\v56_x13`).
+                    Err(self.error(
+                        t.span,
+                        format!("the `FOR` variable `{shown}` must be a number, not a string"),
+                    ))
+                }
+                Ty::Bit { .. } | Ty::User(_) => {
+                    let msg = format!("the member `{shown}` of a `TYPE` as a `FOR` variable");
+                    Err(self.unsupported(t.span, msg))
+                }
+            };
         }
         if self.procs_by_name.contains_key(&name) {
             return Err(self.unsupported(
@@ -274,16 +302,21 @@ impl Checker<'_> {
                 format!("the `_BIT` variable `{shown}` cannot be a `FOR` variable"),
             ));
         }
-        Ok(var)
+        Ok(Place::Var(var))
     }
 
     /// A variable named by `NEXT` for the loop of `var` (named at `for_name`): the same variable, by name and type
-    /// (measured: `NEXT i!` closes `FOR i`, `NEXT i` does not close `FOR i%`). It is looked up, never created.
-    fn next_var(&mut self, next: ast::NameRef, var: VarId, for_name: Tok) -> R<()> {
+    /// (measured: `NEXT i!` closes `FOR i`, `NEXT i` does not close `FOR i%`). It is looked up, never created. A
+    /// member is named as the `FOR` names it (`NEXT r.v`, `verification\v56_f1`).
+    fn next_var(&mut self, next: ast::NameRef, var: &Place, for_name: Tok) -> R<()> {
         let t = self.need(next.name(), next.node().span())?;
         let (name, suffix) = self.split_name(t)?;
-        if self.lookup_var(name, suffix) == Some(var) {
-            self.stmt.names.push((SymbolKind::Var(var), t.span));
+        if let Place::Var(var) = *var {
+            if self.lookup_var(name, suffix) == Some(var) {
+                self.stmt.names.push((SymbolKind::Var(var), t.span));
+                return Ok(());
+            }
+        } else if (name, suffix) == self.split_name(for_name)? {
             return Ok(());
         }
         let msg = format!(

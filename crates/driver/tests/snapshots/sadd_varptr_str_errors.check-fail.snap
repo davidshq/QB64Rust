@@ -1,0 +1,29 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+sadd_varptr_str_errors.bas:17:10: error: `SADD` needs a variable-length string variable
+sadd_varptr_str_errors.bas:17:10: note: QB64pe: SADD only accepts variable-length string variables
+sadd_varptr_str_errors.bas:18:10: error: `SADD` needs a variable-length string variable
+sadd_varptr_str_errors.bas:18:10: note: QB64pe: SADD only accepts variable-length string variables
+sadd_varptr_str_errors.bas:19:10: error: `SADD` of a number or of a member
+sadd_varptr_str_errors.bas:20:10: error: `SADD` of a number or of a member
+sadd_varptr_str_errors.bas:21:10: error: `SADD` needs a variable-length string variable
+sadd_varptr_str_errors.bas:21:10: note: QB64pe: SADD only accepts variable-length string variables
+sadd_varptr_str_errors.bas:22:10: error: `SADD` of a `TYPE` variable
+sadd_varptr_str_errors.bas:22:10: note: QB64pe: User defined types in expressions are invalid
+sadd_varptr_str_errors.bas:23:13: error: `VARPTR$` of an element of an array that is not of strings
+sadd_varptr_str_errors.bas:23:13: note: QB64pe: VARPTR$ only accepts variable-length string arrays
+sadd_varptr_str_errors.bas:24:13: error: `VARPTR$` of an element of an array that is not of strings
+sadd_varptr_str_errors.bas:24:13: note: QB64pe: VARPTR$ only accepts variable-length string arrays
+sadd_varptr_str_errors.bas:25:13: error: `VARPTR$` of an element of an array that is not of strings
+sadd_varptr_str_errors.bas:25:13: note: QB64pe: VARPTR$ only accepts variable-length string arrays
+sadd_varptr_str_errors.bas:26:12: error: `VARPTR` of a whole `TYPE` variable
+sadd_varptr_str_errors.bas:27:12: error: `VARPTR` of an element of a `_BIT` array
+sadd_varptr_str_errors.bas:27:12: note: QB64pe: VARPTR cannot reference _BIT type arrays
+sadd_varptr_str_errors.bas:28:12: error: not supported yet: `VARPTR` of a `TYPE` that holds a `STRING`, in conventional memory
+sadd_varptr_str_errors.bas:29:12: error: not supported yet: `VARSEG` of a `TYPE` that holds a `STRING`, in conventional memory
+sadd_varptr_str_errors.bas:30:12: error: not supported yet: `VARPTR` of a whole array of strings or of a `TYPE`
+sadd_varptr_str_errors.bas:31:12: error: not supported yet: `VARSEG` of a `_BIT` array
+sadd_varptr_str_errors.bas:32:13: error: not supported yet: `VARPTR$` of a member of an array element or of a member that is no number
+sadd_varptr_str_errors.bas:38:18: error: not supported yet: `VARPTR` of a variable of a SUB or FUNCTION

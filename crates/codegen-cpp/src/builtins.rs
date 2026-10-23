@@ -254,6 +254,7 @@ impl Emitter<'_> {
                     | StmtArg::Place(_)
                     | StmtArg::Block { .. }
                     | StmtArg::Bytes(_)
+                    | StmtArg::Rest(_)
                     | StmtArg::Word(_) => ("0".to_string(), 0),
                 };
                 let v = self.value(v);
@@ -281,6 +282,7 @@ impl Emitter<'_> {
                     | StmtArg::Place(_)
                     | StmtArg::Block { .. }
                     | StmtArg::Bytes(_)
+                    | StmtArg::Rest(_)
                     | StmtArg::Word(_) => {
                         out.push(format!("tmp_long={}; if (!is_error_pending()){{", self.value(v)));
                         out.push("if (tqbs->len){tqbs->chr[0]=tmp_long;}else{error(5);}".into());
@@ -313,6 +315,7 @@ impl Emitter<'_> {
                 StmtArg::Place(place) => self.mem_ref(place),
                 StmtArg::Bytes(_) => unreachable!("`{}` takes no place's bytes (`validate`)", b.name),
                 StmtArg::Block { array, index } => self.block(*array, index),
+                StmtArg::Rest(place) => self.rest_bytes(place),
             };
             // The fill of `PAINT`: the old compiler's cast picks libqb's entry for a colour or for a tile string,
             // `(uint32)NULL` for a fill left out (measured, design D2 of `m3-window-output`).
@@ -407,9 +410,12 @@ impl Emitter<'_> {
         let file = self.value(file);
         let (position, mask) = match position {
             StmtArg::Value(v) => (self.value(v), 1),
-            StmtArg::Absent | StmtArg::Place(_) | StmtArg::Block { .. } | StmtArg::Bytes(_) | StmtArg::Word(_) => {
-                ("NULL".to_string(), 0)
-            }
+            StmtArg::Absent
+            | StmtArg::Place(_)
+            | StmtArg::Block { .. }
+            | StmtArg::Bytes(_)
+            | StmtArg::Rest(_)
+            | StmtArg::Word(_) => ("NULL".to_string(), 0),
         };
         let word = if get { "get" } else { "put" };
         match variable {
@@ -434,7 +440,7 @@ impl Emitter<'_> {
                 let bytes = self.block(*array, index);
                 format!("sub_{word}({file},{position},{bytes},{mask});")
             }
-            StmtArg::Absent | StmtArg::Value(_) | StmtArg::Place(_) | StmtArg::Word(_) => {
+            StmtArg::Absent | StmtArg::Value(_) | StmtArg::Place(_) | StmtArg::Rest(_) | StmtArg::Word(_) => {
                 format!("field_{word}({file},{position},{mask});")
             }
         }

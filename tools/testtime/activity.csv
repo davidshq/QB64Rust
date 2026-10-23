@@ -384,6 +384,7 @@ version,session,change,category,actions,bytes
 1,2293eaae,m2-parser-breadth,test runs,7,0
 1,2293eaae,m2-parser-breadth,tests and fixtures,1,110
 1,2309881c,,other commands,4,0
+1,239496b4,,other commands,2,0
 1,248bdaa7,,builds,1,0
 1,248bdaa7,,documents and planning,2,772
 1,248bdaa7,,other commands,14,0
@@ -1959,6 +1960,11 @@ version,session,change,category,actions,bytes
 1,a8f847eb,m4-devices-continue-paths,reading,3,0
 1,a8f847eb,m4-devices-continue-paths,scratch files,2,3032
 1,a8f847eb,m4-devices-continue-paths,test runs,2,0
+1,a989c575,,other commands,1,0
+1,a989c575,m4-names-implicit-arrays,other,1,0
+1,a989c575,m4-names-implicit-arrays,other commands,7,0
+1,a989c575,m4-names-implicit-arrays,scratch files,2,3242
+1,a989c575,m4-names-implicit-arrays,test runs,2,0
 1,aa7df950,,other commands,1,0
 1,aa7df950,m2-control-flow-slice,builds,5,0
 1,aa7df950,m2-control-flow-slice,documents and planning,11,6722
@@ -2611,6 +2617,15 @@ version,session,change,category,actions,bytes
 1,e50d6c13,m2-defxxx-common-arrays,reading,7,0
 1,e50d6c13,m2-defxxx-common-arrays,test runs,2,0
 1,e50d6c13,m2-defxxx-common-arrays,tests and fixtures,7,1662
+1,e516e690,,builds,2,0
+1,e516e690,,other,1,0
+1,e516e690,,other commands,25,0
+1,e516e690,,reading,1,0
+1,e516e690,m4-memory-records,documents and planning,25,49769
+1,e516e690,m4-memory-records,other commands,22,0
+1,e516e690,m4-memory-records,reading,1,0
+1,e516e690,m4-memory-records,scratch files,1,761
+1,e516e690,m4-memory-records,test runs,2,0
 1,e5c0a8a8,,other commands,7,0
 1,e5c0a8a8,,reading,2,0
 1,e5c0a8a8,,test runs,1,0
@@ -2791,6 +2806,17 @@ version,session,change,category,actions,bytes
 1,f821a2b8,,scratch files,3,4003
 1,f821a2b8,,test runs,3,0
 1,f821a2b8,,tests and fixtures,30,8462
+1,f9460d81,,other commands,1,0
+1,f9460d81,m4-memory-records,builds,19,0
+1,f9460d81,m4-memory-records,documents and planning,39,34681
+1,f9460d81,m4-memory-records,measurement preparation,16,19447
+1,f9460d81,m4-memory-records,measurement runs,8,0
+1,f9460d81,m4-memory-records,other commands,251,0
+1,f9460d81,m4-memory-records,product code,43,47012
+1,f9460d81,m4-memory-records,reading,17,0
+1,f9460d81,m4-memory-records,scratch files,21,52581
+1,f9460d81,m4-memory-records,test runs,67,0
+1,f9460d81,m4-memory-records,tests and fixtures,11,9702
 1,f984ef72,,other commands,3,0
 1,fac6617b,,other commands,1,0
 1,fac6617b,,reading,1,0

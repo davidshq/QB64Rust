@@ -17,7 +17,7 @@
 //! `NEXT j, i` closes two `FOR` blocks: the `NextStmt` is the closer of the inner one, and the outer `ForBlock`
 //! has none of its own (`ast::ForBlock::next` finds it).
 
-use super::expr::expr;
+use super::expr::{arg_list, expr};
 use super::{Parser, meta, proc};
 use crate::SyntaxKind::*;
 use qb64rust_base::{Diagnostic, Span};
@@ -701,13 +701,17 @@ pub(crate) fn for_block(p: &mut Parser) {
     p.finish_node();
 }
 
-/// `var = start TO end [STEP step]`, after `FOR`.
+/// `var = start TO end [STEP step]`, after `FOR`. The variable may have indexes (`FOR r.m(i) = …`), which `sema`
+/// reads: the old compiler takes an element of a member array there (design D8 of `m4-memory-records`).
 fn for_header_rest(p: &mut Parser) {
     if !p.at(Ident) {
         p.syntax_error("expected a variable after `FOR`");
         return;
     }
     name_ref(p);
+    if p.at(LParen) && !arg_list(p) {
+        return;
+    }
     if !p.expect(Eq, "`=`") || !expr(p) {
         return;
     }

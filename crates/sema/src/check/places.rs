@@ -5,9 +5,9 @@
 use super::decl::{AsPlace, Declarer, name_end};
 use super::expr::{Use, is_builtin_function};
 use super::{Checker, DimFact, Failed, NoJoin, Placing, R, Scope, Skips, split_unsigned};
+use crate::{AddressWord, MEM_TYPE, ProcId, ProcKind, Program, Var, VarId, mem_type};
 use crate::{AllocMode, BinOp, ConvKind, Join, StmtKind, UnOp};
 use crate::{ArrayRef, Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType};
-use crate::{MEM_TYPE, ProcId, ProcKind, Var, VarId, mem_type};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{auto_constant, find_any, is_auto_include_function, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
@@ -135,6 +135,7 @@ impl Checker<'_> {
         let above = self.consts_above.get(&b.node().key()).copied().unwrap_or((0, false));
         let mut members: Vec<Member> = Vec::new();
         let mut const_bounds = false;
+        let mut pending = false;
         for field in b.fields() {
             let fspan = field.node().span();
             let a = self.need(field.as_clause(), fspan)?;
@@ -155,9 +156,25 @@ impl Checker<'_> {
                         const_bounds = true;
                         vec![(0, 0); bounds.ranges().len()]
                     }
-                    Some(bounds) => self.member_bounds(bounds, base, &shown, Bounds::Pass1(above))?,
+                    // A static member array's bound that names a `CONST` above the block, a constant of the
+                    // auto-included file or a function of the constant evaluator (design D7 of
+                    // `m4-memory-records`; `verification\v24_x196`, `v51_x09`–`x11`, `x14`): read in pass 2 as
+                    // well, where it changes the type's layout; until then 0 TO 0 ([`Checker::waits_for_layout`]).
+                    Some(bounds) => match self.member_bounds(bounds, base, &shown, Bounds::Pass1(above))? {
+                        Some(read) => read,
+                        None => {
+                            const_bounds = true;
+                            pending = true;
+                            vec![(0, 0); bounds.ranges().len()]
+                        }
+                    },
                     None => Vec::new(),
                 };
+                if super::proc::fixed_name(&self.name_text(t)).is_some() {
+                    // Measured: "Invalid name" (design D11 of `m4-memory-records`; `verification\v21_x57`,
+                    // `v56_x21`, `x22`).
+                    return Err(self.error(t.span, format!("a `TYPE` member cannot have a type suffix: `{shown}`")));
+                }
                 let (mname, msuffix) = self.split_name(t)?;
                 if msuffix.is_some() {
                     // Measured: "Invalid name" and "Expected element-name AS type" (`v18_h_member_decl_suffix*`).
@@ -206,11 +223,15 @@ impl Checker<'_> {
         if const_bounds {
             self.type_const_bounds.insert(b.node().key(), id);
         }
+        if pending {
+            self.layout_pending.insert(id);
+        }
         Ok(id)
     }
 
-    /// Pass 2 at a `TYPE` block of [`Checker::type_const_bounds`]: the first bounds of its dynamic member arrays
-    /// that name a `CONST`, now that the constants above the block are known.
+    /// Pass 2 at a `TYPE` block of [`Checker::type_const_bounds`]: the bounds of its member arrays that name a
+    /// `CONST`, now that the constants above the block are known: the first bounds of a dynamic one, and the bounds
+    /// of a static one, which lay the type out (design D7 of `m4-memory-records`).
     fn type_const_bounds(&mut self, b: ast::TypeBlock, id: TypeId) {
         self.stmt.stmt_error = false;
         let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
@@ -219,15 +240,40 @@ impl Checker<'_> {
             let Some(bounds) = f.bounds().filter(|&bounds| names_constants(bounds)) else {
                 continue;
             };
-            if !self.prog.types[id.0 as usize].members[i].dynamic {
-                continue;
-            }
             let shown = show_bytes(self.text(f.name().map_or(f.node().span(), |t| t.span)));
-            if let Ok(read) = self.member_bounds(bounds, base, &shown, Bounds::Pass2) {
+            if let Ok(Some(read)) = self.member_bounds(bounds, base, &shown, Bounds::Pass2) {
                 self.prog.types[id.0 as usize].members[i].bounds = read;
             }
         }
+        self.layout_pending.remove(&id);
+        let bytes: u64 = self.prog.types[id.0 as usize]
+            .members
+            .iter()
+            .map(|m| layout_bytes(&self.prog.types, m.ty) * u64::from(m.count()))
+            .fold(0, u64::saturating_add);
+        if bytes > MAX_ELEMENTS as u64 {
+            let at = b.header().map_or(b.node().span(), |h| h.node().span());
+            let _ = self.unsupported(at, "a `TYPE` of more than 2^31 bytes");
+        }
         self.flush_names();
+    }
+
+    /// Whether a value of type `t` is laid out by member array bounds that pass 2 has not read yet: a use of the
+    /// type above its block, which reads its size or bounds before they are known, is not supported yet (design D7
+    /// of `m4-memory-records`).
+    pub(super) fn waits_for_layout(&self, t: Ty) -> bool {
+        match t {
+            Ty::User(id) => {
+                self.layout_pending.contains(&id)
+                    || self
+                        .prog
+                        .user_type(id)
+                        .members
+                        .iter()
+                        .any(|m| self.waits_for_layout(m.ty))
+            }
+            crate::numeric_types!() | Ty::Str | Ty::FixedStr(_) => false,
+        }
     }
 
     /// The markers of one member name (design D2 of `m3-typefields`; `qb64pe.bas` 2213–2304; measured,
@@ -274,37 +320,52 @@ impl Checker<'_> {
     ///
     /// A bound is a constant expression, read where the block stands: a name that is no `CONST` above it is "TYPE
     /// member array bounds must be numeric constant" (`v24_x195`; `v51_x01`–`x08`: a variable, an unknown name, a
-    /// `CONST` below the block or in a SUB below it, `LEN`). The blocks are read before the program's `CONST`s
-    /// are evaluated, so a bound that names one above (accepted by the old compiler, `v24_x196`, `v51_x09`), or
-    /// may be one ([`Self::may_be_constant`]), is not supported yet.
-    fn member_bounds(&mut self, bounds: ast::ArrayBounds, base: i64, shown: &str, when: Bounds) -> R<Vec<(i64, i64)>> {
+    /// `CONST` below the block or in a SUB below it, `LEN`). The blocks are read in pass 1, before the program's
+    /// `CONST`s are evaluated, so bounds that name one above, or may be one ([`Self::may_be_constant`]; accepted by
+    /// the old compiler, `v24_x196`, `v51_x09`–`x11`, `x14`), are `None` there and read in pass 2.
+    fn member_bounds(
+        &mut self,
+        bounds: ast::ArrayBounds,
+        base: i64,
+        shown: &str,
+        when: Bounds,
+    ) -> R<Option<Vec<(i64, i64)>>> {
         let span = bounds.node().span();
         let ranges = bounds.ranges();
         if ranges.is_empty() {
             return Err(self.error(span, format!("the member array `{shown}` needs bounds")));
         }
+        if let Bounds::Pass1(above) = when {
+            let mut deferred = false;
+            for (lower, upper) in &ranges {
+                for &bound in lower.iter().chain(upper) {
+                    if only_numbers(bound) {
+                        continue;
+                    }
+                    if !self.may_be_constant(bound, above) {
+                        return Err(self.error(bound.node().span(), "a bound of a member array must be a constant"));
+                    }
+                    deferred = true;
+                }
+            }
+            if deferred {
+                return Ok(None);
+            }
+        }
         let mut out = Vec::new();
         let mut count: i64 = 1;
+        // In pass 2 a bound may name constants and the constant evaluator's functions (`_PI`, `ABS(…)`).
+        let read = |c: &mut Self, node: ast::Expr| match when {
+            Bounds::Pass1(_) => c.constant_bound(node),
+            Bounds::Pass2 => c.const_integer(node),
+        };
         for (lower, upper) in ranges {
             let upper = self.need(upper, span)?;
-            for bound in lower.into_iter().chain([upper]) {
-                let Bounds::Pass1(above) = when else {
-                    continue;
-                };
-                if only_numbers(bound) {
-                    continue;
-                }
-                if self.may_be_constant(bound, above) {
-                    let msg = "a bound of a member array that is not written with numbers alone (a `CONST`)";
-                    return Err(self.unsupported(bound.node().span(), msg));
-                }
-                return Err(self.error(bound.node().span(), "a bound of a member array must be a constant"));
-            }
             let l = match lower {
-                Some(l) => self.constant_bound(l)?,
+                Some(l) => read(self, l)?,
                 None => base,
             };
-            let u = self.constant_bound(upper)?;
+            let u = read(self, upper)?;
             if u < l {
                 let msg = format!("invalid bounds for `{shown}`: {l} TO {u}");
                 return Err(self.error(upper.node().span(), msg));
@@ -319,7 +380,7 @@ impl Checker<'_> {
             };
             out.push((l, u));
         }
-        Ok(out)
+        Ok(Some(out))
     }
 
     /// Whether a bound of a member array names what may be a constant where its block stands: a `CONST` above
@@ -1806,6 +1867,10 @@ impl Checker<'_> {
             return Ok(false);
         };
         let shown = show_bytes(self.text(last_tok.span));
+        if self.waits_for_layout(self.prog.var(place.root()).ty) {
+            let msg = format!("`REDIM` of `{shown}` above its `TYPE` block, whose bounds name a `CONST`");
+            return Err(self.unsupported(span, msg));
+        }
         let Some((declared, member_ty, dynamic)) = self
             .member_of(&place)
             .filter(|m| m.is_array())
@@ -1951,15 +2016,22 @@ impl Checker<'_> {
     /// on with its other targets before the error is handled (measured, `verification\v24_x312`), each clear
     /// here is a statement of its own: such a target beside others is not supported yet.
     pub(super) fn clear_member_array(&mut self, array: ArrayRef, alone: bool, span: Span, stmt: Node) -> R<()> {
-        if array.may_raise() && !alone {
-            let msg = "a member array of an array element in a list of `ERASE` or `REDIM` targets";
-            return Err(self.unsupported(span, msg));
-        }
-        // `ERASE` of a dynamic member array releases it (design D4 of `m3-typefields`).
+        // `ERASE` of a dynamic member array releases it (design D4 of `m3-typefields`); beside other targets it is not
+        // measured.
         let kind = if self.is_dynamic_member(&array) {
-            StmtKind::Release { array }
+            if array.may_raise() && !alone {
+                let msg = "a dynamic member array of an array element in a list of `ERASE` targets";
+                return Err(self.unsupported(span, msg));
+            }
+            StmtKind::Release {
+                array,
+                join: Join::None,
+            }
         } else {
-            StmtKind::Clear { array }
+            StmtKind::Clear {
+                array,
+                join: Join::None,
+            }
         };
         self.push(stmt, kind);
         Ok(())
@@ -2158,59 +2230,151 @@ impl Checker<'_> {
         })
     }
 
-    /// `VARPTR(a(i))` and `VARSEG(a(i))` (`segment`) (design D3 and D4 of `m3-get-put-bload`; measured,
-    /// `verification\v28_b_bload`, `v28_d_varptr_index`, `v28_e_cmem_arrays`, `v28_x36`–`x41`). The argument is
-    /// a variable or an element, never a value. An array of the main module with numeric elements, static or
-    /// dynamic, named from any body, is put into conventional memory by being named here; every other kind of
-    /// variable needs another allocation and is not supported yet.
-    pub(super) fn var_address(&mut self, call: ast::CallExpr, segment: bool, span: Span) -> R<Expr> {
-        let word = if segment { "VARSEG" } else { "VARPTR" };
+    /// `VARPTR`, `VARSEG`, `SADD` and `VARPTR$` (design D3 and D4 of `m3-get-put-bload`, D1–D3 of
+    /// `m4-memory-records`; measured, `verification\v28_b_bload`, `v28_d_varptr_index`, `v28_e_cmem_arrays`,
+    /// `v28_x36`–`x41`, `x55`–`x57`, `v56_*`). The argument is a variable, an element or a member, never a value.
+    /// The variable it is part of, of the main module and named from any body, is put into conventional memory by
+    /// being named here. A variable of a procedure, a user type that holds a `STRING` (the old compiler's program
+    /// leaves its strings out there and crashes, `v56_a5`) and the forms the family did not measure are not
+    /// supported yet.
+    pub(super) fn var_address(&mut self, call: ast::CallExpr, word: AddressWord, span: Span) -> R<Expr> {
+        let name = word.name();
         let args = self.present_args(call.arg_list())?;
         let &[arg] = &args[..] else {
             // Measured: "Incorrect number of arguments" (`v28_x39`).
-            return Err(self.error(span, format!("`{word}` takes 1 argument")));
+            return Err(self.error(span, format!("`{name}` takes 1 argument")));
         };
         // An element or variable of a user type is a place here, not a value, as for `LEN` ([`Self::load`]).
         let e = self.expr_as(arg, Use::Place)?;
         let ExprKind::Load(place) = e.kind else {
+            if word == AddressWord::Sadd {
+                // Measured: the old compiler's message for a literal (`v28_x56`).
+                return Err(self.error(e.span, "`SADD` needs a variable-length string variable"));
+            }
             // Measured: "Expected reference to a variable/array" for a literal, an expression, a function call
             // (`v28_x36`, `x37`, `x40`, `x41`).
-            return Err(self.error(e.span, format!("`{word}` needs a variable or an array element")));
+            return Err(self.error(e.span, format!("`{name}` needs a variable or an array element")));
         };
-        let Place::Element {
-            array: ArrayRef::Var(array),
-            index,
-        } = place
-        else {
-            let what = match place {
-                Place::Var(_) => "a variable that is no array element",
-                Place::Element { .. } | Place::Member { .. } => "a member of a `TYPE`",
-            };
-            return Err(self.unsupported(e.span, format!("`{word}` of {what}")));
-        };
-        let v = self.prog.var(array);
-        let what = match (v.storage, v.ty) {
-            (Storage::Main, t) if (t.is_int() || t.is_float()) && !matches!(t, Ty::Bit { .. }) => None,
-            (Storage::Main, Ty::Str | Ty::FixedStr(_)) => Some("a string array"),
-            (Storage::Main, _) => Some("an array of a `TYPE` or of `_BIT`"),
-            (Storage::Param(_), _) => Some("an array parameter"),
-            (Storage::Static(_) | Storage::Local(_) | Storage::Result(_), _) => Some("an array of a SUB or FUNCTION"),
+        let ty = self.prog.place_ty(&place);
+        let whole = matches!(&place, Place::Element { index, .. } if index.is_empty());
+        let on_member = matches!(
+            &place,
+            Place::Member { .. }
+                | Place::Element {
+                    array: ArrayRef::Member { .. },
+                    ..
+                }
+        );
+        // The forms each function takes, by the old compiler's rules (`qb64pe.bas` 21306–21560).
+        match word {
+            AddressWord::Sadd => {
+                if ty == Ty::Str && !on_member {
+                    // A variable, an element, or `s$()`: its first element (`v56_x11`).
+                } else if let Ty::User(_) = ty {
+                    // Measured: "User defined types in expressions are invalid" (`v56_x09`).
+                    return Err(self.error(e.span, "`SADD` of a `TYPE` variable"));
+                } else if matches!(ty, Ty::FixedStr(_)) && !on_member {
+                    // Measured: the old compiler's message for a fixed-length string (`v28_x55`, `v56_x05`).
+                    return Err(self.error(e.span, "`SADD` needs a variable-length string variable"));
+                } else {
+                    // A number or a member fails the old compiler's C++ build (`v56_x03`, `x04`).
+                    return Err(self.error(e.span, "`SADD` of a number or of a member"));
+                }
+            }
+            AddressWord::VarPtrStr => {
+                if let Place::Element {
+                    array: ArrayRef::Var(_),
+                    ..
+                } = &place
+                    && ty != Ty::Str
+                {
+                    // Measured: the old compiler's message (`v28_x57`, `v56_x01`, `x02`).
+                    return Err(self.error(e.span, "`VARPTR$` of an element of an array that is not of strings"));
+                }
+                if on_member && (place.has_element() || !(ty.is_int() || ty.is_float())) {
+                    let msg = "`VARPTR$` of a member of an array element or of a member that is no number";
+                    return Err(self.unsupported(e.span, msg));
+                }
+            }
+            AddressWord::VarPtr | AddressWord::VarSeg => {
+                if let (AddressWord::VarPtr, Place::Var(_), Ty::User(_)) = (word, &place, ty) {
+                    // Measured: the old compiler's internal error (`v56_t02`); its `VARSEG` is 80 (`t03`).
+                    return Err(self.error(e.span, "`VARPTR` of a whole `TYPE` variable"));
+                }
+                if let (Place::Element { .. }, Ty::Bit { .. }) = (&place, ty) {
+                    if word == AddressWord::VarPtr {
+                        // Measured: "VARPTR cannot reference _BIT type arrays" (`v56_x07`).
+                        return Err(self.error(e.span, "`VARPTR` of an element of a `_BIT` array"));
+                    }
+                    return Err(self.unsupported(e.span, "`VARSEG` of a `_BIT` array"));
+                }
+                if whole && !(ty.is_int() || ty.is_float()) {
+                    let msg = format!("`{name}` of a whole array of strings or of a `TYPE`");
+                    return Err(self.unsupported(e.span, msg));
+                }
+                if on_member && !(ty.is_int() || ty.is_float()) {
+                    let msg = format!("`{name}` of a member that is no number");
+                    return Err(self.unsupported(e.span, msg));
+                }
+            }
+        }
+        let root = place.root();
+        let v = self.prog.var(root);
+        let what = match v.storage {
+            Storage::Main => None,
+            Storage::Param(_) => Some("a parameter"),
+            Storage::Static(_) | Storage::Local(_) | Storage::Result(_) => Some("a variable of a SUB or FUNCTION"),
         };
         if let Some(what) = what {
-            return Err(self.unsupported(e.span, format!("`{word}` of {what}")));
+            return Err(self.unsupported(e.span, format!("`{name}` of {what}")));
         }
-        self.prog.vars[array.0 as usize].conventional = true;
-        let kind = if segment {
-            ExprKind::VarSeg { array }
+        if crate::holds_strings(&self.prog.types, v.ty)
+            || crate::owns_desc(&self.prog.types, v.ty)
+            || self.prog.is_mem(v.ty)
+        {
+            let msg = format!("`{name}` of a `TYPE` that holds a `STRING`, in conventional memory");
+            return Err(self.unsupported(e.span, msg));
+        }
+        if through_dynamic_member(&self.prog, &place) {
+            return Err(self.unsupported(e.span, format!("`{name}` of a dynamic member array")));
+        }
+        self.prog.vars[root.0 as usize].conventional = true;
+        // `VARSEG` finds no element: of an array (not of strings), the whole array; of anything else, the variable.
+        let of = match (word, &self.prog.var(root).shape) {
+            (AddressWord::VarSeg, Shape::Scalar) => Place::Var(root),
+            (AddressWord::VarSeg, _) => Place::Element {
+                array: ArrayRef::Var(root),
+                index: Vec::new(),
+            },
+            _ => place,
+        };
+        let ty = if word == AddressWord::VarPtrStr {
+            Ty::Str
         } else {
-            ExprKind::VarPtr { array, index }
+            Ty::I64
         };
         Ok(Expr {
             span,
-            ty: Ty::I64,
-            qb: Ty::I64,
-            kind,
+            ty,
+            qb: ty,
+            kind: ExprKind::Address { word, of },
         })
+    }
+}
+
+/// Whether a dynamic member array lies on the way to a place.
+fn through_dynamic_member(prog: &Program, place: &Place) -> bool {
+    match place {
+        Place::Var(_) => false,
+        Place::Element {
+            array: ArrayRef::Var(_),
+            ..
+        } => false,
+        Place::Element {
+            array: ArrayRef::Member { base, member },
+            ..
+        } => prog.member(prog.place_ty(base), *member).dynamic || through_dynamic_member(prog, base),
+        Place::Member { base, .. } => through_dynamic_member(prog, base),
     }
 }
 
@@ -2365,8 +2529,7 @@ fn constant(e: &Expr) -> Option<Num> {
                 (ConvKind::RoundEven, Num::Int(_)) | (ConvKind::Truncate, Num::Float(_)) | (ConvKind::Cast, _) => None,
             }
         }
-        ExprKind::VarPtr { .. }
-        | ExprKind::VarSeg { .. }
+        ExprKind::Address { .. }
         | ExprKind::Block { .. }
         | ExprKind::MemOf { .. }
         | ExprKind::MemAt { .. }

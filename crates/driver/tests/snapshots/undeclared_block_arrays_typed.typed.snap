@@ -1,0 +1,44 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY UND:F32(0 TO 10)
+ARRAY UNL:I32(0 TO 10)
+ARRAY UND:Str(0 TO 10)
+ARRAY ND:I32(0 TO 10)
+line 2: ConsoleOnly
+line 6: Builtin OPEN
+  Str "a.tmp" : Str
+  word 1
+  (absent)
+  (absent)
+  word 0
+  Int 1 : I32
+  (absent)
+  (absent)
+line 7: Builtin GET
+  Int 1 : I32
+  Int 1 : I64
+  bytes of UND (whole)
+line 8: Builtin PUT
+  Int 1 : I32
+  (absent)
+  bytes of UND (whole)
+line 9: Builtin GET
+  Int 1 : I32
+  (absent)
+  bytes of UNL (whole)
+line 10: Builtin GET
+  Int 1 : I32
+  (absent)
+  bytes of place UND() : Str
+line 11: Builtin CLOSE
+  Int 1 : I32
+line 12: Assign N:F32
+  Convert Nearest : F32
+    Call _UCHARPOS : I32
+      Str "abc" : Str
+      Bytes ND : I32
+      (absent)
+      (absent)
+line 13: System

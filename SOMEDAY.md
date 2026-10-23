@@ -19,8 +19,7 @@ argument). What of that layer the old compiler accepts and the new one still mar
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A bound of a member array that names a `CONST` (`v(top) AS LONG`, `w(top * 2 - 1) AS LONG`) | The `TYPE` blocks are read before the program's `CONST`s (a type may be used above its block), so a bound must be written with numbers alone. It needs the constants of the main module known in the first pass | `verification\v24_x196`; design D8 of the change, "As built in group 9" |
-| A member array of an array element beside other targets of one `ERASE` or `REDIM` (`ERASE a(1).v, t.v`) | The old compiler goes on with the other targets before the error of an index is handled; each clear here is a statement of its own. It needs several operations in one statement of the typed tree, as the allocations of one `DIM` have | `verification\v24_x312` lines 9 and 10 |
+| A dynamic member array of an array element beside other targets of one `ERASE` (`ERASE a(1).d, t.v`) | Not measured; a static one is a part of one statement with the other targets since `m4-memory-records` (design D9) | `check\places.rs` `clear_member_array` |
 | `REDIM t.v(0) AS type` under `OPTION BASE 1` | Not measured: whether the number 0 keeps the rule it has in a `DIM` | `tests\frontend\member_arrays_errors.bas` |
 
 (An element of a member array, and a member of an array element, as a target of `INPUT`, `READ` or the `MID$`
@@ -57,12 +56,10 @@ the new one still marks "not supported yet", and what is compiled but checked by
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `VARPTR` and `VARSEG` of a scalar, a string or a fixed-length string (`VARPTR(i)`, `VARSEG(d)`, `VARPTR(t$)`) | The variable would have to live in conventional memory, allocated another way: a number from `dblock+cmem_sp` (`VARPTR` is `((unsigned short)(((uint8*)V)-&cmem[1280]))`, `VARSEG` 80), a string by `qbs_new_cmem` (`VARPTR` its `cmem_descriptor_offset`), a fixed-length one by `qbs_new_fixed` over `dblock` (`V->chr-&cmem[1280]`). Decided 2026-10-13: arrays only until a program needs one | `study\00` §5 (`v28`); `tests\frontend\m3_step2_marked.bas` |
+| `VARPTR`, `VARSEG`, `SADD` and `VARPTR$` of a variable, member or element of a `TYPE` that holds a `STRING` (or a dynamic member array), and graphics `GET` and `PUT` of one | In conventional memory the old compiler's allocation leaves out the value's strings, and its program crashes at the first use of one (`verification\v56_a5`: exit 139); `GET` writes over the string pointers. Every other variable of the main module is in conventional memory since `m4-memory-records` | `verification\v56_a5`, `x08`, `x26`, `x27`; `tests\frontend\sadd_varptr_str_errors.bas` |
 | `VARPTR` and `VARSEG` of an array of a SUB or FUNCTION (`DIM` or `STATIC` there) and of an array parameter | A local array starts with flag 4 and is allocated per call from conventional memory; a parameter named so makes the callers' arguments conventional (`qb64pe.bas` 12081, 12810), a fact carried through calls. The text is the same as for an array of the main module | Same |
-| `VARPTR` and `VARSEG` of an array of a `TYPE`, of strings, of fixed-length strings or of `_BIT`, and of a member (`VARPTR(r(2).y)`, `VARPTR(one.y)`) | Other texts: a `TYPE` element `((index)*size+offset)`, a string element its `cmem_descriptor_offset`, a member of a variable `((unsigned short)(((uint8*)V) - &cmem[1280] + offset))` | Same |
-| `SADD(t$)` and `VARPTR$(v)` | `SADD` is `((unsigned short)(T->chr-&cmem[1280]))` of a string in conventional memory; `VARPTR$` is `func_varptr_helper(type, offset)` | Same; `verification\v28_x55`–`x57` |
-| `VARPTR` or `VARSEG` as the direct argument of `HEX$`, `OCT$` or `_BIN$` | The old compiler passes the width 0 there (`func_hex(…,0)`), not an `_INTEGER64`'s | `verification\v28_x95` |
-| In the array's place of graphics `GET` and `PUT`: an array of a `TYPE`, of strings or fixed-length strings, of `_BIT`; a name that is no array (the bytes of that plain variable, also of an undeclared name); a member | Each is another text of the `byte_element` argument (`((char*)A[0])+…` for a `TYPE`, `(uint64)V,size` for a variable, `T->chr,T->len` for a string). No program in hand has one | `verification\v28_x12`, `x13`, `x20`, `x23`, `x59` |
+| `VARPTR` and `VARSEG` of a whole array `x()` that is not of numbers, `VARSEG` of a `_BIT` array, `VARPTR` of a member of a fixed-length string or `TYPE` type, `VARPTR$` of a member of an element or of a member array's element | Not measured by `verification\v56` (the measured forms compile since `m4-memory-records`) | `tests\frontend\sadd_varptr_str_errors.bas` |
+| In the array's place of graphics `GET` and `PUT`: an array of `_BIT` | Not measured; every other place compiles since `m4-memory-records` (design D5) | `tests\frontend\m3_step2_marked.bas` |
 | An index that calls a FUNCTION in the array of `GET` or `PUT` (`GET (1, 2)-(3, 4), a(f(1))`) | The old compiler writes the index twice, so the FUNCTION runs twice; writing that the same way needs a second evaluation the emitter does not have | Read from the C++ (`study\00` §5) |
 | The file forms `GET #n, …` and `PUT #n, …` | Step 4 of M3's order (random and binary files) | The mark is ` `GET` on a file ` |
 | A line that is the name of a SUB and a colon, where a line the parser could not read has the word in it | Whether the line is a call or a label depends on every jump of the program, and that line may be one | `tests\frontend\sub_name_colon_errors.bas` (`five:`) |
@@ -76,7 +73,7 @@ accepts and the new one still marks "not supported yet", and what is compiled bu
 | Form | Why it waits | Details |
 |---|---|---|
 | An `$EXEICON` name with a drive and no slash after it (`C:game.ico`) | The old compiler looks for it in the folder it stands in on that drive (read in `qb64pe.bas` 3854–3873, not measured), which has no counterpart here. The other relative names are looked for under the compiler root since `m4-devices-continue-paths` (`DECISIONS.md` 2026-10-20) | `sema\src\check\mod.rs` `exe_icon_meta` |
-| `VARPTR$` in a `PLAY` string (`PLAY "X" + VARPTR$(a$)`) | `VARPTR$` is not compiled (the table above) | Not measured |
+| `VARPTR$` in a `PLAY` or `DRAW` string (`PLAY "X" + VARPTR$(a$)`) | `VARPTR$` compiles since `m4-memory-records`; what `PLAY` and `DRAW` do with the `X` command was not measured | Not measured |
 | `BEEP` is compiled, and no test runs it | It rings the system's bell, which no volume silences (user, `DECISIONS.md` 2026-10-13). Its call is compared by `tests\callsite\beep_*.bas`, and `s74_sound_queue` holds it as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
 | What is heard is checked by no test | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; the samples would test libqb. The slice programs check what a program can observe: the queue, the waits, the errors | Design D6 of `m3-sound` |
 | `SOUND 440, 65535`, the longest accepted duration, is in no slice program | libqb fills a buffer of an hour of samples for it, about 700 MB | `verification\v29_c_sound_errors` line 19 |
@@ -90,23 +87,18 @@ compiled but not checked by a run:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `GET #1, , und()` and `PUT` with an array that is not declared | The old compiler accepts it, also `und$()`, although a declared array of variable-length strings is rejected; "not supported yet" | `verification\v30_x176`–`x178`; `tests\frontend\file_get_put_ir.bas` has the declared forms |
 | `LPRINT` and `CHAIN` are compiled, and no test runs them | `LPRINT` prints a page on the default printer; `CHAIN` starts `qb64pe.exe -c` beside the program through `cmd` (user, `DECISIONS.md` 2026-10-13). `238_chain` on `slice.list` reaches `sub_chain` with a name that is not there; no test chains to a program that exists (gap noted by the user, `DECISIONS.md` 2026-10-16). Their calls are compared by `tests\callsite\lprint_*.bas` and `chain_*.bas`; `s82_print_using_file` and `s87_chain_not_reached` hold them as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
 | What a format of `PRINT USING` prints, and what a file holds after `GET` and `PUT`, are shown once per topic | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; more lines would test libqb | Design, Non-Goals |
 
 **Left marked by `m3-images-fonts-mouse`** (the sixth step of M3, 2026-10-14: images, colours, fonts, the mouse).
-What the old compiler accepts and the new one still marks "not supported yet":
-
-| Form | Why it waits | Details |
-|---|---|---|
-| `_UCHARPOS(t$, nd&())` with an array that is not declared | The array of `_UCHARPOS` is read as the array of a graphics `GET` is, which marks a name that is no declared array (the row of `m3-get-put-bload` above) | `verification\v31_x01_accepted` (last lines) |
+None is left: `_UCHARPOS` of an array that is not declared (`nd&()`) compiles since `m4-memory-records`.
 
 **Left marked by `m3-mem`** (the seventh step of M3, 2026-10-14: `_MEM`, its functions and statements, `_OFFSET`,
 `MKI$` … `_CV`). What the old compiler accepts and the new one still marks "not supported yet", each not measured:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `_MEM`, `_MEMELEMENT`, `_MEMGET`, `_MEMPUT` and `_MEMFILL` of a value of a `TYPE` that holds a `STRING` | Such a value holds the pointer of its string; what the old compiler's helpers give for it was not measured, but for `_MEM` of a whole array of it: no error, 48 bytes for 4 elements of a `STRING` and a LONG (`verification\v48_x11`; `LEN` of the same array is an error) | `sema\src\check\mem.rs`, `block_reference`, `bytes_reference` |
+| `_MEMGET`, `_MEMPUT` and `_MEMFILL` of a value of a `TYPE` that holds a `STRING` | Such a value holds the pointer of its string; what the old compiler's helpers do with it was not measured (`_MEM` and `_MEMELEMENT` of it compile since `m4-memory-records`, `verification\v56_g2`) | `sema\src\check\mem.rs`, `bytes_reference` |
 | A reference through an element of a member array that is not its last step (`x(0).n(1).q`), or to a member array of user-type elements | The old compiler's rules for such paths were not measured | `unmeasured_path` |
 | `_MEM(nx())` of a name that is no array; `_OFFSET` of an element, member or array of variable-length strings; `_MEMGET`, `_MEMPUT` and `_MEMFILL` with an element or member of them | Not measured (what `_MEM` and `_MEMPUT` do with such strings and arrays of them is: errors, `verification\v32_x15`, `x16`, `x39`) | `check\mem.rs` |
 
@@ -211,7 +203,6 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 | An array without `AS` beside one listed by `COMMON name() AS type` (`COMMON SHARED g() AS DOUBLE: DIM g(3)`) | Not measured; the old compiler keeps a list of its own for `COMMON` (`qb64pe.bas` 9296) | design D2; `tests\frontend\names_arrays_errors.bas` |
 | `_MEM(x())` of a name that is no array | The old compiler makes `x` an array used without `DIM` there, as for `LEN(x())`, which is built since `m4-names-implicit-arrays` (`LEN` 44: 11 SINGLEs); not measured for `_MEM` | `verification\v48_x04`, `x14` |
 | `LEN` of a whole array of a `TYPE` with a `_DYNAMIC` member array, and of a whole `_DYNAMIC` member array | Not measured (`LEN` of such a value is an error, `v35_x20`) | `check\builtins.rs` `len_whole` |
-| `LEN` of a whole member array of variable-length strings (`TYPE t: s(3) AS STRING …`, `LEN(x.s())`) | The old compiler gives 32 for four elements, likely 8 bytes (a pointer) each, where a whole array of strings is an error (`v48_x01`); one program only, and a number no program can use: other bounds, dimensions and the C++ it writes not measured | `verification\v48_x30`; `tests\frontend\names_arrays_errors.bas` |
 
 **Left marked by `m4-builtins-param-types`** (2026-10-21: `_CAST`, `_CLIPBOARD$`, `_FILES$`, `_MD5$`, `_OS$`,
 `CLEAR`, a parameter's `TYPE` above its procedure):
@@ -232,10 +223,8 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A member array's bound that is a `CONST` above the block with a suffix (`v(top%)`), `_PI` or a function of the constant evaluator (`v(ABS(-3))`) | Accepted by the old compiler; the same wait as a plain `CONST` bound (the row above, under "Plain member arrays compile") | `verification\v51_x09`–`x11`, `x14` (on `tests\verification\known.list`) |
 | `LBOUND((a))`: an array's name in parentheses | Accepted by the old compiler as the array `a`; read here as a value, which it is everywhere else | `verification\v51_x34` |
 | An operator where a value is expected outside a `CONST` (`x = OR`) | The old compiler: "Expected variable/value before 'OR'". The parser's mark covers forms of its grammar not parsed here, so only a `CONST` turns it into an error | `verification\v51_x50`; design D5 of the change |
-| A variable as the length of `STRING * n` (`DIM s AS STRING * n`) | The old compiler: "Number/Constant expected after *". A name is marked here because it may be a constant not known yet | `verification\v51_x75` |
 | A name that is no type in an `AS` clause where no form was measured: `REDIM` of a member array, `_UNSIGNED` before a name in `SHARED`, a parameter or `_DEFINE` | Each place gives its own error in the old compiler (`v51`), so a place not measured keeps its mark | `check\decl.rs` `no_type` |
 
 **Left marked by `m4-qb64pe-sources`** (2026-10-21: `_INSTRREV`, the whole-file functions, `_FULLPATH$`, the five
@@ -271,6 +260,15 @@ found for each):
 | In a procedure, `REDIM sd(lc(1) + 4)` of a shared array `sd` whose bound first names an array used without `DIM` | The old compiler then gives a local array `sd` its bounds and leaves the shared one as it was (in the SUB `UBOUND` 4, in the main module the old 6); why it does was not found | `verification\v24_x268` case 5, `v55_x84`; `check\places.rs` |
 | The whole array `x()` of a name that is no array as a place (`x() = 1`, `READ x()`), `_MEM(x())` of such a name, a SUB written with a type suffix (`s$ 1` beside a `SUB s`), a function of the auto-included files as a place (`_ENCODEURL$(1) = "a"`), `STATIC a()` beside a shared array, `STATIC a(5, 5)` beside a shared array of one dimension, a `REDIM` bound naming an array used without `DIM` in a procedure with `STATIC` after its header | Not measured | `check\places.rs`, `check\proc.rs` |
 | A statement named with one leading underscore that the table does not hold (the OpenGL statements of `SUB _GL`), and `CALL ABSOLUTE`, `CALL INTERRUPT[X]` | The old compiler reads them by its own lists (`qb64pe.bas` 10606–10687); without them a name that is no SUB would be a false error on the qbasic test programs | `check\proc.rs`, the call statement |
+
+**Left marked by `m4-memory-records`** (2026-10-23: memory and record forms; what `verification\v56` found for
+each):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `FOR` over an element of a member array (`FOR r.m(i) = 1 TO 3`) | The old compiler finds the element again at every pass: an index's FUNCTION runs 7 times for 4 passes, and a change of `i` in the body moves the loop to another element | `verification\v56_f3`; design D8 |
+| A `TYPE` whose member array bounds name a `CONST`, used above its block by `LEN` or a `REDIM` of the member (`DIM e AS late: PRINT LEN(e)` above `TYPE late`) | Its layout is read when pass 2 reaches the block | `tests\frontend\memory_records_errors.bas`; design D7 |
+| `STRING * n` of a `TYPE` member with a `CONST` as `n` (`f AS STRING * n`) | The `TYPE` blocks are read before the `CONST`s; the old compiler takes it | `verification\v56_x30` |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -420,6 +418,13 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `_SCREENMOVE` with nothing after it is accepted (its template's two parts are both optional) | "Syntax error", as `_SCREENMOVE 10` is | `m4-qb64pe-builtins` (`verification\v53_x41`, `x40`) |
 | A `$RESIZE` line with a comment after it is "Syntax error", as for `$CONSOLE` | Accept the comment | `m4-qb64pe-builtins` (`verification\v53_x79`) |
 | `ERROR 11` (division by zero) is a critical error in this libqb: it ends the program, and no `ON ERROR` handler catches it, as QB 4.5's would | A trappable error 11, as the other errors are. libqb's (`error_handle.cpp`), so a change is a change to the runtime | `m4-handlers-logging-checking` (found writing `verification\v50_a_chain`, design D1) |
+| `VARSEG` of any variable, of a member of one and of an element of an array of strings is 80, the segment of libqb's `dblock`, whatever the variable | The segment where each lies | `m4-memory-records` (`verification\v56_a1`–`a3`) |
+| Every `_BIT` scalar of the main module lies in conventional memory and takes 4 bytes there, which moves the offsets of the variables after it (here only when the program has another variable there) | Leave `_BIT` scalars out of `dblock` | `m4-memory-records` (`verification\v56_a3`, `x06`) |
+| `VARPTR$` of a member gives the offset of its variable, not the member's; of a fixed-length string the offset of its descriptor, where `VARPTR` gives its characters' | The member's and the characters' offsets | `m4-memory-records` (`verification\v56_t05`, `b4`) |
+| `GET #1, , und$()` of a name that is no array makes the array and reads into its first element as a string, where a declared array of strings is an error (and `PUT` of `und$()` too) | The error for both | `m4-memory-records` (`verification\v30_x178`, `v56_e`, `e2`) |
+| `LEN` of a whole member array of variable-length strings is 8 bytes an element (the pointers), where `LEN` of a whole array of strings and of a `TYPE` that holds one is an error | The error | `m4-memory-records` (`verification\v48_x30`, `v56_g1`) |
+| `STRING * n` with a float `CONST` takes it rounded half to even (2.5 is 2, 3.5 is 4), where a float literal is an error | The error | `m4-memory-records` (`verification\v56_x14`, `x29`) |
+| A name alone that is an array of strings or of fixed-length strings is the implicit `SINGLE` scalar of that name in `VARPTR` and in graphics `GET` and `PUT` (`GET …, sa`), where an array of numbers or of a `TYPE` is the array | The array | `m4-memory-records` (`verification\v56_a6`, `v56_d`) |
 
 ## Other ideas raised during the study
 

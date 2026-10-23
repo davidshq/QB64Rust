@@ -121,6 +121,8 @@
 `RSET` needs a string as its value	Illegal string-number conversion
 `RSET` needs a string variable, element or member here	Expected (...)
 `RSET` needs a string variable, not a number or a `TYPE` value	LSET/RSET expects a string variable/array-element as its first argument
+`SADD` needs a variable-length string variable	SADD only accepts variable-length string variables
+`SADD` of a `TYPE` variable	User defined types in expressions are invalid
 `SCREEN` takes {#} or {#} arguments	Incorrect number of arguments - Reference: SCREEN(x, y[, colorflag%])
 `SEEK` takes {#} argument	Incorrect number of arguments - Reference: SEEK(filenumber&)
 `SHARED` names an array with nothing between its parentheses: `{}`	Expected ()
@@ -151,6 +153,7 @@
 `VAL` needs a string	Expected STRING argument
 `VARPTR` is a function, not a statement	Syntax error
 `VARPTR` needs a variable or an array element	Expected reference to a variable/array
+`VARPTR` of an element of a `_BIT` array	VARPTR cannot reference _BIT type arrays
 `VARPTR` takes {#} argument	Incorrect number of arguments - Reference: VARPTR(variable_name[(reference_index%)])
 `VARSEG` needs a variable or an array element	Expected reference to a variable/array
 `VARSEG` takes {#} argument	Expected (...)
@@ -413,6 +416,7 @@
 `{}` names no type	Invalid TYPE name
 `{}` needs a variable here	{1:=|U|P|PU} expects a string variable/array-element as its first argument
 `{}` needs the name of a DLL in quotes	Expected {1:=|U|P|PU|S|SU} "..."
+`{}` of an element of an array that is not of strings	{1:=|U|P|PU} only accepts variable-length string arrays
 `{}` stands twice in a `REDIM`	Invalid variable name
 `{}` takes a numeric type	{1:S|SU} only accepts numeric types
 `{}` takes a type and {#} argument	Incorrect number of arguments - Reference: {1:=|U|P|PU}(numericalType, numericalValue)
@@ -470,7 +474,9 @@ a `CASE` after `CASE ELSE` (`CASE ELSE` comes last)	Expected END SELECT
 a `CASE` of a numeric `SELECT CASE` needs a number	Expected numeric expression
 a `CASE` of a string `SELECT CASE` needs a string	Expected string expression
 a `COMMON` block name (`{}`) is not accepted	Invalid variable name
+a `CONST` name cannot have a `{}` suffix	Invalid constant type
 a `FOR` start, limit or step must be a number, not a string	Illegal string-number conversion
+a `FOR` variable cannot be an array element	Unsupported variable used in FOR statement
 a `REDIM` cannot change the array `{}` between `STRING` and `{}`	Type mismatch
 a `REDIM` takes one of `{}` and `{}`	Invalid variable name
 a `STRING` cannot be passed `{}`	STRINGs cannot be passed using {1:=|U|P|PU|S|SU}
@@ -655,6 +661,7 @@ the first character of the embed handle `{}` must be a letter	First char of Embe
 the format of `USING` must be a string	Expected PRINT USING formatstring ; ...
 the items of `PRINT #` need `;` or `,` between them	Expected operator in equation
 the key number of `ON KEY` must be a number	Illegal string-number conversion
+the length of a `{}` must be a number or a numeric constant: `{}`	Number/Constant expected after *
 the library FUNCTION `{}` cannot be called as a statement	Syntax error
 the member array `{}` cannot stand in a `REDIM` with the type before the names	Unknown type
 the member array `{}` is declared LONG: a `REDIM` cannot give it another type	REDIM type does not match the declared TYPE member array

@@ -634,9 +634,10 @@ pub struct Var {
     pub ty: Ty,
     pub storage: Storage,
     pub shape: Shape,
-    /// An array a `VARPTR` or `VARSEG` of the program names: it lives in libqb's conventional memory, where
-    /// `DEF SEG` with `PEEK`, `POKE`, `BLOAD` and `BSAVE` reach it (design D4 of `m3-get-put-bload`). Only an
-    /// array of the main module with numeric elements is one.
+    /// A variable or array of the main module that a `VARPTR`, `VARSEG`, `SADD` or `VARPTR$` of the program names:
+    /// it lives in libqb's conventional memory, where `DEF SEG` with `PEEK`, `POKE`, `BLOAD` and `BSAVE` reach it
+    /// (design D4 of `m3-get-put-bload`, D1 of `m4-memory-records`). Never one of a procedure, of `_BIT` elements,
+    /// or of a user type that holds a `STRING`.
     pub conventional: bool,
 }
 
@@ -944,6 +945,31 @@ pub struct Expr {
     pub kind: ExprKind,
 }
 
+/// The function of an [`ExprKind::Address`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AddressWord {
+    /// `VARPTR`: the place's offset.
+    VarPtr,
+    /// `VARSEG`: the segment the place lies in.
+    VarSeg,
+    /// `SADD`: the offset of a variable-length string's characters.
+    Sadd,
+    /// `VARPTR$`: a type byte and the offset, as a string of three bytes.
+    VarPtrStr,
+}
+
+impl AddressWord {
+    /// The function's name as the program writes it.
+    pub fn name(self) -> &'static str {
+        match self {
+            AddressWord::VarPtr => "VARPTR",
+            AddressWord::VarSeg => "VARSEG",
+            AddressWord::Sadd => "SADD",
+            AddressWord::VarPtrStr => "VARPTR$",
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExprKind {
     Int(i64),
@@ -963,19 +989,18 @@ pub enum ExprKind {
         array: ArrayRef,
         dim: Option<Box<Expr>>,
     },
-    /// `VARPTR(a(i))`: the offset of an element in its array, in bytes: its flat position, bounds check included,
-    /// times the size of an element. Typed `_INTEGER64` (measured, `verification\v28_d_varptr_index`: an index
-    /// outside the bounds raises error 9 and gives 0). The array is one in conventional memory
-    /// ([`Var::conventional`]).
-    VarPtr {
-        array: VarId,
-        index: Vec<Expr>,
-    },
-    /// `VARSEG(a(i))`: the segment of the array's data in conventional memory, typed `_INTEGER64`. The index
-    /// is not part of it: the old compiler does not evaluate it (measured, `v28_d_varptr_index`: a FUNCTION in it
-    /// is not called, an index outside the bounds raises nothing).
-    VarSeg {
-        array: VarId,
+    /// `VARPTR`, `VARSEG`, `SADD` or `VARPTR$` of a place of the main module whose variable lives in libqb's
+    /// conventional memory ([`Var::conventional`]; design D2 and D3 of `m4-memory-records`): typed `_INTEGER64`,
+    /// `VARPTR$` a string.
+    ///
+    /// `VARPTR` of an element is its flat position, bounds check included, times the size of an element (measured,
+    /// `verification\v28_d_varptr_index`: an index outside the bounds raises error 9 and gives 0), plus a member's
+    /// offset; of a variable, or a member of one, its offset in the block. `VARSEG` names no index: of an array,
+    /// other than one of strings, `of` is the whole array (`a()`; the old compiler does not evaluate the index:
+    /// a FUNCTION in it is not called, an index outside the bounds raises nothing), of anything else the variable.
+    Address {
+        word: AddressWord,
+        of: Place,
     },
     /// The bytes of a numeric array from an element (the first, for a whole array `a()`) to its end, as a
     /// function's [`builtins::Slot::Block`]: the array of `_UCHARPOS` (`qb64pe.bas` 20903; design D1 of
@@ -1171,6 +1196,13 @@ pub enum StmtArg {
     /// first element. The index is used twice, for the address and for the number of bytes left, so it is one
     /// that reads only: no call of a SUB or FUNCTION (measured: the old compiler evaluates it twice).
     Block { array: VarId, index: Vec<Expr> },
+    /// The array's place of a graphics `GET` or `PUT` that is no array of numbers (design D5 of
+    /// `m4-memory-records`; the old compiler's C++ of `verification\v56_d`): the bytes from the place to the end of
+    /// its variable, or of its array when it lies in one (an element of an array of fixed-length strings or of a
+    /// user type, also with no index, or a member of one); of a variable-length string, or an element of an array
+    /// of them, its characters. Never of a `_BIT` or of a user type that holds a `STRING`. Its indexes read only,
+    /// as [`StmtArg::Block`]'s.
+    Rest(Place),
     /// The bytes of one place, which `GET` on a file reads into and `PUT` writes from (design D2 of
     /// `m3-console-files`; measured, `verification\v30_d_binary`, `v30_e_random`): a number's bytes, the
     /// characters of a fixed-length string, the bytes of a value of a user type without a `STRING` in it; of a
@@ -1297,11 +1329,15 @@ pub enum StmtKind {
     /// part of is found once, and the clear is not guarded: an index outside its bounds on the way raises error
     /// 9 and the member array of that array's first element is cleared, as it is after any other error the
     /// index raises.
-    Clear { array: ArrayRef },
+    ///
+    /// `join`: [`Join::First`] for a target of an `ERASE` or `REDIM` of several targets but the last, when one of
+    /// them may raise: the targets are then parts of one statement, each cleared in turn, and an error is handled
+    /// after the last (design D9 of `m4-memory-records`; measured, `verification\v24_x312`).
+    Clear { array: ArrayRef, join: Join },
     /// `ERASE` of a dynamic array: its elements are released and it is not allocated afterwards. Of one that is
     /// not allocated it does nothing. The array may be a dynamic member array, whose place is found as for
-    /// [`StmtKind::Allocate`].
-    Release { array: ArrayRef },
+    /// [`StmtKind::Allocate`]. `join` as for [`StmtKind::Clear`].
+    Release { array: ArrayRef, join: Join },
     /// `ERASE` of an array parameter: a [`StmtKind::Clear`] when the array passed is a static one, a
     /// [`StmtKind::Release`] when it is dynamic, which is known when the statement runs.
     EraseParam { array: VarId },
@@ -1424,7 +1460,9 @@ pub enum StmtKind {
     /// `FOR var = start TO end [STEP step]` … `NEXT`. `start`, `end` and `step` are converted to `temp`, the type
     /// the loop counts in (wider than `var`'s, `study\02` §6.5, measured); each pass stores the count into `var`.
     For {
-        var: VarId,
+        /// A variable, or a member of a `TYPE` variable through members only (no index: design D8 of
+        /// `m4-memory-records`).
+        var: Place,
         temp: Ty,
         start: Expr,
         end: Expr,

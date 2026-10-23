@@ -334,7 +334,7 @@ impl<'a> Lowerer<'a> {
                 end_at,
             } => {
                 let parts = ForParts {
-                    var: VarId(var.0),
+                    var: var.clone(),
                     temp: *temp,
                     start,
                     end,
@@ -461,8 +461,19 @@ impl<'a> Lowerer<'a> {
                 }
                 op
             }
-            sema::StmtKind::Clear { array } => Op::Clear { array: array.clone() },
-            sema::StmtKind::Release { array } => Op::Release { array: array.clone() },
+            sema::StmtKind::Clear { array, join } | sema::StmtKind::Release { array, join } => {
+                let array = array.clone();
+                let op = if let sema::StmtKind::Clear { .. } = &s.kind {
+                    Op::Clear { array }
+                } else {
+                    Op::Release { array }
+                };
+                if *join == sema::Join::First {
+                    self.joined.push((s.span, s.line, op));
+                    return;
+                }
+                op
+            }
             sema::StmtKind::EraseParam { array } => Op::EraseParam { array: *array },
             sema::StmtKind::CopyArray { from, to } => Op::CopyArray {
                 from: from.clone(),
@@ -683,7 +694,7 @@ impl<'a> Lowerer<'a> {
         let lim = self.temp(format!("for{n}.limit"), f.temp);
         let st = self.temp(format!("for{n}.step"), f.temp);
         let neg = self.temp(format!("for{n}.negative"), Ty::I32);
-        let var_ty = self.vars[f.var.0 as usize].ty;
+        let var_ty = self.p.place_ty(&f.var);
 
         // The made values carry the `FOR` statement's span.
         let m = Make(s.span);
@@ -711,7 +722,7 @@ impl<'a> Lowerer<'a> {
         self.place_continue();
 
         // The step is added to the variable's current value (measured: `k = k + 1` in the body counts on from it).
-        let current = m.convert(m.var(f.var, var_ty), f.temp);
+        let current = m.convert(m.expr(var_ty, ExprKind::Load(f.var.clone())), f.temp);
         let next = Op::Assign {
             place: Place::Var(t),
             value: m.binary(BinOp::Add, f.temp, m.var(st, f.temp), current),
@@ -720,7 +731,7 @@ impl<'a> Lowerer<'a> {
 
         self.place(entry);
         let store = Op::Assign {
-            place: Place::Var(f.var),
+            place: f.var.clone(),
             value: m.convert(m.var(t, f.temp), var_ty),
         };
         let neg_v = || m.var(neg, Ty::I32);
@@ -955,7 +966,8 @@ struct SelectParts<'e> {
 
 /// The header of a `FOR`, with its values still typed-tree expressions.
 struct ForParts<'e> {
-    var: VarId,
+    /// A variable, or a member of a `TYPE` variable through members only.
+    var: Place,
     /// The type the loop counts in: start, end and step are already of this type.
     temp: Ty,
     start: &'e sema::Expr,

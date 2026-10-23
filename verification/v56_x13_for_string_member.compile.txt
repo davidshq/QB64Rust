@@ -1,0 +1,5 @@
+
+Unsupported variable used in FOR statement
+Caused by (or after):FOR RS . Z = 1 TO 2
+LINE 17:FOR rs.z = 1 TO 2: NEXT
+exit=1

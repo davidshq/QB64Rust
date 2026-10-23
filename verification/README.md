@@ -187,6 +187,31 @@ Small programs behind `study\09`, `study\10` and later measurements:
   (3), a shared variable (its value when the start code runs, 0) and a FUNCTION (what it prints is lost); by the
   change's review, `x85` the whole array `x()` in an index of a store and of a `READ` target (a value: `LEN` 44 and
   88)
+- `v56*`: memory and record forms, measured as task 1.1 of `m4-memory-records`: `v56_a1`–`a7` the offsets
+  `VARPTR` gives in conventional memory (taken from 65520 down, in the order of declaration, no alignment;
+  `COMMON SHARED` first; every `_BIT` scalar takes 4 bytes there, named or not; a string's descriptor 4 bytes, a
+  fixed-length string its bytes then a descriptor; a static array of strings a descriptor per element, last first,
+  a dynamic one when `REDIM` runs; arrays of numbers, fixed-length strings and a `TYPE` elsewhere), a string's
+  descriptor through every kind of assignment (its `VARPTR` never changes), `PEEK` and `POKE` through them, a
+  whole array of strings, fixed-length strings or a `TYPE` named without an index (the implicit `SINGLE` scalar);
+  `a5` a `TYPE` with a `STRING` member in conventional memory (its strings are never made: the program crashes,
+  exit 139); `b1`–`b5` `VARPTR$` (a type byte, then the offset; of a fixed-length string the descriptor's offset)
+  and `SADD`; `c` `HEX$`, `OCT$`, `_BIN$` of `VARPTR`, `VARSEG` and `_SCREENEXISTS` (width 0: `HEX$` of -1 is
+  empty); `d` graphics `GET`/`PUT` of a plain variable, a string (its characters), a member (from it to the end of
+  the variable), an undeclared name, an element of an array of strings (its characters) and of fixed-length
+  strings or a `TYPE` (to the array's end), error 5 when too small; `e`, `e2` file `GET` of `und()`, `unl&()`,
+  `und$()` (element 0, as a string) and `_UCHARPOS` of `nd&()`, `PUT` of `uns$()` rejected; `f1`–`f4` `FOR` over
+  a member (`r.v`, `ro.n.v`; `r.m(i)` evaluates its index at every pass); `g1`, `g2` `LEN` of a whole member array
+  of strings (8 bytes an element) and `_MEM` of a `TYPE` with a `STRING` member; `t01`–`t09` `VARPTR`, `VARSEG` and
+  `VARPTR$` of `TYPE` variables, members and elements (`VARPTR(r)` of a `TYPE` variable is the old compiler's
+  internal error; `VARPTR$(r.v)` gives the variable's offset, not the member's); `x01`–`x30` one form each:
+  `VARPTR$` of an element of fixed-length strings or a `TYPE`, `SADD` of a number, a member, an element of
+  fixed-length strings or a `TYPE` (rejected), `VARPTR` of a `_BIT` scalar (accepted) and of a `_BIT` array,
+  `VARPTR$` and `SADD` of `sa()` (element 0), `FOR` over a whole member array or a fixed-length string member,
+  `STRING * n` with a float `CONST` (rounded half to even), a string `CONST`, an unknown name or a variable, the
+  name `fs$5` as a SUB, a `CONST` or a member (rejected) and as a parameter (accepted), `LEN` of a `TYPE` with a
+  `STRING` member ("UDT must have fixed size"), `VARPTR` of members of such a `TYPE`, `STRING * n` of a member
+  with a `CONST`
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).
