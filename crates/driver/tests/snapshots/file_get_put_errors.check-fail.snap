@@ -7,6 +7,7 @@ file_get_put_errors.bas:16:11: error: `PUT` needs a variable here
 file_get_put_errors.bas:17:11: error: `PUT` needs a variable here
 file_get_put_errors.bas:18:11: error: `GET` needs a variable here
 file_get_put_errors.bas:19:11: error: `GET` of a `_BIT` variable
+file_get_put_errors.bas:19:11: note: QB64pe: Variable/element cannot be _BIT aligned
 file_get_put_errors.bas:20:10: error: this `GET` statement matches none of its forms: `GET [{Step}](?,?)-[{Step}](?,?),?[,?]`, `GET [#]?[,[?][,?]]`
 file_get_put_errors.bas:21:4: error: this `GET` statement matches none of its forms: `GET [{Step}](?,?)-[{Step}](?,?),?[,?]`, `GET [#]?[,[?][,?]]`
 file_get_put_errors.bas:22:13: error: this `GET` statement matches none of its forms: `GET [{Step}](?,?)-[{Step}](?,?),?[,?]`, `GET [#]?[,[?][,?]]`
@@ -16,6 +17,7 @@ file_get_put_errors.bas:25:9: error: argument 2 of `GET` needs a number
 file_get_put_errors.bas:26:11: error: `PUT` needs a variable here
 file_get_put_errors.bas:27:11: error: `PUT` needs a variable here
 file_get_put_errors.bas:28:11: error: `PUT` of a `_BIT` variable
+file_get_put_errors.bas:28:11: note: QB64pe: Variable/element cannot be _BIT aligned
 file_get_put_errors.bas:29:1: error: this is no form of graphics `GET`
 file_get_put_errors.bas:30:12: error: `PUT` of a whole array of variable-length strings
 file_get_put_errors.bas:30:12: note: QB64pe: Cannot pass array of variable-length strings

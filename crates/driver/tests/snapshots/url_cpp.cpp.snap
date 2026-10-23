@@ -235,7 +235,7 @@ L_1:;
 #line 90 "internal\\support\\include\\afterlastline.bm"
 *_FUNC__ENCODEURL_INTEGER__P=((int16)(temp_for1_value));
 #line 90 "internal\\support\\include\\afterlastline.bm"
-if (((((temp_for1_negative&(-(temp_for1_value<temp_for1_limit)))|((~(temp_for1_negative))&(-(temp_for1_value>temp_for1_limit))))))&&(!is_error_pending())) goto L_2;
+if ((((temp_for1_negative&(-(temp_for1_value<temp_for1_limit)))|((~(temp_for1_negative))&(-(temp_for1_value>temp_for1_limit)))))) goto L_2;
 #line 90 "internal\\support\\include\\afterlastline.bm"
 goto L_0;
 #line 90 "url_cpp.bas"
@@ -384,7 +384,7 @@ L_1:;
 #line 114 "internal\\support\\include\\afterlastline.bm"
 *_FUNC__DECODEURL_INTEGER__P=((int16)(temp_for2_value));
 #line 114 "internal\\support\\include\\afterlastline.bm"
-if (((((temp_for2_negative&(-(temp_for2_value<temp_for2_limit)))|((~(temp_for2_negative))&(-(temp_for2_value>temp_for2_limit))))))&&(!is_error_pending())) goto L_2;
+if ((((temp_for2_negative&(-(temp_for2_value<temp_for2_limit)))|((~(temp_for2_negative))&(-(temp_for2_value>temp_for2_limit)))))) goto L_2;
 #line 114 "internal\\support\\include\\afterlastline.bm"
 goto L_0;
 #line 114 "url_cpp.bas"

@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 6 may_raise
+  Builtin _WRITEFILE [Value(Var F:Str), Value(Const "data")]
+Stmt line 7 may_raise
+  Builtin _WRITEFILE [Value(Concat(Var FX:Str, Const ".x")), Value(Concat(Var F:Str, CallBuiltin _READFILE:Str [Some(Var F:Str)]))]

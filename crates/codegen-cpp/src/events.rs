@@ -1,9 +1,10 @@
-//! Event trapping (design D4 of `m3-events`): the setup call where `ON TIMER` or `ON KEY` stands, and what
+//! Event trapping (design D4 of `m3-events`): the setup call where `ON TIMER`, `ON KEY` or `ON STRIG` (design D4
+//! of `m4-devices-continue-paths`) stands, and what
 //! `qbx.cpp`'s `events()` runs when libqb services the event, as the old compiler writes them (`qb64pe.bas`
 //! 7726–8052). The handlers of each event are numbered from 1 in the order the bodies are emitted (the main module,
 //! then the procedures in definition order), which is the old compiler's source order. Per handler `events()` gets
-//! a `case` (`ontimer.txt`, `onkey.txt`): for a label, it re-enters `QBMAIN` with return point 0, and `QBMAIN`'s
-//! prologue jumps to the label (`ontimerj.txt`, `onkeyj.txt`); for a SUB, it calls the SUB with a pointer to the
+//! a `case` (`ontimer.txt`, `onkey.txt`, `onstrig.txt`): for a label, it re-enters `QBMAIN` with return point 0,
+//! and `QBMAIN`'s prologue jumps to the label (`ontimerj.txt`, `onkeyj.txt`, `onstrigj.txt`); for a SUB, it calls the SUB with a pointer to the
 //! `_INTEGER64` argument (`i64`, which libqb copied from the setup's) cast to the parameter's type.
 
 use crate::Emitter;
@@ -21,7 +22,7 @@ pub(crate) struct EventCode {
 }
 
 impl Emitter<'_> {
-    /// `ON TIMER(…)` or `ON KEY(…)` and its handler.
+    /// `ON TIMER(…)`, `ON KEY(…)` or `ON STRIG(…)` and its handler.
     pub(crate) fn on_event(&mut self, event: &Event, handler: &EventHandler, out: &mut Vec<String>) {
         let (word, setup) = match event {
             Event::Timer { number, seconds } => {
@@ -29,6 +30,11 @@ impl Emitter<'_> {
                 ("timer", format!("ontimer_setup({n},{}", self.value(seconds)))
             }
             Event::Key { key } => ("key", format!("onkey_setup({}", self.value(key))),
+            // The controller and whether it was given; left out, 0 and 0 (`qb64pe.bas` 7566–7593).
+            Event::Strig { button, controller } => {
+                let (c, passed) = controller.as_ref().map_or(("0".to_string(), 0), |c| (self.value(c), 1));
+                ("strig", format!("onstrig_setup({},{c},{passed}", self.value(button)))
+            }
         };
         let (case, pass) = match handler {
             EventHandler::Label(l) => (Case::Label(self.label_name(*l)), "0".to_string()),
@@ -42,10 +48,10 @@ impl Emitter<'_> {
                 (Case::Call(call), pass)
             }
         };
-        let code = if word == "timer" {
-            &mut self.on_timer
-        } else {
-            &mut self.on_key
+        let code = match word {
+            "timer" => &mut self.on_timer,
+            "key" => &mut self.on_key,
+            _ => &mut self.on_strig,
         };
         code.count += 1;
         let id = code.count;

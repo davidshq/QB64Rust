@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):_CONTINUE = 3
+LINE 3:_CONTINUE = 3
+exit=1

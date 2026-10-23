@@ -142,19 +142,19 @@ pub fn frontend_with(name: &str, bytes: Vec<u8>, loader: impl FnOnce(FileId) -> 
     frontend_at(name, bytes, loader, None)
 }
 
-/// [`frontend_with`] for the main file at `main_path` on disk, if given: then the checks of [`check_program`] that
-/// read the disk are made too, as for a compile run.
+/// [`frontend_with`] for the main file on disk, if given (`disk`: its path and the compiler root): then the checks
+/// of [`check_program`] that read the disk are made too, as for a compile run.
 pub fn frontend_at(
     name: &str,
     bytes: Vec<u8>,
     loader: impl FnOnce(FileId) -> Box<dyn Loader>,
-    main_path: Option<&Path>,
+    disk: Option<(&Path, &Path)>,
 ) -> Frontend {
     let mut map = SourceMap::new();
     let file = map.add(name, bytes);
     let mut loader = loader(file);
     let parsed = parse_settled(&mut map, file, loader.as_mut());
-    let (program, diagnostics) = check_program(&map, &parsed, main_path);
+    let (program, diagnostics) = check_program(&map, &parsed, disk);
     Frontend {
         map,
         file,
@@ -165,40 +165,51 @@ pub fn frontend_at(
 }
 
 /// The front end after the parse, for the CLI and the language server's check alike (design D2 of
-/// `extension-diagnostics`): `sema`, then, when the main file's path `main_path` is given, the checks that read the
-/// disk ([`check_exe_icon`], [`check_embedded_files`]). The diagnostics are the parse's first, then the others.
-pub fn check_program(map: &SourceMap, parsed: &ParsedProgram, main_path: Option<&Path>) -> (Program, Diagnostics) {
+/// `extension-diagnostics`): `sema`, then, when the main file's path and the compiler root are given (`disk`), the
+/// checks that read the disk ([`check_exe_icon`], [`check_embedded_files`]). The diagnostics are the parse's first,
+/// then the others.
+pub fn check_program(map: &SourceMap, parsed: &ParsedProgram, disk: Option<(&Path, &Path)>) -> (Program, Diagnostics) {
     // QB64RUST_NO_FOLD=1 turns integer constant folding off (test use only, design D5).
     let fold = std::env::var_os("QB64RUST_NO_FOLD").is_none_or(|v| v != "1");
     let (program, sema_diags) = qb64rust_sema::check_with(map, parsed, fold);
     let mut diagnostics = parsed.diagnostics();
     diagnostics.extend(sema_diags);
-    if let Some(path) = main_path {
-        check_exe_icon(&program, &mut diagnostics, path);
-        check_embedded_files(&program, &mut diagnostics, path);
+    if let Some((path, root)) = disk {
+        check_exe_icon(&program, &mut diagnostics, path, root);
+        check_embedded_files(&program, &mut diagnostics, path, root);
     }
     (program, diagnostics)
 }
 
-/// [`check_program`] for the language server (`qb64rust_lsp::Check`): the diagnostics alone.
-pub fn check_for_server(map: &SourceMap, parsed: &ParsedProgram, main_path: Option<&Path>) -> Diagnostics {
-    check_program(map, parsed, main_path).1
+/// [`check_program`] for the language server (`qb64rust_lsp::Check`): the diagnostics alone, for the main file at
+/// `main_path` on disk (none for a document that is not a file) and the compiler root `root`.
+pub fn check_for_server(map: &SourceMap, parsed: &ParsedProgram, main_path: Option<&Path>, root: &Path) -> Diagnostics {
+    check_program(map, parsed, main_path.map(|m| (m, root))).1
 }
 
-/// Where the icon `$EXEICON` names lies: a name that starts with `./` or `.\` in the folder of the main source
-/// file `main_path`, an absolute name as written (design D4 of `m3-sound`). `None` for a program without one.
-/// The rest of a `./` name is added to the folder as text, as the old compiler does (`qb64pe.bas` 3853), not
-/// joined as a path: a rest that starts with a slash (`.//icons/game.ico`) stays inside the folder.
-pub fn exe_icon_path(fe: &Frontend, main_path: &Path) -> Option<PathBuf> {
-    icon_path(&fe.program, main_path)
+/// Where the icon `$EXEICON` names lies ([`named_file`]). `None` for a program without one.
+pub fn exe_icon_path(fe: &Frontend, main_path: &Path, root: &Path) -> Option<PathBuf> {
+    icon_path(&fe.program, main_path, root)
 }
 
-fn icon_path(program: &Program, main_path: &Path) -> Option<PathBuf> {
+fn icon_path(program: &Program, main_path: &Path, root: &Path) -> Option<PathBuf> {
     let icon = program.settings.exe_icon.as_ref()?;
-    Some(match qb64rust_sema::ExeIcon::beside_source(&icon.name) {
+    Some(named_file(&icon.name, main_path, root))
+}
+
+/// Where a file `$EXEICON` or `$EMBED` names lies: a name that starts with `./` or `.\` in the folder of the main
+/// source file `main_path` (design D4 of `m3-sound`), an absolute name as written, and any other relative name under
+/// the compiler root `root`, as the old compiler looks in its own folder (design D3 of `m4-devices-continue-paths`);
+/// joined onto the root, a name with one leading slash names the root of the root's drive, the old compiler's
+/// reading. The rest of a `./` name is added to the folder as text, as the old compiler does (`qb64pe.bas` 3853),
+/// not joined as a path: a rest that starts with a slash (`.//icons/game.ico`) stays inside the folder. (`sema`
+/// keeps a drive with no slash after it, `C:icon.ico`, marked.)
+fn named_file(name: &str, main_path: &Path, root: &Path) -> PathBuf {
+    match qb64rust_sema::ExeIcon::beside_source(name) {
         Some(rest) => beside(main_path, rest),
-        None => PathBuf::from(&icon.name),
-    })
+        None if Path::new(name).is_absolute() => PathBuf::from(name),
+        None => root.join(name),
+    }
 }
 
 /// `rest` added as text to the folder of the file `main_path`.
@@ -224,8 +235,8 @@ fn beside(main_path: &Path, rest: &str) -> PathBuf {
 /// A file that is there but is no icon ([`is_icon`]) is an error too, where both compilers' C++ build fails
 /// (`verification\v29_e16_not_an_icon`; design D1 of `cpp-failure-errors`). A file that cannot be read is left to
 /// the build.
-pub fn check_exe_icon(program: &Program, diagnostics: &mut Diagnostics, main_path: &Path) {
-    let (Some(path), Some(icon)) = (icon_path(program, main_path), &program.settings.exe_icon) else {
+pub fn check_exe_icon(program: &Program, diagnostics: &mut Diagnostics, main_path: &Path, root: &Path) {
+    let (Some(path), Some(icon)) = (icon_path(program, main_path, root), &program.settings.exe_icon) else {
         return;
     };
     if !path.is_file() {
@@ -258,20 +269,17 @@ pub fn is_icon(bytes: &[u8]) -> bool {
         })
 }
 
-/// Where a file a `$EMBED` line names lies, as for the icon ([`exe_icon_path`]; design D3 of `m3-network-embed`).
-pub fn embedded_path(file: &qb64rust_sema::EmbeddedFile, main_path: &Path) -> PathBuf {
-    match qb64rust_sema::ExeIcon::beside_source(&file.name) {
-        Some(rest) => beside(main_path, rest),
-        None => PathBuf::from(&file.name),
-    }
+/// Where a file a `$EMBED` line names lies, as for the icon ([`named_file`]; design D3 of `m3-network-embed`).
+pub fn embedded_path(file: &qb64rust_sema::EmbeddedFile, main_path: &Path, root: &Path) -> PathBuf {
+    named_file(&file.name, main_path, root)
 }
 
 /// The check `sema` cannot make: each file a `$EMBED` line names is a file (measured, `verification\v44_x07`,
 /// `x27`: a missing file and a folder). An error at the line that names the file as the program writes it, where
 /// the old compiler names the folder it looked in (`DIVERGENCES.md` D-015).
-pub fn check_embedded_files(program: &Program, diagnostics: &mut Diagnostics, main_path: &Path) {
+pub fn check_embedded_files(program: &Program, diagnostics: &mut Diagnostics, main_path: &Path, root: &Path) {
     for f in &program.settings.embedded {
-        if !embedded_path(f, main_path).is_file() {
+        if !embedded_path(f, main_path, root).is_file() {
             diagnostics.error(f.span, format!("the file `{}` of `$EMBED` is not found", f.shown));
         }
     }
@@ -279,14 +287,14 @@ pub fn check_embedded_files(program: &Program, diagnostics: &mut Diagnostics, ma
 
 /// The handle and bytes of each file a compiled `_EMBEDDED$` names, in file order, for the build
 /// (`build::write_embedded`).
-pub fn used_embedded_files(fe: &Frontend, main_path: &Path) -> Result<Vec<(String, Vec<u8>)>, String> {
+pub fn used_embedded_files(fe: &Frontend, main_path: &Path, root: &Path) -> Result<Vec<(String, Vec<u8>)>, String> {
     fe.program
         .settings
         .embedded
         .iter()
         .filter(|f| f.used)
         .map(|f| {
-            let path = embedded_path(f, main_path);
+            let path = embedded_path(f, main_path, root);
             let bytes =
                 std::fs::read(&path).map_err(|e| format!("reading the embedded file {}: {e}", path.display()))?;
             Ok((f.handle.clone(), bytes))
@@ -312,15 +320,18 @@ pub fn emit(fe: &Frontend, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragmen
 
 /// The C++ fragments of `ir`, the IR of `fe`'s program.
 pub fn emit_ir(fe: &Frontend, ir: &qb64rust_ir::Program, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragments {
-    emit_ir_with(fe, ir, resolved, false)
+    emit_ir_with(fe, ir, resolved, false, None)
 }
 
-/// [`emit_ir`], with a counter at each source statement for `--coverage` (design D1 of `cws-whole-game`).
+/// [`emit_ir`], with a counter at each source statement for `--coverage` (design D1 of `cws-whole-game`), and the
+/// folder put before a relative file name in a log statement's entry (`log_folder`, the working folder with its
+/// separator for a build; design D2 of `m4-handlers-logging-checking`).
 pub fn emit_ir_with(
     fe: &Frontend,
     ir: &qb64rust_ir::Program,
     resolved: &Resolved,
     coverage: bool,
+    log_folder: Option<&str>,
 ) -> qb64rust_codegen_cpp::Fragments {
     let included = fe
         .map
@@ -333,7 +344,26 @@ pub fn emit_ir_with(
         files: coverage_files(fe),
         position: &position,
     });
-    qb64rust_codegen_cpp::emit_with(ir, &fe.map.file(fe.file).name, &included, resolved, coverage.as_ref())
+    qb64rust_codegen_cpp::emit_with(
+        ir,
+        &fe.map.file(fe.file).name,
+        &included,
+        resolved,
+        coverage.as_ref(),
+        log_folder,
+    )
+}
+
+/// The log folder of [`emit_ir_with`] for a build from `dir`: the folder with a separator after it unless it ends
+/// in one (a drive's root, `C:\`), as the old compiler's `_STARTDIR$` gives it (libqb's `func__cwd`). A name that
+/// is not ASCII is written as UTF-8, where the old compiler has the bytes of the system's code page
+/// (`DIVERGENCES.md`).
+pub fn log_folder(dir: &Path) -> String {
+    let mut folder = dir.display().to_string();
+    if !folder.ends_with(['/', '\\']) {
+        folder.push(std::path::MAIN_SEPARATOR);
+    }
+    folder
 }
 
 /// Each file of the program by its index, for a coverage record: its path relative to the main file's folder (an
@@ -365,7 +395,7 @@ pub fn fnv1a64(bytes: &[u8]) -> u64 {
 
 /// `--dump cpp`; with `coverage`, the C++ of a `--coverage` build.
 pub fn dump_cpp(fe: &Frontend, resolved: &Resolved, coverage: bool) -> String {
-    qb64rust_codegen_cpp::dump(&emit_ir_with(fe, &lower(fe), resolved, coverage))
+    qb64rust_codegen_cpp::dump(&emit_ir_with(fe, &lower(fe), resolved, coverage, None))
 }
 
 #[cfg(test)]
@@ -416,6 +446,31 @@ mod tests {
         ));
     }
 
+    /// Where a file of `$EXEICON` or `$EMBED` lies by the form of its name (design D3 of
+    /// `m4-devices-continue-paths`): beside the source, as written, or under the compiler root; one leading slash
+    /// is the root of the compiler root's drive.
+    #[test]
+    fn named_file_by_the_form_of_the_name() {
+        let sep = std::path::MAIN_SEPARATOR_STR;
+        let (main, root) = (Path::new("dir/p.bas"), Path::new("C:/root/does/not/exist"));
+        assert_eq!(
+            named_file("./a.ico", main, root),
+            PathBuf::from(format!("dir{sep}a.ico"))
+        );
+        let elsewhere = "D:/does/not/exist/a.ico";
+        assert_eq!(named_file(elsewhere, main, root), PathBuf::from(elsewhere));
+        let under = PathBuf::from("C:/root/does/not/exist/icons/a.ico");
+        assert_eq!(named_file("icons/a.ico", main, root), under);
+        if cfg!(windows) {
+            assert_eq!(
+                named_file("/does/not/exist/a.ico", main, root),
+                PathBuf::from("C:/does/not/exist/a.ico")
+            );
+            let slashed = r"\does\not\exist\a.ico";
+            assert_eq!(named_file(slashed, main, root), PathBuf::from(format!("C:{slashed}")));
+        }
+    }
+
     /// Where a `./` name of `$EXEICON` lies, by the form of the source file's name.
     #[test]
     fn beside_adds_the_rest_as_text() {
@@ -429,5 +484,14 @@ mod tests {
         ] {
             assert_eq!(beside(Path::new(main), rest), PathBuf::from(expected), "{main} {rest}");
         }
+    }
+
+    /// The log folder takes one separator, none at a drive's root, which already ends in one.
+    #[test]
+    fn log_folder_ends_in_one_separator() {
+        let sep = std::path::MAIN_SEPARATOR;
+        assert_eq!(log_folder(Path::new("C:/work")), format!("C:/work{sep}"));
+        assert_eq!(log_folder(Path::new("C:\\")), "C:\\");
+        assert_eq!(log_folder(Path::new("/")), "/");
     }
 }

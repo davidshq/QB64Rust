@@ -60,6 +60,17 @@ class Classify(unittest.TestCase):
                 [(MEASURE, "recording expected results (old compiler)")],
             ),
             (f"{RUNNER} --suite verification", [(MEASURE, "verification programs (old compiler)")]),
+            (
+                f"{RUNNER} --suite verification {NEW} --list tests/verification/pass.list",
+                [(TEST, "verification pass list")],
+            ),
+            (
+                f"{RUNNER} --suite verification {NEW} --glob 'v13*'",
+                [(TEST, "verification, selected programs")],
+            ),
+            (f"{RUNNER} --suite verification {NEW}", [(TEST, "full verification suite")]),
+            ("python tools/coverage/coverage.py --check", [(TEST, "coverage check")]),
+            ("python tools/diagnostics/old_wording.py --check", [(TEST, "wording check")]),
             ("bash verification/run.sh", [(MEASURE, "verification programs (old compiler)")]),
             ("python tools/callsite/callsite.py --qb-root ../QB64pe", [(TEST, "call-site check")]),
             ("python tools/callsite/callsite.py --self-test", [(TEST, "call-site self-test")]),
@@ -92,6 +103,9 @@ class Classify(unittest.TestCase):
             "ls tests/corpus/screen",
             "grep -rn 'cargo test' crates/README.md | head",
             "python tools/testtime/test_time.py",
+            # Writing the wording table, merging coverage counts: no check.
+            "python tools/diagnostics/old_wording.py",
+            "python tools/coverage/coverage.py target/coverage",
             "target/debug/qb64rust.exe t.bas --dump ir",
             "cat tools/legacy_tests/run_legacy_tests.py",
             # Asking a tool for its options.
@@ -231,6 +245,13 @@ class Result(unittest.TestCase):
         self.assertEqual(said("repo check", "5096 files checked, 0 findings"), PASS)
         self.assertEqual(said("repo check", "5096 files checked, 2 findings"), FAIL)
         self.assertEqual(said("openspec validate", "Change 'm3-get-put-bload' is valid"), PASS)
+        self.assertEqual(said("coverage check", "check: PASS (0 problem(s))"), PASS)
+        self.assertEqual(said("coverage check", "check: FAIL (2 problem(s))"), FAIL)
+        wording = "903 notes on recorded rejections, {} not the recorded message"
+        self.assertEqual(said("wording check", wording.format(0)), PASS)
+        self.assertEqual(said("wording check", wording.format(1)), FAIL)
+        verification = '{"verification": {"PASS": 2756, "FAIL": 1, "KFAIL": 0}}'
+        self.assertEqual(said("verification pass list", verification), FAIL)
 
     def test_the_exit_code_counts_only_for_a_run_alone(self):
         self.assertEqual(result_of(TEST, "fmt", "", 0, True), PASS)
@@ -364,6 +385,51 @@ class ReadSession(unittest.TestCase):
             ]
         )
         self.assertEqual(runs, [])
+
+    def test_calls_sent_together_count_the_time_they_cover_once(self):
+        runs, row = self.read(
+            [
+                at("00:00", [use("a", "cargo test")]),
+                at("00:01", [use("b", "cargo fmt --check")]),
+                at("00:02", [use("c", "cargo clippy")]),
+                at("01:00", [result("a", "test result: ok.")]),
+                at("01:05", [result("b")]),
+                at("01:30", [result("c")]),
+            ]
+        )
+        got = [(r["kind"], r["seconds"]) for r in runs]
+        self.assertEqual(
+            got, [("tier 1 (cargo test)", "60.0"), ("fmt", "5.0"), ("clippy", "25.0")]
+        )
+        self.assertEqual(row["command_seconds"], "90")
+
+    def test_a_call_inside_an_earlier_one_counts_nothing(self):
+        runs, _ = self.read(
+            [
+                at("00:00", [use("a", "cargo test")]),
+                at("00:01", [use("b", "cargo fmt --check")]),
+                at("00:10", [result("b")]),
+                at("01:00", [result("a", "test result: ok.")]),
+            ]
+        )
+        self.assertEqual([r["seconds"] for r in runs], ["60.0", "0.0"])
+
+    def test_a_run_that_waited_for_earlier_calls_is_not_what_its_kind_takes_alone(self):
+        runs, _ = self.read(
+            [
+                at("00:00", [use("a", "cargo test -q")]),
+                at("00:01", [use("b", "cargo fmt")]),
+                at("00:10", [result("b", "")]),
+                at("01:00", [result("a", "test result: ok.")]),
+                at("02:00", [use("c", "cargo fmt")]),
+                at("02:02", [result("c", "")]),
+                at("03:00", [use("d", "cargo fmt; cargo test -q")]),
+                at("03:31", [result("d", "test result: ok.")]),
+            ]
+        )
+        # fmt takes 2 s alone (not the median of 0 and 2), the tests 60 s: 31 s split 2 to 60.
+        got = sorted((r["kind"], r["seconds"]) for r in runs[3:])
+        self.assertEqual(got, [("fmt", "1.0"), ("tier 1 (cargo test)", "30.0")])
 
     def test_a_run_that_reached_its_time_limit_went_on_in_the_background(self):
         moved = "Command did not complete within its 600s timeout and was moved to the background (ID: b1)."

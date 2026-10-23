@@ -1,0 +1,5 @@
+
+Illegal SUB/FUNCTION parameter
+Caused by (or after):
+LINE 7:SUB USE ( P AS OWN )
+exit=1

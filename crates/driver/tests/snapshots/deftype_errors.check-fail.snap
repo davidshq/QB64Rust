@@ -26,4 +26,5 @@ deftype_errors.bas:31:6: note: QB64pe: Illegal string-number conversion
 deftype_errors.bas:33:7: error: name already in use: `f!`
 deftype_errors.bas:39:11: error: a parameter cannot be a `_BIT`: `p1`
 deftype_errors.bas:41:11: error: a default type cannot be a `TYPE`
-deftype_errors.bas:42:11: error: not supported yet: the type `NOSUCH`
+deftype_errors.bas:42:11: error: the type `NOSUCH` of `_DEFINE` is no type
+deftype_errors.bas:42:11: note: QB64pe: Cannot convert type (NOSUCH) to symbol

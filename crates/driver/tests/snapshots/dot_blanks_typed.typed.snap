@@ -1,0 +1,60 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE INNER
+  V:I32
+TYPE T
+  S:I32(1 TO 3)
+  N:I32
+  W:T:INNER
+ARRAY P.R:I32(0 TO 2)
+line 2: ConsoleOnly
+line 17: Assign A.N:I32
+  Int 3 : I32
+line 18: Print newline
+  Num
+    Member A.N : I32
+line 19: Assign A.S(…):I32
+  Index
+    Int 2 : I64
+  Value
+    Int 7 : I32
+line 20: Print newline
+  Num
+    Element A.S(…) : I32
+      Int 2 : I64
+  Num
+    LBound A.S : I64
+line 21: Clear A.S:I32
+line 22: Call BUMP
+  ref A.N : I32
+line 23: Assign A.W.V:I32
+  Int 9 : I32
+line 24: Print newline
+  Num
+    Member A.W.V : I32
+line 25: Assign P.Q:F32
+  Convert Nearest : F32
+    Int 4 : I16
+line 26: Print newline
+  Num
+    Var P.Q : F32
+line 27: Assign P.Q.Z:F32
+  Convert Nearest : F32
+    Int 5 : I16
+line 28: Assign P.R(…):I32
+  Index
+    Int 1 : I64
+  Value
+    Int 6 : I32
+line 29: Print newline
+  Num
+    LBound P.R : I64
+line 30: Clear P.R:I32
+SUB BUMP
+  param X:I32
+line 32: Assign X (param):I32
+  Binary Add : I32 (qb I64)
+    Var X (param) : I32
+    Int 1 : I32

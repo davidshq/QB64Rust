@@ -1,0 +1,5 @@
+
+Syntax error - Reference: CLEAR
+Caused by (or after):CLEAR 1 , 2 , 3 , 4
+LINE 3:CLEAR 1, 2, 3, 4
+exit=1

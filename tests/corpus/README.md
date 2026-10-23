@@ -52,19 +52,20 @@ Written by `python tools\legacy_tests\counts.py` (`tools\legacy_tests\README.md`
 and `slice.list` hold, and what the last full run of the release build gave.
 
 <!-- counts:corpus-membership -->
-`slice.list` names **469** tests (a program, or a script of a screen program: `<name>.<script>.keys`). By folder:
+`slice.list` names **477** tests (a program, or a script of a screen program: `<name>.<script>.keys`). By folder:
 
 | Folder | Programs | `.output` | `.err` | `.norun` | `.screen` | In `slice.list` |
 |---|---|---|---|---|---|---|
 | `runtime_comparison` | 261 | 235 | 20 | 1 | 0 | 236 |
 | `screen` | 69 | 69 | 0 | 0 | 69 | 78 |
-| `slice` | 153 | 153 | 0 | 0 | 0 | 153 |
+| `slice` | 161 | 161 | 0 | 0 | 0 | 161 |
 | `verification` | 2 | 2 | 0 | 0 | 0 | 2 |
 <!-- /counts:corpus-membership -->
 
 <!-- counts:corpus-results -->
-Last full run: 2026-10-19, compiler build `0b161462a5df`, folding on, `--jobs 8`, build cache, 2 min. Of 483 programs: **477 pass**, 1 does not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
-`slice.list` judged in it (`--check-list`): **458 of 458** pass.
+Last full run: 2026-10-22, compiler build `690642b79dcc`, folding on, `--jobs 8`, build cache, 1 min. Of 502 programs: **495 pass**, 2 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
+`slice.list` judged in it (`--check-list`): **476 of 477** pass.
+- corpus:screen/g12_game.files: runner: PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'target\legacy-tests\corpus\screen-g12_game.files' (alone; with --jobs: run: exit code 124)
 <!-- /counts:corpus-results -->
 
 Kept by hand (recorded 2026-10-03; `slice` as each change added its programs):

@@ -1,0 +1,5 @@
+
+Syntax error - Reference: STRIG(button%) {On|Off|Stop}
+Caused by (or after):STRIG ( 1 , 2 , 3 ) ON
+LINE 3:STRIG(1, 2, 3) ON
+exit=1

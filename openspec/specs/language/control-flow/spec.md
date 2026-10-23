@@ -334,3 +334,61 @@ expression the old compiler accepts there, and a string a compile error, as with
 #### Scenario: A string
 - **WHEN** a program has `SYSTEM "a"`
 - **THEN** it is a compile error, as with the old compiler
+
+### Requirement: _CONTINUE
+`_CONTINUE`, alone on its statement, SHALL go on with the next pass of the innermost open `FOR`, `DO` or `WHILE`
+loop of the current body, whatever other blocks lie between. In a `FOR` loop the step SHALL still be added and the
+limit tested; in a `DO … LOOP WHILE|UNTIL c` the test SHALL still run; in a `DO WHILE`, `DO UNTIL` or `WHILE` loop
+the test at the top SHALL run. Outside such a loop it SHALL be a compile error that is not "not supported yet".
+
+#### Scenario: Skipping in a FOR loop
+- **WHEN** `FOR i = 1 TO 4: IF i = 2 THEN _CONTINUE` … `PRINT i;: NEXT` runs
+- **THEN** it prints ` 1  3  4 `
+
+#### Scenario: From inside SELECT CASE
+- **WHEN** a `FOR` loop's body is a `SELECT CASE` whose `CASE 3, 6: _CONTINUE` skips the rest of the body
+- **THEN** the loop goes on with the next value, as with the old compiler (`colors/color_with_dest`)
+
+#### Scenario: LOOP UNTIL still tests
+- **WHEN** `n = 0: DO: n = n + 1: IF n < 3 THEN _CONTINUE` … `PRINT n;: LOOP UNTIL n >= 5` runs
+- **THEN** it prints ` 3  4  5 ` and ends
+
+#### Scenario: The innermost loop
+- **WHEN** a `_CONTINUE` stands in a `WHILE` loop that stands in a `FOR` loop
+- **THEN** it goes on with the `WHILE` loop
+
+#### Scenario: Outside a loop
+- **WHEN** a program has `_CONTINUE` outside any loop, or in a SUB whose only loop is around its call
+- **THEN** the compiler reports an error that is not "not supported yet" (`verification\v47_x01`, `x02`)
+
+#### Scenario: Not alone on its statement
+- **WHEN** a program has `_CONTINUE 1` in a loop, or `_CONTINUE = 3`
+- **THEN** the compiler reports an error that is not "not supported yet", as the old compiler does (`v47_x03`,
+  `x26`)
+
+#### Scenario: In a GOSUB subroutine and as a single-line IF's ELSE
+- **WHEN** a loop after a label reached by `GOSUB` holds `IF i = 2 THEN _CONTINUE`, or a loop holds
+  `IF i <> 3 THEN PRINT i; ELSE _CONTINUE`
+- **THEN** each goes on with the next pass, as with the old compiler (`v47_x24`, `x25`)
+
+### Requirement: STOP
+`STOP` SHALL end the program as `SYSTEM` does without a code: no "Press any key" prompt, the files closed, and the
+exit code the one set so far. `STOP` followed by an expression SHALL check the expression as a number, as the old
+compiler does (a string is a compile error), and SHALL NOT evaluate it at run time. `STOP` SHALL be allowed in the
+main module and in a SUB or FUNCTION, and after `THEN` or `ELSE` on one line.
+
+#### Scenario: STOP ends the program
+- **WHEN** a console program runs `PRINT "a": STOP: PRINT "b"`
+- **THEN** it prints `a` and ends with exit code 0
+
+#### Scenario: STOP in a SUB after THEN
+- **WHEN** a SUB runs `IF x = 1 THEN PRINT "e": STOP` with `x = 1`
+- **THEN** the program prints `e` and ends
+
+#### Scenario: An expression is not evaluated
+- **WHEN** a program runs `STOP f(1)`, where the FUNCTION `f` prints a line
+- **THEN** nothing of `f` is printed (`verification\v52_x12`)
+
+#### Scenario: A window program
+- **WHEN** a program with a window runs `STOP`
+- **THEN** it ends without waiting for a key, as the old compiler's program does (`verification\v52_x14`)

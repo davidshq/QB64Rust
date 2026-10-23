@@ -18,4 +18,3 @@ arrays_errors.bas:15:14: error: `LBOUND` takes the array's name without `()`
 arrays_errors.bas:16:6: error: expected `=`
 arrays_errors.bas:18:1: error: `x()` is a whole array, and the other side of `=` is not one
 arrays_errors.bas:18:1: note: QB64pe: Expected array index after x
-arrays_errors.bas:21:1: error: not supported yet: the plain scalar `c` beside an array typed by `DIM … AS`

@@ -9,8 +9,11 @@ proc_arrays_errors.bas:22:12: error: name already in use: `a`
 proc_arrays_errors.bas:27:12: error: `a` is already listed by `STATIC a()`: `DIM` gives it its bounds
 proc_arrays_errors.bas:27:12: note: QB64pe: Array already listed as STATIC
 proc_arrays_errors.bas:31:5: error: `DIM SHARED` cannot stand inside a SUB or FUNCTION
+proc_arrays_errors.bas:31:5: note: QB64pe: DIM/REDIM SHARED invalid within a SUB/FUNCTION
 proc_arrays_errors.bas:34:5: error: `REDIM SHARED` cannot stand inside a SUB or FUNCTION
+proc_arrays_errors.bas:34:5: note: QB64pe: DIM/REDIM SHARED invalid within a SUB/FUNCTION
 proc_arrays_errors.bas:37:5: error: `DIM SHARED` cannot stand inside a SUB or FUNCTION
+proc_arrays_errors.bas:37:5: note: QB64pe: DIM/REDIM SHARED invalid within a SUB/FUNCTION
 proc_arrays_errors.bas:42:12: error: array `below` (LONG) is not declared in the main module above this procedure (`SHARED`)
 proc_arrays_errors.bas:42:12: note: QB64pe: Array 'below' not defined
 proc_arrays_errors.bas:45:12: error: array `none` (LONG) is not declared in the main module above this procedure (`SHARED`)
@@ -27,3 +30,4 @@ proc_arrays_errors.bas:73:9: error: the static array `own` is already declared
 proc_arrays_errors.bas:73:9: note: QB64pe: Cannot redefine own static array!
 proc_arrays_errors.bas:83:9: error: name already in use: `kc`
 proc_arrays_errors.bas:87:1: error: `STATIC` must stand inside a SUB or FUNCTION
+proc_arrays_errors.bas:87:1: note: QB64pe: STATIC must be used within a SUB/FUNCTION

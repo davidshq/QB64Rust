@@ -501,8 +501,11 @@ class Tools:
         exe_bytes=b"",
         trace=None,
         counts=None,
+        log=None,
     ):
         self.exe_bytes = exe_bytes
+        # What each run appends to the runtime's log (the file QB64PE_LOG_FILE_PATH names).
+        self.log = log
         # What each run writes to the coverage counts (the file QB64RUST_COVERAGE names).
         self.counts = counts
         self.compiles = 0
@@ -537,6 +540,9 @@ class Tools:
             Path(env[rlt.TRACE_ENV]).write_bytes(self.trace)
         if self.counts is not None and "QB64RUST_COVERAGE" in (env or {}):
             Path(env["QB64RUST_COVERAGE"]).write_bytes(self.counts)
+        if self.log is not None and "QB64PE_LOG_FILE_PATH" in (env or {}):
+            with open(env["QB64PE_LOG_FILE_PATH"], "ab") as f:
+                f.write(self.log(cwd) if callable(self.log) else self.log)
         if self.run_times_out:
             return None, True
         return self.run_rc, False
@@ -1319,6 +1325,19 @@ class VerificationFixture(unittest.TestCase):
                 known={},
             )[0]
 
+    def record(self, tools, clone: Path):
+        args = SimpleNamespace(qb64=Path("qb64pe.exe"))
+        with mock.patch.object(rlt, "run_proc", tools):
+            return rlt.run_suite_test(
+                "verification",
+                self.bas,
+                args=args,
+                results=self.results,
+                qb_root=clone,
+                corpus_root=self.results,
+                known={},
+            )[0]
+
     def assert_fail(self, r, stage: str, detail: str = ""):
         self.assertEqual((r.status, r.stage), ("FAIL", stage), r.detail)
         self.assertIn(detail, r.detail)
@@ -1390,6 +1409,19 @@ class VerificationCompare(VerificationFixture):
         work = str(self.results / "v99_p").upper().replace("\\", "/")
         r = self.run_test(Tools(runs=[f"{work}/v99_p.exe\r\n".encode()]))
         self.assertEqual(r.status, "PASS", r.detail)
+
+    def test_root_files_are_under_an_include_root_of_their_own(self):
+        self.recorded(b"1\nexit=0\n")
+        (self.root / "v99_files").mkdir()
+        (self.root / "v99_files" / "t.txt").write_bytes(b"t")
+        (self.root / "v99_p.root").write_bytes(b"v99_files/t.txt\n")
+        tools = Tools(runs=[b"2\n"])
+        self.assert_fail(self.run_test(tools), "result")
+        work = self.results / "v99_p"
+        self.assertEqual((work / "root" / "v99_files" / "t.txt").read_bytes(), b"t")
+        i = tools.compile_cmd.index("--include-root")
+        self.assertEqual(tools.compile_cmd[i + 1], str(work / "root"))
+        self.assertFalse((work / "v99_p.root").exists())
 
     def test_the_support_files_and_sidecars_are_copied(self):
         self.recorded(b"1\nexit=0\n")
@@ -1496,6 +1528,152 @@ class VerificationCompare(VerificationFixture):
         self.assertEqual((r.status, r.kind), ("PASS", "recorded"), r.detail)
         self.assertEqual((self.root / "v99_p.out.txt").read_bytes(), b"1\r\nexit=0\n")
         self.assertEqual(tools.run_cmds[0], [str(self.root / "v99_p.exe")])
+
+    def test_root_files_are_under_the_clone_for_the_compile_only(self):
+        (self.root / "v99_files").mkdir()
+        (self.root / "v99_files" / "i.ico").write_bytes(b"icon")
+        (self.root / "v99_p.root").write_bytes(b"# what the compiler finds in its folder\nv99_files/i.ico\n")
+        clone = self.results / "clone"
+        (clone / "internal" / "temp").mkdir(parents=True)
+        seen = []
+
+        class Seeing(Tools):
+            def __call__(self, args, cwd, stdout_path, timeout, **kw):
+                if "-x" in args:
+                    seen.append((clone / "v99_files" / "i.ico").read_bytes())
+                return super().__call__(args, cwd, stdout_path, timeout, **kw)
+
+        r = self.record(Seeing(runs=[b"ok\r\n"]), clone)
+        self.assertEqual((r.status, r.kind), ("PASS", "recorded"), r.detail)
+        self.assertEqual(seen, [b"icon"])
+        self.assertFalse((clone / "v99_files").exists())
+
+    def test_a_root_file_already_under_the_clone_is_an_error(self):
+        (self.root / "v99_p.root").write_bytes(b"v99_x.ico\n")
+        (self.root / "v99_x.ico").write_bytes(b"new")
+        clone = self.results / "clone"
+        clone.mkdir()
+        (clone / "v99_x.ico").write_bytes(b"theirs")
+        tools = Tools()
+        r = self.record(tools, clone)
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"), r.detail)
+        self.assertEqual(tools.compile_cmd, [])
+        self.assertEqual((clone / "v99_x.ico").read_bytes(), b"theirs")
+
+    def test_a_root_file_missing_from_verification_is_an_error_before_any_copy(self):
+        (self.root / "v99_files").mkdir()
+        (self.root / "v99_files" / "a.ico").write_bytes(b"a")
+        (self.root / "v99_p.root").write_bytes(b"v99_files/a.ico\nv99_files/gone.ico\n")
+        clone = self.results / "clone"
+        clone.mkdir()
+        tools = Tools()
+        r = self.record(tools, clone)
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"), r.detail)
+        self.assertEqual(tools.compile_cmd, [])
+        self.assertFalse((clone / "v99_files").exists())
+
+    def test_a_copy_that_fails_removes_what_it_made(self):
+        (self.root / "v99_files").mkdir()
+        (self.root / "v99_files" / "a.ico").write_bytes(b"a")
+        (self.root / "v99_files" / "b.ico").write_bytes(b"b")
+        (self.root / "v99_p.root").write_bytes(b"v99_files/a.ico\nv99_files/b.ico\n")
+        clone = self.results / "clone"
+        clone.mkdir()
+        real = shutil.copyfile
+
+        def copy_once(src, dst):
+            if Path(src).name == "b.ico":
+                raise OSError("disk full")
+            return real(src, dst)
+
+        with mock.patch.object(rlt.shutil, "copyfile", copy_once), self.assertRaises(OSError):
+            rlt.place_root_files(self.root, "v99_p", clone)
+        self.assertEqual(list(clone.iterdir()), [])
+
+
+def a_log(seconds: str, address: str, line: int = 3, folder: str = "") -> bytes:
+    """A runtime log as libqb writes it: entries of the runtime's scopes around two of the program's,
+    the error with its stack frames."""
+    return (
+        f"[{seconds}] INFO libqb image.cpp: load: 12: loaded\r\n"
+        f"[{seconds}] INFO QB64 {folder}v99_p.bas: Main QB64 Code: {line}: hello\r\n"
+        f"[{seconds}] ERROR QB64 v99_p.bas: SUB_S: 7: bad\r\n"
+        f"#1  [0x{address}] in S (QB64)\r\n"
+        f"#2  [0x{address}] in Main QB64 code\r\n"
+        f"[{seconds}] ERROR runtime logging.cpp: init: 1: odd\r\n"
+        f"#1  [0x{address}] in libqb_init\r\n"
+    ).encode()
+
+
+class VerificationLog(VerificationFixture):
+    """The program's log: recorded with qb64pe, compared otherwise (spec testing/verification-suite)."""
+
+    KEPT = (
+        b"INFO QB64 v99_p.bas: Main QB64 Code: 3: hello\n"
+        b"ERROR QB64 v99_p.bas: SUB_S: 7: bad\n"
+        b"#1  in S (QB64)\n"
+        b"#2  in Main QB64 code\n"
+    )
+
+    def test_the_cut(self):
+        log = self.results / "log.txt"
+        log.write_bytes(a_log("1.25000", "00007FF6A1B2C3D4"))
+        self.assertEqual(rlt.program_log(log, self.root), self.KEPT)
+        self.assertEqual(rlt.program_log(self.results / "none.txt", self.root), b"")
+
+    def test_record_writes_the_programs_entries(self):
+        r = self.record(Tools(runs=[b""], log=a_log("1.25000", "00007FF6A1B2C3D4")), self.results)
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assertIn("recorded new v99_p.log.txt", r.detail)
+        self.assertEqual((self.root / "v99_p.log.txt").read_bytes(), self.KEPT)
+
+    def test_record_without_entries_writes_none_and_removes_a_stale_one(self):
+        runtime_only = b"[0.1] INFO libqb x.cpp: f: 1: y\r\n"
+        r = self.record(Tools(runs=[b""], log=runtime_only), self.results)
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assertNotIn("log", r.detail)
+        self.assertFalse((self.root / "v99_p.log.txt").exists())
+        (self.root / "v99_p.log.txt").write_bytes(self.KEPT)
+        r = self.record(Tools(runs=[b""]), self.results)
+        self.assertIn("removed v99_p.log.txt", r.detail)
+        self.assertFalse((self.root / "v99_p.log.txt").exists())
+
+    def test_a_log_of_an_earlier_run_is_not_read(self):
+        (self.results / "v99_p-log.txt").write_bytes(a_log("1.0", "1"))
+        self.record(Tools(runs=[b""]), self.results)
+        self.assertFalse((self.root / "v99_p.log.txt").exists())
+
+    def test_an_equal_log_at_other_times_and_addresses_from_another_folder_passes(self):
+        self.recorded(b"exit=0\n")
+        (self.root / "v99_p.log.txt").write_bytes(
+            self.KEPT.replace(b"v99_p.bas: Main", b"<verification>/v99_p.bas: Main")
+        )
+
+        def log(cwd):
+            return a_log("9.87654", "0000000000401000", folder=str(cwd).upper() + "/")
+
+        tools = Tools(runs=[b""], log=log)
+        self.assertEqual(self.run_test(tools).status, "PASS")
+        self.assertEqual(tools.run_envs[0]["QB64PE_LOG_HANDLERS"], "file")
+
+    def test_a_line_that_differs_fails(self):
+        self.recorded(b"exit=0\n")
+        (self.root / "v99_p.log.txt").write_bytes(self.KEPT)
+        tools = Tools(runs=[b""], log=a_log("1.0", "1", line=6))
+        self.assert_fail(self.run_test(tools), "log", "line 1: recorded")
+
+    def test_nothing_recorded_and_nothing_logged_passes_and_a_log_alone_fails(self):
+        self.recorded(b"exit=0\n")
+        runtime_only = b"[0.1] ERROR runtime x.cpp: f: 1: y\r\n#1  [0x1] in f\r\n"
+        self.assertEqual(self.run_test(Tools(runs=[b""], log=runtime_only)).status, "PASS")
+        self.assert_fail(self.run_test(Tools(runs=[b""], log=a_log("1.0", "1"))), "log")
+
+    def test_the_pass_cache_reads_the_log_file(self):
+        cache = Path(self.tmp.name) / "passes"
+        self.recorded(b"exit=0\n")
+        self.assertEqual(self.run_test(Tools(runs=[b""]), cache).detail, "")
+        (self.root / "v99_p.log.txt").write_bytes(self.KEPT)
+        self.assert_fail(self.run_test(Tools(runs=[b""]), cache), "log")
 
 
 class VerificationLists(VerificationFixture):

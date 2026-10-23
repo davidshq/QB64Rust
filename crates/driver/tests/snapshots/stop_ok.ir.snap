@@ -1,0 +1,50 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 6
+  Print console newline
+    Str Const "a"
+Stmt line 6
+  Stop
+Stmt line 7
+  Branch Zero -> @1 Skip: Eq:I32(Var X:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 7
+  Stop
+Stmt line 7
+  Jump @0
+Label @1 line 7
+Stmt line 7
+  Print console newline
+    Str Const "b"
+Stmt line 7
+  Stop
+Label @0 line 7
+Stmt line 8
+  Stop
+Stmt line 9
+  Stop
+Stmt line 10
+  Stop
+Stmt line 11 may_raise
+  Call S []
+Sub S lines 12-14
+Stmt line 13
+  Stop
+Function F:F32 lines 15-17
+  param N:F32
+  result F:F32
+Stmt line 16
+  Branch Zero -> @1 Skip: Var N(param):F32
+Stmt line 16
+  Assign F(result):F32 = (Const 1:I16 -> Convert F32 Nearest)
+Stmt line 16
+  Jump @0
+Label @1 line 16
+Stmt line 16
+  Stop
+Label @0 line 16

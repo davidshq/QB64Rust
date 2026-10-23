@@ -21,20 +21,28 @@ impl Emitter<'_> {
     }
 
     /// The flat position of an element, with libqb's `array_check` per dimension (error 9 outside the bounds; it
-    /// then gives 0, the first position, as the old compiler reads), first dimension fastest.
+    /// then gives 0, the first position, as the old compiler reads), first dimension fastest. Below
+    /// `$CHECKING:OFF` without it (`qb64pe.bas` 15627–15640, 16136–16149, 16335–16348).
     pub(crate) fn flat_index(&mut self, array: VarId, index: &[Expr]) -> String {
-        let n = index.len();
         let name = self.name(array);
+        self.flat_index_in(&name, index)
+    }
+
+    /// [`Self::flat_index`] against the descriptor named `desc`: an array variable's, or the `passN` that holds
+    /// a dynamic member array's.
+    fn flat_index_in(&mut self, desc: &str, index: &[Expr]) -> String {
+        let n = index.len();
         let parts: Vec<String> = index
             .iter()
             .enumerate()
             .map(|(k, i)| {
                 let s = dim_slot(n, k);
-                let check = format!("array_check(({})-{name}[{s}],{name}[{}])", self.value(i), s + 1);
-                if k == 0 {
-                    check
-                } else {
-                    format!("{check}*{name}[{}]", s + 2)
+                let i = self.value(i);
+                match (self.checking, k) {
+                    (true, 0) => format!("array_check(({i})-{desc}[{s}],{desc}[{}])", s + 1),
+                    (true, _) => format!("array_check(({i})-{desc}[{s}],{desc}[{}])*{desc}[{}]", s + 1, s + 2),
+                    (false, 0) => format!("({i})-{desc}[{s}]"),
+                    (false, _) => format!("(({i})-{desc}[{s}])*{desc}[{}]", s + 2),
                 }
             })
             .collect();
@@ -66,7 +74,12 @@ impl Emitter<'_> {
             .zip(dims)
             .map(|(i, (lower, count, multiplier))| {
                 let lower = int_const(lower, Ty::I64);
-                let check = format!("array_check(({})-{lower},{count})", self.value(i));
+                let i = self.value(i);
+                let check = if self.checking {
+                    format!("array_check(({i})-{lower},{count})")
+                } else {
+                    format!("(({i})-{lower})")
+                };
                 if multiplier == 1 {
                     check
                 } else {
@@ -151,24 +164,11 @@ impl Emitter<'_> {
         self.pass += 1;
         let d = format!("pass{}", self.pass);
         self.pass_decls.push(format!("ptrszint *{d};\n"));
-        let n = index.len();
-        let parts: Vec<String> = index
-            .iter()
-            .enumerate()
-            .map(|(k, i)| {
-                let s = dim_slot(n, k);
-                let check = format!("array_check(({})-{d}[{s}],{d}[{}])", self.value(i), s + 1);
-                if k == 0 {
-                    check
-                } else {
-                    format!("{check}*{d}[{}]", s + 2)
-                }
-            })
-            .collect();
+        let flat = self.flat_index_in(&d, index);
         let at = format!(
-            "(({d}={}(*(ptrszint**){slot},{n})),(((char*){d}[0])+(({})*{size})))",
+            "(({d}={}(*(ptrszint**){slot},{n})),(((char*){d}[0])+(({flat})*{size})))",
             crate::owner::dyn_fn(id, m, "guard"),
-            parts.join("+")
+            n = index.len()
         );
         (at, d)
     }

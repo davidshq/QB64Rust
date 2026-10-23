@@ -1,0 +1,5 @@
+
+Unknown type
+Caused by (or after):DIM B AS LONG * 4
+LINE 3:DIM b AS LONG * 4
+exit=1

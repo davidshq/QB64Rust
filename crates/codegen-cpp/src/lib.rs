@@ -11,8 +11,8 @@
 //! a parameter is the C parameter itself. An [`Arg::Temp`] becomes `&(passN=<value>)` with `passN` declared in the
 //! data fragment of the body that makes the call; a string copy passes the temporary `qbs*` directly.
 //!
-//! Error handling (D7): each label used by [`Op::SetHandler`] gets a handler number from 1, in the order the
-//! emitter meets them; `error_goto_line` holds the active one, and `mainerr.txt`, which `qbx.cpp` places at the top
+//! Error handling (D7): each label used by [`Op::SetHandler`] or [`Op::NewHandler`] gets a handler number from 1, in
+//! the order the emitter meets them; `error_goto_line` holds the active one, `error_handler_history` the kept ones, and `mainerr.txt`, which `qbx.cpp` places at the top
 //! of `QBMAIN`, jumps to it. The runtime runs a handler by calling `QBMAIN` again from the statement boundary
 //! (`evnt`); the handler's resume returns from that call (retry and next) or jumps to a label in it.
 //!
@@ -99,18 +99,31 @@ impl Fragments {
 /// v19_include_runtime_error`: "Line: 3 (in raise.bi)"). `resolved` is what the driver found for the program's
 /// `DECLARE LIBRARY` blocks.
 pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>, resolved: &Resolved) -> Fragments {
-    emit_with(p, source_name, included, resolved, None)
+    emit_with(p, source_name, included, resolved, None, None)
 }
 
 /// [`emit`], with a counter at each source statement when `coverage` is given (design D1 of `cws-whole-game`,
-/// `coverage.rs`). Without it the fragments are [`emit`]'s.
+/// `coverage.rs`). Without it the fragments are [`emit`]'s. `log_folder` (the working folder with its separator) is
+/// put before each name of `source_name` and `included` that is relative, for the file a log statement names, as
+/// the old compiler names it from its start folder (design D2 of `m4-handlers-logging-checking`); without it the
+/// names are as given.
 pub fn emit_with(
     p: &Program,
     source_name: &str,
     included: &HashMap<FileId, String>,
     resolved: &Resolved,
     coverage: Option<&Coverage>,
+    log_folder: Option<&str>,
 ) -> Fragments {
+    let log_name = |name: &str| {
+        let full = match log_folder {
+            Some(folder) if std::path::Path::new(name).is_relative() => format!("{folder}{name}"),
+            _ => name.to_string(),
+        };
+        names::escape_string(full.as_bytes())
+    };
+    let log_files: HashMap<FileId, String> = included.iter().map(|(&f, name)| (f, log_name(name))).collect();
+    let log_main = log_name(source_name);
     let included = included
         .iter()
         .map(|(&f, name)| {
@@ -138,8 +151,13 @@ pub fn emit_with(
         file_types: Vec::new(),
         file_buffers: 0,
         stmt_at: (None, 0, None),
+        checking: true,
+        log_files,
+        log_main,
+        subfunc: None,
         on_timer: events::EventCode::default(),
         on_key: events::EventCode::default(),
+        on_strig: events::EventCode::default(),
         coverage: coverage.map(coverage::Counters::new),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
@@ -233,6 +251,8 @@ pub fn emit_with(
         ("ontimerj.txt", std::mem::take(&mut e.on_timer.jumpers)),
         ("onkey.txt", std::mem::take(&mut e.on_key.cases)),
         ("onkeyj.txt", std::mem::take(&mut e.on_key.jumpers)),
+        ("onstrig.txt", std::mem::take(&mut e.on_strig.cases)),
+        ("onstrigj.txt", std::mem::take(&mut e.on_strig.jumpers)),
     ] {
         files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
     }
@@ -298,9 +318,20 @@ struct Emitter<'a> {
     file_buffers: u32,
     /// The file, line and main-file line of the statement being emitted, for an event check inside it (`END n`).
     stmt_at: (Option<FileId>, u32, Option<u32>),
+    /// The statement being emitted is checked ([`qb64rust_ir::Stmt::checked`]): false below `$CHECKING:OFF`, where an
+    /// index has no `array_check` and the memory statements are written unchecked (design D4 of
+    /// `m4-handlers-logging-checking`). True outside a body.
+    checking: bool,
+    /// The file each included file is to a log statement, as a C string ([`emit_with`]), and the main file.
+    log_files: HashMap<FileId, String>,
+    log_main: String,
+    /// The old compiler's C name of the procedure whose body is being emitted ([`names::old_proc_name`]); `None` in
+    /// the main module.
+    subfunc: Option<String>,
     /// The handlers of `ON TIMER` and of `ON KEY` (`events.rs`).
     on_timer: events::EventCode,
     on_key: events::EventCode,
+    on_strig: events::EventCode,
     /// The counters of a coverage build (`coverage.rs`), `None` in any other.
     coverage: Option<coverage::Counters<'a>>,
 }

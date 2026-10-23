@@ -12,26 +12,9 @@ use crate::Emitter;
 use crate::decl::{dim_count, lock_slot};
 use crate::names::c_type;
 use crate::place::fixed_at;
-use qb64rust_ir::{ArrayRef, Conv, Expr, ExprKind, MemValue, Place, Program, Reference, Ty, VarId};
-
-/// The numeric types a block or an address may be of: every one but `_BIT`, as a pattern.
-macro_rules! numeric {
-    () => {
-        Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-    };
-}
+use qb64rust_ir::{
+    ArrayRef, Conv, Expr, ExprKind, MemValue, Place, Program, Reference, Ty, VarId, numeric_types, numeric_value_types,
+};
 
 /// The type value of a block (`qb64pe.bas` 14731, `Type2MemTypeValue`): a number's bytes plus 128 for an integer
 /// (and 1024 when unsigned, 8192 for an `_OFFSET`) or 256 for a float; 512 for a fixed-length string, its length
@@ -131,7 +114,7 @@ impl Emitter<'_> {
                 match v.ty {
                     Ty::User(_) => format!("(((char*){n}[0])+(((0)*{}+0)))", self.ty_size(v.ty)),
                     Ty::FixedStr(k) => format!("(&((uint8*)({n}[0]))[(0)*{k}])"),
-                    numeric!() => format!("(&({}))", self.element_at(*a, "0")),
+                    numeric_value_types!() => format!("(&({}))", self.element_at(*a, "0")),
                     Ty::Str | Ty::Bit { .. } => unreachable!("the address of an array of {:?} (`validate`)", v.ty),
                 }
             }
@@ -145,7 +128,7 @@ impl Emitter<'_> {
                 match ty {
                     Ty::FixedStr(_) | Ty::Str => format!("{n}->chr"),
                     Ty::User(_) => format!("(((char*){n})+((0+0)))"),
-                    numeric!() => n,
+                    numeric_value_types!() => n,
                     Ty::Bit { .. } => unreachable!("the address of a `_BIT` (`validate`)"),
                 }
             }
@@ -158,7 +141,7 @@ impl Emitter<'_> {
                 match v.ty {
                     Ty::User(_) => format!("(((char*){n}[0])+((({flat})*{}+0)))", self.ty_size(v.ty)),
                     Ty::FixedStr(_) => format!("{}->chr", self.element_at(*a, &flat)),
-                    numeric!() => format!("(&({}))", self.element_at(*a, &flat)),
+                    numeric_value_types!() => format!("(&({}))", self.element_at(*a, &flat)),
                     Ty::Str | Ty::Bit { .. } => unreachable!("the address of an element of {:?} (`validate`)", v.ty),
                 }
             }
@@ -187,6 +170,13 @@ impl Emitter<'_> {
         }
     }
 
+    /// `LEN(a())` (design D5 of `m4-names-arrays`): the old compiler's "-5" size of the whole array (`qb64pe.bas`
+    /// 20971), a LONG.
+    pub(crate) fn len_whole(&mut self, a: VarId) -> String {
+        let bytes = self.bytes_count(&Reference::Array(ArrayRef::Var(a)));
+        format!("((int32)({bytes}))")
+    }
+
     /// The block of `_MEMGET`, `_MEMPUT`, `_MEMFILL` and the `_MEMGET` function: the address of its place, a
     /// variable spelled as the old compiler spells it (`(((char*)__UDT_M)+((0+0)))`).
     fn block_at(&mut self, block: &Place) -> String {
@@ -196,27 +186,50 @@ impl Emitter<'_> {
         }
     }
 
+    /// [`Self::block_at`] where it is written, and nothing below `$CHECKING:OFF`, where the block is not (and its
+    /// index expressions would make temporaries for nothing). Taken before the offset, as the old compiler does.
+    fn checked_block(&mut self, block: &Place) -> String {
+        if self.checking {
+            self.block_at(block)
+        } else {
+            String::new()
+        }
+    }
+
     /// `_MEMGET(block, offset, type)`: the runtime's checked address of the bytes (a buffer of zero bytes after
-    /// an error), read as the type (`qb64pe.bas` 20573–20630; measured, `verification\v32_x01_accepted`).
+    /// an error), read as the type (`qb64pe.bas` 20573–20630; measured, `verification\v32_x01_accepted`). Below
+    /// `$CHECKING:OFF` the offset itself, with no block (design D4 of `m4-handlers-logging-checking`).
     pub(crate) fn mem_read(&mut self, block: &Place, offset: &Expr, of: Ty) -> String {
-        let blk = self.block_at(block);
+        let blk = self.checked_block(block);
         let off = self.value(offset);
         let size = self.ty_size(of);
-        let at = format!("func__memget((mem_block*){blk},{off},{size})");
+        let at = if self.checking {
+            format!("func__memget((mem_block*){blk},{off},{size})")
+        } else {
+            off
+        };
         match of {
             Ty::FixedStr(n) => format!("qbs_new_txt_len((char*){at},{n})"),
             Ty::User(_) => format!("((void*)+{at})"),
-            numeric!() => format!("*({}*)({at})", c_type(of)),
+            numeric_value_types!() => format!("*({}*)({at})", c_type(of)),
             Ty::Str | Ty::Bit { .. } => unreachable!("`_MEMGET` of a {of:?} (`validate`)"),
         }
     }
 
     /// `_MEMGET block, offset, variable`, written inline as the old compiler writes it (`qb64pe.bas` 10168–10260;
-    /// measured, `verification\v32_x01_accepted`): the offset into `tmp_long`, the checks, and the copy.
+    /// measured, `verification\v32_x01_accepted`): the offset into `tmp_long`, the checks, and the copy. Below
+    /// `$CHECKING:OFF` only the copy, from the offset itself (10228–10234).
     pub(crate) fn mem_get_stmt(&mut self, block: &Place, offset: &Expr, target: &Reference, out: &mut Vec<String>) {
-        let blk = self.block_at(block);
+        let blk = self.checked_block(block);
         let off = self.value(offset);
         let (address, size) = (self.address(target), self.bytes_count(target));
+        if !self.checking {
+            out.push(match copy_width(&size) {
+                Some(t) => format!("*({t}*){address}=*({t}*)({off});"),
+                None => format!("memmove({address},(uint8_t*){off},{size});"),
+            });
+            return;
+        }
         let copy = match copy_width(&size) {
             Some(t) => format!("*({t}*){address}=*({t}*)tmp_long;"),
             None => format!("memmove({address},(void*)tmp_long,{size});"),
@@ -227,50 +240,84 @@ impl Emitter<'_> {
 
     /// `_MEMPUT block, offset, value`, written inline (`qb64pe.bas` 10266–10398): a string that is no variable held
     /// in `g_tmp_str` first, then the offset into `tmp_long`, the checks, and the copy of the value's bytes; a
-    /// value `AS type` stored through a pointer of that type.
+    /// value `AS type` stored through a pointer of that type. Below `$CHECKING:OFF` only the copy, to the offset
+    /// itself (10328–10334, 10376).
     pub(crate) fn mem_put_stmt(&mut self, block: &Place, offset: &Expr, value: &MemValue, out: &mut Vec<String>) {
-        let blk = self.block_at(block);
-        let (size, copy) = match value {
+        let blk = self.checked_block(block);
+        // What is copied: a value of a C type, `width` bytes from an address, or bytes moved from an address.
+        enum Source {
+            Typed { t: &'static str, v: String },
+            Width { t: &'static str, address: String },
+            Moved { address: String, size: String },
+        }
+        let (size, source) = match value {
             MemValue::Typed { value, ty } => {
-                let v = self.stored(value);
-                (
-                    self.ty_size(*ty).to_string(),
-                    format!("*({}*)tmp_long={v};", c_type(*ty)),
-                )
+                let source = Source::Typed {
+                    t: c_type(*ty),
+                    v: self.stored(value),
+                };
+                (self.ty_size(*ty).to_string(), source)
             }
             MemValue::Bytes(of) => {
                 let (address, size) = (self.address(of), self.bytes_count(of));
-                let copy = match copy_width(&size) {
-                    Some(t) => format!("*({t}*)tmp_long=*({t}*){address};"),
-                    None => format!("memmove((void*)tmp_long,{address},{size});"),
-                };
-                (size, copy)
+                match copy_width(&size) {
+                    Some(t) => (size, Source::Width { t, address }),
+                    None => (size.clone(), Source::Moved { address, size }),
+                }
             }
             MemValue::Str(s) => {
                 let s = self.value(s);
                 out.push(format!("g_tmp_str={s};"));
-                (
-                    "g_tmp_str->len".to_string(),
-                    "memmove((void*)tmp_long,g_tmp_str->chr,g_tmp_str->len);".to_string(),
-                )
+                let source = Source::Moved {
+                    address: "g_tmp_str->chr".into(),
+                    size: "g_tmp_str->len".into(),
+                };
+                ("g_tmp_str->len".to_string(), source)
             }
         };
+        // The copy to the address `to`, a C++ pointer expression.
+        let copy = |to: &str| match &source {
+            Source::Typed { t, v } => format!("*({t}*){to}={v};"),
+            Source::Width { t, address } => format!("*({t}*){to}=*({t}*){address};"),
+            Source::Moved { address, size } => format!("memmove({to},{address},{size});"),
+        };
+        let moved = matches!(source, Source::Moved { .. });
         let off = self.value(offset);
+        if !self.checking {
+            out.push(copy(&if moved {
+                format!("(uint8_t*){off}")
+            } else {
+                format!("({off})")
+            }));
+            return;
+        }
         out.push(format!("tmp_long={off};"));
-        mem_checked(&blk, &size, &copy, out);
+        mem_checked(
+            &blk,
+            &size,
+            &copy(if moved { "(void*)tmp_long" } else { "tmp_long" }),
+            out,
+        );
     }
 
     /// `_MEMFILL block, offset, bytes, value` (`qb64pe.bas` 10405–10500): a call of the runtime, by the value's
     /// type for a value `AS type` (`sub__memfill_2`), with the value's bytes otherwise (`sub__memfill`), a string
-    /// that is no variable held in `tmp_long` first.
+    /// that is no variable held in `tmp_long` first. Below `$CHECKING:OFF` the runtime's `_nochecks` entries,
+    /// without the block (10465–10497).
     pub(crate) fn mem_fill_stmt(
         &mut self,
         (block, offset, bytes): (&Place, &Expr, &Expr),
         value: &MemValue,
         out: &mut Vec<String>,
     ) {
-        let blk = self.block_at(block);
+        let blk = self.checked_block(block);
         let (off, count) = (self.value(offset), self.value(bytes));
+        // What follows `sub__memfill` in the entry's name, and the block argument before the offset.
+        let (nochecks, blk) = if self.checking {
+            ("", format!("(mem_block*){blk},"))
+        } else {
+            ("_nochecks", String::new())
+        };
         match value {
             MemValue::Typed { value, ty } => {
                 let v = self.stored(value);
@@ -286,19 +333,19 @@ impl Emitter<'_> {
                         unreachable!("`_MEMFILL … AS` a {ty:?} (`validate`)")
                     }
                 };
-                out.push(format!("sub__memfill_{entry}((mem_block*){blk},{off},{count},{v});"));
+                out.push(format!("sub__memfill{nochecks}_{entry}({blk}{off},{count},{v});"));
             }
             MemValue::Bytes(of) => {
                 let (address, size) = (self.address(of), self.bytes_count(of));
                 out.push(format!(
-                    "sub__memfill((mem_block*){blk},{off},{count},(ptrszint){address},{size});"
+                    "sub__memfill{nochecks}({blk}{off},{count},(ptrszint){address},{size});"
                 ));
             }
             MemValue::Str(s) => {
                 let s = self.value(s);
                 out.push(format!("tmp_long=(ptrszint){s};"));
                 out.push(format!(
-                    "sub__memfill((mem_block*){blk},{off},{count},(ptrszint)((qbs*)tmp_long)->chr,((qbs*)tmp_long)->len);"
+                    "sub__memfill{nochecks}({blk}{off},{count},(ptrszint)((qbs*)tmp_long)->chr,((qbs*)tmp_long)->len);"
                 ));
             }
         }
@@ -332,7 +379,8 @@ impl Emitter<'_> {
             | ExprKind::MemOf { .. }
             | ExprKind::MemAt { .. }
             | ExprKind::AddressOf(_)
-            | ExprKind::MemRead { .. } => self.value(v),
+            | ExprKind::MemRead { .. }
+            | ExprKind::ArrayBytes(_) => self.value(v),
         }
     }
 
@@ -409,7 +457,7 @@ impl Emitter<'_> {
                         element_size: k,
                         lock: self.array_lock(*a),
                     },
-                    numeric!() | Ty::Str | Ty::Bit { .. } => Block {
+                    numeric_types!() | Ty::Str => Block {
                         address: format!("(&({}))", self.element_at(*a, "0")),
                         size: format!("{all}-({size}*(0))"),
                         type_value: type_value(self.p, ty) + ARRAY,
@@ -457,7 +505,7 @@ impl Emitter<'_> {
                             lock: sf,
                         }
                     }
-                    numeric!() | Ty::Str | Ty::Bit { .. } => {
+                    numeric_types!() | Ty::Str => {
                         let size = self.ty_size(ty);
                         Block {
                             address: n,
@@ -504,7 +552,7 @@ impl Emitter<'_> {
                             lock: self.array_lock(*a),
                         }
                     }
-                    numeric!() | Ty::Str | Ty::Bit { .. } => Block {
+                    numeric_types!() | Ty::Str => Block {
                         address: format!("(&({}))", self.element_at(*a, &flat)),
                         size: if element {
                             size.to_string()
@@ -573,7 +621,7 @@ impl Emitter<'_> {
                 size: size.to_string(),
                 type_value: match ty {
                     Ty::User(_) => USER,
-                    numeric!() | Ty::FixedStr(_) | Ty::Str | Ty::Bit { .. } => type_value(self.p, ty),
+                    numeric_types!() | Ty::FixedStr(_) | Ty::Str => type_value(self.p, ty),
                 },
                 element_size: size,
                 lock: sf,

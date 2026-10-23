@@ -1,6 +1,5 @@
 ---
 source: crates/syntax/tests/parser.rs
-assertion_line: 94
 expression: "tree(\"SUB a\\n  PRINT 1\\nSUB b\\n  PRINT 2\\nEND SUB\\nPRINT 3\\n\")"
 ---
 SourceFile 0..48
@@ -42,3 +41,4 @@ SourceFile 0..48
       Number 3
   Newline \x0A
 t.bas:3:1: error: a SUB or FUNCTION cannot be defined inside another; expected `END SUB` before it
+t.bas:3:1: note: QB64pe: Expected END SUB/FUNCTION before SUB

@@ -4,9 +4,9 @@
 //! (`StmtKind::MemGet`, `MemPut`, `MemFill`): what they may name, and the old compiler's errors (measured,
 //! `verification\v32_x01_accepted`, `v32_x02`–`x116`).
 
-use super::expr::conv;
+use super::expr::{Use, conv};
 use super::places::{numeric_type, unsigned_of};
-use super::{Checker, R};
+use super::{Checker, R, split_unsigned};
 use crate::builtins::{Rule, Supported};
 use crate::{ArrayRef, Expr, ExprKind, MemValue, Place, Reference, StmtKind, SymbolKind, Ty};
 use qb64rust_base::{Span, show_bytes};
@@ -16,10 +16,10 @@ use qb64rust_syntax::tree::Node;
 
 impl Checker<'_> {
     /// `_MEM(reference)` and `_MEM(offset, size)` (`element` false), or `_MEMELEMENT(reference)`. A block: only
-    /// the value stored into a place of type `_MEM` (design D2; the checker's `mem_store`).
-    pub(super) fn mem_fn(&mut self, call: ast::CallExpr, element: bool, span: Span) -> R<Expr> {
+    /// the value stored into a place of type `_MEM` (design D2; [`Use::Stored`]).
+    pub(super) fn mem_fn(&mut self, call: ast::CallExpr, element: bool, span: Span, use_: Use) -> R<Expr> {
         let word = if element { "_MEMELEMENT" } else { "_MEM" };
-        if !std::mem::take(&mut self.mem_store) {
+        if use_ != Use::Stored {
             let msg = format!("`{word}` gives a `_MEM` block, which can only be stored into a `_MEM` variable");
             return Err(self.error(span, msg));
         }
@@ -80,7 +80,7 @@ impl Checker<'_> {
         own_lock
             && matches!(v.storage, crate::Storage::Param(_))
             && v.dim_count().is_none()
-            && !self.dim_facts.iter().any(|f| match f {
+            && !self.dims.dim_facts.iter().any(|f| match f {
                 super::DimFact::Count { array, .. } => array == p,
                 super::DimFact::Same { arg, param, .. } => arg == p || param == p,
             })
@@ -168,7 +168,7 @@ impl Checker<'_> {
                         return Ok(Named::Ref(Reference::Array(array)));
                     }
                 } else if let Some(array) = self.find_array(&name, suffix) {
-                    self.names.push((SymbolKind::Var(array), t.span));
+                    self.stmt.names.push((SymbolKind::Var(array), t.span));
                     return Ok(Named::Ref(Reference::Array(ArrayRef::Var(array))));
                 }
                 let msg = format!("`{word}` of a name that is no array, written with `()`");
@@ -200,10 +200,7 @@ impl Checker<'_> {
             | ast::Expr::Bin(_) => {}
         }
         // A place of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
-        let outer = self.len_place.replace(span);
-        let e = self.expr(node);
-        self.len_place = outer;
-        let e = e?;
+        let e = self.expr_as(node, Use::Place)?;
         match &e.kind {
             ExprKind::Load(place) => Ok(Named::Ref(Reference::Place(place.clone()))),
             ExprKind::Int(_)
@@ -224,7 +221,8 @@ impl Checker<'_> {
             | ExprKind::MemOf { .. }
             | ExprKind::MemAt { .. }
             | ExprKind::AddressOf(_)
-            | ExprKind::MemRead { .. } => Ok(Named::Value(e)),
+            | ExprKind::MemRead { .. }
+            | ExprKind::ArrayBytes(_) => Ok(Named::Value(e)),
         }
     }
 
@@ -329,10 +327,10 @@ enum Named {
 impl Checker<'_> {
     /// `_MEMGET(block, offset, type)` (design D4; measured, `verification\v32_x01_accepted`, `x47`–`x56`): the
     /// value of a numeric type, `STRING * n` or a user type at an offset of a block. A user type's value stands only
-    /// as the value stored into a place of that type (the checker's `mem_store`; "Number required for function" as
-    /// a value of `PRINT`, `x55`).
-    pub(super) fn mem_get_fn(&mut self, call: ast::CallExpr, span: Span) -> R<Expr> {
-        let whole = std::mem::take(&mut self.mem_store);
+    /// as the value stored into a place of that type ([`Use::Stored`]; "Number required for function" as a value of
+    /// `PRINT`, `x55`).
+    pub(super) fn mem_get_fn(&mut self, call: ast::CallExpr, span: Span, use_: Use) -> R<Expr> {
+        let whole = use_ == Use::Stored;
         let list = call.arg_list();
         let positions = list.map(|l| l.args()).unwrap_or_default();
         let (b, o, of) = match (&positions[..], list.and_then(|l| l.type_arg())) {
@@ -391,10 +389,8 @@ impl Checker<'_> {
             .map(|&w| self.word(w))
             .collect();
         let size = tokens.iter().find(|w| w.kind == SyntaxKind::Number).copied();
-        let (unsigned, text) = match words.split_first() {
-            Some((first, rest)) if first == "_UNSIGNED" => (true, rest.join(" ")),
-            _ => (false, words.join(" ")),
-        };
+        let (unsigned, rest) = split_unsigned(&words);
+        let text = rest.join(" ");
         match (text.as_str(), size) {
             // Measured: "Invalid TYPE name" (`v32_x120`).
             ("STRING", _) if unsigned => Err(self.error(at, "`_UNSIGNED STRING` is no type")),
@@ -509,11 +505,8 @@ impl Checker<'_> {
     /// * n`, a user type and `_BIT` "_MEMPUT requires numeric type" (`v32_x27`–`x30`, `x57`–`x59`), anything else
     /// "Invalid type" (`x31`).
     fn mem_value_type(&mut self, a: ast::AsClause, word: &str) -> R<Ty> {
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
-        let text = match words.split_first() {
-            Some((first, rest)) if first == "_UNSIGNED" => rest.join(" "),
-            _ => words.join(" "),
-        };
+        let words = self.as_words(a);
+        let text = split_unsigned(&words).1.join(" ");
         let at = a.node().span();
         let numeric = numeric_type(&text).is_some_and(|t| !matches!(t, Ty::Bit { .. }));
         if numeric && a.size().is_none() {
@@ -529,7 +522,7 @@ impl Checker<'_> {
     /// element cannot be _BIT aligned", `v32_x38`, `x46`), not a whole array of variable-length strings ("Cannot
     /// pass array of variable-length strings", `x39`). An element or member of variable-length strings, a `TYPE`
     /// that holds a `STRING` and the paths [`Self::unmeasured_path`] names are not measured.
-    fn bytes_reference(&mut self, of: &Reference, word: &str, at: Span) -> R<()> {
+    pub(super) fn bytes_reference(&mut self, of: &Reference, word: &str, at: Span) -> R<()> {
         let ty = self.reference_ty(of);
         let root = self.prog.var(of.root()).ty;
         if matches!(ty, Ty::Bit { .. }) || matches!(root, Ty::Bit { .. }) {
@@ -591,43 +584,26 @@ impl Checker<'_> {
             | Rule::Rotate
             | Rule::Choice
             | Rule::Own
-            | Rule::Embedded => unreachable!("`{name}` is no conversion between a number and its bytes"),
+            | Rule::Embedded
+            | Rule::Cast => unreachable!("`{name}` is no conversion between a number and its bytes"),
         };
-        let positions = list.map(|l| l.args()).unwrap_or_default();
-        let type_arg = list.and_then(|l| l.type_arg());
-        let (ty, node) = match (fixed, &positions[..], type_arg) {
-            (Some(t), &[Some(node)], None) => (t, node),
-            (None, &[None, Some(node)], Some(t)) => (self.bytes_type(t, name)?, node),
-            // Measured: "Cannot convert type (K) to symbol" (`v32_x113`).
-            (None, &[Some(first), Some(_)], None) => {
-                let msg = format!("the first argument of `{name}` is a type name");
-                return Err(self.error(first.node().span(), msg));
-            }
-            // Measured: "Incorrect number of arguments" (`v32_x107`–`x109`, `x112`).
-            (Some(_), _, _) => return Err(self.error(span, format!("`{name}` takes 1 argument"))),
-            (None, _, _) => return Err(self.error(span, format!("`{name}` takes a type and 1 argument"))),
+        // Measured: "Incorrect number of arguments" (`v32_x107`–`x109`, `x112`).
+        let (ty, node) = match fixed {
+            Some(t) => match (list.map(|l| l.args()).as_deref(), list.and_then(|l| l.type_arg())) {
+                (Some(&[Some(node)]), None) => (t, node),
+                _ => return Err(self.error(span, format!("`{name}` takes 1 argument"))),
+            },
+            None => match self.type_then_value(list, name, "a type name")? {
+                Some((t, node)) => (self.bytes_type(t, name)?, node),
+                None => return Err(self.error(span, format!("`{name}` takes a type and 1 argument"))),
+            },
         };
         let e = self.expr(node)?;
         // A `_BIT` is passed and read as an `_INTEGER64` (`qb64pe.bas` 21243, 21284).
         let held = match ty {
             Ty::Bit { signed: true, .. } => Ty::I64,
             Ty::Bit { signed: false, .. } => Ty::U64,
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::FixedStr(_)
-            | Ty::User(_) => ty,
+            crate::numeric_value_types!() | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => ty,
         };
         let value = if make {
             if e.ty == Ty::Str {
@@ -670,6 +646,50 @@ impl Checker<'_> {
         })
     }
 
+    /// `_CAST(type, value)` (design D2 of `m4-builtins-param-types`): the value converted by a C++ cast to the
+    /// numeric type named, held and believed as that type. Measured (`verification\v49_x01`–`x16`): `STRING`,
+    /// `_BIT` and `_UNSIGNED _BIT` "_CAST TYPE unsupported"; any other name that is no numeric type, or a value
+    /// first, "Cannot convert type (…) to symbol"; a string or a whole user-type value "Expected numeric argument";
+    /// any other count "Incorrect number of arguments".
+    pub(super) fn cast(&mut self, list: Option<ast::ArgList>, span: Span) -> R<Expr> {
+        let Some((t, node)) = self.type_then_value(list, "_CAST", "a numeric type name")? else {
+            return Err(self.error(span, "`_CAST` takes a type and 1 argument"));
+        };
+        let ty = self.bytes_type(t, "_CAST")?;
+        if let Ty::Bit { .. } = ty {
+            return Err(self.error(t.span(), "`_CAST` takes no `_BIT` type"));
+        }
+        let e = self.expr(node)?;
+        // A `STRING * n` place loads as a `Str` value.
+        if matches!(e.ty, Ty::Str | Ty::User(_)) {
+            return Err(self.error(e.span, "`_CAST` needs a number"));
+        }
+        Ok(Expr {
+            span,
+            ..conv(e, ty, crate::ConvKind::Cast)
+        })
+    }
+
+    /// The arguments of `_MK$`, `_CV` and `_CAST`: a type name, then a value. `None` for any other count, which each
+    /// reports in its own words; a value first is an error, the first argument of `name` is `what` (measured:
+    /// "Cannot convert type (…) to symbol", `verification\v32_x113`, `v49_x01`–`x16`).
+    fn type_then_value<'a>(
+        &mut self,
+        list: Option<ast::ArgList<'a>>,
+        name: &str,
+        what: &str,
+    ) -> R<Option<(Node<'a>, ast::Expr<'a>)>> {
+        let positions = list.map(|l| l.args()).unwrap_or_default();
+        match (&positions[..], list.and_then(|l| l.type_arg())) {
+            (&[None, Some(node)], Some(t)) => Ok(Some((t, node))),
+            (&[Some(first), Some(_)], None) => {
+                let msg = format!("the first argument of `{name}` is {what}");
+                Err(self.error(first.node().span(), msg))
+            }
+            _ => Ok(None),
+        }
+    }
+
     /// The type `_MK$` and `_CV` take first: a numeric type, `_BIT` and `_UNSIGNED _BIT` one bit wide. Measured:
     /// `STRING` "_MK only accepts numeric types", "_CV cannot return STRING type!" (`v32_x99`, `x100`); a width
     /// after `_BIT`, `STRING * n` and any other word "Cannot convert type (…) to symbol" (`x96`–`x98`, `x101`,
@@ -683,10 +703,8 @@ impl Checker<'_> {
             .map(|&w| self.word(w))
             .collect();
         let sized = tokens.iter().any(|w| w.kind == SyntaxKind::Number);
-        let (unsigned, text) = match words.split_first() {
-            Some((first, rest)) if first == "_UNSIGNED" => (true, rest.join(" ")),
-            _ => (false, words.join(" ")),
-        };
+        let (unsigned, rest) = split_unsigned(&words);
+        let text = rest.join(" ");
         if sized {
             return Err(self.error(at, format!("`{name}` takes no width or length in its type")));
         }

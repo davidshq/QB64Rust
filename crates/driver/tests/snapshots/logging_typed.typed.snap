@@ -1,0 +1,23 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+line 2: ConsoleOnly
+line 5: Log Trace
+  Str "trace" : Str
+line 6: Log Info
+  Concat : Str
+    Str "info " : Str
+    Call STR : Str
+      Call _LOGMINLEVEL : I32
+line 7: Log Warn
+  Str "warn" : Str
+line 8: Log Error
+  Str "error" : Str
+line 9: Print newline
+  Num
+    Call _LOGMINLEVEL : I32
+line 10: Assign X:I32
+  Call _LOGMINLEVEL : I32
+line 11: System

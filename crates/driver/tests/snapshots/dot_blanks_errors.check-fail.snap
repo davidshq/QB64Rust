@@ -1,0 +1,8 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+dot_blanks_errors.bas:9:7: error: not supported yet: `c . k`, the name of a `CONST` written with blanks around `.`
+dot_blanks_errors.bas:10:5: error: not supported yet: `f . g`, the name of a SUB or FUNCTION written with blanks around `.`
+dot_blanks_errors.bas:11:5: error: not supported yet: `f . g`, the name of a SUB or FUNCTION written with blanks around `.`
+dot_blanks_errors.bas:13:5: error: not supported yet: `f . g`, the name of a SUB or FUNCTION written with blanks around `.`

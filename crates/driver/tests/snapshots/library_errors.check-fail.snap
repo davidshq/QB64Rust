@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 library_errors.bas:8:1: error: `DECLARE DYNAMIC LIBRARY` needs the name of a DLL in quotes
@@ -19,6 +18,7 @@ library_errors.bas:25:15: note: QB64pe: Arrays cannot be passed to a library
 library_errors.bas:27:37: error: `STATIC` cannot stand after a declaration in `DECLARE LIBRARY`
 library_errors.bas:27:37: note: QB64pe: STATIC cannot be used in a library declaration
 library_errors.bas:29:24: error: the `TYPE LATER` of a library parameter must be defined above the block
+library_errors.bas:29:24: note: QB64pe: Illegal SUB/FUNCTION parameter
 library_errors.bas:31:23: error: a library parameter cannot be a `STRING * n`: `s`
 library_errors.bas:33:24: error: a library parameter cannot be a `STRING * n`: `s$4`
 library_errors.bas:34:30: error: `ALIAS "h@l"` is no name a library can hold

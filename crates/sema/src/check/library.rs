@@ -82,10 +82,10 @@ impl<'a> Checker<'a> {
     /// second error.
     pub(super) fn declare_library(&mut self, block: Block<'a>, skips: &Skips, declared: &mut Vec<Declared<'a>>) {
         let b = block.node;
-        self.defaults = self.defaults_at_node(b.node());
+        self.at.defaults = self.defaults_at_node(b.node());
         let usable = b.header().is_some_and(|h| skips.usable(h.node())) && !skips.past_cap(b.node());
         let lib = if usable {
-            self.stmt_error = false;
+            self.stmt.stmt_error = false;
             let lib = self.library(b);
             self.flush_names();
             lib.ok()
@@ -98,7 +98,7 @@ impl<'a> Checker<'a> {
             }
             let id = match lib {
                 Some(lib) if skips.usable(header.node()) => {
-                    self.stmt_error = false;
+                    self.stmt.stmt_error = false;
                     let id = self.declare_external(header, lib);
                     self.flush_names();
                     id
@@ -218,11 +218,10 @@ impl<'a> Checker<'a> {
                 c_name,
                 byval: Vec::new(),
             }),
-            checked: true,
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);
-        self.names.push((SymbolKind::Proc(id), name_tok.span));
+        self.stmt.names.push((SymbolKind::Proc(id), name_tok.span));
         Ok(id)
     }
 
@@ -254,7 +253,7 @@ impl<'a> Checker<'a> {
     /// `STRING` with `BYVAL`, a user type defined below the block. A `_BIT` parameter is accepted here; its use is
     /// the error (`x25`).
     pub(super) fn external_params(&mut self, d: Declared<'a>) -> R<()> {
-        self.defaults = self.defaults_at_node(d.block);
+        self.at.defaults = self.defaults_at_node(d.block);
         let mut byval = Vec::new();
         for param in d.header.params() {
             let span = param.node().span();

@@ -1,0 +1,268 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+static void qbr_diverged(int32 qbr_n){
+static int32 qbr_on=-1;
+static uint8 qbr_seen[100];
+static const char *qbr_path=NULL;
+if (qbr_on<0){qbr_path=getenv("QB64RUST_DIVERGENCES");qbr_on=qbr_path&&*qbr_path;}
+if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;
+qbr_seen[qbr_n]=1;
+FILE *qbr_f=fopen(qbr_path,"ab");
+if (qbr_f){fprintf(qbr_f,"D-%03d\n",(int)qbr_n);fclose(qbr_f);}
+}
+static void qbr_diverged_on(int32 qbr_n){
+if (new_error>=300&&new_error<=315) return;
+const char *qbr_np=getenv("QB64PE_NOPROMPT");
+if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);
+}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}return qb_l%qb_r;}
+float *__SINGLE_B=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+void SUB_S(int16*_SUB_S_INTEGER_N);
+void SUB_S0();
+==> clear.txt <==
+*__SINGLE_B=0;
+==> onstrig.txt <==
+case 1:
+strig_event_occurred++;
+strig_event_id=1;
+strig_event_occurred++;
+return_point[next_return_point++]=0;
+if (next_return_point>=return_points) more_return_points();
+QBMAIN(NULL);
+break;
+case 2:
+strig_event_occurred++;
+strig_event_id=2;
+strig_event_occurred++;
+return_point[next_return_point++]=0;
+if (next_return_point>=return_points) more_return_points();
+QBMAIN(NULL);
+break;
+case 3:
+SUB_S((int16*)&i64);
+break;
+case 4:
+SUB_S0();
+break;
+==> maindata.txt <==
+if(__SINGLE_B==NULL){
+__SINGLE_B=(float*)mem_static_malloc(4);
+*__SINGLE_B=0;
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> onstrigj.txt <==
+if(strig_event_id==1)goto LABEL_H;
+if(strig_event_id==2)goto LABEL_H;
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+#include "main2.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "strig_cpp.bas"
+do{
+#line 2 "strig_cpp.bas"
+sub__dest(func__console());
+#line 2 "strig_cpp.bas"
+sub__source(func__console());
+#line 2 "strig_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 9 "strig_cpp.bas"
+do{
+#line 9 "strig_cpp.bas"
+*__SINGLE_B=((float)(4.4E+0));
+#line 9 "strig_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 10 "strig_cpp.bas"
+do{
+#line 10 "strig_cpp.bas"
+onstrig_setup(0,0,0,1,0);
+#line 10 "strig_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 11 "strig_cpp.bas"
+do{
+#line 11 "strig_cpp.bas"
+onstrig_setup(((int32)(qbr(*__SINGLE_B))),2,1,2,0);
+#line 11 "strig_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 12 "strig_cpp.bas"
+do{
+#line 12 "strig_cpp.bas"
+onstrig_setup(8,0,0,3,3ll);
+#line 12 "strig_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 13 "strig_cpp.bas"
+do{
+#line 13 "strig_cpp.bas"
+onstrig_setup(12,1,1,4,0);
+#line 13 "strig_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 14 "strig_cpp.bas"
+do{
+#line 14 "strig_cpp.bas"
+sub_strig(0,NULL,1,1);
+#line 14 "strig_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "strig_cpp.bas"
+do{
+#line 15 "strig_cpp.bas"
+if (sub_gl_called) error(271);
+#line 15 "strig_cpp.bas"
+close_program=1;
+#line 15 "strig_cpp.bas"
+end();
+#line 15 "strig_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "strig_cpp.bas"
+LABEL_H:;
+#line 16 "strig_cpp.bas"
+if(qbevent){evnt(16);r=0;}
+#line 17 "strig_cpp.bas"
+do{
+#line 17 "strig_cpp.bas"
+#include "ret0.txt"
+#line 17 "strig_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+sub_end();
+return;
+}
+==> ret0.txt <==
+if (next_return_point){
+next_return_point--;
+switch(return_point[next_return_point]){
+case 0:
+return;
+break;
+}
+}
+error(3);
+==> main1.txt <==
+#line 18 "strig_cpp.bas"
+void SUB_S(int16*_SUB_S_INTEGER_N){
+#line 18 "strig_cpp.bas"
+qbs *tqbs;
+#line 18 "strig_cpp.bas"
+ptrszint tmp_long;
+#line 18 "strig_cpp.bas"
+int32 tmp_fileno;
+#line 18 "strig_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 18 "strig_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 18 "strig_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 18 "strig_cpp.bas"
+#include "data1.txt"
+#line 18 "strig_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 18 "strig_cpp.bas"
+new_mem_lock();
+#line 18 "strig_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 18 "strig_cpp.bas"
+sf_mem_lock->type=3;
+#line 18 "strig_cpp.bas"
+libqb_check_stack();
+#line 18 "strig_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 19 "strig_cpp.bas"
+do{
+#line 19 "strig_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 19 "strig_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((int16)(*_SUB_S_INTEGER_N)),qbs_new_txt(" ")));
+#line 19 "strig_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 19 "strig_cpp.bas"
+makefit(tqbs);
+#line 19 "strig_cpp.bas"
+qbs_print(tqbs,0);
+#line 19 "strig_cpp.bas"
+qbs_print(nothingstring,1);
+#line 19 "strig_cpp.bas"
+skip1:
+#line 19 "strig_cpp.bas"
+qbs_free(tqbs);
+#line 19 "strig_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 19 "strig_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "strig_cpp.bas"
+exit_subfunc:;
+#line 20 "strig_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 20 "strig_cpp.bas"
+#include "free1.txt"
+#line 20 "strig_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 20 "strig_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 20 "strig_cpp.bas"
+}
+==> main2.txt <==
+#line 21 "strig_cpp.bas"
+void SUB_S0(){
+#line 21 "strig_cpp.bas"
+qbs *tqbs;
+#line 21 "strig_cpp.bas"
+ptrszint tmp_long;
+#line 21 "strig_cpp.bas"
+int32 tmp_fileno;
+#line 21 "strig_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 21 "strig_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 21 "strig_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 21 "strig_cpp.bas"
+#include "data2.txt"
+#line 21 "strig_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 21 "strig_cpp.bas"
+new_mem_lock();
+#line 21 "strig_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 21 "strig_cpp.bas"
+sf_mem_lock->type=3;
+#line 21 "strig_cpp.bas"
+libqb_check_stack();
+#line 21 "strig_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 22 "strig_cpp.bas"
+exit_subfunc:;
+#line 22 "strig_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 22 "strig_cpp.bas"
+#include "free2.txt"
+#line 22 "strig_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 22 "strig_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 22 "strig_cpp.bas"
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt mainfree.txt data1.txt free1.txt data2.txt free2.txt

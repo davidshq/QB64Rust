@@ -121,22 +121,7 @@ fn place_ty_checked(p: &Program, place: &Place) -> Option<Ty> {
 fn member_checked<'p>(p: &'p Program, base: &Place, member: MemberId) -> Option<&'p Member> {
     match place_ty_checked(p, base)? {
         Ty::User(t) => p.types.get(t.0 as usize)?.members.get(member.0 as usize),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::Bit { .. }
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str
-        | Ty::FixedStr(_) => None,
+        crate::numeric_types!() | Ty::Str | Ty::FixedStr(_) => None,
     }
 }
 
@@ -246,7 +231,13 @@ impl Validator<'_> {
                 self.value(bytes, owner, at);
                 self.mem_value(value, owner, at);
             }
-            Op::End(None) | Op::System(None) | Op::Exit | Op::SetHandler(None) | Op::Return(None) => {}
+            Op::End(None)
+            | Op::System(None)
+            | Op::Stop
+            | Op::Exit
+            | Op::SetHandler(None)
+            | Op::LastHandler
+            | Op::Return(None) => {}
             Op::End(Some(code)) | Op::System(Some(code)) => {
                 if code.ty == Ty::Str {
                     self.problem(format!("{at}: an exit code of type {:?}", code.ty));
@@ -254,7 +245,7 @@ impl Validator<'_> {
                 self.value(code, owner, at);
             }
             Op::Resume(Resume::Retry | Resume::Next) => {}
-            Op::SetHandler(Some(l)) => self.main_label(*l, at, "handler"),
+            Op::SetHandler(Some(l)) | Op::NewHandler(l) => self.main_label(*l, at, "handler"),
             Op::Resume(Resume::To(l)) => self.main_label(*l, at, "resume"),
             Op::Return(Some(l)) => self.main_label(*l, at, "return"),
             Op::Jump(l) => self.own_label(*l, b, at, "jump"),
@@ -287,7 +278,8 @@ impl Validator<'_> {
                         | ExprKind::StrCompare { .. }
                         | ExprKind::Choice { .. }
                         | ExprKind::CallProc { .. }
-                        | ExprKind::AddressOf(_) => false,
+                        | ExprKind::AddressOf(_)
+                        | ExprKind::ArrayBytes(_) => false,
                     };
                     let to = place_ty_checked(self.p, place);
                     if !built_in || to.is_some_and(|t| t != value.ty) {
@@ -312,6 +304,12 @@ impl Validator<'_> {
                 }
             }
             Op::Raise(v) => self.value(v, owner, at),
+            Op::Log { msg, .. } => {
+                if msg.ty != Ty::Str {
+                    self.problem(format!("{at}: a log message of type {:?}", msg.ty));
+                }
+                self.value(msg, owner, at);
+            }
             // An allocation names an array of either kind (of a static one it raises an error when it runs), with
             // one pair of `I64` bounds per dimension, or a dynamic member array, with any number of them.
             Op::Allocate { array, bounds, .. } => {
@@ -591,6 +589,12 @@ impl Validator<'_> {
                 self.typed_value(seconds, Ty::F64, "timer interval", owner, at);
             }
             Event::Key { key } => self.typed_value(key, Ty::F64, "key number", owner, at),
+            Event::Strig { button, controller } => {
+                self.typed_value(button, Ty::I32, "button number", owner, at);
+                if let Some(c) = controller {
+                    self.typed_value(c, Ty::I32, "controller number", owner, at);
+                }
+            }
         }
         match handler {
             EventHandler::Label(l) => self.main_label(*l, at, "event handler"),
@@ -665,6 +669,11 @@ impl Validator<'_> {
         match form.rule {
             // `File`: the template's slots, the third the bytes of a place or of a whole array, or nothing.
             StmtRule::Plain | StmtRule::Graphics | StmtRule::File => {}
+            // `sema` makes a log statement no call.
+            StmtRule::Log(_) => {
+                self.problem(format!("{at}: {name} is written as an `Op::Log`, not as a call"));
+                return;
+            }
             // Any number of file numbers.
             StmtRule::Close => {
                 for (k, arg) in args.iter().enumerate() {
@@ -725,6 +734,31 @@ impl Validator<'_> {
                     }
                 }
                 if v.ty != Ty::Str {
+                    self.problem(format!("{at}: {name} stores a value of type {:?}", v.ty));
+                }
+                self.value(v, owner, at);
+                return;
+            }
+            // A string place, a LONG position or nothing, a LONG value.
+            StmtRule::AscAssign => {
+                let [StmtArg::Place(target), position, StmtArg::Value(v)] = args else {
+                    self.problem(format!("{at}: {name} without a place, a position slot and a value"));
+                    return;
+                };
+                self.place(target, owner, at);
+                if place_ty_checked(self.p, target).is_some_and(|t| !t.is_string()) {
+                    self.problem(format!("{at}: the target of {name} is no string"));
+                }
+                match position {
+                    StmtArg::Value(p) if p.ty == Ty::I32 => self.value(p, owner, at),
+                    StmtArg::Absent => {}
+                    StmtArg::Value(_)
+                    | StmtArg::Place(_)
+                    | StmtArg::Block { .. }
+                    | StmtArg::Bytes(_)
+                    | StmtArg::Word(_) => self.problem(format!("{at}: slot 2 of {name} is no LONG value")),
+                }
+                if v.ty != Ty::I32 {
                     self.problem(format!("{at}: {name} stores a value of type {:?}", v.ty));
                 }
                 self.value(v, owner, at);
@@ -1089,6 +1123,18 @@ impl Validator<'_> {
                     }
                 }
             }
+            // `LEN` of a whole array: a LONG, of an array whose elements have a size (no `STRING`, no `_BIT`).
+            ExprKind::ArrayBytes(array) => {
+                self.array_ref(&ArrayRef::Var(*array), owner, at, "LEN");
+                let a = self.p.var(*array);
+                // Elements of a size fixed when compiling, as `sema` holds them (`LEN`, `m4-names-arrays`).
+                let unsized_ty = matches!(a.ty, Ty::Str | Ty::Bit { .. })
+                    || crate::holds_strings(&self.p.types, a.ty)
+                    || crate::owns_desc(&self.p.types, a.ty);
+                if v.ty != Ty::I32 || unsized_ty {
+                    self.problem(format!("{at}: the bytes of {} ({:?}) typed {:?}", a.name, a.ty, v.ty));
+                }
+            }
             // An array's bytes have no value: they stand only in a function's `Slot::Block` ([`Validator::bytes`]).
             ExprKind::Block { array, .. } => {
                 let name = &self.p.var(*array).name;
@@ -1273,6 +1319,7 @@ mod tests {
             ops,
             may_raise: false,
             own: false,
+            checked: true,
         }
     }
 
@@ -1283,6 +1330,7 @@ mod tests {
             include_line: None,
             file: None,
             at,
+            checked: true,
         }
     }
 
@@ -1332,7 +1380,6 @@ mod tests {
                 line: 3,
                 end_line: 5,
                 external: None,
-                checked: true,
             }],
             main: Body {
                 labels: vec![label(0)],
@@ -1550,7 +1597,6 @@ mod tests {
                 c_name: "f".into(),
                 byval: vec![true],
             }),
-            checked: true,
         });
         let call = |a: Arg| Op::Call {
             proc: ProcId(1),
@@ -2284,6 +2330,53 @@ mod tests {
                 format!("{at}: argument 2 of _UCharPos takes an array's bytes, not a value"),
                 format!("{at}: the bytes of D as a value"),
                 format!("{at}: the bytes of D as a value"),
+            ]
+        );
+    }
+
+    /// `LEN` of a whole array: only of elements of a size fixed when compiling, a LONG.
+    #[test]
+    fn array_bytes() {
+        let mut p = user_types();
+        p.types[0].members.push(crate::Member {
+            name: "S".into(),
+            ty: Ty::Str,
+            bounds: Vec::new(),
+            dynamic: false,
+        });
+        p.types[1].members.push(crate::Member {
+            name: "V".into(),
+            ty: Ty::I32,
+            bounds: vec![(0, 3)],
+            dynamic: true,
+        });
+        let array = |name: &str, ty| Var {
+            ty,
+            shape: Shape::Static { bounds: vec![(0, 5)] },
+            ..var(name, Storage::Global)
+        };
+        p.vars.extend([
+            array("N", Ty::I32),
+            array("A", Ty::Str),
+            array("U", Ty::User(crate::TypeId(0))),
+            array("W", Ty::User(crate::TypeId(1))),
+        ]);
+        let bytes = |ty, v: u32| Op::Raise(expr(ty, ExprKind::ArrayBytes(VarId(v))));
+        p.main.stmts[0].ops.extend([
+            bytes(Ty::I32, 4),
+            bytes(Ty::I64, 4),
+            bytes(Ty::I32, 5),
+            bytes(Ty::I32, 6),
+            bytes(Ty::I32, 7),
+        ]);
+        let at = "main: statement 0 (line 1)";
+        assert_eq!(
+            problems(&p),
+            [
+                format!("{at}: the bytes of N (I32) typed I64"),
+                format!("{at}: the bytes of A (Str) typed I32"),
+                format!("{at}: the bytes of U (User(TypeId(0))) typed I32"),
+                format!("{at}: the bytes of W (User(TypeId(1))) typed I32"),
             ]
         );
     }

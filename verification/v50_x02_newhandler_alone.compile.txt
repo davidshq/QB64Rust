@@ -1,0 +1,5 @@
+
+Expected: ON ERROR GOTO [_NEWHANDLER] label
+Caused by (or after):ON ERROR GOTO _NEWHANDLER
+LINE 3:ON ERROR GOTO _NEWHANDLER
+exit=1

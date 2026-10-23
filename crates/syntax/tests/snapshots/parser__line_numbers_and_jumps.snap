@@ -127,3 +127,4 @@ t.bas:13:8: error: a line number must stand first on its line
 t.bas:13:8: note: QB64pe: Syntax error
 t.bas:14:5: error: expected a label or line number
 t.bas:16:5: error: a SUB or FUNCTION cannot be defined inside another; expected `END SUB` before it
+t.bas:16:5: note: QB64pe: Expected END SUB/FUNCTION before SUB

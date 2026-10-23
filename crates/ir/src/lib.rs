@@ -92,8 +92,10 @@ pub use validate::validate;
 use qb64rust_base::{FileId, Span};
 
 /// The [`Ty`] variants nothing produces yet, and those no value of reaches the IR yet, as patterns, and the reasons
-/// their arms give.
-pub use qb64rust_sema::{BIT_VALUE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, place_only_types};
+/// their arms give; the numeric variants as patterns, with `_BIT` and without it.
+pub use qb64rust_sema::{
+    BIT_VALUE_UNREACHABLE, PLACE_ONLY_UNREACHABLE, numeric_types, numeric_value_types, place_only_types,
+};
 /// Types, operators and conversion kinds are `sema`'s (`study\archive\20` §3.4): integers by width, floats by width
 /// (`F80` is extended precision), strings, user types. They name no C type, so the IR stays ABI-neutral.
 pub use qb64rust_sema::{BinOp, ConvKind as Conv, Member, MemberId, Ty, TypeId, UnOp, UserType};
@@ -120,6 +122,9 @@ pub use qb64rust_sema::{Event, KeyForm};
 /// The `DECLARE LIBRARY` blocks and the C function behind a library procedure are `sema`'s (design D1 of
 /// `m3-declare-library`): the names as written. Finding the files they name is the driver's.
 pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName};
+/// Whether a procedure is a SUB or a FUNCTION of a type, and the optional parts of the runtime a program needs, are
+/// `sema`'s as well: the lowering only copied them variant for variant (as it did the values, above).
+pub use qb64rust_sema::{LogLevel, ProcKind, RuntimePart};
 /// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
 pub use qb64rust_sema::{PrintTo, UsingValue};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
@@ -146,6 +151,8 @@ pub struct Label {
     /// The file of a BASIC label (`None` for one the lowering made).
     pub file: Option<FileId>,
     pub at: usize,
+    /// A BASIC label above which no `$CHECKING:OFF` is in force has the event check ([`Stmt::checked`]).
+    pub checked: bool,
 }
 
 /// Where a resume continues.
@@ -202,34 +209,21 @@ pub struct Var {
     pub conventional: bool,
 }
 
+/// The variable's [`Shape`], asked through the variable.
 impl Var {
     pub fn is_array(&self) -> bool {
-        !matches!(self.shape, Shape::Scalar)
+        self.shape.is_array()
     }
 
-    /// The number of dimensions of an array, where it is known; `None` for a scalar too.
+    /// See [`Shape::dim_count`]: `None` for a scalar too.
     pub fn dim_count(&self) -> Option<usize> {
-        match &self.shape {
-            Shape::Scalar => None,
-            Shape::Static { bounds } => Some(bounds.len()),
-            Shape::Dynamic { dims, .. } => *dims,
-        }
+        self.shape.dim_count()
     }
 
-    /// The bounds of a static array; empty for anything else.
+    /// See [`Shape::bounds`]: empty for anything but a static array.
     pub fn bounds(&self) -> &[(i64, i64)] {
-        match &self.shape {
-            Shape::Static { bounds } => bounds,
-            Shape::Scalar | Shape::Dynamic { .. } => &[],
-        }
+        self.shape.bounds()
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ProcKind {
-    Sub,
-    /// A FUNCTION returning a value of this type.
-    Function(Ty),
 }
 
 /// A SUB or FUNCTION.
@@ -251,9 +245,6 @@ pub struct Proc {
     /// sake: nothing stores into them. A `BYVAL` parameter takes an [`Arg::Value`] or an [`Arg::Null`], another
     /// one an [`Arg::Ref`] or an [`Arg::Temp`]; only a library procedure takes those two.
     pub external: Option<External>,
-    /// Its statements are written with the event check between them; false below `$CHECKING:OFF` (design D8 of
-    /// `m3-network-embed`), where each statement is written alone and a label has no event check.
-    pub checked: bool,
 }
 
 /// What the error rule and the emitter ask of a value, a place or an argument of the shared tree.
@@ -274,7 +265,7 @@ impl Facts for Expr {
             ExprKind::Bound { .. } => true,
             // The index check of the element; a segment is the array's and reads no element.
             ExprKind::VarPtr { .. } => true,
-            ExprKind::VarSeg { .. } => false,
+            ExprKind::VarSeg { .. } | ExprKind::ArrayBytes(_) => false,
             // An element given is checked against the bounds.
             ExprKind::Block { index, .. } => !index.is_empty(),
             ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.may_raise(),
@@ -302,7 +293,7 @@ impl Facts for Expr {
                 ExprKind::VarPtr { index, .. } | ExprKind::Block { index, .. } => {
                     index.iter().any(|i| i.uses_strings(p))
                 }
-                ExprKind::VarSeg { .. } => false,
+                ExprKind::VarSeg { .. } | ExprKind::ArrayBytes(_) => false,
                 ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.uses_strings(p),
                 ExprKind::Binary { lhs, rhs, .. }
                 | ExprKind::Concat(lhs, rhs)
@@ -640,6 +631,8 @@ pub enum Op {
     End(Option<Expr>),
     /// End the program at once (`SYSTEM`); the code as for [`Op::End`].
     System(Option<Expr>),
+    /// End the program at once (`STOP`): as [`Op::System`] without a code, but without its test for `SUB _GL`.
+    Stop,
     /// A SUB call; one argument per parameter. Always may raise.
     Call { proc: ProcId, args: Vec<Arg> },
     /// A built-in statement that is one call of the runtime (design D2 of `m2-builtin-statements`): the built-in by
@@ -652,8 +645,18 @@ pub enum Op {
     /// Make the statements from a label the program's error handler, or (`None`) remove it. One handler for the
     /// whole program, also when set inside a procedure.
     SetHandler(Option<LabelId>),
+    /// Keep the active handler (none too) at the front of the program's list of kept handlers, then make the
+    /// statements from a label of the main module the handler (`ON ERROR GOTO _NEWHANDLER label`). `SetHandler(None)`
+    /// empties the list.
+    NewHandler(LabelId),
+    /// Make the handler kept last the handler again and drop it from the list; with none kept, no handler
+    /// (`ON ERROR GOTO _LASTHANDLER`).
+    LastHandler,
     /// Raise the runtime error with this number (an `I32`).
     Raise(Expr),
+    /// An entry of the runtime's log at `level` with the message `msg` (a `Str`), naming the statement's file,
+    /// procedure and line (`_LOGINFO msg$` and the others; design D2 of `m4-handlers-logging-checking`).
+    Log { level: LogLevel, msg: Expr },
     /// End the running handler and continue as stated; outside a handler it raises error 20.
     Resume(Resume),
     /// Continue at a label of this body; not taken while an error is pending.
@@ -702,8 +705,11 @@ impl Op {
             Op::SelectConsole
             | Op::End(None)
             | Op::System(None)
+            | Op::Stop
             | Op::Exit
             | Op::SetHandler(_)
+            | Op::NewHandler(_)
+            | Op::LastHandler
             | Op::Jump(_)
             | Op::Gosub(_)
             | Op::Restore { .. }
@@ -728,6 +734,7 @@ impl Op {
             Op::CopyWhole { from, to } => from.may_raise() || to.may_raise(),
             Op::AssignAll(stores) => stores.iter().any(|(_, v)| v.may_raise()),
             Op::Branch { cond, .. } => cond.may_raise(),
+            Op::Log { msg, .. } => msg.may_raise(),
             Op::End(Some(code)) | Op::System(Some(code)) => code.may_raise(),
             // A file may not be open, a console input may meet the end of the input, the data may be used up; a
             // format may have no field for a value; a printer may not be there.
@@ -782,6 +789,10 @@ pub struct Stmt {
     /// Made by the lowering for a block, standing for no source statement of its own: the jump at the end of a
     /// `THEN` part and the end of a `CASE`. A coverage build gives it no counter (design D1 of `cws-whole-game`).
     pub own: bool,
+    /// No `$CHECKING:OFF` is in force (a statement the lowering made for a block: at the block's header). Below OFF
+    /// the statement is written without its event check and its index checks (design D3, D4 of
+    /// `m4-handlers-logging-checking`).
+    pub checked: bool,
 }
 
 /// A sequence of statements: the main module's, or a procedure's.
@@ -832,29 +843,6 @@ pub struct Settings {
     pub exe_icon: bool,
     /// The executable carries a version resource and a manifest (`$VERSIONINFO`).
     pub version_info: Option<VersionInfo>,
-}
-
-/// An optional part of the runtime.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum RuntimePart {
-    /// Setting the window's icon from an image.
-    Icon,
-    /// libqb's audio.
-    Audio,
-    /// The printer.
-    Printer,
-    /// The image decoders and encoders.
-    ImageCodec,
-    /// FreeType, for fonts loaded from a file.
-    Font,
-    /// Images of the desktop and the clipboard.
-    ScreenImage,
-    /// Checksums, compression and base64.
-    DataProcessing,
-    /// TCP/IP and HTTP.
-    Sockets,
-    /// The files built into the executable.
-    Embed,
 }
 
 impl Program {

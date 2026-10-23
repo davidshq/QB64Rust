@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_LOGINFO
+LINE 3:_LOGINFO
+exit=1

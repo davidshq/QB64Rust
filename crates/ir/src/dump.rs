@@ -36,6 +36,7 @@ fn settings(s: &Settings) -> String {
                 RuntimePart::DataProcessing => "data processing",
                 RuntimePart::Sockets => "sockets",
                 RuntimePart::Embed => "embedded files",
+                RuntimePart::DeviceInput => "deviceinput",
             })
             .collect();
         parts.push(format!("runtime parts: {}", names.join(", ")));
@@ -144,7 +145,7 @@ pub fn dump(p: &Program) -> String {
             )
             .unwrap(),
         }
-        writeln!(out, "{}", if proc.checked { "" } else { " unchecked" }).unwrap();
+        writeln!(out).unwrap();
         if let Some(e) = &proc.external {
             let byval: Vec<&str> = e.byval.iter().map(|&b| if b { "byval" } else { "ref" }).collect();
             writeln!(
@@ -209,17 +210,25 @@ fn body(p: &Program, b: &Body, out: &mut String) {
     let labels = |at: usize, out: &mut String| {
         for (i, l) in b.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
             let name = label(b, LabelId(to_u32(i)));
-            writeln!(out, "Label {name} line {}{}", l.line, in_main(l.include_line)).unwrap();
+            let unchecked = if l.checked { "" } else { " unchecked" };
+            writeln!(
+                out,
+                "Label {name} line {}{}{unchecked}",
+                l.line,
+                in_main(l.include_line)
+            )
+            .unwrap();
         }
     };
     for (i, s) in b.stmts.iter().enumerate() {
         labels(i, out);
         writeln!(
             out,
-            "Stmt line {}{}{}",
+            "Stmt line {}{}{}{}",
             s.line,
             in_main(s.include_line),
-            if s.may_raise { " may_raise" } else { "" }
+            if s.may_raise { " may_raise" } else { "" },
+            if s.checked { "" } else { " unchecked" }
         )
         .unwrap();
         for op in &s.ops {
@@ -259,10 +268,14 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::System(None) => writeln!(out, "  System").unwrap(),
                 Op::End(Some(code)) => writeln!(out, "  End {}", val(p, code)).unwrap(),
                 Op::System(Some(code)) => writeln!(out, "  System {}", val(p, code)).unwrap(),
+                Op::Stop => writeln!(out, "  Stop").unwrap(),
                 Op::Exit => writeln!(out, "  Exit").unwrap(),
                 Op::SetHandler(Some(l)) => writeln!(out, "  SetHandler {}", label(&p.main, *l)).unwrap(),
                 Op::SetHandler(None) => writeln!(out, "  SetHandler none").unwrap(),
+                Op::NewHandler(l) => writeln!(out, "  NewHandler {}", label(&p.main, *l)).unwrap(),
+                Op::LastHandler => writeln!(out, "  LastHandler").unwrap(),
                 Op::Raise(v) => writeln!(out, "  Raise {}", val(p, v)).unwrap(),
+                Op::Log { level, msg } => writeln!(out, "  Log {level:?} {}", val(p, msg)).unwrap(),
                 Op::Resume(Resume::Retry) => writeln!(out, "  Resume Retry").unwrap(),
                 Op::Resume(Resume::Next) => writeln!(out, "  Resume Next").unwrap(),
                 Op::Resume(Resume::To(l)) => writeln!(out, "  Resume To {}", label(&p.main, *l)).unwrap(),
@@ -429,6 +442,14 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                             seconds,
                         } => format!("Timer {} every {}", val(p, n), val(p, seconds)),
                         Event::Key { key } => format!("Key {}", val(p, key)),
+                        Event::Strig {
+                            button,
+                            controller: None,
+                        } => format!("Strig {}", val(p, button)),
+                        Event::Strig {
+                            button,
+                            controller: Some(c),
+                        } => format!("Strig {} of controller {}", val(p, button), val(p, c)),
                     };
                     let handler = match handler {
                         EventHandler::Label(l) => format!("Gosub {}", label(&p.main, *l)),
@@ -495,20 +516,7 @@ fn ty(p: &Program, t: Ty) -> String {
         Ty::User(id) => format!("T:{}", p.user_type(id).name),
         Ty::Bit { width, signed: true } => format!("Bit{width}"),
         Ty::Bit { width, signed: false } => format!("UBit{width}"),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str => format!("{t:?}"),
+        crate::numeric_value_types!() | Ty::Str => format!("{t:?}"),
         Ty::FixedStr(n) => format!("Str*{n}"),
     }
 }
@@ -600,6 +608,7 @@ fn val(p: &Program, v: &Expr) -> String {
             format!("VarPtr {}({}):{}", var(p, *array), i.join(", "), ty(p, v.ty))
         }
         ExprKind::VarSeg { array } => format!("VarSeg {}:{}", var(p, *array), ty(p, v.ty)),
+        ExprKind::ArrayBytes(array) => format!("ArrayBytes {}:{}", var(p, *array), ty(p, v.ty)),
         ExprKind::MemOf { of, element, .. } => {
             let word = if *element { "MemElement" } else { "Mem" };
             format!("{word} {}:{}", reference_text(p, of), ty(p, v.ty))

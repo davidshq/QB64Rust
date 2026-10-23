@@ -1,0 +1,5 @@
+
+Incorrect number of arguments
+Caused by (or after):CLEAR ( 1 )
+LINE 3:CLEAR (1)
+exit=1

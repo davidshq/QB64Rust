@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):ON STRIG ( "a",1 ) GOSUB H
+LINE 3:ON STRIG("a") GOSUB h
+exit=1

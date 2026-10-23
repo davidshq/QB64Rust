@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 mem_errors.bas:11:1: error: a member of a `_MEM` block cannot be stored to
@@ -74,10 +73,15 @@ mem_errors.bas:54:10: note: QB64pe: Expected _MEM(_OFFSET-value,...)
 mem_errors.bas:55:10: error: the first argument of `_MEM(offset, size)` must be an `_OFFSET` value
 mem_errors.bas:55:10: note: QB64pe: Expected _MEM(_OFFSET-value,...)
 mem_errors.bas:56:10: error: `_MEM` needs a variable, an element or an array
+mem_errors.bas:56:10: note: QB64pe: Expected variable name/array element
 mem_errors.bas:57:10: error: `_MEM` needs a variable, an element or an array
+mem_errors.bas:57:10: note: QB64pe: Expected variable name/array element
 mem_errors.bas:58:17: error: `_MEMELEMENT` needs a variable, an element or an array
+mem_errors.bas:58:17: note: QB64pe: Expected variable name/array element
 mem_errors.bas:59:10: error: `_MEM` cannot take a `_BIT` variable or element
+mem_errors.bas:59:10: note: QB64pe: Variable/element cannot be _BIT aligned
 mem_errors.bas:60:10: error: `_MEM` cannot take a `_BIT` variable or element
+mem_errors.bas:60:10: note: QB64pe: Variable/element cannot be _BIT aligned
 mem_errors.bas:61:10: error: `_MEM` cannot take a variable-length string
 mem_errors.bas:61:10: note: QB64pe: _MEM cannot reference variable-length strings
 mem_errors.bas:62:10: error: `_MEM` cannot take a variable-length string
@@ -92,13 +96,17 @@ mem_errors.bas:67:5: error: `_MEM` gives a `_MEM` block, which can only be store
 mem_errors.bas:67:5: note: QB64pe: TYPE '_MEM' required for sub
 mem_errors.bas:68:5: error: `_MEM` needs its argument
 mem_errors.bas:69:15: error: `_OFFSET` needs a variable, an element or an array
+mem_errors.bas:69:15: note: QB64pe: _OFFSET expects the name of a variable/array
 mem_errors.bas:70:15: error: `_OFFSET` needs a variable, an element or an array
+mem_errors.bas:70:15: note: QB64pe: _OFFSET expects the name of a variable/array
 mem_errors.bas:71:15: error: `_OFFSET` cannot take a `_BIT` array
 mem_errors.bas:71:15: note: QB64pe: _OFFSET cannot reference _BIT type arrays
 mem_errors.bas:72:15: error: `_OFFSET` cannot take a `_BIT` variable
+mem_errors.bas:72:15: note: QB64pe: Variable/element cannot be _BIT aligned
 mem_errors.bas:73:7: error: `_OFFSET` with empty parentheses
 mem_errors.bas:73:7: note: QB64pe: Expected (...)
 mem_errors.bas:75:22: error: `_MEMPUT` needs a variable, a string or a value with `AS type`
+mem_errors.bas:75:22: note: QB64pe: Expected variable name/array element
 mem_errors.bas:76:22: error: cannot store a string in a number variable
 mem_errors.bas:76:22: note: QB64pe: Illegal string-number conversion
 mem_errors.bas:77:24: error: `_MEMPUT` needs a numeric type after `AS`
@@ -118,14 +126,18 @@ mem_errors.bas:83:1: note: QB64pe: Expected _MEMPUT mem-reference, offset, varia
 mem_errors.bas:84:12: error: the offset of `_MEMPUT` must be a number
 mem_errors.bas:84:12: note: QB64pe: Illegal string-number conversion
 mem_errors.bas:85:22: error: `_MEMPUT` cannot take a `_BIT` variable or element
+mem_errors.bas:85:22: note: QB64pe: Variable/element cannot be _BIT aligned
 mem_errors.bas:86:22: error: `_MEMPUT` cannot take an array of variable-length strings
 mem_errors.bas:86:22: note: QB64pe: Cannot pass array of variable-length strings
 mem_errors.bas:87:1: error: `_MEMGET` takes a block, an offset and a variable
 mem_errors.bas:88:22: error: `_MEMGET` needs a variable, an element or an array
+mem_errors.bas:88:22: note: QB64pe: Expected variable name/array element
 mem_errors.bas:89:22: error: `_MEMGET` needs a variable, an element or an array
+mem_errors.bas:89:22: note: QB64pe: Expected variable name/array element
 mem_errors.bas:90:1: error: `_MEMGET` takes a block, an offset and a variable
 mem_errors.bas:91:9: error: `_MEMGET` needs a `_MEM` variable, element or member here
 mem_errors.bas:92:22: error: `_MEMGET` cannot take a `_BIT` variable or element
+mem_errors.bas:92:22: note: QB64pe: Variable/element cannot be _BIT aligned
 mem_errors.bas:93:6: error: `_MEMGET` cannot be written after `CALL`
 mem_errors.bas:93:6: note: QB64pe: Command not implemented
 mem_errors.bas:94:28: error: `_MEMGET` needs `STRING * n`, a length
@@ -159,6 +171,7 @@ mem_errors.bas:108:28: note: QB64pe: _MEMFILL requires numeric type
 mem_errors.bas:109:1: error: `_MEMFILL` takes a block, an offset, a count of bytes, and a value
 mem_errors.bas:109:1: note: QB64pe: Expected _MEMFILL mem-reference, offset, bytes, variable|value[AS type]
 mem_errors.bas:110:26: error: `_MEMFILL` needs a variable, a string or a value with `AS type`
+mem_errors.bas:110:26: note: QB64pe: Expected variable name/array element
 mem_errors.bas:111:26: error: cannot store a string in a number variable
 mem_errors.bas:111:26: note: QB64pe: Illegal string-number conversion
 mem_errors.bas:112:10: error: `_MEMFILL` needs a `_MEM` variable, element or member here

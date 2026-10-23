@@ -13,6 +13,7 @@ numeric_decl_errors.bas:13:9: note: QB64pe: DIM: Expected ,
 numeric_decl_errors.bas:14:1: error: a `_BIT` suffix takes 1 to 64 bits
 numeric_decl_errors.bas:15:1: error: a `_BIT` suffix takes 1 to 64 bits
 numeric_decl_errors.bas:17:11: error: `LEN` of a `_BIT` variable
+numeric_decl_errors.bas:17:11: note: QB64pe: Variable/element cannot be _BIT aligned
 numeric_decl_errors.bas:18:5: error: the `_BIT` variable `i`` cannot be a `FOR` variable
 numeric_decl_errors.bas:19:16: error: `VAL` cannot give a `_BIT`
 numeric_decl_errors.bas:20:7: error: an `_OFFSET` suffix cannot follow a number
@@ -30,6 +31,8 @@ numeric_decl_errors.bas:32:7: error: name already in use: `fz``
 numeric_decl_errors.bas:32:7: note: QB64pe: Name already in use (fz)
 numeric_decl_errors.bas:41:15: error: a parameter cannot be a `_BIT`: `p`
 numeric_decl_errors.bas:44:16: error: a parameter cannot be `_UNSIGNED STRING`
+numeric_decl_errors.bas:44:16: note: QB64pe: Illegal SUB/FUNCTION parameter
 numeric_decl_errors.bas:47:15: error: a parameter cannot be `_UNSIGNED STRING`
+numeric_decl_errors.bas:47:15: note: QB64pe: Illegal SUB/FUNCTION parameter
 numeric_decl_errors.bas:50:11: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
 numeric_decl_errors.bas:53:26: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)

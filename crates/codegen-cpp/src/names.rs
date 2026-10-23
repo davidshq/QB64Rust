@@ -68,6 +68,17 @@ pub fn proc_name(proc: &Proc) -> String {
     format!("{prefix}_{}", c_ident(&proc.name))
 }
 
+/// The old compiler's C name of a procedure (`subfunc$`), which a log statement names: `SUB_<NAME>` or
+/// `FUNC_<NAME>` with a `.` spelled `__ASCII_CHR_046__` (`fix046$`, `qb64pe.bas` 476), where [`proc_name`] writes
+/// `__046__` (design D2 of `m4-handlers-logging-checking`).
+pub(crate) fn old_proc_name(proc: &Proc) -> String {
+    let prefix = match proc.kind {
+        ProcKind::Sub => "SUB",
+        ProcKind::Function(_) => "FUNC",
+    };
+    format!("{prefix}_{}", proc.name.replace('.', "__ASCII_CHR_046__"))
+}
+
 /// The C++ label of a body's label: `LABEL_<NAME>` for a user label, `L_<n>` (its index) for one the lowering made.
 fn label_name(b: &Body, l: LabelId) -> String {
     match &b.labels[l.0 as usize].name {
@@ -97,6 +108,22 @@ pub(crate) fn c_string(bytes: &[u8]) -> String {
             s.push(b as char);
         } else {
             write!(s, "\\{b:03o}").unwrap();
+        }
+    }
+    s.push('"');
+    s
+}
+
+/// A C string literal as the old compiler's `escapeString$` writes one (`utilities\elements.bas` 593): a backslash
+/// doubled, a `"`, a control byte or one above 126 as three octal digits, anything else as it is. For the file and
+/// procedure names of a log statement, which the call-site check compares as written.
+pub(crate) fn escape_string(bytes: &[u8]) -> String {
+    let mut s = String::from("\"");
+    for &b in bytes {
+        match b {
+            b'\\' => s.push_str("\\\\"),
+            b'"' | 0..0x20 | 0x7f.. => write!(s, "\\{b:03o}").unwrap(),
+            _ => s.push(b as char),
         }
     }
     s.push('"');
@@ -221,6 +248,13 @@ mod tests {
         assert_eq!(c_string(b"a\"\\?\x00\xC9"), "\"a\\042\\134\\077\\000\\311\"");
     }
 
+    /// The old compiler's `escapeString$`: a backslash doubled, `?` as it is, the rest of `c_string`'s escapes octal.
+    #[test]
+    fn log_strings_escape_as_the_old_compiler() {
+        assert_eq!(escape_string(b"<work>\\a b\\p?.bas"), r#""<work>\\a b\\p?.bas""#);
+        assert_eq!(escape_string(b"\"\x01\x7f\xC9~"), "\"\\042\\001\\177\\311~\"");
+    }
+
     /// clang rejects numeric escapes in a `#line` file name; an absolute Windows path must still work.
     #[test]
     fn line_names_use_simple_escapes_only() {
@@ -259,7 +293,6 @@ mod tests {
                 line: 1,
                 end_line: 1,
                 external: None,
-                checked: true,
             });
         }
         assert_eq!(var_name(&p, &var("A", Ty::I32, Storage::Global)), "__LONG_A");

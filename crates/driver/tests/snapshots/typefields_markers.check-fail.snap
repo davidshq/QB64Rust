@@ -3,7 +3,9 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 typefields_markers.bas:8:15: error: `_DYNAMIC` and `_STATIC` members need `$UNSTABLE:TYPEFIELDS` above the `TYPE` block
+typefields_markers.bas:8:15: note: QB64pe: _Static/_Dynamic require $Unstable:TypeFields
 typefields_markers.bas:11:5: error: `_DYNAMIC` and `_STATIC` members need `$UNSTABLE:TYPEFIELDS` above the `TYPE` block
+typefields_markers.bas:11:5: note: QB64pe: _Static/_Dynamic require $Unstable:TypeFields
 typefields_markers.bas:15:8: error: a member's `_DYNAMIC` or `_STATIC` cannot stand between `AS` and its type
 typefields_markers.bas:15:8: note: QB64pe: Expected element-name AS type, AS type element-list, or END TYPE
 typefields_markers.bas:18:19: error: a member takes one of `_DYNAMIC` and `_STATIC`

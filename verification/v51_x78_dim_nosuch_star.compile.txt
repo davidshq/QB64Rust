@@ -1,0 +1,5 @@
+
+Unknown type
+Caused by (or after):DIM V AS NOSUCH * 2
+LINE 3:DIM v AS nosuch * 2
+exit=1

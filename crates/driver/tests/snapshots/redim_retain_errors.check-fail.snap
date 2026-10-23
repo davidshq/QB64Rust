@@ -16,3 +16,4 @@ redim_retain_errors.bas:14:17: error: `_PRESERVE` stands twice in a `REDIM`
 redim_retain_errors.bas:14:17: note: QB64pe: Invalid variable name
 redim_retain_errors.bas:15:14: error: `SHARED` stands twice in a `REDIM`
 redim_retain_errors.bas:19:5: error: `REDIM SHARED` cannot stand inside a SUB or FUNCTION
+redim_retain_errors.bas:19:5: note: QB64pe: DIM/REDIM SHARED invalid within a SUB/FUNCTION

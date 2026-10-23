@@ -1,0 +1,5 @@
+
+Cannot pass array of variable-length strings
+Caused by (or after):PRINT LEN ( S ( ) )
+LINE 4:PRINT LEN(s())
+exit=1

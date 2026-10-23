@@ -10,7 +10,7 @@ use qb64rust_builtins::passing::plan;
 use qb64rust_ir::builtins::{
     Rule, Slot, StmtRule, StmtSlot, cpp_arithmetic, find, int_entry, radix_width, slots, stmt_find, stmt_slots,
 };
-use qb64rust_ir::{Expr, ExprKind, Facts, Place, StmtArg, Ty, VarId};
+use qb64rust_ir::{Expr, ExprKind, Facts, Place, StmtArg, Ty, VarId, numeric_value_types};
 
 impl Emitter<'_> {
     /// A built-in call. A built-in no rule covers (`ERR`, `ERL` are `Fixed`; every call `sema` makes has a rule) is
@@ -135,7 +135,7 @@ impl Emitter<'_> {
                 format!("{f}<{}>({value},{count})", cpp_arithmetic(ty))
             }
             Rule::Choice => unreachable!("`_IIF` is an `ExprKind::Choice`"),
-            Rule::Own => unreachable!("`{}` is an expression of its own", s.name),
+            Rule::Own | Rule::Cast => unreachable!("`{}` is an expression of its own", s.name),
             // `l2string(x)`, `string2l(s)`; a `_BIT` with its width (`bit2string(1,x)`, `string2bit(s,1)`). The type
             // is the rule's, or for `_MK$` and `_CV` the one their first slot holds (`qb64pe.bas` 21217–21296).
             Rule::Mk(fixed) | Rule::Cv(fixed) => {
@@ -188,6 +188,7 @@ impl Emitter<'_> {
         let form = stmt_find(id).unwrap_or_else(|| unreachable!("{} is no compiled statement", id.get().name));
         match form.rule {
             StmtRule::Plain | StmtRule::Graphics => out.push(self.plain_stmt(id, args)),
+            StmtRule::Log(_) => unreachable!("a log statement is an `Op::Log` (`validate`)"),
             StmtRule::File => out.push(self.file_get_put(id, args)),
             // One call per number, in order; every file when there is none.
             StmtRule::Close => {
@@ -257,6 +258,35 @@ impl Emitter<'_> {
                 };
                 let v = self.value(v);
                 out.push(format!("sub_mid({target},{start},{length},{v},{passed});"));
+            }
+            // Inline, as the old compiler writes it (`qb64pe.bas` 8410–8436): the place, the position and the
+            // value in that order, each skipped once an error is pending; error 5 for an empty string or a
+            // position outside it.
+            StmtRule::AscAssign => {
+                let [StmtArg::Place(target), position, StmtArg::Value(v)] = args else {
+                    unreachable!("the slots of the `ASC` statement (`validate`)");
+                };
+                out.push(format!("tqbs={}; if (!is_error_pending()){{", self.place_ref(target)));
+                match position {
+                    StmtArg::Value(p) => {
+                        out.push(format!("tmp_fileno={}; if (!is_error_pending()){{", self.value(p)));
+                        out.push(format!("tmp_long={}; if (!is_error_pending()){{", self.value(v)));
+                        out.push(
+                            "if ((tmp_fileno>0)&&(tmp_fileno<=tqbs->len)){tqbs->chr[tmp_fileno-1]=tmp_long;}else{error(5);}"
+                                .into(),
+                        );
+                        out.push("}}}".into());
+                    }
+                    StmtArg::Absent
+                    | StmtArg::Place(_)
+                    | StmtArg::Block { .. }
+                    | StmtArg::Bytes(_)
+                    | StmtArg::Word(_) => {
+                        out.push(format!("tmp_long={}; if (!is_error_pending()){{", self.value(v)));
+                        out.push("if (tqbs->len){tqbs->chr[0]=tmp_long;}else{error(5);}".into());
+                        out.push("}}".into());
+                    }
+                }
             }
         }
         if args.iter().any(|a| a.uses_strings(self.p)) {
@@ -344,19 +374,7 @@ impl Emitter<'_> {
                 "byte_element((uint64)(((char*){n}[0])+((({flat})*{size}+0))),\
                  ({size}*({n}[2]&1)*{counts})-((({flat})*{size}+0)),{t})"
             ),
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80 => format!(
+            numeric_value_types!() => format!(
                 "byte_element((uint64)(&({})),(({size}*({n}[2]&1)*{counts})-({size}*({flat}))),{t})",
                 self.element_at(array, &flat)
             ),

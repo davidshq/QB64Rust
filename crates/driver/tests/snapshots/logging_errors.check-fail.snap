@@ -1,0 +1,15 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+logging_errors.bas:6:10: error: `_LOGINFO` needs a string
+logging_errors.bas:6:10: note: QB64pe: Illegal string-number conversion
+logging_errors.bas:7:1: error: `_LOGINFO` takes 1 argument
+logging_errors.bas:8:1: error: `_LOGINFO` takes 1 argument
+logging_errors.bas:9:7: error: `_LOGMINLEVEL` with empty parentheses
+logging_errors.bas:9:7: note: QB64pe: Expected (...)
+logging_errors.bas:10:1: error: names starting with `_` are reserved: `_LOGMINLEVEL`
+logging_errors.bas:10:1: note: QB64pe: Expected variable =, look for conflict with a CONST name
+logging_errors.bas:11:5: error: `_LOGINFO(...)`: `_LOGINFO` is a built-in statement
+logging_errors.bas:11:5: note: QB64pe: Invalid array name

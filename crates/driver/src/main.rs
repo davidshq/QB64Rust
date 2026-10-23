@@ -8,7 +8,7 @@
 //!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 
-use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit_ir_with, frontend_at, lower, report};
+use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit_ir_with, frontend_at, log_folder, lower, report};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -262,7 +262,7 @@ fn run() -> Result<ExitCode, String> {
         &name,
         bytes,
         |file| Box::new(FileLoader::new(&include_root, file, &input)),
-        Some(&input),
+        Some((&input, &include_root)),
     );
     // The files of the program's `DECLARE LIBRARY` blocks, looked for from the clone as the old compiler's folder,
     // for a build, `-z` and the `cpp` dump; the other dumps need none, nor does a block with no name.
@@ -327,7 +327,10 @@ fn run() -> Result<ExitCode, String> {
 
     let ir = lower(&fe);
     settings.flags = build::make_flags(&ir.settings);
-    let fragments = emit_ir_with(&fe, &ir, &resolved, o.coverage);
+    // A log statement names a relative source file from the working folder, as the old compiler does from its
+    // start folder (design D2 of `m4-handlers-logging-checking`).
+    let log_folder = std::env::current_dir().ok().map(|d| log_folder(&d));
+    let fragments = emit_ir_with(&fe, &ir, &resolved, o.coverage, log_folder.as_deref());
     let build_dir = build::build_dir(&exe);
     if o.cpp_only {
         let temp = build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
@@ -341,7 +344,7 @@ fn run() -> Result<ExitCode, String> {
         libqb: build::find_libqb(o.libqb_root.as_deref())?,
     };
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
-    let icon = qb64rust_driver::exe_icon_path(&fe, &input);
+    let icon = qb64rust_driver::exe_icon_path(&fe, &input, &include_root);
     let exe_name = exe
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
@@ -352,7 +355,10 @@ fn run() -> Result<ExitCode, String> {
         ir.settings.version_info.as_ref(),
         &exe_name,
     )?;
-    build::write_embedded(&build_dir, &qb64rust_driver::used_embedded_files(&fe, &input)?)?;
+    build::write_embedded(
+        &build_dir,
+        &qb64rust_driver::used_embedded_files(&fe, &input, &include_root)?,
+    )?;
     if let Err(e) = build::build(&roots, &build_dir, &exe, o.quiet, &settings) {
         // A failure that names only library functions is the program's (design D4 of `cpp-failure-errors`): its
         // errors as the front end's, with the summary; the build folder goes as after a build that worked.

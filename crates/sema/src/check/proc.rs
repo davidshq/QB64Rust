@@ -1,6 +1,6 @@
 //! Procedures: headers and parameters (pass 1), calls and their arguments, `EXIT SUB`/`FUNCTION`.
 
-use super::decl::name_end;
+use super::decl::{AsPlace, name_end};
 use super::{Checker, DimFact, Failed, R, Scope};
 use crate::builtins::{StmtRule, stmt_lookup};
 use crate::literal;
@@ -51,16 +51,24 @@ impl Checker<'_> {
         if self.procs_by_name.contains_key(&name) {
             return Err(self.in_use(name_tok));
         }
-        let id = ProcId(to_u32(self.prog.procs.len()));
+        let id = self.new_proc(name.clone(), kind);
         if header.static_word().is_some() {
             self.static_procs.insert(id);
         }
         if auto {
             self.auto_procs.insert(id);
             if !keyword {
-                self.hidden_procs.push((name.clone(), id));
+                self.hidden_procs.push((name, id));
             }
         }
+        self.stmt.names.push((SymbolKind::Proc(id), name_tok.span));
+        Ok(id)
+    }
+
+    /// Enters a procedure of this name and kind, with no parameters or statements yet, and its scope of
+    /// parameters.
+    fn new_proc(&mut self, name: String, kind: ProcKind) -> ProcId {
+        let id = ProcId(to_u32(self.prog.procs.len()));
         self.prog.procs.push(Proc {
             name: name.clone(),
             kind,
@@ -70,12 +78,10 @@ impl Checker<'_> {
             line: 0,
             end_line: 0,
             external: None,
-            checked: true,
         });
         self.param_scopes.push(Scope::default());
         self.procs_by_name.insert(name, id);
-        self.names.push((SymbolKind::Proc(id), name_tok.span));
-        Ok(id)
+        id
     }
 
     /// Enters the name of a procedure whose header has an error (already reported) as a broken procedure: calls
@@ -96,20 +102,7 @@ impl Checker<'_> {
         } else {
             ProcKind::Sub
         };
-        let id = ProcId(to_u32(self.prog.procs.len()));
-        self.prog.procs.push(Proc {
-            name: name.clone(),
-            kind,
-            params: Vec::new(),
-            result: None,
-            stmts: Vec::new(),
-            line: 0,
-            end_line: 0,
-            external: None,
-            checked: true,
-        });
-        self.param_scopes.push(Scope::default());
-        self.procs_by_name.insert(name, id);
+        let id = self.new_proc(name, kind);
         self.broken.insert(id);
     }
 
@@ -117,8 +110,27 @@ impl Checker<'_> {
     /// parameters are unknown.
     fn not_broken(&mut self, p: ProcId) -> R<()> {
         if self.broken.contains(&p) {
-            self.stmt_error = true;
+            self.stmt.stmt_error = true;
             return Err(Failed);
+        }
+        Ok(())
+    }
+
+    /// Whether a parameter's type may stand in a header with `above` `TYPE` blocks above it (`None` for a header of
+    /// a `DECLARE LIBRARY` block, which `check\library.rs` holds to its own rule). Design D5 of
+    /// `m4-builtins-param-types`; measured: "Illegal SUB/FUNCTION parameter" for a `TYPE` defined below the header,
+    /// at the top level, in the procedure's own body or in a procedure below, for a scalar and an array parameter,
+    /// called or not (`verification\v48_x12`, `x25`, `v49_x60`–`x65`); a `DECLARE` line changes nothing (`x64`).
+    fn type_above(&mut self, above: Option<usize>, ty: Ty, span: Span) -> R<()> {
+        let (Some(above), Ty::User(t)) = (above, ty) else {
+            return Ok(());
+        };
+        if self.type_order.get(&t).is_some_and(|&k| k >= above) {
+            let msg = format!(
+                "the `TYPE {}` of a parameter must be defined above its SUB or FUNCTION",
+                self.prog.type_name(ty)
+            );
+            return Err(self.error(span, msg));
         }
         Ok(())
     }
@@ -126,10 +138,11 @@ impl Checker<'_> {
     /// Creates the parameter variables and the FUNCTION's result variable.
     pub(super) fn declare_params(&mut self, header: ast::ProcHeader, id: ProcId) -> R<()> {
         let mut scope = Scope::default();
+        let above = self.types_above.get(&header.node().key()).copied();
         for param in header.params() {
             let name_tok = self.need(param.name(), param.node().span())?;
             if param.array_parens().is_some() {
-                self.declare_array_param(param, name_tok, id, &mut scope)?;
+                self.declare_array_param(param, name_tok, id, above, &mut scope)?;
                 continue;
             }
             if let Some((name, n)) = self.fixed_suffix(name_tok)? {
@@ -147,7 +160,7 @@ impl Checker<'_> {
                 self.fixed_params.insert(key, v);
                 self.param_len.insert(v, n);
                 self.prog.procs[id.0 as usize].params.push(v);
-                self.names.push((SymbolKind::Var(v), name_tok.span));
+                self.stmt.names.push((SymbolKind::Var(v), name_tok.span));
                 continue;
             }
             let (name, suffix) = self.split_name(name_tok)?;
@@ -183,9 +196,10 @@ impl Checker<'_> {
                         fixed = Some(self.fixed_param_len(size)?);
                         Ty::Str
                     }
-                    _ => self.type_of(a)?,
+                    _ => self.type_of_at(a, AsPlace::Param)?,
                 },
             };
+            self.type_above(above, ty, param.node().span())?;
             // A parameter of a user type is the place passed ([`Self::type_arg`]). A library procedure's `_BIT`
             // parameter is the error of its use (`library.rs`).
             if let Ty::Bit { .. } = ty
@@ -219,7 +233,7 @@ impl Checker<'_> {
                 self.param_len.insert(v, n);
             }
             self.prog.procs[id.0 as usize].params.push(v);
-            self.names.push((SymbolKind::Var(v), name_tok.span));
+            self.stmt.names.push((SymbolKind::Var(v), name_tok.span));
         }
         if let ProcKind::Function(ty) = self.prog.proc(id).kind {
             let name = self.prog.proc(id).name.clone();
@@ -236,7 +250,14 @@ impl Checker<'_> {
     /// a scalar parameter cannot be. It is an array of the procedure's scope whose number of dimensions is found
     /// after the bodies ([`Checker::solve_dims`]). A scalar parameter of the same name is another variable; a
     /// second array parameter of the name and type is "Name already in use".
-    fn declare_array_param(&mut self, param: ast::Param, name_tok: Tok, id: ProcId, scope: &mut Scope) -> R<()> {
+    fn declare_array_param(
+        &mut self,
+        param: ast::Param,
+        name_tok: Tok,
+        id: ProcId,
+        above: Option<usize>,
+        scope: &mut Scope,
+    ) -> R<()> {
         let shown = show_bytes(self.text(name_tok.span));
         if self.fixed_suffix(name_tok)?.is_some() {
             // As `DIM a$3(2)`: not measured.
@@ -258,9 +279,10 @@ impl Checker<'_> {
             }
             (None, Some(a)) => match (self.fixed_string_size(a), a.size()) {
                 (true, Some(size)) => Ty::FixedStr(self.fixed_param_len(size)?),
-                _ => self.type_of(a)?,
+                _ => self.type_of_at(a, AsPlace::Param)?,
             },
         };
+        self.type_above(above, ty, param.node().span())?;
         self.reserved(name_tok, &name, suffix)?;
         if self.procs_by_name.contains_key(&name) || scope.arrays.contains_key(&(name.clone(), ty)) {
             return Err(self.in_use(name_tok));
@@ -286,7 +308,7 @@ impl Checker<'_> {
             scope.array_plain.insert(name, ty);
         }
         self.prog.procs[id.0 as usize].params.push(v);
-        self.names.push((SymbolKind::Var(v), name_tok.span));
+        self.stmt.names.push((SymbolKind::Var(v), name_tok.span));
         Ok(())
     }
 
@@ -302,13 +324,13 @@ impl Checker<'_> {
 
     /// Whether an `AS` clause is `STRING * n`.
     pub(super) fn fixed_string_size(&self, a: ast::AsClause) -> bool {
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
+        let words = self.as_words(a);
         a.size().is_some() && words == ["STRING"]
     }
 
     /// Whether an `AS` clause is `_UNSIGNED STRING`, with a length or not.
     fn unsigned_string(&self, a: ast::AsClause) -> bool {
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
+        let words = self.as_words(a);
         words == ["_UNSIGNED", "STRING"]
     }
 
@@ -328,7 +350,7 @@ impl Checker<'_> {
         let p = self.cur?;
         let (name, n) = fixed_name(self.text(t.span))?;
         let v = *self.fixed_params.get(&(p, name, n?))?;
-        self.names.push((SymbolKind::Var(v), t.span));
+        self.stmt.names.push((SymbolKind::Var(v), t.span));
         Some(v)
     }
 
@@ -361,7 +383,8 @@ impl Checker<'_> {
             Some(_) => Vec::new(),
         };
         let plain = match plain[..] {
-            [form] if form.rule == StmtRule::Plain => {
+            // A log statement's entry is the plain one of its row, with no template (`_LOGINFO msg$`).
+            [form] if matches!(form.rule, StmtRule::Plain | StmtRule::Log(_)) => {
                 let b = form.id.get();
                 (b.specialformat.is_none() || matches!(b.template()[..], [Item::Arg])).then_some(form)
             }
@@ -373,12 +396,17 @@ impl Checker<'_> {
             Some((p, ProcKind::Sub)) if suffix.is_none() => {
                 if let Some(bad) = stmt.unparsed_args() {
                     let span = bad.span();
+                    if self.text(span).first() == Some(&b'.') {
+                        // `a . b 3`, a call of the SUB `a.b` written with blanks around its dot (`v47_x18`).
+                        let msg = format!("a call of the SUB `{shown}.…` written with blanks around `.`");
+                        return Err(self.unsupported(span, msg));
+                    }
                     let msg = format!("cannot read the arguments of `{shown}`; expected expressions separated by `,`");
                     return Err(self.error(span, msg));
                 }
                 let nodes = self.present_args(stmt.arg_list())?;
                 let args = self.args(p, name_tok, &nodes, node.span())?;
-                self.names.push((SymbolKind::Proc(p), name_tok.span));
+                self.stmt.names.push((SymbolKind::Proc(p), name_tok.span));
                 self.push(node, StmtKind::Call { proc: p, args });
                 Ok(())
             }
@@ -402,6 +430,11 @@ impl Checker<'_> {
                 && !find_any(name.as_bytes()).any(|b| b.kind == Kind::Sub) =>
             {
                 Err(self.error(name_tok.span, format!("`{shown}` is a function, not a statement")))
+            }
+            // The `ASC` statement without its `= code` (measured: "Expected =", `verification\v52_x07`); its stub
+            // entry keeps it out of the arm above.
+            None if name == "ASC" && suffix.is_none() => {
+                Err(self.error(node.span(), "the `ASC` statement needs `= code` after its arguments"))
             }
             _ if is_keyword(name.as_bytes()) || find_any(name.as_bytes()).next().is_some() => {
                 Err(self.unsupported(name_tok.span, format!("`{shown}`")))
@@ -634,7 +667,7 @@ impl Checker<'_> {
                 return Err(self.error(span, msg));
             }
             let count = self.prog.array_dims(&array).expect("a member array has its bounds");
-            self.dim_facts.push(DimFact::Count {
+            self.dims.dim_facts.push(DimFact::Count {
                 array: param,
                 shown: self.prog.var(param).name.to_ascii_lowercase(),
                 count,
@@ -688,7 +721,7 @@ impl Checker<'_> {
             },
             None => {
                 if !matches!(self.prog.var(array).storage, Storage::Param(_)) {
-                    self.dims_open.insert(array);
+                    self.dims.dims_open.insert(array);
                 }
                 DimFact::Same {
                     arg: array,
@@ -699,8 +732,8 @@ impl Checker<'_> {
                 }
             }
         };
-        self.dim_facts.push(fact);
-        self.names.push((SymbolKind::Var(array), t.span));
+        self.dims.dim_facts.push(fact);
+        self.stmt.names.push((SymbolKind::Var(array), t.span));
         Ok(Arg::Array(ArrayRef::Var(array)))
     }
 
@@ -735,7 +768,7 @@ impl Checker<'_> {
         }
         let nodes = self.present_args(args)?;
         let args = self.args(p, t, &nodes, span)?;
-        self.names.push((SymbolKind::Proc(p), t.span));
+        self.stmt.names.push((SymbolKind::Proc(p), t.span));
         Ok(Expr {
             span,
             ty: ty.held_value(),

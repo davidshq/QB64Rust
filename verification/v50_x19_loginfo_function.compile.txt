@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):X = _LOGINFO ( "a",1 )
+LINE 3:x = _LOGINFO("a")
+exit=1

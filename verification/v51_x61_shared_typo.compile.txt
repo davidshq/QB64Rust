@@ -1,0 +1,5 @@
+
+Cannot convert type (_BYTEF) to symbol
+Caused by (or after):SHARED B AS _BYTEF
+LINE 8:SHARED b AS _Bytef
+exit=1

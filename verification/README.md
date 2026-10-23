@@ -57,6 +57,82 @@ Small programs behind `study\09`, `study\10` and later measurements:
   queue their length and play out in it, as `v29_d` found for plain strings. That the volume holds for later
   statements (no game string holds a `V`, no `SOUND` gives a volume) and nothing is heard is read in libqb's
   `audio.cpp`: one amplitude per voice, set only by `V` and `SOUND`'s third argument
+- `v47*`: the four parts of `m4-devices-continue-paths`, measured as its task 1.1: `v47_a_continue` `_CONTINUE` in
+  every kind of loop (through `IF` and `SELECT`, the innermost loop, in a SUB and a FUNCTION, the tests of `LOOP
+  WHILE`/`UNTIL` still run), `v47_b_devices` the device functions, `STICK` and `STRIG` with no game controller (the
+  keyboard and the mouse are devices 1 and 2 with libqb's fixed counts; the error 5 cases; nothing that counts
+  controllers, `CLAUDE.md` working rule 12), `v47_c_dot_blanks` blanks around a dot after a plain name (a member
+  array's element and bounds, a by-reference argument, nested members, plain dotted names), `v47_e01`, `e02` a
+  relative `$EXEICON` and `$EMBED` name found under the compiler's folder (each names its file in a `.root`
+  sidecar, which the runner puts there for the compile, `tools\legacy_tests\README.md`; the files in
+  `v47_files\`), `v47_x01`–`x31` one accepted or rejected form each (`_CONTINUE` outside a loop, with an
+  argument, as a variable; `ON STRIG`'s operand and handler errors; an odd button number of `ON STRIG` or the
+  switch, error 5 at run time in libqb, `x13`, `x27`; the device functions' argument errors; `DIM a . b` and
+  `SUB a . b`, both accepted; `s$ . x`, rejected)
+- `v48*`: the four parts of `m4-names-arrays`, measured as its task 1.1: `v48_a_scalar_array` a scalar and an
+  array of one name, one typed by `AS` (the plain scalar is of the default type; between two arrays the one typed
+  by `AS` keeps the plain name; in a SUB, beside a shared one, `PUT` and `GET`), `v48_b_redim_scalar` `REDIM name
+  [AS type]` in a SUB, a FUNCTION and a `SUB … STATIC` (a second run keeps the value), `v48_c_type_anywhere`
+  `TYPE` blocks in a SUB, a FUNCTION, an `IF`, a `FOR` and a `SELECT CASE`, each a type of the whole program,
+  `v48_d_len_whole` `LEN` of a whole array and a whole member array (0 after `ERASE`), `v48_x01`–`x26` one
+  accepted or rejected form each (the `LEN` errors; `_MEM` of an array of a `TYPE` with a `STRING` member, no
+  error; a second `TYPE` block of a name; a parameter typed by a block below its SUB, rejected; `x16`–`x24` which
+  array a plain name names, after `qb64pe.bas` 9260: a list `STATIC c() AS type` makes no array until reached);
+  `x27`–`x30` from the change's review: a `TYPE` block in a SUB bounds its `_DYNAMIC` member array by the SUB's
+  own `CONST`, also where the main module has one of the name; `LEN` of a whole array with a dotted name; `LEN` of
+  a whole member array of variable-length strings, no error (32 for four elements)
+- `v49*`: the built-ins and the parameter types of `m4-builtins-param-types`, measured as its task 1.1:
+  `v49_a_cast` `_CAST` to every numeric type (a float truncated toward zero; the result seen as the type named),
+  `v49_b_files` `_FILES$` of a folder, a pattern and no match (a folder's name ends in a backslash; a bare call with
+  no listing is error 5), `v49_c_md5_os` `_MD5$` and `_OS$`, `v49_d_clipboard` `_CLIPBOARD$` (the text up to its
+  first NUL), `v49_e_clear` what `CLEAR` resets (every kind of variable, `STATIC`, `DATA`, files, dynamic arrays
+  released) and `v49_e2_clear_gosub` `RETURN` after it (error 3), `v49_f_param_type` a parameter typed by a
+  `TYPE` above (in a SUB, after a `DECLARE`, in an included file in `v49_inc\`), `v49_x01`–`x66` one accepted or
+  rejected form each (`x18`: a float constant out of range in `_CAST`, undefined in C++, a different value on each
+  build; `x30`–`x38` `CLEAR`'s forms, `CALL CLEAR` accepted; `x60`–`x66` where a parameter's `TYPE` may stand)
+- `v50*`: the handler chain, the log statements and `$CHECKING` of `m4-handlers-logging-checking`, measured as its
+  task 1.2: `v50_a_chain` `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER` (three deep and back, nothing kept, after
+  `ON ERROR GOTO 0`, a plain label between, in a SUB and a FUNCTION; error 11 is left out, a critical error no
+  handler catches), `v50_b_log` the four log statements and `_LOGMINLEVEL` (2 with the runner's log file), its
+  entries in `v50_b_log.log.txt` (the file as a full path, an included one as its includer's folder and the path
+  as written; the procedure's C name; a message cut at 199 bytes; include files in `v50_inc\`), `v50_c_checking`
+  an error raised below `$CHECKING:OFF` (nothing of libqb runs while it is pending; it is serviced at the next
+  checked statement, and `RESUME` runs that statement again), a SUB and an included file below OFF, an `ON
+  TIMER` that comes due there, `v50_d_mem` `_MEMGET`, `_MEMPUT` and `_MEMFILL` below OFF (`_FLOAT` left out: the
+  old compiler's build crashed on it with checking on too), `v50_e_index` array, member-array and dynamic
+  member-array elements below OFF, `v50_x01`–`x28` one accepted or rejected form each (`x12` `$CHECKING:OFF` in an
+  `IF` block accepted, `x13` a line number after `_NEWHANDLER`, `x16` `_LOGINFO ("a")` with its log; `x27`, `x28`
+  a label with a leading `_` after `_NEWHANDLER`: not defined, and "Invalid name" where it is defined, added on the
+  change's review)
+- `v51*`: the forms next to the upstream programs that `m4-upstream-rejections` turned into errors, measured as its
+  task 1.1, one accepted or rejected form each: `x01`–`x15` a member array's bound (a variable, an unknown name, a
+  `CONST` below the block or in a SUB, `LEN`, an element, a FUNCTION: rejected; a `CONST` above with a suffix,
+  `_PI`, `ABS(…)`: accepted), `x20`–`x27` a member's type (a later block's type, near words, `* n`: "Undefined
+  type"; an `AS type` list its own error), `x28`–`x39` `LBOUND` and `UBOUND` of an element, a value and an
+  expression (`LBOUND((a))` and `LBOUND(n)` of a scalar accepted), `x40`–`x54` operators and names in a `CONST`
+  (`x50`: `x = OR` outside one), `x60`–`x89` type names by place (`DIM`, `REDIM`, `STATIC`, `COMMON`, `SHARED`,
+  parameters, `DECLARE LIBRARY`, `_DEFINE`; `STRING` with a word glued to it; `* n` after other words;
+  `_UNSIGNED`), `x90` a `TYPE` named `StringList` (a name that starts with `STRING`) in `DIM`, `DIM SHARED`,
+  `REDIM`, `STATIC` and a parameter: accepted; numbers 16–19, 55–59 not used
+- `v52*`: what the ten `qb64pe/*` upstream programs of `m4-qb64pe-sources` need, measured as its tasks 1.1 and 1.2:
+  `v52_a_instrrev` `_INSTRREV` with and without a start (an empty string or search string, a start of 0, below 0,
+  beyond the length, of other types), `v52_b_math` `_ARCSEC`, `_ARCCSC`, `_ARCCOT`, `_SECH`, `_CSCH` of each type
+  and at the edges of their domains (outside one: error 5 and 0), `v52_c_files` `_READFILE$`, `_WRITEFILE` and
+  `_FULLPATH$` (errors 53 and 76; `_FULLPATH$(".")` is not `_CWD$ + "\"`), `v52_d_asc` the `ASC` statement
+  (positions, an empty string: error 5, values converted to LONG and cut to a byte, every kind of string place,
+  the place, position and value evaluated in that order); `x01`–`x09` the `ASC` statement's rejected forms,
+  `x10`–`x19` `STOP` (ends as `SYSTEM` without a prompt, in a window too; its expression checked as a number, not
+  evaluated), `x20`–`x37` `key$`, `exp$`, `base$` in each place (`FUNCTION exp$` and `CONST key$` rejected, `DIM
+  key$ AS STRING` its own error), `x39`–`x49` the `$` name of a `STRING * n` array or variable (the same array or
+  variable; `DIM a$(3)` beside the array "Type mismatch", `DIM s$` beside the variable the same variable),
+  `x50`–`x64` the new built-ins' rejected forms, `x65`, `x66` a dotted name in a procedure beside a main-module
+  `TYPE` variable it does not share (a variable of its own), `x67`, `x68` `CONST exp$` and `CONST key!` ("Name
+  already in use", as `x32`), `x69`–`x72` the other declarers of `s$` beside a `STRING * n` variable `s` (`REDIM
+  s$` and, in a SUB, `STATIC s$` the same variable; `SHARED s$` in a SUB a variable-length one of its own; `STATIC`
+  in the main module rejected), `x73`, `x74` `DIM` and `STATIC` mixed in a SUB (`s$` the fixed-length variable
+  either way); `v52_builtin_name_suffixes.py` and its `.txt`, the sibling of
+  `v15_builtin_names`: every keyword and built-in name with each other suffix, `variable`, `statement` or
+  `rejected`; numbers 38 not used
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

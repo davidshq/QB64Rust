@@ -1,0 +1,47 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+builtins_more_errors.bas:11:7: error: `_FILES$` takes 0 or 1 arguments
+builtins_more_errors.bas:12:15: error: `_FILES$` needs a string
+builtins_more_errors.bas:13:13: error: `_MD5$` needs a string
+builtins_more_errors.bas:14:7: error: `_MD5$` takes 1 argument
+builtins_more_errors.bas:15:7: error: `_CLIPBOARD$` takes 0 arguments
+builtins_more_errors.bas:16:15: error: `_CLIPBOARD$` needs a string
+builtins_more_errors.bas:17:1: error: names starting with `_` are reserved: `_OS$`
+builtins_more_errors.bas:18:7: error: `_OS$` takes 0 arguments
+builtins_more_errors.bas:19:18: error: this `_CLIPBOARD$` statement matches none of its forms: `_CLIPBOARD$ =?`
+builtins_more_errors.bas:19:18: note: QB64pe: Syntax error - Reference: _CLIPBOARD$ = text$
+builtins_more_errors.bas:20:11: error: `_CAST` takes a numeric type
+builtins_more_errors.bas:20:11: note: QB64pe: _CAST TYPE unsupported
+builtins_more_errors.bas:21:11: error: `_CAST` takes no width or length in its type
+builtins_more_errors.bas:21:11: note: QB64pe: Cannot convert type (STRING
+builtins_more_errors.bas:22:11: error: `_CAST` takes no `_BIT` type
+builtins_more_errors.bas:22:11: note: QB64pe: _CAST TYPE unsupported
+builtins_more_errors.bas:23:11: error: `_CAST` takes no `_BIT` type
+builtins_more_errors.bas:23:11: note: QB64pe: _CAST TYPE unsupported
+builtins_more_errors.bas:24:11: error: the first argument of `_CAST` is a numeric type name
+builtins_more_errors.bas:25:11: error: the first argument of `_CAST` is a numeric type name
+builtins_more_errors.bas:26:17: error: `_CAST` needs a number
+builtins_more_errors.bas:26:17: note: QB64pe: Expected numeric argument
+builtins_more_errors.bas:27:17: error: a whole `TYPE` value cannot be used here: `p`
+builtins_more_errors.bas:28:5: error: `_CAST` takes a type and 1 argument
+builtins_more_errors.bas:29:5: error: `_CAST` takes a type and 1 argument
+builtins_more_errors.bas:30:11: error: `_MEM` is no type `_CAST` takes
+builtins_more_errors.bas:30:11: note: QB64pe: Cannot convert type (_MEM) to symbol
+builtins_more_errors.bas:31:5: error: `_CAST` takes a type and 1 argument
+builtins_more_errors.bas:32:5: error: `_CAST` takes a type and 1 argument
+builtins_more_errors.bas:33:5: error: `_CAST` with empty parentheses
+builtins_more_errors.bas:34:11: error: `_CAST` cannot be used in a `CONST`
+builtins_more_errors.bas:34:11: note: QB64pe: Unexpected element 'LONG'
+builtins_more_errors.bas:35:1: error: `CLEAR` takes no parenthesis in its arguments
+builtins_more_errors.bas:35:1: note: QB64pe: Incorrect number of arguments
+builtins_more_errors.bas:36:1: error: `CLEAR` takes no parenthesis in its arguments
+builtins_more_errors.bas:36:1: note: QB64pe: Incorrect number of arguments
+builtins_more_errors.bas:37:14: error: this `CLEAR` statement matches none of its forms: `CLEAR [?][,[?][,?]]`
+builtins_more_errors.bas:37:14: note: QB64pe: Syntax error - Reference: CLEAR
+builtins_more_errors.bas:38:7: error: argument 1 of `CLEAR` needs a number
+builtins_more_errors.bas:41:5: error: `CLEAR` cannot be used in a SUB or FUNCTION
+builtins_more_errors.bas:41:5: note: QB64pe: CLEAR cannot be used inside a SUB/FUNCTION
+builtins_more_errors.bas:44:5: error: `CLEAR` cannot be used in a SUB or FUNCTION
+builtins_more_errors.bas:44:5: note: QB64pe: CLEAR cannot be used inside a SUB/FUNCTION

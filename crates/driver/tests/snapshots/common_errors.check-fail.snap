@@ -13,3 +13,4 @@ common_errors.bas:16:11: error: a name with a type suffix cannot have an `AS` cl
 common_errors.bas:16:11: note: QB64pe: DIM: Expected ,
 common_errors.bas:19:1: error: `a` has 1 dimension, not 2
 common_errors.bas:22:5: error: `COMMON` cannot stand inside a SUB or FUNCTION
+common_errors.bas:22:5: note: QB64pe: COMMON cannot be used within a SUB/FUNCTION

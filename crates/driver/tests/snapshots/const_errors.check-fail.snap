@@ -2,36 +2,39 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-const_errors.bas:10:7: error: name already in use: `early` (a `CONST` of this name follows on line 11)
-const_errors.bas:10:7: note: QB64pe: Name already in use (early)
-const_errors.bas:12:1: error: name already in use: `used%` (a `CONST` of this name follows on line 13)
-const_errors.bas:12:1: note: QB64pe: Name already in use (used)
-const_errors.bas:14:1: error: name already in use: `x` (a `CONST` of this name follows on line 15)
-const_errors.bas:14:1: note: QB64pe: Name already in use (x)
-const_errors.bas:17:7: error: name already in use: `twice`
-const_errors.bas:19:1: error: cannot assign to the constant `a`
-const_errors.bas:20:5: error: name already in use: `a`
-const_errors.bas:21:7: error: type mismatch
-const_errors.bas:23:17: error: `q` is a variable, not a constant
-const_errors.bas:23:17: note: QB64pe: Unexpected element 'Q'
-const_errors.bas:24:17: error: `LEN` cannot be used in a `CONST`
-const_errors.bas:24:17: note: QB64pe: Unexpected element 'LEN'
-const_errors.bas:25:19: error: cannot mix strings and numbers
-const_errors.bas:26:20: error: strings cannot be compared in a `CONST`
-const_errors.bas:27:7: error: type mismatch
+const_errors.bas:11:7: error: name already in use: `early` (a `CONST` of this name follows on line 12)
+const_errors.bas:11:7: note: QB64pe: Name already in use (early)
+const_errors.bas:13:1: error: name already in use: `used%` (a `CONST` of this name follows on line 14)
+const_errors.bas:13:1: note: QB64pe: Name already in use (used)
+const_errors.bas:15:1: error: name already in use: `x` (a `CONST` of this name follows on line 16)
+const_errors.bas:15:1: note: QB64pe: Name already in use (x)
+const_errors.bas:18:7: error: name already in use: `twice`
+const_errors.bas:20:1: error: cannot assign to the constant `a`
+const_errors.bas:21:5: error: name already in use: `a`
+const_errors.bas:22:7: error: type mismatch
+const_errors.bas:24:17: error: `q` is a variable, not a constant
+const_errors.bas:24:17: note: QB64pe: Unexpected element 'Q'
+const_errors.bas:25:17: error: `LEN` cannot be used in a `CONST`
+const_errors.bas:25:17: note: QB64pe: Unexpected element 'LEN'
+const_errors.bas:26:19: error: cannot mix strings and numbers
+const_errors.bas:27:20: error: strings cannot be compared in a `CONST`
 const_errors.bas:28:7: error: type mismatch
-const_errors.bas:29:17: error: division by zero
-const_errors.bas:30:16: error: division by zero
-const_errors.bas:31:17: error: `^(-8)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
-const_errors.bas:31:17: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
-const_errors.bas:32:14: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
-const_errors.bas:32:14: note: QB64pe: Unexpected element '+'
+const_errors.bas:29:7: error: type mismatch
+const_errors.bas:30:17: error: division by zero
+const_errors.bas:31:16: error: division by zero
+const_errors.bas:32:17: error: `^(-8)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")
+const_errors.bas:32:17: note: QB64pe: UNEXPECTED INTERNAL COMPILER ERROR!
 const_errors.bas:33:14: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
 const_errors.bas:33:14: note: QB64pe: Unexpected element '+'
-const_errors.bas:34:20: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
-const_errors.bas:34:20: note: QB64pe: Unexpected element '+'
-const_errors.bas:35:17: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
-const_errors.bas:35:17: note: QB64pe: Unexpected element '+'
-const_errors.bas:41:11: error: name already in use: `late` (a `CONST` of this name follows on line 44)
-const_errors.bas:41:11: note: QB64pe: Name already in use (late)
-const_errors.bas:47:9: error: name already in use: `insub`
+const_errors.bas:34:14: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
+const_errors.bas:34:14: note: QB64pe: Unexpected element '+'
+const_errors.bas:35:20: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
+const_errors.bas:35:20: note: QB64pe: Unexpected element '+'
+const_errors.bas:36:17: error: the signs before a value in a `CONST` amount to `+`, which cannot start a value
+const_errors.bas:36:17: note: QB64pe: Unexpected element '+'
+const_errors.bas:37:7: error: name already in use: `key$`
+const_errors.bas:38:7: error: name already in use: `exp$`
+const_errors.bas:39:7: error: name already in use: `key!`
+const_errors.bas:45:11: error: name already in use: `late` (a `CONST` of this name follows on line 48)
+const_errors.bas:45:11: note: QB64pe: Name already in use (late)
+const_errors.bas:51:9: error: name already in use: `insub`

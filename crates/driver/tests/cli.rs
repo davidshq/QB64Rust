@@ -277,7 +277,7 @@ fn unknown_statement() {
 #[test]
 fn summary() {
     let d = scratch("summary");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nSTOP\nPRINT 1 +\nFILES\n").unwrap();
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nRUN\nPRINT 1 +\nFILES\n").unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     let out = stdout(&o);
@@ -453,21 +453,10 @@ fn wide_bit_scalars_do_not_overlap() {
 #[ignore = "needs the QB64pe reference clone"]
 fn extra_linker_flags_link_the_screen_state_file() {
     let d = scratch("extra-link");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT \"hi\"\nSYSTEM\n").unwrap();
-    let exe = d.join("p.exe");
-    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
-    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
-    let state = d.join("state.txt");
-    let run = run(
-        unattended(&exe).current_dir(&d).env("QB64_SCREEN_STATE", &state),
-        None,
-        PROGRAM_LIMIT,
-        "program",
-    );
+    let exe = build_with_screen_state(&d, "$CONSOLE:ONLY\nPRINT \"hi\"\nSYSTEM\n");
+    let run = run_screen_state(&d, &exe, None, None);
     assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
-    let text = std::fs::read(&state).unwrap();
+    let text = std::fs::read(d.join("state.txt")).unwrap();
     assert!(
         text.starts_with(b"screen-state 1\npages 8 display 0 write image read image\n"),
         "{}",
@@ -484,31 +473,15 @@ fn extra_linker_flags_link_the_screen_state_file() {
 #[ignore = "needs the QB64pe reference clone"]
 fn screen_state_prompt_that_never_comes() {
     let d = scratch("prompt");
-    std::fs::write(
-        d.join("p.bas"),
+    let exe = build_with_screen_state(
+        &d,
         "SCREEN 13\nLINE (0, 0)-(9, 9), 4, BF\nDO: k$ = INKEY$: LOOP WHILE k$ = \"\"\nSYSTEM\n",
-    )
-    .unwrap();
-    std::fs::write(d.join("p.keys"), "# nothing is announced\nprompt\ntext x\n").unwrap();
-    let exe = d.join("p.exe");
-    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
-    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
-    let state = d.join("state.txt");
-    let run = run(
-        unattended(&exe)
-            .current_dir(&d)
-            .env("QB64_SCREEN_STATE", &state)
-            .env("QB64_SCREEN_KEYS", d.join("p.keys"))
-            // Long enough that the box is drawn on a loaded machine (500 ms failed once, `study\archive\30` §8).
-            .env("QB64_SCREEN_PROMPT_MS", "5000"),
-        None,
-        PROGRAM_LIMIT,
-        "program",
     );
+    let keys = "# nothing is announced\nprompt\ntext x\n";
+    // Long enough that the box is drawn on a loaded machine (500 ms failed once, `study\archive\30` §8).
+    let run = run_screen_state(&d, &exe, Some(keys), Some("5000"));
     assert_eq!(run.status.code(), Some(124));
-    let text = std::fs::read(&state).unwrap();
+    let text = std::fs::read(d.join("state.txt")).unwrap();
     assert!(text.starts_with(b"screen-state 1\n"), "{}", text.escape_ascii());
     assert!(
         text.windows(10).any(|w| w == b"p 04*10 00"),
@@ -536,25 +509,10 @@ fn screen_state_wait_no_rule_answers() {
              DO: k$ = INKEY$: LOOP WHILE k$ = \"\"\n"
         )
     };
-    std::fs::write(d.join("p.bas"), format!("SCREEN 13\n{}{}SYSTEM\n", wait(7), wait(9))).unwrap();
-    std::fs::write(d.join("p.keys"), "rule 7 key space\nplay until 14:M\ntext e\n").unwrap();
-    let exe = d.join("p.exe");
-    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
-    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
-    let state = d.join("state.txt");
-    let run = run(
-        unattended(&exe)
-            .current_dir(&d)
-            .env("QB64_SCREEN_STATE", &state)
-            .env("QB64_SCREEN_KEYS", d.join("p.keys")),
-        None,
-        PROGRAM_LIMIT,
-        "program",
-    );
+    let exe = build_with_screen_state(&d, &format!("SCREEN 13\n{}{}SYSTEM\n", wait(7), wait(9)));
+    let run = run_screen_state(&d, &exe, Some("rule 7 key space\nplay until 14:M\ntext e\n"), None);
     assert_eq!(run.status.code(), Some(125));
-    let text = std::fs::read(&state).unwrap();
+    let text = std::fs::read(d.join("state.txt")).unwrap();
     assert!(text.starts_with(b"screen-state 1\n"), "{}", text.escape_ascii());
     assert!(
         text.ends_with(b"p.keys line 2: no rule for the wait at place 9\n"),
@@ -571,28 +529,14 @@ fn screen_state_wait_no_rule_answers() {
 #[ignore = "needs the QB64pe reference clone"]
 fn screen_state_mistake_in_a_mouse_step() {
     let d = scratch("mouse-step");
-    std::fs::write(d.join("p.bas"), "SCREEN 13\nPSET (1, 1), 4\nSYSTEM\n").unwrap();
-    let exe = d.join("p.exe");
-    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
-    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
+    let exe = build_with_screen_state(&d, "SCREEN 13\nPSET (1, 1), 4\nSYSTEM\n");
     for (keys, line) in [
         ("mouse 40 30\npress 9\n", 2),
         ("# a move needs x and y\nmouse 10\npress 1\n", 2),
         ("mouse 4 3\nrelease 0\n", 2),
         ("wheel 0\n", 1),
     ] {
-        std::fs::write(d.join("p.keys"), keys).unwrap();
-        let run = run(
-            unattended(&exe)
-                .current_dir(&d)
-                .env("QB64_SCREEN_STATE", d.join("state.txt"))
-                .env("QB64_SCREEN_KEYS", d.join("p.keys")),
-            None,
-            PROGRAM_LIMIT,
-            "program",
-        );
+        let run = run_screen_state(&d, &exe, Some(keys), None);
         assert_eq!(run.status.code(), Some(125), "{keys:?}");
         let err = run.stderr.escape_ascii().to_string();
         assert!(
@@ -609,35 +553,45 @@ fn screen_state_mistake_in_a_mouse_step() {
 #[ignore = "needs the QB64pe reference clone"]
 fn screen_state_mouse_step_of_a_hidden_window() {
     let d = scratch("mouse-hidden");
-    std::fs::write(
-        d.join("p.bas"),
+    let exe = build_with_screen_state(
+        &d,
         "$SCREENHIDE\nSCREEN 13\nDO: k$ = INKEY$: LOOP WHILE k$ = \"\"\nSYSTEM\n",
-    )
-    .unwrap();
-    std::fs::write(d.join("p.keys"), "mouse 1 1\ntext x\n").unwrap();
-    let exe = d.join("p.exe");
-    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
-    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
-    let o = qb64rust_build(&d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
-    assert!(o.status.success(), "{}", stdout(&o));
-    let state = d.join("state.txt");
-    let run = run(
-        unattended(&exe)
-            .current_dir(&d)
-            .env("QB64_SCREEN_STATE", &state)
-            .env("QB64_SCREEN_KEYS", d.join("p.keys"))
-            .env("QB64_SCREEN_PROMPT_MS", "500"),
-        None,
-        PROGRAM_LIMIT,
-        "program",
     );
+    let run = run_screen_state(&d, &exe, Some("mouse 1 1\ntext x\n"), Some("500"));
     assert_eq!(run.status.code(), Some(124));
-    let text = std::fs::read(&state).unwrap();
+    let text = std::fs::read(d.join("state.txt")).unwrap();
     assert!(
         text.ends_with(b"p.keys line 1: the window never showed the screen\n"),
         "{}",
         text.escape_ascii()
     );
+}
+
+/// Writes `p.bas` in `d` and builds it with the screen-state file of `tools/screen` on the link line
+/// (`-f:ExtraLinkerFlags=`); the executable.
+fn build_with_screen_state(d: &Path, program: &str) -> PathBuf {
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/screen/screen_state.cpp");
+    let flag = format!("-f:ExtraLinkerFlags={}", file.to_str().unwrap().replace('\\', "/"));
+    let o = qb64rust_build(d, &[&flag, "-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    exe
+}
+
+/// Runs a program of [`build_with_screen_state`] in `d`, its state written to `state.txt` there; with `keys`, given
+/// a keys file `p.keys` of that text, and with `prompt_ms`, that time for a `prompt` (`QB64_SCREEN_PROMPT_MS`).
+fn run_screen_state(d: &Path, exe: &Path, keys: Option<&str>, prompt_ms: Option<&str>) -> Output {
+    let mut cmd = unattended(exe);
+    cmd.current_dir(d).env("QB64_SCREEN_STATE", d.join("state.txt"));
+    if let Some(keys) = keys {
+        std::fs::write(d.join("p.keys"), keys).unwrap();
+        cmd.env("QB64_SCREEN_KEYS", d.join("p.keys"));
+    }
+    if let Some(ms) = prompt_ms {
+        cmd.env("QB64_SCREEN_PROMPT_MS", ms);
+    }
+    run(&mut cmd, None, PROGRAM_LIMIT, "program")
 }
 
 /// The smallest icon file: one image of 16 by 16 pixels with 32 bits each, every pixel of colour `fill` (four
@@ -807,8 +761,51 @@ fn exe_icon_name_forms() {
     );
     std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\n$EXEICON:'C:game.ico'\nSYSTEM\n").unwrap();
     let o = qb64rust(&d, &["p.bas", "--dump", "ir"]);
+    assert_eq!(
+        stdout(&o),
+        "p.bas:2:1: error: not supported yet: a `$EXEICON` name with a drive and no slash after it\n\
+         1 error (1 not supported yet)\n"
+    );
+}
+
+/// Spec `compiler/cli`, "Compiler root for included files", scenario "An icon under the root", and
+/// `language/embedded-files`, "Relative to the compiler's folder" (design D3 of `m4-devices-continue-paths`): a
+/// relative name without `./` is looked for under `--include-root`, whatever the working directory is, and not
+/// beside the program; missing there, the error names it as written. A name with one leading slash goes to the root
+/// of the compiler root's drive, where this test puts nothing.
+#[test]
+fn relative_names_under_the_compiler_root() {
+    let d = scratch("names-under-root");
+    let root = d.join("root");
+    std::fs::create_dir_all(root.join("icons")).unwrap();
+    std::fs::create_dir_all(d.join("work").join("icons")).unwrap();
+    std::fs::write(root.join("icons").join("a.ico"), icon_16([1, 2, 3, 255])).unwrap();
+    std::fs::write(root.join("icons").join("t.txt"), "t").unwrap();
+    // Beside the program it is not looked for: the old compiler's `v29_e02`.
+    std::fs::write(d.join("work").join("icons").join("b.ico"), icon_16([1, 2, 3, 255])).unwrap();
+    let root_arg = root.to_str().unwrap();
+    let program = |text: &str| std::fs::write(d.join("work").join("p.bas"), text).unwrap();
+    program("$CONSOLE:ONLY\n$EXEICON:'icons/a.ico'\n$EMBED:'icons/t.txt','h'\nPRINT _EMBEDDED$(\"h\")\nSYSTEM\n");
+    let o = qb64rust(&d.join("work"), &["--include-root", root_arg, "p.bas", "--dump", "ir"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("an icon for the executable"), "{}", stdout(&o));
+    program("$CONSOLE:ONLY\n$EXEICON:'icons/b.ico'\n$EMBED:'icons/none.txt','h'\nSYSTEM\n");
+    let o = qb64rust(&d.join("work"), &["--include-root", root_arg, "p.bas", "--dump", "ir"]);
+    assert_eq!(
+        stdout(&o),
+        "p.bas:2:1: error: the file `icons/b.ico` of `$EXEICON` is not found\n\
+         p.bas:3:1: error: the file `icons/none.txt` of `$EMBED` is not found\n2 errors\n"
+    );
+    program("$CONSOLE:ONLY\n$EXEICON:'/qb64rust-test-none/a.ico'\nSYSTEM\n");
+    let o = qb64rust(&d.join("work"), &["--include-root", root_arg, "p.bas", "--dump", "ir"]);
+    assert_eq!(
+        stdout(&o),
+        "p.bas:2:1: error: the file `/qb64rust-test-none/a.ico` of `$EXEICON` is not found\n1 error\n"
+    );
+    program("$CONSOLE:ONLY\n$EMBED:'C:t.txt','h'\nSYSTEM\n");
+    let o = qb64rust(&d.join("work"), &["--include-root", root_arg, "p.bas", "--dump", "ir"]);
     assert!(
-        stdout(&o).contains("neither starts with `./` nor is absolute"),
+        stdout(&o).contains("not supported yet: a `$EMBED` file name with a drive and no slash after it"),
         "{}",
         stdout(&o)
     );
@@ -1182,6 +1179,48 @@ fn event_handlers_run() {
     assert_eq!(build_and_run(&d, program), "e 5 \nshow 7 \ntick\n 1 \n");
 }
 
+/// `ON STRIG` built and run (design D4 of `m4-devices-continue-paths`; `verification\v47_x13`, `x30`): its C++
+/// builds with libqb's device-input part, a label and a SUB handler set up, the switch, and an odd button number
+/// raising error 5 in libqb. No game controller fires an event.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn strig_handlers_build_and_run() {
+    let d = scratch("strig-handlers");
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO oops\nON STRIG(0) GOSUB h\nON STRIG(4, 2) s 3\nSTRIG(0) ON\n\
+                   ON STRIG(1) GOSUB h\nPRINT _DEVICES > 1\nSYSTEM\n\
+                   oops:\nPRINT \"e\"; ERR\nRESUME NEXT\nh:\nRETURN\n\
+                   SUB s (k AS INTEGER)\nPRINT k\nEND SUB\n";
+    assert_eq!(build_and_run(&d, program), "e 5 \n-1 \n");
+}
+
+/// `LEN` of a whole array built and run (design D5 of `m4-names-arrays`; `verification\v48_d_len_whole`): a
+/// static, a fixed-length-string, a user-type and a whole member array, a dynamic one before and after `ERASE`, and
+/// an array parameter.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn len_of_whole_arrays_builds_and_runs() {
+    let d = scratch("len-whole");
+    let program = "$CONSOLE:ONLY\nTYPE test\na(1 TO 50) AS LONG\nEND TYPE\n\
+                   DIM a(3 TO 7) AS INTEGER, f(4) AS STRING * 3, parent(1) AS test\n\
+                   n = 7\nREDIM d(3 TO n) AS INTEGER\n\
+                   PRINT LEN(a()); LEN(f()); LEN(parent(0).a()); LEN(parent()); LEN(d())\n\
+                   ERASE d\nPRINT LEN(d())\nparam a()\nSYSTEM\n\
+                   SUB param (x() AS INTEGER)\nPRINT LEN(x())\nEND SUB\n";
+    assert_eq!(build_and_run(&d, program), " 10  15  200  400  10 \n 0 \n 10 \n");
+}
+
+/// `_CAST` built and run (design D2 of `m4-builtins-param-types`; `verification\v49_a_cast`): an integer narrowed
+/// to its low bits, a float truncated toward zero, the result in arithmetic and in `HEX$` as the type named.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn cast_builds_and_runs() {
+    let d = scratch("cast");
+    let program = "$CONSOLE:ONLY\nn& = 300: f! = -6.75\n\
+                   PRINT _CAST(_BYTE, n&); _CAST(INTEGER, 2.5); _CAST(LONG, f!); _CAST(_UNSIGNED _BYTE, -1) + 1\n\
+                   PRINT HEX$(_CAST(_BYTE, -1)); \" \"; HEX$(_CAST(INTEGER, -1))\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), " 44  2 -6  256 \nFF FFFF\n");
+}
+
 /// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies the target's
 /// number of elements, as the old compiler does, but nothing when the source has fewer (`DIVERGENCES.md` D-022: the
 /// old compiler reads past the source's block, `verification\v36_x52`, `v38_d`).
@@ -1548,17 +1587,18 @@ fn lsp_named_program() {
 
 /// "Demand report", scenario "A folder of programs": every `.bas` file below the folder is counted, a program the
 /// old compiler rejects is left out, and a program with more errors than a compile run reports is counted in full.
-/// `STOP` stands for any statement not compiled yet; when it is, take another.
+/// `RUN` stands for any statement not compiled yet (it was `STOP` until `m4-qb64pe-sources`); when it is, take
+/// another.
 #[test]
 fn report_unsupported_counts_a_folder() {
     let d = scratch("report");
     std::fs::create_dir(d.join("sub")).unwrap();
     std::fs::write(d.join("clean.bas"), SLICE_PROGRAM).unwrap();
     let uses = qb64rust_base::MAX_ERRORS + 5;
-    let many = format!("$CONSOLE:ONLY\n{}SYSTEM\n", "STOP\n".repeat(uses));
+    let many = format!("$CONSOLE:ONLY\n{}SYSTEM\n", "RUN\n".repeat(uses));
     std::fs::write(d.join("sub").join("MANY.BAS"), many).unwrap();
-    std::fs::write(d.join("one.bas"), "$CONSOLE:ONLY\nSTOP\nSYSTEM\n").unwrap();
-    std::fs::write(d.join("rejected.bas"), "$CONSOLE:ONLY\nSTOP\nx =\n").unwrap();
+    std::fs::write(d.join("one.bas"), "$CONSOLE:ONLY\nRUN\nSYSTEM\n").unwrap();
+    std::fs::write(d.join("rejected.bas"), "$CONSOLE:ONLY\nRUN\nx =\n").unwrap();
     std::fs::write(d.join("rejected.err"), "Expected expression\n").unwrap();
     let o = qb64rust(&d, &["--report", "unsupported", "."]);
     assert!(o.status.success(), "{}", stdout(&o));
@@ -1566,7 +1606,7 @@ fn report_unsupported_counts_a_folder() {
         "3 programs: 1 without errors, 2 with only \"not supported yet\" errors, 0 with other errors\n\
          1 left out: an .err file beside them (the old compiler rejects them)\n\
          programs  alone   uses  not supported yet\n       \
-         2      2 {:>6}  `STOP`\n",
+         2      2 {:>6}  `RUN`\n",
         uses + 1
     );
     assert_eq!(stdout(&o), expected);

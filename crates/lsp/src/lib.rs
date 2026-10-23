@@ -23,8 +23,9 @@ use std::path::{Path, PathBuf};
 
 /// The front end after the parse, for a check: every diagnostic the CLI reports for the program parsed into the
 /// map, the parse's included (`qb64rust_driver::check_for_server`). The path is the main file's on disk, for the
-/// checks that read the disk; none for a document that is not a file.
-pub type Check = fn(&SourceMap, &ParsedProgram, Option<&Path>) -> Diagnostics;
+/// checks that read the disk; none for a document that is not a file. The last is the compiler root, under which
+/// those checks look for a relative `$EXEICON` or `$EMBED` name too.
+pub type Check = fn(&SourceMap, &ParsedProgram, Option<&Path>, &Path) -> Diagnostics;
 
 /// Runs the server over stdin and stdout until `exit`. Call it on a thread with [`qb64rust_base::STACK_SIZE`] of
 /// stack: the walks over the trees recurse.

@@ -1,0 +1,25 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+member_bound_errors.bas:16:12: error: a bound of a member array must be a constant
+member_bound_errors.bas:16:12: note: QB64pe: TYPE member array bounds must be numeric constant
+member_bound_errors.bas:19:7: error: a bound of a member array must be a constant
+member_bound_errors.bas:19:7: note: QB64pe: TYPE member array bounds must be numeric constant
+member_bound_errors.bas:22:7: error: a bound of a member array must be a constant
+member_bound_errors.bas:22:7: note: QB64pe: TYPE member array bounds must be numeric constant
+member_bound_errors.bas:25:7: error: a bound of a member array must be a constant
+member_bound_errors.bas:25:7: note: QB64pe: TYPE member array bounds must be numeric constant
+member_bound_errors.bas:29:7: error: a bound of a member array must be a constant
+member_bound_errors.bas:29:7: note: QB64pe: TYPE member array bounds must be numeric constant
+member_bound_errors.bas:32:12: error: a bound of a member array must be a constant
+member_bound_errors.bas:32:12: note: QB64pe: TYPE member array bounds must be numeric constant
+member_bound_errors.bas:35:7: error: a bound of a member array must be a constant
+member_bound_errors.bas:35:7: note: QB64pe: TYPE member array bounds must be numeric constant
+member_bound_errors.bas:38:7: error: not supported yet: a bound of a member array that is not written with numbers alone (a `CONST`)
+member_bound_errors.bas:41:7: error: not supported yet: a bound of a member array that is not written with numbers alone (a `CONST`)
+member_bound_errors.bas:44:7: error: not supported yet: a bound of a member array that is not written with numbers alone (a `CONST`)
+member_bound_errors.bas:47:7: error: not supported yet: a bound of a member array that is not written with numbers alone (a `CONST`)
+member_bound_errors.bas:50:7: error: not supported yet: a bound of a member array that is not written with numbers alone (a `CONST`)
+member_bound_errors.bas:53:7: error: a bound of a member array must be a constant
+member_bound_errors.bas:53:7: note: QB64pe: TYPE member array bounds must be numeric constant

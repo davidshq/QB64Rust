@@ -23,7 +23,7 @@ files read and written by position `GET`, `PUT`, `FIELD`, `LSET`, `RSET`, `LOCK`
 `_DEPTHBUFFER`, `_CLEARCOLOR`, `_SETALPHA`, `_BLEND`, `_DONTBLEND`, `_PALETTECOLOR`, `_COPYPALETTE`,
 `_AUTODISPLAY`, `_CLIPBOARDIMAGE`, `_PRINTIMAGE`, `_FONT`, `_FREEFONT`, `_PRINTSTRING`, `_PRINTMODE`,
 `_UPRINTSTRING`, `_MAPUNICODE`, `_MOUSEMOVE`, and the statements of memory blocks (`language/mem-blocks`):
-`_MEMGET`, `_MEMPUT`, `_MEMFILL`, `_MEMCOPY`, `_MEMFREE`, and `_ASSERT` (`language/asserts-and-debug`). Any
+`_MEMGET`, `_MEMPUT`, `_MEMFILL`, `_MEMCOPY`, `_MEMFREE`, and `_ASSERT` (`language/asserts-and-debug`), and `CLEAR` and `_CLIPBOARD$ = s$`. Any
 other built-in
 statement SHALL be reported "not supported yet" at its first word, and a supported
 statement used in a form this change leaves out SHALL be reported "not supported yet" at that form.
@@ -292,3 +292,75 @@ runtime calls the old compiler writes for the printer.
 #### Scenario: TAB to the printer
 - **WHEN** `LPRINT TAB(5); "x"` is compiled by both compilers
 - **THEN** the runtime calls are the same
+
+### Requirement: CLEAR
+`CLEAR [a][, [b][, c]]` SHALL reset what the old compiler's runtime resets: every variable of the main module and
+every `STATIC` and `SHARED` variable to zero or empty, each static array's elements, each dynamic array released,
+the `DATA` position, the open files closed, the error handler and the `RETURN` points.
+
+#### Scenario: Variables reset
+- **WHEN** `a = 5: s$ = "x": DIM b(3): b(1) = 2: CLEAR: PRINT a; LEN(s$); b(1)` runs
+- **THEN** it prints ` 0  0  0 `, as with the old compiler
+
+#### Scenario: A dynamic array released
+- **WHEN** `REDIM d(5): CLEAR` is followed by `PRINT d(1)` under a handler that prints `ERR`
+- **THEN** the handler prints 9, as with the old compiler
+
+#### Scenario: A STATIC variable and the DATA position
+- **WHEN** a SUB counts calls in a `STATIC` variable and a `READ` follows `CLEAR`
+- **THEN** the count starts again from 1 and the `READ` gives the first `DATA` item, as with the old compiler
+
+#### Scenario: RETURN after CLEAR
+- **WHEN** a `GOSUB` runs `CLEAR`, sets a handler and runs `RETURN`
+- **THEN** the handler gets error 3, as with the old compiler
+
+#### Scenario: Strings in a user type's member array
+- **WHEN** the upstream program `arrays/95_type_codegen_clear_inline_owner` runs
+- **THEN** it prints `PASS 95_type_codegen_clear_inline_owner.bas`
+
+### Requirement: The forms of CLEAR
+`CLEAR`'s arguments SHALL be numbers, evaluated and ignored, and `CALL CLEAR` SHALL be `CLEAR`. `CLEAR` in a SUB
+or FUNCTION, with a parenthesis anywhere among its arguments, with a fourth argument or with a string SHALL be the
+old compiler's errors.
+
+#### Scenario: Arguments ignored
+- **WHEN** `x = 5: CLEAR x + 1, , 2 * 3: PRINT x` runs
+- **THEN** it prints ` 0 `, as with the old compiler
+
+#### Scenario: In a SUB
+- **WHEN** a SUB holds `CLEAR`
+- **THEN** it is the compile error "CLEAR cannot be used inside a SUB/FUNCTION", as in the old compiler
+
+#### Scenario: A parenthesis
+- **WHEN** a program has `CLEAR F(1)`
+- **THEN** it is the compile error "Incorrect number of arguments", as in the old compiler
+
+#### Scenario: Wrong forms
+- **WHEN** a program has `CLEAR , , LEN("a")`, `CLEAR 1, 2, 3, 4` or `CLEAR "a"`
+- **THEN** each is a compile error, as in the old compiler
+
+### Requirement: ASC statement
+`ASC(s$) = n` and `ASC(s$, i) = n` SHALL set the byte at position 1, or at `i`, of the string place `s$` to the
+low byte of `n`, as the old compiler's inline code does: the place, `i` and `n` evaluated in that order, each
+number converted to LONG, error 5 for an empty string or a position out of range. A place that is not a string,
+and an expression that is not a place, SHALL be compile errors, as `verification\v52` records them.
+
+#### Scenario: One byte set
+- **WHEN** `a$ = "a/b": ASC(a$, 2) = 92: PRINT a$` runs
+- **THEN** it prints `a\b`
+
+#### Scenario: The first byte
+- **WHEN** `a$ = "xyz": ASC(a$) = 65: PRINT a$` runs
+- **THEN** it prints `Ayz`
+
+#### Scenario: Out of range
+- **WHEN** `a$ = "ab": ASC(a$, 3) = 65` runs under a handler that prints `ERR`, and so does `b$ = "": ASC(b$) = 65`
+- **THEN** each handler prints 5, and the strings are unchanged
+
+#### Scenario: A value beyond a byte
+- **WHEN** `a$ = "a": ASC(a$) = 321: PRINT ASC(a$)` runs
+- **THEN** it prints 65, the low byte (`verification\v52_d_asc`)
+
+#### Scenario: Not a string place
+- **WHEN** a program has `ASC(n%) = 65` or `ASC("ab") = 65`
+- **THEN** it is a compile error

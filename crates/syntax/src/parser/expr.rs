@@ -138,9 +138,19 @@ fn expr_bp_inner(p: &mut Parser, min: u8) -> Option<u32> {
             p.syntax_error("expected a value after `^`");
             return None;
         }
+        let not = p.at_word("NOT");
         p.start_node(PrefixExpr);
         operator(p);
-        let operand = expr_bp(p, operand_min);
+        p.eat_trivia();
+        let operand = if not && p.in_const && at_binary_word(p) {
+            // The same in a `CONST` after `NOT` (measured: "Expected variable/value after 'NOT'", upstream
+            // `const/not_bad_identifier`, `verification\v51_x51`).
+            let word = upper_word(p);
+            p.error(format!("a value is expected after `NOT`, not the operator `{word}`"));
+            None
+        } else {
+            expr_bp(p, operand_min)
+        };
         p.finish_node();
         operand? + 1
     } else {
@@ -255,11 +265,29 @@ fn primary(p: &mut Parser) -> Option<u32> {
                 Some(1)
             }
         }
+        // In a `CONST`, an operator word where a value is expected is an error (measured: "Unexpected element
+        // 'OR'", upstream `const/bad_single_arg`, `verification\v51_x40`, `x41`); after `NOT` see
+        // `expr_bp_inner`. Elsewhere it stays marked (`x50`: "Expected variable/value before 'OR'").
+        _ if p.in_const && at_binary_word(p) => {
+            let word = upper_word(p);
+            p.error(format!("the operator `{word}` cannot start a value"));
+            None
+        }
         _ => {
             p.syntax_error("expected an expression");
             None
         }
     }
+}
+
+/// The current token is a binary operator written as a word.
+fn at_binary_word(p: &Parser) -> bool {
+    ["OR", "AND", "XOR", "EQV", "IMP", "MOD"].iter().any(|w| p.at_word(w))
+}
+
+/// The current token's text in capitals.
+fn upper_word(p: &Parser) -> String {
+    qb64rust_base::show_bytes(p.nth_text(0)).to_ascii_uppercase()
 }
 
 /// Notes a name at the current token, any suffix, of a function of QB64pe's file included after the last line

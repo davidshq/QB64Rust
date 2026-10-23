@@ -1,0 +1,5 @@
+
+_CONTINUE outside DO..LOOP/FOR..NEXT/WHILE..WEND block
+Caused by (or after):_CONTINUE
+LINE 8:_CONTINUE
+exit=1

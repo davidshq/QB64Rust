@@ -9,6 +9,7 @@ bit_arrays_errors.bas:10:5: note: QB64pe: Cannot create a _BIT array of size > 6
 bit_arrays_errors.bas:14:1: error: `SWAP` cannot exchange `_BIT` variables
 bit_arrays_errors.bas:14:1: note: QB64pe: Cannot SWAP bit-length variables
 bit_arrays_errors.bas:15:11: error: `LEN` of a `_BIT` variable
+bit_arrays_errors.bas:15:11: note: QB64pe: Variable/element cannot be _BIT aligned
 bit_arrays_errors.bas:16:7: error: `INPUT` from the console cannot read into a `_BIT` array element
 bit_arrays_errors.bas:16:7: note: QB64pe: INPUT cannot handle _BIT array elements
 bit_arrays_errors.bas:17:15: error: `INPUT` from the console cannot read into a `_BIT` array element

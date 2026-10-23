@@ -1,0 +1,5 @@
+
+Unexpected element 'AND'
+Caused by (or after):
+LINE 3:CONST C = AND 1
+exit=1

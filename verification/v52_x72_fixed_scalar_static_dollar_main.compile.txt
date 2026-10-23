@@ -1,0 +1,5 @@
+
+STATIC must be used within a SUB/FUNCTION
+Caused by (or after):STATIC S$
+LINE 5:STATIC s$
+exit=1

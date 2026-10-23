@@ -1,0 +1,4 @@
+' Included by v50_b_log: a SUB in an included file.
+SUB inc_sub
+    _LOGWARN "warn inc_sub"
+END SUB

@@ -76,12 +76,17 @@ pub enum Rule {
     /// `_EMBEDDED$("handle")`: one string literal naming the handle of a `$EMBED` line above the call (design D2 of
     /// `m3-network-embed`, `check\embed.rs`); the plain call of its row.
     Embedded,
+    /// `_CAST(type, value)`: no call but [`crate::ConvKind::Cast`] of the value to the numeric type named (design D2
+    /// of `m4-builtins-param-types`, `check\mem.rs` `cast`).
+    Cast,
 }
 
 /// Every built-in function `sema` compiles, as written (with its required suffix), and its rule. The coverage check
 /// of tier 1 requires each to be called in a `slice.list` program and in a `typed` front-end test.
 pub const SUPPORTED: &[(&str, Rule)] = &[
     ("INSTR", Rule::Plain),
+    // The same shape as `INSTR`, from the end (design D2 of `m4-qb64pe-sources`; `verification\v52_a_instrrev`).
+    ("_INSTRREV", Rule::Plain),
     ("CHR$", Rule::Plain),
     // String functions (`v20_c_string_edges`).
     ("LEFT$", Rule::Plain),
@@ -143,6 +148,19 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_FILEEXISTS", Rule::Plain),
     ("_DIREXISTS", Rule::Plain),
     ("_CWD$", Rule::Plain),
+    // A whole file and a full path (design D2 of `m4-qb64pe-sources`; `verification\v52_c_files`).
+    ("_READFILE$", Rule::Plain),
+    ("_FULLPATH$", Rule::Plain),
+    // `_FILES$[(spec$)]` (design D1 of `m4-builtins-param-types`; `verification\v49_b_files`): one optional slot, so
+    // it is also called bare, for the next entry of the listing.
+    ("_FILES$", Rule::Plain),
+    // The system's name and the clipboard's text (same design, `v49_c_md5_os`, `v49_d_clipboard`): no slot, called
+    // bare only. The tests set the clipboard (design D3).
+    ("_OS$", Rule::Plain),
+    ("_CLIPBOARD$", Rule::Plain),
+    // The runtime log's minimum level (design D2 of `m4-handlers-logging-checking`; `verification\v50_b_log`): no
+    // slot, called bare only.
+    ("_LOGMINLEVEL", Rule::Plain),
     // `RND` and `TIMER` (`verification\v22_d_random`): one optional slot each, so both are also called bare. `RND`
     // is a `float`; `TIMER` is believed SINGLE and held DOUBLE (libqb's `func_timer` returns `double`).
     ("RND", Rule::Plain),
@@ -165,6 +183,13 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_COT", Rule::Plain),
     ("_CSC", Rule::Plain),
     ("_SEC", Rule::Plain),
+    // The same, for the upstream programs `qb64pe/*` (design D2 of `m4-qb64pe-sources`; `verification\v52_b_math`):
+    // libqb's own, error 5 and 0 outside the domain.
+    ("_ARCSEC", Rule::Plain),
+    ("_ARCCSC", Rule::Plain),
+    ("_ARCCOT", Rule::Plain),
+    ("_SECH", Rule::Plain),
+    ("_CSCH", Rule::Plain),
     // libqb's `func_coth` is the hyperbolic cotangent in this repo's copy of libqb (`DIVERGENCES.md` D-031).
     ("_COTH", Rule::Plain),
     ("_D2R", Rule::Plain),
@@ -307,6 +332,23 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_MOUSEMOVEMENTY", Rule::Plain),
     ("_MOUSEHIDDEN", Rule::Plain),
     ("_MOUSEDISABLED", Rule::Plain),
+    // Device input (design D4 of `m4-devices-continue-paths`; `verification\v47_b_devices`, `v47_x14`–`x23`): the
+    // keyboard, the mouse and game controllers as numbered devices, and the joystick the QuickBASIC way. The
+    // table's templates give the forms and the "passed" flags; each argument is converted to LONG. `_DEVICE$` a
+    // string, `_AXIS` and `_WHEEL` DOUBLE, the others LONG; each needs libqb's device-input part
+    // ([`crate::RuntimePart::DeviceInput`]), set through its dependency.
+    ("_DEVICES", Rule::Plain),
+    ("_DEVICE$", Rule::Plain),
+    ("_DEVICEINPUT", Rule::Plain),
+    ("_LASTBUTTON", Rule::Plain),
+    ("_LASTAXIS", Rule::Plain),
+    ("_LASTWHEEL", Rule::Plain),
+    ("_BUTTON", Rule::Plain),
+    ("_BUTTONCHANGE", Rule::Plain),
+    ("_AXIS", Rule::Plain),
+    ("_WHEEL", Rule::Plain),
+    ("STICK", Rule::Plain),
+    ("STRIG", Rule::Plain),
     // An image of the desktop or of the clipboard (same design, `v31_x01_accepted`): LONG each, with libqb's
     // screen-image part ([`crate::RuntimePart::ScreenImage`]). Compiled and never run ([`NEVER_RUN`]).
     ("_SCREENIMAGE", Rule::Plain),
@@ -346,6 +388,9 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_INFLATE$", Rule::Plain),
     ("_BASE64ENCODE$", Rule::Plain),
     ("_BASE64DECODE$", Rule::Plain),
+    // `_MD5$(s$)` (design D1 of `m4-builtins-param-types`; `verification\v49_c_md5_os`): the plain call of its row,
+    // with libqb's font part, where the old compiler's dependency puts it.
+    ("_MD5$", Rule::Plain),
     // The network functions (design D5 of `m3-network-embed`; `verification\v44_b`, `x40`–`x46`, `x59`–`x68`): each
     // the plain call of its row. `_OPENHOST` and `_OPENCLIENT` need libqb's sockets part
     // ([`crate::RuntimePart::Sockets`]); `_CONNECTIONADDRESS` is written with or without its `$`.
@@ -358,6 +403,9 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // The bytes of a file `$EMBED` builds into the executable (design D2 of `m3-network-embed`;
     // `verification\v44_a_embed`, `x10`–`x21`, `x25`, `x32`–`x37`).
     ("_EMBEDDED$", Rule::Embedded),
+    // A number converted to a numeric type as a C++ cast (design D2 of `m4-builtins-param-types`;
+    // `verification\v49_a_cast`, `x01`–`x18`).
+    ("_CAST", Rule::Cast),
 ];
 
 /// The built-in functions whose result is a block of the predefined type `_MEM` (design D2 of `m3-mem`), as
@@ -382,6 +430,9 @@ pub enum StmtRule {
     /// `MID$(target$, start[, length]) = value$`: a string place, a LONG value, a LONG value or absent, a string
     /// value (measured, `verification\v22_d_mid`).
     MidAssign,
+    /// `ASC(s$[, position]) = code`: a string place, a LONG value or absent, a LONG value (design D4 of
+    /// `m4-qb64pe-sources`; measured, `verification\v52_d_asc`). The old compiler writes it inline.
+    AscAssign,
     /// Graphics `GET` and `PUT`: as [`StmtRule::Plain`], for the entries of the name whose call is libqb's
     /// `sub_graphics_…` only. The name's other entry is the file form ([`StmtRule::File`]).
     Graphics,
@@ -390,6 +441,10 @@ pub enum StmtRule {
     /// nothing ([`Slot::Bytes`]). The variable decides the runtime's entry: none, the file's record buffer; a
     /// variable-length string, the string itself; anything else, its bytes.
     File,
+    /// `_LOGTRACE`, `_LOGINFO`, `_LOGWARN` and `_LOGERROR msg$` (design D2 of `m4-handlers-logging-checking`): the
+    /// plain entry's one string slot, then not its call but [`crate::StmtKind::Log`], which the old compiler writes
+    /// itself with the statement's file, procedure and line (`emit\logging.bas`).
+    Log(crate::LogLevel),
 }
 
 /// Every built-in statement `sema` compiles as a call of the runtime, as written, and its rule. A name stands for
@@ -403,6 +458,8 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("CHDIR", StmtRule::Plain),
     ("NAME", StmtRule::Plain),
     ("ENVIRON", StmtRule::Plain),
+    // A whole file, two strings (design D3 of `m4-qb64pe-sources`; `verification\v52_c_files`).
+    ("_WRITEFILE", StmtRule::Plain),
     // Files (`verification\v22_b_*`): `OPEN` in both forms.
     ("OPEN", StmtRule::Plain),
     ("CLOSE", StmtRule::Close),
@@ -411,6 +468,7 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     // seed on the console (`verification\v22_e_randomize`).
     ("SWAP", StmtRule::Swap),
     ("MID$", StmtRule::MidAssign),
+    ("ASC", StmtRule::AscAssign),
     ("RANDOMIZE", StmtRule::Plain),
     // `SHELL` in its three forms (`verification\v22_d_shell`).
     ("SHELL", StmtRule::Plain),
@@ -486,9 +544,11 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("BEEP", StmtRule::Plain),
     // The event switches (design D2 of `m3-events`; `verification\v42_a`, `v42_b`, `v42_d`, `x15`, `x16`, `x49`):
     // `TIMER[(n)] ON|OFF|STOP|FREE` and `KEY(k) ON|OFF|STOP`, each the plain call of its row and template. `KEY`'s
-    // own forms are a node of their own (`check\events.rs`); `STRIG` waits for device input.
+    // own forms are a node of their own (`check\events.rs`). `STRIG[(b[, c])] ON|OFF|STOP` likewise, with libqb's
+    // device-input part (design D4 of `m4-devices-continue-paths`; `verification\v47_x13`, `x19`, `x30`).
     ("TIMER", StmtRule::Plain),
     ("KEY", StmtRule::Plain),
+    ("STRIG", StmtRule::Plain),
     // Sound handles (design D1 of `m3-sound-handles`; `verification\v39_x01_accepted`, `x02`–`x72`): each the plain
     // call of its row and template, with libqb's audio part. The arrays of `_WAVE` and `_SNDRAWBATCH` are the bytes
     // from an element to the array's end ([`Slot::Block`]), of one element type each (D2, `check\builtins.rs`).
@@ -543,6 +603,18 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     // `_ASSERT condition[, message$]` (design D3 of `m3-asserts-debug-zlib`; `verification\v33_a*`, `x17`–`x24`):
     // the plain call of its row, which checks nothing without `$ASSERTS` (the program's global `asserts`).
     ("_ASSERT", StmtRule::Plain),
+    // `_CLIPBOARD$ = s$` (design D1 of `m4-builtins-param-types`; `verification\v49_d_clipboard`): the plain call of
+    // its row, run by the tests (design D3).
+    ("_CLIPBOARD$", StmtRule::Plain),
+    // `CLEAR [a][, [b][, c]]` (design D4 of `m4-builtins-param-types`; `verification\v49_e_clear`, `x30`–`x38`): the
+    // plain call of its row, `sub_clear`, which includes the program's `clear.txt`; its arguments are ignored. Not
+    // in a SUB or FUNCTION and with no parenthesis in its arguments (`check\builtins.rs`, `clear_form`).
+    ("CLEAR", StmtRule::Plain),
+    // The runtime log's statements (design D2 of `m4-handlers-logging-checking`; `verification\v50_b_log`).
+    ("_LOGTRACE", StmtRule::Log(crate::LogLevel::Trace)),
+    ("_LOGINFO", StmtRule::Log(crate::LogLevel::Info)),
+    ("_LOGWARN", StmtRule::Log(crate::LogLevel::Warn)),
+    ("_LOGERROR", StmtRule::Log(crate::LogLevel::Error)),
 ];
 
 /// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
@@ -606,7 +678,7 @@ pub fn stmt_lookup(name: &str, string: bool) -> Vec<StmtSupported> {
         })
         .flat_map(|&(written, rule)| {
             let forms = match rule {
-                StmtRule::Plain => find_statements(name.as_bytes(), string),
+                StmtRule::Plain | StmtRule::Log(_) => find_statements(name.as_bytes(), string),
                 StmtRule::Graphics => find_statements(name.as_bytes(), string)
                     .into_iter()
                     .filter(|id| id.get().callname.starts_with("sub_graphics_"))
@@ -616,7 +688,7 @@ pub fn stmt_lookup(name: &str, string: bool) -> Vec<StmtSupported> {
                     .filter(|id| matches!(id.get().callname, "sub_get" | "sub_put"))
                     .collect(),
                 // The statements the old compiler writes itself are named by their stub entry.
-                StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
+                StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign | StmtRule::AscAssign => {
                     find_stub(name.as_bytes(), string).into_iter().collect()
                 }
             };
@@ -784,7 +856,8 @@ pub fn slot_count(id: BuiltinId) -> usize {
             | Rule::Own
             | Rule::Mk(_)
             | Rule::Cv(_)
-            | Rule::Embedded,
+            | Rule::Embedded
+            | Rule::Cast,
         )
         | None => id.get().arg_types.len(),
     }
@@ -807,7 +880,7 @@ pub fn slots(s: Supported) -> Vec<(Slot, bool)> {
         Rule::Own => Vec::new(),
         // Checked by their rule (`check\mem.rs`, `number_bytes`): a number or a string, and for `_MK$` and
         // `_CV` first a type.
-        Rule::Mk(_) | Rule::Cv(_) => Vec::new(),
+        Rule::Mk(_) | Rule::Cv(_) | Rule::Cast => Vec::new(),
         // One string literal, checked by its rule (`check\embed.rs`).
         Rule::Embedded => vec![(Slot::Str, false)],
         Rule::Plain
@@ -971,6 +1044,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
         Rule::Own => unreachable!("an expression of its own (check::mem)"),
         Rule::Mk(_) | Rule::Cv(_) => unreachable!("typed by their type (check::mem)"),
         Rule::Embedded => unreachable!("typed by its rule (check::embed)"),
+        Rule::Cast => unreachable!("a conversion, no call (check::mem)"),
     }
 }
 
@@ -1006,7 +1080,8 @@ fn held_override(callname: &str) -> Option<Ty> {
         "func_lof" | "func_loc" | "func_seek" => Some(Ty::I64),
         "func_timer" => Some(Ty::F64),
         // Believed `_FLOAT`; libqb's prototypes take and return a `double` (`extended_math.h`).
-        "func_cot" | "func_csc" | "func_sec" | "func_coth" | "func_deg2rad" | "func_rad2deg" => Some(Ty::F64),
+        "func_cot" | "func_csc" | "func_sec" | "func_coth" | "func_deg2rad" | "func_rad2deg" | "func_arcsec"
+        | "func_arccsc" | "func_arccot" | "func_sech" | "func_csch" => Some(Ty::F64),
         _ => None,
     }
 }
@@ -1090,22 +1165,7 @@ fn convert_held(to: Ty, a: &Expr) -> Ty {
 pub fn qb_bits(t: Ty) -> Option<u32> {
     match t {
         Ty::Bit { width, .. } => Some(u32::from(width)),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str
-        | Ty::FixedStr(_)
-        | Ty::User(_) => t.int_bits(),
+        crate::numeric_value_types!() | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => t.int_bits(),
     }
 }
 
@@ -1158,6 +1218,10 @@ fn table_ty(b: &Builtin) -> Ty {
         Some("_FLOAT") => Ty::F80,
         Some("STRING") => Ty::Str,
         Some("_UNSIGNED _OFFSET") => Ty::UOff,
+        // `_LOGMINLEVEL`: QB64pe's row sets `ideret` where it means `id.ret` (`subs_functions.bas` 4383), so the table
+        // has no type; the type it means, as libqb's `uint32_t func__logminlevel()` returns 1 to 5 (design D2 of
+        // `m4-handlers-logging-checking`).
+        None if b.callname == "func__logminlevel" => Ty::I32,
         other => unreachable!("return type {other:?} of a plain supported built-in"),
     }
 }

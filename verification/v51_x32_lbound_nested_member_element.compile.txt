@@ -1,0 +1,5 @@
+
+Incorrect number of arguments
+Caused by (or after):PRINT LBOUND ( F ( 1 ) . G . A ( 2 ) )
+LINE 10:PRINT LBOUND(f(1).g.a(2))
+exit=1

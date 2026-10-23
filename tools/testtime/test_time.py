@@ -96,6 +96,8 @@ QUOTED = re.compile(r"\"[^\"]*\"|'[^']*'")
 # The kinds in the order `classify` gives them for one command; the runner's kinds come first.
 ORDER = [
     "call-site",
+    "coverage check",
+    "wording check",
     "tier 1",
     "clippy",
     "fmt",
@@ -198,7 +200,15 @@ def classify_statement(c: str) -> list[tuple[str, str]]:
             # Runs nothing: judges a pass list from the last full run's results.
             found.append((TEST, "pass list checked from a full run"))
         elif has(r"--suite\s+verification|run\.sh"):
-            found.append((MEASURE, "verification programs (old compiler)"))
+            # With another compiler the runner compares it with the recordings (verification-compare).
+            if not new or not runner:
+                found.append((MEASURE, "verification programs (old compiler)"))
+            elif has(r"--list\s+\S*pass\.list"):
+                found.append((TEST, "verification pass list"))
+            elif has(r"--list|--glob|--category"):
+                found.append((TEST, "verification, selected programs"))
+            else:
+                found.append((TEST, "full verification suite"))
         elif has(r"--record"):
             found.append((MEASURE, "recording expected results (old compiler)"))
         elif has(r"--suite\s+corpus") or not has(r"--suite"):
@@ -226,6 +236,10 @@ def classify_statement(c: str) -> list[tuple[str, str]]:
             )
     if has(PY + r"callsite\.py") and not asks_help:
         found.append((TEST, "call-site self-test" if has(r"--self-test") else "call-site check"))
+    if has(PY + r"coverage\.py\s.*--check\b") and not asks_help:
+        found.append((TEST, "coverage check"))
+    if has(PY + r"old_wording\.py\s.*--check\b") and not asks_help:
+        found.append((TEST, "wording check"))
 
     def cargo(pattern: str) -> bool:
         return re.search(CARGO + pattern, bare) is not None
@@ -296,6 +310,7 @@ def said(kind: str, text: str, shared: bool = False) -> str:
         or "slice" in kind
         or "suite" in kind
         or "pass list" in kind
+        or "verification" in kind
     ):
         if any(f for _, f in summaries) or has(r"^\[\d+/\d+\] FAIL "):
             return FAIL
@@ -325,6 +340,13 @@ def said(kind: str, text: str, shared: bool = False) -> str:
         return PASS if has(r"^\s*Finished ") else ""
     if kind == "fmt":
         return FAIL if has(r"^Diff in ") else ""
+    if kind == "coverage check":
+        if has(r"^check: FAIL\b"):
+            return FAIL
+        return PASS if has(r"^check: PASS\b") else ""
+    if kind == "wording check":
+        counts = re.findall(r"\d+ notes on recorded rejections, (\d+) not the recorded message", text)
+        return "" if not counts else FAIL if any(int(n) for n in counts) else PASS
     if kind == "repo check":
         counts = re.findall(r"\d+ files checked, (\d+) findings", text)
         return "" if not counts else FAIL if any(int(n) for n in counts) else PASS
@@ -636,6 +658,16 @@ def read_session(path: Path, work: dict | None = None):
     for a, b in itertools.pairwise(times):
         if b - a <= IDLE and not any(s <= a and b <= e for s, e in merged):
             active += b - a
+    # Calls sent together are carried out one after another or side by side; either way they were
+    # waited for once. A call's time starts when the calls sent before it have ended, so the waits of
+    # calls that overlap add up to the time they cover together.
+    begun: dict[str, datetime] = {}
+    busy: datetime | None = None
+    for use, (start, *_) in sorted(calls.items(), key=lambda c: c[1][0]):
+        if use not in ends or use in waited_for_user:
+            continue
+        begun[use] = min(max(start, busy), ends[use]) if busy else start
+        busy = max(busy, ends[use]) if busy else ends[use]
     key = session[:8]
     runs = []
     last: dict[
@@ -656,7 +688,7 @@ def read_session(path: Path, work: dict | None = None):
             if task in notified:
                 stretches.append((start, notified[task], True))
         else:
-            stretches.append((start, ends[use], False))
+            stretches.append((begun[use], ends[use], False))
             if use in moved.values() and task in notified:
                 stretches.append((ends[use], notified[task], True))
         if not stretches:
@@ -690,6 +722,7 @@ def read_session(path: Path, work: dict | None = None):
                         "repeat_after": repeat_after if number == 0 else "",
                         "group": (key, use, number),
                         "total": max((b - a).total_seconds(), 0.0),
+                        "clipped": a != start,
                     }
                 )
     row = {
@@ -814,7 +847,8 @@ def work_rows(key: str, times, merged, actions, archived, runs) -> tuple[list[di
 def share_out(runs: list[dict]) -> None:
     """Splits the time of a command that started several runs (fmt, clippy and tests in one line)
     between them in proportion to what each kind takes when run alone (the median of those runs);
-    the even split stays where that is not known for one of them. `runs` are those of one
+    the even split stays where that is not known for one of them. A run that waited for calls sent
+    before it (`begun`) shows only part of what it takes, and does not count. `runs` are those of one
     session: what a kind takes is taken from that session alone, so the rows of a session that
     is over do not change when later sessions are read."""
     groups: dict[tuple, list[dict]] = defaultdict(list)
@@ -822,7 +856,7 @@ def share_out(runs: list[dict]) -> None:
         groups[r["group"]].append(r)
     alone: dict[str, list[float]] = defaultdict(list)
     for members in groups.values():
-        if len(members) == 1 and members[0]["background"] == "0":
+        if len(members) == 1 and members[0]["background"] == "0" and not members[0]["clipped"]:
             alone[members[0]["kind"]].append(members[0]["total"])
     usual = {kind: statistics.median(values) for kind, values in alone.items()}
     for members in groups.values():
@@ -832,7 +866,7 @@ def share_out(runs: list[dict]) -> None:
         for r, w in zip(members, weights):
             r["seconds"] = f"{r['total'] * w / sum(weights):.1f}"
     for r in runs:
-        del r["group"], r["total"]
+        del r["group"], r["total"], r["clipped"]
 
 
 def load(path: Path) -> list[dict]:

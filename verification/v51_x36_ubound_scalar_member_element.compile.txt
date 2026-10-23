@@ -1,0 +1,5 @@
+
+Incorrect number of arguments
+Caused by (or after):PRINT UBOUND ( V . A ( 5 ) )
+LINE 7:PRINT UBOUND(v.a(5))
+exit=1

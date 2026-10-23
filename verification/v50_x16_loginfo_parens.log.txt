@@ -1,0 +1,1 @@
+INFO QB64 <verification>\v50_x16_loginfo_parens.bas: Main QB64 Code: 3: a

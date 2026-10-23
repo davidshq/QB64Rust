@@ -18,8 +18,8 @@
 //! [`OnError::Skip`] branches.
 
 use crate::{
-    Body, EventHandler, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId, ProcKind, Program,
-    Resume, Stmt, Storage, Ty, Var, VarId, When,
+    Body, EventHandler, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId, Program, Resume,
+    Stmt, Storage, Ty, Var, VarId, When,
 };
 use qb64rust_base::{Span, to_u32};
 use qb64rust_sema as sema;
@@ -47,17 +47,13 @@ pub fn lower(p: &sema::Program) -> Program {
         let body = Lowerer::new(p, &ids, Some(sema::ProcId(i)), &mut vars, &mut counts).body(&q.stmts);
         procs.push(Proc {
             name: q.name.clone(),
-            kind: match q.kind {
-                sema::ProcKind::Sub => ProcKind::Sub,
-                sema::ProcKind::Function(t) => ProcKind::Function(t),
-            },
+            kind: q.kind,
             params: q.params.iter().map(|v| VarId(v.0)).collect(),
             result: q.result.map(|v| VarId(v.0)),
             body,
             line: q.line,
             end_line: q.end_line,
             external: q.external.clone(),
-            checked: q.checked,
         });
     }
     let program = Program {
@@ -72,22 +68,7 @@ pub fn lower(p: &sema::Program) -> Program {
             window: p.settings.window,
             window_hidden: p.settings.window_hidden,
             asserts: p.settings.asserts,
-            runtime_parts: p
-                .settings
-                .runtime_parts
-                .iter()
-                .map(|part| match part {
-                    sema::RuntimePart::Icon => crate::RuntimePart::Icon,
-                    sema::RuntimePart::Audio => crate::RuntimePart::Audio,
-                    sema::RuntimePart::Printer => crate::RuntimePart::Printer,
-                    sema::RuntimePart::ImageCodec => crate::RuntimePart::ImageCodec,
-                    sema::RuntimePart::Font => crate::RuntimePart::Font,
-                    sema::RuntimePart::ScreenImage => crate::RuntimePart::ScreenImage,
-                    sema::RuntimePart::DataProcessing => crate::RuntimePart::DataProcessing,
-                    sema::RuntimePart::Sockets => crate::RuntimePart::Sockets,
-                    sema::RuntimePart::Embed => crate::RuntimePart::Embed,
-                })
-                .collect(),
+            runtime_parts: p.settings.runtime_parts.clone(),
             exe_icon: p.settings.exe_icon.is_some(),
             version_info: p.settings.version_info.clone(),
         },
@@ -120,8 +101,9 @@ struct Lowerer<'a> {
     counts: &'a mut Counts,
     labels: Vec<Label>,
     stmts: Vec<Stmt>,
-    /// The exit labels of the loops around the statement being lowered, innermost last.
-    exits: Vec<(sema::LoopKind, LabelId)>,
+    /// The exit labels of the loops around the statement being lowered, innermost last, each with its continue
+    /// label, made by the first `_CONTINUE` that targets the loop (design D1 of `m4-devices-continue-paths`).
+    exits: Vec<(sema::LoopKind, LabelId, Option<LabelId>)>,
     /// The `CASE` bodies around the statement being lowered, innermost last: the end label of each one's
     /// `SELECT`, and whether it is a `CASE ELSE`. A loop inside a `CASE` does not hide it, and a `SELECT` inside
     /// a loop does not hide the loop from `EXIT FOR`.
@@ -134,6 +116,8 @@ struct Lowerer<'a> {
     joined: Vec<(Span, u32, Op)>,
     /// The [`sema::Stmt::include_line`] of the statement being lowered.
     include_line: Option<u32>,
+    /// The [`sema::Stmt::checked`] of the statement being lowered: a block's, for what the lowering makes of it.
+    checked: bool,
 }
 
 impl<'a> Lowerer<'a> {
@@ -156,6 +140,7 @@ impl<'a> Lowerer<'a> {
                 include_line: l.include_line,
                 file: Some(l.file),
                 at: 0,
+                checked: true,
             })
             .collect();
         Lowerer {
@@ -171,6 +156,7 @@ impl<'a> Lowerer<'a> {
             case_end: None,
             joined: Vec::new(),
             include_line: None,
+            checked: true,
         }
     }
 
@@ -204,8 +190,10 @@ impl<'a> Lowerer<'a> {
         for s in stmts {
             // Every statement lowered from `s` stands where `s` stands: a block does not cross a file.
             let outer = std::mem::replace(&mut self.include_line, s.include_line);
+            let outer_checked = std::mem::replace(&mut self.checked, s.checked);
             self.stmt(s);
             self.include_line = outer;
+            self.checked = outer_checked;
         }
     }
 
@@ -217,8 +205,19 @@ impl<'a> Lowerer<'a> {
             include_line: self.include_line,
             file: None,
             at: usize::MAX,
+            checked: self.checked,
         });
         LabelId(to_u32(self.labels.len() - 1))
+    }
+
+    /// Closes the innermost loop's entry in `exits`, placing its continue label (if a `_CONTINUE` made one) before
+    /// the loop's bottom statement: before the step of `NEXT`, the test or jump back of `LOOP` and the jump back of
+    /// `WEND`, the old compiler's `fornext_continue_`, `dl_continue_` and `ww_continue_` (`qb64pe.bas` 6246, 6315,
+    /// 6398, 6405).
+    fn place_continue(&mut self) {
+        if let Some((_, _, Some(cont))) = self.exits.pop() {
+            self.place(cont);
+        }
     }
 
     /// Puts a label before the next statement.
@@ -259,6 +258,7 @@ impl<'a> Lowerer<'a> {
             ops,
             may_raise,
             own,
+            checked: self.checked,
         });
     }
 
@@ -266,6 +266,7 @@ impl<'a> Lowerer<'a> {
         let op = match &s.kind {
             sema::StmtKind::Label(l) => {
                 let l = self.ids.get(*l);
+                self.labels[l.0 as usize].checked = s.checked;
                 self.place(l);
                 return;
             }
@@ -336,13 +337,25 @@ impl<'a> Lowerer<'a> {
                 return self.select(s, parts);
             }
             sema::StmtKind::ExitLoop(kind) => {
-                let (_, exit) = *self
+                let (_, exit, _) = *self
                     .exits
                     .iter()
                     .rev()
-                    .find(|(k, _)| k == kind)
+                    .find(|(k, _, _)| k == kind)
                     .expect("the parser checked that a loop of this kind is open");
                 Op::Jump(exit)
+            }
+            sema::StmtKind::Continue => {
+                let open = self.exits.last().map(|e| e.2);
+                let cont = match open.expect("the parser checked that a loop is open") {
+                    Some(l) => l,
+                    None => {
+                        let l = self.label(s.line);
+                        self.exits.last_mut().unwrap().2 = Some(l);
+                        l
+                    }
+                };
+                Op::Jump(cont)
             }
             sema::StmtKind::ExitSelect { case } => {
                 let &(end, in_else) = self
@@ -361,8 +374,13 @@ impl<'a> Lowerer<'a> {
             sema::StmtKind::ConsoleOnly => Op::SelectConsole,
             sema::StmtKind::End(code) => Op::End(code.clone()),
             sema::StmtKind::System(code) => Op::System(code.clone()),
+            sema::StmtKind::Stop => Op::Stop,
             sema::StmtKind::Exit => Op::Exit,
-            sema::StmtKind::OnError(l) => Op::SetHandler(l.map(|l| self.ids.get(l))),
+            sema::StmtKind::OnError(h) => match *h {
+                sema::ErrorHandler::Set(l) => Op::SetHandler(l.map(|l| self.ids.get(l))),
+                sema::ErrorHandler::New(l) => Op::NewHandler(self.ids.get(l)),
+                sema::ErrorHandler::Last => Op::LastHandler,
+            },
             sema::StmtKind::OnEvent { event, handler } => Op::OnEvent {
                 event: event.clone(),
                 handler: match handler {
@@ -380,6 +398,10 @@ impl<'a> Lowerer<'a> {
                 sema::Resume::To(l) => Resume::To(self.ids.get(*l)),
             }),
             sema::StmtKind::Error(code) => Op::Raise(code.clone()),
+            sema::StmtKind::Log { level, msg } => Op::Log {
+                level: *level,
+                msg: msg.clone(),
+            },
             sema::StmtKind::Assign { place, value } => Op::Assign {
                 place: place.clone(),
                 value: value.clone(),
@@ -560,9 +582,9 @@ impl<'a> Lowerer<'a> {
             };
             self.emit(s.span, s.line, vec![branch]);
         }
-        self.exits.push((kind, exit));
+        self.exits.push((kind, exit, None));
         self.stmts_of(body);
-        self.exits.pop();
+        self.place_continue();
         let back = match test.filter(|t| t.at == sema::TestAt::Bottom) {
             // `LOOP WHILE c` goes back when `c` is not zero, `LOOP UNTIL c` when it is.
             Some(t) => Op::Branch {
@@ -624,9 +646,9 @@ impl<'a> Lowerer<'a> {
         self.emit(s.span, s.line, header);
 
         self.place(lbody);
-        self.exits.push((sema::LoopKind::For, exit));
+        self.exits.push((sema::LoopKind::For, exit, None));
         self.stmts_of(body);
-        self.exits.pop();
+        self.place_continue();
 
         // The step is added to the variable's current value (measured: `k = k + 1` in the body counts on from it).
         let current = m.convert(m.var(f.var, var_ty), f.temp);
@@ -657,11 +679,17 @@ impl<'a> Lowerer<'a> {
             m.binary(BinOp::And, Ty::I32, neg_v(), below),
             m.binary(BinOp::And, Ty::I32, not_neg, above),
         );
+        // The old compiler's test is `if (value>final) break;`, which an error left pending does not stop. Below
+        // `$CHECKING:OFF` one may be pending from any earlier statement, so there the test takes its value (else the
+        // loop would never end, `verification\v50_c_checking`). With checking on at the header the step statement
+        // above takes the header's flag, and its event check services any error the body left (one raised below
+        // OFF too), so the two are the same, and `Skip` keeps a checked program's C++ as it was (design D4 of
+        // `m4-handlers-logging-checking`).
         let test = Op::Branch {
             cond: past,
             when: When::NonZero,
             to: exit,
-            on_error: OnError::Skip,
+            on_error: if s.checked { OnError::Skip } else { OnError::UseValue },
         };
         self.emit(s.span, end_line, vec![store, test, Op::Jump(lbody)]);
         self.place(exit);

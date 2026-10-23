@@ -1,0 +1,5 @@
+
+Name already in use (exp)
+Caused by (or after):
+LINE 6:FUNCTION EXP$ ( A$ )
+exit=1

@@ -150,9 +150,9 @@ item 1). Three changes, in this order, before the work of M4 goes on:
 - [x] The extension's diagnostics on save from the new compiler instead of `qb64pe -z`: columns and several
       errors per run (`DECISIONS.md` 2026-10-02)
 - [x] The extension published as a `.vsix` (`vscode-v0.2.0`, 2026-10-19)
-- [ ] The verification families run against the new compiler as a suite, so their recordings become regression
+- [x] The verification families run against the new compiler as a suite, so their recordings become regression
       tests and a change no longer writes slice programs by hand for forms a family covers (tenth review
-      `study\35` §3 item 2, user 2026-10-18)
+      `study\35` §3 item 2, user 2026-10-18; `verification-compare`, `tests\verification\`)
 
 ## M4. Parity
 
@@ -163,44 +163,56 @@ The areas M3 left (moved here on 2026-10-18), from the unsupported report at the
 recorded gaps in `SOMEDAY.md`; each may take several changes. Deliberately marked behaviours still need their
 recorded decisions or measurements; listing an area does not settle those choices:
 
-- [ ] The `$EXEICON` and `$EMBED` names relative to the old compiler's own folder (`icon/test`,
-      `winresource/test`, `embed/test`; `SOMEDAY.md`)
-- [ ] Runtime error and source-location support: `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`; logging
-      built-ins (done: `_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$`, `_ERRORMESSAGE$`, and a joined line
-      numbered as its last, `m3-errorline-chr-const`; upstream 336 to 339 of 399)
-- [ ] `$CHECKING:OFF` and the corresponding unchecked code generation, including memory operations and
-      `_ARRAYCOPY` (read in `afterlastline.bm` only since `m3-network-embed`: no event checks there)
+- [x] The `$EXEICON` and `$EMBED` names relative to the old compiler's own folder (`icon/test`,
+      `winresource/test`, `embed/test`; a `C:name` stays marked, `SOMEDAY.md`) (`m4-devices-continue-paths`)
+- [x] Runtime error and source-location support: `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`; logging
+      built-ins (`_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$`, `_ERRORMESSAGE$`, and a joined line
+      numbered as its last, `m3-errorline-chr-const`; upstream 336 to 339 of 399; the handler chain, `_LOG*` and
+      `_LOGMINLEVEL`, `m4-handlers-logging-checking`)
+- [x] `$CHECKING:OFF` and the corresponding unchecked code generation, including memory operations and
+      `_ARRAYCOPY` (read in `afterlastline.bm` only since `m3-network-embed`: no event checks there): OFF and ON
+      anywhere, no event, error or index checks below OFF, the unchecked `_MEMGET`, `_MEMPUT` and `_MEMFILL`
+      (`m4-handlers-logging-checking`)
 - [ ] OpenGL user code (`SUB _GL`) and its integration with the existing runtime
-- [ ] Remaining built-in families and statements, including device input (`_DEVICES` and related functions,
-      `STICK`, `STRIG()`, and the `STRIG` events `ON STRIG` and `STRIG ON`, user 2026-10-17),
-      clipboard text, `_FILES$`, `_MD5$`, `_OS$`, `_CAST`, `_CONTINUE` and `CLEAR`; cover their forms through
-      the call-site check and runnable tests where applicable
+- [x] Remaining built-in families and statements: clipboard text, `_FILES$`, `_MD5$`, `_OS$`, `_CAST` and
+      `CLEAR`; cover their forms through the call-site check and runnable tests where applicable (device
+      input, `_DEVICES` and related functions, `STICK`, `STRIG()`, `ON STRIG` and `STRIG ON`, and `_CONTINUE`,
+      `m4-devices-continue-paths`; upstream 355 to 363, then of 403; the rest `m4-builtins-param-types`)
 - [ ] Remaining name, declaration and array rules: a scalar beside an array typed by `DIM ... AS`
       (`arrays/t001_whole_array_core`, the last deferred upstream program), implicit arrays and forward
-      procedure references, `REDIM` without bounds in procedures, and the remaining member-array forms
+      procedure references, `REDIM` without bounds in procedures, and the remaining member-array forms (done: a
+      scalar beside a typed array, `REDIM` of a scalar in a procedure, `TYPE` blocks anywhere,
+      `m4-names-arrays`; left by the user: a whole array as a value and the errors for names that are no array
+      or no SUB)
 - [ ] Remaining memory and conventional-memory references: string-bearing types, nested and dynamic member
       arrays, `LEN` of a whole member array, and the `VARPTR`/`VARSEG` forms deferred until a program needs them
-      (`SOMEDAY.md` records the individual forms and constraints)
+      (`SOMEDAY.md` records the individual forms and constraints) (done: `LEN` of a whole array and of a whole
+      member array, not a dynamic one, `m4-names-arrays`)
 
 The parity work:
 
-- [ ] The corpus and the upstream tests outside `tests\upstream\deferred.list`
+- [ ] The corpus and the upstream tests outside `tests\upstream\deferred.list` (upstream 379 to 391 of 404 with
+      the old compiler's errors for its rejections, `m4-upstream-rejections`, and to 401 with the `qb64pe/*`
+      programs, which include the old compiler's sources, `m4-qb64pe-sources`; the three left are out of scope:
+      `http/read_example`, `opengl/test`, `const/math_funcs`)
 - [ ] Close the remaining compatibility gaps exposed by the full suites, including accepted programs still
       marked "not supported yet" and rejected programs receiving only that mark; keep false errors and parse
       gaps at zero (`tests\known_*.list`)
-- [ ] Bring the last deferred upstream program into the parity run when its scalar/array naming rule is built;
-      finish with no feature-deferred programs left (`tests\upstream\deferred.list`)
+- [x] Bring the last deferred upstream program into the parity run when its scalar/array naming rule is built;
+      finish with no feature-deferred programs left (`tests\upstream\deferred.list`, empty since
+      `m4-names-arrays`)
 - [ ] `qb64pe.bas`, reached through its own include files, smallest first (the idea of QB64Fresh's
       `qb64pe_incremental` tests, which compiled `qb64pe.bas` in phases through extracted sections and stubs; the
       idea is taken, not the files: the second review, `DECISIONS.md` 2026-10-04)
 - [ ] Review the coverage of features checked only by emitted calls or compiled-but-never-run programs; add
       execution checks where needed to establish parity, using screen state for window output and retaining
       documented limits for hardware-dependent behaviour
-- [ ] At the start of M4, before `qb64pe.bas` adds more mode flags: group the checker's fields (`Checker` in
+- [x] At the start of M4, before `qb64pe.bas` adds more mode flags: group the checker's fields (`Checker` in
       `sema\src\check\mod.rs`, 72 on 2026-10-16) into four structs by concern (the position in the file, the
       program's settings, the typing context of the current expression, the dimension solver), and pass the
       typing context as a parameter where it is now set around a call (`len_place`, `mem_store`). No behaviour
       change; tier 1 and the `typed` snapshots prove it (ninth review, `study\archive\30` §6)
+      (`m4-checker-groups`)
 - [ ] A string and array group of differential programs, generated by `crates\difftest` like the numeric one:
       concatenation, comparison, `MID$`, `LEFT$`, element and bound errors across every element type. Nothing
       but the numeric group is differential today, so a regression in a string or array behaviour that no corpus

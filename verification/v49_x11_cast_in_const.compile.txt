@@ -1,0 +1,5 @@
+
+Unexpected element 'LONG'
+Caused by (or after):
+LINE 3:CONST C = _CAST ( LONG , 2.7E+0,2.7 )
+exit=1

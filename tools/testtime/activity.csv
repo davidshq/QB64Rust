@@ -1,13 +1,22 @@
 version,session,change,category,actions,bytes
-1,00ff50f1,m3-arraycopy,builds,13,0
+1,009b193d,,measurement preparation,3,727
+1,009b193d,,measurement runs,1,0
+1,009b193d,,other,2,0
+1,009b193d,,other commands,49,0
+1,009b193d,,reading,3,0
+1,009b193d,,test runs,2,0
+1,009b193d,m4-qb64pe-sources,documents and planning,12,33694
+1,009b193d,m4-qb64pe-sources,other commands,12,0
+1,009b193d,m4-qb64pe-sources,test runs,4,0
+1,00ff50f1,m3-arraycopy,builds,12,0
 1,00ff50f1,m3-arraycopy,documents and planning,34,21696
 1,00ff50f1,m3-arraycopy,measurement preparation,1,772
 1,00ff50f1,m3-arraycopy,measurement runs,3,0
-1,00ff50f1,m3-arraycopy,other commands,114,0
+1,00ff50f1,m3-arraycopy,other commands,113,0
 1,00ff50f1,m3-arraycopy,product code,29,40300
 1,00ff50f1,m3-arraycopy,reading,25,0
 1,00ff50f1,m3-arraycopy,scratch files,3,2948
-1,00ff50f1,m3-arraycopy,test runs,36,0
+1,00ff50f1,m3-arraycopy,test runs,38,0
 1,00ff50f1,m3-arraycopy,tests and fixtures,16,28851
 1,010074a7,,other commands,1,0
 1,010074a7,,reading,1,0
@@ -37,13 +46,12 @@ version,session,change,category,actions,bytes
 1,030151d6,,measurement runs,2,0
 1,030151d6,,other commands,35,0
 1,030151d6,,reading,9,0
-1,030151d6,m3-divergence-trace,builds,1,0
 1,030151d6,m3-divergence-trace,documents and planning,7,9256
 1,030151d6,m3-divergence-trace,other commands,19,0
 1,030151d6,m3-divergence-trace,product code,7,15696
 1,030151d6,m3-divergence-trace,reading,3,0
 1,030151d6,m3-divergence-trace,scratch files,1,927
-1,030151d6,m3-divergence-trace,test runs,5,0
+1,030151d6,m3-divergence-trace,test runs,6,0
 1,030151d6,m3-divergence-trace,tests and fixtures,16,21154
 1,030151d6,m3-measured-copies,builds,3,0
 1,030151d6,m3-measured-copies,documents and planning,13,25669
@@ -102,6 +110,13 @@ version,session,change,category,actions,bytes
 1,06acca35,m3-typefields,scratch files,3,3920
 1,06acca35,m3-typefields,test runs,25,0
 1,06acca35,m3-typefields,tests and fixtures,15,11998
+1,0753fe94,m4-checker-groups,builds,5,0
+1,0753fe94,m4-checker-groups,documents and planning,10,1211
+1,0753fe94,m4-checker-groups,other commands,26,0
+1,0753fe94,m4-checker-groups,product code,37,12793
+1,0753fe94,m4-checker-groups,reading,4,0
+1,0753fe94,m4-checker-groups,scratch files,2,1038
+1,0753fe94,m4-checker-groups,test runs,14,0
 1,07b00272,,documents and planning,3,326
 1,07b00272,,other commands,12,0
 1,07b00272,,reading,13,0
@@ -149,6 +164,16 @@ version,session,change,category,actions,bytes
 1,0b62e185,m3-sound,reading,2,0
 1,0b62e185,m3-sound,scratch files,2,7127
 1,0b62e185,m3-sound,test runs,2,0
+1,0bb959ca,,documents and planning,1,442
+1,0bb959ca,,other commands,4,0
+1,0bb959ca,,test runs,1,0
+1,0bb959ca,m4-upstream-rejections,builds,1,0
+1,0bb959ca,m4-upstream-rejections,documents and planning,8,3035
+1,0bb959ca,m4-upstream-rejections,other commands,26,0
+1,0bb959ca,m4-upstream-rejections,product code,1,618
+1,0bb959ca,m4-upstream-rejections,scratch files,3,1572
+1,0bb959ca,m4-upstream-rejections,test runs,10,0
+1,0bb959ca,m4-upstream-rejections,tests and fixtures,1,787
 1,0ce06980,,other commands,1,0
 1,0d0a3828,,other commands,1,0
 1,0d0a3828,m3-constant-evaluation,other commands,1,0
@@ -185,10 +210,10 @@ version,session,change,category,actions,bytes
 1,112bfb8a,m3-network-embed,measurement preparation,4,2665
 1,112bfb8a,m3-network-embed,measurement runs,4,0
 1,112bfb8a,m3-network-embed,other,2,418
-1,112bfb8a,m3-network-embed,other commands,183,0
+1,112bfb8a,m3-network-embed,other commands,182,0
 1,112bfb8a,m3-network-embed,product code,62,43861
 1,112bfb8a,m3-network-embed,reading,25,0
-1,112bfb8a,m3-network-embed,test runs,41,0
+1,112bfb8a,m3-network-embed,test runs,42,0
 1,112bfb8a,m3-network-embed,tests and fixtures,25,21296
 1,11e6949c,,reading,1,0
 1,11e6949c,m2-defxxx-common-arrays,builds,6,0
@@ -202,6 +227,16 @@ version,session,change,category,actions,bytes
 1,11e6949c,m2-defxxx-common-arrays,scratch files,3,2924
 1,11e6949c,m2-defxxx-common-arrays,test runs,27,0
 1,11e6949c,m2-defxxx-common-arrays,tests and fixtures,42,30549
+1,1249708b,m4-upstream-rejections,builds,9,0
+1,1249708b,m4-upstream-rejections,documents and planning,21,22126
+1,1249708b,m4-upstream-rejections,measurement preparation,1,1083
+1,1249708b,m4-upstream-rejections,measurement runs,4,0
+1,1249708b,m4-upstream-rejections,other commands,147,0
+1,1249708b,m4-upstream-rejections,product code,27,17886
+1,1249708b,m4-upstream-rejections,reading,14,0
+1,1249708b,m4-upstream-rejections,scratch files,3,9188
+1,1249708b,m4-upstream-rejections,test runs,44,0
+1,1249708b,m4-upstream-rejections,tests and fixtures,9,4072
 1,12d91049,,other commands,1,0
 1,14f6ddf8,,builds,1,0
 1,14f6ddf8,,other commands,16,0
@@ -253,6 +288,18 @@ version,session,change,category,actions,bytes
 1,1c9984e0,m2-console-screenhide,test runs,13,0
 1,1c9984e0,m2-console-screenhide,tests and fixtures,12,7712
 1,1ca14e17,m3-errorline-chr-const,other commands,1,0
+1,1de8b923,,other,1,0
+1,1de8b923,,other commands,29,0
+1,1de8b923,m4-builtins-param-types,builds,4,0
+1,1de8b923,m4-builtins-param-types,documents and planning,23,30323
+1,1de8b923,m4-builtins-param-types,measurement preparation,1,1096
+1,1de8b923,m4-builtins-param-types,measurement runs,6,0
+1,1de8b923,m4-builtins-param-types,other commands,90,0
+1,1de8b923,m4-builtins-param-types,product code,19,8171
+1,1de8b923,m4-builtins-param-types,reading,14,0
+1,1de8b923,m4-builtins-param-types,scratch files,3,8673
+1,1de8b923,m4-builtins-param-types,test runs,38,0
+1,1de8b923,m4-builtins-param-types,tests and fixtures,1,765
 1,1e0539b4,,other commands,1,0
 1,1e0539b4,,reading,10,0
 1,1e0539b4,m2-procedures-and-errors,documents and planning,17,16386
@@ -288,6 +335,17 @@ version,session,change,category,actions,bytes
 1,2010f174,,other commands,1,0
 1,21104885,,other commands,1,0
 1,21104885,m3-images-fonts-mouse,other commands,2,0
+1,21a4bf91,,other commands,1,0
+1,21a4bf91,m4-handlers-logging-checking,builds,15,0
+1,21a4bf91,m4-handlers-logging-checking,documents and planning,29,15209
+1,21a4bf91,m4-handlers-logging-checking,measurement preparation,11,9867
+1,21a4bf91,m4-handlers-logging-checking,measurement runs,6,0
+1,21a4bf91,m4-handlers-logging-checking,other commands,203,0
+1,21a4bf91,m4-handlers-logging-checking,product code,30,13687
+1,21a4bf91,m4-handlers-logging-checking,reading,12,0
+1,21a4bf91,m4-handlers-logging-checking,scratch files,8,29701
+1,21a4bf91,m4-handlers-logging-checking,test runs,54,0
+1,21a4bf91,m4-handlers-logging-checking,tests and fixtures,36,17895
 1,21f63db5,,other commands,3,0
 1,21f63db5,,reading,11,0
 1,21f63db5,,test runs,1,0
@@ -348,7 +406,7 @@ version,session,change,category,actions,bytes
 1,28377963,extension-diagnostics,test runs,25,0
 1,28377963,extension-diagnostics,tests and fixtures,9,18052
 1,28867a87,,other commands,1,0
-1,28867a87,m3-versioninfo,builds,3,0
+1,28867a87,m3-versioninfo,builds,2,0
 1,28867a87,m3-versioninfo,documents and planning,17,12585
 1,28867a87,m3-versioninfo,measurement preparation,1,802
 1,28867a87,m3-versioninfo,measurement runs,1,0
@@ -356,13 +414,23 @@ version,session,change,category,actions,bytes
 1,28867a87,m3-versioninfo,other commands,69,0
 1,28867a87,m3-versioninfo,product code,26,20963
 1,28867a87,m3-versioninfo,reading,19,0
-1,28867a87,m3-versioninfo,test runs,30,0
+1,28867a87,m3-versioninfo,test runs,31,0
 1,28867a87,m3-versioninfo,tests and fixtures,8,13484
+1,296d5982,,documents and planning,6,1832
+1,296d5982,,other,1,0
+1,296d5982,,other commands,60,0
+1,296d5982,,test runs,1,0
+1,296d5982,m4-names-arrays,documents and planning,18,34763
+1,296d5982,m4-names-arrays,other commands,30,0
+1,296d5982,m4-names-arrays,reading,2,0
+1,296d5982,m4-names-arrays,scratch files,1,738
+1,296d5982,m4-names-arrays,test runs,1,0
 1,2a17bf8b,m3-asserts-debug-zlib,other,1,0
 1,2a17bf8b,m3-asserts-debug-zlib,other commands,6,0
 1,2a17bf8b,m3-asserts-debug-zlib,reading,1,0
 1,2a17bf8b,m3-asserts-debug-zlib,scratch files,1,2237
 1,2a17bf8b,m3-asserts-debug-zlib,test runs,2,0
+1,2c045dad,m4-checker-groups,other commands,1,0
 1,2c361b49,,reading,1,0
 1,2c361b49,m2-defxxx-common-arrays,builds,4,0
 1,2c361b49,m2-defxxx-common-arrays,documents and planning,17,17047
@@ -448,13 +516,13 @@ version,session,change,category,actions,bytes
 1,36ac8a27,cws-whole-game,builds,2,0
 1,36ac8a27,cws-whole-game,documents and planning,11,4442
 1,36ac8a27,cws-whole-game,measurement preparation,3,3680
-1,36ac8a27,cws-whole-game,measurement runs,13,0
+1,36ac8a27,cws-whole-game,measurement runs,6,0
 1,36ac8a27,cws-whole-game,other,1,0
-1,36ac8a27,cws-whole-game,other commands,216,0
+1,36ac8a27,cws-whole-game,other commands,204,0
 1,36ac8a27,cws-whole-game,product code,12,6258
 1,36ac8a27,cws-whole-game,reading,79,0
 1,36ac8a27,cws-whole-game,scratch files,27,31683
-1,36ac8a27,cws-whole-game,test runs,37,0
+1,36ac8a27,cws-whole-game,test runs,56,0
 1,36ac8a27,cws-whole-game,tests and fixtures,53,83233
 1,3814c23a,,documents and planning,17,15207
 1,3814c23a,,other,5,0
@@ -476,6 +544,14 @@ version,session,change,category,actions,bytes
 1,3876683e,m2-parser-breadth,reading,14,0
 1,3876683e,m2-parser-breadth,test runs,23,0
 1,3876683e,m2-parser-breadth,tests and fixtures,9,3580
+1,38bcce89,,builds,1,0
+1,38bcce89,,measurement runs,1,0
+1,38bcce89,,other,1,0
+1,38bcce89,,other commands,17,0
+1,38bcce89,,product code,12,3401
+1,38bcce89,,reading,40,0
+1,38bcce89,,test runs,8,0
+1,38bcce89,,tests and fixtures,5,1596
 1,39450803,m2-numeric-types,other commands,1,0
 1,39497089,,other commands,4,0
 1,39497089,,product code,7,2499
@@ -574,14 +650,14 @@ version,session,change,category,actions,bytes
 1,3ee337a0,test-parallel-runs,reading,2,0
 1,3ee337a0,test-parallel-runs,test runs,4,0
 1,3f52816f,,other commands,1,0
-1,3f52816f,m3-network-embed,builds,3,0
+1,3f52816f,m3-network-embed,builds,1,0
 1,3f52816f,m3-network-embed,documents and planning,12,13601
 1,3f52816f,m3-network-embed,measurement preparation,4,921
 1,3f52816f,m3-network-embed,measurement runs,2,0
 1,3f52816f,m3-network-embed,other commands,66,0
 1,3f52816f,m3-network-embed,product code,3,1394
 1,3f52816f,m3-network-embed,reading,7,0
-1,3f52816f,m3-network-embed,test runs,13,0
+1,3f52816f,m3-network-embed,test runs,15,0
 1,3f52816f,m3-network-embed,tests and fixtures,4,678
 1,404c65b5,,other commands,1,0
 1,404c65b5,,reading,1,0
@@ -683,11 +759,10 @@ version,session,change,category,actions,bytes
 1,4a9a821b,,other commands,1,0
 1,4a9a821b,verification-compare,documents and planning,1,152
 1,4a9a821b,verification-compare,measurement preparation,2,357
-1,4a9a821b,verification-compare,measurement runs,1,0
 1,4a9a821b,verification-compare,other commands,30,0
 1,4a9a821b,verification-compare,product code,4,1102
 1,4a9a821b,verification-compare,reading,3,0
-1,4a9a821b,verification-compare,test runs,9,0
+1,4a9a821b,verification-compare,test runs,10,0
 1,4a9a821b,verification-compare,tests and fixtures,4,1665
 1,4c15903c,,builds,1,0
 1,4c15903c,,other,1,0
@@ -741,9 +816,9 @@ version,session,change,category,actions,bytes
 1,4ed8c305,m3-network-embed,tests and fixtures,31,23644
 1,4ed8c305,test-while-building,builds,1,0
 1,4ed8c305,test-while-building,documents and planning,12,15490
-1,4ed8c305,test-while-building,other commands,17,0
+1,4ed8c305,test-while-building,other commands,16,0
 1,4ed8c305,test-while-building,reading,2,0
-1,4ed8c305,test-while-building,test runs,9,0
+1,4ed8c305,test-while-building,test runs,10,0
 1,4ef89253,,documents and planning,6,1102
 1,4ef89253,,other,1,0
 1,4ef89253,,other commands,3,0
@@ -785,10 +860,10 @@ version,session,change,category,actions,bytes
 1,509dde77,,reading,1,0
 1,509dde77,m3-constant-evaluation,builds,1,0
 1,509dde77,m3-constant-evaluation,documents and planning,4,1079
-1,509dde77,m3-constant-evaluation,other commands,34,0
+1,509dde77,m3-constant-evaluation,other commands,33,0
 1,509dde77,m3-constant-evaluation,product code,11,4387
 1,509dde77,m3-constant-evaluation,reading,9,0
-1,509dde77,m3-constant-evaluation,test runs,14,0
+1,509dde77,m3-constant-evaluation,test runs,15,0
 1,509dde77,m3-constant-evaluation,tests and fixtures,2,1326
 1,50bac4d8,,reading,1,0
 1,50bac4d8,m2-builtin-statements,builds,1,0
@@ -803,7 +878,6 @@ version,session,change,category,actions,bytes
 1,50bac4d8,m2-builtin-statements,test runs,19,0
 1,50bac4d8,m2-builtin-statements,tests and fixtures,28,21270
 1,51223a0c,,other commands,1,0
-1,51223a0c,m3-arraycopy,builds,1,0
 1,51223a0c,m3-arraycopy,documents and planning,21,8532
 1,51223a0c,m3-arraycopy,measurement preparation,2,1853
 1,51223a0c,m3-arraycopy,measurement runs,3,0
@@ -811,7 +885,7 @@ version,session,change,category,actions,bytes
 1,51223a0c,m3-arraycopy,product code,9,3021
 1,51223a0c,m3-arraycopy,reading,16,0
 1,51223a0c,m3-arraycopy,scratch files,2,1047
-1,51223a0c,m3-arraycopy,test runs,15,0
+1,51223a0c,m3-arraycopy,test runs,16,0
 1,51223a0c,m3-arraycopy,tests and fixtures,4,4111
 1,5130390d,,other commands,1,0
 1,5130390d,,reading,1,0
@@ -981,6 +1055,18 @@ version,session,change,category,actions,bytes
 1,61cb4f0b,m2-procedures-and-errors,test runs,16,0
 1,61cb4f0b,m2-procedures-and-errors,tests and fixtures,6,3081
 1,61ebf359,,other commands,2,0
+1,644e42c0,,other,1,0
+1,644e42c0,,other commands,7,0
+1,644e42c0,,reading,1,0
+1,644e42c0,m4-handlers-logging-checking,builds,1,0
+1,644e42c0,m4-handlers-logging-checking,documents and planning,3,1381
+1,644e42c0,m4-handlers-logging-checking,measurement preparation,4,889
+1,644e42c0,m4-handlers-logging-checking,measurement runs,2,0
+1,644e42c0,m4-handlers-logging-checking,other commands,36,0
+1,644e42c0,m4-handlers-logging-checking,product code,10,3781
+1,644e42c0,m4-handlers-logging-checking,reading,6,0
+1,644e42c0,m4-handlers-logging-checking,test runs,12,0
+1,644e42c0,m4-handlers-logging-checking,tests and fixtures,2,582
 1,65b702f8,,other commands,1,0
 1,65b702f8,,reading,1,0
 1,65b702f8,m2-defxxx-common-arrays,builds,4,0
@@ -1096,6 +1182,10 @@ version,session,change,category,actions,bytes
 1,6ca4385f,m3-mem,scratch files,26,40614
 1,6ca4385f,m3-mem,test runs,54,0
 1,6ca4385f,m3-mem,tests and fixtures,16,13071
+1,6cb56095,,documents and planning,1,288
+1,6cb56095,,reading,1,0
+1,6cb56095,dry-cleanup,other commands,2,0
+1,6cb56095,m4-handlers-logging-checking,other commands,1,0
 1,6d30f8f6,,reading,1,0
 1,6d30f8f6,m2-defxxx-common-arrays,builds,7,0
 1,6d30f8f6,m2-defxxx-common-arrays,documents and planning,29,41635
@@ -1119,13 +1209,12 @@ version,session,change,category,actions,bytes
 1,6d586be5,,tests and fixtures,22,11102
 1,6d586be5,m3-errorline-chr-const,documents and planning,29,34342
 1,6d586be5,m3-errorline-chr-const,measurement preparation,1,771
-1,6d586be5,m3-errorline-chr-const,measurement runs,1,0
 1,6d586be5,m3-errorline-chr-const,other,4,0
 1,6d586be5,m3-errorline-chr-const,other commands,42,0
 1,6d586be5,m3-errorline-chr-const,product code,1,379
 1,6d586be5,m3-errorline-chr-const,reading,5,0
 1,6d586be5,m3-errorline-chr-const,scratch files,1,3576
-1,6d586be5,m3-errorline-chr-const,test runs,23,0
+1,6d586be5,m3-errorline-chr-const,test runs,24,0
 1,6d586be5,m3-errorline-chr-const,tests and fixtures,27,33611
 1,6d5aabb1,,builds,1,0
 1,6d5aabb1,,documents and planning,5,1553
@@ -1140,6 +1229,10 @@ version,session,change,category,actions,bytes
 1,6e612bb3,extension-vsix,reading,9,0
 1,6e612bb3,extension-vsix,test runs,15,0
 1,6e612bb3,extension-vsix,tests and fixtures,3,1815
+1,6f06a685,,documents and planning,5,1623
+1,6f06a685,,other commands,9,0
+1,6f06a685,,reading,1,0
+1,6f06a685,,test runs,1,0
 1,6f06e603,,other commands,14,0
 1,6f06e603,,reading,3,0
 1,6f06e603,,test runs,1,0
@@ -1169,6 +1262,21 @@ version,session,change,category,actions,bytes
 1,702e0e5b,m2-workspace-and-slice,reading,4,0
 1,702e0e5b,m2-workspace-and-slice,test runs,32,0
 1,702e0e5b,m2-workspace-and-slice,tests and fixtures,6,9991
+1,70323a4c,m4-names-arrays,other,1,0
+1,70323a4c,m4-names-arrays,other commands,6,0
+1,70323a4c,m4-names-arrays,reading,5,0
+1,70323a4c,m4-names-arrays,scratch files,1,1639
+1,70323a4c,m4-names-arrays,test runs,2,0
+1,70d686fe,m4-qb64pe-sources,builds,6,0
+1,70d686fe,m4-qb64pe-sources,documents and planning,28,21416
+1,70d686fe,m4-qb64pe-sources,measurement preparation,15,18029
+1,70d686fe,m4-qb64pe-sources,measurement runs,7,0
+1,70d686fe,m4-qb64pe-sources,other commands,131,0
+1,70d686fe,m4-qb64pe-sources,product code,42,18087
+1,70d686fe,m4-qb64pe-sources,reading,58,0
+1,70d686fe,m4-qb64pe-sources,scratch files,11,16006
+1,70d686fe,m4-qb64pe-sources,test runs,67,0
+1,70d686fe,m4-qb64pe-sources,tests and fixtures,24,10746
 1,718cad48,m2-numeric-types,other commands,2,0
 1,718cad48,m2-numeric-types,reading,1,0
 1,718cad48,m2-numeric-types,test runs,1,0
@@ -1196,7 +1304,23 @@ version,session,change,category,actions,bytes
 1,729041fe,m3-constant-evaluation,test runs,68,0
 1,729041fe,m3-constant-evaluation,tests and fixtures,26,21629
 1,73a9cfe7,,other commands,2,0
+1,740adcf0,,other commands,26,0
+1,740adcf0,,reading,1,0
+1,740adcf0,m4-upstream-rejections,documents and planning,6,26341
+1,740adcf0,m4-upstream-rejections,other commands,13,0
+1,740adcf0,m4-upstream-rejections,test runs,1,0
 1,741137ec,,other commands,4,0
+1,74587158,,other,1,0
+1,74587158,,other commands,46,0
+1,74587158,,reading,6,0
+1,74587158,m4-handlers-logging-checking,documents and planning,12,36725
+1,74587158,m4-handlers-logging-checking,other commands,13,0
+1,74587158,m4-handlers-logging-checking,test runs,2,0
+1,745c79bc,,other,1,0
+1,745c79bc,,other commands,14,0
+1,745c79bc,m4-checker-groups,documents and planning,4,11742
+1,745c79bc,m4-checker-groups,other commands,5,0
+1,745c79bc,m4-checker-groups,test runs,1,0
 1,749d54cb,,other commands,1,0
 1,752e15a1,,documents and planning,4,10676
 1,752e15a1,,measurement preparation,20,17128
@@ -1223,11 +1347,21 @@ version,session,change,category,actions,bytes
 1,7702bcbf,const-rulings,documents and planning,3,27
 1,7702bcbf,libqb-object-flags,builds,1,0
 1,7702bcbf,libqb-object-flags,documents and planning,6,2002
-1,7702bcbf,libqb-object-flags,other commands,34,0
+1,7702bcbf,libqb-object-flags,other commands,33,0
 1,7702bcbf,libqb-object-flags,product code,7,2949
 1,7702bcbf,libqb-object-flags,reading,5,0
-1,7702bcbf,libqb-object-flags,test runs,13,0
+1,7702bcbf,libqb-object-flags,test runs,14,0
 1,7702bcbf,libqb-object-flags,tests and fixtures,5,1281
+1,77b521c3,m4-names-arrays,builds,13,0
+1,77b521c3,m4-names-arrays,documents and planning,45,22775
+1,77b521c3,m4-names-arrays,measurement preparation,6,6983
+1,77b521c3,m4-names-arrays,measurement runs,3,0
+1,77b521c3,m4-names-arrays,other commands,56,0
+1,77b521c3,m4-names-arrays,product code,39,13206
+1,77b521c3,m4-names-arrays,reading,73,0
+1,77b521c3,m4-names-arrays,scratch files,4,3347
+1,77b521c3,m4-names-arrays,test runs,36,0
+1,77b521c3,m4-names-arrays,tests and fixtures,26,8015
 1,77c77d98,,builds,1,0
 1,77c77d98,,documents and planning,13,8329
 1,77c77d98,,measurement preparation,18,4214
@@ -1273,10 +1407,10 @@ version,session,change,category,actions,bytes
 1,7837fe7e,libqb-copy,documents and planning,36,36215
 1,7837fe7e,libqb-copy,measurement runs,1,0
 1,7837fe7e,libqb-copy,other,7,317
-1,7837fe7e,libqb-copy,other commands,78,0
+1,7837fe7e,libqb-copy,other commands,77,0
 1,7837fe7e,libqb-copy,product code,29,15776
 1,7837fe7e,libqb-copy,reading,28,0
-1,7837fe7e,libqb-copy,test runs,35,0
+1,7837fe7e,libqb-copy,test runs,36,0
 1,7837fe7e,libqb-copy,tests and fixtures,18,22614
 1,78821586,,documents and planning,3,268
 1,78821586,,other commands,5,0
@@ -1350,6 +1484,16 @@ version,session,change,category,actions,bytes
 1,7ca42c41,,other commands,5,0
 1,7ca42c41,,test runs,1,0
 1,7ca42c41,m3-sound-handles,other commands,4,0
+1,7cc8c940,,other,1,0
+1,7cc8c940,,other commands,3,0
+1,7cc8c940,,reading,2,0
+1,7cc8c940,dry-cleanup,builds,1,0
+1,7cc8c940,dry-cleanup,documents and planning,7,2197
+1,7cc8c940,dry-cleanup,other commands,29,0
+1,7cc8c940,dry-cleanup,product code,4,919
+1,7cc8c940,dry-cleanup,reading,18,0
+1,7cc8c940,dry-cleanup,test runs,19,0
+1,7cc8c940,dry-cleanup,tests and fixtures,24,8189
 1,7cf84f30,,reading,1,0
 1,7cf84f30,m2-parser-breadth,builds,1,0
 1,7cf84f30,m2-parser-breadth,documents and planning,3,2123
@@ -1418,6 +1562,16 @@ version,session,change,category,actions,bytes
 1,8444969c,m3-declare-library,other commands,1,0
 1,84ef368a,m3-network-embed,other commands,2,0
 1,852a154d,,other commands,1,0
+1,86633fe7,,documents and planning,1,157
+1,86633fe7,,other,1,0
+1,86633fe7,,other commands,65,0
+1,86633fe7,,reading,1,0
+1,86633fe7,,test runs,1,0
+1,86633fe7,m4-checker-groups,other commands,4,0
+1,86633fe7,m4-devices-continue-paths,documents and planning,22,49026
+1,86633fe7,m4-devices-continue-paths,other commands,13,0
+1,86633fe7,m4-devices-continue-paths,reading,1,0
+1,86633fe7,m4-devices-continue-paths,test runs,2,0
 1,867f84d0,,other commands,2,0
 1,86b01453,,documents and planning,1,321
 1,86b01453,,other commands,6,0
@@ -1593,10 +1747,10 @@ version,session,change,category,actions,bytes
 1,9a5cc32b,,tests and fixtures,6,1237
 1,9a5cc32b,cws-whole-game,builds,1,0
 1,9a5cc32b,cws-whole-game,documents and planning,4,828
-1,9a5cc32b,cws-whole-game,other commands,24,0
+1,9a5cc32b,cws-whole-game,other commands,23,0
 1,9a5cc32b,cws-whole-game,reading,15,0
 1,9a5cc32b,cws-whole-game,scratch files,1,224
-1,9a5cc32b,cws-whole-game,test runs,13,0
+1,9a5cc32b,cws-whole-game,test runs,14,0
 1,9a5cc32b,cws-whole-game,tests and fixtures,13,2011
 1,9ac445ec,,other commands,11,0
 1,9ac445ec,,reading,1,0
@@ -1627,6 +1781,16 @@ version,session,change,category,actions,bytes
 1,9c8e1c8c,,other commands,1,0
 1,9c8e1c8c,m2-builtin-statements,other commands,1,0
 1,9d803fb1,m3-images-fonts-mouse,other commands,2,0
+1,9ddab112,,other commands,1,0
+1,9ddab112,,reading,1,0
+1,9ddab112,m4-devices-continue-paths,builds,1,0
+1,9ddab112,m4-devices-continue-paths,documents and planning,1,564
+1,9ddab112,m4-devices-continue-paths,generated files,1,552
+1,9ddab112,m4-devices-continue-paths,other commands,33,0
+1,9ddab112,m4-devices-continue-paths,product code,5,2797
+1,9ddab112,m4-devices-continue-paths,reading,3,0
+1,9ddab112,m4-devices-continue-paths,test runs,9,0
+1,9ddab112,m4-devices-continue-paths,tests and fixtures,7,3762
 1,9de12d67,,reading,1,0
 1,9de12d67,m3-declare-library,other commands,1,0
 1,a02fed14,m3-typefields,other commands,1,0
@@ -1724,6 +1888,12 @@ version,session,change,category,actions,bytes
 1,a7eece6b,m3-typefields,other commands,26,0
 1,a7eece6b,m3-typefields,scratch files,6,4090
 1,a7eece6b,m3-typefields,test runs,3,0
+1,a8f847eb,,other commands,2,0
+1,a8f847eb,m4-devices-continue-paths,other,1,0
+1,a8f847eb,m4-devices-continue-paths,other commands,5,0
+1,a8f847eb,m4-devices-continue-paths,reading,3,0
+1,a8f847eb,m4-devices-continue-paths,scratch files,2,3032
+1,a8f847eb,m4-devices-continue-paths,test runs,2,0
 1,aa7df950,,other commands,1,0
 1,aa7df950,m2-control-flow-slice,builds,5,0
 1,aa7df950,m2-control-flow-slice,documents and planning,11,6722
@@ -1824,6 +1994,19 @@ version,session,change,category,actions,bytes
 1,b57ed499,m2-control-flow-slice,product code,1,723
 1,b57ed499,m2-control-flow-slice,reading,17,0
 1,b57ed499,m2-control-flow-slice,test runs,1,0
+1,b5cf0a5b,,other,1,0
+1,b5cf0a5b,,other commands,38,0
+1,b5cf0a5b,,scratch files,1,2294
+1,b5cf0a5b,dry-cleanup,builds,7,0
+1,b5cf0a5b,dry-cleanup,documents and planning,22,23749
+1,b5cf0a5b,dry-cleanup,other commands,38,0
+1,b5cf0a5b,dry-cleanup,product code,21,6656
+1,b5cf0a5b,dry-cleanup,reading,26,0
+1,b5cf0a5b,dry-cleanup,scratch files,6,5196
+1,b5cf0a5b,dry-cleanup,test runs,23,0
+1,b5cf0a5b,dry-cleanup,tests and fixtures,11,4368
+1,b5cf0a5b,m4-handlers-logging-checking,other,1,0
+1,b5cf0a5b,m4-handlers-logging-checking,other commands,2,0
 1,b78cef6d,,documents and planning,26,9258
 1,b78cef6d,,other commands,14,0
 1,b78cef6d,,reading,13,0
@@ -1922,10 +2105,10 @@ version,session,change,category,actions,bytes
 1,c47bc2ae,cws-whole-game,other commands,3,0
 1,c47bc2ae,cws-whole-game,test runs,1,0
 1,c47bc2ae,verification-compare,builds,1,0
-1,c47bc2ae,verification-compare,measurement runs,1,0
 1,c47bc2ae,verification-compare,other,2,0
-1,c47bc2ae,verification-compare,other commands,43,0
-1,c47bc2ae,verification-compare,test runs,9,0
+1,c47bc2ae,verification-compare,other commands,42,0
+1,c47bc2ae,verification-compare,test runs,11,0
+1,c4c35015,,other commands,2,0
 1,c5364f40,,documents and planning,2,797
 1,c5364f40,,other commands,20,0
 1,c5364f40,,product code,1,106
@@ -1995,18 +2178,17 @@ version,session,change,category,actions,bytes
 1,ca80ec7e,,other commands,14,0
 1,ca80ec7e,,reading,5,0
 1,ca80ec7e,,test runs,3,0
-1,cac03501,,measurement runs,1,0
 1,cac03501,,other,2,0
 1,cac03501,,other commands,36,0
 1,cac03501,,scratch files,1,1939
+1,cac03501,,test runs,1,0
 1,cac03501,cpp-failure-errors,builds,5,0
 1,cac03501,cpp-failure-errors,documents and planning,11,20426
-1,cac03501,cpp-failure-errors,measurement runs,4,0
-1,cac03501,cpp-failure-errors,other commands,52,0
+1,cac03501,cpp-failure-errors,other commands,48,0
 1,cac03501,cpp-failure-errors,product code,19,22020
 1,cac03501,cpp-failure-errors,reading,5,0
 1,cac03501,cpp-failure-errors,scratch files,1,1076
-1,cac03501,cpp-failure-errors,test runs,28,0
+1,cac03501,cpp-failure-errors,test runs,36,0
 1,cac03501,cpp-failure-errors,tests and fixtures,3,1130
 1,cae3a7f6,,reading,1,0
 1,cae3a7f6,m2-numeric-types,builds,4,0
@@ -2051,6 +2233,9 @@ version,session,change,category,actions,bytes
 1,ce3ebf66,m2-control-flow-slice,test runs,5,0
 1,ce3ebf66,m2-control-flow-slice,tests and fixtures,1,253
 1,ce3ebf66,m2-parser-breadth,reading,1,0
+1,cea10dd5,m4-checker-groups,other commands,9,0
+1,cea10dd5,m4-checker-groups,reading,1,0
+1,cea10dd5,m4-checker-groups,test runs,1,0
 1,cf0a162a,m3-declare-library,other commands,1,0
 1,cf4bfa06,,other commands,19,0
 1,cf4bfa06,,test runs,1,0
@@ -2130,6 +2315,11 @@ version,session,change,category,actions,bytes
 1,d653c3c2,,other commands,35,0
 1,d653c3c2,,reading,2,0
 1,d653c3c2,,scratch files,1,10151
+1,d795c20f,,other commands,1,0
+1,d795c20f,m4-builtins-param-types,other,1,0
+1,d795c20f,m4-builtins-param-types,other commands,7,0
+1,d795c20f,m4-builtins-param-types,scratch files,2,3573
+1,d795c20f,m4-builtins-param-types,test runs,1,0
 1,d8032d20,m2-defxxx-common-arrays,other commands,1,0
 1,d90e0f94,,other commands,2,0
 1,d96364d4,,documents and planning,1,985
@@ -2158,13 +2348,13 @@ version,session,change,category,actions,bytes
 1,dad4678a,verification-compare,builds,7,0
 1,dad4678a,verification-compare,documents and planning,12,7970
 1,dad4678a,verification-compare,measurement preparation,2,4404
-1,dad4678a,verification-compare,measurement runs,12,0
+1,dad4678a,verification-compare,measurement runs,2,0
 1,dad4678a,verification-compare,other,3,0
 1,dad4678a,verification-compare,other commands,87,0
 1,dad4678a,verification-compare,product code,5,3669
 1,dad4678a,verification-compare,reading,34,0
 1,dad4678a,verification-compare,scratch files,2,6183
-1,dad4678a,verification-compare,test runs,35,0
+1,dad4678a,verification-compare,test runs,45,0
 1,dad4678a,verification-compare,tests and fixtures,55,53301
 1,dafb8d57,m3-console-files,builds,9,0
 1,dafb8d57,m3-console-files,documents and planning,41,59263
@@ -2231,6 +2421,18 @@ version,session,change,category,actions,bytes
 1,de4c4433,,reading,5,0
 1,de4c4433,,test runs,8,0
 1,de4c4433,,tests and fixtures,9,1407
+1,df731c60,,other,1,0
+1,df731c60,,other commands,4,0
+1,df731c60,,reading,5,0
+1,df731c60,m4-names-arrays,builds,1,0
+1,df731c60,m4-names-arrays,documents and planning,4,2167
+1,df731c60,m4-names-arrays,measurement preparation,8,2341
+1,df731c60,m4-names-arrays,measurement runs,3,0
+1,df731c60,m4-names-arrays,other commands,31,0
+1,df731c60,m4-names-arrays,product code,11,6698
+1,df731c60,m4-names-arrays,reading,16,0
+1,df731c60,m4-names-arrays,test runs,13,0
+1,df731c60,m4-names-arrays,tests and fixtures,2,425
 1,df7ceeaa,,other commands,8,0
 1,df7ceeaa,,scratch files,1,2162
 1,e08a2555,,other commands,15,0
@@ -2240,6 +2442,17 @@ version,session,change,category,actions,bytes
 1,e08a2555,m2-golden-corpus,reading,3,0
 1,e08a2555,m2-golden-corpus,test runs,6,0
 1,e08a2555,m2-golden-corpus,tests and fixtures,1,1333
+1,e1bfd1d3,m4-devices-continue-paths,builds,9,0
+1,e1bfd1d3,m4-devices-continue-paths,documents and planning,28,8169
+1,e1bfd1d3,m4-devices-continue-paths,measurement preparation,2,1528
+1,e1bfd1d3,m4-devices-continue-paths,measurement runs,5,0
+1,e1bfd1d3,m4-devices-continue-paths,other,3,191
+1,e1bfd1d3,m4-devices-continue-paths,other commands,162,0
+1,e1bfd1d3,m4-devices-continue-paths,product code,31,20435
+1,e1bfd1d3,m4-devices-continue-paths,reading,26,0
+1,e1bfd1d3,m4-devices-continue-paths,scratch files,15,33630
+1,e1bfd1d3,m4-devices-continue-paths,test runs,73,0
+1,e1bfd1d3,m4-devices-continue-paths,tests and fixtures,39,26650
 1,e2889731,,documents and planning,3,747
 1,e2889731,,other commands,1,0
 1,e2889731,,reading,3,0
@@ -2269,11 +2482,13 @@ version,session,change,category,actions,bytes
 1,e3272f48,m3-errorline-chr-const,scratch files,2,1912
 1,e3272f48,m3-errorline-chr-const,test runs,2,0
 1,e386a939,,other commands,1,0
-1,e3961321,cpp-failure-errors,documents and planning,1,550
-1,e3961321,cpp-failure-errors,other commands,6,0
+1,e3961321,,other commands,1,0
+1,e3961321,cpp-failure-errors,documents and planning,5,4083
+1,e3961321,cpp-failure-errors,other,1,0
+1,e3961321,cpp-failure-errors,other commands,11,0
 1,e3961321,cpp-failure-errors,product code,4,1020
 1,e3961321,cpp-failure-errors,reading,2,0
-1,e3961321,cpp-failure-errors,test runs,3,0
+1,e3961321,cpp-failure-errors,test runs,4,0
 1,e3fa5b59,,measurement preparation,9,18729
 1,e3fa5b59,,measurement runs,1,0
 1,e3fa5b59,,other commands,22,0
@@ -2335,7 +2550,7 @@ version,session,change,category,actions,bytes
 1,e8a99cdc,,other,2,0
 1,e8a99cdc,,other commands,34,0
 1,e8a99cdc,,reading,5,0
-1,e8a99cdc,m3-events,builds,8,0
+1,e8a99cdc,m3-events,builds,7,0
 1,e8a99cdc,m3-events,documents and planning,34,65145
 1,e8a99cdc,m3-events,measurement preparation,10,9767
 1,e8a99cdc,m3-events,measurement runs,11,0
@@ -2344,7 +2559,7 @@ version,session,change,category,actions,bytes
 1,e8a99cdc,m3-events,product code,31,37249
 1,e8a99cdc,m3-events,reading,5,0
 1,e8a99cdc,m3-events,scratch files,3,8319
-1,e8a99cdc,m3-events,test runs,40,0
+1,e8a99cdc,m3-events,test runs,41,0
 1,e8a99cdc,m3-events,tests and fixtures,10,11315
 1,e91a12e1,,reading,1,0
 1,e91a12e1,m2-control-flow-slice,builds,1,0
@@ -2411,6 +2626,32 @@ version,session,change,category,actions,bytes
 1,f1f17f0a,m2-language-server,documents and planning,7,31847
 1,f1f17f0a,m2-language-server,other commands,2,0
 1,f1f17f0a,m2-language-server,test runs,1,0
+1,f2c52087,,documents and planning,1,208
+1,f2c52087,,other commands,4,0
+1,f2c52087,,test runs,1,0
+1,f2c52087,m4-qb64pe-sources,builds,1,0
+1,f2c52087,m4-qb64pe-sources,documents and planning,16,5361
+1,f2c52087,m4-qb64pe-sources,measurement preparation,2,674
+1,f2c52087,m4-qb64pe-sources,measurement runs,3,0
+1,f2c52087,m4-qb64pe-sources,other,1,0
+1,f2c52087,m4-qb64pe-sources,other commands,57,0
+1,f2c52087,m4-qb64pe-sources,product code,3,1512
+1,f2c52087,m4-qb64pe-sources,reading,11,0
+1,f2c52087,m4-qb64pe-sources,scratch files,1,3659
+1,f2c52087,m4-qb64pe-sources,test runs,27,0
+1,f2c52087,m4-qb64pe-sources,tests and fixtures,4,608
+1,f33a7dd7,,other commands,1,0
+1,f33a7dd7,m4-handlers-logging-checking,builds,1,0
+1,f33a7dd7,m4-handlers-logging-checking,measurement preparation,2,64
+1,f33a7dd7,m4-handlers-logging-checking,other commands,36,0
+1,f33a7dd7,m4-handlers-logging-checking,reading,8,0
+1,f33a7dd7,m4-handlers-logging-checking,scratch files,1,2408
+1,f33a7dd7,m4-handlers-logging-checking,test runs,11,0
+1,f33a7dd7,m4-handlers-logging-checking,tests and fixtures,1,92
+1,f33a7dd7,m4-upstream-rejections,documents and planning,6,4217
+1,f33a7dd7,m4-upstream-rejections,other commands,11,0
+1,f33a7dd7,m4-upstream-rejections,reading,1,0
+1,f33a7dd7,m4-upstream-rejections,test runs,1,0
 1,f53ab0b0,,documents and planning,3,362
 1,f53ab0b0,,other commands,4,0
 1,f53ab0b0,,reading,3,0
@@ -2428,6 +2669,10 @@ version,session,change,category,actions,bytes
 1,f60344a6,m3-typefields,scratch files,1,993
 1,f60344a6,m3-typefields,test runs,12,0
 1,f60344a6,m3-typefields,tests and fixtures,6,3805
+1,f75a2529,m4-handlers-logging-checking,other,1,0
+1,f75a2529,m4-handlers-logging-checking,other commands,8,0
+1,f75a2529,m4-handlers-logging-checking,scratch files,1,1047
+1,f75a2529,m4-handlers-logging-checking,test runs,1,0
 1,f7bcc1d6,,documents and planning,3,344
 1,f7bcc1d6,,other commands,9,0
 1,f7bcc1d6,,product code,4,899
@@ -2476,6 +2721,13 @@ version,session,change,category,actions,bytes
 1,fc016671,m3-sound-handles,scratch files,3,12605
 1,fc016671,m3-sound-handles,test runs,20,0
 1,fc016671,m3-sound-handles,tests and fixtures,11,20093
+1,fc70bf0d,,builds,1,0
+1,fc70bf0d,,documents and planning,6,3845
+1,fc70bf0d,,other commands,34,0
+1,fc70bf0d,,reading,13,0
+1,fc70bf0d,,scratch files,1,1760
+1,fc70bf0d,,test runs,18,0
+1,fc70bf0d,,tests and fixtures,1,242
 1,fc85f657,,reading,1,0
 1,fc85f657,m2-console-screenhide,builds,1,0
 1,fc85f657,m2-console-screenhide,documents and planning,22,8363

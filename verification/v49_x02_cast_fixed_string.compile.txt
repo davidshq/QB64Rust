@@ -1,0 +1,5 @@
+
+Cannot convert type (STRING*4%) to symbol
+Caused by (or after):X = _CAST ( STRING * 4 , 1 )
+LINE 3:x = _CAST(STRING * 4, 1)
+exit=1

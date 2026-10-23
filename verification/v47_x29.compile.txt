@@ -1,0 +1,5 @@
+
+Invalid symbol
+Caused by (or after):S$ . X = "hi",2
+LINE 3:s$ . x = "hi"
+exit=1

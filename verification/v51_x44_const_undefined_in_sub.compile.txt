@@ -1,0 +1,5 @@
+
+Unexpected element 'UNDEFINED'
+Caused by (or after):
+LINE 7:CONST C = 20 OR UNDEFINED
+exit=1

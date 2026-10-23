@@ -20,6 +20,7 @@ array_params_errors.bas:26:6: error: an array argument cannot stand in parenthes
 array_params_errors.bas:28:5: error: the whole array `x()` cannot be passed to a parameter that is no array
 array_params_errors.bas:29:12: error: the whole array `x()` cannot be passed to a parameter that is no array
 array_params_errors.bas:35:6: error: an array of 2 dimensions is passed to `a`, which has 1
+array_params_errors.bas:35:6: note: QB64pe: Passing arrays with a differing number of elements to a SUB/FUNCTION is not supported
 array_params_errors.bas:40:1: error: `fresh&` has 1 dimension, not 2
 array_params_errors.bas:42:25: error: name already in use: `a`
 array_params_errors.bas:44:20: error: a name with a type suffix cannot have an `AS` clause

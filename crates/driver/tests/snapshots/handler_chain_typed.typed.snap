@@ -1,0 +1,29 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+line 2: ConsoleOnly
+line 5: OnError HA
+line 6: OnError _NEWHANDLER HB
+line 7: OnError _LASTHANDLER
+line 8: OnError 0
+line 9: Call S
+line 10: Print newline
+  Num
+    CallProc F : F32
+line 11: System
+line 12: Label HA
+line 13: Resume Next
+line 14: Label HB
+line 15: Resume Next
+SUB S
+line 18: OnError _NEWHANDLER HB
+line 19: OnError _LASTHANDLER
+FUNCTION F : F32
+  result F:F32
+line 23: OnError _NEWHANDLER HA
+line 24: Assign F (result):F32
+  Convert Nearest : F32
+    Int 1 : I16
+line 25: OnError _LASTHANDLER

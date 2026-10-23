@@ -1,0 +1,5 @@
+
+2nd sub argument requires a string
+Caused by (or after):_WRITEFILE "v52_x57.tmp",11 , 5
+LINE 4:_WRITEFILE "v52_x57.tmp", 5
+exit=1

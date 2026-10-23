@@ -1,0 +1,5 @@
+
+No label allowed after _LASTHANDLER
+Caused by (or after):ON ERROR GOTO _LASTHANDLER H
+LINE 4:ON ERROR GOTO _LASTHANDLER h
+exit=1

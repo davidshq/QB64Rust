@@ -10,4 +10,3 @@ redim_unsupported.bas:16:14: error: not supported yet: `q(...)` (an array used w
 redim_unsupported.bas:17:7: error: not supported yet: `ERASE` of `q`, an array used without `DIM`
 redim_unsupported.bas:18:7: error: not supported yet: `it(...)` (an array used without `DIM`, or no FUNCTION of this name)
 redim_unsupported.bas:20:9: error: not supported yet: an array of more than 2^31 elements
-redim_unsupported.bas:23:11: error: not supported yet: `REDIM e` without bounds in a SUB or FUNCTION

@@ -1,0 +1,5 @@
+
+Zero not allowed after _NEWHANDLER
+Caused by (or after):ON ERROR GOTO _NEWHANDLER 0
+LINE 3:ON ERROR GOTO _NEWHANDLER 0
+exit=1

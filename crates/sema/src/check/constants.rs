@@ -12,22 +12,33 @@ use crate::consteval::{self, FloatTy, Problem, Value};
 use crate::literal::{self, NumLit};
 use crate::{BinOp, Const, ConstId, Expr, ExprKind, Storage, SymbolKind, Ty, UnOp};
 use qb64rust_base::{Span, show_bytes, to_u32};
-use qb64rust_builtins::find_function_form;
+use qb64rust_builtins::{find_any, find_function_form};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
+use qb64rust_syntax::is_keyword;
 use qb64rust_syntax::tree::Tok;
 
 impl Checker<'_> {
     /// `CONST name = value, ...`. Defines no statement: uses of the constants become literals.
     pub(super) fn const_stmt(&mut self, stmt: ast::ConstStmt) -> R<()> {
         // A label before it on its line is no problem here (the old compiler fails, `DIVERGENCES.md` D-008).
-        self.const_at = Some(self.main_offset(stmt.node().key()));
+        self.stmt.const_at = Some(self.main_offset(stmt.node().key()));
+        self.stmt.consts_before = self.consts_before.get(&stmt.node().key()).copied();
         let in_colors = self.color_file == Some(stmt.node().span().file);
         for item in stmt.items() {
             let name_tok = self.need(item.name(), item.node().span())?;
             let value_node = self.need(item.value(), item.node().span())?;
             let (name, suffix) = self.split_name(name_tok)?;
             if self.procs_by_name.contains_key(&name) {
+                return Err(self.in_use(name_tok));
+            }
+            if !matches!(suffix, None | Some(Ty::I32))
+                && !name.starts_with('_')
+                && (is_keyword(name.as_bytes()) || find_any(name.as_bytes()).any(|b| b.musthave.is_none()))
+            {
+                // Unlike a variable's, a constant's name is looked up without its suffix: a keyword, or a built-in
+                // without a required suffix, is taken whatever the suffix (`qb64pe.bas` 2651–2692; measured,
+                // `verification\v52_x32`, `x67`, `x68`: `CONST key$`, `exp$`, `key!`).
                 return Err(self.in_use(name_tok));
             }
             self.reserved(name_tok, &name, suffix)?;
@@ -54,7 +65,7 @@ impl Checker<'_> {
                 if c.ty != ty || c.value != value {
                     return Err(self.in_use(name_tok));
                 }
-                self.names.push((SymbolKind::Const(id), name_tok.span));
+                self.stmt.names.push((SymbolKind::Const(id), name_tok.span));
                 continue;
             }
             self.before_const(name_tok, &name)?;
@@ -75,9 +86,17 @@ impl Checker<'_> {
             if fell_back {
                 self.fell_back.insert(id);
             }
-            self.names.push((SymbolKind::Const(id), name_tok.span));
+            self.stmt.names.push((SymbolKind::Const(id), name_tok.span));
         }
         Ok(())
+    }
+
+    /// Whether a `CONST` of this name stands above the one being checked, in any body ([`Checker::const_names`]);
+    /// true where that is not known.
+    fn const_above(&self, name: &str) -> bool {
+        self.stmt
+            .consts_before
+            .is_none_or(|n| self.const_names[..n].iter().any(|(c, _)| c == name))
     }
 
     /// The checks of a new constant's name against what came before it.
@@ -174,7 +193,7 @@ impl Checker<'_> {
             let NumLit::Int { value, ty, qb } = literal::constant_literal(v, to) else {
                 unreachable!("an integer constant is an integer literal");
             };
-            self.names.push((SymbolKind::Const(id), t.span));
+            self.stmt.names.push((SymbolKind::Const(id), t.span));
             return Ok(Expr {
                 span,
                 ty,
@@ -183,7 +202,7 @@ impl Checker<'_> {
             });
         }
         let (ty, value) = self.problem(consteval::convert(c.ty, c.value, to), t.span)?;
-        self.names.push((SymbolKind::Const(id), t.span));
+        self.stmt.names.push((SymbolKind::Const(id), t.span));
         Ok(literal_expr(span, ty, value))
     }
 
@@ -229,7 +248,7 @@ impl Checker<'_> {
                         if self.color_consts.contains(&id)
                             && self
                                 .first_color
-                                .zip(self.const_at)
+                                .zip(self.stmt.const_at)
                                 .is_some_and(|(color, at)| at < color)
                         {
                             let msg = format!(
@@ -242,7 +261,7 @@ impl Checker<'_> {
                         if self.fell_back.contains(&id) {
                             consteval::fell_back();
                         }
-                        self.names.push((SymbolKind::Const(id), t.span));
+                        self.stmt.names.push((SymbolKind::Const(id), t.span));
                         Ok(v)
                     }
                     // Measured, `verification\v43_x06`: `CHR$ 65` is an error.
@@ -264,7 +283,14 @@ impl Checker<'_> {
                     (None, suffix) if find_function_form(name.as_bytes(), suffix == Some(Ty::Str)).is_some() => {
                         Err(self.error(t.span, format!("`{shown}` cannot be used in a `CONST`")))
                     }
-                    (None, _) => Err(self.unsupported(t.span, format!("`{shown}`, not a constant defined so far"))),
+                    // A `CONST` of this name above may be one this compiler did not take (an error, a mark, a body
+                    // not reached); any other name is an error (measured: "Unexpected element 'B'" for an
+                    // undefined name, a constant defined below, a SUB's, a label's, a FUNCTION's or an array's name,
+                    // upstream `const/undefined_argument*`, `verification` `v51_x44`-`x49`, `x52`, `x53`).
+                    (None, _) if self.const_above(&name) => {
+                        Err(self.unsupported(t.span, format!("`{shown}`, not a constant defined so far")))
+                    }
+                    (None, _) => Err(self.error(t.span, format!("`{shown}` is no constant defined above"))),
                 }
             }
             ast::Expr::Call(call) => {

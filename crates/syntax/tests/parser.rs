@@ -124,6 +124,15 @@ fn const_errors() {
 }
 
 #[test]
+fn const_operator_operands() {
+    // In a `CONST`, an operator word where a value is expected is an error, also after `NOT`; `1 OR` at the end
+    // of the line is the plain error; outside a `CONST` the same word stays marked "not supported yet".
+    insta::assert_snapshot!(tree(
+        "CONST c = OR\nCONST d = NOT OR\nCONST e = 1 OR\nCONST f = AND 1\nCONST g = MOD\nx = OR\nPRINT x\n"
+    ));
+}
+
+#[test]
 fn option_forms() {
     insta::assert_snapshot!(tree(
         "OPTION BASE 1\nOPTION _EXPLICIT: DIM x\nOPTION _EXPLICITARRAY\nOPTION EXPLICIT\nSUB s\n  OPTION _EXPLICIT\nEND SUB\n"
@@ -449,6 +458,16 @@ fn single_line_if() {
 fn loops() {
     insta::assert_snapshot!(tree(
         "FOR i = 1 TO 9 STEP 2\n  FOR j% = i TO 1 STEP -1\n    EXIT FOR\nNEXT j%, i\nDO WHILE a: EXIT DO: LOOP\nDO\nLOOP UNTIL b\nWHILE c\n  IF c THEN EXIT WHILE\nWEND\n"
+    ));
+}
+
+/// `_CONTINUE` (design D1 of `m4-devices-continue-paths`): in each loop kind, through a single-line `IF` and a
+/// `SELECT`, in lower case; an error outside a loop and in a SUB whose only loop is around its call
+/// (`verification\v47_x01`, `x02`); with an argument, an error (`v47_x03`).
+#[test]
+fn continue_forms() {
+    insta::assert_snapshot!(tree(
+        "FOR i = 1 TO 3: IF i = 2 THEN _CONTINUE\nNEXT\nDO\n  SELECT CASE n\n    CASE 1: _CONTINUE\n  END SELECT\nLOOP UNTIL n\nWHILE c: _continue: WEND\n_CONTINUE\nFOR i = 1 TO 2: _CONTINUE 1: NEXT\nSUB s\n  _CONTINUE\nEND SUB\n"
     ));
 }
 

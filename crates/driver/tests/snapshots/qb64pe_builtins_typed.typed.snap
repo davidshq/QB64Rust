@@ -1,0 +1,59 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+line 2: ConsoleOnly
+line 9: Assign N:I32
+  Call _INSTRREV : I32
+    (absent)
+    Var A : Str
+    Str "." : Str
+line 10: Assign N:I32
+  Call _INSTRREV : I32
+    Int 3 : I32
+    Var A : Str
+    Var FX : Str
+line 11: Assign N:I32
+  Call _INSTRREV : I32
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Var S : F32
+    Str "a.b" : Str
+    Str "." : Str
+line 12: Assign A:Str
+  Call _READFILE : Str
+    Var A : Str
+line 13: Assign A:Str
+  Call _FULLPATH : Str
+    Concat : Str
+      Var FX : Str
+      Str "." : Str
+line 14: Builtin _WRITEFILE
+  Var A : Str
+  Call _READFILE : Str
+    Str "x" : Str
+line 15: Builtin _WRITEFILE
+  Var FX : Str
+  Concat : Str
+    Var A : Str
+    Str "b" : Str
+line 16: Assign F:F80
+  Convert Widen : F80
+    Call _ARCSEC : F64 (qb F80)
+      Var I : I16
+line 17: Assign F:F80
+  Convert Widen : F80
+    Call _ARCCSC : F64 (qb F80)
+      Var S : F32
+line 18: Assign D:F64
+  Call _ARCCOT : F64 (qb F80)
+    Var D : F64
+line 19: Assign F:F80
+  Convert Widen : F80
+    Call _SECH : F64 (qb F80)
+      Var N : I32
+line 20: Assign F:F80
+  Convert Widen : F80
+    Call _CSCH : F64 (qb F80)
+      Var F : F80

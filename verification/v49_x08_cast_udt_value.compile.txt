@@ -1,0 +1,5 @@
+
+Expected numeric argument
+Caused by (or after):X = _CAST ( LONG , P )
+LINE 7:x = _CAST(LONG, p)
+exit=1

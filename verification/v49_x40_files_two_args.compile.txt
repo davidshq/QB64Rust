@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _FILES$([fileSpec$])
+Caused by (or after):PRINT _FILES$ ( "a",1 , "b",1 )
+LINE 3:PRINT _FILES$("a", "b")
+exit=1

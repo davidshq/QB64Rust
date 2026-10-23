@@ -2,14 +2,14 @@
 //! arrays and their bounds, array elements, members and dotted names, `LBOUND`/`UBOUND`. Every rule is measured
 //! (`verification\v18_*`, `study\00` §5); what was not measured is "not supported yet".
 
-use super::decl::Declarer;
-use super::expr::is_builtin_function;
-use super::{Checker, DimFact, Failed, NoJoin, R, Scope, Skips};
+use super::decl::{AsPlace, Declarer, name_end};
+use super::expr::{Use, is_builtin_function};
+use super::{Checker, DimFact, Failed, NoJoin, R, Scope, Skips, split_unsigned};
 use crate::{AllocMode, BinOp, ConvKind, StmtKind, UnOp};
 use crate::{ArrayRef, Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType};
 use crate::{MEM_TYPE, Var, VarId, mem_type};
 use qb64rust_base::{Span, show_bytes, to_u32};
-use qb64rust_builtins::find_any;
+use qb64rust_builtins::{auto_constant, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
@@ -55,39 +55,56 @@ const TYPE_NAMES_TAKEN: &[&str] = &["LEN", "PRINT", "LONG"];
 const MEMBER_NAMES_FREE: &[&str] = &["LEFT", "LEN", "COLOR", "NAME"];
 const MEMBER_NAMES_TAKEN: &[&str] = &["PRINT"];
 
+/// When the bounds of a member array are read ([`Checker::member_bounds`]).
+#[derive(Clone, Copy, Debug)]
+enum Bounds {
+    /// In pass 1, before any `CONST` is evaluated, with the number of `CONST`s above the block and whether it
+    /// stands in a SUB or FUNCTION ([`Checker::const_names`]).
+    Pass1((usize, bool)),
+    /// In pass 2, where the constants above the block are known (the first bounds of a dynamic member array).
+    Pass2,
+}
+
 /// The most elements an array may have here (none of the inputs comes near it; measured, 10,000,001 LONGs work).
 const MAX_ELEMENTS: i64 = i32::MAX as i64;
 
 impl Checker<'_> {
     // ---- user types ----
 
-    /// Pass 1: the `TYPE` blocks of the main module, so a type may be used above its block (measured,
-    /// `v18_h_type_before_block`). A block with an error is not entered; its uses are "not supported yet".
-    pub(super) fn declare_types(&mut self, statements: &[Node], skips: &Skips) {
-        for &s in statements {
-            let Some(b) = ast::TypeBlock::cast(s) else {
-                continue;
-            };
+    /// Pass 1: every `TYPE` block in file order, in the main module, a procedure or a block, each a type of the
+    /// whole program, so a type may be used above its block (measured, `v18_h_type_before_block`,
+    /// `v48_c_type_anywhere`; the old compiler's prepass, `qb64pe.bas` 2483). A block with an error is not entered;
+    /// its uses are "not supported yet".
+    pub(super) fn declare_types(&mut self, blocks: &[ast::TypeBlock], skips: &Skips) {
+        for (k, &b) in blocks.iter().enumerate() {
+            let s = b.node();
             if skips.past_cap(s) {
                 break;
             }
-            self.types_seen.insert(s.key());
             if !skips.usable(s) {
                 continue;
             }
-            self.stmt_error = false;
+            self.stmt.stmt_error = false;
             let marks = self.diags.unsupported_count();
-            if self.declare_type(b).is_ok() {
+            if let Ok(id) = self.declare_type(b) {
                 self.type_defs.insert(s.key());
-            } else if self.diags.unsupported_count() > marks {
-                // Pass 2 starts the follow-on rule when it reaches this block (design D10).
-                self.types_marked.insert(s.key());
+                self.type_order.insert(id, k);
+            } else {
+                if self.diags.unsupported_count() > marks {
+                    // Pass 2 starts the follow-on rule when it reaches this block (design D10).
+                    self.types_marked.insert(s.key());
+                }
+                if let Some(t) = b.header().and_then(|h| h.name()) {
+                    let word = self.text(t.span);
+                    let name = show_bytes(&word[..name_end(word)].to_ascii_uppercase());
+                    self.types_failed.insert(name);
+                }
             }
             self.flush_names();
         }
     }
 
-    fn declare_type(&mut self, b: ast::TypeBlock) -> R<()> {
+    fn declare_type(&mut self, b: ast::TypeBlock) -> R<TypeId> {
         let span = b.node().span();
         let header = self.need(b.header(), span)?;
         let name_tok = self.need(header.name(), header.node().span())?;
@@ -110,16 +127,22 @@ impl Checker<'_> {
             return Err(self.unsupported(name_tok.span, msg));
         }
         if self.types_by_name.contains_key(&name) {
-            return Err(self.unsupported(name_tok.span, format!("a second `TYPE {shown}`")));
+            // Measured: "Name already in use", wherever the two blocks stand (`verification\v48_x05`).
+            return Err(self.in_use(name_tok));
         }
         // `OPTION BASE` as it stands at the block: the lower bound of a member array's dimension without `TO`.
         let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
+        let above = self.consts_above.get(&b.node().key()).copied().unwrap_or((0, false));
         let mut members: Vec<Member> = Vec::new();
         let mut const_bounds = false;
         for field in b.fields() {
             let fspan = field.node().span();
             let a = self.need(field.as_clause(), fspan)?;
-            let ty = self.member_type(a)?;
+            let list = field
+                .names()
+                .next()
+                .is_some_and(|f| a.node().span().start < f.node().span().start);
+            let ty = self.member_type(a, list)?;
             for f in field.names() {
                 let t = self.need(f.name(), f.node().span())?;
                 let shown = show_bytes(self.text(t.span));
@@ -127,12 +150,12 @@ impl Checker<'_> {
                 let bounds = match f.bounds() {
                     // The first bounds of a dynamic member array may name a `CONST` (measured,
                     // `verification\v35_x17`): they are read in pass 2, where the constants above the block are
-                    // known; until then each dimension is 0 TO 0.
+                    // known, in a procedure its own (`v48_x27`, `x28`); until then each dimension is 0 TO 0.
                     Some(bounds) if dynamic && names_constants(bounds) => {
                         const_bounds = true;
                         vec![(0, 0); bounds.ranges().len()]
                     }
-                    Some(bounds) => self.member_bounds(bounds, base, &shown, false)?,
+                    Some(bounds) => self.member_bounds(bounds, base, &shown, Bounds::Pass1(above))?,
                     None => Vec::new(),
                 };
                 let (mname, msuffix) = self.split_name(t)?;
@@ -183,13 +206,13 @@ impl Checker<'_> {
         if const_bounds {
             self.type_const_bounds.insert(b.node().key(), id);
         }
-        Ok(())
+        Ok(id)
     }
 
     /// Pass 2 at a `TYPE` block of [`Checker::type_const_bounds`]: the first bounds of its dynamic member arrays
     /// that name a `CONST`, now that the constants above the block are known.
     fn type_const_bounds(&mut self, b: ast::TypeBlock, id: TypeId) {
-        self.stmt_error = false;
+        self.stmt.stmt_error = false;
         let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
         let names = b.fields().flat_map(|field| field.names().collect::<Vec<_>>());
         for (i, f) in names.enumerate() {
@@ -200,7 +223,7 @@ impl Checker<'_> {
                 continue;
             }
             let shown = show_bytes(self.text(f.name().map_or(f.node().span(), |t| t.span)));
-            if let Ok(read) = self.member_bounds(bounds, base, &shown, true) {
+            if let Ok(read) = self.member_bounds(bounds, base, &shown, Bounds::Pass2) {
                 self.prog.types[id.0 as usize].members[i].bounds = read;
             }
         }
@@ -249,19 +272,12 @@ impl Checker<'_> {
     /// has no rule of its own here (`z(0)` under base 1 is "Invalid array bounds", as bounds in the wrong order
     /// are); nothing between the parentheses is "Array bounds missing".
     ///
-    /// A bound is a constant expression. The blocks are read before the program's `CONST`s, so a bound that
-    /// names one (accepted by the old compiler, `v24_x196`) cannot be told from a variable (its "TYPE member
-    /// array bounds must be numeric constant", `x195`): a bound that is not written with numbers alone is not
-    /// supported yet.
-    ///
-    /// `constants`: the constants above the block are known (pass 2, the first bounds of a dynamic member array).
-    fn member_bounds(
-        &mut self,
-        bounds: ast::ArrayBounds,
-        base: i64,
-        shown: &str,
-        constants: bool,
-    ) -> R<Vec<(i64, i64)>> {
+    /// A bound is a constant expression, read where the block stands: a name that is no `CONST` above it is "TYPE
+    /// member array bounds must be numeric constant" (`v24_x195`; `v51_x01`–`x08`: a variable, an unknown name, a
+    /// `CONST` below the block or in a SUB below it, `LEN`). The blocks are read before the program's `CONST`s
+    /// are evaluated, so a bound that names one above (accepted by the old compiler, `v24_x196`, `v51_x09`), or
+    /// may be one ([`Self::may_be_constant`]), is not supported yet.
+    fn member_bounds(&mut self, bounds: ast::ArrayBounds, base: i64, shown: &str, when: Bounds) -> R<Vec<(i64, i64)>> {
         let span = bounds.node().span();
         let ranges = bounds.ranges();
         if ranges.is_empty() {
@@ -272,10 +288,17 @@ impl Checker<'_> {
         for (lower, upper) in ranges {
             let upper = self.need(upper, span)?;
             for bound in lower.into_iter().chain([upper]) {
-                if !constants && !only_numbers(bound) {
+                let Bounds::Pass1(above) = when else {
+                    continue;
+                };
+                if only_numbers(bound) {
+                    continue;
+                }
+                if self.may_be_constant(bound, above) {
                     let msg = "a bound of a member array that is not written with numbers alone (a `CONST`)";
                     return Err(self.unsupported(bound.node().span(), msg));
                 }
+                return Err(self.error(bound.node().span(), "a bound of a member array must be a constant"));
             }
             let l = match lower {
                 Some(l) => self.constant_bound(l)?,
@@ -299,6 +322,38 @@ impl Checker<'_> {
         Ok(out)
     }
 
+    /// Whether a bound of a member array names what may be a constant where its block stands: a `CONST` above
+    /// the block in file order (of [`Checker::const_names`]; for a block of the main module one of the main
+    /// module, measured: a SUB's above it is the error, `verification\v51_x13`), a constant or function of
+    /// QB64pe's auto-included file, a function of the constant evaluator (`_PI` alone, `ABS(…)`: accepted,
+    /// `v51_x10`, `x11`, `x14`), or a dotted name (not measured). An array's element, a FUNCTION of the program
+    /// and `LEN` are none (`x05`, `x06`, `x12`, `x15`).
+    fn may_be_constant(&self, node: ast::Expr, above: (usize, bool)) -> bool {
+        let (count, in_proc) = above;
+        let known = |c: &Self, t: Tok| {
+            let word = c.text(t.span);
+            let name = show_bytes(&word[..name_end(word)].to_ascii_uppercase());
+            c.const_names[..count]
+                .iter()
+                .any(|(n, proc)| *n == name && (in_proc || !proc))
+                || auto_constant(name.as_bytes()).is_some()
+                || is_auto_include_name(name.as_bytes())
+                || crate::consteval::function_arity(&name).is_some()
+        };
+        match node {
+            ast::Expr::Literal(_) => false,
+            ast::Expr::Paren(p) => p.inner().is_some_and(|e| self.may_be_constant(e, above)),
+            ast::Expr::Prefix(p) => p.operand().is_some_and(|e| self.may_be_constant(e, above)),
+            ast::Expr::Bin(b) => {
+                b.lhs().is_some_and(|e| self.may_be_constant(e, above))
+                    || b.rhs().is_some_and(|e| self.may_be_constant(e, above))
+            }
+            ast::Expr::NameRef(n) => n.name().is_none_or(|t| known(self, t)),
+            ast::Expr::Call(c) => c.name().is_none_or(|t| known(self, t)),
+            ast::Expr::Field(_) => true,
+        }
+    }
+
     /// A bound that must be known when compiling (of a member array, in its `TYPE` block or in a `REDIM` of it),
     /// rounded half to even as any bound is. Measured for one that is not: "TYPE member array bounds must be
     /// numeric constant" (`verification\v24_x195`, `x220`).
@@ -319,18 +374,42 @@ impl Checker<'_> {
     /// `verification\v24_h_string_members`), a fixed-length string of n bytes (n a number: the block is read
     /// before any `CONST`), or a user type defined in an earlier block. A `_BIT` member is an error (measured:
     /// "Cannot use _BIT inside user defined types", `verification\v21_x25`, `x26`).
-    fn member_type(&mut self, a: ast::AsClause) -> R<Ty> {
+    ///
+    /// Any other name is "Undefined type", a type defined in a later block too (measured, `verification\v51_x20`–
+    /// `x25`, `x27`, upstream `arrays/40_err_undefined_type`), and before the names of an `AS type` list "Expected
+    /// element-name AS type, AS type element-list, or END TYPE" (`x26`). `list`: the clause stands before the
+    /// names.
+    fn member_type(&mut self, a: ast::AsClause, list: bool) -> R<Ty> {
         let span = a.node().span();
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
+        let words = self.as_words(a);
         let text = words.join(" ");
         if let Some(t) = self.user_type_of(&text) {
             return Ok(t);
         }
-        let built_in = words.first().is_some_and(|w| w == "_UNSIGNED") || numeric_type(&text).is_some();
-        if !built_in && text != "STRING" {
-            return Err(self.unsupported(span, format!("the member type `{text}`")));
+        let (unsigned, rest) = split_unsigned(&words);
+        let base = rest.join(" ");
+        let sized = a.size().is_none() || base == "STRING" || base == "_BIT";
+        let built_in = numeric_type(&base).is_some()
+            || base == "STRING"
+            || (unsigned && (base.is_empty() || self.user_type_of(&base).is_some()));
+        if !(built_in && sized) {
+            // A block above that was not entered may define it.
+            if self.types_failed.contains(&base) {
+                return Err(self.unsupported(span, format!("the member type `{text}`")));
+            }
+            let shown = if a.size().is_some() {
+                format!("{text} * …")
+            } else {
+                text
+            };
+            let msg = if list {
+                format!("the type `{shown}` of a member list is no type")
+            } else {
+                format!("the member type `{shown}` is no type")
+            };
+            return Err(self.error(span, msg));
         }
-        let ty = self.type_of_in(a, false)?;
+        let ty = self.type_of_in(a, false, AsPlace::Decl)?;
         if let Ty::Bit { .. } = ty {
             Err(self.error(span, "a `TYPE` member cannot be a `_BIT`"))
         } else {
@@ -338,27 +417,15 @@ impl Checker<'_> {
         }
     }
 
-    /// A `TYPE` block met in pass 2: one of the main module's was handled in pass 1; one inside a procedure or a
-    /// block (accepted by the old compiler inside a SUB, `v18_h_type_in_sub`) is not supported yet.
-    pub(super) fn type_block(&mut self, b: ast::TypeBlock, skips: &Skips) {
+    /// A `TYPE` block met in pass 2, wherever it stands: pass 1 declared it ([`Self::declare_types`]). A block
+    /// pass 1 marked starts the follow-on rule here, in file order.
+    pub(super) fn type_block(&mut self, b: ast::TypeBlock) {
         let node = b.node();
-        if self.types_seen.contains(&node.key()) {
-            if self.types_marked.contains(&node.key()) {
-                self.follow_on = true;
-            }
-            if let Some(&id) = self.type_const_bounds.get(&node.key()) {
-                self.type_const_bounds(b, id);
-            }
-            return;
+        if self.types_marked.contains(&node.key()) {
+            self.at.follow_on = true;
         }
-        let Some(header) = b.header().map(|h| h.node()) else {
-            return;
-        };
-        if skips.usable(header) {
-            self.stmt_error = false;
-            let _ = self.unsupported(header.span(), "`TYPE` blocks inside a SUB, FUNCTION or block");
-            self.flush_names();
-            self.follow_on = true;
+        if let Some(&id) = self.type_const_bounds.get(&node.key()) {
+            self.type_const_bounds(b, id);
         }
     }
 
@@ -442,7 +509,50 @@ impl Checker<'_> {
         // declared with `AS`, by `REDIM` or by `DIM`. With `AS` and another type than that array's it is "Name
         // already in use", between `STRING` and `STRING * n` or two lengths "Type mismatch" (`v24_x39`, `x41`,
         // `x42`).
-        let plain_array = self.array_plain_ty(&name);
+        let untyped = suffix.is_none() && !typed;
+        let mut plain_array = self.array_plain_ty(&name);
+        // `a$(…)` beside a `STRING * n` array `a` means that array ([`Self::array_key_ty`]); a `DIM` of it is "Type
+        // mismatch" (measured, `verification\v52_x45`), the other declarers are not measured.
+        if suffix == Some(Ty::Str)
+            && let Some(Ty::FixedStr(_)) = plain_array
+            && self.array_of(&(name.clone(), Ty::Str)).is_none()
+        {
+            if by == Declarer::Dim {
+                let msg = format!("`{shown}`: an array of variable-length strings beside the `STRING * n` one");
+                return Err(self.error(name_tok.span, msg));
+            }
+            let msg = format!("`{shown}` declared beside a `STRING * n` array of the name");
+            return Err(self.unsupported(name_tok.span, msg));
+        }
+        // Between two arrays of one name the plain name stays with the one typed by `AS` (measured,
+        // `verification\v48_x16`–`x24`), but for an array listed by `STATIC a() AS type` that nothing has reached:
+        // the old compiler makes no array for the list until then (`qb64pe.bas` 9260), so an array without `AS`
+        // is the only one of the name (`v24_x126`, `v48_a_scalar_array`).
+        let listed_typed = plain_array
+            .filter(|&t| untyped && t != ty)
+            .and_then(|t| self.scope().arrays.get(&(name.clone(), t)).copied())
+            .map(|v| self.prog.var(v))
+            .filter(|v| v.dim_count().is_none());
+        let takes_plain = match listed_typed.map(|v| v.storage) {
+            Some(Storage::Static(_)) => {
+                plain_array = None;
+                true
+            }
+            Some(Storage::Main) => {
+                // Listed by `COMMON a() AS type`: not measured.
+                let msg = format!("an array `{shown}` without `AS` beside one listed by `COMMON … AS`");
+                return Err(self.unsupported(name_tok.span, msg));
+            }
+            // In a procedure, its own array without `AS` takes the plain name from a shared typed one of the
+            // main module (measured, `v48_x20`).
+            _ => {
+                untyped
+                    && !redim
+                    && self.cur.is_some()
+                    && !self.local.array_plain.contains_key(&name)
+                    && plain_array.is_some_and(|t| t != ty)
+            }
+        };
         let ty = match (redim && suffix.is_none(), typed, plain_array) {
             (true, false, Some(adopted)) => adopted,
             (true, true, Some(other)) if other != ty => {
@@ -482,7 +592,7 @@ impl Checker<'_> {
         let lives = matches!(storage, Storage::Main | Storage::Static(_));
         let static_bounds = constant
             .clone()
-            .filter(|_| by == Declarer::Dim && lives && !self.dynamic_mode);
+            .filter(|_| by == Declarer::Dim && lives && !self.at.dynamic_mode);
         // `STATIC a(bounds)` is no static array: a dynamic one that is allocated when the program starts, below
         // `$DYNAMIC` or not ([`Shape::Dynamic`], `at_start`; read from the old compiler's C++ and measured,
         // `verification\v24_x278`, `v24_b_metacommand_sub`, slice `s56_proc_arrays`).
@@ -526,18 +636,12 @@ impl Checker<'_> {
             // procedures (measured, `verification\v24_x248`). In a procedure this may be a shared array of the
             // main module: a `DIM` of it there, with constant bounds too, raises error 10 when it runs (`x270`,
             // `x271`).
-            self.names.push((SymbolKind::Var(id), name_tok.span));
+            self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
             self.push(stmt, allocate(id));
             return Ok(());
         }
-        // A typed array beside a scalar of the name typed alike is measured (`v24_x56`,
-        // `v24_b_dim_empty_then_dim`); how a plain array name and another typed scalar or typed array of the name
-        // interact was not.
-        let plain_scalar = self.scope().plain.get(&name).copied();
-        if suffix.is_none() && (plain_array.is_some() || plain_scalar.is_some_and(|t| !(typed && t == ty))) {
-            let msg = format!("an array `{shown}` beside a variable or array typed by `DIM … AS`");
-            return Err(self.unsupported(name_tok.span, msg));
-        }
+        // A scalar of the name, typed by `AS` or not, is another variable (measured, `v24_x56`,
+        // `v24_b_dim_empty_then_dim`, `v48_a_scalar_array`).
         let shape = match static_bounds.or(start_bounds) {
             Some(bounds) => {
                 let mut count: i64 = 1;
@@ -588,11 +692,13 @@ impl Checker<'_> {
             if shared {
                 self.dim_shared_array_plain.insert(name, ty);
             }
+        } else if takes_plain {
+            self.scope().array_plain.insert(name, ty);
         }
         if shared {
             self.dim_shared.insert(id);
         }
-        self.names.push((SymbolKind::Var(id), name_tok.span));
+        self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
         if dynamic {
             self.push(stmt, allocate(id));
         }
@@ -653,7 +759,11 @@ impl Checker<'_> {
             let (low, low_value) = match low {
                 Some((e, value)) => (e, value),
                 None => {
-                    let base = if self.is_plain_zero(upper) { 0 } else { self.option_base };
+                    let base = if self.is_plain_zero(upper) {
+                        0
+                    } else {
+                        self.at.option_base
+                    };
                     let e = Expr {
                         span: up.span,
                         ty: Ty::I64,
@@ -747,8 +857,16 @@ impl Checker<'_> {
         own.or(shared)
     }
 
-    /// The type an array's plain (suffix-less) name means here.
+    /// The type an array's plain (suffix-less) name means here. `name$` where no array of the name and `$` is
+    /// visible means the `STRING * n` array of the name, if the plain name means one (design D7 of
+    /// `m4-qb64pe-sources`; measured, `verification\v52_x40`–`x42`, `x47`, `x48`).
     fn array_key_ty(&mut self, name: &str, suffix: Option<Ty>) -> Ty {
+        if suffix == Some(Ty::Str)
+            && self.array_of(&(name.to_string(), Ty::Str)).is_none()
+            && let Some(t @ Ty::FixedStr(_)) = self.array_plain_ty(name)
+        {
+            return t;
+        }
         if let Some(t) = suffix {
             return t;
         }
@@ -814,19 +932,32 @@ impl Checker<'_> {
         // The name of a supported built-in statement that is no function is that error for certain (`v39_x11`:
         // `l = _SNDPLAY(h)`).
         if underscore
-            && !self.follow_on
+            && !self.at.follow_on
             && !is_builtin_function(name, suffix)
             && !crate::builtins::stmt_lookup(name, suffix == Some(Ty::Str)).is_empty()
         {
             self.implicit_names.insert(name.to_string());
             return Err(self.error(t.span, format!("`{shown}(...)`: `{shown}` is a built-in statement")));
         }
-        if self.follow_on || underscore || self.procs_by_name.contains_key(name) {
+        // A function whose every entry requires `$`, named without it: "Invalid array name" for certain (measured,
+        // `verification\v52_x55`, `x59`: `_READFILE("a")`, `_FULLPATH(".")`).
+        let needs_dollar =
+            |b: &qb64rust_builtins::Builtin| b.kind == qb64rust_builtins::Kind::Function && b.musthave == Some("$");
+        if underscore
+            && !self.at.follow_on
+            && suffix.is_none()
+            && find_any(name.as_bytes()).next().is_some()
+            && find_any(name.as_bytes()).all(needs_dollar)
+        {
+            self.implicit_names.insert(name.to_string());
+            return Err(self.error(t.span, format!("`{shown}(...)`: `{shown}` is written with `$`")));
+        }
+        if self.at.follow_on || underscore || self.procs_by_name.contains_key(name) {
             return Err(self.not_an_array(t, name));
         }
         if is_builtin_function(name, suffix) {
-            // Measured for `rnd(1) = 2`: "Expected variable =" (`v24_x119`); the statements written like a store
-            // to a function (`ASC(s$, 2) = 65`) are not compiled yet.
+            // Measured for `rnd(1) = 2`: "Expected variable =" (`v24_x119`). The statements written like a store
+            // to a function, `MID$` and `ASC`, have their own arm of the assignment (`check\io.rs`).
             self.implicit_names.insert(name.to_string());
             let msg = format!("`{shown}(...)` as a place or an array (a built-in function's name)");
             return Err(self.unsupported(t.span, msg));
@@ -852,7 +983,7 @@ impl Checker<'_> {
         }
         self.reserved(t, name, suffix)?;
         let ty = self.array_key_ty(name, suffix);
-        if self.explicit_array {
+        if self.settings.explicit_array {
             // Measured: "Array 'z' (SINGLE) not defined" (`v24_x105`, `x256`, `x257`).
             let msg = format!(
                 "array `{shown}` ({}) is not declared (`OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`)",
@@ -860,17 +991,17 @@ impl Checker<'_> {
             );
             return Err(self.error(t.span, msg));
         }
-        if self.no_join == Some(NoJoin::RedimBound) {
+        if self.stmt.no_join == Some(NoJoin::RedimBound) {
             // Measured (`v24_x266`, `x268`): dynamic wherever it stands, and allocated as the `REDIM` allocates.
             self.implicit_names.insert(name.to_string());
             let msg = format!("`{shown}(...)`: an array first used in a bound of `REDIM`, without `DIM`");
             return Err(self.unsupported(t.span, msg));
         }
-        let base = self.option_base;
+        let base = self.at.option_base;
         // In a procedure with `STATIC` after its header the array lives for the program: a static one that
         // works, or below `$DYNAMIC` a dynamic one that nothing allocates (measured, `v24_f_implicit_sub`,
         // `v24_x120`).
-        let static_proc = self.cur.filter(|_| self.static_scope);
+        let static_proc = self.cur.filter(|_| self.at.static_scope);
         let (storage, shape) = match (self.cur, static_proc) {
             (Some(p), None) => (
                 Storage::Local(p),
@@ -879,14 +1010,14 @@ impl Checker<'_> {
                     at_start: None,
                 },
             ),
-            (_, Some(p)) if self.dynamic_mode => (
+            (_, Some(p)) if self.at.dynamic_mode => (
                 Storage::Static(p),
                 Shape::Dynamic {
                     dims: Some(dims),
                     at_start: None,
                 },
             ),
-            (None, _) if self.dynamic_mode => (
+            (None, _) if self.at.dynamic_mode => (
                 Storage::Main,
                 Shape::Dynamic {
                     dims: Some(dims),
@@ -903,13 +1034,13 @@ impl Checker<'_> {
                 (owner.map_or(Storage::Main, Storage::Static), Shape::Static { bounds })
             }
         };
-        let allocated_here = self.cur.is_none() && self.dynamic_mode;
+        let allocated_here = self.cur.is_none() && self.at.dynamic_mode;
         // The allocation runs where the name is evaluated, which is the start of the statement only when the
         // statement writes its code after evaluating all its parts ([`NoJoin`]). Measured for the line of a
         // block (`v24_x262`): before an `IF`, a `FOR`, a `WHILE`, a `DO WHILE` and a `SELECT CASE`, inside the
         // block for an `ELSEIF` (not reached: not allocated) and a `LOOP UNTIL` (on every round); what an error
         // in it skips there was not measured.
-        let place = match self.no_join {
+        let place = match self.stmt.no_join {
             Some(NoJoin::Header) if allocated_here => Some("the line of a block (`IF`, `FOR`, `DO`, …)"),
             Some(NoJoin::Item) if allocated_here => {
                 Some("a later item of `PRINT` or `READ`, or an item of `WRITE`, `PRINT #` or `INPUT`")
@@ -974,7 +1105,7 @@ impl Checker<'_> {
             return n;
         }
         if self.open_dims(array) {
-            self.dim_facts.push(DimFact::Count {
+            self.dims.dim_facts.push(DimFact::Count {
                 array,
                 shown: show_bytes(self.text(t.span)),
                 count: first,
@@ -993,7 +1124,7 @@ impl Checker<'_> {
     /// Whether an array's number of dimensions is found from everything that names it, after the bodies: an
     /// array parameter, and a listed array passed to one while it had no number.
     pub(super) fn open_dims(&self, array: VarId) -> bool {
-        matches!(self.prog.var(array).storage, Storage::Param(_)) || self.dims_open.contains(&array)
+        matches!(self.prog.var(array).storage, Storage::Param(_)) || self.dims.dims_open.contains(&array)
     }
 
     /// The element `array(index, …)` named by a call node: one index per dimension, each converted to `_INTEGER64`
@@ -1013,7 +1144,7 @@ impl Checker<'_> {
     fn element_at(&mut self, array: VarId, args: Vec<ast::Expr>, t: Tok, span: Span) -> R<Place> {
         let dims = self.settle_dims(array, args.len(), t, span);
         let index = self.indexes(args, dims, t, span)?;
-        self.names.push((SymbolKind::Var(array), t.span));
+        self.stmt.names.push((SymbolKind::Var(array), t.span));
         Ok(Place::Element {
             array: ArrayRef::Var(array),
             index,
@@ -1186,6 +1317,9 @@ impl Checker<'_> {
                 }
             }
             ast::Expr::Field(f) if f.arg_list().is_none_or(|l| l.args().is_empty()) => {
+                if self.plain_spelled(f)?.is_some() {
+                    return Ok(None);
+                }
                 let (place, t) = self.field_member(f)?;
                 (place, f.arg_list().is_some(), t)
             }
@@ -1213,10 +1347,13 @@ impl Checker<'_> {
             return Ok(None);
         };
         let (head, path) = (&name[..dot], &name[dot + 1..]);
+        if !self.user_head(head) {
+            return Ok(None);
+        }
         if let Some(v) = self.lookup_var(head.to_string(), None)
             && matches!(self.prog.var(v).ty, Ty::User(_))
         {
-            self.names.push((SymbolKind::Var(v), t.span));
+            self.stmt.names.push((SymbolKind::Var(v), t.span));
             return self.members(Place::Var(v), path, suffix, t).map(Some);
         }
         if matches!(self.array_key_ty(head, None), Ty::User(_)) && self.find_array(head, None).is_some() {
@@ -1227,19 +1364,18 @@ impl Checker<'_> {
                 format!("`{shown}`: `{head}` is an array; a member needs an index"),
             ));
         }
-        let hidden_main = self.cur.is_some()
-            && self
-                .main
-                .vars
-                .keys()
-                .any(|(n, ty)| n == head && matches!(ty, Ty::User(_)));
-        if hidden_main {
-            // In a procedure, beside a main-module `TYPE` variable the procedure does not see: not measured.
-            let shown = show_bytes(self.text(t.span));
-            let msg = format!("`{shown}` in a SUB or FUNCTION that does not share the `TYPE` variable `{head}`");
-            return Err(self.unsupported(t.span, msg));
-        }
-        Ok(None)
+        unreachable!("`user_head` holds for `{head}` only by a `TYPE` variable or array")
+    }
+
+    /// Whether `head`, the part of a dotted name before its first dot, names a `TYPE` variable or array where the
+    /// name stands. When it does not, the dotted name is a plain variable's ([`Self::dotted_any`],
+    /// [`Self::plain_spelled`]), also in a procedure beside a main-module `TYPE` variable it does not share: a
+    /// variable of the procedure's own, of the default type (measured, `verification\v52_x65`, `x66`; QB64pe's
+    /// `const_eval.bas` reads `num.typ` so in `LogicalNot&`).
+    fn user_head(&mut self, head: &str) -> bool {
+        self.lookup_var(head.to_string(), None)
+            .is_some_and(|v| matches!(self.prog.var(v).ty, Ty::User(_)))
+            || matches!(self.array_key_ty(head, None), Ty::User(_)) && self.find_array(head, None).is_some()
     }
 
     /// The members `path` (`b` or `b.c`, upper case) of `base`; `suffix` is on the last one, which must be its own
@@ -1284,16 +1420,121 @@ impl Checker<'_> {
         Ok(base)
     }
 
-    /// `base(…).member…` (a `FieldExpr`), with the index of a member array after it (`a(1).v(2)`).
+    /// The dotted name a chain of member accesses on a plain name spells (design D2 of
+    /// `m4-devices-continue-paths`): `a . s` and `a . w . v` are `A.S` and `A.W.V`, as `a.s` and `a.w.v` are,
+    /// since the old compiler drops the blanks around such a dot (`verification\v19_dot_blanks_*`,
+    /// `v47_c_dot_blanks`). The suffix is the last part's; one before a dot is an error, as to the old compiler
+    /// (`s$ . x`, "Invalid symbol", `v47_x29`). The token is made to cover the whole name, for spans and the text
+    /// shown. `None` when the chain's base is no plain name, or a part before the last has parentheses after it
+    /// (`a(1) . s`, `a . s(1) . v`): those keep the path of a member of a place.
+    pub(super) fn spelled_name(&mut self, f: ast::FieldExpr) -> R<Option<(String, Option<Ty>, Tok)>> {
+        let span = f.node().span();
+        let mut parts = vec![self.need(f.member(), span)?];
+        let mut cur = f;
+        let base = loop {
+            match self.need(cur.base(), span)? {
+                ast::Expr::NameRef(n) => break self.need(n.name(), span)?,
+                ast::Expr::Field(inner) if inner.arg_list().is_none() => {
+                    parts.push(self.need(inner.member(), span)?);
+                    cur = inner;
+                }
+                ast::Expr::Literal(_)
+                | ast::Expr::Call(_)
+                | ast::Expr::Field(_)
+                | ast::Expr::Paren(_)
+                | ast::Expr::Prefix(_)
+                | ast::Expr::Bin(_) => return Ok(None),
+            }
+        };
+        parts.push(base);
+        parts.reverse();
+        let last = *parts.last().unwrap();
+        let t = Tok {
+            kind: base.kind,
+            span: base.span.cover(last.span),
+        };
+        let mut name = String::new();
+        let mut suffix = None;
+        for (i, &p) in parts.iter().enumerate() {
+            let (part, s) = self.split_name(p)?;
+            if s.is_some() && i + 1 < parts.len() {
+                let shown = show_bytes(self.text(t.span));
+                return Err(self.error(t.span, format!("`{shown}`: a type suffix before `.`")));
+            }
+            if i > 0 {
+                name.push('.');
+            }
+            name.push_str(&part);
+            suffix = s;
+        }
+        Ok(Some((name, suffix, t)))
+    }
+
+    /// The plain dotted name a member access on a plain name spells when no `TYPE` variable of its first part is
+    /// visible ([`Self::spelled_name`], [`Self::dotted_any`]): `p . q` with no `TYPE` variable `p` is the variable
+    /// or array `P.Q`. `None` for anything else; a member it names is left to [`Self::field_member`]. A name of a
+    /// procedure or a visible `CONST` is "not supported yet": the old compiler drops the blanks before it reads the
+    /// statement (`qb64pe.bas` 4196–4241), so `a . b` would be that procedure or constant, which only the reading
+    /// of a whole name (`a.b`) resolves here; not measured.
+    pub(super) fn plain_spelled(&mut self, f: ast::FieldExpr) -> R<Option<(String, Option<Ty>, Tok)>> {
+        let Some((name, suffix, t)) = self.spelled_name(f)? else {
+            return Ok(None);
+        };
+        let head = &name[..name.find('.').expect("a spelled name has a dot")];
+        if self.user_head(head) {
+            return Ok(None);
+        }
+        let what = if self.procs_by_name.contains_key(&name) {
+            Some("SUB or FUNCTION")
+        } else if self.visible_const(&name).is_some() {
+            Some("`CONST`")
+        } else {
+            None
+        };
+        if let Some(what) = what {
+            let shown = show_bytes(self.text(t.span));
+            let msg = format!("`{shown}`, the name of a {what} written with blanks around `.`");
+            return Err(self.unsupported(t.span, msg));
+        }
+        Ok(Some((name, suffix, t)))
+    }
+
+    /// `base(…).member…` (a `FieldExpr`), with the index of a member array after it (`a(1).v(2)`). On a plain
+    /// name with no `TYPE` variable of that name, the plain dotted variable or array element it spells (design D2
+    /// of `m4-devices-continue-paths`).
     pub(super) fn field_place(&mut self, f: ast::FieldExpr) -> R<Place> {
         let span = f.node().span();
+        if let Some((name, suffix, t)) = self.plain_spelled(f)? {
+            let Some(list) = f.arg_list() else {
+                return Ok(Place::Var(self.variable(t, name, suffix)?));
+            };
+            let args = self.present_args(Some(list))?;
+            let Some(array) = self.find_array(&name, suffix).filter(|_| !args.is_empty()) else {
+                let shown = show_bytes(self.text(t.span));
+                return Err(self.unsupported(span, format!("`{shown}(…)`, written with blanks around `.`, here")));
+            };
+            return self.element_at(array, args, t, span);
+        }
         let (place, t) = self.field_member(f)?;
         self.member_element(place, f.arg_list().map(Some), span, t)
     }
 
-    /// The member a `FieldExpr` names, without what stands in parentheses after it, and the member's token.
+    /// The member a `FieldExpr` names, without what stands in parentheses after it, and the member's token (for a
+    /// member access on a plain name, one covering the whole name).
     pub(super) fn field_member(&mut self, f: ast::FieldExpr) -> R<(Place, Tok)> {
         let span = f.node().span();
+        if let Some((name, suffix, t)) = self.spelled_name(f)? {
+            // `a . s`: the member `S` of the `TYPE` variable `a` (design D2 of `m4-devices-continue-paths`).
+            return match self.dotted_any(t, &name, suffix)? {
+                Some(place) => Ok((place, t)),
+                // A plain dotted name written with blanks where only a member was looked for (the callers that
+                // take a plain name look with [`Self::plain_spelled`] first).
+                None => {
+                    let shown = show_bytes(self.text(t.span));
+                    Err(self.unsupported(t.span, format!("`{shown}`, written with blanks around `.`, here")))
+                }
+            };
+        }
         let base = match self.need(f.base(), span)? {
             // A member of a block a built-in gives (`_MEMNEW(4).SIZE`): measured, "Invalid expression"
             // (`verification\v32_x02`, `x114`).
@@ -1308,10 +1549,7 @@ impl Checker<'_> {
             }
             ast::Expr::Call(c) => self.call_place(c)?,
             ast::Expr::Field(inner) => self.field_place(inner)?,
-            ast::Expr::NameRef(n) => {
-                // `a . s`: the old compiler drops the blanks, so this is the name `a.s` (`v19_dot_blanks_*`).
-                return Err(self.unsupported(n.node().span(), "blanks around `.` after a name"));
-            }
+            ast::Expr::NameRef(_) => unreachable!("a member access on a plain name is spelled above"),
             other @ (ast::Expr::Literal(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_)) => {
                 return Err(self.unsupported(other.node().span(), "a member of this expression"));
             }
@@ -1450,7 +1688,7 @@ impl Checker<'_> {
             return Err(self.error(span, msg));
         }
         let as_ty = match item.as_clause() {
-            Some(a) => Some((self.type_of(a)?, a.node().span())),
+            Some(a) => Some((self.type_of_at(a, AsPlace::Other)?, a.node().span())),
             None => None,
         };
         if let Some((ty, at)) = as_ty
@@ -1486,13 +1724,13 @@ impl Checker<'_> {
                     return Err(self.error(upper.node().span(), msg));
                 }
                 // Not measured: whether the number 0 keeps its rule of a `DIM` here (0 to 0 under base 1).
-                None if self.option_base != 0 && self.is_plain_zero(upper) => {
+                None if self.at.option_base != 0 && self.is_plain_zero(upper) => {
                     let msg = format!("`REDIM {shown}(0)` of a member array under `OPTION BASE 1`");
                     return Err(self.unsupported(upper.node().span(), msg));
                 }
                 // The upper bound alone goes by `OPTION BASE` as it stands at the `REDIM` (measured,
                 // `verification\v24_x322`, `x323`).
-                None => self.option_base,
+                None => self.at.option_base,
             };
             let u = self.constant_bound(upper)?;
             given.push((l, u));
@@ -1609,7 +1847,7 @@ impl Checker<'_> {
                     .lookup_var(name, suffix)
                     .filter(|&v| matches!(self.prog.var(v).ty, Ty::User(_)));
                 Ok(var.map(|v| {
-                    self.names.push((SymbolKind::Var(v), t.span));
+                    self.stmt.names.push((SymbolKind::Var(v), t.span));
                     Place::Var(v)
                 }))
             }
@@ -1633,9 +1871,9 @@ impl Checker<'_> {
     /// invalid", also as an argument for a parameter that is no user type, `verification\v24_x214`). A `_BIT`
     /// place's value is held in its storage type and believed the place's `_BIT` type ([`Ty::held_value`]); a
     /// `STRING * n` place's value is a `STRING`.
-    pub(super) fn load(&mut self, place: Place, span: Span) -> R<Expr> {
+    pub(super) fn load(&mut self, place: Place, span: Span, use_: Use) -> R<Expr> {
         let ty = self.prog.place_ty(&place);
-        if self.len_place == Some(span) && matches!(ty, Ty::User(_)) {
+        if use_ == Use::Place && matches!(ty, Ty::User(_)) {
             // `LEN` of a whole `TYPE` place (`check\builtins.rs`): its size, never a value.
             return Ok(Expr {
                 span,
@@ -1656,6 +1894,65 @@ impl Checker<'_> {
         })
     }
 
+    /// The array `LBOUND` or `UBOUND` names by `name` (written `t`, in `node`).
+    fn bound_array(&mut self, t: Tok, name: &str, suffix: Option<Ty>, node: Node, span: Span) -> R<ArrayRef> {
+        let a = match self.find_array(name, suffix) {
+            Some(a) => a,
+            // Measured: `LBOUND(x)` of a name that is no array makes an array of one dimension, used
+            // without `DIM` (`v18_f_*`, `v24_f_implicit`).
+            None => self.implicit_array(t, name, suffix, 1, node)?,
+        };
+        // The bounds of an array parameter say nothing about its number of dimensions (measured,
+        // `verification\v24_x153`, `x293`), nor do those of an array listed by `COMMON a()` (`x298`,
+        // `x301`, `x302`); those of one listed by `STATIC a()` make it one (`x282`, `x297`).
+        let common = self.prog.var(a).storage == Storage::Main;
+        if !self.open_dims(a) && !common {
+            self.settle_dims(a, 1, t, span);
+        }
+        self.stmt.names.push((SymbolKind::Var(a), t.span));
+        Ok(ArrayRef::Var(a))
+    }
+
+    /// The diagnostic of `LBOUND` or `UBOUND` (`word`) whose array argument is no array (design D4 of
+    /// `m4-upstream-rejections`). Measured (`verification\v51_x28`–`x39`, upstream
+    /// `arrays/42_err_solved_bug_Incorrect_nr_of_args`, `43_…`): an element of a member array, of a single value
+    /// or of an array, is "Incorrect number of arguments"; an element of an array of a `TYPE` "Expected ."; of
+    /// another array, a call of a FUNCTION of the program, a literal and an operation "Syntax error". Any other
+    /// expression is not supported yet (`LBOUND((a))` is the array `a`, `x34`).
+    fn bound_of_other(&mut self, node: ast::Expr, word: &str) -> R<Failed> {
+        let span = node.node().span();
+        let msg = match node {
+            ast::Expr::Field(f) if f.arg_list().is_some() => {
+                let (place, _) = self.field_member(f)?;
+                self.is_member_array(&place)
+                    .then(|| format!("`{word}` takes a member array without its indexes"))
+            }
+            ast::Expr::Call(c) => {
+                let t = self.need(c.name(), span)?;
+                let (name, suffix) = self.split_name(t)?;
+                if let Some(place) = self.dotted_any(t, &name, suffix)? {
+                    self.is_member_array(&place)
+                        .then(|| format!("`{word}` takes a member array without its indexes"))
+                } else {
+                    match self.find_array(&name, suffix).map(|a| self.prog.var(a).ty) {
+                        Some(Ty::User(_)) => Some(format!("`{word}` takes the array's name, not an element of it")),
+                        Some(_) => Some(format!("`{word}` takes an array's name, not one of its elements")),
+                        None if self.procs_by_name.contains_key(&name) => {
+                            Some(format!("`{word}` takes an array, not a value"))
+                        }
+                        None => None,
+                    }
+                }
+            }
+            ast::Expr::Literal(_) | ast::Expr::Bin(_) => Some(format!("`{word}` takes an array, not a value")),
+            ast::Expr::NameRef(_) | ast::Expr::Field(_) | ast::Expr::Paren(_) | ast::Expr::Prefix(_) => None,
+        };
+        Ok(match msg {
+            Some(msg) => self.error(span, msg),
+            None => self.unsupported(span, format!("`{word}` of this expression")),
+        })
+    }
+
     /// `LBOUND(array[, dimension])` and `UBOUND(…)` (design D4, measured `v18_e_bounds*`, `v18_f_*`). The array
     /// may be a member array, also written with empty parentheses (`verification\v24_h_member_arrays`,
     /// `v24_x201`, `x311`).
@@ -1672,26 +1969,27 @@ impl Checker<'_> {
         if !(required..=slots.len()).contains(&args.len()) {
             return Err(self.unsupported(span, format!("`{word}` with {} arguments", args.len())));
         }
+        let plain = match args[0] {
+            ast::Expr::Field(f) if f.arg_list().is_none() => self.plain_spelled(f)?,
+            ast::Expr::Literal(_)
+            | ast::Expr::NameRef(_)
+            | ast::Expr::Call(_)
+            | ast::Expr::Field(_)
+            | ast::Expr::Paren(_)
+            | ast::Expr::Prefix(_)
+            | ast::Expr::Bin(_) => None,
+        };
         let array = match (self.member_array(args[0])?, args[0]) {
             (Some((array, _, _)), _) => array,
             (None, ast::Expr::NameRef(n)) => {
                 let t = self.need(n.name(), span)?;
                 let (name, suffix) = self.split_name(t)?;
-                let a = match self.find_array(&name, suffix) {
-                    Some(a) => a,
-                    // Measured: `LBOUND(x)` of a name that is no array makes an array of one dimension, used
-                    // without `DIM` (`v18_f_*`, `v24_f_implicit`).
-                    None => self.implicit_array(t, &name, suffix, 1, n.node())?,
-                };
-                // The bounds of an array parameter say nothing about its number of dimensions (measured,
-                // `verification\v24_x153`, `x293`), nor do those of an array listed by `COMMON a()` (`x298`,
-                // `x301`, `x302`); those of one listed by `STATIC a()` make it one (`x282`, `x297`).
-                let common = self.prog.var(a).storage == Storage::Main;
-                if !self.open_dims(a) && !common {
-                    self.settle_dims(a, 1, t, span);
-                }
-                self.names.push((SymbolKind::Var(a), t.span));
-                ArrayRef::Var(a)
+                self.bound_array(t, &name, suffix, n.node(), span)?
+            }
+            // `LBOUND(p . q)`: the plain dotted array `P.Q` (design D2 of `m4-devices-continue-paths`).
+            (None, ast::Expr::Field(f)) if plain.is_some() => {
+                let (name, suffix, t) = plain.unwrap();
+                self.bound_array(t, &name, suffix, f.node(), span)?
             }
             (None, ast::Expr::Call(c)) if c.arg_list().is_some_and(|l| l.args().is_empty()) => {
                 // Measured: "Expected ." (`v18_e_bounds_empty_parens`, `v18_e_bounds_type_array`).
@@ -1705,9 +2003,7 @@ impl Checker<'_> {
                 | ast::Expr::Paren(_)
                 | ast::Expr::Prefix(_)
                 | ast::Expr::Bin(_)),
-            ) => {
-                return Err(self.unsupported(other.node().span(), format!("`{word}` of this expression")));
-            }
+            ) => return Err(self.bound_of_other(other, word)?),
         };
         let dim = match args.get(1) {
             Some(&d) => {
@@ -1740,10 +2036,7 @@ impl Checker<'_> {
             return Err(self.error(span, format!("`{word}` takes 1 argument")));
         };
         // An element or variable of a user type is a place here, not a value, as for `LEN` ([`Self::load`]).
-        let outer = self.len_place.replace(arg.node().span());
-        let e = self.expr(arg);
-        self.len_place = outer;
-        let e = e?;
+        let e = self.expr_as(arg, Use::Place)?;
         let ExprKind::Load(place) = e.kind else {
             // Measured: "Expected reference to a variable/array" for a literal, an expression, a function call
             // (`v28_x36`, `x37`, `x40`, `x41`).
@@ -1823,21 +2116,7 @@ fn layout_bytes(types: &[UserType], t: Ty) -> u64 {
                 }
             })
             .sum(),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::Bit { .. }
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::FixedStr(_) => u64::from(crate::size_of(types, t)),
+        crate::numeric_types!() | Ty::FixedStr(_) => u64::from(crate::size_of(types, t)),
     }
 }
 
@@ -1919,7 +2198,7 @@ fn constant(e: &Expr) -> Option<Num> {
                 }
                 (ConvKind::Widen, Num::Float(f)) => Some(Num::Float(f)),
                 (ConvKind::Nearest, Num::Float(f)) => whole(f).then_some(Num::Float(f)),
-                (ConvKind::RoundEven, Num::Int(_)) | (ConvKind::Truncate, Num::Float(_)) => None,
+                (ConvKind::RoundEven, Num::Int(_)) | (ConvKind::Truncate, Num::Float(_)) | (ConvKind::Cast, _) => None,
             }
         }
         ExprKind::VarPtr { .. }
@@ -1928,7 +2207,8 @@ fn constant(e: &Expr) -> Option<Num> {
         | ExprKind::MemOf { .. }
         | ExprKind::MemAt { .. }
         | ExprKind::AddressOf(_)
-        | ExprKind::MemRead { .. } => None,
+        | ExprKind::MemRead { .. }
+        | ExprKind::ArrayBytes(_) => None,
         ExprKind::Unary { op, operand } => match (op, constant(operand)?) {
             (UnOp::Neg, Num::Float(f)) => Some(Num::Float(-f)),
             (op, Num::Int(i)) => Some(Num::Int(super::ops::fold_unary(*op, i, e.ty))),

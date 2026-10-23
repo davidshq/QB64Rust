@@ -1,8 +1,9 @@
 //! `--dump typed`: one node per line, indented, with its type (FreeBASIC lesson L8: assertions on types).
 
 use crate::{
-    Arg, ArrayRef, CaseItem, Event, Expr, ExprKind, Handler, InputSource, KeyForm, MemValue, Place, PrintItem, PrintTo,
-    ProcKind, Program, Reference, Resume, Shape, Stmt, StmtArg, StmtKind, Storage, Ty, UsingValue, VarId,
+    Arg, ArrayRef, CaseItem, ErrorHandler, Event, Expr, ExprKind, Handler, InputSource, KeyForm, MemValue, Place,
+    PrintItem, PrintTo, ProcKind, Program, Reference, Resume, Shape, Stmt, StmtArg, StmtKind, Storage, Ty, UsingValue,
+    VarId,
 };
 
 use qb64rust_base::show_bytes;
@@ -259,7 +260,9 @@ fn print_items(p: &Program, items: &[PrintItem], d: usize, out: &mut String) {
 fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
     let pad = "  ".repeat(d);
     for s in list {
-        let line = |out: &mut String, text: &str| writeln!(out, "{pad}line {}: {text}", s.line).unwrap();
+        // A statement below `$CHECKING:OFF` is marked as such (design D3 of `m4-handlers-logging-checking`).
+        let unchecked = if s.checked { "" } else { "unchecked " };
+        let line = |out: &mut String, text: &str| writeln!(out, "{pad}line {}: {unchecked}{text}", s.line).unwrap();
         let heading = |out: &mut String, text: &str| writeln!(out, "{pad}  {text}").unwrap();
         match &s.kind {
             StmtKind::Label(l) => line(out, &format!("Label {}", p.label(*l).name)),
@@ -305,11 +308,15 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                     expr(p, code, d + 1, out);
                 }
             }
+            StmtKind::Stop => line(out, "Stop"),
             StmtKind::Exit => line(out, "Exit"),
             StmtKind::ExitLoop(k) => line(out, &format!("Exit {k:?}")),
+            StmtKind::Continue => line(out, "Continue"),
             StmtKind::ExitSelect { case } => line(out, if *case { "Exit Case" } else { "Exit Select" }),
-            StmtKind::OnError(Some(l)) => line(out, &format!("OnError {}", p.label(*l).name)),
-            StmtKind::OnError(None) => line(out, "OnError 0"),
+            StmtKind::OnError(ErrorHandler::Set(Some(l))) => line(out, &format!("OnError {}", p.label(*l).name)),
+            StmtKind::OnError(ErrorHandler::Set(None)) => line(out, "OnError 0"),
+            StmtKind::OnError(ErrorHandler::New(l)) => line(out, &format!("OnError _NEWHANDLER {}", p.label(*l).name)),
+            StmtKind::OnError(ErrorHandler::Last) => line(out, "OnError _LASTHANDLER"),
             StmtKind::Resume(r) => {
                 let to = match r {
                     Resume::Retry => "Retry".to_string(),
@@ -321,6 +328,10 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
             StmtKind::Error(code) => {
                 line(out, "Error");
                 expr(p, code, d + 1, out);
+            }
+            StmtKind::Log { level, msg } => {
+                line(out, &format!("Log {level:?}"));
+                expr(p, msg, d + 1, out);
             }
             StmtKind::Call { proc, args: a } => {
                 line(out, &format!("Call {}", p.proc(*proc).name));
@@ -670,6 +681,15 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                         heading(out, "Key");
                         expr(p, key, d + 2, out);
                     }
+                    Event::Strig { button, controller } => {
+                        line(out, &format!("OnStrig {target}"));
+                        heading(out, "Button");
+                        expr(p, button, d + 2, out);
+                        if let Some(c) = controller {
+                            heading(out, "Controller");
+                            expr(p, c, d + 2, out);
+                        }
+                    }
                 }
                 if let Handler::Sub { arg: Some(a), .. } = handler {
                     heading(out, "Argument");
@@ -812,6 +832,9 @@ fn expr(p: &Program, e: &Expr, depth: usize, out: &mut String) {
             writeln!(out, "{pad}MemAt : {types}").unwrap();
             expr(p, offset, depth + 1, out);
             expr(p, size, depth + 1, out);
+        }
+        ExprKind::ArrayBytes(array) => {
+            writeln!(out, "{pad}ArrayBytes {} : {types}", var_name(p, *array)).unwrap();
         }
         ExprKind::Convert { how, from } => {
             writeln!(out, "{pad}Convert {how:?} : {types}").unwrap();

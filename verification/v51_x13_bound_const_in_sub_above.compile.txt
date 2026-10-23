@@ -1,0 +1,5 @@
+
+TYPE member array bounds must be numeric constant
+Caused by (or after):
+LINE 8:V ( TOP ) AS LONG
+exit=1

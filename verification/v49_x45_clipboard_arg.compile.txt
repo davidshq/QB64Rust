@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _CLIPBOARD$
+Caused by (or after):PRINT _CLIPBOARD$ ( "a",1 )
+LINE 3:PRINT _CLIPBOARD$("a")
+exit=1

@@ -1,0 +1,98 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+line 5: ConsoleOnly
+line 7: Assign S:Str
+  Call _OS : Str
+line 8: Assign S:Str
+  Call _MD5 : Str
+    Concat : Str
+      Var S : Str
+      Str "x" : Str
+line 9: Assign S:Str
+  Call _MD5 : Str
+    Var F : Str
+line 10: Assign S:Str
+  Call _CLIPBOARD : Str
+line 11: Builtin _CLIPBOARD
+  Var S : Str
+line 12: Builtin _CLIPBOARD
+  Concat : Str
+    Var F : Str
+    Str "y" : Str
+line 13: Assign S:Str
+  Call _FILES : Str
+    Str "*.txt" : Str
+line 14: Assign S:Str
+  Call _FILES : Str
+    Var F : Str
+line 15: Assign S:Str
+  Call _FILES : Str
+    (absent)
+line 17: Print newline
+  Num
+    Convert Cast : I8
+      Var SG : F32
+  Num
+    Convert Cast : U8
+      Var K : I32
+  Num
+    Convert Cast : I16
+      Var D : F64
+  Num
+    Convert Cast : U16
+      Var Q : I64
+line 18: Print newline
+  Num
+    Convert Cast : I32
+      Binary Mul : F64
+        Var D : F64
+        Convert Nearest : F64
+          Int 2 : I16
+  Num
+    Convert Cast : U32
+      Var B : I8
+  Num
+    Convert Cast : I64
+      Var FL : F80
+  Num
+    Convert Cast : U64
+      Var U : U32
+line 19: Print newline
+  Num
+    Convert Cast : Off
+      Var SG : F32
+  Num
+    Convert Cast : UOff
+      Var K : I32
+  Num
+    Convert Cast : F32
+      Var Q : I64
+  Num
+    Convert Cast : F64
+      Var K : I32
+  Num
+    Convert Cast : F80
+      Int 1 : I16
+line 20: Assign K:I32
+  Binary Add : I32 (qb I64)
+    Convert Widen : I32
+      Convert Cast : I8
+        Int 300 : I16
+    Int 1 : I32
+line 21: Builtin CLEAR
+  (absent)
+  (absent)
+  (absent)
+line 22: Builtin CLEAR
+  Binary Add : I32 (qb I64)
+    Var K : I32
+    Int 1 : I32
+  (absent)
+  Int 6 : I32 (qb I64)
+line 23: Builtin CLEAR
+  (absent)
+  (absent)
+  (absent)
+line 24: System

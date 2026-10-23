@@ -1,0 +1,235 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+TYPE INIF
+  V:I64
+TYPE PT
+  X:I32
+  Y:I32
+TYPE INFN
+  Z:F64
+TYPE BASED
+  M:I32(1 TO 3)
+ARRAY SH:I16(0 TO 3)
+ARRAY A:I16(0 TO 3)
+ARRAY B:F32(0 TO 2)
+ARRAY C:F64(0 TO 2)
+ARRAY C:F32(0 TO 3)
+ARRAY D:I32(0 TO 3)
+ARRAY E:F64 dynamic, 1 dimension
+ARRAY A (local):I16 dynamic, 1 dimension
+ARRAY SH (local):F32 dynamic, 1 dimension
+ARRAY L (static):F64 dynamic, dimensions not known
+ARRAY L (local):F32 dynamic, 1 dimension
+ARRAY V (local):I32 dynamic, 1 dimension
+line 2: ConsoleOnly
+line 11: Assign A:F32
+  Convert Nearest : F32
+    Float 1.5E+0 : F64 (qb F32)
+line 11: Assign A(…):I16
+  Index
+    Int 1 : I64
+  Value
+    Int 7 : I16
+line 12: Print newline
+  Num
+    Var A : F32
+  Num
+    Element A(…) : I16
+      Int 1 : I64
+  Num
+    Int 4 : I32
+line 15: Assign B(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Float 1.25E+0 : F64 (qb F32)
+line 18: Assign C(…):F64
+  Index
+    Int 1 : I64
+  Value
+    Binary Add : F64
+      Element C(…) : F64
+        Int 1 : I64
+      Convert Nearest : F64
+        Int 1 : I16
+line 19: Assign C(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Int 2 : I16
+line 22: Assign D:Str
+  Str "dd" : Str
+line 22: Assign D(…):I32
+  Index
+    Int 1 : I64
+  Value
+    Int 5 : I32
+line 23: Allocate E:F64 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 2 : I64
+line 24: Allocate E:F64 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 25: Assign E(…):F64
+  Index
+    Int 1 : I64
+  Value
+    Float 0.5E+0 : F64 (qb F32)
+line 26: Call PLAIN_IN_SUB
+line 27: Call LOCAL_BESIDE_SHARED
+line 28: Call BESIDE_LIST
+line 29: Call REDIM_LIST
+  temp
+    Str "abc" : Str
+line 30: Call REDIM_STATIC
+line 32: Assign Q.X:I32
+  Int 3 : I32
+line 33: Call USE_PT
+  ref Q : T:PT
+line 35: Assign R.V:I64
+  Int 4 : I64
+line 36: If (END IF line 40)
+  If line 36
+    Int 0 : I16
+line 42: Assign FR.Z:F64
+  Float 2.5E+0 : F64 (qb F32)
+line 44: Assign OB.M(…):I32
+  Index
+    Int 1 : I64
+  Value
+    Int 7 : I32
+line 45: Print newline
+  Num
+    LBound OB.M : I64
+  Num
+    Int 12 : I32
+  Num
+    CallProc GETX : I32
+      ref Q : T:PT
+SUB PLAIN_IN_SUB
+  local A:I16
+  local A:F32
+  local SH:F32
+line 47: Allocate A (local):I16 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 48: Assign A (local):F32
+  Convert Nearest : F32
+    Float 2.5E+0 : F64 (qb F32)
+line 48: Assign A (local)(…):I16
+  Index
+    Int 1 : I64
+  Value
+    Int 9 : I16
+line 49: Assign SH (local):F32
+  Convert Nearest : F32
+    Float 3.5E+0 : F64 (qb F32)
+line 49: Assign SH(…):I16
+  Index
+    Int 1 : I64
+  Value
+    Int 4 : I16
+SUB LOCAL_BESIDE_SHARED
+  local SH:F32
+line 52: Allocate SH (local):F32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 53: Assign SH (local)(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Convert Nearest : F32
+      Float 0.5E+0 : F64 (qb F32)
+SUB BESIDE_LIST
+  static L:F64
+  local L:F32
+line 57: Allocate L (local):F32 (Dim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 3 : I64
+line 58: Assign L (local)(…):F32
+  Index
+    Int 1 : I64
+  Value
+    Binary Add : F32
+      Element L (local)(…) : F32
+        Int 1 : I64
+      Convert Nearest : F32
+        Int 1 : I16
+SUB REDIM_LIST
+  param S:Str
+  local V:I32
+  local I:I32
+line 61: Allocate V (local):I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert Widen : I64
+      Call LEN : I32
+        Var S (param) : Str
+line 62: For I (local):I32 counting in I64 (NEXT line 62)
+  From
+    Int 1 : I64
+  To
+    UBound V (local) : I64
+  Body
+    line 62: Assign V (local)(…):I32
+      Index
+        Convert Widen : I64
+          Var I (local) : I32
+      Value
+        Binary Mul : I32 (qb I64)
+          Var I (local) : I32
+          Int 100000 : I32
+SUB REDIM_STATIC
+  static I:F32
+line 66: Assign I (static):F32
+  Convert Nearest : F32
+    Binary Add : F64 (qb F32)
+      Convert Widen : F64
+        Var I (static) : F32
+      Float 0.5E+0 : F64 (qb F32)
+SUB HOLDS_PT
+  local P:T:PT
+line 74: Assign P (local).Y:I32
+  Int 5 : I32
+SUB USE_PT
+  param P:T:PT
+line 77: Print newline
+  Num
+    Member P (param).X : I32
+FUNCTION GETX : I32
+  param P:T:PT
+  result GETX:I32
+line 83: Assign GETX (result):I32
+  Binary Mul : I32 (qb I64)
+    Member P (param).X : I32
+    Int 2 : I32
+SUB HOLDS_BASED
+FUNCTION REDIM_FN : I32
+  param N:F32
+  result REDIM_FN:I32
+  local R:I16
+line 93: Assign R (local):I16
+  Convert Truncate : I16
+    Convert RoundEven : I32
+      Binary Add : F32
+        Convert Nearest : F32
+          Var R (local) : I16
+        Var N (param) : F32
+line 94: Assign REDIM_FN (result):I32
+  Convert Widen : I32
+    Var R (local) : I16

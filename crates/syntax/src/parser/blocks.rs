@@ -242,6 +242,13 @@ impl Parser<'_, '_> {
         false
     }
 
+    /// Whether a `FOR`, `DO` or `WHILE` loop of the current procedure is open, as [`Self::inside`] looks.
+    pub(super) fn inside_loop(&self) -> bool {
+        [Block::For, Block::Do, Block::While]
+            .into_iter()
+            .any(|b| self.inside(b))
+    }
+
     /// An error at a statement other than the current one (a block's header), so not limited by `stmt_error`.
     pub(super) fn block_error(&mut self, span: Span, message: impl Into<String>) {
         if !self.quiet {

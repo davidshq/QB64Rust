@@ -1,7 +1,7 @@
 //! Calls of built-in functions: one checker for every function `sema` compiles (design D2 of `m2-core-builtins`).
 //! Which functions, their rules and result types: `crate::builtins`.
 
-use super::expr::conv;
+use super::expr::{Use, conv};
 use super::ops::{held, rotated, widest};
 use super::places::numeric_type;
 use super::{Checker, R};
@@ -23,23 +23,7 @@ pub(super) fn supported_builtin(name: &str, suffix: Option<Ty>) -> Option<Suppor
         None => lookup(name, false),
         Some(Ty::Str) => lookup(name, true),
         // No built-in is written with a number suffix.
-        Some(
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::Bit { .. }
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::User(_),
-        ) => None,
+        Some(crate::numeric_types!() | Ty::User(_)) => None,
         Some(crate::place_only_types!()) => unreachable!("{PLACE_ONLY_UNREACHABLE}"),
     }
 }
@@ -67,20 +51,20 @@ fn takes_as_is(rule: Rule) -> bool {
         | Rule::Own
         | Rule::Mk(_)
         | Rule::Cv(_)
-        | Rule::Embedded => false,
+        | Rule::Embedded
+        | Rule::Cast => false,
     }
 }
 
 impl Checker<'_> {
     /// A call of a supported built-in. `list` is `None` for the bare name (`ERR`, `_PI`); a function that needs an
     /// argument gets the arity error here, like any other wrong number of arguments.
-    pub(super) fn builtin(&mut self, s: Supported, list: Option<ast::ArgList>, span: Span) -> R<Expr> {
+    pub(super) fn builtin(&mut self, s: Supported, list: Option<ast::ArgList>, span: Span, use_: Use) -> R<Expr> {
         let name = s.name;
         // A block is only stored into a `_MEM` place (design D2 of `m3-mem`): measured, "TYPE '_MEM' required for
         // function" as an argument (`verification\v32_x03`, `x93`–`x96`), "Invalid expression" with a member read
         // (`x02`, `x114`), and a C++ build that fails when it is stored into a number (`x80`).
-        let mem_store = std::mem::take(&mut self.mem_store);
-        if MEM_RESULTS.contains(&name) && !mem_store {
+        if MEM_RESULTS.contains(&name) && use_ != Use::Stored {
             let msg = format!("`{name}` gives a `_MEM` block, which can only be stored into a `_MEM` variable");
             return Err(self.error(span, msg));
         }
@@ -106,6 +90,7 @@ impl Checker<'_> {
             Rule::Own => return Err(self.error(span, format!("`{name}` needs its argument"))),
             Rule::Mk(_) | Rule::Cv(_) => return self.number_bytes(s, list, span),
             Rule::Embedded => return self.embedded(s, list, span),
+            Rule::Cast => return self.cast(list, span),
             Rule::Plain
             | Rule::ResultOfArg
             | Rule::IntFix
@@ -332,7 +317,7 @@ impl Checker<'_> {
         };
         match crate::RuntimePart::of_dependency(dependency) {
             Some(part) => {
-                self.runtime_parts.insert(part);
+                self.settings.runtime_parts.insert(part);
                 Ok(())
             }
             None => Err(self.unsupported(span, format!("`{name}`: a part of the runtime that is not built yet"))),
@@ -407,9 +392,7 @@ impl Checker<'_> {
         let span = node.node().span();
         if !self.gives_block(node) {
             // A place of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
-            let outer = self.len_place.replace(span);
-            let e = self.expr(node);
-            self.len_place = outer;
+            let e = self.expr_as(node, Use::Place);
             if let ExprKind::Load(place) = e?.kind
                 && self.prog.is_mem(self.prog.place_ty(&place))
             {
@@ -430,8 +413,6 @@ impl Checker<'_> {
         let [node] = nodes[..] else {
             return Err(self.error(span, arity(s.name, 1, 1)));
         };
-        // A whole member array (`LEN(p(0).a())`), which the old compiler takes (`qb64pe.bas` 20652; upstream
-        // `arrays/test_mem_vs_len`), is not measured here.
         let empty = |l: Option<ast::ArgList>| l.is_some_and(|l| l.args().is_empty());
         let whole = match node {
             ast::Expr::Call(c) => empty(c.arg_list()),
@@ -442,15 +423,12 @@ impl Checker<'_> {
             | ast::Expr::Prefix(_)
             | ast::Expr::Bin(_) => false,
         };
-        if whole && self.member_array(node)?.is_some() {
-            return Err(self.unsupported(node.node().span(), "`LEN` of a whole member array"));
+        if whole && let Some(e) = self.len_whole(node, span)? {
+            return Ok(e);
         }
-        // A whole `TYPE` variable, element or member is a place here, not a value (`Checker::load`). A `LEN` in an
-        // index of this argument sets its own and gives this one back, as the place is loaded after its index.
-        let outer = self.len_place.replace(node.node().span());
-        let e = self.expr(node);
-        self.len_place = outer;
-        let e = e?;
+        // A whole `TYPE` variable, element or member is a place here, not a value (`Checker::load`); an index of
+        // this argument is a value.
+        let e = self.expr_as(node, Use::Place)?;
         // A parameter declared `STRING * n` or `t$n`, named alone: n (design D6; measured, `v21_f_fixed_param`: only
         // here, `LEN(t + "!")` is the string's real length).
         if let (ExprKind::Load(Place::Var(v)), ast::Expr::NameRef(_)) = (&e.kind, node)
@@ -482,23 +460,8 @@ impl Checker<'_> {
             // Measured: "Variable/element cannot be _BIT aligned" (`verification\v21_x18`, `x19`).
             return Err(self.error(e.span, "`LEN` of a `_BIT` variable"));
         }
-        if crate::holds_strings(&self.prog.types, ty) {
-            // Measured: "UDT must have fixed size" (`verification\v24_x206`).
-            let msg = format!(
-                "`LEN` of a `TYPE {}` value: a `TYPE` with a `STRING` member has no fixed size",
-                self.prog.type_name(ty)
-            );
-            return Err(self.error(e.span, msg));
-        }
-        if crate::owns_desc(&self.prog.types, ty) {
-            // Measured: "_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays"
-            // (`verification\v35_x20`, `x64`).
-            let msg = format!(
-                "`LEN` of a `TYPE {}` value: a `TYPE` with a dynamic member array has no fixed size",
-                self.prog.type_name(ty)
-            );
-            return Err(self.error(e.span, msg));
-        }
+        // Measured: "UDT must have fixed size" (`verification\v24_x206`).
+        self.len_fixed_size(ty, false, e.span)?;
         // The index of an element is not evaluated (the old compiler takes the element type's size).
         let size = crate::size_of(&self.prog.types, ty);
         Ok(Expr {
@@ -507,6 +470,80 @@ impl Checker<'_> {
             qb: Ty::I32,
             kind: ExprKind::Int(i64::from(size)),
         })
+    }
+
+    /// `LEN(a())` and `LEN(v.m())`, `LEN(a(i).m())` (design D5 of `m4-names-arrays`; `qb64pe.bas` 20961, its "-5"
+    /// size; measured, `verification\v48_d_len_whole`): the bytes of all elements of a whole array, a LONG. Of a
+    /// member array the size is known when compiling, and the index on the way to it is not evaluated, as for
+    /// `LEN` of an element. `None` for a name that is no array, which goes on as any other argument (a whole array
+    /// that is not declared stays marked there).
+    fn len_whole(&mut self, node: ast::Expr, span: Span) -> R<Option<Expr>> {
+        let at = node.node().span();
+        let lng = |kind| Expr {
+            span,
+            ty: Ty::I32,
+            qb: Ty::I32,
+            kind,
+        };
+        if let Some((array, _, _)) = self.member_array(node)? {
+            if self.prog.array_ty(&array) == Ty::Str {
+                // The old compiler gives a number (32 for four elements, `verification\v48_x30`) where a whole
+                // array of strings is an error (`x01`); not measured further.
+                let msg = "`LEN` of a whole member array of variable-length strings";
+                return Err(self.unsupported(at, msg));
+            }
+            // Before the size: an array of a `TYPE` with a `STRING` member has none (`size_of`).
+            self.bytes_reference(&crate::Reference::Array(array.clone()), "LEN", at)?;
+            let crate::ArrayRef::Member { base, member } = &array else {
+                unreachable!("`member_array` gives a member array");
+            };
+            let m = self.prog.member(self.prog.place_ty(base), *member);
+            let size = crate::size_of(&self.prog.types, m.ty) * m.count();
+            return Ok(Some(lng(ExprKind::Int(i64::from(size)))));
+        }
+        let ast::Expr::Call(c) = node else {
+            return Ok(None);
+        };
+        // A dotted name here is a plain array's (measured, `verification\v48_x29`): `member_array` took the name
+        // whose first part is a `TYPE` variable.
+        let t = self.need(c.name(), at)?;
+        let (name, suffix) = self.split_name(t)?;
+        let Some(array) = self.find_array(&name, suffix) else {
+            return Ok(None);
+        };
+        // Measured: "UDT must have fixed size" (`verification\v48_x03`), where `_MEM` of the array is no error
+        // (`x11`).
+        self.len_fixed_size(self.prog.var(array).ty, true, at)?;
+        let of = crate::Reference::Array(crate::ArrayRef::Var(array));
+        self.bytes_reference(&of, "LEN", at)?;
+        self.stmt.names.push((crate::SymbolKind::Var(array), t.span));
+        Ok(Some(lng(ExprKind::ArrayBytes(array))))
+    }
+
+    /// That `LEN` of a value of `ty` (`array`: of a whole array of `ty`) has a size fixed when compiling: not of a
+    /// `TYPE` that holds a `STRING` ("UDT must have fixed size"), nor of one that owns a dynamic member array (of a
+    /// value measured: "_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays",
+    /// `verification\v35_x20`, `x64`; of an array not measured).
+    fn len_fixed_size(&mut self, ty: Ty, array: bool, at: Span) -> R<()> {
+        let name = self.prog.type_name(ty);
+        let of = if array {
+            format!("an array of `TYPE {name}`")
+        } else {
+            format!("a `TYPE {name}` value")
+        };
+        if crate::holds_strings(&self.prog.types, ty) {
+            let msg = format!("`LEN` of {of}: a `TYPE` with a `STRING` member has no fixed size");
+            return Err(self.error(at, msg));
+        }
+        if crate::owns_desc(&self.prog.types, ty) {
+            if array {
+                let msg = "`LEN` of a whole array of a `TYPE` with a dynamic member array";
+                return Err(self.unsupported(at, msg));
+            }
+            let msg = format!("`LEN` of {of}: a `TYPE` with a dynamic member array has no fixed size");
+            return Err(self.error(at, msg));
+        }
+        Ok(())
     }
 
     /// `VAL(s$)` is `_FLOAT`; `VAL(s$, type)` with a type name (D4; measured `v20_b_result_types`, the C++): SINGLE,
@@ -749,7 +786,7 @@ impl Checker<'_> {
                     );
                     return Ok(());
                 }
-                StmtRule::Swap | StmtRule::MidAssign => {}
+                StmtRule::Swap | StmtRule::MidAssign | StmtRule::AscAssign | StmtRule::Log(_) => {}
             }
         }
         Err(self.error(name.span, format!("`{shown}` needs its arguments")))
@@ -839,13 +876,11 @@ impl Checker<'_> {
                 let msg = format!("a variable that is no array as the array of `{name}`");
                 return Err(self.unsupported(span, msg));
             };
-            self.names.push((crate::SymbolKind::Var(array), t.span));
+            self.stmt.names.push((crate::SymbolKind::Var(array), t.span));
             (array, Vec::new())
         } else {
             // An element of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
-            let outer = self.len_place.replace(span);
-            let e = self.expr(node);
-            self.len_place = outer;
+            let e = self.expr_as(node, Use::Place);
             match e?.kind {
                 ExprKind::Load(Place::Element {
                     array: crate::ArrayRef::Var(array),
@@ -866,6 +901,7 @@ impl Checker<'_> {
                 | ExprKind::MemAt { .. }
                 | ExprKind::AddressOf(_)
                 | ExprKind::MemRead { .. }
+                | ExprKind::ArrayBytes(_)
                 | ExprKind::Convert { .. }
                 | ExprKind::Binary { .. }
                 | ExprKind::Unary { .. }
@@ -990,7 +1026,7 @@ impl Checker<'_> {
                 let msg = format!("an array that is not declared as the variable of `{name}`");
                 return Err(self.unsupported(span, msg));
             };
-            self.names.push((crate::SymbolKind::Var(array), t.span));
+            self.stmt.names.push((crate::SymbolKind::Var(array), t.span));
             let ty = self.prog.var(array).ty;
             if ty == Ty::Str {
                 // Measured: "Cannot pass array of variable-length strings" (`v30_x38`).
@@ -1003,9 +1039,7 @@ impl Checker<'_> {
             });
         }
         // A place of a user type is a place here, not a value, as for `LEN` ([`Checker::load`]).
-        let outer = self.len_place.replace(span);
-        let e = self.expr(node);
-        self.len_place = outer;
+        let e = self.expr_as(node, Use::Place);
         let ExprKind::Load(place) = e?.kind else {
             return Err(self.error(span, format!("`{name}` needs a variable here")));
         };
@@ -1050,8 +1084,29 @@ impl Checker<'_> {
         self.stmt_call(node, form, matched)
     }
 
+    /// The two errors the old compiler makes for `CLEAR` before its form (design D4 of `m4-builtins-param-types`,
+    /// `qb64pe.bas` 11318): in a SUB or FUNCTION ("CLEAR cannot be used inside a SUB/FUNCTION", `verification\v49_x30`,
+    /// `x31`), and a parenthesis anywhere in its arguments ("Incorrect number of arguments", `x32`, `x33`; `CLEAR ,
+    /// , LEN("a")` too). `CALL CLEAR` is `CLEAR` (`x36`).
+    fn clear_form(&mut self, node: Node, matched: &[Matched]) -> R<()> {
+        if self.cur.is_some() {
+            return Err(self.error(node.span(), "`CLEAR` cannot be used in a SUB or FUNCTION"));
+        }
+        let paren = matched.iter().any(|m| match m {
+            Matched::Arg(Some(e)) => e.node().tokens().into_iter().any(|t| t.kind == LParen),
+            Matched::Arg(None) | Matched::Word(_) => false,
+        });
+        if paren {
+            return Err(self.error(node.span(), "`CLEAR` takes no parenthesis in its arguments"));
+        }
+        Ok(())
+    }
+
     /// The typed statement of a form and what its template's arguments and choices matched.
     fn stmt_call(&mut self, node: Node, form: StmtSupported, matched: Vec<Matched>) -> R<()> {
+        if form.id.get().callname == "sub_clear" {
+            self.clear_form(node, &matched)?;
+        }
         self.runtime_part(form.id, form.name, node.span())?;
         let slots = stmt_slots(form.id);
         let count = slots.iter().filter(|s| matches!(s, StmtSlot::Arg { .. })).count();
@@ -1084,10 +1139,10 @@ impl Checker<'_> {
                         format!("argument {k} of `{}`", form.name)
                     };
                     match form.rule {
-                        StmtRule::Plain | StmtRule::Graphics | StmtRule::File => {
+                        StmtRule::Plain | StmtRule::Graphics | StmtRule::File | StmtRule::Log(_) => {
                             StmtArg::Value(self.slot_arg(Rule::Plain, slot, k - 1, e, &which)?)
                         }
-                        StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign => {
+                        StmtRule::Close | StmtRule::Swap | StmtRule::MidAssign | StmtRule::AscAssign => {
                             unreachable!("`{}` has a node of its own (`check\\io.rs`)", form.name)
                         }
                     }
@@ -1104,7 +1159,7 @@ impl Checker<'_> {
             });
         }
         if form.id.get().callname == "sub__echo" {
-            self.echoes.push(node.span());
+            self.settings.echoes.push(node.span());
         }
         // `LOCK #1, TO 4`: the old compiler takes `TO` for the first record's name ("Name already in use (TO)",
         // measured, `verification\v30_x50`); the template alone would take the record as left out.
@@ -1113,6 +1168,14 @@ impl Checker<'_> {
         {
             let msg = format!("`{}` needs the first record before `TO`", form.name);
             return Err(self.error(node.span(), msg));
+        }
+        if let StmtRule::Log(level) = form.rule {
+            let [StmtArg::Value(msg)] = &args[..] else {
+                unreachable!("`{}`: a log form's template has one string slot", form.name)
+            };
+            let msg = msg.clone();
+            self.push(node, StmtKind::Log { level, msg });
+            return Ok(());
         }
         self.push(node, StmtKind::Builtin { id: form.id, args });
         Ok(())
@@ -1123,7 +1186,11 @@ impl Checker<'_> {
 fn calls_procedure(e: &Expr) -> bool {
     match &e.kind {
         ExprKind::CallProc { .. } => true,
-        ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) | ExprKind::VarSeg { .. } => false,
+        ExprKind::Int(_)
+        | ExprKind::Float(_)
+        | ExprKind::Str(_)
+        | ExprKind::VarSeg { .. }
+        | ExprKind::ArrayBytes(_) => false,
         ExprKind::Load(place) => place.indexes().iter().any(|i| calls_procedure(i)),
         ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(calls_procedure),
         ExprKind::VarPtr { index, .. } | ExprKind::Block { index, .. } => index.iter().any(calls_procedure),

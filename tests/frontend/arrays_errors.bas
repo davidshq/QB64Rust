@@ -18,7 +18,6 @@ x&(1) = 2
 x() = 1
 OPTION BASE 1
 DIM c(3) AS LONG
-c = 1
 FUNCTION f (v)
     f = v
 END FUNCTION

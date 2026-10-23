@@ -105,7 +105,7 @@ fn cli(path: &Path, root: &Path) -> (Vec<Shown>, usize, usize) {
         &name,
         std::fs::read(path).unwrap(),
         |file| Box::new(FileLoader::new(root, file, path)),
-        Some(path),
+        Some((path, root)),
     );
     let mut list: Vec<Diagnostic> = fe.diagnostics.list().to_vec();
     list.sort_by_key(|d| (d.span.file.0, d.span.start));
@@ -234,6 +234,20 @@ fn missing_icon() {
     );
     // With the icon beside the program, the check is clean.
     let icon = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/frontend/inc/exeicon.ico");
-    std::fs::copy(icon, dir.path().join("game.ico")).unwrap();
+    std::fs::copy(&icon, dir.path().join("game.ico")).unwrap();
     assert_eq!(same_as_cli(&path, dir.path()).answer["errors"], 0);
+    // A name without `./` is looked for under the compiler root (design D3 of `m4-devices-continue-paths`): missing
+    // there, the error names it as written; there, the check is clean.
+    let root = tempfile::tempdir().unwrap();
+    let path = program(dir.path(), "q.bas", "$EXEICON:'icons/game.ico'\r\nPRINT 1\r\n");
+    let checked = same_as_cli(&path, root.path());
+    assert_eq!(checked.answer["errors"], 1);
+    assert!(
+        checked.published[0].3.contains("`icons/game.ico`"),
+        "{}",
+        checked.published[0].3
+    );
+    std::fs::create_dir(root.path().join("icons")).unwrap();
+    std::fs::copy(&icon, root.path().join("icons/game.ico")).unwrap();
+    assert_eq!(same_as_cli(&path, root.path()).answer["errors"], 0);
 }

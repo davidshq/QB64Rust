@@ -139,3 +139,51 @@ the old compiler's runtime does and raise its errors.
 #### Scenario: Make, enter and remove a folder
 - **WHEN** `MKDIR "d": PRINT _DIREXISTS("d"): RMDIR "d": PRINT _DIREXISTS("d")` runs
 - **THEN** it prints `-1 ` and ` 0 `
+
+### Requirement: Listing a folder with _FILES$
+`_FILES$(spec$)` SHALL start a listing of the entries that `spec$` names (a folder, a pattern, or "" for the
+current folder) and give the first, a folder's name ending in a backslash, and `_FILES$` without an argument SHALL
+give the next entry, then "", as the old compiler's runtime does. A bare call with no listing started, or after
+the listing has given "", SHALL raise error 5.
+
+#### Scenario: Counting entries
+- **WHEN** a folder holds 11 files and a program counts `_FILES$("")` and the bare calls after it until ""
+- **THEN** it counts 13 (the files, `.` and `..`), and 12 with `_FILES$("*.*")`, as with the old compiler
+
+#### Scenario: No listing
+- **WHEN** a program's first `_FILES$` is a bare call, under a handler that prints `ERR`
+- **THEN** the handler prints 5, as with the old compiler
+
+#### Scenario: Wrong forms
+- **WHEN** a program has `_FILES$("a", "b")` or `_FILES$(5)`
+- **THEN** each is a compile error, as in the old compiler
+
+### Requirement: Whole files and full paths
+`_READFILE$(name$)` SHALL return the whole content of a file as a string, `_WRITEFILE name$, data$` SHALL write
+`data$` as the whole content of a file (creating it or replacing it), and `_FULLPATH$(path$)` SHALL return the full
+path of an existing file or folder, as the old compiler's runtime does. A file or path that cannot be found, read
+or written SHALL raise the old compiler's error (`verification\v52_c_files`), and a function SHALL then return "".
+
+#### Scenario: A round trip
+- **WHEN** `_WRITEFILE "rt.tmp", "a" + CHR$(0) + "b": d$ = _READFILE$("rt.tmp"): PRINT LEN(d$); ASC(d$, 2)` runs
+- **THEN** it prints ` 3  0 `
+
+#### Scenario: A missing file
+- **WHEN** `d$ = _READFILE$("nope.tmp")` runs under a handler that prints `ERR`
+- **THEN** the handler prints 53, and `d$` is empty after `RESUME NEXT`
+
+#### Scenario: A full path
+- **WHEN** `PRINT RIGHT$(_FULLPATH$("."), 1)` runs
+- **THEN** it prints `\`
+
+#### Scenario: A path that does not exist
+- **WHEN** `p$ = _FULLPATH$("no\such\dir")` runs under a handler that prints `ERR`
+- **THEN** the handler prints 76, and `p$` is empty after `RESUME NEXT`
+
+#### Scenario: A folder read, a file in a missing folder written
+- **WHEN** `d$ = _READFILE$(".")` and `_WRITEFILE "no_dir\x.tmp", "a"` run under a handler that prints `ERR`
+- **THEN** the handler prints 53, then 76
+
+#### Scenario: An empty path
+- **WHEN** `p$ = _FULLPATH$("")` runs
+- **THEN** `p$` is empty and no error is raised

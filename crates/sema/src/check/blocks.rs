@@ -15,6 +15,18 @@ use qb64rust_syntax::tree::{Node, Tok};
 impl Checker<'_> {
     /// A block statement of any kind; false for any other statement.
     pub(super) fn block_statement(&mut self, node: Node, skips: &Skips) -> bool {
+        // A block's own statements check as `$CHECKING` stood at its header, whatever a line inside it sets (design
+        // D3 of `m4-handlers-logging-checking`); [`Self::push`] gave them the state at their end.
+        let checked = self.at.checking;
+        let before = self.sink().len();
+        let handled = self.block_statement_kind(node, skips);
+        for s in &mut self.sink()[before..] {
+            s.checked = checked;
+        }
+        handled
+    }
+
+    fn block_statement_kind(&mut self, node: Node, skips: &Skips) -> bool {
         if let Some(b) = ast::IfBlock::cast(node) {
             self.if_block(b, skips);
         } else if let Some(s) = ast::IfStmt::cast(node) {
@@ -28,7 +40,7 @@ impl Checker<'_> {
         } else if let Some(b) = ast::SelectBlock::cast(node) {
             self.select_block(b, skips);
         } else if let Some(b) = ast::TypeBlock::cast(node) {
-            self.type_block(b, skips);
+            self.type_block(b);
         } else if ast::DeclareLibraryBlock::cast(node).is_some() {
             // Its declarations were entered in pass 1 (`library.rs`), where they stand in the file.
         } else if let Some(block) = block_parts(node) {
@@ -58,7 +70,7 @@ impl Checker<'_> {
         if !skips.usable(header) {
             return None;
         }
-        self.stmt_error = false;
+        self.stmt.stmt_error = false;
         let result = self.unjoined(NoJoin::Header, check).ok();
         self.flush_names();
         result
@@ -239,7 +251,7 @@ impl Checker<'_> {
         let t = self.need(next.name(), next.node().span())?;
         let (name, suffix) = self.split_name(t)?;
         if self.lookup_var(name, suffix) == Some(var) {
-            self.names.push((SymbolKind::Var(var), t.span));
+            self.stmt.names.push((SymbolKind::Var(var), t.span));
             return Ok(());
         }
         let msg = format!(
@@ -471,7 +483,7 @@ impl Checker<'_> {
     /// its header has a parse error; then the statements inside are checked one by one, as everywhere else.
     fn marked_block(&mut self, node: Node, block: BlockParts, skips: &Skips) {
         if block.header.is_none_or(|h| skips.usable(h)) && !skips.past_cap(node) {
-            self.stmt_error = false;
+            self.stmt.stmt_error = false;
             let _ = self.error(first_token_span(node), block.error);
             self.flush_names();
         }

@@ -168,6 +168,10 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification              
   untouched when it differs only by CRLF against LF: `.gitattributes` marks both kinds `text=auto`, so git
   stores text with LF on every machine. A file git takes for binary (a NUL, a CR without LF; eight today) is
   stored and compared byte for byte.
+- The program's log: the run's runtime log goes to a file (`QB64PE_LOG_HANDLERS=file`). When it holds entries
+  of scope `QB64` (the program's own, `_LOGINFO` and the rest), they are written to `<name>.log.txt` with the
+  stack frames that follow them, without each entry's timestamp and each frame's address, the folder masked,
+  with LF line ends (`program_log`). A program that logged none gets no file, and a stale one is removed.
 - Exit code: 0 when every program was recorded, whatever it did (a rejected or crashing program is a result);
   1 when a compile timed out and nothing was recorded for it. `run.sh` passes the code on and needs `python`
   on the path.
@@ -176,6 +180,11 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification              
   Program names and `--glob` cannot be combined.
 - `<name>.stdin` and `<name>.noprompt` work as in the corpus. Unlike the corpus there is no `press_any_key.py`:
   a program that reaches `END` on Windows waits for a key and is recorded as timed out, so end with `SYSTEM`.
+- `<name>.root` lists files the program names relative to the compiler's own folder (`$EXEICON`, `$EMBED`), one
+  path relative to `verification\` per line: each is copied to the same path in the clone for the compile and
+  removed after, with the folders it made; a file already there, or a listed file missing from `verification\`,
+  fails the program with nothing recorded and nothing copied (a copy that fails part way removes what it made). The
+  compare copies them under `root\` in the program's folder and gives the compiler `--include-root` there.
 - At the timeout the program gets Ctrl+Break and 5 s before it is killed, so what it printed last (a prompt
   without a line end) is in the file, as it was under the shell's `timeout`.
 - `exit=` holds the code as Git Bash reports it, since the files were first recorded by a shell script: the low
@@ -212,9 +221,11 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target
   trailing newlines ignored, after the rules of `tests\verification\normalize\<name>.normalize` on both sides.
   A recorded timeout passes only on a timeout. No `<name>.out.txt` fails ("nothing recorded to compare").
   `<name>.compile.txt` is not read. A failure at the stage `result` names the first line that differs.
+- The run's `program_log` must equal `<name>.log.txt`, or be empty when there is none; else the stage `log`,
+  naming the first line that differs. Entries of the runtime's own scopes are never compared.
 - The trace of divergences as in the corpus, with the sidecar in `tests\verification\divergences\`.
 - `--list` (one name per line), `--glob`, program names, `--jobs`, `--build-cache`, `--pass-cache` (the key also
-  holds the recording, the sidecars, the `.stdin`, the `.noprompt` and every support item) and `--check-list`
+  holds the recording and its `.log.txt`, the sidecars, the `.stdin`, the `.noprompt` and every support item) and `--check-list`
   work as for the corpus. A program of `tests\verification\known.list` that fails is a known failure (`KFAIL`);
   one that passes is named at the end, to move to `pass.list`.
 

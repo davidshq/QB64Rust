@@ -6,7 +6,7 @@
 
 use super::{Checker, R, Skips, nested_statements};
 use crate::builtins::stmt_lookup;
-use crate::{ConvKind, Label, LabelId, ProcId, ProcKind, Resume, StmtKind, SymbolKind, Ty};
+use crate::{ConvKind, ErrorHandler, Label, LabelId, ProcId, ProcKind, Resume, StmtKind, SymbolKind, Ty};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::find_any;
 use qb64rust_syntax::SyntaxKind::{
@@ -36,7 +36,7 @@ impl Checker<'_> {
             } else if let Some(l) = ast::LabelDef::cast(stmt)
                 && skips.usable(stmt)
             {
-                self.stmt_error = false;
+                self.stmt.stmt_error = false;
                 let _ = self.declare_label(l, body);
                 self.flush_names();
             }
@@ -131,6 +131,10 @@ impl Checker<'_> {
         if find_any(name.as_bytes()).next().is_some() {
             return Err(self.unsupported(t.span, format!("the label `{shown}:` (`{shown}` is a built-in)")));
         }
+        // `validname` refuses a single leading `_` for a label too (measured, "Invalid name",
+        // `verification\v50_x28_newhandler_underscore_defined`), as [`Self::reserved`] does for a variable. The
+        // label is still entered, so that a jump to it gives no error of its own.
+        let reserved = name.starts_with('_') && !name.starts_with("__") && !self.in_after_last_line(t.span);
         if let Some(&p) = self.procs_by_name.get(&name) {
             if self.unclear_proc_label(p, &name) {
                 let msg = format!("a label with the name of a SUB or FUNCTION: `{shown}`");
@@ -158,7 +162,10 @@ impl Checker<'_> {
         });
         self.labels_by_name.insert(key, id);
         self.label_of_def.insert(node.key(), id);
-        self.names.push((SymbolKind::Label(id), t.span));
+        self.stmt.names.push((SymbolKind::Label(id), t.span));
+        if reserved {
+            return Err(self.error(t.span, format!("names starting with `_` are reserved: `{shown}`")));
+        }
         Ok(())
     }
 
@@ -173,7 +180,7 @@ impl Checker<'_> {
         // The name of a SUB and a colon, with no jump to the name: a call of the SUB.
         if let Some(&proc) = self.sub_call_lines.get(&l.node().key()) {
             if let Some(t) = l.name() {
-                self.names.push((SymbolKind::Proc(proc), t.span));
+                self.stmt.names.push((SymbolKind::Proc(proc), t.span));
             }
             self.push(l.node(), StmtKind::Call { proc, args: Vec::new() });
             return Ok(());
@@ -236,7 +243,7 @@ impl Checker<'_> {
             };
             return Err(self.error(t.span, msg));
         };
-        self.names.push((SymbolKind::Label(id), t.span));
+        self.stmt.names.push((SymbolKind::Label(id), t.span));
         Ok(id)
     }
 
@@ -277,7 +284,7 @@ impl Checker<'_> {
                 format!("`RESTORE {shown}`: more than one SUB, FUNCTION or the main module has a label `{shown}`");
             return Err(self.error(t.span, msg));
         }
-        self.names.push((SymbolKind::Label(id), t.span));
+        self.stmt.names.push((SymbolKind::Label(id), t.span));
         self.push(node, StmtKind::Restore(Some(id)));
         Ok(())
     }
@@ -368,28 +375,43 @@ impl Checker<'_> {
         }
     }
 
-    /// `ON ERROR GOTO label|0`. Inside a procedure the label is one of the main module's (measured,
-    /// `v14_on_error_sub_to_main`): the handler is the program's. A label of the procedure itself is an error, also
-    /// when the main module has one of that name (measured, `v14_on_error_in_sub`, `v17_d_on_error_sub_label_both`).
+    /// `ON ERROR GOTO label`, `0`, `_NEWHANDLER label` or `_LASTHANDLER`, with the chain's errors as the old compiler
+    /// gives them (`qb64pe.bas` 10049–10053; design D1 of `m4-handlers-logging-checking`). Inside a procedure the
+    /// label is one of the main module's (measured, `v14_on_error_sub_to_main`): the handler is the program's. A
+    /// label of the procedure itself is an error, also when the main module has one of that name (measured,
+    /// `v14_on_error_in_sub`, `v17_d_on_error_sub_label_both`).
     pub(super) fn on_error(&mut self, s: ast::OnErrorStmt) -> R<()> {
         let node = s.node();
-        if let Some(w) = s.handler_word() {
-            let msg = format!(
-                "`ON ERROR GOTO {}`",
-                show_bytes(&self.text(w.span).to_ascii_uppercase())
-            );
-            return Err(self.unsupported(w.span, msg));
-        }
         let t = self.need(s.target(), node.span())?;
-        if self.text(t.span).starts_with(b"_") {
-            // `_LASTHANDLER`, or a label QB64 would reject; neither is a label of this program.
+        let new = match s.handler_word() {
+            Some(w) if self.word(w) == "_LASTHANDLER" => {
+                return Err(self.error(t.span, "No label allowed after _LASTHANDLER"));
+            }
+            Some(_) if t.kind == Number && self.text(t.span) == b"0" => {
+                return Err(self.error(t.span, "Zero not allowed after _NEWHANDLER"));
+            }
+            Some(_) => true,
+            None if t.kind == Number => false,
+            None => match self.word(t).as_str() {
+                "_LASTHANDLER" => {
+                    self.push(node, StmtKind::OnError(ErrorHandler::Last));
+                    return Ok(());
+                }
+                "_NEWHANDLER" => {
+                    return Err(self.error(t.span, "Expected: ON ERROR GOTO [_NEWHANDLER] label"));
+                }
+                _ => false,
+            },
+        };
+        if !new && self.text(t.span).starts_with(b"_") {
+            // A label QB64 would reject; not a label of this program.
             let msg = format!(
                 "`ON ERROR GOTO {}`",
                 show_bytes(&self.text(t.span).to_ascii_uppercase())
             );
             return Err(self.unsupported(t.span, msg));
         }
-        let handler = if t.kind == Number {
+        let handler = if t.kind == Number && !new {
             self.zero(t)?;
             None
         } else {
@@ -404,6 +426,10 @@ impl Checker<'_> {
                 }
             }
             Some(self.label_ref(t, None)?)
+        };
+        let handler = match handler {
+            Some(l) if new => ErrorHandler::New(l),
+            h => ErrorHandler::Set(h),
         };
         self.push(node, StmtKind::OnError(handler));
         Ok(())

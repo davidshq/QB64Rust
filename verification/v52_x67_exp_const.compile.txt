@@ -1,0 +1,5 @@
+
+Name already in use (exp)
+Caused by (or after):
+LINE 4:CONST EXP$ = "a",1
+exit=1

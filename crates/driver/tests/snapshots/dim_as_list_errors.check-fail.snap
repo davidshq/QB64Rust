@@ -11,4 +11,5 @@ dim_as_list_errors.bas:12:12: error: expected a variable name
 dim_as_list_errors.bas:13:20: error: expected the end of the statement
 dim_as_list_errors.bas:17:20: error: a name in a list with the type before the names cannot have a type suffix: `k%`
 dim_as_list_errors.bas:18:20: error: a name in a list with the type before the names cannot have a type suffix: `m!`
-dim_as_list_errors.bas:20:5: error: not supported yet: the type `NOSUCH`
+dim_as_list_errors.bas:20:5: error: no type is named `NOSUCH`
+dim_as_list_errors.bas:20:5: note: QB64pe: Unknown type

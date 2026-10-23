@@ -11,10 +11,28 @@ use qb64rust_syntax::SyntaxKind::{self, Minus, Number};
 use qb64rust_syntax::ast;
 use qb64rust_syntax::tree::Tok;
 
+/// How the value being checked is used, for the node itself and no node inside it.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum Use {
+    /// A value: a whole user-type place is an error.
+    Value,
+    /// A place whose size or address is taken (`LEN`, `VARPTR`, a `_MEM` argument, a statement's place): a whole
+    /// user-type place is the place.
+    Place,
+    /// The value stored into a `_MEM` place, or into a user-type place from `_MEMGET`: a built-in that gives a
+    /// block may stand.
+    Stored,
+}
+
 impl Checker<'_> {
     // ---- expressions ----
 
     pub(super) fn expr(&mut self, node: ast::Expr) -> R<Expr> {
+        self.expr_as(node, Use::Value)
+    }
+
+    /// [`Self::expr`] for a node used as `use_` says; every node inside it is a value.
+    pub(super) fn expr_as(&mut self, node: ast::Expr, use_: Use) -> R<Expr> {
         let span = node.node().span();
         match node {
             ast::Expr::Literal(lit) => {
@@ -36,7 +54,7 @@ impl Checker<'_> {
             ast::Expr::NameRef(name) => {
                 let t = self.need(name.name(), span)?;
                 if let Some(v) = self.fixed_param_ref(t) {
-                    return self.load(Place::Var(v), span);
+                    return self.load(Place::Var(v), span, use_);
                 }
                 let (name, suffix) = self.split_var_name(t)?;
                 if let Some(Ty::FixedStr(_)) = suffix
@@ -44,7 +62,7 @@ impl Checker<'_> {
                 {
                     // `x$n`: a fixed-length string variable (design D6).
                     let id = self.variable(t, name, suffix)?;
-                    return self.load(Place::Var(id), span);
+                    return self.load(Place::Var(id), span, use_);
                 }
                 if let Some(p) = self.proc_in_expr(&name, suffix) {
                     return self.call_function(p, t, suffix, None, span);
@@ -57,17 +75,17 @@ impl Checker<'_> {
                 // an argument is an error there (measured, `verification\v22_x180`–`x185`: "Incorrect number of
                 // arguments").
                 if let Some(s) = supported_builtin(&name, suffix) {
-                    return self.builtin(s, None, span);
+                    return self.builtin(s, None, span, use_);
                 }
                 if is_builtin_function(&name, suffix) {
                     let shown = show_bytes(self.text(t.span));
                     return Err(self.unsupported(t.span, format!("`{shown}`")));
                 }
                 if let Some(place) = self.dotted(t, &name, suffix)? {
-                    return self.load(place, span);
+                    return self.load(place, span, use_);
                 }
                 let id = self.variable(t, name, suffix)?;
-                self.load(Place::Var(id), span)
+                self.load(Place::Var(id), span, use_)
             }
             ast::Expr::Paren(paren) => {
                 let inner = self.need(paren.inner(), span)?;
@@ -77,10 +95,10 @@ impl Checker<'_> {
             }
             ast::Expr::Prefix(prefix) => self.prefix(prefix),
             ast::Expr::Bin(bin) => self.binary(bin),
-            ast::Expr::Call(call) => self.call(call),
+            ast::Expr::Call(call) => self.call(call, use_),
             ast::Expr::Field(field) => {
                 let place = self.field_place(field)?;
-                self.load(place, span)
+                self.load(place, span, use_)
             }
         }
     }
@@ -168,7 +186,7 @@ impl Checker<'_> {
             return Err(self.error(span, format!("{shown} needs a number")));
         };
         let e = self.operand(e, &typing, typing.operands);
-        if let (ExprKind::Int(v), true) = (&e.kind, self.fold) {
+        if let (ExprKind::Int(v), true) = (&e.kind, self.settings.fold) {
             return Ok(Expr {
                 span,
                 ty: typing.ty,
@@ -230,7 +248,7 @@ impl Checker<'_> {
         let left = left_operand(op, &typing, lhs.ty);
         let lhs = self.operand(lhs, &typing, left);
         let rhs = self.operand(rhs, &typing, typing.operands);
-        if let (ExprKind::Int(a), ExprKind::Int(b), true) = (&lhs.kind, &rhs.kind, self.fold)
+        if let (ExprKind::Int(a), ExprKind::Int(b), true) = (&lhs.kind, &rhs.kind, self.settings.fold)
             && let Some(v) = fold_binary(op, (*a, left), (*b, typing.operands), typing.ty)
         {
             return Ok(Expr {
@@ -312,7 +330,7 @@ impl Checker<'_> {
         (!(sub && is_builtin_function(name, suffix))).then_some(p)
     }
 
-    pub(super) fn call(&mut self, node: ast::CallExpr) -> R<Expr> {
+    pub(super) fn call(&mut self, node: ast::CallExpr, use_: Use) -> R<Expr> {
         let span = node.node().span();
         let name_tok = self.need(node.name(), span)?;
         let (proc_name, suffix) = match self.proc_fixed_name(name_tok) {
@@ -328,14 +346,14 @@ impl Checker<'_> {
             ("UBOUND", None) => return self.bound_fn(node, true, span),
             ("VARPTR", None) => return self.var_address(node, false, span),
             ("VARSEG", None) => return self.var_address(node, true, span),
-            ("_MEM", None) => return self.mem_fn(node, false, span),
-            ("_MEMELEMENT", None) => return self.mem_fn(node, true, span),
+            ("_MEM", None) => return self.mem_fn(node, false, span, use_),
+            ("_MEMELEMENT", None) => return self.mem_fn(node, true, span, use_),
             ("_OFFSET", None) => return self.offset_fn(node, span),
-            ("_MEMGET", None) => return self.mem_get_fn(node, span),
+            ("_MEMGET", None) => return self.mem_get_fn(node, span, use_),
             _ => {}
         }
         if let Some(s) = supported_builtin(&proc_name, suffix) {
-            return self.builtin(s, node.arg_list(), span);
+            return self.builtin(s, node.arg_list(), span, use_);
         }
         if is_builtin_function(&proc_name, suffix) {
             let shown = show_bytes(self.text(name_tok.span));
@@ -343,7 +361,7 @@ impl Checker<'_> {
         }
         // `t.v(2)`: an element of a member array.
         if let Some(place) = self.dotted_call(node, name_tok, &proc_name, suffix)? {
-            return self.load(place, span);
+            return self.load(place, span, use_);
         }
         let array = match self.find_array(&proc_name, suffix) {
             Some(a) => a,
@@ -353,7 +371,7 @@ impl Checker<'_> {
             }
         };
         let place = self.element(node, array, name_tok)?;
-        self.load(place, span)
+        self.load(place, span, use_)
     }
 
     /// Converts a value for storing into a variable or argument of type `to` (spec: storing into an integer). A
@@ -388,7 +406,7 @@ impl Checker<'_> {
             return e;
         }
         debug_assert!(e.ty.is_numeric() && to.is_numeric() && !(e.ty.is_float() && to.is_int()));
-        if let (ExprKind::Int(v), true, true) = (&e.kind, to.is_int(), self.fold) {
+        if let (ExprKind::Int(v), true, true) = (&e.kind, to.is_int(), self.settings.fold) {
             let v = wrap(*v, to);
             return Expr {
                 span: e.span,

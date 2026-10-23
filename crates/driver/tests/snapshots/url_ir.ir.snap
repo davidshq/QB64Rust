@@ -11,7 +11,7 @@ Stmt line 6 may_raise
     Str CallProc _DECODEURL:Str [Temp(Const "a%20b")]
 Stmt line 7
   System
-Function _ENCODEURL:Str lines 59-93 unchecked
+Function _ENCODEURL:Str lines 59-93
   param _URL:Str
   result _ENCODEURL:Str
   local _TMP:Str
@@ -24,94 +24,94 @@ Function _ENCODEURL:Str lines 59-93 unchecked
   temp for1.limit:I32
   temp for1.step:I32
   temp for1.negative:I32
-Stmt line 66 in main line 66
+Stmt line 66 in main line 66 unchecked
   Assign _TMP(local):Str = Const ""
-Stmt line 66 in main line 66
+Stmt line 66 in main line 66 unchecked
   Assign _INQUERY(local):I16 = Const 0:I16
-Stmt line 66 in main line 66
+Stmt line 66 in main line 66 unchecked
   Assign _ISKEY(local):I16 = Const 0:I16
-Stmt line 68 in main line 68 may_raise
+Stmt line 68 in main line 68 may_raise unchecked
   AssignAll
     for1.value(temp):I32 = Const 1:I32
     for1.limit(temp):I32 = CallBuiltin LEN:I32 [Some(Var _URL(param):Str)]
     for1.step(temp):I32 = Const 1:I32
     for1.negative(temp):I32 = Lt:I32(Var for1.step(temp):I32, Const 0:I32)
   Jump @1
-Label @0 line 68 in main line 68
-Stmt line 69 in main line 69 may_raise
+Label @0 line 68 in main line 68 unchecked
+Stmt line 69 in main line 69 may_raise unchecked
   Assign _A(local):I16 = (CallBuiltin ASC:I32 [Some(Var _URL(param):Str), Some((Var _P(local):I16 -> Convert I32 Widen))] -> Convert I16 Truncate)
-Stmt line 69 in main line 69
+Stmt line 69 in main line 69 unchecked
   Assign _VALID(local):I16 = Const 0:I16
-Stmt line 72 in main line 71
+Stmt line 72 in main line 71 unchecked
   Branch Zero -> @4 Skip: OrElse:I32(OrElse:I32(OrElse:I32(OrElse:I32(OrElse:I32(OrElse:I32(Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 45:I64), Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 46:I64)), Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 95:I64)), Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 126:I64)), AndAlso:I32(Ge:I32((Var _A(local):I16 -> Convert I32 Widen), Const 48:I32), Le:I32((Var _A(local):I16 -> Convert I32 Widen), Const 57:I32))), AndAlso:I32(Ge:I32((Var _A(local):I16 -> Convert I32 Widen), Const 65:I32), Le:I32((Var _A(local):I16 -> Convert I32 Widen), Const 90:I32))), AndAlso:I32(Ge:I32((Var _A(local):I16 -> Convert I32 Widen), Const 97:I32), Le:I32((Var _A(local):I16 -> Convert I32 Widen), Const 122:I32)))
-Stmt line 73 in main line 73
+Stmt line 73 in main line 73 unchecked
   Assign _VALID(local):I16 = Const -1:I16
-Stmt line 83 in main line 71
+Stmt line 83 in main line 71 unchecked
   Jump @3
-Label @4 line 83 in main line 71
-Stmt line 74 in main line 71
+Label @4 line 83 in main line 71 unchecked
+Stmt line 74 in main line 71 unchecked
   Branch Zero -> @5 Skip: OrElse:I32(OrElse:I32(OrElse:I32(OrElse:I32(OrElse:I32(OrElse:I32(Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 35:I64), Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 47:I64)), Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 58:I64)), Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 63:I64)), Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 64:I64)), Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 91:I64)), Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 93:I64))
-Stmt line 75 in main line 75
+Stmt line 75 in main line 75 unchecked
   Branch Zero -> @6 Skip: Not:I32((Var _INQUERY(local):I16 -> Convert I32 Widen))
-Stmt line 76 in main line 76
+Stmt line 76 in main line 76 unchecked
   Assign _VALID(local):I16 = Const -1:I16
-Stmt line 77 in main line 77
+Stmt line 77 in main line 77 unchecked
   Branch Zero -> @7 Skip: Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 63:I64)
-Stmt line 77 in main line 77
+Stmt line 77 in main line 77 unchecked
   Assign _INQUERY(local):I16 = Const -1:I16
-Stmt line 77 in main line 77
+Stmt line 77 in main line 77 unchecked
   Assign _ISKEY(local):I16 = Const -1:I16
-Label @6 line 78 in main line 75
-Label @7 line 77 in main line 77
-Stmt line 83 in main line 71
+Label @6 line 78 in main line 75 unchecked
+Label @7 line 77 in main line 77 unchecked
+Stmt line 83 in main line 71 unchecked
   Jump @3
-Label @5 line 83 in main line 71
-Stmt line 79 in main line 71
+Label @5 line 83 in main line 71 unchecked
+Stmt line 79 in main line 71 unchecked
   Branch Zero -> @8 Skip: Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 61:I64)
-Stmt line 80 in main line 80
+Stmt line 80 in main line 80 unchecked
   Branch Zero -> @9 Skip: And:I32((Var _INQUERY(local):I16 -> Convert I32 Widen), (Var _ISKEY(local):I16 -> Convert I32 Widen))
-Stmt line 80 in main line 80
+Stmt line 80 in main line 80 unchecked
   Assign _VALID(local):I16 = Const -1:I16
-Stmt line 80 in main line 80
+Stmt line 80 in main line 80 unchecked
   Assign _ISKEY(local):I16 = Const 0:I16
-Label @9 line 80 in main line 80
-Stmt line 83 in main line 71
+Label @9 line 80 in main line 80 unchecked
+Stmt line 83 in main line 71 unchecked
   Jump @3
-Label @8 line 83 in main line 71
-Stmt line 81 in main line 71
+Label @8 line 83 in main line 71 unchecked
+Stmt line 81 in main line 71 unchecked
   Branch Zero -> @10 Skip: Eq:I32((Var _A(local):I16 -> Convert I64 Widen), Const 38:I64)
-Stmt line 82 in main line 82
+Stmt line 82 in main line 82 unchecked
   Branch Zero -> @11 Skip: And:I32((Var _INQUERY(local):I16 -> Convert I32 Widen), Not:I32((Var _ISKEY(local):I16 -> Convert I32 Widen)))
-Stmt line 82 in main line 82
+Stmt line 82 in main line 82 unchecked
   Assign _VALID(local):I16 = Const -1:I16
-Stmt line 82 in main line 82
+Stmt line 82 in main line 82 unchecked
   Assign _ISKEY(local):I16 = Const -1:I16
-Label @11 line 82 in main line 82
-Stmt line 83 in main line 71
+Label @11 line 82 in main line 82 unchecked
+Stmt line 83 in main line 71 unchecked
   Jump @3
-Label @3 line 83 in main line 71
-Label @10 line 83 in main line 71
-Stmt line 85 in main line 85
+Label @3 line 83 in main line 71 unchecked
+Label @10 line 83 in main line 71 unchecked
+Stmt line 85 in main line 85 unchecked
   Branch Zero -> @13 Skip: Var _VALID(local):I16
-Stmt line 86 in main line 86 may_raise
+Stmt line 86 in main line 86 may_raise unchecked
   Assign _TMP(local):Str = Concat(Var _TMP(local):Str, CallBuiltin CHR:Str [Some((Var _A(local):I16 -> Convert I32 Widen))])
-Stmt line 89 in main line 85
+Stmt line 89 in main line 85 unchecked
   Jump @12
-Label @13 line 89 in main line 85
-Stmt line 88 in main line 88 may_raise
+Label @13 line 89 in main line 85 unchecked
+Stmt line 88 in main line 88 may_raise unchecked
   Assign _TMP(local):Str = Concat(Concat(Var _TMP(local):Str, Const "%"), CallBuiltin RIGHT:Str [Some(Concat(Const "00", CallBuiltin HEX:Str [Some(Var _A(local):I16)])), Some(Const 2:I32)])
-Label @12 line 89 in main line 85
-Stmt line 90 in main line 68
+Label @12 line 89 in main line 85 unchecked
+Stmt line 90 in main line 68 unchecked
   Assign for1.value(temp):I32 = Add:I32(Var for1.step(temp):I32, (Var _P(local):I16 -> Convert I32 Widen)) wrap
-Label @1 line 90 in main line 68
-Stmt line 90 in main line 68
+Label @1 line 90 in main line 68 unchecked
+Stmt line 90 in main line 68 unchecked
   Assign _P(local):I16 = (Var for1.value(temp):I32 -> Convert I16 Truncate)
-  Branch NonZero -> @2 Skip: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)))
+  Branch NonZero -> @2 UseValue: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)))
   Jump @0
-Label @2 line 90 in main line 68
-Stmt line 92 in main line 92
+Label @2 line 90 in main line 68 unchecked
+Stmt line 92 in main line 92 unchecked
   Assign _ENCODEURL(result):Str = Var _TMP(local):Str
-Function _DECODEURL:Str lines 97-117 unchecked
+Function _DECODEURL:Str lines 97-117
   param _URL:Str
   result _DECODEURL:Str
   local _TMP:Str
@@ -121,37 +121,37 @@ Function _DECODEURL:Str lines 97-117 unchecked
   temp for2.limit:I32
   temp for2.step:I32
   temp for2.negative:I32
-Stmt line 103 in main line 103
+Stmt line 103 in main line 103 unchecked
   Assign _TMP(local):Str = Const ""
-Stmt line 105 in main line 105 may_raise
+Stmt line 105 in main line 105 may_raise unchecked
   AssignAll
     for2.value(temp):I32 = Const 1:I32
     for2.limit(temp):I32 = CallBuiltin LEN:I32 [Some(Var _URL(param):Str)]
     for2.step(temp):I32 = Const 1:I32
     for2.negative(temp):I32 = Lt:I32(Var for2.step(temp):I32, Const 0:I32)
   Jump @1
-Label @0 line 105 in main line 105
-Stmt line 106 in main line 106 may_raise
+Label @0 line 105 in main line 105 unchecked
+Stmt line 106 in main line 106 may_raise unchecked
   Assign _A(local):I16 = (CallBuiltin ASC:I32 [Some(Var _URL(param):Str), Some((Var _P(local):I16 -> Convert I32 Widen))] -> Convert I16 Truncate)
-Stmt line 108 in main line 108
+Stmt line 108 in main line 108 unchecked
   Branch Zero -> @4 Skip: Ne:I32((Var _A(local):I16 -> Convert I64 Widen), Const 37:I64)
-Stmt line 109 in main line 109 may_raise
+Stmt line 109 in main line 109 may_raise unchecked
   Assign _TMP(local):Str = Concat(Var _TMP(local):Str, CallBuiltin CHR:Str [Some((Var _A(local):I16 -> Convert I32 Widen))])
-Stmt line 113 in main line 108
+Stmt line 113 in main line 108 unchecked
   Jump @3
-Label @4 line 113 in main line 108
-Stmt line 111 in main line 111 may_raise
+Label @4 line 113 in main line 108 unchecked
+Stmt line 111 in main line 111 may_raise unchecked
   Assign _TMP(local):Str = Concat(Var _TMP(local):Str, CallBuiltin CHR:Str [Some((And:I64((CallBuiltin VAL:F80 [Some(Concat(Const "&H", CallBuiltin MID:Str [Some(Var _URL(param):Str), Some(Add:I32((Var _P(local):I16 -> Convert I32 Widen), Const 1:I32) wrap), Some(Const 2:I32)])), None] -> Convert I64 RoundEven), Const 255:I64) -> Convert I32 Truncate))])
-Stmt line 112 in main line 112
+Stmt line 112 in main line 112 unchecked
   Assign _P(local):I16 = (Add:I32((Var _P(local):I16 -> Convert I32 Widen), Const 2:I32) wrap -> Convert I16 Truncate)
-Label @3 line 113 in main line 108
-Stmt line 114 in main line 105
+Label @3 line 113 in main line 108 unchecked
+Stmt line 114 in main line 105 unchecked
   Assign for2.value(temp):I32 = Add:I32(Var for2.step(temp):I32, (Var _P(local):I16 -> Convert I32 Widen)) wrap
-Label @1 line 114 in main line 105
-Stmt line 114 in main line 105
+Label @1 line 114 in main line 105 unchecked
+Stmt line 114 in main line 105 unchecked
   Assign _P(local):I16 = (Var for2.value(temp):I32 -> Convert I16 Truncate)
-  Branch NonZero -> @2 Skip: Or:I32(And:I32(Var for2.negative(temp):I32, Lt:I32(Var for2.value(temp):I32, Var for2.limit(temp):I32)), And:I32(Not:I32(Var for2.negative(temp):I32), Gt:I32(Var for2.value(temp):I32, Var for2.limit(temp):I32)))
+  Branch NonZero -> @2 UseValue: Or:I32(And:I32(Var for2.negative(temp):I32, Lt:I32(Var for2.value(temp):I32, Var for2.limit(temp):I32)), And:I32(Not:I32(Var for2.negative(temp):I32), Gt:I32(Var for2.value(temp):I32, Var for2.limit(temp):I32)))
   Jump @0
-Label @2 line 114 in main line 105
-Stmt line 116 in main line 116
+Label @2 line 114 in main line 105 unchecked
+Stmt line 116 in main line 116 unchecked
   Assign _DECODEURL(result):Str = Var _TMP(local):Str

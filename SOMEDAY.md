@@ -77,8 +77,7 @@ accepts and the new one still marks "not supported yet", and what is compiled bu
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A relative `$EXEICON` name that does not start with `./` or `.\` (`$EXEICON:'icons/game.ico'`), one with a single leading slash, and one with a drive and no slash after it (`C:game.ico`) | The old compiler looks for the first in its own folder, for the second on its own drive and for the third in the folder it stands in on that drive (read in `qb64pe.bas` 3854–3873, not measured), which has no counterpart here (user, `DECISIONS.md` 2026-10-13). Also under "QB64pe behaviours to review" below | `verification\v29_e02`, `e03`, `e08`, `e18`; the upstream tests `icon` and `winresource` name their icon so |
-| The language server does not check that the icon of `$EXEICON` is there | The check is the driver's (`check_exe_icon`), because `sema` reads no file; the server would need the folder of the main file behind its loader | Design D4 of `m3-sound` |
+| An `$EXEICON` name with a drive and no slash after it (`C:game.ico`) | The old compiler looks for it in the folder it stands in on that drive (read in `qb64pe.bas` 3854–3873, not measured), which has no counterpart here. The other relative names are looked for under the compiler root since `m4-devices-continue-paths` (`DECISIONS.md` 2026-10-20) | `sema\src\check\mod.rs` `exe_icon_meta` |
 | `ON PLAY(n) GOSUB 10` and any `ON … GOSUB` or `ON … GOTO` whose target is a line number | Line numbers are not compiled yet, whatever the number of the `ON` is; with a label the statement compiles | `verification\v29_x64`; `tests\frontend\sound_typed.bas` |
 | `VARPTR$` in a `PLAY` string (`PLAY "X" + VARPTR$(a$)`) | `VARPTR$` is not compiled (the table above) | Not measured |
 | `BEEP` is compiled, and no test runs it | It rings the system's bell, which no volume silences (user, `DECISIONS.md` 2026-10-13). Its call is compared by `tests\callsite\beep_*.bas`, and `s74_sound_queue` holds it as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
@@ -97,7 +96,6 @@ compiled but not checked by a run:
 | A whole array `e()` as the string of `FIELD`, `LSET` or `RSET` | The old compiler takes it as the array's first element with no bounds check (of an array that is not allocated: whatever lies there). "Not supported yet"; also under "QB64pe behaviours to review" | `verification\v30_x109`, `x153` |
 | A whole array `a()` as a value of `PRINT USING` or as a part of `_IIF` | An error here, as a whole array is in every expression; the old compiler takes it as element 0 | `verification\v30_x18`, `x99` |
 | `GET #1, , und()` and `PUT` with an array that is not declared | The old compiler accepts it, also `und$()`, although a declared array of variable-length strings is rejected; "not supported yet" | `verification\v30_x176`–`x178`; `tests\frontend\file_get_put_ir.bas` has the declared forms |
-| `GET #1, , a` where only an array `a` declared with `DIM … AS` exists | The old compiler makes a new SINGLE scalar `a` (`verification\v30_x67`); a plain scalar beside an array typed by `DIM … AS` is marked everywhere (the row of `m2-defxxx-common-arrays`) | `verification\v30_x67` |
 | An `_UNSIGNED _INTEGER64` literal above the `_INTEGER64` range (`18446744073709551615`) | "Not supported yet: unsigned literals", older than this step; the slice programs make the value by `u = 0: u = u - 1` | `tests\corpus\slice\s78_choice_min_shifts.bas` |
 | `LPRINT` and `CHAIN` are compiled, and no test runs them | `LPRINT` prints a page on the default printer; `CHAIN` starts `qb64pe.exe -c` beside the program through `cmd` (user, `DECISIONS.md` 2026-10-13). `238_chain` on `slice.list` reaches `sub_chain` with a name that is not there; no test chains to a program that exists (gap noted by the user, `DECISIONS.md` 2026-10-16). Their calls are compared by `tests\callsite\lprint_*.bas` and `chain_*.bas`; `s82_print_using_file` and `s87_chain_not_reached` hold them as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
 | What a format of `PRINT USING` prints, and what a file holds after `GET` and `PUT`, are shown once per topic | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; more lines would test libqb | Design, Non-Goals |
@@ -114,11 +112,9 @@ What the old compiler accepts and the new one still marks "not supported yet":
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `_MEM`, `_MEMELEMENT`, `_MEMGET`, `_MEMPUT` and `_MEMFILL` of a value of a `TYPE` that holds a `STRING` | Such a value holds the pointer of its string; what the old compiler's helpers give for it was not measured | `sema\src\check\mem.rs`, `block_reference`, `bytes_reference` |
+| `_MEM`, `_MEMELEMENT`, `_MEMGET`, `_MEMPUT` and `_MEMFILL` of a value of a `TYPE` that holds a `STRING` | Such a value holds the pointer of its string; what the old compiler's helpers give for it was not measured, but for `_MEM` of a whole array of it: no error, 48 bytes for 4 elements of a `STRING` and a LONG (`verification\v48_x11`; `LEN` of the same array is an error) | `sema\src\check\mem.rs`, `block_reference`, `bytes_reference` |
 | A reference through an element of a member array that is not its last step (`x(0).n(1).q`), or to a member array of user-type elements | The old compiler's rules for such paths were not measured | `unmeasured_path` |
 | `_MEM(nx())` of a name that is no array; `_OFFSET` of an element, member or array of variable-length strings; `_MEMGET`, `_MEMPUT` and `_MEMFILL` with an element or member of them | Not measured (what `_MEM` and `_MEMPUT` do with such strings and arrays of them is: errors, `verification\v32_x15`, `x16`, `x39`) | `check\mem.rs` |
-| `LEN(p(0).a())`, `LEN` of a whole member array | The old compiler takes it (`qb64pe.bas` 20652); its size was not measured. Holds `arrays/test_mem_vs_len` | `check\builtins.rs`, `len` |
-| `$CHECKING:OFF` and the forms the old compiler writes without checks (`sub__memfill_nochecks`, the inline checks left out) | Decided with the proposal: a step of its own (`DECISIONS.md` 2026-10-14) | design of `m3-mem`, Non-Goals |
 
 (`_INFLATE$`, `_DEFLATE$`, `_BASE64ENCODE$` and `_BASE64DECODE$`, the last row here, came in with
 `m3-asserts-debug-zlib`.)
@@ -154,7 +150,6 @@ Windows). What the old compiler accepts and the new one still marks "not support
 |---|---|---|
 | A library FUNCTION beside a program SUB of the same name (`x22`) | The old compiler accepts both; which one a use names was not measured | `verification\v37_x22`; `sema\src\check\library.rs` |
 | `ALIAS` in a `DECLARE SUB` outside a library block (`DECLARE SUB s ALIAS t ()`, `x08`) | The old compiler accepts it and ignores it; this compiler marks it "not supported yet" (user, `verification-compare`; until then the parser's error "expected the end of the statement", `m3-declare-library` design D1, task 2.2) | `verification\v37_x08`; `tests\frontend\declare_alias_marked.bas` |
-| `on_error/errtest`, the ninth upstream program with a block | It also needs `ON ERROR GOTO _NEWHANDLER` and `_LASTHANDLER`, which stay "not supported yet" (left out of the change, user, 2026-10-15) | `DECISIONS.md` 2026-10-15 |
 | Linux and macOS libraries (`.so`, `.dylib`, `/usr/lib`, `dlopen`) and the IDE's folder in the lookup | The project is Windows only | design Non-Goals |
 
 **Left marked by `m3-sound-handles`** (the sixteenth step of M3, 2026-10-16: `_SNDOPEN`, the `_SND*` family,
@@ -173,7 +168,6 @@ version resource and manifest). Nothing the old compiler builds into a working e
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `winresource/test` (`$VERSIONINFO` with `$EXEICON:'tests/compile_tests/winresource/qb64pe.ico'`) | Held back by its `$EXEICON` name, which neither starts with `./` nor is absolute (the row of `m3-sound` above) | proposal |
 | `$VERSIONINFO` on other systems than Windows | The old compiler writes the files on Windows only and ignores the lines elsewhere | design Non-Goals |
 | `s130_versioninfo` on a machine without PowerShell | It reads the version resource back with a PowerShell script; every Windows machine and GitHub's runner have one | design, risks |
 
@@ -182,14 +176,12 @@ marked; left out:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `_ARRAYCOPY` under `$CHECKING:OFF` (`verification\v41_x62`, not run with this compiler) | `$CHECKING` is marked "not supported yet" by itself | task 3.4 |
 
 **Left marked by `m3-events`** (the nineteenth step of M3, 2026-10-17: `ON TIMER`, `ON KEY`, the switches,
 `_FREETIMER`, `KEY`'s own forms). What the old compiler accepts and the new one still marks "not supported yet":
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `ON STRIG(…) GOSUB label` or `… sub`, and `STRIG[(…)] ON\|OFF\|STOP` | libqb's device-input part is not built, nor its other names (`STICK`, `STRIG()`, `_DEVICES`, …): a later device-input change (user, `DECISIONS.md` 2026-10-17) | `verification\v42_x11` |
 | A line number as a handler (`ON TIMER(1) GOSUB 10`) | Line numbers are not compiled yet (the row of `ON PLAY` above) | `verification\v42_x46` |
 | A SUB of a `DECLARE LIBRARY` block as a handler | Not measured | `sema\src\check\events.rs` |
 
@@ -199,11 +191,10 @@ left out:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A relative `$EMBED` name that does not start with `./` or `.\` (`$EMBED:'data/f.txt','h'`), so `embed/test` stays held back, beside `icon/test` and `winresource/test` | The old compiler looks for it in its own folder, as for `$EXEICON` (the row of `m3-sound` above, and "QB64pe behaviours to review") | `verification\v44_x26` |
+| A `$EMBED` name with a drive and no slash after it (`$EMBED:'C:f.txt','h'`) | As for `$EXEICON` (the row of `m3-sound` above); the other relative names are looked for under the compiler root since `m4-devices-continue-paths` | `sema\src\check\embed.rs` `embed_meta` |
 | `_EMBEDDED` without its `$` (`x19`) and `_OPENCLIENT&("x")` (`x46`), "Invalid array name" in the old compiler | Every `_name(...)` that names no array is "not supported yet", as `_DEFLATE("x")` (`v33_x25`–`x29`) | `tests\frontend\network_errors.bas` |
 | `_EMBEDDED$` with its argument in parentheses (`_EMBEDDED$(("h"))`) | Not measured | `sema\src\check\embed.rs` |
 | Two absolute `$EMBED` names of one file written differently (`<drive>/d/f` and `<drive>\d\f`, or with `..`): "was already embedded" in the old compiler, which resolves the folder first (`CHDIR`, `_CWD$`, `qb64pe.bas` 3765–3777); compared as written here, so both are accepted | Not measured: a recording would hold a local folder (`CLAUDE.md` rule 2); `sema` reads no folder | `sema\src\check\embed.rs` `same_file` |
-| `$CHECKING:OFF` and `:ON` in a program's own code | Read in `afterlastline.bm` only, whose procedures have no array, `_MEM` or `ON ERROR`; elsewhere the statements it changes need more than the event check left out | design D8 |
 | Compressing an embedded file as the old compiler does when that saves a fifth | The program sees the same bytes; only the executable's size differs (design D4) | design D4 |
 | An HTTP download from a real server (`http/read_example`) | The page it downloads changed; it compiles and stays a known failure | `tools\legacy_tests\known_failures.txt` |
 
@@ -215,6 +206,68 @@ old compiler accepts and the new one still marks "not supported yet":
 | `_RED`, `_GREEN`, `_BLUE` of a colour from 256 to 65535 in screen mode 0 in a `CONST` (`_RED(2222, 0)`) | A text image's mask lets the index through, and libqb reads past its 256-entry palette (the old compiler gave 0 once) | `verification\v45_x64`; `sema\src\colors.rs` |
 | A string argument to a colour function in a `CONST` (`_RGB32("a")`), which the evaluator's varying argument count lets through | Not measured | `sema\src\colors.rs` |
 | A math function or a power of an infinite value in a `CONST` (`SIN(1F+4000 * 1F+4000)` inside an expression is the old compiler's error already; as a function argument not measured) | Not measured | `sema\src\certify.rs` |
+
+**Left marked by `m4-devices-continue-paths`** (2026-10-20: `_CONTINUE`, blanks around `.` after a name, relative
+`$EXEICON` and `$EMBED` names, device input and `ON STRIG`). What the old compiler accepts and the new one still
+marks "not supported yet", and what is left out:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A declaration with blanks around its dot: `DIM a . b AS LONG`, `SUB a . b` and its call `a . b 3` (the old compiler drops the blanks) | The parser reads a name with blanks around a dot only where an expression or an assignment's target stands; the design left declarations out | `verification\v47_x17`, `x18`; `syntax\src\parser\decl.rs` `dim_item`, `proc.rs` `proc_header` |
+| `p . q(1)` written with blanks where no array `p.q` is declared (an array used without `DIM`) | Not measured | `sema\src\check\places.rs` `field_place` |
+| `c . k` or `f . g` written with blanks where `c.k` is a `CONST` or `f.g` a SUB or FUNCTION (the old compiler drops the blanks before it reads the statement, `qb64pe.bas` 4196–4241, so it would be the constant or the procedure) | Not measured; found in the change's review, where such a name was read as a new variable | `sema\src\check\places.rs` `plain_spelled`; `tests\frontend\dot_blanks_errors.bas` |
+| `ON STRIG(1 GOSUB h` and `ON TIMER(1 GOSUB h`: a keyword where `,` or `)` is expected in an argument list is "not supported yet" (the old compiler: "Expected )") | The parser's general mark for a word inside an argument list, not `ON STRIG`'s | `verification\v47_x08` |
+| `C:name` in `$EXEICON` and `$EMBED` | The rows of `m3-sound` and `m3-network-embed` above | design D3 |
+| A test with a game controller attached | The tests run with none; the call-site check holds every call (`event_strig_*`, `stick_*`, `strig_*`, `device*`, …) | design Non-Goals |
+
+**Left marked by `m4-names-arrays`** (2026-10-21: a scalar and an array of one name, `REDIM name [AS type]` in a
+procedure, `TYPE` blocks anywhere, `LEN` of a whole array). What the old compiler accepts and the new one still
+marks "not supported yet", what it accepts and the old compiler rejects, and what is left out:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| An array without `AS` beside one listed by `COMMON name() AS type` (`COMMON SHARED g() AS DOUBLE: DIM g(3)`) | Not measured; the old compiler keeps a list of its own for `COMMON` (`qb64pe.bas` 9296) | design D2; `tests\frontend\names_arrays_errors.bas` |
+| `LEN(x())` and `_MEM(x())` of a name that is no array | The old compiler makes `x` an array used without `DIM` there (`LEN` 44: 11 SINGLEs); `x()` with nothing between the parentheses makes none here | `verification\v48_x04`, `x14` |
+| `LEN` of a whole array of a `TYPE` with a `_DYNAMIC` member array, and of a whole `_DYNAMIC` member array | Not measured (`LEN` of such a value is an error, `v35_x20`) | `check\builtins.rs` `len_whole` |
+| `LEN` of a whole member array of variable-length strings (`TYPE t: s(3) AS STRING …`, `LEN(x.s())`) | The old compiler gives 32 for four elements, likely 8 bytes (a pointer) each, where a whole array of strings is an error (`v48_x01`); one program only, and a number no program can use: other bounds, dimensions and the C++ it writes not measured | `verification\v48_x30`; `tests\frontend\names_arrays_errors.bas` |
+| A whole array as a value (`PRINT a()`, `SWAP x(), y()`, `READ a()`), the old compiler's errors for names that are no array or no SUB, a built-in's name with a type suffix (`LEN$`, `base$`) | Left for later by the user (`DECISIONS.md` 2026-10-20) | design Non-Goals |
+
+**Left marked by `m4-builtins-param-types`** (2026-10-21: `_CAST`, `_CLIPBOARD$`, `_FILES$`, `_MD5$`, `_OS$`,
+`CLEAR`, a parameter's `TYPE` above its procedure):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `_CAST&(LONG, 1)`, `_FILES("*")`, `PRINT _OS`: a new built-in named with another suffix or without its `$` | The old compiler's errors ("Invalid array name", "Invalid variable name") wait with a built-in's name with a type suffix, above | `verification\v49_x16`, `x42`, `x47` |
+
+**Left marked by `m4-handlers-logging-checking`** (2026-10-21: the handler chain, the log statements and
+`_LOGMINLEVEL`, `$CHECKING` anywhere):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| `ON ERROR GOTO _NEWHANDLER 10`: a line number as the handler | Line numbers as labels are "not supported yet" everywhere | `verification\v50_x13` (on `tests\verification\known.list`) |
+| `ON ERROR GOTO foo h`: another word before the label | Rejected here as a parse error; the old compiler's message is "Expected: ON ERROR GOTO [_NEWHANDLER] label". Taking any two words would read a keyword after a label as the label | `verification\v50_x26`; design D1 of the change |
+| A log statement in an included file found in the compiler root (`--include-root`) | Its entry names the file by the working folder and the name relative to the compiler root, a path that does not exist; the old compiler names it by the path as written. No program logs from such a file | Design D2 of the change (`codegen-cpp` `lib.rs`, the log folder) |
+
+**Left marked by `m4-upstream-rejections`** (2026-10-21: the old compiler's errors for member bounds and types,
+`LBOUND` of an element, `CONST` operators and names, type names by place):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A member array's bound that is a `CONST` above the block with a suffix (`v(top%)`), `_PI` or a function of the constant evaluator (`v(ABS(-3))`) | Accepted by the old compiler; the same wait as a plain `CONST` bound (the row above, under "Plain member arrays compile") | `verification\v51_x09`–`x11`, `x14` (on `tests\verification\known.list`) |
+| `LBOUND((a))`: an array's name in parentheses | Accepted by the old compiler as the array `a`; read here as a value, which it is everywhere else | `verification\v51_x34` |
+| An operator where a value is expected outside a `CONST` (`x = OR`) | The old compiler: "Expected variable/value before 'OR'". The parser's mark covers forms of its grammar not parsed here, so only a `CONST` turns it into an error | `verification\v51_x50`; design D5 of the change |
+| A variable as the length of `STRING * n` (`DIM s AS STRING * n`) | The old compiler: "Number/Constant expected after *". A name is marked here because it may be a constant not known yet | `verification\v51_x75` |
+| A name that is no type in an `AS` clause where no form was measured: `REDIM` of a member array, `_UNSIGNED` before a name in `SHARED`, a parameter or `_DEFINE` | Each place gives its own error in the old compiler (`v51`), so a place not measured keeps its mark | `check\decl.rs` `no_type` |
+
+**Left marked by `m4-qb64pe-sources`** (2026-10-21: `_INSTRREV`, the whole-file functions, `_FULLPATH$`, the five
+functions, the `ASC` statement, `STOP`, reserved words with a suffix, the `$` name of a `STRING * n` array or
+variable):
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A procedure named after a reserved word with a suffix other than none and `&` (`FUNCTION exp$`) | `v52_builtin_name_suffixes` measured variables only; the old compiler rejects the form recorded. A sweep like it, of `FUNCTION` and `SUB`, would decide the rest (a `CONST` is decided: "Name already in use", `x32`, `x67`, `x68`) | `verification\v52_x28` (on `tests\verification\known.list`); design D6 of the change |
+| `REDIM`, `STATIC` or `COMMON` of `a$(…)` beside a `STRING * n` array `a`, and `COMMON SHARED s$` beside a `STRING * n` variable `s` | Only `DIM` was measured for the array ("Type mismatch", `v52_x45`), and every declarer but `COMMON` for the variable (`x49`, `x69`–`x72`) | Design D7 of the change |
+| `ASC((a$)) = 65`: the place in parentheses | Not measured, as for `MID$` | `check\io.rs` `asc_assign` |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -294,7 +347,8 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `GET (1, 2)-(3, 4), 5` is "UNEXPECTED INTERNAL COMPILER ERROR!"; an error here. `BLOAD` and `POKE` write where the segment and offset say, past the end of the array they were taken from too (inside libqb's block of conventional memory) | A plain error message; the writes are what `BLOAD` and `POKE` are for | `verification\v28_x15`, `v28_b_bload` |
 | On the console `TAB(n)` is n - 1 blanks wherever the line stands, because `POS(0)` is always 1 there; in a window and in a file it moves to column n | The column the program has written to | `m3-get-put-bload` task 1.1 (`verification\v28_a_tab_spc`) |
 | A plain variable, an undeclared name or a string where graphics `GET` and `PUT` take an array is accepted: the picture is read from or written over that variable's few bytes | An error, as for a `CONST` or an expression | `verification\v28_x23`, `x59` (not compiled here: marked) |
-| A relative `$EXEICON` name without `./` is looked for in the compiler's own folder, not beside the program (`$EXEICON:'game.ico'` with `game.ico` beside the source is "File 'game.ico' not found") | Look beside the main source file, as for a name with `./`. Marked "not supported yet" until decided | `verification\v29_e02`, `e03`, `e08`, `e18`; `qb64pe.bas` 3852 |
+| A relative `$EXEICON` or `$EMBED` name without `./` is looked for in the compiler's own folder, not beside the program (`$EXEICON:'game.ico'` with `game.ico` beside the source is "File 'game.ico' not found"); one with a single leading slash on the compiler's drive. Here under the compiler root, its counterpart (`DECISIONS.md` 2026-10-20) | Look beside the main source file, as for a name with `./` | `verification\v29_e02`, `e03`, `e08`, `e18`, `v44_x26`, `v47_e01`, `e02`; `qb64pe.bas` 3852 |
+| An odd button number of `ON STRIG` or the `STRIG` switch (`ON STRIG(1) GOSUB h`, a button's "currently down" state) compiles and raises error 5 when it runs, in libqb's `onstrig_setup` and `sub_strig` | A compile error for a constant odd number | `m4-devices-continue-paths` (`verification\v47_x13`, `x27`) |
 | `$EXEICON` drops the rest of its line, a statement after a colon included (`$EXEICON:'./a.ico': PRINT 1` prints nothing), and takes any line that starts with the word (`$EXEICONS:'…'`, `$EXEICON '…'` without the colon) | Reject what is not `$EXEICON:'name'` alone on its line, as the console metacommands are | `verification\v29_e08`, `e09`, `e20`, `e24` |
 | A `PLAY` with more than one string never holds the program, even for a voice in the foreground, and ends a `SOUND WAIT`; a `PLAY` string takes a tempo and an octave outside QuickBASIC's range (`T31`, `T256`, `O7`: `DIVERGENCES-QB45.md` Q-011) | Wait for the longest foreground voice; raise error 5 for the values QuickBASIC rejects | `verification\v29_g_voice`, `v29_h_sound_ranges`, `v29_c_sound_errors`; `PlayMML` in libqb's `audio.cpp` |
 | A sound handle that is not open (0, negative, never opened, closed) raises no error: a statement does nothing and a function gives 0; a missing file or a sound bank that is not there is silently 0 or ignored | Error 5 or 52 for a bad handle, as QuickBASIC raises for a bad file number | `m3-sound-handles` (`verification\v39_a_handles` 5., 6., 13.; `IsHandleValid` in libqb's `audio.cpp`) |
@@ -335,7 +389,23 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `CHR$` in a `CONST` rounds its code half to even through `_UNSIGNED _INTEGER64`, so `CHR$(-0.5)` is `CHR$(0)` while `CHR$(-0.6)` is an error | Range-check the code before rounding | `m3-errorline-chr-const` (`verification\v43_x11`, `x12`) |
 | `_STATUSCODE` of a negative handle that was never opened (`_STATUSCODE(-5)`) ends the program with an access violation (exit 139), where `_CONNECTED`, `_CONNECTIONADDRESS$`, `EOF`, `LOF`, `GET` and `PUT` of it raise error 52 (the user kept QB64pe's way for now, `DECISIONS.md` 2026-10-17) | Error 52, as the other functions raise. libqb's (`func__statusCode`), so a change is a change to the runtime | `m3-network-embed` (`verification\v44_x59`, `x60`–`x68`) |
 | `$EMBED` takes any line that starts with the word (`$EMBEDX:'…'`, `$EMBED '…''h'` without the colon and the comma) and drops the rest of its line; two files are the same only when their names are the same text with the folder in front (`./a/../a/f` embeds `./a/f` a second time, `./d\f` embeds `./d/f`; only `./` and `.\` count as one) (the user kept QB64pe's way, `DECISIONS.md` 2026-10-17) | Reject what is not `$EMBED:'file','handle'` alone on its line; compare the files themselves | `m3-network-embed` (`verification\v44_a_embed`, `x22`, `x35`, `x39`, `x69`, `x70`) |
+| A member's type must be defined in an earlier `TYPE` block ("Undefined type"), though `DIM`, `SHARED` and a SUB's body take a type defined anywhere | Take a type of any block, as `DIM` does | `m4-upstream-rejections` (`verification\v51_x21`, `x73`) |
+| A member array's bound may name a `CONST` above the block only in the main module: one in a SUB above it is "TYPE member array bounds must be numeric constant", though a SUB's `CONST` is not visible there anyway and the message says nothing of scope | A message that names the scope | `m4-upstream-rejections` (`verification\v51_x13`) |
+| The same misspelt type gives a different error by place: "Unknown type" in `DIM`, "Cannot convert type (…) to symbol" in `SHARED` and `_DEFINE`, "Illegal SUB/FUNCTION parameter" in a parameter, "Undefined type" in a member | One message, "Unknown type", everywhere | `m4-upstream-rejections` (`verification\v51_x20`, `x60`–`x89`) |
 | `_DECODEURL$` turns a `%` whose next two characters are not hexadecimal into a byte 0 (`%zz` is one byte 0, `abc%` ends with one) (the user kept QB64pe's way, `DECISIONS.md` 2026-10-17) | Keep such a `%` as it is | `m3-network-embed` (`verification\v44_d_url`) |
+| A plain name beside an array typed by `DIM … AS` is silently a scalar of another type: after `DIM a(3) AS INTEGER`, `a = 1.5` stores into a new SINGLE `a`, and `PUT #1, , a` writes its 4 bytes instead of the array | An error or a warning for a plain scalar beside a typed array of its name | `m4-names-arrays` (`verification\v48_a_scalar_array`, `v30_x67`) |
+| `DIM c(3)` without `AS` beside `DIM c(2) AS DOUBLE` silently makes a second array, reachable only as `c!`: the plain `c(1)` below it is still the DOUBLE one, and `UBOUND(c)` 2; a `REDIM c(3)` gives the DOUBLE array new bounds instead. In a SUB beside a shared typed array, and beside a `STATIC c() AS DOUBLE` list nothing has reached, the new array takes the plain name | One rule for the plain name, or an error for the second declaration | `m4-names-arrays` (`verification\v48_x16`–`x24`, `v24_x126`) |
+| A `TYPE` block in a SUB, a FUNCTION or a block (also one never run, `IF 0 THEN`) defines a type of the whole program, usable above its block and in every procedure; a second block of the name anywhere is "Name already in use" | Types scoped to their procedure, as a local variable is | `m4-names-arrays` (`verification\v48_c_type_anywhere`, `v48_x05`) |
+| A parameter's `TYPE` must be defined above its SUB or FUNCTION ("Illegal SUB/FUNCTION parameter"), also one in the procedure's own body, though a `TYPE` block anywhere serves `DIM … AS` above it | One rule for both: any `TYPE` of the program serves a parameter too | `m4-builtins-param-types` (`verification\v49_x60`–`x65`, `v48_x12`, `x25`) |
+| `CLEAR` with a parenthesis anywhere in its arguments is "Incorrect number of arguments", also inside an expression (`CLEAR , , LEN("a")`), though its arguments are ignored | Accept any numeric expression | `m4-builtins-param-types` (`verification\v49_x33`) |
+| `_CAST` of a float constant outside the integer type's range gives whatever g++ folds it to, another value on each build (`_CAST(LONG, 1E20)`: `1008726880`, then `-360710944`) | A defined value (saturated, or the x86 value `-2147483648` a variable gives), with a `DIVERGENCES.md` row | `m4-builtins-param-types` (`verification\v49_x18`, design D2) |
+| `_CLIPBOARD$ = s$` puts `s$` on the clipboard only up to its first NUL | Keep the whole string | `m4-builtins-param-types` (`verification\v49_d_clipboard`) |
+| An error raised below `$CHECKING:OFF` waits until the next checked statement, and libqb's routines do nothing meanwhile (a `PRINT` prints nothing); the handler then runs for that checked statement, so `RESUME` runs it again, not the statement that raised the error, and `RESUME NEXT` skips it | None in the compiler if kept: it is what OFF leaves out. A change would service the error at `$CHECKING:ON` | `m4-handlers-logging-checking` (`verification\v50_c_checking`) |
+| A reserved word is a variable's name with `$` (`key$`, `exp$`, `cls$`), but "Name already in use" with every other suffix (`key%`, `exp#`), and a word reserved only with `$` (`chr`) is free with every other suffix | One rule for every suffix | `m4-qb64pe-sources` (`verification\v52_builtin_name_suffixes.txt`) |
+| `STOP n` checks `n` as a number and never evaluates it: a FUNCTION in it is not called, and the exit code is 0 | Evaluate it, or make it the exit code as `SYSTEM n` does | `m4-qb64pe-sources` (`verification\v52_x12`, `x15`) |
+| `name$` is the `STRING * n` variable or array of the name; `DIM s$` beside such a variable declares nothing (`s$` stays the fixed-length one), while `DIM a$(3)` beside such an array is "Type mismatch" | One rule for both: `DIM` of the `$` name an error, or a variable-length string of its own | `m4-qb64pe-sources` (`verification\v52_x45`, `x49`) |
+| A dotted name in a SUB or FUNCTION beside a main-module `TYPE` variable it does not share (`num.typ`) is silently a new local variable of the default type; QB64pe's own `const_eval.bas` reads `num.typ` so in `LogicalNot&`, where it is always 0 | A warning, as for a name used before it is set | `m4-qb64pe-sources` (`verification\v52_x65`, `x66`) |
+| `ERROR 11` (division by zero) is a critical error in this libqb: it ends the program, and no `ON ERROR` handler catches it, as QB 4.5's would | A trappable error 11, as the other errors are. libqb's (`error_handle.cpp`), so a change is a change to the runtime | `m4-handlers-logging-checking` (found writing `verification\v50_a_chain`, design D1) |
 
 ## Other ideas raised during the study
 

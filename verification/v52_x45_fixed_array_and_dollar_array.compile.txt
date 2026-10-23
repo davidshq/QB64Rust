@@ -1,0 +1,5 @@
+
+Type mismatch
+Caused by (or after):DIM A$ ( 3 )
+LINE 5:DIM a$(3)
+exit=1

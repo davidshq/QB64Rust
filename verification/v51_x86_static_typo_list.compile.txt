@@ -1,0 +1,5 @@
+
+Unknown type
+Caused by (or after):STATIC AS NOSUCH A , B
+LINE 7:STATIC AS nosuch a, b
+exit=1

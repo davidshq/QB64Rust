@@ -138,15 +138,19 @@ parentheses, and its bounds are given without evaluating the indexes of the plac
 - **THEN** it prints ` 1  4 `
 
 ### Requirement: User types
-A `TYPE name … END TYPE` block in the main module SHALL define a user type whose members are of the numeric types
+A `TYPE name … END TYPE` block SHALL define a user type whose members are of the numeric types
 other than `_BIT`, of fixed-length strings, of `STRING`, or of user types defined in earlier blocks, each a single
-value or an array (requirement "Member arrays"); the program's types SHALL
-be known before its statements (a type may be used above its block). `DIM v AS name` SHALL declare a variable of
+value or an array (requirement "Member arrays"). The block may stand in the main module, in a SUB or FUNCTION, or
+inside a block (`IF`, a loop, `SELECT CASE`); wherever it stands, the type SHALL be one of the whole program,
+usable in the main module and in every procedure, as the old compiler's prepass defines it. The program's types
+SHALL be known before its statements (a type may be used above its block, also above the procedure that holds
+it). A second `TYPE` block of a name, wherever the two stand, SHALL be a compile error (the old compiler: "Name
+already in use"; `verification\v48_x05`). `DIM v AS name` SHALL declare a variable of
 that type, in every storage class a scalar variable may have; every member starts at zero (NUL bytes for a
 fixed-length string, an empty string for a `STRING`), a local one on each call. A member's size in the layout SHALL
 be its type's (1 byte for
-`_BYTE`, 8 for `_OFFSET`, `n` for `STRING * n`), without padding. A member array marked `_STATIC` or `_DYNAMIC`,
-and a `TYPE` block inside a SUB or FUNCTION, SHALL be reported "not supported yet"; a member declared
+`_BYTE`, 8 for `_OFFSET`, `n` for `STRING * n`), without padding. A member array marked `_STATIC` or `_DYNAMIC`
+SHALL be reported "not supported yet"; a member declared
 with a type suffix, and a `_BIT` or `_BIT * n` member, SHALL be compile errors (the old compiler: "Cannot use _BIT
 inside user defined types"). A whole user-type value in an expression, a `PRINT`
 item or stored into a scalar, and a number stored into a user-type variable, SHALL be compile errors; a whole
@@ -192,13 +196,33 @@ value SHALL be assignable to a place of the same type (requirement "Whole user-t
 - **WHEN** a SUB with `DIM p AS` that type prints `"[" + p.n + "]"`, sets `p.n = "x"`, and is called twice
 - **THEN** it prints `[]` both times
 
+#### Scenario: Type block inside a SUB
+- **WHEN** a SUB holds `TYPE pt: x AS LONG: END TYPE` (as a block) and `DIM p AS pt: p.x = 5: PRINT p.x`, and is
+  called
+- **THEN** it prints ` 5 ` (`verification\v18_h_type_in_sub`)
+
+#### Scenario: Type of a SUB used elsewhere
+- **WHEN** a SUB holds the block `TYPE pt … END TYPE`, and the main module above the SUB has `DIM q AS pt: q.x = 3:
+  PRINT q.x`, and another SUB below it has a parameter `p AS pt`
+- **THEN** the program compiles, and the main module prints ` 3 ` (`verification\v48_c_type_anywhere`)
+
+#### Scenario: Two TYPE blocks of one name
+- **WHEN** two SUBs each hold a block `TYPE pt … END TYPE`
+- **THEN** it is a compile error
+
+#### Scenario: Type block inside an IF block
+- **WHEN** the main module has `IF 1 THEN`, the block `TYPE pt … END TYPE`, then `END IF`, and below it `DIM p AS
+  pt`
+- **THEN** the program compiles, and `p` has the type's members
+
 ### Requirement: Member access and dotted names
 `a.b` SHALL be a member access when a scalar variable `a` of a user type is visible at that point, and a plain
 variable named `a.b` otherwise, also before a later `DIM a AS t` (measured, `verification/v16_m8_*`,
 `v18_h_dotted_before_dim`); when an array `a` of a user type is visible and no such scalar, `a.b` SHALL be a compile
 error. A member that its type does not have, a member written with another type's suffix, and a member of an
 element of a numeric array SHALL be compile errors. `a(i).m` SHALL be the member `m` of element `a(i)`. A member SHALL
-be readable, assignable, and passable by reference to a parameter of its exact type.
+be readable, assignable, and passable by reference to a parameter of its exact type. Blanks around the dot after a
+plain name SHALL be dropped: `a . b` SHALL be `a.b` in every one of these uses (`verification/v19_dot_blanks_*`).
 
 #### Scenario: Dotted name without a TYPE
 - **WHEN** `a.b = 3: a = 4: PRINT a.b; a` runs and no user-type variable `a` exists
@@ -207,6 +231,12 @@ be readable, assignable, and passable by reference to a parameter of its exact t
 #### Scenario: Dotted name before the DIM
 - **WHEN** `a.b = 3: PRINT a.b` runs, then `DIM a AS t` (a type with a LONG member `b`), then `PRINT a.b`
 - **THEN** it prints `3`, then `0`
+
+#### Scenario: Dotted name in a procedure that does not share the TYPE variable
+- **WHEN** the main module has `DIM v AS t` (not shared) and `v.m = 7`, and a SUB runs `PRINT v.m: v.m = 1.5: PRINT
+  v.m` twice
+- **THEN** each call prints ` 0 ` and ` 1.5 `, a variable of the SUB's own of the default type, and the main
+  module's `v.m` is still 7 (`verification/v52_x65`; under `DEFLNG` the variable is a LONG, `v52_x66`)
 
 #### Scenario: Unknown member
 - **WHEN** `a.c = 6` is compiled for a variable `a` of a type without a member `c`
@@ -219,6 +249,27 @@ be readable, assignable, and passable by reference to a parameter of its exact t
 #### Scenario: Member passed by reference
 - **WHEN** `bump p.x` is called for a LONG member `x`
 - **THEN** `p.x` is 1 higher afterwards
+
+#### Scenario: Blanks around the dot of a member
+- **WHEN** `a . s = 5: PRINT a . s: PRINT a.s` runs for `DIM a AS t` (a type with a LONG member `s`)
+- **THEN** it prints ` 5 ` twice (`v19_dot_blanks_type`)
+
+#### Scenario: Blanks around the dot of a plain dotted name
+- **WHEN** `a.b = 3: PRINT a . b` runs and no user-type variable `a` exists
+- **THEN** it prints ` 3 ` (`v19_dot_blanks_plain`)
+
+#### Scenario: ERASE of a member array with blanks
+- **WHEN** `ERASE a . S, b` runs for a member array `s(1 TO 3) AS LONG` of `a` and an array `b`
+- **THEN** both are cleared, as with the old compiler (`v19_dot_blanks_erase`, `arrays/04_float_family`)
+
+#### Scenario: An element of a member array with blanks
+- **WHEN** `a . s(2) = 7: PRINT a.s(2)` runs for that member array
+- **THEN** it prints ` 7 ` (`v47_c_dot_blanks`, which also has `LBOUND(a . s)`, `a . w . v`, `p . q . r` and a
+  member passed by reference)
+
+#### Scenario: A suffix before the dot
+- **WHEN** a program has `s$ . x = "hi"`
+- **THEN** the compiler reports an error that is not "not supported yet", as the old compiler does (`v47_x29`)
 
 ### Requirement: Dynamic arrays
 An array SHALL be dynamic when the first declaration of it in the file is a `REDIM`, a `DIM` with a bound that is
@@ -587,7 +638,14 @@ and a store to a spelling that is a FUNCTION or a built-in function SHALL be com
 ### Requirement: Arrays in procedures
 In a SUB or FUNCTION, `DIM` and `REDIM` of an array SHALL make a dynamic array that is new on every call and
 released at the end of the call; running the same `DIM` twice in one call SHALL raise error 10. `DIM name()` and
-`REDIM name()` with nothing between the parentheses SHALL declare a scalar, as in the main module.
+`REDIM name()` with nothing between the parentheses, and `REDIM name [AS type]` without parentheses, SHALL declare
+a scalar, as in the main module: a local variable of the procedure (one that lives for the program in a
+`SUB … STATIC` or `FUNCTION … STATIC`, above its first `STATIC` statement), as `DIM name [AS type]` declares it.
+The item may stand in a list with arrays (`REDIM a(n) AS LONG, i AS LONG`). Such a `REDIM` SHALL do nothing when it
+runs: run again in one call it keeps the scalar's value. Below a use of the name, `REDIM name AS type` SHALL declare
+a new scalar that the plain name names below it, and `REDIM name` without `AS` SHALL be a compile error, as `DIM`
+(the old compiler: "Name already in use"; `verification\v48_x09`, `x10`). `REDIM SHARED` in a procedure SHALL be a
+compile error with or without parentheses (`v48_x06`).
 
 `STATIC name(bounds)` with constant bounds SHALL make an array that keeps its elements between calls. It SHALL be
 a dynamic array that is allocated when the program starts, below `$DYNAMIC` or not: `ERASE` SHALL release it (a
@@ -625,6 +683,15 @@ old compiler's program ends when it starts).
 #### Scenario: New on each call
 - **WHEN** a SUB with `DIM t(5) AS LONG: PRINT t(1): t(1) = 7` is called twice
 - **THEN** it prints ` 0 ` both times
+
+#### Scenario: REDIM of a scalar in a SUB
+- **WHEN** a SUB with a string parameter `s` holds `REDIM v(LEN(s)) AS LONG, i AS LONG`, then `FOR i = 1 TO
+  UBOUND(v): v(i) = i * 100000: NEXT: PRINT v(UBOUND(v)); i`, and is called with `"abc"`
+- **THEN** it prints ` 300000  4 ` (`i` is a LONG scalar of the SUB)
+
+#### Scenario: REDIM of a scalar run twice
+- **WHEN** a SUB runs `REDIM i AS LONG: PRINT i;: i = i + 5` twice in a loop, and is called twice
+- **THEN** each call prints ` 0  5 ` (`verification\v48_b_redim_scalar`)
 
 #### Scenario: STATIC array
 - **WHEN** a SUB with `STATIC c(3) AS LONG: c(1) = c(1) + 1: PRINT c(1)` is called three times
@@ -1362,3 +1429,242 @@ fit the form, a range without one `TO`, an empty range or start, and a bound tha
 #### Scenario: A string bound
 - **WHEN** `_ARRAYCOPY a("1" TO 2) TO b(0)` or `_ARRAYCOPY a(1 TO 2) TO b("0")` is compiled
 - **THEN** each is a compile error
+
+### Requirement: A scalar and an array of one name
+Where one of a scalar and an array of one name is typed by `DIM … AS` and the other is not, or both are typed by
+`AS` with two types, they SHALL be two variables, as in the old compiler. A name without a suffix that no
+declaration made a scalar SHALL be a scalar of the default type for its first letter beside an array of that name
+typed by `AS`. An array declared without `AS` beside a scalar typed by `AS` SHALL be an array of the default type,
+which the plain name names.
+
+#### Scenario: A plain scalar beside a typed array
+- **WHEN** `DIM a(3) AS INTEGER: a = 1.5: a(1) = 7: PRINT a; a(1); LEN(a)` runs
+- **THEN** it prints ` 1.5  7  4 ` (`a` is a SINGLE of its own)
+
+#### Scenario: The default type under DEFLNG
+- **WHEN** `DEFLNG A-Z: REDIM SHARED t(1 TO 8) AS INTEGER: t = 100000: t(1) = 77: PRINT t; t(1)` runs
+- **THEN** it prints ` 100000  77 ` (upstream `arrays/t001_whole_array_core`)
+
+#### Scenario: The plain scalar as a record
+- **WHEN** `DIM a(1 TO 3) AS INTEGER` stands in the program and `PUT #1, 1, a` writes into a new binary file
+- **THEN** the file holds 4 bytes, a SINGLE (`verification\v30_x67`)
+
+#### Scenario: An array without AS beside a typed scalar
+- **WHEN** `DIM b AS STRING: b = "str": DIM b(2): b(1) = 1.25: PRINT b; b(1); LEN(b(1))` runs
+- **THEN** it prints `str 1.25  4 ` (`verification\v48_a_scalar_array`)
+
+#### Scenario: A typed array beside a scalar typed otherwise
+- **WHEN** `DIM d AS STRING: DIM d(3) AS LONG: d = "dd": d(1) = 5: PRINT d; d(1); LEN(d); LEN(d(1))` runs
+- **THEN** it prints `dd 5  2  4 ` (`verification\v48_a_scalar_array`)
+
+### Requirement: The plain name between two arrays
+Between two arrays of one name, the plain name SHALL name the one typed by `AS` once it exists in the scope,
+whichever was declared first: a `DIM` without `AS` beside it SHALL declare another array, of the default type,
+named with its suffix (`c!`), and a `REDIM` without `AS` SHALL give the typed array new bounds. In a procedure, an
+array declared there without `AS` SHALL take the plain name from a typed main-module array shared with it.
+
+#### Scenario: The typed array keeps the plain name
+- **WHEN** a SUB with `DIM c(2) AS DOUBLE: c(1) = 1 / 3`, then `DIM c(3)`, then `c(1) = c(1) + 1: PRINT c(1);
+  LEN(c(1)); UBOUND(c); UBOUND(c!)` is called
+- **THEN** it prints ` 1.333333333333333  8  2  3 ` (`verification\v48_x17`; the same in the main module, `v48_a`)
+
+#### Scenario: A local array without AS beside a shared typed one
+- **WHEN** the main module has `DIM SHARED c(2) AS DOUBLE` and a SUB with `DIM c(3): c(1) = c(1) + 1: PRINT c(1);
+  LEN(c(1)); UBOUND(c)` is called
+- **THEN** it prints ` 1  4  3 ` (`verification\v48_x20`: the SUB's plain `c` is its SINGLE array)
+
+### Requirement: An array listed with a type
+An array listed by `STATIC name() AS type` SHALL exist only once a `DIM` or `REDIM` of its type, or a use, reaches
+it (the old compiler's list, `qb64pe.bas` 9260): a `DIM` or `REDIM` without `AS` before that SHALL declare an array
+of the default type, which the plain name names. An array without `AS` beside one listed by `COMMON name() AS type`
+is not measured and SHALL be reported "not supported yet".
+
+#### Scenario: An array without AS beside a listed one
+- **WHEN** a SUB with `STATIC a() AS DOUBLE`, then `DIM a(3)`, then `a(1) = a(1) + 1: PRINT a(1); LEN(a(1))` is
+  called
+- **THEN** it prints ` 1  4 ` (`verification\v24_x126`: the listed DOUBLE array was never reached, and `a(1)` names
+  the SINGLE array)
+
+### Requirement: LEN of a whole array
+`LEN(name())` of an array, and `LEN` of a whole member array (`LEN(v.m())`, `LEN(a(i).m())`), SHALL give the size in
+bytes of all its elements, as `_MEM` of it gives: the number of elements times the element's size. A dynamic array
+that is not allocated SHALL give 0. A whole dynamic member array, and `LEN(name())` of a name that is no array
+(the old compiler makes it an array used without `DIM`, `verification\v48_x04`, `x14`), SHALL be reported "not
+supported yet".
+
+#### Scenario: Numbers and dimensions
+- **WHEN** `DIM a(3 TO 7) AS INTEGER, b(1, 2) AS DOUBLE: PRINT LEN(a()); LEN(a(3)); LEN(b())` runs
+- **THEN** it prints ` 10  2  48 ` (`verification\v48_d_len_whole`)
+
+#### Scenario: An array parameter and a shared array
+- **WHEN** a SUB with the parameter `x() AS INTEGER` prints `LEN(x())`, called with an array of 5 INTEGERs, and a
+  SUB prints `LEN(sg())` of `DIM SHARED sg(9) AS LONG`
+- **THEN** they print ` 10 ` and ` 40 `
+
+#### Scenario: Fixed-length strings and user types
+- **WHEN** `TYPE num_t: a AS LONG: b AS LONG: END TYPE` (as a block), `DIM na(-3 TO 2) AS num_t, f(4) AS STRING
+  * 3` and `PRINT LEN(na()); LEN(f())` run
+- **THEN** it prints ` 48  15 ` (upstream `types/udt_array`)
+
+#### Scenario: A dynamic array
+- **WHEN** `n = 7: REDIM d(3 TO n) AS INTEGER: PRINT LEN(d()): ERASE d: PRINT LEN(d())` runs
+- **THEN** it prints ` 10 `, then ` 0 `
+
+#### Scenario: A whole member array
+- **WHEN** `TYPE test: a(1 TO 50) AS LONG: END TYPE` (as a block), `DIM parent(1) AS test` and `PRINT
+  LEN(parent(0).a()); LEN(parent()); LEN(parent(0).a(1))` run
+- **THEN** it prints ` 200  400  4 ` (upstream `arrays/test_mem_vs_len`)
+
+#### Scenario: In an expression
+- **WHEN** `DIM f(3) AS LONG: PRINT LEN(f()) / 4; LEN(f()) \ 4; LEN(f()) MOD 3` runs
+- **THEN** it prints ` 4  4  1 `
+
+### Requirement: Arrays LEN does not take
+`LEN` of a whole array of variable-length strings, of a user type with a `STRING` member, and of a `_BIT` array
+SHALL be compile errors, as in the old compiler ("Cannot pass array of variable-length strings", "UDT must have
+fixed size", "Variable/element cannot be _BIT aligned"; `verification\v48_x01`–`x03`).
+
+#### Scenario: Strings and bits
+- **WHEN** `DIM s(3) AS STRING: PRINT LEN(s())` is compiled, or `DIM b(3) AS _BIT: PRINT LEN(b())`
+- **THEN** each is a compile error
+
+#### Scenario: A user type with a STRING member
+- **WHEN** a `TYPE ts` has the members `n AS STRING` and `v AS LONG`, and `DIM a(3) AS ts: PRINT LEN(a())` is
+  compiled
+- **THEN** it is a compile error
+
+### Requirement: Member array bounds that name no constant
+A bound of a member array in a `TYPE` block that names no `CONST` standing above the block SHALL be the compile
+error "TYPE member array bounds must be numeric constant", as the old compiler gives it (measured,
+`verification\v51_x01`–`x15`). A bound that names a `CONST` above the block, a constant of the auto-included file
+or a function of the constant evaluator (`_PI`, `ABS(…)`) SHALL stay "not supported yet" (requirement "Member
+arrays").
+
+#### Scenario: A variable as the bound
+- **WHEN** a program does `DIM AS _BYTE a`, `a = 1` and declares `array (a) AS LONG` in a `TYPE` block (upstream
+  `arrays/39_err_member_must_be_const`)
+- **THEN** it is the compile error "TYPE member array bounds must be numeric constant" at the bound, not "not
+  supported yet"
+
+#### Scenario: A variable assigned above the block
+- **WHEN** `n = 3` stands above a `TYPE` block with the member `v(n) AS LONG` (`verification\v24_x195`)
+- **THEN** it is the same compile error
+
+#### Scenario: A CONST below the block or in a SUB
+- **WHEN** a `TYPE` block of the main module has the member `v(top) AS LONG` and `CONST top = 3` stands below it,
+  or in a SUB above or below it (`verification\v51_x03`, `x04`, `x13`)
+- **THEN** it is the compile error "TYPE member array bounds must be numeric constant"
+
+#### Scenario: A call in the bound
+- **WHEN** the bound is `LEN(x)`, `LEN("abc")`, an array's element `a(1)` or a call of the program's FUNCTION
+  `f(1)` (`verification\v51_x05`, `x06`, `x12`, `x15`)
+- **THEN** it is the same compile error
+
+#### Scenario: A CONST as the bound
+- **WHEN** `CONST top = 3` stands above a `TYPE` block with the member `v(top) AS LONG` (`verification\v24_x196`)
+- **THEN** the only diagnostic is "not supported yet" at the bound
+
+### Requirement: Undefined member types
+A member of a `TYPE` block declared `AS name`, where `name` is no type word of the old compiler and no `TYPE` of
+an earlier block, SHALL be the compile error "Undefined type", and before the names of an `AS type` list the old
+compiler's "Expected element-name AS type, AS type element-list, or END TYPE" (measured,
+`verification\v51_x20`–`x27`). A name of an earlier block that was not entered SHALL stay "not supported yet".
+
+#### Scenario: A member array of an undefined type
+- **WHEN** a `TYPE` block declares `array (10) AS notdefined` and the program has no `TYPE notdefined` (upstream
+  `arrays/40_err_undefined_type`)
+- **THEN** it is the compile error "Undefined type" at the member, not "not supported yet"
+
+#### Scenario: Near types and sizes
+- **WHEN** a member is declared `AS _UNSIGNED nosuch`, `AS BYTE`, `AS _Bytef`, `AS Stringfoobar * 2` or `AS
+  INTEGER * 2` (`verification\v51_x22`–`x25`, `x27`)
+- **THEN** it is the compile error "Undefined type"
+
+#### Scenario: A type defined in an earlier block
+- **WHEN** the member names a `TYPE` that the program defines in an earlier block
+- **THEN** the member's type is checked as requirement "User types" says, and no "Undefined type" error is given
+
+#### Scenario: A type defined in a later block
+- **WHEN** the member names a `TYPE` that the program defines in a later block (`verification\v51_x21`)
+- **THEN** it is the compile error "Undefined type"
+
+### Requirement: LBOUND and UBOUND of an element
+`LBOUND` and `UBOUND` whose array argument is an element of a member array with its indexes, as
+`UBOUND(f(10).a(5), 1)`, SHALL be the compile error "Incorrect number of arguments", as the old compiler gives it.
+Each other element form that the old compiler is measured to reject (in `verification\v51`) SHALL be its
+measured error. A form that is not measured SHALL stay "not supported yet".
+
+#### Scenario: UBOUND of a member array element
+- **WHEN** `PRINT UBOUND(f(10).a(5), 1)` is compiled for `DIM f(15) AS e`, where `e` has the member `a(1 TO 50,
+  2 TO 20) AS _BYTE` (upstream `arrays/42_err_solved_bug_Incorrect_nr_of_args`)
+- **THEN** it is the compile error "Incorrect number of arguments", not "not supported yet"
+
+#### Scenario: LBOUND of a member array element
+- **WHEN** `PRINT LBOUND(f(10).a(5), 1)` is compiled for the same array (upstream
+  `arrays/43_err_solved_bug_Incorrect_nr_of_args`)
+- **THEN** it is the same compile error
+
+#### Scenario: Other elements and values
+- **WHEN** the argument is an element of an array of a `TYPE` (`LBOUND(f(1))`), an element of another array, a
+  call of the program's FUNCTION, a literal or `a + 1` (`verification\v51_x28`–`x31`, `x33`, `x39`)
+- **THEN** it is the compile error "Expected ." for the first and "Syntax error" for the others
+
+#### Scenario: The member array itself
+- **WHEN** `PRINT LBOUND(f(10).a, 2); UBOUND(f(10).a, 2)` runs for the same array
+- **THEN** it prints ` 2  20 `, as requirement "LBOUND and UBOUND" says
+
+### Requirement: Unknown type names
+In an `AS` clause of `DIM`, `REDIM`, `STATIC` or `COMMON`, a name that is no type word of the old compiler (a
+word without its underscore, as `BYTE`, is none) and no `TYPE` of the program SHALL be the compile error "Unknown
+type", and so SHALL `* n` after a word other than `STRING` and `_BIT`; after `_UNSIGNED` each SHALL be "Type
+cannot be _UNSIGNED" (measured, `verification\v51_x60`–`x88`). A name of a `TYPE` block that was not entered
+SHALL stay "not supported yet".
+
+#### Scenario: A misspelt numeric type
+- **WHEN** a program does `DIM b AS _Bytef`, or `STATIC b AS _Bytef` in a SUB (upstream
+  `types/dim_bad_typename_byte`, `types/static_bad_typename_byte`)
+- **THEN** it is the compile error "Unknown type", not "not supported yet"
+
+#### Scenario: A size after another word
+- **WHEN** a program does `DIM b AS INTEGER * 2`, or `DIM b AS _UNSIGNED INTEGER * 2` (`verification\v51_x65`,
+  `x84`)
+- **THEN** it is the compile error "Unknown type", and "Type cannot be _UNSIGNED"
+
+#### Scenario: A type that does not exist in a DIM AS list
+- **WHEN** a program does `DIM AS nosuch a` and has no `TYPE nosuch` (`verification\v24_x232`)
+- **THEN** it is the compile error "Unknown type"
+
+#### Scenario: A type defined below its use
+- **WHEN** `DIM v AS pt` stands above the program's `TYPE pt` block
+- **THEN** the program compiles as requirement "User types" says, and no "Unknown type" error is given
+
+### Requirement: Words glued to STRING
+In an `AS` clause of `DIM`, `REDIM`, `STATIC` or `COMMON`, a word that starts with `STRING` and is not `STRING`
+SHALL be the compile error "Expected STRING * number/constant", with `* n` or without and after `_UNSIGNED`
+(measured, `verification\v51_x67`, `x70`, `x83`), unless a `TYPE` of the program has that name: the old compiler
+looks the user types up before the `STRING` prefix, so `TYPE StringList` is a type in every `AS` clause.
+
+#### Scenario: A word glued to STRING
+- **WHEN** a program does `DIM s AS Stringfoobar * 2`, or `STATIC s AS Stringfoobar * 2` in a SUB (upstream
+  `types/dim_bad_typename_string`, `types/static_bad_typename_string`)
+- **THEN** it is the compile error "Expected STRING * number/constant"
+
+#### Scenario: Without a size
+- **WHEN** a program does `DIM s AS Stringfoobar` (`verification\v51_x70`)
+- **THEN** it is the same compile error
+
+#### Scenario: A TYPE whose name starts with STRING
+- **WHEN** a program defines `TYPE StringList` and declares `DIM a AS StringList`, `REDIM c(1 TO 2) AS
+  StringList` or a parameter `x AS StringList` (`tests\frontend\type_string_prefix_ok.bas`)
+- **THEN** each is the user type, and no error is given
+
+### Requirement: Unknown type names in SHARED, _DEFINE and parameters
+A name that is no type in `SHARED` or `_DEFINE` SHALL be the compile error "Cannot convert type (…) to symbol",
+and in a parameter of a SUB, a FUNCTION or a `DECLARE LIBRARY` procedure, an array parameter too, "Illegal
+SUB/FUNCTION parameter" (measured, `verification\v51_x61`, `x63`, `x69`, `x74`, `x82`, `x87`, `x89`). A form
+not measured in these places SHALL stay "not supported yet".
+
+#### Scenario: A misspelt type in SHARED and in a parameter
+- **WHEN** a SUB has `SHARED b AS _Bytef`, or the parameter `(b AS _Bytef)` (`verification\v51_x61`, `x63`)
+- **THEN** it is the compile error "Cannot convert type (_BYTEF) to symbol", and "Illegal SUB/FUNCTION
+  parameter"

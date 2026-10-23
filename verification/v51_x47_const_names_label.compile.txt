@@ -1,0 +1,5 @@
+
+Unexpected element 'HERE'
+Caused by (or after):
+LINE 3:CONST C = HERE + 1
+exit=1

@@ -1,0 +1,44 @@
+a\b
+Ayz
+Byz
+xyC
+out of range
+ERR 5 
+ab
+ERR 5 
+ab
+ERR 5 
+ab
+ERR 5 
+[]
+ERR 5 
+[]
+values
+ 65 
+ 255 
+ 67 
+ 66 
+ 68 
+ 67 
+ 68 
+abZ
+aZc
+places
+wxy!
+["   ]
+pQ
+Mn
+uW
+ijK
+Rs
+Cd
+ERR 5 
+[]
+order
+Xbc pv
+Xbc v
+ERR 5 
+[] pv
+ERR 5 
+abc v
+exit=0

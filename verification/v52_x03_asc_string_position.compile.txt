@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):ASC ( A$ , "2",1 ) = 65
+LINE 5:ASC(a$, "2") = 65
+exit=1

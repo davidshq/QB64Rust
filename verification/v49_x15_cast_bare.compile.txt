@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _CAST(numericalType, numericalValue)
+Caused by (or after):X = _CAST
+LINE 3:x = _CAST
+exit=1

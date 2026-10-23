@@ -1,0 +1,35 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+const_names_errors.bas:10:12: error: the operator `OR` cannot start a value
+const_names_errors.bas:10:12: note: QB64pe: Unexpected element 'OR'
+const_names_errors.bas:11:16: error: a value is expected after `NOT`, not the operator `OR`
+const_names_errors.bas:11:16: note: QB64pe: Expected variable/value after 'NOT'
+const_names_errors.bas:12:12: error: the operator `AND` cannot start a value
+const_names_errors.bas:12:12: note: QB64pe: Unexpected element 'AND'
+const_names_errors.bas:13:12: error: the operator `MOD` cannot start a value
+const_names_errors.bas:13:12: note: QB64pe: Unexpected element 'MOD'
+const_names_errors.bas:14:22: error: a value is expected after `NOT`, not the operator `XOR`
+const_names_errors.bas:14:22: note: QB64pe: Expected variable/value after 'NOT'
+const_names_errors.bas:15:18: error: `UNDEFINED` is no constant defined above
+const_names_errors.bas:15:18: note: QB64pe: Unexpected element 'UNDEFINED'
+const_names_errors.bas:16:12: error: `UNDEFINED` is no constant defined above
+const_names_errors.bas:16:12: note: QB64pe: Unexpected element 'UNDEFINED'
+const_names_errors.bas:17:12: error: `later` is no constant defined above
+const_names_errors.bas:17:12: note: QB64pe: Unexpected element 'LATER'
+const_names_errors.bas:19:12: error: `s` is no constant defined above
+const_names_errors.bas:19:12: note: QB64pe: Unexpected element 'S'
+const_names_errors.bas:20:12: error: `here` is no constant defined above
+const_names_errors.bas:20:12: note: QB64pe: Unexpected element 'HERE'
+const_names_errors.bas:22:12: error: `f` is no constant defined above
+const_names_errors.bas:22:12: note: QB64pe: Unexpected element 'F'
+const_names_errors.bas:23:12: error: `arr` is no constant defined above
+const_names_errors.bas:23:12: note: QB64pe: Unexpected element 'ARR'
+const_names_errors.bas:24:18: error: `undefined%` is no constant defined above
+const_names_errors.bas:24:18: note: QB64pe: Unexpected element 'UNDEFINED%'
+const_names_errors.bas:26:22: error: `UNDEFINED` is no constant defined above
+const_names_errors.bas:26:22: note: QB64pe: Unexpected element 'UNDEFINED'
+const_names_errors.bas:27:23: error: `zz` is no constant defined above
+const_names_errors.bas:27:23: note: QB64pe: Unexpected element 'ZZ'
+const_names_errors.bas:28:16: error: not supported yet: `taken`, not a constant defined so far

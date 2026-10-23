@@ -2,11 +2,11 @@
 
 use crate::Emitter;
 use crate::decl::{Part, dim_count, dim_slot, is_qbs};
-use crate::names::{c_type, int_const, proc_name};
+use crate::names::{c_type, escape_string, int_const, proc_name};
 use crate::place::fixed_at;
 use qb64rust_ir::{
-    ArrayRef, Event, EventHandler, Expr, ExprKind, Facts, LabelId, MemberId, OnError, Op, Place, PrintTo, Resume, Ty,
-    When,
+    ArrayRef, Event, EventHandler, Expr, ExprKind, Facts, LabelId, LogLevel, MemberId, OnError, Op, Place, PrintTo,
+    Resume, Ty, When,
 };
 use std::fmt::Write as _;
 
@@ -55,6 +55,11 @@ impl Emitter<'_> {
                 out.push("close_program=1;".into());
                 out.push("end();".into());
             }
+            // `qb64pe.bas` 9918–9919.
+            Op::Stop => {
+                out.push("close_program=1;".into());
+                out.push("end();".into());
+            }
             Op::Exit => out.push("goto exit_subfunc;".into()),
             Op::SetHandler(Some(l)) => {
                 let n = self.handler(*l);
@@ -64,9 +69,50 @@ impl Emitter<'_> {
                 out.push("error_goto_line=0;".into());
                 out.push("qbs_set(error_handler_history, qbs_new_txt_len(\"\", 0));".into());
             }
+            // The handler chain as the old compiler writes it (`qb64pe.bas` 10066–10068, 10106–10110): the history
+            // is a string of handler numbers, each followed by `|`, the last kept first.
+            Op::NewHandler(l) => {
+                let n = self.handler(*l);
+                out.push(
+                    "qbs_set(error_handler_history, qbs_add(qbs_add(qbs_str((int32)(error_goto_line)), \
+                     qbs_new_txt_len(\"|\", 1)), error_handler_history));"
+                        .into(),
+                );
+                out.push("qbs_cleanup(qbs_tmp_base, 0);".into());
+                out.push(format!("error_goto_line={n};"));
+            }
+            Op::LastHandler => {
+                out.push("error_goto_line = qbr(qbs_val<uint64_t>(error_handler_history));".into());
+                out.push(
+                    "qbs_set(error_handler_history, func_mid(error_handler_history, func_instr(NULL, \
+                     error_handler_history, qbs_new_txt_len(\"|\", 1), 0) + 1 , NULL, 0));"
+                        .into(),
+                );
+                out.push("qbs_cleanup(qbs_tmp_base, 0);".into());
+            }
             Op::Raise(v) => {
                 out.push(format!("error({});", self.value(v)));
                 if v.uses_strings(self.p) {
+                    out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+                }
+            }
+            // As the old compiler writes it (`emit\logging.bas`): libqb's macro with the file, the procedure's C name
+            // (or "Main QB64 Code") and the line in that file, the two names escaped as its `escapeString$` does.
+            Op::Log { level, msg } => {
+                let (file, line, _) = self.stmt_at;
+                let file = file
+                    .and_then(|f| self.log_files.get(&f))
+                    .unwrap_or(&self.log_main)
+                    .clone();
+                let func = escape_string(self.subfunc.as_deref().unwrap_or("Main QB64 Code").as_bytes());
+                let entry = match level {
+                    LogLevel::Trace => "trace",
+                    LogLevel::Info => "info",
+                    LogLevel::Warn => "warn",
+                    LogLevel::Error => "error",
+                };
+                out.push(format!("sub__log{entry}({file}, {func}, {line}, {});", self.value(msg)));
+                if msg.uses_strings(self.p) {
                     out.push("qbs_cleanup(qbs_tmp_base,0);".into());
                 }
             }
@@ -172,6 +218,7 @@ impl Emitter<'_> {
                 let operands = match event {
                     Event::Timer { number, seconds } => number.as_ref().is_some_and(strings) || strings(seconds),
                     Event::Key { key } => strings(key),
+                    Event::Strig { button, controller } => strings(button) || controller.as_ref().is_some_and(strings),
                 };
                 if operands || matches!(handler, EventHandler::Sub { arg: Some(a), .. } if strings(a)) {
                     out.push("qbs_cleanup(qbs_tmp_base,0);".into());
@@ -451,9 +498,15 @@ impl Emitter<'_> {
     /// The way to a place for [`Self::store_through_member`]: writes the check of every index on it, outermost
     /// first, adding the place's distance in bytes from its root to `mbr_off` and setting `mbr_bad` for an index
     /// outside its bounds. Gives the root: the pointer of a variable of a user type, or the block of an array.
+    /// Below `$CHECKING:OFF` no index is checked (design D4 of `m4-handlers-logging-checking`).
     fn member_path(&mut self, place: &Place, out: &mut Vec<String>) -> String {
-        let check = |count: &str| {
-            format!("if ((uptrszint)mbr_k>=(uptrszint){count}){{qbr_diverged_on(4);error(9);mbr_bad=1;}}")
+        let checking = self.checking;
+        let check = |count: &str, out: &mut Vec<String>| {
+            if checking {
+                out.push(format!(
+                    "if ((uptrszint)mbr_k>=(uptrszint){count}){{qbr_diverged_on(4);error(9);mbr_bad=1;}}"
+                ));
+            }
         };
         match place {
             Place::Var(v) => self.name(*v),
@@ -467,7 +520,7 @@ impl Emitter<'_> {
                 for (k, i) in index.iter().enumerate() {
                     let s = dim_slot(n, k);
                     out.push(format!("mbr_k=({})-{name}[{s}];", self.value(i)));
-                    out.push(check(&format!("{name}[{}]", s + 1)));
+                    check(&format!("{name}[{}]", s + 1), out);
                     if k == 0 {
                         out.push("mbr_off=mbr_k;".into());
                     } else {
@@ -500,7 +553,7 @@ impl Emitter<'_> {
                 for (k, i) in index.iter().enumerate() {
                     let s = dim_slot(n, k);
                     out.push(format!("mbr_k=({})-{d}[{s}];", self.value(i)));
-                    out.push(check(&format!("{d}[{}]", s + 1)));
+                    check(&format!("{d}[{}]", s + 1), out);
                     out.push(format!("mbr_off+=mbr_k*{d}[{}]*{size};", s + 2));
                 }
                 format!("{d}[0]")
@@ -517,7 +570,7 @@ impl Emitter<'_> {
                 }
                 for (i, (lower, count, multiplier)) in index.iter().zip(self.member_dims(base, *member)) {
                     out.push(format!("mbr_k=({})-{};", self.value(i), int_const(lower, Ty::I64)));
-                    out.push(check(&count.to_string()));
+                    check(&count.to_string(), out);
                     out.push(format!("mbr_off+=mbr_k*{};", multiplier * size));
                 }
                 root

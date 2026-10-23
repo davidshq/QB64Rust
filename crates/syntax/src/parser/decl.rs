@@ -202,6 +202,14 @@ pub(super) fn dim_item(p: &mut Parser) -> bool {
     }
     p.start_node(DimItem);
     p.bump();
+    if !p.redim_items && p.at(Dot) {
+        // `DIM a . b AS LONG`: the old compiler drops the blanks (`verification\v47_x17`); not built here (design of
+        // `m4-devices-continue-paths`, "Non-Goals").
+        let span = p.current_span();
+        p.unsupported_at(span, "a declared name with blanks around `.`");
+        p.finish_node();
+        return false;
+    }
     let mut ok = !p.at(LParen) || array_bounds(p);
     while ok && p.redim_items && p.at(Dot) {
         p.bump();

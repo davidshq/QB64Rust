@@ -1,0 +1,5 @@
+
+Unexpected element 'B'
+Caused by (or after):
+LINE 3:CONST A = B + 1
+exit=1

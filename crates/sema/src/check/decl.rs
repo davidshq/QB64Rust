@@ -2,13 +2,13 @@
 
 use super::places::{numeric_type, unsigned_of};
 use super::proc::{FIXED_LEN_ERROR, fixed_len, fixed_name, suffix_fits};
-use super::{Checker, Failed, R, Scope};
+use super::{Checker, Failed, R, Scope, split_unsigned};
 use crate::consteval::Value;
 use crate::literal::{self, NumLit};
 use crate::{
     AllocMode, ArrayRef, MemberId, Place, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty, Var, VarId,
 };
-use qb64rust_base::{show_bytes, to_u32};
+use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{Kind, auto_constant, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
@@ -26,6 +26,34 @@ pub(super) enum Declarer {
     Redim {
         mode: AllocMode,
     },
+}
+
+/// Where an `AS` clause stands, for the error of one that names no type ([`Checker::no_type`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum AsPlace {
+    /// `DIM`, `REDIM`, `STATIC`, `COMMON`, and a `TYPE` member's built-in type.
+    Decl,
+    /// `SHARED` in a procedure.
+    Shared,
+    /// A parameter of a SUB or FUNCTION, of a library's too, and an array parameter.
+    Param,
+    /// `_DEFINE`.
+    Define,
+    /// Any other: a name that is no type stays "not supported yet".
+    Other,
+}
+
+/// How an `AS` clause names no type.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NoType {
+    /// A name that is no type word and no `TYPE`.
+    Plain,
+    /// A word that starts with `STRING` (`Stringfoobar`, `STRING2 * 2`).
+    Glued,
+    /// `* n` after a word other than `STRING` and `_BIT`.
+    Sized,
+    /// `_UNSIGNED` before a name that is no type word.
+    Unsigned,
 }
 
 impl Checker<'_> {
@@ -113,9 +141,10 @@ impl Checker<'_> {
     ///   (`len&`, `cls`); a built-in with its required suffix (`left$`) is taken, the bare name (`left`) is free;
     /// - `WIDTH` is the one built-in without a required suffix that is still free (`width = 5` makes a variable).
     ///
-    /// Only the bare name and the `&` suffix were measured for keywords and built-ins without a required suffix;
-    /// other suffixes are "not supported yet". (The old compiler accepts `name$`, `not$` and `key$`, found in
-    /// `qbasic_testcases` in task 6.4 of `m2-parser-breadth`; the rule above is not "whatever suffix".)
+    /// With the other suffixes (`verification\v52_builtin_name_suffixes.txt`, design D6 of `m4-qb64pe-sources`,
+    /// checked by the same test): a keyword or a built-in written without a required suffix is free with `$`
+    /// (`key$`, `exp$`, `base$`), but for `DATA` and a name that a built-in takes with its `$` (`input$`, above),
+    /// and taken with every other suffix (`exp%`); a name taken only with `$` is free with every other one (`chr%`).
     pub(super) fn reserved(&mut self, t: Tok, name: &str, suffix: Option<Ty>) -> R<()> {
         // QB64pe's file included after the last line names its own variables and procedures with a leading `_`
         // (design D7 of `m3-network-embed`).
@@ -144,14 +173,8 @@ impl Checker<'_> {
         let word_taken =
             is_keyword(name.as_bytes()) || (name != "WIDTH" && find_any(name.as_bytes()).any(|b| b.musthave.is_none()));
         let with_dollar_taken = suffix == Some(Ty::Str) && find_any(name.as_bytes()).any(|b| b.musthave == Some("$"));
-        if with_dollar_taken || (word_taken && matches!(suffix, None | Some(Ty::I32))) {
+        if with_dollar_taken || (word_taken && (suffix != Some(Ty::Str) || name == "DATA")) {
             Err(self.in_use(t))
-        } else if word_taken {
-            let msg = format!(
-                "`{}` as a name (a reserved word with this suffix is not measured)",
-                show_bytes(self.text(t.span))
-            );
-            Err(self.unsupported(t.span, msg))
         } else {
             Ok(())
         }
@@ -168,6 +191,14 @@ impl Checker<'_> {
         if name == "_GL" && !function {
             // The SUB QB64 calls to draw with OpenGL (design D10 of `m2-parser-breadth`).
             return Err(self.unsupported(t.span, "`SUB _GL` (OpenGL)"));
+        }
+        if is_keyword(name.as_bytes()) && !name.starts_with('_') && !matches!(suffix, None | Some(Ty::I32)) {
+            // `v52_builtin_name_suffixes` measured variables only (design D6 of `m4-qb64pe-sources`).
+            let msg = format!(
+                "`{}` as a procedure name (a keyword with this suffix is not measured)",
+                show_bytes(self.text(t.span))
+            );
+            return Err(self.unsupported(t.span, msg));
         }
         if name.starts_with('_') || is_keyword(name.as_bytes()) {
             return self.reserved(t, name, suffix);
@@ -193,21 +224,33 @@ impl Checker<'_> {
     /// ignored before `STRING`; `_BIT * n` with n a number from 1 to 64; `STRING * n` with n a number or (where
     /// `consts`) a constant's name, read as [`fixed_len`] says (`v21_c_fixed_basics`, `v21_x31`–`x34`).
     pub(super) fn type_of(&mut self, a: ast::AsClause) -> R<Ty> {
-        self.type_of_in(a, true)
+        self.type_of_in(a, true, AsPlace::Decl)
     }
 
-    /// [`Self::type_of`]; `consts` false where no constant is known yet (a `TYPE` member, read in pass 1).
-    pub(super) fn type_of_in(&mut self, a: ast::AsClause, consts: bool) -> R<Ty> {
+    /// [`Self::type_of`] in another place.
+    pub(super) fn type_of_at(&mut self, a: ast::AsClause, place: AsPlace) -> R<Ty> {
+        self.type_of_in(a, true, place)
+    }
+
+    /// [`Self::type_of`]; `consts` false where no constant is known yet (a `TYPE` member, read in pass 1). `place`
+    /// says which error a name that is no type gives ([`Self::no_type`]).
+    pub(super) fn type_of_in(&mut self, a: ast::AsClause, consts: bool, place: AsPlace) -> R<Ty> {
         let span = a.node().span();
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
-        let (unsigned, rest) = match words.split_first() {
-            Some((first, rest)) if first == "_UNSIGNED" => (true, rest),
-            _ => (false, &words[..]),
-        };
+        let words = self.as_words(a);
+        let (unsigned, rest) = split_unsigned(&words);
         let text = rest.join(" ");
         if unsigned && text.is_empty() {
             // Measured: "Unknown type" (`v21_x08_unsigned_alone`).
             return Err(self.error(span, "`_UNSIGNED` needs a type after it"));
+        }
+        // A word that starts with `STRING` and is not `STRING`, also after `_UNSIGNED` (`dim2`, `qb64pe.bas` 17879;
+        // measured, `verification\v51_x83`), unless a `TYPE` of the program has that name: the old compiler looks
+        // the user types up first (`dim2` 17860, `typname2typ` `type.bas` 559), so `TYPE StringList` is a type.
+        if rest.first().is_some_and(|w| w.len() > 6 && w.starts_with("STRING"))
+            && self.user_type_of(&text).is_none()
+            && !self.types_failed.contains(&text)
+        {
+            return Err(self.no_type(span, &words, place, NoType::Glued));
         }
         if let Some(size) = a.size() {
             return match text.as_str() {
@@ -220,7 +263,8 @@ impl Checker<'_> {
                 }
                 // Measured: `_UNSIGNED STRING * n` is a `STRING * n` (`v21_c_fixed_basics`).
                 "STRING" => Ok(Ty::FixedStr(self.fixed_len_of(size, consts)?)),
-                _ => Err(self.unsupported(span, format!("`{} * …`", words.join(" ")))),
+                _ if !unsigned => Err(self.no_type(span, &words, place, NoType::Sized)),
+                _ => Err(self.no_type(span, &words, place, NoType::Unsigned)),
             };
         }
         if text == "STRING" {
@@ -244,8 +288,49 @@ impl Checker<'_> {
             }
             return Ok(t);
         }
-        let msg = format!("the type `{}`", words.join(" "));
-        Err(self.unsupported(span, msg))
+        // A `TYPE` block that was not entered (an error or a mark) may define it.
+        if self.types_failed.contains(&text) {
+            let msg = format!("the type `{}`", words.join(" "));
+            return Err(self.unsupported(span, msg));
+        }
+        let kind = if unsigned { NoType::Unsigned } else { NoType::Plain };
+        Err(self.no_type(span, &words, place, kind))
+    }
+
+    /// The error of an `AS` clause that names no type, by where it stands, as measured
+    /// (`verification\v51_x60`–`x89`, upstream `types/*_bad_typename_*`): a form not measured in a place stays
+    /// "not supported yet". The old compiler's type reader (`typname2typ`, QB64pe `source\utilities\type.bas`
+    /// 559) compares whole words, so no word near a type's is one (`_BYTEF`, `BYTE` without its underscore).
+    fn no_type(&mut self, span: Span, words: &[String], place: AsPlace, kind: NoType) -> Failed {
+        let shown = words.join(" ");
+        let msg = match (place, kind) {
+            // "Unknown type" (`x60`, `x62`, `x64`, `x72`, `x80`, `x85`, `x86`, `x88`, `v24_x232`).
+            (AsPlace::Decl, NoType::Plain) => format!("no type is named `{shown}`"),
+            // "Expected STRING * number/constant", with or without `* n` and `_UNSIGNED` (`x67`, `x70`, `x83`).
+            (AsPlace::Decl, NoType::Glued) => {
+                format!("`{shown}` is no type: a fixed-length string is written `STRING * n`")
+            }
+            // "Unknown type" (`x65`, `x66`, `x76`–`x78`).
+            (AsPlace::Decl, NoType::Sized) => format!("only `STRING` and `_BIT` take `* n`, not `{shown}`"),
+            // "Type cannot be _UNSIGNED" (`x68`, `x71`, `x84` with `* n`), as for a float.
+            (AsPlace::Decl, NoType::Unsigned) => {
+                let text = split_unsigned(words).1.join(" ");
+                format!("`{text}` cannot be `_UNSIGNED`")
+            }
+            // "Cannot convert type (_BYTEF) to symbol" (`x61`, and `x82` for `_DEFINE`).
+            (AsPlace::Shared, NoType::Plain) => format!("the type `{shown}` of a `SHARED` name is no type"),
+            (AsPlace::Define, NoType::Plain) => format!("the type `{shown}` of `_DEFINE` is no type"),
+            // "Illegal SUB/FUNCTION parameter", also of a library procedure and an array parameter (`x63`, `x69`,
+            // `x74`, `x87`, `x89`).
+            (AsPlace::Param, NoType::Plain | NoType::Glued) => {
+                format!("the type `{shown}` of a parameter is no type")
+            }
+            _ => {
+                let msg = format!("the type `{shown}`");
+                return self.unsupported(span, msg);
+            }
+        };
+        self.error(span, msg)
     }
 
     /// The n of `_BIT * n`: a number from 1 to 64 (measured: 0 and 65 are errors, a constant's name "Number expected
@@ -280,7 +365,7 @@ impl Checker<'_> {
                 let msg = format!("this name as the length of a `STRING * n`: `{shown}`");
                 return Err(self.unsupported(size.span, msg));
             };
-            self.names.push((SymbolKind::Const(c), size.span));
+            self.stmt.names.push((SymbolKind::Const(c), size.span));
             return match fixed_len(i128::from(v)) {
                 Some(n) => Ok(n),
                 None => Err(self.error(size.span, FIXED_LEN_ERROR)),
@@ -305,7 +390,7 @@ impl Checker<'_> {
     /// or `_DEFINE` above this line set for its first letter (design D2). A name that starts with an underscore
     /// has an entry of its own.
     pub(super) fn default_ty(&self, name: &str) -> Ty {
-        self.defaults[letter_slot(name.as_bytes().first().copied().unwrap_or(b'_'))]
+        self.at.defaults[letter_slot(name.as_bytes().first().copied().unwrap_or(b'_'))]
     }
 
     /// `DEFINT a-z, x` (and `DEFLNG`, `DEFSNG`, `DEFDBL`, `DEFSTR`) and `_DEFINE a-z, x AS type`: from this line
@@ -337,7 +422,7 @@ impl Checker<'_> {
             ranges.push((a.min(b), a.max(b)));
         }
         for (a, b) in ranges {
-            self.defaults[a..=b].fill(ty);
+            self.at.defaults[a..=b].fill(ty);
         }
         Ok(())
     }
@@ -347,11 +432,11 @@ impl Checker<'_> {
     /// convert type (…) to symbol" (`v24_x05`, `x08`), though `DIM` takes `_UNSIGNED STRING`.
     fn default_type_of(&mut self, a: ast::AsClause) -> R<Ty> {
         let span = a.node().span();
-        let words: Vec<String> = a.type_words().map(|t| self.word(t)).collect();
+        let words = self.as_words(a);
         if words == ["_UNSIGNED", "STRING"] {
             return Err(self.error(span, "a default type cannot be `_UNSIGNED STRING`"));
         }
-        let ty = self.type_of_in(a, false)?;
+        let ty = self.type_of_in(a, false, AsPlace::Define)?;
         if let Ty::User(_) = ty {
             return Err(self.error(span, "a default type cannot be a `TYPE`"));
         }
@@ -374,7 +459,7 @@ impl Checker<'_> {
     /// `STATIC` after its header, down to its first `STATIC` statement (measured, `verification\v24_g_local`,
     /// `v24_f_implicit_sub`, `v24_x279`; slice `s56_proc_arrays`).
     pub(super) fn local_storage(&self, p: ProcId) -> Storage {
-        if self.static_scope {
+        if self.at.static_scope {
             Storage::Static(p)
         } else {
             Storage::Local(p)
@@ -401,8 +486,17 @@ impl Checker<'_> {
     /// own (a parameter, a local one) of the name and the default type comes before a main-module `DIM SHARED … AS`
     /// of the name; where a `DEFxxx` in the body has changed the default, the name means the shared variable
     /// (measured, `verification\v24_a_param_shared`).
+    ///
+    /// `name$` where no variable of the name and `$` exists means the `STRING * n` variable of the name, if the
+    /// plain name means one (design D7 of `m4-qb64pe-sources`; measured, `verification\v52_x39`, `x43`, `x44`).
     fn var_key(&mut self, name: String, suffix: Option<Ty>) -> (String, Ty) {
         let ty = match suffix {
+            Some(Ty::Str) if self.find_var(&(name.clone(), Ty::Str)).is_none() => {
+                match self.var_key(name.clone(), None) {
+                    (n, t @ Ty::FixedStr(_)) => return (n, t),
+                    _ => Ty::Str,
+                }
+            }
             Some(t) => t,
             None => {
                 let in_proc = self.cur.is_some();
@@ -447,16 +541,10 @@ impl Checker<'_> {
         let id = match found {
             Some(id) => id,
             None => {
-                let typed_array = self.scope().array_plain.contains_key(&key.0)
-                    || (self.cur.is_some() && self.dim_shared_array_plain.contains_key(&key.0));
-                if suffix.is_none() && typed_array {
-                    // Whether `DIM a(3) AS LONG` types the plain scalar `a` too was not measured.
-                    let shown = show_bytes(self.text(t.span));
-                    let msg = format!("the plain scalar `{shown}` beside an array typed by `DIM … AS`");
-                    return Err(self.unsupported(t.span, msg));
-                }
+                // Beside an array typed by `DIM … AS` the plain scalar is a variable of its own, of the default type
+                // (measured, `verification\v48_a_scalar_array`, `v30_x67`, `v18_d_index_none`).
                 self.reserved(t, &key.0, suffix)?;
-                if self.explicit {
+                if self.settings.explicit {
                     return Err(self.undeclared(t, ty));
                 }
                 let id = self.new_var(key.0.clone(), ty, storage);
@@ -466,7 +554,7 @@ impl Checker<'_> {
         };
         let (name, storage) = (self.prog.var(id).name.clone(), self.prog.var(id).storage);
         self.note_var_name(&name, storage, t);
-        self.names.push((SymbolKind::Var(id), t.span));
+        self.stmt.names.push((SymbolKind::Var(id), t.span));
         Ok(id)
     }
 
@@ -481,7 +569,7 @@ impl Checker<'_> {
                 && suffix.is_none_or(|s| suffix_fits(s, ty))
             {
                 let v = proc.result.expect("a FUNCTION has a result variable");
-                self.names.push((SymbolKind::Var(v), t.span));
+                self.stmt.names.push((SymbolKind::Var(v), t.span));
                 return Ok(v);
             }
             if proc.external.is_some() {
@@ -612,18 +700,13 @@ impl Checker<'_> {
             let typed = as_clause.is_some() || list_ty.is_some();
             // With nothing between the parentheses, and in a `REDIM` without parentheses, the name is declared as
             // a scalar and no array is made (measured in the main module, `verification\v24_b_dim_empty*`,
-            // `v24_x43`, `x44`, `x86`) and in a procedure (`v24_x273`). `STATIC a()` lists an array (measured,
-            // `v24_g_local`).
+            // `v24_x43`, `x44`, `x86`) and in a procedure (`v24_x273`, `v48_b_redim_scalar`: as `DIM`, and a run
+            // changes nothing). `STATIC a()` lists an array (measured, `v24_g_local`).
             if let Some(bounds) = item.bounds()
                 && (!bounds.ranges().is_empty() || matches!(by, Declarer::Static | Declarer::Common))
             {
                 self.declare_array(typed, bounds, (name_tok, name, suffix, ty), storage, shared, by, stmt)?;
                 continue;
-            }
-            if matches!(by, Declarer::Redim { .. }) && storage != Storage::Main && item.bounds().is_none() {
-                let shown = show_bytes(self.text(name_tok.span));
-                let msg = format!("`REDIM {shown}` without bounds in a SUB or FUNCTION");
-                return Err(self.unsupported(name_tok.span, msg));
             }
             if name.contains('.') && matches!(ty, Ty::User(_)) {
                 let shown = show_bytes(self.text(name_tok.span));
@@ -652,7 +735,24 @@ impl Checker<'_> {
                 // The name still refers to the typed variable.
                 let id = self.scope().vars[&(name.clone(), plain_ty)];
                 self.note_var_name(&name, storage, name_tok);
-                self.names.push((SymbolKind::Var(id), name_tok.span));
+                self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
+                continue;
+            }
+            // Measured likewise for `DIM s$`, `REDIM s$` and, in a procedure, `STATIC s$` after `s AS STRING * n`,
+            // `DIM` and `STATIC` mixed too (`verification\v52_x49`, `x69`, `x70`, `x73`, `x74`): `s$` stays the
+            // fixed-length variable ([`Self::var_key`]).
+            // `COMMON` is not measured.
+            if let (Some(Ty::Str), Some(plain_ty @ Ty::FixedStr(_)), false) = (suffix, typed_plain, typed)
+                && !self.scope().vars.contains_key(&(name.clone(), Ty::Str))
+            {
+                if by == Declarer::Common {
+                    let shown = show_bytes(self.text(name_tok.span));
+                    let msg = format!("`{shown}` in `COMMON` beside a `STRING * n` variable of the name");
+                    return Err(self.unsupported(name_tok.span, msg));
+                }
+                let id = self.scope().vars[&(name.clone(), plain_ty)];
+                self.note_var_name(&name, storage, name_tok);
+                self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
                 continue;
             }
             let key = (name.clone(), ty);
@@ -676,7 +776,7 @@ impl Checker<'_> {
             let id = self.new_var(name.clone(), ty, storage);
             self.scope().vars.insert(key, id);
             self.note_var_name(&name, storage, name_tok);
-            self.names.push((SymbolKind::Var(id), name_tok.span));
+            self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
             if suffix.is_none() && typed {
                 // `DIM x AS T` changes what the plain name means.
                 self.scope().plain.insert(name.clone(), ty);
@@ -742,7 +842,7 @@ impl Checker<'_> {
             node,
         );
         // Below its first `STATIC` statement a procedure with `STATIC` after its header is one like any other.
-        self.static_scope = false;
+        self.at.static_scope = false;
         done
     }
 
@@ -839,18 +939,28 @@ impl Checker<'_> {
                 self.clear_member_array(array, alone, span, node)?;
                 continue;
             }
-            let name = match target {
-                ast::EraseTarget::Name { name, parens: false } => name,
+            let (t, array_name, suffix) = match target {
+                ast::EraseTarget::Name { name, parens: false } => {
+                    let t = self.need(name.name(), node.span())?;
+                    let (array_name, suffix) = self.split_name(t)?;
+                    (t, array_name, suffix)
+                }
                 ast::EraseTarget::Name { name, parens: true } => {
                     let span = name.node().span();
                     return Err(self.error(span, "`ERASE` takes the array's name without `()`"));
+                }
+                // `ERASE p . q`: the plain dotted array `P.Q` (design D2 of `m4-devices-continue-paths`,
+                // `verification\v47_x28`).
+                ast::EraseTarget::Other(ast::Expr::Field(f))
+                    if f.arg_list().is_none()
+                        && let Some((array_name, suffix, t)) = self.plain_spelled(f)? =>
+                {
+                    (t, array_name, suffix)
                 }
                 ast::EraseTarget::Other(other) => {
                     return Err(self.error(other.node().span(), "`ERASE` takes a whole array, by its name"));
                 }
             };
-            let t = self.need(name.name(), node.span())?;
-            let (array_name, suffix) = self.split_name(t)?;
             let Some(array) = self.find_array(&array_name, suffix) else {
                 let shown = show_bytes(self.text(t.span));
                 if self.implicit_names.contains(&array_name) {
@@ -859,7 +969,7 @@ impl Checker<'_> {
                 }
                 return Err(self.error(t.span, format!("`{shown}` is no declared array (`ERASE`)")));
             };
-            self.names.push((SymbolKind::Var(array), t.span));
+            self.stmt.names.push((SymbolKind::Var(array), t.span));
             let var = self.prog.var(array);
             let kind = match var.shape {
                 // An array parameter is cleared or released by what is passed (measured,
@@ -891,7 +1001,7 @@ impl Checker<'_> {
             "_EXPLICIT" | "_EXPLICITARRAY" => Ok(()),
             "BASE" => {
                 let base = self.need(stmt.base(), node.span())?;
-                self.option_base = match option_base_of(self.text(base.span)) {
+                self.at.option_base = match option_base_of(self.text(base.span)) {
                     Some(n) => n,
                     None => return Err(self.error(base.span, "`OPTION BASE` takes `0` or `1`")),
                 };
@@ -928,7 +1038,7 @@ impl Checker<'_> {
             return Err(self.unsupported(span, "`SHARED` in the main module"));
         }
         let list_ty = match stmt.as_clause() {
-            Some(a) => Some(self.type_of(a)?),
+            Some(a) => Some(self.type_of_at(a, AsPlace::Shared)?),
             None => None,
         };
         for item in stmt.items() {
@@ -949,7 +1059,7 @@ impl Checker<'_> {
                     }
                     (Some(t), None) => t,
                     (None, None) => self.default_ty(&name),
-                    (None, Some(a)) => self.type_of(a)?,
+                    (None, Some(a)) => self.type_of_at(a, AsPlace::Shared)?,
                 },
             };
             let typed = as_clause.is_some() || list_ty.is_some();
@@ -979,7 +1089,7 @@ impl Checker<'_> {
                 Some(&id) => id,
                 None => {
                     self.reserved(name_tok, &name, suffix)?;
-                    if self.explicit {
+                    if self.settings.explicit {
                         // Measured: also when the main module declares the name later in the file
                         // (`v17_f_explicit_shared_before_dim`) or with another type (`..._shared_other_type`).
                         return Err(self.undeclared(name_tok, ty));
@@ -995,7 +1105,7 @@ impl Checker<'_> {
                 self.main.plain.insert(name.clone(), ty);
                 self.local.plain.insert(name, ty);
             }
-            self.names.push((SymbolKind::Var(id), name_tok.span));
+            self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
         }
         Ok(())
     }
@@ -1018,7 +1128,7 @@ impl Checker<'_> {
             return Err(self.error(name_tok.span, msg));
         };
         if let Some(&own) = self.local.arrays.get(&key) {
-            self.names.push((SymbolKind::Var(own), name_tok.span));
+            self.stmt.names.push((SymbolKind::Var(own), name_tok.span));
             return Ok(());
         }
         if typed && self.local.array_plain.get(&name).is_some_and(|&t| t != ty) {
@@ -1029,7 +1139,7 @@ impl Checker<'_> {
         if typed {
             self.local.array_plain.insert(name, ty);
         }
-        self.names.push((SymbolKind::Var(id), name_tok.span));
+        self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
         Ok(())
     }
 }

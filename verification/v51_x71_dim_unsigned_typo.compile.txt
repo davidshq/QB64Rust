@@ -1,0 +1,5 @@
+
+Type cannot be _UNSIGNED
+Caused by (or after):DIM B AS _UNSIGNED _BYTEF
+LINE 3:DIM b AS _UNSIGNED _Bytef
+exit=1

@@ -176,22 +176,7 @@ impl Ty {
                 (false, true) => Ty::I64,
                 (false, false) => Ty::U64,
             },
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::FixedStr(_)
-            | Ty::User(_) => self,
+            crate::numeric_value_types!() | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => self,
         }
     }
 
@@ -204,22 +189,7 @@ impl Ty {
     pub fn held_value(self) -> Ty {
         match self {
             Ty::FixedStr(_) => Ty::Str,
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::Bit { .. }
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::User(_) => self.storage(),
+            crate::numeric_types!() | Ty::Str | Ty::User(_) => self.storage(),
         }
     }
 
@@ -228,22 +198,7 @@ impl Ty {
     pub fn believed_value(self) -> Ty {
         match self {
             Ty::FixedStr(_) => Ty::Str,
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::Bit { .. }
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::User(_) => self,
+            crate::numeric_types!() | Ty::Str | Ty::User(_) => self,
         }
     }
 
@@ -258,22 +213,7 @@ impl Ty {
     pub fn printed(self) -> Ty {
         match self {
             Ty::Bit { .. } => Ty::I64,
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str
-            | Ty::FixedStr(_)
-            | Ty::User(_) => self,
+            crate::numeric_value_types!() | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => self,
         }
     }
 
@@ -318,6 +258,38 @@ macro_rules! place_only_types {
 /// The reason in an `unreachable!` arm for `_BIT` where a value's type is matched: a `_BIT` value is held in its
 /// storage type ([`Ty::held_value`]); `_BIT` is the type of a place only.
 pub const BIT_VALUE_UNREACHABLE: &str = "a `_BIT` value is held in its storage type (`Ty::held_value`)";
+
+/// A pattern of every numeric [`Ty`] variant: the ten integer types, `_BIT * n`, `SINGLE`, `DOUBLE` and `_FLOAT`,
+/// for an arm on a place's or a declared type where `_BIT` is a number like the others. It keeps a `match`
+/// exhaustive without a `_ =>` arm (`crates\README.md`, "Lints").
+#[macro_export]
+macro_rules! numeric_types {
+    () => {
+        $crate::numeric_value_types!() | $crate::Ty::Bit { .. }
+    };
+}
+
+/// A pattern of the numeric [`Ty`] variants a value can have: those of [`numeric_types`] but `_BIT * n`, whose value
+/// is held in its storage type ([`BIT_VALUE_UNREACHABLE`]), for an arm on a value's type, or where another arm takes
+/// `_BIT`.
+#[macro_export]
+macro_rules! numeric_value_types {
+    () => {
+        $crate::Ty::I8
+            | $crate::Ty::U8
+            | $crate::Ty::I16
+            | $crate::Ty::U16
+            | $crate::Ty::I32
+            | $crate::Ty::U32
+            | $crate::Ty::I64
+            | $crate::Ty::U64
+            | $crate::Ty::Off
+            | $crate::Ty::UOff
+            | $crate::Ty::F32
+            | $crate::Ty::F64
+            | $crate::Ty::F80
+    };
+}
 
 /// The kind of conversion of a numeric value from `from` to `to` (design D5 of `m2-numeric-types`): `Widen` where
 /// every value of `from` is one of `to` (an integer to a wider one that keeps its sign, a float to a wider float),
@@ -370,22 +342,7 @@ pub fn holds_strings(types: &[UserType], t: Ty) -> bool {
             .members
             .iter()
             .any(|m| m.ty == Ty::Str || holds_strings(types, m.ty)),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::Bit { .. }
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str
-        | Ty::FixedStr(_) => false,
+        crate::numeric_types!() | Ty::Str | Ty::FixedStr(_) => false,
     }
 }
 
@@ -398,22 +355,7 @@ pub fn owns_desc(types: &[UserType], t: Ty) -> bool {
             .members
             .iter()
             .any(|m| m.dynamic || owns_desc(types, m.ty)),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Off
-        | Ty::UOff
-        | Ty::Bit { .. }
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str
-        | Ty::FixedStr(_) => false,
+        crate::numeric_types!() | Ty::Str | Ty::FixedStr(_) => false,
     }
 }
 
@@ -552,6 +494,29 @@ pub enum Resume {
     To(LabelId),
 }
 
+/// The level of a log statement's entry, lowest first (libqb's `loglevel`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LogLevel {
+    Trace,
+    Info,
+    Warn,
+    Error,
+}
+
+/// What `ON ERROR GOTO` does to the error handler (spec `language/error-handling`; the chain: design D1 of
+/// `m4-handlers-logging-checking`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ErrorHandler {
+    /// `ON ERROR GOTO label` (`Some`): the handler becomes `label`, the kept ones stay. `ON ERROR GOTO 0` (`None`):
+    /// no handler, and none kept.
+    Set(Option<LabelId>),
+    /// `ON ERROR GOTO _NEWHANDLER label`: the active handler is kept, then `label` becomes the handler.
+    New(LabelId),
+    /// `ON ERROR GOTO _LASTHANDLER`: the handler kept last becomes the handler again and is forgotten; with none
+    /// kept, no handler.
+    Last,
+}
+
 /// Where a variable lives (design D2, D6 of `m2-procedures-and-errors`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Storage {
@@ -596,6 +561,29 @@ pub enum Shape {
     },
 }
 
+impl Shape {
+    pub fn is_array(&self) -> bool {
+        !matches!(self, Shape::Scalar)
+    }
+
+    /// The number of dimensions of an array, where it is known; `None` for a scalar too.
+    pub fn dim_count(&self) -> Option<usize> {
+        match self {
+            Shape::Scalar => None,
+            Shape::Static { bounds } => Some(bounds.len()),
+            Shape::Dynamic { dims, .. } => *dims,
+        }
+    }
+
+    /// The bounds of a static array; empty for anything else.
+    pub fn bounds(&self) -> &[(i64, i64)] {
+        match self {
+            Shape::Static { bounds } => bounds,
+            Shape::Scalar | Shape::Dynamic { .. } => &[],
+        }
+    }
+}
+
 /// What an [`StmtKind::Allocate`] does with an array that is allocated already (design D4 of
 /// `m2-defxxx-common-arrays`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -635,26 +623,20 @@ pub struct Var {
     pub conventional: bool,
 }
 
+/// The variable's [`Shape`], asked through the variable.
 impl Var {
     pub fn is_array(&self) -> bool {
-        !matches!(self.shape, Shape::Scalar)
+        self.shape.is_array()
     }
 
-    /// The number of dimensions of an array, where it is known; `None` for a scalar too.
+    /// See [`Shape::dim_count`]: `None` for a scalar too.
     pub fn dim_count(&self) -> Option<usize> {
-        match &self.shape {
-            Shape::Scalar => None,
-            Shape::Static { bounds } => Some(bounds.len()),
-            Shape::Dynamic { dims, .. } => *dims,
-        }
+        self.shape.dim_count()
     }
 
-    /// The bounds of a static array; empty for anything else.
+    /// See [`Shape::bounds`]: empty for anything but a static array.
     pub fn bounds(&self) -> &[(i64, i64)] {
-        match &self.shape {
-            Shape::Static { bounds } => bounds,
-            Shape::Scalar | Shape::Dynamic { .. } => &[],
-        }
+        self.shape.bounds()
     }
 }
 
@@ -785,9 +767,6 @@ pub struct Proc {
     /// A procedure declared in a `DECLARE LIBRARY` block (design D1 of `m3-declare-library`): its C function. It has
     /// no statements.
     pub external: Option<External>,
-    /// Its statements check for events and errors between them; false for a procedure below `$CHECKING:OFF`,
-    /// which only QB64pe's file included after the last line has here (design D8 of `m3-network-embed`).
-    pub checked: bool,
 }
 
 /// The C function behind a procedure of a `DECLARE LIBRARY` block.
@@ -868,6 +847,10 @@ pub enum ConvKind {
     RoundEven,
     /// To the nearest value of a float type: integer to float, or float to a narrower float.
     Nearest,
+    /// `_CAST(type, value)`: the C++ cast `((ctype)(value))` from any number to any number, a float truncated toward
+    /// zero (design D2 of `m4-builtins-param-types`). Never folded: a float constant out of the integer's range is
+    /// undefined in C++, and the value is the one g++ gives, as in the old compiler.
+    Cast,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1063,6 +1046,9 @@ pub enum ExprKind {
         offset: Box<Expr>,
         of: Ty,
     },
+    /// `LEN(a())` of an array variable (design D5 of `m4-names-arrays`): the bytes of all its elements, 0 while a
+    /// dynamic array is not allocated, typed LONG. It reads the array's descriptor only and raises nothing.
+    ArrayBytes(VarId),
 }
 
 /// What `_MEMPUT` writes or `_MEMFILL` fills with (design D4 of `m3-mem`).
@@ -1189,6 +1175,9 @@ pub enum Event {
     Timer { number: Option<Expr>, seconds: Expr },
     /// `ON KEY(key)`: `key` DOUBLE, which libqb's `int32` parameter cuts toward zero.
     Key { key: Expr },
+    /// `ON STRIG(button[, controller])`: both LONG (design D4 of `m4-devices-continue-paths`; `qb64pe.bas`
+    /// 7534–7700).
+    Strig { button: Expr, controller: Option<Expr> },
 }
 
 /// What runs when the event is serviced.
@@ -1379,12 +1368,18 @@ pub enum StmtKind {
     /// `SYSTEM [code]`: ends the program at once, without the "press any key" prompt of `END`; the code as for
     /// [`StmtKind::End`].
     System(Option<Expr>),
+    /// `STOP [expression]`: ends the program as [`StmtKind::System`] without a code does, but without its test for
+    /// `SUB _GL`; the expression is checked and dropped (design D5 of `m4-qb64pe-sources`; `qb64pe.bas` 9905).
+    Stop,
     /// A SUB call; one argument per parameter.
     Call { proc: ProcId, args: Vec<Arg> },
     /// `EXIT SUB` / `EXIT FUNCTION`: leaves the procedure (either word leaves either kind, measured).
     Exit,
-    /// `ON ERROR GOTO label` (`Some`) or `ON ERROR GOTO 0` (`None`): sets or removes the program's error handler.
-    OnError(Option<LabelId>),
+    /// `ON ERROR GOTO …`: sets, removes, keeps or brings back the program's error handler ([`ErrorHandler`]).
+    OnError(ErrorHandler),
+    /// `_LOGTRACE`, `_LOGINFO`, `_LOGWARN` or `_LOGERROR msg$`: an entry of the runtime's log at the level, naming
+    /// the statement's file, procedure and line (design D2 of `m4-handlers-logging-checking`).
+    Log { level: LogLevel, msg: Expr },
     /// `RESUME ...`: ends the running error handler.
     Resume(Resume),
     /// `ERROR n`: raises error `n`, already converted to LONG (rounded half to even).
@@ -1444,6 +1439,9 @@ pub enum StmtKind {
     /// `EXIT FOR`, `EXIT DO`, `EXIT WHILE`: leaves the innermost loop of that kind (the parser checked there is
     /// one).
     ExitLoop(LoopKind),
+    /// `_CONTINUE`: the next pass of the innermost loop of any kind (the parser checked there is one; design D1 of
+    /// `m4-devices-continue-paths`). The lowering knows which loop that is.
+    Continue,
     /// `EXIT SELECT` (`case` false) or `EXIT CASE` (design D5 of `m3-console-files`; measured,
     /// `verification\v30_f_exit_select`, `v30_x60`–`x65`; `qb64pe.bas` 7491–7520). It stands inside a `CASE` or
     /// `CASE ELSE` of a `SELECT` of its body, also within loops and `IF`s there (the parser checked that).
@@ -1539,6 +1537,10 @@ pub struct Stmt {
     pub line: u32,
     /// In an included file, the line of the main file that `_ERRORLINE` gives (the outermost `$INCLUDE`'s).
     pub include_line: Option<u32>,
+    /// No `$CHECKING:OFF` is in force where the statement stands, in source order through procedures and included
+    /// files (a block's statement: at its header). Below OFF the statement has no check for events and errors after
+    /// it and no index checks (design D3 of `m4-handlers-logging-checking`).
+    pub checked: bool,
     pub kind: StmtKind,
 }
 
@@ -1664,10 +1666,16 @@ pub struct ExeIcon {
 }
 
 impl ExeIcon {
-    /// The rest of a name that starts with `./` or `.\`; `None` for an absolute name.
+    /// The rest of a name that starts with `./` or `.\`; `None` for any other name.
     pub fn beside_source(name: &str) -> Option<&str> {
         name.strip_prefix("./").or_else(|| name.strip_prefix(".\\"))
     }
+}
+
+/// Whether a file name of `$EXEICON` or `$EMBED` has a drive and no slash after it (`C:icon.ico`): the one kind of
+/// name still "not supported yet" (design D3 of `m4-devices-continue-paths`).
+pub fn drive_without_slash(name: &[u8]) -> bool {
+    matches!(name, [drive, b':', rest @ ..] if drive.is_ascii_alphabetic() && !matches!(rest.first(), Some(b'/' | b'\\')))
 }
 
 /// An optional part of the runtime that a built-in needs linked in.
@@ -1692,6 +1700,9 @@ pub enum RuntimePart {
     Sockets,
     /// The files built into the executable (`_EMBEDDED$`; the old compiler's `DEPENDENCY_EMBED`).
     Embed,
+    /// Game controllers, the keyboard and the mouse as devices (`_DEVICES`, `STICK`, `STRIG`, `ON STRIG`; the
+    /// old compiler's `DEPENDENCY_DEVICEINPUT`).
+    DeviceInput,
 }
 
 impl RuntimePart {
@@ -1707,6 +1718,7 @@ impl RuntimePart {
             "DEPENDENCY_ZLIB" => Some(RuntimePart::DataProcessing),
             "DEPENDENCY_SOCKETS" => Some(RuntimePart::Sockets),
             "DEPENDENCY_EMBED" => Some(RuntimePart::Embed),
+            "DEPENDENCY_DEVICEINPUT" => Some(RuntimePart::DeviceInput),
             _ => None,
         }
     }
@@ -1766,20 +1778,7 @@ impl Program {
             Ty::Bit { width: 1, .. } => t.qb_name().to_string(),
             Ty::Bit { width, .. } => format!("{} * {width}", t.qb_name()),
             Ty::FixedStr(n) => format!("STRING * {n}"),
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::Str => t.qb_name().to_string(),
+            crate::numeric_value_types!() | Ty::Str => t.qb_name().to_string(),
         }
     }
 

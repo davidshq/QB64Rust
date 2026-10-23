@@ -2,6 +2,7 @@
 //! a file, `WRITE`, `INPUT` and `LINE INPUT`, `CLOSE`. What each accepts and rejects is measured
 //! (`verification\v22_b_*`, `v22_x21`–`x60`; `study\00` §5).
 
+use super::expr::Use;
 use super::{Checker, NoJoin, R};
 use crate::builtins::{qb_bits, stmt_lookup};
 use crate::{
@@ -72,7 +73,7 @@ impl Checker<'_> {
     /// measured, `verification\v30_x13`). A file number is no part of it: the parser reads `#` as an item's error.
     pub(super) fn lprint(&mut self, stmt: ast::LprintStmt) -> R<()> {
         // The old compiler links the printer part of the runtime for any `LPRINT` (`qb64pe.bas` 27717).
-        self.runtime_parts.insert(crate::RuntimePart::Printer);
+        self.settings.runtime_parts.insert(crate::RuntimePart::Printer);
         let usings: Vec<_> = stmt.usings().collect();
         self.print_like(stmt.node(), PrintTo::Printer, &usings, stmt.parts().collect())
     }
@@ -219,9 +220,7 @@ impl Checker<'_> {
             return Err(self.unsupported(span, format!("a whole array as the string of `{what}`")));
         }
         // A place of a user type is a place here, so that it gets this statement's error and not an expression's.
-        let outer = self.len_place.replace(span);
-        let e = self.expr(node);
-        self.len_place = outer;
+        let e = self.expr_as(node, Use::Place);
         let ExprKind::Load(place) = e?.kind else {
             return Err(self.error(
                 span,
@@ -233,21 +232,7 @@ impl Checker<'_> {
             Ty::FixedStr(_) if fixed => Ok(place),
             // Measured: "Fixed length strings cannot be used in a FIELD statement" (`v30_x100`, `x107`, `x108`).
             Ty::FixedStr(_) => Err(self.error(span, format!("`{what}` cannot take a fixed-length string"))),
-            Ty::I8
-            | Ty::U8
-            | Ty::I16
-            | Ty::U16
-            | Ty::I32
-            | Ty::U32
-            | Ty::I64
-            | Ty::U64
-            | Ty::Off
-            | Ty::UOff
-            | Ty::Bit { .. }
-            | Ty::F32
-            | Ty::F64
-            | Ty::F80
-            | Ty::User(_) => Err(self.error(
+            crate::numeric_types!() | Ty::User(_) => Err(self.error(
                 span,
                 format!("`{what}` needs a string variable, not a number or a `TYPE` value"),
             )),
@@ -665,6 +650,47 @@ impl Checker<'_> {
             return Err(self.error(v.span, "the `MID$` statement stores a string"));
         }
         let args = vec![StmtArg::Place(place), start, length, StmtArg::Value(v)];
+        self.push(node, StmtKind::Builtin { id: form.id, args });
+        Ok(())
+    }
+
+    /// `ASC(s$[, position]) = code` ([`StmtRule::AscAssign`], design D4 of `m4-qb64pe-sources`); `call` is the left
+    /// side. Measured (`verification\v52_d_asc`, `v52_x01`–`x09`): the place a string variable, element or member of
+    /// either kind, else "Expected ASC ( string-variable , ..."; a string for the position or the value "Illegal
+    /// string-number conversion"; three arguments "Invalid expression". The position and the value are LONG.
+    pub(super) fn asc_assign(&mut self, node: Node, call: ast::CallExpr, value: ast::Expr) -> R<()> {
+        let [form] = stmt_lookup("ASC", false)[..] else {
+            unreachable!("`ASC` is one row with one stub entry");
+        };
+        let span = call.node().span();
+        let nodes = self.present_args(call.arg_list())?;
+        let (target, position) = match nodes[..] {
+            [t] => (t, None),
+            [t, p] => (t, Some(p)),
+            _ => return Err(self.error(span, "the `ASC` statement takes a variable and a position")),
+        };
+        if let ast::Expr::Paren(_) = target {
+            // Not measured.
+            return Err(self.unsupported(target.node().span(), "the target of the `ASC` statement in parentheses"));
+        }
+        let place = self.place_operand(target, "ASC")?;
+        if !self.prog.place_ty(&place).is_string() {
+            let msg = "the `ASC` statement needs a string variable as its first argument";
+            return Err(self.error(target.node().span(), msg));
+        }
+        let number = |c: &mut Self, n: ast::Expr, which: &str| -> R<StmtArg> {
+            let e = c.expr(n)?;
+            if e.ty == Ty::Str {
+                return Err(c.error(e.span, format!("the {which} of the `ASC` statement must be a number")));
+            }
+            Ok(StmtArg::Value(c.store(e, Ty::I32)?))
+        };
+        let position = match position {
+            Some(p) => number(self, p, "position")?,
+            None => StmtArg::Absent,
+        };
+        let v = number(self, value, "value")?;
+        let args = vec![StmtArg::Place(place), position, v];
         self.push(node, StmtKind::Builtin { id: form.id, args });
         Ok(())
     }

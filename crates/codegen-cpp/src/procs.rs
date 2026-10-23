@@ -3,9 +3,9 @@
 
 use crate::Emitter;
 use crate::decl::{declare, dim_count, is_qbs, lock_slot};
-use crate::names::{c_type, proc_name, var_name};
+use crate::names::{self, c_type, proc_name, var_name};
 use qb64rust_base::to_u32;
-use qb64rust_ir::{Body, LabelId, Proc, ProcId, ProcKind, Storage, Ty, Var};
+use qb64rust_ir::{Body, LabelId, Proc, ProcId, ProcKind, Storage, Ty, Var, numeric_types};
 use std::fmt::Write as _;
 
 /// The prologue of a procedure, after its signature line (`study\02` §8, verbatim from the old compiler).
@@ -77,7 +77,7 @@ impl<'a> Emitter<'a> {
         // each time a handler re-enters `QBMAIN`, as in the old compiler.
         let mut out = String::from("error_track_line(0,0,NULL);\nS_0:;\n");
         let p = self.p;
-        self.body(&p.main, 0, true, &mut out);
+        self.body(&p.main, 0, &mut out);
         out.push_str("sub_end();\nreturn;\n}\n");
         out
     }
@@ -176,7 +176,9 @@ impl<'a> Emitter<'a> {
         header.push(format!("#include \"data{k}.txt\""));
         header.extend(PROLOGUE_AFTER_DATA.iter().map(|s| s.to_string()));
         self.lines(proc.line, &header, &mut main);
-        self.body(&proc.body, k, proc.checked, &mut main);
+        self.subfunc = Some(names::old_proc_name(proc));
+        self.body(&proc.body, k, &mut main);
+        self.subfunc = None;
         let mut footer = vec!["exit_subfunc:;".to_string()];
         // A FUNCTION `f$n`: a copy of its n bytes, made before the epilogue releases the static pool they lie in (the
         // old compiler returns the fixed string itself, so a second call in the same expression overwrites the first
@@ -197,21 +199,7 @@ impl<'a> Emitter<'a> {
             footer.push(match self.p.var(r).ty {
                 Ty::FixedStr(_) => "return tqbs;".to_string(),
                 Ty::Str => format!("qbs_maketmp({n});return {n};"),
-                Ty::I8
-                | Ty::U8
-                | Ty::I16
-                | Ty::U16
-                | Ty::I32
-                | Ty::U32
-                | Ty::I64
-                | Ty::U64
-                | Ty::Off
-                | Ty::UOff
-                | Ty::Bit { .. }
-                | Ty::F32
-                | Ty::F64
-                | Ty::F80
-                | Ty::User(_) => format!("return *{n};"),
+                numeric_types!() | Ty::User(_) => format!("return *{n};"),
             });
         }
         footer.push("}".to_string());
@@ -222,16 +210,17 @@ impl<'a> Emitter<'a> {
         (main, data, free)
     }
 
-    /// Body number `k` (0 for the main module, K for procedure K). Without `checked` (below `$CHECKING:OFF`, design
-    /// D8 of `m3-network-embed`) each statement is written alone, as the old compiler writes it there: no event
-    /// check after it, and none at a label (read from its C++ of `afterlastline.bm`).
-    fn body(&mut self, b: &'a Body, k: usize, checked: bool, out: &mut String) {
+    /// Body number `k` (0 for the main module, K for procedure K). A statement that is not `checked` (below
+    /// `$CHECKING:OFF`, design D3 and D4 of `m4-handlers-logging-checking`) is written alone, as the old compiler
+    /// writes it there: no event check after it, no index checks ([`Emitter::checking`]), and none at its label.
+    fn body(&mut self, b: &'a Body, k: usize, out: &mut String) {
         self.body = b;
         self.k = k;
         for (i, s) in b.stmts.iter().enumerate() {
-            self.labels(i, checked, out);
+            self.labels(i, out);
             let mut body = Vec::new();
             self.stmt_at = (Some(s.span.file), s.line, s.include_line);
+            self.checking = s.checked;
             // Whether an earlier operation of the statement may have left an error pending.
             let mut raised = false;
             for op in &s.ops {
@@ -242,7 +231,7 @@ impl<'a> Emitter<'a> {
             // A coverage build counts the statement before it runs, outside its `do{…}while(r);`, so a retry by the
             // runtime is not counted again.
             let count = self.coverage.as_mut().and_then(|c| c.count(s));
-            if !checked {
+            if !s.checked {
                 body.splice(0..0, count);
                 self.lines_in(file, s.line, &body, out);
                 continue;
@@ -256,15 +245,17 @@ impl<'a> Emitter<'a> {
             ));
             self.lines_in(file, s.line, &lines, out);
         }
-        self.labels(b.stmts.len(), checked, out);
+        self.labels(b.stmts.len(), out);
+        // What is written outside a body (the epilogue, the data fragment) is checked.
+        self.checking = true;
     }
 
-    /// The labels that stand before statement `at`; a user label with the old compiler's event check where the
-    /// body is `checked`.
-    fn labels(&self, at: usize, checked: bool, out: &mut String) {
+    /// The labels that stand before statement `at`; a user label with the old compiler's event check where it is
+    /// `checked`.
+    fn labels(&self, at: usize, out: &mut String) {
         for (i, l) in self.body.labels.iter().enumerate().filter(|(_, l)| l.at == at) {
             let mut lines = vec![format!("{}:;", self.local_label(LabelId(to_u32(i))))];
-            if l.name.is_some() && checked {
+            if l.name.is_some() && l.checked {
                 lines.push(format!(
                     "if(qbevent){{evnt({});r=0;}}",
                     self.evnt_args(l.file, l.line, l.include_line)

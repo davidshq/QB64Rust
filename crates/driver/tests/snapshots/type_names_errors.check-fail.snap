@@ -1,0 +1,80 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+type_names_errors.bas:15:7: error: no type is named `_BYTEF`
+type_names_errors.bas:15:7: note: QB64pe: Unknown type
+type_names_errors.bas:16:7: error: `STRINGFOOBAR` is no type: a fixed-length string is written `STRING * n`
+type_names_errors.bas:16:7: note: QB64pe: Expected STRING * number/constant
+type_names_errors.bas:17:8: error: `STRING2` is no type: a fixed-length string is written `STRING * n`
+type_names_errors.bas:17:8: note: QB64pe: Expected STRING * number/constant
+type_names_errors.bas:18:8: error: `STRINGFOOBAR` is no type: a fixed-length string is written `STRING * n`
+type_names_errors.bas:18:8: note: QB64pe: Expected STRING * number/constant
+type_names_errors.bas:19:12: error: no type is named `_BYTEF`
+type_names_errors.bas:19:12: note: QB64pe: Unknown type
+type_names_errors.bas:20:17: error: no type is named `_BYTEF`
+type_names_errors.bas:20:17: note: QB64pe: Unknown type
+type_names_errors.bas:21:5: error: no type is named `_BYTEF`
+type_names_errors.bas:21:5: note: QB64pe: Unknown type
+type_names_errors.bas:22:7: error: no type is named `BYTE`
+type_names_errors.bas:22:7: note: QB64pe: Unknown type
+type_names_errors.bas:23:7: error: only `STRING` and `_BIT` take `* n`, not `INTEGER`
+type_names_errors.bas:23:7: note: QB64pe: Unknown type
+type_names_errors.bas:24:7: error: only `STRING` and `_BIT` take `* n`, not `_BYTE`
+type_names_errors.bas:24:7: note: QB64pe: Unknown type
+type_names_errors.bas:25:7: error: only `STRING` and `_BIT` take `* n`, not `LONG`
+type_names_errors.bas:25:7: note: QB64pe: Unknown type
+type_names_errors.bas:26:7: error: only `STRING` and `_BIT` take `* n`, not `PT`
+type_names_errors.bas:26:7: note: QB64pe: Unknown type
+type_names_errors.bas:27:7: error: only `STRING` and `_BIT` take `* n`, not `NOSUCH`
+type_names_errors.bas:27:7: note: QB64pe: Unknown type
+type_names_errors.bas:28:7: error: `NOSUCH` cannot be `_UNSIGNED`
+type_names_errors.bas:28:7: note: QB64pe: Type cannot be _UNSIGNED
+type_names_errors.bas:29:7: error: `_BYTEF` cannot be `_UNSIGNED`
+type_names_errors.bas:29:7: note: QB64pe: Type cannot be _UNSIGNED
+type_names_errors.bas:30:7: error: no type is named `_MEMX`
+type_names_errors.bas:30:7: note: QB64pe: Unknown type
+type_names_errors.bas:31:7: error: `_UNSIGNED STRINGFOOBAR` is no type: a fixed-length string is written `STRING * n`
+type_names_errors.bas:31:7: note: QB64pe: Expected STRING * number/constant
+type_names_errors.bas:32:7: error: `INTEGER` cannot be `_UNSIGNED`
+type_names_errors.bas:32:7: note: QB64pe: Type cannot be _UNSIGNED
+type_names_errors.bas:33:15: error: no type is named `_BYTEF`
+type_names_errors.bas:33:15: note: QB64pe: Unknown type
+type_names_errors.bas:40:7: error: the member type `NOSUCH` is no type
+type_names_errors.bas:40:7: note: QB64pe: Undefined type
+type_names_errors.bas:44:16: error: the member type `NOTDEFINED` is no type
+type_names_errors.bas:44:16: note: QB64pe: Undefined type
+type_names_errors.bas:47:7: error: the member type `_UNSIGNED NOSUCH` is no type
+type_names_errors.bas:47:7: note: QB64pe: Undefined type
+type_names_errors.bas:50:7: error: the member type `BYTE` is no type
+type_names_errors.bas:50:7: note: QB64pe: Undefined type
+type_names_errors.bas:53:7: error: the member type `_BYTEF` is no type
+type_names_errors.bas:53:7: note: QB64pe: Undefined type
+type_names_errors.bas:56:7: error: the member type `STRINGFOOBAR * …` is no type
+type_names_errors.bas:56:7: note: QB64pe: Undefined type
+type_names_errors.bas:59:7: error: the member type `INTEGER * …` is no type
+type_names_errors.bas:59:7: note: QB64pe: Undefined type
+type_names_errors.bas:62:5: error: the type `NOSUCH` of a member list is no type
+type_names_errors.bas:62:5: note: QB64pe: Expected element-name AS type, AS type element-list, or END TYPE
+type_names_errors.bas:65:7: error: the member type `M10` is no type
+type_names_errors.bas:65:7: note: QB64pe: Undefined type
+type_names_errors.bas:71:14: error: no type is named `_BYTEF`
+type_names_errors.bas:71:14: note: QB64pe: Unknown type
+type_names_errors.bas:72:14: error: `STRINGFOOBAR` is no type: a fixed-length string is written `STRING * n`
+type_names_errors.bas:72:14: note: QB64pe: Expected STRING * number/constant
+type_names_errors.bas:73:14: error: the type `_BYTEF` of a `SHARED` name is no type
+type_names_errors.bas:73:14: note: QB64pe: Cannot convert type (_BYTEF) to symbol
+type_names_errors.bas:74:17: error: no type is named `NOSUCH`
+type_names_errors.bas:74:17: note: QB64pe: Unknown type
+type_names_errors.bas:75:12: error: no type is named `NOSUCH`
+type_names_errors.bas:75:12: note: QB64pe: Unknown type
+type_names_errors.bas:77:11: error: the type `_BYTEF` of a parameter is no type
+type_names_errors.bas:77:11: note: QB64pe: Illegal SUB/FUNCTION parameter
+type_names_errors.bas:79:16: error: the type `NOSUCH` of a parameter is no type
+type_names_errors.bas:79:16: note: QB64pe: Illegal SUB/FUNCTION parameter
+type_names_errors.bas:81:11: error: the type `STRINGFOOBAR` of a parameter is no type
+type_names_errors.bas:81:11: note: QB64pe: Illegal SUB/FUNCTION parameter
+type_names_errors.bas:83:13: error: the type `_BYTEF` of a parameter is no type
+type_names_errors.bas:83:13: note: QB64pe: Illegal SUB/FUNCTION parameter
+type_names_errors.bas:86:29: error: the type `_BYTEF` of a parameter is no type
+type_names_errors.bas:86:29: note: QB64pe: Illegal SUB/FUNCTION parameter

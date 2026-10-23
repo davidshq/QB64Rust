@@ -1,0 +1,5 @@
+
+Unknown type
+Caused by (or after):DIM V AS PT * 2
+LINE 6:DIM v AS pt * 2
+exit=1

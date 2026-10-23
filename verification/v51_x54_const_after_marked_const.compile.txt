@@ -1,0 +1,5 @@
+
+Unexpected element 'UNDEFINED2'
+Caused by (or after):
+LINE 4:CONST B = A OR UNDEFINED2
+exit=1

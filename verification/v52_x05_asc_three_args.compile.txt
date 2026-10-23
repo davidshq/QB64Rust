@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):ASC ( A$ , 1 , 2 ) = 65
+LINE 5:ASC(a$, 1, 2) = 65
+exit=1

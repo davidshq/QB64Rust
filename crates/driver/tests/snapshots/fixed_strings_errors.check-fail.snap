@@ -5,6 +5,7 @@ expression: snap
 fixed_strings_errors.bas:10:20: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
 fixed_strings_errors.bas:11:20: error: expected a size after `*`
 fixed_strings_errors.bas:12:20: error: a fixed-length string's length must be a whole number
+fixed_strings_errors.bas:12:20: note: QB64pe: Number/Constant expected after *
 fixed_strings_errors.bas:13:20: error: expected a size after `*`
 fixed_strings_errors.bas:14:20: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
 fixed_strings_errors.bas:15:5: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)

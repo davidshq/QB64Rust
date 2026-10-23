@@ -91,6 +91,15 @@ pub(super) fn proc_header(p: &mut Parser, library: bool, declare: bool) {
         return;
     }
     p.bump();
+    if p.at(Dot) {
+        // `SUB a . b`: the old compiler drops the blanks (`verification\v47_x18`); not built here (design of
+        // `m4-devices-continue-paths`, "Non-Goals").
+        let span = p.current_span();
+        p.unsupported_at(span, "a procedure name with blanks around `.`");
+        p.recover();
+        p.finish_node();
+        return;
+    }
     if library && p.at_word("ALIAS") {
         p.bump();
         if p.at(StringLit) || p.at(Ident) {
@@ -220,6 +229,23 @@ pub(crate) fn exit_stmt(p: &mut Parser) {
             p.recover();
         }
     }
+}
+
+/// `_CONTINUE` alone on its statement (design D1 of `m4-devices-continue-paths`): an error unless a `FOR`, `DO` or
+/// `WHILE` loop of the current body is open, whatever other blocks lie between (`qb64pe.bas` 9734–9756, measured
+/// `verification\v47_x01`, `x02`). Anything after it is an error (`_CONTINUE 1`: the old compiler takes the word
+/// only as a whole statement and reports "Command not implemented", `v47_x03`).
+pub(crate) fn continue_stmt(p: &mut Parser) {
+    let span = p.current_span();
+    p.start_node(ContinueStmt);
+    if !p.ends_at(1) {
+        p.error_at(span.cover(p.next_span(1)), "`_CONTINUE` stands alone on its statement");
+    } else if !p.inside_loop() {
+        p.error_at(span, "`_CONTINUE` outside a `DO`, `FOR` or `WHILE` loop");
+    }
+    p.bump();
+    p.recover();
+    p.finish_node();
 }
 
 /// `DECLARE SUB|FUNCTION <header>`, or a `DECLARE … LIBRARY` block; other `DECLARE` forms are not supported yet.
