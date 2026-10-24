@@ -34,7 +34,7 @@ which holds M4's fourteen changes so far: through pull request 12 (`e0ac8c6`) `m
 `fe5e2de`, below), through pull request 13 (`fe596c3`) `m4-qb64pe-builtins`, `m4-line-numbers-whole-arrays`,
 `m4-names-implicit-arrays` and `m4-memory-records`, and through pull request 14 `m4-statements-metacommands` and
 `m4-builtins-remaining` (the full set at a merge ran on the tree of pull request 14, which stands for both, below).
-Branch `m4-sub-gl` holds step 5. The extension's first release is tagged `vscode-v0.2.0`.
+Branch `m4-sub-gl` holds step 5, `m4-sub-gl`, archived. The extension's first release is tagged `vscode-v0.2.0`.
 
 ## Waiting on the user
 
@@ -55,8 +55,8 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. **Step 5 of M4's plan (`DECISIONS.md` 2026-10-22), `SUB _GL`, is built** (`m4-sub-gl`, on branch `m4-sub-gl`,
-   closing runs pass; waiting for the user's review and `/opsx:archive`). `opengl/test` passes (upstream 402 of
+1. **Step 5 of M4's plan (`DECISIONS.md` 2026-10-22), `SUB _GL`, is built and archived** (`m4-sub-gl`, on branch
+   `m4-sub-gl`; spec `language/opengl`). `opengl/test` passes (upstream 402 of
    404, the two left out of scope: `http/read_example`, `const/math_funcs`); the upstream demand report marks
    nothing "not supported yet".
 2. Then the 9 programs of `tests\verification\known.list` that steps 2 and 3 left marked (the demand report over
