@@ -1,0 +1,5 @@
+
+Name already in use (OUT)
+Caused by (or after):X = OUT ( 1 , 2 )
+LINE 6:x = OUT(1, 2)
+exit=1

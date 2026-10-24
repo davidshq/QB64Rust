@@ -1,0 +1,4 @@
+
+Runtime error: Line: 3 (in eloc_top.bi)
+Division by zero
+exit=0

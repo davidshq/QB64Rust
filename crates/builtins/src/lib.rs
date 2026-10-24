@@ -59,6 +59,13 @@ pub const AFTER_LAST_LINE: &[u8] = include_bytes!("afterlastline.bm");
 /// The name the old compiler's `#line` directives give the file, relative to its own folder.
 pub const AFTER_LAST_LINE_NAME: &str = "internal\\support\\include\\afterlastline.bm";
 
+/// QB64pe's `aftermain.bas`, byte for byte (QB64pe's MIT licence; copied from the clone by
+/// `tools\builtins\extract_builtins.py`; design D7 of `m4-builtins-remaining`): an `END` with `$INCLUDEONCE`, which
+/// the old compiler includes after the main module and before the `IncAfterMain` files of the `$USELIBRARY`
+/// libraries, so that the main module never runs into them. Parsed only when a library has such a file.
+pub const AFTER_MAIN: &[u8] = include_bytes!("aftermain.bas");
+pub const AFTER_MAIN_NAME: &str = "internal\\support\\include\\aftermain.bas";
+
 /// libqb's default palettes, for the colour functions of the `CONST` evaluator (design D5 of
 /// `m3-constant-evaluation`).
 pub mod palettes;

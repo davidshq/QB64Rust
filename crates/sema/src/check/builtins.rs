@@ -62,12 +62,8 @@ impl Checker<'_> {
     /// error for the functions measured, "Invalid expression" for the last, "Incorrect number of arguments" or
     /// "Syntax error" for another by the function; "not supported yet" for any other (design D11 of
     /// `m4-statements-metacommands`; measured, `verification\v27_x50`, `v28_x49`, `v57_o01`–`o17`, `o21`).
-    pub(super) fn left_out(&mut self, name: &str, first: bool, last: bool, span: Span) -> Failed {
+    pub(super) fn left_out(&mut self, name: &str, _first: bool, last: bool, span: Span) -> Failed {
         let name = name.to_ascii_uppercase();
-        if first && !last && name == "INSTR" {
-            // The old compiler compiles it (`v57_o07`): not built here.
-            return self.unsupported(span, "omitted arguments");
-        }
         let count = matches!(name.as_str(), "POINT" | "_RGB" | "INSTR" | "MID$");
         let other = matches!(name.as_str(), "_RGB32" | "_RGBA32" | "LEFT$");
         match (count || other, last) {
@@ -870,7 +866,7 @@ impl Checker<'_> {
         let nodes = self.present_args(stmt.arg_list())?;
         let slots = stmt_slots(form.id).len();
         if nodes.len() != slots {
-            return Err(self.error(node.span(), arity(form.name, slots, slots)));
+            return Err(self.error(node.span(), stmt_arity(form.name, slots)));
         }
         let matched = nodes.into_iter().map(|n| Matched::Arg(Some(n))).collect();
         self.stmt_call(node, form, matched)
@@ -1415,12 +1411,13 @@ fn calls_procedure(e: &Expr) -> bool {
 }
 
 /// Whether slot `k` of a function stands alone in brackets after a comma in its template (`,[?]`), or alone in
-/// brackets at its start with a bracketed comma after it (`[?][,`), so that an argument list may leave it empty: the
-/// second slot of `?[,[?][,?]]` and the first of `_MESSAGEBOX`'s `[?][,[?][,…]]` (measured,
-/// `verification\v53_x31`; the three file dialogs' call-site programs `func_*dialog_skip`), not the second of `?[,?]`, nor the first of `INSTR`'s `[?],?,?` (`INSTR(, a$, b$)` is
-/// not measured and stays "not supported yet"). The rule goes by the template, not by name: a function added later
-/// whose template has such a slot (`_SNDNEW`, …) accepts the gap at once, so its measurement includes one call with
-/// that slot left empty.
+/// brackets at its start with a comma after it, bracketed or not (`[?][,`, `[?],`), so that an argument list may
+/// leave it empty: the second slot of `?[,[?][,?]]`, the first of `_MESSAGEBOX`'s `[?][,[?][,…]]` (measured,
+/// `verification\v53_x31`; the three file dialogs' call-site programs `func_*dialog_skip`) and the first of
+/// `INSTR`'s `[?],?,?` (`INSTR(, a$, b$)` is `func_instr(NULL,a,b,0)`, the slot left empty and its passed bit
+/// clear, as the two-argument form; measured, `verification\v57_o07`, `v58_i01`), not the second of `?[,?]`. The
+/// rule goes by the template, not by name: a function added later whose template has such a slot (`_SNDNEW`, …)
+/// accepts the gap at once, so its measurement includes one call with that slot left empty.
 fn may_be_left_out(b: &qb64rust_builtins::Builtin, k: usize) -> bool {
     let Some(format) = b.specialformat else {
         return false;
@@ -1434,7 +1431,9 @@ fn may_be_left_out(b: &qb64rust_builtins::Builtin, k: usize) -> bool {
         .is_some_and(|(i, _)| {
             let alone = bytes.get(i + 1) == Some(&b']');
             let after_comma = i > 1 && bytes[i - 2..i] == *b",[";
-            let first = i == 1 && bytes[0] == b'[' && bytes.get(i + 2..i + 4) == Some(b"[,".as_slice());
+            let first = i == 1
+                && bytes[0] == b'['
+                && (bytes.get(i + 2..i + 4) == Some(b"[,".as_slice()) || bytes.get(i + 2) == Some(&b','));
             alone && (after_comma || first)
         })
 }
@@ -1471,8 +1470,21 @@ fn list_counts(counts: u64) -> String {
     }
 }
 
-/// "`LEFT$` takes 2 arguments", "`INSTR` takes 2 or 3 arguments".
+/// A built-in statement written like a SUB call with the wrong number of arguments: "`KILL` takes 1 argument",
+/// "`BEEP` takes 0 arguments". With no slot it is worded apart from the function of the same name ([`arity`]),
+/// since the old compiler says "SUB does not require any arguments" for the statement (`_DISPLAY 1`) and
+/// "Incorrect number of arguments" for the function (`_DISPLAY(1)`, `verification\v58_x49`): the wording table
+/// is keyed by message, so the two need two messages.
+fn stmt_arity(name: &str, slots: usize) -> String {
+    format!("`{name}` takes {slots} argument{}", if slots == 1 { "" } else { "s" })
+}
+
+/// "`LEFT$` takes 2 arguments", "`INSTR` takes 2 or 3 arguments", "`_CAPSLOCK` takes no arguments" (a function;
+/// a statement with no slot is worded by [`stmt_arity`]).
 fn arity(name: &str, required: usize, slots: usize) -> String {
+    if slots == 0 {
+        return format!("`{name}` takes no arguments");
+    }
     let count = if required == slots {
         format!("{slots} argument{}", if slots == 1 { "" } else { "s" })
     } else if slots == required + 1 {

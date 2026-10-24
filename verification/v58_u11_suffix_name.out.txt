@@ -1,0 +1,3 @@
+main a;
+sub a
+exit=0

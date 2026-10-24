@@ -1,0 +1,3 @@
+SUB ThreeSub
+    PRINT "three bottom sub"; THREE_K
+END SUB

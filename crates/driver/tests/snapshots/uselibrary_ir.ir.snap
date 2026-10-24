@@ -1,0 +1,56 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 1 in main line 0 may_raise
+  Assign TOP:Str = Concat(Var TOP:Str, Const "a;")
+Stmt line 2 in main line 0 may_raise
+  Assign TOP:Str = Concat(Var TOP:Str, Const "c;")
+Stmt line 2 in main line 0 may_raise
+  Assign TOP:Str = Concat(Var TOP:Str, Const "three;")
+Stmt line 7
+  SelectConsole
+Stmt line 10
+  Print console newline
+    Str Const "main "
+    Str Var TOP:Str
+    Num Const 3:I64
+Stmt line 11
+  Gosub THREE_HANDLER
+Stmt line 12 may_raise
+  Call THREESUB []
+Stmt line 13 may_raise
+  Call CSUB []
+Stmt line 14
+  System
+Stmt line 20 in main line 14
+  End
+Label THREE_HANDLER line 1 in main line 14
+Stmt line 2 in main line 14
+  Print console newline
+    Str Const "three main handler"
+Stmt line 3 in main line 14 may_raise
+  Return
+Label THREE_ERR line 4 in main line 14
+Stmt line 5 in main line 14 may_raise
+  Print console newline
+    Str Const "three err"
+    Num CallBuiltin ERR:I32 []
+Stmt line 6 in main line 14 may_raise
+  Resume Next
+Sub THREESUB lines 1-3
+Stmt line 2 in main line 14
+  Print console newline
+    Str Const "three bottom sub"
+    Num Const 3:I64
+Sub CSUB lines 1-4
+Stmt line 2 in main line 14
+  Print console newline
+    Str Const "sub c"
+Stmt line 3 in main line 14 may_raise
+  Call ASUB []
+Sub ASUB lines 1-3
+Stmt line 2 in main line 14
+  Print console newline
+    Str Const "sub a"

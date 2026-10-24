@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):D& = _DISPLAY&
+LINE 5:d& = _DISPLAY&
+exit=1

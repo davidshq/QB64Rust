@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 screen_draw_errors.bas:8:12: error: this `LINE` statement matches none of its forms: `LINE [[{Step}](?,?)]-[{Step}](?,?)[,[?][,[{B|BF}][,?]]]`

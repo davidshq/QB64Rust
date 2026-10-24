@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):X = _SCREENPRINT ( "a",1 )
+LINE 6:x = _SCREENPRINT("a")
+exit=1

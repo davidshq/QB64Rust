@@ -6,18 +6,18 @@ mouse_errors.bas:5:7: error: `_MOUSEBUTTON` takes 1 argument
 mouse_errors.bas:5:7: note: QB64pe: Incorrect number of arguments - Reference: _MOUSEBUTTON(buttonNumber)
 mouse_errors.bas:6:7: error: `_MOUSEBUTTON` takes 1 argument
 mouse_errors.bas:6:7: note: QB64pe: Incorrect number of arguments - Reference: _MOUSEBUTTON(buttonNumber)
-mouse_errors.bas:7:7: error: `_MOUSEX` takes 0 arguments
+mouse_errors.bas:7:7: error: `_MOUSEX` takes no arguments
 mouse_errors.bas:7:7: note: QB64pe: Incorrect number of arguments - Reference: _MOUSEX
 mouse_errors.bas:8:7: error: `_MOUSEWHEEL` takes 0 or 1 arguments
 mouse_errors.bas:8:7: note: QB64pe: Incorrect number of arguments - Reference: _MOUSEWHEEL [axis]
 mouse_errors.bas:9:1: error: `_MOUSEMOVE` takes 2 arguments
 mouse_errors.bas:9:1: note: QB64pe: Syntax error - Reference: _MOUSEMOVE x, y
 mouse_errors.bas:10:12: error: argument 1 of `_MOUSEMOVE` needs a number
-mouse_errors.bas:11:7: error: `_MOUSEINPUT` takes 0 arguments
+mouse_errors.bas:11:7: error: `_MOUSEINPUT` takes no arguments
 mouse_errors.bas:11:7: note: QB64pe: Incorrect number of arguments - Reference: _MOUSEINPUT
-mouse_errors.bas:12:7: error: `_MOUSEHIDDEN` takes 0 arguments
+mouse_errors.bas:12:7: error: `_MOUSEHIDDEN` takes no arguments
 mouse_errors.bas:12:7: note: QB64pe: Incorrect number of arguments - Reference: _MOUSEHIDDEN
-mouse_errors.bas:13:7: error: `_MOUSEMOVEMENTX` takes 0 arguments
+mouse_errors.bas:13:7: error: `_MOUSEMOVEMENTX` takes no arguments
 mouse_errors.bas:13:7: note: QB64pe: Incorrect number of arguments - Reference: _MOUSEMOVEMENTX
 mouse_errors.bas:14:1: error: `_MOUSEINPUT` is a function, not a statement
 mouse_errors.bas:14:1: note: QB64pe: Syntax error

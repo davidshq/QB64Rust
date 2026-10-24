@@ -1,0 +1,571 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+==> global.txt <==
+static void qbr_diverged(int32 qbr_n){
+static int32 qbr_on=-1;
+static uint8 qbr_seen[100];
+static const char *qbr_path=NULL;
+if (qbr_on<0){qbr_path=getenv("QB64RUST_DIVERGENCES");qbr_on=qbr_path&&*qbr_path;}
+if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;
+qbr_seen[qbr_n]=1;
+FILE *qbr_f=fopen(qbr_path,"ab");
+if (qbr_f){fprintf(qbr_f,"D-%03d\n",(int)qbr_n);fclose(qbr_f);}
+}
+static void qbr_diverged_on(int32 qbr_n){
+if (new_error>=300&&new_error<=315) return;
+const char *qbr_np=getenv("QB64PE_NOPROMPT");
+if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);
+}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}return qb_l%qb_r;}
+ptrszint *__ARRAY_LONG_A=NULL;
+float *__SINGLE_I=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+HINSTANCE DLL_user32=NULL;
+typedef int32 (CALLBACK* DLLCALL_FUNC_GETDESKTOPWINDOW)();
+DLLCALL_FUNC_GETDESKTOPWINDOW FUNC_GETDESKTOPWINDOW=NULL;
+HINSTANCE DLL_kernel32=NULL;
+typedef int32 (CALLBACK* DLLCALL_FUNC_GETTICKCOUNT)();
+DLLCALL_FUNC_GETTICKCOUNT FUNC_GETTICKCOUNT=NULL;
+void SUB_INCSUB();
+void SUB_S(qbs*_SUB_S_STRING_T);
+==> clear.txt <==
+memset((void*)(__ARRAY_LONG_A[0]),0,__ARRAY_LONG_A[5]*4);
+*__SINGLE_I=0;
+==> maindata.txt <==
+if (!DLL_user32){
+DLL_user32=LoadLibrary("user32.dll");
+if (!DLL_user32){error_track_line(20,3,"errorlocation.bi");error(259);}
+}
+if (!FUNC_GETDESKTOPWINDOW){
+FUNC_GETDESKTOPWINDOW=(DLLCALL_FUNC_GETDESKTOPWINDOW)GetProcAddress(DLL_user32,"GetDesktopWindow");
+if (!FUNC_GETDESKTOPWINDOW){error_track_line(20,4,"errorlocation.bi");error(260);}
+}
+if (!DLL_kernel32){
+DLL_kernel32=LoadLibrary("kernel32.dll");
+if (!DLL_kernel32){error_track_line(28,0,NULL);error(259);}
+}
+if (!FUNC_GETTICKCOUNT){
+FUNC_GETTICKCOUNT=(DLLCALL_FUNC_GETTICKCOUNT)GetProcAddress(DLL_kernel32,"GetTickCount");
+if (!FUNC_GETTICKCOUNT){error_track_line(29,0,NULL);error(260);}
+}
+if (!__ARRAY_LONG_A){
+__ARRAY_LONG_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_A[4]=0ll;
+__ARRAY_LONG_A[5]=(3ll)-__ARRAY_LONG_A[4]+1;
+if (__ARRAY_LONG_A[5]<=0) error(5);
+__ARRAY_LONG_A[6]=1;
+__ARRAY_LONG_A[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_A[5]*4);
+memset((void*)(__ARRAY_LONG_A[0]),0,__ARRAY_LONG_A[5]*4);
+__ARRAY_LONG_A[2]=1+2;
+}
+if(__SINGLE_I==NULL){
+__SINGLE_I=(float*)mem_static_malloc(4);
+*__SINGLE_I=0;
+}
+static double temp_for1_value=0;
+static double temp_for1_limit=0;
+static double temp_for1_step=0;
+static int32 temp_for1_negative=0;
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+#include "main2.txt"
+qbs *func__compdate() {
+return qbs_new_txt(__DATE__);
+}
+qbs *func__comptime() {
+return qbs_new_txt(__TIME__);
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 6 "errorlocation_cpp.bas"
+do{
+#line 6 "errorlocation_cpp.bas"
+sub__dest(func__console());
+#line 6 "errorlocation_cpp.bas"
+sub__source(func__console());
+#line 6 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(6);}while(r);
+#line 9 "errorlocation_cpp.bas"
+LABEL_10:;
+#line 9 "errorlocation_cpp.bas"
+last_line=10;
+#line 9 "errorlocation_cpp.bas"
+if(qbevent){evnt(9);r=0;}
+#line 9 "errorlocation_cpp.bas"
+error_track_line(9,0,NULL);
+#line 9 "errorlocation_cpp.bas"
+do{
+#line 9 "errorlocation_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 9 "errorlocation_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("start",5));
+#line 9 "errorlocation_cpp.bas"
+if (is_error_pending()) goto skip1;
+#line 9 "errorlocation_cpp.bas"
+makefit(tqbs);
+#line 9 "errorlocation_cpp.bas"
+qbs_print(tqbs,0);
+#line 9 "errorlocation_cpp.bas"
+qbs_print(nothingstring,1);
+#line 9 "errorlocation_cpp.bas"
+skip1:
+#line 9 "errorlocation_cpp.bas"
+qbs_free(tqbs);
+#line 9 "errorlocation_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 9 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(9);}while(r);
+#line 10 "errorlocation_cpp.bas"
+error_track_line(10,0,NULL);
+#line 10 "errorlocation_cpp.bas"
+do{
+#line 10 "errorlocation_cpp.bas"
+if ((!((-(((int32*)(__ARRAY_LONG_A[0]))[array_check((1ll)-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])]==2))))&&(!is_error_pending())) goto L_3;
+#line 10 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 10 "errorlocation_cpp.bas"
+error_track_line(10,0,NULL);
+#line 10 "errorlocation_cpp.bas"
+do{
+#line 10 "errorlocation_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 10 "errorlocation_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("one",3));
+#line 10 "errorlocation_cpp.bas"
+if (is_error_pending()) goto skip2;
+#line 10 "errorlocation_cpp.bas"
+makefit(tqbs);
+#line 10 "errorlocation_cpp.bas"
+qbs_print(tqbs,0);
+#line 10 "errorlocation_cpp.bas"
+qbs_print(nothingstring,1);
+#line 10 "errorlocation_cpp.bas"
+skip2:
+#line 10 "errorlocation_cpp.bas"
+qbs_free(tqbs);
+#line 10 "errorlocation_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 10 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 10 "errorlocation_cpp.bas"
+error_track_line(10,0,NULL);
+#line 10 "errorlocation_cpp.bas"
+do{
+#line 10 "errorlocation_cpp.bas"
+goto L_2;
+#line 10 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 10 "errorlocation_cpp.bas"
+L_3:;
+#line 10 "errorlocation_cpp.bas"
+error_track_line(10,0,NULL);
+#line 10 "errorlocation_cpp.bas"
+do{
+#line 10 "errorlocation_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 10 "errorlocation_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("no",2));
+#line 10 "errorlocation_cpp.bas"
+if (is_error_pending()) goto skip3;
+#line 10 "errorlocation_cpp.bas"
+makefit(tqbs);
+#line 10 "errorlocation_cpp.bas"
+qbs_print(tqbs,0);
+#line 10 "errorlocation_cpp.bas"
+qbs_print(nothingstring,1);
+#line 10 "errorlocation_cpp.bas"
+skip3:
+#line 10 "errorlocation_cpp.bas"
+qbs_free(tqbs);
+#line 10 "errorlocation_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 10 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 10 "errorlocation_cpp.bas"
+L_2:;
+#line 11 "errorlocation_cpp.bas"
+error_track_line(11,0,NULL);
+#line 11 "errorlocation_cpp.bas"
+do{
+#line 11 "errorlocation_cpp.bas"
+temp_for1_value=((double)(1));
+#line 11 "errorlocation_cpp.bas"
+temp_for1_limit=((double)(2));
+#line 11 "errorlocation_cpp.bas"
+temp_for1_step=1;
+#line 11 "errorlocation_cpp.bas"
+temp_for1_negative=(-(temp_for1_step<0));
+#line 11 "errorlocation_cpp.bas"
+goto L_5;
+#line 11 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(11);}while(r);
+#line 11 "errorlocation_cpp.bas"
+L_4:;
+#line 12 "errorlocation_cpp.bas"
+error_track_line(12,0,NULL);
+#line 12 "errorlocation_cpp.bas"
+do{
+#line 12 "errorlocation_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 12 "errorlocation_cpp.bas"
+qbs_set(tqbs,qbs_add(qbs_str((float)(*__SINGLE_I)),qbs_new_txt(" ")));
+#line 12 "errorlocation_cpp.bas"
+if (is_error_pending()) goto skip4;
+#line 12 "errorlocation_cpp.bas"
+makefit(tqbs);
+#line 12 "errorlocation_cpp.bas"
+qbs_print(tqbs,0);
+#line 12 "errorlocation_cpp.bas"
+qbs_print(nothingstring,1);
+#line 12 "errorlocation_cpp.bas"
+skip4:
+#line 12 "errorlocation_cpp.bas"
+qbs_free(tqbs);
+#line 12 "errorlocation_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 12 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(12);}while(r);
+#line 13 "errorlocation_cpp.bas"
+error_track_line(13,0,NULL);
+#line 13 "errorlocation_cpp.bas"
+do{
+#line 13 "errorlocation_cpp.bas"
+temp_for1_value=(temp_for1_step+((double)(*__SINGLE_I)));
+#line 13 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 13 "errorlocation_cpp.bas"
+L_5:;
+#line 13 "errorlocation_cpp.bas"
+error_track_line(13,0,NULL);
+#line 13 "errorlocation_cpp.bas"
+do{
+#line 13 "errorlocation_cpp.bas"
+*__SINGLE_I=((float)(temp_for1_value));
+#line 13 "errorlocation_cpp.bas"
+if (((((temp_for1_negative&(-(temp_for1_value<temp_for1_limit)))|((~(temp_for1_negative))&(-(temp_for1_value>temp_for1_limit))))))&&(!is_error_pending())) goto L_6;
+#line 13 "errorlocation_cpp.bas"
+goto L_4;
+#line 13 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(13);}while(r);
+#line 13 "errorlocation_cpp.bas"
+L_6:;
+#line 15 "errorlocation_cpp.bas"
+error_track_line(15,0,NULL);
+#line 15 "errorlocation_cpp.bas"
+do{
+#line 15 "errorlocation_cpp.bas"
+if ((!((-(*__SINGLE_I==((float)(2))))))&&(!is_error_pending())) goto L_8;
+#line 15 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "errorlocation_cpp.bas"
+error_track_line(16,0,NULL);
+#line 16 "errorlocation_cpp.bas"
+do{
+#line 16 "errorlocation_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 16 "errorlocation_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("two",3));
+#line 16 "errorlocation_cpp.bas"
+if (is_error_pending()) goto skip5;
+#line 16 "errorlocation_cpp.bas"
+makefit(tqbs);
+#line 16 "errorlocation_cpp.bas"
+qbs_print(tqbs,0);
+#line 16 "errorlocation_cpp.bas"
+qbs_print(nothingstring,1);
+#line 16 "errorlocation_cpp.bas"
+skip5:
+#line 16 "errorlocation_cpp.bas"
+qbs_free(tqbs);
+#line 16 "errorlocation_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 16 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 19 "errorlocation_cpp.bas"
+error_track_line(19,0,NULL);
+#line 19 "errorlocation_cpp.bas"
+do{
+#line 19 "errorlocation_cpp.bas"
+goto L_7;
+#line 19 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 19 "errorlocation_cpp.bas"
+L_8:;
+#line 18 "errorlocation_cpp.bas"
+error_track_line(18,0,NULL);
+#line 18 "errorlocation_cpp.bas"
+do{
+#line 18 "errorlocation_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 18 "errorlocation_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("else",4));
+#line 18 "errorlocation_cpp.bas"
+if (is_error_pending()) goto skip6;
+#line 18 "errorlocation_cpp.bas"
+makefit(tqbs);
+#line 18 "errorlocation_cpp.bas"
+qbs_print(tqbs,0);
+#line 18 "errorlocation_cpp.bas"
+qbs_print(nothingstring,1);
+#line 18 "errorlocation_cpp.bas"
+skip6:
+#line 18 "errorlocation_cpp.bas"
+qbs_free(tqbs);
+#line 18 "errorlocation_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 18 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "errorlocation_cpp.bas"
+L_7:;
+#line 2 "inc/errorlocation.bi"
+error_track_line(20,2,"errorlocation.bi");
+#line 2 "inc/errorlocation.bi"
+do{
+#line 2 "inc/errorlocation.bi"
+tqbs=qbs_new(0,0);
+#line 2 "inc/errorlocation.bi"
+qbs_set(tqbs,qbs_new_txt_len("in errorlocation.bi",19));
+#line 2 "inc/errorlocation.bi"
+if (is_error_pending()) goto skip7;
+#line 2 "inc/errorlocation.bi"
+makefit(tqbs);
+#line 2 "inc/errorlocation.bi"
+qbs_print(tqbs,0);
+#line 2 "inc/errorlocation.bi"
+qbs_print(nothingstring,1);
+#line 2 "inc/errorlocation.bi"
+skip7:
+#line 2 "inc/errorlocation.bi"
+qbs_free(tqbs);
+#line 2 "inc/errorlocation.bi"
+qbs_cleanup(qbs_tmp_base,0);
+#line 2 "inc/errorlocation.bi"
+if(!qbevent)break;evnt(20,2,"errorlocation.bi");}while(r);
+#line 21 "errorlocation_cpp.bas"
+LABEL_LABEL1:;
+#line 21 "errorlocation_cpp.bas"
+if(qbevent){evnt(21);r=0;}
+#line 22 "errorlocation_cpp.bas"
+error_track_line(22,0,NULL);
+#line 22 "errorlocation_cpp.bas"
+do{
+#line 22 "errorlocation_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 22 "errorlocation_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("end",3));
+#line 22 "errorlocation_cpp.bas"
+if (is_error_pending()) goto skip8;
+#line 22 "errorlocation_cpp.bas"
+makefit(tqbs);
+#line 22 "errorlocation_cpp.bas"
+qbs_print(tqbs,0);
+#line 22 "errorlocation_cpp.bas"
+qbs_print(nothingstring,1);
+#line 22 "errorlocation_cpp.bas"
+skip8:
+#line 22 "errorlocation_cpp.bas"
+qbs_free(tqbs);
+#line 22 "errorlocation_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 22 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "errorlocation_cpp.bas"
+error_track_line(23,0,NULL);
+#line 23 "errorlocation_cpp.bas"
+do{
+#line 23 "errorlocation_cpp.bas"
+SUB_INCSUB();
+#line 23 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "errorlocation_cpp.bas"
+error_track_line(24,0,NULL);
+#line 24 "errorlocation_cpp.bas"
+do{
+#line 24 "errorlocation_cpp.bas"
+if (sub_gl_called) error(271);
+#line 24 "errorlocation_cpp.bas"
+close_program=1;
+#line 24 "errorlocation_cpp.bas"
+end();
+#line 24 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+sub_end();
+return;
+}
+==> main1.txt <==
+#line 6 "errorlocation_cpp.bas"
+void SUB_INCSUB(){
+#line 6 "errorlocation_cpp.bas"
+qbs *tqbs;
+#line 6 "errorlocation_cpp.bas"
+ptrszint tmp_long;
+#line 6 "errorlocation_cpp.bas"
+int32 tmp_fileno;
+#line 6 "errorlocation_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 6 "errorlocation_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 6 "errorlocation_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 6 "errorlocation_cpp.bas"
+#include "data1.txt"
+#line 6 "errorlocation_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 6 "errorlocation_cpp.bas"
+new_mem_lock();
+#line 6 "errorlocation_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 6 "errorlocation_cpp.bas"
+sf_mem_lock->type=3;
+#line 6 "errorlocation_cpp.bas"
+libqb_check_stack();
+#line 6 "errorlocation_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 7 "inc/errorlocation.bi"
+error_track_line(20,7,"errorlocation.bi");
+#line 7 "inc/errorlocation.bi"
+do{
+#line 7 "inc/errorlocation.bi"
+tqbs=qbs_new(0,0);
+#line 7 "inc/errorlocation.bi"
+qbs_set(tqbs,qbs_new_txt_len("incsub",6));
+#line 7 "inc/errorlocation.bi"
+if (is_error_pending()) goto skip9;
+#line 7 "inc/errorlocation.bi"
+makefit(tqbs);
+#line 7 "inc/errorlocation.bi"
+qbs_print(tqbs,0);
+#line 7 "inc/errorlocation.bi"
+qbs_print(nothingstring,1);
+#line 7 "inc/errorlocation.bi"
+skip9:
+#line 7 "inc/errorlocation.bi"
+qbs_free(tqbs);
+#line 7 "inc/errorlocation.bi"
+qbs_cleanup(qbs_tmp_base,0);
+#line 7 "inc/errorlocation.bi"
+if(!qbevent)break;evnt(20,7,"errorlocation.bi");}while(r);
+#line 8 "errorlocation_cpp.bas"
+exit_subfunc:;
+#line 8 "errorlocation_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 8 "errorlocation_cpp.bas"
+#include "free1.txt"
+#line 8 "errorlocation_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 8 "errorlocation_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 8 "errorlocation_cpp.bas"
+}
+==> main2.txt <==
+#line 32 "errorlocation_cpp.bas"
+void SUB_S(qbs*_SUB_S_STRING_T){
+#line 32 "errorlocation_cpp.bas"
+qbs *tqbs;
+#line 32 "errorlocation_cpp.bas"
+ptrszint tmp_long;
+#line 32 "errorlocation_cpp.bas"
+int32 tmp_fileno;
+#line 32 "errorlocation_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 32 "errorlocation_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 32 "errorlocation_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 32 "errorlocation_cpp.bas"
+#include "data2.txt"
+#line 32 "errorlocation_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 32 "errorlocation_cpp.bas"
+new_mem_lock();
+#line 32 "errorlocation_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 32 "errorlocation_cpp.bas"
+sf_mem_lock->type=3;
+#line 32 "errorlocation_cpp.bas"
+libqb_check_stack();
+#line 32 "errorlocation_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 33 "errorlocation_cpp.bas"
+error_track_line(33,0,NULL);
+#line 33 "errorlocation_cpp.bas"
+do{
+#line 33 "errorlocation_cpp.bas"
+tqbs=qbs_new(0,0);
+#line 33 "errorlocation_cpp.bas"
+qbs_set(tqbs,qbs_new_txt_len("sub ",4));
+#line 33 "errorlocation_cpp.bas"
+if (is_error_pending()) goto skip10;
+#line 33 "errorlocation_cpp.bas"
+makefit(tqbs);
+#line 33 "errorlocation_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "errorlocation_cpp.bas"
+qbs_set(tqbs,_SUB_S_STRING_T);
+#line 33 "errorlocation_cpp.bas"
+if (is_error_pending()) goto skip10;
+#line 33 "errorlocation_cpp.bas"
+makefit(tqbs);
+#line 33 "errorlocation_cpp.bas"
+qbs_print(tqbs,0);
+#line 33 "errorlocation_cpp.bas"
+qbs_print(nothingstring,1);
+#line 33 "errorlocation_cpp.bas"
+skip10:
+#line 33 "errorlocation_cpp.bas"
+qbs_free(tqbs);
+#line 33 "errorlocation_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 33 "errorlocation_cpp.bas"
+if(!qbevent)break;evnt(33);}while(r);
+#line 34 "errorlocation_cpp.bas"
+exit_subfunc:;
+#line 34 "errorlocation_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 34 "errorlocation_cpp.bas"
+#include "free2.txt"
+#line 34 "errorlocation_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 34 "errorlocation_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 34 "errorlocation_cpp.bas"
+}
+==> data2.txt <==
+qbs*oldstr0=NULL;
+if(_SUB_S_STRING_T->tmp||_SUB_S_STRING_T->fixed||_SUB_S_STRING_T->readonly){
+oldstr0=_SUB_S_STRING_T;
+if (oldstr0->cmem_descriptor){
+_SUB_S_STRING_T=qbs_new_cmem(oldstr0->len,0);
+}else{
+_SUB_S_STRING_T=qbs_new(oldstr0->len,0);
+}
+memcpy(_SUB_S_STRING_T->chr,oldstr0->chr,oldstr0->len);
+}
+==> free2.txt <==
+if(oldstr0){
+if(oldstr0->fixed)qbs_set(oldstr0,_SUB_S_STRING_T);
+qbs_free(_SUB_S_STRING_T);
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt data1.txt free1.txt

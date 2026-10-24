@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _ALLOWFULLSCREEN [{_Stretch|_SquarePixels|_Off|_All|Off}][,{_Smooth|_Off|_All|Off}]
+Caused by (or after):_ALLOWFULLSCREEN 1
+LINE 6:_ALLOWFULLSCREEN 1
+exit=1

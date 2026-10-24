@@ -262,22 +262,30 @@ fn include_root() {
 #[test]
 fn unknown_statement() {
     let d = scratch("unknown");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\nFILES\n").unwrap();
+    // `SUB _GL` stands for a construct not compiled yet (step 5 of the plan of 2026-10-22); `FILES` did until
+    // `m4-builtins-remaining`.
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\nSUB _GL\nEND SUB\n").unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(
         stdout(&o)
             .lines()
-            .any(|l| l.starts_with("p.bas:3:1: error: not supported yet:")),
+            .any(|l| l.starts_with("p.bas:3:5: error: not supported yet:")),
         "{}",
         stdout(&o)
     );
 }
 
+/// The `TYPE` and `DIM` that make `FOR r.m(1) = 1 TO 2: NEXT` a statement not compiled yet (`FOR` over an element
+/// of a member array, `verification\v56_f3`, left marked by step 3 of M4).
+const MEMBER_FOR_PREAMBLE: &str = "$CONSOLE:ONLY\nTYPE t\n    m(1 TO 2) AS LONG\nEND TYPE\nDIM r AS t\n";
+const MEMBER_FOR: &str = "FOR r.m(1) = 1 TO 2: NEXT\n";
+
 #[test]
 fn summary() {
     let d = scratch("summary");
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nFILES\nPRINT 1 +\nFILES\n").unwrap();
+    let text = format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}PRINT 1 +\n{MEMBER_FOR}");
+    std::fs::write(d.join("p.bas"), text).unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     let out = stdout(&o);
@@ -1616,18 +1624,23 @@ fn lsp_named_program() {
 
 /// "Demand report", scenario "A folder of programs": every `.bas` file below the folder is counted, a program the
 /// old compiler rejects is left out, and a program with more errors than a compile run reports is counted in full.
-/// `FILES` stands for any statement not compiled yet (it was `STOP` until `m4-qb64pe-sources`, then `RUN` until
-/// `m4-statements-metacommands`); when it is, take another.
+/// `FOR` over an element of a member array stands for any statement not compiled yet (it was `STOP` until
+/// `m4-qb64pe-sources`, `RUN` until `m4-statements-metacommands`, `FILES` until `m4-builtins-remaining`); when it
+/// is, take another.
 #[test]
 fn report_unsupported_counts_a_folder() {
     let d = scratch("report");
     std::fs::create_dir(d.join("sub")).unwrap();
     std::fs::write(d.join("clean.bas"), SLICE_PROGRAM).unwrap();
     let uses = qb64rust_base::MAX_ERRORS + 5;
-    let many = format!("$CONSOLE:ONLY\n{}SYSTEM\n", "FILES\n".repeat(uses));
+    let many = format!("{MEMBER_FOR_PREAMBLE}{}SYSTEM\n", MEMBER_FOR.repeat(uses));
     std::fs::write(d.join("sub").join("MANY.BAS"), many).unwrap();
-    std::fs::write(d.join("one.bas"), "$CONSOLE:ONLY\nFILES\nSYSTEM\n").unwrap();
-    std::fs::write(d.join("rejected.bas"), "$CONSOLE:ONLY\nFILES\nx =\n").unwrap();
+    std::fs::write(d.join("one.bas"), format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}SYSTEM\n")).unwrap();
+    std::fs::write(
+        d.join("rejected.bas"),
+        format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}x =\n"),
+    )
+    .unwrap();
     std::fs::write(d.join("rejected.err"), "Expected expression\n").unwrap();
     let o = qb64rust(&d, &["--report", "unsupported", "."]);
     assert!(o.status.success(), "{}", stdout(&o));
@@ -1635,7 +1648,7 @@ fn report_unsupported_counts_a_folder() {
         "3 programs: 1 without errors, 2 with only \"not supported yet\" errors, 0 with other errors\n\
          1 left out: an .err file beside them (the old compiler rejects them)\n\
          programs  alone   uses  not supported yet\n       \
-         2      2 {:>6}  `FILES`\n",
+         2      2 {:>6}  an element of the member array `r.m` as a `FOR` variable\n",
         uses + 1
     );
     assert_eq!(stdout(&o), expected);

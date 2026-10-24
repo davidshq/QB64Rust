@@ -1,0 +1,5 @@
+
+Name already in use (ASub) in line 1 of libraries/includes/test/a/a_bottom.bm auto-included
+Caused by (or after):
+LINE 7:SUB ASUB
+exit=1

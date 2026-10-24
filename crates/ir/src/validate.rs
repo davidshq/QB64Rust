@@ -1698,6 +1698,11 @@ mod tests {
             kind: crate::LibraryKind::Plain,
             names: Vec::new(),
             span: Span::new(FileId(0), 0, 0),
+            at: crate::Track {
+                file: FileId(0),
+                line: 1,
+                include_line: None,
+            },
         });
         p.vars.push(var("V", Storage::Param(ProcId(1))));
         p.procs.push(Proc {
@@ -1712,6 +1717,11 @@ mod tests {
                 library: crate::LibraryId(0),
                 c_name: "f".into(),
                 byval: vec![true],
+                at: crate::Track {
+                    file: FileId(0),
+                    line: 2,
+                    include_line: None,
+                },
             }),
         });
         let call = |a: Arg| Op::Call {

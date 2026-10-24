@@ -1,0 +1,5 @@
+start
+
+Runtime error: Line: 11 (in main module)
+Out of stack space
+exit=0

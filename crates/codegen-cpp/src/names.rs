@@ -236,6 +236,16 @@ impl Emitter<'_> {
             None => line.to_string(),
         }
     }
+
+    /// The arguments of `error_track_line` for the same place (design D6 of `m4-builtins-remaining`): as
+    /// [`Self::evnt_args`] in an included file, `line,0,NULL` in the main file (the old compiler's C++ of
+    /// `verification\v58_e26`).
+    pub(crate) fn track_args(&self, file: Option<FileId>, line: u32, include_line: Option<u32>) -> String {
+        match file.and_then(|f| self.included.get(&f)) {
+            Some(_) => self.evnt_args(file, line, include_line),
+            None => format!("{line},0,NULL"),
+        }
+    }
 }
 
 #[cfg(test)]

@@ -1,0 +1,5 @@
+
+Syntax error - Reference: WAIT port%, andMask%[, xorMask%]
+Caused by (or after):WAIT 1
+LINE 6:WAIT 1
+exit=1

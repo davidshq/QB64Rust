@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 stmt_calls_errors.bas:7:6: error: `KILL` needs a string
@@ -25,4 +24,3 @@ stmt_calls_errors.bas:16:13: error: argument 2 of `NAME` needs a string
 stmt_calls_errors.bas:17:6: error: argument 1 of `NAME` needs a string
 stmt_calls_errors.bas:18:11: error: `KILL` needs a string
 stmt_calls_errors.bas:18:11: note: QB64pe: String required for sub
-stmt_calls_errors.bas:19:1: error: not supported yet: `FILES`

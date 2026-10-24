@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: LPOS(index%)
+Caused by (or after):X = LPOS
+LINE 6:x = LPOS
+exit=1

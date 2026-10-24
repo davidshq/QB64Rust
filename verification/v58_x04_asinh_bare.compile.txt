@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _ASINH(value)
+Caused by (or after):X = _ASINH
+LINE 6:x = _ASINH
+exit=1

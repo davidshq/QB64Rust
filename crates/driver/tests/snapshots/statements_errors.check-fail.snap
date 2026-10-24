@@ -23,7 +23,6 @@ statements_errors.bas:25:10: error: the last argument of `MID$` is left out
 statements_errors.bas:25:10: note: QB64pe: Invalid expression
 statements_errors.bas:26:11: error: `LEFT$` cannot leave out an argument
 statements_errors.bas:26:11: note: QB64pe: Syntax error
-statements_errors.bas:27:10: error: not supported yet: omitted arguments
 statements_errors.bas:28:6: error: the last argument of the FUNCTION `f` is left out
 statements_errors.bas:28:6: note: QB64pe: Invalid expression
 statements_errors.bas:29:7: error: `k` is a `CONST` of a `$IF` branch only the first pass of QB64pe compiles

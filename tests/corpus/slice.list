@@ -534,3 +534,6 @@ slice/s156_system_builtins
 slice/s157_width_array
 # m4-memory-records: VARPTR, VARSEG, SADD and VARPTR$ of variables in conventional memory
 slice/s158_varptr_strings
+# m4-builtins-remaining: the built-ins no program used before, $ERRORLOCATION and $USELIBRARY
+slice/s159_builtins_last
+screen/d19_blink_display

@@ -142,9 +142,19 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // QB64pe's colour file of `$COLOR` stands before the main file's first line (design D8 of
     // `m3-constant-evaluation`).
     let colors = program.colors.map(|t| program.tree(t).root());
-    let top: Vec<Node> = [colors, Some(root), after_last_line]
+    // The files of the `$USELIBRARY` libraries where the old compiler includes them (design D7 of
+    // `m4-builtins-remaining`): the top files before the main file, then `aftermain.bas` (an `END`) and the
+    // after-main files, then the bottom files, before `afterlastline.bm`.
+    let roots = |ids: &[qb64rust_syntax::tree::TreeId]| ids.iter().map(|&t| program.tree(t).root()).collect::<Vec<_>>();
+    let after_main = program.after_main.map(|t| program.tree(t).root());
+    let top: Vec<Node> = colors
         .into_iter()
-        .flatten()
+        .chain(roots(&program.library_top))
+        .chain([root])
+        .chain(after_main)
+        .chain(roots(&program.library_after_main))
+        .chain(roots(&program.library_bottom))
+        .chain(after_last_line)
         .filter_map(ast::SourceFile::cast)
         .flat_map(|f| f.statements())
         .collect();
@@ -288,6 +298,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         exe_icon: c.settings.exe_icon.take().map(|(icon, _)| icon),
         version_info: c.settings.version_info.take(),
         embedded: c.embedded_files(),
+        error_location: c.settle_error_location(),
     };
     (c.prog, c.diags)
 }
@@ -702,6 +713,10 @@ struct Settings {
     /// The `_ECHO` statements met: each is an error when the program turns out to have no console, which is known
     /// only after the walk (design D5 of `m2-console-screenhide`; measured, `verification\v26_x17`, `x62`).
     echoes: Vec<Span>,
+    /// The `$ERRORLOCATION:ON` (true) and `:OFF` (false) lines met, in file order (design D6 of
+    /// `m4-builtins-remaining`): the last one is the program's setting, the first that differs from it is an error
+    /// after the walk ([`Checker::settle_error_location`]).
+    error_location: Vec<(Span, bool)>,
     /// The optional parts of the runtime the built-ins met so far need.
     runtime_parts: std::collections::BTreeSet<crate::RuntimePart>,
     /// `OPTION _EXPLICIT` stands somewhere in the program (it applies to the whole program, design D7).
@@ -726,6 +741,7 @@ impl Settings {
             version_info: None,
             version_lines: [None; crate::VERSION_STRINGS],
             echoes: Vec::new(),
+            error_location: Vec::new(),
             runtime_parts: std::collections::BTreeSet::new(),
             explicit: false,
             explicit_array: false,
@@ -909,6 +925,25 @@ impl Checker<'_> {
     /// Whether `span` lies in QB64pe's file included after the last line (design D7 of `m3-network-embed`).
     fn in_after_last_line(&self, span: Span) -> bool {
         self.auto_file == Some(span.file)
+    }
+
+    /// The program's `$ERRORLOCATION` setting (design D6 of `m4-builtins-remaining`): the last line's. The old
+    /// compiler's first pass keeps the last setting it meets and its main pass stops at the first line that
+    /// disagrees, so one `ON` and one `OFF` in any order, also across an included file or in a `$IF` branch that
+    /// is taken, are its error at the program's first line whose setting differs from the last (measured,
+    /// `verification\v58_e07`–`e13`).
+    fn settle_error_location(&mut self) -> bool {
+        let lines = std::mem::take(&mut self.settings.error_location);
+        let Some(&(_, setting)) = lines.last() else {
+            return false;
+        };
+        if let Some(&(span, _)) = lines.iter().find(|&&(_, on)| on != setting) {
+            self.diags.error(
+                span,
+                "`$ERRORLOCATION` is a whole-program option and cannot be changed within the program",
+            );
+        }
+        setting
     }
 
     /// Records the names of the statement just checked, unless it had an error (one error per statement).
@@ -1307,6 +1342,16 @@ impl Checker<'_> {
         result
     }
 
+    /// Where a statement stands, as [`Self::push`] records it, for an `error_track_line` outside its code.
+    fn track(&self, node: Node) -> crate::Track {
+        let span = node.span();
+        crate::Track {
+            file: span.file,
+            line: self.line(node.first_token().map_or(span, |t| t.span)),
+            include_line: self.include_line(node),
+        }
+    }
+
     fn push(&mut self, node: Node, kind: StmtKind) {
         let span = node.span();
         let line = self.line(node.first_token().map_or(span, |t| t.span));
@@ -1592,11 +1637,19 @@ impl Checker<'_> {
                 tok.span,
                 "$MIDISOUNDFONT is a deprecated keyword, use _MIDISOUNDBANK instead",
             ))
-        } else if line == b"$ERRORLOCATION:ON" || line == b"$ERRORLOCATION:OFF" || line.starts_with(b"$USELIBRARY") {
-            // Metacommands of the old compiler not built here yet (design D3 of `m4-statements-metacommands`;
-            // `qb64pe.bas` 1915, 2010–2015).
-            let shown = show_bytes(raw.split(|&b| b == b':' || b == b' ').next().unwrap_or(raw));
-            Err(self.unsupported(tok.span, format!("metacommand `{shown}`")))
+        } else if line == b"$ERRORLOCATION:ON" || line == b"$ERRORLOCATION:OFF" {
+            // A setting of the whole program (design D6 of `m4-builtins-remaining`; `qb64pe.bas` 2010–2016,
+            // 3576–3586): the lines are judged after the walk ([`Self::settle_error_location`]). The old compiler
+            // compares the whole line, so `$ERRORLOCATION:ON ' comment` is an unknown metacommand below (measured,
+            // `verification\v58_e14`–`e18`).
+            self.settings
+                .error_location
+                .push((tok.span, line == b"$ERRORLOCATION:ON"));
+            Ok(())
+        } else if line.starts_with(b"$USELIBRARY") {
+            // Read by the parser, which includes the library's files (design D7 of `m4-builtins-remaining`); an
+            // error in the line is a parse error.
+            Ok(())
         } else if line == b"$NOPREFIX" {
             // The old compiler's own error (`qb64pe.bas` 2020–2026; measured, `verification\v43_x32`).
             Err(self.error(
@@ -1779,7 +1832,7 @@ impl Checker<'_> {
         }
         let mut first: Option<u32> = None;
         for tree in &program.trees {
-            if Some(tree.id) == program.colors || Some(tree.id) == program.after_last_line {
+            if program.is_auto_tree(tree.id) {
                 continue;
             }
             let mut toks = Vec::new();
@@ -1799,7 +1852,25 @@ impl Checker<'_> {
     /// `$INCLUDE` that brought the outermost included file in (measured, `verification\v43_b_include`); `None` in
     /// the main file.
     fn include_line(&self, node: Node) -> Option<u32> {
-        (node.key().0 != self.program.main().id).then(|| self.main_line(node.key()))
+        let tree = node.key().0;
+        if tree == self.program.main().id {
+            return None;
+        }
+        // A library's file is counted in the main file where the old compiler includes it (design D7 of
+        // `m4-builtins-remaining`; its C++ of `verification\v58_u01`, `u19`): a top file at line 0, one after the
+        // main module at the main file's last line.
+        match self.program.library_tree_is_top(tree) {
+            Some(true) => Some(0),
+            Some(false) => Some(self.main_line_count()),
+            None => Some(self.main_line(node.key())),
+        }
+    }
+
+    /// The number of lines of the main file (the old compiler's `linenumber` after its last line).
+    fn main_line_count(&self) -> u32 {
+        let bytes = &self.map.file(self.program.main().file).bytes;
+        let newlines = bytes.iter().filter(|&&b| b == b'\n').count();
+        qb64rust_base::to_u32(newlines + usize::from(bytes.last().is_some_and(|&b| b != b'\n')))
     }
 
     /// A metacommand comment. Its `$STATIC` and `$DYNAMIC` decide what a `DIM` with constant bounds makes from

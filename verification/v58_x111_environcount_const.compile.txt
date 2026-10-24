@@ -1,0 +1,5 @@
+
+Unexpected element '_ENVIRONCOUNT'
+Caused by (or after):
+LINE 6:CONST C = _ENVIRONCOUNT
+exit=1

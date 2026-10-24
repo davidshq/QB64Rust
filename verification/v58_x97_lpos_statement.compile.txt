@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):LPOS 1
+LINE 6:LPOS 1
+exit=1

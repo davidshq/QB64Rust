@@ -1,0 +1,15 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+errorlocation_errors.bas:7:1: error: `$ERRORLOCATION` is a whole-program option and cannot be changed within the program
+errorlocation_errors.bas:10:1: error: unknown metacommand `$ERRORLOCATION`
+errorlocation_errors.bas:10:1: note: QB64pe: Syntax error
+errorlocation_errors.bas:11:1: error: unknown metacommand `$ERRORLOCATION`
+errorlocation_errors.bas:11:1: note: QB64pe: Syntax error
+errorlocation_errors.bas:12:1: error: unknown metacommand `$ERRORLOCATION`
+errorlocation_errors.bas:12:1: note: QB64pe: Syntax error
+errorlocation_errors.bas:13:1: error: unknown metacommand `$ERRORLOCATION`
+errorlocation_errors.bas:13:1: note: QB64pe: Syntax error
+errorlocation_errors.bas:14:1: error: unknown metacommand `$errorlocation`
+errorlocation_errors.bas:14:1: note: QB64pe: Syntax error

@@ -252,11 +252,14 @@ fn primary(p: &mut Parser) -> Option<u32> {
             }
             note_url_name(p);
             if p.nth(1) == Some(LParen) {
+                // `INPUT$(n, #file)`: the old compiler drops a `#` before the second argument of `INPUT$` alone
+                // (`qb64pe.bas` 20546; measured, `verification\v58_f16`, `x115`).
+                let hash_file = p.at_word("INPUT$");
                 p.start_node(CallExpr);
                 p.start_node(NameRef);
                 p.bump();
                 p.finish_node();
-                let args = args_height(p);
+                let args = args_height(p, hash_file);
                 p.finish_node();
                 Some(args? + 1)
             } else {
@@ -323,7 +326,7 @@ pub(super) fn fields(p: &mut Parser, cp: Checkpoint, mut height: u32) -> Option<
         p.bump(); // .
         let mut ok = p.expect(Ident, "a member name after `.`");
         if ok && p.at(LParen) {
-            match args_height(p) {
+            match args_height(p, false) {
                 Some(args) => height = height.max(args),
                 None => ok = false,
             }
@@ -377,19 +380,31 @@ fn type_arg(p: &mut Parser) -> bool {
 /// `(` arguments separated by commas `)`, at the `(`. An argument may be left out (`f(a, , b)`, `f(, b)`); `()`
 /// is an empty list, not one omitted argument.
 pub(super) fn arg_list(p: &mut Parser) -> bool {
-    args_height(p).is_some()
+    args_height(p, false).is_some()
 }
 
 /// [`arg_list`], returning the height of the `ArgList` node (1 when it is empty) or `None` after an error. Inside
 /// an expression the call or member access that holds the list is counted in `expr_nesting`; a statement's own
-/// list (`CALL s(…)`) is not inside one.
-pub(super) fn args_height(p: &mut Parser) -> Option<u32> {
+/// list (`CALL s(…)`) is not inside one. With `hash_file` the second argument may start with `#` (the file number
+/// of `INPUT$`, the one place the old compiler takes it); the `#` stays a token of the list, before the argument's
+/// node, and a `#` with nothing after it is an error ("Invalid expression", `verification\v58_x115`).
+pub(super) fn args_height(p: &mut Parser, hash_file: bool) -> Option<u32> {
     p.start_node(ArgList);
     p.bump(); // (
     let mut ok = true;
     let mut height = 0;
     if !p.at(RParen) {
+        let mut k = 0;
         loop {
+            if k == 1 && hash_file && p.at(Hash) {
+                p.bump();
+                if p.at(Comma) || p.at(RParen) {
+                    p.error("a file number must follow the `#`");
+                    ok = false;
+                    break;
+                }
+            }
+            k += 1;
             let omitted = p.at(Comma) || p.at(RParen);
             if !omitted && type_arg(p) {
                 height = height.max(1);

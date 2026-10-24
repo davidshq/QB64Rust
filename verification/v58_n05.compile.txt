@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):H& = _UFONTHEIGHT%
+LINE 5:h& = _UFONTHEIGHT%
+exit=1

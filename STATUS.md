@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-22 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-10-24 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -63,10 +63,13 @@ push shows them (the user is not concerned with CI, working rule 9).
    synced). Step 4 is split in two (user, 2026-10-23): **4a, `m4-statements-metacommands`, is built** (the
    statements and metacommands programs need: `RUN`, `RESUME` in a SUB, places in parentheses, `PALETTE USING`,
    blocks across included files, the `$IF` between two settings, and the old compiler's errors for the forms it
-   rejects; `tests\known_unsupported_rejections.list` is empty), waiting for the user's review before it is archived.
-   Next is **step 4b: the built-ins no program uses yet (about 55) and `$ERRORLOCATION`/`$USELIBRARY`**; the demand
-   report over `tests\verification\known.list` names 11 programs, the 9 that steps 2 and 3 left, `$ERRORLOCATION`
-   (`v57_m09`) and the first argument of `INSTR` left out (`v57_o07`).
+   rejects; `tests\known_unsupported_rejections.list` is empty), archived. **4b, `m4-builtins-remaining`, is built**
+   (every function and statement of the built-in table compiles or is the old compiler's error, held by a tier 1 test
+   over the whole table; `INSTR` with its start left out; `$ERRORLOCATION` with the old compiler's `error_track_line`
+   before each statement; `$USELIBRARY` in full, measured in a copy of the release with test libraries that the
+   runner makes for a `.root` sidecar naming a folder; `verification\v58`), waiting for the user's review before it
+   is archived; the demand report over `tests\verification\known.list` names the 9 programs steps 2 and 3 left, and
+   the upstream report marks `SUB _GL` alone. Next is **step 5: `SUB _GL`**, a change of its own.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
@@ -213,6 +216,11 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
+- `verification\v39_a_handles` recorded `_SNDGETPOS` and `_SNDLEN` of a raw sound at a sound device of 44100 Hz
+  (`.1249886602163315`); at the close of `m4-builtins-remaining` (2026-10-24) the machine's device gave `.125`
+  (48000 Hz), from the old compiler's build too (recorded again in a scratch folder), so the program moved to
+  `tests\verification\known.list` as `varies`, beside `v39_b_new_mem`, which went the same way earlier. Not the
+  compiler's.
 - `tests\corpus\slice\s150_builtins_more` stores and reads the system clipboard, so it can fail when another run
   uses the clipboard at the same time (seen once in the no-fold run at the close of `m4-qb64pe-sources`: `LEN` of
   `"a" + CHR$(0) + "b"` read back as 3, not 1; it passed alone). Run the no-fold list by itself, not beside

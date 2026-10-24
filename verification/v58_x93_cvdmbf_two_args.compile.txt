@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: CVDMBF(stringData$)
+Caused by (or after):X = CVDMBF ( "abcdefgh",8 , 1 )
+LINE 6:x = CVDMBF("abcdefgh", 1)
+exit=1

@@ -21,4 +21,5 @@ metacommands_errors.bas:13:1: note: QB64pe: Syntax error
 metacommands_errors.bas:14:1: error: unknown metacommand `$MIDISOUNDFONTS`
 metacommands_errors.bas:14:1: note: QB64pe: Syntax error
 metacommands_errors.bas:15:1: error: `$NOPREFIX` is deprecated: QB64pe's own names must have their underscore (the IDE can convert the program)
-metacommands_errors.bas:16:1: error: not supported yet: metacommand `$ERRORLOCATION`
+metacommands_errors.bas:16:1: error: unknown metacommand `$ERRORLOCATION`
+metacommands_errors.bas:16:1: note: QB64pe: Syntax error

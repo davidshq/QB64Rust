@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 screen_text_errors.bas:8:21: error: this `LOCATE` statement matches none of its forms: `LOCATE [?][,[?][,[?][,[?][,?]]]]`
@@ -24,10 +23,11 @@ screen_text_errors.bas:22:13: error: this `VIEW` statement matches none of its f
 screen_text_errors.bas:23:12: error: argument 1 of `VIEW` needs a number
 screen_text_errors.bas:24:5: error: `INKEY$` with empty parentheses
 screen_text_errors.bas:24:5: note: QB64pe: Expected (...)
-screen_text_errors.bas:25:5: error: `INKEY$` takes 0 arguments
+screen_text_errors.bas:25:5: error: `INKEY$` takes no arguments
+screen_text_errors.bas:25:5: note: QB64pe: Incorrect number of arguments - Reference: INKEY$
 screen_text_errors.bas:26:5: error: `CSRLIN` with empty parentheses
 screen_text_errors.bas:26:5: note: QB64pe: Expected (...)
-screen_text_errors.bas:27:5: error: `CSRLIN` takes 0 arguments
+screen_text_errors.bas:27:5: error: `CSRLIN` takes no arguments
 screen_text_errors.bas:27:5: note: QB64pe: Incorrect number of arguments - Reference: CSRLIN
 screen_text_errors.bas:28:5: error: `POS` takes 1 argument
 screen_text_errors.bas:29:5: error: `POS` with empty parentheses

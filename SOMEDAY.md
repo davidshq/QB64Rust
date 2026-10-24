@@ -41,8 +41,7 @@ the new one still marks "not supported yet", and what is compiled but checked by
 
 | Form | Why it waits | Details |
 |---|---|---|
-| An argument left out of a function call no recording covers (`SCREEN(1, , 1)`), and the first argument of `INSTR` left out (`INSTR(, a$, b$)`, which the old compiler compiles) | The general mark "omitted arguments"; `POINT`, `_RGB32`, `_RGB`, `_RGBA32`, `INSTR`, `MID$`, `LEFT$` and a program FUNCTION are the old compiler's errors since `m4-statements-metacommands` (`verification\v57_o01`–`o21`) | `verification\v57_o07`; `sema\src\check\builtins.rs` `left_out` |
-| A label named like a built-in statement that is not compiled yet (`FILES: x = 1`) | It becomes the statement when the built-in comes in; a jump to a built-in's name is the old compiler's error since `m4-names-implicit-arrays` | `verification\v27_x58`; `tests\frontend\stmt_name_colon_errors.bas` |
+| An argument left out of a function call no recording covers (`SCREEN(1, , 1)`) | The general mark "omitted arguments"; `POINT`, `_RGB32`, `_RGB`, `_RGBA32`, `INSTR`, `MID$`, `LEFT$` and a program FUNCTION are the old compiler's errors since `m4-statements-metacommands` (`verification\v57_o01`–`o21`), and the first argument of `INSTR` left out compiles since `m4-builtins-remaining` (`v57_o07`, `v58_i01`) | `sema\src\check\builtins.rs` `left_out`, `may_be_left_out` |
 | `WIDTH #n, columns`, `WIDTH LPRINT columns` and `SCREEN …, _MANUALDISPLAY n` are compiled, and no test runs them | Each is the plain call of its template; what it does is no part of a screen's state (a file's line width, the printer, when the window is updated) | Call-site programs `width_file*`, `width_lprint*`, `screen_manualdisplay*` |
 | `_LIMIT`, `_DELAY` and `SLEEP` are run by one screen program with small values; how long they wait is not checked | Nothing a test records may depend on time | `tests\corpus\screen\d15_pacing` |
 | `SLEEP` with no time in a screen program | The keys file cannot end it once a key is in the buffer (it gives the next key only to an empty buffer, and a key ends `SLEEP` only while it waits). A `repeat` step that presses whatever the buffer holds would do it; that is a change to `tools\screen\screen_state.cpp` | `tools\screen\README.md`, "Writing a screen program" |
@@ -61,7 +60,7 @@ the new one still marks "not supported yet", and what is compiled but checked by
 | The file forms `GET #n, …` and `PUT #n, …` | Step 4 of M3's order (random and binary files) | The mark is ` `GET` on a file ` |
 | A line that is the name of a SUB and a colon, where a line the parser could not read has the word in it | Whether the line is a call or a label depends on every jump of the program, and that line may be one | `tests\frontend\sub_name_colon_errors.bas` (`five:`) |
 | `_FULLSCREEN` (statement and function) is compiled, and no test runs it | A test that takes the whole desktop is not wanted | Call-site programs `fullscreen_*` |
-| `DATE$` and `TIME$` are run for their length and separators only; the statements `DATE$ = …` and `TIME$ = …` are not compiled | Nothing a test records may depend on the clock; setting the clock is no test's business | `tests\corpus\slice\s71_tab_spc` |
+| `DATE$` and `TIME$` are run for their length and separators only; the statements `DATE$ = …` and `TIME$ = …` are compiled since `m4-builtins-remaining` and run (libqb's `sub_date` and `sub_time` change nothing, `verification\v58_s03`) | Nothing a test records may depend on the clock | `tests\corpus\slice\s71_tab_spc`, `s159_builtins_last` |
 
 **Left marked by `m3-sound`** (the third step of M3, 2026-10-13: `SOUND`, `PLAY`, `BEEP`, `$EXEICON`, and a
 statement with a template after `CALL`, which closed three rows of the tables above). What the old compiler
@@ -233,7 +232,7 @@ that `qb64pe.bas` needs):
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `_SETBIT`, `_RESETBIT` and `_TOGGLEBIT`, the siblings of `_READBIT` | Not used by `qb64pe.bas`, so out of the change's scope; each is an inline function of libqb's `bitops.h`, as `_READBIT` is, and would be a plain row | Design, "Non-Goals"; `tests\frontend\unsupported.bas` uses `_SETBIT` and `_TOGGLEBIT` as its examples |
+| `_SETBIT`, `_RESETBIT` and `_TOGGLEBIT`, the siblings of `_READBIT` (compiled since `m4-builtins-remaining`, `verification\v58_f09`) | Not used by `qb64pe.bas`, so out of the change's scope | Design, "Non-Goals" |
 
 **Left marked by `m4-line-numbers-whole-arrays`** (2026-10-22: line numbers, unsigned literals, a whole array as a
 value):
@@ -422,6 +421,16 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `RUN label` in a `$CONSOLE:ONLY` program goes on in screen 0 of a window that does not exist, so everything it prints after is lost; `RUN` from a SUB or FUNCTION calls the main module again inside the procedure, so the stack grows with each run | Print to the console after `RUN`; start the program again from its entry | `m4-statements-metacommands` (`verification\v57_r02`–`r07`) |
 | A library FUNCTION and a program SUB of one name (or a library SUB and a program FUNCTION) both stand: the name as a statement calls the SUB, as a value the FUNCTION | "Name already in use" | `m4-statements-metacommands` (`verification\v37_x22`, `v57_l01`–`l04`) |
 | `ALIAS name` in a `DECLARE SUB` or `DECLARE FUNCTION` outside `DECLARE LIBRARY` is taken and ignored, quoted, bare or empty | An error, as the alias names nothing | `m4-statements-metacommands` (`verification\v37_x08`, `v57_a01`–`a04`) |
+| `DATE$ = text$` and `TIME$ = text$` compile and change nothing: libqb's `sub_date` and `sub_time` are stubs, and `DATE$` reads the clock as before | Set the system clock where the program may, or an error | `m4-builtins-remaining` (`verification\v58_s03`) |
+| A `$USELIBRARY` library named on two lines, or by the program and by the top file of another library it uses, has its files included twice, so its SUBs are "Name already in use" | Register a library once by its name | Same (`verification\v58_u04`, `u05`) |
+| `$USELIBRARY` is any line whose first eleven characters are the word (`$USELIBRARYX:'a/b'`, `$USELIBRARY 'a/b'` without the colon), the name between the line's first two `'`; a tab or a word after the name is taken | Reject what is not `$USELIBRARY:'author/library'` alone on its line | Same (`verification\v58_u10`, `u11`, `u25`) |
+| A top file of a library is included before `$CONSOLE:ONLY`'s line, so a `PRINT` in it goes to a window the program has not | Select the console before the top files | Same (`verification\v58_u00`) |
+| `_ERRORLINE` in a library's file is 0 for a top file and the main file's number of lines for an after-main or bottom file (the lines `$INCLUDE`s would give them) | None needed if kept: `_INCLERRORLINE` and `_INCLERRORFILE$` name the place | Same (the old compiler's C++ of `verification\v58_u01`, `u19`) |
+| `_BLINK` after `OUT &H3C0, 8` is -8, not -1: libqb negates the register's bit 3 as it stores it | Give -1 | Same (`verification\v58_s01`) |
+| `_SETBIT(n, 64)`, `_RESETBIT(n, 64)` and a negative bit act on bit 0 or bit 63: the shift is undefined in C++ and the x86 masks its count; the same code here gives the same | Error 5 for a bit outside 0 to 63 | Same (`verification\v58_f09`) |
+| `FILES` prints the folder's 8.3 path (`VERIFI~1`) and, when the console's column is 1 (its output redirected), the free space on the entries' line | The long path; the free space on a line of its own | Same (`verification\v58_s02`) |
+| In a `CONST`, `_D2G(90)` is 99.99999999900001 where the expression gives 100 (the evaluator's own arithmetic, certified in `m3-constant-evaluation`) | Compute the four conversions exactly in the evaluator | Same (`verification\v58_f05`) |
+| A library descriptor's section ends at the next `[` outside quotes, quotes counted from the start of the file: an odd `"` in an earlier section or comment (`; it's "x`) hides the next header, and the section runs on into the one after it | Count only the quotes on the `[`'s own line | Same (`ini.bm`'s `IniGetSection$`; the test `a_quote_before_the_section_hides_the_next_header` in `crates\syntax\src\library.rs`) |
 
 ## Other ideas raised during the study
 

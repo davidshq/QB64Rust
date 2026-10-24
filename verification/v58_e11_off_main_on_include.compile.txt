@@ -1,0 +1,5 @@
+
+$ErrorLocation is a whole-program option and cannot be changed within the program
+Caused by (or after):[INFORMATION UNAVAILABLE]
+LINE 3:$ERRORLOCATION:OFF
+exit=1

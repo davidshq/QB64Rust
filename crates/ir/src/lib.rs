@@ -122,7 +122,7 @@ pub use qb64rust_sema::{AllocMode, Shape};
 pub use qb64rust_sema::{Event, KeyForm};
 /// The `DECLARE LIBRARY` blocks and the C function behind a library procedure are `sema`'s (design D1 of
 /// `m3-declare-library`): the names as written. Finding the files they name is the driver's.
-pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName};
+pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName, Track};
 /// Whether a procedure is a SUB or a FUNCTION of a type, and the optional parts of the runtime a program needs, are
 /// `sema`'s as well: the lowering only copied them variant for variant (as it did the values, above).
 pub use qb64rust_sema::{LogLevel, ProcKind, Resize, RuntimePart};
@@ -910,6 +910,9 @@ pub struct Settings {
     pub exe_icon: bool,
     /// The executable carries a version resource and a manifest (`$VERSIONINFO`).
     pub version_info: Option<VersionInfo>,
+    /// `$ERRORLOCATION:ON`: the program records each statement's line before it runs, so that a critical error's
+    /// message names it (design D6 of `m4-builtins-remaining`). How is the backend's (`error_track_line` in C++).
+    pub error_location: bool,
 }
 
 impl Program {

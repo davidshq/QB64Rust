@@ -41,7 +41,7 @@ fn indexed_target(p: &mut Parser) -> bool {
     p.start_node(NameRef);
     p.bump();
     p.finish_node();
-    let args = args_height(p);
+    let args = args_height(p, false);
     p.finish_node();
     let ok = args.is_some_and(|h| fields(p, cp, h + 1).is_some());
     p.expr_nesting -= 1;

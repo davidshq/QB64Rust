@@ -309,6 +309,7 @@ version,session,change,category,actions,bytes
 1,1cef2c45,m4-memory-records,reading,5,0
 1,1cef2c45,m4-memory-records,scratch files,2,3415
 1,1cef2c45,m4-memory-records,test runs,5,0
+1,1d0d11c8,,other commands,3,0
 1,1de8b923,,other,1,0
 1,1de8b923,,other commands,29,0
 1,1de8b923,m4-builtins-param-types,builds,4,0
@@ -538,6 +539,10 @@ version,session,change,category,actions,bytes
 1,310c990e,m3-images-fonts-mouse,reading,2,0
 1,310c990e,m3-images-fonts-mouse,scratch files,2,4820
 1,310c990e,m3-images-fonts-mouse,test runs,2,0
+1,31ba9217,,other commands,1,0
+1,31ba9217,m4-statements-metacommands,other commands,12,0
+1,31ba9217,m4-statements-metacommands,scratch files,3,4011
+1,31ba9217,m4-statements-metacommands,test runs,1,0
 1,33a0ea69,,other,2,0
 1,33a0ea69,,other commands,8,0
 1,33a0ea69,,scratch files,1,2799
@@ -1397,7 +1402,7 @@ version,session,change,category,actions,bytes
 1,74a508fc,m4-statements-metacommands,measurement preparation,3,1170
 1,74a508fc,m4-statements-metacommands,measurement runs,2,0
 1,74a508fc,m4-statements-metacommands,other,1,0
-1,74a508fc,m4-statements-metacommands,other commands,63,0
+1,74a508fc,m4-statements-metacommands,other commands,65,0
 1,74a508fc,m4-statements-metacommands,product code,13,9291
 1,74a508fc,m4-statements-metacommands,reading,9,0
 1,74a508fc,m4-statements-metacommands,test runs,19,0
@@ -1639,6 +1644,19 @@ version,session,change,category,actions,bytes
 1,838d3f3c,,test runs,5,0
 1,838d3f3c,,tests and fixtures,1,2306
 1,8444969c,m3-declare-library,other commands,1,0
+1,84cc9ddb,,other commands,1,0
+1,84cc9ddb,m4-builtins-remaining,builds,10,0
+1,84cc9ddb,m4-builtins-remaining,documents and planning,44,37491
+1,84cc9ddb,m4-builtins-remaining,generated files,1,0
+1,84cc9ddb,m4-builtins-remaining,measurement preparation,8,5984
+1,84cc9ddb,m4-builtins-remaining,measurement runs,10,0
+1,84cc9ddb,m4-builtins-remaining,other,1,256
+1,84cc9ddb,m4-builtins-remaining,other commands,217,0
+1,84cc9ddb,m4-builtins-remaining,product code,58,52450
+1,84cc9ddb,m4-builtins-remaining,reading,5,0
+1,84cc9ddb,m4-builtins-remaining,scratch files,26,53494
+1,84cc9ddb,m4-builtins-remaining,test runs,67,0
+1,84cc9ddb,m4-builtins-remaining,tests and fixtures,52,51099
 1,84ef368a,m3-network-embed,other commands,2,0
 1,852a154d,,other commands,1,0
 1,86633fe7,,documents and planning,1,157
@@ -2819,6 +2837,14 @@ version,session,change,category,actions,bytes
 1,f33a7dd7,m4-upstream-rejections,other commands,11,0
 1,f33a7dd7,m4-upstream-rejections,reading,1,0
 1,f33a7dd7,m4-upstream-rejections,test runs,1,0
+1,f5080b52,,other,3,0
+1,f5080b52,,other commands,19,0
+1,f5080b52,,reading,19,0
+1,f5080b52,,scratch files,3,5068
+1,f5080b52,m4-builtins-remaining,documents and planning,22,62475
+1,f5080b52,m4-builtins-remaining,other commands,18,0
+1,f5080b52,m4-builtins-remaining,reading,14,0
+1,f5080b52,m4-builtins-remaining,test runs,2,0
 1,f53ab0b0,,documents and planning,3,362
 1,f53ab0b0,,other commands,4,0
 1,f53ab0b0,,reading,3,0

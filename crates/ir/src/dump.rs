@@ -32,6 +32,9 @@ fn settings(s: &Settings) -> String {
     if s.compile_stamp {
         parts.push("compile time".to_string());
     }
+    if s.error_location {
+        parts.push("error location".to_string());
+    }
     if !s.runtime_parts.is_empty() {
         let names: Vec<&str> = s
             .runtime_parts

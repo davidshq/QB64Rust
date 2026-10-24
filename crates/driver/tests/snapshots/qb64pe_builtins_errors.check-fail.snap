@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 151
 expression: snap
 ---
 qb64pe_builtins_errors.bas:7:7: error: `_INSTRREV` takes 2 or 3 arguments
@@ -30,7 +29,7 @@ qb64pe_builtins_errors.bas:23:12: error: this `_KEYCLEAR` statement matches none
 qb64pe_builtins_errors.bas:23:12: note: QB64pe: Syntax error - Reference: _KEYCLEAR buffer&
 qb64pe_builtins_errors.bas:24:5: error: names starting with `_` are reserved: `_KEYCLEAR`
 qb64pe_builtins_errors.bas:24:5: note: QB64pe: Invalid variable name
-qb64pe_builtins_errors.bas:25:5: error: `_KEYHIT` takes 0 arguments
+qb64pe_builtins_errors.bas:25:5: error: `_KEYHIT` takes no arguments
 qb64pe_builtins_errors.bas:25:5: note: QB64pe: Incorrect number of arguments - Reference: _KEYHIT
 qb64pe_builtins_errors.bas:26:1: error: `_KEYHIT` is a function, not a statement
 qb64pe_builtins_errors.bas:26:1: note: QB64pe: Syntax error
@@ -46,12 +45,12 @@ qb64pe_builtins_errors.bas:36:10: error: this `_CONSOLE` statement matches none 
 qb64pe_builtins_errors.bas:36:10: note: QB64pe: Syntax error - Reference: _CONSOLE {On|Off}
 qb64pe_builtins_errors.bas:37:12: error: this `_CONSOLE` statement matches none of its forms: `_CONSOLE {On|Off}`
 qb64pe_builtins_errors.bas:37:12: note: QB64pe: Syntax error - Reference: _CONSOLE {On|Off}
-qb64pe_builtins_errors.bas:38:5: error: `_CONSOLE` takes 0 arguments
+qb64pe_builtins_errors.bas:38:5: error: `_CONSOLE` takes no arguments
 qb64pe_builtins_errors.bas:38:5: note: QB64pe: Incorrect number of arguments - Reference: _CONSOLE
 qb64pe_builtins_errors.bas:39:13: error: this `_RESIZE` statement matches none of its forms: `_RESIZE [{On|Off}][,{_Stretch|_Smooth}]`
 qb64pe_builtins_errors.bas:40:9: error: this `_RESIZE` statement matches none of its forms: `_RESIZE [{On|Off}][,{_Stretch|_Smooth}]`
 qb64pe_builtins_errors.bas:41:13: error: this `_RESIZE` statement matches none of its forms: `_RESIZE [{On|Off}][,{_Stretch|_Smooth}]`
-qb64pe_builtins_errors.bas:42:5: error: `_RESIZE` takes 0 arguments
+qb64pe_builtins_errors.bas:42:5: error: `_RESIZE` takes no arguments
 qb64pe_builtins_errors.bas:42:5: note: QB64pe: Incorrect number of arguments - Reference: _RESIZE
 qb64pe_builtins_errors.bas:43:1: error: `_RESIZEWIDTH` is a function, not a statement
 qb64pe_builtins_errors.bas:43:1: note: QB64pe: Syntax error
@@ -62,7 +61,7 @@ qb64pe_builtins_errors.bas:46:1: error: `_DROPPEDFILE` is a function, not a stat
 qb64pe_builtins_errors.bas:46:1: note: QB64pe: Syntax error
 qb64pe_builtins_errors.bas:47:17: error: this `_ACCEPTFILEDROP` statement matches none of its forms: `_ACCEPTFILEDROP [{On|Off}]`
 qb64pe_builtins_errors.bas:47:17: note: QB64pe: Syntax error - Reference: _ACCEPTFILEDROP [{On|Off}]
-qb64pe_builtins_errors.bas:48:5: error: `_ACCEPTFILEDROP` takes 0 arguments
+qb64pe_builtins_errors.bas:48:5: error: `_ACCEPTFILEDROP` takes no arguments
 qb64pe_builtins_errors.bas:48:5: note: QB64pe: Incorrect number of arguments - Reference: _ACCEPTFILEDROP
 qb64pe_builtins_errors.bas:49:1: error: `_FINISHDROP` takes 0 arguments
 qb64pe_builtins_errors.bas:49:1: note: QB64pe: SUB does not require any arguments
@@ -94,7 +93,7 @@ qb64pe_builtins_errors.bas:71:12: error: this `_CONTROLCHR` statement matches no
 qb64pe_builtins_errors.bas:71:12: note: QB64pe: Syntax error - Reference: _CONTROLCHR {On|Off}
 qb64pe_builtins_errors.bas:72:13: error: this `_CONTROLCHR` statement matches none of its forms: `_CONTROLCHR {On|Off}`
 qb64pe_builtins_errors.bas:72:13: note: QB64pe: Syntax error - Reference: _CONTROLCHR {On|Off}
-qb64pe_builtins_errors.bas:73:5: error: `_CONTROLCHR` takes 0 arguments
+qb64pe_builtins_errors.bas:73:5: error: `_CONTROLCHR` takes no arguments
 qb64pe_builtins_errors.bas:73:5: note: QB64pe: Incorrect number of arguments - Reference: _CONTROLCHR
 qb64pe_builtins_errors.bas:74:19: error: `_DEFAULTCOLOR` needs a number
 qb64pe_builtins_errors.bas:74:19: note: QB64pe: Number required for function
@@ -112,11 +111,12 @@ qb64pe_builtins_errors.bas:84:5: error: `_SHELLHIDE` takes 1 argument
 qb64pe_builtins_errors.bas:84:5: note: QB64pe: Incorrect number of arguments - Reference: _SHELLHIDE(commandToRun$)
 qb64pe_builtins_errors.bas:85:1: error: `_SHELLHIDE` is a function, not a statement
 qb64pe_builtins_errors.bas:85:1: note: QB64pe: Syntax error
-qb64pe_builtins_errors.bas:86:5: error: `_COMMANDCOUNT` takes 0 arguments
+qb64pe_builtins_errors.bas:86:5: error: `_COMMANDCOUNT` takes no arguments
 qb64pe_builtins_errors.bas:86:5: note: QB64pe: Incorrect number of arguments - Reference: _COMMANDCOUNT
 qb64pe_builtins_errors.bas:87:6: error: names starting with `_` are reserved: `_COMPILEDATE`
 qb64pe_builtins_errors.bas:87:6: note: QB64pe: Invalid variable name
-qb64pe_builtins_errors.bas:88:6: error: `_COMPILETIME$` takes 0 arguments
+qb64pe_builtins_errors.bas:88:6: error: `_COMPILETIME$` takes no arguments
+qb64pe_builtins_errors.bas:88:6: note: QB64pe: Incorrect number of arguments - Reference: _COMPILETIME$
 qb64pe_builtins_errors.bas:89:5: error: `_READBIT` takes 2 arguments
 qb64pe_builtins_errors.bas:89:5: note: QB64pe: Incorrect number of arguments - Reference: _READBIT(numericalVariable, numericalValue)
 qb64pe_builtins_errors.bas:90:14: error: argument 1 of `_READBIT` needs a number

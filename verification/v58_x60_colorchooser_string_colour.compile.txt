@@ -1,0 +1,5 @@
+
+2nd function argument requires a number
+Caused by (or after):X = _COLORCHOOSERDIALOG ( "t",1 , "u",1 )
+LINE 6:x = _COLORCHOOSERDIALOG("t", "u")
+exit=1

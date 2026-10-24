@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _CONSOLECURSOR {_Show|_Hide}[, size%]
+Caused by (or after):_CONSOLECURSOR _SHOW , 50 , 1
+LINE 6:_CONSOLECURSOR _SHOW, 50, 1
+exit=1

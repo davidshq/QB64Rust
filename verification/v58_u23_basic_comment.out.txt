@@ -1,0 +1,3 @@
+main 
+sub bc
+exit=0

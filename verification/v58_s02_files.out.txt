@@ -1,0 +1,28 @@
+<verification>\v58_fil\
+a       .txt      bb      .txt       81137291264 Bytes free
+--
+<verification>\v58_fil\
+        .   <DIR>         ..  <DIR> a       .txt      bb      .txt      c       .dat      sub         <DIR>  81137291264 Bytes free
+--
+<verification>\v58_fil\sub\
+        .   <DIR>         ..  <DIR> d       .txt       81137291264 Bytes free
+--
+<verification>\v58_fil\sub\
+d       .txt       81137291264 Bytes free
+--
+<verification>\v58_fil\
+        .   <DIR>         ..  <DIR> a       .txt      bb      .txt      c       .dat      sub         <DIR>  81137291264 Bytes free
+--
+<verification>\v58_fil\
+error 53 
+--
+<verification>\v58_fil\nosuchdir\
+error 53 
+--
+<verification>\v58_fil\sub\
+        .   <DIR>         ..  <DIR> d       .txt       81137287168 Bytes free
+--
+<verification>\v58_fil\
+c       .dat       81137287168 Bytes free
+done
+exit=0

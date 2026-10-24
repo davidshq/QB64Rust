@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):Q~&& = _SETBIT~&& ( 1 , 0 )
+LINE 5:q~&& = _SETBIT~&&(1, 0)
+exit=1

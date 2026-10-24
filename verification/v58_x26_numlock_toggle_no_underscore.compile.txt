@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _NUMLOCK {On|Off|_Toggle}
+Caused by (or after):_NUMLOCK TOGGLE
+LINE 6:_NUMLOCK TOGGLE
+exit=1

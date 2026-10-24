@@ -1,0 +1,6 @@
+start
+in sub
+
+Runtime error: Line: 17 (in main module)
+Division by zero
+exit=0

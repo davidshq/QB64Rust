@@ -1,0 +1,5 @@
+
+Name already in use (INPUT)
+Caused by (or after):S$ = INPUT ( 1 )
+LINE 6:s$ = INPUT(1)
+exit=1

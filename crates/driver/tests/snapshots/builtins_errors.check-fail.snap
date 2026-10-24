@@ -3,6 +3,7 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 builtins_errors.bas:5:7: error: `LEFT$` takes 2 arguments
+builtins_errors.bas:5:7: note: QB64pe: Incorrect number of arguments - Reference: LEFT$(stringValue$, numberOfCharacters%)
 builtins_errors.bas:6:7: error: `MID$` takes 2 or 3 arguments
 builtins_errors.bas:7:13: error: argument 1 of `LEFT$` needs a string
 builtins_errors.bas:8:12: error: `STR$` needs a number

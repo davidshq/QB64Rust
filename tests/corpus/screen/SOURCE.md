@@ -51,6 +51,7 @@ that every statement leaves a mark in the recorded state.
 | `d16_screen_13` | `SCREEN 13`: `CLS method, colour`, a colour above 15, `PRESET` |
 | `d17_tab_window` | (`m3-get-put-bload`) `TAB`, `SPC` and `POS` in a text window: a column, the next line when the cursor is past it, a zone after `TAB`, a column past the width, `TAB` and `SPC` as functions |
 | `d18_get_put` | (`m3-get-put-bload`) Graphics `GET` and `PUT` in `SCREEN 12`: no action and each action word over a background, a colour, `_CLIP` at two edges, `STEP`; the array whole and from an element, of two dimensions, of LONG, dynamic, and in a SUB a parameter, a local and a `STATIC` array; error 5 for a `PUT` that leaves the screen and a `GET` into an array that is too small |
+| `d19_blink_display` | (`m4-builtins-remaining`) `_BLINK OFF` with a line in a blinking colour, `_BLINK` as a function, the display statements `_GLRENDER`, `_DISPLAYORDER`, `_ALLOWFULLSCREEN` and `_FPS` in each form, and the display functions `_SCALEDWIDTH`, `_SCALEDHEIGHT`, `_SMOOTH`, `_DESKTOPREFRESHRATE` (as a comparison), `_DISPLAY` and the lock keys (as comparisons) in a text window (`verification\v58_s05`, `s06`, `f14`) |
 
 `d15_pacing` empties the key buffer before its `SLEEP`: the keys file gives the next key only when the buffer is
 empty, and a key ends `SLEEP` only when it comes while `SLEEP` waits. Its `SLEEP 2` is the longest it can take

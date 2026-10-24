@@ -1,0 +1,15 @@
+start 1  2  2 
+one line if
+block if
+for 1 
+for 2 
+case 2
+gosub
+ab
+sub x
+ 4 
+in e_on
+error 5 
+after
+end
+exit=0

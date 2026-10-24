@@ -32,10 +32,11 @@ files_errors.bas:34:11: error: `EOF` needs a number
 files_errors.bas:34:11: note: QB64pe: Number required for function
 files_errors.bas:35:7: error: `EOF` takes 1 argument
 files_errors.bas:35:7: note: QB64pe: Incorrect number of arguments - Reference: EOF(fileNumber&)
-files_errors.bas:36:7: error: `FREEFILE` takes 0 arguments
+files_errors.bas:36:7: error: `FREEFILE` takes no arguments
 files_errors.bas:37:7: error: `FREEFILE` with empty parentheses
 files_errors.bas:37:7: note: QB64pe: Expected (...)
-files_errors.bas:38:7: error: `_CWD$` takes 0 arguments
+files_errors.bas:38:7: error: `_CWD$` takes no arguments
+files_errors.bas:38:7: note: QB64pe: Incorrect number of arguments - Reference: _CWD$
 files_errors.bas:39:19: error: `_FILEEXISTS` needs a string
 files_errors.bas:39:19: note: QB64pe: String required for function
 files_errors.bas:40:7: error: `SEEK` takes 1 argument

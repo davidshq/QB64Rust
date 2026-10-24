@@ -75,6 +75,7 @@ pub fn lower(p: &sema::Program) -> Program {
             compile_stamp: p.settings.compile_stamp,
             exe_icon: p.settings.exe_icon.is_some(),
             version_info: p.settings.version_info.clone(),
+            error_location: p.settings.error_location,
         },
     };
     if cfg!(debug_assertions)

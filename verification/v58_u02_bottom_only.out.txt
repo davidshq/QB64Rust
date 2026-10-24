@@ -1,0 +1,3 @@
+main 
+bottom only
+exit=0

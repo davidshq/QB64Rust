@@ -5,7 +5,7 @@
 use crate::Emitter;
 use crate::decl::is_qbs;
 use crate::names::{c_string, c_type, proc_name};
-use qb64rust_ir::{Arg, Conv, Expr, ExprKind, LibraryId, LibraryKind, Proc, ProcId, ProcKind, Ty};
+use qb64rust_ir::{Arg, Conv, Expr, ExprKind, LibraryId, LibraryKind, Proc, ProcId, ProcKind, Track, Ty};
 use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::path::PathBuf;
@@ -263,8 +263,20 @@ impl Emitter<'_> {
 
     /// The libraries' part of `maindata.txt`, before the variables: a `DYNAMIC` library is loaded (error 259 if it
     /// cannot be) and each of its functions found (error 260 if it is not there); a `CUSTOMTYPE` function's pointer
-    /// is set to the C function's address.
+    /// is set to the C function's address. Under `$ERRORLOCATION:ON` a failure first records the line of the
+    /// `DECLARE` (error 259) or of the `SUB`/`FUNCTION` (error 260), since no statement's code has run yet
+    /// (`qb64pe.bas` 5253–5274, 5874–5895).
     pub(crate) fn library_start(&self) -> String {
+        let track = |at: &Track| {
+            if self.p.settings.error_location {
+                format!(
+                    "error_track_line({});",
+                    self.track_args(Some(at.file), at.line, at.include_line)
+                )
+            } else {
+                String::new()
+            }
+        };
         let mut out = String::new();
         for (i, lib) in self.p.libraries.iter().enumerate() {
             let id = LibraryId(qb64rust_base::to_u32(i));
@@ -276,17 +288,19 @@ impl Emitter<'_> {
                     };
                     writeln!(
                         out,
-                        "if (!{handle}){{\n{handle}=LoadLibrary({});\nif (!{handle}){{error(259);}}\n}}",
-                        c_string(dll.as_bytes())
+                        "if (!{handle}){{\n{handle}=LoadLibrary({});\nif (!{handle}){{{}error(259);}}\n}}",
+                        c_string(dll.as_bytes()),
+                        track(&lib.at)
                     )
                     .unwrap();
                     for (_, q) in self.declarations(id) {
                         let x = proc_name(q);
-                        let name = &q.external.as_ref().expect("a library procedure").c_name;
+                        let e = q.external.as_ref().expect("a library procedure");
                         writeln!(
                             out,
-                            "if (!{x}){{\n{x}=(DLLCALL_{x})GetProcAddress({handle},{});\nif (!{x}){{error(260);}}\n}}",
-                            c_string(name.as_bytes())
+                            "if (!{x}){{\n{x}=(DLLCALL_{x})GetProcAddress({handle},{});\nif (!{x}){{{}error(260);}}\n}}",
+                            c_string(e.c_name.as_bytes()),
+                            track(&e.at)
                         )
                         .unwrap();
                     }

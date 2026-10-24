@@ -198,21 +198,34 @@ pub struct Round<T> {
     pub settings: Vec<(Feature, u8)>,
     /// A `$IF` or `$ELSEIF` of compiled code named a flag: another round may read the program differently.
     pub flag_named: bool,
+    /// The round registered a `$USELIBRARY` library (design D7 of `m4-builtins-remaining`): the program is parsed
+    /// again with the same flags, with the library's files in it, as the old compiler's `do_recompile`.
+    pub again: bool,
 }
 
-/// At most this many rounds are parsed: every round but the last locks a feature, and there are seven.
-pub const MAX_ROUNDS: usize = 8;
+/// At most this many rounds are parsed: every round but the last locks a feature (there are seven) or adds a
+/// library (each `$USELIBRARY` line adds one, and a program names few).
+pub const MAX_ROUNDS: usize = 64;
 
 /// Runs the old compiler's rounds: `round` parses the program with the flags of a round, and is called again
-/// until no setting it met asks for another. A round is parsed again only when a condition named a flag;
-/// otherwise the same settings are applied until the features are settled. Gives the last parse and the settled
-/// flags, or the last parse alone when `max_rounds` parses did not settle them.
+/// until no setting it met asks for another and no library was added. A round is parsed again only when a
+/// condition named a flag or a library came in; otherwise the same settings are applied until the features are
+/// settled. Gives the last parse and the settled flags, or the last parse alone when `max_rounds` parses did not
+/// settle them.
 pub fn settle<T>(max_rounds: usize, mut round: impl FnMut(PpFlags) -> Round<T>) -> Result<(T, PpFlags), T> {
     let mut states = FeatureStates::default();
     let mut flags = states.start_round();
     let mut parses = 1;
     let mut r = round(flags);
     loop {
+        if r.again {
+            if parses == max_rounds {
+                return Err(r.result);
+            }
+            parses += 1;
+            r = round(flags);
+            continue;
+        }
         if !states.apply(&r.settings) {
             return Ok((r.result, flags));
         }
@@ -896,7 +909,33 @@ mod tests {
             result: flags,
             settings,
             flag_named,
+            again: false,
         }
+    }
+
+    /// A round that registered a library is parsed again with the same flags, before any setting is applied
+    /// (design D7 of `m4-builtins-remaining`).
+    #[test]
+    fn a_library_asks_for_another_round() {
+        let mut rounds = 0;
+        let r = settle(8, |_| {
+            rounds += 1;
+            Round {
+                result: rounds,
+                settings: Vec::new(),
+                flag_named: false,
+                again: rounds < 3,
+            }
+        });
+        assert_eq!(r.map(|(n, _)| n), Ok(3));
+        assert_eq!(rounds, 3);
+        let r = settle(2, |_| Round {
+            result: (),
+            settings: Vec::new(),
+            flag_named: false,
+            again: true,
+        });
+        assert!(r.is_err());
     }
 
     #[test]

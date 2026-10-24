@@ -1,0 +1,5 @@
+
+Unexpected element '_COMPILERVERSION$'
+Caused by (or after):
+LINE 6:CONST C$ = _COMPILERVERSION$
+exit=1

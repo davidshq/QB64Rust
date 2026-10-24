@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_DESKTOPREFRESHRATE
+LINE 6:_DESKTOPREFRESHRATE
+exit=1

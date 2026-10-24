@@ -808,6 +808,18 @@ pub struct External {
     pub c_name: String,
     /// Per parameter: written `BYVAL`.
     pub byval: Vec<bool>,
+    /// Where the declaration stands, for `$ERRORLOCATION:ON` when a `DYNAMIC` library has no such function
+    /// (error 260): the `SUB` or `FUNCTION` line's statement.
+    pub at: Track,
+}
+
+/// A place the old compiler names to `error_track_line` outside a statement's code.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Track {
+    pub file: FileId,
+    pub line: u32,
+    /// In an included file, the line of the main file that `_ERRORLINE` gives ([`Stmt::include_line`]).
+    pub include_line: Option<u32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -824,6 +836,8 @@ pub struct Library {
     /// The block's header line; its file is the one the block stands in, whose folder a header is also looked for
     /// from.
     pub span: Span,
+    /// The header's statement, for `$ERRORLOCATION:ON` when a `DYNAMIC` library cannot be loaded (error 259).
+    pub at: Track,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1687,6 +1701,9 @@ pub struct Settings {
     pub version_info: Option<VersionInfo>,
     /// The files the program's `$EMBED` lines name, in file order (design D1 of `m3-network-embed`).
     pub embedded: Vec<EmbeddedFile>,
+    /// `$ERRORLOCATION:ON` stands in the program (design D6 of `m4-builtins-remaining`): the program records the
+    /// line of each statement before it runs, for a critical error's message.
+    pub error_location: bool,
 }
 
 /// A file a `$EMBED:'file','handle'` line names (design D1 of `m3-network-embed`). `sema` reads no file: whether it

@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _DESKTOPREFRESHRATE
+Caused by (or after):X = _DESKTOPREFRESHRATE ( 1 )
+LINE 6:x = _DESKTOPREFRESHRATE(1)
+exit=1

@@ -90,11 +90,18 @@ it records, with any other compiler it compares (verification_compare). Recordin
     without timestamps and frame addresses, the folder masked (program_log); else a stale one is removed
   * exit codes are written as Git Bash reports them (bash_exit_code): the files were recorded by a
     shell script and stay comparable. One program at a time
-  * <name>.root: files the program names relative to the compiler's own folder ($EXEICON, $EMBED), one
-    path relative to verification/ per line ('#' starts a comment); each is copied to the same path under
-    the clone for the compile and removed after, with the folders it made (a file already there, or a
-    listed file that is missing, is an error before anything is copied). The compare copies them under
-    <results>/verification/<name>/root/ and gives qb64rust that folder as --include-root
+  * <name>.root: what the program finds in the compiler's own folder, one path relative to verification/
+    per line ('#' starts a comment). A file ($EXEICON, $EMBED) is copied to the same path under the
+    compiler's folder for the compile and removed after, with the folders it made (a file already there,
+    or a listed file that is missing, is an error before anything is copied). A folder (v58_root, holding
+    libraries/ for $USELIBRARY; at most one) is the compiler's folder itself: the program is recorded with
+    qb64pe.exe in a copy of the release under <results>/../qb64pe-root/<folder>/ (a copy of the clone's
+    qb64pe.exe, Makefile and settings/, a directory junction internal to the clone's, and the folder's
+    contents), made again when the clone's qb64pe.exe, Makefile, settings or the folder change (a stamp,
+    root-stamp.txt), so
+    that nothing is written into the clone but what every compile writes into internal/temp. The compare
+    copies files and folder alike under <results>/verification/<name>/root/ and gives qb64rust that folder
+    as --include-root
 Comparing (tests/verification/README.md; spec testing/verification-suite):
   * each program is compiled with -x -q -m in a fresh folder <results>/verification/<name>/ holding the
     program, its .stdin and .noprompt and the support items of its family, of no family, and of another
@@ -156,6 +163,7 @@ import queue
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import threading
@@ -1270,14 +1278,21 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
     env["QB64PE_NOPROMPT"] = "y"
     # Both go to the results folder first: a compile that times out leaves the recorded files alone.
     compile_out = results / f"{name}-compile.txt"
+    # A folder of the sidecar is the compiler's folder: a copy of the release with it (module docstring).
+    compiler, compiler_root = args.qb64, qb_root
     try:
-        placed = place_root_files(tdir, name, qb_root)
-    except (FileExistsError, FileNotFoundError) as e:
+        folder = root_folder(tdir, name)
+        if folder is not None:
+            copies = getattr(args, "root_copies", None) or results.parent / "qb64pe-root"
+            compiler_root = root_copy(qb_root, tdir / folder, copies / folder)
+            compiler = compiler_root / "qb64pe.exe"
+        placed = place_root_files(tdir, name, compiler_root)
+    except (OSError, ValueError) as e:
         r.status, r.stage, r.detail = "FAIL", "expected", f"{e}; nothing recorded"
         return r
     try:
         rc, timed_out = run_proc(
-            [str(args.qb64), "-x", "-q", "-m", bas.name, "-o", str(exe)],
+            [str(compiler), "-x", "-q", "-m", bas.name, "-o", str(exe)],
             tdir,
             compile_out,
             COMPILE_TIMEOUT,
@@ -1338,13 +1353,114 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
 NOT_COMPILED = b"(not compiled)\n"
 
 
-def root_files(root: Path, name: str) -> list[str]:
-    """The paths <name>.root lists (module docstring): files named relative to the compiler's folder."""
+def root_lines(root: Path, name: str) -> list[str]:
+    """The paths <name>.root lists (module docstring), relative to root."""
     sidecar = root / f"{name}.root"
     if not sidecar.is_file():
         return []
     lines = (line.split("#", 1)[0].strip() for line in sidecar.read_text("latin-1").splitlines())
     return [line for line in lines if line]
+
+
+def root_files(root: Path, name: str) -> list[str]:
+    """The lines of <name>.root that name no folder of root: files named relative to the compiler's folder
+    (a missing file is among them, for place_root_files to report)."""
+    return [line for line in root_lines(root, name) if not (root / line).is_dir()]
+
+
+def root_folder(root: Path, name: str) -> str | None:
+    """The line of <name>.root that names a folder of root (the compiler's folder, module docstring), or
+    None; two such lines are an error."""
+    folders = [line for line in root_lines(root, name) if (root / line).is_dir()]
+    if len(folders) > 1:
+        raise ValueError(f"{name}.root names two folders: {', '.join(folders)}")
+    return folders[0].rstrip("/\\") if folders else None
+
+
+def place_root_folder(root: Path, name: str, compiler_root: Path) -> bool:
+    """Copies the contents of the folder <name>.root names (root_folder) under compiler_root; False when
+    there is none."""
+    folder = root_folder(root, name)
+    if folder is None:
+        return False
+    shutil.copytree(root / folder, compiler_root, dirs_exist_ok=True)
+    return True
+
+
+# The stamp of a copy of the release made for a folder of a .root sidecar (root_copy).
+ROOT_STAMP = "root-stamp.txt"
+
+
+def root_copy(qb_root: Path, folder: Path, root: Path) -> Path:
+    """Makes root a copy of the release whose own folder holds folder's contents (module docstring): the
+    clone's qb64pe.exe, Makefile (qb64pe.exe runs make with it from its own folder) and settings/, a
+    directory junction `internal` to the clone's internal/ (qb64pe.exe finds internal/ and the folder's
+    libraries/ beside itself, and writes only into internal/temp, which the clone's lock guards), and the
+    folder's files. A copy whose stamp (the clone's qb64pe.exe and Makefile by size and time, its settings
+    by content, the folder by content) is current is kept; else it is made again.
+    Raises OSError when the junction cannot be made (no fallback copies the toolchain)."""
+    settings = clone_settings(qb_root)
+    h = hashlib.sha256()
+    for fname in ("qb64pe.exe", "Makefile"):
+        st = (qb_root / fname).stat()
+        h.update(f"{fname}\t{st.st_size}\t{st.st_mtime_ns}\n".encode())
+    for sname, data in settings.items():
+        h.update(f"settings/{sname}\t{hashlib.sha256(data).hexdigest()}\n".encode())
+    h.update(tree_digest([folder]))
+    stamp = h.hexdigest()
+    stamp_file = root / ROOT_STAMP
+    if stamp_file.is_file() and stamp_file.read_text(encoding="ascii").strip() == stamp:
+        return root
+    remove_root_copy(root)
+    root.mkdir(parents=True)
+    for fname in ("qb64pe.exe", "Makefile"):
+        shutil.copy2(qb_root / fname, root / fname)
+    for sname, data in settings.items():
+        target = root / "settings" / sname
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+    make_junction(qb_root / "internal", root / "internal")
+    shutil.copytree(folder, root, dirs_exist_ok=True)
+    # Written last: a copy that was interrupted has no stamp and is made again.
+    stamp_file.write_text(stamp, encoding="ascii")
+    return root
+
+
+def is_junction(path: Path) -> bool:
+    """Whether path is a directory junction (Windows) or a symbolic link."""
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return False
+    if os.name == "nt":
+        return bool(getattr(st, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+    return os.path.islink(path)
+
+
+def make_junction(target: Path, link: Path) -> None:
+    """Makes link a directory junction to target (a symbolic link outside Windows)."""
+    if os.name == "nt":
+        import _winapi  # pylint: disable=import-outside-toplevel
+
+        try:
+            _winapi.CreateJunction(str(target), str(link))
+        except OSError as e:
+            raise OSError(f"could not make the junction {link} to {target}: {e}") from e
+    else:
+        os.symlink(target, link, target_is_directory=True)
+
+
+def remove_root_copy(root: Path) -> None:
+    """Removes a copy made by root_copy, the junction first and as a junction, so that nothing of the
+    clone's internal/ is touched. A real internal/ folder there is not the runner's: an error."""
+    if not root.exists():
+        return
+    internal = root / "internal"
+    if internal.exists() or is_junction(internal):
+        if not is_junction(internal):
+            raise OSError(f"{internal} is a real folder, not the runner's junction; not removing it")
+        os.rmdir(internal)
+    shutil.rmtree(root)
 
 
 def place_root_files(root: Path, name: str, compiler_root: Path) -> list[Path]:
@@ -1384,16 +1500,35 @@ def remove_placed(placed: list[Path]) -> None:
             p.unlink(missing_ok=True)
 
 
-def mask_folder(data: bytes, folder: Path) -> bytes:
-    """data with every spelling of folder (either slash, any letter case) replaced by <verification>.
+def short_path(folder: Path) -> str | None:
+    """The folder's 8.3 spelling on Windows (VERIFI~1 for verification), which FILES prints; None when it has
+    none or is the same, or outside Windows."""
+    if os.name != "nt":
+        return None
+    import ctypes  # pylint: disable=import-outside-toplevel
 
-    The compiler names an included file by its full path, and a program may print its own; no local
-    path goes into the repo (CLAUDE.md, rule 2), and a compare runs in another folder."""
-    pattern = re.compile(
-        rb"[\\/]+".join(re.escape(p.encode()) for p in re.split(r"[\\/]+", str(folder))),
-        re.IGNORECASE,
-    )
-    return pattern.sub(b"<verification>", data)
+    buf = ctypes.create_unicode_buffer(1024)
+    n = ctypes.windll.kernel32.GetShortPathNameW(str(folder), buf, len(buf))
+    if n == 0 or n >= len(buf):
+        return None
+    short = buf.value
+    return None if short.lower() == str(folder).lower() else short
+
+
+def mask_folder(data: bytes, folder: Path) -> bytes:
+    """data with every spelling of folder (either slash, any letter case, its 8.3 form) replaced by
+    <verification>.
+
+    The compiler names an included file by its full path, and a program may print its own (FILES prints the
+    8.3 form, verification/v58_s02_files); no local path goes into the repo (CLAUDE.md, rule 2), and a compare
+    runs in another folder."""
+    for spelling in filter(None, (str(folder), short_path(folder))):
+        pattern = re.compile(
+            rb"[\\/]+".join(re.escape(p.encode()) for p in re.split(r"[\\/]+", spelling)),
+            re.IGNORECASE,
+        )
+        data = pattern.sub(b"<verification>", data)
+    return data
 
 
 def verification_text(out: bytes, rc: int | None, timed_out: bool, folder: Path) -> bytes:
@@ -1568,9 +1703,15 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
     compile_out = results / f"{name}-compile.txt"
     env = dict(os.environ)
     env["QB64PE_NOPROMPT"] = "y"
-    # The files the old compiler found in its own folder, under a root of their own.
+    # The folder and the files the old compiler found in its own folder, under a root of their own, in
+    # the recording's order: a listed file the folder holds already is the same error as there.
     root_args = []
-    if place_root_files(root, name, work / "root"):
+    try:
+        has_folder = place_root_folder(root, name, work / "root")
+        placed_files = place_root_files(root, name, work / "root")
+    except (OSError, ValueError) as e:
+        return fail("expected", str(e))
+    if has_folder or placed_files:
         root_args = ["--include-root", str(work / "root")]
     rc, timed_out = run_proc(
         [str(args.qb64), "-x", "-q", "-m", *root_args, bas.name, "-o", str(exe)],
@@ -1621,6 +1762,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
             read(divergences),
             read(root / f"{name}.root"),
             tree_digest(support),
+            tree_digest([root / f for f in [root_folder(root, name)] if f]),
             helper.read_bytes() if os.name == "nt" else None,
         ]
         remembered = pass_cache / pass_key(exe, parts)
@@ -2288,6 +2430,8 @@ def main() -> int:
     retried_passed: list[str] = []
     timing_passed: list[str] = []
     corpus_root = args.corpus_root.resolve()
+    # Where a verification recording keeps its copies of the release for the folders of .root sidecars.
+    args.root_copies = args.results.resolve().parent / "qb64pe-root"
     suites = ["compile", "qbasic", "format", "corpus"] if args.suite == "all" else [args.suite]
     # The tests of every suite are selected before any lock is taken: a usage error is reported at
     # once, not after waiting for another run (--wait).

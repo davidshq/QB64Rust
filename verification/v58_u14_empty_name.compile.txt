@@ -1,0 +1,5 @@
+
+Expected $USELIBRARY:'author/library'
+Caused by (or after):
+LINE 3:$USELIBRARY:''
+exit=1

@@ -1,0 +1,5 @@
+
+Number required for function
+Caused by (or after):S$ = MKSMBF$ ( "a",1 )
+LINE 6:s$ = MKSMBF$("a")
+exit=1

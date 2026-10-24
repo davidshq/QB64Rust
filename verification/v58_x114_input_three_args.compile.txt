@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: INPUT$(numberOfBytes%[, fileOrPortNumber])
+Caused by (or after):S$ = INPUT$ ( 1 , 2 , 3 )
+LINE 6:s$ = INPUT$(1, 2, 3)
+exit=1

@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _BLINK
+Caused by (or after):X = _BLINK ( 1 )
+LINE 6:x = _BLINK(1)
+exit=1

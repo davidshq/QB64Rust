@@ -8,7 +8,6 @@ member_access.bas:10:7: error: only a value of a `TYPE` has members
 member_access.bas:10:7: note: QB64pe: Invalid expression
 member_access.bas:11:1: error: only a value of a `TYPE` has members
 member_access.bas:11:1: note: QB64pe: Invalid expression
-member_access.bas:13:10: error: not supported yet: omitted arguments
 member_access.bas:14:15: error: not supported yet: omitted arguments
 member_access.bas:15:15: error: not supported yet: omitted arguments
 member_access.bas:16:9: error: an argument of `_RGB` is left out

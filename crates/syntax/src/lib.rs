@@ -4,6 +4,7 @@ pub mod ast;
 mod data;
 mod kind;
 pub mod lexer;
+pub mod library;
 pub mod meta;
 mod parser;
 pub mod pp;
@@ -12,7 +13,7 @@ pub mod tree;
 
 pub use kind::SyntaxKind;
 pub use parser::keywords::is_keyword;
-pub use program::{LoadError, Loader, NoLoader, ParsedProgram, Tree, include_name, parse_settled};
+pub use program::{LoadError, Loader, NoLoader, ParsedProgram, Tree, UsedLibrary, include_name, parse_settled};
 
 use qb64rust_base::{SourceMap, show_bytes};
 use std::fmt::Write as _;

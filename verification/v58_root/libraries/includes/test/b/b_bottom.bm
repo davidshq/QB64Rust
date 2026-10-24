@@ -1,0 +1,3 @@
+SUB BSub
+    PRINT "sub b"
+END SUB

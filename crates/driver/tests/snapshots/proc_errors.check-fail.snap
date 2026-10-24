@@ -22,7 +22,6 @@ proc_errors.bas:17:1: error: the FUNCTION `f` cannot stand as a statement
 proc_errors.bas:17:1: note: QB64pe: Syntax error
 proc_errors.bas:18:1: error: `nothere` is no statement and no SUB
 proc_errors.bas:18:1: note: QB64pe: Syntax error
-proc_errors.bas:19:1: error: not supported yet: `FILES`
 proc_errors.bas:20:1: error: name already in use: `y`
 proc_errors.bas:24:10: error: cannot store a string in a number variable
 proc_errors.bas:24:10: note: QB64pe: Illegal string-number conversion

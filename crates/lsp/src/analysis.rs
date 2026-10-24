@@ -177,27 +177,60 @@ impl Loader for DocLoader<'_> {
             from_dir.into_iter().chain([self.root.join(&rel)]).collect()
         };
         for candidate in candidates {
-            let key = path_key(&candidate);
-            if let Some(&id) = self.seen.get(&key) {
+            if let Some(id) = self.take(map, &candidate, None)? {
                 return Ok(id);
             }
-            let (uri, bytes, enc) = if let Some(f) = self.open.get(&key) {
-                (f.uri.clone(), f.bytes.to_vec(), f.encoding)
-            } else if candidate.is_file() {
-                let bytes = std::fs::read(&candidate).map_err(|e| LoadError::Unreadable(e.to_string()))?;
-                (from_path(&candidate), bytes, self.default)
-            } else {
-                continue;
-            };
-            if bytes.len() > MAX_SOURCE_LEN {
-                return Err(LoadError::Unreadable(format!("larger than {MAX_SOURCE_LEN} bytes")));
-            }
-            self.record_builtins(map, map.files().count());
-            let id = map.add(candidate.to_string_lossy().into_owned(), bytes);
-            self.seen.insert(key.clone(), id);
-            self.record(map, id, uri, key, Some(&candidate), enc);
-            return Ok(id);
         }
         Err(LoadError::NotFound)
+    }
+
+    fn load_root(&mut self, map: &mut SourceMap, path: &Path) -> Result<FileId, LoadError> {
+        // Named as the old compiler names a library file: by its path under the compiler root.
+        let shown = path.to_string_lossy().into_owned();
+        self.take(map, &self.root.join(path), Some(shown))?
+            .ok_or(LoadError::NotFound)
+    }
+
+    fn library(&mut self, name: &[u8]) -> Result<Vec<u8>, LoadError> {
+        let path = self.root.join(qb64rust_syntax::library::descriptor_path(name));
+        if let Some(f) = self.open.get(&path_key(&path)) {
+            return Ok(f.bytes.to_vec());
+        }
+        if !path.is_file() {
+            return Err(LoadError::NotFound);
+        }
+        std::fs::read(&path).map_err(|e| LoadError::Unreadable(e.to_string()))
+    }
+}
+
+impl DocLoader<'_> {
+    /// Loads `candidate` from the open documents or the disk into the map, as `shown` (its own path when `None`);
+    /// `Ok(None)` when there is no such file.
+    fn take(
+        &mut self,
+        map: &mut SourceMap,
+        candidate: &Path,
+        shown: Option<String>,
+    ) -> Result<Option<FileId>, LoadError> {
+        let key = path_key(candidate);
+        if let Some(&id) = self.seen.get(&key) {
+            return Ok(Some(id));
+        }
+        let (uri, bytes, enc) = if let Some(f) = self.open.get(&key) {
+            (f.uri.clone(), f.bytes.to_vec(), f.encoding)
+        } else if candidate.is_file() {
+            let bytes = std::fs::read(candidate).map_err(|e| LoadError::Unreadable(e.to_string()))?;
+            (from_path(candidate), bytes, self.default)
+        } else {
+            return Ok(None);
+        };
+        if bytes.len() > MAX_SOURCE_LEN {
+            return Err(LoadError::Unreadable(format!("larger than {MAX_SOURCE_LEN} bytes")));
+        }
+        self.record_builtins(map, map.files().count());
+        let id = map.add(shown.unwrap_or_else(|| candidate.to_string_lossy().into_owned()), bytes);
+        self.seen.insert(key.clone(), id);
+        self.record(map, id, uri, key, Some(candidate), enc);
+        Ok(Some(id))
     }
 }

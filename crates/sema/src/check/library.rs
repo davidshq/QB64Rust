@@ -151,7 +151,8 @@ impl<'a> Checker<'a> {
             }
         }
         let id = LibraryId(to_u32(self.prog.libraries.len()));
-        self.prog.libraries.push(Library { kind, names, span });
+        let at = self.track(header.node());
+        self.prog.libraries.push(Library { kind, names, span, at });
         Ok(id)
     }
 
@@ -218,6 +219,7 @@ impl<'a> Checker<'a> {
                 library,
                 c_name,
                 byval: Vec::new(),
+                at: self.track(header.node()),
             }),
         });
         self.param_scopes.push(Scope::default());

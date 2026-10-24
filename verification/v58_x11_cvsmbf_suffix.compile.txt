@@ -1,0 +1,5 @@
+
+Illegal string-number conversion
+Caused by (or after):X = CVSMBF$ ( "abcd",4 )
+LINE 6:x = CVSMBF$("abcd")
+exit=1

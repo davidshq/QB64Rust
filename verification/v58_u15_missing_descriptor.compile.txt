@@ -1,0 +1,5 @@
+
+Library descriptor for 'test/none' not found
+Caused by (or after):
+LINE 3:$USELIBRARY:'test/none'
+exit=1

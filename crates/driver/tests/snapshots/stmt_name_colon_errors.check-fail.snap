@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 stmt_name_colon_errors.bas:7:5: error: this `PSET` statement matches none of its forms: `PSET [{Step}](?,?)[,?]`
@@ -17,4 +16,3 @@ stmt_name_colon_errors.bas:13:1: error: `CIRCLE` needs its arguments
 stmt_name_colon_errors.bas:14:1: error: `SWAP` needs its arguments
 stmt_name_colon_errors.bas:16:6: error: `CLS` is a built-in's name, not a label to go to
 stmt_name_colon_errors.bas:16:6: note: QB64pe: Invalid label!
-stmt_name_colon_errors.bas:17:1: error: not supported yet: the label `FILES:` (`FILES` is a built-in)

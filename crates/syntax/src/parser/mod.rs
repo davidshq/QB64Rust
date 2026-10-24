@@ -33,7 +33,8 @@ use qb64rust_base::{Diagnostic, Diagnostics, FileId, Span};
 pub(crate) fn parse_tree(id: TreeId, file: FileId, bytes: &[u8]) -> Tree {
     let mut map = qb64rust_base::SourceMap::new();
     let mut loader = crate::NoLoader;
-    let mut inc = Includer::new(&mut map, &mut loader);
+    let mut libraries = Vec::new();
+    let mut inc = Includer::new(&mut map, &mut loader, &mut libraries);
     parse_tree_with(id, file, bytes, PpState::default(), &mut inc, false, Vec::new()).0
 }
 

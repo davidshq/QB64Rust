@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):X$ = _COMPILERVERSION
+LINE 6:x$ = _COMPILERVERSION
+exit=1

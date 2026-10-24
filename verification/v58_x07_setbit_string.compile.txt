@@ -1,0 +1,5 @@
+
+1st function argument requires a number
+Caused by (or after):X = _SETBIT ( "a",1 , 1 )
+LINE 6:x = _SETBIT("a", 1)
+exit=1

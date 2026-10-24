@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _DISPLAYORDER {_Software|_Hardware|_Hardware1|_GLRender} (any combination/order)
+Caused by (or after):_DISPLAYORDER _SOFTWARE ,
+LINE 6:_DISPLAYORDER _SOFTWARE,
+exit=1

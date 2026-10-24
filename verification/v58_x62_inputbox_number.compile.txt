@@ -1,0 +1,5 @@
+
+1st function argument requires a string
+Caused by (or after):X$ = _INPUTBOX$ ( 1 )
+LINE 6:x$ = _INPUTBOX$(1)
+exit=1

@@ -1,0 +1,4 @@
+in uses_a
+main a;
+sub a
+exit=0

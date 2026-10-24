@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _INPUTBOX$([title$][, message$][, defaultInput$])
+Caused by (or after):X$ = _INPUTBOX$ ( "a",1 , "b",1 , "c",1 , "d",1 )
+LINE 6:x$ = _INPUTBOX$("a", "b", "c", "d")
+exit=1

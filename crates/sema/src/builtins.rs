@@ -448,6 +448,48 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_COMPILEDATE$", Rule::Plain),
     ("_COMPILETIME$", Rule::Plain),
     ("_READBIT", Rule::Plain),
+    // The functions no program used before `m4-builtins-remaining` (its design D2; measured, `verification\v58`),
+    // each the plain call of its row: the hyperbolic and gradian functions (`std::asinh` and kin, `func_deg2grad`
+    // and kin, a `_FLOAT` slot and result, `v58_f01`–`f08`), `_READBIT`'s kin (an `_UNSIGNED _INTEGER64`, `f09`),
+    // the Microsoft Binary Format conversions (`f10`), `LPOS`, `_COMPILERVERSION$` (a function `codegen-cpp`
+    // writes into `main.txt`), `_ENVIRONCOUNT`, `_UPTIME` (`f11`), the lock keys (`f12`, `f14`), `_CINP` and
+    // `_CONSOLEINPUT` (`f13`), the display functions and the function `_DISPLAY` (`f14`), `_BLINK` (`s06`), `INP`
+    // (`s01`), and the dialogs, compiled and never run (`f15`, [`NEVER_RUN`]).
+    ("_ASINH", Rule::Plain),
+    ("_ACOSH", Rule::Plain),
+    ("_ATANH", Rule::Plain),
+    ("_D2G", Rule::Plain),
+    ("_G2D", Rule::Plain),
+    ("_R2G", Rule::Plain),
+    ("_G2R", Rule::Plain),
+    ("_SETBIT", Rule::Plain),
+    ("_RESETBIT", Rule::Plain),
+    ("_TOGGLEBIT", Rule::Plain),
+    ("MKSMBF$", Rule::Plain),
+    ("MKDMBF$", Rule::Plain),
+    ("CVSMBF", Rule::Plain),
+    ("CVDMBF", Rule::Plain),
+    ("LPOS", Rule::Plain),
+    ("INP", Rule::Plain),
+    // `INPUT$(n[, file])`: the table's two LONG slots, the second optional (found by the table test of design D10;
+    // measured, `verification\v58_f16`, `x112`–`x115`).
+    ("INPUT$", Rule::Plain),
+    ("_COMPILERVERSION$", Rule::Plain),
+    ("_ENVIRONCOUNT", Rule::Plain),
+    ("_UPTIME", Rule::Plain),
+    ("_CAPSLOCK", Rule::Plain),
+    ("_NUMLOCK", Rule::Plain),
+    ("_SCROLLLOCK", Rule::Plain),
+    ("_CINP", Rule::Plain),
+    ("_CONSOLEINPUT", Rule::Plain),
+    ("_SCALEDWIDTH", Rule::Plain),
+    ("_SCALEDHEIGHT", Rule::Plain),
+    ("_SMOOTH", Rule::Plain),
+    ("_DESKTOPREFRESHRATE", Rule::Plain),
+    ("_DISPLAY", Rule::Plain),
+    ("_BLINK", Rule::Plain),
+    ("_COLORCHOOSERDIALOG", Rule::Plain),
+    ("_INPUTBOX$", Rule::Plain),
 ];
 
 /// The built-in functions whose result is a block of the predefined type `_MEM` (design D2 of `m3-mem`), as
@@ -673,6 +715,31 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_MESSAGEBOX", StmtRule::Plain),
     // `_CONTROLCHR {ON|OFF}` (`v53_x44`, `x45`; screen program `c16_controlchr`).
     ("_CONTROLCHR", StmtRule::Plain),
+    // The statements no program used before `m4-builtins-remaining` (its design D2, D4; measured,
+    // `verification\v58`), each the plain call of its row and template: the ports `OUT` and `WAIT` (`s01`,
+    // `s01b`), `FILES` (`s02`), `DATE$ =` and `TIME$ =` (`s03`; written as assignments, which the assignment
+    // checker hands to `check\io.rs`), the console statements (`s04`; `_CONSOLEFONT` never run), the display
+    // statements (`s05`), `_BLINK` (`s06`), and the lock-key and desktop statements, compiled and never run
+    // (`s07`, `s08`, [`NEVER_RUN`]).
+    ("OUT", StmtRule::Plain),
+    ("WAIT", StmtRule::Plain),
+    ("FILES", StmtRule::Plain),
+    ("DATE$", StmtRule::Plain),
+    ("TIME$", StmtRule::Plain),
+    ("_CONSOLETITLE", StmtRule::Plain),
+    ("_CONSOLECURSOR", StmtRule::Plain),
+    ("_CONSOLEFONT", StmtRule::Plain),
+    ("_GLRENDER", StmtRule::Plain),
+    ("_DISPLAYORDER", StmtRule::Plain),
+    ("_ALLOWFULLSCREEN", StmtRule::Plain),
+    ("_FPS", StmtRule::Plain),
+    ("_BLINK", StmtRule::Plain),
+    ("_CAPSLOCK", StmtRule::Plain),
+    ("_NUMLOCK", StmtRule::Plain),
+    ("_SCROLLLOCK", StmtRule::Plain),
+    ("_NOTIFYPOPUP", StmtRule::Plain),
+    ("_SCREENCLICK", StmtRule::Plain),
+    ("_SCREENPRINT", StmtRule::Plain),
 ];
 
 /// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
@@ -721,6 +788,19 @@ pub const NEVER_RUN: &[&str] = &[
     "_OPENFILEDIALOG$",
     "_SAVEFILEDIALOG$",
     "_SELECTFOLDERDIALOG$",
+    // `_SCREENCLICK` and `_SCREENPRINT` click and type on the user's desktop, `_NOTIFYPOPUP` shows a notification
+    // there, `_COLORCHOOSERDIALOG` and `_INPUTBOX$` wait for a person, the statements `_CAPSLOCK`, `_NUMLOCK` and
+    // `_SCROLLLOCK` change the machine's keyboard state (their functions only read it and are run), and
+    // `_CONSOLEFONT` changes the font of the console the program shares (design D3 of `m4-builtins-remaining`).
+    "_SCREENCLICK",
+    "_SCREENPRINT",
+    "_NOTIFYPOPUP",
+    "_COLORCHOOSERDIALOG",
+    "_INPUTBOX$",
+    "_CAPSLOCK",
+    "_NUMLOCK",
+    "_SCROLLLOCK",
+    "_CONSOLEFONT",
 ];
 
 /// One form of a supported built-in statement: its table entry and rule.

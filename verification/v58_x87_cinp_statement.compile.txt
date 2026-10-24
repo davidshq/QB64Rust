@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_CINP
+LINE 6:_CINP
+exit=1

@@ -5,7 +5,7 @@ use crate::Emitter;
 use crate::decl::{declare, dim_count, is_qbs, lock_slot};
 use crate::names::{self, c_type, proc_name, var_name};
 use qb64rust_base::to_u32;
-use qb64rust_ir::{Body, LabelId, Proc, ProcId, ProcKind, Storage, Ty, Var, numeric_types};
+use qb64rust_ir::{Body, LabelId, Op, Proc, ProcId, ProcKind, Storage, Ty, Var, numeric_types};
 use std::fmt::Write as _;
 
 /// The prologue of a procedure, after its signature line (`study\02` §8, verbatim from the old compiler).
@@ -230,13 +230,24 @@ impl<'a> Emitter<'a> {
             let file = Some(s.span.file);
             // A coverage build counts the statement before it runs, outside its `do{…}while(r);`, so a retry by the
             // runtime is not counted again.
-            let count = self.coverage.as_mut().and_then(|c| c.count(s));
+            let mut count: Vec<String> = self.coverage.as_mut().and_then(|c| c.count(s)).into_iter().collect();
+            // Under `$ERRORLOCATION:ON` the old compiler records the statement's line before its code, after any
+            // label's, for every source statement, block headers, branches and closers included, and not for a
+            // label or the `$CONSOLE:ONLY` switch (design D6 of `m4-builtins-remaining`; its C++ of
+            // `verification\v58_e26`): `error_track_line(line,0,NULL);` in the main file, and in an included file
+            // the main file's line, the file's line and its name, as `evnt` gets them.
+            if self.p.settings.error_location && !matches!(s.ops[..], [Op::SelectConsole]) {
+                count.push(format!(
+                    "error_track_line({});",
+                    self.track_args(file, s.line, s.include_line)
+                ));
+            }
             if !s.checked {
                 body.splice(0..0, count);
                 self.lines_in(file, s.line, &body, out);
                 continue;
             }
-            let mut lines: Vec<String> = count.into_iter().collect();
+            let mut lines: Vec<String> = count;
             lines.push("do{".to_string());
             lines.extend(body);
             lines.push(format!(
