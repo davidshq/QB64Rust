@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _CONSOLEINPUT
+Caused by (or after):X = _CONSOLEINPUT ( 1 )
+LINE 6:x = _CONSOLEINPUT(1)
+exit=1

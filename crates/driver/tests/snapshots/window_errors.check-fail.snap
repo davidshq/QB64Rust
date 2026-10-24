@@ -2,11 +2,11 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-window_errors.bas:14:5: error: `_SCREENEXISTS` takes 0 arguments
+window_errors.bas:14:5: error: `_SCREENEXISTS` takes no arguments
 window_errors.bas:14:5: note: QB64pe: Incorrect number of arguments - Reference: _SCREENEXISTS
-window_errors.bas:15:5: error: `ERR` takes 0 arguments
+window_errors.bas:15:5: error: `ERR` takes no arguments
 window_errors.bas:15:5: note: QB64pe: Incorrect number of arguments - Reference: ERR
-window_errors.bas:16:5: error: `ERL` takes 0 arguments
+window_errors.bas:16:5: error: `ERL` takes no arguments
 window_errors.bas:16:5: note: QB64pe: Incorrect number of arguments - Reference: ERL
 window_errors.bas:17:11: error: this `_ICON` statement matches none of its forms: `_ICON [?[,?]]`
 window_errors.bas:17:11: note: QB64pe: Syntax error - Reference: _ICON [mainImageHandle&[, smallImageHandle&]]
@@ -47,13 +47,14 @@ window_errors.bas:36:1: error: `_SCREENICON` takes 0 arguments
 window_errors.bas:36:1: note: QB64pe: SUB does not require any arguments
 window_errors.bas:37:5: error: `_SCREENX` with empty parentheses
 window_errors.bas:37:5: note: QB64pe: Expected (...)
-window_errors.bas:38:5: error: `_SCREENX` takes 0 arguments
+window_errors.bas:38:5: error: `_SCREENX` takes no arguments
 window_errors.bas:38:5: note: QB64pe: Incorrect number of arguments - Reference: _SCREENX
 window_errors.bas:39:5: error: `_SCREENEXISTS` with empty parentheses
 window_errors.bas:39:5: note: QB64pe: Expected (...)
 window_errors.bas:40:5: error: `_TITLE$` with empty parentheses
 window_errors.bas:40:5: note: QB64pe: Expected (...)
-window_errors.bas:41:5: error: `_TITLE$` takes 0 arguments
+window_errors.bas:41:5: error: `_TITLE$` takes no arguments
+window_errors.bas:41:5: note: QB64pe: Incorrect number of arguments - Reference: _TITLE$
 window_errors.bas:42:5: error: names starting with `_` are reserved: `_TITLE`
 window_errors.bas:42:5: note: QB64pe: Invalid variable name
 window_errors.bas:43:5: error: `_NEWIMAGE` takes 2 or 3 arguments
@@ -73,6 +74,5 @@ window_errors.bas:50:1: error: names starting with `_` are reserved: `_SCREENX`
 window_errors.bas:50:1: note: QB64pe: Expected variable =, look for conflict with a CONST name
 window_errors.bas:51:1: error: `_NEWIMAGE` is a function, not a statement
 window_errors.bas:51:1: note: QB64pe: Syntax error
-window_errors.bas:52:5: error: `_DESKTOPWIDTH` takes 0 arguments
+window_errors.bas:52:5: error: `_DESKTOPWIDTH` takes no arguments
 window_errors.bas:52:5: note: QB64pe: Incorrect number of arguments - Reference: _DESKTOPWIDTH
-window_errors.bas:53:5: error: not supported yet: `_SCREENHIDE`

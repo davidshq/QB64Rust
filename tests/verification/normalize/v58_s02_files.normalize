@@ -1,0 +1,2 @@
+# FILES prints the disk's free space (on the entries' line when the console's position says so): the machine's.
+[0-9]+ Bytes free	<free> Bytes free

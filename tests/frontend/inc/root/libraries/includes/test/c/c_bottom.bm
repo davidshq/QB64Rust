@@ -1,0 +1,4 @@
+SUB CSub
+    PRINT "sub c"
+    ASub
+END SUB

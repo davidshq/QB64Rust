@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-22 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-10-24 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -27,12 +27,14 @@ Civil War Strategy compiles with no diagnostic, builds, and played for two turns
 23 screens as the old compiler's build; its scripts are whole games now, held to line coverage
 (`cws-whole-game`). Upstream is at 401 of 404 (the three left are out of scope: `http/read_example`,
 `opengl/test`, `const/math_funcs`); the verification families are a suite of the new compiler, 2959 programs on
-`tests\verification\pass.list`. M4 has eight changes built and archived on `m4`, in pull request 12:
-`m4-checker-groups`, `m4-devices-continue-paths`, `m4-names-arrays`, `m4-builtins-param-types`, `dry-cleanup`,
-`m4-handlers-logging-checking`, `m4-upstream-rejections` and `m4-qb64pe-sources` (`fe5e2de`); the full set at a
-merge ran on its tree (below). `main` is at the merge of `newer-changes` (pull request 11, `c8ac126`, 2026-10-20),
-which holds every change up to `verification-compare`, `cws-whole-game` and `cpp-failure-errors`; the
-extension's first release is tagged `vscode-v0.2.0`.
+`tests\verification\pass.list`. `main` is at the merge of `m4-qb64pe-builtins` (pull request 13, `fe596c3`,
+2026-10-23), which holds M4's twelve changes so far: through pull request 12 (`e0ac8c6`) `m4-checker-groups`,
+`m4-devices-continue-paths`, `m4-names-arrays`, `m4-builtins-param-types`, `dry-cleanup`,
+`m4-handlers-logging-checking`, `m4-upstream-rejections` and `m4-qb64pe-sources` (the full set at a merge ran on
+`fe5e2de`, below), and through pull request 13 `m4-qb64pe-builtins`, `m4-line-numbers-whole-arrays`,
+`m4-names-implicit-arrays` and `m4-memory-records` (merged without the full set; it ran on 2026-10-24 with the
+next pull request). Branch `m4-finish` holds `m4-statements-metacommands` and `m4-builtins-remaining`. The extension's first release
+is tagged `vscode-v0.2.0`.
 
 ## Waiting on the user
 
@@ -53,17 +55,13 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. The merge of pull request 12 (`m4` into `main`); its full set ran on `fe5e2de` (below), with
-   `g12_game.files` the one failure, from the test environment (still to watch, below).
-2. `qb64pe.bas` compiles with no diagnostic since `m4-qb64pe-builtins` (archived, specs synced): `qb64rust -z` reports
-   nothing, and `-x` builds an executable, not run (the change's `tasks.md`, task 7.2). At the merge into `main`,
-   `ROADMAP.md` says that the compile half of M4's exit criterion is met.
-3. The rest of M4 is a plan of six steps (`DECISIONS.md` 2026-10-22). Steps 1, 2 and 3,
-   `m4-line-numbers-whole-arrays`, `m4-names-implicit-arrays` and `m4-memory-records` (variables in conventional
-   memory, `SADD`, `VARPTR$`, every place of graphics `GET`/`PUT`, member bounds that name a `CONST`, a member as the
-   `FOR` variable), are done (archived, specs synced). Next is step 4, **the statements and metacommands left, with the
-   shrink-only lists of tier 1**, by the demand report over `tests\verification\known.list` (47 programs marked
-   "not supported yet", each with its reason).
+1. The pull request of `m4-finish` (steps 4a and 4b) into `main`; the full set for a merge ran on its tree
+   (below), which also stands for pull request 13, merged without it.
+2. The rest of M4 is a plan of six steps (`DECISIONS.md` 2026-10-22). Steps 1 to 4 are done and archived, specs
+   synced (step 4 as 4a, `m4-statements-metacommands`, and 4b, `m4-builtins-remaining`); the compile half of M4's
+   exit criterion is met (`ROADMAP.md`). The demand report over `tests\verification\known.list` names the 9
+   programs steps 2 and 3 left, and the upstream report marks `SUB _GL` alone. Next is **step 5: `SUB _GL`**, a
+   change of its own.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
@@ -107,6 +105,16 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 22 | `2026-10-18-m3-constant-evaluation` | the `CONST` evaluator in full: `_FLOAT` in software, its lanes and typing by text, every function (math functions certified, else D-026), suffixed constants, the auto-included constants, `$COLOR`; the dependency `astro-float-num` |
 
 ## Numbers at the last full runs
+
+**For the merge into `main` of `m4-finish`, and of pull request 13** (2026-10-24, the full set on the tree of
+`91172cc` with 4b archived, which is the tree of a merge with `main` at `fe596c3`, in this checkout, no pass cache,
+`--jobs 8 --build-cache`): tier 1 passes, fmt and clippy clean; the full corpus suite 510 pass, 5 known failures,
+1 failure, `screen/c15_resize` (the desktop resizes the window, the old compiler's build too, "Known bugs");
+`g12_game.files` passed; `slice.list` judged from it 490 of 491, and 490 of 491 with `QB64RUST_NO_FOLD=1` (the same
+program); the full upstream suite 401 pass, 2 failures out of scope (`const/math_funcs`, D-031; `opengl/test`,
+`SUB _GL`), 1 known failure, `pass.list` judged from it 401 of 401; the full verification suite 3771 pass, 70 known
+failures, `pass.list` judged from it 3771 of 3771, none of `known.list` passing; the differential pass list 59 of
+59; the call-site check 2312 of 2312 equal; the coverage check of Civil War Strategy's scripts passes.
 
 **At the merge into `main` of pull request 12, again** (2026-10-22, the full set on `fe5e2de`, the tree of the
 merge, in this checkout, no pass cache, `--jobs 8 --build-cache`): tier 1 408 of 408, fmt and clippy clean; the
@@ -210,6 +218,17 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
+- `tests\corpus\screen\c15_resize` (`$RESIZE:ON`, nobody resizes the window) was recorded with `_RESIZE`,
+  `_RESIZEWIDTH` and `_RESIZEHEIGHT` 0 on every line. In the full set of 2026-10-24 the first run gave
+  `-1  640  400` after the half-second wait, in the full run and alone, and the old compiler's own build of the
+  program (in a scratch folder) gave the same: the machine's desktop now resizes the window once after it opens.
+  Not the compiler's; the program's premise (a window nobody resized reads 0) holds on this machine no longer.
+
+- `verification\v39_a_handles` recorded `_SNDGETPOS` and `_SNDLEN` of a raw sound at a sound device of 44100 Hz
+  (`.1249886602163315`); at the close of `m4-builtins-remaining` (2026-10-24) the machine's device gave `.125`
+  (48000 Hz), from the old compiler's build too (recorded again in a scratch folder), so the program moved to
+  `tests\verification\known.list` as `varies`, beside `v39_b_new_mem`, which went the same way earlier. Not the
+  compiler's.
 - `tests\corpus\slice\s150_builtins_more` stores and reads the system clipboard, so it can fail when another run
   uses the clipboard at the same time (seen once in the no-fold run at the close of `m4-qb64pe-sources`: `LEN` of
   `"a" + CHR$(0) + "b"` read back as 3, not 1; it passed alone). Run the no-fold list by itself, not beside

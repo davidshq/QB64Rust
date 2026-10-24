@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _GLRENDER {_Behind|_OnTop|_Only}
+Caused by (or after):_GLRENDER
+LINE 6:_GLRENDER
+exit=1

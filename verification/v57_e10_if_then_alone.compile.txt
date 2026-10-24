@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):IF THEN
+LINE 3:IF THEN
+exit=1

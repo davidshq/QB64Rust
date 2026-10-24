@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 shell_environ_errors.bas:10:7: error: `SHELL` needs a string
@@ -28,4 +27,5 @@ shell_environ_errors.bas:24:13: error: argument 1 of `_STRCMP` needs a string
 shell_environ_errors.bas:25:5: error: `_STRICMP` takes 2 arguments
 shell_environ_errors.bas:26:5: error: `_STARTDIR$` with empty parentheses
 shell_environ_errors.bas:26:5: note: QB64pe: Expected (...)
-shell_environ_errors.bas:27:5: error: `_STARTDIR$` takes 0 arguments
+shell_environ_errors.bas:27:5: error: `_STARTDIR$` takes no arguments
+shell_environ_errors.bas:27:5: note: QB64pe: Incorrect number of arguments - Reference: _STARTDIR$

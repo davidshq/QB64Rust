@@ -1,0 +1,5 @@
+
+Command not implemented
+Caused by (or after):X = FILEATTR ( 1 , 1 )
+LINE 3:x = FILEATTR(1, 1)
+exit=1

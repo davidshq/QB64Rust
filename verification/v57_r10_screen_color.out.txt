@@ -1,0 +1,5 @@
+run 1 width 80 height 25 pixel 0 
+color 7 bg 0 pal 1FF0000AA
+run 2 width 80 height 25 pixel 0 
+color 7 bg 0 pal 1FF0000AA
+exit=0

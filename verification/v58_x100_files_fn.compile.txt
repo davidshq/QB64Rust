@@ -1,0 +1,5 @@
+
+Name already in use (FILES)
+Caused by (or after):X = FILES ( "a",1 )
+LINE 6:x = FILES("a")
+exit=1

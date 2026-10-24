@@ -212,6 +212,74 @@ Small programs behind `study\09`, `study\10` and later measurements:
   name `fs$5` as a SUB, a `CONST` or a member (rejected) and as a parameter (accepted), `LEN` of a `TYPE` with a
   `STRING` member ("UDT must have fixed size"), `VARPTR` of members of such a `TYPE`, `STRING * n` of a member
   with a `CONST`
+- `v57*`: statements and metacommands, measured as task 1.1 of `m4-statements-metacommands` (its `design.md`, D1,
+  lists what each group found): `m01`–`m09` unknown and bare metacommands ("Syntax error", also in an included
+  file; nothing in a branch not taken); `s01`–`s20` the old compiler's stubs ("Command not implemented", also
+  after `CALL` and when not reached; `RESET`, `CALL RESET` and `CALL CLOSE` compile); `r01`–`r19` `RUN` with no
+  argument, a label, a line number, from a SUB and a FUNCTION, of a file (error 53), with the screen, the timer,
+  `COMMON SHARED` and `STATIC` after it, and its rejected forms; `r20`–`r24` (review of the change) `RUN` of a
+  string `CONST`, with or without its suffix, and of a name under `DEFSTR`, assigned or not (a file, error 53), and
+  of a numeric `CONST` (a label, "Label not defined"); `x01`–`x12` `RESUME` in a SUB reached from a
+  main-module handler (the SUB is left; with no error, error 20), in a FUNCTION (the C++ build fails) and its
+  labels; `p01`–`p16` places in parentheses in `SWAP`, `READ`, `INPUT`, `LINE INPUT`, `LBOUND` and `UBOUND` (all
+  the place itself); `o01`–`o21` an argument left out of a function ("Invalid expression" the last, "Incorrect
+  number of arguments" or "Syntax error" another; `INSTR(, a$, b$)` compiles); `f01`–`f11` a program FUNCTION as
+  a statement; `l01`–`l04` a library and a program procedure of one name (the header in `v57_lib\`); `a01`–`a04`
+  `ALIAS` outside a library; `c01`–`c03`, `c05`–`c08` `_RED` beyond the palette in a `CONST` (0 in mode 0; in mode
+  13 "UNEXPECTED INTERNAL COMPILER ERROR!"; `c04`, `c09`, `c10` not kept: their value changed from build to build,
+  0, 1, 32 or 179, and `_RED(65535, 0)` crashed `qb64pe.exe`); `g01`–`g12` a `$IF` between two settings of a flag
+  (no branch compiled; a `CONST` of the branch the line's value chooses is "Name already in use" where used);
+  `j01`–`j06` (review of the change) a label or line number in such a `$IF`'s branches ("Label not defined" for a
+  `GOTO`, `GOSUB` or line number naming it, also in a SUB; no jump compiles), and a `DO` opened in a `$IF` and
+  closed after its `$END IF` ("PROGRAM FLOW ERROR!", also where the two passes agree);
+  `b01`–`b20` blocks, SUBs and FUNCTIONs opened in one file and closed in another, both ways (all compile), with
+  the files in `v57_inc\`; `b21`–`b25` (review of the change) a `NEXT` inside a `$IF` of an included file for a
+  `FOR` of the main file ("NEXT without FOR"), and a `CONST` in the main-file part of a SUB opened in an included
+  file: the SUB's (0 in the main module, "Name already in use" for a main-module `CONST` of the name after it, a
+  `TYPE` in the SUB sized by it compiles, one of the main module after it "Invalid number/constant after STRING *
+  type"); `h01`–`h04` the function `_SCREENHIDE`; `e01`–`e13` neighbours of the forms the parser
+  marked; `u01`–`u06` `PALETTE USING`; `t01`–`t03` `STRING * n` members with a `CONST`
+- `v58*`: the built-ins no program used, `$ERRORLOCATION` and `$USELIBRARY`, measured as task 2.1 of
+  `m4-builtins-remaining` (its `design.md`, D1): `f01` the hyperbolic functions of each type and out of their
+  domain (the C library's `nan` and `inf`, no error), `f02`–`f04` their values stored into each type (the `CONST`
+  evaluator rejects them, `x107`), `f05`–`f08` the gradian conversions beside the `CONST` of the same literal (the
+  `CONST` evaluator's `_D2G(90)` is 99.99999999900001, the expression's 100: they need not agree), `f09` the bit
+  functions of each integer type, a bit of 64 or -1 (the x86 shift mask), floats, `f10` the MBF conversions' bytes
+  and values, their errors (a value too large for the format, a string too short), `f11` `_COMPILERVERSION$`
+  (`QB64-PE v4.7.0-GLFW-UNKNOWN` for the clone), `_ENVIRONCOUNT` beside a count of `ENVIRON$(i)`, `_UPTIME` as
+  comparisons, `LPOS` (1, error 5 above 3 or below 0), `f12` the lock keys in a console program (0, no window to
+  read), `f13` `_CONSOLEINPUT` and `_CINP` with nothing waiting (0), `f14` `_DISPLAY` (-2 in screen 0, `_DEST`
+  after `SCREEN _NEWIMAGE`), `_SCALEDWIDTH` and `_SCALEDHEIGHT` (640 and 400 for 320 by 200: the window is
+  doubled), `_SMOOTH`, `_DESKTOPREFRESHRATE` and the lock keys as comparisons in a hidden window, `f15` the
+  dialogs compiled and never run, `f16` `INPUT$` on a file (with and without `#`, past the end: error 62, a negative
+  count: 52, a file open for output: 75, not open: 52; `x112`–`x116` its rejected forms, `INPUT$(1, #)` "Invalid
+  expression"); `s01` the emulated ports in screen 13 (the palette through `OUT`/`INP`, port
+  `&H60`, a port not emulated, `_BLINK` -8 after `OUT &H3C0, 8`, error 6 for `INP` outside ±65535 and nothing for
+  `OUT`), `s01b` `WAIT` (returns, also for a port not emulated; error 6 out of range), `s02` `FILES` in `v58_fil\`
+  (the 8.3 path, entries padded 8.3-style, `.` and `..` of a folder, the free space on the entries' line when the
+  console's position is 1, error 53 for no match; masked by `tests\verification\normalize\v58_s02_files.normalize`),
+  `s03` `DATE$ =` and `TIME$ =` (nothing changes), `s04` the console statements (`_CONSOLECURSOR` bare accepted,
+  `x33`), `s05` the display statements (`_DISPLAYORDER` bare and with a word twice, `_FPS` bare: accepted,
+  `x40`, `x41`, `x44`), `s06`, `s06b` `_BLINK`, `s07`, `s08` the lock-key and desktop statements compiled only;
+  `i01` `INSTR` with its start left out (the search starts at 1); `e01`–`e29` `$ERRORLOCATION` (the critical
+  error's message names the line of the recursive call, of the division, and the included file's name; a joined
+  line by its last physical line; `ON` and `OFF` in one program are the error at the first `$ERRORLOCATION` line,
+  also across an included file and a `$IF` taken; `ON` twice and a setting in an included file alone hold; `ERL`,
+  `_ERRORLINE` and other errors unchanged; `$ERRORLOCATION` bare, `:MAYBE`, with a blank or a comment: "Syntax
+  error"; `e27` a `DYNAMIC` library that does not exist, rejected when compiled ("DYNAMIC LIBRARY not found"),
+  `e28` a function the library lacks, error 260 at the `FUNCTION` line, `e29` an error in a `$USELIBRARY` top
+  file, at its line and name, with `v58_root`'s `test/eloc`), include files in `v58_inc\`; `u00`–`u26` `$USELIBRARY` with the test libraries of `v58_root\libraries\`
+  (each program's `.root` sidecar names the folder, recorded with the runner's copy of the release,
+  `tools\legacy_tests\README.md`): each kind of file, two libraries (top files last-first, bottom files in
+  order), one named twice or by a library's top file too ("Name already in use": included once per line), a
+  library that uses another (its files first), the descriptor's sections, quotes, `;` and `'` comments, key case
+  and blanks, an empty value and no section (nothing included), `$USELIBRARY` in an included file, in lower case,
+  without the colon, as `$USELIBRARYX`, with a tab after the name (all accepted), the three errors, a `$IF`
+  branch not taken, after a colon, and `u17` without the sidecar (the release's own "descriptor not found"); `n01`–`n05`
+  a built-in with its result's suffix (`_UFONTHEIGHT&`: "Invalid variable name", "Invalid array name"); `x01`–`x111`
+  one accepted or rejected form each (the five accepted above and `_SETBIT(1, 1.5)`; the hyperbolics,
+  `_SETBIT`, `MKSMBF$`, `_COMPILERVERSION$` and `_ENVIRONCOUNT` in a `CONST` "Unexpected element"; a function as a
+  statement "Syntax error", a statement as a function "Name already in use" or "Invalid array name")
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

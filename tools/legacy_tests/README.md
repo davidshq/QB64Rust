@@ -180,11 +180,19 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification              
   Program names and `--glob` cannot be combined.
 - `<name>.stdin` and `<name>.noprompt` work as in the corpus. Unlike the corpus there is no `press_any_key.py`:
   a program that reaches `END` on Windows waits for a key and is recorded as timed out, so end with `SYSTEM`.
-- `<name>.root` lists files the program names relative to the compiler's own folder (`$EXEICON`, `$EMBED`), one
-  path relative to `verification\` per line: each is copied to the same path in the clone for the compile and
+- `<name>.root` lists what the program finds in the compiler's own folder, one path relative to `verification\`
+  per line. A file (`$EXEICON`, `$EMBED`) is copied to the same path in the compiler's folder for the compile and
   removed after, with the folders it made; a file already there, or a listed file missing from `verification\`,
-  fails the program with nothing recorded and nothing copied (a copy that fails part way removes what it made). The
-  compare copies them under `root\` in the program's folder and gives the compiler `--include-root` there.
+  fails the program with nothing recorded and nothing copied (a copy that fails part way removes what it made). A
+  folder (`v58_root`, which holds the `libraries\` of `$USELIBRARY`; at most one) is the compiler's folder itself:
+  the program is recorded with `qb64pe.exe` in a copy of the release under `target\qb64pe-root\<folder>\` (the
+  clone's `qb64pe.exe`, `Makefile` and `settings\`, a directory junction `internal` to the clone's `internal\`,
+  and the folder's contents), made again when the clone's `qb64pe.exe`, `Makefile`, settings or the folder change
+  (`root-stamp.txt`); `qb64pe.exe` finds `internal\` and `libraries\` beside itself, so nothing is written into the
+  clone but what every compile writes into `internal\temp`, under the clone's lock as before. A junction that cannot
+  be made fails the program with nothing recorded (no fallback copies the toolchain). The compare copies files and
+  folder alike under `root\` in the program's folder and gives the compiler `--include-root` there
+  (`tests\verification\README.md`).
 - At the timeout the program gets Ctrl+Break and 5 s before it is killed, so what it printed last (a prompt
   without a line end) is in the file, as it was under the shell's `timeout`.
 - `exit=` holds the code as Git Bash reports it, since the files were first recorded by a shell script: the low

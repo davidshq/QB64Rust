@@ -1,0 +1,35 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "trees(\"'$INCLUDE:'for.bi'\\nPRINT 1\\n\", &[(\"for.bi\", \"FOR k = 1 TO 2\\n\")])"
+---
+== t.bas
+SourceFile 0..27
+  MetaCommentStmt 0..18
+    MetaComment '$INCLUDE:'for.bi'
+  Newline \x0A
+  PrintStmt 19..26
+    Ident PRINT
+    Whitespace  
+    Literal 25..26
+      Number 1
+  Newline \x0A
+== for.bi
+SourceFile 0..15
+  ForBlock 0..15
+    ForHeader 0..14
+      Ident FOR
+      Whitespace  
+      NameRef 4..5
+        Ident k
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 8..9
+        Number 1
+      Whitespace  
+      Ident TO
+      Whitespace  
+      Literal 13..14
+        Number 2
+    Newline \x0A
+for.bi:1:1: error: `FOR` without `NEXT`

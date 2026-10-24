@@ -85,6 +85,7 @@ node_wrapper!(
     KeyStmt,
     StopStmt,
     RunStmt,
+    PaletteUsingStmt,
     RedimStmt,
     CommonStmt,
     EraseStmt,
@@ -92,6 +93,8 @@ node_wrapper!(
     LetterRange,
     /// `END IF`/`ENDIF`, `END SELECT`, `WEND`, `END TYPE`, `END DECLARE`, `END DEF`.
     BlockEnd,
+    /// A closer or branch of a block opened in another file.
+    CrossCloser,
     IfBlock,
     /// `IF cond THEN`, `ELSEIF cond THEN`, or `IF cond` before `GOTO` in a single-line `IF`.
     IfHeader,
@@ -1030,6 +1033,27 @@ fn words(node: Node<'_>) -> impl Iterator<Item = Tok> + '_ {
     node.child_tokens().filter(|t| t.kind == Ident)
 }
 
+impl<'a> PaletteUsingStmt<'a> {
+    /// The array after `USING`, with its index (`a(0)`), with empty parentheses (`a()`) or alone (`a`).
+    pub fn target(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+impl<'a> RunStmt<'a> {
+    /// The expression after `RUN`: a label or line number alone, a file name, any other value.
+    pub fn operand(self) -> Option<Expr<'a>> {
+        child(self.0, Expr::cast)
+    }
+}
+
+impl<'a> CrossCloser<'a> {
+    /// The closer or branch node it holds.
+    pub fn inner(self) -> Option<Node<'a>> {
+        self.0.child_nodes().next()
+    }
+}
+
 impl BlockEnd<'_> {
     /// The closer's words (`END` `IF`, or `ENDIF`, `WEND`).
     pub fn keywords(self) -> impl Iterator<Item = Tok> {
@@ -1141,32 +1165,27 @@ impl<'a> ForBlock<'a> {
     /// The `NEXT` that closes this loop: its own, or, when an inner `NEXT j, i` closed it, that one (an inner
     /// `FOR` nested `d` deep closes this one when its `NEXT` names more than `d` variables). `None` when missing.
     pub fn next(self) -> Option<NextStmt<'a>> {
-        if let Some(n) = child(self.0, NextStmt::cast) {
-            return Some(n);
-        }
-        let mut depth = 1;
-        let mut inner = self.body().last().and_then(ForBlock::cast);
-        while let Some(f) = inner {
-            if let Some(n) = child(f.0, NextStmt::cast) {
-                return (n.vars().count() > depth).then_some(n);
-            }
-            depth += 1;
-            inner = f.body().last().and_then(ForBlock::cast);
-        }
-        None
+        self.closer().map(|(n, _)| n)
     }
 
     /// The variable the closing `NEXT` names for this loop: the first of its own `NEXT`, or the one at this loop's
     /// depth in an inner `NEXT j, i`. `None` for a plain `NEXT` (or when the `NEXT` is missing).
     pub fn next_var(self) -> Option<NameRef<'a>> {
+        let (n, depth) = self.closer()?;
+        n.vars().nth(depth)
+    }
+
+    /// [`Self::next`] with this loop's place among the variables it names: 0 for its own `NEXT`, the depth of this
+    /// loop above the inner one for an inner `NEXT j, i`.
+    pub fn closer(self) -> Option<(NextStmt<'a>, usize)> {
         if let Some(n) = child(self.0, NextStmt::cast) {
-            return n.vars().next();
+            return Some((n, 0));
         }
         let mut depth = 1;
         let mut inner = self.body().last().and_then(ForBlock::cast);
         while let Some(f) = inner {
             if let Some(n) = child(f.0, NextStmt::cast) {
-                return n.vars().nth(depth);
+                return (n.vars().count() > depth).then_some((n, depth));
             }
             depth += 1;
             inner = f.body().last().and_then(ForBlock::cast);

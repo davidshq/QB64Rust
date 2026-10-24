@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _NOTIFYPOPUP [title$][, message$][, iconType$]
+Caused by (or after):_NOTIFYPOPUP "a",1 , "b",1 , "c",1 , "d",1
+LINE 6:_NOTIFYPOPUP "a", "b", "c", "d"
+exit=1

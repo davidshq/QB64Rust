@@ -1,0 +1,5 @@
+main three;
+three main handler
+three bottom sub 3 
+mine
+exit=0

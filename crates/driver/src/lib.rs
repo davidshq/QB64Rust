@@ -111,11 +111,35 @@ impl Loader for FileLoader {
         let Some((real, shown)) = candidates.into_iter().find(|(p, _)| p.is_file()) else {
             return Err(LoadError::NotFound);
         };
-        let canonical = std::fs::canonicalize(&real).map_err(|e| LoadError::Unreadable(e.to_string()))?;
+        self.add_file(map, &real, &shown)
+    }
+
+    fn load_root(&mut self, map: &mut SourceMap, path: &Path) -> Result<FileId, LoadError> {
+        let real = self.root.join(path);
+        if !real.is_file() {
+            return Err(LoadError::NotFound);
+        }
+        // Named as the old compiler names a library file: by its path under its folder, as the descriptor spells it.
+        self.add_file(map, &real, path)
+    }
+
+    fn library(&mut self, name: &[u8]) -> Result<Vec<u8>, LoadError> {
+        let path = self.root.join(qb64rust_syntax::library::descriptor_path(name));
+        if !path.is_file() {
+            return Err(LoadError::NotFound);
+        }
+        std::fs::read(&path).map_err(|e| LoadError::Unreadable(e.to_string()))
+    }
+}
+
+impl FileLoader {
+    /// Reads the file at `real` into the map as `shown`, once per file.
+    fn add_file(&mut self, map: &mut SourceMap, real: &Path, shown: &Path) -> Result<FileId, LoadError> {
+        let canonical = std::fs::canonicalize(real).map_err(|e| LoadError::Unreadable(e.to_string()))?;
         if let Some(&id) = self.seen.get(&canonical) {
             return Ok(id);
         }
-        let bytes = std::fs::read(&real).map_err(|e| LoadError::Unreadable(e.to_string()))?;
+        let bytes = std::fs::read(real).map_err(|e| LoadError::Unreadable(e.to_string()))?;
         if bytes.len() > qb64rust_base::MAX_SOURCE_LEN {
             return Err(LoadError::Unreadable(format!(
                 "larger than {} bytes",

@@ -497,6 +497,17 @@ pub enum Resume {
     To(LabelId),
 }
 
+/// Where `RUN` starts the program again (spec `language/control-flow`, design D5 of `m4-statements-metacommands`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum RunTarget {
+    /// `RUN`: from the first line.
+    Restart,
+    /// `RUN label` or `RUN line`: at that label of the main module.
+    Label(LabelId),
+    /// `RUN file$`: the program the file names, which ends this one (error 53 when it cannot be started).
+    File(Expr),
+}
+
 /// The level of a log statement's entry, lowest first (libqb's `loglevel`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LogLevel {
@@ -797,6 +808,18 @@ pub struct External {
     pub c_name: String,
     /// Per parameter: written `BYVAL`.
     pub byval: Vec<bool>,
+    /// Where the declaration stands, for `$ERRORLOCATION:ON` when a `DYNAMIC` library has no such function
+    /// (error 260): the `SUB` or `FUNCTION` line's statement.
+    pub at: Track,
+}
+
+/// A place the old compiler names to `error_track_line` outside a statement's code.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Track {
+    pub file: FileId,
+    pub line: u32,
+    /// In an included file, the line of the main file that `_ERRORLINE` gives ([`Stmt::include_line`]).
+    pub include_line: Option<u32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -813,6 +836,8 @@ pub struct Library {
     /// The block's header line; its file is the one the block stands in, whose folder a header is also looked for
     /// from.
     pub span: Span,
+    /// The header's statement, for `$ERRORLOCATION:ON` when a `DYNAMIC` library cannot be loaded (error 259).
+    pub at: Track,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1438,6 +1463,15 @@ pub enum StmtKind {
     Resume(Resume),
     /// `ERROR n`: raises error `n`, already converted to LONG (rounded half to even).
     Error(Expr),
+    /// `RUN …` (design D5 of `m4-statements-metacommands`): the screen, colours, palette, `RND` seed, key traps and
+    /// keyboard buffer reset and every variable cleared as by `CLEAR`, then the program starts again
+    /// ([`RunTarget`]), as the old compiler's C++ does it (`sub_run_init`, `sub_clear`, the jump or `sub_run`).
+    Run(RunTarget),
+    /// `PALETTE USING array[(index)]` (design D11 of `m4-statements-metacommands`): the palette set from the
+    /// elements of an `INTEGER` or `LONG` array, from that element or the array's first, by libqb's
+    /// `sub_paletteusing`; `bits` is 16 or 32. The index is written twice, as for graphics `GET`, and calls no
+    /// procedure.
+    PaletteUsing { array: VarId, index: Vec<Expr>, bits: u8 },
     /// Where a label stands: before the next statement of its body.
     Label(LabelId),
     /// `GOTO label`: a label of the same body.
@@ -1667,6 +1701,9 @@ pub struct Settings {
     pub version_info: Option<VersionInfo>,
     /// The files the program's `$EMBED` lines name, in file order (design D1 of `m3-network-embed`).
     pub embedded: Vec<EmbeddedFile>,
+    /// `$ERRORLOCATION:ON` stands in the program (design D6 of `m4-builtins-remaining`): the program records the
+    /// line of each statement before it runs, for a critical error's message.
+    pub error_location: bool,
 }
 
 /// A file a `$EMBED:'file','handle'` line names (design D1 of `m3-network-embed`). `sema` reads no file: whether it

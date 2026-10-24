@@ -374,9 +374,13 @@ def write_if_changed(path, data):
 
 def copy_after_last_line():
     """Copies QB64pe's auto-included `afterlastline.bm` byte for byte into the builtins crate (design D7 of
-    `m3-network-embed`): the front end compiles it from there and needs no clone. Written only when it differs."""
+    `m3-network-embed`): the front end compiles it from there and needs no clone. Written only when it differs.
+    The same for `aftermain.bas`, the `END` the old compiler includes after the main module before the
+    `IncAfterMain` files of `$USELIBRARY` libraries (design D7 of `m4-builtins-remaining`)."""
     with open(AFTER_LAST_LINE, "rb") as f:
         write_if_changed(AFTER_LAST_LINE_COPY, f.read())
+    with open(os.path.join(SUPPORT, "include", "aftermain.bas"), "rb") as f:
+        write_if_changed(os.path.join(CRATE_SRC, "aftermain.bas"), f.read())
 
 
 def copy_color_files():

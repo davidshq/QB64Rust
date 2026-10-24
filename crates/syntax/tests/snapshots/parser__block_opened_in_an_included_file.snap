@@ -1,0 +1,48 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "trees(\"'$INCLUDE:'for.bi'\\nPRINT k\\nNEXT k\\nPRINT \\\"after\\\"\\n\",\n&[(\"for.bi\", \"FOR k = 1 TO 2\\n\")],)"
+---
+== t.bas
+SourceFile 0..48
+  MetaCommentStmt 0..18
+    MetaComment '$INCLUDE:'for.bi'
+  Newline \x0A
+  PrintStmt 19..26
+    Ident PRINT
+    Whitespace  
+    NameRef 25..26
+      Ident k
+  Newline \x0A
+  CrossCloser 27..34
+    NextStmt 27..33
+      Ident NEXT
+      Whitespace  
+      NameRef 32..33
+        Ident k
+    Newline \x0A
+  PrintStmt 34..47
+    Ident PRINT
+    Whitespace  
+    Literal 40..47
+      StringLit "after"
+  Newline \x0A
+== for.bi
+SourceFile 0..15
+  ForBlock 0..15
+    ForHeader 0..14
+      Ident FOR
+      Whitespace  
+      NameRef 4..5
+        Ident k
+      Whitespace  
+      Eq =
+      Whitespace  
+      Literal 8..9
+        Number 1
+      Whitespace  
+      Ident TO
+      Whitespace  
+      Literal 13..14
+        Number 2
+    Newline \x0A
+closed elsewhere: (TreeId(1), 0) by (TreeId(0), 27)

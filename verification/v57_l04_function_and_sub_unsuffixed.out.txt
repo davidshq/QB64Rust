@@ -1,0 +1,3 @@
+program SUB h_l
+ok
+exit=0

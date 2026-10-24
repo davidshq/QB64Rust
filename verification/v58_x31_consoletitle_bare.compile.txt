@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _CONSOLETITLE title$
+Caused by (or after):_CONSOLETITLE
+LINE 6:_CONSOLETITLE
+exit=1

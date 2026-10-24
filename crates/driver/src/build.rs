@@ -1154,6 +1154,7 @@ mod tests {
             compile_stamp: false,
             exe_icon: false,
             version_info: None,
+            error_location: false,
         }
     }
 

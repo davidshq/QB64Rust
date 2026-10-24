@@ -1,0 +1,5 @@
+
+Syntax error - Reference: DATE$ = dateToSet$
+Caused by (or after):DATE$ "x",1
+LINE 6:DATE$ "x"
+exit=1

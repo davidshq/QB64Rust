@@ -474,7 +474,8 @@ impl Checker<'_> {
     /// (design D4 of `m4-line-numbers-whole-arrays`).
     pub(super) fn target_place(&mut self, e: ast::Expr, what: &str) -> R<Place> {
         let span = e.node().span();
-        let place = self.place_operand(e, what)?;
+        // A target in parentheses is the place inside them (design D6 of `m4-statements-metacommands`).
+        let place = self.place_operand(super::whole::without_parens(e), what)?;
         if let Ty::User(_) = self.prog.place_ty(&place) {
             return Err(self.error(span, format!("a whole `TYPE` variable cannot be a target of `{what}`")));
         }
@@ -543,14 +544,11 @@ impl Checker<'_> {
 
     /// `READ target, …`. Measured (`verification\v22_x66`, `x67`, `x74`, `x75`, `x79`): a target that is no variable
     /// is "Expected variable". The old compiler takes a variable in parentheses (`READ (a)` reads into `a`,
-    /// `v22_x84`), not supported yet, and a whole array (`x70`), which reads one item into its first element.
+    /// `v22_x84`, `v57_p04`, `p05`, `p13`), and a whole array (`x70`), which reads one item into its first element.
     pub(super) fn read(&mut self, stmt: ast::ReadStmt) -> R<()> {
         let node = stmt.node();
         let mut targets = Vec::new();
         for e in stmt.targets() {
-            if let ast::Expr::Paren(_) = e {
-                return Err(self.unsupported(e.node().span(), "a target of `READ` in parentheses"));
-            }
             // The first target is evaluated before anything is read.
             let target = if targets.is_empty() {
                 self.target_place(e, "READ")?
@@ -571,23 +569,25 @@ impl Checker<'_> {
     /// that is no variable is "Expected variable", two types that differ "Type mismatch" (signedness does not
     /// count; `_OFFSET` is not `_INTEGER64`), two `TYPE`s that differ "Expected SWAP with similar user defined
     /// type", a `_BIT` "Cannot SWAP bit-length variables". The old compiler also takes an operand in parentheses,
-    /// not supported yet, and two whole arrays of one type, which swap their first elements (`v22_x101`,
+    /// the place inside them (`v22_x103`, `v57_p01`–`p03`, `p11`, `p12`, `p16`), and two whole arrays of one type, which swap their first elements (`v22_x101`,
     /// `v54_c_whole_values`; of two types "Type mismatch", `v54_x10`).
     pub(super) fn swap(&mut self, stmt: ast::SwapStmt) -> R<()> {
-        let node = stmt.node();
+        self.swap_of(stmt.node(), stmt.operands().collect())
+    }
+
+    /// [`Self::swap`] of the statement `node` with its `operands`: also `CALL SWAP(a, b)`, which the old compiler
+    /// compiles as `SWAP a, b` (design D4 of `m4-statements-metacommands`; measured, `verification\v26_x128`).
+    pub(super) fn swap_of(&mut self, node: Node, operands: Vec<ast::Expr>) -> R<()> {
         let [form] = stmt_lookup("SWAP", false)[..] else {
             unreachable!("`SWAP` is one row with one stub entry");
         };
-        let operands: Vec<ast::Expr> = stmt.operands().collect();
         let [a, b] = operands[..] else {
             return Err(self.error(node.span(), "`SWAP` takes two variables"));
         };
         let mut places = Vec::new();
         for e in [a, b] {
-            if let ast::Expr::Paren(_) = e {
-                return Err(self.unsupported(e.node().span(), "an operand of `SWAP` in parentheses"));
-            }
-            places.push(self.place_operand(e, "SWAP")?);
+            // An operand in parentheses is the place inside them (design D6 of `m4-statements-metacommands`).
+            places.push(self.place_operand(super::whole::without_parens(e), "SWAP")?);
         }
         let (ta, tb) = (self.prog.place_ty(&places[0]), self.prog.place_ty(&places[1]));
         let same = match (ta, tb) {

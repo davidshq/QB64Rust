@@ -16,10 +16,17 @@
 //!
 //! `NEXT j, i` closes two `FOR` blocks: the `NextStmt` is the closer of the inner one, and the outer `ForBlock`
 //! has none of its own (`ast::ForBlock::next` finds it).
+//!
+//! A block may open in one file and close in another, as the old compiler reads included text (design D8 of
+//! `m4-statements-metacommands`; measured, `verification\v57_b*`). An included file's parser starts with the open
+//! blocks of the including file on its stack, marked as opened outside it; one it leaves open at its end goes on in
+//! the including file's stack the same way. A closer or branch of such a block is a `CrossCloser` statement in the
+//! file where it stands, and the block node ends where its file's part of it ends (`ParsedProgram::cross_open`).
 
 use super::expr::{arg_list, expr};
 use super::{Parser, meta, proc};
 use crate::SyntaxKind::*;
+use crate::tree::TreeId;
 use qb64rust_base::{Diagnostic, Span};
 
 /// How deep blocks may nest (single-line `IF`s included).
@@ -60,14 +67,65 @@ impl Block {
 
 /// An open block.
 #[derive(Clone, Copy, Debug)]
-pub(super) struct Open {
+pub(crate) struct Open {
     kind: Block,
-    /// The header's first words, where a missing closer is reported.
+    /// The header's first words, where a missing closer is reported; its start is the block node's offset.
     header: Span,
+    /// The header's line in its own file, for messages.
+    line: usize,
+    /// The tree of the block's node.
+    tree: TreeId,
+    /// The block's node is in another tree than the parser's (design D8 of `m4-statements-metacommands`): a file
+    /// that includes this one, or one this file includes, opened it. Its closer here is a `CrossCloser`.
+    outside: bool,
     /// A `SELECT CASE` before its first `CASE`.
     before_case: bool,
-    /// A file was included while the block was open: its closer may be in that file (design D4).
-    crossed: bool,
+    /// An `IF` that had its `ELSE`.
+    has_else: bool,
+    /// A `DO` with its condition after `DO`.
+    test_at_top: bool,
+    /// A procedure that is a FUNCTION.
+    pub(super) function: bool,
+}
+
+impl Open {
+    /// The key of the block's node.
+    pub(crate) fn key(&self) -> (TreeId, u32) {
+        (self.tree, self.header.start)
+    }
+
+    /// The block as a file it is handed to sees it: opened outside that file.
+    pub(crate) fn outside(self) -> Open {
+        Open { outside: true, ..self }
+    }
+
+    pub(crate) fn is_pp_if(&self) -> bool {
+        self.kind == Block::PpIf
+    }
+
+    /// A single-line `IF`.
+    pub(crate) fn is_line_if(&self) -> bool {
+        self.kind == Block::LineIf
+    }
+
+    /// How its header and closer are written, and the header's line, for messages.
+    pub(crate) fn names(&self) -> (&'static str, &'static str, usize) {
+        let (opener, closer) = match self.kind {
+            Block::Proc if self.function => ("FUNCTION", "END FUNCTION"),
+            kind => kind.names(),
+        };
+        (opener, closer, self.line)
+    }
+
+    pub(crate) fn header(&self) -> Span {
+        self.header
+    }
+
+    /// What the file it was handed to learned of the block, which stays open (its first `CASE`, its `ELSE`).
+    pub(crate) fn take_state(&mut self, theirs: &Open) {
+        self.before_case = theirs.before_case;
+        self.has_else = theirs.has_else;
+    }
 }
 
 /// A statement that closes a block or one of its branches.
@@ -134,6 +192,8 @@ pub(crate) enum Stop {
     LineEnd,
     /// The innermost block is a `FOR` that an inner `NEXT j, i` closed too.
     InnerNext,
+    /// An included file closed the innermost block (design D8 of `m4-statements-metacommands`).
+    Elsewhere,
 }
 
 /// Which open block a closer belongs to.
@@ -148,32 +208,37 @@ enum Target {
 
 impl Parser<'_, '_> {
     pub(super) fn push_block(&mut self, kind: Block, header: Span) {
+        let line = self.line_of(header);
         self.blocks.push(Open {
             kind,
             header,
+            line,
+            tree: self.tree,
+            outside: false,
             before_case: kind == Block::Select,
-            crossed: false,
+            has_else: false,
+            test_at_top: false,
+            function: false,
         });
     }
 
-    /// A file was included here: every open block may be closed there (design D4).
-    pub(super) fn mark_blocks_crossed(&mut self) {
-        for open in &mut self.blocks {
-            open.crossed = true;
-        }
+    /// The innermost open block of this file's own, whose parse function is running: not a `$IF` and not one
+    /// opened outside this file.
+    fn own_block(&self) -> Option<usize> {
+        self.blocks.iter().rposition(|o| o.kind != Block::PpIf && !o.outside)
     }
 
-    /// The innermost block (not a `$IF`) may close in another file: it is open across an include, or this file
-    /// is an included one. Its missing closer is then "not supported yet", not an error (design D4, changed
-    /// 2026-10-05: a block node cannot span two trees).
-    pub(super) fn innermost_crosses_files(&self) -> bool {
-        self.included
-            || self
-                .blocks
-                .iter()
-                .rev()
-                .find(|o| o.kind != Block::PpIf)
-                .is_some_and(|o| o.crossed)
+    /// The innermost open block is one opened outside this file.
+    fn top_outside(&self) -> bool {
+        self.blocks.last().is_some_and(|o| o.outside)
+    }
+
+    /// Notes something of the innermost open block, which its parse function reads (`has_else` of an `IF`,
+    /// `test_at_top` of a `DO`, `function` of a procedure).
+    pub(super) fn set_top(&mut self, set: impl FnOnce(&mut Open)) {
+        if let Some(open) = self.blocks.last_mut() {
+            set(open);
+        }
     }
 
     /// A "not supported yet" mark at a statement other than the current one (a block's header).
@@ -183,10 +248,17 @@ impl Parser<'_, '_> {
         }
     }
 
-    /// Ends the innermost block that is not a `$IF`: the block whose function calls this. A `$IF` opened in its
-    /// body and still open stays on the stack (its error, if any, is reported elsewhere).
+    /// Ends this file's innermost own block: the block whose function calls this. A `$IF` opened in its body and
+    /// still open stays on the stack (its error, if any, is reported elsewhere), and so do blocks opened outside
+    /// this file. A block an included file leaves open at its end stays too, as one the including file may close
+    /// (`keep_open`, set by [`Self::unclosed`]).
     pub(super) fn pop_block(&mut self) {
-        if let Some(i) = self.blocks.iter().rposition(|o| o.kind != Block::PpIf) {
+        let Some(i) = self.own_block() else {
+            return;
+        };
+        if std::mem::take(&mut self.keep_open) {
+            self.blocks[i].outside = true;
+        } else {
             self.blocks.remove(i);
         }
     }
@@ -204,9 +276,7 @@ impl Parser<'_, '_> {
 
     /// The innermost open entry, for messages: how its header and closer are written, and its line.
     pub(super) fn innermost_block(&self) -> Option<(&'static str, &'static str, usize)> {
-        let open = self.blocks.last()?;
-        let (opener, closer) = open.kind.names();
-        Some((opener, closer, self.line_of(open.header)))
+        Some(self.blocks.last()?.names())
     }
 
     pub(super) fn text_of(&self, span: Span) -> &[u8] {
@@ -256,7 +326,7 @@ impl Parser<'_, '_> {
         }
     }
 
-    /// The 1-based line of `span`, for messages.
+    /// The 1-based line of `span` in this file, for messages.
     fn line_of(&self, span: Span) -> usize {
         let start = span.start as usize;
         let lf = self.bytes[..start].iter().filter(|&&b| b == b'\n').count();
@@ -276,6 +346,22 @@ impl Parser<'_, '_> {
             if !std::mem::take(&mut self.carry_error) {
                 self.stmt_error = false;
             }
+            // An included file closed blocks of this file (design D8 of `m4-statements-metacommands`): one opened
+            // outside this file just leaves the stack; this file's own block ends here, after the include.
+            while self.closed_elsewhere > 0 {
+                self.closed_elsewhere -= 1;
+                let Some(i) = self.blocks.iter().rposition(|o| o.kind != Block::PpIf) else {
+                    continue;
+                };
+                if self.blocks[i].outside {
+                    self.blocks.remove(i);
+                    continue;
+                }
+                return Stop::Elsewhere;
+            }
+            // Then the blocks it left open are open here.
+            let handed = std::mem::take(&mut self.left_open);
+            self.blocks.extend(handed);
             if self.pending_next.is_some() && self.top() == Some(Block::For) {
                 return Stop::InnerNext;
             }
@@ -292,12 +378,21 @@ impl Parser<'_, '_> {
             self.line_prefix();
             if let Some(c) = self.closer_here() {
                 match self.closer_target(c) {
+                    Target::Top if self.top_outside() => {
+                        self.cross_closer(c);
+                        continue;
+                    }
                     Target::Top => return Stop::Closer(c),
                     Target::Outer if self.top_is_pp_if() => {
                         // `$IF … NEXT … $END IF` with the `FOR` before the `$IF`: the closer still closes its block.
                         self.crossing_error();
                         self.drop_crossed_pp_ifs();
                         match self.closer_target(c) {
+                            // The block was opened in another file (`verification\v57_b21`).
+                            Target::Top if self.top_outside() => {
+                                self.cross_closer(c);
+                                continue;
+                            }
                             Target::Top => return Stop::Closer(c),
                             Target::Outer => {
                                 self.carry_error = true;
@@ -330,6 +425,97 @@ impl Parser<'_, '_> {
                 self.error("only comments may stand between `SELECT CASE` and the first `CASE`");
             }
             self.statement_and_separator();
+        }
+    }
+
+    /// A closer or a branch of the innermost block, which was opened outside this file (design D8 of
+    /// `m4-statements-metacommands`): a `CrossCloser` statement that holds it, as the block's own function would
+    /// parse it. A closer ends the block, and the pair is noted in `cross_open`; the file that holds the block's
+    /// node learns it from the blocks this file hands back. A branch's statements follow as statements.
+    fn cross_closer(&mut self, c: Closer) {
+        let open = *self.blocks.last().expect("the innermost block is open");
+        self.start_node(CrossCloser);
+        let at = (self.tree, self.current_span().start);
+        let mut close: usize = 1;
+        match c {
+            Closer::Next => {
+                let (count, span) = next_stmt(self);
+                close = count as usize;
+                // Every block it closes must be a `FOR` opened outside this file.
+                let n = self.blocks.len();
+                let fors = self.blocks[..n - 1]
+                    .iter()
+                    .rev()
+                    .take_while(|o| o.kind == Block::For && o.outside)
+                    .count();
+                if close > fors + 1 {
+                    close = fors + 1;
+                    if self.blocks.len() > fors + 1 && self.blocks[n - 2 - fors].kind == Block::For {
+                        self.block_unsupported(span, "`NEXT` that closes a `FOR` of this file and one of another file");
+                    } else {
+                        self.block_error(
+                            span,
+                            "`NEXT` names more variables than there are `FOR` blocks open around it",
+                        );
+                    }
+                }
+            }
+            Closer::Loop => {
+                self.start_node(LoopStmt);
+                let span = self.current_span();
+                self.bump(); // LOOP
+                if loop_condition(self) && open.test_at_top {
+                    self.error_at(span, "a `DO` with a condition cannot have one at `LOOP` too");
+                }
+                self.recover();
+                self.finish_node();
+                self.separator();
+            }
+            Closer::EndProc => {
+                proc::proc_end(self, if open.function { "FUNCTION" } else { "SUB" });
+                self.header_end();
+            }
+            Closer::EndIf | Closer::Wend | Closer::EndSelect | Closer::EndDef => self.block_end(),
+            Closer::ElseIf => {
+                close = 0;
+                self.start_node(ElseIfBranch);
+                if open.has_else {
+                    self.error("`ELSEIF` cannot follow `ELSE`");
+                }
+                if_header(self);
+                if self.stmt_error || self.at_stmt_end() {
+                    self.header_end();
+                }
+                self.finish_node();
+            }
+            Closer::Else => {
+                close = 0;
+                self.start_node(ElseBranch);
+                if open.has_else {
+                    self.error("this `IF` already has an `ELSE`");
+                }
+                self.set_top(|o| o.has_else = true);
+                self.bump(); // ELSE
+                if self.at_stmt_end() {
+                    self.header_end();
+                }
+                self.finish_node();
+            }
+            Closer::Case => {
+                close = 0;
+                self.start_node(CaseClause);
+                self.set_top(|o| o.before_case = false);
+                case_header(self);
+                self.header_end();
+                self.finish_node();
+            }
+            Closer::EndType | Closer::EndDeclare => unreachable!("no block on the stack closes with them"),
+        }
+        self.finish_node();
+        for _ in 0..close {
+            if let Some(o) = self.blocks.pop() {
+                self.inc.cross_open.insert(o.key(), at);
+            }
         }
     }
 
@@ -409,8 +595,7 @@ impl Parser<'_, '_> {
         let Some(open) = self.blocks.last().copied() else {
             return;
         };
-        let (opener, closer) = open.kind.names();
-        let line = self.line_of(open.header);
+        let (opener, closer, line) = open.names();
         let words = self.closer_words();
         let span = self.closer_span();
         self.error_at(
@@ -424,14 +609,6 @@ impl Parser<'_, '_> {
     pub(super) fn stray_closer(&mut self, c: Closer) {
         let words = self.closer_words();
         let target = self.closer_target(c);
-        if self.included && matches!(target, Target::Stray { past_line_if: false }) {
-            // Its block may be open in the including file (design D4).
-            let span = self.closer_span();
-            let msg = format!("a block closed in another file (`{words}` without its block in this file)");
-            self.unsupported_at(span, msg);
-            self.rest_into_error_node();
-            return;
-        }
         let msg = match (target, c) {
             (Target::Stray { past_line_if: true }, _) => {
                 format!("`{words}` inside a single-line `IF` cannot close a block outside it")
@@ -445,22 +622,21 @@ impl Parser<'_, '_> {
     }
 
     /// Reports the innermost block as not closed, when the loop stopped for a reason other than a closer.
-    fn unclosed(&mut self, stop: Stop) {
-        let Some(open) = self.blocks.iter().rev().find(|o| o.kind != Block::PpIf).copied() else {
+    pub(super) fn unclosed(&mut self, stop: Stop) {
+        let Some(open) = self.own_block().map(|i| self.blocks[i]) else {
             return;
         };
         let (opener, closer) = open.kind.names();
         match stop {
-            Stop::Eof | Stop::ProcHeader if self.innermost_crosses_files() => self.block_unsupported(
-                open.header,
-                format!("a block closed in another file (`{opener}` without `{closer}` in this file)"),
-            ),
+            // The including file may close it (design D8 of `m4-statements-metacommands`); if it does not, its
+            // error is reported at the end of the main file.
+            Stop::Eof if self.included && self.line_if == 0 => self.keep_open = true,
             Stop::Eof | Stop::ProcHeader => self.block_error(open.header, format!("`{opener}` without `{closer}`")),
             Stop::LineEnd => self.block_error(
                 open.header,
                 format!("`{opener}` without `{closer}` before the end of the single-line `IF`"),
             ),
-            Stop::Closer(_) | Stop::Outer | Stop::InnerNext => {}
+            Stop::Closer(_) | Stop::Outer | Stop::InnerNext | Stop::Elsewhere => {}
         }
     }
 
@@ -496,7 +672,9 @@ impl Parser<'_, '_> {
             return;
         }
         let n = self.blocks.len();
-        if n >= 2 && self.blocks[n - 2].kind == Block::For {
+        if n >= 2 && self.blocks[n - 2].kind == Block::For && self.blocks[n - 2].outside {
+            self.block_unsupported(span, "`NEXT` that closes a `FOR` of this file and one of another file");
+        } else if n >= 2 && self.blocks[n - 2].kind == Block::For {
             self.pending_next = Some((left, span));
         } else {
             self.block_error(
@@ -552,7 +730,17 @@ fn if_header(p: &mut Parser) {
     p.start_node(IfHeader);
     let is_if = p.at_word("IF");
     p.bump(); // IF or ELSEIF
-    if expr(p) {
+    if p.at_word("THEN") {
+        // No condition: "Syntax error" after `IF`, "Expected ... THEN" after `ELSEIF` (design D2 of
+        // `m4-statements-metacommands`; measured, `verification\v57_e10`, `e11`).
+        let msg = if is_if {
+            "`IF` needs a condition before `THEN`"
+        } else {
+            "`ELSEIF` needs a condition before `THEN`"
+        };
+        p.error(msg);
+        p.bump(); // THEN, so that the header holds its error
+    } else if expr(p) {
         if p.at_word("THEN") {
             p.bump();
         } else if !is_if {
@@ -593,6 +781,7 @@ fn if_block(p: &mut Parser) {
                     p.error("this `IF` already has an `ELSE`");
                 }
                 has_else = true;
+                p.set_top(|o| o.has_else = true);
                 p.bump(); // ELSE
                 if p.at_stmt_end() {
                     p.header_end();
@@ -765,6 +954,7 @@ pub(crate) fn do_block(p: &mut Parser) {
     p.finish_node();
     p.header_end();
     p.push_block(Block::Do, span);
+    p.set_top(|o| o.test_at_top = at_top);
     match p.body() {
         Stop::Closer(Closer::Loop) => {
             p.start_node(LoopStmt);

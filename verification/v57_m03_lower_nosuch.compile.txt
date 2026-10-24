@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ NOSUCH
+LINE 3:$nosuch
+exit=1

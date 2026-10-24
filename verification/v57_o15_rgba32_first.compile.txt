@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):U = _RGBA32 ( , 2 , 3 , 4 )
+LINE 3:u = _RGBA32(, 2, 3, 4)
+exit=1

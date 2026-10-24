@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _CONSOLEFONT fontFile$
+Caused by (or after):_CONSOLEFONT "a",1
+LINE 6:_CONSOLEFONT "a"
+exit=1

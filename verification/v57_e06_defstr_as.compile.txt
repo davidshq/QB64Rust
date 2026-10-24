@@ -1,0 +1,5 @@
+
+_DEFINE: Expected - or ,
+Caused by (or after):
+LINE 3:DEFSTR S AS STRING
+exit=1

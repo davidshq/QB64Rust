@@ -37,8 +37,15 @@ and the keyboard functions `_KEYHIT` and `_KEYDOWN` (`language/keyboard`), the w
 `_RESIZE`, `_RESIZEWIDTH`, `_RESIZEHEIGHT`, `_EXIT`, `_ACCEPTFILEDROP`, `_TOTALDROPPEDFILES`, `_DROPPEDFILE$`,
 `_MESSAGEBOX`, `_OPENFILEDIALOG$`, `_SAVEFILEDIALOG$`, `_SELECTFOLDERDIALOG$` (`language/console-and-window`),
 `_CONTROLCHR`, `_DEFAULTCOLOR` and `_BACKGROUNDCOLOR` (`language/screen-output`), and `_DIR$`, `_SHELLHIDE`,
-`_COMMANDCOUNT`, `_COMPILEDATE$`, `_COMPILETIME$` and `_READBIT`. Any
-other built-in function SHALL be reported "not supported yet". A supported function that needs an argument, named without one, SHALL be a compile error, as in the
+`_COMMANDCOUNT`, `_COMPILEDATE$`, `_COMPILETIME$` and `_READBIT`, and the functions no program used before
+`m4-builtins-remaining`: `_ASINH`, `_ACOSH`, `_ATANH`, `_D2G`, `_G2D`, `_R2G`, `_G2R`, `_SETBIT`, `_RESETBIT`,
+`_TOGGLEBIT`, `MKSMBF$`, `MKDMBF$`, `CVSMBF`, `CVDMBF`, `LPOS`, `INPUT$` (a count and an optional file number, which
+may carry a `#`), `_COMPILERVERSION$`, `_ENVIRONCOUNT`, `_UPTIME`,
+the lock keys (`language/keyboard`), the console, window and dialog functions `_CINP`, `_CONSOLEINPUT`,
+`_SCALEDWIDTH`, `_SCALEDHEIGHT`, `_SMOOTH`, `_DESKTOPREFRESHRATE`, `_COLORCHOOSERDIALOG` and `_INPUTBOX$`
+(`language/console-and-window`), `_BLINK` and `_DISPLAY` (`language/screen-output`), and `INP`
+(`language/conventional-memory`). Every function of the old compiler's built-in table SHALL be compiled, or be
+the old compiler's error where it rejects the form. A supported function that needs an argument, named without one, SHALL be a compile error, as in the
 old compiler. An argument of any other numeric type SHALL be
 converted to its slot as an assignment would, except where the old compiler special-cases the argument's type
 (`LEN`, `STR$`, `HEX$`, `OCT$`, `_BIN$`, `ABS`, `SGN`, `VAL` with a type, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_ROL`,
@@ -48,8 +55,14 @@ unsigned integer type `t` SHALL parse as libqb's unsigned `VAL` does (not narrow
 fixed-length string argument SHALL be a string.
 
 #### Scenario: Unsupported built-in
-- **WHEN** a program uses `k = _SETBIT(a, 1)`
-- **THEN** the compiler reports `_SETBIT` "not supported yet" and no other error for that expression
+- **WHEN** a program uses `VARPTR` of a `TYPE` variable that holds a `STRING`, in conventional memory
+  (`verification\v56_a5`, a form step 3 of M4 left marked)
+- **THEN** the compiler reports it "not supported yet" and no other error for that expression
+
+#### Scenario: Every function of the table compiles
+- **WHEN** each function of `tools\builtins\builtins.json` is called in a form its syntax gives, with arguments of
+  its parameters' types
+- **THEN** none is reported "not supported yet"
 
 #### Scenario: Supported built-in compiles
 - **WHEN** `PRINT LEFT$("hello", 2); LEN("abc")` is compiled and run
@@ -499,3 +512,137 @@ stay "not supported yet".
 - **WHEN** each function of the built-in table is called by each spelling the table gives it (its name with each
   suffix it may or must have), the functions of the files QB64pe includes by itself among them
 - **THEN** none is "Invalid array name"
+
+### Requirement: An omitted argument of a built-in function
+An argument left out of a call of `POINT`, `_RGB32`, `_RGB`, `_RGBA32`, `INSTR`, `MID$` or `LEFT$` SHALL be the
+old compiler's error where a recording shows that it rejects the form, with its message as the note (measured,
+`verification\v27_x50`, `v28_x49`, `v57_o01`–`o17`, `o21`). `INSTR` with its first argument left out SHALL
+compile as the old compiler compiles it, the search starting where the old compiler's program starts it
+(`v57_o07`, `v58`). A form the old compiler accepts that no recording covers, and a form of any other function,
+SHALL stay "not supported yet".
+
+#### Scenario: The first argument of POINT
+- **WHEN** a program has `d = POINT(, 2)`
+- **THEN** the compile fails with an error, not marked "not supported yet" (`verification\v27_x50`)
+
+#### Scenario: The middle argument of _RGB32
+- **WHEN** a program has `u = _RGB32(1, , 3)`
+- **THEN** the compile fails with an error, not marked "not supported yet" (`verification\v28_x49`)
+
+#### Scenario: The last argument
+- **WHEN** a program has `u$ = MID$("abc", 1, )`, or leaves out the last argument of `POINT`, `_RGB32`, `_RGBA32`,
+  `MID$` or `LEFT$`
+- **THEN** the compile fails with an error whose note is "Invalid expression" (`verification\v57_o12`)
+
+#### Scenario: Another argument
+- **WHEN** another argument is left out, or any argument of `_RGB` or `INSTR` but `INSTR`'s first
+- **THEN** the old compiler's message is "Incorrect number of arguments" for `POINT`, `_RGB`, `INSTR` and `MID$`, and
+  "Syntax error" for `_RGB32`, `_RGBA32` and `LEFT$`
+
+#### Scenario: The first argument of INSTR
+- **WHEN** a program prints `INSTR(, "ab", "b")` and `INSTR(, "abab", "b")`, which the old compiler compiles
+  (`verification\v57_o07`)
+- **THEN** it compiles and prints what the old compiler's program prints (`v58`)
+
+### Requirement: The old compiler's stubs
+A name the old compiler's table lists as a stub and compiles by no rule of its own SHALL be a compile error,
+with its "Command not implemented" as the note, also where the line is never reached (measured,
+`verification\v57_s01`–`s20`). A stub with a rule of its own SHALL follow that rule.
+
+#### Scenario: FRE of a number
+- **WHEN** a program has `f0 = FRE(0)`
+- **THEN** the compile fails with an error at `FRE`, not marked "not supported yet"
+  (`tests\corpus\runtime_comparison\218_fre`)
+
+#### Scenario: The stubs
+- **WHEN** a program has `TRON`, `TROFF`, `LIST`, `IOCTL 1, "x"`, `IOCTL$(1)`, `SETMEM(0)`, `FILEATTR(1, 1)` or
+  `FRE` of any argument
+- **THEN** the compile fails with an error, with "Command not implemented" as its note (`verification\v57_s01`–
+  `s10`)
+
+#### Scenario: Stubs after CALL
+- **WHEN** a program has `CALL TRON`, `CALL TROFF`, `CALL MID$(a$, 1, 1, "x")` or `CALL _MEMGET(…)`
+- **THEN** the compile fails with an error, with "Command not implemented" as its note (`verification\v57_s11`,
+  `s14`, `s15`, `s17`); `CALL FRE(0)` is "Expected CALL sub-name [(...)]", as `CALL` of any function (`s19`)
+
+#### Scenario: RESET
+- **WHEN** a program has `RESET` or `CALL RESET`
+- **THEN** it compiles and closes every open file, as `CLOSE` does (`verification\v57_s03`, `s18`)
+
+### Requirement: Hyperbolic and gradian functions
+`_ASINH`, `_ACOSH`, `_ATANH`, `_D2G`, `_G2D`, `_R2G` and `_G2R` SHALL compile in any expression with the old
+compiler's call, `_FLOAT` slot and result, giving its values (no error outside a domain). In a `CONST` the three
+hyperbolic functions SHALL be its error, as `_SETBIT`, `MKSMBF$`, `_COMPILERVERSION$` and `_ENVIRONCOUNT` are, and
+the evaluator SHALL keep its own values of the angle conversions (measured, `verification\v58`).
+
+#### Scenario: Values
+- **WHEN** a program prints `_ASINH(1); _ACOSH(2); _ATANH(.5); _D2G(90); _G2D(100); _R2G(_PI); _G2R(200)`
+- **THEN** it prints what the old compiler's program prints
+
+#### Scenario: Out of the domain
+- **WHEN** a program prints `_ACOSH(0)`, `_ACOSH(.5)`, `_ATANH(1)`, `_ATANH(-1)` and `_ATANH(2)`
+- **THEN** it prints `nan`, `nan`, `inf`, `-inf` and `nan`, as the old compiler's program does, and no error is
+  raised (`verification\v58_f01`)
+
+#### Scenario: In a CONST
+- **WHEN** a program has `CONST c = _ASINH(1.5)`, or names `_SETBIT`, `MKSMBF$`, `_COMPILERVERSION$` or
+  `_ENVIRONCOUNT` in a `CONST`
+- **THEN** the compile fails with an error whose note is "Unexpected element '…'" (`verification\v58_x107`–`x111`)
+
+#### Scenario: The CONST evaluator's own value
+- **WHEN** a program prints `CONST c = _D2G(90)` beside `_D2G(f##)` with `f## = 90`
+- **THEN** it prints ` 99.99999999900001  100 `, as the old compiler's program does (`verification\v58_f05`)
+
+### Requirement: Bit functions
+`_SETBIT(n, b)`, `_RESETBIT(n, b)` and `_TOGGLEBIT(n, b)` SHALL compile in any expression with the result type the
+old compiler gives for `n`'s type, and SHALL give its values, also for a bit beyond `n`'s width and a negative bit
+(measured, `verification\v58`), as `_READBIT` does.
+
+#### Scenario: Values
+- **WHEN** a program prints `_SETBIT(5, 1); _RESETBIT(5, 0); _TOGGLEBIT(5, 2)`
+- **THEN** it prints ` 7  4  1 `, as with the old compiler
+
+#### Scenario: Types and widths
+- **WHEN** a program prints `_SETBIT(b%%, 7)`, `_SETBIT(u~%%, 7)`, `_TOGGLEBIT(x&&, 63)` and `_SETBIT(5, 40)`
+- **THEN** it prints what the old compiler's program prints
+
+### Requirement: Microsoft Binary Format conversions
+`MKSMBF$` and `MKDMBF$` SHALL give the 4 and 8 bytes of a number in Microsoft Binary Format as libqb gives them,
+and `CVSMBF` and `CVDMBF` SHALL read them back, with the old compiler's argument rules and errors (measured,
+`verification\v58`).
+
+#### Scenario: Bytes and back
+- **WHEN** a program prints the bytes of `MKSMBF$(1.5)` and `MKDMBF$(-2.25#)` in hex, and `CVSMBF(MKSMBF$(1.5))`
+  and `CVDMBF(MKDMBF$(-2.25#))`
+- **THEN** it prints what the old compiler's program prints
+
+#### Scenario: A string too short
+- **WHEN** a program evaluates `CVSMBF("ab")` under a handler that prints `ERR`
+- **THEN** it prints what the old compiler's program prints
+
+### Requirement: System information functions
+`_COMPILERVERSION$`, `_ENVIRONCOUNT`, `_UPTIME` and `LPOS(n)` SHALL compile in any expression with the old
+compiler's libqb call and result type. `_COMPILERVERSION$` SHALL give the version string the old compiler's
+program gives, the version of the QB64pe release this compiler targets (measured, `verification\v58`).
+
+#### Scenario: Values
+- **WHEN** a program prints `_COMPILERVERSION$`, `_ENVIRONCOUNT > 0`, `_UPTIME > 0` and `LPOS(0)`
+- **THEN** it prints what the old compiler's program prints
+
+#### Scenario: The number of variables
+- **WHEN** a program counts `ENVIRON$(i)` from 1 until it is ""
+- **THEN** the count equals `_ENVIRONCOUNT`
+
+### Requirement: INPUT$ on a file
+`INPUT$(n, file)` SHALL give the next `n` characters of a file open for input or binary, the file number written
+with or without `#` (the one argument the old compiler takes a `#` before), and SHALL raise the old compiler's
+errors past the end of the file, for a negative count, a file not open or not readable; `INPUT$(n)` SHALL compile
+(measured, `verification\v58_f16`, `x112`–`x116`; found by the test over the whole table).
+
+#### Scenario: Characters of a file
+- **WHEN** a program writes `abcdef` and `ghi` to a file and prints `INPUT$(3, #1); INPUT$(2, 1); LEN(INPUT$(0, #1))`
+- **THEN** it prints `abcde 0 `, as the old compiler's program does, and reading past the end raises error 62
+
+#### Scenario: A # with nothing after it
+- **WHEN** a program has `s$ = INPUT$(1, #)`
+- **THEN** the compile fails with an error whose note is "Invalid expression" (`verification\v58_x115`)

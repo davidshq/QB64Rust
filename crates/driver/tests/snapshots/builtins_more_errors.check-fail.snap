@@ -6,12 +6,13 @@ builtins_more_errors.bas:11:7: error: `_FILES$` takes 0 or 1 arguments
 builtins_more_errors.bas:12:15: error: `_FILES$` needs a string
 builtins_more_errors.bas:13:13: error: `_MD5$` needs a string
 builtins_more_errors.bas:14:7: error: `_MD5$` takes 1 argument
-builtins_more_errors.bas:15:7: error: `_CLIPBOARD$` takes 0 arguments
+builtins_more_errors.bas:15:7: error: `_CLIPBOARD$` takes no arguments
+builtins_more_errors.bas:15:7: note: QB64pe: Incorrect number of arguments - Reference: _CLIPBOARD$
 builtins_more_errors.bas:16:15: error: `_CLIPBOARD$` needs a string
 builtins_more_errors.bas:17:1: error: names starting with `_` are reserved: `_OS$`
-builtins_more_errors.bas:18:7: error: `_OS$` takes 0 arguments
+builtins_more_errors.bas:18:7: error: `_OS$` takes no arguments
+builtins_more_errors.bas:18:7: note: QB64pe: Incorrect number of arguments - Reference: _OS$
 builtins_more_errors.bas:19:18: error: this `_CLIPBOARD$` statement matches none of its forms: `_CLIPBOARD$ =?`
-builtins_more_errors.bas:19:18: note: QB64pe: Syntax error - Reference: _CLIPBOARD$ = text$
 builtins_more_errors.bas:20:11: error: `_CAST` takes a numeric type
 builtins_more_errors.bas:20:11: note: QB64pe: _CAST TYPE unsupported
 builtins_more_errors.bas:21:11: error: `_CAST` takes no width or length in its type

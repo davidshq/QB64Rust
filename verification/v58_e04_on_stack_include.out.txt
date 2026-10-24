@@ -1,0 +1,5 @@
+start
+
+Runtime error: Line: 3 (in e_sub.bi)
+Out of stack space
+exit=0

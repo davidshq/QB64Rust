@@ -122,7 +122,7 @@ pub use qb64rust_sema::{AllocMode, Shape};
 pub use qb64rust_sema::{Event, KeyForm};
 /// The `DECLARE LIBRARY` blocks and the C function behind a library procedure are `sema`'s (design D1 of
 /// `m3-declare-library`): the names as written. Finding the files they name is the driver's.
-pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName};
+pub use qb64rust_sema::{External, Library, LibraryId, LibraryKind, LibraryName, Track};
 /// Whether a procedure is a SUB or a FUNCTION of a type, and the optional parts of the runtime a program needs, are
 /// `sema`'s as well: the lowering only copied them variant for variant (as it did the values, above).
 pub use qb64rust_sema::{LogLevel, ProcKind, Resize, RuntimePart};
@@ -159,6 +159,17 @@ pub struct Label {
     pub checked: bool,
 }
 
+/// Where `RUN` starts the program again.
+#[derive(Clone, Debug, PartialEq)]
+pub enum RunTarget {
+    /// From its first line: a jump to the start of the main module, from a procedure a new run of it.
+    Restart,
+    /// At a label of the main module: a jump to it, from a procedure a new run of the main module that starts there.
+    Label(LabelId),
+    /// The program a file names (a string), which ends this one.
+    File(Expr),
+}
+
 /// Where a resume continues.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Resume {
@@ -166,7 +177,8 @@ pub enum Resume {
     Retry,
     /// Continue after the statement that raised the error.
     Next,
-    /// Continue at a label of the main module.
+    /// Continue at a label of the body it stands in: the main module, or the SUB whose statement it is (design D7
+    /// of `m4-statements-metacommands`).
     To(LabelId),
 }
 
@@ -681,6 +693,12 @@ pub enum Op {
     /// Make the handler kept last the handler again and drop it from the list; with none kept, no handler
     /// (`ON ERROR GOTO _LASTHANDLER`).
     LastHandler,
+    /// `RUN` (design D5 of `m4-statements-metacommands`): resets the screen and the runtime as `sub_run_init` does
+    /// and clears every variable as `CLEAR` does, then starts the program again ([`RunTarget`]).
+    Run(RunTarget),
+    /// `PALETTE USING` (design D11 of `m4-statements-metacommands`): the palette from the elements of `array` (of
+    /// `bits` 16 or 32), from the element `index` gives or the array's first.
+    PaletteUsing { array: VarId, index: Vec<Expr>, bits: u8 },
     /// Raise the runtime error with this number (an `I32`).
     Raise(Expr),
     /// An entry of the runtime's log at `level` with the message `msg` (a `Str`), naming the statement's file,
@@ -752,6 +770,8 @@ impl Op {
             | Op::Key(_)
             | Op::Raise(_)
             | Op::Resume(_)
+            | Op::Run(_)
+            | Op::PaletteUsing { .. }
             | Op::Return(_)
             | Op::Allocate { .. }
             | Op::CopyArray { .. }
@@ -890,6 +910,9 @@ pub struct Settings {
     pub exe_icon: bool,
     /// The executable carries a version resource and a manifest (`$VERSIONINFO`).
     pub version_info: Option<VersionInfo>,
+    /// `$ERRORLOCATION:ON`: the program records each statement's line before it runs, so that a critical error's
+    /// message names it (design D6 of `m4-builtins-remaining`). How is the backend's (`error_track_line` in C++).
+    pub error_location: bool,
 }
 
 impl Program {

@@ -51,6 +51,7 @@ that every statement leaves a mark in the recorded state.
 | `d16_screen_13` | `SCREEN 13`: `CLS method, colour`, a colour above 15, `PRESET` |
 | `d17_tab_window` | (`m3-get-put-bload`) `TAB`, `SPC` and `POS` in a text window: a column, the next line when the cursor is past it, a zone after `TAB`, a column past the width, `TAB` and `SPC` as functions |
 | `d18_get_put` | (`m3-get-put-bload`) Graphics `GET` and `PUT` in `SCREEN 12`: no action and each action word over a background, a colour, `_CLIP` at two edges, `STEP`; the array whole and from an element, of two dimensions, of LONG, dynamic, and in a SUB a parameter, a local and a `STATIC` array; error 5 for a `PUT` that leaves the screen and a `GET` into an array that is too small |
+| `d19_blink_display` | (`m4-builtins-remaining`) `_BLINK OFF` with a line in a blinking colour, `_BLINK` as a function, the display statements `_GLRENDER`, `_DISPLAYORDER`, `_ALLOWFULLSCREEN` and `_FPS` in each form, and the display functions `_SCALEDWIDTH`, `_SCALEDHEIGHT`, `_SMOOTH`, `_DESKTOPREFRESHRATE` (as a comparison), `_DISPLAY` and the lock keys (as comparisons) in a text window (`verification\v58_s05`, `s06`, `f14`) |
 
 `d15_pacing` empties the key buffer before its `SLEEP`: the keys file gives the next key only when the buffer is
 empty, and a key ends `SLEEP` only when it comes while `SLEEP` waits. Its `SLEEP 2` is the longest it can take
@@ -159,3 +160,10 @@ waits on it. `k03` uses the keys file's `hold` and `lift` (`tools\screen\README.
 | `c15_resize` | `$RESIZE:ON` with no resize by the user: `_RESIZE`, `_RESIZEWIDTH`, `_RESIZEHEIGHT` at the start, after half a second and after `_RESIZE OFF` (all 0; the same in both runs of the recording, so the functions run: design D2) |
 | `c16_controlchr` | `_CONTROLCHR` on (the start): `CHR$(12)` clears, TAB, the cursor moves 28 to 31, `CHR$(11)` and `CHR$(13)` act; off: the characters 0 to 31 as glyphs on one row, a bell and a line feed between two letters; the function both ways |
 | `c17_default_colours` | `_DEFAULTCOLOR` and `_BACKGROUNDCOLOR` after `COLOR` in `SCREEN 0`, `SCREEN 12` and a 32-bit screen, and of page 0 there |
+
+Written by `m4-statements-metacommands` (task 5.4, 2026-10-23) and recorded the same way.
+
+| Program | Covers |
+|---|---|
+| `p01_palette_using` | `PALETTE USING b(2)` from a `LONG` array in `SCREEN 13` (libqb takes only `LONG` there), then boxes in colours it set |
+| `p02_palette_using_integer` | `PALETTE USING a` of a whole `INTEGER` array in `SCREEN 7`, an element of -1 leaving its attribute, then a box in each attribute |

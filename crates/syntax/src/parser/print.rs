@@ -73,3 +73,18 @@ pub(super) fn file_number(p: &mut Parser) -> bool {
     p.finish_node();
     ok
 }
+
+/// [`file_number`] of the statement `word`, where a `;` after the number is the old compiler's "Expected # ... ,"
+/// (design D2 of `m4-statements-metacommands`; measured for `WRITE`, `verification\v57_e03`).
+pub(super) fn file_number_of(p: &mut Parser, word: &str) -> bool {
+    p.start_node(FileNumber);
+    p.bump(); // #
+    let ok = expr(p) && {
+        if p.at(Semicolon) {
+            p.error(format!("`{word} #n` needs `,` after the file number, not `;`"));
+        }
+        p.expect(Comma, "`,` after the file number")
+    };
+    p.finish_node();
+    ok
+}

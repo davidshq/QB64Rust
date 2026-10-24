@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):U = _RGBA32 ( 1 , 2 , 3 , )
+LINE 3:u = _RGBA32(1, 2, 3, )
+exit=1

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):T
+LINE 5:t
+exit=1

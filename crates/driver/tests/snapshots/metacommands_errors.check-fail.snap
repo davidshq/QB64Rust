@@ -1,0 +1,25 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+metacommands_errors.bas:6:1: error: unknown metacommand `$NOSUCHTHING`
+metacommands_errors.bas:6:1: note: QB64pe: Syntax error
+metacommands_errors.bas:7:1: error: unknown metacommand `$nosuch`
+metacommands_errors.bas:7:1: note: QB64pe: Syntax error
+metacommands_errors.bas:8:1: error: unknown metacommand `$FOO`
+metacommands_errors.bas:8:1: note: QB64pe: Syntax error
+metacommands_errors.bas:9:1: error: unknown metacommand `$STATIC`
+metacommands_errors.bas:9:1: note: QB64pe: Syntax error
+metacommands_errors.bas:10:1: error: unknown metacommand `$DYNAMIC`
+metacommands_errors.bas:10:1: note: QB64pe: Syntax error
+metacommands_errors.bas:11:1: error: unknown metacommand `$INCLUDE`
+metacommands_errors.bas:11:1: note: QB64pe: Syntax error
+metacommands_errors.bas:12:1: error: unknown metacommand `$`
+metacommands_errors.bas:12:1: note: QB64pe: Syntax error
+metacommands_errors.bas:13:1: error: unknown metacommand `$MIDISOUNDFONT`
+metacommands_errors.bas:13:1: note: QB64pe: Syntax error
+metacommands_errors.bas:14:1: error: unknown metacommand `$MIDISOUNDFONTS`
+metacommands_errors.bas:14:1: note: QB64pe: Syntax error
+metacommands_errors.bas:15:1: error: `$NOPREFIX` is deprecated: QB64pe's own names must have their underscore (the IDE can convert the program)
+metacommands_errors.bas:16:1: error: unknown metacommand `$ERRORLOCATION`
+metacommands_errors.bas:16:1: note: QB64pe: Syntax error

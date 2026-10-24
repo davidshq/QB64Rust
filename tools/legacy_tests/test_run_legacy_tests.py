@@ -1404,6 +1404,20 @@ class VerificationCompare(VerificationFixture):
         self.assert_fail(self.run_test(tools), "expected", "nothing recorded to compare")
         self.assertEqual(tools.compile_cmd, [])
 
+    def test_the_folders_short_spelling_is_masked_too(self):
+        # FILES prints the 8.3 form of a folder (verification/v58_s02_files); on a volume without short names
+        # there is nothing to mask.
+        folder = self.results / "verification-long-name"
+        folder.mkdir()
+        short = rlt.short_path(folder)
+        if short is None:
+            self.skipTest("no 8.3 names on this volume")
+        self.assertNotEqual(short.lower(), str(folder).lower())
+        sep = chr(92)
+        text = f"{short}{sep}v58_fil{sep}\nx {folder}{sep}y\n".encode()
+        want = f"<verification>{sep}v58_fil{sep}\nx <verification>{sep}y\n".encode()
+        self.assertEqual(rlt.mask_folder(text, folder), want)
+
     def test_the_run_folder_is_masked(self):
         self.recorded(b"<verification>/v99_p.exe\nexit=0\n")
         work = str(self.results / "v99_p").upper().replace("\\", "/")
@@ -1589,6 +1603,117 @@ class VerificationCompare(VerificationFixture):
         with mock.patch.object(rlt.shutil, "copyfile", copy_once), self.assertRaises(OSError):
             rlt.place_root_files(self.root, "v99_p", clone)
         self.assertEqual(list(clone.iterdir()), [])
+
+    # A folder in the sidecar: the compiler's own folder (design D8 of m4-builtins-remaining).
+
+    def a_clone(self) -> Path:
+        clone = self.results / "clone"
+        (clone / "internal" / "temp").mkdir(parents=True)
+        (clone / "settings").mkdir()
+        (clone / "settings" / "config.ini").write_bytes(b"[x]\n")
+        (clone / "qb64pe.exe").write_bytes(b"old compiler")
+        (clone / "Makefile").write_bytes(b"all:\n")
+        return clone
+
+    def a_library(self, text: bytes = b"[LIBRARY INCLUDES]\nIncAtTop=a.bi\n") -> Path:
+        ini = self.root / "v99_root" / "libraries" / "descriptors" / "t" / "a.ini"
+        ini.parent.mkdir(parents=True, exist_ok=True)
+        ini.write_bytes(text)
+        (self.root / "v99_p.root").write_bytes(b"# the compiler's folder\nv99_root\n")
+        return ini
+
+    def test_a_root_folder_is_recorded_with_a_copy_of_the_release(self):
+        clone = self.a_clone()
+        self.a_library()
+        tools = Tools(runs=[b"ok\r\n"])
+        r = self.record(tools, clone)
+        self.assertEqual((r.status, r.kind), ("PASS", "recorded"), r.detail)
+        copy = self.results.parent / "qb64pe-root" / "v99_root"
+        self.assertEqual(tools.compile_cmd[0], str(copy / "qb64pe.exe"))
+        self.assertEqual((copy / "qb64pe.exe").read_bytes(), b"old compiler")
+        self.assertEqual((copy / "Makefile").read_bytes(), b"all:\n")
+        self.assertEqual((copy / "settings" / "config.ini").read_bytes(), b"[x]\n")
+        self.assertTrue(rlt.is_junction(copy / "internal"))
+        self.assertTrue((copy / "internal" / "temp").is_dir())
+        self.assertTrue((copy / "libraries" / "descriptors" / "t" / "a.ini").is_file())
+        self.assertTrue((copy / rlt.ROOT_STAMP).is_file())
+        self.assertFalse((clone / "libraries").exists())
+        self.assertEqual(
+            sorted(p.name for p in clone.iterdir()), ["Makefile", "internal", "qb64pe.exe", "settings"]
+        )
+
+    def test_the_copy_is_kept_while_its_stamp_holds(self):
+        clone = self.a_clone()
+        ini = self.a_library()
+        self.record(Tools(runs=[b"ok\r\n"]), clone)
+        copy = self.results.parent / "qb64pe-root" / "v99_root"
+        marker = copy / "marker.txt"
+        marker.write_bytes(b"m")
+        self.record(Tools(runs=[b"ok\r\n"]), clone)
+        self.assertTrue(marker.is_file(), "the copy was made again with nothing changed")
+        # The folder changed: made again, the junction removed as a junction (the clone's internal stays).
+        ini.write_bytes(b"[LIBRARY INCLUDES]\nIncAtBottom=b.bm\n")
+        self.record(Tools(runs=[b"ok\r\n"]), clone)
+        self.assertFalse(marker.exists())
+        self.assertEqual((copy / "libraries" / "descriptors" / "t" / "a.ini").read_bytes(), ini.read_bytes())
+        self.assertTrue((clone / "internal" / "temp").is_dir())
+        # The clone's compiler changed: made again.
+        marker.write_bytes(b"m")
+        (clone / "qb64pe.exe").write_bytes(b"newer compiler")
+        self.record(Tools(runs=[b"ok\r\n"]), clone)
+        self.assertFalse(marker.exists())
+        self.assertEqual((copy / "qb64pe.exe").read_bytes(), b"newer compiler")
+
+    def test_a_real_internal_folder_in_a_copy_is_never_removed(self):
+        clone = self.a_clone()
+        self.a_library()
+        copy = self.results.parent / "qb64pe-root" / "v99_root"
+        (copy / "internal").mkdir(parents=True)
+        (copy / "internal" / "theirs.txt").write_bytes(b"t")
+        tools = Tools()
+        r = self.record(tools, clone)
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"), r.detail)
+        self.assertIn("not the runner's junction", r.detail)
+        self.assertEqual(tools.compile_cmd, [])
+        self.assertTrue((copy / "internal" / "theirs.txt").is_file())
+
+    def test_two_folders_in_the_sidecar_are_an_error(self):
+        clone = self.a_clone()
+        self.a_library()
+        (self.root / "v99_other").mkdir()
+        (self.root / "v99_p.root").write_bytes(b"v99_root\nv99_other\n")
+        tools = Tools()
+        r = self.record(tools, clone)
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"), r.detail)
+        self.assertIn("names two folders", r.detail)
+        self.assertEqual(tools.compile_cmd, [])
+
+    def test_a_root_folder_is_under_the_include_root_of_the_compare(self):
+        self.recorded(b"1\nexit=0\n")
+        self.a_library()
+        tools = Tools(runs=[b"2\n"])
+        self.assert_fail(self.run_test(tools), "result")
+        work = self.results / "v99_p"
+        self.assertTrue((work / "root" / "libraries" / "descriptors" / "t" / "a.ini").is_file())
+        i = tools.compile_cmd.index("--include-root")
+        self.assertEqual(tools.compile_cmd[i + 1], str(work / "root"))
+        self.assertFalse((self.results.parent / "qb64pe-root").exists())
+
+    def test_a_root_file_the_folder_holds_is_an_error_to_the_compare_as_to_the_recording(self):
+        # The sidecar names the folder and a file of the same path as one of the folder's: the recording
+        # refuses it (place_root_files after root_copy), and so does the compare, before compiling.
+        self.recorded(b"1\nexit=0\n")
+        self.a_library()
+        rel = "libraries/descriptors/t/a.ini"
+        (self.root / rel).parent.mkdir(parents=True)
+        (self.root / rel).write_bytes(b"[LIBRARY INCLUDES]\n")
+        (self.root / "v99_p.root").write_bytes(f"v99_root\n{rel}\n".encode())
+        tools = Tools()
+        self.assert_fail(self.run_test(tools), "expected", "is already under the compiler's folder")
+        self.assertEqual(tools.compile_cmd, [])
+        r = self.record(Tools(), self.a_clone())
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"), r.detail)
+        self.assertIn("is already under the compiler's folder", r.detail)
 
 
 def a_log(seconds: str, address: str, line: int = 3, folder: str = "") -> bytes:

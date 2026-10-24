@@ -1,0 +1,6 @@
+start
+in if
+
+Runtime error: Line: 8 (in main module)
+Division by zero
+exit=0

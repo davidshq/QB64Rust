@@ -1,0 +1,3 @@
+two
+after
+exit=0

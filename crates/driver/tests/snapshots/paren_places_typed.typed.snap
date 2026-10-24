@@ -1,0 +1,44 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY X:I16(0 TO 3)
+ARRAY B:I16(2 TO 5, 0 TO 3)
+DATA 0: 1
+DATA 1: 2
+DATA 2: 3
+line 2: ConsoleOnly
+line 7: Assign A:I32
+  Int 1 : I32
+line 7: Assign C:I32
+  Int 2 : I32
+line 8: Builtin SWAP
+  place A : I32
+  place C : I32
+line 9: Builtin SWAP
+  place A : I32
+  place C : I32
+line 10: Builtin SWAP
+  place X(…) : I16
+    Int 1 : I64
+  place X(…) : I16
+    Int 2 : I64
+line 11: Builtin SWAP
+  place A : I32
+  place C : I32
+line 12: Read
+  target Q : F32
+  target R : F32
+line 13: Read
+  target X(…) : I16
+    Int 1 : I64
+line 14: Input from the console question
+  target N : F32
+line 15: LineInput from the console
+  target S : Str
+line 16: Print newline
+  Num
+    LBound X : I64
+  Num
+    UBound B : I64
+      Int 2 : I32

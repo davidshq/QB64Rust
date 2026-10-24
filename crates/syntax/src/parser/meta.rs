@@ -10,9 +10,10 @@
 use super::Parser;
 use super::blocks::Block;
 use crate::SyntaxKind::*;
+use crate::library::{self, Descriptor};
 use crate::meta::comment_directives;
 use crate::pp::{Directive, directive, meta_line, meta_settings};
-use crate::program::LoadError;
+use crate::program::{LoadError, UsedLibrary};
 use qb64rust_base::show_bytes;
 
 /// A metacommand line as a `MetaStmt`. Returns true when it also took its line end (an inactive branch follows,
@@ -50,6 +51,9 @@ pub(crate) fn metacommand(p: &mut Parser) -> bool {
                 // Later inclusions of this file are empty (`qb64pe.bas` 3141–3165, measured M7). With a tab or
                 // a word after it the line is an error, which `sema` reports (`verification\v26_x59`, `x61`).
                 p.inc.once.insert(p.file);
+            }
+            if library::is_use_library(&line) {
+                p.use_library(text, span);
             }
             // The metacommands that set a precompiler flag (design D7 of `m2-console-screenhide`).
             for &(feature, value) in meta_settings(&line) {
@@ -191,8 +195,8 @@ fn nested_condition_error(p: &Parser, cond: &[u8]) -> Option<String> {
 impl Parser<'_, '_> {
     /// Includes the file `name` (as written) at the include statement at `span` (design D9): loaded through the
     /// loader (which resolves the path), parsed at once as a tree of its own with the preprocessor state as it is
-    /// here, which it then hands back. A file that held `$INCLUDEONCE` is not included again. Blocks open here
-    /// are marked as crossing a file boundary (`blocks.rs`).
+    /// here, which it then hands back. A file that held `$INCLUDEONCE` is not included again. The blocks open here
+    /// go on in it, and those it leaves open go on here (design D8 of `m4-statements-metacommands`, `blocks.rs`).
     fn include(&mut self, name: &[u8], span: qb64rust_base::Span) {
         let shown = show_bytes(name);
         if self.inc.depth >= MAX_INCLUDE_DEPTH {
@@ -221,14 +225,113 @@ impl Parser<'_, '_> {
         let depth = self.pp.depth();
         let saved = self.pp.start_tracking();
         let pp = std::mem::take(&mut self.pp);
+        // The open blocks go on in the included file, as the old compiler reads included text (design D8 of
+        // `m4-statements-metacommands`); inside a single-line `IF` none does.
+        let handed: Vec<_> = if self.blocks.iter().any(|o| o.is_line_if()) {
+            Vec::new()
+        } else {
+            self.blocks
+                .iter()
+                .filter(|o| !o.is_pp_if())
+                .map(|o| o.outside())
+                .collect()
+        };
         self.inc.depth += 1;
-        let (tree, pp) = super::parse_tree_with(id, file, &bytes, pp, self.inc, true);
+        let (tree, pp, open) = super::parse_tree_with(id, file, &bytes, pp, self.inc, true, handed.clone());
         self.inc.depth -= 1;
         self.pp = pp;
         let low = self.pp.stop_tracking(saved);
         self.inc.trees[id.0 as usize] = Some(tree);
-        self.mark_blocks_crossed();
+        // Those it did not close stay as they were (a prefix of what was handed in); the rest of what is open at
+        // its end it opened, and is open here after the ones it closed.
+        let still = handed.iter().zip(&open).take_while(|(a, b)| a.key() == b.key()).count();
+        self.closed_elsewhere = handed.len() - still;
+        self.left_open = open[still..].to_vec();
+        for (mine, theirs) in self.blocks.iter_mut().filter(|o| !o.is_pp_if()).zip(&open[..still]) {
+            mine.take_state(theirs);
+        }
         self.pp_ifs_closed_elsewhere(depth.saturating_sub(low));
+    }
+
+    /// `$USELIBRARY:'author/library'` (design D7 of `m4-builtins-remaining`; `qb64pe.bas` 1915–1976; measured,
+    /// `verification\v58_u00`–`u26`): the name between the line's first two `'`, the descriptor under the compiler
+    /// root and the files its three keys name, each of which must exist, else the old compiler's error at the line
+    /// ("Expected $USELIBRARY:'author/library'", "Library descriptor for '…' not found", "Library source for '…'
+    /// not found (<key>)"). A library not registered yet by this name from this file and line is added to the list
+    /// the rounds share, and the program is parsed again with its files in it ([`crate::pp::Round::again`]); the
+    /// same line in a later round adds nothing and reads nothing (its files are in the map already).
+    fn use_library(&mut self, text: &[u8], span: qb64rust_base::Span) {
+        let Some(name) = library::library_name(text).filter(|n| !n.is_empty()) else {
+            self.error_at(
+                span,
+                "`$USELIBRARY` needs a library name in quotes: `$USELIBRARY:'author/library'`",
+            );
+            return;
+        };
+        let line = qb64rust_base::to_u32(
+            self.bytes[..span.start as usize]
+                .iter()
+                .filter(|&&b| b == b'\n')
+                .count(),
+        ) + 1;
+        let needy = (self.file, line);
+        if self.inc.libraries.iter().any(|l| l.name == name && l.needy == needy) {
+            return;
+        }
+        let shown = show_bytes(&name);
+        let desc = match self.inc.loader.library(&name) {
+            Ok(text) => Descriptor::parse(&text),
+            Err(LoadError::NotFound) => {
+                let msg = format!(
+                    "no descriptor of the library `{shown}` under the compiler root \
+                     (`libraries/descriptors/{shown}.ini`)"
+                );
+                self.error_at(span, msg);
+                return;
+            }
+            Err(LoadError::Unreadable(e)) => {
+                self.error_at(
+                    span,
+                    format!("cannot read the descriptor of the library `{shown}`: {e}"),
+                );
+                return;
+            }
+        };
+        let mut files = [None, None, None];
+        for (k, (key, file)) in desc.files().into_iter().enumerate() {
+            let Some(file) = file else {
+                continue;
+            };
+            let path = library::file_path(&name, file);
+            match self.inc.loader.load_root(self.inc.map, &path) {
+                Ok(id) => files[k] = Some(id),
+                Err(LoadError::NotFound) => {
+                    let msg = format!(
+                        "the file `{}` of the library `{shown}` is not under the compiler root (`{key}` of its \
+                         descriptor)",
+                        show_bytes(file)
+                    );
+                    self.error_at(span, msg);
+                    return;
+                }
+                Err(LoadError::Unreadable(e)) => {
+                    let msg = format!(
+                        "cannot read the file `{}` of the library `{shown}`: {e}",
+                        show_bytes(file)
+                    );
+                    self.error_at(span, msg);
+                    return;
+                }
+            }
+        }
+        self.inc.libraries.push(UsedLibrary {
+            name,
+            needy,
+            top: files[0],
+            after_main: files[1],
+            bottom: files[2],
+        });
+        self.inc.libraries_added = true;
     }
 
     /// The included file closed `closed` open `$IF`s (its `$END IF` found none of them in its own file): the

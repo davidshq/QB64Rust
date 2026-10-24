@@ -1,0 +1,48 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 2
+  SelectConsole
+Stmt line 5
+  Branch Zero -> @2 Skip: Eq:I32(Var X:F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 5 may_raise
+  Run
+Label @2 line 5
+Stmt line 6
+  Branch Zero -> @3 Skip: Eq:I32(Var X:F32, (Const 2:I16 -> Convert F32 Nearest))
+Stmt line 6 may_raise
+  Run AGAIN
+Label @3 line 6
+Stmt line 7
+  Branch Zero -> @4 Skip: Eq:I32(Var X:F32, (Const 3:I16 -> Convert F32 Nearest))
+Stmt line 7 may_raise
+  Run 100
+Label @4 line 7
+Stmt line 8
+  Branch Zero -> @5 Skip: Eq:I32(Var X:F32, (Const 4:I16 -> Convert F32 Nearest))
+Stmt line 8 may_raise
+  Run file Const "other.exe"
+Label @5 line 8
+Stmt line 9 may_raise
+  Call S []
+Stmt line 10
+  System
+Label AGAIN line 11
+Stmt line 12
+  Print console newline
+    Str Const "again"
+Label 100 line 13 last_line 100
+Stmt line 13
+  Print console newline
+    Str Const "100"
+Sub S lines 14-17
+  local Y:F32
+Stmt line 15
+  Branch Zero -> @0 Skip: Eq:I32(Var Y(local):F32, (Const 1:I16 -> Convert F32 Nearest))
+Stmt line 15 may_raise
+  Run
+Label @0 line 15
+Stmt line 16 may_raise
+  Run AGAIN

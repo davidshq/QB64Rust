@@ -1,0 +1,5 @@
+
+Command not implemented
+Caused by (or after):X = SETMEM ( 0 )
+LINE 3:x = SETMEM(0)
+exit=1

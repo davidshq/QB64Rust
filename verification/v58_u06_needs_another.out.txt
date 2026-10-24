@@ -1,0 +1,4 @@
+main a;c;
+sub c
+sub a
+exit=0

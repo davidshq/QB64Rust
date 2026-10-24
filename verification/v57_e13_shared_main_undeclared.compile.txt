@@ -1,0 +1,5 @@
+
+SHARED must be used within a SUB/FUNCTION
+Caused by (or after):SHARED Q
+LINE 3:SHARED q
+exit=1

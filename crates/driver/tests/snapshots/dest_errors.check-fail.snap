@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 151
 expression: snap
 ---
 dest_errors.bas:9:6: error: this `_DEST` statement matches none of its forms: `_DEST ?`
@@ -23,12 +22,12 @@ dest_errors.bas:17:1: error: `_ECHO` takes 1 argument
 dest_errors.bas:17:1: note: QB64pe: Syntax error - Reference: _ECHO text$
 dest_errors.bas:18:1: error: `_ECHO` takes 1 argument
 dest_errors.bas:18:1: note: QB64pe: Syntax error - Reference: _ECHO text$
-dest_errors.bas:19:5: error: `_DEST` takes 0 arguments
+dest_errors.bas:19:5: error: `_DEST` takes no arguments
 dest_errors.bas:19:5: note: QB64pe: Incorrect number of arguments - Reference: _DEST
 dest_errors.bas:20:5: error: `_DEST` with empty parentheses
-dest_errors.bas:21:5: error: `_SOURCE` takes 0 arguments
+dest_errors.bas:21:5: error: `_SOURCE` takes no arguments
 dest_errors.bas:22:5: error: `_SOURCE` with empty parentheses
-dest_errors.bas:23:5: error: `_CONSOLE` takes 0 arguments
+dest_errors.bas:23:5: error: `_CONSOLE` takes no arguments
 dest_errors.bas:23:5: note: QB64pe: Incorrect number of arguments - Reference: _CONSOLE
 dest_errors.bas:24:5: error: `_CONSOLE` with empty parentheses
 dest_errors.bas:25:1: error: `_DEST` takes 1 argument

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_INPUTBOX$ "t",1
+LINE 6:_INPUTBOX$ "t"
+exit=1

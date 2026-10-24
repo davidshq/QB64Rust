@@ -1,0 +1,5 @@
+start
+
+Runtime error: Line: 7 (in main module)
+Division by zero
+exit=0

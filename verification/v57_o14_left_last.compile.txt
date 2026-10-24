@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):U$ = LEFT$ ( "abc",3 , )
+LINE 3:u$ = LEFT$("abc", )
+exit=1

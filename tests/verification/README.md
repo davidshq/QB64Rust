@@ -10,7 +10,7 @@ what the new compiler is held to against them, so that `verification\` keeps the
 | `pass.list` | the programs the new compiler passes, one name per line (no `.bas`; `#` starts a comment) |
 | `known.list` | every other program: its name, a tab, the reason (below) |
 | `divergences\<name>.divergences` | the rows of `DIVERGENCES.md` a passing program may take, one `D-0nn` per line, as for the corpus |
-| `normalize\<name>.normalize` | rules applied to both the recorded and the actual output before they are compared, as for the corpus (`<regex><TAB><replacement>`); none yet, so the folder is made with the first |
+| `normalize\<name>.normalize` | rules applied to both the recorded and the actual output before they are compared, as for the corpus (`<regex><TAB><replacement>`); the first is `v58_s02_files`'s, which masks the free space `FILES` prints |
 
 Every program of `verification\` is named exactly once across the two lists; tier 1 checks it
 (`verification_lists_are_exact` in `crates\driver\tests\inputs.rs`). A change that adds a family adds its programs
@@ -47,6 +47,12 @@ device or the `.stdin`, a 60 s timeout, no key presses, its window on a desktop 
   `exit=` line as the recording writes it, equals the recording (CRLF as LF, trailing newlines ignored);
 - a recorded timeout passes when the run times out too with the same output before it.
 
+A program with a `<name>.root` sidecar (`tools\legacy_tests\README.md`, "Verification programs") is compiled with
+`--include-root` of a folder `root\` in its own folder that holds what the sidecar lists: the files it names
+(`v47_e01`, an icon) and the contents of the folder it names (`v58_u*`: `v58_root\`, whose `libraries\` holds the
+test libraries of `$USELIBRARY`). The recording was made with `qb64pe.exe` in a copy of the release whose own
+folder held the same, so both compilers see one compiler root.
+
 The `v37` programs need the libraries `verification\v37_lib\build_libs.py` builds (git-ignored).
 
 ```
@@ -62,7 +68,7 @@ suite runs without it and the list is judged from that run with `--check-list te
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:verification-membership -->
-Of the 3440 programs of `verification\`, `pass.list` names **3333** and `known.list` 107.
+Of the 3841 programs of `verification\`, `pass.list` names **3771** and `known.list` 70.
 
 | Reason in `known.list` | Programs |
 |---|---|
@@ -90,12 +96,12 @@ Of the 3440 programs of `verification\`, `pass.list` names **3333** and `known.l
 | `D-032` | 1 |
 | `D-034` | 1 |
 | `not recorded` | 4 |
-| `not supported yet` | 47 |
+| `not supported yet` | 9 |
 | `recorded elsewhere` | 1 |
-| `varies` | 3 |
+| `varies` | 4 |
 <!-- /counts:verification-membership -->
 
 <!-- counts:verification-results -->
-Last full run: 2026-10-22, compiler build `690642b79dcc`, folding on, `--jobs 8`, build cache, 4 min. Of 3156 programs: **2960 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 196 known failures (`target\legacy-tests\results-verification.json`).
-`pass.list` judged in it (`--check-list`): **2959 of 2959** pass.
+Last full run: 2026-10-24, compiler build `07e987b2d118`, folding on, `--jobs 8`, build cache, 6 min. Of 3841 programs: **3771 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 70 known failures (`target\legacy-tests\results-verification.json`).
+`pass.list` judged in it (`--check-list`): **3771 of 3771** pass.
 <!-- /counts:verification-results -->

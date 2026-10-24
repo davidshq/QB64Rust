@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_UPTIME
+LINE 6:_UPTIME
+exit=1

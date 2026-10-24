@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):U$ = MID$ ( "abc",3 , 1 , )
+LINE 3:u$ = MID$("abc", 1, )
+exit=1

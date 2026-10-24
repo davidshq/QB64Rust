@@ -67,7 +67,9 @@ images_errors.bas:44:7: note: QB64pe: Incorrect number of arguments - Reference:
 images_errors.bas:45:13: error: this `_DONTBLEND` statement matches none of its forms: `_DONTBLEND [?]`
 images_errors.bas:45:13: note: QB64pe: Syntax error - Reference: _DONTBLEND [imageHandle&]
 images_errors.bas:46:1: error: `_AUTODISPLAY` takes 0 arguments
-images_errors.bas:47:7: error: `_AUTODISPLAY` takes 0 arguments
+images_errors.bas:46:1: note: QB64pe: SUB does not require any arguments
+images_errors.bas:47:7: error: `_AUTODISPLAY` takes no arguments
+images_errors.bas:47:7: note: QB64pe: Incorrect number of arguments - Reference: _AUTODISPLAY
 images_errors.bas:48:7: error: `PMAP` takes 2 arguments
 images_errors.bas:48:7: note: QB64pe: Incorrect number of arguments - Reference: PMAP(coordinate, function_number%)
 images_errors.bas:49:7: error: `PMAP` takes 2 arguments

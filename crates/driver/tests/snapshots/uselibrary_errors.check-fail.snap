@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+uselibrary_errors.bas:6:1: error: `$USELIBRARY` needs a library name in quotes: `$USELIBRARY:'author/library'`
+uselibrary_errors.bas:6:1: note: QB64pe: Expected $USELIBRARY:'author/library'
+uselibrary_errors.bas:7:1: error: `$USELIBRARY` needs a library name in quotes: `$USELIBRARY:'author/library'`
+uselibrary_errors.bas:7:1: note: QB64pe: Expected $USELIBRARY:'author/library'
+uselibrary_errors.bas:8:1: error: `$USELIBRARY` needs a library name in quotes: `$USELIBRARY:'author/library'`
+uselibrary_errors.bas:8:1: note: QB64pe: Expected $USELIBRARY:'author/library'
+uselibrary_errors.bas:9:1: error: no descriptor of the library `test/none` under the compiler root (`libraries/descriptors/test/none.ini`)
+uselibrary_errors.bas:10:1: error: the file `missing.bm` of the library `test/broken` is not under the compiler root (`IncAfterMain` of its descriptor)

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):U = _RGB32 ( , 2 , 3 )
+LINE 3:u = _RGB32(, 2, 3)
+exit=1

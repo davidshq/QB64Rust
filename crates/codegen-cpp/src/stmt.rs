@@ -6,7 +6,7 @@ use crate::names::{c_type, escape_string, int_const, proc_name};
 use crate::place::fixed_at;
 use qb64rust_ir::{
     ArrayRef, Event, EventHandler, Expr, ExprKind, Facts, LabelId, LogLevel, MemberId, OnError, Op, Place, PrintTo,
-    Resume, Ty, When,
+    Resume, RunTarget, Ty, When,
 };
 use std::fmt::Write as _;
 
@@ -116,11 +116,42 @@ impl Emitter<'_> {
                     out.push("qbs_cleanup(qbs_tmp_base,0);".into());
                 }
             }
+            // As the old compiler writes `RUN` (`qb64pe.bas` 9764–9836; read with `-z`, design D5 of
+            // `m4-statements-metacommands`): from a procedure a label is reached through a new run of the main
+            // module and an entry of `runline.txt`, which `QBMAIN` includes at its start.
+            Op::Run(RunTarget::File(f)) => out.push(format!("sub_run({});", self.value(f))),
+            Op::Run(t) => {
+                out.push("sub_run_init();".into());
+                out.push("sub_clear(NULL,NULL,NULL,NULL);".into());
+                match t {
+                    RunTarget::Restart if self.k == 0 => out.push("goto S_0;".into()),
+                    RunTarget::Label(l) if self.k == 0 => out.push(format!("goto {};", self.label_name(*l))),
+                    RunTarget::Restart => out.push("QBMAIN(NULL);".into()),
+                    RunTarget::Label(l) => {
+                        self.runs += 1;
+                        let n = self.runs;
+                        let label = self.label_name(*l);
+                        writeln!(
+                            self.run_lines,
+                            "if (run_from_line=={n}){{run_from_line=0;goto {label};}}"
+                        )
+                        .unwrap();
+                        out.push(format!("run_from_line={n};"));
+                        out.push("QBMAIN(NULL);".into());
+                    }
+                    RunTarget::File(_) => unreachable!("matched above"),
+                }
+            }
+            Op::PaletteUsing { array, index, bits } => {
+                let bytes = self.block(*array, index);
+                out.push(format!("sub_paletteusing({bytes},{bits});"));
+            }
             Op::Resume(r) => {
                 let then = match r {
                     Resume::Retry => "error_retry=1; qbevent=1; error_handling=0; error_err=0; return;".to_string(),
                     Resume::Next => "error_handling=0; error_err=0; return;".to_string(),
-                    Resume::To(l) => format!("error_handling=0; error_err=0; goto {};", self.label_name(*l)),
+                    // A label of the body it stands in, as `RESUME label` in a SUB names the SUB's own.
+                    Resume::To(l) => format!("error_handling=0; error_err=0; goto {};", self.local_label(*l)),
                 };
                 out.push(format!("if (!error_handling){{error(20);}}else{{{then}}}"));
             }

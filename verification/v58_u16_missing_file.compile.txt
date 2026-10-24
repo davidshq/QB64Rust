@@ -1,0 +1,5 @@
+
+Library source for 'test/broken' not found (IncAfterMain)
+Caused by (or after):
+LINE 3:$USELIBRARY:'test/broken'
+exit=1

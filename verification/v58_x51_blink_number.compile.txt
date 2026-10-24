@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _BLINK {On|Off}
+Caused by (or after):_BLINK 1
+LINE 6:_BLINK 1
+exit=1

@@ -1,0 +1,6 @@
+three_handler:
+PRINT "three main handler"
+RETURN
+three_err:
+PRINT "three err"; ERR
+RESUME NEXT

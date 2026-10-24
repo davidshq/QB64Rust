@@ -1,0 +1,5 @@
+
+Expected CALL sub-name [(...)]
+Caused by (or after):CALL G& ( 1 )
+LINE 3:CALL g&(1)
+exit=1

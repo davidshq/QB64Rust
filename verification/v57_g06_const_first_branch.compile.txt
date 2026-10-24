@@ -1,0 +1,5 @@
+
+Name already in use (k)
+Caused by (or after):PRINT "k =",3 ; K
+LINE 11:PRINT "k ="; k
+exit=1

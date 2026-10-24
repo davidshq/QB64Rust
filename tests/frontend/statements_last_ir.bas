@@ -1,0 +1,58 @@
+' TEST: ir
+' The statements no program used before m4-builtins-remaining (its design D2, D4; verification\v58_s01-s08, x33,
+' x40, x41, x44): each the call of its row with its slots and words, in every form the old compiler accepts: the
+' ports, FILES bare and with a spec, DATE$ = and TIME$ = (read by the table's template, as any statement), the
+' console statements (_CONSOLECURSOR bare too), the display statements (_DISPLAYORDER bare and with a word twice,
+' _FPS bare), _BLINK, the lock keys, _NOTIFYPOPUP with slots left out, _SCREENCLICK and _SCREENPRINT.
+$CONSOLE:ONLY
+DIM l AS LONG, d AS DOUBLE, s AS STRING, fx AS STRING * 4
+OUT &H3C8, l
+OUT d, 2
+WAIT &H3DA, 8
+WAIT l, 1, d
+FILES
+FILES "*.txt"
+FILES s
+DATE$ = "01-02-2003"
+TIME$ = s
+DATE$ = fx
+_CONSOLETITLE s
+_CONSOLECURSOR
+_CONSOLECURSOR _HIDE
+_CONSOLECURSOR _SHOW, 50
+_CONSOLECURSOR , l
+_CONSOLEFONT "Consolas", 16
+_CONSOLEFONT s, l
+_GLRENDER _BEHIND
+_GLRENDER _ONTOP
+_GLRENDER _ONLY
+_DISPLAYORDER
+_DISPLAYORDER _SOFTWARE
+_DISPLAYORDER _HARDWARE, _SOFTWARE
+_DISPLAYORDER _SOFTWARE, _SOFTWARE
+_DISPLAYORDER _SOFTWARE, _HARDWARE, _HARDWARE1, _GLRENDER
+_ALLOWFULLSCREEN
+_ALLOWFULLSCREEN _STRETCH, _SMOOTH
+_ALLOWFULLSCREEN _OFF
+_ALLOWFULLSCREEN _SQUAREPIXELS
+_ALLOWFULLSCREEN _ALL, _ALL
+_ALLOWFULLSCREEN , _SMOOTH
+_ALLOWFULLSCREEN OFF
+_FPS
+_FPS 30
+_FPS _AUTO
+_FPS d
+_BLINK ON
+_BLINK OFF
+_CAPSLOCK ON
+_NUMLOCK OFF
+_SCROLLLOCK _TOGGLE
+_NOTIFYPOPUP
+_NOTIFYPOPUP "t"
+_NOTIFYPOPUP "t", "m", "warning"
+_NOTIFYPOPUP , , "info"
+_SCREENCLICK 10, 20
+_SCREENCLICK l, d, 2
+_SCREENPRINT "abc"
+_SCREENPRINT s + fx
+SYSTEM

@@ -1,0 +1,4 @@
+    PRINT i
+$IF WIN THEN
+NEXT i
+$END IF

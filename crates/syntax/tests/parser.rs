@@ -126,7 +126,8 @@ fn const_errors() {
 #[test]
 fn const_operator_operands() {
     // In a `CONST`, an operator word where a value is expected is an error, also after `NOT`; `1 OR` at the end
-    // of the line is the plain error; outside a `CONST` the same word stays marked "not supported yet".
+    // of the line is the plain error; outside a `CONST` `OR` is the old compiler's error too ("Expected
+    // variable/value before 'OR'", design D2 of `m4-statements-metacommands`).
     insta::assert_snapshot!(tree(
         "CONST c = OR\nCONST d = NOT OR\nCONST e = 1 OR\nCONST f = AND 1\nCONST g = MOD\nx = OR\nPRINT x\n"
     ));
@@ -310,10 +311,10 @@ fn error_handling_statement_errors() {
 
 #[test]
 fn unsupported_statement_message() {
-    let p = parse_one(b"PRINT 1\n\nLIST 1\n");
+    let p = parse_one(b"PRINT 1\n\nBASE 1\n");
     let diags = p.diagnostics();
     let d = &diags.list()[0];
-    assert_eq!(d.message, "statement `LIST`");
+    assert_eq!(d.message, "statement `BASE`");
     assert!(d.unsupported);
     assert_eq!(d.span.start, 9);
 }
@@ -567,4 +568,139 @@ fn error_cap() {
     let p = parse_one(src.as_bytes());
     assert_eq!(p.diagnostics().error_count(), 100);
     assert!(p.diagnostics().is_capped());
+}
+
+/// The one diagnostic of a program, which must be an error not marked "not supported yet": `(line, column,
+/// message)`.
+fn one_error(src: &str) -> (u32, u32, String) {
+    let mut map = SourceMap::new();
+    let file = map.add("t.bas", src.as_bytes().to_vec());
+    let program = parse_settled(&mut map, file, &mut NoLoader);
+    let list = program.diagnostics();
+    let [d] = list.list() else {
+        panic!("one diagnostic expected: {:?}", list.list());
+    };
+    assert!(!d.unsupported, "marked: {}", d.message);
+    let (line, col) = map.file(file).line_col(d.span.start);
+    (line, col, d.message.clone())
+}
+
+/// The forms the parser marked and the old compiler rejects are errors where they stand (design D2 of
+/// `m4-statements-metacommands`; measured, `verification\v51_x50`, `v24_x238`, `v22_x57`, `x58`, `v47_x08`, `v24_x11`,
+/// `x19`, `v57_e01`–`e08`, `e10`, `e11`).
+#[test]
+fn recorded_rejections_are_errors() {
+    let at = |src: &str| {
+        let (line, col, _) = one_error(src);
+        (line, col)
+    };
+    assert_eq!(at("x = OR\n"), (1, 5));
+    assert_eq!(at("x = AND 1\n"), (1, 5));
+    assert_eq!(at("PRINT 2 ^ _NEGATE x + 3\n"), (1, 11));
+    assert_eq!(at("IF THEN PRINT\n"), (1, 4));
+    assert_eq!(at("IF THEN\nPRINT 1\nEND IF\n"), (1, 4));
+    assert_eq!(at("IF x THEN\nELSEIF THEN\nEND IF\n"), (2, 8));
+    assert_eq!(at("WRITE #1, \"w\"; \"s\"\n"), (1, 14));
+    assert_eq!(at("WRITE 1; 2\n"), (1, 8));
+    assert_eq!(at("WRITE 1;\n"), (1, 8));
+    assert_eq!(at("WRITE #1; \"a\"\n"), (1, 9));
+    assert_eq!(at("ON STRIG(1 GOSUB h\nh: RETURN\n"), (1, 12));
+    assert_eq!(at("ON KEY(1 GOSUB h\nh: RETURN\n"), (1, 10));
+    assert_eq!(at("ON TIMER(1 GOSUB h\nh: RETURN\n"), (1, 12));
+    assert_eq!(at("_DEFINE AS LONG\n"), (1, 9));
+    assert_eq!(at("_DEFINE AS\n"), (1, 9));
+    assert_eq!(at("DEFINT a AS LONG\n"), (1, 10));
+    assert_eq!(at("DEFLNG a-c AS LONG\n"), (1, 12));
+}
+
+/// The neighbours no recording covers stay marked: another operator word where a value is expected, `NOT` after
+/// `^` is a value.
+#[test]
+fn unrecorded_neighbours_stay_marked() {
+    let p = parse_one(b"x = XOR\n");
+    assert!(p.diagnostics().list().iter().all(|d| d.unsupported));
+    assert!(parse_one(b"x = 1\nPRINT 2 ^ NOT x\n").diagnostics().list().is_empty());
+}
+
+/// A loader over files held in memory, by the name the include statement writes.
+struct MemLoader(&'static [(&'static str, &'static str)]);
+
+impl qb64rust_syntax::Loader for MemLoader {
+    fn load(
+        &mut self,
+        map: &mut SourceMap,
+        _from: qb64rust_base::FileId,
+        path: &[u8],
+    ) -> Result<qb64rust_base::FileId, qb64rust_syntax::LoadError> {
+        let (name, text) = self
+            .0
+            .iter()
+            .find(|(name, _)| name.as_bytes() == path)
+            .ok_or(qb64rust_syntax::LoadError::NotFound)?;
+        Ok(map.add(*name, text.as_bytes().to_vec()))
+    }
+}
+
+/// Every tree of a program whose main file includes `files`, with its diagnostics, and the blocks whose closer
+/// stands in another tree (design D8 of `m4-statements-metacommands`).
+fn trees(main: &str, files: &'static [(&'static str, &'static str)]) -> String {
+    let mut map = SourceMap::new();
+    let file = map.add("t.bas", main.as_bytes().to_vec());
+    let program = parse_settled(&mut map, file, &mut MemLoader(files));
+    let mut out = String::new();
+    for t in &program.trees {
+        let bytes = &map.file(t.file).bytes;
+        out.push_str(&format!("== {}\n", map.file(t.file).name));
+        out.push_str(&dump_tree(t.root(), bytes));
+        for d in t.diagnostics.list() {
+            out.push_str(&d.render(&map));
+            out.push('\n');
+        }
+    }
+    let mut across: Vec<_> = program.cross_open.iter().collect();
+    across.sort();
+    for (block, closer) in across {
+        out.push_str(&format!("closed elsewhere: {block:?} by {closer:?}\n"));
+    }
+    out
+}
+
+/// Spec `compiler/pipeline`, "Block closed in an included file": the `NEXT` stands in the included tree as a
+/// `CrossCloser`, and the `FOR` node of the main tree ends after the include.
+#[test]
+fn for_closed_in_an_included_file() {
+    insta::assert_snapshot!(trees(
+        "FOR i = 1 TO 2\n'$INCLUDE:'next.bi'\nPRINT \"after\"\n",
+        &[("next.bi", "PRINT i\nNEXT\nPRINT \"in next.bi\"\n")],
+    ));
+}
+
+/// A block opened in an included file and closed in the main one: the main file's `NEXT` is a `CrossCloser`.
+#[test]
+fn block_opened_in_an_included_file() {
+    insta::assert_snapshot!(trees(
+        "'$INCLUDE:'for.bi'\nPRINT k\nNEXT k\nPRINT \"after\"\n",
+        &[("for.bi", "FOR k = 1 TO 2\n")],
+    ));
+}
+
+/// Spec `compiler/pipeline`, "SUB closed in an included file", and a FUNCTION opened in an included file.
+#[test]
+fn sub_across_files() {
+    insta::assert_snapshot!(trees(
+        "s\nSYSTEM\nSUB s\n'$INCLUDE:'endsub.bi'\n'$INCLUDE:'fn.bi'\n    f = x\nEND FUNCTION\n",
+        &[
+            ("endsub.bi", "    PRINT \"in s\"\nEND SUB\nPRINT \"module level\"\n"),
+            ("fn.bi", "FUNCTION f (x)\n"),
+        ],
+    ));
+}
+
+/// A block an included file leaves open and nothing closes: the old compiler's error at its header, in that file.
+#[test]
+fn block_left_open_by_an_included_file() {
+    insta::assert_snapshot!(trees(
+        "'$INCLUDE:'for.bi'\nPRINT 1\n",
+        &[("for.bi", "FOR k = 1 TO 2\n")]
+    ));
 }

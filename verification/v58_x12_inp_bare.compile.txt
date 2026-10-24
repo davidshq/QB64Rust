@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: INP(address)
+Caused by (or after):X = INP
+LINE 6:x = INP
+exit=1

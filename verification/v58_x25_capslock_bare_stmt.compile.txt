@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _CAPSLOCK {On|Off|_Toggle}
+Caused by (or after):_CAPSLOCK
+LINE 6:_CAPSLOCK
+exit=1

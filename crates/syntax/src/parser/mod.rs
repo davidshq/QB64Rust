@@ -33,8 +33,9 @@ use qb64rust_base::{Diagnostic, Diagnostics, FileId, Span};
 pub(crate) fn parse_tree(id: TreeId, file: FileId, bytes: &[u8]) -> Tree {
     let mut map = qb64rust_base::SourceMap::new();
     let mut loader = crate::NoLoader;
-    let mut inc = Includer::new(&mut map, &mut loader);
-    parse_tree_with(id, file, bytes, PpState::default(), &mut inc, false).0
+    let mut libraries = Vec::new();
+    let mut inc = Includer::new(&mut map, &mut loader, &mut libraries);
+    parse_tree_with(id, file, bytes, PpState::default(), &mut inc, false, Vec::new()).0
 }
 
 /// Parses one file into tree `id`, starting from preprocessor state `pp`; gives back the state the file leaves
@@ -47,7 +48,8 @@ pub(crate) fn parse_tree_with(
     pp: PpState,
     inc: &mut Includer<'_>,
     included: bool,
-) -> (Tree, PpState) {
+    outside: Vec<blocks::Open>,
+) -> (Tree, PpState, Vec<blocks::Open>) {
     let tokens = tokenize(bytes);
     let mut offsets = Vec::with_capacity(tokens.len() + 1);
     let mut o = 0u32;
@@ -72,7 +74,10 @@ pub(crate) fn parse_tree_with(
         quiet: false,
         quiet_failed: false,
         last_kind: None,
-        blocks: Vec::new(),
+        blocks: outside,
+        closed_elsewhere: 0,
+        left_open: Vec::new(),
+        keep_open: false,
         line_if: 0,
         pending_next: None,
         after_line_number: usize::MAX,
@@ -87,13 +92,17 @@ pub(crate) fn parse_tree_with(
         included,
     };
     p.source_file();
+    // The blocks still open at the end: those the including file handed in and this file did not close, then
+    // those opened here or in a file included here, which the including file may close (design D8 of
+    // `m4-statements-metacommands`).
+    let open = p.blocks.into_iter().filter(|o| !o.is_pp_if()).collect();
     let tree = Tree {
         id,
         file,
         green: p.builder.finish(),
         diagnostics: p.diags,
     };
-    (tree, p.pp)
+    (tree, p.pp, open)
 }
 
 pub(crate) struct Parser<'a, 'h> {
@@ -118,8 +127,15 @@ pub(crate) struct Parser<'a, 'h> {
     quiet_failed: bool,
     /// Kind of the last non-trivia token added to the tree.
     last_kind: Option<SyntaxKind>,
-    /// The open blocks, innermost last (`blocks.rs`).
+    /// The open blocks, innermost last (`blocks.rs`); those opened outside this file first.
     blocks: Vec<blocks::Open>,
+    /// How many blocks open here the file just included closed (design D8 of `m4-statements-metacommands`): the
+    /// statement loop ends them before the next statement.
+    closed_elsewhere: usize,
+    /// The blocks the file just included left open, outer first: open here after those it closed.
+    left_open: Vec<blocks::Open>,
+    /// The block whose function ends now stays open, for the including file ([`Self::pop_block`]).
+    keep_open: bool,
     /// How many single-line `IF`s are open: inside one, the line end and `ELSE` end every statement.
     line_if: u32,
     /// `NEXT j, i` closed an inner `FOR` and still has this many `FOR` blocks to close (and its span).
@@ -146,8 +162,8 @@ pub(crate) struct Parser<'a, 'h> {
     inc: &'a mut Includer<'h>,
     /// This file's tree.
     tree: TreeId,
-    /// This file is an included one: a block closer without its block, and a block left open at the end, may
-    /// belong to the including file (design D4).
+    /// This file is an included one: a block left open at its end may close in the including file (design D8 of
+    /// `m4-statements-metacommands`).
     included: bool,
 }
 
@@ -306,6 +322,15 @@ impl<'a> Parser<'a, '_> {
         }
     }
 
+    /// An error at a span of the tree `tree`, which may be a finished tree of an included file (a block it left
+    /// open that nothing closed): the error goes with that tree's own diagnostics.
+    fn error_in(&mut self, tree: crate::tree::TreeId, span: Span, message: impl Into<String>) {
+        match self.inc.trees.get_mut(tree.0 as usize).and_then(Option::as_mut) {
+            Some(t) if tree != self.tree => t.diagnostics.push(Diagnostic::error(span, message)),
+            _ => self.block_error(span, message),
+        }
+    }
+
     /// Reports a construct the parser does not handle yet, marked "not supported yet"; `message` names it.
     fn unsupported_at(&mut self, span: Span, message: impl Into<String>) {
         self.report(Diagnostic::unsupported(span, message));
@@ -378,13 +403,25 @@ impl<'a> Parser<'a, '_> {
         loop {
             match self.body() {
                 // A procedure ended by a nested header leaves that header's error in place, so the header reports
-                // no second one.
+                // no second one. One inside a block opened outside this file is `sema`'s error.
                 blocks::Stop::ProcHeader => self.carry_error = proc::proc_def(self),
                 blocks::Stop::Eof => break,
-                // Cannot happen: with no block open, every closer is a stray one (reported by `body`). If it did,
-                // take a token so that the loop always ends.
-                blocks::Stop::Closer(_) | blocks::Stop::Outer | blocks::Stop::LineEnd | blocks::Stop::InnerNext => {
-                    self.bump()
+                // Cannot happen: with no block of this file open, every closer is a stray one or one of a block
+                // opened outside it (both handled by `body`). If it did, take a token so that the loop always ends.
+                blocks::Stop::Closer(_)
+                | blocks::Stop::Outer
+                | blocks::Stop::LineEnd
+                | blocks::Stop::InnerNext
+                | blocks::Stop::Elsewhere => self.bump(),
+            }
+        }
+        if !self.included {
+            // Blocks an included file left open and nothing closed: the old compiler's "FOR without NEXT" and its
+            // kin, at the block's header in its own file.
+            for open in std::mem::take(&mut self.blocks) {
+                if !open.is_pp_if() {
+                    let (opener, closer, _) = open.names();
+                    self.error_in(open.key().0, open.header(), format!("`{opener}` without `{closer}`"));
                 }
             }
         }
@@ -690,12 +727,8 @@ impl<'a> Parser<'a, '_> {
         self.start_node(kind);
         self.bump();
         if !self.at_stmt_end() {
-            if self.at(Ident) && self.ends_at(1) && kind == RunStmt {
-                // `RUN label`.
-                self.bump();
-            } else {
-                expr::expr(self);
-            }
+            // `RUN label` is a name alone, which `sema` reads as a label unless it is a string.
+            expr::expr(self);
         }
         self.recover();
         self.finish_node();
@@ -717,6 +750,14 @@ impl<'a> Parser<'a, '_> {
             let word = word.to_ascii_uppercase();
             let span = self.current_span();
             self.error_at(span, format!("`{word}` is not an event QB64pe traps, and no statement"));
+            self.rest_into_error_node();
+            return;
+        }
+        if self.at_word("LIST") {
+            // One of the old compiler's stubs: "Command not implemented" (design D4 of `m4-statements-metacommands`;
+            // measured, `verification\v57_s04`).
+            let span = self.current_span();
+            self.error_at(span, "`LIST` is not implemented in QB64pe");
             self.rest_into_error_node();
             return;
         }

@@ -1,0 +1,3 @@
+in s, sub_open.bi
+in s, main file
+exit=0

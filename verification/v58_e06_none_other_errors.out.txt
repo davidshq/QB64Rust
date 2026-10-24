@@ -1,0 +1,6 @@
+error 5  10  4 
+after 5
+
+Runtime error: Line: 9 (in main module)
+Subscript out of range
+exit=0

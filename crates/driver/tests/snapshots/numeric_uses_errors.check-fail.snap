@@ -8,4 +8,5 @@ numeric_uses_errors.bas:11:12: error: not supported yet: a constant used with an
 numeric_uses_errors.bas:12:7: error: not supported yet: a constant used with another suffix, one of them `_BIT`: `plain`3`
 numeric_uses_errors.bas:13:1: error: name already in use: `s$5`
 numeric_uses_errors.bas:14:7: error: name already in use: `fl$5`
-numeric_uses_errors.bas:15:6: error: not supported yet: calling the FUNCTION `fs$5` as a statement
+numeric_uses_errors.bas:15:6: error: `CALL fs$5`: `fs$5` is a FUNCTION, not a SUB
+numeric_uses_errors.bas:15:6: note: QB64pe: Expected CALL sub-name [(...)]

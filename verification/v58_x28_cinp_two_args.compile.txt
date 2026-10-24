@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _CINP
+Caused by (or after):X = _CINP ( 1 , 2 )
+LINE 6:x = _CINP(1, 2)
+exit=1

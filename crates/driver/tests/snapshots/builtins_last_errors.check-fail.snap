@@ -1,0 +1,113 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+builtins_last_errors.bas:9:9: error: `_ASINH` takes 1 argument
+builtins_last_errors.bas:9:9: note: QB64pe: Incorrect number of arguments - Reference: _ASINH(value)
+builtins_last_errors.bas:10:16: error: `_ASINH` needs a number
+builtins_last_errors.bas:10:16: note: QB64pe: Number required for function
+builtins_last_errors.bas:11:9: error: `_ASINH` takes 1 argument
+builtins_last_errors.bas:11:9: note: QB64pe: Incorrect number of arguments - Reference: _ASINH(value)
+builtins_last_errors.bas:12:9: error: `_SETBIT` takes 2 arguments
+builtins_last_errors.bas:12:9: note: QB64pe: Incorrect number of arguments - Reference: _SETBIT(numericalVariable, numericalValue)
+builtins_last_errors.bas:13:17: error: argument 1 of `_SETBIT` needs a number
+builtins_last_errors.bas:14:17: error: `MKSMBF$` needs a number
+builtins_last_errors.bas:15:16: error: `CVSMBF` needs a string
+builtins_last_errors.bas:15:16: note: QB64pe: String required for function
+builtins_last_errors.bas:16:9: error: `INP` takes 1 argument
+builtins_last_errors.bas:16:9: note: QB64pe: Incorrect number of arguments - Reference: INP(address)
+builtins_last_errors.bas:17:13: error: `INP` needs a number
+builtins_last_errors.bas:17:13: note: QB64pe: Number required for function
+builtins_last_errors.bas:18:5: error: `OUT` takes 2 arguments
+builtins_last_errors.bas:18:5: note: QB64pe: Syntax error - Reference: OUT registerAddress%, value%
+builtins_last_errors.bas:19:9: error: argument 1 of `OUT` needs a number
+builtins_last_errors.bas:20:11: error: this `WAIT` statement matches none of its forms: `WAIT ?,?[,?]`
+builtins_last_errors.bas:20:11: note: QB64pe: Syntax error - Reference: WAIT port%, andMask%[, xorMask%]
+builtins_last_errors.bas:21:9: error: `LPOS` takes 1 argument
+builtins_last_errors.bas:21:9: note: QB64pe: Incorrect number of arguments - Reference: LPOS(index%)
+builtins_last_errors.bas:22:9: error: `_CAPSLOCK` takes no arguments
+builtins_last_errors.bas:22:9: note: QB64pe: Incorrect number of arguments - Reference: _CAPSLOCK
+builtins_last_errors.bas:23:15: error: this `_CAPSLOCK` statement matches none of its forms: `_CAPSLOCK {On|Off|_Toggle}`
+builtins_last_errors.bas:23:15: note: QB64pe: Syntax error - Reference: _CAPSLOCK {On|Off|_Toggle}
+builtins_last_errors.bas:24:14: error: this `_CAPSLOCK` statement matches none of its forms: `_CAPSLOCK {On|Off|_Toggle}`
+builtins_last_errors.bas:24:14: note: QB64pe: Syntax error - Reference: _CAPSLOCK {On|Off|_Toggle}
+builtins_last_errors.bas:25:14: error: this `_NUMLOCK` statement matches none of its forms: `_NUMLOCK {On|Off|_Toggle}`
+builtins_last_errors.bas:25:14: note: QB64pe: Syntax error - Reference: _NUMLOCK {On|Off|_Toggle}
+builtins_last_errors.bas:26:9: error: `_CINP` takes 0 or 1 arguments
+builtins_last_errors.bas:26:9: note: QB64pe: Incorrect number of arguments - Reference: _CINP
+builtins_last_errors.bas:27:9: error: `_CONSOLEINPUT` takes no arguments
+builtins_last_errors.bas:27:9: note: QB64pe: Incorrect number of arguments - Reference: _CONSOLEINPUT
+builtins_last_errors.bas:28:5: error: `_CONSOLETITLE` takes 1 argument
+builtins_last_errors.bas:28:5: note: QB64pe: Syntax error - Reference: _CONSOLETITLE title$
+builtins_last_errors.bas:29:19: error: `_CONSOLETITLE` needs a string
+builtins_last_errors.bas:29:19: note: QB64pe: String required for sub
+builtins_last_errors.bas:30:20: error: this `_CONSOLECURSOR` statement matches none of its forms: `_CONSOLECURSOR [{_Show|_Hide}][,?]`
+builtins_last_errors.bas:31:5: error: `_CONSOLEFONT` takes 2 arguments
+builtins_last_errors.bas:31:5: note: QB64pe: Syntax error - Reference: _CONSOLEFONT fontFile$
+builtins_last_errors.bas:32:9: error: `_SCALEDWIDTH` takes no arguments
+builtins_last_errors.bas:32:9: note: QB64pe: Incorrect number of arguments - Reference: _SCALEDWIDTH
+builtins_last_errors.bas:33:14: error: this `_GLRENDER` statement matches none of its forms: `_GLRENDER {_Behind|_OnTop|_Only}`
+builtins_last_errors.bas:33:14: note: QB64pe: Syntax error - Reference: _GLRENDER {_Behind|_OnTop|_Only}
+builtins_last_errors.bas:34:15: error: this `_GLRENDER` statement matches none of its forms: `_GLRENDER {_Behind|_OnTop|_Only}`
+builtins_last_errors.bas:34:15: note: QB64pe: Syntax error - Reference: _GLRENDER {_Behind|_OnTop|_Only}
+builtins_last_errors.bas:35:22: error: this `_ALLOWFULLSCREEN` statement matches none of its forms: `_ALLOWFULLSCREEN [{_Stretch|_SquarePixels|_Off|_All|Off}][,{_Smooth|_Off|_All|Off}]`
+builtins_last_errors.bas:35:22: note: QB64pe: Syntax error - Reference: _ALLOWFULLSCREEN [{_Stretch|_SquarePixels|_Off|_All|Off}][,{_Smooth|_Off|_All|Off}]
+builtins_last_errors.bas:36:32: error: this `_ALLOWFULLSCREEN` statement matches none of its forms: `_ALLOWFULLSCREEN [{_Stretch|_SquarePixels|_Off|_All|Off}][,{_Smooth|_Off|_All|Off}]`
+builtins_last_errors.bas:36:32: note: QB64pe: Syntax error - Reference: _ALLOWFULLSCREEN [{_Stretch|_SquarePixels|_Off|_All|Off}][,{_Smooth|_Off|_All|Off}]
+builtins_last_errors.bas:37:10: error: `_FPS` needs a number
+builtins_last_errors.bas:37:10: note: QB64pe: Number required for sub
+builtins_last_errors.bas:38:12: error: this `_FPS` statement matches none of its forms: `_FPS [{_Auto}][?]`
+builtins_last_errors.bas:38:12: note: QB64pe: Syntax error - Reference: _FPS fps! or _FPS _Auto
+builtins_last_errors.bas:39:9: error: `_DISPLAY` takes no arguments
+builtins_last_errors.bas:39:9: note: QB64pe: Incorrect number of arguments - Reference: _DISPLAY
+builtins_last_errors.bas:40:11: error: this `_BLINK` statement matches none of its forms: `_BLINK {On|Off}`
+builtins_last_errors.bas:40:11: note: QB64pe: Syntax error - Reference: _BLINK {On|Off}
+builtins_last_errors.bas:41:12: error: this `_BLINK` statement matches none of its forms: `_BLINK {On|Off}`
+builtins_last_errors.bas:41:12: note: QB64pe: Syntax error - Reference: _BLINK {On|Off}
+builtins_last_errors.bas:42:9: error: `_BLINK` takes no arguments
+builtins_last_errors.bas:42:9: note: QB64pe: Incorrect number of arguments - Reference: _BLINK
+builtins_last_errors.bas:43:20: error: this `_SCREENCLICK` statement matches none of its forms: `_SCREENCLICK ?,?[,?]`
+builtins_last_errors.bas:43:20: note: QB64pe: Syntax error - Reference: _SCREENCLICK x, y[, button%]
+builtins_last_errors.bas:44:18: error: argument 1 of `_SCREENCLICK` needs a number
+builtins_last_errors.bas:45:5: error: `_SCREENPRINT` takes 1 argument
+builtins_last_errors.bas:45:5: note: QB64pe: Syntax error - Reference: _SCREENPRINT text$
+builtins_last_errors.bas:46:18: error: `_SCREENPRINT` needs a string
+builtins_last_errors.bas:46:18: note: QB64pe: String required for sub
+builtins_last_errors.bas:47:18: error: argument 1 of `_NOTIFYPOPUP` needs a string
+builtins_last_errors.bas:48:31: error: this `_NOTIFYPOPUP` statement matches none of its forms: `_NOTIFYPOPUP [?][,[?][,?]]`
+builtins_last_errors.bas:48:31: note: QB64pe: Syntax error - Reference: _NOTIFYPOPUP [title$][, message$][, iconType$]
+builtins_last_errors.bas:49:34: error: argument 2 of `_COLORCHOOSERDIALOG` needs a number
+builtins_last_errors.bas:50:9: error: `_COLORCHOOSERDIALOG` takes 0 to 2 arguments
+builtins_last_errors.bas:50:9: note: QB64pe: Incorrect number of arguments - Reference: _COLORCHOOSERDIALOG&([title$][, defaultRGB&])
+builtins_last_errors.bas:51:20: error: argument 1 of `_INPUTBOX$` needs a string
+builtins_last_errors.bas:52:9: error: `_INPUTBOX$` takes 0 to 3 arguments
+builtins_last_errors.bas:53:9: error: `_COMPILERVERSION$` takes no arguments
+builtins_last_errors.bas:53:9: note: QB64pe: Incorrect number of arguments - Reference: _COMPILERVERSION$
+builtins_last_errors.bas:54:9: error: `_ENVIRONCOUNT` takes no arguments
+builtins_last_errors.bas:54:9: note: QB64pe: Incorrect number of arguments - Reference: _ENVIRONCOUNT
+builtins_last_errors.bas:55:9: error: `_UPTIME` takes no arguments
+builtins_last_errors.bas:55:9: note: QB64pe: Incorrect number of arguments - Reference: _UPTIME
+builtins_last_errors.bas:56:11: error: `FILES` needs a string
+builtins_last_errors.bas:56:11: note: QB64pe: String required for sub
+builtins_last_errors.bas:57:14: error: this `FILES` statement matches none of its forms: `FILES [?]`
+builtins_last_errors.bas:57:14: note: QB64pe: Syntax error - Reference: FILES fileSpec$
+builtins_last_errors.bas:58:13: error: `DATE$` needs a string
+builtins_last_errors.bas:59:13: error: `TIME$` needs a string
+builtins_last_errors.bas:60:16: error: expected the end of the statement
+builtins_last_errors.bas:61:11: error: this `DATE$` statement matches none of its forms: `DATE$ =?`
+builtins_last_errors.bas:62:12: error: expected an expression
+builtins_last_errors.bas:63:9: error: `INSTR` takes 2 or 3 arguments
+builtins_last_errors.bas:63:9: note: QB64pe: Incorrect number of arguments - Reference: INSTR([start%,] baseString$, searchString$)
+builtins_last_errors.bas:64:14: error: an argument of `INSTR` is left out
+builtins_last_errors.bas:64:14: note: QB64pe: Incorrect number of arguments - Reference: INSTR([start%,] baseString$, searchString$)
+builtins_last_errors.bas:65:14: error: an argument of `INSTR` is left out
+builtins_last_errors.bas:65:14: note: QB64pe: Incorrect number of arguments - Reference: INSTR([start%,] baseString$, searchString$)
+builtins_last_errors.bas:66:5: error: `_INPUTBOX$` is a function, not a statement
+builtins_last_errors.bas:66:5: note: QB64pe: Syntax error
+builtins_last_errors.bas:67:5: error: `_SCALEDWIDTH` is a function, not a statement
+builtins_last_errors.bas:67:5: note: QB64pe: Syntax error
+builtins_last_errors.bas:68:5: error: `_ENVIRONCOUNT` is a function, not a statement
+builtins_last_errors.bas:68:5: note: QB64pe: Syntax error
+builtins_last_errors.bas:69:29: error: this `_CONSOLECURSOR` statement matches none of its forms: `_CONSOLECURSOR [{_Show|_Hide}][,?]`
+builtins_last_errors.bas:70:5: error: `_ASINH` is a function, not a statement
+builtins_last_errors.bas:70:5: note: QB64pe: Syntax error

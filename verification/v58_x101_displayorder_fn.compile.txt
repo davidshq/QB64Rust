@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):X = _DISPLAYORDER ( 1 )
+LINE 6:x = _DISPLAYORDER(1)
+exit=1

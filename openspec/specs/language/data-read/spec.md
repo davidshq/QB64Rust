@@ -39,8 +39,9 @@ compiler's runtime does. Reading when no item is left SHALL raise error 4. An un
 every quoted item, read into a numeric target SHALL raise error 2, and a number outside the target's range error
 6; the target SHALL then be 0, every later target of that `READ` SHALL be 0 or, a string, unchanged, and the item
 SHALL stay unread, so that the next `READ` meets it again. A target that is not a place SHALL be a compile error,
-as SHALL the name of the FUNCTION the statement stands in. A target in parentheses and a whole array, which the
-old compiler accepts, SHALL be reported "not supported yet".
+as SHALL the name of the FUNCTION the statement stands in. A target in parentheses SHALL be the place inside
+them, as in the old compiler; a whole array SHALL be its first element in memory (`language/arrays-and-types`,
+requirement "A whole array as a value").
 
 #### Scenario: Numbers and strings
 - **WHEN** `READ a&, s$, d#: PRINT a&; s$; d#` runs with `DATA 1,"two",3.5`
@@ -74,6 +75,14 @@ old compiler accepts, SHALL be reported "not supported yet".
 #### Scenario: The FUNCTION's own name
 - **WHEN** `READ f&` is compiled inside `FUNCTION f&`
 - **THEN** it is a compile error, as in the old compiler
+
+#### Scenario: A target in parentheses
+- **WHEN** `READ (a): PRINT a` runs with `DATA 2`
+- **THEN** it prints ` 2 `, as the old compiler's program (`verification\v22_x84`)
+
+#### Scenario: An element, two pairs, two targets
+- **WHEN** `READ (x(1))`, `READ ((a))` and `READ (a), (b)` run
+- **THEN** each reads into the places inside the parentheses (`verification\v57_p04`, `p05`, `p13`)
 
 ### Requirement: RESTORE
 `RESTORE` SHALL make the next `READ` start at the program's first item, and `RESTORE label` at the first item of

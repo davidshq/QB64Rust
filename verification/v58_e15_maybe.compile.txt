@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ ERRORLOCATION
+LINE 3:$ERRORLOCATION:MAYBE
+exit=1

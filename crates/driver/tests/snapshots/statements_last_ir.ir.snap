@@ -1,0 +1,107 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Stmt line 7
+  SelectConsole
+Stmt line 9 may_raise
+  Builtin OUT [Value(Const 968:I32), Value(Var L:I32)]
+Stmt line 10 may_raise
+  Builtin OUT [Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Const 2:I32)]
+Stmt line 11 may_raise
+  Builtin WAIT [Value(Const 986:I32), Value(Const 8:I32), Absent]
+Stmt line 12 may_raise
+  Builtin WAIT [Value(Var L:I32), Value(Const 1:I32), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate))]
+Stmt line 13 may_raise
+  Builtin FILES [Absent]
+Stmt line 14 may_raise
+  Builtin FILES [Value(Const "*.txt")]
+Stmt line 15 may_raise
+  Builtin FILES [Value(Var S:Str)]
+Stmt line 16 may_raise
+  Builtin DATE [Value(Const "01-02-2003")]
+Stmt line 17 may_raise
+  Builtin TIME [Value(Var S:Str)]
+Stmt line 18 may_raise
+  Builtin DATE [Value(Var FX:Str)]
+Stmt line 19 may_raise
+  Builtin _CONSOLETITLE [Value(Var S:Str)]
+Stmt line 20 may_raise
+  Builtin _CONSOLECURSOR [Absent, Absent]
+Stmt line 21 may_raise
+  Builtin _CONSOLECURSOR [Word 1, Absent]
+Stmt line 22 may_raise
+  Builtin _CONSOLECURSOR [Word 0, Value(Const 50:I32)]
+Stmt line 23 may_raise
+  Builtin _CONSOLECURSOR [Absent, Value(Var L:I32)]
+Stmt line 24 may_raise
+  Builtin _CONSOLEFONT [Value(Const "Consolas"), Value(Const 16:I32)]
+Stmt line 25 may_raise
+  Builtin _CONSOLEFONT [Value(Var S:Str), Value(Var L:I32)]
+Stmt line 26 may_raise
+  Builtin _GLRENDER [Word 0]
+Stmt line 27 may_raise
+  Builtin _GLRENDER [Word 1]
+Stmt line 28 may_raise
+  Builtin _GLRENDER [Word 2]
+Stmt line 29 may_raise
+  Builtin _DISPLAYORDER [Absent, Absent, Absent, Absent]
+Stmt line 30 may_raise
+  Builtin _DISPLAYORDER [Word 0, Absent, Absent, Absent]
+Stmt line 31 may_raise
+  Builtin _DISPLAYORDER [Word 1, Word 0, Absent, Absent]
+Stmt line 32 may_raise
+  Builtin _DISPLAYORDER [Word 0, Word 0, Absent, Absent]
+Stmt line 33 may_raise
+  Builtin _DISPLAYORDER [Word 0, Word 1, Word 2, Word 3]
+Stmt line 34 may_raise
+  Builtin _ALLOWFULLSCREEN [Absent, Absent]
+Stmt line 35 may_raise
+  Builtin _ALLOWFULLSCREEN [Word 0, Word 0]
+Stmt line 36 may_raise
+  Builtin _ALLOWFULLSCREEN [Word 2, Absent]
+Stmt line 37 may_raise
+  Builtin _ALLOWFULLSCREEN [Word 1, Absent]
+Stmt line 38 may_raise
+  Builtin _ALLOWFULLSCREEN [Word 3, Word 2]
+Stmt line 39 may_raise
+  Builtin _ALLOWFULLSCREEN [Absent, Word 0]
+Stmt line 40 may_raise
+  Builtin _ALLOWFULLSCREEN [Word 4, Absent]
+Stmt line 41 may_raise
+  Builtin _FPS [Absent, Absent]
+Stmt line 42 may_raise
+  Builtin _FPS [Absent, Value((Const 30:I16 -> Convert F64 Nearest))]
+Stmt line 43 may_raise
+  Builtin _FPS [Word 0, Absent]
+Stmt line 44 may_raise
+  Builtin _FPS [Absent, Value(Var D:F64)]
+Stmt line 45 may_raise
+  Builtin _BLINK [Word 0]
+Stmt line 46 may_raise
+  Builtin _BLINK [Word 1]
+Stmt line 47 may_raise
+  Builtin _CAPSLOCK [Word 0]
+Stmt line 48 may_raise
+  Builtin _NUMLOCK [Word 1]
+Stmt line 49 may_raise
+  Builtin _SCROLLLOCK [Word 2]
+Stmt line 50 may_raise
+  Builtin _NOTIFYPOPUP [Absent, Absent, Absent]
+Stmt line 51 may_raise
+  Builtin _NOTIFYPOPUP [Value(Const "t"), Absent, Absent]
+Stmt line 52 may_raise
+  Builtin _NOTIFYPOPUP [Value(Const "t"), Value(Const "m"), Value(Const "warning")]
+Stmt line 53 may_raise
+  Builtin _NOTIFYPOPUP [Absent, Absent, Value(Const "info")]
+Stmt line 54 may_raise
+  Builtin _SCREENCLICK [Value(Const 10:I32), Value(Const 20:I32), Absent]
+Stmt line 55 may_raise
+  Builtin _SCREENCLICK [Value(Var L:I32), Value(((Var D:F64 -> Convert I64 RoundEven) -> Convert I32 Truncate)), Value(Const 2:I32)]
+Stmt line 56 may_raise
+  Builtin _SCREENPRINT [Value(Const "abc")]
+Stmt line 57 may_raise
+  Builtin _SCREENPRINT [Value(Concat(Var S:Str, Var FX:Str))]
+Stmt line 58
+  System

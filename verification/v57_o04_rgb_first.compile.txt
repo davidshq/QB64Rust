@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _RGB(red&, green&, blue&[, imageHandle&])
+Caused by (or after):U = _RGB ( , 2 , 3 )
+LINE 3:u = _RGB(, 2, 3)
+exit=1

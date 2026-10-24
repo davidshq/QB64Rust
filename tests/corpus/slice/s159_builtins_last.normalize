@@ -1,0 +1,3 @@
+# FILES prints the folder's 8.3 path and the disk's free space, both the machine's (verification\v58_s02_files).
+^[A-Za-z]:[\\/].*$	<path>
+[0-9]+ Bytes free	<free> Bytes free

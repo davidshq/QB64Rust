@@ -1,0 +1,4 @@
+before
+after
+k = 0 
+exit=0

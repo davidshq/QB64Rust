@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 151
 expression: snap
 ---
-blocks_not_compiled_yet.bas:9:5: error: not supported yet: `RUN`
+blocks_not_compiled_yet.bas:14:12: error: not supported yet: an element of the member array `r.m` as a `FOR` variable

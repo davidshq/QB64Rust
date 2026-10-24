@@ -1,0 +1,5 @@
+
+Incorrect variable after NEXT in line 2 of <verification>\v57_inc/next_j.bi included
+Caused by (or after):NEXT J
+LINE 4:NEXT j
+exit=1

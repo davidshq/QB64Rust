@@ -25,23 +25,20 @@ pub(crate) fn proc_def(p: &mut Parser) -> bool {
     proc_header(p, false, false);
     p.header_end();
     p.push_block(Block::Proc, header_span);
+    p.set_top(|o| o.function = word == "FUNCTION");
     let nested = loop {
         match p.body() {
-            Stop::Eof if p.innermost_crosses_files() => {
-                let msg = format!("a block closed in another file (`{word}` without `END {word}` in this file)");
-                p.block_unsupported(header_span, msg);
+            // An included file's procedure may end in the including file (design D8 of
+            // `m4-statements-metacommands`), or one ended in an included file.
+            Stop::Eof if p.included && p.line_if == 0 => {
+                p.unclosed(Stop::Eof);
                 break false;
             }
             Stop::Eof => {
                 p.block_error(header_span, format!("`{word}` without `END {word}`"));
                 break false;
             }
-            Stop::ProcHeader if p.innermost_crosses_files() => {
-                p.unsupported(format!(
-                    "a SUB or FUNCTION after one whose `END {word}` may be in another file"
-                ));
-                break true;
-            }
+            Stop::Elsewhere => break false,
             Stop::ProcHeader => {
                 p.error(format!(
                     "a SUB or FUNCTION cannot be defined inside another; expected `END {word}` before it"
@@ -64,7 +61,7 @@ pub(crate) fn proc_def(p: &mut Parser) -> bool {
 }
 
 /// `END SUB` or `END FUNCTION`, closing a block opened by `word`.
-fn proc_end(p: &mut Parser, word: &str) {
+pub(super) fn proc_end(p: &mut Parser, word: &str) {
     p.start_node(ProcEnd);
     let span = p.current_span().cover(p.next_span(1));
     p.bump(); // END
@@ -81,7 +78,7 @@ fn proc_end(p: &mut Parser, word: &str) {
 
 /// `SUB name [(params)]` or `FUNCTION name[suffix] [(params)]`, at `SUB` or `FUNCTION`. Inside `DECLARE LIBRARY`
 /// (`library`) the name may be followed by `ALIAS "c_name"` or `ALIAS c_name`, and parameters may be `BYVAL`. In a
-/// `DECLARE SUB` or `FUNCTION` outside a library (`declare`) an `ALIAS` is marked "not supported yet".
+/// `DECLARE SUB` or `FUNCTION` outside a library (`declare`) an `ALIAS name` is taken and means nothing.
 pub(super) fn proc_header(p: &mut Parser, library: bool, declare: bool) {
     p.start_node(ProcHeader);
     p.bump(); // SUB or FUNCTION
@@ -101,18 +98,12 @@ pub(super) fn proc_header(p: &mut Parser, library: bool, declare: bool) {
             p.syntax_error("expected a name after `ALIAS`");
         }
     } else if declare && p.at_word("ALIAS") {
-        // Measured: the old compiler accepts it and ignores it (`verification\v37_x08`); not built here (user,
-        // `verification-compare`).
-        let mut span = p.current_span();
+        // Measured: the old compiler accepts it, quoted, bare or empty, and ignores it with the line; the alias names
+        // nothing (design D11 of `m4-statements-metacommands`; `verification\v37_x08`, `v57_a01`–`a04`).
         p.bump();
         if p.at(StringLit) || p.at(Ident) {
-            span = span.cover(p.current_span());
             p.bump();
         }
-        p.unsupported_at(
-            span,
-            "`ALIAS` in a `DECLARE SUB` or `FUNCTION` outside `DECLARE LIBRARY`",
-        );
     }
     if p.at(LParen) {
         param_list(p, library);

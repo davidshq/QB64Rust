@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SCREENCLICK x, y[, button%]
+Caused by (or after):_SCREENCLICK 1 , 2 , 3 , 4
+LINE 6:_SCREENCLICK 1, 2, 3, 4
+exit=1

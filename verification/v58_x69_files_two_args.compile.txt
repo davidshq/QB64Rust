@@ -1,0 +1,5 @@
+
+Syntax error - Reference: FILES fileSpec$
+Caused by (or after):FILES "a",1 , "b",1
+LINE 6:FILES "a", "b"
+exit=1

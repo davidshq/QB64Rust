@@ -1,0 +1,6 @@
+start
+before
+
+Runtime error: Line: 4 (in e_div.bi)
+Division by zero
+exit=0

@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: MKDMBF$(value#)
+Caused by (or after):S$ = MKDMBF$ ( 1 , 2 )
+LINE 6:s$ = MKDMBF$(1, 2)
+exit=1

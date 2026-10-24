@@ -8,8 +8,10 @@ verification/*.stdin -text
 verification/v44_files/** -text
 # The files the v47 measurements name under the compiler's folder: byte for byte (verification/README.md, v47)
 verification/v47_files/** -text
-# The copy of QB64pe's afterlastline.bm the compiler compiles (design D7 of m3-network-embed): byte for byte
+# The copy of QB64pe's afterlastline.bm the compiler compiles (design D7 of m3-network-embed): byte for byte, and
+# of its aftermain.bas (design D7 of m4-builtins-remaining)
 crates/builtins/src/afterlastline.bm -text
+crates/builtins/src/aftermain.bas -text
 # The recorded state of a screen program and the keys it is given (tools/screen/README.md)
 tests/corpus/**/*.screen -text
 tests/corpus/**/*.keys -text

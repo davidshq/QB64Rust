@@ -84,6 +84,14 @@ impl Checker<'_> {
                 if let Some(place) = self.dotted(t, &name, suffix)? {
                     return self.load(place, span, use_);
                 }
+                // A `CONST` of a `$IF` branch only the old compiler's first pass compiles (design D9 of
+                // `m4-statements-metacommands`; measured, `verification\v26_x34`, `v57_g06`).
+                if self.pp_ghosts.contains(&name) {
+                    let shown = show_bytes(self.text(t.span));
+                    let msg =
+                        format!("`{shown}` is a `CONST` of a `$IF` branch only the first pass of QB64pe compiles");
+                    return Err(self.error(t.span, msg));
+                }
                 let id = self.variable(t, name, suffix)?;
                 self.load(Place::Var(id), span, use_)
             }
@@ -328,9 +336,20 @@ impl Checker<'_> {
     /// The procedure a name in an expression calls. A SUB named like a built-in function (`SUB loc`, allowed,
     /// `verification\v19_proc_names.txt`) leaves the name to the built-in there.
     fn proc_in_expr(&self, name: &str, suffix: Option<Ty>) -> Option<ProcId> {
-        let &p = self.procs_by_name.get(name)?;
+        let p = self.proc_as(name, false)?;
         let sub = matches!(self.prog.proc(p).kind, ProcKind::Sub);
         (!(sub && is_builtin_function(name, suffix))).then_some(p)
+    }
+
+    /// The procedure `name` names as a statement (`statement`) or as a value: of a library procedure and a
+    /// program procedure of one name, a SUB and a FUNCTION, the SUB as a statement and the FUNCTION as a value
+    /// (design D11 of `m4-statements-metacommands`; measured, `verification\v57_l01`–`l04`).
+    pub(super) fn proc_as(&self, name: &str, statement: bool) -> Option<ProcId> {
+        let &p = self.procs_by_name.get(name)?;
+        match self.proc_twins.get(name) {
+            Some(&twin) if matches!(self.prog.proc(p).kind, ProcKind::Sub) != statement => Some(twin),
+            _ => Some(p),
+        }
     }
 
     pub(super) fn call(&mut self, node: ast::CallExpr, use_: Use) -> R<Expr> {
@@ -359,6 +378,15 @@ impl Checker<'_> {
         }
         if let Some(s) = supported_builtin(&proc_name, suffix) {
             return self.builtin(s, node.arg_list(), span, use_);
+        }
+        // The old compiler's stub functions: "Command not implemented" (design D4 of `m4-statements-metacommands`;
+        // measured, `tests\corpus\runtime_comparison\218_fre`, `verification\v57_s06`–`s10`).
+        if matches!(
+            (proc_name.as_str(), suffix),
+            ("FRE" | "SETMEM" | "FILEATTR", None) | ("IOCTL", Some(Ty::Str))
+        ) {
+            let shown = show_bytes(self.text(name_tok.span));
+            return Err(self.error(name_tok.span, format!("`{shown}` is not implemented in QB64pe")));
         }
         if is_builtin_function(&proc_name, suffix) {
             let shown = show_bytes(self.text(name_tok.span));

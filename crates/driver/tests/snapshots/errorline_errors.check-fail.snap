@@ -1,9 +1,8 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 151
 expression: snap
 ---
-errorline_errors.bas:7:7: error: `_ERRORLINE` takes 0 arguments
+errorline_errors.bas:7:7: error: `_ERRORLINE` takes no arguments
 errorline_errors.bas:7:7: note: QB64pe: Incorrect number of arguments - Reference: _ERRORLINE
 errorline_errors.bas:8:1: error: `_ERRORLINE` is a function, not a statement
 errorline_errors.bas:8:1: note: QB64pe: Syntax error

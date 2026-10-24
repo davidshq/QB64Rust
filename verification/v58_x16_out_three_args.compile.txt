@@ -1,0 +1,5 @@
+
+Syntax error - Reference: OUT registerAddress%, value%
+Caused by (or after):OUT 1 , 2 , 3
+LINE 6:OUT 1, 2, 3
+exit=1

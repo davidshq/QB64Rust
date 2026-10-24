@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):INP 1
+LINE 6:INP 1
+exit=1

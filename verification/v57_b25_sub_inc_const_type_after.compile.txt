@@ -1,0 +1,5 @@
+
+Invalid number/constant after STRING * type
+Caused by (or after):
+LINE 12:F AS STRING * N
+exit=1

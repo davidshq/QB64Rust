@@ -1,0 +1,6 @@
+in e_on
+start
+
+Runtime error: Line: 10 (in main module)
+Out of stack space
+exit=0

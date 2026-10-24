@@ -1,0 +1,5 @@
+
+Command not implemented
+Caused by (or after):CALL MID$ ( A$ , 1 , 1 , "x",1 )
+LINE 4:CALL MID$(a$, 1, 1, "x")
+exit=1

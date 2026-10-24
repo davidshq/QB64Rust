@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):D = POINT ( 1 , )
+LINE 4:d = POINT(1, )
+exit=1

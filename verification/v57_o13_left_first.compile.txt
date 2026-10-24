@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):U$ = LEFT$ ( , 2 )
+LINE 3:u$ = LEFT$(, 2)
+exit=1

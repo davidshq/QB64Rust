@@ -1,0 +1,5 @@
+run 1 a = 0 s = [] x(2) = 0 rnd 705 
+run 2 a = 0 s = [] x(2) = 0 rnd 705 
+run 3 a = 0 s = [] x(2) = 0 rnd 705 
+free file 1 
+exit=0

@@ -1,0 +1,29 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+statements_errors.bas:16:1: error: `SHARED` can stand only in a SUB or FUNCTION
+statements_errors.bas:16:1: note: QB64pe: SHARED must be used within a SUB/FUNCTION
+statements_errors.bas:17:1: error: the FUNCTION `f` cannot stand as a statement
+statements_errors.bas:17:1: note: QB64pe: Syntax error
+statements_errors.bas:18:1: error: the FUNCTION `f` cannot stand as a statement
+statements_errors.bas:18:1: note: QB64pe: Syntax error
+statements_errors.bas:19:6: error: `CALL f`: `f` is a FUNCTION, not a SUB
+statements_errors.bas:19:6: note: QB64pe: Expected CALL sub-name [(...)]
+statements_errors.bas:20:6: error: `CALL fs$5`: `fs$5` is a FUNCTION, not a SUB
+statements_errors.bas:20:6: note: QB64pe: Expected CALL sub-name [(...)]
+statements_errors.bas:21:10: error: an argument of `POINT` is left out
+statements_errors.bas:22:10: error: the last argument of `POINT` is left out
+statements_errors.bas:22:10: note: QB64pe: Invalid expression
+statements_errors.bas:23:11: error: `_RGB32` cannot leave out an argument
+statements_errors.bas:23:11: note: QB64pe: Syntax error
+statements_errors.bas:24:9: error: an argument of `_RGB` is left out
+statements_errors.bas:24:9: note: QB64pe: Incorrect number of arguments - Reference: _RGB(red&, green&, blue&[, imageHandle&])
+statements_errors.bas:25:10: error: the last argument of `MID$` is left out
+statements_errors.bas:25:10: note: QB64pe: Invalid expression
+statements_errors.bas:26:11: error: `LEFT$` cannot leave out an argument
+statements_errors.bas:26:11: note: QB64pe: Syntax error
+statements_errors.bas:28:6: error: the last argument of the FUNCTION `f` is left out
+statements_errors.bas:28:6: note: QB64pe: Invalid expression
+statements_errors.bas:29:7: error: `k` is a `CONST` of a `$IF` branch only the first pass of QB64pe compiles
+statements_errors.bas:29:7: note: QB64pe: Name already in use (k)

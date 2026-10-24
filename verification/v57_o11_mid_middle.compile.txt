@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: MID$(stringValue$, startPosition%[, bytes%])
+Caused by (or after):U$ = MID$ ( "abc",3 , , 2 )
+LINE 3:u$ = MID$("abc", , 2)
+exit=1

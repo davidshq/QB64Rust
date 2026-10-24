@@ -159,6 +159,13 @@ item 1). Three changes, in this order, before the work of M4 goes on:
 Done when: the corpus and the upstream tests in reach match, and `qb64pe.bas` compiles with no diagnostic
 (`DECISIONS.md` 2026-10-18; running the compiler built from it against the suite is in `SOMEDAY.md`).
 
+The compile half of the criterion is met: since `m4-qb64pe-builtins` (on `main` since pull request 13),
+`qb64rust -z` reports nothing for `qb64pe.bas` and `-x` builds an executable, which is not run. The rest of M4 is
+the plan of six steps of `DECISIONS.md` 2026-10-22; steps 1 to 4 are done (4 in two changes,
+`m4-statements-metacommands` and `m4-builtins-remaining`). Left: step 5, `SUB _GL`; the 9 programs of
+`tests\verification\known.list` that steps 2 and 3 left marked; step 6, the coverage review. M4 is declared done
+by the user at the merge into `main` after the last step.
+
 The areas M3 left (moved here on 2026-10-18), from the unsupported report at the close of `m3-arraycopy` and the
 recorded gaps in `SOMEDAY.md`; each may take several changes. Deliberately marked behaviours still need their
 recorded decisions or measurements; listing an area does not settle those choices:
@@ -182,12 +189,17 @@ recorded decisions or measurements; listing an area does not settle those choice
       (`arrays/t001_whole_array_core`, the last deferred upstream program), implicit arrays and forward
       procedure references, `REDIM` without bounds in procedures, and the remaining member-array forms (done: a
       scalar beside a typed array, `REDIM` of a scalar in a procedure, `TYPE` blocks anywhere,
-      `m4-names-arrays`; left by the user: a whole array as a value and the errors for names that are no array
-      or no SUB)
+      `m4-names-arrays`; a whole array as a value, `m4-line-numbers-whole-arrays`; implicit arrays where the old
+      compiler allocates them, `STATIC` bounds, and the old compiler's errors for names that are no array or no
+      SUB, `m4-names-implicit-arrays`; the programs left marked are named by the demand report over
+      `tests\verification\known.list`)
 - [ ] Remaining memory and conventional-memory references: string-bearing types, nested and dynamic member
       arrays, `LEN` of a whole member array, and the `VARPTR`/`VARSEG` forms deferred until a program needs them
       (`SOMEDAY.md` records the individual forms and constraints) (done: `LEN` of a whole array and of a whole
-      member array, not a dynamic one, `m4-names-arrays`)
+      member array, not a dynamic one, `m4-names-arrays`; `VARPTR`, `VARSEG`, `SADD` and `VARPTR$` of any
+      main-module variable at the old compiler's offsets, `LEN` and `_MEM` of string members, member array bounds
+      that name a constant, `m4-memory-records`; left marked: variables of procedures, a `TYPE` that holds a
+      `STRING` in conventional memory, `FOR` over an element of a member array)
 
 The parity work:
 
@@ -197,13 +209,18 @@ The parity work:
       `http/read_example`, `opengl/test`, `const/math_funcs`)
 - [ ] Close the remaining compatibility gaps exposed by the full suites, including accepted programs still
       marked "not supported yet" and rejected programs receiving only that mark; keep false errors and parse
-      gaps at zero (`tests\known_*.list`)
+      gaps at zero (`tests\known_*.list`) (`tests\known_unsupported_rejections.list` empty since
+      `m4-statements-metacommands`; every function and statement of the built-in table compiles or is the old
+      compiler's error since `m4-builtins-remaining`, with `$ERRORLOCATION` and `$USELIBRARY`; "not supported
+      yet" is left for `SUB _GL` and the 9 programs of steps 2 and 3)
 - [x] Bring the last deferred upstream program into the parity run when its scalar/array naming rule is built;
       finish with no feature-deferred programs left (`tests\upstream\deferred.list`, empty since
       `m4-names-arrays`)
-- [ ] `qb64pe.bas`, reached through its own include files, smallest first (the idea of QB64Fresh's
+- [x] `qb64pe.bas`, reached through its own include files, smallest first (the idea of QB64Fresh's
       `qb64pe_incremental` tests, which compiled `qb64pe.bas` in phases through extracted sections and stubs; the
-      idea is taken, not the files: the second review, `DECISIONS.md` 2026-10-04)
+      idea is taken, not the files: the second review, `DECISIONS.md` 2026-10-04) (compiles with no diagnostic
+      and builds since `m4-qb64pe-builtins`, reached whole rather than include by include; running the compiler
+      built from it is in `SOMEDAY.md`)
 - [ ] Review the coverage of features checked only by emitted calls or compiled-but-never-run programs; add
       execution checks where needed to establish parity, using screen state for window output and retaining
       documented limits for hardware-dependent behaviour

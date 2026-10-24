@@ -1,0 +1,5 @@
+
+UNEXPECTED INTERNAL COMPILER ERROR!
+Caused by (or after):
+LINE 3:CONST K = _RED ( 256 , 13 )
+exit=1

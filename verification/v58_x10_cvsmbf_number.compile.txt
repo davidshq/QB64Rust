@@ -1,0 +1,5 @@
+
+String required for function
+Caused by (or after):X = CVSMBF ( 1 )
+LINE 6:x = CVSMBF(1)
+exit=1

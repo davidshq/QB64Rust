@@ -90,4 +90,5 @@ t.bas:4:11: error: the operator `AND` cannot start a value
 t.bas:4:11: note: QB64pe: Unexpected element 'AND'
 t.bas:5:11: error: the operator `MOD` cannot start a value
 t.bas:5:11: note: QB64pe: Unexpected element 'MOD'
-t.bas:6:5: error: not supported yet: operator `OR` (expected an expression)
+t.bas:6:5: error: expected a value before the operator `OR`
+t.bas:6:5: note: QB64pe: Expected variable/value before 'OR'

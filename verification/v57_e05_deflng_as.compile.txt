@@ -1,0 +1,5 @@
+
+_DEFINE: Expected ,
+Caused by (or after):
+LINE 3:DEFLNG A - C AS LONG
+exit=1

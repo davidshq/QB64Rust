@@ -6,7 +6,7 @@ screenimage_errors.bas:6:13: error: this `_DEPTHBUFFER` statement matches none o
 screenimage_errors.bas:7:14: error: this `_DEPTHBUFFER` statement matches none of its forms: `_DEPTHBUFFER {On|Off|Lock|_Clear}[,?]`
 screenimage_errors.bas:8:17: error: this `_CLIPBOARDIMAGE` statement matches none of its forms: `_CLIPBOARDIMAGE =?`
 screenimage_errors.bas:8:17: note: QB64pe: Syntax error - Reference: _CLIPBOARDIMAGE = existingImageHandle&
-screenimage_errors.bas:9:5: error: `_CLIPBOARDIMAGE` takes 0 arguments
+screenimage_errors.bas:9:5: error: `_CLIPBOARDIMAGE` takes no arguments
 screenimage_errors.bas:9:5: note: QB64pe: Incorrect number of arguments - Reference: _CLIPBOARDIMAGE
 screenimage_errors.bas:10:5: error: `_SCREENIMAGE` takes 0 or 4 arguments
 screenimage_errors.bas:11:5: error: `_SCREENIMAGE` with empty parentheses

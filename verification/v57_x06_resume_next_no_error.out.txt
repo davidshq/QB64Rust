@@ -1,0 +1,6 @@
+before
+in r
+
+Runtime error: Line: 9 (in main module)
+RESUME without error
+exit=0

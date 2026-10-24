@@ -453,6 +453,40 @@ fn unsaved_include_and_its_includer() {
     c.shutdown().unwrap();
 }
 
+/// A `$USELIBRARY` library under the include root (design D7 of `m4-builtins-remaining`): the line's own error
+/// (a library with no descriptor) is reported at the `$USELIBRARY` line; an error in a library's file is reported
+/// in that file, as an included file's is.
+#[test]
+fn library_errors_in_its_file_and_at_its_line() {
+    let dir = temp();
+    let libs = dir.path().join("libraries");
+    std::fs::create_dir_all(libs.join("descriptors").join("test")).unwrap();
+    std::fs::create_dir_all(libs.join("includes").join("test").join("a")).unwrap();
+    std::fs::write(
+        libs.join("descriptors").join("test").join("a.ini"),
+        "[LIBRARY INCLUDES]\nIncAtTop=a_top.bi\n",
+    )
+    .unwrap();
+    let top = libs.join("includes").join("test").join("a").join("a_top.bi");
+    std::fs::write(&top, "' a\nx = (1\n").unwrap();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let main = uri(dir.path(), "main.bas");
+    c.open(
+        &main,
+        "$CONSOLE:ONLY\n$USELIBRARY:'test/a'\n$USELIBRARY:'test/none'\nPRINT 1\n",
+    );
+    let d = c.diagnostics(&main).unwrap();
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert_eq!(at(&d[0]).0, 2);
+    assert!(d[0]["message"].as_str().unwrap().contains("test/none"), "{d:?}");
+    let d = c
+        .diagnostics(&uri(dir.path(), "libraries/includes/test/a/a_top.bi"))
+        .unwrap();
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert_eq!(at(&d[0]).0, 1);
+    c.shutdown().unwrap();
+}
+
 #[test]
 fn include_root_from_the_options() {
     let dir = temp();

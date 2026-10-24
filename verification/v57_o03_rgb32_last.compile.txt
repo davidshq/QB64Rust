@@ -1,0 +1,5 @@
+
+Invalid expression
+Caused by (or after):U = _RGB32 ( 1 , 2 , )
+LINE 3:u = _RGB32(1, 2, )
+exit=1

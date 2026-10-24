@@ -2,6 +2,7 @@
 //! statements that keep the source structure; `EXIT FOR/DO/WHILE` leaves one. The other blocks are still marked as
 //! a whole, with the statements inside checked one by one.
 
+use super::walk::{Cursor, Event};
 use super::{Checker, NoJoin, R, Skips, first_token_span};
 use crate::{
     BinOp, Branch, Case, CaseItem, Expr, ExprKind, LoopKind, LoopTest, PLACE_ONLY_UNREACHABLE, Place, Stmt, StmtKind,
@@ -12,55 +13,88 @@ use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::tree::{Node, Tok};
 
-impl Checker<'_> {
-    /// A block statement of any kind; false for any other statement.
-    pub(super) fn block_statement(&mut self, node: Node, skips: &Skips) -> bool {
-        // A block's own statements check as `$CHECKING` stood at its header, whatever a line inside it sets (design
-        // D3 of `m4-handlers-logging-checking`); [`Self::push`] gave them the state at their end.
+impl<'a> Checker<'a> {
+    /// A block statement the walk gives as a statement (a single-line `IF`, `TYPE`, `DECLARE LIBRARY`, a
+    /// single-line `DEF FN`); false for any other statement.
+    pub(super) fn block_statement(&mut self, node: Node<'a>, skips: &Skips) -> bool {
+        self.stamped(|c| {
+            if let Some(s) = ast::IfStmt::cast(node) {
+                c.if_stmt(s, skips);
+            } else if let Some(b) = ast::TypeBlock::cast(node) {
+                c.type_block(b);
+            } else if ast::DeclareLibraryBlock::cast(node).is_some() {
+                // Its declarations were entered in pass 1 (`library.rs`), where they stand in the file.
+            } else if ast::DefFnStmt::cast(node).is_some() {
+                c.marked_block(node, None, skips);
+            } else {
+                return false;
+            }
+            true
+        })
+    }
+
+    /// A block the walk opened at `node`, other than a procedure: its events are taken up to its end.
+    pub(super) fn open_block(&mut self, node: Node<'a>, cur: &mut Cursor<'a, '_>, skips: &Skips) {
+        self.stamped(|c| {
+            if let Some(b) = ast::IfBlock::cast(node) {
+                c.if_block(b, cur, skips);
+            } else if let Some(b) = ast::ForBlock::cast(node) {
+                c.for_block(b, cur, skips);
+            } else if let Some(b) = ast::DoBlock::cast(node) {
+                c.do_block(b, cur, skips);
+            } else if let Some(b) = ast::WhileBlock::cast(node) {
+                c.while_block(b, cur, skips);
+            } else if let Some(b) = ast::SelectBlock::cast(node) {
+                c.select_block(b, cur, skips);
+            } else {
+                c.marked_block(node, Some(cur), skips);
+            }
+        });
+    }
+
+    /// Runs `check` on a block. A block's own statements check as `$CHECKING` stood at its header, whatever a line
+    /// inside it sets (design D3 of `m4-handlers-logging-checking`); [`Self::push`] gave them the state at their
+    /// end.
+    fn stamped<T>(&mut self, check: impl FnOnce(&mut Self) -> T) -> T {
         let checked = self.at.checking;
         let before = self.sink().len();
-        let handled = self.block_statement_kind(node, skips);
+        let result = check(self);
         for s in &mut self.sink()[before..] {
             s.checked = checked;
         }
-        handled
+        result
     }
 
-    fn block_statement_kind(&mut self, node: Node, skips: &Skips) -> bool {
-        if let Some(b) = ast::IfBlock::cast(node) {
-            self.if_block(b, skips);
-        } else if let Some(s) = ast::IfStmt::cast(node) {
-            self.if_stmt(s, skips);
-        } else if let Some(b) = ast::ForBlock::cast(node) {
-            self.for_block(b, skips);
-        } else if let Some(b) = ast::DoBlock::cast(node) {
-            self.do_block(b, skips);
-        } else if let Some(b) = ast::WhileBlock::cast(node) {
-            self.while_block(b, skips);
-        } else if let Some(b) = ast::SelectBlock::cast(node) {
-            self.select_block(b, skips);
-        } else if let Some(b) = ast::TypeBlock::cast(node) {
-            self.type_block(b);
-        } else if ast::DeclareLibraryBlock::cast(node).is_some() {
-            // Its declarations were entered in pass 1 (`library.rs`), where they stand in the file.
-        } else if let Some(block) = block_parts(node) {
-            self.marked_block(node, block, skips);
-        } else {
-            return false;
-        }
-        true
-    }
-
-    /// Checks `nodes` as the statements of a block and returns them typed. Statements with errors are left out.
-    fn block_body<'t>(&mut self, nodes: impl Iterator<Item = Node<'t>>, skips: &Skips) -> Vec<Stmt> {
+    /// Checks the events up to the end or the next branch of the innermost open block as the statements of a
+    /// block, and returns them typed, with the event that ended them (`None` at the end of the walk). Statements
+    /// with errors are left out.
+    fn block_body(&mut self, cur: &mut Cursor<'a, '_>, skips: &Skips) -> (Vec<Stmt>, Option<Event<'a>>) {
         self.sinks.push(Vec::new());
-        for s in nodes {
-            if skips.past_cap(s) {
-                break;
+        let end = self.walk_to_end(cur, skips);
+        (self.sinks.pop().expect("pushed above"), end)
+    }
+
+    /// [`Self::block_body`] over a list of statements of their own (a branch of a single-line `IF`).
+    fn list_body(&mut self, nodes: impl Iterator<Item = Node<'a>>, skips: &Skips) -> Vec<Stmt> {
+        let program = self.program;
+        let mut cur = Cursor::new(program, skips, nodes);
+        self.block_body(&mut cur, skips).0
+    }
+
+    /// Checks the events up to the end or the next branch of the innermost open block into the current body, and
+    /// returns the event that ended them.
+    pub(super) fn walk_to_end(&mut self, cur: &mut Cursor<'a, '_>, skips: &Skips) -> Option<Event<'a>> {
+        loop {
+            let event = cur.next()?;
+            if self.pp_dropped(event, cur) {
+                continue;
             }
-            self.check_statement(s, skips);
+            match event {
+                Event::Stmt(n) => self.check_statement(n, skips),
+                Event::Open(n) => self.check_open(n, cur, skips),
+                e @ (Event::Branch(_) | Event::Close(..)) => return Some(e),
+            }
         }
-        self.sinks.pop().expect("pushed above")
     }
 
     /// Checks a block's header (`check`, which reports its own errors) as one statement: names are recorded only
@@ -106,25 +140,37 @@ impl Checker<'_> {
         Ok(e)
     }
 
-    fn if_block(&mut self, b: ast::IfBlock, skips: &Skips) {
+    fn if_block(&mut self, b: ast::IfBlock<'a>, cur: &mut Cursor<'a, '_>, skips: &Skips) {
         let node = b.node();
         let mut branches = Some(Vec::new());
-        let first = b.if_branch().map(|f| (f.header(), f.body().collect::<Vec<_>>()));
-        let others = b.else_if_branches().map(|e| (e.header(), e.body().collect::<Vec<_>>()));
-        for (k, (header, body)) in first.into_iter().chain(others).enumerate() {
-            let line = header.map_or(0, |h| self.line(first_token_span(h.node())));
+        // The header of the branch to check next; `None` for a branch after `ELSE`.
+        let mut header = b.if_branch().map(|f| f.header());
+        let mut else_ = None;
+        let mut k = 0;
+        let end = loop {
+            let Some(head) = header else {
+                // A branch after `ELSE` (a parse error): its header is not checked, its statements are, for their
+                // own errors, as any statement after a parse error is; they are then thrown away, since the program
+                // is rejected anyway.
+                let (_, ev) = self.block_body(cur, skips);
+                match ev {
+                    Some(Event::Branch(_)) => continue,
+                    ev => break ev,
+                }
+            };
+            let line = head.map_or(0, |h| self.line(first_token_span(h.node())));
             let check = |c: &mut Self| {
-                let h = header.expect("checked by `header`");
+                let h = head.expect("checked by `header`");
                 let what = h.keyword().map_or("IF".to_string(), |k| c.word(k));
                 c.condition(h.condition(), h.node().span(), &what)
             };
             // The `IF`'s allocations stand before the statement, an `ELSEIF`'s run with its test.
             let (cond, allocs) = if k == 0 {
-                (self.header(header.map(|h| h.node()), skips, check), Vec::new())
+                (self.header(head.map(|h| h.node()), skips, check), Vec::new())
             } else {
-                self.part_header(header.map(|h| h.node()), skips, check)
+                self.part_header(head.map(|h| h.node()), skips, check)
             };
-            let body = self.block_body(body.into_iter(), skips);
+            let (body, ev) = self.block_body(cur, skips);
             match (cond, &mut branches) {
                 (Some(cond), Some(list)) => list.push(Branch {
                     cond,
@@ -134,9 +180,26 @@ impl Checker<'_> {
                 }),
                 _ => branches = None,
             }
-        }
-        let else_ = b.else_branch().map(|e| self.block_body(e.body(), skips));
-        let end_line = b.end().map_or(0, |e| self.line(first_token_span(e.node())));
+            k += 1;
+            match ev {
+                Some(Event::Branch(n)) => match ast::ElseIfBranch::cast(n) {
+                    Some(e) => header = Some(e.header()),
+                    None => {
+                        let (body, ev) = self.block_body(cur, skips);
+                        else_ = Some(body);
+                        match ev {
+                            Some(Event::Branch(_)) => header = None,
+                            ev => break ev,
+                        }
+                    }
+                },
+                ev => break ev,
+            }
+        };
+        let end_line = match end {
+            Some(Event::Close(Some(e), _)) => self.line(first_token_span(e)),
+            _ => 0,
+        };
         if let Some(branches) = branches.filter(|l| !l.is_empty()) {
             let kind = StmtKind::If {
                 branches,
@@ -148,14 +211,14 @@ impl Checker<'_> {
     }
 
     /// A single-line `IF`: the same statement as the block form (`IF c GOTO x` has the `GOTO` as its branch).
-    fn if_stmt(&mut self, s: ast::IfStmt, skips: &Skips) {
+    fn if_stmt(&mut self, s: ast::IfStmt<'a>, skips: &Skips) {
         let header = s.header();
         let cond = self.header(header.map(|h| h.node()), skips, |c| {
             let h = header.expect("checked by `header`");
             c.condition(h.condition(), h.node().span(), "IF")
         });
-        let body = self.block_body(s.then_branch().into_iter().flat_map(|b| b.statements()), skips);
-        let else_ = s.else_branch().map(|b| self.block_body(b.statements(), skips));
+        let body = self.list_body(s.then_branch().into_iter().flat_map(|b| b.statements()), skips);
+        let else_ = s.else_branch().map(|b| self.list_body(b.statements(), skips));
         if let Some(cond) = cond {
             let line = self.line(first_token_span(s.node()));
             let branches = vec![Branch {
@@ -173,13 +236,17 @@ impl Checker<'_> {
         }
     }
 
-    fn for_block(&mut self, b: ast::ForBlock, skips: &Skips) {
+    fn for_block(&mut self, b: ast::ForBlock<'a>, cur: &mut Cursor<'a, '_>, skips: &Skips) {
         let header = b.header();
         let parts = self.header(header.map(|h| h.node()), skips, |c| {
             c.for_header(header.expect("checked"))
         });
-        let body = self.block_body(b.body(), skips);
-        let next = b.next();
+        let (body, end) = self.block_body(cur, skips);
+        // The `NEXT` that ends this loop, and this loop's place among the variables it names.
+        let (next, depth) = match end {
+            Some(Event::Close(Some(n), depth)) => (ast::NextStmt::cast(n), depth),
+            _ => (None, 0),
+        };
         let end_at = next.map(|n| first_token_span(n.node()));
         let end_line = end_at.map_or(0, |s| self.line(s));
         let Some(((var, name), temp, start, end, step)) = parts else {
@@ -187,7 +254,9 @@ impl Checker<'_> {
         };
         // The variable `NEXT` names for this loop, checked as a statement of its own where `NEXT` stands. One
         // `NEXT j, i` closes two loops, inner first; once it had an error, the outer loop reports no second one.
-        if let (Some(next), Some(next_name)) = (next, b.next_var()) {
+        if let Some(next) = next
+            && let Some(next_name) = next.vars().nth(depth)
+        {
             let key = next.node().key();
             if self.bad_next == Some(key) {
                 return;
@@ -327,14 +396,17 @@ impl Checker<'_> {
         Err(self.error(t.span, msg))
     }
 
-    fn do_block(&mut self, b: ast::DoBlock, skips: &Skips) {
+    fn do_block(&mut self, b: ast::DoBlock<'a>, cur: &mut Cursor<'a, '_>, skips: &Skips) {
         let header = b.header();
         let top = self.header(header.map(|h| h.node()), skips, |c| {
             let h = header.expect("checked");
             c.loop_test(h.cond_word(), h.condition(), h.node().span(), TestAt::Top)
         });
-        let body = self.block_body(b.body(), skips);
-        let end = b.end();
+        let (body, end) = self.block_body(cur, skips);
+        let end = match end {
+            Some(Event::Close(Some(n), _)) => ast::LoopStmt::cast(n),
+            _ => None,
+        };
         let (bottom, allocs) = self.part_header(end.map(|e| e.node()), skips, |c| {
             let e = end.expect("checked");
             c.loop_test(e.cond_word(), e.condition(), e.node().span(), TestAt::Bottom)
@@ -377,14 +449,17 @@ impl Checker<'_> {
         }))
     }
 
-    fn while_block(&mut self, b: ast::WhileBlock, skips: &Skips) {
+    fn while_block(&mut self, b: ast::WhileBlock<'a>, cur: &mut Cursor<'a, '_>, skips: &Skips) {
         let header = b.header();
         let cond = self.header(header.map(|h| h.node()), skips, |c| {
             let h = header.expect("checked");
             c.condition(h.condition(), h.node().span(), "WHILE")
         });
-        let body = self.block_body(b.body(), skips);
-        let end_at = b.end().map(|e| first_token_span(e.node()));
+        let (body, end) = self.block_body(cur, skips);
+        let end_at = match end {
+            Some(Event::Close(Some(n), _)) => Some(first_token_span(n)),
+            _ => None,
+        };
         let end_line = end_at.map_or(0, |s| self.line(s));
         if let Some(cond) = cond {
             let kind = StmtKind::While {
@@ -399,24 +474,24 @@ impl Checker<'_> {
 
     /// `SELECT CASE` / `SELECT EVERYCASE` (design D7 of `m2-core-builtins`). The header and each `CASE` are checked
     /// as statements of their own; the items of a `CASE` can be typed only when the selector could.
-    fn select_block(&mut self, b: ast::SelectBlock, skips: &Skips) {
+    fn select_block(&mut self, b: ast::SelectBlock<'a>, cur: &mut Cursor<'a, '_>, skips: &Skips) {
         let header = b.header();
         let head = self.header(header.map(|h| h.node()), skips, |c| {
             c.select_header(header.expect("checked by `header`"))
         });
         // Statements before the first `CASE` are parse errors; checked for recovery only.
-        let _ = self.block_body(b.before_cases(), skips);
+        let (_, mut end) = self.block_body(cur, skips);
         let mut cases = Some(Vec::new());
         let mut else_ = None;
-        for clause in b.cases() {
-            let h = clause.header();
+        while let Some(Event::Branch(n)) = end {
+            let h = ast::CaseClause::cast(n).and_then(|c| c.header());
             if else_.is_some() {
                 // Measured: "Expected END SELECT" (`verification\v20_x31_case_after_else`); also a second `CASE ELSE`.
                 self.header(h.map(|h| h.node()), skips, |c| -> R<()> {
                     let at = first_token_span(h.expect("checked by `header`").node());
                     Err(c.error(at, "a `CASE` after `CASE ELSE` (`CASE ELSE` comes last)"))
                 });
-                let _ = self.block_body(clause.body(), skips);
+                end = self.block_body(cur, skips).1;
                 cases = None;
                 continue;
             }
@@ -429,7 +504,8 @@ impl Checker<'_> {
                 }),
                 (None, false) => (None, Vec::new()),
             };
-            let body = self.block_body(clause.body(), skips);
+            let (body, next) = self.block_body(cur, skips);
+            end = next;
             match (is_else, items, &mut cases) {
                 (true, _, _) => else_ = Some(body),
                 (false, Some(items), Some(list)) => list.push(Case {
@@ -441,7 +517,10 @@ impl Checker<'_> {
                 (false, _, _) => cases = None,
             }
         }
-        let end_line = b.end().map_or(0, |e| self.line(first_token_span(e.node())));
+        let end_line = match end {
+            Some(Event::Close(Some(e), _)) => self.line(first_token_span(e)),
+            _ => 0,
+        };
         if let (Some((selector, copied, every)), Some(cases)) = (head, cases) {
             let kind = StmtKind::Select {
                 selector,
@@ -556,18 +635,21 @@ impl Checker<'_> {
     }
 
     /// A block the old compiler rejects (design D10 of `m2-parser-breadth`): one error at its first token, unless
-    /// its header has a parse error; then the statements inside are checked one by one, as everywhere else.
-    fn marked_block(&mut self, node: Node, block: BlockParts, skips: &Skips) {
-        if block.header.is_none_or(|h| skips.usable(h)) && !skips.past_cap(node) {
+    /// its header has a parse error; then the statements inside (the events up to its end, `cur`) are checked one
+    /// by one, as everywhere else. `DEF FN` in both its forms.
+    fn marked_block(&mut self, node: Node<'a>, cur: Option<&mut Cursor<'a, '_>>, skips: &Skips) {
+        const DEF_FN: &str = "`DEF FN` is not available in QB64; use a FUNCTION";
+        let header = match ast::DefFnBlock::cast(node) {
+            Some(b) => b.header().map(|h| h.node()),
+            None => Some(node),
+        };
+        if header.is_none_or(|h| skips.usable(h)) && !skips.past_cap(node) {
             self.stmt.stmt_error = false;
-            let _ = self.error(first_token_span(node), block.error);
+            let _ = self.error(first_token_span(node), DEF_FN);
             self.flush_names();
         }
-        for s in block.inner {
-            if skips.past_cap(s) {
-                break;
-            }
-            self.check_statement(s, skips);
+        if let Some(cur) = cur {
+            while let Some(Event::Branch(_)) = self.walk_to_end(cur, skips) {}
         }
     }
 }
@@ -589,61 +671,11 @@ fn for_temp(ty: Ty) -> Ty {
     }
 }
 
-/// The statements directly inside a block statement, in every branch, in order; `None` for any other statement.
-/// The label pre-pass reads them.
-pub(super) fn nested_statements(node: Node) -> Option<Vec<Node>> {
-    if let Some(b) = ast::IfBlock::cast(node) {
-        let mut inner: Vec<Node> = b.if_branch().into_iter().flat_map(|f| f.body()).collect();
-        for e in b.else_if_branches() {
-            inner.extend(e.body());
-        }
-        inner.extend(b.else_branch().into_iter().flat_map(|e| e.body()));
-        Some(inner)
-    } else if let Some(s) = ast::IfStmt::cast(node) {
-        let mut inner: Vec<Node> = s.then_branch().into_iter().flat_map(|b| b.statements()).collect();
-        inner.extend(s.else_branch().into_iter().flat_map(|b| b.statements()));
-        Some(inner)
-    } else if let Some(b) = ast::ForBlock::cast(node) {
-        Some(b.body().collect())
-    } else if let Some(b) = ast::DoBlock::cast(node) {
-        Some(b.body().collect())
-    } else if let Some(b) = ast::WhileBlock::cast(node) {
-        Some(b.body().collect())
-    } else if let Some(b) = ast::SelectBlock::cast(node) {
-        let mut inner: Vec<Node> = b.before_cases().collect();
-        for c in b.cases() {
-            inner.extend(c.body());
-        }
-        Some(inner)
-    } else {
-        block_parts(node).map(|p| p.inner)
-    }
-}
-
-/// A block statement the old compiler rejects as a whole: its header (whose parse errors suppress the error), the
-/// error, and the statements inside it, in order.
-pub(super) struct BlockParts<'a> {
-    header: Option<Node<'a>>,
-    error: &'static str,
-    pub(super) inner: Vec<Node<'a>>,
-}
-
-/// The parts of a block statement rejected as a whole; `None` for any other statement.
-fn block_parts(node: Node) -> Option<BlockParts> {
-    const DEF_FN: &str = "`DEF FN` is not available in QB64; use a FUNCTION";
-    if let Some(b) = ast::DefFnBlock::cast(node) {
-        Some(BlockParts {
-            header: b.header().map(|h| h.node()),
-            error: DEF_FN,
-            inner: b.body().collect(),
-        })
-    } else if ast::DefFnStmt::cast(node).is_some() {
-        Some(BlockParts {
-            header: Some(node),
-            error: DEF_FN,
-            inner: Vec::new(),
-        })
-    } else {
-        None
-    }
+/// The statements of a single-line `IF`, in both branches, in order; `None` for any other statement. The label
+/// pre-pass reads them: the walk gives the `IF` as one statement.
+pub(super) fn line_if_statements(node: Node) -> Option<Vec<Node>> {
+    let s = ast::IfStmt::cast(node)?;
+    let mut inner: Vec<Node> = s.then_branch().into_iter().flat_map(|b| b.statements()).collect();
+    inner.extend(s.else_branch().into_iter().flat_map(|b| b.statements()));
+    Some(inner)
 }

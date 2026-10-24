@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_COMPILERVERSION$
+LINE 6:_COMPILERVERSION$
+exit=1

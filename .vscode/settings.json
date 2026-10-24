@@ -1,0 +1,7 @@
+{
+  // Pylance: only the folders that hold Python, so it does not walk target/ (200k+ files) and node_modules.
+  "python.analysis.include": ["tools", "verification", "vscode/scripts"],
+  "python.analysis.exclude": ["**/node_modules", "**/__pycache__", "**/.*"],
+  // Builds and test runs write thousands of files here; no change event to the extensions for each one.
+  "files.watcherExclude": { "**/target/**": true, "**/.ruff_cache/**": true }
+}

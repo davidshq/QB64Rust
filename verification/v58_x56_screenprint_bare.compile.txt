@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SCREENPRINT text$
+Caused by (or after):_SCREENPRINT
+LINE 6:_SCREENPRINT
+exit=1

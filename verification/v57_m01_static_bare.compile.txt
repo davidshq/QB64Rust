@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ STATIC
+LINE 3:$STATIC
+exit=1

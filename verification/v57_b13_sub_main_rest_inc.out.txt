@@ -1,0 +1,3 @@
+in s, endsub_more.bi
+main
+exit=0

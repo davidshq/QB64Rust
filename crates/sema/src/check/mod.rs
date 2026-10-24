@@ -22,9 +22,10 @@ mod mem;
 mod ops;
 mod places;
 mod proc;
+mod walk;
 mod whole;
 
-use blocks::nested_statements;
+use blocks::line_if_statements;
 use expr::Use;
 use whole::{without_parens, written_whole};
 
@@ -65,6 +66,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         local: Scope::default(),
         cur: None,
         procs_by_name: HashMap::new(),
+        proc_twins: HashMap::new(),
         proc_of_def: HashMap::new(),
         param_scopes: Vec::new(),
         broken: HashSet::new(),
@@ -89,6 +91,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         used_local: HashMap::new(),
         sinks: Vec::new(),
         bad_next: None,
+        pp_drop: None,
+        pp_ghosts: HashSet::new(),
         types_by_name: HashMap::new(),
         type_blocks: Vec::new(),
         type_defs: HashSet::new(),
@@ -138,9 +142,19 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // QB64pe's colour file of `$COLOR` stands before the main file's first line (design D8 of
     // `m3-constant-evaluation`).
     let colors = program.colors.map(|t| program.tree(t).root());
-    let top: Vec<Node> = [colors, Some(root), after_last_line]
+    // The files of the `$USELIBRARY` libraries where the old compiler includes them (design D7 of
+    // `m4-builtins-remaining`): the top files before the main file, then `aftermain.bas` (an `END`) and the
+    // after-main files, then the bottom files, before `afterlastline.bm`.
+    let roots = |ids: &[qb64rust_syntax::tree::TreeId]| ids.iter().map(|&t| program.tree(t).root()).collect::<Vec<_>>();
+    let after_main = program.after_main.map(|t| program.tree(t).root());
+    let top: Vec<Node> = colors
         .into_iter()
-        .flatten()
+        .chain(roots(&program.library_top))
+        .chain([root])
+        .chain(after_main)
+        .chain(roots(&program.library_after_main))
+        .chain(roots(&program.library_bottom))
+        .chain(after_last_line)
         .filter_map(ast::SourceFile::cast)
         .flat_map(|f| f.statements())
         .collect();
@@ -151,9 +165,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // calls of it fail without a second error. A member array's bounds go by `OPTION BASE` as it stands at its
     // block, which follows the file (design D8 of `m2-defxxx-common-arrays`).
     let mut at_block = BlockSettings::default();
-    for &stmt in &top {
-        c.collect_block_settings(stmt, &skips, &mut at_block);
-    }
+    let mut cur = walk::Cursor::new(program, &skips, top.iter().copied());
+    c.collect_block_settings(&mut cur, &skips, &mut at_block);
     let type_blocks = std::mem::take(&mut c.type_blocks);
     c.declare_types(&type_blocks, &skips);
     // The default types follow the file (design D2): the table as it stands at each procedure's header.
@@ -184,7 +197,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
             Ok(id) => {
                 let line_of = |n: Node| c.line(n.first_token().map_or(n.span(), |t| t.span));
                 let line = line_of(header.node());
-                let end_line = def.end().map_or(line, |e| line_of(e.node()));
+                let end = def.end().map(|e| e.node()).or_else(|| program.closer_of(def.node()));
+                let end_line = end.map_or(line, line_of);
                 let proc = &mut c.prog.procs[id.0 as usize];
                 (proc.line, proc.end_line) = (line, end_line);
                 declared.push((def, id))
@@ -222,13 +236,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // The labels of each body, also those inside blocks, so that a jump or `ON ERROR GOTO` may name one further
     // down (design D5).
     c.collect_jump_words(&skips);
-    c.declare_labels(&top, &skips, None);
-    for &def in &defs {
-        if let Some(&id) = c.proc_of_def.get(&def.node().key()) {
-            let body: Vec<Node> = def.body().collect();
-            c.declare_labels(&body, &skips, Some(id));
-        }
-    }
+    c.declare_labels(&top, &defs, &skips);
 
     // Pass 2: everything in file order (procedures where they stand, included files at their include). The
     // default types start again and are set by each `DEFxxx` as it is met. The helpers of the file included after
@@ -238,16 +246,26 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     for (name, _) in &c.hidden_procs {
         c.procs_by_name.remove(name);
     }
-    for stmt in top {
-        if skips.past_cap(stmt) {
-            break;
+    let mut cur = walk::Cursor::new(program, &skips, top);
+    while let Some(event) = cur.next() {
+        if c.pp_dropped(event, &mut cur) {
+            continue;
         }
+        let (open, stmt) = match event {
+            walk::Event::Stmt(n) => (false, n),
+            walk::Event::Open(n) => (true, n),
+            walk::Event::Branch(_) | walk::Event::Close(..) => continue,
+        };
         if c.in_after_last_line(stmt.span()) {
             for (name, id) in std::mem::take(&mut c.hidden_procs) {
                 c.procs_by_name.insert(name, id);
             }
         }
-        c.check_statement(stmt, &skips);
+        if open {
+            c.check_open(stmt, &mut cur, &skips);
+        } else {
+            c.check_statement(stmt, &skips);
+        }
     }
     c.solve_dims();
     c.run_copy_checks();
@@ -280,6 +298,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         exe_icon: c.settings.exe_icon.take().map(|(icon, _)| icon),
         version_info: c.settings.version_info.take(),
         embedded: c.embedded_files(),
+        error_location: c.settle_error_location(),
     };
     (c.prog, c.diags)
 }
@@ -505,6 +524,9 @@ struct Checker<'a> {
     /// The procedure being checked; `None` in the main module.
     cur: Option<ProcId>,
     procs_by_name: HashMap<String, ProcId>,
+    /// The library procedure of a name that a program procedure of the other kind has too, a SUB beside a
+    /// FUNCTION ([`Self::proc_as`]).
+    proc_twins: HashMap<String, ProcId>,
     /// Key of a `ProcDef` node whose header was declared without errors -> its procedure.
     proc_of_def: HashMap<(TreeId, u32), ProcId>,
     /// Per procedure: the scope holding its parameters, which each check of the body starts from.
@@ -555,6 +577,11 @@ struct Checker<'a> {
     sinks: Vec<Vec<Stmt>>,
     /// The last `NEXT` statement (by key) whose variable did not match its `FOR` (`check\blocks.rs`).
     bad_next: Option<(TreeId, u32)>,
+    /// Inside a `$IF` the old compiler's main pass compiles no branch of ([`Self::pp_dropped`]): how many `$IF`s
+    /// are open inside it.
+    pp_drop: Option<u32>,
+    /// The names of the `CONST`s such a `$IF`'s first-pass branch defines: in use for the code below.
+    pp_ghosts: HashSet<String>,
     /// The user types by name.
     types_by_name: HashMap<String, TypeId>,
     /// Every `TYPE` block of the program in file order, wherever it stands, as pass 1 lists them.
@@ -686,6 +713,10 @@ struct Settings {
     /// The `_ECHO` statements met: each is an error when the program turns out to have no console, which is known
     /// only after the walk (design D5 of `m2-console-screenhide`; measured, `verification\v26_x17`, `x62`).
     echoes: Vec<Span>,
+    /// The `$ERRORLOCATION:ON` (true) and `:OFF` (false) lines met, in file order (design D6 of
+    /// `m4-builtins-remaining`): the last one is the program's setting, the first that differs from it is an error
+    /// after the walk ([`Checker::settle_error_location`]).
+    error_location: Vec<(Span, bool)>,
     /// The optional parts of the runtime the built-ins met so far need.
     runtime_parts: std::collections::BTreeSet<crate::RuntimePart>,
     /// `OPTION _EXPLICIT` stands somewhere in the program (it applies to the whole program, design D7).
@@ -710,6 +741,7 @@ impl Settings {
             version_info: None,
             version_lines: [None; crate::VERSION_STRINGS],
             echoes: Vec::new(),
+            error_location: Vec::new(),
             runtime_parts: std::collections::BTreeSet::new(),
             explicit: false,
             explicit_array: false,
@@ -895,72 +927,31 @@ impl Checker<'_> {
         self.auto_file == Some(span.file)
     }
 
+    /// The program's `$ERRORLOCATION` setting (design D6 of `m4-builtins-remaining`): the last line's. The old
+    /// compiler's first pass keeps the last setting it meets and its main pass stops at the first line that
+    /// disagrees, so one `ON` and one `OFF` in any order, also across an included file or in a `$IF` branch that
+    /// is taken, are its error at the program's first line whose setting differs from the last (measured,
+    /// `verification\v58_e07`–`e13`).
+    fn settle_error_location(&mut self) -> bool {
+        let lines = std::mem::take(&mut self.settings.error_location);
+        let Some(&(_, setting)) = lines.last() else {
+            return false;
+        };
+        if let Some(&(span, _)) = lines.iter().find(|&&(_, on)| on != setting) {
+            self.diags.error(
+                span,
+                "`$ERRORLOCATION` is a whole-program option and cannot be changed within the program",
+            );
+        }
+        setting
+    }
+
     /// Records the names of the statement just checked, unless it had an error (one error per statement).
     fn flush_names(&mut self) {
         let names = std::mem::take(&mut self.stmt.names);
         if !self.stmt.stmt_error {
             self.prog.symbols.record(names);
         }
-    }
-
-    fn check_statement(&mut self, stmt: Node, skips: &Skips) {
-        if let Some(def) = ast::ProcDef::cast(stmt) {
-            self.proc_def(def, skips);
-            return;
-        }
-        if self.block_statement(stmt, skips) {
-            return;
-        }
-        if ast::MetaCommentStmt::cast(stmt).is_some() {
-            self.check_one(stmt, skips);
-            // The included file's statements follow the include statement, in its place (design D10).
-            let program = self.program;
-            if let Some(tree) = program.included(stmt) {
-                for s in ast::SourceFile::cast(tree.root())
-                    .into_iter()
-                    .flat_map(|f| f.statements())
-                {
-                    if skips.past_cap(s) {
-                        break;
-                    }
-                    self.check_statement(s, skips);
-                }
-            }
-            return;
-        }
-        self.check_one(stmt, skips);
-    }
-
-    /// A procedure where it stands: in the main module (or a file included there), its body is checked in its own
-    /// scope; anywhere else it came from a file included inside a SUB, FUNCTION or block (the parser keeps every
-    /// other `SUB` at file level), which the old compiler rejects (measured M7: "Expected END SUB/FUNCTION before
-    /// SUB").
-    fn proc_def(&mut self, def: ast::ProcDef, skips: &Skips) {
-        if self.cur.is_some() || !self.sinks.is_empty() {
-            if let Some(h) = def.header().filter(|h| skips.usable(h.node())) {
-                self.stmt.stmt_error = false;
-                let _ = self.error(
-                    first_token_span(h.node()),
-                    "a SUB or FUNCTION from an included file cannot stand inside a SUB, FUNCTION or block",
-                );
-            }
-            return;
-        }
-        let Some(&id) = self.proc_of_def.get(&def.node().key()) else {
-            return;
-        };
-        self.cur = Some(id);
-        self.local = self.param_scopes[id.0 as usize].clone();
-        self.at.static_scope = self.static_procs.contains(&id);
-        self.consts_local.clear();
-        self.used_local.clear();
-        for s in def.body() {
-            if skips.past_cap(s) {
-                break;
-            }
-            self.check_statement(s, skips);
-        }
-        self.cur = None;
     }
 
     /// Pass 1 of the default types (design D2; measured, `verification\v24_a_procs_subs`, `v24_x30`): walks the
@@ -998,6 +989,133 @@ impl Checker<'_> {
 }
 
 impl<'a> Checker<'a> {
+    /// A statement of the walk ([`walk::Event::Stmt`]). An include statement is one too: the walk gives the
+    /// included file's statements after it, in its place (design D10).
+    fn check_statement(&mut self, stmt: Node<'a>, skips: &Skips) {
+        if self.block_statement(stmt, skips) {
+            return;
+        }
+        self.check_one(stmt, skips);
+    }
+
+    /// Whether the walk's `event` belongs to a `$IF` whose condition the old compiler's two passes read differently
+    /// (design D9 of `m4-statements-metacommands`): its main pass compiles none of the branches, so the event is
+    /// dropped, a block with all its events. A `CONST` of the branch the parser took, which the first pass takes,
+    /// leaves its name in use for the code below ([`Self::pp_ghosts`]); nothing else of it has an effect
+    /// (measured, `verification\v26_x34`, `v57_g01`–`g11`).
+    pub(super) fn pp_dropped(&mut self, event: walk::Event<'a>, cur: &mut walk::Cursor<'a, '_>) -> bool {
+        if self.pp_drop.is_some()
+            && let walk::Event::Stmt(n) = event
+            && let Some(c) = ast::ConstStmt::cast(n)
+        {
+            for t in c.items().filter_map(ast::ConstItem::name) {
+                let word = self.text(t.span);
+                let name = show_bytes(&word[..decl::name_end(word)].to_ascii_uppercase());
+                self.pp_ghosts.insert(name);
+            }
+        }
+        let mut drop = self.pp_drop;
+        let dropped = self.pp_drop_event(&mut drop, event, cur);
+        self.pp_drop = drop;
+        dropped
+    }
+
+    /// The part of [`Self::pp_dropped`] the label pass shares ([`Self::declare_labels`]): `drop` is how many `$IF`s
+    /// are open inside a dropped `$IF` (`None` outside one). A disagreeing `$IF` or `$ELSEIF` starts it, and is
+    /// itself not dropped; its `$END IF` ends it. A block opened in the dropped part is dropped whole; the
+    /// metacommands in it are still counted, so that an `$END IF` inside it (a block that crosses the `$END IF`, a
+    /// parse error) ends the drop at the block's end, not at the end of the program.
+    pub(super) fn pp_drop_event(
+        &self,
+        drop: &mut Option<u32>,
+        event: walk::Event<'a>,
+        cur: &mut walk::Cursor<'a, '_>,
+    ) -> bool {
+        let Some(depth) = *drop else {
+            if let walk::Event::Stmt(n) = event
+                && let Some(tok) = ast::MetaStmt::cast(n).and_then(|m| m.token())
+                && self.program.passes_disagree.contains(&(n.key().0, tok.span.start))
+            {
+                *drop = Some(0);
+            }
+            return false;
+        };
+        match event {
+            walk::Event::Open(_) => {
+                let mut open = 1;
+                while open > 0 {
+                    match cur.next() {
+                        None => break,
+                        Some(walk::Event::Open(_)) => open += 1,
+                        Some(walk::Event::Close(..)) => open -= 1,
+                        Some(walk::Event::Stmt(n)) => {
+                            if let Some(d) = *drop {
+                                *drop = self.pp_drop_step(d, n);
+                            }
+                        }
+                        Some(walk::Event::Branch(_)) => {}
+                    }
+                }
+            }
+            walk::Event::Stmt(n) => *drop = self.pp_drop_step(depth, n),
+            walk::Event::Branch(_) | walk::Event::Close(..) => return false,
+        }
+        true
+    }
+
+    /// The `$IF`s open inside a dropped `$IF` after the statement `n` ([`Self::pp_drop_event`]), from `depth`
+    /// before it; `None` after its own `$END IF`.
+    fn pp_drop_step(&self, depth: u32, n: Node) -> Option<u32> {
+        use qb64rust_syntax::pp::Directive;
+        let Some(tok) = ast::MetaStmt::cast(n).and_then(|m| m.token()) else {
+            return Some(depth);
+        };
+        match qb64rust_syntax::pp::directive(self.text(tok.span)) {
+            Directive::If(_) | Directive::Malformed(_) => Some(depth + 1),
+            Directive::EndIf => depth.checked_sub(1),
+            Directive::ElseIf(_) | Directive::Else | Directive::Let(_) | Directive::Error(_) | Directive::Other => {
+                Some(depth)
+            }
+        }
+    }
+
+    /// A block the walk opened ([`walk::Event::Open`]); its events are taken up to its end.
+    fn check_open(&mut self, node: Node<'a>, cur: &mut walk::Cursor<'a, '_>, skips: &Skips) {
+        match ast::ProcDef::cast(node) {
+            Some(def) => self.proc_def(def, cur, skips),
+            None => self.open_block(node, cur, skips),
+        }
+    }
+
+    /// A procedure where it stands: in the main module (or a file included there), its body is checked in its own
+    /// scope; anywhere else it came from a file included inside a SUB, FUNCTION or block (the parser keeps every
+    /// other `SUB` at file level), which the old compiler rejects (measured M7: "Expected END SUB/FUNCTION before
+    /// SUB"), and its body is not checked.
+    fn proc_def(&mut self, def: ast::ProcDef<'a>, cur: &mut walk::Cursor<'a, '_>, skips: &Skips) {
+        if self.cur.is_some() || !self.sinks.is_empty() {
+            if let Some(h) = def.header().filter(|h| skips.usable(h.node())) {
+                self.stmt.stmt_error = false;
+                let _ = self.error(
+                    first_token_span(h.node()),
+                    "a SUB or FUNCTION from an included file cannot stand inside a SUB, FUNCTION or block",
+                );
+            }
+            cur.skip_block();
+            return;
+        }
+        let Some(&id) = self.proc_of_def.get(&def.node().key()) else {
+            cur.skip_block();
+            return;
+        };
+        self.cur = Some(id);
+        self.local = self.param_scopes[id.0 as usize].clone();
+        self.at.static_scope = self.static_procs.contains(&id);
+        self.consts_local.clear();
+        self.used_local.clear();
+        while let Some(walk::Event::Branch(_)) = self.walk_to_end(cur, skips) {}
+        self.cur = None;
+    }
+
     /// Pass 1 of `OPTION BASE` (design D8 of `m2-defxxx-common-arrays`; measured, `verification\v24_x182`,
     /// `x183`, `x217`): the `TYPE` blocks are read before the statements, and a member array declared without
     /// `TO` starts at the base in effect where its block stands. Walks the file in order as
@@ -1013,7 +1131,43 @@ impl<'a> Checker<'a> {
     /// the old compiler sets the flag as it reads the lines in order, before its first pass, so it allows the
     /// markers in the blocks below it, also after the first statement, and not in a `$IF` branch that is not taken
     /// (measured, `verification\v35_x14`, `x15`, `x45`, `x47`).
-    fn collect_block_settings(&mut self, node: Node<'a>, skips: &Skips, at: &mut BlockSettings) {
+    ///
+    /// The file is read by the walk of pass 2 ([`walk::Cursor`]), so a SUB opened in one file and closed in another
+    /// holds the same statements here as there: a `CONST` in its part in the other file is the SUB's (measured,
+    /// `verification\v57_b24`, `b25`).
+    fn collect_block_settings(&mut self, cur: &mut walk::Cursor<'a, '_>, skips: &Skips, at: &mut BlockSettings) {
+        let mut open = Vec::new();
+        while let Some(event) = cur.next() {
+            match event {
+                walk::Event::Open(n) => {
+                    open.push(at.in_proc);
+                    if let Some(h) = ast::ProcDef::cast(n).and_then(|d| d.header()) {
+                        // A parameter's type must be defined above the header, which the walk reaches before the
+                        // body.
+                        self.types_above.insert(h.node().key(), self.type_blocks.len());
+                    }
+                    at.in_proc |= ast::ProcDef::cast(n).is_some();
+                }
+                walk::Event::Close(..) => {
+                    if let Some(outer) = open.pop() {
+                        at.in_proc = outer;
+                    }
+                }
+                walk::Event::Branch(_) => {}
+                walk::Event::Stmt(n) => match line_if_statements(n) {
+                    Some(inner) => {
+                        let program = self.program;
+                        let mut sub = walk::Cursor::new(program, skips, inner);
+                        self.collect_block_settings(&mut sub, skips, at);
+                    }
+                    None => self.block_setting(n, skips, at),
+                },
+            }
+        }
+    }
+
+    /// One statement of [`Self::collect_block_settings`].
+    fn block_setting(&mut self, node: Node<'a>, skips: &Skips, at: &mut BlockSettings) {
         if let Some(s) = ast::OptionStmt::cast(node) {
             let digits = s.base().filter(|_| skips.usable(node)).map(|t| self.text(t.span));
             if let Some(n) = digits.and_then(decl::option_base_of) {
@@ -1029,18 +1183,6 @@ impl<'a> Checker<'a> {
             return;
         }
         if ast::InactiveCode::cast(node).is_some() {
-            return;
-        }
-        if let Some(d) = ast::ProcDef::cast(node) {
-            // A parameter's type must be defined above the header, which the walk reaches before the body.
-            if let Some(h) = d.header() {
-                self.types_above.insert(h.node().key(), self.type_blocks.len());
-            }
-            let outer = std::mem::replace(&mut at.in_proc, true);
-            for n in node.child_nodes() {
-                self.collect_block_settings(n, skips, at);
-            }
-            at.in_proc = outer;
             return;
         }
         if let Some(s) = ast::ConstStmt::cast(node) {
@@ -1060,17 +1202,6 @@ impl<'a> Checker<'a> {
             if at.typefields {
                 self.type_flags.insert(node.key());
             }
-            return;
-        }
-        if ast::MetaCommentStmt::cast(node).is_some() {
-            let program = self.program;
-            if let Some(tree) = program.included(node) {
-                self.collect_block_settings(tree.root(), skips, at);
-            }
-            return;
-        }
-        for n in node.child_nodes() {
-            self.collect_block_settings(n, skips, at);
         }
     }
 }
@@ -1211,6 +1342,16 @@ impl Checker<'_> {
         result
     }
 
+    /// Where a statement stands, as [`Self::push`] records it, for an `error_track_line` outside its code.
+    fn track(&self, node: Node) -> crate::Track {
+        let span = node.span();
+        crate::Track {
+            file: span.file,
+            line: self.line(node.first_token().map_or(span, |t| t.span)),
+            include_line: self.include_line(node),
+        }
+    }
+
     fn push(&mut self, node: Node, kind: StmtKind) {
         let span = node.span();
         let line = self.line(node.first_token().map_or(span, |t| t.span));
@@ -1290,8 +1431,10 @@ impl Checker<'_> {
             self.builtin_stmt(s)
         } else if ast::StopStmt::cast(node).is_some() {
             self.stop(node)
-        } else if ast::RunStmt::cast(node).is_some() {
-            Err(self.unsupported(first_token_span(node), "`RUN`"))
+        } else if let Some(s) = ast::RunStmt::cast(node) {
+            self.run(s)
+        } else if let Some(s) = ast::PaletteUsingStmt::cast(node) {
+            self.palette_using(s)
         } else if let Some(s) = ast::CallStmt::cast(node) {
             self.call_stmt(s)
         } else if ast::ExitStmt::cast(node).is_some() {
@@ -1396,13 +1539,11 @@ impl Checker<'_> {
         let line = meta_line(raw);
         let once = line.strip_prefix(b"$INCLUDEONCE".as_slice());
         if self.program.passes_disagree.contains(&(node.key().0, tok.span.start)) {
-            // The parser read the condition with the flag's value on this line; the old compiler's main pass
-            // reads it with the value of the first line (design D7 of `m2-console-screenhide`; measured,
-            // `verification\v26_x27`, `x34`: its program prints nothing from the branches, and a `CONST` in them
-            // is "Name already in use").
-            let flag = stmt.precompiler_flag(raw).unwrap_or("a precompiler flag");
-            let msg = format!("`{flag}` in a `$IF` between two lines that set it differently");
-            Err(self.unsupported(tok.span, msg))
+            // The parser read the condition with the flag's value on this line, as the old compiler's first pass
+            // does; its main pass reads another value and compiles none of the branches (design D9 of
+            // `m4-statements-metacommands`; measured, `verification\v26_x27`, `x34`, `v57_g01`–`g11`). The
+            // statements up to the `$END IF` are dropped ([`Self::pp_dropped`], which starts the drop here).
+            Ok(())
         } else if stmt.is_preprocessor(raw) || once == Some(b"") {
             // Evaluated by the parser (`$INCLUDEONCE` too); an error in it is a parse error, and the statement is
             // skipped then.
@@ -1496,9 +1637,31 @@ impl Checker<'_> {
                 tok.span,
                 "$MIDISOUNDFONT is a deprecated keyword, use _MIDISOUNDBANK instead",
             ))
+        } else if line == b"$ERRORLOCATION:ON" || line == b"$ERRORLOCATION:OFF" {
+            // A setting of the whole program (design D6 of `m4-builtins-remaining`; `qb64pe.bas` 2010–2016,
+            // 3576–3586): the lines are judged after the walk ([`Self::settle_error_location`]). The old compiler
+            // compares the whole line, so `$ERRORLOCATION:ON ' comment` is an unknown metacommand below (measured,
+            // `verification\v58_e14`–`e18`).
+            self.settings
+                .error_location
+                .push((tok.span, line == b"$ERRORLOCATION:ON"));
+            Ok(())
+        } else if line.starts_with(b"$USELIBRARY") {
+            // Read by the parser, which includes the library's files (design D7 of `m4-builtins-remaining`); an
+            // error in the line is a parse error.
+            Ok(())
+        } else if line == b"$NOPREFIX" {
+            // The old compiler's own error (`qb64pe.bas` 2020–2026; measured, `verification\v43_x32`).
+            Err(self.error(
+                tok.span,
+                "`$NOPREFIX` is deprecated: QB64pe's own names must have their underscore (the IDE can convert the \
+                 program)",
+            ))
         } else {
+            // Any other line reaches the old compiler's statement parser, which rejects it (design D3; measured,
+            // `verification\v16_m6_unknown_meta`, `v24_x38`, `v39_x74`, `x79`–`x81`, `v57_m01`–`m08`).
             let shown = show_bytes(raw.split(|&b| b == b':' || b == b' ').next().unwrap_or(raw));
-            Err(self.unsupported(tok.span, format!("metacommand `{shown}`")))
+            Err(self.error(tok.span, format!("unknown metacommand `{shown}`")))
         }
     }
 
@@ -1669,7 +1832,7 @@ impl Checker<'_> {
         }
         let mut first: Option<u32> = None;
         for tree in &program.trees {
-            if Some(tree.id) == program.colors || Some(tree.id) == program.after_last_line {
+            if program.is_auto_tree(tree.id) {
                 continue;
             }
             let mut toks = Vec::new();
@@ -1689,7 +1852,25 @@ impl Checker<'_> {
     /// `$INCLUDE` that brought the outermost included file in (measured, `verification\v43_b_include`); `None` in
     /// the main file.
     fn include_line(&self, node: Node) -> Option<u32> {
-        (node.key().0 != self.program.main().id).then(|| self.main_line(node.key()))
+        let tree = node.key().0;
+        if tree == self.program.main().id {
+            return None;
+        }
+        // A library's file is counted in the main file where the old compiler includes it (design D7 of
+        // `m4-builtins-remaining`; its C++ of `verification\v58_u01`, `u19`): a top file at line 0, one after the
+        // main module at the main file's last line.
+        match self.program.library_tree_is_top(tree) {
+            Some(true) => Some(0),
+            Some(false) => Some(self.main_line_count()),
+            None => Some(self.main_line(node.key())),
+        }
+    }
+
+    /// The number of lines of the main file (the old compiler's `linenumber` after its last line).
+    fn main_line_count(&self) -> u32 {
+        let bytes = &self.map.file(self.program.main().file).bytes;
+        let newlines = bytes.iter().filter(|&&b| b == b'\n').count();
+        qb64rust_base::to_u32(newlines + usize::from(bytes.last().is_some_and(|&b| b != b'\n')))
     }
 
     /// A metacommand comment. Its `$STATIC` and `$DYNAMIC` decide what a `DIM` with constant bounds makes from

@@ -1,0 +1,5 @@
+
+DYNAMIC LIBRARY not found
+Caused by (or after):DECLARE DYNAMIC LIBRARY "v58_no_such_library",19
+LINE 6:DECLARE DYNAMIC LIBRARY "v58_no_such_library"
+exit=1
