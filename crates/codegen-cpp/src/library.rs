@@ -196,6 +196,8 @@ impl Emitter<'_> {
                 out.push_str(&include_line(h));
             }
             match lib.kind {
+                // libqb's `gl_helper_code.h` declares the helpers, `gl.h` the rest (design D4 of `m4-sub-gl`).
+                LibraryKind::OpenGl => {}
                 LibraryKind::Plain | LibraryKind::Static => {
                     // A block with no name reaches what the program's C++ already includes, the C runtime: no
                     // prototype either (measured, `verification\v37_a`).
@@ -281,7 +283,7 @@ impl Emitter<'_> {
         for (i, lib) in self.p.libraries.iter().enumerate() {
             let id = LibraryId(qb64rust_base::to_u32(i));
             match lib.kind {
-                LibraryKind::Plain | LibraryKind::Static => {}
+                LibraryKind::Plain | LibraryKind::Static | LibraryKind::OpenGl => {}
                 LibraryKind::Dynamic => {
                     let Some(Dll { handle, dll }) = self.dll(id) else {
                         continue;
@@ -320,17 +322,25 @@ impl Emitter<'_> {
     /// A call of library procedure `proc`: the C function by its name, or through the pointer of a `DYNAMIC` or
     /// `CUSTOMTYPE` block; a FUNCTION's result cast to its declared type (so a C `double` is truncated for a
     /// `LONG` FUNCTION, as the old compiler does: measured, `verification\v37_x63`), a `STRING` one copied into a
-    /// new string (a `NULL` gives "", `x39`).
+    /// new string (a `NULL` gives "", `x39`). An OpenGL routine's result has no cast, and `_glGetString`'s pointer
+    /// is read as the old compiler's call name has it (`(  char*  )call_glGetString`; design D4 of `m4-sub-gl`).
     pub(crate) fn library_call(&mut self, proc: ProcId, args: &[Arg]) -> String {
         let q = self.p.proc(proc);
         let e = q.external.as_ref().expect("a library procedure");
-        let callee = match self.p.library(e.library).kind {
-            LibraryKind::Plain | LibraryKind::Static => e.c_name.clone(),
+        let kind = self.p.library(e.library).kind;
+        let callee = match kind {
+            LibraryKind::Plain | LibraryKind::Static | LibraryKind::OpenGl => e.c_name.clone(),
             LibraryKind::Dynamic | LibraryKind::Customtype => proc_name(q),
         };
-        let kind = q.kind;
+        let proc_kind = q.kind;
         let call = format!("{callee}({})", self.library_args(proc, args));
-        match kind {
+        if kind == LibraryKind::OpenGl {
+            return match proc_kind {
+                ProcKind::Function(Ty::Str) => format!("qbs_new_txt((  char*  ){call})"),
+                ProcKind::Sub | ProcKind::Function(_) => call,
+            };
+        }
+        match proc_kind {
             ProcKind::Sub => call,
             ProcKind::Function(Ty::Str) => format!("qbs_new_txt((char*){call})"),
             ProcKind::Function(t) => format!("(({}){call})", c_type(t)),

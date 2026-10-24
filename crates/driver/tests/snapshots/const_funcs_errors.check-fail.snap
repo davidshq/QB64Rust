@@ -26,6 +26,7 @@ const_funcs_errors.bas:23:13: error: `SIN` in a `CONST` takes numbers, not strin
 const_funcs_errors.bas:24:13: error: wrong number of arguments to `_RGB32` in a `CONST`
 const_funcs_errors.bas:25:13: error: wrong number of arguments to `_RGB32` in a `CONST`
 const_funcs_errors.bas:26:13: error: wrong number of arguments to `_RGBA32` in a `CONST`
+const_funcs_errors.bas:26:13: note: QB64pe: Wrong number of arguments provided to _RGBA32!
 const_funcs_errors.bas:27:13: error: screen mode 5 in a colour function of a `CONST`
 const_funcs_errors.bas:27:13: note: QB64pe: Invalid Screen Mode (5)
 const_funcs_errors.bas:28:13: error: screen mode 3 in a colour function of a `CONST`

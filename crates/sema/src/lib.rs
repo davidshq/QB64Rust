@@ -18,9 +18,13 @@ mod colors;
 pub mod consteval;
 mod dump;
 pub mod f80;
+// Written by `tools\opengl\gl_table.py`, which owns its layout.
+#[rustfmt::skip]
+pub mod gl_table;
 pub mod literal;
 #[cfg(test)]
 mod mpmath_values;
+pub mod opengl;
 mod symbols;
 
 pub use check::{check, check_with};
@@ -846,6 +850,9 @@ pub enum LibraryKind {
     Static,
     Dynamic,
     Customtype,
+    /// Not a block: the OpenGL routines of a program with `SUB _GL` (design D3 of `m4-sub-gl`), which libqb's
+    /// `gl_helper_code.h` declares; no name, no header, no prototype.
+    OpenGl,
 }
 
 /// A library name of a block: the text between the quotes.
@@ -1819,6 +1826,9 @@ impl Resize {
 /// An optional part of the runtime that a built-in needs linked in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RuntimePart {
+    /// OpenGL: the program has `SUB _GL` (design D3 of `m4-sub-gl`; the old compiler's `DEPENDENCY_GL`), and libqb
+    /// calls it each frame and holds the helpers of its OpenGL routines.
+    Gl,
     /// Setting the window's icon from an image (`_ICON`).
     Icon,
     /// libqb's audio (`SOUND`, `PLAY`; `BEEP` is the system's bell and needs none).

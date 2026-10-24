@@ -19,6 +19,7 @@ mod flow;
 mod io;
 mod library;
 mod mem;
+mod opengl;
 mod ops;
 mod places;
 mod proc;
@@ -87,6 +88,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         consts_local: HashMap::new(),
         auto_consts: HashMap::new(),
         fell_back: HashSet::new(),
+        gl_library: None,
+        gl_consts: HashSet::new(),
         used_names: HashMap::new(),
         used_local: HashMap::new(),
         sinks: Vec::new(),
@@ -569,6 +572,10 @@ struct Checker<'a> {
     /// The constants whose value took a correctly rounded one where the old compiler's depends on the machine
     /// (`DIVERGENCES.md` D-026): a `CONST` that names one warns too, and so does a use of an auto-included one.
     fell_back: HashSet<ConstId>,
+    /// The library entry the OpenGL routines named so far belong to, made with the first (`opengl.rs`).
+    gl_library: Option<crate::LibraryId>,
+    /// The OpenGL constants named so far, each a constant of the main module (`opengl.rs`).
+    gl_consts: HashSet<ConstId>,
     /// The first use or declaration of each variable name so far, anywhere, and in the procedure being checked:
     /// a later `CONST` of the name is an error there (design D6).
     used_names: HashMap<String, Span>,

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_GLULOOKAT 0 , 0 , 0 , 0 , 0 , 0 , 0 , 1 , 0
+LINE 8:_gluLookAt 0, 0, 0, 0, 0, 0, 0, 1, 0
+exit=1

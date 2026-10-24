@@ -336,6 +336,7 @@ noprompt/noprompt-continue-fatal
 noprompt/noprompt-y
 offset/offset_test
 on_error/errtest
+opengl/test
 operators_test/op_exp
 overloaded/test
 paint/tile_border_black_bg

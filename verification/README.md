@@ -280,6 +280,31 @@ Small programs behind `study\09`, `study\10` and later measurements:
   one accepted or rejected form each (the five accepted above and `_SETBIT(1, 1.5)`; the hyperbolics,
   `_SETBIT`, `MKSMBF$`, `_COMPILERVERSION$` and `_ENVIRONCOUNT` in a `CONST` "Unexpected element"; a function as a
   statement "Syntax error", a statement as a function "Name already in use" or "Invalid array name")
+- `v59*`: `SUB _GL` and the OpenGL names, measured as task 1.1 of `m4-sub-gl` (its `design.md`, D1). OpenGL gets a
+  hardware context on the runner's hidden desktop (the machine's driver; the renderer is printed only as named).
+  `a1`–`a6` the forms accepted: plain, `STATIC` (a local kept between calls), in an included file (`v59_inc\`), in
+  lower case with `()` and the OpenGL names in any letter case, a SUB defined before it using a routine; under
+  `$CONSOLE:ONLY` and `$SCREENHIDE` it compiles and is never called; `b1`–`b4` the names without `SUB _GL` (a
+  statement "Syntax error", a function and a constant "Invalid variable name"); `c` the constants (585 of them:
+  values, a `#define` naming an earlier one, `_INTEGER64` arithmetic, the suffixes as for a `CONST`); `d` the
+  conversions read back (a float rounded half to even into `GLint`, -1 into `GLuint` as all ones, 256 into
+  `GLboolean` as 0, an out-of-range clear colour clamped, -1 into `GLenum`: `GL_INVALID_ENUM`); `e`, `e2` the
+  functions (`_glGetString` a `STRING`, empty for a name OpenGL does not know; `_glGetError` an `_UNSIGNED LONG`);
+  `f1`–`f9` the errors: 270 for a routine with a helper outside `SUB _GL` (in the main module or a SUB it calls,
+  `_glGetString` too) and 271 for `END` or `SYSTEM` inside it are libqb's critical errors (a message, exit 0, no
+  handler runs; each program waits after the call, since lines printed just after it race the program's end), the
+  routines without a helper (`_glFlush`, `_glGetError`) and `_gluPerspective` raise nothing, `STOP` inside it hangs
+  (timed out); `g` reading back (a cleared pixel, the viewport, `_glIsEnabled`, `_glGetError`); `h1`–`h3` the SUB
+  called under `_GLRENDER _BEHIND`, `_ONLY`, `_ONTOP`; `x01`–`x47` one accepted or rejected form each (`SUB _GL`
+  with a parameter, as a FUNCTION, twice or with a suffix "Invalid name" or "Type symbols after a SUB name are
+  invalid", a call "Cannot call SUB _GL directly", a program's name or `CONST` of an OpenGL name "Invalid name", a
+  `CONST` naming an OpenGL constant "Unexpected element"; accepted: `CALL _glViewport(…)`, `_GL_TRUE&`, a `LONG` or
+  a whole array where an `_OFFSET` goes, `DECLARE SUB _GL ()`, a constant as a `DIM` bound and a `CASE`; `x48`–`x54`:
+  by the review of the change, a routine with a suffix as a statement "Syntax error" and after `CALL` "Expected CALL
+  sub-name", a count error of a one-argument routine, the third argument a string "3rd sub argument requires a
+  number", a constant as a member's bound or `STRING * n` rejected and as a variable's `STRING * n` accepted;
+  `x55`–`x57`: by the review of those fixes, a suffix with empty parentheses in an expression "Invalid array name"
+  and as a statement "Syntax error", after `CALL` without arguments "Expected CALL sub-name")
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

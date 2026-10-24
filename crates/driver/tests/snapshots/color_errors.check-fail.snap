@@ -5,6 +5,7 @@ expression: snap
 color_errors.bas:8:15: error: `Black` is a `$COLOR` constant, which a `CONST` above the `$COLOR` line cannot name
 color_errors.bas:8:15: note: QB64pe: Unexpected element 'BLACK'
 color_errors.bas:10:1: error: `$COLOR:0` and `$COLOR:32` cannot be used in one program
+color_errors.bas:10:1: note: QB64pe: $COLOR:0 already set, cannot use both color sets together
 color_errors.bas:11:1: error: `$COLOR` takes `:0` or `:32`, alone on its line
 color_errors.bas:11:1: note: QB64pe: Syntax error
 color_errors.bas:12:1: error: `$COLOR` takes `:0` or `:32`, alone on its line

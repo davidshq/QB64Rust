@@ -1,0 +1,5 @@
+
+Invalid label!
+Caused by (or after):GOTO _GL
+LINE 8:GOTO _GL
+exit=1

@@ -1,0 +1,65 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+opengl_errors.bas:6:12: error: `_GL_TRUE` is an OpenGL constant, which a `CONST` cannot name
+opengl_errors.bas:6:12: note: QB64pe: Unexpected element '_GL_TRUE'
+opengl_errors.bas:8:1: error: `SUB _GL` is called by the runtime, not by the program
+opengl_errors.bas:8:1: note: QB64pe: Cannot call SUB _GL directly
+opengl_errors.bas:10:6: error: `SUB _GL` is called by the runtime, not by the program
+opengl_errors.bas:10:6: note: QB64pe: Cannot call SUB _GL directly
+opengl_errors.bas:12:1: error: `_GL&` is no statement: `SUB _GL` has no type suffix
+opengl_errors.bas:12:1: note: QB64pe: Syntax error
+opengl_errors.bas:14:1: error: the OpenGL routine `_glViewport` takes 4 arguments, not 3
+opengl_errors.bas:14:1: note: QB64pe: Syntax error
+opengl_errors.bas:16:10: error: a number is required for this parameter
+opengl_errors.bas:16:10: note: QB64pe: Number required for sub
+opengl_errors.bas:18:10: error: a number is required for this parameter
+opengl_errors.bas:18:10: note: QB64pe: Number required for sub
+opengl_errors.bas:20:5: error: name already in use: `_glFlush`
+opengl_errors.bas:22:1: error: the library FUNCTION `_glGetError` cannot be called as a statement
+opengl_errors.bas:22:1: note: QB64pe: Syntax error
+opengl_errors.bas:24:1: error: the library FUNCTION `_glIsEnabled` cannot be called as a statement
+opengl_errors.bas:24:1: note: QB64pe: Syntax error
+opengl_errors.bas:26:15: error: cannot read the arguments of `_glViewport`; expected expressions separated by `,`
+opengl_errors.bas:28:1: error: `glViewport` is no statement and no SUB
+opengl_errors.bas:28:1: note: QB64pe: Syntax error
+opengl_errors.bas:30:7: error: type mismatch
+opengl_errors.bas:32:1: error: cannot assign to the constant `_GL_TRUE`
+opengl_errors.bas:34:5: error: `_glGetError~&`: an OpenGL routine is named without a type suffix
+opengl_errors.bas:34:5: note: QB64pe: Invalid variable name
+opengl_errors.bas:36:5: error: `_glGetError%`: an OpenGL routine is named without a type suffix
+opengl_errors.bas:36:5: note: QB64pe: Invalid variable name
+opengl_errors.bas:38:6: error: `_glGetString$`: an OpenGL routine is called without a type suffix
+opengl_errors.bas:38:6: note: QB64pe: Invalid array name
+opengl_errors.bas:40:30: error: a number is required for the 2nd argument
+opengl_errors.bas:40:30: note: QB64pe: 2nd sub argument requires a number
+opengl_errors.bas:42:1: error: the OpenGL routine `_gluPerspective` takes 4 arguments, not 3
+opengl_errors.bas:42:1: note: QB64pe: Syntax error
+opengl_errors.bas:44:5: error: name already in use: `_gluPerspective`
+opengl_errors.bas:46:1: error: `_gluLookAt` is no statement and no SUB, and no OpenGL routine
+opengl_errors.bas:46:1: note: QB64pe: Syntax error
+opengl_errors.bas:48:11: error: cannot read the arguments of `_glFlush`; expected expressions separated by `,`
+opengl_errors.bas:50:24: error: cannot read the arguments of `_glViewport`; expected expressions separated by `,`
+opengl_errors.bas:52:16: error: cannot read the arguments of `_glViewport`; expected expressions separated by `,`
+opengl_errors.bas:54:19: error: cannot read the arguments of `_glViewport`; expected expressions separated by `,`
+opengl_errors.bas:56:1: error: `_glFlush%` is no statement: an OpenGL routine takes no type suffix
+opengl_errors.bas:56:1: note: QB64pe: Syntax error
+opengl_errors.bas:58:6: error: `CALL _glViewport&`: an OpenGL routine takes no type suffix
+opengl_errors.bas:58:6: note: QB64pe: Expected CALL sub-name [(...)]
+opengl_errors.bas:60:1: error: the OpenGL routine `_glClear` takes 1 argument, not 2
+opengl_errors.bas:60:1: note: QB64pe: Syntax error
+opengl_errors.bas:62:19: error: a number is required for the 3rd argument
+opengl_errors.bas:62:19: note: QB64pe: 3rd sub argument requires a number
+opengl_errors.bas:64:5: error: name already in use: `_glFlush`
+opengl_errors.bas:69:16: error: `_GL_TRUE` is an OpenGL constant, which a `CONST` cannot name
+opengl_errors.bas:69:16: note: QB64pe: Unexpected element '_GL_TRUE'
+opengl_errors.bas:71:19: error: `SUB _GL` is called by the runtime, not by the program
+opengl_errors.bas:71:19: note: QB64pe: Cannot call SUB _GL directly
+opengl_errors.bas:75:5: error: names starting with `_` are reserved: `_GL`
+opengl_errors.bas:79:5: error: names starting with `_` are reserved: `_GL`
+opengl_errors.bas:83:10: error: names starting with `_` are reserved: `_GL`
+opengl_errors.bas:87:5: error: a SUB's name has no type suffix
+opengl_errors.bas:87:5: note: QB64pe: Type symbols after a SUB name are invalid
+opengl_errors.bas:91:5: error: names starting with `_` are reserved: `_glFinish`

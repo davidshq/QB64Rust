@@ -85,8 +85,9 @@ version,session,change,category,actions,bytes
 1,033fec93,,builds,1,0
 1,033fec93,,documents and planning,10,4602
 1,033fec93,,measurement runs,1,0
-1,033fec93,,other commands,21,0
+1,033fec93,,other commands,25,0
 1,033fec93,,reading,2,0
+1,033fec93,,scratch files,1,2706
 1,033fec93,,test runs,18,0
 1,033fec93,m4-builtins-remaining,other,1,0
 1,033fec93,m4-builtins-remaining,other commands,4,0
@@ -371,6 +372,12 @@ version,session,change,category,actions,bytes
 1,20b2aa2d,m4-qb64pe-builtins,documents and planning,20,37384
 1,20b2aa2d,m4-qb64pe-builtins,other commands,21,0
 1,20b2aa2d,m4-qb64pe-builtins,test runs,3,0
+1,20ea8978,,documents and planning,2,1464
+1,20ea8978,,other,1,0
+1,20ea8978,,other commands,25,0
+1,20ea8978,m4-sub-gl,documents and planning,8,27490
+1,20ea8978,m4-sub-gl,other commands,11,0
+1,20ea8978,m4-sub-gl,test runs,1,0
 1,21104885,,other commands,1,0
 1,21104885,m3-images-fonts-mouse,other commands,2,0
 1,21a4bf91,,other commands,1,0
@@ -670,6 +677,17 @@ version,session,change,category,actions,bytes
 1,3ce73be8,,scratch files,12,17107
 1,3ce73be8,,test runs,4,0
 1,3ce73be8,,tests and fixtures,2,592
+1,3cf0f8dd,m4-sub-gl,builds,9,0
+1,3cf0f8dd,m4-sub-gl,documents and planning,38,15383
+1,3cf0f8dd,m4-sub-gl,measurement preparation,29,18041
+1,3cf0f8dd,m4-sub-gl,measurement runs,3,0
+1,3cf0f8dd,m4-sub-gl,other,1,0
+1,3cf0f8dd,m4-sub-gl,other commands,136,0
+1,3cf0f8dd,m4-sub-gl,product code,46,27026
+1,3cf0f8dd,m4-sub-gl,reading,33,0
+1,3cf0f8dd,m4-sub-gl,scratch files,9,12250
+1,3cf0f8dd,m4-sub-gl,test runs,42,0
+1,3cf0f8dd,m4-sub-gl,tests and fixtures,15,29708
 1,3d20ac3d,,other commands,1,0
 1,3d20ac3d,,reading,1,0
 1,3d20ac3d,m3-declare-library,documents and planning,6,2112
@@ -2090,6 +2108,17 @@ version,session,change,category,actions,bytes
 1,afa5c140,m2-golden-corpus,reading,10,0
 1,afa5c140,m2-golden-corpus,test runs,5,0
 1,afa5c140,m2-golden-corpus,tests and fixtures,13,7390
+1,b0737170,,other,1,0
+1,b0737170,,reading,4,0
+1,b0737170,m4-sub-gl,builds,4,0
+1,b0737170,m4-sub-gl,documents and planning,6,1830
+1,b0737170,m4-sub-gl,measurement preparation,12,3690
+1,b0737170,m4-sub-gl,measurement runs,2,0
+1,b0737170,m4-sub-gl,other commands,44,0
+1,b0737170,m4-sub-gl,product code,17,5589
+1,b0737170,m4-sub-gl,reading,33,0
+1,b0737170,m4-sub-gl,test runs,24,0
+1,b0737170,m4-sub-gl,tests and fixtures,5,2596
 1,b22d7e8f,,other,2,0
 1,b22d7e8f,,other commands,5,0
 1,b22d7e8f,m3-network-embed,documents and planning,4,1510

@@ -55,8 +55,13 @@ impl Emitter<'_> {
                 out.push("close_program=1;".into());
                 out.push("end();".into());
             }
-            // `qb64pe.bas` 9918–9919.
+            // `qb64pe.bas` 9918–9919. In a program with `SUB _GL`, `STOP` inside it ends with error 271 as `END` and
+            // `SYSTEM` do there, where the old compiler's program hangs (`DIVERGENCES.md` D-036; measured,
+            // `verification\v59_f9`); every other program's C++ is the old compiler's.
             Op::Stop => {
+                if self.p.settings.runtime_parts.contains(&qb64rust_ir::RuntimePart::Gl) {
+                    out.push("if (sub_gl_called){qbr_diverged(36);error(271);}".into());
+                }
                 out.push("close_program=1;".into());
                 out.push("end();".into());
             }

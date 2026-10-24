@@ -1,0 +1,5 @@
+
+TYPE member array bounds must be numeric constant
+Caused by (or after):
+LINE 6:A ( _GL_TRUE ) AS LONG
+exit=1

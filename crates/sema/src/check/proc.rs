@@ -51,7 +51,13 @@ impl Checker<'_> {
             Some(rest) if auto && rest.starts_with('_') => (rest.to_string(), true),
             _ => (name, false),
         };
-        if !auto {
+        // The program's OpenGL routine, which libqb calls each frame (design D3 of `m4-sub-gl`; `qb64pe.bas` 3066):
+        // the first `SUB _GL` without parameters. With one, as a FUNCTION or a second time, `_GL` is a reserved
+        // name as any other with `_` (measured, `verification\v59_x01`–`x05`: "Invalid name").
+        let gl = !auto && name == "_GL" && kind == ProcKind::Sub && header.params().next().is_none() && !self.has_gl();
+        if gl {
+            self.settings.runtime_parts.insert(crate::RuntimePart::Gl);
+        } else if !auto {
             self.reserved_proc(name_tok, &name, suffix, matches!(kind, ProcKind::Function(_)))?;
         }
         if self.procs_by_name.contains_key(&name) {
@@ -73,7 +79,7 @@ impl Checker<'_> {
 
     /// Enters a procedure of this name and kind, with no parameters or statements yet, and its scope of
     /// parameters.
-    fn new_proc(&mut self, name: String, kind: ProcKind) -> ProcId {
+    pub(super) fn new_proc(&mut self, name: String, kind: ProcKind) -> ProcId {
         let id = ProcId(to_u32(self.prog.procs.len()));
         self.prog.procs.push(Proc {
             name: name.clone(),
@@ -395,6 +401,26 @@ impl Checker<'_> {
             None => self.split_name(name_tok)?,
         };
         let shown = show_bytes(self.text(name_tok.span));
+        // libqb alone calls `SUB _GL` (design D3 of `m4-sub-gl`; `qb64pe.bas` 10863, on the path of a call of a SUB
+        // the program has; measured, `verification\v59_x06`–`x08`: "Cannot call SUB _GL directly").
+        // With a suffix: "Syntax error" (`x40`).
+        if name == "_GL" && self.has_gl() {
+            let msg = match suffix {
+                None => "`SUB _GL` is called by the runtime, not by the program".to_string(),
+                Some(_) => format!("`{shown}` is no statement: `SUB _GL` has no type suffix"),
+            };
+            return Err(self.error(name_tok.span, msg));
+        }
+        // An OpenGL routine written with a type suffix is no name of the table: "Syntax error", after `CALL`
+        // "Expected CALL sub-name [(...)]" (measured, `verification\v59_x48`, `x49`).
+        if suffix.is_some() && self.has_gl() && crate::opengl::gl_routine(&name).is_some() {
+            let msg = match stmt.call_keyword() {
+                Some(_) => format!("`CALL {shown}`: an OpenGL routine takes no type suffix"),
+                None => format!("`{shown}` is no statement: an OpenGL routine takes no type suffix"),
+            };
+            return Err(self.error(name_tok.span, msg));
+        }
+        self.gl_routine_named(&name, suffix, false, name_tok)?;
         // The statements of memory blocks written inline (design D4 of `m3-mem`): `_MEMGET` is read as a call.
         // Measured: after `CALL` each is "Command not implemented" (`verification\v32_x90`–`x92`).
         if suffix.is_none() && matches!(name.as_str(), "_MEMGET" | "_MEMPUT" | "_MEMFILL") {
@@ -510,9 +536,19 @@ impl Checker<'_> {
             _ if is_keyword(name.as_bytes()) || find_any(name.as_bytes()).next().is_some() => {
                 Err(self.unsupported(name_tok.span, format!("`{shown}`")))
             }
+            // An OpenGL routine in a program without `SUB _GL`, or a `_GL…` name that is none (design D3 of
+            // `m4-sub-gl`): the old compiler's "Syntax error".
+            _ if self.is_gl_like(&name) => {
+                let msg = if crate::opengl::gl_routine(&name).is_some() {
+                    format!("`{shown}` is an OpenGL routine, which only a program with `SUB _GL` has")
+                } else {
+                    format!("`{shown}` is no statement and no SUB, and no OpenGL routine")
+                };
+                Err(self.error(name_tok.span, msg))
+            }
             // The old compiler's own calls `CALL ABSOLUTE` and `CALL INTERRUPT[X]` (`qb64pe.bas` 10606–10687), and a
-            // name with a leading underscore, which may be a built-in the table does not hold (the OpenGL
-            // statements of `SUB _GL`, `_glBindTexture`).
+            // name with a leading underscore, which may be a built-in the table does not hold (the `_GL…` names
+            // never come here: the arm above).
             _ if name.starts_with('_') || matches!(name.as_str(), "ABSOLUTE" | "INTERRUPT" | "INTERRUPTX") => {
                 let msg = format!("`{shown}` as a statement (no SUB of this name)");
                 Err(self.unsupported(name_tok.span, msg))
@@ -551,10 +587,14 @@ impl Checker<'_> {
             return Err(self.in_use(name_tok));
         }
         let params = self.prog.proc(p).params.clone();
+        let gl = self.is_gl_proc(p);
         if nodes.len() != params.len() {
             let n = params.len();
+            // An OpenGL routine's is "Syntax error" (measured, `verification\v59_x09`, `x31`), a program's
+            // procedure's "Incorrect number of arguments": worded apart for the note after the error.
             let msg = format!(
-                "`{}` takes {n} argument{}, not {}",
+                "{}`{}` takes {n} argument{}, not {}",
+                if gl { "the OpenGL routine " } else { "" },
                 show_bytes(self.text(name_tok.span)),
                 if n == 1 { "" } else { "s" },
                 nodes.len()
@@ -575,14 +615,16 @@ impl Checker<'_> {
                 args.push(self.array_arg(node, param)?);
                 continue;
             }
-            if let Some((_, t)) = self.whole_array(node) {
+            // To an OpenGL routine a whole array is the value it stands for, its first element (measured,
+            // `verification\v59_x30`; the old compiler's C++ passes `((int32*)(__ARRAY_LONG_V[0]))[0]`).
+            if let Some((_, t)) = self.whole_array(node).filter(|_| !gl) {
                 // Measured: "Whole array cannot be passed to a scalar SUB parameter" (`verification\v24_x147`).
                 let shown = show_bytes(self.text(t.span));
                 let msg = format!("the whole array `{shown}()` cannot be passed to a parameter that is no array");
                 return Err(self.error(node.node().span(), msg));
             }
             if byval.get(k).copied().unwrap_or(false) {
-                args.push(self.byval_arg(node, pty)?);
+                args.push(self.byval_arg(node, pty, gl, k)?);
                 continue;
             }
             if let Ty::User(_) = pty {
@@ -646,7 +688,15 @@ impl Checker<'_> {
     /// `m3-declare-library`; measured, `verification\v37_b`, `v37_c`, `x28`): the value converted as for an
     /// assignment, or `NULL` ([`Self::null_arg`]). A user type cannot be one: "User defined types in expressions are
     /// invalid".
-    fn byval_arg(&mut self, node: ast::Expr, pty: Ty) -> R<Arg> {
+    ///
+    /// To an OpenGL routine (`gl`) an integer is not folded into the parameter's type: the old compiler writes a
+    /// constant or a literal as it stands (`3042ll` for `_GL_BLEND` into a `GLenum`, `256` into a `GLboolean`, `-1`
+    /// into a `GLuint`; read in its `-z` output, design D4 of `m4-sub-gl`), and C converts it to the same value.
+    ///
+    /// A string is the old compiler's "Number required for sub" as the first argument, "2nd sub argument requires a
+    /// number" and so on after it (measured, `verification\v59_x10`, `x29`, `x51`): worded with the same ordinal, so
+    /// that the note after the error is the old message (argument `k`, from 0).
+    fn byval_arg(&mut self, node: ast::Expr, pty: Ty, gl: bool, k: usize) -> R<Arg> {
         if let Ty::User(_) = pty {
             let msg = format!(
                 "a `BYVAL` parameter of `TYPE {}` takes no value (a user type is passed by reference)",
@@ -658,10 +708,19 @@ impl Checker<'_> {
         let e = self.expr(node)?;
         if e.ty == Ty::Str {
             // A `STRING` parameter cannot be `BYVAL` (`x10`), so this one is a number.
-            return Err(self.error(e.span, "a number is required for this parameter"));
+            let msg = match k {
+                0 => "a number is required for this parameter".to_string(),
+                _ => format!("a number is required for the {} argument", ordinal(k + 1)),
+            };
+            return Err(self.error(e.span, msg));
         }
         if null {
             return Ok(Arg::Null);
+        }
+        let to = pty.held_value();
+        if gl && e.ty.is_int() && e.ty != to {
+            let how = crate::conversion(e.ty, to);
+            return Ok(Arg::Value(super::expr::conv(e, to, how)));
         }
         Ok(Arg::Value(self.store(e, pty)?))
     }
@@ -891,6 +950,18 @@ fn takes_suffix(name: &str, suffix: Option<Ty>) -> bool {
         return true;
     }
     suffix == Some(Ty::Str) && stmts.any(|b| b.musthave == Some("$"))
+}
+
+/// `n` as an English ordinal, as the old compiler writes an argument's place: `2nd`, `3rd`, `11th`, `21st`.
+fn ordinal(n: usize) -> String {
+    let end = match (n % 10, n % 100) {
+        (_, 11..=13) => "th",
+        (1, _) => "st",
+        (2, _) => "nd",
+        (3, _) => "rd",
+        _ => "th",
+    };
+    format!("{n}{end}")
 }
 
 /// Whether a place of integer type `place` is passed by reference to a parameter of integer type `param` of

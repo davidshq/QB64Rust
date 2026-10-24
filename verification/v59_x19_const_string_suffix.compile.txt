@@ -1,0 +1,5 @@
+
+Type mismatch
+Caused by (or after):PRINT _GL_TRUE$
+LINE 8:PRINT _GL_TRUE$
+exit=1

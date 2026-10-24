@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 16:SUB _GL
+exit=1

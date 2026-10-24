@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_GLVIEWPORT 0 , , 1 , 1
+LINE 8:_glViewport 0, , 1, 1
+exit=1

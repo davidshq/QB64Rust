@@ -262,15 +262,15 @@ fn include_root() {
 #[test]
 fn unknown_statement() {
     let d = scratch("unknown");
-    // `SUB _GL` stands for a construct not compiled yet (step 5 of the plan of 2026-10-22); `FILES` did until
-    // `m4-builtins-remaining`.
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\nSUB _GL\nEND SUB\n").unwrap();
+    // A `FOR` over an element of a member array stands for a construct not compiled yet; `FILES` did until
+    // `m4-builtins-remaining`, `SUB _GL` until `m4-sub-gl`.
+    std::fs::write(d.join("p.bas"), format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}")).unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(
         stdout(&o)
             .lines()
-            .any(|l| l.starts_with("p.bas:3:5: error: not supported yet:")),
+            .any(|l| l.starts_with("p.bas:6:8: error: not supported yet:")),
         "{}",
         stdout(&o)
     );
@@ -1328,6 +1328,19 @@ fn const_rulings_run() {
         build_and_run_tracing(&d, program, "D-031\n"),
         " 18446744073709551615  .5  18446744073709551615 -9223372036854775808 \n 5066 -2164  1 \nerror 5 \n"
     );
+}
+
+/// `STOP` inside `SUB _GL` ends the program with error 271, as `END` and `SYSTEM` do there (`DIVERGENCES.md` D-036;
+/// the old compiler's program hangs, `verification\v59_f9`). The program has a window, which libqb shows for the
+/// moment the SUB takes; its critical error's message goes to stderr, not read here.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn stop_inside_sub_gl_ends_with_error_271() {
+    let d = scratch("stop-gl");
+    let program = "$CONSOLE\nt# = TIMER(.001)\nDO: _LIMIT 100: LOOP UNTIL TIMER(.001) - t# > 20\n\
+                   _DEST _CONSOLE: PRINT \"main\"\nSYSTEM\n\
+                   SUB _GL\n    _DEST _CONSOLE: PRINT \"in\"\n    STOP\nEND SUB\n";
+    assert_eq!(build_and_run_tracing(&d, program, "D-036\n"), "in\n");
 }
 
 /// A label and a `CONST` on one line (`DIVERGENCES.md` D-008: the old compiler fails to compile it).

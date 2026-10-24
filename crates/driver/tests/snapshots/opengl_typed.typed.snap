@@ -1,0 +1,180 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+ARRAY V:I32(0 TO 3)
+ARRAY P:U8(0 TO 3)
+ARRAY A:I32(0 TO 1)
+LIBRARY 0 OpenGl
+line 13: Print newline
+  Num
+    Int 16384 : I64
+  Num
+    Int 16384 : I32
+  Num
+    Int 1 : I64
+line 14: SelectCase, selector read at each test (END SELECT line 17)
+    Var K : F32
+  Case line 15
+    Is Eq
+      Convert Nearest : F32
+        Int 1 : I64
+    Body
+      line 16: Print newline
+line 18: Assign E:U32
+  CallProc _GLGETERROR : U32
+line 19: Assign B:U8
+  Convert Truncate : U8
+    Binary Add : I32 (qb I64)
+      Convert Widen : I32
+        CallProc _GLISENABLED : U8
+          value
+            Convert Truncate : U32
+              Int 3042 : I64
+      Int 1 : I32
+line 20: Assign S:Str
+  CallProc _GLGETSTRING : Str
+    value
+      Convert Truncate : U32
+        Int 7938 : I64
+line 21: Call _GLVIEWPORT
+  value
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Float 1.5E+0 : F64 (qb F32)
+  value
+    Convert Widen : I32
+      Int 2 : I16
+  value
+    Int 3 : I32
+  value
+    Convert Truncate : I32
+      Convert RoundEven : I64
+        Float 4.0E+0 : F64
+line 22: Call _GLVIEWPORT
+  null
+  null
+  value
+    Convert Widen : I32
+      Int 1 : I16
+  value
+    Convert Widen : I32
+      Int 1 : I16
+line 23: Call _GLCOLORMASK
+  value
+    Convert Truncate : U8
+      Int 256 : I16
+  value
+    Convert Truncate : U8
+      Int 0 : I64
+  null
+  value
+    Convert Truncate : U8
+      Int -1 : I16
+line 24: Call _GLGETINTEGERV
+  value
+    Convert Truncate : U32
+      Int 2978 : I64
+  value
+    Convert Truncate : Off
+      AddressOf V(…) : UOff
+        Int 0 : I64
+line 25: Call _GLGETINTEGERV
+  value
+    Convert Truncate : U32
+      Int 2978 : I64
+  value
+    Convert Widen : Off
+      Var V : I32
+line 26: Call _GLGETINTEGERV
+  value
+    Convert Truncate : U32
+      Int 2978 : I64
+  value
+    Convert Widen : Off
+      Element V() : I32
+line 27: Call _GLFLUSH
+line 28: Call _GLUPERSPECTIVE
+  value
+    Convert Nearest : F64
+      Int 45 : I16
+  value
+    Float 1.5E+0 : F64 (qb F32)
+  value
+    Convert Nearest : F64
+      Int 1 : I16
+  value
+    Convert Nearest : F64
+      Int 10 : I32
+line 29: System
+SUB PAINT_IT
+line 32: Call _GLCLEAR
+  value
+    Convert Truncate : U32
+      Int 16640 : I64
+SUB _GL
+line 36: Call PAINT_IT
+line 37: Call _GLREADPIXELS
+  null
+  null
+  value
+    Convert Widen : I32
+      Int 1 : I16
+  value
+    Convert Widen : I32
+      Int 1 : I16
+  value
+    Convert Truncate : U32
+      Int 6408 : I64
+  value
+    Convert Truncate : U32
+      Int 5121 : I64
+  value
+    Convert Truncate : Off
+      AddressOf P(…) : UOff
+        Int 0 : I64
+FUNCTION _GLGETERROR : U32
+  external glGetError of LIBRARY 0 ()
+FUNCTION _GLISENABLED : U8
+  external call_glIsEnabled of LIBRARY 0 (byval)
+  param A:U32
+FUNCTION _GLGETSTRING : Str
+  external call_glGetString of LIBRARY 0 (byval)
+  param A:U32
+SUB _GLVIEWPORT
+  external call_glViewport of LIBRARY 0 (byval, byval, byval, byval)
+  param A:I32
+  param B:I32
+  param C:I32
+  param D:I32
+SUB _GLCOLORMASK
+  external call_glColorMask of LIBRARY 0 (byval, byval, byval, byval)
+  param A:U8
+  param B:U8
+  param C:U8
+  param D:U8
+SUB _GLGETINTEGERV
+  external call_glGetIntegerv of LIBRARY 0 (byval, byval)
+  param A:U32
+  param B:Off
+SUB _GLFLUSH
+  external glFlush of LIBRARY 0 ()
+SUB _GLUPERSPECTIVE
+  external gluPerspective of LIBRARY 0 (byval, byval, byval, byval)
+  param A:F64
+  param B:F64
+  param C:F64
+  param D:F64
+SUB _GLCLEAR
+  external call_glClear of LIBRARY 0 (byval)
+  param A:U32
+SUB _GLREADPIXELS
+  external call_glReadPixels of LIBRARY 0 (byval, byval, byval, byval, byval, byval, byval)
+  param A:I32
+  param B:I32
+  param C:I32
+  param D:I32
+  param E:U32
+  param F:U32
+  param G:Off

@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):X = _GLFLUSH
+LINE 8:x = _glFlush
+exit=1

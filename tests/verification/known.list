@@ -68,4 +68,5 @@ v56_f3_for_member_array_element	not supported yet: `FOR` over an element of a me
 v56_x08_varptr_string_member	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
 v56_x26_varptr_type_string_member_long	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
 v56_x27_varptr_element_string_member	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
+v59_f9_stop	D-036
 v39_a_handles	varies: _SNDGETPOS and _SNDLEN of a raw sound depend on the sound device's sample rate (.1249886602163315 recorded at 44100, .125 at 48000 here, the old build's too; as v39_b_new_mem)

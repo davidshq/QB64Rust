@@ -40,6 +40,7 @@ fn settings(s: &Settings) -> String {
             .runtime_parts
             .iter()
             .map(|p| match p {
+                RuntimePart::Gl => "OpenGL",
                 RuntimePart::Icon => "icon",
                 RuntimePart::Audio => "audio",
                 RuntimePart::Printer => "printer",

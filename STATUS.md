@@ -27,14 +27,14 @@ Civil War Strategy compiles with no diagnostic, builds, and played for two turns
 23 screens as the old compiler's build; its scripts are whole games now, held to line coverage
 (`cws-whole-game`). Upstream is at 401 of 404 (the three left are out of scope: `http/read_example`,
 `opengl/test`, `const/math_funcs`); the verification families are a suite of the new compiler, 2959 programs on
-`tests\verification\pass.list`. `main` is at the merge of `m4-qb64pe-builtins` (pull request 13, `fe596c3`,
-2026-10-23), which holds M4's twelve changes so far: through pull request 12 (`e0ac8c6`) `m4-checker-groups`,
+`tests\verification\pass.list`. `main` is at the merge of `m4-finish` (pull request 14, `82afd7f`, 2026-10-24),
+which holds M4's fourteen changes so far: through pull request 12 (`e0ac8c6`) `m4-checker-groups`,
 `m4-devices-continue-paths`, `m4-names-arrays`, `m4-builtins-param-types`, `dry-cleanup`,
 `m4-handlers-logging-checking`, `m4-upstream-rejections` and `m4-qb64pe-sources` (the full set at a merge ran on
-`fe5e2de`, below), and through pull request 13 `m4-qb64pe-builtins`, `m4-line-numbers-whole-arrays`,
-`m4-names-implicit-arrays` and `m4-memory-records` (merged without the full set; it ran on 2026-10-24 with the
-next pull request). Branch `m4-finish` holds `m4-statements-metacommands` and `m4-builtins-remaining`. The extension's first release
-is tagged `vscode-v0.2.0`.
+`fe5e2de`, below), through pull request 13 (`fe596c3`) `m4-qb64pe-builtins`, `m4-line-numbers-whole-arrays`,
+`m4-names-implicit-arrays` and `m4-memory-records`, and through pull request 14 `m4-statements-metacommands` and
+`m4-builtins-remaining` (the full set at a merge ran on the tree of pull request 14, which stands for both, below).
+Branch `m4-sub-gl` holds step 5. The extension's first release is tagged `vscode-v0.2.0`.
 
 ## Waiting on the user
 
@@ -55,13 +55,13 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. The pull request of `m4-finish` (steps 4a and 4b) into `main`; the full set for a merge ran on its tree
-   (below), which also stands for pull request 13, merged without it.
-2. The rest of M4 is a plan of six steps (`DECISIONS.md` 2026-10-22). Steps 1 to 4 are done and archived, specs
-   synced (step 4 as 4a, `m4-statements-metacommands`, and 4b, `m4-builtins-remaining`); the compile half of M4's
-   exit criterion is met (`ROADMAP.md`). The demand report over `tests\verification\known.list` names the 9
-   programs steps 2 and 3 left, and the upstream report marks `SUB _GL` alone. Next is **step 5: `SUB _GL`**, a
-   change of its own.
+1. **Step 5 of M4's plan (`DECISIONS.md` 2026-10-22), `SUB _GL`, is built** (`m4-sub-gl`, on branch `m4-sub-gl`,
+   closing runs pass; waiting for the user's review and `/opsx:archive`). `opengl/test` passes (upstream 402 of
+   404, the two left out of scope: `http/read_example`, `const/math_funcs`); the upstream demand report marks
+   nothing "not supported yet".
+2. Then the 9 programs of `tests\verification\known.list` that steps 2 and 3 left marked (the demand report over
+   it names them), and step 6, the coverage review; M4 is declared done by the user at the merge into `main`
+   after the last.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
