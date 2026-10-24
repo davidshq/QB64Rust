@@ -68,7 +68,7 @@ suite runs without it and the list is judged from that run with `--check-list te
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:verification-membership -->
-Of the 3838 programs of `verification\`, `pass.list` names **3768** and `known.list` 70.
+Of the 3841 programs of `verification\`, `pass.list` names **3771** and `known.list` 70.
 
 | Reason in `known.list` | Programs |
 |---|---|
@@ -102,6 +102,6 @@ Of the 3838 programs of `verification\`, `pass.list` names **3768** and `known.l
 <!-- /counts:verification-membership -->
 
 <!-- counts:verification-results -->
-Last full run: 2026-10-22, compiler build `690642b79dcc`, folding on, `--jobs 8`, build cache, 4 min. Of 3156 programs: **2960 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 196 known failures (`target\legacy-tests\results-verification.json`).
-`pass.list` judged in it (`--check-list`): **2959 of 2959** pass.
+Last full run: 2026-10-24, compiler build `07e987b2d118`, folding on, `--jobs 8`, build cache, 6 min. Of 3841 programs: **3771 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 70 known failures (`target\legacy-tests\results-verification.json`).
+`pass.list` judged in it (`--check-list`): **3771 of 3771** pass.
 <!-- /counts:verification-results -->

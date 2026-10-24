@@ -82,6 +82,15 @@ version,session,change,category,actions,bytes
 1,03301531,m3-whole-array-assign,scratch files,3,2525
 1,03301531,m3-whole-array-assign,test runs,25,0
 1,03301531,m3-whole-array-assign,tests and fixtures,14,22095
+1,033fec93,,builds,1,0
+1,033fec93,,documents and planning,10,4602
+1,033fec93,,measurement runs,1,0
+1,033fec93,,other commands,21,0
+1,033fec93,,reading,2,0
+1,033fec93,,test runs,18,0
+1,033fec93,m4-builtins-remaining,other,1,0
+1,033fec93,m4-builtins-remaining,other commands,4,0
+1,033fec93,m4-builtins-remaining,test runs,1,0
 1,042d2eb1,,other commands,4,0
 1,042d2eb1,,reading,1,0
 1,042d2eb1,m1-vscode-extension-v0,documents and planning,3,1256
@@ -261,6 +270,7 @@ version,session,change,category,actions,bytes
 1,175f17c6,,test runs,7,0
 1,175f17c6,,tests and fixtures,31,4402
 1,1802b567,m3-versioninfo,other commands,1,0
+1,181c8a69,,other commands,2,0
 1,18f5cee2,,other commands,3,0
 1,18f5cee2,,reading,16,0
 1,18f5cee2,,test runs,2,0
@@ -635,6 +645,22 @@ version,session,change,category,actions,bytes
 1,3bec3600,m2-console-screenhide,scratch files,7,14557
 1,3bec3600,m2-console-screenhide,test runs,37,0
 1,3bec3600,m2-console-screenhide,tests and fixtures,39,31041
+1,3c577ec6,,builds,2,0
+1,3c577ec6,,documents and planning,2,556
+1,3c577ec6,,measurement preparation,6,1455
+1,3c577ec6,,measurement runs,2,0
+1,3c577ec6,,other,1,0
+1,3c577ec6,,other commands,67,0
+1,3c577ec6,,product code,24,8913
+1,3c577ec6,,reading,15,0
+1,3c577ec6,,test runs,11,0
+1,3c577ec6,,tests and fixtures,4,2172
+1,3c577ec6,m4-builtins-remaining,documents and planning,1,990
+1,3c577ec6,m4-builtins-remaining,measurement preparation,2,532
+1,3c577ec6,m4-builtins-remaining,measurement runs,1,0
+1,3c577ec6,m4-builtins-remaining,other commands,2,0
+1,3c577ec6,m4-builtins-remaining,reading,2,0
+1,3c577ec6,m4-builtins-remaining,test runs,1,0
 1,3cdb7172,m2-defxxx-common-arrays,other commands,1,0
 1,3ce73be8,,documents and planning,27,16090
 1,3ce73be8,,other,1,0
@@ -1651,10 +1677,10 @@ version,session,change,category,actions,bytes
 1,84cc9ddb,m4-builtins-remaining,measurement preparation,8,5984
 1,84cc9ddb,m4-builtins-remaining,measurement runs,10,0
 1,84cc9ddb,m4-builtins-remaining,other,1,256
-1,84cc9ddb,m4-builtins-remaining,other commands,217,0
+1,84cc9ddb,m4-builtins-remaining,other commands,220,0
 1,84cc9ddb,m4-builtins-remaining,product code,58,52450
 1,84cc9ddb,m4-builtins-remaining,reading,5,0
-1,84cc9ddb,m4-builtins-remaining,scratch files,26,53494
+1,84cc9ddb,m4-builtins-remaining,scratch files,27,53836
 1,84cc9ddb,m4-builtins-remaining,test runs,67,0
 1,84cc9ddb,m4-builtins-remaining,tests and fixtures,52,51099
 1,84ef368a,m3-network-embed,other commands,2,0

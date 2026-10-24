@@ -261,9 +261,10 @@ parser diagnostic. A construct that the later stages do not compile yet SHALL be
 `sema` at that node, not by the parser.
 
 #### Scenario: Statement not compiled yet
-- **WHEN** a program contains `DO: FILES: LOOP UNTIL a > 0`
-- **THEN** the tree has a `DoBlock` holding the `FILES` statement, and the only diagnostic is one "not supported
-  yet" error at `FILES`
+- **WHEN** a program contains `DO: FOR r.m(1) = 1 TO 2: NEXT: LOOP UNTIL a > 0`, with `r` of a `TYPE` that has the
+  member array `m` (`verification\v56_f3`, a form step 3 of M4 left marked)
+- **THEN** the tree has a `DoBlock` holding the `FOR` block, and the only diagnostic is one "not supported yet"
+  error at the `FOR` variable
 
 #### Scenario: Built-in statement read by its template
 - **WHEN** a program contains `LINE (0, 0)-(9, 9), , BF`
@@ -774,7 +775,8 @@ procedure; no other jump SHALL leave its body.
 A `$` line outside a comment that is no metacommand of the old compiler SHALL be a compile error at that line,
 with the old compiler's "Syntax error" as its note, in the main file and in an included one (measured,
 `verification\v57_m01`–`m08`). `$NOPREFIX` SHALL be a compile error with the old compiler's own message as its
-note. A metacommand the old compiler knows and this compiler does not build yet SHALL stay "not supported yet".
+note. Every metacommand the old compiler knows SHALL be built, `$ERRORLOCATION` (`language/error-handling`) and
+`$USELIBRARY` (`language/external-libraries`) among them; none is "not supported yet".
 
 #### Scenario: Other lines that are no metacommand
 - **WHEN** a line is `$STATIC`, `$nosuch`, `$FOO:BAR`, `$CONSOLE:OFF`, a `$` alone, or `$INCLUDE: 'x.bi'`
@@ -803,8 +805,14 @@ note. A metacommand the old compiler knows and this compiler does not build yet 
   (`verification\v43_x32`)
 
 #### Scenario: A metacommand not built yet
-- **WHEN** a program has `$ERRORLOCATION:ON`
-- **THEN** it is reported "not supported yet"
+- **WHEN** a program has `$ERRORLOCATION:ON`, or `$USELIBRARY:'test/a'` with that library under the compiler root
+- **THEN** it compiles, with no "not supported yet": no metacommand of the old compiler is left unbuilt
+
+#### Scenario: A form of $ERRORLOCATION it does not know
+- **WHEN** a line is `$ERRORLOCATION`, `$ERRORLOCATION:MAYBE`, `$ERRORLOCATION ON`, `$ERRORLOCATION: ON` or
+  `$ERRORLOCATION:ON ' a comment` (the old compiler compares the whole line)
+- **THEN** the compile fails with an error at that line, with "Syntax error" as its note
+  (`verification\v58_e14`–`e18`); `$errorlocation:on` in lower case compiles
 
 ### Requirement: Syntax errors the old compiler reports
 Where the parser meets an operator or a keyword it does not expect, and a recording shows that the old compiler

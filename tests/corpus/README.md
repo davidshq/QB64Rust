@@ -63,9 +63,9 @@ and `slice.list` hold, and what the last full run of the release build gave.
 <!-- /counts:corpus-membership -->
 
 <!-- counts:corpus-results -->
-Last full run: 2026-10-22, compiler build `690642b79dcc`, folding on, `--jobs 8`, build cache, 1 min. Of 502 programs: **495 pass**, 2 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
-`slice.list` judged in it (`--check-list`): **476 of 477** pass.
-- corpus:screen/g12_game.files: runner: PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'target\legacy-tests\corpus\screen-g12_game.files' (alone; with --jobs: run: exit code 124)
+Last full run: 2026-10-24, compiler build `07e987b2d118`, folding on, `--jobs 8`, build cache, 3 min. Of 516 programs: **510 pass**, 1 does not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
+`slice.list` judged in it (`--check-list`): **490 of 491** pass.
+- corpus:screen/c15_resize: screen: screen state differs from .screen (alone; with --jobs: screen: screen state differs from .screen)
 <!-- /counts:corpus-results -->
 
 Kept by hand (recorded 2026-10-03; `slice` as each change added its programs):
