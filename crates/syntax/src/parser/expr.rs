@@ -134,8 +134,9 @@ fn expr_bp_inner(p: &mut Parser, min: u8) -> Option<u32> {
             _ => level,
         };
         if min == POWER_RHS && p.at_word("_NEGATE") {
-            // Measured: "Expected variable/value after '^'" (`verification\v24_x238_power_negate`).
-            p.syntax_error("expected a value after `^`");
+            // Measured: "Expected variable/value after '^'" (`verification\v24_x238_power_negate`; design D2 of
+            // `m4-statements-metacommands`).
+            p.error("expected a value after `^`, not `_NEGATE`");
             return None;
         }
         let not = p.at_word("NOT");
@@ -267,10 +268,16 @@ fn primary(p: &mut Parser) -> Option<u32> {
         }
         // In a `CONST`, an operator word where a value is expected is an error (measured: "Unexpected element
         // 'OR'", upstream `const/bad_single_arg`, `verification\v51_x40`, `x41`); after `NOT` see
-        // `expr_bp_inner`. Elsewhere it stays marked (`x50`: "Expected variable/value before 'OR'").
+        // `expr_bp_inner`. Elsewhere `OR` and `AND` are the old compiler's "Expected variable/value before 'OR'"
+        // (design D2 of `m4-statements-metacommands`; measured, `x50`, `v57_e08`); the other words stay marked.
         _ if p.in_const && at_binary_word(p) => {
             let word = upper_word(p);
             p.error(format!("the operator `{word}` cannot start a value"));
+            None
+        }
+        _ if p.at_word("OR") || p.at_word("AND") => {
+            let word = upper_word(p);
+            p.error(format!("expected a value before the operator `{word}`"));
             None
         }
         _ => {

@@ -1,0 +1,7 @@
+in t
+handler 6 
+after r
+handler 20 
+after r
+handler 20 
+exit=0

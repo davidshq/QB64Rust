@@ -1,0 +1,5 @@
+
+Syntax error in line 1 of <verification>\v57_inc/unknown_meta.bi included
+Caused by (or after):$ NOSUCHTHING
+LINE 3:$NOSUCHTHING
+exit=1

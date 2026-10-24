@@ -1,6 +1,0 @@
----
-source: crates/driver/tests/frontend.rs
-expression: snap
----
-swap_mid_marked.bas:10:6: error: not supported yet: an operand of `SWAP` in parentheses
-swap_mid_marked.bas:11:6: error: not supported yet: `SWAP`

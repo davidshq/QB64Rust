@@ -1,0 +1,4 @@
+in s, sub_open.bi
+in s n 5  5 
+main n 0 
+exit=0

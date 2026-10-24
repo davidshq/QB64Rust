@@ -212,6 +212,9 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_SCREENY", Rule::Plain),
     ("_WINDOWHASFOCUS", Rule::Plain),
     ("_TITLE$", Rule::Plain),
+    // `_SCREENHIDE` as a value: whether the window is hidden (design D11 of `m4-statements-metacommands`;
+    // `func__screenhide`, measured `verification\v57_h01`–`h04`).
+    ("_SCREENHIDE", Rule::Plain),
     // The table has no return type for it; the old compiler treats the value as a LONG everywhere but as the direct
     // argument of `HEX$`, `OCT$` and `_BIN$`, which is marked (`check\builtins.rs`).
     ("_SCREENEXISTS", Rule::Fixed(Ty::I32)),

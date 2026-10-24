@@ -525,6 +525,9 @@ screen/c15_resize
 # m4-qb64pe-builtins: _CONTROLCHR, _DEFAULTCOLOR and _BACKGROUNDCOLOR (tests/corpus/screen/SOURCE.md)
 screen/c16_controlchr
 screen/c17_default_colours
+# m4-statements-metacommands: PALETTE USING from a LONG and an INTEGER array (tests/corpus/screen/SOURCE.md)
+screen/p01_palette_using
+screen/p02_palette_using_integer
 # m4-qb64pe-builtins: _DIR$ (no path printed), _SHELLHIDE, _COMMANDCOUNT, _COMPILEDATE$, _COMPILETIME$, _READBIT
 slice/s156_system_builtins
 # m4-names-implicit-arrays: an array named WIDTH, beside the statement

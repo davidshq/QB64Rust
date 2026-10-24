@@ -191,17 +191,18 @@ impl<'a> Checker<'a> {
             return Err(self.in_use(name_tok));
         }
         self.reserved_proc(name_tok, &name, suffix, function)?;
+        let mut twin = false;
         if let Some(&other) = self.procs_by_name.get(&name) {
             let other = self.prog.proc(other);
             if other.external.is_none() && matches!(other.kind, ProcKind::Sub) != matches!(kind, ProcKind::Sub) {
-                // Measured: the old compiler accepts a library FUNCTION beside a program SUB of the name
-                // (`x22`); which of the two a use names was not.
-                let msg =
-                    format!("a library procedure and a program procedure both named `{shown}`, a SUB and a FUNCTION");
-                return Err(self.unsupported(name_tok.span, msg));
+                // A library FUNCTION beside a program SUB of the name, or a library SUB beside a program FUNCTION:
+                // the name as a statement is the SUB, as a value the FUNCTION (design D11 of
+                // `m4-statements-metacommands`; measured, `x22`, `v57_l01`–`l04`).
+                twin = true;
+            } else {
+                // Measured: a declaration in a second block (`x40`).
+                return Err(self.in_use(name_tok));
             }
-            // Measured: a declaration in a second block (`x40`).
-            return Err(self.in_use(name_tok));
         }
         let c_name = self.c_name(header, name_tok)?;
         let id = ProcId(to_u32(self.prog.procs.len()));
@@ -220,7 +221,11 @@ impl<'a> Checker<'a> {
             }),
         });
         self.param_scopes.push(Scope::default());
-        self.procs_by_name.insert(name, id);
+        if twin {
+            self.proc_twins.insert(name, id);
+        } else {
+            self.procs_by_name.insert(name, id);
+        }
         self.stmt.names.push((SymbolKind::Proc(id), name_tok.span));
         Ok(id)
     }

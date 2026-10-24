@@ -44,9 +44,16 @@ impl Parser<'_, '_> {
         }
         if self.at_word("PALETTE") && self.nth_is_word(1, "USING") {
             // `PALETTE USING array(index)`: the old compiler reads it by hand, outside the statement's template
-            // (`PALETTE [?,?]`), so no form of the table matches it. Marked, not a syntax error.
-            self.unsupported("`PALETTE USING`");
-            self.rest_into_error_node();
+            // (`PALETTE [?,?]`), so no form of the table matches it; a statement of its own (design D11 of
+            // `m4-statements-metacommands`), whose array `sema` reads.
+            self.start_node(PaletteUsingStmt);
+            self.bump(); // PALETTE
+            self.bump(); // USING
+            if !self.at_stmt_end() {
+                super::expr::expr(self);
+            }
+            self.recover();
+            self.finish_node();
             return true;
         }
         let mut furthest = 1;

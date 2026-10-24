@@ -32,8 +32,6 @@ still marks "not supported yet":
 | Form | Why it waits | Details |
 |---|---|---|
 | The window built-ins are compiled and never run (`_TITLE`, `_ICON`, `_MOUSESHOW`, `_SCREENX`, `_NEWIMAGE`, … 20 of them) | What they do shows only in a window; M3 gives programs with a window a check (`tools\screen`) | `study\archive\support-record.md` ("Window built-ins, compiled and never run"); `sema\src\builtins.rs`, `WINDOW_BUILTINS`; call-site programs in `tests\callsite` |
-| `SWAP`, `CLOSE` and the `MID$` statement after `CALL` (`CALL SWAP(a, b)`) | Each has a rule of its own, which reads the statement without `CALL` only. Until the review of groups 4 to 6 `CALL SWAP(a, b)` was a false error ("`SWAP` takes 0 arguments") | `verification\v26_x128`; `tests\frontend\swap_mid_marked.bas` |
-| The function `_SCREENHIDE` | Not in the change's scope (no upstream test names it) | `verification\v26_x74` |
 | `_SCREENEXISTS` as the direct argument of `HEX$`, `OCT$` or `_BIN$` | The table gives the function no return type, and the old compiler passes the width 0 there, not a LONG's 8 or 32; the function runs from M3 on, where the width can be given | Design D6 of the change |
 | A `$IF` that names `_CONSOLE_` between `$CONSOLE:ONLY` and a later `$CONSOLE` (or the other way round) | The old compiler's two passes read the line with different values (its program prints nothing from the branches; a `CONST` in them is "Name already in use"); no value here would be right | `verification\v26_x27`, `x34`; `tests\frontend\flags_between_errors.bas` |
 
@@ -43,9 +41,8 @@ the new one still marks "not supported yet", and what is compiled but checked by
 
 | Form | Why it waits | Details |
 |---|---|---|
-| An argument left out of a function call (`POINT(, 2)`, `SCREEN(1, , 1)`) | The old compiler rejects both ("Incorrect number of arguments"); here they get the general mark "omitted arguments", which is not an error of the program | `verification\v27_x50`; `sema\src\check\builtins.rs` |
+| An argument left out of a function call no recording covers (`SCREEN(1, , 1)`), and the first argument of `INSTR` left out (`INSTR(, a$, b$)`, which the old compiler compiles) | The general mark "omitted arguments"; `POINT`, `_RGB32`, `_RGB`, `_RGBA32`, `INSTR`, `MID$`, `LEFT$` and a program FUNCTION are the old compiler's errors since `m4-statements-metacommands` (`verification\v57_o01`–`o21`) | `verification\v57_o07`; `sema\src\check\builtins.rs` `left_out` |
 | A label named like a built-in statement that is not compiled yet (`FILES: x = 1`) | It becomes the statement when the built-in comes in; a jump to a built-in's name is the old compiler's error since `m4-names-implicit-arrays` | `verification\v27_x58`; `tests\frontend\stmt_name_colon_errors.bas` |
-| `PALETTE USING array(index)` | Not in the change's scope: the old compiler writes it by hand (`qb64pe.bas` 7238), outside `PALETTE`'s template. Until the review of group 4 the parser gave it a syntax error ("matches none of its forms"), a false error for a line the old compiler accepts | `verification\v27_x64`; `tests\frontend\palette_using_marked.bas` |
 | `WIDTH #n, columns`, `WIDTH LPRINT columns` and `SCREEN …, _MANUALDISPLAY n` are compiled, and no test runs them | Each is the plain call of its template; what it does is no part of a screen's state (a file's line width, the printer, when the window is updated) | Call-site programs `width_file*`, `width_lprint*`, `screen_manualdisplay*` |
 | `_LIMIT`, `_DELAY` and `SLEEP` are run by one screen program with small values; how long they wait is not checked | Nothing a test records may depend on time | `tests\corpus\screen\d15_pacing` |
 | `SLEEP` with no time in a screen program | The keys file cannot end it once a key is in the buffer (it gives the next key only to an empty buffer, and a key ends `SLEEP` only while it waits). A `repeat` step that presses whatever the buffer holds would do it; that is a change to `tools\screen\screen_state.cpp` | `tools\screen\README.md`, "Writing a screen program" |
@@ -78,7 +75,6 @@ accepts and the new one still marks "not supported yet", and what is compiled bu
 | What is heard is checked by no test | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; the samples would test libqb. The slice programs check what a program can observe: the queue, the waits, the errors | Design D6 of `m3-sound` |
 | `SOUND 440, 65535`, the longest accepted duration, is in no slice program | libqb fills a buffer of an hour of samples for it, about 700 MB | `verification\v29_c_sound_errors` line 19 |
 | `s75_sound_wait` and the second part of `s76_sound_errors` need a machine with a sound device | Without one libqb queues nothing, holds nothing and checks neither a volume, a pan position, a waveform nor a `PLAY` string (read in `audio.cpp`). Not seen on GitHub's Windows runner yet (CI is looked at when asked) | Design, Risks, of `m3-sound` |
-| `CALL SWAP(a, b)`, `CALL CLOSE(1)` and the `MID$` statement after `CALL` | Each has a rule of its own, which reads the statement without `CALL` only (the row of `m2-console-screenhide` above) | `verification\v26_x128` |
 
 **Left marked by `m3-console-files`** (the fourth step of M3, 2026-10-13: `PRINT USING`, `GET` and `PUT` on a
 file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, the shifts and
@@ -126,7 +122,6 @@ Windows). What the old compiler accepts and the new one still marks "not support
 | Form | Why it waits | Details |
 |---|---|---|
 | A library FUNCTION beside a program SUB of the same name (`x22`) | The old compiler accepts both; which one a use names was not measured | `verification\v37_x22`; `sema\src\check\library.rs` |
-| `ALIAS` in a `DECLARE SUB` outside a library block (`DECLARE SUB s ALIAS t ()`, `x08`) | The old compiler accepts it and ignores it; this compiler marks it "not supported yet" (user, `verification-compare`; until then the parser's error "expected the end of the statement", `m3-declare-library` design D1, task 2.2) | `verification\v37_x08`; `tests\frontend\declare_alias_marked.bas` |
 | Linux and macOS libraries (`.so`, `.dylib`, `/usr/lib`, `dlopen`) and the IDE's folder in the lookup | The project is Windows only | design Non-Goals |
 
 **Left marked by `m3-sound-handles`** (the sixteenth step of M3, 2026-10-16: `_SNDOPEN`, the `_SND*` family,
@@ -136,7 +131,6 @@ new one still marks "not supported yet", and what is compiled but not checked by
 | Form | Why it waits | Details |
 |---|---|---|
 | A FUNCTION call in the index of the array of `_WAVE` or `_SNDRAWBATCH` (`_WAVE 0, w(f(1))`), and an array used without `DIM` there | The old compiler writes the index twice (the FUNCTION is called twice); both are marked as for graphics `GET` and `PUT` (`block_arg`) | `verification\v39_x01_accepted` (its C++) |
-| `$MIDISOUNDFONT` without its colon (`$MIDISOUNDFONT`, `$MIDISOUNDFONT :x`) | The old compiler's "Syntax error" for any unknown metacommand; every unknown metacommand is "not supported yet" here | `verification\v39_x74`, `x79`–`x81` |
 | What is heard, the 3-D position of `_SNDBAL` and `_SNDPLAYCOPY`, `"stream"` and `"nodecode"` beyond what their lengths show | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form | design Non-Goals |
 | The sound handle programs on a machine without a sound device | libqb's engine is not started there: every function gives 0 and every statement does nothing, so `s127`–`s129` would fail; not known until the `tier2` job runs them on GitHub | design, risks |
 
@@ -178,7 +172,6 @@ old compiler accepts and the new one still marks "not supported yet":
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `_RED`, `_GREEN`, `_BLUE` of a colour from 256 to 65535 in screen mode 0 in a `CONST` (`_RED(2222, 0)`) | A text image's mask lets the index through, and libqb reads past its 256-entry palette (the old compiler gave 0 once) | `verification\v45_x64`; `sema\src\colors.rs` |
 | A string argument to a colour function in a `CONST` (`_RGB32("a")`), which the evaluator's varying argument count lets through | Not measured | `sema\src\colors.rs` |
 | A math function or a power of an infinite value in a `CONST` (`SIN(1F+4000 * 1F+4000)` inside an expression is the old compiler's error already; as a function argument not measured) | Not measured | `sema\src\certify.rs` |
 
@@ -190,7 +183,6 @@ marks "not supported yet", and what is left out:
 |---|---|---|
 | `p . q(1)` written with blanks where no array `p.q` is declared (an array used without `DIM`) | Not measured | `sema\src\check\places.rs` `field_place` |
 | `c . k` written with blanks where `c.k` is a `CONST`, and a store `f . g = 7` to the name of a FUNCTION `f.g` (the old compiler drops the blanks before it reads the statement, `qb64pe.bas` 4196–4241, so it would be the constant or the FUNCTION's result) | Not measured; found in the change's review, where such a name was read as a new variable. A call `f . g` or `f . g(4)` is built since `m4-names-implicit-arrays` (`verification\v55_x60`) | `sema\src\check\places.rs` `plain_spelled`; `tests\frontend\dot_blanks_errors.bas` |
-| `ON STRIG(1 GOSUB h` and `ON TIMER(1 GOSUB h`: a keyword where `,` or `)` is expected in an argument list is "not supported yet" (the old compiler: "Expected )") | The parser's general mark for a word inside an argument list, not `ON STRIG`'s | `verification\v47_x08` |
 | `C:name` in `$EXEICON` and `$EMBED` | The rows of `m3-sound` and `m3-network-embed` above | design D3 |
 | A test with a game controller attached | The tests run with none; the call-site check holds every call (`event_strig_*`, `stick_*`, `strig_*`, `device*`, …) | design Non-Goals |
 
@@ -223,7 +215,6 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `LBOUND((a))`: an array's name in parentheses | Accepted by the old compiler as the array `a`; read here as a value, which it is everywhere else | `verification\v51_x34` |
 | An operator where a value is expected outside a `CONST` (`x = OR`) | The old compiler: "Expected variable/value before 'OR'". The parser's mark covers forms of its grammar not parsed here, so only a `CONST` turns it into an error | `verification\v51_x50`; design D5 of the change |
 | A name that is no type in an `AS` clause where no form was measured: `REDIM` of a member array, `_UNSIGNED` before a name in `SHARED`, a parameter or `_DEFINE` | Each place gives its own error in the old compiler (`v51`), so a place not measured keeps its mark | `check\decl.rs` `no_type` |
 
@@ -268,7 +259,6 @@ each):
 |---|---|---|
 | `FOR` over an element of a member array (`FOR r.m(i) = 1 TO 3`) | The old compiler finds the element again at every pass: an index's FUNCTION runs 7 times for 4 passes, and a change of `i` in the body moves the loop to another element | `verification\v56_f3`; design D8 |
 | A `TYPE` whose member array bounds name a `CONST`, used above its block by `LEN` or a `REDIM` of the member (`DIM e AS late: PRINT LEN(e)` above `TYPE late`) | Its layout is read when pass 2 reaches the block | `tests\frontend\memory_records_errors.bas`; design D7 |
-| `STRING * n` of a `TYPE` member with a `CONST` as `n` (`f AS STRING * n`) | The `TYPE` blocks are read before the `CONST`s; the old compiler takes it | `verification\v56_x30` |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -425,6 +415,13 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `LEN` of a whole member array of variable-length strings is 8 bytes an element (the pointers), where `LEN` of a whole array of strings and of a `TYPE` that holds one is an error | The error | `m4-memory-records` (`verification\v48_x30`, `v56_g1`) |
 | `STRING * n` with a float `CONST` takes it rounded half to even (2.5 is 2, 3.5 is 4), where a float literal is an error | The error | `m4-memory-records` (`verification\v56_x14`, `x29`) |
 | A name alone that is an array of strings or of fixed-length strings is the implicit `SINGLE` scalar of that name in `VARPTR` and in graphics `GET` and `PUT` (`GET …, sa`), where an array of numbers or of a `TYPE` is the array | The array | `m4-memory-records` (`verification\v56_a6`, `v56_d`) |
+| A place in parentheses is the place itself, no copy: `SWAP (a), b` swaps `a`, `READ (a)`, `INPUT (a)` and `LINE INPUT (a$)` store into it, `LBOUND((a))` is the array's bound, at any depth of parentheses | A value in parentheses is a copy, as in QB 4.5: an error for `SWAP`, `READ` and `INPUT`, a value for `LBOUND` | `m4-statements-metacommands` (`verification\v22_x103`, `v22_x84`, `v51_x34`, `v57_p01`–`p16`) |
+| A block, SUB or FUNCTION may open in one file and close in a file it includes, or the other way round, as if the included text stood at the include; a SUB closed in an included file leaves the rest of that file to the main module | An error: a block must close in the file it opens in | `m4-statements-metacommands` (`verification\v16_m7_block_across`, `v16_m7_sub_across`, `v57_b01`–`b20`) |
+| A `$IF` that names `_CONSOLE_` between `$CONSOLE:ONLY` and `$CONSOLE` (or the reverse) compiles none of its branches, and a `CONST` in the branch the line's own value chooses makes its name "Name already in use" below | Take the branch the flag's settled value chooses, as on every other line | `m4-statements-metacommands` (`verification\v26_x27`, `v26_x34`, `v57_g01`–`g11`) |
+| `RESUME`, `RESUME 0` and `RESUME NEXT` in a SUB leave the SUB at once (a C++ `return`, which skips the SUB's exit code: its strings and the lock of its memory are not freed); `RESUME label` there jumps to the SUB's label | Resume where the error happened, as in the main module, or an error | `m4-statements-metacommands` (`verification\v57_x01`–`x08`) |
+| `RUN label` in a `$CONSOLE:ONLY` program goes on in screen 0 of a window that does not exist, so everything it prints after is lost; `RUN` from a SUB or FUNCTION calls the main module again inside the procedure, so the stack grows with each run | Print to the console after `RUN`; start the program again from its entry | `m4-statements-metacommands` (`verification\v57_r02`–`r07`) |
+| A library FUNCTION and a program SUB of one name (or a library SUB and a program FUNCTION) both stand: the name as a statement calls the SUB, as a value the FUNCTION | "Name already in use" | `m4-statements-metacommands` (`verification\v37_x22`, `v57_l01`–`l04`) |
+| `ALIAS name` in a `DECLARE SUB` or `DECLARE FUNCTION` outside `DECLARE LIBRARY` is taken and ignored, quoted, bare or empty | An error, as the alias names nothing | `m4-statements-metacommands` (`verification\v37_x08`, `v57_a01`–`a04`) |
 
 ## Other ideas raised during the study
 

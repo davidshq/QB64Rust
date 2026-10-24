@@ -142,6 +142,8 @@ pub fn emit_with(
         pass: 0,
         pass_decls: Vec::new(),
         byte_element: 0,
+        runs: 0,
+        run_lines: String::new(),
         handlers: Vec::new(),
         body: &p.main,
         k: 0,
@@ -273,6 +275,8 @@ pub fn emit_with(
     ] {
         files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
     }
+    // Also last: the entries of `RUN label` in procedures are numbered while the bodies are emitted.
+    files.iter_mut().find(|(n, _)| n == "runline.txt").unwrap().1 = std::mem::take(&mut e.run_lines);
     // Also last: the temporaries of blocks are counted while the bodies are emitted.
     let global = &mut files.iter_mut().find(|(n, _)| n == "global.txt").unwrap().1;
     global.extend(e.func_decls.drain(..));
@@ -317,6 +321,9 @@ struct Emitter<'a> {
     pass_decls: Vec<String>,
     /// Counter for the `byte_element_N` temporaries of graphics `GET` and `PUT`.
     byte_element: u32,
+    /// The `RUN label` statements of procedures so far, and their entries of `runline.txt` (`stmt.rs`).
+    runs: u32,
+    run_lines: String,
     /// Handler labels; handler number N is entry N - 1.
     handlers: Vec<LabelId>,
     /// The body being emitted, whose labels the jumps name, and its number K (0 for the main module).

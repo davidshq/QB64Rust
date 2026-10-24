@@ -1,0 +1,5 @@
+
+Expected PALETTE USING array-name
+Caused by (or after):PALETTE USING
+LINE 3:PALETTE USING
+exit=1

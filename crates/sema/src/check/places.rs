@@ -143,7 +143,15 @@ impl Checker<'_> {
                 .names()
                 .next()
                 .is_some_and(|f| a.node().span().start < f.node().span().start);
-            let ty = self.member_type(a, list)?;
+            // `STRING * n` with `n` a `CONST` above the block: its length is read in pass 2, as a bound naming one is
+            // (design D11 of `m4-statements-metacommands`); until then 1.
+            let ty = if self.member_len_const(a, above)? {
+                const_bounds = true;
+                pending = true;
+                Ty::FixedStr(1)
+            } else {
+                self.member_type(a, list)?
+            };
             for f in field.names() {
                 let t = self.need(f.name(), f.node().span())?;
                 let shown = show_bytes(self.text(t.span));
@@ -235,8 +243,16 @@ impl Checker<'_> {
     fn type_const_bounds(&mut self, b: ast::TypeBlock, id: TypeId) {
         self.stmt.stmt_error = false;
         let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
-        let names = b.fields().flat_map(|field| field.names().collect::<Vec<_>>());
-        for (i, f) in names.enumerate() {
+        let names = b
+            .fields()
+            .flat_map(|field| field.names().map(move |f| (field, f)).collect::<Vec<_>>());
+        for (i, (field, f)) in names.enumerate() {
+            if let Some(size) = field.as_clause().and_then(|a| a.size())
+                && size.kind == SyntaxKind::Ident
+                && let Ok(n) = self.fixed_len_of(size, true)
+            {
+                self.prog.types[id.0 as usize].members[i].ty = Ty::FixedStr(n);
+            }
             let Some(bounds) = f.bounds().filter(|&bounds| names_constants(bounds)) else {
                 continue;
             };
@@ -389,6 +405,38 @@ impl Checker<'_> {
     /// QB64pe's auto-included file, a function of the constant evaluator (`_PI` alone, `ABS(…)`: accepted,
     /// `v51_x10`, `x11`, `x14`), or a dotted name (not measured). An array's element, a FUNCTION of the program
     /// and `LEN` are none (`x05`, `x06`, `x12`, `x15`).
+    /// Whether a member's type is `STRING * n` with `n` the name of a `CONST` above the block (`above`, as
+    /// [`Self::may_be_constant`] takes it), whose length pass 2 reads. Any other name there is the old compiler's
+    /// "Invalid number/constant after STRING * type": a constant below the block, a suffixed name, a variable
+    /// (measured, `verification\v56_x30`, `v57_t01`–`t03`).
+    fn member_len_const(&mut self, a: ast::AsClause, above: (usize, bool)) -> R<bool> {
+        let Some(size) = a.size().filter(|t| t.kind == SyntaxKind::Ident) else {
+            return Ok(false);
+        };
+        let words = self.as_words(a);
+        if split_unsigned(&words).1 != ["STRING"] {
+            return Ok(false);
+        }
+        let shown = show_bytes(self.text(size.span));
+        let (name, suffix) = self.split_name(size)?;
+        let (count, in_proc) = above;
+        let above = self.const_names[..count]
+            .iter()
+            .any(|(n, proc)| *n == name && (in_proc || !proc));
+        if suffix.is_none() && above {
+            return Ok(true);
+        }
+        if auto_constant(name.as_bytes()).is_some() {
+            return Err(self.unsupported(
+                size.span,
+                format!("a constant of QB64pe as the length of a member: `{shown}`"),
+            ));
+        }
+        let msg =
+            format!("a member's `STRING * n` needs a number or a `CONST` above the block without a suffix: `{shown}`");
+        Err(self.error(size.span, msg))
+    }
+
     fn may_be_constant(&self, node: ast::Expr, above: (usize, bool)) -> bool {
         let (count, in_proc) = above;
         let known = |c: &Self, t: Tok| {
@@ -2172,9 +2220,15 @@ impl Checker<'_> {
         };
         let slots = crate::builtins::slots(row);
         let required = slots.iter().filter(|(_, optional)| !optional).count();
-        let args = self.present_args(call.arg_list())?;
+        let mut args = self.present_args(call.arg_list())?;
         if !(required..=slots.len()).contains(&args.len()) {
             return Err(self.unsupported(span, format!("`{word}` with {} arguments", args.len())));
+        }
+        // An array's name in parentheses, at any depth, is the array (design D6 of `m4-statements-metacommands`;
+        // measured, `verification\v51_x34`, `v57_p08`–`p10`, `p14`, `p15`); any other expression in them keeps
+        // its error or mark.
+        if let inner @ ast::Expr::NameRef(_) = super::whole::without_parens(args[0]) {
+            args[0] = inner;
         }
         let plain = match args[0] {
             ast::Expr::Field(f) if f.arg_list().is_none() => self.plain_spelled(f)?,

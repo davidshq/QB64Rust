@@ -1,0 +1,4 @@
+top
+run 1 a = 0 
+in s
+exit=0

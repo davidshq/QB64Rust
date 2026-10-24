@@ -5,7 +5,8 @@ $SCREENHIDE
 ' compiler's C++ and compared by tests\callsite). _SCREENICON, _DESKTOPWIDTH, _DESKTOPHEIGHT, _SCREENX, _SCREENY and
 ' _WINDOWHASFOCUS are called by their bare name and are a LONG; so is _SCREENEXISTS, which has no return type in
 ' the table; _TITLE$ is a string; _NEWIMAGE has two LONG slots and an optional third; _WINDOWHANDLE is an
-' _UNSIGNED _OFFSET, bare or with one LONG argument, and behaves as a variable of that type (a division rounds)
+' _UNSIGNED _OFFSET, bare or with one LONG argument, and behaves as a variable of that type (a division rounds);
+' _SCREENHIDE as a value is a LONG (m4-statements-metacommands, design D11)
 DIM l AS LONG, i AS INTEGER, q AS _INTEGER64, f AS DOUBLE, sg AS SINGLE, s AS STRING, o AS _UNSIGNED _OFFSET
 l = _SCREENICON
 l = _DESKTOPWIDTH
@@ -50,6 +51,7 @@ s = STR$(_WINDOWHANDLE)
 PRINT _WINDOWHANDLE <> 0
 PRINT _WINDOWHANDLE(1) <> 0
 PRINT _WINDOWHANDLE
+l = _SCREENHIDE
 SYSTEM
 
 SUB show (a AS LONG, d AS DOUBLE)

@@ -497,6 +497,17 @@ pub enum Resume {
     To(LabelId),
 }
 
+/// Where `RUN` starts the program again (spec `language/control-flow`, design D5 of `m4-statements-metacommands`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum RunTarget {
+    /// `RUN`: from the first line.
+    Restart,
+    /// `RUN label` or `RUN line`: at that label of the main module.
+    Label(LabelId),
+    /// `RUN file$`: the program the file names, which ends this one (error 53 when it cannot be started).
+    File(Expr),
+}
+
 /// The level of a log statement's entry, lowest first (libqb's `loglevel`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LogLevel {
@@ -1438,6 +1449,15 @@ pub enum StmtKind {
     Resume(Resume),
     /// `ERROR n`: raises error `n`, already converted to LONG (rounded half to even).
     Error(Expr),
+    /// `RUN …` (design D5 of `m4-statements-metacommands`): the screen, colours, palette, `RND` seed, key traps and
+    /// keyboard buffer reset and every variable cleared as by `CLEAR`, then the program starts again
+    /// ([`RunTarget`]), as the old compiler's C++ does it (`sub_run_init`, `sub_clear`, the jump or `sub_run`).
+    Run(RunTarget),
+    /// `PALETTE USING array[(index)]` (design D11 of `m4-statements-metacommands`): the palette set from the
+    /// elements of an `INTEGER` or `LONG` array, from that element or the array's first, by libqb's
+    /// `sub_paletteusing`; `bits` is 16 or 32. The index is written twice, as for graphics `GET`, and calls no
+    /// procedure.
+    PaletteUsing { array: VarId, index: Vec<Expr>, bits: u8 },
     /// Where a label stands: before the next statement of its body.
     Label(LabelId),
     /// `GOTO label`: a label of the same body.

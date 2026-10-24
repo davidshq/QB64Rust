@@ -135,6 +135,8 @@ pub enum SyntaxKind {
     StopStmt,
     /// `RUN [line number|label|file name]`
     RunStmt,
+    /// `PALETTE USING array[(index)]`: the expression after `USING`, if any.
+    PaletteUsingStmt,
     /// `EXIT SUB|FUNCTION|FOR|DO|WHILE|SELECT|CASE|DEF`
     ExitStmt,
     /// `_CONTINUE` alone on its statement: the next pass of the innermost open loop.
@@ -187,6 +189,10 @@ pub enum SyntaxKind {
     // ---- blocks (design D4): a header node, the body statements and, unless missing, the closer ----
     /// `END IF`/`ENDIF`, `END SELECT`, `WEND`, `END TYPE`, `END DECLARE` or `END DEF` closing a block.
     BlockEnd,
+    /// A closer or a branch of a block opened in another file (design D8 of `m4-statements-metacommands`), as a
+    /// statement: one `NextStmt`, `LoopStmt`, `BlockEnd` or `ProcEnd`, or an `ElseIfBranch`, `ElseBranch` or
+    /// `CaseClause` that holds only its header (its statements follow as statements).
+    CrossCloser,
     /// Multi-line `IF`: an `IfBranch`, any `ElseIfBranch`es, an optional `ElseBranch`, and a `BlockEnd`.
     IfBlock,
     /// `IF cond THEN` or `ELSEIF cond THEN` (in a single-line `IF` also `IF cond` before `GOTO`).

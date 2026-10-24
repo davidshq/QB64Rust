@@ -1,6 +1,7 @@
 //! Structural checks of a lowered program (design D8 of `m2-arrays-and-types`): what the emitter relies on and the
 //! types cannot say. Tier 1 runs it on every accepted input; the lowering runs it under `debug_assert!`.
 
+use crate::RunTarget;
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
     AddressWord, Arg, ArrayRef, Body, BuiltinId, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue,
@@ -260,7 +261,31 @@ impl Validator<'_> {
             }
             Op::Resume(Resume::Retry | Resume::Next) => {}
             Op::SetHandler(Some(l)) | Op::NewHandler(l) => self.main_label(*l, at, "handler"),
-            Op::Resume(Resume::To(l)) => self.main_label(*l, at, "resume"),
+            Op::Resume(Resume::To(l)) => self.own_label(*l, b, at, "resume"),
+            Op::Run(RunTarget::Restart) => {}
+            Op::Run(RunTarget::Label(l)) => self.main_label(*l, at, "run"),
+            Op::Run(RunTarget::File(f)) => {
+                if f.ty != Ty::Str {
+                    self.problem(format!("{at}: `RUN` of a file named by a {:?}", f.ty));
+                }
+                self.value(f, owner, at);
+            }
+            Op::PaletteUsing { array, index, bits } => {
+                self.array_ref(&ArrayRef::Var(*array), owner, at, "bytes");
+                let a = self.p.var(*array);
+                if !matches!((a.ty, bits), (Ty::I16, 16) | (Ty::I32, 32)) {
+                    self.problem(format!(
+                        "{at}: `PALETTE USING` of {}, an array of {:?}, by {bits} bits",
+                        a.name, a.ty
+                    ));
+                }
+                if !index.is_empty() && a.dim_count().is_some_and(|n| n != index.len()) {
+                    self.problem(format!("{at}: {} indexes for {}", index.len(), a.name));
+                }
+                for i in index {
+                    self.value(i, owner, at);
+                }
+            }
             Op::Return(Some(l)) => self.main_label(*l, at, "return"),
             Op::Jump(l) => self.own_label(*l, b, at, "jump"),
             Op::Gosub(l) => self.own_label(*l, b, at, "gosub"),
@@ -1527,14 +1552,23 @@ mod tests {
         );
     }
 
+    /// A `RESUME label` in a SUB names a label of the SUB (design D7 of `m4-statements-metacommands`).
+    #[test]
+    fn resume_to_a_label_of_another_body() {
+        let mut p = program();
+        p.procs[0].body.stmts[0].ops.push(Op::Resume(Resume::To(LabelId(1))));
+        assert_eq!(
+            problems(&p),
+            ["S: statement 0 (line 1): resume to label 1, which this body does not have"]
+        );
+    }
+
     #[test]
     fn main_module_targets() {
         let mut p = program();
-        p.procs[0].body.stmts[0].ops.extend([
-            Op::SetHandler(Some(LabelId(2))),
-            Op::Resume(Resume::To(LabelId(0))),
-            Op::Return(Some(LabelId(3))),
-        ]);
+        p.procs[0].body.stmts[0]
+            .ops
+            .extend([Op::SetHandler(Some(LabelId(2))), Op::Return(Some(LabelId(3)))]);
         assert_eq!(
             problems(&p),
             [

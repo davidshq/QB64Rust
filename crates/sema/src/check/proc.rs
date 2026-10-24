@@ -360,6 +360,32 @@ impl Checker<'_> {
         Some(v)
     }
 
+    /// `RESET`, `CALL RESET`, `CALL CLOSE` or `CALL CLOSE(n, …)`: the statement `CLOSE` with those file numbers, as
+    /// the old compiler writes them; `RESET` takes none ("Syntax error - RESET takes no parameters").
+    fn close_call(&mut self, stmt: ast::CallStmt, name: &str) -> R<()> {
+        let node = stmt.node();
+        if let Some(bad) = stmt.unparsed_args() {
+            return Err(self.error(bad.span(), format!("cannot read the arguments of `{name}`")));
+        }
+        let nodes = self.present_args(stmt.arg_list())?;
+        if name == "RESET" && !nodes.is_empty() {
+            return Err(self.error(node.span(), "`RESET` takes no arguments"));
+        }
+        let [form] = stmt_lookup("CLOSE", false)[..] else {
+            unreachable!("`CLOSE` is one row with one stub entry");
+        };
+        let mut args = Vec::new();
+        for n in nodes {
+            let e = self.expr(n)?;
+            if e.ty == Ty::Str {
+                return Err(self.error(e.span, "`CLOSE` needs file numbers"));
+            }
+            args.push(crate::StmtArg::Value(self.store(e, Ty::I32)?));
+        }
+        self.push(node, StmtKind::Builtin { id: form.id, args });
+        Ok(())
+    }
+
     /// `CALL s(...)` or `s ...`: a SUB call, or a built-in statement (not supported yet).
     pub(super) fn call_stmt(&mut self, stmt: ast::CallStmt) -> R<()> {
         let node = stmt.node();
@@ -379,6 +405,33 @@ impl Checker<'_> {
                 return self.mem_get_stmt(stmt);
             }
         }
+        if !self.procs_by_name.contains_key(&name) {
+            let call = stmt.call_keyword().is_some();
+            // `RESET`, `CALL RESET`, `CALL CLOSE` and `CALL CLOSE(n, …)` are `CLOSE` (design D4 of
+            // `m4-statements-metacommands`; `qb64pe.bas` 10893–10902; measured, `verification\v57_s03`, `s12`, `s13`,
+            // `s18`).
+            if suffix.is_none() && (name == "RESET" || (call && name == "CLOSE")) {
+                return self.close_call(stmt, &name);
+            }
+            if call && suffix.is_none() && name == "SWAP" && stmt.unparsed_args().is_none() {
+                let operands = self.present_args(stmt.arg_list())?;
+                return self.swap_of(node, operands);
+            }
+            // The old compiler's stubs with no rule of their own, and those after `CALL` the old compiler sends to
+            // its generic path: "Command not implemented" (design D4; measured, `verification\v57_s01`–`s20`).
+            let stub = match (name.as_str(), suffix) {
+                ("TRON" | "TROFF" | "LIST" | "IOCTL", None) => true,
+                ("MID", Some(Ty::Str)) => call,
+                // A function after `CALL`: "Expected CALL sub-name [(...)]" (measured, `verification\v57_s19`).
+                ("FRE", None) if call => {
+                    return Err(self.error(name_tok.span, format!("`CALL {shown}`: no SUB of this name")));
+                }
+                _ => false,
+            };
+            if stub {
+                return Err(self.error(name_tok.span, format!("`{shown}` is not implemented in QB64pe")));
+            }
+        }
         // A built-in statement whose entry has no template is written like a SUB call (`KILL f$`). So is one whose
         // template is a single argument, after `CALL` (measured, `verification\v26_x70`: `CALL _DEST(_CONSOLE)`;
         // without `CALL` the parser reads it by its template). A statement with a rule of its own (`SWAP`, `CLOSE`,
@@ -396,7 +449,7 @@ impl Checker<'_> {
             }
             _ => None,
         };
-        match self.procs_by_name.get(&name).map(|&p| (p, self.prog.proc(p).kind)) {
+        match self.proc_as(&name, true).map(|p| (p, self.prog.proc(p).kind)) {
             None if plain.is_some() => self.plain_stmt(stmt, plain.expect("checked")),
             Some((p, _)) if self.broken.contains(&p) => self.not_broken(p),
             Some((p, ProcKind::Sub)) if suffix.is_none() => {
@@ -421,9 +474,15 @@ impl Checker<'_> {
             Some((p, ProcKind::Function(_))) if self.auto_procs.contains(&p) => {
                 Err(self.error(name_tok.span, format!("`{shown}` is a function, not a statement")))
             }
+            // Measured: "Expected CALL sub-name [(...)]" after `CALL`, "Syntax error" without it, for every kind of
+            // name (design D11 of `m4-statements-metacommands`; `verification\v21_x56`, `v57_f01`–`f11`).
+            Some((_, ProcKind::Function(_))) if stmt.call_keyword().is_some() => Err(self.error(
+                name_tok.span,
+                format!("`CALL {shown}`: `{shown}` is a FUNCTION, not a SUB"),
+            )),
             Some((_, ProcKind::Function(_))) => {
-                let msg = format!("calling the FUNCTION `{shown}` as a statement");
-                Err(self.unsupported(name_tok.span, msg))
+                let msg = format!("the FUNCTION `{shown}` cannot stand as a statement");
+                Err(self.error(name_tok.span, msg))
             }
             // A built-in function that is no statement too (measured: `LEN("a")` alone is "Syntax error",
             // `verification\v20_x06_function_as_statement`).
@@ -787,6 +846,23 @@ impl Checker<'_> {
                 show_bytes(self.text(t.span))
             );
             return Err(self.error(span, msg));
+        }
+        // A program FUNCTION's argument left out: "Invalid expression" for the last, "Syntax error" for another
+        // (design D11 of `m4-statements-metacommands`; measured, `verification\v57_o18`–`o20`).
+        if proc.external.is_none()
+            && let Some(list) = args
+            && list.type_arg().is_none()
+        {
+            let given = list.args();
+            if given.iter().any(Option::is_none) {
+                let shown = show_bytes(self.text(t.span));
+                let msg = if given.last().is_some_and(Option::is_none) {
+                    format!("the last argument of the FUNCTION `{shown}` is left out")
+                } else {
+                    format!("the FUNCTION `{shown}` cannot have an argument left out")
+                };
+                return Err(self.error(list.node().span(), msg));
+            }
         }
         let nodes = self.present_args(args)?;
         let args = self.args(p, t, &nodes, span)?;

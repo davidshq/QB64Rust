@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):G& ( 1 )
+LINE 3:g&(1)
+exit=1

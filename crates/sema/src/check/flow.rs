@@ -5,9 +5,10 @@
 //! of its own body; `ON ERROR GOTO` names one of the main module's, from any body (all measured). A line number is
 //! a label whose name is the number as the old compiler spells it (design D1 of `m4-line-numbers-whole-arrays`).
 
-use super::{Checker, Failed, R, Skips, nested_statements};
+use super::walk::{Cursor, Event};
+use super::{Checker, Failed, R, Skips, line_if_statements};
 use crate::builtins::stmt_lookup;
-use crate::{ConvKind, ErrorHandler, Label, LabelId, ProcId, ProcKind, Resume, StmtKind, SymbolKind, Ty};
+use crate::{ConvKind, ErrorHandler, Label, LabelId, ProcId, ProcKind, Resume, RunTarget, StmtKind, SymbolKind, Ty};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any};
 use qb64rust_syntax::SyntaxKind::{
@@ -17,37 +18,81 @@ use qb64rust_syntax::ast;
 use qb64rust_syntax::tree::{Node, Tok};
 use std::collections::HashSet;
 
-impl Checker<'_> {
-    /// Enters the labels of one body (`body`: `None` for the main module) among `statements` and inside their
-    /// blocks; a procedure inside them is another body and is left out.
-    pub(super) fn declare_labels(&mut self, statements: &[Node], skips: &Skips, body: Option<ProcId>) {
-        for &stmt in statements {
-            if skips.past_cap(stmt) {
-                break;
-            }
-            if let Some(tree) = self.program.included(stmt) {
-                // The labels of an included file belong to the body it is included in.
-                let inner: Vec<Node> = ast::SourceFile::cast(tree.root())
-                    .into_iter()
-                    .flat_map(|f| f.statements())
-                    .collect();
-                self.declare_labels(&inner, skips, body);
-            } else if let Some(inner) = nested_statements(stmt) {
-                self.declare_labels(&inner, skips, body);
-            } else if let Some(l) = ast::LabelDef::cast(stmt)
-                && skips.usable(stmt)
-            {
-                self.stmt.stmt_error = false;
-                let _ = self.declare_label(l, body);
-                self.flush_names();
-            } else if let Some(l) = ast::LineNumber::cast(stmt)
-                && skips.usable(stmt)
-            {
-                self.stmt.stmt_error = false;
-                let _ = self.declare_line_number(l, body);
-                self.flush_names();
+impl<'a> Checker<'a> {
+    /// Enters the labels of every body: the main module's (`top`, the walk's statements) first, then those of each
+    /// procedure of `defs` in turn. A label belongs to the body it stands in by the walk, inside blocks and included
+    /// files too; one in a procedure that has no body of its own (its header failed) is left out.
+    pub(super) fn declare_labels(&mut self, top: &[Node<'a>], defs: &[ast::ProcDef<'a>], skips: &Skips) {
+        let program = self.program;
+        let mut found = Vec::new();
+        let mut cur = Cursor::new(program, skips, top.iter().copied());
+        self.find_labels(&mut cur, skips, &mut Vec::new(), &mut found);
+        for &(_, stmt) in found.iter().filter(|(body, _)| body.is_none()) {
+            self.declare_label_stmt(stmt, None);
+        }
+        for def in defs {
+            let Some(&id) = self.proc_of_def.get(&def.node().key()) else {
+                continue;
+            };
+            for &(_, stmt) in found.iter().filter(|(body, _)| *body == Some(Some(id))) {
+                self.declare_label_stmt(stmt, Some(id));
             }
         }
+    }
+
+    /// The labels and line numbers the walk `cur` gives, each with its body (`None` the main module, `Some(None)`
+    /// a procedure without one), in text order. `open` holds the body of each block open in the walk.
+    fn find_labels(
+        &self,
+        cur: &mut Cursor<'a, '_>,
+        skips: &Skips,
+        open: &mut Vec<Option<Option<ProcId>>>,
+        found: &mut Vec<(Option<Option<ProcId>>, Node<'a>)>,
+    ) {
+        let body = |open: &Vec<Option<Option<ProcId>>>| open.last().copied().flatten();
+        // The statement walk drops a disagreeing `$IF`'s branches, so their labels are not entered: a jump to one
+        // is "Label not defined" (measured, `verification\v57_j01`–`j04`).
+        let mut drop = None;
+        while let Some(event) = cur.next() {
+            if self.pp_drop_event(&mut drop, event, cur) {
+                continue;
+            }
+            match event {
+                Event::Open(n) => {
+                    let inner = match ast::ProcDef::cast(n) {
+                        Some(def) => Some(self.proc_of_def.get(&def.node().key()).copied()),
+                        None => body(open),
+                    };
+                    open.push(inner);
+                }
+                Event::Close(..) => {
+                    open.pop();
+                }
+                Event::Branch(_) => {}
+                Event::Stmt(n) => {
+                    if let Some(inner) = line_if_statements(n) {
+                        let mut sub = Cursor::new(self.program, skips, inner);
+                        let mut depth = vec![body(open)];
+                        self.find_labels(&mut sub, skips, &mut depth, found);
+                    } else if (ast::LabelDef::cast(n).is_some() || ast::LineNumber::cast(n).is_some())
+                        && skips.usable(n)
+                    {
+                        found.push((body(open), n));
+                    }
+                }
+            }
+        }
+    }
+
+    /// Enters one label or line number of `body`.
+    fn declare_label_stmt(&mut self, stmt: Node, body: Option<ProcId>) {
+        self.stmt.stmt_error = false;
+        let _ = match (ast::LabelDef::cast(stmt), ast::LineNumber::cast(stmt)) {
+            (Some(l), _) => self.declare_label(l, body),
+            (_, Some(l)) => self.declare_line_number(l, body),
+            (None, None) => unreachable!("only labels and line numbers are found"),
+        };
+        self.flush_names();
     }
 
     // ---- labels and error handling ----
@@ -539,25 +584,78 @@ impl Checker<'_> {
     }
 
     /// `RESUME`, `RESUME 0`, `RESUME NEXT`, `RESUME label`. Inside a procedure the label is one of the procedure's:
-    /// one of the main module's is an error (measured, `v14_err_label_in_main_from_sub`), one of the procedure's
-    /// compiles (`v17_d_resume_sub_label`); `RESUME` itself is not supported yet there.
+    /// one of the main module's is an error (measured, `v14_err_label_in_main_from_sub`, `v57_x05`, `x10`–`x12`).
+    /// In a SUB the statement is the main module's (design D7 of `m4-statements-metacommands`; measured,
+    /// `v17_d_resume_sub_label`, `v57_x01`–`x08`): the old compiler writes the same C++ line there, whose `return`
+    /// leaves the SUB. In a FUNCTION that line does not build in the old compiler (`v57_x09`).
     pub(super) fn resume(&mut self, s: ast::ResumeStmt) -> R<()> {
         let node = s.node();
         let target = s.target();
         let is_next = target.is_some_and(|t| t.kind != Number && self.word(t) == "NEXT");
-        if self.cur.is_some() {
+        if let Some(p) = self.cur
+            && matches!(self.prog.proc(p).kind, ProcKind::Function(_))
+        {
             if let Some(t) = target.filter(|&t| !is_next && !self.is_zero(t)) {
                 self.label_ref(t, self.cur)?;
             }
-            return Err(self.unsupported(node.span(), "`RESUME` inside a SUB or FUNCTION"));
+            let msg = "`RESUME` cannot stand in a FUNCTION: QB64pe's C++ for it does not build";
+            return Err(self.error(super::first_token_span(node), msg));
         }
         let resume = match target {
             None => Resume::Retry,
             Some(t) if self.is_zero(t) => Resume::Retry,
             Some(_) if is_next => Resume::Next,
-            Some(t) => Resume::To(self.label_ref(t, None)?),
+            Some(t) => Resume::To(self.label_ref(t, self.cur)?),
         };
         self.push(node, StmtKind::Resume(resume));
+        Ok(())
+    }
+
+    /// `RUN`, `RUN label`, `RUN line`, `RUN file$` (design D5 of `m4-statements-metacommands`; `qb64pe.bas`
+    /// 9764–9836; measured, `verification\v57_r01`–`r19`, `v28_x86`). A name or a number alone after `RUN` is a label
+    /// of the main module, from any body: one that is a SUB's name is "Name already in use", any other name that is
+    /// no label of the main module "Label not defined" (a numeric variable too). Anything else is a file name: a
+    /// number there is "Illegal string-number conversion".
+    pub(super) fn run(&mut self, s: ast::RunStmt) -> R<()> {
+        let node = s.node();
+        // A name that means a string is a file name, as the old compiler types the element before it takes it for a
+        // label: by its suffix, a string `CONST` of the name, or the type a variable of the name has here (a
+        // `DIM … AS STRING`, or `DEFSTR` for its first letter, assigned or not) (`v57_r16`, `r20`–`r24`).
+        let alone = match s.operand() {
+            Some(ast::Expr::Literal(l)) => l.token().filter(|t| t.kind == Number),
+            Some(ast::Expr::NameRef(n)) => match n.name() {
+                Some(t) => {
+                    let (name, suffix) = self.split_name(t)?;
+                    let string = match (suffix, self.visible_const(&name)) {
+                        (Some(ty), _) => ty.is_string(),
+                        (None, Some(c)) => self.prog.constant(c).ty.is_string(),
+                        (None, None) => self.var_key(name, None).1.is_string(),
+                    };
+                    (!string).then_some(t)
+                }
+                None => None,
+            },
+            Some(_) | None => None,
+        };
+        let target = if let Some(t) = alone {
+            if t.kind == Ident && self.procs_by_name.contains_key(&self.word(t)) {
+                let msg = format!(
+                    "`RUN {}`: `{0}` is the name of a SUB, not a label",
+                    show_bytes(self.text(t.span))
+                );
+                return Err(self.error(t.span, msg));
+            }
+            RunTarget::Label(self.label_ref(t, None)?)
+        } else if let Some(e) = s.operand() {
+            let file = self.expr(e)?;
+            if file.ty != Ty::Str {
+                return Err(self.error(file.span, "`RUN` takes a label, a line number or a file name"));
+            }
+            RunTarget::File(file)
+        } else {
+            RunTarget::Restart
+        };
+        self.push(node, StmtKind::Run(target));
         Ok(())
     }
 

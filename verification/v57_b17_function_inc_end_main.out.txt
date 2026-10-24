@@ -1,0 +1,3 @@
+in f, function_open.bi
+ 6 
+exit=0

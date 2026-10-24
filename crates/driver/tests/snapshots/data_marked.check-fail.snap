@@ -1,5 +1,0 @@
----
-source: crates/driver/tests/frontend.rs
-expression: snap
----
-data_marked.bas:9:6: error: not supported yet: a target of `READ` in parentheses

@@ -1,0 +1,5 @@
+
+Array must be of type INTEGER or LONG
+Caused by (or after):PALETTE USING A ( 0 )
+LINE 6:PALETTE USING a(0)
+exit=1

@@ -26,4 +26,3 @@ bound_element_errors.bas:29:14: error: `LBOUND` takes an array, not a value
 bound_element_errors.bas:29:14: note: QB64pe: Syntax error
 bound_element_errors.bas:30:14: error: `LBOUND` takes an array, not a value
 bound_element_errors.bas:30:14: note: QB64pe: Syntax error
-bound_element_errors.bas:32:14: error: not supported yet: `LBOUND` of this expression

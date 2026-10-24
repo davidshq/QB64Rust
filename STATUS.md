@@ -27,12 +27,13 @@ Civil War Strategy compiles with no diagnostic, builds, and played for two turns
 23 screens as the old compiler's build; its scripts are whole games now, held to line coverage
 (`cws-whole-game`). Upstream is at 401 of 404 (the three left are out of scope: `http/read_example`,
 `opengl/test`, `const/math_funcs`); the verification families are a suite of the new compiler, 2959 programs on
-`tests\verification\pass.list`. M4 has eight changes built and archived on `m4`, in pull request 12:
-`m4-checker-groups`, `m4-devices-continue-paths`, `m4-names-arrays`, `m4-builtins-param-types`, `dry-cleanup`,
-`m4-handlers-logging-checking`, `m4-upstream-rejections` and `m4-qb64pe-sources` (`fe5e2de`); the full set at a
-merge ran on its tree (below). `main` is at the merge of `newer-changes` (pull request 11, `c8ac126`, 2026-10-20),
-which holds every change up to `verification-compare`, `cws-whole-game` and `cpp-failure-errors`; the
-extension's first release is tagged `vscode-v0.2.0`.
+`tests\verification\pass.list`. `main` is at the merge of `m4-qb64pe-builtins` (pull request 13, `fe596c3`,
+2026-10-23), which holds M4's twelve changes so far: through pull request 12 (`e0ac8c6`) `m4-checker-groups`,
+`m4-devices-continue-paths`, `m4-names-arrays`, `m4-builtins-param-types`, `dry-cleanup`,
+`m4-handlers-logging-checking`, `m4-upstream-rejections` and `m4-qb64pe-sources` (the full set at a merge ran on
+`fe5e2de`, below), and through pull request 13 `m4-qb64pe-builtins`, `m4-line-numbers-whole-arrays`,
+`m4-names-implicit-arrays` and `m4-memory-records` (merged without the full set). The extension's first release
+is tagged `vscode-v0.2.0`.
 
 ## Waiting on the user
 
@@ -53,17 +54,19 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. The merge of pull request 12 (`m4` into `main`); its full set ran on `fe5e2de` (below), with
-   `g12_game.files` the one failure, from the test environment (still to watch, below).
-2. `qb64pe.bas` compiles with no diagnostic since `m4-qb64pe-builtins` (archived, specs synced): `qb64rust -z` reports
-   nothing, and `-x` builds an executable, not run (the change's `tasks.md`, task 7.2). At the merge into `main`,
-   `ROADMAP.md` says that the compile half of M4's exit criterion is met.
+1. The full set for a merge on `fe596c3`, the merge of pull request 13, which went into `main` without it.
+2. `qb64pe.bas` compiles with no diagnostic since `m4-qb64pe-builtins`, now on `main`: `qb64rust -z` reports
+   nothing, and `-x` builds an executable, not run (the change's `tasks.md`, task 7.2). `ROADMAP.md` is to say
+   that the compile half of M4's exit criterion is met.
 3. The rest of M4 is a plan of six steps (`DECISIONS.md` 2026-10-22). Steps 1, 2 and 3,
-   `m4-line-numbers-whole-arrays`, `m4-names-implicit-arrays` and `m4-memory-records` (variables in conventional
-   memory, `SADD`, `VARPTR$`, every place of graphics `GET`/`PUT`, member bounds that name a `CONST`, a member as the
-   `FOR` variable), are done (archived, specs synced). Next is step 4, **the statements and metacommands left, with the
-   shrink-only lists of tier 1**, by the demand report over `tests\verification\known.list` (47 programs marked
-   "not supported yet", each with its reason).
+   `m4-line-numbers-whole-arrays`, `m4-names-implicit-arrays` and `m4-memory-records`, are done (archived, specs
+   synced). Step 4 is split in two (user, 2026-10-23): **4a, `m4-statements-metacommands`, is built** (the
+   statements and metacommands programs need: `RUN`, `RESUME` in a SUB, places in parentheses, `PALETTE USING`,
+   blocks across included files, the `$IF` between two settings, and the old compiler's errors for the forms it
+   rejects; `tests\known_unsupported_rejections.list` is empty), waiting for the user's review before it is archived.
+   Next is **step 4b: the built-ins no program uses yet (about 55) and `$ERRORLOCATION`/`$USELIBRARY`**; the demand
+   report over `tests\verification\known.list` names 11 programs, the 9 that steps 2 and 3 left, `$ERRORLOCATION`
+   (`v57_m09`) and the first argument of `INSTR` left out (`v57_o07`).
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at

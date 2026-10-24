@@ -1,5 +1,6 @@
 //! `--dump ir`: the lowering-pair text of design D6.
 
+use crate::RunTarget;
 use crate::{
     Arg, ArrayRef, BinOp, Body, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue, OnError, Op, Place,
     PrintItem, PrintTo, ProcKind, Program, Reference, Resize, Resume, RuntimePart, Settings, Shape, Source, StmtArg,
@@ -302,7 +303,14 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::Log { level, msg } => writeln!(out, "  Log {level:?} {}", val(p, msg)).unwrap(),
                 Op::Resume(Resume::Retry) => writeln!(out, "  Resume Retry").unwrap(),
                 Op::Resume(Resume::Next) => writeln!(out, "  Resume Next").unwrap(),
-                Op::Resume(Resume::To(l)) => writeln!(out, "  Resume To {}", label(&p.main, *l)).unwrap(),
+                Op::Resume(Resume::To(l)) => writeln!(out, "  Resume To {}", label(b, *l)).unwrap(),
+                Op::Run(RunTarget::Restart) => writeln!(out, "  Run").unwrap(),
+                Op::Run(RunTarget::Label(l)) => writeln!(out, "  Run {}", label(&p.main, *l)).unwrap(),
+                Op::Run(RunTarget::File(f)) => writeln!(out, "  Run file {}", val(p, f)).unwrap(),
+                Op::PaletteUsing { array, index, bits } => {
+                    let index: Vec<String> = index.iter().map(|i| val(p, i)).collect();
+                    writeln!(out, "  PaletteUsing {}({}) {bits}", var(p, *array), index.join(", ")).unwrap();
+                }
                 Op::Jump(l) => writeln!(out, "  Jump {}", label(b, *l)).unwrap(),
                 Op::Gosub(l) => writeln!(out, "  Gosub {}", label(b, *l)).unwrap(),
                 Op::Return(None) => writeln!(out, "  Return").unwrap(),

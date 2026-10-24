@@ -58,6 +58,17 @@ fn on_event(p: &mut Parser) {
     p.start_node(OnEventStmt);
     p.bump(); // ON
     p.bump(); // TIMER, KEY, ...
+    if let Some(n) = gosub_inside_parens(p) {
+        // `ON STRIG(1 GOSUB h`: the old compiler's "Expected )" (design D2 of `m4-statements-metacommands`;
+        // measured, `verification\v47_x08`, `v57_e01`, `e02`).
+        for _ in 0..n {
+            p.bump();
+        }
+        p.error("expected `)` before `GOSUB`");
+        p.rest_into_error_node();
+        p.finish_node();
+        return;
+    }
     if p.at(LParen) && !arg_list(p) {
         p.recover();
         p.finish_node();
@@ -78,6 +89,31 @@ fn on_event(p: &mut Parser) {
     }
     p.recover();
     p.finish_node();
+}
+
+/// At the `(` of an event's argument: how many tokens ahead a `GOSUB` stands inside the parentheses, before its
+/// `)`, on the same line; `None` when there is none.
+fn gosub_inside_parens(p: &Parser) -> Option<usize> {
+    if !p.at(LParen) {
+        return None;
+    }
+    let mut depth = 0;
+    let mut n = 0;
+    loop {
+        match p.nth(n) {
+            None | Some(Newline | Colon | MetaComment) => return None,
+            Some(LParen) => depth += 1,
+            Some(RParen) => {
+                depth -= 1;
+                if depth == 0 {
+                    return None;
+                }
+            }
+            Some(Ident) if depth == 1 && p.nth_is_word(n, "GOSUB") => return Some(n),
+            Some(_) => {}
+        }
+        n += 1;
+    }
 }
 
 /// `ON expr GOTO|GOSUB target, ...`; a target is a label or a line number, and may be left out.

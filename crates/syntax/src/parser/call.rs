@@ -39,6 +39,10 @@ pub(crate) fn call_stmt(p: &mut Parser) {
     // an expression list: `template_call` above read such a statement, or reported it. What comes here after
     // `CALL` is a SUB's name or a statement with a template of one argument, which is an expression list
     // (`CALL _DEST(h)`).
+    // `CALL _MEMPUT(…)` and its kin are the old compiler's error whatever the arguments, which may be its forms
+    // with `AS type` (design D2 of `m4-statements-metacommands`; measured, `verification\v32_x89`–`x92`): they are
+    // read quietly, and `sema` reports the statement.
+    let mem = explicit && ["_MEMGET", "_MEMPUT", "_MEMFILL"].iter().any(|w| p.at_word(w));
     super::expr::note_url_name(p);
     p.start_node(NameRef);
     // `a . b 3`, `CALL a . b(3)`: the SUB `a.b` (measured, `verification\v47_x18`, `v55_x61`).
@@ -46,7 +50,15 @@ pub(crate) fn call_stmt(p: &mut Parser) {
         p.bump();
     }
     p.finish_node();
-    if explicit {
+    if mem && p.at(LParen) {
+        p.quiet = true;
+        p.quiet_failed = false;
+        arg_list(p);
+        p.quiet = false;
+        if p.quiet_failed || !p.at_stmt_end() {
+            p.rest_into_error_node();
+        }
+    } else if explicit {
         if p.at(LParen) {
             arg_list(p);
         }

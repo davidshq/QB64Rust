@@ -10,7 +10,8 @@ deftype_errors.bas:15:23: error: a fixed-length string's length must be 1 to 214
 deftype_errors.bas:16:11: error: `_UNSIGNED` needs a type after it
 deftype_errors.bas:17:21: error: a `_BIT` type takes 1 to 64 bits
 deftype_errors.bas:18:10: error: expected `AS` and a type after the letters
-deftype_errors.bas:19:9: error: not supported yet: word `AS` (expected a letter or a range of letters (`a-z`))
+deftype_errors.bas:19:9: error: `_DEFINE` needs letters before `AS`
+deftype_errors.bas:19:9: note: QB64pe: _DEFINE: Expected ... AS ...
 deftype_errors.bas:20:21: error: expected the end of the statement
 deftype_errors.bas:21:7: error: expected a letter or a range of letters (`a-z`)
 deftype_errors.bas:22:8: error: expected a letter or a range of letters (`a-z`)
@@ -18,7 +19,8 @@ deftype_errors.bas:23:8: error: expected a letter or a range of letters (`a-z`)
 deftype_errors.bas:24:10: error: expected a letter after `-`
 deftype_errors.bas:25:10: error: expected the end of the statement
 deftype_errors.bas:26:10: error: expected a letter or a range of letters (`a-z`)
-deftype_errors.bas:27:10: error: not supported yet: word `AS` (expected the end of the statement)
+deftype_errors.bas:27:10: error: expected `-` or `,` after the letter, not `AS`: only `_DEFINE` takes a type
+deftype_errors.bas:27:10: note: QB64pe: _DEFINE: Expected - or ,
 deftype_errors.bas:30:5: error: the `FOR` variable `s` must be a number, not a string
 deftype_errors.bas:30:5: note: QB64pe: Unsupported variable used in FOR statement
 deftype_errors.bas:31:6: error: cannot store a number in a string variable

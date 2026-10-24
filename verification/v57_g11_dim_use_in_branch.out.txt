@@ -1,0 +1,4 @@
+before
+after
+q after 0 
+exit=0

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ CONSOLE
+LINE 3:$CONSOLE:OFF
+exit=1

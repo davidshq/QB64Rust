@@ -1,0 +1,6 @@
+    PRINT "body"; i
+$IF WIN THEN
+NEXT
+$ELSE
+NEXT
+$END IF

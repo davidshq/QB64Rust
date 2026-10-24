@@ -504,7 +504,7 @@ impl Checker<'_> {
     ///
     /// `name$` where no variable of the name and `$` exists means the `STRING * n` variable of the name, if the
     /// plain name means one (design D7 of `m4-qb64pe-sources`; measured, `verification\v52_x39`, `x43`, `x44`).
-    fn var_key(&mut self, name: String, suffix: Option<Ty>) -> (String, Ty) {
+    pub(super) fn var_key(&mut self, name: String, suffix: Option<Ty>) -> (String, Ty) {
         let ty = match suffix {
             Some(Ty::Str) if self.find_var(&(name.clone(), Ty::Str)).is_none() => {
                 match self.var_key(name.clone(), None) {
@@ -1100,8 +1100,10 @@ impl Checker<'_> {
     /// would (`v14_shared_plain_main`). Under `OPTION _EXPLICIT` a missing one is an error instead.
     pub(super) fn shared(&mut self, stmt: ast::SharedStmt) -> R<()> {
         if self.cur.is_none() {
-            let span = stmt.node().span();
-            return Err(self.unsupported(span, "`SHARED` in the main module"));
+            // Measured: "SHARED must be used within a SUB/FUNCTION", declared name or not (design D11 of
+            // `m4-statements-metacommands`; `verification\v57_e13`).
+            let at = stmt.node().first_token().map_or(stmt.node().span(), |t| t.span);
+            return Err(self.error(at, "`SHARED` can stand only in a SUB or FUNCTION"));
         }
         let list_ty = match stmt.as_clause() {
             Some(a) => Some(self.type_of_at(a, AsPlace::Shared)?),

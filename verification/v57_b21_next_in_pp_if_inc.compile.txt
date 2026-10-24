@@ -1,0 +1,5 @@
+
+NEXT without FOR in line 3 of <verification>\v57_inc/next_in_if.bi included
+Caused by (or after):NEXT
+LINE 4:NEXT
+exit=1

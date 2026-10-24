@@ -115,8 +115,9 @@ differ only in signedness count as the same (the bits are exchanged), any two st
 `STRING * n` of any length, each side cut or padded to its own length), and two user types must be the same `TYPE`.
 Two places of different types SHALL be a compile error ("Type mismatch" in the old compiler), as SHALL a `_BIT`
 place, an operand that is not a place and the name of the FUNCTION the statement stands in. An operand in
-parentheses, two whole arrays and a member of an array element, which the old compiler accepts, SHALL be reported
-"not supported yet". An element operand whose index is out of range SHALL raise error 9 and the statement SHALL
+parentheses SHALL be the place inside them, as in the old compiler (the parentheses make no copy); two whole
+arrays SHALL exchange their first elements in memory (`language/arrays-and-types`, requirement "A whole array as
+a value"); a member of an array element SHALL be a place as any other member is. An element operand whose index is out of range SHALL raise error 9 and the statement SHALL
 then do what the old compiler's program does.
 
 #### Scenario: Numbers and strings
@@ -146,6 +147,10 @@ then do what the old compiler's program does.
 #### Scenario: A _BIT variable
 - **WHEN** `DIM a AS _BIT, b AS _BIT: SWAP a, b` is compiled
 - **THEN** it is a compile error, as in the old compiler
+
+#### Scenario: An operand in parentheses
+- **WHEN** `a& = 1: b& = 2: SWAP (a&), b&: PRINT a&; b&` runs
+- **THEN** it prints ` 2  1 `, as the old compiler's program (`verification\v22_x103`)
 
 ### Requirement: MID$ statement
 `MID$(s, start[, length]) = value` SHALL overwrite bytes of the string place `s` in place, never changing its
@@ -253,9 +258,19 @@ compiles it: the name alone is the statement with nothing after it, and the name
 around all that follows is the statement with what stands between them. Any other form SHALL be a compile error
 that is not "not supported yet".
 
+#### Scenario: SWAP after CALL
+- **WHEN** `a& = 1: b& = 2: CALL SWAP(a&, b&): PRINT a&; b&` runs
+- **THEN** it prints ` 2  1 `, as the old compiler's program (`verification\v26_x128`)
+
 #### Scenario: Statements with a rule of their own
-- **WHEN** a program has `CALL SWAP(a, b)`
-- **THEN** it MAY be reported "not supported yet" (as `CLOSE` and the `MID$` statement after `CALL`)
+- **WHEN** a program has `CALL CLOSE`, `CALL CLOSE(1)` or `CALL RESET`, and another has `CALL MID$(a$, 1, 1, "x")`
+- **THEN** the first three compile and close the files as `CLOSE`, `CLOSE 1` and `RESET` do, and the `MID$` statement
+  is the old compiler's error "Command not implemented" (`verification\v57_s12`, `s13`, `s18`, `s14`)
+
+#### Scenario: Operands in parentheses
+- **WHEN** `SWAP a&, (b&)`, `SWAP (x(1)), x(2)`, `SWAP (s$), t$`, `SWAP (a&), (b&)` and `SWAP (r.n), s.n` run
+- **THEN** each exchanges the places inside the parentheses, as the old compiler's program (`verification\v57_p01`–
+  `p03`, `p11`, `p12`, `p16`)
 
 #### Scenario: The template between the parentheses
 - **WHEN** `CALL CLS`, `CALL LOCATE(, 2)`, `CALL LINE((1, 2)-(3, 4), 5, BF)`, `CALL SOUND(440, 1 WAIT)` and

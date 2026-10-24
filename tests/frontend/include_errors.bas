@@ -1,14 +1,12 @@
 ' TEST: check-fail
 $CONSOLE:ONLY
 ' Included-file errors (m2-parser-breadth task 8.1, design D9, measured M7): a missing file; a nested include found
-' only in the main file's folder (not looked up there); a FOR closed in an included file (accepted by the old
-' compiler, "not supported yet" here: a block cannot span two trees); a SUB from a file included inside a SUB; a
-' file including itself without a guard (100 levels); a $IF closed in an included file.
+' only in the main file's folder (not looked up there); a SUB from a file included inside a SUB; a file including
+' itself without a guard (100 levels); a $IF closed in an included file. A block closed in an included file
+' compiles (include_cross_ok.bas).
 '$INCLUDE:'inc/missing.bi'
 '$INCLUDE:'inc/sub/a.bi'
 '$INCLUDE:'inc/self_loop.bi'
-FOR i = 1 TO 2
-'$INCLUDE:'inc/next.bi'
 s
 SUB s
     '$INCLUDE:'inc/subs.bm'

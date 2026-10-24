@@ -33,6 +33,9 @@ pub struct ParsedProgram {
     /// (tree, offset of the metacommand token) of each `$IF` and `$ELSEIF` that names a flag where the old
     /// compiler's two passes see different values of it; `sema` marks them "not supported yet".
     pub passes_disagree: HashSet<(TreeId, u32)>,
+    /// The block nodes (tree, offset) whose closer stands in another tree (design D8 of
+    /// `m4-statements-metacommands`), each with the `CrossCloser` there that ends it, not the end of its node.
+    pub cross_open: HashMap<(TreeId, u32), (TreeId, u32)>,
     /// The tree of QB64pe's file included after the last line, when the program needs it (design D7 of
     /// `m3-network-embed`): parsed after the main file and its includes, with the preprocessor state the main file
     /// ended with, as if it stood after the main file's last line.
@@ -50,6 +53,20 @@ impl ParsedProgram {
 
     pub fn tree(&self, id: TreeId) -> &Tree {
         &self.trees[id.0 as usize]
+    }
+
+    /// The closer of a block whose closer stands in another tree ([`Self::cross_open`]): the node the `CrossCloser`
+    /// there holds (`NextStmt`, `LoopStmt`, `BlockEnd` or `ProcEnd`).
+    pub fn closer_of(&self, block: Node) -> Option<Node<'_>> {
+        let &(tree, offset) = self.cross_open.get(&block.key())?;
+        let mut node = self.tree(tree).root();
+        loop {
+            let span = |n: Node| n.offset..n.offset + n.green.len;
+            node = node.child_nodes().find(|n| span(*n).contains(&offset))?;
+            if node.offset == offset && node.kind() == crate::SyntaxKind::CrossCloser {
+                return node.child_nodes().next();
+            }
+        }
     }
 
     /// The tree an include statement brings in.
@@ -115,6 +132,8 @@ pub(crate) struct Includer<'h> {
     pub(crate) depth: u32,
     /// [`ParsedProgram::passes_disagree`], as the parser fills it.
     pub(crate) passes_disagree: HashSet<(TreeId, u32)>,
+    /// [`ParsedProgram::cross_open`], as the parser fills it.
+    pub(crate) cross_open: HashMap<(TreeId, u32), (TreeId, u32)>,
 }
 
 impl<'h> Includer<'h> {
@@ -127,6 +146,7 @@ impl<'h> Includer<'h> {
             once: HashSet::new(),
             depth: 0,
             passes_disagree: HashSet::new(),
+            cross_open: HashMap::new(),
         }
     }
 
@@ -161,12 +181,12 @@ fn parse_round(
     } {
         let file = *color_file.get_or_insert_with(|| inc.map.add(name, text.to_vec()));
         let cid = inc.next_tree();
-        let (tree, end) = crate::parser::parse_tree_with(cid, file, text, pp, &mut inc, false);
+        let (tree, end, _) = crate::parser::parse_tree_with(cid, file, text, pp, &mut inc, false, Vec::new());
         inc.trees[cid.0 as usize] = Some(tree);
         pp = end;
         colors = Some(cid);
     }
-    let (tree, mut pp) = crate::parser::parse_tree_with(id, main, &bytes, pp, &mut inc, false);
+    let (tree, mut pp, _) = crate::parser::parse_tree_with(id, main, &bytes, pp, &mut inc, false, Vec::new());
     inc.trees[0] = Some(tree);
     let mut after_last_line = None;
     if pp.needs_after_last_line() {
@@ -177,8 +197,15 @@ fn parse_round(
             )
         });
         let id = inc.next_tree();
-        let (tree, end) =
-            crate::parser::parse_tree_with(id, file, qb64rust_builtins::AFTER_LAST_LINE, pp, &mut inc, false);
+        let (tree, end, _) = crate::parser::parse_tree_with(
+            id,
+            file,
+            qb64rust_builtins::AFTER_LAST_LINE,
+            pp,
+            &mut inc,
+            false,
+            Vec::new(),
+        );
         inc.trees[id.0 as usize] = Some(tree);
         pp = end;
         after_last_line = Some(id);
@@ -194,6 +221,7 @@ fn parse_round(
             includes: inc.includes,
             flags,
             passes_disagree: inc.passes_disagree,
+            cross_open: inc.cross_open,
             after_last_line,
             colors,
         },

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):FS$5 "a",1
+LINE 3:fs$5 "a"
+exit=1

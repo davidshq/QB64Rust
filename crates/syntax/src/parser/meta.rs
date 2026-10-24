@@ -191,8 +191,8 @@ fn nested_condition_error(p: &Parser, cond: &[u8]) -> Option<String> {
 impl Parser<'_, '_> {
     /// Includes the file `name` (as written) at the include statement at `span` (design D9): loaded through the
     /// loader (which resolves the path), parsed at once as a tree of its own with the preprocessor state as it is
-    /// here, which it then hands back. A file that held `$INCLUDEONCE` is not included again. Blocks open here
-    /// are marked as crossing a file boundary (`blocks.rs`).
+    /// here, which it then hands back. A file that held `$INCLUDEONCE` is not included again. The blocks open here
+    /// go on in it, and those it leaves open go on here (design D8 of `m4-statements-metacommands`, `blocks.rs`).
     fn include(&mut self, name: &[u8], span: qb64rust_base::Span) {
         let shown = show_bytes(name);
         if self.inc.depth >= MAX_INCLUDE_DEPTH {
@@ -221,13 +221,31 @@ impl Parser<'_, '_> {
         let depth = self.pp.depth();
         let saved = self.pp.start_tracking();
         let pp = std::mem::take(&mut self.pp);
+        // The open blocks go on in the included file, as the old compiler reads included text (design D8 of
+        // `m4-statements-metacommands`); inside a single-line `IF` none does.
+        let handed: Vec<_> = if self.blocks.iter().any(|o| o.is_line_if()) {
+            Vec::new()
+        } else {
+            self.blocks
+                .iter()
+                .filter(|o| !o.is_pp_if())
+                .map(|o| o.outside())
+                .collect()
+        };
         self.inc.depth += 1;
-        let (tree, pp) = super::parse_tree_with(id, file, &bytes, pp, self.inc, true);
+        let (tree, pp, open) = super::parse_tree_with(id, file, &bytes, pp, self.inc, true, handed.clone());
         self.inc.depth -= 1;
         self.pp = pp;
         let low = self.pp.stop_tracking(saved);
         self.inc.trees[id.0 as usize] = Some(tree);
-        self.mark_blocks_crossed();
+        // Those it did not close stay as they were (a prefix of what was handed in); the rest of what is open at
+        // its end it opened, and is open here after the ones it closed.
+        let still = handed.iter().zip(&open).take_while(|(a, b)| a.key() == b.key()).count();
+        self.closed_elsewhere = handed.len() - still;
+        self.left_open = open[still..].to_vec();
+        for (mine, theirs) in self.blocks.iter_mut().filter(|o| !o.is_pp_if()).zip(&open[..still]) {
+            mine.take_state(theirs);
+        }
         self.pp_ifs_closed_elsewhere(depth.saturating_sub(low));
     }
 

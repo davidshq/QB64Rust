@@ -153,6 +153,7 @@ version,session,change,category,actions,bytes
 1,0a09e371,m1-vscode-extension-v0,other commands,3,0
 1,0a09e371,m1-vscode-extension-v0,reading,6,0
 1,0a09e371,m1-vscode-extension-v0,test runs,4,0
+1,0ae27d2c,,other commands,2,0
 1,0b62e185,,measurement preparation,3,5638
 1,0b62e185,,measurement runs,7,0
 1,0b62e185,,other,1,0
@@ -300,6 +301,14 @@ version,session,change,category,actions,bytes
 1,1c9984e0,m2-console-screenhide,test runs,13,0
 1,1c9984e0,m2-console-screenhide,tests and fixtures,12,7712
 1,1ca14e17,m3-errorline-chr-const,other commands,1,0
+1,1cef2c45,,other commands,2,0
+1,1cef2c45,,reading,1,0
+1,1cef2c45,m4-memory-records,documents and planning,2,1174
+1,1cef2c45,m4-memory-records,other,1,0
+1,1cef2c45,m4-memory-records,other commands,25,0
+1,1cef2c45,m4-memory-records,reading,5,0
+1,1cef2c45,m4-memory-records,scratch files,2,3415
+1,1cef2c45,m4-memory-records,test runs,5,0
 1,1de8b923,,other,1,0
 1,1de8b923,,other commands,29,0
 1,1de8b923,m4-builtins-param-types,builds,4,0
@@ -807,6 +816,13 @@ version,session,change,category,actions,bytes
 1,4c15903c,m3-window-output,documents and planning,8,52535
 1,4c15903c,m3-window-output,other commands,1,0
 1,4c15903c,m3-window-output,test runs,1,0
+1,4c52fa86,,builds,1,0
+1,4c52fa86,,other,2,0
+1,4c52fa86,,other commands,55,0
+1,4c52fa86,,scratch files,4,2774
+1,4c52fa86,m4-statements-metacommands,documents and planning,35,63193
+1,4c52fa86,m4-statements-metacommands,other commands,34,0
+1,4c52fa86,m4-statements-metacommands,test runs,3,0
 1,4c6ef3ab,,other,1,0
 1,4c6ef3ab,,other commands,16,0
 1,4c6ef3ab,,reading,5,0
@@ -929,6 +945,11 @@ version,session,change,category,actions,bytes
 1,5130390d,m3-sound,other commands,14,0
 1,5130390d,m3-sound,reading,4,0
 1,5130390d,m3-sound,test runs,5,0
+1,5148021a,,documents and planning,7,2189
+1,5148021a,,other,1,0
+1,5148021a,,other commands,11,0
+1,5148021a,,reading,2,0
+1,5148021a,,scratch files,1,2626
 1,534d9b2d,,other commands,1,0
 1,534d9b2d,m4-line-numbers-whole-arrays,builds,7,0
 1,534d9b2d,m4-line-numbers-whole-arrays,documents and planning,25,16863
@@ -1369,6 +1390,17 @@ version,session,change,category,actions,bytes
 1,745c79bc,m4-checker-groups,other commands,5,0
 1,745c79bc,m4-checker-groups,test runs,1,0
 1,749d54cb,,other commands,1,0
+1,74a508fc,,other,1,0
+1,74a508fc,,other commands,3,0
+1,74a508fc,m4-statements-metacommands,builds,6,0
+1,74a508fc,m4-statements-metacommands,documents and planning,8,5509
+1,74a508fc,m4-statements-metacommands,measurement preparation,3,1170
+1,74a508fc,m4-statements-metacommands,measurement runs,2,0
+1,74a508fc,m4-statements-metacommands,other,1,0
+1,74a508fc,m4-statements-metacommands,other commands,63,0
+1,74a508fc,m4-statements-metacommands,product code,13,9291
+1,74a508fc,m4-statements-metacommands,reading,9,0
+1,74a508fc,m4-statements-metacommands,test runs,19,0
 1,752e15a1,,documents and planning,4,10676
 1,752e15a1,,measurement preparation,20,17128
 1,752e15a1,,measurement runs,4,0
@@ -1631,6 +1663,11 @@ version,session,change,category,actions,bytes
 1,87a23dd0,,reading,12,0
 1,87a23dd0,,test runs,3,0
 1,87a23dd0,,tests and fixtures,9,3306
+1,8837ab8c,,other,2,447
+1,8837ab8c,,other commands,21,0
+1,8837ab8c,,reading,2,0
+1,8837ab8c,,scratch files,2,7368
+1,8837ab8c,,test runs,1,0
 1,886c97c2,,other commands,7,0
 1,886c97c2,,test runs,1,0
 1,88a8c17d,,reading,1,0
@@ -2444,6 +2481,17 @@ version,session,change,category,actions,bytes
 1,da921c4d,m2-demand-report-and-runner-tests,product code,2,1459
 1,da921c4d,m2-demand-report-and-runner-tests,test runs,2,0
 1,da921c4d,m2-demand-report-and-runner-tests,tests and fixtures,2,1861
+1,dabf41e3,m4-statements-metacommands,builds,28,0
+1,dabf41e3,m4-statements-metacommands,documents and planning,56,52372
+1,dabf41e3,m4-statements-metacommands,generated files,1,56
+1,dabf41e3,m4-statements-metacommands,measurement preparation,1,2160
+1,dabf41e3,m4-statements-metacommands,measurement runs,7,0
+1,dabf41e3,m4-statements-metacommands,other commands,246,0
+1,dabf41e3,m4-statements-metacommands,product code,96,69482
+1,dabf41e3,m4-statements-metacommands,reading,50,0
+1,dabf41e3,m4-statements-metacommands,scratch files,11,72094
+1,dabf41e3,m4-statements-metacommands,test runs,90,0
+1,dabf41e3,m4-statements-metacommands,tests and fixtures,23,11174
 1,dad4678a,verification-compare,builds,7,0
 1,dad4678a,verification-compare,documents and planning,12,7970
 1,dad4678a,verification-compare,measurement preparation,2,4404

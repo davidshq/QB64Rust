@@ -1,0 +1,78 @@
+---
+source: crates/syntax/tests/parser.rs
+expression: "trees(\"s\\nSYSTEM\\nSUB s\\n'$INCLUDE:'endsub.bi'\\n'$INCLUDE:'fn.bi'\\n    f = x\\nEND FUNCTION\\n\",\n&[(\"endsub.bi\", \"    PRINT \\\"in s\\\"\\nEND SUB\\nPRINT \\\"module level\\\"\\n\"),\n(\"fn.bi\", \"FUNCTION f (x)\\n\"),],)"
+---
+== t.bas
+SourceFile 0..78
+  CallStmt 0..1
+    NameRef 0..1
+      Ident s
+  Newline \x0A
+  SystemStmt 2..8
+    Ident SYSTEM
+  Newline \x0A
+  ProcDef 9..37
+    ProcHeader 9..14
+      Ident SUB
+      Whitespace  
+      Ident s
+    Newline \x0A
+    MetaCommentStmt 15..36
+      MetaComment '$INCLUDE:'endsub.bi'
+    Newline \x0A
+  MetaCommentStmt 37..54
+    MetaComment '$INCLUDE:'fn.bi'
+  Newline \x0A
+  Whitespace     
+  AssignStmt 59..64
+    NameRef 59..60
+      Ident f
+    Whitespace  
+    Eq =
+    Whitespace  
+    NameRef 63..64
+      Ident x
+  Newline \x0A
+  CrossCloser 65..78
+    ProcEnd 65..77
+      Ident END
+      Whitespace  
+      Ident FUNCTION
+    Newline \x0A
+== endsub.bi
+SourceFile 0..46
+  Whitespace     
+  PrintStmt 4..16
+    Ident PRINT
+    Whitespace  
+    Literal 10..16
+      StringLit "in s"
+  Newline \x0A
+  CrossCloser 17..25
+    ProcEnd 17..24
+      Ident END
+      Whitespace  
+      Ident SUB
+    Newline \x0A
+  PrintStmt 25..45
+    Ident PRINT
+    Whitespace  
+    Literal 31..45
+      StringLit "module level"
+  Newline \x0A
+== fn.bi
+SourceFile 0..15
+  ProcDef 0..15
+    ProcHeader 0..14
+      Ident FUNCTION
+      Whitespace  
+      Ident f
+      Whitespace  
+      ParamList 11..14
+        LParen (
+        Param 12..13
+          Ident x
+        RParen )
+    Newline \x0A
+closed elsewhere: (TreeId(0), 9) by (TreeId(1), 17)
+closed elsewhere: (TreeId(2), 0) by (TreeId(0), 65)

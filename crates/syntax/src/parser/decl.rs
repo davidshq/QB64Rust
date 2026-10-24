@@ -118,8 +118,18 @@ pub(crate) fn def_type_stmt(p: &mut Parser) {
     p.start_node(DefTypeStmt);
     let define = p.at_word("_DEFINE") || p.at_word("DEFINE");
     p.bump(); // DEFINT ... or _DEFINE
+    if define && p.at_word("AS") {
+        // No letters: "_DEFINE: Expected ... AS ..." (design D2 of `m4-statements-metacommands`; measured,
+        // `verification\v24_x11`, `v57_e07`).
+        p.error("`_DEFINE` needs letters before `AS`");
+        p.recover();
+        p.finish_node();
+        return;
+    }
     let mut ok = true;
+    let mut range;
     loop {
+        range = p.nth(1) == Some(Minus);
         if !letter_range(p) {
             ok = false;
             break;
@@ -129,6 +139,16 @@ pub(crate) fn def_type_stmt(p: &mut Parser) {
         } else {
             break;
         }
+    }
+    if ok && !define && p.at_word("AS") {
+        // A `DEFxxx` takes no type: "_DEFINE: Expected - or ," after a letter, "_DEFINE: Expected ," after a range
+        // (design D2; measured, `verification\v24_x19`, `v57_e05`, `e06`).
+        let msg = if range {
+            "expected `,` after the range, not `AS`: only `_DEFINE` takes a type"
+        } else {
+            "expected `-` or `,` after the letter, not `AS`: only `_DEFINE` takes a type"
+        };
+        p.error(msg);
     }
     if ok && define {
         if p.at_word("AS") {

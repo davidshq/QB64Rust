@@ -15,7 +15,6 @@ fixed_strings_errors.bas:23:1: error: not supported yet: a type suffix on a `STR
 fixed_strings_errors.bas:25:1: error: not supported yet: `k$3` beside a constant or `STRING * n` parameter of its name, or with a `.`
 fixed_strings_errors.bas:26:5: error: not supported yet: `k$4` beside a constant or `STRING * n` parameter of its name, or with a `.`
 fixed_strings_errors.bas:29:5: error: not supported yet: an array named with `$n`: `a$3`
-fixed_strings_errors.bas:31:19: error: not supported yet: this name as the length of a `STRING * n`: `k`
 fixed_strings_errors.bas:36:12: error: not supported yet: `k$2` beside a constant or `STRING * n` parameter of its name, or with a `.`
 fixed_strings_errors.bas:37:5: error: not supported yet: `x$5` beside a constant or `STRING * n` parameter of its name, or with a `.`
 fixed_strings_errors.bas:38:11: error: not supported yet: `x$5` beside a constant or `STRING * n` parameter of its name, or with a `.`

@@ -331,6 +331,18 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
                 line(out, "Error");
                 expr(p, code, d + 1, out);
             }
+            StmtKind::Run(crate::RunTarget::Restart) => line(out, "Run"),
+            StmtKind::Run(crate::RunTarget::Label(l)) => line(out, &format!("Run {}", p.label(*l).name)),
+            StmtKind::Run(crate::RunTarget::File(f)) => {
+                line(out, "Run file");
+                expr(p, f, d + 1, out);
+            }
+            StmtKind::PaletteUsing { array, index, bits } => {
+                line(out, &format!("PaletteUsing {} {bits}", p.var(*array).name));
+                for i in index {
+                    expr(p, i, d + 1, out);
+                }
+            }
             StmtKind::Log { level, msg } => {
                 line(out, &format!("Log {level:?}"));
                 expr(p, msg, d + 1, out);

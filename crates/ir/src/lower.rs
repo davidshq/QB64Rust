@@ -17,6 +17,7 @@
 //! `IF c GOTO x` is an `IF` whose branch is `GOTO x`. Conditions of `IF`, `WHILE`, `DO` and `LOOP` are
 //! [`OnError::Skip`] branches.
 
+use crate::RunTarget;
 use crate::{
     Allocation, Body, EventHandler, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId,
     Program, Resume, Stmt, Storage, Ty, Var, VarId, When,
@@ -423,6 +424,16 @@ impl<'a> Lowerer<'a> {
                 sema::Resume::To(l) => Resume::To(self.ids.get(*l)),
             }),
             sema::StmtKind::Error(code) => Op::Raise(code.clone()),
+            sema::StmtKind::Run(t) => Op::Run(match t {
+                sema::RunTarget::Restart => RunTarget::Restart,
+                sema::RunTarget::Label(l) => RunTarget::Label(self.ids.get(*l)),
+                sema::RunTarget::File(f) => RunTarget::File(f.clone()),
+            }),
+            sema::StmtKind::PaletteUsing { array, index, bits } => Op::PaletteUsing {
+                array: *array,
+                index: index.clone(),
+                bits: *bits,
+            },
             sema::StmtKind::Log { level, msg } => Op::Log {
                 level: *level,
                 msg: msg.clone(),

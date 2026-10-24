@@ -24,6 +24,7 @@
 `BEEP` is a built-in's name, not a label to go to	Invalid label!
 `BEEP` takes {#} arguments	SUB does not require any arguments
 `BSAVE` takes {#} arguments	Syntax error - Reference: BSAVE saveFile$, VARPTR(array(index)), fileSize&
+`CALL FRE`: no SUB of this name	Expected CALL sub-name [(...)]
 `CASE` while the `IF` on line {#} is still open; expected `END IF` first	CASE without SELECT CASE
 `CHAIN` needs a string	String required for sub
 `CHAIN` takes {#} argument	Syntax error - Reference: CHAIN moduleName$
@@ -45,6 +46,7 @@
 `DRAW` needs a string	String required for sub
 `DRAW` needs its arguments	Syntax error - Reference: DRAW drawString$
 `DRAW` takes {#} argument	Syntax error - Reference: DRAW drawString$
+`ELSEIF` needs a condition before `THEN`	Expected ... THEN
 `END DECLARE` without `{}`	Name already in use (DECLARE)
 `END IF` while the `$IF` on line {#} is still open; expected `$END IF` first	END IF without IF
 `ENVIRON` needs a string	String required for sub
@@ -57,13 +59,17 @@
 `EXIT SUB` must be inside a SUB or FUNCTION	EXIT SUB must be used within a SUB
 `FIELD` cannot take a fixed-length string	Fixed length strings cannot be used in a FIELD statement
 `FIELD` needs a string variable, not a number or a `TYPE` value	Expected FIELD #filenumber, characters AS variable$, ...
+`FILEATTR` is not implemented in QB64pe	Command not implemented
 `FOR` without `NEXT` before the end of the single-line `IF`	END IF without IF
 `FREEFILE` with empty parentheses	Expected (...)
+`FRE` is not implemented in QB64pe	Command not implemented
 `GET` of a `_BIT` variable	Variable/element cannot be _BIT aligned
 `GET` of one `{}` value: a `TYPE` with a dynamic member array goes to a file only as a whole array	_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+`IF` needs a condition before `THEN`	Syntax error
 `INPUT` from the console cannot read into a `_BIT` array element	INPUT cannot handle _BIT array elements
 `INSTR` takes {#} or {#} arguments	Incorrect number of arguments - Reference: INSTR([start%,] baseString$, searchString$)
 `INTEGER` cannot be `_UNSIGNED`	Type cannot be _UNSIGNED
+`IOCTL` is not implemented in QB64pe	Command not implemented
 `KILL` needs a string	String required for sub
 `KILL` needs its arguments	Syntax error - Reference: KILL fileSpec$
 `KILL` takes {#} argument	Syntax error - Reference: KILL fileSpec$
@@ -82,6 +88,7 @@
 `LEN` with empty parentheses	Expected (...)
 `LINE INPUT` needs a variable here	Expected variable-name
 `LINE INPUT` takes one string variable	Too many variables
+`LIST` is not implemented in QB64pe	Command not implemented
 `LOCK` needs the first record before `TO`	Name already in use (TO)
 `LOF` with empty parentheses	Expected (...)
 `LSET` needs a string as its value	Illegal string-number conversion
@@ -94,6 +101,8 @@
 `ON STRIG` needs its operands in parentheses	Expected (
 `ON TIMER` needs its operands in parentheses	Expected (
 `OPTION BASE` takes `{}` or `{}`	Expected OPTION BASE {1:=|U|P|PU|S|SU} or {2:=|U|P|PU|S|SU}
+`PALETTE USING` needs an array after `USING`	Expected PALETTE USING array-name
+`PALETTE USING` needs an array of `INTEGER` or `LONG`	Array must be of type INTEGER or LONG
 `PCOPY` takes {#} arguments	Syntax error - Reference: PCOPY sourcePage%, destinationPage%
 `PEEK` needs a number	Number required for function
 `PEEK` takes {#} argument	Incorrect number of arguments - Reference: PEEK(segment_offset)
@@ -121,10 +130,13 @@
 `RSET` needs a string as its value	Illegal string-number conversion
 `RSET` needs a string variable, element or member here	Expected (...)
 `RSET` needs a string variable, not a number or a `TYPE` value	LSET/RSET expects a string variable/array-element as its first argument
+`RUN` takes a label, a line number or a file name	Illegal string-number conversion
 `SADD` needs a variable-length string variable	SADD only accepts variable-length string variables
 `SADD` of a `TYPE` variable	User defined types in expressions are invalid
 `SCREEN` takes {#} or {#} arguments	Incorrect number of arguments - Reference: SCREEN(x, y[, colorflag%])
 `SEEK` takes {#} argument	Incorrect number of arguments - Reference: SEEK(filenumber&)
+`SETMEM` is not implemented in QB64pe	Command not implemented
+`SHARED` can stand only in a SUB or FUNCTION	SHARED must be used within a SUB/FUNCTION
 `SHARED` names an array with nothing between its parentheses: `{}`	Expected ()
 `SHELL` takes {#} argument	Incorrect number of arguments - Reference: SHELL(commandToRun$)
 `SIN` takes {#} argument	Incorrect number of arguments - Reference: SIN(radian_angle!)
@@ -144,6 +156,8 @@
 `TIMER` needs a number	Number required for function
 `TIMER` takes {#} or {#} arguments	Incorrect number of arguments - Reference: TIMER[(accuracy!)]
 `TIMER` with empty parentheses	Expected (...)
+`TROFF` is not implemented in QB64pe	Command not implemented
+`TRON` is not implemented in QB64pe	Command not implemented
 `UBOUND` takes a member array without its indexes	Incorrect number of arguments
 `UEVENT` is not an event QB64pe traps, and no statement	Syntax error
 `UEVENT` is not an event: `ON UEVENT` cannot be trapped	Name already in use (UEVENT)
@@ -157,6 +171,7 @@
 `VARPTR` takes {#} argument	Incorrect number of arguments - Reference: VARPTR(variable_name[(reference_index%)])
 `VARSEG` needs a variable or an array element	Expected reference to a variable/array
 `VARSEG` takes {#} argument	Expected (...)
+`WRITE` separates its items with `,`, not `;`	Invalid expression
 `^(-8)` is an error of the old compiler's own run time, which stops it ("UNEXPECTED INTERNAL COMPILER ERROR")	UNEXPECTED INTERNAL COMPILER ERROR!
 `^` cannot be used with an `_OFFSET`	Operator '^' cannot be used with an _OFFSET
 `_ACCEPTFILEDROP` takes {#} arguments	Incorrect number of arguments - Reference: _ACCEPTFILEDROP
@@ -237,6 +252,7 @@
 `_MEMELEMENT` takes an element, not a whole member array	Expected array index
 `_MEMEXISTS` needs a `_MEM` variable, element or member here	TYPE '_MEM' required for function
 `_MEMEXISTS` takes {#} argument	Incorrect number of arguments - Reference: _MEMEXISTS(memBlock)
+`_MEMFILL` cannot be written after `CALL`	Command not implemented
 `_MEMFILL` needs a `_MEM` variable, element or member here	Expected _MEM type
 `_MEMFILL` needs a numeric type after `AS`	_MEMFILL requires numeric type
 `_MEMFILL` needs a variable, a string or a value with `{}`	Expected variable name/array element
@@ -255,6 +271,7 @@
 `_MEMIMAGE` with empty parentheses	Expected (...)
 `_MEMNEW` needs a number	Number required for function
 `_MEMNEW` takes {#} argument	Incorrect number of arguments - Reference: _MEMNEW(byteSize)
+`_MEMPUT` cannot be written after `CALL`	Command not implemented
 `_MEMPUT` cannot take a `_BIT` variable or element	Variable/element cannot be _BIT aligned
 `_MEMPUT` cannot take an array of variable-length strings	Cannot pass array of variable-length strings
 `_MEMPUT` needs a `_MEM` variable, element or member here	Expected _MEM type
@@ -302,7 +319,9 @@
 `_RED` with empty parentheses	Expected (...)
 `_RESIZEWIDTH` is a function, not a statement	Syntax error
 `_RESIZE` takes {#} arguments	Incorrect number of arguments - Reference: _RESIZE
+`_RGB32` cannot leave out an argument	Syntax error
 `_RGB32` with empty parentheses	Expected (...)
+`_RGBA32` cannot leave out an argument	Syntax error
 `_RGBA` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _RGBA(red&, green&, blue&, alpha&[, imageHandle&])
 `_RGB` is a function, not a statement	Syntax error
 `_RGB` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _RGB(red&, green&, blue&[, imageHandle&])
@@ -361,6 +380,7 @@
 `_WRITEFILE` takes {#} arguments	Syntax error - Reference: _WRITEFILE fileSpec$, contents$
 `{}` cannot be `_UNSIGNED`	Type cannot be _UNSIGNED
 `{}` cannot be used in a `CONST`	Unexpected element '{1:U|PU}'
+`{}` cannot leave out an argument	Syntax error
 `{}` comes before `SHARED` in a `REDIM`	Invalid variable name
 `{}` copies arrays of numbers, `_OFFSET` and strings, not of `_BIT * 4`	_ArrayCopy supports only byte-aligned numeric or fixed-length STRING arrays
 `{}` copies arrays of numbers, `_OFFSET` and strings, not of `_BIT`	_ArrayCopy supports only byte-aligned numeric or fixed-length STRING arrays
@@ -387,6 +407,7 @@
 `{}` is a FUNCTION; a whole-array assignment needs an array on each side	Expected (...)
 `{}` is a SUB; a whole-array assignment needs an array on each side	Name already in use ({1:=|P|S})
 `{}` is a `$COLOR` constant, which a `CONST` above the `$COLOR` line cannot name	Unexpected element '{1:U|PU|SU}'
+`{}` is a `CONST` of a `$IF` branch only the first pass of QB64pe compiles	Name already in use ({1:=|P|S})
 `{}` is a built-in's name, not a label to go to	Invalid label!
 `{}` is a function, not a statement	Syntax error
 `{}` is a member that is no array	Element is not an array
@@ -411,10 +432,13 @@
 `{}` is not a member of `TYPE _MEM` (`{}`)	Element not defined
 `{}` is not a valid label	Invalid label!
 `{}` is not available in QB64; use a FUNCTION	Command not implemented
+`{}` is not implemented in QB64pe	Command not implemented
 `{}` names no array here (an array passed in a SUB or FUNCTION must exist)	Expected (...)
 `{}` names no array here; a whole-array assignment needs an array on each side	Whole-array assignment requires empty parentheses on both sides
 `{}` names no type	Invalid TYPE name
+`{}` needs `,` after the file number, not `;`	Expected # ... ,
 `{}` needs a variable here	{1:=|U|P|PU} expects a string variable/array-element as its first argument
+`{}` needs letters before `AS`	{1:=|U|P|PU|S|SU}: Expected ... AS ...
 `{}` needs the name of a DLL in quotes	Expected {1:=|U|P|PU|S|SU} "..."
 `{}` of an element of an array that is not of strings	{1:=|U|P|PU} only accepts variable-length string arrays
 `{}` stands twice in a `REDIM`	Invalid variable name
@@ -449,6 +473,7 @@
 `{}`: `_SNDPLAY` is a built-in statement	Invalid array name
 `{}`: `_WRITEFILE` is a built-in statement	Invalid array name
 `{}`: `{}` calls no built-in function and may not be an array	Invalid array name
+`{}`: `{}` is a FUNCTION, not a SUB	Expected CALL sub-name [(...)]
 `{}`: `{}` is a FUNCTION, not a variable	Expected variable =, look for conflict with a CONST name
 `{}`: `{}` is a FUNCTION; a variable is needed here	Expected variable
 `{}`: `{}` is a SUB, not an array	Name already in use ({2:=|P|S})
@@ -457,6 +482,7 @@
 `{}`: `{}` is a built-in function, not a variable	Expected variable =, look for conflict with a CONST name
 `{}`: `{}` is a built-in function; a variable is needed here	Expected variable
 `{}`: `{}` is an array; a member needs an index	Invalid expression
+`{}`: `{}` is the name of a SUB, not a label	Name already in use ({2:=|P|S})
 `{}`: a FUNCTION of this name has another type	Name already in use (f)
 `{}`: a built-in function's name, not an array	Expected (...)
 `{}`: a member array takes its bounds by `REDIM`	DIM: Expected ,
@@ -496,6 +522,7 @@ a member of a block a built-in gives cannot be read: store it first	Invalid expr
 a member takes one of `_DYNAMIC` and `_STATIC`	A TYPE member array cannot use both _Dynamic and _Static
 a member's `_DYNAMIC` or `_STATIC` cannot stand before `AS` in an `{}` list	Expected element-name {1:=|P|S}, AS type element-list, or END TYPE
 a member's `_DYNAMIC` or `_STATIC` cannot stand between `AS` and its type	Expected element-name AS type, AS type element-list, or END TYPE
+a member's `{}` needs a number or a `CONST` above the block without a suffix: `{}`	Invalid number/constant after STRING * type
 a metacommand must stand at the start of a line	Unexpected character on line
 a name in a list with the type before the names cannot have an `AS` clause	DIM: Expected ,
 a name with a type suffix cannot have an `AS` clause	DIM: Expected ,
@@ -513,6 +540,9 @@ a value is expected after `NOT`, not the operator `XOR`	Expected variable/value 
 a value of `{}` is required here	Expected = similar user defined type
 a width of `FIELD` must be a number	Illegal string-number conversion
 an `_OFFSET` suffix cannot follow a number	Cannot use _OFFSET symbols after numbers
+an argument of `INSTR` is left out	Incorrect number of arguments - Reference: INSTR([start%,] baseString$, searchString$)
+an argument of `_RGB` is left out	Incorrect number of arguments - Reference: _RGB(red&, green&, blue&[, imageHandle&])
+an argument of `{}` is left out	Incorrect number of arguments - Reference: {1:=|U|P|PU}(stringValue$, startPosition%[, bytes%])
 an array cannot be of a `_BIT` type of more than {#} bits (`_BIT * 64`)	Cannot create a _BIT array of size > {1:=|U|P|PU|S|SU} bits
 an array cannot be passed to a library: `{}`	Arrays cannot be passed to a library
 an array index must be a number	Illegal string-number conversion
@@ -555,10 +585,13 @@ expected `$ASSERTS` or `$ASSERTS:CONSOLE`	Syntax error
 expected `$CONSOLE` or `$CONSOLE:ONLY`	Syntax error
 expected `$RESIZE:ON`, `{}`, `{}` or `{}`, alone on its line	Syntax error
 expected `$UNSTABLE:` and a flag	Syntax error
+expected `)` before `GOSUB`	Expected )
 expected `,` after a quoted `DATA` item	Expected , after quoted string in DATA statement
+expected `,` after the range, not `AS`: only `{}` takes a type	{1:=|U|P|PU|S|SU}: Expected ,
 expected `,` between the parts of `FIELD`	Invalid expression
 expected `,` between the two variables	Expected SWAP ... , ...
 expected `,` between two library names	Expected ,
+expected `-` or `,` after the letter, not `AS`: only `{}` takes a type	{1:=|U|P|PU|S|SU}: Expected - or ,
 expected `AS` and a variable	Expected FIELD #filenumber, characters AS variable$, ...
 expected `OPTION BASE`, `OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`	Expected OPTION BASE or OPTION _EXPLICIT or OPTION _EXPLICITARRAY
 expected `{}` or `{}` after `OPTION BASE`	Expected OPTION BASE {1:=|U|P|PU|S|SU} or {2:=|U|P|PU|S|SU}
@@ -566,6 +599,9 @@ expected `{}`, the parentheses around all that follows	Expected CALL sub-name (.
 expected a field (`{}` or `{}`) or `END TYPE`	Expected element-{1:=|P|S}, AS type element-list, or END TYPE
 expected a name after `{}`	Expected (
 expected a statement	Unexpected character on line
+expected a value after `^`, not `_NEGATE`	Expected variable/value after '^'
+expected a value before the operator `AND`	Expected variable/value before 'AND'
+expected a value before the operator `OR`	Expected variable/value before 'OR'
 expected an array name	Syntax error
 expected something between the parentheses of `{}`	Expected CALL sub-name (...)
 expected the end of the statement after `KEY LIST`	Expected KEY LIST only
@@ -619,6 +655,8 @@ only `STRING` and `_BIT` take `{}`, not `{}`	Unknown type
 only a value of a `TYPE` has members	Invalid expression
 only comments may stand between `SELECT CASE` and the first `CASE`	Expected CASE expression
 screen mode {#} in a colour function of a `CONST`	Invalid Screen Mode ({1:=|U|P|PU|S|SU})
+the FUNCTION `{}` cannot have an argument left out	Syntax error
+the FUNCTION `{}` cannot stand as a statement	Syntax error
 the FUNCTION's own name cannot be a target of `LINE INPUT`	Expected variable-name
 the FUNCTION's own name cannot be a target of `READ`	Expected variable
 the FUNCTION's own name cannot be a target of `SWAP`	Expected variable
@@ -661,6 +699,13 @@ the first character of the embed handle `{}` must be a letter	First char of Embe
 the format of `USING` must be a string	Expected PRINT USING formatstring ; ...
 the items of `PRINT #` need `;` or `,` between them	Expected operator in equation
 the key number of `ON KEY` must be a number	Illegal string-number conversion
+the last argument of `INSTR` is left out	Incorrect number of arguments - Reference: INSTR([start%,] baseString$, searchString$)
+the last argument of `POINT` is left out	Invalid expression
+the last argument of `_RGB32` is left out	Invalid expression
+the last argument of `_RGBA32` is left out	Invalid expression
+the last argument of `_RGB` is left out	Incorrect number of arguments - Reference: _RGB(red&, green&, blue&[, imageHandle&])
+the last argument of `{}` is left out	Invalid expression
+the last argument of the FUNCTION `{}` is left out	Invalid expression
 the length of a `{}` must be a number or a numeric constant: `{}`	Number/Constant expected after *
 the library FUNCTION `{}` cannot be called as a statement	Syntax error
 the member array `{}` cannot stand in a `REDIM` with the type before the names	Unknown type
@@ -747,6 +792,16 @@ this `_WAVE` statement matches none of its forms: `_WAVE ?,?[,?]`	Syntax error -
 this `_WINDOWSIZELIMIT` statement matches none of its forms: `_WINDOWSIZELIMIT [(?,?)][-(?,?)]`	Syntax error - Reference: _WINDOWSIZELIMIT [(minWidth, minHeight)] [- (maxWidth, maxHeight)]
 this `{}` statement matches none of its forms: `{}`	Syntax error - Reference: {1:=|U|P|PU} = text$
 unary `-` needs a number	Cannot convert string to number
+unknown metacommand `$DYNAMIC`	Syntax error
+unknown metacommand `$FOO`	Syntax error
+unknown metacommand `$INCLUDE`	Syntax error
+unknown metacommand `$MIDISOUNDFONTS`	Syntax error
+unknown metacommand `$MIDISOUNDFONT`	Syntax error
+unknown metacommand `$MIDISOUND`	Syntax error
+unknown metacommand `$NOSUCHTHING`	Syntax error
+unknown metacommand `$STATIC`	Syntax error
+unknown metacommand `$`	Syntax error
+unknown metacommand `$nosuch`	Syntax error
 unrecognized `$UNSTABLE` flag ""	Unrecognized unstable flag ""
 unrecognized `$UNSTABLE` flag "FOO"	Unrecognized unstable flag "FOO"
 variable `{}` (INTEGER) is not declared (`OPTION _EXPLICIT`)	Variable '{1:S}' (INTEGER) not defined

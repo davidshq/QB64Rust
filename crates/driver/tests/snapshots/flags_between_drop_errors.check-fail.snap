@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+flags_between_drop_errors.bas:7:6: error: label `here` is not defined in the main module
+flags_between_drop_errors.bas:7:6: note: QB64pe: Label 'here' not defined
+flags_between_drop_errors.bas:8:7: error: label `10` is not defined in the main module
+flags_between_drop_errors.bas:8:7: note: QB64pe: Label '10' not defined
+flags_between_drop_errors.bas:18:1: error: `$ELSE` while the `DO` on line 17 is still open; expected `LOOP` first
+flags_between_drop_errors.bas:20:1: error: `$END IF` while the `DO` on line 17 is still open; expected `LOOP` first
+flags_between_drop_errors.bas:24:6: error: cannot store a number in a string variable
+flags_between_drop_errors.bas:24:6: note: QB64pe: Illegal string-number conversion

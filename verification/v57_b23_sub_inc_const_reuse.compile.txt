@@ -1,0 +1,5 @@
+
+Name already in use (n)
+Caused by (or after):PRINT "main n",6 ; N
+LINE 4:PRINT "main n"; n
+exit=1

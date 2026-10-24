@@ -1,0 +1,5 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+inc/cross_next_in_pp_if.bi:3:1: error: `NEXT` while the `$IF` on line 2 is still open; expected `$END IF` first

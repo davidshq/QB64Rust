@@ -212,6 +212,33 @@ Small programs behind `study\09`, `study\10` and later measurements:
   name `fs$5` as a SUB, a `CONST` or a member (rejected) and as a parameter (accepted), `LEN` of a `TYPE` with a
   `STRING` member ("UDT must have fixed size"), `VARPTR` of members of such a `TYPE`, `STRING * n` of a member
   with a `CONST`
+- `v57*`: statements and metacommands, measured as task 1.1 of `m4-statements-metacommands` (its `design.md`, D1,
+  lists what each group found): `m01`–`m09` unknown and bare metacommands ("Syntax error", also in an included
+  file; nothing in a branch not taken); `s01`–`s20` the old compiler's stubs ("Command not implemented", also
+  after `CALL` and when not reached; `RESET`, `CALL RESET` and `CALL CLOSE` compile); `r01`–`r19` `RUN` with no
+  argument, a label, a line number, from a SUB and a FUNCTION, of a file (error 53), with the screen, the timer,
+  `COMMON SHARED` and `STATIC` after it, and its rejected forms; `r20`–`r24` (review of the change) `RUN` of a
+  string `CONST`, with or without its suffix, and of a name under `DEFSTR`, assigned or not (a file, error 53), and
+  of a numeric `CONST` (a label, "Label not defined"); `x01`–`x12` `RESUME` in a SUB reached from a
+  main-module handler (the SUB is left; with no error, error 20), in a FUNCTION (the C++ build fails) and its
+  labels; `p01`–`p16` places in parentheses in `SWAP`, `READ`, `INPUT`, `LINE INPUT`, `LBOUND` and `UBOUND` (all
+  the place itself); `o01`–`o21` an argument left out of a function ("Invalid expression" the last, "Incorrect
+  number of arguments" or "Syntax error" another; `INSTR(, a$, b$)` compiles); `f01`–`f11` a program FUNCTION as
+  a statement; `l01`–`l04` a library and a program procedure of one name (the header in `v57_lib\`); `a01`–`a04`
+  `ALIAS` outside a library; `c01`–`c03`, `c05`–`c08` `_RED` beyond the palette in a `CONST` (0 in mode 0; in mode
+  13 "UNEXPECTED INTERNAL COMPILER ERROR!"; `c04`, `c09`, `c10` not kept: their value changed from build to build,
+  0, 1, 32 or 179, and `_RED(65535, 0)` crashed `qb64pe.exe`); `g01`–`g12` a `$IF` between two settings of a flag
+  (no branch compiled; a `CONST` of the branch the line's value chooses is "Name already in use" where used);
+  `j01`–`j06` (review of the change) a label or line number in such a `$IF`'s branches ("Label not defined" for a
+  `GOTO`, `GOSUB` or line number naming it, also in a SUB; no jump compiles), and a `DO` opened in a `$IF` and
+  closed after its `$END IF` ("PROGRAM FLOW ERROR!", also where the two passes agree);
+  `b01`–`b20` blocks, SUBs and FUNCTIONs opened in one file and closed in another, both ways (all compile), with
+  the files in `v57_inc\`; `b21`–`b25` (review of the change) a `NEXT` inside a `$IF` of an included file for a
+  `FOR` of the main file ("NEXT without FOR"), and a `CONST` in the main-file part of a SUB opened in an included
+  file: the SUB's (0 in the main module, "Name already in use" for a main-module `CONST` of the name after it, a
+  `TYPE` in the SUB sized by it compiles, one of the main module after it "Invalid number/constant after STRING *
+  type"); `h01`–`h04` the function `_SCREENHIDE`; `e01`–`e13` neighbours of the forms the parser
+  marked; `u01`–`u06` `PALETTE USING`; `t01`–`t03` `STRING * n` members with a `CONST`
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

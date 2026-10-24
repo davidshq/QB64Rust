@@ -159,3 +159,10 @@ waits on it. `k03` uses the keys file's `hold` and `lift` (`tools\screen\README.
 | `c15_resize` | `$RESIZE:ON` with no resize by the user: `_RESIZE`, `_RESIZEWIDTH`, `_RESIZEHEIGHT` at the start, after half a second and after `_RESIZE OFF` (all 0; the same in both runs of the recording, so the functions run: design D2) |
 | `c16_controlchr` | `_CONTROLCHR` on (the start): `CHR$(12)` clears, TAB, the cursor moves 28 to 31, `CHR$(11)` and `CHR$(13)` act; off: the characters 0 to 31 as glyphs on one row, a bell and a line feed between two letters; the function both ways |
 | `c17_default_colours` | `_DEFAULTCOLOR` and `_BACKGROUNDCOLOR` after `COLOR` in `SCREEN 0`, `SCREEN 12` and a 32-bit screen, and of page 0 there |
+
+Written by `m4-statements-metacommands` (task 5.4, 2026-10-23) and recorded the same way.
+
+| Program | Covers |
+|---|---|
+| `p01_palette_using` | `PALETTE USING b(2)` from a `LONG` array in `SCREEN 13` (libqb takes only `LONG` there), then boxes in colours it set |
+| `p02_palette_using_integer` | `PALETTE USING a` of a whole `INTEGER` array in `SCREEN 7`, an element of -1 leaving its attribute, then a box in each attribute |

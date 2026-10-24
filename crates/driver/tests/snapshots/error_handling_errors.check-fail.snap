@@ -22,4 +22,3 @@ error_handling_errors.bas:16:7: error: `ERR` takes 0 arguments
 error_handling_errors.bas:16:7: note: QB64pe: Incorrect number of arguments - Reference: ERR
 error_handling_errors.bas:19:12: error: label `a` is not defined in this SUB or FUNCTION
 error_handling_errors.bas:19:12: note: QB64pe: Label 'a' not defined
-error_handling_errors.bas:20:5: error: not supported yet: `RESUME` inside a SUB or FUNCTION

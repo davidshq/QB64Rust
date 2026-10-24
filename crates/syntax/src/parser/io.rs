@@ -5,7 +5,7 @@
 
 use super::Parser;
 use super::expr::expr;
-use super::print::file_number;
+use super::print::{file_number, file_number_of};
 use crate::SyntaxKind::*;
 
 /// `WRITE [#n,] [item, ...] [,]`.
@@ -13,7 +13,7 @@ pub(crate) fn write_stmt(p: &mut Parser) {
     p.start_node(WriteStmt);
     p.bump(); // WRITE
     if p.at(Hash) {
-        file_number(p);
+        file_number_of(p, "WRITE");
     }
     // A trailing comma is accepted (measured, `verification\v22_x59`, `x60`: `WRITE 1,` prints `1,` without a line
     // end).
@@ -26,6 +26,11 @@ pub(crate) fn write_stmt(p: &mut Parser) {
         } else {
             break;
         }
+    }
+    if p.at(Semicolon) {
+        // Between its items or after the last: "Invalid expression" (design D2 of `m4-statements-metacommands`;
+        // measured, `verification\v22_x57`, `x58`, `v57_e04`).
+        p.error("`WRITE` separates its items with `,`, not `;`");
     }
     p.recover();
     p.finish_node();

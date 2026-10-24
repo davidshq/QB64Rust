@@ -1,0 +1,6 @@
+body 1  1 
+body 1  2 
+body 2  1 
+body 2  2 
+after
+exit=0

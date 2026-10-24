@@ -1,0 +1,10 @@
+pal 0FF000000 pal 15FFFFFFFF
+error 5 
+pal 3FF00AAAA
+error 5 
+past end done
+error 5 
+after 64
+error 5 
+pal 9FF5555FF
+exit=0

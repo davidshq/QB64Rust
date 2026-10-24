@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ FOO
+LINE 3:$FOO:BAR
+exit=1

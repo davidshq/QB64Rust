@@ -75,4 +75,3 @@ window_errors.bas:51:1: error: `_NEWIMAGE` is a function, not a statement
 window_errors.bas:51:1: note: QB64pe: Syntax error
 window_errors.bas:52:5: error: `_DESKTOPWIDTH` takes 0 arguments
 window_errors.bas:52:5: note: QB64pe: Incorrect number of arguments - Reference: _DESKTOPWIDTH
-window_errors.bas:53:5: error: not supported yet: `_SCREENHIDE`
