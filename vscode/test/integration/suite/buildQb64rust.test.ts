@@ -9,8 +9,12 @@ import { api, closeAll, compiler, dismissingNotifications, open, server, setSett
 
 const exeOf = (uri: vscode.Uri) => uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
 
-/** Lines 2 to 6 of a program: a `FOR` over an element of a member array, at line 6, which qb64rust marks. */
-const memberFor = "TYPE t\r\n    m(1 TO 2) AS LONG\r\nEND TYPE\r\nDIM r AS t\r\nFOR r.m(1) = 1 TO 2: NEXT\r\n";
+/**
+ * Lines 2 on of a program: a form qb64rust marks "not supported yet" at line 5 (a string element in parentheses as
+ * an argument) and QB64pe builds. Its front-end test fails `cargo test` when a change builds the form. Read in
+ * `before`: a missing file fails this suite, not the loading of every suite.
+ */
+let marked = "";
 
 /** A build's diagnostics with qb64rust (source `qb64rust`, the extension's own collection). */
 async function buildDiagnostics(uri: vscode.Uri): Promise<readonly vscode.Diagnostic[]> {
@@ -25,6 +29,10 @@ describe("build with qb64rust", function () {
             console.log("    skipped: needs QB64pe and QB64RUST_TEST_QB64RUST");
             this.skip();
         }
+        marked = fs
+            .readFileSync(path.resolve(__dirname, "../../../../../tests/frontend/extension_marked_errors.bas"), "latin1")
+            .split(/\r?\n/)
+            .join("\r\n");
         await setSetting("qb64rust", "buildWith", "auto");
         await (await api()).server.ready;
     });
@@ -75,9 +83,10 @@ describe("build with qb64rust", function () {
 
     it("only unsupported forms: 'Build with QB64pe' builds that program once with QB64pe", async () => {
         const a = await api();
-        // A form qb64rust marks "not supported yet" and QB64pe builds (`FOR` over an element of a member array,
-        // `verification\v56_f3`); `_DEVICES` was it until M4 built it, then `SUB _GL` until `m4-sub-gl`.
-        const uri = writeFile("rbuild/marked.bas", `$CONSOLE:ONLY\r\n${memberFor}`);
+        // The program is in `tests\frontend\extension_marked_errors.bas`; before it, `_DEVICES` was the form until M4
+        // built it, then `SUB _GL` until `m4-sub-gl`, then `FOR` over an element of a member array until
+        // `m4-left-marked`.
+        const uri = writeFile("rbuild/marked.bas", `$CONSOLE:ONLY\r\n${marked}`);
         await open(uri);
         const offered: string[][] = [];
         const show = a.builder.showError;
@@ -89,7 +98,7 @@ describe("build with qb64rust", function () {
             const exe = await vscode.commands.executeCommand<string | undefined>("qb64rust.build");
             assert.deepStrictEqual(offered, [
                 [
-                    "QB64: build failed: not supported yet: an element of the member array `r.m` as a `FOR` variable (line 6)",
+                    "QB64: build failed: not supported yet: a string element or member in parentheses as an argument (line 5)",
                     "Build with QB64pe",
                 ],
             ]);
@@ -104,7 +113,7 @@ describe("build with qb64rust", function () {
 
     it("an unmarked error offers no QB64pe build", async () => {
         const a = await api();
-        const uri = writeFile("rbuild/mixed.bas", `x$ = 1\r\n${memberFor}`);
+        const uri = writeFile("rbuild/mixed.bas", `x$ = 1\r\n${marked}`);
         await open(uri);
         const offered: string[][] = [];
         const show = a.builder.showError;

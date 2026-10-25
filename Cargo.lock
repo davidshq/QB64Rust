@@ -224,6 +224,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "qb64rust-dap"
+version = "0.1.0"
+dependencies = [
+ "qb64rust-base",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "qb64rust-difftest"
 version = "0.1.0"
 dependencies = [
@@ -239,6 +248,7 @@ dependencies = [
  "qb64rust-base",
  "qb64rust-builtins",
  "qb64rust-codegen-cpp",
+ "qb64rust-dap",
  "qb64rust-ir",
  "qb64rust-lsp",
  "qb64rust-sema",

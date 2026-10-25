@@ -8,6 +8,8 @@
 //! (`report.rs`).
 //!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
+//!
+//! `qb64rust dap [--qb64pe-root <dir>]`: the debug adapter (crate `qb64rust-dap`).
 
 use qb64rust_driver::{
     FileLoader, build, dump_cpp, dump_debug_info, dump_ir, emit_ir_debug, emit_ir_with, frontend_at, log_folder, lower,
@@ -22,7 +24,8 @@ const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<val
 [--dump tokens|tree|typed|ir|cpp|debug-info] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
 [--keep-build] [--coverage] [--debug]\n\
        qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
-       qb64rust lsp    (the language server, over stdin and stdout)";
+       qb64rust lsp    (the language server, over stdin and stdout)\n\
+       qb64rust dap [--qb64pe-root <dir>]    (the debug adapter, over stdin and stdout)";
 
 #[derive(Default)]
 struct Options {
@@ -179,6 +182,10 @@ fn main() -> ExitCode {
     if args.first().is_some_and(|a| a == "lsp") {
         return lsp(args.len());
     }
+    // `qb64rust dap`: the same rule; `dap.bas` is a file to compile.
+    if args.first().is_some_and(|a| a == "dap") {
+        return dap(&args[1..]);
+    }
     install_panic_hook();
     match qb64rust_driver::with_stack(run) {
         Ok(code) => code,
@@ -208,6 +215,36 @@ fn lsp(arg_count: usize) -> ExitCode {
         Ok(()) => ExitCode::SUCCESS,
         Err(msg) => {
             eprintln!("qb64rust lsp: {msg}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// The debug adapter over stdin and stdout (spec `editor/debug-adapter`, design D12 of `m5-dap-proxy`), with the
+/// clone's `lldb-dap` as its backend. Its only option is `--qb64pe-root`; the clone is found as a build finds it.
+/// When it is not found the adapter still starts and answers `initialize` with the error, so that the editor shows
+/// it. Stdout carries the protocol, as for `lsp`.
+fn dap(args: &[std::ffi::OsString]) -> ExitCode {
+    let mut root = None;
+    let mut args = args.iter();
+    while let Some(a) = args.next() {
+        match (a.to_str(), root.is_none()) {
+            (Some("--qb64pe-root"), true) if args.len() > 0 => root = args.next().map(PathBuf::from),
+            _ => {
+                eprintln!("qb64rust: `dap` takes only --qb64pe-root <dir>\n{USAGE}");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+    let backend = build::find_root(root.as_deref()).map(|r| {
+        ["internal", "c", "c_compiler", "bin", "lldb-dap.exe"]
+            .iter()
+            .fold(r, |p, part| p.join(part))
+    });
+    match qb64rust_driver::with_stack(move || qb64rust_dap::run_stdio(backend)) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(msg) => {
+            eprintln!("qb64rust dap: {msg}");
             ExitCode::FAILURE
         }
     }

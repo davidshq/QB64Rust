@@ -4,6 +4,8 @@
 //! its whole process tree is killed and the test fails, naming the phase and showing what the child had printed. Each
 //! run writes a line `cli-time <test> <phase> <seconds>` to the test's captured stderr (shown with `--nocapture`).
 
+pub mod dap;
+
 use std::fmt;
 use std::io::{Read, Write as _};
 use std::path::{Path, PathBuf};
@@ -166,17 +168,38 @@ pub fn toolchain(name: &str) -> PathBuf {
 /// a few seconds each.
 pub const LLDB_LIMIT: Duration = Duration::from_secs(120);
 
+/// The variable that names the file of [`lldb`]'s log.
+pub const LLDB_LOG_ENV: &str = "QB64RUST_LLDB_LOG";
+
+/// The lock that lets one debugger session of a test binary run at a time: a run of [`lldb`], or a session of
+/// [`dap::Dap`] (`lldb-dap`, through the proxy or alone). `lldb-server`'s race after a single step ends a session
+/// more often beside other sessions (design "Measured" of `m5-dap-proxy`).
+pub fn debugger_alone() -> std::sync::MutexGuard<'static, ()> {
+    static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
+    ONE_AT_A_TIME.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 /// Runs the clone's `lldb` in batch mode (`-b`) on `exe`, one `-o` per command, with `QB64PE_NOPROMPT=y` (the
 /// program's runtime errors open no dialog) and [`LLDB_LIMIT`]; gives what it printed, stdout then stderr. After
 /// the last command `lldb` exits and ends the program (design D4 of `m5-debug-build-symbols`). One run at a time in
 /// a test binary: in a full `--ignored` run, beside the other tests' builds, one of several `lldb`s started together
-/// once stopped after `breakpoint set` until its deadline (2026-10-25); a run takes about a second.
+/// once stopped after `breakpoint set` until its deadline (2026-10-25); a run takes about a second. When
+/// [`LLDB_LOG_ENV`] names a file, `lldb` writes its log of stepping, threads and the process there first (task 1.1
+/// of `m5-dap-proxy`, the hang of a `next`).
 #[expect(clippy::disallowed_methods, reason = "lldb's own messages")]
 pub fn lldb(exe: &Path, commands: &[&str]) -> String {
-    static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
-    let _alone = ONE_AT_A_TIME.lock().unwrap_or_else(|e| e.into_inner());
+    let _alone = debugger_alone();
     let mut cmd = Command::new(toolchain("lldb.exe"));
     cmd.arg("-b").env("QB64PE_NOPROMPT", "y");
+    for (name, value) in qb64rust_dap::LLDB_ENV {
+        cmd.env(name, value);
+    }
+    if let Some(log) = std::env::var_os(LLDB_LOG_ENV) {
+        cmd.arg("-o").arg(format!(
+            "log enable -T -f \"{}\" lldb step thread process",
+            Path::new(&log).display()
+        ));
+    }
     for c in commands {
         cmd.arg("-o").arg(c);
     }

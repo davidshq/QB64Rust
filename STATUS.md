@@ -35,9 +35,9 @@ which holds M4's fourteen changes so far: through pull request 12 (`e0ac8c6`) `m
 `fe5e2de`, below), through pull request 13 (`fe596c3`) `m4-qb64pe-builtins`, `m4-line-numbers-whole-arrays`,
 `m4-names-implicit-arrays` and `m4-memory-records`, and through pull request 14 `m4-statements-metacommands` and
 `m4-builtins-remaining` (the full set at a merge ran on the tree of pull request 14, which stands for both, below).
-Branch `m4-sub-gl` holds M4's last three changes, `m4-sub-gl`, `m4-left-marked` and `m4-coverage-review`, all
-archived; `main` is its ancestor, so its tree is the merged tree, and the full set for the merge passed on it
-(below). The extension's first release is tagged `vscode-v0.2.0`.
+Pull request 15 (`311c0bb`, 2026-10-25) merged branch `m4-sub-gl`, M4's last three changes (`m4-sub-gl`,
+`m4-left-marked`, `m4-coverage-review`); the full set for it passed on the merged tree (below). Branch `m5`
+holds M5's work since. The extension's first release is tagged `vscode-v0.2.0`.
 
 ## Waiting on the user
 
@@ -46,12 +46,7 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 11).
 
-1. **The merge of `m4-sub-gl` into `main`** (a pull request, as pull requests 12 to 14); the full set for it is
-   committed (`1f07337`).
-2. **The order after M5 and two test items** (`study\36` §6 items 2 and 3, 2026-10-24; Path A itself is decided,
-   `DECISIONS.md`): (2) whether the formatter and the language-server features of `sema`'s symbol table come
-   before M6 as "M5b" (§5.3; Claude recommends yes); (3) whether the two test-environment items (§5.1 TEST: the
-   `SHELL` hang's cause, `c15_resize`) are taken up at the merge of `m4-sub-gl` (Claude recommends yes to both).
+Nothing.
 
 **The `tier2` job on `m3`** (`study\archive\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -63,20 +58,23 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. **M4 is done** (user, 2026-10-24); the merge of `m4-sub-gl` into `main` waits on the user.
+1. The two test-environment items of `study\36` §5.1 TEST, taken up now (user, `DECISIONS.md` 2026-10-25): what
+   the `cmd.exe` of `g12_game.files`'s `SHELL` waits on ("Still to watch"), and `screen/c15_resize` ("Known
+   bugs").
 2. M5, the debugger, takes Path A of `study\36` (user, 2026-10-24, `DECISIONS.md`; `ROADMAP.md` M5). Its first
    change, `m5-debug-build-symbols` (`--debug`, the symbol file `<exe>.debug.json`, the stepping measured under
    `lldb`), is built, closed (its closing runs pass) and archived (`2026-10-25-m5-debug-build-symbols`; spec
-   `compiler/debug-info`). Next: the DAP proxy `qb64rust dap` over the toolchain's
-   `lldb-dap` (`study\36` §4), designed from that change's "Measured" section (`next` stops once per line; `step`
-   and a return need stepping past headers, other files and the rest of a `CALL`; an error stop is a breakpoint on
-   `error` with the code in `ecx`).
+   `compiler/debug-info`). Its second, `m5-dap-proxy` (the debug adapter `qb64rust dap` over the clone's
+   `lldb-dap`, through `lldb-server`; spec `editor/debug-adapter`), is built and closed (its closing runs pass), not
+   yet archived. Next: the extension's `debuggers` contribution and its launch configuration (ROADMAP M5's fourth
+   item): build with `--debug`, then launch the executable through `qb64rust dap`.
+3. M5b, the formatter and the language-server features (user, `DECISIONS.md` 2026-10-25; `ROADMAP.md`), then M6.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
-The CLI test `debug_next_steps_by_line` hung once under the load of the whole `--ignored` run (2026-10-25, the
-second closing run of `m5-debug-build-symbols`): the clone's `lldb` never came back from the `next` over a
-`PRINT` and was killed at 120 s; alone it passes in 6 s. A hang of `next` over a call into libqb is a risk for
-the DAP proxy, so its design should look at it first.
+`lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
+single step ends about one session in seventy at once ("lost connection"; 3 in 222 runs of
+`debug_next_steps_by_line` under load), so a debugger CLI test can fail so now and then; run it again alone. The
+cause is `lldb-server`'s (`openspec\changes\m5-dap-proxy\design.md`, "Measured").
 `slice/s150_builtins_more` and `verification\v49_d_clipboard` read `LEN(_CLIPBOARD$)` of `"a" + CHR$(0) + "b"` as
 3 where 1 is recorded, in the closing runs of `m5-debug-build-symbols` (2026-10-25; the committed `HEAD`'s build
 too): libqb's read (`libqb\internal\c\parts\os\clipboard\clipboard.cpp`) replaces its own copy of the 3 bytes with
@@ -276,5 +274,5 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 | When | Item |
 |---|---|
-| Any time | A formatter that matches `-y` (out of M2's exit criterion, `DECISIONS.md` 2026-10-09) |
+| M5b | A formatter that matches `-y` (out of M2's exit criterion, `DECISIONS.md` 2026-10-09; M5b, 2026-10-25) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

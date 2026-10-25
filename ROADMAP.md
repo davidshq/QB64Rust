@@ -248,12 +248,25 @@ adapter (`study\36`, Path A; `DECISIONS.md` 2026-10-24). The toolchain's `lldb-d
 compiler supplies the line table (its `#line` directives, with `-g`) and the symbol file; a thin proxy speaks
 BASIC to the editor.
 
-- [ ] Debug build (`--debug`, `-f:StripDebugSymbols`): `-g` on the program's own objects, unstripped, never
-      optimised; the stepping questions measured with the toolchain's `lldb` first (`study\36` §3.1 "Risks")
-- [ ] The debug symbol file beside the executable: procedures, variables, user types, the descriptor layouts
+- [x] Debug build (`--debug`, `-f:StripDebugSymbols`): `-g` on the program's own objects, unstripped, never
+      optimised; the stepping questions measured with the toolchain's `lldb` first (`study\36` §3.1 "Risks";
+      `m5-debug-build-symbols`)
+- [x] The debug symbol file beside the executable: procedures, variables, user types, the descriptor layouts
+      (`m5-debug-build-symbols`, spec `compiler/debug-info`)
 - [ ] `qb64rust dap`: the DAP proxy over the toolchain's `lldb-dap` (variables, evaluate, set value, stack,
       data breakpoints, set next line, the error stop); its protocol tests
 - [ ] The extension's `debuggers` contribution and launch configuration; a debug build before launch
+
+## M5b. The editor without QB64pe
+
+What a user compares against the QB64pe IDE besides the debugger (`study\36` §5.3; `DECISIONS.md` 2026-10-25).
+Comes before M6.
+
+- [ ] A formatter that matches `-y` (left M2's exit criterion on 2026-10-09, `DECISIONS.md`; the extension
+      formats through the old compiler until then)
+- [ ] The language-server features `sema`'s symbol table supports: hover (a name's type and declaration), find
+      references, rename, perhaps completion of names and built-ins; handed to the server by the driver as
+      `Check` is
 
 ## M6. Runtime modernisation
 
@@ -263,6 +276,4 @@ BASIC to the editor.
 
 ## Not tied to a milestone yet
 
-- A formatter that matches `-y` (left M2's exit criterion on 2026-10-09, `DECISIONS.md`; the extension keeps
-  formatting through the old compiler)
 - Deferred features and ideas: `SOMEDAY.md`

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "files": [
+    {"index": 0, "path": "bits.bas", "hash": "883030713bd89b32"}
+  ],
+  "main": {"c_name": "QBMAIN", "file": 0},
+  "procedures": [],
+  "variables": [
+    {"index": 0, "name": "B", "type": "_BIT * 3", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__BIT3_B", "reach": "pointer"},
+    {"index": 1, "name": "M", "type": "_MEM", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__UDT_M", "reach": "bytes"},
+    {"index": 2, "name": "BIG", "type": "SINGLE", "storage": "main", "procedure": null, "shape": "static", "bounds": [[1, 1500]], "dims": 1, "conventional": false, "c_name": "__ARRAY_SINGLE_BIG", "reach": "descriptor"}
+  ],
+  "types": [
+    {"name": "_MEM", "size": 56, "members": [{"name": "OFFSET", "type": "_OFFSET", "offset": 0, "size": 8, "bounds": [], "dynamic": false}, {"name": "SIZE", "type": "_OFFSET", "offset": 8, "size": 8, "bounds": [], "dynamic": false}, {"name": "$_LOCK_ID", "type": "_INTEGER64", "offset": 16, "size": 8, "bounds": [], "dynamic": false}, {"name": "$_LOCK_OFFSET", "type": "_OFFSET", "offset": 24, "size": 8, "bounds": [], "dynamic": false}, {"name": "TYPE", "type": "_OFFSET", "offset": 32, "size": 8, "bounds": [], "dynamic": false}, {"name": "ELEMENTSIZE", "type": "_OFFSET", "offset": 40, "size": 8, "bounds": [], "dynamic": false}, {"name": "IMAGE", "type": "LONG", "offset": 48, "size": 4, "bounds": [], "dynamic": false}, {"name": "SOUND", "type": "LONG", "offset": 52, "size": 4, "bounds": [], "dynamic": false}]}
+  ],
+  "layouts": {"pointer_size": 8, "array": {"slot_size": 8, "data": 0, "flags": 2, "flag_bits": {"allocated": 1, "static": 2, "conventional": 4}, "dimensions": {"first_slot": 4, "slots_each": 4, "order": "last first", "slot_of": "4 * (n - 1 - k) + 4", "lower_bound": 0, "count": 1, "multiplier": 2}, "lock": "slot 4 * n + 4, after the dimensions"}, "qbs": {"chr": 0, "len": 8, "len_size": 4}, "float_element_size": 32, "bit_array": "packed, the width in bits per element", "user_type_members": {"STRING": "pointer to a qbs", "STRING * n": "n bytes in place"}}
+}

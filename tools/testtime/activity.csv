@@ -115,6 +115,15 @@ version,session,change,category,actions,bytes
 1,045ff9c0,m2-control-flow-slice,test runs,6,0
 1,045ff9c0,m2-control-flow-slice,tests and fixtures,5,2944
 1,0518c708,,other commands,2,0
+1,058454f0,,builds,1,0
+1,058454f0,,generated files,2,362
+1,058454f0,,measurement runs,1,0
+1,058454f0,,other commands,11,0
+1,058454f0,,product code,11,2284
+1,058454f0,,reading,17,0
+1,058454f0,,scratch files,2,165
+1,058454f0,,test runs,7,0
+1,058454f0,,tests and fixtures,2,935
 1,06acca35,,other commands,1,0
 1,06acca35,m3-typefields,builds,5,0
 1,06acca35,m3-typefields,documents and planning,28,20241
@@ -714,6 +723,18 @@ version,session,change,category,actions,bytes
 1,3d72a450,,reading,4,0
 1,3d72a450,,scratch files,4,296
 1,3d72a450,,test runs,2,0
+1,3e2558c8,,documents and planning,10,3309
+1,3e2558c8,,other,1,0
+1,3e2558c8,,other commands,17,0
+1,3e2558c8,,product code,1,166
+1,3e2558c8,,reading,5,0
+1,3e2558c8,m5-dap-proxy,documents and planning,7,43880
+1,3e2558c8,m5-dap-proxy,other commands,7,0
+1,3e2558c8,m5-dap-proxy,test runs,1,0
+1,3e2558c8,m5-debug-build-symbols,other,1,0
+1,3e2558c8,m5-debug-build-symbols,other commands,5,0
+1,3e2558c8,m5-debug-build-symbols,scratch files,1,2369
+1,3e2558c8,m5-debug-build-symbols,test runs,2,0
 1,3e4e7e08,,documents and planning,9,17483
 1,3e4e7e08,,measurement preparation,12,41263
 1,3e4e7e08,,measurement runs,9,0
@@ -2635,6 +2656,15 @@ version,session,change,category,actions,bytes
 1,d96364d4,m3-redim-retain,documents and planning,6,27075
 1,d96364d4,m3-redim-retain,other commands,13,0
 1,d96364d4,m3-redim-retain,test runs,2,0
+1,d9732c51,m5-dap-proxy,builds,4,0
+1,d9732c51,m5-dap-proxy,documents and planning,17,12470
+1,d9732c51,m5-dap-proxy,other,4,0
+1,d9732c51,m5-dap-proxy,other commands,117,0
+1,d9732c51,m5-dap-proxy,product code,66,138807
+1,d9732c51,m5-dap-proxy,reading,15,0
+1,d9732c51,m5-dap-proxy,scratch files,3,3779
+1,d9732c51,m5-dap-proxy,test runs,51,0
+1,d9732c51,m5-dap-proxy,tests and fixtures,40,95585
 1,d973c5cb,m3-typefields,other commands,2,0
 1,da39bffc,,documents and planning,12,2744
 1,da39bffc,,other commands,12,0
@@ -2754,6 +2784,7 @@ version,session,change,category,actions,bytes
 1,df731c60,m4-names-arrays,tests and fixtures,2,425
 1,df7ceeaa,,other commands,8,0
 1,df7ceeaa,,scratch files,1,2162
+1,e022e2d8,m5-debug-build-symbols,other commands,1,0
 1,e08a2555,,other commands,15,0
 1,e08a2555,m2-golden-corpus,documents and planning,23,26945
 1,e08a2555,m2-golden-corpus,measurement preparation,1,585
