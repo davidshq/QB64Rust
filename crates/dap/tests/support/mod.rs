@@ -260,10 +260,19 @@ pub fn launched_on(name: &str, stop_on_entry: bool) -> Launched {
     use serde_json::json;
     let dir = tempfile::tempdir().unwrap();
     let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
-    for f in [format!("{name}.bas"), format!("{name}.exe.debug.json")] {
-        std::fs::copy(fixtures.join(&f), dir.path().join(&f)).unwrap();
-    }
+    // The executable first: its symbol file must not be older (`launch`), and a copy keeps the fixture's time.
     std::fs::write(dir.path().join(format!("{name}.exe")), b"").unwrap();
+    std::fs::copy(
+        fixtures.join(format!("{name}.bas")),
+        dir.path().join(format!("{name}.bas")),
+    )
+    .unwrap();
+    let symbols = format!("{name}.exe.debug.json");
+    std::fs::write(
+        dir.path().join(&symbols),
+        std::fs::read(fixtures.join(&symbols)).unwrap(),
+    )
+    .unwrap();
     let Session {
         mut client,
         mut backend,

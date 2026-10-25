@@ -33,11 +33,11 @@ export function checkTimeoutMs(): number {
     return Math.max(1, seconds) * 1000;
 }
 
-export function runArguments(uri: vscode.Uri): string {
+export function runArguments(uri?: vscode.Uri): string {
     return settings(uri).get<string>("runArguments", "").trim();
 }
 
-export function noPrompt(uri: vscode.Uri): boolean {
+export function noPrompt(uri?: vscode.Uri): boolean {
     return settings(uri).get<boolean>("noPrompt", false);
 }
 

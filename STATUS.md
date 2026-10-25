@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-24 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-10-25 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -58,17 +58,16 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. The two test-environment items of `study\36` §5.1 TEST, taken up now (user, `DECISIONS.md` 2026-10-25): what
-   the `cmd.exe` of `g12_game.files`'s `SHELL` waits on ("Still to watch"), and `screen/c15_resize` ("Known
-   bugs").
-2. M5, the debugger, takes Path A of `study\36` (user, 2026-10-24, `DECISIONS.md`; `ROADMAP.md` M5). Its first
+1. M5, the debugger, takes Path A of `study\36` (user, 2026-10-24, `DECISIONS.md`; `ROADMAP.md` M5). Its first
    change, `m5-debug-build-symbols` (`--debug`, the symbol file `<exe>.debug.json`, the stepping measured under
    `lldb`), is built, closed (its closing runs pass) and archived (`2026-10-25-m5-debug-build-symbols`; spec
    `compiler/debug-info`). Its second, `m5-dap-proxy` (the debug adapter `qb64rust dap` over the clone's
-   `lldb-dap`, through `lldb-server`; spec `editor/debug-adapter`), is built and closed (its closing runs pass), not
-   yet archived. Next: the extension's `debuggers` contribution and its launch configuration (ROADMAP M5's fourth
-   item): build with `--debug`, then launch the executable through `qb64rust dap`.
-3. M5b, the formatter and the language-server features (user, `DECISIONS.md` 2026-10-25; `ROADMAP.md`), then M6.
+   `lldb-dap`, through `lldb-server`; spec `editor/debug-adapter`), is built, closed (its closing runs pass) and
+   archived (`2026-10-25-m5-dap-proxy`). Its third and last, `m5-debug-launch` (the extension's debugger of type
+   `qb64rust`: F5 and "QB64: Debug" build with `--debug` and launch through `qb64rust dap`; spec
+   `editor/debug-launch`), is built and closed (its closing runs pass), waiting for review and archive. With it
+   every item of M5 is built: M5 is to be declared done with the user at the next merge into `main`.
+2. M5b, the formatter and the language-server features (user, `DECISIONS.md` 2026-10-25; `ROADMAP.md`), then M6.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
@@ -91,7 +90,16 @@ folding (2026-10-22). The game hangs in `SHELL "copy cws.his oldhist.ory"`: libq
 runner's retry, a moment later, still finds the script's folder in use and fails with `PermissionError`. The script passes run alone
 (3.1 s), as the first of 61 programs at `--jobs 8`, with its nine sibling scripts at `--jobs 8`, and in the
 coverage check; the failure comes only late in a long run, so it is taken as the test environment's, not the
-compiler's. Not yet known: what the `cmd.exe` waits on.
+compiler's. Likely cause (2026-10-25, not yet seen in a hang): the game has no console, so libqb's
+`ShellExecuteEx` (`SW_SHOW`) gives `cmd.exe` a new one, and with the machine's default terminal on "Let Windows
+decide" Windows hands each new console to Windows Terminal over COM (a new `OpenConsole.exe` and
+`WindowsTerminal.exe -Embedding` per call, and a window): a `SHELL "copy …"` took 0.67 s on average and up to
+1.1 s that way, 0.10 s with Windows Console Host as the default terminal (5 calls, setting put back after). The
+`cmd.exe` is taken to wait on that handover under load. With Console Host as the default terminal (Settings, For
+developers, Terminal), two full corpus runs at `--jobs 8` passed (513 pass, 5 known failures; `g12_game.files`
+8.6 s and 3.8 s; 2026-10-25, the setting put back after). The hang was never every run, so two passes do not prove
+it. Left as noted (user, `DECISIONS.md` 2026-10-25): no setting is required; if the script times out late in a
+long run, it is this, and it passes alone.
 
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
@@ -249,12 +257,6 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 `deferred.list` holds `t001` alone: a plain scalar beside an array typed by `DIM … AS`.
 
 ## Known bugs
-
-- `tests\corpus\screen\c15_resize` (`$RESIZE:ON`, nobody resizes the window) was recorded with `_RESIZE`,
-  `_RESIZEWIDTH` and `_RESIZEHEIGHT` 0 on every line. In the full set of 2026-10-24 the first run gave
-  `-1  640  400` after the half-second wait, in the full run and alone, and the old compiler's own build of the
-  program (in a scratch folder) gave the same: the machine's desktop now resizes the window once after it opens.
-  Not the compiler's; the program's premise (a window nobody resized reads 0) holds on this machine no longer.
 
 - `verification\v39_a_handles` recorded `_SNDGETPOS` and `_SNDLEN` of a raw sound at a sound device of 44100 Hz
   (`.1249886602163315`); at the close of `m4-builtins-remaining` (2026-10-24) the machine's device gave `.125`

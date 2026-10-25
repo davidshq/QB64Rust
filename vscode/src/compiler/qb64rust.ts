@@ -16,9 +16,12 @@ export interface Roots {
     include: string;
 }
 
-/** `-x -w <file> -o <exe>` and the roots. `-c` (QB64pe's console switch) is not one of qb64rust's options. */
-export function buildArgs(file: string, roots: Roots): string[] {
-    const args = ["-x", "-w", file, "-o", executableFor(file), "--qb64pe-root", roots.qb64pe];
+/**
+ * `-x -w <file> -o <exe>` and the roots, with `--debug` first for a debug build (change m5-debug-launch, design D4).
+ * `-c` (QB64pe's console switch) is not one of qb64rust's options.
+ */
+export function buildArgs(file: string, roots: Roots, debug = false): string[] {
+    const args = [...(debug ? ["--debug"] : []), "-x", "-w", file, "-o", executableFor(file), "--qb64pe-root", roots.qb64pe];
     if (roots.libqb) {
         args.push("--libqb-root", roots.libqb);
     }
@@ -30,17 +33,18 @@ export interface Qb64rustBuild extends RunResult, Qb64rustOutput {
     executable: string;
 }
 
-/** Full build into the executable next to the source. No timeout, as a build with QB64pe. */
+/** Full build into the executable next to the source, a debug build when `debug`. No timeout, as a build with QB64pe. */
 export async function build(
     queue: RunQueue,
     binary: string,
     file: string,
     roots: Roots,
     env: NodeJS.ProcessEnv,
+    debug: boolean,
     onOutput?: (text: string) => void,
 ): Promise<Qb64rustBuild> {
     const executable = executableFor(file);
-    const result = await queue.run({ kind: "build", command: binary, args: buildArgs(file, roots), cwd: path.dirname(file), env, onOutput });
+    const result = await queue.run({ kind: "build", command: binary, args: buildArgs(file, roots, debug), cwd: path.dirname(file), env, onOutput });
     const parsed = result.cancelled ? { messages: [], allMarked: false } : parseQb64rustOutput(result.output, result.exitCode, file);
     if (!result.cancelled && result.exitCode === 0 && !fs.existsSync(executable)) {
         parsed.messages.push({ severity: "error", file: undefined, line: 1, message: `qb64rust reported success but ${executable} does not exist; see the "QB64" output.` });

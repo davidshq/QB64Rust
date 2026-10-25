@@ -253,8 +253,9 @@ BASIC to the editor.
       `m5-debug-build-symbols`)
 - [x] The debug symbol file beside the executable: procedures, variables, user types, the descriptor layouts
       (`m5-debug-build-symbols`, spec `compiler/debug-info`)
-- [ ] `qb64rust dap`: the DAP proxy over the toolchain's `lldb-dap` (variables, evaluate, set value, stack,
-      data breakpoints, set next line, the error stop); its protocol tests
+- [x] `qb64rust dap`: the DAP proxy over the toolchain's `lldb-dap` (variables, evaluate, set value, stack,
+      data breakpoints, set next line, the error stop); its protocol tests (`m5-dap-proxy`, spec
+      `editor/debug-adapter`)
 - [ ] The extension's `debuggers` contribution and launch configuration; a debug build before launch
 
 ## M5b. The editor without QB64pe

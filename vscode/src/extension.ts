@@ -5,6 +5,7 @@ import * as qb64pe from "./compiler/qb64pe";
 import { RunQueue } from "./compiler/runQueue";
 import { Builder } from "./build";
 import { Bundle, chosenCompiler } from "./buildPlan";
+import { DebugSupport } from "./debug";
 import { Diagnostics } from "./diagnostics";
 import { Formatter, removeStaleTempFiles } from "./format";
 import { LanguageServer } from "./languageServer";
@@ -19,6 +20,7 @@ export interface Api {
     server: LanguageServer;
     bundle: Bundle;
     builder: Builder;
+    debug: DebugSupport;
 }
 
 let server: LanguageServer | undefined;
@@ -42,18 +44,20 @@ export function activate(context: vscode.ExtensionContext): Api {
     status.update();
     const diagnostics = new Diagnostics(queue, status, lsp);
     const builder = new Builder(queue, status, diagnostics, lsp, bundle);
+    const debug = new DebugSupport(builder, status, lsp);
     context.subscriptions.push(
         { dispose: () => queue.dispose() },
         status,
         diagnostics,
         builder,
+        debug,
         lsp,
         vscode.languages.registerDocumentFormattingEditProvider("qb64rust", new Formatter(queue, status, diagnostics)),
         vscode.tasks.registerTaskProvider(TASK_TYPE, new Qb64TaskProvider(status, lsp, bundle)),
     );
     void removeStaleTempFiles();
     void removeOtherVersions(bundle.storage, bundle.version);
-    return { status, diagnostics, queue, server: lsp, bundle, builder };
+    return { status, diagnostics, queue, server: lsp, bundle, builder, debug };
 }
 
 export async function deactivate(): Promise<void> {

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Debugging.** F5 on a `.bas` file, or **QB64: Debug**, builds the program with `qb64rust --debug` and debugs it
+  by BASIC line: breakpoints (also in `$INCLUDE` files), stepping, pause, the call stack and variables by BASIC
+  name, watch and hover, set value, data breakpoints, set next statement, and a stop at a runtime error. A debugger
+  of type `qb64rust` for `launch.json` (`program`, `args`, `cwd`, `stopOnEntry`, `console`, `noPrompt`). Needs a
+  build by `qb64rust` and QB64pe's toolchain, which carries the debugger (`lldb-dap`).
+
 ## 0.2.0
 
 The first release with the new compiler, `qb64rust`, inside the extension (Windows x64).

@@ -2796,6 +2796,98 @@ fn dap_pause_and_disconnect() {
     );
 }
 
+/// Measured for change `m5-debug-launch` (its design D6, "Measured"): `console` `integratedTerminal` through the
+/// proxy. `lldb-dap` asks the client to start a command (`runInTerminal`); the test starts it as a terminal would,
+/// with its stdin a pipe, types a number there for the program's `INPUT`, and the program stops at a breakpoint
+/// after it with `X` holding the number.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_run_in_terminal() {
+    use serde_json::json;
+    use std::io::Write as _;
+    let d = scratch("dap-terminal");
+    let exe = debug_build(&d, "ask", "$CONSOLE:ONLY\nINPUT x\ny = x * 2\nPRINT y\nSYSTEM\n");
+    let mut cmd = compiler();
+    cmd.current_dir(&d).arg("dap");
+    let mut dap = support::dap::Dap::start(cmd);
+    dap.ok(
+        "initialize",
+        json!({"adapterID": "qb64rust", "linesStartAt1": true, "columnsStartAt1": true,
+               "supportsRunInTerminalRequest": true}),
+    );
+    let launch = dap.send(
+        "launch",
+        json!({"program": exe, "cwd": exe.parent().unwrap(), "noPrompt": true, "console": "integratedTerminal"}),
+    );
+    // `lldb-dap` asks for the terminal while it handles `launch`, before `initialized`.
+    let r = dap.reverse_request("runInTerminal");
+    eprintln!("runInTerminal: {r}");
+    let a = &r["arguments"];
+    let argv: Vec<String> = a["args"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|x| x.as_str().unwrap().to_string())
+        .collect();
+    let mut term = Command::new(&argv[0]);
+    term.args(&argv[1..])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped());
+    if let Some(cwd) = a["cwd"].as_str() {
+        term.current_dir(cwd);
+    }
+    if let Some(env) = a["env"].as_object() {
+        for (k, v) in env {
+            match v.as_str() {
+                Some(v) => term.env(k, v),
+                None => term.env_remove(k),
+            };
+        }
+    }
+    let mut term = term.spawn().expect("the terminal's command starts");
+    dap.reply(&r, json!({"processId": term.id()}));
+    dap.event("initialized");
+    dap.ok(
+        "setBreakpoints",
+        json!({"source": {"path": exe.with_extension("bas")}, "breakpoints": [{"line": 3}]}),
+    );
+    dap.ok("configurationDone", json!({}));
+    let l = dap.response(launch);
+    assert_eq!(l["success"], true, "launch: {l}");
+    term.stdin.as_mut().unwrap().write_all(b"7\r\n").unwrap();
+    let (s, reason, name, line) = dap_stop(&mut dap);
+    assert_eq!((reason.as_str(), name.as_str(), line), ("breakpoint", "Main module", 3));
+    let frames = dap_frames(&mut dap, &s);
+    let x = dap.ok(
+        "evaluate",
+        json!({"expression": "x", "frameId": frames[0].2, "context": "hover"}),
+    );
+    assert_eq!(x["result"], "7", "{x}");
+    dap.ok("disconnect", json!({"terminateDebuggee": true}));
+    assert_eq!(dap.finish().code(), Some(0));
+    // The launcher may have ended with the program already.
+    let _ = term.kill();
+    let _ = term.wait();
+}
+
+/// Measured for change `m5-debug-launch` (its design D3): `launch`'s `args` reach the program as they are, through
+/// the proxy and `lldb-dap`, which joins them into a Windows command line: a word, one with a space (spec
+/// `editor/debug-launch`, "Run arguments") and one ending in a backslash.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_args() {
+    use serde_json::json;
+    let d = scratch("dap-args");
+    let program = "$CONSOLE:ONLY\nFOR i = 1 TO _COMMANDCOUNT: PRINT \"[\"; COMMAND$(i); \"]\": NEXT\nSYSTEM\n";
+    let exe = debug_build(&d, "args", program);
+    let mut dap = dap_launch(&exe, &[], &[], json!({"args": ["a", "b c", "d\\"]}));
+    dap.event("exited");
+    let out = dap_output(&mut dap).replace("\r\n", "\n");
+    assert_eq!(out, "[a]\n[b c]\n[d\\]\n");
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
 /// "Launch", scenario "Not a debug build".
 #[test]
 #[ignore = "needs the QB64pe reference clone"]

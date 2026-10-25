@@ -59,8 +59,9 @@ fn launch_of_another_version_is_refused() {
     );
 }
 
+/// An executable newer than its symbol file was built again by another build (QB64pe's): refused, as one without.
 #[test]
-fn the_backends_launch() {
+fn launch_of_an_executable_newer_than_its_symbol_file_is_refused() {
     let dir = tempfile::tempdir().unwrap();
     let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
     std::fs::copy(
@@ -68,7 +69,36 @@ fn the_backends_launch() {
         dir.path().join("kinds.exe.debug.json"),
     )
     .unwrap();
+    let exe = std::fs::File::create(dir.path().join("kinds.exe")).unwrap();
+    exe.set_modified(std::time::SystemTime::now() + std::time::Duration::from_secs(60))
+        .unwrap();
+    drop(exe);
+    let Session {
+        mut client, backend, ..
+    } = start();
+    client.send(json!({"seq": 1, "type": "request", "command": "launch",
+                       "arguments": {"program": dir.path().join("kinds.exe")}}));
+    let r = client.recv();
+    assert_eq!(r["success"], false);
+    let message = r["message"].as_str().unwrap();
+    assert!(
+        message.contains("newer than its debug symbol file") && message.contains("--debug"),
+        "{message}"
+    );
+    assert!(backend.try_recv().is_none(), "no launch reached lldb-dap");
+}
+
+#[test]
+fn the_backends_launch() {
+    let dir = tempfile::tempdir().unwrap();
+    let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    // The executable first: its symbol file must not be older (`launch`), and a copy keeps the fixture's time.
     std::fs::write(dir.path().join("kinds.exe"), b"").unwrap();
+    std::fs::write(
+        dir.path().join("kinds.exe.debug.json"),
+        std::fs::read(fixtures.join("kinds.exe.debug.json")).unwrap(),
+    )
+    .unwrap();
     let Session {
         mut client, backend, ..
     } = start();

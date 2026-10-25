@@ -130,6 +130,22 @@ impl Dap {
         })
     }
 
+    /// The next reverse request `command` of the adapter (`runInTerminal`).
+    pub fn reverse_request(&mut self, command: &str) -> Value {
+        self.take(&format!("reverse request `{command}`"), |m| {
+            m["type"] == "request" && m["command"] == command
+        })
+    }
+
+    /// Answers the reverse request `request` with success and `body`.
+    pub fn reply(&mut self, request: &Value, body: Value) {
+        self.seq += 1;
+        let m = json!({"seq": self.seq, "type": "response", "request_seq": request["seq"],
+                       "command": request["command"], "success": true, "body": body});
+        eprintln!("dap -> {m}");
+        write_message(self.to.as_mut().expect("the adapter's stdin"), &m).expect("the adapter reads");
+    }
+
     /// Every event `name` that has come so far, taken from the backlog.
     pub fn drain_events(&mut self, name: &str) -> Vec<Value> {
         while let Ok(m) = self.from.recv_timeout(Duration::from_millis(200)) {

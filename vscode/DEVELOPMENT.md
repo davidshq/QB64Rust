@@ -20,7 +20,7 @@ package it (below).
 
 | Command | What | Needs |
 |---|---|---|
-| `npm run test:unit` | Output parser (against recorded fixtures), compiler discovery (`qb64pe` and `qb64rust`), run queue, the language server's initialization options and encoding notification | Node only |
+| `npm run test:unit` | Output parser (against recorded fixtures), compiler discovery (`qb64pe` and `qb64rust`), run queue, the language server's initialization options and encoding notification, the debug launch's resolution (`debugConfig.ts`) | Node only |
 | `npm run test:grammar` | Annotated `test\grammar\*.bas` against the TextMate grammar | Node only |
 | `npm run test:integration` | Downloads a VS Code build into `.vscode-test\` and runs `test\integration\suite` in it, in a temporary copy of `test-fixtures\workspace` | A compiler for the compiler tests (skipped without one): `QB64RUST_TEST_QB64PE`, else `..\..\QB64pe\qb64pe.exe`; the `qb64rust` binary for the language server tests (skipped without it): `QB64RUST_TEST_QB64RUST` |
 | `npm run test:integration:min` | The same on the oldest version `engines.vscode` accepts (1.100.0) | as above |
@@ -34,6 +34,10 @@ the run is the extension without the server), `QB64RUST_TEST_VSCODE_VERSION` (de
 so the build tests of QB64pe test it; `buildQb64rust.test.ts` sets `auto` and needs both variables' programs (QB64pe
 gives the toolchain). With `bundle\` staged it also checks the copy of libqb prepared in the test profile's global
 storage; the first such build there builds libqb's objects. Without `bundle\` the binary uses the repo's `libqb\`.
+`debug.test.ts` needs the same two and debugs `test-fixtures\workspace\debug_me.bas` through `qb64rust dap` and
+the `lldb-dap` of QB64pe's toolchain (the clone and the 4.7.0 release both carry it): the Debug command, F5
+without a `launch.json`, a failed build, and the refusal under `qb64rust.buildWith` `qb64pe`. The binary must have
+the `dap` subcommand of this tree (`cargo build --release` after a change under `crates\dap`).
 `scripts\record-qb64rust-fixtures.sh` records the output fixtures of `test-fixtures\qb64rust\` (the parser's unit
 tests) with `target\release\qb64rust.exe`.
 

@@ -1,9 +1,10 @@
 # QB64 for VS Code (qb64rust)
 
-Edit, check, build and run QB64 programs in VS Code with `qb64rust`, the new QB64 compiler of the QB64Rust project,
-which comes with the extension (Windows x64). It runs a language server for syntax errors as you type, the
-outline, folding and go to definition; it checks a program on save and builds it. An installed QB64 Phoenix
-Edition is still needed: its C++ toolchain builds the program, and its own formatter formats it.
+Edit, check, build, run and debug QB64 programs in VS Code with `qb64rust`, the new QB64 compiler of the QB64Rust
+project, which comes with the extension (Windows x64). It runs a language server for syntax errors as you type,
+the outline, folding and go to definition; it checks a program on save, builds it, and debugs it by BASIC line. An
+installed QB64 Phoenix Edition is still needed: its C++ toolchain builds the program, its debugger runs under ours,
+and its own formatter formats it.
 
 ## Features
 
@@ -46,6 +47,48 @@ Edition is still needed: its C++ toolchain builds the program, and its own forma
   ```
 
   `action` is `build` or `run`; without `file`, the active editor's file is used.
+- **Debugging** by BASIC line, with the program built by `qb64rust` (below).
+
+## Debugging
+
+Press **F5** on a `.bas` file, or run **QB64: Debug** (`qb64rust.debug`; also in the editor title's run menu). The
+program is saved and built with `qb64rust --debug`, as Build would build it (same output channel, errors in
+Problems), and then runs under the debugger; a build that fails starts no session. Click in the gutter of a `.bas`,
+`.bi` or `.bm` line to set a breakpoint.
+
+What the debugger shows (the adapter is `qb64rust dap`, in front of the `lldb-dap` of QB64pe's toolchain):
+
+- **Breakpoints** by line, also in `$INCLUDE` files, with conditions, hit counts and log points; **step over, into
+  and out** by BASIC line; **pause** a running program, also a one-line loop; **set next statement** within the
+  current `SUB`, `FUNCTION` or the main module.
+- **Call stack** by BASIC name (`SUB show`, `FUNCTION twice&`, "Main module").
+- **Variables**: "Locals" (the procedure's parameters, locals, statics and result) and "Main module", by BASIC name
+  and type; strings, arrays (by index within their current bounds) and `TYPE` variables expand. Hover a name, add
+  it to Watch, or change its value. In Watch and hover, `,h`, `,b` and `,o` after a name show it in hex, binary or
+  octal (`total,h`).
+- **Data breakpoints** (Break on Value Change) on a variable, element or member of up to 8 bytes.
+- **"BASIC runtime errors"** in the Breakpoints view stops at the line that raises an error, before an `ON ERROR`
+  handler runs, with the error's number and text.
+
+A `launch.json` configuration (**Run: Add Configuration… → QB64**):
+
+```json
+{ "type": "qb64rust", "request": "launch", "name": "Debug QB64 program", "program": "${file}" }
+```
+
+| Attribute | Default | Meaning |
+|---|---|---|
+| `program` | the active file | The main `.bas` file (built with `--debug` first), or the executable of an earlier debug build (launched as it is). |
+| `args` | `qb64rust.runArguments`, split into words | The program's arguments (`COMMAND$`). |
+| `cwd` | the program's folder | The working folder. |
+| `stopOnEntry` | `false` | Stop at the first BASIC line. |
+| `console` | `integratedTerminal` | Where a `$CONSOLE` program reads and writes: `integratedTerminal` (its `INPUT` works there), `internalConsole` (the Debug Console: output only), `externalTerminal`. |
+| `noPrompt` | `qb64rust.noPrompt` | Set `QB64PE_NOPROMPT=y`. |
+
+Debugging needs a build by `qb64rust`: with `qb64rust.buildWith` set to `qb64pe`, or without the `qb64rust` binary,
+it is refused with a message naming the setting. A debug build replaces the program's executable (never
+optimised; it otherwise behaves the same); the next Build makes the usual one again. The debugger comes from
+QB64pe's toolchain (`internal\c\c_compiler\bin\lldb-dap.exe`, part of QB64pe 4.7.0).
 
 ## Language server (qb64rust)
 
@@ -90,7 +133,7 @@ with an "Open Setting" link when it is not.
 The `qb64rust` binary comes with the extension. To use another one (a build of this repository: `cargo build
 --release`, see `crates\README.md`), set `qb64rust.path` to it.
 
-Highlighting works without a compiler. Checking, formatting, building and running call the compiler, so they are
+Highlighting works without a compiler. Checking, formatting, building, running and debugging call the compiler, so they are
 off in [untrusted workspaces](https://code.visualstudio.com/docs/editor/workspace-trust) and in virtual
 workspaces (folders opened from a remote repository without a local copy, e.g. on vscode.dev).
 

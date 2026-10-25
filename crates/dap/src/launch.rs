@@ -34,6 +34,22 @@ pub fn launch(p: &mut Proxy, m: Value) -> Result<(), String> {
             )),
         );
     }
+    // A debug build writes the symbol file after the executable is in place, so an executable newer than its symbol
+    // file was written again by another build, whose symbols these are not: QB64pe's leaves the symbol file (a
+    // `qb64rust` build without `--debug` removes it).
+    let modified = |f: &Path| std::fs::metadata(f).and_then(|m| m.modified()).ok();
+    if let (Some(exe), Some(symbols)) = (modified(&program), modified(&symbol_file))
+        && exe > symbols
+    {
+        return p.respond(
+            &m,
+            Err(format!(
+                "{} is newer than its debug symbol file {}: it was built again without --debug; build it with --debug",
+                program.display(),
+                symbol_file.display()
+            )),
+        );
+    }
     let symbols = match Symbols::read(&symbol_file) {
         Ok(s) => s,
         Err(e) => return p.respond(&m, Err(format!("{e}: build the program again with --debug"))),

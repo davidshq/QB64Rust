@@ -499,6 +499,7 @@ version,session,change,category,actions,bytes
 1,2a17bf8b,m3-asserts-debug-zlib,reading,1,0
 1,2a17bf8b,m3-asserts-debug-zlib,scratch files,1,2237
 1,2a17bf8b,m3-asserts-debug-zlib,test runs,2,0
+1,2ba29f2e,,other commands,1,0
 1,2c045dad,m4-checker-groups,other commands,1,0
 1,2c361b49,,reading,1,0
 1,2c361b49,m2-defxxx-common-arrays,builds,4,0
@@ -801,6 +802,15 @@ version,session,change,category,actions,bytes
 1,404c65b5,m3-typefields,scratch files,7,10084
 1,404c65b5,m3-typefields,test runs,17,0
 1,404c65b5,m3-typefields,tests and fixtures,9,11729
+1,406241f8,,other commands,5,0
+1,406241f8,,reading,1,0
+1,406241f8,m5-debug-launch,builds,3,0
+1,406241f8,m5-debug-launch,documents and planning,13,6739
+1,406241f8,m5-debug-launch,other commands,39,0
+1,406241f8,m5-debug-launch,product code,10,2649
+1,406241f8,m5-debug-launch,reading,7,0
+1,406241f8,m5-debug-launch,test runs,48,0
+1,406241f8,m5-debug-launch,tests and fixtures,4,3112
 1,419c0863,,other commands,1,0
 1,419c0863,,reading,1,0
 1,419c0863,m2-console-screenhide,documents and planning,5,1605
@@ -1108,6 +1118,13 @@ version,session,change,category,actions,bytes
 1,577e27ed,m2-procedures-and-errors,reading,14,0
 1,577e27ed,m2-procedures-and-errors,test runs,27,0
 1,577e27ed,m2-procedures-and-errors,tests and fixtures,19,10719
+1,593b648b,,documents and planning,17,3661
+1,593b648b,,measurement runs,3,0
+1,593b648b,,other commands,19,0
+1,593b648b,,reading,18,0
+1,593b648b,,scratch files,2,324
+1,593b648b,,test runs,5,0
+1,593b648b,,tests and fixtures,2,1424
 1,59816366,,other commands,1,0
 1,59816366,,reading,1,0
 1,59816366,m2-control-flow-slice,documents and planning,34,33010
@@ -1664,6 +1681,15 @@ version,session,change,category,actions,bytes
 1,7cc8c940,dry-cleanup,reading,18,0
 1,7cc8c940,dry-cleanup,test runs,19,0
 1,7cc8c940,dry-cleanup,tests and fixtures,24,8189
+1,7cf0862b,,other,2,0
+1,7cf0862b,,other commands,2,0
+1,7cf0862b,m5-dap-proxy,builds,1,0
+1,7cf0862b,m5-dap-proxy,documents and planning,2,896
+1,7cf0862b,m5-dap-proxy,other commands,22,0
+1,7cf0862b,m5-dap-proxy,product code,35,9937
+1,7cf0862b,m5-dap-proxy,reading,12,0
+1,7cf0862b,m5-dap-proxy,test runs,11,0
+1,7cf0862b,m5-dap-proxy,tests and fixtures,11,12127
 1,7cf84f30,,reading,1,0
 1,7cf84f30,m2-parser-breadth,builds,1,0
 1,7cf84f30,m2-parser-breadth,documents and planning,3,2123
@@ -2403,6 +2429,12 @@ version,session,change,category,actions,bytes
 1,c47bc2ae,verification-compare,other,2,0
 1,c47bc2ae,verification-compare,other commands,42,0
 1,c47bc2ae,verification-compare,test runs,11,0
+1,c4a8e8fa,m5-dap-proxy,documents and planning,1,1060
+1,c4a8e8fa,m5-dap-proxy,other,1,0
+1,c4a8e8fa,m5-dap-proxy,other commands,3,0
+1,c4a8e8fa,m5-dap-proxy,reading,6,0
+1,c4a8e8fa,m5-dap-proxy,scratch files,1,627
+1,c4a8e8fa,m5-dap-proxy,test runs,1,0
 1,c4c35015,,other commands,2,0
 1,c5364f40,,documents and planning,2,797
 1,c5364f40,,other commands,20,0
@@ -2659,11 +2691,11 @@ version,session,change,category,actions,bytes
 1,d9732c51,m5-dap-proxy,builds,4,0
 1,d9732c51,m5-dap-proxy,documents and planning,17,12470
 1,d9732c51,m5-dap-proxy,other,4,0
-1,d9732c51,m5-dap-proxy,other commands,117,0
+1,d9732c51,m5-dap-proxy,other commands,118,0
 1,d9732c51,m5-dap-proxy,product code,66,138807
 1,d9732c51,m5-dap-proxy,reading,15,0
 1,d9732c51,m5-dap-proxy,scratch files,3,3779
-1,d9732c51,m5-dap-proxy,test runs,51,0
+1,d9732c51,m5-dap-proxy,test runs,52,0
 1,d9732c51,m5-dap-proxy,tests and fixtures,40,95585
 1,d973c5cb,m3-typefields,other commands,2,0
 1,da39bffc,,documents and planning,12,2744
@@ -2792,6 +2824,16 @@ version,session,change,category,actions,bytes
 1,e08a2555,m2-golden-corpus,reading,3,0
 1,e08a2555,m2-golden-corpus,test runs,6,0
 1,e08a2555,m2-golden-corpus,tests and fixtures,1,1333
+1,e139d540,,other,1,0
+1,e139d540,,other commands,8,0
+1,e139d540,,reading,2,0
+1,e139d540,m5-debug-launch,builds,2,0
+1,e139d540,m5-debug-launch,documents and planning,10,31387
+1,e139d540,m5-debug-launch,other commands,44,0
+1,e139d540,m5-debug-launch,product code,14,28882
+1,e139d540,m5-debug-launch,reading,9,0
+1,e139d540,m5-debug-launch,test runs,40,0
+1,e139d540,m5-debug-launch,tests and fixtures,5,4289
 1,e1bfd1d3,m4-devices-continue-paths,builds,9,0
 1,e1bfd1d3,m4-devices-continue-paths,documents and planning,28,8169
 1,e1bfd1d3,m4-devices-continue-paths,measurement preparation,2,1528
