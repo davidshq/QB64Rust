@@ -94,7 +94,8 @@ python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\rele
 ```
 
 runs the programs of `pass.list` end to end from the clone's `tests\compile_tests` (with its binary assets),
-with the suite's settings (`-f:OptimizeCppProgram=true -f:StripDebugSymbols=false -q -m -x`); CI runs the same
+with the suite's settings (`-f:OptimizeCppProgram=true -f:StripDebugSymbols=false -q -m -x`; the second leaves each
+executable unstripped, as with `qb64pe`, since `m5-debug-build-symbols`, and nothing more); CI runs the same
 list the same way, from the `tests\compile_tests` of the clone it checks out at the reference commit (`rust.yml`,
 job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 2026-10-12). Not from this copy since
 `m3-declare-library`: `declare_library_static/test` and `declare_library_dynamic/test` need `lib-windows.a` and

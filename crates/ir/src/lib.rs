@@ -253,8 +253,11 @@ pub struct Proc {
     /// The FUNCTION's result variable.
     pub result: Option<VarId>,
     pub body: Body,
-    /// Source lines of the header and of the closing `END SUB`/`END FUNCTION`.
+    /// The file and source line of the header, and of the closing `END SUB`/`END FUNCTION` (which may be in another
+    /// file).
+    pub file: FileId,
     pub line: u32,
+    pub end_file: FileId,
     pub end_line: u32,
     /// A procedure of a `DECLARE LIBRARY` block (design D1 of `m3-declare-library`): a function of the library,
     /// called with its parameters, its body empty. Its parameters and result are variables only for the calls'

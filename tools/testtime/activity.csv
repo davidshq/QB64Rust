@@ -1815,6 +1815,17 @@ version,session,change,category,actions,bytes
 1,8bc265c2,m3-get-put-bload,other commands,4,0
 1,8bc265c2,m3-get-put-bload,scratch files,1,2839
 1,8bc265c2,m3-get-put-bload,test runs,2,0
+1,8c3426b4,,other commands,5,0
+1,8c3426b4,,reading,4,0
+1,8c3426b4,m5-debug-build-symbols,builds,1,0
+1,8c3426b4,m5-debug-build-symbols,documents and planning,16,5660
+1,8c3426b4,m5-debug-build-symbols,other,1,257
+1,8c3426b4,m5-debug-build-symbols,other commands,28,0
+1,8c3426b4,m5-debug-build-symbols,product code,23,3802
+1,8c3426b4,m5-debug-build-symbols,reading,17,0
+1,8c3426b4,m5-debug-build-symbols,scratch files,1,1038
+1,8c3426b4,m5-debug-build-symbols,test runs,26,0
+1,8c3426b4,m5-debug-build-symbols,tests and fixtures,4,2284
 1,8d796208,,other commands,3,0
 1,8e1a13d1,,other,2,0
 1,8e1a13d1,,other commands,16,0
@@ -1880,6 +1891,15 @@ version,session,change,category,actions,bytes
 1,934eb9b0,libqb-copy,reading,6,0
 1,934eb9b0,libqb-copy,test runs,5,0
 1,934eb9b0,libqb-copy,tests and fixtures,1,19
+1,97505f8b,m5-debug-build-symbols,builds,9,0
+1,97505f8b,m5-debug-build-symbols,documents and planning,35,20643
+1,97505f8b,m5-debug-build-symbols,other,2,0
+1,97505f8b,m5-debug-build-symbols,other commands,113,0
+1,97505f8b,m5-debug-build-symbols,product code,47,35003
+1,97505f8b,m5-debug-build-symbols,reading,23,0
+1,97505f8b,m5-debug-build-symbols,scratch files,1,374
+1,97505f8b,m5-debug-build-symbols,test runs,63,0
+1,97505f8b,m5-debug-build-symbols,tests and fixtures,28,26091
 1,978f40ab,,other commands,2,0
 1,978f40ab,m2-control-flow-slice,documents and planning,2,1781
 1,978f40ab,m2-control-flow-slice,other commands,23,0
@@ -2527,6 +2547,15 @@ version,session,change,category,actions,bytes
 1,cf844802,extension-diagnostics,scratch files,1,669
 1,cf844802,extension-diagnostics,test runs,10,0
 1,cf844802,extension-diagnostics,tests and fixtures,2,1966
+1,d08d9352,,documents and planning,9,35185
+1,d08d9352,,other commands,47,0
+1,d08d9352,,reading,6,0
+1,d08d9352,,scratch files,1,1688
+1,d08d9352,,test runs,2,0
+1,d08d9352,m5-debug-build-symbols,documents and planning,7,37524
+1,d08d9352,m5-debug-build-symbols,other commands,24,0
+1,d08d9352,m5-debug-build-symbols,reading,1,0
+1,d08d9352,m5-debug-build-symbols,test runs,3,0
 1,d0d88245,,reading,1,0
 1,d0d88245,m2-language-server,builds,6,0
 1,d0d88245,m2-language-server,documents and planning,18,19884
@@ -2607,6 +2636,11 @@ version,session,change,category,actions,bytes
 1,d96364d4,m3-redim-retain,other commands,13,0
 1,d96364d4,m3-redim-retain,test runs,2,0
 1,d973c5cb,m3-typefields,other commands,2,0
+1,da39bffc,,documents and planning,12,2744
+1,da39bffc,,other commands,12,0
+1,da39bffc,,reading,3,0
+1,da39bffc,,scratch files,1,3065
+1,da39bffc,,test runs,1,0
 1,da921c4d,,documents and planning,3,13327
 1,da921c4d,,other commands,35,0
 1,da921c4d,,product code,13,11127

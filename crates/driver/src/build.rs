@@ -374,6 +374,11 @@ pub struct Settings {
     pub flags: Vec<&'static str>,
     /// `OptimizeCppProgram`: adds `-O2` as `qb64pe` does (`-fwrapv` stays, so overflow still wraps).
     pub optimize: bool,
+    /// `--debug`: the program's own objects with `-g` and never `-O2`, the executable unstripped (design D1 of
+    /// `m5-debug-build-symbols`).
+    pub debug: bool,
+    /// `StripDebugSymbols=false`: the executable unstripped (`STRIP_SYMBOLS=n`), as `qb64pe` passes it, nothing more.
+    pub keep_symbols: bool,
     /// `ExtraLinkerFlags`: added to the end of the link command (`CXXLIBS_EXTRA`), as `qb64pe` does. The test
     /// runner gives the screen-state file this way (`tools/screen`).
     pub extra_link: String,
@@ -409,12 +414,22 @@ pub fn license_path(exe: &Path) -> PathBuf {
     PathBuf::from(name)
 }
 
+/// The debug symbol file of an executable: `<exe>.debug.json` (spec `compiler/debug-info`).
+pub fn debug_path(exe: &Path) -> PathBuf {
+    let mut name = exe.as_os_str().to_owned();
+    name.push(".debug.json");
+    PathBuf::from(name)
+}
+
 /// Builds the executable. The executable is linked inside the build folder (whose name has no spaces, see
 /// [`build_dir`]) and then moved to `exe`. On failure the build folder is kept and the make output is returned.
 pub fn build(roots: &Roots, build: &Path, exe: &Path, quiet: bool, settings: &Settings) -> Result<(), BuildError> {
     let cache = std::env::var_os(CACHE_ENV)
         .filter(|_| !settings.uncached)
         .map(PathBuf::from);
+    if settings.debug && settings.optimize && !quiet {
+        println!("--debug: OptimizeCppProgram is left out, the program is built without optimisation");
+    }
     // A build that writes a licence file first removes the one at the output path, so it is never an earlier
     // build's; a build that writes none leaves it, as `qb64pe` does (measured 2026-10-16).
     let license = license_path(exe);
@@ -481,6 +496,8 @@ fn build_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
     }
     h.write(b"\0");
     h.write(&[u8::from(settings.optimize)]);
+    h.write(&[u8::from(settings.debug)]);
+    h.write(&[u8::from(settings.keep_symbols)]);
     h.write(&[u8::from(settings.license)]);
     h.write(settings.extra_link.as_bytes());
     h.write(b"\0");
@@ -706,14 +723,21 @@ fn remove_built(base: &Path, dir: &Path) -> Result<(), String> {
 
 /// The makefile read after the copy's `Makefile` that gives the driver's flags to the program's own objects only
 /// (design D1 of `libqb-object-flags`): `-fwrapv` (LONG and `_INTEGER64` overflow wraps, `DIVERGENCES.md` D-001,
-/// D-002), `-O2` for `OptimizeCppProgram`, and the copy's `internal/c` for the headers `qbx.cpp` and `embedded.cpp`
-/// include from the build folder. `private` keeps the variable from the prerequisites `make` builds for these two
-/// targets, so libqb's objects take none of the flags, whatever the targets come to depend on.
-fn program_makefile(libqb: &Path, optimize: bool) -> String {
+/// D-002), `-O2` for `OptimizeCppProgram`, `-g` instead for a debug build (design D1 of `m5-debug-build-symbols`),
+/// and the copy's `internal/c` for the headers `qbx.cpp` and `embedded.cpp` include from the build folder. `private`
+/// keeps the variable from the prerequisites `make` builds for these two targets, so libqb's objects take none of
+/// the flags, whatever the targets come to depend on.
+fn program_makefile(libqb: &Path, optimize: bool, debug: bool) -> String {
     format!(
         "# Written by qb64rust: the program's own flags, for the program's own objects only.\n\
          $(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += {}-fwrapv -I{}/internal/c\n",
-        if optimize { "-O2 " } else { "" },
+        if debug {
+            "-g "
+        } else if optimize {
+            "-O2 "
+        } else {
+            ""
+        },
         slash(libqb)
     )
 }
@@ -832,14 +856,22 @@ fn build_with_make(
         let _ = std::fs::remove_file(&linked_license);
         cmd.arg("GENERATE_LICENSE=y");
     }
+    // As `qb64pe` passes it for `StripDebugSymbols=false` (`qb64pe.bas` 13767): the `Makefile` neither strips nor
+    // writes the `.sym` file.
+    if settings.debug || settings.keep_symbols {
+        cmd.arg("STRIP_SYMBOLS=n");
+    }
     if !quiet {
         println!("building {}", exe.display());
     }
     // Held until `make` has ended: shared while the copy's objects are only read, alone while they are built.
     let _objects = lock_objects(&cmd, build, &roots.libqb, &objects_stamp(&roots.clone))?;
     let program_mk = build.join("program.mk");
-    std::fs::write(&program_mk, program_makefile(&roots.libqb, settings.optimize))
-        .map_err(|e| format!("writing {}: {e}", program_mk.display()))?;
+    std::fs::write(
+        &program_mk,
+        program_makefile(&roots.libqb, settings.optimize, settings.debug),
+    )
+    .map_err(|e| format!("writing {}: {e}", program_mk.display()))?;
     cmd.args(["-f", "Makefile", "-f"]).arg(slash(&program_mk)).arg("exe");
     let out = cmd.output().map_err(|e| format!("running {}: {e}", make.display()))?;
     if out.status.success() && linked.is_file() && (!settings.license || linked_license.is_file()) {
@@ -1053,14 +1085,43 @@ mod tests {
 
     #[test]
     fn the_programs_flags_go_to_its_own_objects() {
-        let mk = program_makefile(Path::new("x/libqb"), false);
+        let mk = program_makefile(Path::new("x/libqb"), false, false);
         assert!(
             mk.ends_with(
                 "$(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += -fwrapv -Ix/libqb/internal/c\n"
             ),
             "{mk}"
         );
-        assert!(program_makefile(Path::new("x/libqb"), true).contains("private CXXFLAGS += -O2 -fwrapv "));
+        assert!(program_makefile(Path::new("x/libqb"), true, false).contains("private CXXFLAGS += -O2 -fwrapv "));
+    }
+
+    /// A debug build: `-g`, and never `-O2`, even with `OptimizeCppProgram` (design D1 of `m5-debug-build-symbols`).
+    #[test]
+    fn a_debug_build_has_g_and_no_optimisation() {
+        for optimize in [false, true] {
+            let mk = program_makefile(Path::new("x/libqb"), optimize, true);
+            assert!(mk.contains("private CXXFLAGS += -g -fwrapv "), "{mk}");
+            assert!(!mk.contains("-O2"), "{mk}");
+        }
+    }
+
+    /// A debug build and an unstripped one each have keys of their own.
+    #[test]
+    fn build_key_follows_debug_and_strip() {
+        let d = tempfile::tempdir().unwrap();
+        let key = |settings: &Settings| build_key(&one_root(d.path()), d.path(), settings);
+        let plain = key(&Settings::default());
+        let debug = key(&Settings {
+            debug: true,
+            ..Settings::default()
+        });
+        let kept = key(&Settings {
+            keep_symbols: true,
+            ..Settings::default()
+        });
+        assert_ne!(plain, debug);
+        assert_ne!(plain, kept);
+        assert_ne!(debug, kept);
     }
 
     /// The key follows libqb's sources and headers in the copy, and not what a build writes there: a libqb object or

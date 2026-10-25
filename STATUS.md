@@ -48,6 +48,10 @@ working rule 11).
 
 1. **The merge of `m4-sub-gl` into `main`** (a pull request, as pull requests 12 to 14); the full set for it is
    committed (`1f07337`).
+2. **The order after M5 and two test items** (`study\36` §6 items 2 and 3, 2026-10-24; Path A itself is decided,
+   `DECISIONS.md`): (2) whether the formatter and the language-server features of `sema`'s symbol table come
+   before M6 as "M5b" (§5.3; Claude recommends yes); (3) whether the two test-environment items (§5.1 TEST: the
+   `SHELL` hang's cause, `c15_resize`) are taken up at the merge of `m4-sub-gl` (Claude recommends yes to both).
 
 **The `tier2` job on `m3`** (`study\archive\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -60,9 +64,25 @@ push shows them (the user is not concerned with CI, working rule 9).
 ## Next
 
 1. **M4 is done** (user, 2026-10-24); the merge of `m4-sub-gl` into `main` waits on the user.
-2. M5, the debugger (`ROADMAP.md`: a debug symbol file and a DAP adapter), proposed as its first change.
+2. M5, the debugger, takes Path A of `study\36` (user, 2026-10-24, `DECISIONS.md`; `ROADMAP.md` M5). Its first
+   change, `m5-debug-build-symbols` (`--debug`, the symbol file `<exe>.debug.json`, the stepping measured under
+   `lldb`), is built and closed (its closing runs pass, 2026-10-25) and waits on its archive. Next: the DAP proxy `qb64rust dap` over the toolchain's
+   `lldb-dap` (`study\36` §4), designed from that change's "Measured" section (`next` stops once per line; `step`
+   and a return need stepping past headers, other files and the rest of a `CALL`; an error stop is a breakpoint on
+   `error` with the code in `ecx`).
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
+The CLI test `debug_next_steps_by_line` hung once under the load of the whole `--ignored` run (2026-10-25, the
+second closing run of `m5-debug-build-symbols`): the clone's `lldb` never came back from the `next` over a
+`PRINT` and was killed at 120 s; alone it passes in 6 s. A hang of `next` over a call into libqb is a risk for
+the DAP proxy, so its design should look at it first.
+`slice/s150_builtins_more` and `verification\v49_d_clipboard` read `LEN(_CLIPBOARD$)` of `"a" + CHR$(0) + "b"` as
+3 where 1 is recorded, in the closing runs of `m5-debug-build-symbols` (2026-10-25; the committed `HEAD`'s build
+too): libqb's read (`libqb\internal\c\parts\os\clipboard\clipboard.cpp`) replaces its own copy of the 3 bytes with
+the system clipboard cut at the NUL only when `OpenClipboard` succeeds, and Windows' clipboard watcher
+(`TextInputHost`, clipboard history) may hold it open just after the write. Alone, 1 of 6 runs gave 3; under the
+load of three runs side by side, every run. The recordings (1) stay; turning clipboard history off while testing
+should end the race.
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
 line 97 of its keys file) in every run of the slice list or the full corpus at `--jobs 8` since 2026-10-21: in
 the full set at the merge of pull request 12 the full corpus twice, the slice list and the slice list without

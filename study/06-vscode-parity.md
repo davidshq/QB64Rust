@@ -50,6 +50,10 @@ relied on polling input once per line.
 
 ## Debug adapter (`$DEBUG` replacement)
 
+*2026-10-24: the path for M5 is `study\36`: a debug build (`-g`) over the `#line` directives the emitter already
+writes, a debug symbol file, and a thin DAP proxy over the toolchain's `lldb-dap` (the clone ships it). The
+"alternative" of the closing paragraph below is the plan; the "custom layer" is the proxy. The table's rows stand.*
+
 | IDE feature | DAP mechanism | Notes |
 |---|---|---|
 | Start paused | `stopOnEntry` | |

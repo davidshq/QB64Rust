@@ -33,6 +33,7 @@ mod arrays;
 mod builtins;
 mod cmem;
 mod coverage;
+mod debug;
 mod decl;
 mod events;
 mod io;
@@ -46,6 +47,7 @@ mod stmt;
 mod value;
 
 pub use coverage::Coverage;
+pub use debug::{DebugFile, DebugInfo, Reach, reach};
 pub use library::{Linkage, Resolved, ResolvedLibrary, dll_handle, strip_version};
 pub use names::{c_type, proc_name, var_name};
 
@@ -116,6 +118,34 @@ pub fn emit_with(
     coverage: Option<&Coverage>,
     log_folder: Option<&str>,
 ) -> Fragments {
+    emit_all(p, source_name, included, resolved, coverage, log_folder, None).0
+}
+
+/// [`emit_with`], and the debug symbol file of the program as these fragments build it (design D2 of
+/// `m5-debug-build-symbols`, `debug.rs`); `files` is each file's path, as `source_name` and `included` name it, and
+/// the hash of its bytes, by its index. The fragments are [`emit_with`]'s.
+pub fn emit_debug(
+    p: &Program,
+    source_name: &str,
+    included: &HashMap<FileId, String>,
+    resolved: &Resolved,
+    coverage: Option<&Coverage>,
+    log_folder: Option<&str>,
+    files: &[DebugFile],
+) -> (Fragments, DebugInfo) {
+    let (fragments, info) = emit_all(p, source_name, included, resolved, coverage, log_folder, Some(files));
+    (fragments, info.expect("asked for"))
+}
+
+fn emit_all(
+    p: &Program,
+    source_name: &str,
+    included: &HashMap<FileId, String>,
+    resolved: &Resolved,
+    coverage: Option<&Coverage>,
+    log_folder: Option<&str>,
+    debug_files: Option<&[DebugFile]>,
+) -> (Fragments, Option<DebugInfo>) {
     let log_name = |name: &str| {
         let full = match log_folder {
             Some(folder) if std::path::Path::new(name).is_relative() => format!("{folder}{name}"),
@@ -295,7 +325,8 @@ pub fn emit_with(
     if let Some(c) = &e.coverage {
         global.push_str(&c.table());
     }
-    Fragments { files }
+    let info = debug_files.map(|f| e.debug_info(f));
+    (Fragments { files }, info)
 }
 
 /// Text form for snapshots: each non-empty fragment under a header, then the list of empty ones.

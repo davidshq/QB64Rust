@@ -47,6 +47,10 @@ tests/snippets/**/*.bas -text
 tests/snippets/**/*.err -text
 # The language server's encoding fixtures: raw bytes, CR and LF among them (tools/encodings/gen_tables.js)
 crates/lsp/tests/fixtures/*.bin -text
+# The debug-info tests: their snapshots hold the hash of their bytes, so LF line ends on every machine
+# (m5-debug-build-symbols task 3.4)
+tests/frontend/debug_info_*.bas text eol=lf
+tests/frontend/inc/debug_info*.bi text eol=lf
 # Real programs taken whole: source, data and image files byte for byte (tests/programs/README.md)
 tests/programs/civil-war-strategy/** -text
 tests/programs/civil-war-strategy/SOURCE.md text

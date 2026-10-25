@@ -232,12 +232,14 @@ fn check_once(
         };
         match id {
             Ok(id) => {
-                let line_of = |n: Node| c.line(n.first_token().map_or(n.span(), |t| t.span));
-                let line = line_of(header.node());
+                let at = |n: Node| n.first_token().map_or(n.span(), |t| t.span);
+                let line = c.line(at(header.node()));
+                let file = header.node().span().file;
                 let end = def.end().map(|e| e.node()).or_else(|| program.closer_of(def.node()));
-                let end_line = end.map_or(line, line_of);
+                let (end_file, end_line) = end.map_or((file, line), |e| (at(e).file, c.line(at(e))));
                 let proc = &mut c.prog.procs[id.0 as usize];
-                (proc.line, proc.end_line) = (line, end_line);
+                (proc.file, proc.line) = (file, line);
+                (proc.end_file, proc.end_line) = (end_file, end_line);
                 declared.push((def, id))
             }
             Err(Failed) => c.declare_broken(header),

@@ -220,6 +220,7 @@ dependencies = [
  "qb64rust-base",
  "qb64rust-builtins",
  "qb64rust-ir",
+ "serde_json",
 ]
 
 [[package]]

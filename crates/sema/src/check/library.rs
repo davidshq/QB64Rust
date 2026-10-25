@@ -213,7 +213,9 @@ impl<'a> Checker<'a> {
             params: Vec::new(),
             result: None,
             stmts: Vec::new(),
+            file: name_tok.span.file,
             line: self.line(name_tok.span),
+            end_file: name_tok.span.file,
             end_line: self.line(name_tok.span),
             external: Some(External {
                 library,

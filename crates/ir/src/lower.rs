@@ -52,7 +52,9 @@ pub fn lower(p: &sema::Program) -> Program {
             params: q.params.iter().map(|v| VarId(v.0)).collect(),
             result: q.result.map(|v| VarId(v.0)),
             body,
+            file: q.file,
             line: q.line,
+            end_file: q.end_file,
             end_line: q.end_line,
             external: q.external.clone(),
         });

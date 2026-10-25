@@ -134,6 +134,441 @@ fn compile_suites_settings() {
     assert!(exe.is_file());
 }
 
+/// A slice program built with `--debug` prints the output recorded from `qb64pe.exe` (spec `compiler/cli`, "Debug
+/// build", scenario "Same program"): `-g` without `-O2` changes no value it prints.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_build_same_output() {
+    let d = scratch("debug-same");
+    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/slice");
+    // Ends with `SYSTEM`: an `END` would wait for a key.
+    std::fs::copy(corpus.join("s09_functions.bas"), d.join("p.bas")).unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["--debug", "-q", "-m", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let r = run(unattended(&exe).current_dir(&d), None, PROGRAM_LIMIT, "program");
+    assert_eq!(r.status.code(), Some(0), "{}", stdout(&r));
+    let recorded = text(&std::fs::read(corpus.join("s09_functions.output")).unwrap()).replace("\r\n", "\n");
+    assert_eq!(stdout(&r).replace("\r\n", "\n"), recorded);
+}
+
+/// `-f:StripDebugSymbols=false` leaves the local symbols in the executable, the default strips them (spec
+/// `compiler/cli`, scenario "Unstripped on request"), seen with the toolchain's `nm`. The `Makefile`'s
+/// `objcopy --strip-unneeded` keeps the global ones (`QBMAIN` is listed either way), so a local one (type `t`) tells.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn strip_debug_symbols_false_keeps_symbols() {
+    let d = scratch("strip");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let has_local = |settings: &[&str]| {
+        let exe = d.join("p.exe");
+        let mut args = settings.to_vec();
+        args.extend(["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+        let o = qb64rust_build(&d, &args);
+        assert!(o.status.success(), "{}", stdout(&o));
+        let nm = run(
+            Command::new(support::toolchain("nm.exe")).arg(&exe),
+            None,
+            COMPILER_LIMIT,
+            "toolchain",
+        );
+        let listed = stdout(&nm);
+        assert!(listed.contains(" T _Z6QBMAINPv"), "the global symbol stays: {listed}");
+        listed.lines().any(|l| l.split_whitespace().nth(1) == Some("t"))
+    };
+    assert!(has_local(&["-f:StripDebugSymbols=false"]));
+    assert!(!has_local(&[]));
+    assert!(!has_local(&["-f:StripDebugSymbols=true"]));
+}
+
+/// With a build cache, a debug build is no hit for a plain one's entry, and a second debug build is a hit (spec
+/// `compiler/cli`, "Debug build", scenario "The build cache").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_build_is_cached_apart() {
+    let d = scratch("debug-cache");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let cache = d.join("cache");
+    let build = |debug: bool| {
+        let mut cmd = compiler();
+        cmd.current_dir(&d)
+            .env("QB64RUST_BUILD_CACHE", &cache)
+            .args(["-x", "p.bas", "-o", "p.exe"]);
+        if debug {
+            cmd.arg("--debug");
+        }
+        let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+        assert!(o.status.success(), "{}", stdout(&o));
+        stdout(&o).contains("the same build is in")
+    };
+    assert!(!build(false), "the first plain build");
+    assert!(!build(true), "a debug build after a plain one builds");
+    assert!(build(true), "a second debug build is a hit");
+    assert!(build(false), "the plain build's entry is kept");
+}
+
+/// Builds `program` as `<name>.bas` in `d` with `--debug`, by absolute paths (the `#line` directives then name the
+/// file by its full path, as the proxy will launch it); gives the executable.
+fn debug_build(d: &Path, name: &str, program: &str) -> PathBuf {
+    let bas = d.join(format!("{name}.bas"));
+    std::fs::write(&bas, program).unwrap();
+    let exe = d.join(format!("{name}.exe"));
+    let o = qb64rust_build(
+        d,
+        &[
+            "--debug",
+            "-q",
+            "-x",
+            bas.to_str().unwrap(),
+            "-o",
+            exe.to_str().unwrap(),
+        ],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    exe
+}
+
+/// Where `lldb` stopped, in order: frame 0's function and `file:line:column` (`QBMAIN steps.bas:3:1`; a function
+/// without line information alone, `error`). Printed to the test's stderr, so that `--nocapture` shows the sequence.
+/// A `bt` marks its frame 0 `* frame #0:`, a stop does not.
+fn stops(out: &str) -> Vec<String> {
+    let stops: Vec<String> = out
+        .lines()
+        .filter(|l| l.trim_start().starts_with("frame #0:"))
+        .filter_map(|l| {
+            let frame = l.split('`').nth(1)?;
+            let function = frame.split('(').next()?;
+            Some(match frame.rsplit_once(" at ") {
+                Some((_, at)) => format!("{function} {}", at.trim()),
+                None => function.to_string(),
+            })
+        })
+        .collect();
+    eprintln!("lldb stops: {stops:?}");
+    stops
+}
+
+/// The values `lldb`'s `p` printed, in order, without their types (`(int32_t) 7` is `7`).
+fn values(out: &str) -> Vec<String> {
+    out.lines()
+        .filter(|l| l.starts_with('(') && !l.starts_with("(lldb)"))
+        .filter_map(|l| l.split_once(") ").map(|(_, v)| v.to_string()))
+        .collect()
+}
+
+/// A breakpoint by `.bas` line resolves in `QBMAIN` and stops there, once per pass of the loop it is in; the main
+/// module's variables read through their C names (spec `compiler/cli`, "Debug build", scenario "Line information";
+/// the probe of `study\36` §2).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_stops_at_a_line() {
+    let d = scratch("lldb-line");
+    let program = "$CONSOLE:ONLY\n' Line 11 is in a FOR loop.\nDIM SHARED total AS LONG\nTYPE pt\n    x AS INTEGER\n\
+                   END TYPE\nDIM p AS pt\np.x = 1\ns$ = \"hi\"\nFOR i = 1 TO 2\n    total = total + i\nNEXT\n\
+                   PRINT total; s$; p.x\nSYSTEM\n";
+    let exe = debug_build(&d, "dbg", program);
+    let out = support::lldb(
+        &exe,
+        &[
+            "breakpoint set -f dbg.bas -l 11",
+            "run",
+            "p *__LONG_TOTAL",
+            "continue",
+            "p *__LONG_TOTAL",
+        ],
+    );
+    assert!(out.contains("Breakpoint 1: where = dbg.exe`QBMAIN(void*) + "), "{out}");
+    assert!(out.contains(" at dbg.bas:11:1, address = "), "{out}");
+    assert_eq!(stops(&out), ["QBMAIN dbg.bas:11:1", "QBMAIN dbg.bas:11:1"], "{out}");
+    assert_eq!(values(&out), ["0", "1"], "{out}");
+}
+
+/// `next` from line 2 stops once on each BASIC line: a line of two statements is one stop, and a one-line `FOR`
+/// loop is one stop for all its passes (`lldb` steps until the line changes, and the jump back stays on the line).
+/// A breakpoint on that line stops there once, as the loop is entered.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_next_steps_by_line() {
+    let d = scratch("lldb-next");
+    let program = "$CONSOLE:ONLY\na = 1\nb = 2\nc = 3: d = 4\nFOR i = 1 TO 3: t = t + i: NEXT\ne = 5\n\
+                   PRINT a; b; c; d; e; t\nSYSTEM\n";
+    let exe = debug_build(&d, "steps", program);
+    let mut commands = vec!["breakpoint set -f steps.bas -l 2", "run"];
+    commands.extend(["next"; 6]);
+    let out = support::lldb(&exe, &commands);
+    let lines: Vec<String> = (2..=8).map(|l| format!("QBMAIN steps.bas:{l}:1")).collect();
+    assert_eq!(stops(&out), lines, "{out}");
+    let out = support::lldb(
+        &exe,
+        &[
+            "breakpoint set -f steps.bas -l 5",
+            "run",
+            "continue",
+            "continue",
+            "continue",
+        ],
+    );
+    // Once as the loop is entered, not once per pass: the jump back lands after the breakpoint's address.
+    assert_eq!(stops(&out), ["QBMAIN steps.bas:5:1"], "{out}");
+}
+
+/// `next` over a `CALL` goes to the next line; `step` enters the SUB at its header line (the prologue's `#line`) and
+/// may pass through inline functions of libqb's headers, which have line information; `finish` returns to the
+/// `CALL`'s line; `next` at the end of the SUB stops at `END SUB` and at the caller's line before the next one.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_next_over_call_and_into_sub() {
+    let d = scratch("lldb-call");
+    let program = "$CONSOLE:ONLY\nx = 1\nCALL show(x)\ny = 2\nPRINT y\nSYSTEM\nSUB show (n)\n    n = n + 1\n\
+                   PRINT n\nEND SUB\n";
+    let exe = debug_build(&d, "call", program);
+    let out = support::lldb(&exe, &["breakpoint set -f call.bas -l 3", "run", "next", "next"]);
+    assert_eq!(
+        stops(&out),
+        ["QBMAIN call.bas:3:1", "QBMAIN call.bas:4:1", "QBMAIN call.bas:5:1"],
+        "{out}"
+    );
+    let out = support::lldb(
+        &exe,
+        &[
+            "breakpoint set -f call.bas -l 3",
+            "run",
+            "step",
+            "step",
+            "step",
+            "step",
+            "finish",
+            "next",
+        ],
+    );
+    let s = stops(&out);
+    assert!(s[1].starts_with("SUB_SHOW call.bas:7:"), "the header line first: {out}");
+    assert!(s.contains(&"SUB_SHOW call.bas:8:1".to_string()), "{out}");
+    assert!(s[s.len() - 2].starts_with("QBMAIN call.bas:3:"), "finish: {out}");
+    assert_eq!(s[s.len() - 1], "QBMAIN call.bas:4:1", "{out}");
+    let out = support::lldb(
+        &exe,
+        &["breakpoint set -f call.bas -l 9", "run", "next", "next", "next"],
+    );
+    let s = stops(&out);
+    assert_eq!(s[0], "SUB_SHOW call.bas:9:1", "{out}");
+    assert!(s[1].starts_with("SUB_SHOW call.bas:10:"), "END SUB: {out}");
+    assert!(s[2].starts_with("QBMAIN call.bas:3:"), "back at the CALL: {out}");
+    assert_eq!(s[3], "QBMAIN call.bas:4:1", "{out}");
+}
+
+/// `step` into a FUNCTION of an included file stops in that file, at its header line first: the header and `END`
+/// lines are written under the procedure's own file, as its statements are. The steps between pass through the
+/// lines of `data1.txt`, the procedure's data fragment, which has no `#line` of its own; they are printed.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_step_into_an_included_function() {
+    let d = scratch("lldb-include");
+    std::fs::write(
+        d.join("lib.bi"),
+        "FUNCTION twice& (k AS LONG)\n    twice& = 2 * k\nEND FUNCTION\n",
+    )
+    .unwrap();
+    let exe = debug_build(
+        &d,
+        "inc",
+        "$CONSOLE:ONLY\nx& = twice&(3)\nPRINT x&\nSYSTEM\n'$INCLUDE:'lib.bi'\n",
+    );
+    let mut commands = vec!["breakpoint set -f inc.bas -l 2", "run"];
+    commands.extend(["step"; 16]);
+    let out = support::lldb(&exe, &commands);
+    let s = stops(&out);
+    assert_eq!(s[0], "QBMAIN inc.bas:2:1", "{out}");
+    assert!(
+        s[1].starts_with("FUNC_TWICE lib.bi:1:"),
+        "the header, in the included file: {out}"
+    );
+    assert!(s.contains(&"FUNC_TWICE lib.bi:2:1".to_string()), "{out}");
+    assert!(s.iter().all(|s| !s.starts_with("FUNC_TWICE inc.bas")), "{out}");
+}
+
+/// A `RESUME` retry: `next` over the raising line goes to the next line, the handler and the retry running inside
+/// it; a breakpoint in the handler stops in a second `QBMAIN` frame, entered from libqb's `evnt` below the raising
+/// line; the stops of `next` from there through the `RESUME` are printed.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_resume_retry() {
+    let d = scratch("lldb-retry");
+    // Error 5 (`CHR$(-1)`), not 11: a division by zero is critical and reaches no handler.
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO h\nn = -1\ns$ = CHR$(n)\nPRINT s$\nSYSTEM\nh:\nn = 65\nRESUME\n";
+    let exe = debug_build(&d, "retry", program);
+    let out = support::lldb(
+        &exe,
+        &["breakpoint set -f retry.bas -l 3", "run", "next", "next", "next"],
+    );
+    let lines: Vec<String> = (3..=6).map(|l| format!("QBMAIN retry.bas:{l}:1")).collect();
+    assert_eq!(stops(&out), lines, "{out}");
+    let out = support::lldb(
+        &exe,
+        &[
+            "breakpoint set -f retry.bas -l 8",
+            "run",
+            "bt 4",
+            "next",
+            "next",
+            "next",
+        ],
+    );
+    let s = stops(&out);
+    assert_eq!(s[0], "QBMAIN retry.bas:8:1", "{out}");
+    assert!(
+        out.contains("frame #1: ") && out.contains("`evnt(linenumber=4"),
+        "{out}"
+    );
+    assert!(
+        out.contains("frame #2: ") && out.contains("`QBMAIN(unused=") && out.contains(" at retry.bas:4:"),
+        "{out}"
+    );
+    assert!(s.contains(&"QBMAIN retry.bas:9:1".to_string()), "{out}");
+}
+
+/// Each storage's value read by the C expression the symbol file's `c_name`, `reach` and layouts give: a main-module
+/// variable, a `STATIC`, a local and a parameter of a SUB through their pointers, an element of a static array
+/// through its descriptor, a `STRING` through its `qbs`, the members of a user type at their offsets.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_reads_each_storage() {
+    let d = scratch("lldb-reads");
+    let program = "$CONSOLE:ONLY\nTYPE pt\n    x AS INTEGER\n    nm AS STRING * 4\nEND TYPE\nDIM SHARED total AS LONG\n\
+                   DIM a(1 TO 3) AS SINGLE\nDIM s AS STRING\nDIM p AS pt\n\
+                   total = 7: a(2) = 1.5: s = \"hi\": p.x = 3: p.nm = \"abcd\"\nCALL show(total)\nSYSTEM\n\
+                   SUB show (n AS LONG)\n    STATIC calls AS INTEGER\n    x = n + 1\n    calls = calls + 1\n\
+                   PRINT x\nEND SUB\n";
+    let exe = debug_build(&d, "reads", program);
+    let info: serde_json::Value =
+        serde_json::from_str(&text(&std::fs::read(d.join("reads.exe.debug.json")).unwrap())).unwrap();
+    let var = |name: &str| {
+        let v = info["variables"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["name"] == name)
+            .unwrap_or_else(|| panic!("{name} in the symbol file"));
+        (
+            v["c_name"].as_str().unwrap().to_string(),
+            v["reach"].as_str().unwrap().to_string(),
+        )
+    };
+    let pointer = |name: &str, reach: &str| {
+        let (c, r) = var(name);
+        assert_eq!(r, reach, "{name}");
+        format!("p *{c}")
+    };
+    let (a, reach_a) = var("A");
+    assert_eq!(reach_a, "descriptor");
+    let layouts = &info["layouts"];
+    let data = layouts["array"]["data"].as_u64().unwrap();
+    // One dimension (n = 1, k = 0): its lower bound is at the first slot.
+    let lower = layouts["array"]["dimensions"]["first_slot"].as_u64().unwrap();
+    let (s, reach_s) = var("S");
+    assert_eq!(reach_s, "string");
+    let (p, reach_p) = var("P");
+    assert_eq!(reach_p, "bytes");
+    let pt = &info["types"][0]["members"];
+    let (x_at, nm_at) = (pt[0]["offset"].as_u64().unwrap(), pt[1]["offset"].as_u64().unwrap());
+    let commands = [
+        "breakpoint set -f reads.bas -l 17".to_string(),
+        "run".to_string(),
+        pointer("TOTAL", "pointer"),
+        pointer("CALLS", "pointer"),
+        pointer("X", "pointer"),
+        pointer("N", "param-pointer"),
+        format!("p ((float*){a}[{data}])[2 - {a}[{lower}]]"),
+        format!("p {s}->len"),
+        format!("p *(char(*)[2]){s}->chr"),
+        format!("p *(short*)((char*){p} + {x_at})"),
+        format!("p *(char(*)[4])((char*){p} + {nm_at})"),
+    ];
+    let commands: Vec<&str> = commands.iter().map(String::as_str).collect();
+    let out = support::lldb(&exe, &commands);
+    assert_eq!(stops(&out), ["SUB_SHOW reads.bas:17:1"], "{out}");
+    assert_eq!(
+        values(&out),
+        ["7", "1", "8", "7", "1.5", "2", "\"hi\"", "3", "\"abcd\""],
+        "{out}"
+    );
+}
+
+/// A function breakpoint on libqb's `error` with a condition on its code stops at error 5, with the program's line
+/// in the frame below it; libqb has no debug information, so the code is read from its register (`ecx`, the first
+/// argument on x64 Windows). With a condition on another code the program runs to its end.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_stops_at_error() {
+    let d = scratch("lldb-error");
+    let exe = debug_build(&d, "err", "$CONSOLE:ONLY\nx = 1\nERROR 5\nPRINT x\nSYSTEM\n");
+    let out = support::lldb(&exe, &["breakpoint set -n error -c \"(int)$ecx == 5\"", "run", "bt 3"]);
+    assert!(out.contains("Breakpoint 1: where = err.exe`error(int)"), "{out}");
+    assert_eq!(stops(&out), ["error"], "{out}");
+    assert!(
+        out.lines()
+            .any(|l| l.contains("frame #1: ") && l.contains("`QBMAIN(unused=") && l.contains(" at err.bas:3:1")),
+        "{out}"
+    );
+    let out = support::lldb(&exe, &["breakpoint set -n error -c \"(int)$ecx == 6\"", "run"]);
+    assert!(stops(&out).is_empty(), "{out}");
+    assert!(out.contains("exited with status = "), "{out}");
+}
+
+/// A debug build writes `<exe>.debug.json` beside the executable (spec `compiler/debug-info`, "Written beside the
+/// executable"), into another folder than the source's, and the file is what `--dump debug-info` prints but for the
+/// main file's path.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_build_writes_symbol_file() {
+    let d = scratch("debug-file");
+    let program = "$CONSOLE:ONLY\nDIM SHARED total AS LONG\nCALL show(2)\nSYSTEM\nSUB show (n AS LONG)\n\
+                   total = total + n\nEND SUB\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    std::fs::create_dir(d.join("out")).unwrap();
+    let o = qb64rust_build(&d, &["--debug", "-q", "-x", "p.bas", "-o", "out/p.exe"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let file = d.join("out/p.exe.debug.json");
+    let text = text(&std::fs::read(&file).expect("the symbol file"));
+    let json: serde_json::Value = serde_json::from_str(&text).expect("JSON");
+    assert_eq!(json["version"], 1);
+    assert_eq!(json["procedures"][0]["c_name"], "SUB_SHOW");
+    let dump = stdout(&qb64rust(&d, &["--dump", "debug-info", "p.bas"]));
+    assert_eq!(text, dump);
+}
+
+/// A build without `--debug` writes no symbol file and removes one an earlier build left (spec `compiler/debug-info`,
+/// "Not written otherwise").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn plain_build_removes_symbol_file() {
+    let d = scratch("debug-stale");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let file = d.join("p.exe.debug.json");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", "p.exe"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(!file.exists(), "a plain build writes none");
+    std::fs::write(&file, b"stale").unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", "p.exe"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(!file.exists(), "the earlier build's file is removed");
+}
+
+/// A debug build that fails removes the symbol file an earlier build left, with its executable (spec
+/// `compiler/debug-info`, "A failed build").
+#[test]
+fn failed_build_removes_symbol_file() {
+    let d = scratch("debug-failed");
+    std::fs::write(d.join("p.bas"), "PRINT (\n").unwrap();
+    std::fs::write(d.join("p.exe"), b"stale").unwrap();
+    let file = d.join("p.exe.debug.json");
+    std::fs::write(&file, b"stale").unwrap();
+    let o = qb64rust(&d, &["--debug", "-q", "-x", "p.bas", "-o", "p.exe"]);
+    assert!(!o.status.success(), "{}", stdout(&o));
+    assert!(!d.join("p.exe").exists(), "the executable is removed");
+    assert!(!file.exists(), "its symbol file is removed");
+}
+
 #[test]
 fn unknown_setting() {
     let d = scratch("setting");
@@ -317,6 +752,28 @@ fn typed_dump() {
     assert!(out.contains("Binary Add : I32 (qb I64)"), "{out}");
     assert!(out.contains("Var I : I16"), "{out}");
     let o = qb64rust(&d, &["--dump", "typed", "missing-and-bad.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+}
+
+/// `--dump debug-info` prints the debug symbol file without building (spec `compiler/debug-info`, "Dump of a valid
+/// program"), with the main file's path as given; a program with an error exits with 1.
+#[test]
+fn debug_info_dump() {
+    let d = scratch("debug-dump");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nDIM SHARED total AS LONG\nPRINT total\n",
+    )
+    .unwrap();
+    let o = qb64rust(&d, &["--dump", "debug-info", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let json: serde_json::Value = serde_json::from_str(&stdout(&o)).expect("JSON");
+    assert_eq!(json["version"], 1);
+    assert_eq!(json["files"][0]["path"], "p.bas");
+    assert_eq!(json["variables"][0]["c_name"], "__LONG_TOTAL");
+    assert!(!d.join("p.exe").exists(), "nothing is built");
+    std::fs::write(d.join("bad.bas"), "PRINT 1 +\n").unwrap();
+    let o = qb64rust(&d, &["--dump", "debug-info", "bad.bas"]);
     assert_eq!(o.status.code(), Some(1));
 }
 

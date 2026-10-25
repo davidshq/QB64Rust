@@ -241,7 +241,19 @@ The parity work:
 
 ## M5. Debugger
 
-- [ ] Debug symbol file and a DAP adapter
+Done when: a program built in debug mode by the new compiler is debugged in VS Code by BASIC line, with
+breakpoints, stepping, pause, the call stack, the variables of every frame by BASIC name (scalars, strings,
+arrays, user types), send value, data breakpoints and a stop at a runtime error; checked by tests that drive the
+adapter (`study\36`, Path A; `DECISIONS.md` 2026-10-24). The toolchain's `lldb-dap` does the debugging; the
+compiler supplies the line table (its `#line` directives, with `-g`) and the symbol file; a thin proxy speaks
+BASIC to the editor.
+
+- [ ] Debug build (`--debug`, `-f:StripDebugSymbols`): `-g` on the program's own objects, unstripped, never
+      optimised; the stepping questions measured with the toolchain's `lldb` first (`study\36` §3.1 "Risks")
+- [ ] The debug symbol file beside the executable: procedures, variables, user types, the descriptor layouts
+- [ ] `qb64rust dap`: the DAP proxy over the toolchain's `lldb-dap` (variables, evaluate, set value, stack,
+      data breakpoints, set next line, the error stop); its protocol tests
+- [ ] The extension's `debuggers` contribution and launch configuration; a debug build before launch
 
 ## M6. Runtime modernisation
 

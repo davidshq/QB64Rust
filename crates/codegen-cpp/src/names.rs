@@ -212,12 +212,8 @@ impl Emitter<'_> {
         var_name(self.p, self.p.var(id))
     }
 
-    /// Each line preceded by a `#line` directive for source line `line` of the main file.
-    pub(crate) fn lines(&self, line: u32, lines: &[String], out: &mut String) {
-        self.lines_in(None, line, lines, out);
-    }
-
-    /// [`Self::lines`] for a line of `file` (`None`, or a file not included: the main file).
+    /// Each line preceded by a `#line` directive for source line `line` of `file` (`None`, or a file not included:
+    /// the main file).
     pub(crate) fn lines_in(&self, file: Option<FileId>, line: u32, lines: &[String], out: &mut String) {
         let name = file
             .and_then(|f| self.included.get(&f))
@@ -300,7 +296,9 @@ mod tests {
                 params: Vec::new(),
                 result: None,
                 body: Body::default(),
+                file: FileId(0),
                 line: 1,
+                end_file: FileId(0),
                 end_line: 1,
                 external: None,
             });

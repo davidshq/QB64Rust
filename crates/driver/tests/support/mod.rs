@@ -154,6 +154,44 @@ pub fn unattended(exe: &Path) -> Command {
     cmd
 }
 
+/// A tool of the clone's toolchain (`nm.exe`, `lldb.exe`), by its file name.
+pub fn toolchain(name: &str) -> PathBuf {
+    qb64rust_driver::build::find_root(None)
+        .expect("the QB64pe reference clone")
+        .join("internal/c/c_compiler/bin")
+        .join(name)
+}
+
+/// The deadline of a run of `lldb` in batch mode: it starts the program, runs the commands and exits, killing it;
+/// a few seconds each.
+pub const LLDB_LIMIT: Duration = Duration::from_secs(120);
+
+/// Runs the clone's `lldb` in batch mode (`-b`) on `exe`, one `-o` per command, with `QB64PE_NOPROMPT=y` (the
+/// program's runtime errors open no dialog) and [`LLDB_LIMIT`]; gives what it printed, stdout then stderr. After
+/// the last command `lldb` exits and ends the program (design D4 of `m5-debug-build-symbols`). One run at a time in
+/// a test binary: in a full `--ignored` run, beside the other tests' builds, one of several `lldb`s started together
+/// once stopped after `breakpoint set` until its deadline (2026-10-25); a run takes about a second.
+#[expect(clippy::disallowed_methods, reason = "lldb's own messages")]
+pub fn lldb(exe: &Path, commands: &[&str]) -> String {
+    static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
+    let _alone = ONE_AT_A_TIME.lock().unwrap_or_else(|e| e.into_inner());
+    let mut cmd = Command::new(toolchain("lldb.exe"));
+    cmd.arg("-b").env("QB64PE_NOPROMPT", "y");
+    for c in commands {
+        cmd.arg("-o").arg(c);
+    }
+    cmd.arg(exe);
+    if let Some(dir) = exe.parent() {
+        cmd.current_dir(dir);
+    }
+    let o = run(&mut cmd, None, LLDB_LIMIT, "lldb");
+    format!(
+        "{}{}",
+        String::from_utf8_lossy(&o.stdout),
+        String::from_utf8_lossy(&o.stderr)
+    )
+}
+
 /// The folder of the clone's locks (`tools\legacy_tests\clone_lock.py`, `CLONE_LOCK_DIR`): under the main checkout's
 /// `target`, also when the tests run in a git worktree, so that its runs and the main checkout's see each other.
 fn clone_lock_dir() -> PathBuf {
