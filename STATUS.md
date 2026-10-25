@@ -65,15 +65,15 @@ push shows them (the user is not concerned with CI, working rule 9).
    `lldb-dap`, through `lldb-server`; spec `editor/debug-adapter`), is built, closed (its closing runs pass) and
    archived (`2026-10-25-m5-dap-proxy`). Its third and last, `m5-debug-launch` (the extension's debugger of type
    `qb64rust`: F5 and "QB64: Debug" build with `--debug` and launch through `qb64rust dap`; spec
-   `editor/debug-launch`), is built and closed (its closing runs pass), waiting for review and archive. With it
-   every item of M5 is built: M5 is to be declared done with the user at the next merge into `main`.
+   `editor/debug-launch`), is built, closed (its closing runs pass) and archived (`2026-10-25-m5-debug-launch`).
+   Every item of M5 is built: M5 is to be declared done with the user at the next merge into `main`.
 2. M5b, the formatter and the language-server features (user, `DECISIONS.md` 2026-10-25; `ROADMAP.md`), then M6.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
 single step ends about one session in seventy at once ("lost connection"; 3 in 222 runs of
 `debug_next_steps_by_line` under load), so a debugger CLI test can fail so now and then; run it again alone. The
-cause is `lldb-server`'s (`openspec\changes\m5-dap-proxy\design.md`, "Measured").
+cause is `lldb-server`'s (`openspec\changes\archive\2026-10-25-m5-dap-proxy\design.md`, "Measured").
 `slice/s150_builtins_more` and `verification\v49_d_clipboard` read `LEN(_CLIPBOARD$)` of `"a" + CHR$(0) + "b"` as
 3 where 1 is recorded, in the closing runs of `m5-debug-build-symbols` (2026-10-25; the committed `HEAD`'s build
 too): libqb's read (`libqb\internal\c\parts\os\clipboard\clipboard.cpp`) replaces its own copy of the 3 bytes with
