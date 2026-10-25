@@ -66,7 +66,8 @@ push shows them (the user is not concerned with CI, working rule 9).
 1. **M4 is done** (user, 2026-10-24); the merge of `m4-sub-gl` into `main` waits on the user.
 2. M5, the debugger, takes Path A of `study\36` (user, 2026-10-24, `DECISIONS.md`; `ROADMAP.md` M5). Its first
    change, `m5-debug-build-symbols` (`--debug`, the symbol file `<exe>.debug.json`, the stepping measured under
-   `lldb`), is built and closed (its closing runs pass, 2026-10-25) and waits on its archive. Next: the DAP proxy `qb64rust dap` over the toolchain's
+   `lldb`), is built, closed (its closing runs pass) and archived (`2026-10-25-m5-debug-build-symbols`; spec
+   `compiler/debug-info`). Next: the DAP proxy `qb64rust dap` over the toolchain's
    `lldb-dap` (`study\36` §4), designed from that change's "Measured" section (`next` stops once per line; `step`
    and a return need stepping past headers, other files and the rest of a `CALL`; an error stop is a breakpoint on
    `error` with the code in `ecx`).

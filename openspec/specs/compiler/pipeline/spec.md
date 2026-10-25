@@ -166,11 +166,12 @@ SHALL raise error 9, and a read with it SHALL give the value at position 0 of th
 The C++ emitter SHALL write every fragment that `qbx.cpp` includes into a build folder that is inside neither the
 QB64pe reference clone nor this repo's copy of libqb, and the driver SHALL build the executable with the copy's
 `Makefile`, `qbx.cpp` and libqb sources and the clone's toolchain, compiling generated code with `-fwrapv`. The
-driver's flags (`-fwrapv`, `-O2` for `OptimizeCppProgram`) SHALL reach the program's own objects only; libqb's
-objects SHALL be built with none of them, whatever build makes them. The libqb objects a build needs SHALL be
-written into the copy's git-ignored places, never into the clone, and a copy whose objects were built by another
-toolchain or with other flags of the driver SHALL have them built again. A build SHALL NOT change any tracked file
-of the reference clone or of the copy.
+driver's flags (`-fwrapv`, `-O2` for `OptimizeCppProgram`, `-g` for a debug build) SHALL reach the program's own
+objects only; libqb's objects SHALL be built with none of them, whatever build makes them. The executable SHALL be
+stripped of its symbols unless the build is a debug build or `StripDebugSymbols=false` was given, as `qb64pe`
+strips. The libqb objects a build needs SHALL be written into the copy's git-ignored places, never into the
+clone, and a copy whose objects were built by another toolchain or with other flags of the driver SHALL have them
+built again. A build SHALL NOT change any tracked file of the reference clone or of the copy.
 
 #### Scenario: Reference clone unchanged
 - **WHEN** a slice program is built
@@ -188,6 +189,11 @@ of the reference clone or of the copy.
 #### Scenario: An optimised build first
 - **WHEN** the copy has no libqb objects and a program with `OptimizeCppProgram` is built first
 - **THEN** `qbx.cpp` is compiled with `-O2 -fwrapv` and libqb's sources without either
+
+#### Scenario: A debug build first
+- **WHEN** the copy has no libqb objects and a program is built with `--debug` first
+- **THEN** `qbx.cpp` is compiled with `-g -fwrapv` and libqb's sources without either, and a later plain build
+  reuses those objects
 
 #### Scenario: Objects of an earlier build
 - **WHEN** the copy holds libqb objects built before its stamp was written, or by another toolchain, and a program

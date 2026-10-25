@@ -133,6 +133,7 @@ catalogue this section held until 2026-10-16, with the code each feature lives i
 |---|---|
 | Stages, preprocessor (`$IF`, `$LET`), included files, the build, the build cache | `compiler/pipeline` |
 | Command line, `-f:` settings, warnings, the demand report | `compiler/cli` |
+| `--debug` builds, the debug symbol file `<exe>.debug.json` | `compiler/debug-info` |
 | Console and window, `$CONSOLE`, `$SCREENHIDE`, `$EXEICON`, window built-ins | `language/console-and-window` |
 | Procedures, parameters, `SHARED`, `STATIC`, `COMMON` | `language/procedures` |
 | `ON ERROR`, `RESUME`, `ERROR`, `ERR`, `ERL` | `language/error-handling` |
