@@ -480,6 +480,13 @@ class CheckList(unittest.TestCase):
             self.assertEqual((failures, passed), ([], 0), run)
             self.assertTrue(any(why in p for p in problems), (run, problems))
 
+    def test_a_run_with_coverage_stands_for_the_list(self):
+        # The full suites at a merge run with --coverage (m4-coverage-review, design D7): the counters
+        # change no value, so their results judge the pass lists.
+        ok = {"a": ("PASS", "output", ""), "b": ("PASS", "output", "")}
+        problems, failures, passed = self.check(self.data(ok, coverage=True))
+        self.assertEqual((problems, failures, passed), ([], [], 2))
+
     def test_results_without_a_run_record_fail(self):
         problems, _, passed = self.check({"results": []})
         self.assertEqual(passed, 0)
@@ -845,12 +852,26 @@ class CompilePassCache(unittest.TestCase):
         self.bas.write_bytes(b"PRINT 1\n")
         (self.category / "p.output").write_bytes(b"1\n")
 
-    def go(self, runs=(b"1\n",), exe_bytes=b"exe one"):
-        tools = Tools(runs=list(runs), exe_bytes=exe_bytes)
-        args = SimpleNamespace(qb64=Path("qb64rust.exe"), pass_cache=self.cache)
+    def go(self, runs=(b"1\n",), exe_bytes=b"exe one", coverage=None, tools=None):
+        tools = tools or Tools(runs=list(runs), exe_bytes=exe_bytes)
+        cache = None if coverage else self.cache
+        args = SimpleNamespace(qb64=Path("qb64rust.exe"), pass_cache=cache, coverage=coverage)
         with mock.patch.object(rlt, "run_proc", tools):
             r = rlt.compile_test(self.bas, args, self.results, self.results, "windows")
         return r, len(tools.run_cmds)
+
+    def test_coverage_builds_with_the_option_and_appends_the_runs_counts(self):
+        # --coverage for the compile suite (m4-coverage-review, design D3), without the pass cache.
+        counts = Path(self.tmp.name) / "counts.txt"
+        tools = Tools(runs=[b"1\n"], counts=b"one\n")
+        r, _ = self.go(coverage=counts, tools=tools)
+        self.assertEqual(r.status, "PASS")
+        self.assertIn("--coverage", tools.compile_cmd)
+        self.assertEqual(counts.read_bytes(), b"one\n")
+        tools = Tools(runs=[b"1\n"], counts=b"x\n")
+        self.go(tools=tools)
+        self.assertNotIn("--coverage", tools.compile_cmd)
+        self.assertNotIn("QB64RUST_COVERAGE", tools.run_envs[0])
 
     def test_a_program_that_passed_is_not_run(self):
         r, ran = self.go()
@@ -1311,9 +1332,9 @@ class VerificationFixture(unittest.TestCase):
         path.parent.mkdir(exist_ok=True)
         path.write_bytes(data)
 
-    def run_test(self, tools: Tools, pass_cache=None):
+    def run_test(self, tools: Tools, pass_cache=None, coverage=None):
         rlt.support_items.cache_clear()
-        args = SimpleNamespace(qb64=Path("qb64rust.exe"), pass_cache=pass_cache)
+        args = SimpleNamespace(qb64=Path("qb64rust.exe"), pass_cache=pass_cache, coverage=coverage)
         with mock.patch.object(rlt, "run_proc", tools):
             return rlt.run_suite_test(
                 "verification",
@@ -1378,6 +1399,21 @@ class VerificationCompare(VerificationFixture):
         self.assertFalse((self.results / "v99_p").exists())
         self.assertEqual(tools.compile_cmd[:5], ["qb64rust.exe", "-x", "-q", "-m", "v99_p.bas"])
         self.assertNotIn("--include-root", tools.compile_cmd)
+
+    def test_coverage_builds_with_the_option_and_appends_the_runs_counts(self):
+        # --coverage for the verification suite (m4-coverage-review, design D3): as for a corpus program.
+        self.recorded(b"1\n\nexit=0\n")
+        counts = Path(self.tmp.name) / "counts.txt"
+        tools = Tools(runs=[b"1\r\n\r\n"], counts=b"one\n")
+        self.assertEqual(self.run_test(tools, coverage=counts).status, "PASS")
+        self.assertIn("--coverage", tools.compile_cmd)
+        tools = Tools(runs=[b"1\r\n\r\n"], counts=b"two\n")
+        self.run_test(tools, coverage=counts)
+        self.assertEqual(counts.read_bytes(), b"one\ntwo\n")
+        tools = Tools(runs=[b"1\r\n\r\n"], counts=b"x\n")
+        self.run_test(tools)
+        self.assertNotIn("--coverage", tools.compile_cmd)
+        self.assertNotIn("QB64RUST_COVERAGE", tools.run_envs[0])
 
     def test_different_output_fails_and_the_work_folder_stays(self):
         self.recorded(b"1\nexit=0\n")

@@ -59,10 +59,14 @@ push shows them (the user is not concerned with CI, working rule 9).
    `m4-sub-gl`; spec `language/opengl`). `opengl/test` passes (upstream 402 of
    404, the two left out of scope: `http/read_example`, `const/math_funcs`); the upstream demand report marks
    nothing "not supported yet".
-2. **The forms steps 2 and 3 left marked are built** (`m4-left-marked`, on branch `m4-sub-gl`, waiting for the
-   user's review before it is archived): `tests\verification\known.list` holds no "not supported yet" reason, and
-   the demand report over its programs names nothing; `v56_a5` and `v60_d6` take D-037, `v60_c3` D-004.
-3. Then step 6, the coverage review; M4 is declared done by the user at the merge into `main` after it.
+2. **The forms steps 2 and 3 left marked are built and archived** (`m4-left-marked`, on branch `m4-sub-gl`):
+   `tests\verification\known.list` holds no "not supported yet" reason; `v56_a5` and `v60_d6` take D-037, `v60_c3`
+   D-004.
+3. **Step 6, the coverage review, is built** (`m4-coverage-review`, on branch `m4-sub-gl`, waiting for the user's
+   review before it is archived): the built-ins no test runs are `tests\never_run.list` (15, each with its
+   reason), checked by `tools\coverage\builtin_runs.py` on the counts of the full suites run with `--coverage`.
+   Then the full set at a merge into `main`, with those coverage runs for the first time; M4 is declared done by
+   the user at that merge.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at

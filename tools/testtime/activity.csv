@@ -99,6 +99,13 @@ version,session,change,category,actions,bytes
 1,042d2eb1,m1-vscode-extension-v0,product code,6,2058
 1,042d2eb1,m1-vscode-extension-v0,reading,6,0
 1,042d2eb1,m1-vscode-extension-v0,test runs,2,0
+1,0438e9c6,,other commands,1,0
+1,0438e9c6,m4-coverage-review,documents and planning,4,2090
+1,0438e9c6,m4-coverage-review,other commands,16,0
+1,0438e9c6,m4-coverage-review,reading,3,0
+1,0438e9c6,m4-coverage-review,scratch files,1,501
+1,0438e9c6,m4-coverage-review,test runs,8,0
+1,0438e9c6,m4-coverage-review,tests and fixtures,11,7582
 1,045ff9c0,,reading,1,0
 1,045ff9c0,m2-control-flow-slice,builds,1,0
 1,045ff9c0,m2-control-flow-slice,documents and planning,6,3066
@@ -1643,6 +1650,12 @@ version,session,change,category,actions,bytes
 1,7d06cb92,m3-declare-library,scratch files,3,3021
 1,7d06cb92,m3-declare-library,test runs,4,0
 1,7d06cb92,m3-declare-library,tests and fixtures,4,1858
+1,7d328e51,,other commands,1,0
+1,7d328e51,m4-left-marked,other,1,0
+1,7d328e51,m4-left-marked,other commands,6,0
+1,7d328e51,m4-left-marked,reading,1,0
+1,7d328e51,m4-left-marked,scratch files,2,2764
+1,7d328e51,m4-left-marked,test runs,2,0
 1,7e764f5d,,measurement runs,1,0
 1,7e764f5d,,other,1,0
 1,7e764f5d,,other commands,10,0
@@ -2119,6 +2132,18 @@ version,session,change,category,actions,bytes
 1,b0737170,m4-sub-gl,reading,33,0
 1,b0737170,m4-sub-gl,test runs,24,0
 1,b0737170,m4-sub-gl,tests and fixtures,5,2596
+1,b1ab288d,,other commands,19,0
+1,b1ab288d,,reading,3,0
+1,b1ab288d,m4-coverage-review,builds,3,0
+1,b1ab288d,m4-coverage-review,documents and planning,40,39073
+1,b1ab288d,m4-coverage-review,measurement runs,3,0
+1,b1ab288d,m4-coverage-review,other,1,0
+1,b1ab288d,m4-coverage-review,other commands,91,0
+1,b1ab288d,m4-coverage-review,product code,14,9609
+1,b1ab288d,m4-coverage-review,reading,25,0
+1,b1ab288d,m4-coverage-review,scratch files,1,209
+1,b1ab288d,m4-coverage-review,test runs,41,0
+1,b1ab288d,m4-coverage-review,tests and fixtures,44,38349
 1,b22d7e8f,,other,2,0
 1,b22d7e8f,,other commands,5,0
 1,b22d7e8f,m3-network-embed,documents and planning,4,1510
@@ -2855,6 +2880,7 @@ version,session,change,category,actions,bytes
 1,eb08284d,,scratch files,7,3412
 1,eb08284d,,test runs,29,0
 1,eb08284d,,tests and fixtures,18,8291
+1,eb5cae3c,,other commands,1,0
 1,ec549e2f,m3-declare-library,other commands,1,0
 1,ecdf8569,,other commands,2,0
 1,eee0062a,,documents and planning,15,5997
@@ -2863,6 +2889,19 @@ version,session,change,category,actions,bytes
 1,eee0062a,,product code,18,9088
 1,eee0062a,,reading,18,0
 1,eee0062a,,test runs,9,0
+1,ef5f4d48,,builds,4,0
+1,ef5f4d48,,other,1,0
+1,ef5f4d48,,other commands,13,0
+1,ef5f4d48,,product code,10,3785
+1,ef5f4d48,,scratch files,1,106
+1,ef5f4d48,,tests and fixtures,4,588
+1,ef5f4d48,m4-left-marked,builds,1,0
+1,ef5f4d48,m4-left-marked,documents and planning,5,1656
+1,ef5f4d48,m4-left-marked,other commands,14,0
+1,ef5f4d48,m4-left-marked,product code,1,211
+1,ef5f4d48,m4-left-marked,scratch files,1,133
+1,ef5f4d48,m4-left-marked,test runs,7,0
+1,ef5f4d48,m4-left-marked,tests and fixtures,1,374
 1,ef8d6a97,,other commands,5,0
 1,ef8d6a97,,reading,6,0
 1,ef8d6a97,test-parallel-runs,documents and planning,6,2767

@@ -67,9 +67,14 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
 - `--full-states <group>/<name>[.<script>]`: that test's `digest` steps write full states
   (`QB64_SCREEN_DIGEST_AS_STATE=1`) into its `-run1-screen.txt` in the results folder, to look at with
   `state_to_png.py` when a digest differs; the test then fails at stage `screen`, its states not compared.
-- `--coverage <file>` (qb64rust, not with `--record` or `--pass-cache`): each program is built with `--coverage`,
-  and each run's counts are appended to `<file>` (`tools\coverage\README.md`). A run with it, or with
-  `--full-states`, cannot stand for a run of a pass list (`--check-list`).
+- `--coverage <file>` (qb64rust, `--suite corpus`, `verification` or `compile`, not with `--record` or
+  `--pass-cache`): each program is built with `--coverage`, and each run's counts are appended to `<file>`
+  (`tools\coverage\README.md`). **At a merge into `main` the three full suites run with it**, each into its own
+  file (`--coverage target\coverage\merge\corpus.txt`, `upstream.txt`, `verification.txt`), and
+  `python tools\coverage\builtin_runs.py --check target\coverage\merge\*.txt` reads them: the built-ins no test
+  runs must be those of `tests\never_run.list` (`CLAUDE.md` working rule 9; OpenSpec change
+  `m4-coverage-review`, design D7), and the pass lists are judged from them (`--check-list`): the counters
+  change no value. A run with `--full-states` cannot stand for a run of a pass list.
 - `<name>.files`, a folder beside a program that runs: the data files it reads (a picture loaded with `BLOAD`).
   Everything in it, folders too, is copied into the program's folder before the compile and again before each
   run (the folder is emptied between the two runs of `--record`, and a run may have changed a file), with either

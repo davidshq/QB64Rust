@@ -969,8 +969,8 @@ fn coverage_build_counts_statements() {
     run_it(true);
     let hash = |bytes: &[u8]| format!("{:016x}", qb64rust_driver::fnv1a64(bytes));
     let record = format!(
-        "coverage 1\nfile\t0\t{}\tp.bas\nfile\t1\t{}\tinc.bi\n0\t1\t1\t1\n0\t2\t1\t1\n0\t3\t4\t1\n0\t4\t5\t0\n\
-         1\t2\t1\t1\n0\t7\t1\t1\nend\n",
+        "coverage 2\nfile\t0\t{}\tp.bas\nfile\t1\t{}\tinc.bi\n0\t1\t1\t1\t\n0\t2\t1\t1\t\n0\t3\t4\t1\t\n0\t4\t5\t0\t\n\
+         1\t2\t1\t1\t\n0\t7\t1\t1\t\nend\n",
         hash(program.as_bytes()),
         hash(b"\nPRINT \"inc\"\n")
     );
@@ -981,6 +981,50 @@ fn coverage_build_counts_statements() {
         read(),
         format!("{record}{record}"),
         "a second run appends a second record"
+    );
+}
+
+/// A `--coverage` build names each statement's built-ins (spec `testing/coverage`, "Built-ins named in the counts";
+/// design D1 of `m4-coverage-review`): both of `PRINT LEFT$(a$, LEN(b$))`; an `IF`'s condition names its own, its
+/// body's statement its own; a name after `SYSTEM` with the count 0; a member named like a built-in names none, and
+/// so does the program's own `FUNCTION beep`.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn coverage_build_names_builtins() {
+    let d = scratch("coverage-names");
+    let program = "$CONSOLE:ONLY\nTYPE t: left AS LONG: END TYPE\nDIM r AS t\na$ = \"xy\": b$ = \"abc\"\n\
+                   PRINT LEFT$(a$, LEN(b$)); r.left\nIF LEN(a$) THEN\n    PRINT UCASE$(a$)\nEND IF\nSYSTEM\n\
+                   _TITLE \"x\"\nFUNCTION beep\n    beep = 1\nEND FUNCTION\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "--coverage", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let counts = d.join("c.txt");
+    let r = run(
+        unattended(&exe).current_dir(&d).env("QB64RUST_COVERAGE", &counts),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
+    assert_eq!(stdout(&r).replace("\r\n", "\n"), "xy 0 \nXY\n");
+    let record = text(&std::fs::read(&counts).unwrap()).replace("\r\n", "\n");
+    let entries: Vec<&str> = record.lines().filter(|l| l.starts_with("0\t")).collect();
+    // The program's own FUNCTION beep is no built-in.
+    assert!(!record.contains("BEEP"), "{record}");
+    let entries: Vec<&str> = entries.into_iter().filter(|l| !l.starts_with("0\t12\t")).collect();
+    assert_eq!(
+        entries,
+        [
+            "0\t1\t1\t1\t",
+            "0\t4\t1\t1\t",
+            "0\t4\t12\t1\t",
+            "0\t5\t1\t1\tLEFT$ LEN",
+            "0\t6\t4\t1\tLEN",
+            "0\t7\t5\t1\tUCASE$",
+            "0\t9\t1\t1\t",
+            "0\t10\t1\t0\t_TITLE",
+        ],
+        "{record}"
     );
 }
 

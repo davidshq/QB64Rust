@@ -93,9 +93,10 @@ changing direction, design or scope.**
      lines, `cut_game.py`, `screen_state.cpp`, `tools\coverage\`, `codegen-cpp`, `ir` or `driver` changed (`close.py` decides both);
      the demand reports, the shrink-only lists and the wording table as before.
    - **At each merge of `changes` (or `m3`) into `main`**, every two or three changes (`study\archive\32` §4 item 2): the
-     full set, no pass cache: the three full suites (corpus, upstream, verification) with the slice list, the
-     upstream pass list and `tests\verification\pass.list` judged from them (`--check-list`,
-     `tools\legacy_tests\README.md`), the run without folding, the differential pass list, the
+     full set, no pass cache: the three full suites (corpus, upstream, verification), run with `--coverage`, with
+     the slice list, the upstream pass list and `tests\verification\pass.list` judged from them (`--check-list`,
+     `tools\legacy_tests\README.md`), the check of the built-ins they reach (`tools\coverage\builtin_runs.py
+     --check` on their counts, `tests\never_run.list`; user, 2026-10-24), the run without folding, the differential pass list, the
      call-site check and the coverage check of Civil War Strategy's scripts. A failure there is found among the merged changes with the build cache. The pass cache is
      left out there because it cannot see a result that depends on time or load. They may run in a worktree of the
      merge commit beside this repo while the next change goes on here (`tools\legacy_tests\README.md`, "The runs

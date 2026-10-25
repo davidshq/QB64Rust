@@ -33,14 +33,15 @@ uint8 *data=(uint8*)calloc(1,1);
 static uint32 qbr_cov[20];
 static const uint32 qbr_cov_at[60]={0,6,1,0,7,1,0,8,4,0,8,15,0,8,26,0,8,37,0,10,0,0,11,9,0,13,9,0,15,1,0,16,1,0,16,17,0,16,26,0,17,5,0,17,16,0,18,1,0,18,14,0,18,25,0,19,1,0,21,1};
 static const char *const qbr_cov_files[]={"d9e36c66340a950f\011coverage_coverage.bas"};
+static const char *const qbr_cov_names[]={"","","","","","","","","","","","","","","","","","","",""};
 static void qbr_cov_write(){
 const char *qbr_path=getenv("QB64RUST_COVERAGE");
 if (!qbr_path||!*qbr_path) return;
 FILE *qbr_f=fopen(qbr_path,"ab");
 if (!qbr_f) return;
-fprintf(qbr_f,"coverage 1\n");
+fprintf(qbr_f,"coverage 2\n");
 for (int32 qbr_i=0;qbr_i<1;qbr_i++) fprintf(qbr_f,"file\t%d\t%s\n",(int)qbr_i,qbr_cov_files[qbr_i]);
-for (int32 qbr_i=0;qbr_i<20;qbr_i++) fprintf(qbr_f,"%u\t%u\t%u\t%u\n",(unsigned)qbr_cov_at[3*qbr_i],(unsigned)qbr_cov_at[3*qbr_i+1],(unsigned)qbr_cov_at[3*qbr_i+2],(unsigned)qbr_cov[qbr_i]);
+for (int32 qbr_i=0;qbr_i<20;qbr_i++) fprintf(qbr_f,"%u\t%u\t%u\t%u\t%s\n",(unsigned)qbr_cov_at[3*qbr_i],(unsigned)qbr_cov_at[3*qbr_i+1],(unsigned)qbr_cov_at[3*qbr_i+2],(unsigned)qbr_cov[qbr_i],qbr_cov_names[qbr_i]);
 fprintf(qbr_f,"end\n");
 fclose(qbr_f);
 }

@@ -66,6 +66,53 @@ def fnv1a64(data: bytes) -> int:
 
 
 @dataclass
+class Record:
+    """One record of a counts file: each file by its index, (path, digest), and each entry as
+    (file, line, column, count, names); the names are the built-ins of a version 2 record, empty in
+    version 1 (design D2 of `m4-coverage-review`)."""
+
+    files: dict[int, tuple[str, str]]
+    entries: list[tuple[int, int, int, int, tuple[str, ...]]]
+
+
+def read_records(path: Path) -> list[Record]:
+    """Every record of a counts file, of either version."""
+    lines = path.read_bytes().decode("utf-8", "replace").splitlines()
+    records = []
+    i = 0
+    while i < len(lines):
+        if not lines[i].strip():
+            i += 1
+            continue
+        version = lines[i].strip()
+        if version not in ("coverage 1", "coverage 2"):
+            raise CoverageError(f"{path} line {i + 1}: not a coverage record")
+        width = 4 if version == "coverage 1" else 5
+        i += 1
+        files: dict[int, tuple[str, str]] = {}
+        entries = []
+        while i < len(lines) and lines[i] != "end":
+            parts = lines[i].split("\t")
+            if parts[0] == "file" and len(parts) == 4:
+                files[int(parts[1])] = (parts[3], parts[2])
+            elif len(parts) == width and all(p.isdigit() for p in parts[:4]):
+                f, line, col, n = (int(p) for p in parts[:4])
+                names = tuple(parts[4].split()) if width == 5 else ()
+                entries.append((f, line, col, n, names))
+            else:
+                raise CoverageError(f"{path} line {i + 1}: not a line of a record")
+            i += 1
+        if i == len(lines):
+            raise CoverageError(f"{path}: a record without its end (a run cut short)")
+        i += 1
+        for f, *_ in entries:
+            if f not in files:
+                raise CoverageError(f"{path}: a count of file {f}, which the record does not name")
+        records.append(Record(files, entries))
+    return records
+
+
+@dataclass
 class Coverage:
     """Merged counts: by file path (relative to the main file's folder), {(line, column): count}."""
 
@@ -77,37 +124,13 @@ class Coverage:
 
     def add(self, path: Path) -> None:
         """Merges every record of a counts file, each checked against the files on disk."""
-        lines = path.read_bytes().decode("utf-8", "replace").splitlines()
-        i = 0
-        while i < len(lines):
-            if not lines[i].strip():
-                i += 1
-                continue
-            if lines[i].strip() != "coverage 1":
-                raise CoverageError(f"{path} line {i + 1}: not a coverage record")
-            i += 1
-            names: dict[int, str] = {}
-            counts: list[tuple[int, int, int, int]] = []
-            while i < len(lines) and lines[i] != "end":
-                parts = lines[i].split("\t")
-                if parts[0] == "file" and len(parts) == 4:
-                    names[int(parts[1])] = parts[3]
-                    self.check_file(parts[3], parts[2])
-                elif len(parts) == 4 and all(p.isdigit() for p in parts):
-                    f, line, col, n = (int(p) for p in parts)
-                    counts.append((f, line, col, n))
-                else:
-                    raise CoverageError(f"{path} line {i + 1}: not a line of a record")
-                i += 1
-            if i == len(lines):
-                raise CoverageError(f"{path}: a record without its end (a run cut short)")
-            i += 1
-            for f, line, col, n in counts:
-                if f not in names:
-                    raise CoverageError(f"{path}: a count of file {f}, which the record does not name")
-                at = self.files.setdefault(names[f], {})
+        for record in read_records(path):
+            for name, digest in record.files.values():
+                self.check_file(name, digest)
+            for f, line, col, n, _ in record.entries:
+                at = self.files.setdefault(record.files[f][0], {})
                 at[(line, col)] = at.get((line, col), 0) + n
-            for name in names.values():
+            for name, _ in record.files.values():
                 self.files.setdefault(name, {})
             self.records += 1
 

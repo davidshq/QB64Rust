@@ -31,7 +31,7 @@ still marks "not supported yet":
 
 | Form | Why it waits | Details |
 |---|---|---|
-| The window built-ins are compiled and never run (`_TITLE`, `_ICON`, `_MOUSESHOW`, `_SCREENX`, `_NEWIMAGE`, … 20 of them) | What they do shows only in a window; M3 gives programs with a window a check (`tools\screen`) | `study\archive\support-record.md` ("Window built-ins, compiled and never run"); `sema\src\builtins.rs`, `WINDOW_BUILTINS`; call-site programs in `tests\callsite` |
+| The window built-ins that act on the desktop are compiled and never run (`_SCREENMOVE`, `_MOUSEMOVE`, `_SCREENCLICK`, `_SCREENPRINT`, `_NOTIFYPOPUP`, `_CLIPBOARDIMAGE`, `_CONSOLEFONT`); the rest run since `m4-coverage-review` (`screen\w01_window_builtins` and earlier programs) | A test may not move, click or type on the user's desktop, or change its clipboard or console | `tests\never_run.list`; call-site programs in `tests\callsite` |
 | `_SCREENEXISTS` as the direct argument of `HEX$`, `OCT$` or `_BIN$` | The table gives the function no return type, and the old compiler passes the width 0 there, not a LONG's 8 or 32; the function runs from M3 on, where the width can be given | Design D6 of the change |
 | A `$IF` that names `_CONSOLE_` between `$CONSOLE:ONLY` and a later `$CONSOLE` (or the other way round) | The old compiler's two passes read the line with different values (its program prints nothing from the branches; a `CONST` in them is "Name already in use"); no value here would be right | `verification\v26_x27`, `x34`; `tests\frontend\flags_between_errors.bas` |
 
@@ -59,7 +59,7 @@ the new one still marks "not supported yet", and what is compiled but checked by
 | An index that calls a FUNCTION in the array of `GET` or `PUT` (`GET (1, 2)-(3, 4), a(f(1))`) | The old compiler writes the index twice, so the FUNCTION runs twice; writing that the same way needs a second evaluation the emitter does not have | Read from the C++ (`study\00` §5) |
 | The file forms `GET #n, …` and `PUT #n, …` | Step 4 of M3's order (random and binary files) | The mark is ` `GET` on a file ` |
 | A line that is the name of a SUB and a colon, where a line the parser could not read has the word in it | Whether the line is a call or a label depends on every jump of the program, and that line may be one | `tests\frontend\sub_name_colon_errors.bas` (`five:`) |
-| `_FULLSCREEN` (statement and function) is compiled, and no test runs it | A test that takes the whole desktop is not wanted | Call-site programs `fullscreen_*` |
+| The statement `_FULLSCREEN` is compiled, and no test runs it (the function runs in `screen\w01_window_builtins`, `m4-coverage-review`) | A test that takes the whole desktop is not wanted | Call-site programs `fullscreen_*` |
 | `DATE$` and `TIME$` are run for their length and separators only; the statements `DATE$ = …` and `TIME$ = …` are compiled since `m4-builtins-remaining` and run (libqb's `sub_date` and `sub_time` change nothing, `verification\v58_s03`) | Nothing a test records may depend on the clock | `tests\corpus\slice\s71_tab_spc`, `s159_builtins_last` |
 
 **Left marked by `m3-sound`** (the third step of M3, 2026-10-13: `SOUND`, `PLAY`, `BEEP`, `$EXEICON`, and a
@@ -70,7 +70,6 @@ accepts and the new one still marks "not supported yet", and what is compiled bu
 |---|---|---|
 | An `$EXEICON` name with a drive and no slash after it (`C:game.ico`) | The old compiler looks for it in the folder it stands in on that drive (read in `qb64pe.bas` 3854–3873, not measured), which has no counterpart here. The other relative names are looked for under the compiler root since `m4-devices-continue-paths` (`DECISIONS.md` 2026-10-20) | `sema\src\check\mod.rs` `exe_icon_meta` |
 | `VARPTR$` in a `PLAY` or `DRAW` string (`PLAY "X" + VARPTR$(a$)`) | `VARPTR$` compiles since `m4-memory-records`; what `PLAY` and `DRAW` do with the `X` command was not measured | Not measured |
-| `BEEP` is compiled, and no test runs it | It rings the system's bell, which no volume silences (user, `DECISIONS.md` 2026-10-13). Its call is compared by `tests\callsite\beep_*.bas`, and `s74_sound_queue` holds it as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
 | What is heard is checked by no test | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; the samples would test libqb. The slice programs check what a program can observe: the queue, the waits, the errors | Design D6 of `m3-sound` |
 | `SOUND 440, 65535`, the longest accepted duration, is in no slice program | libqb fills a buffer of an hour of samples for it, about 700 MB | `verification\v29_c_sound_errors` line 19 |
 | `s75_sound_wait` and the second part of `s76_sound_errors` need a machine with a sound device | Without one libqb queues nothing, holds nothing and checks neither a volume, a pan position, a waveform nor a `PLAY` string (read in `audio.cpp`). Not seen on GitHub's Windows runner yet (CI is looked at when asked) | Design, Risks, of `m3-sound` |
@@ -82,7 +81,7 @@ compiled but not checked by a run:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `LPRINT` and `CHAIN` are compiled, and no test runs them | `LPRINT` prints a page on the default printer; `CHAIN` starts `qb64pe.exe -c` beside the program through `cmd` (user, `DECISIONS.md` 2026-10-13). `238_chain` on `slice.list` reaches `sub_chain` with a name that is not there; no test chains to a program that exists (gap noted by the user, `DECISIONS.md` 2026-10-16). Their calls are compared by `tests\callsite\lprint_*.bas` and `chain_*.bas`; `s82_print_using_file` and `s87_chain_not_reached` hold them as code that is not reached | `NEVER_RUN` in `sema\src\builtins.rs` |
+| `LPRINT` is compiled, and no test runs it; `CHAIN` runs only to a program that is not there | `LPRINT` prints a page on the default printer; `CHAIN` to a program that exists starts `qb64pe.exe -c` beside the program through `cmd` (user, `DECISIONS.md` 2026-10-13). `238_chain` on `slice.list` reaches `sub_chain` with a name that is not there; no test chains to a program that exists (gap noted by the user, `DECISIONS.md` 2026-10-16). Their calls are compared by `tests\callsite\lprint_*.bas` and `chain_*.bas`; `s82_print_using_file` holds `LPRINT` as code that is not reached | `tests\never_run.list` (`LPRINT`) |
 | What a format of `PRINT USING` prints, and what a file holds after `GET` and `PUT`, are shown once per topic | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; more lines would test libqb | Design, Non-Goals |
 
 **Left marked by `m3-images-fonts-mouse`** (the sixth step of M3, 2026-10-14: images, colours, fonts, the mouse).
