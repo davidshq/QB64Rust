@@ -372,6 +372,12 @@ version,session,change,category,actions,bytes
 1,1f9f1e28,m2-numeric-types,scratch files,1,1997
 1,1f9f1e28,m2-numeric-types,test runs,17,0
 1,1f9f1e28,m2-numeric-types,tests and fixtures,16,11135
+1,20008260,,test runs,1,0
+1,20008260,m4-coverage-review,documents and planning,9,5485
+1,20008260,m4-coverage-review,other,1,0
+1,20008260,m4-coverage-review,other commands,7,0
+1,20008260,m4-coverage-review,reading,4,0
+1,20008260,m4-coverage-review,test runs,1,0
 1,2010f174,,other commands,1,0
 1,20b2aa2d,,other,1,0
 1,20b2aa2d,,other commands,43,0
@@ -437,6 +443,7 @@ version,session,change,category,actions,bytes
 1,2689520c,m2-parser-breadth,reading,3,0
 1,2689520c,m2-parser-breadth,test runs,6,0
 1,2689520c,m2-parser-breadth,tests and fixtures,4,888
+1,26b0d5c2,m4-coverage-review,other commands,1,0
 1,27901f4c,,documents and planning,1,95
 1,27901f4c,,other commands,13,0
 1,27901f4c,,product code,4,945
@@ -1102,6 +1109,13 @@ version,session,change,category,actions,bytes
 1,5a7151bf,m3-redim-retain,reading,3,0
 1,5a7151bf,m3-redim-retain,test runs,2,0
 1,5a7151bf,m3-redim-retain,tests and fixtures,2,97
+1,5a87e9b9,,other commands,1,0
+1,5a87e9b9,m4-coverage-review,builds,1,0
+1,5a87e9b9,m4-coverage-review,documents and planning,12,5497
+1,5a87e9b9,m4-coverage-review,measurement preparation,2,201
+1,5a87e9b9,m4-coverage-review,other commands,31,0
+1,5a87e9b9,m4-coverage-review,reading,3,0
+1,5a87e9b9,m4-coverage-review,test runs,14,0
 1,5b744bc6,,builds,1,0
 1,5b744bc6,,documents and planning,3,1560
 1,5b744bc6,,other commands,26,0

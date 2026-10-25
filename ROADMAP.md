@@ -161,10 +161,12 @@ Done when: the corpus and the upstream tests in reach match, and `qb64pe.bas` co
 
 The compile half of the criterion is met: since `m4-qb64pe-builtins` (on `main` since pull request 13),
 `qb64rust -z` reports nothing for `qb64pe.bas` and `-x` builds an executable, which is not run. The rest of M4 is
-the plan of six steps of `DECISIONS.md` 2026-10-22; steps 1 to 4 are done (4 in two changes,
-`m4-statements-metacommands` and `m4-builtins-remaining`). Left: step 5, `SUB _GL`; the 9 programs of
-`tests\verification\known.list` that steps 2 and 3 left marked; step 6, the coverage review. M4 is declared done
-by the user at the merge into `main` after the last step.
+the plan of six steps of `DECISIONS.md` 2026-10-22, all done: steps 1 to 4 (4 in two changes,
+`m4-statements-metacommands` and `m4-builtins-remaining`), step 5 `SUB _GL` (`m4-sub-gl`), the 9 programs of
+`tests\verification\known.list` that steps 2 and 3 left marked (`m4-left-marked`), step 6 the coverage review
+(`m4-coverage-review`). The run half is met at the full set for the merge of branch `m4-sub-gl` (2026-10-24,
+`STATUS.md`): every corpus program passes but `screen/c15_resize`, the desktop's (`STATUS.md`, "Known bugs"), and
+upstream 402 of 404, the two left out of scope. M4 is declared done by the user at that merge.
 
 The areas M3 left (moved here on 2026-10-18), from the unsupported report at the close of `m3-arraycopy` and the
 recorded gaps in `SOMEDAY.md`; each may take several changes. Deliberately marked behaviours still need their
@@ -180,7 +182,8 @@ recorded decisions or measurements; listing an area does not settle those choice
       `_ARRAYCOPY` (read in `afterlastline.bm` only since `m3-network-embed`: no event checks there): OFF and ON
       anywhere, no event, error or index checks below OFF, the unchecked `_MEMGET`, `_MEMPUT` and `_MEMFILL`
       (`m4-handlers-logging-checking`)
-- [ ] OpenGL user code (`SUB _GL`) and its integration with the existing runtime
+- [x] OpenGL user code (`SUB _GL`) and its integration with the existing runtime (`m4-sub-gl`; `opengl/test`
+      passes)
 - [x] Remaining built-in families and statements: clipboard text, `_FILES$`, `_MD5$`, `_OS$`, `_CAST` and
       `CLEAR`; cover their forms through the call-site check and runnable tests where applicable (device
       input, `_DEVICES` and related functions, `STICK`, `STRIG()`, `ON STRIG` and `STRIG ON`, and `_CONTINUE`,
@@ -203,16 +206,16 @@ recorded decisions or measurements; listing an area does not settle those choice
 
 The parity work:
 
-- [ ] The corpus and the upstream tests outside `tests\upstream\deferred.list` (upstream 379 to 391 of 404 with
-      the old compiler's errors for its rejections, `m4-upstream-rejections`, and to 401 with the `qb64pe/*`
-      programs, which include the old compiler's sources, `m4-qb64pe-sources`; the three left are out of scope:
-      `http/read_example`, `opengl/test`, `const/math_funcs`)
-- [ ] Close the remaining compatibility gaps exposed by the full suites, including accepted programs still
+- [x] The corpus and the upstream tests outside `tests\upstream\deferred.list` (upstream 379 to 391 of 404 with
+      the old compiler's errors for its rejections, `m4-upstream-rejections`, to 401 with the `qb64pe/*`
+      programs, which include the old compiler's sources, `m4-qb64pe-sources`, and to 402 with `opengl/test`,
+      `m4-sub-gl`; the two left are out of scope: `http/read_example`, `const/math_funcs`)
+- [x] Close the remaining compatibility gaps exposed by the full suites, including accepted programs still
       marked "not supported yet" and rejected programs receiving only that mark; keep false errors and parse
       gaps at zero (`tests\known_*.list`) (`tests\known_unsupported_rejections.list` empty since
       `m4-statements-metacommands`; every function and statement of the built-in table compiles or is the old
-      compiler's error since `m4-builtins-remaining`, with `$ERRORLOCATION` and `$USELIBRARY`; "not supported
-      yet" is left for `SUB _GL` and the 9 programs of steps 2 and 3)
+      compiler's error since `m4-builtins-remaining`, with `$ERRORLOCATION` and `$USELIBRARY`; no test program is
+      marked "not supported yet" since `m4-sub-gl` and `m4-left-marked`)
 - [x] Bring the last deferred upstream program into the parity run when its scalar/array naming rule is built;
       finish with no feature-deferred programs left (`tests\upstream\deferred.list`, empty since
       `m4-names-arrays`)
@@ -221,9 +224,10 @@ The parity work:
       idea is taken, not the files: the second review, `DECISIONS.md` 2026-10-04) (compiles with no diagnostic
       and builds since `m4-qb64pe-builtins`, reached whole rather than include by include; running the compiler
       built from it is in `SOMEDAY.md`)
-- [ ] Review the coverage of features checked only by emitted calls or compiled-but-never-run programs; add
+- [x] Review the coverage of features checked only by emitted calls or compiled-but-never-run programs; add
       execution checks where needed to establish parity, using screen state for window output and retaining
-      documented limits for hardware-dependent behaviour
+      documented limits for hardware-dependent behaviour (`m4-coverage-review`: the built-ins no test runs are
+      `tests\never_run.list`, 15, each with its reason, checked at each merge)
 - [x] At the start of M4, before `qb64pe.bas` adds more mode flags: group the checker's fields (`Checker` in
       `sema\src\check\mod.rs`, 72 on 2026-10-16) into four structs by concern (the position in the file, the
       program's settings, the typing context of the current expression, the dimension solver), and pass the

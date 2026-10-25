@@ -25,8 +25,8 @@ cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` an
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
 23 screens as the old compiler's build; its scripts are whole games now, held to line coverage
-(`cws-whole-game`). Upstream is at 401 of 404 (the three left are out of scope: `http/read_example`,
-`opengl/test`, `const/math_funcs`); the verification families are a suite of the new compiler, 2959 programs on
+(`cws-whole-game`). Upstream is at 402 of 404 (the two left are out of scope: `http/read_example`,
+`const/math_funcs`); the verification families are a suite of the new compiler, 3890 programs on
 `tests\verification\pass.list`. `main` is at the merge of `m4-finish` (pull request 14, `82afd7f`, 2026-10-24),
 which holds M4's fourteen changes so far: through pull request 12 (`e0ac8c6`) `m4-checker-groups`,
 `m4-devices-continue-paths`, `m4-names-arrays`, `m4-builtins-param-types`, `dry-cleanup`,
@@ -34,7 +34,9 @@ which holds M4's fourteen changes so far: through pull request 12 (`e0ac8c6`) `m
 `fe5e2de`, below), through pull request 13 (`fe596c3`) `m4-qb64pe-builtins`, `m4-line-numbers-whole-arrays`,
 `m4-names-implicit-arrays` and `m4-memory-records`, and through pull request 14 `m4-statements-metacommands` and
 `m4-builtins-remaining` (the full set at a merge ran on the tree of pull request 14, which stands for both, below).
-Branch `m4-sub-gl` holds step 5, `m4-sub-gl`, archived. The extension's first release is tagged `vscode-v0.2.0`.
+Branch `m4-sub-gl` holds M4's last three changes, `m4-sub-gl`, `m4-left-marked` and `m4-coverage-review`, all
+archived; `main` is its ancestor, so its tree is the merged tree, and the full set for the merge passed on it
+(below). The extension's first release is tagged `vscode-v0.2.0`.
 
 ## Waiting on the user
 
@@ -43,7 +45,14 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 11).
 
-Nothing.
+1. **Is M4 done?** (`ROADMAP.md`, M4; asked at the merge of branch `m4-sub-gl`, 2026-10-24.) The six steps of
+   `DECISIONS.md` 2026-10-22 are built and archived, and the full set for the merge passed (below): the criterion
+   reads as met. Three items of M4's list stay open and would move to a later milestone or `SOMEDAY.md` if M4 is
+   declared done: the forms the name and memory items left marked (variables of procedures in conventional
+   memory, a `TYPE` that holds a `STRING` there, `FOR` over an element of a member array), and the string and
+   array group of differential programs.
+2. **The merge of `m4-sub-gl` into `main`** (a pull request, as pull requests 12 to 14), once the files of the
+   full set are committed.
 
 **The `tier2` job on `m3`** (`study\archive\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -55,18 +64,10 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. **Step 5 of M4's plan (`DECISIONS.md` 2026-10-22), `SUB _GL`, is built and archived** (`m4-sub-gl`, on branch
-   `m4-sub-gl`; spec `language/opengl`). `opengl/test` passes (upstream 402 of
-   404, the two left out of scope: `http/read_example`, `const/math_funcs`); the upstream demand report marks
-   nothing "not supported yet".
-2. **The forms steps 2 and 3 left marked are built and archived** (`m4-left-marked`, on branch `m4-sub-gl`):
-   `tests\verification\known.list` holds no "not supported yet" reason; `v56_a5` and `v60_d6` take D-037, `v60_c3`
-   D-004.
-3. **Step 6, the coverage review, is built** (`m4-coverage-review`, on branch `m4-sub-gl`, waiting for the user's
-   review before it is archived): the built-ins no test runs are `tests\never_run.list` (15, each with its
-   reason), checked by `tools\coverage\builtin_runs.py` on the counts of the full suites run with `--coverage`.
-   Then the full set at a merge into `main`, with those coverage runs for the first time; M4 is declared done by
-   the user at that merge.
+1. **All six steps of M4's plan (`DECISIONS.md` 2026-10-22) are built and archived**, the last three on branch
+   `m4-sub-gl`, and the full set for its merge into `main` passed (below), with the coverage runs for the first
+   time. Waiting on the user: whether M4 is done, and the merge.
+2. After M4: M5, the debugger (`ROADMAP.md`), or what the user puts first among M4's open items.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
@@ -110,6 +111,20 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 22 | `2026-10-18-m3-constant-evaluation` | the `CONST` evaluator in full: `_FLOAT` in software, its lanes and typing by text, every function (math functions certified, else D-026), suffixed constants, the auto-included constants, `$COLOR`; the dependency `astro-float-num` |
 
 ## Numbers at the last full runs
+
+**For the merge into `main` of branch `m4-sub-gl`** (2026-10-24, the full set on the tree of `3f980d8`, which is
+the merged tree, in this checkout, no pass cache, `--jobs 8 --build-cache`; the three full suites with
+`--coverage` for the first time): tier 1 439 tests pass (52 ignored), fmt and clippy clean; the full corpus suite
+512 pass, 5 known failures, 1 failure, `screen/c15_resize` ("Known bugs"); `g12_game.files` passed; `slice.list`
+judged from it 492 of 493, and 492 of 493 with `QB64RUST_NO_FOLD=1` (the same program); the full upstream suite
+402 pass, 1 failure out of scope (`const/math_funcs`, D-031), 1 known failure, `pass.list` judged from it 402 of
+402; the full verification suite 3891 pass, 64 known failures, 1 failure, `v46_a_play_v0` (it reads `PLAY(0)`
+while the background queue drains: 40 at line 193, alone too, against 41 recorded; the old compiler's own build
+gave 40, 40 and 41 in three runs), which moved to `known.list` as `varies`, so `pass.list` judged from the run
+3890 of 3890 (`v42_a_timer` failed at `--jobs 8` and passed alone, timing-sensitive); the built-ins no run
+reaches are those of `tests\never_run.list` (`builtin_runs.py --check`, on the three suites' counts); the
+differential pass list 59 of 59; the call-site check 2649 of 2649 equal; the coverage check of Civil War
+Strategy's scripts passes.
 
 **For the merge into `main` of `m4-finish`, and of pull request 13** (2026-10-24, the full set on the tree of
 `91172cc` with 4b archived, which is the tree of a merge with `main` at `fe596c3`, in this checkout, no pass cache,
@@ -233,7 +248,8 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
   (`.1249886602163315`); at the close of `m4-builtins-remaining` (2026-10-24) the machine's device gave `.125`
   (48000 Hz), from the old compiler's build too (recorded again in a scratch folder), so the program moved to
   `tests\verification\known.list` as `varies`, beside `v39_b_new_mem`, which went the same way earlier. Not the
-  compiler's.
+  compiler's. `verification\v46_a_play_v0` went the same way at the full set for the merge of `m4-sub-gl`
+  (2026-10-24): `PLAY(0)` read while the background queue drains gives 40 or 41 at line 193, the old build's too.
 - `tests\corpus\slice\s150_builtins_more` stores and reads the system clipboard, so it can fail when another run
   uses the clipboard at the same time (seen once in the no-fold run at the close of `m4-qb64pe-sources`: `LEN` of
   `"a" + CHR$(0) + "b"` read back as 3, not 1; it passed alone). Run the no-fold list by itself, not beside

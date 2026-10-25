@@ -63,8 +63,8 @@ and `slice.list` hold, and what the last full run of the release build gave.
 <!-- /counts:corpus-membership -->
 
 <!-- counts:corpus-results -->
-Last full run: 2026-10-24, compiler build `07e987b2d118`, folding on, `--jobs 8`, build cache, 3 min. Of 516 programs: **510 pass**, 1 does not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
-`slice.list` judged in it (`--check-list`): **490 of 491** pass.
+Last full run: 2026-10-24, compiler build `709b412ce702`, folding on, `--jobs 8`, build cache, 3 min. Of 518 programs: **512 pass**, 1 does not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 5 known failures (`target\legacy-tests\results-corpus.json`).
+`slice.list` judged in it (`--check-list`): **492 of 493** pass.
 - corpus:screen/c15_resize: screen: screen state differs from .screen (alone; with --jobs: screen: screen state differs from .screen)
 <!-- /counts:corpus-results -->
 
