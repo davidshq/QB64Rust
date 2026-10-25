@@ -18,8 +18,9 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 
 ## Where we are
 
-M0, M1, M2 and M3 are complete (`ROADMAP.md`; M3 declared done at the merge of pull request 9, user, 2026-10-18,
-tenth review `study\35` §3 item 1; the areas it left are M4's). Twenty-two M3 steps are built and archived
+M0 to M4 are complete (`ROADMAP.md`; M3 declared done at the merge of pull request 9, user, 2026-10-18,
+tenth review `study\35` §3 item 1; M4 at the merge of branch `m4-sub-gl`, user, 2026-10-24, `DECISIONS.md`, what
+its list left open moved to `SOMEDAY.md`). Twenty-two M3 steps are built and archived
 (table below), the last `m3-constant-evaluation` (`4f647a9`); `test-parallel-runs` and `test-while-building` (the test
 cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
@@ -45,14 +46,8 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 11).
 
-1. **Is M4 done?** (`ROADMAP.md`, M4; asked at the merge of branch `m4-sub-gl`, 2026-10-24.) The six steps of
-   `DECISIONS.md` 2026-10-22 are built and archived, and the full set for the merge passed (below): the criterion
-   reads as met. Three items of M4's list stay open and would move to a later milestone or `SOMEDAY.md` if M4 is
-   declared done: the forms the name and memory items left marked (variables of procedures in conventional
-   memory, a `TYPE` that holds a `STRING` there, `FOR` over an element of a member array), and the string and
-   array group of differential programs.
-2. **The merge of `m4-sub-gl` into `main`** (a pull request, as pull requests 12 to 14), once the files of the
-   full set are committed.
+1. **The merge of `m4-sub-gl` into `main`** (a pull request, as pull requests 12 to 14); the full set for it is
+   committed (`1f07337`).
 
 **The `tier2` job on `m3`** (`study\archive\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -64,10 +59,8 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. **All six steps of M4's plan (`DECISIONS.md` 2026-10-22) are built and archived**, the last three on branch
-   `m4-sub-gl`, and the full set for its merge into `main` passed (below), with the coverage runs for the first
-   time. Waiting on the user: whether M4 is done, and the merge.
-2. After M4: M5, the debugger (`ROADMAP.md`), or what the user puts first among M4's open items.
+1. **M4 is done** (user, 2026-10-24); the merge of `m4-sub-gl` into `main` waits on the user.
+2. M5, the debugger (`ROADMAP.md`: a debug symbol file and a DAP adapter), proposed as its first change.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
@@ -263,5 +256,4 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 | When | Item |
 |---|---|
 | Any time | A formatter that matches `-y` (out of M2's exit criterion, `DECISIONS.md` 2026-10-09) |
-| M4 | `qb64pe.bas` reached through its own include files, smallest first (`study\archive\22` §4.2) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |
