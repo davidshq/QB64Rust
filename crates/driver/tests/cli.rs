@@ -262,29 +262,30 @@ fn include_root() {
 #[test]
 fn unknown_statement() {
     let d = scratch("unknown");
-    // A `FOR` over an element of a member array stands for a construct not compiled yet; `FILES` did until
-    // `m4-builtins-remaining`, `SUB _GL` until `m4-sub-gl`.
-    std::fs::write(d.join("p.bas"), format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}")).unwrap();
+    // `VARSEG` of an element of a `_BIT` array stands for a construct not compiled yet; `FILES` did until
+    // `m4-builtins-remaining`, `SUB _GL` until `m4-sub-gl`, `FOR` over an element of a member array until
+    // `m4-left-marked`.
+    std::fs::write(d.join("p.bas"), format!("{MARKED_PREAMBLE}{MARKED}")).unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(
         stdout(&o)
             .lines()
-            .any(|l| l.starts_with("p.bas:6:8: error: not supported yet:")),
+            .any(|l| l.starts_with("p.bas:3:14: error: not supported yet:")),
         "{}",
         stdout(&o)
     );
 }
 
-/// The `TYPE` and `DIM` that make `FOR r.m(1) = 1 TO 2: NEXT` a statement not compiled yet (`FOR` over an element
-/// of a member array, `verification\v56_f3`, left marked by step 3 of M4).
-const MEMBER_FOR_PREAMBLE: &str = "$CONSOLE:ONLY\nTYPE t\n    m(1 TO 2) AS LONG\nEND TYPE\nDIM r AS t\n";
-const MEMBER_FOR: &str = "FOR r.m(1) = 1 TO 2: NEXT\n";
+/// The `DIM` that makes `PRINT VARSEG(bb(1))` a statement not compiled yet (`VARSEG` of an element of a `_BIT`
+/// array; not measured).
+const MARKED_PREAMBLE: &str = "$CONSOLE:ONLY\nDIM bb(2) AS _BIT\n";
+const MARKED: &str = "PRINT VARSEG(bb(1))\n";
 
 #[test]
 fn summary() {
     let d = scratch("summary");
-    let text = format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}PRINT 1 +\n{MEMBER_FOR}");
+    let text = format!("{MARKED_PREAMBLE}{MARKED}PRINT 1 +\n{MARKED}");
     std::fs::write(d.join("p.bas"), text).unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
@@ -1343,6 +1344,28 @@ fn stop_inside_sub_gl_ends_with_error_271() {
     assert_eq!(build_and_run_tracing(&d, program, "D-036\n"), "in\n");
 }
 
+/// A `TYPE` that holds a `STRING`, in conventional memory, has its strings made (`DIVERGENCES.md` D-037; design D3
+/// of `m4-left-marked`): `verification\v56_a5` prints the old compiler's two lines, then the string it sets, where
+/// the old compiler's program crashes (exit 139).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the program and its record are ASCII text, compared as lines"
+)]
+fn type_with_string_in_conventional_memory_has_its_strings() {
+    let d = scratch("cmem-type-string");
+    let verification = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification");
+    let read = |name: &str| String::from_utf8(std::fs::read(verification.join(name)).unwrap()).unwrap();
+    let program = read("v56_a5_type_string_member.bas");
+    let recorded = read("v56_a5_type_string_member.out.txt");
+    let first: Vec<&str> = recorded.lines().take(2).collect();
+    let out = build_and_run_tracing(&d, &program, "D-037\n");
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines[..2], first[..], "{out}");
+    assert_eq!(lines[2..], ["abc 3 "], "{out}");
+}
+
 /// A label and a `CONST` on one line (`DIVERGENCES.md` D-008: the old compiler fails to compile it).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1637,23 +1660,19 @@ fn lsp_named_program() {
 
 /// "Demand report", scenario "A folder of programs": every `.bas` file below the folder is counted, a program the
 /// old compiler rejects is left out, and a program with more errors than a compile run reports is counted in full.
-/// `FOR` over an element of a member array stands for any statement not compiled yet (it was `STOP` until
-/// `m4-qb64pe-sources`, `RUN` until `m4-statements-metacommands`, `FILES` until `m4-builtins-remaining`); when it
-/// is, take another.
+/// `VARSEG` of an element of a `_BIT` array stands for any statement not compiled yet (it was `STOP` until
+/// `m4-qb64pe-sources`, `RUN` until `m4-statements-metacommands`, `FILES` until `m4-builtins-remaining`, `FOR` over
+/// an element of a member array until `m4-left-marked`); when it is, take another.
 #[test]
 fn report_unsupported_counts_a_folder() {
     let d = scratch("report");
     std::fs::create_dir(d.join("sub")).unwrap();
     std::fs::write(d.join("clean.bas"), SLICE_PROGRAM).unwrap();
     let uses = qb64rust_base::MAX_ERRORS + 5;
-    let many = format!("{MEMBER_FOR_PREAMBLE}{}SYSTEM\n", MEMBER_FOR.repeat(uses));
+    let many = format!("{MARKED_PREAMBLE}{}SYSTEM\n", MARKED.repeat(uses));
     std::fs::write(d.join("sub").join("MANY.BAS"), many).unwrap();
-    std::fs::write(d.join("one.bas"), format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}SYSTEM\n")).unwrap();
-    std::fs::write(
-        d.join("rejected.bas"),
-        format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}x =\n"),
-    )
-    .unwrap();
+    std::fs::write(d.join("one.bas"), format!("{MARKED_PREAMBLE}{MARKED}SYSTEM\n")).unwrap();
+    std::fs::write(d.join("rejected.bas"), format!("{MARKED_PREAMBLE}{MARKED}x =\n")).unwrap();
     std::fs::write(d.join("rejected.err"), "Expected expression\n").unwrap();
     let o = qb64rust(&d, &["--report", "unsupported", "."]);
     assert!(o.status.success(), "{}", stdout(&o));
@@ -1661,7 +1680,7 @@ fn report_unsupported_counts_a_folder() {
         "3 programs: 1 without errors, 2 with only \"not supported yet\" errors, 0 with other errors\n\
          1 left out: an .err file beside them (the old compiler rejects them)\n\
          programs  alone   uses  not supported yet\n       \
-         2      2 {:>6}  an element of the member array `r.m` as a `FOR` variable\n",
+         2      2 {:>6}  `VARSEG` of a `_BIT` array\n",
         uses + 1
     );
     assert_eq!(stdout(&o), expected);

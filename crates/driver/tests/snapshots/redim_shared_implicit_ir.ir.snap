@@ -1,0 +1,32 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Array SD:F32 dynamic, dimensions: 1
+Array SD(local):F32 dynamic, dimensions: 1
+Array LC(local):F32 dynamic, dimensions: 1
+Stmt line 2
+  SelectConsole
+Stmt line 6 may_raise
+  Allocate Redim SD:F32
+    Const 0:I64 To Const 1:I64
+Stmt line 7 may_raise
+  Call Q []
+Stmt line 8 may_raise
+  Print console newline
+    Num UBound SD(1):I64
+Stmt line 9
+  System
+Sub Q lines 11-15
+  local SD:F32
+  local LC:F32
+Stmt line 12 may_raise
+  Print console newline
+    Num UBound SD(local)(1):I64
+Stmt line 13 may_raise
+  Allocate Preserve SD(local):F32
+    Const 0:I64 To (Add:F32(Load LC(local)(Const 1:I64):F32, (Const 4:I16 -> Convert F32 Nearest)) -> Convert I64 RoundEven)
+Stmt line 14 may_raise
+  Print console newline
+    Num UBound SD(local)(1):I64

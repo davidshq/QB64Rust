@@ -261,10 +261,11 @@ parser diagnostic. A construct that the later stages do not compile yet SHALL be
 `sema` at that node, not by the parser.
 
 #### Scenario: Statement not compiled yet
-- **WHEN** a program contains `DO: FOR r.m(1) = 1 TO 2: NEXT: LOOP UNTIL a > 0`, with `r` of a `TYPE` that has the
-  member array `m` (`verification\v56_f3`, a form step 3 of M4 left marked)
-- **THEN** the tree has a `DoBlock` holding the `FOR` block, and the only diagnostic is one "not supported yet"
-  error at the `FOR` variable
+- **WHEN** a program contains `DO: PRINT VARSEG(bb(1)): LOOP UNTIL a > 0`, with `bb` an array of `_BIT` (`VARSEG`
+  of an element of a `_BIT` array, not measured; the example was `FOR` over an element of a member array until
+  `m4-left-marked` built it)
+- **THEN** the tree has a `DoBlock` holding the `PRINT` statement, and the only diagnostic is one "not supported
+  yet" error at the `VARSEG`
 
 #### Scenario: Built-in statement read by its template
 - **WHEN** a program contains `LINE (0, 0)-(9, 9), , BF`

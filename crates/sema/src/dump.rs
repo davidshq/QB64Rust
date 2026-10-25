@@ -2,8 +2,8 @@
 
 use crate::{
     Arg, ArrayRef, CaseItem, ErrorHandler, Event, Expr, ExprKind, Handler, InputSource, KeyForm, MemValue, Place,
-    PrintItem, PrintTo, ProcKind, Program, Reference, Resume, Shape, Stmt, StmtArg, StmtKind, Storage, Ty, UsingValue,
-    VarId,
+    PrintItem, PrintTo, ProcKind, Program, Reference, Resume, Shape, StartBounds, Stmt, StmtArg, StmtKind, Storage, Ty,
+    UsingValue, VarId,
 };
 
 use qb64rust_base::show_bytes;
@@ -41,10 +41,22 @@ pub fn dump_typed(p: &Program) -> String {
                     Some(n) => format!("{n} dimensions"),
                     None => "dimensions not known".to_string(),
                 };
-                let start = at_start.as_ref().map_or(String::new(), |bounds| {
-                    let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} TO {u}")).collect();
-                    format!(", allocated at the start ({})", dims.join(", "))
-                });
+                let mut read = String::new();
+                let start = match at_start {
+                    None => String::new(),
+                    Some(StartBounds::Values(bounds)) => {
+                        let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} TO {u}")).collect();
+                        format!(", allocated at the start ({})", dims.join(", "))
+                    }
+                    // Bounds read when the start code allocates the array: each lower and upper bound below.
+                    Some(StartBounds::Read(bounds)) => {
+                        for (l, u) in bounds {
+                            expr(p, l, 1, &mut read);
+                            expr(p, u, 1, &mut read);
+                        }
+                        ", allocated at the start (read)".to_string()
+                    }
+                };
                 // An array parameter stands for the array passed, static or dynamic.
                 let kind = if matches!(v.storage, Storage::Param(_)) {
                     "passed"
@@ -52,6 +64,7 @@ pub fn dump_typed(p: &Program) -> String {
                     "dynamic"
                 };
                 writeln!(out, "ARRAY {name}:{} {kind}, {dims}{start}", ty(p, v.ty)).unwrap();
+                out.push_str(&read);
             }
         }
     }

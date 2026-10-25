@@ -24,10 +24,12 @@ every element. Both SHALL be `_INTEGER64` values to `PRINT` and to operators, as
 ### Requirement: What VARPTR and VARSEG accept
 An argument of `VARPTR` or `VARSEG` that is not a variable or an array element (a literal, an expression, a
 function call) SHALL be a compile error. `VARPTR` and `VARSEG` of a variable, array or parameter of a SUB or
-FUNCTION SHALL be reported "not supported yet", and so SHALL those of a variable, member or element of a `TYPE`
-that holds a `STRING`, and `VARPTR` and `VARSEG` of a whole array `x()` that is not of numbers. `VARPTR` of a
+FUNCTION SHALL be reported "not supported yet", and so SHALL `VARPTR` and `VARSEG` of a whole array `x()` that
+is not of numbers. `VARPTR` of a
 `_BIT` array SHALL be the old compiler's error "VARPTR cannot reference _BIT type arrays", and `VARPTR` of a whole
-`TYPE` variable a compile error (the old compiler fails there, `verification\v56_t02`). Every other variable,
+`TYPE` variable a compile error (the old compiler fails there, `verification\v56_t02`). `VARPTR` of the `STRING`
+member of an array element and `VARPTR$` of a `STRING` member SHALL be compile errors (the old compiler's C++
+build fails, `v60_d7`, `d8`). Every other variable,
 element and member of the main module SHALL be taken (requirement "Variables in conventional memory"), `_BIT`
 scalars included. A name alone that is an array of strings, of fixed-length strings or of a `TYPE` SHALL name the
 scalar of that name, as in the old compiler.
@@ -50,9 +52,12 @@ scalar of that name, as in the old compiler.
 - **THEN** the only diagnostic is "not supported yet"
 
 #### Scenario: A TYPE that holds a string
-- **WHEN** a program has `PRINT VARPTR(x.v)` for `x` of a `TYPE` with a `STRING` member
-- **THEN** the only diagnostic is "not supported yet" (the old compiler's program crashes at the first use of the
-  string, `verification\v56_a5`)
+- **WHEN** a program has `PRINT VARPTR(x.v)` or `VARPTR(x.n)` for `x` of a `TYPE` with a `STRING` member `n`
+- **THEN** it compiles with no diagnostic
+
+#### Scenario: A STRING member where the old build fails
+- **WHEN** a program has `VARPTR(e(2).n)` for an array `e` of that `TYPE`, or `VARPTR$(x.n)`
+- **THEN** it is a compile error that is not "not supported yet"
 
 ### Requirement: Arrays in conventional memory
 An array named in a `VARPTR` or `VARSEG` anywhere in the program SHALL be allocated in libqb's conventional memory
@@ -124,7 +129,10 @@ A variable of the main module that `VARPTR`, `VARSEG`, `SADD` or `VARPTR$` names
 live in libqb's conventional memory, in the old compiler's order and sizes (with every `_BIT` scalar of the main
 module, named or not): `VARPTR` SHALL give the offset the old compiler's program gives, and `VARSEG` its segment
 (80 for a variable). `PEEK` and `POKE` through them SHALL reach the variable's bytes, and a string SHALL keep its
-descriptor there through every assignment.
+descriptor there through every assignment. A `TYPE` variable or array element that holds a `STRING` (a member,
+or a member of a member) SHALL take the old compiler's place and size there, 8 bytes for each `STRING` member;
+its strings SHALL be made as for a `TYPE` variable anywhere else, empty, where the old compiler's program leaves
+them out and crashes at the first use of one (`DIVERGENCES.md` D-037).
 
 #### Scenario: Offsets of scalars
 - **WHEN** the programs `verification\v56_a1`–`a3` print `VARPTR` and `VARSEG` of scalars of every type, strings,
@@ -148,6 +156,17 @@ descriptor there through every assignment.
 - **THEN** each prints what the old compiler's program printed: the element's offset and the member's for a
   `TYPE`, the element's offset for fixed-length strings, the descriptor's offset for strings, error 9 for an index
   outside
+
+#### Scenario: A TYPE that holds a string, in conventional memory
+- **WHEN** the programs `verification\v56_x08`, `x26` and `x27` print `VARPTR` of a `STRING` member, of a `LONG`
+  member beside it and of a member of an array element of such a `TYPE`
+- **THEN** each prints what the old compiler's program printed
+
+#### Scenario: Its string used
+- **WHEN** `verification\v56_a5` prints `VARPTR(r.v); VARSEG(r)`, sets `r.v = 5`, prints it, then sets `r.n = "abc"`
+  and prints `r.n; LEN(r.n)`
+- **THEN** it prints the old compiler's first two lines, then `abc 3`, and ends normally (D-037: the old
+  compiler's program crashes there)
 
 ### Requirement: SADD
 `SADD(s$)` of a variable-length string variable or element, or of `s$()` (its first element), SHALL give the

@@ -52,7 +52,7 @@ pub use names::{c_type, proc_name, var_name};
 use decl::is_qbs;
 use names::{c_string, line_name};
 use qb64rust_base::FileId;
-use qb64rust_ir::{Body, LabelId, Program, Shape};
+use qb64rust_ir::{Body, LabelId, Program, Shape, StartBounds, Var};
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
@@ -216,25 +216,36 @@ pub fn emit_with(
     set("main0.txt", main0);
     // The libraries' start first, as the old compiler's: a `DYNAMIC` library's errors come before anything else.
     let mut maindata = e.library_start();
-    maindata += &e.per_program_var(|v, n| {
-        let mut text = e.alloc(v, n);
+    // Each variable's allocation, and that of an array `STATIC a(bounds)` declared with bounds known when
+    // compiling after it; the allocations with bounds read when they run follow the declarations they may use.
+    let mut read = String::new();
+    let mut at_start = |e: &mut Emitter, maindata: &mut String, v: &Var, n: &str, bounds: &StartBounds| {
+        let text = e.allocate_at_start(v, n, bounds);
+        match bounds {
+            StartBounds::Values(_) => maindata.push_str(&text),
+            StartBounds::Read(_) => read.push_str(&text),
+        }
+    };
+    for v in p.vars.iter().filter(|v| decl::lives_for_program(v)) {
+        let n = names::var_name(p, v);
+        maindata.push_str(&e.alloc(v, &n));
         if let Shape::Dynamic {
             at_start: Some(bounds), ..
         } = &v.shape
         {
-            text.push_str(&e.allocate_at_start(v, n, bounds));
+            at_start(&mut e, &mut maindata, v, &n, bounds);
         }
-        text
-    });
+    }
     // The allocations other declarations add (`STATIC a(n)` beside a shared array), after every array's own.
     for (id, bounds) in &p.start_allocations {
         let v = p.var(*id);
-        maindata.push_str(&e.allocate_at_start(v, &names::var_name(p, v), bounds));
+        at_start(&mut e, &mut maindata, v, &names::var_name(p, v), bounds);
     }
     maindata.push_str(&e.temps(None));
     for d in std::mem::take(&mut e.pass_decls) {
         maindata.push_str(&d);
     }
+    maindata.push_str(&read);
     set("maindata.txt", maindata);
     if let Some(ret) = e.take_ret(0) {
         files.push(("ret0.txt".into(), ret));

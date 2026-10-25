@@ -1,0 +1,8 @@
+1. calls at start: 1 
+2. two calls: 6  1 
+ 6  2 
+3. error: [error 5 ] calls: 1 
+4. error again: [error 5 ] calls: 1 
+5. ERASE, error:[f] [error 5 ] calls: 2 
+6. after: 6  1 
+exit=0

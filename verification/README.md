@@ -305,6 +305,20 @@ Small programs behind `study\09`, `study\10` and later measurements:
   number", a constant as a member's bound or `STRING * n` rejected and as a variable's `STRING * n` accepted;
   `x55`–`x57`: by the review of those fixes, a suffix with empty parentheses in an expression "Invalid array name"
   and as a statement "Syntax error", after `CALL` without arguments "Expected CALL sub-name")
+- `v60*`: the forms steps 2 and 3 of M4's plan left marked, measured as task 1.1 of `m4-left-marked` (its
+  `design.md`, D1–D5): `a1`–`a7` `STATIC v(bounds)` whose bound reads a shared variable, an element of a shared
+  array, a main-module `CONST` or calls a FUNCTION (read when the start code allocates the array: at the start,
+  also for a SUB never called, and when a handler is entered while `ERASE` has released it, with the values of that
+  moment; a FUNCTION does not run while the array is allocated, what it prints at the start is lost and later
+  seen; several bounds in file order); `b1`–`b10` in a procedure, `REDIM` of a shared array whose bound first names
+  an array used without `DIM` (the name is the procedure's array in the whole procedure, above the `REDIM` too and
+  below `SHARED sd()`, new on each call also in `SUB … STATIC` and with `_PRESERVE`; other procedures and the main
+  module keep the shared one; in a list only that item; `b7`: named above the `REDIM`, the shared array is given
+  the bounds); `c1`–`c6` `FOR` over an element of a member array (steps, `EXIT FOR`, a nested member, an index out
+  of range at `NEXT` under a handler, every numeric type, `_OFFSET`, two dimensions); `d1`–`d8` a `TYPE` that holds
+  a `STRING` in conventional memory (offsets of members, nested and two strings, among scalars, `VARPTR$` of a
+  number member; `d5` an element's string used, no crash; `d6` a variable's string used, exit 139; `d7` `VARPTR`
+  of an element's `STRING` member and `d8` `VARPTR$` of a `STRING` member: the C++ build fails)
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

@@ -11,7 +11,7 @@ use crate::Emitter;
 use crate::decl::{Part, count_of, dim_slot, lock_slot};
 use crate::names::{bare, int_const};
 use crate::owner::dyn_fn;
-use qb64rust_ir::{AllocMode, ArrayRef, Conv, Expr, ExprKind, Facts, Ty, Var, VarId, numeric_value_types};
+use qb64rust_ir::{AllocMode, ArrayRef, Conv, Expr, ExprKind, Facts, StartBounds, Ty, Var, VarId, numeric_value_types};
 
 /// The name of the descriptor of a dynamic member array that [`Emitter::allocate`] allocates.
 const DYN_DESC: &str = "dyn_d";
@@ -121,13 +121,32 @@ impl Emitter<'_> {
     /// the program starts and again whenever an error handler is entered, where an array that is allocated is
     /// left alone (an error is pending, so no error 10) and one that an `ERASE` released is allocated again, as
     /// in the old compiler.
-    pub(crate) fn allocate_at_start(&self, v: &Var, n: &str, bounds: &[(i64, i64)]) -> String {
-        let texts: Vec<(String, String)> = bounds
-            .iter()
-            .map(|&(lower, upper)| (int_const(lower, Ty::I64), int_const(upper, Ty::I64)))
-            .collect();
+    ///
+    /// Bounds read when it runs ([`StartBounds::Read`], design D1 of `m4-left-marked`) are the main module's
+    /// values; `allocate_with` writes them in the branch for an array that is not allocated, so a FUNCTION in them
+    /// runs only then, as in the old compiler (its C++ of `verification\v60_a2`). The caller puts the text after
+    /// the main module's temporaries and `pass` declarations, which it may use.
+    pub(crate) fn allocate_at_start(&mut self, v: &Var, n: &str, bounds: &StartBounds) -> String {
+        let (texts, cleanup) = match bounds {
+            StartBounds::Values(bounds) => (
+                bounds
+                    .iter()
+                    .map(|&(lower, upper)| (int_const(lower, Ty::I64), int_const(upper, Ty::I64)))
+                    .collect(),
+                false,
+            ),
+            StartBounds::Read(bounds) => (
+                self.bound_texts(bounds),
+                bounds
+                    .iter()
+                    .any(|(lower, upper)| lower.uses_strings(self.p) || upper.uses_strings(self.p)),
+            ),
+        };
         let mut out = Vec::new();
         self.allocate_with(v.ty, n, &texts, AllocMode::Dim, &mut out);
+        if cleanup {
+            out.push("qbs_cleanup(qbs_tmp_base,0);".into());
+        }
         out.iter().map(|line| format!("{line}\n")).collect()
     }
 

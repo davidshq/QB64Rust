@@ -1,0 +1,51 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY SA:I32(0 TO 3)
+ARRAY MA:I32(0 TO 4)
+ARRAY X (static):I32 dynamic, 1 dimension, allocated at the start (read)
+  Int 0 : I64
+  UBound MA : I64
+ARRAY V (static):I32 dynamic, 1 dimension, allocated at the start (read)
+  Int 0 : I64
+  Convert Widen : I64
+    Var N : I32
+ARRAY W (static):I16 dynamic, 2 dimensions, allocated at the start (read)
+  Int 1 : I64
+  Convert RoundEven : I64
+    CallProc F : F32
+      temp
+        Int 3 : I32
+  Int 0 : I64
+  Binary Add : I64
+    Convert Widen : I64
+      Element SA(…) : I32
+        Int 1 : I64
+    Int 2 : I64
+line 2: ConsoleOnly
+line 10: Call S
+line 11: Call T
+line 12: System
+SUB T
+  static X:I32
+line 17: Print newline
+  Num
+    UBound X (static) : I64
+FUNCTION F : F32
+  param J:I32
+  result F:F32
+line 21: Assign F (result):F32
+  Convert Nearest : F32
+    Binary Add : I32 (qb I64)
+      Var J (param) : I32
+      Int 1 : I32
+SUB S
+  static V:I32
+  static W:I16
+line 27: Print newline
+  Num
+    UBound V (static) : I64
+  Num
+    UBound W (static) : I64
+      Int 2 : I32

@@ -3,7 +3,7 @@ source: crates/driver/tests/frontend.rs
 expression: snap
 ---
 unsupported.bas:13:21: error: `VARPTR` of a whole `TYPE` variable
-unsupported.bas:15:44: error: not supported yet: `VARSEG` of a `TYPE` that holds a `STRING`, in conventional memory
+unsupported.bas:15:44: error: not supported yet: `VARSEG` of a `_BIT` array
 unsupported.bas:16:11: error: this operator cannot be used on strings
 unsupported.bas:17:6: error: cannot store a string in a number variable
 unsupported.bas:17:6: note: QB64pe: Illegal string-number conversion

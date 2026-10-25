@@ -117,7 +117,7 @@ pub use qb64rust_sema::{
 };
 /// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
 /// `m2-defxxx-common-arrays`), as is what an allocation does with an array that is allocated already.
-pub use qb64rust_sema::{AllocMode, Shape};
+pub use qb64rust_sema::{AllocMode, Shape, StartBounds};
 /// The event of an [`Op::OnEvent`] and the forms of [`Op::Key`] are `sema`'s (design D3 of `m3-events`).
 pub use qb64rust_sema::{Event, KeyForm};
 /// The `DECLARE LIBRARY` blocks and the C function behind a library procedure are `sema`'s (design D1 of
@@ -213,7 +213,7 @@ pub enum Storage {
 /// the array passed as [`Arg::Array`], which may be static or dynamic: an [`Op::Allocate`] of it raises error 10
 /// for a static one, and its `ERASE` is [`Op::EraseParam`]. Its number of dimensions is that of every array
 /// passed to it; it has none when nothing in the program says one, and then no array is ever passed.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Var {
     pub name: String,
     pub ty: Ty,
@@ -877,7 +877,7 @@ pub struct Program {
     /// run when the program starts after every array's own start (`sema`'s [`qb64rust_sema::Program`]'s
     /// `start_allocations`: `STATIC a(n)` beside a shared array of the name). The array is allocated already
     /// when it is static, and its program then ends at the start with error 10, before any handler is set.
-    pub start_allocations: Vec<(VarId, Vec<(i64, i64)>)>,
+    pub start_allocations: Vec<(VarId, StartBounds)>,
     /// The `DECLARE LIBRARY` blocks in file order; [`External::library`] indexes it. A `DYNAMIC` library is loaded,
     /// and each of its functions found, when the program starts: a library that cannot be loaded raises error
     /// 259, a function it does not hold error 260, before the first statement (measured, `verification\v37_j`).

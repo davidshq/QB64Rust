@@ -552,7 +552,7 @@ pub enum Storage {
 
 /// What a variable is: a scalar or one of the two kinds of array (design D3 of `m2-defxxx-common-arrays`). Which
 /// kind an array is, is settled by the first declaration of it in the file (measured, `study\00` §5).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Shape {
     Scalar,
     /// An array that exists for the whole program: the lower and upper bound of each dimension, first dimension
@@ -575,8 +575,32 @@ pub enum Shape {
     /// raises error 10 (`v24_x285`), like any dynamic array that is allocated.
     Dynamic {
         dims: Option<usize>,
-        at_start: Option<Vec<(i64, i64)>>,
+        at_start: Option<StartBounds>,
     },
+}
+
+/// The bounds of `STATIC a(bounds)`, which the old compiler writes into the main module's start code as they
+/// are (design D4 of `m4-names-implicit-arrays`, D1 of `m4-left-marked`), lower before upper, first dimension
+/// first.
+#[derive(Clone, Debug, PartialEq)]
+pub enum StartBounds {
+    /// Values known when compiling: numbers, `CONST`s, `LEN` of a literal.
+    Values(Vec<(i64, i64)>),
+    /// Expressions that read a shared variable or call a FUNCTION, checked in the procedure's scope with no name
+    /// of the procedure's own: they are read when the start code allocates the array, at the start and when a
+    /// handler is entered while it is released, and not while it is allocated (`verification\v55_x74`, `x75`,
+    /// `v60_a1`–`a7`).
+    Read(Vec<(Expr, Expr)>),
+}
+
+impl StartBounds {
+    /// The number of dimensions.
+    pub fn dims(&self) -> usize {
+        match self {
+            StartBounds::Values(b) => b.len(),
+            StartBounds::Read(b) => b.len(),
+        }
+    }
 }
 
 impl Shape {
@@ -642,7 +666,7 @@ impl AllocMode {
 /// A variable: a name plus a type (design D5), and its storage. An array is a variable with a shape other than
 /// [`Shape::Scalar`]; its `ty` is the type of its elements. Arrays and scalars of the same name and type are
 /// different variables.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Var {
     /// The name without suffix, in upper case.
     pub name: String,
@@ -1669,7 +1693,7 @@ pub struct Program {
     /// a(bounds)` in a procedure beside a shared array of that name and type allocates the shared array when the
     /// program starts, after its own allocation (`Dim` mode, each pair a dimension's bounds; measured,
     /// `verification\v24_x272`, `v55_d1`–`d4`; design D4 of `m4-names-implicit-arrays`).
-    pub start_allocations: Vec<(VarId, Vec<(i64, i64)>)>,
+    pub start_allocations: Vec<(VarId, StartBounds)>,
     /// Every `CONST`, in source order.
     pub consts: Vec<Const>,
     /// The user types, in source order.

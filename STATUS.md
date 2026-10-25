@@ -59,9 +59,10 @@ push shows them (the user is not concerned with CI, working rule 9).
    `m4-sub-gl`; spec `language/opengl`). `opengl/test` passes (upstream 402 of
    404, the two left out of scope: `http/read_example`, `const/math_funcs`); the upstream demand report marks
    nothing "not supported yet".
-2. Then the 9 programs of `tests\verification\known.list` that steps 2 and 3 left marked (the demand report over
-   it names them), and step 6, the coverage review; M4 is declared done by the user at the merge into `main`
-   after the last.
+2. **The forms steps 2 and 3 left marked are built** (`m4-left-marked`, on branch `m4-sub-gl`, waiting for the
+   user's review before it is archived): `tests\verification\known.list` holds no "not supported yet" reason, and
+   the demand report over its programs names nothing; `v56_a5` and `v60_d6` take D-037, `v60_c3` D-004.
+3. Then step 6, the coverage review; M4 is declared done by the user at the merge into `main` after it.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at

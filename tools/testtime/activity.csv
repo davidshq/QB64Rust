@@ -2114,7 +2114,7 @@ version,session,change,category,actions,bytes
 1,b0737170,m4-sub-gl,documents and planning,6,1830
 1,b0737170,m4-sub-gl,measurement preparation,12,3690
 1,b0737170,m4-sub-gl,measurement runs,2,0
-1,b0737170,m4-sub-gl,other commands,44,0
+1,b0737170,m4-sub-gl,other commands,45,0
 1,b0737170,m4-sub-gl,product code,17,5589
 1,b0737170,m4-sub-gl,reading,33,0
 1,b0737170,m4-sub-gl,test runs,24,0
@@ -2192,6 +2192,16 @@ version,session,change,category,actions,bytes
 1,b65b861a,,other commands,12,0
 1,b65b861a,,product code,3,305
 1,b65b861a,,test runs,2,0
+1,b7300647,m4-left-marked,builds,6,0
+1,b7300647,m4-left-marked,documents and planning,23,16718
+1,b7300647,m4-left-marked,measurement preparation,35,18642
+1,b7300647,m4-left-marked,measurement runs,7,0
+1,b7300647,m4-left-marked,other commands,140,0
+1,b7300647,m4-left-marked,product code,23,16507
+1,b7300647,m4-left-marked,reading,40,0
+1,b7300647,m4-left-marked,scratch files,7,12123
+1,b7300647,m4-left-marked,test runs,55,0
+1,b7300647,m4-left-marked,tests and fixtures,24,10822
 1,b78cef6d,,documents and planning,26,9258
 1,b78cef6d,,other commands,14,0
 1,b78cef6d,,reading,13,0
@@ -2296,6 +2306,15 @@ version,session,change,category,actions,bytes
 1,c3c2ea20,,scratch files,5,13798
 1,c3c2ea20,,test runs,18,0
 1,c3c2ea20,,tests and fixtures,51,73759
+1,c411b566,,documents and planning,2,236
+1,c411b566,,other commands,1,0
+1,c411b566,,test runs,1,0
+1,c411b566,m4-sub-gl,other,1,0
+1,c411b566,m4-sub-gl,other commands,5,0
+1,c411b566,m4-sub-gl,product code,1,124
+1,c411b566,m4-sub-gl,reading,1,0
+1,c411b566,m4-sub-gl,scratch files,1,1343
+1,c411b566,m4-sub-gl,test runs,1,0
 1,c47bc2ae,,other commands,1,0
 1,c47bc2ae,cws-whole-game,documents and planning,6,32129
 1,c47bc2ae,cws-whole-game,other commands,3,0
@@ -2365,6 +2384,13 @@ version,session,change,category,actions,bytes
 1,c8540345,m3-declare-library,scratch files,2,2200
 1,c8540345,m3-declare-library,test runs,13,0
 1,c8540345,m3-declare-library,tests and fixtures,9,9276
+1,c93d7d53,,other commands,1,0
+1,c93d7d53,m4-left-marked,documents and planning,4,19508
+1,c93d7d53,m4-left-marked,other commands,19,0
+1,c93d7d53,m4-left-marked,scratch files,1,7308
+1,c93d7d53,m4-left-marked,test runs,3,0
+1,c93d7d53,m4-sub-gl,other,1,0
+1,c93d7d53,m4-sub-gl,other commands,15,0
 1,ca1c3e73,,other commands,4,0
 1,ca1c3e73,,reading,7,0
 1,ca1c3e73,m1-vscode-extension-v0,documents and planning,19,3963
@@ -2709,6 +2735,7 @@ version,session,change,category,actions,bytes
 1,e3961321,cpp-failure-errors,product code,4,1020
 1,e3961321,cpp-failure-errors,reading,2,0
 1,e3961321,cpp-failure-errors,test runs,4,0
+1,e3dfa490,m4-sub-gl,other commands,1,0
 1,e3fa5b59,,measurement preparation,9,18729
 1,e3fa5b59,,measurement runs,1,0
 1,e3fa5b59,,other commands,22,0

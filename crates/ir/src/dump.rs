@@ -3,8 +3,8 @@
 use crate::RunTarget;
 use crate::{
     Arg, ArrayRef, BinOp, Body, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue, OnError, Op, Place,
-    PrintItem, PrintTo, ProcKind, Program, Reference, Resize, Resume, RuntimePart, Settings, Shape, Source, StmtArg,
-    Storage, Ty, UsingValue, VarId, When,
+    PrintItem, PrintTo, ProcKind, Program, Reference, Resize, Resume, RuntimePart, Settings, Shape, Source,
+    StartBounds, StmtArg, Storage, Ty, UsingValue, VarId, When,
 };
 
 use qb64rust_base::{show_bytes, to_u32};
@@ -121,10 +121,21 @@ pub fn dump(p: &Program) -> String {
             }
             Shape::Dynamic { dims, at_start } => {
                 let dims = dims.map_or("?".to_string(), |n| n.to_string());
-                let start = at_start.as_ref().map_or(String::new(), |bounds| {
-                    let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
-                    format!(", allocated at the start ({})", dims.join(", "))
-                });
+                let start = match at_start {
+                    None => String::new(),
+                    Some(StartBounds::Values(bounds)) => {
+                        let dims: Vec<String> = bounds.iter().map(|(l, u)| format!("{l} To {u}")).collect();
+                        format!(", allocated at the start ({})", dims.join(", "))
+                    }
+                    // Read when the start code allocates the array.
+                    Some(StartBounds::Read(bounds)) => {
+                        let dims: Vec<String> = bounds
+                            .iter()
+                            .map(|(l, u)| format!("{} To {}", val(p, l), val(p, u)))
+                            .collect();
+                        format!(", allocated at the start, read ({})", dims.join(", "))
+                    }
+                };
                 // An array parameter stands for the array passed, static or dynamic.
                 let kind = if matches!(v.storage, Storage::Param(_)) {
                     "passed"

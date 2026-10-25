@@ -55,8 +55,8 @@ unsigned integer type `t` SHALL parse as libqb's unsigned `VAL` does (not narrow
 fixed-length string argument SHALL be a string.
 
 #### Scenario: Unsupported built-in
-- **WHEN** a program uses `VARPTR` of a `TYPE` variable that holds a `STRING`, in conventional memory
-  (`verification\v56_a5`, a form step 3 of M4 left marked)
+- **WHEN** a program uses `VARSEG` of an element of a `_BIT` array (not measured; the example was `VARPTR` of a
+  `TYPE` variable that holds a `STRING` until `m4-left-marked` built it)
 - **THEN** the compiler reports it "not supported yet" and no other error for that expression
 
 #### Scenario: Every function of the table compiles

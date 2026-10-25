@@ -2,4 +2,4 @@
 source: crates/driver/tests/frontend.rs
 expression: snap
 ---
-blocks_not_compiled_yet.bas:14:12: error: not supported yet: an element of the member array `r.m` as a `FOR` variable
+blocks_not_compiled_yet.bas:12:18: error: not supported yet: `VARSEG` of a `_BIT` array
