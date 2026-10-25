@@ -1,0 +1,7 @@
+1. first call: 0  1 
+2. n = 7, error: [error 5 ] 0  2 
+3. ERASE, error: [error 5 ] 7  1 
+4. ERASE, n = 9, error: [error 5 ] 9  1 
+5. ERASE, no error: [error 9 ] 9  0 
+6. again: 9  1 
+exit=0

@@ -262,29 +262,30 @@ fn include_root() {
 #[test]
 fn unknown_statement() {
     let d = scratch("unknown");
-    // `SUB _GL` stands for a construct not compiled yet (step 5 of the plan of 2026-10-22); `FILES` did until
-    // `m4-builtins-remaining`.
-    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\nSUB _GL\nEND SUB\n").unwrap();
+    // `VARSEG` of an element of a `_BIT` array stands for a construct not compiled yet; `FILES` did until
+    // `m4-builtins-remaining`, `SUB _GL` until `m4-sub-gl`, `FOR` over an element of a member array until
+    // `m4-left-marked`.
+    std::fs::write(d.join("p.bas"), format!("{MARKED_PREAMBLE}{MARKED}")).unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(
         stdout(&o)
             .lines()
-            .any(|l| l.starts_with("p.bas:3:5: error: not supported yet:")),
+            .any(|l| l.starts_with("p.bas:3:14: error: not supported yet:")),
         "{}",
         stdout(&o)
     );
 }
 
-/// The `TYPE` and `DIM` that make `FOR r.m(1) = 1 TO 2: NEXT` a statement not compiled yet (`FOR` over an element
-/// of a member array, `verification\v56_f3`, left marked by step 3 of M4).
-const MEMBER_FOR_PREAMBLE: &str = "$CONSOLE:ONLY\nTYPE t\n    m(1 TO 2) AS LONG\nEND TYPE\nDIM r AS t\n";
-const MEMBER_FOR: &str = "FOR r.m(1) = 1 TO 2: NEXT\n";
+/// The `DIM` that makes `PRINT VARSEG(bb(1))` a statement not compiled yet (`VARSEG` of an element of a `_BIT`
+/// array; not measured).
+const MARKED_PREAMBLE: &str = "$CONSOLE:ONLY\nDIM bb(2) AS _BIT\n";
+const MARKED: &str = "PRINT VARSEG(bb(1))\n";
 
 #[test]
 fn summary() {
     let d = scratch("summary");
-    let text = format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}PRINT 1 +\n{MEMBER_FOR}");
+    let text = format!("{MARKED_PREAMBLE}{MARKED}PRINT 1 +\n{MARKED}");
     std::fs::write(d.join("p.bas"), text).unwrap();
     let o = qb64rust(&d, &["p.bas"]);
     assert_eq!(o.status.code(), Some(1));
@@ -968,8 +969,8 @@ fn coverage_build_counts_statements() {
     run_it(true);
     let hash = |bytes: &[u8]| format!("{:016x}", qb64rust_driver::fnv1a64(bytes));
     let record = format!(
-        "coverage 1\nfile\t0\t{}\tp.bas\nfile\t1\t{}\tinc.bi\n0\t1\t1\t1\n0\t2\t1\t1\n0\t3\t4\t1\n0\t4\t5\t0\n\
-         1\t2\t1\t1\n0\t7\t1\t1\nend\n",
+        "coverage 2\nfile\t0\t{}\tp.bas\nfile\t1\t{}\tinc.bi\n0\t1\t1\t1\t\n0\t2\t1\t1\t\n0\t3\t4\t1\t\n0\t4\t5\t0\t\n\
+         1\t2\t1\t1\t\n0\t7\t1\t1\t\nend\n",
         hash(program.as_bytes()),
         hash(b"\nPRINT \"inc\"\n")
     );
@@ -980,6 +981,50 @@ fn coverage_build_counts_statements() {
         read(),
         format!("{record}{record}"),
         "a second run appends a second record"
+    );
+}
+
+/// A `--coverage` build names each statement's built-ins (spec `testing/coverage`, "Built-ins named in the counts";
+/// design D1 of `m4-coverage-review`): both of `PRINT LEFT$(a$, LEN(b$))`; an `IF`'s condition names its own, its
+/// body's statement its own; a name after `SYSTEM` with the count 0; a member named like a built-in names none, and
+/// so does the program's own `FUNCTION beep`.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn coverage_build_names_builtins() {
+    let d = scratch("coverage-names");
+    let program = "$CONSOLE:ONLY\nTYPE t: left AS LONG: END TYPE\nDIM r AS t\na$ = \"xy\": b$ = \"abc\"\n\
+                   PRINT LEFT$(a$, LEN(b$)); r.left\nIF LEN(a$) THEN\n    PRINT UCASE$(a$)\nEND IF\nSYSTEM\n\
+                   _TITLE \"x\"\nFUNCTION beep\n    beep = 1\nEND FUNCTION\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "--coverage", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let counts = d.join("c.txt");
+    let r = run(
+        unattended(&exe).current_dir(&d).env("QB64RUST_COVERAGE", &counts),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
+    assert_eq!(stdout(&r).replace("\r\n", "\n"), "xy 0 \nXY\n");
+    let record = text(&std::fs::read(&counts).unwrap()).replace("\r\n", "\n");
+    let entries: Vec<&str> = record.lines().filter(|l| l.starts_with("0\t")).collect();
+    // The program's own FUNCTION beep is no built-in.
+    assert!(!record.contains("BEEP"), "{record}");
+    let entries: Vec<&str> = entries.into_iter().filter(|l| !l.starts_with("0\t12\t")).collect();
+    assert_eq!(
+        entries,
+        [
+            "0\t1\t1\t1\t",
+            "0\t4\t1\t1\t",
+            "0\t4\t12\t1\t",
+            "0\t5\t1\t1\tLEFT$ LEN",
+            "0\t6\t4\t1\tLEN",
+            "0\t7\t5\t1\tUCASE$",
+            "0\t9\t1\t1\t",
+            "0\t10\t1\t0\t_TITLE",
+        ],
+        "{record}"
     );
 }
 
@@ -1330,6 +1375,41 @@ fn const_rulings_run() {
     );
 }
 
+/// `STOP` inside `SUB _GL` ends the program with error 271, as `END` and `SYSTEM` do there (`DIVERGENCES.md` D-036;
+/// the old compiler's program hangs, `verification\v59_f9`). The program has a window, which libqb shows for the
+/// moment the SUB takes; its critical error's message goes to stderr, not read here.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn stop_inside_sub_gl_ends_with_error_271() {
+    let d = scratch("stop-gl");
+    let program = "$CONSOLE\nt# = TIMER(.001)\nDO: _LIMIT 100: LOOP UNTIL TIMER(.001) - t# > 20\n\
+                   _DEST _CONSOLE: PRINT \"main\"\nSYSTEM\n\
+                   SUB _GL\n    _DEST _CONSOLE: PRINT \"in\"\n    STOP\nEND SUB\n";
+    assert_eq!(build_and_run_tracing(&d, program, "D-036\n"), "in\n");
+}
+
+/// A `TYPE` that holds a `STRING`, in conventional memory, has its strings made (`DIVERGENCES.md` D-037; design D3
+/// of `m4-left-marked`): `verification\v56_a5` prints the old compiler's two lines, then the string it sets, where
+/// the old compiler's program crashes (exit 139).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the program and its record are ASCII text, compared as lines"
+)]
+fn type_with_string_in_conventional_memory_has_its_strings() {
+    let d = scratch("cmem-type-string");
+    let verification = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification");
+    let read = |name: &str| String::from_utf8(std::fs::read(verification.join(name)).unwrap()).unwrap();
+    let program = read("v56_a5_type_string_member.bas");
+    let recorded = read("v56_a5_type_string_member.out.txt");
+    let first: Vec<&str> = recorded.lines().take(2).collect();
+    let out = build_and_run_tracing(&d, &program, "D-037\n");
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines[..2], first[..], "{out}");
+    assert_eq!(lines[2..], ["abc 3 "], "{out}");
+}
+
 /// A label and a `CONST` on one line (`DIVERGENCES.md` D-008: the old compiler fails to compile it).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1624,23 +1704,19 @@ fn lsp_named_program() {
 
 /// "Demand report", scenario "A folder of programs": every `.bas` file below the folder is counted, a program the
 /// old compiler rejects is left out, and a program with more errors than a compile run reports is counted in full.
-/// `FOR` over an element of a member array stands for any statement not compiled yet (it was `STOP` until
-/// `m4-qb64pe-sources`, `RUN` until `m4-statements-metacommands`, `FILES` until `m4-builtins-remaining`); when it
-/// is, take another.
+/// `VARSEG` of an element of a `_BIT` array stands for any statement not compiled yet (it was `STOP` until
+/// `m4-qb64pe-sources`, `RUN` until `m4-statements-metacommands`, `FILES` until `m4-builtins-remaining`, `FOR` over
+/// an element of a member array until `m4-left-marked`); when it is, take another.
 #[test]
 fn report_unsupported_counts_a_folder() {
     let d = scratch("report");
     std::fs::create_dir(d.join("sub")).unwrap();
     std::fs::write(d.join("clean.bas"), SLICE_PROGRAM).unwrap();
     let uses = qb64rust_base::MAX_ERRORS + 5;
-    let many = format!("{MEMBER_FOR_PREAMBLE}{}SYSTEM\n", MEMBER_FOR.repeat(uses));
+    let many = format!("{MARKED_PREAMBLE}{}SYSTEM\n", MARKED.repeat(uses));
     std::fs::write(d.join("sub").join("MANY.BAS"), many).unwrap();
-    std::fs::write(d.join("one.bas"), format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}SYSTEM\n")).unwrap();
-    std::fs::write(
-        d.join("rejected.bas"),
-        format!("{MEMBER_FOR_PREAMBLE}{MEMBER_FOR}x =\n"),
-    )
-    .unwrap();
+    std::fs::write(d.join("one.bas"), format!("{MARKED_PREAMBLE}{MARKED}SYSTEM\n")).unwrap();
+    std::fs::write(d.join("rejected.bas"), format!("{MARKED_PREAMBLE}{MARKED}x =\n")).unwrap();
     std::fs::write(d.join("rejected.err"), "Expected expression\n").unwrap();
     let o = qb64rust(&d, &["--report", "unsupported", "."]);
     assert!(o.status.success(), "{}", stdout(&o));
@@ -1648,7 +1724,7 @@ fn report_unsupported_counts_a_folder() {
         "3 programs: 1 without errors, 2 with only \"not supported yet\" errors, 0 with other errors\n\
          1 left out: an .err file beside them (the old compiler rejects them)\n\
          programs  alone   uses  not supported yet\n       \
-         2      2 {:>6}  an element of the member array `r.m` as a `FOR` variable\n",
+         2      2 {:>6}  `VARSEG` of a `_BIT` array\n",
         uses + 1
     );
     assert_eq!(stdout(&o), expected);

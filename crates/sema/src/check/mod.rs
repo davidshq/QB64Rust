@@ -19,6 +19,7 @@ mod flow;
 mod io;
 mod library;
 mod mem;
+mod opengl;
 mod ops;
 mod places;
 mod proc;
@@ -29,8 +30,10 @@ use blocks::line_if_statements;
 use expr::Use;
 use whole::{without_parens, written_whole};
 
-use crate::{ConstId, LabelId, Place, ProcId, Program, Shape, Stmt, StmtKind, SymbolKind, Ty, TypeId, VarId};
-use qb64rust_base::{Diagnostics, FileId, SourceMap, Span, show_bytes};
+use crate::{
+    ConstId, LabelId, Place, ProcId, Program, Shape, Stmt, StmtKind, Storage, SymbolKind, Ty, TypeId, Var, VarId,
+};
+use qb64rust_base::{Diagnostics, FileId, SourceMap, Span, show_bytes, to_u32};
 use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
@@ -48,6 +51,36 @@ pub fn check(map: &SourceMap, program: &ParsedProgram) -> (Program, Diagnostics)
 /// [`check`] with integer constant folding switched on or off. Off is for tests only: the slice programs must
 /// print the same either way (design D5).
 pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Program, Diagnostics) {
+    // A `REDIM` in a procedure that makes the name an array of the procedure in the whole procedure, above it too,
+    // is found by a first check; a second one makes those arrays where each procedure starts (design D2 of
+    // `m4-left-marked`; the old compiler compiles twice and keeps what its first pass made). Only a program with
+    // such a `REDIM` is checked again, until a check finds none it did not have: after the first `REDIM` found, a
+    // check makes no array used without `DIM` (design D5 of `m2-defxxx-common-arrays`), so it may miss the next.
+    // So k such procedures may take k+1 checks (`SOMEDAY.md`, "Other ideas").
+    let mut locals = Vec::new();
+    loop {
+        let (prog, diags, found) = check_once(map, program, fold, locals.clone());
+        let known = |r: &RedimLocal| {
+            locals
+                .iter()
+                .any(|l| (l.proc, &l.name, l.ty) == (r.proc, &r.name, r.ty))
+        };
+        let new: Vec<RedimLocal> = found.into_iter().filter(|r| !known(r)).collect();
+        if new.is_empty() {
+            return (prog, diags);
+        }
+        locals.extend(new);
+    }
+}
+
+/// One check of the program, with the procedures' arrays of `redim_locals` made where their procedures start;
+/// also gives the ones it found.
+fn check_once(
+    map: &SourceMap,
+    program: &ParsedProgram,
+    fold: bool,
+    redim_locals: Vec<RedimLocal>,
+) -> (Program, Diagnostics, Vec<RedimLocal>) {
     let root = program.main().root();
     // The lines that end with a line continuation, in every file (design D1 of `m3-errorline-chr-const`).
     let continued = program
@@ -87,6 +120,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         consts_local: HashMap::new(),
         auto_consts: HashMap::new(),
         fell_back: HashSet::new(),
+        gl_library: None,
+        gl_consts: HashSet::new(),
         used_names: HashMap::new(),
         used_local: HashMap::new(),
         sinks: Vec::new(),
@@ -121,6 +156,8 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         color_consts: HashSet::new(),
         color_set: None,
         first_color: None,
+        redim_locals,
+        redim_found: Vec::new(),
     };
     c.first_color = c.first_color_line(program);
     let skips = Skips::new(program);
@@ -300,7 +337,19 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
         embedded: c.embedded_files(),
         error_location: c.settle_error_location(),
     };
-    (c.prog, c.diags)
+    (c.prog, c.diags, c.redim_found)
+}
+
+/// In a procedure, a `REDIM` of a shared main-module array whose bound is the first place that names an array used
+/// without `DIM`: the old compiler makes the name an array of the procedure in the whole procedure (measured,
+/// `verification\v60_b1`–`b10`; design D2 of `m4-left-marked`). `plain`: the plain name names it.
+#[derive(Clone, Debug)]
+struct RedimLocal {
+    proc: ProcId,
+    name: String,
+    ty: Ty,
+    dims: usize,
+    plain: bool,
 }
 
 /// One of the metacommands that are settings of the whole program: the four that choose its console and window,
@@ -512,6 +561,10 @@ struct Scope {
 }
 
 struct Checker<'a> {
+    /// The procedures' arrays of a `REDIM` that a first check found ([`check_with`]), made where each procedure
+    /// starts, and those this check finds.
+    redim_locals: Vec<RedimLocal>,
+    redim_found: Vec<RedimLocal>,
     map: &'a SourceMap,
     /// Every tree, for the included ones ([`Checker::expand`]).
     program: &'a ParsedProgram,
@@ -569,6 +622,10 @@ struct Checker<'a> {
     /// The constants whose value took a correctly rounded one where the old compiler's depends on the machine
     /// (`DIVERGENCES.md` D-026): a `CONST` that names one warns too, and so does a use of an auto-included one.
     fell_back: HashSet<ConstId>,
+    /// The library entry the OpenGL routines named so far belong to, made with the first (`opengl.rs`).
+    gl_library: Option<crate::LibraryId>,
+    /// The OpenGL constants named so far, each a constant of the main module (`opengl.rs`).
+    gl_consts: HashSet<ConstId>,
     /// The first use or declaration of each variable name so far, anywhere, and in the procedure being checked:
     /// a later `CONST` of the name is an error there (design D6).
     used_names: HashMap<String, Span>,
@@ -1109,6 +1166,26 @@ impl<'a> Checker<'a> {
         };
         self.cur = Some(id);
         self.local = self.param_scopes[id.0 as usize].clone();
+        // The arrays a `REDIM` of the procedure makes its own, from its first statement (design D2 of
+        // `m4-left-marked`): made on each call, also in a procedure with `STATIC` after its header (measured,
+        // `verification\v60_b5`), and allocated by a `REDIM`.
+        for r in self.redim_locals.iter().filter(|r| r.proc == id) {
+            let array = VarId(to_u32(self.prog.vars.len()));
+            self.prog.vars.push(Var {
+                conventional: false,
+                name: r.name.clone(),
+                ty: r.ty,
+                storage: Storage::Local(id),
+                shape: Shape::Dynamic {
+                    dims: Some(r.dims),
+                    at_start: None,
+                },
+            });
+            self.local.arrays.insert((r.name.clone(), r.ty), array);
+            if r.plain {
+                self.local.array_plain.insert(r.name.clone(), r.ty);
+            }
+        }
         self.at.static_scope = self.static_procs.contains(&id);
         self.consts_local.clear();
         self.used_local.clear();

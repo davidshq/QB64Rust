@@ -322,6 +322,9 @@ fn slash(p: &Path) -> String {
 /// The `Makefile` names each variant's object by the flags, so the variants stand side by side.
 pub fn make_flags(s: &qb64rust_ir::Settings) -> Vec<&'static str> {
     let mut flags = Vec::new();
+    if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::Gl) {
+        flags.push("DEP_GL=y");
+    }
     if s.runtime_parts.contains(&qb64rust_ir::RuntimePart::ImageCodec) {
         flags.push("DEP_IMAGE_CODEC=y");
     }
@@ -1330,6 +1333,19 @@ mod tests {
     fn with_audio(mut s: qb64rust_ir::Settings) -> qb64rust_ir::Settings {
         s.runtime_parts.insert(qb64rust_ir::RuntimePart::Audio);
         s
+    }
+
+    /// `SUB _GL` needs the OpenGL part; its flag is the old compiler's first (`qb64pe.bas` 13706; design D4 of
+    /// `m4-sub-gl`).
+    #[test]
+    fn the_opengl_flag_is_first() {
+        let mut s = program_settings(true, false, false);
+        s.runtime_parts
+            .extend([qb64rust_ir::RuntimePart::Gl, qb64rust_ir::RuntimePart::ImageCodec]);
+        assert_eq!(
+            make_flags(&s),
+            ["DEP_GL=y", "DEP_IMAGE_CODEC=y", "DEP_CONSOLE_ONLY=y", "DEP_CONSOLE=y"]
+        );
     }
 
     /// `LPRINT` needs the printer part; its flag stands after `DEP_CONSOLE_ONLY=y` and before `DEP_ICON=y`, as

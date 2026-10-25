@@ -1,0 +1,13 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+opengl_without_errors.bas:6:1: error: `_glViewport` is an OpenGL routine, which only a program with `SUB _GL` has
+opengl_without_errors.bas:6:1: note: QB64pe: Syntax error
+opengl_without_errors.bas:8:5: error: names starting with `_` are reserved: `_glGetError`
+opengl_without_errors.bas:10:7: error: names starting with `_` are reserved: `_GL_TRUE`
+opengl_without_errors.bas:12:1: error: name already in use: `_glFlush&`
+opengl_without_errors.bas:14:1: error: `_gluLookAt` is no statement and no SUB, and no OpenGL routine
+opengl_without_errors.bas:14:1: note: QB64pe: Syntax error
+opengl_without_errors.bas:18:5: error: names starting with `_` are reserved: `_glFlush`

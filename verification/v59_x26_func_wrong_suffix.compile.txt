@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):X = _GLGETERROR%
+LINE 8:x = _glGetError%
+exit=1

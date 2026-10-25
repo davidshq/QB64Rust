@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):DIM _GLFLUSH AS LONG
+LINE 5:DIM _glFlush AS LONG
+exit=1

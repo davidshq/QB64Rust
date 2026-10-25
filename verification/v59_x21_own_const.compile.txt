@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 5:CONST _GL_TRUE = 5
+exit=1

@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):PRINT "[",1 ; _GL_TRUE ; "]",1
+LINE 6:PRINT "["; _GL_TRUE; "]"
+exit=1

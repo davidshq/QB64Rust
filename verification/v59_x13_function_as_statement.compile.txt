@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_GLGETERROR
+LINE 8:_glGetError
+exit=1

@@ -31,8 +31,12 @@ than `v` (8-bit `_BYTE` or `_UNSIGNED _BYTE` → INTEGER, 16-bit INTEGER or `_UN
 variable, or a numeric member of a `TYPE` variable reached through members only (`r.v`, `r.n.v`), as in the old
 compiler; a string, a `_BIT` or `_BIT * n` variable, a constant, an array element, a member of an array element
 (`a(i).v`), a string member and a whole member array SHALL be a compile error, and so SHALL a string `a`, `b` or
-`s`. An element of a member array (`r.m(i)`), whose index the old compiler evaluates at every pass, SHALL be
-reported "not supported yet".
+`s`. An element of a member array (`r.m(i)`, `ro.n.m(i)`) SHALL be the variable as in the old compiler: the element
+SHALL be found again, its indexes evaluated, wherever the old compiler's loop names it (at the start, and at each
+`NEXT` for the step and for the test), so that a change of an index in the body moves the loop to another
+element (`verification\v56_f3`). An error raised there SHALL not stop the test, which takes the value, and SHALL
+be serviced at the `FOR` line before the body, so that `RESUME NEXT` goes on into the body, as in the old
+compiler (`v60_c3`; its store out of range is `DIVERGENCES.md` D-004).
 
 #### Scenario: A member as the variable
 - **WHEN** a `TYPE t` has `v AS LONG`, and `DIM r AS t: FOR r.v = 1 TO 2: PRINT r.v: NEXT` runs
@@ -45,9 +49,14 @@ reported "not supported yet".
 
 #### Scenario: Members rejected or marked
 - **WHEN** `FOR ar(i).v = 1 TO 3` (`verification\v56_f2`), `FOR r.m = 1 TO 2` or `FOR rs.z = 1 TO 2` for a
-  `STRING * 2` member is compiled, and in another program `FOR r.m(i) = 1 TO 3` (`v56_f3`)
-- **THEN** the first three are compile errors that are not "not supported yet", and the last is reported "not
-  supported yet"
+  `STRING * 2` member is compiled
+- **THEN** each is a compile error that is not "not supported yet"
+
+#### Scenario: An element of a member array
+- **WHEN** `i = 1: FOR r.m(i) = 1 TO 3: PRINT r.m(1); r.m(2);: i = 2: NEXT: PRINT r.m(1); r.m(2)` runs, and
+  `FOR r.m(idx(3)) = 1 TO 3` with a FUNCTION `idx` that counts its calls (`verification\v56_f3`)
+- **THEN** the first prints ` 1  0  1  1  1  2  1  3  1  4 ` and the second runs `idx` 7 times, as the old
+  compiler's program
 
 #### Scenario: Limits rounded to the wider type
 - **WHEN** `FOR i% = 1 TO 2.6: PRINT i%;: NEXT: PRINT i%` runs

@@ -311,18 +311,39 @@ impl<'a> Checker<'a> {
     /// The `FOR` variable: a numeric scalar variable (measured, `v17_c_err_for_*`, `v17_c_for_array`), or a
     /// numeric member of a `TYPE` variable reached through members (design D8 of `m4-memory-records`; measured,
     /// `v17_c_for_type_member`, `v56_f1`, `f4`). Its indexes, when written (`FOR r.m(i) = …`), are those of an
-    /// element of a member array, which the old compiler finds again at every pass (`v56_f3`): not supported yet;
-    /// of anything else they are an error (`v17_c_for_array`).
+    /// element of a member array, which the old compiler finds again at every pass, the indexes evaluated at each
+    /// use (`v56_f3`, `v60_c1`–`c6`; design D4 of `m4-left-marked`); of anything else they are an error
+    /// (`v17_c_for_array`).
     fn for_var(&mut self, t: Tok, args: Option<ast::ArgList>) -> R<Place> {
         let shown = show_bytes(self.text(t.span));
         let (name, suffix) = self.split_name(t)?;
         if let Some(args) = args {
             if name.contains('.')
-                && let Some(Place::Member { base, member }) = self.dotted_any(t, &name, suffix)?
-                && self.prog.member(self.prog.place_ty(&base), member).is_array()
+                && let Some(place) = self.dotted_any(t, &name, suffix)?
+                && let Place::Member { base, member } = &place
+                && self.prog.member(self.prog.place_ty(base), *member).is_array()
             {
-                let msg = format!("an element of the member array `{shown}` as a `FOR` variable");
-                return Err(self.unsupported(args.node().span(), msg));
+                let span = args.node().span();
+                if self.prog.member(self.prog.place_ty(base), *member).dynamic {
+                    // Not measured.
+                    let msg = format!("an element of the dynamic member array `{shown}` as a `FOR` variable");
+                    return Err(self.unsupported(span, msg));
+                }
+                // An element of a member array: its place, which the loop names again at each use, so its indexes
+                // are evaluated there (measured, `verification\v56_f3`, `v60_c1`–`c6`; design D4 of
+                // `m4-left-marked`).
+                let element = self.member_element(place, Some(Some(args)), span, t)?;
+                return match self.prog.place_ty(&element) {
+                    crate::numeric_value_types!() => Ok(element),
+                    Ty::Str | Ty::FixedStr(_) => Err(self.error(
+                        t.span,
+                        format!("the `FOR` variable `{shown}` must be a number, not a string"),
+                    )),
+                    Ty::Bit { .. } | Ty::User(_) => {
+                        let msg = format!("an element of the member array `{shown}` of this type as a `FOR` variable");
+                        Err(self.unsupported(span, msg))
+                    }
+                };
             }
             return Err(self.error(args.node().span(), "a `FOR` variable cannot be an array element"));
         }

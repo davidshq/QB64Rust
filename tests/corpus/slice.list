@@ -537,3 +537,6 @@ slice/s158_varptr_strings
 # m4-builtins-remaining: the built-ins no program used before, $ERRORLOCATION and $USELIBRARY
 slice/s159_builtins_last
 screen/d19_blink_display
+# m4-coverage-review: the window built-ins and _DEPTHBUFFER, run (design D5)
+screen/w01_window_builtins
+screen/w02_depthbuffer

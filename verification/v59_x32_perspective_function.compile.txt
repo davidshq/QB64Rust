@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):X = _GLUPERSPECTIVE ( 1 , 2 , 3 , 4 )
+LINE 8:x = _gluPerspective(1, 2, 3, 4)
+exit=1

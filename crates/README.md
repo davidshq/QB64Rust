@@ -139,6 +139,7 @@ catalogue this section held until 2026-10-16, with the code each feature lives i
 | `ON TIMER`, `ON KEY`, the event switches, `KEY ON`/`OFF`/`LIST` | `language/events` |
 | The network functions, `_SOCKETS_`, `_ENCODEURL$`/`_DECODEURL$` | `language/network` |
 | `$EMBED`, `_EMBEDDED$` | `language/embedded-files` |
+| `SUB _GL`, the OpenGL constants and routines | `language/opengl` |
 | The language server | `editor/language-server` |
 
 Not listed, as they are not about what the compiler accepts: the VS Code extension's other specs

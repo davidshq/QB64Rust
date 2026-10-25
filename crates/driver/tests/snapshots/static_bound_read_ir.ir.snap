@@ -1,0 +1,25 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Array V(static):I32 dynamic, dimensions: 1, allocated at the start, read (Const 0:I64 To (Var N:I32 -> Convert I64 Widen))
+Array W(static):Str dynamic, dimensions: 1, allocated at the start, read (Const 0:I64 To (CallProc F:F32 [Temp(Const 3:I32)] -> Convert I64 RoundEven))
+Stmt line 2
+  SelectConsole
+Stmt line 6 may_raise
+  Call S []
+Stmt line 7
+  System
+Function F:F32 lines 9-11
+  param J:I32
+  result F:F32
+Stmt line 10
+  Assign F(result):F32 = (Add:I32(Var J(param):I32, Const 1:I32) wrap -> Convert F32 Nearest)
+Sub S lines 13-17
+  static V:I32
+  static W:Str
+Stmt line 16 may_raise
+  Print console newline
+    Num UBound V(static)(1):I64
+    Num UBound W(static)(1):I64

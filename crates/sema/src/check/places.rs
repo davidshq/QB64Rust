@@ -6,7 +6,7 @@ use super::decl::{AsPlace, Declarer, name_end};
 use super::expr::{Use, is_builtin_function};
 use super::{Checker, DimFact, Failed, NoJoin, Placing, R, Scope, Skips, split_unsigned};
 use crate::{AddressWord, MEM_TYPE, ProcId, ProcKind, Program, Var, VarId, mem_type};
-use crate::{AllocMode, BinOp, ConvKind, Join, StmtKind, UnOp};
+use crate::{AllocMode, BinOp, ConvKind, Join, StartBounds, StmtKind, UnOp};
 use crate::{ArrayRef, Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType};
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{auto_constant, find_any, is_auto_include_function, is_auto_include_name};
@@ -14,6 +14,7 @@ use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
 use qb64rust_syntax::tree::{Node, Tok};
+use std::collections::HashMap;
 
 /// One dimension of a declaration ([`Checker::dim_bounds`]): its bounds as values of type `_INTEGER64`, and as
 /// numbers when both are constant by their spelling.
@@ -693,10 +694,20 @@ impl Checker<'_> {
             let dims = self.unjoined(NoJoin::RedimBound(mode), |c| c.dim_bounds(bounds, &shown))?;
             let shared = existing.is_some_and(|v| self.prog.var(v).storage == Storage::Main);
             let new_array = self.prog.vars[vars..].iter().any(|v| !matches!(v.shape, Shape::Scalar));
-            if self.cur.is_some() && shared && new_array {
+            if let (Some(proc), true, true) = (self.cur, shared, new_array) {
                 // Measured: in a procedure, a `REDIM` of a shared array whose bound first names an array used
-                // without `DIM` gives a local array of the name its bounds, and the shared one keeps its own
-                // (`verification\v24_x268` case 5, `v55_x84`); not built.
+                // without `DIM` makes the name an array of the procedure in the whole procedure, which it gives its
+                // bounds, and the shared one keeps its own (`verification\v24_x268` case 5, `v55_x84`,
+                // `v60_b1`–`b10`). Noted for the second check, which makes that array where the procedure starts
+                // (design D2 of `m4-left-marked`); this check stops here.
+                let plain = suffix.is_none() && (typed || self.array_plain_ty(&name) == Some(ty));
+                self.redim_found.push(super::RedimLocal {
+                    proc,
+                    name: name.clone(),
+                    ty,
+                    dims: dims.len(),
+                    plain,
+                });
                 let msg = format!(
                     "`REDIM {shown}(...)` of a shared array with a bound that names an array used without `DIM`"
                 );
@@ -725,16 +736,21 @@ impl Checker<'_> {
             .iter()
             .map(|d| Some((constant_int(&d.lower)?, constant_int(&d.upper)?)))
             .collect();
-        let start_bounds = constant.or(values).filter(|_| by_static);
+        let mut start_bounds = constant.or(values).filter(|_| by_static).map(StartBounds::Values);
         if by_static && start_bounds.is_none() {
-            let local = |c: &Self, t: Tok| {
+            let local = |c: &Self, t: Tok, scope: &HashMap<(String, Ty), VarId>| {
                 let name = c.word(t);
                 let name = &name[..name_end(name.as_bytes())];
                 let own = |v: VarId| c.prog.var(v).storage != Storage::Main;
-                c.cur.is_some() && c.local.vars.iter().any(|((n, _), &v)| n == name && own(v))
+                c.cur.is_some() && scope.iter().any(|((n, _), &v)| n == name && own(v))
             };
             let tokens = bounds.node().tokens();
-            if tokens.iter().any(|&t| t.kind == SyntaxKind::Ident && local(self, t)) {
+            let names = |c: &Self, scope| {
+                tokens
+                    .iter()
+                    .any(|&t| t.kind == SyntaxKind::Ident && local(c, t, scope))
+            };
+            if names(self, &self.local.vars) {
                 // A parameter or a variable of the procedure: the old compiler's C++ build fails (measured,
                 // `verification\v24_x121`).
                 let msg = format!(
@@ -743,16 +759,28 @@ impl Checker<'_> {
                 );
                 return Err(self.error(bounds_span, msg));
             }
-            // A shared variable or a FUNCTION: read when the start code runs, at the start and again when a
-            // handler is entered (`v55_x74`, `x75`).
-            let msg = format!("`STATIC {shown}(...)` with a bound whose value is not known when compiling");
-            return Err(self.unsupported(bounds_span, msg));
+            if names(self, &self.local.arrays) {
+                // An array of the procedure (a parameter array, a local or `STATIC` one: `UBOUND(b)`, `c(1)`): not
+                // measured, the start code cannot see it either.
+                let msg = format!("`STATIC {shown}(...)` with a bound that names an array of the procedure");
+                return Err(self.unsupported(bounds_span, msg));
+            }
+            if beside_shared {
+                // Not measured.
+                let msg = format!("`STATIC {shown}(...)` beside a shared array, with a bound not known when compiling");
+                return Err(self.unsupported(bounds_span, msg));
+            }
+            // A shared variable or a FUNCTION: read when the start code allocates the array, at the start and when
+            // a handler is entered while it is released (measured, `v55_x74`, `x75`, `v60_a1`–`a7`; design D1 of
+            // `m4-left-marked`).
+            let read = dims.iter().map(|d| (d.lower.clone(), d.upper.clone())).collect();
+            start_bounds = Some(StartBounds::Read(read));
         }
         if let (true, Some(id), Some(bounds)) = (beside_shared, existing, start_bounds.clone()) {
             // `STATIC a(n)` beside a shared main-module array of the name and type names that array, and its
             // allocation when the program starts is a second one of it, after its own (measured,
             // `verification\v24_x272`, `v55_d1`, `d3`, `d4`; design D4 of `m4-names-implicit-arrays`).
-            if self.prog.var(id).dim_count() != Some(bounds.len()) {
+            if self.prog.var(id).dim_count() != Some(bounds.dims()) {
                 // Not measured.
                 let msg = format!("`STATIC {shown}(...)` beside a shared array of another number of dimensions");
                 return Err(self.unsupported(bounds_span, msg));
@@ -798,36 +826,37 @@ impl Checker<'_> {
         }
         // A scalar of the name, typed by `AS` or not, is another variable (measured, `v24_x56`,
         // `v24_b_dim_empty_then_dim`, `v48_a_scalar_array`).
-        let shape = match static_bounds.or(start_bounds) {
-            Some(bounds) => {
-                let mut count: i64 = 1;
-                for &(l, u) in &bounds {
-                    count = match u
-                        .checked_sub(l)
-                        .and_then(|n| n.checked_add(1))
-                        .and_then(|n| count.checked_mul(n))
-                    {
-                        Some(n) if n <= MAX_ELEMENTS => n,
-                        _ => return Err(self.unsupported(bounds_span, "an array of more than 2^31 elements")),
-                    };
-                }
-                if by_static {
-                    Shape::Dynamic {
-                        dims: Some(bounds.len()),
-                        at_start: Some(bounds),
-                    }
-                } else {
-                    Shape::Static { bounds }
-                }
+        let known = match (&static_bounds, &start_bounds) {
+            (Some(bounds), _) | (None, Some(StartBounds::Values(bounds))) => Some(bounds),
+            _ => None,
+        };
+        if let Some(bounds) = known {
+            let mut count: i64 = 1;
+            for &(l, u) in bounds {
+                count = match u
+                    .checked_sub(l)
+                    .and_then(|n| n.checked_add(1))
+                    .and_then(|n| count.checked_mul(n))
+                {
+                    Some(n) if n <= MAX_ELEMENTS => n,
+                    _ => return Err(self.unsupported(bounds_span, "an array of more than 2^31 elements")),
+                };
             }
+        }
+        let shape = match (static_bounds, start_bounds) {
+            (Some(bounds), _) => Shape::Static { bounds },
+            (None, Some(bounds)) => Shape::Dynamic {
+                dims: Some(bounds.dims()),
+                at_start: Some(bounds),
+            },
             // `STATIC a()` (measured, `verification\v24_g_local`, `v24_f_implicit_sub`) and `COMMON a()`
             // (`v24_g_common`, `v24_x167`): a dynamic array that lives for the program and is not allocated;
             // what gives it bounds or indexes first gives it its number of dimensions.
-            None if listed => Shape::Dynamic {
+            (None, None) if listed => Shape::Dynamic {
                 dims: None,
                 at_start: None,
             },
-            None => Shape::Dynamic {
+            (None, None) => Shape::Dynamic {
                 dims: Some(dims.len()),
                 at_start: None,
             },
@@ -1179,15 +1208,9 @@ impl Checker<'_> {
         // In a procedure with `STATIC` after its header the array lives for the program: a static one that
         // works, or below `$DYNAMIC` a dynamic one that nothing allocates (measured, `v24_f_implicit_sub`,
         // `v24_x120`).
+        // First named in a bound of `REDIM` there, it is a dynamic one that nothing allocates, as below `$DYNAMIC`
+        // (measured, `verification\v60_b5`: error 9 at each call).
         let static_proc = self.cur.filter(|_| self.at.static_scope);
-        if redim.is_some() && static_proc.is_some() {
-            // Not measured.
-            self.implicit_names.insert(name.to_string());
-            let msg = format!(
-                "`{shown}(...)`: an array first used in a bound of `REDIM`, without `DIM`, in a procedure with `STATIC`"
-            );
-            return Err(self.unsupported(t.span, msg));
-        }
         let (storage, shape) = match (self.cur, static_proc) {
             (None, _) if redim.is_some() => (
                 Storage::Main,
@@ -1203,7 +1226,7 @@ impl Checker<'_> {
                     at_start: None,
                 },
             ),
-            (_, Some(p)) if self.at.dynamic_mode => (
+            (_, Some(p)) if self.at.dynamic_mode || redim.is_some() => (
                 Storage::Static(p),
                 Shape::Dynamic {
                     dims: Some(dims),
@@ -1482,7 +1505,13 @@ impl Checker<'_> {
     /// number of indexes than its dimensions "Cannot change the number of elements an array has!", a string
     /// index "Illegal string-number conversion"; an index after a member that is no array "Element is not an
     /// array".
-    fn member_element(&mut self, place: Place, args: Option<Option<ast::ArgList>>, span: Span, t: Tok) -> R<Place> {
+    pub(super) fn member_element(
+        &mut self,
+        place: Place,
+        args: Option<Option<ast::ArgList>>,
+        span: Span,
+        t: Tok,
+    ) -> R<Place> {
         let shown = show_bytes(self.text(t.span));
         let Some(dims) = self.member_of(&place).filter(|m| m.is_array()).map(|m| m.bounds.len()) else {
             return match args {
@@ -2345,6 +2374,10 @@ impl Checker<'_> {
                     // Measured: the old compiler's message (`v28_x57`, `v56_x01`, `x02`).
                     return Err(self.error(e.span, "`VARPTR$` of an element of an array that is not of strings"));
                 }
+                if on_member && ty == Ty::Str && !place.has_element() {
+                    // Measured: the old compiler's C++ build fails (`verification\v60_d8`).
+                    return Err(self.error(e.span, "`VARPTR$` of a `STRING` member"));
+                }
                 if on_member && (place.has_element() || !(ty.is_int() || ty.is_float())) {
                     let msg = "`VARPTR$` of a member of an array element or of a member that is no number";
                     return Err(self.unsupported(e.span, msg));
@@ -2366,7 +2399,13 @@ impl Checker<'_> {
                     let msg = format!("`{name}` of a whole array of strings or of a `TYPE`");
                     return Err(self.unsupported(e.span, msg));
                 }
-                if on_member && !(ty.is_int() || ty.is_float()) {
+                if (word, on_member, ty) == (AddressWord::VarPtr, true, Ty::Str) {
+                    if place.has_element() {
+                        // Measured: the old compiler's C++ build fails (`verification\v60_d7`).
+                        return Err(self.error(e.span, "`VARPTR` of the `STRING` member of an array element"));
+                    }
+                    // The offset of the member's string pointer (measured, `verification\v56_x08`).
+                } else if on_member && !(ty.is_int() || ty.is_float()) {
                     let msg = format!("`{name}` of a member that is no number");
                     return Err(self.unsupported(e.span, msg));
                 }
@@ -2382,11 +2421,12 @@ impl Checker<'_> {
         if let Some(what) = what {
             return Err(self.unsupported(e.span, format!("`{name}` of {what}")));
         }
-        if crate::holds_strings(&self.prog.types, v.ty)
-            || crate::owns_desc(&self.prog.types, v.ty)
-            || self.prog.is_mem(v.ty)
-        {
-            let msg = format!("`{name}` of a `TYPE` that holds a `STRING`, in conventional memory");
+        // A `TYPE` that holds a `STRING` is taken, its strings made where the old compiler leaves them out
+        // (`DIVERGENCES.md` D-037; design D3 of `m4-left-marked`); one that owns a dynamic member array, and `_MEM`,
+        // were not measured.
+        if crate::owns_desc(&self.prog.types, v.ty) || self.prog.is_mem(v.ty) {
+            let msg =
+                format!("`{name}` of a `TYPE` with a dynamic member array or of a `_MEM`, in conventional memory");
             return Err(self.unsupported(e.span, msg));
         }
         if through_dynamic_member(&self.prog, &place) {

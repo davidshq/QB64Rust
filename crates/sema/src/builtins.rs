@@ -204,7 +204,7 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_SOURCE", Rule::Plain),
     ("_CONSOLE", Rule::Plain),
     // The window functions (design D6 of `m2-console-screenhide`, measured from the old compiler's C++): compiled
-    // and never run yet ([`NEVER_RUN`]). No slot and called bare only, a LONG, but for the three below.
+    // and never run yet (`tests/never_run.list`). No slot and called bare only, a LONG, but for the three below.
     ("_SCREENICON", Rule::Plain),
     ("_DESKTOPWIDTH", Rule::Plain),
     ("_DESKTOPHEIGHT", Rule::Plain),
@@ -244,7 +244,7 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("SADD", Rule::Fixed(Ty::I64)),
     ("VARPTR$", Rule::Fixed(Ty::Str)),
     // `_RGB32` with one to four LONG slots (libqb has an entry for each number of arguments) and `_RGBA32` with
-    // four: an `_UNSIGNED LONG`. `_FULLSCREEN` has no slot and is called bare only, a LONG ([`NEVER_RUN`]).
+    // four: an `_UNSIGNED LONG`. `_FULLSCREEN` has no slot and is called bare only, a LONG (`tests/never_run.list`).
     ("_RGB32", Rule::GivenArgs(1)),
     ("_RGBA32", Rule::Plain),
     ("_FULLSCREEN", Rule::Plain),
@@ -355,7 +355,7 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("STICK", Rule::Plain),
     ("STRIG", Rule::Plain),
     // An image of the desktop or of the clipboard (same design, `v31_x01_accepted`): LONG each, with libqb's
-    // screen-image part ([`crate::RuntimePart::ScreenImage`]). Compiled and never run ([`NEVER_RUN`]).
+    // screen-image part ([`crate::RuntimePart::ScreenImage`]). Compiled and never run (`tests/never_run.list`).
     ("_SCREENIMAGE", Rule::Plain),
     ("_CLIPBOARDIMAGE", Rule::Plain),
     // Memory blocks (design D2 and D4 of `m3-mem`; `verification\v32_x01_accepted`): `_MEMNEW`, `_MEMIMAGE` and
@@ -426,7 +426,7 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_ACCEPTFILEDROP", Rule::Plain),
     ("_TOTALDROPPEDFILES", Rule::Plain),
     ("_DROPPEDFILE", Rule::Plain),
-    // The dialogs (`v53_x26`–`x38`): compiled and never run ([`NEVER_RUN`]). Optional string slots and, for
+    // The dialogs (`v53_x26`–`x38`): compiled and never run (`tests/never_run.list`). Optional string slots and, for
     // `_MESSAGEBOX` and `_OPENFILEDIALOG$`, a last LONG one; `_MESSAGEBOX` a LONG, the others strings.
     ("_MESSAGEBOX", Rule::Plain),
     ("_OPENFILEDIALOG$", Rule::Plain),
@@ -454,7 +454,7 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     // the Microsoft Binary Format conversions (`f10`), `LPOS`, `_COMPILERVERSION$` (a function `codegen-cpp`
     // writes into `main.txt`), `_ENVIRONCOUNT`, `_UPTIME` (`f11`), the lock keys (`f12`, `f14`), `_CINP` and
     // `_CONSOLEINPUT` (`f13`), the display functions and the function `_DISPLAY` (`f14`), `_BLINK` (`s06`), `INP`
-    // (`s01`), and the dialogs, compiled and never run (`f15`, [`NEVER_RUN`]).
+    // (`s01`), and the dialogs, compiled and never run (`f15`, `tests/never_run.list`).
     ("_ASINH", Rule::Plain),
     ("_ACOSH", Rule::Plain),
     ("_ATANH", Rule::Plain),
@@ -562,7 +562,7 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_SOURCE", StmtRule::Plain),
     ("_ECHO", StmtRule::Plain),
     // The window statements (design D6 of `m2-console-screenhide`): compiled and never run yet
-    // ([`NEVER_RUN`]).
+    // (`tests/never_run.list`).
     ("_SCREENHIDE", StmtRule::Plain),
     ("_SCREENSHOW", StmtRule::Plain),
     ("_SCREENICON", StmtRule::Plain),
@@ -604,7 +604,7 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("POKE", StmtRule::Plain),
     ("BLOAD", StmtRule::Plain),
     ("BSAVE", StmtRule::Plain),
-    // `_FULLSCREEN [mode][, _SMOOTH]`: compiled and never run ([`NEVER_RUN`]).
+    // `_FULLSCREEN [mode][, _SMOOTH]`: compiled and never run (`tests/never_run.list`).
     ("_FULLSCREEN", StmtRule::Plain),
     // Graphics `GET` and `PUT` (design D5 of `m3-get-put-bload`; `verification\v28_x10`–`x25`): the array is
     // a slot of its own kind ([`Slot::Block`]).
@@ -618,11 +618,11 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("LOCK", StmtRule::Plain),
     ("UNLOCK", StmtRule::Plain),
     // `CHAIN name$`: one string, written like a SUB call (design D8 of `m3-console-files`;
-    // `verification\v30_x95`-`x98`). Compiled and never run ([`NEVER_RUN`]).
+    // `verification\v30_x95`-`x98`). Compiled and never run (`tests/never_run.list`).
     ("CHAIN", StmtRule::Plain),
     // Sound (design D1 of `m3-sound`; `verification\v29_x01`–`x86`): each the plain call of its row and template.
     // `SOUND` and `PLAY` need libqb's audio part ([`crate::RuntimePart::Audio`]); `BEEP` is never run
-    // ([`NEVER_RUN`]).
+    // (`tests/never_run.list`).
     ("SOUND", StmtRule::Plain),
     ("PLAY", StmtRule::Plain),
     ("BEEP", StmtRule::Plain),
@@ -709,8 +709,8 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_CONSOLE", StmtRule::Plain),
     ("_ACCEPTFILEDROP", StmtRule::Plain),
     ("_FINISHDROP", StmtRule::Plain),
-    // Compiled and never run ([`NEVER_RUN`]; `v53_x26`–`x31`, `x39`–`x43`): `_SCREENMOVE {_MIDDLE | x, y}` (alone
-    // too, as the old compiler accepts) and `_MESSAGEBOX [title$][, message$][, icon$]`.
+    // Compiled and never run (`tests/never_run.list`; `v53_x26`–`x31`, `x39`–`x43`): `_SCREENMOVE {_MIDDLE | x,
+    // y}` (alone too, as the old compiler accepts) and `_MESSAGEBOX [title$][, message$][, icon$]`.
     ("_SCREENMOVE", StmtRule::Plain),
     ("_MESSAGEBOX", StmtRule::Plain),
     // `_CONTROLCHR {ON|OFF}` (`v53_x44`, `x45`; screen program `c16_controlchr`).
@@ -720,7 +720,7 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     // `s01b`), `FILES` (`s02`), `DATE$ =` and `TIME$ =` (`s03`; written as assignments, which the assignment
     // checker hands to `check\io.rs`), the console statements (`s04`; `_CONSOLEFONT` never run), the display
     // statements (`s05`), `_BLINK` (`s06`), and the lock-key and desktop statements, compiled and never run
-    // (`s07`, `s08`, [`NEVER_RUN`]).
+    // (`s07`, `s08`, `tests/never_run.list`).
     ("OUT", StmtRule::Plain),
     ("WAIT", StmtRule::Plain),
     ("FILES", StmtRule::Plain),
@@ -742,66 +742,32 @@ pub const STATEMENTS: &[(&str, StmtRule)] = &[
     ("_SCREENPRINT", StmtRule::Plain),
 ];
 
-/// The built-ins no test runs, as written. The coverage check of tier 1 wants each in a slice program as code that
-/// is compiled and not reached, and in a call-site program (`tests\callsite`), which compares its call with the old
-/// compiler's.
-pub const NEVER_RUN: &[&str] = &[
-    // The window built-ins: what they do shows only in a window, outside the state the screen check reads.
-    "_SCREENHIDE",
-    "_SCREENSHOW",
-    "_SCREENICON",
-    "_TITLE",
-    "_ICON",
-    "_MOUSESHOW",
-    "_MOUSEHIDE",
-    "_MOUSECURSOR",
-    "_WINDOWSIZELIMIT",
-    "_SCREENEXISTS",
-    "_TITLE$",
-    "_DESKTOPWIDTH",
-    "_DESKTOPHEIGHT",
-    "_SCREENX",
-    "_SCREENY",
-    "_WINDOWHANDLE",
-    "_WINDOWHASFOCUS",
-    "_FULLSCREEN",
-    // `BEEP` rings the system's bell: it is not libqb's audio, so no volume silences it (design D6 of `m3-sound`).
-    "BEEP",
-    // `LPRINT` prints a page on the default printer (design D8 of `m3-console-files`; user, `DECISIONS.md`
-    // 2026-10-13). It is no row of [`STATEMENTS`]: `PRINT` to the printer, with a syntax node of its own.
-    "LPRINT",
-    // `CHAIN` compiles another program: libqb starts `qb64pe.exe -c` beside the running program through `cmd`
-    // (`tests\corpus\README.md`), which no test machine may be asked for (same decision).
-    "CHAIN",
-    // `_MOUSEMOVE` moves the machine's cursor; `_SCREENIMAGE` and `_CLIPBOARDIMAGE` read the desktop and the
-    // clipboard, `_PRINTIMAGE` prints a page, `_DEPTHBUFFER` needs a hardware image (design D3 of
-    // `m3-images-fonts-mouse`).
-    "_MOUSEMOVE",
-    "_SCREENIMAGE",
-    "_CLIPBOARDIMAGE",
-    "_PRINTIMAGE",
-    "_DEPTHBUFFER",
-    // `_SCREENMOVE` moves a window on the user's desktop, as `_SCREENX` and its kin read one; each dialog waits for a
-    // person (design D2 of `m4-qb64pe-builtins`).
-    "_SCREENMOVE",
-    "_MESSAGEBOX",
-    "_OPENFILEDIALOG$",
-    "_SAVEFILEDIALOG$",
-    "_SELECTFOLDERDIALOG$",
-    // `_SCREENCLICK` and `_SCREENPRINT` click and type on the user's desktop, `_NOTIFYPOPUP` shows a notification
-    // there, `_COLORCHOOSERDIALOG` and `_INPUTBOX$` wait for a person, the statements `_CAPSLOCK`, `_NUMLOCK` and
-    // `_SCROLLLOCK` change the machine's keyboard state (their functions only read it and are run), and
-    // `_CONSOLEFONT` changes the font of the console the program shares (design D3 of `m4-builtins-remaining`).
-    "_SCREENCLICK",
-    "_SCREENPRINT",
-    "_NOTIFYPOPUP",
-    "_COLORCHOOSERDIALOG",
-    "_INPUTBOX$",
-    "_CAPSLOCK",
-    "_NUMLOCK",
-    "_SCROLLLOCK",
-    "_CONSOLEFONT",
-];
+/// The statements compiled from a syntax node of their own, with no row in [`STATEMENTS`], that the coverage rule
+/// covers by name (`m3-console-files`): each must be used in a slice program and in an `ir` test, as a row is.
+pub const OWN_NODE: &[&str] = &["LPRINT", "FIELD", "LSET", "RSET"];
+
+/// The built-in a name token stands for, as written in [`STATEMENTS`], [`SUPPORTED`] or [`OWN_NODE`], for the names
+/// of a coverage record (design D1 of `m4-coverage-review`); `text` is the token's bytes, any letter case.
+/// A function that may have its `$` is found either way; a name written without its underscore under `$NOPREFIX` is
+/// not found.
+pub fn coverage_name(text: &[u8]) -> Option<&'static str> {
+    let upper = text.to_ascii_uppercase();
+    let listed = STATEMENTS
+        .iter()
+        .map(|&(n, _)| n)
+        .chain(SUPPORTED.iter().map(|&(n, _)| n))
+        .chain(OWN_NODE.iter().copied());
+    let mut either = None;
+    for n in listed {
+        if n.as_bytes() == upper {
+            return Some(n);
+        }
+        if upper.strip_suffix(b"$") == Some(n.as_bytes()) && lookup(n, true).is_some_and(|s| s.name == n) {
+            either = Some(n);
+        }
+    }
+    either
+}
 
 /// One form of a supported built-in statement: its table entry and rule.
 #[derive(Clone, Copy, Debug)]

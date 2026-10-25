@@ -1,0 +1,4 @@
+SUB _GL
+    _glClear _GL_COLOR_BUFFER_BIT
+    frames& = frames& + 1
+END SUB

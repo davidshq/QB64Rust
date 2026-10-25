@@ -739,9 +739,6 @@ impl<'a> Lowerer<'a> {
             place: Place::Var(t),
             value: m.binary(BinOp::Add, f.temp, m.var(st, f.temp), current),
         };
-        self.emit(end_at, end_line, vec![next]);
-
-        self.place(entry);
         let store = Op::Assign {
             place: f.var.clone(),
             value: m.convert(m.var(t, f.temp), var_ty),
@@ -762,6 +759,30 @@ impl<'a> Lowerer<'a> {
             m.binary(BinOp::And, Ty::I32, neg_v(), below),
             m.binary(BinOp::And, Ty::I32, not_neg, above),
         );
+        // An element of a member array as the variable (design D4 of `m4-left-marked`): its index may raise where
+        // the loop names it, so the step, the store and the test are one statement, as the old compiler writes them
+        // with no event check between them, the test taking its value; a pending error is serviced at the `FOR`
+        // line and `RESUME NEXT` goes on into the body (its C++ of `verification\v60_c3`: `fornext_error2:;
+        // if(qbevent){evnt(10);…}` before the body). The step statement holds its own store and test, so only the
+        // entry from the header reaches the second store.
+        if f.var.has_element() {
+            let test = || Op::Branch {
+                cond: past.clone(),
+                when: When::NonZero,
+                to: exit,
+                on_error: OnError::UseValue,
+            };
+            self.emit(end_at, s.line, vec![next, store.clone(), test()]);
+            self.emit(s.span, s.line, vec![Op::Jump(lbody)]);
+            self.place(entry);
+            self.emit(s.span, s.line, vec![store, test()]);
+            self.emit(s.span, s.line, vec![Op::Jump(lbody)]);
+            self.place(exit);
+            return;
+        }
+        self.emit(end_at, end_line, vec![next]);
+
+        self.place(entry);
         // The old compiler's test is `if (value>final) break;`, which an error left pending does not stop. Below
         // `$CHECKING:OFF` one may be pending from any earlier statement, so there the test takes its value (else the
         // loop would never end, `verification\v50_c_checking`). With checking on at the header the step statement

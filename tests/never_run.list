@@ -1,0 +1,26 @@
+# The built-ins no test runs (spec testing/coverage, "The list of built-ins no test runs"; OpenSpec change
+# m4-coverage-review, design D4). One per line: <name><TAB><reason>[ <note>]. Reasons:
+#   desktop   the desktop, a window not the program's, the clipboard, or the console the program shares
+#   printer   a page printed on the default printer
+#   keyboard  the machine's keyboard state, or its bell
+#   person    a dialog waits for a person's answer
+#   compiler  another compiler is started
+# Each must be a built-in sema compiles, held in a slice program as code that is not reached, and have a
+# call-site program in tests\callsite (tier 1, crates\driver\tests\inputs.rs). The check of
+# tools\coverage\builtin_runs.py fails when one of them runs, or when a built-in no run reaches is not here.
+# The list is by name: a name of which one form runs (the function _SCREENICON, the statement not) is not here.
+LPRINT	printer (design D8 of m3-console-files; DECISIONS.md 2026-10-13)
+_PRINTIMAGE	printer
+_CLIPBOARDIMAGE	desktop reads and writes the clipboard
+_CONSOLEFONT	desktop changes the font of the console the program shares (design D3 of m4-builtins-remaining)
+_MOUSEMOVE	desktop moves the machine's cursor (design D3 of m3-images-fonts-mouse)
+_NOTIFYPOPUP	desktop shows a notification on the desktop
+_SCREENCLICK	desktop clicks on the desktop
+_SCREENPRINT	desktop types on the desktop
+_SCREENMOVE	desktop moves the window on the desktop (design D2 of m4-qb64pe-builtins)
+_COLORCHOOSERDIALOG	person
+_INPUTBOX$	person
+_MESSAGEBOX	person
+_OPENFILEDIALOG$	person
+_SAVEFILEDIALOG$	person
+_SELECTFOLDERDIALOG$	person

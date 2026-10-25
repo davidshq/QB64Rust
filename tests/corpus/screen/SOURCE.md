@@ -167,3 +167,11 @@ Written by `m4-statements-metacommands` (task 5.4, 2026-10-23) and recorded the 
 |---|---|
 | `p01_palette_using` | `PALETTE USING b(2)` from a `LONG` array in `SCREEN 13` (libqb takes only `LONG` there), then boxes in colours it set |
 | `p02_palette_using_integer` | `PALETTE USING a` of a whole `INTEGER` array in `SCREEN 7`, an element of -1 leaving its attribute, then a box in each attribute |
+
+Written by `m4-coverage-review` (task 4.1, 2026-10-24) and recorded the same way, so that built-ins no test ran
+before are run (design D5).
+
+| Program | Covers |
+|---|---|
+| `w01_window_builtins` | `_TITLE`, `_TITLE$` (not printed: the old compiler's build read back five bytes that differ from run to run), `_MOUSEHIDE`, `_MOUSESHOW`, `_MOUSECURSOR`, `_WINDOWSIZELIMIT`, `_DESKTOPWIDTH`, `_DESKTOPHEIGHT`, `_SCREENX`, `_SCREENY`, `_WINDOWHANDLE`, `_WINDOWHASFOCUS`, and the functions `_SCREENICON` and `_FULLSCREEN`; a value of the machine printed as a property or not at all |
+| `w02_depthbuffer` | `_DEPTHBUFFER ON`, `_CLEAR` and `OFF` on a hardware image made with `_COPYIMAGE(…, 33)` |

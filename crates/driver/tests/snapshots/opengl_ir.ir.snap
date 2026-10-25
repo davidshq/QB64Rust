@@ -1,0 +1,26 @@
+---
+source: crates/driver/tests/frontend.rs
+assertion_line: 151
+expression: snap
+---
+Settings: console, window, runtime parts: OpenGL
+Library 0 OpenGl
+Stmt line 7 may_raise
+  Assign X:U32 = CallProc _GLGETERROR:U32 []
+Stmt line 8
+  System
+Sub _GL lines 10-14
+Stmt line 11 may_raise
+  Call _GLCLEAR [Value((Const 16384:I64 -> Convert U32 Truncate))]
+Stmt line 12
+  Assign FRAMES:I32 = Add:I32(Var FRAMES:I32, Const 1:I32) wrap
+Stmt line 13
+  Branch Zero -> @0 Skip: Gt:I32(Var FRAMES:I32, Const 100:I32)
+Stmt line 13
+  System
+Label @0 line 13
+Function _GLGETERROR:U32 lines 7-7
+  external glGetError of library 0 ()
+Sub _GLCLEAR lines 11-11
+  external call_glClear of library 0 (byval)
+  param A:U32

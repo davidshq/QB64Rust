@@ -1,0 +1,5 @@
+
+2nd sub argument requires a number
+Caused by (or after):_GLGETINTEGERV _GL_VIEWPORT , "a",1
+LINE 8:_glGetIntegerv _GL_VIEWPORT, "a"
+exit=1

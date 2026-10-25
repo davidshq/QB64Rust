@@ -62,7 +62,9 @@ m3_step2_errors.bas:47:5: note: QB64pe: Incorrect number of arguments - Referenc
 m3_step2_errors.bas:48:5: error: `_RGB32` with empty parentheses
 m3_step2_errors.bas:48:5: note: QB64pe: Expected (...)
 m3_step2_errors.bas:49:5: error: `_RGB32` takes 1 to 4 arguments
+m3_step2_errors.bas:49:5: note: QB64pe: Incorrect number of arguments - Reference: _RGB32(red&, green&, blue&[, alpha&]) or _RGB32(intensity&[, alpha&])
 m3_step2_errors.bas:50:5: error: `_RGBA32` takes 4 arguments
+m3_step2_errors.bas:50:5: note: QB64pe: Incorrect number of arguments - Reference: _RGBA32(red&, green&, blue&, alpha&)
 m3_step2_errors.bas:51:12: error: argument 1 of `_RGB32` needs a number
 m3_step2_errors.bas:52:13: error: this `_FULLSCREEN` statement matches none of its forms: `_FULLSCREEN [{_Off|_Stretch|_SquarePixels|Off}][,{_Smooth}]`
 m3_step2_errors.bas:52:13: note: QB64pe: Syntax error - Reference: _FULLSCREEN [{_Off|_Stretch|_SquarePixels|Off}][,{_Smooth}]

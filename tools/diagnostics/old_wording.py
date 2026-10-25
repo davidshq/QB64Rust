@@ -155,6 +155,20 @@ def names_file(old: str) -> bool:
     return re.search(r"<[a-z]+>|\.bas\b|\.bi\b|\.bm\b|\\", old) is not None
 
 
+def one_program(old: str, pattern: str) -> bool:
+    """Whether an old template holds text of one program that the pattern does not carry: a number ("line 4"), a
+    word with a digit ("1st") or a name in capitals that is no keyword ("Cannot convert type (FOO)"); its note
+    would be wrong for another program. A word with a digit that the pattern holds as a word is the same in every
+    message of the pattern (`for the 2nd argument`, "2nd sub argument requires a number", m4-sub-gl)."""
+    rest = re.sub(r"\{\d+(:[A-Z=|]+)?\}", "", old)
+    words = re.compile(r"(?<![A-Za-z0-9_$.])[A-Za-z0-9_$]*\d[A-Za-z0-9_$]*(?![A-Za-z0-9_$.])")
+    carried = set(words.findall(pattern))
+    if any(w not in carried for w in words.findall(rest)) or re.search(r"\d", words.sub("", rest)):
+        return True
+    names = [w for w in re.findall(r"(?<![A-Za-z0-9_$])[A-Z_][A-Z0-9_$]+(?![A-Za-z0-9_$])", rest) if w not in KEYWORDS]
+    return any(w not in pattern.upper() for w in names)
+
+
 def recorded() -> list[tuple[Path, str, int, list[str]]]:
     """Every recorded rejection: the program, the old message, its line, extra compiler arguments."""
     out = []
@@ -254,11 +268,7 @@ def main() -> int:
         if names_file(old):
             files += 1
             continue
-        # Text of one program that the pattern does not carry: a number ("1st", "line 4") or a name in capitals
-        # that is no keyword ("Cannot convert type (FOO)"); its note would be wrong for another program.
-        rest = re.sub(r"\{\d+(:[A-Z=|]+)?\}", "", old)
-        names = [w for w in re.findall(r"(?<![A-Za-z0-9_$])[A-Z_][A-Z0-9_$]+(?![A-Za-z0-9_$])", rest) if w not in KEYWORDS]
-        if re.search(r"\d", rest) or any(w not in pattern.upper() for w in names):
+        if one_program(old, pattern):
             specific += 1
             continue
         if old.replace("`", "").lower() == pattern.replace("`", "").lower():

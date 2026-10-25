@@ -64,10 +64,12 @@ impl Checker<'_> {
                     let id = self.variable(t, name, suffix)?;
                     return self.load(Place::Var(id), span, use_);
                 }
+                self.gl_routine_named(&name, suffix, false, t)?;
                 if let Some(p) = self.proc_in_expr(&name, suffix) {
                     return self.call_function(p, t, suffix, None, span);
                 }
                 self.auto_const_use(&name, t.span)?;
+                self.gl_constant_named(&name);
                 if let Some(c) = self.visible_const(&name) {
                     return self.const_use(c, t, suffix, span);
                 }
@@ -359,6 +361,7 @@ impl Checker<'_> {
             Some((name, ty)) => (name, Some(ty)),
             None => self.split_name(name_tok)?,
         };
+        self.gl_routine_named(&proc_name, suffix, true, name_tok)?;
         if let Some(p) = self.proc_in_expr(&proc_name, suffix) {
             let args = self.need(node.arg_list(), span)?;
             return self.call_function(p, name_tok, suffix, Some(args), span);

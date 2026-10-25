@@ -16,7 +16,6 @@ v21_b_bit_overlap	D-009
 v21_e_scenarios	D-009
 v21_g_fixed_function_twice	D-014
 v24_h_member_store	D-004
-v24_x268_implicit_in_redim_bounds	not supported yet: case 5, in a SUB, `REDIM` of a shared array with a bound that names an array used without `DIM` (v55_x84)
 v24_x313_member_index_order	D-004
 v25_signs_const	D-028
 v26_x114_auto_const_accepted	D-027
@@ -60,12 +59,9 @@ v45_x40	D-028
 v49_x18_cast_out_of_range	varies: a float constant out of range in `_CAST`; g++ gives another value on each build, in the old compiler too (design D2 of `m4-builtins-param-types`)
 v54_x26_negative_beyond	D-034
 v54_x38_const_unsigned	D-027
-v55_x74_static_bound_shared	not supported yet: a `STATIC` bound the start code reads (a shared variable, a FUNCTION)
-v55_x75_static_bound_function	not supported yet: a `STATIC` bound the start code reads (a shared variable, a FUNCTION)
-v55_x84_redim_shared_implicit_bound	not supported yet: in a SUB, `REDIM` of a shared array with a bound that names an array used without `DIM`
-v56_a5_type_string_member	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
-v56_f3_for_member_array_element	not supported yet: `FOR` over an element of a member array
-v56_x08_varptr_string_member	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
-v56_x26_varptr_type_string_member_long	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
-v56_x27_varptr_element_string_member	not supported yet: a `TYPE` that holds a `STRING` in conventional memory
+v56_a5_type_string_member	D-037
+v59_f9_stop	D-036
 v39_a_handles	varies: _SNDGETPOS and _SNDLEN of a raw sound depend on the sound device's sample rate (.1249886602163315 recorded at 44100, .125 at 48000 here, the old build's too; as v39_b_new_mem)
+v60_c3_for_member_element_index_error	D-004
+v60_d6_string_type_nested_used	D-037
+v46_a_play_v0	varies: PLAY(0) read while the background queue drains (line 193: 41 recorded, 40 here alone and with --jobs; the old build's gives 40 or 41)

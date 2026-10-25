@@ -1,0 +1,7 @@
+frames >= 3
+renderer named:-1 
+pixel: 255  0  0  255 
+viewport: 0  0  512  320 
+enabled: 0  1 
+errors: 0  1280 
+exit=0

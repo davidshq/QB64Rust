@@ -33,12 +33,16 @@ class Fixture(unittest.TestCase):
         self.list = self.dir / "p.unreached"
         self.n = 0
 
-    def counts(self, ran: dict[tuple[int, int], int], text: bytes = SOURCE) -> Path:
-        """A counts file of one run: the statements of SOURCE with the counts in `ran` (0 if absent)."""
+    def counts(
+        self, ran: dict[tuple[int, int], int], text: bytes = SOURCE, version: int = 2
+    ) -> Path:
+        """A counts file of one run: the statements of SOURCE with the counts in `ran` (0 if absent),
+        in the record's version 1 or 2 (version 2 names no built-in: SOURCE calls none)."""
         self.n += 1
-        lines = ["coverage 1", f"file\t0\t{cov.fnv1a64(text):016x}\tp.bas"]
+        lines = [f"coverage {version}", f"file\t0\t{cov.fnv1a64(text):016x}\tp.bas"]
         for at in [(10, 1), (10, 11), (11, 1), (12, 1)]:
-            lines.append(f"0\t{at[0]}\t{at[1]}\t{ran.get(at, 0)}")
+            names = "\t" if version == 2 else ""
+            lines.append(f"0\t{at[0]}\t{at[1]}\t{ran.get(at, 0)}{names}")
         path = self.dir / f"c{self.n}.txt"
         # LF line ends, as the build writes them ("ab").
         path.write_bytes("\n".join(lines + ["end", ""]).encode())
@@ -83,6 +87,18 @@ class CoverageOfRuns(Fixture):
         self.assertEqual((rc, out), (2, ""))
         self.assertIn("p.bas", err)
         self.assertIn("another text", err)
+
+    def test_counts_of_both_versions(self):
+        # The spec's scenario: a record of the first version and one that names built-ins merge.
+        one = self.counts({(10, 1): 1, (10, 11): 1}, version=1)
+        two = self.counts({(11, 1): 1, (12, 1): 1}, version=2)
+        lines = self.merged(one, two).lines("p.bas")
+        self.assertEqual([lines[n][0] for n in (10, 11, 12)], ["run", "run", "run"])
+        # A version 1 line with a fifth field, or a version 2 line without one, is no line of a record.
+        bad = self.dir / "bad.txt"
+        bad.write_bytes(one.read_bytes().replace(b"coverage 1", b"coverage 2"))
+        with self.assertRaisesRegex(cov.CoverageError, "not a line of a record"):
+            self.merged(bad)
 
     def test_a_record_cut_short_is_refused(self):
         path = self.counts({})

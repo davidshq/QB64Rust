@@ -189,10 +189,6 @@ impl Checker<'_> {
     /// Measured for a SUB without a suffix and a FUNCTION without one and with `&`; other FUNCTION suffixes on
     /// a built-in function's name are "not supported yet".
     pub(super) fn reserved_proc(&mut self, t: Tok, name: &str, suffix: Option<Ty>, function: bool) -> R<()> {
-        if name == "_GL" && !function {
-            // The SUB QB64 calls to draw with OpenGL (design D10 of `m2-parser-breadth`).
-            return Err(self.unsupported(t.span, "`SUB _GL` (OpenGL)"));
-        }
         // The old compiler's `regid` (`qb64pe.bas` 25881–25896): a procedure's name, without its suffix, clashes with
         // a reserved word whatever the suffix, and with a built-in of its kind unless the built-in must have `$` and
         // the procedure's name has none ("Name already in use"; measured, `verification\v52_x28`, `v55_x47`–`x49`,
@@ -352,6 +348,9 @@ impl Checker<'_> {
             let (name, suffix) = self.split_name(size)?;
             if consts {
                 self.auto_const_use(&name, size.span)?;
+                // An OpenGL constant is a length outside a `TYPE` (measured, `verification\v59_x53`; a member's is
+                // "Invalid number/constant after STRING * type", `x54`, where `consts` is false).
+                self.gl_constant_named(&name);
             }
             // Measured (design D11 of `m4-memory-records`): a string constant and a name that is no constant (a
             // variable, a name never assigned) are "Number/Constant expected after *" (`verification\v51_x75`,

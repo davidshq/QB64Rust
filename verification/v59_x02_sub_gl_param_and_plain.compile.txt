@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 13:SUB _GL ( A AS LONG )
+exit=1

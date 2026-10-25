@@ -1,0 +1,41 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+Settings: console, no window
+Member array T.M:I16 (0 To 3)
+Stmt line 2
+  SelectConsole
+Stmt line 12
+  AssignAll
+    for1.value(temp):I32 = Const 1:I32
+    for1.limit(temp):I32 = Const 3:I32
+    for1.step(temp):I32 = Const 1:I32
+    for1.negative(temp):I32 = Lt:I32(Var for1.step(temp):I32, Const 0:I32)
+  Jump @1
+Label @0 line 12
+Stmt line 12 may_raise
+  Print console
+    Num Load R.M(Const 3:I64):I16
+Stmt line 12 may_raise
+  Assign for1.value(temp):I32 = Add:I32(Var for1.step(temp):I32, (Load R.M((CallProc IDX:F32 [Temp(Const 3:I16)] -> Convert I64 RoundEven)):I16 -> Convert I32 Widen)) wrap
+  Assign R.M((CallProc IDX:F32 [Temp(Const 3:I16)] -> Convert I64 RoundEven)):I16 = (Var for1.value(temp):I32 -> Convert I16 Truncate)
+  Branch NonZero -> @2 UseValue: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)))
+Stmt line 12
+  Jump @0
+Label @1 line 12
+Stmt line 12 may_raise
+  Assign R.M((CallProc IDX:F32 [Temp(Const 3:I16)] -> Convert I64 RoundEven)):I16 = (Var for1.value(temp):I32 -> Convert I16 Truncate)
+  Branch NonZero -> @2 UseValue: Or:I32(And:I32(Var for1.negative(temp):I32, Lt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)), And:I32(Not:I32(Var for1.negative(temp):I32), Gt:I32(Var for1.value(temp):I32, Var for1.limit(temp):I32)))
+Stmt line 12
+  Jump @0
+Label @2 line 12
+Stmt line 13
+  System
+Function IDX:F32 lines 15-18
+  param K:I16
+  result IDX:F32
+Stmt line 16
+  Assign C:I16 = (Add:I32((Var C:I16 -> Convert I32 Widen), Const 1:I32) wrap -> Convert I16 Truncate)
+Stmt line 17
+  Assign IDX(result):F32 = (Var K(param):I16 -> Convert F32 Nearest)

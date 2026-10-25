@@ -30,7 +30,9 @@ images_errors.bas:22:7: note: QB64pe: Incorrect number of arguments - Reference:
 images_errors.bas:23:7: error: `_RED` takes 1 or 2 arguments
 images_errors.bas:23:7: note: QB64pe: Incorrect number of arguments - Reference: _RED(rgbaColorIndex&[, imageHandle&])
 images_errors.bas:24:7: error: `_RED32` takes 1 argument
+images_errors.bas:24:7: note: QB64pe: Incorrect number of arguments - Reference: _RED32(rgbaColor&)
 images_errors.bas:25:7: error: `_HSB32` takes 3 arguments
+images_errors.bas:25:7: note: QB64pe: Incorrect number of arguments - Reference: _HSB32(hue#, saturation#, brightness#)
 images_errors.bas:26:14: error: `_HUE32` needs a number
 images_errors.bas:26:14: note: QB64pe: Number required for function
 images_errors.bas:27:12: error: argument 1 of `_RGB` needs a number

@@ -1,0 +1,5 @@
+
+Invalid array name
+Caused by (or after):A$ = _GLGETSTRING$ ( _GL_VERSION )
+LINE 8:a$ = _glGetString$(_GL_VERSION)
+exit=1

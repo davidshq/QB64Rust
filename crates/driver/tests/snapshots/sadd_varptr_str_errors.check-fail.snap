@@ -21,8 +21,8 @@ sadd_varptr_str_errors.bas:25:13: note: QB64pe: VARPTR$ only accepts variable-le
 sadd_varptr_str_errors.bas:26:12: error: `VARPTR` of a whole `TYPE` variable
 sadd_varptr_str_errors.bas:27:12: error: `VARPTR` of an element of a `_BIT` array
 sadd_varptr_str_errors.bas:27:12: note: QB64pe: VARPTR cannot reference _BIT type arrays
-sadd_varptr_str_errors.bas:28:12: error: not supported yet: `VARPTR` of a `TYPE` that holds a `STRING`, in conventional memory
-sadd_varptr_str_errors.bas:29:12: error: not supported yet: `VARSEG` of a `TYPE` that holds a `STRING`, in conventional memory
+sadd_varptr_str_errors.bas:28:12: error: `VARPTR` of the `STRING` member of an array element
+sadd_varptr_str_errors.bas:29:13: error: `VARPTR$` of a `STRING` member
 sadd_varptr_str_errors.bas:30:12: error: not supported yet: `VARPTR` of a whole array of strings or of a `TYPE`
 sadd_varptr_str_errors.bas:31:12: error: not supported yet: `VARSEG` of a `_BIT` array
 sadd_varptr_str_errors.bas:32:13: error: not supported yet: `VARPTR$` of a member of an array element or of a member that is no number

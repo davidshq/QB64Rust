@@ -1,0 +1,7 @@
+flush
+finish
+geterror
+identity
+perspective
+end
+exit=0

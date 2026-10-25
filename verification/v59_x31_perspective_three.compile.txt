@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_GLUPERSPECTIVE 1 , 2 , 3
+LINE 8:_gluPerspective 1, 2, 3
+exit=1

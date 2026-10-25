@@ -57,7 +57,8 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     "screen" with their file named, as its states are not compared
   * --coverage <file> (qb64rust): every program is built with --coverage and each run's counts
     (QB64RUST_COVERAGE, a file in the results folder) are appended to <file> once it has passed
-    or failed, one record per run (tools/coverage); not with --record or --pass-cache
+    or failed, one record per run (tools/coverage); not with --record or --pass-cache. The
+    verification and compile suites take it too (OpenSpec change m4-coverage-review)
   * <name>.files: a folder of data files the program reads (the pictures a game loads with
     BLOAD). Everything in it is copied into the program's folder before it is compiled, with
     either compiler, when checking and when recording; beside an .err or a .norun it is an
@@ -542,6 +543,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         "-m",
         "-x",
         *include_root_args(args.qb64),
+        *(["--coverage"] if getattr(args, "coverage", None) else []),
     ]
     if (tdir / f"{name}.compile-from-base").is_file():
         # relpath, not relative_to: with --compile-tests the program is outside qb_root.
@@ -627,6 +629,8 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     )
     trace = results / f"{category}-{name}-divergences.txt"
     set_trace(env, trace)
+    counts = results / f"{category}-{name}-coverage.txt"
+    coverage_env(args, env, counts)
     with folder_lock(tdir):
         rc, timed_out = run_proc(
             [str(exe), str(results), f"{category}-{name}"],
@@ -636,6 +640,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
             env=env,
             merge_stderr=True,
         )
+    append_counts(args, counts, timed_out)
     if timed_out:
         return fail("run", "timeout")
     if rc != 0:
@@ -888,6 +893,22 @@ class SharedBuilds:
 
 # One append at a time to the --coverage file: each run's record goes in whole.
 COVERAGE_LOCK = threading.Lock()
+
+
+def coverage_env(args, env: dict, counts: Path) -> None:
+    """With --coverage, the run writes its counts to `counts` (removed first)."""
+    if getattr(args, "coverage", None):
+        counts.unlink(missing_ok=True)
+        env["QB64RUST_COVERAGE"] = str(counts)
+
+
+def append_counts(args, counts: Path, timed_out: bool) -> None:
+    """With --coverage, a run's counts go to the --coverage file in one append. A run cut short may
+    have left half a record: its counts are left out, and the timeout fails the test."""
+    coverage = getattr(args, "coverage", None)
+    if coverage and counts.is_file() and not timed_out:
+        with COVERAGE_LOCK, open(coverage, "ab") as f:
+            f.write(counts.read_bytes())
 
 
 def corpus_test(
@@ -1155,9 +1176,7 @@ def corpus_test(
             state_out.unlink(missing_ok=True)
             env["QB64_SCREEN_STATE"] = str(state_out)
         counts = results / f"{key}-run{run}-coverage.txt"
-        if coverage:
-            counts.unlink(missing_ok=True)
-            env["QB64RUST_COVERAGE"] = str(counts)
+        coverage_env(args, env, counts)
         rc, timed_out = run_proc(
             cmd,
             work,
@@ -1168,10 +1187,7 @@ def corpus_test(
             creationflags=flags,
             stdin_path=stdin_copy if os.name != "nt" else None,
         )
-        # A run cut short may have left half a record: its counts are left out, the timeout fails the test.
-        if coverage and counts.is_file() and not timed_out:
-            with COVERAGE_LOCK, open(coverage, "ab") as f:
-                f.write(counts.read_bytes())
+        append_counts(args, counts, timed_out)
         if timed_out:
             return fail("run", "timeout")
         # A recording takes any code (two runs must agree); a check wants the .exitcode's, or 0.
@@ -1713,8 +1729,9 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
         return fail("expected", str(e))
     if has_folder or placed_files:
         root_args = ["--include-root", str(work / "root")]
+    coverage_flag = ["--coverage"] if getattr(args, "coverage", None) else []
     rc, timed_out = run_proc(
-        [str(args.qb64), "-x", "-q", "-m", *root_args, bas.name, "-o", str(exe)],
+        [str(args.qb64), "-x", "-q", "-m", *coverage_flag, *root_args, bas.name, "-o", str(exe)],
         work,
         compile_out,
         COMPILE_TIMEOUT,
@@ -1788,6 +1805,8 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
     set_trace(env, trace)
     log = results / f"{name}-log.txt"
     log_env(env, log)
+    counts = results / f"{name}-coverage.txt"
+    coverage_env(args, env, counts)
     rc, timed_out = run_proc(
         cmd,
         work,
@@ -1798,6 +1817,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
         stdin_path=run_stdin if os.name != "nt" else None,
         ask_first=True,
     )
+    append_counts(args, counts, timed_out)
     actual = verification_text(run_out.read_bytes(), rc, timed_out, work)
     rules = load_normalize(normalize)
     want = norm_output(apply_normalize(recorded, rules))
@@ -1950,10 +1970,12 @@ def check_list(
         problems.append("the runner has changed since the run")
     if run.get("no_fold") != fold_is_off():
         problems.append(f"the run had QB64RUST_NO_FOLD={'1' if run.get('no_fold') else 'unset'}")
-    if any(run.get(k) for k in ("pass_cache", "record", "cpp_opt", "coverage", "full_states")):
+    # A run with --coverage stands for one (its counters change no value; the full suites at a merge
+    # run with it, m4-coverage-review design D7).
+    if any(run.get(k) for k in ("pass_cache", "record", "cpp_opt", "full_states")):
         problems.append(
-            "a run with --pass-cache, --record, --cpp-opt, --coverage or --full-states cannot "
-            "stand for a run of the list"
+            "a run with --pass-cache, --record, --cpp-opt or --full-states cannot stand for a run "
+            "of the list"
         )
     if problems:
         return problems, [], 0
@@ -2298,9 +2320,13 @@ def main() -> int:
     if args.full_states and (args.suite != "corpus" or args.record):
         print("--full-states applies to --suite corpus without --record", file=sys.stderr)
         return 2
-    if args.coverage and (args.suite != "corpus" or args.record or args.pass_cache):
+    if args.coverage and (
+        args.suite not in ("corpus", "verification", "compile") or args.record or args.pass_cache
+    ):
         print(
-            "--coverage applies to --suite corpus without --record or --pass-cache", file=sys.stderr
+            "--coverage applies to --suite corpus, verification or compile without --record or "
+            "--pass-cache",
+            file=sys.stderr,
         )
         return 2
     if args.category and args.suite in ("qbasic", "verification", "all"):

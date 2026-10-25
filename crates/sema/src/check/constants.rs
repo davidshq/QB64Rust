@@ -253,6 +253,10 @@ impl Checker<'_> {
                 let t = self.need(n.name(), span)?;
                 let (name, suffix) = self.split_name(t)?;
                 let shown = show_bytes(self.text(t.span));
+                if self.is_gl_constant(&name) {
+                    let msg = format!("`{shown}` is an OpenGL constant, which a `CONST` cannot name");
+                    return Err(self.error(t.span, msg));
+                }
                 self.auto_const(&name, t.span)?;
                 match (self.visible_const(&name), suffix) {
                     // With a suffix or without, the constant itself, with its own value and type (the old

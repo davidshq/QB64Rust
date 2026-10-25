@@ -367,6 +367,7 @@ pub fn emit_ir_with(
     let coverage = coverage.then(|| qb64rust_codegen_cpp::Coverage {
         files: coverage_files(fe),
         position: &position,
+        builtins: coverage_builtins(fe),
     });
     qb64rust_codegen_cpp::emit_with(
         ir,
@@ -408,6 +409,35 @@ pub fn coverage_files(fe: &Frontend) -> Vec<(String, String)> {
             )
         })
         .collect()
+}
+
+/// Each name token of the program's trees that stands for a built-in `sema` compiles
+/// ([`qb64rust_sema::builtins::coverage_name`]), for the names of a coverage record (design D1 of
+/// `m4-coverage-review`). A name after a member's dot (`r.left`) is the member's, and the name of one of the
+/// program's own SUBs and FUNCTIONs is the procedure's (`FUNCTION beep`, `tests\corpus\slice\s24_proc_names`).
+pub fn coverage_builtins(fe: &Frontend) -> Vec<(qb64rust_base::Span, &'static str)> {
+    use qb64rust_syntax::SyntaxKind;
+    let own = |name: &str| {
+        let bare = name.strip_suffix('$').unwrap_or(name);
+        fe.program.procs.iter().any(|p| p.name == bare)
+    };
+    let mut out = Vec::new();
+    for tree in &fe.parsed.trees {
+        let bytes = &fe.map.file(tree.file).bytes;
+        let mut after_dot = false;
+        for tok in tree.root().tokens() {
+            if tok.kind == SyntaxKind::Ident && !after_dot {
+                let text = &bytes[tok.span.start as usize..tok.span.end as usize];
+                if let Some(name) = qb64rust_sema::builtins::coverage_name(text).filter(|n| !own(n)) {
+                    out.push((tok.span, name));
+                }
+            }
+            if tok.kind != SyntaxKind::Whitespace {
+                after_dot = tok.kind == SyntaxKind::Dot;
+            }
+        }
+    }
+    out
 }
 
 /// The 64-bit FNV-1a hash.

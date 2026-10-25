@@ -6,7 +6,7 @@ use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
     AddressWord, Arg, ArrayRef, Body, BuiltinId, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue,
     Member, MemberId, Op, Place, PrintItem, PrintTo, ProcId, ProcKind, Program, Reference, Resume, Shape, Source,
-    StmtArg, Storage, Ty, UsingValue, Var, VarId,
+    StartBounds, StmtArg, Storage, Ty, UsingValue, Var, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -24,11 +24,11 @@ pub fn validate(p: &Program) -> Result<(), Vec<String>> {
         if v.var_exists(*array, "a start allocation") {
             let var = p.var(*array);
             let dims = var.dim_count();
-            if var.storage != Storage::Global || dims.is_none_or(|n| n != bounds.len()) {
+            if var.storage != Storage::Global || dims.is_none_or(|n| n != bounds.dims()) {
                 v.problem(format!(
                     "a start allocation of {}, no global array of {} dimensions",
                     var.name,
-                    bounds.len()
+                    bounds.dims()
                 ));
             }
         }
@@ -91,12 +91,24 @@ pub fn validate(p: &Program) -> Result<(), Vec<String>> {
                     var.name
                 ));
             }
-            if *dims != Some(bounds.len()) {
+            if *dims != Some(bounds.dims()) {
                 v.problem(format!(
                     "{}: {} pairs of bounds at the start for {dims:?} dimensions",
                     var.name,
-                    bounds.len()
+                    bounds.dims()
                 ));
+            }
+            // Bounds read by the start code are values of the main module's (design D1 of `m4-left-marked`).
+            if let StartBounds::Read(read) = bounds {
+                let at = At {
+                    body: "start",
+                    stmt: 0,
+                    line: 0,
+                };
+                for (lower, upper) in read {
+                    v.value(lower, None, &at);
+                    v.value(upper, None, &at);
+                }
             }
         }
         // Only a listed array (`STATIC a()`) may be without its number of dimensions; one made on each call
@@ -1408,7 +1420,7 @@ mod tests {
     use super::validate;
     use crate::{
         AllocMode, Arg, ArrayRef, Body, Event, EventHandler, Expr, ExprKind, Label, LabelId, MemberId, Op, Place, Proc,
-        ProcId, ProcKind, Program, Resume, Settings, Shape, Stmt, Storage, Ty, Var, VarId,
+        ProcId, ProcKind, Program, Resume, Settings, Shape, StartBounds, Stmt, Storage, Ty, Var, VarId,
     };
     use qb64rust_base::{FileId, Span};
 
@@ -2025,7 +2037,7 @@ mod tests {
     fn array_allocated_at_the_start() {
         let at_start = |dims, bounds: &[(i64, i64)]| Shape::Dynamic {
             dims,
-            at_start: Some(bounds.to_vec()),
+            at_start: Some(StartBounds::Values(bounds.to_vec())),
         };
         let mut p = arrays();
         p.vars[4].shape = at_start(Some(1), &[(0, 3)]);

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_GLCLEAR 1 , 2
+LINE 8:_glClear 1, 2
+exit=1

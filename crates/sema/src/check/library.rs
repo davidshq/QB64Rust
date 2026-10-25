@@ -339,7 +339,10 @@ impl<'a> Checker<'a> {
                 name_end(raw) == raw.len()
                     && self
                         .visible_const(&show_bytes(&raw.to_ascii_uppercase()))
-                        .is_some_and(|c| self.prog.consts[c.0 as usize].value == Value::Int(0))
+                        // An OpenGL constant is written as an `_INTEGER64` literal, `0ll` (`_GL_FALSE`).
+                        .is_some_and(|c| {
+                            !self.gl_consts.contains(&c) && self.prog.consts[c.0 as usize].value == Value::Int(0)
+                        })
             }),
             ast::Expr::Call(_) | ast::Expr::Field(_) | ast::Expr::Prefix(_) | ast::Expr::Bin(_) => false,
         }

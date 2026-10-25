@@ -672,10 +672,14 @@ allocate it again, empty, if it was released (the old compiler writes its alloca
 starts, which a handler enters again). The old compiler writes the bounds into the main module's code as they
 are. So a bound whose value is known when compiling (`2 + 3`, an expression of constants) SHALL be taken with
 that value, and a bound that names a parameter or a local variable of the procedure SHALL be a compile error that
-is not "not supported yet" (the old compiler's C++ build fails, `verification\v24_x121`). `LEN` of a string
+is not "not supported yet" (the old compiler's C++ build fails, `verification\v24_x121`); one that names an array
+of the procedure (a parameter array, a local or `STATIC` one) SHALL be "not supported yet" (not measured). `LEN` of a string
 literal SHALL be taken with its value (`verification\v55_x73`). A bound that names a shared main-module variable
-or calls a FUNCTION SHALL stay "not supported yet": the old compiler reads it when its start code runs, at the
-start and again when a handler is entered (`v55_x74`, `x75`). `STATIC name()` SHALL declare a dynamic array that lives
+or calls a FUNCTION SHALL be read when the start code allocates the array, as in the old compiler: when the
+program starts (a shared variable has its first value then, 0 for a number; what a FUNCTION there prints SHALL be
+lost), also for a procedure that is never called, and again each time an error reaches a handler while the array
+is released, with the values of that moment; while the array is allocated the bound SHALL not be read, so a
+FUNCTION in it does not run (`verification\v55_x74`, `x75`, `v60_a1`–`a7`). `STATIC name()` SHALL declare a dynamic array that lives
 for the program and is not allocated: a `DIM` of it in the same procedure SHALL allocate it (raising error 10 on
 a later call), a `REDIM` SHALL give it new elements and a `REDIM _PRESERVE` keep them; its number of dimensions
 SHALL come from what names it first, a `DIM`, a `REDIM`, an index or `LBOUND`/`UBOUND`, and another number later
@@ -703,6 +707,16 @@ name(bounds)` beside a shared main-module array of that name and type SHALL name
 allocation when the program starts SHALL be a second allocation of the shared array, after the array's own: a
 static shared array then ends the program at the start with "Duplicate definition", before any `ON ERROR` runs,
 as in the old compiler (`verification\v24_x272`, `v55_d_static_shared`).
+
+In a procedure, `REDIM name(bounds)` (also `_PRESERVE`, `AS type`, an item of a list) of a shared main-module
+array whose bound is the first place in the procedure that names an array used without `DIM` SHALL make the name
+and type an array of the procedure in the whole procedure, above that `REDIM` too, as the old compiler does: a
+dynamic array that is new on every call and released at its end, also in a `SUB … STATIC`, which nothing
+allocates until a `REDIM` runs. The shared array SHALL be left as it was and other procedures SHALL name it
+(`verification\v55_x84`, `v24_x268` case 5, `v60_b1`–`b10`). When the array used without `DIM` was named above the
+`REDIM` in the procedure, the `REDIM` SHALL give the shared array its bounds (`v60_b7`). In a procedure with
+`STATIC` after its header, an array used without `DIM` that a bound of `REDIM` names first SHALL be a dynamic
+array that nothing allocates, as below `$DYNAMIC` (`v60_b5`).
 
 #### Scenario: New on each call
 - **WHEN** a SUB with `DIM t(5) AS LONG: PRINT t(1): t(1) = 7` is called twice
@@ -767,6 +781,12 @@ as in the old compiler (`verification\v24_x272`, `v55_d_static_shared`).
 - **THEN** the first is a compile error that is not "not supported yet" (`verification\v24_x121`); the second
   prints ` 1  5 `, then ` 2  5 ` (`v24_x280`)
 
+#### Scenario: STATIC with a bound that names an array of the procedure
+- **WHEN** a SUB with a parameter array `pa()` holds `STATIC e(UBOUND(pa)) AS LONG`, one holds `STATIC sb(5) AS
+  LONG: STATIC g(UBOUND(sb)) AS LONG`, and one `DIM lc(3) AS LONG: STATIC h(lc(1)) AS LONG`
+- **THEN** each is "not supported yet"; a SUB with `SHARED sa() AS LONG: STATIC v(UBOUND(sa)) AS LONG` reads the
+  shared array's bound when the program starts
+
 #### Scenario: STATIC beside a shared array
 - **WHEN** the main module has `ON ERROR GOTO h` and `DIM SHARED a(3) AS LONG`, and a SUB below holds `STATIC a(5)
   AS LONG`
@@ -793,6 +813,31 @@ as in the old compiler (`verification\v24_x272`, `v55_d_static_shared`).
 - **WHEN** the main module has `DIM a(3) AS LONG: a(1) = 7` and a SUB holds `DIM a(5) AS LONG: a(1) = 1: SHARED a()
   AS LONG: PRINT a(1); UBOUND(a)`
 - **THEN** the SUB prints ` 1  5 ` and `a(1)` in the main module is still 7
+
+#### Scenario: STATIC with a bound read when the program starts
+- **WHEN** a SUB with `STATIC v(n) AS LONG: v(1) = v(1) + 1: PRINT v(1); UBOUND(v)` reads a shared `n` set to 4
+  in the main module before the call, and another with `STATIC v(f) AS LONG` for a FUNCTION `f` that prints `"f"`
+  and returns 6 is called twice (`verification\v55_x74`, `x75`)
+- **THEN** the first ends with "Subscript out of range" (the array is `v(0 TO 0)`), and the second prints ` 1  6 `,
+  then ` 2  6 `, and no `f`
+
+#### Scenario: REDIM of a shared array with a new array in its bound
+- **WHEN** the main module has `REDIM SHARED sd(1)`, then `REDIM sd(ASC("") + 6)` in a SUB, then a SUB with `REDIM
+  sd(lc(1) + 4): PRINT UBOUND(sd)` is called twice, under a handler that prints `ERR` and resumes next, and the
+  main module prints `UBOUND(sd)` after each (`verification\v55_x84`)
+- **THEN** each call of the second SUB prints the handler's 9, then ` 4 `, and the main module prints ` 6 `
+
+#### Scenario: The procedure's array above the REDIM
+- **WHEN** the main module has `REDIM SHARED sd(1): sd(1) = 11`, and a SUB with `PRINT UBOUND(sd); sd(1)`, then
+  `REDIM sd(lc(1) + 4)`, then `PRINT UBOUND(sd); sd(1): sd(1) = 22` is called twice under the same handler
+  (`verification\v60_b1`)
+- **THEN** each call prints the handler's 9 above the `REDIM` and ` 4  0 ` below it, and the main module still
+  has `UBOUND(sd)` 1 and `sd(1)` 11
+
+#### Scenario: STATIC with a FUNCTION bound under handlers
+- **WHEN** a SUB holds `STATIC v(f) AS LONG` for a FUNCTION `f` that counts its calls, the program enters a
+  handler twice, then the SUB runs `ERASE v` and the program enters the handler again (`verification\v60_a2`)
+- **THEN** `f` has run once after the first two handled errors and twice after the third
 
 ### Requirement: COMMON
 `COMMON name [AS type], …` in the main module SHALL declare each variable as `DIM` does, and `COMMON SHARED` as

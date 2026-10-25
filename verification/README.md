@@ -280,6 +280,45 @@ Small programs behind `study\09`, `study\10` and later measurements:
   one accepted or rejected form each (the five accepted above and `_SETBIT(1, 1.5)`; the hyperbolics,
   `_SETBIT`, `MKSMBF$`, `_COMPILERVERSION$` and `_ENVIRONCOUNT` in a `CONST` "Unexpected element"; a function as a
   statement "Syntax error", a statement as a function "Name already in use" or "Invalid array name")
+- `v59*`: `SUB _GL` and the OpenGL names, measured as task 1.1 of `m4-sub-gl` (its `design.md`, D1). OpenGL gets a
+  hardware context on the runner's hidden desktop (the machine's driver; the renderer is printed only as named).
+  `a1`–`a6` the forms accepted: plain, `STATIC` (a local kept between calls), in an included file (`v59_inc\`), in
+  lower case with `()` and the OpenGL names in any letter case, a SUB defined before it using a routine; under
+  `$CONSOLE:ONLY` and `$SCREENHIDE` it compiles and is never called; `b1`–`b4` the names without `SUB _GL` (a
+  statement "Syntax error", a function and a constant "Invalid variable name"); `c` the constants (585 of them:
+  values, a `#define` naming an earlier one, `_INTEGER64` arithmetic, the suffixes as for a `CONST`); `d` the
+  conversions read back (a float rounded half to even into `GLint`, -1 into `GLuint` as all ones, 256 into
+  `GLboolean` as 0, an out-of-range clear colour clamped, -1 into `GLenum`: `GL_INVALID_ENUM`); `e`, `e2` the
+  functions (`_glGetString` a `STRING`, empty for a name OpenGL does not know; `_glGetError` an `_UNSIGNED LONG`);
+  `f1`–`f9` the errors: 270 for a routine with a helper outside `SUB _GL` (in the main module or a SUB it calls,
+  `_glGetString` too) and 271 for `END` or `SYSTEM` inside it are libqb's critical errors (a message, exit 0, no
+  handler runs; each program waits after the call, since lines printed just after it race the program's end), the
+  routines without a helper (`_glFlush`, `_glGetError`) and `_gluPerspective` raise nothing, `STOP` inside it hangs
+  (timed out); `g` reading back (a cleared pixel, the viewport, `_glIsEnabled`, `_glGetError`); `h1`–`h3` the SUB
+  called under `_GLRENDER _BEHIND`, `_ONLY`, `_ONTOP`; `x01`–`x47` one accepted or rejected form each (`SUB _GL`
+  with a parameter, as a FUNCTION, twice or with a suffix "Invalid name" or "Type symbols after a SUB name are
+  invalid", a call "Cannot call SUB _GL directly", a program's name or `CONST` of an OpenGL name "Invalid name", a
+  `CONST` naming an OpenGL constant "Unexpected element"; accepted: `CALL _glViewport(…)`, `_GL_TRUE&`, a `LONG` or
+  a whole array where an `_OFFSET` goes, `DECLARE SUB _GL ()`, a constant as a `DIM` bound and a `CASE`; `x48`–`x54`:
+  by the review of the change, a routine with a suffix as a statement "Syntax error" and after `CALL` "Expected CALL
+  sub-name", a count error of a one-argument routine, the third argument a string "3rd sub argument requires a
+  number", a constant as a member's bound or `STRING * n` rejected and as a variable's `STRING * n` accepted;
+  `x55`–`x57`: by the review of those fixes, a suffix with empty parentheses in an expression "Invalid array name"
+  and as a statement "Syntax error", after `CALL` without arguments "Expected CALL sub-name")
+- `v60*`: the forms steps 2 and 3 of M4's plan left marked, measured as task 1.1 of `m4-left-marked` (its
+  `design.md`, D1–D5): `a1`–`a7` `STATIC v(bounds)` whose bound reads a shared variable, an element of a shared
+  array, a main-module `CONST` or calls a FUNCTION (read when the start code allocates the array: at the start,
+  also for a SUB never called, and when a handler is entered while `ERASE` has released it, with the values of that
+  moment; a FUNCTION does not run while the array is allocated, what it prints at the start is lost and later
+  seen; several bounds in file order); `b1`–`b10` in a procedure, `REDIM` of a shared array whose bound first names
+  an array used without `DIM` (the name is the procedure's array in the whole procedure, above the `REDIM` too and
+  below `SHARED sd()`, new on each call also in `SUB … STATIC` and with `_PRESERVE`; other procedures and the main
+  module keep the shared one; in a list only that item; `b7`: named above the `REDIM`, the shared array is given
+  the bounds); `c1`–`c6` `FOR` over an element of a member array (steps, `EXIT FOR`, a nested member, an index out
+  of range at `NEXT` under a handler, every numeric type, `_OFFSET`, two dimensions); `d1`–`d8` a `TYPE` that holds
+  a `STRING` in conventional memory (offsets of members, nested and two strings, among scalars, `VARPTR$` of a
+  number member; `d5` an element's string used, no crash; `d6` a variable's string used, exit 139; `d7` `VARPTR`
+  of an element's `STRING` member and `d8` `VARPTR$` of a `STRING` member: the C++ build fails)
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

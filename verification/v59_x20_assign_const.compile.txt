@@ -1,0 +1,5 @@
+
+Expected variable =, look for conflict with a CONST name
+Caused by (or after):_GL_TRUE = 5
+LINE 8:_GL_TRUE = 5
+exit=1

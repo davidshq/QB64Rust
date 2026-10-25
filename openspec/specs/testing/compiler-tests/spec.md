@@ -107,14 +107,10 @@ Every built-in function and every built-in statement that `sema` compiles SHALL 
 `tests/corpus/slice.list` (so its output is compared with the old compiler's in tier 2) and in at least one
 front-end test that pins it in tier 1: a `typed` test for a function (its result type and argument conversions),
 an `ir` test for a statement (its slots, places and items). `cargo test` SHALL fail and name the built-in when
-either is missing. For a built-in that no test runs (a window built-in, `language/console-and-window`; `BEEP`,
-which rings the machine's bell, `language/sound`; `CHAIN`, which starts another compiler, and `LPRINT`, which
-prints a page, `language/builtin-statements`; `_SCREENIMAGE`, `_CLIPBOARDIMAGE`, `_PRINTIMAGE`, `_DEPTHBUFFER`
-and the 3-D form of `_MAPTRIANGLE`, which read the desktop or the clipboard, print a page or draw through
-OpenGL, `language/images`; `_MOUSEMOVE`, which moves the machine's cursor, `language/mouse`), the slice program
-SHALL hold it as code that is compiled and not reached, and the built-in SHALL also have a call-site program for
-each of its forms; the list of such built-ins SHALL be explicit, and `cargo test` SHALL fail when one of them has
-no call-site program.
+either is missing. For a built-in that no test runs, the slice program SHALL hold it as code that is compiled and
+not reached, and the built-in SHALL also have a call-site program for each of its forms; the list of such
+built-ins SHALL be `tests/never_run.list` (`testing/coverage`, "The list of built-ins no test runs"), and
+`cargo test` SHALL fail when one of them has no call-site program or is no built-in that `sema` compiles.
 
 #### Scenario: Built-in added without a slice program
 - **WHEN** `sema` starts compiling a built-in that no slice program calls
@@ -140,6 +136,10 @@ no call-site program.
 - **WHEN** the call-site programs of `_SCREENIMAGE` are taken out of `tests/callsite/`
 - **THEN** `cargo test` fails and names `_SCREENIMAGE`
 
+#### Scenario: A listed name that is no built-in
+- **WHEN** `tests/never_run.list` names `_NOSUCH`
+- **THEN** `cargo test` fails and names `_NOSUCH` as listed and no built-in that `sema` compiles
+
 ### Requirement: Real programs compile
 `cargo test` SHALL require of every program under `tests/programs` that the front end reports no diagnostic
 at all for it and that it is lowered, validated and emitted as C++ fragments. A test that needs the reference
@@ -156,3 +156,22 @@ clone SHALL build the executable of each such program and SHALL NOT run it.
 #### Scenario: The game builds
 - **WHEN** the test that needs the clone is run
 - **THEN** the game's executable is built, with its icon, and the test does not start it
+
+### Requirement: Coverage of the OpenGL table
+The OpenGL routines and constants (`language/opengl`) SHALL be held apart from the built-in coverage rule: tier 1
+SHALL check that the compiler's OpenGL table equals what is read from `libqb\`'s `gl.h` and that each routine's
+call matches its helper in `gl_helper_code.h`, and every routine SHALL have a program in `tests/callsite/`.
+`cargo test` SHALL fail and name the routine or constant when one of these is missing or differs.
+
+#### Scenario: The table no longer equals gl.h
+- **WHEN** a routine or a constant is added to, dropped from or changed in the compiler's OpenGL table by hand
+- **THEN** `cargo test` fails and names it
+
+#### Scenario: A routine without a call-site program
+- **WHEN** the call-site program of `_glViewport` is taken out of `tests/callsite/`
+- **THEN** `cargo test` fails and names `_glViewport`
+
+#### Scenario: OpenGL is run
+- **WHEN** tier 2 runs the verification pass list
+- **THEN** the `v59` programs that draw in `SUB _GL` and read the result back run, and their output is compared
+  with the old compiler's

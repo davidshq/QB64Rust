@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):PRINT _GL_TRUE
+LINE 10:PRINT _GL_TRUE
+exit=1

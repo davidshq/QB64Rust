@@ -1,0 +1,107 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+ARRAY SD:F32 dynamic, 1 dimension
+ARRAY SE:I32 dynamic, 1 dimension
+ARRAY SF:F32 dynamic, 1 dimension
+ARRAY SD (local):F32 dynamic, 1 dimension
+ARRAY SE (local):I32 dynamic, 1 dimension
+ARRAY LC (local):F32 dynamic, 1 dimension
+ARRAY LD (local):F32 dynamic, 1 dimension
+ARRAY LM (local):F32 dynamic, 1 dimension
+ARRAY SD (local):F32 dynamic, 1 dimension
+ARRAY LN (static):F32 dynamic, 1 dimension
+line 2: ConsoleOnly
+line 8: Allocate SD:F32 (Redim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 1 : I64
+line 8: Allocate SE:I32 (Redim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 1 : I64
+line 8: Allocate SF:F32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 1 : I64
+line 9: Call Q1
+line 10: Call Q2
+line 11: Call Q3
+line 12: System
+SUB Q1
+  local SD:F32
+  local SE:I32
+  local LC:F32
+  local LD:F32
+line 15: Print newline
+  Num
+    UBound SD (local) : I64
+line 16: Allocate SD (local):F32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Binary Add : F32
+        Element LC (local)(…) : F32
+          Int 1 : I64
+        Convert Nearest : F32
+          Int 4 : I16
+line 17: Allocate SE (local):I32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Binary Add : F32
+        Element LD (local)(…) : F32
+          Int 1 : I64
+        Convert Nearest : F32
+          Int 5 : I16
+line 18: Print newline
+  Num
+    UBound SD (local) : I64
+  Num
+    Element SE (local)(…) : I32
+      Int 1 : I64
+SUB Q2
+  local LM:F32
+line 22: Print newline
+  Num
+    Element LM (local)(…) : F32
+      Int 1 : I64
+line 23: Allocate SD:F32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Binary Add : F32
+        Element LM (local)(…) : F32
+          Int 1 : I64
+        Convert Nearest : F32
+          Int 4 : I16
+SUB Q3
+  local SD:F32
+  static LN:F32
+line 27: Allocate SF:F32 (Redim, with the next statement)
+  Lower
+    Int 0 : I64
+  Upper
+    Int 6 : I64
+line 27: Allocate SD (local):F32 (Redim)
+  Lower
+    Int 0 : I64
+  Upper
+    Convert RoundEven : I64
+      Binary Add : F32
+        Element LN (static)(…) : F32
+          Int 1 : I64
+        Convert Nearest : F32
+          Int 7 : I16
+line 28: Print newline
+  Num
+    UBound SF : I64
+  Num
+    UBound SD (local) : I64

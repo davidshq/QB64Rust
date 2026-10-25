@@ -909,10 +909,9 @@ fn uses_word(code: &str, name: &str) -> bool {
     })
 }
 
-/// The statements `sema` compiles from a syntax node of their own, with no row in `STATEMENTS`, that the coverage
-/// rule covers by name (`m3-console-files`): each must be used in a slice program and in an `ir` test, as a row
-/// is. `LPRINT` is also on the list of built-ins no test runs (design D8).
-const OWN_NODE: &[&str] = &["LPRINT", "FIELD", "LSET", "RSET"];
+/// The statements with a syntax node of their own (`qb64rust_sema::builtins::OWN_NODE`). `LPRINT` is also on the list
+/// of built-ins no test runs (design D8 of `m3-console-files`).
+const OWN_NODE: &[&str] = qb64rust_sema::builtins::OWN_NODE;
 
 /// "Built-in coverage" (spec `testing/compiler-tests`, design D9 of `m2-core-builtins`): every built-in function
 /// `sema` compiles is called in a program of `slice.list` (its output is compared with the old compiler's in tier 2)
@@ -959,24 +958,18 @@ fn every_supported_builtin_is_covered() {
             missing.push(format!("`{}` is called in no `typed` test of tests/frontend", s.name));
         }
     }
-    // A built-in no test runs (a window built-in, `BEEP`, `CHAIN`, `LPRINT`) is compiled and never run: its slice
-    // program holds it as code that is not reached, so each also has a call-site program, where its call is
-    // compared with the old compiler's.
+    // A built-in no test runs (`tests/never_run.list`) is compiled and never run: its slice program holds it as code
+    // that is not reached, so each also has a call-site program, where its call is compared with the old
+    // compiler's.
     let callsite: Vec<String> = files(&repo().join("tests/callsite"), &["bas"])
         .iter()
         .map(|p| code_only(&std::fs::read(p).unwrap()))
         .collect();
     assert!(!callsite.is_empty());
-    let window = qb64rust_sema::builtins::NEVER_RUN;
-    for &name in window {
-        let row = qb64rust_sema::builtins::STATEMENTS.iter().any(|&(n, _)| n == name)
-            || qb64rust_sema::builtins::supported().any(|s| s.name == name)
-            || OWN_NODE.contains(&name);
-        assert!(
-            row,
-            "`{name}` is listed as a built-in no test runs and is no supported built-in"
-        );
-    }
+    let (listed, problems) = never_run(&never_run_text());
+    missing.extend(problems);
+    let window: Vec<&str> = listed.iter().map(String::as_str).collect();
+    let window = window.as_slice();
     missing.extend(without_callsite(window, &callsite));
     // A name that is a statement and a function (`_SCREENICON`) needs a call-site program for each.
     for &name in window {
@@ -994,6 +987,115 @@ fn every_supported_builtin_is_covered() {
         }
     }
     assert!(missing.is_empty(), "{}", missing.join("\n"));
+}
+
+/// The text of `tests/never_run.list`.
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the list is the project's own ASCII file, not BASIC source"
+)]
+fn never_run_text() -> String {
+    std::fs::read_to_string(repo().join("tests/never_run.list")).unwrap()
+}
+
+/// The reasons of `tests/never_run.list` (design D4 of `m4-coverage-review`).
+const NEVER_RUN_REASONS: &[&str] = &["desktop", "printer", "keyboard", "person", "compiler"];
+
+/// The names of `tests/never_run.list` (`text`), and one line per problem: a line that is not `<name>\t<reason>[
+/// <note>]`, a reason outside [`NEVER_RUN_REASONS`], a name listed twice, a name that is no built-in `sema` compiles.
+fn never_run(text: &str) -> (Vec<String>, Vec<String>) {
+    let (mut names, mut problems) = (Vec::new(), Vec::new());
+    for (i, line) in text.lines().enumerate() {
+        let line = line.trim_end_matches('\r');
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let Some((name, rest)) = line.split_once('\t') else {
+            problems.push(format!("tests/never_run.list line {}: no tab after the name", i + 1));
+            continue;
+        };
+        let reason = rest.split(' ').next().unwrap_or("");
+        if !NEVER_RUN_REASONS.contains(&reason) {
+            problems.push(format!(
+                "tests/never_run.list line {}: `{reason}` is no reason of the list",
+                i + 1
+            ));
+        }
+        let known = qb64rust_sema::builtins::STATEMENTS.iter().any(|&(n, _)| n == name)
+            || qb64rust_sema::builtins::supported().any(|s| s.name == name)
+            || OWN_NODE.contains(&name);
+        if !known {
+            problems.push(format!(
+                "`{name}` is listed in tests/never_run.list and is no built-in that sema compiles"
+            ));
+        }
+        if names.iter().any(|n| n == name) {
+            problems.push(format!("`{name}` is listed twice in tests/never_run.list"));
+        }
+        names.push(name.to_string());
+    }
+    (names, problems)
+}
+
+/// The list's check names a listed name that is no built-in, a reason outside the set and a line without its tab
+/// (spec `testing/compiler-tests`, "A listed name that is no built-in").
+#[test]
+fn never_run_list_problems_are_named() {
+    let (names, problems) = never_run("# a comment\n_TITLE\tdesktop note\n_NOSUCH\tdesktop\nBEEP\tloud\nLPRINT\n");
+    assert_eq!(names, ["_TITLE", "_NOSUCH", "BEEP"]);
+    assert_eq!(
+        problems,
+        [
+            "`_NOSUCH` is listed in tests/never_run.list and is no built-in that sema compiles",
+            "tests/never_run.list line 4: `loud` is no reason of the list",
+            "tests/never_run.list line 5: no tab after the name",
+        ]
+    );
+}
+
+/// `tools/coverage/builtin_runs.py --check` reads `sema`'s tables from the text of `builtins.rs` (design D3 of
+/// `m4-coverage-review`): each row of `SUPPORTED` and `STATEMENTS` on a line of its own as `("NAME", Rule::` or
+/// `("NAME", StmtRule::`, no other line of that form, and `OWN_NODE` on one line.
+#[test]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the source of sema's tables is the project's own Rust file, not BASIC source"
+)]
+fn builtin_tables_are_one_row_per_line() {
+    use qb64rust_sema::builtins::{OWN_NODE, STATEMENTS, SUPPORTED};
+    let text = std::fs::read_to_string(repo().join("crates/sema/src/builtins.rs")).unwrap();
+    // The rows as builtin_runs.py's pattern finds them: `^\s*\("([A-Z_$0-9]+)", (?:Rule|StmtRule)::`.
+    let mut rows = std::collections::BTreeSet::new();
+    let mut count = 0;
+    for line in text.lines() {
+        let Some(rest) = line.trim_start().strip_prefix("(\"") else {
+            continue;
+        };
+        let Some((name, after)) = rest.split_once('"') else {
+            continue;
+        };
+        let word = name
+            .bytes()
+            .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_' || b == b'$');
+        if word && (after.starts_with(", Rule::") || after.starts_with(", StmtRule::")) {
+            rows.insert(name.to_string());
+            count += 1;
+        }
+    }
+    assert_eq!(count, SUPPORTED.len() + STATEMENTS.len());
+    let names = SUPPORTED.iter().map(|&(n, _)| n);
+    for name in names.chain(STATEMENTS.iter().map(|&(n, _)| n)) {
+        assert!(rows.contains(name), "`{name}` is no row of builtin_runs.py's form");
+    }
+    let own = format!(
+        "\npub const OWN_NODE: &[&str] = &[{}];\n",
+        OWN_NODE
+            .iter()
+            .map(|n| format!("\"{n}\""))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    assert!(text.replace("\r\n", "\n").contains(&own), "OWN_NODE is not on one line");
 }
 
 /// One line per name of `names` (as written, with its suffix) that no program of `callsite` (from [`code_only`])

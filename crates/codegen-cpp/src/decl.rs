@@ -91,16 +91,22 @@ fn declare_temp(v: &Var, n: &str) -> String {
     format!("{static_}{} {n}=0;\n", c_type(v.ty))
 }
 
+/// A variable that lives as long as the program: a global or `STATIC` one. maindata allocates them and clear.txt and
+/// mainfree.txt reset and free them, so all three take this test.
+pub(crate) fn lives_for_program(v: &Var) -> bool {
+    match v.storage {
+        Storage::Global | Storage::Static(_) => true,
+        Storage::Local(_) | Storage::Param(_) | Storage::Result(_) | Storage::Temp(_) => false,
+    }
+}
+
 impl Emitter<'_> {
-    /// `f(var, name)` for every variable that lives as long as the program: global and `STATIC` ones.
+    /// `f(var, name)` for every variable that lives as long as the program ([`lives_for_program`]).
     pub(crate) fn per_program_var(&self, f: impl Fn(&Var, &str) -> String) -> String {
         self.p
             .vars
             .iter()
-            .filter(|v| match v.storage {
-                Storage::Global | Storage::Static(_) => true,
-                Storage::Local(_) | Storage::Param(_) | Storage::Result(_) | Storage::Temp(_) => false,
-            })
+            .filter(|v| lives_for_program(v))
             .map(|v| f(v, &var_name(self.p, v)))
             .collect()
     }
@@ -416,9 +422,13 @@ impl Emitter<'_> {
                 "{n}[0]=(ptrszint)cmem_static_pointer;\n\
                  if ((cmem_static_pointer+=(({bytes})+15)&-16)>cmem_dynamic_base) error(257);\n\
                  if (({bytes})>65536) error(257);\n\
-                 memset((void*)({n}[0]),0,{bytes});\n{n}[2]=1+2+4;\n}}\n"
+                 memset((void*)({n}[0]),0,{bytes});\n"
             )
             .unwrap();
+            // The elements' strings, as the old compiler makes them (measured, `verification\v60_d5`).
+            let block = format!("{n}[0]");
+            out.push_str(&self.each_element(v.ty, &block, &count, |at| self.new_value(v.ty, at)));
+            write!(out, "{n}[2]=1+2+4;\n}}\n").unwrap();
             return out;
         } else {
             let bytes = self.array_bytes(v.ty, &count);

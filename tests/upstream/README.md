@@ -103,12 +103,12 @@ job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 202
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:upstream-membership -->
-**Upstream progress: 401 of 404**: the programs of `pass.list` of the suite's 404 programs less the 0 of `deferred.list`.
+**Upstream progress: 402 of 404**: the programs of `pass.list` of the suite's 404 programs less the 0 of `deferred.list`.
 <!-- /counts:upstream-membership -->
 
 <!-- counts:upstream-results -->
-Last full run: 2026-10-24, compiler build `07e987b2d118`, folding on, `--jobs 8`, build cache, 2 min. Of 404 programs: **401 pass**, 2 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 1 known failure (`target\legacy-tests\results-compile.json`).
-`pass.list` judged in it (`--check-list`): **401 of 401** pass.
+Last full run: 2026-10-24, compiler build `709b412ce702`, folding on, `--jobs 8`, build cache, 2 min. Of 404 programs: **402 pass**, 1 does not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 1 known failure (`target\legacy-tests\results-compile.json`).
+`pass.list` judged in it (`--check-list`): **402 of 402** pass.
 <!-- /counts:upstream-results -->
 
 The "Upstream progress" paragraphs below are the history up to 2026-10-16, one per change; a later change adds

@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_GLISENABLED _GL_BLEND
+LINE 8:_glIsEnabled _GL_BLEND
+exit=1

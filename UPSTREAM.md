@@ -22,6 +22,20 @@ when one is, its entry says where (issue or pull request) and what came of it.
   computes the same function.
 - **Sent:** not yet.
 
+## A `TYPE` with a `STRING` in conventional memory has no strings
+
+- **Wrong:** a `TYPE` variable of the main module that holds a `STRING` member, and that `VARPTR`, `VARSEG`,
+  `SADD` or `VARPTR$` names anywhere in the program, is allocated in conventional memory with its bytes zeroed
+  and its strings never made: the first use of the string reads a null pointer and the program crashes (exit
+  139). Measured in this repo: `verification\v56_a5`, `v60_d6`.
+- **Where:** `source/qb64pe.bas`, `dim2`, the scalar user-type branch (lines 17790–17852 at the reference
+  commit): `initialise_udt_varstrings` and `free_udt_varstrings` are written only in the `ELSE` branch (ordinary
+  memory), not after the `memset` of the `cmemlist` branch.
+- **Fix:** the same two calls in the conventional-memory branch, after its `memset` (the string descriptors are
+  ordinary `qbs` values, so no offset in `dblock` moves).
+- **Here:** `DIVERGENCES.md` D-037, built by `m4-left-marked` (`crates\codegen-cpp\src\cmem.rs`, `alloc_dblock`).
+- **Sent:** not yet.
+
 ## Other candidates
 
 Bugs this project fixes in the `CONST` evaluator (built by `const-rulings`), which QB64pe might also want (not
