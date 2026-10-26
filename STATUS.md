@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-24 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-10-25 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -35,9 +35,9 @@ which holds M4's fourteen changes so far: through pull request 12 (`e0ac8c6`) `m
 `fe5e2de`, below), through pull request 13 (`fe596c3`) `m4-qb64pe-builtins`, `m4-line-numbers-whole-arrays`,
 `m4-names-implicit-arrays` and `m4-memory-records`, and through pull request 14 `m4-statements-metacommands` and
 `m4-builtins-remaining` (the full set at a merge ran on the tree of pull request 14, which stands for both, below).
-Branch `m4-sub-gl` holds M4's last three changes, `m4-sub-gl`, `m4-left-marked` and `m4-coverage-review`, all
-archived; `main` is its ancestor, so its tree is the merged tree, and the full set for the merge passed on it
-(below). The extension's first release is tagged `vscode-v0.2.0`.
+Pull request 15 (`311c0bb`, 2026-10-25) merged branch `m4-sub-gl`, M4's last three changes (`m4-sub-gl`,
+`m4-left-marked`, `m4-coverage-review`); the full set for it passed on the merged tree (below). Branch `m5`
+holds M5's work since. The extension's first release is tagged `vscode-v0.2.0`.
 
 ## Waiting on the user
 
@@ -46,8 +46,7 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 11).
 
-1. **The merge of `m4-sub-gl` into `main`** (a pull request, as pull requests 12 to 14); the full set for it is
-   committed (`1f07337`).
+Nothing.
 
 **The `tier2` job on `m3`** (`study\archive\30` §4; started by Claude on the user's word, 2026-10-16, run 38923356942 at
 `acf8033`): the 236 console programs of the slice list before the screen programs passed; **the runner gives the
@@ -59,10 +58,34 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. **M4 is done** (user, 2026-10-24); the merge of `m4-sub-gl` into `main` waits on the user.
-2. M5, the debugger (`ROADMAP.md`: a debug symbol file and a DAP adapter), proposed as its first change.
+1. M5, the debugger, takes Path A of `study\36` (user, 2026-10-24, `DECISIONS.md`; `ROADMAP.md` M5). Its first
+   change, `m5-debug-build-symbols` (`--debug`, the symbol file `<exe>.debug.json`, the stepping measured under
+   `lldb`), is built, closed (its closing runs pass) and archived (`2026-10-25-m5-debug-build-symbols`; spec
+   `compiler/debug-info`). Its second, `m5-dap-proxy` (the debug adapter `qb64rust dap` over the clone's
+   `lldb-dap`, through `lldb-server`; spec `editor/debug-adapter`), is built, closed (its closing runs pass) and
+   archived (`2026-10-25-m5-dap-proxy`). Its third and last, `m5-debug-launch` (the extension's debugger of type
+   `qb64rust`: F5 and "QB64: Debug" build with `--debug` and launch through `qb64rust dap`; spec
+   `editor/debug-launch`), is built, closed (its closing runs pass) and archived (`2026-10-25-m5-debug-launch`).
+   Every item of M5 is built: M5 is to be declared done with the user at the next merge into `main`.
+2. M5b, the formatter and the language-server features (user, `DECISIONS.md` 2026-10-25; `ROADMAP.md`), then M6.
+   Its first change, `m5b-formatter` (`qb64rust -y`, the format oracle `tests\format\`, formatting in the language
+   server and the extension; specs `compiler/format`, `testing/format-oracle`), is built and closed (its closing
+   runs pass), waiting on the user's review before its archive. The next is `m5b-language-features` (hover, find
+   references, rename, completion), with the oracle under the non-default layout settings first (`m5b-formatter`
+   `tasks.md`, "Workflow follow-up").
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
+`lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
+single step ends about one session in seventy at once ("lost connection"; 3 in 222 runs of
+`debug_next_steps_by_line` under load), so a debugger CLI test can fail so now and then; run it again alone. The
+cause is `lldb-server`'s (`openspec\changes\archive\2026-10-25-m5-dap-proxy\design.md`, "Measured").
+`slice/s150_builtins_more` and `verification\v49_d_clipboard` read `LEN(_CLIPBOARD$)` of `"a" + CHR$(0) + "b"` as
+3 where 1 is recorded, in the closing runs of `m5-debug-build-symbols` (2026-10-25; the committed `HEAD`'s build
+too): libqb's read (`libqb\internal\c\parts\os\clipboard\clipboard.cpp`) replaces its own copy of the 3 bytes with
+the system clipboard cut at the NUL only when `OpenClipboard` succeeds, and Windows' clipboard watcher
+(`TextInputHost`, clipboard history) may hold it open just after the write. Alone, 1 of 6 runs gave 3; under the
+load of three runs side by side, every run. The recordings (1) stay; turning clipboard history off while testing
+should end the race.
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
 line 97 of its keys file) in every run of the slice list or the full corpus at `--jobs 8` since 2026-10-21: in
 the full set at the merge of pull request 12 the full corpus twice, the slice list and the slice list without
@@ -72,7 +95,16 @@ folding (2026-10-22). The game hangs in `SHELL "copy cws.his oldhist.ory"`: libq
 runner's retry, a moment later, still finds the script's folder in use and fails with `PermissionError`. The script passes run alone
 (3.1 s), as the first of 61 programs at `--jobs 8`, with its nine sibling scripts at `--jobs 8`, and in the
 coverage check; the failure comes only late in a long run, so it is taken as the test environment's, not the
-compiler's. Not yet known: what the `cmd.exe` waits on.
+compiler's. Likely cause (2026-10-25, not yet seen in a hang): the game has no console, so libqb's
+`ShellExecuteEx` (`SW_SHOW`) gives `cmd.exe` a new one, and with the machine's default terminal on "Let Windows
+decide" Windows hands each new console to Windows Terminal over COM (a new `OpenConsole.exe` and
+`WindowsTerminal.exe -Embedding` per call, and a window): a `SHELL "copy …"` took 0.67 s on average and up to
+1.1 s that way, 0.10 s with Windows Console Host as the default terminal (5 calls, setting put back after). The
+`cmd.exe` is taken to wait on that handover under load. With Console Host as the default terminal (Settings, For
+developers, Terminal), two full corpus runs at `--jobs 8` passed (513 pass, 5 known failures; `g12_game.files`
+8.6 s and 3.8 s; 2026-10-25, the setting put back after). The hang was never every run, so two passes do not prove
+it. Left as noted (user, `DECISIONS.md` 2026-10-25): no setting is required; if the script times out late in a
+long run, it is this, and it passes alone.
 
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
@@ -231,12 +263,6 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 ## Known bugs
 
-- `tests\corpus\screen\c15_resize` (`$RESIZE:ON`, nobody resizes the window) was recorded with `_RESIZE`,
-  `_RESIZEWIDTH` and `_RESIZEHEIGHT` 0 on every line. In the full set of 2026-10-24 the first run gave
-  `-1  640  400` after the half-second wait, in the full run and alone, and the old compiler's own build of the
-  program (in a scratch folder) gave the same: the machine's desktop now resizes the window once after it opens.
-  Not the compiler's; the program's premise (a window nobody resized reads 0) holds on this machine no longer.
-
 - `verification\v39_a_handles` recorded `_SNDGETPOS` and `_SNDLEN` of a raw sound at a sound device of 44100 Hz
   (`.1249886602163315`); at the close of `m4-builtins-remaining` (2026-10-24) the machine's device gave `.125`
   (48000 Hz), from the old compiler's build too (recorded again in a scratch folder), so the program moved to
@@ -255,5 +281,5 @@ lists and the old compiler's wording, all on one build. Not run: the runner's te
 
 | When | Item |
 |---|---|
-| Any time | A formatter that matches `-y` (out of M2's exit criterion, `DECISIONS.md` 2026-10-09) |
+| M5b | A formatter that matches `-y` (out of M2's exit criterion, `DECISIONS.md` 2026-10-09; M5b, 2026-10-25) |
 | Help/hover work | Ask the QB64pe maintainers about the wiki licence before shipping any wiki text |

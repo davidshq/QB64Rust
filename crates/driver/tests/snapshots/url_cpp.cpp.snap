@@ -98,33 +98,33 @@ sub_end();
 return;
 }
 ==> main1.txt <==
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 qbs* FUNC__ENCODEURL(qbs*_FUNC__ENCODEURL_STRING__URL){
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 qbs *tqbs;
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 ptrszint tmp_long;
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 int32 tmp_fileno;
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 uint32 qbs_tmp_base=qbs_tmp_list_nexti;
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 uint8 *tmp_mem_static_pointer=mem_static_pointer;
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 uint32 tmp_cmem_sp=cmem_sp;
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 #include "data1.txt"
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 mem_lock *sf_mem_lock;
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 new_mem_lock();
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 sf_mem_lock=mem_lock_tmp;
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 sf_mem_lock->type=3;
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 libqb_check_stack();
-#line 59 "url_cpp.bas"
+#line 59 "internal\\support\\include\\afterlastline.bm"
 if (is_error_pending()) goto exit_subfunc;
 #line 66 "internal\\support\\include\\afterlastline.bm"
 qbs_set(_FUNC__ENCODEURL_STRING__TMP,qbs_new_txt_len("",0));
@@ -244,19 +244,19 @@ L_2:;
 qbs_set(_FUNC__ENCODEURL_STRING__ENCODEURL,_FUNC__ENCODEURL_STRING__TMP);
 #line 92 "internal\\support\\include\\afterlastline.bm"
 qbs_cleanup(qbs_tmp_base,0);
-#line 93 "url_cpp.bas"
+#line 93 "internal\\support\\include\\afterlastline.bm"
 exit_subfunc:;
-#line 93 "url_cpp.bas"
+#line 93 "internal\\support\\include\\afterlastline.bm"
 free_mem_lock(sf_mem_lock);
-#line 93 "url_cpp.bas"
+#line 93 "internal\\support\\include\\afterlastline.bm"
 #include "free1.txt"
-#line 93 "url_cpp.bas"
+#line 93 "internal\\support\\include\\afterlastline.bm"
 if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
-#line 93 "url_cpp.bas"
+#line 93 "internal\\support\\include\\afterlastline.bm"
 cmem_sp=tmp_cmem_sp;
-#line 93 "url_cpp.bas"
+#line 93 "internal\\support\\include\\afterlastline.bm"
 qbs_maketmp(_FUNC__ENCODEURL_STRING__ENCODEURL);return _FUNC__ENCODEURL_STRING__ENCODEURL;
-#line 93 "url_cpp.bas"
+#line 93 "internal\\support\\include\\afterlastline.bm"
 }
 ==> data1.txt <==
 qbs *_FUNC__ENCODEURL_STRING__ENCODEURL=NULL;
@@ -309,33 +309,33 @@ if(oldstr0->fixed)qbs_set(oldstr0,_FUNC__ENCODEURL_STRING__URL);
 qbs_free(_FUNC__ENCODEURL_STRING__URL);
 }
 ==> main2.txt <==
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 qbs* FUNC__DECODEURL(qbs*_FUNC__DECODEURL_STRING__URL){
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 qbs *tqbs;
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 ptrszint tmp_long;
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 int32 tmp_fileno;
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 uint32 qbs_tmp_base=qbs_tmp_list_nexti;
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 uint8 *tmp_mem_static_pointer=mem_static_pointer;
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 uint32 tmp_cmem_sp=cmem_sp;
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 #include "data2.txt"
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 mem_lock *sf_mem_lock;
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 new_mem_lock();
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 sf_mem_lock=mem_lock_tmp;
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 sf_mem_lock->type=3;
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 libqb_check_stack();
-#line 97 "url_cpp.bas"
+#line 97 "internal\\support\\include\\afterlastline.bm"
 if (is_error_pending()) goto exit_subfunc;
 #line 103 "internal\\support\\include\\afterlastline.bm"
 qbs_set(_FUNC__DECODEURL_STRING__TMP,qbs_new_txt_len("",0));
@@ -393,19 +393,19 @@ L_2:;
 qbs_set(_FUNC__DECODEURL_STRING__DECODEURL,_FUNC__DECODEURL_STRING__TMP);
 #line 116 "internal\\support\\include\\afterlastline.bm"
 qbs_cleanup(qbs_tmp_base,0);
-#line 117 "url_cpp.bas"
+#line 117 "internal\\support\\include\\afterlastline.bm"
 exit_subfunc:;
-#line 117 "url_cpp.bas"
+#line 117 "internal\\support\\include\\afterlastline.bm"
 free_mem_lock(sf_mem_lock);
-#line 117 "url_cpp.bas"
+#line 117 "internal\\support\\include\\afterlastline.bm"
 #include "free2.txt"
-#line 117 "url_cpp.bas"
+#line 117 "internal\\support\\include\\afterlastline.bm"
 if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
-#line 117 "url_cpp.bas"
+#line 117 "internal\\support\\include\\afterlastline.bm"
 cmem_sp=tmp_cmem_sp;
-#line 117 "url_cpp.bas"
+#line 117 "internal\\support\\include\\afterlastline.bm"
 qbs_maketmp(_FUNC__DECODEURL_STRING__DECODEURL);return _FUNC__DECODEURL_STRING__DECODEURL;
-#line 117 "url_cpp.bas"
+#line 117 "internal\\support\\include\\afterlastline.bm"
 }
 ==> data2.txt <==
 qbs *_FUNC__DECODEURL_STRING__DECODEURL=NULL;
@@ -443,33 +443,33 @@ if(oldstr0->fixed)qbs_set(oldstr0,_FUNC__DECODEURL_STRING__URL);
 qbs_free(_FUNC__DECODEURL_STRING__URL);
 }
 ==> main3.txt <==
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 qbs* FUNC__WHATISMYIP(){
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 qbs *tqbs;
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 ptrszint tmp_long;
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 int32 tmp_fileno;
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 uint32 qbs_tmp_base=qbs_tmp_list_nexti;
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 uint8 *tmp_mem_static_pointer=mem_static_pointer;
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 uint32 tmp_cmem_sp=cmem_sp;
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 #include "data3.txt"
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 mem_lock *sf_mem_lock;
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 new_mem_lock();
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 sf_mem_lock=mem_lock_tmp;
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 sf_mem_lock->type=3;
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 libqb_check_stack();
-#line 129 "url_cpp.bas"
+#line 129 "internal\\support\\include\\afterlastline.bm"
 if (is_error_pending()) goto exit_subfunc;
 #line 148 "internal\\support\\include\\afterlastline.bm"
 *_FUNC__WHATISMYIP_LONG__CH=func__openclient(qbs_new_txt_len("http://qb64phoenix.com/qb64_files/ip.php",40));
@@ -531,19 +531,19 @@ L_1:;
 L_3:;
 #line 164 "internal\\support\\include\\afterlastline.bm"
 sub_close(*_FUNC__WHATISMYIP_LONG__CH,1);
-#line 165 "url_cpp.bas"
+#line 165 "internal\\support\\include\\afterlastline.bm"
 exit_subfunc:;
-#line 165 "url_cpp.bas"
+#line 165 "internal\\support\\include\\afterlastline.bm"
 free_mem_lock(sf_mem_lock);
-#line 165 "url_cpp.bas"
+#line 165 "internal\\support\\include\\afterlastline.bm"
 #include "free3.txt"
-#line 165 "url_cpp.bas"
+#line 165 "internal\\support\\include\\afterlastline.bm"
 if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
-#line 165 "url_cpp.bas"
+#line 165 "internal\\support\\include\\afterlastline.bm"
 cmem_sp=tmp_cmem_sp;
-#line 165 "url_cpp.bas"
+#line 165 "internal\\support\\include\\afterlastline.bm"
 qbs_maketmp(_FUNC__WHATISMYIP_STRING__WHATISMYIP);return _FUNC__WHATISMYIP_STRING__WHATISMYIP;
-#line 165 "url_cpp.bas"
+#line 165 "internal\\support\\include\\afterlastline.bm"
 }
 ==> data3.txt <==
 qbs *_FUNC__WHATISMYIP_STRING__WHATISMYIP=NULL;

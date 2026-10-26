@@ -1,0 +1,6 @@
+$CONSOLE:ONLY
+DIM a(1 TO 3) AS SINGLE
+a = 5
+a(2) = 1.5
+PRINT a, a(2)
+SYSTEM

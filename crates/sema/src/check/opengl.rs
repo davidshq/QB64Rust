@@ -65,7 +65,9 @@ impl Checker<'_> {
         let id = self.new_proc(name.to_string(), r.ret.map_or(ProcKind::Sub, ProcKind::Function));
         let line = self.line(t.span);
         let proc = &mut self.prog.procs[id.0 as usize];
+        proc.file = t.span.file;
         proc.line = line;
+        proc.end_file = t.span.file;
         proc.end_line = line;
         proc.external = Some(External {
             library,

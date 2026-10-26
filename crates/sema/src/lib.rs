@@ -819,8 +819,11 @@ pub struct Proc {
     /// The FUNCTION's result variable.
     pub result: Option<VarId>,
     pub stmts: Vec<Stmt>,
-    /// 1-based source lines of the header and of the closing `END SUB`/`END FUNCTION`.
+    /// The file and 1-based source line of the header, and of the closing `END SUB`/`END FUNCTION`, which may be in
+    /// another file (an included file can close a procedure the including file opened, `include_cross_ok.bas`).
+    pub file: FileId,
     pub line: u32,
+    pub end_file: FileId,
     pub end_line: u32,
     /// A procedure declared in a `DECLARE LIBRARY` block (design D1 of `m3-declare-library`): its C function. It has
     /// no statements.

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "files": [
+    {"index": 0, "path": "twins.bas", "hash": "2dce9ae7d4a2ec5c"}
+  ],
+  "main": {"c_name": "QBMAIN", "file": 0},
+  "procedures": [],
+  "variables": [
+    {"index": 0, "name": "A", "type": "SINGLE", "storage": "main", "procedure": null, "shape": "static", "bounds": [[1, 3]], "dims": 1, "conventional": false, "c_name": "__ARRAY_SINGLE_A", "reach": "descriptor"},
+    {"index": 1, "name": "A", "type": "SINGLE", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__SINGLE_A", "reach": "pointer"}
+  ],
+  "types": [],
+  "layouts": {"pointer_size": 8, "array": {"slot_size": 8, "data": 0, "flags": 2, "flag_bits": {"allocated": 1, "static": 2, "conventional": 4}, "dimensions": {"first_slot": 4, "slots_each": 4, "order": "last first", "slot_of": "4 * (n - 1 - k) + 4", "lower_bound": 0, "count": 1, "multiplier": 2}, "lock": "slot 4 * n + 4, after the dimensions"}, "qbs": {"chr": 0, "len": 8, "len_size": 4}, "float_element_size": 32, "bit_array": "packed, the width in bits per element", "user_type_members": {"STRING": "pointer to a qbs", "STRING * n": "n bytes in place"}}
+}

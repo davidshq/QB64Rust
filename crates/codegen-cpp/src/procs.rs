@@ -175,7 +175,9 @@ impl<'a> Emitter<'a> {
         header.extend(PROLOGUE.iter().map(|s| s.to_string()));
         header.push(format!("#include \"data{k}.txt\""));
         header.extend(PROLOGUE_AFTER_DATA.iter().map(|s| s.to_string()));
-        self.lines(proc.line, &header, &mut main);
+        // Under the procedure's own file: a debugger's step into a procedure of an included file stops at its header
+        // line first (design of `m5-debug-build-symbols`, "Measured").
+        self.lines_in(Some(proc.file), proc.line, &header, &mut main);
         self.subfunc = Some(names::old_proc_name(proc));
         self.body(&proc.body, k, &mut main);
         self.subfunc = None;
@@ -203,7 +205,7 @@ impl<'a> Emitter<'a> {
             });
         }
         footer.push("}".to_string());
-        self.lines(proc.end_line, &footer, &mut main);
+        self.lines_in(Some(proc.end_file), proc.end_line, &footer, &mut main);
         for d in std::mem::take(&mut self.pass_decls) {
             data.push_str(&d);
         }

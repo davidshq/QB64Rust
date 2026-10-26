@@ -36,6 +36,21 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Here:** `DIVERGENCES.md` D-037, built by `m4-left-marked` (`crates\codegen-cpp\src\cmem.rs`, `alloc_dblock`).
 - **Sent:** not yet.
 
+## `-y` writes a number in `_ARRAYCOPY` subscripts as its internal element
+
+- **Wrong:** formatting `_ARRAYCOPY g(1.5 TO 3.5) TO gd(0.5)` with `-y` (or the IDE's auto-format) writes
+  `_ArrayCopy g(1.5E+0,1.5 To 3.5E+0,3.5) To gd(0.5E+0,0.5)`: each number with a point or an exponent comes out
+  as the element `lineformat$` makes of it, the value and the spelling joined by a comma. The commas make another
+  program (four subscripts where there were two). Found by this repo's format oracle:
+  `tests\format\corpus\slice\s131_arraycopy.bas`, line 167.
+- **Where:** `source/utilities/arrcpy.bm`, `ArrayCopyRefCaseLayout$`, which lays out the raw elements of the
+  reference through `CompactMemberRefLayout$` (`source/qb64pe.bas`); a number element is never turned back into
+  the text after its comma, as `fixoperationorder$` does for an expression's layout.
+- **Fix:** lay out each number element by the part after its comma (the spelling as written), as the expression
+  layout does; or build the subscripts' layout from `fixoperationorder$`'s.
+- **Here:** `DIVERGENCES.md` D-038, built by `m5b-formatter`: the formatter writes the number as written.
+- **Sent:** not yet.
+
 ## Other candidates
 
 Bugs this project fixes in the `CONST` evaluator (built by `const-rulings`), which QB64pe might also want (not

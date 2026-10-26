@@ -43,10 +43,36 @@ fn arrays_and_members() {
         b"$CONSOLE:ONLY\nTYPE t\nm AS LONG\nEND TYPE\nDIM a(3) AS t, p AS t\na(1).m = p.m\nPRINT LBOUND(a)\nq.r = 1\n";
     let (map, p) = check_source(src);
     insta::assert_snapshot!(dump_symbols(&p, &map), @r"
+    Type T def 2:6 refs 5:13 5:21
+    Member T.M : LONG def 3:1 refs 6:6 6:12
     Var A() : T def 5:5 refs 6:1 7:14
     Var P : T def 5:16 refs 6:10
     Var Q.R : SINGLE def 8:1
     ");
+}
+
+/// User types and their members (design D3 of `m5b-formatter`): a type is defined by its `TYPE` line and referenced
+/// by each `AS` that names it, a member by its name in the block and each access: the part after the dot of a
+/// dotted name, with blanks around the dot too, and the name after `.` of an element.
+#[test]
+fn types_and_members() {
+    let src = b"$CONSOLE:ONLY\nTYPE pt\nxp AS LONG\nEND TYPE\nTYPE box\nc AS PT\nEND TYPE\nDIM a(3) AS Pt, p AS PT, b AS box\na(1).XP = p.Xp + p . xP\nb.c.xp = 2\n";
+    let (map, p) = check_source(src);
+    insta::assert_snapshot!(dump_symbols(&p, &map), @r"
+    Type PT def 2:6 refs 6:6 8:13 8:22
+    Member PT.XP : LONG def 3:1 refs 9:6 9:13 9:22 10:5
+    Type BOX def 5:6 refs 8:31
+    Member BOX.C : PT def 6:1 refs 10:3
+    Var A() : PT def 8:5 refs 9:1
+    Var P : PT def 8:17 refs 9:11 9:18
+    Var B : BOX def 8:26 refs 10:1
+    ");
+    // The member `xP` of `p . xP` (line 9, column 22) is the member defined at `xp` (line 3).
+    let line9 = src.split(|&c| c == b'\n').take(8).map(|l| l.len() + 1).sum::<usize>();
+    let at = |col: usize| u32::try_from(line9 + col - 1).unwrap();
+    let member = p.symbols.at(FileId(0), at(22)).unwrap();
+    assert!(matches!(p.symbols.get(member).kind, SymbolKind::Member(..)));
+    assert_eq!(p.symbols.at(FileId(0), at(6)), Some(member));
 }
 
 /// A statement with an error records nothing; the name's first clean use defines it.

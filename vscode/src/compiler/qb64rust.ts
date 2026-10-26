@@ -5,6 +5,7 @@ import * as path from "path";
 import { executableFor } from "./qb64pe";
 import { Qb64rustOutput, parseQb64rustOutput } from "./parseQb64rustOutput";
 import { RunQueue, RunResult } from "./runQueue";
+import { FormatSettings, formatFlags } from "../server/protocol";
 
 /** What a build is given besides the source (spec compiler/cli, "Locating the reference runtime"). */
 export interface Roots {
@@ -16,9 +17,12 @@ export interface Roots {
     include: string;
 }
 
-/** `-x -w <file> -o <exe>` and the roots. `-c` (QB64pe's console switch) is not one of qb64rust's options. */
-export function buildArgs(file: string, roots: Roots): string[] {
-    const args = ["-x", "-w", file, "-o", executableFor(file), "--qb64pe-root", roots.qb64pe];
+/**
+ * `-x -w <file> -o <exe>` and the roots, with `--debug` first for a debug build (change m5-debug-launch, design D4).
+ * `-c` (QB64pe's console switch) is not one of qb64rust's options.
+ */
+export function buildArgs(file: string, roots: Roots, debug = false): string[] {
+    const args = [...(debug ? ["--debug"] : []), "-x", "-w", file, "-o", executableFor(file), "--qb64pe-root", roots.qb64pe];
     if (roots.libqb) {
         args.push("--libqb-root", roots.libqb);
     }
@@ -26,21 +30,53 @@ export function buildArgs(file: string, roots: Roots): string[] {
     return args;
 }
 
+/** `-y -q`, the layout settings, `<source> -o <output>` and the include root (spec compiler/format, "Format
+ * command"; change m5b-formatter, design D7). */
+export function formatArgs(source: string, output: string, settings: FormatSettings, includeRoot: string): string[] {
+    const args = ["-y", "-q", ...formatFlags(settings), source, "-o", output];
+    if (includeRoot) {
+        args.push("--include-root", includeRoot);
+    }
+    return args;
+}
+
+export type Qb64rustRun = RunResult & Qb64rustOutput;
+
+/** Formats `source` into `output`, includes relative to `source`'s folder and then the include root (empty for the
+ * compiler's default). */
+export async function format(
+    queue: RunQueue,
+    binary: string,
+    source: string,
+    output: string,
+    settings: FormatSettings,
+    includeRoot: string,
+    timeoutMs: number,
+): Promise<Qb64rustRun> {
+    const result = await queue.run({ kind: "format", command: binary, args: formatArgs(source, output, settings, includeRoot), cwd: path.dirname(source), timeoutMs });
+    const parsed = result.cancelled ? { messages: [], allMarked: false } : parseQb64rustOutput(result.output, result.exitCode, source);
+    if (result.timedOut) {
+        parsed.messages.push({ severity: "error", file: undefined, line: 1, message: "The compiler did not finish in time (qb64rust.checkTimeoutSeconds) and was stopped." });
+    }
+    return { ...result, ...parsed };
+}
+
 export interface Qb64rustBuild extends RunResult, Qb64rustOutput {
     executable: string;
 }
 
-/** Full build into the executable next to the source. No timeout, as a build with QB64pe. */
+/** Full build into the executable next to the source, a debug build when `debug`. No timeout, as a build with QB64pe. */
 export async function build(
     queue: RunQueue,
     binary: string,
     file: string,
     roots: Roots,
     env: NodeJS.ProcessEnv,
+    debug: boolean,
     onOutput?: (text: string) => void,
 ): Promise<Qb64rustBuild> {
     const executable = executableFor(file);
-    const result = await queue.run({ kind: "build", command: binary, args: buildArgs(file, roots), cwd: path.dirname(file), env, onOutput });
+    const result = await queue.run({ kind: "build", command: binary, args: buildArgs(file, roots, debug), cwd: path.dirname(file), env, onOutput });
     const parsed = result.cancelled ? { messages: [], allMarked: false } : parseQb64rustOutput(result.output, result.exitCode, file);
     if (!result.cancelled && result.exitCode === 0 && !fs.existsSync(executable)) {
         parsed.messages.push({ severity: "error", file: undefined, line: 1, message: `qb64rust reported success but ${executable} does not exist; see the "QB64" output.` });

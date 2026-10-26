@@ -1,0 +1,1 @@
+Print CSng(42)

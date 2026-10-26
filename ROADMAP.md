@@ -241,7 +241,33 @@ The parity work:
 
 ## M5. Debugger
 
-- [ ] Debug symbol file and a DAP adapter
+Done when: a program built in debug mode by the new compiler is debugged in VS Code by BASIC line, with
+breakpoints, stepping, pause, the call stack, the variables of every frame by BASIC name (scalars, strings,
+arrays, user types), send value, data breakpoints and a stop at a runtime error; checked by tests that drive the
+adapter (`study\36`, Path A; `DECISIONS.md` 2026-10-24). The toolchain's `lldb-dap` does the debugging; the
+compiler supplies the line table (its `#line` directives, with `-g`) and the symbol file; a thin proxy speaks
+BASIC to the editor.
+
+- [x] Debug build (`--debug`, `-f:StripDebugSymbols`): `-g` on the program's own objects, unstripped, never
+      optimised; the stepping questions measured with the toolchain's `lldb` first (`study\36` §3.1 "Risks";
+      `m5-debug-build-symbols`)
+- [x] The debug symbol file beside the executable: procedures, variables, user types, the descriptor layouts
+      (`m5-debug-build-symbols`, spec `compiler/debug-info`)
+- [x] `qb64rust dap`: the DAP proxy over the toolchain's `lldb-dap` (variables, evaluate, set value, stack,
+      data breakpoints, set next line, the error stop); its protocol tests (`m5-dap-proxy`, spec
+      `editor/debug-adapter`)
+- [ ] The extension's `debuggers` contribution and launch configuration; a debug build before launch
+
+## M5b. The editor without QB64pe
+
+What a user compares against the QB64pe IDE besides the debugger (`study\36` §5.3; `DECISIONS.md` 2026-10-25).
+Comes before M6.
+
+- [ ] A formatter that matches `-y` (left M2's exit criterion on 2026-10-09, `DECISIONS.md`; the extension
+      formats through the old compiler until then)
+- [ ] The language-server features `sema`'s symbol table supports: hover (a name's type and declaration), find
+      references, rename, perhaps completion of names and built-ins; handed to the server by the driver as
+      `Check` is
 
 ## M6. Runtime modernisation
 
@@ -251,6 +277,4 @@ The parity work:
 
 ## Not tied to a milestone yet
 
-- A formatter that matches `-y` (left M2's exit criterion on 2026-10-09, `DECISIONS.md`; the extension keeps
-  formatting through the old compiler)
 - Deferred features and ideas: `SOMEDAY.md`

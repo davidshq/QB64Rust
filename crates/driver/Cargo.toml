@@ -13,9 +13,11 @@ qb64rust-base.workspace = true
 qb64rust-builtins.workspace = true
 qb64rust-syntax.workspace = true
 qb64rust-sema.workspace = true
+qb64rust-format.workspace = true
 qb64rust-ir.workspace = true
 qb64rust-codegen-cpp.workspace = true
 qb64rust-lsp.workspace = true
+qb64rust-dap.workspace = true
 
 [[bin]]
 name = "qb64rust"

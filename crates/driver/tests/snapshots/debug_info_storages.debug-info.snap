@@ -1,0 +1,30 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+{
+  "version": 1,
+  "files": [
+    {"index": 0, "path": "debug_info_storages.bas", "hash": "cd925e00c97a5cab"}
+  ],
+  "main": {"c_name": "QBMAIN", "file": 0},
+  "procedures": [
+    {"index": 0, "name": "SHOW", "kind": "sub", "c_name": "SUB_SHOW", "file": 0, "line": 15, "end_file": 0, "end_line": 20, "params": [0], "result": null},
+    {"index": 1, "name": "F", "kind": "function", "c_name": "FUNC_F", "file": 0, "line": 21, "end_file": 0, "end_line": 23, "params": [], "result": 1}
+  ],
+  "variables": [
+    {"index": 0, "name": "N", "type": "LONG", "storage": "param", "procedure": 0, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_SUB_SHOW_LONG_N", "reach": "param-pointer"},
+    {"index": 1, "name": "F", "type": "LONG", "storage": "result", "procedure": 1, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_FUNC_F_LONG_F", "reach": "pointer"},
+    {"index": 2, "name": "TOTAL", "type": "LONG", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__LONG_TOTAL", "reach": "pointer"},
+    {"index": 3, "name": "A", "type": "SINGLE", "storage": "main", "procedure": null, "shape": "static", "bounds": [[1, 3], [0, 1]], "dims": 2, "conventional": false, "c_name": "__ARRAY_SINGLE_A", "reach": "descriptor"},
+    {"index": 4, "name": "N", "type": "SINGLE", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__SINGLE_N", "reach": "pointer"},
+    {"index": 5, "name": "B", "type": "STRING", "storage": "main", "procedure": null, "shape": "dynamic", "bounds": [], "dims": 1, "conventional": false, "c_name": "__ARRAY_STRING_B", "reach": "descriptor"},
+    {"index": 6, "name": "S", "type": "STRING", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__STRING_S", "reach": "string"},
+    {"index": 7, "name": "BITS", "type": "_BIT * 3", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__BIT3_BITS", "reach": "pointer"},
+    {"index": 8, "name": "U", "type": "_UNSIGNED INTEGER", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__UINTEGER_U", "reach": "pointer"},
+    {"index": 9, "name": "CALLS", "type": "INTEGER", "storage": "static", "procedure": 0, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_SUB_SHOW_INTEGER_CALLS", "reach": "pointer"},
+    {"index": 10, "name": "X", "type": "SINGLE", "storage": "local", "procedure": 0, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_SUB_SHOW_SINGLE_X", "reach": "pointer"}
+  ],
+  "types": [],
+  "layouts": {"pointer_size": 8, "array": {"slot_size": 8, "data": 0, "flags": 2, "flag_bits": {"allocated": 1, "static": 2, "conventional": 4}, "dimensions": {"first_slot": 4, "slots_each": 4, "order": "last first", "slot_of": "4 * (n - 1 - k) + 4", "lower_bound": 0, "count": 1, "multiplier": 2}, "lock": "slot 4 * n + 4, after the dimensions"}, "qbs": {"chr": 0, "len": 8, "len_size": 4}, "float_element_size": 32, "bit_array": "packed, the width in bits per element", "user_type_members": {"STRING": "pointer to a qbs", "STRING * n": "n bytes in place"}}
+}

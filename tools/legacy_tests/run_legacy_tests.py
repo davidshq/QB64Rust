@@ -116,6 +116,21 @@ Comparing (tests/verification/README.md; spec testing/verification-suite):
   * the trace of divergences as in the corpus, the sidecar tests/verification/divergences/<name>.divergences;
     a program of tests/verification/known.list that fails is a known failure (KFAIL)
   * --list (one name per line), --jobs, --build-cache, --pass-cache and --check-list as for the corpus
+The format-corpus suite (the format oracle, tests/format/README.md; spec testing/format-oracle). With qb64pe
+it records, with any other compiler it compares (format_corpus_test):
+  * recording: every *.bas (any case of the suffix) without an .err beside it in tests/corpus,
+    tests/upstream/compile_tests, tests/snippets and tests/programs is formatted with
+    -y -m and QB64pe's six layout defaults as -f: settings (FORMAT_DEFAULTS), in its own folder (a
+    corpus program with <name>.files in a fresh folder holding the program and those files; an
+    upstream program in the clone's tests/compile_tests, as the compile suite builds it); the
+    output is written to tests/format/<set>/<path within the set> unless what is there equals it with
+    line endings taken as LF. A failed format writes nothing. One program at a time, the clone's
+    lock held
+  * comparing: every recording under tests/format is formatted from its source in the same way
+    (upstream with --include-root tests/upstream/root); it passes when the exit code is 0 and the
+    output equals the recording with line endings taken as LF, or when it differs and the
+    recording's <name>.divergences names a row of DIVERGENCES.md. Nothing is written into
+    tests/format. --jobs, --category (a set) and --glob apply
 Speed (corpus and compile suites; the C++ build is most of each program's time):
   * --jobs N runs N programs at a time, after the first one alone (it builds any libqb object the
     clone lacks); results are printed as they finish. Compile tests of one folder run (not build)
@@ -717,6 +732,160 @@ def format_tests(bas: Path, args, results: Path, qb_root: Path) -> list[Result]:
         r.seconds = round(time.time() - t0, 1)
         out.append(r)
     return out
+
+
+# The format oracle (spec testing/format-oracle): the old compiler's -y output of each program that it
+# accepts in these sets, kept as tests/format/<set>/<path within the set>.
+FORMAT_ROOT = Path(__file__).resolve().parents[2] / "tests" / "format"
+FORMAT_SETS = {
+    "corpus": Path(__file__).resolve().parents[2] / "tests" / "corpus",
+    "upstream": Path(__file__).resolve().parents[2] / "tests" / "upstream" / "compile_tests",
+    "snippets": Path(__file__).resolve().parents[2] / "tests" / "snippets",
+    "programs": Path(__file__).resolve().parents[2] / "tests" / "programs",
+}
+# QB64pe's built-in layout defaults, given explicitly so that its config.ini plays no part.
+FORMAT_DEFAULTS = [
+    "-f:autoindent=1",
+    "-f:autoindentsize=4",
+    "-f:indentsubs=1",
+    "-f:autolayout=1",
+    "-f:keywordcapitals=0",
+    "-f:keywordlowercase=0",
+]
+
+
+def format_sources(sets: dict[str, Path] | None = None) -> list[Path]:
+    """The programs a recording formats: every .bas of each set (any case of the suffix, as Civil War
+    Strategy's CWSTRAT.BAS) that has no .err beside it, set by set."""
+    found = []
+    for root in (sets or FORMAT_SETS).values():
+        found += sorted(
+            (
+                bas
+                for bas in root.rglob("*")
+                if bas.is_file()
+                and bas.suffix.lower() == ".bas"
+                and not bas.with_suffix(".err").is_file()
+            ),
+            key=lambda p: p.relative_to(root).as_posix(),
+        )
+    return found
+
+
+def format_recordings(format_root: Path = FORMAT_ROOT) -> list[Path]:
+    """What a compare runs: every recorded output under format_root, set by set."""
+    if not format_root.is_dir():
+        return []
+    found = []
+    for folder in sorted((p for p in format_root.iterdir() if p.is_dir()), key=lambda p: p.name):
+        found += sorted(
+            (p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() == ".bas"),
+            key=lambda p: p.relative_to(folder).as_posix(),
+        )
+    return found
+
+
+def format_text(data: bytes) -> bytes:
+    """A -y output as the oracle compares it: line endings taken as LF."""
+    return data.replace(b"\r\n", b"\n")
+
+
+def format_set(path: Path, sets: dict[str, Path], format_root: Path) -> str:
+    """The set of a source (under a set's root) or of a recording (under format_root)."""
+    path = path.resolve()
+    if path.is_relative_to(format_root.resolve()):
+        return path.relative_to(format_root.resolve()).parts[0]
+    for name, root in sets.items():
+        if path.is_relative_to(root.resolve()):
+            return name
+    raise ValueError(f"not in a set of the format oracle: {path}")
+
+
+def format_corpus_test(
+    path: Path,
+    args,
+    results: Path,
+    qb_root: Path,
+    sets: dict[str, Path] | None = None,
+    format_root: Path = FORMAT_ROOT,
+) -> Result:
+    """Records (qb64pe) or compares (any other compiler) the -y output of one program.
+
+    With qb64pe, path is the source; the output goes to format_root/<set>/<path within the set> when it
+    differs from what is there other than by CRLF against LF. With another compiler, path is the
+    recording; the source is the file at the same path in the set, and the program passes when the
+    output equals the recording with line endings taken as LF, or when it differs and the
+    recording's <name>.divergences names a row of DIVERGENCES.md."""
+    sets = sets or FORMAT_SETS
+    set_name = format_set(path, sets, format_root)
+    old = is_old_compiler(args.qb64)
+    if old:
+        rel = path.relative_to(sets[set_name])
+        src, rec = path, format_root / set_name / rel
+    else:
+        rel = path.relative_to(format_root / set_name)
+        src, rec = sets[set_name] / rel, path
+    test = f"{set_name}/{rel.with_suffix('').as_posix()}"
+    r = Result("format_corpus", test, "format")
+    t0 = time.time()
+
+    def finish(status="PASS", stage="", detail=""):
+        r.status, r.stage, r.detail = status, stage, detail
+        r.seconds = round(time.time() - t0, 1)
+        return r
+
+    if not src.is_file():
+        return finish("FAIL", "expected", f"no source for the recording: {repo_relative(src)}")
+    key = test.replace("/", "-")
+    # A corpus program's data files (its included files among them) go beside it, as the corpus suite
+    # puts them; any other program is formatted where it is, so that its included files resolve. An
+    # upstream program is formatted in the clone's tests/compile_tests, as the compile suite builds it:
+    # the copy has the same text files but not the binary ones a metacommand names, nor QB64pe's
+    # sources that the qb64pe/ programs include.
+    files_dir = src.with_name(src.stem + ".files")
+    folder = src.parent
+    in_clone = qb_root / "tests" / "compile_tests" / rel
+    if set_name == "upstream" and in_clone.is_file():
+        folder = in_clone.parent
+    elif files_dir.is_dir():
+        folder = results / key
+        if folder.exists():
+            shutil.rmtree(folder)
+        folder.mkdir(parents=True)
+        shutil.copyfile(src, folder / src.name)
+        shutil.copytree(files_dir, folder, dirs_exist_ok=True)
+    output = results / f"{key}-output"
+    output.unlink(missing_ok=True)
+    flags = list(FORMAT_DEFAULTS)
+    if not old and set_name == "upstream":
+        flags += ["--include-root", str(INCLUDE_ROOT)]
+    if old:
+        clear_temp(qb_root)
+    rc, timed_out = run_proc(
+        [str(args.qb64), "-y", "-m", *flags, src.name, "-o", str(output)],
+        folder,
+        results / f"{key}-format_result.txt",
+        COMPILE_TIMEOUT,
+        merge_stderr=True,
+    )
+    if timed_out or rc != 0:
+        return finish("FAIL", "format", "timeout" if timed_out else f"exit code {rc}")
+    if not output.is_file():
+        return finish("FAIL", "output exists", "no formatted output written")
+    got = output.read_bytes()
+    if old:
+        if rec.is_file() and format_text(rec.read_bytes()) == format_text(got):
+            return finish(detail="unchanged")
+        rec.parent.mkdir(parents=True, exist_ok=True)
+        rec.write_bytes(got)
+        return finish(detail="recorded")
+    want = rec.read_bytes()
+    if format_text(want) == format_text(got):
+        return finish()
+    rows = allowed_rows(rec.with_suffix(".divergences"))
+    if rows:
+        return finish(detail=f"differs, takes {', '.join(sorted(rows))}")
+    return finish("FAIL", "result", first_difference(format_text(want), format_text(got)))
 
 
 def load_normalize(path: Path) -> list[tuple[re.Pattern, str]]:
@@ -2049,6 +2218,8 @@ def run_suite_test(
             return [compile_test(bas, args, results, qb_root, args.os_tag)]
         if suite == "format":
             return format_tests(bas, args, results, qb_root)
+        if suite == "format-corpus":
+            return [format_corpus_test(bas, args, results, qb_root)]
         if suite == "corpus":
             return [corpus_test(bas, args, results, qb_root, corpus_root, known)]
         if suite == "verification":
@@ -2068,6 +2239,8 @@ def run_suite_test(
             name = ("format_tests", f"{bas.parent.name}/{bas.stem}")
         elif suite == "verification":
             name = ("verification", bas.stem)
+        elif suite == "format-corpus":
+            name = ("format_corpus", repo_relative(bas.with_suffix("")))
         else:
             name = (
                 "qbasic_testcases",
@@ -2188,9 +2361,10 @@ def main() -> int:
     ap.add_argument("--qb64", type=Path, help="compiler executable (default: <qb-root>/qb64pe.exe)")
     ap.add_argument(
         "--suite",
-        choices=["compile", "qbasic", "format", "corpus", "verification", "all"],
+        choices=["compile", "qbasic", "format", "format-corpus", "corpus", "verification", "all"],
         default="compile",
-        help="'all' is the four test suites; verification (on its own) records with qb64pe and compares with any other compiler",
+        help="'all' is the four test suites; verification and format-corpus (each on its own) record with "
+        "qb64pe and compare with any other compiler",
     )
     ap.add_argument(
         "names",
@@ -2204,7 +2378,8 @@ def main() -> int:
         help="folder of the verification programs (default: %(default)s)",
     )
     ap.add_argument(
-        "--category", help="only this category (compile and format suites) or group (corpus)"
+        "--category",
+        help="only this category (compile and format suites), group (corpus) or set (format-corpus)",
     )
     ap.add_argument("--glob", default="*.bas", help="file-name pattern within the category")
     ap.add_argument(
@@ -2330,7 +2505,10 @@ def main() -> int:
         )
         return 2
     if args.category and args.suite in ("qbasic", "verification", "all"):
-        print("--category applies to the compile, format and corpus suites only", file=sys.stderr)
+        print(
+            "--category applies to the compile, format, format-corpus and corpus suites only",
+            file=sys.stderr,
+        )
         return 2
     if args.names and args.suite != "verification":
         print("program names apply to --suite verification only", file=sys.stderr)
@@ -2411,14 +2589,16 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
+    recording_format = args.suite == "format-corpus" and is_old_compiler(args.qb64)
     if args.jobs > 1 and (
         args.record
         or recording_verification
-        or args.suite not in ("corpus", "compile", "verification")
+        or recording_format
+        or args.suite not in ("corpus", "compile", "verification", "format-corpus")
     ):
         print(
-            "--jobs above 1 needs --suite corpus or compile, or a compare of --suite verification, "
-            "and no --record",
+            "--jobs above 1 needs --suite corpus or compile, or a compare of --suite verification or "
+            "format-corpus, and no --record",
             file=sys.stderr,
         )
         return 2
@@ -2496,6 +2676,20 @@ def main() -> int:
                     print(e, file=sys.stderr)
                     return 2
                 tests = [p for p in tests if p.resolve() in wanted]
+        elif suite == "format-corpus":
+            # A recording formats the sources; a compare runs the recordings (format_corpus_test).
+            if recording_format:
+                tests = format_sources()
+                if args.category:
+                    if args.category not in FORMAT_SETS:
+                        print(f"no such set of the format oracle: {args.category}", file=sys.stderr)
+                        return 2
+                    tests = format_sources({args.category: FORMAT_SETS[args.category]})
+            else:
+                tests = format_recordings()
+                if args.category:
+                    tests = [t for t in tests if t.relative_to(FORMAT_ROOT).parts[0] == args.category]
+            tests = [t for t in tests if fnmatch.fnmatch(t.name, args.glob)]
         elif suite == "verification":
             root = args.verification_root.resolve()
             if args.names:
@@ -2555,7 +2749,7 @@ def main() -> int:
         name_objects_lock()
     in_clone = any(
         t.resolve().is_relative_to(qb_root.resolve()) for _, _, ts in selected for t in ts
-    )
+    ) or any(s == "format-corpus" for s, _, _ in selected)  # upstream is formatted in the clone
     kind = clone_lock_kind(is_old_compiler(args.qb64), args.jobs, in_clone) if selected else None
     if kind is not None:
         clone_lock = lock_clone(args.wait, shared=kind == "shared")

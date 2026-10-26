@@ -20,7 +20,11 @@ or operators changed against `HEAD` (`--nofold` asks for it when a numeric conve
 coverage check of Civil War Strategy's scripts (`tools\coverage\coverage.py --check`), only when the game's copy or
 its scripts (`tests\corpus\screen\g12_game.*`), its list of unreached lines, `tools\screen\cut_game.py`,
 `screen_state.cpp`, `tools\coverage\`, `crates\codegen-cpp\`, `crates\ir\` (which statements are counted) or
-`crates\driver\` (the record's files) changed (`--coverage` asks for it anyway); the
+`crates\driver\` (the record's files) changed (`--coverage` asks for it anyway); QB64pe's format tests
+(`--suite format`) and the format oracle (`--suite format-corpus`, `tests\format\`) with the new compiler, only when
+`crates\format\`, `tests\format\`, `tools\format\`, the layout settings (`base`'s `layout.rs`), `crates\syntax\`,
+`crates\builtins\`, `sema`'s symbols (`symbols.rs`, `check\places.rs`, `check\decl.rs`) or the driver's `-y`
+(`main.rs`, `lib.rs`) changed (`--format` asks for them anyway); the
 call-site check and the run without folding with `--wait` (the call-site check needs the clone alone); the
 command-line tests that build, alone; the two demand reports; the counts. Then `--check`, then
 `tools\testtime\test_time.py`.

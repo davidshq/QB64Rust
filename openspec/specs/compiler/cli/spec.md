@@ -11,11 +11,13 @@ M1 extension use, plus options for inspecting each compiler stage.
 executable (default: the source name with `.exe`, next to the source). `-x`, `-q`, `-m` and `-w` SHALL be accepted;
 `-q` SHALL suppress progress output. `-f:OptimizeCppProgram=true|false` SHALL build the C++ with or without
 optimisation as `qb64pe` does; `-f:ExtraLinkerFlags=<value>` SHALL add the value to the end of the link command as
-`qb64pe` does; `-f:StripDebugSymbols=<value>` SHALL be accepted and ignored; `-f:GenerateLicenseFile=true|false`
-SHALL, when true, write the licence file `<exe>.license.txt` beside the executable as `qb64pe` does, naming the
-licences of the parts of libqb the program links; any other setting SHALL be an error
-"setting not supported yet". Exit status SHALL be 0 when the executable was built and 1 otherwise; on failure no
-executable SHALL be left at the output path.
+`qb64pe` does; `-f:StripDebugSymbols=true|false` SHALL strip or not strip the executable's symbols as `qb64pe`
+does (true, the default, strips; any other value is an error as for the other boolean settings);
+`-f:GenerateLicenseFile=true|false` SHALL, when true, write the licence file `<exe>.license.txt` beside the
+executable as `qb64pe` does, naming the licences of the parts of libqb the program links; the layout settings of
+spec `compiler/format` SHALL be checked as `-y` checks them and SHALL NOT change the build, as with `qb64pe`; any
+other setting SHALL be an error "setting not supported yet". Exit status SHALL be 0 when the executable was built
+and 1 otherwise; on failure no executable SHALL be left at the output path.
 
 #### Scenario: Runner's compile line
 - **WHEN** the corpus runner runs `qb64rust -q -m -x <prog>.bas -o <prog>.exe` on a slice program
@@ -28,11 +30,20 @@ executable SHALL be left at the output path.
 #### Scenario: Compile suite's settings
 - **WHEN** the upstream compile suite runs `qb64rust -f:OptimizeCppProgram=true -f:StripDebugSymbols=false -q -m -x
   <prog>.bas -o <exe>` on a program in `tests/upstream/pass.list`
-- **THEN** the executable is built and the exit status is 0
+- **THEN** the executable is built unstripped, prints what it printed before, and the exit status is 0
+
+#### Scenario: Unstripped on request
+- **WHEN** a program is built with `-f:StripDebugSymbols=false` and once without the setting
+- **THEN** the first executable keeps its local symbols (`nm` lists symbols of type `t`) and the second has none;
+  both keep their global ones, as the `Makefile`'s `objcopy --strip-unneeded` leaves them (measured at task 1.3)
 
 #### Scenario: Unknown setting
 - **WHEN** `-f:MaxCompilerProcesses=2` is given
 - **THEN** the exit status is 1 with the message that the setting is not supported yet, and no executable exists
+
+#### Scenario: A layout setting in a build
+- **WHEN** a program is built with `-f:AutoIndent=false`
+- **THEN** the executable is built as without the setting, and the exit status is 0
 
 #### Scenario: The licence file
 - **WHEN** `-f:GenerateLicenseFile=true` is given for a program that names `_INFLATE$`
@@ -100,12 +111,17 @@ and SHALL NOT change the exit status or stop the executable from being built.
 - **THEN** the build folder holds `main0.txt` and the other fragments, and no executable is produced
 
 ### Requirement: Stage dumps
-`--dump tokens|tree|typed|ir|cpp` SHALL print the named stage's output for the file to stdout and exit without
-building, with status 0 if there were no errors and 1 otherwise.
+`--dump tokens|tree|typed|ir|cpp|debug-info` SHALL print the named stage's output for the file to stdout and exit
+without building, with status 0 if there were no errors and 1 otherwise. `debug-info` prints the debug symbol file
+(spec `compiler/debug-info`).
 
 #### Scenario: Typed dump
 - **WHEN** `qb64rust --dump typed p.bas` is run on a valid program
 - **THEN** each expression node is printed with its type, and the exit status is 0
+
+#### Scenario: Debug-info dump
+- **WHEN** `qb64rust --dump debug-info p.bas` is run on a valid program
+- **THEN** the debug symbol file's JSON is printed, and the exit status is 0
 
 ### Requirement: Locating the reference runtime
 The QB64pe reference clone, whose toolchain builds the executable and relative to which `DECLARE LIBRARY` looks
@@ -216,3 +232,48 @@ before.
 #### Scenario: Statements in an included file
 - **WHEN** a statement of a `$INCLUDE`d file runs
 - **THEN** its record names the included file and the statement's line in that file
+
+### Requirement: Debug build
+`qb64rust --debug` with a compile line SHALL build a program for a debugger: its own objects compiled with debug
+information (`-g`) and without optimisation, the executable left unstripped, and the debug symbol file written
+beside it (spec `compiler/debug-info`). `OptimizeCppProgram=true` given with it SHALL be overridden, with a line
+on the console unless `-q`.
+
+#### Scenario: Optimisation overridden
+- **WHEN** `--debug -f:OptimizeCppProgram=true` is given
+- **THEN** the program's objects are compiled without `-O2`, and the console says the optimisation was left out
+
+#### Scenario: The build cache
+- **WHEN** a build cache is in use and a program built without `--debug` is built with it
+- **THEN** the program is built again, and both builds are kept apart in the cache
+
+### Requirement: A debug build is the same program
+A program built with `--debug` SHALL behave as the build without it: the C++ written SHALL be the same, so its
+output and its screen are the same. A debugger reading the executable's debug information SHALL find each
+statement at its BASIC file and line.
+
+#### Scenario: Same program
+- **WHEN** a slice program is built with `--debug` and run
+- **THEN** its output equals the `.output` recorded from `qb64pe.exe`
+
+#### Scenario: Line information
+- **WHEN** a program is built with `--debug` and the toolchain's `lldb` sets a breakpoint at `p.bas` line 11
+- **THEN** the breakpoint resolves to an address in the program's code, the program stops there when run, and the
+  frame's source location is `p.bas:11`
+
+### Requirement: Debug adapter subcommand
+`qb64rust dap` SHALL run the debug adapter (spec `editor/debug-adapter`) over stdin and stdout. The only option
+it takes SHALL be `--qb64pe-root <dir>`, the reference clone whose `lldb-dap` it starts, found as a build finds
+the clone when it is not given (`QB64RUST_QB64PE_ROOT`, then the default). Every other invocation is unchanged.
+
+#### Scenario: Subcommand
+- **WHEN** `qb64rust dap` is started with a client on its pipes and the clone is found
+- **THEN** it answers `initialize`, and exits with code 0 after `disconnect`
+
+#### Scenario: Another option
+- **WHEN** `qb64rust dap -x p.bas` is run
+- **THEN** it prints that `dap` takes only `--qb64pe-root` and exits with status 1
+
+#### Scenario: Not a file name
+- **WHEN** `qb64rust dap.bas` is run
+- **THEN** `dap.bas` is compiled as a file; only the exact word `dap` as the first argument starts the adapter

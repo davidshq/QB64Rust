@@ -29,4 +29,11 @@ describe("qb64rust build arguments", () => {
         assert.ok(!args.includes("--libqb-root"));
         assert.deepStrictEqual(args.slice(-2), ["--include-root", `${dir}\\inc`]);
     });
+
+    it("--debug first only for a debug build (change m5-debug-launch, design D4)", () => {
+        const roots = { qb64pe: `${dir}\\qb64pe`, include: `${dir}\\inc` };
+        const plain = buildArgs(`${dir}\\w\\hello.bas`, roots);
+        assert.ok(!plain.includes("--debug"));
+        assert.deepStrictEqual(buildArgs(`${dir}\\w\\hello.bas`, roots, true), ["--debug", ...plain]);
+    });
 });

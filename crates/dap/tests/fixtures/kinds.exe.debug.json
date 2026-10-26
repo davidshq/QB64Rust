@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "files": [
+    {"index": 0, "path": "kinds.bas", "hash": "e61c1cd454314501"}
+  ],
+  "main": {"c_name": "QBMAIN", "file": 0},
+  "procedures": [
+    {"index": 0, "name": "OUTER", "kind": "sub", "c_name": "SUB_OUTER", "file": 0, "line": 14, "end_file": 0, "end_line": 18, "params": [0], "result": null},
+    {"index": 1, "name": "SHOW", "kind": "sub", "c_name": "SUB_SHOW", "file": 0, "line": 19, "end_file": 0, "end_line": 25, "params": [1], "result": null}
+  ],
+  "variables": [
+    {"index": 0, "name": "K", "type": "LONG", "storage": "param", "procedure": 0, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_SUB_OUTER_LONG_K", "reach": "param-pointer"},
+    {"index": 1, "name": "N", "type": "LONG", "storage": "param", "procedure": 1, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_SUB_SHOW_LONG_N", "reach": "param-pointer"},
+    {"index": 2, "name": "TOTAL", "type": "LONG", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__LONG_TOTAL", "reach": "pointer"},
+    {"index": 3, "name": "S", "type": "STRING", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__STRING_S", "reach": "string"},
+    {"index": 4, "name": "A", "type": "SINGLE", "storage": "main", "procedure": null, "shape": "static", "bounds": [[1, 3]], "dims": 1, "conventional": false, "c_name": "__ARRAY_SINGLE_A", "reach": "descriptor"},
+    {"index": 5, "name": "P", "type": "PT", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__UDT_P", "reach": "bytes"},
+    {"index": 6, "name": "Y", "type": "LONG", "storage": "local", "procedure": 0, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_SUB_OUTER_LONG_Y", "reach": "pointer"},
+    {"index": 7, "name": "CALLS", "type": "INTEGER", "storage": "static", "procedure": 1, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_SUB_SHOW_INTEGER_CALLS", "reach": "pointer"},
+    {"index": 8, "name": "X", "type": "SINGLE", "storage": "local", "procedure": 1, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_SUB_SHOW_SINGLE_X", "reach": "pointer"}
+  ],
+  "types": [
+    {"name": "PT", "size": 6, "members": [{"name": "X", "type": "INTEGER", "offset": 0, "size": 2, "bounds": [], "dynamic": false}, {"name": "NM", "type": "STRING * 4", "offset": 2, "size": 4, "bounds": [], "dynamic": false}]}
+  ],
+  "layouts": {"pointer_size": 8, "array": {"slot_size": 8, "data": 0, "flags": 2, "flag_bits": {"allocated": 1, "static": 2, "conventional": 4}, "dimensions": {"first_slot": 4, "slots_each": 4, "order": "last first", "slot_of": "4 * (n - 1 - k) + 4", "lower_bound": 0, "count": 1, "multiplier": 2}, "lock": "slot 4 * n + 4, after the dimensions"}, "qbs": {"chr": 0, "len": 8, "len_size": 4}, "float_element_size": 32, "bit_array": "packed, the width in bits per element", "user_type_members": {"STRING": "pointer to a qbs", "STRING * n": "n bytes in place"}}
+}

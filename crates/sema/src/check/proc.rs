@@ -6,7 +6,7 @@ use crate::builtins::{StmtRule, stmt_lookup};
 use crate::literal;
 use crate::{Arg, ArrayRef, Expr, ExprKind, Place, Proc, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty};
 use crate::{Var, VarId};
-use qb64rust_base::{Span, show_bytes, to_u32};
+use qb64rust_base::{FileId, Span, show_bytes, to_u32};
 use qb64rust_builtins::template::Item;
 use qb64rust_builtins::{Kind, find_any};
 use qb64rust_syntax::SyntaxKind;
@@ -87,7 +87,9 @@ impl Checker<'_> {
             params: Vec::new(),
             result: None,
             stmts: Vec::new(),
+            file: FileId(0),
             line: 0,
+            end_file: FileId(0),
             end_line: 0,
             external: None,
         });

@@ -153,6 +153,36 @@ python -m unittest discover -s tools/legacy_tests -p "test_*.py"
 locks and the private copies of `qb64pe` (they need the clone; the full runs cover them), and the functions of
 the compile, qbasic and format suites that are not shared with the corpus suite.
 
+### The format oracle (`--suite format-corpus`)
+
+With `qb64pe` it records the old compiler's `-y` output of real programs into `tests\format\`; with any other
+compiler it compares that compiler against the recordings (spec `testing/format-oracle`, `tests\format\README.md`).
+
+```
+python tools\legacy_tests\run_legacy_tests.py --suite format-corpus                         # record all
+python tools\legacy_tests\run_legacy_tests.py --suite format-corpus --category corpus       # one set
+python tools\legacy_tests\run_legacy_tests.py --suite format-corpus --qb64 target\release\qb64rust.exe --jobs 8
+```
+
+- The sources: every `.bas` (any case of the suffix) with no `.err` beside it in `tests\corpus`,
+  `tests\upstream\compile_tests`, `tests\snippets` and `tests\programs`. The sets are `corpus`, `upstream`,
+  `snippets` and `programs`; `--category` takes one, `--glob` matches the file name.
+- Each is formatted with `-y -m` and QB64pe's six layout defaults given as `-f:` settings, so that QB64pe's
+  `config.ini` plays no part, in the program's own folder so that its included files resolve. A corpus program
+  with `<name>.files` is formatted in a fresh folder holding the program and those files, as the corpus suite
+  builds it. An upstream program is formatted in the clone's `tests\compile_tests`, as the compile suite builds
+  it: the copy has the same text files, but not the binary files a metacommand names (`$EXEICON`, `$EMBED`, a
+  `DECLARE DYNAMIC LIBRARY`) nor QB64pe's sources that the `qb64pe/` programs include; formatting fails without
+  them. So a compare also takes the clone's lock, shared.
+- Recording writes `tests\format\<set>\<path within the set>`, and leaves a recording alone when it equals the
+  output with line endings taken as LF. A program the old compiler fails to format gets nothing and fails the
+  run (stage `format`). One program at a time, the clone's lock held.
+- Comparing formats the source of each recording in the same way (upstream with `--include-root
+  tests\upstream\root`). A program passes when the compiler exits with 0 and the output equals the recording with
+  line endings taken as LF; when it differs, it passes only if the recording's `<name>.divergences` names a row of
+  `DIVERGENCES.md`. A failure names the first line that differs. Nothing is written into `tests\format\`.
+  `--jobs` applies.
+
 ### Verification programs (`--suite verification`)
 
 With `qb64pe` it records the programs of `verification\` (`--verification-root` for another folder); with any

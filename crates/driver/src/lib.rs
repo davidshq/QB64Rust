@@ -211,6 +211,42 @@ pub fn check_for_server(map: &SourceMap, parsed: &ParsedProgram, main_path: Opti
     check_program(map, parsed, main_path.map(|m| (m, root))).1
 }
 
+/// The main file of a checked program (one without errors) laid out as `qb64pe -y` lays it out, with `settings`
+/// (spec `compiler/format`): every line followed by CRLF.
+pub fn format_program(fe: &Frontend, settings: &qb64rust_base::layout::Settings) -> Vec<u8> {
+    qb64rust_format::format_file(&fe.map, &fe.parsed, &fe.program, fe.file, settings)
+}
+
+/// [`check_program`] then [`format_program`]'s layout for the language server (`qb64rust_lsp::Format`, design D5 of
+/// `m5b-formatter`): the main file formatted, or the diagnostics when the front end reports an error.
+pub fn format_for_server(
+    map: &SourceMap,
+    parsed: &ParsedProgram,
+    main_path: Option<&Path>,
+    root: &Path,
+    settings: &qb64rust_base::layout::Settings,
+) -> Result<Vec<u8>, Diagnostics> {
+    let (program, diagnostics) = check_program(map, parsed, main_path.map(|m| (m, root)));
+    if diagnostics.has_errors() {
+        return Err(diagnostics);
+    }
+    Ok(qb64rust_format::format_file(
+        map,
+        parsed,
+        &program,
+        parsed.main().file,
+        settings,
+    ))
+}
+
+/// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check and the formatter.
+pub fn server_hooks() -> qb64rust_lsp::Hooks {
+    qb64rust_lsp::Hooks {
+        check: check_for_server,
+        format: format_for_server,
+    }
+}
+
 /// Where the icon `$EXEICON` names lies ([`named_file`]). `None` for a program without one.
 pub fn exe_icon_path(fe: &Frontend, main_path: &Path, root: &Path) -> Option<PathBuf> {
     icon_path(&fe.program, main_path, root)
@@ -357,6 +393,18 @@ pub fn emit_ir_with(
     coverage: bool,
     log_folder: Option<&str>,
 ) -> qb64rust_codegen_cpp::Fragments {
+    emit_ir_all(fe, ir, resolved, coverage, log_folder, false).0
+}
+
+/// [`emit_ir_with`], and with `debug` the debug symbol file of the same emitter.
+fn emit_ir_all(
+    fe: &Frontend,
+    ir: &qb64rust_ir::Program,
+    resolved: &Resolved,
+    coverage: bool,
+    log_folder: Option<&str>,
+    debug: bool,
+) -> (qb64rust_codegen_cpp::Fragments, Option<qb64rust_codegen_cpp::DebugInfo>) {
     let included = fe
         .map
         .files()
@@ -369,14 +417,22 @@ pub fn emit_ir_with(
         position: &position,
         builtins: coverage_builtins(fe),
     });
-    qb64rust_codegen_cpp::emit_with(
-        ir,
-        &fe.map.file(fe.file).name,
-        &included,
-        resolved,
-        coverage.as_ref(),
-        log_folder,
-    )
+    let source_name = &fe.map.file(fe.file).name;
+    if debug {
+        let (fragments, info) = qb64rust_codegen_cpp::emit_debug(
+            ir,
+            source_name,
+            &included,
+            resolved,
+            coverage.as_ref(),
+            log_folder,
+            &debug_files(fe),
+        );
+        return (fragments, Some(info));
+    }
+    let fragments =
+        qb64rust_codegen_cpp::emit_with(ir, source_name, &included, resolved, coverage.as_ref(), log_folder);
+    (fragments, None)
 }
 
 /// The log folder of [`emit_ir_with`] for a build from `dir`: the folder with a separator after it unless it ends
@@ -450,6 +506,36 @@ pub fn fnv1a64(bytes: &[u8]) -> u64 {
 /// `--dump cpp`; with `coverage`, the C++ of a `--coverage` build.
 pub fn dump_cpp(fe: &Frontend, resolved: &Resolved, coverage: bool) -> String {
     qb64rust_codegen_cpp::dump(&emit_ir_with(fe, &lower(fe), resolved, coverage, None))
+}
+
+/// Each file of the program by its index, for the debug symbol file: its path as the `#line` directives name it (as
+/// the front end was given it or found it) and the FNV-1a 64 hash of its bytes, as in a coverage record.
+pub fn debug_files(fe: &Frontend) -> Vec<qb64rust_codegen_cpp::DebugFile> {
+    fe.map
+        .files()
+        .map(|(_, f)| qb64rust_codegen_cpp::DebugFile {
+            path: f.name.clone(),
+            hash: format!("{:016x}", fnv1a64(&f.bytes)),
+        })
+        .collect()
+}
+
+/// [`emit_ir_with`], and the debug symbol file of the program (design D3 of `m5-debug-build-symbols`): its fragments
+/// are [`emit_ir_with`]'s.
+pub fn emit_ir_debug(
+    fe: &Frontend,
+    ir: &qb64rust_ir::Program,
+    resolved: &Resolved,
+    coverage: bool,
+    log_folder: Option<&str>,
+) -> (qb64rust_codegen_cpp::Fragments, qb64rust_codegen_cpp::DebugInfo) {
+    let (fragments, info) = emit_ir_all(fe, ir, resolved, coverage, log_folder, true);
+    (fragments, info.expect("asked for"))
+}
+
+/// `--dump debug-info`: the debug symbol file of a debug build, with the files' paths as given to the compiler.
+pub fn dump_debug_info(fe: &Frontend, resolved: &Resolved) -> String {
+    emit_ir_debug(fe, &lower(fe), resolved, false, None).1.to_json()
 }
 
 #[cfg(test)]

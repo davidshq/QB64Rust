@@ -1,0 +1,22 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+{
+  "version": 1,
+  "files": [
+    {"index": 0, "path": "debug_info_include.bas", "hash": "4cc0c7f58953bc70"},
+    {"index": 1, "path": "inc/debug_info.bi", "hash": "cce054c99ff983da"}
+  ],
+  "main": {"c_name": "QBMAIN", "file": 0},
+  "procedures": [
+    {"index": 0, "name": "TWICE", "kind": "function", "c_name": "FUNC_TWICE", "file": 1, "line": 2, "end_file": 1, "end_line": 5, "params": [0], "result": 1}
+  ],
+  "variables": [
+    {"index": 0, "name": "K", "type": "LONG", "storage": "param", "procedure": 0, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_FUNC_TWICE_LONG_K", "reach": "param-pointer"},
+    {"index": 1, "name": "TWICE", "type": "LONG", "storage": "result", "procedure": 0, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "_FUNC_TWICE_LONG_TWICE", "reach": "pointer"},
+    {"index": 2, "name": "COUNTED", "type": "LONG", "storage": "main", "procedure": null, "shape": "scalar", "bounds": [], "dims": null, "conventional": false, "c_name": "__LONG_COUNTED", "reach": "pointer"}
+  ],
+  "types": [],
+  "layouts": {"pointer_size": 8, "array": {"slot_size": 8, "data": 0, "flags": 2, "flag_bits": {"allocated": 1, "static": 2, "conventional": 4}, "dimensions": {"first_slot": 4, "slots_each": 4, "order": "last first", "slot_of": "4 * (n - 1 - k) + 4", "lower_bound": 0, "count": 1, "multiplier": 2}, "lock": "slot 4 * n + 4, after the dimensions"}, "qbs": {"chr": 0, "len": 8, "len_size": 4}, "float_element_size": 32, "bit_array": "packed, the width in bits per element", "user_type_members": {"STRING": "pointer to a qbs", "STRING * n": "n bytes in place"}}
+}

@@ -44,7 +44,7 @@ fn check_in_server(path: &Path, root: &Path) -> Checked {
     let root = root.to_path_buf();
     let server = std::thread::Builder::new()
         .stack_size(qb64rust_base::STACK_SIZE)
-        .spawn(move || qb64rust_lsp::serve(server_side, root, qb64rust_driver::check_for_server))
+        .spawn(move || qb64rust_lsp::serve(server_side, root, qb64rust_driver::server_hooks()))
         .unwrap();
     let send = |id: i32, method: &str, params: Value| {
         let req = Request::new(RequestId::from(id), method.into(), params);

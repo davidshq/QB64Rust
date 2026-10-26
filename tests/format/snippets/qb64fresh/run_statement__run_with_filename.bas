@@ -1,0 +1,1 @@
+Run "program.exe"

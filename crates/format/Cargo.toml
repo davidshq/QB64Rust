@@ -1,0 +1,15 @@
+[package]
+name = "qb64rust-format"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+qb64rust-base.workspace = true
+qb64rust-syntax.workspace = true
+qb64rust-builtins.workspace = true
+qb64rust-sema.workspace = true

@@ -14,7 +14,9 @@ step older than a later edit that cannot affect it is accepted with --not-repeat
 Whether the run without folding is needed follows from the files changed against HEAD (sema's constant evaluation
 or a numeric conversion, rule 9); --nofold asks for it anyway. So does the coverage check of Civil War Strategy's
 scripts (tools/coverage): only when the game's copy or its scripts, the screen-state file, cut_game.py, the coverage
-tool, codegen-cpp, ir or driver changed; --coverage asks for it anyway.
+tool, codegen-cpp, ir or driver changed; --coverage asks for it anyway. And the format runs (QB64pe's format tests
+and the format oracle, tests/format): only when the formatter, its recordings, tool or settings, the parser, the
+built-in table, sema's symbols or the driver's -y changed; --format asks for them anyway.
 """
 
 from __future__ import annotations
@@ -42,12 +44,20 @@ CACHE = "--pass-cache target/pass-cache"
 NOFOLD_FILES = re.compile(r"^crates/sema/src/(consteval\.rs|literal\.rs|check/constants\.rs|check/auto\.rs|check/ops\.rs)$")
 # Changed files that make a run stale: what the compiler and the tests are built from. Documents and the
 # test-time record are written during the close and do not.
-INPUTS = re.compile(r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins|screen|coverage)/|Cargo\.(toml|lock)$)")
-NOT_INPUTS = re.compile(r"(\.md$|^tools/testtime/)")
+INPUTS = re.compile(r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins|screen|coverage|format)/|Cargo\.(toml|lock)$)")
+# insta's pending snapshots (`.pending-snap`, `.snap.new`) are written by the test runs themselves.
+NOT_INPUTS = re.compile(r"(\.md$|^tools/testtime/|\.pending-snap$|\.snap\.new$)")
 # Files whose change asks for the coverage check of Civil War Strategy's scripts (design D2 of cws-whole-game).
 COVERAGE_FILES = re.compile(
     r"^(tests/corpus/screen/g12_game[./]|tests/programs/civil-war-strategy\.unreached$|tools/screen/(cut_game\.py|"
     r"screen_state\.cpp)$|tools/coverage/|crates/(codegen-cpp|ir|driver)/)"
+)
+# Files whose change asks for the formatter's runs, QB64pe's format tests and the format oracle (change
+# m5b-formatter, task 7.1): the formatter, its recordings and tool, its settings, the tree it walks, the built-in
+# spellings, the symbols it spells names from (and the checks that record them), and `-y`.
+FORMAT_FILES = re.compile(
+    r"^(crates/format/|tests/format/|tools/format/|crates/(syntax|builtins)/|crates/base/src/layout\.rs$|"
+    r"crates/sema/src/(symbols\.rs|check/(places|decl)\.rs)$|crates/driver/src/(main|lib)\.rs$)"
 )
 # Changed inputs that reach a run only through the release build: a run of a copy is judged by the build's hash.
 BUILT_FROM = r"^(crates/|Cargo\.(toml|lock)$)"
@@ -74,7 +84,7 @@ def log(name: str) -> str:
     return f"{LOGS}/{name}.log"
 
 
-def steps(nofold: bool, coverage: bool = False) -> list[Step]:
+def steps(nofold: bool, coverage: bool = False, layout: bool = False) -> list[Step]:
     out = [
         # The table of the old wording (from the messages of the release build there is) and the shrink-only lists
         # are written before the build: the build and tier 1 read them.
@@ -133,6 +143,17 @@ def steps(nofold: bool, coverage: bool = False) -> list[Step]:
         out.append(
             Step("coverage", f"python tools/coverage/coverage.py --check > {log('coverage')} 2>&1", "coverage", copy=True)
         )
+    if layout:
+        # QB64pe's own format tests, and every recording of the format oracle (tests/format) compared.
+        out += [
+            Step("format", f"{RUNNER} --suite format --qb64 {EXE} > {log('format')} 2>&1", "runner", copy=True),
+            Step(
+                "format-corpus",
+                f"{RUNNER} --suite format-corpus --qb64 {EXE} --jobs 8 > {log('format-corpus')} 2>&1",
+                "runner",
+                copy=True,
+            ),
+        ]
     out += [
         Step("callsite", f"python tools/callsite/callsite.py --wait > {log('callsite')} 2>&1", "callsite", copy=True),
         Step("cli", f"cargo test -p qb64rust-driver --test cli -- --ignored > {log('cli')} 2>&1", "cargo", alone=True),
@@ -167,6 +188,10 @@ def needs_nofold(files: list[str]) -> bool:
 
 def needs_coverage(files: list[str]) -> bool:
     return any(COVERAGE_FILES.match(f) for f in files)
+
+
+def needs_format(files: list[str]) -> bool:
+    return any(FORMAT_FILES.match(f) for f in files)
 
 
 def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
@@ -270,20 +295,25 @@ def when(t: float) -> str:
 
 
 def check(
-    nofold: bool, known: set[str], not_repeated: dict[str, str] | None = None, coverage: bool = False
+    nofold: bool,
+    known: set[str],
+    not_repeated: dict[str, str] | None = None,
+    coverage: bool = False,
+    layout: bool = False,
 ) -> int:
     not_repeated = not_repeated or {}
     files = changed_files()
     need = nofold or needs_nofold(files)
     cov = coverage or needs_coverage(files)
+    lay = layout or needs_format(files)
     after, why = stamp(files)
     exe = REPO / EXE
     problems = 0
     # Each reason given with --not-repeated, numbered, and the steps it was used for.
     reasons: dict[str, tuple[int, list[str]]] = {}
     # What the steps before the build write (`lists` writes after `wording` has run).
-    written = "|".join(f"(?:{s.writes})" for s in steps(need, cov) if s.writes)
-    for s in steps(need, cov):
+    written = "|".join(f"(?:{s.writes})" for s in steps(need, cov, lay) if s.writes)
+    for s in steps(need, cov, lay):
         path = REPO / log(s.name)
         if not path.is_file():
             print(f"MISSING  {s.name}: {log(s.name)} not written")
@@ -343,13 +373,14 @@ def check(
     return 1 if problems else 0
 
 
-def plan(nofold: bool, coverage: bool = False) -> int:
+def plan(nofold: bool, coverage: bool = False, layout: bool = False) -> int:
     files = changed_files()
     need = nofold or needs_nofold(files)
     cov = coverage or needs_coverage(files)
+    lay = layout or needs_format(files)
     print("# Bash (Git Bash, the Bash tool), not PowerShell: `VAR=1 command` and `mkdir -p` are Bash. One command each.")
     print(f"mkdir -p {LOGS}")
-    for s in steps(need, cov):
+    for s in steps(need, cov, lay):
         note = []
         if s.before_build:
             note.append("before the build")
@@ -365,6 +396,8 @@ def plan(nofold: bool, coverage: bool = False) -> int:
         )
     if not cov:
         print("# no coverage check: no file of Civil War Strategy's copy, its scripts or the tools they need changed")
+    if not lay:
+        print("# no format runs: no file of the formatter, its recordings, the symbols or -y changed")
     print("python tools/close/close.py --check")
     print("python tools/testtime/test_time.py")
     return 0
@@ -377,6 +410,7 @@ def main(argv: list[str]) -> int:
     mode.add_argument("--check", action="store_true", help="judge the logs of the closing commands")
     ap.add_argument("--nofold", action="store_true", help="ask for the run without folding whatever changed")
     ap.add_argument("--coverage", action="store_true", help="ask for the coverage check whatever changed")
+    ap.add_argument("--format", action="store_true", help="ask for the format runs whatever changed")
     ap.add_argument("--known", action="append", default=[], help="a failing test that is known and not the change's")
     ap.add_argument(
         "--not-repeated",
@@ -387,18 +421,18 @@ def main(argv: list[str]) -> int:
     )
     a = ap.parse_args(argv)
     if a.plan:
-        return plan(a.nofold, a.coverage)
+        return plan(a.nofold, a.coverage, a.format)
     not_repeated = {}
     for item in a.not_repeated:
         names, sep, reason = item.partition("=")
         if not sep or not reason.strip():
             ap.error(f"--not-repeated {item!r}: give STEP[,STEP...]=REASON")
-        known_steps = {s.name for s in steps(True, True)}
+        known_steps = {s.name for s in steps(True, True, True)}
         for step in names.split(","):
             if step not in known_steps:
                 ap.error(f"--not-repeated: no step {step!r} (the steps: {', '.join(sorted(known_steps))})")
             not_repeated[step] = reason.strip()
-    return check(a.nofold, set(a.known), not_repeated, a.coverage)
+    return check(a.nofold, set(a.known), not_repeated, a.coverage, a.format)
 
 
 if __name__ == "__main__":

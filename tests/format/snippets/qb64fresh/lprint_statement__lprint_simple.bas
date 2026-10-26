@@ -1,0 +1,1 @@
+LPrint "Hello"

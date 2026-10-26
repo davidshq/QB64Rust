@@ -1,9 +1,10 @@
 # QB64 for VS Code (qb64rust)
 
-Edit, check, build and run QB64 programs in VS Code with `qb64rust`, the new QB64 compiler of the QB64Rust project,
-which comes with the extension (Windows x64). It runs a language server for syntax errors as you type, the
-outline, folding and go to definition; it checks a program on save and builds it. An installed QB64 Phoenix
-Edition is still needed: its C++ toolchain builds the program, and its own formatter formats it.
+Edit, check, build, run and debug QB64 programs in VS Code with `qb64rust`, the new QB64 compiler of the QB64Rust
+project, which comes with the extension (Windows x64). It runs a language server for syntax errors as you type,
+the outline, folding and go to definition; it checks a program on save, builds it, and debugs it by BASIC line. An
+installed QB64 Phoenix Edition is still needed: its C++ toolchain builds the program, its debugger runs under ours,
+and its own formatter formats it.
 
 ## Features
 
@@ -25,10 +26,8 @@ Edition is still needed: its C++ toolchain builds the program, and its own forma
   under two seconds) and shows the compiler's error or warnings at the right file and line, including errors
   inside `$INCLUDE` files. The old compiler reports one error at a time and no column; the whole line is marked.
   These diagnostics are cleared when you edit the file.
-- **Format Document** uses the compiler's own formatter (`qb64pe -y`), which lays code out the way the QB64pe IDE
-  does: indentation, spacing and keyword case (`PRINT` → `Print`). Unsaved changes are formatted; the file on disk
-  is not touched. If the program has an error, the document is left unchanged and the error is shown.
-  Format on save is off unless you turn on `editor.formatOnSave`.
+- **Format Document** and **Format Selection** lay code out the way the QB64pe IDE does: indentation, spacing and
+  keyword case (`PRINT` → `Print`); see [Formatting](#formatting).
 - **Build, Run, Build and Run** (Command Palette, category "QB64", or the run button in the editor title). Build
   writes the executable next to the source (`hello.bas` → `hello.exe`) and shows the compiler output in the
   "QB64" output channel. Run starts the program in a terminal named "QB64" in the source folder.
@@ -46,6 +45,77 @@ Edition is still needed: its C++ toolchain builds the program, and its own forma
   ```
 
   `action` is `build` or `run`; without `file`, the active editor's file is used.
+- **Debugging** by BASIC line, with the program built by `qb64rust` (below).
+
+## Formatting
+
+**Format Document** lays the program out as `qb64pe -y` (and the QB64pe IDE) does: the indent of each block,
+spaces around operators and after commas, keyword case, and names spelled as they are declared (also in an
+`$INCLUDE` file). Unsaved changes are formatted; the file on disk is not touched. If the program has an error, the
+document is left unchanged, the error is shown as a message and in Problems. Format on save is off unless you turn
+on `editor.formatOnSave`.
+
+Which formatter runs:
+
+- **The language server**, while it runs: the editor's text, unsaved included files too, with no compiler process
+  and no temporary file.
+- **`qb64rust -y`**, when the server is off (an untrusted workspace, or it failed to start) and the `qb64rust`
+  binary is found, unless `qb64rust.buildWith` is `qb64pe`.
+- **`qb64pe -y`**, when `qb64rust.buildWith` is `qb64pe` or there is no `qb64rust` binary.
+
+A formatter that reports an error is not followed by another. The compilers format a temporary copy of the editor's
+text beside the file (so that relative includes resolve) and remove it at once.
+
+**Format Selection** changes only the lines the selection touches, each laid out as in the whole formatted
+document, so a line inside a `FOR` gets the loop's indent.
+
+The layout comes from the settings `qb64rust.format.*` (below), given to whichever formatter runs; the defaults are
+QB64pe's own. QB64pe's `config.ini` (the IDE's layout options) is no longer read: set the same options here. In a
+workspace of several folders the language server uses the window's settings, not a folder's own.
+
+If the language server stops by itself, formatting goes on with `qb64rust -y` (or `qb64pe -y`) until it is
+started again.
+
+## Debugging
+
+Press **F5** on a `.bas` file, or run **QB64: Debug** (`qb64rust.debug`; also in the editor title's run menu). The
+program is saved and built with `qb64rust --debug`, as Build would build it (same output channel, errors in
+Problems), and then runs under the debugger; a build that fails starts no session. Click in the gutter of a `.bas`,
+`.bi` or `.bm` line to set a breakpoint.
+
+What the debugger shows (the adapter is `qb64rust dap`, in front of the `lldb-dap` of QB64pe's toolchain):
+
+- **Breakpoints** by line, also in `$INCLUDE` files, with conditions, hit counts and log points; **step over, into
+  and out** by BASIC line; **pause** a running program, also a one-line loop; **set next statement** within the
+  current `SUB`, `FUNCTION` or the main module.
+- **Call stack** by BASIC name (`SUB show`, `FUNCTION twice&`, "Main module").
+- **Variables**: "Locals" (the procedure's parameters, locals, statics and result) and "Main module", by BASIC name
+  and type; strings, arrays (by index within their current bounds) and `TYPE` variables expand. Hover a name, add
+  it to Watch, or change its value. In Watch and hover, `,h`, `,b` and `,o` after a name show it in hex, binary or
+  octal (`total,h`).
+- **Data breakpoints** (Break on Value Change) on a variable, element or member of up to 8 bytes.
+- **"BASIC runtime errors"** in the Breakpoints view stops at the line that raises an error, before an `ON ERROR`
+  handler runs, with the error's number and text.
+
+A `launch.json` configuration (**Run: Add Configuration… → QB64**):
+
+```json
+{ "type": "qb64rust", "request": "launch", "name": "Debug QB64 program", "program": "${file}" }
+```
+
+| Attribute | Default | Meaning |
+|---|---|---|
+| `program` | the active file | The main `.bas` file (built with `--debug` first), or the executable of an earlier debug build (launched as it is). |
+| `args` | `qb64rust.runArguments`, split into words | The program's arguments (`COMMAND$`). |
+| `cwd` | the program's folder | The working folder. |
+| `stopOnEntry` | `false` | Stop at the first BASIC line. |
+| `console` | `integratedTerminal` | Where a `$CONSOLE` program reads and writes: `integratedTerminal` (its `INPUT` works there), `internalConsole` (the Debug Console: output only), `externalTerminal`. |
+| `noPrompt` | `qb64rust.noPrompt` | Set `QB64PE_NOPROMPT=y`. |
+
+Debugging needs a build by `qb64rust`: with `qb64rust.buildWith` set to `qb64pe`, or without the `qb64rust` binary,
+it is refused with a message naming the setting. A debug build replaces the program's executable (never
+optimised; it otherwise behaves the same); the next Build makes the usual one again. The debugger comes from
+QB64pe's toolchain (`internal\c\c_compiler\bin\lldb-dap.exe`, part of QB64pe 4.7.0).
 
 ## Language server (qb64rust)
 
@@ -82,7 +152,7 @@ or `code --install-extension qb64rust-win32-x64-<version>.vsix`.
 ## Requirements
 
 [QB64 Phoenix Edition](https://github.com/QB64-Phoenix-Edition/QB64pe) (tested with 4.7.0 on Windows): its C++
-toolchain builds programs, also those `qb64rust` compiles, and it formats them. Set `qb64rust.compilerPath` to
+toolchain builds programs, also those `qb64rust` compiles (formatting needs it only without `qb64rust`). Set `qb64rust.compilerPath` to
 `qb64pe.exe` (or to its folder), or put the QB64pe folder on `PATH`. The language status (the `{}` next to "QB64"
 in the status bar) shows `qb64pe` when it is found, with the compiler that builds in its detail line, and an error
 with an "Open Setting" link when it is not.
@@ -90,7 +160,7 @@ with an "Open Setting" link when it is not.
 The `qb64rust` binary comes with the extension. To use another one (a build of this repository: `cargo build
 --release`, see `crates\README.md`), set `qb64rust.path` to it.
 
-Highlighting works without a compiler. Checking, formatting, building and running call the compiler, so they are
+Highlighting works without a compiler. Checking, formatting, building, running and debugging call the compiler, so they are
 off in [untrusted workspaces](https://code.visualstudio.com/docs/editor/workspace-trust) and in virtual
 workspaces (folders opened from a remote repository without a local copy, e.g. on vscode.dev).
 
@@ -106,6 +176,11 @@ workspaces (folders opened from a remote repository without a local copy, e.g. o
 | `qb64rust.noPrompt` | `false` | Run with `QB64PE_NOPROMPT=y`: untrapped runtime errors are printed instead of shown in a dialog. |
 | `qb64rust.path` | `""` | Path to the `qb64rust` binary, which runs the language server and builds. Empty: the bundled binary, else `qb64rust` on `PATH`. |
 | `qb64rust.includeRoot` | `""` | Where the language server and a build with `qb64rust` look up `$INCLUDE` files after the including file's folder. Empty: the QB64pe folder, else the folder of the `qb64rust` binary. |
+| `qb64rust.format.autoIndent` | `true` | Indent each block. |
+| `qb64rust.format.indentSize` | `4` | Spaces a level of indent (1 to 64). |
+| `qb64rust.format.indentSubs` | `true` | Indent the body of a `SUB` or `FUNCTION`. |
+| `qb64rust.format.autoLayout` | `true` | Space each statement and spell its keywords and names; off, only the indent changes. |
+| `qb64rust.format.keywordCase` | `"camel"` | Keyword case: `camel` (`Print`, `End If`), `upper` (`PRINT`) or `lower` (`print`). |
 
 The encoding default can be changed per language:
 

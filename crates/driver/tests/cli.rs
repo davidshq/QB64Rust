@@ -134,6 +134,441 @@ fn compile_suites_settings() {
     assert!(exe.is_file());
 }
 
+/// A slice program built with `--debug` prints the output recorded from `qb64pe.exe` (spec `compiler/cli`, "Debug
+/// build", scenario "Same program"): `-g` without `-O2` changes no value it prints.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_build_same_output() {
+    let d = scratch("debug-same");
+    let corpus = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/slice");
+    // Ends with `SYSTEM`: an `END` would wait for a key.
+    std::fs::copy(corpus.join("s09_functions.bas"), d.join("p.bas")).unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["--debug", "-q", "-m", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let r = run(unattended(&exe).current_dir(&d), None, PROGRAM_LIMIT, "program");
+    assert_eq!(r.status.code(), Some(0), "{}", stdout(&r));
+    let recorded = text(&std::fs::read(corpus.join("s09_functions.output")).unwrap()).replace("\r\n", "\n");
+    assert_eq!(stdout(&r).replace("\r\n", "\n"), recorded);
+}
+
+/// `-f:StripDebugSymbols=false` leaves the local symbols in the executable, the default strips them (spec
+/// `compiler/cli`, scenario "Unstripped on request"), seen with the toolchain's `nm`. The `Makefile`'s
+/// `objcopy --strip-unneeded` keeps the global ones (`QBMAIN` is listed either way), so a local one (type `t`) tells.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn strip_debug_symbols_false_keeps_symbols() {
+    let d = scratch("strip");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let has_local = |settings: &[&str]| {
+        let exe = d.join("p.exe");
+        let mut args = settings.to_vec();
+        args.extend(["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+        let o = qb64rust_build(&d, &args);
+        assert!(o.status.success(), "{}", stdout(&o));
+        let nm = run(
+            Command::new(support::toolchain("nm.exe")).arg(&exe),
+            None,
+            COMPILER_LIMIT,
+            "toolchain",
+        );
+        let listed = stdout(&nm);
+        assert!(listed.contains(" T _Z6QBMAINPv"), "the global symbol stays: {listed}");
+        listed.lines().any(|l| l.split_whitespace().nth(1) == Some("t"))
+    };
+    assert!(has_local(&["-f:StripDebugSymbols=false"]));
+    assert!(!has_local(&[]));
+    assert!(!has_local(&["-f:StripDebugSymbols=true"]));
+}
+
+/// With a build cache, a debug build is no hit for a plain one's entry, and a second debug build is a hit (spec
+/// `compiler/cli`, "Debug build", scenario "The build cache").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_build_is_cached_apart() {
+    let d = scratch("debug-cache");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let cache = d.join("cache");
+    let build = |debug: bool| {
+        let mut cmd = compiler();
+        cmd.current_dir(&d)
+            .env("QB64RUST_BUILD_CACHE", &cache)
+            .args(["-x", "p.bas", "-o", "p.exe"]);
+        if debug {
+            cmd.arg("--debug");
+        }
+        let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+        assert!(o.status.success(), "{}", stdout(&o));
+        stdout(&o).contains("the same build is in")
+    };
+    assert!(!build(false), "the first plain build");
+    assert!(!build(true), "a debug build after a plain one builds");
+    assert!(build(true), "a second debug build is a hit");
+    assert!(build(false), "the plain build's entry is kept");
+}
+
+/// Builds `program` as `<name>.bas` in `d` with `--debug`, by absolute paths (the `#line` directives then name the
+/// file by its full path, as the proxy will launch it); gives the executable.
+fn debug_build(d: &Path, name: &str, program: &str) -> PathBuf {
+    let bas = d.join(format!("{name}.bas"));
+    std::fs::write(&bas, program).unwrap();
+    let exe = d.join(format!("{name}.exe"));
+    let o = qb64rust_build(
+        d,
+        &[
+            "--debug",
+            "-q",
+            "-x",
+            bas.to_str().unwrap(),
+            "-o",
+            exe.to_str().unwrap(),
+        ],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    exe
+}
+
+/// Where `lldb` stopped, in order: frame 0's function and `file:line:column` (`QBMAIN steps.bas:3:1`; a function
+/// without line information alone, `error`). Printed to the test's stderr, so that `--nocapture` shows the sequence.
+/// A `bt` marks its frame 0 `* frame #0:`, a stop does not.
+fn stops(out: &str) -> Vec<String> {
+    let stops: Vec<String> = out
+        .lines()
+        .filter(|l| l.trim_start().starts_with("frame #0:"))
+        .filter_map(|l| {
+            let frame = l.split('`').nth(1)?;
+            let function = frame.split('(').next()?;
+            Some(match frame.rsplit_once(" at ") {
+                Some((_, at)) => format!("{function} {}", at.trim()),
+                None => function.to_string(),
+            })
+        })
+        .collect();
+    eprintln!("lldb stops: {stops:?}");
+    stops
+}
+
+/// The values `lldb`'s `p` printed, in order, without their types (`(int32_t) 7` is `7`).
+fn values(out: &str) -> Vec<String> {
+    out.lines()
+        .filter(|l| l.starts_with('(') && !l.starts_with("(lldb)"))
+        .filter_map(|l| l.split_once(") ").map(|(_, v)| v.to_string()))
+        .collect()
+}
+
+/// A breakpoint by `.bas` line resolves in `QBMAIN` and stops there, once per pass of the loop it is in; the main
+/// module's variables read through their C names (spec `compiler/cli`, "Debug build", scenario "Line information";
+/// the probe of `study\36` §2).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_stops_at_a_line() {
+    let d = scratch("lldb-line");
+    let program = "$CONSOLE:ONLY\n' Line 11 is in a FOR loop.\nDIM SHARED total AS LONG\nTYPE pt\n    x AS INTEGER\n\
+                   END TYPE\nDIM p AS pt\np.x = 1\ns$ = \"hi\"\nFOR i = 1 TO 2\n    total = total + i\nNEXT\n\
+                   PRINT total; s$; p.x\nSYSTEM\n";
+    let exe = debug_build(&d, "dbg", program);
+    let out = support::lldb(
+        &exe,
+        &[
+            "breakpoint set -f dbg.bas -l 11",
+            "run",
+            "p *__LONG_TOTAL",
+            "continue",
+            "p *__LONG_TOTAL",
+        ],
+    );
+    assert!(out.contains("Breakpoint 1: where = dbg.exe`QBMAIN(void*) + "), "{out}");
+    assert!(out.contains(" at dbg.bas:11:1, address = "), "{out}");
+    assert_eq!(stops(&out), ["QBMAIN dbg.bas:11:1", "QBMAIN dbg.bas:11:1"], "{out}");
+    assert_eq!(values(&out), ["0", "1"], "{out}");
+}
+
+/// `next` from line 2 stops once on each BASIC line: a line of two statements is one stop, and a one-line `FOR`
+/// loop is one stop for all its passes (`lldb` steps until the line changes, and the jump back stays on the line).
+/// A breakpoint on that line stops there once, as the loop is entered.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_next_steps_by_line() {
+    let d = scratch("lldb-next");
+    let program = "$CONSOLE:ONLY\na = 1\nb = 2\nc = 3: d = 4\nFOR i = 1 TO 3: t = t + i: NEXT\ne = 5\n\
+                   PRINT a; b; c; d; e; t\nSYSTEM\n";
+    let exe = debug_build(&d, "steps", program);
+    let mut commands = vec!["breakpoint set -f steps.bas -l 2", "run"];
+    commands.extend(["next"; 6]);
+    let out = support::lldb(&exe, &commands);
+    let lines: Vec<String> = (2..=8).map(|l| format!("QBMAIN steps.bas:{l}:1")).collect();
+    assert_eq!(stops(&out), lines, "{out}");
+    let out = support::lldb(
+        &exe,
+        &[
+            "breakpoint set -f steps.bas -l 5",
+            "run",
+            "continue",
+            "continue",
+            "continue",
+        ],
+    );
+    // Once as the loop is entered, not once per pass: the jump back lands after the breakpoint's address.
+    assert_eq!(stops(&out), ["QBMAIN steps.bas:5:1"], "{out}");
+}
+
+/// `next` over a `CALL` goes to the next line; `step` enters the SUB at its header line (the prologue's `#line`) and
+/// may pass through inline functions of libqb's headers, which have line information; `finish` returns to the
+/// `CALL`'s line; `next` at the end of the SUB stops at `END SUB` and at the caller's line before the next one.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_next_over_call_and_into_sub() {
+    let d = scratch("lldb-call");
+    let program = "$CONSOLE:ONLY\nx = 1\nCALL show(x)\ny = 2\nPRINT y\nSYSTEM\nSUB show (n)\n    n = n + 1\n\
+                   PRINT n\nEND SUB\n";
+    let exe = debug_build(&d, "call", program);
+    let out = support::lldb(&exe, &["breakpoint set -f call.bas -l 3", "run", "next", "next"]);
+    assert_eq!(
+        stops(&out),
+        ["QBMAIN call.bas:3:1", "QBMAIN call.bas:4:1", "QBMAIN call.bas:5:1"],
+        "{out}"
+    );
+    let out = support::lldb(
+        &exe,
+        &[
+            "breakpoint set -f call.bas -l 3",
+            "run",
+            "step",
+            "step",
+            "step",
+            "step",
+            "finish",
+            "next",
+        ],
+    );
+    let s = stops(&out);
+    assert!(s[1].starts_with("SUB_SHOW call.bas:7:"), "the header line first: {out}");
+    assert!(s.contains(&"SUB_SHOW call.bas:8:1".to_string()), "{out}");
+    assert!(s[s.len() - 2].starts_with("QBMAIN call.bas:3:"), "finish: {out}");
+    assert_eq!(s[s.len() - 1], "QBMAIN call.bas:4:1", "{out}");
+    let out = support::lldb(
+        &exe,
+        &["breakpoint set -f call.bas -l 9", "run", "next", "next", "next"],
+    );
+    let s = stops(&out);
+    assert_eq!(s[0], "SUB_SHOW call.bas:9:1", "{out}");
+    assert!(s[1].starts_with("SUB_SHOW call.bas:10:"), "END SUB: {out}");
+    assert!(s[2].starts_with("QBMAIN call.bas:3:"), "back at the CALL: {out}");
+    assert_eq!(s[3], "QBMAIN call.bas:4:1", "{out}");
+}
+
+/// `step` into a FUNCTION of an included file stops in that file, at its header line first: the header and `END`
+/// lines are written under the procedure's own file, as its statements are. The steps between pass through the
+/// lines of `data1.txt`, the procedure's data fragment, which has no `#line` of its own; they are printed.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_step_into_an_included_function() {
+    let d = scratch("lldb-include");
+    std::fs::write(
+        d.join("lib.bi"),
+        "FUNCTION twice& (k AS LONG)\n    twice& = 2 * k\nEND FUNCTION\n",
+    )
+    .unwrap();
+    let exe = debug_build(
+        &d,
+        "inc",
+        "$CONSOLE:ONLY\nx& = twice&(3)\nPRINT x&\nSYSTEM\n'$INCLUDE:'lib.bi'\n",
+    );
+    let mut commands = vec!["breakpoint set -f inc.bas -l 2", "run"];
+    commands.extend(["step"; 16]);
+    let out = support::lldb(&exe, &commands);
+    let s = stops(&out);
+    assert_eq!(s[0], "QBMAIN inc.bas:2:1", "{out}");
+    assert!(
+        s[1].starts_with("FUNC_TWICE lib.bi:1:"),
+        "the header, in the included file: {out}"
+    );
+    assert!(s.contains(&"FUNC_TWICE lib.bi:2:1".to_string()), "{out}");
+    assert!(s.iter().all(|s| !s.starts_with("FUNC_TWICE inc.bas")), "{out}");
+}
+
+/// A `RESUME` retry: `next` over the raising line goes to the next line, the handler and the retry running inside
+/// it; a breakpoint in the handler stops in a second `QBMAIN` frame, entered from libqb's `evnt` below the raising
+/// line; the stops of `next` from there through the `RESUME` are printed.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_resume_retry() {
+    let d = scratch("lldb-retry");
+    // Error 5 (`CHR$(-1)`), not 11: a division by zero is critical and reaches no handler.
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO h\nn = -1\ns$ = CHR$(n)\nPRINT s$\nSYSTEM\nh:\nn = 65\nRESUME\n";
+    let exe = debug_build(&d, "retry", program);
+    let out = support::lldb(
+        &exe,
+        &["breakpoint set -f retry.bas -l 3", "run", "next", "next", "next"],
+    );
+    let lines: Vec<String> = (3..=6).map(|l| format!("QBMAIN retry.bas:{l}:1")).collect();
+    assert_eq!(stops(&out), lines, "{out}");
+    let out = support::lldb(
+        &exe,
+        &[
+            "breakpoint set -f retry.bas -l 8",
+            "run",
+            "bt 4",
+            "next",
+            "next",
+            "next",
+        ],
+    );
+    let s = stops(&out);
+    assert_eq!(s[0], "QBMAIN retry.bas:8:1", "{out}");
+    assert!(
+        out.contains("frame #1: ") && out.contains("`evnt(linenumber=4"),
+        "{out}"
+    );
+    assert!(
+        out.contains("frame #2: ") && out.contains("`QBMAIN(unused=") && out.contains(" at retry.bas:4:"),
+        "{out}"
+    );
+    assert!(s.contains(&"QBMAIN retry.bas:9:1".to_string()), "{out}");
+}
+
+/// Each storage's value read by the C expression the symbol file's `c_name`, `reach` and layouts give: a main-module
+/// variable, a `STATIC`, a local and a parameter of a SUB through their pointers, an element of a static array
+/// through its descriptor, a `STRING` through its `qbs`, the members of a user type at their offsets.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_reads_each_storage() {
+    let d = scratch("lldb-reads");
+    let program = "$CONSOLE:ONLY\nTYPE pt\n    x AS INTEGER\n    nm AS STRING * 4\nEND TYPE\nDIM SHARED total AS LONG\n\
+                   DIM a(1 TO 3) AS SINGLE\nDIM s AS STRING\nDIM p AS pt\n\
+                   total = 7: a(2) = 1.5: s = \"hi\": p.x = 3: p.nm = \"abcd\"\nCALL show(total)\nSYSTEM\n\
+                   SUB show (n AS LONG)\n    STATIC calls AS INTEGER\n    x = n + 1\n    calls = calls + 1\n\
+                   PRINT x\nEND SUB\n";
+    let exe = debug_build(&d, "reads", program);
+    let info: serde_json::Value =
+        serde_json::from_str(&text(&std::fs::read(d.join("reads.exe.debug.json")).unwrap())).unwrap();
+    let var = |name: &str| {
+        let v = info["variables"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["name"] == name)
+            .unwrap_or_else(|| panic!("{name} in the symbol file"));
+        (
+            v["c_name"].as_str().unwrap().to_string(),
+            v["reach"].as_str().unwrap().to_string(),
+        )
+    };
+    let pointer = |name: &str, reach: &str| {
+        let (c, r) = var(name);
+        assert_eq!(r, reach, "{name}");
+        format!("p *{c}")
+    };
+    let (a, reach_a) = var("A");
+    assert_eq!(reach_a, "descriptor");
+    let layouts = &info["layouts"];
+    let data = layouts["array"]["data"].as_u64().unwrap();
+    // One dimension (n = 1, k = 0): its lower bound is at the first slot.
+    let lower = layouts["array"]["dimensions"]["first_slot"].as_u64().unwrap();
+    let (s, reach_s) = var("S");
+    assert_eq!(reach_s, "string");
+    let (p, reach_p) = var("P");
+    assert_eq!(reach_p, "bytes");
+    let pt = &info["types"][0]["members"];
+    let (x_at, nm_at) = (pt[0]["offset"].as_u64().unwrap(), pt[1]["offset"].as_u64().unwrap());
+    let commands = [
+        "breakpoint set -f reads.bas -l 17".to_string(),
+        "run".to_string(),
+        pointer("TOTAL", "pointer"),
+        pointer("CALLS", "pointer"),
+        pointer("X", "pointer"),
+        pointer("N", "param-pointer"),
+        format!("p ((float*){a}[{data}])[2 - {a}[{lower}]]"),
+        format!("p {s}->len"),
+        format!("p *(char(*)[2]){s}->chr"),
+        format!("p *(short*)((char*){p} + {x_at})"),
+        format!("p *(char(*)[4])((char*){p} + {nm_at})"),
+    ];
+    let commands: Vec<&str> = commands.iter().map(String::as_str).collect();
+    let out = support::lldb(&exe, &commands);
+    assert_eq!(stops(&out), ["SUB_SHOW reads.bas:17:1"], "{out}");
+    assert_eq!(
+        values(&out),
+        ["7", "1", "8", "7", "1.5", "2", "\"hi\"", "3", "\"abcd\""],
+        "{out}"
+    );
+}
+
+/// A function breakpoint on libqb's `error` with a condition on its code stops at error 5, with the program's line
+/// in the frame below it; libqb has no debug information, so the code is read from its register (`ecx`, the first
+/// argument on x64 Windows). With a condition on another code the program runs to its end.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_stops_at_error() {
+    let d = scratch("lldb-error");
+    let exe = debug_build(&d, "err", "$CONSOLE:ONLY\nx = 1\nERROR 5\nPRINT x\nSYSTEM\n");
+    let out = support::lldb(&exe, &["breakpoint set -n error -c \"(int)$ecx == 5\"", "run", "bt 3"]);
+    assert!(out.contains("Breakpoint 1: where = err.exe`error(int)"), "{out}");
+    assert_eq!(stops(&out), ["error"], "{out}");
+    assert!(
+        out.lines()
+            .any(|l| l.contains("frame #1: ") && l.contains("`QBMAIN(unused=") && l.contains(" at err.bas:3:1")),
+        "{out}"
+    );
+    let out = support::lldb(&exe, &["breakpoint set -n error -c \"(int)$ecx == 6\"", "run"]);
+    assert!(stops(&out).is_empty(), "{out}");
+    assert!(out.contains("exited with status = "), "{out}");
+}
+
+/// A debug build writes `<exe>.debug.json` beside the executable (spec `compiler/debug-info`, "Written beside the
+/// executable"), into another folder than the source's, and the file is what `--dump debug-info` prints but for the
+/// main file's path.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn debug_build_writes_symbol_file() {
+    let d = scratch("debug-file");
+    let program = "$CONSOLE:ONLY\nDIM SHARED total AS LONG\nCALL show(2)\nSYSTEM\nSUB show (n AS LONG)\n\
+                   total = total + n\nEND SUB\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    std::fs::create_dir(d.join("out")).unwrap();
+    let o = qb64rust_build(&d, &["--debug", "-q", "-x", "p.bas", "-o", "out/p.exe"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let file = d.join("out/p.exe.debug.json");
+    let text = text(&std::fs::read(&file).expect("the symbol file"));
+    let json: serde_json::Value = serde_json::from_str(&text).expect("JSON");
+    assert_eq!(json["version"], 1);
+    assert_eq!(json["procedures"][0]["c_name"], "SUB_SHOW");
+    let dump = stdout(&qb64rust(&d, &["--dump", "debug-info", "p.bas"]));
+    assert_eq!(text, dump);
+}
+
+/// A build without `--debug` writes no symbol file and removes one an earlier build left (spec `compiler/debug-info`,
+/// "Not written otherwise").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn plain_build_removes_symbol_file() {
+    let d = scratch("debug-stale");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let file = d.join("p.exe.debug.json");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", "p.exe"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(!file.exists(), "a plain build writes none");
+    std::fs::write(&file, b"stale").unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", "p.exe"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(!file.exists(), "the earlier build's file is removed");
+}
+
+/// A debug build that fails removes the symbol file an earlier build left, with its executable (spec
+/// `compiler/debug-info`, "A failed build").
+#[test]
+fn failed_build_removes_symbol_file() {
+    let d = scratch("debug-failed");
+    std::fs::write(d.join("p.bas"), "PRINT (\n").unwrap();
+    std::fs::write(d.join("p.exe"), b"stale").unwrap();
+    let file = d.join("p.exe.debug.json");
+    std::fs::write(&file, b"stale").unwrap();
+    let o = qb64rust(&d, &["--debug", "-q", "-x", "p.bas", "-o", "p.exe"]);
+    assert!(!o.status.success(), "{}", stdout(&o));
+    assert!(!d.join("p.exe").exists(), "the executable is removed");
+    assert!(!file.exists(), "its symbol file is removed");
+}
+
 #[test]
 fn unknown_setting() {
     let d = scratch("setting");
@@ -317,6 +752,28 @@ fn typed_dump() {
     assert!(out.contains("Binary Add : I32 (qb I64)"), "{out}");
     assert!(out.contains("Var I : I16"), "{out}");
     let o = qb64rust(&d, &["--dump", "typed", "missing-and-bad.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+}
+
+/// `--dump debug-info` prints the debug symbol file without building (spec `compiler/debug-info`, "Dump of a valid
+/// program"), with the main file's path as given; a program with an error exits with 1.
+#[test]
+fn debug_info_dump() {
+    let d = scratch("debug-dump");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nDIM SHARED total AS LONG\nPRINT total\n",
+    )
+    .unwrap();
+    let o = qb64rust(&d, &["--dump", "debug-info", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let json: serde_json::Value = serde_json::from_str(&stdout(&o)).expect("JSON");
+    assert_eq!(json["version"], 1);
+    assert_eq!(json["files"][0]["path"], "p.bas");
+    assert_eq!(json["variables"][0]["c_name"], "__LONG_TOTAL");
+    assert!(!d.join("p.exe").exists(), "nothing is built");
+    std::fs::write(d.join("bad.bas"), "PRINT 1 +\n").unwrap();
+    let o = qb64rust(&d, &["--dump", "debug-info", "bad.bas"]);
     assert_eq!(o.status.code(), Some(1));
 }
 
@@ -1692,6 +2149,769 @@ fn language_server() {
     assert!(o.stdout.is_empty(), "stdout is the protocol's");
 }
 
+/// `dap` (change `m5-dap-proxy`), scenario "Another option": only `--qb64pe-root` is taken; and "Not a file
+/// name": `dap.bas` is a program.
+#[test]
+#[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
+fn dap_rejects_other_options() {
+    let d = scratch("dap-options");
+    for args in [
+        &["dap", "-x", "p.bas"][..],
+        &["dap", "--qb64pe-root"],
+        &["dap", "--qb64pe-root", "a", "--qb64pe-root", "b"],
+    ] {
+        let o = qb64rust(&d, args);
+        assert_eq!(o.status.code(), Some(1), "{args:?}");
+        assert!(o.stdout.is_empty(), "stdout is the protocol's");
+        assert!(
+            String::from_utf8_lossy(&o.stderr).contains("`dap` takes only --qb64pe-root <dir>"),
+            "{args:?}"
+        );
+    }
+    std::fs::write(d.join("dap.bas"), SLICE_PROGRAM).unwrap();
+    let o = qb64rust(&d, &["dap.bas", "--dump", "typed"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("INSTR"), "{}", stdout(&o));
+}
+
+/// `dap`, scenario "Subcommand": the real `lldb-dap` answers `initialize` through the adapter, which adds its own
+/// capabilities, and the adapter ends with exit code 0 after `disconnect`.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_initialize_and_disconnect() {
+    let d = scratch("dap-init");
+    let mut cmd = compiler();
+    cmd.current_dir(&d).arg("dap");
+    let mut dap = support::dap::Dap::start(cmd);
+    let caps = dap.ok(
+        "initialize",
+        serde_json::json!({"adapterID": "qb64rust", "linesStartAt1": true}),
+    );
+    assert_eq!(caps["supportsGotoTargetsRequest"], true, "{caps}");
+    assert_eq!(caps["supportsDataBreakpoints"], true, "lldb-dap's own: {caps}");
+    assert_eq!(caps["exceptionBreakpointFilters"][0]["label"], "BASIC runtime errors");
+    dap.ok("disconnect", serde_json::json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// A session of `qb64rust dap` on a debug build: `initialize`, then `launch` with `extra` merged into its
+/// arguments, the function breakpoints and the breakpoints by line of the main file (`lines`), and
+/// `configurationDone`. The program then runs.
+fn dap_launch(exe: &Path, functions: &[&str], lines: &[u64], extra: serde_json::Value) -> support::dap::Dap {
+    let mut cmd = compiler();
+    cmd.current_dir(exe.parent().unwrap()).arg("dap");
+    launch_session(support::dap::Dap::start(cmd), exe, functions, lines, extra)
+}
+
+/// A session of the clone's `lldb-dap` itself, with no proxy, in the environment the proxy gives it (the
+/// measurements of task 3.1 of `m5-dap-proxy`).
+fn lldb_dap_launch(exe: &Path, functions: &[&str], lines: &[u64]) -> support::dap::Dap {
+    let mut cmd = Command::new(support::toolchain("lldb-dap.exe"));
+    cmd.current_dir(exe.parent().unwrap())
+        .envs(qb64rust_dap::LLDB_ENV.iter().copied());
+    launch_session(
+        support::dap::Dap::start(cmd),
+        exe,
+        functions,
+        lines,
+        serde_json::json!({}),
+    )
+}
+
+fn launch_session(
+    mut dap: support::dap::Dap,
+    exe: &Path,
+    functions: &[&str],
+    lines: &[u64],
+    extra: serde_json::Value,
+) -> support::dap::Dap {
+    use serde_json::json;
+    dap.ok(
+        "initialize",
+        json!({"adapterID": "qb64rust", "linesStartAt1": true, "columnsStartAt1": true}),
+    );
+    let mut args = json!({"program": exe, "cwd": exe.parent().unwrap(), "env": {"QB64PE_NOPROMPT": "y"}});
+    if let (Some(a), Some(e)) = (args.as_object_mut(), extra.as_object()) {
+        a.extend(e.clone());
+    }
+    let launch = dap.send("launch", args);
+    dap.event("initialized");
+    if !functions.is_empty() {
+        let bps: Vec<_> = functions.iter().map(|f| json!({"name": f})).collect();
+        dap.ok("setFunctionBreakpoints", json!({"breakpoints": bps}));
+    }
+    if !lines.is_empty() {
+        let bas = exe.with_extension("bas");
+        let bps: Vec<_> = lines.iter().map(|l| json!({"line": l})).collect();
+        dap.ok("setBreakpoints", json!({"source": {"path": bas}, "breakpoints": bps}));
+    }
+    dap.ok("configurationDone", json!({}));
+    let r = dap.response(launch);
+    assert_eq!(r["success"], true, "launch: {r}");
+    dap
+}
+
+/// The top frame of the thread of a `stopped` event: its name, line and column.
+fn dap_top(dap: &mut support::dap::Dap, stopped: &serde_json::Value) -> (String, u64, u64) {
+    let thread = stopped["body"]["threadId"].clone();
+    let st = dap.ok("stackTrace", serde_json::json!({"threadId": thread, "levels": 1}));
+    let f = &st["stackFrames"][0];
+    (
+        f["name"].as_str().unwrap_or("").to_string(),
+        f["line"].as_u64().unwrap_or(0),
+        f["column"].as_u64().unwrap_or(0),
+    )
+}
+
+/// Measured (task 3.1 of `m5-dap-proxy`, design "Measured"), the clone's `lldb-dap` alone: a function breakpoint on
+/// `QBMAIN` stops in `qbx.cpp`, before any BASIC line; `evaluate` of `(unsigned long long)<c_name>` gives the
+/// address in decimal, `readMemory` there the value's bytes (base64), `writeMemory` changes it; `dataBreakpointInfo`
+/// of one of `lldb-dap`'s own variables gives a `dataId` `<hex address>/<size>`; libqb's `qbs_set` and
+/// `qbs_new_txt_len`, which have no debug information, can be called through function pointers of their C types;
+/// `` `thread jump --line n`` in the `repl` context moves the next line.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn lldb_dap_measured_memory() {
+    use serde_json::json;
+    let d = scratch("dap-measure");
+    let program = "$CONSOLE:ONLY\nDIM SHARED total AS LONG\ns$ = \"hi\"\ntotal = 7\ntotal = total + 1\n\
+                   PRINT total; s$\nSYSTEM\n";
+    let exe = debug_build(&d, "probe", program);
+    let mut dap = lldb_dap_launch(&exe, &["QBMAIN"], &[5]);
+    let s = dap.event("stopped");
+    let thread = s["body"]["threadId"].clone();
+    let st = dap.ok("stackTrace", json!({"threadId": thread, "levels": 1}));
+    assert!(
+        st["stackFrames"][0]["name"].as_str().unwrap().starts_with("QBMAIN"),
+        "{st}"
+    );
+    assert_eq!(st["stackFrames"][0]["source"]["name"], "qbx.cpp", "{st}");
+    dap.ok("continue", json!({"threadId": thread}));
+    let s = dap.event("stopped");
+    assert_eq!(dap_top(&mut dap, &s).1, 5);
+    let st = dap.ok("stackTrace", json!({"threadId": thread, "levels": 1}));
+    let frame = st["stackFrames"][0]["id"].clone();
+    let watch = |dap: &mut support::dap::Dap, e: &str| {
+        dap.ok(
+            "evaluate",
+            json!({"expression": e, "frameId": frame, "context": "watch"}),
+        )["result"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let addr: u64 = watch(&mut dap, "(unsigned long long)__LONG_TOTAL").parse().unwrap();
+    let r = dap.ok(
+        "readMemory",
+        json!({"memoryReference": format!("0x{addr:x}"), "count": 4}),
+    );
+    assert_eq!(r["data"], "BwAAAA==", "7 as a LONG: {r}");
+    dap.ok(
+        "writeMemory",
+        json!({"memoryReference": format!("0x{addr:x}"), "data": "KgAAAA=="}),
+    );
+    assert_eq!(watch(&mut dap, "*__LONG_TOTAL"), "42");
+    let sc = dap.ok("scopes", json!({"frameId": frame}));
+    let locals = sc["scopes"][0]["variablesReference"].clone();
+    let v = dap.ok("variables", json!({"variablesReference": locals}));
+    let name = v["variables"][0]["name"].clone();
+    let i = dap.ok(
+        "dataBreakpointInfo",
+        json!({"variablesReference": locals, "name": name}),
+    );
+    let id = i["dataId"].as_str().unwrap();
+    let (hex, size) = id.split_once('/').unwrap();
+    assert!(
+        u64::from_str_radix(hex, 16).is_ok() && size.parse::<u64>().is_ok(),
+        "{id}"
+    );
+    let set = "((void*(*)(void*,void*))&qbs_set)((void*)__STRING_S, \
+               ((void*(*)(const char*,int))&qbs_new_txt_len)(\"xyz\", 3))";
+    watch(&mut dap, set);
+    assert_eq!(watch(&mut dap, "__STRING_S->len"), "3");
+    let j = dap.ok(
+        "evaluate",
+        json!({"expression": "`thread jump --line 4", "frameId": frame, "context": "repl"}),
+    );
+    assert!(!j["result"].as_str().unwrap().contains("error:"), "{j}");
+    assert_eq!(dap_top(&mut dap, &s).1, 4);
+    dap.ok("disconnect", json!({"terminateDebuggee": true}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// Measured (task 3.1), the clone's `lldb-dap` alone: from the `QBMAIN` breakpoint, `next` reaches the main file
+/// through `qbx.cpp`, `maindata.txt`, `mainerr.txt` and `main0.txt` (22 steps on 2026-10-25); a `dataId` of the
+/// proxy's form stops with reason `data breakpoint` at the line that writes the value; a `pause` stops the process
+/// on a thread of its own (reason `exception`), while the program's thread is at the loop's line; `lldb-dap`'s
+/// `threads` need not list the program's thread at all; the program's output comes as `output` events of category
+/// `stdout`.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn lldb_dap_measured_stops() {
+    use serde_json::json;
+    let d = scratch("dap-measure2");
+    let program = "$CONSOLE:ONLY\nDIM SHARED total AS LONG\nPRINT \"start\"\ntotal = 1\ntotal = total + 1\nx = 0\n\
+                   DO: x = x + 1: LOOP\n";
+    let exe = debug_build(&d, "probe2", program);
+    let mut dap = lldb_dap_launch(&exe, &["QBMAIN"], &[]);
+    let s = dap.event("stopped");
+    let thread = s["body"]["threadId"].clone();
+    let mut files = Vec::new();
+    for _ in 0..200 {
+        let st = dap.ok("stackTrace", json!({"threadId": thread, "levels": 1}));
+        let file = st["stackFrames"][0]["source"]["name"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
+        if !files.contains(&file) {
+            files.push(file.clone());
+        }
+        if file == "probe2.bas" {
+            break;
+        }
+        dap.ok("next", json!({"threadId": thread}));
+        dap.event("stopped");
+    }
+    eprintln!("lldb-dap entry files: {files:?}");
+    assert_eq!(files.first().map(String::as_str), Some("qbx.cpp"));
+    assert_eq!(files.last().map(String::as_str), Some("probe2.bas"));
+    let st = dap.ok("stackTrace", json!({"threadId": thread, "levels": 1}));
+    let frame = st["stackFrames"][0]["id"].clone();
+    let r = dap.ok(
+        "evaluate",
+        json!({"expression": "(unsigned long long)__LONG_TOTAL", "frameId": frame, "context": "watch"}),
+    );
+    let addr: u64 = r["result"].as_str().unwrap().parse().unwrap();
+    dap.ok(
+        "setDataBreakpoints",
+        json!({"breakpoints": [{"dataId": format!("{addr:X}/4"), "accessType": "write"}]}),
+    );
+    dap.ok("continue", json!({"threadId": thread}));
+    let s = dap.event("stopped");
+    assert_eq!(s["body"]["reason"], "data breakpoint", "{s}");
+    assert_eq!(dap_top(&mut dap, &s).1, 4, "the line that writes it");
+    dap.ok("setDataBreakpoints", json!({"breakpoints": []}));
+    dap.ok("continue", json!({"threadId": thread}));
+    std::thread::sleep(Duration::from_secs(1));
+    dap.ok("pause", json!({"threadId": thread}));
+    let s = dap.event("stopped");
+    assert_eq!(s["body"]["reason"], "exception", "{s}");
+    assert_ne!(s["body"]["threadId"], thread, "a thread of its own: {s}");
+    let top = dap_top(&mut dap, &json!({"body": {"threadId": thread}}));
+    assert!(top.0.starts_with("QBMAIN") && top.1 == 7, "{top:?}");
+    let out = dap.drain_events("output");
+    assert!(
+        out.iter()
+            .any(|o| o["body"]["category"] == "stdout" && o["body"]["output"].as_str().unwrap().contains("start")),
+        "{out:?}"
+    );
+    dap.ok("disconnect", json!({"terminateDebuggee": true}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// The variables a reference lists: name to (value, type, reference).
+fn dap_vars(dap: &mut support::dap::Dap, reference: &serde_json::Value) -> Vec<(String, String, String, i64)> {
+    let v = dap.ok("variables", serde_json::json!({"variablesReference": reference}));
+    v["variables"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|x| {
+            (
+                x["name"].as_str().unwrap_or("").to_string(),
+                x["value"].as_str().unwrap_or("").to_string(),
+                x["type"].as_str().unwrap_or("").to_string(),
+                x["variablesReference"].as_i64().unwrap_or(0),
+            )
+        })
+        .collect()
+}
+
+/// The frames `stackTrace` gives the program's thread: name and line.
+fn dap_frames(dap: &mut support::dap::Dap, stopped: &serde_json::Value) -> Vec<(String, u64, i64)> {
+    let st = dap.ok(
+        "stackTrace",
+        serde_json::json!({"threadId": stopped["body"]["threadId"]}),
+    );
+    st["stackFrames"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| {
+            (
+                f["name"].as_str().unwrap().to_string(),
+                f["line"].as_u64().unwrap(),
+                f["id"].as_i64().unwrap(),
+            )
+        })
+        .collect()
+}
+
+/// The next `stopped` event, its reason and the top frame's name and line.
+fn dap_stop(dap: &mut support::dap::Dap) -> (serde_json::Value, String, String, u64) {
+    let s = dap.event("stopped");
+    let frames = dap_frames(dap, &s);
+    let (name, line) = frames.first().map_or((String::new(), 0), |f| (f.0.clone(), f.1));
+    let reason = s["body"]["reason"].as_str().unwrap_or("").to_string();
+    (s, reason, name, line)
+}
+
+/// What the program printed (the `stdout` output events so far).
+fn dap_output(dap: &mut support::dap::Dap) -> String {
+    dap.drain_events("output")
+        .iter()
+        .filter(|o| o["body"]["category"] == "stdout")
+        .map(|o| o["body"]["output"].as_str().unwrap_or("").to_string())
+        .collect()
+}
+
+/// The program of the spec's scenario "Each kind" (spec `editor/debug-adapter`, "Variables"), with a SUB called
+/// from another SUB.
+const DAP_KINDS: &str = "$CONSOLE:ONLY\nTYPE pt\n    x AS INTEGER\n    nm AS STRING * 4\nEND TYPE\n\
+DIM SHARED total AS LONG\nDIM s AS STRING\nDIM a(1 TO 3) AS SINGLE\nDIM p AS pt\n\
+total = 7: s = \"hi\": a(2) = 1.5: p.x = 3: p.nm = \"abcd\"\nCALL outer(5)\nPRINT total\nSYSTEM\n\
+SUB outer (k AS LONG)\n    DIM y AS LONG\n    y = k * 2\n    CALL show(y)\nEND SUB\n\
+SUB show (n AS LONG)\n    STATIC calls AS INTEGER\n    DIM x AS SINGLE\n    x = n + 0.5\n    calls = calls + 1\n\
+    total = total + n\nEND SUB\n";
+
+/// "Stop on entry": the first statement is on line 3, after a metacommand and a comment.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_stop_on_entry() {
+    use serde_json::json;
+    let d = scratch("dap-entry");
+    let exe = debug_build(&d, "entry", "$CONSOLE:ONLY\n' first\nx = 1\nPRINT x\nSYSTEM\n");
+    let mut dap = dap_launch(&exe, &[], &[], json!({"stopOnEntry": true}));
+    let (_, reason, name, line) = dap_stop(&mut dap);
+    assert_eq!((reason.as_str(), name.as_str(), line), ("entry", "Main module", 3));
+    let t = dap.ok("threads", json!({}));
+    assert_eq!(t["threads"].as_array().unwrap().len(), 1, "{t}");
+    assert_eq!(t["threads"][0]["name"], "Program");
+    dap.ok("continue", json!({"threadId": t["threads"][0]["id"]}));
+    dap.event("exited");
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// "The stack in BASIC terms", "Variables" (each kind, a frame further down), "Evaluate in BASIC terms" (hover,
+/// hex), "Set value" (a number, out of range): a breakpoint in a SUB called from another SUB.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_stack_variables_evaluate_set() {
+    use serde_json::json;
+    let d = scratch("dap-kinds");
+    let exe = debug_build(&d, "kinds", DAP_KINDS);
+    let mut dap = dap_launch(&exe, &[], &[24], json!({}));
+    let (s, reason, _, _) = dap_stop(&mut dap);
+    assert_eq!(reason, "breakpoint");
+    let frames = dap_frames(&mut dap, &s);
+    let names: Vec<(&str, u64)> = frames.iter().map(|f| (f.0.as_str(), f.1)).collect();
+    assert_eq!(names, [("SUB show", 24), ("SUB outer", 17), ("Main module", 11)]);
+    let scopes = dap.ok("scopes", json!({"frameId": frames[0].2}));
+    assert_eq!(scopes["scopes"][0]["name"], "Locals");
+    assert_eq!(scopes["scopes"][1]["name"], "Main module");
+    let locals = dap_vars(&mut dap, &scopes["scopes"][0]["variablesReference"]);
+    let short: Vec<(&str, &str, &str)> = locals
+        .iter()
+        .map(|v| (v.0.as_str(), v.1.as_str(), v.2.as_str()))
+        .collect();
+    assert_eq!(
+        short,
+        [("N", "10", "LONG"), ("CALLS", "1", "INTEGER"), ("X", "10.5", "SINGLE")]
+    );
+    let main = dap_vars(&mut dap, &scopes["scopes"][1]["variablesReference"]);
+    let get = |n: &str| {
+        main.iter()
+            .find(|v| v.0 == n)
+            .unwrap_or_else(|| panic!("{n}: {main:?}"))
+            .clone()
+    };
+    assert_eq!(get("TOTAL").1, "7");
+    assert_eq!(get("S").1, "\"hi\"");
+    let a = get("A");
+    assert_eq!(a.1, "(1 TO 3) AS SINGLE");
+    let elements = dap_vars(&mut dap, &json!(a.3));
+    let e: Vec<(&str, &str)> = elements.iter().map(|v| (v.0.as_str(), v.1.as_str())).collect();
+    assert_eq!(e, [("A(1)", "0"), ("A(2)", "1.5"), ("A(3)", "0")]);
+    let members = dap_vars(&mut dap, &json!(get("P").3));
+    let m: Vec<(&str, &str)> = members.iter().map(|v| (v.0.as_str(), v.1.as_str())).collect();
+    assert_eq!(m, [("X", "3"), ("NM", "\"abcd\"")]);
+    // The caller's own locals, read in its frame.
+    let outer = dap.ok("scopes", json!({"frameId": frames[1].2}));
+    let o = dap_vars(&mut dap, &outer["scopes"][0]["variablesReference"]);
+    let o: Vec<(&str, &str)> = o.iter().map(|v| (v.0.as_str(), v.1.as_str())).collect();
+    assert_eq!(o, [("K", "5"), ("Y", "10")]);
+    // Hover from the SUB: the main module's TOTAL; an element; a member; hex; a name of neither.
+    let ev = |dap: &mut support::dap::Dap, e: &str| {
+        dap.request(
+            "evaluate",
+            json!({"expression": e, "frameId": frames[0].2, "context": "hover"}),
+        )
+    };
+    assert_eq!(ev(&mut dap, "total")["body"]["result"], "7");
+    assert_eq!(ev(&mut dap, "a(2)")["body"]["result"], "1.5");
+    assert_eq!(ev(&mut dap, "p.nm")["body"]["result"], "\"abcd\"");
+    assert_eq!(ev(&mut dap, "n,h")["body"]["result"], "&HA");
+    let none = ev(&mut dap, "nosuch");
+    assert_eq!(none["success"], false);
+    assert!(
+        none["message"].as_str().unwrap().contains("not a variable here"),
+        "{none}"
+    );
+    // Set value: a LONG, and an INTEGER out of range.
+    let set = dap.request(
+        "setExpression",
+        json!({"expression": "total", "value": "42", "frameId": frames[0].2}),
+    );
+    assert_eq!(set["body"]["value"], "42", "{set}");
+    let bad = dap.request(
+        "setExpression",
+        json!({"expression": "calls", "value": "40000", "frameId": frames[0].2}),
+    );
+    assert_eq!(bad["success"], false, "{bad}");
+    assert_eq!(ev(&mut dap, "calls")["body"]["result"], "1");
+    // A STRING through libqb's own assignment.
+    let set = dap.request(
+        "setExpression",
+        json!({"expression": "s", "value": "\"x\" + CHR$(0)", "frameId": frames[0].2}),
+    );
+    assert_eq!(set["body"]["value"], "\"x\" + CHR$(0)", "{set}");
+    dap.ok("continue", json!({"threadId": s["body"]["threadId"]}));
+    dap.event("exited");
+    let out = dap_output(&mut dap);
+    assert!(out.contains(" 52 "), "42 + 10 printed: {out:?}");
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// "Stepping by BASIC line": into a SUB, out of it, into a FUNCTION of an included file, and `next` past a
+/// handler's `RESUME`.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_stepping() {
+    use serde_json::json;
+    let d = scratch("dap-steps");
+    std::fs::write(
+        d.join("lib.bi"),
+        "FUNCTION twice& (k AS LONG)\n    twice& = 2 * k\nEND FUNCTION\n",
+    )
+    .unwrap();
+    let program = "$CONSOLE:ONLY\nx = 1\nCALL show(x)\ny& = twice&(3)\nPRINT y&\nSYSTEM\nSUB show (n)\n    n = n + 1\n\
+                   PRINT n\nEND SUB\n'$INCLUDE:'lib.bi'\n";
+    let exe = debug_build(&d, "steps", program);
+    let mut dap = dap_launch(&exe, &[], &[3], json!({}));
+    let (s, _, _, line) = dap_stop(&mut dap);
+    assert_eq!(line, 3);
+    let thread = s["body"]["threadId"].clone();
+    let step = |dap: &mut support::dap::Dap, how: &str| {
+        dap.ok(how, json!({"threadId": thread}));
+        let (s, reason, name, line) = dap_stop(dap);
+        let st = dap.ok("stackTrace", json!({"threadId": s["body"]["threadId"], "levels": 1}));
+        let file = st["stackFrames"][0]["source"]["name"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
+        (reason, name, file, line)
+    };
+    assert_eq!(
+        step(&mut dap, "stepIn"),
+        ("step".into(), "SUB show".into(), "steps.bas".into(), 8)
+    );
+    assert_eq!(
+        step(&mut dap, "stepOut"),
+        ("step".into(), "Main module".into(), "steps.bas".into(), 4)
+    );
+    assert_eq!(
+        step(&mut dap, "stepIn"),
+        ("step".into(), "FUNCTION twice&".into(), "lib.bi".into(), 2)
+    );
+    assert_eq!(step(&mut dap, "next").3, 3, "END FUNCTION");
+    assert_eq!(
+        step(&mut dap, "next"),
+        ("step".into(), "Main module".into(), "steps.bas".into(), 5)
+    );
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+
+    // `stepIn` on `END SUB` goes past the rest of the CALL to the next line.
+    let mut dap = dap_launch(&exe, &[], &[10], json!({}));
+    let (s, _, name, line) = dap_stop(&mut dap);
+    assert_eq!((name.as_str(), line), ("SUB show", 10));
+    dap.ok("stepIn", json!({"threadId": s["body"]["threadId"]}));
+    let (_, reason, name, line) = dap_stop(&mut dap);
+    assert_eq!((reason.as_str(), name.as_str(), line), ("step", "Main module", 4));
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO h\nn = -1\ns$ = CHR$(n)\nPRINT s$\nSYSTEM\nh:\nn = 65\nRESUME\n";
+    let exe = debug_build(&d, "retry", program);
+    let mut dap = dap_launch(&exe, &[], &[9], json!({}));
+    let (s, _, _, line) = dap_stop(&mut dap);
+    assert_eq!(line, 9);
+    let thread = s["body"]["threadId"].clone();
+    for _ in 0..2 {
+        dap.ok("next", json!({"threadId": thread}));
+        let s = dap.event("stopped");
+        let st = dap.ok("stackTrace", json!({"threadId": s["body"]["threadId"], "levels": 1}));
+        let f = &st["stackFrames"][0];
+        assert_eq!(f["source"]["name"], "retry.bas", "{st}");
+        assert!(f["line"].as_u64().unwrap() <= 9, "not past the file's end: {st}");
+    }
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// "Stepping by BASIC line": `stepIn` on lines that call no procedure goes one line on each time, also when `lldb`
+/// steps into a function of libqb's inline headers and out of it again, back on the same line.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_step_in_on_lines_without_a_call() {
+    use serde_json::json;
+    let d = scratch("dap-plain-steps");
+    let program = "$CONSOLE:ONLY\nx = 1\ny = 2\nz = x + y\ns$ = STR$(z)\nPRINT s$\nSYSTEM\n";
+    let exe = debug_build(&d, "plain", program);
+    let mut dap = dap_launch(&exe, &[], &[2], json!({}));
+    let (s, _, _, line) = dap_stop(&mut dap);
+    assert_eq!(line, 2);
+    let thread = s["body"]["threadId"].clone();
+    for want in 3..=6 {
+        dap.ok("stepIn", json!({"threadId": thread}));
+        let (_, reason, name, line) = dap_stop(&mut dap);
+        assert_eq!((reason.as_str(), name.as_str(), line), ("step", "Main module", want));
+    }
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// "Data breakpoints" and "Set next line".
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_data_breakpoint_and_goto() {
+    use serde_json::json;
+    let d = scratch("dap-data");
+    let program = "$CONSOLE:ONLY\nDIM SHARED total AS LONG\ntotal = 1\nx = 2\nx = 3\ntotal = total + x\nPRINT total\n\
+                   SYSTEM\n";
+    let exe = debug_build(&d, "data", program);
+    let mut dap = dap_launch(&exe, &[], &[4], json!({}));
+    let (s, _, _, _) = dap_stop(&mut dap);
+    let thread = s["body"]["threadId"].clone();
+    let frames = dap_frames(&mut dap, &s);
+    let info = dap.ok("dataBreakpointInfo", json!({"name": "total", "frameId": frames[0].2}));
+    assert!(info["dataId"].as_str().unwrap().ends_with("/4"), "{info}");
+    let big = dap.ok("dataBreakpointInfo", json!({"name": "x", "frameId": frames[0].2}));
+    assert!(!big["dataId"].is_null(), "a SINGLE: {big}");
+    dap.ok(
+        "setDataBreakpoints",
+        json!({"breakpoints": [{"dataId": info["dataId"], "accessType": "write"}]}),
+    );
+    dap.ok("continue", json!({"threadId": thread}));
+    let (_, reason, _, line) = dap_stop(&mut dap);
+    assert_eq!(
+        (reason.as_str(), line),
+        ("data breakpoint", 6),
+        "stopped at the line that writes it"
+    );
+    dap.ok("setDataBreakpoints", json!({"breakpoints": []}));
+    // Back to line 4 from line 6.
+    let source = json!({"path": exe.with_extension("bas")});
+    let t = dap.ok("gotoTargets", json!({"source": source, "line": 4}));
+    let target = t["targets"][0]["id"].clone();
+    assert!(!target.is_null(), "{t}");
+    let none = dap.ok("gotoTargets", json!({"source": source, "line": 99}));
+    assert_eq!(none["targets"], json!([]));
+    dap.ok("goto", json!({"threadId": thread, "targetId": target}));
+    let (_, reason, _, line) = dap_stop(&mut dap);
+    assert_eq!((reason.as_str(), line), ("goto", 4));
+    dap.ok("next", json!({"threadId": thread}));
+    let (_, _, _, line) = dap_stop(&mut dap);
+    assert_eq!(line, 5, "line 4 ran");
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// "Stop on a runtime error": with the filter, error 5 on line 3 stops there; without it, a handler runs on.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_error_stop() {
+    use serde_json::json;
+    let d = scratch("dap-error");
+    let program =
+        "$CONSOLE:ONLY\nON ERROR GOTO h\nx$ = CHR$(-1)\nPRINT \"after\"\nSYSTEM\nh:\nPRINT \"handled\"\nRESUME NEXT\n";
+    let exe = debug_build(&d, "err", program);
+    let launch = |filters: serde_json::Value| {
+        let mut cmd = compiler();
+        cmd.current_dir(&d).arg("dap");
+        let mut dap = support::dap::Dap::start(cmd);
+        dap.ok("initialize", json!({"adapterID": "qb64rust", "linesStartAt1": true}));
+        let l = dap.send("launch", json!({"program": exe, "noPrompt": true}));
+        dap.event("initialized");
+        dap.ok("setExceptionBreakpoints", json!({"filters": filters}));
+        dap.ok("configurationDone", json!({}));
+        assert_eq!(dap.response(l)["success"], true);
+        dap
+    };
+    let mut dap = launch(json!(["qbError"]));
+    let (s, reason, name, line) = dap_stop(&mut dap);
+    assert_eq!((reason.as_str(), name.as_str(), line), ("exception", "Main module", 3));
+    assert!(s["body"]["description"].as_str().unwrap().contains("Error 5"), "{s}");
+    let info = dap.ok("exceptionInfo", json!({"threadId": s["body"]["threadId"]}));
+    assert_eq!(info["description"], "Error 5: Illegal function call");
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+    let mut dap = launch(json!([]));
+    dap.event("exited");
+    let out = dap_output(&mut dap);
+    assert!(out.contains("handled") && out.contains("after"), "{out:?}");
+    assert!(dap.drain_events("stopped").is_empty());
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// "One thread, the program's", scenario "Pause"; and `disconnect` ends a program that would run for ever.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_pause_and_disconnect() {
+    use serde_json::json;
+    let d = scratch("dap-pause");
+    let exe = debug_build(&d, "spin", "$CONSOLE:ONLY\nx = 0\nDO: x = x + 1: LOOP\n");
+    let mut dap = dap_launch(&exe, &[], &[], json!({}));
+    std::thread::sleep(Duration::from_secs(1));
+    let t = dap.ok("threads", json!({}));
+    let thread = t["threads"][0]["id"].clone();
+    dap.ok("pause", json!({"threadId": thread}));
+    let (s, reason, name, line) = dap_stop(&mut dap);
+    assert_eq!((reason.as_str(), name.as_str(), line), ("pause", "Main module", 3));
+    let t = dap.ok("threads", json!({}));
+    assert_eq!(t["threads"], json!([{"id": s["body"]["threadId"], "name": "Program"}]));
+    dap.ok("disconnect", json!({"terminateDebuggee": true}));
+    assert_eq!(dap.finish().code(), Some(0));
+    std::thread::sleep(Duration::from_millis(500));
+    let alive = Command::new("tasklist")
+        .args(["/FI", "IMAGENAME eq spin.exe", "/NH"])
+        .output()
+        .unwrap();
+    assert!(
+        !stdout(&alive).contains("spin.exe"),
+        "the program ended with the session"
+    );
+}
+
+/// Measured for change `m5-debug-launch` (its design D6, "Measured"): `console` `integratedTerminal` through the
+/// proxy. `lldb-dap` asks the client to start a command (`runInTerminal`); the test starts it as a terminal would,
+/// with its stdin a pipe, types a number there for the program's `INPUT`, and the program stops at a breakpoint
+/// after it with `X` holding the number.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_run_in_terminal() {
+    use serde_json::json;
+    use std::io::Write as _;
+    let d = scratch("dap-terminal");
+    let exe = debug_build(&d, "ask", "$CONSOLE:ONLY\nINPUT x\ny = x * 2\nPRINT y\nSYSTEM\n");
+    let mut cmd = compiler();
+    cmd.current_dir(&d).arg("dap");
+    let mut dap = support::dap::Dap::start(cmd);
+    dap.ok(
+        "initialize",
+        json!({"adapterID": "qb64rust", "linesStartAt1": true, "columnsStartAt1": true,
+               "supportsRunInTerminalRequest": true}),
+    );
+    let launch = dap.send(
+        "launch",
+        json!({"program": exe, "cwd": exe.parent().unwrap(), "noPrompt": true, "console": "integratedTerminal"}),
+    );
+    // `lldb-dap` asks for the terminal while it handles `launch`, before `initialized`.
+    let r = dap.reverse_request("runInTerminal");
+    eprintln!("runInTerminal: {r}");
+    let a = &r["arguments"];
+    let argv: Vec<String> = a["args"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|x| x.as_str().unwrap().to_string())
+        .collect();
+    let mut term = Command::new(&argv[0]);
+    term.args(&argv[1..])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped());
+    if let Some(cwd) = a["cwd"].as_str() {
+        term.current_dir(cwd);
+    }
+    if let Some(env) = a["env"].as_object() {
+        for (k, v) in env {
+            match v.as_str() {
+                Some(v) => term.env(k, v),
+                None => term.env_remove(k),
+            };
+        }
+    }
+    let mut term = term.spawn().expect("the terminal's command starts");
+    dap.reply(&r, json!({"processId": term.id()}));
+    dap.event("initialized");
+    dap.ok(
+        "setBreakpoints",
+        json!({"source": {"path": exe.with_extension("bas")}, "breakpoints": [{"line": 3}]}),
+    );
+    dap.ok("configurationDone", json!({}));
+    let l = dap.response(launch);
+    assert_eq!(l["success"], true, "launch: {l}");
+    term.stdin.as_mut().unwrap().write_all(b"7\r\n").unwrap();
+    let (s, reason, name, line) = dap_stop(&mut dap);
+    assert_eq!((reason.as_str(), name.as_str(), line), ("breakpoint", "Main module", 3));
+    let frames = dap_frames(&mut dap, &s);
+    let x = dap.ok(
+        "evaluate",
+        json!({"expression": "x", "frameId": frames[0].2, "context": "hover"}),
+    );
+    assert_eq!(x["result"], "7", "{x}");
+    dap.ok("disconnect", json!({"terminateDebuggee": true}));
+    assert_eq!(dap.finish().code(), Some(0));
+    // The launcher may have ended with the program already.
+    let _ = term.kill();
+    let _ = term.wait();
+}
+
+/// Measured for change `m5-debug-launch` (its design D3): `launch`'s `args` reach the program as they are, through
+/// the proxy and `lldb-dap`, which joins them into a Windows command line: a word, one with a space (spec
+/// `editor/debug-launch`, "Run arguments") and one ending in a backslash.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_args() {
+    use serde_json::json;
+    let d = scratch("dap-args");
+    let program = "$CONSOLE:ONLY\nFOR i = 1 TO _COMMANDCOUNT: PRINT \"[\"; COMMAND$(i); \"]\": NEXT\nSYSTEM\n";
+    let exe = debug_build(&d, "args", program);
+    let mut dap = dap_launch(&exe, &[], &[], json!({"args": ["a", "b c", "d\\"]}));
+    dap.event("exited");
+    let out = dap_output(&mut dap).replace("\r\n", "\n");
+    assert_eq!(out, "[a]\n[b c]\n[d\\]\n");
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// "Launch", scenario "Not a debug build".
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_refuses_a_build_without_debug() {
+    use serde_json::json;
+    let d = scratch("dap-plain");
+    std::fs::write(d.join("plain.bas"), SLICE_PROGRAM).unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "plain.bas", "-o", "plain.exe"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let mut cmd = compiler();
+    cmd.current_dir(&d).arg("dap");
+    let mut dap = support::dap::Dap::start(cmd);
+    dap.ok("initialize", json!({"adapterID": "qb64rust"}));
+    let r = dap.request("launch", json!({"program": d.join("plain.exe")}));
+    assert_eq!(r["success"], false);
+    let message = r["message"].as_str().unwrap();
+    assert!(
+        message.contains("plain.exe.debug.json") && message.contains("--debug"),
+        "{message}"
+    );
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
 /// Scenario "Not a file name": `lsp.bas` is a program.
 #[test]
 fn lsp_named_program() {
@@ -2021,4 +3241,210 @@ fn a_child_with_much_output_is_read_whole() {
     assert!(o.status.success());
     assert!(o.stdout == text, "stdout: {} of {} bytes", o.stdout.len(), text.len());
     assert!(o.stderr == text, "stderr: {} of {} bytes", o.stderr.len(), text.len());
+}
+
+/// QB64pe's six layout defaults, as the format suites give them (spec `compiler/format`).
+const LAYOUT_DEFAULTS: [&str; 6] = [
+    "-f:autoindent=1",
+    "-f:autoindentsize=4",
+    "-f:indentsubs=1",
+    "-f:autolayout=1",
+    "-f:keywordcapitals=0",
+    "-f:keywordlowercase=0",
+];
+
+/// `-y` without `-o` writes nothing and says why (spec `compiler/format`, "No output file").
+#[test]
+fn format_needs_an_output_file() {
+    let d = scratch("format-no-out");
+    std::fs::write(d.join("prog.bas"), "print 1\r\n").unwrap();
+    let o = qb64rust(&d, &["-y", "prog.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(
+        stdout(&o).contains("formatting requires an output file"),
+        "{}",
+        stdout(&o)
+    );
+    let names: Vec<_> = std::fs::read_dir(&*d)
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    assert_eq!(names, ["prog.bas"], "no file is written");
+}
+
+/// `-y -o` writes the file and leaves the input as it was, with CRLF after each line; nothing is built (spec
+/// `compiler/format`, "Format command").
+#[test]
+fn format_writes_the_output_file() {
+    let d = scratch("format-out");
+    std::fs::write(d.join("prog.bas"), "PRINT 1\nPRINT 2").unwrap();
+    let o = qb64rust(&d, &["-y", "-q", "-m", "prog.bas", "-o", "out.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(std::fs::read(d.join("prog.bas")).unwrap(), b"PRINT 1\nPRINT 2");
+    let out = std::fs::read(d.join("out.bas")).unwrap();
+    assert!(
+        out.ends_with(b"\r\n") && out.split(|&c| c == b'\n').count() == 3,
+        "{out:?}"
+    );
+    let mut names: Vec<_> = std::fs::read_dir(&*d)
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    names.sort();
+    assert_eq!(names, ["out.bas", "prog.bas"], "no executable or build folder");
+}
+
+/// The format suite's command line on QB64pe's `format_tests\general` gives its `full-cc.out` (spec `compiler/format`,
+/// "Runner's format line"). The test's files are read from the reference clone.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn runners_format_line() {
+    let clone = qb64rust_driver::build::find_root(None).expect("the QB64pe reference clone");
+    let tests = clone.join("tests/format_tests/general");
+    let d = scratch("format-general");
+    for f in ["general.bas", "included.file"] {
+        std::fs::copy(tests.join(f), d.join(f)).unwrap();
+    }
+    let mut args = vec!["-y", "-m"];
+    args.extend(LAYOUT_DEFAULTS);
+    args.extend(["general.bas", "-o", "out"]);
+    let o = qb64rust(&d, &args);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let lf = |b: Vec<u8>| b.into_iter().filter(|&c| c != b'\r').collect::<Vec<u8>>();
+    let got = lf(std::fs::read(d.join("out")).unwrap());
+    let want = lf(std::fs::read(tests.join("full-cc.out")).unwrap());
+    assert!(got.trim_ascii_end() == want.trim_ascii_end(), "{}", stdout(&o));
+}
+
+/// Both keyword settings true is CamelCase, as `qb64pe` takes them (spec `compiler/format`, "Both keyword
+/// settings").
+#[test]
+fn format_both_keyword_settings() {
+    let d = scratch("format-keywords");
+    std::fs::write(d.join("prog.bas"), "print 1\r\n").unwrap();
+    let o = qb64rust(
+        &d,
+        &[
+            "-y",
+            "-f:KeywordCapitals=true",
+            "-f:KeywordLowercase=true",
+            "prog.bas",
+            "-o",
+            "out.bas",
+        ],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(std::fs::read(d.join("out.bas")).unwrap(), b"Print 1\r\n");
+    let o = qb64rust(&d, &["-y", "-f:KeywordCapitals=true", "prog.bas", "-o", "up.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(std::fs::read(d.join("up.bas")).unwrap(), b"PRINT 1\r\n");
+}
+
+/// An indent size out of range is an error (spec `compiler/format`, "Indent size out of range"), and so is a value
+/// that is not boolean; the boolean words `qb64pe` takes are taken.
+#[test]
+fn format_layout_setting_values() {
+    let d = scratch("format-settings");
+    std::fs::write(d.join("prog.bas"), "print 1\r\n").unwrap();
+    let o = qb64rust(&d, &["-y", "-f:AutoIndentSize=65", "prog.bas", "-o", "out.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(stdout(&o).contains("range 1 to 64"), "{}", stdout(&o));
+    assert!(!d.join("out.bas").exists());
+    let o = qb64rust(&d, &["-y", "-f:AutoLayout=maybe", "prog.bas", "-o", "out.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(stdout(&o).contains("needs `true` or `false`"), "{}", stdout(&o));
+    let words = [
+        "-f:AUTOINDENT=yes",
+        "-f:IndentSubs=off",
+        "-f:autolayout=-1",
+        "-f:KeywordCapitals=on",
+    ];
+    let o = qb64rust(
+        &d,
+        &[
+            "-y", words[0], words[1], words[2], words[3], "prog.bas", "-o", "out.bas",
+        ],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+}
+
+/// No `-f:` setting formats as the six defaults given (spec `compiler/format`, "No settings").
+#[test]
+fn format_defaults_are_qb64pes() {
+    let d = scratch("format-defaults");
+    let program = "sub s\r\nif x   =   1 then\r\nprint   \"a\"\r\nend if\r\nend sub\r\n";
+    std::fs::write(d.join("prog.bas"), program).unwrap();
+    let o = qb64rust(&d, &["-y", "prog.bas", "-o", "plain.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let mut args = vec!["-y"];
+    args.extend(LAYOUT_DEFAULTS);
+    args.extend(["prog.bas", "-o", "given.bas"]);
+    let o = qb64rust(&d, &args);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(
+        std::fs::read(d.join("plain.bas")).unwrap(),
+        std::fs::read(d.join("given.bas")).unwrap()
+    );
+}
+
+/// A program with an error is reported as a compile reports it, and nothing is written (spec `compiler/format`,
+/// "Syntax error").
+#[test]
+fn format_of_a_program_with_an_error() {
+    let d = scratch("format-error");
+    std::fs::write(d.join("prog.bas"), "print 1\r\nx = 1 +\r\n").unwrap();
+    let o = qb64rust(&d, &["-y", "-q", "prog.bas", "-o", "out.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    assert!(out.contains("prog.bas:2:") && out.contains("1 error"), "{out}");
+    assert!(!d.join("out.bas").exists(), "no output file");
+}
+
+/// A warning does not stop `-y` (spec `compiler/format`, "Program with an error").
+#[test]
+fn format_with_a_warning() {
+    let d = scratch("format-warning");
+    std::fs::write(d.join("prog.bas"), "$DEBUG\r\nx = 1\r\n").unwrap();
+    let o = qb64rust(&d, &["-y", "-w", "prog.bas", "-o", "out.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("warning"), "{}", stdout(&o));
+    assert!(d.join("out.bas").is_file());
+}
+
+/// A layout setting given to a run that is not `-y` is checked and changes nothing (spec `compiler/cli`, "A layout
+/// setting in a build"): the C++ is the same as without it.
+#[test]
+fn layout_setting_in_a_build_changes_nothing() {
+    let d = scratch("layout-in-build");
+    std::fs::write(d.join("prog.bas"), SLICE_PROGRAM).unwrap();
+    let plain = qb64rust(&d, &["--dump", "cpp", "prog.bas"]);
+    let with = qb64rust(&d, &["-f:AutoIndent=false", "--dump", "cpp", "prog.bas"]);
+    assert!(plain.status.success() && with.status.success(), "{}", stdout(&with));
+    assert_eq!(plain.stdout, with.stdout);
+    let bad = qb64rust(&d, &["-f:AutoIndentSize=0", "-z", "prog.bas"]);
+    assert_eq!(bad.status.code(), Some(1), "{}", stdout(&bad));
+}
+
+/// The same with a build (spec `compiler/cli`, "A layout setting in a build").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn layout_setting_in_a_build() {
+    let d = scratch("layout-build");
+    // Ends with `SYSTEM`: an `END` would wait for a key.
+    std::fs::write(d.join("prog.bas"), SLICE_PROGRAM.replace("END\n", "SYSTEM\n")).unwrap();
+    let exe = d.join("prog.exe");
+    let o = qb64rust_build(
+        &d,
+        &[
+            "-f:AutoIndent=false",
+            "-q",
+            "-x",
+            "prog.bas",
+            "-o",
+            exe.to_str().unwrap(),
+        ],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    let ran = run(&mut unattended(&exe), None, PROGRAM_LIMIT, "program");
+    assert!(stdout(&ran).starts_with("x= .25"), "{}", stdout(&ran));
 }

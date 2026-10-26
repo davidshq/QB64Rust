@@ -220,6 +220,16 @@ dependencies = [
  "qb64rust-base",
  "qb64rust-builtins",
  "qb64rust-ir",
+ "serde_json",
+]
+
+[[package]]
+name = "qb64rust-dap"
+version = "0.1.0"
+dependencies = [
+ "qb64rust-base",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -238,12 +248,24 @@ dependencies = [
  "qb64rust-base",
  "qb64rust-builtins",
  "qb64rust-codegen-cpp",
+ "qb64rust-dap",
+ "qb64rust-format",
  "qb64rust-ir",
  "qb64rust-lsp",
  "qb64rust-sema",
  "qb64rust-syntax",
  "serde_json",
  "tempfile",
+]
+
+[[package]]
+name = "qb64rust-format"
+version = "0.1.0"
+dependencies = [
+ "qb64rust-base",
+ "qb64rust-builtins",
+ "qb64rust-sema",
+ "qb64rust-syntax",
 ]
 
 [[package]]

@@ -1,7 +1,7 @@
 {
   "name": "qb64rust",
   "displayName": "QB64 (qb64rust)",
-  "description": "QB64 language support: highlighting, live errors, check, build and run with the new compiler qb64rust (bundled), formatting with QB64pe.",
+  "description": "QB64 language support: highlighting, live errors, check, build, run and debug with the new compiler qb64rust (bundled), formatting with QB64pe.",
   "version": "0.2.0",
   "publisher": "qb64rust",
   "license": "MIT",
@@ -15,10 +15,13 @@
   },
   "categories": [
     "Programming Languages",
+    "Debuggers",
     "Formatters"
   ],
   "main": "./out/src/extension.js",
-  "activationEvents": [],
+  "activationEvents": [
+    "onDebugResolve:qb64rust"
+  ],
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
@@ -50,6 +53,11 @@
         "language": "qb64rust",
         "scopeName": "source.qb64rust",
         "path": "./syntaxes/qb64rust.tmLanguage.json"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "qb64rust"
       }
     ],
     "configurationDefaults": {
@@ -105,6 +113,43 @@
           "minimum": 1,
           "description": "A check or format that runs longer than this is stopped."
         },
+        "qb64rust.format.autoIndent": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Format Document indents each block (QB64pe's IDE setting *Auto indent*, `-f:autoindent`)."
+        },
+        "qb64rust.format.indentSize": {
+          "type": "integer",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 64,
+          "markdownDescription": "Spaces a level of indent (`-f:autoindentsize`)."
+        },
+        "qb64rust.format.indentSubs": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Indent the body of a `SUB` or `FUNCTION` (`-f:indentsubs`)."
+        },
+        "qb64rust.format.autoLayout": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Space each statement and spell its keywords and names (`-f:autolayout`). When off, only the indent changes."
+        },
+        "qb64rust.format.keywordCase": {
+          "type": "string",
+          "enum": [
+            "camel",
+            "upper",
+            "lower"
+          ],
+          "enumDescriptions": [
+            "`Print`, `End If` (QB64pe's default)",
+            "`PRINT`, `END IF`",
+            "`print`, `end if`"
+          ],
+          "default": "camel",
+          "markdownDescription": "The case of keywords in Format Document. These settings take the place of QB64pe's `config.ini`, which plays no part in formatting."
+        },
         "qb64rust.runArguments": {
           "type": "string",
           "default": "",
@@ -140,6 +185,13 @@
         "enablement": "isWorkspaceTrusted"
       },
       {
+        "command": "qb64rust.debug",
+        "title": "Debug",
+        "category": "QB64",
+        "icon": "$(debug-alt)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
         "command": "qb64rust.check",
         "title": "Check Program",
         "category": "QB64",
@@ -161,6 +213,10 @@
           "when": "editorLangId == qb64rust && !virtualWorkspace"
         },
         {
+          "command": "qb64rust.debug",
+          "when": "editorLangId == qb64rust && !virtualWorkspace"
+        },
+        {
           "command": "qb64rust.check",
           "when": "editorLangId == qb64rust && !virtualWorkspace"
         }
@@ -172,14 +228,19 @@
           "group": "navigation@0"
         },
         {
-          "command": "qb64rust.run",
+          "command": "qb64rust.debug",
           "when": "resourceLangId == qb64rust && !virtualWorkspace",
           "group": "navigation@1"
         },
         {
-          "command": "qb64rust.build",
+          "command": "qb64rust.run",
           "when": "resourceLangId == qb64rust && !virtualWorkspace",
           "group": "navigation@2"
+        },
+        {
+          "command": "qb64rust.build",
+          "when": "resourceLangId == qb64rust && !virtualWorkspace",
+          "group": "navigation@3"
         }
       ]
     },
@@ -204,6 +265,80 @@
           }
         },
         "when": "isWorkspaceTrusted"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "qb64rust",
+        "label": "QB64",
+        "languages": [
+          "qb64rust"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "The program to debug: its main .bas file, built with qb64rust --debug before the launch, or the executable of a debug build. Defaults to the active file."
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Arguments passed to the program (its COMMAND$). Defaults to qb64rust.runArguments."
+              },
+              "cwd": {
+                "type": "string",
+                "description": "The program's working folder. Defaults to the program's folder."
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "default": false,
+                "description": "Stop at the program's first BASIC line."
+              },
+              "console": {
+                "type": "string",
+                "enum": [
+                  "integratedTerminal",
+                  "internalConsole",
+                  "externalTerminal"
+                ],
+                "enumDescriptions": [
+                  "VS Code's integrated terminal: the program's console output and its keyboard input (INPUT) are there.",
+                  "The Debug Console: output only; the program gets no keyboard input from it.",
+                  "A terminal window outside VS Code."
+                ],
+                "default": "integratedTerminal",
+                "description": "Where a $CONSOLE program reads and writes. A program with a window of its own opens it as when run."
+              },
+              "noPrompt": {
+                "type": "boolean",
+                "description": "Set QB64PE_NOPROMPT=y, so untrapped runtime errors are printed instead of shown in a dialog. Defaults to qb64rust.noPrompt."
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "qb64rust",
+            "request": "launch",
+            "name": "Debug QB64 program",
+            "program": "${file}"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "QB64: Debug program",
+            "description": "Build the program with qb64rust --debug and debug it.",
+            "body": {
+              "type": "qb64rust",
+              "request": "launch",
+              "name": "Debug QB64 program",
+              "program": "^\"${file}\""
+            }
+          }
+        ]
       }
     ]
   },

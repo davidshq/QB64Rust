@@ -41,6 +41,8 @@ ALLOWED = [
     # paths (/home/user/proj, C:\proj).
     ("tests/upstream/compile_tests/qb64pe/file.bas", rb""),
     ("tests/upstream/compile_tests/qb64pe/file.output", rb""),
+    # The old compiler's -y output of that test (tests/format/README.md): the same made-up paths.
+    ("tests/format/upstream/qb64pe/file.bas", rb""),
 ]
 
 # Third-party copies held byte for byte to an upstream commit by their own check, not checked here (rule 2 is about

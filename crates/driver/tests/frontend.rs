@@ -5,17 +5,30 @@
 //! - `check-ok`: no errors after `sema`;
 //! - `check-fail`: at least one error; the diagnostics are a snapshot;
 //! - `typed`, `ir`, `cpp`: no errors; the typed tree, the IR or the emitted fragments are a snapshot;
-//! - `coverage`: no errors; the fragments of a `--coverage` build are a snapshot (design D1 of `cws-whole-game`).
+//! - `coverage`: no errors; the fragments of a `--coverage` build are a snapshot (design D1 of `cws-whole-game`);
+//! - `debug-info`: no errors; the debug symbol file of a debug build is a snapshot (design D3 of
+//!   `m5-debug-build-symbols`), the files' paths relative to the test folder.
 //!
 //! Snapshots live in `tests/snapshots/` next to this file, named after the `.bas` file; review changes with
 //! `cargo insta review`. `QB64RUST_FRONTEND_DIR` points the harness at another folder (used once to check that
 //! the harness itself fails bad files).
 
-use qb64rust_driver::{FileLoader, Linkage, Resolved, ResolvedLibrary, dump_cpp, dump_ir, frontend, frontend_with};
+use qb64rust_driver::{
+    FileLoader, Linkage, Resolved, ResolvedLibrary, dump_cpp, dump_debug_info, dump_ir, frontend, frontend_with,
+};
 use qb64rust_syntax::tree::print;
 use std::path::{Path, PathBuf};
 
-const MODES: &[&str] = &["parse-ok", "check-ok", "check-fail", "typed", "ir", "cpp", "coverage"];
+const MODES: &[&str] = &[
+    "parse-ok",
+    "check-ok",
+    "check-fail",
+    "typed",
+    "ir",
+    "cpp",
+    "coverage",
+    "debug-info",
+];
 
 fn frontend_dir() -> PathBuf {
     match std::env::var_os("QB64RUST_FRONTEND_DIR") {
@@ -66,6 +79,7 @@ fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<Str
                 "ir" => Some(dump_ir(&fe)),
                 "cpp" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), false)),
                 "coverage" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), true)),
+                "debug-info" => Some(dump_debug_info(&fe, &fixed_libraries(&fe.program))),
                 _ => unreachable!(),
             })
         }

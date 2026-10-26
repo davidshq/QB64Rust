@@ -135,6 +135,8 @@ impl Checker<'_> {
         let base = self.type_bases.get(&b.node().key()).copied().unwrap_or(0);
         let above = self.consts_above.get(&b.node().key()).copied().unwrap_or((0, false));
         let mut members: Vec<Member> = Vec::new();
+        // The name of each member, for its symbol.
+        let mut member_toks: Vec<Tok> = Vec::new();
         let mut const_bounds = false;
         let mut pending = false;
         for field in b.fields() {
@@ -209,6 +211,7 @@ impl Checker<'_> {
                     bounds,
                     dynamic,
                 });
+                member_toks.push(t);
             }
         }
         if members.is_empty() {
@@ -228,6 +231,12 @@ impl Checker<'_> {
             name: name.clone(),
             members,
         });
+        self.stmt.names.push((SymbolKind::Type(id), name_tok.span));
+        for (i, t) in member_toks.iter().enumerate() {
+            self.stmt
+                .names
+                .push((SymbolKind::Member(id, MemberId(to_u32(i))), t.span));
+        }
         self.types_by_name.insert(name, id);
         if const_bounds {
             self.type_const_bounds.insert(b.node().key(), id);
@@ -494,6 +503,7 @@ impl Checker<'_> {
         let words = self.as_words(a);
         let text = words.join(" ");
         if let Some(t) = self.user_type_of(&text) {
+            self.type_reference(a, t);
             return Ok(t);
         }
         let (unsigned, rest) = split_unsigned(&words);
@@ -536,6 +546,22 @@ impl Checker<'_> {
         }
         if let Some(&id) = self.type_const_bounds.get(&node.key()) {
             self.type_const_bounds(b, id);
+        }
+    }
+
+    /// Records the user type an `AS` clause names as a reference of its symbol, at the clause's type words (design D3
+    /// of `m5b-formatter`); `_MEM`, which no `TYPE` line defines, is left out.
+    pub(super) fn type_reference(&mut self, a: ast::AsClause, t: Ty) {
+        if let Ty::User(id) = t
+            && self.prog.user_type(id).name != MEM_TYPE
+        {
+            let mut words = a.type_words();
+            if let Some(first) = words.next() {
+                let last = words.last().unwrap_or(first);
+                self.stmt
+                    .names
+                    .push((SymbolKind::Type(id), first.span.cover(last.span)));
+            }
         }
     }
 
@@ -1639,7 +1665,11 @@ impl Checker<'_> {
     /// array without an index.
     fn members(&mut self, mut base: Place, path: &str, suffix: Option<Ty>, t: Tok) -> R<Place> {
         let shown = show_bytes(self.text(t.span));
-        for seg in path.split('.') {
+        // Where each member's name stands, for its symbol: the parts of the token's text after the name before the
+        // first dot when the token holds it (`p.xpos`), else all of them (the member token of `a(1).m`).
+        let parts = self.dotted_parts(t.span);
+        let skip = parts.len().saturating_sub(path.split('.').count());
+        for (k, seg) in path.split('.').enumerate() {
             if let Some(m) = self.member_of(&base).filter(|m| m.is_array()) {
                 let msg = format!("`{shown}`: an index is expected after the member array `{}`", m.name);
                 return Err(self.error(t.span, msg));
@@ -1653,6 +1683,11 @@ impl Checker<'_> {
                 let msg = format!("`{seg}` is not a member of `TYPE {}` (`{shown}`)", ut.name);
                 return Err(self.error(t.span, msg));
             };
+            if ut.name != MEM_TYPE
+                && let Some(&at) = parts.get(skip + k)
+            {
+                self.stmt.names.push((SymbolKind::Member(tid, MemberId(to_u32(i))), at));
+            }
             base = Place::Member {
                 base: Box::new(base),
                 member: MemberId(to_u32(i)),
@@ -1673,6 +1708,33 @@ impl Checker<'_> {
             }
         }
         Ok(base)
+    }
+
+    /// The parts of the text at `span` split at its dots, each without the blanks around it and without a type suffix
+    /// at its end (`a . b%` gives `a` and `b`).
+    fn dotted_parts(&self, span: Span) -> Vec<Span> {
+        let text = self.text(span);
+        let mut parts = Vec::new();
+        let mut start = 0;
+        for end in text
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| **c == b'.')
+            .map(|(i, _)| i)
+            .chain([text.len()])
+        {
+            let part = &text[start..end];
+            let lead = part.iter().take_while(|c| c.is_ascii_whitespace()).count();
+            let name = part
+                .iter()
+                .skip(lead)
+                .take_while(|c| c.is_ascii_alphanumeric() || **c == b'_')
+                .count();
+            let at = span.start + to_u32(start + lead);
+            parts.push(Span::new(span.file, at, at + to_u32(name)));
+            start = end + 1;
+        }
+        parts
     }
 
     /// The dotted name a chain of member accesses on a plain name spells (design D2 of

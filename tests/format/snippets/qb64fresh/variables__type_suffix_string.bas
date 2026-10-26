@@ -1,0 +1,2 @@
+x$ = "Hello"
+Print x$

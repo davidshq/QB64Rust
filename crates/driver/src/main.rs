@@ -1,24 +1,36 @@
 //! `qb64rust`: the command line (design D9, spec `compiler/cli`).
 //!
-//! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] [--dump tokens|tree|typed|ir|cpp]
-//! [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build] [--coverage]`
+//! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>]
+//! [--dump tokens|tree|typed|ir|cpp|debug-info]
+//! [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build] [--coverage] [--debug]`
+//!
+//! `qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]`: the
+//! file laid out as `qb64pe -y` lays it out (spec `compiler/format`).
 //!
 //! `qb64rust --report unsupported <file or folder>... [--include-root <dir>]`: what a set of programs still needs
 //! (`report.rs`).
 //!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
+//!
+//! `qb64rust dap [--qb64pe-root <dir>]`: the debug adapter (crate `qb64rust-dap`).
 
-use qb64rust_driver::{FileLoader, build, dump_cpp, dump_ir, emit_ir_with, frontend_at, log_folder, lower, report};
+use qb64rust_base::layout::Settings;
+use qb64rust_driver::{
+    FileLoader, build, dump_cpp, dump_debug_info, dump_ir, emit_ir_debug, emit_ir_with, frontend_at, log_folder, lower,
+    report,
+};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
-[--dump tokens|tree|typed|ir|cpp] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
-[--keep-build] [--coverage]\n\
+[--dump tokens|tree|typed|ir|cpp|debug-info] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
+[--keep-build] [--coverage] [--debug]\n\
+       qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]\n\
        qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
-       qb64rust lsp    (the language server, over stdin and stdout)";
+       qb64rust lsp    (the language server, over stdin and stdout)\n\
+       qb64rust dap [--qb64pe-root <dir>]    (the debug adapter, over stdin and stdout)";
 
 #[derive(Default)]
 struct Options {
@@ -26,6 +38,8 @@ struct Options {
     inputs: Vec<PathBuf>,
     /// `--report unsupported`.
     report: bool,
+    /// `-y`: lay the file out instead of compiling it (spec `compiler/format`).
+    format: bool,
     output: Option<PathBuf>,
     quiet: bool,
     cpp_only: bool,
@@ -39,6 +53,9 @@ struct Options {
     /// `--coverage`: a counter at each statement, written at exit to the file `QB64RUST_COVERAGE` names (design D1
     /// of `cws-whole-game`). The fragments differ, so the build cache's key does too.
     coverage: bool,
+    /// `--debug`: a build for a debugger (design D1 of `m5-debug-build-symbols`): `-g`, unstripped, never optimised,
+    /// and the debug symbol file beside the executable.
+    debug: bool,
     /// `-w`: print the warnings too (spec `compiler/cli`).
     warnings: bool,
     /// `-f:<setting>=<value>` as given, checked by [`build_settings`].
@@ -46,12 +63,17 @@ struct Options {
 }
 
 /// The `-f:` settings: `OptimizeCppProgram=true` (as `qb64pe` turns it into `-O2`) and `ExtraLinkerFlags=<value>`
-/// (added to the link command). `StripDebugSymbols` is accepted and ignored; any other setting is not supported
-/// yet (spec `compiler/cli`).
+/// (added to the link command), `StripDebugSymbols=false` (the executable unstripped) and `GenerateLicenseFile`;
+/// the layout settings of `-y`, checked and ignored as `qb64pe` ignores them in a build; any other setting is not
+/// supported yet (spec `compiler/cli`).
 fn build_settings(settings: &[String]) -> Result<build::Settings, String> {
     let mut out = build::Settings::default();
+    let mut layout = Settings::default();
     for s in settings {
         let (name, value) = s.split_once('=').unwrap_or((s, ""));
+        if layout.set(name, value)? {
+            continue;
+        }
         match name {
             "OptimizeCppProgram" => {
                 out.optimize = match value.to_ascii_lowercase().as_str() {
@@ -68,11 +90,32 @@ fn build_settings(settings: &[String]) -> Result<build::Settings, String> {
                 }
             }
             "ExtraLinkerFlags" => out.extra_link = value.to_string(),
-            "StripDebugSymbols" => {}
+            "StripDebugSymbols" => {
+                out.keep_symbols = match value.to_ascii_lowercase().as_str() {
+                    "true" => false,
+                    "false" => true,
+                    _ => return Err(format!("setting `{name}` needs `true` or `false`, not `{value}`")),
+                }
+            }
             _ => return Err(format!("setting `{name}` is not supported yet")),
         }
     }
     Ok(out)
+}
+
+/// The layout settings of `-y` (spec `compiler/format`); a build setting is checked as a build checks it and
+/// changes nothing, as with `qb64pe`.
+fn layout_settings(settings: &[String]) -> Result<Settings, String> {
+    let mut layout = Settings::default();
+    let mut rest = Vec::new();
+    for s in settings {
+        let (name, value) = s.split_once('=').unwrap_or((s, ""));
+        if !layout.set(name, value)? {
+            rest.push(s.clone());
+        }
+    }
+    build_settings(&rest)?;
+    Ok(layout)
 }
 
 fn parse_args() -> Result<Options, String> {
@@ -88,10 +131,11 @@ fn parse_args() -> Result<Options, String> {
             "-w" => o.warnings = true,
             "-q" => o.quiet = true,
             "-z" => o.cpp_only = true,
+            "-y" => o.format = true,
             "-o" => o.output = Some(PathBuf::from(value("-o")?)),
             "--dump" => {
                 let d = value("--dump")?.to_string_lossy().to_string();
-                if !["tokens", "tree", "typed", "ir", "cpp"].contains(&d.as_str()) {
+                if !["tokens", "tree", "typed", "ir", "cpp", "debug-info"].contains(&d.as_str()) {
                     return Err(format!("unknown --dump stage `{d}`"));
                 }
                 o.dump = Some(d);
@@ -101,6 +145,7 @@ fn parse_args() -> Result<Options, String> {
             "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--keep-build" => o.keep_build = true,
             "--coverage" => o.coverage = true,
+            "--debug" => o.debug = true,
             "--report" => {
                 let r = value("--report")?.to_string_lossy().to_string();
                 if r != "unsupported" {
@@ -165,6 +210,10 @@ fn main() -> ExitCode {
     if args.first().is_some_and(|a| a == "lsp") {
         return lsp(args.len());
     }
+    // `qb64rust dap`: the same rule; `dap.bas` is a file to compile.
+    if args.first().is_some_and(|a| a == "dap") {
+        return dap(&args[1..]);
+    }
     install_panic_hook();
     match qb64rust_driver::with_stack(run) {
         Ok(code) => code,
@@ -188,12 +237,43 @@ fn lsp(arg_count: usize) -> ExitCode {
         .ok()
         .and_then(|e| e.parent().map(Path::to_path_buf))
         .unwrap_or_default();
-    // A check runs the CLI's own front end (design D2 of `extension-diagnostics`).
-    let check = qb64rust_driver::check_for_server;
-    match qb64rust_driver::with_stack(move || qb64rust_lsp::run_stdio(root, check)) {
+    // A check and a formatting request run the CLI's own front end (design D2 of `extension-diagnostics`, D5 of
+    // `m5b-formatter`).
+    let hooks = qb64rust_driver::server_hooks();
+    match qb64rust_driver::with_stack(move || qb64rust_lsp::run_stdio(root, hooks)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(msg) => {
             eprintln!("qb64rust lsp: {msg}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// The debug adapter over stdin and stdout (spec `editor/debug-adapter`, design D12 of `m5-dap-proxy`), with the
+/// clone's `lldb-dap` as its backend. Its only option is `--qb64pe-root`; the clone is found as a build finds it.
+/// When it is not found the adapter still starts and answers `initialize` with the error, so that the editor shows
+/// it. Stdout carries the protocol, as for `lsp`.
+fn dap(args: &[std::ffi::OsString]) -> ExitCode {
+    let mut root = None;
+    let mut args = args.iter();
+    while let Some(a) = args.next() {
+        match (a.to_str(), root.is_none()) {
+            (Some("--qb64pe-root"), true) if args.len() > 0 => root = args.next().map(PathBuf::from),
+            _ => {
+                eprintln!("qb64rust: `dap` takes only --qb64pe-root <dir>\n{USAGE}");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+    let backend = build::find_root(root.as_deref()).map(|r| {
+        ["internal", "c", "c_compiler", "bin", "lldb-dap.exe"]
+            .iter()
+            .fold(r, |p, part| p.join(part))
+    });
+    match qb64rust_driver::with_stack(move || qb64rust_dap::run_stdio(backend)) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(msg) => {
+            eprintln!("qb64rust dap: {msg}");
             ExitCode::FAILURE
         }
     }
@@ -219,6 +299,35 @@ fn report_unsupported(o: &Options) -> Result<ExitCode, String> {
     Ok(ExitCode::SUCCESS)
 }
 
+/// `-y`: the main file laid out into `-o` (spec `compiler/format`). Nothing is built, and nothing is written when
+/// the front end reports an error.
+fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitCode, String> {
+    let Some(out) = &o.output else {
+        return Err("formatting requires an output file: give -o <file>".into());
+    };
+    let settings = layout_settings(&o.settings)?;
+    let include_root = include_root(o)?;
+    let fe = frontend_at(
+        name,
+        bytes,
+        |file| Box::new(FileLoader::new(&include_root, file, input)),
+        Some((input, &include_root)),
+    );
+    let errors = fe.diagnostics.error_count();
+    if o.warnings {
+        print!("{}", fe.render_with_warnings());
+    } else if errors > 0 {
+        print!("{}", fe.render_diagnostics());
+    }
+    if errors > 0 {
+        println!("{}", fe.diagnostics.summary());
+        return Ok(ExitCode::FAILURE);
+    }
+    let text = qb64rust_driver::format_program(&fe, &settings);
+    std::fs::write(out, text).map_err(|e| format!("writing {}: {e}", out.display()))?;
+    Ok(ExitCode::SUCCESS)
+}
+
 fn run() -> Result<ExitCode, String> {
     let o = parse_args().map_err(|e| format!("{e}\n{USAGE}"))?;
     let input = o
@@ -238,11 +347,20 @@ fn run() -> Result<ExitCode, String> {
         ));
     }
     let name = input.to_string_lossy().to_string();
+    if o.format {
+        return format(&o, &input, &name, bytes);
+    }
     let exe = match &o.output {
         Some(p) => p.clone(),
         None => input.with_extension("exe"),
     };
     let exe = std::path::absolute(&exe).map_err(|e| e.to_string())?;
+    // The executable an earlier build left, and its debug symbol file with it, so that a file beside the executable is
+    // never an older build's (spec `compiler/debug-info`).
+    let remove_old = || {
+        let _ = std::fs::remove_file(&exe);
+        let _ = std::fs::remove_file(build::debug_path(&exe));
+    };
     {
         let mut ctx = PANIC_CONTEXT.lock().unwrap_or_else(|e| e.into_inner());
         ctx.input = Some(name.clone());
@@ -265,8 +383,8 @@ fn run() -> Result<ExitCode, String> {
         Some((&input, &include_root)),
     );
     // The files of the program's `DECLARE LIBRARY` blocks, looked for from the clone as the old compiler's folder,
-    // for a build, `-z` and the `cpp` dump; the other dumps need none, nor does a block with no name.
-    let resolved = if matches!(o.dump.as_deref(), None | Some("cpp"))
+    // for a build, `-z` and the `cpp` and `debug-info` dumps; the other dumps need none, nor does a block with no name.
+    let resolved = if matches!(o.dump.as_deref(), None | Some("cpp" | "debug-info"))
         && !fe.has_errors()
         && fe.program.libraries.iter().any(|l| !l.names.is_empty())
     {
@@ -274,7 +392,7 @@ fn run() -> Result<ExitCode, String> {
             .and_then(|root| qb64rust_driver::library::Places::new(&root, &input).map_err(|e| e.to_string()));
         let places = places.inspect_err(|_| {
             if o.dump.is_none() && !o.cpp_only {
-                let _ = std::fs::remove_file(&exe);
+                remove_old();
             }
         })?;
         qb64rust_driver::library::resolve(&mut fe, &places)
@@ -301,6 +419,7 @@ fn run() -> Result<ExitCode, String> {
             "typed" => print!("{}", qb64rust_sema::dump_typed(&fe.program)),
             "ir" => print!("{}", dump_ir(&fe)),
             "cpp" => print!("{}", dump_cpp(&fe, &resolved, o.coverage)),
+            "debug-info" => print!("{}", dump_debug_info(&fe, &resolved)),
             _ => unreachable!(),
         }
         report(&fe);
@@ -311,15 +430,14 @@ fn run() -> Result<ExitCode, String> {
         });
     }
 
-    let mut settings = build_settings(&o.settings).inspect_err(|_| {
-        let _ = std::fs::remove_file(&exe);
-    })?;
+    let mut settings = build_settings(&o.settings).inspect_err(|_| remove_old())?;
+    settings.debug = o.debug;
     for lib in &resolved.libraries {
         settings.libraries.extend(lib.files.iter().cloned());
         settings.headers.extend(lib.headers.iter().cloned());
     }
     if fe.diagnostics.error_count() > 0 {
-        let _ = std::fs::remove_file(&exe);
+        remove_old();
         report(&fe);
         return Ok(ExitCode::FAILURE);
     }
@@ -331,15 +449,24 @@ fn run() -> Result<ExitCode, String> {
     // A log statement names a relative source file from the working folder, as the old compiler does from its
     // start folder (design D2 of `m4-handlers-logging-checking`).
     let log_folder = std::env::current_dir().ok().map(|d| log_folder(&d));
-    let fragments = emit_ir_with(&fe, &ir, &resolved, o.coverage, log_folder.as_deref());
+    // A debug build's symbol file comes from the same emitter as its fragments (design D3 of `m5-debug-build-symbols`).
+    let (fragments, debug_info) = if o.debug {
+        let (fragments, info) = emit_ir_debug(&fe, &ir, &resolved, o.coverage, log_folder.as_deref());
+        (fragments, Some(info))
+    } else {
+        (
+            emit_ir_with(&fe, &ir, &resolved, o.coverage, log_folder.as_deref()),
+            None,
+        )
+    };
     let build_dir = build::build_dir(&exe);
     if o.cpp_only {
         let temp = build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
         println!("{}", temp.display());
         return Ok(ExitCode::SUCCESS);
     }
-    // Before any step that can fail, so a failed build never leaves an older executable behind.
-    let _ = std::fs::remove_file(&exe);
+    // Before any step that can fail, so a failed build never leaves an older executable or symbol file behind.
+    remove_old();
     let roots = build::Roots {
         clone: build::find_root(o.root.as_deref())?,
         libqb: build::find_libqb(o.libqb_root.as_deref())?,
@@ -377,6 +504,11 @@ fn run() -> Result<ExitCode, String> {
             return Ok(ExitCode::FAILURE);
         }
         return Err(e.to_string());
+    }
+    // Beside the executable once it is in place; any other build has removed an earlier one with the executable.
+    if let Some(info) = debug_info {
+        let path = build::debug_path(&exe);
+        std::fs::write(&path, info.to_json()).map_err(|e| format!("writing {}: {e}", path.display()))?;
     }
     if !o.keep_build {
         let _ = std::fs::remove_dir_all(&build_dir);

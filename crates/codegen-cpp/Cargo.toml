@@ -12,3 +12,6 @@ workspace = true
 qb64rust-base.workspace = true
 qb64rust-ir.workspace = true
 qb64rust-builtins.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

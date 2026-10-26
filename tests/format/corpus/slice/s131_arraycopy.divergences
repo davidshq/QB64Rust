@@ -1,0 +1,2 @@
+# Line 167: -y writes 1.5 in _ARRAYCOPY subscripts as 1.5E+0,1.5, another program; the formatter writes it as written.
+D-038

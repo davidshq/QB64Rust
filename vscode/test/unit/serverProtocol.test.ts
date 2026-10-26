@@ -1,5 +1,15 @@
 import * as assert from "assert";
-import { CHECK, DOCUMENT_ENCODING, EncodingTracker, checkParams, includeRootFor, initializationOptions } from "../../src/server/protocol";
+import {
+    CHECK,
+    DEFAULT_FORMAT,
+    DOCUMENT_ENCODING,
+    EncodingTracker,
+    checkParams,
+    configurationParams,
+    formatFlags,
+    includeRootFor,
+    initializationOptions,
+} from "../../src/server/protocol";
 
 describe("language server protocol", () => {
     it("names the server's encoding notification", () => {
@@ -12,8 +22,37 @@ describe("language server protocol", () => {
     });
 
     it("initialization options: the default encoding, cp437 when none is set", () => {
-        assert.deepStrictEqual(initializationOptions("utf8", "", undefined, "linux"), { encoding: "utf8", includeRoot: "" });
-        assert.deepStrictEqual(initializationOptions(undefined, "", undefined, "linux"), { encoding: "cp437", includeRoot: "" });
+        assert.deepStrictEqual(initializationOptions("utf8", "", undefined, "linux"), { encoding: "utf8", includeRoot: "", format: DEFAULT_FORMAT });
+        assert.deepStrictEqual(initializationOptions(undefined, "", undefined, "linux"), { encoding: "cp437", includeRoot: "", format: DEFAULT_FORMAT });
+    });
+
+    // Change m5b-formatter, design D7: the layout settings, sent at the start and on a change.
+    it("initialization options: the layout settings, QB64pe's defaults unless given", () => {
+        assert.deepStrictEqual(DEFAULT_FORMAT, { autoIndent: true, indentSize: 4, indentSubs: true, autoLayout: true, keywordCase: "camel" });
+        const format = { ...DEFAULT_FORMAT, indentSize: 2, keywordCase: "lower" as const };
+        assert.deepStrictEqual(initializationOptions("cp437", "", undefined, "linux", undefined, format).format, format);
+        assert.deepStrictEqual(configurationParams(format), { settings: { format } });
+    });
+
+    it("-f: settings: all six, the keyword case as QB64pe's two flags", () => {
+        assert.deepStrictEqual(formatFlags(DEFAULT_FORMAT), [
+            "-f:autoindent=1",
+            "-f:autoindentsize=4",
+            "-f:indentsubs=1",
+            "-f:autolayout=1",
+            "-f:keywordcapitals=0",
+            "-f:keywordlowercase=0",
+        ]);
+        const off = { autoIndent: false, indentSize: 64, indentSubs: false, autoLayout: false, keywordCase: "upper" as const };
+        assert.deepStrictEqual(formatFlags(off), [
+            "-f:autoindent=0",
+            "-f:autoindentsize=64",
+            "-f:indentsubs=0",
+            "-f:autolayout=0",
+            "-f:keywordcapitals=1",
+            "-f:keywordlowercase=0",
+        ]);
+        assert.deepStrictEqual(formatFlags({ ...DEFAULT_FORMAT, keywordCase: "lower" }).slice(-2), ["-f:keywordcapitals=0", "-f:keywordlowercase=1"]);
     });
 
     it("initialization options: a relative include root is resolved against the workspace folder", () => {

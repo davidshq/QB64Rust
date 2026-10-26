@@ -415,33 +415,33 @@ sub_end();
 return;
 }
 ==> main1.txt <==
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 void SUB_INCSUB(){
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 qbs *tqbs;
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 ptrszint tmp_long;
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 int32 tmp_fileno;
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 uint32 qbs_tmp_base=qbs_tmp_list_nexti;
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 uint8 *tmp_mem_static_pointer=mem_static_pointer;
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 uint32 tmp_cmem_sp=cmem_sp;
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 #include "data1.txt"
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 mem_lock *sf_mem_lock;
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 new_mem_lock();
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 sf_mem_lock=mem_lock_tmp;
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 sf_mem_lock->type=3;
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 libqb_check_stack();
-#line 6 "errorlocation_cpp.bas"
+#line 6 "inc/errorlocation.bi"
 if (is_error_pending()) goto exit_subfunc;
 #line 7 "inc/errorlocation.bi"
 error_track_line(20,7,"errorlocation.bi");
@@ -467,17 +467,17 @@ qbs_free(tqbs);
 qbs_cleanup(qbs_tmp_base,0);
 #line 7 "inc/errorlocation.bi"
 if(!qbevent)break;evnt(20,7,"errorlocation.bi");}while(r);
-#line 8 "errorlocation_cpp.bas"
+#line 8 "inc/errorlocation.bi"
 exit_subfunc:;
-#line 8 "errorlocation_cpp.bas"
+#line 8 "inc/errorlocation.bi"
 free_mem_lock(sf_mem_lock);
-#line 8 "errorlocation_cpp.bas"
+#line 8 "inc/errorlocation.bi"
 #include "free1.txt"
-#line 8 "errorlocation_cpp.bas"
+#line 8 "inc/errorlocation.bi"
 if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
-#line 8 "errorlocation_cpp.bas"
+#line 8 "inc/errorlocation.bi"
 cmem_sp=tmp_cmem_sp;
-#line 8 "errorlocation_cpp.bas"
+#line 8 "inc/errorlocation.bi"
 }
 ==> main2.txt <==
 #line 32 "errorlocation_cpp.bas"

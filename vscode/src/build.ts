@@ -48,6 +48,19 @@ export class Builder implements vscode.Disposable {
     }
 
     /**
+     * The debug build of the program of `uri` or the active editor (`--debug`, change m5-debug-launch, design D4):
+     * the executable, or undefined when there is none (the reason already shown).
+     */
+    async debugBuild(uri?: vscode.Uri): Promise<string | undefined> {
+        const doc = await this.prepare(uri, "Debugging");
+        if (!doc) {
+            return undefined;
+        }
+        const plan = await planBuild(doc.uri.fsPath, this.status, this.server, this.bundle, true, true);
+        return plan.compiler === "qb64rust" ? this.buildWithQb64rust(doc, plan, false) : undefined;
+    }
+
+    /**
      * Builds; `notify` shows "built X" when it succeeds. Build and Run passes false: the program starting is the
      * confirmation (study 18, proposal D). Failures are always shown.
      */
@@ -66,7 +79,7 @@ export class Builder implements vscode.Disposable {
     /**
      * Builds with the new compiler (design D4 and D5 of extension-vsix). Its errors go to their own collection
      * (source `qb64rust`). A failure under `auto` whose errors are all marked "not supported yet" offers to build
-     * the program once with QB64pe.
+     * the program once with QB64pe, except for a debug build, which QB64pe cannot make.
      */
     private async buildWithQb64rust(doc: vscode.TextDocument, plan: Extract<BuildPlan, { compiler: "qb64rust" }>, notify: boolean): Promise<string | undefined> {
         const file = doc.uri.fsPath;
@@ -77,7 +90,7 @@ export class Builder implements vscode.Disposable {
         if (plan.firstLibqbBuild) {
             this.output.appendLine("This first build after installing or updating the extension also builds QB64pe's runtime library (libqb) once.");
         }
-        const result = await qb64rust.build(this.queue, plan.command, file, plan.roots, plan.env, (text) => {
+        const result = await qb64rust.build(this.queue, plan.command, file, plan.roots, plan.env, plan.debug, (text) => {
             this.output.append(text);
             if (plan.firstLibqbBuild && /^building /m.test(text)) {
                 this.status.setBusy("building libqb (first build)…");
@@ -97,7 +110,7 @@ export class Builder implements vscode.Disposable {
         }
         const first = result.messages.find((m) => m.severity === "error");
         const text = `QB64: build failed${first ? `: ${first.message.split("\n")[0]} (line ${first.line})` : ""}`;
-        if (result.allMarked && config.buildWith(doc.uri) === "auto") {
+        if (result.allMarked && config.buildWith(doc.uri) === "auto" && !plan.debug) {
             const fallback = "Build with QB64pe";
             if ((await this.showError(text, fallback)) === fallback) {
                 // The marked errors say what qb64rust lacks, not what is wrong with the program: QB64pe builds it.
