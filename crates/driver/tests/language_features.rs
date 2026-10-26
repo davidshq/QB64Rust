@@ -350,6 +350,12 @@ fn stale_index_job_skipped() {
     let texts = ["x = 1 ' SLOW\nPRINT x\n", "x = 2 ' SLOW\nPRINT x\n", "x = 3\nPRINT x\n"];
     c.open(&p, texts[0]);
     let first = c.send("textDocument/hover", Client::at(&p, texts[0], "x", 1, 0));
+    // The first job must have started, or under load the change makes it stale too and it is skipped.
+    let deadline = Instant::now() + WAIT;
+    while SLOW_RUNS.load(Ordering::SeqCst) == 0 {
+        assert!(Instant::now() < deadline, "the first index job never started");
+        std::thread::sleep(Duration::from_millis(5));
+    }
     c.change(&p, texts[1]);
     let second = c.send("textDocument/hover", Client::at(&p, texts[1], "x", 1, 0));
     c.change(&p, texts[2]);

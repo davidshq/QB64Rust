@@ -1782,13 +1782,18 @@ version,session,change,category,actions,bytes
 1,7e764f5d,,reading,7,0
 1,7e764f5d,,test runs,2,0
 1,7e764f5d,,tests and fixtures,28,9729
-1,7effc01b,,other commands,1,0
+1,7effc01b,,documents and planning,2,319
+1,7effc01b,,other commands,3,0
+1,7effc01b,,reading,1,0
+1,7effc01b,,test runs,1,0
 1,7effc01b,m5b-language-features,builds,1,0
 1,7effc01b,m5b-language-features,documents and planning,4,1396
-1,7effc01b,m5b-language-features,other commands,37,0
+1,7effc01b,m5b-language-features,other,1,0
+1,7effc01b,m5b-language-features,other commands,44,0
 1,7effc01b,m5b-language-features,product code,27,7090
-1,7effc01b,m5b-language-features,reading,9,0
-1,7effc01b,m5b-language-features,test runs,22,0
+1,7effc01b,m5b-language-features,reading,10,0
+1,7effc01b,m5b-language-features,scratch files,1,1594
+1,7effc01b,m5b-language-features,test runs,23,0
 1,7effc01b,m5b-language-features,tests and fixtures,5,4674
 1,7f45be2d,,measurement preparation,3,659
 1,7f45be2d,,measurement runs,1,0
@@ -1822,6 +1827,14 @@ version,session,change,category,actions,bytes
 1,7f7f58dd,m2-console-screenhide,scratch files,4,4064
 1,7f7f58dd,m2-console-screenhide,test runs,10,0
 1,7f7f58dd,m2-console-screenhide,tests and fixtures,11,4848
+1,809138d9,,builds,1,0
+1,809138d9,,documents and planning,10,3958
+1,809138d9,,measurement preparation,2,443
+1,809138d9,,other commands,34,0
+1,809138d9,,reading,6,0
+1,809138d9,,scratch files,1,582
+1,809138d9,,test runs,18,0
+1,809138d9,,tests and fixtures,1,446
 1,80b13948,,other commands,6,0
 1,8110b834,,measurement runs,2,0
 1,8110b834,,other commands,25,0
@@ -2563,6 +2576,7 @@ version,session,change,category,actions,bytes
 1,c6695416,m2-defxxx-common-arrays,scratch files,16,107273
 1,c6695416,m2-defxxx-common-arrays,test runs,39,0
 1,c6695416,m2-defxxx-common-arrays,tests and fixtures,37,21628
+1,c694835d,m5b-language-features,other commands,1,0
 1,c7ca2719,,documents and planning,2,694
 1,c7ca2719,,other commands,12,0
 1,c7ca2719,,product code,4,1255
@@ -2746,6 +2760,10 @@ version,session,change,category,actions,bytes
 1,d38fdce2,m3-typefields,tests and fixtures,10,8274
 1,d40d6e14,,other,1,470
 1,d40d6e14,,other commands,6,0
+1,d44deb17,,builds,2,0
+1,d44deb17,,other commands,15,0
+1,d44deb17,,reading,1,0
+1,d44deb17,,test runs,2,0
 1,d4cec1ab,,documents and planning,2,924
 1,d4cec1ab,,other commands,13,0
 1,d4cec1ab,,product code,3,1491

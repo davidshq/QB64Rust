@@ -239,7 +239,10 @@ The parity work:
 - [ ] A string and array group of differential programs (ninth review, `study\archive\30` §9): moved to
       `SOMEDAY.md`, "Other ideas", when M4 was declared done
 
-## M5. Debugger
+## M5. Debugger: done
+
+Declared done at the merge of pull request 17 (branch `m5`, user, 2026-10-26, `DECISIONS.md`): every item below
+is built, and the full set for the merge passed (`STATUS.md`).
 
 Done when: a program built in debug mode by the new compiler is debugged in VS Code by BASIC line, with
 breakpoints, stepping, pause, the call stack, the variables of every frame by BASIC name (scalars, strings,
@@ -262,14 +265,15 @@ BASIC to the editor.
 ## M5b. The editor without QB64pe
 
 What a user compares against the QB64pe IDE besides the debugger (`study\36` §5.3; `DECISIONS.md` 2026-10-25).
-Comes before M6.
+Comes before M6. Every item is built (branch `mb5`); M5b is to be declared done at its merge into `main`.
 
 - [x] A formatter that matches `-y` (left M2's exit criterion on 2026-10-09, `DECISIONS.md`): `qb64rust -y`,
       held to the format oracle `tests\format\`; the extension formats with it (`m5b-formatter`, specs
       `compiler/format`, `testing/format-oracle`)
-- [ ] The language-server features `sema`'s symbol table supports: hover (a name's type and declaration), find
+- [x] The language-server features `sema`'s symbol table supports: hover (a name's type and declaration), find
       references, rename, perhaps completion of names and built-ins; handed to the server by the driver as
-      `Check` is
+      `Check` is (`m5b-language-features`: hover, references, rename, completion and the definition of any name,
+      through a third hook of the driver; spec `editor/language-server`)
 
 ## M6. Runtime modernisation
 
