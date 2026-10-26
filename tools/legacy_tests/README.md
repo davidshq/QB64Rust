@@ -182,6 +182,13 @@ python tools\legacy_tests\run_legacy_tests.py --suite format-corpus --qb64 targe
   line endings taken as LF; when it differs, it passes only if the recording's `<name>.divergences` names a row of
   `DIVERGENCES.md`. A failure names the first line that differs. Nothing is written into `tests\format\`.
   `--jobs` applies.
+- Under the other layout settings (`m5b-format-settings`): each program `tests\format\settings.list` names is
+  also recorded and compared under each of six variants (`FORMAT_VARIANTS`), the defaults with one setting
+  changed, at `tests\format\settings\<variant>\<set>\<path>`. The folder name is the `-f:` setting itself
+  (`autoindentsize=2`), and the flags are the defaults with it in place (`format_flags`). The test is named
+  `settings/<variant>/<set>/<path>`. A listed program with no default recording fails, naming the line of the
+  list; a compare also fails on a variant not recorded yet and on a recording the list does not name.
+  `--category <set>` takes that set's variants too.
 
 ### Verification programs (`--suite verification`)
 

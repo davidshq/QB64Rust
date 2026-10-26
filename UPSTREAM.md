@@ -51,6 +51,25 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Here:** `DIVERGENCES.md` D-038, built by `m5b-formatter`: the formatter writes the number as written.
 - **Sent:** not yet.
 
+## `-y` with `AutoLayout` off can change a line it lays out
+
+- **Wrong:** with `AutoLayout` off (`-f:autolayout=0`, or the IDE's setting), a line whose layout differs from the
+  user's text by more than spacing and letter case comes out changed. `SELECT CASE x: CASE 1 + +2: PRINT " three":
+  END SELECT` is laid out `Case 1 + 2` (the sign folded), and the line written is `Select Case x: Case 1 + +2:
+  PRINT " thre"": END SELECT`: the string loses a letter and `END SELECT` goes into a string, so the program no
+  longer compiles. Found by this repo's format oracle:
+  `tests\format\settings\autolayout=0\corpus\slice\s17_signs.bas`, line 26.
+- **Where:** `source/utilities/format.bas`, `apply_layout_indent$`, the loop that walks the user's text beside the
+  laid-out one (`olay$`) to carry the keywords' case over. It skips spaces on either side and takes any other
+  difference as one character for another, so a character the layout left out puts the two out of step for the
+  rest of the line. The closing-quote case then puts a quote in place of a letter.
+- **Fix:** stop carrying at the first difference that is not spacing, letter case, `?` or a missing closing quote,
+  and keep the rest of the user's text as it is. Or keep `layout2$` whenever the result, without spaces and with
+  letters outside strings in capitals, equals neither `olay$` nor the user's text.
+- **Here:** `DIVERGENCES.md` D-039, built by `m5b-format-settings`: `crates\format\src\apply.rs` keeps QB64pe's
+  result where it is the laid-out or the user's line in that sense, and otherwise does the first of these.
+- **Sent:** not yet.
+
 ## Other candidates
 
 Bugs this project fixes in the `CONST` evaluator (built by `const-rulings`), which QB64pe might also want (not

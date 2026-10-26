@@ -338,7 +338,13 @@ impl Checker<'_> {
                 let shown = show_bytes(self.text(t.span));
                 let name = self.word(t);
                 match self.user_type_of(&name) {
-                    Some(ty) => (b, o, ty),
+                    Some(ty) => {
+                        // A use of the type, for the language server's references and rename.
+                        if let Ty::User(id) = ty {
+                            self.stmt.names.push((SymbolKind::Type(id), t.span));
+                        }
+                        (b, o, ty)
+                    }
                     // Measured: "Invalid TYPE name" (`v32_x50`).
                     None => return Err(self.error(t.span, format!("`{shown}` names no type"))),
                 }

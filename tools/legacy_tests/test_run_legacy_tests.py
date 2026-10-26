@@ -2087,3 +2087,103 @@ class FormatCorpus(unittest.TestCase):
             rlt.format_corpus_test(self.src, args, self.results, self.results, self.sets, self.format_root)
         self.assertTrue((cwd[0] / "inc" / "a.bi").is_file())
         self.assertTrue((cwd[0] / "p.bas").is_file())
+
+    # The other layout settings (m5b-format-settings, design D1).
+
+    def listed(self, text: bytes = b"# a comment\ns/g/p.bas  # what it reaches\n"):
+        (self.format_root / "settings.list").write_bytes(text)
+
+    def variant_rec(self, variant: str = "autoindentsize=2") -> Path:
+        return self.format_root / "settings" / variant / "s" / "g" / "p.bas"
+
+    def test_a_variants_flags_are_the_defaults_with_its_setting_in_place(self):
+        flags = rlt.format_flags("autoindentsize=2")
+        self.assertEqual(len(flags), len(rlt.FORMAT_DEFAULTS))
+        self.assertIn("-f:autoindentsize=2", flags)
+        self.assertNotIn("-f:autoindentsize=4", flags)
+        self.assertEqual(rlt.format_flags(), rlt.FORMAT_DEFAULTS)
+        for variant in rlt.FORMAT_VARIANTS:
+            self.assertNotEqual(rlt.format_flags(variant), rlt.FORMAT_DEFAULTS)
+        for bad in ("autoindentsize", "tabs=1", "autoindent="):
+            with self.assertRaises(ValueError):
+                rlt.format_flags(bad)
+
+    def test_the_list_gives_each_program_with_its_line(self):
+        self.listed()
+        self.assertEqual(rlt.settings_list(self.format_root / "settings.list"), {"s/g/p.bas": 2})
+        targets = rlt.format_variant_targets(self.format_root)
+        self.assertEqual(len(targets), len(rlt.FORMAT_VARIANTS))
+        self.assertIn(self.variant_rec(), targets)
+        self.assertEqual(rlt.format_variant_targets(self.format_root, "other"), [])
+
+    def test_a_variants_recordings_come_after_the_sets_and_are_not_a_set(self):
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print 1\r\n")
+        self.variant_rec().parent.mkdir(parents=True)
+        self.variant_rec().write_bytes(b"PRINT 1\r\n")
+        (self.format_root / "t").mkdir()
+        (self.format_root / "t" / "q.bas").write_bytes(b"Print 2\r\n")
+        found = rlt.format_recordings(self.format_root)
+        self.assertEqual(found, [self.rec, self.format_root / "t" / "q.bas", self.variant_rec()])
+        place = rlt.format_place(self.variant_rec(), self.sets, self.format_root)
+        self.assertEqual(place, ("autoindentsize=2", "s", Path("g") / "p.bas"))
+
+    def test_recording_a_variant_passes_its_setting_and_writes_under_its_folder(self):
+        self.listed()
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print 1\r\n")
+        r = self.run_test(self.variant_rec("keywordcapitals=1"), "qb64pe.exe", b"PRINT 1\r\n")
+        self.assertEqual((r.status, r.test, r.detail), ("PASS", "settings/keywordcapitals=1/s/g/p", "recorded"))
+        self.assertEqual(self.variant_rec("keywordcapitals=1").read_bytes(), b"PRINT 1\r\n")
+        self.assertIn("-f:keywordcapitals=1", self.calls[0])
+        self.assertNotIn("-f:keywordcapitals=0", self.calls[0])
+        self.assertEqual(self.calls[0][-3], "p.bas")
+
+    def test_a_listed_program_with_no_default_recording_fails_naming_the_line(self):
+        self.listed()
+        r = self.run_test(self.variant_rec(), "qb64pe.exe", b"Print 1\r\n")
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"))
+        self.assertIn("settings.list line 2", r.detail)
+        self.assertFalse(self.variant_rec().exists())
+        self.assertEqual(self.calls, [])
+
+    def test_a_variant_recording_the_list_does_not_name_fails(self):
+        self.listed(b"")
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print 1\r\n")
+        self.variant_rec().parent.mkdir(parents=True)
+        self.variant_rec().write_bytes(b"Print 1\r\n")
+        r = self.run_test(self.variant_rec(), "qb64rust.exe", b"Print 1\r\n")
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"))
+        self.assertIn("does not name", r.detail)
+
+    def test_a_compare_of_a_variant_not_recorded_fails(self):
+        self.listed()
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print 1\r\n")
+        r = self.run_test(self.variant_rec(), "qb64rust.exe", b"Print 1\r\n")
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"))
+        self.assertIn("not recorded", r.detail)
+
+    def test_a_compare_of_a_variant_names_it_and_the_first_line_that_differs(self):
+        self.listed()
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print 1\r\n")
+        rec = self.variant_rec("keywordcapitals=1")
+        rec.parent.mkdir(parents=True)
+        rec.write_bytes(b"PRINT 1\r\n")
+        r = self.run_test(rec, "qb64rust.exe", b"Print 1\r\n")
+        self.assertEqual((r.status, r.stage, r.test), ("FAIL", "result", "settings/keywordcapitals=1/s/g/p"))
+        self.assertIn("line 1", r.detail)
+        self.assertIn("-f:keywordcapitals=1", self.calls[0])
+
+    def test_an_unknown_variant_folder_fails(self):
+        self.listed()
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print 1\r\n")
+        rec = self.variant_rec("tabs=1")
+        rec.parent.mkdir(parents=True)
+        rec.write_bytes(b"Print 1\r\n")
+        r = self.run_test(rec, "qb64rust.exe", b"Print 1\r\n")
+        self.assertEqual((r.status, r.stage), ("FAIL", "expected"))
+        self.assertIn("not a layout setting", r.detail)

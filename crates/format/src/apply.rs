@@ -67,7 +67,17 @@ pub fn apply_layout_indent(layout: &[u8], original: &[u8], a: Apply) -> Option<V
         }
     };
     if text != olay {
-        carry_over(&mut text, &olay);
+        // QB64pe's walk keeps in step only while the layout differs from the user's text by spacing, letter case,
+        // `?` and a closing quote. Where the layout changed more (`1 + +2` laid out `1 + 2`), the walk goes out of
+        // step and can change the program (`PRINT " three"` becoming `PRINT " thre""`): then the case is carried
+        // only up to the first difference it cannot explain, and the rest is kept as written (D-039).
+        let user = text.clone();
+        carry_over(&mut text, &olay, false);
+        let key = program_key(&text);
+        if key != program_key(&olay) && key != program_key(&user) {
+            text = user;
+            carry_over(&mut text, &olay, true);
+        }
     }
     // `IF LEN(layout2$) THEN apply_layout_indent$ = indent$ + layout2$` (lines 99-101).
     if text.is_empty() {
@@ -80,8 +90,9 @@ pub fn apply_layout_indent(layout: &[u8], original: &[u8], a: Apply) -> Option<V
 
 /// Lines 65-97: walks the user's text (`layout2$`) beside the laid-out one (`olay$`), skipping spaces on either
 /// side, and carries over the letter-case changes, with the two corrections of the old IDE: a `?` where the
-/// layout has `PRINT`, and a closing quote the user left out.
-fn carry_over(text: &mut Vec<u8>, olay: &[u8]) {
+/// layout has `PRINT`, and a closing quote the user left out. With `stop_out_of_step`, the walk ends at the first
+/// difference none of these explains, where QB64pe goes on as if one character stood for the other (D-039).
+fn carry_over(text: &mut Vec<u8>, olay: &[u8], stop_out_of_step: bool) {
     // MID$ of a 1-based position, empty past the end.
     let at = |s: &[u8], i: usize| -> Option<u8> { i.checked_sub(1).and_then(|i| s.get(i).copied()) };
     let (mut lcnt, mut ocnt) = (0usize, 0usize);
@@ -133,8 +144,10 @@ fn carry_over(text: &mut Vec<u8>, olay: &[u8]) {
                 continue;
             }
             if och == Some(b'"') && llch == loch {
-                // The closing quote added.
-                text.insert(lcnt - 1, b'"');
+                // The closing quote added: `LEFT$(layout2$, lcnt - 1) + CHR$(34) + RIGHT$(layout2$, LEN(layout2$) -
+                // lcnt)` puts it in place of the character at `lcnt`, after the text when `lcnt` is past its end.
+                let end = lcnt.min(text.len());
+                text.splice((lcnt - 1).min(end)..end, *b"\"");
                 continue;
             }
             // `KW case diff`: two letters that differ only by case take the layout's.
@@ -144,10 +157,30 @@ fn carry_over(text: &mut Vec<u8>, olay: &[u8]) {
                 && l.abs_diff(o) == 32
             {
                 text[lcnt - 1] = o;
+            } else if stop_out_of_step {
+                return;
             }
             break;
         }
     }
+}
+
+/// A line's text as the program reads it, for D-039: spaces and tabs outside strings left out and letters outside
+/// strings in capitals; a string's text as it is.
+fn program_key(text: &[u8]) -> Vec<u8> {
+    let mut key = Vec::with_capacity(text.len());
+    let mut in_string = false;
+    for &c in text {
+        if c == b'"' {
+            in_string = !in_string;
+        }
+        if in_string {
+            key.push(c);
+        } else if c != b' ' && c != b'\t' {
+            key.push(c.to_ascii_uppercase());
+        }
+    }
+    key
 }
 
 #[cfg(test)]
@@ -254,5 +287,35 @@ mod tests {
             apply("Print|\"abc\"", "print \"abc", a).as_deref(),
             Some("Print \"abc\"")
         );
+    }
+
+    #[test]
+    fn a_walk_out_of_step_does_not_change_the_program() {
+        // D-039: the layout folded `+ +2` to `+ 2`, so QB64pe's walk slips by one and writes `PRINT " thre"": END
+        // SELECT` (`tests\format\settings\autolayout=0\corpus\slice\s17_signs.bas`, line 26); the case is carried up
+        // to the slip and the rest kept as written.
+        let a = Apply {
+            auto_layout: false,
+            ..ON
+        };
+        assert_eq!(
+            apply(
+                "Select|Case|x~:|Case|1|+|2~:|Print|\" three\"~:|End|Select",
+                "SELECT CASE x: CASE 1 + +2: PRINT \" three\": END SELECT",
+                a
+            )
+            .as_deref(),
+            Some("Select Case x: Case 1 + +2: PRINT \" three\": END SELECT")
+        );
+        // QB64pe's own walk, as ported, gives the recorded line.
+        let mut text = b"SELECT CASE x: CASE 1 + +2: PRINT \" three\": END SELECT".to_vec();
+        carry_over(
+            &mut text,
+            b"Select Case x: Case 1 + 2: Print \" three\": End Select",
+            false,
+        );
+        assert_eq!(text, b"Select Case x: Case 1 + +2: PRINT \" thre\"\": END SELECT");
+        // Where the walk slips but keeps the program (a tab where the layout has a space), QB64pe's result stands.
+        assert_eq!(apply("Print|x~;|y", "print\tx; y", a).as_deref(), Some("Print\tx; y"));
     }
 }

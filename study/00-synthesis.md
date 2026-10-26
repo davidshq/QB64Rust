@@ -3329,6 +3329,8 @@ as a reading of the code, not a measurement.
 | `18` | Other VS Code extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
 | `35` | Tenth review (2026-10-18): nothing astray; where the time goes in M3, and six recommendations, all answered; item 2 (the verification families as a suite) still to build |
 | `36` | M5, the debugger (2026-10-24): the toolchain ships `lldb-dap` and the emitter's `#line` directives already give the line table (measured), so the recommended path is a debug build, a symbol file and a thin DAP proxy; the eleventh review of M0–M4 and of what remains (nothing astray; an order recommended before M6); three decisions for the user |
+| `37` | M6, runtime modernisation (2026-10-26): none of the runtime's three debts shows as a failure a user meets (a million trapped errors run; the IR fixes the observable error rules), so the panel recommends M6 as "the runtime without QB64pe" (a toolchain of the project's own, libqb repaired in place through its edits) and the second backend in `SOMEDAY.md`; the twelfth review (M5, M5b); three decisions for the user |
+| `38` | Where the project stands and where it could go (2026-10-26, at the merge of `mb5`): everything planned on day one is built and nobody but the author has used it; the purpose was never written; ten options ranked under three candidate purposes; under every purpose, make it usable without QB64pe and cut the standing cost of process and tests; four decisions for the user |
 | `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 10); what each holds: `archive\README.md` |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

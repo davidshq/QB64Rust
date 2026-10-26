@@ -98,6 +98,26 @@ class FormatMembership(unittest.TestCase):
             ],
         )
 
+    def test_the_other_settings_are_counted_apart_from_the_sets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel in (
+                "corpus/g/a.bas",
+                "settings/autoindent=0/corpus/g/a.bas",
+                "settings/autoindentsize=2/corpus/g/a.bas",
+            ):
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).write_bytes(b"")
+            (root / "settings.list").write_text("# comment\ncorpus/g/a.bas  # why\n", encoding="utf-8")
+            with mock.patch.object(counts, "FORMAT", root):
+                lines = counts.format_membership()
+        self.assertEqual(lines[0], "**1** programs recorded; `known_differences.list` names 0. By set:")
+        self.assertNotIn("| `settings` |", "\n".join(lines))
+        self.assertEqual(
+            lines[-2:],
+            ["", "Under the other settings: **2** recordings of 1 listed programs, 2 variants."],
+        )
+
 
 class Results(unittest.TestCase):
     def setUp(self):

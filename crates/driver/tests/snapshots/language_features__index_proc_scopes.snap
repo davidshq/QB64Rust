@@ -1,0 +1,74 @@
+---
+source: crates/driver/tests/language_features.rs
+expression: index.dump(&fe.map)
+---
+Procedure before def 6:5 refs 19:1
+    ```qb64
+    SUB before
+    ```
+Procedure later def 21:5 refs 5:13 20:1
+    ```qb64
+    SUB later (a AS LONG)
+    ```
+Procedure f# def 30:10 refs 33:10
+    ```qb64
+    FUNCTION f# (v AS SINGLE) AS DOUBLE
+    ```
+Variable a in later def 21:12 refs 23:9 23:13
+    ```qb64
+    a AS LONG
+    ```
+    Parameter of `SUB later`.
+Variable v in f# def 30:14 refs 32:9 33:13
+    ```qb64
+    v AS SINGLE
+    ```
+    Parameter of `FUNCTION f#`.
+Variable g in before def 8:5
+    ```qb64
+    g AS SINGLE
+    ```
+    Local to `SUB before`.
+Variable h def 10:12 refs 11:5 17:1
+    ```qb64
+    h AS LONG
+    ```
+    In the main module.
+Variable m def 13:12 refs 14:5
+    ```qb64
+    m AS SINGLE
+    ```
+    In the main module.
+Variable g shared def 16:12 refs 20:7 23:5
+    ```qb64
+    g AS LONG
+    ```
+    Shared by the main module.
+Variable x def 18:1
+    ```qb64
+    x AS SINGLE
+    ```
+    In the main module.
+Variable x in later def 24:5
+    ```qb64
+    x AS SINGLE
+    ```
+    Local to `SUB later`.
+Variable k in later def 25:9 refs 27:13
+    ```qb64
+    k AS LONG
+    ```
+    Local to `SUB later`.
+Variable c in later def 26:12 refs 27:5 27:9
+    ```qb64
+    c AS LONG
+    ```
+    Static in `SUB later`.
+Variable f in f# def 32:5 refs 33:5
+    ```qb64
+    f AS DOUBLE
+    ```
+    Result of `FUNCTION f#`.
+Body before 6:1-15
+Body later 21:1-29
+Body f# 30:1-35

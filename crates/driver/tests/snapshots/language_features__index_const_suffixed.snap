@@ -1,0 +1,34 @@
+---
+source: crates/driver/tests/language_features.rs
+expression: index.dump(&fe.map)
+---
+Constant small% def 7:7 refs 8:7 8:15
+    ```qb64
+    CONST small% = 40000
+    ```
+    Constant, `INTEGER`, in the main module.
+Constant c& def 7:23 refs 8:27 8:31
+    ```qb64
+    CONST c& = 3000000000
+    ```
+    Constant, `LONG`, in the main module.
+Constant r def 7:40 refs 8:39
+    ```qb64
+    CONST r = 40000
+    ```
+    Constant, `_INTEGER64`, in the main module.
+Constant plain def 7:52 refs 8:42
+    ```qb64
+    CONST plain = 40000
+    ```
+    Constant, `_INTEGER64`, in the main module.
+Variable x& def 11:1
+    ```qb64
+    x& AS LONG
+    ```
+    In the main module.
+Variable y% def 12:1
+    ```qb64
+    y% AS INTEGER
+    ```
+    In the main module.

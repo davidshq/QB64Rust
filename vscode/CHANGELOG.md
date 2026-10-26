@@ -12,6 +12,10 @@
   is `qb64pe` or there is no `qb64rust` binary. The layout is the same as QB64pe's. New: **Format Selection**, and
   the settings `qb64rust.format.autoIndent`, `indentSize`, `indentSubs`, `autoLayout` and `keywordCase`, which
   replace QB64pe's `config.ini` (no longer read when formatting).
+- **Hover, Find All References, Rename Symbol and Completion** from the language server, answered from the new
+  compiler's whole front end; Go to Definition now covers variables, constants, types and members too. A rename
+  keeps each use's type suffix and is checked against the renamed program before it is made. Code in a `$IF`
+  branch that is not compiled is not reached.
 
 ## 0.2.0
 

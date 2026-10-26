@@ -1,15 +1,21 @@
 //! The language server, `qb64rust lsp` (OpenSpec change `m2-language-server`, spec `editor/language-server`): syntax
 //! errors as the user types, the outline, folding ranges and go to definition for procedures and labels, from the
 //! parser alone; the request `qb64rust/check`, which runs the whole front end (`extension-diagnostics`); and
-//! formatting of a document or a range as `qb64rust -y` lays it out (`m5b-formatter`). The front end after the parse
-//! and the formatter are given by the driver as [`Hooks`], so this crate depends on `syntax` and `base` only and
-//! never on `sema` (design D1 of `m2-language-server`, D2 of `extension-diagnostics`, D5 of `m5b-formatter`).
+//! formatting of a document or a range as `qb64rust -y` lays it out (`m5b-formatter`); hover, references, rename,
+//! completion and the definition of any name from the semantic index, built once per text (`m5b-language-features`).
+//! The front end after the parse, the formatter and the index are given by the driver as [`Hooks`], so this crate
+//! depends on `syntax`, `base` and the built-in table only and never on `sema` (design D1 of `m2-language-server`,
+//! D2 of `extension-diagnostics`, D5 of `m5b-formatter`, D1 of `m5b-language-features`).
 
 pub mod analysis;
+mod completion;
 pub mod definition;
 pub mod encoding;
 mod encoding_tables;
 pub mod folding;
+mod hover;
+pub mod index;
+pub mod rename;
 mod server;
 pub mod symbols;
 pub mod uri;
@@ -35,11 +41,18 @@ pub type Check = fn(&SourceMap, &ParsedProgram, Option<&Path>, &Path) -> Diagnos
 /// [`Check`].
 pub type Format = fn(&SourceMap, &ParsedProgram, Option<&Path>, &Path, &Settings) -> Result<Vec<u8>, Diagnostics>;
 
-/// The front end the driver hands the server: the check and the formatter, so that this crate needs no `sema`.
+/// The semantic index, for hover, references, rename, completion and the wider definition (OpenSpec change
+/// `m5b-language-features`, design D1): every symbol the front end resolved in the program parsed into the map, with
+/// its hover text and scope, and the first error (`qb64rust_driver::index_for_server`). The paths as for [`Check`].
+pub type Index = fn(&SourceMap, &ParsedProgram, Option<&Path>, &Path) -> index::SymbolIndex;
+
+/// The front end the driver hands the server: the check, the formatter and the index, so that this crate needs no
+/// `sema`.
 #[derive(Clone, Copy)]
 pub struct Hooks {
     pub check: Check,
     pub format: Format,
+    pub index: Index,
 }
 
 /// Runs the server over stdin and stdout until `exit`. Call it on a thread with [`qb64rust_base::STACK_SIZE`] of

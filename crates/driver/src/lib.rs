@@ -2,6 +2,7 @@
 
 pub mod build;
 pub mod cpp_errors;
+pub mod hover;
 pub mod library;
 pub mod report;
 
@@ -239,11 +240,26 @@ pub fn format_for_server(
     ))
 }
 
-/// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check and the formatter.
+/// [`check_program`] turned into the language server's semantic index (`qb64rust_lsp::Index`, design D1 of
+/// `m5b-language-features`): every symbol with its hover text and scope, and the first error. The paths as for
+/// [`check_for_server`].
+pub fn index_for_server(
+    map: &SourceMap,
+    parsed: &ParsedProgram,
+    main_path: Option<&Path>,
+    root: &Path,
+) -> qb64rust_lsp::index::SymbolIndex {
+    let (program, diagnostics) = check_program(map, parsed, main_path.map(|m| (m, root)));
+    hover::symbol_index(map, &program, &diagnostics)
+}
+
+/// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check, the formatter and
+/// the semantic index.
 pub fn server_hooks() -> qb64rust_lsp::Hooks {
     qb64rust_lsp::Hooks {
         check: check_for_server,
         format: format_for_server,
+        index: index_for_server,
     }
 }
 

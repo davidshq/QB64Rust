@@ -1705,6 +1705,9 @@ pub struct Program {
     pub libraries: Vec<Library>,
     /// Where each variable and procedure is defined and used (design D12).
     pub symbols: Symbols,
+    /// The main-module variables and arrays declared `DIM SHARED` or `COMMON SHARED`, which every procedure sees
+    /// (the language server's completion and rename, design D6 of `m5b-language-features`).
+    pub shared: std::collections::HashSet<VarId>,
     /// The program's console and window.
     pub settings: Settings,
 }

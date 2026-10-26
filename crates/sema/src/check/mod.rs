@@ -339,6 +339,7 @@ fn check_once(
         embedded: c.embedded_files(),
         error_location: c.settle_error_location(),
     };
+    c.prog.shared = std::mem::take(&mut c.dim_shared);
     (c.prog, c.diags, c.redim_found)
 }
 
@@ -1521,8 +1522,19 @@ impl Checker<'_> {
         } else if ast::ContinueStmt::cast(node).is_some() {
             self.push(node, StmtKind::Continue);
             Ok(())
-        } else if ast::DeclareStmt::cast(node).is_some() {
-            // Ignored, as by the old compiler: calls are checked against the definition (measured).
+        } else if let Some(d) = ast::DeclareStmt::cast(node) {
+            // Ignored, as by the old compiler: calls are checked against the definition (measured). Its name is a
+            // use of the procedure of that name and kind, if there is one, for the language server's references and
+            // rename (design D5 of `m5b-language-features`).
+            if let Some(h) = d.header()
+                && let (Some(kw), Some(name_tok)) = (h.keyword(), h.name())
+            {
+                let text = self.name_text(name_tok);
+                let name = show_bytes(&text[..decl::name_end(&text)].to_ascii_uppercase());
+                if let Some(p) = self.proc_as(&name, self.word(kw) == "SUB") {
+                    self.stmt.names.push((SymbolKind::Proc(p), name_tok.span));
+                }
+            }
             Ok(())
         } else if let Some(s) = ast::SharedStmt::cast(node) {
             self.shared(s)

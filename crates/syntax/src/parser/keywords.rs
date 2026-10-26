@@ -115,6 +115,11 @@ const KEYWORDS: &[&str] = &[
     "WHILE",
 ];
 
+/// Every reserved word, in capitals (the language server's completion, `m5b-language-features`).
+pub fn keywords() -> &'static [&'static str] {
+    KEYWORDS
+}
+
 /// Whether `name` (without a type suffix) is a reserved word, ASCII case ignored.
 pub fn is_keyword(name: &[u8]) -> bool {
     KEYWORDS.iter().any(|k| k.as_bytes().eq_ignore_ascii_case(name))

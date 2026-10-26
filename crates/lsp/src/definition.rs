@@ -1,7 +1,10 @@
-//! `textDocument/definition` for procedures and labels (design D4), by name over the program's trees.
+//! `textDocument/definition` for procedures and labels (design D4), by name over the program's trees; and
+//! `textDocument/references` from the semantic index (design D4 of `m5b-language-features`).
 
 use crate::analysis::Analysis;
+use crate::index::{EntryKind, Indexed};
 use crate::walk::is_expr;
+use lsp_types::Location;
 use qb64rust_base::Span;
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast::{
@@ -37,10 +40,42 @@ pub fn definition(a: &Analysis, offset: u32) -> Option<Span> {
         // `v14_on_error_sub_to_main`); `DATA` is the main module's too.
         SyntaxKind::OnErrorStmt if is(OnErrorStmt::cast(parent)?.target()) => find_label(a, None, tok),
         SyntaxKind::RestoreStmt if is(RestoreStmt::cast(parent)?.target()) => find_label(a, None, tok),
+        // A line that is a procedure's name and a colon may be a call of it (measured, `verification\v28_c_labels`;
+        // `m3-get-put-bload`): whether it is depends on the jumps of the whole program, so the semantic index answers
+        // (design D4 of `m5b-language-features`).
+        SyntaxKind::LabelDef if is(LabelDef::cast(parent)?.name()) && names_a_proc(a, tok) => None,
         SyntaxKind::LabelDef if is(LabelDef::cast(parent)?.name()) => Some(tok.span),
         SyntaxKind::LineNumber if is(LineNumber::cast(parent)?.number()) => Some(tok.span),
         _ => None,
     }
+}
+
+/// `textDocument/references` (design D4 of `m5b-language-features`): every use of the symbol at `offset` of the
+/// program's main file, with its definition when `with_def`, by file and offset. A FUNCTION and its result variable
+/// are one name, as for a rename: each lists the other's uses too, and the result variable's definition is a use.
+/// Empty on a name with no symbol.
+pub(crate) fn references(ix: &Indexed, offset: u32, with_def: bool) -> Vec<Location> {
+    let main = ix.analysis.parsed.main().file;
+    let Some((id, _)) = ix.index.entry_near(main, offset) else {
+        return Vec::new();
+    };
+    let e = &ix.index.entries[id];
+    let (mut def, mut spans) = (e.def, e.refs.clone());
+    if let Some(t) = e.twin.map(|t| &ix.index.entries[t]) {
+        // The definition is the FUNCTION's header, whichever of the two the cursor is on.
+        let (f, v) = if e.kind == EntryKind::Procedure { (e, t) } else { (t, e) };
+        def = f.def;
+        spans = f.refs.iter().copied().chain(v.uses()).collect();
+    }
+    if with_def {
+        spans.push(def);
+    }
+    spans.sort_by_key(|s| (s.file, s.start));
+    spans.dedup();
+    spans
+        .into_iter()
+        .map(|s| Location::new(ix.analysis.info(s.file).uri.clone(), ix.analysis.range(s)))
+        .collect()
 }
 
 /// The token at `offset` and the nodes from the root down to it.
@@ -90,6 +125,22 @@ fn find_proc(a: &Analysis, t: Tok) -> Option<Span> {
         if found.is_some() {
             break;
         }
+    }
+    found
+}
+
+/// Some procedure header of the program (a `SUB` or `FUNCTION`, one of a `DECLARE LIBRARY` block or a `DECLARE`) has
+/// that name.
+fn names_a_proc(a: &Analysis, t: Tok) -> bool {
+    let key = proc_key(a, t);
+    let mut found = false;
+    for tree in &a.parsed.trees {
+        visit(tree.root(), true, &mut |n| {
+            found = found
+                || ProcHeader::cast(n)
+                    .and_then(|h| h.name())
+                    .is_some_and(|name| proc_key(a, name) == key);
+        });
     }
     found
 }

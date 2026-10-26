@@ -245,6 +245,7 @@ version = "0.1.0"
 dependencies = [
  "insta",
  "lsp-server",
+ "lsp-types",
  "qb64rust-base",
  "qb64rust-builtins",
  "qb64rust-codegen-cpp",
@@ -285,6 +286,7 @@ dependencies = [
  "lsp-server",
  "lsp-types",
  "qb64rust-base",
+ "qb64rust-builtins",
  "qb64rust-syntax",
  "serde_json",
  "tempfile",

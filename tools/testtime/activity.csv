@@ -143,6 +143,15 @@ version,session,change,category,actions,bytes
 1,0753fe94,m4-checker-groups,reading,4,0
 1,0753fe94,m4-checker-groups,scratch files,2,1038
 1,0753fe94,m4-checker-groups,test runs,14,0
+1,079bf8fe,,builds,1,0
+1,079bf8fe,,documents and planning,1,574
+1,079bf8fe,,other commands,23,0
+1,079bf8fe,,scratch files,1,1814
+1,079bf8fe,,test runs,14,0
+1,079bf8fe,m5b-format-settings,documents and planning,3,1591
+1,079bf8fe,m5b-format-settings,other commands,2,0
+1,079bf8fe,m5b-format-settings,scratch files,1,1395
+1,079bf8fe,m5b-format-settings,test runs,1,0
 1,07b00272,,documents and planning,3,326
 1,07b00272,,other commands,12,0
 1,07b00272,,reading,13,0
@@ -317,6 +326,7 @@ version,session,change,category,actions,bytes
 1,1ad66ada,m2-language-server,reading,14,0
 1,1ad66ada,m2-language-server,test runs,9,0
 1,1ad66ada,m2-language-server,tests and fixtures,1,1018
+1,1b2ca5e7,,other commands,4,0
 1,1b8f1689,m2-console-screenhide,other commands,1,0
 1,1c9984e0,,reading,1,0
 1,1c9984e0,m2-console-screenhide,builds,1,0
@@ -525,6 +535,14 @@ version,session,change,category,actions,bytes
 1,2ce405fc,m3-redim-retain,tests and fixtures,13,14241
 1,2d594c56,,other commands,1,0
 1,2d594c56,m2-builtin-statements,other commands,2,0
+1,2d92bf79,,other,1,0
+1,2d92bf79,,other commands,12,0
+1,2d92bf79,m5b-format-settings,documents and planning,6,15532
+1,2d92bf79,m5b-format-settings,other commands,12,0
+1,2d92bf79,m5b-format-settings,test runs,1,0
+1,2d92bf79,m5b-language-features,documents and planning,7,28203
+1,2d92bf79,m5b-language-features,other commands,5,0
+1,2d92bf79,m5b-language-features,test runs,1,0
 1,2df6a99b,,builds,2,0
 1,2df6a99b,,other commands,35,0
 1,2df6a99b,,reading,6,0
@@ -674,6 +692,7 @@ version,session,change,category,actions,bytes
 1,3ab07bdb,m5b-formatter,scratch files,12,38506
 1,3ab07bdb,m5b-formatter,test runs,68,0
 1,3ab07bdb,m5b-formatter,tests and fixtures,67,94674
+1,3b18aa2c,m5b-formatter,other commands,1,0
 1,3b777e7a,m2-numeric-types,builds,5,0
 1,3b777e7a,m2-numeric-types,documents and planning,11,9232
 1,3b777e7a,m2-numeric-types,measurement preparation,4,735
@@ -683,6 +702,7 @@ version,session,change,category,actions,bytes
 1,3b777e7a,m2-numeric-types,scratch files,2,2211
 1,3b777e7a,m2-numeric-types,test runs,23,0
 1,3b777e7a,m2-numeric-types,tests and fixtures,24,10955
+1,3bc8ab63,,other commands,4,0
 1,3bec3600,,other commands,2,0
 1,3bec3600,,reading,1,0
 1,3bec3600,m2-console-screenhide,builds,10,0
@@ -914,6 +934,14 @@ version,session,change,category,actions,bytes
 1,46972112,m2-defxxx-common-arrays,scratch files,2,3864
 1,46972112,m2-defxxx-common-arrays,test runs,8,0
 1,46972112,m2-defxxx-common-arrays,tests and fixtures,2,1521
+1,46fc6e14,,other commands,5,0
+1,46fc6e14,,reading,2,0
+1,46fc6e14,m5b-format-settings,other commands,1,0
+1,46fc6e14,m5b-language-features,documents and planning,2,603
+1,46fc6e14,m5b-language-features,other commands,6,0
+1,46fc6e14,m5b-language-features,reading,1,0
+1,46fc6e14,m5b-language-features,test runs,3,0
+1,46fc6e14,m5b-language-features,tests and fixtures,12,1810
 1,490e3a42,m3-images-fonts-mouse,other commands,1,0
 1,4a9a821b,,other commands,1,0
 1,4a9a821b,verification-compare,documents and planning,1,152
@@ -967,6 +995,16 @@ version,session,change,category,actions,bytes
 1,4d8100fd,,other commands,4,0
 1,4d8100fd,,reading,7,0
 1,4d8100fd,,test runs,1,0
+1,4dc21318,,documents and planning,1,75
+1,4dc21318,,other commands,2,0
+1,4dc21318,,product code,3,574
+1,4dc21318,,reading,4,0
+1,4dc21318,,test runs,1,0
+1,4dc21318,,tests and fixtures,1,65
+1,4dc21318,m5b-formatter,other,1,0
+1,4dc21318,m5b-formatter,other commands,8,0
+1,4dc21318,m5b-formatter,scratch files,1,2265
+1,4dc21318,m5b-formatter,test runs,1,0
 1,4eb0be18,,documents and planning,5,16115
 1,4eb0be18,,other commands,1,0
 1,4eb0be18,,reading,3,0
@@ -1744,6 +1782,19 @@ version,session,change,category,actions,bytes
 1,7e764f5d,,reading,7,0
 1,7e764f5d,,test runs,2,0
 1,7e764f5d,,tests and fixtures,28,9729
+1,7effc01b,,documents and planning,2,319
+1,7effc01b,,other commands,3,0
+1,7effc01b,,reading,1,0
+1,7effc01b,,test runs,1,0
+1,7effc01b,m5b-language-features,builds,1,0
+1,7effc01b,m5b-language-features,documents and planning,4,1396
+1,7effc01b,m5b-language-features,other,1,0
+1,7effc01b,m5b-language-features,other commands,44,0
+1,7effc01b,m5b-language-features,product code,27,7090
+1,7effc01b,m5b-language-features,reading,10,0
+1,7effc01b,m5b-language-features,scratch files,1,1594
+1,7effc01b,m5b-language-features,test runs,23,0
+1,7effc01b,m5b-language-features,tests and fixtures,5,4674
 1,7f45be2d,,measurement preparation,3,659
 1,7f45be2d,,measurement runs,1,0
 1,7f45be2d,,other commands,13,0
@@ -1754,6 +1805,16 @@ version,session,change,category,actions,bytes
 1,7f45be2d,m2-numeric-types,documents and planning,3,1066
 1,7f45be2d,m2-numeric-types,reading,1,0
 1,7f45be2d,m2-numeric-types,test runs,1,0
+1,7f74858c,,documents and planning,1,104
+1,7f74858c,,other commands,2,0
+1,7f74858c,,reading,2,0
+1,7f74858c,,test runs,1,0
+1,7f74858c,,tests and fixtures,1,67
+1,7f74858c,m5b-format-settings,other,1,0
+1,7f74858c,m5b-format-settings,other commands,4,0
+1,7f74858c,m5b-format-settings,scratch files,1,387
+1,7f74858c,m5b-format-settings,test runs,1,0
+1,7f74858c,m5b-language-features,other commands,1,0
 1,7f7f58dd,,reading,1,0
 1,7f7f58dd,m2-console-screenhide,builds,1,0
 1,7f7f58dd,m2-console-screenhide,documents and planning,31,26186
@@ -1766,6 +1827,14 @@ version,session,change,category,actions,bytes
 1,7f7f58dd,m2-console-screenhide,scratch files,4,4064
 1,7f7f58dd,m2-console-screenhide,test runs,10,0
 1,7f7f58dd,m2-console-screenhide,tests and fixtures,11,4848
+1,809138d9,,builds,1,0
+1,809138d9,,documents and planning,10,3958
+1,809138d9,,measurement preparation,2,443
+1,809138d9,,other commands,34,0
+1,809138d9,,reading,6,0
+1,809138d9,,scratch files,1,582
+1,809138d9,,test runs,18,0
+1,809138d9,,tests and fixtures,1,446
 1,80b13948,,other commands,6,0
 1,8110b834,,measurement runs,2,0
 1,8110b834,,other commands,25,0
@@ -2213,6 +2282,16 @@ version,session,change,category,actions,bytes
 1,ae1eaed7,m3-images-fonts-mouse,test runs,18,0
 1,ae1eaed7,m3-images-fonts-mouse,tests and fixtures,16,20870
 1,aedf105f,m2-numeric-types,other commands,1,0
+1,af46eb4a,,other commands,1,0
+1,af46eb4a,m5b-format-settings,builds,1,0
+1,af46eb4a,m5b-format-settings,documents and planning,3,3572
+1,af46eb4a,m5b-format-settings,measurement runs,7,0
+1,af46eb4a,m5b-format-settings,other commands,59,0
+1,af46eb4a,m5b-format-settings,product code,8,4260
+1,af46eb4a,m5b-format-settings,reading,4,0
+1,af46eb4a,m5b-format-settings,scratch files,3,6235
+1,af46eb4a,m5b-format-settings,test runs,29,0
+1,af46eb4a,m5b-format-settings,tests and fixtures,29,30472
 1,afa5c140,,documents and planning,2,227
 1,afa5c140,,other commands,5,0
 1,afa5c140,m2-golden-corpus,documents and planning,16,10792
@@ -2412,6 +2491,7 @@ version,session,change,category,actions,bytes
 1,c043705b,m1-vscode-extension-v0,test runs,37,0
 1,c043705b,m1-vscode-extension-v0,tests and fixtures,1,2360
 1,c08e6904,test-while-building,other commands,1,0
+1,c10804bf,,other commands,1,0
 1,c144bdec,,other commands,1,0
 1,c144bdec,,reading,1,0
 1,c144bdec,m2-console-screenhide,documents and planning,5,1091
@@ -2426,6 +2506,15 @@ version,session,change,category,actions,bytes
 1,c2d05af5,m3-errorline-chr-const,reading,6,0
 1,c2d05af5,m3-errorline-chr-const,test runs,4,0
 1,c2d05af5,m3-errorline-chr-const,tests and fixtures,17,8639
+1,c2f25bec,,other commands,1,0
+1,c2f25bec,m5b-language-features,builds,10,0
+1,c2f25bec,m5b-language-features,documents and planning,19,6139
+1,c2f25bec,m5b-language-features,other,1,0
+1,c2f25bec,m5b-language-features,other commands,131,0
+1,c2f25bec,m5b-language-features,product code,100,95584
+1,c2f25bec,m5b-language-features,reading,27,0
+1,c2f25bec,m5b-language-features,test runs,48,0
+1,c2f25bec,m5b-language-features,tests and fixtures,30,34500
 1,c3c2ea20,,documents and planning,2,553
 1,c3c2ea20,,other commands,25,0
 1,c3c2ea20,,reading,12,0
@@ -2487,6 +2576,7 @@ version,session,change,category,actions,bytes
 1,c6695416,m2-defxxx-common-arrays,scratch files,16,107273
 1,c6695416,m2-defxxx-common-arrays,test runs,39,0
 1,c6695416,m2-defxxx-common-arrays,tests and fixtures,37,21628
+1,c694835d,m5b-language-features,other commands,1,0
 1,c7ca2719,,documents and planning,2,694
 1,c7ca2719,,other commands,12,0
 1,c7ca2719,,product code,4,1255
@@ -2670,6 +2760,10 @@ version,session,change,category,actions,bytes
 1,d38fdce2,m3-typefields,tests and fixtures,10,8274
 1,d40d6e14,,other,1,470
 1,d40d6e14,,other commands,6,0
+1,d44deb17,,builds,2,0
+1,d44deb17,,other commands,15,0
+1,d44deb17,,reading,1,0
+1,d44deb17,,test runs,2,0
 1,d4cec1ab,,documents and planning,2,924
 1,d4cec1ab,,other commands,13,0
 1,d4cec1ab,,product code,3,1491

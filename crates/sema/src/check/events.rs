@@ -4,7 +4,7 @@
 //! (`TIMER ON`, `KEY(1) OFF`, `STRIG(0) ON`) and `_FREETIMER` are plain built-ins of the table (`builtins.rs`).
 
 use super::{Checker, R};
-use crate::{Event, Handler, KeyForm, ProcKind, StmtKind, Ty};
+use crate::{Event, Handler, KeyForm, ProcKind, StmtKind, SymbolKind, Ty};
 use qb64rust_base::show_bytes;
 use qb64rust_syntax::SyntaxKind::Number;
 use qb64rust_syntax::ast;
@@ -122,6 +122,8 @@ impl Checker<'_> {
             let msg = format!("`{shown}` is no SUB: `ON {word}` needs `GOSUB label` or a SUB's name");
             return Err(self.error(target.span, msg));
         };
+        // A use of the SUB, for the language server's references and rename (`m5b-language-features`).
+        self.stmt.names.push((SymbolKind::Proc(proc), target.span));
         let p = &self.prog.procs[proc.0 as usize];
         if p.external.is_some() {
             let msg = format!("a SUB of a `DECLARE LIBRARY` block as an event handler: `{shown}`");
