@@ -2,10 +2,11 @@
 //! `qb64pe -y` lays it out.
 //!
 //! QB64pe has no separate formatter: each statement handler of its main pass appends the statement's text to
-//! `layout$`, and `apply_layout_indent$` turns that into the line it writes (`openspec\changes\m5b-formatter\
-//! design.md`, Context). This crate builds the same intermediate form from the tree, statement by statement
-//! (design D2): [`walk`] the lines and their indent, `stmt` the statements, `expr` the expressions, [`fmt`] the
-//! spelling of keywords and names; and [`apply`] ports the last step.
+//! `layout$`, and `apply_layout_indent$` turns that into the line it writes
+//! (`openspec\changes\archive\2026-10-25-m5b-formatter\design.md`, Context). This crate builds the same
+//! intermediate form from the tree, statement by statement (design D2): [`walk`] the lines and their indent,
+//! `stmt` the statements, `expr` the expressions, [`fmt`] the spelling of keywords and names; and [`apply`]
+//! ports the last step.
 
 pub mod apply;
 mod expr;

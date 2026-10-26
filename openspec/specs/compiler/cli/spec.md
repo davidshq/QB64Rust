@@ -14,9 +14,10 @@ optimisation as `qb64pe` does; `-f:ExtraLinkerFlags=<value>` SHALL add the value
 `qb64pe` does; `-f:StripDebugSymbols=true|false` SHALL strip or not strip the executable's symbols as `qb64pe`
 does (true, the default, strips; any other value is an error as for the other boolean settings);
 `-f:GenerateLicenseFile=true|false` SHALL, when true, write the licence file `<exe>.license.txt` beside the
-executable as `qb64pe` does, naming the licences of the parts of libqb the program links; any other setting SHALL
-be an error "setting not supported yet". Exit status SHALL be 0 when the executable was built and 1 otherwise; on
-failure no executable SHALL be left at the output path.
+executable as `qb64pe` does, naming the licences of the parts of libqb the program links; the layout settings of
+spec `compiler/format` SHALL be checked as `-y` checks them and SHALL NOT change the build, as with `qb64pe`; any
+other setting SHALL be an error "setting not supported yet". Exit status SHALL be 0 when the executable was built
+and 1 otherwise; on failure no executable SHALL be left at the output path.
 
 #### Scenario: Runner's compile line
 - **WHEN** the corpus runner runs `qb64rust -q -m -x <prog>.bas -o <prog>.exe` on a slice program
@@ -39,6 +40,10 @@ failure no executable SHALL be left at the output path.
 #### Scenario: Unknown setting
 - **WHEN** `-f:MaxCompilerProcesses=2` is given
 - **THEN** the exit status is 1 with the message that the setting is not supported yet, and no executable exists
+
+#### Scenario: A layout setting in a build
+- **WHEN** a program is built with `-f:AutoIndent=false`
+- **THEN** the executable is built as without the setting, and the exit status is 0
 
 #### Scenario: The licence file
 - **WHEN** `-f:GenerateLicenseFile=true` is given for a program that names `_INFLATE$`

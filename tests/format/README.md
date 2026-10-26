@@ -1,7 +1,7 @@
 # The format oracle
 
 The old compiler's `-y` output of real programs, which the new compiler's formatter is held to (spec
-`testing/format-oracle`; `openspec\changes\m5b-formatter\design.md` D6). Never edited by hand.
+`testing/format-oracle`; `openspec\changes\archive\2026-10-25-m5b-formatter\design.md` D6). Never edited by hand.
 
 ## What is recorded
 
