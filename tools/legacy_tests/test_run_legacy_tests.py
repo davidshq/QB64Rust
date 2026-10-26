@@ -9,7 +9,8 @@ and recording rules are pinned here. Two kinds of test:
     codes as Git Bash reports them and as press_any_key.py passes them on, the --list and
     known-failures files, what a copy of the clone leaves out);
   * corpus_test with the compiler and the program replaced by a stand-in for run_proc, so every
-    outcome of one corpus program is reached without a compiler, a clone or a C++ build.
+    outcome of one corpus program is reached without a compiler, a clone or a C++ build (and
+    addprefix_test likewise, with a scratch clone).
 Not covered here: the locks and the private copies of qb64pe (they need the clone; the full runs
 cover them), and the compile, qbasic, format and verification suites' own functions.
 """
@@ -2187,3 +2188,148 @@ class FormatCorpus(unittest.TestCase):
         r = self.run_test(rec, "qb64rust.exe", b"Print 1\r\n")
         self.assertEqual((r.status, r.stage), ("FAIL", "expected"))
         self.assertIn("not a layout setting", r.detail)
+
+
+class AddPrefix(unittest.TestCase):
+    """--suite addprefix (add_prefix_test.sh): the converter built from a scratch clone, run on a copy of the
+    case, which it rewrites in place, and the copy compared with addprefix.output."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        base = Path(self.tmp.name)
+        self.clone, self.results = base / "clone", base / "results"
+        self.results.mkdir()
+        self.bas = rlt.addprefix_sources(self.clone)[0]
+        self.bas.parent.mkdir(parents=True)
+        self.bas.write_bytes(b"' the converter\n")
+        cases = self.clone / "tests" / "converter_tests"
+        cases.mkdir(parents=True)
+        (cases / "addprefix.bas").write_bytes(b"$noprefix\nx as integer64\n")
+        (cases / "addprefix.output").write_bytes(b"'$noprefix removed here\nx as _integer64\n")
+
+    def go(
+        self, converted=b"'$noprefix removed here\nx as _integer64\n\n", compile_rc=0, run_rc=0, qb64="qb64rust.exe"
+    ):
+        calls = []
+
+        def run_proc(args, cwd, stdout_path, timeout, **_):
+            calls.append(list(args))
+            stdout_path.write_bytes(b"")
+            if "-x" in args:
+                Path(args[args.index("-o") + 1]).write_bytes(b"exe")
+                return compile_rc, False
+            # The converter moves the file to its backup and writes the converted text in its place.
+            target = Path(args[1])
+            target.rename(target.with_name("addprefix-noprefix.bas"))
+            target.write_bytes(converted)
+            return run_rc, False
+
+        args = SimpleNamespace(qb64=Path(qb64))
+        with mock.patch.object(rlt, "run_proc", run_proc):
+            r = rlt.addprefix_test(self.bas, args, self.results, self.clone)
+        return r, calls
+
+    def test_only_qb64pe_clears_and_copies_the_clones_compile_log(self):
+        temp = self.clone / "internal" / "temp"
+        temp.mkdir(parents=True)
+        log = self.results / "addprefix-compilelog.txt"
+        (temp / "compilelog.txt").write_bytes(b"a log of qb64pe")
+        for qb64, old in (("qb64rust.exe", False), ("qb64pe.exe", True)):
+            log.write_bytes(b"a log of an earlier qb64pe run")
+            with mock.patch.object(rlt, "clear_temp") as clear:
+                r, _ = self.go(qb64=qb64)
+            self.assertEqual(r.status, "PASS")
+            self.assertEqual((clear.called, log.is_file()), (old, old), qb64)
+
+    def test_a_kept_build_folder_of_an_earlier_run_is_removed(self):
+        kept = self.results / "AddPREFIX.exe.build"
+        kept.mkdir()
+        (kept / "main.cpp").write_bytes(b"")
+        r, _ = self.go()
+        self.assertEqual(r.status, "PASS")
+        self.assertFalse(kept.exists())
+
+    def test_the_converted_copy_passes_with_trailing_newlines_ignored(self):
+        r, calls = self.go()
+        self.assertEqual(r.status, "PASS")
+        self.assertEqual(calls[1], [str(self.results / "AddPREFIX.exe"), str(self.results / "addprefix.bas")])
+        # A second run finds the backup of the first and still converts a fresh copy of the case.
+        r, _ = self.go()
+        self.assertEqual(r.status, "PASS")
+        self.assertEqual((self.clone / "tests" / "converter_tests" / "addprefix.bas").read_bytes()[:9], b"$noprefix")
+
+    def test_another_text_fails(self):
+        r, _ = self.go(converted=b"x as integer64\n")
+        self.assertEqual((r.status, r.stage), ("FAIL", "result"))
+
+    def test_a_failed_build_or_run_fails(self):
+        r, calls = self.go(compile_rc=1)
+        self.assertEqual((r.status, r.stage, len(calls)), ("FAIL", "compile", 1))
+        r, _ = self.go(run_rc=1)
+        self.assertEqual((r.status, r.stage), ("FAIL", "convert"))
+
+
+class Qbasic(unittest.TestCase):
+    """--suite qbasic: one program compiled; qb64pe's compile log copied only from a qb64pe build."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        base = Path(self.tmp.name)
+        self.clone, self.results = base / "clone", base / "results"
+        self.results.mkdir()
+        self.bas = self.clone / "tests" / "qbasic_testcases" / "misc" / "p.bas"
+        self.bas.parent.mkdir(parents=True)
+        self.bas.write_bytes(b"PRINT 1\n")
+        temp = self.clone / "internal" / "temp"
+        temp.mkdir(parents=True)
+        (temp / "compilelog.txt").write_bytes(b"a log of qb64pe")
+
+    def go(self, qb64: str):
+        def run_proc(args, cwd, stdout_path, timeout, **_):
+            stdout_path.write_bytes(b"")
+            Path(args[args.index("-o") + 1]).write_bytes(b"exe")
+            return 0, False
+
+        args = SimpleNamespace(qb64=Path(qb64))
+        with mock.patch.object(rlt, "run_proc", run_proc), mock.patch.object(rlt, "clear_temp") as clear:
+            r = rlt.qbasic_test(self.bas, args, self.results, self.clone)
+        return r, clear.called
+
+    def test_only_qb64pe_clears_and_copies_the_clones_compile_log(self):
+        log = self.results / "misc-p-compilelog.txt"
+        for qb64, old in (("qb64rust.exe", False), ("qb64pe.exe", True)):
+            log.write_bytes(b"a log of an earlier qb64pe run")
+            r, cleared = self.go(qb64)
+            self.assertEqual(r.status, "PASS")
+            self.assertEqual((cleared, log.is_file()), (old, old), qb64)
+
+    def test_a_kept_build_folder_of_an_earlier_run_is_removed(self):
+        kept = self.results / "misc-p-output.exe.build"
+        kept.mkdir()
+        r, _ = self.go("qb64rust.exe")
+        self.assertEqual(r.status, "PASS")
+        self.assertFalse(kept.exists())
+
+
+class Jobs(unittest.TestCase):
+    """jobs_problem: which suites take --jobs above 1, with which compiler."""
+
+    root = Path("clone")
+    new, old = Path("qb64rust.exe"), Path("clone") / "qb64pe.exe"
+
+    def test_the_qbasic_suite_takes_jobs_with_the_new_compiler_only(self):
+        self.assertIsNone(rlt.jobs_problem(8, "qbasic", False, self.new, self.root))
+        self.assertIn("--suite qbasic", rlt.jobs_problem(8, "qbasic", False, self.old, self.root))
+
+    def test_the_other_suites_as_before(self):
+        for suite in ("corpus", "compile", "verification", "format-corpus"):
+            self.assertIsNone(rlt.jobs_problem(8, suite, False, self.new, self.root), suite)
+        self.assertIsNone(rlt.jobs_problem(8, "corpus", False, self.old, self.root))
+        self.assertIsNotNone(rlt.jobs_problem(8, "compile", False, self.old, self.root))
+        self.assertIsNotNone(rlt.jobs_problem(8, "verification", False, self.old, self.root))
+        self.assertIsNotNone(rlt.jobs_problem(8, "format", False, self.new, self.root))
+        self.assertIsNotNone(rlt.jobs_problem(8, "addprefix", False, self.new, self.root))
+        self.assertIsNotNone(rlt.jobs_problem(8, "corpus", True, self.new, self.root))
+        self.assertIsNone(rlt.jobs_problem(1, "format", True, self.old, self.root))

@@ -424,6 +424,9 @@ impl Emitter<'_> {
                 if get {
                     return format!("sub_get2({file},{position},{s},{mask});");
                 }
+                // A member's string, or an element's of a member array, is `*(qbs**)(…)`, which needs parentheses
+                // before `->`; a variable's name and an element's text keep the old compiler's text.
+                let s = if place.in_member() { format!("({s})") } else { s };
                 // Written twice, as the old compiler writes it: an element's index is evaluated twice.
                 let t = self.byte_element_temp();
                 format!("sub_put2({file},{position},byte_element((uint64){s}->chr,{s}->len,{t}),{mask});")

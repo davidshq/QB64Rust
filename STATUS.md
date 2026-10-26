@@ -61,7 +61,10 @@ push shows them (the user is not concerned with CI, working rule 9).
 ## Next
 
 1. Branch `mb5` (`m5b-format-settings`, `m5b-language-features`) goes into `main` by a pull request; the full set
-   for the merge passed on its tree (below). With it M5b is to be declared done (`ROADMAP.md`).
+   for the merge passed on its tree (below). With it M5b is to be declared done (`ROADMAP.md`). The change
+   `qbasic-testcases` (all 143 of QB64pe's qbasic programs build: addresses in procedures, `CALL ABSOLUTE`, members
+   named like keywords; the qbasic suite and the converter test in the closing set) is built and its closing runs
+   pass, in the working tree of `mb5`; it waits for the user's review, then `/opsx:archive`.
 2. M6, runtime modernisation (`ROADMAP.md`): a study first, `study\37` (what M6 is for, where it starts and where
    it stops, with the review that comes with this merge), then the user's decision on its scope.
 

@@ -1,0 +1,5 @@
+
+Name already in use (WHILE)
+Caused by (or after):
+LINE 4:WHILE AS INTEGER
+exit=1

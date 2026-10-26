@@ -189,6 +189,8 @@ version,session,change,category,actions,bytes
 1,0a09e371,m1-vscode-extension-v0,reading,6,0
 1,0a09e371,m1-vscode-extension-v0,test runs,4,0
 1,0ae27d2c,,other commands,2,0
+1,0b43fe0c,,other commands,9,0
+1,0b43fe0c,,scratch files,2,1397
 1,0b62e185,,measurement preparation,3,5638
 1,0b62e185,,measurement runs,7,0
 1,0b62e185,,other,1,0
@@ -347,6 +349,17 @@ version,session,change,category,actions,bytes
 1,1cef2c45,m4-memory-records,scratch files,2,3415
 1,1cef2c45,m4-memory-records,test runs,5,0
 1,1d0d11c8,,other commands,3,0
+1,1d19396a,,other,1,0
+1,1d19396a,,reading,1,0
+1,1d19396a,qbasic-testcases,builds,1,0
+1,1d19396a,qbasic-testcases,documents and planning,8,4946
+1,1d19396a,qbasic-testcases,measurement preparation,10,5198
+1,1d19396a,qbasic-testcases,measurement runs,7,0
+1,1d19396a,qbasic-testcases,other commands,63,0
+1,1d19396a,qbasic-testcases,product code,10,4280
+1,1d19396a,qbasic-testcases,reading,11,0
+1,1d19396a,qbasic-testcases,test runs,30,0
+1,1d19396a,qbasic-testcases,tests and fixtures,11,5994
 1,1de8b923,,other,1,0
 1,1de8b923,,other commands,29,0
 1,1de8b923,m4-builtins-param-types,builds,4,0
@@ -942,6 +955,17 @@ version,session,change,category,actions,bytes
 1,46fc6e14,m5b-language-features,reading,1,0
 1,46fc6e14,m5b-language-features,test runs,3,0
 1,46fc6e14,m5b-language-features,tests and fixtures,12,1810
+1,48da4aa3,qbasic-testcases,builds,11,0
+1,48da4aa3,qbasic-testcases,documents and planning,31,13046
+1,48da4aa3,qbasic-testcases,measurement preparation,45,25589
+1,48da4aa3,qbasic-testcases,measurement runs,7,0
+1,48da4aa3,qbasic-testcases,other,1,2691
+1,48da4aa3,qbasic-testcases,other commands,122,0
+1,48da4aa3,qbasic-testcases,product code,53,28687
+1,48da4aa3,qbasic-testcases,reading,30,0
+1,48da4aa3,qbasic-testcases,scratch files,1,938
+1,48da4aa3,qbasic-testcases,test runs,40,0
+1,48da4aa3,qbasic-testcases,tests and fixtures,22,10530
 1,490e3a42,m3-images-fonts-mouse,other commands,1,0
 1,4a9a821b,,other commands,1,0
 1,4a9a821b,verification-compare,documents and planning,1,152
@@ -1828,12 +1852,12 @@ version,session,change,category,actions,bytes
 1,7f7f58dd,m2-console-screenhide,test runs,10,0
 1,7f7f58dd,m2-console-screenhide,tests and fixtures,11,4848
 1,809138d9,,builds,1,0
-1,809138d9,,documents and planning,10,3958
+1,809138d9,,documents and planning,18,42198
 1,809138d9,,measurement preparation,2,443
-1,809138d9,,other commands,34,0
+1,809138d9,,other commands,63,0
 1,809138d9,,reading,6,0
 1,809138d9,,scratch files,1,582
-1,809138d9,,test runs,18,0
+1,809138d9,,test runs,20,0
 1,809138d9,,tests and fixtures,1,446
 1,80b13948,,other commands,6,0
 1,8110b834,,measurement runs,2,0
@@ -2530,6 +2554,11 @@ version,session,change,category,actions,bytes
 1,c411b566,m4-sub-gl,reading,1,0
 1,c411b566,m4-sub-gl,scratch files,1,1343
 1,c411b566,m4-sub-gl,test runs,1,0
+1,c45feee6,,documents and planning,2,483
+1,c45feee6,,other,2,1001
+1,c45feee6,,other commands,5,0
+1,c45feee6,,reading,9,0
+1,c45feee6,,test runs,1,0
 1,c47bc2ae,,other commands,1,0
 1,c47bc2ae,cws-whole-game,documents and planning,6,32129
 1,c47bc2ae,cws-whole-game,other commands,3,0
@@ -2576,7 +2605,8 @@ version,session,change,category,actions,bytes
 1,c6695416,m2-defxxx-common-arrays,scratch files,16,107273
 1,c6695416,m2-defxxx-common-arrays,test runs,39,0
 1,c6695416,m2-defxxx-common-arrays,tests and fixtures,37,21628
-1,c694835d,m5b-language-features,other commands,1,0
+1,c694835d,m5b-language-features,other commands,8,0
+1,c694835d,m5b-language-features,scratch files,1,2640
 1,c7ca2719,,documents and planning,2,694
 1,c7ca2719,,other commands,12,0
 1,c7ca2719,,product code,4,1255
@@ -2761,9 +2791,19 @@ version,session,change,category,actions,bytes
 1,d40d6e14,,other,1,470
 1,d40d6e14,,other commands,6,0
 1,d44deb17,,builds,2,0
-1,d44deb17,,other commands,15,0
-1,d44deb17,,reading,1,0
+1,d44deb17,,other,1,0
+1,d44deb17,,other commands,49,0
+1,d44deb17,,reading,2,0
+1,d44deb17,,scratch files,3,2545
 1,d44deb17,,test runs,2,0
+1,d44deb17,qbasic-testcases,builds,1,0
+1,d44deb17,qbasic-testcases,documents and planning,11,29836
+1,d44deb17,qbasic-testcases,other,1,0
+1,d44deb17,qbasic-testcases,other commands,65,0
+1,d44deb17,qbasic-testcases,product code,3,1173
+1,d44deb17,qbasic-testcases,reading,3,0
+1,d44deb17,qbasic-testcases,test runs,17,0
+1,d44deb17,qbasic-testcases,tests and fixtures,23,8379
 1,d4cec1ab,,documents and planning,2,924
 1,d4cec1ab,,other commands,13,0
 1,d4cec1ab,,product code,3,1491
@@ -3278,6 +3318,8 @@ version,session,change,category,actions,bytes
 1,fb04986b,m2-defxxx-common-arrays,reading,14,0
 1,fb04986b,m2-defxxx-common-arrays,test runs,4,0
 1,fb04986b,m2-defxxx-common-arrays,tests and fixtures,1,421
+1,fb5ef222,,other commands,5,0
+1,fb5ef222,,reading,1,0
 1,fb6e3f78,,reading,2,0
 1,fb6e3f78,m2-control-flow-slice,documents and planning,2,491
 1,fb6e3f78,m2-control-flow-slice,reading,1,0

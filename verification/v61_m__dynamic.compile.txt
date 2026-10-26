@@ -1,0 +1,5 @@
+
+_Static/_Dynamic require $Unstable:TypeFields
+Caused by (or after):
+LINE 4:_DYNAMIC AS INTEGER
+exit=1

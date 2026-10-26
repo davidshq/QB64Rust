@@ -1,0 +1,5 @@
+
+Name already in use (XOR)
+Caused by (or after):
+LINE 4:XOR AS INTEGER
+exit=1

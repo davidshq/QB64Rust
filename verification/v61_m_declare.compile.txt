@@ -1,0 +1,5 @@
+
+Name already in use (DECLARE)
+Caused by (or after):
+LINE 4:DECLARE AS INTEGER
+exit=1

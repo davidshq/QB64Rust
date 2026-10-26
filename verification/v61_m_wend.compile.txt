@@ -1,0 +1,5 @@
+
+Name already in use (WEND)
+Caused by (or after):
+LINE 4:WEND AS INTEGER
+exit=1

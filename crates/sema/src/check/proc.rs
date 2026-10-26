@@ -1,10 +1,11 @@
 //! Procedures: headers and parameters (pass 1), calls and their arguments, `EXIT SUB`/`FUNCTION`.
 
 use super::decl::{AsPlace, name_end};
-use super::{Checker, DimFact, Failed, R, Scope};
+use super::{CallArg, Checker, DimFact, Failed, R, Scope};
 use crate::builtins::{StmtRule, stmt_lookup};
 use crate::literal;
-use crate::{Arg, ArrayRef, Expr, ExprKind, Place, Proc, ProcId, ProcKind, Shape, StmtKind, Storage, SymbolKind, Ty};
+use crate::{AbsArg, AddressWord, Arg, ArrayRef, Expr, ExprKind, Place, Proc, ProcId, ProcKind, Shape, StmtKind};
+use crate::{Storage, SymbolKind, Ty};
 use crate::{Var, VarId};
 use qb64rust_base::{FileId, Span, show_bytes, to_u32};
 use qb64rust_builtins::template::Item;
@@ -403,6 +404,16 @@ impl Checker<'_> {
             None => self.split_name(name_tok)?,
         };
         let shown = show_bytes(self.text(name_tok.span));
+        // `CALL ABSOLUTE(…)` is the old compiler's own, also where the program has a SUB of that name (measured,
+        // `verification\v61_c9`); without parentheses the parser reported it, without `CALL` it is a call of a SUB.
+        if name == "ABSOLUTE"
+            && suffix.is_none()
+            && stmt.call_keyword().is_some()
+            && stmt.arg_list().is_some()
+            && stmt.unparsed_args().is_none()
+        {
+            return self.call_absolute(stmt);
+        }
         // libqb alone calls `SUB _GL` (design D3 of `m4-sub-gl`; `qb64pe.bas` 10863, on the path of a call of a SUB
         // the program has; measured, `verification\v59_x06`–`x08`: "Cannot call SUB _GL directly").
         // With a suffix: "Syntax error" (`x40`).
@@ -548,10 +559,11 @@ impl Checker<'_> {
                 };
                 Err(self.error(name_tok.span, msg))
             }
-            // The old compiler's own calls `CALL ABSOLUTE` and `CALL INTERRUPT[X]` (`qb64pe.bas` 10606–10687), and a
-            // name with a leading underscore, which may be a built-in the table does not hold (the `_GL…` names
-            // never come here: the arm above).
-            _ if name.starts_with('_') || matches!(name.as_str(), "ABSOLUTE" | "INTERRUPT" | "INTERRUPTX") => {
+            // The old compiler's own calls `CALL INTERRUPT[X]` (`qb64pe.bas` 10606–10687), and a name with a leading
+            // underscore, which may be a built-in the table does not hold (the `_GL…` names never come here: the arm
+            // above). `ABSOLUTE` that is no `CALL ABSOLUTE(…)` is a name like any other (measured, "Syntax error",
+            // `verification\v61_c5`, `c6`).
+            _ if name.starts_with('_') || matches!(name.as_str(), "INTERRUPT" | "INTERRUPTX") => {
                 let msg = format!("`{shown}` as a statement (no SUB of this name)");
                 Err(self.unsupported(name_tok.span, msg))
             }
@@ -563,6 +575,51 @@ impl Checker<'_> {
             }
             _ => Err(self.error(name_tok.span, format!("`{shown}` is no statement and no SUB"))),
         }
+    }
+
+    /// `CALL ABSOLUTE([argument, …] offset)` (design D3 of `qbasic-testcases`; `qb64pe.bas` 10687–10766; measured,
+    /// `verification\v61_c1`–`c4`, `c8`): each argument but the last is a variable, element or member, passed by
+    /// its `VARPTR` (which puts it in conventional memory), or a number, passed through a slot there as a `SINGLE`,
+    /// a `DOUBLE` or an `_INTEGER64`; the last is the code's offset, an `_UNSIGNED INTEGER`.
+    fn call_absolute(&mut self, stmt: ast::CallStmt) -> R<()> {
+        let node = stmt.node();
+        let nodes = self.present_args(stmt.arg_list())?;
+        let Some((&last, rest)) = nodes.split_last() else {
+            // Measured: "Expected CALL sub-name (...)" (`qb64pe.bas` 10623).
+            return Err(self.error(
+                node.span(),
+                "`CALL ABSOLUTE` needs the code's offset in its parentheses",
+            ));
+        };
+        let mut args = Vec::with_capacity(rest.len());
+        for &n in rest {
+            let e = self.expr_as(n, super::Use::Place)?;
+            let span = e.span;
+            if let ExprKind::Load(_) = e.kind {
+                args.push(AbsArg::Address(self.address_of(e, AddressWord::VarPtr, span)?));
+                continue;
+            }
+            if e.ty == Ty::Str {
+                return Err(self.error(span, "a `CALL ABSOLUTE` argument is a variable or a number"));
+            }
+            // By the type the old compiler believes the value has: `1.5!` is held as a `DOUBLE` here.
+            let to = if e.qb == Ty::F32 {
+                Ty::F32
+            } else if e.qb.is_float() {
+                Ty::F64
+            } else {
+                Ty::I64
+            };
+            let made = to_u32(self.prog.vars.len());
+            args.push(AbsArg::Value(self.store(e, to)?, made));
+        }
+        let offset = self.expr(last)?;
+        if offset.ty == Ty::Str {
+            return Err(self.error(offset.span, "the offset of `CALL ABSOLUTE` is a number"));
+        }
+        let offset = self.store(offset, Ty::U16)?;
+        self.push(node, StmtKind::CallAbsolute { args, offset });
+        Ok(())
     }
 
     pub(super) fn exit(&mut self, node: Node) -> R<()> {
@@ -612,78 +669,155 @@ impl Checker<'_> {
             .unwrap_or_default();
         let mut args = Vec::with_capacity(nodes.len());
         for (k, (&node, param)) in nodes.iter().zip(params).enumerate() {
-            let pty = self.prog.var(param).ty;
-            if self.prog.var(param).is_array() {
-                args.push(self.array_arg(node, param)?);
-                continue;
-            }
-            // To an OpenGL routine a whole array is the value it stands for, its first element (measured,
-            // `verification\v59_x30`; the old compiler's C++ passes `((int32*)(__ARRAY_LONG_V[0]))[0]`).
-            if let Some((_, t)) = self.whole_array(node).filter(|_| !gl) {
-                // Measured: "Whole array cannot be passed to a scalar SUB parameter" (`verification\v24_x147`).
-                let shown = show_bytes(self.text(t.span));
-                let msg = format!("the whole array `{shown}()` cannot be passed to a parameter that is no array");
-                return Err(self.error(node.node().span(), msg));
-            }
-            if byval.get(k).copied().unwrap_or(false) {
-                args.push(self.byval_arg(node, pty, gl, k)?);
-                continue;
-            }
-            if let Ty::User(_) = pty {
-                args.push(self.type_arg(node, pty)?);
-                continue;
-            }
-            let e = self.expr(node)?;
-            // The old compiler words a FUNCTION's "... required for function" and a SUB's "... for sub"
-            // (`verification\v44_x56`), so the two are told apart for the note after the error.
-            let of = match self.prog.proc(p).kind {
-                ProcKind::Function(_) => " of a FUNCTION",
-                ProcKind::Sub => "",
-            };
-            match (e.ty == Ty::Str, pty == Ty::Str) {
-                (true, false) => {
-                    return Err(self.error(e.span, format!("a number is required for this parameter{of}")));
-                }
-                (false, true) => {
-                    return Err(self.error(e.span, format!("a string is required for this parameter{of}")));
-                }
-                _ => {}
-            }
-            // A place of exactly the parameter's type is passed by reference: a variable, an element, a member
-            // (measured, `v18_c_byref`). In parentheses, `(n)`, it is a copy; a string variable is passed by reference
-            // even in parentheses (measured, `s08_byref`: `addbang (s$)` changes `s$`), a string element or member
-            // in parentheses was not measured.
-            let parenthesized = matches!(node, ast::Expr::Paren(_));
-            // A fixed-length string variable, element or member to a `STRING` parameter is passed by reference, also
-            // in parentheses (measured, `v21_c_fixed_args`): the procedure's stores reach it cut and padded (design D6).
-            let fixed = |t: Ty| pty == Ty::Str && matches!(t, Ty::FixedStr(_));
-            if let ExprKind::Load(place) = &e.kind
-                && let ty = self.prog.place_ty(place)
-                && (ty == pty || fixed(ty) || same_storage(ty, pty))
-            {
-                match (parenthesized, place) {
-                    (false, _) => {
-                        args.push(Arg::Ref(place.clone()));
-                        continue;
-                    }
-                    (true, Place::Var(_)) if pty == Ty::Str => {
-                        args.push(Arg::Ref(place.clone()));
-                        continue;
-                    }
-                    (true, Place::Element { .. } | Place::Member { .. }) if fixed(ty) => {
-                        args.push(Arg::Ref(place.clone()));
-                        continue;
-                    }
-                    (true, Place::Element { .. } | Place::Member { .. }) if pty == Ty::Str => {
-                        let msg = "a string element or member in parentheses as an argument";
-                        return Err(self.unsupported(e.span, msg));
-                    }
-                    (true, _) => {}
-                }
-            }
-            args.push(Arg::Temp(self.store(e, pty)?));
+            let at = args.len();
+            self.one_arg(&mut args, (p, k), node, param, gl, &byval)?;
+            self.keep_call_arg(&args[at], param, node.node().span());
         }
         Ok(args)
+    }
+
+    /// Keeps an argument that is a place for [`Checker::conventional_args`]: its variable moves to conventional
+    /// memory when the parameter is there.
+    ///
+    /// A string value's copy is not in conventional memory, as the old compiler's (`verification\v61_p7`): `SADD`
+    /// of it in the procedure is a heap address cut to 16 bits (a QB64pe behaviour to review in `SOMEDAY.md`).
+    fn keep_call_arg(&mut self, arg: &Arg, param: VarId, span: Span) {
+        let Some(root) = arg.root() else {
+            return;
+        };
+        let plain = matches!(arg, Arg::Ref(place @ Place::Var(_)) if !matches!(self.prog.place_ty(place), Ty::User(_)));
+        self.call_args.push(CallArg {
+            param,
+            root,
+            plain,
+            span,
+        });
+    }
+
+    /// After every body is checked, the arguments of the parameters in conventional memory (those a `VARPTR`,
+    /// `VARSEG`, `SADD` or `VARPTR$` names) are put there, to a fixed point: a variable, element or member passed
+    /// moves its variable, an array passed moves the array, and a `TYPE` or array parameter so moved carries the
+    /// need to its own callers (design D2 of `qbasic-testcases`; measured, `verification\v61_p1`–`p6`). A plain
+    /// scalar variable passed there, a parameter among them, is the old compiler's internal error (`v61_px1`–`px8`):
+    /// an error here. A value gets a slot of its call site when the emitter writes it ([`Arg::Temp`]).
+    pub(super) fn conventional_args(&mut self) {
+        let calls = std::mem::take(&mut self.call_args);
+        let mut reported = vec![false; calls.len()];
+        loop {
+            let mut changed = false;
+            for (i, c) in calls.iter().enumerate() {
+                if !self.prog.var(c.param).conventional || reported[i] {
+                    continue;
+                }
+                let ty = self.prog.var(c.root).ty;
+                if !c.plain && self.prog.var(c.root).conventional {
+                    continue;
+                }
+                // Each call is a statement of its own here: one error each.
+                self.stmt.stmt_error = false;
+                if c.plain {
+                    reported[i] = true;
+                    let msg = "a variable cannot be passed to a parameter whose address is taken (`VARPTR`, `VARSEG`, \
+                               `SADD`): pass a value, such as `(x)`";
+                    let _ = self.error(c.span, msg);
+                } else if crate::owns_desc(&self.prog.types, ty) || self.prog.is_mem(ty) {
+                    reported[i] = true;
+                    let msg = "a `TYPE` with a dynamic member array or a `_MEM`, passed to a parameter in conventional \
+                               memory";
+                    let _ = self.unsupported(c.span, msg);
+                } else {
+                    self.prog.vars[c.root.0 as usize].conventional = true;
+                    changed = true;
+                }
+            }
+            if !changed {
+                return;
+            }
+        }
+    }
+
+    /// Argument `k` of a call of `p` ([`Checker::args`]), pushed onto `args`.
+    fn one_arg(
+        &mut self,
+        args: &mut Vec<Arg>,
+        (p, k): (ProcId, usize),
+        node: ast::Expr,
+        param: VarId,
+        gl: bool,
+        byval: &[bool],
+    ) -> R<()> {
+        let pty = self.prog.var(param).ty;
+        if self.prog.var(param).is_array() {
+            args.push(self.array_arg(node, param)?);
+            return Ok(());
+        }
+        // To an OpenGL routine a whole array is the value it stands for, its first element (measured,
+        // `verification\v59_x30`; the old compiler's C++ passes `((int32*)(__ARRAY_LONG_V[0]))[0]`).
+        if let Some((_, t)) = self.whole_array(node).filter(|_| !gl) {
+            // Measured: "Whole array cannot be passed to a scalar SUB parameter" (`verification\v24_x147`).
+            let shown = show_bytes(self.text(t.span));
+            let msg = format!("the whole array `{shown}()` cannot be passed to a parameter that is no array");
+            return Err(self.error(node.node().span(), msg));
+        }
+        if byval.get(k).copied().unwrap_or(false) {
+            args.push(self.byval_arg(node, pty, gl, k)?);
+            return Ok(());
+        }
+        if let Ty::User(_) = pty {
+            args.push(self.type_arg(node, pty)?);
+            return Ok(());
+        }
+        let e = self.expr(node)?;
+        // The old compiler words a FUNCTION's "... required for function" and a SUB's "... for sub"
+        // (`verification\v44_x56`), so the two are told apart for the note after the error.
+        let of = match self.prog.proc(p).kind {
+            ProcKind::Function(_) => " of a FUNCTION",
+            ProcKind::Sub => "",
+        };
+        match (e.ty == Ty::Str, pty == Ty::Str) {
+            (true, false) => {
+                return Err(self.error(e.span, format!("a number is required for this parameter{of}")));
+            }
+            (false, true) => {
+                return Err(self.error(e.span, format!("a string is required for this parameter{of}")));
+            }
+            _ => {}
+        }
+        // A place of exactly the parameter's type is passed by reference: a variable, an element, a member
+        // (measured, `v18_c_byref`). In parentheses, `(n)`, it is a copy; a string variable is passed by reference
+        // even in parentheses (measured, `s08_byref`: `addbang (s$)` changes `s$`), a string element or member
+        // in parentheses was not measured.
+        let parenthesized = matches!(node, ast::Expr::Paren(_));
+        // A fixed-length string variable, element or member to a `STRING` parameter is passed by reference, also
+        // in parentheses (measured, `v21_c_fixed_args`): the procedure's stores reach it cut and padded (design D6).
+        let fixed = |t: Ty| pty == Ty::Str && matches!(t, Ty::FixedStr(_));
+        if let ExprKind::Load(place) = &e.kind
+            && let ty = self.prog.place_ty(place)
+            && (ty == pty || fixed(ty) || same_storage(ty, pty))
+        {
+            match (parenthesized, place) {
+                (false, _) => {
+                    args.push(Arg::Ref(place.clone()));
+                    return Ok(());
+                }
+                (true, Place::Var(_)) if pty == Ty::Str => {
+                    args.push(Arg::Ref(place.clone()));
+                    return Ok(());
+                }
+                (true, Place::Element { .. } | Place::Member { .. }) if fixed(ty) => {
+                    args.push(Arg::Ref(place.clone()));
+                    return Ok(());
+                }
+                (true, Place::Element { .. } | Place::Member { .. }) if pty == Ty::Str => {
+                    let msg = "a string element or member in parentheses as an argument";
+                    return Err(self.unsupported(e.span, msg));
+                }
+                (true, _) => {}
+            }
+        }
+        let made = to_u32(self.prog.vars.len());
+        args.push(Arg::Temp(self.store(e, pty)?, made));
+        Ok(())
     }
 
     /// The argument for a `BYVAL` parameter of a library procedure, of type `pty` (design D1 of

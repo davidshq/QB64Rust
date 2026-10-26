@@ -1,0 +1,5 @@
+
+Name already in use (LOCK)
+Caused by (or after):
+LINE 4:LOCK AS INTEGER
+exit=1

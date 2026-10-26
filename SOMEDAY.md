@@ -53,8 +53,7 @@ the new one still marks "not supported yet", and what is compiled but checked by
 | Form | Why it waits | Details |
 |---|---|---|
 | Graphics `GET` and `PUT` of a `TYPE` that holds a `STRING`, and `VARPTR`, `VARSEG`, `SADD` and `VARPTR$` of a `TYPE` that owns a dynamic member array or of a `_MEM` | `GET` writes over the string pointers; the others were not measured. A `TYPE` that holds a `STRING` is in conventional memory since `m4-left-marked`, its strings made where the old compiler's program crashes (`DIVERGENCES.md` D-037) | `verification\v56_d`; `tests\frontend\sadd_varptr_str_errors.bas` |
-| `VARPTR` and `VARSEG` of an array of a SUB or FUNCTION (`DIM` or `STATIC` there) and of an array parameter | A local array starts with flag 4 and is allocated per call from conventional memory; a parameter named so makes the callers' arguments conventional (`qb64pe.bas` 12081, 12810), a fact carried through calls. The text is the same as for an array of the main module | Same |
-| `VARPTR` and `VARSEG` of a whole array `x()` that is not of numbers, `VARSEG` of a `_BIT` array, `VARPTR` of a member of a fixed-length string or `TYPE` type, `VARPTR$` of a member of an element or of a member array's element | Not measured by `verification\v56` (the measured forms compile since `m4-memory-records`) | `tests\frontend\sadd_varptr_str_errors.bas` |
+| `VARPTR` and `VARSEG` of a whole array `x()` that is not of numbers, `VARSEG` of a `_BIT` array, `VARPTR` of a member of a `TYPE` type, `VARPTR$` of a member of an element or of a member array's element | Not measured by `verification\v56` (the measured forms compile since `m4-memory-records`; those of a procedure and a fixed-length string member since `qbasic-testcases`, `v61`) | `tests\frontend\sadd_varptr_str_errors.bas` |
 | In the array's place of graphics `GET` and `PUT`: an array of `_BIT` | Not measured; every other place compiles since `m4-memory-records` (design D5) | `tests\frontend\m3_step2_marked.bas` |
 | An index that calls a FUNCTION in the array of `GET` or `PUT` (`GET (1, 2)-(3, 4), a(f(1))`) | The old compiler writes the index twice, so the FUNCTION runs twice; writing that the same way needs a second evaluation the emitter does not have | Read from the C++ (`study\00` §5) |
 | The file forms `GET #n, …` and `PUT #n, …` | Step 4 of M3's order (random and binary files) | The mark is ` `GET` on a file ` |
@@ -246,7 +245,7 @@ found for each):
 | Form | Why it waits | Details |
 |---|---|---|
 | The whole array `x()` of a name that is no array as a place (`x() = 1`, `READ x()`), `_MEM(x())` of such a name, a SUB written with a type suffix (`s$ 1` beside a `SUB s`), a function of the auto-included files as a place (`_ENCODEURL$(1) = "a"`), `STATIC a()` beside a shared array, `STATIC a(5, 5)` beside a shared array of one dimension, `STATIC v(n)` with a bound not known when compiling beside a shared array | Not measured | `check\places.rs`, `check\proc.rs` |
-| A statement named with one leading underscore that the table does not hold (not one starting `_GL`: the OpenGL table holds every such name since `m4-sub-gl`), and `CALL ABSOLUTE`, `CALL INTERRUPT[X]` | The old compiler reads them by its own lists (`qb64pe.bas` 10606–10687); without them a name that is no SUB would be a false error on the qbasic test programs | `check\proc.rs`, the call statement |
+| A statement named with one leading underscore that the table does not hold (not one starting `_GL`: the OpenGL table holds every such name since `m4-sub-gl`), and `CALL INTERRUPT[X]` (`CALL ABSOLUTE` compiles since `qbasic-testcases`) | The old compiler reads them by its own lists (`qb64pe.bas` 10606–10687); no program of the corpus or the qbasic tests needs them | `check\proc.rs`, the call statement |
 
 **Left marked by `m4-memory-records`** (2026-10-23: memory and record forms; what `verification\v56` found for
 each):
@@ -254,6 +253,13 @@ each):
 | Form | Why it waits | Details |
 |---|---|---|
 | A `TYPE` whose member array bounds name a `CONST`, used above its block by `LEN` or a `REDIM` of the member (`DIM e AS late: PRINT LEN(e)` above `TYPE late`) | Its layout is read when pass 2 reaches the block | `tests\frontend\memory_records_errors.bas`; design D7 |
+
+**Left open by `qbasic-testcases`** (2026-10-26: addresses of a procedure's variables and parameters, `TYPE`
+members named like keywords, `CALL ABSOLUTE`). Compiled, not measured:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A `_BIT` scalar of the main module in a program whose only use of `dblock` is a slot `passN` (a value to `CALL ABSOLUTE`, or to a parameter whose address is taken): compiled, the `_BIT` scalar left out of `dblock` | Not measured; the old compiler probably puts it there (`qb64pe.bas` 18215), which would move the slot 4 bytes down. The emitter's test counts variables only, and slots are made while bodies are written, so a fix needs the slots known from `sema` or `ir`. Found in the review of the change; no program known needs it | `crates\codegen-cpp\src\cmem.rs` (`uses_dblock`) |
 
 Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
 measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
@@ -406,6 +412,9 @@ here, implemented QB64pe's way, for the user to review later. Changing one is a 
 | `VARSEG` of any variable, of a member of one and of an element of an array of strings is 80, the segment of libqb's `dblock`, whatever the variable | The segment where each lies | `m4-memory-records` (`verification\v56_a1`–`a3`) |
 | Every `_BIT` scalar of the main module lies in conventional memory and takes 4 bytes there, which moves the offsets of the variables after it (here only when the program has another variable there) | Leave `_BIT` scalars out of `dblock` | `m4-memory-records` (`verification\v56_a3`, `x06`) |
 | `VARPTR$` of a member gives the offset of its variable, not the member's; of a fixed-length string the offset of its descriptor, where `VARPTR` gives its characters' | The member's and the characters' offsets | `m4-memory-records` (`verification\v56_t05`, `b4`) |
+| `VARPTR` of a place in a `TYPE` parameter is its offset from `dblock` cut to 16 bits, also when the argument lies in an array outside `dblock`, where `VARSEG` of it is the nearest segment of where it lies: for an element of a `TYPE` array the two disagree and a `POKE` through them misses (the old compiler finds the parameter by the place's offset, not its id, `qb64pe.bas` 21464) | `varptr_dblock_check`, as for a scalar parameter | `qbasic-testcases` (`verification\v61_p9`, `v61_p1`) |
+| `VARPTR$` of a numeric parameter is its offset from `dblock` cut to 16 bits, also when the argument lies in an array outside `dblock` | The offset `VARPTR` gives, with its segment | `qbasic-testcases` (`verification\v61_p10`) |
+| A string value passed to a parameter whose `SADD` is taken is copied outside conventional memory: `SADD` of it is a heap address cut to 16 bits, and `VARPTR` 0 | A slot in conventional memory, as a number passed so gets, or an error | `qbasic-testcases` (`verification\v61_p7`) |
 | `GET #1, , und$()` of a name that is no array makes the array and reads into its first element as a string, where a declared array of strings is an error (and `PUT` of `und$()` too) | The error for both | `m4-memory-records` (`verification\v30_x178`, `v56_e`, `e2`) |
 | `LEN` of a whole member array of variable-length strings is 8 bytes an element (the pointers), where `LEN` of a whole array of strings and of a `TYPE` that holds one is an error | The error | `m4-memory-records` (`verification\v48_x30`, `v56_g1`) |
 | `STRING * n` with a float `CONST` takes it rounded half to even (2.5 is 2, 3.5 is 4), where a float literal is an error | The error | `m4-memory-records` (`verification\v56_x14`, `x29`) |

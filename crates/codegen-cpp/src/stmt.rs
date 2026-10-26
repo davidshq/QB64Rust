@@ -231,6 +231,21 @@ impl Emitter<'_> {
                 out.push("if (!next_return_point){qbr_diverged_on(3);error(3);} else next_return_point--;".into());
                 out.push(format!("goto {};", self.label_name(*l)));
             }
+            // As the old compiler writes it (`qb64pe.bas` 10687–10766; its C++ of `verification\v61_c4`): each
+            // argument's offset in `dblock`, a value's through a slot there, then the call with their number.
+            Op::CallAbsolute { args, offset } => {
+                for (i, a) in args.iter().enumerate() {
+                    let at = match a {
+                        qb64rust_ir::AbsArg::Address(e) => self.value(e),
+                        qb64rust_ir::AbsArg::Value(v, made) => {
+                            let n = self.cmem_slot(v.ty, *made);
+                            format!("(uint16)(((uint8*)&(*{n}={}))-((uint8*)dblock))", self.value(v))
+                        }
+                    };
+                    out.push(format!("call_absolute_offsets[{i}]={at};"));
+                }
+                out.push(format!("call_absolute({},{});", args.len(), self.value(offset)));
+            }
             Op::Call { proc, args } => {
                 let q = self.p.proc(*proc);
                 if q.external.is_some() {

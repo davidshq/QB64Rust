@@ -1,0 +1,5 @@
+
+Name already in use (SEG)
+Caused by (or after):
+LINE 4:SEG AS INTEGER
+exit=1

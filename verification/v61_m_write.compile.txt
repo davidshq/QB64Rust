@@ -1,0 +1,5 @@
+
+Name already in use (WRITE)
+Caused by (or after):
+LINE 4:WRITE AS INTEGER
+exit=1

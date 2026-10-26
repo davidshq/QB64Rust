@@ -128,6 +128,19 @@ def steps(nofold: bool, coverage: bool = False, layout: bool = False) -> list[St
             "runner",
             copy=True,
         ),
+        # QB64pe's add_prefix_test.sh: its $NOPREFIX converter built and run on its case (a few seconds). The
+        # converter is in the clone, so the run takes its shared lock: --wait, beside a recording with qb64pe.
+        Step(
+            "addprefix", f"{RUNNER} --suite addprefix --qb64 {EXE} --wait > {log('addprefix')} 2>&1", "runner", copy=True
+        ),
+        # QB64pe's qbasic_tests.sh: every program of tests/qbasic_testcases compiled, all of them to build
+        # (qbasic-testcases). They are read from the clone: its shared lock, --wait as above.
+        Step(
+            "qbasic",
+            f"{RUNNER} --suite qbasic --qb64 {EXE} --jobs 8 --wait > {log('qbasic')} 2>&1",
+            "runner",
+            copy=True,
+        ),
     ]
     if nofold:
         out.append(

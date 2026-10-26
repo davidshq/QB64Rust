@@ -319,6 +319,33 @@ Small programs behind `study\09`, `study\10` and later measurements:
   a `STRING` in conventional memory (offsets of members, nested and two strings, among scalars, `VARPTR$` of a
   number member; `d5` an element's string used, no crash; `d6` a variable's string used, exit 139; `d7` `VARPTR`
   of an element's `STRING` member and `d8` `VARPTR$` of a `STRING` member: the C++ build fails)
+- `v61*`: the forms QB64pe's `qbasic_testcases` need, measured as task 1.1 of `qbasic-testcases` (its `design.md`,
+  D1–D4): `a1`–`a10` `VARPTR`, `VARSEG` and `SADD` of a procedure's variables (a local allocated from the top of
+  `dblock` on each call and given back, the second call's at the same offset; a `STATIC` one, also those of `SUB …
+  STATIC`, allocated at the start after the main module's, so a later call's locals lie below it; every numeric
+  type, strings, a fixed-length string, a `TYPE` and its members, `STRING * n` members at their offset, local and
+  `STATIC` arrays, a `REDIM` there, implicit variables, recursion 2 bytes a level; `a10` the name of a FUNCTION
+  without parameters is a call there, "Expected reference to a variable/array"); `p1`–`p8` parameters whose
+  address is taken (a `TYPE` through a chain of three and from a SUB's variable, an array parameter with static,
+  dynamic, `COMMON` and a SUB's arrays, a `REDIM` of one, a scalar called with a literal, a variable in
+  parentheses and an expression, each call site a slot of its own placed among the variables in source order
+  (`p8`), an element and a member, a member of a `TYPE` parameter and an element of an array parameter passed on;
+  `VARPTR` and `VARSEG` of a scalar parameter are those of where its argument lies, an array's segment too; a
+  string expression's copy is not in conventional memory, `VARPTR` 0); `p9` `VARSEG` and `VARPTR` of an element of
+  a member array of a `TYPE` parameter, called with an element of a `TYPE` array (`VARSEG` the nearest segment,
+  4177, `VARPTR` the offset from `dblock` cut to 16 bits, 20, so a `POKE` through the two misses the element);
+  `p10` `VARPTR$` of a scalar parameter called with an array element, a member and a value (its offset taken from
+  `dblock` as for a variable, which for the element equals `VARPTR`'s only because the array's segment is 4096
+  above `dblock`'s); `px1`–`px8` a plain variable passed there (main, shared, a SUB's, a string, through a
+  parameter, implicit, a scalar parameter passed on, a fixed-length string): "UNEXPECTED INTERNAL COMPILER
+  ERROR", as is `px9`, `VARPTR` of a whole `TYPE` parameter; `c1`–`c9` `CALL ABSOLUTE` (a far return, a store through an
+  argument, a string's descriptor offset and a `SINGLE` slot, in a SUB with a literal, a `DOUBLE` and shared
+  variables and `SADD` of a `STATIC` string as offset, `INT 33h` answered by libqb, the program's own `SUB
+  ABSOLUTE` called only without `CALL`; `ABSOLUTE` without `CALL` "Syntax error", `CALL ABSOLUTE` without
+  parentheses "Expected CALL sub-name (...)"); `m_<name>` a `TYPE` member named like each name of the old
+  compiler's reserved table and some built-ins, written by `v61_members.py` (refused, "Name already in use", the
+  names with `HASHFLAG_TYPE`, `_OPERATOR`, `_CUSTOMSYNTAX` or `_XELEMENTNAME`; `AS`, `DATA`, `ELSE`, `REM` and `END`
+  with other messages; a single leading underscore "Invalid name"; every other name taken)
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

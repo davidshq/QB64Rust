@@ -582,6 +582,10 @@ impl<'a> Lowerer<'a> {
                 proc: ProcId(proc.0),
                 args: args.clone(),
             },
+            sema::StmtKind::CallAbsolute { args, offset } => Op::CallAbsolute {
+                args: args.clone(),
+                offset: offset.clone(),
+            },
             sema::StmtKind::Builtin { id, args } => Op::Builtin {
                 id: *id,
                 args: args.clone(),

@@ -1,0 +1,5 @@
+
+Name already in use (STOP)
+Caused by (or after):
+LINE 4:STOP AS INTEGER
+exit=1

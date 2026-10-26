@@ -1,0 +1,5 @@
+
+Name already in use (LPRINT)
+Caused by (or after):
+LINE 4:LPRINT AS INTEGER
+exit=1

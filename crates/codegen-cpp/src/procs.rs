@@ -107,17 +107,19 @@ impl<'a> Emitter<'a> {
             Storage::Global | Storage::Static(_) | Storage::Param(_) | Storage::Temp(_) => false,
         };
         // The result first, then locals in order of creation.
-        let mut per_call: Vec<&Var> = proc.result.iter().map(|&r| self.p.var(r)).collect();
+        let mut per_call: Vec<(usize, &Var)> = proc.result.iter().map(|&r| (r.0 as usize, self.p.var(r))).collect();
         per_call.extend(
             self.p
                 .vars
                 .iter()
-                .filter(|v| matches!(v.storage, Storage::Local(_)) && mine(v.storage)),
+                .enumerate()
+                .filter(|(_, v)| matches!(v.storage, Storage::Local(_)) && mine(v.storage)),
         );
-        for v in per_call {
+        // Each one's declaration and allocation, the slots of the body placed among them once it is written.
+        let mut allocs = Vec::new();
+        for (i, v) in per_call {
             let n = var_name(self.p, v);
-            data.push_str(&declare(v, &n));
-            data.push_str(&self.alloc(v, &n));
+            allocs.push((i, format!("{}{}", declare(v, &n), self.alloc(v, &n))));
             if v.is_array() {
                 // A local array: its block, if a statement allocated one, and the `_MEM` lock of its descriptor
                 // (the descriptor itself lies in the static pool, which the epilogue gives back).
@@ -206,6 +208,7 @@ impl<'a> Emitter<'a> {
         }
         footer.push("}".to_string());
         self.lines_in(Some(proc.end_file), proc.end_line, &footer, &mut main);
+        let mut data = self.with_slots(allocs) + &data;
         for d in std::mem::take(&mut self.pass_decls) {
             data.push_str(&d);
         }

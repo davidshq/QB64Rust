@@ -158,6 +158,7 @@ fn check_once(
         first_color: None,
         redim_locals,
         redim_found: Vec::new(),
+        call_args: Vec::new(),
     };
     c.first_color = c.first_color_line(program);
     let skips = Skips::new(program);
@@ -307,6 +308,7 @@ fn check_once(
         }
     }
     c.solve_dims();
+    c.conventional_args();
     c.run_copy_checks();
     // The program has a console by its precompiler flag too: the old compiler reads the flag, which stays set
     // when the metacommand that set it stands in a `$IF` branch the flag itself switches off (design D1 of
@@ -563,11 +565,24 @@ struct Scope {
     array_plain: HashMap<String, Ty>,
 }
 
+/// An argument that is a place, kept for [`Checker::conventional_args`].
+struct CallArg {
+    /// The parameter it is passed to.
+    param: VarId,
+    /// The variable or array the place is part of.
+    root: VarId,
+    /// A plain variable that is not of a user type (not an element, not a member).
+    plain: bool,
+    span: Span,
+}
+
 struct Checker<'a> {
     /// The procedures' arrays of a `REDIM` that a first check found ([`check_with`]), made where each procedure
     /// starts, and those this check finds.
     redim_locals: Vec<RedimLocal>,
     redim_found: Vec<RedimLocal>,
+    /// The arguments of every call that are places ([`Checker::conventional_args`]).
+    call_args: Vec<CallArg>,
     map: &'a SourceMap,
     /// Every tree, for the included ones ([`Checker::expand`]).
     program: &'a ParsedProgram,

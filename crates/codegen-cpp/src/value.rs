@@ -28,8 +28,14 @@ impl Emitter<'_> {
                     format!("({}*)({r})", c_type(to))
                 }
             }
-            Arg::Temp(v) if is_qbs(v.ty) => self.value(v),
-            Arg::Temp(v) => {
+            Arg::Temp(v, _) if is_qbs(v.ty) => self.value(v),
+            // To a parameter in conventional memory: a slot there, as the old compiler's `passN` (design D2 of
+            // `qbasic-testcases`; its C++ of `verification\v61_p4`).
+            Arg::Temp(v, made) if self.p.var(param).conventional => {
+                let n = self.cmem_slot(v.ty, *made);
+                format!("&(*{n}={})", self.value(v))
+            }
+            Arg::Temp(v, _) => {
                 self.pass += 1;
                 let n = format!("pass{}", self.pass);
                 self.pass_decls.push(format!("{} {n};\n", c_type(v.ty)));

@@ -1,0 +1,5 @@
+
+Name already in use (EQV)
+Caused by (or after):
+LINE 4:EQV AS INTEGER
+exit=1

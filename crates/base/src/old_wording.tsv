@@ -134,6 +134,7 @@
 `RANDOMIZE` needs a number	Number required for sub
 `READ` needs a variable here	Expected variable
 `REDIM SHARED` cannot stand inside a SUB or FUNCTION	DIM/REDIM SHARED invalid within a SUB/FUNCTION
+`REM` is not a member of `{}` (`{}`)	Syntax error
 `RETURN` with a label or line number is not allowed in a SUB or FUNCTION	RETURN linelabel/linenumber invalid within a SUB/FUNCTION
 `RMDIR` takes {#} argument	Syntax error - Reference: RMDIR path$
 `RND` needs a number	Number required for function
@@ -576,6 +577,7 @@ a `REDIM` takes one of `{}` and `{}`	Invalid variable name
 a `STRING` cannot be passed `{}`	STRINGs cannot be passed using {1:=|U|P|PU|S|SU}
 a `TYPE` member cannot be a `_BIT`	Cannot use _BIT inside user defined types
 a `TYPE` member cannot have a type suffix: `{}`	Invalid name
+a `TYPE` member cannot start with one `_`: `{}`	Invalid name
 a `TYPE` variable takes only a value of its `TYPE`	Expected = similar user defined type
 a `{}` parameter of `{}` takes no value (a user type is passed by reference)	User defined types in expressions are invalid
 a `{}` value in `COMMON`: a `TYPE` with a dynamic member array cannot be passed on	_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
@@ -668,6 +670,7 @@ expected `OPTION BASE`, `OPTION _EXPLICIT` or `OPTION _EXPLICITARRAY`	Expected O
 expected `{}` or `{}` after `OPTION BASE`	Expected OPTION BASE {1:=|U|P|PU|S|SU} or {2:=|U|P|PU|S|SU}
 expected `{}`, the parentheses around all that follows	Expected CALL sub-name (...)
 expected a field (`{}` or `{}`) or `END TYPE`	Expected element-{1:=|P|S}, AS type element-list, or END TYPE
+expected a field name	_Static/_Dynamic require $Unstable:TypeFields
 expected a name after `{}`	Expected (
 expected a statement	Unexpected character on line
 expected a value after `^`, not `_NEGATE`	Expected variable/value after '^'
@@ -807,6 +810,7 @@ the static array `{}` is already declared	Cannot redefine {1:=|P|S} static array
 the text of `{}` must be a string	Illegal string-number conversion
 the third argument of `_MEMGET` is a type name	Invalid TYPE name
 the two parts of `_IIF` must be both strings or both numbers	falsePart and truePart must be of the same type
+the type `AS` of a member list is no type	Expected element-name AS type, AS type element-list, or END TYPE
 the type `{}` of `{}` is no type	Cannot convert type ({1:=|U|P|PU|S|SU}) to symbol
 the type `{}` of a `SHARED` name is no type	Cannot convert type ({1:=|U|P|PU|S|SU}) to symbol
 the type `{}` of a member list is no type	Expected element-name AS type, AS type element-list, or END TYPE

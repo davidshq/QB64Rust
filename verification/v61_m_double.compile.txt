@@ -1,0 +1,5 @@
+
+Name already in use (DOUBLE)
+Caused by (or after):
+LINE 4:DOUBLE AS INTEGER
+exit=1

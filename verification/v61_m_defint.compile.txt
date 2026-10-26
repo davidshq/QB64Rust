@@ -1,0 +1,5 @@
+
+Name already in use (DEFINT)
+Caused by (or after):
+LINE 4:DEFINT AS INTEGER
+exit=1

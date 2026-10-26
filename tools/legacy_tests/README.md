@@ -1,18 +1,25 @@
 # Legacy test runner
 
 `run_legacy_tests.py` runs the QB64pe test suites on Windows without bash. It re-implements
-`tests/compile_tests.sh`, `tests/qbasic_tests.sh` and `tests/format_tests.sh` from the reference clone
-(`..\..\..\QB64pe`). It drives any compiler that accepts the qb64pe command line, so it measures the old
+`tests/compile_tests.sh`, `tests/qbasic_tests.sh`, `tests/format_tests.sh` and `tests/add_prefix_test.sh` from the
+reference clone (`..\..\..\QB64pe`). It drives any compiler that accepts the qb64pe command line, so it measures the old
 compiler now and the new one later.
 
 ```
 python tools\legacy_tests\run_legacy_tests.py                          # compile_tests, old compiler
 python tools\legacy_tests\run_legacy_tests.py --suite format           # format_tests (-y), about 10 s
-python tools\legacy_tests\run_legacy_tests.py --suite all              # compile + qbasic (compile only) + format + corpus
+python tools\legacy_tests\run_legacy_tests.py --suite addprefix        # the $NOPREFIX converter built and run, a few s
+python tools\legacy_tests\run_legacy_tests.py --suite all              # compile + qbasic (compile only) + format + addprefix + corpus
 python tools\legacy_tests\run_legacy_tests.py --category print         # one category
 python tools\legacy_tests\run_legacy_tests.py --qb64 path\to\new.exe   # another compiler
 python tools\legacy_tests\run_legacy_tests.py --suite corpus           # golden corpus (tests\corpus of this repo)
 ```
+
+The qbasic suite (`--suite qbasic`) compiles each program of the clone's `tests\qbasic_testcases` from the clone's
+root and never runs it; it passes when the compile succeeds, as `qbasic_tests.sh` judges it. With `qb64rust` it
+takes `--jobs` (each program builds in a folder of its own beside its executable in the results folder; qb64pe
+builds in the clone's `internal\temp`, one at a time). Every program must pass, so the suite has no pass list; it is
+in the closing set and the set at a merge (`tools\close\close.py`, step `qbasic`; `qbasic-testcases`).
 
 ### Golden corpus (`--suite corpus`)
 
@@ -151,7 +158,17 @@ python -m unittest discover -s tools/legacy_tests -p "test_*.py"
 
 **A change to one of these rules comes with a change to its test** (spec `testing/golden-corpus`). Not covered: the
 locks and the private copies of `qb64pe` (they need the clone; the full runs cover them), and the functions of
-the compile, qbasic and format suites that are not shared with the corpus suite.
+the compile, qbasic and format suites that are not shared with the corpus suite. The addprefix suite's
+(`addprefix_test`) is covered, with a scratch clone.
+
+### The converter (`--suite addprefix`)
+
+QB64pe's `tests/add_prefix_test.sh`: its `$NOPREFIX` converter, `internal\support\converter\AddPREFIX.bas`, is built
+from the clone and run on a copy of `tests\converter_tests\addprefix.bas` in the results folder, which it rewrites
+in place (after moving the original to `addprefix-noprefix.bas`); the copy must equal `addprefix.output`, trailing
+newlines ignored. One program, a few seconds; nothing is copied into this repo. It is in the closing set
+(`tools\close\close.py`) and in `--suite all`. It found the first bug it ran on: `PUT` of a `STRING` member did not
+build with `qb64rust` (`tests\corpus\slice\s161_put_string_member`).
 
 ### The format oracle (`--suite format-corpus`)
 

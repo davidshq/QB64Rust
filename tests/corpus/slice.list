@@ -544,3 +544,5 @@ screen/w02_depthbuffer
 slice/s160_layout_blocks
 slice/s160_layout_procs
 slice/s160_layout_text
+# qbasic-testcases (the addprefix suite): PUT and GET of a STRING member
+slice/s161_put_string_member

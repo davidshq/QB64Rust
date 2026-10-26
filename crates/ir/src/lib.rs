@@ -112,8 +112,8 @@ pub use qb64rust_sema::builtins;
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
 /// ([`Program::vars`]).
 pub use qb64rust_sema::{
-    AddressWord, Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference, StmtArg,
-    VarId,
+    AbsArg, AddressWord, Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference,
+    StmtArg, VarId,
 };
 /// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
 /// `m2-defxxx-common-arrays`), as is what an allocation does with an array that is allocated already.
@@ -350,7 +350,7 @@ impl Facts for Arg {
     fn may_raise(&self) -> bool {
         match self {
             Arg::Ref(place) => Facts::may_raise(place),
-            Arg::Temp(v) | Arg::Value(v) => v.may_raise(),
+            Arg::Temp(v, _) | Arg::Value(v) => v.may_raise(),
             Arg::Array(array) => array.may_raise(),
             Arg::Null => false,
         }
@@ -364,7 +364,7 @@ impl Facts for Arg {
                 place.uses_strings(p)
                     || (!matches!(place, Place::Var(_)) && matches!(p.place_ty(place), Ty::FixedStr(_)))
             }
-            Arg::Temp(v) | Arg::Value(v) => v.uses_strings(p),
+            Arg::Temp(v, _) | Arg::Value(v) => v.uses_strings(p),
             Arg::Array(array) => array.indexes().iter().any(|v| v.uses_strings(p)),
             Arg::Null => false,
         }
@@ -679,6 +679,10 @@ pub enum Op {
     Stop,
     /// A SUB call; one argument per parameter. Always may raise.
     Call { proc: ProcId, args: Vec<Arg> },
+    /// `CALL ABSOLUTE` (design D3 of `qbasic-testcases`): the machine code at `offset` (`_UNSIGNED INTEGER`) in the
+    /// `DEF SEG` segment, run by libqb's emulator, with each argument's offset in `dblock` pushed ([`AbsArg`]).
+    /// Always may raise.
+    CallAbsolute { args: Vec<AbsArg>, offset: Expr },
     /// A built-in statement that is one call of the runtime (design D2 of `m2-builtin-statements`): the built-in by
     /// its table entry, which also says which form was written, and one slot per argument or choice of its template
     /// in template order ([`builtins::stmt_slots`]). The values are evaluated in order; the call is made also after
@@ -768,6 +772,7 @@ impl Op {
             Op::Clear { array } | Op::Release { array } => array.may_raise(),
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
             Op::Call { .. }
+            | Op::CallAbsolute { .. }
             | Op::Builtin { .. }
             | Op::OnEvent { .. }
             | Op::Key(_)

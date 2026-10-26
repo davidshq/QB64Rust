@@ -1,0 +1,5 @@
+
+Name already in use (GOSUB)
+Caused by (or after):
+LINE 4:GOSUB AS INTEGER
+exit=1

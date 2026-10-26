@@ -1,0 +1,5 @@
+
+Name already in use (PRINT)
+Caused by (or after):
+LINE 4:PRINT AS INTEGER
+exit=1

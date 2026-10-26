@@ -1,0 +1,5 @@
+
+Name already in use (USING)
+Caused by (or after):
+LINE 4:USING AS INTEGER
+exit=1

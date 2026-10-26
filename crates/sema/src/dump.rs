@@ -219,7 +219,7 @@ fn args(p: &Program, args: &[Arg], depth: usize, out: &mut String) {
                 writeln!(out, "{pad}ref {} : {t}", place_text(p, place)).unwrap();
                 indexes(p, place, depth + 1, out);
             }
-            Arg::Temp(e) => {
+            Arg::Temp(e, _) => {
                 writeln!(out, "{pad}temp").unwrap();
                 expr(p, e, depth + 1, out);
             }
@@ -363,6 +363,19 @@ fn stmts(p: &Program, list: &[Stmt], d: usize, out: &mut String) {
             StmtKind::Call { proc, args: a } => {
                 line(out, &format!("Call {}", p.proc(*proc).name));
                 args(p, a, d + 1, out);
+            }
+            StmtKind::CallAbsolute { args: a, offset } => {
+                line(out, "CallAbsolute");
+                for arg in a {
+                    match arg {
+                        crate::AbsArg::Address(e) => expr(p, e, d + 1, out),
+                        crate::AbsArg::Value(e, _) => {
+                            heading(out, "value");
+                            expr(p, e, d + 2, out);
+                        }
+                    }
+                }
+                expr(p, offset, d + 1, out);
             }
             StmtKind::Builtin { id, args: a } => {
                 line(out, &format!("Builtin {}", id.get().name.to_ascii_uppercase()));

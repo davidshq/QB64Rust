@@ -1,0 +1,5 @@
+
+Name already in use (FOR)
+Caused by (or after):
+LINE 4:FOR AS INTEGER
+exit=1

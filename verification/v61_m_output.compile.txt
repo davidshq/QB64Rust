@@ -1,0 +1,5 @@
+
+Name already in use (OUTPUT)
+Caused by (or after):
+LINE 4:OUTPUT AS INTEGER
+exit=1

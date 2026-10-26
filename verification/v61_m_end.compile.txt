@@ -1,0 +1,5 @@
+
+Expected END TYPE
+Caused by (or after):
+LINE 4:END AS INTEGER
+exit=1

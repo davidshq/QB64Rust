@@ -1,0 +1,5 @@
+
+Name already in use (STATIC)
+Caused by (or after):
+LINE 4:STATIC AS INTEGER
+exit=1

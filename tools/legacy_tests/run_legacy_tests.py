@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Windows-friendly runner for the QB64pe test suites.
 
-Re-implements tests/compile_tests.sh, tests/qbasic_tests.sh and tests/format_tests.sh
-from the QB64pe repository so they can run without bash. It works with any compiler
+Re-implements tests/compile_tests.sh, tests/qbasic_tests.sh, tests/format_tests.sh and
+tests/add_prefix_test.sh from the QB64pe repository so they can run without bash. It works with any compiler
 that accepts the qb64pe command line (-x, -y, -q, -m, -o, -f:...), so the same runner
 can measure the old compiler (baseline) and, later, the new one.
 
@@ -20,6 +20,10 @@ Rules followed from format_tests.sh:
   * each variant: qb64 -y -m <flags> <name>.bas -o <out>, run in the test's folder;
     must succeed, write the output, and match the expected file with all CRs
     removed and trailing newlines ignored
+Rules followed from add_prefix_test.sh (--suite addprefix):
+  * build internal/support/converter/AddPREFIX.bas, run it on a copy of
+    tests/converter_tests/addprefix.bas (it rewrites the file in place), and compare
+    the copy with addprefix.output, trailing newlines ignored
 For a compiler other than qb64pe (both the compile and the corpus suite), an .err program passes
 when the compile fails, writes no exe and the compiler's last line is its error summary with at
 least one error not marked "not supported yet" ("2 errors (1 not supported yet)"); the .err text
@@ -678,29 +682,124 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     return r
 
 
+def jobs_problem(jobs: int, suite: str, record: bool, qb64: Path, qb_root: Path) -> str | None:
+    """Why --jobs cannot be used as given, or None. Above 1 it needs a suite that compiles each program on its
+    own: the corpus and compile suites, a compare of the verification and format-corpus suites, and the qbasic
+    suite with a compiler other than qb64pe (which builds in the clone's internal/temp); never --record."""
+    if jobs <= 1:
+        return None
+    old = is_old_compiler(qb64)
+    if record or (old and suite in ("verification", "format-corpus", "qbasic")) or suite not in (
+        "corpus",
+        "compile",
+        "verification",
+        "format-corpus",
+        "qbasic",
+    ):
+        return (
+            "--jobs above 1 needs --suite corpus or compile, or a compare of --suite verification or "
+            "format-corpus, or --suite qbasic with a compiler other than qb64pe, and no --record"
+        )
+    # The compile suite's programs include files relative to the compiler's folder and some compile
+    # from the clone's root; a copy has neither.
+    if old and (suite != "corpus" or qb64 != qb_root / "qb64pe.exe"):
+        return "--jobs above 1 with qb64pe needs --suite corpus and the qb64pe.exe of --qb-root"
+    return None
+
+
+def remove_stale_exe(exe: Path) -> None:
+    """Removes an executable of an earlier run and whatever begins with its name: a folder is a build folder
+    qb64rust kept after a failed build."""
+    for stale in exe.parent.glob(glob.escape(exe.name) + "*"):
+        if stale.is_dir():
+            shutil.rmtree(stale, ignore_errors=True)
+        else:
+            stale.unlink(missing_ok=True)
+
+
 def qbasic_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
-    """Compiles one program of the qbasic suite; it passes when the compile succeeds."""
+    """Compiles one program of the qbasic suite; it passes when the compile succeeds. qb64rust builds in a
+    folder of its own beside the executable, so several programs may compile at a time (--jobs)."""
     rel = bas.relative_to(qb_root / "tests" / "qbasic_testcases").as_posix()
     r = Result("qbasic_testcases", rel, "compile-only")
     t0 = time.time()
-    clear_temp(qb_root)
+    old = is_old_compiler(args.qb64)
+    if old:
+        clear_temp(qb_root)
     key = rel.replace("/", "-")[:-4]
     exe = results / f"{key}-output.exe"
-    exe.unlink(missing_ok=True)
+    remove_stale_exe(exe)
     rc, timed_out = run_proc(
         [str(args.qb64), "-x", str(bas.relative_to(qb_root)), "-o", str(exe)],
         qb_root,
         results / f"{key}-compile_result.txt",
         COMPILE_TIMEOUT,
     )
-    copy_if_exists(
-        qb_root / "internal" / "temp" / "compilelog.txt", results / f"{key}-compilelog.txt"
-    )
+    log = results / f"{key}-compilelog.txt"
+    if old:
+        copy_if_exists(qb_root / "internal" / "temp" / "compilelog.txt", log)
+    else:
+        log.unlink(missing_ok=True)  # a log of an earlier qb64pe run
     r.seconds = round(time.time() - t0, 1)
     if timed_out or rc != 0:
         r.status, r.stage = "FAIL", "compile"
         r.detail = "timeout" if timed_out else f"exit code {rc}"
     return r
+
+
+def addprefix_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
+    """QB64pe's add_prefix_test.sh: builds the $NOPREFIX converter (internal/support/converter/AddPREFIX.bas),
+    runs it on a copy of tests/converter_tests/addprefix.bas, which it rewrites in place, and compares the copy
+    with addprefix.output, trailing newlines (and a CR before each) ignored, as the script's $(cat …) drops
+    trailing LFs."""
+    r = Result("addprefix", "AddPREFIX", "convert")
+    t0 = time.time()
+
+    def fail(stage: str, detail: str) -> Result:
+        r.status, r.stage, r.detail = "FAIL", stage, detail
+        r.seconds = round(time.time() - t0, 1)
+        return r
+
+    # Only qb64pe builds in the clone's internal/temp; another compiler's run copies no log of it.
+    old = is_old_compiler(args.qb64)
+    if old:
+        clear_temp(qb_root)
+    exe = results / "AddPREFIX.exe"
+    remove_stale_exe(exe)
+    rc, timed_out = run_proc(
+        [str(args.qb64), "-x", str(bas.relative_to(qb_root)), "-o", str(exe)],
+        qb_root,
+        results / "addprefix-compile_result.txt",
+        COMPILE_TIMEOUT,
+    )
+    log = results / "addprefix-compilelog.txt"
+    if old:
+        copy_if_exists(qb_root / "internal" / "temp" / "compilelog.txt", log)
+    else:
+        log.unlink(missing_ok=True)  # a log of an earlier qb64pe run
+    if timed_out or rc != 0:
+        return fail("compile", "timeout" if timed_out else f"exit code {rc}")
+    if not exe.exists():
+        return fail("exe exists", "no executable produced")
+    cases = qb_root / "tests" / "converter_tests"
+    converted = results / "addprefix.bas"
+    (results / "addprefix-noprefix.bas").unlink(missing_ok=True)  # the converter's backup of a run before
+    shutil.copyfile(cases / "addprefix.bas", converted)
+    rc, timed_out = run_proc(
+        [str(exe), str(converted)], qb_root, results / "addprefix-convert_result.txt", RUN_TIMEOUT
+    )
+    if timed_out or rc != 0:
+        return fail("convert", "timeout" if timed_out else f"exit code {rc}")
+    want = strip_trailing_newlines((cases / "addprefix.output").read_bytes())
+    if strip_trailing_newlines(converted.read_bytes()) != want:
+        return fail("result", "converted file differs from addprefix.output")
+    r.seconds = round(time.time() - t0, 1)
+    return r
+
+
+def addprefix_sources(qb_root: Path) -> list[Path]:
+    """The one program of the addprefix suite: the converter, built from the clone."""
+    return [qb_root / "internal" / "support" / "converter" / "AddPREFIX.bas"]
 
 
 def format_tests(bas: Path, args, results: Path, qb_root: Path) -> list[Result]:
@@ -2307,6 +2406,8 @@ def run_suite_test(
             return [compile_test(bas, args, results, qb_root, args.os_tag)]
         if suite == "format":
             return format_tests(bas, args, results, qb_root)
+        if suite == "addprefix":
+            return [addprefix_test(bas, args, results, qb_root)]
         if suite == "format-corpus":
             return [format_corpus_test(bas, args, results, qb_root)]
         if suite == "corpus":
@@ -2330,6 +2431,8 @@ def run_suite_test(
             name = ("verification", bas.stem)
         elif suite == "format-corpus":
             name = ("format_corpus", repo_relative(bas.with_suffix("")))
+        elif suite == "addprefix":
+            name = ("addprefix", "AddPREFIX")
         else:
             name = (
                 "qbasic_testcases",
@@ -2450,9 +2553,9 @@ def main() -> int:
     ap.add_argument("--qb64", type=Path, help="compiler executable (default: <qb-root>/qb64pe.exe)")
     ap.add_argument(
         "--suite",
-        choices=["compile", "qbasic", "format", "format-corpus", "corpus", "verification", "all"],
+        choices=["compile", "qbasic", "format", "addprefix", "format-corpus", "corpus", "verification", "all"],
         default="compile",
-        help="'all' is the four test suites; verification and format-corpus (each on its own) record with "
+        help="'all' is the five test suites; verification and format-corpus (each on its own) record with "
         "qb64pe and compare with any other compiler",
     )
     ap.add_argument(
@@ -2524,7 +2627,8 @@ def main() -> int:
         "--jobs",
         type=int,
         default=1,
-        help="corpus, compile and a verification compare: run this many programs at a time. With "
+        help="corpus, compile, a verification or format-corpus compare, and qbasic with a compiler other "
+        "than qb64pe: run this many programs at a time. With "
         "qb64pe: corpus "
         "only, each worker compiling with a private copy of the compiler (--copies-dir)",
     )
@@ -2593,7 +2697,7 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
-    if args.category and args.suite in ("qbasic", "verification", "all"):
+    if args.category and args.suite in ("qbasic", "addprefix", "verification", "all"):
         print(
             "--category applies to the compile, format, format-corpus and corpus suites only",
             file=sys.stderr,
@@ -2679,29 +2783,9 @@ def main() -> int:
         )
         return 2
     recording_format = args.suite == "format-corpus" and is_old_compiler(args.qb64)
-    if args.jobs > 1 and (
-        args.record
-        or recording_verification
-        or recording_format
-        or args.suite not in ("corpus", "compile", "verification", "format-corpus")
-    ):
-        print(
-            "--jobs above 1 needs --suite corpus or compile, or a compare of --suite verification or "
-            "format-corpus, and no --record",
-            file=sys.stderr,
-        )
-        return 2
-    # The compile suite's programs include files relative to the compiler's folder and some compile
-    # from the clone's root; a copy has neither.
-    if (
-        args.jobs > 1
-        and is_old_compiler(args.qb64)
-        and (args.suite != "corpus" or args.qb64 != qb_root / "qb64pe.exe")
-    ):
-        print(
-            "--jobs above 1 with qb64pe needs --suite corpus and the qb64pe.exe of --qb-root",
-            file=sys.stderr,
-        )
+    problem = jobs_problem(args.jobs, args.suite, args.record, args.qb64, qb_root)
+    if problem:
+        print(problem, file=sys.stderr)
         return 2
     args.copies = None  # set per suite below
     args.builds = SharedBuilds()
@@ -2727,7 +2811,7 @@ def main() -> int:
     corpus_root = args.corpus_root.resolve()
     # Where a verification recording keeps its copies of the release for the folders of .root sidecars.
     args.root_copies = args.results.resolve().parent / "qb64pe-root"
-    suites = ["compile", "qbasic", "format", "corpus"] if args.suite == "all" else [args.suite]
+    suites = ["compile", "qbasic", "format", "addprefix", "corpus"] if args.suite == "all" else [args.suite]
     # The tests of every suite are selected before any lock is taken: a usage error is reported at
     # once, not after waiting for another run (--wait).
     selected: list[tuple[str, Path, list[Path]]] = []  # suite, its results folder, its tests
@@ -2802,6 +2886,8 @@ def main() -> int:
             if not recording_verification:
                 # A failure of a program that tests/verification/known.list names is a known one.
                 known.update(load_known_list(VERIFICATION_LISTS / "known.list"))
+        elif suite == "addprefix":
+            tests = addprefix_sources(qb_root)
         else:
             tests = qbasic_sources(qb_root)
         if not tests and wanted is not None and not wanted:

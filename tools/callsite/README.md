@@ -122,7 +122,12 @@ program; the reason is its first diagnostic), then a summary line. No local path
   an expression is in the screen program `d08_paint`.
 - **Stores into a `_BIT` variable or a member.** The store's mask and a member's address are spelled differently
   (`&1` against `&0x1ull`, `((0+4))` against `+4`); a `READ` target in the programs is a plain variable of another
-  type.
+  type. File `PUT` and `GET` of a `STRING` member have no program for the same reason; the slice program
+  `s161_put_string_member` builds and runs them.
+- **An expression or a `SINGLE` or integer literal stored into a slot of `CALL ABSOLUTE`.** The new compiler puts
+  the value in parentheses (`*pass1=(a+b)`) or writes its type (`((float)1.5E+0)`, `2ll`), the old compiler writes
+  it bare: the same store, spelled apart. `call_absolute` passes a variable, a string, a `DOUBLE` literal and a
+  variable offset; the `SINGLE` and `_INTEGER64` slots run in `verification\v61_c3`, `c4`.
 - **The cleanup of string temporaries.** Every `qbs_cleanup(qbs_tmp_base,0);` line is dropped as frame (rule 1),
   so a statement that forgets its cleanup compares equal.
 - Anything outside the statement's own lines: declarations, the data fragment, procedures.

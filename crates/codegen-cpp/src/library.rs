@@ -360,8 +360,8 @@ impl Emitter<'_> {
                 let ty = self.p.var(param).ty;
                 match a {
                     Arg::Ref(place) if is_qbs(ty) => format!("(char*)({})->chr", self.place_ref(place)),
-                    Arg::Temp(v) if is_qbs(ty) => format!("(char*)({})->chr", self.value(v)),
-                    Arg::Ref(_) | Arg::Temp(_) | Arg::Value(_) | Arg::Null | Arg::Array(_) => self.arg(a, param),
+                    Arg::Temp(v, _) if is_qbs(ty) => format!("(char*)({})->chr", self.value(v)),
+                    Arg::Ref(_) | Arg::Temp(..) | Arg::Value(_) | Arg::Null | Arg::Array(_) => self.arg(a, param),
                 }
             })
             .collect();

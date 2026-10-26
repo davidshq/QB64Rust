@@ -1,0 +1,5 @@
+
+Name already in use (GOTO)
+Caused by (or after):
+LINE 4:GOTO AS INTEGER
+exit=1

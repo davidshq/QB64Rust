@@ -673,10 +673,12 @@ pub struct Var {
     pub ty: Ty,
     pub storage: Storage,
     pub shape: Shape,
-    /// A variable or array of the main module that a `VARPTR`, `VARSEG`, `SADD` or `VARPTR$` of the program names:
-    /// it lives in libqb's conventional memory, where `DEF SEG` with `PEEK`, `POKE`, `BLOAD` and `BSAVE` reach it
-    /// (design D4 of `m3-get-put-bload`, D1 of `m4-memory-records`). Never one of a procedure, of `_BIT` elements,
-    /// or of a user type that holds a `STRING`.
+    /// A variable or array that a `VARPTR`, `VARSEG`, `SADD` or `VARPTR$` of the program names, or that is passed to
+    /// a parameter so named: it lives in libqb's conventional memory, where `DEF SEG` with `PEEK`, `POKE`, `BLOAD`
+    /// and `BSAVE` reach it (design D4 of `m3-get-put-bload`, D1 of `m4-memory-records`, D1 and D2 of
+    /// `qbasic-testcases`). A procedure's local one is allocated there on each call. A parameter so flagged has
+    /// every argument there: the caller's variable or array, or for a value a slot of the call site
+    /// ([`Arg::Temp`]). Never one of `_BIT` elements.
     pub conventional: bool,
 }
 
@@ -759,6 +761,18 @@ pub enum Place {
 }
 
 impl Place {
+    /// Whether the place lies in a value of a user type: a member, or an element of a member array.
+    pub fn in_member(&self) -> bool {
+        matches!(
+            self,
+            Place::Member { .. }
+                | Place::Element {
+                    array: ArrayRef::Member { .. },
+                    ..
+                }
+        )
+    }
+
     /// Whether finding the place may raise an error: an element's indexes are checked, a member's base may be an
     /// element.
     pub fn may_raise(&self) -> bool {
@@ -897,8 +911,11 @@ pub enum Arg {
     /// A parameter of a user type takes nothing else: a place of exactly its type (design D9 of
     /// `m2-defxxx-common-arrays`).
     Ref(Place),
-    /// A fresh copy of a value, already converted to the parameter's type; changes to it are lost.
-    Temp(Expr),
+    /// A fresh copy of a value, already converted to the parameter's type; changes to it are lost. The number is
+    /// that of the variables made before it: to a parameter in conventional memory (a number, not a string) the
+    /// copy is a slot there, allocated once per run of the body among its variables in that order, as the old
+    /// compiler allocates its `passN` (design D2 of `qbasic-testcases`; measured, `verification\v61_p4`, `p8`).
+    Temp(Expr, u32),
     /// A whole array, to an array parameter: the procedure works on this array (design D6 of
     /// `m2-defxxx-common-arrays`). Its element type has the parameter's kind and width; signedness is not
     /// compared. A member array is passed as a static array with its member's bounds (measured,
@@ -913,6 +930,29 @@ pub enum Arg {
     /// `verification\v37_c`, `x56`–`x61`). `1 - 1` is not one (`x57`). Decided here, where the argument's text is
     /// known, not from a folded value.
     Null,
+}
+
+impl Arg {
+    /// The variable a place or array argument is, or is part of; none for a value.
+    pub fn root(&self) -> Option<VarId> {
+        match self {
+            Arg::Ref(place) => Some(place.root()),
+            Arg::Array(array) => Some(array.root()),
+            Arg::Temp(..) | Arg::Value(_) | Arg::Null => None,
+        }
+    }
+}
+
+/// An argument of `CALL ABSOLUTE`, as the old compiler passes it (`qb64pe.bas` 10687–10766; measured,
+/// `verification\v61_c2`–`c4`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum AbsArg {
+    /// A variable, element or member: its `VARPTR` ([`ExprKind::Address`]), which puts its variable in
+    /// conventional memory.
+    Address(Expr),
+    /// Any other value, converted to `SINGLE` (from `SINGLE`), `DOUBLE` (from another float) or `_INTEGER64`: its
+    /// offset in a slot in conventional memory, placed among the body's variables as [`Arg::Temp`]'s is.
+    Value(Expr, u32),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1486,6 +1526,10 @@ pub enum StmtKind {
     Stop,
     /// A SUB call; one argument per parameter.
     Call { proc: ProcId, args: Vec<Arg> },
+    /// `CALL ABSOLUTE([argument, …] offset)` (design D3 of `qbasic-testcases`): the machine code at `offset`
+    /// (`_UNSIGNED INTEGER`) in the `DEF SEG` segment, run by libqb's x86 emulator, each argument pushed as an offset
+    /// in `dblock` ([`AbsArg`]).
+    CallAbsolute { args: Vec<AbsArg>, offset: Expr },
     /// `EXIT SUB` / `EXIT FUNCTION`: leaves the procedure (either word leaves either kind, measured).
     Exit,
     /// `ON ERROR GOTO …`: sets, removes, keeps or brings back the program's error handler ([`ErrorHandler`]).
