@@ -1,0 +1,44 @@
+---
+source: crates/driver/tests/language_features.rs
+expression: index.dump(&fe.map)
+---
+Procedure t1 def 15:5 refs 8:1
+    ```qb64
+    SUB t1
+    ```
+Procedure t2 def 23:5 refs 9:1
+    ```qb64
+    SUB t2
+    ```
+Label a def 6:1 refs 5:6
+    ```qb64
+    a:
+    ```
+    Label in the main module.
+Label g def 11:1 refs 7:7
+    ```qb64
+    g:
+    ```
+    Label in the main module.
+Label h def 13:1 refs 24:19
+    ```qb64
+    h:
+    ```
+    Label in the main module.
+Label a in t1 def 17:5 refs 16:10
+    ```qb64
+    a:
+    ```
+    Label in `SUB t1`.
+Label g in t1 def 20:5 refs 18:11
+    ```qb64
+    g:
+    ```
+    Label in `SUB t1`.
+Label a in t2 def 25:5 refs 26:10
+    ```qb64
+    a:
+    ```
+    Label in `SUB t2`.
+Body t1 15:1-22
+Body t2 23:1-27

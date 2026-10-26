@@ -58,27 +58,17 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. M5, the debugger, takes Path A of `study\36` (user, 2026-10-24, `DECISIONS.md`; `ROADMAP.md` M5). Its first
-   change, `m5-debug-build-symbols` (`--debug`, the symbol file `<exe>.debug.json`, the stepping measured under
-   `lldb`), is built, closed (its closing runs pass) and archived (`2026-10-25-m5-debug-build-symbols`; spec
-   `compiler/debug-info`). Its second, `m5-dap-proxy` (the debug adapter `qb64rust dap` over the clone's
-   `lldb-dap`, through `lldb-server`; spec `editor/debug-adapter`), is built, closed (its closing runs pass) and
-   archived (`2026-10-25-m5-dap-proxy`). Its third and last, `m5-debug-launch` (the extension's debugger of type
-   `qb64rust`: F5 and "QB64: Debug" build with `--debug` and launch through `qb64rust dap`; spec
-   `editor/debug-launch`), is built, closed (its closing runs pass) and archived (`2026-10-25-m5-debug-launch`).
-   Every item of M5 is built: M5 is to be declared done with the user at the next merge into `main`.
-2. M5b, the formatter and the language-server features (user, `DECISIONS.md` 2026-10-25; `ROADMAP.md`), then M6.
-   Its first change, `m5b-formatter` (`qb64rust -y`, the format oracle `tests\format\`, formatting in the language
-   server and the extension; specs `compiler/format`, `testing/format-oracle`), is built, closed (its closing
-   runs pass) and archived (`2026-10-25-m5b-formatter`). Its second, `m5b-format-settings` (the oracle under
-   the six other layout settings: `tests\format\settings.list`, `tests\format\settings\`; D-039), is built,
-   closed (its closing runs pass) and archived (`2026-10-25-m5b-format-settings`). The next is
-   `m5b-language-features` (hover, find references, rename, completion).
-3. Branch `m5` (M5's three changes, `m5b-formatter` and `m5b-format-settings`) goes into `main` by a pull
-   request; the full set at a merge runs on its tree before it is merged (working rule 9). The numbers below
-   are for `961b4cc`; `m5b-format-settings`, which came after it, changed only the formatter, the oracle's
-   tooling and its recordings, and added three programs to `slice.list` (`s160_layout_*`). It rests on its own
-   closing runs (2026-10-25, `close.py --check` passes; `slice.list` 496 of 496).
+1. M5, the debugger (Path A of `study\36`; its three changes archived under `2026-10-25-m5-*`), went into `main`
+   with pull request 17 (branch `m5`, merged 2026-10-26, titled "M5 done"), with `m5b-formatter` and
+   `m5b-format-settings`. The edits of `ROADMAP.md` and of this file beyond "Next" that the merge brings are still
+   to make (working rule 11).
+2. M5b, the formatter and the language-server features (user, `DECISIONS.md` 2026-10-25; `ROADMAP.md`): both items
+   are built. The formatter in `m5b-formatter` and `m5b-format-settings` (archived); the language-server features
+   in `m5b-language-features` (hover, find references, rename, completion and the definition of any name, from the
+   whole front end through a third hook of the driver; `DECISIONS.md` 2026-10-25), built, closed, reviewed and
+   archived (`2026-10-26-m5b-language-features`; spec `editor/language-server`) on branch `mb5`. Next is M6.
+3. Branch `mb5` (`m5b-language-features`) goes into `main` by a pull request, after the full set at a merge on its
+   tree (working rule 9). The numbers below are for `961b4cc`, the tree of pull request 17.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a

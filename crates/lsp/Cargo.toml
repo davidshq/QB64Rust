@@ -8,9 +8,11 @@ license.workspace = true
 [lints]
 workspace = true
 
-# The server reads the parser's trees only: no `sema` (design D1 of `m2-language-server`).
+# The server reads the parser's trees only: no `sema` (design D1 of `m2-language-server`). The built-in table is
+# data, not a stage: hover and completion of built-ins (design D3 of `m5b-language-features`).
 [dependencies]
 qb64rust-base.workspace = true
+qb64rust-builtins.workspace = true
 qb64rust-syntax.workspace = true
 lsp-server.workspace = true
 lsp-types.workspace = true

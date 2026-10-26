@@ -135,13 +135,40 @@ parser:
   three or more comment lines, besides `SUB`, `FUNCTION` and `TYPE`.
 - **Go to Definition** of a procedure (from a call with or without `CALL`, a function call, a `DECLARE`) and of a
   label or line number (from `GOTO`, `GOSUB`, `RETURN`, `RESUME`, `ON … GOTO/GOSUB`, `ON ERROR GOTO`, `RESTORE`),
-  across included files. Variables and constants are not covered yet.
+  across included files; and of variables, constants, types and members, from the whole front end (see
+  [Language features](#language-features)).
 
 The language status shows `qb64rust (bundled)` (or `qb64rust` for a binary from the setting or `PATH`) when the
 server runs, and `qb64rust: not found` (with a link to the setting) when there is no binary; the extension then
 works as it did with QB64pe alone. Included files are looked up as a build looks them up: the including file's
 folder, then `qb64rust.includeRoot`; when that is empty, the QB64pe folder, as QB64pe looks in its own folder (a
 relative path is taken from the workspace folder). The server runs only in a trusted workspace.
+
+## Language features
+
+With the language server running, these come from the new compiler's whole front end, the same name table a build
+uses, so a use it shows is one the compiler resolved. The front end runs once per text of the program, at the first
+such request after an edit (about a twentieth of a second on a program of 5,000 lines).
+
+- **Hover** on a name: a variable's type and where it lives (main module, shared, local to or a parameter of a
+  procedure), a constant's type and value, a procedure's header, a type's members, a member's type, a label's body.
+  On a built-in, its arguments and result from the built-in table. No help text is shown.
+- **Find All References** of a variable, constant, procedure, type, member or label, in every file of the program;
+  a FUNCTION's include the assignments to its result.
+  Two variables that differ by suffix (`a$`, `a%`), or that are local to different procedures, are kept apart.
+- **Rename Symbol** renames every use, in every file of the program, and keeps the type suffix written at each use
+  (give the new name without one). A FUNCTION and its result variable are renamed together. Before the edit is
+  made, the renamed program is checked: it must have the same names, uses and types. The rename is refused, with
+  the reason, when the program has an error, when the new name is not a name, is a reserved word or a built-in's
+  name, or is already a name a use can see, when a use lies in one of QB64pe's own files, and for a line number,
+  one of QB64pe's constants, or a procedure of a `DECLARE LIBRARY` block. It may refuse some renames the compiler
+  would take.
+- **Completion** of the names seen at the cursor (a procedure's own locals and parameters, or the main module's,
+  with the shared ones), procedures, constants, types, labels, built-ins and reserved words; after `p.` for a
+  variable of a user type, that type's members. Right after an edit it offers the names found at the last run of the front end.
+
+**Code in a `$IF` branch that is not compiled has no names**: references miss it and a rename leaves it unchanged
+(a message says so when the program has such a branch).
 
 ## Install
 

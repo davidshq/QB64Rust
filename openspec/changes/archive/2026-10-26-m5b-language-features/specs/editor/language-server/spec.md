@@ -76,7 +76,8 @@ else it SHALL give no hover.
 ### Requirement: Find references
 The server SHALL answer `textDocument/references` on a name with every use of its symbol in the program, in every
 file of it, and with the definition as well when the client's `includeDeclaration` is true. Two symbols with the same
-name in different bodies, or with different suffixes, SHALL be kept apart, as the front end keeps them.
+name in different bodies, or with different suffixes, SHALL be kept apart, as the front end keeps them. A FUNCTION
+and its result variable SHALL be one name here, as for a rename.
 
 #### Scenario: Across an include
 - **WHEN** `total` is declared in `lib.bi` and used twice in the main file
@@ -85,6 +86,10 @@ name in different bodies, or with different suffixes, SHALL be kept apart, as th
 #### Scenario: Two variables that differ by suffix
 - **WHEN** a program uses both `a$` and `a%`, and the cursor is on `a$`
 - **THEN** no use of `a%` is among the references
+
+#### Scenario: A FUNCTION and its result
+- **WHEN** the cursor is on a call of FUNCTION `twice`, whose body assigns `twice = n * 2`
+- **THEN** the references are the header, the assignment and the call
 
 ### Requirement: Rename
 The server SHALL answer `textDocument/prepareRename` with the range of the name without its suffix, and

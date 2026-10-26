@@ -55,6 +55,12 @@ fn never(_: &SourceMap, _: &ParsedProgram, _: Option<&Path>, _: &Path) -> Diagno
     panic!("the check ran")
 }
 
+/// The index for these tests: empty (the language features are tested over the driver's index, in
+/// `crates\driver\tests\language_features.rs`).
+fn stand_in_index(_: &SourceMap, _: &ParsedProgram, _: Option<&Path>, _: &Path) -> qb64rust_lsp::index::SymbolIndex {
+    qb64rust_lsp::index::SymbolIndex::default()
+}
+
 /// The formatter in these tests (the real one is the driver's, tested in `crates\driver\tests\format_server.rs`):
 /// the main file with each run of blanks made one, and the settings shown: the words in capitals or lower case by
 /// the keyword style, and a line that starts with a blank indented by the indent size. A program with `BAD` in it
@@ -109,6 +115,7 @@ impl Client {
         let hooks = qb64rust_lsp::Hooks {
             check,
             format: stand_in_format,
+            index: stand_in_index,
         };
         let server = std::thread::Builder::new()
             .stack_size(qb64rust_base::STACK_SIZE)
@@ -232,11 +239,15 @@ fn initialize_and_exit() {
     assert_eq!(
         names,
         [
+            "completionProvider",
             "definitionProvider",
             "documentFormattingProvider",
             "documentRangeFormattingProvider",
             "documentSymbolProvider",
             "foldingRangeProvider",
+            "hoverProvider",
+            "referencesProvider",
+            "renameProvider",
             "textDocumentSync"
         ]
     );
