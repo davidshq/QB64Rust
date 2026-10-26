@@ -1,0 +1,1 @@
+Print CDbl(42)

@@ -134,6 +134,49 @@ class Plan(unittest.TestCase):
         self.assertFalse(judge("coverage", "check: FAIL (3 problem(s))\n", set())[0])
         self.assertFalse(judge("coverage", "coverage: the counts are of another text\n", set())[0])
 
+    def test_format_by_files(self):
+        # The format runs (change m5b-formatter, task 7.1), only when what they rest on changed.
+        for f in (
+            "crates/format/src/expr.rs",
+            "tests/format/corpus/slice/s001.bas",
+            "tests/format/known_differences.list",
+            "tools/format/layout_words.py",
+            "crates/sema/src/symbols.rs",
+            "crates/sema/src/check/places.rs",
+            "crates/sema/src/check/decl.rs",
+            "crates/syntax/src/parser.rs",
+            "crates/builtins/src/lib.rs",
+            "crates/base/src/layout.rs",
+            "crates/driver/src/main.rs",
+            "crates/driver/src/lib.rs",
+        ):
+            self.assertTrue(close.needs_format([f]), f)
+        for f in ("crates/sema/src/lib.rs", "crates/driver/tests/cli.rs", "crates/formatx/a.rs", "tests/corpus/a.bas"):
+            self.assertFalse(close.needs_format([f]), f)
+        self.assertTrue(close.INPUTS.match("tools/format/layout_words.py"))
+        self.assertNotIn("format", [s.name for s in steps(True, True)])
+        names = [s.name for s in steps(False, False, True)]
+        self.assertLess(names.index("verification"), names.index("format"))
+        self.assertLess(names.index("format"), names.index("format-corpus"))
+        by = {s.name: s for s in steps(False, False, True)}
+        self.assertEqual(
+            by["format"].command,
+            "python tools/legacy_tests/run_legacy_tests.py --suite format --qb64 target/release/qb64rust.exe"
+            " > target/close/format.log 2>&1",
+        )
+        self.assertIn("--suite format-corpus --qb64 target/release/qb64rust.exe", by["format-corpus"].command)
+        self.assertTrue(by["format"].copy and by["format-corpus"].copy)
+        self.assertEqual(by["format-corpus"].judge, "runner")
+
+    def test_plan_names_the_format_runs(self):
+        for files, present in ((["crates/format/src/lib.rs"], True), (["crates/sema/src/lib.rs"], False)):
+            out = io.StringIO()
+            with mock.patch.object(close, "changed_files", return_value=files):
+                with redirect_stdout(out):
+                    close.plan(False)
+            self.assertEqual("--suite format-corpus" in out.getvalue(), present, files)
+            self.assertEqual("# no format runs" in out.getvalue(), not present, files)
+
     def test_order(self):
         names = [s.name for s in steps(True)]
         # What changes the compiler or the lists comes before the build, the build before every run.
@@ -173,6 +216,9 @@ class Plan(unittest.TestCase):
         self.assertTrue(close.INPUTS.match("tests/corpus/slice.list"))
         self.assertTrue(close.NOT_INPUTS.search("tests/upstream/README.md"))
         self.assertTrue(close.NOT_INPUTS.search("tools/testtime/runs.csv"))
+        self.assertTrue(close.NOT_INPUTS.search("crates/sema/tests/.symbols.rs.pending-snap"))
+        self.assertTrue(close.NOT_INPUTS.search("crates/sema/tests/snapshots/symbols__a.snap.new"))
+        self.assertFalse(close.NOT_INPUTS.search("crates/sema/tests/snapshots/symbols__a.snap"))
         self.assertFalse(close.INPUTS.match("STATUS.md"))
 
 

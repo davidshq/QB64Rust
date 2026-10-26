@@ -1,6 +1,10 @@
 # Rust build output (also the legacy test runner's results, target/legacy-tests/)
 /target/
 
+# insta's pending snapshots, written by test runs (`cargo insta review` takes them)
+*.pending-snap
+*.snap.new
+
 # Python
 __pycache__/
 

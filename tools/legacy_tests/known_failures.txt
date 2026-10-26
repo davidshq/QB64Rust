@@ -9,3 +9,6 @@ corpus:runtime_comparison/126_print_comma  PRINT with a comma never ends when st
 corpus:runtime_comparison/187_print_comma_zones  PRINT with a comma never ends when stdout is redirected (Windows console)
 corpus:runtime_comparison/251_print_chain  PRINT with a comma never ends when stdout is redirected (Windows console)
 corpus:runtime_comparison/147_on_error_resume_0  the program loops forever by design: RESUME 0 re-runs ERROR 5 (QuickBASIC would too)
+# The format oracle (tests\format\README.md): a program the new compiler rejects cannot be formatted by it; the same
+# program is on tests\format\known_differences.list.
+format_corpus:snippets/qb64fresh/call_absolute__call_absolute_basic  CALL ABSOLUTE is not supported yet: the new compiler rejects the program

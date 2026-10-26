@@ -626,6 +626,16 @@ version,session,change,category,actions,bytes
 1,3814c23a,m2-numeric-types,reading,3,0
 1,3814c23a,m2-numeric-types,scratch files,1,2234
 1,3814c23a,m2-numeric-types,test runs,3,0
+1,38334499,,other commands,1,0
+1,38334499,m5b-formatter,builds,1,0
+1,38334499,m5b-formatter,documents and planning,4,1889
+1,38334499,m5b-formatter,measurement runs,1,0
+1,38334499,m5b-formatter,other,2,132
+1,38334499,m5b-formatter,other commands,34,0
+1,38334499,m5b-formatter,product code,18,6866
+1,38334499,m5b-formatter,reading,6,0
+1,38334499,m5b-formatter,test runs,7,0
+1,38334499,m5b-formatter,tests and fixtures,5,2020
 1,3876683e,,other commands,3,0
 1,3876683e,m2-parser-breadth,builds,5,0
 1,3876683e,m2-parser-breadth,documents and planning,9,4149
@@ -654,6 +664,16 @@ version,session,change,category,actions,bytes
 1,394d1c01,m3-whole-array-assign,other commands,7,0
 1,394d1c01,m3-whole-array-assign,scratch files,1,2136
 1,394d1c01,m3-whole-array-assign,test runs,1,0
+1,3ab07bdb,m5b-formatter,builds,17,0
+1,3ab07bdb,m5b-formatter,documents and planning,35,15911
+1,3ab07bdb,m5b-formatter,measurement runs,10,0
+1,3ab07bdb,m5b-formatter,other,3,344
+1,3ab07bdb,m5b-formatter,other commands,288,0
+1,3ab07bdb,m5b-formatter,product code,132,215228
+1,3ab07bdb,m5b-formatter,reading,68,0
+1,3ab07bdb,m5b-formatter,scratch files,12,38506
+1,3ab07bdb,m5b-formatter,test runs,68,0
+1,3ab07bdb,m5b-formatter,tests and fixtures,67,94674
 1,3b777e7a,m2-numeric-types,builds,5,0
 1,3b777e7a,m2-numeric-types,documents and planning,11,9232
 1,3b777e7a,m2-numeric-types,measurement preparation,4,735
@@ -2677,6 +2697,13 @@ version,session,change,category,actions,bytes
 1,d795c20f,m4-builtins-param-types,scratch files,2,3573
 1,d795c20f,m4-builtins-param-types,test runs,1,0
 1,d8032d20,m2-defxxx-common-arrays,other commands,1,0
+1,d865140e,,measurement runs,1,0
+1,d865140e,,other,2,0
+1,d865140e,,other commands,16,0
+1,d865140e,m5-debug-launch,other commands,5,0
+1,d865140e,m5b-formatter,documents and planning,11,57488
+1,d865140e,m5b-formatter,other commands,11,0
+1,d865140e,m5b-formatter,test runs,1,0
 1,d90e0f94,,other commands,2,0
 1,d96364d4,,documents and planning,1,985
 1,d96364d4,,measurement preparation,3,7062
@@ -2845,6 +2872,16 @@ version,session,change,category,actions,bytes
 1,e1bfd1d3,m4-devices-continue-paths,scratch files,15,33630
 1,e1bfd1d3,m4-devices-continue-paths,test runs,73,0
 1,e1bfd1d3,m4-devices-continue-paths,tests and fixtures,39,26650
+1,e265e761,,documents and planning,3,373
+1,e265e761,,other commands,1,0
+1,e265e761,,product code,4,328
+1,e265e761,,reading,3,0
+1,e265e761,,test runs,1,0
+1,e265e761,m5-debug-launch,other,1,0
+1,e265e761,m5-debug-launch,other commands,7,0
+1,e265e761,m5-debug-launch,reading,5,0
+1,e265e761,m5-debug-launch,scratch files,1,1210
+1,e265e761,m5-debug-launch,test runs,1,0
 1,e2889731,,documents and planning,3,747
 1,e2889731,,other commands,1,0
 1,e2889731,,reading,3,0
@@ -2920,6 +2957,7 @@ version,session,change,category,actions,bytes
 1,e516e690,m4-memory-records,reading,1,0
 1,e516e690,m4-memory-records,scratch files,1,761
 1,e516e690,m4-memory-records,test runs,2,0
+1,e5605aa0,m5-debug-launch,other commands,1,0
 1,e5c0a8a8,,other commands,7,0
 1,e5c0a8a8,,reading,2,0
 1,e5c0a8a8,,test runs,1,0

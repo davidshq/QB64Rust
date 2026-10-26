@@ -1,14 +1,26 @@
 // The new compiler's language server (design D6 of m2-language-server): `qb64rust lsp` started over stdio when the
 // binary is found, its diagnostics live in their own collection (source `qb64rust`), and the outline, folding
 // ranges and go to definition come from it. Without the binary nothing changes from M1. While it runs, a check on
-// save or by command is its `qb64rust/check` (design D5 of extension-diagnostics).
+// save or by command is its `qb64rust/check` (design D5 of extension-diagnostics), and formatting is its own, with
+// the layout settings sent at the start and on each change (design D7 of m5b-formatter).
 import * as path from "path";
 import * as vscode from "vscode";
-import { LSPErrorCodes, LanguageClient, LanguageClientOptions, ResponseError, ServerOptions } from "vscode-languageclient/node";
+import {
+    DidChangeConfigurationNotification,
+    LSPErrorCodes,
+    LanguageClient,
+    LanguageClientOptions,
+    ResponseError,
+    ServerOptions,
+    State as ClientState,
+} from "vscode-languageclient/node";
 import * as config from "./config";
 import { Discovery, QB64RUST, findCompiler } from "./compiler/discovery";
-import { CHECK, CheckResult, DOCUMENT_ENCODING, EncodingTracker, checkParams, initializationOptions } from "./server/protocol";
+import { CHECK, CheckResult, DOCUMENT_ENCODING, EncodingTracker, checkParams, configurationParams, initializationOptions } from "./server/protocol";
 import { CompilerStatus } from "./statusBar";
+
+/** The reason shown when the server stopped by itself (`clientState`). */
+const STOPPED = "the server stopped";
 
 type State = { kind: "stopped" } | { kind: "untrusted" } | { kind: "starting" } | { kind: "running" } | { kind: "failed"; reason: string };
 
@@ -25,6 +37,11 @@ export class LanguageServer implements vscode.Disposable {
     ready: Promise<void>;
     /** The check under way for each document, to cancel when a newer one starts. */
     private readonly checks = new Map<string, vscode.CancellationTokenSource>();
+    private readonly runningChange = new vscode.EventEmitter<boolean>();
+    private wasRunning = false;
+    /** Fires with `running` when the server starts running or stops (the extension's formatter is registered while it
+     * does not run). */
+    readonly onDidChangeRunning = this.runningChange.event;
 
     /**
      * `bundled` is the binary the extension carries (design D2 of extension-vsix), which may not exist. `status`
@@ -37,9 +54,13 @@ export class LanguageServer implements vscode.Disposable {
         this.item.name = "QB64 language server";
         this.disposables.push(
             this.item,
+            this.runningChange,
             vscode.workspace.onDidChangeConfiguration((e) => {
                 if (config.affectsLanguageServer(e)) {
                     this.ready = this.restart();
+                } else if (config.affectsFormatSettings(e)) {
+                    // Without a restart (spec editor/formatting, "Setting changed while the server runs").
+                    this.running?.sendNotification(DidChangeConfigurationNotification.type, configurationParams(config.formatSettings())).catch(() => undefined);
                 }
             }),
             vscode.workspace.onDidGrantWorkspaceTrust(() => {
@@ -103,6 +124,7 @@ export class LanguageServer implements vscode.Disposable {
                 baseDir,
                 process.platform,
                 this.status.current.found ? path.dirname(this.status.current.path) : undefined,
+                config.formatSettings(),
             ),
         };
         const client = new LanguageClient("qb64rust", "QB64 language server (qb64rust)", serverOptions, clientOptions);
@@ -128,6 +150,7 @@ export class LanguageServer implements vscode.Disposable {
             return;
         }
         if (failure === undefined) {
+            client.onDidChangeState((e) => this.clientState(client, e.newState));
             this.state = { kind: "running" };
             this.encodings.clear();
             for (const doc of vscode.workspace.textDocuments) {
@@ -187,6 +210,7 @@ export class LanguageServer implements vscode.Disposable {
         const client = this.client;
         this.client = undefined;
         this.state = { kind: "stopped" };
+        this.tellRunning();
         if (client) {
             try {
                 await client.stop();
@@ -196,7 +220,35 @@ export class LanguageServer implements vscode.Disposable {
         }
     }
 
+    /**
+     * A change of the running client's own state: the server died, and the client stopped (or gave up restarting it),
+     * or came back after a restart of its own. While it is stopped the server does not run, so the extension's
+     * formatter is registered again (spec editor/formatting, "Which formatter"). A client this class stopped is no
+     * longer `this.client`.
+     */
+    private clientState(client: LanguageClient, state: ClientState): void {
+        if (this.client !== client) {
+            return;
+        }
+        if (state === ClientState.Stopped && this.state.kind === "running") {
+            this.state = { kind: "failed", reason: STOPPED };
+            this.render();
+        } else if (state === ClientState.Running && this.state.kind === "failed" && this.state.reason === STOPPED) {
+            this.state = { kind: "running" };
+            this.render();
+        }
+    }
+
+    private tellRunning(): void {
+        const running = this.state.kind === "running";
+        if (running !== this.wasRunning) {
+            this.wasRunning = running;
+            this.runningChange.fire(running);
+        }
+    }
+
     private render(): void {
+        this.tellRunning();
         const d = this.discovery;
         const s = this.state;
         this.item.command = undefined;

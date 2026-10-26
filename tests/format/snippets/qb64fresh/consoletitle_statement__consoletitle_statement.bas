@@ -1,0 +1,1 @@
+_ConsoleTitle "My App"

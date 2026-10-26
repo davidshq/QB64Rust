@@ -1,0 +1,2 @@
+Print Date$
+Print Time$

@@ -6,18 +6,23 @@
 use crate::analysis::{Analysis, OpenFile, analyze};
 use crate::encoding::Encoding;
 use crate::uri::{to_path, uri_key};
-use crate::{Check, definition, folding, symbols};
+use crate::{Hooks, definition, folding, symbols};
 use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response};
 use lsp_types::notification::{
-    Cancel, DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, Notification as _, PublishDiagnostics,
+    Cancel, DidChangeConfiguration, DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument,
+    Notification as _, PublishDiagnostics, ShowMessage,
 };
-use lsp_types::request::{DocumentSymbolRequest, FoldingRangeRequest, GotoDefinition, Request as _, Shutdown};
+use lsp_types::request::{
+    DocumentSymbolRequest, FoldingRangeRequest, Formatting, GotoDefinition, RangeFormatting, Request as _, Shutdown,
+};
 use lsp_types::{
     CancelParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
-    DocumentSymbolParams, DocumentSymbolResponse, FoldingRangeParams, GotoDefinitionParams, GotoDefinitionResponse,
-    InitializeParams, Location, NumberOrString, PublishDiagnosticsParams, ServerCapabilities, TextDocumentSyncKind,
-    Uri,
+    DocumentFormattingParams, DocumentRangeFormattingParams, DocumentSymbolParams, DocumentSymbolResponse,
+    FoldingRangeParams, GotoDefinitionParams, GotoDefinitionResponse, InitializeParams, Location, MessageType,
+    NumberOrString, Position, PublishDiagnosticsParams, Range, ServerCapabilities, ShowMessageParams,
+    TextDocumentSyncKind, TextEdit, Uri,
 };
+use qb64rust_base::layout::{KeywordStyle, Settings};
 use qb64rust_base::{Diagnostics, FileId, Severity};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -50,14 +55,49 @@ pub fn capabilities() -> ServerCapabilities {
         document_symbol_provider: Some(lsp_types::OneOf::Left(true)),
         folding_range_provider: Some(true.into()),
         definition_provider: Some(lsp_types::OneOf::Left(true)),
+        document_formatting_provider: Some(lsp_types::OneOf::Left(true)),
+        document_range_formatting_provider: Some(lsp_types::OneOf::Left(true)),
         ..ServerCapabilities::default()
     }
 }
 
+/// The layout settings of a client's `format` object (spec `editor/language-server`, "Format settings from the
+/// client"): `autoIndent`, `indentSize` (1 to 64), `indentSubs`, `autoLayout`, `keywordCase` (`camel`, `upper`,
+/// `lower`); a setting missing or of another kind takes `-y`'s default.
+pub fn format_settings(v: Option<&Value>) -> Settings {
+    let mut s = Settings::default();
+    let Some(v) = v else {
+        return s;
+    };
+    let flag = |name: &str| v.get(name).and_then(Value::as_bool);
+    if let Some(b) = flag("autoIndent") {
+        s.auto_indent = b;
+    }
+    if let Some(b) = flag("indentSubs") {
+        s.indent_subs = b;
+    }
+    if let Some(b) = flag("autoLayout") {
+        s.auto_layout = b;
+    }
+    if let Some(n) = v
+        .get("indentSize")
+        .and_then(Value::as_u64)
+        .filter(|n| (1..=64).contains(n))
+    {
+        s.indent_size = u32::try_from(n).unwrap_or(4);
+    }
+    s.keywords = match field(v, "keywordCase") {
+        Some("upper") => KeywordStyle::Upper,
+        Some("lower") => KeywordStyle::Lower,
+        _ => KeywordStyle::Camel,
+    };
+    s
+}
+
 /// Runs the server on `conn` until `exit`. `default_root` is the include root when the client names none (the
-/// folder of the `qb64rust` binary, the compiler's own rule); `check` the front end a check runs after the parse.
-/// An `exit` without `shutdown` before it is an error.
-pub fn serve(conn: Connection, default_root: PathBuf, check: Check) -> Result<(), String> {
+/// folder of the `qb64rust` binary, the compiler's own rule); `hooks` the front end a check and a formatting request
+/// run after the parse. An `exit` without `shutdown` before it is an error.
+pub fn serve(conn: Connection, default_root: PathBuf, hooks: Hooks) -> Result<(), String> {
     let (id, params) = conn.initialize_start().map_err(|e| e.to_string())?;
     let params: InitializeParams = serde_json::from_value(params).map_err(|e| e.to_string())?;
     // The client's `initializationOptions` (design D6): `encoding`, VS Code's encoding id for documents the client
@@ -75,6 +115,7 @@ pub fn serve(conn: Connection, default_root: PathBuf, check: Check) -> Result<()
         None => default_root,
     };
     let default = field(&options, "encoding").map_or(Encoding::DEFAULT, Encoding::from_name);
+    let format = format_settings(options.get("format"));
 
     let (events, inbox) = mpsc::channel();
     let forward = events.clone();
@@ -87,8 +128,10 @@ pub fn serve(conn: Connection, default_root: PathBuf, check: Check) -> Result<()
         }
         let _ = forward.send(Event::Disconnected);
     });
-    let jobs = start_worker(events, check);
-    Server::new(conn, jobs, root, default).run(&inbox)
+    let jobs = start_worker(events, hooks);
+    let mut server = Server::new(conn, jobs, root, default);
+    server.format = format;
+    server.run(&inbox)
 }
 
 enum Event {
@@ -105,7 +148,23 @@ enum Event {
         id: RequestId,
         result: Result<(Analysis, Diagnostics), String>,
     },
+    /// The result of a formatting request: its parse and the formatted file, or the front end's diagnostics.
+    Formatted {
+        key: String,
+        request: FormatRequest,
+        result: Result<(Analysis, Result<Vec<u8>, Diagnostics>), String>,
+    },
     Disconnected,
+}
+
+/// A formatting request on its way: whole document or a range, the settings it is formatted with, and the document's
+/// version when it was asked, so that an answer for an older text is refused.
+#[derive(Clone)]
+struct FormatRequest {
+    id: RequestId,
+    range: Option<Range>,
+    settings: Settings,
+    version: u64,
 }
 
 struct Job {
@@ -117,6 +176,8 @@ struct Job {
     default: Encoding,
     /// The check request this job answers; `None` for a parse.
     check: Option<RequestId>,
+    /// The formatting request this job answers.
+    format: Option<FormatRequest>,
 }
 
 /// The message of a panic caught on the worker.
@@ -132,7 +193,7 @@ fn panic_message(e: &(dyn std::any::Any + Send), doing: &str) -> String {
 /// The parse worker: one program at a time, on a thread with the compiler's stack size (the parser's depth limits
 /// are tuned for it). A panic in the parser, or in `check` for a check, is reported for that job; the worker goes
 /// on.
-fn start_worker(events: mpsc::Sender<Event>, check: Check) -> mpsc::Sender<Job> {
+fn start_worker(events: mpsc::Sender<Event>, hooks: Hooks) -> mpsc::Sender<Job> {
     let (jobs, queue) = mpsc::channel::<Job>();
     std::thread::Builder::new()
         .name("qb64rust-parse".into())
@@ -140,6 +201,25 @@ fn start_worker(events: mpsc::Sender<Event>, check: Check) -> mpsc::Sender<Job> 
         .spawn(move || {
             for job in queue {
                 let parse = || analyze(&job.key, &job.main, &job.open, &job.root, job.default);
+                if let Some(request) = &job.format {
+                    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        let a = parse();
+                        let path = to_path(&job.main.uri);
+                        let text = (hooks.format)(&a.map, &a.parsed, path.as_deref(), &job.root, &request.settings);
+                        (a, text)
+                    }))
+                    .map_err(|e| panic_message(&*e, "formatting"));
+                    let event = Event::Formatted {
+                        key: job.key.clone(),
+                        request: request.clone(),
+                        result,
+                    };
+                    if events.send(event).is_err() {
+                        return;
+                    }
+                    continue;
+                }
+                let check = hooks.check;
                 let event = match &job.check {
                     None => Event::Parsed {
                         key: job.key.clone(),
@@ -178,6 +258,9 @@ struct Doc {
     text: String,
     encoding: Encoding,
     bytes: Arc<[u8]>,
+    /// The server's count of document changes when this text and encoding came (`Server::versions`): a formatting
+    /// answer for an older one is refused.
+    version: u64,
 }
 
 /// A request that waits for the first parse of its document.
@@ -209,6 +292,11 @@ struct Server {
     /// For each file with diagnostics published: the program whose parse published them, and its URI.
     published: HashMap<String, (String, Uri)>,
     shutdown: bool,
+    /// The layout settings of formatting, from the client (`format_settings`).
+    format: Settings,
+    /// Counts every open, change and change of encoding of any document, so that a document closed and opened again
+    /// never takes a version it had before (`Doc::version`).
+    versions: u64,
 }
 
 impl Server {
@@ -228,6 +316,8 @@ impl Server {
             waiting: Vec::new(),
             published: HashMap::new(),
             shutdown: false,
+            format: Settings::default(),
+            versions: 0,
         }
     }
 
@@ -258,6 +348,7 @@ impl Server {
                 Some(Event::Message(Message::Response(_))) => {}
                 Some(Event::Parsed { key, seq, result }) => self.parsed(key, seq, result),
                 Some(Event::Checked { key, seq, id, result }) => self.checked(key, seq, id, result),
+                Some(Event::Formatted { key, request, result }) => self.formatted(&key, request, result),
                 Some(Event::Disconnected) => return Err("connection closed without exit".into()),
             }
         }
@@ -275,11 +366,13 @@ impl Server {
                     let key = uri_key(&p.text_document.uri);
                     let encoding = self.encodings.get(&key).copied().unwrap_or(self.default);
                     let bytes = encoding.encode(&p.text_document.text).into();
+                    self.versions += 1;
                     let doc = Doc {
                         uri: p.text_document.uri,
                         text: p.text_document.text,
                         encoding,
                         bytes,
+                        version: self.versions,
                     };
                     self.docs.insert(key.clone(), doc);
                     self.changed(&key);
@@ -292,6 +385,8 @@ impl Server {
                     if let (Some(doc), Some(change)) = (self.docs.get_mut(&key), p.content_changes.into_iter().last()) {
                         doc.bytes = doc.encoding.encode(&change.text).into();
                         doc.text = change.text;
+                        self.versions += 1;
+                        doc.version = self.versions;
                         self.changed(&key);
                     }
                 }
@@ -313,8 +408,16 @@ impl Server {
                     {
                         doc.encoding = encoding;
                         doc.bytes = encoding.encode(&doc.text).into();
+                        self.versions += 1;
+                        doc.version = self.versions;
                         self.changed(&key);
                     }
+                }
+            }
+            DidChangeConfiguration::METHOD => {
+                // `{ settings: { format: {...} } }`: the layout settings replace the last ones.
+                if let Some(format) = n.params.get("settings").and_then(|s| s.get("format")) {
+                    self.format = format_settings(Some(format));
                 }
             }
             Cancel::METHOD => {
@@ -440,6 +543,7 @@ impl Server {
                 root: self.root.clone(),
                 default: self.default,
                 check: None,
+                format: None,
             };
             if self.jobs.send(job).is_err() {
                 // The worker is gone (it never panics out of its loop); nothing more can be parsed.
@@ -570,6 +674,10 @@ impl Server {
                 self.check(req);
                 return;
             }
+            Formatting::METHOD | RangeFormatting::METHOD => {
+                self.format_request(req);
+                return;
+            }
             DocumentSymbolRequest::METHOD => {
                 serde_json::from_value::<DocumentSymbolParams>(req.params.clone()).map(|p| p.text_document.uri)
             }
@@ -639,9 +747,109 @@ impl Server {
             root: self.root.clone(),
             default: self.default,
             check: Some(req.id),
+            format: None,
         };
         // The worker is gone (it never panics out of its loop): the check stays unanswered.
         let _ = self.jobs.send(job);
+    }
+
+    /// `textDocument/formatting` and `textDocument/rangeFormatting` (design D5 of `m5b-formatter`): a job on the
+    /// worker that parses the document's program as a check does and formats it with the client's settings; the
+    /// request's own `FormattingOptions` are not read.
+    fn format_request(&mut self, req: Request) {
+        let parsed = if req.method == Formatting::METHOD {
+            serde_json::from_value::<DocumentFormattingParams>(req.params.clone()).map(|p| (p.text_document.uri, None))
+        } else {
+            serde_json::from_value::<DocumentRangeFormattingParams>(req.params.clone())
+                .map(|p| (p.text_document.uri, Some(p.range)))
+        };
+        let (uri, range) = match parsed {
+            Ok(p) => p,
+            Err(e) => {
+                let code = ErrorCode::InvalidParams as i32;
+                self.send(Response::new_err(req.id, code, e.to_string()));
+                return;
+            }
+        };
+        let key = uri_key(&uri);
+        let Some(doc) = self.docs.get(&key) else {
+            let msg = "formatting needs an open document".to_string();
+            self.send(Response::new_err(req.id, ErrorCode::InvalidParams as i32, msg));
+            return;
+        };
+        let open: Arc<HashMap<String, OpenFile>> =
+            Arc::new(self.docs.iter().map(|(k, d)| (k.clone(), open_file(d))).collect());
+        self.seq += 1;
+        let job = Job {
+            main: open_file(doc),
+            key,
+            seq: self.seq,
+            open,
+            root: self.root.clone(),
+            default: self.default,
+            check: None,
+            format: Some(FormatRequest {
+                id: req.id,
+                range,
+                settings: self.format,
+                version: doc.version,
+            }),
+        };
+        let _ = self.jobs.send(job);
+    }
+
+    /// The result of a formatting request. An answer for a text that changed since the request is `ContentModified`.
+    /// On success: one edit of the whole document, or one per changed line of the range, each line keeping its own
+    /// line end; none when nothing changes. When the program has an error: its diagnostics published as a check's,
+    /// a message naming the first, and no edits.
+    fn formatted(
+        &mut self,
+        key: &str,
+        request: FormatRequest,
+        result: Result<(Analysis, Result<Vec<u8>, Diagnostics>), String>,
+    ) {
+        let Some(doc) = self.docs.get(key).filter(|d| d.version == request.version) else {
+            let code = ErrorCode::ContentModified as i32;
+            self.send(Response::new_err(request.id, code, "the document changed".into()));
+            return;
+        };
+        let (analysis, text) = match result {
+            Ok(r) => r,
+            Err(msg) => {
+                eprintln!("qb64rust: {msg} ({key})");
+                self.send(Response::new_err(request.id, ErrorCode::InternalError as i32, msg));
+                return;
+            }
+        };
+        match text {
+            Ok(bytes) => {
+                let lines = formatted_lines(&bytes, doc.encoding);
+                let edits = line_edits(&doc.text, &lines, request.range);
+                self.send(Response::new_ok(request.id, edits));
+            }
+            Err(diagnostics) => {
+                let mut list = diagnostics.list().to_vec();
+                list.sort_by_key(|d| (d.span.file.0, d.span.start));
+                let first = list.iter().find(|d| d.severity == Severity::Error).map(|d| {
+                    let file = analysis.map.file(d.span.file);
+                    let (line, _) = file.line_col(d.span.start);
+                    let name = to_path(&analysis.info(d.span.file).uri)
+                        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+                        .unwrap_or_else(|| file.name.clone());
+                    format!("{name}, line {line}: {}", d.message)
+                });
+                let per_file = analysis.lsp_diagnostics(&list);
+                self.publish_program(key.to_string(), analysis, per_file);
+                if let Some(first) = first {
+                    let params = ShowMessageParams {
+                        typ: MessageType::ERROR,
+                        message: format!("The program was not formatted: {first}"),
+                    };
+                    self.send(Notification::new(ShowMessage::METHOD.into(), params));
+                }
+                self.send(Response::new_ok(request.id, Vec::<TextEdit>::new()));
+            }
+        }
     }
 
     /// Answers a request from a parse of its document, or with an empty result without one.
@@ -678,6 +886,97 @@ impl Server {
             )),
         }
     }
+}
+
+/// The lines of the formatter's output (every line followed by CR LF) as text in the document's encoding.
+fn formatted_lines(bytes: &[u8], encoding: Encoding) -> Vec<String> {
+    let mut lines: Vec<&[u8]> = Vec::new();
+    let mut rest = bytes;
+    while let Some(i) = rest.windows(2).position(|w| w == b"\r\n") {
+        lines.push(&rest[..i]);
+        rest = &rest[i + 2..];
+    }
+    if !rest.is_empty() {
+        lines.push(rest);
+    }
+    lines.into_iter().map(|l| decode(l, encoding)).collect()
+}
+
+/// Bytes in the document's encoding as text: a table's characters, or UTF-8 as it is (the formatter changes the case
+/// of ASCII letters only, so the bytes stay UTF-8 where the document was).
+#[expect(
+    clippy::disallowed_methods,
+    reason = "a UTF-8 document's bytes back to the editor's text"
+)]
+fn decode(bytes: &[u8], encoding: Encoding) -> String {
+    encoding
+        .decode(bytes)
+        .unwrap_or_else(|| String::from_utf8_lossy(bytes).into_owned())
+}
+
+/// The lines of a document's text, each with its line end (CR LF, LF CR, LF or CR, as the formatter reads them;
+/// none for a last line without one).
+fn text_lines(text: &str) -> Vec<(&str, &str)> {
+    let mut out = Vec::new();
+    let b = text.as_bytes();
+    let mut start = 0;
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'\r' || b[i] == b'\n' {
+            let pair = if b[i] == b'\r' { b'\n' } else { b'\r' };
+            let end = if b.get(i + 1) == Some(&pair) { i + 2 } else { i + 1 };
+            out.push((&text[start..i], &text[i..end]));
+            start = end;
+            i = end;
+        } else {
+            i += 1;
+        }
+    }
+    if start < b.len() {
+        out.push((&text[start..], ""));
+    }
+    out
+}
+
+/// The edits that turn the document's text into the formatted lines: the whole document in one, or for a range each
+/// line it touches that changed (spec `editor/language-server`, "Range formatting"). A range that ends at the start
+/// of a line does not touch that line.
+fn line_edits(text: &str, formatted: &[String], range: Option<Range>) -> Vec<TextEdit> {
+    let lines = text_lines(text);
+    let utf16 = |s: &str| u32::try_from(s.encode_utf16().count()).unwrap_or(u32::MAX);
+    let Some(range) = range else {
+        let mut new = String::with_capacity(text.len());
+        for (i, (old, end)) in lines.iter().enumerate() {
+            new.push_str(formatted.get(i).map_or(*old, String::as_str));
+            new.push_str(end);
+        }
+        if new == text {
+            return Vec::new();
+        }
+        // The end of the text: after its last line, or at the start of the line after its last line end.
+        let end = match lines.last() {
+            Some((last, "")) => Position::new(qb64rust_base::to_u32(lines.len() - 1), utf16(last)),
+            _ => Position::new(qb64rust_base::to_u32(lines.len()), 0),
+        };
+        return vec![TextEdit::new(Range::new(Position::new(0, 0), end), new)];
+    };
+    let last = if range.end.character == 0 && range.end.line > range.start.line {
+        range.end.line - 1
+    } else {
+        range.end.line
+    };
+    let mut edits = Vec::new();
+    for line in range.start.line..=last {
+        let i = line as usize;
+        let (Some((old, _)), Some(new)) = (lines.get(i), formatted.get(i)) else {
+            continue;
+        };
+        if old != new {
+            let at = Range::new(Position::new(line, 0), Position::new(line, utf16(old)));
+            edits.push(TextEdit::new(at, new.clone()));
+        }
+    }
+    edits
 }
 
 fn open_file(d: &Doc) -> OpenFile {

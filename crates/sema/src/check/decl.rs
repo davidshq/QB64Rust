@@ -281,6 +281,7 @@ impl Checker<'_> {
                 // Measured: "Type cannot be _UNSIGNED" (`v21_x46_unsigned_user_type`).
                 return Err(self.error(span, format!("`{text}` cannot be `_UNSIGNED`")));
             }
+            self.type_reference(a, t);
             return Ok(t);
         }
         // A `TYPE` block that was not entered (an error or a mark) may define it.

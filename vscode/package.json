@@ -113,6 +113,43 @@
           "minimum": 1,
           "description": "A check or format that runs longer than this is stopped."
         },
+        "qb64rust.format.autoIndent": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Format Document indents each block (QB64pe's IDE setting *Auto indent*, `-f:autoindent`)."
+        },
+        "qb64rust.format.indentSize": {
+          "type": "integer",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 64,
+          "markdownDescription": "Spaces a level of indent (`-f:autoindentsize`)."
+        },
+        "qb64rust.format.indentSubs": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Indent the body of a `SUB` or `FUNCTION` (`-f:indentsubs`)."
+        },
+        "qb64rust.format.autoLayout": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Space each statement and spell its keywords and names (`-f:autolayout`). When off, only the indent changes."
+        },
+        "qb64rust.format.keywordCase": {
+          "type": "string",
+          "enum": [
+            "camel",
+            "upper",
+            "lower"
+          ],
+          "enumDescriptions": [
+            "`Print`, `End If` (QB64pe's default)",
+            "`PRINT`, `END IF`",
+            "`print`, `end if`"
+          ],
+          "default": "camel",
+          "markdownDescription": "The case of keywords in Format Document. These settings take the place of QB64pe's `config.ini`, which plays no part in formatting."
+        },
         "qb64rust.runArguments": {
           "type": "string",
           "default": "",

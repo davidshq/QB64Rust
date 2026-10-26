@@ -7,6 +7,11 @@
   name, watch and hover, set value, data breakpoints, set next statement, and a stop at a runtime error. A debugger
   of type `qb64rust` for `launch.json` (`program`, `args`, `cwd`, `stopOnEntry`, `console`, `noPrompt`). Needs a
   build by `qb64rust` and QB64pe's toolchain, which carries the debugger (`lldb-dap`).
+- **Formatting by the new compiler.** Format Document goes through the language server while it runs (unsaved
+  included files too, no temporary file), else through `qb64rust -y`; `qb64pe -y` only when `qb64rust.buildWith`
+  is `qb64pe` or there is no `qb64rust` binary. The layout is the same as QB64pe's. New: **Format Selection**, and
+  the settings `qb64rust.format.autoIndent`, `indentSize`, `indentSubs`, `autoLayout` and `keywordCase`, which
+  replace QB64pe's `config.ini` (no longer read when formatting).
 
 ## 0.2.0
 

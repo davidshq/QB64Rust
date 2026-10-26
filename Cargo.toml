@@ -16,6 +16,7 @@ qb64rust-base = { path = "crates/base" }
 qb64rust-syntax = { path = "crates/syntax" }
 qb64rust-builtins = { path = "crates/builtins" }
 qb64rust-sema = { path = "crates/sema" }
+qb64rust-format = { path = "crates/format" }
 qb64rust-ir = { path = "crates/ir" }
 qb64rust-codegen-cpp = { path = "crates/codegen-cpp" }
 qb64rust-lsp = { path = "crates/lsp" }

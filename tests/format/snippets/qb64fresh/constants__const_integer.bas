@@ -1,0 +1,2 @@
+Const MAX_VALUE = 100
+Print MAX_VALUE

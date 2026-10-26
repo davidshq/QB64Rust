@@ -1,0 +1,1 @@
+_ClipboardImage = img&

@@ -74,6 +74,31 @@ class VerificationMembership(unittest.TestCase):
         )
 
 
+class FormatMembership(unittest.TestCase):
+    def test_recordings_by_set_and_the_known_differences(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel in ("corpus/g/a.bas", "corpus/g/b.bas", "programs/x/P.BAS", "programs/x/P.divergences"):
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).write_bytes(b"")
+            (root / "known_differences.list").write_text(
+                "# comment\ncorpus/g/a\tnot built\n", encoding="utf-8"
+            )
+            with mock.patch.object(counts, "FORMAT", root):
+                lines = counts.format_membership()
+        self.assertEqual(
+            lines,
+            [
+                "**3** programs recorded; `known_differences.list` names 1. By set:",
+                "",
+                "| Set | Recorded |",
+                "|---|---|",
+                "| `corpus` | 2 |",
+                "| `programs` | 1 |",
+            ],
+        )
+
+
 class Results(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

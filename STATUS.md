@@ -68,6 +68,11 @@ push shows them (the user is not concerned with CI, working rule 9).
    `editor/debug-launch`), is built, closed (its closing runs pass) and archived (`2026-10-25-m5-debug-launch`).
    Every item of M5 is built: M5 is to be declared done with the user at the next merge into `main`.
 2. M5b, the formatter and the language-server features (user, `DECISIONS.md` 2026-10-25; `ROADMAP.md`), then M6.
+   Its first change, `m5b-formatter` (`qb64rust -y`, the format oracle `tests\format\`, formatting in the language
+   server and the extension; specs `compiler/format`, `testing/format-oracle`), is built and closed (its closing
+   runs pass), waiting on the user's review before its archive. The next is `m5b-language-features` (hover, find
+   references, rename, completion), with the oracle under the non-default layout settings first (`m5b-formatter`
+   `tasks.md`, "Workflow follow-up").
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a

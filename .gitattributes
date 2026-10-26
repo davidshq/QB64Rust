@@ -57,3 +57,6 @@ tests/programs/civil-war-strategy/SOURCE.md text
 # The copy of the game for its scripted game (tools/screen/cut_game.py): the game's lines byte for byte, CP437
 # symbols among them, with LF line ends
 tests/corpus/screen/g12_game.bas -text
+# The format oracle: qb64pe's -y output as recorded, CRLF and CP437 bytes (tests/format/README.md)
+tests/format/**/*.bas -text
+tests/format/**/*.BAS -text

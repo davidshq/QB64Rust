@@ -1,6 +1,6 @@
 // The extension's part of the language server's protocol (design D3 and D6 of m2-language-server, D5 of
-// extension-diagnostics): the initialization options, the encoding notification and the check request. No VS Code
-// import, so it is unit-tested without it.
+// extension-diagnostics, D7 of m5b-formatter): the initialization options, the encoding notification, the check
+// request and the layout settings. No VS Code import, so it is unit-tested without it.
 import * as path from "path";
 
 /** The notification that tells the server a document's encoding (VS Code's encoding id). */
@@ -30,11 +30,46 @@ export function checkParams(uri: string): CheckParams {
     return { uri };
 }
 
+/** The extension's layout settings (spec editor/formatting, "Layout settings"; change m5b-formatter, design D7): sent
+ * to the server, and given to either compiler's `-y` as its `-f:` settings. */
+export interface FormatSettings {
+    autoIndent: boolean;
+    /** 1 to 64. */
+    indentSize: number;
+    indentSubs: boolean;
+    autoLayout: boolean;
+    keywordCase: "camel" | "upper" | "lower";
+}
+
+/** QB64pe's built-in layout defaults, which the settings default to. */
+export const DEFAULT_FORMAT: FormatSettings = { autoIndent: true, indentSize: 4, indentSubs: true, autoLayout: true, keywordCase: "camel" };
+
+/** The `-f:` layout settings of `-y`, the same for `qb64rust` and `qb64pe` (spec compiler/format, "Layout settings"),
+ * all six given, so that QB64pe's `config.ini` plays no part. */
+export function formatFlags(s: FormatSettings): string[] {
+    const b = (v: boolean): string => (v ? "1" : "0");
+    return [
+        `-f:autoindent=${b(s.autoIndent)}`,
+        `-f:autoindentsize=${s.indentSize}`,
+        `-f:indentsubs=${b(s.indentSubs)}`,
+        `-f:autolayout=${b(s.autoLayout)}`,
+        `-f:keywordcapitals=${b(s.keywordCase === "upper")}`,
+        `-f:keywordlowercase=${b(s.keywordCase === "lower")}`,
+    ];
+}
+
+/** The parameters of `workspace/didChangeConfiguration` that give the server new layout settings. */
+export function configurationParams(format: FormatSettings): { settings: { format: FormatSettings } } {
+    return { settings: { format } };
+}
+
 export interface InitializationOptions {
     /** The encoding of documents the extension says nothing about, and of included files read from disk. */
     encoding: string;
     /** Where included files are looked up after the including file's folder; empty for the server's default. */
     includeRoot: string;
+    /** The layout settings of formatting. */
+    format: FormatSettings;
 }
 
 /**
@@ -54,15 +89,17 @@ export function includeRootFor(setting: string, baseDir: string | undefined, qb6
     return root || qb64peFolder || "";
 }
 
-/** The options sent with `initialize`: the `[qb64rust]` `files.encoding` (cp437 unless changed) and the include root. */
+/** The options sent with `initialize`: the `[qb64rust]` `files.encoding` (cp437 unless changed), the include root and
+ * the layout settings (the defaults unless given). */
 export function initializationOptions(
     defaultEncoding: string | undefined,
     includeRoot: string,
     baseDir: string | undefined,
     platform: NodeJS.Platform,
     qb64peFolder?: string,
+    format: FormatSettings = DEFAULT_FORMAT,
 ): InitializationOptions {
-    return { encoding: defaultEncoding || "cp437", includeRoot: includeRootFor(includeRoot, baseDir, qb64peFolder, platform) };
+    return { encoding: defaultEncoding || "cp437", includeRoot: includeRootFor(includeRoot, baseDir, qb64peFolder, platform), format };
 }
 
 /** Remembers the encoding the server was told for each document, so each change is told once. */

@@ -3,7 +3,8 @@
 
 use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response};
 use lsp_types::Uri;
-use qb64rust_base::{Diagnostics, SourceMap, Span, to_u32};
+use qb64rust_base::layout::{KeywordStyle, Settings};
+use qb64rust_base::{Diagnostics, FileId, SourceMap, Span, to_u32};
 use qb64rust_lsp::Check;
 use qb64rust_lsp::uri::from_path;
 use qb64rust_syntax::ParsedProgram;
@@ -54,6 +55,49 @@ fn never(_: &SourceMap, _: &ParsedProgram, _: Option<&Path>, _: &Path) -> Diagno
     panic!("the check ran")
 }
 
+/// The formatter in these tests (the real one is the driver's, tested in `crates\driver\tests\format_server.rs`):
+/// the main file with each run of blanks made one, and the settings shown: the words in capitals or lower case by
+/// the keyword style, and a line that starts with a blank indented by the indent size. A program with `BAD` in it
+/// has an error there; one with `SLOW` takes half a second.
+fn stand_in_format(
+    map: &SourceMap,
+    parsed: &ParsedProgram,
+    path: Option<&Path>,
+    root: &Path,
+    settings: &Settings,
+) -> Result<Vec<u8>, Diagnostics> {
+    let check = stand_in(map, parsed, path, root);
+    if check.has_errors() {
+        return Err(check);
+    }
+    let text = &map.file(FileId(0)).bytes;
+    let mut lines: Vec<&[u8]> = text.split(|&c| c == b'\n').collect();
+    if lines.last().is_some_and(|l| l.is_empty()) {
+        lines.pop();
+    }
+    let mut out = Vec::new();
+    for line in lines {
+        let line = line.strip_suffix(b"\r").unwrap_or(line);
+        if line.first() == Some(&b' ') {
+            out.extend(std::iter::repeat_n(b' ', settings.indent_size as usize));
+        }
+        let mut blank = false;
+        for &c in line.iter().skip_while(|c| **c == b' ') {
+            if c == b' ' && blank {
+                continue;
+            }
+            blank = c == b' ';
+            out.push(match settings.keywords {
+                KeywordStyle::Upper => c.to_ascii_uppercase(),
+                KeywordStyle::Lower => c.to_ascii_lowercase(),
+                KeywordStyle::Camel => c,
+            });
+        }
+        out.extend_from_slice(b"\r\n");
+    }
+    Ok(out)
+}
+
 impl Client {
     fn start(root: &Path, options: Value) -> (Client, Value) {
         Client::start_with(root, options, stand_in)
@@ -62,9 +106,13 @@ impl Client {
     fn start_with(root: &Path, options: Value, check: Check) -> (Client, Value) {
         let (server_side, conn) = Connection::memory();
         let root = root.to_path_buf();
+        let hooks = qb64rust_lsp::Hooks {
+            check,
+            format: stand_in_format,
+        };
         let server = std::thread::Builder::new()
             .stack_size(qb64rust_base::STACK_SIZE)
-            .spawn(move || qb64rust_lsp::serve(server_side, root, check))
+            .spawn(move || qb64rust_lsp::serve(server_side, root, hooks))
             .unwrap();
         let mut c = Client {
             conn,
@@ -185,6 +233,8 @@ fn initialize_and_exit() {
         names,
         [
             "definitionProvider",
+            "documentFormattingProvider",
+            "documentRangeFormattingProvider",
             "documentSymbolProvider",
             "foldingRangeProvider",
             "textDocumentSync"
@@ -667,6 +717,152 @@ fn closing_one_includer_keeps_the_others_diagnostics() {
         last = Some(d);
     }
     assert_eq!(last.map(|d| d.len()), Some(1));
+    c.shutdown().unwrap();
+}
+
+fn format_params(u: &Uri) -> Value {
+    json!({ "textDocument": { "uri": u }, "options": { "tabSize": 8, "insertSpaces": false } })
+}
+
+fn range_params(u: &Uri, start: (u32, u32), end: (u32, u32)) -> Value {
+    json!({
+        "textDocument": { "uri": u },
+        "range": { "start": { "line": start.0, "character": start.1 }, "end": { "line": end.0, "character": end.1 } },
+        "options": { "tabSize": 8, "insertSpaces": false },
+    })
+}
+
+/// The edits of a formatting answer, as (start line, start character, end line, end character, new text).
+fn edits(r: Response) -> Vec<(u64, u64, u64, u64, String)> {
+    let v = r.response_result.unwrap();
+    v.as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            let (s, t) = (&e["range"]["start"], &e["range"]["end"]);
+            let n = |v: &Value| v.as_u64().unwrap();
+            let text = e["newText"].as_str().unwrap().to_string();
+            (
+                n(&s["line"]),
+                n(&s["character"]),
+                n(&t["line"]),
+                n(&t["character"]),
+                text,
+            )
+        })
+        .collect()
+}
+
+/// Formatting answers with one edit of the whole document, each line keeping its own line end, and writes nothing
+/// (spec `editor/language-server`, "Formatting"); the request's `FormattingOptions` are not read.
+#[test]
+fn formatting_replaces_the_document() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "a   b\r\n  c  d\nlast");
+    let got = edits(c.request("textDocument/formatting", format_params(&u)));
+    assert_eq!(got, [(0, 0, 2, 4, "a b\r\n    c d\nlast".to_string())]);
+    assert!(
+        std::fs::read_dir(dir.path()).unwrap().next().is_none(),
+        "no file is written"
+    );
+    c.shutdown().unwrap();
+}
+
+/// A document already formatted gets no edit ("Already formatted").
+#[test]
+fn formatting_an_unchanged_document() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "a b\r\nc\r\n");
+    assert_eq!(edits(c.request("textDocument/formatting", format_params(&u))), []);
+    c.shutdown().unwrap();
+}
+
+/// The settings come from `initializationOptions.format` ("Upper case keywords"), and a
+/// `workspace/didChangeConfiguration` replaces them ("Setting changed").
+#[test]
+fn format_settings_from_the_client() {
+    let dir = temp();
+    let options = json!({ "format": { "keywordCase": "upper" } });
+    let (mut c, _) = Client::start(dir.path(), options);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "print 1\n x\n");
+    let got = edits(c.request("textDocument/formatting", format_params(&u)));
+    assert_eq!(got[0].4, "PRINT 1\n    X\n");
+    let settings = json!({ "settings": { "format": { "indentSize": 2, "keywordCase": "lower" } } });
+    c.notify("workspace/didChangeConfiguration", settings);
+    let got = edits(c.request("textDocument/formatting", format_params(&u)));
+    assert_eq!(got[0].4, "print 1\n  x\n");
+    c.shutdown().unwrap();
+}
+
+/// A program with an error: no edits, the diagnostics published, and a message naming the first error's file and
+/// line ("Format failure").
+#[test]
+fn formatting_a_program_with_an_error() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "x = 1\r\ny = BAD\r\n");
+    assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    assert_eq!(edits(c.request("textDocument/formatting", format_params(&u))), []);
+    let d = c.diagnostics(&u).unwrap();
+    assert_eq!(at(&d[0]), (1, 4, "a BAD word".to_string()));
+    let shown = c
+        .inbox
+        .iter()
+        .find(|n| n.method == "window/showMessage")
+        .expect("a message");
+    assert_eq!(shown.params["type"], 1);
+    let text = shown.params["message"].as_str().unwrap();
+    assert!(text.contains("p.bas, line 2"), "{text}");
+    c.shutdown().unwrap();
+}
+
+/// Range formatting edits only the lines the range touches ("One line of a block"); a range that ends at the start of
+/// a line leaves that line.
+#[test]
+fn range_formatting_edits_the_lines_of_the_range() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "a   1\n  b   2\nc   3\n");
+    let got = edits(c.request("textDocument/rangeFormatting", range_params(&u, (1, 2), (1, 4))));
+    assert_eq!(got, [(1, 0, 1, 7, "    b 2".to_string())]);
+    let got = edits(c.request("textDocument/rangeFormatting", range_params(&u, (0, 0), (2, 0))));
+    assert_eq!(got.iter().map(|e| e.0).collect::<Vec<_>>(), [0, 1]);
+    c.shutdown().unwrap();
+}
+
+/// An edit that comes while a document is formatted makes the answer `ContentModified`, so that no edit for an older
+/// text is applied.
+#[test]
+fn formatting_refused_after_an_edit() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "SLOW  1\n");
+    let id = c.send_request("textDocument/formatting", format_params(&u));
+    c.change(&u, 2, "SLOW  2\n");
+    assert_eq!(error_code(c.response(&id)), ErrorCode::ContentModified as i32);
+    c.shutdown().unwrap();
+}
+
+/// A document closed and opened again with another text while it is formatted is a newer text too: its version is
+/// the server's count, not one that starts again at the open.
+#[test]
+fn formatting_refused_after_close_and_open() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "SLOW  1\n");
+    let id = c.send_request("textDocument/formatting", format_params(&u));
+    c.notify("textDocument/didClose", json!({ "textDocument": { "uri": u } }));
+    c.open(&u, "SLOW  2\n");
+    assert_eq!(error_code(c.response(&id)), ErrorCode::ContentModified as i32);
     c.shutdown().unwrap();
 }
 

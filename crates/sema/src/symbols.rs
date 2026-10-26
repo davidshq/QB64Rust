@@ -3,7 +3,7 @@
 //! suffix included. Variables of every storage class, procedures, labels and constants are recorded.
 
 use crate::consteval::Value;
-use crate::{ConstId, LabelId, ProcId, ProcKind, Program, Storage, VarId};
+use crate::{ConstId, LabelId, MemberId, ProcId, ProcKind, Program, Storage, TypeId, VarId};
 use qb64rust_base::show_bytes;
 use qb64rust_base::{FileId, SourceMap, Span, to_u32};
 use std::collections::HashMap;
@@ -18,6 +18,12 @@ pub enum SymbolKind {
     Proc(ProcId),
     Label(LabelId),
     Const(ConstId),
+    /// A user type (design D3 of `m5b-formatter`): defined by the name of its `TYPE` line, referenced by each `AS`
+    /// clause that names it. `_MEM`, which no `TYPE` line defines, is not recorded.
+    Type(TypeId),
+    /// A member of a user type: defined by its name in the `TYPE` block, referenced by each access that names it
+    /// (the part of a dotted name after its dot, or the name after `.` of `a(1).m`).
+    Member(TypeId, MemberId),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -54,6 +60,18 @@ impl Symbols {
             .partition_point(|(s, _)| (s.file, s.start) <= (file, offset));
         let (span, id) = *self.by_pos.get(i.checked_sub(1)?)?;
         (span.file == file && offset < span.end).then_some(id)
+    }
+
+    /// Every definition and reference that starts inside `span`, in order: the name of a dotted token and its
+    /// members (design D3 of `m5b-formatter`).
+    pub fn within(&self, span: Span) -> impl Iterator<Item = (Span, SymbolId)> + '_ {
+        let from = self
+            .by_pos
+            .partition_point(|(s, _)| (s.file, s.start) < (span.file, span.start));
+        self.by_pos[from..]
+            .iter()
+            .take_while(move |(s, _)| s.file == span.file && s.start < span.end)
+            .copied()
     }
 
     /// Records the names one statement resolved. The first name of a symbol not seen before becomes its
@@ -134,6 +152,21 @@ pub fn dump_symbols(p: &Program, map: &SourceMap) -> String {
                 let owner = c.proc.map_or(String::new(), |q| format!(" (in {})", p.proc(q).name));
                 let (name, ty) = (&c.name, c.ty.qb_name());
                 write!(out, "Const {name} : {ty} = {value}{owner} def {}", pos(s.def)).unwrap();
+            }
+            SymbolKind::Type(t) => write!(out, "Type {} def {}", p.user_type(t).name, pos(s.def)).unwrap(),
+            SymbolKind::Member(t, m) => {
+                let ut = p.user_type(t);
+                let member = &ut.members[m.0 as usize];
+                let shape = if member.is_array() { "()" } else { "" };
+                let ty = p.type_name(member.ty);
+                write!(
+                    out,
+                    "Member {}.{}{shape} : {ty} def {}",
+                    ut.name,
+                    member.name,
+                    pos(s.def)
+                )
+                .unwrap();
             }
         }
         let refs: Vec<String> = s.refs.iter().map(|&r| pos(r)).collect();

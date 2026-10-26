@@ -1950,3 +1950,140 @@ class NoKeys(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FormatCorpus(unittest.TestCase):
+    """The format oracle's suite (format_corpus_test): a set with three programs in a scratch folder, its
+    recordings in another, and the compiler replaced by a stand-in that writes a chosen output."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        base = Path(self.tmp.name)
+        self.set_root, self.format_root, self.results = base / "set", base / "format", base / "results"
+        for d in (self.set_root, self.format_root, self.results):
+            d.mkdir()
+        (self.set_root / "g").mkdir()
+        self.src = self.set_root / "g" / "p.bas"
+        self.src.write_bytes(b"print 1\r\n")
+        (self.set_root / "g" / "rejected.bas").write_bytes(b"x = \r\n")
+        (self.set_root / "g" / "rejected.err").write_bytes(b"error\r\n")
+        (self.set_root / "UPPER.BAS").write_bytes(b"print 2\r\n")
+        self.sets = {"s": self.set_root}
+        self.rec = self.format_root / "s" / "g" / "p.bas"
+        self.calls: list[list[str]] = []
+
+    def tool(self, output: bytes | None, rc: int = 0):
+        def run_proc(cmd, cwd, stdout_path, timeout, **_):
+            self.calls.append([str(c) for c in cmd])
+            Path(stdout_path).write_bytes(b"")
+            if output is not None:
+                Path(cmd[-1]).write_bytes(output)
+            return rc, False
+
+        return run_proc
+
+    def run_test(self, path: Path, qb64: str, output: bytes | None, rc: int = 0):
+        args = SimpleNamespace(qb64=Path(qb64))
+        with mock.patch.object(rlt, "run_proc", self.tool(output, rc)), mock.patch.object(rlt, "clear_temp"):
+            return rlt.format_corpus_test(
+                path, args, self.results, self.results, sets=self.sets, format_root=self.format_root
+            )
+
+    def test_sources_leave_out_rejected_programs_and_take_any_case_of_bas(self):
+        self.assertEqual(rlt.format_sources(self.sets), [self.set_root / "UPPER.BAS", self.src])
+
+    def test_recording_writes_the_output_with_the_defaults_given(self):
+        r = self.run_test(self.src, "qb64pe.exe", b"Print 1\r\n")
+        self.assertEqual((r.status, r.test, r.detail), ("PASS", "s/g/p", "recorded"))
+        self.assertEqual(self.rec.read_bytes(), b"Print 1\r\n")
+        cmd = self.calls[0]
+        self.assertEqual(cmd[1:3], ["-y", "-m"])
+        for flag in rlt.FORMAT_DEFAULTS:
+            self.assertIn(flag, cmd)
+        self.assertEqual(cmd[-3], "p.bas")
+
+    def test_recording_leaves_an_output_that_differs_only_by_line_ends(self):
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print 1\n")
+        r = self.run_test(self.src, "qb64pe.exe", b"Print 1\r\n")
+        self.assertEqual(r.detail, "unchanged")
+        self.assertEqual(self.rec.read_bytes(), b"Print 1\n")
+
+    def test_recording_of_a_failed_format_writes_nothing(self):
+        r = self.run_test(self.src, "qb64pe.exe", None, rc=1)
+        self.assertEqual((r.status, r.stage), ("FAIL", "format"))
+        self.assertFalse(self.rec.exists())
+
+    def test_compare_passes_on_equal_text_with_lf_and_never_writes(self):
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print 1\n")
+        r = self.run_test(self.rec, "qb64rust.exe", b"Print 1\r\n")
+        self.assertEqual((r.status, r.test), ("PASS", "s/g/p"))
+        self.assertEqual(self.rec.read_bytes(), b"Print 1\n")
+        self.assertEqual(self.calls[0][-3], "p.bas")
+
+    def test_compare_names_the_first_line_that_differs(self):
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print x\r\n")
+        r = self.run_test(self.rec, "qb64rust.exe", b"Print  x\r\n")
+        self.assertEqual((r.status, r.stage), ("FAIL", "result"))
+        self.assertIn("line 1", r.detail)
+        self.assertIn("Print  x", r.detail)
+
+    def test_compare_takes_a_row_its_sidecar_names(self):
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print x\r\n")
+        self.rec.with_suffix(".divergences").write_bytes(b"D-099  # why\n")
+        r = self.run_test(self.rec, "qb64rust.exe", b"Print  x\r\n")
+        self.assertEqual((r.status, r.detail), ("PASS", "differs, takes D-099"))
+
+    def test_compare_fails_when_the_compiler_fails(self):
+        self.rec.parent.mkdir(parents=True)
+        self.rec.write_bytes(b"Print 1\r\n")
+        r = self.run_test(self.rec, "qb64rust.exe", None, rc=1)
+        self.assertEqual((r.status, r.stage), ("FAIL", "format"))
+
+    def test_compare_of_upstream_gives_the_include_root(self):
+        self.sets = {"upstream": self.set_root}
+        rec = self.format_root / "upstream" / "g" / "p.bas"
+        rec.parent.mkdir(parents=True)
+        rec.write_bytes(b"Print 1\r\n")
+        self.run_test(rec, "qb64rust.exe", b"Print 1\r\n")
+        self.assertIn("--include-root", self.calls[0])
+
+    def test_upstream_is_formatted_in_the_clones_folder(self):
+        self.sets = {"upstream": self.set_root}
+        clone = Path(self.tmp.name) / "clone"
+        (clone / "tests" / "compile_tests" / "g").mkdir(parents=True)
+        (clone / "tests" / "compile_tests" / "g" / "p.bas").write_bytes(b"print 1\r\n")
+        cwd: list[Path] = []
+
+        def run_proc(cmd, folder, stdout_path, timeout, **_):
+            cwd.append(Path(folder))
+            Path(cmd[-1]).write_bytes(b"Print 1\r\n")
+            return 0, False
+
+        args = SimpleNamespace(qb64=Path("qb64pe.exe"))
+        with mock.patch.object(rlt, "run_proc", run_proc), mock.patch.object(rlt, "clear_temp"):
+            r = rlt.format_corpus_test(self.src, args, self.results, clone, self.sets, self.format_root)
+        self.assertEqual(r.test, "upstream/g/p")
+        self.assertEqual(cwd[0], clone / "tests" / "compile_tests" / "g")
+        self.assertTrue((self.format_root / "upstream" / "g" / "p.bas").is_file())
+
+    def test_data_files_go_beside_the_program(self):
+        files = self.set_root / "g" / "p.files" / "inc"
+        files.mkdir(parents=True)
+        (files / "a.bi").write_bytes(b"x = 1\r\n")
+        cwd: list[Path] = []
+
+        def run_proc(cmd, folder, stdout_path, timeout, **_):
+            cwd.append(Path(folder))
+            Path(cmd[-1]).write_bytes(b"Print 1\r\n")
+            return 0, False
+
+        args = SimpleNamespace(qb64=Path("qb64pe.exe"))
+        with mock.patch.object(rlt, "run_proc", run_proc), mock.patch.object(rlt, "clear_temp"):
+            rlt.format_corpus_test(self.src, args, self.results, self.results, self.sets, self.format_root)
+        self.assertTrue((cwd[0] / "inc" / "a.bi").is_file())
+        self.assertTrue((cwd[0] / "p.bas").is_file())

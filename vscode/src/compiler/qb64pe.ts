@@ -5,6 +5,7 @@ import * as os from "os";
 import * as path from "path";
 import { CompilerMessage, parseQb64peOutput } from "./parseQb64peOutput";
 import { RunQueue, RunResult } from "./runQueue";
+import { FormatSettings, formatFlags } from "../server/protocol";
 
 export interface CompilerRun extends RunResult {
     messages: CompilerMessage[];
@@ -59,12 +60,17 @@ export async function check(queue: RunQueue, compiler: string, file: string, tim
     return withMessages(result, file);
 }
 
-/** Formats `source` into `output` with `-y -q`. Includes resolve relative to `source`'s folder. */
-export async function format(queue: RunQueue, compiler: string, source: string, output: string, timeoutMs: number): Promise<CompilerRun> {
+/** `-y -q`, the layout settings as `-f:` settings (so that `config.ini` plays no part), `<source> -o <output>`. */
+export function formatArgs(source: string, output: string, settings: FormatSettings): string[] {
+    return ["-y", "-q", ...formatFlags(settings), source, "-o", output];
+}
+
+/** Formats `source` into `output` with `-y -q` and the settings. Includes resolve relative to `source`'s folder. */
+export async function format(queue: RunQueue, compiler: string, source: string, output: string, settings: FormatSettings, timeoutMs: number): Promise<CompilerRun> {
     const result = await queue.run({
         kind: "format",
         command: compiler,
-        args: ["-y", "-q", source, "-o", output],
+        args: formatArgs(source, output, settings),
         cwd: path.dirname(source),
         timeoutMs,
     });

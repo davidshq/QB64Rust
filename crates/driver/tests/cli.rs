@@ -3242,3 +3242,209 @@ fn a_child_with_much_output_is_read_whole() {
     assert!(o.stdout == text, "stdout: {} of {} bytes", o.stdout.len(), text.len());
     assert!(o.stderr == text, "stderr: {} of {} bytes", o.stderr.len(), text.len());
 }
+
+/// QB64pe's six layout defaults, as the format suites give them (spec `compiler/format`).
+const LAYOUT_DEFAULTS: [&str; 6] = [
+    "-f:autoindent=1",
+    "-f:autoindentsize=4",
+    "-f:indentsubs=1",
+    "-f:autolayout=1",
+    "-f:keywordcapitals=0",
+    "-f:keywordlowercase=0",
+];
+
+/// `-y` without `-o` writes nothing and says why (spec `compiler/format`, "No output file").
+#[test]
+fn format_needs_an_output_file() {
+    let d = scratch("format-no-out");
+    std::fs::write(d.join("prog.bas"), "print 1\r\n").unwrap();
+    let o = qb64rust(&d, &["-y", "prog.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(
+        stdout(&o).contains("formatting requires an output file"),
+        "{}",
+        stdout(&o)
+    );
+    let names: Vec<_> = std::fs::read_dir(&*d)
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    assert_eq!(names, ["prog.bas"], "no file is written");
+}
+
+/// `-y -o` writes the file and leaves the input as it was, with CRLF after each line; nothing is built (spec
+/// `compiler/format`, "Format command").
+#[test]
+fn format_writes_the_output_file() {
+    let d = scratch("format-out");
+    std::fs::write(d.join("prog.bas"), "PRINT 1\nPRINT 2").unwrap();
+    let o = qb64rust(&d, &["-y", "-q", "-m", "prog.bas", "-o", "out.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(std::fs::read(d.join("prog.bas")).unwrap(), b"PRINT 1\nPRINT 2");
+    let out = std::fs::read(d.join("out.bas")).unwrap();
+    assert!(
+        out.ends_with(b"\r\n") && out.split(|&c| c == b'\n').count() == 3,
+        "{out:?}"
+    );
+    let mut names: Vec<_> = std::fs::read_dir(&*d)
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    names.sort();
+    assert_eq!(names, ["out.bas", "prog.bas"], "no executable or build folder");
+}
+
+/// The format suite's command line on QB64pe's `format_tests\general` gives its `full-cc.out` (spec `compiler/format`,
+/// "Runner's format line"). The test's files are read from the reference clone.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn runners_format_line() {
+    let clone = qb64rust_driver::build::find_root(None).expect("the QB64pe reference clone");
+    let tests = clone.join("tests/format_tests/general");
+    let d = scratch("format-general");
+    for f in ["general.bas", "included.file"] {
+        std::fs::copy(tests.join(f), d.join(f)).unwrap();
+    }
+    let mut args = vec!["-y", "-m"];
+    args.extend(LAYOUT_DEFAULTS);
+    args.extend(["general.bas", "-o", "out"]);
+    let o = qb64rust(&d, &args);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let lf = |b: Vec<u8>| b.into_iter().filter(|&c| c != b'\r').collect::<Vec<u8>>();
+    let got = lf(std::fs::read(d.join("out")).unwrap());
+    let want = lf(std::fs::read(tests.join("full-cc.out")).unwrap());
+    assert!(got.trim_ascii_end() == want.trim_ascii_end(), "{}", stdout(&o));
+}
+
+/// Both keyword settings true is CamelCase, as `qb64pe` takes them (spec `compiler/format`, "Both keyword
+/// settings").
+#[test]
+fn format_both_keyword_settings() {
+    let d = scratch("format-keywords");
+    std::fs::write(d.join("prog.bas"), "print 1\r\n").unwrap();
+    let o = qb64rust(
+        &d,
+        &[
+            "-y",
+            "-f:KeywordCapitals=true",
+            "-f:KeywordLowercase=true",
+            "prog.bas",
+            "-o",
+            "out.bas",
+        ],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(std::fs::read(d.join("out.bas")).unwrap(), b"Print 1\r\n");
+    let o = qb64rust(&d, &["-y", "-f:KeywordCapitals=true", "prog.bas", "-o", "up.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(std::fs::read(d.join("up.bas")).unwrap(), b"PRINT 1\r\n");
+}
+
+/// An indent size out of range is an error (spec `compiler/format`, "Indent size out of range"), and so is a value
+/// that is not boolean; the boolean words `qb64pe` takes are taken.
+#[test]
+fn format_layout_setting_values() {
+    let d = scratch("format-settings");
+    std::fs::write(d.join("prog.bas"), "print 1\r\n").unwrap();
+    let o = qb64rust(&d, &["-y", "-f:AutoIndentSize=65", "prog.bas", "-o", "out.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(stdout(&o).contains("range 1 to 64"), "{}", stdout(&o));
+    assert!(!d.join("out.bas").exists());
+    let o = qb64rust(&d, &["-y", "-f:AutoLayout=maybe", "prog.bas", "-o", "out.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(stdout(&o).contains("needs `true` or `false`"), "{}", stdout(&o));
+    let words = [
+        "-f:AUTOINDENT=yes",
+        "-f:IndentSubs=off",
+        "-f:autolayout=-1",
+        "-f:KeywordCapitals=on",
+    ];
+    let o = qb64rust(
+        &d,
+        &[
+            "-y", words[0], words[1], words[2], words[3], "prog.bas", "-o", "out.bas",
+        ],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+}
+
+/// No `-f:` setting formats as the six defaults given (spec `compiler/format`, "No settings").
+#[test]
+fn format_defaults_are_qb64pes() {
+    let d = scratch("format-defaults");
+    let program = "sub s\r\nif x   =   1 then\r\nprint   \"a\"\r\nend if\r\nend sub\r\n";
+    std::fs::write(d.join("prog.bas"), program).unwrap();
+    let o = qb64rust(&d, &["-y", "prog.bas", "-o", "plain.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let mut args = vec!["-y"];
+    args.extend(LAYOUT_DEFAULTS);
+    args.extend(["prog.bas", "-o", "given.bas"]);
+    let o = qb64rust(&d, &args);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(
+        std::fs::read(d.join("plain.bas")).unwrap(),
+        std::fs::read(d.join("given.bas")).unwrap()
+    );
+}
+
+/// A program with an error is reported as a compile reports it, and nothing is written (spec `compiler/format`,
+/// "Syntax error").
+#[test]
+fn format_of_a_program_with_an_error() {
+    let d = scratch("format-error");
+    std::fs::write(d.join("prog.bas"), "print 1\r\nx = 1 +\r\n").unwrap();
+    let o = qb64rust(&d, &["-y", "-q", "prog.bas", "-o", "out.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    assert!(out.contains("prog.bas:2:") && out.contains("1 error"), "{out}");
+    assert!(!d.join("out.bas").exists(), "no output file");
+}
+
+/// A warning does not stop `-y` (spec `compiler/format`, "Program with an error").
+#[test]
+fn format_with_a_warning() {
+    let d = scratch("format-warning");
+    std::fs::write(d.join("prog.bas"), "$DEBUG\r\nx = 1\r\n").unwrap();
+    let o = qb64rust(&d, &["-y", "-w", "prog.bas", "-o", "out.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("warning"), "{}", stdout(&o));
+    assert!(d.join("out.bas").is_file());
+}
+
+/// A layout setting given to a run that is not `-y` is checked and changes nothing (spec `compiler/cli`, "A layout
+/// setting in a build"): the C++ is the same as without it.
+#[test]
+fn layout_setting_in_a_build_changes_nothing() {
+    let d = scratch("layout-in-build");
+    std::fs::write(d.join("prog.bas"), SLICE_PROGRAM).unwrap();
+    let plain = qb64rust(&d, &["--dump", "cpp", "prog.bas"]);
+    let with = qb64rust(&d, &["-f:AutoIndent=false", "--dump", "cpp", "prog.bas"]);
+    assert!(plain.status.success() && with.status.success(), "{}", stdout(&with));
+    assert_eq!(plain.stdout, with.stdout);
+    let bad = qb64rust(&d, &["-f:AutoIndentSize=0", "-z", "prog.bas"]);
+    assert_eq!(bad.status.code(), Some(1), "{}", stdout(&bad));
+}
+
+/// The same with a build (spec `compiler/cli`, "A layout setting in a build").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn layout_setting_in_a_build() {
+    let d = scratch("layout-build");
+    // Ends with `SYSTEM`: an `END` would wait for a key.
+    std::fs::write(d.join("prog.bas"), SLICE_PROGRAM.replace("END\n", "SYSTEM\n")).unwrap();
+    let exe = d.join("prog.exe");
+    let o = qb64rust_build(
+        &d,
+        &[
+            "-f:AutoIndent=false",
+            "-q",
+            "-x",
+            "prog.bas",
+            "-o",
+            exe.to_str().unwrap(),
+        ],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    let ran = run(&mut unattended(&exe), None, PROGRAM_LIMIT, "program");
+    assert!(stdout(&ran).starts_with("x= .25"), "{}", stdout(&ran));
+}

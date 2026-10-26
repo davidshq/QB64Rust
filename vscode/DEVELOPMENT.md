@@ -20,7 +20,7 @@ package it (below).
 
 | Command | What | Needs |
 |---|---|---|
-| `npm run test:unit` | Output parser (against recorded fixtures), compiler discovery (`qb64pe` and `qb64rust`), run queue, the language server's initialization options and encoding notification, the debug launch's resolution (`debugConfig.ts`) | Node only |
+| `npm run test:unit` | Output parser (against recorded fixtures), compiler discovery (`qb64pe` and `qb64rust`), run queue, the language server's initialization options and encoding notification, the debug launch's resolution (`debugConfig.ts`), the format arguments, layout settings, choice of formatter and Format Selection's lines (`format.test.ts`) | Node only |
 | `npm run test:grammar` | Annotated `test\grammar\*.bas` against the TextMate grammar | Node only |
 | `npm run test:integration` | Downloads a VS Code build into `.vscode-test\` and runs `test\integration\suite` in it, in a temporary copy of `test-fixtures\workspace` | A compiler for the compiler tests (skipped without one): `QB64RUST_TEST_QB64PE`, else `..\..\QB64pe\qb64pe.exe`; the `qb64rust` binary for the language server tests (skipped without it): `QB64RUST_TEST_QB64RUST` |
 | `npm run test:integration:min` | The same on the oldest version `engines.vscode` accepts (1.100.0) | as above |

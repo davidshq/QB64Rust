@@ -7,7 +7,7 @@ import { Builder } from "./build";
 import { Bundle, chosenCompiler } from "./buildPlan";
 import { DebugSupport } from "./debug";
 import { Diagnostics } from "./diagnostics";
-import { Formatter, removeStaleTempFiles } from "./format";
+import { Formatter, registerWhileServerOff, removeStaleTempFiles } from "./format";
 import { LanguageServer } from "./languageServer";
 import { CompilerStatus } from "./statusBar";
 import { Qb64TaskProvider, TASK_TYPE } from "./tasks";
@@ -52,7 +52,7 @@ export function activate(context: vscode.ExtensionContext): Api {
         builder,
         debug,
         lsp,
-        vscode.languages.registerDocumentFormattingEditProvider("qb64rust", new Formatter(queue, status, diagnostics)),
+        registerWhileServerOff(lsp, new Formatter(queue, status, diagnostics, lsp)),
         vscode.tasks.registerTaskProvider(TASK_TYPE, new Qb64TaskProvider(status, lsp, bundle)),
     );
     void removeStaleTempFiles();

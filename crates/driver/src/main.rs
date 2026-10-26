@@ -4,6 +4,9 @@
 //! [--dump tokens|tree|typed|ir|cpp|debug-info]
 //! [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build] [--coverage] [--debug]`
 //!
+//! `qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]`: the
+//! file laid out as `qb64pe -y` lays it out (spec `compiler/format`).
+//!
 //! `qb64rust --report unsupported <file or folder>... [--include-root <dir>]`: what a set of programs still needs
 //! (`report.rs`).
 //!
@@ -11,6 +14,7 @@
 //!
 //! `qb64rust dap [--qb64pe-root <dir>]`: the debug adapter (crate `qb64rust-dap`).
 
+use qb64rust_base::layout::Settings;
 use qb64rust_driver::{
     FileLoader, build, dump_cpp, dump_debug_info, dump_ir, emit_ir_debug, emit_ir_with, frontend_at, log_folder, lower,
     report,
@@ -23,6 +27,7 @@ use std::sync::Mutex;
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp|debug-info] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
 [--keep-build] [--coverage] [--debug]\n\
+       qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]\n\
        qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)\n\
        qb64rust dap [--qb64pe-root <dir>]    (the debug adapter, over stdin and stdout)";
@@ -33,6 +38,8 @@ struct Options {
     inputs: Vec<PathBuf>,
     /// `--report unsupported`.
     report: bool,
+    /// `-y`: lay the file out instead of compiling it (spec `compiler/format`).
+    format: bool,
     output: Option<PathBuf>,
     quiet: bool,
     cpp_only: bool,
@@ -57,11 +64,16 @@ struct Options {
 
 /// The `-f:` settings: `OptimizeCppProgram=true` (as `qb64pe` turns it into `-O2`) and `ExtraLinkerFlags=<value>`
 /// (added to the link command), `StripDebugSymbols=false` (the executable unstripped) and `GenerateLicenseFile`;
-/// any other setting is not supported yet (spec `compiler/cli`).
+/// the layout settings of `-y`, checked and ignored as `qb64pe` ignores them in a build; any other setting is not
+/// supported yet (spec `compiler/cli`).
 fn build_settings(settings: &[String]) -> Result<build::Settings, String> {
     let mut out = build::Settings::default();
+    let mut layout = Settings::default();
     for s in settings {
         let (name, value) = s.split_once('=').unwrap_or((s, ""));
+        if layout.set(name, value)? {
+            continue;
+        }
         match name {
             "OptimizeCppProgram" => {
                 out.optimize = match value.to_ascii_lowercase().as_str() {
@@ -91,6 +103,21 @@ fn build_settings(settings: &[String]) -> Result<build::Settings, String> {
     Ok(out)
 }
 
+/// The layout settings of `-y` (spec `compiler/format`); a build setting is checked as a build checks it and
+/// changes nothing, as with `qb64pe`.
+fn layout_settings(settings: &[String]) -> Result<Settings, String> {
+    let mut layout = Settings::default();
+    let mut rest = Vec::new();
+    for s in settings {
+        let (name, value) = s.split_once('=').unwrap_or((s, ""));
+        if !layout.set(name, value)? {
+            rest.push(s.clone());
+        }
+    }
+    build_settings(&rest)?;
+    Ok(layout)
+}
+
 fn parse_args() -> Result<Options, String> {
     let mut o = Options::default();
     let mut args = std::env::args_os().skip(1);
@@ -104,6 +131,7 @@ fn parse_args() -> Result<Options, String> {
             "-w" => o.warnings = true,
             "-q" => o.quiet = true,
             "-z" => o.cpp_only = true,
+            "-y" => o.format = true,
             "-o" => o.output = Some(PathBuf::from(value("-o")?)),
             "--dump" => {
                 let d = value("--dump")?.to_string_lossy().to_string();
@@ -209,9 +237,10 @@ fn lsp(arg_count: usize) -> ExitCode {
         .ok()
         .and_then(|e| e.parent().map(Path::to_path_buf))
         .unwrap_or_default();
-    // A check runs the CLI's own front end (design D2 of `extension-diagnostics`).
-    let check = qb64rust_driver::check_for_server;
-    match qb64rust_driver::with_stack(move || qb64rust_lsp::run_stdio(root, check)) {
+    // A check and a formatting request run the CLI's own front end (design D2 of `extension-diagnostics`, D5 of
+    // `m5b-formatter`).
+    let hooks = qb64rust_driver::server_hooks();
+    match qb64rust_driver::with_stack(move || qb64rust_lsp::run_stdio(root, hooks)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(msg) => {
             eprintln!("qb64rust lsp: {msg}");
@@ -270,6 +299,35 @@ fn report_unsupported(o: &Options) -> Result<ExitCode, String> {
     Ok(ExitCode::SUCCESS)
 }
 
+/// `-y`: the main file laid out into `-o` (spec `compiler/format`). Nothing is built, and nothing is written when
+/// the front end reports an error.
+fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitCode, String> {
+    let Some(out) = &o.output else {
+        return Err("formatting requires an output file: give -o <file>".into());
+    };
+    let settings = layout_settings(&o.settings)?;
+    let include_root = include_root(o)?;
+    let fe = frontend_at(
+        name,
+        bytes,
+        |file| Box::new(FileLoader::new(&include_root, file, input)),
+        Some((input, &include_root)),
+    );
+    let errors = fe.diagnostics.error_count();
+    if o.warnings {
+        print!("{}", fe.render_with_warnings());
+    } else if errors > 0 {
+        print!("{}", fe.render_diagnostics());
+    }
+    if errors > 0 {
+        println!("{}", fe.diagnostics.summary());
+        return Ok(ExitCode::FAILURE);
+    }
+    let text = qb64rust_driver::format_program(&fe, &settings);
+    std::fs::write(out, text).map_err(|e| format!("writing {}: {e}", out.display()))?;
+    Ok(ExitCode::SUCCESS)
+}
+
 fn run() -> Result<ExitCode, String> {
     let o = parse_args().map_err(|e| format!("{e}\n{USAGE}"))?;
     let input = o
@@ -289,6 +347,9 @@ fn run() -> Result<ExitCode, String> {
         ));
     }
     let name = input.to_string_lossy().to_string();
+    if o.format {
+        return format(&o, &input, &name, bytes);
+    }
     let exe = match &o.output {
         Some(p) => p.clone(),
         None => input.with_extension("exe"),

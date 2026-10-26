@@ -1,5 +1,6 @@
 // Reads the extension's settings. Every `qb64rust.*` lookup goes through here.
 import * as vscode from "vscode";
+import { DEFAULT_FORMAT, FormatSettings } from "./server/protocol";
 
 const SECTION = "qb64rust";
 
@@ -54,6 +55,25 @@ export function serverPath(): string {
  * file's folder (`protocol.ts` `includeRootFor` gives the default). */
 export function includeRoot(): string {
     return settings().get<string>("includeRoot", "").trim();
+}
+
+/** `qb64rust.format.*`: the layout settings of every formatter (change m5b-formatter, design D7); a value out of range
+ * or unknown is the default's. */
+export function formatSettings(uri?: vscode.Uri): FormatSettings {
+    const s = settings(uri);
+    const size = Math.round(s.get<number>("format.indentSize", DEFAULT_FORMAT.indentSize));
+    const keywordCase = s.get<string>("format.keywordCase", DEFAULT_FORMAT.keywordCase);
+    return {
+        autoIndent: s.get<boolean>("format.autoIndent", DEFAULT_FORMAT.autoIndent),
+        indentSize: size >= 1 && size <= 64 ? size : DEFAULT_FORMAT.indentSize,
+        indentSubs: s.get<boolean>("format.indentSubs", DEFAULT_FORMAT.indentSubs),
+        autoLayout: s.get<boolean>("format.autoLayout", DEFAULT_FORMAT.autoLayout),
+        keywordCase: keywordCase === "upper" || keywordCase === "lower" ? keywordCase : "camel",
+    };
+}
+
+export function affectsFormatSettings(e: vscode.ConfigurationChangeEvent): boolean {
+    return e.affectsConfiguration(`${SECTION}.format`);
 }
 
 /** The `[qb64rust]` `files.encoding`: the encoding of QB64 files nobody chose one for (cp437 by default). */

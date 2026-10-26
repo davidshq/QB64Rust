@@ -37,6 +37,7 @@ UPSTREAM = REPO / "tests" / "upstream"
 DIFFERENTIAL = REPO / "tests" / "differential"
 VERIFICATION = REPO / "tests" / "verification"
 VERIFICATION_ROOT = REPO / "verification"
+FORMAT = REPO / "tests" / "format"
 RESULTS = REPO / "target" / "legacy-tests"
 COMPILER = REPO / "target" / "release" / "qb64rust.exe"
 
@@ -139,6 +140,25 @@ def verification_membership() -> list[str]:
     return lines
 
 
+def format_membership() -> list[str]:
+    """The recordings of the format oracle by set, and how many tests/format/known_differences.list names."""
+    sets = sorted(p.name for p in FORMAT.iterdir() if p.is_dir()) if FORMAT.is_dir() else []
+    rows = []
+    for name in sets:
+        recorded = sum(
+            1 for p in (FORMAT / name).rglob("*") if p.is_file() and p.suffix.lower() == ".bas"
+        )
+        rows.append([f"`{name}`", recorded])
+    total = sum(n for _, n in rows)
+    listed = FORMAT / "known_differences.list"
+    known = len(list_names(listed)) if listed.is_file() else 0
+    return [
+        f"**{total}** programs recorded; `known_differences.list` names {known}. By set:",
+        "",
+        *table(["Set", "Recorded"], rows),
+    ]
+
+
 def full_run(suite: str) -> tuple[dict | None, str]:
     """The suite's last full summary when it may be written as current, else (None, why not)."""
     path = RESULTS / f"results-{suite}.json"
@@ -230,6 +250,7 @@ BLOCKS = [
         "membership",
         lambda: (verification_membership(), ""),
     ),
+    (FORMAT / "README.md", "format-membership", "membership", lambda: (format_membership(), "")),
     (
         VERIFICATION / "README.md",
         "verification-results",

@@ -211,6 +211,42 @@ pub fn check_for_server(map: &SourceMap, parsed: &ParsedProgram, main_path: Opti
     check_program(map, parsed, main_path.map(|m| (m, root))).1
 }
 
+/// The main file of a checked program (one without errors) laid out as `qb64pe -y` lays it out, with `settings`
+/// (spec `compiler/format`): every line followed by CRLF.
+pub fn format_program(fe: &Frontend, settings: &qb64rust_base::layout::Settings) -> Vec<u8> {
+    qb64rust_format::format_file(&fe.map, &fe.parsed, &fe.program, fe.file, settings)
+}
+
+/// [`check_program`] then [`format_program`]'s layout for the language server (`qb64rust_lsp::Format`, design D5 of
+/// `m5b-formatter`): the main file formatted, or the diagnostics when the front end reports an error.
+pub fn format_for_server(
+    map: &SourceMap,
+    parsed: &ParsedProgram,
+    main_path: Option<&Path>,
+    root: &Path,
+    settings: &qb64rust_base::layout::Settings,
+) -> Result<Vec<u8>, Diagnostics> {
+    let (program, diagnostics) = check_program(map, parsed, main_path.map(|m| (m, root)));
+    if diagnostics.has_errors() {
+        return Err(diagnostics);
+    }
+    Ok(qb64rust_format::format_file(
+        map,
+        parsed,
+        &program,
+        parsed.main().file,
+        settings,
+    ))
+}
+
+/// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check and the formatter.
+pub fn server_hooks() -> qb64rust_lsp::Hooks {
+    qb64rust_lsp::Hooks {
+        check: check_for_server,
+        format: format_for_server,
+    }
+}
+
 /// Where the icon `$EXEICON` names lies ([`named_file`]). `None` for a program without one.
 pub fn exe_icon_path(fe: &Frontend, main_path: &Path, root: &Path) -> Option<PathBuf> {
     icon_path(&fe.program, main_path, root)
