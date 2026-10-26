@@ -69,10 +69,16 @@ push shows them (the user is not concerned with CI, working rule 9).
    Every item of M5 is built: M5 is to be declared done with the user at the next merge into `main`.
 2. M5b, the formatter and the language-server features (user, `DECISIONS.md` 2026-10-25; `ROADMAP.md`), then M6.
    Its first change, `m5b-formatter` (`qb64rust -y`, the format oracle `tests\format\`, formatting in the language
-   server and the extension; specs `compiler/format`, `testing/format-oracle`), is built and closed (its closing
-   runs pass), waiting on the user's review before its archive. The next is `m5b-language-features` (hover, find
-   references, rename, completion), with the oracle under the non-default layout settings first (`m5b-formatter`
-   `tasks.md`, "Workflow follow-up").
+   server and the extension; specs `compiler/format`, `testing/format-oracle`), is built, closed (its closing
+   runs pass) and archived (`2026-10-25-m5b-formatter`). Its second, `m5b-format-settings` (the oracle under
+   the six other layout settings: `tests\format\settings.list`, `tests\format\settings\`; D-039), is built and
+   closed (its closing runs pass), to be archived once the user has reviewed it. The next is
+   `m5b-language-features` (hover, find references, rename, completion).
+3. Branch `m5` (M5's three changes, `m5b-formatter` and `m5b-format-settings`) goes into `main` by a pull
+   request; the full set at a merge runs on its tree before it is merged (working rule 9). The numbers below
+   are for `961b4cc`; `m5b-format-settings`, which came after it, changed only the formatter, the oracle's
+   tooling and its recordings, and added three programs to `slice.list` (`s160_layout_*`). It rests on its own
+   closing runs (2026-10-25, `close.py --check` passes; `slice.list` 496 of 496).
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
@@ -136,6 +142,18 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 | 22 | `2026-10-18-m3-constant-evaluation` | the `CONST` evaluator in full: `_FLOAT` in software, its lanes and typing by text, every function (math functions certified, else D-026), suffixed constants, the auto-included constants, `$COLOR`; the dependency `astro-float-num` |
 
 ## Numbers at the last full runs
+
+**For the merge into `main` of branch `m5`** (pull request 17, 2026-10-25, the full set on the tree of
+`961b4cc`, which is the merged tree, in this checkout, no pass cache, `--jobs 8 --build-cache`; the three full
+suites with `--coverage`): tier 1 596 tests pass (79 ignored), fmt and clippy clean; the full corpus suite 513
+pass, 5 known failures, none failing (`screen/c15_resize` and `g12_game.files` passed); `slice.list` judged from
+it 493 of 493, and 493 of 493 with `QB64RUST_NO_FOLD=1`; the full upstream suite 402 pass, 1 failure out of scope
+(`const/math_funcs`, D-031), 1 known failure, `pass.list` judged from it 402 of 402; the full verification suite
+3889 pass, 66 known failures, 1 failure, `v42_a_timer` (timing-sensitive: it failed at `--jobs 8` and in the
+runner's retry with other runs beside it, and passed run alone with nothing beside it), so `pass.list` judged
+from the run 3889 of 3890; the built-ins no run reaches are those of `tests\never_run.list`
+(`builtin_runs.py --check`); the differential pass list 59 of 59; the call-site check 2649 of 2649 equal; the
+coverage check of Civil War Strategy's scripts passes.
 
 **For the merge into `main` of branch `m4-sub-gl`** (2026-10-24, the full set on the tree of `3f980d8`, which is
 the merged tree, in this checkout, no pass cache, `--jobs 8 --build-cache`; the three full suites with

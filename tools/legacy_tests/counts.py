@@ -141,8 +141,14 @@ def verification_membership() -> list[str]:
 
 
 def format_membership() -> list[str]:
-    """The recordings of the format oracle by set, and how many tests/format/known_differences.list names."""
+    """The recordings of the format oracle by set, and how many tests/format/known_differences.list names; those
+    under the other settings (settings/<variant>/) on a line of their own, apart from the sets."""
     sets = sorted(p.name for p in FORMAT.iterdir() if p.is_dir()) if FORMAT.is_dir() else []
+    settings = rlt.FORMAT_SETTINGS
+    variants = []
+    if settings in sets:
+        sets.remove(settings)
+        variants = [p for p in (FORMAT / settings).iterdir() if p.is_dir()]
     rows = []
     for name in sets:
         recorded = sum(
@@ -152,11 +158,23 @@ def format_membership() -> list[str]:
     total = sum(n for _, n in rows)
     listed = FORMAT / "known_differences.list"
     known = len(list_names(listed)) if listed.is_file() else 0
-    return [
+    lines = [
         f"**{total}** programs recorded; `known_differences.list` names {known}. By set:",
         "",
         *table(["Set", "Recorded"], rows),
     ]
+    if variants:
+        recorded = sum(
+            1 for v in variants for p in v.rglob("*") if p.is_file() and p.suffix.lower() == ".bas"
+        )
+        listed = FORMAT / "settings.list"
+        programs = len(list_names(listed)) if listed.is_file() else 0
+        lines += [
+            "",
+            f"Under the other settings: **{recorded}** recordings of {programs} listed programs, "
+            f"{len(variants)} variants.",
+        ]
+    return lines
 
 
 def full_run(suite: str) -> tuple[dict | None, str]:

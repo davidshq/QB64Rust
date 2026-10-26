@@ -1,0 +1,16 @@
+question mark
+no space 1  2 
+ 1  2  3 
+unclosed at the end
+also unclosed:   kept as written
+format off: as written
+format on again
+ 1 
+ 12 hello there
+ 3.14
+Abc 3 
+***
+logic
+-2 
+
+Press any key to continue

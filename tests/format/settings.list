@@ -1,0 +1,31 @@
+# The programs recorded under the other layout settings (tests/format/README.md, "Under the other settings";
+# spec testing/format-oracle). One <set>/<path within the set> per line, each with a default recording; after '#',
+# what it reaches. Chosen in m5b-format-settings task 1.2 by where each setting changes the output and by the
+# statement forms (design D2). Civil War Strategy is left out (its size; the g0x programs cut from it stand in).
+corpus/slice/s160_layout_blocks.bas  # blocks of every kind indented and spaced by hand, comments after block lines, line numbers, labels
+corpus/slice/s160_layout_procs.bas  # SUBs and FUNCTIONs indented by hand, DECLARE, STATIC, EXIT SUB, SELECT CASE in a FUNCTION
+corpus/slice/s160_layout_text.bas  # unclosed strings, '$FORMAT:OFF and ON, ?, joined lines, REM, DATA, odd spacing
+corpus/runtime_comparison/114_select_multiple.bas  # SELECT CASE with several values per CASE
+corpus/runtime_comparison/146_if_elseif_else_block.bas  # IF, ELSEIF, ELSE blocks
+corpus/runtime_comparison/262_deep_nesting.bas  # IF and FOR nested deep
+corpus/slice/s17_signs.bas  # CONST, a FUNCTION, SELECT CASE, ON ERROR, spacing of signs
+corpus/slice/s37_file_errors.bas  # OPEN, INPUT, LINE INPUT, WRITE, CLOSE in a SUB, ON ERROR
+corpus/slice/s55_implicit.bas  # $DYNAMIC, $STATIC, REDIM, CONST, GOTO, SUBs and FUNCTIONs
+corpus/slice/s70_sub_name_labels.bas  # labels named as SUBs, GOSUB, DATA, READ, RESTORE
+corpus/slice/s73_conventional_arrays.bas  # COMMON, REDIM, a SUB
+corpus/slice/s86_field_lset.bas  # TYPE, FIELD, GET, OPEN, a FUNCTION
+corpus/slice/s136_errorline.bas  # line numbers, $IF, GOSUB, SUBs and FUNCTIONs
+corpus/screen/d18_get_put.bas  # graphics GET and PUT, STATIC, REDIM, a SUB
+corpus/screen/g01_flags.bas  # Civil War Strategy: SELECT CASE in a SUB
+corpus/screen/g02_cannon.bas  # Civil War Strategy: a long SUB
+corpus/screen/g03_capitol.bas  # Civil War Strategy: SELECT CASE and FOR in SUBs
+corpus/screen/g04_ironclad.bas  # Civil War Strategy: FOR loops in SUBs
+corpus/screen/g06_message_box.bas  # Civil War Strategy: DO, FOR, GET and PUT in a SUB
+upstream/precomp-flags/explicit.bas  # $IF, $ELSEIF, $ELSE, $END IF, $ASSERTS, $DEBUG, OPTION _EXPLICIT
+upstream/precomp-flags/consoleonly.bas  # $IF blocks, $CONSOLE:ONLY
+upstream/on_error/errtest.bas  # DECLARE LIBRARY, a SUB and a FUNCTION, SELECT CASE, comments after statements
+upstream/declare_library_dynamic/test.bas  # DECLARE DYNAMIC LIBRARY in $IF
+upstream/keyboard/devices_windows.bas  # $INCLUDE in $IF, WHILE, LINE INPUT
+upstream/include_paths/include_fixed_compile_location.bas  # $INCLUDE
+upstream/include_once/test.bas  # $INCLUDE with a space after the colon
+snippets/qb64fresh/shared_inside_procedure__shared_inside_sub.bas  # SHARED inside a SUB

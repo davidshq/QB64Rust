@@ -1,5 +1,8 @@
 //! Tier 1 check of the format oracle (spec `testing/format-oracle`, "Tier 1 checks"; design D6 of `m5b-formatter`):
-//! every recording under `tests\format\` against the formatter, in process, with QB64pe's default layout settings.
+//! every recording under `tests\format\` against the formatter, in process, with QB64pe's default layout settings,
+//! and each recording under `tests\format\settings\<variant>\` with the defaults and that variant's setting
+//! (`m5b-format-settings`, design D1: the folder name is the `-f:` setting, read by `Settings::set`). The programs
+//! under each variant must be those `tests\format\settings.list` names.
 //!
 //! For each recorded program:
 //! - the source checks without errors and is formatted; the text must equal the recording with line endings taken
@@ -17,9 +20,12 @@
 //! The test prints the statement forms of the parser (node kinds, and built-in statements by name) that no recorded
 //! program reaches, for the close of the change (design D6).
 //!
-//! Time: measured at the close of each group of `m5b-formatter` (debug build, all cores), in the line below.
+//! Time: measured at the close of each group of `m5b-formatter` and of `m5b-format-settings` (debug build, all
+//! cores), in the lines below.
 //! 2026-10-25, layout not built yet (every line written as read): 0.84 s for 1,180 programs.
 //! 2026-10-25, layout built (group 4): 1.0 s for 1,180 programs, 1,179 equal to their recording.
+//! 2026-10-25, with the other settings (`m5b-format-settings` group 3): 1.5 s for 1,345 programs, 162 of them
+//! under the six variants; all but one of the 1,345 equal to their recording or covered by a divergence.
 
 use qb64rust_base::layout::Settings;
 use qb64rust_base::show_bytes;
@@ -43,33 +49,43 @@ const SETS: [(&str, &str); 4] = [
     ("programs", "tests/programs"),
 ];
 
-/// The upstream programs that include QB64pe's own sources relative to their place in the clone.
-const UPSTREAM_QB64PE: &str = "upstream/qb64pe/";
+/// The upstream programs that include QB64pe's own sources relative to their place in the clone: their path within
+/// the `upstream` set starts with this.
+const UPSTREAM_QB64PE: &str = "qb64pe/";
+
+/// The folder of the recordings under the other settings: `settings/<variant>/<set>/<path>`, the variant named by
+/// its `-f:` setting (`autoindentsize=2`).
+const SETTINGS: &str = "settings";
 
 /// One recorded program.
 struct Program {
-    /// `<set>/<path within the set without .bas>`, with `/`.
+    /// `<set>/<path within the set without .bas>`, with `/`; under another setting
+    /// `settings/<variant>/<set>/<path without .bas>`.
     name: String,
     source: PathBuf,
     recording: PathBuf,
     /// Where its includes are looked up from (as the program standing in that folder).
     base: PathBuf,
+    /// The defaults, or the defaults with the variant's setting.
+    settings: Settings,
+    /// It includes QB64pe's own sources, so it checks only with the reference clone.
+    needs_clone: bool,
 }
 
-fn recordings() -> Vec<Program> {
-    let format = repo().join("tests/format");
-    let mut out = Vec::new();
+/// The recordings of each set under `dir` (the defaults' folder, or a variant's), named with `prefix`.
+fn recordings_in(dir: &Path, prefix: &str, settings: Settings, out: &mut Vec<Program>) {
     for (set, folder) in SETS {
         let mut found = Vec::new();
-        walk(&format.join(set), &mut found);
+        walk(&dir.join(set), &mut found);
         found.sort();
         for rec in found {
-            let rel = rec.strip_prefix(format.join(set)).unwrap().to_path_buf();
+            let rel = rec.strip_prefix(dir.join(set)).unwrap().to_path_buf();
             let rel_name = rel.with_extension("").to_string_lossy().replace('\\', "/");
-            let name = format!("{set}/{rel_name}");
+            let name = format!("{prefix}{set}/{rel_name}");
             let source = repo().join(folder).join(&rel);
+            let needs_clone = set == "upstream" && rel_name.starts_with(UPSTREAM_QB64PE);
             let base = match build::find_root(None) {
-                Ok(clone) if name.starts_with(UPSTREAM_QB64PE) => clone.join("tests/compile_tests").join(&rel),
+                Ok(clone) if needs_clone => clone.join("tests/compile_tests").join(&rel),
                 _ => beside_files(&source),
             };
             out.push(Program {
@@ -77,10 +93,75 @@ fn recordings() -> Vec<Program> {
                 source,
                 recording: rec,
                 base,
+                settings,
+                needs_clone,
             });
         }
     }
+}
+
+/// The variants recorded: each folder under `settings/`, with its settings.
+fn variants() -> Vec<(String, Settings)> {
+    let Ok(entries) = std::fs::read_dir(repo().join("tests/format").join(SETTINGS)) else {
+        return Vec::new();
+    };
+    let mut out: Vec<_> = entries
+        .map(|e| e.unwrap().path())
+        .filter(|p| p.is_dir())
+        .map(|p| {
+            let variant = p.file_name().unwrap().to_string_lossy().into_owned();
+            let (name, value) = variant
+                .split_once('=')
+                .unwrap_or_else(|| panic!("{SETTINGS}/{variant}: not a <setting>=<value> folder"));
+            let mut settings = Settings::default();
+            match settings.set(name, value) {
+                Ok(true) => {}
+                Ok(false) => panic!("{SETTINGS}/{variant}: not a layout setting"),
+                Err(e) => panic!("{SETTINGS}/{variant}: {e}"),
+            }
+            (variant, settings)
+        })
+        .collect();
+    out.sort_by(|a, b| a.0.cmp(&b.0));
     out
+}
+
+fn recordings() -> Vec<Program> {
+    let format = repo().join("tests/format");
+    let mut out = Vec::new();
+    recordings_in(&format, "", Settings::default(), &mut out);
+    for (variant, settings) in variants() {
+        recordings_in(
+            &format.join(SETTINGS).join(&variant),
+            &format!("{SETTINGS}/{variant}/"),
+            settings,
+            &mut out,
+        );
+    }
+    out
+}
+
+/// What `settings.list` names and a variant's folder lacks or holds besides, as messages.
+fn settings_list_mismatches(programs: &[Program]) -> Vec<String> {
+    let listed: BTreeSet<String> = list_lines(&repo().join("tests/format/settings.list"))
+        .into_iter()
+        .map(|l| l.trim().trim_end_matches(".bas").trim_end_matches(".BAS").to_string())
+        .collect();
+    let mut problems = Vec::new();
+    for (variant, _) in variants() {
+        let prefix = format!("{SETTINGS}/{variant}/");
+        let recorded: BTreeSet<String> = programs
+            .iter()
+            .filter_map(|p| p.name.strip_prefix(&prefix).map(str::to_string))
+            .collect();
+        for missing in listed.difference(&recorded) {
+            problems.push(format!("{prefix}{missing}: listed in settings.list, not recorded"));
+        }
+        for extra in recorded.difference(&listed) {
+            problems.push(format!("{prefix}{extra}: recorded, not in settings.list"));
+        }
+    }
+    problems
 }
 
 fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -214,7 +295,7 @@ fn run(p: &Program) -> Outcome {
     let bytes = std::fs::read(&p.source).unwrap_or_else(|e| panic!("{}: {e}", p.source.display()));
     let fe = load(p, bytes);
     if fe.has_errors() {
-        if p.name.starts_with(UPSTREAM_QB64PE) && build::find_root(None).is_err() {
+        if p.needs_clone && build::find_root(None).is_err() {
             o.skipped = Some("needs the QB64pe reference clone".into());
         } else if fe.diagnostics.errors().all(|d| !d.is_real_error()) {
             // Only "not supported yet": the program cannot be formatted until the compiler takes it.
@@ -225,7 +306,7 @@ fn run(p: &Program) -> Outcome {
         return o;
     }
     collect_forms(fe.parsed.trees[0].root(), &fe.map.file(fe.file).bytes, &mut o.forms);
-    let settings = Settings::default();
+    let settings = p.settings;
     let out = format_program(&fe, &settings);
     let recorded = std::fs::read(&p.recording).unwrap();
     if lf(&out) != lf(&recorded) && divergence_rows(&p.recording.with_extension("divergences")).is_empty() {
@@ -451,6 +532,7 @@ fn formatter_equals_the_old_compilers_layout() {
     }
     let names: BTreeSet<_> = outcomes.iter().map(|o| o.name.as_str()).collect();
     let stale: Vec<_> = known.keys().filter(|k| !names.contains(k.as_str())).collect();
+    let mismatches = settings_list_mismatches(&programs);
 
     let unreached: Vec<_> = all_forms().into_iter().filter(|f| !reached.contains(f)).collect();
     eprintln!(
@@ -460,9 +542,12 @@ fn formatter_equals_the_old_compilers_layout() {
         unreached.join(", ")
     );
     let differing = outcomes.iter().filter(|o| o.differs.is_some()).count();
+    let under_variants = outcomes.iter().filter(|o| o.name.starts_with(SETTINGS)).count();
     eprintln!(
-        "{} programs, {} equal their recording, {} differ ({} listed in known_differences.list)",
+        "{} programs ({} of them under the other settings), {} equal their recording, {} differ ({} listed in \
+         known_differences.list)",
         outcomes.len(),
+        under_variants,
         outcomes.len() - differing - outcomes.iter().filter(|o| o.skipped.is_some()).count(),
         differing,
         known.len()
@@ -492,6 +577,12 @@ fn formatter_equals_the_old_compilers_layout() {
     }
     if !stale.is_empty() {
         message += &format!("\nknown_differences.list names programs with no recording: {stale:?}");
+    }
+    if !mismatches.is_empty() {
+        message += &format!(
+            "\nthe recordings under the other settings do not match settings.list (record again with qb64pe):\n  {}",
+            mismatches.join("\n  ")
+        );
     }
     assert!(message.is_empty(), "{message}");
 }

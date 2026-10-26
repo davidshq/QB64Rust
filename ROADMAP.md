@@ -256,15 +256,17 @@ BASIC to the editor.
 - [x] `qb64rust dap`: the DAP proxy over the toolchain's `lldb-dap` (variables, evaluate, set value, stack,
       data breakpoints, set next line, the error stop); its protocol tests (`m5-dap-proxy`, spec
       `editor/debug-adapter`)
-- [ ] The extension's `debuggers` contribution and launch configuration; a debug build before launch
+- [x] The extension's `debuggers` contribution and launch configuration; a debug build before launch
+      (`m5-debug-launch`, spec `editor/debug-launch`)
 
 ## M5b. The editor without QB64pe
 
 What a user compares against the QB64pe IDE besides the debugger (`study\36` §5.3; `DECISIONS.md` 2026-10-25).
 Comes before M6.
 
-- [ ] A formatter that matches `-y` (left M2's exit criterion on 2026-10-09, `DECISIONS.md`; the extension
-      formats through the old compiler until then)
+- [x] A formatter that matches `-y` (left M2's exit criterion on 2026-10-09, `DECISIONS.md`): `qb64rust -y`,
+      held to the format oracle `tests\format\`; the extension formats with it (`m5b-formatter`, specs
+      `compiler/format`, `testing/format-oracle`)
 - [ ] The language-server features `sema`'s symbol table supports: hover (a name's type and declaration), find
       references, rename, perhaps completion of names and built-ins; handed to the server by the driver as
       `Check` is

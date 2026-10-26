@@ -131,6 +131,12 @@ it records, with any other compiler it compares (format_corpus_test):
     output equals the recording with line endings taken as LF, or when it differs and the
     recording's <name>.divergences names a row of DIVERGENCES.md. Nothing is written into
     tests/format. --jobs, --category (a set) and --glob apply
+  * the other layout settings (m5b-format-settings): each program tests/format/settings.list names
+    (<set>/<path within the set>, '#' comments) is also recorded and compared under each variant of
+    FORMAT_VARIANTS, the defaults with that one setting in place (format_flags), at
+    tests/format/settings/<variant>/<set>/<path>; the folder name is the -f: setting. A listed program
+    with no default recording fails, naming the line of the list; a compare fails on a variant not
+    recorded, or on a recording the list does not name. --category <set> takes that set's variants too
 Speed (corpus and compile suites; the C++ build is most of each program's time):
   * --jobs N runs N programs at a time, after the first one alone (it builds any libqb object the
     clone lacks); results are printed as they finish. Compile tests of one folder run (not build)
@@ -752,6 +758,54 @@ FORMAT_DEFAULTS = [
     "-f:keywordcapitals=0",
     "-f:keywordlowercase=0",
 ]
+# The other layout settings (m5b-format-settings, design D1): each is the defaults with one setting changed, and
+# is recorded for the programs of settings.list under tests/format/settings/<variant>/<set>/<path>. The folder
+# name is the -f: setting itself.
+FORMAT_VARIANTS = [
+    "autoindent=0",
+    "autoindentsize=2",
+    "indentsubs=0",
+    "autolayout=0",
+    "keywordcapitals=1",
+    "keywordlowercase=1",
+]
+FORMAT_SETTINGS = "settings"
+
+
+def format_flags(variant: str | None = None) -> list[str]:
+    """The -f: settings of a recording: the defaults, with the one a variant (<name>=<value>) names in its
+    place."""
+    flags = list(FORMAT_DEFAULTS)
+    if variant is None:
+        return flags
+    name, _, value = variant.partition("=")
+    at = [i for i, f in enumerate(flags) if f.partition("=")[0] == f"-f:{name}"]
+    if not value or not at:
+        raise ValueError(f"not a layout setting: {variant}")
+    flags[at[0]] = f"-f:{variant}"
+    return flags
+
+
+def settings_list(path: Path) -> dict[str, int]:
+    """settings.list: each <set>/<path within the set> it names, with its line ('#' starts a comment)."""
+    entries: dict[str, int] = {}
+    if path.is_file():
+        for n, line in enumerate(path.read_text(encoding="latin-1").splitlines(), 1):
+            entry = line.split("#", 1)[0].strip()
+            if entry:
+                entries[entry] = n
+    return entries
+
+
+def format_variant_targets(format_root: Path = FORMAT_ROOT, set_name: str | None = None) -> list[Path]:
+    """The recordings under the other settings that settings.list asks for, of every set or of one: each listed
+    program under each variant, written or not."""
+    return [
+        format_root / FORMAT_SETTINGS / variant / entry
+        for entry in settings_list(format_root / "settings.list")
+        if set_name is None or entry.split("/")[0] == set_name
+        for variant in FORMAT_VARIANTS
+    ]
 
 
 def format_sources(sets: dict[str, Path] | None = None) -> list[Path]:
@@ -773,15 +827,28 @@ def format_sources(sets: dict[str, Path] | None = None) -> list[Path]:
 
 
 def format_recordings(format_root: Path = FORMAT_ROOT) -> list[Path]:
-    """What a compare runs: every recorded output under format_root, set by set."""
+    """What a compare runs: every recorded output under format_root, set by set, then those under the other
+    settings, variant by variant and set by set."""
     if not format_root.is_dir():
         return []
-    found = []
-    for folder in sorted((p for p in format_root.iterdir() if p.is_dir()), key=lambda p: p.name):
-        found += sorted(
+
+    def folders(root: Path) -> list[Path]:
+        return sorted((p for p in root.iterdir() if p.is_dir()), key=lambda p: p.name)
+
+    def recorded(folder: Path) -> list[Path]:
+        return sorted(
             (p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() == ".bas"),
             key=lambda p: p.relative_to(folder).as_posix(),
         )
+
+    found = []
+    for folder in folders(format_root):
+        if folder.name != FORMAT_SETTINGS:
+            found += recorded(folder)
+    variants = format_root / FORMAT_SETTINGS
+    for variant in folders(variants) if variants.is_dir() else []:
+        for folder in folders(variant):
+            found += recorded(folder)
     return found
 
 
@@ -790,14 +857,18 @@ def format_text(data: bytes) -> bytes:
     return data.replace(b"\r\n", b"\n")
 
 
-def format_set(path: Path, sets: dict[str, Path], format_root: Path) -> str:
-    """The set of a source (under a set's root) or of a recording (under format_root)."""
+def format_place(path: Path, sets: dict[str, Path], format_root: Path) -> tuple[str | None, str, Path]:
+    """The variant (None for the defaults), the set and the path within the set of a source (under a set's root)
+    or of a recording (under format_root, or under its settings/<variant>/)."""
     path = path.resolve()
     if path.is_relative_to(format_root.resolve()):
-        return path.relative_to(format_root.resolve()).parts[0]
+        parts = path.relative_to(format_root.resolve()).parts
+        if parts[0] == FORMAT_SETTINGS and len(parts) > 3:
+            return parts[1], parts[2], Path(*parts[3:])
+        return None, parts[0], Path(*parts[1:])
     for name, root in sets.items():
         if path.is_relative_to(root.resolve()):
-            return name
+            return None, name, path.relative_to(root.resolve())
     raise ValueError(f"not in a set of the format oracle: {path}")
 
 
@@ -815,17 +886,22 @@ def format_corpus_test(
     differs from what is there other than by CRLF against LF. With another compiler, path is the
     recording; the source is the file at the same path in the set, and the program passes when the
     output equals the recording with line endings taken as LF, or when it differs and the
-    recording's <name>.divergences names a row of DIVERGENCES.md."""
+    recording's <name>.divergences names a row of DIVERGENCES.md.
+
+    Under another setting (path under format_root/settings/<variant>/, design D1 of m5b-format-settings), with
+    either compiler, path is the recording, written or not: the source is formatted with that variant's flags,
+    the program must be on settings.list and have a default recording, and a compare fails when the recording
+    is missing."""
     sets = sets or FORMAT_SETS
-    set_name = format_set(path, sets, format_root)
+    variant, set_name, rel = format_place(path, sets, format_root)
     old = is_old_compiler(args.qb64)
-    if old:
-        rel = path.relative_to(sets[set_name])
-        src, rec = path, format_root / set_name / rel
-    else:
-        rel = path.relative_to(format_root / set_name)
-        src, rec = sets[set_name] / rel, path
+    src = sets[set_name] / rel
+    default_rec = format_root / set_name / rel
+    rec = default_rec if variant is None else format_root / FORMAT_SETTINGS / variant / set_name / rel
+    entry = f"{set_name}/{rel.as_posix()}"
     test = f"{set_name}/{rel.with_suffix('').as_posix()}"
+    if variant is not None:
+        test = f"{FORMAT_SETTINGS}/{variant}/{test}"
     r = Result("format_corpus", test, "format")
     t0 = time.time()
 
@@ -836,6 +912,20 @@ def format_corpus_test(
 
     if not src.is_file():
         return finish("FAIL", "expected", f"no source for the recording: {repo_relative(src)}")
+    try:
+        flags = format_flags(variant)
+    except ValueError as e:
+        return finish("FAIL", "expected", f"{e} (the folder {FORMAT_SETTINGS}/{variant})")
+    if variant is not None:
+        listed = settings_list(format_root / "settings.list")
+        if entry not in listed:
+            return finish("FAIL", "expected", f"settings.list does not name {entry}")
+        if not default_rec.is_file():
+            return finish(
+                "FAIL", "expected", f"settings.list line {listed[entry]}: {entry} has no default recording"
+            )
+    if not old and not rec.is_file():
+        return finish("FAIL", "expected", "not recorded: record it with qb64pe (--suite format-corpus)")
     key = test.replace("/", "-")
     # A corpus program's data files (its included files among them) go beside it, as the corpus suite
     # puts them; any other program is formatted where it is, so that its included files resolve. An
@@ -856,7 +946,6 @@ def format_corpus_test(
         shutil.copytree(files_dir, folder, dirs_exist_ok=True)
     output = results / f"{key}-output"
     output.unlink(missing_ok=True)
-    flags = list(FORMAT_DEFAULTS)
     if not old and set_name == "upstream":
         flags += ["--include-root", str(INCLUDE_ROOT)]
     if old:
@@ -2678,17 +2767,20 @@ def main() -> int:
                 tests = [p for p in tests if p.resolve() in wanted]
         elif suite == "format-corpus":
             # A recording formats the sources; a compare runs the recordings (format_corpus_test).
+            # Under the other settings, both take the recordings settings.list asks for, after the defaults.
+            if args.category and args.category not in FORMAT_SETS:
+                print(f"no such set of the format oracle: {args.category}", file=sys.stderr)
+                return 2
             if recording_format:
                 tests = format_sources()
                 if args.category:
-                    if args.category not in FORMAT_SETS:
-                        print(f"no such set of the format oracle: {args.category}", file=sys.stderr)
-                        return 2
                     tests = format_sources({args.category: FORMAT_SETS[args.category]})
+                tests += format_variant_targets(FORMAT_ROOT, args.category)
             else:
                 tests = format_recordings()
+                tests += sorted(set(format_variant_targets()) - set(tests))
                 if args.category:
-                    tests = [t for t in tests if t.relative_to(FORMAT_ROOT).parts[0] == args.category]
+                    tests = [t for t in tests if format_place(t, FORMAT_SETS, FORMAT_ROOT)[1] == args.category]
             tests = [t for t in tests if fnmatch.fnmatch(t.name, args.glob)]
         elif suite == "verification":
             root = args.verification_root.resolve()

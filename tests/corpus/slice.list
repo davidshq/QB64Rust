@@ -540,3 +540,7 @@ screen/d19_blink_display
 # m4-coverage-review: the window built-ins and _DEPTHBUFFER, run (design D5)
 screen/w01_window_builtins
 screen/w02_depthbuffer
+# m5b-format-settings: blocks, SUBs and FUNCTIONs and the text forms laid out by hand, for the format oracle under the other layout settings (tests/format/settings.list)
+slice/s160_layout_blocks
+slice/s160_layout_procs
+slice/s160_layout_text
