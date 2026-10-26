@@ -34,7 +34,7 @@ each reaches after `#`. Each is also recorded under six variants, each the defau
 `keywordlowercase=1` (`FORMAT_VARIANTS` in `tools\legacy_tests\run_legacy_tests.py`). The output is kept at
 `settings\<variant>\<set>\<path within the set>`; the folder name is the `-f:` setting itself, and the flags are
 the defaults with it in place. The list was chosen by where each setting changes the output and by the statement
-forms the programs reach (`openspec\changes\m5b-format-settings\design.md` D2); the forms no accepted program had
+forms the programs reach (`openspec\changes\archive\2026-10-25-m5b-format-settings\design.md` D2); the forms no accepted program had
 (layout written by hand, an unclosed string, `'$FORMAT:OFF`) are in `tests\corpus\slice\s160_layout_*.bas`.
 Civil War Strategy is left out for its size. A listed program must have a default recording. To add one, record
 its default output first, then add its line to the list and record again (the variants of one run may start

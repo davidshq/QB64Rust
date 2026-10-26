@@ -71,8 +71,8 @@ push shows them (the user is not concerned with CI, working rule 9).
    Its first change, `m5b-formatter` (`qb64rust -y`, the format oracle `tests\format\`, formatting in the language
    server and the extension; specs `compiler/format`, `testing/format-oracle`), is built, closed (its closing
    runs pass) and archived (`2026-10-25-m5b-formatter`). Its second, `m5b-format-settings` (the oracle under
-   the six other layout settings: `tests\format\settings.list`, `tests\format\settings\`; D-039), is built and
-   closed (its closing runs pass), to be archived once the user has reviewed it. The next is
+   the six other layout settings: `tests\format\settings.list`, `tests\format\settings\`; D-039), is built,
+   closed (its closing runs pass) and archived (`2026-10-25-m5b-format-settings`). The next is
    `m5b-language-features` (hover, find references, rename, completion).
 3. Branch `m5` (M5's three changes, `m5b-formatter` and `m5b-format-settings`) goes into `main` by a pull
    request; the full set at a merge runs on its tree before it is merged (working rule 9). The numbers below
