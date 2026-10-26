@@ -266,6 +266,16 @@ fn call_of_a_built_in() {
     );
 }
 
+/// `CALL ABSOLUTE(…)` is spelled from its layout (`qb64pe.bas` 10688) only with parentheses (`IF n > 2`, 10622);
+/// without them `ABSOLUTE` is the SUB's name, spelled as declared.
+#[test]
+fn call_absolute_only_with_parentheses() {
+    assert_eq!(
+        format("sub absolute\nprint 1\nend sub\ndim a as long\ncall absolute\ncall absolute(a)\n"),
+        "Sub absolute\n    Print 1\nEnd Sub\nDim a As Long\nCall absolute\nCall Absolute(a)\n"
+    );
+}
+
 /// `ON n GOTO|GOSUB` keeps the word in capitals (`xongotogosub`: `l$ + sp + e2$`).
 #[test]
 fn on_goto_word_in_capitals() {

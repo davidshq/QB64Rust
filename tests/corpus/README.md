@@ -52,11 +52,11 @@ Written by `python tools\legacy_tests\counts.py` (`tools\legacy_tests\README.md`
 and `slice.list` hold, and what the last full run of the release build gave.
 
 <!-- counts:corpus-membership -->
-`slice.list` names **497** tests (a program, or a script of a screen program: `<name>.<script>.keys`). By folder:
+`slice.list` names **498** tests (a program, or a script of a screen program: `<name>.<script>.keys`). By folder:
 
 | Folder | Programs | `.output` | `.err` | `.norun` | `.screen` | In `slice.list` |
 |---|---|---|---|---|---|---|
-| `runtime_comparison` | 261 | 235 | 20 | 1 | 0 | 236 |
+| `runtime_comparison` | 261 | 235 | 20 | 2 | 0 | 237 |
 | `screen` | 80 | 80 | 0 | 0 | 80 | 89 |
 | `slice` | 170 | 170 | 0 | 0 | 0 | 170 |
 | `verification` | 2 | 2 | 0 | 0 | 0 | 2 |
@@ -71,8 +71,8 @@ Kept by hand (recorded 2026-10-03; `slice` as each change added its programs):
 
 | Kind | `runtime_comparison` | `verification` | `slice` |
 |---|---|---|---|
-| `.norun` | 1 (`239_lprint`: would print a page on the default printer) | 0 | 0 |
-| Known failure, no expected file | 5 | 0 | 0 |
+| `.norun` | 2 (`239_lprint`: would print a page on the default printer; `147_on_error_resume_0`: loops forever by design) | 0 | 0 |
+| Known failure, no expected file | 4 | 0 | 0 |
 | `.normalize` sidecars | 3 (`212` `PATH` length, `234` `TIMER`, `238` a folder name in `cmd`'s error) | 0 | 0 |
 | `.noprompt` sidecars | 0 | 0 | 2 (`s12_error_in_print`, `s19_header_errors`: `continue`) |
 | `.stdin` sidecars | 0 | 0 | 3 (`s42_console_input`, `s65_console_input`, `s117_dyn_member_kinds`) |
@@ -97,8 +97,21 @@ Known failures (`tools\legacy_tests\known_failures.txt`, reported KFAIL):
 
 | Program | Cause |
 |---|---|
-| 80, 126, 187, 251 | `PRINT` with a comma pads to the next zone by asking the console for the cursor column. The runner gives each program a console (for `END`) but sends stdout to a file, so the column never moves and the program prints spaces until the 60 s timeout. Old-runtime bug (`study\00` §5). |
-| 147 | `RESUME 0` re-runs the line that raised the error, which is `ERROR 5`: the program loops forever by design. |
+| 80, 126, 187, 251 | `PRINT` with a comma pads to the next zone by asking the console for the cursor column. The runner gives each program a console (for `END`) but sends stdout to a file, so the column never moves and the program prints spaces until the 60 s timeout. Old-runtime bug (`study\00` §5), still in the new runtime: `DIVERGENCES.md` D-011 is decided but not built. |
+
+`147_on_error_resume_0` was a known failure until 2026-10-26 and is a `.norun` now: `RESUME 0` re-runs the line
+that raised the error, which is `ERROR 5`, so the program loops forever by design.
+
+QB64pe's output of the four, recorded 2026-10-26 with stdout to a real console (a hidden console of the program's
+own, read back from its screen buffer; trailing blanks not visible there): zones start at columns 10 and 20 (`tab()`
+in `libqb.cpp` prints blanks until `POS(0)` is a multiple of 10), e.g. `126`:
+
+```
+a        b         c
+ 1        2         3
+
+Press any key to continue
+```
 
 Found while recording: `CHAIN` to a missing program (238) writes `chainNNN.tmp`, "moves" it to the program's own
 folder, then runs `<program folder>\qb64pe.exe -c <target>.bas` through `cmd` (`sub_chain`, `qbx.cpp`) before

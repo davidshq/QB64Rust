@@ -297,6 +297,7 @@ version,session,change,category,actions,bytes
 1,175f17c6,,reading,12,0
 1,175f17c6,,test runs,7,0
 1,175f17c6,,tests and fixtures,31,4402
+1,178df9bb,qbasic-testcases,other commands,1,0
 1,1802b567,m3-versioninfo,other commands,1,0
 1,181c8a69,,other commands,2,0
 1,18f5cee2,,other commands,3,0
@@ -476,6 +477,8 @@ version,session,change,category,actions,bytes
 1,2689520c,m2-parser-breadth,test runs,6,0
 1,2689520c,m2-parser-breadth,tests and fixtures,4,888
 1,26b0d5c2,m4-coverage-review,other commands,1,0
+1,2768fe3e,,other commands,1,0
+1,2768fe3e,,reading,1,0
 1,27901f4c,,documents and planning,1,95
 1,27901f4c,,other commands,13,0
 1,27901f4c,,product code,4,945
@@ -497,6 +500,8 @@ version,session,change,category,actions,bytes
 1,28377963,extension-diagnostics,scratch files,2,408
 1,28377963,extension-diagnostics,test runs,25,0
 1,28377963,extension-diagnostics,tests and fixtures,9,18052
+1,28711dee,,other commands,1,0
+1,28711dee,,reading,2,0
 1,28867a87,,other commands,1,0
 1,28867a87,m3-versioninfo,builds,2,0
 1,28867a87,m3-versioninfo,documents and planning,17,12585
@@ -900,6 +905,9 @@ version,session,change,category,actions,bytes
 1,4227b7f9,m2-numeric-types,reading,7,0
 1,4227b7f9,m2-numeric-types,scratch files,1,6656
 1,4227b7f9,m2-numeric-types,test runs,2,0
+1,42b7a65a,,other,2,2986
+1,42b7a65a,,other commands,6,0
+1,42b7a65a,,reading,1,0
 1,42c02202,,builds,1,0
 1,42c02202,,documents and planning,17,4323
 1,42c02202,,other commands,31,0
@@ -1525,6 +1533,13 @@ version,session,change,category,actions,bytes
 1,70323a4c,m4-names-arrays,reading,5,0
 1,70323a4c,m4-names-arrays,scratch files,1,1639
 1,70323a4c,m4-names-arrays,test runs,2,0
+1,70c857b9,,builds,3,0
+1,70c857b9,,other,5,6801
+1,70c857b9,,other commands,44,0
+1,70c857b9,,product code,6,1592
+1,70c857b9,,reading,12,0
+1,70c857b9,,test runs,9,0
+1,70c857b9,,tests and fixtures,10,2814
 1,70d686fe,m4-qb64pe-sources,builds,6,0
 1,70d686fe,m4-qb64pe-sources,documents and planning,28,21416
 1,70d686fe,m4-qb64pe-sources,measurement preparation,15,18029
@@ -3318,8 +3333,12 @@ version,session,change,category,actions,bytes
 1,fb04986b,m2-defxxx-common-arrays,reading,14,0
 1,fb04986b,m2-defxxx-common-arrays,test runs,4,0
 1,fb04986b,m2-defxxx-common-arrays,tests and fixtures,1,421
-1,fb5ef222,,other commands,5,0
-1,fb5ef222,,reading,1,0
+1,fb5ef222,,builds,2,0
+1,fb5ef222,,documents and planning,15,3722
+1,fb5ef222,,other,4,6896
+1,fb5ef222,,other commands,28,0
+1,fb5ef222,,reading,2,0
+1,fb5ef222,,test runs,1,0
 1,fb6e3f78,,reading,2,0
 1,fb6e3f78,m2-control-flow-slice,documents and planning,2,491
 1,fb6e3f78,m2-control-flow-slice,reading,1,0

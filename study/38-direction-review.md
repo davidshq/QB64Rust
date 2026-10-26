@@ -20,14 +20,12 @@ GitHub release and run lists, counts over the repository (below). No code was re
 In 25 days the project built what it set out to build on day one: a compiler in Rust that matches QB64pe on every
 program the suites hold (516 corpus, 402 of 404 upstream, 3,892 verification programs, one whole game played to
 the same screens), a VS Code extension with checking, formatting, navigation, build and a line-level debugger, and
-a test and release system around them. **What was never written down is who it is for.** The milestones came
-from the architecture (front end, backend, parity, debugger, runtime), not from a person who would use the result,
-so now that the architecture is complete the roadmap runs out, and the one milestone left (M6) is a redesign for
-its own sake (`study\37`). Today the only user is the author; the extension is installed from a GitHub release,
-needs QB64pe installed beside it, and its README's first sentence is out of date. The panel's recommendation is
-in three parts: **write the purpose** (one paragraph, the user's; §5.1), because every option below is cheap or
-dear depending on it; **make the thing usable by someone else now**, which is small (§5.2); and **cut the
-standing cost** of process and test machinery that was right for building and is too heavy for maintaining
+a test and release system around them. Today the only user is the author; the extension is installed from a GitHub release,
+needs QB64pe installed beside it. The panel's recommendation is
+in three parts: 
+1. **write the purpose** (one paragraph, the user's; §5.1), because every option below is cheap or dear depending on it; 
+2. **make the thing usable by someone else now**, which is small (§5.2); 
+3. and **cut the standing cost** of process and test machinery that was right for building and is too heavy for maintaining
 (§5.3). The directions after that (§4) are real choices, and the panel ranks them under each purpose it can
 imagine (§5.4) rather than picking one for the user.
 
@@ -50,25 +48,35 @@ imagine (§5.4) rather than picking one for the user.
 
 ### 2.2 What a user gets today
 
-Someone who installs `vscode-v0.2.0` on Windows with QB64pe already installed gets: syntax errors as they type,
-every error of a program at its column on save, formatting as the QB64pe IDE does it, outline, go to definition,
-hover, references, rename, completion, build and run with the new compiler, and debugging by BASIC line with
-variables, watches and data breakpoints. That is more than the QB64pe IDE gives in several respects (all errors
+Someone who installs `vscode-v0.2.0` on Windows with QB64pe already installed gets: 
+- syntax errors as they type,
+- every error of a program at its column on save, 
+- formatting as the QB64pe IDE does it, 
+- outline, go to definition, hover, references, rename, completion
+- build and run with the new compiler,
+- debugging by BASIC line with variables, watches and data breakpoints. That is more than the QB64pe IDE gives in several respects (all errors
 at once, columns, rename, a real debugger UI) and less in others (no help system, no `$NOPREFIX` conversion, no
-export). Without QB64pe installed they get nothing: no toolchain. On Linux or macOS they get nothing.
+export). 
+Without QB64pe installed they get nothing: no toolchain. On Linux or macOS they get nothing.
 
 ### 2.3 What was decided, and what was not
 
-Decided on 2026-10-02: a ground-up rewrite in Rust; no port of the text-mode IDE, VS Code instead; new error
-messages; QB64pe 4.7.0 as the dialect, behaviour as observed at a pinned commit; self-hosting not a goal. Decided
-on 2026-10-08: a deterministic behaviour that changes results is kept, a crash, corruption or failed build is
-fixed.
+- Decided on 2026-10-02: 
+   - a ground-up rewrite in Rust; 
+   - no port of the text-mode IDE, VS Code instead; 
+   - new error messages; 
+   - QB64pe 4.7.0 as the dialect, behaviour as observed at a pinned commit. 
+- Decided on 2026-10-08: 
+   - a deterministic behaviour that changes results is kept, a crash, corruption or failed build is ixed.
 
-Not decided, anywhere: **who the compiler is for** and **what "done" is** for the project as a whole. The
-roadmap's milestones were the expert panel's architecture plan (`study\07` session 8) and each has a "done when"
-of its own, but there is no sentence that says, for example, "a QB64 programmer on any platform can install one
-thing and have an editor, compiler and debugger", or "the author's own programs build and debug in VS Code", or
-"a compiler that QB64pe's maintainers could adopt". Those three purposes lead to three different next steps.
+Not decided, anywhere: 
+- **who the compiler is for** and **what "done" is** for the project as a whole. 
+
+The roadmap's milestones were the expert panel's architecture plan (`study\07` session 8) and each has a "done when" of its own, but there is no sentence that says, for example, 
+   - "a QB64 programmer on any platform can install one thing and have an editor, compiler and debugger", 
+   - or "the author's own programs build and debug in VS Code", 
+   - or "a compiler that QB64pe's maintainers could adopt". 
+Those three purposes lead to three different next steps.
 
 ### 2.4 What is fragile
 

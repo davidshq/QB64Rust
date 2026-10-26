@@ -26,14 +26,18 @@ argument). What of that layer the old compiler accepts and the new one still mar
 statement compiles since `m3-typefields` task 4.2, measured by `verification\v35_x62`.)
 
 **Left marked by `m2-console-screenhide`** (step 11, 2026-10-12: a console and a window, the window built-ins,
-the constants of the auto-included file, the precompiler flags). What the old compiler accepts and the new one
-still marks "not supported yet":
+the constants of the auto-included file, the precompiler flags). The forms it left marked compile since M4 (below the table); what is compiled and not
+run:
 
 | Form | Why it waits | Details |
 |---|---|---|
 | The window built-ins that act on the desktop are compiled and never run (`_SCREENMOVE`, `_MOUSEMOVE`, `_SCREENCLICK`, `_SCREENPRINT`, `_NOTIFYPOPUP`, `_CLIPBOARDIMAGE`, `_CONSOLEFONT`); the rest run since `m4-coverage-review` (`screen\w01_window_builtins` and earlier programs) | A test may not move, click or type on the user's desktop, or change its clipboard or console | `tests\never_run.list`; call-site programs in `tests\callsite` |
-| `_SCREENEXISTS` as the direct argument of `HEX$`, `OCT$` or `_BIN$` | The table gives the function no return type, and the old compiler passes the width 0 there, not a LONG's 8 or 32; the function runs from M3 on, where the width can be given | Design D6 of the change |
-| A `$IF` that names `_CONSOLE_` between `$CONSOLE:ONLY` and a later `$CONSOLE` (or the other way round) | The old compiler's two passes read the line with different values (its program prints nothing from the branches; a `CONST` in them is "Name already in use"); no value here would be right | `verification\v26_x27`, `x34`; `tests\frontend\flags_between_errors.bas` |
+
+(`_SCREENEXISTS` as the direct argument of `HEX$`, `OCT$` or `_BIN$` compiles with the old compiler's width 0
+since `m4-memory-records`, design D4, `verification\v56_c`. A `$IF` that names `_CONSOLE_` between
+`$CONSOLE:ONLY` and a later `$CONSOLE` compiles as the old compiler's two passes read it, nothing from its
+branches and "Name already in use" for a `CONST` of them, since `m4-statements-metacommands`, design D9,
+`verification\v26_x27`, `x34`, `tests\frontend\flags_between_errors.bas`.)
 
 **Left marked by `m3-window-output`** (the first step of M3, 2026-10-12: a program with a window as its
 output, the text-screen, drawing and pacing statements, the screen functions). What the old compiler accepts and
@@ -56,10 +60,11 @@ the new one still marks "not supported yet", and what is compiled but checked by
 | `VARPTR` and `VARSEG` of a whole array `x()` that is not of numbers, `VARSEG` of a `_BIT` array, `VARPTR` of a member of a `TYPE` type, `VARPTR$` of a member of an element or of a member array's element | Not measured by `verification\v56` (the measured forms compile since `m4-memory-records`; those of a procedure and a fixed-length string member since `qbasic-testcases`, `v61`) | `tests\frontend\sadd_varptr_str_errors.bas` |
 | In the array's place of graphics `GET` and `PUT`: an array of `_BIT` | Not measured; every other place compiles since `m4-memory-records` (design D5) | `tests\frontend\m3_step2_marked.bas` |
 | An index that calls a FUNCTION in the array of `GET` or `PUT` (`GET (1, 2)-(3, 4), a(f(1))`) | The old compiler writes the index twice, so the FUNCTION runs twice; writing that the same way needs a second evaluation the emitter does not have | Read from the C++ (`study\00` §5) |
-| The file forms `GET #n, …` and `PUT #n, …` | Step 4 of M3's order (random and binary files) | The mark is ` `GET` on a file ` |
 | A line that is the name of a SUB and a colon, where a line the parser could not read has the word in it | Whether the line is a call or a label depends on every jump of the program, and that line may be one | `tests\frontend\sub_name_colon_errors.bas` (`five:`) |
 | The statement `_FULLSCREEN` is compiled, and no test runs it (the function runs in `screen\w01_window_builtins`, `m4-coverage-review`) | A test that takes the whole desktop is not wanted | Call-site programs `fullscreen_*` |
 | `DATE$` and `TIME$` are run for their length and separators only; the statements `DATE$ = …` and `TIME$ = …` are compiled since `m4-builtins-remaining` and run (libqb's `sub_date` and `sub_time` change nothing, `verification\v58_s03`) | Nothing a test records may depend on the clock | `tests\corpus\slice\s71_tab_spc`, `s159_builtins_last` |
+
+(The file forms `GET #n, …` and `PUT #n, …` compile since `m3-console-files`, `tests\frontend\file_get_put_ir.bas`.)
 
 **Left marked by `m3-sound`** (the third step of M3, 2026-10-13: `SOUND`, `PLAY`, `BEEP`, `$EXEICON`, and a
 statement with a template after `CALL`, which closed three rows of the tables above). What the old compiler
@@ -99,10 +104,7 @@ None is left: `_UCHARPOS` of an array that is not declared (`nd&()`) compiles si
 `m3-asserts-debug-zlib`.)
 
 **Left marked by `m3-asserts-debug-zlib`** (the eighth step of M3, 2026-10-14: `$ASSERTS`, `_ASSERT`, `$DEBUG`,
-the data-processing functions, `END n` and `SYSTEM n`, the licence file):
-
-| Form | Why it waits | Details |
-|---|---|---|
+the data-processing functions, `END n` and `SYSTEM n`, the licence file). None is left.
 
 **Left marked by `m3-typefields`** (the tenth step of M3, 2026-10-15: `$UNSTABLE:TYPEFIELDS`, the member markers,
 `_DYNAMIC` member arrays). What the old compiler accepts and the new one still marks "not supported yet", each not
@@ -118,8 +120,10 @@ Windows). What the old compiler accepts and the new one still marks "not support
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A library FUNCTION beside a program SUB of the same name (`x22`) | The old compiler accepts both; which one a use names was not measured | `verification\v37_x22`; `sema\src\check\library.rs` |
 | Linux and macOS libraries (`.so`, `.dylib`, `/usr/lib`, `dlopen`) and the IDE's folder in the lookup | The project is Windows only | design Non-Goals |
+
+(A library FUNCTION beside a program SUB of the same name, and the reverse pair, compile since
+`m4-statements-metacommands`, `verification\v37_x22` on `tests\verification\pass.list`.)
 
 **Left marked by `m3-sound-handles`** (the sixteenth step of M3, 2026-10-16: `_SNDOPEN`, the `_SND*` family,
 `_MIDISOUNDBANK`, `_WAVE`; every name of libqb's audio part has a row now). What the old compiler accepts and the
@@ -140,10 +144,7 @@ version resource and manifest). Nothing the old compiler builds into a working e
 | `s130_versioninfo` on a machine without PowerShell | It reads the version resource back with a PowerShell script; every Windows machine and GitHub's runner have one | design, risks |
 
 **Left marked by `m3-arraycopy`** (the eighteenth step of M3, 2026-10-17: `_ARRAYCOPY`). No form of `_ARRAYCOPY` is
-marked; left out:
-
-| Form | Why it waits | Details |
-|---|---|---|
+marked, and nothing is left out.
 
 **Left marked by `m3-events`** (the nineteenth step of M3, 2026-10-17: `ON TIMER`, `ON KEY`, the switches,
 `_FREETIMER`, `KEY`'s own forms). What the old compiler accepts and the new one still marks "not supported yet":
@@ -194,10 +195,7 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 | `LEN` of a whole array of a `TYPE` with a `_DYNAMIC` member array, and of a whole `_DYNAMIC` member array | Not measured (`LEN` of such a value is an error, `v35_x20`) | `check\builtins.rs` `len_whole` |
 
 **Left marked by `m4-builtins-param-types`** (2026-10-21: `_CAST`, `_CLIPBOARD$`, `_FILES$`, `_MD5$`, `_OS$`,
-`CLEAR`, a parameter's `TYPE` above its procedure):
-
-| Form | Why it waits | Details |
-|---|---|---|
+`CLEAR`, a parameter's `TYPE` above its procedure). None is left.
 
 **Left marked by `m4-handlers-logging-checking`** (2026-10-21: the handler chain, the log statements and
 `_LOGMINLEVEL`, `$CHECKING` anywhere):
@@ -212,8 +210,10 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 
 | Form | Why it waits | Details |
 |---|---|---|
-| An operator where a value is expected outside a `CONST` (`x = OR`) | The old compiler: "Expected variable/value before 'OR'". The parser's mark covers forms of its grammar not parsed here, so only a `CONST` turns it into an error | `verification\v51_x50`; design D5 of the change |
 | A name that is no type in an `AS` clause where no form was measured: `REDIM` of a member array, `_UNSIGNED` before a name in `SHARED`, a parameter or `_DEFINE` | Each place gives its own error in the old compiler (`v51`), so a place not measured keeps its mark | `check\decl.rs` `no_type` |
+
+(An operator where a value is expected outside a `CONST`, `x = OR`, is the old compiler's error "Expected
+variable/value before 'OR'" since `m4-statements-metacommands`, task 4.3, `verification\v51_x50`.)
 
 **Left marked by `m4-qb64pe-sources`** (2026-10-21: `_INSTRREV`, the whole-file functions, `_FULLPATH$`, the five
 functions, the `ASC` statement, `STOP`, reserved words with a suffix, the `$` name of a `STRING * n` array or
@@ -221,16 +221,17 @@ variable):
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A procedure named after a reserved word with a suffix other than none and `&` (`FUNCTION exp$`) | `v52_builtin_name_suffixes` measured variables only; the old compiler rejects the form recorded. A sweep like it, of `FUNCTION` and `SUB`, would decide the rest (a `CONST` is decided: "Name already in use", `x32`, `x67`, `x68`) | `verification\v52_x28` (on `tests\verification\known.list`); design D6 of the change |
 | `REDIM`, `STATIC` or `COMMON` of `a$(…)` beside a `STRING * n` array `a`, and `COMMON SHARED s$` beside a `STRING * n` variable `s` | Only `DIM` was measured for the array ("Type mismatch", `v52_x45`), and every declarer but `COMMON` for the variable (`x49`, `x69`–`x72`) | Design D7 of the change |
 | `ASC((a$)) = 65`: the place in parentheses | Not measured, as for `MID$` | `check\io.rs` `asc_assign` |
 
-**Left marked by `m4-qb64pe-builtins`** (2026-10-22: the keyboard, window, colour and system built-ins and `$RESIZE`
-that `qb64pe.bas` needs):
+(A procedure named after a reserved word with a suffix it does not take is the old compiler's error since
+`m4-names-implicit-arrays`: "Name already in use" for a FUNCTION, `FUNCTION exp$`, "Type symbols after a SUB name
+are invalid" for a SUB; `FUNCTION chr&` is accepted, `verification\v52_x28`, `v55_x46`–`x51` on
+`tests\verification\pass.list`.)
 
-| Form | Why it waits | Details |
-|---|---|---|
-| `_SETBIT`, `_RESETBIT` and `_TOGGLEBIT`, the siblings of `_READBIT` (compiled since `m4-builtins-remaining`, `verification\v58_f09`) | Not used by `qb64pe.bas`, so out of the change's scope | Design, "Non-Goals" |
+**Left marked by `m4-qb64pe-builtins`** (2026-10-22: the keyboard, window, colour and system built-ins and `$RESIZE`
+that `qb64pe.bas` needs). None is left: `_SETBIT`, `_RESETBIT` and `_TOGGLEBIT`, out of that change's scope,
+compile since `m4-builtins-remaining` (`verification\v58_f09`).
 
 **Left marked by `m4-line-numbers-whole-arrays`** (2026-10-22: line numbers, unsigned literals, a whole array as a
 value):
@@ -260,9 +261,6 @@ members named like keywords, `CALL ABSOLUTE`). Compiled, not measured:
 | Form | Why it waits | Details |
 |---|---|---|
 | A `_BIT` scalar of the main module in a program whose only use of `dblock` is a slot `passN` (a value to `CALL ABSOLUTE`, or to a parameter whose address is taken): compiled, the `_BIT` scalar left out of `dblock` | Not measured; the old compiler probably puts it there (`qb64pe.bas` 18215), which would move the slot 4 bytes down. The emitter's test counts variables only, and slots are made while bodies are written, so a fix needs the slots known from `sema` or `ir`. Found in the review of the change; no program known needs it | `crates\codegen-cpp\src\cmem.rs` (`uses_dblock`) |
-
-Test impact: some of the 211 `tests\compile_tests\arrays` tests exercise this layer. When the new compiler is first
-measured, list them in `tools\legacy_tests\known_failures.txt` (reported as `KFAIL`) until the features land.
 
 ## Strict QuickBASIC 4.5 mode
 

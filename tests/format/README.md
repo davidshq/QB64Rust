@@ -41,7 +41,7 @@ its default output first, then add its line to the list and record again (the va
 before its defaults are written).
 
 <!-- counts:format-membership -->
-**1183** programs recorded; `known_differences.list` names 1. By set:
+**1183** programs recorded; `known_differences.list` names 0. By set:
 
 | Set | Recorded |
 |---|---|
