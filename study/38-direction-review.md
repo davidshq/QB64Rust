@@ -20,12 +20,14 @@ GitHub release and run lists, counts over the repository (below). No code was re
 In 25 days the project built what it set out to build on day one: a compiler in Rust that matches QB64pe on every
 program the suites hold (516 corpus, 402 of 404 upstream, 3,892 verification programs, one whole game played to
 the same screens), a VS Code extension with checking, formatting, navigation, build and a line-level debugger, and
-a test and release system around them. Today the only user is the author; the extension is installed from a GitHub release,
-needs QB64pe installed beside it. The panel's recommendation is
-in three parts: 
-1. **write the purpose** (one paragraph, the user's; §5.1), because every option below is cheap or dear depending on it; 
-2. **make the thing usable by someone else now**, which is small (§5.2); 
-3. and **cut the standing cost** of process and test machinery that was right for building and is too heavy for maintaining
+a test and release system around them. **What was never written down is who it is for.** The milestones came
+from the architecture (front end, backend, parity, debugger, runtime), not from a person who would use the result,
+so now that the architecture is complete the roadmap runs out, and the one milestone left (M6) is a redesign for
+its own sake (`study\37`). Today the only user is the author; the extension is installed from a GitHub release,
+needs QB64pe installed beside it, and its README's first sentence is out of date. The panel's recommendation is
+in three parts: **write the purpose** (one paragraph, the user's; §5.1), because every option below is cheap or
+dear depending on it; **make the thing usable by someone else now**, which is small (§5.2); and **cut the
+standing cost** of process and test machinery that was right for building and is too heavy for maintaining
 (§5.3). The directions after that (§4) are real choices, and the panel ranks them under each purpose it can
 imagine (§5.4) rather than picking one for the user.
 
@@ -48,35 +50,25 @@ imagine (§5.4) rather than picking one for the user.
 
 ### 2.2 What a user gets today
 
-Someone who installs `vscode-v0.2.0` on Windows with QB64pe already installed gets: 
-- syntax errors as they type,
-- every error of a program at its column on save, 
-- formatting as the QB64pe IDE does it, 
-- outline, go to definition, hover, references, rename, completion
-- build and run with the new compiler,
-- debugging by BASIC line with variables, watches and data breakpoints. That is more than the QB64pe IDE gives in several respects (all errors
+Someone who installs `vscode-v0.2.0` on Windows with QB64pe already installed gets: syntax errors as they type,
+every error of a program at its column on save, formatting as the QB64pe IDE does it, outline, go to definition,
+hover, references, rename, completion, build and run with the new compiler, and debugging by BASIC line with
+variables, watches and data breakpoints. That is more than the QB64pe IDE gives in several respects (all errors
 at once, columns, rename, a real debugger UI) and less in others (no help system, no `$NOPREFIX` conversion, no
-export). 
-Without QB64pe installed they get nothing: no toolchain. On Linux or macOS they get nothing.
+export). Without QB64pe installed they get nothing: no toolchain. On Linux or macOS they get nothing.
 
 ### 2.3 What was decided, and what was not
 
-- Decided on 2026-10-02: 
-   - a ground-up rewrite in Rust; 
-   - no port of the text-mode IDE, VS Code instead; 
-   - new error messages; 
-   - QB64pe 4.7.0 as the dialect, behaviour as observed at a pinned commit. 
-- Decided on 2026-10-08: 
-   - a deterministic behaviour that changes results is kept, a crash, corruption or failed build is ixed.
+Decided on 2026-10-02: a ground-up rewrite in Rust; no port of the text-mode IDE, VS Code instead; new error
+messages; QB64pe 4.7.0 as the dialect, behaviour as observed at a pinned commit; self-hosting not a goal. Decided
+on 2026-10-08: a deterministic behaviour that changes results is kept, a crash, corruption or failed build is
+fixed.
 
-Not decided, anywhere: 
-- **who the compiler is for** and **what "done" is** for the project as a whole. 
-
-The roadmap's milestones were the expert panel's architecture plan (`study\07` session 8) and each has a "done when" of its own, but there is no sentence that says, for example, 
-   - "a QB64 programmer on any platform can install one thing and have an editor, compiler and debugger", 
-   - or "the author's own programs build and debug in VS Code", 
-   - or "a compiler that QB64pe's maintainers could adopt". 
-Those three purposes lead to three different next steps.
+Not decided, anywhere: **who the compiler is for** and **what "done" is** for the project as a whole. The
+roadmap's milestones were the expert panel's architecture plan (`study\07` session 8) and each has a "done when"
+of its own, but there is no sentence that says, for example, "a QB64 programmer on any platform can install one
+thing and have an editor, compiler and debugger", or "the author's own programs build and debug in VS Code", or
+"a compiler that QB64pe's maintainers could adopt". Those three purposes lead to three different next steps.
 
 ### 2.4 What is fragile
 
@@ -142,13 +134,13 @@ three.
 
 | # | Option | Claude's time | Cost that stays | Risk | Who gains |
 |---|---|---|---|---|---|
-| 1 | **Usable without QB64pe**: the compiler as its own release asset with a short manual; Marketplace listing (`study\37` §5.2) | small | one toolchain pin to keep | low | anyone who would try it |
+| 1 | **Usable without QB64pe**: a pinned toolchain the extension fetches, `lldb-dap` from it; the compiler as its own release asset with a short manual; README made true; Marketplace listing (`study\37` §5.2) | small to moderate | one toolchain pin to keep | low | anyone who would try it |
 | 2 | **Linux and macOS**: libqb already builds there; the driver's build, the runner, the extension's packaging and CI are Windows-only; recordings differ by platform (`printf` float text, console comma zones D-011) | large: a platform is a milestone (toolchain, CI runner, recordings judged per platform) | a runner and a recording set per platform | medium: the recorded truth becomes three truths | QB64 users off Windows |
 | 3 | **M6 as written** (second backend, runtime redesign) | very large | two backends kept equal | high | nobody visible (`study\37`) |
 | 4 | **libqb repaired in place** through `tools\libqb\edits`: the 18 crash-class rows now, others as ruled (`study\37` §5.3) | small per row | the edits, kept as the clone moves | low | users who hit those crashes |
 | 5 | **Offer the work upstream**: the `UPSTREAM.md` fixes as QB64pe issues or pull requests; the verification programs as test cases; the language server for QB64pe programs as it is | small | none | none; may be declined | the QB64pe community, and this project (fewer divergences to carry) |
 | 6 | **Language work on the dialect**: warnings (unused variables and procedures, which the old IDE offers), then what users ask for | small per warning; a feature is a change | each is a divergence from QB64pe's acceptance set only if it rejects | a dialect fork if it goes past warnings | people who write new programs |
-| 7 | **Robustness beyond the suites**: more real programs (public-domain QB64 programs with a licence), a fuzz target for the lexer and parser, the string and array differential group | moderate | the programs and their recordings | low | everyone, invisibly |
+| 7 | **Robustness beyond the suites**: more real programs (public-domain QB64 programs with a licence, QB64pe's `qbasic_testcases` run from the clone), a fuzz target for the lexer and parser, the string and array differential group | moderate | the programs and their recordings | low | everyone, invisibly |
 | 8 | **Cut the standing cost** (§5.3): fewer rules, a thinner close, documents merged, the 165 rows closed by the rule that already decides them, a policy on QB64pe releases | small | less | low: a thinner close catches less; the full set at a merge stays | the user and every session |
 | 9 | **Freeze the dialect at 4.7.0** and stop tracking QB64pe: no re-recordings, the clone kept only for the toolchain until option 1 removes that too | none | far less | the dialect ages; built-ins QB64pe adds later are absent | the maintainer |
 | 10 | **Declare 1.0 and stop building**: M5b is the end; maintenance only | none | the minimum | none | the author's time |
@@ -176,9 +168,13 @@ candidates; the user may have a fourth:
 
 This is right under P1 (the author installs it on a second machine), P2 and P3, and it is small:
 
-1. Release `qb64rust.exe` with libqb as its own asset beside the `.vsix`, with a one-page manual (the usage line,
+1. Correct `vscode\README.md`'s first paragraph (the formatter no longer needs QB64pe) and say plainly what is
+   needed and what works.
+2. `m6-toolchain` as `study\37` §5.2: a pinned toolchain the extension fetches on first build; `lldb-dap` from
+   it; QB64pe's install as a fallback. After it, nothing of QB64pe is needed on a user's machine.
+3. Release `qb64rust.exe` with libqb as its own asset beside the `.vsix`, with a one-page manual (the usage line,
    `-f:` settings, `--debug`, `-y`).
-2. Open the QB64pe issues of `UPSTREAM.md` (option 5's first half): each has its measurement and its fix already
+4. Open the QB64pe issues of `UPSTREAM.md` (option 5's first half): each has its measurement and its fix already
    written; it costs nothing to keep and is the honest thing to do with a found bug.
 
 Whether to list on the Marketplace is the user's (it is public in a way a GitHub release is not).
@@ -218,7 +214,7 @@ Each of these is a rule or a tool that earned its place while building and now c
 | P3 | the second half of option 5 (the verification programs as QB64pe tests; ask about the language server), option 4, then whatever the maintainers want |
 
 Under none of them does M6 as written come next; `study\37`'s rewrite of it ("the runtime without QB64pe") is
-`m6-toolchain` (built) and §5.2 item 2 here.
+§5.2 items 2 and 4 here.
 
 ## 6. What the panel would change in how the work is run
 
@@ -234,7 +230,7 @@ Under none of them does M6 as written come next; `study\37`'s rewrite of it ("th
 ## 7. What the user decides
 
 1. **The purpose** (§5.1): P1, P2, P3, or your own paragraph.
-2. **§5.2, the release work**: yes to both items, or which; the Marketplace, yes or no.
+2. **§5.2, the release work**: yes to all four items, or which; the Marketplace, yes or no.
 3. **§5.3, the cuts**: each of the five, yes or no; in particular the policy on QB64pe releases (freeze at
    4.7.0, or track).
 4. **The direction after that** (§5.4), which follows from 1 unless you choose otherwise.

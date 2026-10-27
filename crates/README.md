@@ -260,8 +260,9 @@ yet match the old compiler's verdict (since `m2-parser-breadth`, `known_false_er
 `known_parse_gaps.list` are empty); after a change, regenerate them with `QB64RUST_UPDATE_LISTS=1 cargo test -p
 qb64rust-driver --test inputs` and review the diff (entries may only go away).
 
-**Mutation test.** `QB64RUST_MUTATE_SEED` and `QB64RUST_MUTATE_COUNT` (mutants per corpus program, default 20)
-change the run; a failure prints the seed to rerun with and writes the mutant to `target\mutate-failure.bas`.
+**Mutation test.** `QB64RUST_MUTATE_SEED` and `QB64RUST_MUTATE_COUNT` (mutants of each kind, byte-level and
+line-level, per corpus program, default 10) change the run; a mutant the front end accepts also goes through lowering
+and C++ generation; a failure prints the seed to rerun with and writes the mutant to `target\mutate-failure.bas`.
 
 Time of tier 1, measured 2026-10-07 after `m2-parser-breadth` groups 7 and 8 (debug build already built, 16
 threads, clone present): `cargo test` takes 9.5–9.9 s over three runs, `inputs.rs` 6.1 s of it, most of it

@@ -149,7 +149,10 @@ already in use"; `verification\v48_x05`). `DIM v AS name` SHALL declare a variab
 that type, in every storage class a scalar variable may have; every member starts at zero (NUL bytes for a
 fixed-length string, an empty string for a `STRING`), a local one on each call. A member's size in the layout SHALL
 be its type's (1 byte for
-`_BYTE`, 8 for `_OFFSET`, `n` for `STRING * n`), without padding. A member array marked `_STATIC` or `_DYNAMIC`
+`_BYTE`, 8 for `_OFFSET`, `n` for `STRING * n`), without padding. A member SHALL take any name the old
+compiler takes, keywords and the names of built-ins among them (`Time`, `Left`, `Case`), and a name it rejects
+(`PRINT`, `END`, a name with a single leading underscore) SHALL be a compile error with its wording
+(`verification\v61_m_*`). A member array marked `_STATIC` or `_DYNAMIC`
 SHALL be reported "not supported yet"; a member declared
 with a type suffix, and a `_BIT` or `_BIT * n` member, SHALL be compile errors (the old compiler: "Cannot use _BIT
 inside user defined types"). A whole user-type value in an expression, a `PRINT`
@@ -214,6 +217,15 @@ value SHALL be assignable to a place of the same type (requirement "Whole user-t
 - **WHEN** the main module has `IF 1 THEN`, the block `TYPE pt … END TYPE`, then `END IF`, and below it `DIM p AS
   pt`
 - **THEN** the program compiles, and `p` has the type's members
+
+#### Scenario: A member named like a built-in
+- **WHEN** a type has the members `Time AS INTEGER` and `x AS INTEGER`, and `DIM o AS t: o.Time = 4: o.x = 2:
+  PRINT o.Time; o.x; TIME$ <> ""` runs
+- **THEN** it prints ` 4  2 -1 `, as with the old compiler
+
+#### Scenario: A name the old compiler rejects
+- **WHEN** a type has the member `print AS LONG`
+- **THEN** it is a compile error that is not "not supported yet"
 
 ### Requirement: Member access and dotted names
 `a.b` SHALL be a member access when a scalar variable `a` of a user type is visible at that point, and a plain

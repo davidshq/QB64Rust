@@ -8,6 +8,15 @@ No progress numbers and no "now" marker: the current step, immediate next steps,
 of the last full runs are in `STATUS.md` (`DECISIONS.md` 2026-10-07). The plan behind the milestones is
 `study\00-synthesis.md` §2.
 
+## Purpose
+
+**A QB64 for anyone**: a QB64 programmer installs one thing, on Windows,
+Linux or macOS, and has an editor, a compiler and a debugger for the QB64pe 4.7.0 dialect, with no QB64pe
+installed. The project is done when that is true on all three platforms. The order that follows from it
+(`study\38` §5.4): make it usable by someone else (§5.2), then one milestone per platform, Linux first, with more
+real programs and fuzzing beside them; the crash-class fixes and new language work as users ask; the fixes of
+`UPSTREAM.md` offered to QB64pe as goodwill.
+
 This file was written again on 2026-10-12 from `study\00` §2, `STATUS.md` and `DECISIONS.md`: the earlier file
 was never committed and was no longer on disk.
 
