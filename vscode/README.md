@@ -186,6 +186,10 @@ SHA-256); **Not Now** builds nothing and asks again next time. **QB64: Install t
 any time, and `qb64rust toolchain install` from a terminal too. With QB64pe installed and found, its own toolchain
 is used and nothing is asked. To use a toolchain folder of your own, set `qb64rust.toolchainPath` to it.
 
+**Without VS Code:** the same release has the compiler on its own, `qb64rust-win-x64-<version>.zip`, for a
+command prompt, a build script or another editor. Its manual (`MANUAL.md`, inside the zip) covers setting it up.
+The extension already carries this compiler, so you don't need both.
+
 ## Requirements
 
 Windows x64. [QB64 Phoenix Edition](https://github.com/QB64-Phoenix-Edition/QB64pe) is optional (tested with 4.7.0):
@@ -243,6 +247,6 @@ extensions. If another extension also claims `.bas`, choose which one wins with 
   running.
 - C++ compile errors (rare; usually a compiler bug) are not mapped to BASIC lines; see the "QB64" output channel
   (with QB64pe, also `internal\temp\compilelog.txt`).
-- The package is for Windows x64 only.
+- The package is for Windows x64 only. Linux, then macOS, are planned.
 
 Requires VS Code 1.100 or later.

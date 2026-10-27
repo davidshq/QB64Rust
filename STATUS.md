@@ -22,7 +22,7 @@ M0 to M5 are complete (`ROADMAP-COMPLETED.md`; M3 declared done at the merge of 
 tenth review `study\35` §3 item 1; M4 at the merge of branch `m4-sub-gl`, user, 2026-10-24, `DECISIONS.md`, what
 its list left open moved to `SOMEDAY.md`; M5, the debugger, at the merge of pull request 17, user, 2026-10-26;
 M5b, the formatter and the language-server features, at the merge of pull request 18, 2026-10-26). M6 has begun:
-`m6-toolchain` is archived, `m6-compiler-download` built (waits for review). Twenty-two M3 steps are built and archived
+`m6-toolchain` and `m6-compiler-download` are archived. Twenty-two M3 steps are built and archived
 (table below), the last `m3-constant-evaluation` (`4f647a9`); `test-parallel-runs` and `test-while-building` (the test
 cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
@@ -49,8 +49,8 @@ working rule 11).
 1. **The project's direction** (`study\38` §7, 2026-10-26): the purpose is decided, a QB64 for anyone
    (`ROADMAP.md` "Purpose", `DECISIONS.md` 2026-10-26); still open: the release work of §5.2 (usable
    without QB64pe is decided and built: `m6-toolchain`, `DECISIONS.md` 2026-10-26; the compiler as its own
-   download is decided and built, `m6-compiler-download`, first published at the next `vscode-v*` tag; still open: the `UPSTREAM.md` issues; the
-   Marketplace, yes or no); the cuts
+   download is decided and built, `m6-compiler-download`, first published at the next `vscode-v*` tag; the `UPSTREAM.md` issues are kept but block
+   nothing, user 2026-10-27; still open: the Marketplace, yes or no); the cuts
    of §5.3 (the policy on QB64pe releases is decided: frozen at 4.7.0, `DECISIONS.md` 2026-10-26; the 165 rows stay, as candidates
    for fixes behind a switch; still open: a thinner close, merged documents, the weekly CI job); the direction after that (§5.4,
    P2's row unless the user chooses otherwise). It answers `study\37` §8 (what M6 becomes) too.
@@ -65,11 +65,9 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. The change `m6-compiler-download` (`openspec\changes\m6-compiler-download`) is built and its closing runs
-   pass (`close.py --check`, 2026-10-27): the compiler as a zip on the `vscode-v*` release beside the `.vsix`,
-   libqb found beside the executable, `--version` and `--help`, `MANUAL.md`, the workspace version 0.2.0. It waits
-   for the user's review, then `/opsx:archive`. The first release with the zip is the user's next `vscode-v*` tag,
-   with `package.json` and `Cargo.toml` raised together.
+1. `m6-compiler-download` is archived (`openspec\changes\archive\2026-10-27-m6-compiler-download`, specs synced
+   into `compiler/cli`, `compiler/download` and `editor/packaging`). The first release with the zip is the user's
+   next `vscode-v*` tag, with `package.json` and `Cargo.toml` raised together.
 2. M6, runtime modernisation (`ROADMAP.md`): a study first, `study\37` (what M6 is for, where it starts and where
    it stops, with the review that comes with this merge), then the user's decision on its scope.
 3. The fixes switch and the crash-class rulings (`study\39`, rows 1–19, user, 2026-10-26): `qb64rust.toml` and

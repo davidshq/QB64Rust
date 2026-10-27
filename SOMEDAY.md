@@ -120,7 +120,10 @@ Windows). What the old compiler accepts and the new one still marks "not support
 
 | Form | Why it waits | Details |
 |---|---|---|
-| Linux and macOS libraries (`.so`, `.dylib`, `/usr/lib`, `dlopen`) and the IDE's folder in the lookup | The project is Windows only | design Non-Goals |
+| The IDE's folder in the lookup | No IDE is ported | design Non-Goals |
+
+(Linux and macOS libraries, `.so`, `.dylib`, `/usr/lib` and `dlopen`, are items of `ROADMAP.md` M7 and M8 since
+the purpose was set, 2026-10-26.)
 
 (A library FUNCTION beside a program SUB of the same name, and the reverse pair, compile since
 `m4-statements-metacommands`, `verification\v37_x22` on `tests\verification\pass.list`.)

@@ -159,7 +159,8 @@ changing direction, design or scope.**
 ## Project decisions
 
 The decision log is **`DECISIONS.md`** (one dated row per decision, oldest first; moved out of this file on
-2026-10-07). When the user decides something, add a row there and put the details in the document it names.
+2026-10-07). When the user decides something, add a row there and put the details in the document it names; a minor
+row (document arrangement, a change archived, a one-time exception) goes to `DECISIONS-SMALL.md` instead.
 Expert-panel recommendations: `study\07-expert-panel.md`. Open questions: `STATUS.md`.
 
 ## Layout
