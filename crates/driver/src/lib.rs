@@ -2,11 +2,13 @@
 
 pub mod build;
 pub mod cpp_errors;
+pub mod fixes;
 pub mod hover;
 pub mod library;
 pub mod report;
 pub mod toolchain;
 
+use qb64rust_base::fixes::Fixes;
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;
 use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse_settled};
@@ -165,22 +167,23 @@ pub fn frontend(name: &str, bytes: Vec<u8>) -> Frontend {
 /// [`frontend`] with included files found by the loader `loader` makes for the main file's id. The checks that
 /// read the disk are left out: [`frontend_at`] makes them.
 pub fn frontend_with(name: &str, bytes: Vec<u8>, loader: impl FnOnce(FileId) -> Box<dyn Loader>) -> Frontend {
-    frontend_at(name, bytes, loader, None)
+    frontend_at(name, bytes, loader, None, Fixes::OFF)
 }
 
 /// [`frontend_with`] for the main file on disk, if given (`disk`: its path and the compiler root): then the checks
-/// of [`check_program`] that read the disk are made too, as for a compile run.
+/// of [`check_program`] that read the disk are made too, as for a compile run. `fixes`: the program's fixes.
 pub fn frontend_at(
     name: &str,
     bytes: Vec<u8>,
     loader: impl FnOnce(FileId) -> Box<dyn Loader>,
     disk: Option<(&Path, &Path)>,
+    fixes: Fixes,
 ) -> Frontend {
     let mut map = SourceMap::new();
     let file = map.add(name, bytes);
     let mut loader = loader(file);
     let parsed = parse_settled(&mut map, file, loader.as_mut());
-    let (program, diagnostics) = check_program(&map, &parsed, disk);
+    let (program, diagnostics) = check_program(&map, &parsed, disk, fixes);
     Frontend {
         map,
         file,
@@ -193,11 +196,16 @@ pub fn frontend_at(
 /// The front end after the parse, for the CLI and the language server's check alike (design D2 of
 /// `extension-diagnostics`): `sema`, then, when the main file's path and the compiler root are given (`disk`), the
 /// checks that read the disk ([`check_exe_icon`], [`check_embedded_files`]). The diagnostics are the parse's first,
-/// then the others.
-pub fn check_program(map: &SourceMap, parsed: &ParsedProgram, disk: Option<(&Path, &Path)>) -> (Program, Diagnostics) {
+/// then the others. `fixes`: the fixes the program is built with (spec `compiler/fixes`), worked out by the caller.
+pub fn check_program(
+    map: &SourceMap,
+    parsed: &ParsedProgram,
+    disk: Option<(&Path, &Path)>,
+    fixes: Fixes,
+) -> (Program, Diagnostics) {
     // QB64RUST_NO_FOLD=1 turns integer constant folding off (test use only, design D5).
     let fold = std::env::var_os("QB64RUST_NO_FOLD").is_none_or(|v| v != "1");
-    let (program, sema_diags) = qb64rust_sema::check_with(map, parsed, fold);
+    let (program, sema_diags) = qb64rust_sema::check_with(map, parsed, fold, fixes);
     let mut diagnostics = parsed.diagnostics();
     diagnostics.extend(sema_diags);
     if let Some((path, root)) = disk {
@@ -207,10 +215,39 @@ pub fn check_program(map: &SourceMap, parsed: &ParsedProgram, disk: Option<(&Pat
     (program, diagnostics)
 }
 
+/// [`check_program`] for the language server, with the fixes the compiler would build the program with: those of the
+/// settings file found from the main file `main_path` on disk, none for a document that is not a file (design D3 of
+/// `fixes-switch`). A settings file that cannot be used is an error on the main file's first line, `qb64rust.toml:<line>:
+/// <message>`, and the program is checked with the fixes off, so that its other diagnostics still show.
+fn check_with_settings(
+    map: &SourceMap,
+    parsed: &ParsedProgram,
+    main_path: Option<&Path>,
+    root: &Path,
+) -> (Program, Diagnostics) {
+    let (fixes, error) = match main_path.map(fixes::for_program) {
+        Some(Ok((set, _))) => (set, None),
+        Some(Err(e)) => (Fixes::OFF, Some(e)),
+        None => (Fixes::OFF, None),
+    };
+    let (program, mut diagnostics) = check_program(map, parsed, main_path.map(|m| (m, root)), fixes);
+    if let Some(e) = error {
+        let name = e.file.file_name().map_or_else(
+            || fixes::SETTINGS_FILE.to_string(),
+            |n| n.to_string_lossy().into_owned(),
+        );
+        let at = e.line.map_or_else(String::new, |l| format!(":{l}"));
+        let main = qb64rust_base::Span::new(parsed.main().file, 0, 0);
+        diagnostics.error(main, format!("{name}{at}: {}", e.message));
+    }
+    (program, diagnostics)
+}
+
 /// [`check_program`] for the language server (`qb64rust_lsp::Check`): the diagnostics alone, for the main file at
-/// `main_path` on disk (none for a document that is not a file) and the compiler root `root`.
+/// `main_path` on disk (none for a document that is not a file) and the compiler root `root`, with the program's
+/// fixes ([`check_with_settings`]).
 pub fn check_for_server(map: &SourceMap, parsed: &ParsedProgram, main_path: Option<&Path>, root: &Path) -> Diagnostics {
-    check_program(map, parsed, main_path.map(|m| (m, root))).1
+    check_with_settings(map, parsed, main_path, root).1
 }
 
 /// The main file of a checked program (one without errors) laid out as `qb64pe -y` lays it out, with `settings`
@@ -228,7 +265,7 @@ pub fn format_for_server(
     root: &Path,
     settings: &qb64rust_base::layout::Settings,
 ) -> Result<Vec<u8>, Diagnostics> {
-    let (program, diagnostics) = check_program(map, parsed, main_path.map(|m| (m, root)));
+    let (program, diagnostics) = check_with_settings(map, parsed, main_path, root);
     if diagnostics.has_errors() {
         return Err(diagnostics);
     }
@@ -250,7 +287,7 @@ pub fn index_for_server(
     main_path: Option<&Path>,
     root: &Path,
 ) -> qb64rust_lsp::index::SymbolIndex {
-    let (program, diagnostics) = check_program(map, parsed, main_path.map(|m| (m, root)));
+    let (program, diagnostics) = check_with_settings(map, parsed, main_path, root);
     hover::symbol_index(map, &program, &diagnostics)
 }
 

@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
@@ -35,6 +34,7 @@ int32 FUNC_LEVEL(int32*_FUNC_LEVEL_LONG_N);
 void SUB_STATICS();
 ==> clear.txt <==
 if (_SUB_STATICS_ARRAY_LONG_C[2]&1){
+((mem_lock*)((ptrszint*)_SUB_STATICS_ARRAY_LONG_C)[8])->id=(++mem_lock_id);
 if (_SUB_STATICS_ARRAY_LONG_C[2]&4) cmem_dynamic_free((uint8*)(_SUB_STATICS_ARRAY_LONG_C[0])); else free((void*)(_SUB_STATICS_ARRAY_LONG_C[0]));
 _SUB_STATICS_ARRAY_LONG_C[2]^=1;
 _SUB_STATICS_ARRAY_LONG_C[4]=2147483647;
@@ -43,6 +43,7 @@ _SUB_STATICS_ARRAY_LONG_C[6]=0;
 _SUB_STATICS_ARRAY_LONG_C[0]=(ptrszint)nothingvalue;
 }
 if (_SUB_STATICS_ARRAY_LONG_L[2]&1){
+((mem_lock*)((ptrszint*)_SUB_STATICS_ARRAY_LONG_L)[8])->id=(++mem_lock_id);
 if (_SUB_STATICS_ARRAY_LONG_L[2]&4) cmem_dynamic_free((uint8*)(_SUB_STATICS_ARRAY_LONG_L[0])); else free((void*)(_SUB_STATICS_ARRAY_LONG_L[0]));
 _SUB_STATICS_ARRAY_LONG_L[2]^=1;
 _SUB_STATICS_ARRAY_LONG_L[4]=2147483647;
@@ -73,10 +74,15 @@ uint64 alloc_req_elems=1;
 uint64 alloc_req_bytes;
 uint64 alloc_dim_value;
 uint64 alloc_bytes_per_element=(uint64)(4);
+int32 alloc_none=0;
 alloc_new_desc[4]=0ll;
 alloc_new_desc[5]=(3ll)-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
 alloc_new_desc[6]=1;
+if (alloc_none){
+qbr_diverged(40);
+}else{
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 if (alloc_new_desc[5]<0) error(257);
 if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
@@ -106,6 +112,7 @@ _SUB_STATICS_ARRAY_LONG_C[6]=alloc_new_desc[6];
 _SUB_STATICS_ARRAY_LONG_C[7]=alloc_new_desc[7];
 }
 }
+}
 if (!_SUB_STATICS_ARRAY_LONG_L){
 _SUB_STATICS_ARRAY_LONG_L=(ptrszint*)mem_static_malloc(9*ptrsz);
 new_mem_lock();
@@ -128,10 +135,10 @@ exit(99);
 #include "main2.txt"
 #include "main3.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -204,13 +211,23 @@ uint64 alloc_dim_value;
 #line 11 "proc_arrays_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(4);
 #line 11 "proc_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 11 "proc_arrays_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 11 "proc_arrays_cpp.bas"
 alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
 #line 11 "proc_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 11 "proc_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 11 "proc_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 11 "proc_arrays_cpp.bas"
+if (alloc_none){
+#line 11 "proc_arrays_cpp.bas"
+qbr_diverged(40);
+#line 11 "proc_arrays_cpp.bas"
+}else{
 #line 11 "proc_arrays_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 11 "proc_arrays_cpp.bas"
@@ -270,6 +287,8 @@ _SUB_LOCALS_ARRAY_LONG_T[7]=alloc_new_desc[7];
 #line 11 "proc_arrays_cpp.bas"
 }
 #line 11 "proc_arrays_cpp.bas"
+}
+#line 11 "proc_arrays_cpp.bas"
 if (_SUB_LOCALS_ARRAY_STRING_S[2]&2){
 #line 11 "proc_arrays_cpp.bas"
 error(10);
@@ -292,13 +311,23 @@ uint64 alloc_dim_value;
 #line 11 "proc_arrays_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(8);
 #line 11 "proc_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 11 "proc_arrays_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 11 "proc_arrays_cpp.bas"
 alloc_new_desc[5]=(((int64)(*_SUB_LOCALS_LONG_N)))-alloc_new_desc[4]+1;
 #line 11 "proc_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 11 "proc_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 11 "proc_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 11 "proc_arrays_cpp.bas"
+if (alloc_none){
+#line 11 "proc_arrays_cpp.bas"
+qbr_diverged(40);
+#line 11 "proc_arrays_cpp.bas"
+}else{
 #line 11 "proc_arrays_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 11 "proc_arrays_cpp.bas"
@@ -345,6 +374,8 @@ _SUB_LOCALS_ARRAY_STRING_S[5]=alloc_new_desc[5];
 _SUB_LOCALS_ARRAY_STRING_S[6]=alloc_new_desc[6];
 #line 11 "proc_arrays_cpp.bas"
 _SUB_LOCALS_ARRAY_STRING_S[7]=alloc_new_desc[7];
+#line 11 "proc_arrays_cpp.bas"
+}
 #line 11 "proc_arrays_cpp.bas"
 }
 #line 11 "proc_arrays_cpp.bas"
@@ -497,13 +528,23 @@ uint64 alloc_dim_value;
 #line 17 "proc_arrays_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(4);
 #line 17 "proc_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 17 "proc_arrays_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 17 "proc_arrays_cpp.bas"
 alloc_new_desc[5]=(((int64)(*_FUNC_LEVEL_LONG_N)))-alloc_new_desc[4]+1;
 #line 17 "proc_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 17 "proc_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 17 "proc_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 17 "proc_arrays_cpp.bas"
+if (alloc_none){
+#line 17 "proc_arrays_cpp.bas"
+qbr_diverged(40);
+#line 17 "proc_arrays_cpp.bas"
+}else{
 #line 17 "proc_arrays_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 17 "proc_arrays_cpp.bas"
@@ -558,6 +599,8 @@ _FUNC_LEVEL_ARRAY_LONG_A[5]=alloc_new_desc[5];
 _FUNC_LEVEL_ARRAY_LONG_A[6]=alloc_new_desc[6];
 #line 17 "proc_arrays_cpp.bas"
 _FUNC_LEVEL_ARRAY_LONG_A[7]=alloc_new_desc[7];
+#line 17 "proc_arrays_cpp.bas"
+}
 #line 17 "proc_arrays_cpp.bas"
 }
 #line 17 "proc_arrays_cpp.bas"
@@ -697,13 +740,23 @@ uint64 alloc_dim_value;
 #line 24 "proc_arrays_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(4);
 #line 24 "proc_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 24 "proc_arrays_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 24 "proc_arrays_cpp.bas"
 alloc_new_desc[5]=(3ll)-alloc_new_desc[4]+1;
 #line 24 "proc_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 24 "proc_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 24 "proc_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 24 "proc_arrays_cpp.bas"
+if (alloc_none){
+#line 24 "proc_arrays_cpp.bas"
+qbr_diverged(40);
+#line 24 "proc_arrays_cpp.bas"
+}else{
 #line 24 "proc_arrays_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 24 "proc_arrays_cpp.bas"
@@ -758,6 +811,8 @@ _SUB_STATICS_ARRAY_LONG_L[5]=alloc_new_desc[5];
 _SUB_STATICS_ARRAY_LONG_L[6]=alloc_new_desc[6];
 #line 24 "proc_arrays_cpp.bas"
 _SUB_STATICS_ARRAY_LONG_L[7]=alloc_new_desc[7];
+#line 24 "proc_arrays_cpp.bas"
+}
 #line 24 "proc_arrays_cpp.bas"
 }
 #line 24 "proc_arrays_cpp.bas"

@@ -33,6 +33,7 @@ use whole::{without_parens, written_whole};
 use crate::{
     ConstId, LabelId, Place, ProcId, Program, Shape, Stmt, StmtKind, Storage, SymbolKind, Ty, TypeId, Var, VarId,
 };
+use qb64rust_base::fixes::Fixes;
 use qb64rust_base::{Diagnostics, FileId, SourceMap, Span, show_bytes, to_u32};
 use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
@@ -45,12 +46,12 @@ use std::collections::{HashMap, HashSet};
 /// Checks a parsed program. Statements that already have a parse error are skipped (one error per statement). Text
 /// is read through `map`, by each span's file.
 pub fn check(map: &SourceMap, program: &ParsedProgram) -> (Program, Diagnostics) {
-    check_with(map, program, true)
+    check_with(map, program, true, Fixes::OFF)
 }
 
-/// [`check`] with integer constant folding switched on or off. Off is for tests only: the slice programs must
-/// print the same either way (design D5).
-pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Program, Diagnostics) {
+/// [`check`] with integer constant folding switched on or off and with the fixes `fixes` (spec `compiler/fixes`).
+/// Folding off is for tests only: the slice programs must print the same either way (design D5).
+pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool, fixes: Fixes) -> (Program, Diagnostics) {
     // A `REDIM` in a procedure that makes the name an array of the procedure in the whole procedure, above it too,
     // is found by a first check; a second one makes those arrays where each procedure starts (design D2 of
     // `m4-left-marked`; the old compiler compiles twice and keeps what its first pass made). Only a program with
@@ -59,7 +60,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
     // So k such procedures may take k+1 checks (`SOMEDAY.md`, "Other ideas").
     let mut locals = Vec::new();
     loop {
-        let (prog, diags, found) = check_once(map, program, fold, locals.clone());
+        let (prog, diags, found) = check_once(map, program, (fold, fixes), locals.clone());
         let known = |r: &RedimLocal| {
             locals
                 .iter()
@@ -78,7 +79,7 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool) -> (Prog
 fn check_once(
     map: &SourceMap,
     program: &ParsedProgram,
-    fold: bool,
+    (fold, fixes): (bool, Fixes),
     redim_locals: Vec<RedimLocal>,
 ) -> (Program, Diagnostics, Vec<RedimLocal>) {
     let root = program.main().root();
@@ -113,7 +114,7 @@ fn check_once(
         sub_call_lines: HashMap::new(),
         diags: Diagnostics::new(),
         at: FileState::new(),
-        settings: Settings::new(fold),
+        settings: Settings::new(fold, fixes),
         stmt: StmtState::default(),
         dims: DimSolver::default(),
         consts_main: HashMap::new(),
@@ -340,6 +341,7 @@ fn check_once(
         version_info: c.settings.version_info.take(),
         embedded: c.embedded_files(),
         error_location: c.settle_error_location(),
+        fixes: c.settings.fixes,
     };
     c.prog.shared = std::mem::take(&mut c.dim_shared);
     (c.prog, c.diags, c.redim_found)
@@ -801,10 +803,12 @@ struct Settings {
     explicit_array: bool,
     /// Integer constant folding is on (off for tests only, [`check_with`]).
     fold: bool,
+    /// The fixes the program is built with (spec `compiler/fixes`).
+    fixes: Fixes,
 }
 
 impl Settings {
-    fn new(fold: bool) -> Settings {
+    fn new(fold: bool, fixes: Fixes) -> Settings {
         Settings {
             console: false,
             console_only: false,
@@ -821,6 +825,7 @@ impl Settings {
             explicit: false,
             explicit_array: false,
             fold,
+            fixes,
         }
     }
 }

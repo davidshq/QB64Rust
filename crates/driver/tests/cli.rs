@@ -207,6 +207,50 @@ fn debug_build_is_cached_apart() {
     assert!(build(false), "the plain build's entry is kept");
 }
 
+/// A build is deterministic (`DECISIONS.md` 2026-10-27): the same program built twice with no cache is the same bytes,
+/// so a cache of test passes keyed on the executable holds across a rebuild. A program that calls `_COMPILETIME$` is
+/// the exception: it holds the time of its build.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn builds_are_deterministic() {
+    let d = scratch("deterministic");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let build = || {
+        let mut cmd = compiler();
+        cmd.current_dir(&d)
+            .env_remove("QB64RUST_BUILD_CACHE")
+            .args(["-q", "-x", "p.bas", "-o", "p.exe"]);
+        let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+        assert!(o.status.success(), "{}", stdout(&o));
+        std::fs::read(d.join("p.exe")).unwrap()
+    };
+    let first = build();
+    assert!(first == build(), "two builds of one program differ");
+}
+
+/// A build with the fixes on is not the cached build with them off (spec `compiler/fixes`, "Built again with a fix
+/// turned on"), though this program's C++ is the same either way.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn fixes_build_is_cached_apart() {
+    let d = scratch("fixes-cache");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let cache = d.join("cache");
+    let build = |fixes: &str| {
+        let mut cmd = compiler();
+        cmd.current_dir(&d)
+            .env("QB64RUST_BUILD_CACHE", &cache)
+            .args(["-x", "--fixes", fixes, "p.bas", "-o", "p.exe"]);
+        let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+        assert!(o.status.success(), "{}", stdout(&o));
+        stdout(&o).contains("the same build is in")
+    };
+    assert!(!build("off"), "the first build");
+    assert!(!build("on"), "a build with the fixes on after one with them off builds");
+    assert!(build("on"), "a second build with them on is a hit");
+    assert!(build("off"), "the first build's entry is kept");
+}
+
 /// Builds `program` as `<name>.bas` in `d` with `--debug`, by absolute paths (the `#line` directives then name the
 /// file by its full path, as the proxy will launch it); gives the executable.
 fn debug_build(d: &Path, name: &str, program: &str) -> PathBuf {
@@ -885,6 +929,168 @@ fn version_with_other_arguments() {
         err.contains("`--version` takes no other argument") && err.contains("usage: qb64rust"),
         "{err}"
     );
+}
+
+/// `--list-fixes` prints one line per fix (spec `compiler/fixes`, "The list"); with another argument it is a usage
+/// error (spec `compiler/cli`, "List with another argument").
+#[test]
+#[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
+fn fixes_list() {
+    let d = scratch("fixes-list");
+    let o = qb64rust(&d, &["--list-fixes"]);
+    assert_eq!(o.status.code(), Some(0));
+    let out = stdout(&o);
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines.len(), 7, "{out}");
+    assert!(lines[0].starts_with("resume-after-block "), "{out}");
+    assert!(lines.iter().all(|l| l.split_once("  ").is_some()), "{out}");
+    let o = qb64rust(&d, &["--list-fixes", "p.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let err = String::from_utf8_lossy(&o.stderr);
+    assert!(err.contains("usage: qb64rust"), "{err}");
+}
+
+/// The `Settings:` line of `--dump ir` for `p.bas` in `d` with the arguments `args` before it.
+fn dumped_settings(d: &Path, args: &[&str]) -> String {
+    let mut all = args.to_vec();
+    all.extend(["--dump", "ir", "p.bas"]);
+    let o = qb64rust(d, &all);
+    let out = stdout(&o);
+    assert_eq!(o.status.code(), Some(0), "{out}");
+    out.lines().next().unwrap_or("").to_string()
+}
+
+/// The fixes set by `qb64rust.toml` and the command line (spec `compiler/fixes`, "Master switch with an override",
+/// "Off overrides the file", "One fix on", "No file"), as the IR dump names them; `-w` names the file used.
+#[test]
+fn fixes_from_the_file_and_the_command_line() {
+    let d = scratch("fixes-set");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\n").unwrap();
+    assert_eq!(dumped_settings(&d, &[]), "Settings: console, no window", "no file");
+    std::fs::write(
+        d.join("qb64rust.toml"),
+        "[fixes]\nall = true\nresume-after-block = false\n",
+    )
+    .unwrap();
+    let most = dumped_settings(&d, &[]);
+    assert!(
+        most.contains("fixes dim-empty-error static-local-dynamic") && !most.contains("resume-after-block"),
+        "{most}"
+    );
+    assert_eq!(
+        dumped_settings(&d, &["--fixes", "off"]),
+        "Settings: console, no window",
+        "off overrides the file"
+    );
+    assert_eq!(
+        dumped_settings(&d, &["--fixes", "off", "--fix", "whole-array-value=on"]),
+        "Settings: console, no window, fixes whole-array-value",
+        "one fix on"
+    );
+    assert!(
+        dumped_settings(&d, &["--fix", "resume-after-block=on"]).contains("fixes resume-after-block dim-empty-error"),
+        "--fix over the file"
+    );
+    let o = qb64rust(&d, &["-w", "--dump", "ir", "p.bas"]);
+    let out = stdout(&o);
+    assert!(out.contains("fixes from ") && out.contains("qb64rust.toml"), "{out}");
+}
+
+/// A bad settings file fails the compile with its name, line and the known fixes, and exit status 1 (spec
+/// `compiler/fixes`, "A misspelt name"); `--fixes` replaces the file, which is then not read; a bad option value is
+/// an error too.
+#[test]
+fn fixes_errors() {
+    let d = scratch("fixes-bad");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\n").unwrap();
+    std::fs::write(d.join("qb64rust.toml"), "[fixes]\nresume-after-blok = true\n").unwrap();
+    for args in [&["--dump", "ir", "p.bas"][..], &["-z", "p.bas"], &["p.bas"]] {
+        let o = qb64rust(&d, args);
+        let out = stdout(&o);
+        assert_eq!(o.status.code(), Some(1), "{args:?}: {out}");
+        assert!(
+            out.contains("qb64rust.toml:2: unknown fix `resume-after-blok`") && out.contains("resume-after-block"),
+            "{args:?}: {out}"
+        );
+    }
+    assert!(!d.join("p.exe").exists());
+    let all = dumped_settings(&d, &["--fixes", "on"]);
+    assert!(
+        all.contains("fixes resume-after-block ") && all.ends_with(" checking-on-service"),
+        "not read: {all}"
+    );
+    for bad in [
+        &["--fixes", "maybe"][..],
+        &["--fix", "nonsense=on"],
+        &["--fix", "dim-empty-error"],
+    ] {
+        let mut args = bad.to_vec();
+        args.push("p.bas");
+        let o = qb64rust(&d, &args);
+        assert_eq!(o.status.code(), Some(1), "{bad:?}");
+        assert!(stdout(&o).contains("usage: qb64rust"), "{bad:?}");
+    }
+}
+
+/// A program checked with `--dump typed` and the fix `fix` off, then on: off it compiles, on it fails with exit
+/// status 1 and one error at `at` (line:column) that holds `words` and is not marked "not supported yet".
+fn fix_makes_an_error(name: &str, program: &str, fix: &str, at: &str, words: &str) {
+    let d = scratch(name);
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let o = qb64rust(&d, &["--fix", &format!("{fix}=off"), "--dump", "typed", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{fix} off: {}", stdout(&o));
+    let o = qb64rust(&d, &["--fix", &format!("{fix}=on"), "--dump", "typed", "p.bas"]);
+    let out = stdout(&o);
+    assert_eq!(o.status.code(), Some(1), "{fix} on: {out}");
+    assert!(
+        out.contains(&format!("p.bas:{at}: error: ")) && out.contains(words),
+        "{fix} on: {out}"
+    );
+    assert!(
+        out.contains("\n1 error") && !out.contains("not supported yet"),
+        "{fix} on: {out}"
+    );
+}
+
+/// The fix `whole-array-value` (spec `language/arrays-and-types`, "Fix whole-array-value"; spec `compiler/cli`, "A
+/// dump with a fix"): `PRINT a()` and `PRINT a() + 1` are errors at `a()`; `READ a()` and `LEN(a())` compile.
+#[test]
+fn fix_whole_array_value() {
+    let head = "$CONSOLE:ONLY\nDIM a(3) AS LONG\nDATA 5\nREAD a()\nPRINT LEN(a())\n";
+    for (i, line) in ["PRINT a()", "PRINT a() + 1"].iter().enumerate() {
+        let program = format!("{head}{line}\nSYSTEM\n");
+        let name = format!("fix-whole-{i}");
+        fix_makes_an_error(
+            &name,
+            &program,
+            "whole-array-value",
+            "6:7",
+            "a whole array is not a value",
+        );
+    }
+}
+
+/// The fix `resume-in-procedure` (spec `language/error-handling`, "Fix resume-in-procedure"): `RESUME NEXT` in a SUB
+/// is an error at it.
+#[test]
+fn fix_resume_in_procedure() {
+    let program =
+        "$CONSOLE:ONLY\nON ERROR GOTO h\nERROR 5\nSYSTEM\nh:\ns\nRESUME NEXT\nSUB s\n    RESUME NEXT\nEND SUB\n";
+    fix_makes_an_error(
+        "fix-resume",
+        program,
+        "resume-in-procedure",
+        "9:5",
+        "an error handler of the main module",
+    );
+}
+
+/// The fix `run-in-procedure` (spec `language/control-flow`, "Fix run-in-procedure"): `RUN` in a SUB is an error at
+/// it, with the hint.
+#[test]
+fn fix_run_in_procedure() {
+    let program = "$CONSOLE:ONLY\ns\nSYSTEM\nSUB s\n    RUN\nEND SUB\n";
+    fix_makes_an_error("fix-run", program, "run-in-procedure", "5:5", "set a flag there");
 }
 
 /// A machine without a QB64pe folder and without an installed toolchain, for `cmd`: `QB64RUST_QB64PE_ROOT` empty
@@ -1858,7 +2064,11 @@ fn dynamic_member_not_allocated_in_mem_and_get() {
                    PRINT \"mem\"; _MEMEXISTS(m)\nREDIM p(1) AS t\nOPEN \"g.bin\" FOR BINARY AS #1\nPUT #1, 1, p()\n\
                    ERASE p\nGET #1, 1, p()\nCLOSE #1\nPRINT \"get\"\nSYSTEM\n\
                    trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
-    assert_eq!(build_and_run_tracing(&d, program, "D-021\n"), "[ 9 ]mem 0 \n[ 9 ]get\n");
+    // The `GET` into the erased whole array is row 7's (D-042, `fixes-switch`): error 9 before anything is read.
+    assert_eq!(
+        build_and_run_tracing(&d, program, "D-021\nD-042\n"),
+        "[ 9 ]mem 0 \n[ 9 ]get\n"
+    );
 }
 
 /// D-003 and D-004 differ from the old compiler only in a program that goes on after the error: with no handler and
@@ -3829,4 +4039,130 @@ fn layout_setting_in_a_build() {
     assert!(o.status.success(), "{}", stdout(&o));
     let ran = run(&mut unattended(&exe), None, PROGRAM_LIMIT, "program");
     assert!(stdout(&ran).starts_with("x= .25"), "{}", stdout(&ran));
+}
+
+// The always-on fixes of `study\39` (OpenSpec change `fixes-switch`, design D5), each with the rows of
+// `QB64PE-DIVERGENCES.md` its program takes.
+
+/// The handler that every program below sets: it prints `ERR` and resumes next.
+const ERR_HANDLER: &str = "SYSTEM\nh:\nPRINT \"error\"; ERR\nRESUME NEXT\n";
+
+/// `DIM` and `REDIM` with a count below zero raise error 5 and allocate nothing (D-040, spec
+/// `language/arrays-and-types`, "Fewer than no element"); a `REDIM` releases the array.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dim_below_zero_raises_error_5() {
+    let d = scratch("dim-below-zero");
+    let program = format!(
+        "$CONSOLE:ONLY\nON ERROR GOTO h\nn = -3\nDIM d(n) AS LONG\nPRINT UBOUND(d)\nREDIM r(4) AS LONG\n\
+         REDIM r(2 TO n) AS LONG\nPRINT UBOUND(r)\nPRINT \"end\"\n{ERR_HANDLER}"
+    );
+    let out = build_and_run_tracing(&d, &program, "D-040\n");
+    assert_eq!(out, "error 5 \nerror 9 \nerror 5 \nerror 9 \nend\n");
+}
+
+/// A whole array with no storage used whole raises error 9 and reads and writes nothing (D-042, spec
+/// `language/arrays-and-types`, "An erased array"): no later `PRINT` shows the text a `READ` would have stored, and a
+/// `SWAP` with an allocated array leaves it as it was.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn whole_array_without_storage_raises_error_9() {
+    let d = scratch("whole-erased");
+    let program = format!(
+        "$CONSOLE:ONLY\nON ERROR GOTO h\nDATA \"xyz\"\nREDIM a(2) AS STRING, b(2) AS STRING\nb(0) = \"kept\"\n\
+         ERASE a\nPRINT a()\nREAD a()\nSWAP a(), b()\nPRINT b(0)\nPRINT \"after\"\n{ERR_HANDLER}"
+    );
+    let out = build_and_run_tracing(&d, &program, "D-042\n");
+    assert_eq!(out, "error 9 \nerror 9 \nerror 9 \nkept\nafter\n");
+}
+
+/// `RESUME NEXT` that leaves a SUB leaves it through its exit, so the `_MEM` block of a local is no longer valid
+/// (D-045, spec `language/error-handling`, "A block of a local after RESUME").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn resume_leaves_a_sub_through_its_exit() {
+    let d = scratch("resume-exit");
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO h\nDIM SHARED gm AS _MEM\nERROR 5\nback:\nPRINT _MEMEXISTS(gm)\nSYSTEM\n\
+                   h:\ns\nGOTO back\nSUB s\nDIM x AS LONG\ngm = _MEM(x)\nRESUME NEXT\nEND SUB\n";
+    assert_eq!(build_and_run_tracing(&d, program, "D-045\n"), " 0 \n");
+}
+
+/// `RUN` from a SUB leaves the active procedures first, so a program runs it 100,000 times and ends normally (D-046,
+/// spec `language/control-flow`, "RUN from a SUB many times"; the old compiler's runs out of stack after about 2,400);
+/// in a `$CONSOLE:ONLY` program the output after `RUN label` stays on the console ("Output after RUN label").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn run_from_a_sub_unwinds() {
+    let d = scratch("run-unwind");
+    let program = "$CONSOLE:ONLY\nc = VAL(ENVIRON$(\"QBR_RUNS\")) + 1\nENVIRON \"QBR_RUNS=\" + LTRIM$(STR$(c))\n\
+                   IF c < 100000 THEN s\nPRINT \"done\"; c\nSYSTEM\nSUB s\nDIM t AS STRING\nt = SPACE$(100)\nRUN\nEND SUB\n";
+    assert_eq!(build_and_run_tracing(&d, program, "D-046\n"), "done 100000 \n");
+    let d = scratch("run-console");
+    let program = "$CONSOLE:ONLY\nIF ENVIRON$(\"QBR_RAN\") = \"\" THEN PRINT \"one\"\nagain:\n\
+                   IF ENVIRON$(\"QBR_RAN\") = \"\" THEN ENVIRON \"QBR_RAN=1\": RUN again\nPRINT \"two\"\nSYSTEM\n";
+    assert_eq!(build_and_run_tracing(&d, program, "D-046\n"), "one\ntwo\n");
+}
+
+/// `_CAST` of a float constant out of range gives what the same conversion of a variable gives, with and without
+/// constant folding (D-047, spec `language/builtin-functions`, "A constant out of range", "Without folding").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn cast_of_a_float_constant_is_a_variables() {
+    let program = "$CONSOLE:ONLY\nx# = 3E9: PRINT _CAST(LONG, 3E9); _CAST(LONG, x#)\n\
+                   y# = 1E20: PRINT _CAST(_BYTE, 1000.7); _CAST(_UNSIGNED _INTEGER64, 1E20); _CAST(_UNSIGNED _INTEGER64, y#)\n\
+                   SYSTEM\n";
+    let expected = "-2147483648 -2147483648 \n-24  9223372036854775808  9223372036854775808 \n";
+    let d = scratch("cast-const");
+    assert_eq!(build_and_run(&d, program), expected);
+    let d = scratch("cast-const-nofold");
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let o = run(
+        compiler().current_dir(&d).env("QB64RUST_NO_FOLD", "1").args([
+            "-q",
+            "-x",
+            "p.bas",
+            "-o",
+            exe.to_str().unwrap(),
+        ]),
+        None,
+        COMPILER_LIMIT,
+        "compiler",
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    let ran = run(&mut unattended(&exe), None, PROGRAM_LIMIT, "program");
+    assert_eq!(stdout(&ran).replace("\r\n", "\n"), expected);
+}
+
+/// `ERASE` and `CLEAR` of a dynamic array make its `_MEM` blocks invalid, as `REDIM` does (D-043, spec
+/// `language/mem-blocks`, "Block of an erased array"); `ERASE` of a static array leaves them valid.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn erase_makes_blocks_invalid() {
+    let d = scratch("erase-blocks");
+    let program = "$CONSOLE:ONLY\nDIM SHARED m AS _MEM, k AS _MEM\nREDIM d(5) AS LONG\nm = _MEM(d())\nERASE d\n\
+                   PRINT _MEMEXISTS(m)\nDIM s(5) AS LONG\nk = _MEM(s())\nERASE s\nPRINT _MEMEXISTS(k)\n\
+                   REDIM e(5) AS LONG\nm = _MEM(e())\nCLEAR\nPRINT _MEMEXISTS(m)\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), " 0 \n-1 \n 0 \n");
+}
+
+/// A `STRING * n` element and member passed to a library's `char*` reach C with a NUL after their bytes and get its
+/// writes back, the element's index taken once (D-044, spec `language/external-libraries`, "A member read by strlen",
+/// "A write comes back").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn fixed_strings_to_char_pointer() {
+    let d = scratch("fixed-char");
+    std::fs::write(
+        d.join("h.h"),
+        "#include <string.h>\nint32_t h_len(const char *s) { return (int32_t)strlen(s); }\n\
+         void h_upper(char *s) { for (; *s; s++) if (*s >= 'a' && *s <= 'z') *s -= 32; }\n",
+    )
+    .unwrap();
+    let program = "$CONSOLE:ONLY\nDECLARE LIBRARY \"h\"\n    FUNCTION h_len& (s AS STRING)\n    SUB h_upper (s AS STRING)\n\
+                   END DECLARE\nTYPE t\n    a AS STRING * 4\n    b AS STRING * 4\nEND TYPE\nDIM SHARED calls AS LONG\n\
+                   DIM v AS t, e(3) AS STRING * 3\nv.a = \"abcd\": v.b = \"efgh\"\ne(1) = \"def\": e(2) = \"ghi\"\n\
+                   PRINT h_len&(v.a); h_len&(e(1))\nh_upper e(ix): h_upper v.a\nPRINT v.a; v.b; e(1); e(2); calls\n\
+                   SYSTEM\nFUNCTION ix&\ncalls = calls + 1\nix& = 1\nEND FUNCTION\n";
+    assert_eq!(build_and_run(&d, program), " 4  3 \nABCDefghDEFghi 1 \n");
 }

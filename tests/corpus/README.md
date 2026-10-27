@@ -52,13 +52,13 @@ Written by `python tools\legacy_tests\counts.py` (`tools\legacy_tests\README.md`
 and `slice.list` hold, and what the last full run of the release build gave.
 
 <!-- counts:corpus-membership -->
-`slice.list` names **498** tests (a program, or a script of a screen program: `<name>.<script>.keys`). By folder:
+`slice.list` names **497** tests (a program, or a script of a screen program: `<name>.<script>.keys`). By folder:
 
 | Folder | Programs | `.output` | `.err` | `.norun` | `.screen` | In `slice.list` |
 |---|---|---|---|---|---|---|
 | `runtime_comparison` | 261 | 235 | 20 | 2 | 0 | 237 |
 | `screen` | 80 | 80 | 0 | 0 | 80 | 89 |
-| `slice` | 170 | 170 | 0 | 0 | 0 | 170 |
+| `slice` | 169 | 169 | 0 | 0 | 0 | 169 |
 | `verification` | 2 | 2 | 0 | 0 | 0 | 2 |
 <!-- /counts:corpus-membership -->
 
@@ -185,9 +185,9 @@ places a constant may stand; its list of names is generated from `tools\builtins
 (three programs: the precompiler flags in `$IF`, each program one set of settings) by `m2-console-screenhide`,
 `s69` (`INKEY$`, `CSRLIN` and `POS` in a program with a console and no window: only values that are the same
 on every run) by `m3-window-output`.
-`s52_dynamic_memory` ends with the runtime's "Out of memory" message,
-which is part of its `.output`; the runner's `QB64PE_NOPROMPT` keeps that from opening a dialog.
-Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
+`s52_dynamic_memory` (a count below zero ending in "Out of memory") was removed by `fixes-switch`: that ending is
+`QB64PE-DIVERGENCES.md` D-040 now, held by the CLI test `dim_below_zero_raises_error_5` and
+`verification\v62_a1`. Each is named after what it pins (`s02_integer_wrap`, `s08_byref`...). `s07_cp437_bytes` has CRLF
 line ends and bytes 0x80–0xFF, kept exactly by `.gitattributes`. None uses a `PRINT` comma (see above).
 
 **A program with `$CONSOLE` and no `:ONLY`** has a window as well as a console. Only what it prints while the

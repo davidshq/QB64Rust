@@ -35,6 +35,15 @@ fn settings(s: &Settings) -> String {
     if s.error_location {
         parts.push("error location".to_string());
     }
+    // The fixes that are on (spec `compiler/fixes`); none named when all are off, so such a dump is as before.
+    let on: Vec<&str> = qb64rust_base::fixes::FIXES
+        .iter()
+        .filter(|f| s.fixes.is_on(f.0))
+        .map(|f| f.1)
+        .collect();
+    if !on.is_empty() {
+        parts.push(format!("fixes {}", on.join(" ")));
+    }
     if !s.runtime_parts.is_empty() {
         let names: Vec<&str> = s
             .runtime_parts

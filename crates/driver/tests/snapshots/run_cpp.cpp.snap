@@ -27,6 +27,8 @@ int32 asserts=0;
 int32 vwatch=0;
 ptrszint data_size=0;
 uint8 *data=(uint8*)calloc(1,1);
+static int32 qbr_unwinding=0;
+static int32 qbr_run_target=0;
 ==> regsf.txt <==
 void SUB_S();
 ==> clear.txt <==
@@ -47,10 +49,10 @@ if (run_from_line==1){run_from_line=0;goto LABEL_AGAIN;}
 #include "main0.txt"
 #include "main1.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -65,13 +67,13 @@ sub__dest(func__console());
 #line 2 "run_cpp.bas"
 sub__source(func__console());
 #line 2 "run_cpp.bas"
-if(!qbevent)break;evnt(2);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(2);}while(r);
 #line 5 "run_cpp.bas"
 do{
 #line 5 "run_cpp.bas"
 if ((!((-(*__SINGLE_X==((float)(1))))))&&(!is_error_pending())) goto L_2;
 #line 5 "run_cpp.bas"
-if(!qbevent)break;evnt(5);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(5);}while(r);
 #line 5 "run_cpp.bas"
 do{
 #line 5 "run_cpp.bas"
@@ -81,7 +83,7 @@ sub_clear(NULL,NULL,NULL,NULL);
 #line 5 "run_cpp.bas"
 goto S_0;
 #line 5 "run_cpp.bas"
-if(!qbevent)break;evnt(5);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(5);}while(r);
 #line 5 "run_cpp.bas"
 L_2:;
 #line 6 "run_cpp.bas"
@@ -89,7 +91,7 @@ do{
 #line 6 "run_cpp.bas"
 if ((!((-(*__SINGLE_X==((float)(2))))))&&(!is_error_pending())) goto L_3;
 #line 6 "run_cpp.bas"
-if(!qbevent)break;evnt(6);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(6);}while(r);
 #line 6 "run_cpp.bas"
 do{
 #line 6 "run_cpp.bas"
@@ -97,9 +99,15 @@ sub_run_init();
 #line 6 "run_cpp.bas"
 sub_clear(NULL,NULL,NULL,NULL);
 #line 6 "run_cpp.bas"
+qbr_diverged(46);
+#line 6 "run_cpp.bas"
+sub__dest(func__console());
+#line 6 "run_cpp.bas"
+sub__source(func__console());
+#line 6 "run_cpp.bas"
 goto LABEL_AGAIN;
 #line 6 "run_cpp.bas"
-if(!qbevent)break;evnt(6);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(6);}while(r);
 #line 6 "run_cpp.bas"
 L_3:;
 #line 7 "run_cpp.bas"
@@ -107,7 +115,7 @@ do{
 #line 7 "run_cpp.bas"
 if ((!((-(*__SINGLE_X==((float)(3))))))&&(!is_error_pending())) goto L_4;
 #line 7 "run_cpp.bas"
-if(!qbevent)break;evnt(7);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(7);}while(r);
 #line 7 "run_cpp.bas"
 do{
 #line 7 "run_cpp.bas"
@@ -115,9 +123,15 @@ sub_run_init();
 #line 7 "run_cpp.bas"
 sub_clear(NULL,NULL,NULL,NULL);
 #line 7 "run_cpp.bas"
+qbr_diverged(46);
+#line 7 "run_cpp.bas"
+sub__dest(func__console());
+#line 7 "run_cpp.bas"
+sub__source(func__console());
+#line 7 "run_cpp.bas"
 goto LABEL_100;
 #line 7 "run_cpp.bas"
-if(!qbevent)break;evnt(7);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(7);}while(r);
 #line 7 "run_cpp.bas"
 L_4:;
 #line 8 "run_cpp.bas"
@@ -125,13 +139,13 @@ do{
 #line 8 "run_cpp.bas"
 if ((!((-(*__SINGLE_X==((float)(4))))))&&(!is_error_pending())) goto L_5;
 #line 8 "run_cpp.bas"
-if(!qbevent)break;evnt(8);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(8);}while(r);
 #line 8 "run_cpp.bas"
 do{
 #line 8 "run_cpp.bas"
 sub_run(qbs_new_txt_len("other.exe",9));
 #line 8 "run_cpp.bas"
-if(!qbevent)break;evnt(8);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(8);}while(r);
 #line 8 "run_cpp.bas"
 L_5:;
 #line 9 "run_cpp.bas"
@@ -139,7 +153,7 @@ do{
 #line 9 "run_cpp.bas"
 SUB_S();
 #line 9 "run_cpp.bas"
-if(!qbevent)break;evnt(9);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(9);}while(r);
 #line 10 "run_cpp.bas"
 do{
 #line 10 "run_cpp.bas"
@@ -149,7 +163,7 @@ close_program=1;
 #line 10 "run_cpp.bas"
 end();
 #line 10 "run_cpp.bas"
-if(!qbevent)break;evnt(10);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(10);}while(r);
 #line 11 "run_cpp.bas"
 LABEL_AGAIN:;
 #line 11 "run_cpp.bas"
@@ -175,7 +189,7 @@ qbs_free(tqbs);
 #line 12 "run_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 12 "run_cpp.bas"
-if(!qbevent)break;evnt(12);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(12);}while(r);
 #line 13 "run_cpp.bas"
 LABEL_100:;
 #line 13 "run_cpp.bas"
@@ -203,9 +217,20 @@ qbs_free(tqbs);
 #line 13 "run_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 13 "run_cpp.bas"
-if(!qbevent)break;evnt(13);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto qbr_run;evnt(13);}while(r);
 sub_end();
 return;
+qbr_run:;
+qbr_diverged(46);
+qbr_unwinding=0;
+sub_run_init();
+sub_clear(NULL,NULL,NULL,NULL);
+qbr_diverged(46);
+sub__dest(func__console());
+sub__source(func__console());
+run_from_line=qbr_run_target;
+#include "runline.txt"
+goto S_0;
 }
 ==> main1.txt <==
 #line 14 "run_cpp.bas"
@@ -236,36 +261,40 @@ sf_mem_lock->type=3;
 libqb_check_stack();
 #line 14 "run_cpp.bas"
 if (is_error_pending()) goto exit_subfunc;
+#line 14 "run_cpp.bas"
+if(qbr_unwinding)goto exit_subfunc;
 #line 15 "run_cpp.bas"
 do{
 #line 15 "run_cpp.bas"
 if ((!((-(*_SUB_S_SINGLE_Y==((float)(1))))))&&(!is_error_pending())) goto L_0;
 #line 15 "run_cpp.bas"
-if(!qbevent)break;evnt(15);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto exit_subfunc;evnt(15);}while(r);
 #line 15 "run_cpp.bas"
 do{
 #line 15 "run_cpp.bas"
-sub_run_init();
+qbr_run_target=0;
 #line 15 "run_cpp.bas"
-sub_clear(NULL,NULL,NULL,NULL);
+qbr_unwinding=1;
 #line 15 "run_cpp.bas"
-QBMAIN(NULL);
+qbevent=1;
 #line 15 "run_cpp.bas"
-if(!qbevent)break;evnt(15);}while(r);
+goto exit_subfunc;
+#line 15 "run_cpp.bas"
+if(!qbevent)break;if(qbr_unwinding)goto exit_subfunc;evnt(15);}while(r);
 #line 15 "run_cpp.bas"
 L_0:;
 #line 16 "run_cpp.bas"
 do{
 #line 16 "run_cpp.bas"
-sub_run_init();
+qbr_run_target=1;
 #line 16 "run_cpp.bas"
-sub_clear(NULL,NULL,NULL,NULL);
+qbr_unwinding=1;
 #line 16 "run_cpp.bas"
-run_from_line=1;
+qbevent=1;
 #line 16 "run_cpp.bas"
-QBMAIN(NULL);
+goto exit_subfunc;
 #line 16 "run_cpp.bas"
-if(!qbevent)break;evnt(16);}while(r);
+if(!qbevent)break;if(qbr_unwinding)goto exit_subfunc;evnt(16);}while(r);
 #line 17 "run_cpp.bas"
 exit_subfunc:;
 #line 17 "run_cpp.bas"

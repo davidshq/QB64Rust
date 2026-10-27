@@ -1,0 +1,5 @@
+1. LOF after PUT of a(): 12 
+2. LOF after PUT of the erased a(): 12 
+3. after GET of the erased a()
+4. end
+exit=0

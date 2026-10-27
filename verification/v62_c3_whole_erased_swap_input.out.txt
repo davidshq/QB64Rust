@@ -1,0 +1,6 @@
+1. after SWAP a(), b()
+2. after SWAP a(), c(): 0 
+3. after INPUT #1, a()
+4. after LINE INPUT #1, l()text line
+5. endtext line
+exit=0

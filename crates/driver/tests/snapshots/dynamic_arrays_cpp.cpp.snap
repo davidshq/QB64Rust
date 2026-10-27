@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
@@ -34,6 +33,7 @@ uint8 *data=(uint8*)calloc(1,1);
 ==> clear.txt <==
 *__SINGLE_N=0;
 if (__ARRAY_LONG_D[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_LONG_D)[12])->id=(++mem_lock_id);
 if (__ARRAY_LONG_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_D[0])); else free((void*)(__ARRAY_LONG_D[0]));
 __ARRAY_LONG_D[2]^=1;
 __ARRAY_LONG_D[4]=2147483647;
@@ -45,6 +45,7 @@ __ARRAY_LONG_D[10]=0;
 __ARRAY_LONG_D[0]=(ptrszint)nothingvalue;
 }
 if (__ARRAY_STRING_T[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_STRING_T)[8])->id=(++mem_lock_id);
 tmp_long=__ARRAY_STRING_T[5];
 while(tmp_long--){
 qbs_free(((qbs**)(__ARRAY_STRING_T[0]))[tmp_long]);
@@ -108,10 +109,10 @@ exit(99);
 ==> main.txt <==
 #include "main0.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -158,11 +159,15 @@ uint64 alloc_dim_value;
 #line 10 "dynamic_arrays_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(4);
 #line 10 "dynamic_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 10 "dynamic_arrays_cpp.bas"
 alloc_new_desc[8]=0ll;
 #line 10 "dynamic_arrays_cpp.bas"
 alloc_new_desc[9]=(qbr(*__SINGLE_N))-alloc_new_desc[8]+1;
 #line 10 "dynamic_arrays_cpp.bas"
 if (alloc_new_desc[9]<=0) error(5);
+#line 10 "dynamic_arrays_cpp.bas"
+if (alloc_new_desc[9]<0&&(int64)((uint64)alloc_new_desc[8]+(uint64)alloc_new_desc[9]-1)<alloc_new_desc[8]) alloc_none=1;
 #line 10 "dynamic_arrays_cpp.bas"
 alloc_new_desc[10]=1;
 #line 10 "dynamic_arrays_cpp.bas"
@@ -172,7 +177,15 @@ alloc_new_desc[5]=(1ll)-alloc_new_desc[4]+1;
 #line 10 "dynamic_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 10 "dynamic_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 10 "dynamic_arrays_cpp.bas"
 alloc_new_desc[6]=alloc_new_desc[10]*alloc_new_desc[9];
+#line 10 "dynamic_arrays_cpp.bas"
+if (alloc_none){
+#line 10 "dynamic_arrays_cpp.bas"
+qbr_diverged(40);
+#line 10 "dynamic_arrays_cpp.bas"
+}else{
 #line 10 "dynamic_arrays_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 10 "dynamic_arrays_cpp.bas"
@@ -260,6 +273,8 @@ __ARRAY_LONG_D[11]=alloc_new_desc[11];
 #line 10 "dynamic_arrays_cpp.bas"
 }
 #line 10 "dynamic_arrays_cpp.bas"
+}
+#line 10 "dynamic_arrays_cpp.bas"
 if(!qbevent)break;evnt(10);}while(r);
 #line 11 "dynamic_arrays_cpp.bas"
 do{
@@ -292,11 +307,15 @@ ptrszint alloc_old_block=__ARRAY_LONG_D[0];
 #line 11 "dynamic_arrays_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_LONG_D[2]&1;
 #line 11 "dynamic_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 11 "dynamic_arrays_cpp.bas"
 alloc_new_desc[8]=1ll;
 #line 11 "dynamic_arrays_cpp.bas"
 alloc_new_desc[9]=(qbr(*__SINGLE_N))-alloc_new_desc[8]+1;
 #line 11 "dynamic_arrays_cpp.bas"
 if (alloc_new_desc[9]<=0) error(5);
+#line 11 "dynamic_arrays_cpp.bas"
+if (alloc_new_desc[9]<0&&(int64)((uint64)alloc_new_desc[8]+(uint64)alloc_new_desc[9]-1)<alloc_new_desc[8]) alloc_none=1;
 #line 11 "dynamic_arrays_cpp.bas"
 alloc_new_desc[10]=1;
 #line 11 "dynamic_arrays_cpp.bas"
@@ -306,7 +325,31 @@ alloc_new_desc[5]=(2ll)-alloc_new_desc[4]+1;
 #line 11 "dynamic_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 11 "dynamic_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 11 "dynamic_arrays_cpp.bas"
 alloc_new_desc[6]=alloc_new_desc[10]*alloc_new_desc[9];
+#line 11 "dynamic_arrays_cpp.bas"
+if (alloc_none){
+#line 11 "dynamic_arrays_cpp.bas"
+qbr_diverged(40);
+#line 11 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_D[2]&1){
+#line 11 "dynamic_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_LONG_D)[12])->id=(++mem_lock_id);
+#line 11 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_D[0])); else free((void*)(__ARRAY_LONG_D[0]));
+#line 11 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[2]^=1;
+#line 11 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[4]=2147483647;__ARRAY_LONG_D[5]=0;__ARRAY_LONG_D[6]=0;
+#line 11 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[8]=2147483647;__ARRAY_LONG_D[9]=0;__ARRAY_LONG_D[10]=0;
+#line 11 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[0]=(ptrszint)nothingvalue;
+#line 11 "dynamic_arrays_cpp.bas"
+}
+#line 11 "dynamic_arrays_cpp.bas"
+}else{
 #line 11 "dynamic_arrays_cpp.bas"
 if (__ARRAY_LONG_D[0]!=alloc_old_block||(__ARRAY_LONG_D[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 11 "dynamic_arrays_cpp.bas"
@@ -434,6 +477,8 @@ __ARRAY_LONG_D[11]=alloc_new_desc[11];
 #line 11 "dynamic_arrays_cpp.bas"
 }
 #line 11 "dynamic_arrays_cpp.bas"
+}
+#line 11 "dynamic_arrays_cpp.bas"
 if(!qbevent)break;evnt(11);}while(r);
 #line 12 "dynamic_arrays_cpp.bas"
 do{
@@ -466,11 +511,15 @@ ptrszint alloc_old_block=__ARRAY_LONG_D[0];
 #line 12 "dynamic_arrays_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_LONG_D[2]&1;
 #line 12 "dynamic_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 12 "dynamic_arrays_cpp.bas"
 alloc_new_desc[8]=1ll;
 #line 12 "dynamic_arrays_cpp.bas"
 alloc_new_desc[9]=(qbr(*__SINGLE_N))-alloc_new_desc[8]+1;
 #line 12 "dynamic_arrays_cpp.bas"
 if (alloc_new_desc[9]<=0) error(5);
+#line 12 "dynamic_arrays_cpp.bas"
+if (alloc_new_desc[9]<0&&(int64)((uint64)alloc_new_desc[8]+(uint64)alloc_new_desc[9]-1)<alloc_new_desc[8]) alloc_none=1;
 #line 12 "dynamic_arrays_cpp.bas"
 alloc_new_desc[10]=1;
 #line 12 "dynamic_arrays_cpp.bas"
@@ -480,7 +529,31 @@ alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
 #line 12 "dynamic_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 12 "dynamic_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 12 "dynamic_arrays_cpp.bas"
 alloc_new_desc[6]=alloc_new_desc[10]*alloc_new_desc[9];
+#line 12 "dynamic_arrays_cpp.bas"
+if (alloc_none){
+#line 12 "dynamic_arrays_cpp.bas"
+qbr_diverged(40);
+#line 12 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_D[2]&1){
+#line 12 "dynamic_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_LONG_D)[12])->id=(++mem_lock_id);
+#line 12 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_D[0])); else free((void*)(__ARRAY_LONG_D[0]));
+#line 12 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[2]^=1;
+#line 12 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[4]=2147483647;__ARRAY_LONG_D[5]=0;__ARRAY_LONG_D[6]=0;
+#line 12 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[8]=2147483647;__ARRAY_LONG_D[9]=0;__ARRAY_LONG_D[10]=0;
+#line 12 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_D[0]=(ptrszint)nothingvalue;
+#line 12 "dynamic_arrays_cpp.bas"
+}
+#line 12 "dynamic_arrays_cpp.bas"
+}else{
 #line 12 "dynamic_arrays_cpp.bas"
 if (__ARRAY_LONG_D[0]!=alloc_old_block||(__ARRAY_LONG_D[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 12 "dynamic_arrays_cpp.bas"
@@ -610,6 +683,8 @@ __ARRAY_LONG_D[11]=alloc_new_desc[11];
 #line 12 "dynamic_arrays_cpp.bas"
 }
 #line 12 "dynamic_arrays_cpp.bas"
+}
+#line 12 "dynamic_arrays_cpp.bas"
 if(!qbevent)break;evnt(12);}while(r);
 #line 13 "dynamic_arrays_cpp.bas"
 do{
@@ -642,13 +717,41 @@ ptrszint alloc_old_block=__ARRAY_STRING_T[0];
 #line 13 "dynamic_arrays_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_STRING_T[2]&1;
 #line 13 "dynamic_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 13 "dynamic_arrays_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 13 "dynamic_arrays_cpp.bas"
 alloc_new_desc[5]=(qbr(*__SINGLE_N))-alloc_new_desc[4]+1;
 #line 13 "dynamic_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 13 "dynamic_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 13 "dynamic_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 13 "dynamic_arrays_cpp.bas"
+if (alloc_none){
+#line 13 "dynamic_arrays_cpp.bas"
+qbr_diverged(40);
+#line 13 "dynamic_arrays_cpp.bas"
+if (__ARRAY_STRING_T[2]&1){
+#line 13 "dynamic_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_STRING_T)[8])->id=(++mem_lock_id);
+#line 13 "dynamic_arrays_cpp.bas"
+tmp_long=__ARRAY_STRING_T[5];
+#line 13 "dynamic_arrays_cpp.bas"
+while(tmp_long--) qbs_free(((qbs**)(__ARRAY_STRING_T[0]))[tmp_long]);
+#line 13 "dynamic_arrays_cpp.bas"
+free((void*)(__ARRAY_STRING_T[0]));
+#line 13 "dynamic_arrays_cpp.bas"
+__ARRAY_STRING_T[2]^=1;
+#line 13 "dynamic_arrays_cpp.bas"
+__ARRAY_STRING_T[4]=2147483647;__ARRAY_STRING_T[5]=0;__ARRAY_STRING_T[6]=0;
+#line 13 "dynamic_arrays_cpp.bas"
+__ARRAY_STRING_T[0]=(ptrszint)&nothingstring;
+#line 13 "dynamic_arrays_cpp.bas"
+}
+#line 13 "dynamic_arrays_cpp.bas"
+}else{
 #line 13 "dynamic_arrays_cpp.bas"
 if (__ARRAY_STRING_T[0]!=alloc_old_block||(__ARRAY_STRING_T[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 13 "dynamic_arrays_cpp.bas"
@@ -736,6 +839,8 @@ __ARRAY_STRING_T[7]=alloc_new_desc[7];
 #line 13 "dynamic_arrays_cpp.bas"
 }
 #line 13 "dynamic_arrays_cpp.bas"
+}
+#line 13 "dynamic_arrays_cpp.bas"
 if(!qbevent)break;evnt(13);}while(r);
 #line 14 "dynamic_arrays_cpp.bas"
 do{
@@ -768,13 +873,41 @@ ptrszint alloc_old_block=__ARRAY_STRING_T[0];
 #line 14 "dynamic_arrays_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_STRING_T[2]&1;
 #line 14 "dynamic_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 14 "dynamic_arrays_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 14 "dynamic_arrays_cpp.bas"
 alloc_new_desc[5]=(((int64)(((int32)(qbs_add(qbs_new_txt_len("ab",2),(((qbs**)(__ARRAY_STRING_T[0]))[array_check((0ll)-__ARRAY_STRING_T[4],__ARRAY_STRING_T[5])])))->len))))-alloc_new_desc[4]+1;
 #line 14 "dynamic_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 14 "dynamic_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 14 "dynamic_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 14 "dynamic_arrays_cpp.bas"
+if (alloc_none){
+#line 14 "dynamic_arrays_cpp.bas"
+qbr_diverged(40);
+#line 14 "dynamic_arrays_cpp.bas"
+if (__ARRAY_STRING_T[2]&1){
+#line 14 "dynamic_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_STRING_T)[8])->id=(++mem_lock_id);
+#line 14 "dynamic_arrays_cpp.bas"
+tmp_long=__ARRAY_STRING_T[5];
+#line 14 "dynamic_arrays_cpp.bas"
+while(tmp_long--) qbs_free(((qbs**)(__ARRAY_STRING_T[0]))[tmp_long]);
+#line 14 "dynamic_arrays_cpp.bas"
+free((void*)(__ARRAY_STRING_T[0]));
+#line 14 "dynamic_arrays_cpp.bas"
+__ARRAY_STRING_T[2]^=1;
+#line 14 "dynamic_arrays_cpp.bas"
+__ARRAY_STRING_T[4]=2147483647;__ARRAY_STRING_T[5]=0;__ARRAY_STRING_T[6]=0;
+#line 14 "dynamic_arrays_cpp.bas"
+__ARRAY_STRING_T[0]=(ptrszint)&nothingstring;
+#line 14 "dynamic_arrays_cpp.bas"
+}
+#line 14 "dynamic_arrays_cpp.bas"
+}else{
 #line 14 "dynamic_arrays_cpp.bas"
 if (__ARRAY_STRING_T[0]!=alloc_old_block||(__ARRAY_STRING_T[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 14 "dynamic_arrays_cpp.bas"
@@ -866,6 +999,8 @@ __ARRAY_STRING_T[7]=alloc_new_desc[7];
 #line 14 "dynamic_arrays_cpp.bas"
 }
 #line 14 "dynamic_arrays_cpp.bas"
+}
+#line 14 "dynamic_arrays_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 14 "dynamic_arrays_cpp.bas"
 if(!qbevent)break;evnt(14);}while(r);
@@ -900,13 +1035,37 @@ ptrszint alloc_old_block=__ARRAY_LONG_S[0];
 #line 16 "dynamic_arrays_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_LONG_S[2]&1;
 #line 16 "dynamic_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 16 "dynamic_arrays_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 16 "dynamic_arrays_cpp.bas"
 alloc_new_desc[5]=(qbr(*__SINGLE_N))-alloc_new_desc[4]+1;
 #line 16 "dynamic_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 16 "dynamic_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 16 "dynamic_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 16 "dynamic_arrays_cpp.bas"
+if (alloc_none){
+#line 16 "dynamic_arrays_cpp.bas"
+qbr_diverged(40);
+#line 16 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_S[2]&1){
+#line 16 "dynamic_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_LONG_S)[8])->id=(++mem_lock_id);
+#line 16 "dynamic_arrays_cpp.bas"
+if (__ARRAY_LONG_S[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_S[0])); else free((void*)(__ARRAY_LONG_S[0]));
+#line 16 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_S[2]^=1;
+#line 16 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_S[4]=2147483647;__ARRAY_LONG_S[5]=0;__ARRAY_LONG_S[6]=0;
+#line 16 "dynamic_arrays_cpp.bas"
+__ARRAY_LONG_S[0]=(ptrszint)nothingvalue;
+#line 16 "dynamic_arrays_cpp.bas"
+}
+#line 16 "dynamic_arrays_cpp.bas"
+}else{
 #line 16 "dynamic_arrays_cpp.bas"
 if (__ARRAY_LONG_S[0]!=alloc_old_block||(__ARRAY_LONG_S[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 16 "dynamic_arrays_cpp.bas"
@@ -1006,6 +1165,8 @@ __ARRAY_LONG_S[7]=alloc_new_desc[7];
 #line 16 "dynamic_arrays_cpp.bas"
 }
 #line 16 "dynamic_arrays_cpp.bas"
+}
+#line 16 "dynamic_arrays_cpp.bas"
 if(!qbevent)break;evnt(16);}while(r);
 #line 17 "dynamic_arrays_cpp.bas"
 do{
@@ -1027,6 +1188,8 @@ if(!qbevent)break;evnt(18);}while(r);
 do{
 #line 18 "dynamic_arrays_cpp.bas"
 if (__ARRAY_LONG_D[2]&1){
+#line 18 "dynamic_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_LONG_D)[12])->id=(++mem_lock_id);
 #line 18 "dynamic_arrays_cpp.bas"
 if (__ARRAY_LONG_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_D[0])); else free((void*)(__ARRAY_LONG_D[0]));
 #line 18 "dynamic_arrays_cpp.bas"
@@ -1053,6 +1216,8 @@ if(!qbevent)break;evnt(18);}while(r);
 do{
 #line 18 "dynamic_arrays_cpp.bas"
 if (__ARRAY_STRING_T[2]&1){
+#line 18 "dynamic_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_STRING_T)[8])->id=(++mem_lock_id);
 #line 18 "dynamic_arrays_cpp.bas"
 tmp_long=__ARRAY_STRING_T[5];
 #line 18 "dynamic_arrays_cpp.bas"

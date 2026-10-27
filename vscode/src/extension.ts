@@ -9,6 +9,7 @@ import { DebugSupport } from "./debug";
 import { Diagnostics } from "./diagnostics";
 import { Formatter, registerWhileServerOff, removeStaleTempFiles } from "./format";
 import { LanguageServer } from "./languageServer";
+import { registerNewProject } from "./newProject";
 import { CompilerStatus } from "./statusBar";
 import { Qb64TaskProvider, TASK_TYPE } from "./tasks";
 import { ToolchainSupport } from "./toolchainSupport";
@@ -61,6 +62,7 @@ export function activate(context: vscode.ExtensionContext): Api {
         lsp,
         registerWhileServerOff(lsp, new Formatter(queue, status, diagnostics, lsp)),
         vscode.tasks.registerTaskProvider(TASK_TYPE, new Qb64TaskProvider(status, lsp, bundle)),
+        registerNewProject(),
     );
     void removeStaleTempFiles();
     void removeOtherVersions(bundle.storage, bundle.version);

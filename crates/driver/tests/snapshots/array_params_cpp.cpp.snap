@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
@@ -40,6 +39,7 @@ while(tmp_long--){
 (((qbs**)(__ARRAY_STRING_S[0]))[tmp_long])->len=0;
 }
 if (__ARRAY_LONG_D[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_LONG_D)[8])->id=(++mem_lock_id);
 if (__ARRAY_LONG_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_D[0])); else free((void*)(__ARRAY_LONG_D[0]));
 __ARRAY_LONG_D[2]^=1;
 __ARRAY_LONG_D[4]=2147483647;
@@ -98,10 +98,10 @@ exit(99);
 #include "main1.txt"
 #include "main2.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -148,13 +148,37 @@ ptrszint alloc_old_block=__ARRAY_LONG_D[0];
 #line 9 "array_params_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_LONG_D[2]&1;
 #line 9 "array_params_cpp.bas"
+int32 alloc_none=0;
+#line 9 "array_params_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 9 "array_params_cpp.bas"
 alloc_new_desc[5]=(2ll)-alloc_new_desc[4]+1;
 #line 9 "array_params_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 9 "array_params_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 9 "array_params_cpp.bas"
 alloc_new_desc[6]=1;
+#line 9 "array_params_cpp.bas"
+if (alloc_none){
+#line 9 "array_params_cpp.bas"
+qbr_diverged(40);
+#line 9 "array_params_cpp.bas"
+if (__ARRAY_LONG_D[2]&1){
+#line 9 "array_params_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_LONG_D)[8])->id=(++mem_lock_id);
+#line 9 "array_params_cpp.bas"
+if (__ARRAY_LONG_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_LONG_D[0])); else free((void*)(__ARRAY_LONG_D[0]));
+#line 9 "array_params_cpp.bas"
+__ARRAY_LONG_D[2]^=1;
+#line 9 "array_params_cpp.bas"
+__ARRAY_LONG_D[4]=2147483647;__ARRAY_LONG_D[5]=0;__ARRAY_LONG_D[6]=0;
+#line 9 "array_params_cpp.bas"
+__ARRAY_LONG_D[0]=(ptrszint)nothingvalue;
+#line 9 "array_params_cpp.bas"
+}
+#line 9 "array_params_cpp.bas"
+}else{
 #line 9 "array_params_cpp.bas"
 if (__ARRAY_LONG_D[0]!=alloc_old_block||(__ARRAY_LONG_D[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 9 "array_params_cpp.bas"
@@ -254,6 +278,8 @@ __ARRAY_LONG_D[7]=alloc_new_desc[7];
 #line 9 "array_params_cpp.bas"
 }
 #line 9 "array_params_cpp.bas"
+}
+#line 9 "array_params_cpp.bas"
 if(!qbevent)break;evnt(9);}while(r);
 #line 10 "array_params_cpp.bas"
 do{
@@ -340,13 +366,37 @@ ptrszint alloc_old_block=_SUB_GROW_ARRAY_LONG_A[0];
 #line 14 "array_params_cpp.bas"
 ptrszint alloc_old_set=_SUB_GROW_ARRAY_LONG_A[2]&1;
 #line 14 "array_params_cpp.bas"
+int32 alloc_none=0;
+#line 14 "array_params_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 14 "array_params_cpp.bas"
 alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
 #line 14 "array_params_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 14 "array_params_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 14 "array_params_cpp.bas"
 alloc_new_desc[6]=1;
+#line 14 "array_params_cpp.bas"
+if (alloc_none){
+#line 14 "array_params_cpp.bas"
+qbr_diverged(40);
+#line 14 "array_params_cpp.bas"
+if (_SUB_GROW_ARRAY_LONG_A[2]&1){
+#line 14 "array_params_cpp.bas"
+((mem_lock*)((ptrszint*)_SUB_GROW_ARRAY_LONG_A)[8])->id=(++mem_lock_id);
+#line 14 "array_params_cpp.bas"
+if (_SUB_GROW_ARRAY_LONG_A[2]&4) cmem_dynamic_free((uint8*)(_SUB_GROW_ARRAY_LONG_A[0])); else free((void*)(_SUB_GROW_ARRAY_LONG_A[0]));
+#line 14 "array_params_cpp.bas"
+_SUB_GROW_ARRAY_LONG_A[2]^=1;
+#line 14 "array_params_cpp.bas"
+_SUB_GROW_ARRAY_LONG_A[4]=2147483647;_SUB_GROW_ARRAY_LONG_A[5]=0;_SUB_GROW_ARRAY_LONG_A[6]=0;
+#line 14 "array_params_cpp.bas"
+_SUB_GROW_ARRAY_LONG_A[0]=(ptrszint)nothingvalue;
+#line 14 "array_params_cpp.bas"
+}
+#line 14 "array_params_cpp.bas"
+}else{
 #line 14 "array_params_cpp.bas"
 if (_SUB_GROW_ARRAY_LONG_A[0]!=alloc_old_block||(_SUB_GROW_ARRAY_LONG_A[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 14 "array_params_cpp.bas"
@@ -448,6 +498,8 @@ _SUB_GROW_ARRAY_LONG_A[7]=alloc_new_desc[7];
 #line 14 "array_params_cpp.bas"
 }
 #line 14 "array_params_cpp.bas"
+}
+#line 14 "array_params_cpp.bas"
 if(!qbevent)break;evnt(14);}while(r);
 #line 15 "array_params_cpp.bas"
 do{
@@ -525,6 +577,8 @@ memset((void*)(_SUB_WIPE_ARRAY_LONG_A[0]),0,_SUB_WIPE_ARRAY_LONG_A[5]*4);
 #line 20 "array_params_cpp.bas"
 if (_SUB_WIPE_ARRAY_LONG_A[2]&1){
 #line 20 "array_params_cpp.bas"
+((mem_lock*)((ptrszint*)_SUB_WIPE_ARRAY_LONG_A)[8])->id=(++mem_lock_id);
+#line 20 "array_params_cpp.bas"
 if (_SUB_WIPE_ARRAY_LONG_A[2]&4) cmem_dynamic_free((uint8*)(_SUB_WIPE_ARRAY_LONG_A[0])); else free((void*)(_SUB_WIPE_ARRAY_LONG_A[0]));
 #line 20 "array_params_cpp.bas"
 _SUB_WIPE_ARRAY_LONG_A[2]^=1;
@@ -558,6 +612,8 @@ while(tmp_long--){
 }else{
 #line 20 "array_params_cpp.bas"
 if (_SUB_WIPE_ARRAY_STRING_T[2]&1){
+#line 20 "array_params_cpp.bas"
+((mem_lock*)((ptrszint*)_SUB_WIPE_ARRAY_STRING_T)[8])->id=(++mem_lock_id);
 #line 20 "array_params_cpp.bas"
 tmp_long=_SUB_WIPE_ARRAY_STRING_T[5];
 #line 20 "array_params_cpp.bas"

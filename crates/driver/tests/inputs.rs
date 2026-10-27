@@ -779,6 +779,16 @@ fn verification_lists_are_exact() {
             _ => problems.push(format!("named {} times ({}): {p}", lists.len(), lists.join(", "))),
         }
     }
+    // A program's output with the fixes on (`fixed\<name>.out.txt`, design D4 of `fixes-switch`) names a program of
+    // the suite, and nothing else stands in that folder.
+    for entry in std::fs::read_dir(lists.join("fixed")).into_iter().flatten() {
+        let file = entry.unwrap().file_name().to_string_lossy().into_owned();
+        match file.strip_suffix(".out.txt") {
+            Some(name) if programs.iter().any(|p| p == name) => {}
+            Some(name) => problems.push(format!("fixed/{file}: no program verification/{name}.bas")),
+            None => problems.push(format!("fixed/{file}: not a <name>.out.txt")),
+        }
+    }
     assert!(
         programs.len() >= 2842,
         "found only {} verification programs",

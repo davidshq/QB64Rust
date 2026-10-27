@@ -73,7 +73,11 @@ changing direction, design or scope.**
    objections would go away (user, 2026-10-10).
 
 9. **Test cadence: run what a change can affect, once.**
-   - While working: `cargo test` (tier 1), with fmt and clippy before a group is reported done.
+   - While working: `cargo test -p <crate>` for the crates the work touched. The whole workspace (`cargo test
+     --workspace --no-fail-fast`, tier 1) runs at a task group's end only when the group changed a crate others depend
+     on (`base`, `syntax`, `sema`, `ir`, `codegen-cpp`: their changes reach the snapshot and CLI tests of `driver`),
+     else once at the change's end; it may run in the background while work goes on. fmt and clippy before a group is
+     reported done (user, 2026-10-27, to the panel; `DECISIONS.md`).
    - Tier 2 runs **once per change, at its close**, not per task group. Before that, run only the programs the
      work touches (`--glob`, `--category`, a short `--list`), or a list with `--pass-cache target\pass-cache`,
      which runs only the programs whose executable changed.
@@ -89,7 +93,8 @@ changing direction, design or scope.**
      the slice list, the upstream pass list and `tests\verification\pass.list` **with
      `--pass-cache target\pass-cache`** and `--build-cache target\build-cache`; QB64pe's converter test
      (`--suite addprefix`, user, 2026-10-26); QB64pe's qbasic programs, all to build (`--suite qbasic --jobs 8`,
-     `qbasic-testcases`, user, 2026-10-26); the run without folding (`QB64RUST_NO_FOLD=1`) **only when** the change
+     `qbasic-testcases`, user, 2026-10-26); the run without folding (`QB64RUST_NO_FOLD=1`, also with the pass cache,
+     user, 2026-10-27) **only when** the change
      touched `sema`'s constant evaluation or a numeric conversion; the coverage check of Civil War Strategy's
      scripts (`tools\coverage\coverage.py --check`) **only when** the game's copy or scripts, its list of unreached
      lines, `cut_game.py`, `screen_state.cpp`, `tools\coverage\`, `codegen-cpp`, `ir` or `driver` changed (`close.py` decides both);

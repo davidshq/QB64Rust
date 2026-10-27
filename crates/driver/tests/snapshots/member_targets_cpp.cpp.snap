@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
@@ -231,10 +230,10 @@ exit(99);
 ==> main.txt <==
 #include "main0.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -291,13 +290,37 @@ ptrszint alloc_old_block=dyn_d[0];
 #line 18 "member_targets_cpp.bas"
 ptrszint alloc_old_set=dyn_d[2]&1;
 #line 18 "member_targets_cpp.bas"
+int32 alloc_none=0;
+#line 18 "member_targets_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 18 "member_targets_cpp.bas"
 alloc_new_desc[5]=(1ll)-alloc_new_desc[4]+1;
 #line 18 "member_targets_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 18 "member_targets_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 18 "member_targets_cpp.bas"
 alloc_new_desc[6]=1;
+#line 18 "member_targets_cpp.bas"
+if (alloc_none){
+#line 18 "member_targets_cpp.bas"
+qbr_diverged(40);
+#line 18 "member_targets_cpp.bas"
+if (dyn_d[2]&1){
+#line 18 "member_targets_cpp.bas"
+((mem_lock*)((ptrszint*)dyn_d)[8])->id=(++mem_lock_id);
+#line 18 "member_targets_cpp.bas"
+if (dyn_d[2]&4) cmem_dynamic_free((uint8*)(dyn_d[0])); else free((void*)(dyn_d[0]));
+#line 18 "member_targets_cpp.bas"
+dyn_d[2]^=1;
+#line 18 "member_targets_cpp.bas"
+dyn_d[4]=2147483647;dyn_d[5]=0;dyn_d[6]=0;
+#line 18 "member_targets_cpp.bas"
+dyn_d[0]=(ptrszint)nothingvalue;
+#line 18 "member_targets_cpp.bas"
+}
+#line 18 "member_targets_cpp.bas"
+}else{
 #line 18 "member_targets_cpp.bas"
 if (dyn_d[0]!=alloc_old_block||(dyn_d[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 18 "member_targets_cpp.bas"
@@ -394,6 +417,8 @@ dyn_d[5]=alloc_new_desc[5];
 dyn_d[6]=alloc_new_desc[6];
 #line 18 "member_targets_cpp.bas"
 dyn_d[7]=alloc_new_desc[7];
+#line 18 "member_targets_cpp.bas"
+}
 #line 18 "member_targets_cpp.bas"
 }
 #line 18 "member_targets_cpp.bas"

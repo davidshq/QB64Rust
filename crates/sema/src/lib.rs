@@ -1785,6 +1785,8 @@ pub struct Settings {
     /// `$ERRORLOCATION:ON` stands in the program (design D6 of `m4-builtins-remaining`): the program records the
     /// line of each statement before it runs, for a critical error's message.
     pub error_location: bool,
+    /// The fixes the program is built with (spec `compiler/fixes`): every later stage reads them here.
+    pub fixes: qb64rust_base::fixes::Fixes,
 }
 
 /// A file a `$EMBED:'file','handle'` line names (design D1 of `m3-network-embed`). `sema` reads no file: whether it

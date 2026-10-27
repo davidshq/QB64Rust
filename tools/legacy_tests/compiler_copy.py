@@ -97,8 +97,10 @@ def run_copy(exe: Path, folder: Path = TEST_BIN) -> tuple[Path, str]:
 
 
 def header(original: str, digest: str, started: float) -> str:
-    """The first line of a run's log: the compiler as named, its hash and when the run started."""
-    return f"{HEADER} {original} sha256 {digest} started {started:.3f}"
+    """The first line of a run's log: the compiler as named, its hash and when the run started, and that every
+    program is built with the fixes off (`--fixes off`, spec testing/verification-suite; OpenSpec change
+    fixes-switch, design D4)."""
+    return f"{HEADER} {original} sha256 {digest} started {started:.3f} fixes off"
 
 
 def read_header(text: str) -> tuple[str, float] | None:

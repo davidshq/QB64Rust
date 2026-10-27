@@ -125,13 +125,14 @@ impl Emitter<'_> {
             // `m4-statements-metacommands`): from a procedure a label is reached through a new run of the main
             // module and an entry of `runline.txt`, which `QBMAIN` includes at its start.
             Op::Run(RunTarget::File(f)) => out.push(format!("sub_run({});", self.value(f))),
-            Op::Run(t) => {
-                out.push("sub_run_init();".into());
-                out.push("sub_clear(NULL,NULL,NULL,NULL);".into());
-                match t {
-                    RunTarget::Restart if self.k == 0 => out.push("goto S_0;".into()),
-                    RunTarget::Label(l) if self.k == 0 => out.push(format!("goto {};", self.label_name(*l))),
-                    RunTarget::Restart => out.push("QBMAIN(NULL);".into()),
+            // In a procedure (`study\39` row 14, `QB64PE-DIVERGENCES.md` D-046), where the old compiler calls `QBMAIN`
+            // again inside the procedure, so the stack grows with each `RUN` and the procedures' strings stay
+            // (`verification\v62_g1`: "Out of stack space" after about 2,400 runs from a SUB): the target is kept,
+            // every active procedure is left through its exit, and the main module runs the `RUN` (`procs.rs`
+            // `main0`). In a `$CONSOLE:ONLY` program the console is the output again after a `RUN` with a target.
+            Op::Run(t) if self.k != 0 => {
+                let target = match t {
+                    RunTarget::Restart => 0,
                     RunTarget::Label(l) => {
                         self.runs += 1;
                         let n = self.runs;
@@ -141,8 +142,24 @@ impl Emitter<'_> {
                             "if (run_from_line=={n}){{run_from_line=0;goto {label};}}"
                         )
                         .unwrap();
-                        out.push(format!("run_from_line={n};"));
-                        out.push("QBMAIN(NULL);".into());
+                        n
+                    }
+                    RunTarget::File(_) => unreachable!("matched above"),
+                };
+                out.push(format!("qbr_run_target={target};"));
+                out.push("qbr_unwinding=1;".into());
+                out.push("qbevent=1;".into());
+                out.push("goto exit_subfunc;".into());
+            }
+            Op::Run(t) => {
+                out.push("sub_run_init();".into());
+                out.push("sub_clear(NULL,NULL,NULL,NULL);".into());
+                match t {
+                    RunTarget::Restart => out.push("goto S_0;".into()),
+                    RunTarget::Label(l) => {
+                        let console = self.console_again();
+                        out.extend(console.lines().map(str::to_string));
+                        out.push(format!("goto {};", self.label_name(*l)));
                     }
                     RunTarget::File(_) => unreachable!("matched above"),
                 }
@@ -151,10 +168,19 @@ impl Emitter<'_> {
                 let bytes = self.block(*array, index);
                 out.push(format!("sub_paletteusing({bytes},{bits});"));
             }
+            // In a procedure, `RESUME` and `RESUME NEXT` leave it through its exit, as `EXIT SUB` does, so that its
+            // strings are freed and the locks of its locals released (`study\39` row 13, `QB64PE-DIVERGENCES.md`
+            // D-045); the old compiler's bare `return;` skips that (`verification\v62_f5`). In the main module,
+            // `return` leaves the handler's `evnt` call as the old compiler's does.
             Op::Resume(r) => {
+                let leave = if self.k == 0 {
+                    "return;"
+                } else {
+                    "qbr_diverged(45); goto exit_subfunc;"
+                };
                 let then = match r {
-                    Resume::Retry => "error_retry=1; qbevent=1; error_handling=0; error_err=0; return;".to_string(),
-                    Resume::Next => "error_handling=0; error_err=0; return;".to_string(),
+                    Resume::Retry => format!("error_retry=1; qbevent=1; error_handling=0; error_err=0; {leave}"),
+                    Resume::Next => format!("error_handling=0; error_err=0; {leave}"),
                     // A label of the body it stands in, as `RESUME label` in a SUB names the SUB's own.
                     Resume::To(l) => format!("error_handling=0; error_err=0; goto {};", self.local_label(*l)),
                 };

@@ -35,6 +35,7 @@ void SUB_S();
 ==> clear.txt <==
 *__LONG_N=0;
 if (_SUB_S_ARRAY_LONG_V[2]&1){
+((mem_lock*)((ptrszint*)_SUB_S_ARRAY_LONG_V)[8])->id=(++mem_lock_id);
 if (_SUB_S_ARRAY_LONG_V[2]&4) cmem_dynamic_free((uint8*)(_SUB_S_ARRAY_LONG_V[0])); else free((void*)(_SUB_S_ARRAY_LONG_V[0]));
 _SUB_S_ARRAY_LONG_V[2]^=1;
 _SUB_S_ARRAY_LONG_V[4]=2147483647;
@@ -43,6 +44,7 @@ _SUB_S_ARRAY_LONG_V[6]=0;
 _SUB_S_ARRAY_LONG_V[0]=(ptrszint)nothingvalue;
 }
 if (_SUB_S_ARRAY_LONG_W[2]&1){
+((mem_lock*)((ptrszint*)_SUB_S_ARRAY_LONG_W)[8])->id=(++mem_lock_id);
 if (_SUB_S_ARRAY_LONG_W[2]&4) cmem_dynamic_free((uint8*)(_SUB_S_ARRAY_LONG_W[0])); else free((void*)(_SUB_S_ARRAY_LONG_W[0]));
 _SUB_S_ARRAY_LONG_W[2]^=1;
 _SUB_S_ARRAY_LONG_W[4]=2147483647;
@@ -89,10 +91,15 @@ uint64 alloc_req_elems=1;
 uint64 alloc_req_bytes;
 uint64 alloc_dim_value;
 uint64 alloc_bytes_per_element=(uint64)(4);
+int32 alloc_none=0;
 alloc_new_desc[4]=0ll;
 alloc_new_desc[5]=(((int64)(*__LONG_N)))-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
 alloc_new_desc[6]=1;
+if (alloc_none){
+qbr_diverged(40);
+}else{
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 if (alloc_new_desc[5]<0) error(257);
 if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
@@ -122,6 +129,7 @@ _SUB_S_ARRAY_LONG_V[6]=alloc_new_desc[6];
 _SUB_S_ARRAY_LONG_V[7]=alloc_new_desc[7];
 }
 }
+}
 if (_SUB_S_ARRAY_LONG_W[2]&2){
 error(10);
 }else{
@@ -133,10 +141,15 @@ uint64 alloc_req_elems=1;
 uint64 alloc_req_bytes;
 uint64 alloc_dim_value;
 uint64 alloc_bytes_per_element=(uint64)(4);
+int32 alloc_none=0;
 alloc_new_desc[4]=0ll;
 alloc_new_desc[5]=(qbr(FUNC_F(&(pass1=3))))-alloc_new_desc[4]+1;
 if (alloc_new_desc[5]<=0) error(5);
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
 alloc_new_desc[6]=1;
+if (alloc_none){
+qbr_diverged(40);
+}else{
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 if (alloc_new_desc[5]<0) error(257);
 if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
@@ -166,6 +179,7 @@ _SUB_S_ARRAY_LONG_W[6]=alloc_new_desc[6];
 _SUB_S_ARRAY_LONG_W[7]=alloc_new_desc[7];
 }
 }
+}
 ==> mainerr.txt <==
 if (!error_handler_history) error_handler_history = qbs_new(0, 0);
 if (error_occurred){ error_occurred=0;
@@ -176,10 +190,10 @@ exit(99);
 #include "main1.txt"
 #include "main2.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");

@@ -275,7 +275,6 @@ runtime_comparison/236_option_base
 slice/s51_dim_as_list
 slice/s51_power_unary
 slice/s52_dynamic
-slice/s52_dynamic_memory
 slice/s53_redim
 slice/s54_redim_preserve
 slice/s55_erase

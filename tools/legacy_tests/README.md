@@ -268,6 +268,13 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target
     --list tests\verification\pass.list --jobs 8 --build-cache target\build-cache --pass-cache target\pass-cache
 ```
 
+- **The fixes** (spec `compiler/fixes`; OpenSpec change `fixes-switch`, design D4): every command that compiles or
+  lays out a program with a compiler other than `qb64pe` (every suite, not only this one) passes `--fixes off`, so
+  that a `qb64rust.toml` in the tree or above it changes no result, and the run's first line ends with `fixes off`.
+  A verification program with `tests\verification\fixed\<name>.out.txt` is built a second time with `--fixes on`,
+  in `target\legacy-tests\verification\<name>.fixed\`, run as the first run is run and compared with that file by
+  the same rules (`.normalize`, `.divergences`, the log); it is reported as `<name> [fixes on]`, a result of its
+  own, which `--check-list` requires to pass as well. The pass cache keeps the two halves apart.
 - Each program is compiled with `-x -q -m` in a fresh folder `target\legacy-tests\verification\<name>\`, removed
   on a pass, which holds the program, its `.stdin` and `.noprompt`, and the support items of its family: the files
   and folders of `verification\` whose name begins with its family number (`v16_inc\` and `v16_y.bi` for

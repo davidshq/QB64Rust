@@ -8,6 +8,7 @@ use super::{Checker, DimFact, Failed, NoJoin, Placing, R, Scope, Skips, split_un
 use crate::{AddressWord, MEM_TYPE, ProcId, ProcKind, Program, Var, VarId, mem_type};
 use crate::{AllocMode, BinOp, ConvKind, Join, StartBounds, StmtKind, UnOp};
 use crate::{ArrayRef, Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType};
+use qb64rust_base::fixes::Fix;
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{auto_constant, find_any, is_auto_include_function, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
@@ -799,9 +800,21 @@ impl Checker<'_> {
             return Err(self.unsupported(name_tok.span, format!("an array named with `$n`: `{shown}`")));
         }
         let key = (name.clone(), ty);
-        let existing = self.array_of(&key);
+        let mut existing = self.array_of(&key);
         let bounds_span = bounds.node().span();
-        let beside_shared = by == Declarer::Static && self.static_array_free(existing, name_tok, &shown, listed)?;
+        let mut beside_shared = by == Declarer::Static && self.static_array_free(existing, name_tok, &shown, listed)?;
+        // Beside a shared static array, `STATIC a(n)` declares an array of the procedure's own, as QuickBASIC 4.5 does
+        // (`verification\qb45\q45_static_local`), where the old compiler ends the program at the start with
+        // "Duplicate definition" (`QB64PE-DIVERGENCES.md` D-041, `study\39` row 4, always); beside a dynamic one only
+        // with the fix `static-local-dynamic`. Every later use of the name in the procedure finds that array.
+        if beside_shared
+            && let Some(id) = existing
+            && (matches!(self.prog.var(id).shape, Shape::Static { .. })
+                || self.settings.fixes.is_on(Fix::StaticLocalDynamic))
+        {
+            existing = None;
+            beside_shared = false;
+        }
         if common && existing.is_some() {
             // Not measured: `COMMON a()` twice, or below a `DIM` or a use of the array.
             let msg = format!("`COMMON {shown}()` of an array that exists already");

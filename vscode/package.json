@@ -208,6 +208,11 @@
         "title": "Install the C++ Toolchain",
         "category": "QB64",
         "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "qb64rust.newProject",
+        "title": "New Project",
+        "category": "QB64"
       }
     ],
     "menus": {

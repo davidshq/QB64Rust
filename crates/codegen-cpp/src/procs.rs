@@ -78,8 +78,45 @@ impl<'a> Emitter<'a> {
         let mut out = String::from("error_track_line(0,0,NULL);\nS_0:;\n");
         let p = self.p;
         self.body(&p.main, 0, &mut out);
-        out.push_str("sub_end();\nreturn;\n}\n");
+        out.push_str("sub_end();\nreturn;\n");
+        if self.unwind {
+            // A `RUN` in a procedure, once every active procedure has been left (`stmt.rs` `Op::Run`): the program
+            // starts again as a `RUN` of the main module starts it, at the label of `qbr_run_target`'s entry of
+            // `runline.txt`, or at the top for 0.
+            self.func_decls
+                .push("static int32 qbr_unwinding=0;\nstatic int32 qbr_run_target=0;\n".into());
+            out.push_str(
+                "qbr_run:;\nqbr_diverged(46);\nqbr_unwinding=0;\nsub_run_init();\nsub_clear(NULL,NULL,NULL,NULL);\n",
+            );
+            out.push_str(&self.console_again());
+            out.push_str("run_from_line=qbr_run_target;\n#include \"runline.txt\"\ngoto S_0;\n");
+        }
+        out.push_str("}\n");
         out
+    }
+
+    /// In a program with a `RUN` in a procedure ([`Emitter::unwind`]), the test of the unwind that `RUN` starts: in a
+    /// procedure, its exit; in the main module, the block at the end of `main0.txt` that runs the `RUN`. Written at
+    /// each statement's event check (a `RUN` sets `qbevent`) and after each statement below `$CHECKING:OFF`, which
+    /// has none; a procedure also tests it at its start. Empty in any other program.
+    pub(crate) fn unwind_test(&self) -> &'static str {
+        match (self.unwind, self.k) {
+            (false, _) => "",
+            (true, 0) => "if(qbr_unwinding)goto qbr_run;",
+            (true, _) => "if(qbr_unwinding)goto exit_subfunc;",
+        }
+    }
+
+    /// After `RUN` with a target, the console selected again as the output of a `$CONSOLE:ONLY` program, as its start
+    /// selects it (`Op::SelectConsole`; the old compiler's `RUN` goes on in screen 0 of a window that does not exist,
+    /// so every later line is lost: `verification\v62_g2`, `g3`; `study\39` row 14, D-046). Nothing for another
+    /// program.
+    pub(crate) fn console_again(&self) -> String {
+        if self.p.settings.console && !self.p.settings.window {
+            "qbr_diverged(46);\nsub__dest(func__console());\nsub__source(func__console());\n".into()
+        } else {
+            String::new()
+        }
     }
 
     /// `retK.txt` of the body just emitted, if it has a `RETURN` without label: pop the last return id and go back
@@ -123,7 +160,7 @@ impl<'a> Emitter<'a> {
             if v.is_array() {
                 // A local array: its block, if a statement allocated one, and the `_MEM` lock of its descriptor
                 // (the descriptor itself lies in the static pool, which the epilogue gives back).
-                free.push_str(&self.release(v, &n));
+                free.push_str(&self.release(v, &n, false));
                 writeln!(
                     free,
                     "free_mem_lock((mem_lock*)((ptrszint*){n})[{}]);",
@@ -177,6 +214,11 @@ impl<'a> Emitter<'a> {
         header.extend(PROLOGUE.iter().map(|s| s.to_string()));
         header.push(format!("#include \"data{k}.txt\""));
         header.extend(PROLOGUE_AFTER_DATA.iter().map(|s| s.to_string()));
+        // While a `RUN` unwinds, a procedure called after it in the same expression (`f(1) + g(2)`, `f` running `RUN`)
+        // leaves before its first statement (`study\39` row 14, D-046).
+        if self.unwind {
+            header.push("if(qbr_unwinding)goto exit_subfunc;".to_string());
+        }
         // Under the procedure's own file: a debugger's step into a procedure of an included file stops at its header
         // line first (design of `m5-debug-build-symbols`, "Measured").
         self.lines_in(Some(proc.file), proc.line, &header, &mut main);
@@ -249,16 +291,44 @@ impl<'a> Emitter<'a> {
             }
             if !s.checked {
                 body.splice(0..0, count);
+                // A `RUN` in a procedure this statement calls, in a CALL or in an expression, unwinds: a statement
+                // below `$CHECKING:OFF` has no event check, so its test stands after it ([`Emitter::unwind_test`]).
+                let test = self.unwind_test();
+                if !test.is_empty() {
+                    body.push(test.to_string());
+                }
                 self.lines_in(file, s.line, &body, out);
                 continue;
             }
+            let args = self.evnt_args(file, s.line, s.include_line);
             let mut lines: Vec<String> = count;
+            // With the fix `checking-on-service` (`study\39` row 19), the first checked statement after unchecked
+            // ones services an error they left pending before its own code, as a checked label does: `RESUME NEXT`
+            // and `RESUME` both go on with it. Without the fix the error is serviced at its end, so `RESUME NEXT`
+            // skips it (`verification\v50_c_checking`). An event that came due meanwhile, with no error, waits for the
+            // statement's end as before.
+            if i > 0
+                && !b.stmts[i - 1].checked
+                && self
+                    .p
+                    .settings
+                    .fixes
+                    .is_on(qb64rust_base::fixes::Fix::CheckingOnService)
+            {
+                lines.push(format!("if(qbevent&&is_error_pending()){{evnt({args});r=0;}}"));
+            }
             lines.push("do{".to_string());
             lines.extend(body);
-            lines.push(format!(
-                "if(!qbevent)break;evnt({});}}while(r);",
-                self.evnt_args(file, s.line, s.include_line)
-            ));
+            // With the fix `resume-after-block` (`study\39` row 1), a block header's test whose condition raised: after
+            // `RESUME NEXT` (no retry) the program goes on at the end of the block.
+            let event = match s.next {
+                Some(end) => format!(
+                    "{{int32 qbr_was=is_error_pending();evnt({args});if(qbr_was&&!r)goto {};}}",
+                    self.local_label(end)
+                ),
+                None => format!("evnt({args});"),
+            };
+            lines.push(format!("if(!qbevent)break;{}{event}}}while(r);", self.unwind_test()));
             self.lines_in(file, s.line, &lines, out);
         }
         self.labels(b.stmts.len(), out);

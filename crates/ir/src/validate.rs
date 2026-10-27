@@ -1480,6 +1480,7 @@ mod tests {
             may_raise: false,
             own: false,
             checked: true,
+            next: None,
         }
     }
 

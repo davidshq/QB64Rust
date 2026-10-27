@@ -34,6 +34,17 @@ int32 asserts=0;
 int32 vwatch=0;
 ptrszint data_size=0;
 uint8 *data=(uint8*)calloc(1,1);
+static inline int32 qbr_cast_f_i32(long double x){
+return (x>-2147483649.0L&&x<2147483648.0L)?(int32)x:(int32)(-2147483647-1);
+}
+static inline int64 qbr_cast_f_i64(long double x){
+return (x>=-9223372036854775808.0L&&x<9223372036854775808.0L)?(int64)x:(int64)(-9223372036854775807ll-1);
+}
+static inline uint64 qbr_cast_f_u64(long double x){
+int64 a=qbr_cast_f_i64(x);
+int64 b=qbr_cast_f_i64(x-9223372036854775808.0L);
+return (uint64)a|((uint64)b&(a<0?~0ull:0ull));
+}
 ==> clear.txt <==
 *__SINGLE_SG=0;
 *__DOUBLE_D=0;
@@ -93,10 +104,10 @@ exit(99);
 ==> main.txt <==
 #include "main0.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -117,7 +128,7 @@ do{
 #line 14 "cast_cpp.bas"
 tqbs=qbs_new(0,0);
 #line 14 "cast_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int8)(((int8)(*__SINGLE_SG)))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((int8)(((int8)(qbr_cast_f_i32(*__SINGLE_SG))))),qbs_new_txt(" ")));
 #line 14 "cast_cpp.bas"
 if (is_error_pending()) goto skip1;
 #line 14 "cast_cpp.bas"
@@ -145,7 +156,7 @@ do{
 #line 16 "cast_cpp.bas"
 tqbs=qbs_new(0,0);
 #line 16 "cast_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int16)(((int16)((*__DOUBLE_D*((double)(2))))))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((int16)(((int16)(qbr_cast_f_i32((*__DOUBLE_D*((double)(2)))))))),qbs_new_txt(" ")));
 #line 16 "cast_cpp.bas"
 if (is_error_pending()) goto skip2;
 #line 16 "cast_cpp.bas"
@@ -153,7 +164,7 @@ makefit(tqbs);
 #line 16 "cast_cpp.bas"
 qbs_print(tqbs,0);
 #line 16 "cast_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((uint16)(((uint16)(70000.5E+0)))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((uint16)(((uint16)(qbr_cast_f_i32(70000.5E+0))))),qbs_new_txt(" ")));
 #line 16 "cast_cpp.bas"
 if (is_error_pending()) goto skip2;
 #line 16 "cast_cpp.bas"
@@ -191,7 +202,7 @@ makefit(tqbs);
 #line 17 "cast_cpp.bas"
 qbs_print(tqbs,0);
 #line 17 "cast_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(*__SINGLE_SG)))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((int64)(((int64)(qbr_cast_f_i64(*__SINGLE_SG))))),qbs_new_txt(" ")));
 #line 17 "cast_cpp.bas"
 if (is_error_pending()) goto skip3;
 #line 17 "cast_cpp.bas"
@@ -229,7 +240,7 @@ makefit(tqbs);
 #line 18 "cast_cpp.bas"
 qbs_print(tqbs,0);
 #line 18 "cast_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((uptrszint)(((uptrszint)(*__DOUBLE_D)))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((uptrszint)(((uptrszint)(qbr_cast_f_u64(*__DOUBLE_D))))),qbs_new_txt(" ")));
 #line 18 "cast_cpp.bas"
 if (is_error_pending()) goto skip4;
 #line 18 "cast_cpp.bas"
@@ -297,7 +308,7 @@ makefit(tqbs);
 #line 20 "cast_cpp.bas"
 qbs_print(tqbs,0);
 #line 20 "cast_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int8)(((int8)((((float*)(__ARRAY_SINGLE_A[0]))[array_check((1ll)-__ARRAY_SINGLE_A[4],__ARRAY_SINGLE_A[5])]*((float)(2))))))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((int8)(((int8)(qbr_cast_f_i32((((float*)(__ARRAY_SINGLE_A[0]))[array_check((1ll)-__ARRAY_SINGLE_A[4],__ARRAY_SINGLE_A[5])]*((float)(2)))))))),qbs_new_txt(" ")));
 #line 20 "cast_cpp.bas"
 if (is_error_pending()) goto skip6;
 #line 20 "cast_cpp.bas"
@@ -327,7 +338,7 @@ makefit(tqbs);
 #line 21 "cast_cpp.bas"
 qbs_print(tqbs,0);
 #line 21 "cast_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((int32)(((int32)(2.5E+0)))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((int32)(((int32)(qbr_cast_f_i32(2.5E+0))))),qbs_new_txt(" ")));
 #line 21 "cast_cpp.bas"
 if (is_error_pending()) goto skip7;
 #line 21 "cast_cpp.bas"
@@ -357,7 +368,7 @@ makefit(tqbs);
 #line 22 "cast_cpp.bas"
 qbs_print(tqbs,0);
 #line 22 "cast_cpp.bas"
-qbs_set(tqbs,qbs_add(qbs_str((double)(((double)fabs(((int32)(*__SINGLE_SG)))))),qbs_new_txt(" ")));
+qbs_set(tqbs,qbs_add(qbs_str((double)(((double)fabs(((int32)(qbr_cast_f_i32(*__SINGLE_SG))))))),qbs_new_txt(" ")));
 #line 22 "cast_cpp.bas"
 if (is_error_pending()) goto skip8;
 #line 22 "cast_cpp.bas"

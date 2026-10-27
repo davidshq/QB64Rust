@@ -346,6 +346,33 @@ Small programs behind `study\09`, `study\10` and later measurements:
   compiler's reserved table and some built-ins, written by `v61_members.py` (refused, "Name already in use", the
   names with `HASHFLAG_TYPE`, `_OPERATOR`, `_CUSTOMSYNTAX` or `_XELEMENTNAME`; `AS`, `DATA`, `ELSE`, `REM` and `END`
   with other messages; a single leading underscore "Invalid name"; every other name taken)
+- `v62*`: the fixes, QB64pe's side of each always-on fix of `study\39`, measured as task 1.2 of `fixes-switch` (its
+  `design.md`, D5): `a1`, `a2` `DIM` and `REDIM` with a count below zero under a handler ("Out of memory", which the
+  handler does not receive; row 3); `b1` `STATIC a(5)` in a SUB beside a shared static array ("Duplicate
+  definition" at the start; row 4); `c1`–`c5` an erased whole array used whole (row 7): `PRINT` gives 0, but `READ`
+  and `LINE INPUT #` store into libqb's `nothingvalue` so every later `PRINT` ends with the text, `SWAP` with an
+  allocated array gives it the zero, `FIELD` leaves spaces after every later `PRINT`, `PUT` and `GET` do nothing;
+  `d1`–`d5` a `_MEM` block of a released array (row 8): after `REDIM` `_MEMEXISTS` gives 0 and `_MEMPUT` ends with
+  "Memory has been freed", as for a SUB's local dynamic array after the SUB (`d5`) and unlike after `ERASE`
+  (`v32_d29`), `CLEAR` (`d3`) and `RUN` (`d4`), after which the block stays valid and writes into released memory
+  (`d3` and `d4` keep the block in a file); after `ERASE` of a static array it stays valid and writes into the
+  array (`d2`); `e1`, `e2` a `STRING * n` element and member passed to `char*` (row 10): C reads on into the next
+  element or member and upper-cases them too, and the element's index is evaluated once; read in the C++ of `qb64pe
+  -z`: an element is passed as `(char*)(qbs_new_fixed(&data[i * n], n, 1))->chr`, its own bytes with the next
+  element after them, no NUL; `f1`–`f4` `RESUME`, `RESUME 0`, `RESUME NEXT` and `RESUME label` in a FUNCTION called
+  by a main-module handler (row 13): the first three are a C++ build failure (a bare `return;` in a function with a
+  value), `RESUME label` goes to the FUNCTION's label; `f5` the block of a SUB's local after `RESUME NEXT` leaves it
+  (still valid, -1, where the SUB's end makes it 0); `g1` `RUN` from a SUB again and again ("Out of stack space"
+  after about 2,400 runs; row 14); `g2`, `g3` the output of a `$CONSOLE:ONLY` program after `RUN label` and `RUN
+  100` from a SUB (lost) and after `RUN` with no argument (kept: the program's start, `S_0` in the C++ of `qb64pe
+  -z`, selects the console with `sub__dest(func__console()); sub__source(func__console());`, which `RUN` with no
+  argument runs again and the others jump past); `g4`, `g5`, by the review of the change: `RUN` from a FUNCTION
+  called in an expression with a second FUNCTION after it, and from a FUNCTION called in a loop below
+  `$CHECKING:OFF` (both start again at once: nothing of the statement after the call runs); `h1` `_CAST` of a `DOUBLE` and a `SINGLE` variable to each integer
+  type, in range, out of it, NaN and infinity (the narrow types through the low bits of a 32-bit conversion, whose
+  out-of-range value is -2147483648; `_UNSIGNED LONG` through a 64-bit one; `_UNSIGNED _INTEGER64` as
+  `a | (b AND (a < 0))` of the 64-bit conversions `a` of the value and `b` of the value less 2^63; row 16), `h2` the
+  same values as constants (the C++ cast is undefined, and g++ folded each to another value)
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

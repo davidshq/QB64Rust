@@ -56,7 +56,7 @@ v45_x27	D-026
 v45_x32	D-031
 v45_x38	D-029
 v45_x40	D-028
-v49_x18_cast_out_of_range	varies: a float constant out of range in `_CAST`; g++ gives another value on each build, in the old compiler too (design D2 of `m4-builtins-param-types`)
+v49_x18_cast_out_of_range	D-047
 v54_x26_negative_beyond	D-034
 v54_x38_const_unsigned	D-027
 v56_a5_type_string_member	D-037
@@ -65,3 +65,40 @@ v39_a_handles	varies: _SNDGETPOS and _SNDLEN of a raw sound depend on the sound 
 v60_c3_for_member_element_index_error	D-004
 v60_d6_string_type_nested_used	D-037
 v46_a_play_v0	varies: PLAY(0) read while the background queue drains (line 193: 41 recorded, 40 here alone and with --jobs; the old build's gives 40 or 41)
+v62_a1_dim_below_zero	D-040
+v62_a2_redim_below_zero	D-040
+v62_b1_static_shared	D-041
+v62_c1_whole_erased_print	D-042
+v62_c2_whole_erased_read	D-042
+v62_c3_whole_erased_swap_input	D-042
+v62_c4_whole_erased_get_put	D-042
+v62_c5_whole_erased_field_lset	D-042
+v62_d3_mem_after_clear	D-043
+v62_d4_mem_after_run	D-043
+v62_e1_fixed_element_char	D-044
+v62_e2_fixed_member_char	D-044
+v62_f5_resume_sub_mem	D-045
+v62_g1_run_sub_many	D-046
+v62_g2_run_label_console	D-046
+v62_g3_run_line_sub_console	D-046
+v62_g4_run_function_in_expression	D-046: the statement that called the FUNCTION ends first
+v62_h2_cast_constants	D-047
+v32_d29_erase_dynamic	D-043
+v24_x89_negative_count_dim	D-040
+v24_x90_negative_count_redim	D-040
+v24_x91_negative_count_preserve	D-040
+v24_x272_static_of_shared	D-041
+v55_d3_static_shared_never_called	D-041
+v54_d_whole_erased	D-042
+v54_x42_erased_string_print	D-042
+v54_x43_erased_fixed_string	D-042
+v54_x44_erased_string_read	D-042
+v35_g2_dyn_bounds_reversed	D-040
+v55_b_implicit_whole	D-042
+v55_x72_whole_in_sub_twice	D-042
+v37_x66	D-044
+v57_r02_label_main	D-046
+v57_r03_line_main	D-046
+v57_r04_label_sub	D-046
+v57_r05_line_sub	D-046
+v32_b_get_put	D-043

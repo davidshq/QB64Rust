@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **Fixes of QB64pe's behaviours, behind a switch.** A `qb64rust.toml` beside a program (or in a folder above it)
+  turns named fixes on: `[fixes]` with `all = true`, and `<name> = false` to leave one off. Seven fixes so far:
+  `RESUME NEXT` after an error in a block's condition goes on after the block, a `DIM` with no element is error 5,
+  `STATIC` beside a shared dynamic array is the SUB's own, and four that make QB64pe's odd forms compile errors (a
+  whole array `a()` as a value, `RESUME` or `RUN` in a SUB or FUNCTION) or service an error under `$CHECKING:OFF`
+  in time. `qb64rust --list-fixes` lists them; `--fixes on|off` and `--fix <name>=on|off` set them for one build.
+  A program with no `qb64rust.toml` builds as before. The language server reads the same file and checks the open
+  programs again when it changes.
+- **QB64: New Project** writes `main.bas` and a `qb64rust.toml` with every fix on into a folder you choose, and
+  opens `main.bas`. It writes nothing into a folder that already holds either file.
+- **Crashes and memory errors QB64pe has, fixed for every program**: a `DIM` with fewer than no elements, `STATIC`
+  beside a shared array, a whole array used after `ERASE`, a `_MEM` block of an erased array, a `STRING * n`
+  member passed to a C library, `RESUME` and `RUN` inside a SUB, and `_CAST` of a constant out of range
+  (`QB64PE-DIVERGENCES.md`, D-040 to D-047).
+
 ## 0.3.0
 
 - **QB64pe is no longer needed to build or debug.** The first build or debug session without a C++ toolchain asks

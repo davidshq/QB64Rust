@@ -57,6 +57,15 @@ pub(crate) fn lock_slot(n: usize) -> usize {
     4 * n + 4
 }
 
+/// The renewal of the lock of the array whose descriptor is `n`, of `dims` dimensions: every `_MEM` block of it is no
+/// longer valid. `REDIM` writes it, and the release of a dynamic array by `ERASE`, `CLEAR` and `RUN` (`study\39` row 8).
+pub(crate) fn renew_lock(n: &str, dims: usize) -> String {
+    format!(
+        "((mem_lock*)((ptrszint*){n})[{}])->id=(++mem_lock_id);",
+        lock_slot(dims)
+    )
+}
+
 /// The number of dimensions of an array. One that was only listed (`STATIC a()`, with no `DIM`, `REDIM` or use
 /// of it below) has none: no statement names it, and its descriptor is made with one.
 pub(crate) fn dim_count(v: &Var) -> usize {
@@ -547,9 +556,15 @@ impl Emitter<'_> {
     }
 
     /// The release of a dynamic array, as the old compiler writes it for `ERASE` (`qb64pe.bas` 8637–8704): if it is
-    /// allocated, its strings and its block are freed and its descriptor is "not allocated" again.
-    pub(crate) fn release(&self, v: &Var, n: &str) -> String {
+    /// allocated, its strings and its block are freed and its descriptor is "not allocated" again. With `renew`
+    /// (`ERASE`, `CLEAR`, `RUN`) its lock is renewed first, as `REDIM` renews it, so that its `_MEM` blocks are no
+    /// longer valid (`QB64PE-DIVERGENCES.md` D-043; the old compiler's stay valid over the freed block); a SUB's
+    /// local array at its end needs none, since its lock is freed after.
+    pub(crate) fn release(&self, v: &Var, n: &str, renew: bool) -> String {
         let mut out = format!("if ({n}[2]&1){{\n");
+        if renew {
+            writeln!(out, "{}", renew_lock(n, dim_count(v))).unwrap();
+        }
         if v.ty == Ty::Str {
             let count = self.element_count(v, n);
             write!(
@@ -588,7 +603,7 @@ impl Emitter<'_> {
     /// cleared, a dynamic one released, as `ERASE` does (`qb64pe.bas` 12749–12756).
     pub(crate) fn clear(&self, v: &Var, n: &str) -> String {
         if let Shape::Dynamic { .. } = v.shape {
-            return self.release(v, n);
+            return self.release(v, n, true);
         }
         if v.is_array() {
             return self.clear_elements(v, n);

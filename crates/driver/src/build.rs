@@ -449,6 +449,9 @@ pub struct Settings {
     /// The program calls `_COMPILEDATE$` or `_COMPILETIME$`: its executable holds the time it was built, which is
     /// in no fragment, so the build neither reuses nor fills the cache ([`CACHE_ENV`]).
     pub uncached: bool,
+    /// The program's fixes (spec `compiler/fixes`): in the build's key, also where no fragment differs (design D4 of
+    /// `fixes-switch`).
+    pub fixes: qb64rust_base::fixes::Fixes,
 }
 
 /// The link command's extra part: the extra link flags, then each library file, in quotes if its path has a space.
@@ -544,7 +547,9 @@ pub const CACHE_ENV: &str = "QB64RUST_BUILD_CACHE";
 fn build_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
     let mut h = Fnv128::new();
     // The version stands for `build_with_make`'s fixed arguments: change it when they change.
-    h.write(b"qb64rust build cache 6\0");
+    // 8: the deterministic build (`program_makefile`).
+    h.write(b"qb64rust build cache 8\0");
+    h.write(&settings.fixes.bits().to_le_bytes());
     // The program's make flags are in no fragment: `console=1` is the same text with and without a window.
     for flag in &settings.flags {
         h.write(flag.as_bytes());
@@ -794,10 +799,16 @@ fn remove_built(base: &Path, dir: &Path) -> Result<(), String> {
 /// and the copy's `internal/c` for the headers `qbx.cpp` and `embedded.cpp` include from the build folder. `private`
 /// keeps the variable from the prerequisites `make` builds for these two targets, so libqb's objects take none of
 /// the flags, whatever the targets come to depend on.
+///
+/// The build is deterministic (`DECISIONS.md` 2026-10-27): `-mno-incremental-linker-compatible` writes no time into
+/// the program's objects, and `--no-insert-timestamp` none into the executable, so the same program built again is the
+/// same bytes, and a test's cache of passes, which keys on them, holds across a rebuild.
 fn program_makefile(libqb: &Path, optimize: bool, debug: bool) -> String {
     format!(
         "# Written by qb64rust: the program's own flags, for the program's own objects only.\n\
-         $(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += {}-fwrapv -I{}/internal/c\n",
+         $(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += {}-fwrapv \
+         -mno-incremental-linker-compatible -I{}/internal/c\n\
+         CXXLIBS += -Wl,--no-insert-timestamp\n",
         if debug {
             "-g "
         } else if optimize {
@@ -1060,6 +1071,26 @@ mod tests {
         assert_ne!(key("-lm"), key("-lz"));
     }
 
+    /// The fixes are in the key, also where the fragments are the same (design D4 of `fixes-switch`).
+    #[test]
+    fn build_key_follows_the_fixes() {
+        use qb64rust_base::fixes::{Fix, Fixes};
+        let d = tempfile::tempdir().unwrap();
+        let roots = two_roots(d.path());
+        let key = |fixes| {
+            let settings = Settings {
+                fixes,
+                ..Settings::default()
+            };
+            build_key(&roots, d.path(), &settings)
+        };
+        let off = key(Fixes::OFF);
+        assert_eq!(off, key(Fixes::OFF));
+        assert_ne!(off, key(Fixes::ALL));
+        assert_ne!(off, key(Fixes::OFF.with(Fix::CheckingOnService, true)));
+        assert_ne!(key(Fixes::ALL), key(Fixes::ALL.with(Fix::ResumeAfterBlock, false)));
+    }
+
     /// `--libqb-root` counts only with `internal\c\qbx.cpp`, and the error names the option and the variable (spec
     /// `compiler/cli`, "Locating the reference runtime"). The variable and the default are not set here: the tests
     /// of a process share its environment.
@@ -1289,7 +1320,8 @@ mod tests {
         let mk = program_makefile(Path::new("x/libqb"), false, false);
         assert!(
             mk.ends_with(
-                "$(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += -fwrapv -Ix/libqb/internal/c\n"
+                "$(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += -fwrapv \
+                 -mno-incremental-linker-compatible -Ix/libqb/internal/c\nCXXLIBS += -Wl,--no-insert-timestamp\n"
             ),
             "{mk}"
         );
@@ -1425,6 +1457,7 @@ mod tests {
             exe_icon: false,
             version_info: None,
             error_location: false,
+            fixes: qb64rust_base::fixes::Fixes::OFF,
         }
     }
 

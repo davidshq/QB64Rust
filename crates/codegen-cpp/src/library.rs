@@ -5,7 +5,7 @@
 use crate::Emitter;
 use crate::decl::is_qbs;
 use crate::names::{c_string, c_type, proc_name};
-use qb64rust_ir::{Arg, Conv, Expr, ExprKind, LibraryId, LibraryKind, Proc, ProcId, ProcKind, Track, Ty};
+use qb64rust_ir::{Arg, Conv, Expr, ExprKind, LibraryId, LibraryKind, Place, Proc, ProcId, ProcKind, Track, Ty};
 use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::path::PathBuf;
@@ -359,6 +359,21 @@ impl Emitter<'_> {
             .map(|(a, param)| {
                 let ty = self.p.var(param).ty;
                 match a {
+                    // A `STRING * n` member or element: a copy of its n bytes with a NUL after them, copied back
+                    // when the statement's expression ends (`study\39` row 10, `QB64PE-DIVERGENCES.md` D-044); the
+                    // old compiler passes the place's own bytes, after which C reads on into the next member or
+                    // element (`verification\v37_x66`, `v62_e1`, `e2`). The place is taken once. A variable of its
+                    // own keeps its own bytes.
+                    Arg::Ref(place)
+                        if is_qbs(ty)
+                            && !matches!(place, Place::Var(_))
+                            && let Ty::FixedStr(n) = self.p.place_ty(place) =>
+                    {
+                        if !self.func_decls.iter().any(|d| d == FIXED_ARG) {
+                            self.func_decls.push(FIXED_ARG.to_string());
+                        }
+                        format!("qbr_fixed_arg((uint8*)({})->chr,{n}).buf", self.place_ref(place))
+                    }
                     Arg::Ref(place) if is_qbs(ty) => format!("(char*)({})->chr", self.place_ref(place)),
                     Arg::Temp(v, _) if is_qbs(ty) => format!("(char*)({})->chr", self.value(v)),
                     Arg::Ref(_) | Arg::Temp(..) | Arg::Value(_) | Arg::Null | Arg::Array(_) => self.arg(a, param),
@@ -368,6 +383,15 @@ impl Emitter<'_> {
         parts.join(",")
     }
 }
+
+/// The copy of a `STRING * n` member or element that a library's `char*` gets ([`Emitter::library_args`]): made with
+/// a NUL after its n bytes when the argument is evaluated; a C++ temporary, so it is destroyed, and its bytes copied
+/// back into the place, when the full expression that holds the call ends. Written into `global.txt` by a program
+/// that needs it.
+const FIXED_ARG: &str = "struct qbr_fixed_arg{\nuint8 *place;int32 n;char *buf;\n\
+qbr_fixed_arg(uint8 *p,int32 k):place(p),n(k){buf=(char*)malloc(k+1);memcpy(buf,p,k);buf[k]=0;}\n\
+qbr_fixed_arg(const qbr_fixed_arg&)=delete;\n\
+~qbr_fixed_arg(){memcpy(place,buf,n);free(buf);}\n};\n";
 
 /// A `BYVAL` argument as the old compiler writes it: the value converted to the parameter's type, but with no cast
 /// where C converts it the same way (measured, `verification\v37_b`, `v37_e`): an integer to another integer or to

@@ -106,6 +106,7 @@ fn cli(path: &Path, root: &Path) -> (Vec<Shown>, usize, usize) {
         std::fs::read(path).unwrap(),
         |file| Box::new(FileLoader::new(root, file, path)),
         Some((path, root)),
+        qb64rust_base::fixes::Fixes::OFF,
     );
     let mut list: Vec<Diagnostic> = fe.diagnostics.list().to_vec();
     list.sort_by_key(|d| (d.span.file.0, d.span.start));
@@ -250,4 +251,174 @@ fn missing_icon() {
     std::fs::create_dir(root.path().join("icons")).unwrap();
     std::fs::copy(&icon, root.path().join("icons/game.ico")).unwrap();
     assert_eq!(same_as_cli(&path, root.path()).answer["errors"], 0);
+}
+
+/// A server with one document open, kept running between steps (spec "Settings file changed").
+struct Session {
+    conn: Connection,
+    server: Option<std::thread::JoinHandle<Result<(), String>>>,
+    uri: String,
+    next_id: i32,
+}
+
+impl Session {
+    fn open(path: &Path) -> Session {
+        let (server_side, conn) = Connection::memory();
+        let root = path.parent().unwrap().to_path_buf();
+        let server = std::thread::Builder::new()
+            .stack_size(qb64rust_base::STACK_SIZE)
+            .spawn(move || qb64rust_lsp::serve(server_side, root, qb64rust_driver::server_hooks()))
+            .unwrap();
+        let uri = from_path(path).to_string();
+        let mut s = Session {
+            conn,
+            server: Some(server),
+            uri,
+            next_id: 1,
+        };
+        s.request(
+            "initialize",
+            json!({ "processId": null, "rootUri": null, "capabilities": {} }),
+        );
+        s.notify("initialized", json!({}));
+        let text = Encoding::DEFAULT.decode(&std::fs::read(path).unwrap()).unwrap();
+        let doc = json!({ "uri": s.uri, "languageId": "qb64rust", "version": 1, "text": text });
+        s.notify("textDocument/didOpen", json!({ "textDocument": doc }));
+        s
+    }
+
+    fn notify(&self, method: &str, params: Value) {
+        self.conn
+            .sender
+            .send(Notification::new(method.into(), params).into())
+            .unwrap();
+    }
+
+    /// Sends a request; the diagnostics of the document published before its answer are dropped.
+    fn request(&mut self, method: &str, params: Value) -> Value {
+        self.next_id += 1;
+        let req = Request::new(RequestId::from(self.next_id), method.into(), params);
+        self.conn.sender.send(req.into()).unwrap();
+        let deadline = Instant::now() + WAIT;
+        loop {
+            match recv(&self.conn, deadline) {
+                Message::Response(r) => return r.response_result.unwrap_or(Value::Null),
+                Message::Notification(_) => {}
+                m => panic!("unexpected message {m:?}"),
+            }
+        }
+    }
+
+    /// A check of the document: the diagnostics it publishes for the document, as (line, message, severity).
+    fn check(&mut self) -> Vec<(u64, String, u64)> {
+        self.next_id += 1;
+        let req = Request::new(
+            RequestId::from(self.next_id),
+            qb64rust_lsp::CHECK.into(),
+            json!({ "uri": self.uri }),
+        );
+        self.conn.sender.send(req.into()).unwrap();
+        let deadline = Instant::now() + WAIT;
+        let mut last = Vec::new();
+        loop {
+            match recv(&self.conn, deadline) {
+                Message::Response(_) => return last,
+                Message::Notification(n) => {
+                    if let Some(d) = self.diagnostics(&n) {
+                        last = d;
+                    }
+                }
+                m => panic!("unexpected message {m:?}"),
+            }
+        }
+    }
+
+    /// The next diagnostics published for the document.
+    fn next_published(&self) -> Vec<(u64, String, u64)> {
+        let deadline = Instant::now() + WAIT;
+        loop {
+            if let Message::Notification(n) = recv(&self.conn, deadline)
+                && let Some(d) = self.diagnostics(&n)
+            {
+                return d;
+            }
+        }
+    }
+
+    fn diagnostics(&self, n: &Notification) -> Option<Vec<(u64, String, u64)>> {
+        if n.method != "textDocument/publishDiagnostics" || n.params["uri"] != self.uri.as_str() {
+            return None;
+        }
+        let list = n.params["diagnostics"].as_array().unwrap();
+        Some(
+            list.iter()
+                .map(|d| {
+                    (
+                        d["range"]["start"]["line"].as_u64().unwrap(),
+                        d["message"].as_str().unwrap().to_string(),
+                        d["severity"].as_u64().unwrap(),
+                    )
+                })
+                .collect(),
+        )
+    }
+}
+
+impl Drop for Session {
+    fn drop(&mut self) {
+        if std::thread::panicking() {
+            return;
+        }
+        self.request("shutdown", Value::Null);
+        self.notify("exit", Value::Null);
+        self.server.take().unwrap().join().unwrap().unwrap();
+    }
+}
+
+/// Spec `editor/language-server`, "A bad settings file": the error of `qb64rust.toml` is published on line 1 of the
+/// program, naming the file, and the program's own diagnostics still show; "Settings file changed": when the file is
+/// put right on disk, the server parses the program again with no edit of it, and the error goes.
+#[test]
+fn settings_file_in_a_check() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = program(dir.path(), "p.bas", "PRINT 1\r\nx$ = 1\r\n");
+    let settings = dir.path().join("qb64rust.toml");
+    std::fs::write(&settings, "[fixes]\nnonsense = true\n").unwrap();
+    let mut s = Session::open(&path);
+    let shown = s.check();
+    assert_eq!(shown.len(), 2, "{shown:?}");
+    assert_eq!(shown[0].0, 0);
+    assert!(
+        shown[0].1.starts_with("qb64rust.toml:2: unknown fix `nonsense`"),
+        "{shown:?}"
+    );
+    assert_eq!((shown[1].0, shown[1].2), (1, 1), "{shown:?}");
+    std::fs::write(&settings, "[fixes]\nall = false\n").unwrap();
+    let change = json!({ "changes": [{ "uri": from_path(&settings).to_string(), "type": 2 }] });
+    s.notify("workspace/didChangeWatchedFiles", change);
+    assert_eq!(s.next_published(), [], "the parse after the change");
+    let shown = s.check();
+    assert_eq!(shown.len(), 1, "{shown:?}");
+    assert_eq!(shown[0].0, 1);
+}
+
+/// Spec `editor/language-server`, "A fix's compile error shows": with every fix on in `qb64rust.toml`, a check
+/// publishes the error of `whole-array-value` at `a()`; "The fixes turned off": once the file turns them off on disk,
+/// the error is no longer published, with no edit of the program.
+#[test]
+fn fix_error_in_a_check() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = program(dir.path(), "p.bas", "DIM a(3) AS LONG\r\nPRINT a()\r\n");
+    let settings = dir.path().join("qb64rust.toml");
+    std::fs::write(&settings, "[fixes]\nall = true\n").unwrap();
+    let mut s = Session::open(&path);
+    let shown = s.check();
+    assert_eq!(shown.len(), 1, "{shown:?}");
+    assert_eq!(shown[0].0, 1);
+    assert!(shown[0].1.contains("whole-array-value"), "{shown:?}");
+    std::fs::write(&settings, "[fixes]\nall = false\n").unwrap();
+    let change = json!({ "changes": [{ "uri": from_path(&settings).to_string(), "type": 2 }] });
+    s.notify("workspace/didChangeWatchedFiles", change);
+    assert_eq!(s.next_published(), [], "the parse after the change");
+    assert_eq!(s.check(), [], "the check after the change");
 }

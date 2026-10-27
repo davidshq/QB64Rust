@@ -67,6 +67,13 @@
 //! `LOOP UNTIL` is not taken, so the loop is left; a `FOR` header stores its three limits from the placeholder
 //! values ([`Op::AssignAll`]), does not take its jump to the loop's entry, and runs the body with the variable
 //! unassigned.
+//!
+//! Two fixes of the switch (spec `compiler/fixes`) change where an error is resumed, each off unless turned on. With
+//! `resume-after-block`, a header's test carries the block's end ([`Stmt::next`]): [`Resume::Next`] of an error
+//! serviced at its boundary continues there, after the `END IF`, `WEND` or `LOOP`, and [`Resume::Retry`] still tests
+//! the condition again. With `checking-on-service`, an error left pending by statements below `$CHECKING:OFF` is
+//! serviced before the first checked statement that runs after them (the backend's), so both [`Resume::Next`] and
+//! [`Resume::Retry`] go on with that statement.
 //! - **Optional arguments are present or absent** ([`ExprKind::Call`] slots are `Option`s in table order).
 //! - **Every conversion is explicit** ([`ExprKind::Convert`]); every operation states the type it computes in.
 //!   Three operations take numbers of any type and convert them themselves, each to the type the node states:
@@ -859,6 +866,11 @@ pub struct Stmt {
     /// the statement is written without its event check and its index checks (design D3, D4 of
     /// `m4-handlers-logging-checking`).
     pub checked: bool,
+    /// Where `RESUME NEXT` goes after an error that this statement's boundary services, when not to the statement
+    /// after it: with the fix `resume-after-block` (spec `compiler/fixes`), the end of the block whose header's
+    /// condition this statement tests (`IF`, `ELSEIF`, `WHILE`, `DO WHILE`, `DO UNTIL`). `None` otherwise, the rule
+    /// of the module comment.
+    pub next: Option<LabelId>,
 }
 
 /// A sequence of statements: the main module's, or a procedure's.
@@ -921,6 +933,8 @@ pub struct Settings {
     /// `$ERRORLOCATION:ON`: the program records each statement's line before it runs, so that a critical error's
     /// message names it (design D6 of `m4-builtins-remaining`). How is the backend's (`error_track_line` in C++).
     pub error_location: bool,
+    /// The fixes the program is built with (spec `compiler/fixes`), as `sema` was given them.
+    pub fixes: qb64rust_base::fixes::Fixes,
 }
 
 impl Program {

@@ -143,10 +143,13 @@ def steps(nofold: bool, coverage: bool = False, layout: bool = False) -> list[St
         ),
     ]
     if nofold:
+        # With the pass cache, as the other lists (DECISIONS.md 2026-10-27): builds are deterministic, and its key is
+        # the executable, so only the programs whose C++ folding changes run again.
         out.append(
             Step(
                 "nofold",
-                f"QB64RUST_NO_FOLD=1 {RUNNER} --suite corpus {NEW} --wait --list tests/corpus/slice.list > {log('nofold')} 2>&1",
+                f"QB64RUST_NO_FOLD=1 {RUNNER} --suite corpus {NEW} {CACHE} --wait --list tests/corpus/slice.list "
+                f"> {log('nofold')} 2>&1",
                 "runner",
                 copy=True,
             )

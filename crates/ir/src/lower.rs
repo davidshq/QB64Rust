@@ -22,6 +22,7 @@ use crate::{
     Allocation, Body, EventHandler, Expr, ExprKind, Label, LabelId, OnError, Op, Place, PrintItem, Proc, ProcId,
     Program, Resume, Stmt, Storage, Ty, Var, VarId, When,
 };
+use qb64rust_base::fixes::Fix;
 use qb64rust_base::{Span, to_u32};
 use qb64rust_sema as sema;
 use qb64rust_sema::{BinOp, UnOp};
@@ -78,6 +79,7 @@ pub fn lower(p: &sema::Program) -> Program {
             exe_icon: p.settings.exe_icon.is_some(),
             version_info: p.settings.version_info.clone(),
             error_location: p.settings.error_location,
+            fixes: p.settings.fixes,
         },
     };
     if cfg!(debug_assertions)
@@ -272,7 +274,19 @@ impl<'a> Lowerer<'a> {
             may_raise,
             own,
             checked: self.checked,
+            next: None,
         });
+    }
+
+    /// [`Self::emit`] of a block header's test whose block ends at `end`: with the fix `resume-after-block`, `RESUME
+    /// NEXT` after an error in its condition goes on there ([`Stmt::next`]; `study\39` row 1).
+    fn emit_header(&mut self, span: Span, line: u32, ops: Vec<Op>, end: LabelId) {
+        self.emit(span, line, ops);
+        if self.p.settings.fixes.is_on(Fix::ResumeAfterBlock)
+            && let Some(s) = self.stmts.last_mut()
+        {
+            s.next = Some(end);
+        }
     }
 
     fn stmt(&mut self, s: &sema::Stmt) {
@@ -616,7 +630,7 @@ impl<'a> Lowerer<'a> {
             };
             let mut ops = allocations(&b.allocs);
             ops.push(branch);
-            self.emit(b.cond.span, b.line, ops);
+            self.emit_header(b.cond.span, b.line, ops, end);
             self.stmts_of(&b.body);
             if next != end {
                 self.emit_own(s.span, end_line, vec![Op::Jump(end)]);
@@ -656,15 +670,15 @@ impl<'a> Lowerer<'a> {
         // `m4-names-implicit-arrays`).
         if let Some(first) = top_test.clone().filter(|_| !self.joined.is_empty()) {
             let body = self.label(s.line);
-            self.emit(s.span, s.line, vec![first]);
+            self.emit_header(s.span, s.line, vec![first], exit);
             self.emit_own(s.span, s.line, vec![Op::Jump(body)]);
             self.place(top);
-            self.emit(s.span, s.line, vec![top_test.expect("a test at the top")]);
+            self.emit_header(s.span, s.line, vec![top_test.expect("a test at the top")], exit);
             self.place(body);
         } else {
             self.place(top);
             if let Some(branch) = top_test {
-                self.emit(s.span, s.line, vec![branch]);
+                self.emit_header(s.span, s.line, vec![branch], exit);
             }
         }
         self.exits.push((kind, exit, None));

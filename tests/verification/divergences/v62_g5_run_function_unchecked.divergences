@@ -1,0 +1,1 @@
+D-046  # fixes-switch: RUN from a FUNCTION below $CHECKING:OFF leaves it first and the main module runs it; the output is the same

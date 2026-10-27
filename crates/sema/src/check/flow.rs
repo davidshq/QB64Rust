@@ -9,6 +9,7 @@ use super::walk::{Cursor, Event};
 use super::{Checker, Failed, R, Skips, line_if_statements};
 use crate::builtins::stmt_lookup;
 use crate::{ConvKind, ErrorHandler, Label, LabelId, ProcId, ProcKind, Resume, RunTarget, StmtKind, SymbolKind, Ty};
+use qb64rust_base::fixes::Fix;
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{Kind, find_any};
 use qb64rust_syntax::SyntaxKind::{
@@ -587,17 +588,23 @@ impl<'a> Checker<'a> {
     /// one of the main module's is an error (measured, `v14_err_label_in_main_from_sub`, `v57_x05`, `x10`–`x12`).
     /// In a SUB the statement is the main module's (design D7 of `m4-statements-metacommands`; measured,
     /// `v17_d_resume_sub_label`, `v57_x01`–`x08`): the old compiler writes the same C++ line there, whose `return`
-    /// leaves the SUB. In a FUNCTION that line does not build in the old compiler (`v57_x09`).
+    /// leaves the SUB (here through its exit, D-045). In a FUNCTION that line does not build in the old compiler
+    /// (`v57_x09`, `verification\v62_f1`–`f3`), but `RESUME label` there goes to the FUNCTION's label (`v62_f4`).
+    /// With the fix `resume-in-procedure`, every form inside a SUB or FUNCTION is an error, as in QuickBASIC 4.5
+    /// (`verification\qb45\q45_resume_in_sub`).
     pub(super) fn resume(&mut self, s: ast::ResumeStmt) -> R<()> {
         let node = s.node();
         let target = s.target();
         let is_next = target.is_some_and(|t| t.kind != Number && self.word(t) == "NEXT");
+        if self.cur.is_some() && self.settings.fixes.is_on(Fix::ResumeInProcedure) {
+            let msg = "`RESUME` belongs in an error handler of the main module, not in a SUB or FUNCTION (the fix \
+                       `resume-in-procedure`)";
+            return Err(self.error(super::first_token_span(node), msg));
+        }
         if let Some(p) = self.cur
             && matches!(self.prog.proc(p).kind, ProcKind::Function(_))
+            && target.is_none_or(|t| is_next || self.is_zero(t))
         {
-            if let Some(t) = target.filter(|&t| !is_next && !self.is_zero(t)) {
-                self.label_ref(t, self.cur)?;
-            }
             let msg = "`RESUME` cannot stand in a FUNCTION: QB64pe's C++ for it does not build";
             return Err(self.error(super::first_token_span(node), msg));
         }
@@ -618,6 +625,13 @@ impl<'a> Checker<'a> {
     /// number there is "Illegal string-number conversion".
     pub(super) fn run(&mut self, s: ast::RunStmt) -> R<()> {
         let node = s.node();
+        // With the fix `run-in-procedure`, any `RUN` inside a SUB or FUNCTION is an error, as in QuickBASIC 4.5
+        // (`verification\qb45\q45_run_from_sub`; `study\39` row 14).
+        if self.cur.is_some() && self.settings.fixes.is_on(Fix::RunInProcedure) {
+            let msg = "`RUN` cannot stand in a SUB or FUNCTION (the fix `run-in-procedure`): set a flag there and run \
+                       `RUN` from the main module";
+            return Err(self.error(super::first_token_span(node), msg));
+        }
         // A name that means a string is a file name, as the old compiler types the element before it takes it for a
         // label: by its suffix, a string `CONST` of the name, or the type a variable of the name has here (a
         // `DIM … AS STRING`, or `DEFSTR` for its first letter, assigned or not) (`v57_r16`, `r20`–`r24`).

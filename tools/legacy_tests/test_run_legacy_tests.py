@@ -1398,8 +1398,45 @@ class VerificationCompare(VerificationFixture):
         r = self.run_test(tools)
         self.assertEqual((r.status, r.kind), ("PASS", "output"), r.detail)
         self.assertFalse((self.results / "v99_p").exists())
-        self.assertEqual(tools.compile_cmd[:5], ["qb64rust.exe", "-x", "-q", "-m", "v99_p.bas"])
+        self.assertEqual(
+            tools.compile_cmd[:7], ["qb64rust.exe", "-x", "-q", "-m", "--fixes", "off", "v99_p.bas"]
+        )
         self.assertNotIn("--include-root", tools.compile_cmd)
+
+    def test_a_fixed_sidecar_runs_the_program_again_with_the_fixes_on(self):
+        # tests/verification/fixed/<name>.out.txt (OpenSpec change fixes-switch, design D4): a second build with
+        # --fixes on in a folder of its own, compared with the sidecar, reported as "<name> [fixes on]".
+        self.recorded(b"1\nexit=0\n")
+        self.sidecar("divergences", b"")
+        fixed = self.lists / "fixed" / "v99_p.out.txt"
+        fixed.parent.mkdir()
+        fixed.write_bytes(b"2\nexit=0\n")
+        rlt.support_items.cache_clear()
+        args = SimpleNamespace(qb64=Path("qb64rust.exe"), pass_cache=None, coverage=None)
+
+        def run(tools):
+            with mock.patch.object(rlt, "run_proc", tools):
+                return rlt.run_suite_test(
+                    "verification",
+                    self.bas,
+                    args=args,
+                    results=self.results,
+                    qb_root=self.results,
+                    corpus_root=self.results,
+                    known={},
+                )
+
+        tools = Tools(runs=[b"1\r\n", b"2\r\n"])
+        out = run(tools)
+        self.assertEqual(
+            [(r.test, r.status) for r in out], [("v99_p", "PASS"), ("v99_p [fixes on]", "PASS")]
+        )
+        self.assertEqual(tools.compile_cmd[4:6], ["--fixes", "on"])
+        self.assertTrue(tools.compile_cmd[tools.compile_cmd.index("-o") + 1].endswith("v99_p.exe"))
+        self.assertIn("v99_p.fixed", tools.compile_cmd[tools.compile_cmd.index("-o") + 1])
+        out = run(Tools(runs=[b"1\r\n", b"1\r\n"]))
+        self.assertEqual([r.status for r in out], ["PASS", "FAIL"])
+        self.assertEqual(out[1].stage, "result")
 
     def test_coverage_builds_with_the_option_and_appends_the_runs_counts(self):
         # --coverage for the verification suite (m4-coverage-review, design D3): as for a corpus program.

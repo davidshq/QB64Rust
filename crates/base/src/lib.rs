@@ -7,6 +7,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+pub mod fixes;
 pub mod layout;
 mod old_wording;
 pub use old_wording::old_wording;

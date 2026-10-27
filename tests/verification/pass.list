@@ -950,7 +950,6 @@ v24_x269_implicit_then_static
 v24_x26_function_other_suffix
 v24_x270_dim_in_sub_of_shared_static
 v24_x271_dim_in_sub_of_shared_dynamic
-v24_x272_static_of_shared
 v24_x273_dim_empty_in_sub
 v24_x274_shared_array_twice
 v24_x275_shared_array_after_local
@@ -1066,9 +1065,6 @@ v24_x85_option_base_trailing
 v24_x86_dim_empty_scalar
 v24_x87_dim_empty_explicit
 v24_x88_implicit_dynamic_skipped
-v24_x89_negative_count_dim
-v24_x90_negative_count_redim
-v24_x91_negative_count_preserve
 v24_x92_large_count
 v24_x93_large_bytes
 v24_x94_large_bounds
@@ -1811,7 +1807,6 @@ v31_x96_autodisplay_arg
 v31_x97_autodisplay_fn_arg
 v31_x98_pmap_one
 v31_x99_pmap_bare
-v32_b_get_put
 v32_c_mk_cv
 v32_d01_put_after_free
 v32_d02_put_out_of_range
@@ -1841,7 +1836,6 @@ v32_d25_free_twice
 v32_d26_free_uninitialised
 v32_d27_returned_procedure
 v32_d28_redim
-v32_d29_erase_dynamic
 v32_d30_memnew_negative
 v32_d31_free_image_block
 v32_d32_freed_image
@@ -2097,7 +2091,6 @@ v35_b_dyn_parents
 v35_c_dyn_kinds
 v35_d_dyn_places
 v35_f_static_and_unmarked
-v35_g2_dyn_bounds_reversed
 v35_g_dyn_errors
 v35_h_metacommand
 v35_x01_marker_before_name
@@ -2297,7 +2290,6 @@ v37_x62
 v37_x63
 v37_x64
 v37_x65
-v37_x66
 v37_x67
 v37_x68
 v37_x69
@@ -3180,7 +3172,6 @@ v53_x83_meta_resize_equals
 v54_a_line_numbers
 v54_b_unsigned_literals
 v54_c_whole_values
-v54_d_whole_erased
 v54_x01_goto_other_body
 v54_x02_return_n_in_sub
 v54_x03_ten_and_ten_point_zero
@@ -3220,17 +3211,12 @@ v54_x37_string_assign
 v54_x39_varptr_whole
 v54_x40_suffix_leading_zero_eight
 v54_x41_number_25_digits
-v54_x42_erased_string_print
-v54_x43_erased_fixed_string
-v54_x44_erased_string_read
 v54_x45_member_whole_assign
 v55_a_implicit_headers
 v55_b2_implicit_whole_base1
-v55_b_implicit_whole
 v55_c_static_bounds
 v55_d1_static_shared_dynamic
 v55_d2_static_shared_other_type
-v55_d3_static_shared_never_called
 v55_d4_static_shared_dynamic_redim
 v55_x01_timer_place
 v55_x02_screen_place
@@ -3303,7 +3289,6 @@ v55_x68_whole_then_two
 v55_x69_whole_in_sub_then_dim
 v55_x70_whole_string_len
 v55_x71_whole_string_value
-v55_x72_whole_in_sub_twice
 v55_x73_static_bound_len
 v55_x74_static_bound_shared
 v55_x75_static_bound_function
@@ -3507,10 +3492,6 @@ v57_p14_lbound_dynamic
 v57_p15_lbound_sub
 v57_p16_swap_paren_in_sub
 v57_r01_restart
-v57_r02_label_main
-v57_r03_line_main
-v57_r04_label_sub
-v57_r05_line_sub
 v57_r06_restart_sub
 v57_r07_restart_function
 v57_r08_missing_file
@@ -4122,3 +4103,12 @@ v61_px6_implicit_variable
 v61_px7_scalar_param_passed_on
 v61_px8_fixed_string_variable
 v61_px9_type_param_whole_varptr
+v62_d1_mem_after_redim
+v62_d2_mem_after_erase_static
+v62_d5_mem_local_dynamic
+v62_f1_resume_function
+v62_f2_resume_0_function
+v62_f3_resume_next_function
+v62_f4_resume_label_function
+v62_g5_run_function_unchecked
+v62_h1_cast_variables

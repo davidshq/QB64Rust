@@ -87,7 +87,14 @@ normalises them:
    and the old compiler's answer may come from the cache, written in another run's folder. Only the folder goes; the
    file's name and everything after it are compared.
 
-Only rule 7 names built-ins. The two token lists must then be equal.
+9. **The code of an always-on fix that the old compiler does not write is read as what it leaves of the old code**
+   (`fixes-switch`, `study\39`): a whole array's guard around a file's `GET` and `PUT` (`if (<no storage>){qbr_diverged(42);
+   error(9);}else{…}`) as the call it guards, and its index test (`(<no storage>?(qbr_diverged(42),error(9),0):0)`) as
+   `0` (row 7, D-042); the console selected again after `RUN label` (`qbr_diverged(46);` with `sub__dest` and
+   `sub__source` of `func__console()`) dropped (row 14, D-046); a `_CAST` helper (`qbr_cast_f_i32`, `_i64`, `_u64`)
+   as its argument (row 16, D-047). Each pattern is matched whole, so anything else about those calls is compared.
+
+Only rules 7 and 9 name the new compiler's own code. The two token lists must then be equal.
 
 Output: one line per program, `equal`, `differ` (with both token lists) or `not compared` (a compiler rejected the
 program; the reason is its first diagnostic), then a summary line. No local path is printed.

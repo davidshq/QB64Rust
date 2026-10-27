@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
@@ -388,6 +387,7 @@ qbr_udt0_zero((char*)((char*)__UDT_Y));
 qbr_udt1_zero((char*)((char*)__UDT_Z));
 qbr_udt1_zero((char*)((char*)__UDT_Z2));
 if (__ARRAY_UDT_P[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_UDT_P)[8])->id=(++mem_lock_id);
 tmp_long=__ARRAY_UDT_P[5];
 while(tmp_long--){
 qbr_udt2_free((char*)(((char*)(__ARRAY_UDT_P[0])+tmp_long*24)));
@@ -400,6 +400,7 @@ __ARRAY_UDT_P[6]=0;
 __ARRAY_UDT_P[0]=(ptrszint)nothingvalue;
 }
 if (__ARRAY_UDT_R[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_UDT_R)[8])->id=(++mem_lock_id);
 tmp_long=__ARRAY_UDT_R[5];
 while(tmp_long--){
 qbr_udt1_free((char*)(((char*)(__ARRAY_UDT_R[0])+tmp_long*40)));
@@ -482,10 +483,10 @@ exit(99);
 #include "main1.txt"
 #include "main2.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -532,13 +533,45 @@ ptrszint alloc_old_block=__ARRAY_UDT_P[0];
 #line 32 "typefields_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_UDT_P[2]&1;
 #line 32 "typefields_cpp.bas"
+int32 alloc_none=0;
+#line 32 "typefields_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 32 "typefields_cpp.bas"
 alloc_new_desc[5]=(1ll)-alloc_new_desc[4]+1;
 #line 32 "typefields_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 32 "typefields_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 32 "typefields_cpp.bas"
 alloc_new_desc[6]=1;
+#line 32 "typefields_cpp.bas"
+if (alloc_none){
+#line 32 "typefields_cpp.bas"
+qbr_diverged(40);
+#line 32 "typefields_cpp.bas"
+if (__ARRAY_UDT_P[2]&1){
+#line 32 "typefields_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_UDT_P)[8])->id=(++mem_lock_id);
+#line 32 "typefields_cpp.bas"
+tmp_long=__ARRAY_UDT_P[5];
+#line 32 "typefields_cpp.bas"
+while(tmp_long--){
+#line 32 "typefields_cpp.bas"
+qbr_udt2_free((char*)(((char*)(__ARRAY_UDT_P[0])+tmp_long*24)));
+#line 32 "typefields_cpp.bas"
+}
+#line 32 "typefields_cpp.bas"
+free((void*)(__ARRAY_UDT_P[0]));
+#line 32 "typefields_cpp.bas"
+__ARRAY_UDT_P[2]^=1;
+#line 32 "typefields_cpp.bas"
+__ARRAY_UDT_P[4]=2147483647;__ARRAY_UDT_P[5]=0;__ARRAY_UDT_P[6]=0;
+#line 32 "typefields_cpp.bas"
+__ARRAY_UDT_P[0]=(ptrszint)nothingvalue;
+#line 32 "typefields_cpp.bas"
+}
+#line 32 "typefields_cpp.bas"
+}else{
 #line 32 "typefields_cpp.bas"
 if (__ARRAY_UDT_P[0]!=alloc_old_block||(__ARRAY_UDT_P[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 32 "typefields_cpp.bas"
@@ -638,6 +671,8 @@ __ARRAY_UDT_P[7]=alloc_new_desc[7];
 #line 32 "typefields_cpp.bas"
 }
 #line 32 "typefields_cpp.bas"
+}
+#line 32 "typefields_cpp.bas"
 if(!qbevent)break;evnt(32);}while(r);
 #line 33 "typefields_cpp.bas"
 do{
@@ -698,13 +733,37 @@ ptrszint alloc_old_block=dyn_d[0];
 #line 34 "typefields_cpp.bas"
 ptrszint alloc_old_set=dyn_d[2]&1;
 #line 34 "typefields_cpp.bas"
+int32 alloc_none=0;
+#line 34 "typefields_cpp.bas"
 alloc_new_desc[4]=1ll;
 #line 34 "typefields_cpp.bas"
 alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
 #line 34 "typefields_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 34 "typefields_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 34 "typefields_cpp.bas"
 alloc_new_desc[6]=1;
+#line 34 "typefields_cpp.bas"
+if (alloc_none){
+#line 34 "typefields_cpp.bas"
+qbr_diverged(40);
+#line 34 "typefields_cpp.bas"
+if (dyn_d[2]&1){
+#line 34 "typefields_cpp.bas"
+((mem_lock*)((ptrszint*)dyn_d)[8])->id=(++mem_lock_id);
+#line 34 "typefields_cpp.bas"
+if (dyn_d[2]&4) cmem_dynamic_free((uint8*)(dyn_d[0])); else free((void*)(dyn_d[0]));
+#line 34 "typefields_cpp.bas"
+dyn_d[2]^=1;
+#line 34 "typefields_cpp.bas"
+dyn_d[4]=2147483647;dyn_d[5]=0;dyn_d[6]=0;
+#line 34 "typefields_cpp.bas"
+dyn_d[0]=(ptrszint)nothingvalue;
+#line 34 "typefields_cpp.bas"
+}
+#line 34 "typefields_cpp.bas"
+}else{
 #line 34 "typefields_cpp.bas"
 if (dyn_d[0]!=alloc_old_block||(dyn_d[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 34 "typefields_cpp.bas"
@@ -803,6 +862,8 @@ dyn_d[5]=alloc_new_desc[5];
 dyn_d[6]=alloc_new_desc[6];
 #line 34 "typefields_cpp.bas"
 dyn_d[7]=alloc_new_desc[7];
+#line 34 "typefields_cpp.bas"
+}
 #line 34 "typefields_cpp.bas"
 }
 #line 34 "typefields_cpp.bas"
@@ -968,13 +1029,45 @@ ptrszint alloc_old_block=__ARRAY_UDT_R[0];
 #line 42 "typefields_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_UDT_R[2]&1;
 #line 42 "typefields_cpp.bas"
+int32 alloc_none=0;
+#line 42 "typefields_cpp.bas"
 alloc_new_desc[4]=1ll;
 #line 42 "typefields_cpp.bas"
 alloc_new_desc[5]=(2ll)-alloc_new_desc[4]+1;
 #line 42 "typefields_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 42 "typefields_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 42 "typefields_cpp.bas"
 alloc_new_desc[6]=1;
+#line 42 "typefields_cpp.bas"
+if (alloc_none){
+#line 42 "typefields_cpp.bas"
+qbr_diverged(40);
+#line 42 "typefields_cpp.bas"
+if (__ARRAY_UDT_R[2]&1){
+#line 42 "typefields_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_UDT_R)[8])->id=(++mem_lock_id);
+#line 42 "typefields_cpp.bas"
+tmp_long=__ARRAY_UDT_R[5];
+#line 42 "typefields_cpp.bas"
+while(tmp_long--){
+#line 42 "typefields_cpp.bas"
+qbr_udt1_free((char*)(((char*)(__ARRAY_UDT_R[0])+tmp_long*40)));
+#line 42 "typefields_cpp.bas"
+}
+#line 42 "typefields_cpp.bas"
+free((void*)(__ARRAY_UDT_R[0]));
+#line 42 "typefields_cpp.bas"
+__ARRAY_UDT_R[2]^=1;
+#line 42 "typefields_cpp.bas"
+__ARRAY_UDT_R[4]=2147483647;__ARRAY_UDT_R[5]=0;__ARRAY_UDT_R[6]=0;
+#line 42 "typefields_cpp.bas"
+__ARRAY_UDT_R[0]=(ptrszint)nothingvalue;
+#line 42 "typefields_cpp.bas"
+}
+#line 42 "typefields_cpp.bas"
+}else{
 #line 42 "typefields_cpp.bas"
 if (__ARRAY_UDT_R[0]!=alloc_old_block||(__ARRAY_UDT_R[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 42 "typefields_cpp.bas"
@@ -1074,6 +1167,8 @@ __ARRAY_UDT_R[7]=alloc_new_desc[7];
 #line 42 "typefields_cpp.bas"
 }
 #line 42 "typefields_cpp.bas"
+}
+#line 42 "typefields_cpp.bas"
 if(!qbevent)break;evnt(42);}while(r);
 #line 43 "typefields_cpp.bas"
 do{
@@ -1086,14 +1181,14 @@ if(!qbevent)break;evnt(43);}while(r);
 #line 44 "typefields_cpp.bas"
 do{
 #line 44 "typefields_cpp.bas"
-sub_put(1,1ll,qbr_udt1_file((ptrszint*)__ARRAY_UDT_R,1,byte_element_1,1,&qbr_fbuf1,&qbr_fcap1),1);
+if (!(__ARRAY_UDT_R[2]&1)||(!__ARRAY_UDT_R[0])||(__ARRAY_UDT_R[0]==(ptrszint)nothingvalue)){qbr_diverged(42);error(9);}else{sub_put(1,1ll,qbr_udt1_file((ptrszint*)__ARRAY_UDT_R,1,byte_element_1,1,&qbr_fbuf1,&qbr_fcap1),1);}
 #line 44 "typefields_cpp.bas"
 if(!qbevent)break;evnt(44);}while(r);
 #line 45 "typefields_cpp.bas"
 do{
 #line 45 "typefields_cpp.bas"
-sub_get(1,NULL,qbr_udt1_file((ptrszint*)__ARRAY_UDT_R,1,byte_element_2,0,&qbr_fbuf2,&qbr_fcap2),0);
-qbr_udt1_commit((ptrszint*)__ARRAY_UDT_R,1,qbr_fbuf2,qbr_fcap2,&qbr_fhad2);
+if (!(__ARRAY_UDT_R[2]&1)||(!__ARRAY_UDT_R[0])||(__ARRAY_UDT_R[0]==(ptrszint)nothingvalue)){qbr_diverged(42);error(9);}else{sub_get(1,NULL,qbr_udt1_file((ptrszint*)__ARRAY_UDT_R,1,byte_element_2,0,&qbr_fbuf2,&qbr_fcap2),0);
+qbr_udt1_commit((ptrszint*)__ARRAY_UDT_R,1,qbr_fbuf2,qbr_fcap2,&qbr_fhad2);}
 #line 45 "typefields_cpp.bas"
 if(!qbevent)break;evnt(45);}while(r);
 #line 46 "typefields_cpp.bas"

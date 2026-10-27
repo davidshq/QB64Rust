@@ -54,7 +54,7 @@ pub use names::{c_type, proc_name, var_name};
 use decl::is_qbs;
 use names::{c_string, line_name};
 use qb64rust_base::FileId;
-use qb64rust_ir::{Body, LabelId, Program, Shape, StartBounds, Var};
+use qb64rust_ir::{Body, LabelId, Op, Program, RunTarget, Shape, StartBounds, Var};
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
@@ -175,6 +175,13 @@ fn emit_all(
         byte_element: 0,
         runs: 0,
         run_lines: String::new(),
+        unwind: p.procs.iter().any(|q| {
+            q.body
+                .stmts
+                .iter()
+                .flat_map(|s| &s.ops)
+                .any(|op| matches!(op, Op::Run(t) if !matches!(t, RunTarget::File(_))))
+        }),
         handlers: Vec::new(),
         body: &p.main,
         k: 0,
@@ -234,10 +241,18 @@ fn emit_all(
     for k in 1..=program_procs {
         writeln!(main, "#include \"main{k}.txt\"").unwrap();
     }
+    // The time of the C++ build only for a program that calls `_COMPILEDATE$` or `_COMPILETIME$`, which is never taken
+    // from a cache; any other program's build is the same bytes each time (`DECISIONS.md` 2026-10-27), and nothing
+    // calls these two functions in it.
+    let (date, time) = if p.settings.compile_stamp {
+        ("__DATE__", "__TIME__")
+    } else {
+        ("\"\"", "\"\"")
+    };
     write!(
         main,
-        "qbs *func__compdate() {{\nreturn qbs_new_txt(__DATE__);\n}}\n\
-         qbs *func__comptime() {{\nreturn qbs_new_txt(__TIME__);\n}}\n\
+        "qbs *func__compdate() {{\nreturn qbs_new_txt({date});\n}}\n\
+         qbs *func__comptime() {{\nreturn qbs_new_txt({time});\n}}\n\
          qbs *func__compvers() {{\nreturn qbs_new_txt(\"{COMPILER_VERSION}\");\n}}\n"
     )
     .unwrap();
@@ -378,6 +393,10 @@ struct Emitter<'a> {
     /// The `RUN label` statements of procedures so far, and their entries of `runline.txt` (`stmt.rs`).
     runs: u32,
     run_lines: String,
+    /// A procedure of the program holds a `RUN` that starts the program again (not `RUN file$`): the active procedures
+    /// are left first, and the main module runs it (`study\39` row 14, `QB64PE-DIVERGENCES.md` D-046; `stmt.rs`
+    /// `Op::Run`). Only then is the code of that unwind written.
+    unwind: bool,
     /// Handler labels; handler number N is entry N - 1.
     handlers: Vec<LabelId>,
     /// The body being emitted, whose labels the jumps name, and its number K (0 for the main module).

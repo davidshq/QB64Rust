@@ -200,7 +200,9 @@ class Plan(unittest.TestCase):
         self.assertIn("--suite qbasic", by["qbasic"])
         self.assertIn("--jobs 8", by["qbasic"])
         self.assertIn("--wait", by["qbasic"])
-        self.assertNotIn("--pass-cache", by["nofold"])
+        # Builds are deterministic, so a program whose C++ folding does not change is the same executable, and its
+        # pass stands (DECISIONS.md 2026-10-27).
+        self.assertIn("--pass-cache", by["nofold"])
         self.assertIn("--wait", by["callsite"])
         for s in steps(True):
             # Each command writes its own log, and no command holds a backslash (CLAUDE.md working rule 7).

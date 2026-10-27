@@ -72,6 +72,7 @@ pub fn outcome(path: &Path, include_root: &Path) -> Result<Outcome, String> {
         bytes,
         |file| Box::new(FileLoader::new(include_root, file, path)),
         Some((path, include_root)),
+        crate::fixes::for_program(path).map_or(qb64rust_base::fixes::Fixes::OFF, |(f, _)| f),
     );
     let unsupported = fe
         .diagnostics

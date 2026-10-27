@@ -278,6 +278,13 @@ def include_root_args(qb64: Path) -> list[str]:
     return [] if is_old_compiler(qb64) else ["--include-root", str(INCLUDE_ROOT)]
 
 
+def fixes_args(qb64: Path) -> list[str]:
+    """`--fixes off` for the new compiler, in every command that compiles or lays out a program, so that a
+    qb64rust.toml in the tree or above it changes no result (spec testing/verification-suite, "Suites build with
+    the fixes off"; OpenSpec change fixes-switch, design D4). qb64pe has no such option."""
+    return [] if is_old_compiler(qb64) else ["--fixes", "off"]
+
+
 # The new compiler's last line after errors in the program (spec compiler/cli): "1 error",
 # "3 errors", "3 errors (2 not supported yet)". Only the front end prints it, so a failed C++ build
 # or an internal compiler error (exit code 3) never matches, even when clang's output holds "error:"
@@ -568,6 +575,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         "-m",
         "-x",
         *include_root_args(args.qb64),
+        *fixes_args(args.qb64),
         *(["--coverage"] if getattr(args, "coverage", None) else []),
     ]
     if (tdir / f"{name}.compile-from-base").is_file():
@@ -730,7 +738,14 @@ def qbasic_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
     exe = results / f"{key}-output.exe"
     remove_stale_exe(exe)
     rc, timed_out = run_proc(
-        [str(args.qb64), "-x", str(bas.relative_to(qb_root)), "-o", str(exe)],
+        [
+            str(args.qb64),
+            "-x",
+            *fixes_args(args.qb64),
+            str(bas.relative_to(qb_root)),
+            "-o",
+            str(exe),
+        ],
         qb_root,
         results / f"{key}-compile_result.txt",
         COMPILE_TIMEOUT,
@@ -767,7 +782,14 @@ def addprefix_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
     exe = results / "AddPREFIX.exe"
     remove_stale_exe(exe)
     rc, timed_out = run_proc(
-        [str(args.qb64), "-x", str(bas.relative_to(qb_root)), "-o", str(exe)],
+        [
+            str(args.qb64),
+            "-x",
+            *fixes_args(args.qb64),
+            str(bas.relative_to(qb_root)),
+            "-o",
+            str(exe),
+        ],
         qb_root,
         results / "addprefix-compile_result.txt",
         COMPILE_TIMEOUT,
@@ -820,7 +842,16 @@ def format_tests(bas: Path, args, results: Path, qb_root: Path) -> list[Result]:
         output = results / f"{key}-output"
         output.unlink(missing_ok=True)
         rc, timed_out = run_proc(
-            [str(args.qb64), "-y", "-m", *flags, f"{name}.bas", "-o", str(output)],
+            [
+                str(args.qb64),
+                "-y",
+                "-m",
+                *fixes_args(args.qb64),
+                *flags,
+                f"{name}.bas",
+                "-o",
+                str(output),
+            ],
             tdir,
             results / f"{key}-compile_result.txt",
             COMPILE_TIMEOUT,
@@ -1050,7 +1081,16 @@ def format_corpus_test(
     if old:
         clear_temp(qb_root)
     rc, timed_out = run_proc(
-        [str(args.qb64), "-y", "-m", *flags, src.name, "-o", str(output)],
+        [
+            str(args.qb64),
+            "-y",
+            "-m",
+            *fixes_args(args.qb64),
+            *flags,
+            src.name,
+            "-o",
+            str(output),
+        ],
         folder,
         results / f"{key}-format_result.txt",
         COMPILE_TIMEOUT,
@@ -1368,6 +1408,7 @@ def corpus_test(
                     "-m",
                     "-x",
                     *include_root_args(args.qb64),
+                    *fixes_args(args.qb64),
                     src.name,
                     "-o",
                     str(out),
@@ -2025,14 +2066,27 @@ def first_difference(want: bytes, got: bytes) -> str:
     return f"line {n}: " + ("the recording goes on" if len(a) > len(b) else "the run goes on")
 
 
-def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Result:
-    """Compares the new compiler with one recorded verification program (module docstring)."""
+def fixed_sidecar(name: str) -> Path:
+    """The output a verification program gives with the fixes on, written by hand from the fixes' specified
+    behaviour (tests/verification/README.md; OpenSpec change fixes-switch, design D4)."""
+    return VERIFICATION_LISTS / "fixed" / f"{name}.out.txt"
+
+
+def verification_compare(
+    bas: Path, args, results: Path, qb_root: Path, fixed: bool = False
+) -> Result:
+    """Compares the new compiler with one recorded verification program (module docstring). With `fixed`, the
+    program is built with `--fixes on` in a folder of its own and compared with its fixed\\ sidecar, as the result
+    `<name> [fixes on]`."""
     name = bas.stem
     root = bas.parent
-    recorded_file = root / f"{name}.out.txt"
+    recorded_file = fixed_sidecar(name) if fixed else root / f"{name}.out.txt"
     recorded = recorded_file.read_bytes() if recorded_file.is_file() else None
     rejected = recorded is not None and recorded.replace(b"\r\n", b"\n") == NOT_COMPILED
-    r = Result("verification", name, "error" if rejected else "output")
+    test = f"{name} [fixes on]" if fixed else name
+    r = Result("verification", test, "error" if rejected else "output")
+    # The files and the folder of the run, apart from the run with the fixes off.
+    tag = f"{name}.fixed" if fixed else name
     t0 = time.time()
 
     def finish(status="PASS", stage="", detail=""):
@@ -2057,7 +2111,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
 
     # A fresh folder per program, with the family's support files: nothing written in the verification
     # folder, nothing shared between programs run side by side.
-    work = results / name
+    work = results / tag
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True)
@@ -2073,7 +2127,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
         else:
             shutil.copyfile(item, work / item.name)
     exe = work / f"{name}.exe"
-    compile_out = results / f"{name}-compile.txt"
+    compile_out = results / f"{tag}-compile.txt"
     env = dict(os.environ)
     env["QB64PE_NOPROMPT"] = "y"
     # The folder and the files the old compiler found in its own folder, under a root of their own, in
@@ -2088,7 +2142,18 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
         root_args = ["--include-root", str(work / "root")]
     coverage_flag = ["--coverage"] if getattr(args, "coverage", None) else []
     rc, timed_out = run_proc(
-        [str(args.qb64), "-x", "-q", "-m", *coverage_flag, *root_args, bas.name, "-o", str(exe)],
+        [
+            str(args.qb64),
+            "-x",
+            "-q",
+            "-m",
+            *(["--fixes", "on"] if fixed else fixes_args(args.qb64)),
+            *coverage_flag,
+            *root_args,
+            bas.name,
+            "-o",
+            str(exe),
+        ],
         work,
         compile_out,
         COMPILE_TIMEOUT,
@@ -2138,6 +2203,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
             tree_digest(support),
             tree_digest([root / f for f in [root_folder(root, name)] if f]),
             helper.read_bytes() if os.name == "nt" else None,
+            b"fixes on" if fixed else None,
         ]
         remembered = pass_cache / pass_key(exe, parts)
         if remembered.is_file():
@@ -2157,12 +2223,12 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
             cmd.append(str(run_stdin))
     else:
         cmd = [str(exe)]
-    run_out = results / f"{name}-out.txt"
-    trace = results / f"{name}-divergences.txt"
+    run_out = results / f"{tag}-out.txt"
+    trace = results / f"{tag}-divergences.txt"
     set_trace(env, trace)
-    log = results / f"{name}-log.txt"
+    log = results / f"{tag}-log.txt"
     log_env(env, log)
-    counts = results / f"{name}-coverage.txt"
+    counts = results / f"{tag}-coverage.txt"
     coverage_env(args, env, counts)
     rc, timed_out = run_proc(
         cmd,
@@ -2297,6 +2363,8 @@ def program_inputs(suite: str, bas: Path) -> list[Path]:
             sidecar = VERIFICATION_LISTS / kind / f"{bas.stem}.{kind}"
             if sidecar.is_file():
                 found.append(sidecar)
+        if fixed_sidecar(bas.stem).is_file():
+            found.append(fixed_sidecar(bas.stem))
     return found
 
 
@@ -2357,9 +2425,24 @@ def check_list(
             failures.append((name, f"{r['stage']}: {r['detail']}"))
         elif r["detail"] == PASSED_BEFORE:
             failures.append((name, "not run in the full run (--pass-cache)"))
+        elif why := fixed_failure(suite, bas, key, results):
+            failures.append((name, why))
         else:
             passed += 1
     return [], failures, passed
+
+
+def fixed_failure(suite: str, bas: Path, key: tuple[str, str], results: dict) -> str | None:
+    """Why a verification program with a fixed\\ sidecar fails its line by its run with the fixes on (design D4 of
+    fixes-switch: the line passes only when both halves pass), or None."""
+    if suite != "verification" or not fixed_sidecar(bas.stem).is_file():
+        return None
+    f = results.get((key[0], f"{key[1]} [fixes on]"))
+    if f is None:
+        return "[fixes on]: no result in the full run"
+    if f["status"] != "PASS":
+        return f"[fixes on] {f['stage']}: {f['detail']}"
+    return None
 
 
 def load_known_failures(path: Path) -> dict[str, str]:
@@ -2415,7 +2498,10 @@ def run_suite_test(
         if suite == "verification":
             if is_old_compiler(args.qb64):
                 return [verification_test(bas, args, results, qb_root)]
-            return [verification_compare(bas, args, results, qb_root)]
+            out = [verification_compare(bas, args, results, qb_root)]
+            if fixed_sidecar(bas.stem).is_file():
+                out.append(verification_compare(bas, args, results, qb_root, fixed=True))
+            return out
         return [qbasic_test(bas, args, results, qb_root)]
     # One broken test must not lose a long run's results. Named like the suite's own results, so
     # that known_failures.txt entries match.

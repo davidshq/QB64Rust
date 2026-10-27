@@ -413,6 +413,23 @@ fn hover_scenarios() {
     c.shutdown();
 }
 
+/// `STATIC a(5)` in a SUB beside a shared static array of the name and type is the SUB's own array (`study\39` row 4,
+/// `QB64PE-DIVERGENCES.md` D-041), and hover follows that one answer: the SUB's uses name its array, the main
+/// module's the shared one.
+#[test]
+fn hover_static_beside_shared() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut c = Client::start(dir.path());
+    let p = dir.path().join("p.bas");
+    let text = "DIM SHARED a(3) AS LONG\na(1) = 7\ns\nSUB s\n    STATIC a(5) AS LONG\n    a(2) = 1\nEND SUB\n";
+    c.open(&p, text);
+    let inner = c.hover(&p, text, "a(2)", 0).unwrap();
+    assert_eq!(inner, "```qb64\na() AS LONG\n```\nStatic in `SUB s`.");
+    let outer = c.hover(&p, text, "a(1)", 0).unwrap();
+    assert!(outer.contains("main module") && !outer.contains("SUB s"), "{outer}");
+    c.shutdown();
+}
+
 /// "Across an include" and "Variable declared in an include": a variable declared in an included file on disk.
 #[test]
 fn across_an_include() {
@@ -876,8 +893,9 @@ fn rename_every_symbol_of_the_slice_programs() {
         let new = analyze(&main_info.key, &main, &open, &root, Encoding::DEFAULT);
         let path = qb64rust_lsp::uri::to_path(&main_info.uri).unwrap();
         let disk = Some((path.as_path(), root.as_path()));
-        let (before, _) = check_program(&a.map, &a.parsed, disk);
-        let (after, diagnostics) = check_program(&new.map, &new.parsed, disk);
+        let off = qb64rust_base::fixes::Fixes::OFF;
+        let (before, _) = check_program(&a.map, &a.parsed, disk, off);
+        let (after, diagnostics) = check_program(&new.map, &new.parsed, disk, off);
         if diagnostics.has_errors() {
             let first = diagnostics.errors().next().unwrap();
             failures.push(format!(

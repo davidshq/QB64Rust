@@ -10,8 +10,8 @@ use crate::uri::{to_path, uri_key};
 use crate::{Hooks, completion, definition, folding, hover, rename, symbols};
 use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response};
 use lsp_types::notification::{
-    Cancel, DidChangeConfiguration, DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument,
-    Notification as _, PublishDiagnostics, ShowMessage,
+    Cancel, DidChangeConfiguration, DidChangeTextDocument, DidChangeWatchedFiles, DidCloseTextDocument,
+    DidOpenTextDocument, Notification as _, PublishDiagnostics, ShowMessage,
 };
 use lsp_types::request::{
     Completion, DocumentSymbolRequest, FoldingRangeRequest, Formatting, GotoDefinition, HoverRequest,
@@ -43,6 +43,9 @@ pub const DOCUMENT_ENCODING: &str = "qb64rust/documentEncoding";
 /// The request that runs the whole front end over a document's program: `{ uri }`, answered with
 /// `{ errors, warnings }` (spec `editor/language-server`, "Check request").
 pub const CHECK: &str = "qb64rust/check";
+
+/// The name of the file the fixes are set in (spec `compiler/fixes`), watched by the client.
+pub const SETTINGS_FILE: &str = "qb64rust.toml";
 
 /// How long after a change a parse starts; a newer change in that time starts the wait again.
 pub const DEBOUNCE: Duration = Duration::from_millis(100);
@@ -512,6 +515,26 @@ impl Server {
                         doc.bytes = encoding.encode(&doc.text).into();
                         self.versions += 1;
                         doc.version = self.versions;
+                        self.changed(&key);
+                    }
+                }
+            }
+            // A `qb64rust.toml` created, changed or deleted (spec "Settings file changed"; design D3 of `fixes-switch`):
+            // every open program is parsed again as after an edit, which drops its check's diagnostics and marks its
+            // index stale; the next check and index read the file again. The server keeps no copy of the settings.
+            DidChangeWatchedFiles::METHOD => {
+                let settings = n
+                    .params
+                    .get("changes")
+                    .and_then(Value::as_array)
+                    .is_some_and(|changes| {
+                        changes
+                            .iter()
+                            .any(|c| field(c, "uri").is_some_and(|u| u.rsplit('/').next() == Some(SETTINGS_FILE)))
+                    });
+                if settings {
+                    let keys: Vec<String> = self.docs.keys().cloned().collect();
+                    for key in keys {
                         self.changed(&key);
                     }
                 }

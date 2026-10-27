@@ -8,9 +8,10 @@
 //! where the old compiler has `static` ones: a FUNCTION called in a bound may run the same statement again.
 
 use crate::Emitter;
-use crate::decl::{Part, count_of, dim_slot, lock_slot};
+use crate::decl::{Part, count_of, dim_slot, lock_slot, renew_lock};
 use crate::names::{bare, int_const};
 use crate::owner::dyn_fn;
+use qb64rust_base::fixes::Fix;
 use qb64rust_ir::{AllocMode, ArrayRef, Conv, Expr, ExprKind, Facts, StartBounds, Ty, Var, VarId, numeric_value_types};
 
 /// The name of the descriptor of a dynamic member array that [`Emitter::allocate`] allocates.
@@ -211,6 +212,13 @@ impl Emitter<'_> {
             out.push(format!("ptrszint alloc_old_block={n}[0];"));
             out.push(format!("ptrszint alloc_old_set={n}[2]&1;"));
         }
+        // A dimension with fewer than no element: nothing is allocated (`study\39` row 3, D-040).
+        out.push("int32 alloc_none=0;".into());
+        let empty_error = self.p.settings.fixes.is_on(Fix::DimEmptyError);
+        if empty_error {
+            // With the fix, an error raised by this array's bounds allocates nothing either.
+            out.push("int32 alloc_was_pending=is_error_pending();".into());
+        }
         // The bounds, lower before upper, first dimension first. A dimension without an element raises error 5 and
         // the statement goes on, as it does after a bound that raises.
         for (k, (lower, upper)) in bounds.iter().enumerate() {
@@ -218,6 +226,12 @@ impl Emitter<'_> {
             out.push(format!("alloc_new_desc[{s}]={lower};"));
             out.push(format!("alloc_new_desc[{}]=({upper})-alloc_new_desc[{s}]+1;", s + 1));
             out.push(format!("if (alloc_new_desc[{}]<=0) error(5);", s + 1));
+            // Below zero, not wrapped round from too large: the upper bound (the lower plus the count, less one, as
+            // computed) is below the lower one.
+            out.push(format!(
+                "if (alloc_new_desc[{c}]<0&&(int64)((uint64)alloc_new_desc[{s}]+(uint64)alloc_new_desc[{c}]-1)<alloc_new_desc[{s}]) alloc_none=1;",
+                c = s + 1
+            ));
             if k == 0 {
                 out.push(format!("alloc_new_desc[{}]=1;", s + 2));
             } else {
@@ -230,6 +244,21 @@ impl Emitter<'_> {
                 ));
             }
         }
+        // Nothing allocated: the error 5 is raised, and a `REDIM` leaves the array not allocated, its block released
+        // as `ERASE` releases it. The old compiler goes on and ends the program with "Out of memory", which no handler
+        // receives (`verification\v62_a1`, `a2`). With `dim-empty-error`, also after a dimension with no element (its
+        // error 5) or another error raised by the bounds.
+        if empty_error {
+            out.push("if (alloc_none||(!alloc_was_pending&&is_error_pending())){".into());
+            out.push("if (alloc_none) qbr_diverged(40);".into());
+        } else {
+            out.push("if (alloc_none){".into());
+            out.push("qbr_diverged(40);".into());
+        }
+        if redim {
+            self.release_block(t, n, dims, out);
+        }
+        out.push("}else{".into());
         if redim {
             // The old block (and with `_RETAIN` its bounds) is taken after the bounds, where the old compiler takes
             // it before them: a FUNCTION in a bound may give the array new bounds or erase it, and the old
@@ -238,10 +267,7 @@ impl Emitter<'_> {
             out.push(format!(
                 "if ({n}[0]!=alloc_old_block||({n}[2]&1)!=alloc_old_set) qbr_diverged(18);"
             ));
-            out.push(format!(
-                "((mem_lock*)((ptrszint*){n})[{}])->id=(++mem_lock_id);",
-                lock_slot(dims)
-            ));
+            out.push(renew_lock(n, dims));
             out.push(format!("if ({n}[2]&1){{"));
             out.push(format!("preserve_old_ptr={n}[0];"));
             out.push(format!("preserve_old_total={};", count_of(dims, n)));
@@ -422,9 +448,40 @@ impl Emitter<'_> {
         for i in 4..lock_slot(dims) {
             out.push(format!("{n}[{i}]=alloc_new_desc[{i}];"));
         }
+        // The end of the branch that allocates.
+        out.push("}".into());
         if !redim {
             out.push("}".into());
         }
+        out.push("}".into());
+    }
+
+    /// The release of the block of an allocated array whose descriptor is `n`, of elements of type `t` and `dims`
+    /// dimensions, as `ERASE` releases a dynamic array ([`Self::release`]), from the descriptor alone: a `REDIM` that
+    /// allocates nothing (D-040).
+    fn release_block(&self, t: Ty, n: &str, dims: usize, out: &mut Vec<String>) {
+        out.push(format!("if ({n}[2]&1){{"));
+        out.push(renew_lock(n, dims));
+        let count = count_of(dims, n);
+        if t == Ty::Str {
+            out.push(format!("tmp_long={count};"));
+            out.push(format!("while(tmp_long--) qbs_free(((qbs**)({n}[0]))[tmp_long]);"));
+        } else {
+            let block = format!("{n}[0]");
+            push_lines(out, &self.each_element(t, &block, &count, |at| self.free_value(t, at)));
+        }
+        out.push(self.free_block(t, n, &format!("{n}[0]")));
+        out.push(format!("{n}[2]^=1;"));
+        for i in 1..=dims {
+            out.push(format!(
+                "{n}[{}]=2147483647;{n}[{}]=0;{n}[{}]=0;",
+                4 * i,
+                4 * i + 1,
+                4 * i + 2
+            ));
+        }
+        let nothing = if t == Ty::Str { "&nothingstring" } else { "nothingvalue" };
+        out.push(format!("{n}[0]=(ptrszint){nothing};"));
         out.push("}".into());
     }
 
@@ -441,7 +498,7 @@ impl Emitter<'_> {
         out.push(format!("if ({n}[2]&2){{"));
         out.extend(self.clear_elements(v, &n).lines().map(str::to_string));
         out.push("}else{".into());
-        out.extend(self.release(v, &n).lines().map(str::to_string));
+        out.extend(self.release(v, &n, true).lines().map(str::to_string));
         out.push("}".into());
     }
 
@@ -751,7 +808,7 @@ impl Emitter<'_> {
     pub(crate) fn release_array(&mut self, array: &ArrayRef, out: &mut Vec<String>) {
         match array {
             ArrayRef::Var(array) => {
-                let text = self.release(self.p.var(*array), &self.name(*array));
+                let text = self.release(self.p.var(*array), &self.name(*array), true);
                 out.extend(text.lines().map(str::to_string));
             }
             ArrayRef::Member { base, member } => {
