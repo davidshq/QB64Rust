@@ -36,7 +36,7 @@ SHALL be found again, its indexes evaluated, wherever the old compiler's loop na
 `NEXT` for the step and for the test), so that a change of an index in the body moves the loop to another
 element (`verification\v56_f3`). An error raised there SHALL not stop the test, which takes the value, and SHALL
 be serviced at the `FOR` line before the body, so that `RESUME NEXT` goes on into the body, as in the old
-compiler (`v60_c3`; its store out of range is `DIVERGENCES.md` D-004).
+compiler (`v60_c3`; its store out of range is `QB64PE-DIVERGENCES.md` D-004).
 
 #### Scenario: A member as the variable
 - **WHEN** a `TYPE t` has `v AS LONG`, and `DIM r AS t: FOR r.v = 1 TO 2: PRINT r.v: NEXT` runs

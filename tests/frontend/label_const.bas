@@ -1,6 +1,6 @@
 ' TEST: check-ok
 $CONSOLE:ONLY
-' A label and a CONST on one line define both (DIVERGENCES.md D-008, m2-numeric-types design D8; the old compiler
+' A label and a CONST on one line define both (QB64PE-DIVERGENCES.md D-008, m2-numeric-types design D8; the old compiler
 ' fails to compile it), with a long and a short label, in the main module and in a SUB.
 lbl1: CONST k = 4
 x: CONST y = 5

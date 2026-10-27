@@ -43,7 +43,7 @@ up from that folder as for any `qb64rust.exe` (spec `compiler/cli`, "Compiler ro
 ### Requirement: The manual
 The download's `MANUAL.md` SHALL describe: what the download is and the Windows it needs; unpacking it and
 installing the toolchain; compiling, running and formatting a program; the options of the usage text; the exit
-statuses; where the compiler and its programs differ from QB64pe 4.7.0 (`DIVERGENCES.md`); and where to report a
+statuses; where the compiler and its programs differ from QB64pe 4.7.0 (`QB64PE-DIVERGENCES.md`); and where to report a
 problem. Every option it names SHALL be one the usage text names.
 
 #### Scenario: An option in the manual

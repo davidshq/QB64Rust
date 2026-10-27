@@ -3,7 +3,7 @@ $Console:Only
 ' forms, overlap and an array copied to itself, every element type but _FLOAT, several dimensions with numbers and
 ' strings, the places of an array, the run-time errors (error 9, the destination unchanged), the order in which the
 ' bounds and starts are evaluated and their rounding. Left out, as the new compiler differs on purpose: _FLOAT
-' arrays (DIVERGENCES.md D-025) and an index outside its bounds on the way to a member array (D-004), each a CLI
+' arrays (QB64PE-DIVERGENCES.md D-025) and an index outside its bounds on the way to a member array (D-004), each a CLI
 ' test.
 Option Base 1
 Common Shared cs() As Long

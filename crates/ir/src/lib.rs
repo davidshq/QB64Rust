@@ -38,7 +38,7 @@
 //!   the indexes and a string after them**, the indexes from left to right, outermost first (measured,
 //!   `verification\v18_h_member_index_order`, `v24_h_member_store`, `v24_x313`, `x316`). It is skipped when an
 //!   index is out of range or when the indexes raised an error while none was pending before them
-//!   (`DIVERGENCES.md` D-004; the old compiler writes element 0 of the dimension whose index was outside); an
+//!   (`QB64PE-DIVERGENCES.md` D-004; the old compiler writes element 0 of the dimension whose index was outside); an
 //!   error the string value raises after the indexes does not skip it. A store into a variable or into a member
 //!   of one does not check. An index out of range raises error 9, and a read with it gives the value at position
 //!   0 of its dimension (measured, `verification\v18_*`, `v24_h_member_store`).
@@ -76,7 +76,7 @@
 //! - **A value is one expression**: nothing of it is evaluated before or apart from it. So an
 //!   [`ExprKind::Choice`] evaluates its condition and then only the part chosen, and the right operand of
 //!   `_ANDALSO` and `_ORELSE` only when the left one does not decide.
-//! - **Integer overflow wraps** in two's complement (`DIVERGENCES.md` D-001, D-002).
+//! - **Integer overflow wraps** in two's complement (`QB64PE-DIVERGENCES.md` D-001, D-002).
 
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\archive\21).
 #![warn(clippy::wildcard_enum_match_arm)]
@@ -478,7 +478,7 @@ pub enum Op {
     ///    flat position (first dimension fastest) keep their values, as many as the smaller of the old and the
     ///    new number of elements; with [`AllocMode::Retain`] each element whose indexes lie within both the old
     ///    and the new bounds of every dimension keeps its value at the same indexes. "Old" is the array as it is
-    ///    after step 3: a FUNCTION in a bound may have given it other bounds or erased it (`DIVERGENCES.md`
+    ///    after step 3: a FUNCTION in a bound may have given it other bounds or erased it (`QB64PE-DIVERGENCES.md`
     ///    D-018; the old compiler takes it before step 3 and frees a block twice).
     ///
     /// The array may be static or dynamic. Always may raise.
@@ -513,12 +513,12 @@ pub enum Op {
     ///
     /// 1. `to`'s place is found, then `from`'s, each once (an [`ArrayRef::Member`] with indexes on the way: an
     ///    index outside its bounds raises error 9, and the member of the element at position 0 stands in);
-    /// 2. **if an error was raised so far, nothing is copied** (`DIVERGENCES.md` D-004: the old compiler copies a
+    /// 2. **if an error was raised so far, nothing is copied** (`QB64PE-DIVERGENCES.md` D-004: the old compiler copies a
     ///    `STRING` member array through the one of element 0);
     /// 3. both arrays must be allocated (a static array always is, also after `ERASE`) and have, in every
     ///    dimension, the same lower bound and number of elements; else error 9, and nothing is copied, but for
     ///    two array variables of an owner type, which copy the target's number of elements after the error when
-    ///    the source has that many, as the old compiler does (`DIVERGENCES.md` D-022: it also does when the source
+    ///    the source has that many, as the old compiler does (`QB64PE-DIVERGENCES.md` D-022: it also does when the source
     ///    has fewer, reading past it);
     /// 4. the same block on both sides (`a() = a()`) copies nothing;
     /// 5. every element is copied deep, by kind: a `STRING` as a string of its own, a user type as
@@ -538,7 +538,7 @@ pub enum Op {
     ///    member that a `REDIM` gave another number of dimensions than declared raises error 9 and is not copied);
     /// 2. every lower bound, then every upper bound, then every start is evaluated, first dimension first. **A
     ///    raising bound or start does not stop the copy**, which goes on with its value;
-    /// 3. **if finding a place raised, nothing is copied** (`DIVERGENCES.md` D-004: the old compiler copies
+    /// 3. **if finding a place raised, nothing is copied** (`QB64PE-DIVERGENCES.md` D-004: the old compiler copies
     ///    through the member of element 0);
     /// 4. both arrays must be allocated (a static array always is, also after `ERASE`); every range must lie in
     ///    the source with its lower bound not above its upper; the elements must fit in the destination: from the

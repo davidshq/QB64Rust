@@ -2,7 +2,7 @@
 $CONSOLE:ONLY
 ' VARPTR, VARSEG and VARPTR$ of a TYPE variable that holds a STRING, of its members (the STRING member's pointer
 ' too) and of an element of an array of it (m4-left-marked task 4.1, design D3; verification\v56_x08, x26, x27,
-' v60_d1-d4): the variable lives in conventional memory, its strings made (DIVERGENCES.md D-037).
+' v60_d1-d4): the variable lives in conventional memory, its strings made (QB64PE-DIVERGENCES.md D-037).
 TYPE inner
     s AS STRING
     v AS LONG

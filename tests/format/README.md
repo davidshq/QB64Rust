@@ -78,6 +78,6 @@ above from `python tools\legacy_tests\counts.py`.
 - `known_differences.list`: the programs whose formatted text differs from the recording, one
   `<set>/<path without .bas>` (or a variant's name) per line, a tab, and the reason. It only shrinks: a program on it that comes to
   equal its recording fails tier 1 until it is taken off.
-- `<name>.divergences` beside a recording: the rows of `DIVERGENCES.md` the program takes, where the formatter
+- `<name>.divergences` beside a recording: the rows of `QB64PE-DIVERGENCES.md` the program takes, where the formatter
   does not copy `-y` on purpose (design D8), for example `corpus\slice\s131_arraycopy` (D-038) and
   `settings\autolayout=0\corpus\slice\s17_signs` (D-039).

@@ -79,7 +79,7 @@ normalises them:
    against `func_rnd(x,1)`). The old compiler writes the `passed` mask of a function as its bits joined by `|`,
    the new compiler as one number. A wrong bit still gives another value.
 7. **A wrapper of the run-time trace of divergences is read as the libqb function it wraps** (`qbr_coth` as
-   `func_coth`, `const-rulings`): every call of the built-in takes the path of a row of `DIVERGENCES.md` (D-031), so
+   `func_coth`, `const-rulings`): every call of the built-in takes the path of a row of `QB64PE-DIVERGENCES.md` (D-031), so
    the new compiler calls a wrapper in its globals that traces the row and calls libqb's function with the same
    arguments. The wrappers are listed in `WRAPPERS`.
 8. **The scratch folder at the start of a string literal is written `<work>`** (`m4-handlers-logging-checking`): a

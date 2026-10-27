@@ -1,8 +1,13 @@
-# Releases the VS Code extension (change extension-vsix, design D8; spec editor/packaging, "Release from a tag"):
-# on a tag vscode-v<version> equal to vscode\package.json's version, builds qb64rust (release), packages the
-# win32-x64 .vsix with it and the copy of libqb, holds the package to the spec and attaches it to a GitHub release
-# of the tag, with the version's section of vscode\CHANGELOG.md as notes. The integration tests are not repeated:
-# the tagged commit has had its run of vscode-extension.yml. The user pushes the tag.
+# Releases the VS Code extension and the compiler download (change extension-vsix, design D8; change
+# m6-compiler-download, design D1, D5, D8; specs editor/packaging, "Release from a tag", and compiler/download): on
+# a tag vscode-v<version> equal to vscode\package.json's version and to the workspace version of Cargo.toml, builds
+# qb64rust (release), packages the win32-x64 .vsix with it and the copy of libqb, and from the same staged bundle
+# the zip qb64rust-win-x64-<version>.zip (vscode\scripts\package_zip.py); holds each to its spec and attaches both
+# to one GitHub release of the tag, with the version's section of vscode\CHANGELOG.md as notes. The integration
+# tests are not repeated: the tagged commit has had its run of vscode-extension.yml. The user pushes the tag.
+#
+# To release: raise the version in vscode\package.json and in Cargo.toml ([workspace.package]; cargo then updates
+# Cargo.lock) together, give vscode\CHANGELOG.md its section, commit, then push the tag vscode-v<version>.
 name: Release VS Code extension
 
 on:
@@ -52,7 +57,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "file=$vsix" >> $env:GITHUB_OUTPUT
 
+      # From the bundle `npm run package` staged, so the zip's qb64rust.exe and libqb are the .vsix's.
+      - name: Make and check the compiler download
+        id: zip
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $zip = "$env:RUNNER_TEMP\zip\qb64rust-win-x64-$version.zip"
+          python scripts/package_zip.py --out $env:RUNNER_TEMP\zip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/package_zip.py --check $zip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "file=$zip" >> $env:GITHUB_OUTPUT
+
+      # One call: both files or none.
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create $env:GITHUB_REF_NAME ${{ steps.vsix.outputs.file }} --title "QB64 for VS Code $env:GITHUB_REF_NAME" --notes-file $env:RUNNER_TEMP\notes.md --verify-tag
+        run: gh release create $env:GITHUB_REF_NAME ${{ steps.vsix.outputs.file }} "${{ steps.zip.outputs.file }}" --title "QB64Rust $env:GITHUB_REF_NAME" --notes-file $env:RUNNER_TEMP\notes.md --verify-tag

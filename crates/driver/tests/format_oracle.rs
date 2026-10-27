@@ -8,7 +8,7 @@
 //! - the source checks without errors and is formatted; the text must equal the recording with line endings taken
 //!   as LF, unless `tests\format\known_differences.list` names the program (shrink-only: a listed program that
 //!   comes to equal its recording fails until it is taken off), or the recording's `<name>.divergences` names a row
-//!   of `DIVERGENCES.md` (design D8);
+//!   of `QB64PE-DIVERGENCES.md` (design D8);
 //! - the formatted text is the same program: its typed dump equals the source's (the dump names no source position
 //!   and writes names in capitals, and formatting keeps every line where it is);
 //! - formatting the formatted text again changes nothing.

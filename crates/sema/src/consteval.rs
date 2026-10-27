@@ -10,7 +10,7 @@
 //! A float is a [`Range`]: the values the old compiler might hold. It is one value except after a function whose
 //! library is not correctly rounded (`certify.rs`). Where a re-read, a comparison or a conversion to an integer
 //! settles a range to one outcome, the constant is the old compiler's on any machine; where it does not, the
-//! outcome of the correctly rounded value is taken and noted ([`take_fallback`]; `DIVERGENCES.md` D-026, the user,
+//! outcome of the correctly rounded value is taken and noted ([`take_fallback`]; `QB64PE-DIVERGENCES.md` D-026, the user,
 //! 2026-10-18), as the old compiler's own value then depends on the CPU and the system's library.
 
 use crate::f80::{F80, Integral};
@@ -51,7 +51,7 @@ impl FloatTy {
 
 /// The values a float of the old compiler might be, `lo <= hi` (one value when they are equal), and `mid`, the value
 /// a correctly rounded library gives, which is taken where the others do not settle to one outcome (the user,
-/// `DECISIONS.md` 2026-10-18; `DIVERGENCES.md` D-026).
+/// `DECISIONS.md` 2026-10-18; `QB64PE-DIVERGENCES.md` D-026).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Range {
     pub lo: F80,
@@ -122,7 +122,7 @@ pub fn error<T>(msg: &str) -> R<T> {
 /// A number literal of the source as the old evaluator reads it (`elementGetNumericValue`): an integer with a suffix
 /// in its lane (unsigned when the suffix is), a plain integer as an `_INTEGER64`, a float by `VAL` in `_FLOAT`, typed
 /// by its letter or suffix. A plain integer beyond `_INTEGER64` is read as a statement reads it, in the unsigned
-/// lane, and beyond `_UNSIGNED _INTEGER64` it is an error (`DIVERGENCES.md` D-027: the old evaluator clamps it to
+/// lane, and beyond `_UNSIGNED _INTEGER64` it is an error (`QB64PE-DIVERGENCES.md` D-027: the old evaluator clamps it to
 /// 9223372036854775807, measured, `verification\v45_a_lanes`).
 pub fn literal(text: &[u8]) -> R<Value> {
     let plain = !text.is_empty() && text.iter().all(u8::is_ascii_digit);
@@ -219,7 +219,7 @@ pub fn shortest_text(v: f64) -> String {
 /// What the old evaluator does with a value it prints and reads back (a parenthesised group, a function result,
 /// the whole value; design D2): an integer comes back in its lane; a float as `_TOSTR$` prints it, read as its
 /// text says: an exponent a `_FLOAT`, a point a DOUBLE, plain digits an `_INTEGER64` within its range, and beyond
-/// it the `_FLOAT` it is (`DIVERGENCES.md` D-027: the old evaluator clamps it). `INF` is an error, as the whole
+/// it the `_FLOAT` it is (`QB64PE-DIVERGENCES.md` D-027: the old evaluator clamps it). `INF` is an error, as the whole
 /// value too (D-029: there `VAL` reads it as 0, measured, `verification\v45_x25`, `x38`). `NAN` inside an
 /// expression is an error, and as the whole value 0.
 pub fn reread(v: Value, outermost: bool) -> R<Value> {
@@ -424,7 +424,7 @@ pub fn binary(op: BinOp, a: &Value, b: &Value) -> R<Value> {
         BinOp::Div => {
             let (x, y) = (as_float(a), as_float(b));
             if y.lo.is_zero() || y.hi.is_zero() || compare(y, Range::exact(F80::ZERO))? == Some(Ordering::Equal) {
-                // The old compiler gives 0 (`DIVERGENCES.md` D-007).
+                // The old compiler gives 0 (`QB64PE-DIVERGENCES.md` D-007).
                 return error("division by zero");
             }
             if y.lo.is_neg() != y.hi.is_neg() {
@@ -506,7 +506,7 @@ fn holds(op: BinOp, o: Ordering) -> bool {
 }
 
 /// `a ^ b` (`Exponent`): libqb's `pow2` (`powl`, certified), a float in every lane, as `/` gives one and `^` does in
-/// a statement (`DIVERGENCES.md` D-028: in an integer lane the old evaluator stores the power back by `qbr`, so
+/// a statement (`QB64PE-DIVERGENCES.md` D-028: in an integer lane the old evaluator stores the power back by `qbr`, so
 /// `2 ^ -1` is 0, measured, `verification\v45_b_funcs`; D-007: beyond `_INTEGER64` `i64::MIN`). As every float, it
 /// is read back by its text where a group or the whole value ends, so `2 ^ 3` is still the `_INTEGER64` 8. 0 to a
 /// negative power is a division by zero.

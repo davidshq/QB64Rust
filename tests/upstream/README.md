@@ -2,7 +2,7 @@
 
 `compile_tests/` is a copy of the text files of QB64pe's `tests/compile_tests` (provenance and licence:
 `SOURCE.md`, `LICENSE-QB64pe.txt`; made by `tools/upstream/copy_upstream_tests.py`, never edited by hand).
-`divergences/<category>/<name>.divergences` (kept by hand, none yet) lists the rows of `DIVERGENCES.md` an upstream
+`divergences/<category>/<name>.divergences` (kept by hand, none yet) lists the rows of `QB64PE-DIVERGENCES.md` an upstream
 program may take, for the run-time trace (`tools/legacy_tests/README.md`).
 
 ## Tier 1
@@ -83,7 +83,7 @@ the inputs).
 compiles without an error must be on `tests/corpus/slice.list`, on `pass.list` or here, with the reason it does not
 pass tier 2. It is kept by hand (not regenerated) and shrink-only; today it holds the five corpus `KFAIL` programs,
 `http/read_example` (`KFAIL`) and `const/math_funcs`, which left `pass.list` with `const-rulings` (it tests `_COTH`
-against QB64pe's value, `DIVERGENCES.md` D-031).
+against QB64pe's value, `QB64PE-DIVERGENCES.md` D-031).
 A program that becomes clean fails tier 1 until it has been run in tier 2 and listed.
 
 ## Tier 2 and upstream progress

@@ -342,7 +342,7 @@ error, as in the old compiler.
 ### Requirement: _COTH is the hyperbolic cotangent
 `_COTH(x)` SHALL be supported at run time as the old compiler calls it (libqb's `func_coth`, believed `_FLOAT`,
 held `double`). Its value SHALL be the hyperbolic cotangent of `x`, with no upper limit and error 5 at 0, through
-this repo's copy of libqb (`DIVERGENCES.md` D-031: QB64pe's `func_coth` is `2 * EXP(x) - 1`, with error 5 above
+this repo's copy of libqb (`QB64PE-DIVERGENCES.md` D-031: QB64pe's `func_coth` is `2 * EXP(x) - 1`, with error 5 above
 44.014845).
 
 #### Scenario: Values

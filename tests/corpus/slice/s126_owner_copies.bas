@@ -5,7 +5,7 @@ $UNSTABLE:TYPEFIELDS
 ' read that raised an error; a member with other bounds or another number
 ' of dimensions gets its declared bytes from GET when its block holds them; arrays of such a type with other
 ' bounds copy the target's number of elements. Left out, as the new compiler differs on purpose: a member block
-' with fewer elements (DIVERGENCES.md D-019), a source with fewer elements or not allocated (D-022), a failed
+' with fewer elements (QB64PE-DIVERGENCES.md D-019), a source with fewer elements or not allocated (D-022), a failed
 ' GET whose buffer was never written (D-021: the old program reads memory nobody wrote, other values each run).
 TYPE t
     a AS INTEGER

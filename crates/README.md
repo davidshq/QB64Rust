@@ -38,7 +38,7 @@ Source is bytes throughout (`study\archive\15` §1): files are never converted t
 columns in diagnostics are byte columns. A real error whose wording by the old compiler is known from recorded
 output is followed by `note: QB64pe: <its wording>` (`base\src\old_wording.rs`, the table written by
 `tools\diagnostics\old_wording.py`; `m3-old-wording-notes`). A program built here writes the rows of
-`DIVERGENCES.md` whose paths it takes to the file `QB64RUST_DIVERGENCES` names (`m3-divergence-trace`).
+`QB64PE-DIVERGENCES.md` whose paths it takes to the file `QB64RUST_DIVERGENCES` names (`m3-divergence-trace`).
 
 ## Lints
 
@@ -103,7 +103,8 @@ directory). The tier-2 runner passes `--include-root tests\upstream\root`.
 
 Building an executable uses this repo's copy of libqb (`libqb\`: QB64pe's `Makefile`, `qbx.cpp` and libqb at the
 reference commit, `libqb\SOURCE.md`; written and checked by `tools\libqb\copy_libqb.py`) with a C++ toolchain. The
-copy: `--libqb-root <dir>`, else the environment variable `QB64RUST_LIBQB_ROOT`, else `libqb\` of this repository.
+copy: `--libqb-root <dir>`, else the environment variable `QB64RUST_LIBQB_ROOT`, else `libqb\` beside the
+executable (as the compiler download unpacks it, `MANUAL.md`), else `libqb\` of this repository.
 The toolchain (`driver\src\toolchain.rs`, spec `compiler/toolchain`): `--toolchain-root <dir>`, else
 `QB64RUST_TOOLCHAIN_ROOT`, else the `internal\c\c_compiler` of a QB64pe folder given by `--qb64pe-root` or
 `QB64RUST_QB64PE_ROOT`, else the one `qb64rust toolchain install` put in `%LOCALAPPDATA%\qb64rust\toolchain`

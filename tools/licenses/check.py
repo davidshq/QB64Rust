@@ -1,6 +1,6 @@
-"""Check recorded provenance and required notices; optionally verify a release VSIX.
+"""Check recorded provenance and required notices; optionally verify a release VSIX or compiler download.
 
-Run: python tools/licenses/check.py [--vsix package.vsix]
+Run: python tools/licenses/check.py [--vsix package.vsix | --zip qb64rust-win-x64-<version>.zip]
 This checks the inventory's obligations, not legal compatibility or code similarity.
 """
 
@@ -32,11 +32,42 @@ def normalized(data):
     return data.replace(b"\r\n", b"\n")
 
 
-def check(root, files, components, package=None):
+class Layout:
+    """Where a package holds the notices: the repository's LICENSE, and a component's `package_prefix` path."""
+
+    def __init__(self, license_path, place):
+        self.license_path = license_path
+        self.place = place
+
+
+# The extension's .vsix: the notices where `package_prefix` puts them.
+VSIX = Layout("extension/LICENSE.txt", lambda path: path)
+
+BUNDLE_PREFIX = "extension/bundle/"
+
+
+def zip_layout(top):
+    """The compiler download (spec `compiler/download`): the bundle's files under `<top>/`, the licence beside them."""
+
+    def place(path):
+        if path.startswith(BUNDLE_PREFIX):
+            return f"{top}/{path[len(BUNDLE_PREFIX):]}"
+        return path
+
+    return Layout(f"{top}/LICENSE.txt", place)
+
+
+def zip_top(package):
+    """The single top folder of a download, or None."""
+    tops = {name.split("/", 1)[0] for name in package.namelist()}
+    return tops.pop() if len(tops) == 1 else None
+
+
+def check(root, files, components, package=None, layout=VSIX):
     problems = []
     provenance = set()
     roots = []
-    required_package = {"extension/LICENSE.txt": "LICENSE"}
+    required_package = {layout.license_path: "LICENSE"}
     for component in components:
         name = component["name"]
         for key in ("source", "license", "paths", "provenance", "notices"):
@@ -57,7 +88,7 @@ def check(root, files, components, package=None):
                 if not (root / path).read_bytes().strip():
                     problems.append(f"{name}: empty {path}")
                 if component.get("package_prefix") and pattern in component.get("notices", []):
-                    required_package[component["package_prefix"] + path] = path
+                    required_package[layout.place(component["package_prefix"] + path)] = path
     for path in sorted(files):
         if pathlib.PurePosixPath(path).name == "SOURCE.md" and path not in provenance:
             problems.append(f"unregistered provenance: {path}; review and add to {INVENTORY}")
@@ -77,7 +108,9 @@ def check(root, files, components, package=None):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--vsix", type=pathlib.Path)
+    which = parser.add_mutually_exclusive_group()
+    which.add_argument("--vsix", type=pathlib.Path)
+    which.add_argument("--zip", type=pathlib.Path)
     args = parser.parse_args(argv)
     with (ROOT / INVENTORY).open("rb") as stream:
         components = tomllib.load(stream)["components"]
@@ -85,6 +118,13 @@ def main(argv=None):
     if args.vsix:
         with zipfile.ZipFile(args.vsix) as package:
             problems = check(ROOT, files, components, package)
+    elif args.zip:
+        with zipfile.ZipFile(args.zip) as package:
+            top = zip_top(package)
+            if top is None:
+                problems = [f"{args.zip}: not one top folder"]
+            else:
+                problems = check(ROOT, files, components, package, zip_layout(top))
     else:
         problems = check(ROOT, files, components)
     for problem in problems:

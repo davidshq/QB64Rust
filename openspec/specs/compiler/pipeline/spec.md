@@ -75,7 +75,7 @@ or into a member of a variable SHALL NOT check for a pending error. A store into
 with an index on the way (a member of an array element, an element of a member array) SHALL evaluate a numeric
 value before the indexes and a string value after them (measured, `verification\v24_x313`, `x316`: the old
 compiler's string store evaluates its place first), and SHALL be skipped when an index is out of range or when
-the indexes raised an error while none was pending before them (`DIVERGENCES.md` D-004). An index out of range
+the indexes raised an error while none was pending before them (`QB64PE-DIVERGENCES.md` D-004). An index out of range
 SHALL raise error 9, and a read with it SHALL give the value at position 0 of that dimension.
 
 #### Scenario: Optional argument absent
@@ -144,7 +144,7 @@ SHALL raise error 9, and a read with it SHALL give the value at position 0 of th
 
 #### Scenario: Member of an element with a bad index
 - **WHEN** `a(9).m = 5` runs for `DIM a(3) AS t` with `a(0).m` holding 70 and the handler executes `RESUME NEXT`
-- **THEN** error 9 is serviced and `a(0).m` still holds 70 (the old compiler writes 5 there: `DIVERGENCES.md` D-004)
+- **THEN** error 9 is serviced and `a(0).m` still holds 70 (the old compiler writes 5 there: `QB64PE-DIVERGENCES.md` D-004)
 
 #### Scenario: Value before index in a member-of-element store
 - **WHEN** `a(9).m = ASC("")` runs for the same array under a handler that prints `ERR`
@@ -160,7 +160,7 @@ SHALL raise error 9, and a read with it SHALL give the value at position 0 of th
 - **WHEN** `t.v(9) = 5` runs for a member `v(0 TO 3) AS LONG` with `t.v(0)` holding 100, and `a(1).v(9) = 6` for
   an array `a` of the type, and the handler executes `RESUME NEXT`
 - **THEN** error 9 is serviced each time and no element changes (the old compiler writes `t.v(0)` and
-  `a(1).v(0)`: `DIVERGENCES.md` D-004)
+  `a(1).v(0)`: `QB64PE-DIVERGENCES.md` D-004)
 
 ### Requirement: C++ output and build
 The C++ emitter SHALL write every fragment that `qbx.cpp` includes into a build folder that is inside neither the

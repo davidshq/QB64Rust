@@ -3,7 +3,7 @@ $CONSOLE:ONLY
 ' the sign extension from bit n-1 for signed ones) at each width, from integers and floats; _BIT variables in
 ' each storage class; a _BIT variable passed to an integer parameter (always a copy); _BIT values in arithmetic,
 ' comparisons and STR$. Every _BIT * n wider than 32 bits is declared after a _BIT * 32 pad, so the old compiler's
-' overlap (DIVERGENCES.md D-009) hits nothing printed; _BIT arrays are not supported yet. No PRINT comma.
+' overlap (QB64PE-DIVERGENCES.md D-009) hits nothing printed; _BIT arrays are not supported yet. No PRINT comma.
 DIM SHARED sh AS _BIT * 4
 DIM b1 AS _BIT, u1 AS _UNSIGNED _BIT, b3 AS _BIT * 3, u3 AS _UNSIGNED _BIT * 3
 DIM b7 AS _BIT * 7, u7 AS _UNSIGNED _BIT * 7, b16 AS _BIT * 16, u16 AS _UNSIGNED _BIT * 16

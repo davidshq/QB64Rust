@@ -12,7 +12,7 @@
 //! an operand or a function call of one operand (`CHR$(13)`, `EXP(1.0##)`); an operand is a number with or without
 //! a minus, a string, or a constant that stands earlier in the file. Literals and calls take the paths of a program's
 //! `CONST` (`consteval::literal`, `consteval::function`; design D7 of `m3-constant-evaluation`); a value that does
-//! not certify takes the correctly rounded one (`_E`; `DIVERGENCES.md` D-026), and each use of it warns: a `CONST`
+//! not certify takes the correctly rounded one (`_E`; `QB64PE-DIVERGENCES.md` D-026), and each use of it warns: a `CONST`
 //! that names it, or a use outside one ([`Checker::auto_const_use`]). A value that cannot be computed is "not
 //! supported yet" where it is used, with that reason. A shape that is none of these is marked too, so a new version
 //! of the file cannot be misread.
@@ -45,7 +45,7 @@ impl Checker<'_> {
     }
 
     /// [`Self::auto_const`] for a use outside a `CONST`: an auto-included constant whose value took the correctly
-    /// rounded one (`_E`; `DIVERGENCES.md` D-026) warns at the use, as it has no `CONST` line of the program's.
+    /// rounded one (`_E`; `QB64PE-DIVERGENCES.md` D-026) warns at the use, as it has no `CONST` line of the program's.
     pub(super) fn auto_const_use(&mut self, name: &str, at: Span) -> R<()> {
         self.auto_const(name, at)?;
         if let Some((index, _)) = auto_constant(name.as_bytes())

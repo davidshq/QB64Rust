@@ -56,7 +56,7 @@ other milestone has one.
 - The ABI is pinned by the call-site check: 2,649 programs, one per built-in form and argument type, each
   emitting the same libqb call as `qbx.cpp` from `qb64pe -z` (the full set of this merge).
 - The copy of libqb is not frozen: `tools\libqb\copy_libqb.py` applies listed edits, each with its reason and a
-  `DIVERGENCES.md` row. One exists (`d031-coth.edit`, `_COTH`). **An edit of a function's body leaves the ABI and
+  `QB64PE-DIVERGENCES.md` row. One exists (`d031-coth.edit`, `_COTH`). **An edit of a function's body leaves the ABI and
   the call-site check untouched.**
 
 ### 3.2 The error model
@@ -173,7 +173,7 @@ What a user downloads grows by the toolchain (hundreds of MB) once, on first bui
 ### 5.3 What option B looks like
 
 A change takes a group of rows the user has ruled on (for example, the handle functions that raise nothing), and
-for each: the edit in `tools\libqb\edits\`, a `DIVERGENCES.md` row (and `UPSTREAM.md` when it is QB64pe's bug), a
+for each: the edit in `tools\libqb\edits\`, a `QB64PE-DIVERGENCES.md` row (and `UPSTREAM.md` when it is QB64pe's bug), a
 slice or verification program showing the new behaviour, and the old one recorded beside it. Nothing waits on
 the user except the rulings themselves, which are the list working rule 11 keeps silent until asked.
 

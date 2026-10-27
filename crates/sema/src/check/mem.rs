@@ -67,7 +67,7 @@ impl Checker<'_> {
     }
 
     /// Whether `_MEM` of `of` is where the old compiler reads the lock of an array parameter from slot 0
-    /// ([`ExprKind::MemOf`] `lock_slot0`, `DIVERGENCES.md` D-016, `verification\v32_a_blocks` SUB `y`): a whole
+    /// ([`ExprKind::MemOf`] `lock_slot0`, `QB64PE-DIVERGENCES.md` D-016, `verification\v32_a_blocks` SUB `y`): a whole
     /// array parameter of numbers or of fixed-length strings with no fact about its number of dimensions so far,
     /// neither an index nor a call that passed it an array, both recorded in the order the program is checked.
     fn lock_slot0(&self, of: &Reference) -> bool {

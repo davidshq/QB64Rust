@@ -1,5 +1,5 @@
 $Console:Only
-' Integer arithmetic width and wrap (numeric-semantics spec; DIVERGENCES.md D-001, D-002).
+' Integer arithmetic width and wrap (numeric-semantics spec; QB64PE-DIVERGENCES.md D-001, D-002).
 i% = 32767
 Print i% + 1
 i% = i% + 1

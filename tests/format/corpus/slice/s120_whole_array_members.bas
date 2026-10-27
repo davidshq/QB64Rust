@@ -6,7 +6,7 @@ $Unstable:TypeFields
 ' place found before the source's, an error handled before the statement; arrays of a type with _DYNAMIC members
 ' (a DIM and a REDIM target, the members' own bounds, strings, a nested owner type), a _DYNAMIC member array to
 ' another and to a plain array, inline and _DYNAMIC member arrays of an owner type, _MEM of a member of an
-' element after the copy. Where the new compiler differs on purpose (an index outside on the way, DIVERGENCES.md
+' element after the copy. Where the new compiler differs on purpose (an index outside on the way, QB64PE-DIVERGENCES.md
 ' D-004; an owner type with other bounds, D-022) nothing is here: CLI tests hold those.
 Type leaf
     k As Long

@@ -190,7 +190,7 @@ pub const SUPPORTED: &[(&str, Rule)] = &[
     ("_ARCCOT", Rule::Plain),
     ("_SECH", Rule::Plain),
     ("_CSCH", Rule::Plain),
-    // libqb's `func_coth` is the hyperbolic cotangent in this repo's copy of libqb (`DIVERGENCES.md` D-031).
+    // libqb's `func_coth` is the hyperbolic cotangent in this repo's copy of libqb (`QB64PE-DIVERGENCES.md` D-031).
     ("_COTH", Rule::Plain),
     ("_D2R", Rule::Plain),
     ("_R2D", Rule::Plain),

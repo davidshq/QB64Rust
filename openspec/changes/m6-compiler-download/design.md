@@ -90,6 +90,14 @@ building objects in `%LOCALAPPDATA%\qb64rust\libqb\<id>` as the extension does (
 copies to remove, for a case the message covers); copying libqb there on first use (the same). Code: `build.rs`
 `find_libqb`, `find_libqb_in`, `refresh_objects`.
 
+Added at review (2026-10-27, the pragmatic engineer's recommendation): without `QB64RUST_OBJECTS_LOCK` (which the
+test runner and the CLI tests set), a build takes the copy's own lock file `objects.lock` (git-ignored, as
+`objects.stamp` is), so two builds started at once with a downloaded compiler do not delete and build the copy's
+objects together. Before, nothing was locked without the variable. If the file cannot be opened (a copy in a folder
+that cannot be written to), the build goes on without a lock, as before: objects already built are used, and
+building them fails with the message above. An empty `QB64RUST_LIBQB_ROOT` counts as unset. Code: `build.rs`
+`lock_objects`, `lock_objects_at`.
+
 ### D4: `--version`, `--help` in `main`
 
 Handled in `main` before `parse_args`, like `lsp`: the exact word as the only argument. `--version` prints
@@ -150,7 +158,7 @@ or nothing; two would leave a release with one asset when the second failed. Cod
 requirements (Windows 10 1803 or later, x64); unpack, then `qb64rust toolchain install` (size, where it goes,
 `QB64RUST_TOOLCHAIN_HOME`, `--toolchain-root` for a folder of one's own); `qb64rust -x prog.bas -o prog.exe`, then
 running it; `-w`, `-z`, `-y … -o`, `--include-root`, `--debug`, `-f:` settings, `toolchain path`, `--version`;
-the exit statuses (0, 1, 3); the folder must be writable (D3); differences from QB64pe 4.7.0 (`DIVERGENCES.md` on
+the exit statuses (0, 1, 3); the folder must be writable (D3); differences from QB64pe 4.7.0 (`QB64PE-DIVERGENCES.md` on
 GitHub); issues on GitHub. A Python test (`test_package_zip.py`) checks that every `--option` and subcommand the
 manual names in code spans appears in `USAGE` (read from `main.rs`), the scenario of spec `compiler/download`
 "An option in the manual". *Why at the root:* it documents the command line as a whole. `crates\README.md` stays

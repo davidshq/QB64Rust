@@ -36,7 +36,8 @@ const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<val
        qb64rust lsp    (the language server, over stdin and stdout)\n\
        qb64rust dap [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the debug adapter, over stdin and stdout)\n\
        qb64rust toolchain install    (downloads and installs the C++ toolchain)\n\
-       qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)";
+       qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)\n\
+       qb64rust --version | --help";
 
 /// The usage of `qb64rust toolchain` (spec `compiler/cli`, "Toolchain subcommand").
 const TOOLCHAIN_USAGE: &str = "usage: qb64rust toolchain install    (downloads and installs the C++ toolchain)\n\
@@ -231,6 +232,24 @@ fn main() -> ExitCode {
     // `qb64rust toolchain`: the same rule; `toolchain.bas` is a file to compile.
     if args.first().is_some_and(|a| a == "toolchain") {
         return toolchain_command(&args[1..]);
+    }
+    // `--version`, `--help`, `-h`: the only argument (spec `compiler/cli`, "Version and help"; design D4 of
+    // `m6-compiler-download`).
+    if let Some(word) = args
+        .first()
+        .and_then(|a| a.to_str())
+        .filter(|a| matches!(*a, "--version" | "--help" | "-h"))
+    {
+        if args.len() > 1 {
+            eprintln!("qb64rust: `{word}` takes no other argument\n{USAGE}");
+            return ExitCode::FAILURE;
+        }
+        if word == "--version" {
+            println!("qb64rust {}", env!("CARGO_PKG_VERSION"));
+        } else {
+            println!("{USAGE}");
+        }
+        return ExitCode::SUCCESS;
     }
     install_panic_hook();
     match qb64rust_driver::with_stack(run) {

@@ -134,7 +134,7 @@ module, named or not): `VARPTR` SHALL give the offset the old compiler's program
 descriptor there through every assignment. A `TYPE` variable or array element that holds a `STRING` (a member,
 or a member of a member) SHALL take the old compiler's place and size there, 8 bytes for each `STRING` member;
 its strings SHALL be made as for a `TYPE` variable anywhere else, empty, where the old compiler's program leaves
-them out and crashes at the first use of one (`DIVERGENCES.md` D-037).
+them out and crashes at the first use of one (`QB64PE-DIVERGENCES.md` D-037).
 
 #### Scenario: Offsets of scalars
 - **WHEN** the programs `verification\v56_a1`–`a3` print `VARPTR` and `VARSEG` of scalars of every type, strings,

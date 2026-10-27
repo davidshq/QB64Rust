@@ -6,7 +6,7 @@ $Console:Only
 ' declared bounds and ERASE clear, REDIM _PRESERVE does nothing. LBOUND and UBOUND give the member's bounds
 ' without finding the place. A whole member array is an array argument. Error cases go to a handler that prints
 ' ERR and resumes next. A store with an index outside its bounds stores nothing here and writes position 0 of
-' that dimension in the old compiler (DIVERGENCES.md D-004): no line prints such a position after such a store.
+' that dimension in the old compiler (QB64PE-DIVERGENCES.md D-004): no line prints such a position after such a store.
 Type below0
     w(3) As Long
 End Type

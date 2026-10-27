@@ -5,7 +5,7 @@ $CONSOLE:ONLY
 ' `_BIT` store is masked (unsigned) or sign-extended (signed); unsigned 64-bit literals end in `ull`; an `_OFFSET`
 ' `*` with a float is rounded by `qbr`; `PRINT` casts to the believed type (a `_BIT` to `int64`). Same output as
 ' qb64pe.exe (the `_BIT * 40` is declared first: in the old compiler it overwrites the `_BIT` declared just before it,
-' DIVERGENCES.md D-009).
+' QB64PE-DIVERGENCES.md D-009).
 DIM w AS _UNSIGNED _BIT * 40, ub AS _UNSIGNED _BYTE, ui AS _UNSIGNED INTEGER, uq AS _UNSIGNED _INTEGER64, o AS _OFFSET
 DIM u7 AS _UNSIGNED _BIT * 7, b3 AS _BIT * 3
 ub = 2.5000001#: ui = -1.5: uq = 1.8D+19

@@ -1,10 +1,10 @@
 //! Every function of the `CONST` evaluator against the old compiler (task 3.4 of `m3-constant-evaluation`):
 //! `verification\v45_b_funcs` holds each one as a `_FLOAT` constant and its recorded output prints each value's 19
 //! digits; `v45_b_funcs_plain` some as plain constants. A constant compiled here prints the same text, or its line
-//! has the warning of `DIVERGENCES.md` D-026 (the old value depends on the CPU and the system's library, and the
+//! has the warning of `QB64PE-DIVERGENCES.md` D-026 (the old value depends on the CPU and the system's library, and the
 //! correctly rounded one was taken), or it is one of [`DECIDED`]. None may differ otherwise.
 
-/// The constants of `v45_b_funcs` that differ from the old compiler's by a decided row of `DIVERGENCES.md`: the
+/// The constants of `v45_b_funcs` that differ from the old compiler's by a decided row of `QB64PE-DIVERGENCES.md`: the
 /// recorded expression, the row, and the value here.
 const DECIDED: [(&str, &str, &str); 2] = [
     ("_COTH(.2)", "D-031", "5.066489563439472654"),

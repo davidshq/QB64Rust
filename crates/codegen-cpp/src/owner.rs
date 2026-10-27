@@ -542,7 +542,7 @@ impl Emitter<'_> {
     /// bounds than its declared ones raises error 9, so libqb writes nothing. `GET` reads into it and then, whatever
     /// the read raised, unpacks it element by element, as the old compiler does: a failed read brings back what the
     /// statement read last, or zeros. A dynamic member array with other bounds raises error 9 and gets its declared
-    /// elements when its block holds them, else keeps its elements (`DIVERGENCES.md` D-019: the old compiler writes
+    /// elements when its block holds them, else keeps its elements (`QB64PE-DIVERGENCES.md` D-019: the old compiler writes
     /// the declared bytes past the block's end).
     pub(crate) fn owner_file(&mut self, array: VarId, get: bool, (file, position, mask): (&str, &str, u32)) -> String {
         let v = self.p.var(array);

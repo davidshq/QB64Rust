@@ -191,7 +191,7 @@ impl Emitter<'_> {
             } => {
                 let block = self.mem_of(of, *element);
                 if *lock_slot0 {
-                    // The old compiler reads the lock from slot 0 here (`DIVERGENCES.md` D-016).
+                    // The old compiler reads the lock from slot 0 here (`QB64PE-DIVERGENCES.md` D-016).
                     format!("(qbr_diverged(16),{block})")
                 } else {
                     block

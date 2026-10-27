@@ -1,7 +1,7 @@
 $Console:Only
 ' Slice program (m2-arrays-and-types, D6, D9): the store rule of each place, the order parts of a statement are
 ' evaluated in, and which error ERR reports. Errors are raised by a bad index (9) and by CHR$(-1) inside INSTR
-' (5, placeholder 0). Where the new compiler differs on purpose (DIVERGENCES.md D-004: a member store into an
+' (5, placeholder 0). Where the new compiler differs on purpose (QB64PE-DIVERGENCES.md D-004: a member store into an
 ' element with a bad index writes element 0 in the old compiler) this program does not look: element 0 of `bad`
 ' is never printed. No PRINT comma.
 Type t

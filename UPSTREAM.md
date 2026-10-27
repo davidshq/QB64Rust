@@ -17,7 +17,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Fix:** the hyperbolic cotangent, `(EXP(2x) + 1) / (EXP(2x) - 1)`, written so it does not overflow for large
   arguments (for example `1 / std::tanh(num)`), with error 5 at 0 as the neighbouring functions raise for a
   division by zero (`func_csch`), and no upper limit.
-- **Here:** `DIVERGENCES.md` D-031, built by `const-rulings`: the edit `tools/libqb/edits/d031-coth.edit` of this
+- **Here:** `QB64PE-DIVERGENCES.md` D-031, built by `const-rulings`: the edit `tools/libqb/edits/d031-coth.edit` of this
   repo's copy of libqb (`1 / std::tanh(num)`, error 5 at 0) is the patch to offer, and the `CONST` evaluator here
   computes the same function.
 - **Sent:** not yet.
@@ -33,7 +33,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   memory), not after the `memset` of the `cmemlist` branch.
 - **Fix:** the same two calls in the conventional-memory branch, after its `memset` (the string descriptors are
   ordinary `qbs` values, so no offset in `dblock` moves).
-- **Here:** `DIVERGENCES.md` D-037, built by `m4-left-marked` (`crates\codegen-cpp\src\cmem.rs`, `alloc_dblock`).
+- **Here:** `QB64PE-DIVERGENCES.md` D-037, built by `m4-left-marked` (`crates\codegen-cpp\src\cmem.rs`, `alloc_dblock`).
 - **Sent:** not yet.
 
 ## `-y` writes a number in `_ARRAYCOPY` subscripts as its internal element
@@ -48,7 +48,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   the text after its comma, as `fixoperationorder$` does for an expression's layout.
 - **Fix:** lay out each number element by the part after its comma (the spelling as written), as the expression
   layout does; or build the subscripts' layout from `fixoperationorder$`'s.
-- **Here:** `DIVERGENCES.md` D-038, built by `m5b-formatter`: the formatter writes the number as written.
+- **Here:** `QB64PE-DIVERGENCES.md` D-038, built by `m5b-formatter`: the formatter writes the number as written.
 - **Sent:** not yet.
 
 ## `-y` with `AutoLayout` off can change a line it lays out
@@ -66,7 +66,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Fix:** stop carrying at the first difference that is not spacing, letter case, `?` or a missing closing quote,
   and keep the rest of the user's text as it is. Or keep `layout2$` whenever the result, without spaces and with
   letters outside strings in capitals, equals neither `olay$` nor the user's text.
-- **Here:** `DIVERGENCES.md` D-039, built by `m5b-format-settings`: `crates\format\src\apply.rs` keeps QB64pe's
+- **Here:** `QB64PE-DIVERGENCES.md` D-039, built by `m5b-format-settings`: `crates\format\src\apply.rs` keeps QB64pe's
   result where it is the laid-out or the user's line in that sense, and otherwise does the first of these.
 - **Sent:** not yet.
 
@@ -76,6 +76,6 @@ Bugs this project fixes in the `CONST` evaluator (built by `const-rulings`), whi
 ruled to be sent; listed so they are not forgotten):
 
 - Values beyond `_INTEGER64` in a `CONST` clamped, and the four limits `_INTEGER64_MIN`, `_OFFSET_MIN`,
-  `_UINTEGER64_MAX`, `_UOFFSET_MAX` wrong by it (`DIVERGENCES.md` D-027).
+  `_UINTEGER64_MAX`, `_UOFFSET_MAX` wrong by it (`QB64PE-DIVERGENCES.md` D-027).
 - `^` of two integers in a `CONST` rounded to an integer, `2 ^ -1` being 0 (D-028).
 - A `CONST` beyond `_FLOAT` range being 0 or "Unexpected element 'INF'" (D-029).

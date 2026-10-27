@@ -638,7 +638,7 @@ struct Checker<'a> {
     /// its value is not computed yet (`auto.rs`).
     auto_consts: HashMap<usize, Result<ConstId, String>>,
     /// The constants whose value took a correctly rounded one where the old compiler's depends on the machine
-    /// (`DIVERGENCES.md` D-026): a `CONST` that names one warns too, and so does a use of an auto-included one.
+    /// (`QB64PE-DIVERGENCES.md` D-026): a `CONST` that names one warns too, and so does a use of an auto-included one.
     fell_back: HashSet<ConstId>,
     /// The library entry the OpenGL routines named so far belong to, made with the first (`opengl.rs`).
     gl_library: Option<crate::LibraryId>,

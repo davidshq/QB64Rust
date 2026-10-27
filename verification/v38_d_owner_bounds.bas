@@ -1,6 +1,6 @@
 $CONSOLE:ONLY
 $UNSTABLE:TYPEFIELDS
-' Verification (m3-measured-copies, before its design; DIVERGENCES.md D-022): a whole-array assignment of arrays
+' Verification (m3-measured-copies, before its design; QB64PE-DIVERGENCES.md D-022): a whole-array assignment of arrays
 ' of a type with a _DYNAMIC member array whose bounds differ. The old compiler raises error 9 and goes on: it
 ' copies as many elements as the target has (AppendDynUDTArrayAssign, qb64pe.bas 16855), in place for a static
 ' target and into a new block for a dynamic one. Each case prints the target's elements after the copy.

@@ -517,7 +517,7 @@ impl Emitter<'_> {
         if optional.iter().any(|&o| o) {
             parts.push(mask.to_string());
         }
-        // Every result of `_COTH` takes the path of `DIVERGENCES.md` D-031 (the copy of libqb's `func_coth` is the
+        // Every result of `_COTH` takes the path of `QB64PE-DIVERGENCES.md` D-031 (the copy of libqb's `func_coth` is the
         // hyperbolic cotangent): a wrapper in `global.txt`, written for a program that calls it, traces it
         // (`tools\callsite` reads it as `func_coth`).
         let callname = if b.callname == "func_coth" {
@@ -532,7 +532,7 @@ impl Emitter<'_> {
     }
 }
 
-/// `_COTH` with the run-time trace of `DIVERGENCES.md` D-031 (`qbr_diverged`, design D1 of `m3-divergence-trace`):
+/// `_COTH` with the run-time trace of `QB64PE-DIVERGENCES.md` D-031 (`qbr_diverged`, design D1 of `m3-divergence-trace`):
 /// every call takes the row's path.
 const COTH_WRAPPER: &str = "static inline double qbr_coth(double qbr_x){qbr_diverged(31);return func_coth(qbr_x);}\n";
 

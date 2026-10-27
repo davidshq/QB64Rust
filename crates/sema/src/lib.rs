@@ -1165,7 +1165,7 @@ pub enum ExprKind {
         element: bool,
         /// A whole array parameter of numbers or fixed-length strings that nothing above the `_MEM` has given its
         /// number of dimensions: the old compiler takes the lock from slot 0 of the descriptor here, this one from
-        /// the array's own (`DIVERGENCES.md` D-016). Read only by the run-time trace of divergences.
+        /// the array's own (`QB64PE-DIVERGENCES.md` D-016). Read only by the run-time trace of divergences.
         lock_slot0: bool,
     },
     /// `_MEM(offset, size)`: a block of `size` bytes at `offset`, both `_OFFSET` values, typed `_MEM`. A negative
@@ -1393,7 +1393,7 @@ pub enum StmtKind {
     /// indexes come first, and with an error pending after them the value is not evaluated and nothing is
     /// stored. For a place reached through a member with an index on the way ([`Place::through_member`]) a
     /// number is evaluated before the indexes and a string after them (measured, `verification\v24_x313`,
-    /// `x316`), and nothing is stored when an index is outside its bounds (`DIVERGENCES.md` D-004).
+    /// `x316`), and nothing is stored when an index is outside its bounds (`QB64PE-DIVERGENCES.md` D-004).
     Assign { place: Place, value: Expr },
     /// `to = from` for two places of one user type (design D9 of `m2-defxxx-common-arrays`): every member is
     /// copied, a `STRING` member as a string of its own. The copy is not guarded (measured,

@@ -36,23 +36,49 @@ impl Roots {
     }
 }
 
-/// Finds the copy of libqb: `--libqb-root`, else `QB64RUST_LIBQB_ROOT`, else `libqb` in the repository this binary
-/// was built from. A candidate counts only if it holds `internal\c\qbx.cpp` (design D3 of `libqb-copy`).
+/// Finds the copy of libqb ([`find_libqb_in`]) for this process: its option, its environment and its executable.
 pub fn find_libqb(option: Option<&Path>) -> Result<PathBuf, String> {
-    let candidate = match option {
-        Some(p) => p.to_path_buf(),
-        None => match std::env::var_os(LIBQB_ENV) {
-            Some(p) => PathBuf::from(p),
-            None => Path::new(env!("CARGO_MANIFEST_DIR")).join("../../libqb"),
-        },
+    let env = std::env::var_os(LIBQB_ENV).map(PathBuf::from);
+    let exe = std::env::current_exe().ok();
+    let exe_dir = exe.as_deref().and_then(Path::parent);
+    find_libqb_in(
+        option,
+        env.as_deref(),
+        exe_dir,
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../libqb"),
+    )
+}
+
+/// Finds the copy of libqb (spec `compiler/cli`, "Locating the reference runtime"; design D3 of
+/// `m6-compiler-download`): `option` (`--libqb-root`), else `env` (`QB64RUST_LIBQB_ROOT`, empty counting as unset),
+/// else `libqb` in `exe_dir` (the executable's folder, as a download unpacks it), else `repo` (the repository the
+/// binary was built from). A folder given by the option or the variable is the only one looked in; the others count
+/// only if they hold `internal\c\qbx.cpp` (design D3 of `libqb-copy`), and are passed over otherwise.
+pub fn find_libqb_in(
+    option: Option<&Path>,
+    env: Option<&Path>,
+    exe_dir: Option<&Path>,
+    repo: &Path,
+) -> Result<PathBuf, String> {
+    let given = option.or(env.filter(|p| !p.as_os_str().is_empty()));
+    let candidates: Vec<PathBuf> = match given {
+        Some(p) => vec![p.to_path_buf()],
+        None => exe_dir
+            .map(|d| d.join("libqb"))
+            .into_iter()
+            .chain([repo.to_path_buf()])
+            .collect(),
     };
-    if candidate.join("internal/c/qbx.cpp").is_file() {
-        return Ok(std::path::absolute(&candidate).unwrap_or(candidate));
+    for c in &candidates {
+        if c.join("internal/c/qbx.cpp").is_file() {
+            return Ok(std::path::absolute(c).unwrap_or_else(|_| c.clone()));
+        }
     }
+    let looked: Vec<String> = candidates.iter().map(|c| c.display().to_string()).collect();
     Err(format!(
         "copy of libqb not found (looked in {}); give it with --libqb-root <dir> or the environment variable \
          {LIBQB_ENV}",
-        candidate.display()
+        looked.join(", ")
     ))
 }
 
@@ -678,8 +704,13 @@ impl Fnv128 {
 
 /// Names a lock file for the libqb objects of the copy of libqb, which every build of a program writes when one it
 /// links is missing or older than its source, and reads otherwise. Set by the test runner and the CLI tests
-/// (`tools\legacy_tests\clone_lock.py`), so that their builds can run side by side; without it nothing is locked.
+/// (`tools\legacy_tests\clone_lock.py`), so that their builds can run side by side; without it the copy's own
+/// [`OBJECTS_LOCK`] is taken.
 pub const OBJECTS_LOCK_ENV: &str = "QB64RUST_OBJECTS_LOCK";
+
+/// The lock file at the top of a copy of libqb, taken when [`OBJECTS_LOCK_ENV`] is not set, so that two builds
+/// started at once (a downloaded compiler run by a build script) do not build the copy's objects together; git-ignored.
+pub const OBJECTS_LOCK: &str = "objects.lock";
 
 /// The goal of the makefile [`lock_objects`] adds: everything `exe` takes from the copy (`QBLIB` and `EXE_LIBS`,
 /// the `Makefile`'s own names) and nothing of the program's own (`qbx.o`, the icon's object, the executable).
@@ -727,8 +758,15 @@ fn refresh_objects(libqb: &Path, want: &str) -> Result<(), String> {
     }
     let c = libqb.join("internal/c");
     remove_built(&c, &c)?;
-    let path = libqb.join(OBJECTS_STAMP);
-    std::fs::write(&path, want).map_err(|e| format!("writing {}: {e}", path.display()))
+    // The first write into the copy when its objects are to be built: a folder that cannot be written to (a download
+    // unpacked under `Program Files`) fails here, with what to do (design D3 of `m6-compiler-download`).
+    std::fs::write(libqb.join(OBJECTS_STAMP), want).map_err(|e| {
+        format!(
+            "cannot write into the copy of libqb at {} (libqb's objects are built there): {e}; unpack qb64rust where \
+             you can write, or give a copy in such a folder with --libqb-root <dir>",
+            libqb.display()
+        )
+    })
 }
 
 /// Removes the files under `dir` that builds write ([`written_by_builds`]), outside `c_compiler` and `temp`.
@@ -751,7 +789,7 @@ fn remove_built(base: &Path, dir: &Path) -> Result<(), String> {
 }
 
 /// The makefile read after the copy's `Makefile` that gives the driver's flags to the program's own objects only
-/// (design D1 of `libqb-object-flags`): `-fwrapv` (LONG and `_INTEGER64` overflow wraps, `DIVERGENCES.md` D-001,
+/// (design D1 of `libqb-object-flags`): `-fwrapv` (LONG and `_INTEGER64` overflow wraps, `QB64PE-DIVERGENCES.md` D-001,
 /// D-002), `-O2` for `OptimizeCppProgram`, `-g` instead for a debug build (design D1 of `m5-debug-build-symbols`),
 /// and the copy's `internal/c` for the headers `qbx.cpp` and `embedded.cpp` include from the build folder. `private`
 /// keeps the variable from the prerequisites `make` builds for these two targets, so libqb's objects take none of
@@ -771,24 +809,43 @@ fn program_makefile(libqb: &Path, optimize: bool, debug: bool) -> String {
     )
 }
 
-/// Takes the objects' lock where there is one ([`OBJECTS_LOCK_ENV`]) and makes the copy's objects current
-/// ([`refresh_objects`], alone). Then holds it shared when `make -q` says the copy's objects for these flags are up
-/// to date, so the build only reads them, and otherwise alone, so that one build at a time writes them. The returned
-/// file holds the lock until it is dropped. `make` is `cmd` before its goal; `stamp` is [`objects_stamp`].
+/// Takes the objects' lock ([`OBJECTS_LOCK_ENV`], else the copy's [`OBJECTS_LOCK`]) and makes the copy's objects
+/// current ([`refresh_objects`], alone). Then holds it shared when `make -q` says the copy's objects for these flags
+/// are up to date, so the build only reads them, and otherwise alone, so that one build at a time writes them. The
+/// returned file holds the lock until it is dropped. `make` is `cmd` before its goal; `stamp` is [`objects_stamp`].
 fn lock_objects(make: &Command, build: &Path, libqb: &Path, stamp: &str) -> Result<Option<std::fs::File>, String> {
-    let Some(path) = std::env::var_os(OBJECTS_LOCK_ENV) else {
-        refresh_objects(libqb, stamp)?;
-        return Ok(None);
-    };
-    let path = PathBuf::from(path);
+    match std::env::var_os(OBJECTS_LOCK_ENV) {
+        Some(path) => lock_objects_at(make, build, libqb, stamp, &PathBuf::from(path), false),
+        None => lock_objects_at(make, build, libqb, stamp, &libqb.join(OBJECTS_LOCK), true),
+    }
+}
+
+/// [`lock_objects`] with the lock file `path`; `own` when it is the copy's own. The copy's own lock that cannot be
+/// opened (a copy in a folder that cannot be written to) is done without, as before it existed: objects already
+/// built are used as they are, and building them fails with [`refresh_objects`]'s message.
+fn lock_objects_at(
+    make: &Command,
+    build: &Path,
+    libqb: &Path,
+    stamp: &str,
+    path: &Path,
+    own: bool,
+) -> Result<Option<std::fs::File>, String> {
     let err = |e: std::io::Error| format!("locking the libqb objects ({}): {e}", path.display());
-    let file = std::fs::File::options()
+    let file = match std::fs::File::options()
         .read(true)
         .write(true)
         .create(true)
         .truncate(false)
-        .open(&path)
-        .map_err(err)?;
+        .open(path)
+    {
+        Ok(file) => file,
+        Err(_) if own => {
+            refresh_objects(libqb, stamp)?;
+            return Ok(None);
+        }
+        Err(e) => return Err(err(e)),
+    };
     file.lock_shared().map_err(err)?;
     if !objects_current(libqb, stamp) {
         // Alone, and checked again: another build may have refreshed them meanwhile. The objects are then built by
@@ -1023,6 +1080,104 @@ mod tests {
                 .join("../../libqb/internal/c/qbx.cpp")
                 .is_file()
         );
+    }
+
+    /// Makes `dir` a copy of libqb as the lookup sees one: `internal\c\qbx.cpp`.
+    fn fake_libqb(dir: &Path) -> PathBuf {
+        std::fs::create_dir_all(dir.join("internal/c")).unwrap();
+        std::fs::write(dir.join("internal/c/qbx.cpp"), "").unwrap();
+        std::path::absolute(dir).unwrap()
+    }
+
+    /// The order of the lookup (design D3 of `m6-compiler-download`): the option, the variable, `libqb` beside the
+    /// executable, the repository's; a folder without `qbx.cpp` beside the executable is passed over, and an empty
+    /// variable counts as unset.
+    #[test]
+    fn find_libqb_in_order() {
+        let d = tempfile::tempdir().unwrap();
+        let (opt, env, exe, repo) = (
+            fake_libqb(&d.path().join("opt")),
+            fake_libqb(&d.path().join("env")),
+            d.path().join("exe"),
+            fake_libqb(&d.path().join("repo")),
+        );
+        let beside = fake_libqb(&exe.join("libqb"));
+        let find = |o: Option<&Path>, e: Option<&Path>| find_libqb_in(o, e, Some(&exe), &repo).unwrap();
+        assert_eq!(find(Some(&opt), Some(&env)), opt);
+        assert_eq!(find(Some(&opt), None), opt);
+        assert_eq!(find(None, Some(&env)), env);
+        assert_eq!(find(None, None), beside);
+        assert_eq!(find(None, Some(Path::new(""))), beside);
+        // Beside the executable, a folder without `qbx.cpp` is passed over.
+        std::fs::remove_file(beside.join("internal/c/qbx.cpp")).unwrap();
+        assert_eq!(find(None, None), repo);
+        assert_eq!(find_libqb_in(None, None, None, &repo).unwrap(), repo);
+    }
+
+    /// None found: the error names every place looked in, the option and the variable; a folder given by the option
+    /// that is not a copy is an error, not passed over.
+    #[test]
+    fn find_libqb_in_none_found() {
+        let d = tempfile::tempdir().unwrap();
+        let (exe, repo) = (d.path().join("exe"), d.path().join("repo"));
+        let err = find_libqb_in(None, None, Some(&exe), &repo).unwrap_err();
+        for part in [
+            exe.join("libqb").display().to_string(),
+            repo.display().to_string(),
+            "--libqb-root".to_string(),
+            LIBQB_ENV.to_string(),
+        ] {
+            assert!(err.contains(&part), "{part} in {err}");
+        }
+        fake_libqb(&repo);
+        let wrong = d.path().join("wrong");
+        let err = find_libqb_in(Some(&wrong), None, Some(&exe), &repo).unwrap_err();
+        assert!(err.contains(&wrong.display().to_string()), "{err}");
+    }
+
+    /// A copy whose folder cannot be written to (here `objects.stamp` is a folder, so its write fails): the error
+    /// names the folder and `--libqb-root` (spec `compiler/cli`, "A copy that cannot be written to").
+    #[test]
+    fn unwritable_copy_says_what_to_do() {
+        let d = tempfile::tempdir().unwrap();
+        let libqb = d.path().join("libqb");
+        std::fs::create_dir_all(libqb.join(OBJECTS_STAMP)).unwrap();
+        let err = refresh_objects(&libqb, "stamp").unwrap_err();
+        assert!(
+            err.contains(&libqb.display().to_string())
+                && err.contains("libqb's objects are built there")
+                && err.contains("--libqb-root"),
+            "{err}"
+        );
+    }
+
+    /// Without `QB64RUST_OBJECTS_LOCK`, a build takes the copy's own `objects.lock` while it makes the objects
+    /// current; a copy where that file cannot be opened is done without a lock, as before (design D3 of
+    /// `m6-compiler-download`, the review's finding 1). `make` is never run: the objects are not current here.
+    #[test]
+    fn the_copys_own_objects_lock() {
+        let d = tempfile::tempdir().unwrap();
+        let libqb = d.path().join("libqb");
+        std::fs::create_dir_all(libqb.join("internal/c")).unwrap();
+        let make = Command::new("no-such-make");
+        let own = libqb.join(OBJECTS_LOCK);
+        let held = lock_objects_at(&make, d.path(), &libqb, "stamp", &own, true).unwrap();
+        assert!(held.is_some() && own.is_file());
+        assert!(objects_current(&libqb, "stamp"));
+        drop(held);
+        // The lock file cannot be opened (here it is a folder): no lock, and the objects made current all the same.
+        let other = d.path().join("other");
+        std::fs::create_dir_all(other.join("internal/c")).unwrap();
+        std::fs::create_dir_all(other.join(OBJECTS_LOCK)).unwrap();
+        let lock = other.join(OBJECTS_LOCK);
+        assert!(
+            lock_objects_at(&make, d.path(), &other, "stamp", &lock, true)
+                .unwrap()
+                .is_none()
+        );
+        assert!(objects_current(&other, "stamp"));
+        // The runner's lock that cannot be opened is an error, as before.
+        assert!(lock_objects_at(&make, d.path(), &other, "stamp", &lock, false).is_err());
     }
 
     /// One folder as every root, for the tests of what the key takes from the build itself.

@@ -1,6 +1,6 @@
 $CONSOLE:ONLY
 $UNSTABLE:TYPEFIELDS
-' Verification (m3-measured-copies, before its design; DIVERGENCES.md D-021): what a GET of a whole array of a
+' Verification (m3-measured-copies, before its design; QB64PE-DIVERGENCES.md D-021): what a GET of a whole array of a
 ' type with a _DYNAMIC member array leaves in the array when its read raises an error. The old compiler unpacks
 ' its buffer after the call whatever the read did (qb64pe.bas 12398); the buffer belongs to the statement
 ' (one per GET), so it holds what that statement read last, or nothing if it never read.

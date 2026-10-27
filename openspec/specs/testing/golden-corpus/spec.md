@@ -165,7 +165,7 @@ Git SHALL store the files byte for byte.
 
 ### Requirement: The run-time trace of divergences
 A program built by the new compiler SHALL, when the environment variable `QB64RUST_DIVERGENCES` names a file,
-append the line `D-0nn` to it the first time in a run that it takes the path of row D-nn of `DIVERGENCES.md`, for
+append the line `D-0nn` to it the first time in a run that it takes the path of row D-nn of `QB64PE-DIVERGENCES.md`, for
 every row with a run-time path, and SHALL write nothing without the variable. The runner SHALL set the variable for
 every run of the corpus and compile suites, and SHALL fail a program whose trace names a row its
 `<name>.divergences` file (one `D-0nn` per line, `#` comments) does not list.

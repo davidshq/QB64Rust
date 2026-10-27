@@ -4,7 +4,7 @@ $CONSOLE:ONLY
 ' old compiler rejects it too): a code outside 0 to 255, also after rounding half to even (256, -1, 255.5, -0.6,
 ' 1E300, the largest _UNSIGNED _INTEGER64), a string or a string constant as the code, CHR$ of CHR$, no code or two,
 ' no parentheses, an integer suffix on the name, the string mixed with a number, multiplied, compared, negated, and
-' CHR without its dollar; 2^64 without a suffix, a literal beyond _UNSIGNED _INTEGER64 (DIVERGENCES.md D-027, an
+' CHR without its dollar; 2^64 without a suffix, a literal beyond _UNSIGNED _INTEGER64 (QB64PE-DIVERGENCES.md D-027, an
 ' error of its own; the old compiler clamps it and rejects the code).
 CONST c1 = CHR$(256)
 CONST c2 = CHR$(-1)

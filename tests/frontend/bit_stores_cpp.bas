@@ -2,7 +2,7 @@
 $CONSOLE:ONLY
 ' The C++ of `_BIT` stores (m2-numeric-types design D5, task 6.1): an unsigned `_BIT * n` is masked to its low n
 ' bits, a signed one sign-extended from bit n-1, at 1 bit, 32 bits (4 bytes of storage) and above (8 bytes, so a
-' wide one never shares bytes with its neighbour, DIVERGENCES.md D-009); in each storage class (DIM SHARED, STATIC,
+' wide one never shares bytes with its neighbour, QB64PE-DIVERGENCES.md D-009); in each storage class (DIM SHARED, STATIC,
 ' a local); from a float (rounded by `qbr`); a `_BIT` variable passed to a LONG parameter as a copy. Same output as
 ' qb64pe.exe (each wide `_BIT` after a `_BIT * 32` pad, so the old compiler's overlap hits only the pads).
 DIM SHARED sh AS _BIT * 4

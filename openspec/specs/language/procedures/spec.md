@@ -27,7 +27,7 @@ and no width SHALL be a compile error, as in the old compiler ("Name already in 
 as the old compiler does (`verification\v21_c_fixed_args`); it SHALL be called and assigned as `f$n`, `f$` or `f`,
 and another length (`f$4` for `f$5`) SHALL be a compile error ("Name already in use", `verification\v21_g_fixed_function`,
 `v21_x49`). Each call's result SHALL be its own string: two calls in one expression keep both results (the old
-compiler returns bytes it has released, so the second call overwrites the first, `DIVERGENCES.md` D-014). Procedures SHALL NOT be nested, and two procedures SHALL
+compiler returns bytes it has released, so the second call overwrites the first, `QB64PE-DIVERGENCES.md` D-014). Procedures SHALL NOT be nested, and two procedures SHALL
 NOT share a name.
 
 #### Scenario: SUB defined before the main code

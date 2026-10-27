@@ -3,8 +3,9 @@ OpenSpec change extension-vsix): it targets win32-x64, carries the qb64rust bina
 licence, the crates' notice and the extension's licence, and carries no TypeScript file, no built object and
 no toolchain.
 
-With --tag, it first checks that a release tag `vscode-v<version>` names the version of vscode/package.json and
-that CHANGELOG.md has a section `## <version>` (written to --notes-out, the release's notes); with --tag alone
+With --tag, it first checks that a release tag `vscode-v<version>` names the version of vscode/package.json, that
+the workspace version of Cargo.toml is the same, and that CHANGELOG.md has a section `## <version>` (written to
+--notes-out with a paragraph on the two assets, the release's notes); with --tag alone
 (no .vsix) it checks only that, so the release workflow fails before it packages.
 
 Exits with status 1, naming each problem, when a check fails.
@@ -18,6 +19,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import tomllib
 import zipfile
 
 PACKAGE_JSON = pathlib.Path(__file__).resolve().parents[1] / "package.json"
@@ -36,6 +38,11 @@ REQUIRED = [
 ]
 FORBIDDEN_SUFFIXES = (".ts", ".o", ".a", ".map")
 TAG = re.compile(r"^vscode-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$")
+CARGO_TOML = PACKAGE_JSON.parents[1] / "Cargo.toml"
+ASSETS_PARAGRAPH = (
+    "The `.vsix` is the VS Code extension, with the compiler inside. The `.zip` is the compiler alone, for a command"
+    " line or another editor: unpack it into a folder you can write to and read its `MANUAL.md`.\n"
+)
 
 
 def changelog_section(text, version):
@@ -46,14 +53,31 @@ def changelog_section(text, version):
     return m.group(1).strip() + "\n" if m else None
 
 
-def check_tag(tag, version):
-    """Problems with a release tag against the package's version (an empty list when it matches)."""
+def check_tag(tag, version, cargo_version=None):
+    """Problems with a release tag against the package's version and, when given, the workspace version of
+    Cargo.toml, which must equal it (design D5 of the OpenSpec change m6-compiler-download); an empty list when all
+    match."""
     m = TAG.match(tag)
     if not m:
         return [f"tag {tag!r} is not of the form vscode-v<version>"]
+    problems = []
     if m.group(1) != version:
-        return [f"tag {tag} names version {m.group(1)}, but package.json says {version}"]
-    return []
+        problems.append(f"tag {tag} names version {m.group(1)}, but package.json says {version}")
+    if cargo_version is not None and cargo_version != version:
+        problems.append(
+            f"Cargo.toml's workspace version is {cargo_version}, but package.json says {version}; raise both"
+        )
+    return problems
+
+
+def cargo_version(text):
+    """The `[workspace.package] version` of Cargo.toml's text."""
+    return tomllib.loads(text)["workspace"]["package"]["version"]
+
+
+def release_notes(section):
+    """The release's notes: the changelog section, then what the two assets are (design D8 of m6-compiler-download)."""
+    return section + "\n" + ASSETS_PARAGRAPH
 
 
 def check_vsix(names, manifest):
@@ -81,12 +105,12 @@ def main(argv=None):
     problems = []
     if args.tag is not None:
         version = json.loads(PACKAGE_JSON.read_text(encoding="utf-8"))["version"]
-        problems += check_tag(args.tag, version)
+        problems += check_tag(args.tag, version, cargo_version(CARGO_TOML.read_text(encoding="utf-8")))
         notes = changelog_section(CHANGELOG.read_text(encoding="utf-8"), version)
         if notes is None:
             problems.append(f"CHANGELOG.md has no section `## {version}`")
         elif args.notes_out is not None:
-            args.notes_out.write_text(notes, encoding="utf-8")
+            args.notes_out.write_text(release_notes(notes), encoding="utf-8")
     if args.vsix is not None:
         with zipfile.ZipFile(args.vsix) as z:
             names = set(z.namelist())

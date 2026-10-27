@@ -707,7 +707,7 @@ fn upstream_progress() {
 }
 
 /// The reasons a line of `tests\verification\known.list` may give (spec `testing/verification-suite`): a row of
-/// `DIVERGENCES.md`, or one of these words, each optionally followed by `: <more>`; `bug` needs the `: <what>`.
+/// `QB64PE-DIVERGENCES.md`, or one of these words, each optionally followed by `: <more>`; `bug` needs the `: <what>`.
 const VERIFICATION_REASONS: &[&str] = &[
     "not supported yet",
     "varies",

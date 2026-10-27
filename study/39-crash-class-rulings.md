@@ -49,7 +49,7 @@ condition raises on every pass).
 2026-10-08 rule; panel unanimous): a console read at the end of a redirected input raises error 62, trappable, and
 `END` skips its key wait when the input is no console (at a console it still waits). First measured with
 `qb64pe.exe` for `LINE INPUT` and `INPUT$(n)` as well as `INPUT`, so the fix covers every console read; a
-`DIVERGENCES.md` row says a program trapping error 62 on its input would hang under QB64pe.
+`QB64PE-DIVERGENCES.md` row says a program trapping error 62 on its input would hang under QB64pe.
 
 **(3)** A dynamic `DIM`/`REDIM` with a count below one (`verification\v24_b_dynamic`, `v24_x89`–`x96`), split by
 kind: **a count below zero is fixed always** (today it ends the program with "Out of memory", which no handler
@@ -75,7 +75,7 @@ segment and offset being 16 bits each). **Past the end of the block fixed always
 `sub_bload`, not yet run: the length is never checked, so a `BLOAD` near the top of the block, or of a file whose
 header gives size 0 and which is longer than 64 KB, writes into the process's memory after `cmem`): `BLOAD`, and
 `BSAVE` after its code is read, raise error 5 before touching anything when start plus length runs past the
-block. Both cases measured under QB64pe first, with a `DIVERGENCES.md` row (panel unanimous, with a security
+block. Both cases measured under QB64pe first, with a `QB64PE-DIVERGENCES.md` row (panel unanimous, with a security
 engineer).
 
 **(6)** A whole array `a()` as a value in an expression (`PRINT a()`, `a() + 1`, …: the array's first element;
@@ -113,7 +113,7 @@ is not a variable of its own (a member, an array element): the n bytes go into a
 the temporary is passed, and the n bytes are copied back after the call, so writes still reach the member and a
 NUL written at n lands in the temporary. The place is evaluated once; variables and variable-length strings keep
 the direct pointer. Written in codegen, no libqb edit; a C function that keeps the pointer after it returns is not
-served (it never was for a member), said in the `DIVERGENCES.md` row (panel unanimous, with a Windows API
+served (it never was for a member), said in the `QB64PE-DIVERGENCES.md` row (panel unanimous, with a Windows API
 programmer and a security engineer).
 
 **(11)** `_STATUSCODE` of a negative handle never opened (`verification\v44_x59`–`x68`: an access violation, exit
@@ -164,7 +164,7 @@ g++ folds it to another value on each build): **fixed always** (working rule 12)
 the same conversion of a variable gives on x86-64, type by type as `verification\v49_a_cast` measures (`LONG`
 through a 32-bit conversion, -2147483648 out of range; the narrow types through the low bits; NaN and infinity the
 CPU's value), through one helper in the generated code for every `_CAST` from a float, so constants, variables and
-the run without folding agree; `v49_x18` leaves `known.list`; a `DIVERGENCES.md` row (panel unanimous; saturating
+the run without folding agree; `v49_x18` leaves `known.list`; a `QB64PE-DIVERGENCES.md` row (panel unanimous; saturating
 rejected, as it would differ from a variable).
 
 **(17, 18)** A bit number outside 0 to 63 in `_READBIT`, `_SETBIT`, `_RESETBIT`, `_TOGGLEBIT`, and a shift count

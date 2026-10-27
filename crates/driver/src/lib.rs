@@ -308,7 +308,7 @@ fn beside(main_path: &Path, rest: &str) -> PathBuf {
 
 /// The check `sema` cannot make, since it reads no file: the icon `$EXEICON` names is there. A missing file is an
 /// error at the metacommand's line, counted with the others. It names the file as the program writes it, where
-/// the old compiler names the folder it looked in (`DIVERGENCES.md`): no diagnostic holds a folder of the machine.
+/// the old compiler names the folder it looked in (`QB64PE-DIVERGENCES.md`): no diagnostic holds a folder of the machine.
 /// A file that is there but is no icon ([`is_icon`]) is an error too, where both compilers' C++ build fails
 /// (`verification\v29_e16_not_an_icon`; design D1 of `cpp-failure-errors`). A file that cannot be read is left to
 /// the build.
@@ -353,7 +353,7 @@ pub fn embedded_path(file: &qb64rust_sema::EmbeddedFile, main_path: &Path, root:
 
 /// The check `sema` cannot make: each file a `$EMBED` line names is a file (measured, `verification\v44_x07`,
 /// `x27`: a missing file and a folder). An error at the line that names the file as the program writes it, where
-/// the old compiler names the folder it looked in (`DIVERGENCES.md` D-015).
+/// the old compiler names the folder it looked in (`QB64PE-DIVERGENCES.md` D-015).
 pub fn check_embedded_files(program: &Program, diagnostics: &mut Diagnostics, main_path: &Path, root: &Path) {
     for f in &program.settings.embedded {
         if !embedded_path(f, main_path, root).is_file() {
@@ -455,7 +455,7 @@ fn emit_ir_all(
 /// The log folder of [`emit_ir_with`] for a build from `dir`: the folder with a separator after it unless it ends
 /// in one (a drive's root, `C:\`), as the old compiler's `_STARTDIR$` gives it (libqb's `func__cwd`). A name that
 /// is not ASCII is written as UTF-8, where the old compiler has the bytes of the system's code page
-/// (`DIVERGENCES.md`).
+/// (`QB64PE-DIVERGENCES.md`).
 pub fn log_folder(dir: &Path) -> String {
     let mut folder = dir.display().to_string();
     if !folder.ends_with(['/', '\\']) {

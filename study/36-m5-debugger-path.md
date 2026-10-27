@@ -11,7 +11,7 @@ developer-tools engineer (DX: debuggers, DAP, VS Code) and the runtime engineer 
 path, which a debugger stops and reads). Effort is counted in Claude's time (working rule 8).
 
 Evidence read: `STATUS.md`, `ROADMAP.md`, `DECISIONS.md` (the rows on `$DEBUG`, the language server, the
-dependency policy), `DIVERGENCES.md` D-017, `SOMEDAY.md`, `study\04` Part F (the old debugger: instrumentation,
+dependency policy), `QB64PE-DIVERGENCES.md` D-017, `SOMEDAY.md`, `study\04` Part F (the old debugger: instrumentation,
 protocol, state machine, §8 hazards) and Part G, `study\06` (the DAP mapping), `study\07` sessions 6 and 8,
 `crates\README.md`, the spec `language/asserts-and-debug`, the emitter (`codegen-cpp\src\procs.rs`, `coverage.rs`,
 `names.rs`, `decl.rs`), the driver's build (`driver\src\build.rs`), the language server (`lsp\src\server.rs`),
@@ -83,7 +83,7 @@ roadmap says, and finds nothing astray in M0–M4 (§5); it recommends one chang
    in the IDE's memory, memory read by two dereferences with hard-wired struct layouts, line granularity, no
    pause of a one-line loop, no locals of a caller, nothing in included files or under `$CHECKING:OFF`, no stop
    at a runtime error, a stall of 10 s when a `$DEBUG` build runs with the port variable set and no IDE.
-   `DIVERGENCES.md` D-017: this compiler writes none of it; a program built here cannot be debugged from the
+   `QB64PE-DIVERGENCES.md` D-017: this compiler writes none of it; a program built here cannot be debugged from the
    QB64pe IDE.
 
 ## 3. The paths
@@ -129,7 +129,7 @@ roadmap says, and finds nothing astray in M0–M4 (§5); it recommends one chang
   full speed; no reserved names (`vwatch`), no port, no stall; attach to a running debug build.
 - **What it gives up or changes** (QB64): hardware watchpoints are limited by the CPU (x86-64: four of up to
   eight bytes; a watch of a whole string or a large element falls back to a conditional breakpoint per line,
-  slower; to be said in the design and `DIVERGENCES.md` need not grow: D-017 already covers the debugger's
+  slower; to be said in the design and `QB64PE-DIVERGENCES.md` need not grow: D-017 already covers the debugger's
   absence); "skip lines" stays out (`SOMEDAY.md`); set next line is lldb's jump (same hazard as the old one's
   raw `goto`); the window keeps painting while the program thread is stopped (an improvement in practice; the old
   one blocked the main thread, so the window went stale) but a `_DISPLAY`-paced program will show its last frame.
@@ -279,7 +279,7 @@ compiles clean and builds. The extension is released as a `.vsix` with the compi
 
 - **ARCH:** the layering has held for 22 days under pressure (one crate per stage, dependencies downward, `lsp`
   never on `sema`, the IR ABI-neutral with the C++ emitter holding every libqb name); the three registers
-  (`DECISIONS.md`, `DIVERGENCES.md`, `SOMEDAY.md`) and the measured-first rule gave every behaviour a
+  (`DECISIONS.md`, `QB64PE-DIVERGENCES.md`, `SOMEDAY.md`) and the measured-first rule gave every behaviour a
   provenance. The debugger drops into this without a new seam: the symbol file is one more product of
   `codegen-cpp` written by the driver, the proxy one more server in the binary. Nothing to change.
 - **COMP:** the decision that pays off most now is one taken for another reason: `#line` directives on every
@@ -326,7 +326,7 @@ compiles clean and builds. The extension is released as a `.vsix` with the compi
    custom layer is the proxy; a pointer to this study is added at its top (done, 2026-10-24). The old mapping
    table stays right: every row is a DAP request `lldb-dap` serves, but set next line (the proxy's) and skip
    lines (out).
-3. **`DIVERGENCES.md` D-017** stays as it is; no new row: the new debugger is not a difference from the old
+3. **`QB64PE-DIVERGENCES.md` D-017** stays as it is; no new row: the new debugger is not a difference from the old
    compiler's program outside its IDE. The design of the first change says in a paragraph where the new debugger
    differs from the old IDE's (watchpoint limits, no skip lines) as `SOMEDAY.md` "QB64pe behaviours to review"
    rows if any are questionable; none is a divergence of the program.

@@ -77,7 +77,7 @@ Kept by hand (recorded 2026-10-03; `slice` as each change added its programs):
 | `.noprompt` sidecars | 0 | 0 | 2 (`s12_error_in_print`, `s19_header_errors`: `continue`) |
 | `.stdin` sidecars | 0 | 0 | 3 (`s42_console_input`, `s65_console_input`, `s117_dyn_member_kinds`) |
 | `.exitcode` sidecars | 0 | 0 | 2 (`s110_system_code` 3, `s111_end_code` 4294967295) |
-| `.divergences` sidecars (the rows of `DIVERGENCES.md` a program may take, for the run-time trace) | 0 | 0 | 6 (`s22_store_rules`, `s61_member_arrays`, `s114_dyn_members`, `s117_dyn_member_kinds`: D-004; `s118_dyn_member_files`: D-019; `s44_more_functions`: D-031) |
+| `.divergences` sidecars (the rows of `QB64PE-DIVERGENCES.md` a program may take, for the run-time trace) | 0 | 0 | 6 (`s22_store_rules`, `s61_member_arrays`, `s114_dyn_members`, `s117_dyn_member_kinds`: D-004; `s118_dyn_member_files`: D-019; `s44_more_functions`: D-031) |
 
 The 20 compile errors are programs written against QB64Fresh's idea of the language. They still test that a
 compiler rejects them, but not what their names say:
@@ -97,7 +97,7 @@ Known failures (`tools\legacy_tests\known_failures.txt`, reported KFAIL):
 
 | Program | Cause |
 |---|---|
-| 80, 126, 187, 251 | `PRINT` with a comma pads to the next zone by asking the console for the cursor column. The runner gives each program a console (for `END`) but sends stdout to a file, so the column never moves and the program prints spaces until the 60 s timeout. Old-runtime bug (`study\00` §5), still in the new runtime: `DIVERGENCES.md` D-011 is decided but not built. |
+| 80, 126, 187, 251 | `PRINT` with a comma pads to the next zone by asking the console for the cursor column. The runner gives each program a console (for `END`) but sends stdout to a file, so the column never moves and the program prints spaces until the 60 s timeout. Old-runtime bug (`study\00` §5), still in the new runtime: `QB64PE-DIVERGENCES.md` D-011 is decided but not built. |
 
 `147_on_error_resume_0` was a known failure until 2026-10-26 and is a `.norun` now: `RESUME 0` re-runs the line
 that raised the error, which is `ERROR 5`, so the program loops forever by design.
@@ -210,14 +210,14 @@ because the program was cut with the game's sound option off), `c12_prompts` and
 `slice.list` names the 440 programs the new compiler must pass (tier 2, `study\archive\19`), also with
 `QB64RUST_NO_FOLD=1`. Joined with `m3-arraycopy` (each left the recorded output on its first run):
 `s131_arraycopy` (`verification\v41_a`, `v41_b`, `v41_c`, `v41_f`, `v41_g`, `v41_h`, without `_FLOAT` arrays) and
-`s132_arraycopy_members` (`v41_d`, `v41_e`, `v41_k`); the two divergences of the change, `DIVERGENCES.md` D-004
+`s132_arraycopy_members` (`v41_d`, `v41_e`, `v41_k`); the two divergences of the change, `QB64PE-DIVERGENCES.md` D-004
 and D-025, are left out and held by CLI tests. `s131`'s recording holds NUL bytes, the elements of a `STRING * 3`
 array never set, which both compilers print alike. Joined with `m3-sound-handles` (each left the recorded output on its first run, and passed
 with the old compiler eight at a time): `s127_sound_handles` (`verification\v39_a`), `s128_sound_new_memory`
 (`v39_b`) and `s129_sound_files_raw_midi` (`v39_c`), which build their WAV and MIDI data in strings, play only
 silence or at volume 0, and print only what is exact on any sound device (design D5 of the change). Joined with
 `m3-measured-copies` (it left the recorded output on its first run):
-`s126_owner_copies` (`verification\v38_a`, `v38_b`, `v38_d`, without the cases of `DIVERGENCES.md` D-019,
+`s126_owner_copies` (`verification\v38_a`, `v38_b`, `v38_d`, without the cases of `QB64PE-DIVERGENCES.md` D-019,
 D-021 and D-022, which CLI tests hold; its first recording differed between the two runs where a `GET` that never
 read unpacks memory nobody wrote, and those lines were taken out). Joined with `m3-declare-library` (each left the recorded output on its first run):
 `s121_library_numbers` (`verification\v37_b`, `v37_c`, the `BYVAL` 0 forms of `x56`, `x58`, `x59`, `x63`, a block
@@ -229,17 +229,17 @@ libraries of `v37_lib` that must be built are left to the CLI tests. Joined with
 left the recorded output on its first run): `s119_whole_array` (the programs of `verification\v36_a`, `v36_b`,
 `v36_c`, `v36_f`, `x14`, `x17`, `x20`, `x36`, without `v36_a`'s suffixed names and with a literal that fits
 `_INTEGER64`) and `s120_whole_array_members` (`v36_d`, `v36_e`, `x33`, `x46`, `x47`, `x49`–`x51`; the two
-divergences of the change, `DIVERGENCES.md` D-004 and D-022, are left out and held by CLI tests).
+divergences of the change, `QB64PE-DIVERGENCES.md` D-004 and D-022, are left out and held by CLI tests).
 Joined with `m3-typefields` (each left the recorded output on its first run): `s118_dyn_member_files`
 (`verification\v35_e` 5.-6b, `v35_x55`, `v35_x65`; its lines 3 and 10, where the new compiler keeps a member
-with other bounds as it was (`DIVERGENCES.md` D-019), recorded from the program that
+with other bounds as it was (`QB64PE-DIVERGENCES.md` D-019), recorded from the program that
 gives the member its declared bounds, reads, raises `ERROR 9` and puts the member back in place of that `GET`),
 `s116_dyn_member_parents` (`verification\v35_b`, `v35_x51`), `s117_dyn_member_kinds` (`v35_c`, `x56`, `x57`,
 `x61`, `x62`, with a `.stdin`; its items 23, 38 and 39, where the new compiler stores nothing through an index
-outside (`DIVERGENCES.md` D-004), recorded from the program with the item read into `q$` and `ERROR 9` in place
+outside (`QB64PE-DIVERGENCES.md` D-004), recorded from the program with the item read into `q$` and `ERROR 9` in place
 of that read),
 `s114_dyn_members` (the programs of `verification\v35_a`, `v35_g`, `v35_x58`; its line 20, where the new compiler
-stores nothing through a parent index outside (`DIVERGENCES.md` D-004), recorded from the program with `ERROR 9` in
+stores nothing through a parent index outside (`QB64PE-DIVERGENCES.md` D-004), recorded from the program with `ERROR 9` in
 place of that store) and `s115_dyn_member_procs` (`v35_d`, and a bound named by a `CONST`, `v35_x17`). Joined with `m3-redim-retain` (each left the recorded output on its first run):
 `s112_redim_retain` and `s113_redim_retain_kinds` (the programs of `verification\v34_a`, `v34_b`, `v34_c`). Joined with `m3-asserts-debug-zlib` (every one left the recorded output on its first run):
 the six slice programs `s106_asserts`, `s107_assert_message`, `s108_asserts_off_debug`, `s109_data_processing`,

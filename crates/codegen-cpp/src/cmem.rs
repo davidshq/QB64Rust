@@ -41,7 +41,7 @@ impl Emitter<'_> {
                  memset({n}->chr,0,{k});\n}}\n"
             ),
             // Its strings are made as in ordinary memory, where the old compiler leaves them out and its program
-            // crashes at the first use of one (`qb64pe.bas` 17790–17852; `DIVERGENCES.md` D-037).
+            // crashes at the first use of one (`qb64pe.bas` 17790–17852; `QB64PE-DIVERGENCES.md` D-037).
             Ty::User(_) => {
                 let size = self.ty_size(v.ty);
                 let mut strings = self.new_value(v.ty, &format!("(char*){n}"));

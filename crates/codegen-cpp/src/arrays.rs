@@ -4,7 +4,7 @@
 //! sequence (`allocarray`, `qb64pe.bas` 15193–15531), whose order of checks and errors is measured (`study\00` §5):
 //! the new bounds are built in a descriptor of their own, the new block is made, the old one is released after
 //! it, and the array's descriptor is written last. One difference: a `REDIM` takes the old block after the bounds,
-//! not before them (`DIVERGENCES.md` D-018). The working variables are locals of the statement's block,
+//! not before them (`QB64PE-DIVERGENCES.md` D-018). The working variables are locals of the statement's block,
 //! where the old compiler has `static` ones: a FUNCTION called in a bound may run the same statement again.
 
 use crate::Emitter;
@@ -233,7 +233,7 @@ impl Emitter<'_> {
         if redim {
             // The old block (and with `_RETAIN` its bounds) is taken after the bounds, where the old compiler takes
             // it before them: a FUNCTION in a bound may give the array new bounds or erase it, and the old
-            // compiler then frees a block twice (`DIVERGENCES.md` D-018). It is kept until the new one exists;
+            // compiler then frees a block twice (`QB64PE-DIVERGENCES.md` D-018). It is kept until the new one exists;
             // `_MEM` blocks over it become invalid.
             out.push(format!(
                 "if ({n}[0]!=alloc_old_block||({n}[2]&1)!=alloc_old_set) qbr_diverged(18);"
@@ -448,7 +448,7 @@ impl Emitter<'_> {
     /// `CopyArray` (design D4 of `m3-whole-array-assign`): the old compiler's `AppendWholeArrayAssign`
     /// (`qb64pe.bas` 17272) with its names. The descriptors are taken target first, each finding its place once
     /// (a member array's as for an array argument, [`Self::member_array_arg`], or a dynamic member's own); when a
-    /// place may raise, nothing is copied after an error (`DIVERGENCES.md` D-004). Both must be allocated and have
+    /// place may raise, nothing is copied after an error (`QB64PE-DIVERGENCES.md` D-004). Both must be allocated and have
     /// the same bounds, else error 9; then the elements by kind: one move of the bytes where they hold nothing
     /// else, a string or a user type that holds strings element by element, an owner value deep in place
     /// ([`Self::copy_owner`]; the old compiler gives a `REDIM` target a new block, with the same values). A
@@ -542,7 +542,7 @@ impl Emitter<'_> {
     /// (`qb64pe.bas` 16855) checks them: both must be allocated, else error 9 and nothing is copied; other bounds
     /// raise error 9 and the copy goes on, element `i` of the target from element `i` of the source for every
     /// element of the target, deep, the target keeping its bounds. Only when the source has fewer elements, which
-    /// the old program reads past, is nothing copied (`DIVERGENCES.md` D-022; design D3 of `m3-measured-copies`).
+    /// the old program reads past, is nothing copied (`QB64PE-DIVERGENCES.md` D-022; design D3 of `m3-measured-copies`).
     fn copy_owner_array(&mut self, t: Ty, dims: usize, (dst, src): (&str, &str), out: &mut Vec<String>) {
         out.push("{".into());
         out.push(format!("ptrszint *whole_arr_dst={dst};"));
@@ -583,10 +583,10 @@ impl Emitter<'_> {
     /// `nd_range_at` (likewise), a whole source `1d_whole`, `1d_whole_at`, `nd_whole` or `nd_whole_at`; `_string`
     /// for `STRING`, else `_fixed` with the size of an element. A member side's descriptor is taken first, where
     /// its place is found (source, then destination); when a place may raise, nothing is copied after an error
-    /// there (`DIVERGENCES.md` D-004); the guard is taken before the bounds, so an error a bound raises does not
+    /// there (`QB64PE-DIVERGENCES.md` D-004); the guard is taken before the bounds, so an error a bound raises does not
     /// stop the copy, as in the old compiler. A dynamic member side whose number of dimensions a `REDIM` changed
     /// raises error 9 there and is not copied. A `_FLOAT` element is `sizeof(long double)` bytes from the next
-    /// (`DIVERGENCES.md` D-025: the old compiler passes 32, its `LEN`).
+    /// (`QB64PE-DIVERGENCES.md` D-025: the old compiler passes 32, its `LEN`).
     pub(crate) fn array_copy(
         &mut self,
         (from, to): (&ArrayRef, &ArrayRef),

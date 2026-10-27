@@ -686,7 +686,7 @@ class CorpusProgram(CorpusFixture):
     def test_a_row_the_program_does_not_list_fails(self):
         self.sidecar("output", b"1\n")
         r = self.run_test(Tools(runs=[b"1\n"], trace=b"D-004\r\nD-022\r\n"))
-        self.assert_fail(r, "divergences", "took D-004, D-022 of DIVERGENCES.md")
+        self.assert_fail(r, "divergences", "took D-004, D-022 of QB64PE-DIVERGENCES.md")
         self.sidecar("divergences", b"# the index outside on purpose\nD-004\n")
         r = self.run_test(Tools(runs=[b"1\n"], trace=b"D-004\nD-022\n"))
         self.assert_fail(r, "divergences", "took D-022 of")
@@ -1534,7 +1534,7 @@ class VerificationCompare(VerificationFixture):
     def test_a_divergence_not_listed_fails(self):
         self.recorded(b"1\nexit=0\n")
         tools = Tools(runs=[b"1\n"], trace=b"D-026\n")
-        self.assert_fail(self.run_test(tools), "divergences", "took D-026 of DIVERGENCES.md")
+        self.assert_fail(self.run_test(tools), "divergences", "took D-026 of QB64PE-DIVERGENCES.md")
         self.assertIn(rlt.TRACE_ENV, tools.run_envs[0])
         self.sidecar("divergences", b"D-026  # the math functions\n")
         self.assertEqual(self.run_test(Tools(runs=[b"1\n"], trace=b"D-026\n")).status, "PASS")

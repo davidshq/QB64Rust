@@ -76,8 +76,6 @@ three.
 | 6 | **Language work on the dialect**: warnings (unused variables and procedures, which the old IDE offers), then what users ask for | small per warning; a feature is a change | each is a divergence from QB64pe's acceptance set only if it rejects | a dialect fork if it goes past warnings | people who write new programs |
 | 7 | **Robustness beyond the suites**: more real programs (QB64pe's 143 `qbasic_testcases` run from the clone with only the recordings kept here, `SOMEDAY.md` "Other ideas"; public-domain QB64 programs with a licence), a fuzz target for the lexer and parser, the string and array differential group | moderate | the programs and their recordings | low | everyone, invisibly |
 | 8 | **Cut the standing cost** (§5.3): fewer rules, a thinner close, documents merged, the weekly CI job | small | less | low: a thinner close catches less; the full set at a merge stays | the user and every session |
-| 9 | *Decided: the dialect is frozen at 4.7.0 (`DECISIONS.md` 2026-10-26)* | | | | |
-| 10 | **Declare 1.0 and stop building**: M5b is the end; maintenance only | none | the minimum | none | the author's time |
 
 Not an option: a text-mode IDE, self-hosting, a strict QB 4.5 mode (decided 2026-10-02; nothing since has made
 them cheaper or wanted).

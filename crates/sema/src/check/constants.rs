@@ -21,7 +21,7 @@ use qb64rust_syntax::tree::Tok;
 impl Checker<'_> {
     /// `CONST name = value, ...`. Defines no statement: uses of the constants become literals.
     pub(super) fn const_stmt(&mut self, stmt: ast::ConstStmt) -> R<()> {
-        // A label before it on its line is no problem here (the old compiler fails, `DIVERGENCES.md` D-008).
+        // A label before it on its line is no problem here (the old compiler fails, `QB64PE-DIVERGENCES.md` D-008).
         self.stmt.const_at = Some(self.main_offset(stmt.node().key()));
         self.stmt.consts_before = self.consts_before.get(&stmt.node().key()).copied();
         let in_colors = self.color_file == Some(stmt.node().span().file);
@@ -53,7 +53,7 @@ impl Checker<'_> {
             let (ty, value) = self.problem(consteval::settle(value, suffix), name_tok.span)?;
             let fell_back = consteval::take_fallback();
             if fell_back {
-                // `DIVERGENCES.md` D-026: the old compiler's value depends on the CPU and the system's library.
+                // `QB64PE-DIVERGENCES.md` D-026: the old compiler's value depends on the CPU and the system's library.
                 self.diags.warning(
                     value_node.node().span(),
                     "this `CONST` is computed with correctly rounded math functions; QB64pe's value depends on the \

@@ -222,7 +222,7 @@ the answers. You don't need to know the right answer to every sum; any differenc
 extreme and random values, as variables and as literals (`tests\differential`). Each program's output is recorded
 once from `qb64pe.exe`; tier 2 compiles the same program with `qb64rust` and requires the same output. Only cases
 that crash the old compiler's program or fail to compile are left out (each program's header names them); any
-other difference is fixed in the new compiler or becomes a decided row in `DIVERGENCES.md`.
+other difference is fixed in the new compiler or becomes a decided row in `QB64PE-DIVERGENCES.md`.
 
 The **differential pass list** (`tests\differential\pass.list`) names the generated programs the new compiler must
 pass; tier 2 runs them.

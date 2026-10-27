@@ -4,7 +4,7 @@ $UNSTABLE:TYPEFIELDS
 ' Targets reached through a member with an index on the way (m3-typefields task 4.2, verification\v35_x62): a
 ' member of an element, an element of a fixed and of a dynamic member array, as targets of READ, INPUT from a
 ' file and from the console, LINE INPUT and the MID$ statement, numbers and strings. Stored by the rule of their
-' place: a number read before the indexes and not stored after an index outside (DIVERGENCES.md D-004), a string
+' place: a number read before the indexes and not stored after an index outside (QB64PE-DIVERGENCES.md D-004), a string
 ' after them; console INPUT evaluates every target's indexes after its prompt and before the line is read; MID$
 ' the index before the value.
 TYPE pt

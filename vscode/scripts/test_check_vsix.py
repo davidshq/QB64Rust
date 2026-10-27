@@ -67,6 +67,28 @@ class CheckTag(unittest.TestCase):
     def test_malformed_tag(self):
         self.assertEqual(len(cv.check_tag("v0.2.0", "0.2.0")), 1)
 
+    def test_cargo_version_equal(self):
+        self.assertEqual(cv.check_tag("vscode-v0.2.0", "0.2.0", "0.2.0"), [])
+
+    def test_cargo_version_differs(self):
+        problems = cv.check_tag("vscode-v0.3.0", "0.3.0", "0.2.0")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("0.2.0", problems[0])
+        self.assertIn("0.3.0", problems[0])
+
+    def test_cargo_version_read(self):
+        text = '[workspace]\nmembers = []\n\n[workspace.package]\nversion = "1.2.3"\n'
+        self.assertEqual(cv.cargo_version(text), "1.2.3")
+        cv.cargo_version(cv.CARGO_TOML.read_text(encoding="utf-8"))  # the repository's own parses
+
+
+class ReleaseNotes(unittest.TestCase):
+    def test_notes_end_with_the_assets_paragraph(self):
+        notes = cv.release_notes("New things.\n")
+        self.assertTrue(notes.startswith("New things.\n\n"))
+        self.assertTrue(notes.endswith(cv.ASSETS_PARAGRAPH))
+        self.assertIn("MANUAL.md", cv.ASSETS_PARAGRAPH)
+
 
 class ChangelogSection(unittest.TestCase):
     TEXT = "# Changelog\n\n## 0.2.0\n\nNew things.\n\n- a\n\n## 0.1.0\n\nOld things.\n"

@@ -63,7 +63,7 @@ judge a list from the last full compare (`results-verification.json`).
 - **THEN** it is compiled, not run, and reported as passed before
 
 ### Requirement: Divergences and normalisation of a compared program
-A run of the compare SHALL name a fresh trace file in `QB64RUST_DIVERGENCES`. A row of `DIVERGENCES.md` that
+A run of the compare SHALL name a fresh trace file in `QB64RUST_DIVERGENCES`. A row of `QB64PE-DIVERGENCES.md` that
 `tests\verification\divergences\<name>.divergences` does not list SHALL fail the program. When
 `tests\verification\normalize\<name>.normalize` exists, its rules SHALL be applied to both the recorded and the
 actual output before they are compared.
@@ -75,7 +75,7 @@ actual output before they are compared.
 ### Requirement: Pass list and known differences
 `tests\verification\pass.list` SHALL name programs that the new compiler passes, and comparing it SHALL pass
 every one. `tests\verification\known.list` SHALL name every other program of `verification\`, each with a reason:
-a row of `DIVERGENCES.md`, "not supported yet", "varies", "not recorded" (no `<name>.out.txt`), "recorded
+a row of `QB64PE-DIVERGENCES.md`, "not supported yet", "varies", "not recorded" (no `<name>.out.txt`), "recorded
 elsewhere" (recorded with another `--verification-root`), or "bug: <what>". No program SHALL be in both lists or
 in neither. A program of `known.list` that passes in a full compare SHALL be reported so that it can move to
 `pass.list`, unless its reason is "varies".

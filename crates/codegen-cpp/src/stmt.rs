@@ -56,7 +56,7 @@ impl Emitter<'_> {
                 out.push("end();".into());
             }
             // `qb64pe.bas` 9918–9919. In a program with `SUB _GL`, `STOP` inside it ends with error 271 as `END` and
-            // `SYSTEM` do there, where the old compiler's program hangs (`DIVERGENCES.md` D-036; measured,
+            // `SYSTEM` do there, where the old compiler's program hangs (`QB64PE-DIVERGENCES.md` D-036; measured,
             // `verification\v59_f9`); every other program's C++ is the old compiler's.
             Op::Stop => {
                 if self.p.settings.runtime_parts.contains(&qb64rust_ir::RuntimePart::Gl) {
@@ -225,7 +225,7 @@ impl Emitter<'_> {
                 self.returns = true;
                 out.push(format!("#include \"ret{}.txt\"", self.k));
             }
-            // The decrement is guarded, unlike the old compiler's, whose counter wrapped below zero (DIVERGENCES.md
+            // The decrement is guarded, unlike the old compiler's, whose counter wrapped below zero (QB64PE-DIVERGENCES.md
             // D-003).
             Op::Return(Some(l)) => {
                 out.push("if (!next_return_point){qbr_diverged_on(3);error(3);} else next_return_point--;".into());
@@ -524,7 +524,7 @@ impl Emitter<'_> {
     /// store is one call whose first argument, the place, is evaluated first). Each index is checked against
     /// its dimension, outermost first. The store is skipped when an index is out of range or the indexes
     /// raised an error while none was pending before them; the old compiler writes position 0 of that dimension
-    /// then (`DIVERGENCES.md` D-004). The block's own variables are in braces, so no `goto` crosses their
+    /// then (`QB64PE-DIVERGENCES.md` D-004). The block's own variables are in braces, so no `goto` crosses their
     /// initialisation.
     fn store_through_member(
         &mut self,

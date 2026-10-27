@@ -4,7 +4,7 @@
 The numeric rules of the language as QB64Rust implements them: how literals are typed, in which width arithmetic
 is computed, what happens on overflow, how floating-point values become integers. The reference is the observed
 behaviour of `qb64pe.exe` 4.7.0 (`16f629784e`) in its **default** build; each intentional difference is listed in
-`DIVERGENCES.md`. Every scenario is a measured example and is pinned by a test.
+`QB64PE-DIVERGENCES.md`. Every scenario is a measured example and is pinned by a test.
 
 ## Requirements
 
@@ -204,7 +204,7 @@ operands and in 64 bits with an `_INTEGER64`; a floating-point operand SHALL fir
 left one decides the result. `_NEGATE` SHALL give -1 for 0 and 0 otherwise. The operands of `_ANDALSO`, `_ORELSE`
 and `_NEGATE` SHALL be rounded like those of the other logical operators. A string operand SHALL be a compile
 error. `IMP`, like every other binary operator, SHALL be left-associative: `a IMP b IMP c` SHALL compute
-`(a IMP b) IMP c` (the old compiler computes `a OR b OR c`, `DIVERGENCES.md` D-005).
+`(a IMP b) IMP c` (the old compiler computes `a OR b OR c`, `QB64PE-DIVERGENCES.md` D-005).
 
 #### Scenario: Short-circuit operands are rounded
 - **WHEN** `PRINT 0.4 _ANDALSO 1; _NEGATE 0.4` runs
@@ -227,7 +227,7 @@ error. `IMP`, like every other binary operator, SHALL be left-associative: `a IM
 zero; `MOD` SHALL give the remainder with the sign of the dividend. A divisor of 0 SHALL raise error 11, which is
 fatal (not trappable; `DIVERGENCES-QB45.md` Q-003). The smallest value of a signed type divided by -1 SHALL raise
 error 6 (Overflow, trappable) with `\` and SHALL give 0 with `MOD` (the old compiler's program crashes,
-`DIVERGENCES.md` D-006).
+`QB64PE-DIVERGENCES.md` D-006).
 
 #### Scenario: Signs and rounding
 - **WHEN** `PRINT 7 \ 2; -7 \ 2; 7.5 \ 2; -7 MOD 3; 7.5 MOD 2` runs
@@ -325,7 +325,7 @@ SHALL be an `_OFFSET`, unsigned unless an `_OFFSET` operand is signed. Compariso
 ### Requirement: _BIT stores
 A store into a `_BIT * n` variable SHALL keep the value's low `n` bits; for a signed `_BIT * n` the result SHALL
 then be sign-extended from bit `n - 1`. A `_BIT * n` scalar SHALL have storage of its own (4 bytes for n up to 32, 8
-bytes above), so that two scalars never share bytes (`DIVERGENCES.md` D-009). A `_BIT` array SHALL be reported "not
+bytes above), so that two scalars never share bytes (`QB64PE-DIVERGENCES.md` D-009). A `_BIT` array SHALL be reported "not
 supported yet". In arithmetic and comparisons a `_BIT * n` of up to 32 bits SHALL count as its 32-bit storage
 type (signed or unsigned), as in the old compiler.
 

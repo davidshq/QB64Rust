@@ -6,5 +6,5 @@ corpus/runtime_comparison/126_print_comma.bas  # PRINT with a comma never ends w
 corpus/runtime_comparison/187_print_comma_zones.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
 corpus/runtime_comparison/251_print_chain.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
 corpus/runtime_comparison/80_print_semicolon.bas  # PRINT with a comma never ends when stdout is redirected (Windows console; KFAIL)
-upstream/const/math_funcs.bas  # checks _COTH(.2) against QB64pe's 2 * EXP(x) - 1; here the hyperbolic cotangent (DIVERGENCES.md D-031, const-rulings), so its COTH line prints -1  0
+upstream/const/math_funcs.bas  # checks _COTH(.2) against QB64pe's 2 * EXP(x) - 1; here the hyperbolic cotangent (QB64PE-DIVERGENCES.md D-031, const-rulings), so its COTH line prints -1  0
 upstream/http/read_example.bas  # downloads www.example.com and compares it with a saved copy; the site changed (KFAIL, tools/legacy_tests/known_failures.txt)

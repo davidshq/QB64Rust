@@ -153,7 +153,7 @@ changing direction, design or scope.**
 12. **Where QB64pe's own result depends on the machine, do not build to match it bit for bit** (`study\35` §3
     item 4, user, 2026-10-18). When the old compiler's value comes from the CPU or the libraries `qb64pe.exe` was
     built with (x87 instructions, the C runtime's math), take a well-defined value (correctly rounded, as D-026)
-    with a `DIVERGENCES.md` row, and say so in the design in a paragraph, not a module. The fidelity already built
+    with a `QB64PE-DIVERGENCES.md` row, and say so in the design in a paragraph, not a module. The fidelity already built
     (the software `_FLOAT`, the certification of the math constants) stays; this rule does not remove it.
 
 ## Project decisions

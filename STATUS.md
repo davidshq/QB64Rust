@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-26 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-10-27 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -10,18 +10,19 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 |---|---|
 | What a change did, task by task, and what was found on the way | the change's `tasks.md` and `design.md` under `openspec\changes\` (archived ones in `archive\`), and `git log` |
 | A measured fact about the old compiler | the family's recorded output and its line in `verification\README.md`; the families up to `v45` also in `study\00` §5 (closed to new facts, `CLAUDE.md` working rule 11) |
-| A decision | `DECISIONS.md`; a decided difference from QB64pe: `DIVERGENCES.md` |
+| A decision | `DECISIONS.md`; a decided difference from QB64pe: `QB64PE-DIVERGENCES.md` |
 | What the compiler supports | the merged specs under `openspec\specs\` (an index by area: `crates\README.md`, "What the compiler supports"); how a change built it: its `design.md` |
 | How to build and test it | `crates\README.md`; per test set: `tests\*\README.md` |
-| Milestones, done and not done | `ROADMAP.md` |
+| Milestones, done and not done | `ROADMAP.md` (open), `ROADMAP-COMPLETED.md` (done) |
 | History up to 2026-10-09 (what this file held before) | `study\archive\progress-record.md` (closed) |
 
 ## Where we are
 
-M0 to M5 are complete (`ROADMAP.md`; M3 declared done at the merge of pull request 9, user, 2026-10-18,
+M0 to M5 are complete (`ROADMAP-COMPLETED.md`; M3 declared done at the merge of pull request 9, user, 2026-10-18,
 tenth review `study\35` §3 item 1; M4 at the merge of branch `m4-sub-gl`, user, 2026-10-24, `DECISIONS.md`, what
-its list left open moved to `SOMEDAY.md`; M5, the debugger, at the merge of pull request 17, user, 2026-10-26).
-Every item of M5b, the formatter and the language-server features, is built (branch `mb5`). Twenty-two M3 steps are built and archived
+its list left open moved to `SOMEDAY.md`; M5, the debugger, at the merge of pull request 17, user, 2026-10-26;
+M5b, the formatter and the language-server features, at the merge of pull request 18, 2026-10-26). M6 has begun:
+`m6-toolchain` is archived, `m6-compiler-download` built (waits for review). Twenty-two M3 steps are built and archived
 (table below), the last `m3-constant-evaluation` (`4f647a9`); `test-parallel-runs` and `test-while-building` (the test
 cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
@@ -30,10 +31,12 @@ Civil War Strategy compiles with no diagnostic, builds, and played for two turns
 (`cws-whole-game`). Upstream is at 402 of 404 (the two left are out of scope: `http/read_example`,
 `const/math_funcs`); the verification families are a suite of the new compiler, 3890 programs on
 `tests\verification\pass.list`. M4's first fourteen changes went into `main` through pull requests 12 to 14
-(`ROADMAP.md`, M4). Pull request 15 (`311c0bb`, 2026-10-25) merged branch `m4-sub-gl`, M4's last three changes (`m4-sub-gl`,
+(`ROADMAP-COMPLETED.md`, M4). Pull request 15 (`311c0bb`, 2026-10-25) merged branch `m4-sub-gl`, M4's last three changes (`m4-sub-gl`,
 `m4-left-marked`, `m4-coverage-review`). Pull request 17 (`a81180a`, 2026-10-26) merged branch `m5`: M5's three
-changes (`m5-debug-build-symbols`, `m5-dap-proxy`, `m5-debug-launch`) and `m5b-formatter`. Branch `mb5` holds
-`m5b-format-settings` and `m5b-language-features` since; the full set for its merge passed on its tree (below).
+changes (`m5-debug-build-symbols`, `m5-dap-proxy`, `m5-debug-launch`) and `m5b-formatter`. Pull request 18
+(`fa91454`, 2026-10-26) merged branch `mb5`: `m5b-format-settings` and `m5b-language-features`. Branch
+`more-stuff` holds since `qbasic-testcases` (all 143 of QB64pe's qbasic programs build), `m6-toolchain` (both
+archived), the QB 4.5 oracle (`tools\qb45`), study 39 and the purpose; it is not yet in `main`.
 The extension's first release is tagged `vscode-v0.2.0`.
 
 ## Waiting on the user
@@ -46,7 +49,7 @@ working rule 11).
 1. **The project's direction** (`study\38` §7, 2026-10-26): the purpose is decided, a QB64 for anyone
    (`ROADMAP.md` "Purpose", `DECISIONS.md` 2026-10-26); still open: the release work of §5.2 (usable
    without QB64pe is decided and built: `m6-toolchain`, `DECISIONS.md` 2026-10-26; the compiler as its own
-   download is decided, `DECISIONS.md` 2026-10-26, not yet built; still open: the `UPSTREAM.md` issues; the
+   download is decided and built, `m6-compiler-download`, first published at the next `vscode-v*` tag; still open: the `UPSTREAM.md` issues; the
    Marketplace, yes or no); the cuts
    of §5.3 (the policy on QB64pe releases is decided: frozen at 4.7.0, `DECISIONS.md` 2026-10-26; the 165 rows stay, as candidates
    for fixes behind a switch; still open: a thinner close, merged documents, the weekly CI job); the direction after that (§5.4,
@@ -62,17 +65,14 @@ push shows them (the user is not concerned with CI, working rule 9).
 
 ## Next
 
-1. Branch `mb5` (`m5b-format-settings`, `m5b-language-features`) goes into `main` by a pull request; the full set
-   for the merge passed on its tree (below). With it M5b is to be declared done (`ROADMAP.md`). The change
-   `qbasic-testcases` (all 143 of QB64pe's qbasic programs build: addresses in procedures, `CALL ABSOLUTE`, members
-   named like keywords; the qbasic suite and the converter test in the closing set) is built and its closing runs
-   pass, in the working tree of `mb5`; it waits for the user's review, then `/opsx:archive`.
-2. The change `m6-toolchain` (`qb64rust` builds and debugs without QB64pe: the pinned llvm-mingw release, installed
-   by `qb64rust toolchain install` or the extension's offer, only when the user agrees) is done and archived
-   (`openspec\changes\archive\2026-10-26-m6-toolchain`); its specs are synced (new `compiler/toolchain`).
-3. M6, runtime modernisation (`ROADMAP.md`): a study first, `study\37` (what M6 is for, where it starts and where
+1. The change `m6-compiler-download` (`openspec\changes\m6-compiler-download`) is built and its closing runs
+   pass (`close.py --check`, 2026-10-27): the compiler as a zip on the `vscode-v*` release beside the `.vsix`,
+   libqb found beside the executable, `--version` and `--help`, `MANUAL.md`, the workspace version 0.2.0. It waits
+   for the user's review, then `/opsx:archive`. The first release with the zip is the user's next `vscode-v*` tag,
+   with `package.json` and `Cargo.toml` raised together.
+2. M6, runtime modernisation (`ROADMAP.md`): a study first, `study\37` (what M6 is for, where it starts and where
    it stops, with the review that comes with this merge), then the user's decision on its scope.
-4. The fixes switch and the crash-class rulings (`study\39`, rows 1–19, user, 2026-10-26): `qb64rust.toml` and
+3. The fixes switch and the crash-class rulings (`study\39`, rows 1–19, user, 2026-10-26): `qb64rust.toml` and
    the flags, the always-on fixes and the switched ones, each with its measurement under QB64pe first. Not started;
    a change (or two: the switch with the codegen fixes, then the libqb edits) proposed when it starts.
 
@@ -168,6 +168,12 @@ coverage check of Civil War Strategy's scripts passes.
 
 
 ## Known bugs
+
+- `verification\v32_d33_free_zero_size` frees a block twice (`_MEMFREE` of a `_MEMNEW(0)` block, as libqb does),
+  and whether that crashes (exit 127 recorded) depends on the heap: at the close of `m6-compiler-download`
+  (2026-10-27) it printed `after` once at `--jobs 8` and in the runner's retry, and passed in the next run; the old
+  compiler's own `v32_d33_free_zero_size.exe` printed `after` and exited 0 in 1 of 3 runs alone, so did the new
+  build. Not the compiler's; it stays on `pass.list` until it fails again.
 
 - `verification\v39_a_handles` recorded `_SNDGETPOS` and `_SNDLEN` of a raw sound at a sound device of 44100 Hz
   (`.1249886602163315`); at the close of `m4-builtins-remaining` (2026-10-24) the machine's device gave `.125`

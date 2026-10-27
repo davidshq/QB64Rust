@@ -3,7 +3,7 @@ $Console:Only
 ' _COSH, _TANH, _COT, _CSC, _SEC, _D2R, _R2D, _CEIL with an argument of every kind (a SINGLE is computed as a
 ' float by the std:: functions, an integer as a double), in arithmetic, at the values where _COT, _CSC and _SEC
 ' raise error 5, at large values; _STRCMP and _STRICMP. _COTH only as above 1: the old compiler's is 2 * EXP(x) - 1,
-' the hyperbolic cotangent here (DIVERGENCES.md D-031; its values in the CLI test const_rulings_run).
+' the hyperbolic cotangent here (QB64PE-DIVERGENCES.md D-031; its values in the CLI test const_rulings_run).
 On Error GoTo h
 Dim i As Integer, l As Long, q As _Integer64, s As Single, d As Double, f As _Float, a As String, b As String
 i = 1: l = 1: q = 1: s = .5: d = .5: f = .5

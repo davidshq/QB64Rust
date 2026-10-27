@@ -92,6 +92,12 @@ version,session,change,category,actions,bytes
 1,033fec93,m4-builtins-remaining,other,1,0
 1,033fec93,m4-builtins-remaining,other commands,4,0
 1,033fec93,m4-builtins-remaining,test runs,1,0
+1,041e604f,,documents and planning,1,64
+1,041e604f,,other commands,3,0
+1,041e604f,,reading,2,0
+1,041e604f,qbasic-testcases,other,2,1688
+1,041e604f,qbasic-testcases,other commands,11,0
+1,041e604f,qbasic-testcases,test runs,1,0
 1,042d2eb1,,other commands,4,0
 1,042d2eb1,,reading,1,0
 1,042d2eb1,m1-vscode-extension-v0,documents and planning,3,1256
@@ -457,6 +463,13 @@ version,session,change,category,actions,bytes
 1,2293eaae,m2-parser-breadth,test runs,7,0
 1,2293eaae,m2-parser-breadth,tests and fixtures,1,110
 1,2309881c,,other commands,4,0
+1,2348e62c,,documents and planning,2,419
+1,2348e62c,,other commands,1,0
+1,2348e62c,,reading,4,0
+1,2348e62c,m6-toolchain,other,3,3534
+1,2348e62c,m6-toolchain,other commands,7,0
+1,2348e62c,m6-toolchain,reading,2,0
+1,2348e62c,m6-toolchain,test runs,1,0
 1,239496b4,,other commands,2,0
 1,248bdaa7,,builds,1,0
 1,248bdaa7,,documents and planning,2,772
@@ -484,6 +497,13 @@ version,session,change,category,actions,bytes
 1,27901f4c,,product code,4,945
 1,27901f4c,,reading,10,0
 1,27901f4c,,test runs,4,0
+1,27cfba45,,documents and planning,5,2717
+1,27cfba45,,measurement runs,4,0
+1,27cfba45,,other commands,35,0
+1,27cfba45,,product code,1,199
+1,27cfba45,,reading,21,0
+1,27cfba45,,test runs,16,0
+1,27cfba45,,tests and fixtures,20,6833
 1,28041ce0,,measurement runs,3,0
 1,28041ce0,,other,1,0
 1,28041ce0,,other commands,6,0
@@ -647,6 +667,14 @@ version,session,change,category,actions,bytes
 1,34da0406,m3-declare-library,reading,12,0
 1,34da0406,m3-declare-library,scratch files,1,426
 1,34da0406,m3-declare-library,test runs,7,0
+1,35640411,,documents and planning,2,932
+1,35640411,,other,2,0
+1,35640411,,other commands,16,0
+1,35640411,,reading,3,0
+1,35640411,m6-compiler-download,documents and planning,8,31991
+1,35640411,m6-compiler-download,other commands,5,0
+1,35640411,m6-compiler-download,reading,2,0
+1,35640411,m6-compiler-download,test runs,1,0
 1,36ac8a27,cws-whole-game,builds,2,0
 1,36ac8a27,cws-whole-game,documents and planning,11,4442
 1,36ac8a27,cws-whole-game,measurement preparation,3,3680
@@ -658,6 +686,11 @@ version,session,change,category,actions,bytes
 1,36ac8a27,cws-whole-game,scratch files,27,31683
 1,36ac8a27,cws-whole-game,test runs,56,0
 1,36ac8a27,cws-whole-game,tests and fixtures,53,83233
+1,370b62c1,,other commands,1,0
+1,370b62c1,,reading,2,0
+1,370b62c1,m6-toolchain,documents and planning,5,501
+1,370b62c1,m6-toolchain,other commands,2,0
+1,370b62c1,m6-toolchain,reading,1,0
 1,3814c23a,,documents and planning,17,15207
 1,3814c23a,,other,5,0
 1,3814c23a,,other commands,28,0
@@ -970,6 +1003,11 @@ version,session,change,category,actions,bytes
 1,46fc6e14,m5b-language-features,reading,1,0
 1,46fc6e14,m5b-language-features,test runs,3,0
 1,46fc6e14,m5b-language-features,tests and fixtures,12,1810
+1,470a8492,,builds,1,0
+1,470a8492,,measurement runs,4,0
+1,470a8492,,other,2,0
+1,470a8492,,other commands,16,0
+1,4853627a,,other commands,7,0
 1,48da4aa3,qbasic-testcases,builds,11,0
 1,48da4aa3,qbasic-testcases,documents and planning,31,13046
 1,48da4aa3,qbasic-testcases,measurement preparation,45,25589
@@ -982,6 +1020,11 @@ version,session,change,category,actions,bytes
 1,48da4aa3,qbasic-testcases,test runs,40,0
 1,48da4aa3,qbasic-testcases,tests and fixtures,22,10530
 1,490e3a42,m3-images-fonts-mouse,other commands,1,0
+1,4a37e7d1,,documents and planning,7,1359
+1,4a37e7d1,,other,4,2355
+1,4a37e7d1,,other commands,27,0
+1,4a37e7d1,,reading,17,0
+1,4a37e7d1,,test runs,2,0
 1,4a9a821b,,other commands,1,0
 1,4a9a821b,verification-compare,documents and planning,1,152
 1,4a9a821b,verification-compare,measurement preparation,2,357
@@ -1088,6 +1131,15 @@ version,session,change,category,actions,bytes
 1,4f75ad0f,m2-numeric-types,other commands,33,0
 1,4f75ad0f,m2-numeric-types,reading,29,0
 1,4f75ad0f,m2-numeric-types,test runs,5,0
+1,50345d8e,,other commands,1,0
+1,50345d8e,m6-compiler-download,builds,6,0
+1,50345d8e,m6-compiler-download,documents and planning,20,12930
+1,50345d8e,m6-compiler-download,other,4,553
+1,50345d8e,m6-compiler-download,other commands,75,0
+1,50345d8e,m6-compiler-download,product code,17,19624
+1,50345d8e,m6-compiler-download,reading,27,0
+1,50345d8e,m6-compiler-download,test runs,46,0
+1,50345d8e,m6-compiler-download,tests and fixtures,9,13658
 1,5087a0db,,other commands,1,0
 1,5087a0db,,reading,1,0
 1,5087a0db,m2-workspace-and-slice,builds,1,0
@@ -1896,14 +1948,17 @@ version,session,change,category,actions,bytes
 1,838d3f3c,,reading,10,0
 1,838d3f3c,,test runs,5,0
 1,838d3f3c,,tests and fixtures,1,2306
+1,83f1e9b8,,documents and planning,2,744
+1,83f1e9b8,,other commands,3,0
+1,83f1e9b8,,reading,2,0
 1,8444969c,m3-declare-library,other commands,1,0
 1,848ca641,m6-toolchain,builds,3,0
-1,848ca641,m6-toolchain,documents and planning,5,4313
+1,848ca641,m6-toolchain,documents and planning,7,6507
 1,848ca641,m6-toolchain,other,11,52127
-1,848ca641,m6-toolchain,other commands,83,0
-1,848ca641,m6-toolchain,product code,40,83744
-1,848ca641,m6-toolchain,reading,15,0
-1,848ca641,m6-toolchain,test runs,32,0
+1,848ca641,m6-toolchain,other commands,91,0
+1,848ca641,m6-toolchain,product code,48,94344
+1,848ca641,m6-toolchain,reading,33,0
+1,848ca641,m6-toolchain,test runs,35,0
 1,848ca641,m6-toolchain,tests and fixtures,1,208
 1,84cc9ddb,,other commands,1,0
 1,84cc9ddb,m4-builtins-remaining,builds,10,0
@@ -2039,6 +2094,10 @@ version,session,change,category,actions,bytes
 1,8f0a8bf1,m4-qb64pe-builtins,scratch files,5,14233
 1,8f0a8bf1,m4-qb64pe-builtins,test runs,59,0
 1,8f0a8bf1,m4-qb64pe-builtins,tests and fixtures,21,8533
+1,8f0c2a65,,documents and planning,4,1863
+1,8f0c2a65,,other,1,4010
+1,8f0c2a65,,other commands,8,0
+1,8f0c2a65,,reading,10,0
 1,8f6b12de,,builds,3,0
 1,8f6b12de,,other,1,0
 1,8f6b12de,,other commands,31,0
@@ -2104,6 +2163,14 @@ version,session,change,category,actions,bytes
 1,9793c5ff,m2-control-flow-slice,reading,6,0
 1,9793c5ff,m2-control-flow-slice,test runs,6,0
 1,9793c5ff,m2-control-flow-slice,tests and fixtures,22,28058
+1,98c24968,,documents and planning,32,36946
+1,98c24968,,measurement preparation,9,4852
+1,98c24968,,other,15,7242
+1,98c24968,,other commands,105,0
+1,98c24968,,reading,24,0
+1,98c24968,,test runs,12,0
+1,98c24968,,tests and fixtures,16,13733
+1,98c24968,m6-compiler-download,other commands,6,0
 1,9954616d,,measurement preparation,3,3334
 1,9954616d,,measurement runs,3,0
 1,9954616d,,other,2,0
@@ -2211,6 +2278,8 @@ version,session,change,category,actions,bytes
 1,a1c7adca,m4-line-numbers-whole-arrays,reading,1,0
 1,a1c7adca,m4-line-numbers-whole-arrays,scratch files,1,2668
 1,a1c7adca,m4-line-numbers-whole-arrays,test runs,19,0
+1,a225b3be,,builds,2,0
+1,a225b3be,,reading,1,0
 1,a23d75cf,,other commands,2,0
 1,a23d75cf,,reading,1,0
 1,a23d75cf,m2-console-screenhide,documents and planning,43,11616
@@ -2268,6 +2337,14 @@ version,session,change,category,actions,bytes
 1,a70893be,m3-constant-evaluation,documents and planning,2,6281
 1,a70893be,m3-constant-evaluation,other commands,9,0
 1,a70893be,m3-constant-evaluation,test runs,2,0
+1,a73683be,,other,1,0
+1,a73683be,,reading,10,0
+1,a73683be,m6-toolchain,documents and planning,3,2211
+1,a73683be,m6-toolchain,other commands,4,0
+1,a73683be,m6-toolchain,product code,17,7417
+1,a73683be,m6-toolchain,reading,24,0
+1,a73683be,m6-toolchain,test runs,4,0
+1,a73683be,m6-toolchain,tests and fixtures,2,821
 1,a741c6ff,,other,1,0
 1,a741c6ff,,other commands,1,0
 1,a741c6ff,,reading,6,0
@@ -2575,6 +2652,9 @@ version,session,change,category,actions,bytes
 1,c3c2ea20,,scratch files,5,13798
 1,c3c2ea20,,test runs,18,0
 1,c3c2ea20,,tests and fixtures,51,73759
+1,c3e9c19b,,documents and planning,20,3830
+1,c3e9c19b,,other commands,9,0
+1,c3e9c19b,,reading,6,0
 1,c411b566,,documents and planning,2,236
 1,c411b566,,other commands,1,0
 1,c411b566,,test runs,1,0

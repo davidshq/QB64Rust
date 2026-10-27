@@ -9,7 +9,7 @@ each the commit's file byte for byte under its relative path, but for the edits 
 against it with `make -C libqb` (design of the OpenSpec change `libqb-copy`); the libqb objects it builds here are
 git-ignored.
 
-Edits of this project, applied by the tool after copying (each file's header says why; `DIVERGENCES.md` has the
+Edits of this project, applied by the tool after copying (each file's header says why; `QB64PE-DIVERGENCES.md` has the
 row, `UPSTREAM.md` the fix as offered to QB64pe):
 
 - `tools/libqb/edits/d031-coth.edit`: `internal/c/libqb/include/extended_math.h`

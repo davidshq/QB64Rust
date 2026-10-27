@@ -93,7 +93,7 @@ NUMBERED = re.compile(
 )
 # An integer literal with the `long long`, the `unsigned` or the `unsigned long long` suffix (rule 5).
 SUFFIXED = re.compile(r"^(\d+)(ull|ll|u)$")
-# The new compiler's wrappers that trace a row of DIVERGENCES.md on every call, and the libqb function each calls
+# The new compiler's wrappers that trace a row of QB64PE-DIVERGENCES.md on every call, and the libqb function each calls
 # with the same arguments (rule 7).
 WRAPPERS = {"qbr_coth": "func_coth"}
 

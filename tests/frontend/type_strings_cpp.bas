@@ -5,7 +5,7 @@ $CONSOLE:ONLY
 ' static array in maindata.txt, a local in dataK.txt, a dynamic array in its allocation) and loses them when it
 ' goes (mainfree.txt, freeK.txt, a release, the old block of a REDIM); ERASE of a static array empties them
 ' (clear.txt does the same), REDIM _PRESERVE copies the kept elements part by part. A store into a member of an
-' element copies the value first and is skipped after an index outside (DIVERGENCES.md D-004).
+' element copies the value first and is skipped after an index outside (QB64PE-DIVERGENCES.md D-004).
 TYPE ts
     n AS STRING
     v AS LONG

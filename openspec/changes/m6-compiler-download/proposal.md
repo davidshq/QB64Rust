@@ -28,7 +28,7 @@ libqb in the repository it was built from (`build.rs` `find_libqb`), a path that
   (`package.json`, 0.2.0) and kept equal to it: the release fails before building when the two differ.
 - **A manual**, `MANUAL.md`, shipped in the zip: what the download is, unpacking it, `qb64rust toolchain install`,
   compiling and running a program, the options a user needs, the exit statuses, where it differs from QB64pe
-  (`DIVERGENCES.md`), and how to report a problem.
+  (`QB64PE-DIVERGENCES.md`), and how to report a problem.
 
 Not in this change: the Marketplace listing (still the user's open question), Linux and macOS builds, an
 installer or `PATH` setup, a compiler-only release tag.

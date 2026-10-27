@@ -849,6 +849,44 @@ fn no_libqb_copy_found() {
     assert_eq!(compile(&["-z"]).status.code(), Some(0));
 }
 
+/// `--version` prints the release's version (spec `compiler/cli`, scenario "Version").
+#[test]
+fn version() {
+    let d = scratch("version");
+    let o = qb64rust(&d, &["--version"]);
+    assert_eq!(o.status.code(), Some(0));
+    assert_eq!(stdout(&o), format!("qb64rust {}\n", env!("CARGO_PKG_VERSION")));
+}
+
+/// `--help` and `-h` print the usage, which names `toolchain install` (spec `compiler/cli`, scenario "Help").
+#[test]
+fn help() {
+    let d = scratch("help");
+    for word in ["--help", "-h"] {
+        let o = qb64rust(&d, &[word]);
+        assert_eq!(o.status.code(), Some(0), "{word}");
+        let out = stdout(&o);
+        assert!(
+            out.starts_with("usage: qb64rust") && out.contains("toolchain install"),
+            "{word}: {out}"
+        );
+    }
+}
+
+/// `--version` with another argument is a usage error (spec `compiler/cli`, scenario "With other arguments").
+#[test]
+#[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
+fn version_with_other_arguments() {
+    let d = scratch("version-args");
+    let o = qb64rust(&d, &["--version", "p.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let err = String::from_utf8_lossy(&o.stderr);
+    assert!(
+        err.contains("`--version` takes no other argument") && err.contains("usage: qb64rust"),
+        "{err}"
+    );
+}
+
 /// A machine without a QB64pe folder and without an installed toolchain, for `cmd`: `QB64RUST_QB64PE_ROOT` empty
 /// (no QB64pe folder, not even the default clone), `QB64RUST_TOOLCHAIN_HOME` the empty folder `home`, no
 /// `QB64RUST_TOOLCHAIN_ROOT` (design D5, D7 of `m6-toolchain`).
@@ -1081,7 +1119,7 @@ fn library_without_a_qb64pe_folder() {
 }
 
 /// `RETURN label` with no `GOSUB` pending raises error 3 and leaves the `GOSUB` stack intact, so a later `GOSUB`
-/// and `RETURN` work (`DIVERGENCES.md` D-003; the old compiler's program crashes at that `GOSUB`, so this cannot be
+/// and `RETURN` work (`QB64PE-DIVERGENCES.md` D-003; the old compiler's program crashes at that `GOSUB`, so this cannot be
 /// a corpus program recorded with `qb64pe.exe`). The error is serviced at the label `RETURN` jumps to.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1097,7 +1135,7 @@ fn return_label_with_nothing_pending() {
 }
 
 /// A store into a member of an element whose index is out of range, or raises with no error pending before it,
-/// stores nothing (`DIVERGENCES.md` D-004; the old compiler writes element 0, so this cannot be a corpus program
+/// stores nothing (`QB64PE-DIVERGENCES.md` D-004; the old compiler writes element 0, so this cannot be a corpus program
 /// recorded with `qb64pe.exe`). The value is still evaluated first: with both raising, `ERR` is the value's error.
 /// A raising value with a good index is stored as its placeholder, as in the old compiler.
 #[test]
@@ -1117,7 +1155,7 @@ fn member_store_with_bad_index() {
     );
 }
 
-/// The same for an element of a member array (`DIVERGENCES.md` D-004, design D8 of `m2-defxxx-common-arrays`): a
+/// The same for an element of a member array (`QB64PE-DIVERGENCES.md` D-004, design D8 of `m2-defxxx-common-arrays`): a
 /// store with an index outside its bounds, of the member array or of an array on the way to it, stores nothing,
 /// a number and a string alike; the old compiler writes position 0 of that dimension (measured,
 /// `verification\v24_h_member_store`, `v24_x313`). With the value raising too, `ERR` is the value's error; a
@@ -1144,7 +1182,7 @@ fn member_array_store_with_bad_index() {
 }
 
 /// A `_BIT * n` scalar wider than 32 bits has 8 bytes of its own, so a store into it leaves the `_BIT` scalar
-/// declared before it alone (`DIVERGENCES.md` D-009; the old compiler reserves 4 bytes and overwrites that
+/// declared before it alone (`QB64PE-DIVERGENCES.md` D-009; the old compiler reserves 4 bytes and overwrites that
 /// neighbour, printing ` 4294967295 ` and ` 0 ` here, so this cannot be a corpus program recorded with `qb64pe.exe`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1612,7 +1650,7 @@ fn build_and_run(d: &Path, program: &str) -> String {
     build_and_run_tracing(d, program, "")
 }
 
-/// [`build_and_run`] of a program that takes the paths of rows of `DIVERGENCES.md`: the run-time trace
+/// [`build_and_run`] of a program that takes the paths of rows of `QB64PE-DIVERGENCES.md`: the run-time trace
 /// (`QB64RUST_DIVERGENCES`, design D1 of `m3-divergence-trace`) must name exactly `rows`, one `D-0nn` line each, in
 /// the order the program first takes them.
 fn build_and_run_tracing(d: &Path, program: &str, rows: &str) -> String {
@@ -1634,7 +1672,11 @@ fn build_and_run_tracing(d: &Path, program: &str, rows: &str) -> String {
         .into_iter()
         .filter(|&b| b != b'\r')
         .collect();
-    assert_eq!(taken, rows.as_bytes(), "the rows of DIVERGENCES.md the program took");
+    assert_eq!(
+        taken,
+        rows.as_bytes(),
+        "the rows of QB64PE-DIVERGENCES.md the program took"
+    );
     stdout(&run).replace("\r\n", "\n")
 }
 
@@ -1727,7 +1769,7 @@ fn coverage_build_names_builtins() {
     );
 }
 
-/// `a IMP b IMP c` is `(a IMP b) IMP c` (`DIVERGENCES.md` D-005: the old compiler computes `5 OR 3 OR 0`, 7, so this
+/// `a IMP b IMP c` is `(a IMP b) IMP c` (`QB64PE-DIVERGENCES.md` D-005: the old compiler computes `5 OR 3 OR 0`, 7, so this
 /// cannot be a recorded corpus program).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1737,7 +1779,7 @@ fn imp_chain_is_left_to_right() {
     assert_eq!(build_and_run(&d, program), " 4 \n 4 \n");
 }
 
-/// The smallest LONG or `_INTEGER64` divided by -1 raises error 6, and `MOD -1` gives 0 (`DIVERGENCES.md` D-006: the
+/// The smallest LONG or `_INTEGER64` divided by -1 raises error 6, and `MOD -1` gives 0 (`QB64PE-DIVERGENCES.md` D-006: the
 /// old program crashes).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1752,7 +1794,7 @@ fn smallest_integer_divided_by_minus_one() {
     );
 }
 
-/// A FUNCTION in a bound of a `REDIM` that gives the same array new bounds or erases it (`DIVERGENCES.md` D-018:
+/// A FUNCTION in a bound of a `REDIM` that gives the same array new bounds or erases it (`QB64PE-DIVERGENCES.md` D-018:
 /// the old compiler takes the old block before the bounds and frees it twice, ending the program with no output,
 /// `verification\v34_d`). Here the old block is taken after the bounds: plain `REDIM` gives new elements,
 /// `_PRESERVE` keeps the FUNCTION's elements by flat position and `_RETAIN` by their indexes.
@@ -1774,7 +1816,7 @@ fn redim_with_a_bound_that_redims() {
 }
 
 /// `GET` of a whole array whose type has a dynamic member array, into an element whose member has other bounds and
-/// fewer elements than declared, raises error 9, reads the rest and keeps that member as it was (`DIVERGENCES.md`
+/// fewer elements than declared, raises error 9, reads the rest and keeps that member as it was (`QB64PE-DIVERGENCES.md`
 /// D-019: the old compiler writes the declared bytes past the member's block, `verification\v35_e_dyn_statements`
 /// 6., `v38_b` 4.).
 #[test]
@@ -1791,7 +1833,7 @@ fn get_into_a_dynamic_member_with_other_bounds() {
 }
 
 /// A `REDIM` of a dynamic member array to more than memory holds ends the program with "Out of memory"
-/// (`DIVERGENCES.md` D-020: the old compiler's size overflows unchecked, `verification\v35_g3_dyn_bound_too_large`).
+/// (`QB64PE-DIVERGENCES.md` D-020: the old compiler's size overflows unchecked, `verification\v35_g3_dyn_bound_too_large`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn redim_of_a_dynamic_member_too_large() {
@@ -1805,7 +1847,7 @@ fn redim_of_a_dynamic_member_too_large() {
 }
 
 /// `_MEM` of a dynamic member array that is not allocated, and `GET` of a whole array of its type into an erased
-/// array, raise error 9 and go on (`DIVERGENCES.md` D-021: the old program crashes, or ends with "Out of memory",
+/// array, raise error 9 and go on (`QB64PE-DIVERGENCES.md` D-021: the old program crashes, or ends with "Out of memory",
 /// `verification\v35_x66`, `x67`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1855,7 +1897,7 @@ fn an_error_that_ends_the_program_traces_nothing() {
 }
 
 /// `GET` of a whole array whose type has a dynamic member array unpacks the statement's buffer whatever its read
-/// raised, as the old compiler does; where that statement never read, the buffer holds zeros (`DIVERGENCES.md`
+/// raised, as the old compiler does; where that statement never read, the buffer holds zeros (`QB64PE-DIVERGENCES.md`
 /// D-021: the old program reads memory nobody wrote, which gave other values on each run, `verification\v38_a`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1872,7 +1914,7 @@ fn get_after_a_failed_read_unpacks_zeros() {
 }
 
 /// A whole-array assignment to a member array of an element whose index is outside its bounds raises error 9 and
-/// copies nothing, a `STRING` member array included (`DIVERGENCES.md` D-004: the old compiler copies the strings
+/// copies nothing, a `STRING` member array included (`QB64PE-DIVERGENCES.md` D-004: the old compiler copies the strings
 /// into the member of element 0, `verification\v36_x48`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1886,7 +1928,7 @@ fn whole_array_to_a_member_through_an_index_outside() {
 }
 
 /// `_ARRAYCOPY` to or from a member array of an element whose index is outside its bounds raises error 9 and copies
-/// nothing, numbers and `STRING * n` alike (`DIVERGENCES.md` D-004: the old compiler copies through the member of
+/// nothing, numbers and `STRING * n` alike (`QB64PE-DIVERGENCES.md` D-004: the old compiler copies through the member of
 /// element 0, `verification\v41_j`; design D5 of `m3-arraycopy`). A FUNCTION in a bound is entered with the error
 /// pending and so runs no line (its first line in both compilers).
 #[test]
@@ -1926,7 +1968,7 @@ fn arraycopy_reshaped_member_beside_an_index_outside() {
     assert_eq!(build_and_run_tracing(&d, program, ""), "[ 9 ][ 9 ] 51 \n");
 }
 
-/// `_ARRAYCOPY` of `_FLOAT` arrays copies the elements the program names (`DIVERGENCES.md` D-025: the old compiler
+/// `_ARRAYCOPY` of `_FLOAT` arrays copies the elements the program names (`QB64PE-DIVERGENCES.md` D-025: the old compiler
 /// passes 32 as the size of an element, which lie 16 bytes apart, and copies others, `verification\v41_i`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -2003,7 +2045,7 @@ fn cast_builds_and_runs() {
 }
 
 /// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies the target's
-/// number of elements, as the old compiler does, but nothing when the source has fewer (`DIVERGENCES.md` D-022: the
+/// number of elements, as the old compiler does, but nothing when the source has fewer (`QB64PE-DIVERGENCES.md` D-022: the
 /// old compiler reads past the source's block, `verification\v36_x52`, `v38_d`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -2034,7 +2076,7 @@ fn mem_of_a_dynamic_element_through_a_dynamic_index() {
 }
 
 /// `_MEM(q())` of an array parameter that nothing above it has given its number of dimensions takes the array's
-/// own lock, so the block stays valid when an element changes (`DIVERGENCES.md` D-016: the old compiler reads the
+/// own lock, so the block stays valid when an element changes (`QB64PE-DIVERGENCES.md` D-016: the old compiler reads the
 /// lock from slot 0, the pointer to the elements, and the block ends at `q(0) = 6`, `verification\v32_a_blocks`
 /// SUB `y`).
 #[test]
@@ -2047,7 +2089,7 @@ fn mem_of_an_array_parameter_with_no_number_yet() {
 }
 
 /// An integer power beyond `_INTEGER64` in a `CONST` is the float it is, a `_FLOAT` by its text, printed as a DOUBLE
-/// (`DIVERGENCES.md` D-007: the old evaluator wraps it to -9223372036854775808).
+/// (`QB64PE-DIVERGENCES.md` D-007: the old evaluator wraps it to -9223372036854775808).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn const_power_beyond_integer64() {
@@ -2057,7 +2099,7 @@ fn const_power_beyond_integer64() {
 }
 
 /// The `CONST` rulings of 2026-10-18, built and run: an unsuffixed literal beyond `_INTEGER64` and the limits
-/// (`DIVERGENCES.md` D-027; the old compiler prints 9223372036854775807 and -9223372036854775807), `2 ^ -1` (D-028;
+/// (`QB64PE-DIVERGENCES.md` D-027; the old compiler prints 9223372036854775807 and -9223372036854775807), `2 ^ -1` (D-028;
 /// 0 there), and `_COTH` at run time from the edited copy of libqb (D-031; `2 * EXP(x) - 1` and error 5 above
 /// 44.014845 there), error 5 at 0.
 #[test]
@@ -2074,7 +2116,7 @@ fn const_rulings_run() {
     );
 }
 
-/// `STOP` inside `SUB _GL` ends the program with error 271, as `END` and `SYSTEM` do there (`DIVERGENCES.md` D-036;
+/// `STOP` inside `SUB _GL` ends the program with error 271, as `END` and `SYSTEM` do there (`QB64PE-DIVERGENCES.md` D-036;
 /// the old compiler's program hangs, `verification\v59_f9`). The program has a window, which libqb shows for the
 /// moment the SUB takes; its critical error's message goes to stderr, not read here.
 #[test]
@@ -2087,7 +2129,7 @@ fn stop_inside_sub_gl_ends_with_error_271() {
     assert_eq!(build_and_run_tracing(&d, program, "D-036\n"), "in\n");
 }
 
-/// A `TYPE` that holds a `STRING`, in conventional memory, has its strings made (`DIVERGENCES.md` D-037; design D3
+/// A `TYPE` that holds a `STRING`, in conventional memory, has its strings made (`QB64PE-DIVERGENCES.md` D-037; design D3
 /// of `m4-left-marked`): `verification\v56_a5` prints the old compiler's two lines, then the string it sets, where
 /// the old compiler's program crashes (exit 139).
 #[test]
@@ -2109,7 +2151,7 @@ fn type_with_string_in_conventional_memory_has_its_strings() {
     assert_eq!(lines[2..], ["abc 3 "], "{out}");
 }
 
-/// A label and a `CONST` on one line (`DIVERGENCES.md` D-008: the old compiler fails to compile it).
+/// A label and a `CONST` on one line (`QB64PE-DIVERGENCES.md` D-008: the old compiler fails to compile it).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn label_then_const() {
@@ -2118,7 +2160,7 @@ fn label_then_const() {
     assert_eq!(build_and_run(&d, program), " 4 \n");
 }
 
-/// Each call of a FUNCTION `f$n` gives its own string (`DIVERGENCES.md` D-014: the old compiler returns bytes the
+/// Each call of a FUNCTION `f$n` gives its own string (`QB64PE-DIVERGENCES.md` D-014: the old compiler returns bytes the
 /// FUNCTION has released, so `fs$5("ab") + fs$5("cd")` is `cd   cd   ` there).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -2198,7 +2240,7 @@ fn debug_warning() {
 }
 
 /// A program with `$DEBUG` and no network function links libqb's sockets and HTTP part, as the old compiler's
-/// build does (spec `language/asserts-and-debug`, "The sockets part"; `DIVERGENCES.md` D-017, narrowed by
+/// build does (spec `language/asserts-and-debug`, "The sockets part"; `QB64PE-DIVERGENCES.md` D-017, narrowed by
 /// `m3-network-embed`): `_SOCKETS_` is 1, so QB64pe's file included after the last line compiles `_WhatIsMyIP$`,
 /// and the licence file names libcurl. The program prints what it prints without `$DEBUG`.
 #[test]

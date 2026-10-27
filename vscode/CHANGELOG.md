@@ -23,6 +23,11 @@
   compiler's whole front end; Go to Definition now covers variables, constants, types and members too. A rename
   keeps each use's type suffix and is checked against the renamed program before it is made. Code in a `$IF`
   branch that is not compiled is not reached.
+- **The compiler as a download of its own.** The release page also has `qb64rust-win-x64-<version>.zip`: the
+  same `qb64rust.exe` and copy of libqb as in the extension, for a command line, a build script or another
+  editor. Unpack it into a folder you can write to, run `qb64rust toolchain install`, and read its `MANUAL.md`. The
+  compiler finds the `libqb` folder beside it. `qb64rust --version` prints its version, which is the extension's,
+  and `qb64rust --help` prints its options.
 
 ## 0.2.0
 

@@ -4,7 +4,7 @@ $CONSOLE:ONLY
 ' is recorded with qb64pe.exe (tests/differential/README.md). A runtime error prints ERR and resumes next.
 ' Left out: the 64 type pairs with an _OFFSET operand ("Operator '^' cannot be used with an _OFFSET").
 ' Each _BIT * 40 has a _BIT * 32 pad DIMmed just before it, which the old compiler's overlap hits
-' instead (DIVERGENCES.md D-009).
+' instead (QB64PE-DIVERGENCES.md D-009).
 ON ERROR GOTO h
 DIM vbyte_min AS _BYTE
 DIM vbyte_max AS _BYTE

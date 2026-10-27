@@ -2573,7 +2573,7 @@ impl Checker<'_> {
         let root = place.root();
         let v = self.prog.var(root);
         // A `TYPE` that holds a `STRING` is taken, its strings made where the old compiler leaves them out
-        // (`DIVERGENCES.md` D-037; design D3 of `m4-left-marked`); one that owns a dynamic member array, and `_MEM`,
+        // (`QB64PE-DIVERGENCES.md` D-037; design D3 of `m4-left-marked`); one that owns a dynamic member array, and `_MEM`,
         // were not measured.
         if crate::owns_desc(&self.prog.types, v.ty) || self.prog.is_mem(v.ty) {
             let msg =

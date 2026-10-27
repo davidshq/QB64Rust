@@ -113,12 +113,12 @@ impl Emitter<'_> {
 
     pub(crate) fn global(&self) -> String {
         // The run-time trace of divergences (design D1 of `m3-divergence-trace`): `qbr_diverged(n)` stands where the
-        // program takes the path of row D-n of `DIVERGENCES.md`; with `QB64RUST_DIVERGENCES` naming a file, the first
+        // program takes the path of row D-n of `QB64PE-DIVERGENCES.md`; with `QB64RUST_DIVERGENCES` naming a file, the first
         // time of each row in a run appends `D-0nn` to it. Without the variable it does nothing. `qbr_diverged_on(n)`
         // stands at an error after which only a program that goes on differs (D-003, D-004): it traces unless libqb's
         // `fix_error` will end the program, that is a critical error (300 to 315) pending, or no handler active
         // (`ON ERROR GOTO`, not inside it) with `QB64PE_NOPROMPT` starting with `y`. Unset, its dialog may go on.
-        // The old compiler's templates, with a divisor of -1 tested for a signed result type (`DIVERGENCES.md` D-006:
+        // The old compiler's templates, with a divisor of -1 tested for a signed result type (`QB64PE-DIVERGENCES.md` D-006:
         // the smallest value divided by -1 crashed the old program): `\` raises error 6 and gives the dividend, `MOD`
         // gives its exact result, 0.
         let mut out = String::from(
