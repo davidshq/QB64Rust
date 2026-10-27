@@ -2,7 +2,8 @@
 //!
 //! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>]
 //! [--dump tokens|tree|typed|ir|cpp|debug-info]
-//! [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build] [--coverage] [--debug]`
+//! [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build]
+//! [--coverage] [--debug]`
 //!
 //! `qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]`: the
 //! file laid out as `qb64pe -y` lays it out (spec `compiler/format`).
@@ -12,12 +13,15 @@
 //!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 //!
-//! `qb64rust dap [--qb64pe-root <dir>]`: the debug adapter (crate `qb64rust-dap`).
+//! `qb64rust dap [--toolchain-root <dir>] [--qb64pe-root <dir>]`: the debug adapter (crate `qb64rust-dap`).
+//!
+//! `qb64rust toolchain install` and `qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]`: the
+//! C++ toolchain (`toolchain.rs`, spec `compiler/toolchain`).
 
 use qb64rust_base::layout::Settings;
 use qb64rust_driver::{
     FileLoader, build, dump_cpp, dump_debug_info, dump_ir, emit_ir_debug, emit_ir_with, frontend_at, log_folder, lower,
-    report,
+    report, toolchain,
 };
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -25,12 +29,18 @@ use std::process::ExitCode;
 use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
-[--dump tokens|tree|typed|ir|cpp|debug-info] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
-[--keep-build] [--coverage] [--debug]\n\
+[--dump tokens|tree|typed|ir|cpp|debug-info] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] \
+[--include-root <dir>] [--keep-build] [--coverage] [--debug]\n\
        qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]\n\
        qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)\n\
-       qb64rust dap [--qb64pe-root <dir>]    (the debug adapter, over stdin and stdout)";
+       qb64rust dap [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the debug adapter, over stdin and stdout)\n\
+       qb64rust toolchain install    (downloads and installs the C++ toolchain)\n\
+       qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)";
+
+/// The usage of `qb64rust toolchain` (spec `compiler/cli`, "Toolchain subcommand").
+const TOOLCHAIN_USAGE: &str = "usage: qb64rust toolchain install    (downloads and installs the C++ toolchain)\n\
+       qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)";
 
 #[derive(Default)]
 struct Options {
@@ -44,7 +54,10 @@ struct Options {
     quiet: bool,
     cpp_only: bool,
     dump: Option<String>,
+    /// `--qb64pe-root`.
     root: Option<PathBuf>,
+    /// `--toolchain-root` (spec `compiler/toolchain`).
+    toolchain_root: Option<PathBuf>,
     /// `--libqb-root`: the copy of libqb a build uses (design D3 of `libqb-copy`).
     libqb_root: Option<PathBuf>,
     /// `--include-root`: where included files are looked up after the including file's folder.
@@ -141,6 +154,7 @@ fn parse_args() -> Result<Options, String> {
                 o.dump = Some(d);
             }
             "--qb64pe-root" => o.root = Some(PathBuf::from(value("--qb64pe-root")?)),
+            "--toolchain-root" => o.toolchain_root = Some(PathBuf::from(value("--toolchain-root")?)),
             "--libqb-root" => o.libqb_root = Some(PathBuf::from(value("--libqb-root")?)),
             "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--keep-build" => o.keep_build = true,
@@ -214,6 +228,10 @@ fn main() -> ExitCode {
     if args.first().is_some_and(|a| a == "dap") {
         return dap(&args[1..]);
     }
+    // `qb64rust toolchain`: the same rule; `toolchain.bas` is a file to compile.
+    if args.first().is_some_and(|a| a == "toolchain") {
+        return toolchain_command(&args[1..]);
+    }
     install_panic_hook();
     match qb64rust_driver::with_stack(run) {
         Ok(code) => code,
@@ -249,27 +267,64 @@ fn lsp(arg_count: usize) -> ExitCode {
     }
 }
 
-/// The debug adapter over stdin and stdout (spec `editor/debug-adapter`, design D12 of `m5-dap-proxy`), with the
-/// clone's `lldb-dap` as its backend. Its only option is `--qb64pe-root`; the clone is found as a build finds it.
-/// When it is not found the adapter still starts and answers `initialize` with the error, so that the editor shows
-/// it. Stdout carries the protocol, as for `lsp`.
-fn dap(args: &[std::ffi::OsString]) -> ExitCode {
-    let mut root = None;
+/// `--toolchain-root <dir>` and `--qb64pe-root <dir>`, each at most once, and nothing else: the options of `dap` and
+/// `toolchain path`, which choose the toolchain as a build does. `None` for any other argument.
+fn toolchain_options(args: &[std::ffi::OsString]) -> Option<(Option<PathBuf>, Option<PathBuf>)> {
+    let (mut toolchain, mut qb64pe) = (None, None);
     let mut args = args.iter();
     while let Some(a) = args.next() {
-        match (a.to_str(), root.is_none()) {
-            (Some("--qb64pe-root"), true) if args.len() > 0 => root = args.next().map(PathBuf::from),
-            _ => {
-                eprintln!("qb64rust: `dap` takes only --qb64pe-root <dir>\n{USAGE}");
-                return ExitCode::FAILURE;
+        let slot = match a.to_str() {
+            Some("--toolchain-root") => &mut toolchain,
+            Some("--qb64pe-root") => &mut qb64pe,
+            _ => return None,
+        };
+        if slot.is_some() {
+            return None;
+        }
+        *slot = Some(PathBuf::from(args.next()?));
+    }
+    Some((toolchain, qb64pe))
+}
+
+/// `qb64rust toolchain install` and `qb64rust toolchain path` (spec `compiler/toolchain`). `path` prints the folder,
+/// then where it came from (a word, a colon, what it means); with none found, the message of "No toolchain found".
+fn toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
+    let fail = |msg: &str| {
+        println!("qb64rust: {msg}");
+        ExitCode::FAILURE
+    };
+    match args.first().and_then(|a| a.to_str()) {
+        Some("install") if args.len() == 1 => match toolchain::install() {
+            Ok(_) => ExitCode::SUCCESS,
+            Err(msg) => fail(&msg),
+        },
+        Some("path") => {
+            let Some((root, qb64pe)) = toolchain_options(&args[1..]) else {
+                return fail(TOOLCHAIN_USAGE);
+            };
+            match toolchain::find(root.as_deref(), qb64pe.as_deref()) {
+                Ok(found) => {
+                    println!("{}", found.folder.display());
+                    println!("{}", found.source.describe());
+                    ExitCode::SUCCESS
+                }
+                Err(msg) => fail(&msg),
             }
         }
+        _ => fail(TOOLCHAIN_USAGE),
     }
-    let backend = build::find_root(root.as_deref()).map(|r| {
-        ["internal", "c", "c_compiler", "bin", "lldb-dap.exe"]
-            .iter()
-            .fold(r, |p, part| p.join(part))
-    });
+}
+
+/// The debug adapter over stdin and stdout (spec `editor/debug-adapter`, design D12 of `m5-dap-proxy`), with the
+/// toolchain's `lldb-dap` as its backend. Its options are `--toolchain-root` and `--qb64pe-root`; the toolchain is
+/// found as a build finds it (design D4 of `m6-toolchain`). When none is found the adapter still starts and answers
+/// `initialize` with the error, so that the editor shows it. Stdout carries the protocol, as for `lsp`.
+fn dap(args: &[std::ffi::OsString]) -> ExitCode {
+    let Some((root, qb64pe)) = toolchain_options(args) else {
+        eprintln!("qb64rust: `dap` takes only --toolchain-root <dir> and --qb64pe-root <dir>\n{USAGE}");
+        return ExitCode::FAILURE;
+    };
+    let backend = toolchain::find(root.as_deref(), qb64pe.as_deref()).map(|found| found.bin("lldb-dap.exe"));
     match qb64rust_driver::with_stack(move || qb64rust_dap::run_stdio(backend)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(msg) => {
@@ -382,14 +437,19 @@ fn run() -> Result<ExitCode, String> {
         |file| Box::new(FileLoader::new(&include_root, file, &input)),
         Some((&input, &include_root)),
     );
-    // The files of the program's `DECLARE LIBRARY` blocks, looked for from the clone as the old compiler's folder,
-    // for a build, `-z` and the `cpp` and `debug-info` dumps; the other dumps need none, nor does a block with no name.
+    // The files of the program's `DECLARE LIBRARY` blocks, looked for from the QB64pe folder, else the include root,
+    // as the old compiler's folder (design D5 of `m6-toolchain`), for a build, `-z` and the `cpp` and `debug-info`
+    // dumps; the other dumps need none, nor does a block with no name. Only a block without a header needs the
+    // toolchain (its `nm`).
     let resolved = if matches!(o.dump.as_deref(), None | Some("cpp" | "debug-info"))
         && !fe.has_errors()
         && fe.program.libraries.iter().any(|l| !l.names.is_empty())
     {
-        let places = build::find_root(o.root.as_deref())
-            .and_then(|root| qb64rust_driver::library::Places::new(&root, &input).map_err(|e| e.to_string()));
+        let places = build::find_root(o.root.as_deref()).and_then(|root| {
+            let nm = toolchain::find(o.toolchain_root.as_deref(), o.root.as_deref()).map(|t| t.bin("nm.exe"));
+            qb64rust_driver::library::Places::new(root.as_deref().unwrap_or(&include_root), &input, nm)
+                .map_err(|e| e.to_string())
+        });
         let places = places.inspect_err(|_| {
             if o.dump.is_none() && !o.cpp_only {
                 remove_old();
@@ -467,8 +527,11 @@ fn run() -> Result<ExitCode, String> {
     }
     // Before any step that can fail, so a failed build never leaves an older executable or symbol file behind.
     remove_old();
+    // A named folder that is not QB64pe's is reported before the toolchain is looked for.
     let roots = build::Roots {
-        clone: build::find_root(o.root.as_deref())?,
+        qb64pe: build::find_root(o.root.as_deref())?,
+        toolchain: toolchain::find(o.toolchain_root.as_deref(), o.root.as_deref())?.folder,
+        include: include_root.clone(),
         libqb: build::find_libqb(o.libqb_root.as_deref())?,
     };
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;

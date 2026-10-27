@@ -93,7 +93,7 @@ fn a_build_changes_nothing_git_sees() {
         assert!(o.status.success());
         o.stdout
     };
-    let clone = qb64rust_driver::build::find_root(None).expect("the QB64pe reference clone");
+    let clone = qb64rust_driver::build::clone_root().expect("the QB64pe reference clone");
     let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let before = (status(&clone, "."), status(&repo, "libqb"));
     let d = scratch("unchanged");
@@ -788,8 +788,10 @@ fn tree_dump() {
     assert!(out.starts_with("tree 0: p.bas\nSourceFile 0..22\n"), "{out}");
 }
 
+/// A QB64pe folder named by the variable that is not one fails the build, naming the option and the variable, before
+/// the toolchain is looked for (design D5 of `m6-toolchain`); the stale executable is gone.
 #[test]
-fn no_clone_found() {
+fn a_named_folder_that_is_not_qb64pe() {
     let d = scratch("noclone");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
     std::fs::write(d.join("p.exe"), b"stale").unwrap();
@@ -812,18 +814,27 @@ fn no_clone_found() {
 }
 
 /// A build without the copy of libqb fails naming its option and variable; `-z` needs no copy (spec `compiler/cli`,
-/// scenario "No copy of libqb found"). The clone is a stand-in folder: this test builds nothing.
+/// scenario "No copy of libqb found"). The clone and the toolchain are stand-in folders: this test builds nothing.
 #[test]
 fn no_libqb_copy_found() {
     let d = scratch("nolibqb");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
     std::fs::create_dir_all(d.join("clone/internal/c")).unwrap();
     std::fs::write(d.join("clone/internal/c/qbx.cpp"), "").unwrap();
+    fake_toolchain(&d.join("tools"));
     std::fs::create_dir_all(d.join("empty")).unwrap();
     let compile = |extra: &[&str]| {
         let mut cmd = compiler();
         cmd.current_dir(&d)
-            .args(["-q", "--qb64pe-root", "clone", "--libqb-root", "empty"])
+            .args([
+                "-q",
+                "--qb64pe-root",
+                "clone",
+                "--toolchain-root",
+                "tools",
+                "--libqb-root",
+                "empty",
+            ])
             .args(extra)
             .arg("p.bas");
         run(&mut cmd, None, COMPILER_LIMIT, "compiler")
@@ -836,6 +847,237 @@ fn no_libqb_copy_found() {
         "{out}"
     );
     assert_eq!(compile(&["-z"]).status.code(), Some(0));
+}
+
+/// A machine without a QB64pe folder and without an installed toolchain, for `cmd`: `QB64RUST_QB64PE_ROOT` empty
+/// (no QB64pe folder, not even the default clone), `QB64RUST_TOOLCHAIN_HOME` the empty folder `home`, no
+/// `QB64RUST_TOOLCHAIN_ROOT` (design D5, D7 of `m6-toolchain`).
+fn without_qb64pe<'a>(cmd: &'a mut Command, home: &Path) -> &'a mut Command {
+    std::fs::create_dir_all(home).unwrap();
+    cmd.env("QB64RUST_QB64PE_ROOT", "")
+        .env("QB64RUST_TOOLCHAIN_HOME", home)
+        .env_remove("QB64RUST_TOOLCHAIN_ROOT")
+}
+
+/// Spec `compiler/toolchain`, "No toolchain found": a build on a fresh machine fails with exit status 1 and the
+/// message naming `qb64rust toolchain install`, the size and source of the download, `--toolchain-root` and the
+/// variable; no network is reached (nothing is downloaded but by `toolchain install`), and the stale executable is
+/// gone. Scenario "Checking needs no toolchain": `-z` works there.
+#[test]
+fn no_toolchain_found() {
+    let d = scratch("notoolchain");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    std::fs::write(d.join("p.exe"), b"stale").unwrap();
+    let compile = |extra: &[&str]| {
+        let mut cmd = compiler();
+        without_qb64pe(&mut cmd, &d.join("home"))
+            .current_dir(&d)
+            .arg("-q")
+            .args(extra)
+            .arg("p.bas");
+        run(&mut cmd, None, COMPILER_LIMIT, "compiler")
+    };
+    let o = compile(&[]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    for word in [
+        "qb64rust toolchain install",
+        "190 MB",
+        "github.com/mstorsjo/llvm-mingw",
+        "--toolchain-root",
+        "QB64RUST_TOOLCHAIN_ROOT",
+    ] {
+        assert!(out.contains(word), "{word}: {out}");
+    }
+    assert!(!d.join("p.exe").exists());
+    assert_eq!(
+        std::fs::read_dir(d.join("home")).unwrap().count(),
+        0,
+        "nothing installed"
+    );
+    assert_eq!(compile(&["-z"]).status.code(), Some(0));
+}
+
+/// `qb64rust toolchain path` for each place of spec `compiler/toolchain`, "Toolchain lookup" (the default clone's is
+/// the unit test's): the folder, then the source's word; with none, the message of "No toolchain found" and exit
+/// status 1. Stand-in folders: nothing is built.
+#[test]
+fn toolchain_path_names_each_source() {
+    let d = scratch("toolchain-path");
+    let home = d.join("home");
+    let path = |extra: &[&str], vars: &[(&str, &Path)]| {
+        let mut cmd = compiler();
+        without_qb64pe(&mut cmd, &home)
+            .current_dir(&d)
+            .args(["toolchain", "path"])
+            .args(extra);
+        for (name, value) in vars {
+            cmd.env(name, value);
+        }
+        run(&mut cmd, None, COMPILER_LIMIT, "compiler")
+    };
+    let o = path(&[], &[]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(stdout(&o).contains("qb64rust toolchain install"), "{}", stdout(&o));
+
+    let installed = home.join(qb64rust_driver::toolchain::RELEASE);
+    fake_toolchain(&installed);
+    // Not installed until the marker is there.
+    assert_eq!(path(&[], &[]).status.code(), Some(1));
+    std::fs::write(installed.join(qb64rust_driver::toolchain::MARKER), "").unwrap();
+    fake_toolchain(&d.join("opt"));
+    fake_toolchain(&d.join("var"));
+    std::fs::create_dir_all(d.join("q/internal/c")).unwrap();
+    std::fs::write(d.join("q/internal/c/qbx.cpp"), "").unwrap();
+    fake_toolchain(&d.join("q/internal/c/c_compiler"));
+    let var = d.join("var");
+    let q = d.join("q");
+    for (extra, vars, folder, word) in [
+        (&[][..], &[][..], installed.clone(), "installed:"),
+        (
+            &["--qb64pe-root", "q"][..],
+            &[][..],
+            q.join("internal/c/c_compiler"),
+            "qb64pe:",
+        ),
+        (
+            &[][..],
+            &[("QB64RUST_QB64PE_ROOT", q.as_path())][..],
+            q.join("internal/c/c_compiler"),
+            "qb64pe:",
+        ),
+        (
+            &["--qb64pe-root", "q"][..],
+            &[("QB64RUST_TOOLCHAIN_ROOT", var.as_path())][..],
+            var.clone(),
+            "variable:",
+        ),
+        (
+            &["--toolchain-root", "opt"][..],
+            &[("QB64RUST_TOOLCHAIN_ROOT", var.as_path())][..],
+            d.join("opt"),
+            "option:",
+        ),
+    ] {
+        let o = path(extra, vars);
+        assert_eq!(o.status.code(), Some(0), "{extra:?}: {}", stdout(&o));
+        let out = stdout(&o);
+        let lines: Vec<&str> = out.lines().collect();
+        assert_eq!(lines.len(), 2, "{out}");
+        assert_eq!(
+            std::fs::canonicalize(lines[0]).unwrap(),
+            std::fs::canonicalize(&folder).unwrap(),
+            "{extra:?}"
+        );
+        assert!(lines[1].starts_with(word), "{extra:?}: {out}");
+    }
+    // A QB64pe folder given that is not one fails as a build fails, even with the toolchain installed.
+    let opt = d.join("opt");
+    for (extra, vars) in [
+        (&["--qb64pe-root", "opt"][..], &[][..]),
+        (&[][..], &[("QB64RUST_QB64PE_ROOT", opt.as_path())][..]),
+    ] {
+        let o = path(extra, vars);
+        assert_eq!(o.status.code(), Some(1), "{extra:?}: {}", stdout(&o));
+        assert!(stdout(&o).contains("is not a QB64pe folder"), "{}", stdout(&o));
+    }
+}
+
+/// Spec `compiler/cli`, "Toolchain subcommand": any other word after `toolchain` prints the two forms and exits with
+/// status 1 ("Unknown action"); `toolchain.bas` is a file to compile ("A file named toolchain").
+#[test]
+fn toolchain_subcommand_words() {
+    let d = scratch("toolchain-words");
+    for args in [
+        &["toolchain", "remove"][..],
+        &["toolchain"],
+        &["toolchain", "install", "now"],
+        &["toolchain", "path", "-x"],
+        &["toolchain", "path", "--toolchain-root"],
+    ] {
+        let o = qb64rust(&d, args);
+        assert_eq!(o.status.code(), Some(1), "{args:?}");
+        let out = stdout(&o);
+        assert!(
+            out.contains("qb64rust toolchain install") && out.contains("qb64rust toolchain path"),
+            "{args:?}: {out}"
+        );
+    }
+    std::fs::write(d.join("toolchain.bas"), SLICE_PROGRAM).unwrap();
+    let o = qb64rust(&d, &["toolchain.bas", "--dump", "typed"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("INSTR"), "{}", stdout(&o));
+}
+
+/// Spec `compiler/cli`, "Locating the reference runtime", scenario "No clone found": with no QB64pe folder anywhere
+/// and the toolchain given by `--toolchain-root` (the clone's own, which is the pinned release byte for byte), a
+/// program builds and runs.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn build_without_a_qb64pe_folder() {
+    let d = scratch("noqb64pe");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nPRINT 1 / 4; INSTR(3, \"hello\", \"l\")\nSYSTEM\n",
+    )
+    .unwrap();
+    let tools = support::toolchain_folder();
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home"))
+        .current_dir(&d)
+        .env_remove("QB64RUST_BUILD_CACHE")
+        .arg("--toolchain-root")
+        .arg(&tools)
+        .args(["-q", "p.bas"]);
+    let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+    assert!(o.status.success(), "{}", stdout(&o));
+    let r = run(
+        unattended(&d.join("p.exe")).current_dir(&d),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
+    assert_eq!(r.status.code(), Some(0), "{}", stdout(&r));
+    assert_eq!(stdout(&r).replace("\r\n", "\n"), " .25  3 \n");
+}
+
+/// Spec `compiler/cli`, scenario "A library without a clone": with no QB64pe folder, `DECLARE LIBRARY "lib/x"` of
+/// `p\prog.bas` compiled with `--include-root r` finds `r\lib\x.h`, as it would under QB64pe's folder, and the
+/// program builds and calls it.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn library_without_a_qb64pe_folder() {
+    let d = scratch("noqb64pe-library");
+    std::fs::create_dir_all(d.join("p")).unwrap();
+    std::fs::create_dir_all(d.join("r/lib")).unwrap();
+    std::fs::write(
+        d.join("r/lib/x.h"),
+        "#include <stdint.h>\nstatic int32_t x_add(int32_t a, int32_t b) { return a + b; }\n",
+    )
+    .unwrap();
+    std::fs::write(
+        d.join("p/prog.bas"),
+        "$CONSOLE:ONLY\nDECLARE LIBRARY \"lib/x\"\n    FUNCTION x_add& (BYVAL a AS LONG, BYVAL b AS LONG)\n\
+         END DECLARE\nPRINT x_add(2, 3)\nSYSTEM\n",
+    )
+    .unwrap();
+    let tools = support::toolchain_folder();
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home"))
+        .current_dir(&d)
+        .env_remove("QB64RUST_BUILD_CACHE")
+        .arg("--toolchain-root")
+        .arg(&tools)
+        .args(["-q", "--include-root", "r", "p/prog.bas"]);
+    let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+    assert!(o.status.success(), "{}", stdout(&o));
+    let r = run(
+        unattended(&d.join("p/prog.exe")).current_dir(&d),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
+    assert_eq!(stdout(&r).replace("\r\n", "\n"), " 5 \n");
 }
 
 /// `RETURN label` with no `GOSUB` pending raises error 3 and leaves the `GOSUB` stack intact, so a later `GOSUB`
@@ -2149,8 +2391,8 @@ fn language_server() {
     assert!(o.stdout.is_empty(), "stdout is the protocol's");
 }
 
-/// `dap` (change `m5-dap-proxy`), scenario "Another option": only `--qb64pe-root` is taken; and "Not a file
-/// name": `dap.bas` is a program.
+/// `dap` (changes `m5-dap-proxy`, `m6-toolchain`), scenario "Another option": only `--toolchain-root` and
+/// `--qb64pe-root` are taken, each once; and "Not a file name": `dap.bas` is a program.
 #[test]
 #[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
 fn dap_rejects_other_options() {
@@ -2158,13 +2400,16 @@ fn dap_rejects_other_options() {
     for args in [
         &["dap", "-x", "p.bas"][..],
         &["dap", "--qb64pe-root"],
+        &["dap", "--toolchain-root"],
         &["dap", "--qb64pe-root", "a", "--qb64pe-root", "b"],
+        &["dap", "--toolchain-root", "a", "--toolchain-root", "b"],
     ] {
         let o = qb64rust(&d, args);
         assert_eq!(o.status.code(), Some(1), "{args:?}");
         assert!(o.stdout.is_empty(), "stdout is the protocol's");
         assert!(
-            String::from_utf8_lossy(&o.stderr).contains("`dap` takes only --qb64pe-root <dir>"),
+            String::from_utf8_lossy(&o.stderr)
+                .contains("`dap` takes only --toolchain-root <dir> and --qb64pe-root <dir>"),
             "{args:?}"
         );
     }
@@ -2172,6 +2417,93 @@ fn dap_rejects_other_options() {
     let o = qb64rust(&d, &["dap.bas", "--dump", "typed"]);
     assert!(o.status.success(), "{}", stdout(&o));
     assert!(stdout(&o).contains("INSTR"), "{}", stdout(&o));
+}
+
+/// `dap`, spec `editor/debug-adapter` scenario "No lldb-dap": a toolchain folder without `bin\lldb-dap.exe` given by
+/// `--toolchain-root`; `initialize` fails naming that path, and `disconnect` ends the adapter with code 0.
+#[test]
+fn dap_without_lldb_dap() {
+    let d = scratch("dap-no-lldb-dap");
+    fake_toolchain(&d.join("tools"));
+    let mut cmd = compiler();
+    cmd.current_dir(&d).args(["dap", "--toolchain-root", "tools"]);
+    let mut dap = support::dap::Dap::start(cmd);
+    let r = dap.request("initialize", serde_json::json!({"adapterID": "qb64rust"}));
+    assert_eq!(r["success"], false, "{r}");
+    let want = std::path::absolute(d.join("tools"))
+        .unwrap()
+        .join("bin")
+        .join("lldb-dap.exe");
+    assert!(
+        r["message"].as_str().unwrap().contains(&want.display().to_string()),
+        "{r}"
+    );
+    dap.ok("disconnect", serde_json::json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// `dap`, spec `editor/debug-adapter` scenario "No toolchain": `initialize` fails with the message naming
+/// `qb64rust toolchain install`.
+#[test]
+fn dap_without_a_toolchain() {
+    let d = scratch("dap-no-toolchain");
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home")).current_dir(&d).arg("dap");
+    let mut dap = support::dap::Dap::start(cmd);
+    let r = dap.request("initialize", serde_json::json!({"adapterID": "qb64rust"}));
+    assert_eq!(r["success"], false, "{r}");
+    assert!(
+        r["message"].as_str().unwrap().contains("qb64rust toolchain install"),
+        "{r}"
+    );
+    dap.ok("disconnect", serde_json::json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// Debugging with no QB64pe folder and the toolchain given by `--toolchain-root` (the clone's own, which is the
+/// pinned release byte for byte): a debug build, then `qb64rust dap` with that toolchain stops at a breakpoint on
+/// line 3, and the adapter ends with code 0 after `disconnect` (spec `compiler/cli`, "Debug adapter subcommand";
+/// spec `editor/debug-launch`, "Debugging without QB64pe").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_without_a_qb64pe_folder() {
+    use serde_json::json;
+    let d = scratch("dap-noqb64pe");
+    let tools = support::toolchain_folder();
+    std::fs::write(
+        d.join("hello.bas"),
+        "$CONSOLE:ONLY\nx = 1\nx = x + 1\nPRINT x\nSYSTEM\n",
+    )
+    .unwrap();
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home"))
+        .current_dir(&d)
+        .env_remove("QB64RUST_BUILD_CACHE")
+        .arg("--toolchain-root")
+        .arg(&tools)
+        .args(["--debug", "-q", "hello.bas"]);
+    let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+    assert!(o.status.success(), "{}", stdout(&o));
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home"))
+        .current_dir(&d)
+        .arg("dap")
+        .arg("--toolchain-root")
+        .arg(&tools);
+    let mut dap = launch_session(
+        support::dap::Dap::start(cmd),
+        &d.join("hello.exe"),
+        &[],
+        &[3],
+        json!({}),
+    );
+    let (_, reason, name, line) = dap_stop(&mut dap);
+    assert_eq!((reason.as_str(), name.as_str(), line), ("breakpoint", "Main module", 3));
+    let t = dap.ok("threads", json!({}));
+    dap.ok("continue", json!({"threadId": t["threads"][0]["id"]}));
+    dap.event("exited");
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
 }
 
 /// `dap`, scenario "Subcommand": the real `lldb-dap` answers `initialize` through the adapter, which adds its own
@@ -3009,11 +3341,19 @@ fn text(b: &[u8]) -> String {
     String::from_utf8_lossy(b).to_string()
 }
 
-/// The libraries of `verification\v37_lib` built into `dir` with the clone's toolchain, as `build_libs.py` builds
-/// them: `v37c.a` (C), `v37cpp.a` (C++), `v37o.o` (C), `v37dll.dll`.
+/// A stand-in toolchain folder: the two programs a lookup asks for, empty (spec `compiler/toolchain`, "Toolchain
+/// lookup"). Nothing can be built with it.
+fn fake_toolchain(dir: &Path) {
+    std::fs::create_dir_all(dir.join("bin")).unwrap();
+    for f in ["c++.exe", "mingw32-make.exe"] {
+        std::fs::write(dir.join("bin").join(f), "").unwrap();
+    }
+}
+
+/// The libraries of `verification\v37_lib` built into `dir` with the toolchain a build uses, as `build_libs.py`
+/// builds them: `v37c.a` (C), `v37cpp.a` (C++), `v37o.o` (C), `v37dll.dll`.
 fn build_v37_libraries(dir: &Path) {
-    let root = qb64rust_driver::build::find_root(None).expect("the QB64pe reference clone");
-    let bin = root.join("internal/c/c_compiler/bin");
+    let bin = support::toolchain("");
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification/v37_lib");
     let out = |name: &str| dir.join(name).to_string_lossy().into_owned();
     let run = |tool: &str, args: &[&str]| {
@@ -3299,7 +3639,7 @@ fn format_writes_the_output_file() {
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn runners_format_line() {
-    let clone = qb64rust_driver::build::find_root(None).expect("the QB64pe reference clone");
+    let clone = qb64rust_driver::build::clone_root().expect("the QB64pe reference clone");
     let tests = clone.join("tests/format_tests/general");
     let d = scratch("format-general");
     for f in ["general.bas", "included.file"] {

@@ -1,12 +1,19 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (unreleased)
 
+- **QB64pe is no longer needed to build or debug.** The first build or debug session without a C++ toolchain asks
+  to download one: llvm-mingw 23.1.2 from github.com/mstorsjo/llvm-mingw (190 MB, about 460 MB on disk, checked
+  against its SHA-256), the toolchain QB64pe ships byte for byte. Nothing is downloaded unless you choose
+  **Download**. The command **QB64: Install the C++ Toolchain** does the same on demand; the setting
+  `qb64rust.toolchainPath` names a toolchain folder of your own. With QB64pe found, its toolchain is used as
+  before. The language status shows the toolchain, or an install link when there is none. **Build with QB64pe** is
+  offered only when QB64pe is found.
 - **Debugging.** F5 on a `.bas` file, or **QB64: Debug**, builds the program with `qb64rust --debug` and debugs it
   by BASIC line: breakpoints (also in `$INCLUDE` files), stepping, pause, the call stack and variables by BASIC
   name, watch and hover, set value, data breakpoints, set next statement, and a stop at a runtime error. A debugger
   of type `qb64rust` for `launch.json` (`program`, `args`, `cwd`, `stopOnEntry`, `console`, `noPrompt`). Needs a
-  build by `qb64rust` and QB64pe's toolchain, which carries the debugger (`lldb-dap`).
+  build by `qb64rust` and the C++ toolchain, which carries the debugger (`lldb-dap`).
 - **Formatting by the new compiler.** Format Document goes through the language server while it runs (unsaved
   included files too, no temporary file), else through `qb64rust -y`; `qb64pe -y` only when `qb64rust.buildWith`
   is `qb64pe` or there is no `qb64rust` binary. The layout is the same as QB64pe's. New: **Format Selection**, and

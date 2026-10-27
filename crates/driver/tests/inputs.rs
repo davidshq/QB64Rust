@@ -64,7 +64,7 @@ fn repo() -> PathBuf {
 }
 
 fn clone_root() -> Option<PathBuf> {
-    build::find_root(None).ok()
+    build::clone_root()
 }
 
 fn has_ext(p: &Path, exts: &[&str]) -> bool {

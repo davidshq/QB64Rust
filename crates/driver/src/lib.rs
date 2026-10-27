@@ -5,6 +5,7 @@ pub mod cpp_errors;
 pub mod hover;
 pub mod library;
 pub mod report;
+pub mod toolchain;
 
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;

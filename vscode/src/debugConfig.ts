@@ -61,6 +61,12 @@ export function fileConfiguration(file: string): LaunchConfig {
     return { type: DEBUG_TYPE, request: "launch", name: `Debug ${path.basename(file)}`, program: file };
 }
 
+/** The adapter's arguments (spec editor/debug-launch, "The adapter"): `dap` with the toolchain folder a build uses
+ * (change m6-toolchain, design D6). */
+export function adapterArgs(toolchain: string): string[] {
+    return ["dap", "--toolchain-root", toolchain];
+}
+
 /**
  * Why a debug build cannot be made, or undefined: debugging needs a build by `qb64rust` (design D4), so QB64pe
  * chosen or the binary not found is a refusal. Shared with `planBuild`.

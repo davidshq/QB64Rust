@@ -88,7 +88,13 @@
             "Always QB64pe, the old compiler."
           ],
           "default": "auto",
-          "markdownDescription": "Which compiler **Build**, **Build and Run** and the build task use. Both need QB64pe (`qb64rust.compilerPath`): `qb64rust` builds with its C++ toolchain."
+          "markdownDescription": "Which compiler **Build**, **Build and Run** and the build task use. `qb64rust` builds with a C++ toolchain: QB64pe's when QB64pe is found, else the one the first build offers to download (`qb64rust.toolchainPath` names one of your own). `qb64pe` needs QB64pe (`qb64rust.compilerPath`)."
+        },
+        "qb64rust.toolchainPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "A C++ toolchain folder for building and debugging with `qb64rust` (llvm-mingw's layout: `bin\\c++.exe`, `bin\\mingw32-make.exe`, `bin\\lldb-dap.exe`). When empty, QB64pe's toolchain when QB64pe is found, else the one installed by **QB64: Install the C++ Toolchain** (asked for at the first build: a 190 MB download from github.com/mstorsjo/llvm-mingw)."
         },
         "qb64rust.path": {
           "type": "string",
@@ -196,6 +202,12 @@
         "title": "Check Program",
         "category": "QB64",
         "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "qb64rust.installToolchain",
+        "title": "Install the C++ Toolchain",
+        "category": "QB64",
+        "enablement": "isWorkspaceTrusted"
       }
     ],
     "menus": {
@@ -219,6 +231,10 @@
         {
           "command": "qb64rust.check",
           "when": "editorLangId == qb64rust && !virtualWorkspace"
+        },
+        {
+          "command": "qb64rust.installToolchain",
+          "when": "!virtualWorkspace"
         }
       ],
       "editor/title/run": [
@@ -350,6 +366,7 @@
     "test:grammar": "vscode-tmgrammar-test \"test/grammar/**/*.bas\"",
     "test:integration": "npm run compile && node ./out/test/integration/runTests.js",
     "test:integration:min": "npm run compile && node ./out/test/integration/runTests.js --min",
+    "test:integration:first-run": "npm run compile && node ./out/test/integration/runTests.js --first-run",
     "test": "npm run test:unit && npm run test:grammar && npm run test:integration && npm run test:integration:min",
     "vscode:prepublish": "npm run compile",
     "package": "npm run stage && vsce package --target win32-x64",

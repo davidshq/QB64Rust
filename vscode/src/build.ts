@@ -79,7 +79,7 @@ export class Builder implements vscode.Disposable {
     /**
      * Builds with the new compiler (design D4 and D5 of extension-vsix). Its errors go to their own collection
      * (source `qb64rust`). A failure under `auto` whose errors are all marked "not supported yet" offers to build
-     * the program once with QB64pe, except for a debug build, which QB64pe cannot make.
+     * the program once with QB64pe when QB64pe is found, except for a debug build, which QB64pe cannot make.
      */
     private async buildWithQb64rust(doc: vscode.TextDocument, plan: Extract<BuildPlan, { compiler: "qb64rust" }>, notify: boolean): Promise<string | undefined> {
         const file = doc.uri.fsPath;
@@ -110,12 +110,13 @@ export class Builder implements vscode.Disposable {
         }
         const first = result.messages.find((m) => m.severity === "error");
         const text = `QB64: build failed${first ? `: ${first.message.split("\n")[0]} (line ${first.line})` : ""}`;
-        if (result.allMarked && config.buildWith(doc.uri) === "auto" && !plan.debug) {
+        if (result.allMarked && config.buildWith(doc.uri) === "auto" && !plan.debug && plan.qb64pe) {
             const fallback = "Build with QB64pe";
+            const qb64peCompiler = plan.qb64pe;
             if ((await this.showError(text, fallback)) === fallback) {
                 // The marked errors say what qb64rust lacks, not what is wrong with the program: QB64pe builds it.
                 this.diagnostics.publish(doc.uri, [], "qb64rust");
-                return this.buildWithQb64pe(doc, plan.qb64pe, notify);
+                return this.buildWithQb64pe(doc, qb64peCompiler, notify);
             }
             return undefined;
         }

@@ -142,13 +142,13 @@ three.
 
 | # | Option | Claude's time | Cost that stays | Risk | Who gains |
 |---|---|---|---|---|---|
-| 1 | **Usable without QB64pe**: a pinned toolchain the extension fetches, `lldb-dap` from it; the compiler as its own release asset with a short manual; README made true; Marketplace listing (`study\37` §5.2) | small to moderate | one toolchain pin to keep | low | anyone who would try it |
+| 1 | **Usable without QB64pe**: the compiler as its own release asset with a short manual; Marketplace listing (`study\37` §5.2) | small | one toolchain pin to keep | low | anyone who would try it |
 | 2 | **Linux and macOS**: libqb already builds there; the driver's build, the runner, the extension's packaging and CI are Windows-only; recordings differ by platform (`printf` float text, console comma zones D-011) | large: a platform is a milestone (toolchain, CI runner, recordings judged per platform) | a runner and a recording set per platform | medium: the recorded truth becomes three truths | QB64 users off Windows |
 | 3 | **M6 as written** (second backend, runtime redesign) | very large | two backends kept equal | high | nobody visible (`study\37`) |
 | 4 | **libqb repaired in place** through `tools\libqb\edits`: the 18 crash-class rows now, others as ruled (`study\37` §5.3) | small per row | the edits, kept as the clone moves | low | users who hit those crashes |
 | 5 | **Offer the work upstream**: the `UPSTREAM.md` fixes as QB64pe issues or pull requests; the verification programs as test cases; the language server for QB64pe programs as it is | small | none | none; may be declined | the QB64pe community, and this project (fewer divergences to carry) |
 | 6 | **Language work on the dialect**: warnings (unused variables and procedures, which the old IDE offers), then what users ask for | small per warning; a feature is a change | each is a divergence from QB64pe's acceptance set only if it rejects | a dialect fork if it goes past warnings | people who write new programs |
-| 7 | **Robustness beyond the suites**: more real programs (public-domain QB64 programs with a licence, QB64pe's `qbasic_testcases` run from the clone), a fuzz target for the lexer and parser, the string and array differential group | moderate | the programs and their recordings | low | everyone, invisibly |
+| 7 | **Robustness beyond the suites**: more real programs (public-domain QB64 programs with a licence), a fuzz target for the lexer and parser, the string and array differential group | moderate | the programs and their recordings | low | everyone, invisibly |
 | 8 | **Cut the standing cost** (§5.3): fewer rules, a thinner close, documents merged, the 165 rows closed by the rule that already decides them, a policy on QB64pe releases | small | less | low: a thinner close catches less; the full set at a merge stays | the user and every session |
 | 9 | **Freeze the dialect at 4.7.0** and stop tracking QB64pe: no re-recordings, the clone kept only for the toolchain until option 1 removes that too | none | far less | the dialect ages; built-ins QB64pe adds later are absent | the maintainer |
 | 10 | **Declare 1.0 and stop building**: M5b is the end; maintenance only | none | the minimum | none | the author's time |
@@ -176,13 +176,9 @@ candidates; the user may have a fourth:
 
 This is right under P1 (the author installs it on a second machine), P2 and P3, and it is small:
 
-1. Correct `vscode\README.md`'s first paragraph (the formatter no longer needs QB64pe) and say plainly what is
-   needed and what works.
-2. `m6-toolchain` as `study\37` §5.2: a pinned toolchain the extension fetches on first build; `lldb-dap` from
-   it; QB64pe's install as a fallback. After it, nothing of QB64pe is needed on a user's machine.
-3. Release `qb64rust.exe` with libqb as its own asset beside the `.vsix`, with a one-page manual (the usage line,
+1. Release `qb64rust.exe` with libqb as its own asset beside the `.vsix`, with a one-page manual (the usage line,
    `-f:` settings, `--debug`, `-y`).
-4. Open the QB64pe issues of `UPSTREAM.md` (option 5's first half): each has its measurement and its fix already
+2. Open the QB64pe issues of `UPSTREAM.md` (option 5's first half): each has its measurement and its fix already
    written; it costs nothing to keep and is the honest thing to do with a found bug.
 
 Whether to list on the Marketplace is the user's (it is public in a way a GitHub release is not).
@@ -222,7 +218,7 @@ Each of these is a rule or a tool that earned its place while building and now c
 | P3 | the second half of option 5 (the verification programs as QB64pe tests; ask about the language server), option 4, then whatever the maintainers want |
 
 Under none of them does M6 as written come next; `study\37`'s rewrite of it ("the runtime without QB64pe") is
-§5.2 items 2 and 4 here.
+`m6-toolchain` (built) and §5.2 item 2 here.
 
 ## 6. What the panel would change in how the work is run
 
@@ -238,7 +234,7 @@ Under none of them does M6 as written come next; `study\37`'s rewrite of it ("th
 ## 7. What the user decides
 
 1. **The purpose** (§5.1): P1, P2, P3, or your own paragraph.
-2. **§5.2, the release work**: yes to all four items, or which; the Marketplace, yes or no.
+2. **§5.2, the release work**: yes to both items, or which; the Marketplace, yes or no.
 3. **§5.3, the cuts**: each of the five, yes or no; in particular the policy on QB64pe releases (freeze at
    4.7.0, or track).
 4. **The direction after that** (§5.4), which follows from 1 unless you choose otherwise.

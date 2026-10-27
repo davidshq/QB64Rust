@@ -45,7 +45,8 @@ working rule 11).
 
 1. **The project's purpose and direction** (`study\38` §7, 2026-10-26): who the project is for (§5.1: the
    author's tool, a QB64 for anyone, a contribution to QB64pe, or your own); the release work of §5.2 (usable
-   without QB64pe, the compiler as its own asset, the `UPSTREAM.md` issues; the Marketplace, yes or no); the cuts
+   without QB64pe is decided and built: `m6-toolchain`, `DECISIONS.md` 2026-10-26; still open: the compiler as its
+   own asset, the `UPSTREAM.md` issues; the Marketplace, yes or no); the cuts
    of §5.3 (the 165 rows closed by the 2026-10-08 rule, a thinner close, merged documents, freeze at QB64pe 4.7.0
    or track it, the weekly CI job); the direction after that (§5.4). It answers `study\37` §8 (what M6 becomes)
    too.
@@ -65,7 +66,12 @@ push shows them (the user is not concerned with CI, working rule 9).
    `qbasic-testcases` (all 143 of QB64pe's qbasic programs build: addresses in procedures, `CALL ABSOLUTE`, members
    named like keywords; the qbasic suite and the converter test in the closing set) is built and its closing runs
    pass, in the working tree of `mb5`; it waits for the user's review, then `/opsx:archive`.
-2. M6, runtime modernisation (`ROADMAP.md`): a study first, `study\37` (what M6 is for, where it starts and where
+2. The change `m6-toolchain` (`qb64rust` builds and debugs without QB64pe: the pinned llvm-mingw release, installed
+   by `qb64rust toolchain install` or the extension's offer, only when the user agrees) is built and its closing
+   runs pass; all its tasks are done (4.4, the first run in the development host, is the scripted
+   `npm run test:integration:first-run`, which downloads the real toolchain); it waits for the user's review, then
+   `/opsx:archive`.
+3. M6, runtime modernisation (`ROADMAP.md`): a study first, `study\37` (what M6 is for, where it starts and where
    it stops, with the review that comes with this merge), then the user's decision on its scope.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").

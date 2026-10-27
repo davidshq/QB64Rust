@@ -500,8 +500,15 @@ version,session,change,category,actions,bytes
 1,28377963,extension-diagnostics,scratch files,2,408
 1,28377963,extension-diagnostics,test runs,25,0
 1,28377963,extension-diagnostics,tests and fixtures,9,18052
-1,28711dee,,other commands,1,0
-1,28711dee,,reading,2,0
+1,28711dee,,other,1,0
+1,28711dee,,other commands,38,0
+1,28711dee,,reading,3,0
+1,28711dee,m6-toolchain,documents and planning,29,51710
+1,28711dee,m6-toolchain,other,1,0
+1,28711dee,m6-toolchain,other commands,18,0
+1,28711dee,m6-toolchain,reading,3,0
+1,28711dee,m6-toolchain,test runs,5,0
+1,28711dee,qbasic-testcases,other commands,2,0
 1,28867a87,,other commands,1,0
 1,28867a87,m3-versioninfo,builds,2,0
 1,28867a87,m3-versioninfo,documents and planning,17,12585
@@ -1534,11 +1541,11 @@ version,session,change,category,actions,bytes
 1,70323a4c,m4-names-arrays,scratch files,1,1639
 1,70323a4c,m4-names-arrays,test runs,2,0
 1,70c857b9,,builds,3,0
-1,70c857b9,,other,5,6801
-1,70c857b9,,other commands,44,0
-1,70c857b9,,product code,6,1592
-1,70c857b9,,reading,12,0
-1,70c857b9,,test runs,9,0
+1,70c857b9,,other,6,6801
+1,70c857b9,,other commands,47,0
+1,70c857b9,,product code,7,1634
+1,70c857b9,,reading,13,0
+1,70c857b9,,test runs,10,0
 1,70c857b9,,tests and fixtures,10,2814
 1,70d686fe,m4-qb64pe-sources,builds,6,0
 1,70d686fe,m4-qb64pe-sources,documents and planning,28,21416
@@ -1890,6 +1897,14 @@ version,session,change,category,actions,bytes
 1,838d3f3c,,test runs,5,0
 1,838d3f3c,,tests and fixtures,1,2306
 1,8444969c,m3-declare-library,other commands,1,0
+1,848ca641,m6-toolchain,builds,3,0
+1,848ca641,m6-toolchain,documents and planning,5,4313
+1,848ca641,m6-toolchain,other,11,52127
+1,848ca641,m6-toolchain,other commands,83,0
+1,848ca641,m6-toolchain,product code,40,83744
+1,848ca641,m6-toolchain,reading,15,0
+1,848ca641,m6-toolchain,test runs,32,0
+1,848ca641,m6-toolchain,tests and fixtures,1,208
 1,84cc9ddb,,other commands,1,0
 1,84cc9ddb,m4-builtins-remaining,builds,10,0
 1,84cc9ddb,m4-builtins-remaining,documents and planning,44,37491
