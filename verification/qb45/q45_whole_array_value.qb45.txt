@@ -1,0 +1,8 @@
+compile:
+ 00A5   0012    PRINT #1, "1."; a()
+                                  ^ Syntax error
+ 00BC   0012    PRINT #1, "2."; a() + 1
+                                  ^ Syntax error
+    0 Warning Error(s)
+    2 Severe  Error(s)
+1.2.

@@ -347,6 +347,15 @@ Small programs behind `study\09`, `study\10` and later measurements:
   names with `HASHFLAG_TYPE`, `_OPERATOR`, `_CUSTOMSYNTAX` or `_XELEMENTNAME`; `AS`, `DATA`, `ELSE`, `REM` and `END`
   with other messages; a single leading underscore "Invalid name"; every other name taken)
 
+`qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
+recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see
+them), each behind a row of the crash-class rulings (`study\39`): `q45_static_local`,
+`q45_static_dims` `STATIC` in a SUB beside a shared array of that name (row 4); `q45_whole_array_value` a whole
+array `a()` as a value (row 6); `q45_whole_array_erased` `READ a()` and `SWAP a(), b()`, and an element of an
+erased array (row 7); `q45_div_zero` `\`, `MOD`, `ERROR 11` and a float `/` by zero under `ON ERROR` (row 12,
+`DIVERGENCES-QB45.md` Q-003); `q45_resume_in_sub` `RESUME` in a SUB (row 13); `q45_run_from_sub` `RUN` and `RUN
+100` in a SUB (row 14).
+
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).
 
