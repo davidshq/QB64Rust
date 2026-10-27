@@ -252,18 +252,18 @@ dependencies = [
 
 [[package]]
 name = "qb64rust-base"
-version = "0.2.0"
+version = "0.3.0"
 
 [[package]]
 name = "qb64rust-builtins"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "qb64rust-codegen-cpp"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "qb64rust-base",
  "qb64rust-builtins",
@@ -273,7 +273,7 @@ dependencies = [
 
 [[package]]
 name = "qb64rust-dap"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "qb64rust-base",
  "serde_json",
@@ -282,14 +282,14 @@ dependencies = [
 
 [[package]]
 name = "qb64rust-difftest"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "qb64rust-sema",
 ]
 
 [[package]]
 name = "qb64rust-driver"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "insta",
  "lsp-server",
@@ -310,7 +310,7 @@ dependencies = [
 
 [[package]]
 name = "qb64rust-format"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "qb64rust-base",
  "qb64rust-builtins",
@@ -320,7 +320,7 @@ dependencies = [
 
 [[package]]
 name = "qb64rust-ir"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "qb64rust-base",
  "qb64rust-builtins",
@@ -329,7 +329,7 @@ dependencies = [
 
 [[package]]
 name = "qb64rust-lsp"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "insta",
  "lsp-server",
@@ -343,7 +343,7 @@ dependencies = [
 
 [[package]]
 name = "qb64rust-sema"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "astro-float-num",
  "insta",
@@ -354,7 +354,7 @@ dependencies = [
 
 [[package]]
 name = "qb64rust-syntax"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "insta",
  "qb64rust-base",

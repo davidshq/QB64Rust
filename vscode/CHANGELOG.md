@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 (unreleased)
+## 0.3.0
 
 - **QB64pe is no longer needed to build or debug.** The first build or debug session without a C++ toolchain asks
   to download one: llvm-mingw 23.1.2 from github.com/mstorsjo/llvm-mingw (190 MB, about 460 MB on disk, checked

@@ -2,7 +2,7 @@
   "name": "qb64rust",
   "displayName": "QB64 (qb64rust)",
   "description": "QB64 language support: highlighting, live errors, check, build, run and debug with the new compiler qb64rust (bundled), formatting with QB64pe.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "qb64rust",
   "license": "MIT",
   "repository": {
