@@ -50,7 +50,9 @@ changing direction, design or scope.**
 6. **"The panel"** means a review by these roles: a pragmatic engineer, a QB64 engineer, a compiler/languages
    engineer, a Rust engineer, a test engineer, and any other role Claude thinks fits the topic (name the extra
    roles and say why). The panel is role-played inline; it is not a set of subagents (rule 1) (user, 2026-10-03).
-   Every role, the pragmatic engineer first, counts effort by rule 8.
+   Every role, the pragmatic engineer first, counts effort by rule 8. **When a decision is put to the user, the
+   panel's view comes with it**, unasked, with its recommendation (user: "always give the panel thoughts",
+   2026-10-26).
 7. **Text with backslashes goes through the Edit/Write tools or a script file, never through the shell.** That
    covers Windows paths (`study\archive\19`), C or Python escapes (`\\`, `\n`) and anything else containing `\`. Do not
    pass it in a heredoc, inline `python -c`/`python - <<EOF`, `sed` or `printf` in the Bash tool, which collapses
