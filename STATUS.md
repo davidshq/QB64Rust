@@ -71,9 +71,10 @@ push shows them (the user is not concerned with CI, working rule 9).
 2. M6, runtime modernisation (`ROADMAP.md`): a study first, `study\37` (what M6 is for, where it starts and where
    it stops, with the review that comes with this merge), then the user's decision on its scope.
 3. The fixes switch and the crash-class rulings (`study\39`, rows 1–19, user, 2026-10-26): the switch and the
-   compiler half are built in OpenSpec change `fixes-switch` (`qb64rust.toml`, `--fixes`, `--fix`, `--list-fixes`,
+   compiler half are built and archived (`openspec\changes\archive\2026-10-27-fixes-switch`, specs synced into
+   `compiler/fixes`, `editor/new-project` and ten others; `qb64rust.toml`, `--fixes`, `--fix`, `--list-fixes`,
    the language server and "QB64: New Project"; always on, rows 3, 4, 7, 8, 10, 13, 14, 16 as D-040–D-047; behind the
-   switch, the seven fixes of rows 1, 3, 4, 6, 13, 14, 19), awaiting the user's review before it is archived. Next: a
+   switch, the seven fixes of rows 1, 3, 4, 6, 13, 14, 19). Next: a
    second change for the libqb rows (2, 5, 9, 11, 12, 17, 18) and the fix `bit-number-check`, on that switch.
 4. A read-only measurement: does our first error's line match QB64pe's for the verification rejections? It decides
    whether to pin them (`SOMEDAY.md`, "Other ideas", the review of 2026-10-27).

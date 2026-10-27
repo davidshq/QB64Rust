@@ -107,7 +107,9 @@ compile error, as in the old compiler.
 A block SHALL stop being valid when it is freed, when the SUB or FUNCTION whose variable it describes returns,
 and when its array is redimensioned or erased. Reading, writing or freeing through it, or outside its region,
 SHALL be the old compiler's runtime error (300 to 313), which ends the program with libqb's message and is not
-trapped by `ON ERROR`, as in the old compiler.
+trapped by `ON ERROR`, as in the old compiler. `ERASE` of a dynamic array SHALL make its blocks invalid as `REDIM`
+does, whatever the fixes (`study\39` row 8; a `QB64PE-DIVERGENCES.md` row); `ERASE` of a static array only clears
+it, and its blocks stay valid.
 
 #### Scenario: Write after free
 - **WHEN** a program with `ON ERROR GOTO h` frees a block from `_MEMNEW` and then `_MEMPUT`s into it
@@ -119,8 +121,12 @@ trapped by `ON ERROR`, as in the old compiler.
 
 #### Scenario: Block of an erased array
 - **WHEN** `REDIM d(5) AS LONG`, `m = _MEM(d())`, `ERASE d`, then `PRINT _MEMEXISTS(m)` runs
-- **THEN** it prints `-1`, as the old compiler's program does (`_MEMEXISTS` does not look at the lock's id;
-  listed for review)
+- **THEN** it prints `0`, and a `_MEMPUT` through `m` then stops with the error a block of an array gives after
+  `REDIM` (`verification\v32_d29_erase_dynamic`, now a divergence)
+
+#### Scenario: Block of an erased static array
+- **WHEN** `DIM s(5) AS LONG`, `m = _MEM(s())`, `ERASE s`, then `PRINT _MEMEXISTS(m)` runs
+- **THEN** it prints `-1`, and a `_MEMPUT` through `m` writes into `s`
 
 ### Requirement: The address of a reference
 `_OFFSET(reference)` SHALL give the address of a variable, an element or an array as an `_UNSIGNED _OFFSET`; a

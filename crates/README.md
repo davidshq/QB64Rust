@@ -161,6 +161,7 @@ catalogue this section held until 2026-10-16, with the code each feature lives i
 |---|---|
 | Stages, preprocessor (`$IF`, `$LET`), included files, the build, the build cache | `compiler/pipeline` |
 | Command line, `-f:` settings, warnings, the demand report | `compiler/cli` |
+| The fixes switch: `qb64rust.toml`, `--fixes`, `--fix`, `--list-fixes` | `compiler/fixes` |
 | `--debug` builds, the debug symbol file `<exe>.debug.json` | `compiler/debug-info` |
 | `-y`, the layout settings, the format oracle | `compiler/format`, `testing/format-oracle` |
 | Console and window, `$CONSOLE`, `$SCREENHIDE`, `$EXEICON`, window built-ins | `language/console-and-window` |
@@ -187,7 +188,7 @@ catalogue this section held until 2026-10-16, with the code each feature lives i
 
 Not listed, as they are not about what the compiler accepts: the VS Code extension's other specs
 (`editor/build-run`, `editor/compiler-diagnostics`, `editor/debug-launch`, `editor/formatting`,
-`editor/language-support`) and the test
+`editor/language-support`, `editor/new-project`) and the test
 sets' (`testing/…`).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**

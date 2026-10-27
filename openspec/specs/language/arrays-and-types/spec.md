@@ -291,8 +291,11 @@ its elements made (zero or empty), when the statement runs. `DIM` of a dynamic a
 error 10 and leave it unchanged, whether it is the statement that allocated it or another; a `DIM` with a bound
 that is not constant of an array that is static SHALL raise error 10 likewise. A dimension with no element (its
 upper bound one below its lower bound) SHALL raise error 5 and leave the array allocated with those bounds and no
-element; a dimension whose upper bound is lower still, and a request the machine cannot hold, SHALL end the
-program with "Out of memory", which no error handler receives. A bound whose evaluation raises an error SHALL NOT
+element; a dimension whose upper bound is lower still SHALL raise error 5 and leave the array not allocated
+(`study\39` row 3, always on), and a request the machine cannot hold SHALL end the program with "Out of memory",
+which no error handler receives. With the fix `dim-empty-error` on (spec `compiler/fixes`), a dimension with no
+element SHALL raise error 5 and leave the array not allocated, and a statement whose bound raises an error SHALL
+allocate nothing. Otherwise a bound whose evaluation raises an error SHALL NOT
 stop the allocation. Using an element of a dynamic array that is not allocated, and `LBOUND` or `UBOUND` of it,
 SHALL raise error 9. An array used without `DIM` while `$DYNAMIC` is in effect SHALL be allocated by the first
 statement in the file that names it, where that statement evaluates the name: when the statement runs again the
@@ -334,8 +337,14 @@ SHALL NOT keep the arrays after it in the list from being allocated, a second al
 - **THEN** the handler prints 5, then ` 0 -1 ` is printed, then the handler prints 9
 
 #### Scenario: Fewer than no element
-- **WHEN** `n = -3: DIM d(n) AS LONG` runs under the same handler
-- **THEN** the program ends with "Out of memory" and the handler does not run
+- **WHEN** `n = -3: DIM d(n) AS LONG` runs under the same handler, then `PRINT UBOUND(d)`
+- **THEN** the handler prints 5, then the handler prints 9: the array is not allocated (`study\39` row 3, always
+  on; a `QB64PE-DIVERGENCES.md` row; the old compiler ends with "Out of memory", which the handler does not receive)
+
+#### Scenario: Fix dim-empty-error
+- **WHEN** `n = -1: DIM d(n) AS LONG` and `DIM s(ASC("")) AS LONG` run under the same handler with the fix
+  `dim-empty-error` on, each followed by `PRINT UBOUND(…)`
+- **THEN** for each the handler prints 5, then 9: nothing is allocated after an error in the statement
 
 #### Scenario: A bound with an operator
 - **WHEN** `DIM a3(2 + 3) AS LONG: REDIM a3(20) AS LONG: PRINT UBOUND(a3)` runs, and `DIM a1(5) AS LONG: REDIM
@@ -715,10 +724,14 @@ module.
 
 `STATIC` of an array declared, used or listed already in the procedure, `DIM SHARED` and `REDIM SHARED` inside a
 procedure, `SHARED name(bounds)` with bounds, and `STATIC` in the main module SHALL be compile errors. `STATIC
-name(bounds)` beside a shared main-module array of that name and type SHALL name that array in the procedure. Its
-allocation when the program starts SHALL be a second allocation of the shared array, after the array's own: a
-static shared array then ends the program at the start with "Duplicate definition", before any `ON ERROR` runs,
-as in the old compiler (`verification\v24_x272`, `v55_d_static_shared`).
+name(bounds)` beside a shared main-module **static** array of that name and type SHALL declare an array of the
+procedure's own, kept between calls, and leave the shared array untouched, as QuickBASIC 4.5 does
+(`verification\qb45\q45_static_local`; `study\39` row 4, always on; a `QB64PE-DIVERGENCES.md` row; the old compiler
+ends the program at the start with "Duplicate definition", `verification\v24_x272`). Beside a shared **dynamic**
+array it SHALL name that array in the procedure, its allocation when the program starts being a second allocation
+of the shared array, after the array's own, as in the old compiler (`v55_d_static_shared`); with the fix
+`static-local-dynamic` on, it SHALL declare an array of the procedure's own as beside a static one. Every use of the
+name in the procedure SHALL follow that one answer.
 
 In a procedure, `REDIM name(bounds)` (also `_PRESERVE`, `AS type`, an item of a list) of a shared main-module
 array whose bound is the first place in the procedure that names an array used without `DIM` SHALL make the name
@@ -802,8 +815,13 @@ array that nothing allocates, as below `$DYNAMIC` (`v60_b5`).
 #### Scenario: STATIC beside a shared array
 - **WHEN** the main module has `ON ERROR GOTO h` and `DIM SHARED a(3) AS LONG`, and a SUB below holds `STATIC a(5)
   AS LONG`
-- **THEN** the program ends when it starts with "Duplicate definition" on line 1, and the handler does not run
-  (`verification\v24_x272`)
+- **THEN** the program runs; the SUB's `a` has the bounds 0 to 5 and keeps its elements between calls, and the
+  shared `a` keeps the bounds 0 to 3 and its elements
+
+#### Scenario: STATIC beside a shared dynamic array, fix on
+- **WHEN** the main module has `REDIM SHARED d(3) AS LONG` and `d(1) = 7`, a SUB below holds `STATIC d(5) AS
+  LONG` and prints `UBOUND(d)`, and the fix `static-local-dynamic` is on
+- **THEN** the SUB prints ` 5 `, and the main module's `d(1)` and `UBOUND(d)` stay 7 and 3
 
 #### Scenario: ERASE of a STATIC array
 - **WHEN** a SUB with `STATIC c(2) AS LONG: c(1) = c(1) + 1: PRINT c(1);: ERASE c: PRINT c(1);` is called twice
@@ -1791,7 +1809,11 @@ compile and stand for its first element in memory, with no bounds check (design 
 places are any
 expression and the variable of `READ`, `INPUT`, `INPUT #`, `LINE INPUT #`, `SWAP`, `FIELD`, `LSET` and `RSET`, each
 taking one item; `LEN(a())` keeps its meaning. Each place is a row of `SOMEDAY.md`'s "QB64pe behaviours to review"
-(user, 2026-10-22).
+(user, 2026-10-22). With the fix `whole-array-value` on (spec `compiler/fixes`), a whole array in an expression
+(every place but `LEN(a())` and the variables of the statements named) SHALL be a compile error at it, as in
+QuickBASIC 4.5 (`verification\qb45\q45_whole_array_value`; `study\39` row 6). Used whole while it has no storage (after
+`ERASE`, or a dynamic array never allocated), in any of these places, it SHALL raise error 9 and read or write
+nothing, whatever the fixes (`study\39` row 7; a `QB64PE-DIVERGENCES.md` row).
 
 #### Scenario: PRINT a whole array
 - **WHEN** `DIM a(2) AS LONG: PRINT a(): PRINT "ok"` runs
@@ -1826,8 +1848,13 @@ taking one item; `LEN(a())` keeps its meaning. Each place is a row of `SOMEDAY.m
 
 #### Scenario: An erased array
 - **WHEN** `REDIM a(2) AS LONG: ERASE a: PRINT a()`, then `READ a()` and `SWAP a(), b()` of two erased arrays run
-  under a handler
-- **THEN** it prints ` 0 ` and no error is raised (`verification\v54_d_whole_erased`)
+  under a handler that prints `ERR` and resumes next, followed by `PRINT "after"`
+- **THEN** the handler prints 9 three times, then `after` is printed; no later `PRINT` shows the text a `READ`
+  would have stored (`verification\v54_d_whole_erased`, `v54_x42`–`x44`, now a divergence)
+
+#### Scenario: Fix whole-array-value
+- **WHEN** `PRINT a()` or `PRINT a() + 1` is compiled with the fix on
+- **THEN** it is a compile error at `a()`, not marked "not supported yet"; `READ a()` and `LEN(a())` still compile
 
 ### Requirement: A whole array where the old compiler rejects it
 A whole array as a value where the old compiler rejects one SHALL stay a compile error: as the whole value of an

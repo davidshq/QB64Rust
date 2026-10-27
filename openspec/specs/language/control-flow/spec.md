@@ -538,7 +538,8 @@ compiler (measured, `verification\v57_r01`–`r19`). Any other name SHALL be the
 #### Scenario: RUN a label from a SUB
 - **WHEN** a SUB runs `RUN again`, where `again:` is a label of the main module
 - **THEN** the program goes on at `again:` with every variable cleared, as the old compiler's program does
-  (`verification\v57_r04`; in a `$CONSOLE:ONLY` program its later output is lost, as with the old compiler)
+  (`verification\v57_r04`); in a `$CONSOLE:ONLY` program its later output still goes to the console (requirement
+  "RUN in a console-only program")
 
 #### Scenario: A label that is also a SUB
 - **WHEN** a program has the label `one:` and a `SUB one`, and runs `RUN one`
@@ -576,3 +577,29 @@ file cannot be started it SHALL raise error 53, and the program SHALL go on afte
 #### Scenario: A program that can be started
 - **WHEN** a program runs `RUN "sort"` with no input
 - **THEN** this program prints nothing after the `RUN`, as with the old compiler (`verification\v57_r09`)
+
+### Requirement: RUN leaves the active procedures first
+A `RUN` reached inside a SUB or FUNCTION SHALL first leave every active procedure through its exit path (as `END`
+from a procedure does), so that a program which runs `RUN` from a SUB any number of times neither grows its stack
+nor keeps the procedures' strings, whatever the fixes (`study\39` row 14; a `QB64PE-DIVERGENCES.md` row).
+
+#### Scenario: RUN from a SUB many times
+- **WHEN** a program keeps a counter in its process's environment (`ENVIRON`, which `RUN` does not clear) and runs
+  `RUN` from a SUB until the counter reaches 100,000
+- **THEN** it ends normally with the counter at 100,000
+
+### Requirement: RUN in a console-only program
+In a `$CONSOLE:ONLY` program, the output after `RUN`, `RUN label` or `RUN line` SHALL go to the console as at the
+first start, whatever the fixes (`study\39` row 14; a `QB64PE-DIVERGENCES.md` row).
+
+#### Scenario: Output after RUN label
+- **WHEN** a `$CONSOLE:ONLY` program prints `one`, runs `RUN again` once, and `again:` is followed by `PRINT "two"`
+- **THEN** its console output holds `one` and then `two`
+
+### Requirement: Fix run-in-procedure
+With the fix `run-in-procedure` on, `RUN` in any form inside a SUB or FUNCTION SHALL be a compile error at it, with
+a note to set a flag and run `RUN` from the main module, as in QuickBASIC 4.5 (`verification\qb45\q45_run_from_sub`).
+
+#### Scenario: RUN in a SUB
+- **WHEN** a SUB holds `RUN` and the fix is on
+- **THEN** the compile fails with an error at `RUN`, not marked "not supported yet"
