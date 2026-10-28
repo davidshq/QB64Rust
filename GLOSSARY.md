@@ -269,7 +269,7 @@ spelling rules (`tools\callsite\README.md`). Nothing is built or run, so it is f
 **Here:** tier 1 is `cargo test`: the compiler's own tests, seconds to minutes, no QB64pe needed. Tier 2 needs the
 QB64pe reference clone and builds and runs real programs: the full corpus and upstream suites (with the slice and
 upstream pass lists judged from them), the slice list without folding, the differential pass list and the
-call-site check (`CLAUDE.md` working rule 9).
+call-site check (`CLAUDE.md` working rule 6).
 
 ## Editor tooling
 

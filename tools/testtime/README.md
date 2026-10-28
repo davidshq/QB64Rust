@@ -32,8 +32,9 @@ kind of each run and its times.
 
 **Claude Code deletes old transcripts.** A session whose transcript is gone keeps its rows in the CSV files: the
 script replaces the rows of the sessions it can read and leaves the others. So the files must be committed, and
-the script run before the transcripts of a period are gone: **at the close of each change** (`CLAUDE.md` working
-rule 9).
+the script run before the transcripts of a period are gone. It is run when the user asks, no longer at the
+close of each change (`CLAUDE.md` working rule 6, user, 2026-10-28), so the runs of a session whose transcript is
+deleted before then are not recorded.
 
 ## Kinds
 

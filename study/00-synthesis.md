@@ -2,9 +2,10 @@
 
 The one-page entry point to this folder. It summarises every study, the decisions, the plan, what was
 measured, and what is still open. Details live in the numbered documents; each section points to them. Closed
-documents live in `archive\` and are read only when needed (`CLAUDE.md` working rule 10): the reviews of other
+documents live in `archive\` and are read only when needed (`CLAUDE.md` working rule 7): the reviews of other
 repositories (`11`–`14`, conclusions in §11 here) and, since 2026-10-18, the reviews and plans whose outcomes are
-decided and built (`08`, `15`, `19`–`34`).
+decided and built (`08`, `15`, `19`–`39`), and since 2026-10-28 the studies of the old compiler that no
+milestone needs now (`01`, `02`, `04`, `05`).
 
 First written 2026-10-02 from `01`–`05`; rewritten 2026-10-02 (session 5) to cover `06`–`14`, `baselines\` and
 `verification\`; trimmed 2026-10-03 when `11`–`14` were archived. Tree studied: `..\QB64pe`, HEAD `16f629784e`,
@@ -128,7 +129,7 @@ Full lists: `01` §11.1, `02` §9.1, `03` §9.1. Items marked ✓ were confirmed
 
 ## 5. Statement semantics worth knowing (measured)
 
-Closed to new facts on 2026-10-18 (`CLAUDE.md` working rule 11): it holds the families up to `v45`; a later
+Closed to new facts on 2026-10-18 (`CLAUDE.md` working rule 7): it holds the families up to `v45`; a later
 family's facts are its recorded output and its line in `verification\README.md`.
 
 From `10` (checked by `verification\v09_dim.bas`, `v10_print.bas`):
@@ -3262,21 +3263,21 @@ re-enter). Redesign only in M6: the error model (`error()` returns, every functi
 ## 10. Testing position
 
 How the new compiler is tested, tier by tier: `crates\README.md`; each test set and its counts: its
-`tests\*\README.md`; when each run happens: `CLAUDE.md` working rule 9; the old compiler's baseline:
+`tests\*\README.md`; when each run happens: `CLAUDE.md` working rule 6; the old compiler's baseline:
 `baselines\README.md`; the runner and how it runs the old compiler's programs (`QB64PE_NOPROMPT=y`, fatal
 errors read from the output): `tools\legacy_tests\README.md`. The position as written on 2026-10-03, with the
 plan of R11's test layers, is in `study\archive\00-synthesis.md`.
 
 ## 11. Other repositories and sources: conclusions (reviews archived)
 
-What may be taken from other projects is `CLAUDE.md` rule 5. The reviews behind these verdicts are closed and kept
+What may be taken from other projects is `CLAUDE.md` working rule 3. The reviews behind these verdicts are closed and kept
 in `study\archive\` (`11`–`14`, plus the measurement scripts); nothing in the active plan needs them.
 
 | Source | Conclusion |
 |---|---|
 | `qb64pe-vscode` (community extension) | Reference only, nothing copied. Its regex-based checks can flag code the compiler accepts, which our design avoids. Its feature list is a parity checklist. |
 | `vscode-qb64fresh` (the user's extension) | Not the base (written fresh instead); small self-contained pieces may be taken after reading them in full. Lessons: one structured output parser, not a list of known messages; one file per concern. |
-| QB64Fresh (the user's earlier Rust rewrite) | Not a base: matched QB64pe output on 19 of 331 tests; front end not lossless, IR name-based. Taken: its 261 `runtime_comparison` BASIC programs (recorded against the old compiler at the start of M2), small pieces per rule 5, and process lessons: measure against `qb64pe.exe` from day one; one layer at a time; no special cases for one program; no status claims without measurements. |
+| QB64Fresh (the user's earlier Rust rewrite) | Not a base: matched QB64pe output on 19 of 331 tests; front end not lossless, IR name-based. Taken: its 261 `runtime_comparison` BASIC programs (recorded against the old compiler at the start of M2), small pieces per working rule 3, and process lessons: measure against `qb64pe.exe` from day one; one layer at a time; no special cases for one program; no status claims without measurements. |
 | `rewrite-decision.md` (earlier external review) | Advised against an empty-repo rewrite; considered and overruled 2026-10-02 (`DECISIONS.md`). |
 | FreeBASIC (`..\FreeBASIC`, GPL/LGPL) | No code. More modular than QB64pe but single-pass with a symbol-aware lexer: not a front-end model. Useful for runtime-call tables, defined C output (`-fwrapv`), lowering notes, test conventions (`16`, panel-reviewed). |
 | QB64pe wiki | Primary documentation source. Fetched 2026-10-02 with `tools\wiki\fetch_wiki.py` (1,124 pages, git-ignored cache). No licence stated: local reference only until the maintainers are asked. |
@@ -3315,11 +3316,7 @@ as a reading of the code, not a measurement.
 
 | Doc | Content |
 |---|---|
-| `01` | Compiler front end: lexer, passes, name resolution, restarts, metacommands |
-| `02` | Expressions and code generation: typing, storage, arrays, built-in calls, generated C++ |
 | `03` | Runtime library: error model, strings, screen modes, graphics, files, input |
-| `04` | IDE and debugger (vWATCH protocol), with the parity list used by `06`; the IDE's internals (Parts A–D, Part E §1–§4) are in `archive\04-ide-debugger.md` |
-| `05` | Build, bootstrap, CI, vendored libraries, test suites |
 | `06` | IDE features mapped to LSP, DAP, tasks and settings |
 | `07` | Expert panel: strategy, architecture, roadmap, recommendations R1–R13 |
 | `09` | Study claims checked by running the old compiler; bug-compatibility list |
@@ -3327,11 +3324,6 @@ as a reading of the code, not a measurement.
 | `16` | FreeBASIC: lessons to take (module split, runtime-call tables, `-fwrapv`, lowering notes, test conventions), things not to take, proposed follow-ups and the panel review |
 | `17` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do); how M1 compares |
 | `18` | Other VS Code extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
-| `35` | Tenth review (2026-10-18): nothing astray; where the time goes in M3, and six recommendations, all answered; item 2 (the verification families as a suite) still to build |
-| `36` | M5, the debugger (2026-10-24): the toolchain ships `lldb-dap` and the emitter's `#line` directives already give the line table (measured), so the recommended path is a debug build, a symbol file and a thin DAP proxy; the eleventh review of M0–M4 and of what remains (nothing astray; an order recommended before M6); three decisions for the user |
-| `37` | M6, runtime modernisation (2026-10-26): none of the runtime's three debts shows as a failure a user meets (a million trapped errors run; the IR fixes the observable error rules), so the panel recommends M6 as "the runtime without QB64pe" (a toolchain of the project's own, libqb repaired in place through its edits) and the second backend in `SOMEDAY.md`; the twelfth review (M5, M5b); three decisions for the user |
-| `38` | Where the project stands and where it could go (2026-10-26, at the merge of `mb5`): everything planned on day one is built and nobody but the author has used it; the purpose was never written; ten options ranked under three candidate purposes; under every purpose, make it usable without QB64pe and cut the standing cost of process and tests; four decisions for the user |
-| `39` | The crash-class rows of "QB64pe behaviours to review" ruled one at a time (2026-10-26, from `study\38` §5.3 item 1): 15 fixed always, 3 behind the new fixes switch, the OpenGL errors kept; several measured with QB 4.5 under DOSBox; what the fix change measures first |
-| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 10); what each holds: `archive\README.md` |
+| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 7); what each holds: `archive\README.md`. Since 2026-10-28 also the old compiler's front end (`01`), code generation (`02`), the rest of the IDE and debugger (`04`), its build (`05`), and the reviews and studies `35`–`39` |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

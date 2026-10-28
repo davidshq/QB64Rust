@@ -79,7 +79,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   (`tools\coverage\README.md`). **At a merge into `main` the three full suites run with it**, each into its own
   file (`--coverage target\coverage\merge\corpus.txt`, `upstream.txt`, `verification.txt`), and
   `python tools\coverage\builtin_runs.py --check target\coverage\merge\*.txt` reads them: the built-ins no test
-  runs must be those of `tests\never_run.list` (`CLAUDE.md` working rule 9; OpenSpec change
+  runs must be those of `tests\never_run.list` (`CLAUDE.md` working rule 6; OpenSpec change
   `m4-coverage-review`, design D7), and the pass lists are judged from them (`--check-list`): the counters
   change no value. A run with `--full-states` cannot stand for a run of a pass list.
 - `<name>.files`, a folder beside a program that runs: the data files it reads (a picture loaded with `BLOAD`).
@@ -321,7 +321,7 @@ the list would be: a full run, the same root, the same compiler build and runner
 It prints the failures, the runner's summary line and `<list>: n of m passed in results-<suite>.json`; exit code 0
 when all passed, 1 otherwise, 2 for a usage error. **Not seen:** an included file changed after the run, and
 the reference clone (its libqb and toolchain, which a corpus program is linked with) changed after it. At a
-change's close it stands for the slice list and the upstream pass list (`CLAUDE.md` working rule 9): the full suites
+change's close it stands for the slice list and the upstream pass list (`CLAUDE.md` working rule 6): the full suites
 run those programs with the same options, so running the lists too ran 765 programs twice. Checked once on
 2026-10-16 (the build of `m3-sound-handles`): `slice.list` 440 of 440 and `pass.list` 325 of 325, the same programs
 as the list runs of that build passed; about a second each. The run without folding, the differential pass list
@@ -423,7 +423,7 @@ Notes:
   the folder it was built in, a path fixed at build time. A copy not used for a day is removed at the next
   run's start (about 10 MB each).
 - <a id="merge-runs-in-a-worktree"></a>**The runs at a merge into `main` in a worktree** (`study\archive\34` §3 item 3,
-  optional). The full set at a merge (`CLAUDE.md` working rule 9, about an hour) may run in a second checkout
+  optional). The full set at a merge (`CLAUDE.md` working rule 6, about an hour) may run in a second checkout
   of the merge commit, so that the next change goes on in this one:
 
   ```

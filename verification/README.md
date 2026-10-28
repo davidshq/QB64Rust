@@ -2,7 +2,7 @@
 
 Small programs that measure what the old compiler (`qb64pe.exe` at the reference clone's commit) does, each
 recorded with its output. The facts the families up to `v45` establish are written in `study\00` §5, which takes no
-new facts since 2026-10-18 (`CLAUDE.md` working rule 11): a later family's facts are its recorded output, and its
+new facts since 2026-10-18 (`CLAUDE.md` working rule 7): a later family's facts are its recorded output, and its
 line here says what it shows. This file
 is the catalogue of the families, moved here from `CLAUDE.md`'s layout table on 2026-10-16 (`study\archive\30` §2).
 A new family, or new numbers in one, gets a line here, not in `CLAUDE.md`.
@@ -61,7 +61,7 @@ Small programs behind `study\09`, `study\10` and later measurements:
   every kind of loop (through `IF` and `SELECT`, the innermost loop, in a SUB and a FUNCTION, the tests of `LOOP
   WHILE`/`UNTIL` still run), `v47_b_devices` the device functions, `STICK` and `STRIG` with no game controller (the
   keyboard and the mouse are devices 1 and 2 with libqb's fixed counts; the error 5 cases; nothing that counts
-  controllers, `CLAUDE.md` working rule 12), `v47_c_dot_blanks` blanks around a dot after a plain name (a member
+  controllers, `CLAUDE.md` working rule 8), `v47_c_dot_blanks` blanks around a dot after a plain name (a member
   array's element and bounds, a by-reference argument, nested members, plain dotted names), `v47_e01`, `e02` a
   relative `$EXEICON` and `$EMBED` name found under the compiler's folder (each names its file in a `.root`
   sidecar, which the runner puts there for the compile, `tools\legacy_tests\README.md`; the files in
@@ -378,7 +378,11 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `LINE INPUT` and `INPUT` from the null device wait for ever (`a1`, `a5`), as does `LINE INPUT` on a last line with
   no newline (`a2`, its `.stdin` holds `abc`); `INPUT$` with no file number waits for ever even with data on its
   input, since it reads only the keyboard buffer that console events fill (`a3`, its `.stdin` holds `abcdef`), and
-  from the null device (`a4`); `b1`–`b5` `BLOAD` and `BSAVE` at the top of the block of conventional memory (1,114,099
+  from the null device (`a4`); `a6` (2026-10-28, from the review of `libqb-fixes`) reads a redirected input with
+  CR LF line ends: `LINE INPUT` drops every CR (`e` CR CR LF reads as `e`), `INPUT` reads `c,d` as two fields, and
+  the program stops before the end of its input; the new compiler passes it, and its `INPUT$` read of the same kind
+  of input (CR LF as one LF, a CR alone kept, Ctrl+Z the end) is the CLI test
+  `input_string_reads_redirected_input_in_text_mode`; `b1`–`b5` `BLOAD` and `BSAVE` at the top of the block of conventional memory (1,114,099
   bytes; row 5): a `BLOAD` of 1000 bytes to `&HFFFF:&HFFF0`, given or from the file's header, writes past the block
   with no error (`b1`, `b4`), one of a file whose header gives size 0 and whose data is 200,000 bytes crashes (`b2`,
   exit 139), a `BSAVE` there writes a file of 1007 bytes read past the block (`b3`), and the block's last 19 bytes,

@@ -2,7 +2,7 @@
 
 The 261 `.bas` files here are byte-for-byte copies of `tests/runtime_comparison/*.bas` from QB64Fresh (the user's
 earlier Rust rewrite, MIT licence), at commit `85e6df8` (2026-02-03), the last commit that changed that folder.
-Copied 2026-10-03 under `CLAUDE.md` rule 5: every program was read in full. The numbers run from 01 to 264 with
+Copied 2026-10-03 under `CLAUDE.md` working rule 3: every program was read in full. The numbers run from 01 to 264 with
 gaps (45, 55, 249 do not exist).
 
 Not copied: QB64Fresh's `README.md`, `run_comparison.sh`, `diff_results.sh`, `DIFFERENCES.md` and its recorded

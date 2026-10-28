@@ -12,8 +12,9 @@ cargo build --release
 python tools\diagnostics\old_wording.py --check    # every note on a recorded rejection is its recorded message
 ```
 
-Run both when a change alters messages (a changed message loses its note until then; none is ever wrong) or adds
-recorded rejections. Never edit the table by hand.
+Run both at each merge into `main` (`tools\close\README.md`, "The test cadence"; not at a change's close since
+2026-10-28): a message changed or a rejection recorded since the last merge loses its note until then, and no note
+is ever wrong. Never edit the table by hand.
 
 `test_old_wording.py` tests the rules that need no compiler (which old messages name a file: a masked folder, a
 backslash or a BASIC file's extension, not a `/` between words), run by CI:

@@ -18,7 +18,7 @@ SHALL have a `SOURCE.md` naming where its programs came from, the source commit 
 #### Scenario: Program from QB64Fresh
 - **WHEN** a reader opens `tests/corpus/runtime_comparison/SOURCE.md`
 - **THEN** it names QB64Fresh's `tests/runtime_comparison/` at commit `85e6df8`, the MIT licence, `CLAUDE.md`
-  rule 5, and the files that were not copied
+  working rule 3, and the files that were not copied
 
 #### Scenario: Programs are unchanged copies
 - **WHEN** a corpus `.bas` from `runtime_comparison` is compared with the QB64Fresh file at `85e6df8`

@@ -17,10 +17,8 @@ on:
       - "study/**"
       - "openspec/**"
       - "**.md"
+  # Tier 2 runs only from here ("Run workflow"); its weekly run was stopped (DECISIONS.md 2026-10-28).
   workflow_dispatch:
-  # Tier 2 once a week (Monday 05:00 UTC), on the default branch; the other jobs run then too.
-  schedule:
-    - cron: "0 5 * * 1"
 
 permissions:
   contents: read
@@ -83,9 +81,11 @@ jobs:
   # qb64pe.exe will not do: the reference commit's compiler writes other C++ for VAL(s$, SINGLE) and VAL(s$,
   # DOUBLE) (study\archive\29 section 8).
   # Not on a push or a pull request (user, DECISIONS.md 2026-10-12): the job takes about 20 minutes and tier 2 is
-  # run locally at the close of each change. It runs when started by hand ("Run workflow") and once a week.
+  # run locally at the close of each change. It runs only when started by hand ("Run workflow"): a weekly run that
+  # nobody waits on and that the runner cannot pass whole (no window for screen programs) was stopped
+  # (DECISIONS.md 2026-10-28).
   tier2:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     timeout-minutes: 45
     env:

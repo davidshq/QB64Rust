@@ -217,12 +217,12 @@ model, and is useful for the middle and back. Changed: one finding became a meas
 overflow), two claims were corrected (INTEGER wrap, forward calls), one lesson was demoted (L3), one inverted
 (L2 flag), one added (L12). Priority of the follow-ups: 1, then 3; the rest are notes for their milestone.
 
-Rule: FreeBASIC is reference only (`CLAUDE.md` rule 5). Reading how a problem was approached is fine; no code,
+Rule: FreeBASIC is reference only (`CLAUDE.md` working rule 3). Reading how a problem was approached is fine; no code,
 tests, tables or documentation text are copied.
 
 ## 8. Panel decision on the follow-ups (2026-10-03)
 
-Asked for by the user; "the panel" as defined in `CLAUDE.md` rule 6, role-played inline. Roles: pragmatic
+Asked for by the user; "the panel" as defined in `CLAUDE.md` working rule 4, role-played inline. Roles: pragmatic
 engineer (P), QB64 engineer (Q), compiler/languages engineer (C), Rust engineer (R), test engineer (T), plus a
 runtime engineer (RT, for 2 and 6) and an editor-tooling engineer (E, for 5 and the M1 leftovers).
 

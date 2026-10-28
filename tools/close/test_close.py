@@ -90,14 +90,12 @@ class Judges(unittest.TestCase):
         self.assertFalse(judge("callsite", "7 programs: 6 equal, 1 differ, 0 not compared\n", set())[0])
         self.assertFalse(judge("callsite", "Another run holds the reference clone\n", set())[0])
 
-    def test_clippy_fmt_build_wording(self):
+    def test_clippy_fmt_build(self):
         self.assertTrue(judge("clippy", "    Finished `dev` profile\n", set())[0])
         self.assertFalse(judge("clippy", "warning: unused variable\n", set())[0])
         self.assertTrue(judge("empty", "", set())[0])
         self.assertFalse(judge("empty", "Diff in x.rs\n", set())[0])
         self.assertFalse(judge("build", "error: could not compile\n", set())[0])
-        self.assertTrue(judge("wording", "828 notes on recorded rejections, 0 not the recorded message\n", set())[0])
-        self.assertFalse(judge("wording", "828 notes on recorded rejections, 2 not the recorded message\n", set())[0])
         self.assertEqual(judge(None, "", set()), (True, "ran"))
 
 
@@ -179,9 +177,11 @@ class Plan(unittest.TestCase):
 
     def test_order(self):
         names = [s.name for s in steps(True)]
-        # What changes the compiler or the lists comes before the build, the build before every run.
-        self.assertLess(names.index("wording"), names.index("build"))
+        # The lists come before the build, the build before every run.
         self.assertLess(names.index("lists"), names.index("build"))
+        # A thin close: the reports wait for a merge into main (DECISIONS.md 2026-10-28).
+        for name in ("wording", "wording-check", "demand-corpus", "demand-upstream", "counts"):
+            self.assertNotIn(name, [s.name for s in steps(True, True, True)])
         self.assertEqual(names[names.index("build") + 1], "tier1")
         self.assertIn("nofold", names)
         self.assertNotIn("nofold", [s.name for s in steps(False)])
@@ -205,7 +205,7 @@ class Plan(unittest.TestCase):
         self.assertIn("--pass-cache", by["nofold"])
         self.assertIn("--wait", by["callsite"])
         for s in steps(True):
-            # Each command writes its own log, and no command holds a backslash (CLAUDE.md working rule 7).
+            # Each command writes its own log, and no command holds a backslash (CLAUDE.md working rule 5).
             self.assertIn(f"> target/close/{s.name}.log 2>&1", s.command)
             self.assertNotIn("\\", s.command)
 
@@ -252,7 +252,6 @@ class Check(unittest.TestCase):
             "fmt": "",
             "clippy": "",
             "lists": CARGO_OK,
-            "wording-check": "1 notes on recorded rejections, 0 not the recorded message\n",
             "slice": '{"corpus": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "upstream": '{"compile_tests": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "verification": '{"verification": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
@@ -309,7 +308,7 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 0, text)
         # The reason once, with the steps it covers; each step points to it.
         self.assertEqual(text.count("a test-only edit"), 1, text)
-        self.assertIn("(1) not repeated after crates/a.rs (wording, lists, build, tier1,", text)
+        self.assertIn("(1) not repeated after crates/a.rs (lists, build, tier1,", text)
         self.assertIn("ok       slice: 1 pass, 0 fail, 0 known [", text)
         self.assertIn("; not repeated (1)", text)
 
@@ -354,10 +353,10 @@ class Check(unittest.TestCase):
         self.assertIn("STALE    cli", text)
 
     def test_a_step_before_the_build_written_after_it(self):
-        self.at(self.root / close.log("wording"), 250)
+        self.at(self.root / close.log("lists"), 250)
         code, text = self.run_check()
         self.assertEqual(code, 1)
-        self.assertIn("STALE    wording: after the build", text)
+        self.assertIn("STALE    lists: after the build", text)
 
     def test_a_step_before_the_build_left_by_an_earlier_change(self):
         # Before the build, but older than this change's edit.
@@ -415,7 +414,7 @@ class Check(unittest.TestCase):
         self.assertEqual(copies, {"slice", "upstream", "verification", "addprefix", "qbasic", "nofold", "callsite"})
 
     def test_a_step_before_the_build_is_not_stale_by_what_one_writes(self):
-        # `wording` at 150, then `lists` rewrote a list at 160 and ended at 170, then the build at 200.
+        # `lists` rewrote a list at 160 and ended at 170, then the build at 200.
         listed = self.root / "tests/known_false_errors.list"
         listed.parent.mkdir()
         listed.write_text("x\n")

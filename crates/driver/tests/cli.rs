@@ -4141,6 +4141,31 @@ fn end_and_input_at_the_end_of_the_input() {
     );
 }
 
+/// `INPUT$` reads a redirected input in text mode, as `INPUT` and `LINE INPUT` read it: a CR LF pair comes as one LF,
+/// a CR alone stays, and a byte 26 (Ctrl+Z) ends the input, so the next read raises error 62 (D-048). The old
+/// compiler's `INPUT$` waits for ever on such an input, so no recording can hold this; `verification\v63_a6` records
+/// how its `LINE INPUT` and `INPUT` read the same kind of input.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn input_string_reads_redirected_input_in_text_mode() {
+    let d = scratch("input-string-crlf");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nON ERROR GOTO h\ns$ = INPUT$(6)\nFOR i = 1 TO LEN(s$): PRINT ASC(s$, i);: NEXT\nPRINT\n\
+         s$ = INPUT$(1)\nPRINT \"not reached\"\nSYSTEM\nh:\nPRINT \"error\"; ERR\nSYSTEM\n",
+    )
+    .unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let input: &[u8] = b"ab\r\ne\r\r\n\x1azz\r\n";
+    let ran = run(&mut unattended(&exe), Some(input), PROGRAM_LIMIT, "program");
+    assert_eq!(
+        stdout(&ran).replace("\r\n", "\n"),
+        " 97  98  10  101  13  10 \nerror 62 \n"
+    );
+}
+
 /// `_CAST` of a float constant out of range gives what the same conversion of a variable gives, with and without
 /// constant folding (D-047, spec `language/builtin-functions`, "A constant out of range", "Without folding").
 #[test]
