@@ -1,0 +1,50 @@
+# INPUT and LINE INPUT at the end of a redirected input raise error 62 (QB64PE-DIVERGENCES.md D-048, UPSTREAM.md
+# "Console input waits for ever at the end of a redirected input"; study\39 row 2). QB64pe's qbs_input, in a console
+# program, reads standard input with fgetc and at EOF sleeps 10 ms and reads again, for ever
+# (verification\v22_e_eof, v63_a1, a5). Here, at EOF, a line read in part is taken as ended (a last line with no
+# newline), and with nothing read error 62 is raised and qbs_input leaves through the clean-up of its Enter path,
+# printing no new line.
+file: internal/c/libqb.cpp
+--- old
+            chr = fgetc(stdin);
+            if (chr != EOF) {
+                if (chr == '\n')
+                    chr = 13;
+                qbs_set(key, qbs_new_txt(" "));
+                key->chr[0] = chr;
+            } else {
+                Sleep(10);
+            }
+--- new
+            chr = fgetc(stdin);
+            if (chr != EOF) {
+                if (chr == '\n')
+                    chr = 13;
+                qbs_set(key, qbs_new_txt(" "));
+                key->chr[0] = chr;
+            } else if (inpstr->len) {
+                // the last line had no newline: take it as ended
+                qbs_set(key, qbs_new_txt(" "));
+                key->chr[0] = 13;
+            } else {
+                // the input has ended: Input past end of file, and leave as the Enter path does
+                error(62);
+                for (i = 1; i <= numvariables; i++) {
+                    qbs_free(qbs_input_arguements[i]);
+                }
+                qbs_free(c);
+                qbs_free(inpstr);
+                qbs_free(inpstr2);
+                qbs_free(key);
+                write_page->cursor_show = cursor_show_last;
+                sub__freeimage(dest_image, 1);
+                sub__freeimage(dest_image_temp, 1);
+                if (autodisplay_backup == 0) {
+                    autodisplay = -1; // toggle request
+                    while (autodisplay)
+                        Sleep(1);
+                }
+                sub__source(source_backup);
+                return;
+            }
+--- end

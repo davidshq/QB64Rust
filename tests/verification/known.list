@@ -1,4 +1,6 @@
 # The verification programs the new compiler does not pass: <name><TAB><reason> (README.md).
+v02_errors	D-052
+v02b_idiv_zero	D-052
 v04_accidental	D-009
 v05_label_const	D-008
 v05b_label_const_short	D-008
@@ -8,6 +10,7 @@ v17_e_const_fdiv0	D-007
 v17_e_const_label_line	D-008
 v17_g_int64_min_div	D-006
 v17_g_long_min_div	D-006
+v17_g_mod_zero	D-052
 v17_g_precedence	D-005
 v18_b_index_raises	D-004
 v18_b_member_store	D-004
@@ -15,9 +18,16 @@ v18_h_string_member	D-004
 v21_b_bit_overlap	D-009
 v21_e_scenarios	D-009
 v21_g_fixed_function_twice	D-014
+v22_d_randomize_noseed	D-048
+v22_e_eof	D-048
+v22_x148_input_trailing_comma	D-048
+v22_x50_close_trailing_comma	D-048
+v22_x59_write_trailing_comma	D-048
 v24_h_member_store	D-004
 v24_x313_member_index_order	D-004
 v25_signs_const	D-028
+v26_e2_fall_off	D-048
+v26_e_end	D-048
 v26_x114_auto_const_accepted	D-027
 v29_b_sound_wait	varies: SOUND's time, the old build's too
 v32_a_blocks	D-016
@@ -45,6 +55,8 @@ v40_g6_byte_e9_in_name	not recorded
 v41_b_kinds	D-025
 v41_i_float	D-025
 v41_j_outside	D-004
+v43_a_errorline	D-052
+v44_x59	D-051
 v45_a_auto	D-027
 v45_a_lanes	D-027
 v45_b_conv	D-027
@@ -60,6 +72,7 @@ v49_x18_cast_out_of_range	D-047
 v54_x26_negative_beyond	D-034
 v54_x38_const_unsigned	D-027
 v56_a5_type_string_member	D-037
+v58_e21_off_div_main	D-052
 v59_f9_stop	D-036
 v39_a_handles	varies: _SNDGETPOS and _SNDLEN of a raw sound depend on the sound device's sample rate (.1249886602163315 recorded at 44100, .125 at 48000 here, the old build's too; as v39_b_new_mem)
 v60_c3_for_member_element_index_error	D-004
@@ -102,3 +115,17 @@ v57_r03_line_main	D-046
 v57_r04_label_sub	D-046
 v57_r05_line_sub	D-046
 v32_b_get_put	D-043
+v32_d33_free_zero_size	D-050
+v63_a1_line_input_eof	D-048
+v63_a2_last_line_no_newline	D-048
+v63_a3_input_string_stdin	D-048
+v63_a4_input_string_eof	D-048
+v63_a5_input_values_eof	D-048
+v63_b1_bload_top	D-049
+v63_b2_bload_size_zero_long	D-049
+v63_b3_bsave_top	D-049
+v63_b4_bload_header_place	D-049
+v63_c2_memnew_zero_two	D-050
+v63_d1_statuscode_closed	D-051
+v63_e1_error_11_handler	D-052
+v63_e2_division_types_handler	D-052

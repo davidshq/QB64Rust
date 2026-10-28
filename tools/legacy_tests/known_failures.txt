@@ -8,3 +8,9 @@ corpus:runtime_comparison/80_print_semicolon  PRINT with a comma never ends when
 corpus:runtime_comparison/126_print_comma  PRINT with a comma never ends when stdout is redirected (Windows console)
 corpus:runtime_comparison/187_print_comma_zones  PRINT with a comma never ends when stdout is redirected (Windows console)
 corpus:runtime_comparison/251_print_chain  PRINT with a comma never ends when stdout is redirected (Windows console)
+# QB64PE-DIVERGENCES.md D-052 (OpenSpec change libqb-fixes, study 39 row 12): error 11, division by zero, is trappable
+# here; the old compiler's recording ends at it with its critical message.
+corpus:runtime_comparison/228_err_erl_values  D-052: division by zero trapped (recording: critical error)
+corpus:slice/s11_on_error  D-052: division by zero trapped (recording: critical error)
+corpus:slice/s17_operators  D-052: division by zero trapped (recording: critical error)
+corpus:slice/s136_errorline  D-052: _ERRORMESSAGE$(11) is "Division by zero" (recording: "Unprintable error")

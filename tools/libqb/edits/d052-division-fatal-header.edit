@@ -1,0 +1,11 @@
+# Declares fatal_division_by_zero() for qbx.cpp's SIGFPE handler (QB64PE-DIVERGENCES.md D-052; study\39 row 12;
+# d052-division-fatal-entry.edit).
+file: internal/c/libqb/include/error_handle.h
+--- old
+void error(int32_t error_number);
+void fix_error();
+--- new
+void error(int32_t error_number);
+void fatal_division_by_zero();
+void fix_error();
+--- end

@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 void error(int32_t error_number);
+void fatal_division_by_zero();
 void fix_error();
 void libqb_check_stack();
 

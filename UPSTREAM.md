@@ -70,6 +70,79 @@ when one is, its entry says where (issue or pull request) and what came of it.
   result where it is the laid-out or the user's line in that sense, and otherwise does the first of these.
 - **Sent:** not yet.
 
+## Console input waits for ever at the end of a redirected input
+
+- **Wrong:** in a console program whose standard input is a file, a pipe or the null device, `INPUT` and `LINE
+  INPUT` at the end of the input sleep and read again for ever, also on a last line with no newline; `INPUT$(n)`
+  with no file number reads only the keyboard buffer, so it waits for ever even while data is on its input; `END`
+  prints "Press any key to continue" and waits for a console key that cannot come. A program fed from a file
+  never ends. Measured in this repo: `verification\v22_e_eof`, `v63_a1`–`a5`, `v26_e_end`.
+- **Where:** `internal/c/libqb.cpp`: `qbs_input` (the console branch of its key loop, `fgetc(stdin)`),
+  `func_input` (the keyboard branch), `sub_end` (the wait after "Press any key to continue").
+- **Fix:** at `EOF`, take a line read in part as ended, and with nothing read raise error 62 and leave through
+  the clean-up of the Enter path; `INPUT$` reads standard input when it is not a console and raises 62 at its end;
+  `END` waits for a key only when `GetConsoleMode` succeeds on the input (the null device is a character device,
+  so `GetFileType` cannot tell). On Linux and macOS QB64pe's `END` already ends at `EOF`.
+- **Here:** `QB64PE-DIVERGENCES.md` D-048; the edits `tools/libqb/edits/d048-console-eof-input.edit`,
+  `d048-console-eof-input-string.edit`, `d048-console-eof-end.edit`.
+- **Sent:** not yet.
+
+## `BLOAD` and `BSAVE` run past the block of conventional memory
+
+- **Wrong:** `BLOAD` reads the header's length, or the whole file when the header gives size 0 and the file is
+  64 KB or more, to its destination in `cmem` without checking that it fits, so a `BLOAD` near `&HFFFF:&HFFFF`
+  writes into the process's memory after the block (a crash, or silent damage); `BSAVE` likewise reads past the
+  block into the file. Measured in this repo: `verification\v63_b1`–`b4`.
+- **Where:** `internal/c/libqb.cpp`, `sub_bload` (before `fh.read`) and `sub_bsave` (before the file is opened).
+- **Fix:** compare the destination's offset in `cmem` plus the length with `sizeof(cmem)` and raise error 5
+  before reading or writing anything.
+- **Here:** `QB64PE-DIVERGENCES.md` D-049; the edits `tools/libqb/edits/d049-bload-past-block.edit`,
+  `d049-bsave-past-block.edit`.
+- **Sent:** not yet.
+
+## `_MEMFREE` of a `_MEMNEW(0)` block frees memory twice
+
+- **Wrong:** the 0-byte branch of `_MEMNEW` sets no type on its lock, so a lock taken again from the freed list
+  keeps type 1 and the pointer of the block freed before, and `_MEMFREE` of the 0-byte block frees that pointer a
+  second time (exit 127). Measured in this repo: `verification\v32_d33_free_zero_size`, `v63_c2`.
+- **Where:** `internal/c/libqb/src/memblock.cpp`, `func__memnew`, the `if (!bytes)` branch.
+- **Fix:** `mem_lock_tmp->type = 0;` there, the type of a block that owns no memory.
+- **Here:** `QB64PE-DIVERGENCES.md` D-050; the edit `tools/libqb/edits/d050-memnew-zero-lock.edit`.
+- **Sent:** not yet.
+
+## `_STATUSCODE` of a handle never opened crashes
+
+- **Wrong:** `_STATUSCODE(h)` of a negative handle that was never opened, or was closed, reads the type of the
+  entry `list_get` did not find: an access violation (exit 139). Measured in this repo: `verification\v44_x59`,
+  `v63_d1`.
+- **Where:** `internal/c/libqb.cpp`, `func__statusCode`.
+- **Fix:** `if (!sh || sh->type != special_handle_type::Http)` raises error 52, as `func__connected` tests.
+- **Here:** `QB64PE-DIVERGENCES.md` D-051; the edit `tools/libqb/edits/d051-statuscode-missing-handle.edit`.
+- **Sent:** not yet.
+
+## Division by zero cannot be trapped
+
+- **Wrong:** error 11 is in `error()`'s list of critical errors, so `ON ERROR` never receives a division by zero,
+  where QuickBASIC 4.5 traps it (`verification\qb45\q45_div_zero`). The generated code already tests every integer
+  `\` and `MOD` for a divisor of 0 and raises 11 without dividing, so nothing needs it to be critical. Measured in
+  this repo: `verification\v02b_idiv_zero`, `v63_e1`, `e2`.
+- **Where:** `internal/c/libqb/src/error_handle.cpp`, `error()` (the critical switch) and `error_code_to_text`
+  (no text for 11); `internal/c/qbx.cpp`, `division_by_zero_handler`.
+- **Fix:** drop 11 from the critical switch and give it its text; keep the SIGFPE handler fatal through a function
+  of its own (returning from it would run the faulting division again).
+- **Here:** `QB64PE-DIVERGENCES.md` D-052; the edits `tools/libqb/edits/d052-*.edit`.
+- **Sent:** not yet.
+
+## A bit number or shift count of 64 or more is undefined
+
+- **Wrong:** `_READBIT`, `_SETBIT`, `_RESETBIT`, `_TOGGLEBIT`, `_SHL` and `_SHR` shift by the count as given,
+  undefined in C++ outside 0 to 63: a variable count gets x86's masking, a constant count whatever g++ folds it to.
+  Measured in this repo: `verification\v58_f09_bits`, `v63_f1`.
+- **Where:** `internal/c/libqb/include/bitops.h`.
+- **Fix:** `b1 & 63` in the six functions, as `func__rol` and `func__ror` already mask.
+- **Here:** `QB64PE-DIVERGENCES.md` D-053; the edit `tools/libqb/edits/d053-bit-numbers-modulo-64.edit`.
+- **Sent:** not yet.
+
 ## Other candidates
 
 Bugs this project fixes in the `CONST` evaluator (built by `const-rulings`), which QB64pe might also want (not

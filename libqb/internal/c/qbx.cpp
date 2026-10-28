@@ -1543,7 +1543,7 @@ void evnt(uint32 linenumber, uint32 inclinenumber, const char *incfilename) {
 uint8 *redim_preserve_cmem_buffer = (uint8 *)malloc(65536); // used for temporary storage only (move to libqbx?)
 
 void division_by_zero_handler(int ignore) {
-    error(11);
+    fatal_division_by_zero();
 }
 
 void segv_handler(int ignore) {

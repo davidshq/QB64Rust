@@ -1,7 +1,5 @@
 # The verification programs the new compiler passes (README.md). One name per line, no .bas.
 v01_numeric
-v02_errors
-v02b_idiv_zero
 v02c_no_handler
 v03_storage
 v05c_label_type
@@ -297,7 +295,6 @@ v17_g_err_string_mod
 v17_g_err_string_number
 v17_g_err_string_pow
 v17_g_imp_eqv
-v17_g_mod_zero
 v17_g_negate_string
 v17_g_ops
 v17_probe_for
@@ -510,11 +507,9 @@ v22_c_types
 v22_d_environ
 v22_d_mid
 v22_d_random
-v22_d_randomize_noseed
 v22_d_shell
 v22_d_swap
 v22_e_bit
-v22_e_eof
 v22_e_input
 v22_e_randomize
 v22_e_redo
@@ -581,7 +576,6 @@ v22_x144_input_prompt_semicolon_only
 v22_x145_input_variable_prompt
 v22_x146_input_expression_prompt
 v22_x147_input_two_literals
-v22_x148_input_trailing_comma
 v22_x149_input_double_comma
 v22_x14_kill_parens_two
 v22_x150_line_input_number
@@ -658,7 +652,6 @@ v22_x46_print_file_string_number
 v22_x47_line_input_file_literal
 v22_x48_input_file_whole_type
 v22_x49_input_file_array
-v22_x50_close_trailing_comma
 v22_x51_open_for_twice
 v22_x52_freefile_parens
 v22_x53_cwd_assign
@@ -667,7 +660,6 @@ v22_x55_print_file_string_number
 v22_x56_write_adjacent
 v22_x57_write_semicolon
 v22_x58_write_console_semicolon
-v22_x59_write_trailing_comma
 v22_x60_write_file_trailing_comma
 v22_x61_write_leading_comma
 v22_x62_write_double_comma
@@ -1089,8 +1081,6 @@ v26_b_dest_switch
 v26_c_dest_in_sub
 v26_d1_input_dest
 v26_d2_input_source
-v26_e2_fall_off
-v26_e_end
 v26_f1_error_handled
 v26_f2_error_untrapped
 v26_g_echo
@@ -1839,7 +1829,6 @@ v32_d28_redim
 v32_d30_memnew_negative
 v32_d31_free_image_block
 v32_d32_freed_image
-v32_d33_free_zero_size
 v32_d34_lock_of_the_body
 v32_x01_accepted
 v32_x02_mem_member_of_result
@@ -2571,7 +2560,6 @@ v42_x57_sub_param_suffix
 v42_x58_sub_param_float_suffix
 v42_x59_on_timer_no_gosub_number
 v42_x60_key_text_long_expr
-v43_a_errorline
 v43_b_include
 v43_c_chr_const
 v43_d_continued
@@ -2685,7 +2673,6 @@ v44_x55
 v44_x56
 v44_x57
 v44_x58
-v44_x59
 v44_x60
 v44_x61
 v44_x62
@@ -3574,7 +3561,6 @@ v58_e17_lowercase_comment
 v58_e18_blank_after_colon
 v58_e19_on_in_include_only
 v58_e20_on_div_main
-v58_e21_off_div_main
 v58_e22_on_div_forms
 v58_e23_on_div_joined
 v58_e24_on_div_sub
@@ -4112,3 +4098,9 @@ v62_f3_resume_next_function
 v62_f4_resume_label_function
 v62_g5_run_function_unchecked
 v62_h1_cast_variables
+v63_b5_bload_bsave_last_bytes
+v63_c1_memnew_zero_first
+v63_c3_memnew_zero_between
+v63_c4_memnew_zero_twice
+v63_f1_bit_numbers_constant
+v63_f2_bit_number_check

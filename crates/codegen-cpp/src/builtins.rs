@@ -5,6 +5,7 @@
 use crate::Emitter;
 use crate::decl::dim_count;
 use crate::names::c_type;
+use qb64rust_base::fixes::Fix;
 use qb64rust_builtins::BuiltinId;
 use qb64rust_builtins::passing::plan;
 use qb64rust_ir::builtins::{
@@ -550,6 +551,20 @@ impl Emitter<'_> {
         if optional.iter().any(|&o| o) {
             parts.push(mask.to_string());
         }
+        // The fix `bit-number-check` (design D7 of `libqb-fixes`): the bit number of `_READBIT` and its kin goes through
+        // a check that raises error 5 outside 0 to 63 and gives the number back, so libqb's mask gives the value the
+        // program gives with the fix off. With the fix off nothing is written.
+        if self.p.settings.fixes.is_on(Fix::BitNumberCheck)
+            && matches!(
+                b.callname,
+                "func__readbit" | "func__setbit" | "func__resetbit" | "func__togglebit"
+            )
+        {
+            if !self.func_decls.iter().any(|d| d == BIT_NUMBER_CHECK) {
+                self.func_decls.push(BIT_NUMBER_CHECK.to_string());
+            }
+            parts[1] = format!("qbr_bit_number({})", parts[1]);
+        }
         // Every result of `_COTH` takes the path of `QB64PE-DIVERGENCES.md` D-031 (the copy of libqb's `func_coth` is the
         // hyperbolic cotangent): a wrapper in `global.txt`, written for a program that calls it, traces it
         // (`tools\callsite` reads it as `func_coth`).
@@ -568,6 +583,10 @@ impl Emitter<'_> {
 /// `_COTH` with the run-time trace of `QB64PE-DIVERGENCES.md` D-031 (`qbr_diverged`, design D1 of `m3-divergence-trace`):
 /// every call takes the row's path.
 const COTH_WRAPPER: &str = "static inline double qbr_coth(double qbr_x){qbr_diverged(31);return func_coth(qbr_x);}\n";
+
+/// The bit number of `_READBIT`, `_SETBIT`, `_RESETBIT` and `_TOGGLEBIT` with the fix `bit-number-check` on.
+const BIT_NUMBER_CHECK: &str =
+    "static inline int64 qbr_bit_number(int64 qbr_n){if (qbr_n<0||qbr_n>63) error(5);return qbr_n;}\n";
 
 /// The letters of libqb's `<t>2string` and `string2<t>` for a numeric type (`qb64pe.bas` 21230–21244).
 fn bytes_letters(t: Ty) -> &'static str {

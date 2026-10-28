@@ -941,8 +941,9 @@ fn fixes_list() {
     assert_eq!(o.status.code(), Some(0));
     let out = stdout(&o);
     let lines: Vec<&str> = out.lines().collect();
-    assert_eq!(lines.len(), 7, "{out}");
+    assert_eq!(lines.len(), 8, "{out}");
     assert!(lines[0].starts_with("resume-after-block "), "{out}");
+    assert!(lines[7].starts_with("bit-number-check "), "{out}");
     assert!(lines.iter().all(|l| l.split_once("  ").is_some()), "{out}");
     let o = qb64rust(&d, &["--list-fixes", "p.bas"]);
     assert_eq!(o.status.code(), Some(1));
@@ -1016,7 +1017,7 @@ fn fixes_errors() {
     assert!(!d.join("p.exe").exists());
     let all = dumped_settings(&d, &["--fixes", "on"]);
     assert!(
-        all.contains("fixes resume-after-block ") && all.ends_with(" checking-on-service"),
+        all.contains("fixes resume-after-block ") && all.ends_with(" checking-on-service bit-number-check"),
         "not read: {all}"
     );
     for bad in [
@@ -4082,8 +4083,8 @@ fn whole_array_without_storage_raises_error_9() {
 #[ignore = "needs the QB64pe reference clone"]
 fn resume_leaves_a_sub_through_its_exit() {
     let d = scratch("resume-exit");
-    let program = "$CONSOLE:ONLY\nON ERROR GOTO h\nDIM SHARED gm AS _MEM\nERROR 5\nback:\nPRINT _MEMEXISTS(gm)\nSYSTEM\n\
-                   h:\ns\nGOTO back\nSUB s\nDIM x AS LONG\ngm = _MEM(x)\nRESUME NEXT\nEND SUB\n";
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO eh\nDIM SHARED gm AS _MEM\nERROR 5\nback:\nPRINT _MEMEXISTS(gm)\nSYSTEM\n\
+                   eh:\ns\nGOTO back\nSUB s\nDIM x AS LONG\ngm = _MEM(x)\nRESUME NEXT\nEND SUB\n";
     assert_eq!(build_and_run_tracing(&d, program, "D-045\n"), " 0 \n");
 }
 
@@ -4101,6 +4102,43 @@ fn run_from_a_sub_unwinds() {
     let program = "$CONSOLE:ONLY\nIF ENVIRON$(\"QBR_RAN\") = \"\" THEN PRINT \"one\"\nagain:\n\
                    IF ENVIRON$(\"QBR_RAN\") = \"\" THEN ENVIRON \"QBR_RAN=1\": RUN again\nPRINT \"two\"\nSYSTEM\n";
     assert_eq!(build_and_run_tracing(&d, program, "D-046\n"), "one\ntwo\n");
+}
+
+/// With its standard input from the null device, `END` prints its line and ends at once, and a `LINE INPUT` with no
+/// handler ends the program with error 62 rather than waiting (D-048, spec `language/console-and-window`, "END with
+/// its input from the null device", "LINE INPUT with no handler"; the old compiler's programs wait for ever). The
+/// limit of 20 s is far below the runner's 60 s, so a wait fails the test.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+#[expect(clippy::disallowed_methods, reason = "the runtime's own message")]
+fn end_and_input_at_the_end_of_the_input() {
+    let limit = std::time::Duration::from_secs(20);
+    let d = scratch("end-null-input");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT \"before END\"\nEND\n").unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let ran = run(&mut unattended(&exe), None, limit, "program");
+    assert_eq!(ran.status.code(), Some(0));
+    assert_eq!(
+        stdout(&ran).replace("\r\n", "\n"),
+        "before END\n\nPress any key to continue"
+    );
+    let d = scratch("line-input-null");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nLINE INPUT s$\nPRINT \"not reached\"\nSYSTEM\n",
+    )
+    .unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let ran = run(&mut unattended(&exe), None, limit, "program");
+    let (out, err) = (stdout(&ran), String::from_utf8_lossy(&ran.stderr).to_string());
+    assert!(
+        err.contains("Input past end of file") && !out.contains("not reached"),
+        "{out}{err}"
+    );
 }
 
 /// `_CAST` of a float constant out of range gives what the same conversion of a variable gives, with and without

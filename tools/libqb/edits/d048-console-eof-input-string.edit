@@ -1,0 +1,38 @@
+# INPUT$(n) with no file number in a console program reads a redirected input, and raises error 62 at its end
+# (QB64PE-DIVERGENCES.md D-048, UPSTREAM.md "Console input waits for ever at the end of a redirected input";
+# study\39 row 2). QB64pe's func_input reads the keyboard buffer, which only console events fill, so with standard
+# input from a file, a pipe or the null device it waits for ever (verification\v63_a3, a4). Here, when the output is
+# the console and standard input is not one, the n bytes are read from it, and at its end error 62 is raised with what
+# was read. At a console nothing changes.
+file: internal/c/libqb.cpp
+--- old
+        if (n == 0)
+            return str;
+        x = 0;
+    waitforinput:
+        str2 = qbs_inkey();
+--- new
+        if (n == 0)
+            return str;
+#ifdef QB64_WINDOWS
+        if (write_page->console) {
+            DWORD input_mode;
+            if (!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &input_mode)) {
+                // redirected input: read it, Input past end of file at its end
+                for (x = 0; x < n; x++) {
+                    c = fgetc(stdin);
+                    if (c == EOF) {
+                        str->len = x;
+                        error(62);
+                        return str;
+                    }
+                    str->chr[x] = c;
+                }
+                return str;
+            }
+        }
+#endif
+        x = 0;
+    waitforinput:
+        str2 = qbs_inkey();
+--- end

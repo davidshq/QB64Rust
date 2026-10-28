@@ -1,0 +1,55 @@
+# A bit number or shift count is taken modulo 64 (QB64PE-DIVERGENCES.md D-053, UPSTREAM.md "A bit number or shift
+# count of 64 or more is undefined"; study\39 rows 17, 18; CLAUDE.md working rule 12). QB64pe shifts by the count as
+# given, undefined in C++ outside 0 to 63: with the count in a variable x86 masks it to its low 6 bits
+# (verification\v58_f09_bits), while g++ folds a constant count to another value. Here the count is masked, so a
+# constant gives what a variable gives. _ROL and _ROR already mask.
+file: internal/c/libqb/include/bitops.h
+--- old
+static inline constexpr uint64_t func__shl(uint64_t a1, int b1) {
+    return a1 << b1;
+}
+
+static inline constexpr uint64_t func__shr(uint64_t a1, int b1) {
+    return a1 >> b1;
+}
+
+static inline constexpr int64_t func__readbit(uint64_t a1, int b1) {
+    return (a1 & 1ull << b1) ? QB_TRUE : QB_FALSE;
+}
+
+static inline constexpr uint64_t func__setbit(uint64_t a1, int b1) {
+    return a1 | 1ull << b1;
+}
+
+static inline constexpr uint64_t func__resetbit(uint64_t a1, int b1) {
+    return a1 & ~(1ull << b1);
+}
+
+static inline constexpr uint64_t func__togglebit(uint64_t a1, int b1) {
+    return a1 ^ 1ull << b1;
+}
+--- new
+static inline constexpr uint64_t func__shl(uint64_t a1, int b1) {
+    return a1 << (b1 & 63);
+}
+
+static inline constexpr uint64_t func__shr(uint64_t a1, int b1) {
+    return a1 >> (b1 & 63);
+}
+
+static inline constexpr int64_t func__readbit(uint64_t a1, int b1) {
+    return (a1 & 1ull << (b1 & 63)) ? QB_TRUE : QB_FALSE;
+}
+
+static inline constexpr uint64_t func__setbit(uint64_t a1, int b1) {
+    return a1 | 1ull << (b1 & 63);
+}
+
+static inline constexpr uint64_t func__resetbit(uint64_t a1, int b1) {
+    return a1 & ~(1ull << (b1 & 63));
+}
+
+static inline constexpr uint64_t func__togglebit(uint64_t a1, int b1) {
+    return a1 ^ 1ull << (b1 & 63);
+}
+--- end

@@ -1,0 +1,13 @@
+# The SIGFPE handler stays fatal (QB64PE-DIVERGENCES.md D-052; study\39 row 12): error(11) is trappable now
+# (d052-division-error-trappable.edit), and returning from the handler would run the faulting division again, so it
+# calls fatal_division_by_zero() (d052-division-fatal-entry.edit), which ends the program as error(11) did.
+file: internal/c/qbx.cpp
+--- old
+void division_by_zero_handler(int ignore) {
+    error(11);
+}
+--- new
+void division_by_zero_handler(int ignore) {
+    fatal_division_by_zero();
+}
+--- end

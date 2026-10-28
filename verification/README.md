@@ -373,6 +373,23 @@ Small programs behind `study\09`, `study\10` and later measurements:
   out-of-range value is -2147483648; `_UNSIGNED LONG` through a 64-bit one; `_UNSIGNED _INTEGER64` as
   `a | (b AND (a < 0))` of the 64-bit conversions `a` of the value and `b` of the value less 2^63; row 16), `h2` the
   same values as constants (the C++ cast is undefined, and g++ folded each to another value)
+- `v63*`: the libqb fixes, QB64pe's side of each always-on fix of `study\39` that lives in libqb, measured as task
+  1.2 of `libqb-fixes` (its `design.md`, D8): `a1`–`a5` console reads at the end of a redirected input (row 2):
+  `LINE INPUT` and `INPUT` from the null device wait for ever (`a1`, `a5`), as does `LINE INPUT` on a last line with
+  no newline (`a2`, its `.stdin` holds `abc`); `INPUT$` with no file number waits for ever even with data on its
+  input, since it reads only the keyboard buffer that console events fill (`a3`, its `.stdin` holds `abcdef`), and
+  from the null device (`a4`); `b1`–`b5` `BLOAD` and `BSAVE` at the top of the block of conventional memory (1,114,099
+  bytes; row 5): a `BLOAD` of 1000 bytes to `&HFFFF:&HFFF0`, given or from the file's header, writes past the block
+  with no error (`b1`, `b4`), one of a file whose header gives size 0 and whose data is 200,000 bytes crashes (`b2`,
+  exit 139), a `BSAVE` there writes a file of 1007 bytes read past the block (`b3`), and the block's last 19 bytes,
+  which fit, are saved and loaded (`b5`; the 3 at offsets past `&HFFFF` read 0 through `PEEK`); `c1`–`c4` `_MEMNEW(0)`
+  blocks freed (row 9): first of all and between two 16-byte blocks they free cleanly (`c1`, `c3`), two after a
+  freed block crash (`c2`, exit 127), freed twice is error 307 (`c4`); `d1` `_STATUSCODE` of a host handle (error 52)
+  and of the same handle closed (exit 139; row 11); `e1`, `e2` `ERROR 11` and an integer `\` or `MOD` by 0 under a
+  handler: "Division by zero", which the handler does not receive, ending the program at the first (row 12); `f1`
+  bit numbers and shift counts of 64 or more and negative ones as constants and in a LONG variable: the same values,
+  each masked to its low 6 bits (rows 17, 18); `f2` the program of the fix `bit-number-check`, bit numbers in a
+  variable under a handler, with its fixes-on output in `tests\verification\fixed\`
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

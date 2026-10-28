@@ -19,10 +19,12 @@ pub enum Fix {
     RunInProcedure,
     /// Row 19.
     CheckingOnService,
+    /// Row 17.
+    BitNumberCheck,
 }
 
 /// Every fix, in the order `qb64rust --list-fixes` prints them, with its name and a line on what it changes.
-pub const FIXES: [(Fix, &str, &str); 7] = [
+pub const FIXES: [(Fix, &str, &str); 8] = [
     (
         Fix::ResumeAfterBlock,
         "resume-after-block",
@@ -58,6 +60,11 @@ pub const FIXES: [(Fix, &str, &str); 7] = [
         "checking-on-service",
         "an error raised under $CHECKING:OFF is handled before the first checked statement",
     ),
+    (
+        Fix::BitNumberCheck,
+        "bit-number-check",
+        "a bit number outside 0 to 63 in _READBIT, _SETBIT, _RESETBIT and _TOGGLEBIT is error 5",
+    ),
 ];
 
 impl Fix {
@@ -90,6 +97,7 @@ impl Fix {
             Fix::ResumeInProcedure => 4,
             Fix::RunInProcedure => 5,
             Fix::CheckingOnService => 6,
+            Fix::BitNumberCheck => 7,
         }
     }
 
@@ -147,6 +155,9 @@ mod tests {
         assert_eq!(Fix::from_name("all"), None);
         assert_eq!(Fix::from_name("resume-after-blok"), None);
         assert_eq!(FIXES[0].1, "resume-after-block");
+        // Appended, so the earlier fixes keep their bits.
+        assert_eq!(Fix::BitNumberCheck.bit(), 1 << 7);
+        assert_eq!(FIXES[7].1, "bit-number-check");
         assert!(Fix::names().starts_with("resume-after-block, dim-empty-error"));
     }
 

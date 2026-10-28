@@ -1,0 +1,17 @@
+# The fatal path of a division by zero the CPU traps (QB64PE-DIVERGENCES.md D-052; study\39 row 12): error 11 is
+# trappable now (d052-division-error-trappable.edit), but the SIGFPE handler cannot return into the faulting
+# division, so it ends the program here with QB64pe's old message for it.
+file: internal/c/libqb/src/error_handle.cpp
+--- old
+void error(int32_t error_number) {
+    libqb_log_error("QB64 Error %d reported: %s", error_number, error_code_to_text(error_number));
+--- new
+void fatal_division_by_zero() {
+    libqb_log_error("QB64 Error %d reported: %s", QB_ERROR_DIVISION_BY_ZERO, error_code_to_text(QB_ERROR_DIVISION_BY_ZERO));
+    fatal_error_alert(critical_error_message("Division by zero"), "Critical Error");
+    exit_after_fatal_error();
+}
+
+void error(int32_t error_number) {
+    libqb_log_error("QB64 Error %d reported: %s", error_number, error_code_to_text(error_number));
+--- end

@@ -1,0 +1,5 @@
+63: 9223372036854775808 
+setbit 64: [error 5 ]readbit -1: [error 5 ]resetbit 70: [error 5 ]togglebit -3: [error 5 ]0:-1 
+shl 64: 1 
+done
+exit=0

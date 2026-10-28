@@ -248,15 +248,15 @@ version,session,change,category,actions,bytes
 1,0fe560e3,m2-numeric-types,scratch files,9,10166
 1,0fe560e3,m2-numeric-types,test runs,3,0
 1,0ff6fa80,fixes-switch,builds,19,0
-1,0ff6fa80,fixes-switch,documents and planning,32,25313
+1,0ff6fa80,fixes-switch,documents and planning,33,25477
 1,0ff6fa80,fixes-switch,measurement preparation,31,18950
 1,0ff6fa80,fixes-switch,measurement runs,5,0
 1,0ff6fa80,fixes-switch,other,13,16730
-1,0ff6fa80,fixes-switch,other commands,270,0
+1,0ff6fa80,fixes-switch,other commands,277,0
 1,0ff6fa80,fixes-switch,product code,88,70443
-1,0ff6fa80,fixes-switch,reading,44,0
-1,0ff6fa80,fixes-switch,test runs,91,0
-1,0ff6fa80,fixes-switch,tests and fixtures,36,37653
+1,0ff6fa80,fixes-switch,reading,46,0
+1,0ff6fa80,fixes-switch,test runs,97,0
+1,0ff6fa80,fixes-switch,tests and fixtures,39,38590
 1,101ef8e0,,documents and planning,2,3683
 1,101ef8e0,,other commands,2,0
 1,101ef8e0,,test runs,1,0
@@ -271,6 +271,24 @@ version,session,change,category,actions,bytes
 1,112bfb8a,m3-network-embed,reading,25,0
 1,112bfb8a,m3-network-embed,test runs,42,0
 1,112bfb8a,m3-network-embed,tests and fixtures,25,21296
+1,11e24623,,documents and planning,2,476
+1,11e24623,,other,1,0
+1,11e24623,,other commands,52,0
+1,11e24623,,product code,2,233
+1,11e24623,,reading,7,0
+1,11e24623,fixes-switch,other,2,2936
+1,11e24623,fixes-switch,other commands,8,0
+1,11e24623,fixes-switch,test runs,1,0
+1,11e24623,libqb-fixes,builds,4,0
+1,11e24623,libqb-fixes,documents and planning,38,54702
+1,11e24623,libqb-fixes,measurement preparation,25,10852
+1,11e24623,libqb-fixes,measurement runs,1,0
+1,11e24623,libqb-fixes,other,2,0
+1,11e24623,libqb-fixes,other commands,124,0
+1,11e24623,libqb-fixes,product code,4,1673
+1,11e24623,libqb-fixes,reading,8,0
+1,11e24623,libqb-fixes,test runs,41,0
+1,11e24623,libqb-fixes,tests and fixtures,17,16876
 1,11e6949c,,reading,1,0
 1,11e6949c,m2-defxxx-common-arrays,builds,6,0
 1,11e6949c,m2-defxxx-common-arrays,documents and planning,33,18296
@@ -1657,6 +1675,7 @@ version,session,change,category,actions,bytes
 1,729041fe,m3-constant-evaluation,scratch files,15,28622
 1,729041fe,m3-constant-evaluation,test runs,68,0
 1,729041fe,m3-constant-evaluation,tests and fixtures,26,21629
+1,72f015e6,,other commands,1,0
 1,73a9cfe7,,other commands,2,0
 1,740adcf0,,other commands,26,0
 1,740adcf0,,reading,1,0
@@ -2884,6 +2903,9 @@ version,session,change,category,actions,bytes
 1,cf844802,extension-diagnostics,scratch files,1,669
 1,cf844802,extension-diagnostics,test runs,10,0
 1,cf844802,extension-diagnostics,tests and fixtures,2,1966
+1,cf8cf496,,reading,2,0
+1,cf8cf496,,test runs,2,0
+1,cf8cf496,,tests and fixtures,1,166
 1,d08d9352,,documents and planning,9,35185
 1,d08d9352,,other commands,47,0
 1,d08d9352,,reading,6,0
@@ -3473,6 +3495,16 @@ version,session,change,category,actions,bytes
 1,fb6e3f78,m2-control-flow-slice,reading,1,0
 1,fb7d1b9e,,other commands,1,0
 1,fb7d1b9e,m3-sound,other commands,1,0
+1,fba4be51,,other commands,1,0
+1,fba4be51,fixes-switch,documents and planning,6,1985
+1,fba4be51,fixes-switch,measurement preparation,6,1629
+1,fba4be51,fixes-switch,measurement runs,1,0
+1,fba4be51,fixes-switch,other,5,1268
+1,fba4be51,fixes-switch,other commands,29,0
+1,fba4be51,fixes-switch,product code,7,2818
+1,fba4be51,fixes-switch,reading,24,0
+1,fba4be51,fixes-switch,test runs,10,0
+1,fba4be51,fixes-switch,tests and fixtures,1,289
 1,fbf4dc49,,other commands,1,0
 1,fbf4dc49,libqb-copy,documents and planning,5,5618
 1,fbf4dc49,libqb-copy,other commands,5,0

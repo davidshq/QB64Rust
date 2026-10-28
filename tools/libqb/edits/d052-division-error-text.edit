@@ -1,0 +1,12 @@
+# The text of error 11 (QB64PE-DIVERGENCES.md D-052; study\39 row 12): error 11 goes the way of any other error now
+# (d052-division-error-trappable.edit), and libqb's table of error texts has no entry for it, since it was only ever
+# reported as a critical error. Without one, an untrapped division by zero prints "Unprintable error".
+file: internal/c/libqb/src/error_handle.cpp
+--- old
+        case 10: return "Duplicate definition";
+        case 12: return "Illegal in direct mode";
+--- new
+        case 10: return "Duplicate definition";
+        case 11: return "Division by zero";
+        case 12: return "Illegal in direct mode";
+--- end

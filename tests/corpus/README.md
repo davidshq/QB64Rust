@@ -98,6 +98,7 @@ Known failures (`tools\legacy_tests\known_failures.txt`, reported KFAIL):
 | Program | Cause |
 |---|---|
 | 80, 126, 187, 251 | `PRINT` with a comma pads to the next zone by asking the console for the cursor column. The runner gives each program a console (for `END`) but sends stdout to a file, so the column never moves and the program prints spaces until the 60 s timeout. Old-runtime bug (`study\00` §5), still in the new runtime: `QB64PE-DIVERGENCES.md` D-011 is decided but not built. |
+| `228_err_erl_values`, `s11_on_error`, `s17_operators`, `s136_errorline` | Error 11, division by zero, is trappable here, and `_ERRORMESSAGE$(11)` is its text (`s136`) (`QB64PE-DIVERGENCES.md` D-052, OpenSpec change `libqb-fixes`); each recording ends at the old compiler's critical message, where the new program's handler receives the error. The recordings stay the old compiler's output. |
 
 `147_on_error_resume_0` was a known failure until 2026-10-26 and is a `.norun` now: `RESUME 0` re-runs the line
 that raised the error, which is `ERROR 5`, so the program loops forever by design.
