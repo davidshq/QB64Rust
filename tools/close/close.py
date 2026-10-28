@@ -128,12 +128,28 @@ def steps(nofold: bool, coverage: bool = False, layout: bool = False) -> list[St
             "runner",
             copy=True,
         ),
+        # QB64pe's add_prefix_test.sh: its $NOPREFIX converter built and run on its case (a few seconds). The
+        # converter is in the clone, so the run takes its shared lock: --wait, beside a recording with qb64pe.
+        Step(
+            "addprefix", f"{RUNNER} --suite addprefix --qb64 {EXE} --wait > {log('addprefix')} 2>&1", "runner", copy=True
+        ),
+        # QB64pe's qbasic_tests.sh: every program of tests/qbasic_testcases compiled, all of them to build
+        # (qbasic-testcases). They are read from the clone: its shared lock, --wait as above.
+        Step(
+            "qbasic",
+            f"{RUNNER} --suite qbasic --qb64 {EXE} --jobs 8 --wait > {log('qbasic')} 2>&1",
+            "runner",
+            copy=True,
+        ),
     ]
     if nofold:
+        # With the pass cache, as the other lists (DECISIONS.md 2026-10-27): builds are deterministic, and its key is
+        # the executable, so only the programs whose C++ folding changes run again.
         out.append(
             Step(
                 "nofold",
-                f"QB64RUST_NO_FOLD=1 {RUNNER} --suite corpus {NEW} --wait --list tests/corpus/slice.list > {log('nofold')} 2>&1",
+                f"QB64RUST_NO_FOLD=1 {RUNNER} --suite corpus {NEW} {CACHE} --wait --list tests/corpus/slice.list "
+                f"> {log('nofold')} 2>&1",
                 "runner",
                 copy=True,
             )

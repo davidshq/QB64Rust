@@ -41,7 +41,7 @@ impl Emitter<'_> {
                  memset({n}->chr,0,{k});\n}}\n"
             ),
             // Its strings are made as in ordinary memory, where the old compiler leaves them out and its program
-            // crashes at the first use of one (`qb64pe.bas` 17790–17852; `DIVERGENCES.md` D-037).
+            // crashes at the first use of one (`qb64pe.bas` 17790–17852; `QB64PE-DIVERGENCES.md` D-037).
             Ty::User(_) => {
                 let size = self.ty_size(v.ty);
                 let mut strings = self.new_value(v.ty, &format!("(char*){n}"));
@@ -65,12 +65,74 @@ impl Emitter<'_> {
         }
     }
 
+    /// A new slot `passN` in conventional memory for a value of numeric type `t`, allocated once per run of the body
+    /// that holds it, among its variables after the first `made` (design D2 of `qbasic-testcases`; the old
+    /// compiler's text, its C++ of `verification\v61_p4`, `v61_c4`): its name. In the main module the pointer is
+    /// `static`, as the old compiler's is global.
+    pub(crate) fn cmem_slot(&mut self, t: Ty, made: u32) -> String {
+        self.pass += 1;
+        let n = format!("pass{}", self.pass);
+        let (c, size) = (c_type(t), self.ty_size(t));
+        let static_ = if self.k == 0 { "static " } else { "" };
+        self.slots.push((
+            made,
+            format!(
+                "{static_}{c} *{n}=NULL;\nif({n}==NULL){{\ncmem_sp-={size};\n{n}=({c}*)(dblock+cmem_sp);\n\
+                 if (cmem_sp<qbs_cmem_sp) error(257);\n}}\n"
+            ),
+        ));
+        n
+    }
+
+    /// The allocations of a body's variables (each with its index) and its slots ([`Self::cmem_slot`]), the slots
+    /// placed among the variables as they were made.
+    pub(crate) fn with_slots(&mut self, allocs: Vec<(usize, String)>) -> String {
+        let mut slots = std::mem::take(&mut self.slots);
+        slots.sort_by_key(|&(made, _)| made);
+        let mut slots = slots.into_iter().peekable();
+        let mut out = String::new();
+        for (i, text) in allocs {
+            while let Some((_, s)) = slots.next_if(|&(made, _)| made as usize <= i) {
+                out.push_str(&s);
+            }
+            out.push_str(&text);
+        }
+        out.extend(slots.map(|(_, s)| s));
+        out
+    }
+
     /// `VARPTR`, `VARSEG`, `SADD` or `VARPTR$` of a place whose variable is in conventional memory, as the old
     /// compiler writes them (`qb64pe.bas` 21306–21560; its C++ of `verification\v56_*`, design D2 and D3).
+    ///
+    /// `VARPTR$` of a parameter, as the old compiler's, assumes its variable is in `dblock` even when the
+    /// argument lies in an array outside it (`verification\v61_p10`; a QB64pe behaviour to review in `SOMEDAY.md`).
     pub(crate) fn cmem_address(&mut self, word: AddressWord, of: &Place) -> String {
         let root = of.root();
         let v = self.p.var(root);
         let n = self.name(root);
+        // A parameter that is no array may point into an array, outside `dblock`: libqb's checks give the offset
+        // and segment of where it lies (`qb64pe.bas` 21468–21552, `qbx.cpp`'s `varptr_dblock_check`; measured,
+        // `verification\v61_p5`, `p6`). A string's descriptor, and the segment of a string, are as for a variable.
+        // `VARPTR` of a place in a `TYPE` parameter is the offset from `dblock`, as for a variable: the old compiler
+        // looks the parameter up by the place's offset, not its id (`qb64pe.bas` 21464; its C++ of `v61_p1`;
+        // measured, `v61_p9`).
+        if matches!(v.storage, Storage::Param(_)) && !v.is_array() {
+            let at = match (of, v.ty) {
+                (_, Ty::Str) | (_, Ty::FixedStr(_)) if word == AddressWord::VarSeg => None,
+                (Place::Var(_), Ty::FixedStr(_)) => Some(format!("{n}->chr")),
+                (Place::Var(_), numeric_types!()) => Some(format!("(uint8*){n}")),
+                (_, Ty::User(_)) if word == AddressWord::VarSeg => {
+                    Some(format!("((uint8*){n})+({})", self.udt_offset(of)))
+                }
+                _ => None,
+            };
+            match (word, at) {
+                (AddressWord::VarPtr, Some(at)) => return format!("varptr_dblock_check({at})"),
+                (AddressWord::VarSeg, Some(at)) => return format!("varseg_dblock_check({at})"),
+                (AddressWord::VarSeg, None) => return "80".to_string(),
+                _ => {}
+            }
+        }
         match word {
             // 80 for a variable and an array of strings; the segment of any other array's data.
             AddressWord::VarSeg => {

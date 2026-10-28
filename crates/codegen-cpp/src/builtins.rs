@@ -5,12 +5,13 @@
 use crate::Emitter;
 use crate::decl::dim_count;
 use crate::names::c_type;
+use qb64rust_base::fixes::Fix;
 use qb64rust_builtins::BuiltinId;
 use qb64rust_builtins::passing::plan;
 use qb64rust_ir::builtins::{
     Rule, Slot, StmtRule, StmtSlot, cpp_arithmetic, find, int_entry, radix_width, slots, stmt_find, stmt_slots,
 };
-use qb64rust_ir::{Expr, ExprKind, Facts, Place, StmtArg, Ty, VarId, numeric_value_types};
+use qb64rust_ir::{ArrayRef, Expr, ExprKind, Facts, Place, StmtArg, Ty, VarId, numeric_value_types};
 
 impl Emitter<'_> {
     /// A built-in call. A built-in no rule covers (`ERR`, `ERL` are `Fixed`; every call `sema` makes has a rule) is
@@ -240,6 +241,26 @@ impl Emitter<'_> {
                     }
                     Ty::Bit { .. } => unreachable!("`SWAP` of a `_BIT` (`validate`)"),
                 });
+                // A whole array with no storage on either side: error 9 and no exchange (`study\39` row 7, D-042),
+                // where the old compiler exchanges with libqb's `nothingvalue` (`verification\v62_c3`).
+                let missing: Vec<String> = [a, b]
+                    .into_iter()
+                    .filter_map(|p| match p {
+                        Place::Element {
+                            array: ArrayRef::Var(v),
+                            index,
+                        } if index.is_empty() && self.checking => Some(Self::whole_missing(&self.name(*v))),
+                        Place::Var(_) | Place::Element { .. } | Place::Member { .. } => None,
+                    })
+                    .collect();
+                if !missing.is_empty()
+                    && let Some(call) = out.pop()
+                {
+                    out.push(format!(
+                        "if ({}){{qbr_diverged(42);error(9);}}else{{{call}}}",
+                        missing.join("||")
+                    ));
+                }
             }
             // `sub_mid(target, start, length, value, passed)`: 0 for a length left out.
             StmtRule::MidAssign => {
@@ -424,6 +445,9 @@ impl Emitter<'_> {
                 if get {
                     return format!("sub_get2({file},{position},{s},{mask});");
                 }
+                // A member's string, or an element's of a member array, is `*(qbs**)(…)`, which needs parentheses
+                // before `->`; a variable's name and an element's text keep the old compiler's text.
+                let s = if place.in_member() { format!("({s})") } else { s };
                 // Written twice, as the old compiler writes it: an element's index is evaluated twice.
                 let t = self.byte_element_temp();
                 format!("sub_put2({file},{position},byte_element((uint64){s}->chr,{s}->len,{t}),{mask});")
@@ -433,8 +457,21 @@ impl Emitter<'_> {
                 let t = self.byte_element_temp();
                 format!("sub_{word}({file},{position},byte_element((uint64){address},{size},{t}),{mask});")
             }
-            StmtArg::Block { array, index } if index.is_empty() && self.owns_desc(self.p.var(*array).ty) => {
-                self.owner_file(*array, get, (&file, &position, mask))
+            // A whole array with no storage: error 9 and nothing read or written (`study\39` row 7, D-042), where the
+            // old compiler reads or writes no byte and raises nothing (`verification\v62_c4`). Below `$CHECKING:OFF`
+            // the call alone, as the old compiler writes it (as `SWAP` and `whole_index`).
+            StmtArg::Block { array, index } if index.is_empty() => {
+                let call = if self.owns_desc(self.p.var(*array).ty) {
+                    self.owner_file(*array, get, (&file, &position, mask))
+                } else {
+                    let bytes = self.block(*array, index);
+                    format!("sub_{word}({file},{position},{bytes},{mask});")
+                };
+                if !self.checking {
+                    return call;
+                }
+                let missing = Self::whole_missing(&self.name(*array));
+                format!("if {missing}{{qbr_diverged(42);error(9);}}else{{{call}}}")
             }
             StmtArg::Block { array, index } => {
                 let bytes = self.block(*array, index);
@@ -514,7 +551,21 @@ impl Emitter<'_> {
         if optional.iter().any(|&o| o) {
             parts.push(mask.to_string());
         }
-        // Every result of `_COTH` takes the path of `DIVERGENCES.md` D-031 (the copy of libqb's `func_coth` is the
+        // The fix `bit-number-check` (design D7 of `libqb-fixes`): the bit number of `_READBIT` and its kin goes through
+        // a check that raises error 5 outside 0 to 63 and gives the number back, so libqb's mask gives the value the
+        // program gives with the fix off. With the fix off nothing is written.
+        if self.p.settings.fixes.is_on(Fix::BitNumberCheck)
+            && matches!(
+                b.callname,
+                "func__readbit" | "func__setbit" | "func__resetbit" | "func__togglebit"
+            )
+        {
+            if !self.func_decls.iter().any(|d| d == BIT_NUMBER_CHECK) {
+                self.func_decls.push(BIT_NUMBER_CHECK.to_string());
+            }
+            parts[1] = format!("qbr_bit_number({})", parts[1]);
+        }
+        // Every result of `_COTH` takes the path of `QB64PE-DIVERGENCES.md` D-031 (the copy of libqb's `func_coth` is the
         // hyperbolic cotangent): a wrapper in `global.txt`, written for a program that calls it, traces it
         // (`tools\callsite` reads it as `func_coth`).
         let callname = if b.callname == "func_coth" {
@@ -529,9 +580,13 @@ impl Emitter<'_> {
     }
 }
 
-/// `_COTH` with the run-time trace of `DIVERGENCES.md` D-031 (`qbr_diverged`, design D1 of `m3-divergence-trace`):
+/// `_COTH` with the run-time trace of `QB64PE-DIVERGENCES.md` D-031 (`qbr_diverged`, design D1 of `m3-divergence-trace`):
 /// every call takes the row's path.
 const COTH_WRAPPER: &str = "static inline double qbr_coth(double qbr_x){qbr_diverged(31);return func_coth(qbr_x);}\n";
+
+/// The bit number of `_READBIT`, `_SETBIT`, `_RESETBIT` and `_TOGGLEBIT` with the fix `bit-number-check` on.
+const BIT_NUMBER_CHECK: &str =
+    "static inline int64 qbr_bit_number(int64 qbr_n){if (qbr_n<0||qbr_n>63) error(5);return qbr_n;}\n";
 
 /// The letters of libqb's `<t>2string` and `string2<t>` for a numeric type (`qb64pe.bas` 21230–21244).
 fn bytes_letters(t: Ty) -> &'static str {

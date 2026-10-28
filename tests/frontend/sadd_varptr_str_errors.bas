@@ -2,8 +2,8 @@
 $CONSOLE:ONLY
 ' Forms of VARPTR, VARSEG, SADD and VARPTR$ the old compiler rejects, one a line (m4-memory-records design D2,
 ' D3; verification\v28_x55-x57, v56_t02, v56_x01-x05, x07, x09), and of a STRING member where the old compiler's
-' C++ build fails (m4-left-marked design D3, v60_d7, d8): each is an error here too. Then the forms left marked: a
-' variable of a SUB, a whole array that is not of numbers, VARSEG of a _BIT array, VARPTR$ of a member of an element
+' C++ build fails (m4-left-marked design D3, v60_d7, d8): each is an error here too. Then the forms left marked
+' (a variable of a SUB compiles since qbasic-testcases): a whole array that is not of numbers, VARSEG of a _BIT array, VARPTR$ of a member of an element
 TYPE rec
     x AS INTEGER
     y AS LONG
@@ -30,10 +30,4 @@ s = VARPTR$(rs.n)
 l = VARPTR(sa())
 l = VARSEG(ba(1))
 s = VARPTR$(ra(1).y)
-CALL sb
 SYSTEM
-
-SUB sb
-    DIM k AS INTEGER
-    PRINT VARPTR(k)
-END SUB

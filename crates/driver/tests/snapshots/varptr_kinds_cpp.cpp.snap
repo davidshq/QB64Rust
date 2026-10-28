@@ -50,6 +50,7 @@ while(tmp_long--){
 (((qbs**)(__ARRAY_STRING_SA[0]))[tmp_long])->len=0;
 }
 if (__ARRAY_STRING_DS[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_STRING_DS)[8])->id=(++mem_lock_id);
 tmp_long=__ARRAY_STRING_DS[5];
 while(tmp_long--){
 qbs_free(((qbs**)(__ARRAY_STRING_DS[0]))[tmp_long]);
@@ -131,10 +132,10 @@ exit(99);
 ==> main.txt <==
 #include "main0.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -181,13 +182,41 @@ ptrszint alloc_old_block=__ARRAY_STRING_DS[0];
 #line 17 "varptr_kinds_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_STRING_DS[2]&1;
 #line 17 "varptr_kinds_cpp.bas"
+int32 alloc_none=0;
+#line 17 "varptr_kinds_cpp.bas"
 alloc_new_desc[4]=1ll;
 #line 17 "varptr_kinds_cpp.bas"
 alloc_new_desc[5]=(2ll)-alloc_new_desc[4]+1;
 #line 17 "varptr_kinds_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 17 "varptr_kinds_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 17 "varptr_kinds_cpp.bas"
 alloc_new_desc[6]=1;
+#line 17 "varptr_kinds_cpp.bas"
+if (alloc_none){
+#line 17 "varptr_kinds_cpp.bas"
+qbr_diverged(40);
+#line 17 "varptr_kinds_cpp.bas"
+if (__ARRAY_STRING_DS[2]&1){
+#line 17 "varptr_kinds_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_STRING_DS)[8])->id=(++mem_lock_id);
+#line 17 "varptr_kinds_cpp.bas"
+tmp_long=__ARRAY_STRING_DS[5];
+#line 17 "varptr_kinds_cpp.bas"
+while(tmp_long--) qbs_free(((qbs**)(__ARRAY_STRING_DS[0]))[tmp_long]);
+#line 17 "varptr_kinds_cpp.bas"
+free((void*)(__ARRAY_STRING_DS[0]));
+#line 17 "varptr_kinds_cpp.bas"
+__ARRAY_STRING_DS[2]^=1;
+#line 17 "varptr_kinds_cpp.bas"
+__ARRAY_STRING_DS[4]=2147483647;__ARRAY_STRING_DS[5]=0;__ARRAY_STRING_DS[6]=0;
+#line 17 "varptr_kinds_cpp.bas"
+__ARRAY_STRING_DS[0]=(ptrszint)&nothingstring;
+#line 17 "varptr_kinds_cpp.bas"
+}
+#line 17 "varptr_kinds_cpp.bas"
+}else{
 #line 17 "varptr_kinds_cpp.bas"
 if (__ARRAY_STRING_DS[0]!=alloc_old_block||(__ARRAY_STRING_DS[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 17 "varptr_kinds_cpp.bas"
@@ -291,6 +320,8 @@ __ARRAY_STRING_DS[7]=alloc_new_desc[7];
 #line 17 "varptr_kinds_cpp.bas"
 }
 #line 17 "varptr_kinds_cpp.bas"
+}
+#line 17 "varptr_kinds_cpp.bas"
 if(!qbevent)break;evnt(17);}while(r);
 #line 18 "varptr_kinds_cpp.bas"
 do{
@@ -343,13 +374,41 @@ ptrszint alloc_old_block=__ARRAY_STRING_DS[0];
 #line 21 "varptr_kinds_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_STRING_DS[2]&1;
 #line 21 "varptr_kinds_cpp.bas"
+int32 alloc_none=0;
+#line 21 "varptr_kinds_cpp.bas"
 alloc_new_desc[4]=1ll;
 #line 21 "varptr_kinds_cpp.bas"
 alloc_new_desc[5]=(4ll)-alloc_new_desc[4]+1;
 #line 21 "varptr_kinds_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 21 "varptr_kinds_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 21 "varptr_kinds_cpp.bas"
 alloc_new_desc[6]=1;
+#line 21 "varptr_kinds_cpp.bas"
+if (alloc_none){
+#line 21 "varptr_kinds_cpp.bas"
+qbr_diverged(40);
+#line 21 "varptr_kinds_cpp.bas"
+if (__ARRAY_STRING_DS[2]&1){
+#line 21 "varptr_kinds_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_STRING_DS)[8])->id=(++mem_lock_id);
+#line 21 "varptr_kinds_cpp.bas"
+tmp_long=__ARRAY_STRING_DS[5];
+#line 21 "varptr_kinds_cpp.bas"
+while(tmp_long--) qbs_free(((qbs**)(__ARRAY_STRING_DS[0]))[tmp_long]);
+#line 21 "varptr_kinds_cpp.bas"
+free((void*)(__ARRAY_STRING_DS[0]));
+#line 21 "varptr_kinds_cpp.bas"
+__ARRAY_STRING_DS[2]^=1;
+#line 21 "varptr_kinds_cpp.bas"
+__ARRAY_STRING_DS[4]=2147483647;__ARRAY_STRING_DS[5]=0;__ARRAY_STRING_DS[6]=0;
+#line 21 "varptr_kinds_cpp.bas"
+__ARRAY_STRING_DS[0]=(ptrszint)&nothingstring;
+#line 21 "varptr_kinds_cpp.bas"
+}
+#line 21 "varptr_kinds_cpp.bas"
+}else{
 #line 21 "varptr_kinds_cpp.bas"
 if (__ARRAY_STRING_DS[0]!=alloc_old_block||(__ARRAY_STRING_DS[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 21 "varptr_kinds_cpp.bas"
@@ -454,6 +513,8 @@ __ARRAY_STRING_DS[5]=alloc_new_desc[5];
 __ARRAY_STRING_DS[6]=alloc_new_desc[6];
 #line 21 "varptr_kinds_cpp.bas"
 __ARRAY_STRING_DS[7]=alloc_new_desc[7];
+#line 21 "varptr_kinds_cpp.bas"
+}
 #line 21 "varptr_kinds_cpp.bas"
 }
 #line 21 "varptr_kinds_cpp.bas"

@@ -1,3 +1,6 @@
+# Default: text stored with LF on every machine, whatever its git settings (core.autocrlf). Must stay first: the
+# rules below override it for the files kept byte for byte or with a fixed line end.
+* text=auto eol=lf
 # Recorded program output and compiler output: keep the bytes exactly as recorded (tests/corpus/README.md)
 tests/corpus/**/*.output -text
 tests/corpus/**/*.err -text

@@ -681,7 +681,7 @@ Measured for the new numeric types and fixed-length strings (2026-10-08, `m2-num
   `f$` and `f`**; `f$4` is "Name already in use"; never assigned it returns 5 NUL bytes; the C++ allocates the
   result with `qbs_new_fixed(mem_static_malloc(5),5,0)` on each call and returns it with `qbs_maketmp`, over pool
   bytes released on return, **so a second call in the same expression overwrites the first result**
-  (`fs$5("ab") + fs$5("cd")` is `cd   cd   `, `v21_g_fixed_function_twice`; fixed by decision, `DIVERGENCES.md`
+  (`fs$5("ab") + fs$5("cd")` is `cd   cd   `, `v21_g_fixed_function_twice`; fixed by decision, `QB64PE-DIVERGENCES.md`
   D-014: the new compiler returns a copy). **A constant
   used with another integer suffix is a literal of that suffix with the constant's digits** (`CONST u~& =
   4294967295`: `u%` prints -1, `u% + 0` 4294967295; `CONST neg = -1`: `neg~&` 4294967295, `neg~& + 0` -1, `neg~& <
@@ -1129,7 +1129,7 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
   - **A FUNCTION in a bound that gives the same array new bounds** (`REDIM _RETAIN z(2 TO shrinkz)` where
     `shrinkz` does `REDIM z(1 TO 2)`) ends the program with exit 127 and no output (`v34_d`): the old block and
     descriptor are captured before the bounds are evaluated and freed again after the FUNCTION freed them. The
-    same with **plain `REDIM`** (`v34_d2`) and with `_PRESERVE` (`v34_d3`). Not followed: `DIVERGENCES.md` D-018.
+    same with **plain `REDIM`** (`v34_d2`) and with `_PRESERVE` (`v34_d3`). Not followed: `QB64PE-DIVERGENCES.md` D-018.
 - **`ERASE` (`v24_d_*`, `v24_x57`–`x63`):** a static array is cleared (0, `""`, NUL bytes, every member of a user
   type) and keeps its bounds, in every dimension; an array used without `DIM` likewise. A dynamic array is
   released: `UBOUND` and every element raise 9; a second `ERASE` does nothing; `REDIM`, and the `DIM` that made
@@ -1458,7 +1458,7 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     members of elements alike): `READ`, `INPUT #` and `LINE INPUT #` read a number before the indexes and a string
     after them (an index FUNCTION that reads an item itself gets the second item for a number, the first for a
     string), as an assignment evaluates its value. An index outside raises 9: a number's item is taken and stored
-    into position 0 of that dimension (`READ a(9).m` sets `a(0).m`; `DIVERGENCES.md` D-004 here); a string's read
+    into position 0 of that dimension (`READ a(9).m` sets `a(0).m`; `QB64PE-DIVERGENCES.md` D-004 here); a string's read
     takes nothing (libqb's readers return while an error is pending). Console `INPUT` prints `? `, then evaluates
     every target's indexes, then reads; after error 9 there it reads and stores nothing. `MID$(a(f(1)).s, 1) = z$`
     evaluates the index before the value; an index outside raises 9 and changes nothing.
@@ -1491,7 +1491,7 @@ question, `v24_x*` one accepted or rejected form each; handlers print `ERR` and 
     `_OFFSET(x.a)` is taken, `x52`), `COMMON SHARED x` (`x39`)
     and `COMMON SHARED p() AS t` (`x63`, reported at no line: "[INFORMATION UNAVAILABLE]"), `PUT`/`GET` of one
     variable or element (`x43`, `x46`, `x50`, `x54`); a whole array with a `STRING` in the type is "UDT must have
-    fixed size" (`x48`); `PRINT x.v` "Expected array index" (`x41`). Measured, not followed (`DIVERGENCES.md`):
+    fixed size" (`x48`); `PRINT x.v` "Expected array index" (`x41`). Measured, not followed (`QB64PE-DIVERGENCES.md`):
     the `GET` into a smaller block (D-019), the size that overflows (D-020), the store through `p(9)` (D-004), the
     crash of `_MEM` of a released member and the "Out of memory" of `GET` into a released array (D-021).
 - **Whole-array assignment, `target() = source()` (`v36_*`, 58 programs measured 2026-10-15 before
@@ -3159,7 +3159,7 @@ From the end of `09` and `10` §2.8, §3.2 and the measurements in §5. **All de
 (step 8 of `STATUS.md` "Next", `DECISIONS.md`), except where an earlier date is given. The rule applied: a
 deterministic behaviour that changes results is **kept** (QB64pe programs rely on it, and the differential tester can
 then expect equal output); a crash, memory corruption or failed compile is **fixed**. A difference from QB64pe is a
-row in `DIVERGENCES.md`; a kept behaviour that differs from QuickBASIC 4.5 is a row in `DIVERGENCES-QB45.md`.
+row in `QB64PE-DIVERGENCES.md`; a kept behaviour that differs from QuickBASIC 4.5 is a row in `DIVERGENCES-QB45.md`.
 
 **Kept, as QB64pe:**
 - Numbers: LONG and `_INTEGER64` overflow **wraps** (2026-10-03, D-001, D-002; also in the old compiler's default
@@ -3193,7 +3193,7 @@ row in `DIVERGENCES.md`; a kept behaviour that differs from QuickBASIC 4.5 is a 
   tracks the console column itself instead of asking Windows, so a redirected program no longer hangs (D-011).
   Making it 14 everywhere is to be evaluated (`SOMEDAY.md`).
 
-**Fixed (no compatibility value):** each is a row of `DIVERGENCES.md` (D-003, D-005 to D-014 from these
+**Fixed (no compatibility value):** each is a row of `QB64PE-DIVERGENCES.md` (D-003, D-005 to D-014 from these
 decisions, later ones from the changes that found them; the list that stood here until 2026-10-18 is in
 `study\archive\00-synthesis.md`). Rejected by both compilers, so no register row, only a proper message: `ELSE` while an
 inner `FOR` is open (the old one fails in C++), `CONST … \ 0` and `MOD 0` (the old compiler crashes) and
@@ -3214,7 +3214,7 @@ copy, M3), D-013 (it waits for its two built-ins) and Q-007 (measured on the old
 
 The full catalogue of about 45 accidental behaviours: `01` §11.3, `02` §9.2, `04` G.4; only the ones above have been
 run. A newly measured oddity follows the same rule, without asking the user: a crash, hang, memory corruption or
-failed build is fixed (a `DIVERGENCES.md` row); anything else is implemented as QB64pe does it and, if it looks
+failed build is fixed (a `QB64PE-DIVERGENCES.md` row); anything else is implemented as QB64pe does it and, if it looks
 questionable, listed in `SOMEDAY.md` "QB64pe behaviours to review" (user, 2026-10-08, `DECISIONS.md`).
 
 ## 7. What can be dropped (implementation, not behaviour)
@@ -3331,6 +3331,7 @@ as a reading of the code, not a measurement.
 | `36` | M5, the debugger (2026-10-24): the toolchain ships `lldb-dap` and the emitter's `#line` directives already give the line table (measured), so the recommended path is a debug build, a symbol file and a thin DAP proxy; the eleventh review of M0–M4 and of what remains (nothing astray; an order recommended before M6); three decisions for the user |
 | `37` | M6, runtime modernisation (2026-10-26): none of the runtime's three debts shows as a failure a user meets (a million trapped errors run; the IR fixes the observable error rules), so the panel recommends M6 as "the runtime without QB64pe" (a toolchain of the project's own, libqb repaired in place through its edits) and the second backend in `SOMEDAY.md`; the twelfth review (M5, M5b); three decisions for the user |
 | `38` | Where the project stands and where it could go (2026-10-26, at the merge of `mb5`): everything planned on day one is built and nobody but the author has used it; the purpose was never written; ten options ranked under three candidate purposes; under every purpose, make it usable without QB64pe and cut the standing cost of process and tests; four decisions for the user |
+| `39` | The crash-class rows of "QB64pe behaviours to review" ruled one at a time (2026-10-26, from `study\38` §5.3 item 1): 15 fixed always, 3 behind the new fixes switch, the OpenGL errors kept; several measured with QB 4.5 under DOSBox; what the fix change measures first |
 | `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 10); what each holds: `archive\README.md` |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

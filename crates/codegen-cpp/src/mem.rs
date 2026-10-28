@@ -6,7 +6,7 @@
 //! An index on the way is written twice, once in the address and once in the size, as the old compiler writes
 //! it. The lock is `sf_mem_lock`, the lock of the body the statement stands in, except for an array variable of
 //! numbers or of fixed-length strings and its elements, which take the array's own lock from the descriptor (for
-//! an array parameter always its own slot: `DIVERGENCES.md` D-016).
+//! an array parameter always its own slot: `QB64PE-DIVERGENCES.md` D-016).
 
 use crate::Emitter;
 use crate::decl::{dim_count, lock_slot};
@@ -387,7 +387,7 @@ impl Emitter<'_> {
     /// `verification\v35_x23`, `x24`, `x66`): the elements of its descriptor, typed as an array of them, or the
     /// element alone in its type, with the descriptor's lock; the same for both functions. The descriptor is found
     /// through its guard, the declared number of dimensions for the whole array, so one that is not allocated
-    /// raises error 9 and gives a block that does not exist (the old program crashes there, `DIVERGENCES.md`
+    /// raises error 9 and gives a block that does not exist (the old program crashes there, `QB64PE-DIVERGENCES.md`
     /// D-021).
     fn dyn_block(&mut self, of: &Reference) -> Option<String> {
         let (base, member) = match of {

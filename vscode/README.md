@@ -2,9 +2,10 @@
 
 Edit, check, build, run and debug QB64 programs in VS Code with `qb64rust`, the new QB64 compiler of the QB64Rust
 project, which comes with the extension (Windows x64). It runs a language server for syntax errors as you type,
-the outline, folding and go to definition; it checks a program on save, builds it, and debugs it by BASIC line. An
-installed QB64 Phoenix Edition is still needed: its C++ toolchain builds the program, its debugger runs under ours,
-and its own formatter formats it.
+the outline, folding and go to definition; it checks a program on save, builds it, and debugs it by BASIC line.
+QB64 Phoenix Edition is optional: building and debugging need a C++ toolchain, which the first build offers to
+download (190 MB, from llvm-mingw's releases on GitHub; nothing is downloaded unless you agree), or QB64pe's when
+QB64pe is installed.
 
 ## Features
 
@@ -83,7 +84,7 @@ program is saved and built with `qb64rust --debug`, as Build would build it (sam
 Problems), and then runs under the debugger; a build that fails starts no session. Click in the gutter of a `.bas`,
 `.bi` or `.bm` line to set a breakpoint.
 
-What the debugger shows (the adapter is `qb64rust dap`, in front of the `lldb-dap` of QB64pe's toolchain):
+What the debugger shows (the adapter is `qb64rust dap`, in front of the `lldb-dap` of the C++ toolchain):
 
 - **Breakpoints** by line, also in `$INCLUDE` files, with conditions, hit counts and log points; **step over, into
   and out** by BASIC line; **pause** a running program, also a one-line loop; **set next statement** within the
@@ -114,8 +115,9 @@ A `launch.json` configuration (**Run: Add Configuration… → QB64**):
 
 Debugging needs a build by `qb64rust`: with `qb64rust.buildWith` set to `qb64pe`, or without the `qb64rust` binary,
 it is refused with a message naming the setting. A debug build replaces the program's executable (never
-optimised; it otherwise behaves the same); the next Build makes the usual one again. The debugger comes from
-QB64pe's toolchain (`internal\c\c_compiler\bin\lldb-dap.exe`, part of QB64pe 4.7.0).
+optimised; it otherwise behaves the same); the next Build makes the usual one again. The debugger comes from the
+C++ toolchain (`bin\lldb-dap.exe`): the installed one, QB64pe's, or the folder of `qb64rust.toolchainPath`; without
+one, the session offers it as a build does and starts only once it is installed.
 
 ## Language server (qb64rust)
 
@@ -176,13 +178,27 @@ Download `qb64rust-win32-x64-<version>.vsix` from the repository's
 [releases](https://github.com/davidshq/QB64Rust/releases) and install it with **Extensions: Install from VSIX…**
 or `code --install-extension qb64rust-win32-x64-<version>.vsix`.
 
+Nothing else is needed to edit and check programs. **The first build or debug session asks to download the C++
+toolchain** that builds and debugs them: llvm-mingw 23.1.2 (release `20260922`) from
+[github.com/mstorsjo/llvm-mingw](https://github.com/mstorsjo/llvm-mingw/releases), a 190 MB download, about 460 MB
+on disk in `%LOCALAPPDATA%\qb64rust\toolchain`. Only **Download** fetches it (the download is checked against its
+SHA-256); **Not Now** builds nothing and asks again next time. **QB64: Install the C++ Toolchain** does the same at
+any time, and `qb64rust toolchain install` from a terminal too. With QB64pe installed and found, its own toolchain
+is used and nothing is asked. To use a toolchain folder of your own, set `qb64rust.toolchainPath` to it.
+
+**Without VS Code:** the same release has the compiler on its own, `qb64rust-win-x64-<version>.zip`, for a
+command prompt, a build script or another editor. Its manual (`MANUAL.md`, inside the zip) covers setting it up.
+The extension already carries this compiler, so you don't need both.
+
 ## Requirements
 
-[QB64 Phoenix Edition](https://github.com/QB64-Phoenix-Edition/QB64pe) (tested with 4.7.0 on Windows): its C++
-toolchain builds programs, also those `qb64rust` compiles (formatting needs it only without `qb64rust`). Set `qb64rust.compilerPath` to
-`qb64pe.exe` (or to its folder), or put the QB64pe folder on `PATH`. The language status (the `{}` next to "QB64"
-in the status bar) shows `qb64pe` when it is found, with the compiler that builds in its detail line, and an error
-with an "Open Setting" link when it is not.
+Windows x64. [QB64 Phoenix Edition](https://github.com/QB64-Phoenix-Edition/QB64pe) is optional (tested with 4.7.0):
+when it is found, `qb64rust` builds with its toolchain and looks for `DECLARE LIBRARY` files in its folder, and it
+is needed to build with QB64pe (`qb64rust.buildWith` set to `qb64pe`, or **Build with QB64pe**) and to format
+without `qb64rust`. Set `qb64rust.compilerPath` to `qb64pe.exe` (or to its folder), or put the QB64pe folder on
+`PATH`. The language status (the `{}` next to "QB64" in the status bar) shows the compiler that builds: `qb64rust`
+with its toolchain in the detail line, "C++ toolchain not installed" with an install link when there is none yet;
+`qb64pe` when QB64pe builds, and an error with an "Open Setting" link when it is not found.
 
 The `qb64rust` binary comes with the extension. To use another one (a build of this repository: `cargo build
 --release`, see `crates\README.md`), set `qb64rust.path` to it.
@@ -196,6 +212,7 @@ workspaces (folders opened from a remote repository without a local copy, e.g. o
 | Setting | Default | Meaning |
 |---|---|---|
 | `qb64rust.compilerPath` | `""` | Path to `qb64pe.exe` or its folder. Empty: look up `qb64pe` on `PATH`. |
+| `qb64rust.toolchainPath` | `""` | A C++ toolchain folder for `qb64rust` (llvm-mingw's layout: `bin\c++.exe`, `bin\lldb-dap.exe`). Empty: QB64pe's when it is found, else the installed one. A machine setting: a workspace cannot set it. |
 | `qb64rust.buildWith` | `"auto"` | The compiler of Build, Build and Run and the build task: `auto` (`qb64rust` when it is found, else QB64pe), `qb64rust`, or `qb64pe`. |
 | `qb64rust.checkOnSave` | `true` | Check the program when a file is saved: with the language server when it runs, else with `qb64pe -z`. |
 | `qb64rust.checkTimeoutSeconds` | `30` | Stop a check or format that takes longer (a check by the language server: stop waiting for it). |
@@ -230,6 +247,6 @@ extensions. If another extension also claims `.bas`, choose which one wins with 
   running.
 - C++ compile errors (rare; usually a compiler bug) are not mapped to BASIC lines; see the "QB64" output channel
   (with QB64pe, also `internal\temp\compilelog.txt`).
-- The package is for Windows x64 only.
+- The package is for Windows x64 only. Linux, then macOS, are planned.
 
 Requires VS Code 1.100 or later.

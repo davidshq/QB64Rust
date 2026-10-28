@@ -54,7 +54,7 @@ pub use names::{c_type, proc_name, var_name};
 use decl::is_qbs;
 use names::{c_string, line_name};
 use qb64rust_base::FileId;
-use qb64rust_ir::{Body, LabelId, Program, Shape, StartBounds, Var};
+use qb64rust_ir::{Body, LabelId, Op, Program, RunTarget, Shape, StartBounds, Var};
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
@@ -171,9 +171,17 @@ fn emit_all(
         inside: Vec::new(),
         pass: 0,
         pass_decls: Vec::new(),
+        slots: Vec::new(),
         byte_element: 0,
         runs: 0,
         run_lines: String::new(),
+        unwind: p.procs.iter().any(|q| {
+            q.body
+                .stmts
+                .iter()
+                .flat_map(|s| &s.ops)
+                .any(|op| matches!(op, Op::Run(t) if !matches!(t, RunTarget::File(_))))
+        }),
         handlers: Vec::new(),
         body: &p.main,
         k: 0,
@@ -233,10 +241,18 @@ fn emit_all(
     for k in 1..=program_procs {
         writeln!(main, "#include \"main{k}.txt\"").unwrap();
     }
+    // The time of the C++ build only for a program that calls `_COMPILEDATE$` or `_COMPILETIME$`, which is never taken
+    // from a cache; any other program's build is the same bytes each time (`DECISIONS.md` 2026-10-27), and nothing
+    // calls these two functions in it.
+    let (date, time) = if p.settings.compile_stamp {
+        ("__DATE__", "__TIME__")
+    } else {
+        ("\"\"", "\"\"")
+    };
     write!(
         main,
-        "qbs *func__compdate() {{\nreturn qbs_new_txt(__DATE__);\n}}\n\
-         qbs *func__comptime() {{\nreturn qbs_new_txt(__TIME__);\n}}\n\
+        "qbs *func__compdate() {{\nreturn qbs_new_txt({date});\n}}\n\
+         qbs *func__comptime() {{\nreturn qbs_new_txt({time});\n}}\n\
          qbs *func__compvers() {{\nreturn qbs_new_txt(\"{COMPILER_VERSION}\");\n}}\n"
     )
     .unwrap();
@@ -256,22 +272,30 @@ fn emit_all(
             StartBounds::Read(_) => read.push_str(&text),
         }
     };
-    for v in p.vars.iter().filter(|v| decl::lives_for_program(v)) {
+    let mut allocs = Vec::new();
+    for (i, v) in p.vars.iter().enumerate().filter(|(_, v)| decl::lives_for_program(v)) {
         let n = names::var_name(p, v);
-        maindata.push_str(&e.alloc(v, &n));
+        let mut text = e.alloc(v, &n);
         if let Shape::Dynamic {
             at_start: Some(bounds), ..
         } = &v.shape
         {
-            at_start(&mut e, &mut maindata, v, &n, bounds);
+            at_start(&mut e, &mut text, v, &n, bounds);
         }
+        allocs.push((i, text));
     }
     // The allocations other declarations add (`STATIC a(n)` beside a shared array), after every array's own.
+    let mut added = String::new();
     for (id, bounds) in &p.start_allocations {
         let v = p.var(*id);
-        at_start(&mut e, &mut maindata, v, &names::var_name(p, v), bounds);
+        at_start(&mut e, &mut added, v, &names::var_name(p, v), bounds);
     }
-    maindata.push_str(&e.temps(None));
+    let temps = e.temps(None);
+    // The main module's slots in conventional memory among the variables, as the old compiler writes its data
+    // fragment; taken after everything above, which may make one.
+    maindata.push_str(&e.with_slots(allocs));
+    maindata.push_str(&added);
+    maindata.push_str(&temps);
     for d in std::mem::take(&mut e.pass_decls) {
         maindata.push_str(&d);
     }
@@ -361,11 +385,18 @@ struct Emitter<'a> {
     pass: u32,
     /// Declarations of the `passN` of the body being emitted.
     pass_decls: Vec<String>,
+    /// The slots in conventional memory of the body being emitted, each with the number of variables made before
+    /// it ([`Emitter::cmem_slot`]).
+    slots: Vec<(u32, String)>,
     /// Counter for the `byte_element_N` temporaries of graphics `GET` and `PUT`.
     byte_element: u32,
     /// The `RUN label` statements of procedures so far, and their entries of `runline.txt` (`stmt.rs`).
     runs: u32,
     run_lines: String,
+    /// A procedure of the program holds a `RUN` that starts the program again (not `RUN file$`): the active procedures
+    /// are left first, and the main module runs it (`study\39` row 14, `QB64PE-DIVERGENCES.md` D-046; `stmt.rs`
+    /// `Op::Run`). Only then is the code of that unwind written.
+    unwind: bool,
     /// Handler labels; handler number N is entry N - 1.
     handlers: Vec<LabelId>,
     /// The body being emitted, whose labels the jumps name, and its number K (0 for the main module).

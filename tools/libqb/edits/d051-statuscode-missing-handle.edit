@@ -1,0 +1,12 @@
+# _STATUSCODE of a handle that is not open raises error 52 (QB64PE-DIVERGENCES.md D-051, UPSTREAM.md "_STATUSCODE of
+# a handle never opened crashes"; study\39 row 11). QB64pe's func__statusCode reads the type of list_get's result
+# without testing it, so a negative handle never opened, or closed, is an access violation (verification\v44_x59,
+# exit 139). Here a missing entry raises 52, as func__connected and the other network functions do.
+file: internal/c/libqb.cpp
+--- old
+    special_handle_struct *sh = (special_handle_struct *)list_get(special_handles, real_handle);
+    if (sh->type != special_handle_type::Http) {
+--- new
+    special_handle_struct *sh = (special_handle_struct *)list_get(special_handles, real_handle);
+    if (!sh || sh->type != special_handle_type::Http) {
+--- end

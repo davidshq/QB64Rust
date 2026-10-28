@@ -15,6 +15,7 @@ pub const TEXTS: &[(i64, &str)] = &[
     (8, "Label not defined"),
     (9, "Subscript out of range"),
     (10, "Duplicate definition"),
+    (11, "Division by zero"),
     (12, "Illegal in direct mode"),
     (13, "Type mismatch"),
     (14, "Out of string space"),
@@ -77,9 +78,9 @@ pub const TEXTS: &[(i64, &str)] = &[
     (315, "_ASSERT failed (check console for description)"),
 ];
 
-/// The critical errors, which `error` reports with a text of their own and no handler.
+/// The critical errors, which `error` reports with a text of their own and no handler. Error 11 is not one in this
+/// copy of libqb (`QB64PE-DIVERGENCES.md` D-052): it is in [`TEXTS`].
 pub const CRITICAL: &[(i64, &str)] = &[
-    (11, "Division by zero"),
     (256, "Out of stack space"),
     (259, "Cannot find dynamic library file"),
     (260, "Sub/Function does not exist in dynamic library"),

@@ -15,8 +15,10 @@ PowerShell): the old compiler's wording table, the shrink-only lists and the rel
 what changes the compiler or what tier 1 reads before the first long run); tier 1 as CI runs it, `--workspace
 --locked`, with `--no-fail-fast` (without it `cargo test` stops at the first failing test binary and the tests
 after it never run), fmt, clippy and the wording check; the slice list and the upstream pass list with `--pass-cache` and
-`--build-cache`, side by side; the run without folding, only when a file of `sema`'s constant evaluation, literals
-or operators changed against `HEAD` (`--nofold` asks for it when a numeric conversion elsewhere changed); the
+`--build-cache`, side by side; QB64pe's converter test (`--suite addprefix`, a few seconds); QB64pe's qbasic programs (`--suite qbasic --jobs 8`,
+compiled only, every one to build); the run without folding (with `--pass-cache` since builds are deterministic,
+`DECISIONS.md` 2026-10-27: only the programs whose C++ folding changes run), only when a file of `sema`'s constant
+evaluation, literals or operators changed against `HEAD` (`--nofold` asks for it when a numeric conversion elsewhere changed); the
 coverage check of Civil War Strategy's scripts (`tools\coverage\coverage.py --check`), only when the game's copy or
 its scripts (`tests\corpus\screen\g12_game.*`), its list of unreached lines, `tools\screen\cut_game.py`,
 `screen_state.cpp`, `tools\coverage\`, `crates\codegen-cpp\`, `crates\ir\` (which statements are counted) or

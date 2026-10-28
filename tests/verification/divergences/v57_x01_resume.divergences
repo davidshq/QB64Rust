@@ -1,0 +1,1 @@
+D-045  # fixes-switch: RESUME leaves the SUB through its exit, which frees its strings and locks; the output is the same

@@ -1,0 +1,5 @@
+
+Name already in use (DEFSTR)
+Caused by (or after):
+LINE 4:DEFSTR AS INTEGER
+exit=1

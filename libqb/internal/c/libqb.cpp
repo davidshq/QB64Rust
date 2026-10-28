@@ -12634,8 +12634,30 @@ qbs_input_wait_for_key:
                     chr = 13;
                 qbs_set(key, qbs_new_txt(" "));
                 key->chr[0] = chr;
+            } else if (inpstr->len) {
+                // the last line had no newline: take it as ended
+                qbs_set(key, qbs_new_txt(" "));
+                key->chr[0] = 13;
             } else {
-                Sleep(10);
+                // the input has ended: Input past end of file, and leave as the Enter path does
+                error(62);
+                for (i = 1; i <= numvariables; i++) {
+                    qbs_free(qbs_input_arguements[i]);
+                }
+                qbs_free(c);
+                qbs_free(inpstr);
+                qbs_free(inpstr2);
+                qbs_free(key);
+                write_page->cursor_show = cursor_show_last;
+                sub__freeimage(dest_image, 1);
+                sub__freeimage(dest_image_temp, 1);
+                if (autodisplay_backup == 0) {
+                    autodisplay = -1; // toggle request
+                    while (autodisplay)
+                        Sleep(1);
+                }
+                sub__source(source_backup);
+                return;
             }
         } else {
             Sleep(10);
@@ -16758,6 +16780,10 @@ void sub_bsave(qbs *filename, int32 offset, int32 size) {
     } // Overflow
     if (size != 65536)
         size &= 0xFFFF;
+    if ((defseg + offset - &cmem[0]) + (intptr_t)size > (intptr_t)sizeof(cmem)) {
+        error(5);
+        return;
+    }
     qbs_set(tqbs, qbs_add(filename, nullt)); // prepare null-terminated filename
     fh.open(filepath_fix_directory(tqbs), std::ios::binary | std::ios::out);
     if (!fh.is_open()) {
@@ -16821,10 +16847,14 @@ void sub_bload(qbs *filename, int32 offset, int32 passed) {
         if (file_size < 65536)
             file_size = 0;
     }
-    if (passed) {
-        fh.read((char *)(defseg + offset), file_size);
-    } else {
-        fh.read((char *)(&cmem[0] + file_seg * 16 + file_off), file_size);
+    {
+        uint8 *dest = passed ? defseg + offset : &cmem[0] + file_seg * 16 + file_off;
+        if ((dest - &cmem[0]) + (intptr_t)file_size > (intptr_t)sizeof(cmem)) {
+            fh.close();
+            error(5);
+            return;
+        }
+        fh.read((char *)dest, file_size);
     }
     if (fh.gcount() != file_size)
         goto error;
@@ -16974,7 +17004,7 @@ int32 func__statusCode(int32 handle) {
     int real_handle = -(handle + 1);
 
     special_handle_struct *sh = (special_handle_struct *)list_get(special_handles, real_handle);
-    if (sh->type != special_handle_type::Http) {
+    if (!sh || sh->type != special_handle_type::Http) {
         error(52);
         return -1;
     }
@@ -17196,6 +17226,24 @@ qbs *func_input(int32 n, int32 i, int32 passed) {
         }
         if (n == 0)
             return str;
+#ifdef QB64_WINDOWS
+        if (write_page->console) {
+            DWORD input_mode;
+            if (!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &input_mode)) {
+                // redirected input: read it, Input past end of file at its end
+                for (x = 0; x < n; x++) {
+                    c = fgetc(stdin);
+                    if (c == EOF) {
+                        str->len = x;
+                        error(62);
+                        return str;
+                    }
+                    str->chr[x] = c;
+                }
+                return str;
+            }
+        }
+#endif
         x = 0;
     waitforinput:
         str2 = qbs_inkey();
@@ -19328,10 +19376,13 @@ void sub_end() {
 #ifdef QB64_WINDOWS
             std::cout << "\nPress any key to continue";
             int32 junk;
-            FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE)); // clear any stray buffer events before we run END.
-            do {                                                     // ignore all console input
-                junk = func__getconsoleinput();
-            } while (junk != 1); // until we have a key down event
+            DWORD input_mode;
+            if (GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &input_mode)) { // a redirected input never sends a key
+                FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE)); // clear any stray buffer events before we run END.
+                do {                                                     // ignore all console input
+                    junk = func__getconsoleinput();
+                } while (junk != 1); // until we have a key down event
+            }
 #else
             std::cout << "\nPress enter to continue";
             static int32 ignore;

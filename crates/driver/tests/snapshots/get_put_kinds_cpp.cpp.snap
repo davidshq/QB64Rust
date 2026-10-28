@@ -201,10 +201,10 @@ exit(99);
 ==> main.txt <==
 #include "main0.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -277,7 +277,7 @@ if(!qbevent)break;evnt(22);}while(r);
 #line 23 "get_put_kinds_cpp.bas"
 do{
 #line 23 "get_put_kinds_cpp.bas"
-sub_graphics_put(4,4,byte_element((uint64)(((qbs**)(__ARRAY_STRING_SA[0]))[0])->chr,(((qbs**)(__ARRAY_STRING_SA[0]))[0])->len,byte_element_9),NULL,NULL,0);
+sub_graphics_put(4,4,byte_element((uint64)(((qbs**)(__ARRAY_STRING_SA[0]))[((!(__ARRAY_STRING_SA[2]&1)||(!__ARRAY_STRING_SA[0])||(__ARRAY_STRING_SA[0]==(ptrszint)nothingvalue))?(qbr_diverged(42),error(9),0):0)])->chr,(((qbs**)(__ARRAY_STRING_SA[0]))[((!(__ARRAY_STRING_SA[2]&1)||(!__ARRAY_STRING_SA[0])||(__ARRAY_STRING_SA[0]==(ptrszint)nothingvalue))?(qbr_diverged(42),error(9),0):0)])->len,byte_element_9),NULL,NULL,0);
 #line 23 "get_put_kinds_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 23 "get_put_kinds_cpp.bas"

@@ -1,0 +1,5 @@
+
+Expected CALL sub-name (...)
+Caused by (or after):CALL ABSOLUTE VARPTR ( CODE ( 0 ) )
+LINE 6:CALL ABSOLUTE VARPTR(code(0))
+exit=1

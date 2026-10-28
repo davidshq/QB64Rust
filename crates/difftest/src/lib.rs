@@ -139,7 +139,7 @@ pub fn for_sema(ty: Ty) -> Option<&'static NumTy> {
 
 impl NumTy {
     /// Whether a variable of this type needs a `_BIT * 32` pad DIMmed just before it: a `_BIT * n` with n > 32
-    /// overwrites the `_BIT` scalar allocated before it in the old compiler (`DIVERGENCES.md` D-009).
+    /// overwrites the `_BIT` scalar allocated before it in the old compiler (`QB64PE-DIVERGENCES.md` D-009).
     pub fn needs_pad(&self) -> bool {
         matches!(self.kind, Kind::Int { bits, bit: true, .. } if bits > 32)
     }
@@ -503,7 +503,7 @@ impl Program {
         if self.d006 > 0 {
             out.push_str(&format!(
                 "' Left out: {} value pairs of the smallest LONG or _INTEGER64 (or a float beyond LONG) and a divisor\n\
-                 ' of -1, which crash the old program (DIVERGENCES.md D-006).\n",
+                 ' of -1, which crash the old program (QB64PE-DIVERGENCES.md D-006).\n",
                 self.d006
             ));
         }
@@ -516,7 +516,7 @@ impl Program {
         if self.pads {
             out.push_str(
                 "' Each _BIT * 40 has a _BIT * 32 pad DIMmed just before it, which the old compiler's overlap hits\n\
-                 ' instead (DIVERGENCES.md D-009).\n",
+                 ' instead (QB64PE-DIVERGENCES.md D-009).\n",
             );
         }
         out.push_str("ON ERROR GOTO h\n");

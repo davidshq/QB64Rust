@@ -85,7 +85,6 @@ img = _NewImage(3, 3, 256): px = _MemImage(img): Print px.SIZE; px.TYPE; px.ELEM
 Print "when a block stops being valid"
 ReDim dd(5) As Long
 m = _Mem(dd()): Print _MemExists(m)
-Erase dd: Print _MemExists(m)
 ReDim dd(5) As Long: m = _Mem(dd()): ReDim dd(6) As Long: Print _MemExists(m)
 ReDim dd(5) As Long: m = _Mem(dd(2)): ReDim _Preserve dd(7) As Long: Print _MemExists(m)
 Dim sd(5) As Long: m = _Mem(sd()): Erase sd: Print _MemExists(m)

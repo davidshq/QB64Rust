@@ -147,9 +147,9 @@ def notice(crates, dirs, overrides):
     parts = [
         "Third-party notices of the qb64rust binary\n",
         (
-            "The qb64rust binary in bundle/bin/ is MIT-licensed (LICENSE in the extension's folder). It\n"
-            "links the crates below, each under the licence named. The copy of libqb in bundle/libqb/ is\n"
-            "QB64 Phoenix Edition's, under the licences in libqb/COPYING.txt and libqb/licenses/.\n"
+            "The qb64rust binary is MIT-licensed (LICENSE.txt in the extension's or the download's folder).\n"
+            "It links the crates below, each under the licence named. The copy of libqb beside it is QB64\n"
+            "Phoenix Edition's, under the licences in libqb/COPYING.txt and libqb/licenses/.\n"
         ),
     ]
     missing = []

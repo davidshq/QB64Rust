@@ -1,0 +1,5 @@
+
+Name already in use (ELSEIF)
+Caused by (or after):
+LINE 4:ELSEIF AS INTEGER
+exit=1

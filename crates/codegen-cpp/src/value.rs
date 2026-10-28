@@ -5,6 +5,19 @@ use crate::decl::{dim_slot, is_qbs, lock_slot};
 use crate::names::{bare, c_string, c_type, int_const, proc_name};
 use qb64rust_ir::{Arg, ArrayRef, BinOp, Conv, Expr, ExprKind, MemberId, Place, ProcId, Ty, UnOp, VarId};
 
+/// `_CAST` from a float to an integer type, as x86-64's conversions give it for a variable (`verification\v62_h1`), in
+/// C++ whose result is defined for every value: the 32-bit conversion (`cvttsd2si`) with -2147483648 out of range and
+/// for NaN, the narrow types its low bits; `_UNSIGNED LONG` the low bits of the 64-bit one, whose "integer indefinite"
+/// is -2^63; `_UNSIGNED _INTEGER64` the 64-bit conversion `a` of the value OR, where `a` is negative, that `b` of the
+/// value less 2^63. Written into `global.txt` by a program that has such a `_CAST` (D-047).
+const CAST_HELPERS: &str = "static inline int32 qbr_cast_f_i32(long double x){\n\
+return (x>-2147483649.0L&&x<2147483648.0L)?(int32)x:(int32)(-2147483647-1);\n}\n\
+static inline int64 qbr_cast_f_i64(long double x){\n\
+return (x>=-9223372036854775808.0L&&x<9223372036854775808.0L)?(int64)x:(int64)(-9223372036854775807ll-1);\n}\n\
+static inline uint64 qbr_cast_f_u64(long double x){\n\
+int64 a=qbr_cast_f_i64(x);\nint64 b=qbr_cast_f_i64(x-9223372036854775808.0L);\n\
+return (uint64)a|((uint64)b&(a<0?~0ull:0ull));\n}\n";
+
 impl Emitter<'_> {
     /// Arguments of a call of `proc`: a place's own pointer (cast to the parameter's type when the place has the same
     /// width and the other signedness, as the old compiler passes it), a string temporary as it is, a numeric copy
@@ -28,8 +41,14 @@ impl Emitter<'_> {
                     format!("({}*)({r})", c_type(to))
                 }
             }
-            Arg::Temp(v) if is_qbs(v.ty) => self.value(v),
-            Arg::Temp(v) => {
+            Arg::Temp(v, _) if is_qbs(v.ty) => self.value(v),
+            // To a parameter in conventional memory: a slot there, as the old compiler's `passN` (design D2 of
+            // `qbasic-testcases`; its C++ of `verification\v61_p4`).
+            Arg::Temp(v, made) if self.p.var(param).conventional => {
+                let n = self.cmem_slot(v.ty, *made);
+                format!("&(*{n}={})", self.value(v))
+            }
+            Arg::Temp(v, _) => {
                 self.pass += 1;
                 let n = format!("pass{}", self.pass);
                 self.pass_decls.push(format!("{} {n};\n", c_type(v.ty)));
@@ -185,7 +204,7 @@ impl Emitter<'_> {
             } => {
                 let block = self.mem_of(of, *element);
                 if *lock_slot0 {
-                    // The old compiler reads the lock from slot 0 here (`DIVERGENCES.md` D-016).
+                    // The old compiler reads the lock from slot 0 here (`QB64PE-DIVERGENCES.md` D-016).
                     format!("(qbr_diverged(16),{block})")
                 } else {
                     block
@@ -199,9 +218,25 @@ impl Emitter<'_> {
             }
             ExprKind::Convert { how, from } => {
                 let x = self.value(from);
-                match (how, v.ty) {
-                    (Conv::RoundEven, Ty::I32) => format!("qbr_float_to_long({x})"),
-                    (Conv::RoundEven, _) => format!("qbr({x})"),
+                // `_CAST` from a float to an integer type: what x86-64 gives a variable (`study\39` row 16,
+                // `QB64PE-DIVERGENCES.md` D-047), where the old compiler's C++ cast is undefined out of range and g++
+                // folds a constant to another value (`verification\v62_h2`, `v49_x18`).
+                let cast = match v.ty {
+                    Ty::I8 | Ty::U8 | Ty::I16 | Ty::U16 | Ty::I32 => Some("qbr_cast_f_i32"),
+                    Ty::U32 | Ty::I64 | Ty::Off => Some("qbr_cast_f_i64"),
+                    Ty::U64 | Ty::UOff => Some("qbr_cast_f_u64"),
+                    Ty::F32 | Ty::F64 | Ty::F80 | Ty::Bit { .. } | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => None,
+                };
+                let float = matches!(from.ty, Ty::F32 | Ty::F64 | Ty::F80);
+                match (how, v.ty, cast) {
+                    (Conv::RoundEven, Ty::I32, _) => format!("qbr_float_to_long({x})"),
+                    (Conv::RoundEven, _, _) => format!("qbr({x})"),
+                    (Conv::Cast, _, Some(helper)) if float => {
+                        if !self.func_decls.iter().any(|d| d == CAST_HELPERS) {
+                            self.func_decls.push(CAST_HELPERS.to_string());
+                        }
+                        format!("(({})({helper}({x})))", c_type(v.ty))
+                    }
                     _ => format!("(({})({x}))", c_type(v.ty)),
                 }
             }

@@ -156,12 +156,18 @@ pub fn unattended(exe: &Path) -> Command {
     cmd
 }
 
-/// A tool of the clone's toolchain (`nm.exe`, `lldb.exe`), by its file name.
+/// A tool of the toolchain a build uses (`nm.exe`, `lldb.exe`), by its file name; `""`: its `bin` folder.
 pub fn toolchain(name: &str) -> PathBuf {
-    qb64rust_driver::build::find_root(None)
-        .expect("the QB64pe reference clone")
-        .join("internal/c/c_compiler/bin")
-        .join(name)
+    qb64rust_driver::toolchain::find(None, None)
+        .expect("a C++ toolchain")
+        .bin(name)
+}
+
+/// The folder of the toolchain a build uses.
+pub fn toolchain_folder() -> PathBuf {
+    qb64rust_driver::toolchain::find(None, None)
+        .expect("a C++ toolchain")
+        .folder
 }
 
 /// The deadline of a run of `lldb` in batch mode: it starts the program, runs the commands and exits, killing it;

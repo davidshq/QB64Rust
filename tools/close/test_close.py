@@ -195,7 +195,14 @@ class Plan(unittest.TestCase):
         self.assertIn("--pass-cache", by["verification"])
         self.assertIn("--suite verification", by["verification"])
         self.assertIn("--list tests/verification/pass.list", by["verification"])
-        self.assertNotIn("--pass-cache", by["nofold"])
+        self.assertIn("--suite addprefix", by["addprefix"])
+        self.assertIn("--wait", by["addprefix"])
+        self.assertIn("--suite qbasic", by["qbasic"])
+        self.assertIn("--jobs 8", by["qbasic"])
+        self.assertIn("--wait", by["qbasic"])
+        # Builds are deterministic, so a program whose C++ folding does not change is the same executable, and its
+        # pass stands (DECISIONS.md 2026-10-27).
+        self.assertIn("--pass-cache", by["nofold"])
         self.assertIn("--wait", by["callsite"])
         for s in steps(True):
             # Each command writes its own log, and no command holds a backslash (CLAUDE.md working rule 7).
@@ -249,6 +256,8 @@ class Check(unittest.TestCase):
             "slice": '{"corpus": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "upstream": '{"compile_tests": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "verification": '{"verification": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
+            "addprefix": '{"addprefix": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
+            "qbasic": '{"qbasic_testcases": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "callsite": "1 programs: 1 equal, 0 differ, 0 not compared\n",
             "cli": CARGO_OK,
         }
@@ -403,7 +412,7 @@ class Check(unittest.TestCase):
 
     def test_copy_steps(self):
         copies = {s.name for s in steps(True) if s.copy}
-        self.assertEqual(copies, {"slice", "upstream", "verification", "nofold", "callsite"})
+        self.assertEqual(copies, {"slice", "upstream", "verification", "addprefix", "qbasic", "nofold", "callsite"})
 
     def test_a_step_before_the_build_is_not_stale_by_what_one_writes(self):
         # `wording` at 150, then `lists` rewrote a list at 160 and ended at 170, then the build at 200.

@@ -1,12 +1,11 @@
 // Debugging a program in VS Code (change m5-debug-launch): the configuration provider (design D3), the adapter
 // `qb64rust dap` (D2) and the Debug command (D5). The rules are in debugConfig.ts; the debug build is Build's
 // (`Builder.debugBuild`, D4).
-import * as path from "path";
 import * as vscode from "vscode";
 import * as config from "./config";
 import { Builder } from "./build";
 import { refuse } from "./buildPlan";
-import { DEBUG_TYPE, Facts, LaunchConfig, fileConfiguration, initialConfiguration, resolveLaunch } from "./debugConfig";
+import { DEBUG_TYPE, Facts, LaunchConfig, adapterArgs, fileConfiguration, initialConfiguration, resolveLaunch } from "./debugConfig";
 import { LanguageServer } from "./languageServer";
 import { CompilerStatus } from "./statusBar";
 
@@ -55,7 +54,8 @@ export class DebugSupport implements vscode.Disposable, vscode.DebugConfiguratio
                 void refuse(launch.message, launch.setting);
                 return undefined;
             case "launch":
-                return launch.config;
+                // No build to offer the toolchain: the session offers it, and starts only once there is one.
+                return (await this.status.toolchain?.ensure(true))?.found ? launch.config : undefined;
             case "build": {
                 const exe = await this.builder.debugBuild(vscode.Uri.file(launch.source));
                 // No executable: the reason is in Problems and the output already. `undefined` ends the launch.
@@ -64,17 +64,18 @@ export class DebugSupport implements vscode.Disposable, vscode.DebugConfiguratio
         }
     }
 
-    /** Design D2: `qb64rust dap --qb64pe-root <folder>`, from the binary and the QB64pe folder a build uses. */
+    /** Design D2, with design D6 of m6-toolchain: `qb64rust dap --toolchain-root <folder>`, from the binary and the
+     * toolchain a build uses (found, or installed by the offer, before the session). */
     createDebugAdapterDescriptor(): vscode.DebugAdapterDescriptor {
         const binary = this.server.binary;
         if (!binary.found) {
             throw new Error(`QB64: debugging needs qb64rust, but ${binary.reason}`);
         }
-        const qb64pe = this.status.current;
-        if (!qb64pe.found) {
-            throw new Error(`QB64: debugging needs QB64pe's toolchain, but ${qb64pe.reason}`);
+        const tools = this.status.toolchain?.current;
+        if (!tools?.found) {
+            throw new Error(`QB64: debugging needs a C++ toolchain, but ${tools?.reason ?? "it was not looked for"}`);
         }
-        return new vscode.DebugAdapterExecutable(binary.path, ["dap", "--qb64pe-root", path.dirname(qb64pe.path)]);
+        return new vscode.DebugAdapterExecutable(binary.path, adapterArgs(tools.folder));
     }
 
     /** Design D5: debugs the file of `uri` or the active editor, as Build and Run runs it. */

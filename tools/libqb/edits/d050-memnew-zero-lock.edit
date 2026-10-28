@@ -1,0 +1,18 @@
+# A block of _MEMNEW(0) owns no memory (QB64PE-DIVERGENCES.md D-050, UPSTREAM.md "_MEMFREE of a _MEMNEW(0) block frees
+# memory twice"; study\39 row 9). QB64pe's func__memnew sets the lock's type in every branch but the 0-byte one, so a
+# lock taken again from the freed list keeps type 1 (malloc) and its old pointer, which _MEMFREE frees a second time
+# (verification\v32_d33_free_zero_size, exit 127). Here the 0-byte block's lock gets type 0, as a block of an address
+# has: _MEMFREE frees the lock and nothing else.
+file: internal/c/libqb/src/memblock.cpp
+--- old
+        if (!bytes) {
+            b.offset = 1; // non-zero=success
+            b.size = 0;
+        } else {
+--- new
+        if (!bytes) {
+            b.offset = 1; // non-zero=success
+            b.size = 0;
+            mem_lock_tmp->type = 0; // owns no memory
+        } else {
+--- end

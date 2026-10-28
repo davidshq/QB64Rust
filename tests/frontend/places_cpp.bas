@@ -3,7 +3,7 @@ $CONSOLE:ONLY
 ' Places in C++ (m2-arrays-and-types tasks 6.1–6.3): descriptors and static allocation of numeric, string and TYPE
 ' arrays (dimensions in reverse order), a TYPE variable's bytes (members in order, no padding, _FLOAT 32 bytes), the
 ' element store guarded after its index, a member store unguarded, a member-of-element store with the value first
-' and the store skipped on a bad index (DIVERGENCES.md D-004), elements and members by reference, LBOUND/UBOUND,
+' and the store skipped on a bad index (QB64PE-DIVERGENCES.md D-004), elements and members by reference, LBOUND/UBOUND,
 ' a local and a STATIC TYPE variable.
 TYPE t
     m AS LONG

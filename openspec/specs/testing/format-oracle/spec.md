@@ -32,7 +32,7 @@ program's own folder so included files resolve, and leave an output alone when i
 ### Requirement: Comparing another compiler
 The same suite run with any other compiler SHALL compare and SHALL NOT write into `tests\format\`. A program SHALL
 pass when the compiler exits with 0 and its output equals the recording with line endings taken as LF, or when
-the program takes a `DIVERGENCES.md` row that a sidecar names, as the other suites allow.
+the program takes a `QB64PE-DIVERGENCES.md` row that a sidecar names, as the other suites allow.
 
 #### Scenario: Output differs
 - **WHEN** `qb64rust -y` writes `Print  x` where `Print x` is recorded

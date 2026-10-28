@@ -319,6 +319,86 @@ Small programs behind `study\09`, `study\10` and later measurements:
   a `STRING` in conventional memory (offsets of members, nested and two strings, among scalars, `VARPTR$` of a
   number member; `d5` an element's string used, no crash; `d6` a variable's string used, exit 139; `d7` `VARPTR`
   of an element's `STRING` member and `d8` `VARPTR$` of a `STRING` member: the C++ build fails)
+- `v61*`: the forms QB64pe's `qbasic_testcases` need, measured as task 1.1 of `qbasic-testcases` (its `design.md`,
+  D1–D4): `a1`–`a10` `VARPTR`, `VARSEG` and `SADD` of a procedure's variables (a local allocated from the top of
+  `dblock` on each call and given back, the second call's at the same offset; a `STATIC` one, also those of `SUB …
+  STATIC`, allocated at the start after the main module's, so a later call's locals lie below it; every numeric
+  type, strings, a fixed-length string, a `TYPE` and its members, `STRING * n` members at their offset, local and
+  `STATIC` arrays, a `REDIM` there, implicit variables, recursion 2 bytes a level; `a10` the name of a FUNCTION
+  without parameters is a call there, "Expected reference to a variable/array"); `p1`–`p8` parameters whose
+  address is taken (a `TYPE` through a chain of three and from a SUB's variable, an array parameter with static,
+  dynamic, `COMMON` and a SUB's arrays, a `REDIM` of one, a scalar called with a literal, a variable in
+  parentheses and an expression, each call site a slot of its own placed among the variables in source order
+  (`p8`), an element and a member, a member of a `TYPE` parameter and an element of an array parameter passed on;
+  `VARPTR` and `VARSEG` of a scalar parameter are those of where its argument lies, an array's segment too; a
+  string expression's copy is not in conventional memory, `VARPTR` 0); `p9` `VARSEG` and `VARPTR` of an element of
+  a member array of a `TYPE` parameter, called with an element of a `TYPE` array (`VARSEG` the nearest segment,
+  4177, `VARPTR` the offset from `dblock` cut to 16 bits, 20, so a `POKE` through the two misses the element);
+  `p10` `VARPTR$` of a scalar parameter called with an array element, a member and a value (its offset taken from
+  `dblock` as for a variable, which for the element equals `VARPTR`'s only because the array's segment is 4096
+  above `dblock`'s); `px1`–`px8` a plain variable passed there (main, shared, a SUB's, a string, through a
+  parameter, implicit, a scalar parameter passed on, a fixed-length string): "UNEXPECTED INTERNAL COMPILER
+  ERROR", as is `px9`, `VARPTR` of a whole `TYPE` parameter; `c1`–`c9` `CALL ABSOLUTE` (a far return, a store through an
+  argument, a string's descriptor offset and a `SINGLE` slot, in a SUB with a literal, a `DOUBLE` and shared
+  variables and `SADD` of a `STATIC` string as offset, `INT 33h` answered by libqb, the program's own `SUB
+  ABSOLUTE` called only without `CALL`; `ABSOLUTE` without `CALL` "Syntax error", `CALL ABSOLUTE` without
+  parentheses "Expected CALL sub-name (...)"); `m_<name>` a `TYPE` member named like each name of the old
+  compiler's reserved table and some built-ins, written by `v61_members.py` (refused, "Name already in use", the
+  names with `HASHFLAG_TYPE`, `_OPERATOR`, `_CUSTOMSYNTAX` or `_XELEMENTNAME`; `AS`, `DATA`, `ELSE`, `REM` and `END`
+  with other messages; a single leading underscore "Invalid name"; every other name taken)
+- `v62*`: the fixes, QB64pe's side of each always-on fix of `study\39`, measured as task 1.2 of `fixes-switch` (its
+  `design.md`, D5): `a1`, `a2` `DIM` and `REDIM` with a count below zero under a handler ("Out of memory", which the
+  handler does not receive; row 3); `b1` `STATIC a(5)` in a SUB beside a shared static array ("Duplicate
+  definition" at the start; row 4); `c1`–`c5` an erased whole array used whole (row 7): `PRINT` gives 0, but `READ`
+  and `LINE INPUT #` store into libqb's `nothingvalue` so every later `PRINT` ends with the text, `SWAP` with an
+  allocated array gives it the zero, `FIELD` leaves spaces after every later `PRINT`, `PUT` and `GET` do nothing;
+  `d1`–`d5` a `_MEM` block of a released array (row 8): after `REDIM` `_MEMEXISTS` gives 0 and `_MEMPUT` ends with
+  "Memory has been freed", as for a SUB's local dynamic array after the SUB (`d5`) and unlike after `ERASE`
+  (`v32_d29`), `CLEAR` (`d3`) and `RUN` (`d4`), after which the block stays valid and writes into released memory
+  (`d3` and `d4` keep the block in a file); after `ERASE` of a static array it stays valid and writes into the
+  array (`d2`); `e1`, `e2` a `STRING * n` element and member passed to `char*` (row 10): C reads on into the next
+  element or member and upper-cases them too, and the element's index is evaluated once; read in the C++ of `qb64pe
+  -z`: an element is passed as `(char*)(qbs_new_fixed(&data[i * n], n, 1))->chr`, its own bytes with the next
+  element after them, no NUL; `f1`–`f4` `RESUME`, `RESUME 0`, `RESUME NEXT` and `RESUME label` in a FUNCTION called
+  by a main-module handler (row 13): the first three are a C++ build failure (a bare `return;` in a function with a
+  value), `RESUME label` goes to the FUNCTION's label; `f5` the block of a SUB's local after `RESUME NEXT` leaves it
+  (still valid, -1, where the SUB's end makes it 0); `g1` `RUN` from a SUB again and again ("Out of stack space"
+  after about 2,400 runs; row 14); `g2`, `g3` the output of a `$CONSOLE:ONLY` program after `RUN label` and `RUN
+  100` from a SUB (lost) and after `RUN` with no argument (kept: the program's start, `S_0` in the C++ of `qb64pe
+  -z`, selects the console with `sub__dest(func__console()); sub__source(func__console());`, which `RUN` with no
+  argument runs again and the others jump past); `g4`, `g5`, by the review of the change: `RUN` from a FUNCTION
+  called in an expression with a second FUNCTION after it, and from a FUNCTION called in a loop below
+  `$CHECKING:OFF` (both start again at once: nothing of the statement after the call runs); `h1` `_CAST` of a `DOUBLE` and a `SINGLE` variable to each integer
+  type, in range, out of it, NaN and infinity (the narrow types through the low bits of a 32-bit conversion, whose
+  out-of-range value is -2147483648; `_UNSIGNED LONG` through a 64-bit one; `_UNSIGNED _INTEGER64` as
+  `a | (b AND (a < 0))` of the 64-bit conversions `a` of the value and `b` of the value less 2^63; row 16), `h2` the
+  same values as constants (the C++ cast is undefined, and g++ folded each to another value)
+- `v63*`: the libqb fixes, QB64pe's side of each always-on fix of `study\39` that lives in libqb, measured as task
+  1.2 of `libqb-fixes` (its `design.md`, D8): `a1`–`a5` console reads at the end of a redirected input (row 2):
+  `LINE INPUT` and `INPUT` from the null device wait for ever (`a1`, `a5`), as does `LINE INPUT` on a last line with
+  no newline (`a2`, its `.stdin` holds `abc`); `INPUT$` with no file number waits for ever even with data on its
+  input, since it reads only the keyboard buffer that console events fill (`a3`, its `.stdin` holds `abcdef`), and
+  from the null device (`a4`); `b1`–`b5` `BLOAD` and `BSAVE` at the top of the block of conventional memory (1,114,099
+  bytes; row 5): a `BLOAD` of 1000 bytes to `&HFFFF:&HFFF0`, given or from the file's header, writes past the block
+  with no error (`b1`, `b4`), one of a file whose header gives size 0 and whose data is 200,000 bytes crashes (`b2`,
+  exit 139), a `BSAVE` there writes a file of 1007 bytes read past the block (`b3`), and the block's last 19 bytes,
+  which fit, are saved and loaded (`b5`; the 3 at offsets past `&HFFFF` read 0 through `PEEK`); `c1`–`c4` `_MEMNEW(0)`
+  blocks freed (row 9): first of all and between two 16-byte blocks they free cleanly (`c1`, `c3`), two after a
+  freed block crash (`c2`, exit 127), freed twice is error 307 (`c4`); `d1` `_STATUSCODE` of a host handle (error 52)
+  and of the same handle closed (exit 139; row 11); `e1`, `e2` `ERROR 11` and an integer `\` or `MOD` by 0 under a
+  handler: "Division by zero", which the handler does not receive, ending the program at the first (row 12); `f1`
+  bit numbers and shift counts of 64 or more and negative ones as constants and in a LONG variable: the same values,
+  each masked to its low 6 bits (rows 17, 18); `f2` the program of the fix `bit-number-check`, bit numbers in a
+  variable under a handler, with its fixes-on output in `tests\verification\fixed\`
+
+`qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
+recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see
+them), each behind a row of the crash-class rulings (`study\39`): `q45_static_local`,
+`q45_static_dims` `STATIC` in a SUB beside a shared array of that name (row 4); `q45_whole_array_value` a whole
+array `a()` as a value (row 6); `q45_whole_array_erased` `READ a()` and `SWAP a(), b()`, and an element of an
+erased array (row 7); `q45_div_zero` `\`, `MOD`, `ERROR 11` and a float `/` by zero under `ON ERROR` (row 12,
+`DIVERGENCES-QB45.md` Q-003); `q45_resume_in_sub` `RESUME` in a SUB (row 13); `q45_run_from_sub` `RUN` and `RUN
+100` in a SUB (row 14).
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

@@ -4,7 +4,7 @@ $UNSTABLE:TYPEFIELDS
 ' _ARRAYCOPY in C++ (m3-arraycopy design D5): the old compiler's block and libqb entry point for each form
 ' (1d_whole, 1d_range_at, 1d_whole_at, the range to the whole destination, nd_whole, nd_whole_at, nd_range_at and
 ' to the whole destination), _string for STRING, the size of an element for the others: STRING * 3, _OFFSET and
-' _FLOAT by sizeof(long double) (DIVERGENCES.md D-025); a member array taken where its place is found, with the
+' _FLOAT by sizeof(long double) (QB64PE-DIVERGENCES.md D-025); a member array taken where its place is found, with the
 ' guard of D-004 where an index stands on the way, and a _DYNAMIC member's descriptor.
 TYPE t
     b(1 TO 4) AS LONG

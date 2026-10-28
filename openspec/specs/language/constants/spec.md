@@ -37,7 +37,7 @@ A constant's value SHALL be computed when compiling, as the old compiler's const
 arithmetic in 64 bits, `/` in floating point, `^` right-associative, comparisons giving -1 or 0, string `+` on
 string constants. An integer result, and a floating-point result with an integer value within `_INTEGER64` range,
 SHALL be typed `_INTEGER64`; any other floating-point result is a float typed by its text (below), also one beyond
-`_INTEGER64` range whose text has no exponent (the old evaluator clamps it, `DIVERGENCES.md` D-027). `^` SHALL give
+`_INTEGER64` range whose text has no exponent (the old evaluator clamps it, `QB64PE-DIVERGENCES.md` D-027). `^` SHALL give
 a floating-point result in every lane, read back by its text as every float is (the old evaluator rounds a power
 of two integers to an integer, D-028, and wraps one outside `_INTEGER64` range, D-007). An unsuffixed integer
 literal beyond `_INTEGER64` SHALL be `_UNSIGNED _INTEGER64`, and beyond that a compile error (the old evaluator
@@ -183,7 +183,7 @@ allowed. `OPTION EXPLICIT` without the underscore SHALL be a compile error.
 
 ### Requirement: CONST after a label
 A label followed by a `CONST` statement on the same line (`lbl1: CONST k = 4`) SHALL define the label and the
-constant, as each does on a line of its own (the old compiler fails to compile it, `DIVERGENCES.md` D-008).
+constant, as each does on a line of its own (the old compiler fails to compile it, `QB64PE-DIVERGENCES.md` D-008).
 
 #### Scenario: Label and CONST on one line
 - **WHEN** `lbl1: CONST k = 4` stands in the main module, followed by `PRINT k: GOTO done` … `done:`
@@ -208,7 +208,7 @@ Windows 64-bit branches), as if their `CONST` lines stood above the program's fi
 module and in every procedure, each with the value and type the `CONST` evaluator gives its expression. The limits
 written as literals beyond `_INTEGER64` SHALL hold their types' limits (`_INTEGER64_MIN` and `_OFFSET_MIN`
 -9223372036854775808, `_UINTEGER64_MAX` and `_UOFFSET_MAX` 18446744073709551615; the old evaluator clamps them to
--9223372036854775807 and 9223372036854775807, `DIVERGENCES.md` D-027). A constant whose expression has a form the
+-9223372036854775807 and 9223372036854775807, `QB64PE-DIVERGENCES.md` D-027). A constant whose expression has a form the
 compiler does not read SHALL be reported "not supported yet" where it is used, and SHALL NOT affect a program that
 does not use it.
 
@@ -250,7 +250,7 @@ Every function of the old evaluator's list SHALL be computed in a `CONST`, with 
 counts, argument kinds and errors. A function the old compiler computes exactly SHALL have its value. Where the old
 value depends on the CPU and system library (`SIN`, `LOG`, `ROOT` …), the constant SHALL have the value every
 result that library could give leads to, or, when they lead to different constants, the value of correctly
-rounded calls with a warning (`DIVERGENCES.md` D-026). `_COTH` SHALL be the hyperbolic cotangent of its argument
+rounded calls with a warning (`QB64PE-DIVERGENCES.md` D-026). `_COTH` SHALL be the hyperbolic cotangent of its argument
 as a `double`, correctly rounded to a `double`, with no upper limit, and a compile error at 0 (the old compiler's
 is `2 * EXP(x) - 1`, D-031).
 
@@ -365,7 +365,7 @@ not take SHALL stay "not supported yet", as SHALL an operator where an operand i
 `_RED`, `_GREEN` and `_BLUE` in a `CONST` of a colour above 255 and within the mask of a screen mode 0 image
 SHALL give 0. The old compiler reads past libqb's palette of 256 entries there, so its value comes from the
 memory of its own run (`CLAUDE.md` working rule 12): 0 in most builds, 32, 1 or 179 in others, and a crash of
-`qb64pe.exe` for `_RED(65535, 0)` (measured, `verification\v57` task 1.1). A row of `DIVERGENCES.md` names the case.
+`qb64pe.exe` for `_RED(65535, 0)` (measured, `verification\v57` task 1.1). A row of `QB64PE-DIVERGENCES.md` names the case.
 
 #### Scenario: A colour above 255 in screen mode 0
 - **WHEN** a program has `CONST c = _RED(2222, 0)` and prints `c`

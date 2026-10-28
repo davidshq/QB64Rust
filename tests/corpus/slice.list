@@ -275,7 +275,6 @@ runtime_comparison/236_option_base
 slice/s51_dim_as_list
 slice/s51_power_unary
 slice/s52_dynamic
-slice/s52_dynamic_memory
 slice/s53_redim
 slice/s54_redim_preserve
 slice/s55_erase
@@ -544,3 +543,7 @@ screen/w02_depthbuffer
 slice/s160_layout_blocks
 slice/s160_layout_procs
 slice/s160_layout_text
+# qbasic-testcases (the addprefix suite): PUT and GET of a STRING member
+slice/s161_put_string_member
+# A known failure until 2026-10-26: it loops forever by design (RESUME 0), compiled only: its .norun
+runtime_comparison/147_on_error_resume_0

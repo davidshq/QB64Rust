@@ -26,9 +26,9 @@ REPO = Path(__file__).resolve().parents[2]
 CLONE = REPO.parent / "QB64pe"
 WORDS_RS = REPO / "crates" / "format" / "src" / "words.rs"
 
-# A call and its argument up to the closing parenthesis (no parenthesis inside: a call with one has a computed
-# argument and is not a literal).
-CALL = re.compile(r'\bSCase2?\$\(([^()\r\n]*)\)', re.IGNORECASE)
+# A call and its argument up to the closing parenthesis (no parenthesis inside but in a literal: a call with one
+# outside has a computed argument and is not a literal; SCase$("Call" + sp + "Absolute" + sp2 + "(" + sp2) is).
+CALL = re.compile(r'\bSCase2?\$\(((?:"[^"\r\n]*"|[^()"\r\n])*)\)', re.IGNORECASE)
 LITERAL = re.compile(r'\s*(?:"([^"]*)"|(sp2?))\s*(?:\+|$)', re.IGNORECASE)
 
 

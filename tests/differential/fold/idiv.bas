@@ -4,7 +4,7 @@ $CONSOLE:ONLY
 ' is recorded with qb64pe.exe (tests/differential/README.md). A runtime error prints ERR and resumes next.
 ' Left out: 296 value pairs whose divisor rounds to 0 (fatal in the old compiler, design D2).
 ' Left out: 23 value pairs of the smallest LONG or _INTEGER64 (or a float beyond LONG) and a divisor
-' of -1, which crash the old program (DIVERGENCES.md D-006).
+' of -1, which crash the old program (QB64PE-DIVERGENCES.md D-006).
 ON ERROR GOTO h
 PRINT "\ BYTE BYTE 1:"; (-128%%) \ (-128%%)
 PRINT "\ BYTE BYTE 2:"; 127%% \ 127%%

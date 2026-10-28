@@ -185,7 +185,7 @@ def write(dest, files, commit, date, edits=()):
     if edits:
         listed = "\n".join(f"- `tools/libqb/edits/{name}`: `{target}`" for name, target, _, _ in edits)
         edited = f"""
-Edits of this project, applied by the tool after copying (each file's header says why; `DIVERGENCES.md` has the
+Edits of this project, applied by the tool after copying (each file's header says why; `QB64PE-DIVERGENCES.md` has the
 row, `UPSTREAM.md` the fix as offered to QB64pe):
 
 {listed}

@@ -464,7 +464,7 @@ pub fn function(name: &str, x: F80) -> R<Range> {
             Ok(D::exact(2.0).corners(den, |p, q| p / q).into_range())
         }
         // The hyperbolic cotangent of the `double` argument, as the `double` libqb's `func_coth` returns, correctly
-        // rounded (`DIVERGENCES.md` D-031: the old compiler's is `2 * std::exp(num) - 1`, measured, `v45_x32`). At 0 an
+        // rounded (`QB64PE-DIVERGENCES.md` D-031: the old compiler's is `2 * std::exp(num) - 1`, measured, `v45_x32`). At 0 an
         // error, as libqb's error 5.
         "_COTH" => {
             let d = x.to_f64();

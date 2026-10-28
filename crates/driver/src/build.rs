@@ -1,11 +1,11 @@
-//! Building an executable against this repo's copy of libqb with the QB64pe reference clone's toolchain (design
-//! D8; design D2 of `libqb-copy`).
+//! Building an executable against this repo's copy of libqb with the C++ toolchain `toolchain.rs` finds (design
+//! D8; design D2 of `libqb-copy`; design D4 of `m6-toolchain`).
 //!
 //! The fragments go into `<exe folder>\<exe name>.qb64rust\temp\`, a copy of the copy's `qbx.cpp` into
 //! `...\c\` (it includes the fragments as `../temp/*.txt`), and the copy's `Makefile` is run with command-line
-//! overrides so that `qbx.o`, the `.sym` file and the executable stay outside it and the toolchain is the clone's.
-//! libqb objects are built into the copy's git-ignored places if missing and reused otherwise; nothing is written
-//! into the clone.
+//! overrides so that `qbx.o`, the `.sym` file and the executable stay outside it and the toolchain is the one
+//! found. libqb objects are built into the copy's git-ignored places if missing and reused otherwise; nothing is
+//! written into a QB64pe folder or the toolchain.
 
 use qb64rust_codegen_cpp::Fragments;
 use std::path::{Path, PathBuf};
@@ -14,57 +14,112 @@ use std::process::Command;
 pub const ROOT_ENV: &str = "QB64RUST_QB64PE_ROOT";
 pub const LIBQB_ENV: &str = "QB64RUST_LIBQB_ROOT";
 
-/// What a build reads: the reference clone (its toolchain, `internal\c\c_compiler`) and this repo's copy of libqb
-/// (`libqb\`: the `Makefile`, `qbx.cpp`, libqb's sources and, once built, its objects).
+/// What a build reads: the C++ toolchain (`toolchain::find`), the QB64pe folder if there is one, the include root,
+/// and this repo's copy of libqb (`libqb\`: the `Makefile`, `qbx.cpp`, libqb's sources and, once built, its
+/// objects).
 pub struct Roots {
-    pub clone: PathBuf,
+    /// A folder with llvm-mingw's layout: `bin\c++.exe`, `bin\mingw32-make.exe`, …
+    pub toolchain: PathBuf,
+    /// The QB64pe folder ([`find_root`]), which the extra link flags name files relative to, as the old compiler
+    /// links in its own folder.
+    pub qb64pe: Option<PathBuf>,
+    /// The include root (spec `compiler/cli`), which takes the QB64pe folder's place when there is none (design D5
+    /// of `m6-toolchain`).
+    pub include: PathBuf,
     pub libqb: PathBuf,
 }
 
-/// Finds the copy of libqb: `--libqb-root`, else `QB64RUST_LIBQB_ROOT`, else `libqb` in the repository this binary
-/// was built from. A candidate counts only if it holds `internal\c\qbx.cpp` (design D3 of `libqb-copy`).
-pub fn find_libqb(option: Option<&Path>) -> Result<PathBuf, String> {
-    let candidate = match option {
-        Some(p) => p.to_path_buf(),
-        None => match std::env::var_os(LIBQB_ENV) {
-            Some(p) => PathBuf::from(p),
-            None => Path::new(env!("CARGO_MANIFEST_DIR")).join("../../libqb"),
-        },
-    };
-    if candidate.join("internal/c/qbx.cpp").is_file() {
-        return Ok(std::path::absolute(&candidate).unwrap_or(candidate));
+impl Roots {
+    /// The old compiler's folder: the QB64pe folder, else the include root.
+    pub fn old_compiler(&self) -> &Path {
+        self.qb64pe.as_deref().unwrap_or(&self.include)
     }
-    Err(format!(
-        "copy of libqb not found (looked in {}); give it with --libqb-root <dir> or the environment variable \
-         {LIBQB_ENV}",
-        candidate.display()
-    ))
 }
 
-/// Finds the reference clone: `--qb64pe-root`, else `QB64RUST_QB64PE_ROOT`, else `..\QB64pe` next to the
-/// repository this binary was built from. A candidate counts only if it holds `internal\c\qbx.cpp`.
-pub fn find_root(option: Option<&Path>) -> Result<PathBuf, String> {
-    let candidates: Vec<PathBuf> = match option {
+/// Finds the copy of libqb ([`find_libqb_in`]) for this process: its option, its environment and its executable.
+pub fn find_libqb(option: Option<&Path>) -> Result<PathBuf, String> {
+    let env = std::env::var_os(LIBQB_ENV).map(PathBuf::from);
+    let exe = std::env::current_exe().ok();
+    let exe_dir = exe.as_deref().and_then(Path::parent);
+    find_libqb_in(
+        option,
+        env.as_deref(),
+        exe_dir,
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../libqb"),
+    )
+}
+
+/// Finds the copy of libqb (spec `compiler/cli`, "Locating the reference runtime"; design D3 of
+/// `m6-compiler-download`): `option` (`--libqb-root`), else `env` (`QB64RUST_LIBQB_ROOT`, empty counting as unset),
+/// else `libqb` in `exe_dir` (the executable's folder, as a download unpacks it), else `repo` (the repository the
+/// binary was built from). A folder given by the option or the variable is the only one looked in; the others count
+/// only if they hold `internal\c\qbx.cpp` (design D3 of `libqb-copy`), and are passed over otherwise.
+pub fn find_libqb_in(
+    option: Option<&Path>,
+    env: Option<&Path>,
+    exe_dir: Option<&Path>,
+    repo: &Path,
+) -> Result<PathBuf, String> {
+    let given = option.or(env.filter(|p| !p.as_os_str().is_empty()));
+    let candidates: Vec<PathBuf> = match given {
         Some(p) => vec![p.to_path_buf()],
-        None => match std::env::var_os(ROOT_ENV) {
-            Some(p) => vec![PathBuf::from(p)],
-            None => vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../QB64pe")],
-        },
+        None => exe_dir
+            .map(|d| d.join("libqb"))
+            .into_iter()
+            .chain([repo.to_path_buf()])
+            .collect(),
     };
     for c in &candidates {
         if c.join("internal/c/qbx.cpp").is_file() {
             return Ok(std::path::absolute(c).unwrap_or_else(|_| c.clone()));
         }
     }
+    let looked: Vec<String> = candidates.iter().map(|c| c.display().to_string()).collect();
     Err(format!(
-        "QB64pe reference clone not found (looked in {}); give it with --qb64pe-root <dir> or the environment \
-         variable {ROOT_ENV}",
-        candidates
-            .iter()
-            .map(|c| c.display().to_string())
-            .collect::<Vec<_>>()
-            .join(", ")
+        "copy of libqb not found (looked in {}); give it with --libqb-root <dir> or the environment variable \
+         {LIBQB_ENV}",
+        looked.join(", ")
     ))
+}
+
+/// The default clone: `..\QB64pe` next to the repository this binary was built from.
+pub fn default_clone() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../QB64pe")
+}
+
+/// Finds the QB64pe folder (spec `compiler/cli`, "Locating the reference runtime"; design D5 of `m6-toolchain`):
+/// `--qb64pe-root`, else `QB64RUST_QB64PE_ROOT`, else the default clone. A folder given by the option or the
+/// variable must hold `internal\c\qbx.cpp`; the default clone counts only if it does. `None` when nothing was given
+/// and the default clone is missing, or when the variable is set and empty (the tests build so, as a machine without
+/// the clone does).
+pub fn find_root(option: Option<&Path>) -> Result<Option<PathBuf>, String> {
+    let is_qb64pe = |c: &Path| c.join("internal/c/qbx.cpp").is_file();
+    let absolute = |c: &Path| std::path::absolute(c).unwrap_or_else(|_| c.to_path_buf());
+    let given = match option {
+        Some(p) => Some(p.to_path_buf()),
+        None => match std::env::var_os(ROOT_ENV) {
+            Some(p) if p.is_empty() => return Ok(None),
+            Some(p) => Some(PathBuf::from(p)),
+            None => None,
+        },
+    };
+    match given {
+        Some(c) if is_qb64pe(&c) => Ok(Some(absolute(&c))),
+        Some(c) => Err(format!(
+            "{} is not a QB64pe folder (it has no internal\\c\\qbx.cpp); give one with --qb64pe-root <dir> or the \
+             environment variable {ROOT_ENV}",
+            c.display()
+        )),
+        None => {
+            let c = default_clone();
+            Ok(is_qb64pe(&c).then(|| absolute(&c)))
+        }
+    }
+}
+
+/// The reference clone, for the tests that compare with it or read its files: [`find_root`]'s folder.
+pub fn clone_root() -> Option<PathBuf> {
+    find_root(None).ok().flatten()
 }
 
 /// The build folder for an executable: `<exe folder>/<exe file name>.qb64rust`, with every byte of the file name
@@ -394,11 +449,14 @@ pub struct Settings {
     /// The program calls `_COMPILEDATE$` or `_COMPILETIME$`: its executable holds the time it was built, which is
     /// in no fragment, so the build neither reuses nor fills the cache ([`CACHE_ENV`]).
     pub uncached: bool,
+    /// The program's fixes (spec `compiler/fixes`): in the build's key, also where no fragment differs (design D4 of
+    /// `fixes-switch`).
+    pub fixes: qb64rust_base::fixes::Fixes,
 }
 
 /// The link command's extra part: the extra link flags, then each library file, in quotes if its path has a space.
-fn libs_extra(clone: &Path, settings: &Settings) -> String {
-    let mut parts = vec![extra_link_args(clone, &settings.extra_link)];
+fn libs_extra(folder: &Path, settings: &Settings) -> String {
+    let mut parts = vec![extra_link_args(folder, &settings.extra_link)];
     for lib in &settings.libraries {
         let p = slash(lib);
         parts.push(if p.contains(' ') { format!("\"{p}\"") } else { p });
@@ -484,11 +542,14 @@ pub const CACHE_ENV: &str = "QB64RUST_BUILD_CACHE";
 /// [`written_by_builds`]) and of the clone's toolchain executables. A changed source or header of the copy gives a
 /// new key; a libqb object rebuilt from them does not (`study\archive\34` §2.2): an object is made from the sources
 /// and the make flags, both in the key. Nothing a `qb64pe.exe` compile writes in the clone is read (design D4 of
-/// `libqb-copy`: it never builds the copy's objects, so its compiler settings are not in the key either).
+/// `libqb-copy`: it never builds the copy's objects, so its compiler settings are not in the key either). The
+/// toolchain's executables are those of its `bin` ([`toolchain_stamps`]).
 fn build_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
     let mut h = Fnv128::new();
     // The version stands for `build_with_make`'s fixed arguments: change it when they change.
-    h.write(b"qb64rust build cache 5\0");
+    // 8: the deterministic build (`program_makefile`).
+    h.write(b"qb64rust build cache 8\0");
+    h.write(&settings.fixes.bits().to_le_bytes());
     // The program's make flags are in no fragment: `console=1` is the same text with and without a window.
     for flag in &settings.flags {
         h.write(flag.as_bytes());
@@ -502,8 +563,8 @@ fn build_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
     h.write(settings.extra_link.as_bytes());
     h.write(b"\0");
     for word in settings.extra_link.split_whitespace() {
-        // A relative name is the clone's file, as the old compiler links in its own folder ([`extra_link_args`]).
-        let p = roots.clone.join(word);
+        // A relative name is the old compiler's folder's file, as it links there ([`extra_link_args`]).
+        let p = roots.old_compiler().join(word);
         if p.is_file() {
             h.file(&p, word);
         }
@@ -560,12 +621,7 @@ fn build_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
     let c = roots.libqb.join("internal/c");
     let mut stamps = Vec::new();
     stamp_tree(&c, &c, &mut stamps);
-    let clone_c = roots.clone.join("internal/c");
-    if let Ok(d) = std::fs::read_dir(clone_c.join("c_compiler/bin")) {
-        for e in d.flatten() {
-            stamp(&clone_c, &e.path(), &mut stamps);
-        }
-    }
+    stamps.extend(toolchain_stamps(&roots.toolchain));
     stamps.sort();
     for s in &stamps {
         h.write(s.as_bytes());
@@ -653,8 +709,13 @@ impl Fnv128 {
 
 /// Names a lock file for the libqb objects of the copy of libqb, which every build of a program writes when one it
 /// links is missing or older than its source, and reads otherwise. Set by the test runner and the CLI tests
-/// (`tools\legacy_tests\clone_lock.py`), so that their builds can run side by side; without it nothing is locked.
+/// (`tools\legacy_tests\clone_lock.py`), so that their builds can run side by side; without it the copy's own
+/// [`OBJECTS_LOCK`] is taken.
 pub const OBJECTS_LOCK_ENV: &str = "QB64RUST_OBJECTS_LOCK";
+
+/// The lock file at the top of a copy of libqb, taken when [`OBJECTS_LOCK_ENV`] is not set, so that two builds
+/// started at once (a downloaded compiler run by a build script) do not build the copy's objects together; git-ignored.
+pub const OBJECTS_LOCK: &str = "objects.lock";
 
 /// The goal of the makefile [`lock_objects`] adds: everything `exe` takes from the copy (`QBLIB` and `EXE_LIBS`,
 /// the `Makefile`'s own names) and nothing of the program's own (`qbx.o`, the icon's object, the executable).
@@ -664,20 +725,24 @@ const OBJECTS_MAKEFILE: &str = "# Written by qb64rust: what a build with these f
 /// The file at the top of a copy of libqb that says how its objects were built ([`objects_stamp`]); git-ignored.
 pub const OBJECTS_STAMP: &str = "objects.stamp";
 
-/// What the copy's libqb objects are built with: no flags of the driver (design D1 of `libqb-object-flags`, as
-/// `qb64pe.exe` builds them without `-f:` settings) and the clone's toolchain, by the size and time of each of its
-/// executables. Change the first line when what libqb's objects are built with changes.
-fn objects_stamp(clone: &Path) -> String {
-    let mut text = String::from("qb64rust libqb objects 1: no extra flags\n");
-    let clone_c = clone.join("internal/c");
+/// The stamps of the toolchain's executables, the files of its `bin`, by their names relative to the toolchain.
+fn toolchain_stamps(toolchain: &Path) -> Vec<String> {
     let mut stamps = Vec::new();
-    if let Ok(d) = std::fs::read_dir(clone_c.join("c_compiler/bin")) {
+    if let Ok(d) = std::fs::read_dir(toolchain.join("bin")) {
         for e in d.flatten() {
-            stamp(&clone_c, &e.path(), &mut stamps);
+            stamp(toolchain, &e.path(), &mut stamps);
         }
     }
     stamps.sort();
-    for s in &stamps {
+    stamps
+}
+
+/// What the copy's libqb objects are built with: no flags of the driver (design D1 of `libqb-object-flags`, as
+/// `qb64pe.exe` builds them without `-f:` settings) and the toolchain, by the size and time of each of its
+/// executables. Change the first line when what libqb's objects are built with changes.
+fn objects_stamp(toolchain: &Path) -> String {
+    let mut text = String::from("qb64rust libqb objects 1: no extra flags\n");
+    for s in &toolchain_stamps(toolchain) {
         text.push_str(s);
         text.push('\n');
     }
@@ -698,8 +763,15 @@ fn refresh_objects(libqb: &Path, want: &str) -> Result<(), String> {
     }
     let c = libqb.join("internal/c");
     remove_built(&c, &c)?;
-    let path = libqb.join(OBJECTS_STAMP);
-    std::fs::write(&path, want).map_err(|e| format!("writing {}: {e}", path.display()))
+    // The first write into the copy when its objects are to be built: a folder that cannot be written to (a download
+    // unpacked under `Program Files`) fails here, with what to do (design D3 of `m6-compiler-download`).
+    std::fs::write(libqb.join(OBJECTS_STAMP), want).map_err(|e| {
+        format!(
+            "cannot write into the copy of libqb at {} (libqb's objects are built there): {e}; unpack qb64rust where \
+             you can write, or give a copy in such a folder with --libqb-root <dir>",
+            libqb.display()
+        )
+    })
 }
 
 /// Removes the files under `dir` that builds write ([`written_by_builds`]), outside `c_compiler` and `temp`.
@@ -722,15 +794,21 @@ fn remove_built(base: &Path, dir: &Path) -> Result<(), String> {
 }
 
 /// The makefile read after the copy's `Makefile` that gives the driver's flags to the program's own objects only
-/// (design D1 of `libqb-object-flags`): `-fwrapv` (LONG and `_INTEGER64` overflow wraps, `DIVERGENCES.md` D-001,
+/// (design D1 of `libqb-object-flags`): `-fwrapv` (LONG and `_INTEGER64` overflow wraps, `QB64PE-DIVERGENCES.md` D-001,
 /// D-002), `-O2` for `OptimizeCppProgram`, `-g` instead for a debug build (design D1 of `m5-debug-build-symbols`),
 /// and the copy's `internal/c` for the headers `qbx.cpp` and `embedded.cpp` include from the build folder. `private`
 /// keeps the variable from the prerequisites `make` builds for these two targets, so libqb's objects take none of
 /// the flags, whatever the targets come to depend on.
+///
+/// The build is deterministic (`DECISIONS.md` 2026-10-27): `-mno-incremental-linker-compatible` writes no time into
+/// the program's objects, and `--no-insert-timestamp` none into the executable, so the same program built again is the
+/// same bytes, and a test's cache of passes, which keys on them, holds across a rebuild.
 fn program_makefile(libqb: &Path, optimize: bool, debug: bool) -> String {
     format!(
         "# Written by qb64rust: the program's own flags, for the program's own objects only.\n\
-         $(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += {}-fwrapv -I{}/internal/c\n",
+         $(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += {}-fwrapv \
+         -mno-incremental-linker-compatible -I{}/internal/c\n\
+         CXXLIBS += -Wl,--no-insert-timestamp\n",
         if debug {
             "-g "
         } else if optimize {
@@ -742,24 +820,43 @@ fn program_makefile(libqb: &Path, optimize: bool, debug: bool) -> String {
     )
 }
 
-/// Takes the objects' lock where there is one ([`OBJECTS_LOCK_ENV`]) and makes the copy's objects current
-/// ([`refresh_objects`], alone). Then holds it shared when `make -q` says the copy's objects for these flags are up
-/// to date, so the build only reads them, and otherwise alone, so that one build at a time writes them. The returned
-/// file holds the lock until it is dropped. `make` is `cmd` before its goal; `stamp` is [`objects_stamp`].
+/// Takes the objects' lock ([`OBJECTS_LOCK_ENV`], else the copy's [`OBJECTS_LOCK`]) and makes the copy's objects
+/// current ([`refresh_objects`], alone). Then holds it shared when `make -q` says the copy's objects for these flags
+/// are up to date, so the build only reads them, and otherwise alone, so that one build at a time writes them. The
+/// returned file holds the lock until it is dropped. `make` is `cmd` before its goal; `stamp` is [`objects_stamp`].
 fn lock_objects(make: &Command, build: &Path, libqb: &Path, stamp: &str) -> Result<Option<std::fs::File>, String> {
-    let Some(path) = std::env::var_os(OBJECTS_LOCK_ENV) else {
-        refresh_objects(libqb, stamp)?;
-        return Ok(None);
-    };
-    let path = PathBuf::from(path);
+    match std::env::var_os(OBJECTS_LOCK_ENV) {
+        Some(path) => lock_objects_at(make, build, libqb, stamp, &PathBuf::from(path), false),
+        None => lock_objects_at(make, build, libqb, stamp, &libqb.join(OBJECTS_LOCK), true),
+    }
+}
+
+/// [`lock_objects`] with the lock file `path`; `own` when it is the copy's own. The copy's own lock that cannot be
+/// opened (a copy in a folder that cannot be written to) is done without, as before it existed: objects already
+/// built are used as they are, and building them fails with [`refresh_objects`]'s message.
+fn lock_objects_at(
+    make: &Command,
+    build: &Path,
+    libqb: &Path,
+    stamp: &str,
+    path: &Path,
+    own: bool,
+) -> Result<Option<std::fs::File>, String> {
     let err = |e: std::io::Error| format!("locking the libqb objects ({}): {e}", path.display());
-    let file = std::fs::File::options()
+    let file = match std::fs::File::options()
         .read(true)
         .write(true)
         .create(true)
         .truncate(false)
-        .open(&path)
-        .map_err(err)?;
+        .open(path)
+    {
+        Ok(file) => file,
+        Err(_) if own => {
+            refresh_objects(libqb, stamp)?;
+            return Ok(None);
+        }
+        Err(e) => return Err(err(e)),
+    };
     file.lock_shared().map_err(err)?;
     if !objects_current(libqb, stamp) {
         // Alone, and checked again: another build may have refreshed them meanwhile. The objects are then built by
@@ -786,14 +883,14 @@ fn lock_objects(make: &Command, build: &Path, libqb: &Path, stamp: &str) -> Resu
     Ok(Some(file))
 }
 
-/// The extra link flags as `make -C <copy>` must see them: a word that names a file of the clone by a relative name
-/// is given its full name there (in quotes if it has a space, as [`libs_extra`] gives a library), as the old
-/// compiler links in its own folder; every other word as it is.
-fn extra_link_args(clone: &Path, extra: &str) -> String {
+/// The extra link flags as `make -C <copy>` must see them: a word that names a file of the old compiler's folder
+/// ([`Roots::old_compiler`]) by a relative name is given its full name there (in quotes if it has a space, as
+/// [`libs_extra`] gives a library), as the old compiler links in its own folder; every other word as it is.
+fn extra_link_args(folder: &Path, extra: &str) -> String {
     extra
         .split_whitespace()
         .map(|word| {
-            let p = clone.join(word);
+            let p = folder.join(word);
             if !word.starts_with('-') && Path::new(word).is_relative() && p.is_file() {
                 let full = slash(&p);
                 if full.contains(' ') {
@@ -824,11 +921,11 @@ fn build_with_make(
     let _ = std::fs::remove_file(exe);
     let linked = build.join("program.exe");
     let _ = std::fs::remove_file(&linked);
-    let bin = roots.clone.join("internal/c/c_compiler/bin");
+    let bin = roots.toolchain.join("bin");
     let make = bin.join("mingw32-make.exe");
     let mut cmd = Command::new(&make);
     cmd.arg("-C").arg(&roots.libqb).arg("-j3").args(["OS=win", "BITS=64"]);
-    // The clone's toolchain in the five names the `Makefile` gives it (design D2 of `libqb-copy`); a variable given
+    // The toolchain in the five names the `Makefile` gives it (design D2 of `libqb-copy`); a variable given
     // to `make` overrides the `Makefile`'s `:=`. Backslashes, as the `Makefile` writes them for `cmd`.
     for (name, file) in [
         ("AR", "ar.exe"),
@@ -846,7 +943,7 @@ fn build_with_make(
         .arg(format!("EXE={}", slash(&linked)))
         .arg(format!("QB_QBX_SRC={}/qbx.cpp", slash(&c)))
         .arg(format!("PATH_INTERNAL_TEMP={}", slash(&build.join("temp"))));
-    let libs = libs_extra(&roots.clone, settings);
+    let libs = libs_extra(roots.old_compiler(), settings);
     if !libs.is_empty() {
         cmd.arg(format!("CXXLIBS_EXTRA={libs}"));
     }
@@ -865,7 +962,7 @@ fn build_with_make(
         println!("building {}", exe.display());
     }
     // Held until `make` has ended: shared while the copy's objects are only read, alone while they are built.
-    let _objects = lock_objects(&cmd, build, &roots.libqb, &objects_stamp(&roots.clone))?;
+    let _objects = lock_objects(&cmd, build, &roots.libqb, &objects_stamp(&roots.toolchain))?;
     let program_mk = build.join("program.mk");
     std::fs::write(
         &program_mk,
@@ -952,7 +1049,7 @@ mod tests {
     fn build_key_follows_the_extra_link_file() {
         let d = tempfile::tempdir().unwrap();
         let roots = two_roots(d.path());
-        let file = roots.clone.join("extra.cpp");
+        let file = roots.include.join("extra.cpp");
         std::fs::write(&file, "int a;").unwrap();
         let key = |extra: &str| {
             let settings = Settings {
@@ -967,11 +1064,31 @@ mod tests {
         assert_eq!(first, key(&name));
         std::fs::write(&file, "int b;").unwrap();
         assert_ne!(first, key(&name));
-        // A relative name is the clone's file, as the old compiler links in its own folder.
+        // A relative name is the old compiler's folder's file, as it links in its own folder.
         let relative = key("extra.cpp");
         std::fs::write(&file, "int c;").unwrap();
         assert_ne!(relative, key("extra.cpp"));
         assert_ne!(key("-lm"), key("-lz"));
+    }
+
+    /// The fixes are in the key, also where the fragments are the same (design D4 of `fixes-switch`).
+    #[test]
+    fn build_key_follows_the_fixes() {
+        use qb64rust_base::fixes::{Fix, Fixes};
+        let d = tempfile::tempdir().unwrap();
+        let roots = two_roots(d.path());
+        let key = |fixes| {
+            let settings = Settings {
+                fixes,
+                ..Settings::default()
+            };
+            build_key(&roots, d.path(), &settings)
+        };
+        let off = key(Fixes::OFF);
+        assert_eq!(off, key(Fixes::OFF));
+        assert_ne!(off, key(Fixes::ALL));
+        assert_ne!(off, key(Fixes::OFF.with(Fix::CheckingOnService, true)));
+        assert_ne!(key(Fixes::ALL), key(Fixes::ALL.with(Fix::ResumeAfterBlock, false)));
     }
 
     /// `--libqb-root` counts only with `internal\c\qbx.cpp`, and the error names the option and the variable (spec
@@ -996,41 +1113,156 @@ mod tests {
         );
     }
 
-    /// One folder as both the clone and the copy, for the tests of what the key takes from the build itself.
+    /// Makes `dir` a copy of libqb as the lookup sees one: `internal\c\qbx.cpp`.
+    fn fake_libqb(dir: &Path) -> PathBuf {
+        std::fs::create_dir_all(dir.join("internal/c")).unwrap();
+        std::fs::write(dir.join("internal/c/qbx.cpp"), "").unwrap();
+        std::path::absolute(dir).unwrap()
+    }
+
+    /// The order of the lookup (design D3 of `m6-compiler-download`): the option, the variable, `libqb` beside the
+    /// executable, the repository's; a folder without `qbx.cpp` beside the executable is passed over, and an empty
+    /// variable counts as unset.
+    #[test]
+    fn find_libqb_in_order() {
+        let d = tempfile::tempdir().unwrap();
+        let (opt, env, exe, repo) = (
+            fake_libqb(&d.path().join("opt")),
+            fake_libqb(&d.path().join("env")),
+            d.path().join("exe"),
+            fake_libqb(&d.path().join("repo")),
+        );
+        let beside = fake_libqb(&exe.join("libqb"));
+        let find = |o: Option<&Path>, e: Option<&Path>| find_libqb_in(o, e, Some(&exe), &repo).unwrap();
+        assert_eq!(find(Some(&opt), Some(&env)), opt);
+        assert_eq!(find(Some(&opt), None), opt);
+        assert_eq!(find(None, Some(&env)), env);
+        assert_eq!(find(None, None), beside);
+        assert_eq!(find(None, Some(Path::new(""))), beside);
+        // Beside the executable, a folder without `qbx.cpp` is passed over.
+        std::fs::remove_file(beside.join("internal/c/qbx.cpp")).unwrap();
+        assert_eq!(find(None, None), repo);
+        assert_eq!(find_libqb_in(None, None, None, &repo).unwrap(), repo);
+    }
+
+    /// None found: the error names every place looked in, the option and the variable; a folder given by the option
+    /// that is not a copy is an error, not passed over.
+    #[test]
+    fn find_libqb_in_none_found() {
+        let d = tempfile::tempdir().unwrap();
+        let (exe, repo) = (d.path().join("exe"), d.path().join("repo"));
+        let err = find_libqb_in(None, None, Some(&exe), &repo).unwrap_err();
+        for part in [
+            exe.join("libqb").display().to_string(),
+            repo.display().to_string(),
+            "--libqb-root".to_string(),
+            LIBQB_ENV.to_string(),
+        ] {
+            assert!(err.contains(&part), "{part} in {err}");
+        }
+        fake_libqb(&repo);
+        let wrong = d.path().join("wrong");
+        let err = find_libqb_in(Some(&wrong), None, Some(&exe), &repo).unwrap_err();
+        assert!(err.contains(&wrong.display().to_string()), "{err}");
+    }
+
+    /// A copy whose folder cannot be written to (here `objects.stamp` is a folder, so its write fails): the error
+    /// names the folder and `--libqb-root` (spec `compiler/cli`, "A copy that cannot be written to").
+    #[test]
+    fn unwritable_copy_says_what_to_do() {
+        let d = tempfile::tempdir().unwrap();
+        let libqb = d.path().join("libqb");
+        std::fs::create_dir_all(libqb.join(OBJECTS_STAMP)).unwrap();
+        let err = refresh_objects(&libqb, "stamp").unwrap_err();
+        assert!(
+            err.contains(&libqb.display().to_string())
+                && err.contains("libqb's objects are built there")
+                && err.contains("--libqb-root"),
+            "{err}"
+        );
+    }
+
+    /// Without `QB64RUST_OBJECTS_LOCK`, a build takes the copy's own `objects.lock` while it makes the objects
+    /// current; a copy where that file cannot be opened is done without a lock, as before (design D3 of
+    /// `m6-compiler-download`, the review's finding 1). `make` is never run: the objects are not current here.
+    #[test]
+    fn the_copys_own_objects_lock() {
+        let d = tempfile::tempdir().unwrap();
+        let libqb = d.path().join("libqb");
+        std::fs::create_dir_all(libqb.join("internal/c")).unwrap();
+        let make = Command::new("no-such-make");
+        let own = libqb.join(OBJECTS_LOCK);
+        let held = lock_objects_at(&make, d.path(), &libqb, "stamp", &own, true).unwrap();
+        assert!(held.is_some() && own.is_file());
+        assert!(objects_current(&libqb, "stamp"));
+        drop(held);
+        // The lock file cannot be opened (here it is a folder): no lock, and the objects made current all the same.
+        let other = d.path().join("other");
+        std::fs::create_dir_all(other.join("internal/c")).unwrap();
+        std::fs::create_dir_all(other.join(OBJECTS_LOCK)).unwrap();
+        let lock = other.join(OBJECTS_LOCK);
+        assert!(
+            lock_objects_at(&make, d.path(), &other, "stamp", &lock, true)
+                .unwrap()
+                .is_none()
+        );
+        assert!(objects_current(&other, "stamp"));
+        // The runner's lock that cannot be opened is an error, as before.
+        assert!(lock_objects_at(&make, d.path(), &other, "stamp", &lock, false).is_err());
+    }
+
+    /// One folder as every root, for the tests of what the key takes from the build itself.
     fn one_root(p: &Path) -> Roots {
         Roots {
-            clone: p.to_path_buf(),
+            toolchain: p.to_path_buf(),
+            qb64pe: None,
+            include: p.to_path_buf(),
             libqb: p.to_path_buf(),
         }
     }
 
-    /// A clone and a copy of libqb side by side under `base`, as `Roots`.
+    /// A toolchain, a folder of the old compiler (the include root, there being no QB64pe folder) and a copy of
+    /// libqb side by side under `base`, as `Roots`.
     fn two_roots(base: &Path) -> Roots {
         let roots = Roots {
-            clone: base.join("clone"),
+            toolchain: base.join("toolchain"),
+            qb64pe: None,
+            include: base.join("include"),
             libqb: base.join("libqb"),
         };
-        std::fs::create_dir_all(&roots.clone).unwrap();
-        std::fs::create_dir_all(&roots.libqb).unwrap();
+        for d in [&roots.toolchain, &roots.include, &roots.libqb] {
+            std::fs::create_dir_all(d).unwrap();
+        }
         roots
     }
 
-    /// A relative word of the extra link flags that names a file of the clone gets its full name there, since `make`
-    /// runs in the copy (design D2 of `libqb-copy`); options, full names and names of no file stay as they are.
+    /// The QB64pe folder, when there is one, is the old compiler's folder; else the include root.
+    #[test]
+    fn the_old_compilers_folder() {
+        let mut roots = one_root(Path::new("inc"));
+        assert_eq!(roots.old_compiler(), Path::new("inc"));
+        roots.qb64pe = Some(PathBuf::from("q"));
+        assert_eq!(roots.old_compiler(), Path::new("q"));
+    }
+
+    /// A relative word of the extra link flags that names a file of the old compiler's folder gets its full name
+    /// there, since `make` runs in the copy (design D2 of `libqb-copy`); options, full names and names of no file
+    /// stay as they are.
     #[test]
     fn extra_link_names_of_the_clone_are_made_full() {
         let d = tempfile::tempdir().unwrap();
         let roots = two_roots(d.path());
-        std::fs::create_dir_all(roots.clone.join("lib")).unwrap();
-        std::fs::write(roots.clone.join("lib/x.o"), "").unwrap();
-        let full = slash(&roots.clone.join("lib/x.o"));
+        let folder = roots.old_compiler();
+        std::fs::create_dir_all(folder.join("lib")).unwrap();
+        std::fs::write(folder.join("lib/x.o"), "").unwrap();
+        let full = slash(&folder.join("lib/x.o"));
         assert_eq!(
-            extra_link_args(&roots.clone, "-lm  lib/x.o nowhere.o"),
+            extra_link_args(folder, "-lm  lib/x.o nowhere.o"),
             format!("-lm {full} nowhere.o")
         );
-        assert_eq!(extra_link_args(&roots.clone, &full), full);
-        assert_eq!(extra_link_args(&roots.clone, ""), "");
-        // A clone whose path has a space: the full name goes in quotes, as a library's does.
+        assert_eq!(extra_link_args(folder, &full), full);
+        assert_eq!(extra_link_args(folder, ""), "");
+        // A folder whose path has a space: the full name goes in quotes, as a library's does.
         let spaced = d.path().join("my clone");
         std::fs::create_dir_all(&spaced).unwrap();
         std::fs::write(spaced.join("x.o"), "").unwrap();
@@ -1047,7 +1279,7 @@ mod tests {
         let d = tempfile::tempdir().unwrap();
         let roots = two_roots(d.path());
         let c = roots.libqb.join("internal/c");
-        let bin = roots.clone.join("internal/c/c_compiler/bin");
+        let bin = roots.toolchain.join("bin");
         std::fs::create_dir_all(&bin).unwrap();
         std::fs::write(bin.join("gcc.exe"), "1").unwrap();
         let built = [
@@ -1065,8 +1297,8 @@ mod tests {
         write_all(&built);
         write_all(&sources);
         // Objects of an earlier driver (no stamp): removed, the sources kept, the stamp written.
-        let want = objects_stamp(&roots.clone);
-        assert!(want.contains("c_compiler/bin/gcc.exe 1 "), "{want}");
+        let want = objects_stamp(&roots.toolchain);
+        assert!(want.contains("\nbin/gcc.exe 1 "), "{want}");
         refresh_objects(&roots.libqb, &want).unwrap();
         assert!(built.iter().all(|p| !p.exists()));
         assert!(sources.iter().all(|p| p.is_file()));
@@ -1077,7 +1309,7 @@ mod tests {
         assert!(built.iter().all(|p| p.is_file()));
         // Another toolchain: removed again.
         std::fs::write(bin.join("gcc.exe"), "22").unwrap();
-        let other = objects_stamp(&roots.clone);
+        let other = objects_stamp(&roots.toolchain);
         assert_ne!(want, other);
         refresh_objects(&roots.libqb, &other).unwrap();
         assert!(built.iter().all(|p| !p.exists()));
@@ -1088,7 +1320,8 @@ mod tests {
         let mk = program_makefile(Path::new("x/libqb"), false, false);
         assert!(
             mk.ends_with(
-                "$(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += -fwrapv -Ix/libqb/internal/c\n"
+                "$(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += -fwrapv \
+                 -mno-incremental-linker-compatible -Ix/libqb/internal/c\nCXXLIBS += -Wl,--no-insert-timestamp\n"
             ),
             "{mk}"
         );
@@ -1165,20 +1398,25 @@ mod tests {
         assert_ne!(before, key());
     }
 
-    /// Of the clone, the key follows the toolchain's executables only: not libqb's sources there, its objects, its
-    /// `qbx.cpp` nor the settings `qb64pe.exe` rewrites, none of which a build reads (design D4 of `libqb-copy`).
+    /// Of a QB64pe folder, the key follows the toolchain's executables only: not libqb's sources there, its objects,
+    /// its `qbx.cpp` nor the settings `qb64pe.exe` rewrites, none of which a build reads (design D4 of `libqb-copy`).
     #[test]
     fn build_key_reads_only_the_clones_toolchain() {
         let d = tempfile::tempdir().unwrap();
-        let roots = two_roots(d.path());
-        let clone_c = roots.clone.join("internal/c");
+        let clone = d.path().join("clone");
+        let clone_c = clone.join("internal/c");
+        let roots = Roots {
+            toolchain: clone_c.join("c_compiler"),
+            qb64pe: Some(clone.clone()),
+            ..two_roots(d.path())
+        };
         let gcc = clone_c.join("c_compiler/bin/gcc.exe");
         let others = [
             clone_c.join("qbx.cpp"),
             clone_c.join("libqb/src/qbs.cpp"),
             clone_c.join("libqb_make_000.o"),
-            roots.clone.join("Makefile"),
-            roots.clone.join("settings/config.ini"),
+            clone.join("Makefile"),
+            clone.join("settings/config.ini"),
         ];
         for p in others.iter().chain([&gcc]) {
             std::fs::create_dir_all(p.parent().unwrap()).unwrap();
@@ -1219,6 +1457,7 @@ mod tests {
             exe_icon: false,
             version_info: None,
             error_location: false,
+            fixes: qb64rust_base::fixes::Fixes::OFF,
         }
     }
 

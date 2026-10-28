@@ -1,0 +1,5 @@
+
+Name already in use (INTEGER)
+Caused by (or after):
+LINE 4:INTEGER AS INTEGER
+exit=1

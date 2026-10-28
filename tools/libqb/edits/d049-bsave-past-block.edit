@@ -1,0 +1,21 @@
+# BSAVE past the end of the block of conventional memory raises error 5 (QB64PE-DIVERGENCES.md D-049, UPSTREAM.md
+# "BLOAD and BSAVE run past the block of conventional memory"; study\39 row 5). QB64pe's sub_bsave writes up to 65536
+# bytes from defseg + offset without checking that they lie in cmem, so a BSAVE near the top of the block reads the
+# process's memory after it into the file (verification\v63_b3). Here the start plus the length is checked against
+# the block before the file is opened, so no file is created.
+file: internal/c/libqb.cpp
+--- old
+    if (size != 65536)
+        size &= 0xFFFF;
+    qbs_set(tqbs, qbs_add(filename, nullt)); // prepare null-terminated filename
+    fh.open(filepath_fix_directory(tqbs), std::ios::binary | std::ios::out);
+--- new
+    if (size != 65536)
+        size &= 0xFFFF;
+    if ((defseg + offset - &cmem[0]) + (intptr_t)size > (intptr_t)sizeof(cmem)) {
+        error(5);
+        return;
+    }
+    qbs_set(tqbs, qbs_add(filename, nullt)); // prepare null-terminated filename
+    fh.open(filepath_fix_directory(tqbs), std::ios::binary | std::ios::out);
+--- end

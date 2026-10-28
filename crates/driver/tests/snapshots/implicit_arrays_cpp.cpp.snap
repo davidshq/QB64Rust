@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
@@ -34,6 +33,7 @@ void SUB_P();
 ==> clear.txt <==
 memset((void*)(__ARRAY_SINGLE_Z[0]),0,__ARRAY_SINGLE_Z[5]*4);
 if (__ARRAY_SINGLE_DY[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_SINGLE_DY)[8])->id=(++mem_lock_id);
 if (__ARRAY_SINGLE_DY[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_DY[0])); else free((void*)(__ARRAY_SINGLE_DY[0]));
 __ARRAY_SINGLE_DY[2]^=1;
 __ARRAY_SINGLE_DY[4]=2147483647;
@@ -75,10 +75,10 @@ exit(99);
 #include "main0.txt"
 #include "main1.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -127,13 +127,23 @@ uint64 alloc_dim_value;
 #line 10 "implicit_arrays_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(4);
 #line 10 "implicit_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 10 "implicit_arrays_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 10 "implicit_arrays_cpp.bas"
 alloc_new_desc[5]=(10ll)-alloc_new_desc[4]+1;
 #line 10 "implicit_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 10 "implicit_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 10 "implicit_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 10 "implicit_arrays_cpp.bas"
+if (alloc_none){
+#line 10 "implicit_arrays_cpp.bas"
+qbr_diverged(40);
+#line 10 "implicit_arrays_cpp.bas"
+}else{
 #line 10 "implicit_arrays_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 10 "implicit_arrays_cpp.bas"
@@ -188,6 +198,8 @@ __ARRAY_SINGLE_DY[5]=alloc_new_desc[5];
 __ARRAY_SINGLE_DY[6]=alloc_new_desc[6];
 #line 10 "implicit_arrays_cpp.bas"
 __ARRAY_SINGLE_DY[7]=alloc_new_desc[7];
+#line 10 "implicit_arrays_cpp.bas"
+}
 #line 10 "implicit_arrays_cpp.bas"
 }
 #line 10 "implicit_arrays_cpp.bas"

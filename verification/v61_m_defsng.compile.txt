@@ -1,0 +1,5 @@
+
+Name already in use (DEFSNG)
+Caused by (or after):
+LINE 4:DEFSNG AS INTEGER
+exit=1

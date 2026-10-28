@@ -1,7 +1,11 @@
-// Holds the discovery result and shows it as a language status item for qb64rust files (study 18, proposal C).
+// Holds the discovery result and shows it as a language status item for qb64rust files (study 18, proposal C): which
+// compiler builds, and whether its needs are met: for qb64rust the C++ toolchain, for QB64pe QB64pe (spec
+// editor/build-run, "Compiler discovery").
 import * as vscode from "vscode";
 import * as config from "./config";
 import { Discovery, findCompiler } from "./compiler/discovery";
+import { INSTALL_COMMAND } from "./compiler/toolchain";
+import type { ToolchainSupport } from "./toolchainSupport";
 
 export class CompilerStatus implements vscode.Disposable {
     private readonly item = vscode.languages.createLanguageStatusItem("qb64rust.compiler", "qb64rust");
@@ -10,6 +14,8 @@ export class CompilerStatus implements vscode.Disposable {
     private busy: string | undefined;
     /** Which compiler builds now (design D5 of extension-vsix); set once the language server exists. */
     builder: (() => "qb64rust" | "qb64pe") | undefined;
+    /** The C++ toolchain of a build with qb64rust (change m6-toolchain); set once the language server exists. */
+    toolchain: ToolchainSupport | undefined;
 
     constructor() {
         this.item.name = "QB64 compiler";
@@ -26,9 +32,10 @@ export class CompilerStatus implements vscode.Disposable {
         this.refresh();
     }
 
-    /** The detail line's "builds with …", shown again after the `qb64rust` binary was looked for. */
+    /** The status shown again after the `qb64rust` binary was looked for, and the toolchain looked for again. */
     update(): void {
         this.render();
+        void this.toolchain?.refresh();
     }
 
     /** Runs discovery again (on activation and whenever `qb64rust.compilerPath` changes). */
@@ -81,14 +88,36 @@ export class CompilerStatus implements vscode.Disposable {
         return this.item.severity;
     }
 
-    private render(): void {
+    /** Shows the state; also after the toolchain was looked for. */
+    render(): void {
         const d = this.discovery;
-        if (d.found) {
+        const builder = this.builder?.() ?? "qb64pe";
+        this.item.busy = this.busy !== undefined;
+        this.item.command = undefined;
+        if (builder === "qb64rust") {
+            const t = this.toolchain?.current;
+            const qb64pe = d.found ? ` · QB64pe ${d.path}` : "";
+            if (!t || t.found || t.reason === "not searched yet") {
+                this.item.text = this.busy ? `qb64rust: ${this.busy}` : "qb64rust";
+                const tools = t?.found ? `toolchain ${t.folder} (${t.source})` : "looking for the C++ toolchain";
+                this.item.detail = `${tools}${qb64pe} · builds with qb64rust`;
+                this.item.severity = vscode.LanguageStatusSeverity.Information;
+            } else {
+                // The install only where it would give a toolchain; else the setting to change, if there is one.
+                this.item.text = t.installable ? "C++ toolchain not installed" : "C++ toolchain not found";
+                this.item.detail = `${t.reason} · builds with qb64rust`;
+                this.item.severity = vscode.LanguageStatusSeverity.Warning;
+                this.item.busy = false;
+                this.item.command = t.installable
+                    ? { title: "Install the C++ Toolchain", command: INSTALL_COMMAND }
+                    : t.setting
+                      ? { title: "Open Setting", command: "workbench.action.openSettings", arguments: [t.setting] }
+                      : undefined;
+            }
+        } else if (d.found) {
             this.item.text = this.busy ? `qb64pe: ${this.busy}` : "qb64pe";
-            this.item.detail = `${d.path} (${d.source}) · builds with ${this.builder?.() ?? "qb64pe"}`;
+            this.item.detail = `${d.path} (${d.source}) · builds with qb64pe`;
             this.item.severity = vscode.LanguageStatusSeverity.Information;
-            this.item.busy = this.busy !== undefined;
-            this.item.command = undefined;
         } else {
             this.item.text = "compiler not found";
             this.item.detail = d.reason;

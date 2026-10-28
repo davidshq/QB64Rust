@@ -1,0 +1,5 @@
+
+Name already in use (ENDIF)
+Caused by (or after):
+LINE 4:ENDIF AS INTEGER
+exit=1

@@ -97,12 +97,20 @@ recorded with `qb64pe.exe` using the corpus runner's `--record`, under the golde
 
 ### Requirement: Seeded mutation test
 `cargo test` SHALL run a deterministic mutation test: from a fixed seed, apply byte-level edits (deletions,
-insertions of arbitrary bytes, duplicated and swapped ranges) to corpus programs and run each result through the
-front end, requiring no panic and an exact round trip. A failure SHALL print the seed and the mutated input's
-location so it can be reproduced.
+insertions of arbitrary bytes, duplicated and swapped ranges) and line-level edits (a line deleted, copied, swapped,
+or taken from another corpus program) to corpus programs and run each result through the front end, requiring no
+panic and an exact round trip. A result the front end accepts without errors SHALL also be lowered and emitted as
+C++ for a debug build with coverage counters, requiring no panic; the largest programs may be left out of this step
+for time. The plain build's emission is not run separately: it is taken to be a part of the debug build's, which
+costs the same to emit. The test SHALL fail if fewer than a quarter of the mutants reach C++ generation. A failure SHALL print the
+seed and the mutated input's location so it can be reproduced.
 
 #### Scenario: Parser panic found
 - **WHEN** a mutated program makes the parser panic
+- **THEN** the test fails and prints the program, the mutation number and the seed
+
+#### Scenario: Code generator panic found
+- **WHEN** a mutated program that the front end accepts makes lowering or C++ generation panic
 - **THEN** the test fails and prints the program, the mutation number and the seed
 
 #### Scenario: Same run twice

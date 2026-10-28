@@ -57,6 +57,15 @@ pub(crate) fn lock_slot(n: usize) -> usize {
     4 * n + 4
 }
 
+/// The renewal of the lock of the array whose descriptor is `n`, of `dims` dimensions: every `_MEM` block of it is no
+/// longer valid. `REDIM` writes it, and the release of a dynamic array by `ERASE`, `CLEAR` and `RUN` (`study\39` row 8).
+pub(crate) fn renew_lock(n: &str, dims: usize) -> String {
+    format!(
+        "((mem_lock*)((ptrszint*){n})[{}])->id=(++mem_lock_id);",
+        lock_slot(dims)
+    )
+}
+
 /// The number of dimensions of an array. One that was only listed (`STATIC a()`, with no `DIM`, `REDIM` or use
 /// of it below) has none: no statement names it, and its descriptor is made with one.
 pub(crate) fn dim_count(v: &Var) -> usize {
@@ -113,12 +122,12 @@ impl Emitter<'_> {
 
     pub(crate) fn global(&self) -> String {
         // The run-time trace of divergences (design D1 of `m3-divergence-trace`): `qbr_diverged(n)` stands where the
-        // program takes the path of row D-n of `DIVERGENCES.md`; with `QB64RUST_DIVERGENCES` naming a file, the first
+        // program takes the path of row D-n of `QB64PE-DIVERGENCES.md`; with `QB64RUST_DIVERGENCES` naming a file, the first
         // time of each row in a run appends `D-0nn` to it. Without the variable it does nothing. `qbr_diverged_on(n)`
         // stands at an error after which only a program that goes on differs (D-003, D-004): it traces unless libqb's
         // `fix_error` will end the program, that is a critical error (300 to 315) pending, or no handler active
         // (`ON ERROR GOTO`, not inside it) with `QB64PE_NOPROMPT` starting with `y`. Unset, its dialog may go on.
-        // The old compiler's templates, with a divisor of -1 tested for a signed result type (`DIVERGENCES.md` D-006:
+        // The old compiler's templates, with a divisor of -1 tested for a signed result type (`QB64PE-DIVERGENCES.md` D-006:
         // the smallest value divided by -1 crashed the old program): `\` raises error 6 and gives the dividend, `MOD`
         // gives its exact result, 0.
         let mut out = String::from(
@@ -547,9 +556,15 @@ impl Emitter<'_> {
     }
 
     /// The release of a dynamic array, as the old compiler writes it for `ERASE` (`qb64pe.bas` 8637–8704): if it is
-    /// allocated, its strings and its block are freed and its descriptor is "not allocated" again.
-    pub(crate) fn release(&self, v: &Var, n: &str) -> String {
+    /// allocated, its strings and its block are freed and its descriptor is "not allocated" again. With `renew`
+    /// (`ERASE`, `CLEAR`, `RUN`) its lock is renewed first, as `REDIM` renews it, so that its `_MEM` blocks are no
+    /// longer valid (`QB64PE-DIVERGENCES.md` D-043; the old compiler's stay valid over the freed block); a SUB's
+    /// local array at its end needs none, since its lock is freed after.
+    pub(crate) fn release(&self, v: &Var, n: &str, renew: bool) -> String {
         let mut out = format!("if ({n}[2]&1){{\n");
+        if renew {
+            writeln!(out, "{}", renew_lock(n, dim_count(v))).unwrap();
+        }
         if v.ty == Ty::Str {
             let count = self.element_count(v, n);
             write!(
@@ -588,7 +603,7 @@ impl Emitter<'_> {
     /// cleared, a dynamic one released, as `ERASE` does (`qb64pe.bas` 12749–12756).
     pub(crate) fn clear(&self, v: &Var, n: &str) -> String {
         if let Shape::Dynamic { .. } = v.shape {
-            return self.release(v, n);
+            return self.release(v, n, true);
         }
         if v.is_array() {
             return self.clear_elements(v, n);

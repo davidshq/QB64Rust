@@ -25,14 +25,21 @@ async function main(): Promise<void> {
     if (server && !fs.existsSync(server)) {
         throw new Error(`QB64RUST_TEST_QB64RUST=${serverEnv}: no such file`);
     }
+    // `--first-run` (firstRun.test.ts alone): no QB64pe at all, and the toolchain installed into
+    // QB64RUST_TEST_TOOLCHAIN_HOME, an empty folder; it downloads the real toolchain.
+    const firstRun = process.argv.includes("--first-run");
+    const toolchainHome = firstRun ? path.resolve(process.env.QB64RUST_TEST_TOOLCHAIN_HOME ?? "") : "";
+    if (firstRun && (!server || !process.env.QB64RUST_TEST_TOOLCHAIN_HOME)) {
+        throw new Error("--first-run needs QB64RUST_TEST_QB64RUST and QB64RUST_TEST_TOOLCHAIN_HOME");
+    }
     const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "qb64rust-it-"));
     fs.cpSync(path.join(root, "test-fixtures", "workspace"), workspace, { recursive: true });
 
     const settingsDir = path.join(workspace, ".vscode");
     fs.mkdirSync(settingsDir, { recursive: true });
     // Builds with QB64pe unless a test chooses qb64rust (buildQb64rust.test.ts), so the M1 build tests keep testing it.
-    const settings: Record<string, unknown> = { "qb64rust.noPrompt": true, "qb64rust.buildWith": "qb64pe" };
-    if (fs.existsSync(compiler)) {
+    const settings: Record<string, unknown> = { "qb64rust.noPrompt": true, "qb64rust.buildWith": firstRun ? "auto" : "qb64pe" };
+    if (fs.existsSync(compiler) && !firstRun) {
         settings["qb64rust.compilerPath"] = compiler;
     }
     // Without a binary named, one on PATH is not used either: the run is the M1 extension.
@@ -50,8 +57,11 @@ async function main(): Promise<void> {
             extensionTestsPath: path.join(__dirname, "suite", "index.js"),
             extensionTestsEnv: {
                 QB64RUST_TEST_WORKSPACE: workspace,
-                QB64RUST_TEST_COMPILER: fs.existsSync(compiler) ? compiler : "",
+                QB64RUST_TEST_COMPILER: fs.existsSync(compiler) && !firstRun ? compiler : "",
                 QB64RUST_TEST_SERVER: server,
+                // The empty variables that leave out the clone are set by firstRun.test.ts: empty ones here do not
+                // reach the extension host.
+                ...(firstRun ? { QB64RUST_TEST_FIRST_RUN: "1", QB64RUST_TOOLCHAIN_HOME: toolchainHome } : {}),
             },
             launchArgs: [workspace, "--disable-extensions", "--disable-workspace-trust"],
         });

@@ -64,7 +64,7 @@ fn repo() -> PathBuf {
 }
 
 fn clone_root() -> Option<PathBuf> {
-    build::find_root(None).ok()
+    build::clone_root()
 }
 
 fn has_ext(p: &Path, exts: &[&str]) -> bool {
@@ -707,7 +707,7 @@ fn upstream_progress() {
 }
 
 /// The reasons a line of `tests\verification\known.list` may give (spec `testing/verification-suite`): a row of
-/// `DIVERGENCES.md`, or one of these words, each optionally followed by `: <more>`; `bug` needs the `: <what>`.
+/// `QB64PE-DIVERGENCES.md`, or one of these words, each optionally followed by `: <more>`; `bug` needs the `: <what>`.
 const VERIFICATION_REASONS: &[&str] = &[
     "not supported yet",
     "varies",
@@ -777,6 +777,16 @@ fn verification_lists_are_exact() {
             1 => {}
             0 => problems.push(format!("in neither pass.list nor known.list: {p}")),
             _ => problems.push(format!("named {} times ({}): {p}", lists.len(), lists.join(", "))),
+        }
+    }
+    // A program's output with the fixes on (`fixed\<name>.out.txt`, design D4 of `fixes-switch`) names a program of
+    // the suite, and nothing else stands in that folder.
+    for entry in std::fs::read_dir(lists.join("fixed")).into_iter().flatten() {
+        let file = entry.unwrap().file_name().to_string_lossy().into_owned();
+        match file.strip_suffix(".out.txt") {
+            Some(name) if programs.iter().any(|p| p == name) => {}
+            Some(name) => problems.push(format!("fixed/{file}: no program verification/{name}.bas")),
+            None => problems.push(format!("fixed/{file}: not a <name>.out.txt")),
         }
     }
     assert!(

@@ -9,8 +9,10 @@ export function run(): Promise<void> {
     if (grep) {
         mocha.grep(grep);
     }
+    // The first-run test (runTests.ts --first-run) runs alone, and only then: it downloads the toolchain.
+    const firstRun = process.env.QB64RUST_TEST_FIRST_RUN === "1";
     for (const name of fs.readdirSync(__dirname).sort()) {
-        if (name.endsWith(".test.js")) {
+        if (name.endsWith(".test.js") && (name === "firstRun.test.js") === firstRun) {
             mocha.addFile(path.join(__dirname, name));
         }
     }

@@ -9,7 +9,8 @@ what the new compiler is held to against them, so that `verification\` keeps the
 |---|---|
 | `pass.list` | the programs the new compiler passes, one name per line (no `.bas`; `#` starts a comment) |
 | `known.list` | every other program: its name, a tab, the reason (below) |
-| `divergences\<name>.divergences` | the rows of `DIVERGENCES.md` a passing program may take, one `D-0nn` per line, as for the corpus |
+| `divergences\<name>.divergences` | the rows of `QB64PE-DIVERGENCES.md` a passing program may take, one `D-0nn` per line, as for the corpus |
+| `fixed\<name>.out.txt` | the program's output with every fix on (spec `compiler/fixes`), written by hand from the fixes' specified behaviour, never recorded by `qb64pe.exe`: the runner builds such a program a second time with `--fixes on` and compares that run with it, as the result `<name> [fixes on]`; the program's line on `pass.list` passes only when both halves pass (OpenSpec change `fixes-switch`, design D4). Each fix behind the switch has at least one |
 | `normalize\<name>.normalize` | rules applied to both the recorded and the actual output before they are compared, as for the corpus (`<regex><TAB><replacement>`); the first is `v58_s02_files`'s, which masks the free space `FILES` prints; `v59_g_readback`'s masks the OpenGL viewport, the window's size as the desktop sets it |
 
 Every program of `verification\` is named exactly once across the two lists; tier 1 checks it
@@ -22,7 +23,7 @@ Each may be followed by `: <more>`:
 
 | Reason | Meaning |
 |---|---|
-| `D-0nn` | a row of `DIVERGENCES.md`: the new compiler differs on purpose (the math functions of D-026, say) |
+| `D-0nn` | a row of `QB64PE-DIVERGENCES.md`: the new compiler differs on purpose (the math functions of D-026, say) |
 | `not supported yet` | the old compiler accepts the program, the new one rejects it with errors marked "not supported yet" |
 | `varies` | the output changes from run to run (time, addresses, handles), and no `.normalize` rule makes both sides equal |
 | `not recorded` | no `<name>.out.txt`: the old compiler's executable did not start |
@@ -68,7 +69,7 @@ suite runs without it and the list is judged from that run with `--check-list te
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:verification-membership -->
-Of the 3956 programs of `verification\`, `pass.list` names **3890** and `known.list` 66.
+Of the 4235 programs of `verification\`, `pass.list` names **4105** and `known.list` 130.
 
 | Reason in `known.list` | Programs |
 |---|---|
@@ -97,9 +98,22 @@ Of the 3956 programs of `verification\`, `pass.list` names **3890** and `known.l
 | `D-034` | 1 |
 | `D-036` | 1 |
 | `D-037` | 2 |
+| `D-040` | 6 |
+| `D-041` | 3 |
+| `D-042` | 11 |
+| `D-043` | 4 |
+| `D-044` | 3 |
+| `D-045` | 1 |
+| `D-046` | 8 |
+| `D-047` | 2 |
+| `D-048` | 12 |
+| `D-049` | 4 |
+| `D-050` | 2 |
+| `D-051` | 2 |
+| `D-052` | 7 |
 | `not recorded` | 4 |
 | `recorded elsewhere` | 1 |
-| `varies` | 5 |
+| `varies` | 4 |
 <!-- /counts:verification-membership -->
 
 <!-- counts:verification-results -->

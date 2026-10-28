@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):O .
+LINE 8:o.rem = 4: o.other = 2
+exit=1

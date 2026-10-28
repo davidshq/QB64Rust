@@ -1,0 +1,5 @@
+
+Name already in use (SUB)
+Caused by (or after):
+LINE 4:SUB AS INTEGER
+exit=1

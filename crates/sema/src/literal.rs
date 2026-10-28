@@ -535,7 +535,7 @@ mod tests {
         );
         assert_eq!(int("18446744073709551615", false), (-1, Ty::U64));
         assert_eq!(number(b"18446744073709551616", false), Err(LitError::Overflow));
-        // `DIVERGENCES.md` D-034: the old compiler gives these `&&`, and its C++ build decides the value.
+        // `QB64PE-DIVERGENCES.md` D-034: the old compiler gives these `&&`, and its C++ build decides the value.
         assert_eq!(number(b"9223372036854775809", true), Err(LitError::Overflow));
         assert_eq!(number(b"18446744073709551615", true), Err(LitError::Overflow));
     }

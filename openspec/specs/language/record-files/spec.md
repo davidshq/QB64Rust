@@ -55,11 +55,11 @@ be written and read in the type's declared layout: each element as the type's me
 no padding, each dynamic member array as its elements at its declared bounds, through a buffer that belongs to
 the statement. `GET` SHALL unpack that buffer into the array after its read whatever the read raised, as the old
 compiler does, so a read that raised an error brings back what the same statement read last; bytes the statement
-never read SHALL be 0 (the old program reads memory nobody wrote, `DIVERGENCES.md` D-021). A dynamic member array
+never read SHALL be 0 (the old program reads memory nobody wrote, `QB64PE-DIVERGENCES.md` D-021). A dynamic member array
 whose bounds or number of dimensions are not its declared ones SHALL raise error 9: `PUT` then writes nothing;
 `GET` reads the file, stores the other members and elements, and stores that member's declared number of elements
 into its block, its bounds unchanged, when the block holds at least that many, and leaves it as it was when it
-holds fewer (the old compiler writes past the block, `DIVERGENCES.md` D-019). A type with a `STRING` member
+holds fewer (the old compiler writes past the block, `QB64PE-DIVERGENCES.md` D-019). A type with a `STRING` member
 anywhere in it SHALL be a compile error there ("UDT must have fixed size"), as SHALL be one value of such a type
 (requirement "Dynamic member arrays"). On a file open `FOR RANDOM` the whole array SHALL be one record, as any
 whole array is.

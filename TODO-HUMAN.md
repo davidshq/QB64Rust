@@ -1,0 +1,3 @@
+- Add Linux and Mac compatability.
+- Compile QB64pe.
+- Compile QB64pe IDE.

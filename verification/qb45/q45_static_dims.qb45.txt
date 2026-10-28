@@ -1,0 +1,6 @@
+compile:
+ 0130   0038    PRINT #1, "SUB:"; a(1); UBOUND(a)
+                                     ^ Wrong number of dimensions
+    0 Warning Error(s)
+    1 Severe  Error(s)
+main: 7  3 

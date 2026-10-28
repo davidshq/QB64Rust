@@ -93,7 +93,7 @@ NUMBERED = re.compile(
 )
 # An integer literal with the `long long`, the `unsigned` or the `unsigned long long` suffix (rule 5).
 SUFFIXED = re.compile(r"^(\d+)(ull|ll|u)$")
-# The new compiler's wrappers that trace a row of DIVERGENCES.md on every call, and the libqb function each calls
+# The new compiler's wrappers that trace a row of QB64PE-DIVERGENCES.md on every call, and the libqb function each calls
 # with the same arguments (rule 7).
 WRAPPERS = {"qbr_coth": "func_coth"}
 
@@ -255,12 +255,63 @@ def rename(tokens: list[str]) -> list[str]:
     return out
 
 
+# Rule 9: the code of an always-on fix of `study\39` that the old compiler does not write (OpenSpec change
+# fixes-switch): a whole array's guard on a file's GET and PUT and its index test (row 7, D-042) read as what they
+# guard, the console selected again after RUN (row 14, D-046) dropped, and the _CAST helpers (row 16, D-047) read as
+# the value they convert.
+WHOLE_GUARD = re.compile(
+    r"^if \(!\((\w+)\[2\]&1\)\|\|\(!\1\[0\]\)\|\|\(\1\[0\]==\(ptrszint\)nothingvalue\)\)"
+    r"\{qbr_diverged\(42\);error\(9\);\}else\{(.*)\}$"
+)
+WHOLE_INDEX = re.compile(
+    r"\(\(!\((\w+)\[2\]&1\)\|\|\(!\1\[0\]\)\|\|\(\1\[0\]==\(ptrszint\)nothingvalue\)\)"
+    r"\?\(qbr_diverged\(42\),error\(9\),0\):0\)"
+)
+RUN_CONSOLE = ["qbr_diverged(46);", "sub__dest(func__console());", "sub__source(func__console());"]
+CAST_HELPERS = {"qbr_cast_f_i32", "qbr_cast_f_i64", "qbr_cast_f_u64"}
+
+
+def fix_code(kept: list[str]) -> list[str]:
+    """Rule 9 on a statement's lines (but the _CAST helpers, which `normalise` drops as tokens)."""
+    out: list[str] = []
+    for ln in kept:
+        m = WHOLE_GUARD.match(ln)
+        if m:
+            ln = m.group(2)
+        out.append(WHOLE_INDEX.sub("0", ln))
+    for i in range(len(out) - len(RUN_CONSOLE), -1, -1):
+        if out[i : i + len(RUN_CONSOLE)] == RUN_CONSOLE:
+            del out[i : i + len(RUN_CONSOLE)]
+    return out
+
+
+def drop_cast_helpers(tokens: list[str]) -> list[str]:
+    """Rule 9: a _CAST helper's call is its argument: the name and its own parentheses go."""
+    out = list(tokens)
+    i = 0
+    while i < len(out):
+        if out[i] in CAST_HELPERS and out[i + 1 : i + 2] == ["("]:
+            depth, j = 0, i + 1
+            while j < len(out):
+                depth += {"(": 1, ")": -1}.get(out[j], 0)
+                if depth == 0:
+                    break
+                j += 1
+            del out[j]
+            del out[i : i + 2]
+        else:
+            i += 1
+    return out
+
+
 def normalise(lines: list[str]) -> list[str]:
     """The normalised tokens of a statement's C++ lines."""
     kept = [ln.strip() for ln in lines]
     kept = [ln for ln in kept if not any(f.match(ln) for f in FRAME)]
     kept = [WORK.sub('"<work>/', ln) for ln in kept]
+    kept = fix_code(kept)
     tokens = [WRAPPERS.get(t, t) for t in tokenize("\n".join(kept))]
+    tokens = drop_cast_helpers(tokens)
     return rename(flatten(norm_seq(parse(tokens), False)))
 
 
@@ -460,6 +511,37 @@ def compare_in(
 # Recorded pairs: the old compiler's lines and the new compiler's for one statement, as each wrote
 # them (qb64pe -z and qb64rust -z, 2026-10-10). Each must compare equal.
 PAIRS = [
+    # Rule 9: the code of the always-on fixes of fixes-switch.
+    (
+        "PUT #1, , a() (row 7)",
+        ["sub_put(1,NULL,byte_element((uint64)(&(((int32*)(__ARRAY_LONG_A[0]))[0])),4,byte_element_1),0);"],
+        [
+            (
+                "if (!(__ARRAY_LONG_A[2]&1)||(!__ARRAY_LONG_A[0])||(__ARRAY_LONG_A[0]==(ptrszint)nothingvalue))"
+                "{qbr_diverged(42);error(9);}else{sub_put(1,NULL,byte_element((uint64)(&(((int32*)"
+                "(__ARRAY_LONG_A[0]))[((!(__ARRAY_LONG_A[2]&1)||(!__ARRAY_LONG_A[0])||"
+                "(__ARRAY_LONG_A[0]==(ptrszint)nothingvalue))?(qbr_diverged(42),error(9),0):0)])),4,"
+                "byte_element_1),0);}"
+            )
+        ],
+    ),
+    (
+        "RUN lab in a $CONSOLE:ONLY program (row 14)",
+        ["sub_run_init();", "sub_clear(NULL,NULL,NULL,NULL);", "goto LABEL_LAB;"],
+        [
+            "sub_run_init();",
+            "sub_clear(NULL,NULL,NULL,NULL);",
+            "qbr_diverged(46);",
+            "sub__dest(func__console());",
+            "sub__source(func__console());",
+            "goto LABEL_LAB;",
+        ],
+    ),
+    (
+        "PRINT _CAST(INTEGER, d) (row 16)",
+        ["qbs_set(tqbs,qbs_add(qbs_str(*__DOUBLE_D),qbs_new_txt(\" \")));"],
+        ["qbs_set(tqbs,qbs_add(qbs_str((int16)(((int16)(qbr_cast_f_i32(*__DOUBLE_D))))),qbs_new_txt(\" \")));"],
+    ),
     (
         "KILL s + CHR$(d)",
         [

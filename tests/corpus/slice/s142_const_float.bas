@@ -4,7 +4,7 @@ $CONSOLE:ONLY
 ' the unsigned lane, a float in the integer lanes by qbr, integer-valued floats near 2^63, suffixed constants inside
 ' a CONST, ASC, and the auto-included constants that were not computed before (_E, the limits of the floats). Not
 ' here: the old evaluator's clamps beyond _INTEGER64 (unsuffixed literals, 9.3E+18 / 1, the limits _INTEGER64_MIN,
-' _OFFSET_MIN, _UINTEGER64_MAX, _UOFFSET_MAX), fixed by DIVERGENCES.md D-027 (const-rulings; the values are in
+' _OFFSET_MIN, _UINTEGER64_MAX, _UOFFSET_MAX), fixed by QB64PE-DIVERGENCES.md D-027 (const-rulings; the values are in
 ' tests\frontend\const_rulings_typed.bas and the CLI test const_rulings_run).
 CONST third## = 1## / 3##
 CONST c = 1E+30 / 3

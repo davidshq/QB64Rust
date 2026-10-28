@@ -1,19 +1,28 @@
 //! Seeded mutation test (spec `testing/compiler-tests`, design D6 of `m2-upstream-tests`): byte-level edits of
-//! the corpus programs go through lexer, parser and `sema` without a panic and round-trip exactly.
+//! the corpus programs go through lexer, parser and `sema` without a panic and round-trip exactly. A mutant that
+//! `sema` accepts also goes through lowering and C++ generation (up to [`CODEGEN_MAX_LEN`]) for a debug build with
+//! coverage counters, without a panic (`study\38` §3). Line-level edits (a line deleted, copied, swapped, or taken from
+//! another corpus program) make mutants that are more often valid programs, so that more of them get that far.
 //!
-//! Deterministic: a fixed seed (`QB64RUST_MUTATE_SEED` overrides it) and a fixed number of mutants per program
-//! (`QB64RUST_MUTATE_COUNT`, default 20). Each mutant has its own seed, derived from the run's seed, the program
-//! and the mutant number, so a failure is reproduced from what it prints; the mutant's bytes are also written to
-//! `target\mutate-failure.bas`.
+//! Deterministic: a fixed seed (`QB64RUST_MUTATE_SEED` overrides it) and a fixed number of mutants of each kind per
+//! program (`QB64RUST_MUTATE_COUNT`, default 10). Each mutant has its own seed, derived from the run's seed, the
+//! program and the mutant number, so a failure is reproduced from what it prints; the mutant's bytes are also
+//! written to `target\mutate-failure.bas`.
 
-use qb64rust_driver::frontend;
+use qb64rust_driver::{Resolved, STACK_SIZE, emit_ir_debug, frontend, lower};
 use qb64rust_syntax::tree::print;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 const DEFAULT_SEED: u64 = 0x5EED_0B64_2026_1004;
-const DEFAULT_COUNT: u64 = 20;
+/// Ten of each kind: as many mutants as the twenty byte-level ones before C++ generation was added, at about 5 s
+/// (each mutant per program of both kinds costs about 0.5 s of tier 1).
+const DEFAULT_COUNT: u64 = 10;
+/// A mutant larger than this skips C++ generation. Only `g12_game` (160 KB) is larger: its mutants took about 5 s
+/// each to lower and emit here, most of the test's time, and add size rather than variety; the corpus suite builds
+/// the program itself.
+const CODEGEN_MAX_LEN: usize = 32 * 1024;
 
 /// xorshift64*: small, fast, and the same on every platform.
 struct Rng(u64);
@@ -106,6 +115,34 @@ fn mutate(src: &[u8], rng: &mut Rng) -> Vec<u8> {
     s
 }
 
+/// One to three edits of whole lines: delete one, copy one to another place, swap two, insert one of `donor`'s.
+fn mutate_lines(src: &[u8], donor: &[u8], rng: &mut Rng) -> Vec<u8> {
+    let mut lines: Vec<&[u8]> = src.split_inclusive(|&b| b == b'\n').collect();
+    let donor: Vec<&[u8]> = donor.split_inclusive(|&b| b == b'\n').collect();
+    for _ in 0..rng.range(1, 3) {
+        let len = lines.len();
+        match rng.below(4) {
+            0 if len > 0 => {
+                lines.remove(rng.below(len));
+            }
+            1 if len > 0 => {
+                let line = lines[rng.below(len)];
+                lines.insert(rng.below(len + 1), line);
+            }
+            2 if len >= 2 => {
+                let (a, b) = (rng.below(len), rng.below(len));
+                lines.swap(a, b);
+            }
+            _ if !donor.is_empty() => {
+                let line = donor[rng.below(donor.len())];
+                lines.insert(rng.below(len + 1), line);
+            }
+            _ => {}
+        }
+    }
+    lines.concat()
+}
+
 fn corpus_programs() -> Vec<PathBuf> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         for e in std::fs::read_dir(dir).unwrap() {
@@ -126,11 +163,19 @@ fn corpus_programs() -> Vec<PathBuf> {
     out
 }
 
-/// What went wrong with one mutant, if anything.
-fn check(bytes: &[u8]) -> Option<String> {
+/// What went wrong with one mutant, if anything; `emitted` counts the mutants that reached C++ generation.
+fn check(bytes: &[u8], emitted: &AtomicUsize) -> Option<String> {
     let result = catch_unwind(AssertUnwindSafe(|| {
         let fe = frontend("mutant.bas", bytes.to_vec());
-        print(&fe.parsed.main().green, bytes) == bytes
+        if print(&fe.parsed.main().green, bytes) != bytes {
+            return false;
+        }
+        if !fe.has_errors() && bytes.len() <= CODEGEN_MAX_LEN {
+            // One emission, the one that runs the most of the emitter: a debug build's, with coverage counters.
+            emit_ir_debug(&fe, &lower(&fe), &Resolved::default(), true, None);
+            emitted.fetch_add(1, Ordering::Relaxed);
+        }
+        true
     }));
     match result {
         Ok(true) => None,
@@ -146,7 +191,7 @@ fn check(bytes: &[u8]) -> Option<String> {
 }
 
 #[test]
-fn mutated_corpus_programs_go_through_the_front_end() {
+fn mutated_corpus_programs_go_through_the_compiler() {
     let seed = env_u64("QB64RUST_MUTATE_SEED", DEFAULT_SEED);
     let count = env_u64("QB64RUST_MUTATE_COUNT", DEFAULT_COUNT);
     let programs = corpus_programs();
@@ -156,35 +201,48 @@ fn mutated_corpus_programs_go_through_the_front_end() {
     // Each thread takes the next mutant not yet taken, those of the largest programs first. One program's mutants
     // are not kept together: `g12_game` is a third of the corpus's bytes, and its mutants on one thread made the
     // run as long as that thread (as in `inputs.rs`).
+    // Mutants 0..count edit bytes, count..2*count edit lines.
+    let per_program = 2 * count;
     let mut order: Vec<(usize, u64)> = (0..programs.len())
-        .flat_map(|i| (0..count).map(move |m| (i, m)))
+        .flat_map(|i| (0..per_program).map(move |m| (i, m)))
         .collect();
     order.sort_by_key(|&(i, _)| std::cmp::Reverse(sources[i].len()));
     let next = AtomicUsize::new(0);
+    let emitted = AtomicUsize::new(0);
     // A mutant's place in program order, and the first failing place found so far. A mutant after that place is
     // skipped: the one reported stays the first in program order, and a broken front end panics a few times, not
     // once per mutant.
-    let place = |i: usize, m: u64| i * usize::try_from(count).unwrap() + usize::try_from(m).unwrap();
+    let place = |i: usize, m: u64| i * usize::try_from(per_program).unwrap() + usize::try_from(m).unwrap();
     let first = AtomicUsize::new(usize::MAX);
     // The failures: (program index, mutant, program name, problem, bytes); the first in program order is reported.
     let failures: Vec<(usize, u64, String, String, Vec<u8>)> = std::thread::scope(|s| {
+        // The compiler's stack (`with_stack`): an overflow would abort the test binary with nothing reported.
         let handles: Vec<_> = (0..threads)
             .map(|_| {
-                s.spawn(|| {
-                    let mut part = Vec::new();
-                    while let Some(&(i, m)) = order.get(next.fetch_add(1, Ordering::Relaxed)) {
-                        if place(i, m) > first.load(Ordering::Relaxed) {
-                            continue;
+                std::thread::Builder::new()
+                    .stack_size(STACK_SIZE)
+                    .spawn_scoped(s, || {
+                        let mut part = Vec::new();
+                        while let Some(&(i, m)) = order.get(next.fetch_add(1, Ordering::Relaxed)) {
+                            if place(i, m) > first.load(Ordering::Relaxed) {
+                                continue;
+                            }
+                            let mut rng = Rng::new(mutant_seed(seed, i, m));
+                            let bytes = if m < count {
+                                mutate(&sources[i], &mut rng)
+                            } else {
+                                let donor = (i + 1 + rng.below(sources.len() - 1)) % sources.len();
+                                mutate_lines(&sources[i], &sources[donor], &mut rng)
+                            };
+                            if let Some(problem) = check(&bytes, &emitted) {
+                                first.fetch_min(place(i, m), Ordering::Relaxed);
+                                let name = programs[i].file_name().unwrap().to_string_lossy().to_string();
+                                part.push((i, m, name, problem, bytes));
+                            }
                         }
-                        let bytes = mutate(&sources[i], &mut Rng::new(mutant_seed(seed, i, m)));
-                        if let Some(problem) = check(&bytes) {
-                            first.fetch_min(place(i, m), Ordering::Relaxed);
-                            let name = programs[i].file_name().unwrap().to_string_lossy().to_string();
-                            part.push((i, m, name, problem, bytes));
-                        }
-                    }
-                    part
-                })
+                        part
+                    })
+                    .expect("cannot start a mutation thread")
             })
             .collect();
         handles.into_iter().flat_map(|h| h.join().unwrap()).collect()
@@ -192,10 +250,21 @@ fn mutated_corpus_programs_go_through_the_front_end() {
     if let Some((i, m, name, problem, bytes)) = failures.into_iter().min_by_key(|f| (f.0, f.1)) {
         let out = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/mutate-failure.bas");
         let _ = std::fs::write(&out, &bytes);
+        // The count is part of the repro: it decides which mutant numbers edit lines.
+        let kind = if m < count { "byte-level" } else { "line-level" };
         panic!(
-            "{problem}\nprogram {name} (corpus index {i}), mutant {m}, seed {seed}\nmutant written to {}\nreproduce: \
-             QB64RUST_MUTATE_SEED={seed} cargo test -p qb64rust-driver --test mutate",
+            "{problem}\nprogram {name} (corpus index {i}), mutant {m} ({kind}), seed {seed}, count {count}\nmutant \
+             written to {}\nreproduce: QB64RUST_MUTATE_SEED={seed} QB64RUST_MUTATE_COUNT={count} cargo test -p \
+             qb64rust-driver --test mutate",
             out.display()
         );
     }
+    // About 43% reached it when this was written (seed and count by default); far fewer means the test no longer
+    // tests what it says.
+    let emitted = emitted.into_inner();
+    assert!(
+        emitted * 4 >= order.len(),
+        "only {emitted} of {} mutants reached C++ generation",
+        order.len()
+    );
 }

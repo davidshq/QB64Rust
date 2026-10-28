@@ -1,0 +1,5 @@
+
+Name already in use (PSET)
+Caused by (or after):
+LINE 4:PSET AS INTEGER
+exit=1

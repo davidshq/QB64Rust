@@ -1,0 +1,5 @@
+first freed
+
+Runtime error: Line: 9 (in main module)
+Memory already freed
+exit=0

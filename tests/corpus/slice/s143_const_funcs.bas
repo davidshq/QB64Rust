@@ -2,7 +2,7 @@ $CONSOLE:ONLY
 ' The functions of the CONST evaluator (m3-constant-evaluation; verification\v45_b_funcs, v45_b_funcs_plain,
 ' v45_b_colors32, v45_b_colors_m*): each function as a _FLOAT constant, printed with _TOSTR$'s 19 digits, some
 ' as plain constants, the 32-bit colour functions and the palette colour functions of every screen mode. Not
-' here: COS(1000), SIN(100) and 3 ^ 41, whose values are DIVERGENCES.md D-026's (crates\driver\tests\consts_v45.rs),
+' here: COS(1000), SIN(100) and 3 ^ 41, whose values are QB64PE-DIVERGENCES.md D-026's (crates\driver\tests\consts_v45.rs),
 ' and _COTH(.2) and 2 ^ -1, fixed by D-031 and D-028 (const-rulings; the same test, and the CLI test
 ' const_rulings_run).
 ' Built by the old compiler on another machine, the last digits of the others may differ too (D-026).

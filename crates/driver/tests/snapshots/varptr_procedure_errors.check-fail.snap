@@ -1,0 +1,14 @@
+---
+source: crates/driver/tests/frontend.rs
+expression: snap
+---
+varptr_procedure_errors.bas:9:5: error: name already in use: `print`
+varptr_procedure_errors.bas:12:5: error: a `TYPE` member cannot start with one `_`: `_mine`
+varptr_procedure_errors.bas:12:5: note: QB64pe: Invalid name
+varptr_procedure_errors.bas:16:3: error: a variable cannot be passed to a parameter whose address is taken (`VARPTR`, `VARSEG`, `SADD`): pass a value, such as `(x)`
+varptr_procedure_errors.bas:17:3: error: a variable cannot be passed to a parameter whose address is taken (`VARPTR`, `VARSEG`, `SADD`): pass a value, such as `(x)`
+varptr_procedure_errors.bas:18:3: error: a variable cannot be passed to a parameter whose address is taken (`VARPTR`, `VARSEG`, `SADD`): pass a value, such as `(x)`
+varptr_procedure_errors.bas:20:1: error: `ABSOLUTE` is no statement and no SUB
+varptr_procedure_errors.bas:20:1: note: QB64pe: Syntax error
+varptr_procedure_errors.bas:21:15: error: expected the end of the statement
+varptr_procedure_errors.bas:25:7: error: a variable cannot be passed to a parameter whose address is taken (`VARPTR`, `VARSEG`, `SADD`): pass a value, such as `(x)`

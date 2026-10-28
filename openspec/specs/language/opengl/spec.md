@@ -122,7 +122,7 @@ old compiler's program (`verification\v59_f*`). A routine without a helper (`_gl
 
 ### Requirement: STOP inside SUB _GL
 `STOP` inside `SUB _GL` SHALL end the program with error 271, as `END` and `SYSTEM` do there; the old compiler's
-program hangs instead (`v59_f9`; `DIVERGENCES.md` D-036, user, 2026-10-24).
+program hangs instead (`v59_f9`; `QB64PE-DIVERGENCES.md` D-036, user, 2026-10-24).
 
 #### Scenario: STOP
 - **WHEN** `SUB _GL` prints a line and runs `STOP`, and the main module waits 20 s and prints another

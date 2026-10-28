@@ -1,17 +1,15 @@
 # Project rules for Claude
 
 This file is the authoritative place for rules in this project; the decision log is `DECISIONS.md`. Claude's
-private memory may hold a copy of either, but never the only copy.
+private memory may hold a copy of rules, but never the only copy.
 
 **Start each session by reading `STATUS.md`** (current phase and next steps). **Read `DECISIONS.md` before
 changing direction, design or scope.**
 
 ## Explicit Human Rules
 1. **Never stage or unstage files, stash or unstash.** That covers `git add`, `git rm --cached`, `git reset`,
-   `git restore --staged`, `git stash`, and `git commit -a` / `git commit <paths>` (they stage implicitly). So
-   Claude does not commit either: leave changes in the working tree, then tell the user which files to stage and
-   suggest a commit message. Approval of a plan that mentions commits does not lift this. Never change what the
-   user has staged (user, 2026-10-04; it was "unless explicitly asked" before, and was broken in session 10).
+   `git restore --staged`, `git stash`, and `git commit -a` / `git commit <paths>` (they stage implicitly). Leave changes in the working tree, then tell the user which files to stage and
+   suggest a commit message. Approval of a plan that mentions commits does not lift this. Never change what the user has staged.
 2. **Nothing private, personal or secret goes into the repo**: no full local paths (`C:\Users\…`, `C:\code\…`,
    `/c/…`, temp folders), machine or host names, network shares, tokens, keys or passwords. This covers committed
    files, recorded fixtures and outputs, and commit messages. The user's name, e-mail address and GitHub usernames
@@ -52,7 +50,9 @@ changing direction, design or scope.**
 6. **"The panel"** means a review by these roles: a pragmatic engineer, a QB64 engineer, a compiler/languages
    engineer, a Rust engineer, a test engineer, and any other role Claude thinks fits the topic (name the extra
    roles and say why). The panel is role-played inline; it is not a set of subagents (rule 1) (user, 2026-10-03).
-   Every role, the pragmatic engineer first, counts effort by rule 8.
+   Every role, the pragmatic engineer first, counts effort by rule 8. **When a decision is put to the user, the
+   panel's view comes with it**, unasked, with its recommendation (user: "always give the panel thoughts",
+   2026-10-26).
 7. **Text with backslashes goes through the Edit/Write tools or a script file, never through the shell.** That
    covers Windows paths (`study\archive\19`), C or Python escapes (`\\`, `\n`) and anything else containing `\`. Do not
    pass it in a heredoc, inline `python -c`/`python - <<EOF`, `sed` or `printf` in the Bash tool, which collapses
@@ -73,7 +73,11 @@ changing direction, design or scope.**
    objections would go away (user, 2026-10-10).
 
 9. **Test cadence: run what a change can affect, once.**
-   - While working: `cargo test` (tier 1), with fmt and clippy before a group is reported done.
+   - While working: `cargo test -p <crate>` for the crates the work touched. The whole workspace (`cargo test
+     --workspace --no-fail-fast`, tier 1) runs at a task group's end only when the group changed a crate others depend
+     on (`base`, `syntax`, `sema`, `ir`, `codegen-cpp`: their changes reach the snapshot and CLI tests of `driver`),
+     else once at the change's end; it may run in the background while work goes on. fmt and clippy before a group is
+     reported done (user, 2026-10-27, to the panel; `DECISIONS.md`).
    - Tier 2 runs **once per change, at its close**, not per task group. Before that, run only the programs the
      work touches (`--glob`, `--category`, a short `--list`), or a list with `--pass-cache target\pass-cache`,
      which runs only the programs whose executable changed.
@@ -87,13 +91,17 @@ changing direction, design or scope.**
      that build (`--ignored`); the change's own new programs, and the programs of its `verification` family put in
      `tests\verification\pass.list` or `known.list` (`tests\verification\README.md`); the call-site check;
      the slice list, the upstream pass list and `tests\verification\pass.list` **with
-     `--pass-cache target\pass-cache`** and `--build-cache target\build-cache`; the run without folding (`QB64RUST_NO_FOLD=1`) **only when** the change
+     `--pass-cache target\pass-cache`** and `--build-cache target\build-cache`; QB64pe's converter test
+     (`--suite addprefix`, user, 2026-10-26); QB64pe's qbasic programs, all to build (`--suite qbasic --jobs 8`,
+     `qbasic-testcases`, user, 2026-10-26); the run without folding (`QB64RUST_NO_FOLD=1`, also with the pass cache,
+     user, 2026-10-27) **only when** the change
      touched `sema`'s constant evaluation or a numeric conversion; the coverage check of Civil War Strategy's
      scripts (`tools\coverage\coverage.py --check`) **only when** the game's copy or scripts, its list of unreached
      lines, `cut_game.py`, `screen_state.cpp`, `tools\coverage\`, `codegen-cpp`, `ir` or `driver` changed (`close.py` decides both);
      the demand reports, the shrink-only lists and the wording table as before.
    - **At each merge of `changes` (or `m3`) into `main`**, every two or three changes (`study\archive\32` §4 item 2): the
-     full set, no pass cache: the three full suites (corpus, upstream, verification), run with `--coverage`, with
+     full set, no pass cache: the three full suites (corpus, upstream, verification), run with `--coverage`,
+     QB64pe's converter test (`--suite addprefix`), the qbasic programs (`--suite qbasic`), with
      the slice list, the upstream pass list and `tests\verification\pass.list` judged from them (`--check-list`,
      `tools\legacy_tests\README.md`), the check of the built-ins they reach (`tools\coverage\builtin_runs.py
      --check` on their counts, `tests\never_run.list`; user, 2026-10-24), the run without folding, the differential pass list, the
@@ -150,66 +158,17 @@ changing direction, design or scope.**
 12. **Where QB64pe's own result depends on the machine, do not build to match it bit for bit** (`study\35` §3
     item 4, user, 2026-10-18). When the old compiler's value comes from the CPU or the libraries `qb64pe.exe` was
     built with (x87 instructions, the C runtime's math), take a well-defined value (correctly rounded, as D-026)
-    with a `DIVERGENCES.md` row, and say so in the design in a paragraph, not a module. The fidelity already built
+    with a `QB64PE-DIVERGENCES.md` row, and say so in the design in a paragraph, not a module. The fidelity already built
     (the software `_FLOAT`, the certification of the math constants) stays; this rule does not remove it.
 
 ## Project decisions
 
 The decision log is **`DECISIONS.md`** (one dated row per decision, oldest first; moved out of this file on
-2026-10-07). When the user decides something, add a row there and put the details in the document it names.
+2026-10-07). When the user decides something, add a row there and put the details in the document it names; a minor
+row (document arrangement, a change archived, a one-time exception) goes to `DECISIONS-SMALL.md` instead.
 Expert-panel recommendations: `study\07-expert-panel.md`. Open questions: `STATUS.md`.
 
 ## Layout
 
-This table says where things are, not how many: counts live in the files that are regenerated or updated with
-them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folder's `README.md` (ninth review,
-`study\archive\30` §2).
-
-| Path | Content |
-|---|---|
-| `STATUS.md` | The current state only: where we are, what is waiting on the user, next steps, numbers of the last full runs, known bugs. No history: a finished step changes a line, it does not add a paragraph (its first table says where everything else lives) |
-| `ROADMAP.md` | Short overview from start to finish: milestones M0–M6, what is done, what is left |
-| `DECISIONS.md` | Decision log: every project decision, dated, with the document that holds its details |
-| `DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |
-| `DIVERGENCES-QB45.md` | Differences from QuickBASIC 4.5 (most inherited from QB64pe), each with the source of its QB 4.5 behaviour |
-| `UPSTREAM.md` | Fixes to offer QB64pe: its bugs that this project fixes, each with where it is in QB64pe's sources, the fix and the divergence row |
-| `SOMEDAY.md` | Deferred features and ideas, and "QB64pe behaviours to review": questionable behaviours implemented QB64pe's way |
-| `GLOSSARY.md` | Plain-language definitions of compiler terms: the compiler pipeline, runtime and build, editor tooling |
-| `study\00-synthesis.md` | Start here: summary of all studies, decisions, plan, measured facts, reuse verdicts; its "Document map" lists every study |
-| `study\01`–`35` (active) | Studies still in use: `01`–`05` the old compiler, runtime, IDE and debugger, build; `06` VS Code parity; `07` the expert panel's plan; `09`, `10` claims checked and gaps closed; `16` FreeBASIC; `17`, `18` extension testing and practices; the newest review while it is open. One line each in `study\00`'s "Document map" |
-| `study\archive\` | Closed documents, read only when needed (working rule 10); catalogue in its `README.md`: the reviews of other repositories (`11`–`14`, with `qb64fresh-scripts\`), the reviews and plans whose outcomes are decided and built (`15`, `19`–`34`), `08` (strict QB 4.5 mode, not planned), and the closed records `progress-record.md` (what `STATUS.md` held until 2026-10-09) and `support-record.md` (the feature catalogue `crates\README.md` held until 2026-10-16) |
-| `Cargo.toml`, `crates\` | The new compiler `qb64rust` (Rust workspace, one crate per stage; `crates\README.md`: crate map, build, tests, snapshots) |
-| `libqb\` | Plain copy of QB64pe's `Makefile`, `internal\c` (no toolchain), `licenses` and `COPYING.txt` at the reference commit (`SOURCE.md`), byte for byte but for the edits of `tools\libqb\edits\` that `SOURCE.md` lists, never edited by hand; the new compiler builds against it with the clone's toolchain, and its objects with `objects.stamp` (git-ignored) |
-| `mise.toml` | Tool versions for this repo, read by mise: Node 24 (for `vscode\`) |
-| `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |
-| `.github\workflows\` | CI: `vscode-extension.yml` tests the extension on Windows against the QB64pe 4.7.0 release; `rust.yml` runs fmt, clippy, `cargo test` (tier 1), the test runner's own tests and those of `tools\testtime`, `tools\close`, `tools\coverage`, `tools\diagnostics` and `tools\opengl` on Windows on every push, and, only when started by hand and once a week (working rule 9), tier 2 (the call-site check, slice list without its screen programs, which get no window there and run locally only, upstream pass list, differential pass list) against QB64pe's sources at the reference clone's commit; `repo-check.yml` runs `tools\repo_check` on every push |
-| `tests\corpus\` | Golden corpus: programs with the old compiler's recorded output or compile error (`README.md`, which has the counts), including the `slice\` group and `screen\` (programs with a window, each with the recorded state of its screen, `.screen`, or several states taken while it runs; a program may have its data files in a folder `<name>.files\`; `g12_game` is Civil War Strategy played from its keys file, and its scripts `g12_game.<script>.keys` whole games, each a test of its own); checked by `run_legacy_tests.py --suite corpus`; `slice.list` names those the new compiler must pass |
-| `tests\frontend\` | Front-end tests of the new compiler, run by mode line (`' TEST: <mode>`; modes `parse-ok`, `check-ok`, `check-fail`, `typed`, `ir`, `cpp`, `coverage`); their included files in `inc\` (compiler root `inc\root\`) |
-| `tests\upstream\` | Copy of the text files of QB64pe's `tests\compile_tests` (MIT, `SOURCE.md`, never edited by hand), and `root\` (the compiler root for them: a mirror of `extra\`, made by the copy script); `pass.list` (upstream programs the new compiler passes) and `deferred.list` (those that need `_ARRAYCOPY` or a form left out of a change); progress as "x of y" (`README.md`) |
-| `tests\differential\` | Differential programs generated by `crates\difftest` (never edited by hand) with their output recorded from `qb64pe.exe`; `pass.list` names those the new compiler passes (`README.md`) |
-| `tests\format\` | The format oracle: `qb64pe -y`'s output of every program the old compiler accepts in the corpus, the upstream copy, the snippets and `tests\programs`, by set and path (`README.md`, which has the counts); never edited by hand; recorded and compared by the runner's `--suite format-corpus`, held in tier 1 by `crates\driver\tests\format_oracle.rs`; `known_differences.list` (shrink-only) and `.divergences` sidecars |
-| `tests\callsite\` | One-statement programs for the call-site check, one per built-in form and argument type; never run (a program may have a file it names in a folder `<name>.files\`). A new plain built-in comes in with a program here (`DECISIONS.md` 2026-10-10) |
-| `tests\programs\` | Real programs taken whole (`README.md`): `civil-war-strategy\`, the user's MIT game, the real-program target for QB 4.5 graphics; byte for byte, never edited by hand; tier 1 runs the front end over them |
-| `tests\snippets\` | QB64Fresh's inline test snippets as inputs, labelled by `qb64pe.exe` (`.err` when it rejects one; `SOURCE.md`) |
-| `tests\known_false_errors.list`, `tests\known_unsupported_rejections.list`, `tests\known_parse_gaps.list`, `tests\known_clean_not_passing.list` | Shrink-only lists of tier 1: programs the old compiler accepts that get a real error, programs it rejects that get only "not supported yet" errors, accepted programs (plus the old compiler's sources) that do not parse cleanly (`tests\upstream\README.md`), and programs that compile cleanly but are on no pass list, with the reason (kept by hand) |
-| `baselines\` | Recorded test results of the old compiler (546 pass, 1 environment failure; format tests 24 of 24) |
-| `verification\` | Measurement programs of the old compiler, each with its recorded output, and `run.sh` (starts the runner's `--suite verification`, which records them); the catalogue of the families, `v13*` to the newest, is `verification\README.md` |
-| `tests\verification\` | What the new compiler is held to against `verification\` (`README.md`): `pass.list` (the programs it passes), `known.list` (every other program with its reason), and `divergences\`, `normalize\` sidecars; each program is named once across the two lists (tier 1) |
-| `tools\legacy_tests\` | Windows runner for the QB64pe test suites (compile, qbasic, format; old or new compiler), the golden corpus, the verification programs (`--suite verification`: records with `qb64pe`, compares any other compiler) and the format oracle (`--suite format-corpus`, likewise), its own tests (`test_run_legacy_tests.py`: a change to a comparison or recording rule comes with a change to its test), and its `known_failures.txt`; `--check-list` judges a pass list from a full run's results; `counts.py` writes the count blocks of the test READMEs (`test_counts.py`) |
-| `tools\close\` | `close.py`: the closing runs of a change (working rule 9) as a plan (`--plan`, the commands in order, each run by its own command) and a check (`--check`, each log: ran on the current build, and passed); its own tests (`test_close.py`; `README.md`) |
-| `tools\coverage\` | `coverage.py`: merges the counts of `qb64rust --coverage` builds and reports by line; `--check` runs every script of Civil War Strategy's copy `g12_game` with coverage and holds `CWSTRAT.BAS` to `tests\programs\civil-war-strategy.unreached` (each unrun line with its reason); its own tests (`test_coverage.py`; `README.md`) |
-| `tools\libqb\` | `copy_libqb.py`: writes `libqb\` from the clone at a commit with the copy's own edits (`edits\*.edit`, each with its reason and divergence row) and, with `--check`, says whether it still equals them; its own tests (`test_copy_libqb.py`) |
-| `tools\callsite\` | `callsite.py`: compares the libqb call the new compiler writes for each program of `tests\callsite\` with the old compiler's (`-z` on both, nothing built or run); part of tier 2 (`README.md`: the normalisation rules and what it does not compare) |
-| `tools\repo_check\` | `check_repo.py`: tracked files must hold no local paths, temp folders or network shares (rule 2) and no stray control bytes (rule 7); `--untracked` also checks new files before they are staged |
-| `tools\testtime\` | `test_time.py`: every test run of every Claude Code session, how long it took and, where the transcript shows it, whether it passed, read from the sessions' transcripts; `runs.csv` and `sessions.csv` (the record, added to at the close of each change), `changes.csv` and `activity.csv` (each OpenSpec change's elapsed and active time, waits and kinds of work, since 2026-10-16) and `REPORT.md` (testing as a share of the working time, by day and by kind of run, the runs repeated with nothing edited, and per change; `README.md`); its own tests (`test_record.py`) |
-| `tools\diagnostics\` | `old_wording.py`: the old compiler's wording of each error, paired from recorded rejections, written to `crates\base\src\old_wording.tsv` for the note after an error; `--check` holds the notes to the recorded messages; its own tests (`test_old_wording.py`; `README.md`) |
-| `tools\builtins\` | Extractor for the built-in table (`extract_builtins.py`) and its output `builtins.json` (with the names of QB64pe's auto-included files and, for each constant of the file included before the first line, its suffix and the text of its expression) |
-| `tools\opengl\` | `gl_table.py`: the OpenGL table `crates\sema\src\gl_table.rs` and a call-site program per routine (`tests\callsite\gl_*.bas`), written from `libqb\`'s `gl.h` with the old compiler's rules; `--check` (also against libqb's `gl_helper_code.h`); its own tests (`test_gl_table.py`; `README.md`) |
-| `tools\format\` | `layout_words.py`: the formatter's keyword spellings `crates\format\src\words.rs`, written from the `SCase$`/`SCase2$` literals of the clone's sources; `--check`; its own tests (`test_layout_words.py`; `README.md`) |
-| `tools\wiki\` | `fetch_wiki.py` fetches the QB64pe wiki as raw wikitext into `cache\` (git-ignored, no licence stated; local reference only) |
-| `tools\upstream\` | `copy_upstream_tests.py`: redoes the copy in `tests\upstream\` from the clone at the pinned commit |
-| `tools\snippets\` | `extract_qb64fresh_snippets.py`: extracts and labels the snippets in `tests\snippets\` |
-| `tools\screen\` | The screen-state check (`README.md`): `screen_state.cpp`, linked into a test program of either compiler, writes the state of the screen at exit and gives the program its keys, and with the keys file's `prompt` and `state` waits for a program's announced waits and writes states while it runs; `state_to_png.py` shows a state (one of several, or all); `cut_game.py` writes the programs cut from Civil War Strategy, with the pictures they load, and `g12_game`, the whole game with listed edits for the scripted game; `make_images.py` writes the images the screen program `i02_load_images` loads |
-| `..\QB64pe\` | Reference clone of QB64pe (`davidshq-contribute/QB64pe`, tracks upstream `main`, version 4.7.0-GLFW) |
-| `..\FreeBASIC\` | Reference clone of FreeBASIC (shallow, `5714d10adb`, 2026-04-05). Read-only; GPL/LGPL, nothing copied |
-| `<qb64contain>`, `<share>` | Placeholders for the user's local folder of earlier projects (QB64Fresh, qb64pe-vscode, a QB64pe clone with notes) and its network copy; used in `study\` and `STATUS.md` instead of machine-specific paths. Do not write full local paths or host names into this repo. |
+Where things are: **`LAYOUT.md`**, one row per file or folder. Read it when looking for something; update its row
+when a file or folder is added, moved or changes purpose.

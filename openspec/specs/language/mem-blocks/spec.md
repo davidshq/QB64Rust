@@ -107,7 +107,9 @@ compile error, as in the old compiler.
 A block SHALL stop being valid when it is freed, when the SUB or FUNCTION whose variable it describes returns,
 and when its array is redimensioned or erased. Reading, writing or freeing through it, or outside its region,
 SHALL be the old compiler's runtime error (300 to 313), which ends the program with libqb's message and is not
-trapped by `ON ERROR`, as in the old compiler.
+trapped by `ON ERROR`, as in the old compiler. `ERASE` of a dynamic array SHALL make its blocks invalid as `REDIM`
+does, whatever the fixes (`study\39` row 8; a `QB64PE-DIVERGENCES.md` row); `ERASE` of a static array only clears
+it, and its blocks stay valid.
 
 #### Scenario: Write after free
 - **WHEN** a program with `ON ERROR GOTO h` frees a block from `_MEMNEW` and then `_MEMPUT`s into it
@@ -119,8 +121,12 @@ trapped by `ON ERROR`, as in the old compiler.
 
 #### Scenario: Block of an erased array
 - **WHEN** `REDIM d(5) AS LONG`, `m = _MEM(d())`, `ERASE d`, then `PRINT _MEMEXISTS(m)` runs
-- **THEN** it prints `-1`, as the old compiler's program does (`_MEMEXISTS` does not look at the lock's id;
-  listed for review)
+- **THEN** it prints `0`, and a `_MEMPUT` through `m` then stops with the error a block of an array gives after
+  `REDIM` (`verification\v32_d29_erase_dynamic`, now a divergence)
+
+#### Scenario: Block of an erased static array
+- **WHEN** `DIM s(5) AS LONG`, `m = _MEM(s())`, `ERASE s`, then `PRINT _MEMEXISTS(m)` runs
+- **THEN** it prints `-1`, and a `_MEMPUT` through `m` writes into `s`
 
 ### Requirement: The address of a reference
 `_OFFSET(reference)` SHALL give the address of a variable, an element or an array as an `_UNSIGNED _OFFSET`; a
@@ -147,3 +153,21 @@ them. `_MEMPUT` and `_MEMFILL` without `CALL` SHALL stay as they are.
 #### Scenario: _MEMFILL with a type after CALL
 - **WHEN** a program has `CALL _MEMFILL(m, m.OFFSET, 8, 1 AS LONG)`
 - **THEN** the compile fails with an error at the statement (`verification\v32_x91`)
+
+### Requirement: A block of no bytes
+`_MEMNEW(0)` SHALL give a valid block of size 0 that owns no memory: `_MEMFREE` of it SHALL free nothing, whatever
+blocks were taken and freed before it, and a second `_MEMFREE` of it SHALL raise error 307 as for any freed
+block (`study\39` row 9; a `QB64PE-DIVERGENCES.md` row).
+
+#### Scenario: Freed after another block was freed
+- **WHEN** `m = _MEMNEW(16): _MEMFREE m: n = _MEMNEW(0): _MEMFREE n: PRINT "after"` runs
+- **THEN** it prints `after` and ends normally
+
+#### Scenario: Other orders
+- **WHEN** a block of `_MEMNEW(0)` is freed first, two are freed in a row, or one is freed between two blocks of
+  16 bytes
+- **THEN** each program ends normally with `_MEMEXISTS` 0 for every freed block
+
+#### Scenario: Freed twice
+- **WHEN** a program with a handler frees the same `_MEMNEW(0)` block twice
+- **THEN** the second `_MEMFREE` raises error 307

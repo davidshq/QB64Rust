@@ -4,7 +4,7 @@ $Unstable:TypeFields
 ' variable, of an element, nested, of numbers, STRING * n and STRING, the members beside them unchanged, the order
 ' of the indexes on the way; _DYNAMIC member arrays of one and two dimensions and STRING, after a REDIM of the
 ' member, an erased one. Left out, as the new compiler differs on purpose: an index outside its bounds on the way
-' (DIVERGENCES.md D-004), a CLI test.
+' (QB64PE-DIVERGENCES.md D-004), a CLI test.
 Type t
     k As Integer
     b(1 TO 6) As Long

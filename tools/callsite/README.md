@@ -79,7 +79,7 @@ normalises them:
    against `func_rnd(x,1)`). The old compiler writes the `passed` mask of a function as its bits joined by `|`,
    the new compiler as one number. A wrong bit still gives another value.
 7. **A wrapper of the run-time trace of divergences is read as the libqb function it wraps** (`qbr_coth` as
-   `func_coth`, `const-rulings`): every call of the built-in takes the path of a row of `DIVERGENCES.md` (D-031), so
+   `func_coth`, `const-rulings`): every call of the built-in takes the path of a row of `QB64PE-DIVERGENCES.md` (D-031), so
    the new compiler calls a wrapper in its globals that traces the row and calls libqb's function with the same
    arguments. The wrappers are listed in `WRAPPERS`.
 8. **The scratch folder at the start of a string literal is written `<work>`** (`m4-handlers-logging-checking`): a
@@ -87,7 +87,14 @@ normalises them:
    and the old compiler's answer may come from the cache, written in another run's folder. Only the folder goes; the
    file's name and everything after it are compared.
 
-Only rule 7 names built-ins. The two token lists must then be equal.
+9. **The code of an always-on fix that the old compiler does not write is read as what it leaves of the old code**
+   (`fixes-switch`, `study\39`): a whole array's guard around a file's `GET` and `PUT` (`if (<no storage>){qbr_diverged(42);
+   error(9);}else{…}`) as the call it guards, and its index test (`(<no storage>?(qbr_diverged(42),error(9),0):0)`) as
+   `0` (row 7, D-042); the console selected again after `RUN label` (`qbr_diverged(46);` with `sub__dest` and
+   `sub__source` of `func__console()`) dropped (row 14, D-046); a `_CAST` helper (`qbr_cast_f_i32`, `_i64`, `_u64`)
+   as its argument (row 16, D-047). Each pattern is matched whole, so anything else about those calls is compared.
+
+Only rules 7 and 9 name the new compiler's own code. The two token lists must then be equal.
 
 Output: one line per program, `equal`, `differ` (with both token lists) or `not compared` (a compiler rejected the
 program; the reason is its first diagnostic), then a summary line. No local path is printed.
@@ -122,7 +129,12 @@ program; the reason is its first diagnostic), then a summary line. No local path
   an expression is in the screen program `d08_paint`.
 - **Stores into a `_BIT` variable or a member.** The store's mask and a member's address are spelled differently
   (`&1` against `&0x1ull`, `((0+4))` against `+4`); a `READ` target in the programs is a plain variable of another
-  type.
+  type. File `PUT` and `GET` of a `STRING` member have no program for the same reason; the slice program
+  `s161_put_string_member` builds and runs them.
+- **An expression or a `SINGLE` or integer literal stored into a slot of `CALL ABSOLUTE`.** The new compiler puts
+  the value in parentheses (`*pass1=(a+b)`) or writes its type (`((float)1.5E+0)`, `2ll`), the old compiler writes
+  it bare: the same store, spelled apart. `call_absolute` passes a variable, a string, a `DOUBLE` literal and a
+  variable offset; the `SINGLE` and `_INTEGER64` slots run in `verification\v61_c3`, `c4`.
 - **The cleanup of string temporaries.** Every `qbs_cleanup(qbs_tmp_base,0);` line is dropped as frame (rule 1),
   so a statement that forgets its cleanup compares equal.
 - Anything outside the statement's own lines: declarations, the data fragment, procedures.

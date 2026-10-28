@@ -13,8 +13,8 @@ The new compiler, `qb64rust`. One crate per pipeline stage, so the layering is e
 | `codegen-cpp` | `qb64rust-codegen-cpp` | IR to the fragments `qbx.cpp` includes (`global.txt`, `main0.txt`, ...): `lib.rs` the entry points and the fragment set, one module per concern adding the emitter's methods (`names.rs`: C types, identifiers, labels, literals, `#line`; `coverage.rs`: the counters of `--coverage`; `debug.rs`: the debug symbol file of `--debug`; `decl.rs`: sizes, declarations, allocation, temporaries; `procs.rs`: procedures, bodies, labels, `retK.txt`; `stmt.rs`: operations and stores; `place.rs`: places; `value.rs`: values and procedure arguments; `builtins.rs`: built-in calls; `owner.rs`: values that own dynamic member arrays) |
 | `format` | `qb64rust-format` | The layout of a parsed and checked program, `qb64rust -y` (OpenSpec change `m5b-formatter`; spec `compiler/format`): the line pass with the indent level, labels, `:` and comments (`walk.rs`), the statements by family (`stmt\`: control flow, declarations, I/O, metacommands, SUB calls and built-in statements by their templates), expressions (`expr.rs`, `fixoperationorder$`'s layout and its sign rules), the spelling of keywords (`words.rs`, written by `tools\format\layout_words.py`), built-ins and names as the symbol table's definitions spell them (`fmt.rs`), and the last step, a port of `apply_layout_indent$` (`apply.rs`); the layout settings are `base`'s (`layout.rs`) |
 | `lsp` | `qb64rust-lsp` | The language server (`qb64rust lsp`, OpenSpec change `m2-language-server`): the message loop with debounce, a parse worker and cancellation (`server.rs`), one program's parse with included files from open documents first (`analysis.rs`), the encoding boundary (`encoding.rs`: tables generated from `iconv-lite` by `tools\encodings\gen_tables.js`, UTF-16 columns), `file:` URIs (`uri.rs`), the check (`qb64rust/check`: the whole front end, a function the driver passes to `serve`), formatting of a document or a range (the driver's formatter, passed beside the check as `Hooks`; settings from `initializationOptions.format` and `workspace/didChangeConfiguration`), and the features from the trees alone: diagnostics, document symbols (`symbols.rs`), folding ranges (`folding.rs`), go to definition for procedures and labels (`definition.rs`) |
-| `dap` | `qb64rust-dap` | The debug adapter (`qb64rust dap`, OpenSpec change `m5-dap-proxy`): a proxy in front of the clone's `lldb-dap` that reads the debug symbol file and speaks BASIC; the framing (`wire.rs`), the loop with its `seq` maps and blocking internal requests (`proxy.rs`), the symbol file (`symbols.rs`), `launch` and stop on entry (`launch.rs`), its own breakpoints and the error stop (`breakpoints.rs`, texts in `errors.rs`), BASIC frames and the one thread (`stack.rs`), stepping by BASIC line (`step.rs`), variables read from memory (`vars.rs`, shown by `format.rs`), evaluate, set value, data breakpoints and set next line (`eval.rs`) |
-| `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, the file loader for included files (`FileLoader`), build through the copy of libqb's `Makefile` (`libqb\`) with the clone's toolchain; `qb64rust lsp` starts the language server, passing it `check_for_server` (the front end after the parse, `check_program`, the CLI's own); `qb64rust dap` the debug adapter, with the clone's `lldb-dap` |
+| `dap` | `qb64rust-dap` | The debug adapter (`qb64rust dap`, OpenSpec change `m5-dap-proxy`): a proxy in front of the toolchain's `lldb-dap` that reads the debug symbol file and speaks BASIC; the framing (`wire.rs`), the loop with its `seq` maps and blocking internal requests (`proxy.rs`), the symbol file (`symbols.rs`), `launch` and stop on entry (`launch.rs`), its own breakpoints and the error stop (`breakpoints.rs`, texts in `errors.rs`), BASIC frames and the one thread (`stack.rs`), stepping by BASIC line (`step.rs`), variables read from memory (`vars.rs`, shown by `format.rs`), evaluate, set value, data breakpoints and set next line (`eval.rs`) |
+| `driver` | `qb64rust-driver` | The `qb64rust` binary: command line, pipeline, the file loader for included files (`FileLoader`), build through the copy of libqb's `Makefile` (`libqb\`) with the C++ toolchain `toolchain.rs` finds, and `qb64rust toolchain install` that installs it; `qb64rust lsp` starts the language server, passing it `check_for_server` (the front end after the parse, `check_program`, the CLI's own); `qb64rust dap` the debug adapter, with the toolchain's `lldb-dap` |
 | `difftest` | `qb64rust-difftest` | Not part of the compiler: the generator of the differential programs in `tests\differential` (binary `qb64rust-difftest`, `gen [--check]`; design D2 of `m2-numeric-types`, `tests\differential\README.md`): the numeric type list with each type's `AS` name, literal suffix and value slots (extremes, -1, 0, 1, two seeded random values from a fixed-seed xorshift), the operators and the exclusions; `for_sema` maps every `sema::Ty` exhaustively, so a new numeric type fails its build until the generator covers it |
 
 ```
@@ -38,7 +38,7 @@ Source is bytes throughout (`study\archive\15` §1): files are never converted t
 columns in diagnostics are byte columns. A real error whose wording by the old compiler is known from recorded
 output is followed by `note: QB64pe: <its wording>` (`base\src\old_wording.rs`, the table written by
 `tools\diagnostics\old_wording.py`; `m3-old-wording-notes`). A program built here writes the rows of
-`DIVERGENCES.md` whose paths it takes to the file `QB64RUST_DIVERGENCES` names (`m3-divergence-trace`).
+`QB64PE-DIVERGENCES.md` whose paths it takes to the file `QB64RUST_DIVERGENCES` names (`m3-divergence-trace`).
 
 ## Lints
 
@@ -84,8 +84,9 @@ every change (100 ms debounce) and gives syntax errors, the outline, folding ran
 procedures and labels, and formats a document or a range as `-y` does, with the client's layout settings; positions are UTF-16 columns, the document's text is parsed as the bytes of its encoding
 (CP437 unless the editor says otherwise). It exits with 0 after `shutdown` and `exit`, with 1 otherwise.
 
-`qb64rust dap [--qb64pe-root <dir>]` speaks the Debug Adapter Protocol (spec `editor/debug-adapter`). It starts the
-clone's `internal\c\c_compiler\bin\lldb-dap.exe` (the clone found as a build finds it) with `LLDB_USE_LLDB_SERVER=1`,
+`qb64rust dap [--toolchain-root <dir>] [--qb64pe-root <dir>]` speaks the Debug Adapter Protocol (spec
+`editor/debug-adapter`). It starts the toolchain's `bin\lldb-dap.exe` (the toolchain found as a build finds it) with
+`LLDB_USE_LLDB_SERVER=1`,
 so that `lldb` debugs through `lldb-server` (its own Windows plugin can lose a step's stop under load: `DECISIONS.md`
 2026-10-25), and passes every message through but those it rewrites. `launch` takes a debug build's executable
 (`program`; `args`, `cwd`, `env`, `noPrompt`, `stopOnEntry`, `console`) and refuses one without its
@@ -93,7 +94,7 @@ so that `lldb` debugs through `lldb-server` (its own Windows plugin can lose a s
 "Main module", stepping by BASIC line, its variables by BASIC name in "Locals" and "Main module", `evaluate` of a
 name, element or member (`,h`, `,b`, `,o`), set value, data breakpoints of up to 8 bytes, set next line, and the
 exception filter "BASIC runtime errors"; anything typed in the Debug Console that names no variable goes to `lldb`.
-Without the clone it still answers, every request with the error. It exits with 0 when the client or the backend
+Without a toolchain it still answers, every request with the error. It exits with 0 when the client or the backend
 ends.
 
 Included files (`'$INCLUDE:'file'`) are looked up in the including file's folder, then relative to the compiler
@@ -101,11 +102,17 @@ root: the folder of `qb64rust.exe`, or `--include-root <dir>` (the old compiler'
 directory). The tier-2 runner passes `--include-root tests\upstream\root`.
 
 Building an executable uses this repo's copy of libqb (`libqb\`: QB64pe's `Makefile`, `qbx.cpp` and libqb at the
-reference commit, `libqb\SOURCE.md`; written and checked by `tools\libqb\copy_libqb.py`) with the QB64pe reference
-clone's toolchain. The copy: `--libqb-root <dir>`, else the environment variable `QB64RUST_LIBQB_ROOT`, else
-`libqb\` of this repository. The clone (its toolchain, and the folder `DECLARE LIBRARY` names are looked for in):
-`--qb64pe-root <dir>`, else the environment variable `QB64RUST_QB64PE_ROOT`, else `..\QB64pe` next to this
-repository. The fragments, the copy of `qbx.cpp`, `qbx.o` and the `.sym` file go into `<exe>.qb64rust\` next to the
+reference commit, `libqb\SOURCE.md`; written and checked by `tools\libqb\copy_libqb.py`) with a C++ toolchain. The
+copy: `--libqb-root <dir>`, else the environment variable `QB64RUST_LIBQB_ROOT`, else `libqb\` beside the
+executable (as the compiler download unpacks it, `MANUAL.md`), else `libqb\` of this repository.
+The toolchain (`driver\src\toolchain.rs`, spec `compiler/toolchain`): `--toolchain-root <dir>`, else
+`QB64RUST_TOOLCHAIN_ROOT`, else the `internal\c\c_compiler` of a QB64pe folder given by `--qb64pe-root` or
+`QB64RUST_QB64PE_ROOT`, else the one `qb64rust toolchain install` put in `%LOCALAPPDATA%\qb64rust\toolchain`
+(`QB64RUST_TOOLCHAIN_HOME` moves it), else the clone `..\QB64pe` next to this repository; `qb64rust toolchain path`
+says which. With none the build fails naming `qb64rust toolchain install`, which downloads the pinned llvm-mingw
+release (the clone's toolchain byte for byte) and is the only thing that downloads. The QB64pe folder (where
+`DECLARE LIBRARY` names and relative words of the extra link flags are looked for): `--qb64pe-root <dir>`, else
+`QB64RUST_QB64PE_ROOT` (empty: none), else the clone; without one, the include root. The fragments, the copy of `qbx.cpp`, `qbx.o` and the `.sym` file go into `<exe>.qb64rust\` next to the
 executable (characters other than `A-Z a-z 0-9 . _ -` in that folder name become `_`, because `make` cannot take
 them; the executable is linked there and moved into place; the folder is deleted after a successful build unless
 `--keep-build`); libqb objects are built into the copy's git-ignored places if missing (the first build after a
@@ -115,7 +122,7 @@ tracked file of the copy changes. `-z` keeps that folder: run over many files (t
 the clone, or use `--dump tree`. The QB64pe Windows release works as the root too (CI uses it). `-f:OptimizeCppProgram=true` builds
 with `-O2` as `qb64pe` does; `-f:ExtraLinkerFlags=<value>` adds the value to the end of the link command as `qb64pe`
 does (the test runner gives `tools\screen\screen_state.cpp` this way; the build cache's key takes the value and the
-contents of a file it names; a relative name is the clone's file, as `qb64pe` links in its own folder);
+contents of a file it names; a relative name is the QB64pe folder's file, as `qb64pe` links in its own folder);
 `-f:GenerateLicenseFile=true` has the `Makefile` write the licences of the
 parts the program links, moved beside the executable as `<exe>.license.txt` (`build.rs`, `license_path`; the build
 cache keeps the file with its executable, and an entry without it is no hit for a build that asks for it);
@@ -154,6 +161,7 @@ catalogue this section held until 2026-10-16, with the code each feature lives i
 |---|---|
 | Stages, preprocessor (`$IF`, `$LET`), included files, the build, the build cache | `compiler/pipeline` |
 | Command line, `-f:` settings, warnings, the demand report | `compiler/cli` |
+| The fixes switch: `qb64rust.toml`, `--fixes`, `--fix`, `--list-fixes` | `compiler/fixes` |
 | `--debug` builds, the debug symbol file `<exe>.debug.json` | `compiler/debug-info` |
 | `-y`, the layout settings, the format oracle | `compiler/format`, `testing/format-oracle` |
 | Console and window, `$CONSOLE`, `$SCREENHIDE`, `$EXEICON`, window built-ins | `language/console-and-window` |
@@ -180,7 +188,7 @@ catalogue this section held until 2026-10-16, with the code each feature lives i
 
 Not listed, as they are not about what the compiler accepts: the VS Code extension's other specs
 (`editor/build-run`, `editor/compiler-diagnostics`, `editor/debug-launch`, `editor/formatting`,
-`editor/language-support`) and the test
+`editor/language-support`, `editor/new-project`) and the test
 sets' (`testing/…`).
 
 Anything else gets a "not supported yet" error, never wrong code. **Every form the old compiler accepts parses**
@@ -254,8 +262,9 @@ yet match the old compiler's verdict (since `m2-parser-breadth`, `known_false_er
 `known_parse_gaps.list` are empty); after a change, regenerate them with `QB64RUST_UPDATE_LISTS=1 cargo test -p
 qb64rust-driver --test inputs` and review the diff (entries may only go away).
 
-**Mutation test.** `QB64RUST_MUTATE_SEED` and `QB64RUST_MUTATE_COUNT` (mutants per corpus program, default 20)
-change the run; a failure prints the seed to rerun with and writes the mutant to `target\mutate-failure.bas`.
+**Mutation test.** `QB64RUST_MUTATE_SEED` and `QB64RUST_MUTATE_COUNT` (mutants of each kind, byte-level and
+line-level, per corpus program, default 10) change the run; a mutant the front end accepts also goes through lowering
+and C++ generation; a failure prints the seed to rerun with and writes the mutant to `target\mutate-failure.bas`.
 
 Time of tier 1, measured 2026-10-07 after `m2-parser-breadth` groups 7 and 8 (debug build already built, 16
 threads, clone present): `cargo test` takes 9.5–9.9 s over three runs, `inputs.rs` 6.1 s of it, most of it

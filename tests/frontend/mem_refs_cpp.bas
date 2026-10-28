@@ -4,7 +4,7 @@ $CONSOLE:ONLY
 ' (an element's index and a member's offset are spelled apart; m3-mem task 3.1, design D3, verification\v32_a_blocks
 ' prints the values): an element of an array of numbers, of STRING * n and of a user type, from it to the array's
 ' end and alone; a member, a member of an element, an element of a member array of a variable and of an element, a
-' whole member array; a whole array parameter, with the array's own lock (DIVERGENCES.md D-016).
+' whole member array; a whole array parameter, with the array's own lock (QB64PE-DIVERGENCES.md D-016).
 TYPE t
     a AS INTEGER
     s AS STRING * 5

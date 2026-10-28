@@ -1,0 +1,21 @@
+1. start
+handler 5 
+1b checked
+1c
+handler 6 
+2b n = 1 
+handler 7 
+3c
+handler 8 
+4b after s
+handler 10 
+5b after f 3 
+6a in the include
+6b after the include
+handler 9 
+6d checked
+7a loop done, ticks = 0 
+7b ticks = 0 
+tick
+8. end
+exit=0

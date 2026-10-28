@@ -1,0 +1,10 @@
+compile:
+ 00D4   002A    READ a()
+                       ^ Syntax error
+ 00F0   002A    SWAP a(), b()
+                       ^ Syntax error
+    0 Warning Error(s)
+    2 Severe  Error(s)
+element[error 9 ]
+after READ
+after SWAP

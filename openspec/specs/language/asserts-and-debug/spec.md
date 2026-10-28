@@ -53,7 +53,7 @@ compiler's debugger code uses sockets), so that the program links libqb's socket
 does, and with `-w` the
 compiler SHALL warn "$DEBUG features only work from the IDE" at it, as the old compiler does from the command
 line. No code for the IDE's debugger SHALL be written: the program SHALL behave as the old compiler's program
-does when it runs outside the IDE (`DIVERGENCES.md`).
+does when it runs outside the IDE (`QB64PE-DIVERGENCES.md`).
 
 #### Scenario: The flag
 - **WHEN** a program has `$DEBUG` and `$IF _DEBUG_ THEN PRINT "on" $ELSE PRINT "off" $END IF`

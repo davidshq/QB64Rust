@@ -1,18 +1,25 @@
 # Legacy test runner
 
 `run_legacy_tests.py` runs the QB64pe test suites on Windows without bash. It re-implements
-`tests/compile_tests.sh`, `tests/qbasic_tests.sh` and `tests/format_tests.sh` from the reference clone
-(`..\..\..\QB64pe`). It drives any compiler that accepts the qb64pe command line, so it measures the old
+`tests/compile_tests.sh`, `tests/qbasic_tests.sh`, `tests/format_tests.sh` and `tests/add_prefix_test.sh` from the
+reference clone (`..\..\..\QB64pe`). It drives any compiler that accepts the qb64pe command line, so it measures the old
 compiler now and the new one later.
 
 ```
 python tools\legacy_tests\run_legacy_tests.py                          # compile_tests, old compiler
 python tools\legacy_tests\run_legacy_tests.py --suite format           # format_tests (-y), about 10 s
-python tools\legacy_tests\run_legacy_tests.py --suite all              # compile + qbasic (compile only) + format + corpus
+python tools\legacy_tests\run_legacy_tests.py --suite addprefix        # the $NOPREFIX converter built and run, a few s
+python tools\legacy_tests\run_legacy_tests.py --suite all              # compile + qbasic (compile only) + format + addprefix + corpus
 python tools\legacy_tests\run_legacy_tests.py --category print         # one category
 python tools\legacy_tests\run_legacy_tests.py --qb64 path\to\new.exe   # another compiler
 python tools\legacy_tests\run_legacy_tests.py --suite corpus           # golden corpus (tests\corpus of this repo)
 ```
+
+The qbasic suite (`--suite qbasic`) compiles each program of the clone's `tests\qbasic_testcases` from the clone's
+root and never runs it; it passes when the compile succeeds, as `qbasic_tests.sh` judges it. With `qb64rust` it
+takes `--jobs` (each program builds in a folder of its own beside its executable in the results folder; qb64pe
+builds in the clone's `internal\temp`, one at a time). Every program must pass, so the suite has no pass list; it is
+in the closing set and the set at a merge (`tools\close\close.py`, step `qbasic`; `qbasic-testcases`).
 
 ### Golden corpus (`--suite corpus`)
 
@@ -82,7 +89,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   for byte.
 - **The run-time trace of divergences** (`m3-divergence-trace`; corpus and compile suites): every run has
   `QB64RUST_DIVERGENCES` naming a fresh file `<results>\<key>-run<n>-divergences.txt`, where a program built by
-  the new compiler writes `D-0nn` the first time it takes the path of that row of `DIVERGENCES.md` (the old
+  the new compiler writes `D-0nn` the first time it takes the path of that row of `QB64PE-DIVERGENCES.md` (the old
   compiler's programs write nothing). When checking, a row that `<name>.divergences` (one `D-0nn` per line, `#`
   starts a comment) does not list fails the program at the stage `divergences`; a listed row not taken does not.
   A corpus program's sidecar lies beside it; a compile-suite program's is
@@ -151,7 +158,17 @@ python -m unittest discover -s tools/legacy_tests -p "test_*.py"
 
 **A change to one of these rules comes with a change to its test** (spec `testing/golden-corpus`). Not covered: the
 locks and the private copies of `qb64pe` (they need the clone; the full runs cover them), and the functions of
-the compile, qbasic and format suites that are not shared with the corpus suite.
+the compile, qbasic and format suites that are not shared with the corpus suite. The addprefix suite's
+(`addprefix_test`) is covered, with a scratch clone.
+
+### The converter (`--suite addprefix`)
+
+QB64pe's `tests/add_prefix_test.sh`: its `$NOPREFIX` converter, `internal\support\converter\AddPREFIX.bas`, is built
+from the clone and run on a copy of `tests\converter_tests\addprefix.bas` in the results folder, which it rewrites
+in place (after moving the original to `addprefix-noprefix.bas`); the copy must equal `addprefix.output`, trailing
+newlines ignored. One program, a few seconds; nothing is copied into this repo. It is in the closing set
+(`tools\close\close.py`) and in `--suite all`. It found the first bug it ran on: `PUT` of a `STRING` member did not
+build with `qb64rust` (`tests\corpus\slice\s161_put_string_member`).
 
 ### The format oracle (`--suite format-corpus`)
 
@@ -180,7 +197,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite format-corpus --qb64 targe
 - Comparing formats the source of each recording in the same way (upstream with `--include-root
   tests\upstream\root`). A program passes when the compiler exits with 0 and the output equals the recording with
   line endings taken as LF; when it differs, it passes only if the recording's `<name>.divergences` names a row of
-  `DIVERGENCES.md`. A failure names the first line that differs. Nothing is written into `tests\format\`.
+  `QB64PE-DIVERGENCES.md`. A failure names the first line that differs. Nothing is written into `tests\format\`.
   `--jobs` applies.
 - Under the other layout settings (`m5b-format-settings`): each program `tests\format\settings.list` names is
   also recorded and compared under each of six variants (`FORMAT_VARIANTS`), the defaults with one setting
@@ -251,6 +268,13 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target
     --list tests\verification\pass.list --jobs 8 --build-cache target\build-cache --pass-cache target\pass-cache
 ```
 
+- **The fixes** (spec `compiler/fixes`; OpenSpec change `fixes-switch`, design D4): every command that compiles or
+  lays out a program with a compiler other than `qb64pe` (every suite, not only this one) passes `--fixes off`, so
+  that a `qb64rust.toml` in the tree or above it changes no result, and the run's first line ends with `fixes off`.
+  A verification program with `tests\verification\fixed\<name>.out.txt` is built a second time with `--fixes on`,
+  in `target\legacy-tests\verification\<name>.fixed\`, run as the first run is run and compared with that file by
+  the same rules (`.normalize`, `.divergences`, the log); it is reported as `<name> [fixes on]`, a result of its
+  own, which `--check-list` requires to pass as well. The pass cache keeps the two halves apart.
 - Each program is compiled with `-x -q -m` in a fresh folder `target\legacy-tests\verification\<name>\`, removed
   on a pass, which holds the program, its `.stdin` and `.noprompt`, and the support items of its family: the files
   and folders of `verification\` whose name begins with its family number (`v16_inc\` and `v16_y.bi` for

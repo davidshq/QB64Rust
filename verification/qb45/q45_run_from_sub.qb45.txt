@@ -1,0 +1,8 @@
+compile:
+ 01C7   0008    RUN
+                   ^ Subprogram error
+ 0234   0008    RUN 100
+                       ^ Subprogram error
+    0 Warning Error(s)
+    2 Severe  Error(s)
+at 100, run 1 

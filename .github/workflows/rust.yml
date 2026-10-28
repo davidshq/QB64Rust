@@ -61,6 +61,8 @@ jobs:
       - run: python -m unittest discover -s tools/diagnostics -p "test_*.py"
       # The same for the OpenGL table's reading of libqb's gl.h (the old compiler's rules; the written files current).
       - run: python -m unittest discover -s tools/opengl -p "test_*.py"
+      # The same for the QB 4.5 runner's text handling (no DOSBox or QB 4.5 needed).
+      - run: python -m unittest discover -s tools/qb45 -p "test_*.py"
 
   # Licences, advisories and sources of the dependencies (deny.toml; study\archive\21 item 7). The action runs on Linux;
   # the dependency graph is the same on every platform.

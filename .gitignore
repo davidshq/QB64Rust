@@ -17,6 +17,8 @@ __pycache__/
 /libqb/**/*.tmp
 # What those objects were built with (design D2 of libqb-object-flags)
 /libqb/objects.stamp
+# The lock of those objects when no QB64RUST_OBJECTS_LOCK is set (m6-compiler-download)
+/libqb/objects.lock
 
 # Compiled verification programs
 /verification/*.exe

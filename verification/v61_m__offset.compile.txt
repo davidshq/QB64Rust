@@ -1,0 +1,5 @@
+
+Invalid name
+Caused by (or after):
+LINE 4:_OFFSET AS INTEGER
+exit=1

@@ -4,9 +4,9 @@
 use crate::RunTarget;
 use crate::builtins::{Slot, StmtRule, StmtSlot, stmt_find, stmt_slots};
 use crate::{
-    AddressWord, Arg, ArrayRef, Body, BuiltinId, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId, MemValue,
-    Member, MemberId, Op, Place, PrintItem, PrintTo, ProcId, ProcKind, Program, Reference, Resume, Shape, Source,
-    StartBounds, StmtArg, Storage, Ty, UsingValue, Var, VarId,
+    AbsArg, AddressWord, Arg, ArrayRef, Body, BuiltinId, Event, EventHandler, Expr, ExprKind, KeyForm, LabelId,
+    MemValue, Member, MemberId, Op, Place, PrintItem, PrintTo, ProcId, ProcKind, Program, Reference, Resume, Shape,
+    Source, StartBounds, StmtArg, Storage, Ty, UsingValue, Var, VarId,
 };
 
 /// Every problem found, each as `<body>: <where>: <what>`; `Ok` when there is none.
@@ -621,6 +621,36 @@ impl Validator<'_> {
                 }
             }
             Op::Call { proc, args } => self.call(*proc, args, owner, at),
+            // An address of a variable in conventional memory (checked as any `VARPTR`), or a number for a slot:
+            // `SINGLE`, `DOUBLE` or `_INTEGER64`; the offset an `_UNSIGNED INTEGER`.
+            Op::CallAbsolute { args, offset } => {
+                for (k, a) in args.iter().enumerate() {
+                    match a {
+                        AbsArg::Address(e) => {
+                            if !matches!(
+                                e.kind,
+                                ExprKind::Address {
+                                    word: AddressWord::VarPtr,
+                                    ..
+                                }
+                            ) {
+                                self.problem(format!("{at}: `CALL ABSOLUTE` argument {} is no address", k + 1));
+                            }
+                            self.value(e, owner, at);
+                        }
+                        AbsArg::Value(v, _) => {
+                            if !matches!(v.ty, Ty::F32 | Ty::F64 | Ty::I64) {
+                                self.problem(format!("{at}: `CALL ABSOLUTE` value {} is of {:?}", k + 1, v.ty));
+                            }
+                            self.value(v, owner, at);
+                        }
+                    }
+                }
+                if offset.ty != Ty::U16 {
+                    self.problem(format!("{at}: `CALL ABSOLUTE` offset of {:?}", offset.ty));
+                }
+                self.value(offset, owner, at);
+            }
             Op::Builtin { id, args } => self.builtin(*id, args, owner, at),
             Op::OnEvent { event, handler } => self.on_event(event, handler, owner, at),
             Op::Key(KeyForm::On | KeyForm::Off | KeyForm::List) => {}
@@ -1014,9 +1044,20 @@ impl Validator<'_> {
             {
                 self.problem(format!("{at}: BYVAL argument {} is no number", k + 1));
             }
+            // A parameter in conventional memory takes a place there (design D2 of `qbasic-testcases`).
+            if let (Some(param), Some(root)) = (param, a.root())
+                && param.conventional
+                && self.p.vars.get(root.0 as usize).is_some_and(|v| !v.conventional)
+            {
+                self.problem(format!(
+                    "{at}: argument {} to {}, which is in conventional memory, is not",
+                    k + 1,
+                    param.name
+                ));
+            }
             match a {
                 Arg::Ref(place) => self.place(place, owner, at),
-                Arg::Temp(v) | Arg::Value(v) => self.value(v, owner, at),
+                Arg::Temp(v, _) | Arg::Value(v) => self.value(v, owner, at),
                 Arg::Null => {}
                 Arg::Array(array) => {
                     if let Some((name, n)) = self.array_ref(array, owner, at, "an array argument")
@@ -1235,7 +1276,9 @@ impl Validator<'_> {
                     Ty::I64
                 };
                 let sadd = *word != AddressWord::Sadd || place_ty_checked(self.p, of) == Some(Ty::Str);
-                let seg = *word != AddressWord::VarSeg || of.indexes().is_empty();
+                // Of a `TYPE` parameter `VARSEG` keeps the place, which may be an element of a member array.
+                let type_param = matches!(a.storage, Storage::Param(_)) && matches!(a.ty, Ty::User(_)) && !a.is_array();
+                let seg = *word != AddressWord::VarSeg || of.indexes().is_empty() || type_param;
                 if v.ty != typed || !sadd || !seg {
                     self.problem(format!("{at}: {} of {} typed {:?}", word.name(), a.name, v.ty));
                 }
@@ -1437,6 +1480,7 @@ mod tests {
             may_raise: false,
             own: false,
             checked: true,
+            next: None,
         }
     }
 
@@ -2397,7 +2441,7 @@ mod tests {
         };
         p.main.stmts[0].ops.extend([
             call(Arg::Ref(Place::Var(VarId(3)))),
-            call(Arg::Temp(expr(Ty::I32, ExprKind::Int(1)))),
+            call(Arg::Temp(expr(Ty::I32, ExprKind::Int(1)), 0)),
         ]);
         let at = "main: statement 0 (line 1)";
         assert_eq!(

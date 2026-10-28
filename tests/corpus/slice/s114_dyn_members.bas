@@ -3,7 +3,7 @@ $UNSTABLE:TYPEFIELDS
 ' Slice (m3-typefields task 3.4): _DYNAMIC member arrays of a variable and of array elements (verification\v35_a,
 ' v35_g, v35_x58). The first bounds and values, REDIM (plain, _PRESERVE, _RETAIN, another number of dimensions),
 ' ERASE and every use after it, LBOUND and UBOUND, a whole-value copy and its isolation, the index errors, and an
-' index outside on the way to the member. Where the new compiler differs on purpose (DIVERGENCES.md D-004 widened:
+' index outside on the way to the member. Where the new compiler differs on purpose (QB64PE-DIVERGENCES.md D-004 widened:
 ' a store through a parent index outside its bounds stores nothing; the old compiler stores into the member of
 ' element 0) the line was recorded from a program with ERROR 9 in place of that store.
 TYPE t

@@ -1,0 +1,5 @@
+
+Name already in use (CONST)
+Caused by (or after):
+LINE 4:CONST AS INTEGER
+exit=1

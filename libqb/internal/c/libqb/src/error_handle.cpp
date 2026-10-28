@@ -155,6 +155,7 @@ static const char *error_code_to_text(int32_t errorcode) {
         case 8: return "Label not defined";
         case 9: return "Subscript out of range";
         case 10: return "Duplicate definition";
+        case 11: return "Division by zero";
         case 12: return "Illegal in direct mode";
         case 13: return "Type mismatch";
         case 14: return "Out of string space";
@@ -432,6 +433,12 @@ void fix_error() {
     return;
 }
 
+void fatal_division_by_zero() {
+    libqb_log_error("QB64 Error %d reported: %s", QB_ERROR_DIVISION_BY_ZERO, error_code_to_text(QB_ERROR_DIVISION_BY_ZERO));
+    fatal_error_alert(critical_error_message("Division by zero"), "Critical Error");
+    exit_after_fatal_error();
+}
+
 void error(int32_t error_number) {
     libqb_log_error("QB64 Error %d reported: %s", error_number, error_code_to_text(error_number));
 
@@ -469,9 +476,6 @@ void error(int32_t error_number) {
     // all of them through the same allocation-free location formatter.
     const char *critical_message = NULL;
     switch (error_number) {
-    case QB_ERROR_DIVISION_BY_ZERO:
-        critical_message = "Division by zero";
-        break;
     case 256:
         critical_message = "Out of stack space";
         break;

@@ -24,6 +24,7 @@ package it (below).
 | `npm run test:grammar` | Annotated `test\grammar\*.bas` against the TextMate grammar | Node only |
 | `npm run test:integration` | Downloads a VS Code build into `.vscode-test\` and runs `test\integration\suite` in it, in a temporary copy of `test-fixtures\workspace` | A compiler for the compiler tests (skipped without one): `QB64RUST_TEST_QB64PE`, else `..\..\QB64pe\qb64pe.exe`; the `qb64rust` binary for the language server tests (skipped without it): `QB64RUST_TEST_QB64RUST` |
 | `npm run test:integration:min` | The same on the oldest version `engines.vscode` accepts (1.100.0) | as above |
+| `npm run test:integration:first-run` | `test\integration\suite\firstRun.test.ts` alone (the other runs leave it out): a first run with no QB64pe and no C++ toolchain, the offer answered "Not Now" then "Download", a build and a debug session; it downloads the real toolchain (190 MB) | `QB64RUST_TEST_QB64RUST`, and `QB64RUST_TEST_TOOLCHAIN_HOME`, an empty folder the toolchain is installed into |
 | `npm test` | All four | |
 
 Integration options (environment variables): `QB64RUST_TEST_QB64PE` (path to `qb64pe.exe`; an error if it does

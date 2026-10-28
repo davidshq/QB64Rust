@@ -23,12 +23,30 @@ impl Emitter<'_> {
     /// The flat position of an element, with libqb's `array_check` per dimension (error 9 outside the bounds; it
     /// then gives 0, the first position, as the old compiler reads), first dimension fastest. Below
     /// `$CHECKING:OFF` without it (`qb64pe.bas` 15627–15640, 16136–16149, 16335–16348). With no index, 0: the
-    /// first element of a whole array taken as a value, unchecked as the old compiler writes it (design D4 of
-    /// `m4-line-numbers-whole-arrays`; an array not allocated points at libqb's `nothingvalue`, whose 8 bytes are
-    /// zeros).
+    /// first element of a whole array taken as a value or a variable, with no bounds check, as the old compiler
+    /// writes it (design D4 of `m4-line-numbers-whole-arrays`), but error 9 while the array has no storage
+    /// ([`Self::whole_index`]).
     pub(crate) fn flat_index(&mut self, array: VarId, index: &[Expr]) -> String {
         let name = self.name(array);
         self.flat_index_in(&name, index)
+    }
+
+    /// The test that the array whose descriptor is `desc` has no storage: not allocated, or with libqb's
+    /// `nothingvalue` as its data (as [`Self::copy_whole`] tests it).
+    pub(crate) fn whole_missing(desc: &str) -> String {
+        format!("(!({desc}[2]&1)||(!{desc}[0])||({desc}[0]==(ptrszint)nothingvalue))")
+    }
+
+    /// The position of a whole array's first element, 0, as a C expression that raises error 9 first while the array
+    /// has no storage (`study\39` row 7, `QB64PE-DIVERGENCES.md` D-042): the old compiler takes the 8 bytes of libqb's
+    /// `nothingvalue`, which every array without storage shares, so a `READ` or `LINE INPUT #` into it changes
+    /// what every later `PRINT` shows (`verification\v54_d_whole_erased`, `v62_c1`–`c5`). The statement then stores
+    /// nothing, as after an index outside the bounds. Below `$CHECKING:OFF`, 0 as the old compiler writes it.
+    fn whole_index(&self, desc: &str) -> String {
+        if !self.checking {
+            return "0".to_string();
+        }
+        format!("({}?(qbr_diverged(42),error(9),0):0)", Self::whole_missing(desc))
     }
 
     /// [`Self::flat_index`] against the descriptor named `desc`: an array variable's, or the `passN` that holds
@@ -36,7 +54,7 @@ impl Emitter<'_> {
     fn flat_index_in(&mut self, desc: &str, index: &[Expr]) -> String {
         let n = index.len();
         if n == 0 {
-            return "0".to_string();
+            return self.whole_index(desc);
         }
         let parts: Vec<String> = index
             .iter()

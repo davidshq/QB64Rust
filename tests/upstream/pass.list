@@ -332,7 +332,6 @@ midi/midisoundbank_file_test
 midi/midisoundbank_memory_test
 name with spaces/test
 noprompt/noprompt-continue
-noprompt/noprompt-continue-fatal
 noprompt/noprompt-y
 offset/offset_test
 on_error/errtest

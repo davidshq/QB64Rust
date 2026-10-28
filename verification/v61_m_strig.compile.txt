@@ -1,0 +1,5 @@
+
+Name already in use (STRIG)
+Caused by (or after):
+LINE 4:STRIG AS INTEGER
+exit=1

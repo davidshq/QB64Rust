@@ -46,6 +46,17 @@ export function affectsCompilerPath(e: vscode.ConfigurationChangeEvent): boolean
     return e.affectsConfiguration(`${SECTION}.compilerPath`);
 }
 
+/** `qb64rust.toolchainPath`: a C++ toolchain folder of one's own (change m6-toolchain, design D6); empty means the
+ * one `qb64rust toolchain path` reports. */
+export function toolchainPath(): string {
+    return settings().get<string>("toolchainPath", "").trim();
+}
+
+/** A change after which the toolchain is looked for again: its setting, QB64pe's or the binary's. */
+export function affectsToolchainPath(e: vscode.ConfigurationChangeEvent): boolean {
+    return e.affectsConfiguration(`${SECTION}.toolchainPath`) || e.affectsConfiguration(`${SECTION}.compilerPath`) || e.affectsConfiguration(`${SECTION}.path`);
+}
+
 /** `qb64rust.path`: the `qb64rust` binary the language server runs from; empty means `qb64rust` on PATH. */
 export function serverPath(): string {
     return settings().get<string>("path", "").trim();

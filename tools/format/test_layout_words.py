@@ -37,6 +37,10 @@ class ScanTest(unittest.TestCase):
         got = self.scan('l$ = SCase$("$ExeIcon:\'") + x$\nl$ = SCase$("$Resize:Stretch")\n')
         self.assertEqual(got, {"$EXEICON:'": "$ExeIcon:'", "$RESIZE:STRETCH": "$Resize:Stretch"})
 
+    def test_a_parenthesis_inside_a_literal_keeps_the_call(self):
+        got = self.scan('l$ = SCase$("Call" + sp + "Absolute" + sp2 + "(" + sp2)\n')
+        self.assertEqual(got, {"CALL": "Call", "ABSOLUTE": "Absolute", "(": "("})
+
     def test_calls_in_comments_and_computed_calls_are_left_out(self):
         got = self.scan("x$ = SCase$(t$) ' SCase$(\"Wrong\")\ny$ = SCase$(RTRIM$(id.cn))\n")
         self.assertEqual(got, {})

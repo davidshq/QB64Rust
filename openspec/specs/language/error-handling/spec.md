@@ -22,15 +22,20 @@ that does not exist, SHALL be compile errors.
 remove it. When a statement raises a trappable error and a handler is active and not already running, the rest of
 the statement SHALL be skipped and the handler SHALL run, with `ERR` giving the error number. Without a handler,
 the error SHALL be reported by the runtime as with the old compiler. Errors the runtime treats as fatal (for
-example division by zero, error 11) SHALL NOT be trappable.
+example out of stack space, error 256) SHALL NOT be trappable. Error 11, division by zero, SHALL be trappable,
+raised by `\`, `MOD` or `ERROR 11` (`study\39` row 12; a `QB64PE-DIVERGENCES.md` row).
 
 #### Scenario: Handler runs
 - **WHEN** `ON ERROR GOTO handler` precedes `ERROR 5`, and the handler prints `ERR`
 - **THEN** it prints ` 5 `
 
 #### Scenario: Fatal error is not trapped
-- **WHEN** `ON ERROR GOTO handler` precedes `ERROR 11`
-- **THEN** the handler does not run, and the program stops with "Division by zero"
+- **WHEN** `ON ERROR GOTO handler` precedes `ERROR 256`
+- **THEN** the handler does not run, and the program stops with "Out of stack space"
+
+#### Scenario: ERROR 11 is trapped
+- **WHEN** `ON ERROR GOTO handler` precedes `ERROR 11`, and the handler prints `ERR` and resumes next
+- **THEN** it prints ` 11 `, and the program goes on
 
 ### Requirement: Resume
 `RESUME` and `RESUME 0` SHALL run the statement that raised the error again from its start; `RESUME NEXT` SHALL
@@ -259,10 +264,11 @@ SHALL be the old compiler's error, and `RESUME` in a FUNCTION a compile error (`
 
 ### Requirement: $ERRORLOCATION
 `$ERRORLOCATION:ON` SHALL make the program record the line of each statement before it runs, as the old
-compiler's program does, so that a critical error's message (out of stack space, division by zero, the library
-errors) names that line and its file: "Line: n (in main module)" or "Line: n (in file.bi)". `$ERRORLOCATION:OFF`,
-or neither, SHALL keep today's message. The setting SHALL hold for the whole program, also from an included file
-alone (measured, `verification\v58_e01`–`e26`).
+compiler's program does, so that a critical error's message (out of stack space, the library errors) names that
+line and its file: "Line: n (in main module)" or "Line: n (in file.bi)". `$ERRORLOCATION:OFF`, or neither, SHALL
+keep today's message. The setting SHALL hold for the whole program, also from an included file alone (measured,
+`verification\v58_e01`–`e26`). A division by zero is not a critical error (requirement "Error handler"): with no
+handler it SHALL give the message of any other untrapped run-time error, with or without the setting.
 
 #### Scenario: A critical error with the setting on
 - **WHEN** a `$CONSOLE:ONLY` program with `$ERRORLOCATION:ON` recurses in a SUB until the stack runs out
@@ -285,8 +291,15 @@ alone (measured, `verification\v58_e01`–`e26`).
 
 #### Scenario: A division by zero on a joined line
 - **WHEN** a `$ERRORLOCATION:ON` program divides an integer by zero in a statement that starts on line 7 and
-  continues on line 8 with `_`
-- **THEN** the message names line 8, as the old compiler's program's does (`verification\v58_e23`)
+  continues on line 8 with `_`, with no handler and `QB64PE_NOPROMPT=y`
+- **THEN** the message names line 8 and "Division by zero", as the old compiler's program's does
+  (`verification\v58_e23`)
+
+#### Scenario: A division by zero with the setting off
+- **WHEN** a program without `$ERRORLOCATION` divides an integer by zero on line 6, with no handler and
+  `QB64PE_NOPROMPT=y`
+- **THEN** it prints `Runtime error: Line: 6 (in main module)` and `Division by zero`, as for any other untrapped
+  error, where the old compiler's program prints its critical message with no line (`verification\v58_e21`)
 
 ### Requirement: $ERRORLOCATION set twice
 A program SHALL be the old compiler's error when its `$ERRORLOCATION` lines do not all agree: one `ON` and one
@@ -307,3 +320,47 @@ stand at the first `$ERRORLOCATION` line in file order whose setting differs fro
 #### Scenario: The same setting twice
 - **WHEN** a program has `$ERRORLOCATION:ON` twice
 - **THEN** it compiles
+
+### Requirement: RESUME leaves a SUB through its exit
+A `RESUME`, `RESUME 0` or `RESUME NEXT` that leaves a SUB (requirement "RESUME inside a procedure") SHALL leave it
+as `EXIT SUB` does, whatever the fixes: the SUB's strings SHALL be released and the `_MEM` blocks of its locals
+SHALL no longer be valid (`study\39` row 13; a `QB64PE-DIVERGENCES.md` row).
+
+#### Scenario: A block of a local after RESUME
+- **WHEN** a SUB takes `m = _MEM(x)` of a local `x`, raises error 5, and a main-module handler's call of the SUB
+  ends at the SUB's `RESUME NEXT`, after which the main module tests `_MEMEXISTS(m)` of a copy of `m` kept in a
+  shared variable
+- **THEN** `_MEMEXISTS` gives 0
+
+### Requirement: Fix resume-after-block
+With the fix `resume-after-block` on, `RESUME NEXT` after an error raised in the condition of a `WHILE`, `DO
+WHILE`, `DO UNTIL`, `LOOP WHILE`, `LOOP UNTIL`, `IF` or `ELSEIF` SHALL go on after the whole block (after its
+`WEND`, `LOOP` or `END IF`; after the line of a one-line `IF`). `RESUME` SHALL still evaluate the condition again.
+With the fix off, requirement "Errors in block headers" holds.
+
+#### Scenario: WHILE condition raises
+- **WHEN** `WHILE LEN(CHR$(k)) = 1: PRINT "body": WEND: PRINT "after"` runs with `k = -1`, the fix on, and a
+  handler that executes `RESUME NEXT`
+- **THEN** the handler runs, then `after` is printed and `body` is not
+
+#### Scenario: IF condition raises
+- **WHEN** `IF CHR$(k) = "a" THEN PRINT "in then" ELSE PRINT "in else"` then `PRINT "next"` runs with `k = -1`,
+  the fix on, and a handler executing `RESUME NEXT`
+- **THEN** the handler runs, then only `next` is printed
+
+#### Scenario: Fix off
+- **WHEN** the same `WHILE` runs with the fixes off
+- **THEN** `body` is printed as the old compiler prints it (requirement "Errors in block headers")
+
+### Requirement: Fix resume-in-procedure
+With the fix `resume-in-procedure` on, every form of `RESUME` written inside a SUB or FUNCTION SHALL be a compile
+error at it, saying that `RESUME` belongs in a handler of the main module, as in QuickBASIC 4.5
+(`verification\qb45\q45_resume_in_sub`).
+
+#### Scenario: RESUME NEXT in a SUB
+- **WHEN** a SUB holds `RESUME NEXT` and the fix is on
+- **THEN** the compile fails with an error at `RESUME NEXT`, not marked "not supported yet"
+
+#### Scenario: Fix off
+- **WHEN** the same program is built with the fixes off
+- **THEN** it compiles (requirement "RESUME inside a procedure")

@@ -118,6 +118,10 @@ export class LanguageServer implements vscode.Disposable {
                 { language: "qb64rust", scheme: "untitled" },
             ],
             diagnosticCollectionName: "qb64rust",
+            // A `qb64rust.toml` created, changed or deleted: the server parses the open programs again (spec
+            // editor/language-server, "Settings file changed"; design D3 of fixes-switch). The watcher is disposed with
+            // the client.
+            synchronize: { fileEvents: vscode.workspace.createFileSystemWatcher("**/qb64rust.toml") },
             initializationOptions: initializationOptions(
                 config.defaultEncoding(),
                 config.includeRoot(),

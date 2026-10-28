@@ -47,7 +47,7 @@ A layout setting that is not given SHALL take QB64pe's built-in default: `AutoIn
 
 ### Requirement: Output equal to the old compiler's
 For a program the old compiler formats, the output SHALL equal `qb64pe -y`'s output with the same settings, byte for
-byte after line endings are taken as LF, unless a row of `DIVERGENCES.md` says otherwise. This SHALL hold for
+byte after line endings are taken as LF, unless a row of `QB64PE-DIVERGENCES.md` says otherwise. This SHALL hold for
 spacing, keyword case, indentation, metacommands, comments, labels and line numbers.
 
 #### Scenario: Spacing and keyword case

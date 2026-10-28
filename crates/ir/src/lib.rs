@@ -38,7 +38,7 @@
 //!   the indexes and a string after them**, the indexes from left to right, outermost first (measured,
 //!   `verification\v18_h_member_index_order`, `v24_h_member_store`, `v24_x313`, `x316`). It is skipped when an
 //!   index is out of range or when the indexes raised an error while none was pending before them
-//!   (`DIVERGENCES.md` D-004; the old compiler writes element 0 of the dimension whose index was outside); an
+//!   (`QB64PE-DIVERGENCES.md` D-004; the old compiler writes element 0 of the dimension whose index was outside); an
 //!   error the string value raises after the indexes does not skip it. A store into a variable or into a member
 //!   of one does not check. An index out of range raises error 9, and a read with it gives the value at position
 //!   0 of its dimension (measured, `verification\v18_*`, `v24_h_member_store`).
@@ -67,6 +67,13 @@
 //! `LOOP UNTIL` is not taken, so the loop is left; a `FOR` header stores its three limits from the placeholder
 //! values ([`Op::AssignAll`]), does not take its jump to the loop's entry, and runs the body with the variable
 //! unassigned.
+//!
+//! Two fixes of the switch (spec `compiler/fixes`) change where an error is resumed, each off unless turned on. With
+//! `resume-after-block`, a header's test carries the block's end ([`Stmt::next`]): [`Resume::Next`] of an error
+//! serviced at its boundary continues there, after the `END IF`, `WEND` or `LOOP`, and [`Resume::Retry`] still tests
+//! the condition again. With `checking-on-service`, an error left pending by statements below `$CHECKING:OFF` is
+//! serviced before the first checked statement that runs after them (the backend's), so both [`Resume::Next`] and
+//! [`Resume::Retry`] go on with that statement.
 //! - **Optional arguments are present or absent** ([`ExprKind::Call`] slots are `Option`s in table order).
 //! - **Every conversion is explicit** ([`ExprKind::Convert`]); every operation states the type it computes in.
 //!   Three operations take numbers of any type and convert them themselves, each to the type the node states:
@@ -76,7 +83,7 @@
 //! - **A value is one expression**: nothing of it is evaluated before or apart from it. So an
 //!   [`ExprKind::Choice`] evaluates its condition and then only the part chosen, and the right operand of
 //!   `_ANDALSO` and `_ORELSE` only when the left one does not decide.
-//! - **Integer overflow wraps** in two's complement (`DIVERGENCES.md` D-001, D-002).
+//! - **Integer overflow wraps** in two's complement (`QB64PE-DIVERGENCES.md` D-001, D-002).
 
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\archive\21).
 #![warn(clippy::wildcard_enum_match_arm)]
@@ -112,8 +119,8 @@ pub use qb64rust_sema::builtins;
 /// procedure ids are `sema`'s; the IR's variable list is `sema`'s with the lowering's temporaries appended
 /// ([`Program::vars`]).
 pub use qb64rust_sema::{
-    AddressWord, Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference, StmtArg,
-    VarId,
+    AbsArg, AddressWord, Arg, ArrayRef, Expr, ExprKind, InputSource as Source, MemValue, Place, ProcId, Reference,
+    StmtArg, VarId,
 };
 /// What a variable is, a scalar, a static array or a dynamic one, is `sema`'s decision and type (design D3 of
 /// `m2-defxxx-common-arrays`), as is what an allocation does with an array that is allocated already.
@@ -350,7 +357,7 @@ impl Facts for Arg {
     fn may_raise(&self) -> bool {
         match self {
             Arg::Ref(place) => Facts::may_raise(place),
-            Arg::Temp(v) | Arg::Value(v) => v.may_raise(),
+            Arg::Temp(v, _) | Arg::Value(v) => v.may_raise(),
             Arg::Array(array) => array.may_raise(),
             Arg::Null => false,
         }
@@ -364,7 +371,7 @@ impl Facts for Arg {
                 place.uses_strings(p)
                     || (!matches!(place, Place::Var(_)) && matches!(p.place_ty(place), Ty::FixedStr(_)))
             }
-            Arg::Temp(v) | Arg::Value(v) => v.uses_strings(p),
+            Arg::Temp(v, _) | Arg::Value(v) => v.uses_strings(p),
             Arg::Array(array) => array.indexes().iter().any(|v| v.uses_strings(p)),
             Arg::Null => false,
         }
@@ -478,7 +485,7 @@ pub enum Op {
     ///    flat position (first dimension fastest) keep their values, as many as the smaller of the old and the
     ///    new number of elements; with [`AllocMode::Retain`] each element whose indexes lie within both the old
     ///    and the new bounds of every dimension keeps its value at the same indexes. "Old" is the array as it is
-    ///    after step 3: a FUNCTION in a bound may have given it other bounds or erased it (`DIVERGENCES.md`
+    ///    after step 3: a FUNCTION in a bound may have given it other bounds or erased it (`QB64PE-DIVERGENCES.md`
     ///    D-018; the old compiler takes it before step 3 and frees a block twice).
     ///
     /// The array may be static or dynamic. Always may raise.
@@ -513,12 +520,12 @@ pub enum Op {
     ///
     /// 1. `to`'s place is found, then `from`'s, each once (an [`ArrayRef::Member`] with indexes on the way: an
     ///    index outside its bounds raises error 9, and the member of the element at position 0 stands in);
-    /// 2. **if an error was raised so far, nothing is copied** (`DIVERGENCES.md` D-004: the old compiler copies a
+    /// 2. **if an error was raised so far, nothing is copied** (`QB64PE-DIVERGENCES.md` D-004: the old compiler copies a
     ///    `STRING` member array through the one of element 0);
     /// 3. both arrays must be allocated (a static array always is, also after `ERASE`) and have, in every
     ///    dimension, the same lower bound and number of elements; else error 9, and nothing is copied, but for
     ///    two array variables of an owner type, which copy the target's number of elements after the error when
-    ///    the source has that many, as the old compiler does (`DIVERGENCES.md` D-022: it also does when the source
+    ///    the source has that many, as the old compiler does (`QB64PE-DIVERGENCES.md` D-022: it also does when the source
     ///    has fewer, reading past it);
     /// 4. the same block on both sides (`a() = a()`) copies nothing;
     /// 5. every element is copied deep, by kind: a `STRING` as a string of its own, a user type as
@@ -538,7 +545,7 @@ pub enum Op {
     ///    member that a `REDIM` gave another number of dimensions than declared raises error 9 and is not copied);
     /// 2. every lower bound, then every upper bound, then every start is evaluated, first dimension first. **A
     ///    raising bound or start does not stop the copy**, which goes on with its value;
-    /// 3. **if finding a place raised, nothing is copied** (`DIVERGENCES.md` D-004: the old compiler copies
+    /// 3. **if finding a place raised, nothing is copied** (`QB64PE-DIVERGENCES.md` D-004: the old compiler copies
     ///    through the member of element 0);
     /// 4. both arrays must be allocated (a static array always is, also after `ERASE`); every range must lie in
     ///    the source with its lower bound not above its upper; the elements must fit in the destination: from the
@@ -679,6 +686,10 @@ pub enum Op {
     Stop,
     /// A SUB call; one argument per parameter. Always may raise.
     Call { proc: ProcId, args: Vec<Arg> },
+    /// `CALL ABSOLUTE` (design D3 of `qbasic-testcases`): the machine code at `offset` (`_UNSIGNED INTEGER`) in the
+    /// `DEF SEG` segment, run by libqb's emulator, with each argument's offset in `dblock` pushed ([`AbsArg`]).
+    /// Always may raise.
+    CallAbsolute { args: Vec<AbsArg>, offset: Expr },
     /// A built-in statement that is one call of the runtime (design D2 of `m2-builtin-statements`): the built-in by
     /// its table entry, which also says which form was written, and one slot per argument or choice of its template
     /// in template order ([`builtins::stmt_slots`]). The values are evaluated in order; the call is made also after
@@ -768,6 +779,7 @@ impl Op {
             Op::Clear { array } | Op::Release { array } => array.may_raise(),
             // `RESUME` outside a handler raises error 20, `RETURN` with no `GOSUB` pending error 3.
             Op::Call { .. }
+            | Op::CallAbsolute { .. }
             | Op::Builtin { .. }
             | Op::OnEvent { .. }
             | Op::Key(_)
@@ -854,6 +866,11 @@ pub struct Stmt {
     /// the statement is written without its event check and its index checks (design D3, D4 of
     /// `m4-handlers-logging-checking`).
     pub checked: bool,
+    /// Where `RESUME NEXT` goes after an error that this statement's boundary services, when not to the statement
+    /// after it: with the fix `resume-after-block` (spec `compiler/fixes`), the end of the block whose header's
+    /// condition this statement tests (`IF`, `ELSEIF`, `WHILE`, `DO WHILE`, `DO UNTIL`). `None` otherwise, the rule
+    /// of the module comment.
+    pub next: Option<LabelId>,
 }
 
 /// A sequence of statements: the main module's, or a procedure's.
@@ -916,6 +933,8 @@ pub struct Settings {
     /// `$ERRORLOCATION:ON`: the program records each statement's line before it runs, so that a critical error's
     /// message names it (design D6 of `m4-builtins-remaining`). How is the backend's (`error_track_line` in C++).
     pub error_location: bool,
+    /// The fixes the program is built with (spec `compiler/fixes`), as `sema` was given them.
+    pub fixes: qb64rust_base::fixes::Fixes,
 }
 
 impl Program {

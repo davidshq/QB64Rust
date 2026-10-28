@@ -1,0 +1,4 @@
+
+Runtime error: Out of memory
+Enable $ErrorLocation:ON for source location details.
+1. REDIM r(2 TO m, 3), m = 0:exit=0

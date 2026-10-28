@@ -43,6 +43,7 @@ memset((void*)(__ARRAY_DOUBLE_B[0]),0,__ARRAY_DOUBLE_B[9]*__ARRAY_DOUBLE_B[5]*8)
 memset((void*)(__ARRAY_UDT_PARENT[0]),0,__ARRAY_UDT_PARENT[5]*200);
 *__SINGLE_N=0;
 if (__ARRAY_INTEGER_D[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_INTEGER_D)[8])->id=(++mem_lock_id);
 if (__ARRAY_INTEGER_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_INTEGER_D[0])); else free((void*)(__ARRAY_INTEGER_D[0]));
 __ARRAY_INTEGER_D[2]^=1;
 __ARRAY_INTEGER_D[4]=2147483647;
@@ -144,10 +145,10 @@ exit(99);
 #include "main0.txt"
 #include "main1.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -200,13 +201,37 @@ ptrszint alloc_old_block=__ARRAY_INTEGER_D[0];
 #line 17 "len_whole_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_INTEGER_D[2]&1;
 #line 17 "len_whole_cpp.bas"
+int32 alloc_none=0;
+#line 17 "len_whole_cpp.bas"
 alloc_new_desc[4]=3ll;
 #line 17 "len_whole_cpp.bas"
 alloc_new_desc[5]=(qbr(*__SINGLE_N))-alloc_new_desc[4]+1;
 #line 17 "len_whole_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 17 "len_whole_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 17 "len_whole_cpp.bas"
 alloc_new_desc[6]=1;
+#line 17 "len_whole_cpp.bas"
+if (alloc_none){
+#line 17 "len_whole_cpp.bas"
+qbr_diverged(40);
+#line 17 "len_whole_cpp.bas"
+if (__ARRAY_INTEGER_D[2]&1){
+#line 17 "len_whole_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_INTEGER_D)[8])->id=(++mem_lock_id);
+#line 17 "len_whole_cpp.bas"
+if (__ARRAY_INTEGER_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_INTEGER_D[0])); else free((void*)(__ARRAY_INTEGER_D[0]));
+#line 17 "len_whole_cpp.bas"
+__ARRAY_INTEGER_D[2]^=1;
+#line 17 "len_whole_cpp.bas"
+__ARRAY_INTEGER_D[4]=2147483647;__ARRAY_INTEGER_D[5]=0;__ARRAY_INTEGER_D[6]=0;
+#line 17 "len_whole_cpp.bas"
+__ARRAY_INTEGER_D[0]=(ptrszint)nothingvalue;
+#line 17 "len_whole_cpp.bas"
+}
+#line 17 "len_whole_cpp.bas"
+}else{
 #line 17 "len_whole_cpp.bas"
 if (__ARRAY_INTEGER_D[0]!=alloc_old_block||(__ARRAY_INTEGER_D[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 17 "len_whole_cpp.bas"
@@ -303,6 +328,8 @@ __ARRAY_INTEGER_D[5]=alloc_new_desc[5];
 __ARRAY_INTEGER_D[6]=alloc_new_desc[6];
 #line 17 "len_whole_cpp.bas"
 __ARRAY_INTEGER_D[7]=alloc_new_desc[7];
+#line 17 "len_whole_cpp.bas"
+}
 #line 17 "len_whole_cpp.bas"
 }
 #line 17 "len_whole_cpp.bas"

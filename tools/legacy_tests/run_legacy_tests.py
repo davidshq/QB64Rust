@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Windows-friendly runner for the QB64pe test suites.
 
-Re-implements tests/compile_tests.sh, tests/qbasic_tests.sh and tests/format_tests.sh
-from the QB64pe repository so they can run without bash. It works with any compiler
+Re-implements tests/compile_tests.sh, tests/qbasic_tests.sh, tests/format_tests.sh and
+tests/add_prefix_test.sh from the QB64pe repository so they can run without bash. It works with any compiler
 that accepts the qb64pe command line (-x, -y, -q, -m, -o, -f:...), so the same runner
 can measure the old compiler (baseline) and, later, the new one.
 
@@ -20,6 +20,10 @@ Rules followed from format_tests.sh:
   * each variant: qb64 -y -m <flags> <name>.bas -o <out>, run in the test's folder;
     must succeed, write the output, and match the expected file with all CRs
     removed and trailing newlines ignored
+Rules followed from add_prefix_test.sh (--suite addprefix):
+  * build internal/support/converter/AddPREFIX.bas, run it on a copy of
+    tests/converter_tests/addprefix.bas (it rewrites the file in place), and compare
+    the copy with addprefix.output, trailing newlines ignored
 For a compiler other than qb64pe (both the compile and the corpus suite), an .err program passes
 when the compile fails, writes no exe and the compiler's last line is its error summary with at
 least one error not marked "not supported yet" ("2 errors (1 not supported yet)"); the .err text
@@ -65,7 +69,7 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     error in the test
   * every run (also in the compile suite) has QB64RUST_DIVERGENCES naming a fresh file in the
     results folder, where a program built by the new compiler writes D-0nn the first time it takes
-    the path of that row of DIVERGENCES.md; when checking, a row that <name>.divergences (one
+    the path of that row of QB64PE-DIVERGENCES.md; when checking, a row that <name>.divergences (one
     D-0nn per line, '#' starts a comment) does not list fails the program (stage "divergences").
     A compile-suite program's sidecar is tests/upstream/divergences/<category>/<name>.divergences
   * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
@@ -129,7 +133,7 @@ it records, with any other compiler it compares (format_corpus_test):
   * comparing: every recording under tests/format is formatted from its source in the same way
     (upstream with --include-root tests/upstream/root); it passes when the exit code is 0 and the
     output equals the recording with line endings taken as LF, or when it differs and the
-    recording's <name>.divergences names a row of DIVERGENCES.md. Nothing is written into
+    recording's <name>.divergences names a row of QB64PE-DIVERGENCES.md. Nothing is written into
     tests/format. --jobs, --category (a set) and --glob apply
   * the other layout settings (m5b-format-settings): each program tests/format/settings.list names
     (<set>/<path within the set>, '#' comments) is also recorded and compared under each variant of
@@ -272,6 +276,13 @@ def compile_sidecar(category: str, name: str) -> Path:
 def include_root_args(qb64: Path) -> list[str]:
     """The new compiler's --include-root; qb64pe finds included files under its own folder."""
     return [] if is_old_compiler(qb64) else ["--include-root", str(INCLUDE_ROOT)]
+
+
+def fixes_args(qb64: Path) -> list[str]:
+    """`--fixes off` for the new compiler, in every command that compiles or lays out a program, so that a
+    qb64rust.toml in the tree or above it changes no result (spec testing/verification-suite, "Suites build with
+    the fixes off"; OpenSpec change fixes-switch, design D4). qb64pe has no such option."""
+    return [] if is_old_compiler(qb64) else ["--fixes", "off"]
 
 
 # The new compiler's last line after errors in the program (spec compiler/cli): "1 error",
@@ -564,6 +575,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         "-m",
         "-x",
         *include_root_args(args.qb64),
+        *fixes_args(args.qb64),
         *(["--coverage"] if getattr(args, "coverage", None) else []),
     ]
     if (tdir / f"{name}.compile-from-base").is_file():
@@ -670,7 +682,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         return fail("result", "program output differs from .output")
     odd = unexpected_rows(trace, allowed_rows(sidecar))
     if odd:
-        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
+        return fail("divergences", "took " + ", ".join(odd) + " of QB64PE-DIVERGENCES.md")
     if remembered:
         remembered.parent.mkdir(parents=True, exist_ok=True)
         remembered.touch()
@@ -678,29 +690,138 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     return r
 
 
+def jobs_problem(jobs: int, suite: str, record: bool, qb64: Path, qb_root: Path) -> str | None:
+    """Why --jobs cannot be used as given, or None. Above 1 it needs a suite that compiles each program on its
+    own: the corpus and compile suites, a compare of the verification and format-corpus suites, and the qbasic
+    suite with a compiler other than qb64pe (which builds in the clone's internal/temp); never --record."""
+    if jobs <= 1:
+        return None
+    old = is_old_compiler(qb64)
+    if record or (old and suite in ("verification", "format-corpus", "qbasic")) or suite not in (
+        "corpus",
+        "compile",
+        "verification",
+        "format-corpus",
+        "qbasic",
+    ):
+        return (
+            "--jobs above 1 needs --suite corpus or compile, or a compare of --suite verification or "
+            "format-corpus, or --suite qbasic with a compiler other than qb64pe, and no --record"
+        )
+    # The compile suite's programs include files relative to the compiler's folder and some compile
+    # from the clone's root; a copy has neither.
+    if old and (suite != "corpus" or qb64 != qb_root / "qb64pe.exe"):
+        return "--jobs above 1 with qb64pe needs --suite corpus and the qb64pe.exe of --qb-root"
+    return None
+
+
+def remove_stale_exe(exe: Path) -> None:
+    """Removes an executable of an earlier run and whatever begins with its name: a folder is a build folder
+    qb64rust kept after a failed build."""
+    for stale in exe.parent.glob(glob.escape(exe.name) + "*"):
+        if stale.is_dir():
+            shutil.rmtree(stale, ignore_errors=True)
+        else:
+            stale.unlink(missing_ok=True)
+
+
 def qbasic_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
-    """Compiles one program of the qbasic suite; it passes when the compile succeeds."""
+    """Compiles one program of the qbasic suite; it passes when the compile succeeds. qb64rust builds in a
+    folder of its own beside the executable, so several programs may compile at a time (--jobs)."""
     rel = bas.relative_to(qb_root / "tests" / "qbasic_testcases").as_posix()
     r = Result("qbasic_testcases", rel, "compile-only")
     t0 = time.time()
-    clear_temp(qb_root)
+    old = is_old_compiler(args.qb64)
+    if old:
+        clear_temp(qb_root)
     key = rel.replace("/", "-")[:-4]
     exe = results / f"{key}-output.exe"
-    exe.unlink(missing_ok=True)
+    remove_stale_exe(exe)
     rc, timed_out = run_proc(
-        [str(args.qb64), "-x", str(bas.relative_to(qb_root)), "-o", str(exe)],
+        [
+            str(args.qb64),
+            "-x",
+            *fixes_args(args.qb64),
+            str(bas.relative_to(qb_root)),
+            "-o",
+            str(exe),
+        ],
         qb_root,
         results / f"{key}-compile_result.txt",
         COMPILE_TIMEOUT,
     )
-    copy_if_exists(
-        qb_root / "internal" / "temp" / "compilelog.txt", results / f"{key}-compilelog.txt"
-    )
+    log = results / f"{key}-compilelog.txt"
+    if old:
+        copy_if_exists(qb_root / "internal" / "temp" / "compilelog.txt", log)
+    else:
+        log.unlink(missing_ok=True)  # a log of an earlier qb64pe run
     r.seconds = round(time.time() - t0, 1)
     if timed_out or rc != 0:
         r.status, r.stage = "FAIL", "compile"
         r.detail = "timeout" if timed_out else f"exit code {rc}"
     return r
+
+
+def addprefix_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
+    """QB64pe's add_prefix_test.sh: builds the $NOPREFIX converter (internal/support/converter/AddPREFIX.bas),
+    runs it on a copy of tests/converter_tests/addprefix.bas, which it rewrites in place, and compares the copy
+    with addprefix.output, trailing newlines (and a CR before each) ignored, as the script's $(cat …) drops
+    trailing LFs."""
+    r = Result("addprefix", "AddPREFIX", "convert")
+    t0 = time.time()
+
+    def fail(stage: str, detail: str) -> Result:
+        r.status, r.stage, r.detail = "FAIL", stage, detail
+        r.seconds = round(time.time() - t0, 1)
+        return r
+
+    # Only qb64pe builds in the clone's internal/temp; another compiler's run copies no log of it.
+    old = is_old_compiler(args.qb64)
+    if old:
+        clear_temp(qb_root)
+    exe = results / "AddPREFIX.exe"
+    remove_stale_exe(exe)
+    rc, timed_out = run_proc(
+        [
+            str(args.qb64),
+            "-x",
+            *fixes_args(args.qb64),
+            str(bas.relative_to(qb_root)),
+            "-o",
+            str(exe),
+        ],
+        qb_root,
+        results / "addprefix-compile_result.txt",
+        COMPILE_TIMEOUT,
+    )
+    log = results / "addprefix-compilelog.txt"
+    if old:
+        copy_if_exists(qb_root / "internal" / "temp" / "compilelog.txt", log)
+    else:
+        log.unlink(missing_ok=True)  # a log of an earlier qb64pe run
+    if timed_out or rc != 0:
+        return fail("compile", "timeout" if timed_out else f"exit code {rc}")
+    if not exe.exists():
+        return fail("exe exists", "no executable produced")
+    cases = qb_root / "tests" / "converter_tests"
+    converted = results / "addprefix.bas"
+    (results / "addprefix-noprefix.bas").unlink(missing_ok=True)  # the converter's backup of a run before
+    shutil.copyfile(cases / "addprefix.bas", converted)
+    rc, timed_out = run_proc(
+        [str(exe), str(converted)], qb_root, results / "addprefix-convert_result.txt", RUN_TIMEOUT
+    )
+    if timed_out or rc != 0:
+        return fail("convert", "timeout" if timed_out else f"exit code {rc}")
+    want = strip_trailing_newlines((cases / "addprefix.output").read_bytes())
+    if strip_trailing_newlines(converted.read_bytes()) != want:
+        return fail("result", "converted file differs from addprefix.output")
+    r.seconds = round(time.time() - t0, 1)
+    return r
+
+
+def addprefix_sources(qb_root: Path) -> list[Path]:
+    """The one program of the addprefix suite: the converter, built from the clone."""
+    return [qb_root / "internal" / "support" / "converter" / "AddPREFIX.bas"]
 
 
 def format_tests(bas: Path, args, results: Path, qb_root: Path) -> list[Result]:
@@ -721,7 +842,16 @@ def format_tests(bas: Path, args, results: Path, qb_root: Path) -> list[Result]:
         output = results / f"{key}-output"
         output.unlink(missing_ok=True)
         rc, timed_out = run_proc(
-            [str(args.qb64), "-y", "-m", *flags, f"{name}.bas", "-o", str(output)],
+            [
+                str(args.qb64),
+                "-y",
+                "-m",
+                *fixes_args(args.qb64),
+                *flags,
+                f"{name}.bas",
+                "-o",
+                str(output),
+            ],
             tdir,
             results / f"{key}-compile_result.txt",
             COMPILE_TIMEOUT,
@@ -886,7 +1016,7 @@ def format_corpus_test(
     differs from what is there other than by CRLF against LF. With another compiler, path is the
     recording; the source is the file at the same path in the set, and the program passes when the
     output equals the recording with line endings taken as LF, or when it differs and the
-    recording's <name>.divergences names a row of DIVERGENCES.md.
+    recording's <name>.divergences names a row of QB64PE-DIVERGENCES.md.
 
     Under another setting (path under format_root/settings/<variant>/, design D1 of m5b-format-settings), with
     either compiler, path is the recording, written or not: the source is formatted with that variant's flags,
@@ -951,7 +1081,16 @@ def format_corpus_test(
     if old:
         clear_temp(qb_root)
     rc, timed_out = run_proc(
-        [str(args.qb64), "-y", "-m", *flags, src.name, "-o", str(output)],
+        [
+            str(args.qb64),
+            "-y",
+            "-m",
+            *fixes_args(args.qb64),
+            *flags,
+            src.name,
+            "-o",
+            str(output),
+        ],
         folder,
         results / f"{key}-format_result.txt",
         COMPILE_TIMEOUT,
@@ -1012,7 +1151,7 @@ def apply_normalize(data: bytes, rules: list[tuple[re.Pattern, str]]) -> bytes:
 
 # The run-time trace of divergences (m3-divergence-trace): a program built by the new compiler appends a line
 # D-0nn to the file this variable names the first time in a run that it takes the path of that row of
-# DIVERGENCES.md; the old compiler's programs know nothing of it. Every run of the corpus and compile suites sets
+# QB64PE-DIVERGENCES.md; the old compiler's programs know nothing of it. Every run of the corpus and compile suites sets
 # it, and a row that the program's <name>.divergences does not list fails the run.
 TRACE_ENV = "QB64RUST_DIVERGENCES"
 
@@ -1269,6 +1408,7 @@ def corpus_test(
                     "-m",
                     "-x",
                     *include_root_args(args.qb64),
+                    *fixes_args(args.qb64),
                     src.name,
                     "-o",
                     str(out),
@@ -1483,7 +1623,7 @@ def corpus_test(
         return fail("result", "program output differs from .output")
     odd = unexpected_rows(trace, allowed_rows(tdir / f"{name}.divergences"))
     if odd:
-        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
+        return fail("divergences", "took " + ", ".join(odd) + " of QB64PE-DIVERGENCES.md")
     if full_states:
         return fail("screen", f"--full-states: the states are in {state_out.name}, not compared")
     if screen and norm_output(screen_file.read_bytes()) != norm_output(states[0]):
@@ -1926,14 +2066,27 @@ def first_difference(want: bytes, got: bytes) -> str:
     return f"line {n}: " + ("the recording goes on" if len(a) > len(b) else "the run goes on")
 
 
-def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Result:
-    """Compares the new compiler with one recorded verification program (module docstring)."""
+def fixed_sidecar(name: str) -> Path:
+    """The output a verification program gives with the fixes on, written by hand from the fixes' specified
+    behaviour (tests/verification/README.md; OpenSpec change fixes-switch, design D4)."""
+    return VERIFICATION_LISTS / "fixed" / f"{name}.out.txt"
+
+
+def verification_compare(
+    bas: Path, args, results: Path, qb_root: Path, fixed: bool = False
+) -> Result:
+    """Compares the new compiler with one recorded verification program (module docstring). With `fixed`, the
+    program is built with `--fixes on` in a folder of its own and compared with its fixed\\ sidecar, as the result
+    `<name> [fixes on]`."""
     name = bas.stem
     root = bas.parent
-    recorded_file = root / f"{name}.out.txt"
+    recorded_file = fixed_sidecar(name) if fixed else root / f"{name}.out.txt"
     recorded = recorded_file.read_bytes() if recorded_file.is_file() else None
     rejected = recorded is not None and recorded.replace(b"\r\n", b"\n") == NOT_COMPILED
-    r = Result("verification", name, "error" if rejected else "output")
+    test = f"{name} [fixes on]" if fixed else name
+    r = Result("verification", test, "error" if rejected else "output")
+    # The files and the folder of the run, apart from the run with the fixes off.
+    tag = f"{name}.fixed" if fixed else name
     t0 = time.time()
 
     def finish(status="PASS", stage="", detail=""):
@@ -1958,7 +2111,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
 
     # A fresh folder per program, with the family's support files: nothing written in the verification
     # folder, nothing shared between programs run side by side.
-    work = results / name
+    work = results / tag
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True)
@@ -1974,7 +2127,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
         else:
             shutil.copyfile(item, work / item.name)
     exe = work / f"{name}.exe"
-    compile_out = results / f"{name}-compile.txt"
+    compile_out = results / f"{tag}-compile.txt"
     env = dict(os.environ)
     env["QB64PE_NOPROMPT"] = "y"
     # The folder and the files the old compiler found in its own folder, under a root of their own, in
@@ -1989,7 +2142,18 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
         root_args = ["--include-root", str(work / "root")]
     coverage_flag = ["--coverage"] if getattr(args, "coverage", None) else []
     rc, timed_out = run_proc(
-        [str(args.qb64), "-x", "-q", "-m", *coverage_flag, *root_args, bas.name, "-o", str(exe)],
+        [
+            str(args.qb64),
+            "-x",
+            "-q",
+            "-m",
+            *(["--fixes", "on"] if fixed else fixes_args(args.qb64)),
+            *coverage_flag,
+            *root_args,
+            bas.name,
+            "-o",
+            str(exe),
+        ],
         work,
         compile_out,
         COMPILE_TIMEOUT,
@@ -2039,6 +2203,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
             tree_digest(support),
             tree_digest([root / f for f in [root_folder(root, name)] if f]),
             helper.read_bytes() if os.name == "nt" else None,
+            b"fixes on" if fixed else None,
         ]
         remembered = pass_cache / pass_key(exe, parts)
         if remembered.is_file():
@@ -2058,12 +2223,12 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
             cmd.append(str(run_stdin))
     else:
         cmd = [str(exe)]
-    run_out = results / f"{name}-out.txt"
-    trace = results / f"{name}-divergences.txt"
+    run_out = results / f"{tag}-out.txt"
+    trace = results / f"{tag}-divergences.txt"
     set_trace(env, trace)
-    log = results / f"{name}-log.txt"
+    log = results / f"{tag}-log.txt"
     log_env(env, log)
-    counts = results / f"{name}-coverage.txt"
+    counts = results / f"{tag}-coverage.txt"
     coverage_env(args, env, counts)
     rc, timed_out = run_proc(
         cmd,
@@ -2087,7 +2252,7 @@ def verification_compare(bas: Path, args, results: Path, qb_root: Path) -> Resul
         return fail("log", f"differs from {log_file.name}, {first_difference(recorded_log, got_log)}")
     odd = unexpected_rows(trace, allowed_rows(divergences))
     if odd:
-        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES.md")
+        return fail("divergences", "took " + ", ".join(odd) + " of QB64PE-DIVERGENCES.md")
     if remembered:
         remembered.parent.mkdir(parents=True, exist_ok=True)
         remembered.touch()
@@ -2198,6 +2363,8 @@ def program_inputs(suite: str, bas: Path) -> list[Path]:
             sidecar = VERIFICATION_LISTS / kind / f"{bas.stem}.{kind}"
             if sidecar.is_file():
                 found.append(sidecar)
+        if fixed_sidecar(bas.stem).is_file():
+            found.append(fixed_sidecar(bas.stem))
     return found
 
 
@@ -2258,9 +2425,24 @@ def check_list(
             failures.append((name, f"{r['stage']}: {r['detail']}"))
         elif r["detail"] == PASSED_BEFORE:
             failures.append((name, "not run in the full run (--pass-cache)"))
+        elif why := fixed_failure(suite, bas, key, results):
+            failures.append((name, why))
         else:
             passed += 1
     return [], failures, passed
+
+
+def fixed_failure(suite: str, bas: Path, key: tuple[str, str], results: dict) -> str | None:
+    """Why a verification program with a fixed\\ sidecar fails its line by its run with the fixes on (design D4 of
+    fixes-switch: the line passes only when both halves pass), or None."""
+    if suite != "verification" or not fixed_sidecar(bas.stem).is_file():
+        return None
+    f = results.get((key[0], f"{key[1]} [fixes on]"))
+    if f is None:
+        return "[fixes on]: no result in the full run"
+    if f["status"] != "PASS":
+        return f"[fixes on] {f['stage']}: {f['detail']}"
+    return None
 
 
 def load_known_failures(path: Path) -> dict[str, str]:
@@ -2307,6 +2489,8 @@ def run_suite_test(
             return [compile_test(bas, args, results, qb_root, args.os_tag)]
         if suite == "format":
             return format_tests(bas, args, results, qb_root)
+        if suite == "addprefix":
+            return [addprefix_test(bas, args, results, qb_root)]
         if suite == "format-corpus":
             return [format_corpus_test(bas, args, results, qb_root)]
         if suite == "corpus":
@@ -2314,7 +2498,10 @@ def run_suite_test(
         if suite == "verification":
             if is_old_compiler(args.qb64):
                 return [verification_test(bas, args, results, qb_root)]
-            return [verification_compare(bas, args, results, qb_root)]
+            out = [verification_compare(bas, args, results, qb_root)]
+            if fixed_sidecar(bas.stem).is_file():
+                out.append(verification_compare(bas, args, results, qb_root, fixed=True))
+            return out
         return [qbasic_test(bas, args, results, qb_root)]
     # One broken test must not lose a long run's results. Named like the suite's own results, so
     # that known_failures.txt entries match.
@@ -2330,6 +2517,8 @@ def run_suite_test(
             name = ("verification", bas.stem)
         elif suite == "format-corpus":
             name = ("format_corpus", repo_relative(bas.with_suffix("")))
+        elif suite == "addprefix":
+            name = ("addprefix", "AddPREFIX")
         else:
             name = (
                 "qbasic_testcases",
@@ -2450,9 +2639,9 @@ def main() -> int:
     ap.add_argument("--qb64", type=Path, help="compiler executable (default: <qb-root>/qb64pe.exe)")
     ap.add_argument(
         "--suite",
-        choices=["compile", "qbasic", "format", "format-corpus", "corpus", "verification", "all"],
+        choices=["compile", "qbasic", "format", "addprefix", "format-corpus", "corpus", "verification", "all"],
         default="compile",
-        help="'all' is the four test suites; verification and format-corpus (each on its own) record with "
+        help="'all' is the five test suites; verification and format-corpus (each on its own) record with "
         "qb64pe and compare with any other compiler",
     )
     ap.add_argument(
@@ -2524,7 +2713,8 @@ def main() -> int:
         "--jobs",
         type=int,
         default=1,
-        help="corpus, compile and a verification compare: run this many programs at a time. With "
+        help="corpus, compile, a verification or format-corpus compare, and qbasic with a compiler other "
+        "than qb64pe: run this many programs at a time. With "
         "qb64pe: corpus "
         "only, each worker compiling with a private copy of the compiler (--copies-dir)",
     )
@@ -2593,7 +2783,7 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
-    if args.category and args.suite in ("qbasic", "verification", "all"):
+    if args.category and args.suite in ("qbasic", "addprefix", "verification", "all"):
         print(
             "--category applies to the compile, format, format-corpus and corpus suites only",
             file=sys.stderr,
@@ -2679,29 +2869,9 @@ def main() -> int:
         )
         return 2
     recording_format = args.suite == "format-corpus" and is_old_compiler(args.qb64)
-    if args.jobs > 1 and (
-        args.record
-        or recording_verification
-        or recording_format
-        or args.suite not in ("corpus", "compile", "verification", "format-corpus")
-    ):
-        print(
-            "--jobs above 1 needs --suite corpus or compile, or a compare of --suite verification or "
-            "format-corpus, and no --record",
-            file=sys.stderr,
-        )
-        return 2
-    # The compile suite's programs include files relative to the compiler's folder and some compile
-    # from the clone's root; a copy has neither.
-    if (
-        args.jobs > 1
-        and is_old_compiler(args.qb64)
-        and (args.suite != "corpus" or args.qb64 != qb_root / "qb64pe.exe")
-    ):
-        print(
-            "--jobs above 1 with qb64pe needs --suite corpus and the qb64pe.exe of --qb-root",
-            file=sys.stderr,
-        )
+    problem = jobs_problem(args.jobs, args.suite, args.record, args.qb64, qb_root)
+    if problem:
+        print(problem, file=sys.stderr)
         return 2
     args.copies = None  # set per suite below
     args.builds = SharedBuilds()
@@ -2727,7 +2897,7 @@ def main() -> int:
     corpus_root = args.corpus_root.resolve()
     # Where a verification recording keeps its copies of the release for the folders of .root sidecars.
     args.root_copies = args.results.resolve().parent / "qb64pe-root"
-    suites = ["compile", "qbasic", "format", "corpus"] if args.suite == "all" else [args.suite]
+    suites = ["compile", "qbasic", "format", "addprefix", "corpus"] if args.suite == "all" else [args.suite]
     # The tests of every suite are selected before any lock is taken: a usage error is reported at
     # once, not after waiting for another run (--wait).
     selected: list[tuple[str, Path, list[Path]]] = []  # suite, its results folder, its tests
@@ -2802,6 +2972,8 @@ def main() -> int:
             if not recording_verification:
                 # A failure of a program that tests/verification/known.list names is a known one.
                 known.update(load_known_list(VERIFICATION_LISTS / "known.list"))
+        elif suite == "addprefix":
+            tests = addprefix_sources(qb_root)
         else:
             tests = qbasic_sources(qb_root)
         if not tests and wanted is not None and not wanted:

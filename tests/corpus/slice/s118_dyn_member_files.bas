@@ -4,7 +4,7 @@ $UNSTABLE:TYPEFIELDS
 ' (verification\v35_e 5.-6b, v35_x55, v35_x65): the declared layout in the file, a member with other bounds (PUT
 ' raises error 9 and writes nothing), a file open FOR RANDOM (the whole array is one record), nested owner types,
 ' a two-dimensional array with a lower bound that is not 0. Where the new compiler differs on purpose
-' (DIVERGENCES.md D-019: GET into a member with other bounds raises error 9 and keeps the member as it was; the old
+' (QB64PE-DIVERGENCES.md D-019: GET into a member with other bounds raises error 9 and keeps the member as it was; the old
 ' compiler writes the declared bytes into its smaller block) the lines were recorded from a program that, in place
 ' of that GET, gives the member its declared bounds, reads, raises ERROR 9 and puts the member's bounds and element
 ' back.

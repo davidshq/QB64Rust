@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
@@ -50,6 +49,7 @@ memset((void*)(((char*)(__ARRAY_UDT_A[0])+tmp_long*12)+8),0,4);
 }
 *__LONG_I=0;
 if (__ARRAY_UDT_D[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_UDT_D)[8])->id=(++mem_lock_id);
 tmp_long=__ARRAY_UDT_D[5];
 while(tmp_long--){
 qbs_free(*(qbs**)(((char*)(__ARRAY_UDT_D[0])+tmp_long*22)+2));
@@ -123,10 +123,10 @@ exit(99);
 #include "main1.txt"
 #include "main2.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -275,13 +275,47 @@ ptrszint alloc_old_block=__ARRAY_UDT_D[0];
 #line 25 "type_strings_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_UDT_D[2]&1;
 #line 25 "type_strings_cpp.bas"
+int32 alloc_none=0;
+#line 25 "type_strings_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 25 "type_strings_cpp.bas"
 alloc_new_desc[5]=(1ll)-alloc_new_desc[4]+1;
 #line 25 "type_strings_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 25 "type_strings_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 25 "type_strings_cpp.bas"
 alloc_new_desc[6]=1;
+#line 25 "type_strings_cpp.bas"
+if (alloc_none){
+#line 25 "type_strings_cpp.bas"
+qbr_diverged(40);
+#line 25 "type_strings_cpp.bas"
+if (__ARRAY_UDT_D[2]&1){
+#line 25 "type_strings_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_UDT_D)[8])->id=(++mem_lock_id);
+#line 25 "type_strings_cpp.bas"
+tmp_long=__ARRAY_UDT_D[5];
+#line 25 "type_strings_cpp.bas"
+while(tmp_long--){
+#line 25 "type_strings_cpp.bas"
+qbs_free(*(qbs**)(((char*)(__ARRAY_UDT_D[0])+tmp_long*22)+2));
+#line 25 "type_strings_cpp.bas"
+qbs_free(*(qbs**)(((char*)(__ARRAY_UDT_D[0])+tmp_long*22)+14));
+#line 25 "type_strings_cpp.bas"
+}
+#line 25 "type_strings_cpp.bas"
+free((void*)(__ARRAY_UDT_D[0]));
+#line 25 "type_strings_cpp.bas"
+__ARRAY_UDT_D[2]^=1;
+#line 25 "type_strings_cpp.bas"
+__ARRAY_UDT_D[4]=2147483647;__ARRAY_UDT_D[5]=0;__ARRAY_UDT_D[6]=0;
+#line 25 "type_strings_cpp.bas"
+__ARRAY_UDT_D[0]=(ptrszint)nothingvalue;
+#line 25 "type_strings_cpp.bas"
+}
+#line 25 "type_strings_cpp.bas"
+}else{
 #line 25 "type_strings_cpp.bas"
 if (__ARRAY_UDT_D[0]!=alloc_old_block||(__ARRAY_UDT_D[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 25 "type_strings_cpp.bas"
@@ -387,6 +421,8 @@ __ARRAY_UDT_D[7]=alloc_new_desc[7];
 #line 25 "type_strings_cpp.bas"
 }
 #line 25 "type_strings_cpp.bas"
+}
+#line 25 "type_strings_cpp.bas"
 if(!qbevent)break;evnt(25);}while(r);
 #line 26 "type_strings_cpp.bas"
 do{
@@ -419,13 +455,47 @@ ptrszint alloc_old_block=__ARRAY_UDT_D[0];
 #line 26 "type_strings_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_UDT_D[2]&1;
 #line 26 "type_strings_cpp.bas"
+int32 alloc_none=0;
+#line 26 "type_strings_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 26 "type_strings_cpp.bas"
 alloc_new_desc[5]=(3ll)-alloc_new_desc[4]+1;
 #line 26 "type_strings_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 26 "type_strings_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 26 "type_strings_cpp.bas"
 alloc_new_desc[6]=1;
+#line 26 "type_strings_cpp.bas"
+if (alloc_none){
+#line 26 "type_strings_cpp.bas"
+qbr_diverged(40);
+#line 26 "type_strings_cpp.bas"
+if (__ARRAY_UDT_D[2]&1){
+#line 26 "type_strings_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_UDT_D)[8])->id=(++mem_lock_id);
+#line 26 "type_strings_cpp.bas"
+tmp_long=__ARRAY_UDT_D[5];
+#line 26 "type_strings_cpp.bas"
+while(tmp_long--){
+#line 26 "type_strings_cpp.bas"
+qbs_free(*(qbs**)(((char*)(__ARRAY_UDT_D[0])+tmp_long*22)+2));
+#line 26 "type_strings_cpp.bas"
+qbs_free(*(qbs**)(((char*)(__ARRAY_UDT_D[0])+tmp_long*22)+14));
+#line 26 "type_strings_cpp.bas"
+}
+#line 26 "type_strings_cpp.bas"
+free((void*)(__ARRAY_UDT_D[0]));
+#line 26 "type_strings_cpp.bas"
+__ARRAY_UDT_D[2]^=1;
+#line 26 "type_strings_cpp.bas"
+__ARRAY_UDT_D[4]=2147483647;__ARRAY_UDT_D[5]=0;__ARRAY_UDT_D[6]=0;
+#line 26 "type_strings_cpp.bas"
+__ARRAY_UDT_D[0]=(ptrszint)nothingvalue;
+#line 26 "type_strings_cpp.bas"
+}
+#line 26 "type_strings_cpp.bas"
+}else{
 #line 26 "type_strings_cpp.bas"
 if (__ARRAY_UDT_D[0]!=alloc_old_block||(__ARRAY_UDT_D[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 26 "type_strings_cpp.bas"
@@ -545,11 +615,15 @@ __ARRAY_UDT_D[7]=alloc_new_desc[7];
 #line 26 "type_strings_cpp.bas"
 }
 #line 26 "type_strings_cpp.bas"
+}
+#line 26 "type_strings_cpp.bas"
 if(!qbevent)break;evnt(26);}while(r);
 #line 27 "type_strings_cpp.bas"
 do{
 #line 27 "type_strings_cpp.bas"
 if (__ARRAY_UDT_D[2]&1){
+#line 27 "type_strings_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_UDT_D)[8])->id=(++mem_lock_id);
 #line 27 "type_strings_cpp.bas"
 tmp_long=__ARRAY_UDT_D[5];
 #line 27 "type_strings_cpp.bas"
@@ -654,13 +728,23 @@ uint64 alloc_dim_value;
 #line 34 "type_strings_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(12);
 #line 34 "type_strings_cpp.bas"
+int32 alloc_none=0;
+#line 34 "type_strings_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 34 "type_strings_cpp.bas"
 alloc_new_desc[5]=(qbr(*_SUB_LOCAL_SINGLE_I))-alloc_new_desc[4]+1;
 #line 34 "type_strings_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 34 "type_strings_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 34 "type_strings_cpp.bas"
 alloc_new_desc[6]=1;
+#line 34 "type_strings_cpp.bas"
+if (alloc_none){
+#line 34 "type_strings_cpp.bas"
+qbr_diverged(40);
+#line 34 "type_strings_cpp.bas"
+}else{
 #line 34 "type_strings_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 34 "type_strings_cpp.bas"
@@ -711,6 +795,8 @@ _SUB_LOCAL_ARRAY_UDT_LA[5]=alloc_new_desc[5];
 _SUB_LOCAL_ARRAY_UDT_LA[6]=alloc_new_desc[6];
 #line 34 "type_strings_cpp.bas"
 _SUB_LOCAL_ARRAY_UDT_LA[7]=alloc_new_desc[7];
+#line 34 "type_strings_cpp.bas"
+}
 #line 34 "type_strings_cpp.bas"
 }
 #line 34 "type_strings_cpp.bas"

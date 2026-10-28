@@ -93,7 +93,7 @@ fn a_build_changes_nothing_git_sees() {
         assert!(o.status.success());
         o.stdout
     };
-    let clone = qb64rust_driver::build::find_root(None).expect("the QB64pe reference clone");
+    let clone = qb64rust_driver::build::clone_root().expect("the QB64pe reference clone");
     let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let before = (status(&clone, "."), status(&repo, "libqb"));
     let d = scratch("unchanged");
@@ -205,6 +205,50 @@ fn debug_build_is_cached_apart() {
     assert!(!build(true), "a debug build after a plain one builds");
     assert!(build(true), "a second debug build is a hit");
     assert!(build(false), "the plain build's entry is kept");
+}
+
+/// A build is deterministic (`DECISIONS.md` 2026-10-27): the same program built twice with no cache is the same bytes,
+/// so a cache of test passes keyed on the executable holds across a rebuild. A program that calls `_COMPILETIME$` is
+/// the exception: it holds the time of its build.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn builds_are_deterministic() {
+    let d = scratch("deterministic");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let build = || {
+        let mut cmd = compiler();
+        cmd.current_dir(&d)
+            .env_remove("QB64RUST_BUILD_CACHE")
+            .args(["-q", "-x", "p.bas", "-o", "p.exe"]);
+        let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+        assert!(o.status.success(), "{}", stdout(&o));
+        std::fs::read(d.join("p.exe")).unwrap()
+    };
+    let first = build();
+    assert!(first == build(), "two builds of one program differ");
+}
+
+/// A build with the fixes on is not the cached build with them off (spec `compiler/fixes`, "Built again with a fix
+/// turned on"), though this program's C++ is the same either way.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn fixes_build_is_cached_apart() {
+    let d = scratch("fixes-cache");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let cache = d.join("cache");
+    let build = |fixes: &str| {
+        let mut cmd = compiler();
+        cmd.current_dir(&d)
+            .env("QB64RUST_BUILD_CACHE", &cache)
+            .args(["-x", "--fixes", fixes, "p.bas", "-o", "p.exe"]);
+        let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+        assert!(o.status.success(), "{}", stdout(&o));
+        stdout(&o).contains("the same build is in")
+    };
+    assert!(!build("off"), "the first build");
+    assert!(!build("on"), "a build with the fixes on after one with them off builds");
+    assert!(build("on"), "a second build with them on is a hit");
+    assert!(build("off"), "the first build's entry is kept");
 }
 
 /// Builds `program` as `<name>.bas` in `d` with `--debug`, by absolute paths (the `#line` directives then name the
@@ -788,8 +832,10 @@ fn tree_dump() {
     assert!(out.starts_with("tree 0: p.bas\nSourceFile 0..22\n"), "{out}");
 }
 
+/// A QB64pe folder named by the variable that is not one fails the build, naming the option and the variable, before
+/// the toolchain is looked for (design D5 of `m6-toolchain`); the stale executable is gone.
 #[test]
-fn no_clone_found() {
+fn a_named_folder_that_is_not_qb64pe() {
     let d = scratch("noclone");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
     std::fs::write(d.join("p.exe"), b"stale").unwrap();
@@ -812,18 +858,27 @@ fn no_clone_found() {
 }
 
 /// A build without the copy of libqb fails naming its option and variable; `-z` needs no copy (spec `compiler/cli`,
-/// scenario "No copy of libqb found"). The clone is a stand-in folder: this test builds nothing.
+/// scenario "No copy of libqb found"). The clone and the toolchain are stand-in folders: this test builds nothing.
 #[test]
 fn no_libqb_copy_found() {
     let d = scratch("nolibqb");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
     std::fs::create_dir_all(d.join("clone/internal/c")).unwrap();
     std::fs::write(d.join("clone/internal/c/qbx.cpp"), "").unwrap();
+    fake_toolchain(&d.join("tools"));
     std::fs::create_dir_all(d.join("empty")).unwrap();
     let compile = |extra: &[&str]| {
         let mut cmd = compiler();
         cmd.current_dir(&d)
-            .args(["-q", "--qb64pe-root", "clone", "--libqb-root", "empty"])
+            .args([
+                "-q",
+                "--qb64pe-root",
+                "clone",
+                "--toolchain-root",
+                "tools",
+                "--libqb-root",
+                "empty",
+            ])
             .args(extra)
             .arg("p.bas");
         run(&mut cmd, None, COMPILER_LIMIT, "compiler")
@@ -838,8 +893,440 @@ fn no_libqb_copy_found() {
     assert_eq!(compile(&["-z"]).status.code(), Some(0));
 }
 
+/// `--version` prints the release's version (spec `compiler/cli`, scenario "Version").
+#[test]
+fn version() {
+    let d = scratch("version");
+    let o = qb64rust(&d, &["--version"]);
+    assert_eq!(o.status.code(), Some(0));
+    assert_eq!(stdout(&o), format!("qb64rust {}\n", env!("CARGO_PKG_VERSION")));
+}
+
+/// `--help` and `-h` print the usage, which names `toolchain install` (spec `compiler/cli`, scenario "Help").
+#[test]
+fn help() {
+    let d = scratch("help");
+    for word in ["--help", "-h"] {
+        let o = qb64rust(&d, &[word]);
+        assert_eq!(o.status.code(), Some(0), "{word}");
+        let out = stdout(&o);
+        assert!(
+            out.starts_with("usage: qb64rust") && out.contains("toolchain install"),
+            "{word}: {out}"
+        );
+    }
+}
+
+/// `--version` with another argument is a usage error (spec `compiler/cli`, scenario "With other arguments").
+#[test]
+#[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
+fn version_with_other_arguments() {
+    let d = scratch("version-args");
+    let o = qb64rust(&d, &["--version", "p.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let err = String::from_utf8_lossy(&o.stderr);
+    assert!(
+        err.contains("`--version` takes no other argument") && err.contains("usage: qb64rust"),
+        "{err}"
+    );
+}
+
+/// `--list-fixes` prints one line per fix (spec `compiler/fixes`, "The list"); with another argument it is a usage
+/// error (spec `compiler/cli`, "List with another argument").
+#[test]
+#[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
+fn fixes_list() {
+    let d = scratch("fixes-list");
+    let o = qb64rust(&d, &["--list-fixes"]);
+    assert_eq!(o.status.code(), Some(0));
+    let out = stdout(&o);
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines.len(), 8, "{out}");
+    assert!(lines[0].starts_with("resume-after-block "), "{out}");
+    assert!(lines[7].starts_with("bit-number-check "), "{out}");
+    assert!(lines.iter().all(|l| l.split_once("  ").is_some()), "{out}");
+    let o = qb64rust(&d, &["--list-fixes", "p.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let err = String::from_utf8_lossy(&o.stderr);
+    assert!(err.contains("usage: qb64rust"), "{err}");
+}
+
+/// The `Settings:` line of `--dump ir` for `p.bas` in `d` with the arguments `args` before it.
+fn dumped_settings(d: &Path, args: &[&str]) -> String {
+    let mut all = args.to_vec();
+    all.extend(["--dump", "ir", "p.bas"]);
+    let o = qb64rust(d, &all);
+    let out = stdout(&o);
+    assert_eq!(o.status.code(), Some(0), "{out}");
+    out.lines().next().unwrap_or("").to_string()
+}
+
+/// The fixes set by `qb64rust.toml` and the command line (spec `compiler/fixes`, "Master switch with an override",
+/// "Off overrides the file", "One fix on", "No file"), as the IR dump names them; `-w` names the file used.
+#[test]
+fn fixes_from_the_file_and_the_command_line() {
+    let d = scratch("fixes-set");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\n").unwrap();
+    assert_eq!(dumped_settings(&d, &[]), "Settings: console, no window", "no file");
+    std::fs::write(
+        d.join("qb64rust.toml"),
+        "[fixes]\nall = true\nresume-after-block = false\n",
+    )
+    .unwrap();
+    let most = dumped_settings(&d, &[]);
+    assert!(
+        most.contains("fixes dim-empty-error static-local-dynamic") && !most.contains("resume-after-block"),
+        "{most}"
+    );
+    assert_eq!(
+        dumped_settings(&d, &["--fixes", "off"]),
+        "Settings: console, no window",
+        "off overrides the file"
+    );
+    assert_eq!(
+        dumped_settings(&d, &["--fixes", "off", "--fix", "whole-array-value=on"]),
+        "Settings: console, no window, fixes whole-array-value",
+        "one fix on"
+    );
+    assert!(
+        dumped_settings(&d, &["--fix", "resume-after-block=on"]).contains("fixes resume-after-block dim-empty-error"),
+        "--fix over the file"
+    );
+    let o = qb64rust(&d, &["-w", "--dump", "ir", "p.bas"]);
+    let out = stdout(&o);
+    assert!(out.contains("fixes from ") && out.contains("qb64rust.toml"), "{out}");
+}
+
+/// A bad settings file fails the compile with its name, line and the known fixes, and exit status 1 (spec
+/// `compiler/fixes`, "A misspelt name"); `--fixes` replaces the file, which is then not read; a bad option value is
+/// an error too.
+#[test]
+fn fixes_errors() {
+    let d = scratch("fixes-bad");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\n").unwrap();
+    std::fs::write(d.join("qb64rust.toml"), "[fixes]\nresume-after-blok = true\n").unwrap();
+    for args in [&["--dump", "ir", "p.bas"][..], &["-z", "p.bas"], &["p.bas"]] {
+        let o = qb64rust(&d, args);
+        let out = stdout(&o);
+        assert_eq!(o.status.code(), Some(1), "{args:?}: {out}");
+        assert!(
+            out.contains("qb64rust.toml:2: unknown fix `resume-after-blok`") && out.contains("resume-after-block"),
+            "{args:?}: {out}"
+        );
+    }
+    assert!(!d.join("p.exe").exists());
+    let all = dumped_settings(&d, &["--fixes", "on"]);
+    assert!(
+        all.contains("fixes resume-after-block ") && all.ends_with(" checking-on-service bit-number-check"),
+        "not read: {all}"
+    );
+    for bad in [
+        &["--fixes", "maybe"][..],
+        &["--fix", "nonsense=on"],
+        &["--fix", "dim-empty-error"],
+    ] {
+        let mut args = bad.to_vec();
+        args.push("p.bas");
+        let o = qb64rust(&d, &args);
+        assert_eq!(o.status.code(), Some(1), "{bad:?}");
+        assert!(stdout(&o).contains("usage: qb64rust"), "{bad:?}");
+    }
+}
+
+/// A program checked with `--dump typed` and the fix `fix` off, then on: off it compiles, on it fails with exit
+/// status 1 and one error at `at` (line:column) that holds `words` and is not marked "not supported yet".
+fn fix_makes_an_error(name: &str, program: &str, fix: &str, at: &str, words: &str) {
+    let d = scratch(name);
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let o = qb64rust(&d, &["--fix", &format!("{fix}=off"), "--dump", "typed", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{fix} off: {}", stdout(&o));
+    let o = qb64rust(&d, &["--fix", &format!("{fix}=on"), "--dump", "typed", "p.bas"]);
+    let out = stdout(&o);
+    assert_eq!(o.status.code(), Some(1), "{fix} on: {out}");
+    assert!(
+        out.contains(&format!("p.bas:{at}: error: ")) && out.contains(words),
+        "{fix} on: {out}"
+    );
+    assert!(
+        out.contains("\n1 error") && !out.contains("not supported yet"),
+        "{fix} on: {out}"
+    );
+}
+
+/// The fix `whole-array-value` (spec `language/arrays-and-types`, "Fix whole-array-value"; spec `compiler/cli`, "A
+/// dump with a fix"): `PRINT a()` and `PRINT a() + 1` are errors at `a()`; `READ a()` and `LEN(a())` compile.
+#[test]
+fn fix_whole_array_value() {
+    let head = "$CONSOLE:ONLY\nDIM a(3) AS LONG\nDATA 5\nREAD a()\nPRINT LEN(a())\n";
+    for (i, line) in ["PRINT a()", "PRINT a() + 1"].iter().enumerate() {
+        let program = format!("{head}{line}\nSYSTEM\n");
+        let name = format!("fix-whole-{i}");
+        fix_makes_an_error(
+            &name,
+            &program,
+            "whole-array-value",
+            "6:7",
+            "a whole array is not a value",
+        );
+    }
+}
+
+/// The fix `resume-in-procedure` (spec `language/error-handling`, "Fix resume-in-procedure"): `RESUME NEXT` in a SUB
+/// is an error at it.
+#[test]
+fn fix_resume_in_procedure() {
+    let program =
+        "$CONSOLE:ONLY\nON ERROR GOTO h\nERROR 5\nSYSTEM\nh:\ns\nRESUME NEXT\nSUB s\n    RESUME NEXT\nEND SUB\n";
+    fix_makes_an_error(
+        "fix-resume",
+        program,
+        "resume-in-procedure",
+        "9:5",
+        "an error handler of the main module",
+    );
+}
+
+/// The fix `run-in-procedure` (spec `language/control-flow`, "Fix run-in-procedure"): `RUN` in a SUB is an error at
+/// it, with the hint.
+#[test]
+fn fix_run_in_procedure() {
+    let program = "$CONSOLE:ONLY\ns\nSYSTEM\nSUB s\n    RUN\nEND SUB\n";
+    fix_makes_an_error("fix-run", program, "run-in-procedure", "5:5", "set a flag there");
+}
+
+/// A machine without a QB64pe folder and without an installed toolchain, for `cmd`: `QB64RUST_QB64PE_ROOT` empty
+/// (no QB64pe folder, not even the default clone), `QB64RUST_TOOLCHAIN_HOME` the empty folder `home`, no
+/// `QB64RUST_TOOLCHAIN_ROOT` (design D5, D7 of `m6-toolchain`).
+fn without_qb64pe<'a>(cmd: &'a mut Command, home: &Path) -> &'a mut Command {
+    std::fs::create_dir_all(home).unwrap();
+    cmd.env("QB64RUST_QB64PE_ROOT", "")
+        .env("QB64RUST_TOOLCHAIN_HOME", home)
+        .env_remove("QB64RUST_TOOLCHAIN_ROOT")
+}
+
+/// Spec `compiler/toolchain`, "No toolchain found": a build on a fresh machine fails with exit status 1 and the
+/// message naming `qb64rust toolchain install`, the size and source of the download, `--toolchain-root` and the
+/// variable; no network is reached (nothing is downloaded but by `toolchain install`), and the stale executable is
+/// gone. Scenario "Checking needs no toolchain": `-z` works there.
+#[test]
+fn no_toolchain_found() {
+    let d = scratch("notoolchain");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    std::fs::write(d.join("p.exe"), b"stale").unwrap();
+    let compile = |extra: &[&str]| {
+        let mut cmd = compiler();
+        without_qb64pe(&mut cmd, &d.join("home"))
+            .current_dir(&d)
+            .arg("-q")
+            .args(extra)
+            .arg("p.bas");
+        run(&mut cmd, None, COMPILER_LIMIT, "compiler")
+    };
+    let o = compile(&[]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    for word in [
+        "qb64rust toolchain install",
+        "190 MB",
+        "github.com/mstorsjo/llvm-mingw",
+        "--toolchain-root",
+        "QB64RUST_TOOLCHAIN_ROOT",
+    ] {
+        assert!(out.contains(word), "{word}: {out}");
+    }
+    assert!(!d.join("p.exe").exists());
+    assert_eq!(
+        std::fs::read_dir(d.join("home")).unwrap().count(),
+        0,
+        "nothing installed"
+    );
+    assert_eq!(compile(&["-z"]).status.code(), Some(0));
+}
+
+/// `qb64rust toolchain path` for each place of spec `compiler/toolchain`, "Toolchain lookup" (the default clone's is
+/// the unit test's): the folder, then the source's word; with none, the message of "No toolchain found" and exit
+/// status 1. Stand-in folders: nothing is built.
+#[test]
+fn toolchain_path_names_each_source() {
+    let d = scratch("toolchain-path");
+    let home = d.join("home");
+    let path = |extra: &[&str], vars: &[(&str, &Path)]| {
+        let mut cmd = compiler();
+        without_qb64pe(&mut cmd, &home)
+            .current_dir(&d)
+            .args(["toolchain", "path"])
+            .args(extra);
+        for (name, value) in vars {
+            cmd.env(name, value);
+        }
+        run(&mut cmd, None, COMPILER_LIMIT, "compiler")
+    };
+    let o = path(&[], &[]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(stdout(&o).contains("qb64rust toolchain install"), "{}", stdout(&o));
+
+    let installed = home.join(qb64rust_driver::toolchain::RELEASE);
+    fake_toolchain(&installed);
+    // Not installed until the marker is there.
+    assert_eq!(path(&[], &[]).status.code(), Some(1));
+    std::fs::write(installed.join(qb64rust_driver::toolchain::MARKER), "").unwrap();
+    fake_toolchain(&d.join("opt"));
+    fake_toolchain(&d.join("var"));
+    std::fs::create_dir_all(d.join("q/internal/c")).unwrap();
+    std::fs::write(d.join("q/internal/c/qbx.cpp"), "").unwrap();
+    fake_toolchain(&d.join("q/internal/c/c_compiler"));
+    let var = d.join("var");
+    let q = d.join("q");
+    for (extra, vars, folder, word) in [
+        (&[][..], &[][..], installed.clone(), "installed:"),
+        (
+            &["--qb64pe-root", "q"][..],
+            &[][..],
+            q.join("internal/c/c_compiler"),
+            "qb64pe:",
+        ),
+        (
+            &[][..],
+            &[("QB64RUST_QB64PE_ROOT", q.as_path())][..],
+            q.join("internal/c/c_compiler"),
+            "qb64pe:",
+        ),
+        (
+            &["--qb64pe-root", "q"][..],
+            &[("QB64RUST_TOOLCHAIN_ROOT", var.as_path())][..],
+            var.clone(),
+            "variable:",
+        ),
+        (
+            &["--toolchain-root", "opt"][..],
+            &[("QB64RUST_TOOLCHAIN_ROOT", var.as_path())][..],
+            d.join("opt"),
+            "option:",
+        ),
+    ] {
+        let o = path(extra, vars);
+        assert_eq!(o.status.code(), Some(0), "{extra:?}: {}", stdout(&o));
+        let out = stdout(&o);
+        let lines: Vec<&str> = out.lines().collect();
+        assert_eq!(lines.len(), 2, "{out}");
+        assert_eq!(
+            std::fs::canonicalize(lines[0]).unwrap(),
+            std::fs::canonicalize(&folder).unwrap(),
+            "{extra:?}"
+        );
+        assert!(lines[1].starts_with(word), "{extra:?}: {out}");
+    }
+    // A QB64pe folder given that is not one fails as a build fails, even with the toolchain installed.
+    let opt = d.join("opt");
+    for (extra, vars) in [
+        (&["--qb64pe-root", "opt"][..], &[][..]),
+        (&[][..], &[("QB64RUST_QB64PE_ROOT", opt.as_path())][..]),
+    ] {
+        let o = path(extra, vars);
+        assert_eq!(o.status.code(), Some(1), "{extra:?}: {}", stdout(&o));
+        assert!(stdout(&o).contains("is not a QB64pe folder"), "{}", stdout(&o));
+    }
+}
+
+/// Spec `compiler/cli`, "Toolchain subcommand": any other word after `toolchain` prints the two forms and exits with
+/// status 1 ("Unknown action"); `toolchain.bas` is a file to compile ("A file named toolchain").
+#[test]
+fn toolchain_subcommand_words() {
+    let d = scratch("toolchain-words");
+    for args in [
+        &["toolchain", "remove"][..],
+        &["toolchain"],
+        &["toolchain", "install", "now"],
+        &["toolchain", "path", "-x"],
+        &["toolchain", "path", "--toolchain-root"],
+    ] {
+        let o = qb64rust(&d, args);
+        assert_eq!(o.status.code(), Some(1), "{args:?}");
+        let out = stdout(&o);
+        assert!(
+            out.contains("qb64rust toolchain install") && out.contains("qb64rust toolchain path"),
+            "{args:?}: {out}"
+        );
+    }
+    std::fs::write(d.join("toolchain.bas"), SLICE_PROGRAM).unwrap();
+    let o = qb64rust(&d, &["toolchain.bas", "--dump", "typed"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("INSTR"), "{}", stdout(&o));
+}
+
+/// Spec `compiler/cli`, "Locating the reference runtime", scenario "No clone found": with no QB64pe folder anywhere
+/// and the toolchain given by `--toolchain-root` (the clone's own, which is the pinned release byte for byte), a
+/// program builds and runs.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn build_without_a_qb64pe_folder() {
+    let d = scratch("noqb64pe");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nPRINT 1 / 4; INSTR(3, \"hello\", \"l\")\nSYSTEM\n",
+    )
+    .unwrap();
+    let tools = support::toolchain_folder();
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home"))
+        .current_dir(&d)
+        .env_remove("QB64RUST_BUILD_CACHE")
+        .arg("--toolchain-root")
+        .arg(&tools)
+        .args(["-q", "p.bas"]);
+    let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+    assert!(o.status.success(), "{}", stdout(&o));
+    let r = run(
+        unattended(&d.join("p.exe")).current_dir(&d),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
+    assert_eq!(r.status.code(), Some(0), "{}", stdout(&r));
+    assert_eq!(stdout(&r).replace("\r\n", "\n"), " .25  3 \n");
+}
+
+/// Spec `compiler/cli`, scenario "A library without a clone": with no QB64pe folder, `DECLARE LIBRARY "lib/x"` of
+/// `p\prog.bas` compiled with `--include-root r` finds `r\lib\x.h`, as it would under QB64pe's folder, and the
+/// program builds and calls it.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn library_without_a_qb64pe_folder() {
+    let d = scratch("noqb64pe-library");
+    std::fs::create_dir_all(d.join("p")).unwrap();
+    std::fs::create_dir_all(d.join("r/lib")).unwrap();
+    std::fs::write(
+        d.join("r/lib/x.h"),
+        "#include <stdint.h>\nstatic int32_t x_add(int32_t a, int32_t b) { return a + b; }\n",
+    )
+    .unwrap();
+    std::fs::write(
+        d.join("p/prog.bas"),
+        "$CONSOLE:ONLY\nDECLARE LIBRARY \"lib/x\"\n    FUNCTION x_add& (BYVAL a AS LONG, BYVAL b AS LONG)\n\
+         END DECLARE\nPRINT x_add(2, 3)\nSYSTEM\n",
+    )
+    .unwrap();
+    let tools = support::toolchain_folder();
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home"))
+        .current_dir(&d)
+        .env_remove("QB64RUST_BUILD_CACHE")
+        .arg("--toolchain-root")
+        .arg(&tools)
+        .args(["-q", "--include-root", "r", "p/prog.bas"]);
+    let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+    assert!(o.status.success(), "{}", stdout(&o));
+    let r = run(
+        unattended(&d.join("p/prog.exe")).current_dir(&d),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
+    assert_eq!(stdout(&r).replace("\r\n", "\n"), " 5 \n");
+}
+
 /// `RETURN label` with no `GOSUB` pending raises error 3 and leaves the `GOSUB` stack intact, so a later `GOSUB`
-/// and `RETURN` work (`DIVERGENCES.md` D-003; the old compiler's program crashes at that `GOSUB`, so this cannot be
+/// and `RETURN` work (`QB64PE-DIVERGENCES.md` D-003; the old compiler's program crashes at that `GOSUB`, so this cannot be
 /// a corpus program recorded with `qb64pe.exe`). The error is serviced at the label `RETURN` jumps to.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -855,7 +1342,7 @@ fn return_label_with_nothing_pending() {
 }
 
 /// A store into a member of an element whose index is out of range, or raises with no error pending before it,
-/// stores nothing (`DIVERGENCES.md` D-004; the old compiler writes element 0, so this cannot be a corpus program
+/// stores nothing (`QB64PE-DIVERGENCES.md` D-004; the old compiler writes element 0, so this cannot be a corpus program
 /// recorded with `qb64pe.exe`). The value is still evaluated first: with both raising, `ERR` is the value's error.
 /// A raising value with a good index is stored as its placeholder, as in the old compiler.
 #[test]
@@ -875,7 +1362,7 @@ fn member_store_with_bad_index() {
     );
 }
 
-/// The same for an element of a member array (`DIVERGENCES.md` D-004, design D8 of `m2-defxxx-common-arrays`): a
+/// The same for an element of a member array (`QB64PE-DIVERGENCES.md` D-004, design D8 of `m2-defxxx-common-arrays`): a
 /// store with an index outside its bounds, of the member array or of an array on the way to it, stores nothing,
 /// a number and a string alike; the old compiler writes position 0 of that dimension (measured,
 /// `verification\v24_h_member_store`, `v24_x313`). With the value raising too, `ERR` is the value's error; a
@@ -902,7 +1389,7 @@ fn member_array_store_with_bad_index() {
 }
 
 /// A `_BIT * n` scalar wider than 32 bits has 8 bytes of its own, so a store into it leaves the `_BIT` scalar
-/// declared before it alone (`DIVERGENCES.md` D-009; the old compiler reserves 4 bytes and overwrites that
+/// declared before it alone (`QB64PE-DIVERGENCES.md` D-009; the old compiler reserves 4 bytes and overwrites that
 /// neighbour, printing ` 4294967295 ` and ` 0 ` here, so this cannot be a corpus program recorded with `qb64pe.exe`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1370,7 +1857,7 @@ fn build_and_run(d: &Path, program: &str) -> String {
     build_and_run_tracing(d, program, "")
 }
 
-/// [`build_and_run`] of a program that takes the paths of rows of `DIVERGENCES.md`: the run-time trace
+/// [`build_and_run`] of a program that takes the paths of rows of `QB64PE-DIVERGENCES.md`: the run-time trace
 /// (`QB64RUST_DIVERGENCES`, design D1 of `m3-divergence-trace`) must name exactly `rows`, one `D-0nn` line each, in
 /// the order the program first takes them.
 fn build_and_run_tracing(d: &Path, program: &str, rows: &str) -> String {
@@ -1392,7 +1879,11 @@ fn build_and_run_tracing(d: &Path, program: &str, rows: &str) -> String {
         .into_iter()
         .filter(|&b| b != b'\r')
         .collect();
-    assert_eq!(taken, rows.as_bytes(), "the rows of DIVERGENCES.md the program took");
+    assert_eq!(
+        taken,
+        rows.as_bytes(),
+        "the rows of QB64PE-DIVERGENCES.md the program took"
+    );
     stdout(&run).replace("\r\n", "\n")
 }
 
@@ -1485,7 +1976,7 @@ fn coverage_build_names_builtins() {
     );
 }
 
-/// `a IMP b IMP c` is `(a IMP b) IMP c` (`DIVERGENCES.md` D-005: the old compiler computes `5 OR 3 OR 0`, 7, so this
+/// `a IMP b IMP c` is `(a IMP b) IMP c` (`QB64PE-DIVERGENCES.md` D-005: the old compiler computes `5 OR 3 OR 0`, 7, so this
 /// cannot be a recorded corpus program).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1495,7 +1986,7 @@ fn imp_chain_is_left_to_right() {
     assert_eq!(build_and_run(&d, program), " 4 \n 4 \n");
 }
 
-/// The smallest LONG or `_INTEGER64` divided by -1 raises error 6, and `MOD -1` gives 0 (`DIVERGENCES.md` D-006: the
+/// The smallest LONG or `_INTEGER64` divided by -1 raises error 6, and `MOD -1` gives 0 (`QB64PE-DIVERGENCES.md` D-006: the
 /// old program crashes).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1510,7 +2001,7 @@ fn smallest_integer_divided_by_minus_one() {
     );
 }
 
-/// A FUNCTION in a bound of a `REDIM` that gives the same array new bounds or erases it (`DIVERGENCES.md` D-018:
+/// A FUNCTION in a bound of a `REDIM` that gives the same array new bounds or erases it (`QB64PE-DIVERGENCES.md` D-018:
 /// the old compiler takes the old block before the bounds and frees it twice, ending the program with no output,
 /// `verification\v34_d`). Here the old block is taken after the bounds: plain `REDIM` gives new elements,
 /// `_PRESERVE` keeps the FUNCTION's elements by flat position and `_RETAIN` by their indexes.
@@ -1532,7 +2023,7 @@ fn redim_with_a_bound_that_redims() {
 }
 
 /// `GET` of a whole array whose type has a dynamic member array, into an element whose member has other bounds and
-/// fewer elements than declared, raises error 9, reads the rest and keeps that member as it was (`DIVERGENCES.md`
+/// fewer elements than declared, raises error 9, reads the rest and keeps that member as it was (`QB64PE-DIVERGENCES.md`
 /// D-019: the old compiler writes the declared bytes past the member's block, `verification\v35_e_dyn_statements`
 /// 6., `v38_b` 4.).
 #[test]
@@ -1549,7 +2040,7 @@ fn get_into_a_dynamic_member_with_other_bounds() {
 }
 
 /// A `REDIM` of a dynamic member array to more than memory holds ends the program with "Out of memory"
-/// (`DIVERGENCES.md` D-020: the old compiler's size overflows unchecked, `verification\v35_g3_dyn_bound_too_large`).
+/// (`QB64PE-DIVERGENCES.md` D-020: the old compiler's size overflows unchecked, `verification\v35_g3_dyn_bound_too_large`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn redim_of_a_dynamic_member_too_large() {
@@ -1563,7 +2054,7 @@ fn redim_of_a_dynamic_member_too_large() {
 }
 
 /// `_MEM` of a dynamic member array that is not allocated, and `GET` of a whole array of its type into an erased
-/// array, raise error 9 and go on (`DIVERGENCES.md` D-021: the old program crashes, or ends with "Out of memory",
+/// array, raise error 9 and go on (`QB64PE-DIVERGENCES.md` D-021: the old program crashes, or ends with "Out of memory",
 /// `verification\v35_x66`, `x67`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1574,7 +2065,11 @@ fn dynamic_member_not_allocated_in_mem_and_get() {
                    PRINT \"mem\"; _MEMEXISTS(m)\nREDIM p(1) AS t\nOPEN \"g.bin\" FOR BINARY AS #1\nPUT #1, 1, p()\n\
                    ERASE p\nGET #1, 1, p()\nCLOSE #1\nPRINT \"get\"\nSYSTEM\n\
                    trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
-    assert_eq!(build_and_run_tracing(&d, program, "D-021\n"), "[ 9 ]mem 0 \n[ 9 ]get\n");
+    // The `GET` into the erased whole array is row 7's (D-042, `fixes-switch`): error 9 before anything is read.
+    assert_eq!(
+        build_and_run_tracing(&d, program, "D-021\nD-042\n"),
+        "[ 9 ]mem 0 \n[ 9 ]get\n"
+    );
 }
 
 /// D-003 and D-004 differ from the old compiler only in a program that goes on after the error: with no handler and
@@ -1613,7 +2108,7 @@ fn an_error_that_ends_the_program_traces_nothing() {
 }
 
 /// `GET` of a whole array whose type has a dynamic member array unpacks the statement's buffer whatever its read
-/// raised, as the old compiler does; where that statement never read, the buffer holds zeros (`DIVERGENCES.md`
+/// raised, as the old compiler does; where that statement never read, the buffer holds zeros (`QB64PE-DIVERGENCES.md`
 /// D-021: the old program reads memory nobody wrote, which gave other values on each run, `verification\v38_a`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1630,7 +2125,7 @@ fn get_after_a_failed_read_unpacks_zeros() {
 }
 
 /// A whole-array assignment to a member array of an element whose index is outside its bounds raises error 9 and
-/// copies nothing, a `STRING` member array included (`DIVERGENCES.md` D-004: the old compiler copies the strings
+/// copies nothing, a `STRING` member array included (`QB64PE-DIVERGENCES.md` D-004: the old compiler copies the strings
 /// into the member of element 0, `verification\v36_x48`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1644,7 +2139,7 @@ fn whole_array_to_a_member_through_an_index_outside() {
 }
 
 /// `_ARRAYCOPY` to or from a member array of an element whose index is outside its bounds raises error 9 and copies
-/// nothing, numbers and `STRING * n` alike (`DIVERGENCES.md` D-004: the old compiler copies through the member of
+/// nothing, numbers and `STRING * n` alike (`QB64PE-DIVERGENCES.md` D-004: the old compiler copies through the member of
 /// element 0, `verification\v41_j`; design D5 of `m3-arraycopy`). A FUNCTION in a bound is entered with the error
 /// pending and so runs no line (its first line in both compilers).
 #[test]
@@ -1684,7 +2179,7 @@ fn arraycopy_reshaped_member_beside_an_index_outside() {
     assert_eq!(build_and_run_tracing(&d, program, ""), "[ 9 ][ 9 ] 51 \n");
 }
 
-/// `_ARRAYCOPY` of `_FLOAT` arrays copies the elements the program names (`DIVERGENCES.md` D-025: the old compiler
+/// `_ARRAYCOPY` of `_FLOAT` arrays copies the elements the program names (`QB64PE-DIVERGENCES.md` D-025: the old compiler
 /// passes 32 as the size of an element, which lie 16 bytes apart, and copies others, `verification\v41_i`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1761,7 +2256,7 @@ fn cast_builds_and_runs() {
 }
 
 /// A whole-array assignment of arrays of an owner type with other bounds raises error 9 and copies the target's
-/// number of elements, as the old compiler does, but nothing when the source has fewer (`DIVERGENCES.md` D-022: the
+/// number of elements, as the old compiler does, but nothing when the source has fewer (`QB64PE-DIVERGENCES.md` D-022: the
 /// old compiler reads past the source's block, `verification\v36_x52`, `v38_d`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1792,7 +2287,7 @@ fn mem_of_a_dynamic_element_through_a_dynamic_index() {
 }
 
 /// `_MEM(q())` of an array parameter that nothing above it has given its number of dimensions takes the array's
-/// own lock, so the block stays valid when an element changes (`DIVERGENCES.md` D-016: the old compiler reads the
+/// own lock, so the block stays valid when an element changes (`QB64PE-DIVERGENCES.md` D-016: the old compiler reads the
 /// lock from slot 0, the pointer to the elements, and the block ends at `q(0) = 6`, `verification\v32_a_blocks`
 /// SUB `y`).
 #[test]
@@ -1805,7 +2300,7 @@ fn mem_of_an_array_parameter_with_no_number_yet() {
 }
 
 /// An integer power beyond `_INTEGER64` in a `CONST` is the float it is, a `_FLOAT` by its text, printed as a DOUBLE
-/// (`DIVERGENCES.md` D-007: the old evaluator wraps it to -9223372036854775808).
+/// (`QB64PE-DIVERGENCES.md` D-007: the old evaluator wraps it to -9223372036854775808).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn const_power_beyond_integer64() {
@@ -1815,7 +2310,7 @@ fn const_power_beyond_integer64() {
 }
 
 /// The `CONST` rulings of 2026-10-18, built and run: an unsuffixed literal beyond `_INTEGER64` and the limits
-/// (`DIVERGENCES.md` D-027; the old compiler prints 9223372036854775807 and -9223372036854775807), `2 ^ -1` (D-028;
+/// (`QB64PE-DIVERGENCES.md` D-027; the old compiler prints 9223372036854775807 and -9223372036854775807), `2 ^ -1` (D-028;
 /// 0 there), and `_COTH` at run time from the edited copy of libqb (D-031; `2 * EXP(x) - 1` and error 5 above
 /// 44.014845 there), error 5 at 0.
 #[test]
@@ -1832,7 +2327,7 @@ fn const_rulings_run() {
     );
 }
 
-/// `STOP` inside `SUB _GL` ends the program with error 271, as `END` and `SYSTEM` do there (`DIVERGENCES.md` D-036;
+/// `STOP` inside `SUB _GL` ends the program with error 271, as `END` and `SYSTEM` do there (`QB64PE-DIVERGENCES.md` D-036;
 /// the old compiler's program hangs, `verification\v59_f9`). The program has a window, which libqb shows for the
 /// moment the SUB takes; its critical error's message goes to stderr, not read here.
 #[test]
@@ -1845,7 +2340,7 @@ fn stop_inside_sub_gl_ends_with_error_271() {
     assert_eq!(build_and_run_tracing(&d, program, "D-036\n"), "in\n");
 }
 
-/// A `TYPE` that holds a `STRING`, in conventional memory, has its strings made (`DIVERGENCES.md` D-037; design D3
+/// A `TYPE` that holds a `STRING`, in conventional memory, has its strings made (`QB64PE-DIVERGENCES.md` D-037; design D3
 /// of `m4-left-marked`): `verification\v56_a5` prints the old compiler's two lines, then the string it sets, where
 /// the old compiler's program crashes (exit 139).
 #[test]
@@ -1867,7 +2362,7 @@ fn type_with_string_in_conventional_memory_has_its_strings() {
     assert_eq!(lines[2..], ["abc 3 "], "{out}");
 }
 
-/// A label and a `CONST` on one line (`DIVERGENCES.md` D-008: the old compiler fails to compile it).
+/// A label and a `CONST` on one line (`QB64PE-DIVERGENCES.md` D-008: the old compiler fails to compile it).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn label_then_const() {
@@ -1876,7 +2371,7 @@ fn label_then_const() {
     assert_eq!(build_and_run(&d, program), " 4 \n");
 }
 
-/// Each call of a FUNCTION `f$n` gives its own string (`DIVERGENCES.md` D-014: the old compiler returns bytes the
+/// Each call of a FUNCTION `f$n` gives its own string (`QB64PE-DIVERGENCES.md` D-014: the old compiler returns bytes the
 /// FUNCTION has released, so `fs$5("ab") + fs$5("cd")` is `cd   cd   ` there).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
@@ -1956,7 +2451,7 @@ fn debug_warning() {
 }
 
 /// A program with `$DEBUG` and no network function links libqb's sockets and HTTP part, as the old compiler's
-/// build does (spec `language/asserts-and-debug`, "The sockets part"; `DIVERGENCES.md` D-017, narrowed by
+/// build does (spec `language/asserts-and-debug`, "The sockets part"; `QB64PE-DIVERGENCES.md` D-017, narrowed by
 /// `m3-network-embed`): `_SOCKETS_` is 1, so QB64pe's file included after the last line compiles `_WhatIsMyIP$`,
 /// and the licence file names libcurl. The program prints what it prints without `$DEBUG`.
 #[test]
@@ -2149,8 +2644,8 @@ fn language_server() {
     assert!(o.stdout.is_empty(), "stdout is the protocol's");
 }
 
-/// `dap` (change `m5-dap-proxy`), scenario "Another option": only `--qb64pe-root` is taken; and "Not a file
-/// name": `dap.bas` is a program.
+/// `dap` (changes `m5-dap-proxy`, `m6-toolchain`), scenario "Another option": only `--toolchain-root` and
+/// `--qb64pe-root` are taken, each once; and "Not a file name": `dap.bas` is a program.
 #[test]
 #[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
 fn dap_rejects_other_options() {
@@ -2158,13 +2653,16 @@ fn dap_rejects_other_options() {
     for args in [
         &["dap", "-x", "p.bas"][..],
         &["dap", "--qb64pe-root"],
+        &["dap", "--toolchain-root"],
         &["dap", "--qb64pe-root", "a", "--qb64pe-root", "b"],
+        &["dap", "--toolchain-root", "a", "--toolchain-root", "b"],
     ] {
         let o = qb64rust(&d, args);
         assert_eq!(o.status.code(), Some(1), "{args:?}");
         assert!(o.stdout.is_empty(), "stdout is the protocol's");
         assert!(
-            String::from_utf8_lossy(&o.stderr).contains("`dap` takes only --qb64pe-root <dir>"),
+            String::from_utf8_lossy(&o.stderr)
+                .contains("`dap` takes only --toolchain-root <dir> and --qb64pe-root <dir>"),
             "{args:?}"
         );
     }
@@ -2172,6 +2670,93 @@ fn dap_rejects_other_options() {
     let o = qb64rust(&d, &["dap.bas", "--dump", "typed"]);
     assert!(o.status.success(), "{}", stdout(&o));
     assert!(stdout(&o).contains("INSTR"), "{}", stdout(&o));
+}
+
+/// `dap`, spec `editor/debug-adapter` scenario "No lldb-dap": a toolchain folder without `bin\lldb-dap.exe` given by
+/// `--toolchain-root`; `initialize` fails naming that path, and `disconnect` ends the adapter with code 0.
+#[test]
+fn dap_without_lldb_dap() {
+    let d = scratch("dap-no-lldb-dap");
+    fake_toolchain(&d.join("tools"));
+    let mut cmd = compiler();
+    cmd.current_dir(&d).args(["dap", "--toolchain-root", "tools"]);
+    let mut dap = support::dap::Dap::start(cmd);
+    let r = dap.request("initialize", serde_json::json!({"adapterID": "qb64rust"}));
+    assert_eq!(r["success"], false, "{r}");
+    let want = std::path::absolute(d.join("tools"))
+        .unwrap()
+        .join("bin")
+        .join("lldb-dap.exe");
+    assert!(
+        r["message"].as_str().unwrap().contains(&want.display().to_string()),
+        "{r}"
+    );
+    dap.ok("disconnect", serde_json::json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// `dap`, spec `editor/debug-adapter` scenario "No toolchain": `initialize` fails with the message naming
+/// `qb64rust toolchain install`.
+#[test]
+fn dap_without_a_toolchain() {
+    let d = scratch("dap-no-toolchain");
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home")).current_dir(&d).arg("dap");
+    let mut dap = support::dap::Dap::start(cmd);
+    let r = dap.request("initialize", serde_json::json!({"adapterID": "qb64rust"}));
+    assert_eq!(r["success"], false, "{r}");
+    assert!(
+        r["message"].as_str().unwrap().contains("qb64rust toolchain install"),
+        "{r}"
+    );
+    dap.ok("disconnect", serde_json::json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// Debugging with no QB64pe folder and the toolchain given by `--toolchain-root` (the clone's own, which is the
+/// pinned release byte for byte): a debug build, then `qb64rust dap` with that toolchain stops at a breakpoint on
+/// line 3, and the adapter ends with code 0 after `disconnect` (spec `compiler/cli`, "Debug adapter subcommand";
+/// spec `editor/debug-launch`, "Debugging without QB64pe").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_without_a_qb64pe_folder() {
+    use serde_json::json;
+    let d = scratch("dap-noqb64pe");
+    let tools = support::toolchain_folder();
+    std::fs::write(
+        d.join("hello.bas"),
+        "$CONSOLE:ONLY\nx = 1\nx = x + 1\nPRINT x\nSYSTEM\n",
+    )
+    .unwrap();
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home"))
+        .current_dir(&d)
+        .env_remove("QB64RUST_BUILD_CACHE")
+        .arg("--toolchain-root")
+        .arg(&tools)
+        .args(["--debug", "-q", "hello.bas"]);
+    let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+    assert!(o.status.success(), "{}", stdout(&o));
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home"))
+        .current_dir(&d)
+        .arg("dap")
+        .arg("--toolchain-root")
+        .arg(&tools);
+    let mut dap = launch_session(
+        support::dap::Dap::start(cmd),
+        &d.join("hello.exe"),
+        &[],
+        &[3],
+        json!({}),
+    );
+    let (_, reason, name, line) = dap_stop(&mut dap);
+    assert_eq!((reason.as_str(), name.as_str(), line), ("breakpoint", "Main module", 3));
+    let t = dap.ok("threads", json!({}));
+    dap.ok("continue", json!({"threadId": t["threads"][0]["id"]}));
+    dap.event("exited");
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
 }
 
 /// `dap`, scenario "Subcommand": the real `lldb-dap` answers `initialize` through the adapter, which adds its own
@@ -3009,11 +3594,19 @@ fn text(b: &[u8]) -> String {
     String::from_utf8_lossy(b).to_string()
 }
 
-/// The libraries of `verification\v37_lib` built into `dir` with the clone's toolchain, as `build_libs.py` builds
-/// them: `v37c.a` (C), `v37cpp.a` (C++), `v37o.o` (C), `v37dll.dll`.
+/// A stand-in toolchain folder: the two programs a lookup asks for, empty (spec `compiler/toolchain`, "Toolchain
+/// lookup"). Nothing can be built with it.
+fn fake_toolchain(dir: &Path) {
+    std::fs::create_dir_all(dir.join("bin")).unwrap();
+    for f in ["c++.exe", "mingw32-make.exe"] {
+        std::fs::write(dir.join("bin").join(f), "").unwrap();
+    }
+}
+
+/// The libraries of `verification\v37_lib` built into `dir` with the toolchain a build uses, as `build_libs.py`
+/// builds them: `v37c.a` (C), `v37cpp.a` (C++), `v37o.o` (C), `v37dll.dll`.
 fn build_v37_libraries(dir: &Path) {
-    let root = qb64rust_driver::build::find_root(None).expect("the QB64pe reference clone");
-    let bin = root.join("internal/c/c_compiler/bin");
+    let bin = support::toolchain("");
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification/v37_lib");
     let out = |name: &str| dir.join(name).to_string_lossy().into_owned();
     let run = |tool: &str, args: &[&str]| {
@@ -3299,7 +3892,7 @@ fn format_writes_the_output_file() {
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn runners_format_line() {
-    let clone = qb64rust_driver::build::find_root(None).expect("the QB64pe reference clone");
+    let clone = qb64rust_driver::build::clone_root().expect("the QB64pe reference clone");
     let tests = clone.join("tests/format_tests/general");
     let d = scratch("format-general");
     for f in ["general.bas", "included.file"] {
@@ -3447,4 +4040,167 @@ fn layout_setting_in_a_build() {
     assert!(o.status.success(), "{}", stdout(&o));
     let ran = run(&mut unattended(&exe), None, PROGRAM_LIMIT, "program");
     assert!(stdout(&ran).starts_with("x= .25"), "{}", stdout(&ran));
+}
+
+// The always-on fixes of `study\39` (OpenSpec change `fixes-switch`, design D5), each with the rows of
+// `QB64PE-DIVERGENCES.md` its program takes.
+
+/// The handler that every program below sets: it prints `ERR` and resumes next.
+const ERR_HANDLER: &str = "SYSTEM\nh:\nPRINT \"error\"; ERR\nRESUME NEXT\n";
+
+/// `DIM` and `REDIM` with a count below zero raise error 5 and allocate nothing (D-040, spec
+/// `language/arrays-and-types`, "Fewer than no element"); a `REDIM` releases the array.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dim_below_zero_raises_error_5() {
+    let d = scratch("dim-below-zero");
+    let program = format!(
+        "$CONSOLE:ONLY\nON ERROR GOTO h\nn = -3\nDIM d(n) AS LONG\nPRINT UBOUND(d)\nREDIM r(4) AS LONG\n\
+         REDIM r(2 TO n) AS LONG\nPRINT UBOUND(r)\nPRINT \"end\"\n{ERR_HANDLER}"
+    );
+    let out = build_and_run_tracing(&d, &program, "D-040\n");
+    assert_eq!(out, "error 5 \nerror 9 \nerror 5 \nerror 9 \nend\n");
+}
+
+/// A whole array with no storage used whole raises error 9 and reads and writes nothing (D-042, spec
+/// `language/arrays-and-types`, "An erased array"): no later `PRINT` shows the text a `READ` would have stored, and a
+/// `SWAP` with an allocated array leaves it as it was.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn whole_array_without_storage_raises_error_9() {
+    let d = scratch("whole-erased");
+    let program = format!(
+        "$CONSOLE:ONLY\nON ERROR GOTO h\nDATA \"xyz\"\nREDIM a(2) AS STRING, b(2) AS STRING\nb(0) = \"kept\"\n\
+         ERASE a\nPRINT a()\nREAD a()\nSWAP a(), b()\nPRINT b(0)\nPRINT \"after\"\n{ERR_HANDLER}"
+    );
+    let out = build_and_run_tracing(&d, &program, "D-042\n");
+    assert_eq!(out, "error 9 \nerror 9 \nerror 9 \nkept\nafter\n");
+}
+
+/// `RESUME NEXT` that leaves a SUB leaves it through its exit, so the `_MEM` block of a local is no longer valid
+/// (D-045, spec `language/error-handling`, "A block of a local after RESUME").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn resume_leaves_a_sub_through_its_exit() {
+    let d = scratch("resume-exit");
+    let program = "$CONSOLE:ONLY\nON ERROR GOTO eh\nDIM SHARED gm AS _MEM\nERROR 5\nback:\nPRINT _MEMEXISTS(gm)\nSYSTEM\n\
+                   eh:\ns\nGOTO back\nSUB s\nDIM x AS LONG\ngm = _MEM(x)\nRESUME NEXT\nEND SUB\n";
+    assert_eq!(build_and_run_tracing(&d, program, "D-045\n"), " 0 \n");
+}
+
+/// `RUN` from a SUB leaves the active procedures first, so a program runs it 100,000 times and ends normally (D-046,
+/// spec `language/control-flow`, "RUN from a SUB many times"; the old compiler's runs out of stack after about 2,400);
+/// in a `$CONSOLE:ONLY` program the output after `RUN label` stays on the console ("Output after RUN label").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn run_from_a_sub_unwinds() {
+    let d = scratch("run-unwind");
+    let program = "$CONSOLE:ONLY\nc = VAL(ENVIRON$(\"QBR_RUNS\")) + 1\nENVIRON \"QBR_RUNS=\" + LTRIM$(STR$(c))\n\
+                   IF c < 100000 THEN s\nPRINT \"done\"; c\nSYSTEM\nSUB s\nDIM t AS STRING\nt = SPACE$(100)\nRUN\nEND SUB\n";
+    assert_eq!(build_and_run_tracing(&d, program, "D-046\n"), "done 100000 \n");
+    let d = scratch("run-console");
+    let program = "$CONSOLE:ONLY\nIF ENVIRON$(\"QBR_RAN\") = \"\" THEN PRINT \"one\"\nagain:\n\
+                   IF ENVIRON$(\"QBR_RAN\") = \"\" THEN ENVIRON \"QBR_RAN=1\": RUN again\nPRINT \"two\"\nSYSTEM\n";
+    assert_eq!(build_and_run_tracing(&d, program, "D-046\n"), "one\ntwo\n");
+}
+
+/// With its standard input from the null device, `END` prints its line and ends at once, and a `LINE INPUT` with no
+/// handler ends the program with error 62 rather than waiting (D-048, spec `language/console-and-window`, "END with
+/// its input from the null device", "LINE INPUT with no handler"; the old compiler's programs wait for ever). The
+/// limit of 20 s is far below the runner's 60 s, so a wait fails the test.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+#[expect(clippy::disallowed_methods, reason = "the runtime's own message")]
+fn end_and_input_at_the_end_of_the_input() {
+    let limit = std::time::Duration::from_secs(20);
+    let d = scratch("end-null-input");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT \"before END\"\nEND\n").unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let ran = run(&mut unattended(&exe), None, limit, "program");
+    assert_eq!(ran.status.code(), Some(0));
+    assert_eq!(
+        stdout(&ran).replace("\r\n", "\n"),
+        "before END\n\nPress any key to continue"
+    );
+    let d = scratch("line-input-null");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nLINE INPUT s$\nPRINT \"not reached\"\nSYSTEM\n",
+    )
+    .unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let ran = run(&mut unattended(&exe), None, limit, "program");
+    let (out, err) = (stdout(&ran), String::from_utf8_lossy(&ran.stderr).to_string());
+    assert!(
+        err.contains("Input past end of file") && !out.contains("not reached"),
+        "{out}{err}"
+    );
+}
+
+/// `_CAST` of a float constant out of range gives what the same conversion of a variable gives, with and without
+/// constant folding (D-047, spec `language/builtin-functions`, "A constant out of range", "Without folding").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn cast_of_a_float_constant_is_a_variables() {
+    let program = "$CONSOLE:ONLY\nx# = 3E9: PRINT _CAST(LONG, 3E9); _CAST(LONG, x#)\n\
+                   y# = 1E20: PRINT _CAST(_BYTE, 1000.7); _CAST(_UNSIGNED _INTEGER64, 1E20); _CAST(_UNSIGNED _INTEGER64, y#)\n\
+                   SYSTEM\n";
+    let expected = "-2147483648 -2147483648 \n-24  9223372036854775808  9223372036854775808 \n";
+    let d = scratch("cast-const");
+    assert_eq!(build_and_run(&d, program), expected);
+    let d = scratch("cast-const-nofold");
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let o = run(
+        compiler().current_dir(&d).env("QB64RUST_NO_FOLD", "1").args([
+            "-q",
+            "-x",
+            "p.bas",
+            "-o",
+            exe.to_str().unwrap(),
+        ]),
+        None,
+        COMPILER_LIMIT,
+        "compiler",
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    let ran = run(&mut unattended(&exe), None, PROGRAM_LIMIT, "program");
+    assert_eq!(stdout(&ran).replace("\r\n", "\n"), expected);
+}
+
+/// `ERASE` and `CLEAR` of a dynamic array make its `_MEM` blocks invalid, as `REDIM` does (D-043, spec
+/// `language/mem-blocks`, "Block of an erased array"); `ERASE` of a static array leaves them valid.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn erase_makes_blocks_invalid() {
+    let d = scratch("erase-blocks");
+    let program = "$CONSOLE:ONLY\nDIM SHARED m AS _MEM, k AS _MEM\nREDIM d(5) AS LONG\nm = _MEM(d())\nERASE d\n\
+                   PRINT _MEMEXISTS(m)\nDIM s(5) AS LONG\nk = _MEM(s())\nERASE s\nPRINT _MEMEXISTS(k)\n\
+                   REDIM e(5) AS LONG\nm = _MEM(e())\nCLEAR\nPRINT _MEMEXISTS(m)\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), " 0 \n-1 \n 0 \n");
+}
+
+/// A `STRING * n` element and member passed to a library's `char*` reach C with a NUL after their bytes and get its
+/// writes back, the element's index taken once (D-044, spec `language/external-libraries`, "A member read by strlen",
+/// "A write comes back").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn fixed_strings_to_char_pointer() {
+    let d = scratch("fixed-char");
+    std::fs::write(
+        d.join("h.h"),
+        "#include <string.h>\nint32_t h_len(const char *s) { return (int32_t)strlen(s); }\n\
+         void h_upper(char *s) { for (; *s; s++) if (*s >= 'a' && *s <= 'z') *s -= 32; }\n",
+    )
+    .unwrap();
+    let program = "$CONSOLE:ONLY\nDECLARE LIBRARY \"h\"\n    FUNCTION h_len& (s AS STRING)\n    SUB h_upper (s AS STRING)\n\
+                   END DECLARE\nTYPE t\n    a AS STRING * 4\n    b AS STRING * 4\nEND TYPE\nDIM SHARED calls AS LONG\n\
+                   DIM v AS t, e(3) AS STRING * 3\nv.a = \"abcd\": v.b = \"efgh\"\ne(1) = \"def\": e(2) = \"ghi\"\n\
+                   PRINT h_len&(v.a); h_len&(e(1))\nh_upper e(ix): h_upper v.a\nPRINT v.a; v.b; e(1); e(2); calls\n\
+                   SYSTEM\nFUNCTION ix&\ncalls = calls + 1\nix& = 1\nEND FUNCTION\n";
+    assert_eq!(build_and_run(&d, program), " 4  3 \nABCDefghDEFghi 1 \n");
 }

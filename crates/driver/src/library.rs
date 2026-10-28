@@ -13,21 +13,25 @@ use std::process::Command;
 /// Where the lookup looks.
 #[derive(Clone, Debug)]
 pub struct Places {
-    /// The old compiler's folder, which a written path is taken from: the reference clone.
+    /// The old compiler's folder, which a written path is taken from: the QB64pe folder, else the include root
+    /// (design D5 of `m6-toolchain`).
     pub root: PathBuf,
     /// The folder of the main source file: what `./` names, and a DLL is also looked for there.
     pub source_dir: PathBuf,
     /// `%SYSTEMROOT%\System32`, where a DLL is also looked for.
     pub system32: Option<PathBuf>,
+    /// The toolchain's `nm.exe`, which reads a library without a header; or why there is none (no toolchain found).
+    pub nm: Result<PathBuf, String>,
 }
 
 impl Places {
-    /// The places of a compile of `main_path` against the clone `root`.
-    pub fn new(root: &Path, main_path: &Path) -> std::io::Result<Places> {
+    /// The places of a compile of `main_path` with `root` as the old compiler's folder.
+    pub fn new(root: &Path, main_path: &Path, nm: Result<PathBuf, String>) -> std::io::Result<Places> {
         Ok(Places {
             root: root.to_path_buf(),
             source_dir: folder_of(main_path)?,
             system32: std::env::var_os("SYSTEMROOT").map(|r| PathBuf::from(r).join("System32")),
+            nm,
         })
     }
 }
@@ -327,16 +331,16 @@ pub fn linkage_in(g: &[u8], dynamic: impl FnOnce() -> Result<Vec<u8>, String>, n
     Err(NmError::NotFound)
 }
 
-/// The clone's `nm`, run once per file and option in a compile.
+/// The toolchain's `nm`, run once per file and option in a compile.
 struct Nm {
-    exe: PathBuf,
+    exe: Result<PathBuf, String>,
     runs: HashMap<(PathBuf, bool), Result<Vec<u8>, String>>,
 }
 
 impl Nm {
-    fn new(root: &Path) -> Nm {
+    fn new(places: &Places) -> Nm {
         Nm {
-            exe: root.join("internal/c/c_compiler/bin/nm.exe"),
+            exe: places.nm.clone(),
             runs: HashMap::new(),
         }
     }
@@ -347,7 +351,8 @@ impl Nm {
         self.runs
             .entry((file.to_path_buf(), dynamic))
             .or_insert_with(|| {
-                let mut cmd = Command::new(&self.exe);
+                let exe = self.exe.as_ref().map_err(|e| format!("cannot read the library: {e}"))?;
+                let mut cmd = Command::new(exe);
                 cmd.arg(file);
                 if dynamic {
                     cmd.arg("-D");
@@ -355,7 +360,7 @@ impl Nm {
                 cmd.args(["--demangle", "-g"])
                     .output()
                     .map(|o| o.stdout)
-                    .map_err(|e| format!("cannot run the clone's `internal/c/c_compiler/bin/nm.exe`: {e}"))
+                    .map_err(|e| format!("cannot run `{}`: {e}", exe.display()))
             })
             .clone()
     }
@@ -371,7 +376,7 @@ impl Nm {
 /// (`x70`: `lib$dir\v37c.a` reaches the link as `libir\v37c.a`).
 pub fn resolve(fe: &mut Frontend, places: &Places) -> Resolved {
     let mut resolved = Resolved::default();
-    let mut nm = Nm::new(&places.root);
+    let mut nm = Nm::new(places);
     // Each header found so far, by its canonical path.
     let mut headers: Vec<PathBuf> = Vec::new();
     // Each `DYNAMIC` handle so far: its name, the DLL's file by its canonical path, and the block's name as written.
@@ -575,6 +580,7 @@ mod tests {
                     root: base.join("root"),
                     source_dir: base.join("src"),
                     system32: Some(base.join("sys")),
+                    nm: Err("no nm in these tests".to_string()),
                 },
                 inc: base.join("src/inc"),
                 _dir: dir,

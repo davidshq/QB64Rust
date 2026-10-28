@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):ABSOLUTE VARPTR ( CODE ( 0 ) )
+LINE 6:ABSOLUTE VARPTR(code(0))
+exit=1

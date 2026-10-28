@@ -342,7 +342,7 @@ error, as in the old compiler.
 ### Requirement: _COTH is the hyperbolic cotangent
 `_COTH(x)` SHALL be supported at run time as the old compiler calls it (libqb's `func_coth`, believed `_FLOAT`,
 held `double`). Its value SHALL be the hyperbolic cotangent of `x`, with no upper limit and error 5 at 0, through
-this repo's copy of libqb (`DIVERGENCES.md` D-031: QB64pe's `func_coth` is `2 * EXP(x) - 1`, with error 5 above
+this repo's copy of libqb (`QB64PE-DIVERGENCES.md` D-031: QB64pe's `func_coth` is `2 * EXP(x) - 1`, with error 5 above
 44.014845).
 
 #### Scenario: Values
@@ -596,7 +596,9 @@ the evaluator SHALL keep its own values of the angle conversions (measured, `ver
 ### Requirement: Bit functions
 `_SETBIT(n, b)`, `_RESETBIT(n, b)` and `_TOGGLEBIT(n, b)` SHALL compile in any expression with the result type the
 old compiler gives for `n`'s type, and SHALL give its values, also for a bit beyond `n`'s width and a negative bit
-(measured, `verification\v58`), as `_READBIT` does.
+(measured, `verification\v58`), as `_READBIT` does. A bit number outside 0 to 63 SHALL be taken modulo 64 (its low
+six bits), whether it is a constant or a variable, as the old compiler's program does for a variable
+(`study\39` rows 17, 18; a `QB64PE-DIVERGENCES.md` row for constants).
 
 #### Scenario: Values
 - **WHEN** a program prints `_SETBIT(5, 1); _RESETBIT(5, 0); _TOGGLEBIT(5, 2)`
@@ -605,6 +607,11 @@ old compiler gives for `n`'s type, and SHALL give its values, also for a bit bey
 #### Scenario: Types and widths
 - **WHEN** a program prints `_SETBIT(b%%, 7)`, `_SETBIT(u~%%, 7)`, `_TOGGLEBIT(x&&, 63)` and `_SETBIT(5, 40)`
 - **THEN** it prints what the old compiler's program prints
+
+#### Scenario: A constant bit number of 64 or more
+- **WHEN** a program prints `_SETBIT(0, 64); _SETBIT(0, 65); _READBIT(2, 65); _SHL(1, 64)`, and the same with
+  each bit number in a LONG variable
+- **THEN** both lines print ` 1  2 -1  1 `
 
 ### Requirement: Microsoft Binary Format conversions
 `MKSMBF$` and `MKDMBF$` SHALL give the 4 and 8 bytes of a number in Microsoft Binary Format as libqb gives them,
@@ -646,3 +653,35 @@ errors past the end of the file, for a negative count, a file not open or not re
 #### Scenario: A # with nothing after it
 - **WHEN** a program has `s$ = INPUT$(1, #)`
 - **THEN** the compile fails with an error whose note is "Invalid expression" (`verification\v58_x115`)
+
+### Requirement: _CAST from a float out of range
+`_CAST` of a float to an integer type SHALL give what the same conversion of a variable gives on x86-64, for a
+constant as for a variable and with or without constant folding, including a value outside the type's range, NaN
+and infinity (`verification\v49_a_cast`; `study\39` row 16; a `QB64PE-DIVERGENCES.md` row; the old compiler's C++
+cast of a constant is undefined and differs from build to build).
+
+#### Scenario: A constant out of range
+- **WHEN** `PRINT _CAST(LONG, 3E9)` runs, and `x# = 3E9: PRINT _CAST(LONG, x#)` in the same program
+- **THEN** both print `-2147483648` (`verification\v49_x18`, now a divergence)
+
+#### Scenario: Without folding
+- **WHEN** the same program is built with `QB64RUST_NO_FOLD=1`
+- **THEN** its output is the same
+
+### Requirement: Fix bit-number-check
+With the fix `bit-number-check` on, a bit number outside 0 to 63 in `_READBIT`, `_SETBIT`, `_RESETBIT` and
+`_TOGGLEBIT` SHALL raise error 5, trappable; the function gives what it gives with the fix off. `_SHL`, `_SHR`,
+`_ROL` and `_ROR` SHALL be unchanged by the fix.
+
+#### Scenario: A bit of 64
+- **WHEN** a program with a handler that prints `ERR` and resumes next runs `n& = 64: PRINT _SETBIT(5, n&)` with
+  the fix on
+- **THEN** the handler prints 5
+
+#### Scenario: A negative bit
+- **WHEN** `PRINT _READBIT(1, -1)` runs under the same handler with the fix on
+- **THEN** the handler prints 5
+
+#### Scenario: Off
+- **WHEN** the same programs run with the fix off
+- **THEN** no error is raised and they print the values of requirement "Bit functions"

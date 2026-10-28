@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/frontend.rs
-assertion_line: 149
 expression: snap
 ---
 ==> global.txt <==
@@ -38,6 +37,7 @@ void SUB_SHOW(int32*_SUB_SHOW_LONG_V);
 memset((void*)(__ARRAY_BIT1_B[0]),0,__ARRAY_BIT1_B[5]*1/8+1);
 memset((void*)(__ARRAY_UBIT3_U3[0]),0,__ARRAY_UBIT3_U3[5]*3/8+1);
 if (__ARRAY_BIT5_DY[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_BIT5_DY)[8])->id=(++mem_lock_id);
 free((void*)(__ARRAY_BIT5_DY[0]));
 __ARRAY_BIT5_DY[2]^=1;
 __ARRAY_BIT5_DY[4]=2147483647;
@@ -97,10 +97,10 @@ exit(99);
 #include "main0.txt"
 #include "main1.txt"
 qbs *func__compdate() {
-return qbs_new_txt(__DATE__);
+return qbs_new_txt("");
 }
 qbs *func__comptime() {
-return qbs_new_txt(__TIME__);
+return qbs_new_txt("");
 }
 qbs *func__compvers() {
 return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
@@ -147,13 +147,23 @@ uint64 alloc_dim_value;
 #line 10 "bit_arrays_cpp.bas"
 uint64 alloc_bytes_per_element=(uint64)(5/8+1);
 #line 10 "bit_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 10 "bit_arrays_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 10 "bit_arrays_cpp.bas"
 alloc_new_desc[5]=(qbr(*__SINGLE_N))-alloc_new_desc[4]+1;
 #line 10 "bit_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 10 "bit_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 10 "bit_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 10 "bit_arrays_cpp.bas"
+if (alloc_none){
+#line 10 "bit_arrays_cpp.bas"
+qbr_diverged(40);
+#line 10 "bit_arrays_cpp.bas"
+}else{
 #line 10 "bit_arrays_cpp.bas"
 if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
 #line 10 "bit_arrays_cpp.bas"
@@ -196,6 +206,8 @@ __ARRAY_BIT5_DY[5]=alloc_new_desc[5];
 __ARRAY_BIT5_DY[6]=alloc_new_desc[6];
 #line 10 "bit_arrays_cpp.bas"
 __ARRAY_BIT5_DY[7]=alloc_new_desc[7];
+#line 10 "bit_arrays_cpp.bas"
+}
 #line 10 "bit_arrays_cpp.bas"
 }
 #line 10 "bit_arrays_cpp.bas"
@@ -249,13 +261,37 @@ ptrszint alloc_old_block=__ARRAY_BIT5_DY[0];
 #line 13 "bit_arrays_cpp.bas"
 ptrszint alloc_old_set=__ARRAY_BIT5_DY[2]&1;
 #line 13 "bit_arrays_cpp.bas"
+int32 alloc_none=0;
+#line 13 "bit_arrays_cpp.bas"
 alloc_new_desc[4]=0ll;
 #line 13 "bit_arrays_cpp.bas"
 alloc_new_desc[5]=(qbr((*__SINGLE_N+((float)(1)))))-alloc_new_desc[4]+1;
 #line 13 "bit_arrays_cpp.bas"
 if (alloc_new_desc[5]<=0) error(5);
 #line 13 "bit_arrays_cpp.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 13 "bit_arrays_cpp.bas"
 alloc_new_desc[6]=1;
+#line 13 "bit_arrays_cpp.bas"
+if (alloc_none){
+#line 13 "bit_arrays_cpp.bas"
+qbr_diverged(40);
+#line 13 "bit_arrays_cpp.bas"
+if (__ARRAY_BIT5_DY[2]&1){
+#line 13 "bit_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_BIT5_DY)[8])->id=(++mem_lock_id);
+#line 13 "bit_arrays_cpp.bas"
+free((void*)(__ARRAY_BIT5_DY[0]));
+#line 13 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[2]^=1;
+#line 13 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[4]=2147483647;__ARRAY_BIT5_DY[5]=0;__ARRAY_BIT5_DY[6]=0;
+#line 13 "bit_arrays_cpp.bas"
+__ARRAY_BIT5_DY[0]=(ptrszint)nothingvalue;
+#line 13 "bit_arrays_cpp.bas"
+}
+#line 13 "bit_arrays_cpp.bas"
+}else{
 #line 13 "bit_arrays_cpp.bas"
 if (__ARRAY_BIT5_DY[0]!=alloc_old_block||(__ARRAY_BIT5_DY[2]&1)!=alloc_old_set) qbr_diverged(18);
 #line 13 "bit_arrays_cpp.bas"
@@ -335,6 +371,8 @@ __ARRAY_BIT5_DY[7]=alloc_new_desc[7];
 #line 13 "bit_arrays_cpp.bas"
 }
 #line 13 "bit_arrays_cpp.bas"
+}
+#line 13 "bit_arrays_cpp.bas"
 if(!qbevent)break;evnt(13);}while(r);
 #line 14 "bit_arrays_cpp.bas"
 do{
@@ -360,6 +398,8 @@ if(!qbevent)break;evnt(16);}while(r);
 do{
 #line 16 "bit_arrays_cpp.bas"
 if (__ARRAY_BIT5_DY[2]&1){
+#line 16 "bit_arrays_cpp.bas"
+((mem_lock*)((ptrszint*)__ARRAY_BIT5_DY)[8])->id=(++mem_lock_id);
 #line 16 "bit_arrays_cpp.bas"
 free((void*)(__ARRAY_BIT5_DY[0]));
 #line 16 "bit_arrays_cpp.bas"

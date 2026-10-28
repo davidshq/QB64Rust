@@ -1,0 +1,5 @@
+
+UNEXPECTED INTERNAL COMPILER ERROR!
+Caused by (or after):T G$
+LINE 4:t g$
+exit=1

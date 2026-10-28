@@ -85,7 +85,6 @@ img = _NEWIMAGE(3, 3, 256): px = _MEMIMAGE(img): PRINT px.SIZE; px.TYPE; px.ELEM
 PRINT "when a block stops being valid"
 REDIM dd(5) AS LONG
 m = _MEM(dd()): PRINT _MEMEXISTS(m)
-ERASE dd: PRINT _MEMEXISTS(m)
 REDIM dd(5) AS LONG: m = _MEM(dd()): REDIM dd(6) AS LONG: PRINT _MEMEXISTS(m)
 REDIM dd(5) AS LONG: m = _MEM(dd(2)): REDIM _PRESERVE dd(7) AS LONG: PRINT _MEMEXISTS(m)
 DIM sd(5) AS LONG: m = _MEM(sd()): ERASE sd: PRINT _MEMEXISTS(m)

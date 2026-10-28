@@ -11,7 +11,7 @@ $UNSTABLE:TYPEFIELDS
 ' 17.-48.: READ, INPUT # and LINE INPUT # from a file, console INPUT and LINE INPUT, and the MID$ statement into a
 ' member of an element and into an element of a member array (fixed and _DYNAMIC): a number is read before the
 ' indexes, a string after them; an index outside raises error 9. Where the new compiler differs on purpose
-' (DIVERGENCES.md D-004: a number read through an index outside is stored nowhere; the old compiler stores it into
+' (QB64PE-DIVERGENCES.md D-004: a number read through an index outside is stored nowhere; the old compiler stores it into
 ' position 0) items 23, 38 and 39 were recorded from a program that reads the item into q$ and raises ERROR 9.
 TYPE inner
     k AS INTEGER

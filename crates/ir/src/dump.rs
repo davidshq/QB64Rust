@@ -35,6 +35,15 @@ fn settings(s: &Settings) -> String {
     if s.error_location {
         parts.push("error location".to_string());
     }
+    // The fixes that are on (spec `compiler/fixes`); none named when all are off, so such a dump is as before.
+    let on: Vec<&str> = qb64rust_base::fixes::FIXES
+        .iter()
+        .filter(|f| s.fixes.is_on(f.0))
+        .map(|f| f.1)
+        .collect();
+    if !on.is_empty() {
+        parts.push(format!("fixes {}", on.join(" ")));
+    }
     if !s.runtime_parts.is_empty() {
         let names: Vec<&str> = s
             .runtime_parts
@@ -502,6 +511,16 @@ fn body(p: &Program, b: &Body, out: &mut String) {
                 Op::Call { proc, args: a } => {
                     writeln!(out, "  Call {} [{}]", p.proc(*proc).name, args(p, a)).unwrap();
                 }
+                Op::CallAbsolute { args: a, offset } => {
+                    let a: Vec<String> = a
+                        .iter()
+                        .map(|a| match a {
+                            crate::AbsArg::Address(e) => val(p, e),
+                            crate::AbsArg::Value(v, _) => format!("Slot({})", val(p, v)),
+                        })
+                        .collect();
+                    writeln!(out, "  CallAbsolute [{}] {}", a.join(", "), val(p, offset)).unwrap();
+                }
                 Op::OnEvent { event, handler } => {
                     let event = match event {
                         Event::Timer { number: None, seconds } => format!("Timer every {}", val(p, seconds)),
@@ -653,7 +672,7 @@ fn args(p: &Program, args: &[Arg]) -> String {
     args.iter()
         .map(|a| match a {
             Arg::Ref(place) => format!("Ref {}:{}", place_text(p, place), ty(p, p.place_ty(place))),
-            Arg::Temp(v) => format!("Temp({})", val(p, v)),
+            Arg::Temp(v, _) => format!("Temp({})", val(p, v)),
             Arg::Array(a) => format!("Array {}:{}", array_text(p, a), ty(p, p.array_ty(a))),
             Arg::Value(v) => format!("Value({})", val(p, v)),
             Arg::Null => "Null".to_string(),

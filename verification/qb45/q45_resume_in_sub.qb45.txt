@@ -1,0 +1,12 @@
+compile:
+ 012E   0006    RESUME
+                ^ Subprogram error
+ 0150   0006    RESUME back
+                ^ Subprogram error
+ 01A0   0006    RESUME NEXT
+                ^ Subprogram error
+    0 Warning Error(s)
+    3 Severe  Error(s)
+handler 5 
+after the calls
+after ERROR

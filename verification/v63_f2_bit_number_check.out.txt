@@ -1,0 +1,9 @@
+63: 9223372036854775808 
+setbit 64: 5 
+readbit -1: 0 
+resetbit 70: 63 
+togglebit -3: 2305843009213693957 
+0:-1 
+shl 64: 1 
+done
+exit=0

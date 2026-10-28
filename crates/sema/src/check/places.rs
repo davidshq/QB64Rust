@@ -8,6 +8,7 @@ use super::{Checker, DimFact, Failed, NoJoin, Placing, R, Scope, Skips, split_un
 use crate::{AddressWord, MEM_TYPE, ProcId, ProcKind, Program, Var, VarId, mem_type};
 use crate::{AllocMode, BinOp, ConvKind, Join, StartBounds, StmtKind, UnOp};
 use crate::{ArrayRef, Expr, ExprKind, Member, MemberId, Place, Shape, Storage, SymbolKind, Ty, TypeId, UserType};
+use qb64rust_base::fixes::Fix;
 use qb64rust_base::{Span, show_bytes, to_u32};
 use qb64rust_builtins::{auto_constant, find_any, is_auto_include_function, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
@@ -52,9 +53,102 @@ const TYPE_WORDS: &[&str] = &[
 const TYPE_NAMES_FREE: &[&str] = &["POINT", "CLS"];
 const TYPE_NAMES_TAKEN: &[&str] = &["LEN", "PRINT", "LONG"];
 
-/// Member names measured likewise.
-const MEMBER_NAMES_FREE: &[&str] = &["LEFT", "LEN", "COLOR", "NAME"];
-const MEMBER_NAMES_TAKEN: &[&str] = &["PRINT"];
+/// The member names the old compiler refuses, "Name already in use": the names of its reserved table that carry
+/// `HASHFLAG_TYPE`, `HASHFLAG_OPERATOR`, `HASHFLAG_CUSTOMSYNTAX` or `HASHFLAG_XELEMENTNAME` (`qb64pe.bas` 2313–2320;
+/// the table 1250–1395, in its order). Every other valid name is taken, keywords and built-ins among them (measured,
+/// `verification\v61_m_*`; `AS`, `DATA`, `ELSE` and `REM` fail there in the old compiler's reading of the line, with
+/// another message, and so does `END`, which is not in the table). A name with a single leading underscore is
+/// refused before ([`Checker::declare_type`]).
+const MEMBER_NAMES_REFUSED: &[&str] = &[
+    // HASHFLAG_TYPE
+    "_UNSIGNED",
+    "_BIT",
+    "_BYTE",
+    "INTEGER",
+    "LONG",
+    "_INTEGER64",
+    "_OFFSET",
+    "SINGLE",
+    "DOUBLE",
+    "_FLOAT",
+    "STRING",
+    "ANY",
+    // HASHFLAG_OPERATOR
+    "NOT",
+    "IMP",
+    "EQV",
+    "AND",
+    "OR",
+    "XOR",
+    "MOD",
+    "_NEGATE",
+    "_ANDALSO",
+    "_ORELSE",
+    // HASHFLAG_CUSTOMSYNTAX
+    "LIST",
+    "BASE",
+    "_EXPLICIT",
+    "_EXPLICITARRAY",
+    "AS",
+    "IS",
+    "OFF",
+    "ON",
+    "STOP",
+    "TO",
+    "USING",
+    "_DYNAMIC",
+    "_STATIC",
+    "PRESET",
+    "PSET",
+    "FOR",
+    "OUTPUT",
+    "RANDOM",
+    "BINARY",
+    "APPEND",
+    "SHARED",
+    "ACCESS",
+    "LOCK",
+    "READ",
+    "WRITE",
+    "STEP",
+    "LPRINT",
+    "PRINT",
+    // HASHFLAG_XELEMENTNAME (`CASE`, `DO`, `ERROR`, `EXIT`, `FIELD`, `INPUT`, `KEY`, `LET`, `LOOP`, `LEN`, `NEXT`,
+    // `PLAY`, `PEN`, `RESTORE`, `RESUME`, `RETURN`, `RUN`, `SELECT`, `SCREEN`, `TIMER` and `TYPE` lack it)
+    "COMMON",
+    "CALL",
+    "COM",
+    "CONST",
+    "DATA",
+    "DECLARE",
+    "DEF",
+    "DEFDBL",
+    "DEFINT",
+    "DEFLNG",
+    "DEFSNG",
+    "DEFSTR",
+    "DIM",
+    "ELSE",
+    "ELSEIF",
+    "ENDIF",
+    "FUNCTION",
+    "GOSUB",
+    "GOTO",
+    "IF",
+    "REDIM",
+    "REM",
+    "STATIC",
+    "STRIG",
+    "SEG",
+    "SUB",
+    "THEN",
+    "UNTIL",
+    "UEVENT",
+    "WEND",
+    "WHILE",
+    // Not in the table: the old compiler reads `END AS …` as the block's end ("Expected END TYPE").
+    "END",
+];
 
 /// When the bounds of a member array are read ([`Checker::member_bounds`]).
 #[derive(Clone, Copy, Debug)]
@@ -191,15 +285,16 @@ impl Checker<'_> {
                     // Measured: "Invalid name" and "Expected element-name AS type" (`v18_h_member_decl_suffix*`).
                     return Err(self.error(t.span, format!("a `TYPE` member cannot have a type suffix: `{shown}`")));
                 }
-                // Measured (`v18_h_member_names*`): `left`, `len`, `color`, `name` are fine, `print` is "Name already
-                // in use".
-                if MEMBER_NAMES_TAKEN.contains(&mname.as_str()) {
+                // A single leading underscore: "Invalid name" (`validname`, `qb64pe.bas` 28273; measured,
+                // `verification\v61_m__width`, `v61_m__mine`); the reserved names among them too.
+                if mname.len() >= 2 && mname.starts_with('_') && !mname[1..].starts_with('_') {
+                    return Err(self.error(t.span, format!("a `TYPE` member cannot start with one `_`: `{shown}`")));
+                }
+                // The old compiler's table (measured, `v18_h_member_names*`, `v61_m_*`).
+                if MEMBER_NAMES_REFUSED.contains(&mname.as_str()) {
                     return Err(self.in_use(t));
                 }
-                let free = MEMBER_NAMES_FREE.contains(&mname.as_str());
-                if mname.contains('.')
-                    || (!free && (is_keyword(mname.as_bytes()) || find_any(mname.as_bytes()).next().is_some()))
-                {
+                if mname.contains('.') {
                     return Err(self.unsupported(t.span, format!("the member name `{shown}`")));
                 }
                 if members.iter().any(|m| m.name == mname) {
@@ -705,9 +800,21 @@ impl Checker<'_> {
             return Err(self.unsupported(name_tok.span, format!("an array named with `$n`: `{shown}`")));
         }
         let key = (name.clone(), ty);
-        let existing = self.array_of(&key);
+        let mut existing = self.array_of(&key);
         let bounds_span = bounds.node().span();
-        let beside_shared = by == Declarer::Static && self.static_array_free(existing, name_tok, &shown, listed)?;
+        let mut beside_shared = by == Declarer::Static && self.static_array_free(existing, name_tok, &shown, listed)?;
+        // Beside a shared static array, `STATIC a(n)` declares an array of the procedure's own, as QuickBASIC 4.5 does
+        // (`verification\qb45\q45_static_local`), where the old compiler ends the program at the start with
+        // "Duplicate definition" (`QB64PE-DIVERGENCES.md` D-041, `study\39` row 4, always); beside a dynamic one only
+        // with the fix `static-local-dynamic`. Every later use of the name in the procedure finds that array.
+        if beside_shared
+            && let Some(id) = existing
+            && (matches!(self.prog.var(id).shape, Shape::Static { .. })
+                || self.settings.fixes.is_on(Fix::StaticLocalDynamic))
+        {
+            existing = None;
+            beside_shared = false;
+        }
         if common && existing.is_some() {
             // Not measured: `COMMON a()` twice, or below a `DIM` or a use of the array.
             let msg = format!("`COMMON {shown}()` of an array that exists already");
@@ -2378,9 +2485,9 @@ impl Checker<'_> {
     /// `VARPTR`, `VARSEG`, `SADD` and `VARPTR$` (design D3 and D4 of `m3-get-put-bload`, D1–D3 of
     /// `m4-memory-records`; measured, `verification\v28_b_bload`, `v28_d_varptr_index`, `v28_e_cmem_arrays`,
     /// `v28_x36`–`x41`, `x55`–`x57`, `v56_*`). The argument is a variable, an element or a member, never a value.
-    /// The variable it is part of, of the main module and named from any body, is put into conventional memory by
-    /// being named here. A variable of a procedure, a user type that holds a `STRING` (the old compiler's program
-    /// leaves its strings out there and crashes, `v56_a5`) and the forms the family did not measure are not
+    /// The variable it is part of, of the main module or of a procedure (design D1 of `qbasic-testcases`;
+    /// `verification\v61_a*`), is put into conventional memory by being named here; a parameter's arguments are, after
+    /// every body is checked ([`Checker::conventional_args`]). The forms the families did not measure are not
     /// supported yet.
     pub(super) fn var_address(&mut self, call: ast::CallExpr, word: AddressWord, span: Span) -> R<Expr> {
         let name = word.name();
@@ -2391,6 +2498,13 @@ impl Checker<'_> {
         };
         // An element or variable of a user type is a place here, not a value, as for `LEN` ([`Self::load`]).
         let e = self.expr_as(arg, Use::Place)?;
+        self.address_of(e, word, span)
+    }
+
+    /// The address `word` gives of an argument already read as a place ([`Self::var_address`]); also a variable
+    /// argument of `CALL ABSOLUTE`, as the old compiler takes `VARPTR` of it (`qb64pe.bas` 10704).
+    pub(super) fn address_of(&mut self, e: Expr, word: AddressWord, span: Span) -> R<Expr> {
+        let name = word.name();
         let ExprKind::Load(place) = e.kind else {
             if word == AddressWord::Sadd {
                 // Measured: the old compiler's message for a literal (`v28_x56`).
@@ -2402,14 +2516,7 @@ impl Checker<'_> {
         };
         let ty = self.prog.place_ty(&place);
         let whole = matches!(&place, Place::Element { index, .. } if index.is_empty());
-        let on_member = matches!(
-            &place,
-            Place::Member { .. }
-                | Place::Element {
-                    array: ArrayRef::Member { .. },
-                    ..
-                }
-        );
+        let on_member = place.in_member();
         // The forms each function takes, by the old compiler's rules (`qb64pe.bas` 21306–21560).
         match word {
             AddressWord::Sadd => {
@@ -2467,24 +2574,19 @@ impl Checker<'_> {
                         return Err(self.error(e.span, "`VARPTR` of the `STRING` member of an array element"));
                     }
                     // The offset of the member's string pointer (measured, `verification\v56_x08`).
-                } else if on_member && !(ty.is_int() || ty.is_float()) {
+                } else if on_member && !(ty.is_int() || ty.is_float() || matches!(ty, Ty::FixedStr(_))) {
+                    // A fixed-length string member is at its offset, as a number is (measured, `v61_a4`).
                     let msg = format!("`{name}` of a member that is no number");
                     return Err(self.unsupported(e.span, msg));
                 }
             }
         }
+        // A variable of a procedure is taken as one of the main module (design D1 of `qbasic-testcases`); a
+        // parameter's arguments move there after every body is checked ([`Checker::conventional_args`]).
         let root = place.root();
         let v = self.prog.var(root);
-        let what = match v.storage {
-            Storage::Main => None,
-            Storage::Param(_) => Some("a parameter"),
-            Storage::Static(_) | Storage::Local(_) | Storage::Result(_) => Some("a variable of a SUB or FUNCTION"),
-        };
-        if let Some(what) = what {
-            return Err(self.unsupported(e.span, format!("`{name}` of {what}")));
-        }
         // A `TYPE` that holds a `STRING` is taken, its strings made where the old compiler leaves them out
-        // (`DIVERGENCES.md` D-037; design D3 of `m4-left-marked`); one that owns a dynamic member array, and `_MEM`,
+        // (`QB64PE-DIVERGENCES.md` D-037; design D3 of `m4-left-marked`); one that owns a dynamic member array, and `_MEM`,
         // were not measured.
         if crate::owns_desc(&self.prog.types, v.ty) || self.prog.is_mem(v.ty) {
             let msg =
@@ -2495,9 +2597,14 @@ impl Checker<'_> {
             return Err(self.unsupported(e.span, format!("`{name}` of a dynamic member array")));
         }
         self.prog.vars[root.0 as usize].conventional = true;
-        // `VARSEG` finds no element: of an array (not of strings), the whole array; of anything else, the variable.
+        // `VARSEG` finds no element: of an array (not of strings), the whole array; of anything else, the variable,
+        // but for a parameter of a user type, which may lie outside `dblock`: the place, whose segment libqb finds
+        // (`qb64pe.bas` 21550).
+        let param_udt =
+            matches!(self.prog.var(root).storage, Storage::Param(_)) && matches!(self.prog.var(root).ty, Ty::User(_));
         let of = match (word, &self.prog.var(root).shape) {
-            (AddressWord::VarSeg, Shape::Scalar) => Place::Var(root),
+            (AddressWord::VarSeg, Shape::Scalar) if !param_udt => Place::Var(root),
+            (AddressWord::VarSeg, Shape::Scalar) => place,
             (AddressWord::VarSeg, _) => Place::Element {
                 array: ArrayRef::Var(root),
                 index: Vec::new(),

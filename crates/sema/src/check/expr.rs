@@ -5,6 +5,7 @@ use super::ops::{Op, TypeError, Typed, Typing, fold_binary, fold_unary, left_ope
 use super::{Checker, Failed, R};
 use crate::literal::{self, LitError, NumLit};
 use crate::{AddressWord, BinOp, ConvKind, Expr, ExprKind, Place, ProcId, ProcKind, Ty, UnOp};
+use qb64rust_base::fixes::Fix;
 use qb64rust_base::show_bytes;
 use qb64rust_builtins::Written;
 use qb64rust_syntax::SyntaxKind::{self, Minus, Number};
@@ -406,6 +407,16 @@ impl Checker<'_> {
                 self.implicit_array(name_tok, &proc_name, suffix, dims, node.node())?
             }
         };
+        // With the fix `whole-array-value`, a whole array `a()` is no value, as in QuickBASIC 4.5
+        // (`verification\qb45\q45_whole_array_value`; `study\39` row 6). The variable of a statement (`READ a()`) and
+        // `LEN(a())` are taken elsewhere.
+        if self.settings.fixes.is_on(Fix::WholeArrayValue) && node.arg_list().is_none_or(|l| l.args().is_empty()) {
+            let shown = show_bytes(self.text(name_tok.span));
+            let msg = format!(
+                "a whole array is not a value; name an element, as in `{shown}(0)` (the fix `whole-array-value`)"
+            );
+            return Err(self.error(span, msg));
+        }
         let place = self.element(node, array, name_tok)?;
         self.load(place, span, use_)
     }

@@ -188,6 +188,10 @@ impl Fmt<'_> {
         let mut l = Lay::new();
         let mut call = false;
         let mut st = Args::default();
+        // `CALL name(args)`: the arguments stand in parentheses.
+        let in_parens = elems.iter().any(
+            |e| matches!(e, Element::Node(c) if c.kind() == ArgList && c.child_tokens().any(|t| t.kind == LParen)),
+        );
         for e in &elems {
             match *e {
                 Element::Token(t) if self.is_word(t, "CALL") => {
@@ -196,13 +200,18 @@ impl Fmt<'_> {
                 }
                 Element::Node(c) if c.kind() == NameRef => {
                     for t in c.child_tokens() {
-                        l.text(&self.name(t));
+                        // `CALL ABSOLUTE(…)` with its parentheses is the old compiler's own statement, spelled
+                        // from its layout (`qb64pe.bas` 10622, 10688); without them `ABSOLUTE` is a SUB's name.
+                        if call && in_parens && self.is_word(t, "ABSOLUTE") {
+                            l.text(&self.kw("ABSOLUTE"));
+                        } else {
+                            l.text(&self.name(t));
+                        }
                     }
                     l.sp();
                 }
                 Element::Node(c) if c.kind() == ArgList => {
-                    let parens = c.child_tokens().any(|t| t.kind == LParen);
-                    if call && parens {
+                    if call && in_parens {
                         l.set_last(SP2);
                         l.text(b"(").sp2();
                     }
@@ -231,11 +240,7 @@ impl Fmt<'_> {
         if matches!(l.last(), Some(SP | SP2)) {
             l.pop();
         }
-        if call
-            && elems.iter().any(
-                |e| matches!(e, Element::Node(c) if c.kind() == ArgList && c.child_tokens().any(|t| t.kind == LParen)),
-            )
-        {
+        if call && in_parens {
             l.sp2().text(b")");
         }
         Some(l)

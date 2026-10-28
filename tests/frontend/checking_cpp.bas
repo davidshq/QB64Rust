@@ -44,10 +44,13 @@ _MEMGET mbs(i + 1), mb.OFFSET, l
 _MEMPUT mbs(i + 1), mb.OFFSET, l
 _MEMFILL mbs(i + 1), mb.OFFSET, 16, l
 PRINT _MEMGET(mbs(i + 1), mb.OFFSET, LONG)
+' A whole array in a file: below OFF the call alone, with checking error 9 while it has no storage (D-042).
+PUT #1, , a()
 $CHECKING:ON
 _MEMGET mb, mb.OFFSET, l
 _MEMFILL mb, mb.OFFSET, 16, 7 AS _BYTE
 _MEMGET mbs(i + 1), mb.OFFSET, l
+PUT #1, , a()
 s
 '$INCLUDE:'inc/checking_off.bi'
 PRINT "after the include"

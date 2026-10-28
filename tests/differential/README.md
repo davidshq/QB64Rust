@@ -43,10 +43,10 @@ Rules (spec "Safe programs"; each program's header names what it leaves out):
 - `ON ERROR GOTO h` at the start; the handler prints ` error` and `ERR` and resumes next, so an error inside a line
   shows in that line's place (`^ BYTE SINGLE 8: error 5`).
 - `\` and `MOD`: no divisor that rounds to 0; no smallest LONG or `_INTEGER64`, or float beyond LONG, divided by a
-  divisor that rounds to -1 (the old program crashes, `DIVERGENCES.md` D-006).
+  divisor that rounds to -1 (the old program crashes, `QB64PE-DIVERGENCES.md` D-006).
 - `^`: no type pair with an `_OFFSET` operand (a compile error in the old compiler).
 - A `_BIT * 32` pad is DIMmed just before every `_BIT * 40`, so the old compiler's overlap hits the pad
-  (`DIVERGENCES.md` D-009).
+  (`QB64PE-DIVERGENCES.md` D-009).
 - No signed radix literal wider than its type (no radix literals at all), no `PRINT` comma, `SYSTEM` at the end (no
   key press needed).
 
@@ -65,7 +65,7 @@ agree. A program whose text changed must be recorded again before it is committe
 reference clone (`qb64pe.exe` 4.7.0): all 59 compile and run to their last line; 211 s for the whole set; a second
 `--record` changed no file. `--category <group>` and `--glob <name>.bas` record or run a part.
 
-The recordings hold the old compiler's text for an infinite result (`DIVERGENCES.md` D-010): after `INF` come NUL
+The recordings hold the old compiler's text for an infinite result (`QB64PE-DIVERGENCES.md` D-010): after `INF` come NUL
 bytes and the remains of a number printed earlier (`+ SINGLE SINGLE 1:-INF<NUL>2979E+11`), the same on every run.
 They are kept byte for byte (`.gitattributes` marks the outputs `-text`). When D-010 is implemented (M3) those lines
 change, and the programs that print them (`ops` and `fold`: `+ - * / ^`) get a `.normalize` rule or a new recording.

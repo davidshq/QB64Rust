@@ -4,13 +4,14 @@
 //! sequence (`allocarray`, `qb64pe.bas` 15193–15531), whose order of checks and errors is measured (`study\00` §5):
 //! the new bounds are built in a descriptor of their own, the new block is made, the old one is released after
 //! it, and the array's descriptor is written last. One difference: a `REDIM` takes the old block after the bounds,
-//! not before them (`DIVERGENCES.md` D-018). The working variables are locals of the statement's block,
+//! not before them (`QB64PE-DIVERGENCES.md` D-018). The working variables are locals of the statement's block,
 //! where the old compiler has `static` ones: a FUNCTION called in a bound may run the same statement again.
 
 use crate::Emitter;
-use crate::decl::{Part, count_of, dim_slot, lock_slot};
+use crate::decl::{Part, count_of, dim_slot, lock_slot, renew_lock};
 use crate::names::{bare, int_const};
 use crate::owner::dyn_fn;
+use qb64rust_base::fixes::Fix;
 use qb64rust_ir::{AllocMode, ArrayRef, Conv, Expr, ExprKind, Facts, StartBounds, Ty, Var, VarId, numeric_value_types};
 
 /// The name of the descriptor of a dynamic member array that [`Emitter::allocate`] allocates.
@@ -211,6 +212,13 @@ impl Emitter<'_> {
             out.push(format!("ptrszint alloc_old_block={n}[0];"));
             out.push(format!("ptrszint alloc_old_set={n}[2]&1;"));
         }
+        // A dimension with fewer than no element: nothing is allocated (`study\39` row 3, D-040).
+        out.push("int32 alloc_none=0;".into());
+        let empty_error = self.p.settings.fixes.is_on(Fix::DimEmptyError);
+        if empty_error {
+            // With the fix, an error raised by this array's bounds allocates nothing either.
+            out.push("int32 alloc_was_pending=is_error_pending();".into());
+        }
         // The bounds, lower before upper, first dimension first. A dimension without an element raises error 5 and
         // the statement goes on, as it does after a bound that raises.
         for (k, (lower, upper)) in bounds.iter().enumerate() {
@@ -218,6 +226,12 @@ impl Emitter<'_> {
             out.push(format!("alloc_new_desc[{s}]={lower};"));
             out.push(format!("alloc_new_desc[{}]=({upper})-alloc_new_desc[{s}]+1;", s + 1));
             out.push(format!("if (alloc_new_desc[{}]<=0) error(5);", s + 1));
+            // Below zero, not wrapped round from too large: the upper bound (the lower plus the count, less one, as
+            // computed) is below the lower one.
+            out.push(format!(
+                "if (alloc_new_desc[{c}]<0&&(int64)((uint64)alloc_new_desc[{s}]+(uint64)alloc_new_desc[{c}]-1)<alloc_new_desc[{s}]) alloc_none=1;",
+                c = s + 1
+            ));
             if k == 0 {
                 out.push(format!("alloc_new_desc[{}]=1;", s + 2));
             } else {
@@ -230,18 +244,30 @@ impl Emitter<'_> {
                 ));
             }
         }
+        // Nothing allocated: the error 5 is raised, and a `REDIM` leaves the array not allocated, its block released
+        // as `ERASE` releases it. The old compiler goes on and ends the program with "Out of memory", which no handler
+        // receives (`verification\v62_a1`, `a2`). With `dim-empty-error`, also after a dimension with no element (its
+        // error 5) or another error raised by the bounds.
+        if empty_error {
+            out.push("if (alloc_none||(!alloc_was_pending&&is_error_pending())){".into());
+            out.push("if (alloc_none) qbr_diverged(40);".into());
+        } else {
+            out.push("if (alloc_none){".into());
+            out.push("qbr_diverged(40);".into());
+        }
+        if redim {
+            self.release_block(t, n, dims, out);
+        }
+        out.push("}else{".into());
         if redim {
             // The old block (and with `_RETAIN` its bounds) is taken after the bounds, where the old compiler takes
             // it before them: a FUNCTION in a bound may give the array new bounds or erase it, and the old
-            // compiler then frees a block twice (`DIVERGENCES.md` D-018). It is kept until the new one exists;
+            // compiler then frees a block twice (`QB64PE-DIVERGENCES.md` D-018). It is kept until the new one exists;
             // `_MEM` blocks over it become invalid.
             out.push(format!(
                 "if ({n}[0]!=alloc_old_block||({n}[2]&1)!=alloc_old_set) qbr_diverged(18);"
             ));
-            out.push(format!(
-                "((mem_lock*)((ptrszint*){n})[{}])->id=(++mem_lock_id);",
-                lock_slot(dims)
-            ));
+            out.push(renew_lock(n, dims));
             out.push(format!("if ({n}[2]&1){{"));
             out.push(format!("preserve_old_ptr={n}[0];"));
             out.push(format!("preserve_old_total={};", count_of(dims, n)));
@@ -422,9 +448,40 @@ impl Emitter<'_> {
         for i in 4..lock_slot(dims) {
             out.push(format!("{n}[{i}]=alloc_new_desc[{i}];"));
         }
+        // The end of the branch that allocates.
+        out.push("}".into());
         if !redim {
             out.push("}".into());
         }
+        out.push("}".into());
+    }
+
+    /// The release of the block of an allocated array whose descriptor is `n`, of elements of type `t` and `dims`
+    /// dimensions, as `ERASE` releases a dynamic array ([`Self::release`]), from the descriptor alone: a `REDIM` that
+    /// allocates nothing (D-040).
+    fn release_block(&self, t: Ty, n: &str, dims: usize, out: &mut Vec<String>) {
+        out.push(format!("if ({n}[2]&1){{"));
+        out.push(renew_lock(n, dims));
+        let count = count_of(dims, n);
+        if t == Ty::Str {
+            out.push(format!("tmp_long={count};"));
+            out.push(format!("while(tmp_long--) qbs_free(((qbs**)({n}[0]))[tmp_long]);"));
+        } else {
+            let block = format!("{n}[0]");
+            push_lines(out, &self.each_element(t, &block, &count, |at| self.free_value(t, at)));
+        }
+        out.push(self.free_block(t, n, &format!("{n}[0]")));
+        out.push(format!("{n}[2]^=1;"));
+        for i in 1..=dims {
+            out.push(format!(
+                "{n}[{}]=2147483647;{n}[{}]=0;{n}[{}]=0;",
+                4 * i,
+                4 * i + 1,
+                4 * i + 2
+            ));
+        }
+        let nothing = if t == Ty::Str { "&nothingstring" } else { "nothingvalue" };
+        out.push(format!("{n}[0]=(ptrszint){nothing};"));
         out.push("}".into());
     }
 
@@ -441,14 +498,14 @@ impl Emitter<'_> {
         out.push(format!("if ({n}[2]&2){{"));
         out.extend(self.clear_elements(v, &n).lines().map(str::to_string));
         out.push("}else{".into());
-        out.extend(self.release(v, &n).lines().map(str::to_string));
+        out.extend(self.release(v, &n, true).lines().map(str::to_string));
         out.push("}".into());
     }
 
     /// `CopyArray` (design D4 of `m3-whole-array-assign`): the old compiler's `AppendWholeArrayAssign`
     /// (`qb64pe.bas` 17272) with its names. The descriptors are taken target first, each finding its place once
     /// (a member array's as for an array argument, [`Self::member_array_arg`], or a dynamic member's own); when a
-    /// place may raise, nothing is copied after an error (`DIVERGENCES.md` D-004). Both must be allocated and have
+    /// place may raise, nothing is copied after an error (`QB64PE-DIVERGENCES.md` D-004). Both must be allocated and have
     /// the same bounds, else error 9; then the elements by kind: one move of the bytes where they hold nothing
     /// else, a string or a user type that holds strings element by element, an owner value deep in place
     /// ([`Self::copy_owner`]; the old compiler gives a `REDIM` target a new block, with the same values). A
@@ -542,7 +599,7 @@ impl Emitter<'_> {
     /// (`qb64pe.bas` 16855) checks them: both must be allocated, else error 9 and nothing is copied; other bounds
     /// raise error 9 and the copy goes on, element `i` of the target from element `i` of the source for every
     /// element of the target, deep, the target keeping its bounds. Only when the source has fewer elements, which
-    /// the old program reads past, is nothing copied (`DIVERGENCES.md` D-022; design D3 of `m3-measured-copies`).
+    /// the old program reads past, is nothing copied (`QB64PE-DIVERGENCES.md` D-022; design D3 of `m3-measured-copies`).
     fn copy_owner_array(&mut self, t: Ty, dims: usize, (dst, src): (&str, &str), out: &mut Vec<String>) {
         out.push("{".into());
         out.push(format!("ptrszint *whole_arr_dst={dst};"));
@@ -583,10 +640,10 @@ impl Emitter<'_> {
     /// `nd_range_at` (likewise), a whole source `1d_whole`, `1d_whole_at`, `nd_whole` or `nd_whole_at`; `_string`
     /// for `STRING`, else `_fixed` with the size of an element. A member side's descriptor is taken first, where
     /// its place is found (source, then destination); when a place may raise, nothing is copied after an error
-    /// there (`DIVERGENCES.md` D-004); the guard is taken before the bounds, so an error a bound raises does not
+    /// there (`QB64PE-DIVERGENCES.md` D-004); the guard is taken before the bounds, so an error a bound raises does not
     /// stop the copy, as in the old compiler. A dynamic member side whose number of dimensions a `REDIM` changed
     /// raises error 9 there and is not copied. A `_FLOAT` element is `sizeof(long double)` bytes from the next
-    /// (`DIVERGENCES.md` D-025: the old compiler passes 32, its `LEN`).
+    /// (`QB64PE-DIVERGENCES.md` D-025: the old compiler passes 32, its `LEN`).
     pub(crate) fn array_copy(
         &mut self,
         (from, to): (&ArrayRef, &ArrayRef),
@@ -751,7 +808,7 @@ impl Emitter<'_> {
     pub(crate) fn release_array(&mut self, array: &ArrayRef, out: &mut Vec<String>) {
         match array {
             ArrayRef::Var(array) => {
-                let text = self.release(self.p.var(*array), &self.name(*array));
+                let text = self.release(self.p.var(*array), &self.name(*array), true);
                 out.extend(text.lines().map(str::to_string));
             }
             ArrayRef::Member { base, member } => {

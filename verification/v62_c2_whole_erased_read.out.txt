@@ -1,0 +1,4 @@
+1. after READ s()xyz
+2. after READ n()xyz
+3. endxyz
+exit=0

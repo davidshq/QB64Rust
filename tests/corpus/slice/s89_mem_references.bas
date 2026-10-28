@@ -1,6 +1,6 @@
 $CONSOLE:ONLY
 ' Slice (m3-mem task 3.1 and 3.2): the block of every kind of place, from verification\v32_a_blocks without its
-' array parameter whose first use is _MEM (DIVERGENCES.md D-016), and v32_x119 (members of an element). Each line
+' array parameter whose first use is _MEM (QB64PE-DIVERGENCES.md D-016), and v32_x119 (members of an element). Each line
 ' prints the place, then OFFSET less the address _OFFSET gives for the variable or the array's first element,
 ' SIZE, TYPE, ELEMENTSIZE, IMAGE and SOUND; then _MEM(offset, size), _OFFSET against the block's OFFSET, and a block of a member array named without ().
 TYPE t

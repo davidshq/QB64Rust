@@ -8,7 +8,7 @@
 //! - the source checks without errors and is formatted; the text must equal the recording with line endings taken
 //!   as LF, unless `tests\format\known_differences.list` names the program (shrink-only: a listed program that
 //!   comes to equal its recording fails until it is taken off), or the recording's `<name>.divergences` names a row
-//!   of `DIVERGENCES.md` (design D8);
+//!   of `QB64PE-DIVERGENCES.md` (design D8);
 //! - the formatted text is the same program: its typed dump equals the source's (the dump names no source position
 //!   and writes names in capitals, and formatting keeps every line where it is);
 //! - formatting the formatted text again changes nothing.
@@ -84,8 +84,8 @@ fn recordings_in(dir: &Path, prefix: &str, settings: Settings, out: &mut Vec<Pro
             let name = format!("{prefix}{set}/{rel_name}");
             let source = repo().join(folder).join(&rel);
             let needs_clone = set == "upstream" && rel_name.starts_with(UPSTREAM_QB64PE);
-            let base = match build::find_root(None) {
-                Ok(clone) if needs_clone => clone.join("tests/compile_tests").join(&rel),
+            let base = match build::clone_root() {
+                Some(clone) if needs_clone => clone.join("tests/compile_tests").join(&rel),
                 _ => beside_files(&source),
             };
             out.push(Program {
@@ -295,7 +295,7 @@ fn run(p: &Program) -> Outcome {
     let bytes = std::fs::read(&p.source).unwrap_or_else(|e| panic!("{}: {e}", p.source.display()));
     let fe = load(p, bytes);
     if fe.has_errors() {
-        if p.needs_clone && build::find_root(None).is_err() {
+        if p.needs_clone && build::clone_root().is_none() {
             o.skipped = Some("needs the QB64pe reference clone".into());
         } else if fe.diagnostics.errors().all(|d| !d.is_real_error()) {
             // Only "not supported yet": the program cannot be formatted until the compiler takes it.
