@@ -199,7 +199,7 @@ pub fn function(name: &str, args: &[Value]) -> R<Value> {
             let Some(&p) = im.pal.get(usize::try_from(col).expect("32 bits")) else {
                 // Beyond libqb's 256 entries (a text image's mask is 65535): the old compiler reads past its palette,
                 // and its value changes from build to build (0 mostly; measured, `verification\v45_x64`,
-                // `v57_c01`–`c03`). 0 here, by working rule 12 (`QB64PE-DIVERGENCES.md` D-035; design D10 of
+                // `v57_c01`–`c03`). 0 here, by working rule 8 (`QB64PE-DIVERGENCES.md` D-035; design D10 of
                 // `m4-statements-metacommands`).
                 return n(0);
             };

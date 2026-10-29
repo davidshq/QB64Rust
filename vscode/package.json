@@ -375,7 +375,9 @@
     "test": "npm run test:unit && npm run test:grammar && npm run test:integration && npm run test:integration:min",
     "vscode:prepublish": "npm run compile",
     "package": "npm run stage && vsce package --target win32-x64",
-    "stage": "python scripts/stage_bundle.py"
+    "package:linux": "npm run stage:linux && vsce package --target linux-x64",
+    "stage": "python scripts/stage_bundle.py",
+    "stage:linux": "python3 scripts/stage_bundle.py --target linux-x64"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

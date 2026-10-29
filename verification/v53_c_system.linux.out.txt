@@ -1,0 +1,50 @@
+[desktop] 0 -1 -1 
+[documents] 0 -1 -1 
+[music] 0 -1 -1 
+[pictures] 0 -1 -1 
+[videos] 0 -1 -1 
+[downloads] 0 -1 -1 
+[appdata] 0 -1  0 
+[localappdata] 0 -1  0 
+[programfiles] 0 -1  0 
+[programfiles x86] 0 -1  0 
+[temp] 0 -1  0 
+[home] 0 -1 -1 
+[fonts] 0 -1  0 
+[userfont] 0 -1 -1 
+[programdata] 0 -1  0 
+[bogus] 0 -1 -1 
+[] 0 -1 -1 
+[Fonts] 0 -1  0 
+[fonts] 0 -1  0 
+[my documents] 0 -1 -1 
+[text] 0 -1 -1 
+[TMP] 0 -1  0 
+-1 -1 
+sh: 1: cmd: not found
+ 32512 
+sh: 1: cmd: not found
+ 32512 
+sh: 1: cmd: not found
+ 32512 
+sh: 1: cmd: not found
+ 32512000000000000 
+sh: 1: qb64rust_no_such_command_v53: not found
+-1 
+error 5 
+ 1 
+ 0 
+aaa 32 -1  32 9999 11 
+99:99:99 8 
+-1  0 -1 
+-1 -1 -1 
+-1  0 
+ 0 -1 -1 
+-1  0 
+-1  0 
+-1 -1 
+ 0 -1 -1 
+ 0 -1 
+-1 
+-1 
+exit=0

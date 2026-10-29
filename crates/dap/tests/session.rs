@@ -39,6 +39,18 @@ fn launch_without_a_symbol_file_is_refused_and_starts_nothing() {
     assert!(backend.try_recv().is_none(), "no launch reached lldb-dap");
 }
 
+/// The version a versioned `lldb-dap`'s name gives, by which the driver refuses one older than the minimum
+/// (`m7-linux`, design D5); no other name gives one.
+#[test]
+fn versions_of_lldb_dap_by_name() {
+    let version = |n: &str| qb64rust_dap::lldb_dap_version(std::path::Path::new(n));
+    assert_eq!(version("/usr/bin/lldb-dap-19"), Some(19));
+    assert_eq!(version("lldb-dap-20"), Some(20));
+    for name in ["lldb-dap", "lldb-dap.exe", "lldb-dap-x", "lldb-dap-19.1"] {
+        assert_eq!(version(name), None, "{name}");
+    }
+}
+
 #[test]
 fn launch_of_another_version_is_refused() {
     let dir = tempfile::tempdir().unwrap();
@@ -138,7 +150,7 @@ fn function_breakpoints_are_the_union_and_the_client_sees_its_own() {
     let set = l.fake.through(&mut l.backend, "setFunctionBreakpoints");
     assert_eq!(
         set["arguments"]["breakpoints"],
-        json!([{"name": "SUB_SHOW"}, {"name": "error", "condition": "(int)$ecx != 0"}])
+        json!([{"name": "SUB_SHOW"}, {"name": "error", "condition": format!("(int){} != 0", qb64rust_dap::FIRST_ARG)}])
     );
     assert_eq!(l.client.recv()["success"], true);
     let own = l.fake.next_id;
@@ -407,6 +419,24 @@ fn step_out_steps_past_the_rest_of_the_call() {
         &[
             (frame(1, "SUB_OUTER(int*)", &b, 17, 5), 3, Some("next")),
             (frame(1, "SUB_OUTER(int*)", &b, 18, 1), 3, None),
+        ],
+    );
+}
+
+/// As `g++` writes the lines on Linux, each stop at a C++ statement's own column (measured, task 4.2 of `m7-linux`:
+/// `finish` stops at `steps.bas:3:4`, the `next` after it at `4:29`): the stop on another line than the one stepped
+/// on from is reported.
+#[test]
+fn step_out_reports_the_next_line_at_any_column() {
+    let mut l = launched(false);
+    let b = bas(&l);
+    play(
+        &mut l,
+        "stepOut",
+        4,
+        &[
+            (frame(1, "SUB_OUTER(int*)", &b, 17, 4), 3, Some("next")),
+            (frame(1, "SUB_OUTER(int*)", &b, 18, 29), 3, None),
         ],
     );
 }

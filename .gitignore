@@ -26,6 +26,7 @@ __pycache__/
 /verification/*.a
 /verification/*.o
 /verification/*.dll
+/verification/*.so
 
 # QB64pe wiki cache: no licence stated, local reference only (CLAUDE.md)
 /tools/wiki/cache/

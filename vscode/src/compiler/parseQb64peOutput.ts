@@ -37,6 +37,10 @@ function cleanLines(output: string): string[] {
         if (line.includes("\r")) {
             continue; // progress bar redrawn with \r
         }
+        // QB64pe's Linux build colors its messages and redraws its progress bar with ANSI sequences, also when the
+        // output is no terminal (`ESC[38;5;9m`, `ESC[A`; m7-linux, task 6.3): each sequence goes whole.
+        // eslint-disable-next-line no-control-regex
+        line = line.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "");
         // eslint-disable-next-line no-control-regex
         line = line.replace(/[\x00-\x08\x0b-\x1f\x7f]/g, "");
         if (line.trim() === "" || PROGRESS.test(line.trim())) {

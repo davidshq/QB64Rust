@@ -19,7 +19,7 @@ s
 z = f(3)
 Print "4. back in main:"; _ErrorLine; Err
 Print "5. messages: ["; _ErrorMessage$(5); "] ["; _ErrorMessage$(0); "] ["; _ErrorMessage$(1000); "] ["; _ErrorMessage$(-1); "]"
-Dim e As Long: e = 11
+Dim e As Long: e = 12
 Print "6. ["; _ErrorMessage$(e); "] ["; _ErrorMessage$(9.6); "] ["; _ErrorMessage$(52.5); "]"
 Error 255
 Print "7. continued:"

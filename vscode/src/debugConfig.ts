@@ -63,8 +63,8 @@ export function fileConfiguration(file: string): LaunchConfig {
 
 /** The adapter's arguments (spec editor/debug-launch, "The adapter"): `dap` with the toolchain folder a build uses
  * (change m6-toolchain, design D6). */
-export function adapterArgs(toolchain: string): string[] {
-    return ["dap", "--toolchain-root", toolchain];
+export function adapterArgs(toolchain: string | undefined): string[] {
+    return toolchain ? ["dap", "--toolchain-root", toolchain] : ["dap"];
 }
 
 /**

@@ -1,0 +1,25 @@
+# The verification programs that cannot pass on Linux (OpenSpec change m7-linux, design D6): <name><TAB><reason>, as
+# known.list. A reason that starts with "windows" skips the program there; any other makes its failure known. Read
+# by tools/legacy_tests/run_legacy_tests.py --platform linux. Each line was measured with QB64pe's Linux build too.
+v22_d_shell	windows: SHELLs cmd; on Linux the shell's "not found" comes between the program's lines in another order each run
+v29_a_sound_queue	varies: ALSA's null device plays nothing, so the queue's length changes from run to run; crashes now and then (munmap_chunk)
+v29_d_volume_zero	varies: ALSA's null device plays nothing, so the queue's length changes from run to run
+v29_f_queue_slice	varies: ALSA's null device plays nothing, so the queue's length changes from run to run; QB64pe's build crashed recording it
+v29_g_voice	varies: ALSA's null device plays nothing, so the voices' lengths change from run to run
+v39_c_files_raw_midi	varies: a raw sound on ALSA's null device crashes now and then, in QB64pe's build too (as corpus slice/s129)
+v40_a_all_keys	windows: reads the executable's version information with PowerShell
+v40_b_numeric_only	windows: reads the executable's version information with PowerShell
+v40_c_order	windows: reads the executable's version information with PowerShell
+v40_d_forms	windows: reads the executable's version information with PowerShell
+v40_e_repeat	windows: reads the executable's version information with PowerShell
+v40_f_with_icon	windows: reads the executable's version information with PowerShell
+v40_g1_specials	windows: reads the executable's version information with PowerShell
+v40_g5_gt_in_name	windows: reads the executable's version information with PowerShell
+v40_g7_utf8_in_name	windows: reads the executable's version information with PowerShell
+v40_g8_amp_in_comments	windows: reads the executable's version information with PowerShell
+v40_h3_leading_zeros	windows: reads the executable's version information with PowerShell
+v40_h6_largest	windows: reads the executable's version information with PowerShell
+v40_i_places	windows: reads the executable's version information with PowerShell
+v40_j_prefix	windows: reads the executable's version information with PowerShell
+v40_k_only_product_version	windows: reads the executable's version information with PowerShell
+v40_l_only_web	windows: reads the executable's version information with PowerShell

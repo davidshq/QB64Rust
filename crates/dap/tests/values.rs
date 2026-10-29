@@ -53,7 +53,11 @@ fn memory(fake: &mut Fake) {
 
 /// The session stopped at the breakpoint in `SUB show`, its stack listed once (so that the frames are known).
 fn stopped_in_show() -> Launched {
-    let mut l = launched(false);
+    stopped_in_show_with(support::Fake::default())
+}
+
+fn stopped_in_show_with(fake: support::Fake) -> Launched {
+    let mut l = support::launched_with("kinds", false, fake);
     memory(&mut l.fake);
     let b = bas(&l);
     l.fake.frames = vec![
@@ -312,6 +316,33 @@ fn a_scalar_and_an_array_of_one_name() {
     assert_eq!(evaluate(&mut l, "a(2)", "hover")["body"]["result"], "1.5");
 }
 
+/// A backend with no `writeMemory` (`lldb-dap` 20 and older, which end when sent one; task 4.2 of `m7-linux`): the
+/// value is written with `lldb`'s `memory write`, and no `writeMemory` is sent.
+#[test]
+fn set_value_without_write_memory() {
+    let mut l = stopped_in_show_with(support::Fake {
+        no_write_memory: true,
+        ..support::Fake::default()
+    });
+    let r = request(
+        &mut l,
+        "setExpression",
+        json!({"expression": "total", "value": "42", "frameId": 1}),
+    );
+    assert_eq!(r["body"]["value"], "42", "{r}");
+    assert_eq!(
+        l.fake.memory.iter().rev().find(|(a, _)| *a == 0x1000).unwrap().1,
+        42i32.to_le_bytes()
+    );
+    assert!(l.fake.seen.iter().all(|m| m["command"] != "writeMemory"));
+    assert!(
+        l.fake.seen.iter().any(|m| m["arguments"]["expression"]
+            .as_str()
+            .is_some_and(|e| e.starts_with("`memory write -s 1 0x1000 0x2a 0x00 0x00 0x00"))),
+        "lldb's command"
+    );
+}
+
 #[test]
 fn set_value() {
     let mut l = stopped_in_show();
@@ -412,6 +443,10 @@ fn set_next_line_within_the_procedure() {
     l.client.send(
         json!({"seq": 40, "type": "request", "command": "goto", "arguments": {"threadId": THREAD, "targetId": 22}}),
     );
+    // The program's thread first: a command runs on lldb's selected thread (task 4.2 of `m7-linux`).
+    let m = l.fake.until(&mut l.backend, "evaluate");
+    assert_eq!(m["arguments"]["expression"], format!("`thread select -t {THREAD}"));
+    l.fake.answer(&mut l.backend, &m);
     let m = l.fake.until(&mut l.backend, "evaluate");
     assert_eq!(
         m["arguments"]["expression"],

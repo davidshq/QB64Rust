@@ -1,0 +1,2 @@
+other
+exit=0

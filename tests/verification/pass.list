@@ -2215,6 +2215,10 @@ v37_g_dynamic
 v37_h_customtype
 v37_i_places
 v37_j_no_function
+v37_l1_dynamic_libc
+v37_l2_two_names_libc
+v37_l3_two_blocks_libc
+v37_l4_libc_whole_name
 v37_x01
 v37_x02
 v37_x03
@@ -4098,6 +4102,7 @@ v62_f3_resume_next_function
 v62_f4_resume_label_function
 v62_g5_run_function_unchecked
 v62_h1_cast_variables
+v63_a6_line_input_crlf
 v63_b5_bload_bsave_last_bytes
 v63_c1_memnew_zero_first
 v63_c3_memnew_zero_between

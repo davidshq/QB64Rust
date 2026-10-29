@@ -68,6 +68,7 @@ pub fn outcome(path: &Path, include_root: &Path) -> Result<Outcome, String> {
     }
     let name = path.to_string_lossy().to_string();
     let fe = frontend_at(
+        qb64rust_base::Platform::host(),
         &name,
         bytes,
         |file| Box::new(FileLoader::new(include_root, file, path)),

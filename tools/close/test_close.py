@@ -90,14 +90,12 @@ class Judges(unittest.TestCase):
         self.assertFalse(judge("callsite", "7 programs: 6 equal, 1 differ, 0 not compared\n", set())[0])
         self.assertFalse(judge("callsite", "Another run holds the reference clone\n", set())[0])
 
-    def test_clippy_fmt_build_wording(self):
+    def test_clippy_fmt_build(self):
         self.assertTrue(judge("clippy", "    Finished `dev` profile\n", set())[0])
         self.assertFalse(judge("clippy", "warning: unused variable\n", set())[0])
         self.assertTrue(judge("empty", "", set())[0])
         self.assertFalse(judge("empty", "Diff in x.rs\n", set())[0])
         self.assertFalse(judge("build", "error: could not compile\n", set())[0])
-        self.assertTrue(judge("wording", "828 notes on recorded rejections, 0 not the recorded message\n", set())[0])
-        self.assertFalse(judge("wording", "828 notes on recorded rejections, 2 not the recorded message\n", set())[0])
         self.assertEqual(judge(None, "", set()), (True, "ran"))
 
 
@@ -168,6 +166,45 @@ class Plan(unittest.TestCase):
         self.assertTrue(by["format"].copy and by["format-corpus"].copy)
         self.assertEqual(by["format-corpus"].judge, "runner")
 
+    def test_linux_by_files(self):
+        # The Linux family (design D11 of m7-linux): a change to what the release build is made from asks for it, a
+        # document does not.
+        for f in (
+            "crates/driver/src/build.rs",
+            "crates/codegen-cpp/src/procs.rs",
+            "crates/sema/src/lib.rs",
+            "Cargo.lock",
+            "crates/driver/src/toolchain.rs",
+            "crates/driver/src/library.rs",
+            "crates/codegen-cpp/src/library.rs",
+            "crates/dap/src/lib.rs",
+            "tools/legacy_tests/run_legacy_tests.py",
+            "libqb/internal/c/libqb.cpp",
+            "tools/libqb/edits/d048-console-eof-input-string.edit",
+            "tools/linux/sync.sh",
+            "tests/corpus/slice/s127_sound_handles.linux.output",
+            "verification/v01_x.linux.out.txt",
+            "tests/verification/known.linux.list",
+        ):
+            self.assertTrue(close.needs_linux([f]), f)
+        for f in ("STATUS.md", "openspec/changes/m7-linux/design.md", "vscode/src/extension.ts", "tests/corpus/a.output"):
+            self.assertFalse(close.needs_linux([f]), f)
+        names = [s.name for s in steps(False, False, False, True)]
+        self.assertEqual(names[-3:], ["linux-sync", "linux-tier1", "linux-slice"])
+        self.assertNotIn("linux-sync", [s.name for s in steps(True, True, True)])
+        by = {s.name: s for s in steps(False, False, False, True)}
+        self.assertEqual(by["linux-sync"].command, "wsl --cd . -e bash tools/linux/sync.sh > target/close/linux-sync.log 2>&1")
+        self.assertIn("cargo test --workspace --locked --no-fail-fast", by["linux-tier1"].command)
+        self.assertIn("--list tests/corpus/slice.list", by["linux-slice"].command)
+        self.assertEqual((by["linux-tier1"].judge, by["linux-slice"].judge), ("cargo", "runner"))
+        for files, present in ((["crates/driver/src/build.rs"], True), (["STATUS.md"], False)):
+            out = io.StringIO()
+            with mock.patch.object(close, "changed_files", return_value=files):
+                with redirect_stdout(out):
+                    close.plan(False)
+            self.assertEqual("tools/linux/sync.sh" in out.getvalue(), present, files)
+            self.assertEqual("# no Linux runs" in out.getvalue(), not present, files)
+
     def test_plan_names_the_format_runs(self):
         for files, present in ((["crates/format/src/lib.rs"], True), (["crates/sema/src/lib.rs"], False)):
             out = io.StringIO()
@@ -179,9 +216,11 @@ class Plan(unittest.TestCase):
 
     def test_order(self):
         names = [s.name for s in steps(True)]
-        # What changes the compiler or the lists comes before the build, the build before every run.
-        self.assertLess(names.index("wording"), names.index("build"))
+        # The lists come before the build, the build before every run.
         self.assertLess(names.index("lists"), names.index("build"))
+        # A thin close: the reports wait for a merge into main (DECISIONS.md 2026-10-28).
+        for name in ("wording", "wording-check", "demand-corpus", "demand-upstream", "counts"):
+            self.assertNotIn(name, [s.name for s in steps(True, True, True)])
         self.assertEqual(names[names.index("build") + 1], "tier1")
         self.assertIn("nofold", names)
         self.assertNotIn("nofold", [s.name for s in steps(False)])
@@ -205,7 +244,7 @@ class Plan(unittest.TestCase):
         self.assertIn("--pass-cache", by["nofold"])
         self.assertIn("--wait", by["callsite"])
         for s in steps(True):
-            # Each command writes its own log, and no command holds a backslash (CLAUDE.md working rule 7).
+            # Each command writes its own log, and no command holds a backslash (CLAUDE.md working rule 5).
             self.assertIn(f"> target/close/{s.name}.log 2>&1", s.command)
             self.assertNotIn("\\", s.command)
 
@@ -252,7 +291,6 @@ class Check(unittest.TestCase):
             "fmt": "",
             "clippy": "",
             "lists": CARGO_OK,
-            "wording-check": "1 notes on recorded rejections, 0 not the recorded message\n",
             "slice": '{"corpus": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "upstream": '{"compile_tests": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "verification": '{"verification": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
@@ -260,8 +298,12 @@ class Check(unittest.TestCase):
             "qbasic": '{"qbasic_testcases": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "callsite": "1 programs: 1 equal, 0 differ, 0 not compared\n",
             "cli": CARGO_OK,
+            "linux-sync": "synced 1 files into ~/qb64rust\n",
+            "linux-tier1": CARGO_OK,
+            "linux-slice": '{"corpus": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
         }
-        for s in steps(False):
+        # A change to a crate asks for the Linux family too (LINUX_FILES).
+        for s in steps(False, linux=True):
             path = self.root / close.log(s.name)
             path.write_text(good.get(s.name, ""))
             self.at(path, 150 if s.before_build and s.name != "build" else 300)
@@ -304,12 +346,12 @@ class Check(unittest.TestCase):
         code, text = self.run_check()
         self.assertEqual(code, 1)
         self.assertIn("STALE    slice: older than crates/a.rs", text)
-        reasons = {s.name: "a test-only edit" for s in steps(False)}
+        reasons = {s.name: "a test-only edit" for s in steps(False, linux=True)}
         code, text = self.run_check(not_repeated=reasons)
         self.assertEqual(code, 0, text)
         # The reason once, with the steps it covers; each step points to it.
         self.assertEqual(text.count("a test-only edit"), 1, text)
-        self.assertIn("(1) not repeated after crates/a.rs (wording, lists, build, tier1,", text)
+        self.assertIn("(1) not repeated after crates/a.rs (lists, build, tier1,", text)
         self.assertIn("ok       slice: 1 pass, 0 fail, 0 known [", text)
         self.assertIn("; not repeated (1)", text)
 
@@ -354,10 +396,10 @@ class Check(unittest.TestCase):
         self.assertIn("STALE    cli", text)
 
     def test_a_step_before_the_build_written_after_it(self):
-        self.at(self.root / close.log("wording"), 250)
+        self.at(self.root / close.log("lists"), 250)
         code, text = self.run_check()
         self.assertEqual(code, 1)
-        self.assertIn("STALE    wording: after the build", text)
+        self.assertIn("STALE    lists: after the build", text)
 
     def test_a_step_before_the_build_left_by_an_earlier_change(self):
         # Before the build, but older than this change's edit.
@@ -415,7 +457,7 @@ class Check(unittest.TestCase):
         self.assertEqual(copies, {"slice", "upstream", "verification", "addprefix", "qbasic", "nofold", "callsite"})
 
     def test_a_step_before_the_build_is_not_stale_by_what_one_writes(self):
-        # `wording` at 150, then `lists` rewrote a list at 160 and ended at 170, then the build at 200.
+        # `lists` rewrote a list at 160 and ended at 170, then the build at 200.
         listed = self.root / "tests/known_false_errors.list"
         listed.parent.mkdir()
         listed.write_text("x\n")

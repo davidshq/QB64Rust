@@ -1,0 +1,5 @@
+
+DYNAMIC LIBRARY not found
+Caused by (or after):DECLARE DYNAMIC LIBRARY "/usr/lib/x86_64-linux-gnu/c:6",29
+LINE 13:DECLARE DYNAMIC LIBRARY "/usr/lib/x86_64-linux-gnu/c:6"
+exit=1

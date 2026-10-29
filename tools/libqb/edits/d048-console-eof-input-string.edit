@@ -3,7 +3,8 @@
 # study\39 row 2). QB64pe's func_input reads the keyboard buffer, which only console events fill, so with standard
 # input from a file, a pipe or the null device it waits for ever (verification\v63_a3, a4). Here, when the output is
 # the console and standard input is not one, the n bytes are read from it, and at its end error 62 is raised with what
-# was read. At a console nothing changes.
+# was read. At a console nothing changes. On Linux QB64pe waits for ever too (m7-linux task 5.5); there standard input
+# is "not a console" when it is not a terminal (isatty).
 file: internal/c/libqb.cpp
 --- old
         if (n == 0)
@@ -14,10 +15,14 @@ file: internal/c/libqb.cpp
 --- new
         if (n == 0)
             return str;
-#ifdef QB64_WINDOWS
         if (write_page->console) {
+#ifdef QB64_WINDOWS
             DWORD input_mode;
-            if (!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &input_mode)) {
+            bool redirected = !GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &input_mode);
+#else
+            bool redirected = !isatty(fileno(stdin));
+#endif
+            if (redirected) {
                 // redirected input: read it, Input past end of file at its end
                 for (x = 0; x < n; x++) {
                     c = fgetc(stdin);
@@ -31,7 +36,6 @@ file: internal/c/libqb.cpp
                 return str;
             }
         }
-#endif
         x = 0;
     waitforinput:
         str2 = qbs_inkey();

@@ -1,4 +1,4 @@
-# Project rules that a script can check (CLAUDE.md rules 2 and 7): no local paths, temp folders or network shares
+# Project rules that a script can check (CLAUDE.md human rule 2, working rule 5): no local paths, temp folders or network shares
 # in tracked files, no stray control bytes. Runs on every change, documents included.
 name: Repo check
 

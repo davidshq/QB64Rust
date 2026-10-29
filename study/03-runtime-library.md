@@ -690,11 +690,41 @@ Net effect: the runtime is **recompiled per program** with a different macro set
 
 ## 10. Not determined / to verify
 
-- Full array-descriptor slot map (slots 1, 3, and `[4k+2]`), and the `_MEM`-on-array lock slot: defined by the code generator, only partially visible from the runtime.
-- Exact INPUT redo behaviour and messages (`qbs_input` body sampled only).
-- Where the 8x14 font glyphs come from (`selectfont`/`printchr` internals not traced).
-- Linux implementations of `_SCREENCLICK`/`_SCREENPRINT` and non-Windows `_SCREENIMAGE` result (appears unsupported).
-- ON COM / ON PEN / ON PLAY, `PEN`, `KYBD:`/`CONS:`/`LPTn:` device files: not found in the runtime by grep; compiler-side behaviour unchecked.
-- Versions of the smaller vendored libraries (clip, libstem_gamepad, libxmp-lite, tinysoundfont, primesynth, ymfmidi, libmidi/foo_midi, nanosvg, qoi, jo_gif, tiny_webp, hqx/mmpx/sxbr, modp_b64, stb_vorbis) are not stamped in files I inspected.
-- Internals of `hardware_img_put/tri2d/tri3d`, `prepare_environment_2d`, the middle of `display()` (text glyph rendering, 32-bit path), PAINT/CIRCLE/DRAW/GET/PUT bodies, `sub__maptriangle`, `keyboard_keydown`, and `audio.cpp` PSG/MML details were outlined, not read in full.
-- Contents of generated `internal\temp\*.txt` (directory holds only `temp.bin` in this checkout), so the exact generated-code/runtime protocol (event checks, RESUME tables, `SUB__GL` wrapper) is inferred from `qbx.cpp` include points.
+Checked again on 2026-10-29 against the QB64pe source and this repo. Two items are still open; the rest are
+settled, each with where.
+
+**Open**
+
+- **`KYBD:`, `CONS:` and `LPTn:` opened as files.** `gfs_open` recognizes `SCRN:` (`gfs.cpp:619-640`) and `COMn:`
+  only, so the other names go to the file system as ordinary file names. What a program then sees (an error, a
+  file of that name, or on Windows the device itself for `LPT1:`) has not been measured. A verification program
+  that opens `LPT1:` reaches a real device and needs the user's leave first.
+- **Versions of the vendored libraries with no stamp in their files**: clip, libstem_gamepad, primesynth,
+  ymfmidi, libmidi/foo_midi, nanosvg, qoi, jo_gif, tiny_webp, hqx/mmpx/sxbr. Only upstream history can tell; it
+  matters when one is updated or its license is checked. Stamped: libxmp-lite 4.6.3 (`XMP_VERSION`),
+  stb_vorbis 1.22, TinySoundFont 0.9, modp_b64 1.3.
+
+**Settled**
+
+- **Array-descriptor slots.** Archived `study\02` §3.4 maps every slot: `[1]` unused, `[2]` flags, `[3]` the
+  dimension count (read for member arrays only), `[4k+2]` the multiplier, and the `_MEM` lock at `[4*dims+4]`.
+  `crates\codegen-cpp\src\decl.rs` (`dim_slot`, `lock_slot`) emits that layout.
+- **INPUT redo.** QB64pe never asks again; there is no "Redo from start" (`study\00`, `v22_e_redo`). Asking
+  again as QB 4.5 does is a `SOMEDAY.md` row.
+- **The 8x14 font.** It has no table of its own: `printchr` draws rows 1-14 of the 8x16 glyph
+  (`cp = &charset8x16[character][1][0]`, `libqb.cpp:10308-10309`).
+- **`_SCREENCLICK`, `_SCREENPRINT`, `_SCREENIMAGE` off Windows.** `_SCREENCLICK` and `_SCREENPRINT` have only
+  Windows and macOS branches (`libqb.cpp:22315-22651`, `22772-23378`), so on Linux they do nothing.
+  `_SCREENIMAGE` off Windows returns a new desktop-sized 32-bit image, not a capture (`GLFW_TODO`,
+  `libqb.cpp:22308-22311`). Read from the source; not run on Linux.
+- **ON COM / ON PEN / ON PLAY.** `ON PEN`, `ON COM(n)`, `PEN ON` are compile errors (spec `language/events`);
+  `ON PLAY(n) GOSUB` is `ON <number> GOSUB` with the function `PLAY` (`DIVERGENCES-QB45.md` Q-012).
+- **The generated-code protocol (`temp\*.txt`).** No longer inferred: `crates\codegen-cpp` writes these files
+  itself, and the `driver` snapshot tests hold them.
+
+**Not read, and nothing waits on it**
+
+- The internals of `hardware_img_put/tri2d/tri3d`, `prepare_environment_2d`, the middle of `display()`, the
+  PAINT/CIRCLE/DRAW/GET/PUT bodies, `sub__maptriangle`, `keyboard_keydown` and the `audio.cpp` PSG/MML code
+  were outlined, not read in full. Their behavior is checked by comparing output with `qb64pe.exe`, not by
+  reading them.

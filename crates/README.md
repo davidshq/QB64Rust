@@ -148,6 +148,44 @@ block (`Stmt::own`) have none. Without the option the C++ is unchanged; with it 
 cache keeps the two builds apart. `--dump cpp --coverage` shows that C++. The records are read by
 `tools\coverage\coverage.py`.
 
+## Building on Linux
+
+On Linux x64 (glibc) the compiler builds and runs as on Windows (OpenSpec change `m7-linux`, spec
+`compiler/platforms`); what differs is the C++ toolchain, which is the system's (`DECISIONS.md` 2026-10-28):
+`g++`, `make` and `objcopy` from `PATH` (or a folder with `bin/g++` and `bin/make` given by `--toolchain-root` or
+`QB64RUST_TOOLCHAIN_ROOT`), the distribution's development packages for OpenGL, GLU, X11 and ALSA, and `lldb-dap`
+for the debugger. Nothing is downloaded: `qb64rust toolchain install` checks them and prints the packages to
+install for the distribution it detects. On Ubuntu 24.04:
+
+```
+sudo apt-get install build-essential libglu1-mesa-dev libasound2-dev libx11-dev libxrandr-dev lldb
+cargo build --release
+target/release/qb64rust -x prog.bas            # writes prog, no extension, as qb64pe does on Linux
+```
+
+Rust comes from `rustup`; `rust-toolchain.toml` pins the version, which `rustup` installs at the first `cargo` in
+the folder.
+
+**From this Windows machine, in WSL.** Development stays on Windows; the Linux runs happen in WSL's Ubuntu 24.04,
+in a copy of the working tree, never in `/mnt/c` (a Linux build would overwrite libqb's Windows objects, which are
+built inside `libqb\`, and `/mnt/c` is slow for twenty thousand files; design D7 of `m7-linux`).
+`tools/linux/sync.sh [dest]`, run from WSL in the Windows tree, copies the files of `git ls-files -co
+--exclude-standard` into `~/qb64rust` (uncommitted edits included, nothing staged) and deletes there the files that
+are gone on Windows; what a Linux build writes there is ignored by git and kept. A sync takes about two minutes
+(`rsync --checksum` reads every file through `/mnt/c`). Set-up, once:
+
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
+sudo apt-get install ...                       # the packages above (by the user: sudo)
+```
+
+then each time:
+
+```
+cd /mnt/c/<the repository> && bash tools/linux/sync.sh
+cd ~/qb64rust && cargo build --release
+```
+
 ## What the compiler supports
 
 What a program may use, and how it behaves, is in the merged specs under `openspec\specs\` (one home per
@@ -226,9 +264,9 @@ panics on purpose, for the CLI test only.
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite compile --qb64 target\release\qb64rust.exe --list tests\upstream\pass.list` | The upstream programs of the pass list end to end (`tests\upstream\README.md`); also in CI (`rust.yml`, job `tier2`) |
 | 2 | `python tools\legacy_tests\run_legacy_tests.py --suite corpus --corpus-root tests\differential --qb64 target\release\qb64rust.exe --list tests\differential\pass.list` | The differential programs of the pass list end to end against their recordings (`tests\differential\README.md`); also in CI |
 | 2 | `python tools\callsite\callsite.py` | The call-site check (`tools\callsite\README.md`): for each program of `tests\callsite`, the libqb call the new compiler writes for one built-in statement or function equals the old compiler's (`-z`, nothing built or run). The old compiler's C++ is kept per program in `target\callsite-cache`: about 40 s for the 663 programs when it is filled, about 6 min without it. Needs `qb64pe.exe` in the clone; also in CI. A new plain built-in comes in with a program here |
-| 2, when messages changed | `python tools\diagnostics\old_wording.py`, then after a release build `--check` | The table of the old compiler's wording from recorded rejections, and every note on them equal to the recorded message (`tools\diagnostics\README.md`) |
+| 2, at a merge into `main` | `python tools\diagnostics\old_wording.py`, then after a release build `--check` | The table of the old compiler's wording from recorded rejections, and every note on them equal to the recorded message (`tools\diagnostics\README.md`) |
 
-**When to run what** (`CLAUDE.md` working rule 9, `DECISIONS.md` 2026-10-12 and 2026-10-17): tier 1 while
+**When to run what** (`CLAUDE.md` working rule 6, `DECISIONS.md` 2026-10-12 and 2026-10-17): tier 1 while
 working; tier 2 once per change, at its close, and before that only the programs the work touches (`--glob`,
 `--category`, a short `--list`). Add `--pass-cache target\pass-cache` to a corpus or compile run: a program that
 passed with the same executable and expected files is not run again (`tools\legacy_tests\README.md`). At a
@@ -237,7 +275,7 @@ change touched `sema`'s constants or a numeric conversion. At each merge into `m
 without it, and the slice list and the upstream pass list are judged from their results instead of being run
 again, by the runner with `--suite corpus --check-list tests\corpus\slice.list` and `--suite compile --check-list
 tests\upstream\pass.list` after them. Runs of the new compiler may run side by side (`tools\legacy_tests\README.md`,
-"Locks"). In CI the `tier2` job runs when started by hand and once a week, not on a push.
+"Locks"). In CI the `tier2` job runs only when started by hand, not on a push.
 
 Tier 2 locally: add `--jobs 8 --build-cache target\build-cache` to each command. `--jobs` runs programs in
 parallel; `--build-cache` (environment variable `QB64RUST_BUILD_CACHE`, `driver\src\build.rs`) skips `make` for a
@@ -321,4 +359,4 @@ The policy (decided 2026-10-07):
   `thiserror`/`anyhow` (driver errors are messages), per-file test runners (`libtest-mimic`: the harnesses already
   name each failing file and share one run over all inputs).
 - `cargo-deny` comes with the first dependency that is not build- or dev-only (`study\archive\21` item 7; added with the
-  language server, 2026-10-08); it also enforces rule 5 of `CLAUDE.md` (no GPL code by way of a crate).
+  language server, 2026-10-08); it also enforces working rule 3 of `CLAUDE.md` (no GPL code by way of a crate).

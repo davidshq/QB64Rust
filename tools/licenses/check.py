@@ -1,6 +1,7 @@
 """Check recorded provenance and required notices; optionally verify a release VSIX or compiler download.
 
-Run: python tools/licenses/check.py [--vsix package.vsix | --zip qb64rust-win-x64-<version>.zip]
+Run: python tools/licenses/check.py [--vsix package.vsix | --zip qb64rust-win-x64-<version>.zip |
+     --tar qb64rust-linux-x64-<version>.tar.gz]
 This checks the inventory's obligations, not legal compatibility or code similarity.
 """
 
@@ -9,6 +10,7 @@ import pathlib
 import subprocess
 import sys
 import tomllib
+import tarfile
 import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -55,6 +57,21 @@ def zip_layout(top):
         return path
 
     return Layout(f"{top}/LICENSE.txt", place)
+
+
+class TarPackage:
+    """A .tar.gz, read as `check` reads a zip: the names and the bytes of its files (OpenSpec change m7-linux,
+    design D9)."""
+
+    def __init__(self, tar):
+        self.tar = tar
+        self.members = {m.name: m for m in tar.getmembers() if m.isfile()}
+
+    def namelist(self):
+        return list(self.members)
+
+    def read(self, name):
+        return self.tar.extractfile(self.members[name]).read()
 
 
 def zip_top(package):
@@ -111,6 +128,7 @@ def main(argv=None):
     which = parser.add_mutually_exclusive_group()
     which.add_argument("--vsix", type=pathlib.Path)
     which.add_argument("--zip", type=pathlib.Path)
+    which.add_argument("--tar", type=pathlib.Path)
     args = parser.parse_args(argv)
     with (ROOT / INVENTORY).open("rb") as stream:
         components = tomllib.load(stream)["components"]
@@ -123,6 +141,14 @@ def main(argv=None):
             top = zip_top(package)
             if top is None:
                 problems = [f"{args.zip}: not one top folder"]
+            else:
+                problems = check(ROOT, files, components, package, zip_layout(top))
+    elif args.tar:
+        with tarfile.open(args.tar) as tar:
+            package = TarPackage(tar)
+            top = zip_top(package)
+            if top is None:
+                problems = [f"{args.tar}: not one top folder"]
             else:
                 problems = check(ROOT, files, components, package, zip_layout(top))
     else:

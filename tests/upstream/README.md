@@ -102,6 +102,10 @@ job `tier2`, which runs when started by hand and once a week, `DECISIONS.md` 202
 `m3-declare-library`: `declare_library_static/test` and `declare_library_dynamic/test` need `lib-windows.a` and
 `lib.dll`, which the copy (text files only) lacks. The copy stays the input of tier 1.
 
+On Linux (OpenSpec change `m7-linux`) the same list runs in WSL with `--platform linux`; `known.linux.list` names the
+programs that cannot pass there: the `glut` programs whose window position under WSLg varies (on Windows they take an
+`$IF WINDOWS` branch that only prints the expected values). Measured: 399 pass, the 2 `varies` of that list.
+
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:upstream-membership -->

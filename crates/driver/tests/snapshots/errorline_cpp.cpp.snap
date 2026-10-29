@@ -109,21 +109,21 @@ do{
 error(20);
 #line 1 "inc/errorline.bi"
 if(!qbevent)break;evnt(12,1,"errorline.bi");}while(r);
-#line 1 "inc\\errorline_inner.bi"
+#line 1 "inc/errorline_inner.bi"
 LABEL_INNER:;
-#line 1 "inc\\errorline_inner.bi"
+#line 1 "inc/errorline_inner.bi"
 if(qbevent){evnt(12,1,"errorline_inner.bi");r=0;}
-#line 2 "inc\\errorline_inner.bi"
+#line 2 "inc/errorline_inner.bi"
 do{
-#line 2 "inc\\errorline_inner.bi"
+#line 2 "inc/errorline_inner.bi"
 if ((!((-(*__SINGLE_X==((float)(3))))))&&(!is_error_pending())) goto L_2;
-#line 2 "inc\\errorline_inner.bi"
+#line 2 "inc/errorline_inner.bi"
 if(!qbevent)break;evnt(12,2,"errorline_inner.bi");}while(r);
-#line 3 "inc\\errorline_inner.bi"
+#line 3 "inc/errorline_inner.bi"
 do{
-#line 3 "inc\\errorline_inner.bi"
+#line 3 "inc/errorline_inner.bi"
 error(21);
-#line 3 "inc\\errorline_inner.bi"
+#line 3 "inc/errorline_inner.bi"
 if(!qbevent)break;evnt(12,3,"errorline_inner.bi");}while(r);
 #line 4 "errorline_cpp.bas"
 L_2:;

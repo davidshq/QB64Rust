@@ -57,6 +57,12 @@ fn qb64rust_build(dir: &Path, args: &[&str]) -> Output {
     qb64rust(dir, args)
 }
 
+/// The executable a build writes for the source `<stem>.bas` with no `-o`: `<stem>.exe` on Windows, `<stem>` on
+/// Linux (spec `compiler/cli`).
+fn default_exe(stem: &str) -> String {
+    format!("{stem}{}", std::env::consts::EXE_SUFFIX)
+}
+
 #[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
 fn stdout(o: &Output) -> String {
     String::from_utf8_lossy(&o.stdout).to_string()
@@ -82,6 +88,7 @@ fn runners_compile_line() {
 /// unchanged" and "The copy unchanged"). Built with `make`, not from the build cache.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
+#[cfg(windows)]
 fn a_build_changes_nothing_git_sees() {
     let status = |dir: &Path, path: &str| {
         let o = Command::new("git")
@@ -173,7 +180,11 @@ fn strip_debug_symbols_false_keeps_symbols() {
             "toolchain",
         );
         let listed = stdout(&nm);
-        assert!(listed.contains(" T _Z6QBMAINPv"), "the global symbol stays: {listed}");
+        // On Linux `objcopy --strip-unneeded` leaves an executable no symbols at all, as with QB64pe's Linux build
+        // (measured, design "Measured" of `m7-linux`).
+        if cfg!(windows) || settings.contains(&"-f:StripDebugSymbols=false") {
+            assert!(listed.contains(" T _Z6QBMAINPv"), "the global symbol stays: {listed}");
+        }
         listed.lines().any(|l| l.split_whitespace().nth(1) == Some("t"))
     };
     assert!(has_local(&["-f:StripDebugSymbols=false"]));
@@ -274,7 +285,9 @@ fn debug_build(d: &Path, name: &str, program: &str) -> PathBuf {
 
 /// Where `lldb` stopped, in order: frame 0's function and `file:line:column` (`QBMAIN steps.bas:3:1`; a function
 /// without line information alone, `error`). Printed to the test's stderr, so that `--nocapture` shows the sequence.
-/// A `bt` marks its frame 0 `* frame #0:`, a stop does not.
+/// A `bt` marks its frame 0 `* frame #0:`, a stop does not. Off Windows the column is given as 1: `g++` writes the
+/// column of the C++ statement (`steps.bas:5:16`), which `clang` on Windows does not, and a step goes by line either
+/// way (measured, task 4.2 of `m7-linux`; without columns, `-gno-column-info`, `lldb` 18 stepped differently).
 fn stops(out: &str) -> Vec<String> {
     let stops: Vec<String> = out
         .lines()
@@ -283,13 +296,27 @@ fn stops(out: &str) -> Vec<String> {
             let frame = l.split('`').nth(1)?;
             let function = frame.split('(').next()?;
             Some(match frame.rsplit_once(" at ") {
-                Some((_, at)) => format!("{function} {}", at.trim()),
+                Some((_, at)) => format!("{function} {}", column_1(at.trim())),
                 None => function.to_string(),
             })
         })
         .collect();
     eprintln!("lldb stops: {stops:?}");
     stops
+}
+
+/// `file:line:column` with the column 1 off Windows (see [`stops`]); anything else as it is.
+fn column_1(at: &str) -> String {
+    if cfg!(windows) {
+        return at.to_string();
+    }
+    let number = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
+    match at.rsplit_once(':') {
+        Some((head, column)) if number(column) && head.rsplit_once(':').is_some_and(|(_, line)| number(line)) => {
+            format!("{head}:1")
+        }
+        _ => at.to_string(),
+    }
 }
 
 /// The values `lldb`'s `p` printed, in order, without their types (`(int32_t) 7` is `7`).
@@ -322,7 +349,16 @@ fn debug_stops_at_a_line() {
         ],
     );
     assert!(out.contains("Breakpoint 1: where = dbg.exe`QBMAIN(void*) + "), "{out}");
-    assert!(out.contains(" at dbg.bas:11:1, address = "), "{out}");
+    let at = out
+        .lines()
+        .find_map(|l| {
+            l.strip_prefix("Breakpoint 1: where = ")?
+                .split_once(" at ")?
+                .1
+                .split_once(", address = ")
+        })
+        .map(|(at, _)| column_1(at));
+    assert_eq!(at.as_deref(), Some("dbg.bas:11:1"), "{out}");
     assert_eq!(stops(&out), ["QBMAIN dbg.bas:11:1", "QBMAIN dbg.bas:11:1"], "{out}");
     assert_eq!(values(&out), ["0", "1"], "{out}");
 }
@@ -372,19 +408,15 @@ fn debug_next_over_call_and_into_sub() {
         ["QBMAIN call.bas:3:1", "QBMAIN call.bas:4:1", "QBMAIN call.bas:5:1"],
         "{out}"
     );
-    let out = support::lldb(
-        &exe,
-        &[
-            "breakpoint set -f call.bas -l 3",
-            "run",
-            "step",
-            "step",
-            "step",
-            "step",
-            "finish",
-            "next",
-        ],
-    );
+    // With g++ on Linux libqb's inline `is_error_pending` has line information in the program's object, and `step`
+    // enters it on the way (two stops in `error_handle.h`; the adapter steps out of it), so two steps more.
+    let mut commands = vec!["breakpoint set -f call.bas -l 3", "run"];
+    commands.extend(["step"; 4]);
+    if !cfg!(windows) {
+        commands.extend(["step"; 2]);
+    }
+    commands.extend(["finish", "next"]);
+    let out = support::lldb(&exe, &commands);
     let s = stops(&out);
     assert!(s[1].starts_with("SUB_SHOW call.bas:7:"), "the header line first: {out}");
     assert!(s.contains(&"SUB_SHOW call.bas:8:1".to_string()), "{out}");
@@ -423,10 +455,15 @@ fn debug_step_into_an_included_function() {
     let out = support::lldb(&exe, &commands);
     let s = stops(&out);
     assert_eq!(s[0], "QBMAIN inc.bas:2:1", "{out}");
+    // On Windows the header is the first stop in the function; with g++ the lines of `data1.txt` come first.
+    let first = s.iter().find(|s| s.starts_with("FUNC_TWICE lib.bi:"));
     assert!(
-        s[1].starts_with("FUNC_TWICE lib.bi:1:"),
+        first.is_some_and(|f| f.starts_with("FUNC_TWICE lib.bi:1:")),
         "the header, in the included file: {out}"
     );
+    if cfg!(windows) {
+        assert!(s[1].starts_with("FUNC_TWICE lib.bi:1:"), "{out}");
+    }
     assert!(s.contains(&"FUNC_TWICE lib.bi:2:1".to_string()), "{out}");
     assert!(s.iter().all(|s| !s.starts_with("FUNC_TWICE inc.bas")), "{out}");
 }
@@ -523,7 +560,15 @@ fn debug_reads_each_storage() {
         pointer("X", "pointer"),
         pointer("N", "param-pointer"),
         format!("p ((float*){a}[{data}])[2 - {a}[{lower}]]"),
-        format!("p {s}->len"),
+        // `lldb` 20 on Linux cannot read a `qbs` from memory (each member "extracting data from value failed", `len`
+        // 0; measured, task 4.2 of `m7-linux`), so there `len` is read at its offset of the symbol file, as the
+        // adapter reads it.
+        if cfg!(windows) {
+            format!("p {s}->len")
+        } else {
+            let len = layouts["qbs"]["len"].as_u64().unwrap();
+            format!("p *(int32_t*)((char*){s} + {len})")
+        },
         format!("p *(char(*)[2]){s}->chr"),
         format!("p *(short*)((char*){p} + {x_at})"),
         format!("p *(char(*)[4])((char*){p} + {nm_at})"),
@@ -539,22 +584,35 @@ fn debug_reads_each_storage() {
 }
 
 /// A function breakpoint on libqb's `error` with a condition on its code stops at error 5, with the program's line
-/// in the frame below it; libqb has no debug information, so the code is read from its register (`ecx`, the first
-/// argument on x64 Windows). With a condition on another code the program runs to its end.
+/// in the frame below it; libqb has no debug information, so the code is read from its register (the first argument:
+/// `ecx` on x64 Windows, `edi` on Linux). With a condition on another code the program runs to its end.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn debug_stops_at_error() {
     let d = scratch("lldb-error");
     let exe = debug_build(&d, "err", "$CONSOLE:ONLY\nx = 1\nERROR 5\nPRINT x\nSYSTEM\n");
-    let out = support::lldb(&exe, &["breakpoint set -n error -c \"(int)$ecx == 5\"", "run", "bt 3"]);
+    let reg = qb64rust_dap::FIRST_ARG;
+    let out = support::lldb(
+        &exe,
+        &[
+            &format!("breakpoint set -n error -c \"(int){reg} == 5\""),
+            "run",
+            "bt 3",
+        ],
+    );
     assert!(out.contains("Breakpoint 1: where = err.exe`error(int)"), "{out}");
     assert_eq!(stops(&out), ["error"], "{out}");
     assert!(
-        out.lines()
-            .any(|l| l.contains("frame #1: ") && l.contains("`QBMAIN(unused=") && l.contains(" at err.bas:3:1")),
+        out.lines().any(|l| l.contains("frame #1: ")
+            && l.contains("`QBMAIN(unused=")
+            && l.rsplit_once(" at ")
+                .is_some_and(|(_, at)| column_1(at.trim()) == "err.bas:3:1")),
         "{out}"
     );
-    let out = support::lldb(&exe, &["breakpoint set -n error -c \"(int)$ecx == 6\"", "run"]);
+    let out = support::lldb(
+        &exe,
+        &[&format!("breakpoint set -n error -c \"(int){reg} == 6\""), "run"],
+    );
     assert!(stops(&out).is_empty(), "{out}");
     assert!(out.contains("exited with status = "), "{out}");
 }
@@ -838,7 +896,7 @@ fn tree_dump() {
 fn a_named_folder_that_is_not_qb64pe() {
     let d = scratch("noclone");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
-    std::fs::write(d.join("p.exe"), b"stale").unwrap();
+    std::fs::write(d.join(default_exe("p")), b"stale").unwrap();
     let o = run(
         compiler()
             .current_dir(&d)
@@ -854,7 +912,7 @@ fn a_named_folder_that_is_not_qb64pe() {
         out.contains("--qb64pe-root") && out.contains("QB64RUST_QB64PE_ROOT"),
         "{out}"
     );
-    assert!(!d.join("p.exe").exists());
+    assert!(!d.join(default_exe("p")).exists());
 }
 
 /// A build without the copy of libqb fails naming its option and variable; `-z` needs no copy (spec `compiler/cli`,
@@ -1109,6 +1167,7 @@ fn without_qb64pe<'a>(cmd: &'a mut Command, home: &Path) -> &'a mut Command {
 /// variable; no network is reached (nothing is downloaded but by `toolchain install`), and the stale executable is
 /// gone. Scenario "Checking needs no toolchain": `-z` works there.
 #[test]
+#[cfg(windows)]
 fn no_toolchain_found() {
     let d = scratch("notoolchain");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
@@ -1147,6 +1206,7 @@ fn no_toolchain_found() {
 /// the unit test's): the folder, then the source's word; with none, the message of "No toolchain found" and exit
 /// status 1. Stand-in folders: nothing is built.
 #[test]
+#[cfg(windows)]
 fn toolchain_path_names_each_source() {
     let d = scratch("toolchain-path");
     let home = d.join("home");
@@ -1228,6 +1288,188 @@ fn toolchain_path_names_each_source() {
     }
 }
 
+/// The text of `/etc/os-release` of this machine names Debian or Ubuntu.
+#[cfg(unix)]
+fn on_debian() -> bool {
+    qb64rust_driver::toolchain::install_command(qb64rust_driver::toolchain::os_release().as_deref())
+        .is_some_and(|l| l.starts_with("sudo apt-get"))
+}
+
+/// Spec `compiler/toolchain`, "No g++ on Ubuntu" and "Install on Linux": with nothing on `PATH`, a build fails with
+/// exit status 1 naming `g++` and the install line, and so does `toolchain install`, which downloads nothing; `-z`
+/// still works (design D1 of `m7-linux`).
+#[test]
+#[cfg(unix)]
+fn linux_no_toolchain_found() {
+    let d = scratch("linux-notoolchain");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let run_with = |args: &[&str]| {
+        let mut cmd = compiler();
+        cmd.current_dir(&d)
+            .env("PATH", d.join("nothing"))
+            .env_remove("QB64RUST_TOOLCHAIN_ROOT")
+            .args(args);
+        run(&mut cmd, None, COMPILER_LIMIT, "compiler")
+    };
+    for args in [&["-q", "p.bas"][..], &["toolchain", "install"], &["toolchain", "path"]] {
+        let o = run_with(args);
+        assert_eq!(o.status.code(), Some(1), "{args:?}");
+        let out = stdout(&o);
+        assert!(out.contains("g++") && out.contains("not on PATH"), "{args:?}: {out}");
+        assert!(!out.contains("llvm-mingw"), "{args:?}: {out}");
+        if on_debian() {
+            assert!(
+                out.contains("`sudo apt-get install build-essential "),
+                "{args:?}: {out}"
+            );
+        }
+    }
+    assert!(!d.join("p").exists());
+    assert_eq!(run_with(&["-z", "p.bas"]).status.code(), Some(0));
+}
+
+/// Spec `compiler/toolchain`, "System on Linux": `toolchain path` prints the folder of the `g++` on `PATH`, then
+/// `system`; `toolchain install` says the system toolchain is used. Needs `g++`, `make` and `objcopy` on `PATH`.
+#[test]
+#[cfg(unix)]
+fn linux_toolchain_path_is_the_system() {
+    let d = scratch("linux-toolchain-path");
+    let o = qb64rust(&d, &["toolchain", "path"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let out = stdout(&o);
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines.len(), 2, "{out}");
+    assert!(Path::new(lines[0]).join("g++").is_file(), "{out}");
+    assert!(lines[1].starts_with("system:"), "{out}");
+    // The headers of the packages are there when a build works, as on the machines that run these tests.
+    let o = qb64rust(&d, &["toolchain", "install"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(stdout(&o).contains("the system toolchain is used"), "{}", stdout(&o));
+}
+
+/// Spec `compiler/cli`, "Default name on Linux": `qb64rust -x game.bas` writes `game` beside the source, executable.
+#[test]
+#[cfg(unix)]
+#[ignore = "builds a program"]
+fn linux_default_name() {
+    use std::os::unix::fs::PermissionsExt as _;
+    let d = scratch("linux-default-name");
+    std::fs::write(d.join("game.bas"), SLICE_PROGRAM).unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "game.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let exe = d.join("game");
+    let mode = std::fs::metadata(&exe).unwrap().permissions().mode();
+    assert_eq!(mode & 0o111, 0o111, "{mode:o}");
+    assert!(!d.join("game.exe").exists());
+    let r = run(unattended(&exe).current_dir(&d), None, PROGRAM_LIMIT, "program");
+    assert!(stdout(&r).starts_with("x= .25  3 \n"), "{}", stdout(&r));
+}
+
+/// The Windows-only metacommands on Linux (task 3.2 of `m7-linux`), as QB64pe's Linux build takes them (measured
+/// 2026-10-28): `$EXEICON` and `$VERSIONINFO` put nothing into the executable and give the same diagnostics as on
+/// Windows; a missing icon is still an error, but any file builds (no `windres` reads it).
+#[test]
+#[cfg(unix)]
+#[ignore = "builds a program"]
+fn linux_windows_only_metacommands() {
+    let d = scratch("linux-metacommands");
+    let game = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/programs/civil-war-strategy/cws.ico");
+    std::fs::copy(game, d.join("cws.ico")).unwrap();
+    std::fs::write(d.join("bad.ico"), "not an icon\n").unwrap();
+    let program = |head: &str| format!("$CONSOLE:ONLY\n{head}\nPRINT \"ran\"\nSYSTEM\n");
+    for (name, head, warning) in [
+        ("icon", "$EXEICON:'./cws.ico'", ""),
+        ("bad", "$EXEICON:'./bad.ico'", ""),
+        (
+            "ver",
+            "$VERSIONINFO:CompanyName=Acme\n$VERSIONINFO:FILEVERSION#=1,2,3,4",
+            "ver.bas:2:1: warning: Missing string bracket delimiters ('')\n    Acme\n",
+        ),
+    ] {
+        std::fs::write(d.join(format!("{name}.bas")), program(head)).unwrap();
+        let o = qb64rust_build(&d, &["-w", "-q", "-x", &format!("{name}.bas")]);
+        assert!(o.status.success(), "{name}: {}", stdout(&o));
+        assert_eq!(stdout(&o), warning, "{name}");
+        let r = run(
+            unattended(&d.join(name)).current_dir(&d),
+            None,
+            PROGRAM_LIMIT,
+            "program",
+        );
+        assert_eq!(stdout(&r), "ran\n", "{name}");
+    }
+    std::fs::write(d.join("none.bas"), program("$EXEICON:'./none.ico'")).unwrap();
+    let o = qb64rust(&d, &["-q", "-x", "none.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(
+        stdout(&o).contains("the file `./none.ico` of `$EXEICON` is not found"),
+        "{}",
+        stdout(&o)
+    );
+}
+
+/// Spec `language/external-libraries`, "A name the DLL does not export" and "A shared object that does not load", on
+/// Linux (task 3.5 of `m7-linux`): `./v37dll` is `libv37dll.so` beside the program, loaded with `dlopen` as the
+/// program starts; a name it does not export is error 260, and the file deleted after the build is error 259, both
+/// before the first `PRINT` and past `ON ERROR`.
+#[test]
+#[cfg(unix)]
+#[ignore = "builds a program"]
+fn linux_shared_object_errors_at_the_start() {
+    let d = scratch("linux-so-errors");
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification/v37_lib/v37dll.c");
+    let so = d.join("libv37dll.so");
+    let o = run(
+        Command::new("gcc")
+            .args(["-O2", "-fPIC", "-shared"])
+            .arg(&src)
+            .arg("-o")
+            .arg(&so),
+        None,
+        COMPILER_LIMIT,
+        "gcc",
+    );
+    assert!(o.status.success(), "{}", text(&o.stderr));
+    let program = |extra: &str| {
+        format!(
+            "$CONSOLE:ONLY\nON ERROR GOTO handler\nDECLARE DYNAMIC LIBRARY \"./v37dll\"\n\
+             FUNCTION d_add& (BYVAL a AS LONG, BYVAL b AS LONG)\n{extra}END DECLARE\nPRINT \"start\"; d_add&(1, 2)\n\
+             SYSTEM\nhandler:\nPRINT \"handled\"; ERR\nRESUME NEXT\n"
+        )
+    };
+    let cases = [
+        (
+            "none",
+            program("FUNCTION d_none& (BYVAL a AS LONG)\n"),
+            "Sub/Function does not exist in dynamic library",
+        ),
+        ("gone", program(""), "Cannot find dynamic library file"),
+    ];
+    for (name, source, message) in &cases {
+        std::fs::write(d.join(format!("{name}.bas")), source).unwrap();
+        let o = qb64rust_build(&d, &["-q", "-x", &format!("{name}.bas")]);
+        assert!(o.status.success(), "{name}: {}", stdout(&o));
+        if *name == "gone" {
+            let r = run(
+                unattended(&d.join(name)).current_dir(&d),
+                None,
+                PROGRAM_LIMIT,
+                "program",
+            );
+            assert_eq!(stdout(&r), "start 3 \n", "with the file there");
+            std::fs::remove_file(&so).unwrap();
+        }
+        let r = run(
+            unattended(&d.join(name)).current_dir(&d),
+            None,
+            PROGRAM_LIMIT,
+            "program",
+        );
+        assert_eq!(stdout(&r), "", "{name}");
+        assert!(text(&r.stderr).contains(*message), "{name}: {}", text(&r.stderr));
+    }
+}
+
 /// Spec `compiler/cli`, "Toolchain subcommand": any other word after `toolchain` prints the two forms and exits with
 /// status 1 ("Unknown action"); `toolchain.bas` is a file to compile ("A file named toolchain").
 #[test]
@@ -1277,7 +1519,7 @@ fn build_without_a_qb64pe_folder() {
     let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
     assert!(o.status.success(), "{}", stdout(&o));
     let r = run(
-        unattended(&d.join("p.exe")).current_dir(&d),
+        unattended(&d.join(default_exe("p"))).current_dir(&d),
         None,
         PROGRAM_LIMIT,
         "program",
@@ -1317,7 +1559,7 @@ fn library_without_a_qb64pe_folder() {
     let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
     assert!(o.status.success(), "{}", stdout(&o));
     let r = run(
-        unattended(&d.join("p/prog.exe")).current_dir(&d),
+        unattended(&d.join("p").join(default_exe("prog"))).current_dir(&d),
         None,
         PROGRAM_LIMIT,
         "program",
@@ -1797,6 +2039,7 @@ fn relative_names_under_the_compiler_root() {
 /// icon": the executable holds the image of the icon `$EXEICON` names, and after the file changes, the new one.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
+#[cfg(windows)]
 fn exe_icon_is_in_the_executable() {
     let d = scratch("icon");
     let (first, second) = (icon_16([0x11, 0x22, 0x33, 0xff]), icon_16([0x44, 0x55, 0x66, 0xff]));
@@ -1819,6 +2062,7 @@ fn exe_icon_is_in_the_executable() {
 /// as the old compiler's does (`verification\v29_e16`).
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
+#[cfg(windows)]
 fn exe_icon_that_is_no_icon_fails_the_build() {
     let d = scratch("icon-text");
     std::fs::write(d.join("game.ico"), "this is not an icon\n").unwrap();
@@ -1849,7 +2093,10 @@ fn civil_war_strategy_builds() {
     // The first entry of the icon's directory (at offset 6): the length of its image at 8, the offset at 12.
     let field = |at: usize| u32::from_le_bytes(ico[at..at + 4].try_into().unwrap()) as usize;
     let (len, offset) = (field(6 + 8), field(6 + 12));
-    assert!(holds(&std::fs::read(&exe).unwrap(), &ico[offset..offset + len]));
+    // The icon is a Windows resource; on Linux `$EXEICON` writes none, as with QB64pe (task 3.2 of `m7-linux`).
+    if cfg!(windows) {
+        assert!(holds(&std::fs::read(&exe).unwrap(), &ico[offset..offset + len]));
+    }
 }
 
 /// Builds `program` as `p.bas` in `d` with `-q -x`, runs it and gives its output with `\n` line ends.
@@ -2590,7 +2837,7 @@ fn internal_compiler_error() {
         )
     };
 
-    std::fs::write(d.join("p.exe"), b"stale").unwrap();
+    std::fs::write(d.join(default_exe("p")), b"stale").unwrap();
     let o = run(&["-q", "p.bas"]);
     assert_eq!(o.status.code(), Some(3));
     let out = stdout(&o);
@@ -2600,13 +2847,13 @@ fn internal_compiler_error() {
     );
     assert!(out.contains("while compiling p.bas"), "{out}");
     assert!(o.stderr.is_empty(), "the default panic message is replaced");
-    assert!(!d.join("p.exe").exists(), "no executable left behind");
+    assert!(!d.join(default_exe("p")).exists(), "no executable left behind");
 
     // A dump never touches the executable.
-    std::fs::write(d.join("p.exe"), b"kept").unwrap();
+    std::fs::write(d.join(default_exe("p")), b"kept").unwrap();
     let o = run(&["--dump", "typed", "p.bas"]);
     assert_eq!(o.status.code(), Some(3));
-    assert!(d.join("p.exe").exists());
+    assert!(d.join(default_exe("p")).exists());
 }
 
 /// Scenario "Subcommand" (change `m2-language-server`): the language server over stdin and stdout, ending with
@@ -2675,6 +2922,7 @@ fn dap_rejects_other_options() {
 /// `dap`, spec `editor/debug-adapter` scenario "No lldb-dap": a toolchain folder without `bin\lldb-dap.exe` given by
 /// `--toolchain-root`; `initialize` fails naming that path, and `disconnect` ends the adapter with code 0.
 #[test]
+#[cfg(windows)]
 fn dap_without_lldb_dap() {
     let d = scratch("dap-no-lldb-dap");
     fake_toolchain(&d.join("tools"));
@@ -2698,6 +2946,7 @@ fn dap_without_lldb_dap() {
 /// `dap`, spec `editor/debug-adapter` scenario "No toolchain": `initialize` fails with the message naming
 /// `qb64rust toolchain install`.
 #[test]
+#[cfg(windows)]
 fn dap_without_a_toolchain() {
     let d = scratch("dap-no-toolchain");
     let mut cmd = compiler();
@@ -2709,6 +2958,38 @@ fn dap_without_a_toolchain() {
         r["message"].as_str().unwrap().contains("qb64rust toolchain install"),
         "{r}"
     );
+    dap.ok("disconnect", serde_json::json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
+/// `dap`, spec `editor/debug-adapter` scenario "No lldb-dap on Linux": a system toolchain on `PATH` but no `lldb-dap`
+/// or `lldb-dap-<n>`; `initialize` fails naming `lldb-dap` and the package, and `disconnect` ends the adapter with
+/// code 0.
+#[test]
+#[cfg(unix)]
+fn dap_without_lldb_dap_on_linux() {
+    let d = scratch("dap-no-lldb-dap-linux");
+    let bin = d.join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    for f in ["g++", "make", "objcopy"] {
+        std::fs::write(bin.join(f), "").unwrap();
+    }
+    let mut cmd = compiler();
+    cmd.current_dir(&d)
+        .env("PATH", &bin)
+        .env_remove("QB64RUST_TOOLCHAIN_ROOT")
+        .arg("dap");
+    let mut dap = support::dap::Dap::start(cmd);
+    let r = dap.request("initialize", serde_json::json!({"adapterID": "qb64rust"}));
+    assert_eq!(r["success"], false, "{r}");
+    let message = r["message"].as_str().unwrap();
+    assert!(
+        message.contains("lldb-dap not found") && message.contains("lldb"),
+        "{r}"
+    );
+    if on_debian() {
+        assert!(message.contains("`sudo apt-get install lldb-20`"), "{r}");
+    }
     dap.ok("disconnect", serde_json::json!({}));
     assert_eq!(dap.finish().code(), Some(0));
 }
@@ -2745,7 +3026,7 @@ fn dap_without_a_qb64pe_folder() {
         .arg(&tools);
     let mut dap = launch_session(
         support::dap::Dap::start(cmd),
-        &d.join("hello.exe"),
+        &d.join(default_exe("hello")),
         &[],
         &[3],
         json!({}),
@@ -2779,6 +3060,64 @@ fn dap_initialize_and_disconnect() {
     assert_eq!(dap.finish().code(), Some(0));
 }
 
+/// A breakpoint in a file included from a subfolder (`inc/lib.bi`) stops there, the frame naming that file by its
+/// path: the source paths of `<exe>.debug.json` and the symbol reader on either platform (task 4.3 of `m7-linux`; on
+/// Linux the paths are case-sensitive and use `/`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn dap_breakpoint_in_a_file_included_from_a_subfolder() {
+    use serde_json::json;
+    let d = scratch("dap-include-folder");
+    std::fs::create_dir_all(d.join("inc")).unwrap();
+    std::fs::write(
+        d.join("inc").join("lib.bi"),
+        "FUNCTION twice& (k AS LONG)\n    twice& = 2 * k\nEND FUNCTION\n",
+    )
+    .unwrap();
+    let exe = debug_build(
+        &d,
+        "main",
+        "$CONSOLE:ONLY\ny& = twice&(3)\nPRINT y&\nSYSTEM\n'$INCLUDE:'inc/lib.bi'\n",
+    );
+    let mut cmd = compiler();
+    cmd.current_dir(&d).arg("dap");
+    let mut dap = support::dap::Dap::start(cmd);
+    dap.ok(
+        "initialize",
+        json!({"adapterID": "qb64rust", "linesStartAt1": true, "columnsStartAt1": true}),
+    );
+    let launch = dap.send(
+        "launch",
+        json!({"program": exe, "cwd": d.to_path_buf(), "env": {"QB64PE_NOPROMPT": "y"}}),
+    );
+    dap.event("initialized");
+    let lib = d.join("inc").join("lib.bi");
+    let set = dap.ok(
+        "setBreakpoints",
+        json!({"source": {"path": lib}, "breakpoints": [{"line": 2}]}),
+    );
+    assert_eq!(set["breakpoints"][0]["verified"], true, "{set}");
+    dap.ok("configurationDone", json!({}));
+    assert_eq!(dap.response(launch)["success"], true);
+    let (s, reason, name, line) = dap_stop(&mut dap);
+    assert_eq!(
+        (reason.as_str(), name.as_str(), line),
+        ("breakpoint", "FUNCTION twice&", 2)
+    );
+    let st = dap.ok("stackTrace", json!({"threadId": s["body"]["threadId"], "levels": 1}));
+    let source = &st["stackFrames"][0]["source"];
+    assert_eq!(source["name"], "lib.bi", "{st}");
+    assert_eq!(
+        Path::new(source["path"].as_str().unwrap()).canonicalize().unwrap(),
+        lib.canonicalize().unwrap(),
+        "{st}"
+    );
+    dap.ok("continue", json!({"threadId": s["body"]["threadId"]}));
+    dap.event("exited");
+    dap.ok("disconnect", json!({}));
+    assert_eq!(dap.finish().code(), Some(0));
+}
+
 /// A session of `qb64rust dap` on a debug build: `initialize`, then `launch` with `extra` merged into its
 /// arguments, the function breakpoints and the breakpoints by line of the main file (`lines`), and
 /// `configurationDone`. The program then runs.
@@ -2788,10 +3127,13 @@ fn dap_launch(exe: &Path, functions: &[&str], lines: &[u64], extra: serde_json::
     launch_session(support::dap::Dap::start(cmd), exe, functions, lines, extra)
 }
 
-/// A session of the clone's `lldb-dap` itself, with no proxy, in the environment the proxy gives it (the
-/// measurements of task 3.1 of `m5-dap-proxy`).
+/// A session of the toolchain's `lldb-dap` itself (the one the proxy starts), with no proxy, in the environment the
+/// proxy gives it (the measurements of task 3.1 of `m5-dap-proxy`).
+#[cfg(windows)]
 fn lldb_dap_launch(exe: &Path, functions: &[&str], lines: &[u64]) -> support::dap::Dap {
-    let mut cmd = Command::new(support::toolchain("lldb-dap.exe"));
+    use qb64rust_driver::toolchain;
+    let found = toolchain::find(qb64rust_base::Platform::host(), None, None).expect("a C++ toolchain");
+    let mut cmd = Command::new(toolchain::lldb_dap(&found, None).expect("lldb-dap"));
     cmd.current_dir(exe.parent().unwrap())
         .envs(qb64rust_dap::LLDB_ENV.iter().copied());
     launch_session(
@@ -2837,6 +3179,7 @@ fn launch_session(
 }
 
 /// The top frame of the thread of a `stopped` event: its name, line and column.
+#[cfg(windows)]
 fn dap_top(dap: &mut support::dap::Dap, stopped: &serde_json::Value) -> (String, u64, u64) {
     let thread = stopped["body"]["threadId"].clone();
     let st = dap.ok("stackTrace", serde_json::json!({"threadId": thread, "levels": 1}));
@@ -2853,8 +3196,11 @@ fn dap_top(dap: &mut support::dap::Dap, stopped: &serde_json::Value) -> (String,
 /// address in decimal, `readMemory` there the value's bytes (base64), `writeMemory` changes it; `dataBreakpointInfo`
 /// of one of `lldb-dap`'s own variables gives a `dataId` `<hex address>/<size>`; libqb's `qbs_set` and
 /// `qbs_new_txt_len`, which have no debug information, can be called through function pointers of their C types;
-/// `` `thread jump --line n`` in the `repl` context moves the next line.
+/// `` `thread jump --line n`` in the `repl` context moves the next line. Windows only: it measures the toolchain's
+/// `lldb-dap`; Ubuntu's 19 and 20 have no `writeMemory` and end when sent one (`m7-linux` design, "Measured"), which
+/// the adapter's own tests cover (`set_value_without_write_memory`).
 #[test]
+#[cfg(windows)]
 #[ignore = "needs the QB64pe reference clone"]
 fn lldb_dap_measured_memory() {
     use serde_json::json;
@@ -2929,8 +3275,10 @@ fn lldb_dap_measured_memory() {
 /// proxy's form stops with reason `data breakpoint` at the line that writes the value; a `pause` stops the process
 /// on a thread of its own (reason `exception`), while the program's thread is at the loop's line; `lldb-dap`'s
 /// `threads` need not list the program's thread at all; the program's output comes as `output` events of category
-/// `stdout`.
+/// `stdout`. Windows only, as `lldb_dap_measured_memory`: Ubuntu's `lldb-dap` 19 and 20 name a stop at a data
+/// breakpoint `breakpoint` (`m7-linux` design, "Measured"), which the adapter names `data breakpoint`.
 #[test]
+#[cfg(windows)]
 #[ignore = "needs the QB64pe reference clone"]
 fn lldb_dap_measured_stops() {
     use serde_json::json;
@@ -3371,14 +3719,18 @@ fn dap_pause_and_disconnect() {
     dap.ok("disconnect", json!({"terminateDebuggee": true}));
     assert_eq!(dap.finish().code(), Some(0));
     std::thread::sleep(Duration::from_millis(500));
-    let alive = Command::new("tasklist")
-        .args(["/FI", "IMAGENAME eq spin.exe", "/NH"])
-        .output()
-        .unwrap();
-    assert!(
-        !stdout(&alive).contains("spin.exe"),
-        "the program ended with the session"
-    );
+    let alive = if cfg!(windows) {
+        let o = Command::new("tasklist")
+            .args(["/FI", "IMAGENAME eq spin.exe", "/NH"])
+            .output()
+            .unwrap();
+        stdout(&o).contains("spin.exe")
+    } else {
+        // By its path, which is this test's own.
+        let o = Command::new("pgrep").arg("-f").arg(&exe).output().unwrap();
+        !stdout(&o).trim().is_empty()
+    };
+    assert!(!alive, "the program ended with the session");
 }
 
 /// Measured for change `m5-debug-launch` (its design D6, "Measured"): `console` `integratedTerminal` through the
@@ -3598,13 +3950,15 @@ fn text(b: &[u8]) -> String {
 /// lookup"). Nothing can be built with it.
 fn fake_toolchain(dir: &Path) {
     std::fs::create_dir_all(dir.join("bin")).unwrap();
-    for f in ["c++.exe", "mingw32-make.exe"] {
+    // Windows' names and Linux's, so that the folder is a toolchain on both.
+    for f in ["c++.exe", "mingw32-make.exe", "g++", "make"] {
         std::fs::write(dir.join("bin").join(f), "").unwrap();
     }
 }
 
 /// The libraries of `verification\v37_lib` built into `dir` with the toolchain a build uses, as `build_libs.py`
 /// builds them: `v37c.a` (C), `v37cpp.a` (C++), `v37o.o` (C), `v37dll.dll`.
+#[cfg(windows)]
 fn build_v37_libraries(dir: &Path) {
     let bin = support::toolchain("");
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification/v37_lib");
@@ -3633,6 +3987,7 @@ fn build_v37_libraries(dir: &Path) {
 /// `CUSTOMTYPE` function of the C++ library and a DLL, each found by `./` beside the program.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
+#[cfg(windows)]
 fn library_files_are_linked_and_called() {
     let d = scratch("library-files");
     build_v37_libraries(&d);
@@ -3662,6 +4017,7 @@ fn library_files_are_linked_and_called() {
 /// it.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
+#[cfg(windows)]
 fn a_function_the_dll_does_not_export_is_error_260() {
     let d = scratch("library-260");
     build_v37_libraries(&d);
@@ -3690,6 +4046,7 @@ fn a_function_the_dll_does_not_export_is_error_260() {
 /// file (`x69`), and a library file whose path holds a `$`. With `-z`, which runs `nm` too.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
+#[cfg(windows)]
 fn library_errors_before_the_cpp() {
     let d = scratch("library-errors");
     build_v37_libraries(&d);
@@ -3891,6 +4248,7 @@ fn format_writes_the_output_file() {
 /// "Runner's format line"). The test's files are read from the reference clone.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
+#[cfg(windows)]
 fn runners_format_line() {
     let clone = qb64rust_driver::build::clone_root().expect("the QB64pe reference clone");
     let tests = clone.join("tests/format_tests/general");
@@ -4120,10 +4478,13 @@ fn end_and_input_at_the_end_of_the_input() {
     assert!(o.status.success(), "{}", stdout(&o));
     let ran = run(&mut unattended(&exe), None, limit, "program");
     assert_eq!(ran.status.code(), Some(0));
-    assert_eq!(
-        stdout(&ran).replace("\r\n", "\n"),
-        "before END\n\nPress any key to continue"
-    );
+    // libqb's own words on each platform, as QB64pe's builds print them.
+    let prompt = if cfg!(windows) {
+        "Press any key to continue"
+    } else {
+        "Press enter to continue"
+    };
+    assert_eq!(stdout(&ran).replace("\r\n", "\n"), format!("before END\n\n{prompt}"));
     let d = scratch("line-input-null");
     std::fs::write(
         d.join("p.bas"),
@@ -4139,6 +4500,33 @@ fn end_and_input_at_the_end_of_the_input() {
         err.contains("Input past end of file") && !out.contains("not reached"),
         "{out}{err}"
     );
+}
+
+/// `INPUT$` reads a redirected input in text mode, as `INPUT` and `LINE INPUT` read it: a CR LF pair comes as one LF,
+/// a CR alone stays, and a byte 26 (Ctrl+Z) ends the input, so the next read raises error 62 (D-048). The old
+/// compiler's `INPUT$` waits for ever on such an input, so no recording can hold this; `verification\v63_a6` records
+/// how its `LINE INPUT` and `INPUT` read the same kind of input. On Linux standard input has no text mode: the bytes
+/// come as they are, a byte 26 among them, and only the end of the input raises error 62 (task 5.5 of `m7-linux`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn input_string_reads_redirected_input_in_text_mode() {
+    let d = scratch("input-string-crlf");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nON ERROR GOTO h\ns$ = INPUT$(6)\nFOR i = 1 TO LEN(s$): PRINT ASC(s$, i);: NEXT\nPRINT\n\
+         s$ = INPUT$(1)\nPRINT \"not reached\"\nSYSTEM\nh:\nPRINT \"error\"; ERR\nSYSTEM\n",
+    )
+    .unwrap();
+    let exe = d.join(default_exe("p"));
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let (input, expected): (&[u8], _) = if cfg!(windows) {
+        (b"ab\r\ne\r\r\n\x1azz\r\n", " 97  98  10  101  13  10 \nerror 62 \n")
+    } else {
+        (b"ab\r\ne\x1a", " 97  98  13  10  101  26 \nerror 62 \n")
+    };
+    let ran = run(&mut unattended(&exe), Some(input), PROGRAM_LIMIT, "program");
+    assert_eq!(stdout(&ran).replace("\r\n", "\n"), expected);
 }
 
 /// `_CAST` of a float constant out of range gives what the same conversion of a variable gives, with and without

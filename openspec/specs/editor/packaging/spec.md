@@ -8,15 +8,21 @@ libqb and their licences), how the extension finds and prepares what it carries,
 ## Requirements
 
 ### Requirement: Platform package contents
-The released `.vsix` SHALL target `win32-x64` and SHALL hold the `qb64rust` binary built in release mode, the copy
+The released `.vsix` files SHALL target `win32-x64` and `linux-x64`, one package each, and each SHALL hold the
+`qb64rust` binary for its platform built in release mode (`bin\qb64rust.exe`, `bin/qb64rust`), the copy
 of libqb (its `Makefile`, `internal\c` without built objects, `licenses` and `COPYING.txt`) with its `libqb.id`,
-and a notice of the licences of the Rust crates linked into the binary. It SHALL NOT hold the extension's TypeScript sources, its
+and a notice of the licences of the Rust crates linked into the binary. Neither SHALL hold the extension's TypeScript sources, its
 tests or fixtures, or a C++ toolchain.
 
 #### Scenario: Listing the package
 - **WHEN** the files of the released `.vsix` are listed
 - **THEN** they include the `qb64rust` executable, the copy's `internal\c\qbx.cpp` and `COPYING.txt`, `libqb.id`,
   and the crate licence notice, and include no `.ts` file, no `.o` file and no `c_compiler` folder
+
+#### Scenario: The Linux package
+- **WHEN** the extension from `qb64rust-linux-x64-<version>.vsix` is installed on Linux
+- **THEN** its `bundle/bin/qb64rust` is an ELF executable that the language server starts, and the package holds
+  no `.exe` file
 
 ### Requirement: Bundled binary lookup
 The extension SHALL find the `qb64rust` binary in this order: the setting `qb64rust.path` when it is set, else the
@@ -58,10 +64,10 @@ removed when the extension starts.
 
 ### Requirement: Release from a tag
 Pushing a tag `vscode-v<version>`, where `<version>` equals the version in the extension's `package.json` and the
-workspace version in `Cargo.toml`, SHALL build the binary, package the `win32-x64` `.vsix` and the compiler
-download of spec `compiler/download` from that one binary, check each against its contents requirement, and
-attach both to a GitHub release of that tag. A tag whose version differs from either SHALL fail the release
-without publishing anything, as SHALL a failed check of either package.
+workspace version in `Cargo.toml`, SHALL build the binary on Windows and on Linux. From each binary it SHALL package
+that platform's `.vsix` and compiler download (spec `compiler/download`), check each against its contents
+requirement, and attach all four to a GitHub release of that tag. A tag whose version differs from either SHALL
+fail the release without publishing anything, as SHALL a failed check or build of any package.
 
 #### Scenario: Matching tag
 - **WHEN** the tag `vscode-v0.2.0` is pushed, and `package.json` and `Cargo.toml` both say `0.2.0`
@@ -80,6 +86,16 @@ without publishing anything, as SHALL a failed check of either package.
 - **WHEN** the `.vsix` passes its check and the zip does not
 - **THEN** no release is created and neither file is published
 
+#### Scenario: Four packages
+- **WHEN** the tag `vscode-v0.4.0` is pushed with matching versions
+- **THEN** the release holds `qb64rust-win32-x64-0.4.0.vsix`, `qb64rust-linux-x64-0.4.0.vsix`,
+  `qb64rust-win-x64-0.4.0.zip` and `qb64rust-linux-x64-0.4.0.tar.gz`, and the Linux `.vsix` and tar hold the same
+  `qb64rust` file
+
+#### Scenario: The Linux build fails
+- **WHEN** the Windows packages pass their checks and the Linux build fails
+- **THEN** no release is created and nothing is published
+
 ### Requirement: Toolchain lookup in the extension
 The extension SHALL take the C++ toolchain from the setting `qb64rust.toolchainPath` when it is set, else from what
 `qb64rust toolchain path` reports when given the folder of the QB64pe found by `qb64rust.compilerPath` or `PATH`
@@ -94,10 +110,11 @@ The extension SHALL take the C++ toolchain from the setting `qb64rust.toolchainP
 - **THEN** builds use the folder of the setting
 
 ### Requirement: Toolchain offer
-When a build, a build task or a debug session needs the toolchain and none is found, the extension SHALL ask the
-user before downloading anything. The question SHALL name the source, the download size and the disk space, with
-the choices "Download" and "Not Now". The extension SHALL NOT download at start, in the background, or for any
-choice but "Download".
+When a build, a build task or a debug session on Windows needs the toolchain and none is found, the extension SHALL
+ask the user before downloading anything. The question SHALL name the source, the download size and the disk
+space, with the choices "Download" and "Not Now". The extension SHALL NOT download at start, in the background, or
+for any choice but "Download". On Linux it SHALL offer no download: it SHALL show the message of `qb64rust
+toolchain path`, which names the packages, with a button that copies the install command.
 
 #### Scenario: User agrees
 - **WHEN** the user builds with no toolchain and chooses "Download"
@@ -128,10 +145,16 @@ choice but "Download".
 - **WHEN** the extension starts and no toolchain is found
 - **THEN** no question is asked and nothing is downloaded until a build or debug session needs it
 
+#### Scenario: Linux without g++
+- **WHEN** the user builds on Ubuntu with no `g++`
+- **THEN** no download is offered, the message names the `apt-get install` line, a button copies it to the
+  clipboard, and the build is cancelled
+
 ### Requirement: Install command
 The command "QB64: Install the C++ Toolchain" (`qb64rust.installToolchain`) SHALL ask the same question and act
-the same way, on demand; when the toolchain is already installed it SHALL say so and download nothing. It SHALL be
-unavailable in untrusted workspaces, as builds are.
+the same way, on demand; when the toolchain is already installed it SHALL say so and download nothing. On Linux it
+SHALL run `qb64rust toolchain install` and show what it prints: that the system toolchain is present, or the
+packages to install. It SHALL be unavailable in untrusted workspaces, as builds are.
 
 #### Scenario: Installed already
 - **WHEN** the user runs the command and the pinned toolchain is installed
@@ -140,3 +163,7 @@ unavailable in untrusted workspaces, as builds are.
 #### Scenario: Untrusted workspace
 - **WHEN** the workspace is not trusted and the user runs the command
 - **THEN** a message explains that installing requires a trusted workspace and nothing runs
+
+#### Scenario: The command on Linux
+- **WHEN** the user runs the command on Linux with `g++` and the packages present
+- **THEN** a message says the system toolchain is used, names its folder, and nothing is downloaded

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Linux x64.** The extension, the compiler and the debugger run on Linux (glibc): a `.vsix` for `linux-x64` and a
+  `qb64rust-linux-x64-<version>.tar.gz` download. Programs build with the system's `g++` and the packages libqb
+  needs; when they are missing, the first build says which and offers to copy the install command for your
+  distribution. The debugger needs `lldb-dap` 20 or later (on Ubuntu, `sudo apt-get install lldb-20`).
+  `DECLARE LIBRARY` finds `.so` files and `DECLARE DYNAMIC LIBRARY` loads them; `$IF LINUX` is true there.
+- **`SWAP` with FUNCTION calls in its indexes** runs them left to right on every platform (`QB64PE-DIVERGENCES.md`
+  D-054).
 - **Fixes of QB64pe's behaviours, behind a switch.** A `qb64rust.toml` beside a program (or in a folder above it)
   turns named fixes on: `[fixes]` with `all = true`, and `<name> = false` to leave one off. Eight fixes so far:
   `RESUME NEXT` after an error in a block's condition goes on after the block, a `DIM` with no element is error 5,

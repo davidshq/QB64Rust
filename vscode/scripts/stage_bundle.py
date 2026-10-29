@@ -1,21 +1,23 @@
 """Writes vscode/bundle/, what the platform .vsix carries beside the extension (design D1 and D7 of the OpenSpec
 change extension-vsix):
 
-- bin/qb64rust.exe, the release build of the new compiler (--binary, default target/release/qb64rust.exe);
+- bin/qb64rust.exe (--target win32-x64, the default) or bin/qb64rust (--target linux-x64, OpenSpec change m7-linux,
+  design D8), the release build of the new compiler for that platform (--binary, default
+  target/release/qb64rust.exe or target/release/qb64rust);
 - libqb/, the copy of libqb: its tracked files only (`git ls-files libqb`), so the objects a build left in the
   working tree never ship;
 - libqb.id, a hash of those files' names and bytes, which names the extension's prepared copy of libqb, so that a
   package of the same version with other libqb files is not given the copy of the earlier ones;
 - vscode/LICENSE (not in bundle/: vsce takes it from the extension's root), the repository's;
 - THIRD-PARTY-NOTICES.txt: for each crate linked into the binary (the normal dependencies of qb64rust-driver for
-  the Windows target, as `cargo tree` resolves them), its name, version, licence expression and the text of its
+  package's target, as `cargo tree` resolves them), its name, version, licence expression and the text of its
   licence files. A crate that ships none takes vscode/scripts/licenses/<name>.txt; a crate with neither fails
   the script, naming it, so a new dependency cannot ship without its text.
 
 The folder is deleted and written again on each run. Exits with status 1 and a message when something is
 missing.
 
-Usage: python vscode/scripts/stage_bundle.py [--binary <qb64rust.exe>]
+Usage: python vscode/scripts/stage_bundle.py [--target win32-x64|linux-x64] [--binary <qb64rust binary>]
 """
 
 import argparse
@@ -33,7 +35,11 @@ OUT = REPO / "vscode" / "bundle"
 # vsce takes the licence from the extension's root folder.
 LICENCE_OUT = REPO / "vscode" / "LICENSE"
 OVERRIDES = SCRIPTS / "licenses"
-TARGET = "x86_64-pc-windows-msvc"
+# Each package's target: the Rust target its binary is built for, and the binary's name in bin/.
+TARGETS = {
+    "win32-x64": ("x86_64-pc-windows-msvc", "qb64rust.exe"),
+    "linux-x64": ("x86_64-unknown-linux-gnu", "qb64rust"),
+}
 DRIVER = "qb64rust-driver"
 LICENCE_FILE = re.compile(r"^(licen[cs]e|copying|unlicense)", re.IGNORECASE)
 # A folder as cargo tree prints a path dependency's source: absolute, Windows or POSIX.
@@ -77,8 +83,9 @@ def copy_tracked(repo, folder, dest):
     return len(files), digest.hexdigest()[:16]
 
 
-def linked_crates(repo):
-    """(name, version, licence) of each crate `cargo tree` resolves for the driver, the workspace's left out."""
+def linked_crates(repo, target="win32-x64"):
+    """(name, version, licence) of each crate `cargo tree` resolves for the driver on the package's target, the
+    workspace's left out."""
     out = run(
         [
             "cargo",
@@ -88,7 +95,7 @@ def linked_crates(repo):
             "-e",
             "normal",
             "--target",
-            TARGET,
+            TARGETS[target][0],
             "--prefix",
             "none",
             "--locked",
@@ -170,7 +177,7 @@ def notice(crates, dirs, overrides):
     return "".join(parts)
 
 
-def stage(repo, out, binary, licence_out, overrides=OVERRIDES, crates=None, dirs=None):
+def stage(repo, out, binary, licence_out, overrides=OVERRIDES, crates=None, dirs=None, target="win32-x64"):
     if not binary.is_file():
         raise StageError(
             f"the qb64rust binary is missing: {binary} (build it with cargo build --release)"
@@ -178,14 +185,15 @@ def stage(repo, out, binary, licence_out, overrides=OVERRIDES, crates=None, dirs
     if not (repo / "libqb" / "internal" / "c" / "qbx.cpp").is_file():
         raise StageError("libqb/internal/c/qbx.cpp is missing: the copy of libqb is not there")
     text = notice(
-        linked_crates(repo) if crates is None else crates,
+        linked_crates(repo, target) if crates is None else crates,
         crate_dirs(repo) if dirs is None else dirs,
         overrides,
     )
     if out.exists():
         shutil.rmtree(out)
     (out / "bin").mkdir(parents=True)
-    shutil.copy2(binary, out / "bin" / "qb64rust.exe")
+    # copy2 keeps the binary's mode: on Linux its execute bits.
+    shutil.copy2(binary, out / "bin" / TARGETS[target][1])
     count, libqb_id = copy_tracked(repo, "libqb", out)
     (out / LIBQB_ID).write_text(libqb_id + "\n", encoding="utf-8", newline="\n")
     shutil.copy2(repo / "LICENSE", licence_out)
@@ -195,12 +203,12 @@ def stage(repo, out, binary, licence_out, overrides=OVERRIDES, crates=None, dirs
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument(
-        "--binary", type=pathlib.Path, default=REPO / "target" / "release" / "qb64rust.exe"
-    )
+    parser.add_argument("--target", choices=sorted(TARGETS), default="win32-x64")
+    parser.add_argument("--binary", type=pathlib.Path)
     args = parser.parse_args(argv)
+    binary = args.binary or REPO / "target" / "release" / TARGETS[args.target][1]
     try:
-        count = stage(REPO, OUT, args.binary.resolve(), LICENCE_OUT)
+        count = stage(REPO, OUT, binary.resolve(), LICENCE_OUT, target=args.target)
     except StageError as e:
         print(f"stage_bundle: {e}", file=sys.stderr)
         return 1

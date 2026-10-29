@@ -1,0 +1,2 @@
+REDIM r(big): then UBOUND(r), r(1): 1099511627776  0 
+exit=0

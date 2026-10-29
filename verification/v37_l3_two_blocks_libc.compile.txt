@@ -1,0 +1,5 @@
+
+Name already in use (abs)
+Caused by (or after):
+LINE 8:FUNCTION ABS& ( BYVAL V AS LONG )
+exit=1

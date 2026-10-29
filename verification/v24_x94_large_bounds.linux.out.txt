@@ -1,0 +1,4 @@
+DIM a(lo TO hi):
+Runtime error: Out of memory
+Enable $ErrorLocation:ON for source location details.
+exit=0

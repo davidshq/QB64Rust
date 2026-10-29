@@ -5,9 +5,15 @@ import { parseQb64peOutput, CompilerMessage } from "../../src/compiler/parseQb64
 
 const fixtures = path.resolve(__dirname, "../../../test-fixtures/compiler");
 
+/** `text` with the <FIXTURES> placeholder put back. The recordings were made on Windows, so the path after it is
+ * written with `\`; elsewhere it gets the host's separator, as a build there prints it (m7-linux). */
+function withFixtures(text: string): string {
+    return text.replace(/<FIXTURES>([^\s:]*)/g, (_, rest: string) => fixtures + rest.split("\\").join(path.sep));
+}
+
 /** Reads a recorded output with the <FIXTURES> placeholder put back, as the parser would see it. */
 function recorded(name: string): { output: string; exit: number } {
-    const output = fs.readFileSync(path.join(fixtures, `${name}.out.txt`), "latin1").split("<FIXTURES>").join(fixtures);
+    const output = withFixtures(fs.readFileSync(path.join(fixtures, `${name}.out.txt`), "latin1"));
     const exit = Number(fs.readFileSync(path.join(fixtures, `${name}.exit`), "utf8").trim());
     return { output, exit };
 }
@@ -72,6 +78,16 @@ describe("parseQb64peOutput, synthetic cases", () => {
         const crlf = lf.replace(/\n/g, "\r\n");
         assert.deepStrictEqual(parseQb64peOutput(crlf, 1, { mainFile: main }), parseQb64peOutput(lf, 1, { mainFile: main }));
         assert.deepStrictEqual(parseQb64peOutput(lf, 1, { mainFile: main }), [expectedError]);
+    });
+
+    it("QB64pe's Linux build: its colors and its progress bar's cursor moves are dropped (m7-linux)", () => {
+        const e = "\x1b";
+        const out =
+            "QB64-PE Compiler V4.7.0-GLFW-UNKNOWN\nBeginning C++ output from QB64 code...\n" +
+            `[.                                                 ] 2%${e}[A\n` +
+            `${e}[38;5;9mExpected variable/value after '+'\n${e}[38;5;7mCaused by (or after):X = 1 +\n` +
+            `${e}[38;5;8mLINE ${e}[38;5;15m2:${e}[38;5;7mx = 1 +\n`;
+        assert.deepStrictEqual(parseQb64peOutput(out, 1, { mainFile: main }), [expectedError]);
     });
 
     it("unrecognised failure: one error on line 1 with the output", () => {

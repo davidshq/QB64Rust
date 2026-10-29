@@ -1,0 +1,7 @@
+# The upstream compile tests that cannot pass on Linux (OpenSpec change m7-linux, design D6): <category>/<name><TAB>
+# <reason>, as tests/verification/known.list. A reason that starts with "windows" skips the program there; any other
+# makes its failure known. Read by tools/legacy_tests/run_legacy_tests.py --platform linux. Each line was measured with
+# QB64pe's Linux build too. On Windows these programs print the expected values in an $IF WINDOWS branch.
+glut/screenhide_sub	varies: _SCREENX and _SCREENY of the new window are negative now and then under WSLg (QB64pe's build too, in glut/screenx)
+glut/screenx	varies: _SCREENX of the new window is negative under WSLg, in QB64pe's build too
+glut/screeny	varies: _SCREENY of the new window is negative under WSLg, in QB64pe's build too

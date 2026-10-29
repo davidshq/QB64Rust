@@ -364,7 +364,7 @@ not take SHALL stay "not supported yet", as SHALL an operator where an operand i
 ### Requirement: _RED of a colour beyond the palette in a CONST
 `_RED`, `_GREEN` and `_BLUE` in a `CONST` of a colour above 255 and within the mask of a screen mode 0 image
 SHALL give 0. The old compiler reads past libqb's palette of 256 entries there, so its value comes from the
-memory of its own run (`CLAUDE.md` working rule 12): 0 in most builds, 32, 1 or 179 in others, and a crash of
+memory of its own run (`CLAUDE.md` working rule 8): 0 in most builds, 32, 1 or 179 in others, and a crash of
 `qb64pe.exe` for `_RED(65535, 0)` (measured, `verification\v57` task 1.1). A row of `QB64PE-DIVERGENCES.md` names the case.
 
 #### Scenario: A colour above 255 in screen mode 0

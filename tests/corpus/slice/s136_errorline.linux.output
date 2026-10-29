@@ -1,0 +1,24 @@
+1. before any error: 0  0 [] [No error]
+  error 5 _ERRORLINE 9 _INCLERRORLINE 0 file [] message [Illegal function call]
+2. after RESUME NEXT: 9 
+3.
+  error 6 _ERRORLINE 13 _INCLERRORLINE 0 file [] message [Overflow]
+  error 7 _ERRORLINE 14 _INCLERRORLINE 0 file [] message [Out of memory]
+  error 8 _ERRORLINE 17 _INCLERRORLINE 0 file [] message [Label not defined]
+  in s
+  error 9 _ERRORLINE 59 _INCLERRORLINE 0 file [] message [Subscript out of range]
+  error 10 _ERRORLINE 63 _INCLERRORLINE 0 file [] message [Duplicate definition]
+4. back in main: 63  0 
+5. messages: [Illegal function call] [No error] [Unprintable error] [Unprintable error]
+6. [Illegal in direct mode] [Duplicate definition] [Bad file name or number]
+  error 255 _ERRORLINE 24 _INCLERRORLINE 0 file [] message [Unprintable error]
+7. continued:
+  error 12 _ERRORLINE 27 _INCLERRORLINE 0 file [] message [Illegal in direct mode]
+8. arithmetic: 27.5  13 
+  error 14 _ERRORLINE 33 _INCLERRORLINE 0 file [] message [Out of string space]
+  error 15 _ERRORLINE 35 _INCLERRORLINE 0 file [] message [Unprintable error]
+  error 16 _ERRORLINE 38 _INCLERRORLINE 0 file [] message [String formula too complex]
+  error 17 _ERRORLINE 40 _INCLERRORLINE 0 file [] message [Cannot continue]
+  error 18 _ERRORLINE 43 _INCLERRORLINE 0 file [] message [Function not defined]
+  error 19 _ERRORLINE 50 _INCLERRORLINE 0 file [] message [No RESUME]
+9. after the GOSUB: 50 

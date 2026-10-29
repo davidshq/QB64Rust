@@ -116,4 +116,4 @@ edited in VS Code at all; QB64 programs should use `CHR$(0)` (record: `verificat
   a "Runtime error" in the output as a failure, because the exit code stays 0. Screen `PRINT` with a comma must not
   be used in `$CONSOLE` programs whose output is redirected (it never terminates).
 
-Later checks (session 3) are in `study\10-gaps.md`: `v09_dim` (§1) and `v10_print` (§2).
+Later checks (session 3) are in `study\archive\10-gaps.md`: `v09_dim` (§1) and `v10_print` (§2).

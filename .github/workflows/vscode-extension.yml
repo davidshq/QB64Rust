@@ -1,4 +1,4 @@
-# Tests the VS Code extension in vscode\ on Windows: lint, unit, grammar, and the integration suite on VS Code stable
+# Tests the VS Code extension in vscode\ on Windows (and on Linux, job linux): lint, unit, grammar, and the integration suite on VS Code stable
 # and on the oldest supported version (engines.vscode), against the QB64pe release the extension is tested with and
 # with the language server from this repository's qb64rust (built first, release); packages the win32-x64 .vsix.
 name: VS Code extension
@@ -100,5 +100,55 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: qb64rust-vsix
+          path: vscode/*.vsix
+          if-no-files-found: error
+
+  # Linux x64 (OpenSpec change m7-linux, design D10): the same tests with the Linux qb64rust, under Xvfb (VS Code
+  # needs a display), with the system toolchain and its packages (the Debian line of toolchain.rs, PACKAGES). No
+  # QB64pe: the tests that need it are skipped without QB64RUST_TEST_QB64PE. Packages the linux-x64 .vsix.
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: vscode
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the packages
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libglu1-mesa-dev libasound2-dev libpng-dev libcurl4-openssl-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev lldb-20 xvfb
+
+      - run: rustup toolchain install
+        working-directory: .
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked -p qb64rust-driver
+        working-directory: .
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run test:grammar
+
+      - name: Integration tests (VS Code stable)
+        run: xvfb-run -a npm run test:integration
+        env:
+          QB64RUST_TEST_QB64RUST: ${{ github.workspace }}/target/release/qb64rust
+
+      - run: python3 -m unittest discover -s scripts -p "test_*.py"
+      - run: npm run package:linux
+      - run: python3 scripts/check_vsix.py qb64rust-linux-x64-$(node -p "require('./package.json').version").vsix
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: qb64rust-vsix-linux
           path: vscode/*.vsix
           if-no-files-found: error

@@ -102,6 +102,7 @@ fn cli(path: &Path, root: &Path) -> (Vec<Shown>, usize, usize) {
     // The main file named as the server names it, from its URI: a message that names a file then reads the same.
     let name = to_path(&from_path(path)).unwrap().to_string_lossy().into_owned();
     let fe = frontend_at(
+        qb64rust_base::Platform::host(),
         &name,
         std::fs::read(path).unwrap(),
         |file| Box::new(FileLoader::new(root, file, path)),
@@ -224,15 +225,20 @@ fn missing_icon() {
     let d = &checked.published[0];
     assert_eq!((d.1, d.4), (0, 1));
     assert!(d.3.contains("./game.ico"), "{}", d.3);
-    // A file that is no icon is an error too (design D1 of `cpp-failure-errors`).
+    // A file that is no icon is an error too (design D1 of `cpp-failure-errors`); on Linux, as QB64pe's Linux build,
+    // any file is taken, since nothing goes into the executable (`m7-linux`).
     std::fs::write(dir.path().join("game.ico"), [0u8; 4]).unwrap();
     let checked = same_as_cli(&path, dir.path());
-    assert_eq!(checked.answer["errors"], 1);
-    assert!(
-        checked.published[0].3.contains("not an icon"),
-        "{}",
-        checked.published[0].3
-    );
+    if cfg!(windows) {
+        assert_eq!(checked.answer["errors"], 1);
+        assert!(
+            checked.published[0].3.contains("not an icon"),
+            "{}",
+            checked.published[0].3
+        );
+    } else {
+        assert_eq!(checked.answer["errors"], 0);
+    }
     // With the icon beside the program, the check is clean.
     let icon = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/frontend/inc/exeicon.ico");
     std::fs::copy(&icon, dir.path().join("game.ico")).unwrap();

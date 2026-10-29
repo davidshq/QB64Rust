@@ -5,7 +5,7 @@ use crate::encoding::{Columns, Encoding};
 use crate::uri::{from_path, path_key, to_path};
 use lsp_types::{DiagnosticSeverity, Range, Uri};
 use qb64rust_base::{Diagnostic, FileId, MAX_SOURCE_LEN, Severity, SourceMap, Span};
-use qb64rust_syntax::{LoadError, Loader, ParsedProgram, include_name, parse_settled};
+use qb64rust_syntax::{LoadError, Loader, ParsedProgram, include_name, parse_settled_on};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -122,7 +122,7 @@ pub fn analyze(
         path.as_deref(),
         main.encoding,
     );
-    let parsed = parse_settled(&mut map, id, &mut loader);
+    let parsed = parse_settled_on(qb64rust_base::Platform::host(), &mut map, id, &mut loader);
     loader.record_builtins(&map, map.files().count());
     Analysis {
         map,

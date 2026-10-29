@@ -1,13 +1,15 @@
 # qb64rust: the compiler on its own
 
 This download is the QB64Rust compiler without the VS Code extension. It compiles programs written for
-QB64 Phoenix Edition 4.7.0 into Windows executables from a command prompt, a build script or another editor.
-QB64pe does not need to be installed. If you use VS Code, the extension (`qb64rust-win32-x64-<version>.vsix` on
-the same release page) has this compiler inside it, so you don't need this download as well.
+QB64 Phoenix Edition 4.7.0 into executables from a command prompt, a build script or another editor:
+`qb64rust-win-x64-<version>.zip` for Windows, `qb64rust-linux-x64-<version>.tar.gz` for Linux (see "On Linux"
+below). QB64pe does not need to be installed. If you use VS Code, the extension (`qb64rust-win32-x64-<version>.vsix`
+or `qb64rust-linux-x64-<version>.vsix` on the same release page) has this compiler inside it, so you don't need this
+download as well.
 
 ## What you need
 
-- Windows 10 version 1803 or later, 64-bit (x64).
+- Windows 10 version 1803 or later, 64-bit (x64); or Linux x64 with glibc (see "On Linux").
 - About 500 MB of disk space: 460 MB for the C++ toolchain, the rest for the compiler, its copy of libqb and the
   objects it builds there.
 - A network connection once, to fetch the toolchain.
@@ -49,6 +51,39 @@ Errors and warnings are printed as `file:line:column: error: message`. The exit 
 | 0 | The program compiled (and the executable was built) |
 | 1 | The program has errors, or something the build needs is missing; no executable is left behind |
 | 3 | An internal error of the compiler; please report it (see the end of this page) |
+
+## On Linux
+
+The Linux download works the same way, with three differences. The C++ toolchain is your system's: `g++`, `make`
+and `objcopy` on `PATH`, and the development packages libqb is built with (OpenGL, GLU, X11, ALSA). Nothing is
+downloaded: `qb64rust toolchain install` checks that they are there and, when they are not, prints the command that
+installs them for your distribution. An executable has no extension, as with QB64pe on Linux. And the debugger needs
+`lldb-dap` 20 or later, from the package `lldb` (on Debian and Ubuntu a versioned one, `sudo apt-get install
+lldb-20`: Ubuntu 24.04's plain `lldb` is 18, which has no data breakpoints, and 19's `lldb-dap` cannot show
+values).
+
+Install the packages with the line for your distribution (Ubuntu is the one tested):
+
+```
+sudo apt-get install build-essential libglu1-mesa-dev libasound2-dev libpng-dev libcurl4-openssl-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev
+sudo dnf install gcc-c++ make mesa-libGLU-devel alsa-lib-devel libpng-devel libcurl-devel libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel
+sudo pacman -S gcc make zlib curl glu alsa-lib libx11 libxcursor libxrandr libxinerama libxi
+```
+
+The first is for Debian and Ubuntu (and Linux Mint), the second for Fedora, the third for Arch. Then unpack the
+download into your home folder and compile:
+
+```
+tar -xzf qb64rust-linux-x64-<version>.tar.gz
+cd qb64rust-<version>
+./qb64rust -x hello.bas
+./hello
+```
+
+`./qb64rust toolchain path` shows the folder of the `g++` a build would use and `system`. A toolchain folder of your
+own (one with `bin/g++` and `bin/make`) can be given with `--toolchain-root <dir>` or `QB64RUST_TOOLCHAIN_ROOT`, as
+on Windows. A program behaves as QB64pe's Linux build of it does: the console prints a comma's spacing as Linux's
+QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 
 ## Options
 

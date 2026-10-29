@@ -46,10 +46,15 @@ _SndStop k: Print "stop"; _SndPlaying(k); _SndPaused(k)
 
 _SndBal k, 1: _SndBal k, , 2: _SndBal k, 1, 2, 3, 1: _SndVol k, .5: _SndVol k, 0
 Print "balance and volume change nothing printed:"; _SndLen(k); _SndGetPos(k); _SndPlaying(k); _SndPaused(k)
+' A limit is a time on the sound engine's clock (miniaudio's stop time), not a position in the sound, and _SNDLIMIT
+' past the sound's length is ignored, so the limit of 1 stays set until _SNDSTOP, _SNDSETPOS or a _SNDPLAY of a playing
+' sound. Wait until the clock is past it, so that _SNDPLAY stops at once on every machine (else it plays only on one
+' that gets here in a second).
+_Delay 1.5
 _SndLimit k, 1
 Print "a limit changes neither length nor position:"; _SndLen(k); _SndGetPos(k); _SndPlaying(k); _SndPaused(k)
 _SndLimit k, 20
-_SndPlay k: Print "a limit past the end:"; _SndLen(k); _SndPlaying(k); _SndPaused(k)
+_SndPlay k: Print "a limit past the end is ignored, and the earlier one has passed:"; _SndLen(k); _SndPlaying(k); _SndPaused(k)
 _SndStop k
 
 _SndLimit k, 1

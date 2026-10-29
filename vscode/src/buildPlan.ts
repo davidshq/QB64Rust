@@ -7,6 +7,7 @@ import * as config from "./config";
 import { objectsLock, prepareLibqb } from "./compiler/libqbStore";
 import * as qb64pe from "./compiler/qb64pe";
 import * as qb64rust from "./compiler/qb64rust";
+import { toolchainRoot } from "./compiler/toolchain";
 import { debugBuildRefusal } from "./debugConfig";
 import { LanguageServer } from "./languageServer";
 import { includeRootFor } from "./server/protocol";
@@ -109,7 +110,7 @@ export async function planBuild(file: string, status: CompilerStatus, server: La
     const baseDir = folder?.scheme === "file" ? folder.fsPath : undefined;
     const qb64peFolder = current.found ? path.dirname(current.path) : undefined;
     const roots: qb64rust.Roots = {
-        toolchain: tools.folder,
+        toolchain: toolchainRoot(tools),
         qb64pe: qb64peFolder,
         libqb,
         include: includeRootFor(config.includeRoot(), baseDir, qb64peFolder, process.platform),

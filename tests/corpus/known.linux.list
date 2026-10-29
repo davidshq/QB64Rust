@@ -1,0 +1,29 @@
+# What cannot pass on Linux (OpenSpec change m7-linux, design D6): <group>/<name><TAB><reason>. A reason that starts
+# with "windows" skips the program there (it needs Windows); any other makes its failure known. Read by
+# tools/legacy_tests/run_legacy_tests.py --platform linux, and by the language server's slice tests.
+# Each line was measured with QB64pe's Linux build too (task 5.4), which fails or varies the same way.
+runtime_comparison/238_chain	windows: CHAINs through cmd and qb64pe.exe
+screen/d19_blink_display	varies: _DESKTOPREFRESHRATE is 0 under Xvfb (CI, a container) and 60 on WSLg, in QB64pe's build too
+screen/f02_loaded_fonts	windows: loads Windows' fonts (cour.ttf, arial.ttf)
+screen/g07_mountains	windows: opens its data file in another case than its name (MTN.VGA), which only Windows' file names ignore
+screen/g08_icon	windows: opens its data file in another case than its name (CWSICON.VGA), which only Windows' file names ignore
+screen/g09_faces_forts	windows: opens its data files in another case than their names, which only Windows' file names ignore
+screen/g12_game	windows: opens its data files in another case than their names, which only Windows' file names ignore
+screen/g12_game.commands	windows: as g12_game
+screen/g12_game.endings	windows: as g12_game
+screen/g12_game.files	windows: as g12_game
+screen/g12_game.navy	windows: as g12_game
+screen/g12_game.options	windows: as g12_game
+screen/g12_game.rebel	windows: as g12_game
+screen/g12_game.two_player	windows: as g12_game
+screen/g12_game.union_events	windows: as g12_game
+screen/g12_game.union_time	windows: as g12_game
+slice/s123_library_alias	windows: g++ on Linux finds a 0 passed to its header's overloaded function ambiguous, in QB64pe's build too (as verification/v37_x60)
+slice/s125_library_runtime_dll	windows: DECLARE DYNAMIC LIBRARY "kernel32"
+slice/s156_system_builtins	windows: SHELLs cmd
+slice/s23_preprocessor	windows: its $IF LINUX branch holds invalid BASIC on purpose, and QB64pe's Linux build rejects it too
+slice/s43_shell_environ	windows: SHELLs cmd
+slice/s129_sound_files_raw_midi	varies: crashes now and then with ALSA's null device, in QB64pe's build too (2 runs in 5)
+slice/s150_builtins_more	varies: _FILES$ lists a folder in the file system's order, which differs between Linux file systems
+slice/s74_sound_queue	varies: ALSA's null device plays nothing, so the queue's length is not a sound card's; QB64pe's build crashes (double free)
+slice/s75_sound_wait	varies: ALSA's null device plays nothing, so SOUND and PLAY do not hold the program; QB64pe's build crashes (invalid free)

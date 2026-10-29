@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import { buildArgs } from "../../src/compiler/qb64rust";
 import { adapterArgs } from "../../src/debugConfig";
+import { toolchainRoot } from "../../src/compiler/toolchain";
 
 // Design D4 of extension-vsix, design D6 of m6-toolchain: the command line of a build with qb64rust. Made-up paths
 // (tools\repo_check allows `does\not\exist`).
@@ -51,10 +52,18 @@ describe("qb64rust build arguments", () => {
         assert.ok(!plain.includes("--debug"));
         assert.deepStrictEqual(buildArgs(`${dir}\\w\\hello.bas`, roots, true), ["--debug", ...plain]);
     });
+
+    it("the system's toolchain on Linux: no --toolchain-root, the compiler finds it on PATH (m7-linux)", () => {
+        const root = toolchainRoot({ folder: "/usr/bin", source: "system" });
+        assert.strictEqual(root, undefined);
+        assert.ok(!buildArgs("/w/hello.bas", { toolchain: root, include: "" }).includes("--toolchain-root"));
+        assert.strictEqual(toolchainRoot({ folder: `${dir}\\t`, source: "installed" }), `${dir}\\t`);
+    });
 });
 
 describe("debug adapter arguments", () => {
     it("dap with the toolchain folder a build uses (spec editor/debug-launch, 'The adapter')", () => {
         assert.deepStrictEqual(adapterArgs(`${dir}\\t`), ["dap", "--toolchain-root", `${dir}\\t`]);
+        assert.deepStrictEqual(adapterArgs(undefined), ["dap"]);
     });
 });

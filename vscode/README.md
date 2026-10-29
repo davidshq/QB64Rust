@@ -186,13 +186,27 @@ SHA-256); **Not Now** builds nothing and asks again next time. **QB64: Install t
 any time, and `qb64rust toolchain install` from a terminal too. With QB64pe installed and found, its own toolchain
 is used and nothing is asked. To use a toolchain folder of your own, set `qb64rust.toolchainPath` to it.
 
-**Without VS Code:** the same release has the compiler on its own, `qb64rust-win-x64-<version>.zip`, for a
-command prompt, a build script or another editor. Its manual (`MANUAL.md`, inside the zip) covers setting it up.
-The extension already carries this compiler, so you don't need both.
+**On Linux:** install `qb64rust-linux-x64-<version>.vsix` the same way. Nothing is downloaded there: the C++
+toolchain is your system's `g++` with the development packages libqb is built with, and the debugger is `lldb-dap`,
+version 20 or later. When they are missing, the first build says so and offers a button that copies the install
+command for your distribution. On Ubuntu and Debian (whose plain `lldb` package can be older, 18 on Ubuntu 24.04):
+
+```
+sudo apt-get install build-essential libglu1-mesa-dev libasound2-dev libpng-dev libcurl4-openssl-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev
+sudo apt-get install lldb-20
+```
+
+The lines for Fedora and Arch are in the compiler's manual (`MANUAL.md`, "On Linux"). **QB64: Install the C++
+Toolchain** runs `qb64rust toolchain install`, which says whether they are all there.
+
+**Without VS Code:** the same release has the compiler on its own, `qb64rust-win-x64-<version>.zip` and
+`qb64rust-linux-x64-<version>.tar.gz`, for a command prompt, a build script or another editor. Its manual
+(`MANUAL.md`, inside the download) covers setting it up. The extension already carries this compiler, so you don't
+need both.
 
 ## Requirements
 
-Windows x64. [QB64 Phoenix Edition](https://github.com/QB64-Phoenix-Edition/QB64pe) is optional (tested with 4.7.0):
+Windows x64, or Linux x64 with glibc (Ubuntu 24.04 is the one tested). [QB64 Phoenix Edition](https://github.com/QB64-Phoenix-Edition/QB64pe) is optional (tested with 4.7.0):
 when it is found, `qb64rust` builds with its toolchain and looks for `DECLARE LIBRARY` files in its folder, and it
 is needed to build with QB64pe (`qb64rust.buildWith` set to `qb64pe`, or **Build with QB64pe**) and to format
 without `qb64rust`. Set `qb64rust.compilerPath` to `qb64pe.exe` (or to its folder), or put the QB64pe folder on

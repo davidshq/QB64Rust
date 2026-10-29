@@ -163,6 +163,63 @@ describe("toolchain offer", () => {
     });
 });
 
+describe("on Linux (m7-linux, design D8)", () => {
+    const APT = "sudo apt-get install build-essential libglu1-mesa-dev";
+    const MISSING: tc.ToolchainDiscovery = {
+        found: false,
+        reason: `no C++ toolchain found: g++ is not on PATH. Install the packages with \`${APT}\`. Or give a toolchain folder`,
+        installable: true,
+    };
+
+    it("the bundled binary's name per platform", () => {
+        assert.strictEqual(tc.binaryName("win32"), "qb64rust.exe");
+        assert.strictEqual(tc.binaryName("linux"), "qb64rust");
+    });
+
+    it("`toolchain path` reports the system toolchain", () => {
+        assert.deepStrictEqual(tc.parseToolchainPath({ exitCode: 0, output: "/usr/bin\nsystem: the system's g++, make and objcopy, found on PATH\n" }), {
+            found: true,
+            folder: "/usr/bin",
+            source: "system",
+        });
+    });
+
+    it("a setting that names no toolchain names Linux's programs", async () => {
+        const found = await tc.findToolchain({ setting: "/opt/mine", binary: "/x/qb64rust", run: pathRun(INSTALLED).run, isToolchain: () => false, platform: "linux" });
+        assert.match(found.found ? "" : found.reason, /bin.g\+\+ or bin.make\./);
+    });
+
+    it("Linux without g++: no download offered, the message names the apt-get line, a button copies it", async () => {
+        const { ui, seen } = stubUi(tc.DOWNLOAD, OK);
+        ui.platform = "linux";
+        const copied: string[] = [];
+        ui.copy = (text) => {
+            copied.push(text);
+            return Promise.resolve();
+        };
+        assert.strictEqual(await tc.offerToolchain(ui, MISSING), undefined);
+        await new Promise((r) => setImmediate(r));
+        assert.deepStrictEqual(seen, [`error: QB64: ${MISSING.found ? "" : MISSING.reason} [Copy Install Command, Show Output]`]);
+        assert.deepStrictEqual(copied, [APT]);
+        assert.strictEqual(tc.installLine("no line here"), undefined);
+    });
+
+    it("the command on Linux: what `qb64rust toolchain install` says, nothing downloaded", async () => {
+        const present: tc.InstallRun = { exitCode: 0, output: "the system toolchain is used, nothing to install: /usr/bin\n", cancelled: false };
+        const { ui, seen } = stubUi(tc.DOWNLOAD, present, { found: true, folder: "/usr/bin", source: "system" });
+        ui.platform = "linux";
+        const found = await tc.installCommand(true, () => Promise.resolve(MISSING), ui);
+        assert.deepStrictEqual(found, { found: true, folder: "/usr/bin", source: "system" });
+        assert.deepStrictEqual(seen, ["install", "info: QB64: the system toolchain is used, nothing to install: /usr/bin", "find"]);
+        const absent: tc.InstallRun = { exitCode: 1, output: `qb64rust: ${MISSING.found ? "" : MISSING.reason}\n`, cancelled: false };
+        const other = stubUi(tc.DOWNLOAD, absent);
+        other.ui.platform = "linux";
+        assert.strictEqual(await tc.installCommand(true, () => Promise.resolve(MISSING), other.ui), undefined);
+        assert.match(other.seen[1], /^error: QB64: no C\+\+ toolchain found: .*\[Copy Install Command, Show Output\]$/);
+        assert.ok(!other.seen.some((s) => s.startsWith("ask:")));
+    });
+});
+
 describe("install command", () => {
     const installed = (d: tc.ToolchainDiscovery) => () => Promise.resolve(d);
 

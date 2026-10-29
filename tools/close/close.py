@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""The closing runs of a change (CLAUDE.md working rule 9), as a plan and a check.
+"""The closing runs of a change (CLAUDE.md working rule 6), as a plan and a check.
 
     python tools/close/close.py --plan     # the commands, in order, each to be started by its own command
     python tools/close/close.py --check    # did each run, on the current build, and pass?
 
-The tool runs nothing: each test run is started by its own command, so that tools/testtime sees it (rule 9). It
+The tool runs nothing: each test run is started by its own command, so that tools/testtime sees it (rule 6). It
 prints the commands with the log each one writes under target/close/, and then reads those logs. A step whose log
 is missing, older than the build or than a changed source, or does not show a pass is named, and the exit code is
 1. A failure that is known and not the change's is accepted with --known <test name>, and shown as such. A passing
 step older than a later edit that cannot affect it is accepted with --not-repeated STEP[,STEP...]=REASON, shown
-(rule 9: "say which runs were not repeated and why"); a failing one never is.
+(rule 6: "say which runs were not repeated and why"); a failing one never is.
 
 Whether the run without folding is needed follows from the files changed against HEAD (sema's constant evaluation
-or a numeric conversion, rule 9); --nofold asks for it anyway. So does the coverage check of Civil War Strategy's
+or a numeric conversion, rule 6); --nofold asks for it anyway. So does the coverage check of Civil War Strategy's
 scripts (tools/coverage): only when the game's copy or its scripts, the screen-state file, cut_game.py, the coverage
 tool, codegen-cpp, ir or driver changed; --coverage asks for it anyway. And the format runs (QB64pe's format tests
 and the format oracle, tests/format): only when the formatter, its recordings, tool or settings, the parser, the
@@ -40,10 +40,10 @@ RUNNER = "python tools/legacy_tests/run_legacy_tests.py"
 NEW = f"--qb64 {EXE} --jobs 8 --build-cache target/build-cache"
 CACHE = "--pass-cache target/pass-cache"
 
-# Files whose change asks for the run without folding (rule 9: sema's constant evaluation, a numeric conversion).
+# Files whose change asks for the run without folding (rule 6: sema's constant evaluation, a numeric conversion).
 NOFOLD_FILES = re.compile(r"^crates/sema/src/(consteval\.rs|literal\.rs|check/constants\.rs|check/auto\.rs|check/ops\.rs)$")
 # Changed files that make a run stale: what the compiler and the tests are built from. Documents and the
-# test-time record are written during the close and do not.
+# test-time record do not.
 INPUTS = re.compile(r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins|screen|coverage|format)/|Cargo\.(toml|lock)$)")
 # insta's pending snapshots (`.pending-snap`, `.snap.new`) are written by the test runs themselves.
 NOT_INPUTS = re.compile(r"(\.md$|^tools/testtime/|\.pending-snap$|\.snap\.new$)")
@@ -61,6 +61,16 @@ FORMAT_FILES = re.compile(
 )
 # Changed inputs that reach a run only through the release build: a run of a copy is judged by the build's hash.
 BUILT_FROM = r"^(crates/|Cargo\.(toml|lock)$)"
+# Files whose change asks for the Linux runs, in WSL after tools/linux/sync.sh (design D11 of m7-linux): whatever the
+# release build is made from (BUILT_FROM: any crate can emit C++ that g++ takes otherwise, as SWAP's order and the end
+# of a procedure in a debug build did; a list of the platform's files fell behind within one change), the runner, the
+# copy of libqb, the Linux tools, and the Linux recordings and lists.
+LINUX_FILES = re.compile(
+    BUILT_FROM + r"|^(tools/legacy_tests/run_legacy_tests\.py$|libqb/|tools/libqb/edits/|tools/linux/|"
+    r".*\.linux\.(output|err|out\.txt)$|.*known\.linux\.list$)"
+)
+# A command run in WSL's copy of the tree (tools/linux/sync.sh; crates/README.md, "Building on Linux").
+WSL = "wsl -e bash -lc"
 
 
 @dataclass
@@ -69,7 +79,7 @@ class Step:
     command: str
     # How the log shows a pass; None: only that it ran (a report, a regeneration).
     judge: str | None
-    # Before the build: a step that writes inputs of the build or of the runs after it (rule 9, "Order").
+    # Before the build: a step that writes inputs of the build or of the runs after it (README, "The test cadence", "Order").
     before_build: bool = False
     # Run alone, not beside other runs of the new compiler.
     alone: bool = False
@@ -84,17 +94,30 @@ def log(name: str) -> str:
     return f"{LOGS}/{name}.log"
 
 
-def steps(nofold: bool, coverage: bool = False, layout: bool = False) -> list[Step]:
-    out = [
-        # The table of the old wording (from the messages of the release build there is) and the shrink-only lists
-        # are written before the build: the build and tier 1 read them.
+def linux_steps() -> list[Step]:
+    """The Linux family (design D11 of m7-linux): the tree copied into WSL, then tier 1 and the slice list there."""
+    return [
+        Step("linux-sync", f"wsl --cd . -e bash tools/linux/sync.sh > {log('linux-sync')} 2>&1", None),
         Step(
-            "wording",
-            f"python tools/diagnostics/old_wording.py > {log('wording')} 2>&1",
-            None,
-            before_build=True,
-            writes=r"^crates/base/src/old_wording\.tsv$",
+            "linux-tier1",
+            f"{WSL} 'cd ~/qb64rust && cargo test --workspace --locked --no-fail-fast' > {log('linux-tier1')} 2>&1",
+            "cargo",
         ),
+        Step(
+            "linux-slice",
+            f"{WSL} 'cd ~/qb64rust && cargo build --release --locked && python3 tools/legacy_tests/run_legacy_tests.py "
+            "--suite corpus --qb64 target/release/qb64rust --jobs 8 --build-cache target/build-cache "
+            f"--pass-cache target/pass-cache --list tests/corpus/slice.list' > {log('linux-slice')} 2>&1",
+            "runner",
+        ),
+    ]
+
+
+def steps(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool = False) -> list[Step]:
+    # A thin close (DECISIONS.md 2026-10-28): what can show the change's fault. The wording table and its check, the
+    # demand reports and the counts are regenerated at a merge into main, not here (README, "The test cadence").
+    out = [
+        # The shrink-only lists are written before the build: tier 1 reads them.
         Step(
             "lists",
             f"QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs > {log('lists')} 2>&1",
@@ -107,7 +130,6 @@ def steps(nofold: bool, coverage: bool = False, layout: bool = False) -> list[St
         Step("tier1", f"cargo test --workspace --locked --no-fail-fast > {log('tier1')} 2>&1", "cargo"),
         Step("fmt", f"cargo fmt --all --check > {log('fmt')} 2>&1", "empty"),
         Step("clippy", f"cargo clippy --all-targets > {log('clippy')} 2>&1", "clippy"),
-        Step("wording-check", f"python tools/diagnostics/old_wording.py --check > {log('wording-check')} 2>&1", "wording"),
         Step(
             "slice",
             f"{RUNNER} --suite corpus {NEW} {CACHE} --list tests/corpus/slice.list > {log('slice')} 2>&1",
@@ -173,14 +195,9 @@ def steps(nofold: bool, coverage: bool = False, layout: bool = False) -> list[St
     out += [
         Step("callsite", f"python tools/callsite/callsite.py --wait > {log('callsite')} 2>&1", "callsite", copy=True),
         Step("cli", f"cargo test -p qb64rust-driver --test cli -- --ignored > {log('cli')} 2>&1", "cargo", alone=True),
-        Step("demand-corpus", f"{EXE} --report unsupported tests/corpus tests/programs > {log('demand-corpus')} 2>&1", None),
-        Step(
-            "demand-upstream",
-            f"{EXE} --report unsupported --include-root tests/upstream/root tests/upstream/compile_tests > {log('demand-upstream')} 2>&1",
-            None,
-        ),
-        Step("counts", f"python tools/legacy_tests/counts.py > {log('counts')} 2>&1", None),
     ]
+    if linux:
+        out += linux_steps()
     return out
 
 
@@ -208,6 +225,10 @@ def needs_coverage(files: list[str]) -> bool:
 
 def needs_format(files: list[str]) -> bool:
     return any(FORMAT_FILES.match(f) for f in files)
+
+
+def needs_linux(files: list[str]) -> bool:
+    return any(LINUX_FILES.match(f) for f in files)
 
 
 def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
@@ -261,11 +282,6 @@ def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
         if not m:
             return False, "no check line"
         return (m.group(1) == "PASS", f"check {m.group(1)}, {m.group(2)} problems")
-    if kind == "wording":
-        m = re.search(r"(\d+) notes on recorded rejections, (\d+) not the recorded message", text)
-        if not m:
-            return False, "no summary"
-        return (m.group(2) == "0", m.group(0))
     raise ValueError(kind)
 
 
@@ -316,20 +332,22 @@ def check(
     not_repeated: dict[str, str] | None = None,
     coverage: bool = False,
     layout: bool = False,
+    linux: bool = False,
 ) -> int:
     not_repeated = not_repeated or {}
     files = changed_files()
     need = nofold or needs_nofold(files)
     cov = coverage or needs_coverage(files)
     lay = layout or needs_format(files)
+    lin = linux or needs_linux(files)
     after, why = stamp(files)
     exe = REPO / EXE
     problems = 0
     # Each reason given with --not-repeated, numbered, and the steps it was used for.
     reasons: dict[str, tuple[int, list[str]]] = {}
-    # What the steps before the build write (`lists` writes after `wording` has run).
-    written = "|".join(f"(?:{s.writes})" for s in steps(need, cov, lay) if s.writes)
-    for s in steps(need, cov, lay):
+    # What the steps before the build write (`lists`: the shrink-only lists).
+    written = "|".join(f"(?:{s.writes})" for s in steps(need, cov, lay, lin) if s.writes)
+    for s in steps(need, cov, lay, lin):
         path = REPO / log(s.name)
         if not path.is_file():
             print(f"MISSING  {s.name}: {log(s.name)} not written")
@@ -385,18 +403,18 @@ def check(
     for f in unlisted(files):
         print(f"UNLISTED {f}: on no list and without .err or .norun, so no closing run reaches it")
         problems += 1
-    print("Then: python tools/testtime/test_time.py, and name its five files among those to stage.")
     return 1 if problems else 0
 
 
-def plan(nofold: bool, coverage: bool = False, layout: bool = False) -> int:
+def plan(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool = False) -> int:
     files = changed_files()
     need = nofold or needs_nofold(files)
     cov = coverage or needs_coverage(files)
     lay = layout or needs_format(files)
+    lin = linux or needs_linux(files)
     print("# Bash (Git Bash, the Bash tool), not PowerShell: `VAR=1 command` and `mkdir -p` are Bash. One command each.")
     print(f"mkdir -p {LOGS}")
-    for s in steps(need, cov, lay):
+    for s in steps(need, cov, lay, lin):
         note = []
         if s.before_build:
             note.append("before the build")
@@ -404,6 +422,8 @@ def plan(nofold: bool, coverage: bool = False, layout: bool = False) -> int:
             note.append("alone")
         if s.name == "slice":
             note.append("beside upstream and verification")
+        if s.name == "linux-sync":
+            note.append("the Linux family, in WSL, after the Windows runs")
         print(f"{s.command}" + (f"    # {', '.join(note)}" if note else ""))
     if not need:
         print(
@@ -414,8 +434,12 @@ def plan(nofold: bool, coverage: bool = False, layout: bool = False) -> int:
         print("# no coverage check: no file of Civil War Strategy's copy, its scripts or the tools they need changed")
     if not lay:
         print("# no format runs: no file of the formatter, its recordings, the symbols or -y changed")
+    if not lin:
+        print(
+            "# no Linux runs: nothing the release build is made from (crates/, Cargo.toml, Cargo.lock), the runner,"
+            " libqb, tools/linux or a Linux recording or list changed; pass --linux to ask for them"
+        )
     print("python tools/close/close.py --check")
-    print("python tools/testtime/test_time.py")
     return 0
 
 
@@ -427,28 +451,29 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--nofold", action="store_true", help="ask for the run without folding whatever changed")
     ap.add_argument("--coverage", action="store_true", help="ask for the coverage check whatever changed")
     ap.add_argument("--format", action="store_true", help="ask for the format runs whatever changed")
+    ap.add_argument("--linux", action="store_true", help="ask for the Linux runs (in WSL) whatever changed")
     ap.add_argument("--known", action="append", default=[], help="a failing test that is known and not the change's")
     ap.add_argument(
         "--not-repeated",
         action="append",
         default=[],
         metavar="STEP[,STEP...]=REASON",
-        help="passing steps older than a later edit that cannot affect them, and why (rule 9)",
+        help="passing steps older than a later edit that cannot affect them, and why (rule 6)",
     )
     a = ap.parse_args(argv)
     if a.plan:
-        return plan(a.nofold, a.coverage, a.format)
+        return plan(a.nofold, a.coverage, a.format, a.linux)
     not_repeated = {}
     for item in a.not_repeated:
         names, sep, reason = item.partition("=")
         if not sep or not reason.strip():
             ap.error(f"--not-repeated {item!r}: give STEP[,STEP...]=REASON")
-        known_steps = {s.name for s in steps(True, True, True)}
+        known_steps = {s.name for s in steps(True, True, True, True)}
         for step in names.split(","):
             if step not in known_steps:
                 ap.error(f"--not-repeated: no step {step!r} (the steps: {', '.join(sorted(known_steps))})")
             not_repeated[step] = reason.strip()
-    return check(a.nofold, set(a.known), not_repeated, a.coverage, a.format)
+    return check(a.nofold, set(a.known), not_repeated, a.coverage, a.format, a.linux)
 
 
 if __name__ == "__main__":

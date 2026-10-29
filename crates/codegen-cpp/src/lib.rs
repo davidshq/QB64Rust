@@ -48,7 +48,7 @@ mod value;
 
 pub use coverage::Coverage;
 pub use debug::{DebugFile, DebugInfo, Reach, reach};
-pub use library::{Linkage, Resolved, ResolvedLibrary, dll_handle, strip_version};
+pub use library::{Linkage, Resolved, ResolvedLibrary, dll_handle, split_version, strip_version};
 pub use names::{c_type, proc_name, var_name};
 
 use decl::is_qbs;
@@ -164,6 +164,7 @@ fn emit_all(
         .collect();
     let mut e = Emitter {
         p,
+        debug: debug_files.is_some(),
         resolved,
         line_file: line_name(source_name),
         included,
@@ -371,6 +372,9 @@ pub fn dump(f: &Fragments) -> String {
 
 struct Emitter<'a> {
     p: &'a Program,
+    /// A debug build (`emit_debug`): the C++ is laid out for a debugger where that differs (`procs.rs`, the label of
+    /// a procedure's end on Linux).
+    debug: bool,
     /// The files of the program's libraries (`library.rs`).
     resolved: &'a Resolved,
     line_file: String,

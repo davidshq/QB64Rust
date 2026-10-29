@@ -34,7 +34,24 @@ class CheckVsix(unittest.TestCase):
     def test_universal_package(self):
         self.assertEqual(
             cv.check_vsix(set(cv.REQUIRED), "<PackageManifest />"),
-            ["the manifest does not target win32-x64"],
+            ["the manifest does not target win32-x64 or linux-x64"],
+        )
+
+    def test_linux_package(self):
+        # Spec editor/packaging, "The Linux package": bin/qb64rust, and no .exe.
+        linux = MANIFEST.replace("win32-x64", "linux-x64")
+        names = set(cv.REQUIRED) - {cv.BINARIES["win32-x64"]} | {cv.BINARIES["linux-x64"]}
+        self.assertEqual(cv.check_vsix(names, linux), [])
+        self.assertEqual(
+            cv.check_vsix(names | {"extension/bundle/bin/qb64rust.exe"}, linux),
+            ["a Linux package must hold no .exe: extension/bundle/bin/qb64rust.exe"],
+        )
+        self.assertEqual(
+            cv.check_vsix(set(cv.REQUIRED), linux),
+            [
+                "missing: extension/bundle/bin/qb64rust",
+                "a Linux package must hold no .exe: extension/bundle/bin/qb64rust.exe",
+            ],
         )
 
     def test_main_reads_a_zip(self):

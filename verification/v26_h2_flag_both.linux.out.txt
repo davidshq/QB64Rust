@@ -1,0 +1,2 @@
+after _DEST _CONSOLE
+exit=0

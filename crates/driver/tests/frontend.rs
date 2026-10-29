@@ -5,6 +5,7 @@
 //! - `check-ok`: no errors after `sema`;
 //! - `check-fail`: at least one error; the diagnostics are a snapshot;
 //! - `typed`, `ir`, `cpp`: no errors; the typed tree, the IR or the emitted fragments are a snapshot;
+//! - `cpp-linux`: as `cpp`, for a build on Linux (design D3 of `m7-linux`);
 //! - `coverage`: no errors; the fragments of a `--coverage` build are a snapshot (design D1 of `cws-whole-game`);
 //! - `debug-info`: no errors; the debug symbol file of a debug build is a snapshot (design D3 of
 //!   `m5-debug-build-symbols`), the files' paths relative to the test folder.
@@ -26,6 +27,7 @@ const MODES: &[&str] = &[
     "typed",
     "ir",
     "cpp",
+    "cpp-linux",
     "coverage",
     "debug-info",
 ];
@@ -51,7 +53,9 @@ fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<Str
     // relative to the test file.
     let root = frontend_dir().join("inc/root");
     let mut fe = frontend_with(name, bytes.clone(), |file| Box::new(FileLoader::new(&root, file, path)));
-    qb64rust_driver::check_exe_icon(&fe.program, &mut fe.diagnostics, path, &root);
+    // The icon checked as for a Windows build, whatever the host, so that a snapshot holds on both (`m7-linux`).
+    let windows = qb64rust_base::Platform::Windows;
+    qb64rust_driver::check_exe_icon_on(windows, &fe.program, &mut fe.diagnostics, path, &root);
     let syntax_errors = fe.parsed.diagnostics().has_errors();
     match mode {
         "parse-ok" => {
@@ -78,12 +82,29 @@ fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<Str
                 "typed" => Some(qb64rust_sema::dump_typed(&fe.program)),
                 "ir" => Some(dump_ir(&fe)),
                 "cpp" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), false)),
+                "cpp-linux" => Some(dump_cpp(&fe, &fixed_linux_libraries(&fe.program), false)),
                 "coverage" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), true)),
                 "debug-info" => Some(dump_debug_info(&fe, &fixed_libraries(&fe.program))),
                 _ => unreachable!(),
-            })
+            }
+            .map(|text| host_neutral(&text)))
         }
     }
+}
+
+/// A snapshot's text with the file names of its `#line` directives written with `/`: an included file is named by
+/// its folder joined with the host's separator, an escaped `\` on Windows, so that one snapshot holds on both hosts
+/// (design D5 of `m7-linux`).
+fn host_neutral(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for line in text.split_inclusive('\n') {
+        if line.starts_with("#line ") {
+            out.push_str(&line.replace("\\\\", "/"));
+        } else {
+            out.push_str(line);
+        }
+    }
+    out
 }
 
 /// What the `cpp` tests take the files of a `DECLARE LIBRARY` block to be, so that they need none (design D5 of
@@ -122,6 +143,23 @@ fn fixed_libraries(p: &qb64rust_sema::Program) -> Resolved {
             resolved
                 .linkage
                 .insert(qb64rust_sema::ProcId(qb64rust_base::to_u32(i)), linkage);
+        }
+    }
+    resolved
+}
+
+/// [`fixed_libraries`] for a build on Linux: a `DYNAMIC` library is the shared object `./lib<name>.so`, as the old
+/// compiler names one found by its bare name.
+fn fixed_linux_libraries(p: &qb64rust_sema::Program) -> Resolved {
+    let mut resolved = fixed_libraries(p);
+    resolved.platform = qb64rust_base::Platform::Linux;
+    for (lib, found) in p.libraries.iter().zip(&mut resolved.libraries) {
+        if lib.kind == qb64rust_sema::LibraryKind::Dynamic
+            && let Some(name) = lib.names.first()
+        {
+            let bare = name.text.rsplit('/').next().unwrap_or(&name.text);
+            let bare = bare.split(':').next().unwrap_or(bare);
+            found.dll = Some(format!("./lib{bare}.so"));
         }
     }
     resolved

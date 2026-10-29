@@ -20,6 +20,8 @@ export class Builder implements vscode.Disposable {
     private terminal: vscode.Terminal | undefined;
     /** The last build's command line as shown in the output channel; for tests. */
     lastCommand: string | undefined;
+    /** The last build's output channel text and its failure message; for tests, to say why a build failed. */
+    lastOutput = "";
     /** Shows a failed build's message with its buttons; tests replace it to choose a button. */
     showError: (message: string, ...items: string[]) => Thenable<string | undefined> = (message, ...items) => vscode.window.showErrorMessage(message, ...items);
 
@@ -83,15 +85,12 @@ export class Builder implements vscode.Disposable {
      */
     private async buildWithQb64rust(doc: vscode.TextDocument, plan: Extract<BuildPlan, { compiler: "qb64rust" }>, notify: boolean): Promise<string | undefined> {
         const file = doc.uri.fsPath;
-        this.output.clear();
-        this.output.show(true);
-        this.lastCommand = `${plan.command} ${plan.args.join(" ")}`;
-        this.output.appendLine(`> ${this.lastCommand}`);
+        this.startOutput(`${plan.command} ${plan.args.join(" ")}`);
         if (plan.firstLibqbBuild) {
-            this.output.appendLine("This first build after installing or updating the extension also builds QB64pe's runtime library (libqb) once.");
+            this.appendLine("This first build after installing or updating the extension also builds QB64pe's runtime library (libqb) once.");
         }
         const result = await qb64rust.build(this.queue, plan.command, file, plan.roots, plan.env, plan.debug, (text) => {
-            this.output.append(text);
+            this.append(text);
             if (plan.firstLibqbBuild && /^building /m.test(text)) {
                 this.status.setBusy("building libqb (first build)…");
             }
@@ -102,7 +101,7 @@ export class Builder implements vscode.Disposable {
         this.diagnostics.publish(doc.uri, result.messages, "qb64rust");
         const ok = result.exitCode === 0 && fs.existsSync(result.executable) && !result.messages.some((m) => m.severity === "error");
         if (ok) {
-            this.output.appendLine(`Built ${result.executable}`);
+            this.appendLine(`Built ${result.executable}`);
             if (notify) {
                 void vscode.window.showInformationMessage(`QB64: built ${path.basename(result.executable)}`);
             }
@@ -110,6 +109,7 @@ export class Builder implements vscode.Disposable {
         }
         const first = result.messages.find((m) => m.severity === "error");
         const text = `QB64: build failed${first ? `: ${first.message.split("\n")[0]} (line ${first.line})` : ""}`;
+        this.lastOutput += `${text}\n`;
         if (result.allMarked && config.buildWith(doc.uri) === "auto" && !plan.debug && plan.qb64pe) {
             const fallback = "Build with QB64pe";
             const qb64peCompiler = plan.qb64pe;
@@ -126,13 +126,10 @@ export class Builder implements vscode.Disposable {
 
     private async buildWithQb64pe(doc: vscode.TextDocument, compiler: string, notify: boolean): Promise<string | undefined> {
         const file = doc.uri.fsPath;
-        this.output.clear();
-        this.output.show(true);
-        this.lastCommand = `${compiler} ${qb64pe.buildArgs(file).join(" ")}`;
-        this.output.appendLine(`> ${this.lastCommand}`);
+        this.startOutput(`${compiler} ${qb64pe.buildArgs(file).join(" ")}`);
         // Progress goes to the status item, not the output channel, which cannot redraw a line.
         const lines = new BuildOutputLines((p) => this.status.setBusy(progressText(p)));
-        const show = (completed: string[]) => completed.forEach((l) => this.output.appendLine(l));
+        const show = (completed: string[]) => completed.forEach((l) => this.appendLine(l));
         const result = await qb64pe.build(this.queue, compiler, file, (text) => show(lines.push(text)));
         show(lines.flush());
         if (result.cancelled) {
@@ -141,15 +138,35 @@ export class Builder implements vscode.Disposable {
         this.diagnostics.publish(doc.uri, result.messages);
         const ok = result.exitCode === 0 && fs.existsSync(result.executable) && !result.messages.some((m) => m.severity === "error");
         if (ok) {
-            this.output.appendLine(`Built ${result.executable}`);
+            this.appendLine(`Built ${result.executable}`);
             if (notify) {
                 void vscode.window.showInformationMessage(`QB64: built ${path.basename(result.executable)}`);
             }
             return result.executable;
         }
         const first = result.messages.find((m) => m.severity === "error");
-        void vscode.window.showErrorMessage(`QB64: build failed${first ? `: ${first.message} (line ${first.line})` : ""}`);
+        const text = `QB64: build failed${first ? `: ${first.message} (line ${first.line})` : ""}`;
+        this.lastOutput += `${text}\n`;
+        void vscode.window.showErrorMessage(text);
         return undefined;
+    }
+
+    /** Clears and shows the output channel, and writes the build's command line to it. */
+    private startOutput(command: string): void {
+        this.output.clear();
+        this.output.show(true);
+        this.lastCommand = command;
+        this.lastOutput = "";
+        this.appendLine(`> ${command}`);
+    }
+
+    private append(text: string): void {
+        this.output.append(text);
+        this.lastOutput += text;
+    }
+
+    private appendLine(line: string): void {
+        this.append(`${line}\n`);
     }
 
     async runCommand(uri?: vscode.Uri): Promise<boolean> {

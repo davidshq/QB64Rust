@@ -1,0 +1,3 @@
+before
+sh: 1: powershell: not found
+after

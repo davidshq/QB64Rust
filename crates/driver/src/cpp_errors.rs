@@ -8,6 +8,39 @@ use crate::Frontend;
 use qb64rust_base::{Diagnostic, Span};
 use qb64rust_sema::{LibraryKind, ProcId, SymbolKind};
 
+/// The headers of the system packages a Linux build includes (spec `compiler/toolchain`, "The system packages").
+/// `toolchain install` looks for them too (`toolchain::check_system`).
+pub const SYSTEM_HEADERS: [&str; 5] = [
+    "GL/gl.h",
+    "GL/glu.h",
+    "X11/Xlib.h",
+    "X11/extensions/Xrandr.h",
+    "alsa/asoundlib.h",
+];
+
+/// The libraries of the system packages a Linux build links (the `Makefile`'s `OS=lnx` lines).
+const SYSTEM_LIBRARIES: [&str; 7] = ["GL", "GLU", "X11", "Xrandr", "xcb", "asound", "png"];
+
+/// The header or library of the system packages that the output of a failed Linux build says is missing:
+/// `fatal error: GL/glu.h: No such file or directory`, or the linker's `cannot find -lGLU`.
+pub fn missing_system_file(output: &str) -> Option<String> {
+    for line in output.lines() {
+        if let Some((_, rest)) = line.split_once("fatal error: ")
+            && let Some((file, _)) = rest.split_once(": No such file or directory")
+            && SYSTEM_HEADERS.contains(&file)
+        {
+            return Some(file.to_string());
+        }
+        if let Some((_, rest)) = line.split_once("cannot find -l") {
+            let lib = rest.split([':', ' ']).next().unwrap_or("");
+            if SYSTEM_LIBRARIES.contains(&lib) {
+                return Some(format!("-l{lib}"));
+            }
+        }
+    }
+    None
+}
+
 /// One error of the toolchain, as read.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Failure {
@@ -35,16 +68,20 @@ pub fn read(output: &str, files: &[&str]) -> Option<Vec<Failure>> {
     for line in output.lines() {
         let line = line.trim_end();
         // Code and caret lines, the linker's `>>> referenced by`, the includes that led to an error, `make`'s lines,
-        // and the commands `make` echoes, which start with the tool (`…\bin\c++.exe`; a link command names
-        // `error_handle.o`).
+        // and the commands `make` echoes, which start with the tool (`…\bin\c++.exe`, on Linux `/usr/bin/g++`; a link
+        // command names `error_handle.o`).
         let first = line.split_whitespace().next().unwrap_or("");
+        let tool = first.rsplit(['/', '\\']).next().unwrap_or(first).to_ascii_lowercase();
         if line.is_empty()
-            || first.to_ascii_lowercase().ends_with(".exe")
+            || tool.ends_with(".exe")
+            || matches!(tool.as_str(), "g++" | "c++" | "gcc" | "cc" | "ar" | "objcopy")
             || line.starts_with(char::is_whitespace)
             || line.starts_with(">>>")
             || line.starts_with("In file included from ")
             || line.contains("-make: ")
             || line.contains("-make[")
+            || line.starts_with("make: ")
+            || line.starts_with("make[")
             || line.ends_with(" generated.")
         {
             continue;
@@ -73,8 +110,19 @@ pub fn read(output: &str, files: &[&str]) -> Option<Vec<Failure>> {
             continue;
         }
         if let Some((_, note)) = line.split_once(": note: ") {
-            // clang's reason an overload was not taken; other notes (where a guessed name is declared) are left.
-            if let (Some(i), true) = (open, note.starts_with("candidate "))
+            // gcc names the function of a wrong argument only here (`initializing argument 1 of ‘int32_t
+            // h_isnull(const void*)’`; `verification\v37_x17` on Linux), its error the types.
+            if let (Some(i), Some(of)) = (open, note.trim_start().strip_prefix("initializing argument "))
+                && let Some(signature) = of.split(['\'', '‘', '’']).nth(1)
+                && let Some(function) = signature.split('(').next().and_then(|s| s.split_whitespace().last())
+                && let Failure::Compile { name, .. } = &mut failures[i]
+            {
+                *name = function.trim_start_matches(['*', '&']).to_string();
+                continue;
+            }
+            // clang's reason an overload was not taken (gcc's `candidate: `); other notes (where a guessed name is
+            // declared) are left.
+            if let (Some(i), true) = (open, note.starts_with("candidate"))
                 && let Failure::Compile { message, .. } = &mut failures[i]
             {
                 message.push_str("; ");
@@ -94,11 +142,12 @@ pub fn read(output: &str, files: &[&str]) -> Option<Vec<Failure>> {
         let (_col, rest) = rest.split_once(':')?;
         let message = rest.strip_prefix(" error: ")?;
         let message = message.split_once("; did you mean").map_or(message, |(m, _)| m);
-        let name = message.split('\'').nth(1)?;
+        // clang's `'h_over'`; gcc's, in a UTF-8 locale, `‘h_over(NULL)’`, with the arguments.
+        let name = message.split(['\'', '‘', '’']).nth(1)?;
         failures.push(Failure::Compile {
             file: file.to_string(),
             line: line_no.parse().ok()?,
-            name: name.to_string(),
+            name: symbol_name(name)?,
             message: message.to_string(),
         });
         open = Some(failures.len() - 1);
@@ -185,6 +234,24 @@ pub fn diagnostics(fe: &Frontend, output: &str) -> Option<Vec<Diagnostic>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A missing header or library of the system packages, as `g++` and GNU ld word it (spec `compiler/toolchain`,
+    /// "A missing header"); a missing file of the program's own is none of them.
+    #[test]
+    fn missing_system_files() {
+        let header = "In file included from internal/c/libqb.cpp:12:\n\
+                      internal/c/libqb/include/gl.h:3:10: fatal error: GL/glu.h: No such file or directory\n\
+                      compilation terminated.\n";
+        assert_eq!(missing_system_file(header).as_deref(), Some("GL/glu.h"));
+        let library = "/usr/bin/ld: cannot find -lasound: No such file or directory\n\
+                       collect2: error: ld returned 1 exit status\n";
+        assert_eq!(missing_system_file(library).as_deref(), Some("-lasound"));
+        assert_eq!(
+            missing_system_file("x.h:1:10: fatal error: mine.h: No such file or directory\n"),
+            None
+        );
+        assert_eq!(missing_system_file("/usr/bin/ld: cannot find -lmine\n"), None);
+    }
 
     /// `verification\v37_x30` as the clone's clang printed it (2026-10-20), the build folder's path made relative.
     const X30: &str = "\
@@ -284,6 +351,46 @@ mingw32-make: *** [Makefile:510: out/v37_x04.exe.qb64rust/program.exe] Error 1
         assert_eq!(
             read(ld, &["p.bas"]),
             Some(vec![Failure::Link { name: "c_none".into() }])
+        );
+    }
+
+    /// The system toolchain's output on Linux (task 3.5 of `m7-linux`, `verification/v37_x04`): `make`'s own lines
+    /// and the commands it echoes, which start with `/usr/bin/g++` and name `error_handle.o`, are left.
+    #[test]
+    fn reads_the_linux_toolchain() {
+        let out = "make: Entering directory 'libqb'\nOS: lnx\n\
+                   /usr/bin/g++  -no-pie -m64 out/c/qbx.cpp -c -o out/c/qbx.o\n\
+                   /usr/bin/g++  -no-pie ./internal/c/libqb/src/error_handle.o out/c/qbx.o -o 'out/program'\n\
+                   make: Leaving directory 'libqb'\n\
+                   /usr/bin/ld: out/c/qbx.o: in function `QBMAIN(void*)':\n\
+                   qbx.cpp:(.text+0x293f): undefined reference to `f'\n\
+                   collect2: error: ld returned 1 exit status\n\
+                   make: *** [Makefile:517: exe] Error 1\n";
+        assert_eq!(read(out, &["p.bas"]), Some(vec![Failure::Link { name: "f".into() }]));
+        // gcc's quotes in a UTF-8 locale, and the arguments it writes after the name (`v37_x60`).
+        let out = "p.bas: In function ‘void QBMAIN(void*)’:\n\
+                   p.bas:6:55: error: call of overloaded ‘h_over(NULL)’ is ambiguous\n\
+                   v37h.h:66:9: note: candidate: ‘int32_t h_over(int32_t)’\n";
+        assert_eq!(
+            read(out, &["p.bas"]),
+            Some(vec![compile(
+                "p.bas",
+                6,
+                "h_over",
+                "call of overloaded ‘h_over(NULL)’ is ambiguous; candidate: ‘int32_t h_over(int32_t)’"
+            )])
+        );
+        // A wrong argument: the function is named by the note that follows (`v37_x17`).
+        let out = "p.bas:6:55: error: invalid conversion from ‘long long int’ to ‘const void*’ [-fpermissive]\n\
+                   v37h.h:43:30: note:   initializing argument 1 of ‘int32_t h_isnull(const void*)’\n";
+        assert_eq!(
+            read(out, &["p.bas"]),
+            Some(vec![compile(
+                "p.bas",
+                6,
+                "h_isnull",
+                "invalid conversion from ‘long long int’ to ‘const void*’ [-fpermissive]"
+            )])
         );
     }
 

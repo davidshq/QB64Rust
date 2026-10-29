@@ -2,7 +2,7 @@
 
 Small programs that measure what the old compiler (`qb64pe.exe` at the reference clone's commit) does, each
 recorded with its output. The facts the families up to `v45` establish are written in `study\00` §5, which takes no
-new facts since 2026-10-18 (`CLAUDE.md` working rule 11): a later family's facts are its recorded output, and its
+new facts since 2026-10-18 (`CLAUDE.md` working rule 7): a later family's facts are its recorded output, and its
 line here says what it shows. This file
 is the catalogue of the families, moved here from `CLAUDE.md`'s layout table on 2026-10-16 (`study\archive\30` §2).
 A new family, or new numbers in one, gets a line here, not in `CLAUDE.md`.
@@ -10,6 +10,34 @@ A new family, or new numbers in one, gets a line here, not in `CLAUDE.md`.
 The new compiler is compared against these recordings by the same runner (`--suite verification` with
 `qb64rust`); what it is held to, the pass list and the known differences, is in `tests\verification\` (change
 `verification-compare`). A new family's programs go on one of its lists.
+
+**Linux recordings** (OpenSpec change `m7-linux`, task 5.4). A program whose output from QB64pe's Linux build
+differs from its recording has a `<name>.linux.out.txt` of that output, by which it is judged on Linux; what cannot
+pass there is in `tests\verification\known.linux.list` (`v40`, which reads the version information with PowerShell,
+and `v22_d_shell`, which `SHELL`s `cmd`; the `v29` queue programs and `v39_c`, whose sound on ALSA's null device
+changes from run to run). The families with
+Linux recordings, and what each shows of Linux:
+
+- `v16`, `v26_h2`, `v58_e12`: `$IF WIN`/`WINDOWS` are false and `LINUX` true, so the other branch is compiled
+  (`v16_m6_error_active` and `v58_e12` compile, `v16_m6_error_inactive`, `m6_inactive_header` and `m6_sub_in_meta`
+  do not).
+- `v18_c`, `v30_k`, `v30_l`, `v33_a03`, `v33_a04`, `v30_g` (the `<t>` pair): the calls of one C++ expression run
+  right to left with `g++` on Linux (`DECISIONS.md` 2026-10-28: left to right everywhere after M7).
+- `v22`: `/` in `_CWD$`, other errors of `OPEN` and `CHDIR`, environment names in their own case. `v52_c`, `v49_b`: the file system's errors and separator, `_FILES$` with no `.\` and `..\` and in the file
+  system's order. `v30_d`, `v30_i`: a write past the end, and `LOCK` that raises nothing.
+- `v22_f`, `v30_g`: a NaN prints as `nan` and `-nan`, not `-nan(ind)`. `v58_f01`, `v58_f04`: glibc's hyperbolic
+  functions differ from the C runtime's in the last digit.
+- `v24_x9*`: an array of 1 TB or more is allocated (Linux overcommits), where Windows raises "Out of memory".
+- `v26_x05`, `v26_x16`, `v33_a09`: `_DEST _CONSOLE` without `$CONSOLE` is "Invalid handle", and an error in a
+  window program prints its message on the console.
+- `v27_x58`: `CLS` on the console writes ANSI codes. `v55_x56`, `v58_e23`: the console's output is flushed in
+  another order.
+- `v29_e16`: `$EXEICON` with a file that is not an icon compiles, as Linux writes no icon.
+- `v31_d`: `_LOADFONT` finds no Windows font. `v53_c`: `_DIR$` names no Windows folder. `v49_c`: `_OS$` is
+  `[LINUX]`.
+- `v33_c03`, `c09`, `c10`: an exit code is its low 8 bits.
+- `v57_r*`: `RUN` of a program that is not there goes to the shell, which prints "not found", instead of error 53.
+- `v37`, `v58_e28`, `v63`: the library and console programs of their own lines above.
 
 Small programs behind `study\09`, `study\10` and later measurements:
 
@@ -36,7 +64,7 @@ Small programs behind `study\09`, `study\10` and later measurements:
 - `v34*`: `REDIM _RETAIN`, measured before its change: `v34_a` numbers, `v34_b` the other kinds of element, `v34_c` the places of an array, `v34_d` a FUNCTION in a bound that gives the same array new bounds (`v34_d2` with plain `REDIM`, `v34_d3` with `_PRESERVE`, recorded as the change closed), `v34_x01`–`x24` one accepted or rejected form each)
 - `v35*`: `$UNSTABLE:TYPEFIELDS` and the member markers, measured before its change: `v35_a` a `_DYNAMIC` member of a variable, `v35_b` of array elements and the parent's `REDIM`, `ERASE`, `SWAP` and copy, `v35_c` every kind of element, `v35_d` procedures, `v35_e` statements and whole-array files, `v35_f` `_STATIC` and unmarked members beside the flag, `v35_g`–`g3` runtime errors, `v35_h` the metacommand, `v35_x01`–`x59` one accepted or rejected form each, `x60`: by the review of group 2, a marker before an `AS type` list; `x61`: with task 4.3, the evaluations of a copy of nested owner types and a source member that is not allocated; `x62`: with task 4.2, `READ`, `INPUT`, `LINE INPUT` and `MID$` into a place through a member, with a `.stdin`; `x63`–`x66`: with group 5, `COMMON` of an array and `LEN` of an element of an owner type, files of nested owner types, `_MEM` of a `_DYNAMIC` member; `x67`: while `s118` was recorded, `GET` into a released array; `x68`: with task 6.2, `_OFFSET` of an owner value)
 - `v36*`: whole-array assignment, measured before its change: `v36_a` numbers, `v36_b` the other kinds of element, `v36_c` the places of an array, `v36_d` member arrays, `v36_e` owner types, `v36_f` the run-time errors, `v36_x01`–`x52` one accepted or rejected form each, `x53`–`x55`: by the review of the change, the value in parentheses and a SUB as the source)
-- `v37*`: `DECLARE LIBRARY`, measured before its change: `v37_a` no library name, `v37_b` every numeric type by value and by reference, `v37_c` what each kind of argument passes, `v37_d` strings, `v37_e` a TYPE and `ALIAS` of C++ names, `v37_f` a `.a`, `STATIC`, a `.o` and a C++ `.a`, `v37_g` `DYNAMIC`, `v37_h` `CUSTOMTYPE`, `v37_i` where a block may stand, `v37_j` error 260, `v37_x01`–`x55` one accepted or rejected form each (`x56`–`x66`: by the review of the proposal, which `BYVAL` 0 is `NULL`, the default types told apart, a `STRING * n` member's missing NUL; `x67`, by task 4.4: two `DYNAMIC` blocks of one DLL; `x68`, `x69`, by the review of group 4: a header without a guard that only declares named twice, a block whose last name is a folder only; `x70`, a library beside the program in a folder whose name holds a `$`, recorded from such a folder with `--verification-root`, not from here: in `verification\` it compiles); the C sources and headers in `v37_lib\` with `build_libs.py`, which builds the libraries into `verification\` (git-ignored; run it before recording), an included file in `v37_inc\`
+- `v37*`: `DECLARE LIBRARY`, measured before its change: `v37_a` no library name, `v37_b` every numeric type by value and by reference, `v37_c` what each kind of argument passes, `v37_d` strings, `v37_e` a TYPE and `ALIAS` of C++ names, `v37_f` a `.a`, `STATIC`, a `.o` and a C++ `.a`, `v37_g` `DYNAMIC`, `v37_h` `CUSTOMTYPE`, `v37_i` where a block may stand, `v37_j` error 260, `v37_x01`–`x55` one accepted or rejected form each (`x56`–`x66`: by the review of the proposal, which `BYVAL` 0 is `NULL`, the default types told apart, a `STRING * n` member's missing NUL; `x67`, by task 4.4: two `DYNAMIC` blocks of one DLL; `x68`, `x69`, by the review of group 4: a header without a guard that only declares named twice, a block whose last name is a folder only; `x70`, a library beside the program in a folder whose name holds a `$`, recorded from such a folder with `--verification-root`, not from here: in `verification\` it compiles); the C sources and headers in `v37_lib\` with `build_libs.py`, which builds the libraries into `verification\` (git-ignored; run it before recording; on Linux under the names QB64pe's Linux build looks for, `libv37c.a` … `libv37dll.so`), an included file in `v37_inc\`; `v37_l1`–`l4` (task 3.5 of `m7-linux`) the Linux twins of `v37_g`, `x06`, `x67`, with the C library by `DYNAMIC LIBRARY "/usr/lib/x86_64-linux-gnu/c:6"` where those name `kernel32`, and that library named by its whole file name, which is not found; on Windows none compiles. On Linux (QB64pe's Linux build) `v37_g` does not compile (no `kernel32`), `v37_l1` runs as `v37_g` does on Windows, and `v37_i` and `x60` do not compile (`$IF WIN` is false there, and gcc finds `h_over(NULL)` ambiguous): their `.linux.out.txt`
 - `v38*`: what types with `_DYNAMIC` member arrays copy after an error, measured before `m3-measured-copies`: `v38_a` a `GET` of a whole array whose read raised an error, `v38_b` `PUT` and `GET` with a member of other bounds or another number of dimensions, `v38_c` a whole-array copy of a member of another number of dimensions, `v38_d` a whole-array copy of arrays of such a type with other bounds
 - `v39*`: sound handles, measured before the code of `m3-sound-handles`: `v39_a` handles and their state (open, length, position, copy, play, pause, stop, loop, limit, a handle that is not open, a raw handle), `v39_b` `_SNDNEW` and `_MEMSOUND` (a new sound, one decoded from memory, the arguments refused), `v39_c` a WAV file the program writes, `_SNDPLAYFILE`, `_SNDPLAYCOPY`, raw sound, `_WAVE` and MIDI from memory (each builds its WAV and MIDI data in a string), `v39_x01` every accepted form as code that is not reached, `v39_x02`–`x72` one other form each (the arrays of `_WAVE` and `_SNDRAWBATCH` among them), `x73`–`x81` one form of `$MIDISOUNDFONT` each
 - `v40*`: `$VERSIONINFO`, measured before the proposal of `m3-versioninfo`: `v40_a`–`v40_l` accepted forms (every key, numeric keys alone and in order, letter case, quotes and blanks, a repeated key, with `$EXEICON`, the places of a line, the `$VERSIONINFOX` prefix), `v40_g*` special characters (those whose executable does not start among them), `v40_h*` numeric parts (those whose build fails among them), `v40_x01`–`x22` one rejected form each (`x20` accepted); each accepted program prints its own version resource with `v40_inc\show_version.ps1`. `v40_rc.py` records the files the old compiler writes for the resource compiler into `v40_rc\` (`icon.rc`, `manifest.h`, the manifest, and the console output of `-z -w`), which the runner does not
@@ -61,7 +89,7 @@ Small programs behind `study\09`, `study\10` and later measurements:
   every kind of loop (through `IF` and `SELECT`, the innermost loop, in a SUB and a FUNCTION, the tests of `LOOP
   WHILE`/`UNTIL` still run), `v47_b_devices` the device functions, `STICK` and `STRIG` with no game controller (the
   keyboard and the mouse are devices 1 and 2 with libqb's fixed counts; the error 5 cases; nothing that counts
-  controllers, `CLAUDE.md` working rule 12), `v47_c_dot_blanks` blanks around a dot after a plain name (a member
+  controllers, `CLAUDE.md` working rule 8), `v47_c_dot_blanks` blanks around a dot after a plain name (a member
   array's element and bounds, a by-reference argument, nested members, plain dotted names), `v47_e01`, `e02` a
   relative `$EXEICON` and `$EMBED` name found under the compiler's folder (each names its file in a `.root`
   sidecar, which the runner puts there for the compile, `tools\legacy_tests\README.md`; the files in
@@ -378,7 +406,11 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `LINE INPUT` and `INPUT` from the null device wait for ever (`a1`, `a5`), as does `LINE INPUT` on a last line with
   no newline (`a2`, its `.stdin` holds `abc`); `INPUT$` with no file number waits for ever even with data on its
   input, since it reads only the keyboard buffer that console events fill (`a3`, its `.stdin` holds `abcdef`), and
-  from the null device (`a4`); `b1`–`b5` `BLOAD` and `BSAVE` at the top of the block of conventional memory (1,114,099
+  from the null device (`a4`); `a6` (2026-10-28, from the review of `libqb-fixes`) reads a redirected input with
+  CR LF line ends: `LINE INPUT` drops every CR (`e` CR CR LF reads as `e`), `INPUT` reads `c,d` as two fields, and
+  the program stops before the end of its input; the new compiler passes it, and its `INPUT$` read of the same kind
+  of input (CR LF as one LF, a CR alone kept, Ctrl+Z the end) is the CLI test
+  `input_string_reads_redirected_input_in_text_mode`; `b1`–`b5` `BLOAD` and `BSAVE` at the top of the block of conventional memory (1,114,099
   bytes; row 5): a `BLOAD` of 1000 bytes to `&HFFFF:&HFFF0`, given or from the file's header, writes past the block
   with no error (`b1`, `b4`), one of a file whose header gives size 0 and whose data is 200,000 bytes crashes (`b2`,
   exit 139), a `BSAVE` there writes a file of 1007 bytes read past the block (`b3`), and the block's last 19 bytes,
@@ -389,7 +421,11 @@ Small programs behind `study\09`, `study\10` and later measurements:
   handler: "Division by zero", which the handler does not receive, ending the program at the first (row 12); `f1`
   bit numbers and shift counts of 64 or more and negative ones as constants and in a LONG variable: the same values,
   each masked to its low 6 bits (rows 17, 18); `f2` the program of the fix `bit-number-check`, bit numbers in a
-  variable under a handler, with its fixes-on output in `tests\verification\fixed\`
+  variable under a handler, with its fixes-on output in `tests\verification\fixed\`. On Linux (task 5.5 of
+  `m7-linux`, QB64pe's Linux build) `a1`–`a5` wait for ever the same way; four have Linux recordings
+  (`.linux.out.txt`): `a6`, where `LINE INPUT` ends a line at a CR as at an LF, so `ab` CR LF reads as `ab` and an
+  empty line, and `INPUT` then gets two empty fields; `b2` and `d1`, whose crashes exit with 127; and `c2`, whose double
+  free the C library reports on standard error
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

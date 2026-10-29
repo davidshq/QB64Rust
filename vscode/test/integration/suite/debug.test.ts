@@ -65,7 +65,7 @@ describe("debugging with qb64rust", function () {
         const ended = nextEnd();
         assert.strictEqual(await vscode.commands.executeCommand("qb64rust.debug", uri), true);
         assert.match(a.builder.lastCommand ?? "", /--debug/);
-        const exe = uri.fsPath.replace(/\.bas$/i, ".exe");
+        const exe = uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
         assert.ok(fs.existsSync(exe) && fs.existsSync(`${exe}.debug.json`), "the debug build and its symbol file");
         const stopped = await stoppedAfter(from);
         const session = vscode.debug.activeDebugSession!;
@@ -122,7 +122,7 @@ describe("debugging with qb64rust", function () {
         await setSetting("qb64rust", "buildWith", "qb64pe");
         try {
             const uri = fixture();
-            const exe = uri.fsPath.replace(/\.bas$/i, ".exe");
+            const exe = uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
             // Run alone, or after the first test failed, there may be no executable yet: none must appear.
             const built = fs.existsSync(exe) ? fs.statSync(exe).mtimeMs : undefined;
             a.debug.lastRefusal = undefined;

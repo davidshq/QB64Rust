@@ -217,23 +217,23 @@ model, and is useful for the middle and back. Changed: one finding became a meas
 overflow), two claims were corrected (INTEGER wrap, forward calls), one lesson was demoted (L3), one inverted
 (L2 flag), one added (L12). Priority of the follow-ups: 1, then 3; the rest are notes for their milestone.
 
-Rule: FreeBASIC is reference only (`CLAUDE.md` rule 5). Reading how a problem was approached is fine; no code,
+Rule: FreeBASIC is reference only (`CLAUDE.md` working rule 3). Reading how a problem was approached is fine; no code,
 tests, tables or documentation text are copied.
 
 ## 8. Panel decision on the follow-ups (2026-10-03)
 
-Asked for by the user; "the panel" as defined in `CLAUDE.md` rule 6, role-played inline. Roles: pragmatic
+Asked for by the user; "the panel" as defined in `CLAUDE.md` working rule 4, role-played inline. Roles: pragmatic
 engineer (P), QB64 engineer (Q), compiler/languages engineer (C), Rust engineer (R), test engineer (T), plus a
 runtime engineer (RT, for 2 and 6) and an editor-tooling engineer (E, for 5 and the M1 leftovers).
 
 | # | Decision | Notes from the panel |
 |---|---|---|
 | 1 | **Accepted, decided now:** LONG overflow wraps | Q: almost everyone runs the default build, which wraps; QB4.5's Overflow error was never QB64 behaviour. C: wrap must hold in two places, the generated C++ (`-fwrapv` is the starting mechanism; emitting unsigned arithmetic stays open until M3) and the **constant folder**. R: the folder uses `wrapping_*` on `i32`/`i64`, never plain `+` (debug builds panic). T: differential tests run the old compiler in its default build; `v11_wrap_o2` joins the golden corpus. Q/T: `_INTEGER64` has the same exposure; measure it when the corpus is recorded before extending the rule to it. Divergence register entry: differs from QB64pe built with `-O2`. |
-| 2 | **Accepted in reduced form** | P: the flag is only an optimisation (skip the error check after a call); "may raise" everywhere is correct. RT: agreed. The built-in table gets the field at M3, default "may raise"; nothing is flagged by hand until profiling shows the checks cost something. |
+| 2 | **Accepted in reduced form** | P: the flag is only an optimisation (skip the error check after a call); "may raise" everywhere is correct. RT: agreed. The built-in table gets the field at M3, default "may raise"; nothing is flagged by hand until profiling shows the checks cost something. *Later:* the field was not added; every built-in call counts as "may raise" (`DECISIONS-SMALL.md` 2026-10-29). |
 | 3 | **Accepted** for M2 | T: mode line in every new test; a debug dump of the typed tree for literal-typing assertions; snapshot tests for diagnostics and lowering pairs. R: snapshots with the `insta` crate (standard, reviewable `.snap` files). Q: the QB64pe test suites under `tools\legacy_tests` are not edited; mode lines are for our own tests. The mode-line syntax is fixed in the M2 change. |
 | 4 | **Accepted** for M2 | C: BASIC statements end at a newline or colon, so "skip to statement end" is cheap and reliable. Block errors (missing `END IF`, `NEXT` without `FOR`) are not statement-local; they are reported at the block boundary, not by skipping. P: cap value chosen in M2. E: the language server still shows only errors the old compiler also reports (`15`), so this governs the CLI first. |
 | 5 | **Accepted** as an M5 evaluation | E: `#line` helps stepping, not variables. C: the only earlier requirement is that IR keeps source spans down to codegen, which diagnostics need anyway. |
-| 6 | **Accepted** as an M6 reading note | RT: libqb stays as it is until M6. |
+| 6 | **Accepted** as an M6 reading note | RT: libqb stays as it is until M6. *Later:* M6 dropped the runtime redesign (2026-10-28); the note moved to that redesign's row in `SOMEDAY.md`. |
 
 **Measured for decision 1 (2026-10-03, `verification\v12_wrap_int64`, also in `tests\corpus\verification\`):**
 `_INTEGER64` has the same exposure as LONG. With `x&& = 9223372036854775807`, `x + 1 > x` is **false** in the

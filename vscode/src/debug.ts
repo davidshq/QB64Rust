@@ -8,6 +8,7 @@ import { refuse } from "./buildPlan";
 import { DEBUG_TYPE, Facts, LaunchConfig, adapterArgs, fileConfiguration, initialConfiguration, resolveLaunch } from "./debugConfig";
 import { LanguageServer } from "./languageServer";
 import { CompilerStatus } from "./statusBar";
+import { toolchainRoot } from "./compiler/toolchain";
 
 export class DebugSupport implements vscode.Disposable, vscode.DebugConfigurationProvider, vscode.DebugAdapterDescriptorFactory {
     private readonly disposables: vscode.Disposable[];
@@ -75,7 +76,7 @@ export class DebugSupport implements vscode.Disposable, vscode.DebugConfiguratio
         if (!tools?.found) {
             throw new Error(`QB64: debugging needs a C++ toolchain, but ${tools?.reason ?? "it was not looked for"}`);
         }
-        return new vscode.DebugAdapterExecutable(binary.path, adapterArgs(tools.folder));
+        return new vscode.DebugAdapterExecutable(binary.path, adapterArgs(toolchainRoot(tools)));
     }
 
     /** Design D5: debugs the file of `uri` or the active editor, as Build and Run runs it. */

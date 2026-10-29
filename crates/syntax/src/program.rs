@@ -3,7 +3,7 @@
 
 use crate::pp::{MAX_ROUNDS, PpFlags, PpState, Round, settle};
 use crate::tree::{GreenNode, Node, TreeId};
-use qb64rust_base::{Diagnostic, Diagnostics, FileId, SourceMap, Span};
+use qb64rust_base::{Diagnostic, Diagnostics, FileId, Platform, SourceMap, Span};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -368,8 +368,19 @@ fn parse_round(
 /// Parses a program as the old compiler compiles it: again and again until the precompiler flags no longer
 /// change ([`settle`]; design D7 of `m2-console-screenhide`). Almost every program is parsed once: only one with
 /// a `$IF` that names a flag can read differently in another round. The trees and diagnostics are the last
-/// round's. A loader must give the same file for the same name in every round.
+/// round's. A loader must give the same file for the same name in every round. The program is read as compiled on
+/// Windows (`$IF WIN`); [`parse_settled_on`] names the platform.
 pub fn parse_settled(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader) -> ParsedProgram {
+    parse_settled_on(Platform::Windows, map, main, loader)
+}
+
+/// [`parse_settled`] for a program compiled on `platform`, which sets the preprocessor's `WIN` and `LINUX`.
+pub fn parse_settled_on(
+    platform: Platform,
+    map: &mut SourceMap,
+    main: FileId,
+    loader: &mut dyn Loader,
+) -> ParsedProgram {
     let mut auto = None;
     let mut color_file = None;
     let mut after_main_file = None;
@@ -379,7 +390,7 @@ pub fn parse_settled(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader)
             map,
             main,
             loader,
-            flags,
+            flags.on(platform),
             &mut auto,
             &mut color_file,
             &mut after_main_file,
@@ -387,7 +398,7 @@ pub fn parse_settled(map: &mut SourceMap, main: FileId, loader: &mut dyn Loader)
         )
     }) {
         Ok((mut program, flags)) => {
-            program.flags = flags;
+            program.flags = flags.on(platform);
             program
         }
         Err(mut program) => {

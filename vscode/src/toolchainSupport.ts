@@ -90,7 +90,7 @@ export class ToolchainSupport implements vscode.Disposable {
             await refuse(now.reason, now.setting);
             return now;
         }
-        return (await tc.offerToolchain(this.ui)) ?? { found: false, reason: "no C++ toolchain: the download was not made" };
+        return (await tc.offerToolchain(this.ui, now)) ?? { found: false, reason: "no C++ toolchain: the download was not made" };
     }
 
     private windowUi(): tc.OfferUi {
@@ -106,6 +106,8 @@ export class ToolchainSupport implements vscode.Disposable {
             info: (message) => vscode.window.showInformationMessage(message),
             showOutput: () => this.output.show(true),
             find: () => this.refresh(),
+            platform: process.platform,
+            copy: (text) => vscode.env.clipboard.writeText(text),
         };
     }
 

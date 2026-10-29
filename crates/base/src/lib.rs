@@ -10,7 +10,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 pub mod fixes;
 pub mod layout;
 mod old_wording;
+pub mod platform;
 pub use old_wording::old_wording;
+pub use platform::Platform;
 
 /// The largest source file, in bytes: offsets are `u32`. A caller that reads a file checks this before handing
 /// the bytes to any stage; every count derived from one file (lines, tokens, names) then fits a `u32`.

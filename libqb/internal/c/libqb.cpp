@@ -17226,10 +17226,14 @@ qbs *func_input(int32 n, int32 i, int32 passed) {
         }
         if (n == 0)
             return str;
-#ifdef QB64_WINDOWS
         if (write_page->console) {
+#ifdef QB64_WINDOWS
             DWORD input_mode;
-            if (!GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &input_mode)) {
+            bool redirected = !GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &input_mode);
+#else
+            bool redirected = !isatty(fileno(stdin));
+#endif
+            if (redirected) {
                 // redirected input: read it, Input past end of file at its end
                 for (x = 0; x < n; x++) {
                     c = fgetc(stdin);
@@ -17243,7 +17247,6 @@ qbs *func_input(int32 n, int32 i, int32 passed) {
                 return str;
             }
         }
-#endif
         x = 0;
     waitforinput:
         str2 = qbs_inkey();

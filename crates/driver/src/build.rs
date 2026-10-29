@@ -7,6 +7,8 @@
 //! found. libqb objects are built into the copy's git-ignored places if missing and reused otherwise; nothing is
 //! written into a QB64pe folder or the toolchain.
 
+use crate::toolchain::{Found, Source, Tool};
+use qb64rust_base::Platform;
 use qb64rust_codegen_cpp::Fragments;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -18,8 +20,9 @@ pub const LIBQB_ENV: &str = "QB64RUST_LIBQB_ROOT";
 /// and this repo's copy of libqb (`libqb\`: the `Makefile`, `qbx.cpp`, libqb's sources and, once built, its
 /// objects).
 pub struct Roots {
-    /// A folder with llvm-mingw's layout: `bin\c++.exe`, `bin\mingw32-make.exe`, …
-    pub toolchain: PathBuf,
+    /// The toolchain found, with its platform: on Windows a folder with llvm-mingw's layout (`bin\c++.exe`,
+    /// `bin\mingw32-make.exe`, …), on Linux the system's programs or a folder with `bin/g++` and `bin/make`.
+    pub toolchain: crate::toolchain::Found,
     /// The QB64pe folder ([`find_root`]), which the extra link flags name files relative to, as the old compiler
     /// links in its own folder.
     pub qb64pe: Option<PathBuf>,
@@ -443,6 +446,9 @@ pub struct Settings {
     /// The library files the program's `DECLARE LIBRARY` blocks found (`library.rs`): on the link command after
     /// the extra link flags, as `qb64pe` adds them (`qb64pe.bas` 13726, 13741), and in the build's key.
     pub libraries: Vec<PathBuf>,
+    /// Linux: the options of the libraries found (`-Wl,-rpath <folder>`), on the link command after every library
+    /// file, as `qb64pe` adds them (`mylibopt$`, `qb64pe.bas` 13741), and in the build's key.
+    pub link_options: Vec<String>,
     /// The headers they found: in the build's key (the fragments name them by path only). The files a header
     /// itself includes are not (design D4 of `m3-declare-library`).
     pub headers: Vec<PathBuf>,
@@ -461,6 +467,7 @@ fn libs_extra(folder: &Path, settings: &Settings) -> String {
         let p = slash(lib);
         parts.push(if p.contains(' ') { format!("\"{p}\"") } else { p });
     }
+    parts.extend(settings.link_options.iter().cloned());
     parts.retain(|p| !p.is_empty());
     parts.join(" ")
 }
@@ -549,6 +556,12 @@ fn build_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
     // The version stands for `build_with_make`'s fixed arguments: change it when they change.
     // 8: the deterministic build (`program_makefile`).
     h.write(b"qb64rust build cache 8\0");
+    // A Linux build's key has its platform as a line, so a cache shared by both never gives one the other's
+    // executable (design D2 of `m7-linux`); a Windows key is as before.
+    if roots.toolchain.platform != Platform::Windows {
+        h.write(roots.toolchain.platform.name().as_bytes());
+        h.write(b"\0");
+    }
     h.write(&settings.fixes.bits().to_le_bytes());
     // The program's make flags are in no fragment: `console=1` is the same text with and without a window.
     for flag in &settings.flags {
@@ -574,6 +587,10 @@ fn build_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
     for p in settings.libraries.iter().chain(&settings.headers) {
         h.write(b"library\0");
         h.file(p, &p.to_string_lossy());
+    }
+    for option in &settings.link_options {
+        h.write(b"link option\0");
+        h.write(option.as_bytes());
     }
     let mut fragments: Vec<PathBuf> = std::fs::read_dir(build.join("temp"))
         .map(|d| d.flatten().map(|e| e.path()).collect())
@@ -725,12 +742,19 @@ const OBJECTS_MAKEFILE: &str = "# Written by qb64rust: what a build with these f
 /// The file at the top of a copy of libqb that says how its objects were built ([`objects_stamp`]); git-ignored.
 pub const OBJECTS_STAMP: &str = "objects.stamp";
 
-/// The stamps of the toolchain's executables, the files of its `bin`, by their names relative to the toolchain.
-fn toolchain_stamps(toolchain: &Path) -> Vec<String> {
+/// The stamps of the toolchain's executables: the files of its `bin`, by their names relative to the toolchain; of a
+/// system toolchain, whose folder is `/usr/bin` and too big to stamp whole, the programs a build runs, by their own
+/// paths (design D2 of `m7-linux`).
+fn toolchain_stamps(toolchain: &Found) -> Vec<String> {
     let mut stamps = Vec::new();
-    if let Ok(d) = std::fs::read_dir(toolchain.join("bin")) {
+    if toolchain.source == Source::System {
+        for tool in Tool::BUILD {
+            let p = toolchain.tool(tool);
+            stamp(Path::new(""), &p, &mut stamps);
+        }
+    } else if let Ok(d) = std::fs::read_dir(toolchain.folder.join("bin")) {
         for e in d.flatten() {
-            stamp(toolchain, &e.path(), &mut stamps);
+            stamp(&toolchain.folder, &e.path(), &mut stamps);
         }
     }
     stamps.sort();
@@ -740,7 +764,7 @@ fn toolchain_stamps(toolchain: &Path) -> Vec<String> {
 /// What the copy's libqb objects are built with: no flags of the driver (design D1 of `libqb-object-flags`, as
 /// `qb64pe.exe` builds them without `-f:` settings) and the toolchain, by the size and time of each of its
 /// executables. Change the first line when what libqb's objects are built with changes.
-fn objects_stamp(toolchain: &Path) -> String {
+fn objects_stamp(toolchain: &Found) -> String {
     let mut text = String::from("qb64rust libqb objects 1: no extra flags\n");
     for s in &toolchain_stamps(toolchain) {
         text.push_str(s);
@@ -802,22 +826,30 @@ fn remove_built(base: &Path, dir: &Path) -> Result<(), String> {
 ///
 /// The build is deterministic (`DECISIONS.md` 2026-10-27): `-mno-incremental-linker-compatible` writes no time into
 /// the program's objects, and `--no-insert-timestamp` none into the executable, so the same program built again is the
-/// same bytes, and a test's cache of passes, which keys on them, holds across a rebuild.
-fn program_makefile(libqb: &Path, optimize: bool, debug: bool) -> String {
-    format!(
-        "# Written by qb64rust: the program's own flags, for the program's own objects only.\n\
-         $(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += {}-fwrapv \
-         -mno-incremental-linker-compatible -I{}/internal/c\n\
-         CXXLIBS += -Wl,--no-insert-timestamp\n",
-        if debug {
-            "-g "
-        } else if optimize {
-            "-O2 "
-        } else {
-            ""
-        },
-        slash(libqb)
-    )
+/// same bytes, and a test's cache of passes, which keys on them, holds across a rebuild. On Linux neither flag
+/// exists (they are PE's), and `g++` writes no time into an ELF object or executable.
+fn program_makefile(platform: Platform, libqb: &Path, optimize: bool, debug: bool) -> String {
+    let level = if debug {
+        "-g "
+    } else if optimize {
+        "-O2 "
+    } else {
+        ""
+    };
+    match platform {
+        Platform::Windows => format!(
+            "# Written by qb64rust: the program's own flags, for the program's own objects only.\n\
+             $(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += {level}-fwrapv \
+             -mno-incremental-linker-compatible -I{}/internal/c\n\
+             CXXLIBS += -Wl,--no-insert-timestamp\n",
+            slash(libqb)
+        ),
+        Platform::Linux => format!(
+            "# Written by qb64rust: the program's own flags, for the program's own objects only.\n\
+             $(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += {level}-fwrapv -I{}/internal/c\n",
+            slash(libqb)
+        ),
+    }
 }
 
 /// Takes the objects' lock ([`OBJECTS_LOCK_ENV`], else the copy's [`OBJECTS_LOCK`]) and makes the copy's objects
@@ -919,25 +951,42 @@ fn build_with_make(
         .map_err(|e| format!("copying qbx.cpp: {e}"))?;
     let _ = std::fs::remove_file(c.join("qbx.o"));
     let _ = std::fs::remove_file(exe);
-    let linked = build.join("program.exe");
+    let platform = roots.toolchain.platform;
+    let linked = build.join("program").with_extension(platform.exe_extension());
     let _ = std::fs::remove_file(&linked);
-    let bin = roots.toolchain.join("bin");
-    let make = bin.join("mingw32-make.exe");
+    let make = roots.toolchain.tool(Tool::Make);
     let mut cmd = Command::new(&make);
-    cmd.arg("-C").arg(&roots.libqb).arg("-j3").args(["OS=win", "BITS=64"]);
-    // The toolchain in the five names the `Makefile` gives it (design D2 of `libqb-copy`); a variable given
-    // to `make` overrides the `Makefile`'s `:=`. Backslashes, as the `Makefile` writes them for `cmd`.
-    for (name, file) in [
-        ("AR", "ar.exe"),
-        ("CC", "gcc.exe"),
-        ("CXX", "c++.exe"),
-        ("OBJCOPY", "objcopy.exe"),
-        ("WINDRES", "windres.exe"),
-    ] {
-        cmd.arg(format!(
-            "{name}={}",
-            bin.join(file).display().to_string().replace('/', "\\")
-        ));
+    cmd.arg("-C").arg(&roots.libqb).arg("-j3");
+    // The toolchain in the names the `Makefile` gives it (design D2 of `libqb-copy`, D2 of `m7-linux`); a variable
+    // given to `make` overrides the `Makefile`'s `:=`. On Windows with backslashes, as the `Makefile` writes them for
+    // `cmd`; on Linux with `/` and no `windres`.
+    match platform {
+        Platform::Windows => {
+            cmd.args(["OS=win", "BITS=64"]);
+            for (name, tool) in [
+                ("AR", Tool::Ar),
+                ("CC", Tool::Cc),
+                ("CXX", Tool::Cxx),
+                ("OBJCOPY", Tool::Objcopy),
+                ("WINDRES", Tool::Windres),
+            ] {
+                cmd.arg(format!(
+                    "{name}={}",
+                    roots.toolchain.tool(tool).display().to_string().replace('/', "\\")
+                ));
+            }
+        }
+        Platform::Linux => {
+            cmd.args(["OS=lnx", "BITS=64"]);
+            for (name, tool) in [
+                ("AR", Tool::Ar),
+                ("CC", Tool::Cc),
+                ("CXX", Tool::Cxx),
+                ("OBJCOPY", Tool::Objcopy),
+            ] {
+                cmd.arg(format!("{name}={}", slash(&roots.toolchain.tool(tool))));
+            }
+        }
     }
     cmd.args(&settings.flags)
         .arg(format!("EXE={}", slash(&linked)))
@@ -966,7 +1015,7 @@ fn build_with_make(
     let program_mk = build.join("program.mk");
     std::fs::write(
         &program_mk,
-        program_makefile(&roots.libqb, settings.optimize, settings.debug),
+        program_makefile(platform, &roots.libqb, settings.optimize, settings.debug),
     )
     .map_err(|e| format!("writing {}: {e}", program_mk.display()))?;
     cmd.args(["-f", "Makefile", "-f"]).arg(slash(&program_mk)).arg("exe");
@@ -1214,7 +1263,7 @@ mod tests {
     /// One folder as every root, for the tests of what the key takes from the build itself.
     fn one_root(p: &Path) -> Roots {
         Roots {
-            toolchain: p.to_path_buf(),
+            toolchain: Found::in_folder(p.to_path_buf(), Source::Option, Platform::Windows),
             qb64pe: None,
             include: p.to_path_buf(),
             libqb: p.to_path_buf(),
@@ -1225,12 +1274,12 @@ mod tests {
     /// libqb side by side under `base`, as `Roots`.
     fn two_roots(base: &Path) -> Roots {
         let roots = Roots {
-            toolchain: base.join("toolchain"),
+            toolchain: Found::in_folder(base.join("toolchain"), Source::Option, Platform::Windows),
             qb64pe: None,
             include: base.join("include"),
             libqb: base.join("libqb"),
         };
-        for d in [&roots.toolchain, &roots.include, &roots.libqb] {
+        for d in [&roots.toolchain.folder, &roots.include, &roots.libqb] {
             std::fs::create_dir_all(d).unwrap();
         }
         roots
@@ -1279,7 +1328,7 @@ mod tests {
         let d = tempfile::tempdir().unwrap();
         let roots = two_roots(d.path());
         let c = roots.libqb.join("internal/c");
-        let bin = roots.toolchain.join("bin");
+        let bin = roots.toolchain.folder.join("bin");
         std::fs::create_dir_all(&bin).unwrap();
         std::fs::write(bin.join("gcc.exe"), "1").unwrap();
         let built = [
@@ -1317,7 +1366,7 @@ mod tests {
 
     #[test]
     fn the_programs_flags_go_to_its_own_objects() {
-        let mk = program_makefile(Path::new("x/libqb"), false, false);
+        let mk = program_makefile(Platform::Windows, Path::new("x/libqb"), false, false);
         assert!(
             mk.ends_with(
                 "$(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += -fwrapv \
@@ -1325,14 +1374,17 @@ mod tests {
             ),
             "{mk}"
         );
-        assert!(program_makefile(Path::new("x/libqb"), true, false).contains("private CXXFLAGS += -O2 -fwrapv "));
+        assert!(
+            program_makefile(Platform::Windows, Path::new("x/libqb"), true, false)
+                .contains("private CXXFLAGS += -O2 -fwrapv ")
+        );
     }
 
     /// A debug build: `-g`, and never `-O2`, even with `OptimizeCppProgram` (design D1 of `m5-debug-build-symbols`).
     #[test]
     fn a_debug_build_has_g_and_no_optimisation() {
         for optimize in [false, true] {
-            let mk = program_makefile(Path::new("x/libqb"), optimize, true);
+            let mk = program_makefile(Platform::Windows, Path::new("x/libqb"), optimize, true);
             assert!(mk.contains("private CXXFLAGS += -g -fwrapv "), "{mk}");
             assert!(!mk.contains("-O2"), "{mk}");
         }
@@ -1406,7 +1458,7 @@ mod tests {
         let clone = d.path().join("clone");
         let clone_c = clone.join("internal/c");
         let roots = Roots {
-            toolchain: clone_c.join("c_compiler"),
+            toolchain: Found::in_folder(clone_c.join("c_compiler"), Source::Clone, Platform::Windows),
             qb64pe: Some(clone.clone()),
             ..two_roots(d.path())
         };

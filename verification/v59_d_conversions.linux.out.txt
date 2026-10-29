@@ -1,0 +1,9 @@
+frames >= 3:-1 
+viewport 1: 2  2  101  50 
+viewport 2:-2  4  10  20 
+stencil mask: 2147483647 
+colour mask: 0  1  0  1 
+line width: 1.75 
+pixel: 255  0  0  255 
+error: 1280 
+exit=0
