@@ -2,7 +2,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { closeAll, compiler, dismissingNotifications, open, setSetting, waitFor, writeFile, qb64peDiagnostics } from "./helpers";
+import { api, closeAll, compiler, dismissingNotifications, open, setSetting, waitFor, writeFile, qb64peDiagnostics } from "./helpers";
 
 const exeOf = (uri: vscode.Uri) => uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
 
@@ -20,7 +20,7 @@ describe("build and run", function () {
         const uri = writeFile("build/hello.bas", '$CONSOLE:ONLY\r\nPRINT "Hello"\r\n');
         await open(uri);
         const exe = await vscode.commands.executeCommand<string | undefined>("qb64rust.build");
-        assert.strictEqual(exe, exeOf(uri));
+        assert.strictEqual(exe, exeOf(uri), `the build's output:\n${(await api()).builder.lastOutput}`);
         assert.ok(fs.existsSync(exeOf(uri)));
     });
 
