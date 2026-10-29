@@ -207,23 +207,38 @@ impl Emitter<'_> {
             // `TYPE` by its size (the second place first, as the old compiler writes it), a number by its width.
             // An element's index is checked inside the call's arguments, with no test after it, so a bad index
             // exchanges with the array's first element, as the old compiler's program does (measured).
+            //
+            // When an index of either place calls a FUNCTION, the two places are found in the order of the call's
+            // arguments, each into a variable first: as arguments of one call their order is the C++ compiler's,
+            // left to right on Windows (the old compiler's `g++`, llvm-mingw's `clang`), right to left with `g++` on
+            // Linux (measured, `tests\corpus\slice\s61_member_arrays` line 26; `QB64PE-DIVERGENCES.md` D-054).
+            // Otherwise the call is the old compiler's.
             StmtRule::Swap => {
                 let [StmtArg::Place(a), StmtArg::Place(b)] = args else {
                     unreachable!("`SWAP` takes two places (`validate`)");
                 };
                 let ty = self.p.place_ty(a);
-                out.push(match ty {
-                    Ty::Str | Ty::FixedStr(_) => {
-                        format!("swap_string({},{});", self.place_ref(a), self.place_ref(b))
-                    }
+                // The entry, its two place arguments in order, and what follows them.
+                let (name, x, y, tail) = match ty {
+                    Ty::Str | Ty::FixedStr(_) => (
+                        "swap_string".to_string(),
+                        self.place_ref(a),
+                        self.place_ref(b),
+                        String::new(),
+                    ),
                     Ty::User(_) => {
                         let (x, y) = (self.bytes_of(b), self.bytes_of(a));
                         match self.ty_size(ty) {
-                            n @ (1 | 2 | 4 | 8) => format!("swap_{}({x},{y});", n * 8),
-                            n => format!("swap_block({x},{y},{n});"),
+                            n @ (1 | 2 | 4 | 8) => (format!("swap_{}", n * 8), x, y, String::new()),
+                            n => ("swap_block".to_string(), x, y, format!(",{n}")),
                         }
                     }
-                    Ty::F80 => format!("swap_longdouble(&{},&{});", self.load_place(a), self.load_place(b)),
+                    Ty::F80 => (
+                        "swap_longdouble".to_string(),
+                        format!("&{}", self.load_place(a)),
+                        format!("&{}", self.load_place(b)),
+                        String::new(),
+                    ),
                     Ty::I8
                     | Ty::U8
                     | Ty::I16
@@ -235,11 +250,18 @@ impl Emitter<'_> {
                     | Ty::Off
                     | Ty::UOff
                     | Ty::F32
-                    | Ty::F64 => {
-                        let bits = self.ty_size(ty) * 8;
-                        format!("swap_{bits}(&{},&{});", self.load_place(a), self.load_place(b))
-                    }
+                    | Ty::F64 => (
+                        format!("swap_{}", self.ty_size(ty) * 8),
+                        format!("&{}", self.load_place(a)),
+                        format!("&{}", self.load_place(b)),
+                        String::new(),
+                    ),
                     Ty::Bit { .. } => unreachable!("`SWAP` of a `_BIT` (`validate`)"),
+                };
+                out.push(if a.calls_procedure() || b.calls_procedure() {
+                    format!("{{auto swap_x={x};auto swap_y={y};{name}(swap_x,swap_y{tail});}}")
+                } else {
+                    format!("{name}({x},{y}{tail});")
                 });
                 // A whole array with no storage on either side: error 9 and no exchange (`study\39` row 7, D-042),
                 // where the old compiler exchanges with libqb's `nothingvalue` (`verification\v62_c3`).

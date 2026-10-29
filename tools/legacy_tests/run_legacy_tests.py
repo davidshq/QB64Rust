@@ -217,6 +217,110 @@ VERIFICATION_RUN_TIMEOUT = 60
 # What holds the new compiler to the verification programs (tests/verification/README.md): pass.list, known.list
 # and the sidecars divergences/<name>.divergences and normalize/<name>.normalize.
 VERIFICATION_LISTS = Path(__file__).resolve().parents[2] / "tests" / "verification"
+# The platform a run judges by (--platform, OpenSpec change m7-linux, design D6): the host by default.
+HOST_PLATFORM = "windows" if os.name == "nt" else "linux"
+# The extension of a program's executable on the host: none off Windows, as qb64pe and qb64rust name them
+# there (qb64pe on Linux drops an ".exe" given with -o).
+EXE = ".exe" if os.name == "nt" else ""
+# The old compiler's executable in its folder (a Linux one built by tools/linux/build_qb64pe.sh).
+QB64PE = f"qb64pe{EXE}"
+# The recorded files a Linux sidecar can stand for (spec testing/golden-corpus, "Recordings per platform").
+PLATFORM_SUFFIXES = (".out.txt", ".output", ".err")
+# The known list of a suite on Linux beside its folder (same format as tests/verification/known.list):
+# <name><TAB><reason>, where a reason starting with "windows" skips the program there.
+LINUX_KNOWN = "known.linux.list"
+
+
+# ALSA's null device, for the programs run on Linux (design D6 of m7-linux).
+ALSA_NULL = Path(__file__).resolve().parents[1] / "linux" / "asound-null.conf"
+
+
+def program_env() -> dict[str, str]:
+    """The environment a compile and a program run in: this process's, and on Linux the sound device fixed,
+    ALSA's null device (ALSA_CONFIG_PATH, unless it is set already) and no PulseAudio server, so that a
+    program meets the same device when recorded and when run, on any machine (WSLg's server, a card or
+    none) and prints none of ALSA's complaints about a missing card."""
+    env = dict(os.environ)
+    if os.name != "nt":
+        env.setdefault("ALSA_CONFIG_PATH", str(ALSA_NULL))
+        env.pop("PULSE_SERVER", None)
+    return env
+
+
+# libqb's own words that differ by platform, Linux's then Windows': END with the window hidden and the console
+# shown prints "Press enter to continue" on Linux, "Press any key to continue" on Windows (libqb.cpp, one branch per
+# #ifdef). On Linux a program's output is judged with Windows' words, so that one recording holds for both and the
+# corpus needs no sidecar for each program that ends with END (design D6 of m7-linux, "Risks").
+LINUX_WORDS = ((b"Press enter to continue", b"Press any key to continue"),)
+
+
+def platform_neutral(data: bytes, platform: str) -> bytes:
+    """A program's output with LINUX_WORDS made Windows' on Linux; as it is on Windows."""
+    if platform == "linux":
+        for linux, windows in LINUX_WORDS:
+            data = data.replace(linux, windows)
+    return data
+
+
+def exit_code_on(platform: str, code: int) -> int:
+    """The exit code a process ending with a recorded code reports on platform: on Linux its low 8 bits
+    (END -1, recorded as Windows' 4294967295, ends with 255), so that one .exitcode holds for both."""
+    return code & 0xFF if platform == "linux" else code
+
+
+def platform_of(args) -> str:
+    """The platform a run judges by: --platform, else the host."""
+    return getattr(args, "platform", None) or HOST_PLATFORM
+
+
+def linux_sidecar(path: Path) -> Path:
+    """<name>.linux.<ext> for a recording <name>.<ext> (.output, .err, .out.txt)."""
+    for suffix in PLATFORM_SUFFIXES:
+        if path.name.endswith(suffix):
+            return path.with_name(path.name[: -len(suffix)] + ".linux" + suffix)
+    raise ValueError(f"no platform sidecar for {path.name}")
+
+
+def expected_file(path: Path, platform: str) -> Path:
+    """The recording a program is judged by on platform: on Linux its Linux sidecar when there is one,
+    else the recording shared by both platforms; on Windows always the shared one (the Linux files are
+    never read there)."""
+    if platform == "linux":
+        sidecar = linux_sidecar(path)
+        if sidecar.is_file():
+            return sidecar
+    return path
+
+
+def load_linux_list(path: Path, suite: str) -> dict[str, str]:
+    """Reads a suite's known.linux.list into {"<suite>:<name>": reason} (empty if there is none):
+    <name><TAB><reason> per line, '#' lines and blank lines skipped."""
+    known: dict[str, str] = {}
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip() or line.startswith("#"):
+                continue
+            name, _, reason = line.partition("\t")
+            known[f"{suite}:{name.strip()}"] = reason.strip()
+    return known
+
+
+def skipped_on(platform: str, reason: str) -> bool:
+    """A program of a Linux list whose reason starts with "windows" needs Windows: skipped, not run."""
+    return platform == "linux" and reason.split(" ", 1)[0].rstrip(":,") == "windows"
+
+
+def equal_sidecars(roots: list[Path]) -> list[Path]:
+    """The Linux sidecars under roots that equal their shared recording byte for byte: each should be
+    deleted (spec testing/golden-corpus, "A Linux file equal to the shared one")."""
+    found = []
+    for root in roots:
+        for suffix in PLATFORM_SUFFIXES:
+            for sidecar in sorted(root.rglob(f"*.linux{suffix}")):
+                shared = sidecar.with_name(sidecar.name.replace(".linux" + suffix, suffix))
+                if shared.is_file() and shared.read_bytes() == sidecar.read_bytes():
+                    found.append(sidecar)
+    return found
 
 
 @dataclass
@@ -266,6 +370,8 @@ INCLUDE_ROOT = Path(__file__).resolve().parents[2] / "tests" / "upstream" / "roo
 # The .divergences sidecars of the compile suite, as <category>/<name>.divergences: not beside the program, whose
 # folder is the clone's (read-only) or tests/upstream/compile_tests (a copy the copy script remakes).
 UPSTREAM_DIVERGENCES = Path(__file__).resolve().parents[2] / "tests" / "upstream" / "divergences"
+# The copy of the upstream tests, whose folder holds the compile suite's Linux list (LINUX_KNOWN).
+UPSTREAM_ROOT = Path(__file__).resolve().parents[2] / "tests" / "upstream"
 
 
 def compile_sidecar(category: str, name: str) -> Path:
@@ -351,7 +457,7 @@ def clone_stamp(qb_root: Path, settings: dict[str, bytes]) -> str:
     by path, size and time (not what a build writes there), and the settings by content. A copy made
     from another state of the clone has another stamp and is made again."""
     internal_c = qb_root / "internal" / "c"
-    files = [qb_root / "qb64pe.exe", qb_root / "Makefile"]
+    files = [qb_root / QB64PE, qb_root / "Makefile"]
     for dirpath, dirnames, filenames in os.walk(internal_c):
         dirnames.sort()
         folder = Path(dirpath)
@@ -373,7 +479,7 @@ def make_copy(qb_root: Path, root: Path, stamp: str, settings: dict[str, bytes])
     if root.exists():
         shutil.rmtree(root)
     root.mkdir(parents=True)
-    for name in ("qb64pe.exe", "Makefile"):
+    for name in (QB64PE, "Makefile"):
         shutil.copy2(qb_root / name, root / name)
     internal = qb_root / "internal"
 
@@ -534,10 +640,10 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     category = bas.parent.name
     name = bas.stem
     tdir = bas.parent
-    exe = results / f"{category}-{name} - output.exe"
+    exe = results / f"{category}-{name} - output{EXE}"
     compile_out = results / f"{category}-{name}-compile_result.txt"
-    err_file = tdir / f"{name}.err"
-    out_file = tdir / f"{name}.output"
+    err_file = expected_file(tdir / f"{name}.err", platform_of(args))
+    out_file = expected_file(tdir / f"{name}.output", platform_of(args))
     kind = "error" if err_file.is_file() else ("output" if out_file.is_file() else "compile-only")
     r = Result("compile_tests", f"{category}/{name}", kind)
     t0 = time.time()
@@ -548,7 +654,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         clear_temp(qb_root)
     # glob.escape: test and category names may contain glob characters (e.g. "parens()", "[").
     # A folder is a build folder qb64rust kept after a failed build.
-    for stale in results.glob(glob.escape(f"{category}-{name} - output.exe") + "*"):
+    for stale in results.glob(glob.escape(f"{category}-{name} - output{EXE}") + "*"):
         if stale.is_dir():
             shutil.rmtree(stale, ignore_errors=True)
         else:
@@ -651,7 +757,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
             return r
 
     run_out = results / f"{category}-{name}-run-output.txt"
-    env = dict(os.environ)
+    env = program_env()
     env.update(
         {
             "QB64PE_NOPROMPT": noprompt,
@@ -678,7 +784,8 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         return fail("run", "timeout")
     if rc != 0:
         return fail("run", f"exit code {rc}")
-    if norm_output(out_file.read_bytes()) != norm_output(run_out.read_bytes()):
+    got = platform_neutral(run_out.read_bytes(), platform_of(args))
+    if norm_output(out_file.read_bytes()) != norm_output(got):
         return fail("result", "program output differs from .output")
     odd = unexpected_rows(trace, allowed_rows(sidecar))
     if odd:
@@ -710,7 +817,7 @@ def jobs_problem(jobs: int, suite: str, record: bool, qb64: Path, qb_root: Path)
         )
     # The compile suite's programs include files relative to the compiler's folder and some compile
     # from the clone's root; a copy has neither.
-    if old and (suite != "corpus" or qb64 != qb_root / "qb64pe.exe"):
+    if old and (suite != "corpus" or qb64 != qb_root / QB64PE):
         return "--jobs above 1 with qb64pe needs --suite corpus and the qb64pe.exe of --qb-root"
     return None
 
@@ -1211,6 +1318,58 @@ def write_expected(path: Path, data: bytes, other: Path) -> str:
     return f"warning: {other.name} replaced by {path.name}"
 
 
+def platform_expected(out_file: Path, err_file: Path, platform: str) -> tuple[Path, Path]:
+    """The .output and .err a program is judged by on platform (spec testing/golden-corpus, "Recordings
+    per platform"): on Linux a Linux sidecar of either kind stands for the program's recording, so
+    that the shared file of the other kind is not read; else the shared files."""
+    if platform == "linux":
+        out_side, err_side = linux_sidecar(out_file), linux_sidecar(err_file)
+        if out_side.is_file() or err_side.is_file():
+            return out_side, err_side
+    return out_file, err_file
+
+
+def same_as_recorded(path: Path, data: bytes) -> bool:
+    """Whether data is what the recording at path holds, as a run is judged against it: .output by
+    norm_output, .err by norm_text, any other file byte for byte."""
+    if not path.is_file():
+        return False
+    old = path.read_bytes()
+    if path.name.endswith(".output"):
+        return norm_output(old) == norm_output(data)
+    if path.name.endswith(".err"):
+        return norm_text(old) == norm_text(data)
+    if path.name.endswith(".out.txt"):
+        # As write_recorded leaves a recorded verification file alone.
+        return old == data or (
+            git_sees_text(old) and git_sees_text(data) and old.replace(b"\r\n", b"\n") == data.replace(b"\r\n", b"\n")
+        )
+    return old == data
+
+
+def write_linux_expected(path: Path, data: bytes, other: Path | None = None) -> str:
+    """--record --platform linux (spec testing/golden-corpus, "Recording on Linux"): the Linux sidecar of
+    the shared recording path holds data only where data is not what path holds; a sidecar the result no
+    longer needs is removed, and so is the other kind's sidecar. The shared files are never written.
+    Returns what changed ("" if nothing did)."""
+    changes = []
+    other_side = linux_sidecar(other) if other else None
+    if other_side and other_side.is_file():
+        other_side.unlink()
+        changes.append(f"removed {other_side.name}")
+    sidecar = linux_sidecar(path)
+    if same_as_recorded(path, data):
+        if sidecar.is_file():
+            sidecar.unlink()
+            changes.append(f"removed {sidecar.name}")
+    else:
+        old = sidecar.read_bytes() if sidecar.is_file() else None
+        if old != data:
+            sidecar.write_bytes(data)
+            changes.append(f"recorded new {sidecar.name}" if old is None else f"warning: {sidecar.name} changed")
+    return "; ".join(changes)
+
+
 PASSED_BEFORE = "not run: passed before with this executable and these expected files"
 
 
@@ -1321,8 +1480,12 @@ def corpus_test(
     script = script_of(bas)
     src = script[0] if script else bas
     prog = src.stem
-    err_file = tdir / f"{name}.err"
-    out_file = tdir / f"{name}.output"
+    platform = platform_of(args)
+    # The shared recordings, which a recording on Linux never writes, and the ones the program is
+    # judged by on this platform (Linux sidecars where there are some).
+    shared_err, shared_out = tdir / f"{name}.err", tdir / f"{name}.output"
+    out_file, err_file = platform_expected(shared_out, shared_err, platform)
+    linux_record = args.record and platform == "linux"
     norun = (tdir / f"{name}.norun").is_file()
     present = [p.suffix for p in (out_file, err_file) if p.is_file()]
     if norun:
@@ -1378,7 +1541,7 @@ def corpus_test(
     shutil.copyfile(src, work / src.name)
     if files_dir.is_dir():
         shutil.copytree(files_dir, work, dirs_exist_ok=True)
-    exe = work / f"{name}.exe"
+    exe = work / f"{name}{EXE}"
 
     old = is_old_compiler(args.qb64)
     flags = ["-f:OptimizeCppProgram=true"] if args.cpp_opt else []
@@ -1397,7 +1560,7 @@ def corpus_test(
             qb64, build_root = args.qb64, qb_root
             if old and args.copies:
                 build_root = stack.enter_context(args.copies.lease())
-                qb64 = build_root / "qb64pe.exe"
+                qb64 = build_root / QB64PE
             if old:
                 clear_temp(build_root)
             rc, timed_out = run_proc(
@@ -1438,11 +1601,11 @@ def corpus_test(
             shutil.copyfile(src, folder / src.name)
             if files_dir.is_dir():
                 shutil.copytree(files_dir, folder, dirs_exist_ok=True)
-            return build(folder, folder / f"{prog}.exe", prog_key)
+            return build(folder, folder / f"{prog}{EXE}", prog_key)
 
         rc, timed_out, compile_out = builds.get(folder, build_once)
-        if (folder / f"{prog}.exe").is_file():
-            shutil.copyfile(folder / f"{prog}.exe", exe)
+        if (folder / f"{prog}{EXE}").is_file():
+            shutil.copy2(folder / f"{prog}{EXE}", exe)
     else:
         rc, timed_out, compile_out = build(work, exe, key)
     if timed_out:
@@ -1466,6 +1629,8 @@ def corpus_test(
                 why = new_compiler_rejection(rc, compile_out.read_bytes())
                 if why:
                     return fail("record", f"not recorded: {why}")
+            if linux_record:
+                return passed(write_linux_expected(shared_err, got, shared_out))
             return passed(write_expected(err_file, got, out_file))
         if kind != "error":
             return fail("compile", f"exit code {rc}")
@@ -1493,9 +1658,11 @@ def corpus_test(
         noprompt = np_file.read_text(encoding="latin-1").strip()
     stdin_file = tdir / f"{name}.stdin"
     # <name>.exitcode: the exit code the program must end with (END n, SYSTEM n), as the process
-    # reports it (Python's returncode: on Windows the unsigned 32-bit value); without it, 0.
-    want_rc = (
-        int(exitcode_file.read_text(encoding="latin-1").strip()) if exitcode_file.is_file() else 0
+    # reports it (Python's returncode: on Windows the unsigned 32-bit value, on Linux its low 8 bits,
+    # exit_code_on); without it, 0.
+    want_rc = exit_code_on(
+        platform,
+        int(exitcode_file.read_text(encoding="latin-1").strip()) if exitcode_file.is_file() else 0,
     )
     # --pass-cache: a program that passed with this executable, this source and these expected and
     # input files is not run again. Never with --record, which is what makes the expected files.
@@ -1522,7 +1689,7 @@ def corpus_test(
         remembered = pass_cache / pass_key(exe, parts)
         if remembered.is_file():
             return passed(PASSED_BEFORE)
-    env = dict(os.environ)
+    env = program_env()
     env.update(
         {
             "QB64PE_NOPROMPT": noprompt,
@@ -1592,7 +1759,7 @@ def corpus_test(
         if rc != want_rc and not args.record:
             return fail("run", f"exit code {rc}" + (f", expected {want_rc}" if want_rc else ""))
         codes.append(rc)
-        outputs.append(apply_normalize(run_out.read_bytes(), rules))
+        outputs.append(apply_normalize(platform_neutral(run_out.read_bytes(), platform), rules))
         if screen:
             # A build that lost the state file, or a program killed before exit(), must not pass.
             if not state_out.is_file():
@@ -1606,6 +1773,14 @@ def corpus_test(
             return fail("record", "non-deterministic: the screen states of the two runs differ")
         if codes[0] != codes[1]:
             return fail("record", f"non-deterministic: exit codes {codes[0]} and {codes[1]}")
+        if linux_record:
+            # Only the output has a Linux sidecar: an exit code or a screen state of its own would need
+            # a sidecar the runner does not read.
+            if codes[0] != want_rc:
+                return fail("record", f"exit code {codes[0]} on Linux, {want_rc} recorded: no sidecar for it")
+            if screen and screen_file.is_file() and norm_output(screen_file.read_bytes()) != norm_output(states[0]):
+                return fail("record", "the screen state differs on Linux: no sidecar for it")
+            return passed(write_linux_expected(shared_out, outputs[0], shared_err))
         changes = [write_expected(out_file, outputs[0], err_file)]
         # The exit code: a file only for one that is not 0.
         if codes[0] != 0:
@@ -1685,10 +1860,13 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
     tdir = bas.parent
     r = Result("verification", name, "recorded")
     t0 = time.time()
-    exe = tdir / f"{name}.exe"
+    exe = tdir / f"{name}{EXE}"
     exe.unlink(missing_ok=True)
+    # On Linux only <name>.linux.out.txt is written, where the result differs from <name>.out.txt (spec
+    # testing/golden-corpus, "Recording on Linux"); the shared files are Windows' recordings.
+    linux = platform_of(args) == "linux"
     clear_temp(qb_root)
-    env = dict(os.environ)
+    env = program_env()
     env["QB64PE_NOPROMPT"] = "y"
     # Both go to the results folder first: a compile that times out leaves the recorded files alone.
     compile_out = results / f"{name}-compile.txt"
@@ -1699,7 +1877,7 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
         if folder is not None:
             copies = getattr(args, "root_copies", None) or results.parent / "qb64pe-root"
             compiler_root = root_copy(qb_root, tdir / folder, copies / folder)
-            compiler = compiler_root / "qb64pe.exe"
+            compiler = compiler_root / QB64PE
         placed = place_root_files(tdir, name, compiler_root)
     except (OSError, ValueError) as e:
         r.status, r.stage, r.detail = "FAIL", "expected", f"{e}; nothing recorded"
@@ -1720,12 +1898,16 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
         r.seconds = round(time.time() - t0, 1)
         return r
 
-    changes = [
-        write_recorded(
-            tdir / f"{name}.compile.txt",
-            mask_folder(compile_out.read_bytes(), tdir) + f"exit={bash_exit_code(rc)}\n".encode(),
-        )
-    ]
+    changes = (
+        []
+        if linux
+        else [
+            write_recorded(
+                tdir / f"{name}.compile.txt",
+                mask_folder(compile_out.read_bytes(), tdir) + f"exit={bash_exit_code(rc)}\n".encode(),
+            )
+        ]
+    )
     if exe.is_file():
         np_file = tdir / f"{name}.noprompt"
         if np_file.is_file():
@@ -1746,11 +1928,16 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
             stdin_path=stdin_file if stdin_file.is_file() else None,
             ask_first=True,  # as `timeout` did under run.sh: the pending prompt is recorded
         )
-        out = verification_text(run_out.read_bytes(), rc, timed_out, tdir)
-        logged = program_log(log, tdir)
+        out = verification_text(platform_neutral(run_out.read_bytes(), platform_of(args)), rc, timed_out, tdir)
+        logged = program_log(log, tdir, platform_of(args))
     else:
         out = NOT_COMPILED
         logged = b""
+    if linux:
+        changes.append(write_linux_expected(tdir / f"{name}.out.txt", out))
+        r.detail = "; ".join(c for c in changes if c)
+        r.seconds = round(time.time() - t0, 1)
+        return r
     changes.append(write_recorded(tdir / f"{name}.out.txt", out))
     # <name>.log.txt: only for a program that logged entries of its own.
     log_file = tdir / f"{name}.log.txt"
@@ -1815,7 +2002,7 @@ def root_copy(qb_root: Path, folder: Path, root: Path) -> Path:
     Raises OSError when the junction cannot be made (no fallback copies the toolchain)."""
     settings = clone_settings(qb_root)
     h = hashlib.sha256()
-    for fname in ("qb64pe.exe", "Makefile"):
+    for fname in (QB64PE, "Makefile"):
         st = (qb_root / fname).stat()
         h.update(f"{fname}\t{st.st_size}\t{st.st_mtime_ns}\n".encode())
     for sname, data in settings.items():
@@ -1827,7 +2014,7 @@ def root_copy(qb_root: Path, folder: Path, root: Path) -> Path:
         return root
     remove_root_copy(root)
     root.mkdir(parents=True)
-    for fname in ("qb64pe.exe", "Makefile"):
+    for fname in (QB64PE, "Makefile"):
         shutil.copy2(qb_root / fname, root / fname)
     for sname, data in settings.items():
         target = root / "settings" / sname
@@ -1956,6 +2143,8 @@ def verification_text(out: bytes, rc: int | None, timed_out: bool, folder: Path)
 
 LOG_ENTRY = re.compile(rb"^\[[^\]]*\] (\S+ (\S+) .*)$")
 LOG_FRAME = re.compile(rb"^(#\d+\s+)\[0x[^\]]*\] (in .*)$")
+# A stack frame as program_log keeps it, its address dropped.
+LOG_KEPT_FRAME = re.compile(rb"^#\d+\s+in ")
 
 
 def log_env(env: dict, log: Path) -> None:
@@ -1965,10 +2154,12 @@ def log_env(env: dict, log: Path) -> None:
     env["QB64PE_LOG_FILE_PATH"] = str(log)
 
 
-def program_log(log: Path, folder: Path) -> bytes:
+def program_log(log: Path, folder: Path, platform: str = HOST_PLATFORM) -> bytes:
     """The text of <name>.log.txt for a run that wrote log in folder: the entries of scope QB64 (the
     program's own) with the stack frames that follow them, without each entry's timestamp and each
-    frame's address, the folder masked, LF line ends; b"" when the program logged nothing."""
+    frame's address, the folder masked, LF line ends; b"" when the program logged nothing. On Linux the
+    separator after the masked folder is written as Windows' (an entry names the source file by its path),
+    so that one recording holds for both (m7-linux task 5.4, verification/v50_b_log)."""
     if not log.is_file():
         return b""
     kept: list[bytes] = []
@@ -1983,14 +2174,26 @@ def program_log(log: Path, folder: Path) -> bytes:
         frame = LOG_FRAME.match(line)
         if frame and keep_frames:
             kept.append(frame.group(1) + frame.group(2))
-    return mask_folder(b"".join(k + b"\n" for k in kept), folder)
+    text = mask_folder(b"".join(k + b"\n" for k in kept), folder)
+    if platform == "linux":
+        text = text.replace(b"<verification>/", b"<verification>\\")
+    return text
+
+
+def log_without_frames_on(platform: str, text: bytes) -> bytes:
+    """A recorded <name>.log.txt as the program's log is on platform: on Linux without its stack frames, which
+    libqb's Linux build does not write (QB64pe's too; m7-linux task 5.4, verification/v50_b_log), so that one
+    recording holds for both."""
+    if platform != "linux":
+        return text
+    return b"".join(line for line in text.splitlines(keepends=True) if not LOG_KEPT_FRAME.match(line))
 
 
 def family(name: str) -> str | None:
     """The family number of a verification program or support file: v16 for v16_m8_a, v16_inc and
-    v16_y.bi, v37 for v37c.a, v02 for v02b_idiv_zero; None for a name that has none."""
-    m = re.match(r"v\d+", name, re.IGNORECASE)
-    return m.group(0).lower() if m else None
+    v16_y.bi, v37 for v37c.a (and Linux's libv37c.a), v02 for v02b_idiv_zero; None for a name that has none."""
+    m = re.match(r"(?:lib)?(v\d+)", name, re.IGNORECASE)
+    return m.group(1).lower() if m else None
 
 
 # What the verification folder holds besides support files: programs, recorded files (.txt), executables
@@ -2040,8 +2243,13 @@ def verification_support(root: Path, name: str) -> list[Path]:
     ]
 
 
-# Built by verification/v37_lib/build_libs.py (git-ignored); the v37 programs name them.
-V37_LIBRARIES = ("v37c.a", "v37s.a", "v37o.o", "v37cpp.a", "v37dll.dll")
+# Built by verification/v37_lib/build_libs.py (git-ignored); the v37 programs name them. On Linux under the names
+# the old compiler's Linux build looks for (OpenSpec change m7-linux, task 3.5).
+V37_LIBRARIES = (
+    ("v37c.a", "v37s.a", "v37o.o", "v37cpp.a", "v37dll.dll")
+    if os.name == "nt"
+    else ("libv37c.a", "libv37s.a", "libv37o.o", "libv37cpp.a", "libv37dll.so")
+)
 
 
 def tree_digest(paths: list[Path]) -> bytes:
@@ -2080,7 +2288,7 @@ def verification_compare(
     `<name> [fixes on]`."""
     name = bas.stem
     root = bas.parent
-    recorded_file = fixed_sidecar(name) if fixed else root / f"{name}.out.txt"
+    recorded_file = fixed_sidecar(name) if fixed else expected_file(root / f"{name}.out.txt", platform_of(args))
     recorded = recorded_file.read_bytes() if recorded_file.is_file() else None
     rejected = recorded is not None and recorded.replace(b"\r\n", b"\n") == NOT_COMPILED
     test = f"{name} [fixes on]" if fixed else name
@@ -2100,7 +2308,9 @@ def verification_compare(
     if recorded is None:
         return fail("expected", f"nothing recorded to compare: no {recorded_file.name}")
     log_file = root / f"{name}.log.txt"
-    recorded_log = log_file.read_bytes().replace(b"\r\n", b"\n") if log_file.is_file() else b""
+    recorded_log = log_without_frames_on(
+        platform_of(args), log_file.read_bytes().replace(b"\r\n", b"\n") if log_file.is_file() else b""
+    )
     if family(name) == "v37":
         missing = [lib for lib in V37_LIBRARIES if not (root / lib).is_file()]
         if missing:
@@ -2126,9 +2336,9 @@ def verification_compare(
             shutil.copytree(item, work / item.name, ignore=shutil.ignore_patterns("__pycache__"))
         else:
             shutil.copyfile(item, work / item.name)
-    exe = work / f"{name}.exe"
+    exe = work / f"{name}{EXE}"
     compile_out = results / f"{tag}-compile.txt"
-    env = dict(os.environ)
+    env = program_env()
     env["QB64PE_NOPROMPT"] = "y"
     # The folder and the files the old compiler found in its own folder, under a root of their own, in
     # the recording's order: a listed file the folder holds already is the same error as there.
@@ -2241,13 +2451,13 @@ def verification_compare(
         ask_first=True,
     )
     append_counts(args, counts, timed_out)
-    actual = verification_text(run_out.read_bytes(), rc, timed_out, work)
+    actual = verification_text(platform_neutral(run_out.read_bytes(), platform_of(args)), rc, timed_out, work)
     rules = load_normalize(normalize)
     want = norm_output(apply_normalize(recorded, rules))
     got = norm_output(apply_normalize(actual, rules))
     if want != got:
         return fail("result", f"differs from {recorded_file.name}, {first_difference(want, got)}")
-    got_log = program_log(log, work)
+    got_log = program_log(log, work, platform_of(args))
     if recorded_log != got_log:
         return fail("log", f"differs from {log_file.name}, {first_difference(recorded_log, got_log)}")
     odd = unexpected_rows(trace, allowed_rows(divergences))
@@ -2483,7 +2693,14 @@ def run_suite_test(
     corpus_root: Path,
     known: dict[str, str],
 ) -> list[Result]:
-    """Runs one program of a suite; an exception in the runner becomes a FAIL result."""
+    """Runs one program of a suite; an exception in the runner becomes a FAIL result. A program that a
+    Linux list names with the reason "windows" is skipped on Linux (SKIP), not run."""
+    if suite in ("corpus", "compile", "verification"):
+        root = corpus_root if suite == "corpus" else bas.parent if suite == "verification" else bas.parent.parent
+        key = ":".join(result_key(suite, bas, root))
+        reason = known.get(key, "")
+        if skipped_on(platform_of(args), reason):
+            return [Result(key.split(":", 1)[0], key.split(":", 1)[1], "skipped", "SKIP", "skipped", reason)]
     try:
         if suite == "compile":
             return [compile_test(bas, args, results, qb_root, args.os_tag)]
@@ -2666,7 +2883,18 @@ def main() -> int:
         default=here.parents[2] / "target" / "legacy-tests",
         help="where exes, logs and results.json go (default: %(default)s)",
     )
-    ap.add_argument("--os-tag", default="win", help="OS tag for .<os>.license files")
+    ap.add_argument(
+        "--platform",
+        choices=["windows", "linux"],
+        default=HOST_PLATFORM,
+        help="the platform whose recordings the programs are judged by (on Linux the <name>.linux.* sidecars and "
+        "the suites' known.linux.list; with --record, the Linux sidecars only); never the compile line "
+        "(default: the host, %(default)s)",
+    )
+    ap.add_argument(
+        "--os-tag",
+        help="OS tag for .<os>.license files (default: win for --platform windows, lnx for linux)",
+    )
     ap.add_argument(
         "--known-failures",
         type=Path,
@@ -2825,10 +3053,24 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
+    if args.os_tag is None:
+        args.os_tag = "win" if args.platform == "windows" else "lnx"
+    if args.record and args.platform != HOST_PLATFORM:
+        print("--record runs the programs: its --platform must be the host's", file=sys.stderr)
+        return 2
     known = load_known_failures(args.known_failures)
+    if args.platform == "linux":
+        # What cannot pass on Linux, beside each suite (LINUX_KNOWN): it adds to the shared lists.
+        known.update(load_linux_list(args.corpus_root / LINUX_KNOWN, "corpus"))
+        known.update(load_linux_list(UPSTREAM_ROOT / LINUX_KNOWN, "compile_tests"))
+        known.update(load_linux_list(VERIFICATION_LISTS / LINUX_KNOWN, "verification"))
+    # The check of the recordings: a Linux sidecar equal to its shared recording is one to delete.
+    for sidecar in equal_sidecars([args.corpus_root, UPSTREAM_ROOT, args.verification_root]):
+        print(f"{repo_relative(sidecar.resolve())} equals its shared recording: delete it", file=sys.stderr)
+        return 1
 
     qb_root = args.qb_root.resolve()
-    args.qb64 = (args.qb64 or qb_root / "qb64pe.exe").resolve()
+    args.qb64 = (args.qb64 or qb_root / QB64PE).resolve()
     if not args.qb64.is_file():
         print(f"compiler not found: {args.qb64}", file=sys.stderr)
         return 2
@@ -3104,7 +3346,8 @@ def main() -> int:
     summary: dict = {}
     for r in all_results:
         s = summary.setdefault(r.suite, {"PASS": 0, "FAIL": 0, "KFAIL": 0})
-        s[r.status] += 1
+        # SKIP only where a program was skipped (a Linux run), so that Windows summaries stay as they were.
+        s[r.status] = s.get(r.status, 0) + 1
     if args.pass_cache:
         kept = sum(1 for r in all_results if r.detail == PASSED_BEFORE)
         print(f"--pass-cache: {kept} of {len(all_results)} programs not run (passed before)")
@@ -3142,6 +3385,8 @@ def main() -> int:
         "cpp_opt": args.cpp_opt,
         "record": args.record,
         "jobs": args.jobs,
+        # Only on Linux, so that a Windows run's record is as before.
+        **({"platform": args.platform} if args.platform != "windows" else {}),
         "build_cache": bool(args.build_cache),
         "pass_cache": bool(args.pass_cache),
         "coverage": bool(args.coverage),

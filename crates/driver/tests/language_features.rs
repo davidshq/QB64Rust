@@ -491,6 +491,15 @@ fn references_of_a_function() {
 fn slice_programs() -> Vec<String> {
     #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
     let list = std::fs::read_to_string(repo().join("tests/corpus/slice.list")).unwrap();
+    // Off Windows, the programs the corpus's Linux list marks as needing Windows (`m7-linux`, design D6).
+    #[expect(clippy::disallowed_methods, reason = "a list of file names, not BASIC source")]
+    let linux = std::fs::read_to_string(repo().join("tests/corpus/known.linux.list")).unwrap_or_default();
+    let windows_only: Vec<&str> = linux
+        .lines()
+        .filter_map(|l| l.split_once('\t'))
+        .filter(|(_, reason)| reason.starts_with("windows"))
+        .map(|(name, _)| name.trim())
+        .collect();
     let mut out: Vec<String> = Vec::new();
     for line in list.lines() {
         let line = line.split('#').next().unwrap().trim();
@@ -503,7 +512,8 @@ fn slice_programs() -> Vec<String> {
             Some((name, _script)) => format!("{folder}/{name}"),
             None => line.to_string(),
         };
-        if !out.contains(&program) {
+        let skipped = !cfg!(windows) && windows_only.contains(&program.as_str());
+        if !skipped && !out.contains(&program) {
             out.push(program);
         }
     }
@@ -710,18 +720,20 @@ fn rename_refused_by_the_check_of_the_edit() {
 }
 
 /// A program with a `$IF` branch that is not compiled: the rename is made, and a message says that branch was not
-/// renamed.
+/// renamed. The server reads the program as compiled on the host, so the test names the host's branch (`m7-linux`).
 #[test]
 fn rename_with_an_inactive_branch() {
     let dir = tempfile::tempdir().unwrap();
     let mut c = Client::start(dir.path());
     let f = dir.path().join("p.bas");
-    let text = "x = 1\n$IF WIN THEN\nPRINT x\n$ELSE\nPRINT x + 1\n$END IF\n";
+    let host = if cfg!(windows) { "WIN" } else { "LINUX" };
+    let text = format!("x = 1\n$IF {host} THEN\nPRINT x\n$ELSE\nPRINT x + 1\n$END IF\n");
+    let text = text.as_str();
     c.open(&f, text);
     let edits = c.rename(&f, text, "x", 0, "y").unwrap();
     assert_eq!(
         apply(text, &edits[0].1),
-        "y = 1\n$IF WIN THEN\nPRINT y\n$ELSE\nPRINT x + 1\n$END IF\n"
+        format!("y = 1\n$IF {host} THEN\nPRINT y\n$ELSE\nPRINT x + 1\n$END IF\n")
     );
     let note = c.note("window/showMessage");
     assert!(note["message"].as_str().unwrap().contains("not compiled"), "{note}");

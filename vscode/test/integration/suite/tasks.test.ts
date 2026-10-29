@@ -15,7 +15,7 @@ describe("tasks", function () {
 
     it("provides build and run tasks; the build task compiles the active file", async () => {
         const uri = writeFile("tasks/prog.bas", '$CONSOLE:ONLY\r\nPRINT "task"\r\n');
-        const exe = uri.fsPath.replace(/\.bas$/i, ".exe");
+        const exe = uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
         await open(uri);
         const tasks = await vscode.tasks.fetchTasks({ type: "qb64rust" });
         assert.deepStrictEqual(tasks.map((t) => t.name).sort(), ["build", "run"]);

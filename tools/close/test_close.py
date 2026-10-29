@@ -166,6 +166,45 @@ class Plan(unittest.TestCase):
         self.assertTrue(by["format"].copy and by["format-corpus"].copy)
         self.assertEqual(by["format-corpus"].judge, "runner")
 
+    def test_linux_by_files(self):
+        # The Linux family (design D11 of m7-linux): a change to what the release build is made from asks for it, a
+        # document does not.
+        for f in (
+            "crates/driver/src/build.rs",
+            "crates/codegen-cpp/src/procs.rs",
+            "crates/sema/src/lib.rs",
+            "Cargo.lock",
+            "crates/driver/src/toolchain.rs",
+            "crates/driver/src/library.rs",
+            "crates/codegen-cpp/src/library.rs",
+            "crates/dap/src/lib.rs",
+            "tools/legacy_tests/run_legacy_tests.py",
+            "libqb/internal/c/libqb.cpp",
+            "tools/libqb/edits/d048-console-eof-input-string.edit",
+            "tools/linux/sync.sh",
+            "tests/corpus/slice/s127_sound_handles.linux.output",
+            "verification/v01_x.linux.out.txt",
+            "tests/verification/known.linux.list",
+        ):
+            self.assertTrue(close.needs_linux([f]), f)
+        for f in ("STATUS.md", "openspec/changes/m7-linux/design.md", "vscode/src/extension.ts", "tests/corpus/a.output"):
+            self.assertFalse(close.needs_linux([f]), f)
+        names = [s.name for s in steps(False, False, False, True)]
+        self.assertEqual(names[-3:], ["linux-sync", "linux-tier1", "linux-slice"])
+        self.assertNotIn("linux-sync", [s.name for s in steps(True, True, True)])
+        by = {s.name: s for s in steps(False, False, False, True)}
+        self.assertEqual(by["linux-sync"].command, "wsl --cd . -e bash tools/linux/sync.sh > target/close/linux-sync.log 2>&1")
+        self.assertIn("cargo test --workspace --locked --no-fail-fast", by["linux-tier1"].command)
+        self.assertIn("--list tests/corpus/slice.list", by["linux-slice"].command)
+        self.assertEqual((by["linux-tier1"].judge, by["linux-slice"].judge), ("cargo", "runner"))
+        for files, present in ((["crates/driver/src/build.rs"], True), (["STATUS.md"], False)):
+            out = io.StringIO()
+            with mock.patch.object(close, "changed_files", return_value=files):
+                with redirect_stdout(out):
+                    close.plan(False)
+            self.assertEqual("tools/linux/sync.sh" in out.getvalue(), present, files)
+            self.assertEqual("# no Linux runs" in out.getvalue(), not present, files)
+
     def test_plan_names_the_format_runs(self):
         for files, present in ((["crates/format/src/lib.rs"], True), (["crates/sema/src/lib.rs"], False)):
             out = io.StringIO()
@@ -259,8 +298,12 @@ class Check(unittest.TestCase):
             "qbasic": '{"qbasic_testcases": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "callsite": "1 programs: 1 equal, 0 differ, 0 not compared\n",
             "cli": CARGO_OK,
+            "linux-sync": "synced 1 files into ~/qb64rust\n",
+            "linux-tier1": CARGO_OK,
+            "linux-slice": '{"corpus": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
         }
-        for s in steps(False):
+        # A change to a crate asks for the Linux family too (LINUX_FILES).
+        for s in steps(False, linux=True):
             path = self.root / close.log(s.name)
             path.write_text(good.get(s.name, ""))
             self.at(path, 150 if s.before_build and s.name != "build" else 300)
@@ -303,7 +346,7 @@ class Check(unittest.TestCase):
         code, text = self.run_check()
         self.assertEqual(code, 1)
         self.assertIn("STALE    slice: older than crates/a.rs", text)
-        reasons = {s.name: "a test-only edit" for s in steps(False)}
+        reasons = {s.name: "a test-only edit" for s in steps(False, linux=True)}
         code, text = self.run_check(not_repeated=reasons)
         self.assertEqual(code, 0, text)
         # The reason once, with the steps it covers; each step points to it.

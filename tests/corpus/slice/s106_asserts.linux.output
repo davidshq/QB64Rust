@@ -1,0 +1,7 @@
+asserts on
+g called
+f called
+passed
+
+Runtime error: Line: 20 (in main module)
+_ASSERT failed

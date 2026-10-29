@@ -156,18 +156,37 @@ pub fn unattended(exe: &Path) -> Command {
     cmd
 }
 
-/// A tool of the toolchain a build uses (`nm.exe`, `lldb.exe`), by its file name; `""`: its `bin` folder.
+/// A tool of the toolchain a build uses (`nm.exe`, `lldb.exe`), by its Windows file name (off Windows without
+/// `.exe`, and of a system toolchain the first on `PATH`); `""`: its `bin` folder.
 pub fn toolchain(name: &str) -> PathBuf {
-    qb64rust_driver::toolchain::find(None, None)
-        .expect("a C++ toolchain")
-        .bin(name)
+    use qb64rust_driver::toolchain::{Source, find};
+    let found = find(qb64rust_base::Platform::host(), None, None).expect("a C++ toolchain");
+    let name = if cfg!(windows) {
+        name
+    } else {
+        name.trim_end_matches(".exe")
+    };
+    if found.source == Source::System {
+        if name.is_empty() {
+            return found.folder;
+        }
+        if let Some(p) = found.path.iter().map(|d| d.join(name)).find(|p| p.is_file()) {
+            return p;
+        }
+        return found.folder.join(name);
+    }
+    found.folder.join("bin").join(name)
 }
 
-/// The folder of the toolchain a build uses.
+/// The folder of the toolchain a build uses, as `--toolchain-root` takes it: of a system toolchain the folder above
+/// the `bin` of its `g++` (`/usr`).
 pub fn toolchain_folder() -> PathBuf {
-    qb64rust_driver::toolchain::find(None, None)
-        .expect("a C++ toolchain")
-        .folder
+    use qb64rust_driver::toolchain::{Source, find};
+    let found = find(qb64rust_base::Platform::host(), None, None).expect("a C++ toolchain");
+    if found.source == Source::System {
+        return found.folder.parent().map(Path::to_path_buf).unwrap_or(found.folder);
+    }
+    found.folder
 }
 
 /// The deadline of a run of `lldb` in batch mode: it starts the program, runs the commands and exits, killing it;
@@ -185,17 +204,28 @@ pub fn debugger_alone() -> std::sync::MutexGuard<'static, ()> {
     ONE_AT_A_TIME.lock().unwrap_or_else(|e| e.into_inner())
 }
 
+/// The `lldb` of the toolchain's `lldb-dap` ([`qb64rust_driver::toolchain::lldb_dap`]): the same name with `lldb`
+/// for `lldb-dap` (`lldb-dap.exe` gives `lldb.exe`, `lldb-dap-20` gives `lldb-20`).
+pub fn lldb_beside_lldb_dap() -> PathBuf {
+    use qb64rust_driver::toolchain;
+    let found = toolchain::find(qb64rust_base::Platform::host(), None, None).expect("a C++ toolchain");
+    let dap = toolchain::lldb_dap(&found, None).expect("lldb-dap");
+    let name = dap.file_name().and_then(|n| n.to_str()).expect("lldb-dap's name");
+    dap.with_file_name(name.replacen("lldb-dap", "lldb", 1))
+}
+
 /// Runs the clone's `lldb` in batch mode (`-b`) on `exe`, one `-o` per command, with `QB64PE_NOPROMPT=y` (the
 /// program's runtime errors open no dialog) and [`LLDB_LIMIT`]; gives what it printed, stdout then stderr. After
 /// the last command `lldb` exits and ends the program (design D4 of `m5-debug-build-symbols`). One run at a time in
 /// a test binary: in a full `--ignored` run, beside the other tests' builds, one of several `lldb`s started together
 /// once stopped after `breakpoint set` until its deadline (2026-10-25); a run takes about a second. When
 /// [`LLDB_LOG_ENV`] names a file, `lldb` writes its log of stepping, threads and the process there first (task 1.1
-/// of `m5-dap-proxy`, the hang of a `next`).
+/// of `m5-dap-proxy`, the hang of a `next`). The `lldb` is the one beside the `lldb-dap` the adapter starts: on
+/// Linux `lldb-20` beside `lldb-dap-20`, as Ubuntu's versioned packages install them (`m7-linux` task 4.2).
 #[expect(clippy::disallowed_methods, reason = "lldb's own messages")]
 pub fn lldb(exe: &Path, commands: &[&str]) -> String {
     let _alone = debugger_alone();
-    let mut cmd = Command::new(toolchain("lldb.exe"));
+    let mut cmd = Command::new(lldb_beside_lldb_dap());
     cmd.arg("-b").env("QB64PE_NOPROMPT", "y");
     for (name, value) in qb64rust_dap::LLDB_ENV {
         cmd.env(name, value);
@@ -246,7 +276,10 @@ fn main_checkout(repo: &Path) -> PathBuf {
 /// objects are up to date, alone while they are built (`clone_lock.py`, `OBJECTS_LOCK`). Every compiler a test
 /// starts is given it, so the tests' builds and a test runner's run of the new compiler build side by side.
 pub fn objects_lock() -> PathBuf {
-    clone_lock_dir().join("objects.lock")
+    let dir = clone_lock_dir();
+    // A fresh checkout (a copy synced into WSL) has no runner's folder yet.
+    let _ = std::fs::create_dir_all(&dir);
+    dir.join("objects.lock")
 }
 
 /// The variable that names [`objects_lock`] to the driver (`OBJECTS_LOCK_ENV` of `crates\driver\src\build.rs`).

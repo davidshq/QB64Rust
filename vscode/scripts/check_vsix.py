@@ -1,11 +1,12 @@
 """Checks a packaged .vsix against "Platform package contents" of spec editor/packaging (design D8 of the
-OpenSpec change extension-vsix): it targets win32-x64, carries the qb64rust binary, the copy of libqb with its
+OpenSpec change extension-vsix): it targets win32-x64 or linux-x64 (design D8 of m7-linux), carries the qb64rust
+binary for it (`qb64rust.exe`, `qb64rust`; a Linux package holds no `.exe`), the copy of libqb with its
 licence, the crates' notice and the extension's licence, and carries no TypeScript file, no built object and
 no toolchain.
 
 With --tag, it first checks that a release tag `vscode-v<version>` names the version of vscode/package.json, that
 the workspace version of Cargo.toml is the same, and that CHANGELOG.md has a section `## <version>` (written to
---notes-out with a paragraph on the two assets, the release's notes); with --tag alone
+--notes-out with a paragraph on the four assets, the release's notes); with --tag alone
 (no .vsix) it checks only that, so the release workflow fails before it packages.
 
 Exits with status 1, naming each problem, when a check fails.
@@ -25,8 +26,14 @@ import zipfile
 PACKAGE_JSON = pathlib.Path(__file__).resolve().parents[1] / "package.json"
 CHANGELOG = PACKAGE_JSON.parent / "CHANGELOG.md"
 TARGET = "win32-x64"
+# The binary each target's package carries.
+BINARIES = {
+    "win32-x64": "extension/bundle/bin/qb64rust.exe",
+    "linux-x64": "extension/bundle/bin/qb64rust",
+}
+# What a Windows package holds; a Linux one the same with its own binary.
 REQUIRED = [
-    "extension/bundle/bin/qb64rust.exe",
+    BINARIES[TARGET],
     "extension/bundle/libqb/Makefile",
     "extension/bundle/libqb/internal/c/qbx.cpp",
     "extension/bundle/libqb/COPYING.txt",
@@ -40,8 +47,9 @@ FORBIDDEN_SUFFIXES = (".ts", ".o", ".a", ".map")
 TAG = re.compile(r"^vscode-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$")
 CARGO_TOML = PACKAGE_JSON.parents[1] / "Cargo.toml"
 ASSETS_PARAGRAPH = (
-    "The `.vsix` is the VS Code extension, with the compiler inside. The `.zip` is the compiler alone, for a command"
-    " line or another editor: unpack it into a folder you can write to and read its `MANUAL.md`.\n"
+    "Each `.vsix` is the VS Code extension, with the compiler inside: `win32-x64` for Windows, `linux-x64` for Linux."
+    " The `.zip` (Windows) and the `.tar.gz` (Linux) are the compiler alone, for a command line or another editor:"
+    " unpack one into a folder you can write to and read its `MANUAL.md`.\n"
 )
 
 
@@ -76,21 +84,27 @@ def cargo_version(text):
 
 
 def release_notes(section):
-    """The release's notes: the changelog section, then what the two assets are (design D8 of m6-compiler-download)."""
+    """The release's notes: the changelog section, then what the four assets are (design D8 of m6-compiler-download, D10 of m7-linux)."""
     return section + "\n" + ASSETS_PARAGRAPH
 
 
 def check_vsix(names, manifest):
-    """Problems with a package, given its file names and the text of its extension.vsixmanifest."""
-    problems = [f"missing: {n}" for n in REQUIRED if n not in names]
+    """Problems with a package, given its file names and the text of its extension.vsixmanifest. Its target is the
+    manifest's; one that is neither of BINARIES' is a problem, and the package is then checked as Windows'."""
+    m = re.search(r'TargetPlatform="([^"]*)"', manifest)
+    target = m.group(1) if m and m.group(1) in BINARIES else None
+    required = [BINARIES[target or TARGET], *REQUIRED[1:]]
+    problems = [f"missing: {n}" for n in required if n not in names]
     for n in names:
         lower = n.lower()
         if lower.endswith(FORBIDDEN_SUFFIXES):
             problems.append(f"must not be packaged: {n}")
         elif "/c_compiler/" in lower:
             problems.append(f"a toolchain file must not be packaged: {n}")
-    if f'TargetPlatform="{TARGET}"' not in manifest:
-        problems.append(f"the manifest does not target {TARGET}")
+        elif target == "linux-x64" and lower.endswith(".exe"):
+            problems.append(f"a Linux package must hold no .exe: {n}")
+    if target is None:
+        problems.append(f"the manifest does not target {' or '.join(BINARIES)}")
     return problems
 
 

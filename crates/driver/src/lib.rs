@@ -11,7 +11,7 @@ pub mod toolchain;
 use qb64rust_base::fixes::Fixes;
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;
-use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse_settled};
+use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse_settled_on};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -99,7 +99,7 @@ impl FileLoader {
 
 impl Loader for FileLoader {
     fn load(&mut self, map: &mut SourceMap, from: FileId, path: &[u8]) -> Result<FileId, LoadError> {
-        let rel = &include_name(path);
+        let rel = &host_path(&include_name(path).to_string_lossy());
         let from_dir = self.dirs.get(&from).cloned().unwrap_or_default();
         let shown_dir = Path::new(&map.file(from).name)
             .parent()
@@ -159,7 +159,8 @@ impl FileLoader {
 }
 
 /// Lexes, parses and checks a file that includes no other (`$INCLUDE` finds no file). `name` is how the file is
-/// shown in diagnostics and `#line` directives.
+/// shown in diagnostics and `#line` directives. The program is read as compiled on Windows (`$IF WIN`), so that a
+/// test sees one result on either host.
 pub fn frontend(name: &str, bytes: Vec<u8>) -> Frontend {
     frontend_with(name, bytes, |_| Box::new(NoLoader))
 }
@@ -167,12 +168,14 @@ pub fn frontend(name: &str, bytes: Vec<u8>) -> Frontend {
 /// [`frontend`] with included files found by the loader `loader` makes for the main file's id. The checks that
 /// read the disk are left out: [`frontend_at`] makes them.
 pub fn frontend_with(name: &str, bytes: Vec<u8>, loader: impl FnOnce(FileId) -> Box<dyn Loader>) -> Frontend {
-    frontend_at(name, bytes, loader, None, Fixes::OFF)
+    frontend_at(qb64rust_base::Platform::Windows, name, bytes, loader, None, Fixes::OFF)
 }
 
-/// [`frontend_with`] for the main file on disk, if given (`disk`: its path and the compiler root): then the checks
-/// of [`check_program`] that read the disk are made too, as for a compile run. `fixes`: the program's fixes.
+/// [`frontend_with`] for a program compiled on `platform` (the compiler's is the host's), with the main file on
+/// disk, if given (`disk`: its path and the compiler root): then the checks of [`check_program`] that read the disk
+/// are made too, as for a compile run. `fixes`: the program's fixes.
 pub fn frontend_at(
+    platform: qb64rust_base::Platform,
     name: &str,
     bytes: Vec<u8>,
     loader: impl FnOnce(FileId) -> Box<dyn Loader>,
@@ -182,7 +185,7 @@ pub fn frontend_at(
     let mut map = SourceMap::new();
     let file = map.add(name, bytes);
     let mut loader = loader(file);
-    let parsed = parse_settled(&mut map, file, loader.as_mut());
+    let parsed = parse_settled_on(platform, &mut map, file, loader.as_mut());
     let (program, diagnostics) = check_program(&map, &parsed, disk, fixes);
     Frontend {
         map,
@@ -209,7 +212,7 @@ pub fn check_program(
     let mut diagnostics = parsed.diagnostics();
     diagnostics.extend(sema_diags);
     if let Some((path, root)) = disk {
-        check_exe_icon(&program, &mut diagnostics, path, root);
+        check_exe_icon_on(parsed.flags.platform(), &program, &mut diagnostics, path, root);
         check_embedded_files(&program, &mut diagnostics, path, root);
     }
     (program, diagnostics)
@@ -320,9 +323,19 @@ fn icon_path(program: &Program, main_path: &Path, root: &Path) -> Option<PathBuf
 /// keeps a drive with no slash after it, `C:icon.ico`, marked.)
 fn named_file(name: &str, main_path: &Path, root: &Path) -> PathBuf {
     match qb64rust_sema::ExeIcon::beside_source(name) {
-        Some(rest) => beside(main_path, rest),
-        None if Path::new(name).is_absolute() => PathBuf::from(name),
-        None => root.join(name),
+        Some(rest) => beside(main_path, &host_path(rest).to_string_lossy()),
+        None if host_path(name).is_absolute() => host_path(name),
+        None => root.join(host_path(name)),
+    }
+}
+
+/// A file name a program writes, as the host's file calls take it: on Linux every `\` is a `/`, as libqb's
+/// `filepath_fix_directory` makes it in the old compiler's own `_FILEEXISTS` and `OPEN` (design D2 of `m7-linux`);
+/// on Windows as written.
+pub fn host_path(name: &str) -> PathBuf {
+    match qb64rust_base::Platform::host() {
+        qb64rust_base::Platform::Windows => PathBuf::from(name),
+        qb64rust_base::Platform::Linux => PathBuf::from(name.replace('\\', "/")),
     }
 }
 
@@ -348,15 +361,27 @@ fn beside(main_path: &Path, rest: &str) -> PathBuf {
 /// the old compiler names the folder it looked in (`QB64PE-DIVERGENCES.md`): no diagnostic holds a folder of the machine.
 /// A file that is there but is no icon ([`is_icon`]) is an error too, where both compilers' C++ build fails
 /// (`verification\v29_e16_not_an_icon`; design D1 of `cpp-failure-errors`). A file that cannot be read is left to
-/// the build.
+/// the build. On Linux the icon goes into no resource, and the old compiler builds with any file there (measured,
+/// task 3.2 of `m7-linux`), so only a missing one is an error.
 pub fn check_exe_icon(program: &Program, diagnostics: &mut Diagnostics, main_path: &Path, root: &Path) {
+    check_exe_icon_on(qb64rust_base::Platform::host(), program, diagnostics, main_path, root);
+}
+
+/// [`check_exe_icon`] for a build on `platform`, so that the front-end tests see one result on either host.
+pub fn check_exe_icon_on(
+    platform: qb64rust_base::Platform,
+    program: &Program,
+    diagnostics: &mut Diagnostics,
+    main_path: &Path,
+    root: &Path,
+) {
     let (Some(path), Some(icon)) = (icon_path(program, main_path, root), &program.settings.exe_icon) else {
         return;
     };
     if !path.is_file() {
         let msg = format!("the file `{}` of `$EXEICON` is not found", icon.shown);
         diagnostics.error(icon.span, msg);
-    } else if std::fs::read(&path).is_ok_and(|bytes| !is_icon(&bytes)) {
+    } else if platform == qb64rust_base::Platform::Windows && std::fs::read(&path).is_ok_and(|bytes| !is_icon(&bytes)) {
         let msg = format!("the file `{}` of `$EXEICON` is not an icon file", icon.shown);
         diagnostics.error(icon.span, msg);
     }
@@ -646,15 +671,19 @@ mod tests {
     #[test]
     fn named_file_by_the_form_of_the_name() {
         let sep = std::path::MAIN_SEPARATOR_STR;
-        let (main, root) = (Path::new("dir/p.bas"), Path::new("C:/root/does/not/exist"));
+        // An absolute name by the host's rules: a drive on Windows, a leading slash on Linux.
+        let (root, elsewhere) = if cfg!(windows) {
+            ("C:/root/does/not/exist", "D:/does/not/exist/a.ico")
+        } else {
+            ("/root/does/not/exist", "/does/not/exist/a.ico")
+        };
+        let (main, root) = (Path::new("dir/p.bas"), Path::new(root));
         assert_eq!(
             named_file("./a.ico", main, root),
             PathBuf::from(format!("dir{sep}a.ico"))
         );
-        let elsewhere = "D:/does/not/exist/a.ico";
         assert_eq!(named_file(elsewhere, main, root), PathBuf::from(elsewhere));
-        let under = PathBuf::from("C:/root/does/not/exist/icons/a.ico");
-        assert_eq!(named_file("icons/a.ico", main, root), under);
+        assert_eq!(named_file("icons/a.ico", main, root), root.join("icons/a.ico"));
         if cfg!(windows) {
             assert_eq!(
                 named_file("/does/not/exist/a.ico", main, root),
@@ -673,10 +702,14 @@ mod tests {
             ("p.bas", "a.ico", format!(".{sep}a.ico")),
             ("dir/p.bas", "a.ico", format!("dir{sep}a.ico")),
             ("dir/p.bas", "/sub/a.ico", format!("dir{sep}/sub/a.ico")),
-            ("C:p.bas", "a.ico", "C:a.ico".to_string()),
-            ("C:/p.bas", "a.ico", "C:/a.ico".to_string()),
         ] {
             assert_eq!(beside(Path::new(main), rest), PathBuf::from(expected), "{main} {rest}");
+        }
+        // A drive is Windows' only.
+        if cfg!(windows) {
+            for (main, rest, expected) in [("C:p.bas", "a.ico", "C:a.ico"), ("C:/p.bas", "a.ico", "C:/a.ico")] {
+                assert_eq!(beside(Path::new(main), rest), PathBuf::from(expected), "{main} {rest}");
+            }
         }
     }
 

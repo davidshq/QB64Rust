@@ -76,7 +76,7 @@ pub fn sync(p: &mut Proxy) -> Result<Vec<Value>, String> {
         own.push(Own::Main);
     }
     if b.error {
-        list.push(json!({"name": "error", "condition": "(int)$ecx != 0"}));
+        list.push(json!({"name": "error", "condition": format!("(int){} != 0", crate::FIRST_ARG)}));
         own.push(Own::Error);
     }
     let n = b.client.len();

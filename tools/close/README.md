@@ -82,7 +82,15 @@ the panel, `study\archive\33`).
   --jobs 8`);
 - the call-site check;
 - only when `close.py` finds the change touched them: the run without folding (`QB64RUST_NO_FOLD=1`, with the pass
-  cache), the coverage check of Civil War Strategy's scripts, the format runs.
+  cache), the coverage check of Civil War Strategy's scripts, the format runs;
+- the Linux family, only when the change touched what the release build is made from or a Linux input (OpenSpec
+  change `m7-linux`, design D11; `DECISIONS.md` 2026-10-28, 2026-10-29): a file under `crates\`, `Cargo.toml` or
+  `Cargo.lock`, the runner, the copy of libqb or its edits, `tools\linux\`, a Linux recording (`*.linux.output`,
+  `.linux.err`, `.linux.out.txt`) or a `known.linux.list` (`--linux` asks for it anyway). It runs in WSL after the
+  Windows runs: `tools/linux/sync.sh` (`wsl --cd .`), then tier 1 and the slice list there (`crates\README.md`,
+  "Building on Linux"). *Why:* a Linux fault shows only on Linux, and any crate can emit C++ that `g++` takes
+  otherwise (`SWAP`'s order, the end of a procedure in a debug build); a list of the platform's files fell behind
+  within the change that made it.
 
 **Not in a change's close since 2026-10-28**, and run at a merge into `main` instead: the old compiler's wording
 table (`tools\diagnostics\old_wording.py`) and its `--check`, the two demand reports (`qb64rust --report
@@ -96,7 +104,8 @@ cache: the three full suites (corpus, upstream, verification), run with `--cover
 `tests\verification\pass.list` judged from them (`--check-list`, `tools\legacy_tests\README.md`); the check of the
 built-ins they reach (`tools\coverage\builtin_runs.py --check` on their counts, `tests\never_run.list`; user,
 2026-10-24); the run without folding; the differential pass list; the call-site check; the coverage check of Civil
-War Strategy's scripts; and the reports left out of a change's close (the wording table first, since it changes the
+War Strategy's scripts; the Linux family always, with the three full suites on Linux too (`m7-linux` design D11);
+and the reports left out of a change's close (the wording table first, since it changes the
 compiler, then the demand reports and the counts). A failure there is found among the merged changes with the
 build cache. The pass cache is left out because it cannot see a result that depends on time or load. The runs may
 go in a worktree of the merge commit beside this repo while the next change goes on here

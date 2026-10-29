@@ -6,8 +6,14 @@ import { parseQb64rustOutput } from "../../src/compiler/parseQb64rustOutput";
 // Recorded with scripts/record-qb64rust-fixtures.sh: the source given by its absolute path, as a build gives it.
 const fixtures = path.resolve(__dirname, "../../../test-fixtures/qb64rust");
 
+/** `text` with the <FIXTURES> placeholder put back. The recordings were made on Windows, so the path after it is
+ * written with `\`; elsewhere it gets the host's separator, as a build there prints it (m7-linux). */
+function withFixtures(text: string): string {
+    return text.replace(/<FIXTURES>([^\s:]*)/g, (_, rest: string) => fixtures + rest.split("\\").join(path.sep));
+}
+
 function parse(name: string, mainFile: string) {
-    const output = fs.readFileSync(path.join(fixtures, `${name}.out.txt`), "latin1").split("<FIXTURES>").join(fixtures);
+    const output = withFixtures(fs.readFileSync(path.join(fixtures, `${name}.out.txt`), "latin1"));
     const exit = Number(fs.readFileSync(path.join(fixtures, `${name}.exit`), "utf8").trim());
     return parseQb64rustOutput(output, exit, path.join(fixtures, mainFile));
 }

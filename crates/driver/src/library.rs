@@ -1,10 +1,11 @@
 //! `DECLARE LIBRARY`: the files a block names and the linkage of its declarations (design D2 of
 //! `m3-declare-library`; `qb64pe.bas` 4447–5318 and 13776–13933 for Windows; measured, `verification\v37_*`,
-//! `study\00` §5). `sema` reads no file; this runs after it and before the C++, and gives `codegen-cpp` a
-//! [`Resolved`]. Its errors are diagnostics of the program, at the block's line.
+//! `study\00` §5; for Linux design D4 of `m7-linux`, `qb64pe.bas` 4639–5204). `sema` reads no file; this runs after
+//! it and before the C++, and gives `codegen-cpp` a [`Resolved`]. Its errors are diagnostics of the program, at the
+//! block's line.
 
 use crate::{Frontend, Linkage, Resolved, ResolvedLibrary};
-use qb64rust_base::Span;
+use qb64rust_base::{Platform, Span};
 use qb64rust_sema::{LibraryKind, ProcId};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -22,18 +23,51 @@ pub struct Places {
     pub system32: Option<PathBuf>,
     /// The toolchain's `nm.exe`, which reads a library without a header; or why there is none (no toolchain found).
     pub nm: Result<PathBuf, String>,
+    /// The platform whose lookup is followed.
+    pub platform: Platform,
+    /// Linux: the folder `/usr/lib64`, `/usr/lib` and `/usr/include` are under: `/`, but for the tests' fake trees.
+    pub system_root: PathBuf,
 }
 
 impl Places {
-    /// The places of a compile of `main_path` with `root` as the old compiler's folder.
+    /// The places of a compile of `main_path` with `root` as the old compiler's folder, on the host.
     pub fn new(root: &Path, main_path: &Path, nm: Result<PathBuf, String>) -> std::io::Result<Places> {
         Ok(Places {
             root: root.to_path_buf(),
             source_dir: folder_of(main_path)?,
             system32: std::env::var_os("SYSTEMROOT").map(|r| PathBuf::from(r).join("System32")),
             nm,
+            platform: Platform::host(),
+            system_root: PathBuf::from("/"),
         })
     }
+
+    /// Linux: the file a name of the old compiler's lookup names, as its `_FILEEXISTS` reads it from its own folder:
+    /// one under `/usr/` under [`Places::system_root`], another absolute one as it is, a relative one from `root`.
+    fn linux_file(&self, text: &str) -> PathBuf {
+        if let Some(rest) = text.strip_prefix("/usr/") {
+            self.system_root.join("usr").join(rest)
+        } else if is_absolute_text(text) {
+            PathBuf::from(text)
+        } else {
+            self.root.join(text)
+        }
+    }
+}
+
+/// Whether a path's text is absolute: from `/`, as the old compiler's Linux build tests it (`LEFT$(libpath$, 1) =
+/// "/"`), or by the host's rules (a folder of the tests on Windows).
+fn is_absolute_text(text: &str) -> bool {
+    text.starts_with('/') || Path::new(text).is_absolute()
+}
+
+/// A folder as text with a `/` at its end, as `FixDirectoryName` gives it.
+fn dir_text(dir: &Path) -> String {
+    let mut s = dir.to_string_lossy().into_owned();
+    if !s.ends_with(['/', '\\']) {
+        s.push('/');
+    }
+    s
 }
 
 /// The absolute folder of the file `path` (the working directory for a name without a folder).
@@ -56,6 +90,8 @@ pub struct Found {
     pub dll: Option<String>,
     /// A `DYNAMIC` library: the file the lookup found, which tells two names of one DLL apart from two DLLs.
     pub dll_file: Option<PathBuf>,
+    /// Linux: the folder of the `-Wl,-rpath` the link takes for a shared object found, as the old compiler writes it.
+    pub rpath: Option<String>,
 }
 
 /// A written name taken apart as the old compiler does (`qb64pe.bas` 4510–4590): `\\` made `\`, the version after
@@ -86,8 +122,11 @@ fn first_file(candidates: impl IntoIterator<Item = PathBuf>) -> Option<PathBuf> 
 /// - `DYNAMIC`: `<folder>name.dll`, the same in System32, `name.dll` from the clone or the source's folder, then
 ///   System32; no header. Nothing: "DYNAMIC LIBRARY not found" (`x02`, `x53`).
 ///
-/// A name that is only a folder finds nothing and is no error, as for the old compiler.
+/// A name that is only a folder finds nothing and is no error, as for the old compiler. On Linux, [`find_linux`].
 pub fn find(kind: LibraryKind, written: &str, file_dir: &Path, places: &Places) -> Result<Found, &'static str> {
+    if places.platform == Platform::Linux {
+        return find_linux(kind, written, file_dir, places);
+    }
     let (folder, x) = split(written);
     if x.is_empty() {
         return Ok(Found::default());
@@ -153,6 +192,176 @@ pub fn find(kind: LibraryKind, written: &str, file_dir: &Path, places: &Places) 
         header,
         ..Found::default()
     })
+}
+
+/// A written name taken apart as the old compiler's Linux build does (`qb64pe.bas` 4510–4590): `\\` made `\`, the
+/// version after a `.` or `:` kept apart, `\` made `/`; then the folder, up to and with the last `/`, the name and the
+/// version.
+fn split_linux(written: &str) -> (String, String, String) {
+    let mut x = written.to_string();
+    while x.contains("\\\\") {
+        x = x.replacen("\\\\", "\\", 1);
+    }
+    let (name, version) = qb64rust_codegen_cpp::split_version(&x);
+    let name = name.replace('\\', "/");
+    match name.rfind('/') {
+        Some(at) => (name[..=at].to_string(), name[at + 1..].to_string(), version),
+        None => (String::new(), name, version),
+    }
+}
+
+/// Looks for one name of a block in the old compiler's order on Linux (`qb64pe.bas` 4639–5204; design D4 of
+/// `m7-linux`; spec `language/external-libraries`, "Finding a library"). Each name is text, as the old compiler builds
+/// it, and is looked for by [`Places::linux_file`]. `<f>` is the written folder (exactly `./` the source's folder,
+/// as on Windows), `<v>` the version. With no version the old compiler still tries `lib<x>.so.`; that try is left
+/// out (only a file named with a final dot would be found by it, and on Windows, where the tests also run, such a
+/// name is the file without the dot).
+/// - Not `DYNAMIC`: `<f>lib<x>.so.<v>`, `<f>lib<x>.so` (neither for `STATIC`), `<f>lib<x>.a`, `<f>lib<x>.o`; the same
+///   (but `.o`) under `/usr/lib64/<f>`, then `/usr/lib/<f>`; then the four from the old compiler's folder by the
+///   bare name, and the bare name under `/usr/lib64/` and `/usr/lib/`. A shared object found adds `-Wl,-rpath` with
+///   its folder (`./` for a bare one), and so does `/usr/lib/lib<x>.a`, as the old compiler does; `/usr/lib/lib<x>.so.<v>`
+///   adds none. The header: `<f><x>.h`, `.hpp`, the same under `/usr/include/`, then by the bare name and under
+///   `/usr/include/`, then from `file_dir` joined with `<f>`.
+/// - `DYNAMIC`: `<f>lib<x>.so.<v>` and `<f>lib<x>.so`, loaded by that name (with `./` before it when `<f>` is
+///   relative), then under `/usr/lib64/<f>` and `/usr/lib/<f>`; then by the bare name from the old compiler's
+///   folder or the source's (loaded as `./lib<x>.so`), then under `/usr/lib64/` and `/usr/lib/`.
+///
+/// The multiarch folders (`/usr/lib/x86_64-linux-gnu`) are not searched, as the old compiler does not search them
+/// (`SOMEDAY.md`, "QB64pe behaviours to review").
+pub fn find_linux(kind: LibraryKind, written: &str, file_dir: &Path, places: &Places) -> Result<Found, &'static str> {
+    let (folder, x, version) = split_linux(written);
+    if x.is_empty() {
+        return Ok(Found::default());
+    }
+    let libpath = if folder == "./" {
+        dir_text(&places.source_dir)
+    } else {
+        folder.clone()
+    };
+    let exists = |text: &str| places.linux_file(text).is_file();
+    let versioned = (!version.is_empty()).then(|| format!("lib{x}.so.{version}"));
+    let shared: Vec<String> = versioned.iter().cloned().chain([format!("lib{x}.so")]).collect();
+    let (a, o) = (format!("lib{x}.a"), format!("lib{x}.o"));
+    let (lib64, lib) = ("/usr/lib64/", "/usr/lib/");
+    if kind == LibraryKind::Dynamic {
+        let relative = !is_absolute_text(&libpath);
+        let mut steps: Vec<(String, String)> = Vec::new();
+        for n in &shared {
+            let text = format!("{libpath}{n}");
+            let load = if relative { format!("./{text}") } else { text.clone() };
+            steps.push((text, load));
+        }
+        for prefix in [lib64, lib] {
+            for n in &shared {
+                let text = format!("{prefix}{libpath}{n}");
+                steps.push((text.clone(), text));
+            }
+        }
+        let found = steps
+            .into_iter()
+            .find(|(text, _)| exists(text))
+            .map(|(text, load)| (places.linux_file(&text), load));
+        // By the bare name: from the old compiler's folder or the source's.
+        let found = found.or_else(|| {
+            shared.iter().find_map(|n| {
+                [places.linux_file(n), places.source_dir.join(n)]
+                    .into_iter()
+                    .find(|p| p.is_file())
+                    .map(|p| (p, format!("./{n}")))
+            })
+        });
+        let found = found.or_else(|| {
+            [lib64, lib]
+                .into_iter()
+                .flat_map(|prefix| shared.iter().map(move |n| format!("{prefix}{n}")))
+                .find(|text| exists(text))
+                .map(|text| (places.linux_file(&text), text))
+        });
+        return match found {
+            Some((file, load)) => Ok(Found {
+                dll: Some(load),
+                dll_file: Some(file),
+                ..Found::default()
+            }),
+            None => Err("DYNAMIC LIBRARY not found"),
+        };
+    }
+    let so = kind != LibraryKind::Static;
+    // Each place in the old compiler's order, with the `-Wl,-rpath` folder it adds when it is the one found.
+    let mut steps: Vec<(String, Option<String>)> = Vec::new();
+    let direct_rpath = if libpath.is_empty() {
+        "./".to_string()
+    } else {
+        libpath.clone()
+    };
+    if so {
+        steps.extend(
+            shared
+                .iter()
+                .map(|n| (format!("{libpath}{n}"), Some(direct_rpath.clone()))),
+        );
+    }
+    steps.extend([&a, &o].map(|n| (format!("{libpath}{n}"), None)));
+    for prefix in [lib64, lib] {
+        if so {
+            steps.extend(
+                shared
+                    .iter()
+                    .map(|n| (format!("{prefix}{libpath}{n}"), Some(format!("{prefix}{libpath}")))),
+            );
+        }
+        steps.push((format!("{prefix}{libpath}{a}"), None));
+    }
+    // By the bare name.
+    if so {
+        steps.extend(shared.iter().map(|n| (n.clone(), Some("./".to_string()))));
+    }
+    steps.extend([&a, &o].map(|n| (n.clone(), None)));
+    if so {
+        steps.extend(shared.iter().map(|n| (format!("{lib64}{n}"), Some(lib64.to_string()))));
+    }
+    steps.push((format!("{lib64}{a}"), None));
+    if so {
+        if let Some(v) = &versioned {
+            steps.push((format!("{lib}{v}"), None));
+        }
+        steps.push((format!("{lib}lib{x}.so"), Some(lib.to_string())));
+    }
+    steps.push((format!("{lib}{a}"), Some(lib.to_string())));
+    let (file, rpath) = steps
+        .into_iter()
+        .find(|(text, _)| exists(text))
+        .map_or((None, None), |(text, rpath)| (Some(places.linux_file(&text)), rpath));
+    let include = "/usr/include/";
+    let headers = [
+        format!("{libpath}{x}"),
+        format!("{include}{libpath}{x}"),
+        x.clone(),
+        format!("{include}{x}"),
+    ];
+    let fallback = file_dir.join(&folder).join(&x);
+    let header = headers
+        .iter()
+        .map(|t| places.linux_file(t))
+        .chain([fallback])
+        .flat_map(|p| [with_ext(&p, ".h"), with_ext(&p, ".hpp")])
+        .find(|p| p.is_file());
+    if file.is_none() && header.is_none() {
+        return Err("LIBRARY not found");
+    }
+    Ok(Found {
+        file,
+        header,
+        rpath,
+        ..Found::default()
+    })
+}
+
+/// `p` with `ext` added to its last part as text (`v37.1` and `.h` give `v37.1.h`).
+fn with_ext(p: &Path, ext: &str) -> PathBuf {
+    let mut s = p.as_os_str().to_owned();
+    s.push(ext);
+    PathBuf::from(s)
 }
 
 /// Whether a header has an include guard: a `#pragma once`, or an `#ifndef X` (or `#if !defined(X)`) whose `X` a
@@ -375,7 +584,10 @@ impl Nm {
 /// whose last name finds no library file (`x69`), and a library file whose path holds a `$`, which `make` expands
 /// (`x70`: `lib$dir\v37c.a` reaches the link as `libir\v37c.a`).
 pub fn resolve(fe: &mut Frontend, places: &Places) -> Resolved {
-    let mut resolved = Resolved::default();
+    let mut resolved = Resolved {
+        platform: places.platform,
+        ..Resolved::default()
+    };
     let mut nm = Nm::new(places);
     // Each header found so far, by its canonical path.
     let mut headers: Vec<PathBuf> = Vec::new();
@@ -415,6 +627,9 @@ pub fn resolve(fe: &mut Frontend, places: &Places) -> Resolved {
                             );
                         }
                         found.files.push(file.clone());
+                    }
+                    if let Some(rpath) = f.rpath {
+                        found.link_options.push(format!("-Wl,-rpath {rpath}"));
                     }
                     last = f.file.map(|file| (file, &name.text));
                     found.dll = f.dll.or(found.dll);
@@ -581,10 +796,19 @@ mod tests {
                     source_dir: base.join("src"),
                     system32: Some(base.join("sys")),
                     nm: Err("no nm in these tests".to_string()),
+                    platform: Platform::Windows,
+                    system_root: base.join("sysroot"),
                 },
                 inc: base.join("src/inc"),
                 _dir: dir,
             }
+        }
+
+        /// The same layout for Linux's lookup, `sysroot` as `/`.
+        fn linux(files: &[&str]) -> Layout {
+            let mut l = Layout::new(files);
+            l.places.platform = Platform::Linux;
+            l
         }
 
         fn find(&self, kind: LibraryKind, written: &str) -> Result<Found, &'static str> {
@@ -596,6 +820,7 @@ mod tests {
         }
     }
 
+    #[cfg(windows)]
     fn file(p: PathBuf) -> Found {
         Found {
             file: Some(p),
@@ -605,6 +830,7 @@ mod tests {
 
     /// Each step of the order, for the forms that are not `DYNAMIC`.
     #[test]
+    #[cfg(windows)]
     fn library_files_and_headers_in_the_old_compilers_order() {
         let l = Layout::new(&[
             "src/v37c.a",
@@ -650,6 +876,7 @@ mod tests {
 
     /// Each step of the order for `DYNAMIC`, and the name `LoadLibrary` is given.
     #[test]
+    #[cfg(windows)]
     fn dlls_in_the_old_compilers_order() {
         let l = Layout::new(&[
             "src/own.dll",
@@ -676,6 +903,143 @@ mod tests {
         assert_eq!(dynamic("./kernel"), Ok("kernel.dll".to_string()));
         // A header is no DLL (`x53`).
         assert_eq!(dynamic("only"), Err("DYNAMIC LIBRARY not found"));
+    }
+
+    /// Linux's order for the forms that are not `DYNAMIC` (spec `language/external-libraries`, "Finding a library";
+    /// design D4 of `m7-linux`), with the `-Wl,-rpath` each shared object adds.
+    #[test]
+    fn linux_library_files_in_the_old_compilers_order() {
+        let l = Layout::linux(&[
+            "src/libv37s.so",
+            "src/libv37b.so",
+            "src/libv37b.a",
+            "src/libver.so.1",
+            "src/libver.so",
+            "root/lib/librl.so",
+            "root/lib/librl.a",
+            "root/libbare.a",
+            "sysroot/usr/lib64/libs64.so",
+            "sysroot/usr/lib/libz.so",
+            "sysroot/usr/lib/libza.a",
+            "sysroot/usr/lib/libzv.so.3",
+            "sysroot/usr/lib/x86_64-linux-gnu/libma.so",
+        ]);
+        let src = dir_text(&l.places.source_dir);
+        let found = |kind, w: &str| l.find(kind, w).map(|f| (f.file.unwrap(), f.rpath));
+        let plain = LibraryKind::Plain;
+        // A shared object beside the program, with an rpath to the source's folder; `.\` too.
+        let so = (l.path("src/libv37s.so"), Some(src.clone()));
+        assert_eq!(found(plain, "./v37s"), Ok(so.clone()));
+        assert_eq!(found(plain, ".\\v37s"), Ok(so));
+        assert_eq!(found(plain, "v37s"), Err("LIBRARY not found"));
+        // `STATIC` skips the shared object; the archive adds no rpath.
+        assert_eq!(
+            found(plain, "./v37b"),
+            Ok((l.path("src/libv37b.so"), Some(src.clone())))
+        );
+        assert_eq!(
+            found(LibraryKind::Static, "./v37b"),
+            Ok((l.path("src/libv37b.a"), None))
+        );
+        // A version names `.so.<v>` first.
+        assert_eq!(
+            found(plain, "./ver.1"),
+            Ok((l.path("src/libver.so.1"), Some(src.clone())))
+        );
+        assert_eq!(found(plain, "./ver:2"), Ok((l.path("src/libver.so"), Some(src))));
+        // A written folder from the old compiler's folder, its rpath as written; the bare name.
+        assert_eq!(
+            found(plain, "lib/rl"),
+            Ok((l.path("root/lib/librl.so"), Some("lib/".to_string())))
+        );
+        assert_eq!(found(plain, "x/bare"), Ok((l.path("root/libbare.a"), None)));
+        // Under `/usr/lib64/` and `/usr/lib/`. With no folder written, the old compiler's steps "with the folder"
+        // find these first (an empty folder), so their rpaths are those steps': none for an archive.
+        let sys = |p: &str| l.path(&format!("sysroot{p}"));
+        assert_eq!(
+            found(plain, "s64"),
+            Ok((sys("/usr/lib64/libs64.so"), Some("/usr/lib64/".to_string())))
+        );
+        assert_eq!(
+            found(plain, "z"),
+            Ok((sys("/usr/lib/libz.so"), Some("/usr/lib/".to_string())))
+        );
+        assert_eq!(found(plain, "za"), Ok((sys("/usr/lib/libza.a"), None)));
+        assert_eq!(
+            found(plain, "zv.3"),
+            Ok((sys("/usr/lib/libzv.so.3"), Some("/usr/lib/".to_string())))
+        );
+        // Not in a multiarch folder ("Only in a multiarch folder").
+        assert_eq!(found(plain, "ma"), Err("LIBRARY not found"));
+    }
+
+    /// Linux's headers: by the written folder, under `/usr/include/`, by the bare name, then from the included file's
+    /// folder.
+    #[test]
+    fn linux_headers_in_the_old_compilers_order() {
+        let l = Layout::linux(&[
+            "root/sub/hd.h",
+            "sysroot/usr/include/sub/si.hpp",
+            "root/bare.h",
+            "sysroot/usr/include/sysbare.h",
+            "src/inc/up/ih.h",
+        ]);
+        let header = |w: &str| l.find(LibraryKind::Plain, w).map(|f| f.header.unwrap());
+        assert_eq!(header("sub/hd"), Ok(l.path("root/sub/hd.h")));
+        assert_eq!(header("sub/si"), Ok(l.path("sysroot/usr/include/sub/si.hpp")));
+        assert_eq!(header("x/bare"), Ok(l.path("root/bare.h")));
+        assert_eq!(header("sysbare"), Ok(l.path("sysroot/usr/include/sysbare.h")));
+        let from_inc = find(LibraryKind::Plain, "up/ih", &l.inc, &l.places).map(|f| f.header.unwrap());
+        assert_eq!(from_inc, Ok(l.path("src/inc/up/ih.h")));
+    }
+
+    /// Linux's order for `DYNAMIC`, and the name `dlopen` is given ("A versioned shared object").
+    #[test]
+    fn linux_shared_objects_in_the_old_compilers_order() {
+        let l = Layout::linux(&[
+            "src/libv37s.so.1",
+            "src/libv37s.so",
+            "root/d/librd.so",
+            "src/libnear.so",
+            "sysroot/usr/lib/libsys.so",
+            "sysroot/usr/lib64/libsys.so.6",
+            "root/libv37b.a",
+        ]);
+        let dynamic = |w: &str| {
+            l.find(LibraryKind::Dynamic, w)
+                .map(|f| (f.dll.unwrap(), f.dll_file.unwrap()))
+        };
+        let src = dir_text(&l.places.source_dir);
+        let beside = |n: &str| format!("{src}{n}");
+        assert_eq!(
+            dynamic("./v37s.1"),
+            Ok((beside("libv37s.so.1"), l.path("src/libv37s.so.1")))
+        );
+        assert_eq!(dynamic("./v37s"), Ok((beside("libv37s.so"), l.path("src/libv37s.so"))));
+        // A relative folder: loaded with `./` before it, from the working folder at run time.
+        assert_eq!(
+            dynamic("d/rd"),
+            Ok(("./d/librd.so".to_string(), l.path("root/d/librd.so")))
+        );
+        // The bare name, found beside the source.
+        assert_eq!(
+            dynamic("x/near"),
+            Ok(("./libnear.so".to_string(), l.path("src/libnear.so")))
+        );
+        // Under `/usr/lib64/` before `/usr/lib/`, by the name it has there.
+        assert_eq!(
+            dynamic("sys.6"),
+            Ok((
+                "/usr/lib64/libsys.so.6".to_string(),
+                l.path("sysroot/usr/lib64/libsys.so.6")
+            ))
+        );
+        assert_eq!(
+            dynamic("sys"),
+            Ok(("/usr/lib/libsys.so".to_string(), l.path("sysroot/usr/lib/libsys.so")))
+        );
+        // An archive cannot be loaded.
+        assert_eq!(dynamic("v37b"), Err("DYNAMIC LIBRARY not found"));
     }
 
     #[test]

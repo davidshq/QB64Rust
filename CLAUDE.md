@@ -137,6 +137,10 @@ changing direction, design or scope.**
     built with (x87 instructions, the C runtime's math), take a well-defined value (correctly rounded, as D-026)
     with a `QB64PE-DIVERGENCES.md` row, and say so in the design in a paragraph, not a module. The fidelity already built
     (the software `_FLOAT`, the certification of the math constants) stays; this rule does not remove it.
+9. **American English spelling in new text** (user, 2026-10-28): "license", "behavior", "color", "-ize". This
+    covers new prose, comments, identifiers, messages and file names, and any line already being edited for
+    another reason. Existing text is not swept to change its spelling; that is a `SOMEDAY.md` row. Text copied
+    from elsewhere (upstream files, licenses, recorded outputs) keeps its own spelling.
 
 ## Project decisions
 

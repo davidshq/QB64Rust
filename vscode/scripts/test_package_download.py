@@ -1,12 +1,13 @@
-"""Tests of package_zip.py. Run: python -m unittest discover -s vscode/scripts -p "test_*.py" """
+"""Tests of package_download.py. Run: python -m unittest discover -s vscode/scripts -p "test_*.py" """
 
 import pathlib
 import re
+import tarfile
 import tempfile
 import unittest
 import zipfile
 
-import package_zip as pz
+import package_download as pz
 
 
 class FakeBundle(unittest.TestCase):
@@ -58,6 +59,45 @@ class FakeBundle(unittest.TestCase):
         # libqb.id is the extension's alone.
         self.assertEqual(pz.check_names(path.name, set(names)), [])
 
+    def linux_bundle(self):
+        (self.bundle / "bin" / "qb64rust.exe").rename(self.bundle / "bin" / "qb64rust")
+
+    def test_linux_layout(self):
+        # Spec compiler/download, "Listing the Linux download": the binary executable, nothing for Windows.
+        self.linux_bundle()
+        path, count = pz.write(self.out, "0.4.0", self.bundle, self.repo, platform="linux-x64")
+        self.assertEqual(path.name, "qb64rust-linux-x64-0.4.0.tar.gz")
+        with tarfile.open(path) as t:
+            members = {m.name: m for m in t.getmembers()}
+        self.assertEqual(count, len(members))
+        binary = members["qb64rust-0.4.0/qb64rust"]
+        self.assertEqual(binary.mode, 0o755)
+        self.assertEqual(members["qb64rust-0.4.0/MANUAL.md"].mode, 0o644)
+        self.assertTrue(all((m.uid, m.gid, m.uname, m.gname) == (0, 0, "", "") for m in members.values()))
+        modes = {n: m.mode for n, m in members.items()}
+        self.assertEqual(pz.check_names(path.name, set(members), modes), [])
+
+    def test_two_linux_packages_of_one_bundle_are_equal(self):
+        self.linux_bundle()
+        first, _ = pz.write(self.out / "a", "0.4.0", self.bundle, self.repo, platform="linux-x64")
+        second, _ = pz.write(self.out / "b", "0.4.0", self.bundle, self.repo, platform="linux-x64")
+        self.assertEqual(first.read_bytes(), second.read_bytes())
+
+    def test_linux_check(self):
+        top = "qb64rust-0.4.0"
+        names = {f"{top}/qb64rust", *(f"{top}/{r}" for r in pz.COMMON)}
+        name = "qb64rust-linux-x64-0.4.0.tar.gz"
+        self.assertEqual(pz.check_names(name, names, {f"{top}/qb64rust": 0o755}), [])
+        self.assertEqual(
+            pz.check_names(name, names, {f"{top}/qb64rust": 0o644}),
+            [f"not executable: {top}/qb64rust (mode 644)"],
+        )
+        self.assertEqual(
+            pz.check_names(name, names | {f"{top}/qb64rust.exe"}),
+            [f"must not be packaged: {top}/qb64rust.exe"],
+        )
+        self.assertEqual(pz.check_names(name, names - {f"{top}/qb64rust"}), [f"missing: {top}/qb64rust"])
+
     def test_not_staged(self):
         (self.bundle / "bin" / "qb64rust.exe").unlink()
         with self.assertRaisesRegex(pz.PackageError, "npm run package"):
@@ -92,6 +132,30 @@ class FakeBundle(unittest.TestCase):
         problems = pz.check_names("qb64rust-win-x64-0.2.0.zip", names)
         self.assertTrue(any(p.startswith("not under qb64rust-0.2.0/") for p in problems), problems)
         self.assertEqual(len(pz.check_names("compiler.zip", names)), 1)
+
+
+class LinuxPackagesInTheManual(unittest.TestCase):
+    """Spec compiler/download, "The Linux packages in the manual": MANUAL.md's lines are toolchain.rs's table."""
+
+    def setUp(self):
+        self.manual = (pz.REPO / "MANUAL.md").read_text(encoding="utf-8")
+        self.rust = (pz.REPO / "crates" / "driver" / "src" / "toolchain.rs").read_text(encoding="utf-8")
+
+    def test_the_manual_names_the_table(self):
+        lines = pz.toolchain_packages(self.rust)
+        self.assertEqual(len(lines), 3)
+        self.assertTrue(lines[0].startswith("sudo apt-get install build-essential "), lines[0])
+        self.assertEqual(pz.manual_problems(self.manual, self.rust), [])
+
+    def test_the_extensions_readme_names_the_debian_line(self):
+        readme = (pz.REPO / "vscode" / "README.md").read_text(encoding="utf-8")
+        apt = pz.toolchain_packages(self.rust)[0]
+        self.assertIn(apt, {line.strip() for line in readme.splitlines()})
+
+    def test_a_changed_line_fails(self):
+        apt = pz.toolchain_packages(self.rust)[0]
+        changed = self.manual.replace(apt, apt.replace(" libasound2-dev", ""))
+        self.assertEqual(pz.manual_problems(changed, self.rust), [f"MANUAL.md lacks the install line of toolchain.rs: {apt}"])
 
 
 def usage_text():

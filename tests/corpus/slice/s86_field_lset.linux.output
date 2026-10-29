@@ -1,0 +1,28 @@
+1: 3  5  0  0 
+2: [xy ][hello] 8  2 
+3: [   ][     ][xy ][hello] 2 
+4: [  z][   ab] 16  3  32  5 
+5: [  z][   ab] 0  0  0  0 -1  32 
+6: [xy hello][xy ][hello][123][45678][123B    ]
+7: [12][3B][123B] 4 [abcd][defgh][ab]
+8: [QQ] 2 [abcdefgh][ABCD] 4  21 [xy h] 4 
+9: 0  5 [xy      ]
+10: 1145258561 [ABCDEFGH][ABCDEFGH][ijklmnop]
+11: 0 [ijklmnop] 0 
+12: [ijklmnop] 8 [closed  ][free]
+13: 32 [ijklmnop] 0 [again   ]
+14: <error 50 > 4  <error 50 > 5  5  0  <error 5 > 0  2  4 
+15: 4  5  7  <error 52 > 7  <error 52 > 7  <error 54 > 7 
+16: 2  3  0  3 [abcdefgh][abcd][efgh] <error 9 >
+17: fn wd 3  fn wd ix 3 
+18: <error 63 > 2  <error 63 > 2  <error 52 > <error 52 >
+19: <error 54 > <error 54 > <error 54 > <error 54 > <error 75 > <error 75 >
+20: 0  0  0  0  0  0  0  0  32  32  122  32  32  32  97  98  0  0  0  0  0  0  0  0  32  32  122  32  32  32  97  98  0  0  0  0  0  0  0  0 
+21: [ab   ][   ab][abcde][vwxyz]
+22: [abc][abc][   ][] 0  0 
+23: [ab   ][   ab][abcde][     ]
+24: [ab   ][   cd][   z] <error 9 >
+25: [ab    ][    ab][ab   ][    ab][   a]
+26: [cdef  ][    ab][    ab]
+27: vl ix [v  ][      ab][     ]
+28: <error 5 >[keep.][x    ]

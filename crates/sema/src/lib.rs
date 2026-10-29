@@ -813,6 +813,11 @@ impl Place {
             Place::Member { base, .. } => base.indexes(),
         }
     }
+
+    /// Whether finding the place calls a SUB or FUNCTION of the program: one of its indexes does.
+    pub fn calls_procedure(&self) -> bool {
+        self.indexes().iter().any(|i| i.calls_procedure())
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1042,6 +1047,41 @@ pub struct Expr {
     /// The type the old compiler believes the value has.
     pub qb: Ty,
     pub kind: ExprKind,
+}
+
+impl Expr {
+    /// Whether evaluating the expression calls a SUB or FUNCTION of the program.
+    pub fn calls_procedure(&self) -> bool {
+        let in_place = |p: &Place| p.calls_procedure();
+        match &self.kind {
+            ExprKind::CallProc { .. } => true,
+            ExprKind::Int(_)
+            | ExprKind::Float(_)
+            | ExprKind::Str(_)
+            | ExprKind::Address {
+                word: AddressWord::VarSeg,
+                ..
+            }
+            | ExprKind::ArrayBytes(_) => false,
+            ExprKind::Load(place) => in_place(place),
+            ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(Expr::calls_procedure),
+            ExprKind::Block { index, .. } => index.iter().any(Expr::calls_procedure),
+            ExprKind::Address { of, .. } => in_place(of),
+            ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => from.calls_procedure(),
+            ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
+                lhs.calls_procedure() || rhs.calls_procedure()
+            }
+            ExprKind::Choice { condition, then, else_ } => {
+                condition.calls_procedure() || then.calls_procedure() || else_.calls_procedure()
+            }
+            ExprKind::Call { args, .. } => args.iter().flatten().any(Expr::calls_procedure),
+            ExprKind::MemOf { of, .. } | ExprKind::AddressOf(of) => of.indexes().iter().any(|i| i.calls_procedure()),
+            ExprKind::MemAt { offset, size } => offset.calls_procedure() || size.calls_procedure(),
+            ExprKind::MemRead { block, offset, .. } => {
+                block.indexes().iter().any(|i| i.calls_procedure()) || offset.calls_procedure()
+            }
+        }
+    }
 }
 
 /// The function of an [`ExprKind::Address`].

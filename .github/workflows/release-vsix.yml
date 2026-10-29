@@ -1,10 +1,15 @@
 # Releases the VS Code extension and the compiler download (change extension-vsix, design D8; change
-# m6-compiler-download, design D1, D5, D8; specs editor/packaging, "Release from a tag", and compiler/download): on
-# a tag vscode-v<version> equal to vscode\package.json's version and to the workspace version of Cargo.toml, builds
-# qb64rust (release), packages the win32-x64 .vsix with it and the copy of libqb, and from the same staged bundle
-# the zip qb64rust-win-x64-<version>.zip (vscode\scripts\package_zip.py); holds each to its spec and attaches both
-# to one GitHub release of the tag, with the version's section of vscode\CHANGELOG.md as notes. The integration
-# tests are not repeated: the tagged commit has had its run of vscode-extension.yml. The user pushes the tag.
+# m6-compiler-download, design D1, D5, D8; change m7-linux, design D10; specs editor/packaging, "Release from a tag",
+# and compiler/download): on a tag vscode-v<version> equal to vscode\package.json's version and to the workspace
+# version of Cargo.toml, builds qb64rust (release) on Windows and on Linux, packages each platform's .vsix with it and
+# the copy of libqb, and from the same staged bundle that platform's download, qb64rust-win-x64-<version>.zip and
+# qb64rust-linux-x64-<version>.tar.gz (vscode\scripts\package_download.py); holds each to its spec, and only when all
+# four pass attaches them to one GitHub release of the tag, with the version's section of vscode\CHANGELOG.md as
+# notes. The integration tests are not repeated: the tagged commit has had its run of vscode-extension.yml. The user
+# pushes the tag.
+#
+# Started by hand ("Run workflow", no tag), it packages and checks the four files and keeps them as the run's
+# artifacts; nothing is published.
 #
 # To release: raise the version in vscode\package.json and in Cargo.toml ([workspace.package]; cargo then updates
 # Cargo.lock) together, give vscode\CHANGELOG.md its section, commit, then push the tag vscode-v<version>.
@@ -14,12 +19,13 @@ on:
   push:
     tags:
       - "vscode-v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  windows:
     runs-on: windows-latest
     timeout-minutes: 45
     defaults:
@@ -30,6 +36,7 @@ jobs:
 
       # First, so a wrong tag publishes nothing and builds nothing.
       - name: Tag, version and changelog
+        if: startsWith(github.ref, 'refs/tags/')
         run: python scripts/check_vsix.py --tag $env:GITHUB_REF_NAME --notes-out $env:RUNNER_TEMP\notes.md
 
       - run: rustup toolchain install
@@ -49,28 +56,95 @@ jobs:
       - run: npm run package
 
       - name: Check the package
-        id: vsix
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
-          $vsix = "qb64rust-win32-x64-$version.vsix"
-          python scripts/check_vsix.py $vsix --tag $env:GITHUB_REF_NAME
+          python scripts/check_vsix.py "qb64rust-win32-x64-$version.vsix"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          "file=$vsix" >> $env:GITHUB_OUTPUT
 
       # From the bundle `npm run package` staged, so the zip's qb64rust.exe and libqb are the .vsix's.
       - name: Make and check the compiler download
-        id: zip
         run: |
           $version = (Get-Content package.json | ConvertFrom-Json).version
-          $zip = "$env:RUNNER_TEMP\zip\qb64rust-win-x64-$version.zip"
-          python scripts/package_zip.py --out $env:RUNNER_TEMP\zip
+          python scripts/package_download.py --out dist
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python scripts/package_zip.py --check $zip
+          python scripts/package_download.py --check "dist\qb64rust-win-x64-$version.zip"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          "file=$zip" >> $env:GITHUB_OUTPUT
+          Move-Item *.vsix dist
 
-      # One call: both files or none.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-windows
+          path: vscode/dist/*
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: release-notes
+          path: ${{ runner.temp }}/notes.md
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: vscode
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Tag, version and changelog
+        if: startsWith(github.ref, 'refs/tags/')
+        run: python3 scripts/check_vsix.py --tag "$GITHUB_REF_NAME"
+
+      - run: rustup toolchain install
+        working-directory: .
+      - run: cargo build --release --locked -p qb64rust-driver
+        working-directory: .
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+
+      - run: npm ci
+      - run: npm run test:unit
+      - run: python3 -m unittest discover -s scripts -p "test_*.py"
+      - run: npm run package:linux
+
+      # From the bundle `npm run package:linux` staged, so the tar's qb64rust and libqb are the .vsix's.
+      - name: Check the package, make and check the compiler download
+        run: |
+          version=$(node -p "require('./package.json').version")
+          python3 scripts/check_vsix.py "qb64rust-linux-x64-$version.vsix"
+          python3 scripts/package_download.py --out dist --platform linux-x64
+          python3 scripts/package_download.py --check "dist/qb64rust-linux-x64-$version.tar.gz"
+          mv ./*.vsix dist/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-linux
+          path: vscode/dist/*
+          if-no-files-found: error
+
+  # Waits for both platforms: a failed build or check of any of the four files publishes nothing. Only a pushed tag
+  # publishes: a run started by hand publishes nothing, even with a tag chosen as its ref.
+  publish:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: assets
+          merge-multiple: true
+
+      # One call: all four files or none.
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create $env:GITHUB_REF_NAME ${{ steps.vsix.outputs.file }} "${{ steps.zip.outputs.file }}" --title "QB64Rust $env:GITHUB_REF_NAME" --notes-file $env:RUNNER_TEMP\notes.md --verify-tag
+        run: |
+          gh release create "$GITHUB_REF_NAME" assets/*.vsix assets/*.zip assets/*.tar.gz -R "$GITHUB_REPOSITORY" \
+            --title "QB64Rust $GITHUB_REF_NAME" --notes-file assets/notes.md --verify-tag

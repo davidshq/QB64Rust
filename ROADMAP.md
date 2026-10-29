@@ -26,16 +26,18 @@ was never committed and was no longer on disk.
 Rewritten on 2026-10-28 from "runtime modernisation" (`study\37` §5.1, `DECISIONS.md` 2026-10-28): measured, none
 of the runtime's design debts shows as a failure a user meets, so the second backend and the redesign of the error
 model, string heap and threading are a `SOMEDAY.md` row, with the conditions that would bring them back. Done when
-the extension builds, runs and debugs a program on a machine with no QB64pe, and the rows the user ruled to change
-are edits of libqb with their tests.
+the extension builds, runs and debugs a program with the toolchain and compiler it fetches, and the rows the user
+ruled to change are edits of libqb with their tests; the check of that on a machine with no QB64pe is postponed
+(below).
 
 - [x] A C++ toolchain and `lldb-dap` the project fetches, pinned and checked, QB64pe's install a fallback
   (`m6-toolchain`)
 - [x] The compiler as a download of its own beside the `.vsix`, one version number for both (`m6-compiler-download`)
 - [x] The fixes switch and the crash-class rulings of `study\39`: the compiler half (`fixes-switch`) and libqb
   repaired in place through `tools\libqb\edits` (`libqb-fixes`)
-- [ ] Checked on a machine with no QB64pe: the released `.vsix` installs, fetches its toolchain, and builds, runs
-  and debugs a program; then M6 is declared done
+- The check on a machine with no QB64pe (the released `.vsix` installs, fetches its toolchain, and builds, runs and
+  debugs a program) is postponed to `SOMEDAY.md` (user, `DECISIONS.md` 2026-10-28); M6 is done without it, and
+  moves to `ROADMAP-COMPLETED.md` at the next merge into `main`
 
 ## M7. Linux
 

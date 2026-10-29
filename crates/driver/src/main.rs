@@ -20,6 +20,7 @@
 //! `qb64rust toolchain install` and `qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]`: the
 //! C++ toolchain (`toolchain.rs`, spec `compiler/toolchain`).
 
+use qb64rust_base::Platform;
 use qb64rust_base::fixes::{FIXES, Fixes};
 use qb64rust_base::layout::Settings;
 use qb64rust_driver::fixes::CliFix;
@@ -40,12 +41,13 @@ const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<val
        qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)\n\
        qb64rust dap [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the debug adapter, over stdin and stdout)\n\
-       qb64rust toolchain install    (downloads and installs the C++ toolchain)\n\
+       qb64rust toolchain install    (downloads and installs the C++ toolchain; on Linux names the packages)\n\
        qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)\n\
        qb64rust --version | --help";
 
 /// The usage of `qb64rust toolchain` (spec `compiler/cli`, "Toolchain subcommand").
-const TOOLCHAIN_USAGE: &str = "usage: qb64rust toolchain install    (downloads and installs the C++ toolchain)\n\
+const TOOLCHAIN_USAGE: &str = "usage: qb64rust toolchain install    (downloads and installs the C++ toolchain; on \
+Linux names the packages)\n\
        qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)";
 
 #[derive(Default)]
@@ -340,6 +342,13 @@ fn toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
         ExitCode::FAILURE
     };
     match args.first().and_then(|a| a.to_str()) {
+        Some("install") if args.len() == 1 && Platform::host() == Platform::Linux => match toolchain::check_system() {
+            Ok(line) => {
+                println!("{line}");
+                ExitCode::SUCCESS
+            }
+            Err(msg) => fail(&msg),
+        },
         Some("install") if args.len() == 1 => match toolchain::install() {
             Ok(_) => ExitCode::SUCCESS,
             Err(msg) => fail(&msg),
@@ -348,7 +357,7 @@ fn toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
             let Some((root, qb64pe)) = toolchain_options(&args[1..]) else {
                 return fail(TOOLCHAIN_USAGE);
             };
-            match toolchain::find(root.as_deref(), qb64pe.as_deref()) {
+            match toolchain::find(Platform::host(), root.as_deref(), qb64pe.as_deref()) {
                 Ok(found) => {
                     println!("{}", found.folder.display());
                     println!("{}", found.source.describe());
@@ -370,7 +379,8 @@ fn dap(args: &[std::ffi::OsString]) -> ExitCode {
         eprintln!("qb64rust: `dap` takes only --toolchain-root <dir> and --qb64pe-root <dir>\n{USAGE}");
         return ExitCode::FAILURE;
     };
-    let backend = toolchain::find(root.as_deref(), qb64pe.as_deref()).map(|found| found.bin("lldb-dap.exe"));
+    let backend = toolchain::find(Platform::host(), root.as_deref(), qb64pe.as_deref())
+        .and_then(|found| toolchain::lldb_dap(&found, toolchain::os_release().as_deref()));
     match qb64rust_driver::with_stack(move || qb64rust_dap::run_stdio(backend)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(msg) => {
@@ -437,6 +447,7 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
         Err(code) => return Ok(code),
     };
     let fe = frontend_at(
+        Platform::host(),
         name,
         bytes,
         |file| Box::new(FileLoader::new(&include_root, file, input)),
@@ -482,7 +493,7 @@ fn run() -> Result<ExitCode, String> {
     }
     let exe = match &o.output {
         Some(p) => p.clone(),
-        None => input.with_extension("exe"),
+        None => input.with_extension(Platform::host().exe_extension()),
     };
     let exe = std::path::absolute(&exe).map_err(|e| e.to_string())?;
     // The executable an earlier build left, and its debug symbol file with it, so that a file beside the executable is
@@ -516,6 +527,7 @@ fn run() -> Result<ExitCode, String> {
         }
     };
     let mut fe = frontend_at(
+        Platform::host(),
         &name,
         bytes,
         |file| Box::new(FileLoader::new(&include_root, file, &input)),
@@ -531,7 +543,8 @@ fn run() -> Result<ExitCode, String> {
         && fe.program.libraries.iter().any(|l| !l.names.is_empty())
     {
         let places = build::find_root(o.root.as_deref()).and_then(|root| {
-            let nm = toolchain::find(o.toolchain_root.as_deref(), o.root.as_deref()).map(|t| t.bin("nm.exe"));
+            let nm = toolchain::find(Platform::host(), o.toolchain_root.as_deref(), o.root.as_deref())
+                .map(|t| t.tool(toolchain::Tool::Nm));
             qb64rust_driver::library::Places::new(root.as_deref().unwrap_or(&include_root), &input, nm)
                 .map_err(|e| e.to_string())
         });
@@ -542,7 +555,11 @@ fn run() -> Result<ExitCode, String> {
         })?;
         qb64rust_driver::library::resolve(&mut fe, &places)
     } else {
-        qb64rust_driver::Resolved::default()
+        // No library to look for; the platform still shapes the C++ (a debug build's end of a procedure, `procs.rs`).
+        qb64rust_driver::Resolved {
+            platform: Platform::host(),
+            ..qb64rust_driver::Resolved::default()
+        }
     };
     let errors = fe.diagnostics.error_count();
     // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
@@ -580,6 +597,7 @@ fn run() -> Result<ExitCode, String> {
     settings.fixes = fixes;
     for lib in &resolved.libraries {
         settings.libraries.extend(lib.files.iter().cloned());
+        settings.link_options.extend(lib.link_options.iter().cloned());
         settings.headers.extend(lib.headers.iter().cloned());
     }
     if fe.diagnostics.error_count() > 0 {
@@ -613,10 +631,15 @@ fn run() -> Result<ExitCode, String> {
     }
     // Before any step that can fail, so a failed build never leaves an older executable or symbol file behind.
     remove_old();
+    if !Platform::host_is_supported() {
+        return Err(
+            "building an executable needs Windows x64 or Linux x64; checking (-z, --dump, -y, lsp) works here".into(),
+        );
+    }
     // A named folder that is not QB64pe's is reported before the toolchain is looked for.
     let roots = build::Roots {
         qb64pe: build::find_root(o.root.as_deref())?,
-        toolchain: toolchain::find(o.toolchain_root.as_deref(), o.root.as_deref())?.folder,
+        toolchain: toolchain::find(Platform::host(), o.toolchain_root.as_deref(), o.root.as_deref())?,
         include: include_root.clone(),
         libqb: build::find_libqb(o.libqb_root.as_deref())?,
     };
@@ -626,12 +649,15 @@ fn run() -> Result<ExitCode, String> {
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
-    build::write_resources(
-        &build_dir,
-        icon.as_deref(),
-        ir.settings.version_info.as_ref(),
-        &exe_name,
-    )?;
+    // The icon and version resources are Windows' (`windres`); on Linux the old compiler writes none.
+    if Platform::host() == Platform::Windows {
+        build::write_resources(
+            &build_dir,
+            icon.as_deref(),
+            ir.settings.version_info.as_ref(),
+            &exe_name,
+        )?;
+    }
     build::write_embedded(
         &build_dir,
         &qb64rust_driver::used_embedded_files(&fe, &input, &include_root)?,
@@ -651,6 +677,17 @@ fn run() -> Result<ExitCode, String> {
                 let _ = std::fs::remove_dir_all(&build_dir);
             }
             return Ok(ExitCode::FAILURE);
+        }
+        // A header or library of the system packages missing on Linux: the packages named after the toolchain's
+        // output (spec `compiler/toolchain`, "The system packages").
+        if let build::BuildError::Toolchain { output, .. } = &e
+            && Platform::host() == Platform::Linux
+            && let Some(file) = qb64rust_driver::cpp_errors::missing_system_file(output)
+        {
+            return Err(format!(
+                "{e}\n{file} is missing. {}",
+                toolchain::packages_message(toolchain::os_release().as_deref())
+            ));
         }
         return Err(e.to_string());
     }

@@ -1,6 +1,7 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import { copyVersion, removeOtherVersions } from "./compiler/libqbStore";
+import { binaryName } from "./compiler/toolchain";
 import * as qb64pe from "./compiler/qb64pe";
 import { RunQueue } from "./compiler/runQueue";
 import { Builder } from "./build";
@@ -41,7 +42,8 @@ export function activate(context: vscode.ExtensionContext): Api {
         storage: context.globalStorageUri.fsPath,
         version: copyVersion(context.extension.packageJSON.version, libqb),
     };
-    const lsp = new LanguageServer(context.asAbsolutePath(path.join("bundle", "bin", "qb64rust.exe")), status);
+    // The bundled binary is named per platform (design D8 of m7-linux).
+    const lsp = new LanguageServer(context.asAbsolutePath(path.join("bundle", "bin", binaryName())), status);
     server = lsp;
     status.builder = () => chosenCompiler(lsp);
     status.update();

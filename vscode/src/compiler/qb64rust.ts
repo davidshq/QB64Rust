@@ -10,8 +10,8 @@ import { FormatSettings, formatFlags } from "../server/protocol";
 /** What a build is given besides the source (spec compiler/cli, "Locating the reference runtime"; spec
  * compiler/toolchain). */
 export interface Roots {
-    /** The C++ toolchain folder (change m6-toolchain). */
-    toolchain: string;
+    /** The C++ toolchain folder (change m6-toolchain); undefined for the system's on Linux (`toolchainRoot`). */
+    toolchain: string | undefined;
     /** The QB64pe folder, when QB64pe is found: where `DECLARE LIBRARY` looks for files. */
     qb64pe?: string;
     /** The copy of libqb in the extension's storage; undefined for the compiler's own default (no bundle). */
@@ -22,11 +22,14 @@ export interface Roots {
 
 /**
  * `-x -w <file> -o <exe>` and the roots, with `--debug` first for a debug build (change m5-debug-launch, design D4):
- * `--toolchain-root` always, `--qb64pe-root` only when QB64pe is found (change m6-toolchain, design D6). `-c`
- * (QB64pe's console switch) is not one of qb64rust's options.
+ * `--toolchain-root` but for the system's toolchain, `--qb64pe-root` only when QB64pe is found (change m6-toolchain,
+ * design D6). `-c` (QB64pe's console switch) is not one of qb64rust's options.
  */
 export function buildArgs(file: string, roots: Roots, debug = false): string[] {
-    const args = [...(debug ? ["--debug"] : []), "-x", "-w", file, "-o", executableFor(file), "--toolchain-root", roots.toolchain];
+    const args = [...(debug ? ["--debug"] : []), "-x", "-w", file, "-o", executableFor(file)];
+    if (roots.toolchain) {
+        args.push("--toolchain-root", roots.toolchain);
+    }
     if (roots.qb64pe) {
         args.push("--qb64pe-root", roots.qb64pe);
     }

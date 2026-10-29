@@ -1,0 +1,25 @@
+ 3  0 b
+empty 0 
+replaced 2 
+lof 2 
+missing
+ERR 53 
+[]
+folder
+ERR 75 
+[]
+write into a missing folder
+ERR 76 
+ 0 
+fullpath
+ 0 /
+ 0 
+ 0 
+ 0 /
+empty []
+ERR 76 
+missing []
+ERR 76 
+missing file []
+ 0 
+exit=0

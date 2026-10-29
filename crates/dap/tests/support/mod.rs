@@ -116,6 +116,8 @@ pub struct Fake {
     pub ecx: i64,
     pub next_id: i64,
     pub seen: Vec<Value>,
+    /// Offers no `writeMemory`, as `lldb-dap` 20 and older (it is offered by default, as the newer one does).
+    pub no_write_memory: bool,
 }
 
 /// A frame as `lldb-dap` gives it.
@@ -169,12 +171,21 @@ impl Fake {
             }
             "evaluate" => {
                 let e = a["expression"].as_str().unwrap_or("");
-                if let Some(name) = e.strip_prefix("(unsigned long long)") {
+                if let Some(rest) = e.strip_prefix("`memory write -s 1 ") {
+                    // lldb's command: the address, then one value a byte.
+                    let mut words = rest
+                        .split_whitespace()
+                        .map(|w| u64::from_str_radix(&w[2..], 16).unwrap());
+                    let at = words.next().unwrap();
+                    let data: Vec<u8> = words.map(|b| u8::try_from(b).unwrap()).collect();
+                    self.write(at, &data);
+                    Ok(json!({"result": ""}))
+                } else if let Some(name) = e.strip_prefix("(unsigned long long)") {
                     self.pointers
                         .get(name)
                         .map(|p| json!({"result": p.to_string()}))
                         .ok_or_else(|| format!("use of undeclared identifier '{name}'"))
-                } else if e == "(int)$ecx" {
+                } else if e == format!("(int){}", qb64rust_dap::FIRST_ARG) {
                     Ok(json!({"result": self.ecx.to_string()}))
                 } else if e.starts_with("((void*(*)(void*,void*))&qbs_set)") || e.starts_with('`') {
                     Ok(json!({"result": "0x1"}))
@@ -182,6 +193,7 @@ impl Fake {
                     Err(format!("error: no `{e}`"))
                 }
             }
+            "initialize" => Ok(json!({"supportsWriteMemoryRequest": !self.no_write_memory})),
             "readMemory" => {
                 let at =
                     u64::from_str_radix(a["memoryReference"].as_str().unwrap().trim_start_matches("0x"), 16).unwrap();
@@ -257,6 +269,11 @@ pub fn launched(stop_on_entry: bool) -> Launched {
 
 /// [`launched`] on the fixture `name` (`tests\fixtures\<name>.bas` and its symbol file).
 pub fn launched_on(name: &str, stop_on_entry: bool) -> Launched {
+    launched_with(name, stop_on_entry, Fake::default())
+}
+
+/// [`launched_on`] with a backend set up before `initialize` (one that offers no `writeMemory`).
+pub fn launched_with(name: &str, stop_on_entry: bool, fake: Fake) -> Launched {
     use serde_json::json;
     let dir = tempfile::tempdir().unwrap();
     let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
@@ -278,7 +295,7 @@ pub fn launched_on(name: &str, stop_on_entry: bool) -> Launched {
         mut backend,
         ..
     } = start();
-    let mut fake = Fake::default();
+    let mut fake = fake;
     client.send(json!({"seq": 1, "type": "request", "command": "initialize", "arguments": {}}));
     fake.through(&mut backend, "initialize");
     client.recv();

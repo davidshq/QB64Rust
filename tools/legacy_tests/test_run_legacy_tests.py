@@ -124,6 +124,13 @@ class ExitCodes(unittest.TestCase):
         # Python may hand a Windows status over as a negative number.
         self.assertEqual(rlt.bash_exit_code(0xC0000005 - (1 << 32)), 139)
 
+    def test_a_recorded_code_on_linux_is_its_low_8_bits(self):
+        # END -1 ends with 4294967295 on Windows, 255 on Linux (m7-linux task 5.4, slice\s111_end_code).
+        self.assertEqual(rlt.exit_code_on("windows", 4294967295), 4294967295)
+        self.assertEqual(rlt.exit_code_on("linux", 4294967295), 255)
+        self.assertEqual(rlt.exit_code_on("linux", 3), 3)
+        self.assertEqual(rlt.exit_code_on("linux", 256 + 7), 7)
+
     @unittest.skipUnless(os.name == "nt", "press_any_key.py runs on Windows only")
     def test_press_any_key_passes_on_every_32_bit_code(self):
         # A child process ends as the helper does, with sys.exit(exit_status(code)); a code from 2**31
@@ -1820,6 +1827,22 @@ class VerificationLog(VerificationFixture):
         self.assertEqual(rlt.program_log(log, self.root), self.KEPT)
         self.assertEqual(rlt.program_log(self.results / "none.txt", self.root), b"")
 
+    def test_on_linux_a_recorded_log_is_read_without_its_frames(self):
+        # libqb's Linux build logs no stack frames (verification\v50_b_log).
+        self.assertEqual(rlt.log_without_frames_on("windows", self.KEPT), self.KEPT)
+        self.assertEqual(
+            rlt.log_without_frames_on("linux", self.KEPT),
+            b"INFO QB64 v99_p.bas: Main QB64 Code: 3: hello\nERROR QB64 v99_p.bas: SUB_S: 7: bad\n",
+        )
+
+    def test_on_linux_the_separator_after_the_folder_is_windows(self):
+        # The source's path in an entry: <verification>/v99_p.bas on Linux is recorded as on Windows.
+        log = self.results / "log.txt"
+        log.write_bytes(a_log("1.25000", "00007FF6A1B2C3D4", folder=f"{self.root.as_posix()}/"))
+        got = rlt.program_log(log, self.root, "linux")
+        self.assertTrue(got.startswith(b"INFO QB64 <verification>\\v99_p.bas: Main QB64 Code: 3: hello\n"), got)
+        self.assertEqual(got.count(b"<verification>/"), 0, got)
+
     def test_record_writes_the_programs_entries(self):
         r = self.record(Tools(runs=[b""], log=a_log("1.25000", "00007FF6A1B2C3D4")), self.results)
         self.assertEqual(r.status, "PASS", r.detail)
@@ -1984,6 +2007,105 @@ class NoKeys(unittest.TestCase):
             self.assertEqual((rc, timed_out), (None, True), out.read_bytes())
             self.assertGreaterEqual(time.time() - t0, 3)
             self.assertIn(b"Press any key", out.read_bytes())
+
+
+class PlatformRecordings(CorpusFixture):
+    """Recordings per platform (spec testing/golden-corpus, OpenSpec change m7-linux, design D6): the Linux
+    sidecars, the Linux lists and a recording on Linux, with the compiler stood in for."""
+
+    def test_sidecar_names(self):
+        self.assertEqual(rlt.linux_sidecar(Path("g/p.output")).name, "p.linux.output")
+        self.assertEqual(rlt.linux_sidecar(Path("g/p.err")).name, "p.linux.err")
+        self.assertEqual(rlt.linux_sidecar(Path("v/v01.out.txt")).name, "v01.linux.out.txt")
+
+    def test_a_comma_on_the_console(self):
+        # "A comma on the console": the Windows zones in .output, the Linux spacing in .linux.output.
+        self.sidecar("output", b" 1            2\n")
+        self.sidecar("linux.output", b" 1  2\n")
+        linux = self.run_test(Tools(runs=[b" 1  2\n"]), platform="linux")
+        self.assertEqual(linux.status, "PASS", linux.detail)
+        windows = self.run_test(Tools(runs=[b" 1            2\n"]), platform="windows")
+        self.assertEqual(windows.status, "PASS", windows.detail)
+        # Each platform reads its own file only.
+        self.assert_fail(self.run_test(Tools(runs=[b" 1  2\n"]), platform="windows"), "result")
+        self.assert_fail(self.run_test(Tools(runs=[b" 1            2\n"]), platform="linux"), "result")
+
+    def test_the_end_prompt_is_libqbs_on_each_platform(self):
+        # libqb's words at END differ by platform; the Linux run is judged with Windows' words.
+        self.sidecar("output", b"1\n\nPress any key to continue")
+        r = self.run_test(Tools(runs=[b"1\n\nPress enter to continue"]), platform="linux")
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assert_fail(self.run_test(Tools(runs=[b"1\n\nPress enter to continue"]), platform="windows"), "result")
+
+    def test_windows_never_reads_a_linux_file(self):
+        self.sidecar("linux.output", b"1\n")
+        r = self.run_test(Tools(runs=[b"1\n"]), platform="windows")
+        self.assert_fail(r, "expected", "no .output")
+        self.assertEqual(self.run_test(Tools(runs=[b"1\n"]), platform="linux").status, "PASS")
+
+    def test_a_linux_error_stands_for_the_recording(self):
+        self.sidecar("output", b"1\n")
+        self.sidecar("linux.err", b"error\n")
+        r = self.run_test(Tools(rc=1, exe=False, compile_out=b"x.bas:1:1: error: no\n1 error\n"), platform="linux")
+        self.assertEqual((r.status, r.kind), ("PASS", "error"), r.detail)
+
+    def test_a_linux_file_equal_to_the_shared_one(self):
+        self.sidecar("output", b"1\n")
+        same = self.sidecar("linux.output", b"1\n")
+        self.sidecar("err", b"e\n")
+        self.sidecar("linux.err", b"f\n")
+        self.assertEqual(rlt.equal_sidecars([self.corpus]), [same])
+
+    def test_same_result_as_windows_records_no_sidecar(self):
+        # "Same result as Windows": no .linux.output written, and one an earlier recording left removed.
+        shared = self.sidecar("output", b"1\n2\n")
+        r = self.run_test(Tools(runs=[b"1\r\n2\r\n"]), record=True, platform="linux")
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assertFalse((self.group / "p.linux.output").exists())
+        self.sidecar("linux.output", b"old\n")
+        r = self.run_test(Tools(runs=[b"1\r\n2\r\n"]), record=True, platform="linux")
+        self.assertIn("removed p.linux.output", r.detail)
+        self.assertFalse((self.group / "p.linux.output").exists())
+        self.assertEqual(shared.read_bytes(), b"1\n2\n")
+
+    def test_another_result_on_linux_records_a_sidecar_only(self):
+        shared = self.sidecar("output", b" 1            2\n")
+        r = self.run_test(Tools(runs=[b" 1  2\n"]), record=True, platform="linux")
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assertIn("recorded new p.linux.output", r.detail)
+        self.assertEqual((self.group / "p.linux.output").read_bytes(), b" 1  2\n")
+        self.assertEqual(shared.read_bytes(), b" 1            2\n")
+        # An exit code of its own has no sidecar: the recording fails and writes nothing.
+        r = self.run_test(Tools(runs=[b" 1  2\n"], run_rc=3), record=True, platform="linux")
+        self.assert_fail(r, "record", "exit code 3 on Linux")
+        self.assertFalse((self.group / "p.exitcode").exists())
+
+    def test_a_windows_only_program_is_skipped_on_linux(self):
+        # "A Windows-only program": listed in the suite's known.linux.list as `windows`.
+        lst = Path(self.tmp.name) / "known.linux.list"
+        lst.write_text("# programs\ng/p\twindows: kernel32\ng/q\tvaries: the sound device\n", encoding="utf-8")
+        known = rlt.load_linux_list(lst, "corpus")
+        self.assertEqual(known, {"corpus:g/p": "windows: kernel32", "corpus:g/q": "varies: the sound device"})
+        self.sidecar("output", b"1\n")
+        tools = Tools(runs=[b"1\n"])
+        args = SimpleNamespace(
+            qb64=Path("qb64rust.exe"), record=False, cpp_opt=False, copies=None, pass_cache=None, platform="linux"
+        )
+        with mock.patch.object(rlt, "run_proc", tools):
+            r = rlt.run_suite_test(
+                "corpus", self.bas, args=args, results=self.results, qb_root=self.clone, corpus_root=self.corpus,
+                known=known,
+            )
+        self.assertEqual((r[0].status, r[0].test, r[0].detail), ("SKIP", "g/p", "windows: kernel32"))
+        self.assertEqual(tools.compiles, 0)
+        args.platform = "windows"
+        with mock.patch.object(rlt, "run_proc", tools):
+            r = rlt.run_suite_test(
+                "corpus", self.bas, args=args, results=self.results, qb_root=self.clone, corpus_root=self.corpus,
+                known=known,
+            )
+        self.assertEqual(r[0].status, "PASS", r[0].detail)
+        self.assertFalse(rlt.skipped_on("linux", "varies: the sound device"))
 
 
 if __name__ == "__main__":

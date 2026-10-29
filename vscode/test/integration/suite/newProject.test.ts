@@ -53,6 +53,6 @@ describe("new project", () => {
         // The compiler's IR dump names the fixes it builds with; a build with "QB64: Build" reads the same file.
         const out = execFileSync(server, ["--dump", "ir", "main.bas"], { cwd: folder, encoding: "utf8" });
         const settings = out.split(/\r?\n/)[0];
-        assert.match(settings, /fixes resume-after-block .* checking-on-service$/);
+        assert.match(settings, /fixes resume-after-block .* checking-on-service bit-number-check$/);
     });
 });

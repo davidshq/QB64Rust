@@ -225,7 +225,17 @@ impl<'a> Emitter<'a> {
         self.subfunc = Some(names::old_proc_name(proc));
         self.body(&proc.body, k, &mut main);
         self.subfunc = None;
-        let mut footer = vec!["exit_subfunc:;".to_string()];
+        // In a debug build for Linux the label and a statement with code go under the line before the procedure's end,
+        // so that every way out of the body (the loop's end, `if(!qbevent)break;`, `goto exit_subfunc`) meets there and
+        // the end's line starts at code all of them run: with `g++` each way has a jump of its own, the first under
+        // the end's line, and a breakpoint on `END SUB`, set at the line's first entry, was not hit by the usual one.
+        // `clang` on Windows needs none, and with it splits the end's line in two (measured, task 4.2 of `m7-linux`).
+        let mut footer = Vec::new();
+        if self.debug && self.resolved.platform == qb64rust_base::Platform::Linux {
+            main.push_str("exit_subfunc:;{volatile char qbr_join=0;(void)qbr_join;}\n");
+        } else {
+            footer.push("exit_subfunc:;".to_string());
+        }
         // A FUNCTION `f$n`: a copy of its n bytes, made before the epilogue releases the static pool they lie in (the
         // old compiler returns the fixed string itself, so a second call in the same expression overwrites the first
         // result: `QB64PE-DIVERGENCES.md` D-014).

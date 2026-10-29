@@ -5,6 +5,7 @@
 use crate::Emitter;
 use crate::decl::is_qbs;
 use crate::names::{c_string, c_type, proc_name};
+use qb64rust_base::Platform;
 use qb64rust_ir::{Arg, Conv, Expr, ExprKind, LibraryId, LibraryKind, Place, Proc, ProcId, ProcKind, Track, Ty};
 use std::collections::HashMap;
 use std::fmt::Write as _;
@@ -13,10 +14,14 @@ use std::path::PathBuf;
 /// What the driver found for the program's libraries (design D2): per [`qb64rust_ir::Program::libraries`] entry, in
 /// its order, and the linkage of each declaration of a library without a header. A library with no entry, and a
 /// declaration with no linkage, are taken as found with nothing: no header, no file, C linkage.
+///
+/// The platform the build is for (design D3 of `m7-linux`): a `DYNAMIC` block is loaded with `LoadLibrary` and
+/// `GetProcAddress` on Windows, with `dlopen` and `dlsym` on Linux, as the old compiler writes them with each `os$`.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Resolved {
     pub libraries: Vec<ResolvedLibrary>,
     pub linkage: HashMap<ProcId, Linkage>,
+    pub platform: Platform,
 }
 
 /// The files of one block.
@@ -29,8 +34,12 @@ pub struct ResolvedLibrary {
     pub headers: Vec<PathBuf>,
     /// The library files, for the link command (the driver's).
     pub files: Vec<PathBuf>,
-    /// A `DYNAMIC` library: the name `LoadLibrary` is given, as the old compiler writes it (the full path when `./`
-    /// found it, else the written name with `.dll`).
+    /// Linux: the options the link command takes after every library file, `-Wl,-rpath <folder>` for each shared
+    /// object found, as the old compiler writes them (`qb64pe.bas` 4660–4870, `mylibopt$`).
+    pub link_options: Vec<String>,
+    /// A `DYNAMIC` library: the name `LoadLibrary` or `dlopen` is given, as the old compiler writes it (on Windows the
+    /// full path when `./` found it, else the written name with `.dll`; on Linux the path of the shared object, with
+    /// `./` before a relative one).
     pub dll: Option<String>,
 }
 
@@ -69,8 +78,8 @@ struct Dll {
     dll: String,
 }
 
-/// A type of a prototype, as the old compiler's `typ2ctyp` writes it: both `_OFFSET`s are `ptrszint` (measured,
-/// `verification\v37_f`).
+/// A type of a prototype's parameter, as the old compiler's `typ2ctyp` writes it: both `_OFFSET`s are `ptrszint`
+/// (measured, `verification\v37_f`; a result's is not, `proto_parts`).
 fn proto_ty(t: Ty) -> &'static str {
     match t {
         Ty::Str => "char*",
@@ -110,20 +119,33 @@ pub fn dll_handle(written: &str) -> String {
 /// A library's name without its version, as the old compiler's `striplibver` (`qb64pe.bas` 4526–4543): from the
 /// end, a part after a `.` or a `:` that is a number without a leading zero is dropped, until a part that is no
 /// number, a folder or a `:` (`lib.1.0` and `lib:1` give `lib`, `lib:1.0` gives `lib`).
-pub fn strip_version(mut name: &str) -> &str {
+pub fn strip_version(name: &str) -> &str {
+    split_version(name).0
+}
+
+/// A library's name and its version, as `striplibver` takes them apart (`qb64pe.bas` 4526–4543): the parts dropped
+/// by [`strip_version`], joined by `.` in their order (`lib.1.0` gives `lib` and `1.0`, `lib:2` gives `lib` and `2`).
+/// On Linux the version names the shared object, `lib<name>.so.<version>` (design D4 of `m7-linux`).
+pub fn split_version(mut name: &str) -> (&str, String) {
     let is_uinteger =
         |s: &str| !s.is_empty() && !(s.len() > 1 && s.starts_with('0')) && s.bytes().all(|b| b.is_ascii_digit());
+    let mut version = String::new();
     while let Some(at) = name.rfind(['.', ':', '/', '\\']) {
         let sep = name.as_bytes()[at];
         if matches!(sep, b'/' | b'\\') || !is_uinteger(&name[at + 1..]) {
             break;
         }
+        version = if version.is_empty() {
+            name[at + 1..].to_string()
+        } else {
+            format!("{}.{version}", &name[at + 1..])
+        };
         name = &name[..at];
         if sep == b':' {
             break;
         }
     }
-    name
+    (name, version)
 }
 
 /// A header's path in an `#include`, with `/` between its parts: no backslash in the directive (GCC takes it as it
@@ -148,6 +170,9 @@ impl Emitter<'_> {
     fn proto_parts(&self, q: &Proc) -> (&'static str, String) {
         let ret = match q.kind {
             ProcKind::Sub => "void",
+            // The old compiler's `typ2ctyp` gets a result's type whole, so an unsigned `_OFFSET` keeps its `u` there,
+            // where a parameter's, given by its symbol, loses it (`m7-linux` task 3.5, `verification\v37_l1` on Linux).
+            ProcKind::Function(Ty::UOff) => "uptrszint",
             ProcKind::Function(t) => proto_ty(t),
         };
         let byval = &q.external.as_ref().expect("a library procedure").byval;
@@ -177,7 +202,10 @@ impl Emitter<'_> {
             .resolved
             .library(id)
             .and_then(|l| l.dll.clone())
-            .unwrap_or_else(|| format!("{}.dll", name.text));
+            .unwrap_or_else(|| match self.resolved.platform {
+                Platform::Windows => format!("{}.dll", name.text),
+                Platform::Linux => name.text.clone(),
+            });
         Some(Dll {
             handle: dll_handle(&name.text),
             dll,
@@ -215,17 +243,18 @@ impl Emitter<'_> {
                     }
                 }
                 LibraryKind::Dynamic => {
+                    // `qb64pe.bas` 5243–5249 and 5470–5476 for each `os$`.
+                    let (handle_ty, call) = match self.resolved.platform {
+                        Platform::Windows => ("HINSTANCE ", "CALLBACK* "),
+                        Platform::Linux => ("void *", "*"),
+                    };
                     if let Some(Dll { handle, .. }) = self.dll(id) {
-                        writeln!(out, "HINSTANCE {handle}=NULL;").unwrap();
+                        writeln!(out, "{handle_ty}{handle}=NULL;").unwrap();
                     }
                     for (_, q) in self.declarations(id) {
                         let (ret, params) = self.proto_parts(q);
                         let x = proc_name(q);
-                        writeln!(
-                            out,
-                            "typedef {ret} (CALLBACK* DLLCALL_{x}){params};\nDLLCALL_{x} {x}=NULL;"
-                        )
-                        .unwrap();
+                        writeln!(out, "typedef {ret} ({call}DLLCALL_{x}){params};\nDLLCALL_{x} {x}=NULL;").unwrap();
                     }
                 }
                 LibraryKind::Customtype => {
@@ -288,22 +317,33 @@ impl Emitter<'_> {
                     let Some(Dll { handle, dll }) = self.dll(id) else {
                         continue;
                     };
+                    let platform = self.resolved.platform;
+                    let load = match platform {
+                        Platform::Windows => format!("LoadLibrary({})", c_string(dll.as_bytes())),
+                        Platform::Linux => format!("dlopen({},RTLD_LAZY)", c_string(dll.as_bytes())),
+                    };
                     writeln!(
                         out,
-                        "if (!{handle}){{\n{handle}=LoadLibrary({});\nif (!{handle}){{{}error(259);}}\n}}",
-                        c_string(dll.as_bytes()),
+                        "if (!{handle}){{\n{handle}={load};\nif (!{handle}){{{}error(259);}}\n}}",
                         track(&lib.at)
                     )
                     .unwrap();
                     for (_, q) in self.declarations(id) {
                         let x = proc_name(q);
                         let e = q.external.as_ref().expect("a library procedure");
-                        writeln!(
-                            out,
-                            "if (!{x}){{\n{x}=(DLLCALL_{x})GetProcAddress({handle},{});\nif (!{x}){{{}error(260);}}\n}}",
-                            c_string(e.c_name.as_bytes()),
-                            track(&e.at)
-                        )
+                        let name = c_string(e.c_name.as_bytes());
+                        let at = track(&e.at);
+                        // `qb64pe.bas` 5887–5894: on Linux a failed `dlsym` is told by `dlerror()`.
+                        match platform {
+                            Platform::Windows => writeln!(
+                                out,
+                                "if (!{x}){{\n{x}=(DLLCALL_{x})GetProcAddress({handle},{name});\nif (!{x}){{{at}error(260);}}\n}}"
+                            ),
+                            Platform::Linux => writeln!(
+                                out,
+                                "if (!{x}){{\n{x}=(DLLCALL_{x})dlsym({handle},{name});\nif (dlerror()){{{at}error(260);}}\n}}"
+                            ),
+                        }
                         .unwrap();
                     }
                 }
@@ -430,6 +470,24 @@ mod tests {
         ];
         for (written, handle) in cases {
             assert_eq!(dll_handle(written), handle, "{written}");
+        }
+    }
+
+    /// The version `striplibver` takes off, in its order (`qb64pe.bas` 4526–4543), which names a Linux shared object.
+    #[test]
+    fn versions_taken_apart() {
+        let cases = [
+            ("v37s", "v37s", ""),
+            ("./v37s.1", "./v37s", "1"),
+            ("lib.1.0", "lib", "1.0"),
+            ("lib:2", "lib", "2"),
+            ("lib:1:2", "lib:1", "2"),
+            ("/usr/lib/x86_64-linux-gnu/c.6", "/usr/lib/x86_64-linux-gnu/c", "6"),
+            ("lib.01", "lib.01", ""),
+            ("v.1/lib", "v.1/lib", ""),
+        ];
+        for (written, name, version) in cases {
+            assert_eq!(split_version(written), (name, version.to_string()), "{written}");
         }
     }
 }

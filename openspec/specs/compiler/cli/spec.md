@@ -8,7 +8,8 @@ M1 extension use, plus options for inspecting each compiler stage.
 
 ### Requirement: qb64pe-compatible compile
 `qb64rust [-x] [-q] [-m] [-w] [-f:<setting>=<value>]... <file.bas> [-o <exe>]` SHALL compile the file to the
-executable (default: the source name with `.exe`, next to the source). `-x`, `-q`, `-m` and `-w` SHALL be accepted;
+executable (default: the source name with `.exe` on Windows and with no extension on Linux, next to the source, as
+`qb64pe` names it on each). `-x`, `-q`, `-m` and `-w` SHALL be accepted;
 `-q` SHALL suppress progress output. `-f:OptimizeCppProgram=true|false` SHALL build the C++ with or without
 optimisation as `qb64pe` does; `-f:ExtraLinkerFlags=<value>` SHALL add the value to the end of the link command as
 `qb64pe` does; `-f:StripDebugSymbols=true|false` SHALL strip or not strip the executable's symbols as `qb64pe`
@@ -62,6 +63,10 @@ and 1 otherwise; on failure no executable SHALL be left at the output path.
 #### Scenario: The extra file changes
 - **WHEN** a build cache is in use and the file named by `-f:ExtraLinkerFlags` has changed since the cached build
 - **THEN** the program is built again
+
+#### Scenario: Default name on Linux
+- **WHEN** `qb64rust -x game.bas` runs on Linux with no `-o`
+- **THEN** the executable is `game` beside `game.bas`, with its execute permission set
 
 ### Requirement: Diagnostics output
 Each diagnostic SHALL be printed to stdout as `<file>:<line>:<column>: error: <message>`, with the file as given

@@ -26,8 +26,18 @@ use std::process::{Command, Stdio};
 use symbols::Symbols;
 
 /// The environment `lldb` runs in (design D1, "Measured"): it debugs through `lldb-server` rather than its own
-/// Windows plugin, which under load could lose the stop that ends a step and wait for ever.
-pub const LLDB_ENV: &[(&str, &str)] = &[("LLDB_USE_LLDB_SERVER", "1")];
+/// Windows plugin, which under load could lose the stop that ends a step and wait for ever. On Linux `lldb` debugs
+/// through `lldb-server` already, and the variable is not set (design D5 of `m7-linux`).
+pub const LLDB_ENV: &[(&str, &str)] = if cfg!(windows) {
+    &[("LLDB_USE_LLDB_SERVER", "1")]
+} else {
+    &[]
+};
+
+/// The register that holds the first integer argument of a call at the callee's entry: `ecx` in the Windows x64
+/// convention, `edi` in the System V one of Linux (measured, task 4.2 of `m7-linux`). libqb's `error` takes the error
+/// code there (design D10).
+pub const FIRST_ARG: &str = if cfg!(windows) { "$ecx" } else { "$edi" };
 
 /// The exception filter of a stop at a runtime error (design D10).
 pub const ERROR_FILTER: &str = "qbError";
@@ -36,6 +46,22 @@ pub const ERROR_FILTER: &str = "qbError";
 #[derive(Default)]
 pub struct State {
     session: Option<Session>,
+    /// The backend offers `writeMemory` (`supportsWriteMemoryRequest` in its `initialize` answer). `lldb-dap` 20 and
+    /// older do not, and end when sent one; a value is then written with `lldb`'s `memory write` (measured, task 4.2
+    /// of `m7-linux`).
+    backend_writes_memory: bool,
+}
+
+/// The oldest `lldb-dap` the adapter's features work with: 18 offers no data breakpoints, 19 ends at the first
+/// `readMemory` (so no value can be shown), 20 passes the debugger's tests (measured on Ubuntu 24.04, task 4.2 of
+/// `m7-linux`, and in a fresh container, task 1.4). An older one known by its name is not started
+/// (`qb64rust_driver::toolchain::lldb_dap`).
+pub const LLDB_DAP_MINIMUM: u32 = 20;
+
+/// The version a versioned `lldb-dap`'s file name gives (`lldb-dap-19` gives 19, as Debian and Ubuntu name each
+/// version's); `None` for any other name (`lldb-dap`, `lldb-dap.exe`).
+pub fn lldb_dap_version(path: &std::path::Path) -> Option<u32> {
+    path.file_name()?.to_str()?.strip_prefix("lldb-dap-")?.parse().ok()
 }
 
 /// A debug session of one program.
@@ -114,8 +140,9 @@ fn request(p: &mut Proxy, m: Value) -> Result<(), String> {
 }
 
 /// A response of the backend to a client's request, before it goes to the client.
-fn response(_p: &mut Proxy, command: &str, m: &mut Value) -> Result<(), String> {
+fn response(p: &mut Proxy, command: &str, m: &mut Value) -> Result<(), String> {
     if command == "initialize" && m["success"] == true {
+        p.state.backend_writes_memory = m["body"]["supportsWriteMemoryRequest"] == true;
         let body = &mut m["body"];
         if !body.is_object() {
             *body = json!({});

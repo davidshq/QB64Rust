@@ -13,4 +13,3 @@ corpus:runtime_comparison/251_print_chain  PRINT with a comma never ends when st
 corpus:runtime_comparison/228_err_erl_values  D-052: division by zero trapped (recording: critical error)
 corpus:slice/s11_on_error  D-052: division by zero trapped (recording: critical error)
 corpus:slice/s17_operators  D-052: division by zero trapped (recording: critical error)
-corpus:slice/s136_errorline  D-052: _ERRORMESSAGE$(11) is "Division by zero" (recording: "Unprintable error")

@@ -9,7 +9,7 @@ use crate::builtins::{
     MEM_RESULTS, Rule, Slot, StmtRule, StmtSlot, StmtSupported, Supported, lookup, result_types, slots, stmt_lookup,
     stmt_slots,
 };
-use crate::{AddressWord, ConvKind, Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, StmtArg, StmtKind, Ty};
+use crate::{ConvKind, Expr, ExprKind, PLACE_ONLY_UNREACHABLE, Place, StmtArg, StmtKind, Ty};
 use qb64rust_base::Span;
 use qb64rust_builtins::find_any;
 use qb64rust_builtins::template::{Atom, Item};
@@ -927,7 +927,7 @@ impl Checker<'_> {
             && (root.is_int() || root.is_float())
             && !matches!(root, Ty::Bit { .. })
         {
-            if index.iter().any(calls_procedure) {
+            if index.iter().any(Expr::calls_procedure) {
                 let msg = format!("a call of a FUNCTION in the index of the array of `{name}`");
                 return Err(self.unsupported(span, msg));
             }
@@ -943,7 +943,7 @@ impl Checker<'_> {
             || self.prog.is_mem(root)
         {
             Some("a `TYPE` that holds a `STRING` or a dynamic member array")
-        } else if place.indexes().iter().any(|i| calls_procedure(i)) {
+        } else if place.calls_procedure() {
             Some("a call of a FUNCTION in an index")
         } else {
             None
@@ -1093,7 +1093,7 @@ impl Checker<'_> {
             let msg = format!("an array of strings, of a `TYPE` or of `_BIT` as the array of `{name}`");
             return Err(self.unsupported(span, msg));
         }
-        if index.iter().any(calls_procedure) {
+        if index.iter().any(Expr::calls_procedure) {
             let msg = format!("a call of a FUNCTION in the index of the array of `{name}`");
             return Err(self.unsupported(span, msg));
         }
@@ -1375,38 +1375,6 @@ impl Checker<'_> {
         }
         self.push(node, StmtKind::Builtin { id: form.id, args });
         Ok(())
-    }
-}
-
-/// Whether evaluating the expression calls a SUB or FUNCTION of the program.
-fn calls_procedure(e: &Expr) -> bool {
-    match &e.kind {
-        ExprKind::CallProc { .. } => true,
-        ExprKind::Int(_)
-        | ExprKind::Float(_)
-        | ExprKind::Str(_)
-        | ExprKind::Address {
-            word: AddressWord::VarSeg,
-            ..
-        }
-        | ExprKind::ArrayBytes(_) => false,
-        ExprKind::Load(place) => place.indexes().iter().any(|i| calls_procedure(i)),
-        ExprKind::Bound { dim, .. } => dim.as_deref().is_some_and(calls_procedure),
-        ExprKind::Block { index, .. } => index.iter().any(calls_procedure),
-        ExprKind::Address { of, .. } => of.indexes().iter().any(|i| calls_procedure(i)),
-        ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => calls_procedure(from),
-        ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
-            calls_procedure(lhs) || calls_procedure(rhs)
-        }
-        ExprKind::Choice { condition, then, else_ } => {
-            calls_procedure(condition) || calls_procedure(then) || calls_procedure(else_)
-        }
-        ExprKind::Call { args, .. } => args.iter().flatten().any(calls_procedure),
-        ExprKind::MemOf { of, .. } | ExprKind::AddressOf(of) => of.indexes().iter().any(|i| calls_procedure(i)),
-        ExprKind::MemAt { offset, size } => calls_procedure(offset) || calls_procedure(size),
-        ExprKind::MemRead { block, offset, .. } => {
-            block.indexes().iter().any(|i| calls_procedure(i)) || calls_procedure(offset)
-        }
     }
 }
 

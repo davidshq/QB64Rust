@@ -6,13 +6,26 @@
 import * as fs from "fs";
 import * as path from "path";
 
-export type ToolchainSource = "setting" | "option" | "variable" | "qb64pe" | "installed" | "clone";
+export type ToolchainSource = "setting" | "option" | "variable" | "qb64pe" | "installed" | "clone" | "system";
+
+/** The name of the bundled binary on a platform (design D8 of m7-linux): `qb64rust.exe` on Windows, `qb64rust` on
+ * Linux. */
+export function binaryName(platform: string = process.platform): string {
+    return platform === "win32" ? "qb64rust.exe" : "qb64rust";
+}
 
 /** Not found: `installable` when `qb64rust toolchain path` ran and found nothing, so that an install would give one;
  * else (a setting or a variable naming a folder that is not a toolchain, no binary) `setting` names what to change. */
 export type ToolchainDiscovery =
     | { found: true; folder: string; source: ToolchainSource }
     | { found: false; reason: string; installable?: boolean; setting?: string };
+
+/** The `--toolchain-root` a build and the adapter are given for a toolchain found: its folder, or none for the
+ * system's (Linux), whose folder `qb64rust toolchain path` gives as the folder of `g++` (`/usr/bin`), which holds no
+ * `bin/g++`; the compiler then finds it on `PATH` again (m7-linux, task 6.3). */
+export function toolchainRoot(found: { folder: string; source: ToolchainSource }): string | undefined {
+    return found.source === "system" ? undefined : found.folder;
+}
 
 /** The start of `toolchain.rs` `missing_message`: the lookup ran and found nothing. */
 const MISSING = "no C++ toolchain found";
@@ -33,6 +46,8 @@ export interface ToolchainInput {
     /** Runs the binary with the arguments; given by the caller (a child process). */
     run: (binary: string, args: string[]) => Promise<ProcessRun>;
     isToolchain?: (folder: string) => boolean;
+    /** The platform (default: this process's); on Linux a toolchain folder holds `bin/g++` and `bin/make`. */
+    platform?: string;
 }
 
 /** The setting that names a toolchain folder of one's own. */
@@ -51,8 +66,13 @@ export const OFFER =
 /** What a declined offer says: the command and the setting. */
 export const DECLINED = `QB64: no C++ toolchain, so nothing was started. Install it with "${INSTALL_TITLE}", or set ${SETTING} to a toolchain folder of your own.`;
 
+/** The programs a toolchain folder holds on a platform (as `toolchain.rs` `is_toolchain`). */
+function toolchainPrograms(platform: string): [string, string] {
+    return platform === "win32" ? ["c++.exe", "mingw32-make.exe"] : ["g++", "make"];
+}
+
 /** Whether `folder` holds the programs a build runs (as `toolchain.rs` `is_toolchain`). */
-export function isToolchainFolder(folder: string): boolean {
+export function isToolchainFolder(folder: string, platform: string = process.platform): boolean {
     const isFile = (p: string) => {
         try {
             return fs.statSync(p).isFile();
@@ -60,7 +80,7 @@ export function isToolchainFolder(folder: string): boolean {
             return false;
         }
     };
-    return isFile(path.join(folder, "bin", "c++.exe")) && isFile(path.join(folder, "bin", "mingw32-make.exe"));
+    return toolchainPrograms(platform).every((name) => isFile(path.join(folder, "bin", name)));
 }
 
 /** `qb64rust toolchain path`'s output: the folder on the first line, the source's word before the colon on the
@@ -69,7 +89,7 @@ export function parseToolchainPath(run: ProcessRun): ToolchainDiscovery {
     const lines = run.output.split(/\r?\n/).filter((l) => l.trim() !== "");
     if (run.exitCode === 0 && lines.length >= 2) {
         const word = lines[1].split(":", 1)[0].trim();
-        const sources: ToolchainSource[] = ["option", "variable", "qb64pe", "installed", "clone"];
+        const sources: ToolchainSource[] = ["option", "variable", "qb64pe", "installed", "clone", "system"];
         if ((sources as string[]).includes(word)) {
             return { found: true, folder: lines[0].trim(), source: word as ToolchainSource };
         }
@@ -84,11 +104,13 @@ export function parseToolchainPath(run: ProcessRun): ToolchainDiscovery {
 /** The toolchain a build and a debug session use (design D6): `qb64rust.toolchainPath`, else `qb64rust toolchain
  * path`, given the QB64pe found, so that a QB64pe user's toolchain is QB64pe's. */
 export async function findToolchain(input: ToolchainInput): Promise<ToolchainDiscovery> {
-    const isToolchain = input.isToolchain ?? isToolchainFolder;
+    const platform = input.platform ?? process.platform;
+    const isToolchain = input.isToolchain ?? ((folder: string) => isToolchainFolder(folder, platform));
+    const [cxx, make] = toolchainPrograms(platform).map((name) => path.join("bin", name));
     if (input.setting) {
         return isToolchain(input.setting)
             ? { found: true, folder: input.setting, source: "setting" }
-            : { found: false, reason: `${SETTING} points to "${input.setting}", which has no bin\\c++.exe or bin\\mingw32-make.exe.`, setting: SETTING };
+            : { found: false, reason: `${SETTING} points to "${input.setting}", which has no ${cxx} or ${make}.`, setting: SETTING };
     }
     if (!input.binary) {
         return { found: false, reason: "the qb64rust binary was not found, so no toolchain was looked for.", setting: "qb64rust.path" };
@@ -120,9 +142,35 @@ export interface OfferUi {
     showOutput(): void;
     /** Looks for the toolchain again once it is installed. */
     find(): Promise<ToolchainDiscovery>;
+    /** The platform (default: Windows, the platform the offer was written for); on Linux nothing is downloaded. */
+    platform?: string;
+    /** Puts text on the clipboard. */
+    copy?(text: string): Thenable<void>;
 }
 
 export const SHOW_OUTPUT = "Show Output";
+export const COPY_INSTALL = "Copy Install Command";
+
+/** The install line a Linux message names (`toolchain.rs` `packages_message`): the text in backquotes that starts
+ * with `sudo `. */
+export function installLine(message: string): string | undefined {
+    const m = /`(sudo [^`]+)`/.exec(message);
+    return m ? m[1] : undefined;
+}
+
+/** On Linux (spec editor/packaging, "Linux without g++"; design D8 of m7-linux): the message, which names the
+ * packages, with a button that copies the install line and one to the "QB64" output. Nothing is downloaded. */
+function showPackages(ui: OfferUi, message: string): void {
+    const line = installLine(message);
+    const items = line ? [COPY_INSTALL, SHOW_OUTPUT] : [SHOW_OUTPUT];
+    void ui.error(`QB64: ${message}`, ...items).then((c) => {
+        if (c === COPY_INSTALL && line) {
+            void ui.copy?.(line);
+        } else if (c === SHOW_OUTPUT) {
+            ui.showOutput();
+        }
+    });
+}
 
 /** The last line of an install's output that says what went wrong. */
 function failure(output: string): string {
@@ -135,7 +183,11 @@ function failure(output: string): string {
  * toolchain found after the install, or undefined (declined, cancelled, failed), when the build or session is not
  * started; what happened has been shown.
  */
-export async function offerToolchain(ui: OfferUi): Promise<ToolchainDiscovery | undefined> {
+export async function offerToolchain(ui: OfferUi, missing?: ToolchainDiscovery): Promise<ToolchainDiscovery | undefined> {
+    if ((ui.platform ?? "win32") !== "win32") {
+        showPackages(ui, missing && !missing.found ? missing.reason : "no C++ toolchain found");
+        return undefined;
+    }
     const choice = await ui.ask(OFFER, DOWNLOAD, NOT_NOW);
     if (choice !== DOWNLOAD) {
         void ui.info(DECLINED);
@@ -166,6 +218,17 @@ export async function offerToolchain(ui: OfferUi): Promise<ToolchainDiscovery | 
 export async function installCommand(trusted: boolean, installed: () => Promise<ToolchainDiscovery>, ui: OfferUi): Promise<ToolchainDiscovery | undefined> {
     if (!trusted) {
         void ui.info("QB64: installing the C++ toolchain requires a trusted workspace. Nothing was run.");
+        return undefined;
+    }
+    if ((ui.platform ?? "win32") !== "win32") {
+        // `qb64rust toolchain install` downloads nothing on Linux: it says the system toolchain is used, or names
+        // the packages to install (spec editor/packaging, "The command on Linux").
+        const run = await ui.install();
+        if (run.exitCode === 0) {
+            void ui.info(`QB64: ${failure(run.output)}`);
+            return ui.find();
+        }
+        showPackages(ui, failure(run.output));
         return undefined;
     }
     const now = await installed();

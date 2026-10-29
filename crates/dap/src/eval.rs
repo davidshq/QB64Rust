@@ -244,12 +244,27 @@ pub fn evaluate(p: &mut Proxy, m: Value) -> Result<(), String> {
 /// Writes `text` into the place of `v` (spec "Set value"); gives the answer of `setVariable`.
 fn write(p: &mut Proxy, v: &Val, text: &str) -> Result<Value, String> {
     let kind = Kind::of(&v.ty);
+    let frame = v.frame.clone();
     let write_bytes = |p: &mut Proxy, at: u64, bytes: &[u8]| {
-        p.call(
-            "writeMemory",
-            json!({"memoryReference": format!("0x{at:x}"), "data": base64_encode(bytes)}),
-        )
-        .map(|_| ())
+        if p.state.backend_writes_memory {
+            return p
+                .call(
+                    "writeMemory",
+                    json!({"memoryReference": format!("0x{at:x}"), "data": base64_encode(bytes)}),
+                )
+                .map(|_| ());
+        }
+        // `lldb-dap` 20 and older: `lldb`'s own command, one byte a value (`State::backend_writes_memory`).
+        let values: String = bytes.iter().map(|b| format!(" 0x{b:02x}")).collect();
+        let body = p.call(
+            "evaluate",
+            json!({"expression": format!("`memory write -s 1 0x{at:x}{values}"), "frameId": frame,
+                   "context": "repl"}),
+        )?;
+        match body["result"].as_str() {
+            Some(out) if out.contains("error:") => Err(out.trim().to_string()),
+            _ => Ok(()),
+        }
     };
     let fixed = |n: u64| {
         let mut b = parse_string(text);
@@ -443,7 +458,10 @@ pub fn goto_targets(p: &mut Proxy, m: Value) -> Result<(), String> {
     p.respond(&m, result)
 }
 
-/// `goto`: `lldb`'s `thread jump` through `lldb-dap`'s command prefix (measured, task 3.1), then a stop there.
+/// `goto`: `lldb`'s `thread jump` through `lldb-dap`'s command prefix (measured, task 3.1), then a stop there. The
+/// program's thread is selected first: a command runs on `lldb`'s selected thread, not the frame's, and on Linux the
+/// program runs on a thread of its own, where `thread jump` from the main thread finds the line outside "the current
+/// function" and refuses a line of several locations (measured, task 4.2 of `m7-linux`).
 pub fn goto(p: &mut Proxy, m: Value) -> Result<(), String> {
     let line = m["arguments"]["targetId"].as_u64().unwrap_or(0);
     let path = p
@@ -455,7 +473,14 @@ pub fn goto(p: &mut Proxy, m: Value) -> Result<(), String> {
     let file = std::path::Path::new(&path)
         .file_name()
         .map_or_else(String::new, |n| n.to_string_lossy().to_string());
+    let thread = p.state.session.as_ref().and_then(|s| s.program_thread);
     let result = top_frame(p).and_then(|(frame, _, _)| {
+        if let Some(t) = thread {
+            p.call(
+                "evaluate",
+                json!({"expression": format!("`thread select -t {t}"), "frameId": frame, "context": "repl"}),
+            )?;
+        }
         let body = p.call(
             "evaluate",
             json!({"expression": format!("`thread jump --file \"{file}\" --line {line}"), "frameId": frame,

@@ -1,0 +1,5 @@
+
+DYNAMIC LIBRARY not found
+Caused by (or after):DECLARE DYNAMIC LIBRARY "/usr/lib/x86_64-linux-gnu/libc.so.6",35
+LINE 4:DECLARE DYNAMIC LIBRARY "/usr/lib/x86_64-linux-gnu/libc.so.6"
+exit=1

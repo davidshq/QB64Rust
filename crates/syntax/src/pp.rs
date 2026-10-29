@@ -20,7 +20,7 @@
 //! line, the old compiler's two passes disagree about the line; in the last round `sema` marks it "not supported
 //! yet" ([`PpState::flag_condition`]).
 
-use qb64rust_base::show_bytes;
+use qb64rust_base::{Platform, show_bytes};
 
 /// The version the predefined name `VERSION` holds (the old compiler's `Version$`).
 const VERSION: &[u8] = b"4.7.0-GLFW";
@@ -76,12 +76,25 @@ const FEATURES: [Feature; 7] = [
 ];
 
 /// The values of the features in one round of compiling: what every `$IF` of the old compiler's main pass sees.
+/// With them the platform the program is compiled on, which sets `WIN` and `LINUX` (Windows unless
+/// [`crate::parse_settled_on`] says otherwise).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct PpFlags {
     values: [u8; FEATURES.len()],
+    platform: Platform,
 }
 
 impl PpFlags {
+    /// The same flags for a program compiled on `platform`.
+    #[must_use]
+    pub fn on(self, platform: Platform) -> Self {
+        PpFlags { platform, ..self }
+    }
+
+    pub fn platform(self) -> Platform {
+        self.platform
+    }
+
     pub fn get(self, f: Feature) -> u8 {
         self.values[f as usize]
     }
@@ -353,14 +366,19 @@ impl Default for PpState {
 
 impl PpState {
     /// The state at the first line of a round with these flags: the predefined names, then the six flags (the
-    /// old compiler adds them at the first line of each pass, before any `$LET`).
+    /// old compiler adds them at the first line of each pass, before any `$LET`). `WINDOWS`, `WIN` and `LINUX`
+    /// follow the platform, as the old compiler's follow its own `_OS$` (`qb64pe.bas` 65–66; `m7-linux`).
     pub fn with_flags(flags: PpFlags) -> Self {
         let d = |n: &[u8], v: &[u8]| (n.to_vec(), v.to_vec());
+        let (win, linux): (&[u8], &[u8]) = match flags.platform {
+            Platform::Windows => (b"-1", b"0"),
+            Platform::Linux => (b"0", b"-1"),
+        };
         let mut state = PpState {
             defines: vec![
-                d(b"WINDOWS", b"-1"),
-                d(b"WIN", b"-1"),
-                d(b"LINUX", b"0"),
+                d(b"WINDOWS", win),
+                d(b"WIN", win),
+                d(b"LINUX", linux),
                 d(b"MAC", b"0"),
                 d(b"MACOSX", b"0"),
                 d(b"32BIT", b"0"),
@@ -859,6 +877,11 @@ mod tests {
         }
         for f in ["LINUX", "MAC", "MACOSX", "32BIT", "_ARM_", "NOPE"] {
             assert_eq!(eval(f), Ok(false), "{f}");
+        }
+        // On Linux, as the old compiler's Linux build (`m7-linux`, `verification\v37_i_places`).
+        let s = PpState::with_flags(PpFlags::default().on(Platform::Linux));
+        for (name, value) in [("LINUX", true), ("64BIT", true), ("WIN", false), ("WINDOWS", false)] {
+            assert_eq!(s.eval(name.as_bytes()), Ok(value), "{name}");
         }
     }
 

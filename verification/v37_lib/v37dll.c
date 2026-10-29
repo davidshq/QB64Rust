@@ -3,7 +3,11 @@
 #include <stdint.h>
 #include <string.h>
 
-#define EXPORT __declspec(dllexport)
+#ifdef _WIN32
+#    define EXPORT __declspec(dllexport)
+#else
+#    define EXPORT
+#endif
 
 EXPORT int32_t d_add(int32_t a, int32_t b) { return a + b; }
 EXPORT void d_inc(int32_t *p) { *p += 1; }

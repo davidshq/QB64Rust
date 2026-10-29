@@ -1,0 +1,5 @@
+
+Cannot specify multiple DYNAMIC LIBRARY names in a single DECLARE statement
+Caused by (or after):DECLARE DYNAMIC LIBRARY "./v37dll",8 , "/usr/lib/x86_64-linux-gnu/c:6",29
+LINE 4:DECLARE DYNAMIC LIBRARY "./v37dll", "/usr/lib/x86_64-linux-gnu/c:6"
+exit=1

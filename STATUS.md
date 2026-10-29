@@ -22,9 +22,10 @@ M0 to M5 are complete (`ROADMAP-COMPLETED.md`; M3 declared done at the merge of 
 tenth review `study\35` §3 item 1; M4 at the merge of branch `m4-sub-gl`, user, 2026-10-24, `DECISIONS.md`, what
 its list left open moved to `SOMEDAY.md`; M5, the debugger, at the merge of pull request 17, user, 2026-10-26;
 M5b, the formatter and the language-server features, at the merge of pull request 18, 2026-10-26). M6, rewritten
-as "the runtime without QB64pe" (`ROADMAP.md`, `DECISIONS.md` 2026-10-28), is built but for its check on a machine
-with no QB64pe: `m6-toolchain`, `m6-compiler-download`, `fixes-switch` and `libqb-fixes` are archived. Twenty-two M3 steps are built and archived
-(`ROADMAP-COMPLETED.md`, M3), the last `m3-constant-evaluation` (`4f647a9`); `test-parallel-runs` and `test-while-building` (the test
+as "the runtime without QB64pe" (`ROADMAP.md`, `DECISIONS.md` 2026-10-28), is done, its check on a machine with no
+QB64pe postponed to `SOMEDAY.md` (`DECISIONS.md` 2026-10-28): `m6-toolchain`, `m6-compiler-download`,
+`fixes-switch` and `libqb-fixes` are archived. Twenty-two M3 steps are built and archived (`ROADMAP-COMPLETED.md`,
+M3), the last `m3-constant-evaluation` (`4f647a9`); `test-parallel-runs` and `test-while-building` (the test
 cadence of `study\archive\32` and `study\archive\34`, not M3 steps, `4a8d06e` and `5d3730f`) are archived too.
 Every program of the corpus that the old compiler accepts compiles, and every one that can be compared passes;
 Civil War Strategy compiles with no diagnostic, builds, and played for two turns from a keys file shows the same
@@ -36,11 +37,11 @@ Civil War Strategy compiles with no diagnostic, builds, and played for two turns
 `m4-left-marked`, `m4-coverage-review`). Pull request 17 (`a81180a`, 2026-10-26) merged branch `m5`: M5's three
 changes (`m5-debug-build-symbols`, `m5-dap-proxy`, `m5-debug-launch`) and `m5b-formatter`. Pull request 18
 (`fa91454`, 2026-10-26) merged branch `mb5`: `m5b-format-settings` and `m5b-language-features`. Pull request 19
-(open, 2026-10-28) is to merge branch `more-stuff`: `qbasic-testcases`, `m6-toolchain`, `m6-compiler-download`,
-`fixes-switch`, `libqb-fixes`, the QB 4.5 oracle (`tools\qb45`) and the purpose; the full set for the merge has not
-run. Branch `docs-and-cuts`, after it, holds the answers to `study\38`'s last questions (`DECISIONS.md`
-2026-10-28). The extension's last release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`),
-not yet tagged.
+(`fa6de03`, 2026-10-28) merged branch `more-stuff`: `qbasic-testcases`, `m6-toolchain`, `m6-compiler-download`,
+`fixes-switch`, `libqb-fixes`, the QB 4.5 oracle (`tools\qb45`) and the purpose, on `libqb-fixes`' closing runs
+and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026-10-28). Branch `docs-and-cuts`,
+after it, holds the answers to `study\38`'s last questions (`DECISIONS.md` 2026-10-28). The extension's last
+release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
 
@@ -53,14 +54,15 @@ Nothing is waiting: `study\38`'s last questions were answered on 2026-10-28 (`DE
 
 ## Next
 
-1. **The merge of pull request 19** (`more-stuff` into `main`): the full set for a merge, with the reports a
-   change's close no longer runs (`tools\close\README.md`, "The test cadence"); its numbers replace the block
-   below. Then `docs-and-cuts` follows it into `main`.
-2. **M6's last item**: check on a machine with no QB64pe that the released `.vsix` installs, fetches its toolchain,
-   and builds, runs and debugs a program (`ROADMAP.md`); the first release with the compiler's zip is the user's
-   `vscode-v0.3.0` tag. Then M6 is declared done.
-3. **M7, Linux** (`ROADMAP.md`), the next milestone of the purpose: first a pinned Linux toolchain and the driver's
-   build there, as `m6-toolchain` did on Windows.
+1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs the full set
+   (`tools\close\README.md`, "The test cadence"); its numbers replace the block below.
+2. **A pass list run with `--list` fails on a known failure.** `run_legacy_tests.py` marks a failure named in
+   `tools\legacy_tests\known_failures.txt` KFAIL, which does not fail the run, so a close's run of `slice.list`
+   passed with three programs on it failing (D-052; `DECISIONS-SMALL.md` 2026-10-28); `--check-list` already
+   refuses them. Make the list runs of `tools\close\close.py` refuse them too, before `m7-linux`'s closing runs.
+3. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
+   built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
+   results are read when they come. M8 next.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a

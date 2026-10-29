@@ -1,0 +1,26 @@
+forms, BINARY
+whole:
+no #:
+one record:
+a range:
+a comma alone:
+a variable:
+record 0:<error 5 ><error 5 >
+record -1:<error 5 >
+a range the wrong way round:
+past the end:
+UNLOCK with no LOCK:
+UNLOCK of another range:
+LOCK twice:
+read and write while locked:a
+a second OPEN while locked:a
+CLOSE while locked:
+a
+other modes
+RANDOM:
+INPUT:
+APPEND:
+OUTPUT:
+not open:<error 52 ><error 52 >
+number 0:<error 52 >
+exit=0

@@ -37,6 +37,10 @@ pub struct Step {
     /// The last step on was a `stepOut` of code that is no BASIC code, so the stop after it may be in the middle of
     /// the line it was called from.
     returning: bool,
+    /// The line (file, line) of the last stop in the middle of a line that was stepped on from: a stop on another
+    /// line is at its start, whatever its column. `clang` on Windows gives each BASIC line one entry, at column 1;
+    /// `g++` on Linux one per C++ statement, at its own column (`steps.bas:4:29`; measured, task 4.2 of `m7-linux`).
+    mid_line: Option<(usize, u64)>,
 }
 
 /// A client's `next`, `stepIn` or `stepOut`.
@@ -62,6 +66,7 @@ pub fn start(p: &mut Proxy, m: Value) -> Result<(), String> {
             depth,
             count: 0,
             returning: false,
+            mid_line: None,
         });
     }
     let command = m["command"].as_str().unwrap_or("next").to_string();
@@ -76,6 +81,7 @@ fn start_entry(p: &mut Proxy, thread: i64) -> Result<(), String> {
             depth: 0,
             count: 0,
             returning: false,
+            mid_line: None,
         });
     }
     p.send("next", json!({"threadId": thread}))
@@ -114,13 +120,20 @@ fn decide(s: &crate::Session, step: &Step, frame: &Value, total: i64) -> Then {
     {
         return Then::Next;
     }
+    let new_line = step.mid_line.is_some_and(|at| at != (file, line));
     match step.kind {
         Kind::Entry if s.line_text(file, line).is_some_and(no_statement) => Then::Next,
         Kind::Entry => Then::Report,
-        _ if column == 1 || !(total < step.depth || step.returning) => Then::Report,
+        _ if column == 1 || new_line || !(total < step.depth || step.returning) => Then::Report,
         Kind::In => Then::StepIn,
         _ => Then::Next,
     }
+}
+
+/// The BASIC line of a stop that [`decide`] steps on from in the middle of a line, for [`Step::mid_line`].
+fn mid_line_of(s: &crate::Session, frame: &Value) -> Option<(usize, u64)> {
+    let (_, file) = s.basic_frame(frame)?;
+    Some((file, frame["line"].as_u64()?))
 }
 
 /// A `stopped` event of the backend.
@@ -165,8 +178,16 @@ pub fn stopped(p: &mut Proxy, m: Value) -> Result<(), String> {
     let pausing = std::mem::take(&mut s.pausing);
     // A pause stops the process on a thread of its own (`DbgUiRemoteBreakin`), reported as an exception. Any other
     // exception on another thread (a fault in a thread of libqb's) is reported as it came.
+    // `lldb-dap` 19 reports a stop at a data breakpoint as `breakpoint`, described `watchpoint <n>`; later ones as
+    // `data breakpoint` (measured, task 4.2 of `m7-linux`).
+    let watchpoint = reason == "breakpoint"
+        && body["description"]
+            .as_str()
+            .is_some_and(|d| d.starts_with("watchpoint "));
     let reason = if reason == "exception" && !is_program && pausing {
         "pause".to_string()
+    } else if watchpoint {
+        "data breakpoint".to_string()
     } else {
         reason
     };
@@ -222,8 +243,16 @@ fn step_on(p: &mut Proxy, thread: i64) -> Result<(), String> {
         (Some(top), Some(step)) => decide(s, step, top, total),
         _ => Then::Report,
     };
+    // A step on with `next` or `stepIn` from a BASIC line that was not reported is from the middle of that line.
+    let mid = match (&then, frames.first()) {
+        (Then::Next | Then::StepIn, Some(top)) => mid_line_of(s, top),
+        _ => None,
+    };
     if let Some(step) = s.step.as_mut() {
         step.returning = then == Then::StepOut;
+        if mid.is_some() {
+            step.mid_line = mid;
+        }
     }
     match then {
         Then::Report => report(p, json!({"reason": reason}), thread),
@@ -233,14 +262,15 @@ fn step_on(p: &mut Proxy, thread: i64) -> Result<(), String> {
     }
 }
 
-/// A stop on the proxy's breakpoint on libqb's `error` (design D10): the code is the first argument, in `ecx`.
+/// A stop on the proxy's breakpoint on libqb's `error` (design D10): the code is the first argument, in
+/// [`crate::FIRST_ARG`].
 fn error_stop(p: &mut Proxy, thread: i64) -> Result<(), String> {
     let (frames, _) = stack::backend_frames(p, &json!(thread))?;
     let frame = frames.first().map_or(Value::Null, |f| f["id"].clone());
     let code = p
         .call(
             "evaluate",
-            json!({"expression": "(int)$ecx", "frameId": frame, "context": "watch"}),
+            json!({"expression": format!("(int){}", crate::FIRST_ARG), "frameId": frame, "context": "watch"}),
         )
         .ok()
         .and_then(|b| b["result"].as_str().and_then(|r| r.trim().parse::<i64>().ok()))

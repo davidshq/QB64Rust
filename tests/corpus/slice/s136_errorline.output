@@ -10,7 +10,7 @@
   error 10 _ERRORLINE 63 _INCLERRORLINE 0 file [] message [Duplicate definition]
 4. back in main: 63  0 
 5. messages: [Illegal function call] [No error] [Unprintable error] [Unprintable error]
-6. [Unprintable error] [Duplicate definition] [Bad file name or number]
+6. [Illegal in direct mode] [Duplicate definition] [Bad file name or number]
   error 255 _ERRORLINE 24 _INCLERRORLINE 0 file [] message [Unprintable error]
 7. continued:
   error 12 _ERRORLINE 27 _INCLERRORLINE 0 file [] message [Illegal in direct mode]
