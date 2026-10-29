@@ -69,16 +69,33 @@ fn read_pipe(mut pipe: impl Read + Send + 'static) -> (Arc<Mutex<Vec<u8>>>, mpsc
 /// compiler's `make` and `g++`, or a program's own children, would live on and hold the build folder and the pipes.
 /// `taskkill` is the runner's way too (`kill_tree` in `run_legacy_tests.py`); it is a system tool that does not wait
 /// on what it kills, so it gets no deadline. The child is not reaped before it, so its process id is not reused.
+/// Elsewhere the child leads a process group of its own ([`own_group`]) and `kill` ends the group: without it, a
+/// `qb64rust dap` killed after a hang left `lldb-dap` and the program it debugged running (Linux CI, 2026-10-29).
 fn kill_tree(child: &mut Child) {
     #[cfg(windows)]
-    let _ = Command::new("taskkill")
-        .args(["/T", "/F", "/PID", &child.id().to_string()])
+    let mut cmd = Command::new("taskkill");
+    #[cfg(windows)]
+    cmd.args(["/T", "/F", "/PID", &child.id().to_string()]);
+    #[cfg(not(windows))]
+    let mut cmd = Command::new("kill");
+    #[cfg(not(windows))]
+    cmd.args(["-KILL", "--", &format!("-{}", child.id())]);
+    let _ = cmd
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
     let _ = child.kill();
     let _ = child.wait();
+}
+
+/// Makes the child of `cmd` lead a process group of its own, for [`kill_tree`]; on Windows `taskkill /T` needs none.
+/// A Ctrl+C at the terminal then reaches only the test binary, not the children in their groups.
+fn own_group(cmd: &mut Command) {
+    #[cfg(unix)]
+    std::os::unix::process::CommandExt::process_group(cmd, 0);
+    #[cfg(not(unix))]
+    let _ = cmd;
 }
 
 /// Runs `cmd` with stdin closed, or fed `input` and then closed, and both outputs read whole. Past `limit` the
@@ -88,6 +105,7 @@ pub fn try_run(cmd: &mut Command, input: Option<&[u8]>, limit: Duration) -> Resu
     cmd.stdin(if input.is_some() { Stdio::piped() } else { Stdio::null() })
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    own_group(cmd);
     let mut child = cmd.spawn().unwrap_or_else(|e| panic!("cannot start {program}: {e}"));
     if let Some(input) = input {
         let mut stdin = child.stdin.take().unwrap();
