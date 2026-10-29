@@ -72,8 +72,10 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
 
   # Linux x64 (OpenSpec change m7-linux, design D10): the system toolchain and its packages (the Debian line of
-  # crates\driver\src\toolchain.rs, PACKAGES), lldb-20 for the debugger tests (24.04's
-  # plain lldb is 18, older than toolchain.rs LLDB_DAP_MINIMUM) and Xvfb for the window programs. Tier 1,
+  # crates\driver\src\toolchain.rs, PACKAGES), lldb-23 from apt.llvm.org for the debugger tests and Xvfb for the
+  # window programs. 24.04's plain lldb is 18, older than toolchain.rs LLDB_DAP_MINIMUM; its lldb-20 hung now and
+  # then in a DAP test, after a step it had answered (2026-10-29), so the job takes the version of the Windows
+  # toolchain, which shows no such hang (toolchain.rs takes the highest lldb-dap-<n> on PATH). Tier 1,
   # the CLI tests that build, and the slice list judged by the Linux recordings. Needs no QB64pe: the tests that
   # compare with qb64pe.exe are Windows' (cfg(windows)). Sound programs run with ALSA's null device (the runner
   # sets ALSA_CONFIG_PATH to tools/linux/asound-null.conf).
@@ -85,8 +87,11 @@ jobs:
 
       - name: Install the packages
         run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-23 main" | sudo tee /etc/apt/sources.list.d/llvm-23.list
           sudo apt-get update
-          sudo apt-get install -y build-essential libglu1-mesa-dev libasound2-dev libpng-dev libcurl4-openssl-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev lldb-20 xvfb
+          sudo apt-get install -y build-essential libglu1-mesa-dev libasound2-dev libpng-dev libcurl4-openssl-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev lldb-23 xvfb
+          lldb-dap-23 --version
 
       - run: rustup toolchain install
 

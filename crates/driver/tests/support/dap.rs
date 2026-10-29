@@ -5,7 +5,9 @@
 //!
 //! Each session has `lldb-dap` record its traffic with the proxy (`LLDBDAP_LOG`) to a file of the session's own, and
 //! a failure shows the file's end: when a wait runs out, it tells whether `lldb-dap` went quiet or the proxy did
-//! (the Linux CI hangs of 2026-10-29, a different test each run).
+//! (the Linux CI hangs of 2026-10-29, a different test each run). Each `launch` also gets `initCommands` that have
+//! `lldb` log its stepping and its exchange with `lldb-server` to two more files, shown the same way: what `lldb`
+//! was waiting on when it went quiet (it was `lldb-dap` that did, after a `next` it had answered).
 
 use qb64rust_dap::wire::{read_message, write_message};
 use serde_json::{Value, json};
@@ -19,8 +21,18 @@ use std::time::{Duration, Instant};
 
 /// The deadline of one wait: a step or a launch takes a second or two, a build is not part of it.
 pub const DAP_WAIT: Duration = Duration::from_secs(60);
-/// The lines of `lldb-dap`'s log a failure shows, from its end.
-const LOG_TAIL: usize = 200;
+/// The lines of each log a failure shows, from its end.
+const LOG_TAIL: usize = 300;
+/// The logs of a session: what a failure calls each, and the `lldb` channels and categories of the two `lldb`
+/// writes (none for `lldb-dap`'s own).
+const LOGS: [(&str, &str); 3] = [
+    ("lldb-dap's log", ""),
+    ("lldb's log of its stepping", "lldb process state step thread"),
+    (
+        "lldb's log of its exchange with lldb-server",
+        "gdb-remote packets process",
+    ),
+];
 
 pub struct Dap {
     child: Child,
@@ -31,8 +43,8 @@ pub struct Dap {
     /// Everything that came, for the message of a failure.
     seen: Vec<Value>,
     seq: i64,
-    /// `lldb-dap`'s log of the session, removed at its end.
-    log: PathBuf,
+    /// The session's logs, in the order of [`LOGS`], removed at its end.
+    logs: Vec<PathBuf>,
     /// Held for the session's life: one debugger session at a time ([`super::debugger_alone`]).
     _alone: std::sync::MutexGuard<'static, ()>,
 }
@@ -42,12 +54,16 @@ impl Dap {
     pub fn start(mut cmd: Command) -> Dap {
         let alone = super::debugger_alone();
         static SESSIONS: AtomicU32 = AtomicU32::new(0);
-        let log = std::env::temp_dir().join(format!(
-            "qb64rust-cli-lldb-dap-{}-{}.log",
-            std::process::id(),
-            SESSIONS.fetch_add(1, Ordering::Relaxed)
-        ));
-        cmd.env("LLDBDAP_LOG", &log)
+        let session = SESSIONS.fetch_add(1, Ordering::Relaxed);
+        let logs: Vec<PathBuf> = (0..LOGS.len())
+            .map(|i| {
+                std::env::temp_dir().join(format!(
+                    "qb64rust-cli-lldb-dap-{}-{session}-{i}.log",
+                    std::process::id()
+                ))
+            })
+            .collect();
+        cmd.env("LLDBDAP_LOG", &logs[0])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
@@ -71,13 +87,22 @@ impl Dap {
             backlog: VecDeque::new(),
             seen: Vec::new(),
             seq: 0,
-            log,
+            logs,
             _alone: alone,
         }
     }
 
-    /// Sends a request; gives its `seq`.
-    pub fn send(&mut self, command: &str, arguments: Value) -> i64 {
+    /// Sends a request; gives its `seq`. A `launch` gets the `initCommands` of `lldb`'s logs ([`LOGS`]).
+    pub fn send(&mut self, command: &str, mut arguments: Value) -> i64 {
+        if command == "launch" {
+            let init: Vec<String> = LOGS
+                .iter()
+                .zip(&self.logs)
+                .skip(1)
+                .map(|((_, channels), file)| format!("log enable -T -f \"{}\" {channels}", file.display()))
+                .collect();
+            arguments["initCommands"] = json!(init);
+        }
         self.seq += 1;
         let m = json!({"seq": self.seq, "type": "request", "command": command, "arguments": arguments});
         eprintln!("dap -> {m}");
@@ -85,20 +110,24 @@ impl Dap {
         self.seq
     }
 
-    #[expect(clippy::disallowed_methods, reason = "lldb-dap's log, for a person to read")]
+    #[expect(clippy::disallowed_methods, reason = "the debugger's logs, for a person to read")]
     fn fail(&mut self, what: &str) -> ! {
         super::kill_tree(&mut self.child);
         let seen: Vec<String> = self.seen.iter().map(Value::to_string).collect();
-        let log = match std::fs::read(&self.log) {
-            Ok(bytes) => {
-                let text = String::from_utf8_lossy(&bytes);
-                let lines: Vec<&str> = text.lines().collect();
-                lines[lines.len().saturating_sub(LOG_TAIL)..].join("\n")
-            }
-            Err(e) => format!("(none: {e})"),
-        };
+        let mut logs = String::new();
+        for ((name, _), file) in LOGS.iter().zip(&self.logs) {
+            let tail = match std::fs::read(file) {
+                Ok(bytes) => {
+                    let text = String::from_utf8_lossy(&bytes);
+                    let lines: Vec<&str> = text.lines().collect();
+                    lines[lines.len().saturating_sub(LOG_TAIL)..].join("\n")
+                }
+                Err(e) => format!("(none: {e})"),
+            };
+            logs += &format!("\n{name}, its last {LOG_TAIL} lines:\n{tail}");
+        }
         panic!(
-            "dap: {what} (limit {} s)\nseen:\n{}\nlldb-dap's log, its last {LOG_TAIL} lines:\n{log}",
+            "dap: {what} (limit {} s)\nseen:\n{}{logs}",
             DAP_WAIT.as_secs(),
             seen.join("\n")
         );
@@ -209,6 +238,8 @@ impl Drop for Dap {
         if self.child.try_wait().ok().flatten().is_none() {
             super::kill_tree(&mut self.child);
         }
-        let _ = std::fs::remove_file(&self.log);
+        for file in &self.logs {
+            let _ = std::fs::remove_file(file);
+        }
     }
 }
