@@ -275,8 +275,8 @@ pub struct Proc {
 
 /// What the error rule and the emitter ask of a value, a place or an argument of the shared tree.
 pub trait Facts {
-    /// Whether evaluating it may raise a runtime error. Built-in calls and string operations always may, until
-    /// built-ins carry a "cannot raise" flag (M3, `study\16` §8); an element's index check may.
+    /// Whether evaluating it may raise a runtime error. Built-in calls and string operations always may (no
+    /// per-built-in "cannot raise" flag, `DECISIONS-SMALL.md` 2026-10-29); an element's index check may.
     fn may_raise(&self) -> bool;
     /// Whether it involves strings (string results need temporary cleanup at the statement's end). `p` gives the
     /// types of places passed by reference.

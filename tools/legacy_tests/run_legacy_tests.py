@@ -2060,7 +2060,11 @@ def remove_root_copy(root: Path) -> None:
     if internal.exists() or is_junction(internal):
         if not is_junction(internal):
             raise OSError(f"{internal} is a real folder, not the runner's junction; not removing it")
-        os.rmdir(internal)
+        # A junction is removed as a folder, a symbolic link (outside Windows) as a file.
+        if os.name == "nt":
+            os.rmdir(internal)
+        else:
+            os.unlink(internal)
     shutil.rmtree(root)
 
 
@@ -2154,7 +2158,7 @@ def log_env(env: dict, log: Path) -> None:
     env["QB64PE_LOG_FILE_PATH"] = str(log)
 
 
-def program_log(log: Path, folder: Path, platform: str = HOST_PLATFORM) -> bytes:
+def program_log(log: Path, folder: Path, platform: str | None = None) -> bytes:
     """The text of <name>.log.txt for a run that wrote log in folder: the entries of scope QB64 (the
     program's own) with the stack frames that follow them, without each entry's timestamp and each
     frame's address, the folder masked, LF line ends; b"" when the program logged nothing. On Linux the
@@ -2175,7 +2179,7 @@ def program_log(log: Path, folder: Path, platform: str = HOST_PLATFORM) -> bytes
         if frame and keep_frames:
             kept.append(frame.group(1) + frame.group(2))
     text = mask_folder(b"".join(k + b"\n" for k in kept), folder)
-    if platform == "linux":
+    if (platform or HOST_PLATFORM) == "linux":
         text = text.replace(b"<verification>/", b"<verification>\\")
     return text
 

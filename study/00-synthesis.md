@@ -3301,7 +3301,7 @@ matching milestone starts:
 | Gap | Milestone | Where |
 |---|---|---|
 | Runtime drawing/printing/input bodies (PAINT, CIRCLE, DRAW, GET/PUT, `qbs_input`, `print_using`; M3 calls them in libqb unchanged) | M6 | `libqb.cpp` |
-| CHAIN array COMMON handling | M4 | `10` §1.6 |
+| CHAIN array COMMON handling | none: M4 ended with `CHAIN` run only to a program that is not there (`SOMEDAY.md`, the `LPRINT` and `CHAIN` row) | `archive\10` §1.6 |
 | Most of the ~45 accidental behaviours (only those in §6 were run) | M2–M4 | `01` §11.3, `02` §9.2, `04` G.4 |
 
 ## How reliable this is
@@ -3320,10 +3320,8 @@ as a reading of the code, not a measurement.
 | `06` | IDE features mapped to LSP, DAP, tasks and settings |
 | `07` | Expert panel: strategy, architecture, roadmap, recommendations R1–R13 |
 | `09` | Study claims checked by running the old compiler; bug-compatibility list |
-| `10` | Study gaps closed: DIM family, PRINT/INPUT/WRITE, built-in table |
-| `16` | FreeBASIC: lessons to take (module split, runtime-call tables, `-fwrapv`, lowering notes, test conventions), things not to take, proposed follow-ups and the panel review |
 | `17` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do); how M1 compares |
 | `18` | Other VS Code extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
-| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 7); what each holds: `archive\README.md`. Since 2026-10-28 also the old compiler's front end (`01`), code generation (`02`), the rest of the IDE and debugger (`04`), its build (`05`), and the reviews and studies `35`–`39` |
+| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 7); what each holds: `archive\README.md`. Since 2026-10-28 also the old compiler's front end (`01`), code generation (`02`), the rest of the IDE and debugger (`04`), its build (`05`), and the reviews and studies `35`–`39`; since 2026-10-29 the closed study gaps (`10`: DIM family, PRINT/INPUT/WRITE, built-in table) and FreeBASIC (`16`) |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

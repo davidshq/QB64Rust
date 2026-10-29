@@ -30,6 +30,19 @@ from unittest import mock
 
 import run_legacy_tests as rlt
 
+# The tests are written for Windows' rules: those of Linux pass platform="linux" (or --platform linux) themselves.
+# Without a platform the runner judges by the host's, so on a Linux host (the CI's linux job) every other test would
+# meet the Linux sidecars and known lists; the host is Windows here on every machine.
+_host = mock.patch.object(rlt, "HOST_PLATFORM", "windows")
+
+
+def setUpModule():
+    _host.start()
+
+
+def tearDownModule():
+    _host.stop()
+
 
 class Normalisation(unittest.TestCase):
     def test_output_treats_crlf_as_lf_and_drops_trailing_line_ends(self):
@@ -1439,7 +1452,7 @@ class VerificationCompare(VerificationFixture):
             [(r.test, r.status) for r in out], [("v99_p", "PASS"), ("v99_p [fixes on]", "PASS")]
         )
         self.assertEqual(tools.compile_cmd[4:6], ["--fixes", "on"])
-        self.assertTrue(tools.compile_cmd[tools.compile_cmd.index("-o") + 1].endswith("v99_p.exe"))
+        self.assertTrue(tools.compile_cmd[tools.compile_cmd.index("-o") + 1].endswith(f"v99_p{rlt.EXE}"))
         self.assertIn("v99_p.fixed", tools.compile_cmd[tools.compile_cmd.index("-o") + 1])
         out = run(Tools(runs=[b"1\r\n", b"1\r\n"]))
         self.assertEqual([r.status for r in out], ["PASS", "FAIL"])
@@ -1536,15 +1549,17 @@ class VerificationCompare(VerificationFixture):
         work = self.results / "v99_p"
         self.assertEqual(
             sorted(p.relative_to(work).as_posix() for p in work.rglob("*") if p.is_file()),
-            [
-                "cp437_all_bytes.bin",
-                "v99_inc/a.bi",
-                "v99_p.bas",
-                "v99_p.exe",
-                "v99_p.noprompt",
-                "v99_p.stdin",
-                "v99_y.bi",
-            ],
+            sorted(
+                [
+                    "cp437_all_bytes.bin",
+                    "v99_inc/a.bi",
+                    "v99_p.bas",
+                    f"v99_p{rlt.EXE}",
+                    "v99_p.noprompt",
+                    "v99_p.stdin",
+                    "v99_y.bi",
+                ]
+            ),
         )
         self.assertEqual(tools.run_envs[0]["QB64PE_NOPROMPT"], "continue")
         given = tools.run_cmds[0][-1] if os.name == "nt" else str(tools.run_stdin[0])
@@ -1622,7 +1637,7 @@ class VerificationCompare(VerificationFixture):
             )[0]
         self.assertEqual((r.status, r.kind), ("PASS", "recorded"), r.detail)
         self.assertEqual((self.root / "v99_p.out.txt").read_bytes(), b"1\r\nexit=0\n")
-        self.assertEqual(tools.run_cmds[0], [str(self.root / "v99_p.exe")])
+        self.assertEqual(tools.run_cmds[0], [str(self.root / f"v99_p{rlt.EXE}")])
 
     def test_root_files_are_under_the_clone_for_the_compile_only(self):
         (self.root / "v99_files").mkdir()
@@ -1692,7 +1707,7 @@ class VerificationCompare(VerificationFixture):
         (clone / "internal" / "temp").mkdir(parents=True)
         (clone / "settings").mkdir()
         (clone / "settings" / "config.ini").write_bytes(b"[x]\n")
-        (clone / "qb64pe.exe").write_bytes(b"old compiler")
+        (clone / rlt.QB64PE).write_bytes(b"old compiler")
         (clone / "Makefile").write_bytes(b"all:\n")
         return clone
 
@@ -1710,8 +1725,8 @@ class VerificationCompare(VerificationFixture):
         r = self.record(tools, clone)
         self.assertEqual((r.status, r.kind), ("PASS", "recorded"), r.detail)
         copy = self.results.parent / "qb64pe-root" / "v99_root"
-        self.assertEqual(tools.compile_cmd[0], str(copy / "qb64pe.exe"))
-        self.assertEqual((copy / "qb64pe.exe").read_bytes(), b"old compiler")
+        self.assertEqual(tools.compile_cmd[0], str(copy / rlt.QB64PE))
+        self.assertEqual((copy / rlt.QB64PE).read_bytes(), b"old compiler")
         self.assertEqual((copy / "Makefile").read_bytes(), b"all:\n")
         self.assertEqual((copy / "settings" / "config.ini").read_bytes(), b"[x]\n")
         self.assertTrue(rlt.is_junction(copy / "internal"))
@@ -1720,7 +1735,7 @@ class VerificationCompare(VerificationFixture):
         self.assertTrue((copy / rlt.ROOT_STAMP).is_file())
         self.assertFalse((clone / "libraries").exists())
         self.assertEqual(
-            sorted(p.name for p in clone.iterdir()), ["Makefile", "internal", "qb64pe.exe", "settings"]
+            sorted(p.name for p in clone.iterdir()), ["Makefile", "internal", rlt.QB64PE, "settings"]
         )
 
     def test_the_copy_is_kept_while_its_stamp_holds(self):
@@ -1740,10 +1755,10 @@ class VerificationCompare(VerificationFixture):
         self.assertTrue((clone / "internal" / "temp").is_dir())
         # The clone's compiler changed: made again.
         marker.write_bytes(b"m")
-        (clone / "qb64pe.exe").write_bytes(b"newer compiler")
+        (clone / rlt.QB64PE).write_bytes(b"newer compiler")
         self.record(Tools(runs=[b"ok\r\n"]), clone)
         self.assertFalse(marker.exists())
-        self.assertEqual((copy / "qb64pe.exe").read_bytes(), b"newer compiler")
+        self.assertEqual((copy / rlt.QB64PE).read_bytes(), b"newer compiler")
 
     def test_a_real_internal_folder_in_a_copy_is_never_removed(self):
         clone = self.a_clone()
@@ -2476,7 +2491,7 @@ class Jobs(unittest.TestCase):
     """jobs_problem: which suites take --jobs above 1, with which compiler."""
 
     root = Path("clone")
-    new, old = Path("qb64rust.exe"), Path("clone") / "qb64pe.exe"
+    new, old = Path("qb64rust.exe"), Path("clone") / rlt.QB64PE
 
     def test_the_qbasic_suite_takes_jobs_with_the_new_compiler_only(self):
         self.assertIsNone(rlt.jobs_problem(8, "qbasic", False, self.new, self.root))

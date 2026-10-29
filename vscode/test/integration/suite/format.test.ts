@@ -301,8 +301,12 @@ describe("formatting with the language server", () => {
 
     // Spec "Which formatter": a server that stopped by itself (the client stopped, not the extension) does not run, so
     // the extension's formatter comes back; with the test workspace's `buildWith` `qb64pe` that is `qb64pe -y`. Last in
-    // the suite: it restarts the server after.
-    it("a server that stopped by itself gives formatting back to the extension", async () => {
+    // the suite: it restarts the server after. Skipped without QB64RUST_TEST_QB64PE (the linux CI job), as the
+    // suite "formatting with qb64pe -y" is.
+    it("a server that stopped by itself gives formatting back to the extension", async function () {
+        if (!compiler) {
+            this.skip();
+        }
         const a = await api();
         const client = a.server.running;
         assert.ok(client);
