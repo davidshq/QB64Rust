@@ -74,7 +74,7 @@ v54_x38_const_unsigned	D-027
 v56_a5_type_string_member	D-037
 v58_e21_off_div_main	D-052
 v59_f9_stop	D-036
-v39_a_handles	varies: _SNDGETPOS and _SNDLEN of a raw sound depend on the sound device's sample rate (.1249886602163315 recorded at 44100, .125 at 48000 here, the old build's too; as v39_b_new_mem)
+v39_a_handles	varies: _SNDGETPOS and _SNDLEN of a raw sound depend on the sound device's sample rate (.1249886602163315 recorded at 44100, .125 at 48000 here, the old build's too; as v39_b_new_mem); and 9.'s _SNDPLAYING after _SNDPLAY depends on how long the program has run, since _SNDLIMIT's 1 is a time on the sound engine's clock (SOMEDAY.md, QB64pe behaviors to review)
 v60_c3_for_member_element_index_error	D-004
 v60_d6_string_type_nested_used	D-037
 v46_a_play_v0	varies: PLAY(0) read while the background queue drains (line 193: 41 recorded, 40 here alone and with --jobs; the old build's gives 40 or 41)

@@ -17,7 +17,7 @@ pause 0 -1
 stop 0 -1 
 balance and volume change nothing printed: 10  0  0 -1 
 a limit changes neither length nor position: 10  0  0 -1 
-a limit past the end: 10 -1  0 
+a limit past the end is ignored, and the earlier one has passed: 10  0 -1 
 a copy of a sound with a limit: 4  10  0  0 -1 
 a copy of a playing sound: 5  10  0 -1 and the sound:-1 
 a raw handle: 6  0  0  0  0  0 
