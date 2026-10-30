@@ -10,17 +10,20 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | Path | Content |
 |---|---|
 | `README.md` | The repository's front page, for a visitor: what the project is, the platforms, the two downloads, where the documents are |
-| `STATUS.md` | The current state only: where we are, what is waiting on the user, next steps, numbers of the last full runs, known bugs. No history: a finished step changes a line, it does not add a paragraph (its first table says where everything else lives) |
-| `ROADMAP.md` | The project's purpose and the milestones still open (M6 on), with what is left |
-| `ROADMAP-COMPLETED.md` | The milestones declared done (M0–M5b), each as it stood when it was declared done |
-| `DECISIONS.md` | Decision log: every project decision on direction, design and scope, dated, with the document that holds its details |
-| `DECISIONS-SMALL.md` | The minor rows of the decision log (document arrangement, changes archived, one-time exceptions), same format |
-| `QB64PE-DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |
-| `DIVERGENCES-QB45.md` | Differences from QuickBASIC 4.5 (most inherited from QB64pe), each with the source of its QB 4.5 behaviour |
-| `UPSTREAM.md` | Fixes to offer QB64pe: its bugs that this project fixes, each with where it is in QB64pe's sources, the fix and the divergence row |
-| `SOMEDAY.md` | Deferred features and ideas, and "QB64pe behaviours to review": questionable behaviours implemented QB64pe's way |
-| `MANUAL.md` | The manual of the compiler download (`qb64rust-win-x64-<version>.zip` and `qb64rust-linux-x64-<version>.tar.gz`, which carry it): setting up, compiling, the options, the exit statuses; for a QB64 programmer at a command prompt. Every option it names is checked against the usage text (`vscode\scripts\test_package_download.py`) |
-| `GLOSSARY.md` | Plain-language definitions of compiler terms: the compiler pipeline, runtime and build, editor tooling |
+| `docs\` | The project's documents, all but `README.md` and `CLAUDE.md`, which stay at the top (user, 2026-10-30); a document named without a folder is the one here |
+| `docs\STATUS.md` | The current state only: where we are, what is waiting on the user, next steps, numbers of the last full runs, known bugs. No history: a finished step changes a line, it does not add a paragraph (its first table says where everything else lives) |
+| `docs\ROADMAP.md` | The project's purpose and the milestones still open (M6 on), with what is left |
+| `docs\ROADMAP-COMPLETED.md` | The milestones declared done (M0–M5b), each as it stood when it was declared done |
+| `docs\DECISIONS.md` | Decision log: every project decision on direction, design and scope, dated, with the document that holds its details |
+| `docs\DECISIONS-SMALL.md` | The minor rows of the decision log (document arrangement, changes archived, one-time exceptions), same format |
+| `docs\QB64PE-DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |
+| `docs\DIVERGENCES-QB45.md` | Differences from QuickBASIC 4.5 (most inherited from QB64pe), each with the source of its QB 4.5 behaviour |
+| `docs\UPSTREAM.md` | Fixes to offer QB64pe: its bugs that this project fixes, each with where it is in QB64pe's sources, the fix and the divergence row |
+| `docs\SOMEDAY.md` | Deferred features and ideas, and "QB64pe behaviours to review": questionable behaviours implemented QB64pe's way |
+| `docs\MANUAL.md` | The manual of the compiler download (`qb64rust-win-x64-<version>.zip` and `qb64rust-linux-x64-<version>.tar.gz`, which carry it): setting up, compiling, the options, the exit statuses; for a QB64 programmer at a command prompt. Every option it names is checked against the usage text (`vscode\scripts\test_package_download.py`) |
+| `docs\GLOSSARY.md` | Plain-language definitions of compiler terms: the compiler pipeline, runtime and build, editor tooling |
+| `docs\LAYOUT.md` | This table |
+| `docs\TODO-HUMAN.md` | The user's own to-do list |
 | `study\00-synthesis.md` | Start here: summary of all studies, decisions, plan, measured facts, reuse verdicts; its "Document map" lists every study |
 | `study\03`–`18` (active) | Studies still in use: `03` the runtime library (while libqb is repaired); `07` the expert panel's plan; `09` claims checked; `17`, `18` extension testing and practices; the newest review while it is open. One line each in `study\00`'s "Document map" |
 | `study\archive\` | Closed documents, read only when needed (working rule 7); catalogue in its `README.md`: the old compiler's front end, code generation, IDE and debugger, build (`01`, `02`, `04`, `05`), the closed study gaps (`10`), the reviews of other repositories (`11`–`14`, `16` FreeBASIC, with `qb64fresh-scripts\`), the reviews and plans whose outcomes are decided and built (`15`, `19`–`39`), `08` (strict QB 4.5 mode, not planned), and the closed records `progress-record.md` (what `STATUS.md` held until 2026-10-09) and `support-record.md` (the feature catalogue `crates\README.md` held until 2026-10-16) |

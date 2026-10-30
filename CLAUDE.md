@@ -1,9 +1,12 @@
 # Project rules for Claude
 
-This file is the authoritative place for rules in this project; the decision log is `DECISIONS.md`. Claude's
+This file is the authoritative place for rules in this project; the decision log is `docs\DECISIONS.md`. Claude's
 private memory may hold a copy of rules, but never the only copy.
 
-**Start each session by reading `STATUS.md`** (current phase and next steps). **Read `DECISIONS.md` before
+**The project's documents are in `docs\`**, all but `README.md` and this file (user, 2026-10-30). A document named
+without a folder (`STATUS.md`, `DECISIONS.md`, `SOMEDAY.md`, …), here or anywhere in the repo, is the one in `docs\`.
+
+**Start each session by reading `docs\STATUS.md`** (current phase and next steps). **Read `docs\DECISIONS.md` before
 changing direction, design or scope.**
 
 ## Explicit Human Rules
@@ -30,8 +33,8 @@ changing direction, design or scope.**
    helpers after the user asked for one at a time.
 2. **Where things live.**
    - **This repo (`QB64Rust`) is the project.** Paths in this file are relative to it. The parent folder (`..`)
-     has symlinks `CLAUDE.md`, `SOMEDAY.md` and `study` pointing here, so sessions started in the parent see the
-     same files; edit the real files here, not copies.
+     has symlinks `CLAUDE.md`, `SOMEDAY.md` (to `docs\SOMEDAY.md`) and `study` pointing here, so sessions started
+     in the parent see the same files; edit the real files here, not copies.
    - **`..\QB64pe\` is a read-only reference clone.** Do not modify it. Study notes and design documents go in
      `study\`.
    - **Never save anything to memory only.** Any rule, decision or fact worth keeping goes into this repo (this
@@ -144,12 +147,12 @@ changing direction, design or scope.**
 
 ## Project decisions
 
-The decision log is **`DECISIONS.md`** (one dated row per decision, oldest first; moved out of this file on
+The decision log is **`docs\DECISIONS.md`** (one dated row per decision, oldest first; moved out of this file on
 2026-10-07). When the user decides something, add a row there and put the details in the document it names; a minor
 row (document arrangement, a change archived, a one-time exception) goes to `DECISIONS-SMALL.md` instead.
 Expert-panel recommendations: `study\07-expert-panel.md`. Open questions: `STATUS.md`.
 
 ## Layout
 
-Where things are: **`LAYOUT.md`**, one row per file or folder. Read it when looking for something; update its row
+Where things are: **`docs\LAYOUT.md`**, one row per file or folder. Read it when looking for something; update its row
 when a file or folder is added, moved or changes purpose.

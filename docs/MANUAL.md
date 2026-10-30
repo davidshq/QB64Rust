@@ -139,7 +139,7 @@ JSON object per line for other tools. The exit status is 0 when every test passe
 The compiler takes the QB64pe 4.7.0 dialect and its programs behave as QB64pe's do, with a short list of
 deliberate exceptions (most of them cases where QB64pe's own result is undefined, or where a program would crash).
 They are listed in
-[`QB64PE-DIVERGENCES.md`](https://github.com/davidshq/QB64Rust/blob/main/QB64PE-DIVERGENCES.md). A few of QB64pe's features
+[`QB64PE-DIVERGENCES.md`](https://github.com/davidshq/QB64Rust/blob/main/docs/QB64PE-DIVERGENCES.md). A few of QB64pe's features
 are not supported yet. A program that uses one gets the error "not supported yet", which names the feature.
 
 The one a script is most likely to notice: **a program that ends because of a runtime error exits with code 1**,
