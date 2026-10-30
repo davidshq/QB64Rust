@@ -26,7 +26,12 @@ export interface Roots {
  * design D6). `-c` (QB64pe's console switch) is not one of qb64rust's options.
  */
 export function buildArgs(file: string, roots: Roots, debug = false): string[] {
-    const args = [...(debug ? ["--debug"] : []), "-x", "-w", file, "-o", executableFor(file)];
+    return [...(debug ? ["--debug"] : []), "-x", "-w", file, "-o", executableFor(file), ...rootArgs(roots)];
+}
+
+/** The roots as options, as a build passes them (`qb64rust test` takes the same, change basic-unit-tests). */
+export function rootArgs(roots: Roots): string[] {
+    const args: string[] = [];
     if (roots.toolchain) {
         args.push("--toolchain-root", roots.toolchain);
     }

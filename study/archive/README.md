@@ -58,7 +58,7 @@ Archived 2026-10-18. What each led to is in `DECISIONS.md` (the rows that name i
 
 The studies of the old system that no milestone needs now (`study\38` §5.3 item 3, user, 2026-10-28), and the
 reviews and studies from `35` on, whose questions are all answered and built. `03` (libqb, while it is repaired)
-and `06` (editor features) stay active.
+and `06` (editor features) stayed active; `06` followed on 2026-10-29.
 
 | File | Content | Where its outcome lives |
 |---|---|---|
@@ -66,6 +66,7 @@ and `06` (editor features) stay active.
 | `02-expressions-codegen.md` | The old compiler's expressions and code generation: typing, storage, arrays, built-in calls, the C++ it writes | `crates\ir`, `crates\codegen-cpp`; the call-site check |
 | `04-ide-debugger-f-g.md` | The rest of `04`: the `$DEBUG` debugger (Part F) and the assessment (Part G); the IDE's internals were archived on 2026-10-18 as `04-ide-debugger.md` | M5 (`ROADMAP-COMPLETED.md`); `study\36` |
 | `05-build-ci-tests.md` | The old compiler's build, bootstrap, CI, vendored libraries and test suites | `crates\README.md`, `tools\legacy_tests\`, `m6-toolchain` |
+| `06-vscode-parity.md` | Every feature of the old IDE mapped to the language server, the debug adapter, tasks and settings (archived 2026-10-29) | `crates\lsp`, `crates\dap`, `vscode\`; what is not built: `SOMEDAY.md` "VS Code parity left" |
 | `10-gaps.md` | The study gaps closed (archived 2026-10-29): DIM/REDIM/STATIC/COMMON/ERASE, PRINT/INPUT/WRITE/PRINT USING emission, the built-in table and its anomalies | `m2-defxxx-common-arrays`, `REDIM _RETAIN` in `m3-redim-retain`, member-array `REDIM` in `m3-typefields`; `crates\syntax` (`parser\print.rs`); `crates\builtins` (`builtins.json`, the auto-included constants); D-011 (console comma zones, not yet built) and D-013 (built); `SOMEDAY.md` (`CHAIN`, expression `INPUT` prompts); the measured facts in `verification\v09_dim`, `v10_print` |
 | `35-tenth-review.md` | Tenth review (2026-10-18): nothing astray; where the time goes in M3; six recommendations | `DECISIONS.md` 2026-10-18; the verification suite |
 | `36-m5-debugger-path.md` | M5, the debugger (2026-10-24): debug build, symbol file and a DAP proxy over `lldb-dap`; the eleventh review; M5b put before M6 | M5, M5b (`ROADMAP-COMPLETED.md`) |

@@ -782,8 +782,9 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     append_counts(args, counts, timed_out)
     if timed_out:
         return fail("run", "timeout")
-    if rc != 0:
-        return fail("run", f"exit code {rc}")
+    want = wanted_exit_code(0, trace)
+    if rc != want:
+        return fail("run", f"exit code {rc}" + (f", expected {want}" if want else ""))
     got = platform_neutral(run_out.read_bytes(), platform_of(args))
     if norm_output(out_file.read_bytes()) != norm_output(got):
         return fail("result", "program output differs from .output")
@@ -1281,12 +1282,43 @@ def allowed_rows(path: Path) -> set[str]:
     return rows
 
 
-def unexpected_rows(trace: Path, allowed: set[str]) -> list[str]:
-    """The rows a run's trace names that are not allowed, in the order taken."""
+def traced_rows(trace: Path) -> list[str]:
+    """The rows a run's trace names, in the order taken."""
     if not trace.is_file():
         return []
     taken = [line.strip() for line in trace.read_text(encoding="latin-1").splitlines()]
-    return [row for row in taken if row and row not in allowed]
+    return [row for row in taken if row]
+
+
+def unexpected_rows(trace: Path, allowed: set[str]) -> list[str]:
+    """The rows a run's trace names that are not allowed, in the order taken. D-012 is never asked of a sidecar
+    (wanted_exit_code)."""
+    return [row for row in traced_rows(trace) if row not in allowed and row != D012]
+
+
+# QB64PE-DIVERGENCES.md D-012 (OpenSpec change basic-unit-tests, design D2): a program of the new compiler that a
+# runtime error ends exits with 1 and traces D-012, where the old compiler's exits 0. One rule for every suite in
+# place of a sidecar per program: with D-012 in the trace, a wanted 0 is a wanted 1; without it, the recorded
+# code stands. A recording with qb64pe.exe sets the trace but its programs never write to it.
+D012 = "D-012"
+
+
+def wanted_exit_code(want: int, trace: Path) -> int:
+    """The exit code a run must end with: `want` (the recording's, the .exitcode's or 0), or 1 for a 0 when
+    the run's trace names D-012."""
+    return 1 if want == 0 and D012 in traced_rows(trace) else want
+
+
+def wanted_verification_text(recorded: bytes, trace: Path) -> bytes:
+    """A verification recording as a run must match it: its closing `exit=0` read as `exit=1` when the run's
+    trace names D-012 (wanted_exit_code). verification_text appends `exit=<code>` right after the output, on the
+    output's last line when that has no line end."""
+    if D012 not in traced_rows(trace):
+        return recorded
+    m = re.search(rb"exit=0(\r?\n)?$", recorded)
+    if not m:
+        return recorded
+    return recorded[: m.start()] + m.group(0).replace(b"exit=0", b"exit=1")
 
 
 def reset_folder(folder: Path, keep: set[str]) -> None:
@@ -1755,9 +1787,11 @@ def corpus_test(
         append_counts(args, counts, timed_out)
         if timed_out:
             return fail("run", "timeout")
-        # A recording takes any code (two runs must agree); a check wants the .exitcode's, or 0.
-        if rc != want_rc and not args.record:
-            return fail("run", f"exit code {rc}" + (f", expected {want_rc}" if want_rc else ""))
+        # A recording takes any code (two runs must agree); a check wants the .exitcode's, or 0, or 1 for a
+        # 0 when the trace names D-012.
+        want = wanted_exit_code(want_rc, trace)
+        if rc != want and not args.record:
+            return fail("run", f"exit code {rc}" + (f", expected {want}" if want else ""))
         codes.append(rc)
         outputs.append(apply_normalize(platform_neutral(run_out.read_bytes(), platform), rules))
         if screen:
@@ -2457,7 +2491,7 @@ def verification_compare(
     append_counts(args, counts, timed_out)
     actual = verification_text(platform_neutral(run_out.read_bytes(), platform_of(args)), rc, timed_out, work)
     rules = load_normalize(normalize)
-    want = norm_output(apply_normalize(recorded, rules))
+    want = norm_output(apply_normalize(wanted_verification_text(recorded, trace), rules))
     got = norm_output(apply_normalize(actual, rules))
     if want != got:
         return fail("result", f"differs from {recorded_file.name}, {first_difference(want, got)}")

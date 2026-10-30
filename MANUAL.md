@@ -106,6 +106,34 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 
 A program that uses `$INCLUDE` libraries meant to sit beside `qb64pe.exe` finds them beside `qb64rust.exe`.
 
+## Testing your code
+
+`qb64rust test` runs unit tests written in BASIC. A test file is a file whose name ends in `_test.bas`; it
+includes the code it tests (`'$INCLUDE:'math.bm'`), and each `SUB` in it whose name starts with `Test` and that
+takes no parameters is a test:
+
+```
+'$INCLUDE:'math.bm'
+
+SUB TestAdd
+    AssertEqualInt 5, AddUp&(2, 3), "sum"
+END SUB
+```
+
+```
+qb64rust test
+qb64rust test lib\math_test.bas --filter TestAdd
+```
+
+With no file or folder named, it runs every test file in the current folder and below it. Each test runs in a
+program of its own, and passes only when its SUB returns: a failed assertion is a failure, and a runtime error,
+`END` or `SYSTEM`, or more than 30 seconds (`--timeout <seconds>`) is an error, whatever the test printed. The
+assertions are `AssertTrue`, `AssertFalse`, `AssertEqualInt`, `AssertEqualSingle`, `AssertEqualDouble`,
+`AssertNear`, `AssertEqualStr` and `Fail`; `_ASSERT` works too, and `TestTempDir$` gives each test an empty folder of
+its own. Tests are built as `$CONSOLE:ONLY` programs, so they are for code that does not draw on the screen
+(images made with `_NEWIMAGE` work). `--list` lists the tests without running them, and `--format json` gives one
+JSON object per line for other tools. The exit status is 0 when every test passed, and 1 otherwise.
+
 ## Where it differs from QB64pe
 
 The compiler takes the QB64pe 4.7.0 dialect and its programs behave as QB64pe's do, with a short list of
@@ -113,6 +141,11 @@ deliberate exceptions (most of them cases where QB64pe's own result is undefined
 They are listed in
 [`QB64PE-DIVERGENCES.md`](https://github.com/davidshq/QB64Rust/blob/main/QB64PE-DIVERGENCES.md). A few of QB64pe's features
 are not supported yet. A program that uses one gets the error "not supported yet", which names the feature.
+
+The one a script is most likely to notice: **a program that ends because of a runtime error exits with code 1**,
+where QB64pe's exits with 0. That is an error no `ON ERROR` handler takes, when the program ends at it (with
+`QB64PE_NOPROMPT=y`, or "no" at the "Continue?" dialog), or a critical error such as a failed `_ASSERT`. A program
+that goes on after the error, and a program's own `END n` or `SYSTEM n`, keep their code.
 
 ## Reporting a problem
 

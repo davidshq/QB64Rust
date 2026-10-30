@@ -143,6 +143,21 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Here:** `QB64PE-DIVERGENCES.md` D-053; the edit `tools/libqb/edits/d053-bit-numbers-modulo-64.edit`.
 - **Sent:** not yet.
 
+## A program ended by a runtime error exits with code 0
+
+- **Wrong:** a program that ends on an error no handler takes (with `QB64PE_NOPROMPT=y`, or "no" at the
+  "Continue?" dialog) or on a critical error (300 to 315, a failed `_ASSERT`, out of memory) exits with code 0, so
+  a script or test runner cannot tell it from a clean end. Measured in this repo: `verification\v02c_no_handler`,
+  and every recording of `verification\` that ends in `Runtime error` (`exit=0`).
+- **Where:** `internal/c/libqb/src/error_handle.cpp`: `fix_error` calls `end()` with `exit_code` still 0, and
+  `exit_after_fatal_error` calls `libqb_exit(0)`.
+- **Fix:** `exit_code = 1` before `end()` in `fix_error`'s "no" path, and `libqb_exit(1)` in
+  `exit_after_fatal_error`. A program that goes on after the error (`QB64PE_NOPROMPT=continue`, "yes") keeps the
+  code its end gives.
+- **Here:** `QB64PE-DIVERGENCES.md` D-012; the edits `tools/libqb/edits/d012-error-exit-code*.edit` (which also
+  write this project's run-time trace, a part not to offer).
+- **Sent:** not yet.
+
 ## Other candidates
 
 Bugs this project fixes in the `CONST` evaluator (built by `const-rulings`), which QB64pe might also want (not

@@ -97,6 +97,13 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   `tools\upstream\copy_upstream_tests.py` remakes.
   A compare of the verification suite sets it too, with the sidecar
   `tests\verification\divergences\<name>.divergences`; its recording does not.
+- **The exit code of D-012** (OpenSpec change `basic-unit-tests`, design D2; `testing/golden-corpus`): a program
+  of the new compiler that a runtime error ends exits with 1 and traces `D-012`, where the old compiler's exits 0
+  (`QB64PE-DIVERGENCES.md` D-012). In every suite that compares exit codes (the corpus, the compile suite, the
+  verification compare), a run whose trace names `D-012` must end with 1 where the `.exitcode`, the default or
+  the recording's last line `exit=0` says 0; a run whose trace does not name it is held to the recorded code, so a
+  1 without the trace, or the trace with a 0, fails. `D-012` is never asked of a `.divergences` sidecar. The
+  recordings of `qb64pe.exe` are left as they are (`exit=0`): one rule in place of a sidecar per program.
 - A program listed in `known_failures.txt` that has no expected file (it hangs or loops forever, so nothing can
   be recorded) is compiled but never run, and reported as KFAIL `not run`. To try it again, remove the entry and
   record it.

@@ -1,0 +1,8 @@
+' The code under test of math_test.bas. Its SUB TestHelper is not a test: it is in an included file.
+FUNCTION AddUp& (a AS LONG, b AS LONG)
+    AddUp& = a + b
+END FUNCTION
+
+SUB TestHelper
+    PRINT "never a test"
+END SUB

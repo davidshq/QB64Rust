@@ -288,9 +288,25 @@ void end();
 // final shutdown through libqb_exit(), which transfers exit handling to the
 // GLUT thread when a graphics window is active and exits directly otherwise.
 // This is the same cross-platform path on Windows, Linux and macOS.
+extern int64_t exit_code; // libqb.cpp; the main loop leaves with it
+
+static void trace_divergence_012() {
+    static bool traced;
+    const char *path = getenv("QB64RUST_DIVERGENCES");
+    if (traced || !path || !*path)
+        return;
+    traced = true;
+    FILE *f = fopen(path, "ab");
+    if (f) {
+        fputs("D-012\n", f);
+        fclose(f);
+    }
+}
+
 static void exit_after_fatal_error() {
+    trace_divergence_012();
     close_program = 1;
-    libqb_exit(0);
+    libqb_exit(1);
 }
 
 // QB64PE_NOPROMPT suppresses the dialogs that report a runtime error, which
@@ -417,6 +433,8 @@ void fix_error() {
         }
 
         if ((v == 2) || (v == 0)) {
+            trace_divergence_012();
+            exit_code = 1;
             close_program = 1;
             end();
         }

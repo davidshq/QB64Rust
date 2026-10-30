@@ -2120,7 +2120,10 @@ fn build_and_run_tracing(d: &Path, program: &str, rows: &str) -> String {
         PROGRAM_LIMIT,
         "program",
     );
-    assert_eq!(run.status.code(), Some(0), "{}", stdout(&run));
+    // A program ended by a runtime error exits with 1 and traces D-012 (`QB64PE-DIVERGENCES.md`), as the runner
+    // wants it (design D2 of `basic-unit-tests`).
+    let code = if rows.contains("D-012") { 1 } else { 0 };
+    assert_eq!(run.status.code(), Some(code), "{}", stdout(&run));
     let taken: Vec<u8> = std::fs::read(&trace)
         .unwrap_or_default()
         .into_iter()
@@ -2297,7 +2300,7 @@ fn redim_of_a_dynamic_member_too_large() {
                    REDIM x.v(0 TO hi, 0 TO hi) AS _INTEGER64\nPRINT \"not reached\"\nSYSTEM\n\
                    trap:\nPRINT \"[\"; ERR; \"]\";\nRESUME NEXT\n";
     // "Out of memory" goes to stderr; the handler is not called and the program stops there.
-    assert_eq!(build_and_run_tracing(&d, program, "D-020\n"), "");
+    assert_eq!(build_and_run_tracing(&d, program, "D-020\nD-012\n"), "");
 }
 
 /// `_MEM` of a dynamic member array that is not allocated, and `GET` of a whole array of its type into an erased
@@ -2320,38 +2323,125 @@ fn dynamic_member_not_allocated_in_mem_and_get() {
 }
 
 /// D-003 and D-004 differ from the old compiler only in a program that goes on after the error: with no handler and
-/// `QB64PE_NOPROMPT=y` the error ends the program as it ends the old one, and the trace names no row; with
-/// `continue` the program goes on and the trace names both.
+/// `QB64PE_NOPROMPT=y` the error ends the program, with exit code 1 where the old one exits 0, and the trace names
+/// only D-012; with `continue` the program goes on and the trace names both.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
-fn an_error_that_ends_the_program_traces_nothing() {
+fn an_error_that_ends_the_program_traces_only_d012() {
     let d = scratch("trace-ends");
     let program = "$CONSOLE:ONLY\nTYPE t\nm AS LONG\nEND TYPE\nDIM a(3) AS t\nPRINT \"before\"\nRETURN back\nback:\n\
                    a(9).m = 5\nPRINT \"after\"\nSYSTEM\n";
+    let exe = build_for_errors(&d, program);
+    for (noprompt, rows, output, code) in [
+        ("y", "D-012\n", "before\n", 1),
+        ("continue", "D-003\nD-004\n", "before\nafter\n", 0),
+    ] {
+        let (run, taken) = run_with_noprompt(&d, &exe, noprompt);
+        assert_eq!(stdout(&run).replace("\r\n", "\n"), output, "QB64PE_NOPROMPT={noprompt}");
+        assert_eq!(taken, rows, "QB64PE_NOPROMPT={noprompt}");
+        assert_eq!(run.status.code(), Some(code), "QB64PE_NOPROMPT={noprompt}");
+    }
+}
+
+/// Builds `program` as `p.bas` in `d` and returns its executable.
+fn build_for_errors(d: &Path, program: &str) -> PathBuf {
     std::fs::write(d.join("p.bas"), program).unwrap();
     let exe = d.join("p.exe");
-    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(d, &["-q", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
     assert!(o.status.success(), "{}", stdout(&o));
-    for (noprompt, rows, output) in [("y", "", "before\n"), ("continue", "D-003\nD-004\n", "before\nafter\n")] {
-        let trace = d.join("divergences.txt");
-        let _ = std::fs::remove_file(&trace);
-        let run = run(
-            unattended(&exe)
-                .current_dir(&d)
-                .env("QB64PE_NOPROMPT", noprompt)
-                .env("QB64RUST_DIVERGENCES", &trace),
-            None,
-            PROGRAM_LIMIT,
-            "program",
-        );
-        assert_eq!(stdout(&run).replace("\r\n", "\n"), output, "QB64PE_NOPROMPT={noprompt}");
-        let taken: Vec<u8> = std::fs::read(&trace)
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|&b| b != b'\r')
-            .collect();
-        assert_eq!(taken, rows.as_bytes(), "QB64PE_NOPROMPT={noprompt}");
-    }
+    exe
+}
+
+/// Runs `exe` in `d` with `QB64PE_NOPROMPT=noprompt` and the run-time trace on; its output and the trace's rows,
+/// without carriage returns.
+fn run_with_noprompt(d: &Path, exe: &Path, noprompt: &str) -> (Output, String) {
+    let trace = d.join("divergences.txt");
+    let _ = std::fs::remove_file(&trace);
+    let run = run(
+        unattended(exe)
+            .current_dir(d)
+            .env("QB64PE_NOPROMPT", noprompt)
+            .env("QB64RUST_DIVERGENCES", &trace),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
+    // The trace's rows are ASCII: one character per byte.
+    let rows = std::fs::read(&trace).unwrap_or_default();
+    let taken = rows.iter().filter(|&&b| b != b'\r').map(|&b| char::from(b)).collect();
+    (run, taken)
+}
+
+#[expect(clippy::disallowed_methods, reason = "the program's own messages")]
+fn stderr(o: &Output) -> String {
+    String::from_utf8_lossy(&o.stderr).replace("\r\n", "\n")
+}
+
+const ERROR_5: &str = "$CONSOLE:ONLY\nPRINT \"before\"\nERROR 5\nSYSTEM\n";
+
+/// Spec `language/error-handling`, "The exit code of a program ended by an error", scenarios "No handler" and "The
+/// trace": the program prints the old compiler's message on stderr and exits with code 1 (`QB64PE-DIVERGENCES.md`
+/// D-012, where the old one exits 0), and the trace names D-012.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn an_untrapped_error_exits_with_1() {
+    let d = scratch("d012-no-handler");
+    let exe = build_for_errors(&d, ERROR_5);
+    let (run, taken) = run_with_noprompt(&d, &exe, "y");
+    assert_eq!(stdout(&run).replace("\r\n", "\n"), "before\n");
+    let err = stderr(&run);
+    assert!(
+        err.contains("Runtime error: Line: 3 (in main module)\nIllegal function call"),
+        "{err}"
+    );
+    assert_eq!(run.status.code(), Some(1));
+    assert_eq!(taken, "D-012\n");
+}
+
+/// The same spec, "A critical error": a failed `_ASSERT` ends the program with code 1 and traces D-012.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn a_critical_error_exits_with_1() {
+    let d = scratch("d012-critical");
+    let exe = build_for_errors(&d, "$CONSOLE:ONLY\n$ASSERTS\n_ASSERT 0\nSYSTEM\n");
+    let (run, taken) = run_with_noprompt(&d, &exe, "y");
+    let err = stderr(&run);
+    assert!(err.contains("_ASSERT failed"), "{err}");
+    assert_eq!(run.status.code(), Some(1));
+    assert_eq!(taken, "D-012\n");
+}
+
+/// The same spec, "Going on after the error" and "The trace": with `QB64PE_NOPROMPT=continue` the program prints the
+/// message, goes on to `SYSTEM` and exits with code 0, and the trace does not name D-012.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn going_on_after_an_error_exits_with_0() {
+    let d = scratch("d012-continue");
+    let exe = build_for_errors(&d, ERROR_5);
+    let (run, taken) = run_with_noprompt(&d, &exe, "continue");
+    assert!(stderr(&run).contains("Illegal function call"), "{}", stderr(&run));
+    assert_eq!(run.status.code(), Some(0));
+    assert_eq!(taken, "");
+}
+
+/// The same spec, "A trapped error": a handler that does `RESUME NEXT`, then the program runs off its last line and
+/// exits with code 0.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn a_trapped_error_exits_with_0() {
+    let d = scratch("d012-trapped");
+    let exe = build_for_errors(
+        &d,
+        "$CONSOLE:ONLY\nON ERROR GOTO h\nGOTO main\nh:\nPRINT \"ERR\"; ERR\nRESUME NEXT\nmain:\nERROR 5\nPRINT \"after\"\n",
+    );
+    let (run, taken) = run_with_noprompt(&d, &exe, "y");
+    assert!(
+        stdout(&run).replace("\r\n", "\n").starts_with("ERR 5 \nafter\n"),
+        "{}",
+        stdout(&run)
+    );
+    assert_eq!(run.status.code(), Some(0));
+    assert_eq!(taken, "");
 }
 
 /// `GET` of a whole array whose type has a dynamic member array unpacks the statement's buffer whatever its read
@@ -2584,7 +2674,7 @@ fn stop_inside_sub_gl_ends_with_error_271() {
     let program = "$CONSOLE\nt# = TIMER(.001)\nDO: _LIMIT 100: LOOP UNTIL TIMER(.001) - t# > 20\n\
                    _DEST _CONSOLE: PRINT \"main\"\nSYSTEM\n\
                    SUB _GL\n    _DEST _CONSOLE: PRINT \"in\"\n    STOP\nEND SUB\n";
-    assert_eq!(build_and_run_tracing(&d, program, "D-036\n"), "in\n");
+    assert_eq!(build_and_run_tracing(&d, program, "D-036\nD-012\n"), "in\n");
 }
 
 /// A `TYPE` that holds a `STRING`, in conventional memory, has its strings made (`QB64PE-DIVERGENCES.md` D-037; design D3

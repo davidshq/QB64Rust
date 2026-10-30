@@ -236,6 +236,38 @@ class DivergenceRows(unittest.TestCase):
         self.assertEqual(rlt.unexpected_rows(trace, set()), ["D-022", "D-004"])
         self.assertEqual(rlt.unexpected_rows(trace, {"D-022"}), ["D-004"])
 
+    def test_d012_is_never_asked_of_a_sidecar(self):
+        # testing/golden-corpus "The exit code of D-012" (basic-unit-tests, design D2).
+        trace = self.dir / "t.txt"
+        trace.write_bytes(b"D-004\nD-012\n")
+        self.assertEqual(rlt.unexpected_rows(trace, set()), ["D-004"])
+
+    def test_the_wanted_exit_code_with_d012(self):
+        trace = self.dir / "t.txt"
+        self.assertEqual(rlt.wanted_exit_code(0, trace), 0)
+        trace.write_bytes(b"D-004\n")
+        self.assertEqual(rlt.wanted_exit_code(0, trace), 0)
+        trace.write_bytes(b"D-004\r\nD-012\r\n")
+        self.assertEqual(rlt.wanted_exit_code(0, trace), 1)
+        # Only a wanted 0 changes: an .exitcode's own code stands.
+        self.assertEqual(rlt.wanted_exit_code(3, trace), 3)
+
+    def test_the_wanted_verification_text_with_d012(self):
+        trace = self.dir / "t.txt"
+        recorded = b"Runtime error: Line: 3 (in main module)\nIllegal function call\nexit=0\n"
+        self.assertEqual(rlt.wanted_verification_text(recorded, trace), recorded)
+        trace.write_bytes(b"D-012\n")
+        self.assertEqual(
+            rlt.wanted_verification_text(recorded, trace),
+            b"Runtime error: Line: 3 (in main module)\nIllegal function call\nexit=1\n",
+        )
+        self.assertEqual(rlt.wanted_verification_text(b"exit=0\r\n", trace), b"exit=1\r\n")
+        # After output with no line end, the code is on the output's last line.
+        self.assertEqual(rlt.wanted_verification_text(b"DIM a(big):exit=0\n", trace), b"DIM a(big):exit=1\n")
+        # Only the end, and only an exit=0.
+        for other in (b"exit=0\nexit=139\n", b"(timed out after 60 s)\nexit=124\n", b"no exit line\n"):
+            self.assertEqual(rlt.wanted_verification_text(other, trace), other)
+
     def test_a_compile_suite_sidecar_is_outside_the_copied_folder(self):
         path = rlt.compile_sidecar("arrays", "p")
         self.assertEqual(
@@ -713,6 +745,22 @@ class CorpusProgram(CorpusFixture):
         self.sidecar("divergences", b"D-004\nD-022  # and this\n")
         self.assertEqual(self.run_test(Tools(runs=[b"1\n"], trace=b"D-004\n")).status, "PASS")
 
+    def test_d012_in_the_trace_wants_exit_code_1_and_no_sidecar(self):
+        # testing/golden-corpus "The exit code of D-012" (basic-unit-tests, design D2).
+        self.sidecar("output", b"1\n")
+        r = self.run_test(Tools(runs=[b"1\n"], run_rc=1, trace=b"D-012\n"))
+        self.assertEqual(r.status, "PASS", r.detail)
+        # Exit code 1 without the trace, and the trace with exit code 0, fail at the exit code.
+        self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_rc=1)), "run", "exit code 1")
+        self.assert_fail(
+            self.run_test(Tools(runs=[b"1\n"], run_rc=0, trace=b"D-012\n")), "run", "exit code 0, expected 1"
+        )
+        # An .exitcode that is not 0 stands.
+        self.sidecar("exitcode", b"3\n")
+        self.assert_fail(
+            self.run_test(Tools(runs=[b"1\n"], run_rc=1, trace=b"D-012\n")), "run", "exit code 1, expected 3"
+        )
+
     def test_a_trace_of_an_earlier_run_is_not_read(self):
         self.sidecar("output", b"1\n")
         self.run_test(Tools(runs=[b"1\n"], trace=b"D-004\n"))
@@ -907,6 +955,15 @@ class CompilePassCache(unittest.TestCase):
         (self.category / "data.txt").write_bytes(b"x")
         r, ran = self.go(exe_bytes=b"exe two")
         self.assertEqual((r.status, ran), ("PASS", 1))
+
+    def test_d012_in_the_trace_wants_exit_code_1(self):
+        # testing/golden-corpus "The exit code of D-012" (basic-unit-tests, design D2), in the compile suite.
+        r, _ = self.go(tools=Tools(runs=[b"1\n"], run_rc=1, trace=b"D-012\n", exe_bytes=b"a"))
+        self.assertEqual(r.status, "PASS", r.detail)
+        r, _ = self.go(tools=Tools(runs=[b"1\n"], run_rc=1, exe_bytes=b"b"))
+        self.assertEqual((r.status, r.stage, r.detail), ("FAIL", "run", "exit code 1"))
+        r, _ = self.go(tools=Tools(runs=[b"1\n"], run_rc=0, trace=b"D-012\n", exe_bytes=b"c"))
+        self.assertEqual((r.status, r.stage, r.detail), ("FAIL", "run", "exit code 0, expected 1"))
 
     def test_a_failure_is_not_remembered(self):
         r, _ = self.go(runs=[b"2\n"])
@@ -1484,6 +1541,25 @@ class VerificationCompare(VerificationFixture):
         self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_rc=3)), "result", "exit=3")
         self.recorded(b"exit=139\n")
         self.assertEqual(self.run_test(Tools(runs=[b""], run_rc=0xC0000005)).status, "PASS")
+
+    def test_d012_reads_a_recorded_exit_0_as_1(self):
+        # testing/golden-corpus "The exit code of D-012", "A recording of an untrapped error" (basic-unit-tests,
+        # design D2): no .divergences sidecar.
+        self.recorded(b"1\nRuntime error\nexit=0\n")
+        r = self.run_test(Tools(runs=[b"1\r\nRuntime error\r\n"], run_rc=1, trace=b"D-012\n"))
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assert_fail(self.run_test(Tools(runs=[b"1\nRuntime error\n"], run_rc=1)), "result", "exit=1")
+        self.assert_fail(
+            self.run_test(Tools(runs=[b"1\nRuntime error\n"], run_rc=0, trace=b"D-012\n")), "result", "exit=0"
+        )
+
+    def test_a_recording_with_the_old_compiler_keeps_exit_0(self):
+        # The same requirement, "Recording with the old compiler".
+        clone = self.results / "clone"
+        (clone / "internal" / "temp").mkdir(parents=True)
+        r = self.record(Tools(runs=[b"Runtime error\r\n"], run_rc=0, trace=b"D-012\n"), clone)
+        self.assertEqual((r.status, r.kind), ("PASS", "recorded"), r.detail)
+        self.assertTrue((self.root / "v99_p.out.txt").read_bytes().endswith(b"exit=0\n"))
 
     def test_a_timeout_on_both_sides_passes(self):
         self.recorded(b"Press any key(timed out after 60 s)\nexit=124\n")

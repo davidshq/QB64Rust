@@ -164,6 +164,17 @@ pub fn for_program(main: &Path) -> Result<(Fixes, Option<PathBuf>), SettingsErro
     }
 }
 
+/// The fixes of the program `main` as a compile takes them (spec `compiler/fixes`): `--fixes` replaces the settings
+/// file's, so the file is read only without it; then each `--fix`. The settings file read, if one was.
+pub fn with_cli(main: &Path, cli: &[CliFix]) -> Result<(Fixes, Option<PathBuf>), SettingsError> {
+    let (from_file, file) = if cli.iter().any(|f| matches!(f, CliFix::All(_))) {
+        (Fixes::OFF, None)
+    } else {
+        for_program(main)?
+    };
+    Ok((apply_cli(from_file, cli), file))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

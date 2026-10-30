@@ -3317,11 +3317,10 @@ as a reading of the code, not a measurement.
 | Doc | Content |
 |---|---|
 | `03` | Runtime library: error model, strings, screen modes, graphics, files, input |
-| `06` | IDE features mapped to LSP, DAP, tasks and settings |
 | `07` | Expert panel: strategy, architecture, roadmap, recommendations R1–R13 |
 | `09` | Study claims checked by running the old compiler; bug-compatibility list |
 | `17` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do); how M1 compares |
 | `18` | Other VS Code extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
-| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 7); what each holds: `archive\README.md`. Since 2026-10-28 also the old compiler's front end (`01`), code generation (`02`), the rest of the IDE and debugger (`04`), its build (`05`), and the reviews and studies `35`–`39`; since 2026-10-29 the closed study gaps (`10`: DIM family, PRINT/INPUT/WRITE, built-in table) and FreeBASIC (`16`) |
+| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 7); what each holds: `archive\README.md`. Since 2026-10-28 also the old compiler's front end (`01`), code generation (`02`), the rest of the IDE and debugger (`04`), its build (`05`), and the reviews and studies `35`–`39`; since 2026-10-29 the closed study gaps (`10`: DIM family, PRINT/INPUT/WRITE, built-in table), FreeBASIC (`16`) and VS Code parity (`06`: the IDE's features mapped to LSP, DAP, tasks and settings; what is left is in `SOMEDAY.md`) |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

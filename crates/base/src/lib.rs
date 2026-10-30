@@ -372,9 +372,30 @@ pub fn show_bytes(bytes: &[u8]) -> String {
     s
 }
 
+/// A JSON string: `s` quoted, with `"`, `\` and the control characters escaped (the debug symbol file, the JSON
+/// lines of `qb64rust test`).
+pub fn json_string(s: &str) -> String {
+    let mut out = String::from("\"");
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            c if u32::from(c) < 0x20 => out.push_str(&format!("\\u{:04x}", u32::from(c))),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn json_string_escapes() {
+        assert_eq!(json_string("a\"b\\c\n\u{1}é"), "\"a\\\"b\\\\c\\u000a\\u0001é\"");
+    }
 
     fn lc(text: &[u8], offset: u32) -> (u32, u32) {
         SourceFile::new("t.bas", text.to_vec()).line_col(offset)

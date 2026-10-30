@@ -1,0 +1,17 @@
+# An error no handler takes, answered "no" (QB64PE_NOPROMPT=y, or at the dialog), ends the program through end()
+# and the main loop's libqb_exit(exit_code), with exit_code still 0. Set it to 1 first and trace D-012
+# (QB64PE-DIVERGENCES.md D-012; d012-error-exit-code.edit defines trace_divergence_012).
+file: internal/c/libqb/src/error_handle.cpp
+--- old
+        if ((v == 2) || (v == 0)) {
+            close_program = 1;
+            end();
+        }
+--- new
+        if ((v == 2) || (v == 0)) {
+            trace_divergence_012();
+            exit_code = 1;
+            close_program = 1;
+            end();
+        }
+--- end
