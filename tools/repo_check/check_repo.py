@@ -37,6 +37,8 @@ ALLOWED = [
     ("*", rb"does/not/exist"),
     ("*", rb"/home/runner/"),
     ("vscode/test/unit/discovery.test.ts", rb""),
+    # The `qb64rust test --format json` parsing tests: a made-up file path (C:\ws\lib\math_test.bas).
+    ("vscode/test/unit/testOutput.test.ts", rb""),
     # Upstream's test of its relative-path function, copied unedited (design D1 of m2-upstream-tests): made-up
     # paths (/home/user/proj, C:\proj).
     ("tests/upstream/compile_tests/qb64pe/file.bas", rb""),
