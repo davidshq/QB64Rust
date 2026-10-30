@@ -9,6 +9,7 @@ python tools/close/close.py --plan                  # the commands, in order, ea
 python tools/close/close.py --check                 # each step: ran on the current build, and passed?
 python tools/close/close.py --check --known <test>  # a failing test that is known and not the change's
 python tools/close/close.py --check --not-repeated slice,upstream=<why>   # older than an edit that cannot affect them
+python tools/close/close.py --check --cache-miss verification=<why>       # ran most of its list, and rightly
 ```
 
 **The plan** (`--plan`) prints, for the working tree as it stands, Bash commands (Git Bash or the Bash tool, not
@@ -52,6 +53,9 @@ command-line tests that build, alone. Then `--check`.
   binary that stopped without a result (a crash), a runner result with a `FAIL`, a
   call-site program that differs or was not compared, a clippy warning, a fmt difference, a note that is not the
   recorded message, a run refused for the clone's lock);
+- `CACHE`: a passing run with `--pass-cache` of a list of 50 or more programs that ran more than half of them
+  ("What empties the pass cache" below); accepted with `--cache-miss STEP[,STEP...]=REASON`, shown on the step's
+  line;
 - `UNLISTED`: a new or changed program under `tests\corpus\` that is on no list (`slice.list`) and has no `.err`
   or `.norun`, so no closing run reaches it.
 
@@ -110,6 +114,22 @@ compiler, then the demand reports and the counts). A failure there is found amon
 build cache. The pass cache is left out because it cannot see a result that depends on time or load. The runs may
 go in a worktree of the merge commit beside this repo while the next change goes on here
 (`tools\legacy_tests\README.md`, "The runs at a merge into `main` in a worktree").
+
+**Before the close, no run of the closing set's own** (2026-10-30). Read `close.py --plan` before the work's
+last tier 1, fmt and clippy, and send them to the plan's logs in `target\close\`: a run made to another log is
+made again there. When a change is meant to change snapshots, one run with `INSTA_FORCE_PASS=1
+INSTA_UPDATE=new` writes every new one at once, where a plain run stops at the first. *Why:* the close of the
+member-array fix (D-055) ran tier 1, fmt and clippy twice and the frontend tests three times.
+
+**What empties the pass cache.** A program's key holds its executable, its source, its expected and input files
+and, in the verification suite, the support items of its family and those of no family (`cp437_all_bytes.bin`).
+An edit to a file of no family runs every verification program again. `verification\qb45\` was taken as one
+until 2026-10-30, so three new QB 4.5 programs ran all 4,121 (`tools\legacy_tests\run_legacy_tests.py`,
+`SUPPORT_SKIP_NAMES`). A change to the C++ the compiler emits for most programs (a runtime header, the prologue)
+runs most of them again too, as it should. `close.py --check` reads each such run's last line (`--pass-cache: N
+of M programs not run`) and names as `CACHE` a run of a list of 50 or more programs that ran more than half of
+them (the check's `CACHE`, above); find out why, or, when that is right (a cold cache, a change to most programs'
+C++), say so with `--cache-miss`.
 
 **Order.** Whatever changes the compiler (the wording table, generated tables) comes before the first long run, so
 that no run is thrown away for a new build. Runs of the new compiler may run side by side, and beside a recording

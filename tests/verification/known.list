@@ -129,3 +129,5 @@ v63_c2_memnew_zero_two	D-050
 v63_d1_statuscode_closed	D-051
 v63_e1_error_11_handler	D-052
 v63_e2_division_types_handler	D-052
+v64_a1_erase_dynamic_member_list	D-055
+v64_a2_erase_dynamic_member_alone	D-055

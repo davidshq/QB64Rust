@@ -1369,6 +1369,8 @@ class VerificationSupport(unittest.TestCase):
                 "README.md",
                 "run.sh",
                 "__pycache__/x.pyc",
+                "qb45/q45_p.bas",
+                "qb45/q45_p.qb45.txt",
             ):
                 (root / name).parent.mkdir(parents=True, exist_ok=True)
                 (root / name).write_bytes(b"")

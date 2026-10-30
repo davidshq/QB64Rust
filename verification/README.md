@@ -426,6 +426,21 @@ Small programs behind `study\09`, `study\10` and later measurements:
   (`.linux.out.txt`): `a6`, where `LINE INPUT` ends a line at a CR as at an LF, so `ab` CR LF reads as `ab` and an
   empty line, and `INPUT` then gets two empty fields; `b2` and `d1`, whose crashes exit with 127; and `c2`, whose double
   free the C library reports on standard error
+- `v64*`: the two member-array forms `SOMEDAY.md` listed as not measured (2026-10-30, at the user's request):
+  `a1` a `_DYNAMIC` member array of an array element beside other targets of one `ERASE` (the statement goes on
+  with every target after an index out of range raises, and that target releases the member of element 0, as a
+  store of the old compiler does, D-004; the index of each such target is evaluated twice, its FUNCTION called
+  twice, but once an error is pending a later target's index is not evaluated again or at all, and the target
+  releases the member of element 0: `ERASE a(9).d, a(one(1)).d` does not call `one` and leaves `a(1).d`); `a2` the
+  same target alone (the index evaluated twice there too, once when the first evaluation raises, element 0
+  released for an index outside). The new compiler evaluates each index once (`QB64PE-DIVERGENCES.md` D-055), so
+  both are on `tests\verification\known.list`; the rest of their output is the same. `b1`–`b3` `REDIM t.v(0) AS
+  LONG` under `OPTION BASE 1`, of a member declared `v(0 TO 3)`, `v(0)` under `OPTION BASE 0` and `v(1 TO 1)`:
+  "Invalid array bounds" each, so the number 0 has no rule of its own there, `1 TO 0`, as in the `TYPE` block
+  (in a `DIM` it keeps `0 TO 0`); `b4` the same `REDIM` of a `_DYNAMIC` member and of a plain dynamic array, also
+  with `_PRESERVE`, at run time: bounds `0 TO 0`, no error; `b5` a plain array under `OPTION BASE 1`: `DIM s(0)`
+  is `0 TO 0`, `REDIM x(n)` with `n` = 0 and `REDIM x(0 + 0)` raise error 5 and leave `LBOUND` 1 and `UBOUND` 0
+  (QB 4.5 beside it: `DIVERGENCES-QB45.md` Q-016)
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see
@@ -434,7 +449,12 @@ them), each behind a row of the crash-class rulings (`study\39`): `q45_static_lo
 array `a()` as a value (row 6); `q45_whole_array_erased` `READ a()` and `SWAP a(), b()`, and an element of an
 erased array (row 7); `q45_div_zero` `\`, `MOD`, `ERROR 11` and a float `/` by zero under `ON ERROR` (row 12,
 `DIVERGENCES-QB45.md` Q-003); `q45_resume_in_sub` `RESUME` in a SUB (row 13); `q45_run_from_sub` `RUN` and `RUN
-100` in a SUB (row 14).
+100` in a SUB (row 14). Beside `v64` (2026-10-30), as QB 4.5 has no arrays in a `TYPE`: `q45_index_count` the index
+of an element of a `TYPE` array, stored, read, swapped (a FUNCTION in it called once each time) and out of range (error
+9, nothing stored, `a(0).m` stays 0; in item 2 the `PRINT #1` inside the FUNCTION loses the outer `PRINT`'s value);
+`q45_base1_zero_dim` `DIM x(0)` and `q45_base1_zero` `REDIM x(0)` under `OPTION BASE 1`: "Lower bound exceeds upper
+bound" at compile time, and `REDIM x(n)` with `n` = 0 error 9 at run time, the array then not allocated (QB64pe:
+`0 TO 0` for the literal, error 5 for the variable, `v64_b4`, `b5`; `DIVERGENCES-QB45.md` Q-016).
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

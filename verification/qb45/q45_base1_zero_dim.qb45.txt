@@ -1,0 +1,7 @@
+compile:
+ 0030   0006    DIM x(0) AS INTEGER
+                       ^ Lower bound exceeds upper bound
+ 0054   0006    PRINT #1, LBOUND(x); UBOUND(x)
+                                 ^ Array not defined
+    0 Warning Error(s)
+    2 Severe  Error(s)

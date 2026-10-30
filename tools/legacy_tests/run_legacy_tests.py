@@ -2249,7 +2249,9 @@ SUPPORT_SKIP_SUFFIXES = (
     ".noprompt",
     ".root",
 )
-SUPPORT_SKIP_NAMES = frozenset({"__pycache__", "v40_rc"})
+# qb45\ holds the QB 4.5 programs (verification\README.md): taken as a support folder of no family it was copied
+# to every program and its digest was a part of every pass-cache key, so a new QB 4.5 program ran all again.
+SUPPORT_SKIP_NAMES = frozenset({"__pycache__", "v40_rc", "qb45"})
 
 
 @functools.cache

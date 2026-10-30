@@ -2169,16 +2169,16 @@ impl Checker<'_> {
                     );
                     return Err(self.error(upper.node().span(), msg));
                 }
-                // Not measured: whether the number 0 keeps its rule of a `DIM` here (0 to 0 under base 1).
-                None if self.at.option_base != 0 && self.is_plain_zero(upper) => {
-                    let msg = format!("`REDIM {shown}(0)` of a member array under `OPTION BASE 1`");
-                    return Err(self.unsupported(upper.node().span(), msg));
-                }
                 // The upper bound alone goes by `OPTION BASE` as it stands at the `REDIM` (measured,
-                // `verification\v24_x322`, `x323`).
+                // `verification\v24_x322`, `x323`). The number 0 has no rule of its own, as in the `TYPE` block:
+                // `REDIM t.v(0) AS LONG` under base 1 is 1 TO 0, "Invalid array bounds" (`v64_b1`–`b3`).
                 None => self.at.option_base,
             };
             let u = self.constant_bound(upper)?;
+            if u < l {
+                let msg = format!("invalid bounds for `{shown}`: {l} TO {u}");
+                return Err(self.error(upper.node().span(), msg));
+            }
             given.push((l, u));
         }
         if given != declared {
@@ -2196,7 +2196,7 @@ impl Checker<'_> {
             unreachable!("a member array is a member");
         };
         let array = ArrayRef::Member { base, member };
-        self.clear_member_array(array, alone, span, stmt)?;
+        self.clear_member_array(array, stmt)?;
         Ok(true)
     }
 
@@ -2257,18 +2257,13 @@ impl Checker<'_> {
         Ok(out)
     }
 
-    /// The clear of a member array, by `ERASE` or `REDIM` (`alone`: it is the only target of its statement).
-    /// Finding the array may raise when an index stands on its way, and where the old compiler's statement goes
-    /// on with its other targets before the error is handled (measured, `verification\v24_x312`), each clear
-    /// here is a statement of its own: such a target beside others is not supported yet.
-    pub(super) fn clear_member_array(&mut self, array: ArrayRef, alone: bool, span: Span, stmt: Node) -> R<()> {
-        // `ERASE` of a dynamic member array releases it (design D4 of `m3-typefields`); beside other targets it is not
-        // measured.
+    /// The clear of a member array, by `ERASE` or `REDIM`. Finding the array may raise when an index stands on its
+    /// way; the old compiler's statement then goes on with its other targets before the error is handled
+    /// (measured, `verification\v24_x312`, `v64_a1`), which [`Checker::join_targets`] makes of the targets.
+    pub(super) fn clear_member_array(&mut self, array: ArrayRef, stmt: Node) -> R<()> {
+        // `ERASE` of a dynamic member array releases it (design D4 of `m3-typefields`). The old compiler evaluates
+        // its index twice; here once (`QB64PE-DIVERGENCES.md` D-055, `verification\v64_a1`, `a2`).
         let kind = if self.is_dynamic_member(&array) {
-            if array.may_raise() && !alone {
-                let msg = "a dynamic member array of an array element in a list of `ERASE` targets";
-                return Err(self.unsupported(span, msg));
-            }
             StmtKind::Release {
                 array,
                 join: Join::None,

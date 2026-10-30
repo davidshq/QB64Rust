@@ -955,9 +955,9 @@ impl Checker<'_> {
     fn join_targets(&mut self, before: usize) {
         let sink = self.sink();
         let made = &mut sink[before..];
-        let raises = made
-            .iter()
-            .any(|s| matches!(&s.kind, StmtKind::Clear { array, .. } if array.may_raise()));
+        let raises = made.iter().any(
+            |s| matches!(&s.kind, StmtKind::Clear { array, .. } | StmtKind::Release { array, .. } if array.may_raise()),
+        );
         let Some((_, first)) = made.split_last_mut() else {
             return;
         };
@@ -990,17 +990,14 @@ impl Checker<'_> {
 
     fn erase_targets(&mut self, stmt: ast::EraseStmt) -> R<()> {
         let node = stmt.node();
-        let targets = stmt.targets();
-        let alone = targets.len() == 1;
-        for target in targets {
+        for target in stmt.targets() {
             let expr = match target {
                 ast::EraseTarget::Name { name, .. } => ast::Expr::NameRef(name),
                 ast::EraseTarget::Other(other) => other,
             };
-            let span = expr.node().span();
             // Empty parentheses after a member array change nothing (measured, `verification\v24_x320`).
             if let Some((array, _, _)) = self.member_array(expr)? {
-                self.clear_member_array(array, alone, span, node)?;
+                self.clear_member_array(array, node)?;
                 continue;
             }
             let (t, array_name, suffix) = match target {

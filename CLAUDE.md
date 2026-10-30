@@ -35,6 +35,8 @@ changing direction, design or scope.**
    - **This repo (`QB64Rust`) is the project.** Paths in this file are relative to it. The parent folder (`..`)
      has symlinks `CLAUDE.md`, `SOMEDAY.md` (to `docs\SOMEDAY.md`) and `study` pointing here, so sessions started
      in the parent see the same files; edit the real files here, not copies.
+   - **`<qb64contain>` is `..\..\qb64contain`**, beside the parent folder, not the parent itself. It holds QB 4.5
+     (`<qb64contain>\qb45\install`), which `tools\qb45\qb45.py` finds there by default (`tools\qb45\README.md`).
    - **`..\QB64pe\` is a read-only reference clone.** Do not modify it. Study notes and design documents go in
      `study\`.
    - **Never save anything to memory only.** Any rule, decision or fact worth keeping goes into this repo (this

@@ -9,7 +9,9 @@ prints the commands with the log each one writes under target/close/, and then r
 is missing, older than the build or than a changed source, or does not show a pass is named, and the exit code is
 1. A failure that is known and not the change's is accepted with --known <test name>, and shown as such. A passing
 step older than a later edit that cannot affect it is accepted with --not-repeated STEP[,STEP...]=REASON, shown
-(rule 6: "say which runs were not repeated and why"); a failing one never is.
+(rule 6: "say which runs were not repeated and why"); a failing one never is. A run with the pass cache that ran
+most of a long list is named too (something emptied the cache: README.md, "What empties the pass cache"); when
+that is right (a cold cache, a change to most programs' C++) it is accepted with --cache-miss STEP[,STEP...]=REASON.
 
 Whether the run without folding is needed follows from the files changed against HEAD (sema's constant evaluation
 or a numeric conversion, rule 6); --nofold asks for it anyway. So does the coverage check of Civil War Strategy's
@@ -71,6 +73,11 @@ LINUX_FILES = re.compile(
 )
 # A command run in WSL's copy of the tree (tools/linux/sync.sh; crates/README.md, "Building on Linux").
 WSL = "wsl -e bash -lc"
+# A run with the pass cache that ran most of its list (README, "What empties the pass cache"; 2026-10-30, when a
+# folder taken as support of every verification program ran all 4,121): with at least CACHE_LIST programs and fewer
+# than CACHE_SKIPPED of them not run, it is named unless --cache-miss gives the reason.
+CACHE_LIST = 50
+CACHE_SKIPPED = 0.5
 
 
 @dataclass
@@ -285,6 +292,24 @@ def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
     raise ValueError(kind)
 
 
+def cache_skips(text: str) -> tuple[int, int] | None:
+    """The runner's last line of a run with the pass cache: how many programs were not run, of how many."""
+    found = re.findall(r"^--pass-cache: (\d+) of (\d+) programs not run", text, re.M)
+    return (int(found[-1][0]), int(found[-1][1])) if found else None
+
+
+def cache_missed(text: str) -> str | None:
+    """Why a run with the pass cache ran most of its list, or None when the cache did its work (or the log says
+    nothing of it)."""
+    skips = cache_skips(text)
+    if skips is None:
+        return None
+    skipped, total = skips
+    if total < CACHE_LIST or skipped >= CACHE_SKIPPED * total:
+        return None
+    return f"the pass cache let {total - skipped} of {total} programs run"
+
+
 def stamp(files: list[str], exe_too: bool = True, written: str | None = None) -> tuple[float, str]:
     """The time a run must be newer than: the release build's (unless not `exe_too`), or a later changed input's
     other than the files the steps before the build write (`written`); and what that is."""
@@ -333,8 +358,10 @@ def check(
     coverage: bool = False,
     layout: bool = False,
     linux: bool = False,
+    cache_miss: dict[str, str] | None = None,
 ) -> int:
     not_repeated = not_repeated or {}
+    cache_miss = cache_miss or {}
     files = changed_files()
     need = nofold or needs_nofold(files)
     cov = coverage or needs_coverage(files)
@@ -384,17 +411,30 @@ def check(
             reason = f"older than {why}"
         ok, summary = judge(s.judge, text, known)
         summary += summary_at
+        # A passing run with the pass cache that ran most of its list, whether current or not repeated.
+        missed = cache_missed(text) if ok and CACHE in s.command else None
+        if missed and s.name in cache_miss:
+            summary += f"; {missed}: {cache_miss[s.name]}"
+            missed = None
         if stale and ok and s.name in not_repeated:
             # Rule 9: an edit after the closing runs is rerun only for what it can affect, saying why.
             r = not_repeated[s.name]
             number, used = reasons.setdefault(r, (len(reasons) + 1, []))
             used.append(s.name)
-            print(f"ok       {s.name}: {summary}; not repeated ({number})")
+            summary += f"; not repeated ({number})"
         elif stale:
             print(f"STALE    {s.name}: {reason} ({summary})")
             problems += 1
+            continue
         elif not ok:
             print(f"FAIL     {s.name}: {summary}")
+            problems += 1
+            continue
+        if missed:
+            print(
+                f"CACHE    {s.name}: {missed}; find out why (tools/close/README.md, \"What empties the pass "
+                f"cache\"), or give --cache-miss {s.name}=REASON when a run of most of them is right"
+            )
             problems += 1
         else:
             print(f"ok       {s.name}: {summary}")
@@ -460,20 +500,33 @@ def main(argv: list[str]) -> int:
         metavar="STEP[,STEP...]=REASON",
         help="passing steps older than a later edit that cannot affect them, and why (rule 6)",
     )
+    ap.add_argument(
+        "--cache-miss",
+        action="append",
+        default=[],
+        metavar="STEP[,STEP...]=REASON",
+        help="runs with the pass cache that rightly ran most of their list (a cold cache, most programs' C++ changed)",
+    )
     a = ap.parse_args(argv)
     if a.plan:
         return plan(a.nofold, a.coverage, a.format, a.linux)
-    not_repeated = {}
-    for item in a.not_repeated:
-        names, sep, reason = item.partition("=")
-        if not sep or not reason.strip():
-            ap.error(f"--not-repeated {item!r}: give STEP[,STEP...]=REASON")
-        known_steps = {s.name for s in steps(True, True, True, True)}
-        for step in names.split(","):
-            if step not in known_steps:
-                ap.error(f"--not-repeated: no step {step!r} (the steps: {', '.join(sorted(known_steps))})")
-            not_repeated[step] = reason.strip()
-    return check(a.nofold, set(a.known), not_repeated, a.coverage, a.format, a.linux)
+    known_steps = {s.name for s in steps(True, True, True, True)}
+
+    def reasons(option: str, items: list[str]) -> dict[str, str]:
+        out = {}
+        for item in items:
+            names, sep, reason = item.partition("=")
+            if not sep or not reason.strip():
+                ap.error(f"{option} {item!r}: give STEP[,STEP...]=REASON")
+            for step in names.split(","):
+                if step not in known_steps:
+                    ap.error(f"{option}: no step {step!r} (the steps: {', '.join(sorted(known_steps))})")
+                out[step] = reason.strip()
+        return out
+
+    not_repeated = reasons("--not-repeated", a.not_repeated)
+    cache_miss = reasons("--cache-miss", a.cache_miss)
+    return check(a.nofold, set(a.known), not_repeated, a.coverage, a.format, a.linux, cache_miss=cache_miss)
 
 
 if __name__ == "__main__":

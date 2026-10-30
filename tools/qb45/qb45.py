@@ -4,7 +4,8 @@
 Usage: qb45.py [--qb45 DIR] [--dosbox EXE] [--timeout S] [--record] PROGRAM.bas...
 
 DIR is the folder of QB 4.5's unpacked files (BC.EXE, LINK.EXE, BCOM45.LIB; default: the environment
-variable QB64RUST_QB45_ROOT). It is outside this repo; README.md says how it was made. Each program is
+variable QB64RUST_QB45_ROOT, else ../../qb64contain/qb45/install from the repo's root). It is outside this
+repo; README.md says where it lies and how it was made. Each program is
 compiled with `BC /O /E /X /D` (stand-alone, ON ERROR and RESUME NEXT allowed, and the run-time checks
 QB 4.5's editor always makes: without /D an index out of bounds raises nothing), linked and run in a fresh
 folder mounted as D:, with DOSBox's window given SDL's dummy video driver so nothing shows.
@@ -27,6 +28,9 @@ import tempfile
 from pathlib import Path
 
 DEFAULT_DOSBOX = Path(r"C:\Program Files (x86)\DOSBox-0.74-3\DOSBox.exe")
+# Where QB 4.5 lies on the development machine (README.md): <qb64contain>\qb45\install, with <qb64contain> two
+# folders above the repo's root, beside the folder that holds the repo (not that folder itself).
+DEFAULT_QB45 = Path(__file__).resolve().parents[2] / ".." / ".." / "qb64contain" / "qb45" / "install"
 TIMEOUT = 60
 
 # The banner BC prints before its messages, and its memory report: neither depends on the program.
@@ -155,7 +159,10 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("programs", nargs="+", type=Path, help="the .bas files")
     ap.add_argument(
-        "--qb45", type=Path, default=os.environ.get("QB64RUST_QB45_ROOT"), help="QB 4.5's folder"
+        "--qb45",
+        type=Path,
+        default=os.environ.get("QB64RUST_QB45_ROOT") or DEFAULT_QB45,
+        help="QB 4.5's folder",
     )
     ap.add_argument("--dosbox", type=Path, default=None, help="DOSBox.exe")
     ap.add_argument("--timeout", type=int, default=TIMEOUT, help="seconds per program")
@@ -164,7 +171,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = ap.parse_args(argv)
     if args.qb45 is None or not (Path(args.qb45) / "BC.EXE").is_file():
-        print("no QB 4.5: give --qb45 or QB64RUST_QB45_ROOT, a folder with BC.EXE", file=sys.stderr)
+        msg = f"no QB 4.5 in {args.qb45}: give --qb45 or QB64RUST_QB45_ROOT, a folder with BC.EXE"
+        print(msg, file=sys.stderr)
         return 2
     dosbox = args.dosbox or (DEFAULT_DOSBOX if DEFAULT_DOSBOX.is_file() else shutil.which("dosbox"))
     if dosbox is None or not Path(dosbox).is_file():

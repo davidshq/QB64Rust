@@ -5,20 +5,31 @@ expression: snap
 Settings: console, no window
 Member array T1.V:I32 (0 To 3)
 Member array T1.S:Str (0 To 1)
+Member array DY.D:I32 (1 To 3) dynamic
 Array A:T:T1 static (0 To 3)
 Array B:I16 static (0 To 5)
+Array Y:T:DY static (0 To 3)
 Stmt line 2
   SelectConsole
-Stmt line 12 may_raise
+Stmt line 18 may_raise
   Clear A((Var I:I16 -> Convert I64 Widen)).S:Str
   Clear B:I16
   Clear A(Const 2:I64).V:I32
-Stmt line 13 may_raise
+Stmt line 19 may_raise
   Clear A(Const 2:I64).V:I32
   Clear A((Var I:I16 -> Convert I64 Widen)).S:Str
-Stmt line 14
+Stmt line 20
   Clear B:I16
-Stmt line 14
+Stmt line 20
   Clear B:I16
-Stmt line 15
+Stmt line 21 may_raise
+  Release Y((CallProc F:F32 [Temp(Const 1:I16)] -> Convert I64 RoundEven)).D:I32
+  Release T.D:I32
+  Clear B:I16
+Stmt line 22
   System
+Function F:F32 lines 24-26
+  param N:I16
+  result F:F32
+Stmt line 25
+  Assign F(result):F32 = (Var N(param):I16 -> Convert F32 Nearest)

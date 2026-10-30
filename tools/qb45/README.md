@@ -7,7 +7,10 @@
 python tools\qb45\qb45.py [--qb45 DIR] [--record] verification\qb45\q45_static_local.bas
 ```
 
-- **QB 4.5** is not in this repo. It lives in `<qb64contain>\qb45\install`: the files of the five disks of the
+- **QB 4.5** is not in this repo. It lives in `<qb64contain>\qb45\install`, where `<qb64contain>` is the folder
+  two levels above the repo's root, `..\..\qb64contain` from it: beside the folder that holds the repo, not that
+  folder itself (the repo's parent holds `QB64pe`, `FreeBASIC` and the `CLAUDE.md` link, not QB 4.5). `qb45.py`
+  looks there when neither `--qb45` nor `QB64RUST_QB45_ROOT` is given. The files of the five disks of the
   WinWorld archive (`DISK1`–`DISK5`, already unpacked there), copied into one folder. That is what the disks'
   `SETUP.EXE` does for a full install, without its dialogs. The runner needs `BC.EXE`, `LINK.EXE` and
   `BCOM45.LIB` there. Give the folder with `--qb45` or `QB64RUST_QB45_ROOT`.

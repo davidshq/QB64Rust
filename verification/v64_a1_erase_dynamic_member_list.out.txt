@@ -1,0 +1,8 @@
+1. ERASE a(one(1)).d, t.d, w: 1  1 : a(0).d 3  .s 1  a(1).d [error 9 ] .s 1  a(2).d 3  .s 1  a(3).d 3  .s 1  t.d [error 9 ] w(1) 0 
+2. ERASE a(9).d, t.d, w: [error 9 ]: a(0).d [error 9 ] .s 1  a(1).d 3  .s 1  a(2).d 3  .s 1  a(3).d 3  .s 1  t.d [error 9 ] w(1) 0 
+3. ERASE t.d, a(9).d, w: [error 9 ]: a(0).d [error 9 ] .s 1  a(1).d 3  .s 1  a(2).d 3  .s 1  a(3).d 3  .s 1  t.d [error 9 ] w(1) 0 
+4. ERASE w, a(one(2)).d, a(one(3)).s, t.d: 2  2  3  3 : a(0).d 3  .s 1  a(1).d 3  .s 1  a(2).d [error 9 ] .s 1  a(3).d 3  .s [error 9 ] t.d [error 9 ] w(1) 0 
+5. ERASE a(9).d, a(one(1)).d, a(8).s, t.d: [error 9 ]: a(0).d [error 9 ] .s [error 9 ] a(1).d 3  .s 1  a(2).d 3  .s 1  a(3).d 3  .s 1  t.d [error 9 ] w(1) 7 
+6. ERASE a(one(0)).d, a(one(0)).s: 0  0  0  0 : a(0).d [error 9 ] .s [error 9 ] a(1).d 3  .s 1  a(2).d 3  .s 1  a(3).d 3  .s 1  t.d 3  w(1) 7 
+7. ERASE a(one(1)).d, a(one(9)).d, t.d: 1  1  9  [error 9 ]: a(0).d [error 9 ] .s 1  a(1).d [error 9 ] .s 1  a(2).d 3  .s 1  a(3).d 3  .s 1  t.d [error 9 ] w(1) 7 
+exit=0

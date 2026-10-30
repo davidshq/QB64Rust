@@ -1,0 +1,7 @@
+' QB 4.5 (v64_b1-b3): DIM x(0) under OPTION BASE 1, a static array whose bounds are 1 TO 0.
+OPTION BASE 1
+DIM x(0) AS INTEGER
+OPEN "OUT.TXT" FOR OUTPUT AS #1
+PRINT #1, LBOUND(x); UBOUND(x)
+CLOSE #1
+SYSTEM

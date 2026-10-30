@@ -395,6 +395,65 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("STALE    cli", text)
 
+    def test_a_pass_cache_that_ran_most_of_a_long_list(self):
+        verification = self.root / close.log("verification")
+
+        def write(skipped: int, total: int):
+            verification.write_text(
+                '{"verification": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n'
+                f"--pass-cache: {skipped} of {total} programs not run (passed before)\n"
+            )
+            self.at(verification, 300)
+
+        # Most of the list not run: the cache did its work.
+        write(4100, 4121)
+        code, text = self.run_check()
+        self.assertEqual(code, 0, text)
+        # All of a long list run (2026-10-30: a support folder in every program's key).
+        write(0, 4121)
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("CACHE    verification: the pass cache let 4121 of 4121 programs run", text)
+        self.assertIn("--cache-miss verification=REASON", text)
+        # Accepted with a reason, which is shown.
+        code, text = self.run_check(cache_miss={"verification": "a cold cache"})
+        self.assertEqual(code, 0, text)
+        self.assertIn("ok       verification: 1 pass, 0 fail, 0 known [", text)
+        self.assertIn("4121 of 4121 programs run: a cold cache", text)
+        # A short list run whole, and exactly half not run, are not named.
+        write(0, close.CACHE_LIST - 1)
+        self.assertEqual(self.run_check()[0], 0)
+        write(50, 100)
+        self.assertEqual(self.run_check()[0], 0)
+        # Not repeated after a later edit does not hide it.
+        write(0, 4121)
+        self.at(self.source, 400)
+        everything = {s.name: "a test-only edit" for s in steps(False, linux=True)}
+        code, text = self.run_check(not_repeated=everything)
+        self.assertEqual(code, 1)
+        self.assertIn("CACHE    verification", text)
+        code, text = self.run_check(not_repeated=everything, cache_miss={"verification": "a cold cache"})
+        self.assertEqual(code, 0, text)
+        self.assertIn("programs run: a cold cache; not repeated (1)", text)
+
+    def test_a_failing_run_is_named_as_failing_not_by_its_cache(self):
+        verification = self.root / close.log("verification")
+        verification.write_text(
+            '{"verification": {"PASS": 1, "FAIL": 2, "KFAIL": 0}}\n--pass-cache: 0 of 4121 programs not run\n'
+        )
+        self.at(verification, 300)
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("FAIL     verification", text)
+        self.assertNotIn("CACHE", text)
+
+    def test_cache_miss_names_a_step(self):
+        with redirect_stdout(io.StringIO()), mock.patch("sys.stderr", io.StringIO()):
+            with self.assertRaises(SystemExit):
+                close.main(["--check", "--cache-miss", "nosuchstep=x"])
+            with self.assertRaises(SystemExit):
+                close.main(["--check", "--cache-miss", "verification"])
+
     def test_a_step_before_the_build_written_after_it(self):
         self.at(self.root / close.log("lists"), 250)
         code, text = self.run_check()

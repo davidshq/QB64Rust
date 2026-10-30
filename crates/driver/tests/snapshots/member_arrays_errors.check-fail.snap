@@ -37,14 +37,15 @@ member_arrays_errors.bas:56:11: error: a `REDIM` of the member array `t.v` names
 member_arrays_errors.bas:57:14: error: a `REDIM` of the member array `v` names its bounds as `lower TO upper`, or its type with `AS`
 member_arrays_errors.bas:58:19: error: the member array `t.v` is declared LONG: a `REDIM` cannot give it another type
 member_arrays_errors.bas:58:19: note: QB64pe: REDIM type does not match the declared TYPE member array
-member_arrays_errors.bas:62:10: error: the bounds of the member array `t.v` are (0 TO 3): a `REDIM` cannot change them
-member_arrays_errors.bas:62:10: note: QB64pe: Cannot change the number of elements an array has!
-member_arrays_errors.bas:64:15: error: the member array `t.v` cannot stand in a `REDIM` with the type before the names
-member_arrays_errors.bas:64:15: note: QB64pe: Unknown type
-member_arrays_errors.bas:66:7: error: `t` is no declared array (`ERASE`)
-member_arrays_errors.bas:66:7: note: QB64pe: Undefined array passed to ERASE
-member_arrays_errors.bas:69:6: error: the array `t.s` (STRING) cannot be passed to an array parameter of type LONG
-member_arrays_errors.bas:70:6: error: this parameter takes a whole array, written `t.v()`
-member_arrays_errors.bas:75:11: error: not supported yet: `REDIM t.v(0)` of a member array under `OPTION BASE 1`
+member_arrays_errors.bas:63:10: error: the bounds of the member array `t.v` are (0 TO 3): a `REDIM` cannot change them
+member_arrays_errors.bas:63:10: note: QB64pe: Cannot change the number of elements an array has!
+member_arrays_errors.bas:64:11: error: invalid bounds for `t.v`: 1 TO 0
+member_arrays_errors.bas:64:11: note: QB64pe: Invalid array bounds
+member_arrays_errors.bas:66:15: error: the member array `t.v` cannot stand in a `REDIM` with the type before the names
+member_arrays_errors.bas:66:15: note: QB64pe: Unknown type
+member_arrays_errors.bas:68:7: error: `t` is no declared array (`ERASE`)
+member_arrays_errors.bas:68:7: note: QB64pe: Undefined array passed to ERASE
+member_arrays_errors.bas:71:6: error: the array `t.s` (STRING) cannot be passed to an array parameter of type LONG
+member_arrays_errors.bas:72:6: error: this parameter takes a whole array, written `t.v()`
 member_arrays_errors.bas:85:6: error: not supported yet: an array of more than 2^31 elements
 member_arrays_errors.bas:90:1: error: not supported yet: a `TYPE` of more than 2^31 bytes

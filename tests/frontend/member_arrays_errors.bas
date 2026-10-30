@@ -56,10 +56,12 @@ REDIM t.v(0 TO n)
 REDIM t.v(3)
 REDIM a(1).v(n)
 REDIM t.v(0 TO 3) AS INTEGER
-' The upper bound alone goes by OPTION BASE as it stands at the REDIM (v24_x323); "Unknown type" for the type
-' before the names (x325).
+' The upper bound alone goes by OPTION BASE as it stands at the REDIM (v24_x323), and the number 0 has no rule
+' of its own there, 1 TO 0 under base 1 ("Invalid array bounds", v64_b1); "Unknown type" for the type before the
+' names (x325).
 OPTION BASE 1
 REDIM t.v(3) AS LONG
+REDIM t.v(0) AS LONG
 OPTION BASE 0
 REDIM AS LONG t.v(0 TO 3)
 ' "Undefined array passed to ERASE": a variable of a user type.
@@ -68,11 +70,9 @@ ERASE t
 ' Name()", v24_x319).
 fill t.s()
 fill t.v
-' Not supported yet: REDIM t.v(0) under OPTION BASE 1 (not measured). An element of a member array as a target of
-' INPUT, READ or the MID$ statement compiles since m3-typefields task 4.2, and a member array of an array element
-' beside other targets of ERASE or REDIM since m4-memory-records (member_erase_list_ir.bas).
-OPTION BASE 1
-REDIM t.v(0) AS LONG
+' An element of a member array as a target of INPUT, READ or the MID$ statement compiles since m3-typefields
+' task 4.2, and a member array of an array element beside other targets of ERASE or REDIM since m4-memory-records
+' (member_erase_list_ir.bas).
 SYSTEM
 
 SUB fill (b() AS LONG)

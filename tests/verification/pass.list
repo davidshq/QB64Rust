@@ -4109,3 +4109,8 @@ v63_c3_memnew_zero_between
 v63_c4_memnew_zero_twice
 v63_f1_bit_numbers_constant
 v63_f2_bit_number_check
+v64_b1_redim_zero_base1
+v64_b2_redim_zero_base1_zero_member
+v64_b3_redim_zero_base1_one_member
+v64_b4_redim_zero_base1_dynamic
+v64_b5_base1_zero_plain

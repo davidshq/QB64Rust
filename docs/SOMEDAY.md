@@ -19,8 +19,7 @@ argument). What of that layer the old compiler accepts and the new one still mar
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A dynamic member array of an array element beside other targets of one `ERASE` (`ERASE a(1).d, t.v`) | Not measured; a static one is a part of one statement with the other targets since `m4-memory-records` (design D9) | `check\places.rs` `clear_member_array` |
-| `REDIM t.v(0) AS type` under `OPTION BASE 1` | Not measured: whether the number 0 keeps the rule it has in a `DIM` | `tests\frontend\member_arrays_errors.bas` |
+| A dynamic member array of an array element beside other targets of one `REDIM` (`REDIM a(1).d(1 TO 5), t.v(0 TO 3)`) | Not measured; in `ERASE` such a target is a part of one statement with the others since 2026-10-30 (`QB64PE-DIVERGENCES.md` D-055, `verification\v64_a1`), as a static one in both since `m4-memory-records` (design D9) | `check\places.rs` `redim_dynamic_member` |
 
 (An element of a member array, and a member of an array element, as a target of `INPUT`, `READ` or the `MID$`
 statement compiles since `m3-typefields` task 4.2, measured by `verification\v35_x62`.)
