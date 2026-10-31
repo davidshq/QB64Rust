@@ -1,0 +1,4 @@
+valid: 0 
+Q inside X: 5 
+Q alone: 5 
+exit=0

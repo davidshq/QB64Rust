@@ -1,0 +1,5 @@
+
+UDT must have fixed size
+Caused by (or after):_MEMGET M , M . OFFSET , V
+LINE 11:_MEMGET m, m.OFFSET, v
+exit=1

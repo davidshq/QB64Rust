@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):X = UBOUND ( A , )
+LINE 6:x = UBOUND(a, )
+exit=1

@@ -1,0 +1,5 @@
+
+Embed-Handle must be a single literal string in quotes, not a variable
+Caused by (or after):PRINT LEFT$ ( _EMBEDDED$ ( ( "h",1 ) ) , 13 )
+LINE 4:PRINT LEFT$(_EMBEDDED$(("h")), 13)
+exit=1

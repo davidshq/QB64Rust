@@ -1,0 +1,5 @@
+
+Cannot convert type (_UNSIGNED NOSUCH) to symbol
+Caused by (or after):SHARED N AS _UNSIGNED NOSUCH
+LINE 8:SHARED n AS _UNSIGNED nosuch
+exit=1

@@ -11,7 +11,7 @@ the new one still marks "not supported yet", and what is compiled but checked by
 
 | Form | Why it waits | Details |
 |---|---|---|
-| An argument left out of a function call no recording covers (`SCREEN(1, , 1)`) | The general mark "omitted arguments"; `POINT`, `_RGB32`, `_RGB`, `_RGBA32`, `INSTR`, `MID$`, `LEFT$` and a program FUNCTION are the old compiler's errors since `m4-statements-metacommands` (`verification\v57_o01`–`o21`), and the first argument of `INSTR` left out compiles since `m4-builtins-remaining` (`v57_o07`, `v58_i01`) | `sema\src\check\builtins.rs` `left_out`, `may_be_left_out` |
+| A function call with an argument left out (`_LOADIMAGE("a.png", , "hardware")`) is marked "not supported yet" | Measured (`verification\v66_g01`–`g11`), not built: QB64pe accepts a left-out argument of `_LOADIMAGE`, `_LOADFONT`, `_UPRINTWIDTH`, `_UCHARPOS`, `_SNDNEW`, `_INPUTBOX$`, `_OPENFILEDIALOG$` (the middle one) and `_INSTRREV` (the first, which we accept); `SCREEN(1, , 1)` is "Incorrect number of arguments", `LBOUND(a, )` and `UBOUND(a, )` "Syntax error". Built earlier: `POINT`, `_RGB32`, `_RGB`, `_RGBA32`, `INSTR`, `MID$`, `LEFT$`, a program FUNCTION (`v57_o01`–`o21`, `v58_i01`). Functions not measured keep the mark | `sema\src\check\builtins.rs` `left_out`, `may_be_left_out` |
 | `WIDTH #n, columns`, `WIDTH LPRINT columns` and `SCREEN …, _MANUALDISPLAY n` are compiled, and no test runs them | Each is the plain call of its template; what it does is no part of a screen's state (a file's line width, the printer, when the window is updated) | Call-site programs `width_file*`, `width_lprint*`, `screen_manualdisplay*` |
 | `_LIMIT`, `_DELAY` and `SLEEP` are run by one screen program with small values; how long they wait is not checked | Nothing a test records may depend on time | `tests\corpus\screen\d15_pacing` |
 | `SLEEP` with no time in a screen program | The keys file cannot end it once a key is in the buffer (it gives the next key only to an empty buffer, and a key ends `SLEEP` only while it waits). A `repeat` step that presses whatever the buffer holds would do it; that is a change to `tools\screen\screen_state.cpp` | `tools\screen\README.md`, "Writing a screen program" |
@@ -22,10 +22,10 @@ the new one still marks "not supported yet", and what is compiled but checked by
 
 | Form | Why it waits | Details |
 |---|---|---|
-| Graphics `GET` and `PUT` of a `TYPE` that holds a `STRING`, and `VARPTR`, `VARSEG`, `SADD` and `VARPTR$` of a `TYPE` that owns a dynamic member array or of a `_MEM` | `GET` writes over the string pointers; the others were not measured. A `TYPE` that holds a `STRING` is in conventional memory since `m4-left-marked`, its strings made where the old compiler's program crashes (`QB64PE-DIVERGENCES.md` D-037) | `verification\v56_d`; `tests\frontend\sadd_varptr_str_errors.bas` |
-| `VARPTR` and `VARSEG` of a whole array `x()` that is not of numbers, `VARSEG` of a `_BIT` array, `VARPTR` of a member of a `TYPE` type, `VARPTR$` of a member of an element or of a member array's element | Not measured by `verification\v56` (the measured forms compile since `m4-memory-records`; those of a procedure and a fixed-length string member since `qbasic-testcases`, `v61`) | `tests\frontend\sadd_varptr_str_errors.bas` |
-| In the array's place of graphics `GET` and `PUT`: an array of `_BIT` | Not measured; every other place compiles since `m4-memory-records` (design D5) | `tests\frontend\m3_step2_marked.bas` |
-| An index that calls a FUNCTION in the array of `GET` or `PUT` (`GET (1, 2)-(3, 4), a(f(1))`) | The old compiler writes the index twice, so the FUNCTION runs twice; writing that the same way needs a second evaluation the emitter does not have | Read from the C++ (`study\00` §5) |
+| Graphics `GET` and `PUT` of a `TYPE` that holds a `STRING`, and `VARSEG` and `VARPTR$` of a `TYPE` that owns a dynamic member array or of a `_MEM` | `GET` writes over the string pointers. Measured (`verification\v66_a01`–`a07`): `VARSEG` gives 80 and `VARPTR$` three bytes of type 0 (`VARPTR` and `SADD` of them are QB64pe's errors, and ours). A `TYPE` that holds a `STRING` is in conventional memory since `m4-left-marked`, its strings made where the old compiler's program crashes (`QB64PE-DIVERGENCES.md` D-037) | `verification\v56_d`; `tests\frontend\sadd_varptr_str_errors.bas` |
+| `VARPTR` and `VARSEG` of a whole array `x()` that is not of numbers, `VARSEG` of a `_BIT` array or element, `VARPTR` of a member of a `TYPE` type, `VARPTR$` of a member of an element or of a member array's element | Measured (`verification\v66_a08`–`a16`), not built: `VARPTR` of a whole array of strings is an offset, of fixed-length strings or of a `TYPE` 0, `VARSEG` 80; `VARSEG` of a `_BIT` array 4176; `VARPTR` of a `TYPE` member is QB64pe's internal compiler error and `VARPTR$` of an element's member "VARPTR$ only accepts variable-length string arrays" (both errors to give); `VARPTR$` of a member array's element gives the variable's offset | `tests\frontend\sadd_varptr_str_errors.bas` |
+| In the array's place of graphics `GET` and `PUT`: an array of `_BIT` | QB64pe rejects it ("Variable/element cannot be _BIT aligned", `verification\v66_a17`, `a18`); here still marked, where it should be that error | `tests\frontend\m3_step2_marked.bas` |
+| An index that calls a FUNCTION in the array of `GET` or `PUT` (`GET (1, 2)-(3, 4), a(f(1))`) | The old compiler writes the index twice, so the FUNCTION runs twice (measured, `verification\v66_a19`); writing that the same way needs a second evaluation the emitter does not have | Read from the C++ (`study\00` §5) |
 | A line that is the name of a SUB and a colon, where a line the parser could not read has the word in it | Whether the line is a call or a label depends on every jump of the program, and that line may be one | `tests\frontend\sub_name_colon_errors.bas` (`five:`) |
 | The statement `_FULLSCREEN` is compiled, and no test runs it (the function runs in `screen\w01_window_builtins`, `m4-coverage-review`) | A test that takes the whole desktop is not wanted | Call-site programs `fullscreen_*` |
 | `DATE$` and `TIME$` are run for their length and separators only; the statements `DATE$ = …` and `TIME$ = …` are compiled since `m4-builtins-remaining` and run (libqb's `sub_date` and `sub_time` change nothing, `verification\v58_s03`) | Nothing a test records may depend on the clock | `tests\corpus\slice\s71_tab_spc`, `s159_builtins_last` |
@@ -37,7 +37,6 @@ accepts and the new one still marks "not supported yet", and what is compiled bu
 | Form | Why it waits | Details |
 |---|---|---|
 | An `$EXEICON` name with a drive and no slash after it (`C:game.ico`) | The old compiler looks for it in the folder it stands in on that drive (read in `qb64pe.bas` 3854–3873, not measured), which has no counterpart here. The other relative names are looked for under the compiler root since `m4-devices-continue-paths` (`DECISIONS.md` 2026-10-20) | `sema\src\check\mod.rs` `exe_icon_meta` |
-| `VARPTR$` in a `PLAY` or `DRAW` string (`PLAY "X" + VARPTR$(a$)`) | `VARPTR$` compiles since `m4-memory-records`; what `PLAY` and `DRAW` do with the `X` command was not measured | Not measured |
 | What is heard is checked by no test | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; the samples would test libqb. The slice programs check what a program can observe: the queue, the waits, the errors | Design D6 of `m3-sound` |
 | `SOUND 440, 65535`, the longest accepted duration, is in no slice program | libqb fills a buffer of an hour of samples for it, about 700 MB | `verification\v29_c_sound_errors` line 19 |
 | `s75_sound_wait` and the second part of `s76_sound_errors` need a machine with a sound device | Without one libqb queues nothing, holds nothing and checks neither a volume, a pan position, a waveform nor a `PLAY` string (read in `audio.cpp`). Not seen on GitHub's Windows runner yet (CI is looked at when asked) | Design, Risks, of `m3-sound` |
@@ -53,22 +52,21 @@ compiled but not checked by a run:
 | What a format of `PRINT USING` prints, and what a file holds after `GET` and `PUT`, are shown once per topic | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; more lines would test libqb | Design, Non-Goals |
 
 **Left marked by `m3-mem`** (the seventh step of M3, 2026-10-14: `_MEM`, its functions and statements, `_OFFSET`,
-`MKI$` … `_CV`). What the old compiler accepts and the new one still marks "not supported yet", each not measured:
+`MKI$` … `_CV`). What the old compiler accepts and the new one still marks "not supported yet", each measured on 2026-10-31 (`verification\v66_b*`) and not built:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `_MEMGET`, `_MEMPUT` and `_MEMFILL` of a value of a `TYPE` that holds a `STRING` | Such a value holds the pointer of its string; what the old compiler's helpers do with it was not measured (`_MEM` and `_MEMELEMENT` of it compile since `m4-memory-records`, `verification\v56_g2`) | `sema\src\check\mem.rs`, `bytes_reference` |
-| A reference through an element of a member array that is not its last step (`x(0).n(1).q`), or to a member array of user-type elements | The old compiler's rules for such paths were not measured | `unmeasured_path` |
-| `_OFFSET` of an element, member or array of variable-length strings; `_MEMGET`, `_MEMPUT` and `_MEMFILL` with an element or member of them | Not measured (what `_MEM` and `_MEMPUT` do with such strings and arrays of them is: errors, `verification\v32_x15`, `x16`, `x39`) | `check\mem.rs` |
+| `_MEMGET`, `_MEMPUT` and `_MEMFILL` of a value of a `TYPE` that holds a `STRING` | QB64pe rejects them ("UDT must have fixed size", `v66_b01`–`b03`); here still marked, where it should be that error | `sema\src\check\mem.rs`, `bytes_reference` |
+| A reference through an element of a member array that is not its last step (`x(0).n(1).q`), or to a member array of user-type elements | QB64pe takes both: `_OFFSET` of such a path is the member's place, and `_MEM` of such an element runs from it to the end of the array (`v66_b04`, `b05`) | `unmeasured_path` |
+| `_OFFSET` of an element, member or array of variable-length strings; `_MEMGET`, `_MEMPUT` and `_MEMFILL` with an element or member of them | QB64pe compiles `_OFFSET` of an element and the three statements with an element or member (`v66_b06`, `b09`–`b11`); `_OFFSET` of a member is "UDT must have fixed size", of the whole array "Cannot pass array of variable-length strings" (`b07`, `b08`). What `_MEM` and `_MEMPUT` do with such strings is errors (`v32_x15`, `x16`, `x39`) | `check\mem.rs` |
 
 **Left marked by `m3-typefields`** (the tenth step of M3, 2026-10-15: `$UNSTABLE:TYPEFIELDS`, the member markers,
-`_DYNAMIC` member arrays). What the old compiler accepts and the new one still marks "not supported yet", each not
-measured:
+`_DYNAMIC` member arrays). What the old compiler accepts and the new one still marks "not supported yet":
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `_OFFSET(x.v())` of a whole `_DYNAMIC` member array | Not measured (its `_MEM` is, `verification\v35_x66`) | `sema\src\check\mem.rs`, `unmeasured_path` |
-| `_MEMGET`, `_MEMPUT` and `_MEMFILL` with a `_DYNAMIC` member array or an element of one as the variable | Outside the change (its design, Non-Goals) | `check\mem.rs`, `bytes_reference` |
+| `_OFFSET(x.v())` of a whole `_DYNAMIC` member array | Measured, not built: QB64pe compiles it, an address other than 0 (`verification\v66_b12`; its `_MEM`, `v35_x66`) | `sema\src\check\mem.rs`, `unmeasured_path` |
+| `_MEMGET`, `_MEMPUT` and `_MEMFILL` with a `_DYNAMIC` member array or an element of one as the variable | Outside the change (its design, Non-Goals). Measured: QB64pe compiles all of them, and with an element they read and write that element (`verification\v66_b13`–`b16`) | `check\mem.rs`, `bytes_reference` |
 
 **Left marked by `m3-declare-library`** (the twelfth step of M3, 2026-10-16: `DECLARE LIBRARY` in its four forms on
 Windows). What the old compiler accepts and the new one still marks "not supported yet", or does otherwise:
@@ -103,7 +101,7 @@ version resource and manifest). Nothing the old compiler builds into a working e
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A SUB of a `DECLARE LIBRARY` block as a handler | Not measured | `sema\src\check\events.rs` |
+| A SUB of a `DECLARE LIBRARY` block as a handler | Measured, not built: QB64pe builds and runs one with no parameter; with an argument its C++ build fails (`verification\v66_d01`, `d09`, `d10`), so only the first is to take | `sema\src\check\events.rs` |
 
 **Left marked by `m3-network-embed`** (2026-10-17: `$EMBED`, `_EMBEDDED$`, the network functions, `_SOCKETS_`,
 `afterlastline.bm`). What the old compiler accepts and the new one still marks "not supported yet", and what is
@@ -112,7 +110,7 @@ left out:
 | Form | Why it waits | Details |
 |---|---|---|
 | A `$EMBED` name with a drive and no slash after it (`$EMBED:'C:f.txt','h'`) | As for `$EXEICON` (the row of `m3-sound` above); the other relative names are looked for under the compiler root since `m4-devices-continue-paths` | `sema\src\check\embed.rs` `embed_meta` |
-| `_EMBEDDED$` with its argument in parentheses (`_EMBEDDED$(("h"))`) | Not measured | `sema\src\check\embed.rs` |
+| `_EMBEDDED$` with its argument in parentheses (`_EMBEDDED$(("h"))`) | QB64pe rejects it ("Embed-Handle must be a single literal string in quotes", `verification\v66_d02`); here still marked, where it should be that error | `sema\src\check\embed.rs` |
 | Two absolute `$EMBED` names of one file written differently (`<drive>/d/f` and `<drive>\d\f`, or with `..`): "was already embedded" in the old compiler, which resolves the folder first (`CHDIR`, `_CWD$`, `qb64pe.bas` 3765–3777); compared as written here, so both are accepted | Not measured: a recording would hold a local folder (`CLAUDE.md` rule 2); `sema` reads no folder | `sema\src\check\embed.rs` `same_file` |
 | Compressing an embedded file as the old compiler does when that saves a fifth | The program sees the same bytes; only the executable's size differs (design D4) | design D4 |
 | An HTTP download from a real server (`http/read_example`) | The page it downloads changed; it compiles and stays a known failure | `tools\legacy_tests\known_failures.txt` |
@@ -122,8 +120,7 @@ old compiler accepts and the new one still marks "not supported yet":
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A string argument to a colour function in a `CONST` (`_RGB32("a")`), which the evaluator's varying argument count lets through | Not measured | `sema\src\colors.rs` |
-| A math function or a power of an infinite value in a `CONST` (`SIN(1F+4000 * 1F+4000)` inside an expression is the old compiler's error already; as a function argument not measured) | Not measured | `sema\src\certify.rs` |
+| A string argument to a colour function in a `CONST` (`_RGB32("a")`), which the evaluator's varying argument count lets through | Measured, not built: QB64pe reads the string as 0, so `_RGB32("a")` is `&HFF000000` (`verification\v66_d03`) | `sema\src\colors.rs` |
 
 **Left marked by `m4-devices-continue-paths`** (2026-10-20: `_CONTINUE`, blanks around `.` after a name, relative
 `$EXEICON` and `$EMBED` names, device input and `ON STRIG`). What the old compiler accepts and the new one still
@@ -131,8 +128,8 @@ marks "not supported yet", and what is left out:
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `p . q(1)` written with blanks where no array `p.q` is declared (an array used without `DIM`) | Not measured | `sema\src\check\places.rs` `field_place` |
-| `c . k` written with blanks where `c.k` is a `CONST`, and a store `f . g = 7` to the name of a FUNCTION `f.g` (the old compiler drops the blanks before it reads the statement, `qb64pe.bas` 4196–4241, so it would be the constant or the FUNCTION's result) | Not measured; found in the change's review, where such a name was read as a new variable. A call `f . g` or `f . g(4)` is built since `m4-names-implicit-arrays` (`verification\v55_x60`) | `sema\src\check\places.rs` `plain_spelled`; `tests\frontend\dot_blanks_errors.bas` |
+| `p . q(1)` written with blanks where no array `p.q` is declared (an array used without `DIM`) | Measured, not built: QB64pe makes the array `p.q`, 0 to 10 (`verification\v66_c01`) | `sema\src\check\places.rs` `field_place` |
+| `c . k` written with blanks where `c.k` is a `CONST`, and a store `f . g = 7` to the name of a FUNCTION `f.g` | Measured, not built: as the old compiler drops the blanks first (`qb64pe.bas` 4196–4241), `c . k` is the constant and `f . g = 7` sets the FUNCTION's result (`verification\v66_c02`, `c03`). Found in the change's review, where such a name was read as a new variable. A call `f . g` or `f . g(4)` is built since `m4-names-implicit-arrays` (`v55_x60`) | `sema\src\check\places.rs` `plain_spelled`; `tests\frontend\dot_blanks_errors.bas` |
 | A test with a game controller attached | The tests run with none; the call-site check holds every call (`event_strig_*`, `stick_*`, `strig_*`, `device*`, …) | design Non-Goals |
 
 **Left marked by `m4-names-arrays`** (2026-10-21: a scalar and an array of one name, `REDIM name [AS type]` in a
@@ -141,9 +138,9 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 
 | Form | Why it waits | Details |
 |---|---|---|
-| An array without `AS` beside one listed by `COMMON name() AS type` (`COMMON SHARED g() AS DOUBLE: DIM g(3)`) | Not measured; the old compiler keeps a list of its own for `COMMON` (`qb64pe.bas` 9296) | design D2; `tests\frontend\names_arrays_errors.bas` |
-| `_MEM(x())` of a name that is no array | The old compiler makes `x` an array used without `DIM` there, as for `LEN(x())`, which is built since `m4-names-implicit-arrays` (`LEN` 44: 11 SINGLEs); not measured for `_MEM` | `verification\v48_x04`, `x14` |
-| `LEN` of a whole array of a `TYPE` with a `_DYNAMIC` member array, and of a whole `_DYNAMIC` member array | Not measured (`LEN` of such a value is an error, `v35_x20`) | `check\builtins.rs` `len_whole` |
+| An array without `AS` beside one listed by `COMMON name() AS type` (`COMMON SHARED g() AS DOUBLE: DIM g(3)`) | Measured, not built: `DIM g(3)` makes another array, and the plain `g(1)` below it is still the `COMMON` one, not allocated, so it raises error 9 (`verification\v66_c04`; the old compiler keeps a list of its own for `COMMON`, `qb64pe.bas` 9296) | design D2; `tests\frontend\names_arrays_errors.bas` |
+| `_MEM(x())` of a name that is no array | Measured, not built: QB64pe makes `x` an array used without `DIM` there (0 to 10, a block of 44 bytes), as for `LEN(x())`, which is built since `m4-names-implicit-arrays` (`verification\v66_c05`) | `verification\v48_x04`, `x14` |
+| `LEN` of a whole array of a `TYPE` with a `_DYNAMIC` member array, and of a whole `_DYNAMIC` member array | Measured, not built: the first is QB64pe's error ("_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays"), the second its bytes (12 for three LONGs) (`verification\v66_c06`, `c07`) | `check\builtins.rs` `len_whole` |
 
 **Left marked by `m4-handlers-logging-checking`** (2026-10-21: the handler chain, the log statements and
 `_LOGMINLEVEL`, `$CHECKING` anywhere):
@@ -158,7 +155,7 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A name that is no type in an `AS` clause where no form was measured: `REDIM` of a member array, `_UNSIGNED` before a name in `SHARED`, a parameter or `_DEFINE` | Each place gives its own error in the old compiler (`v51`), so a place not measured keeps its mark | `check\decl.rs` `no_type` |
+| A name that is no type in an `AS` clause: `REDIM` of a member array, `_UNSIGNED` before a name in `SHARED`, a parameter or `_DEFINE` | Each place gives its own error in the old compiler (`v51`); these four are measured now and still marked: "Undefined type" for the `REDIM`, "Cannot convert type (_UNSIGNED NOSUCH) to symbol" for `SHARED` and `_DEFINE`, "Illegal SUB/FUNCTION parameter" for a parameter (`verification\v66_c08`–`c11`) | `check\decl.rs` `no_type` |
 
 **Left marked by `m4-qb64pe-sources`** (2026-10-21: `_INSTRREV`, the whole-file functions, `_FULLPATH$`, the five
 functions, the `ASC` statement, `STOP`, reserved words with a suffix, the `$` name of a `STRING * n` array or
@@ -166,8 +163,8 @@ variable):
 
 | Form | Why it waits | Details |
 |---|---|---|
-| `REDIM`, `STATIC` or `COMMON` of `a$(…)` beside a `STRING * n` array `a`, and `COMMON SHARED s$` beside a `STRING * n` variable `s` | Only `DIM` was measured for the array ("Type mismatch", `v52_x45`), and every declarer but `COMMON` for the variable (`x49`, `x69`–`x72`) | Design D7 of the change |
-| `ASC((a$)) = 65`: the place in parentheses | Not measured, as for `MID$` | `check\io.rs` `asc_assign` |
+| `REDIM`, `STATIC` or `COMMON` of `a$(…)` beside a `STRING * n` array `a`, and `COMMON SHARED s$` beside a `STRING * n` variable `s` | Measured, not built: the three of the array are "Type mismatch", as `DIM` (`v52_x45`), and `COMMON SHARED s$` names the fixed-length variable (`verification\v66_c12`–`c15`) | Design D7 of the change |
+| `ASC((a$)) = 65`: the place in parentheses | Measured, not built: it stores into `a$` (`"xyz"` becomes `"Ayz"`, `verification\v66_c16`), as a place in parentheses does elsewhere (the row of `m4-statements-metacommands` in "QB64pe behaviours to review") | `check\io.rs` `asc_assign` |
 
 **Left marked by `m4-line-numbers-whole-arrays`** (2026-10-22: line numbers, unsigned literals, a whole array as a
 value):
@@ -181,15 +178,15 @@ found for each):
 
 | Form | Why it waits | Details |
 |---|---|---|
-| The whole array `x()` of a name that is no array as a place (`x() = 1`, `READ x()`; its `_MEM(x())`: the row of `m4-names-arrays` above), a SUB written with a type suffix (`s$ 1` beside a `SUB s`), a function of the auto-included files as a place (`_ENCODEURL$(1) = "a"`), `STATIC a()` beside a shared array, `STATIC a(5, 5)` beside a shared array of one dimension, `STATIC v(n)` with a bound not known when compiling beside a shared array | Not measured | `check\places.rs`, `check\proc.rs` |
-| A statement named with one leading underscore that the table does not hold (not one starting `_GL`: the OpenGL table holds every such name since `m4-sub-gl`), and `CALL INTERRUPT[X]` (`CALL ABSOLUTE` compiles since `qbasic-testcases`) | The old compiler reads them by its own lists (`qb64pe.bas` 10606–10687); no program of the corpus or the qbasic tests needs them | `check\proc.rs`, the call statement |
+| The whole array `x()` of a name that is no array as a place (`x() = 1`, `READ x()`; its `_MEM(x())`: the row of `m4-names-arrays` above), a SUB written with a type suffix (`s$ 1` beside a `SUB s`), a function of the auto-included files as a place (`_ENCODEURL$(1) = "a"`), `STATIC a()` beside a shared array | Measured (`verification\v66_c17`–`c21`), not built: `READ x()` makes the array and reads into its first element, and `STATIC a()` in a SUB names the shared array; `x() = 1` is "Expected array index after x", `s$ 1` "Syntax error" and `_ENCODEURL$(1) = "a"` "String required for function" (the argument's error comes first), all three still marked here. (`STATIC a(5, 5)` beside a shared array of one dimension: a known bug in `STATUS.md`; `STATIC v(n)` with a local bound fails QB64pe's C++ build and is our error, `c23`) | `check\places.rs`, `check\proc.rs` |
+| A statement named with one leading underscore that the table does not hold (not one starting `_GL`: the OpenGL table holds every such name since `m4-sub-gl`), and `CALL INTERRUPT[X]` (`CALL ABSOLUTE` compiles since `qbasic-testcases`) | Measured (`verification\v66_c24`–`c26`), not built: the unknown statement is "Syntax error"; `CALL INTERRUPT` and `CALL INTERRUPTX` of `&H33` run (the mouse reset gives -1 and 3). No program of the corpus or the qbasic tests needs them (`qb64pe.bas` 10606–10687) | `check\proc.rs`, the call statement |
 
 **Left marked by `m4-memory-records`** (2026-10-23: memory and record forms; what `verification\v56` found for
 each):
 
 | Form | Why it waits | Details |
 |---|---|---|
-| A `TYPE` whose member array bounds name a `CONST`, used above its block by `LEN` or a `REDIM` of the member (`DIM e AS late: PRINT LEN(e)` above `TYPE late`) | Its layout is read when pass 2 reaches the block | `tests\frontend\memory_records_errors.bas`; design D7 |
+| A `TYPE` whose member array bounds name a `CONST`, used above its block by `LEN` (`DIM e AS late: PRINT LEN(e)` above `TYPE late`) | Its layout is read when pass 2 reaches the block. Measured: QB64pe gives the size (16 for a LONG and three LONGs, `verification\v66_c27`); a `REDIM` of the `_DYNAMIC` member there compiles here already (`c28`) | `tests\frontend\memory_records_errors.bas`; design D7 |
 
 **Left open by `qbasic-testcases`** (2026-10-26: addresses of a procedure's variables and parameters, `TYPE`
 members named like keywords, `CALL ABSOLUTE`). Compiled, not measured:
@@ -399,7 +396,7 @@ Each row is also a candidate fix behind the fixes switch (`DECISIONS.md` 2026-10
 | `FOR` over an element of a member array (`FOR r.m(i) = 1 TO 3`) finds the element again at the start and at each `NEXT`: an index's FUNCTION runs 7 times for 4 passes, a change of `i` in the body moves the loop to another element, and an error there is serviced at the `FOR` line with `RESUME NEXT` going on into the body | Find the element once, at the header | `m4-left-marked` design D4 (`verification\v56_f3`, `v60_c1`–`c6`) |
 | `DECLARE LIBRARY` on Linux looks by the written path, under `/usr/lib64/` and `/usr/lib/`, and by the bare name, never in the multiarch folders (`/usr/lib/x86_64-linux-gnu`) where Debian and Ubuntu put most libraries: `"z"` is "LIBRARY not found" on Ubuntu unless a header `z.h` is found | Search the multiarch folder too (`gcc -print-multiarch`), or leave the name to the linker's own search | `m7-linux` design D4 (spec `language/external-libraries`, "Only in a multiarch folder") |
 | The order in which calls with side effects run, where QB64pe's C++ leaves it to the C++ compiler (the arguments of one call): left to right on Windows, right to left with `g++` on Linux. Measured by the Linux corpus run: `_ASSERT`'s message, an error raised inside `PRINT`, the arguments of `CHOOSE` and `_MIN`, `FIELD` and `LSET`, an error inside arithmetic (`tests\corpus\slice\s106`, `s108`, `s12`, `s22`, `s78`, `s86`, `s136`, each with a `.linux.output` of QB64pe's Linux build) | **Decided, to build after M7** (user, 2026-10-28, `DECISIONS.md`): left to right on every platform, in a change of its own that sequences every such call in the codegen, not place by place; its Linux sidecars of these programs are then deleted. `SWAP` is done already (`QB64PE-DIVERGENCES.md` D-054) | `m7-linux` task 5.4 |
-| `ON TIMER` and `ON KEY` add 1 to `*_event_occurred` twice per event, and `QBMAIN` takes 1 away once (copied as in `ontimer.txt` and `onkey.txt`). What it does to a program was not measured | Measure with a verification program (an event while another runs, `TIMER STOP` and `ON` after it); if it changes what a program does, a candidate for the fixes switch. The panel (QB64 engineer): measure before judging, machine time only | `study\archive\02` §9.2 (`qb64pe.bas` 7822-7824, 7983-7985) |
+| `ON TIMER` and `ON KEY` add 1 to `*_event_occurred` twice per event, and `QBMAIN` takes 1 away once (copied as in `ontimer.txt` and `onkey.txt`). Measured for `ON TIMER` (`verification\v66_f01`): no doubled event is seen; events during `TIMER STOP` run once at `TIMER ON`, and one that comes during a slow handler does not run at the statements after it | `ON KEY` not measured (it needs keys pressed); if it changes what a program does, a candidate for the fixes switch | `study\archive\02` §9.2 (`qb64pe.bas` 7822-7824, 7983-7985) |
 
 ## Other ideas raised during the study
 
@@ -452,7 +449,7 @@ Each row is also a candidate fix behind the fixes switch (`DECISIONS.md` 2026-10
 | **A "QB64 Arcade" starter pack in New Project**: a few small games and toys to start from, for example a banana-throwing duel in the spirit of Gorillas, a snake game in the spirit of Nibbles, a starfield and a `PLAY` jukebox. Gorillas and Nibbles themselves are Microsoft's (`GORILLA.BAS` and `NIBBLES.BAS` shipped with MS-DOS QBasic) and cannot be shipped, so the pack's programs are written here under the project's license. They double as real-program tests: screen programs with keys files in the corpus, recorded with `qb64pe.exe` like the rest, so New Project never offers a program that does not build and run | The panel, 2026-10-29 (user) |
 | **A page for users: "Differences from QB64pe".** The decided differences are in `QB64PE-DIVERGENCES.md` and the kept behaviors in "QB64pe behaviours to review" above, both written for this project; a user porting a program meets a difference with no word of it. A short page generated from the divergence file (what differs, what the program sees, the fix's name when the fixes switch covers it), shipped with the extension and the compiler's zip | The panel, 2026-10-29 (user) |
 | **Builds with `qb64rust` side by side.** The extension runs every compiler process through one queue (`vscode\src\compiler\runQueue.ts`), since QB64pe's runs share its `internal\temp` folder; `qb64rust`'s builds go through the same queue, so a second build or a check by `qb64rust` waits for the first. Whether `qb64rust`'s runs need it (its build cache and libqb store are shared) is not measured | `vscode\README.md` "Known limits"; the panel, 2026-10-29 (user) |
-| **The 40-character limit on names.** QB64pe rejects a variable name of 41 characters ("Identifier longer than 40 character limit"); `qb64rust -z` accepts it (tried 2026-10-30). The limit is checked only for labels (`crates\sema\src\check\flow.rs`) and `$LET` names (`crates\syntax\src\pp.rs`), and is in no divergence row. A program written here may then not build with QB64pe. The panel (QB64 and compiler engineers): not a someday; build it next as a compile error in the old wording for every user name (variables, arrays, `CONST`, `TYPE` and member names, procedures), with a verification program per kind | `study\archive\01` §11.1 ("Max 40 chars", lexical rules); review of the archive, 2026-10-30 |
+| **The 40-character limit on names.** QB64pe rejects a name of 41 characters of every kind, variable, array, `CONST`, `TYPE`, member, SUB and FUNCTION ("Identifier longer than 40 character limit", `verification\v66_e01`–`e07`; a suffix after 40 letters is accepted, `e08`); `qb64rust` accepts them (a known bug in `STATUS.md`). The limit is checked only for labels (`crates\sema\src\check\flow.rs`) and `$LET` names (`crates\syntax\src\pp.rs`), and is in no divergence row. A program written here may then not build with QB64pe. The panel (QB64 and compiler engineers): not a someday; build it next as a compile error in the old wording for every user name (variables, arrays, `CONST`, `TYPE` and member names, procedures); the verification program of each kind is recorded | `study\archive\01` §11.1 ("Max 40 chars", lexical rules); review of the archive, 2026-10-30 |
 | **QB64pe's command-line switches not taken:** `-e` (`OPTION _EXPLICIT` for this build), `-c` (build in the program's own window), `-p` (purge build files) and `-s` (show or set a compiler setting). `qb64rust -e` is "unknown option", and none is recorded. The panel (pragmatic and QB64 engineers): take `-e`, which scripts use; `-p` as a clean of the build cache (the "purge build files" command of "VS Code parity left" would call it); `-c` as another name for `-x`, since there is no IDE window; `-s` not, with an error that names the flags to use instead | `study\archive\04-ide-debugger-f-g.md` Part E §6.1 and G.3 "Command line" |
 | **The `DIVERGENCES-QB45.md` rows still "Believed"** (Q-002, Q-004, Q-005, Q-008, Q-009 among them): the 2026-10-07 decision was to check them once QB 4.5 runs, and the oracle has run since 2026-10-26 (`tools\qb45`) without them. The panel (test engineer): a program per row through `tools\qb45`, machine time only | `DECISIONS.md` 2026-10-07; review of the archive, 2026-10-30 |
 | **libqb's own C++ unit tests** (QB64pe's `tests\c`: the buffer and the HTTP code) are not run here. They were "not ours" when libqb was a copy; it is edited in place now (`tools\libqb\edits`). The panel (test engineer): run them in the closing set when a change touches libqb | `study\archive\22`; `tools\legacy_tests\README.md` "Not re-implemented" |

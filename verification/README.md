@@ -452,6 +452,43 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `_PRESERVE` keeps what the FUNCTION left. With `dim-empty-error` on (`tests\verification\fixed\`, written by
   hand), an error of the bounds leaves element 0's member not allocated, and an index out of range allocates as
   without the fix
+- `v66*`: the forms `SOMEDAY.md` listed as not measured (2026-10-31, at the user's request), one form or one
+  question per program, most with the row's form on the last line or printed. `a01`–`a21` addresses: of a `TYPE`
+  variable that owns a `_DYNAMIC` member array and of a `_MEM` variable, `VARPTR` is "UNEXPECTED INTERNAL COMPILER
+  ERROR", `SADD` "User defined types in expressions are invalid", `VARSEG` 80 and `VARPTR$` three bytes of type 0;
+  `VARPTR` of a whole array of strings is an offset (65504), of fixed-length strings and of a `TYPE` 0, `VARSEG` of
+  it 80, `VARSEG` of a `_BIT` array or element 4176; `VARPTR` of a member whose type is a `TYPE` is an internal
+  compiler error; `VARPTR$` of a member of an element is "VARPTR$ only accepts variable-length string arrays", of
+  a member array's element the variable's offset (as for a member, `v56_t05`); a `_BIT` array in graphics `GET` or
+  `PUT` is "Variable/element cannot be _BIT aligned"; a FUNCTION in the index there runs twice in each; `X` with
+  `VARPTR$` in `DRAW` and `PLAY` runs the string (an invalid letter inside raises error 5 as outside).
+  `b01`–`b16` `_MEM`: `_MEMGET`, `_MEMPUT`, `_MEMFILL` with a `TYPE` that holds a `STRING`, and `_OFFSET` of a
+  `STRING` member, are "UDT must have fixed size"; with an element or member of variable-length strings they compile;
+  `_OFFSET` of a whole array of strings is "Cannot pass array of variable-length strings", of an element compiles;
+  through an element of a member array of `TYPE` elements `_OFFSET` is the member's place, and `_MEM` of such an
+  element runs to the end of the array; `_OFFSET` of a whole `_DYNAMIC` member array and the three statements with
+  an element or the whole of one compile and work. `c01`–`c28` names: `p . q(1)` makes the array used without `DIM`
+  `p.q`, `c . k` is the `CONST`, `f . g = 7` sets the FUNCTION's result; `DIM g(3)` beside `COMMON SHARED g() AS
+  DOUBLE` leaves the plain `g(1)` the `COMMON` array (error 9); `_MEM(x())` of no array makes it (0 to 10); `LEN`
+  of a whole array of an owner type is an error, of a whole `_DYNAMIC` member array its bytes; a name that is no type
+  after `_UNSIGNED` or in a `REDIM` of a member gives the place's own message (as `v51`); `REDIM`, `STATIC`,
+  `COMMON` of `a$()` beside a `STRING * n` array `a` are "Type mismatch", and `COMMON SHARED s$` beside such a
+  variable names it; `ASC((a$)) = 65` stores into `a$`; `x() = 1` is "Expected array index", `READ x()` makes the
+  array and reads into its first element; `s$ 1` for a SUB `s` and an unknown `_NAME` statement are "Syntax error";
+  `_ENCODEURL$(1) = "a"` is "String required for function"; in a SUB, `STATIC a()` beside a shared array names the
+  shared one, `STATIC a(5, 5)` beside one of one dimension is "Cannot change the number of elements an array has!",
+  and `STATIC v(n)` with a local bound fails the C++ build; `CALL INTERRUPT` and `INTERRUPTX` `&H33` run (mouse
+  reset: -1, 3); `LEN` and `REDIM` above its block of a `TYPE` whose member bound names a `CONST` work.
+  `d01`–`d10`: a `DECLARE LIBRARY` SUB as an `ON TIMER` handler builds with no argument (`d09`, the header
+  `v66_d_lib.h`) and fails the C++ build with one (`d01` srand, `d10`); `_EMBEDDED$(("h"))` is an error;
+  `_RGB32("a")` in a `CONST` is `&HFF000000`; an infinite value inside a `CONST`'s function or power is
+  "Unexpected argument: INF" or "Unexpected element 'INF'", while `SIN` of an infinite `CONST` is 0 (D-029).
+  `e01`–`e09`: a name of 41 characters of any kind is "Identifier longer than 40 character limit"; 40 letters and a
+  suffix, and 40 characters of each kind, compile. `f01`: `ON TIMER` events during `TIMER STOP` run once at `TIMER
+  ON`, and one during a slow handler does not run at the statements after it (no doubled event seen). `g01`–`g11`
+  arguments left out: `SCREEN(1, , 1)` is "Incorrect number of arguments", `LBOUND(a, )` and `UBOUND(a, )` "Syntax
+  error"; the middle or first argument of `_LOADIMAGE`, `_LOADFONT`, `_UPRINTWIDTH`, `_UCHARPOS`, `_SNDNEW`,
+  `_INSTRREV`, `_INPUTBOX$` and `_OPENFILEDIALOG$` may be left out
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

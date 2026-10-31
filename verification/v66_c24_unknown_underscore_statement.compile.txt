@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):_NOSUCHSTATEMENT 1
+LINE 5:_NOSUCHSTATEMENT 1
+exit=1

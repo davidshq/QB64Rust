@@ -1,0 +1,5 @@
+
+Cannot pass array of variable-length strings
+Caused by (or after):PRINT _OFFSET ( S ( ) ) <> 0
+LINE 4:PRINT _OFFSET(s()) <> 0
+exit=1

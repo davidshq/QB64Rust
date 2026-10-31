@@ -146,6 +146,13 @@ three full suites with `--coverage`.
   (all 3 bytes) whenever `OpenClipboard` fails, so any program of the machine that opens the clipboard after a
   change (a clipboard history) is enough. Not the compiler's.
 
+- A name of more than 40 characters compiles: QB64pe rejects a variable, array, `CONST`, `TYPE`, member, SUB and
+  FUNCTION name of 41 characters ("Identifier longer than 40 character limit", `verification\v66_e01`–`e07`, on
+  `tests\verification\known.list`); a suffix after 40 letters is accepted (`e08`). The limit is checked only for
+  labels and `$LET` names. `SOMEDAY.md` "Other ideas" has the row (the panel: build it next).
+- `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
+  the number of elements an array has!", `verification\v66_c22`, on `known.list`).
+
 ## Queued for later milestones
 
 | When | Item |

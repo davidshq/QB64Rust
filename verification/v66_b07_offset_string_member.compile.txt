@@ -1,0 +1,5 @@
+
+UDT must have fixed size
+Caused by (or after):PRINT _OFFSET ( T . S ) - _OFFSET ( T )
+LINE 8:PRINT _OFFSET(t.s) - _OFFSET(t)
+exit=1

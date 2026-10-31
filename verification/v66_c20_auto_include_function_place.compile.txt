@@ -1,0 +1,5 @@
+
+String required for function
+Caused by (or after):_ENCODEURL$ ( 1 ) = "a",1
+LINE 3:_ENCODEURL$(1) = "a"
+exit=1
