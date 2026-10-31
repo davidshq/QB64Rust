@@ -1008,8 +1008,9 @@ fn never_run_text() -> String {
     std::fs::read_to_string(repo().join("tests/never_run.list")).unwrap()
 }
 
-/// The reasons of `tests/never_run.list` (design D4 of `m4-coverage-review`).
-const NEVER_RUN_REASONS: &[&str] = &["desktop", "printer", "keyboard", "person", "compiler"];
+/// The reasons of `tests/never_run.list` (design D4 of `m4-coverage-review`; `sandbox`: design D6 of
+/// `desktop-sandbox`).
+const NEVER_RUN_REASONS: &[&str] = &["desktop", "printer", "keyboard", "person", "compiler", "sandbox"];
 
 /// The names of `tests/never_run.list` (`text`), and one line per problem: a line that is not `<name>\t<reason>[
 /// <note>]`, a reason outside [`NEVER_RUN_REASONS`], a name listed twice, a name that is no built-in `sema` compiles.
@@ -1051,8 +1052,9 @@ fn never_run(text: &str) -> (Vec<String>, Vec<String>) {
 /// (spec `testing/compiler-tests`, "A listed name that is no built-in").
 #[test]
 fn never_run_list_problems_are_named() {
-    let (names, problems) = never_run("# a comment\n_TITLE\tdesktop note\n_NOSUCH\tdesktop\nBEEP\tloud\nLPRINT\n");
-    assert_eq!(names, ["_TITLE", "_NOSUCH", "BEEP"]);
+    let (names, problems) =
+        never_run("# a comment\n_TITLE\tdesktop note\n_NOSUCH\tdesktop\nBEEP\tloud\nLPRINT\n_SCREENMOVE\tsandbox\n");
+    assert_eq!(names, ["_TITLE", "_NOSUCH", "BEEP", "_SCREENMOVE"]);
     assert_eq!(
         problems,
         [

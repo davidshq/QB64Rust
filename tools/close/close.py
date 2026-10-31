@@ -8,8 +8,11 @@ The tool runs nothing: each test run is started by its own command, so that tool
 prints the commands with the log each one writes under target/close/, and then reads those logs. A step whose log
 is missing, older than the build or than a changed source, or does not show a pass is named, and the exit code is
 1. A failure that is known and not the change's is accepted with --known <test name>, and shown as such. A passing
-step older than a later edit that cannot affect it is accepted with --not-repeated STEP[,STEP...]=REASON, shown
-(rule 6: "say which runs were not repeated and why"); a failing one never is. A run with the pass cache that ran
+step older than a later edit that cannot affect it, or one stopped before its result, is accepted with
+--not-repeated STEP[,STEP...]=REASON, shown (rule 6: "say which runs were not repeated and why"); a failing one
+never is. A changed file makes stale only the steps it can reach (REACH: a program of tests/sandbox reaches the
+sandbox family alone, a libqb edit naming built-ins of tests/never_run.list their families alone); a step no changed
+file reaches keeps its last passing log, and the plan prints it as a comment. A run with the pass cache that ran
 most of a long list is named too (something emptied the cache: README.md, "What empties the pass cache"); when
 that is right (a cold cache, a change to most programs' C++) it is accepted with --cache-miss STEP[,STEP...]=REASON.
 
@@ -18,7 +21,9 @@ or a numeric conversion, rule 6); --nofold asks for it anyway. So does the cover
 scripts (tools/coverage): only when the game's copy or its scripts, the screen-state file, cut_game.py, the coverage
 tool, codegen-cpp, ir or driver changed; --coverage asks for it anyway. And the format runs (QB64pe's format tests
 and the format oracle, tests/format): only when the formatter, its recordings, tool or settings, the parser, the
-built-in table, sema's symbols or the driver's -y changed; --format asks for them anyway.
+built-in table, sema's symbols or the driver's -y changed; --format asks for them anyway. And the sandbox family
+(tools/sandbox, in Windows Sandbox): only when the family, its runner or tests/never_run.list changed; --sandbox asks
+for it anyway (a change to one of its built-ins' emission or libqb's code for them).
 """
 
 from __future__ import annotations
@@ -44,9 +49,42 @@ CACHE = "--pass-cache target/pass-cache"
 
 # Files whose change asks for the run without folding (rule 6: sema's constant evaluation, a numeric conversion).
 NOFOLD_FILES = re.compile(r"^crates/sema/src/(consteval\.rs|literal\.rs|check/constants\.rs|check/auto\.rs|check/ops\.rs)$")
-# Changed files that make a run stale: what the compiler and the tests are built from. Documents and the
-# test-time record do not.
-INPUTS = re.compile(r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins|screen|coverage|format)/|Cargo\.(toml|lock)$)")
+# Changed files that make a run stale: what the compiler, the tests and the programs are built from. Documents and
+# the test-time record do not.
+INPUTS = re.compile(
+    r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins|screen|coverage|format|sandbox)/|"
+    r"libqb/|tools/libqb/edits/|Cargo\.(toml|lock)$)"
+)
+# Which steps a changed input reaches (2026-10-30, after a close ran every list for an edit of tests/sandbox and a
+# libqb edit of _SCREENCLICK, which no list runs): a file matching an entry makes stale only the steps it names; one
+# matching no entry, every step. The entries are conservative: tier 1 and the lists step read most of tests/
+# (crates/driver/tests/inputs.rs), and tests/upstream/root is every program's include root, so neither has an entry.
+TIER1_STEPS = frozenset({"lists", "tier1", "linux-tier1"})
+REACH: list[tuple[re.Pattern[str], frozenset[str]]] = [
+    # A snapshot is read by the test that made it (tier 1, or the command-line tests of crates/driver/tests/cli.rs),
+    # not compiled: the release build is not older for it.
+    (re.compile(r"^crates/[^/]+/tests/snapshots/"), TIER1_STEPS | {"cli"}),
+    (re.compile(r"^tests/sandbox/"), frozenset({"sandbox"})),
+    (re.compile(r"^tools/sandbox/"), frozenset({"sandbox"})),
+    (re.compile(r"^tests/never_run\.list$"), TIER1_STEPS | {"sandbox"}),
+    (re.compile(r"^tests/verification/"), TIER1_STEPS | {"verification"}),
+    # tests/format is read by crates/driver/tests/format_oracle.rs too.
+    (re.compile(r"^tests/format/"), TIER1_STEPS | {"format", "format-corpus"}),
+    # tests/callsite by crates/sema/src/opengl.rs's test too.
+    (re.compile(r"^tests/callsite/"), TIER1_STEPS | {"callsite"}),
+]
+# A libqb edit (tools/libqb/edits/*.edit) or the copy it is applied to: the steps that build programs (not the
+# sandbox family, which a merge runs anyway: design D7 of desktop-sandbox), unless every changed edit names the
+# built-ins it changes (`builtins: NAME ...`) and each is on tests/never_run.list, when it reaches the family of
+# each one's reason only (FAMILY_STEP; a reason with no family: the command-line tests that build, so the edit is at
+# least compiled).
+LIBQB_FILES = re.compile(r"^(libqb/|tools/libqb/edits/)")
+PROGRAM_STEPS = frozenset(
+    {"slice", "upstream", "verification", "addprefix", "qbasic", "nofold", "coverage", "cli", "linux-slice"}
+)
+EDIT_BUILTINS = re.compile(r"^builtins:[ \t]*(.+?)[ \t]*$", re.M)
+NEVER_RUN = "tests/never_run.list"
+FAMILY_STEP = {"sandbox": "sandbox"}
 # insta's pending snapshots (`.pending-snap`, `.snap.new`) are written by the test runs themselves.
 NOT_INPUTS = re.compile(r"(\.md$|^tools/testtime/|\.pending-snap$|\.snap\.new$)")
 # Files whose change asks for the coverage check of Civil War Strategy's scripts (design D2 of cws-whole-game).
@@ -71,6 +109,9 @@ LINUX_FILES = re.compile(
     BUILT_FROM + r"|^(tools/legacy_tests/run_legacy_tests\.py$|libqb/|tools/libqb/edits/|tools/linux/|"
     r".*\.linux\.(output|err|out\.txt)$|.*known\.linux\.list$)"
 )
+# Files whose change asks for the sandbox family (design D7 of desktop-sandbox): the family, its runner, and the list
+# whose `sandbox` rows it holds.
+SANDBOX_FILES = re.compile(r"^(tests/sandbox/|tools/sandbox/|tests/never_run\.list$)")
 # A command run in WSL's copy of the tree (tools/linux/sync.sh; crates/README.md, "Building on Linux").
 WSL = "wsl -e bash -lc"
 # A run with the pass cache that ran most of its list (README, "What empties the pass cache"; 2026-10-30, when a
@@ -78,6 +119,8 @@ WSL = "wsl -e bash -lc"
 # than CACHE_SKIPPED of them not run, it is named unless --cache-miss gives the reason.
 CACHE_LIST = 50
 CACHE_SKIPPED = 0.5
+# A runner's line of a program with no executable, which the pass cache never skips: `[3/9] PASS name (error, 0.1s)`.
+UNCACHED = re.compile(r"^\[\d+/\d+\] [A-Z]+ .*\((?:error|compile-only), [\d.]+s\)", re.M)
 
 
 @dataclass
@@ -104,7 +147,9 @@ def log(name: str) -> str:
 def linux_steps() -> list[Step]:
     """The Linux family (design D11 of m7-linux): the tree copied into WSL, then tier 1 and the slice list there."""
     return [
-        Step("linux-sync", f"wsl --cd . -e bash tools/linux/sync.sh > {log('linux-sync')} 2>&1", None),
+        # The folder in Windows' form (Git Bash's `pwd -W`): `--cd .` failed with Wsl/E_INVALIDARG from the Bash tool
+        # on 2026-10-30, hours after it had worked from the same shell; the Windows form worked then.
+        Step("linux-sync", f'wsl --cd "$(pwd -W)" -e bash tools/linux/sync.sh > {log("linux-sync")} 2>&1', None),
         Step(
             "linux-tier1",
             f"{WSL} 'cd ~/qb64rust && cargo test --workspace --locked --no-fail-fast' > {log('linux-tier1')} 2>&1",
@@ -120,7 +165,9 @@ def linux_steps() -> list[Step]:
     ]
 
 
-def steps(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool = False) -> list[Step]:
+def steps(
+    nofold: bool, coverage: bool = False, layout: bool = False, linux: bool = False, sandbox: bool = False
+) -> list[Step]:
     # A thin close (DECISIONS.md 2026-10-28): what can show the change's fault. The wording table and its check, the
     # demand reports and the counts are regenerated at a merge into main, not here (README, "The test cadence").
     out = [
@@ -205,6 +252,11 @@ def steps(nofold: bool, coverage: bool = False, layout: bool = False, linux: boo
     ]
     if linux:
         out += linux_steps()
+    if sandbox:
+        # Last and alone: the sandbox's window takes the screen (design D7 of desktop-sandbox).
+        out.append(
+            Step("sandbox", f"python tools/sandbox/run.py > {log('sandbox')} 2>&1", "sandbox", alone=True, copy=True)
+        )
     return out
 
 
@@ -222,6 +274,65 @@ def changed_files() -> list[str]:
     return files
 
 
+def is_input(f: str) -> bool:
+    return bool(INPUTS.match(f)) and not NOT_INPUTS.search(f)
+
+
+def never_run() -> dict[str, str]:
+    """{built-in: reason} of tests/never_run.list (`<name>\\t<reason>[ <note>]`, `#` a comment)."""
+    path = REPO / NEVER_RUN
+    out = {}
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("#") or not line.strip():
+                continue
+            name, _, rest = line.partition("\t")
+            out[name] = rest.split()[0] if rest.split() else ""
+    return out
+
+
+def libqb_reach(files: list[str]) -> frozenset[str] | None:
+    """The steps the change's libqb edits reach (LIBQB_FILES, REACH), or None when no libqb file changed."""
+    changed = [f for f in files if LIBQB_FILES.match(f) and is_input(f)]
+    if not changed:
+        return None
+    edits = [f for f in changed if f.startswith("tools/libqb/edits/") and f.endswith(".edit")]
+    if not edits:
+        return PROGRAM_STEPS
+    listed = never_run()
+    out: set[str] = set()
+    for f in edits:
+        path = REPO / f
+        if not path.is_file():
+            return PROGRAM_STEPS
+        m = EDIT_BUILTINS.search(path.read_text(encoding="utf-8", errors="replace"))
+        if not m:
+            return PROGRAM_STEPS
+        for name in m.group(1).split():
+            if name not in listed:
+                return PROGRAM_STEPS
+            out.add(FAMILY_STEP.get(listed[name], "cli"))
+    return frozenset(out)
+
+
+def reaching(files: list[str], step: str, libqb: frozenset[str] | None) -> list[str]:
+    """The changed files that can reach `step` (REACH; `libqb`: [`libqb_reach`])."""
+    out = []
+    for f in files:
+        if LIBQB_FILES.match(f):
+            if libqb is not None and step in libqb:
+                out.append(f)
+            continue
+        for pattern, names in REACH:
+            if pattern.match(f):
+                if step in names:
+                    out.append(f)
+                break
+        else:
+            out.append(f)
+    return out
+
+
 def needs_nofold(files: list[str]) -> bool:
     return any(NOFOLD_FILES.match(f) for f in files)
 
@@ -236,6 +347,11 @@ def needs_format(files: list[str]) -> bool:
 
 def needs_linux(files: list[str]) -> bool:
     return any(LINUX_FILES.match(f) for f in files)
+
+
+def needs_sandbox(files: list[str]) -> bool:
+    libqb = libqb_reach(files)
+    return any(SANDBOX_FILES.match(f) for f in files) or (libqb is not None and "sandbox" in libqb)
 
 
 def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
@@ -289,6 +405,18 @@ def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
         if not m:
             return False, "no check line"
         return (m.group(1) == "PASS", f"check {m.group(1)}, {m.group(2)} problems")
+    if kind == "sandbox":
+        refused = re.search(r"^sandbox: refused: (.*)$", text, re.M)
+        if refused:
+            return False, f"refused: {refused.group(1)}"
+        m = re.search(r"^sandbox: (\d+) pass, (\d+) fail$", text, re.M)
+        cov = re.search(r"^coverage: (PASS|FAIL)", text, re.M)
+        if not m:
+            return False, "no result line"
+        if not cov:
+            return False, f"{m.group(1)} pass, {m.group(2)} fail; no coverage check"
+        ok = m.group(2) == "0" and cov.group(1) == "PASS"
+        return ok, f"{m.group(1)} pass, {m.group(2)} fail, coverage {cov.group(1)}"
     raise ValueError(kind)
 
 
@@ -299,15 +427,20 @@ def cache_skips(text: str) -> tuple[int, int] | None:
 
 
 def cache_missed(text: str) -> str | None:
-    """Why a run with the pass cache ran most of its list, or None when the cache did its work (or the log says
-    nothing of it)."""
+    """Why a run with the pass cache ran most of the programs it could skip, or None when the cache did its work (or
+    the log says nothing of it). A program the runner judges by a compile error or by its build alone has no
+    executable, so the cache never skips it: it counts in neither number (2026-10-30, when 2,470 of a verification
+    run's 2,471 were such)."""
     skips = cache_skips(text)
     if skips is None:
         return None
     skipped, total = skips
+    uncached = len(UNCACHED.findall(text))
+    total -= min(uncached, total - skipped)
     if total < CACHE_LIST or skipped >= CACHE_SKIPPED * total:
         return None
-    return f"the pass cache let {total - skipped} of {total} programs run"
+    left = f" ({uncached} more without an executable)" if uncached else ""
+    return f"the pass cache let {total - skipped} of {total} programs run{left}"
 
 
 def stamp(files: list[str], exe_too: bool = True, written: str | None = None) -> tuple[float, str]:
@@ -318,12 +451,22 @@ def stamp(files: list[str], exe_too: bool = True, written: str | None = None) ->
         p = REPO / f
         if written and re.match(written, f):
             continue
-        if INPUTS.match(f) and not NOT_INPUTS.search(f) and p.is_file():
+        if is_input(f) and p.is_file():
             best = max(best, (p.stat().st_mtime, f))
     exe = REPO / EXE
     if exe_too and exe.is_file():
         best = max(best, (exe.stat().st_mtime, EXE))
     return best
+
+
+def built_after(t: float) -> bool:
+    """Whether the build step's log, written after `t`, shows a build that compiled nothing: the executable, though
+    older than `t`, was then already built from the sources (cargo leaves it untouched; 2026-10-30)."""
+    path = REPO / log("build")
+    if not path.is_file() or path.stat().st_mtime <= t:
+        return False
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return re.search(r"^\s*Finished ", text, re.M) is not None and re.search(r"^\s*Compiling ", text, re.M) is None
 
 
 def unlisted(files: list[str]) -> list[str]:
@@ -358,6 +501,7 @@ def check(
     coverage: bool = False,
     layout: bool = False,
     linux: bool = False,
+    sandbox: bool = False,
     cache_miss: dict[str, str] | None = None,
 ) -> int:
     not_repeated = not_repeated or {}
@@ -367,19 +511,25 @@ def check(
     cov = coverage or needs_coverage(files)
     lay = layout or needs_format(files)
     lin = linux or needs_linux(files)
-    after, why = stamp(files)
+    sbx = sandbox or needs_sandbox(files)
+    libqb = libqb_reach(files)
     exe = REPO / EXE
     problems = 0
     # Each reason given with --not-repeated, numbered, and the steps it was used for.
     reasons: dict[str, tuple[int, list[str]]] = {}
     # What the steps before the build write (`lists`: the shrink-only lists).
-    written = "|".join(f"(?:{s.writes})" for s in steps(need, cov, lay, lin) if s.writes)
-    for s in steps(need, cov, lay, lin):
+    written = "|".join(f"(?:{s.writes})" for s in steps(need, cov, lay, lin, sbx) if s.writes)
+    for s in steps(need, cov, lay, lin, sbx):
         path = REPO / log(s.name)
         if not path.is_file():
             print(f"MISSING  {s.name}: {log(s.name)} not written")
             problems += 1
             continue
+        # Only the changed inputs that can reach this step make it stale (REACH); a step none reaches keeps its
+        # last log, whatever its age, as long as it passed.
+        mine = reaching(files, s.name, libqb)
+        reached = any(is_input(f) for f in mine)
+        after, why = stamp(mine)
         t = path.stat().st_mtime
         summary_at = f" [{when(t)}]"
         text = path.read_text(encoding="utf-8", errors="replace")
@@ -391,14 +541,16 @@ def check(
         if tested:
             digest, started = tested
             current = sha256_of(exe) if exe.is_file() else ""
-            source, source_why = stamp(files, exe_too=False, written=BUILT_FROM)
+            source, source_why = stamp(mine, exe_too=False, written=BUILT_FROM)
             if digest != current:
                 stale, reason = True, f"of build {digest[:12]}, not the current {current[:12] or '(none)'}"
             else:
-                stale, reason = started < source, f"started before {source_why}"
+                stale, reason = reached and started < source, f"started before {source_why}"
+        elif not reached:
+            stale, reason = False, ""
         elif s.before_build and s.name != "build":
-            source, source_why = stamp(files, exe_too=False, written=written)
-            if exe.is_file() and t > exe.stat().st_mtime:
+            source, source_why = stamp(mine, exe_too=False, written=written)
+            if exe.is_file() and t > exe.stat().st_mtime and not built_after(t):
                 stale, reason = True, "after the build: build again, then run what follows"
             else:
                 stale, reason = t < source, f"older than {source_why}: run it again, then build"
@@ -410,18 +562,21 @@ def check(
             stale = t < after
             reason = f"older than {why}"
         ok, summary = judge(s.judge, text, known)
+        # A run stopped before its result (no result line at all): accepted with --not-repeated like a stale one,
+        # never a run whose log shows a failure.
+        stopped = not ok and summary in ("no result line", "no test result", "no summary", "no check line")
         summary += summary_at
         # A passing run with the pass cache that ran most of its list, whether current or not repeated.
         missed = cache_missed(text) if ok and CACHE in s.command else None
         if missed and s.name in cache_miss:
             summary += f"; {missed}: {cache_miss[s.name]}"
             missed = None
-        if stale and ok and s.name in not_repeated:
-            # Rule 9: an edit after the closing runs is rerun only for what it can affect, saying why.
+        if (stale and ok or stopped) and s.name in not_repeated:
+            # Rule 6: an edit after the closing runs is rerun only for what it can affect, saying why.
             r = not_repeated[s.name]
             number, used = reasons.setdefault(r, (len(reasons) + 1, []))
             used.append(s.name)
-            summary += f"; not repeated ({number})"
+            summary += f"; {'stopped, ' if stopped else ''}not repeated ({number})"
         elif stale:
             print(f"STALE    {s.name}: {reason} ({summary})")
             problems += 1
@@ -439,22 +594,39 @@ def check(
         else:
             print(f"ok       {s.name}: {summary}")
     for r, (number, used) in reasons.items():
-        print(f"({number}) not repeated after {why} ({', '.join(used)}): {r}")
+        print(f"({number}) not repeated ({', '.join(used)}): {r}")
     for f in unlisted(files):
         print(f"UNLISTED {f}: on no list and without .err or .norun, so no closing run reaches it")
         problems += 1
     return 1 if problems else 0
 
 
-def plan(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool = False) -> int:
+def plan(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool = False, sandbox: bool = False) -> int:
     files = changed_files()
     need = nofold or needs_nofold(files)
     cov = coverage or needs_coverage(files)
     lay = layout or needs_format(files)
     lin = linux or needs_linux(files)
+    sbx = sandbox or needs_sandbox(files)
+    libqb = libqb_reach(files)
+    # A step an option asks for "whatever changed" is printed whatever reaches it.
+    asked: set[str] = set()
+    for flag, names in (
+        (nofold, {"nofold"}),
+        (coverage, {"coverage"}),
+        (layout, {"format", "format-corpus"}),
+        (linux, {s.name for s in linux_steps()}),
+        (sandbox, {"sandbox"}),
+    ):
+        if flag:
+            asked |= names
     print("# Bash (Git Bash, the Bash tool), not PowerShell: `VAR=1 command` and `mkdir -p` are Bash. One command each.")
     print(f"mkdir -p {LOGS}")
-    for s in steps(need, cov, lay, lin):
+    for s in steps(need, cov, lay, lin, sbx):
+        if s.name not in asked and not any(is_input(f) for f in reaching(files, s.name, libqb)):
+            # Not run: its last log stands, and --check names it only when that log is missing or failing.
+            print(f"# {s.name}: no changed file reaches it; not run, its last log stands ({log(s.name)})")
+            continue
         note = []
         if s.before_build:
             note.append("before the build")
@@ -464,6 +636,8 @@ def plan(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool
             note.append("beside upstream and verification")
         if s.name == "linux-sync":
             note.append("the Linux family, in WSL, after the Windows runs")
+        if s.name == "sandbox":
+            note.append("last: its window takes the screen for about a minute")
         print(f"{s.command}" + (f"    # {', '.join(note)}" if note else ""))
     if not need:
         print(
@@ -479,6 +653,11 @@ def plan(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool
             "# no Linux runs: nothing the release build is made from (crates/, Cargo.toml, Cargo.lock), the runner,"
             " libqb, tools/linux or a Linux recording or list changed; pass --linux to ask for them"
         )
+    if not sbx:
+        print(
+            "# no sandbox run: no file of tests/sandbox, tools/sandbox or tests/never_run.list changed; pass --sandbox"
+            " when the change touched one of its built-ins' emission or libqb's code for them"
+        )
     print("python tools/close/close.py --check")
     return 0
 
@@ -492,6 +671,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--coverage", action="store_true", help="ask for the coverage check whatever changed")
     ap.add_argument("--format", action="store_true", help="ask for the format runs whatever changed")
     ap.add_argument("--linux", action="store_true", help="ask for the Linux runs (in WSL) whatever changed")
+    ap.add_argument("--sandbox", action="store_true", help="ask for the sandbox family whatever changed")
     ap.add_argument("--known", action="append", default=[], help="a failing test that is known and not the change's")
     ap.add_argument(
         "--not-repeated",
@@ -509,8 +689,8 @@ def main(argv: list[str]) -> int:
     )
     a = ap.parse_args(argv)
     if a.plan:
-        return plan(a.nofold, a.coverage, a.format, a.linux)
-    known_steps = {s.name for s in steps(True, True, True, True)}
+        return plan(a.nofold, a.coverage, a.format, a.linux, a.sandbox)
+    known_steps = {s.name for s in steps(True, True, True, True, True)}
 
     def reasons(option: str, items: list[str]) -> dict[str, str]:
         out = {}
@@ -526,7 +706,7 @@ def main(argv: list[str]) -> int:
 
     not_repeated = reasons("--not-repeated", a.not_repeated)
     cache_miss = reasons("--cache-miss", a.cache_miss)
-    return check(a.nofold, set(a.known), not_repeated, a.coverage, a.format, a.linux, cache_miss=cache_miss)
+    return check(a.nofold, set(a.known), not_repeated, a.coverage, a.format, a.linux, a.sandbox, cache_miss)
 
 
 if __name__ == "__main__":

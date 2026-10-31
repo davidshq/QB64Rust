@@ -45,6 +45,14 @@ ALLOWED = [
     ("tests/upstream/compile_tests/qb64pe/file.output", rb""),
     # The old compiler's -y output of that test (tests/format/README.md): the same made-up paths.
     ("tests/format/upstream/qb64pe/file.bas", rb""),
+    # The folder every Windows Sandbox of the sandbox family sees its run in, inside the sandbox, not the host's
+    # (tools/sandbox/README.md), in the sandbox's files and its change's documents only (archived too: the glob's
+    # `*` takes the archive's dated folder); and the made-up host paths of the runner's tests, each by itself.
+    ("tools/sandbox/*", rb"C:\run"),
+    ("openspec/*desktop-sandbox/*", rb"C:\run"),
+    ("tools/sandbox/test_run.py", rb"X:\some & where"),
+    ("tools/sandbox/test_run.py", rb"Q:\only\this"),
+    ("tools/sandbox/test_run.py", rb"Z:\no\WindowsSandbox.exe"),
 ]
 
 # Third-party copies held byte for byte to an upstream commit by their own check, not checked here (rule 2 is about

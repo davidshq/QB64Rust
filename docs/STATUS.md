@@ -63,9 +63,16 @@ Nothing is waiting: `study\38`'s last questions were answered on 2026-10-28 (`DE
 3. **`basic-unit-tests`** is built (2026-10-29); its closing runs pass but for `verification\v49_d_clipboard`
    (the clipboard race of "Known bugs"), then the user's review and `/opsx:archive`:
    D-012 (a program ended by a runtime error exits with 1, traced; the runner's rule without sidecars),
-   `qb64rust test` and the Test Explorer (`openspec\changes\basic-unit-tests\`). Its CLI tests that build
+   `qb64rust test` and the Test Explorer (`openspec\changes\archive\2026-10-30-basic-unit-tests\`). Its CLI tests that build
    (`cargo test -p qb64rust-driver --test unit_tests -- --ignored`) are not in `tools\close\close.py`'s set yet.
-4. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
+4. **`desktop-sandbox`** is built, reviewed and archived (2026-10-30): the seven desktop built-ins of
+   `tests\never_run.list` (now reason `sandbox`) run in Windows Sandbox, `tests\sandbox\` judged by QB64pe's builds
+   run there, all seven passing with the coverage check (`tools\sandbox\README.md`;
+   `openspec\changes\archive\2026-10-30-desktop-sandbox\`). Only the session's first window gets `_SCREENPRINT`'s
+   keys, so its program clicks itself first (design, "Context"). Its close found and fixed `_SCREENCLICK` under a
+   display scale (D-056, a libqb edit) and taught `close.py` which steps a changed file reaches
+   (`DECISIONS.md` 2026-10-30). Nothing is left of it: commit it with the `v65` work.
+5. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
    built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
    results are read when they come. M8 next.
 

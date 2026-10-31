@@ -158,6 +158,20 @@ when one is, its entry says where (issue or pull request) and what came of it.
   write this project's run-time trace, a part not to offer).
 - **Sent:** not yet.
 
+## `_SCREENCLICK` misses under a display scale
+
+- **Wrong:** on Windows with a display scale other than 100%, `_SCREENCLICK x, y` clicks at the scale times its
+  place on the desktop (at 125%, a click at `_SCREENX + 100` landed 67 pixels further right), and one near the
+  desktop's far side misses the program's window. `x, y` are in GLFW's pixels, as `_SCREENX` and `_DESKTOPWIDTH`
+  give them, while the rectangle the place is scaled by is read on the program's thread, where the scale shrinks it.
+  Measured in this repo in Windows Sandbox at 125% (`tools\sandbox\README.md`).
+- **Where:** `internal/c/libqb.cpp`, `sub__screenclick`: `GetWindowRect(GetDesktopWindow(), &rect)` as the size
+  for `SendInput`'s 0..65535.
+- **Fix:** scale by `func__desktopwidth()` and `func__desktopheight()` (GLFW's video mode), keeping the rectangle
+  where they are 0 (a `$CONSOLE:ONLY` program).
+- **Here:** `QB64PE-DIVERGENCES.md` D-056; the edit `tools/libqb/edits/d056-screenclick-display-scale.edit`.
+- **Sent:** not yet.
+
 ## Other candidates
 
 Bugs this project fixes in the `CONST` evaluator (built by `const-rulings`), which QB64pe might also want (not

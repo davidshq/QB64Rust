@@ -697,6 +697,14 @@ do{
 #line 34 "typefields_cpp.bas"
 {
 #line 34 "typefields_cpp.bas"
+int64 dyn_bound[2];
+#line 34 "typefields_cpp.bas"
+dyn_bound[0]=1ll;
+#line 34 "typefields_cpp.bas"
+dyn_bound[1]=5ll;
+#line 34 "typefields_cpp.bas"
+if (dyn_bound[1]-dyn_bound[0]+1<=0) error(5);
+#line 34 "typefields_cpp.bas"
 char *dyn_slot=(((char*)__UDT_X)+8);
 #line 34 "typefields_cpp.bas"
 ptrszint *dyn_d=*(ptrszint**)dyn_slot;
@@ -735,11 +743,9 @@ ptrszint alloc_old_set=dyn_d[2]&1;
 #line 34 "typefields_cpp.bas"
 int32 alloc_none=0;
 #line 34 "typefields_cpp.bas"
-alloc_new_desc[4]=1ll;
+alloc_new_desc[4]=dyn_bound[0];
 #line 34 "typefields_cpp.bas"
-alloc_new_desc[5]=(5ll)-alloc_new_desc[4]+1;
-#line 34 "typefields_cpp.bas"
-if (alloc_new_desc[5]<=0) error(5);
+alloc_new_desc[5]=(dyn_bound[1])-alloc_new_desc[4]+1;
 #line 34 "typefields_cpp.bas"
 if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
 #line 34 "typefields_cpp.bas"

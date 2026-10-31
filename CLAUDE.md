@@ -86,14 +86,23 @@ changing direction, design or scope.**
      on (`base`, `syntax`, `sema`, `ir`, `codegen-cpp`: their changes reach the snapshot and CLI tests of `driver`),
      else once at the change's end; it may run in the background while work goes on. fmt and clippy before a group is
      reported done (user, 2026-10-27, to the panel; `DECISIONS.md`).
-   - Tier 2 runs **once per change, at its close**, not per task group. Before that, run only the programs the
+   - **A close runs once per batch: when Claude is about to give the user the files to stage** (user, 2026-10-30,
+     `study\40` R1), not at the end of each OpenSpec change when several land on one branch before a commit.
+     `--check` judges against `HEAD`, so the batch is the work since the last commit. A change's task "the closing
+     runs: `tools\close\close.py --check` passes" is met by its batch's close; a change archived before that waits
+     for it or says so. *Why:* on 2026-10-30 four closes ran on one branch in one day, for work committed once.
+   - Tier 2 runs **once per batch, at its close**, not per task group. Before that, run only the programs the
      work touches (`--glob`, `--category`, a short `--list`), or a list with `--pass-cache target\pass-cache`,
      which runs only the programs whose executable changed.
    - **At a change's close, follow `python tools\close\close.py --plan` and end with `--check`** (user,
      2026-10-17): it prints the closing set as commands, in order, each started by its own command, and the check
      names any step that is missing, stale or failing. Its task in `tasks.md` reads "the closing runs:
      `tools\close\close.py --check` passes". The closing set is thin (user, 2026-10-28, `study\38` §5.3 item 2):
-     what can show a change's fault, no reports. What is in it, what waits for a merge into `main`, the order of
+     what can show a change's fault, no reports. **A step the plan prints as a comment is not run** (user,
+     2026-10-30): no changed file reaches it (`tools\close\README.md`, "What a changed file reaches"), its last log
+     stands, and `--check` judges that log. A libqb edit names the built-ins it changes (`builtins:` in the edit
+     file); one whose built-ins are all on `tests\never_run.list` reaches their family alone. *Why:* on 2026-10-30
+     a close ran every list, 25 minutes, for a libqb edit of `_SCREENCLICK`, which only `tests\sandbox\` runs. What is in it, what waits for a merge into `main`, the order of
      the runs and how work goes on beside them: `tools\close\README.md`, "The test cadence". *Why:* at the close
      of `m3-errorline-chr-const` the set was worked from memory: the `verification` family was not checked, and
      `cargo test` stopped at a failing test binary, so about 230 tests never ran, one of them failing.

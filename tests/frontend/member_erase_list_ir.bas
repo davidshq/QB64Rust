@@ -10,7 +10,8 @@ TYPE t1
     s(0 TO 1) AS STRING
 END TYPE
 ' A _DYNAMIC member array of an array element is released the same way, its index evaluated once where the old
-' compiler evaluates it twice (QB64PE-DIVERGENCES.md D-055; verification\v64_a1).
+' compiler evaluates it twice (QB64PE-DIVERGENCES.md D-055; verification\v64_a1), and given its new bounds the
+' same way, its index evaluated once as in the old compiler (verification\v65_a1).
 TYPE dy
     _DYNAMIC d(1 TO 3) AS LONG
 END TYPE
@@ -19,6 +20,7 @@ ERASE a(i).s, b, a(2).v
 REDIM a(2).v(0 TO 3), a(i).s(0 TO 1)
 ERASE b, b
 ERASE y(f(1)).d, t.d, b
+REDIM y(f(1)).d(1 TO 5), t.d(1 TO 6)
 SYSTEM
 
 FUNCTION f (n AS INTEGER)

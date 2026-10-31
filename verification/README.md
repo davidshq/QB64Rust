@@ -441,6 +441,17 @@ Small programs behind `study\09`, `study\10` and later measurements:
   with `_PRESERVE`, at run time: bounds `0 TO 0`, no error; `b5` a plain array under `OPTION BASE 1`: `DIM s(0)`
   is `0 TO 0`, `REDIM x(n)` with `n` = 0 and `REDIM x(0 + 0)` raise error 5 and leave `LBOUND` 1 and `UBOUND` 0
   (QB 4.5 beside it: `DIVERGENCES-QB45.md` Q-016)
+- `v65*`: `REDIM` of a `_DYNAMIC` member array of an array element (2026-10-30). `a1` beside other targets of one
+  `REDIM`: as `ERASE` in `v64_a1`, the statement goes on with every target after an index out of range raises,
+  that target takes the new bounds for the member of element 0, and while an error is pending a later target's
+  index is not evaluated (element 0 again); unlike `ERASE`, each index is evaluated once, and with `_PRESERVE`
+  the values stay. `a2` alone: every bound first, lower before upper, first dimension first, then the index; a
+  dimension with no element raises error 5 there and a bound may raise error 9, after which the index is not
+  evaluated and element 0 takes the bounds (only the first error is handled); a FUNCTION in a bound that erases
+  the same member, gives it two dimensions or other bounds does no harm, the `REDIM` then giving its bounds, and
+  `_PRESERVE` keeps what the FUNCTION left. With `dim-empty-error` on (`tests\verification\fixed\`, written by
+  hand), an error of the bounds leaves element 0's member not allocated, and an index out of range allocates as
+  without the fix
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

@@ -104,6 +104,16 @@ class TheList(Fixture):
         self.assertEqual(rc, 0, out)
         self.assertIn("check: PASS", out)
 
+    def test_a_sandbox_row_is_a_builtin_no_host_run_reaches(self):
+        # The spec's scenario: _SCREENMOVE listed as `sandbox`, run in none of the host's suites, passes.
+        self.listing("_SCREENMOVE\tsandbox moves the window\n")
+        counts = self.counts("a.bas", [(1, "LEN _TITLE LPRINT"), (0, "_SCREENMOVE")])
+        rc, out = self.run_main("--check", str(counts))
+        self.assertEqual(rc, 0, out)
+        counts = self.counts("b.bas", [(1, "_SCREENMOVE")])
+        rc, out = self.run_main("--check", str(counts))
+        self.assertIn("`_SCREENMOVE` is listed (sandbox) but ran (in b.bas)", out)
+
     def test_a_line_of_spaces_is_no_empty_line(self):
         # As tier 1 reads the list: only an empty line is skipped.
         self.listing("_TITLE\tdesktop\n  \n")

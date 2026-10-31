@@ -11,25 +11,30 @@ Array B:I16 static (0 To 5)
 Array Y:T:DY static (0 To 3)
 Stmt line 2
   SelectConsole
-Stmt line 18 may_raise
-  Clear A((Var I:I16 -> Convert I64 Widen)).S:Str
-  Clear B:I16
-  Clear A(Const 2:I64).V:I32
 Stmt line 19 may_raise
+  Clear A((Var I:I16 -> Convert I64 Widen)).S:Str
+  Clear B:I16
+  Clear A(Const 2:I64).V:I32
+Stmt line 20 may_raise
   Clear A(Const 2:I64).V:I32
   Clear A((Var I:I16 -> Convert I64 Widen)).S:Str
-Stmt line 20
+Stmt line 21
   Clear B:I16
-Stmt line 20
+Stmt line 21
   Clear B:I16
-Stmt line 21 may_raise
+Stmt line 22 may_raise
   Release Y((CallProc F:F32 [Temp(Const 1:I16)] -> Convert I64 RoundEven)).D:I32
   Release T.D:I32
   Clear B:I16
-Stmt line 22
+Stmt line 23 may_raise
+  Allocate Redim Y((CallProc F:F32 [Temp(Const 1:I16)] -> Convert I64 RoundEven)).D:I32
+    Const 1:I64 To Const 5:I64
+  Allocate Redim T.D:I32
+    Const 1:I64 To Const 6:I64
+Stmt line 24
   System
-Function F:F32 lines 24-26
+Function F:F32 lines 26-28
   param N:I16
   result F:F32
-Stmt line 25
+Stmt line 27
   Assign F(result):F32 = (Var N(param):I16 -> Convert F32 Nearest)

@@ -2096,17 +2096,11 @@ impl Checker<'_> {
     /// ("REDIM of a TYPE member array must include AS <type> or explicit lower TO upper bounds"), another type
     /// ("REDIM type does not match the declared TYPE member array").
     ///
-    /// `alone`: the item is the only one of its statement. `listed`: the type stands before the names.
+    /// `listed`: the type stands before the names.
     ///
     /// A dynamic member array (design D4 of `m3-typefields`) takes new bounds as a dynamic array does
     /// ([`Self::redim_dynamic_member`]).
-    pub(super) fn redim_member(
-        &mut self,
-        item: ast::DimItem,
-        mode: AllocMode,
-        (listed, alone): (bool, bool),
-        stmt: Node,
-    ) -> R<bool> {
+    pub(super) fn redim_member(&mut self, item: ast::DimItem, mode: AllocMode, listed: bool, stmt: Node) -> R<bool> {
         let keeps = mode.keeps_elements();
         let span = item.node().span();
         let Some((place, bounds, last_tok)) = self.member_path_array(item)? else {
@@ -2153,7 +2147,7 @@ impl Checker<'_> {
                 unreachable!("a member array is a member");
             };
             let array = ArrayRef::Member { base, member };
-            self.redim_dynamic_member(array, bounds, typed, mode, (&shown, alone, span), stmt)?;
+            self.redim_dynamic_member(array, bounds, typed, mode, (&shown, span), stmt)?;
             return Ok(true);
         }
         let bounds_span = bounds.node().span();
@@ -2204,14 +2198,16 @@ impl Checker<'_> {
     /// `x29`–`x33`): bounds as a dynamic array's, any number of dimensions, the first one with `lower TO upper`
     /// unless the type is written (`AS` or a suffix; else "REDIM of a TYPE member array must include AS <type> or
     /// explicit lower TO upper bounds"). An [`StmtKind::Allocate`] of the member, which finds the place it is part
-    /// of once; beside other targets of its statement as for a clear ([`Self::clear_member_array`]).
+    /// of once; beside other targets of its statement as for a clear ([`Self::clear_member_array`]; measured,
+    /// `verification\v65_a1`: the statement goes on after an index out of range, and that target and any later
+    /// one found through an index take the member of element 0).
     fn redim_dynamic_member(
         &mut self,
         array: ArrayRef,
         bounds: ast::ArrayBounds,
         typed: bool,
         mode: AllocMode,
-        (shown, alone, span): (&str, bool, Span),
+        (shown, span): (&str, Span),
         stmt: Node,
     ) -> R<()> {
         let ranges = bounds.ranges();
@@ -2224,10 +2220,6 @@ impl Checker<'_> {
             );
             let at = first_upper.map_or(bounds.node().span(), |u| u.node().span());
             return Err(self.error(at, msg));
-        }
-        if array.may_raise() && !alone {
-            let msg = "a member array of an array element in a list of `REDIM` targets";
-            return Err(self.unsupported(span, msg));
         }
         let dims = self.dim_bounds(bounds, shown)?;
         let kind = StmtKind::Allocate {

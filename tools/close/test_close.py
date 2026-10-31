@@ -193,7 +193,9 @@ class Plan(unittest.TestCase):
         self.assertEqual(names[-3:], ["linux-sync", "linux-tier1", "linux-slice"])
         self.assertNotIn("linux-sync", [s.name for s in steps(True, True, True)])
         by = {s.name: s for s in steps(False, False, False, True)}
-        self.assertEqual(by["linux-sync"].command, "wsl --cd . -e bash tools/linux/sync.sh > target/close/linux-sync.log 2>&1")
+        self.assertEqual(
+            by["linux-sync"].command, 'wsl --cd "$(pwd -W)" -e bash tools/linux/sync.sh > target/close/linux-sync.log 2>&1'
+        )
         self.assertIn("cargo test --workspace --locked --no-fail-fast", by["linux-tier1"].command)
         self.assertIn("--list tests/corpus/slice.list", by["linux-slice"].command)
         self.assertEqual((by["linux-tier1"].judge, by["linux-slice"].judge), ("cargo", "runner"))
@@ -204,6 +206,77 @@ class Plan(unittest.TestCase):
                     close.plan(False)
             self.assertEqual("tools/linux/sync.sh" in out.getvalue(), present, files)
             self.assertEqual("# no Linux runs" in out.getvalue(), not present, files)
+
+    def test_sandbox_by_files(self):
+        # The sandbox family (design D7 of desktop-sandbox): the family, its runner or the list ask for it; a crate
+        # does not (--sandbox does).
+        for f in ("tests/sandbox/screenmove_readback.bas", "tools/sandbox/run.py", "tests/never_run.list"):
+            self.assertTrue(close.needs_sandbox([f]), f)
+        for f in ("crates/codegen-cpp/src/procs.rs", "libqb/internal/c/libqb.cpp", "STATUS.md", "tests/never_run.lists"):
+            self.assertFalse(close.needs_sandbox([f]), f)
+        names = [s.name for s in steps(False, False, False, True, True)]
+        self.assertEqual(names[-1], "sandbox")
+        self.assertNotIn("sandbox", [s.name for s in steps(True, True, True, True)])
+        by = {s.name: s for s in steps(False, sandbox=True)}
+        self.assertEqual(by["sandbox"].command, "python tools/sandbox/run.py > target/close/sandbox.log 2>&1")
+        self.assertTrue(by["sandbox"].alone and by["sandbox"].copy)
+        for files, flag, present in (
+            (["tools/sandbox/run.py"], False, True),
+            (["STATUS.md"], False, False),
+            (["STATUS.md"], True, True),
+        ):
+            out = io.StringIO()
+            with mock.patch.object(close, "changed_files", return_value=files):
+                with redirect_stdout(out):
+                    close.plan(False, sandbox=flag)
+            self.assertEqual("tools/sandbox/run.py" in out.getvalue(), present, files)
+            self.assertEqual("# no sandbox run" in out.getvalue(), not present, files)
+
+    def test_sandbox_judge(self):
+        passed = "[compiler] x sha256 ab started 1.0 fixes off\nPASS  a: pass\ncoverage: PASS (0 problem(s))\n"
+        self.assertEqual(judge("sandbox", passed + "sandbox: 7 pass, 0 fail\n", set()), (True, "7 pass, 0 fail, coverage PASS"))
+        self.assertFalse(judge("sandbox", passed + "sandbox: 6 pass, 1 fail\n", set())[0])
+        cov_failed = "coverage: FAIL (1 problem(s))\nsandbox: 7 pass, 0 fail\n"
+        self.assertEqual(judge("sandbox", cov_failed, set()), (False, "7 pass, 0 fail, coverage FAIL"))
+        refused = judge("sandbox", "sandbox: refused: a sandbox is running (WindowsSandboxRemoteSession.exe)\n", set())
+        self.assertEqual(refused, (False, "refused: a sandbox is running (WindowsSandboxRemoteSession.exe)"))
+        self.assertEqual(judge("sandbox", "sandbox: did not shut down within 260 s; closed\n", set()), (False, "no result line"))
+
+    def test_reach(self):
+        # A changed file reaches the steps of its REACH entry; one of no entry, every step.
+        files = ["tests/sandbox/a.bas", "crates/x.rs", "tests/verification/fixed/v1.out.txt", "tests/format/a.bas"]
+        self.assertEqual(close.reaching(files, "slice", None), ["crates/x.rs"])
+        self.assertEqual(close.reaching(files, "verification", None), ["crates/x.rs", "tests/verification/fixed/v1.out.txt"])
+        self.assertEqual(close.reaching(files, "sandbox", None), ["tests/sandbox/a.bas", "crates/x.rs"])
+        # tests/format is read by a cargo test (format_oracle.rs) as well as the format runs.
+        self.assertEqual(
+            close.reaching(files, "tier1", None),
+            ["crates/x.rs", "tests/verification/fixed/v1.out.txt", "tests/format/a.bas"],
+        )
+        self.assertEqual(close.reaching(files, "format", None), ["crates/x.rs", "tests/format/a.bas"])
+        # A snapshot: the tests that read it, not the build.
+        snap = ["crates/driver/tests/snapshots/a.snap"]
+        self.assertEqual(close.reaching(snap, "tier1", None), snap)
+        self.assertEqual(close.reaching(snap, "cli", None), snap)
+        self.assertEqual(close.reaching(snap, "build", None), [])
+        self.assertEqual(close.reaching(snap, "slice", None), [])
+        # A libqb file: the steps libqb_reach found, none when it found none.
+        libqb = ["libqb/internal/c/libqb.cpp", "tools/libqb/edits/d1.edit", "crates/x.rs"]
+        self.assertEqual(close.reaching(libqb, "slice", frozenset({"sandbox"})), ["crates/x.rs"])
+        self.assertEqual(close.reaching(libqb, "sandbox", frozenset({"sandbox"})), libqb)
+        self.assertEqual(close.reaching(libqb, "slice", close.PROGRAM_STEPS), libqb)
+
+    def test_plan_leaves_out_the_steps_no_changed_file_reaches(self):
+        out = io.StringIO()
+        with mock.patch.object(close, "changed_files", return_value=["tests/sandbox/a.bas"]):
+            with redirect_stdout(out):
+                close.plan(False)
+        text = out.getvalue()
+        self.assertIn("# slice: no changed file reaches it; not run, its last log stands (target/close/slice.log)", text)
+        self.assertIn("# tier1: no changed file reaches it", text)
+        self.assertNotIn("\ncargo test --workspace", text)
+        self.assertIn("\npython tools/sandbox/run.py > target/close/sandbox.log 2>&1", text)
+        self.assertIn("python tools/close/close.py --check", text)
 
     def test_plan_names_the_format_runs(self):
         for files, present in ((["crates/format/src/lib.rs"], True), (["crates/sema/src/lib.rs"], False)):
@@ -351,9 +424,98 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 0, text)
         # The reason once, with the steps it covers; each step points to it.
         self.assertEqual(text.count("a test-only edit"), 1, text)
-        self.assertIn("(1) not repeated after crates/a.rs (lists, build, tier1,", text)
+        self.assertIn("(1) not repeated (lists, build, tier1,", text)
         self.assertIn("ok       slice: 1 pass, 0 fail, 0 known [", text)
         self.assertIn("; not repeated (1)", text)
+
+    def test_a_change_reaches_only_some_steps(self):
+        # 2026-10-30: an edit of tests/sandbox made every list stale, and a close ran them all. It reaches the
+        # sandbox family alone; the other steps keep their logs.
+        prog = self.root / "tests/sandbox/a.bas"
+        prog.parent.mkdir(parents=True)
+        prog.write_text("PRINT\n")
+        self.at(prog, 400)
+        with mock.patch.object(close, "changed_files", return_value=["tests/sandbox/a.bas"]):
+            code, text = self.run_check()
+            self.assertEqual(code, 1, text)
+            self.assertNotIn("STALE", text)
+            self.assertIn("MISSING  sandbox", text)
+            self.assertIn("ok       slice: 1 pass", text)
+            sandbox = self.root / close.log("sandbox")
+            sandbox.write_text("coverage: PASS (0 problem(s))\nsandbox: 7 pass, 0 fail\n")
+            self.at(sandbox, 500)
+            code, text = self.run_check()
+            self.assertEqual(code, 0, text)
+            # A later edit of the family makes only that step stale.
+            self.at(prog, 600)
+            code, text = self.run_check()
+            self.assertEqual(code, 1)
+            self.assertIn("STALE    sandbox: older than tests/sandbox/a.bas", text)
+            self.assertIn("ok       verification", text)
+
+    def libqb_edit(self, text: str, t: float = 400) -> list[str]:
+        """A changed libqb edit and the copy's file it changes, both at `t`; the changed files."""
+        edit = self.root / "tools/libqb/edits/d1.edit"
+        copy = self.root / "libqb/internal/c/libqb.cpp"
+        for p in (edit, copy):
+            p.parent.mkdir(parents=True, exist_ok=True)
+        edit.write_text(text)
+        copy.write_text("int x;\n")
+        self.at(edit, t)
+        self.at(copy, t)
+        (self.root / "tests").mkdir(exist_ok=True)
+        (self.root / close.NEVER_RUN).write_text("# c\n_SCREENCLICK\tsandbox clicks\nLPRINT\tprinter\n")
+        return ["tools/libqb/edits/d1.edit", "libqb/internal/c/libqb.cpp"]
+
+    def test_a_libqb_edit_naming_a_sandbox_builtin_reaches_the_sandbox_alone(self):
+        # D-056: an edit of _SCREENCLICK, which no list runs. Only the sandbox family is asked for.
+        files = self.libqb_edit("# why\nfile: internal/c/libqb.cpp\nbuiltins: _SCREENCLICK\n--- old\nx\n--- new\ny\n--- end\n")
+        self.assertEqual(close.libqb_reach(files), {"sandbox"})
+        self.assertTrue(close.needs_sandbox(files))
+        with mock.patch.object(close, "changed_files", return_value=files):
+            code, text = self.run_check()
+            self.assertNotIn("STALE", text)
+            self.assertIn("MISSING  sandbox", text)
+            self.assertIn("ok       linux-slice", text)
+        # One of a reason with no family: the command-line tests that build, so the edit is compiled.
+        files = self.libqb_edit("file: internal/c/libqb.cpp\nbuiltins: LPRINT _SCREENCLICK\n--- old\nx\n--- new\ny\n--- end\n")
+        self.assertEqual(close.libqb_reach(files), {"sandbox", "cli"})
+
+    def test_a_libqb_edit_naming_no_builtin_reaches_every_run_that_builds_programs(self):
+        files = self.libqb_edit("file: internal/c/libqb.cpp\n--- old\nx\n--- new\ny\n--- end\n")
+        self.assertEqual(close.libqb_reach(files), close.PROGRAM_STEPS)
+        self.assertFalse(close.needs_sandbox(files))
+        with mock.patch.object(close, "changed_files", return_value=files):
+            code, text = self.run_check()
+            self.assertEqual(code, 1)
+            self.assertIn("STALE    slice: older than tools/libqb/edits/d1.edit", text)
+            self.assertIn("STALE    cli:", text)
+            self.assertIn("ok       tier1", text)
+            self.assertIn("ok       callsite", text)
+        # A built-in that a list runs, or a name not on the list: the same.
+        files = self.libqb_edit("file: internal/c/libqb.cpp\nbuiltins: PRINT\n--- old\nx\n--- new\ny\n--- end\n")
+        self.assertEqual(close.libqb_reach(files), close.PROGRAM_STEPS)
+        # The copy changed with no edit (a copy from another commit): the same.
+        self.assertEqual(close.libqb_reach(["libqb/internal/c/libqb.cpp"]), close.PROGRAM_STEPS)
+        self.assertIsNone(close.libqb_reach(["crates/a.rs", "libqb/SOURCE.md"]))
+
+    def test_a_run_stopped_before_its_result_is_accepted_only_with_a_reason(self):
+        verification = self.root / close.log("verification")
+        verification.write_text("[1/9] PASS verification:a (output, 1.0s)\n")
+        self.at(verification, 300)
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("FAIL     verification: no result line", text)
+        code, text = self.run_check(not_repeated={"verification": "stopped after a libqb edit of _SCREENCLICK"})
+        self.assertEqual(code, 0, text)
+        self.assertIn("ok       verification: no result line [", text)
+        self.assertIn("; stopped, not repeated (1)", text)
+        # A log that shows a failure is never accepted so.
+        verification.write_text('{"verification": {"PASS": 0, "FAIL": 1, "KFAIL": 0}}\n')
+        self.at(verification, 300)
+        code, text = self.run_check(not_repeated={"verification": "stopped"})
+        self.assertEqual(code, 1)
+        self.assertIn("FAIL     verification", text)
 
     def test_a_run_after_an_edit_but_before_the_build(self):
         # Built at 200, the source edited at 250, the runs at 300, never built again.
@@ -436,6 +598,34 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 0, text)
         self.assertIn("programs run: a cold cache; not repeated (1)", text)
 
+    def test_programs_without_an_executable_count_in_no_cache_number(self):
+        # 2026-10-30: 2,470 of the 2,471 programs a verification run ran expect a compile error, which the cache
+        # never skips; one program with output ran.
+        verification = self.root / close.log("verification")
+
+        def write(skipped: int, output_run: int, errors: int):
+            lines = [f"[{i}/9] PASS verification:e{i} (error, 0.1s)" for i in range(errors)]
+            lines += [f"[{i}/9] PASS verification:c{i} [fixes on] (compile-only, 0.2s)" for i in range(2)]
+            lines += [f"[{i}/9] PASS verification:o{i} (output, 1.0s)" for i in range(output_run)]
+            lines += [
+                f"[{i}/9] PASS verification:n{i} (output, 1.0s)  not run: passed before with this executable"
+                for i in range(skipped)
+            ]
+            total = skipped + output_run + errors + 2
+            lines.append(f"--pass-cache: {skipped} of {total} programs not run (passed before)")
+            lines.append('{"verification": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}')
+            verification.write_text("\n".join(lines) + "\n")
+            self.at(verification, 300)
+
+        write(1652, 1, 2470)
+        code, text = self.run_check()
+        self.assertEqual(code, 0, text)
+        # Most of the programs it can skip run: named, with those it cannot.
+        write(10, 90, 300)
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("the pass cache let 90 of 100 programs run (302 more without an executable)", text)
+
     def test_a_failing_run_is_named_as_failing_not_by_its_cache(self):
         verification = self.root / close.log("verification")
         verification.write_text(
@@ -459,6 +649,22 @@ class Check(unittest.TestCase):
         code, text = self.run_check()
         self.assertEqual(code, 1)
         self.assertIn("STALE    lists: after the build", text)
+
+    def test_a_step_before_a_build_that_compiled_nothing(self):
+        # Built at 200; `lists` at 250; the build step at 260 found nothing to compile and left the executable at 200.
+        lists, build = self.root / close.log("lists"), self.root / close.log("build")
+        self.at(lists, 250)
+        build.write_text("    Finished `release` profile [optimized] target(s) in 0.33s\n")
+        self.at(build, 260)
+        code, text = self.run_check()
+        self.assertEqual(code, 0, text)
+        # A build that compiled, or one before the step, still leaves it stale.
+        build.write_text("   Compiling qb64rust v0.1.0\n    Finished `release` profile\n")
+        self.at(build, 260)
+        self.assertIn("STALE    lists: after the build", self.run_check()[1])
+        build.write_text("    Finished `release` profile\n")
+        self.at(build, 240)
+        self.assertIn("STALE    lists: after the build", self.run_check()[1])
 
     def test_a_step_before_the_build_left_by_an_earlier_change(self):
         # Before the build, but older than this change's edit.

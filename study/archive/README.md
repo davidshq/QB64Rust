@@ -73,6 +73,7 @@ and `06` (editor features) stayed active; `06` followed on 2026-10-29.
 | `37-m6-runtime.md` | M6, runtime modernisation (2026-10-26): none of the runtime's debts shows to a user; M6 as "the runtime without QB64pe"; the twelfth review | `ROADMAP.md` M6; `m6-toolchain`, `m6-compiler-download`, `libqb-fixes`; the second backend in `SOMEDAY.md` |
 | `38-direction-review.md`, `38-direction-review-edited.md` | Where the project stands and where it could go (2026-10-26); the edited copy is a shorter reading of the same review | `ROADMAP.md` "Purpose"; `DECISIONS.md` 2026-10-26 to 2026-10-28 |
 | `39-crash-class-rulings.md` | The crash-class rows of "QB64pe behaviours to review", ruled one at a time (2026-10-26) | `fixes-switch`, `libqb-fixes`; D-040 to D-053; spec `compiler/fixes` |
+| `40-test-suite-study.md` | The test suite as it is, as it has been, as it should be (2026-10-30): its layers and measured cost, the history of the cadence rules, practice elsewhere; the suite stays, a close runs once per batch | `DECISIONS.md` 2026-10-30; `CLAUDE.md` rule 6; `tools\close\README.md`, "When a close runs" |
 
 ## Closed records
 

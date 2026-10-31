@@ -120,6 +120,15 @@ class CopyTest(unittest.TestCase):
         self.assertEqual(self.run_tool("--check"), 1)
         self.assertEqual(self.problems(), ["differs: internal/c/libqb.cpp"])
 
+    def test_an_edit_may_name_the_builtins_it_changes(self):
+        # `builtins:` is read by tools/close/close.py; the tool takes it and applies the edit as without it.
+        edits = self.edits_dir(
+            a=b"# why\nfile: internal/c/libqb.cpp\nbuiltins: _SCREENCLICK\n--- old\nint x;\n--- new\nint y;\n--- end\n"
+        )
+        self.assertEqual(self.run_tool(edits=edits), 0)
+        self.assertEqual((self.dest / "internal/c/libqb.cpp").read_bytes(), b"int y;\r\n")
+        self.assertEqual(self.run_tool("--check", edits=edits), 0)
+
     def test_an_edit_that_does_not_fit_stops_the_tool(self):
         for text in [
             b"file: internal/c/libqb.cpp\n--- old\nint w;\n--- new\n--- end\n",  # not in the file

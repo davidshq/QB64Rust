@@ -1,0 +1,11 @@
+1. REDIM a(one(1)).d(1 TO 5), t.d(1 TO 6), w(4): 1 : a(0).d 3  10  .s 1  a(1).d 5  0  .s 1  a(2).d 3  12  .s 1  a(3).d 3  13  .s 1  t.d 6  w 4 
+2. REDIM a(9).d(1 TO 5), t.d(1 TO 6), w(4): [error 9 ]: a(0).d 5  0  .s 1  a(1).d 3  11  .s 1  a(2).d 3  12  .s 1  a(3).d 3  13  .s 1  t.d 6  w 4 
+3. REDIM t.d(1 TO 6), a(9).d(1 TO 5), w(4): [error 9 ]: a(0).d 5  0  .s 1  a(1).d 3  11  .s 1  a(2).d 3  12  .s 1  a(3).d 3  13  .s 1  t.d 6  w 4 
+4. REDIM w(4), a(one(2)).d(1 TO 5), a(one(3)).s(0 TO 7), t.d(1 TO 6): 2  3 : a(0).d 3  10  .s 1  a(1).d 3  11  .s 1  a(2).d 5  0  .s 1  a(3).d 3  13  .s 7  t.d 6  w 4 
+5. REDIM a(9).d(1 TO 5), a(one(1)).d(1 TO 5), a(8).s(0 TO 7), t.d(1 TO 6): [error 9 ]: a(0).d 5  0  .s 7  a(1).d 3  11  .s 1  a(2).d 3  12  .s 1  a(3).d 3  13  .s 1  t.d 6  w 2 
+6. REDIM a(one(0)).d(1 TO 5), a(one(0)).s(0 TO 7): 0  0 : a(0).d 5  0  .s 7  a(1).d 3  11  .s 1  a(2).d 3  12  .s 1  a(3).d 3  13  .s 1  t.d 3  w 2 
+7. REDIM a(one(1)).d(1 TO 5), a(one(9)).d(1 TO 5), t.d(1 TO 6): 1  9  [error 9 ]: a(0).d 5  0  .s 1  a(1).d 5  0  .s 1  a(2).d 3  12  .s 1  a(3).d 3  13  .s 1  t.d 6  w 2 
+8. REDIM _PRESERVE a(one(1)).d(1 TO 5), t.d(1 TO 6): 1 : a(0).d 3  10  .s 1  a(1).d 5  11  .s 1  a(2).d 3  12  .s 1  a(3).d 3  13  .s 1  t.d 6  w 2 
+ a(1).d(2) 11  t.d(2) 99 
+9. REDIM a(one(1)).d(1 TO one(5)), t.d(1 TO one(6)): 5  1  6 : a(0).d 3  10  .s 1  a(1).d 5  0  .s 1  a(2).d 3  12  .s 1  a(3).d 3  13  .s 1  t.d 6  w 2 
+exit=0

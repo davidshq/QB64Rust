@@ -5,39 +5,6 @@ and where the details are. Nothing here is rejected; it is just not on the roadm
 
 ## Deferred QB64pe features
 
-These are recent upstream QB64pe additions (not the user's own work). They add a lot of complexity to arrays, so they
-wait until the core compiler works (roadmap M4 or later, `study\07-expert-panel.md`).
-
-None is left. Whole-array assignment `a() = b()` came with `m3-whole-array-assign` (2026-10-15), and `_ARRAYCOPY`
-(Petr, 2026-09-12; `study\01` §8.2, `study\03` §2.3), from the same work, with `m3-arraycopy` (2026-10-17).
-
-Features from the same period that are **kept** in scope: `$USELIBRARY`, `$ERRORLOCATION`, the GLFW runtime.
-
-**Plain member arrays compile** (`m2-defxxx-common-arrays` group 9, 2026-10-11: `v(0 TO 3) AS LONG` in a `TYPE`,
-elements through any chain, `LBOUND`/`UBOUND`, `REDIM` and `ERASE` as a clear, a whole member array as an array
-argument). What of that layer the old compiler accepts and the new one still marks "not supported yet":
-
-| Form | Why it waits | Details |
-|---|---|---|
-| A dynamic member array of an array element beside other targets of one `REDIM` (`REDIM a(1).d(1 TO 5), t.v(0 TO 3)`) | Not measured; in `ERASE` such a target is a part of one statement with the others since 2026-10-30 (`QB64PE-DIVERGENCES.md` D-055, `verification\v64_a1`), as a static one in both since `m4-memory-records` (design D9) | `check\places.rs` `redim_dynamic_member` |
-
-(An element of a member array, and a member of an array element, as a target of `INPUT`, `READ` or the `MID$`
-statement compiles since `m3-typefields` task 4.2, measured by `verification\v35_x62`.)
-
-**Left marked by `m2-console-screenhide`** (step 11, 2026-10-12: a console and a window, the window built-ins,
-the constants of the auto-included file, the precompiler flags). The forms it left marked compile since M4 (below the table); what is compiled and not
-run:
-
-| Form | Why it waits | Details |
-|---|---|---|
-| The window built-ins that act on the desktop are compiled and never run (`_SCREENMOVE`, `_MOUSEMOVE`, `_SCREENCLICK`, `_SCREENPRINT`, `_NOTIFYPOPUP`, `_CLIPBOARDIMAGE`, `_CONSOLEFONT`); the rest run since `m4-coverage-review` (`screen\w01_window_builtins` and earlier programs) | A test may not move, click or type on the user's desktop, or change its clipboard or console | `tests\never_run.list`; call-site programs in `tests\callsite` |
-
-(`_SCREENEXISTS` as the direct argument of `HEX$`, `OCT$` or `_BIN$` compiles with the old compiler's width 0
-since `m4-memory-records`, design D4, `verification\v56_c`. A `$IF` that names `_CONSOLE_` between
-`$CONSOLE:ONLY` and a later `$CONSOLE` compiles as the old compiler's two passes read it, nothing from its
-branches and "Name already in use" for a `CONST` of them, since `m4-statements-metacommands`, design D9,
-`verification\v26_x27`, `x34`, `tests\frontend\flags_between_errors.bas`.)
-
 **Left marked by `m3-window-output`** (the first step of M3, 2026-10-12: a program with a window as its
 output, the text-screen, drawing and pacing statements, the screen functions). What the old compiler accepts and
 the new one still marks "not supported yet", and what is compiled but checked by its call alone:
@@ -63,8 +30,6 @@ the new one still marks "not supported yet", and what is compiled but checked by
 | The statement `_FULLSCREEN` is compiled, and no test runs it (the function runs in `screen\w01_window_builtins`, `m4-coverage-review`) | A test that takes the whole desktop is not wanted | Call-site programs `fullscreen_*` |
 | `DATE$` and `TIME$` are run for their length and separators only; the statements `DATE$ = …` and `TIME$ = …` are compiled since `m4-builtins-remaining` and run (libqb's `sub_date` and `sub_time` change nothing, `verification\v58_s03`) | Nothing a test records may depend on the clock | `tests\corpus\slice\s71_tab_spc`, `s159_builtins_last` |
 
-(The file forms `GET #n, …` and `PUT #n, …` compile since `m3-console-files`, `tests\frontend\file_get_put_ir.bas`.)
-
 **Left marked by `m3-sound`** (the third step of M3, 2026-10-13: `SOUND`, `PLAY`, `BEEP`, `$EXEICON`, and a
 statement with a template after `CALL`, which closed three rows of the tables above). What the old compiler
 accepts and the new one still marks "not supported yet", and what is compiled but not checked by a run:
@@ -87,9 +52,6 @@ compiled but not checked by a run:
 | `LPRINT` is compiled, and no test runs it; `CHAIN` runs only to a program that is not there | `LPRINT` prints a page on the default printer; `CHAIN` to a program that exists starts `qb64pe.exe -c` beside the program through `cmd` (user, `DECISIONS.md` 2026-10-13). `238_chain` on `slice.list` reaches `sub_chain` with a name that is not there; no test chains to a program that exists (gap noted by the user, `DECISIONS.md` 2026-10-16). Their calls are compared by `tests\callsite\lprint_*.bas` and `chain_*.bas`; `s82_print_using_file` holds `LPRINT` as code that is not reached | `tests\never_run.list` (`LPRINT`) |
 | What a format of `PRINT USING` prints, and what a file holds after `GET` and `PUT`, are shown once per topic | Both compilers' programs call the same libqb with the same arguments, which the call-site check compares form by form; more lines would test libqb | Design, Non-Goals |
 
-**Left marked by `m3-images-fonts-mouse`** (the sixth step of M3, 2026-10-14: images, colours, fonts, the mouse).
-None is left: `_UCHARPOS` of an array that is not declared (`nd&()`) compiles since `m4-memory-records`.
-
 **Left marked by `m3-mem`** (the seventh step of M3, 2026-10-14: `_MEM`, its functions and statements, `_OFFSET`,
 `MKI$` … `_CV`). What the old compiler accepts and the new one still marks "not supported yet", each not measured:
 
@@ -98,12 +60,6 @@ None is left: `_UCHARPOS` of an array that is not declared (`nd&()`) compiles si
 | `_MEMGET`, `_MEMPUT` and `_MEMFILL` of a value of a `TYPE` that holds a `STRING` | Such a value holds the pointer of its string; what the old compiler's helpers do with it was not measured (`_MEM` and `_MEMELEMENT` of it compile since `m4-memory-records`, `verification\v56_g2`) | `sema\src\check\mem.rs`, `bytes_reference` |
 | A reference through an element of a member array that is not its last step (`x(0).n(1).q`), or to a member array of user-type elements | The old compiler's rules for such paths were not measured | `unmeasured_path` |
 | `_OFFSET` of an element, member or array of variable-length strings; `_MEMGET`, `_MEMPUT` and `_MEMFILL` with an element or member of them | Not measured (what `_MEM` and `_MEMPUT` do with such strings and arrays of them is: errors, `verification\v32_x15`, `x16`, `x39`) | `check\mem.rs` |
-
-(`_INFLATE$`, `_DEFLATE$`, `_BASE64ENCODE$` and `_BASE64DECODE$`, the last row here, came in with
-`m3-asserts-debug-zlib`.)
-
-**Left marked by `m3-asserts-debug-zlib`** (the eighth step of M3, 2026-10-14: `$ASSERTS`, `_ASSERT`, `$DEBUG`,
-the data-processing functions, `END n` and `SYSTEM n`, the licence file). None is left.
 
 **Left marked by `m3-typefields`** (the tenth step of M3, 2026-10-15: `$UNSTABLE:TYPEFIELDS`, the member markers,
 `_DYNAMIC` member arrays). What the old compiler accepts and the new one still marks "not supported yet", each not
@@ -124,9 +80,6 @@ Windows). What the old compiler accepts and the new one still marks "not support
 (Linux and macOS libraries, `.so`, `.dylib`, `/usr/lib` and `dlopen`, are items of `ROADMAP.md` M7 and M8 since
 the purpose was set, 2026-10-26.)
 
-(A library FUNCTION beside a program SUB of the same name, and the reverse pair, compile since
-`m4-statements-metacommands`, `verification\v37_x22` on `tests\verification\pass.list`.)
-
 **Left marked by `m3-sound-handles`** (the sixteenth step of M3, 2026-10-16: `_SNDOPEN`, the `_SND*` family,
 `_MIDISOUNDBANK`, `_WAVE`; every name of libqb's audio part has a row now). What the old compiler accepts and the
 new one still marks "not supported yet", and what is compiled but not checked by a run:
@@ -144,9 +97,6 @@ version resource and manifest). Nothing the old compiler builds into a working e
 |---|---|---|
 | `$VERSIONINFO` on other systems than Windows | The old compiler writes the files on Windows only and ignores the lines elsewhere | design Non-Goals |
 | `s130_versioninfo` on a machine without PowerShell | It reads the version resource back with a PowerShell script; every Windows machine and GitHub's runner have one | design, risks |
-
-**Left marked by `m3-arraycopy`** (the eighteenth step of M3, 2026-10-17: `_ARRAYCOPY`). No form of `_ARRAYCOPY` is
-marked, and nothing is left out.
 
 **Left marked by `m3-events`** (the nineteenth step of M3, 2026-10-17: `ON TIMER`, `ON KEY`, the switches,
 `_FREETIMER`, `KEY`'s own forms). What the old compiler accepts and the new one still marks "not supported yet":
@@ -195,9 +145,6 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 | `_MEM(x())` of a name that is no array | The old compiler makes `x` an array used without `DIM` there, as for `LEN(x())`, which is built since `m4-names-implicit-arrays` (`LEN` 44: 11 SINGLEs); not measured for `_MEM` | `verification\v48_x04`, `x14` |
 | `LEN` of a whole array of a `TYPE` with a `_DYNAMIC` member array, and of a whole `_DYNAMIC` member array | Not measured (`LEN` of such a value is an error, `v35_x20`) | `check\builtins.rs` `len_whole` |
 
-**Left marked by `m4-builtins-param-types`** (2026-10-21: `_CAST`, `_CLIPBOARD$`, `_FILES$`, `_MD5$`, `_OS$`,
-`CLEAR`, a parameter's `TYPE` above its procedure). None is left.
-
 **Left marked by `m4-handlers-logging-checking`** (2026-10-21: the handler chain, the log statements and
 `_LOGMINLEVEL`, `$CHECKING` anywhere):
 
@@ -213,9 +160,6 @@ marks "not supported yet", what it accepts and the old compiler rejects, and wha
 |---|---|---|
 | A name that is no type in an `AS` clause where no form was measured: `REDIM` of a member array, `_UNSIGNED` before a name in `SHARED`, a parameter or `_DEFINE` | Each place gives its own error in the old compiler (`v51`), so a place not measured keeps its mark | `check\decl.rs` `no_type` |
 
-(An operator where a value is expected outside a `CONST`, `x = OR`, is the old compiler's error "Expected
-variable/value before 'OR'" since `m4-statements-metacommands`, task 4.3, `verification\v51_x50`.)
-
 **Left marked by `m4-qb64pe-sources`** (2026-10-21: `_INSTRREV`, the whole-file functions, `_FULLPATH$`, the five
 functions, the `ASC` statement, `STOP`, reserved words with a suffix, the `$` name of a `STRING * n` array or
 variable):
@@ -224,15 +168,6 @@ variable):
 |---|---|---|
 | `REDIM`, `STATIC` or `COMMON` of `a$(…)` beside a `STRING * n` array `a`, and `COMMON SHARED s$` beside a `STRING * n` variable `s` | Only `DIM` was measured for the array ("Type mismatch", `v52_x45`), and every declarer but `COMMON` for the variable (`x49`, `x69`–`x72`) | Design D7 of the change |
 | `ASC((a$)) = 65`: the place in parentheses | Not measured, as for `MID$` | `check\io.rs` `asc_assign` |
-
-(A procedure named after a reserved word with a suffix it does not take is the old compiler's error since
-`m4-names-implicit-arrays`: "Name already in use" for a FUNCTION, `FUNCTION exp$`, "Type symbols after a SUB name
-are invalid" for a SUB; `FUNCTION chr&` is accepted, `verification\v52_x28`, `v55_x46`–`x51` on
-`tests\verification\pass.list`.)
-
-**Left marked by `m4-qb64pe-builtins`** (2026-10-22: the keyboard, window, colour and system built-ins and `$RESIZE`
-that `qb64pe.bas` needs). None is left: `_SETBIT`, `_RESETBIT` and `_TOGGLEBIT`, out of that change's scope,
-compile since `m4-builtins-remaining` (`verification\v58_f09`).
 
 **Left marked by `m4-line-numbers-whole-arrays`** (2026-10-22: line numbers, unsigned literals, a whole array as a
 value):
@@ -355,7 +290,6 @@ Each row is also a candidate fix behind the fixes switch (`DECISIONS.md` 2026-10
 | `LBOUND` and `UBOUND` of an array listed by `STATIC a()` give it one dimension (a `DIM a(2, 5)` below is an error); of one listed by `COMMON a()` they do not | One rule for both | Task 7.2 (`verification\v24_x282`, `x297`–`x302`) |
 | What stands between the parentheses of `COMMON a(3)` and of an array parameter `a(1)` is accepted and not read | A compile error for anything but `()` | Tasks 1.3 and 7.1 (`verification\v24_x157`, `x166`) |
 | Nine constants of the auto-included file do not hold the value their names say: `_FLOAT_MAX` and `_FLOAT_MIN` print `INF 7693134862315D+308` and `-INF 7693134862315D+308`, `_FLOAT_MIN_FRAC` is 0; `_DOUBLE_MIN`/`_MAX` are right. Compiled QB64pe's way since `m3-constant-evaluation` (`_FLOAT_MAX` and `_FLOAT_MIN_FRAC` hold their `_FLOAT` values; `PRINT` shows them through `DOUBLE`, `_TOSTR$` gives `1.189731495357231765F+4932`). The four clamped limits (`_INTEGER64_MIN`, `_OFFSET_MIN`, `_UINTEGER64_MAX`, `_UOFFSET_MAX`) are ruled: fixed, `QB64PE-DIVERGENCES.md` D-027, built by `const-rulings` | `PRINT` of the `_FLOAT` limits: libqb's | `m2-console-screenhide` task 5.2 (`verification\v26_x114`), `m3-constant-evaluation` (`verification\v45_a_auto`) |
-| A `CONST` that names a `$COLOR` constant above the `$COLOR` line is "Unexpected element" (the first pass meets it before the colour file is included), while a statement there that names one compiles. **Ruled 2026-10-18: kept QB64pe's way** (the program stays rejected), with a clearer message (built by `m3-constant-evaluation`), `QB64PE-DIVERGENCES.md` D-030 | Let the colour constants count from the program's first line, wherever the metacommand stands | `m3-constant-evaluation` (`verification\v45_x59`, `x42`) |
 | `$SCREENHIDE` inside a `$IF` branch that its program's own flag switches off (`$IF _CONSOLE_ = 0 THEN` … `$CONSOLE`, `$SCREENHIDE`) is not compiled in the last round, so the window shows; the `$CONSOLE` beside it still counts, by its flag | One rule for the lines of such a branch | `m2-console-screenhide` design D1 (read from the source, `qb64pe.bas` 3617; `verification\v26_x26`) |
 | An array argument in parentheses, `fill (x())`, compiles and fails QB64pe's C++ build; a compile error here | Pass the array, as without the parentheses | Task 1.3 (`verification\v24_x145`) |
 | Screen statements that are wrong for their screen and raise nothing: `VIEW (1, 1)-(5, 5)` in `SCREEN 0`, `PCOPY 0, 9` with eight pages, `WIDTH 81` (an 81-column text screen), `PALETTE 16, 0` and `CLS 3` in `SCREEN 0`, `SCREEN 0, , 9` (a ninth page is made); the others of `d14_errors` raise error 5 | Error 5, as for `PSET` in `SCREEN 0` or `LOCATE 26, 1`. Each is libqb's, so a change is a change to the runtime | `m3-window-output` task 1.4 (`tests\corpus\screen\d14_errors` and the programs tried while it was written) |
@@ -404,7 +338,6 @@ Each row is also a candidate fix behind the fixes switch (`DECISIONS.md` 2026-10
 | `ON KEY(k)`'s key is a `DOUBLE` that C++ cuts toward zero into libqb's `int32`: `ON KEY(0.7)` is error 5 and `ON KEY(31.6)` key 31, while `KEY(31.6) ON` rounds to 32 (error 5) and every other integer argument rounds (the user kept QB64pe's way, `DECISIONS.md` 2026-10-17) | Round as the switch does | `m3-events` (`verification\v42_d` 12.–14., 17.) |
 | A SUB handler's argument is converted to `_INTEGER64` when the handler is set up, and the SUB gets a pointer to that value cast to its parameter's type: `_BYTE` given 300 sees 44, `_UNSIGNED INTEGER` given -5 sees 65531, with no overflow error; what the SUB stores into its parameter is lost (the user kept QB64pe's way, `DECISIONS.md` 2026-10-17) | Convert the argument to the parameter's type, with its overflow error, at the setup | `m3-events` (`verification\v42_c`) |
 | A timer event that comes while an error handler runs is not serviced after `RESUME` either: it waits through plain statements (also a SUB's loop) until the next `TIMER ON` or the next `_DELAY`, where several come at once. libqb's: `evnt` clears `qbevent`, `events()` skips during error handling, and the timer thread sets `qbevent` only when it marks a new event (the user kept QB64pe's way for now, `DECISIONS.md` 2026-10-17: fix it when libqb is copied for another reason) | Service the held event at the first statement boundary after the handler ends. libqb's, so a change is a change to the runtime | `m3-events` (`verification\v42_e` 4.–6., `v42_f`) |
-| A SUB with a `TYPE` parameter passes the old compiler's checks as an event handler, and its C++ then fails to build; this compiler rejects it with a compile error (accepted as built by the user, `DECISIONS.md` 2026-10-17) | The error of a parameter that is not an integer | `m3-events` (`verification\v42_x42`) |
 | `_ERRORLINE` for an error in an included file is the main file's line of the outermost `$INCLUDE`, the same for every statement of that file and of the files it includes; only `_INCLERRORLINE` tells them apart | None needed if kept: the pair names the place. A change would be to libqb's meaning of `_ERRORLINE` | `m3-errorline-chr-const` (`verification\v43_b_include`) |
 | A line joined to the next by a continuation (`_`) is numbered as the join's last line for every statement on it: `ERROR 5: x = 1 + _` reports the line below it, in `_ERRORLINE` and in the message of an untrapped error | The line each statement starts on | `m3-errorline-chr-const` (`verification\v43_d_continued`, `v43_e_continued_untrapped`) |
 | `CHR$` in a `CONST` rounds its code half to even through `_UNSIGNED _INTEGER64`, so `CHR$(-0.5)` is `CHR$(0)` while `CHR$(-0.6)` is an error | Range-check the code before rounding | `m3-errorline-chr-const` (`verification\v43_x11`, `x12`) |
@@ -490,8 +423,13 @@ Each row is also a candidate fix behind the fixes switch (`DECISIONS.md` 2026-10
 | A C++ build error that names a C function declared twice in `DECLARE LIBRARY` (two BASIC names, one through `ALIAS`) stands at the first declaration's uses: a call of the second on that line is not found, so the error covers the whole line and names the first BASIC name. Match every procedure of that C name against the uses on the line. No program of the suites declares a C name twice | Review of `cpp-failure-errors` (`crates\driver\src\cpp_errors.rs`, `library_proc`), 2026-10-20 |
 | Clearer wording for an OpenGL routine written with a type suffix: "`_glGetError%`: an OpenGL routine is named without a type suffix" (and "is called", for one with arguments) can read as saying what the program did. The four messages of the form (alone, with arguments, as a statement, after `CALL`) must stay worded apart, one per old message, for the notes after them (`verification\v59_x25`–`x27`, `x48`, `x49`, `x55`–`x57`); a change of wording regenerates `old_wording.tsv` and the `opengl_errors` snapshot. Left for the next change that touches these messages | Review of the fixes to `m4-sub-gl`, 2026-10-24 |
 | `check_with` checks a program again for each procedure's `REDIM` of a shared array whose bound names an array used without `DIM` that an earlier one masked (design D5 of `m2-defxxx-common-arrays`): k such procedures cost up to k+1 whole checks, at every compile and language-server request. Collect every candidate in one check, so that two are enough. Not measured to matter; it changes how the second check works, so it waits for a program where it shows | Review of `m4-left-marked`, 2026-10-24 |
+| **The `printer` rows of `tests\never_run.list` in the sandbox** (`LPRINT`, `_PRINTIMAGE`): Windows Sandbox with "Microsoft Print to PDF" as its default printer and printer redirection off, the PDF written to the run's folder and its text or page count compared. Not measured: whether the sandbox has the PDF printer, and whether it prints without a dialog asking for the file name | OpenSpec change `desktop-sandbox`, proposal ("out of it") |
+| **The `keyboard` reason in the sandbox**: a built-in of the machine's keyboard state or its bell run in `tests\sandbox\`. `tests\never_run.list` has no `keyboard` row today (the reason stays in its set) | `desktop-sandbox`, proposal |
+| **The `person` rows of `tests\never_run.list` in the sandbox** (`_MESSAGEBOX`, `_INPUTBOX$`, the file, folder and color dialogs): each dialog answered from inside the sandbox by UI Automation (a PowerShell script finding the dialog's window and pressing its button or typing its answer), and the value returned compared with QB64pe's | `desktop-sandbox`, proposal |
+| **Move the clipboard programs of the known clipboard race into the sandbox** (`verification\v49_d_clipboard`, `tests\corpus\slice\s150_builtins_more`, `STATUS.md` "Known bugs"): in the sandbox no clipboard history or other program holds the clipboard open, so `LEN(_CLIPBOARD$)` of `"a" + CHR$(0) + "b"` would read 1 every run. Each would leave its suite for `tests\sandbox\` (a `.norun` or a `known.list` row on the host) | `desktop-sandbox`, proposal |
 | The CI `tier2` job runs `tests\verification\pass.list` too. Left out of `verification-compare`: the job is at its 45-minute limit already, and the list adds about a thousand C++ builds; to be decided at a merge into `main` | `verification-compare`, design "Open Questions" (`DECISIONS.md` 2026-10-19) |
 | A string and array group of differential programs, generated by `crates\difftest` like the numeric one: concatenation, comparison, `MID$`, `LEFT$`, element and bound errors across every element type. Nothing but the numeric group is differential, so a regression in a string or array behaviour that no corpus or upstream program uses goes unseen. Open in M4's list until M4 was declared done (`DECISIONS.md` 2026-10-24) | Ninth review, `study\archive\30` §9 |
+| **The pass cache and a libqb edit of a built-in the lists run.** The cache's key is the executable, and every program links libqb, so a libqb edit of one function (`_MEMNEW`, say) empties the cache for all 4,000 programs though the coverage counts know which of them run that built-in. With the edit naming its built-ins (`builtins:`, `tools\libqb\copy_libqb.py`), the runner could skip a program whose last counts ran none of them. Not for a built-in on `tests\never_run.list`: `close.py` already sends such an edit to its family alone | The close of `desktop-sandbox`, 2026-10-30 (`tools\close\README.md`, "What a changed file reaches") |
 | Check on a machine with no QB64pe that the released `.vsix` installs, fetches its toolchain (`m6-toolchain`) and the compiler's zip (`m6-compiler-download`), and builds, runs and debugs a program. M6's last item, postponed; the first release with the compiler's zip is the `vscode-v0.3.0` tag, not yet made | User, `DECISIONS.md` 2026-10-28 |
 | The version of a plain `lldb-dap` on Linux. The debug adapter knows an `lldb-dap`'s version only from a versioned name (`lldb-dap-19`), and refuses one older than 20; a plain `lldb-dap` is started whatever it is, so Ubuntu 24.04's default (18, no data breakpoints) starts with no word. Asking it (`lldb-dap --version`, not checked on 18) at each start would name it; a versioned `lldb-dap-20` already comes first, and the install line names `lldb-20` | Review of `m7-linux`'s staged files, 2026-10-29 (the pragmatic engineer) |
 | A pinned or downloaded C++ compiler on Linux (an LLVM release fetched by `qb64rust toolchain install`, as on Windows). Linux uses the system's `g++`; the development packages are needed whatever compiler is used | User, `DECISIONS.md` 2026-10-28 (`m7-linux` design D1) |

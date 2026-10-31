@@ -103,6 +103,10 @@ The OpenGL routines are no rows of the built-in tables, and no record names them
 | `keyboard` | the machine's keyboard state, or its bell |
 | `person` | a dialog waits for a person's answer |
 | `compiler` | another compiler is started (`CHAIN`) |
+| `sandbox` | run only in the sandbox family, `tests\sandbox\`, in Windows Sandbox (`tools\sandbox\README.md`; OpenSpec change `desktop-sandbox`, design D6) |
+
+A `sandbox` row is, for the suites run on the host, like any other: the check fails if one runs there. The sandbox
+family's runner holds the other side: it fails when a `sandbox` row ran in none of its programs.
 
 It fails on a built-in not run and not listed; on a listed one that ran (so the list only shrinks); on a listed one
 that no record names (the counts are of a part of the suites, or no program holds it any more); on a line of

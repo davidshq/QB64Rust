@@ -4114,3 +4114,5 @@ v64_b2_redim_zero_base1_zero_member
 v64_b3_redim_zero_base1_one_member
 v64_b4_redim_zero_base1_dynamic
 v64_b5_base1_zero_plain
+v65_a1_redim_dynamic_member_list
+v65_a2_redim_dynamic_member_order

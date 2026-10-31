@@ -652,12 +652,10 @@ impl Checker<'_> {
         by: Declarer,
         stmt: Node,
     ) -> R<()> {
-        let items: Vec<ast::DimItem<'t>> = items.collect();
-        let alone = items.len() == 1;
         for item in items {
             // `REDIM t.v(0 TO 3)`, `REDIM a(1).m(0 TO 5)`: a member array.
             if let Declarer::Redim { mode } = by
-                && self.redim_member(item, mode, (list_ty.is_some(), alone), stmt)?
+                && self.redim_member(item, mode, list_ty.is_some(), stmt)?
             {
                 continue;
             }
@@ -949,15 +947,16 @@ impl Checker<'_> {
     }
 
     /// The targets of one `ERASE` or `REDIM`, the statements made since `before`, as parts of one statement when
-    /// a member array of one is found through an index, which may raise: each target is cleared in turn, and an
-    /// error is handled after the last, as the old compiler goes on with the other targets first (design D9 of
-    /// `m4-memory-records`; measured, `verification\v24_x312`).
+    /// a member array of one is found through an index, which may raise: each target is cleared or given its new
+    /// bounds in turn, and an error is handled after the last, as the old compiler goes on with the other targets
+    /// first (design D9 of `m4-memory-records`; measured, `verification\v24_x312`, `v64_a1`, `v65_a1`).
     fn join_targets(&mut self, before: usize) {
         let sink = self.sink();
         let made = &mut sink[before..];
-        let raises = made.iter().any(
-            |s| matches!(&s.kind, StmtKind::Clear { array, .. } | StmtKind::Release { array, .. } if array.may_raise()),
-        );
+        let raises = made.iter().any(|s| {
+            matches!(&s.kind, StmtKind::Clear { array, .. } | StmtKind::Release { array, .. }
+                | StmtKind::Allocate { array, .. } if array.may_raise())
+        });
         let Some((_, first)) = made.split_last_mut() else {
             return;
         };

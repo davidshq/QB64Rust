@@ -1,0 +1,2 @@
+graphics, after _MOUSEMOVE 50, 60: 50  60 
+text, after _MOUSEMOVE 10, 5: 10  5 

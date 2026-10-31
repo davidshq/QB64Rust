@@ -1,0 +1,3 @@
+ERR after _CONSOLEFONT: 0 
+ERR after the size alone: 0 
+went on

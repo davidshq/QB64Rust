@@ -19,6 +19,7 @@ applied to the commit's file it names after copying, in the order of their names
 edited files. An edit file is comment lines starting with `#`, then
 
     file: <path under libqb/>
+    builtins: <the built-ins it changes, space-separated; optional, read by tools/close/close.py>
     --- old
     <lines that occur exactly once in the file>
     --- new
@@ -66,6 +67,9 @@ def load_edits(edits_dir):
                 continue
             if part is None and line.startswith(b"file: "):
                 target = line[len(b"file: ") :].decode("utf-8").strip()
+            elif part is None and line.startswith(b"builtins: "):
+                # The built-ins the edit changes, read by tools/close/close.py to find the runs it can reach.
+                continue
             elif line == b"--- old":
                 part = old
             elif line == b"--- new":

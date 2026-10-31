@@ -30,7 +30,13 @@ else
     sort -zu "$now" >"$both"
 fi
 
-rsync -a --checksum --from0 --files-from="$both" --delete-missing-args "$src/" "$dest/"
+# Exit 24, "some files vanished": the folders of a name of the last list that is gone (a change folder archived)
+# are named as vanished though their files were deleted as asked. Not a failure; any other code is.
+rc=0
+rsync -a --checksum --from0 --files-from="$both" --delete-missing-args "$src/" "$dest/" || rc=$?
+if [[ $rc -ne 0 && $rc -ne 24 ]]; then
+    exit "$rc"
+fi
 cp "$now" "$dest/.sync-files"
 
 count="$(tr -cd '\0' <"$now" | wc -c)"

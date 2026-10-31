@@ -5,19 +5,21 @@
 #   keyboard  the machine's keyboard state, or its bell
 #   person    a dialog waits for a person's answer
 #   compiler  another compiler is started
+#   sandbox   run only in the sandbox family, tests\sandbox (the desktop, the clipboard or the console; OpenSpec
+#             change desktop-sandbox, design D6): tools\sandbox\run.py fails when one did not run there
 # Each must be a built-in sema compiles, held in a slice program as code that is not reached, and have a
 # call-site program in tests\callsite (tier 1, crates\driver\tests\inputs.rs). The check of
 # tools\coverage\builtin_runs.py fails when one of them runs, or when a built-in no run reaches is not here.
 # The list is by name: a name of which one form runs (the function _SCREENICON, the statement not) is not here.
 LPRINT	printer (design D8 of m3-console-files; DECISIONS.md 2026-10-13)
 _PRINTIMAGE	printer
-_CLIPBOARDIMAGE	desktop reads and writes the clipboard
-_CONSOLEFONT	desktop changes the font of the console the program shares (design D3 of m4-builtins-remaining)
-_MOUSEMOVE	desktop moves the machine's cursor (design D3 of m3-images-fonts-mouse)
-_NOTIFYPOPUP	desktop shows a notification on the desktop
-_SCREENCLICK	desktop clicks on the desktop
-_SCREENPRINT	desktop types on the desktop
-_SCREENMOVE	desktop moves the window on the desktop (design D2 of m4-qb64pe-builtins)
+_CLIPBOARDIMAGE	sandbox reads and writes the clipboard
+_CONSOLEFONT	sandbox changes the font of the console the program shares (design D3 of m4-builtins-remaining)
+_MOUSEMOVE	sandbox moves the machine's cursor (design D3 of m3-images-fonts-mouse)
+_NOTIFYPOPUP	sandbox shows a notification on the desktop
+_SCREENCLICK	sandbox clicks on the desktop
+_SCREENPRINT	sandbox types on the desktop
+_SCREENMOVE	sandbox moves the window on the desktop (design D2 of m4-qb64pe-builtins)
 _COLORCHOOSERDIALOG	person
 _INPUTBOX$	person
 _MESSAGEBOX	person
