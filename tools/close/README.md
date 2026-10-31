@@ -16,7 +16,8 @@ python tools/close/close.py --check --merge         # its logs, target/close/mer
 
 **Not before the change is done** (2026-10-31, `study\41`): `--plan` and `--check` (not `--merge`) print "not at the
 close" and exit 1 while a change worked on today has unchecked tasks (`tools\hooks\common.py`, the closing task
-itself left out), and the hook `tools\hooks\guard_tool.py` refuses the list runs for the same reason. The plan's
+itself left out), and the hook `tools\hooks\guard_tool.py` refuses the list runs for the same reason. When
+`tools\hooks\common.py` cannot be imported, the close goes on and prints a warning that the tasks were not checked. The plan's
 first command is `python tools/clean/clean.py` (`tools\clean\`), which keeps `target\` a build folder.
 
 **The plan** (`--plan`) prints, for the working tree as it stands, Bash commands (Git Bash or the Bash tool, not
@@ -63,6 +64,20 @@ file, `crates\` above all, reaches every step. The entries are conservative: tie
 `tests\` (`crates\driver\tests\inputs.rs`), and `tests\upstream\root` is every program's include root. A changed
 file makes stale only the steps it reaches; the plan leaves the others out.
 
+**A step another needs comes with it** (`PULLED_BY`, 2026-10-31): the build with the lists step (written before
+the build, so a snapshot that reaches the lists step runs a build after it, which compiles nothing), and the Linux
+sync with Linux's tier 1 and slice list (which run on WSL's copy: a libqb edit had run the slice list there on the
+copy from before it). The plan names such a step `# for <step>`. A step an option asks for (`--sandbox`,
+`--linux`, `--format`, `--coverage`, `--nofold`) is reached by every changed file, in the plan and in `--check`
+alike: a log from before the change does not stand for it.
+
+**Each step records the commit it ran at** (2026-10-31): its command starts with `git rev-parse HEAD >
+target/close/<step>.head`. The changed files are judged against `HEAD` alone, so a log of another commit (another
+branch, a commit made since without a close) would otherwise stand for a step no changed file reaches. A step whose
+record is missing or of another commit is printed by the plan (`# no changed file reaches it, but its last log is
+not of HEAD`) and is `STALE` in `--check`. After a commit, the next close runs every step once again; the pass
+cache keeps the program lists short.
+
 **The check** (`--check`) reads each step's log and names it:
 
 - `MISSING`: no log;
@@ -70,8 +85,10 @@ file makes stale only the steps it reaches; the plan leaves the others out.
   `crates\`, `tests\`, `libqb\`, its edits or the test tools, changed against `HEAD`, staged or not; documents and
   the test-time record do not count; "What a changed file reaches" above says which steps a file reaches, and a
   step no changed file reaches keeps its last passing log whatever its age, also a run of a copy of an earlier
-  build); for the
-  build, also when the executable itself is older than a changed input (a build that stopped, another profile);
+  build); a log whose `<step>.head` is missing or names a commit other than `HEAD` ("Each step records the
+  commit it ran at" above); for the
+  build, also when the executable itself is older than a changed input that reaches the build (a build that
+  stopped, another profile);
   for the wording table and the shrink-only lists, when the log is newer than the build or older than a changed
   input other than the files those two write (a log left by an earlier change), unless the build's log, newer
   than it, shows a build that compiled nothing (cargo then leaves the executable older); for a run that compiles with a
@@ -88,7 +105,8 @@ file makes stale only the steps it reaches; the plan leaves the others out.
   binary that stopped without a result (a crash), a runner result with a `FAIL`, a run of a pass list (`--list`)
   with a known failure on it (the runner counts a program of `known_failures.txt` as `KFAIL`, which does not fail
   its run; a pass list holds programs that pass, D-052, as `--check-list` says too), a
-  call-site program that differs or was not compared, a clippy warning, a fmt difference, a note that is not the
+  call-site program that differs or was not compared, a clippy warning, a build or clippy run with no `Finished`
+  line (one stopped before its end shows no error either), a fmt difference, a note that is not the
   recorded message, a run refused for the clone's lock); a run stopped before its result (no result line at all)
   is `FAIL` too, and is accepted with `--not-repeated STEP=REASON` as a stale run is, shown as `stopped, not
   repeated`; a log that shows a failure never is;

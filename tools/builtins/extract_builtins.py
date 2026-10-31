@@ -9,11 +9,14 @@ The script also lists which built-in names qb64pe.bas special-cases by name (`id
 because those built-ins need hand-written handling in a new compiler.
 
 Usage: python extract_builtins.py            (writes builtins.json next to this script, prints a summary)
+       python extract_builtins.py --check    (writes nothing; exit 1 when an output would change)
 """
 
+import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from collections import Counter
 
@@ -358,18 +361,53 @@ LIBQB = os.path.normpath(os.path.join(HERE, "..", "..", "..", "QB64pe", "interna
 PALETTES_COPY = os.path.join(CRATE_SRC, "palettes.rs")
 
 
+REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
+
+# With `--check`, nothing is written: each output that would change is listed here.
+CHECK = False
+STALE = []
+
+
+def rustfmt(text):
+    """`text` as `cargo fmt` leaves it (the workspace's edition and `rustfmt.toml`), so that the generated file
+    and the committed one compare equal."""
+    done = subprocess.run(
+        ["rustfmt", "--edition", "2024", "--config-path", os.path.join(REPO, "rustfmt.toml"), "--emit", "stdout"],
+        input=text.encode("utf-8"),
+        capture_output=True,
+        check=False,
+        cwd=REPO,  # so rustup takes the toolchain of rust-toolchain.toml, as `cargo fmt` does
+    )
+    if done.returncode != 0:
+        raise SystemExit("rustfmt failed:\n" + done.stderr.decode("utf-8", "replace"))
+    return done.stdout
+
+
 def write_if_changed(path, data):
-    """Writes `data` (bytes) to `path` only when it differs."""
+    """Writes `data` (bytes) to `path` only when it differs; with `--check`, records it as stale instead."""
     try:
         with open(path, "rb") as f:
             if f.read() == data:
-                print(os.path.basename(path) + ": copy unchanged")
+                print(os.path.basename(path) + ": unchanged")
                 return
     except FileNotFoundError:
         pass
+    if CHECK:
+        STALE.append(os.path.relpath(path, REPO).replace(os.sep, "/"))
+        print(os.path.basename(path) + ": differs")
+        return
     with open(path, "wb") as f:
         f.write(data)
     print("wrote", path)
+
+
+def finish_check():
+    """With `--check`: 1 when an output would change, else 0."""
+    if not STALE:
+        print("all outputs as written")
+        return 0
+    print("stale (rerun without --check):", ", ".join(STALE))
+    return 1
 
 
 def copy_after_last_line():
@@ -418,10 +456,14 @@ def write_palettes():
             out.append("    " + ", ".join("0x%06X" % c for c in colours[i : i + 8]) + ",")
         out.append("];")
         out.append("")
-    write_if_changed(PALETTES_COPY, ("\n".join(out)).encode("utf-8"))
+    write_if_changed(PALETTES_COPY, rustfmt("\n".join(out)))
 
 
 def main():
+    global CHECK
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--check", action="store_true", help="write nothing; exit 1 when an output would change")
+    CHECK = parser.parse_args().check
     records, anomalies = parse_table()
     entries = [build(r) for r in records]
     names = sorted({e["name"] for e in entries}, key=str.upper)
@@ -438,12 +480,12 @@ def main():
         "auto_include": auto_include_names(),
     }
     out_path = os.path.join(HERE, "builtins.json")
-    with open(out_path, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(result, f, indent=1, ensure_ascii=False)
-        f.write("\n")
+    write_if_changed(out_path, (json.dumps(result, indent=1, ensure_ascii=False) + "\n").encode("utf-8"))
     copy_after_last_line()
     copy_color_files()
     write_palettes()
+    if CHECK:
+        return finish_check()
 
     print(
         "entries:",
@@ -478,7 +520,6 @@ def main():
     print(
         "auto-include names:", dict(Counter((r["file"], r["kind"]) for r in result["auto_include"]))
     )
-    print("wrote", out_path)
 
 
 if __name__ == "__main__":

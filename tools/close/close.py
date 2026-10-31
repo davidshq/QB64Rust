@@ -12,7 +12,9 @@ step older than a later edit that cannot affect it, or one stopped before its re
 --not-repeated STEP[,STEP...]=REASON, shown (rule 6: "say which runs were not repeated and why"); a failing one
 never is. A changed file makes stale only the steps it can reach (REACH: a program of tests/sandbox reaches the
 sandbox family alone, a libqb edit naming built-ins of tests/never_run.list their families alone); a step no changed
-file reaches keeps its last passing log, and the plan prints it as a comment. A run with the pass cache that ran
+file reaches keeps its last passing log, as long as that log is of HEAD's commit (each step records it, in
+target/close/<step>.head), and the plan prints it as a comment. A step another needs before it (PULLED_BY) comes
+with it. A run with the pass cache that ran
 most of a long list is named too (something emptied the cache: README.md, "What empties the pass cache"); when
 that is right (a cold cache, a change to most programs' C++) it is accepted with --cache-miss STEP[,STEP...]=REASON.
 
@@ -49,7 +51,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools" / "legacy_tests"))
-from compiler_copy import read_header, sha256_of  # noqa: E402  # pylint: disable=wrong-import-position,import-error
+from compiler_copy import read_header, sha256_of  # pylint: disable=wrong-import-position,import-error
 
 LOGS = "target/close"
 EXE = "target/release/qb64rust.exe"
@@ -64,7 +66,7 @@ NOFOLD_FILES = re.compile(
 # Changed files that make a run stale: what the compiler, the tests and the programs are built from. Documents and
 # the test-time record do not.
 INPUTS = re.compile(
-    r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins|screen|coverage|format|sandbox)/|"
+    r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins|screen|coverage|format|sandbox|linux)/|"
     r"libqb/|tools/libqb/edits/|Cargo\.(toml|lock)$|rust-toolchain\.toml$)"
 )
 # Which steps a changed input reaches (2026-10-30, after a close ran every list for an edit of tests/sandbox and a
@@ -112,7 +114,11 @@ PROGRAM_STEPS = frozenset(
         "linux-slice",
     }
 )
-EDIT_BUILTINS = re.compile(r"^builtins:[ \t]*(.+?)[ \t]*$", re.M)
+# A step that others need before them runs whenever one of them does, reached by what reaches them (2026-10-31: a
+# libqb edit ran linux-slice on WSL's copy from before the edit, with no sync; a snapshot ran the lists step with no
+# build after it, which --check then named stale).
+PULLED_BY = {"build": ("lists",), "linux-sync": ("linux-tier1", "linux-slice")}
+EDIT_BUILTINS = re.compile(r"^builtins:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
 NEVER_RUN = "tests/never_run.list"
 FAMILY_STEP = {"sandbox": "sandbox"}
 # insta's pending snapshots (`.pending-snap`, `.snap.new`) are written by the test runs themselves.
@@ -152,7 +158,7 @@ WSL = "wsl -e bash -lc"
 CACHE_LIST = 50
 CACHE_SKIPPED = 0.5
 # A runner's line of a program with no executable, which the pass cache never skips: `[3/9] PASS name (error, 0.1s)`.
-UNCACHED = re.compile(r"^\[\d+/\d+\] [A-Z]+ .*\((?:error|compile-only), [\d.]+s\)", re.M)
+UNCACHED = re.compile(r"^\[\d+/\d+\] [A-Z]+ .*\((?:error|compile-only), [\d.]+s\)", re.MULTILINE)
 
 
 @dataclass
@@ -180,6 +186,11 @@ class Step:
 
 def log(name: str, merge: bool = False) -> str:
     return f"{LOGS}/{'merge-' if merge else ''}{name}.log"
+
+
+def head_record(name: str) -> str:
+    """The file a close's step writes HEAD's commit to as it starts: the commit its log is of."""
+    return f"{LOGS}/{name}.head"
 
 
 def linux_steps() -> list[Step]:
@@ -340,6 +351,10 @@ def steps(
                 copy=True,
             )
         )
+    # Each records the commit it ran at: a log of another commit (another branch, a commit made since) is stale, also
+    # for a step no changed file reaches (2026-10-31). The changed files are judged against HEAD alone.
+    for s in out:
+        s.command = f"git rev-parse HEAD > {head_record(s.name)} && {s.command}"
     return out
 
 
@@ -556,6 +571,76 @@ def reaching(files: list[str], step: str, libqb: frozenset[str] | None) -> list[
     return out
 
 
+@dataclass
+class Selection:
+    """A close's steps for the working tree as it stands, and what reaches each one."""
+
+    files: list[str]
+    todo: list[Step]
+    libqb: frozenset[str] | None
+    # The steps an option asks for "whatever changed".
+    asked: set[str]
+
+    def files_of(self, step: str) -> list[str]:
+        """The changed files that reach `step`: by REACH, through a step it is pulled by (PULLED_BY), or all of them
+        when an option asks for it."""
+        if step in self.asked:
+            return self.files
+        out = reaching(self.files, step, self.libqb)
+        names = {s.name for s in self.todo}
+        for other in PULLED_BY.get(step, ()):
+            if other in names:
+                out += [f for f in self.files_of(other) if f not in out]
+        return out
+
+    def reached(self, step: str) -> bool:
+        return step in self.asked or any(is_input(f) for f in self.files_of(step))
+
+
+def select(
+    nofold: bool,
+    coverage: bool = False,
+    layout: bool = False,
+    linux: bool = False,
+    sandbox: bool = False,
+) -> Selection:
+    files = changed_files()
+    todo = steps(
+        nofold or needs_nofold(files),
+        coverage or needs_coverage(files),
+        layout or needs_format(files),
+        linux or needs_linux(files),
+        sandbox or needs_sandbox(files),
+    )
+    asked: set[str] = set()
+    for flag, names in (
+        (nofold, {"nofold"}),
+        (coverage, {"coverage"}),
+        (layout, {"format", "format-corpus"}),
+        (linux, {s.name for s in linux_steps()}),
+        (sandbox, {"sandbox"}),
+    ):
+        if flag:
+            asked |= names
+    return Selection(files, todo, libqb_reach(files), asked)
+
+
+def head() -> str:
+    out = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True, check=True
+    )
+    return out.stdout.strip()
+
+
+def other_commit(name: str, current: str) -> str | None:
+    """Why a close's step's last run is not of the commit `current` (HEAD), or None when it is."""
+    path = REPO / head_record(name)
+    if not path.is_file():
+        return f"no record of the commit it ran at ({head_record(name)})"
+    at = path.read_text(encoding="utf-8", errors="replace").strip()
+    return None if at == current else f"run at commit {at[:12]}, not HEAD's {current[:12]}"
+
+
 def needs_nofold(files: list[str]) -> bool:
     return any(NOFOLD_FILES.match(f) for f in files)
 
@@ -582,37 +667,43 @@ def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
     if kind is None:
         return True, "ran"
     if kind == "exit":
-        codes = re.findall(r"^exit: (\d+)$", text, re.M)
+        codes = re.findall(r"^exit: (\d+)$", text, re.MULTILINE)
         if not codes:
             return False, "no exit line"
         return (codes[-1] == "0", f"exit {codes[-1]}")
     if kind == "counts":
-        m = re.search(r"^(\d+) blocks, (\d+) rewritten$", text, re.M)
+        m = re.search(r"^(\d+) blocks, (\d+) rewritten$", text, re.MULTILINE)
         if not m:
             return False, "no summary line"
-        left = re.findall(r"^(\S+): left as it is: ", text, re.M)
+        left = re.findall(r"^(\S+): left as it is: ", text, re.MULTILINE)
         if left:
             return False, f"{m.group(0)}; left as it is: {', '.join(left)}"
         return True, m.group(0)
     if kind == "empty":
         return (text.strip() == "", "clean" if text.strip() == "" else "differences")
+    # A cargo run stopped before its end (killed, interrupted) has no `Finished` line, and may show no error.
+    finished = re.search(r"^\s*Finished\b", text, re.MULTILINE) is not None
     if kind == "build":
-        bad = re.search(r"^error", text, re.M)
-        return (not bad, "built" if not bad else "build failed")
+        bad = re.search(r"^error", text, re.MULTILINE)
+        if bad:
+            return False, "build failed"
+        return (finished, "built" if finished else "no Finished line: the build stopped")
     if kind == "clippy":
-        n = len(re.findall(r"^(warning|error)", text, re.M))
+        n = len(re.findall(r"^(warning|error)", text, re.MULTILINE))
+        if n == 0 and not finished:
+            return False, "no Finished line: clippy stopped"
         return (n == 0, f"{n} warnings or errors")
     if kind == "cargo":
-        results = re.findall(r"^test result: \w+\. (\d+) passed; (\d+) failed", text, re.M)
+        results = re.findall(r"^test result: \w+\. (\d+) passed; (\d+) failed", text, re.MULTILINE)
         # A doctest's name holds spaces (`src\lib.rs - f (line 3)`).
-        failed = set(re.findall(r"^test (.+?) \.\.\. FAILED$", text, re.M))
-        if re.search(r"^error(\[E\d+\]|: could not compile)", text, re.M):
+        failed = set(re.findall(r"^test (.+?) \.\.\. FAILED$", text, re.MULTILINE))
+        if re.search(r"^error(\[E\d+\]|: could not compile)", text, re.MULTILINE):
             return False, "a test target failed to build"
         if not results:
             return False, "no test result"
         # Each test binary and each crate's doctests print a header and, unless the process stopped (a crash, an
         # abort), a result.
-        headers = len(re.findall(r"^\s+(Running|Doc-tests) ", text, re.M))
+        headers = len(re.findall(r"^\s+(Running|Doc-tests) ", text, re.MULTILINE))
         if headers > len(results):
             return False, f"{headers - len(results)} test binaries stopped without a result"
         passed = sum(int(p) for p, _ in results)
@@ -639,7 +730,7 @@ def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
         summary = f"{counts.get('PASS', 0)} pass, {counts.get('FAIL', 0)} fail, {counts.get('KFAIL', 0)} known"
         # A pass list holds programs that pass: a known failure on it fails the run (D-052).
         if kind == "list" and counts.get("KFAIL", 0):
-            names = re.findall(r"^\[\d+/\d+\] KFAIL (\S+)", text, re.M)
+            names = re.findall(r"^\[\d+/\d+\] KFAIL (\S+)", text, re.MULTILINE)
             return (
                 False,
                 summary
@@ -647,33 +738,33 @@ def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
             )
         return ok, summary
     if kind == "checklist":
-        m = re.search(r"^(\S+): (\d+) of (\d+) passed", text, re.M)
+        m = re.search(r"^(\S+): (\d+) of (\d+) passed", text, re.MULTILINE)
         if not m:
             return False, "no check line"
         return (m.group(2) == m.group(3), m.group(0))
     if kind == "wording":
         m = re.search(
-            r"^(\d+) notes on recorded rejections, (\d+) not the recorded message", text, re.M
+            r"^(\d+) notes on recorded rejections, (\d+) not the recorded message", text, re.MULTILINE
         )
         if not m:
             return False, "no check line"
         return (m.group(2) == "0", m.group(0))
     if kind == "callsite":
-        m = re.search(r"^(\d+) programs: (\d+) equal, (\d+) differ, (\d+) not compared", text, re.M)
+        m = re.search(r"^(\d+) programs: (\d+) equal, (\d+) differ, (\d+) not compared", text, re.MULTILINE)
         if not m:
             return False, "no summary"
         return (m.group(3) == "0" and m.group(4) == "0", m.group(0))
     if kind == "coverage":
-        m = re.search(r"^check: (PASS|FAIL) \((\d+) problem", text, re.M)
+        m = re.search(r"^check: (PASS|FAIL) \((\d+) problem", text, re.MULTILINE)
         if not m:
             return False, "no check line"
         return (m.group(1) == "PASS", f"check {m.group(1)}, {m.group(2)} problems")
     if kind == "sandbox":
-        refused = re.search(r"^sandbox: refused: (.*)$", text, re.M)
+        refused = re.search(r"^sandbox: refused: (.*)$", text, re.MULTILINE)
         if refused:
             return False, f"refused: {refused.group(1)}"
-        m = re.search(r"^sandbox: (\d+) pass, (\d+) fail$", text, re.M)
-        cov = re.search(r"^coverage: (PASS|FAIL)", text, re.M)
+        m = re.search(r"^sandbox: (\d+) pass, (\d+) fail$", text, re.MULTILINE)
+        cov = re.search(r"^coverage: (PASS|FAIL)", text, re.MULTILINE)
         if not m:
             return False, "no result line"
         if not cov:
@@ -685,7 +776,7 @@ def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
 
 def cache_skips(text: str) -> tuple[int, int] | None:
     """The runner's last line of a run with the pass cache: how many programs were not run, of how many."""
-    found = re.findall(r"^--pass-cache: (\d+) of (\d+) programs not run", text, re.M)
+    found = re.findall(r"^--pass-cache: (\d+) of (\d+) programs not run", text, re.MULTILINE)
     return (int(found[-1][0]), int(found[-1][1])) if found else None
 
 
@@ -730,8 +821,8 @@ def built_after(t: float, merge: bool = False) -> bool:
         return False
     text = path.read_text(encoding="utf-8", errors="replace")
     return (
-        re.search(r"^\s*Finished ", text, re.M) is not None
-        and re.search(r"^\s*Compiling ", text, re.M) is None
+        re.search(r"^\s*Finished ", text, re.MULTILINE) is not None
+        and re.search(r"^\s*Compiling ", text, re.MULTILINE) is None
     )
 
 
@@ -787,20 +878,17 @@ def check(
 ) -> int:
     not_repeated = not_repeated or {}
     cache_miss = cache_miss or {}
-    files = changed_files()
-    need = nofold or needs_nofold(files)
-    cov = coverage or needs_coverage(files)
-    lay = layout or needs_format(files)
-    lin = linux or needs_linux(files)
-    sbx = sandbox or needs_sandbox(files)
-    libqb = libqb_reach(files)
+    chosen = select(nofold, coverage, layout, linux, sandbox)
+    files = chosen.files
     exe = REPO / EXE
     problems = 0
     # Each reason given with --not-repeated, numbered, and the steps it was used for.
     reasons: dict[str, tuple[int, list[str]]] = {}
-    todo = merge_steps() if merge else steps(need, cov, lay, lin, sbx)
-    # A merge's runs are of the merge: after HEAD's commit, whatever changed since (often nothing).
+    todo = merge_steps() if merge else chosen.todo
+    # A merge's runs are of the merge: after HEAD's commit, whatever changed since (often nothing). A close's are of
+    # HEAD's commit by the record each step writes (`head_record`).
     floor = head_time() if merge else 0.0
+    commit = "" if merge else head()
     # What the steps before the build write (`lists`: the shrink-only lists; at a merge the wording table too).
     written = "|".join(f"(?:{s.writes})" for s in todo if s.writes)
     for s in todo:
@@ -811,8 +899,8 @@ def check(
             continue
         # Only the changed inputs that can reach this step make it stale (REACH); a step none reaches keeps its
         # last log, whatever its age, as long as it passed. At a merge every input reaches every step.
-        mine = files if merge else reaching(files, s.name, libqb)
-        reached = merge or any(is_input(f) for f in mine)
+        mine = files if merge else chosen.files_of(s.name)
+        reached = merge or chosen.reached(s.name)
         after, why = stamp(mine)
         t = path.stat().st_mtime
         summary_at = f" [{when(t)}]"
@@ -836,7 +924,7 @@ def check(
             elif started < floor:
                 stale, reason = True, f"started before HEAD's commit ({when(floor)})"
             else:
-                stale, reason = reached and started < source, f"started before {source_why}"
+                stale, reason = started < source, f"started before {source_why}"
         elif not reached:
             stale, reason = False, ""
         elif t < floor:
@@ -847,13 +935,23 @@ def check(
                 stale, reason = True, "after the build: build again, then run what follows"
             else:
                 stale, reason = t < source, f"older than {source_why}: run it again, then build"
-        elif s.name == "build" and (not exe.is_file() or exe.stat().st_mtime < after):
-            # The log may be newer than the edit while the executable is not (a build that stopped, another profile).
-            stale = True
-            reason = f"{EXE} is older than {why}"
+        elif s.name == "build":
+            # The executable against what reaches the build itself (not a snapshot, which pulls it in through the
+            # lists step): the log may be newer than the edit while the executable is not (a build that stopped,
+            # another profile). The log against all of them: a build pulled in runs after them.
+            own, own_why = stamp(files if merge else reaching(files, "build", chosen.libqb))
+            source, source_why = stamp(mine, exe_too=False)
+            if not exe.is_file() or exe.stat().st_mtime < own:
+                stale, reason = True, f"{EXE} is older than {own_why}"
+            else:
+                stale, reason = t < source, f"older than {source_why}"
         else:
             stale = t < after
             reason = f"older than {why}"
+        if not stale and not merge:
+            other = other_commit(s.name, commit)
+            if other:
+                stale, reason = True, other
         ok, summary = judge(s.judge, text, known)
         # A run stopped before its result (no result line at all): accepted with --not-repeated like a stale one,
         # never a run whose log shows a failure.
@@ -944,8 +1042,10 @@ def open_tasks() -> list[tuple[str, str]]:
     """The unchecked tasks of the changes worked on today (tools/hooks/common.py), the closing task left out."""
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "hooks"))
     try:
-        from common import open_tasks as hooks_open_tasks  # noqa: PLC0415
-    except ImportError:
+        from common import open_tasks as hooks_open_tasks
+    except ImportError as e:
+        # Not a refusal: a broken hooks module does not block a close, but it is said.
+        print(f"# warning: the open tasks were not checked (tools/hooks/common.py: {e})")
         return []
     return hooks_open_tasks()
 
@@ -970,24 +1070,9 @@ def plan(
     tasks = open_tasks()
     if tasks:
         return not_yet(tasks)
-    files = changed_files()
-    need = nofold or needs_nofold(files)
-    cov = coverage or needs_coverage(files)
-    lay = layout or needs_format(files)
-    lin = linux or needs_linux(files)
-    sbx = sandbox or needs_sandbox(files)
-    libqb = libqb_reach(files)
-    # A step an option asks for "whatever changed" is printed whatever reaches it.
-    asked: set[str] = set()
-    for flag, names in (
-        (nofold, {"nofold"}),
-        (coverage, {"coverage"}),
-        (layout, {"format", "format-corpus"}),
-        (linux, {s.name for s in linux_steps()}),
-        (sandbox, {"sandbox"}),
-    ):
-        if flag:
-            asked |= names
+    chosen = select(nofold, coverage, layout, linux, sandbox)
+    names = {s.name for s in chosen.todo}
+    commit = head()
     print(
         "# Bash (Git Bash, the Bash tool), not PowerShell: `VAR=1 command` and `mkdir -p` are Bash. One command each."
     )
@@ -995,14 +1080,23 @@ def plan(
     print(
         "python tools/clean/clean.py    # keeps target/ a build folder: old compiler copies, results, scratch, caches"
     )
-    for s in steps(need, cov, lay, lin, sbx):
-        if s.name not in asked and not any(is_input(f) for f in reaching(files, s.name, libqb)):
-            # Not run: its last log stands, and --check names it only when that log is missing or failing.
-            print(
-                f"# {s.name}: no changed file reaches it; not run, its last log stands ({log(s.name)})"
-            )
-            continue
+    for s in chosen.todo:
         note = []
+        if not chosen.reached(s.name):
+            other = other_commit(s.name, commit)
+            if not other:
+                # Not run: its last log stands, and --check names it only when that log is missing or failing.
+                print(
+                    f"# {s.name}: no changed file reaches it; not run, its last log stands ({log(s.name)})"
+                )
+                continue
+            note.append(f"no changed file reaches it, but its last log is not of HEAD: {other}")
+        elif s.name not in chosen.asked and not any(
+            is_input(f) for f in reaching(chosen.files, s.name, chosen.libqb)
+        ):
+            # Reached only through a step it is pulled by (PULLED_BY).
+            pullers = [p for p in PULLED_BY.get(s.name, ()) if p in names and chosen.reached(p)]
+            note.append(f"for {' and '.join(pullers)}")
         if s.before_build:
             note.append("before the build")
         if s.alone:
@@ -1014,25 +1108,25 @@ def plan(
         if s.name == "sandbox":
             note.append("last: its window takes the screen for about a minute")
         print(f"{s.command}" + (f"    # {', '.join(note)}" if note else ""))
-    if not need:
+    if "nofold" not in names:
         print(
             "# no run without folding: no file of sema's constant evaluation, literals or operators changed;"
             " pass --nofold when the change touched a numeric conversion elsewhere"
         )
-    if not cov:
+    if "coverage" not in names:
         print(
             "# no coverage check: no file of Civil War Strategy's copy, its scripts or the tools they need changed"
         )
-    if not lay:
+    if "format" not in names:
         print(
             "# no format runs: no file of the formatter, its recordings, the symbols or -y changed"
         )
-    if not lin:
+    if "linux-sync" not in names:
         print(
             "# no Linux runs: nothing the release build is made from (crates/, Cargo.toml, Cargo.lock), the runner,"
             " libqb, tools/linux or a Linux recording or list changed; pass --linux to ask for them"
         )
-    if not sbx:
+    if "sandbox" not in names:
         print(
             "# no sandbox run: no file of tests/sandbox, tools/sandbox or tests/never_run.list changed; pass --sandbox"
             " when the change touched one of its built-ins' emission or libqb's code for them"

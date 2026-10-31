@@ -2,11 +2,14 @@
 with mpmath at 60 significant digits, for the test of the high-precision reference (design D3 of
 m3-constant-evaluation, guard 2). mpmath is needed only to write the file again; the file is not edited by hand.
 
-    python tools/builtins/mpmath_values.py
+    python tools/builtins/mpmath_values.py [--check]
 """
 
+import argparse
 import os
+import sys
 
+import extract_builtins
 import mpmath
 
 mpmath.mp.dps = 80
@@ -37,6 +40,9 @@ def text(v):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--check", action="store_true", help="write nothing; exit 1 when the file would change")
+    extract_builtins.CHECK = parser.parse_args().check
     rows = []
     for name, f, args in FUNCTIONS:
         for a in args:
@@ -55,18 +61,12 @@ def main():
         out.append('    ("%s", "%s", "%s", "%s"),' % (name, a, b, v))
     out.append("];")
     out.append("")
-    data = "\n".join(out).encode("utf-8")
-    try:
-        with open(OUT, "rb") as f:
-            if f.read() == data:
-                print("mpmath_values.rs: unchanged")
-                return
-    except FileNotFoundError:
-        pass
-    with open(OUT, "wb") as f:
-        f.write(data)
-    print("wrote", OUT, len(rows), "values")
+    extract_builtins.write_if_changed(OUT, extract_builtins.rustfmt("\n".join(out)))
+    print(len(rows), "values")
+    if extract_builtins.CHECK:
+        return extract_builtins.finish_check()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -31,7 +31,7 @@ PATH_PATTERNS = [
 # made up to not exist; GitHub's runner folder (public); and the compiler-discovery unit tests, which are about
 # made-up paths (C:\qb, /home/u/proj).
 ALLOWED = [
-    ("CLAUDE.md", rb"no full local paths"),
+    ("CLAUDE.md", rb"o full local paths"),  # "No" or "no": the rule's line may start either way
     ("tools/repo_check/check_repo.py", rb""),
     ("*", rb"does\\not\\exist"),
     ("*", rb"does/not/exist"),

@@ -33,6 +33,13 @@ error: 1 target failed:
 """
 
 
+def run_part(s: close.Step) -> str:
+    """A close's step's command after the record of the commit it runs at (`head_record`)."""
+    prefix = f"git rev-parse HEAD > {close.head_record(s.name)} && "
+    assert s.command.startswith(prefix), s.command
+    return s.command[len(prefix) :]
+
+
 class Judges(unittest.TestCase):
     def test_cargo_pass_and_counts(self):
         self.assertEqual(judge("cargo", CARGO_OK, set()), (True, "18 passed, 0 failed"))
@@ -167,7 +174,17 @@ class Judges(unittest.TestCase):
         self.assertTrue(judge("empty", "", set())[0])
         self.assertFalse(judge("empty", "Diff in x.rs\n", set())[0])
         self.assertFalse(judge("build", "error: could not compile\n", set())[0])
+        self.assertTrue(judge("build", "   Compiling a\n    Finished `release` profile\n", set())[0])
         self.assertEqual(judge(None, "", set()), (True, "ran"))
+        # A run stopped before its end shows no error, and no Finished line (2026-10-31).
+        self.assertEqual(
+            judge("clippy", "    Checking a v0.1.0\n", set()),
+            (False, "no Finished line: clippy stopped"),
+        )
+        self.assertEqual(
+            judge("build", "   Compiling a v0.1.0\n", set()),
+            (False, "no Finished line: the build stopped"),
+        )
 
 
 class Plan(unittest.TestCase):
@@ -202,7 +219,7 @@ class Plan(unittest.TestCase):
         self.assertNotIn("coverage", [s.name for s in steps(False)])
         step = next(s for s in steps(False, True) if s.name == "coverage")
         self.assertEqual(
-            step.command,
+            run_part(step),
             "python tools/coverage/coverage.py --check > target/close/coverage.log 2>&1",
         )
         self.assertTrue(step.copy)
@@ -244,7 +261,7 @@ class Plan(unittest.TestCase):
         self.assertLess(names.index("format"), names.index("format-corpus"))
         by = {s.name: s for s in steps(False, False, True)}
         self.assertEqual(
-            by["format"].command,
+            run_part(by["format"]),
             "python tools/legacy_tests/run_legacy_tests.py --suite format --qb64 target/release/qb64rust.exe"
             " > target/close/format.log 2>&1",
         )
@@ -287,7 +304,7 @@ class Plan(unittest.TestCase):
         self.assertNotIn("linux-sync", [s.name for s in steps(True, True, True)])
         by = {s.name: s for s in steps(False, False, False, True)}
         self.assertEqual(
-            by["linux-sync"].command,
+            run_part(by["linux-sync"]),
             'wsl --cd "$(pwd -W)" -e bash tools/linux/sync.sh > target/close/linux-sync.log 2>&1; '
             'echo "exit: $?" >> target/close/linux-sync.log',
         )
@@ -325,7 +342,7 @@ class Plan(unittest.TestCase):
         self.assertNotIn("sandbox", [s.name for s in steps(True, True, True, True)])
         by = {s.name: s for s in steps(False, sandbox=True)}
         self.assertEqual(
-            by["sandbox"].command, "python tools/sandbox/run.py > target/close/sandbox.log 2>&1"
+            run_part(by["sandbox"]), "python tools/sandbox/run.py > target/close/sandbox.log 2>&1"
         )
         self.assertTrue(by["sandbox"].alone and by["sandbox"].copy)
         for files, flag, present in (
@@ -400,20 +417,65 @@ class Plan(unittest.TestCase):
         self.assertEqual(close.reaching(libqb, "sandbox", frozenset({"sandbox"})), libqb)
         self.assertEqual(close.reaching(libqb, "slice", close.PROGRAM_STEPS), libqb)
 
-    def test_plan_leaves_out_the_steps_no_changed_file_reaches(self):
+    def plan_of(self, files: list[str], *flags: bool, other: str | None = None) -> str:
+        """The plan for `files` changed, every step's last log of HEAD unless `other` says why not."""
         out = io.StringIO()
-        with mock.patch.object(close, "changed_files", return_value=["tests/sandbox/a.bas"]):
-            with redirect_stdout(out):
-                close.plan(False)
-        text = out.getvalue()
+        with (
+            mock.patch.object(close, "changed_files", return_value=files),
+            mock.patch.object(close, "open_tasks", return_value=[]),
+            mock.patch.object(close, "head", return_value="h1"),
+            mock.patch.object(close, "other_commit", return_value=other),
+            redirect_stdout(out),
+        ):
+            close.plan(*(flags or (False,)))
+        return out.getvalue()
+
+    def test_plan_leaves_out_the_steps_no_changed_file_reaches(self):
+        text = self.plan_of(["tests/sandbox/a.bas"])
         self.assertIn(
             "# slice: no changed file reaches it; not run, its last log stands (target/close/slice.log)",
             text,
         )
         self.assertIn("# tier1: no changed file reaches it", text)
-        self.assertNotIn("\ncargo test --workspace", text)
-        self.assertIn("\npython tools/sandbox/run.py > target/close/sandbox.log 2>&1", text)
+        self.assertNotIn("cargo test --workspace", text.replace("# tier1", ""))
+        self.assertIn(
+            "\ngit rev-parse HEAD > target/close/sandbox.head && "
+            "python tools/sandbox/run.py > target/close/sandbox.log 2>&1",
+            text,
+        )
         self.assertIn("python tools/close/close.py --check", text)
+
+    def test_plan_runs_a_step_whose_last_log_is_of_another_commit(self):
+        text = self.plan_of(["tests/sandbox/a.bas"], other="run at commit abc, not HEAD's h1")
+        self.assertNotIn("no changed file reaches it; not run", text)
+        self.assertIn(
+            "> target/close/slice.log 2>&1    # no changed file reaches it, but its last log is not of HEAD: "
+            "run at commit abc",
+            text,
+        )
+
+    def test_plan_of_a_linux_tool(self):
+        # 2026-10-31: tools/linux asked for the Linux family but was no input, so the plan ran none of it.
+        text = self.plan_of(["tools/linux/sync.sh"])
+        for name in ("linux-sync", "linux-tier1", "linux-slice"):
+            self.assertIn(f"> target/close/{name}.log 2>&1", text.replace(f"({close.log(name)})", ""))
+            self.assertNotIn(f"# {name}: no changed file", text)
+
+    def test_a_step_needed_before_another_is_pulled_in(self):
+        # A libqb edit reaches linux-slice, which runs on WSL's copy: the sync comes with it (2026-10-31).
+        text = self.plan_of(["libqb/internal/c/libqb.cpp"])
+        self.assertNotIn("# linux-sync: no changed file", text)
+        self.assertIn('echo "exit: $?" >> target/close/linux-sync.log    # for linux-slice,', text)
+        self.assertIn("# linux-tier1: no changed file", text)
+        # A snapshot reaches the lists step, written before the build: the build comes with it. And linux-tier1, with
+        # the sync.
+        text = self.plan_of(["crates/driver/tests/snapshots/a.snap"])
+        self.assertIn("cargo build --release > target/close/build.log 2>&1    # for lists,", text)
+        self.assertIn("target/close/linux-sync.log    # for linux-tier1,", text)
+        # A file that reaches the build itself: no note.
+        text = self.plan_of(["crates/a.rs"])
+        self.assertNotIn("# for", text)
+        self.assertNotIn("    # for lists", text)
 
     def test_plan_names_the_format_runs(self):
         for files, present in (
@@ -460,6 +522,11 @@ class Plan(unittest.TestCase):
             # Each command writes its own log, and no command holds a backslash (CLAUDE.md working rule 5).
             self.assertIn(f"> target/close/{s.name}.log 2>&1", s.command)
             self.assertNotIn("\\", s.command)
+            # And first records the commit it runs at.
+            self.assertTrue(
+                s.command.startswith(f"git rev-parse HEAD > target/close/{s.name}.head && "),
+                s.command,
+            )
 
     def test_plan_prints_every_step(self):
         out = io.StringIO()
@@ -569,6 +636,8 @@ class Plan(unittest.TestCase):
         self.assertTrue(close.NOT_INPUTS.search("crates/sema/tests/snapshots/symbols__a.snap.new"))
         self.assertFalse(close.NOT_INPUTS.search("crates/sema/tests/snapshots/symbols__a.snap"))
         self.assertFalse(close.INPUTS.match("STATUS.md"))
+        # Every tool folder a family runs from (2026-10-31: tools/linux was not, so its edits reached no step).
+        self.assertTrue(close.is_input("tools/linux/sync.sh"))
 
 
 class Check(unittest.TestCase):
@@ -592,7 +661,7 @@ class Check(unittest.TestCase):
             "build": "    Finished\n",
             "tier1": CARGO_OK,
             "fmt": "",
-            "clippy": "",
+            "clippy": "    Finished `dev` profile\n",
             "lists": CARGO_OK,
             "slice": '{"corpus": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
             "upstream": '{"compile_tests": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
@@ -610,9 +679,13 @@ class Check(unittest.TestCase):
             path = self.root / close.log(s.name)
             path.write_text(good.get(s.name, ""))
             self.at(path, 150 if s.before_build and s.name != "build" else 300)
+        # Every step's last run of HEAD's commit (`head_record`).
+        for s in steps(True, True, True, True, True):
+            (self.root / close.head_record(s.name)).write_text("h1\n")
         self.patches = [
             mock.patch.object(close, "REPO", self.root),
             mock.patch.object(close, "changed_files", return_value=["crates/a.rs"]),
+            mock.patch.object(close, "head", return_value="h1"),
         ]
         for p in self.patches:
             p.start()
@@ -998,6 +1071,56 @@ class Check(unittest.TestCase):
             code, text = self.run_check()
         self.assertEqual(code, 0, text)
 
+    def test_a_snapshot_pulls_in_the_build(self):
+        # 2026-10-31: a snapshot reached the lists step and not the build, so the lists' log, newer than the
+        # executable, was stale with no build in the plan to make it current.
+        snap = self.root / "crates/sema/tests/snapshots/a.snap"
+        snap.parent.mkdir(parents=True)
+        snap.write_text("x\n")
+        self.at(snap, 400)
+        for name in ("tier1", "cli", "linux-sync", "linux-tier1"):
+            self.at(self.root / close.log(name), 470)
+        self.at(self.root / close.log("lists"), 450)
+        with mock.patch.object(close, "changed_files", return_value=[snap.relative_to(self.root).as_posix()]):
+            code, text = self.run_check()
+            self.assertEqual(code, 1)
+            self.assertIn("STALE    lists: after the build", text)
+            self.assertIn("STALE    build: older than crates/sema/tests/snapshots/a.snap", text)
+            # The build the plan now prints, which compiles nothing: the executable stays older than the snapshot.
+            build = self.root / close.log("build")
+            build.write_text("    Finished `release` profile [optimized] target(s) in 0.33s\n")
+            self.at(build, 460)
+            code, text = self.run_check()
+            self.assertEqual(code, 0, text)
+
+    def test_a_family_option_asks_for_a_run_after_the_change(self):
+        # --sandbox for a libqb edit that names no built-in (which reaches no sandbox run by itself): the sandbox
+        # log from before the edit was accepted (2026-10-31).
+        files = self.libqb_edit("file: internal/c/libqb.cpp\n--- old\nx\n--- new\ny\n--- end\n")
+        sandbox = self.root / close.log("sandbox")
+        sandbox.write_text("coverage: PASS (0 problem(s))\nsandbox: 7 pass, 0 fail\n")
+        self.at(sandbox, 300)
+        with mock.patch.object(close, "changed_files", return_value=files):
+            code, text = self.run_check(sandbox=True)
+            self.assertIn("STALE    sandbox: older than", text)
+            self.at(sandbox, 500)
+            code, text = self.run_check(sandbox=True)
+            self.assertIn("ok       sandbox", text)
+
+    def test_a_log_of_another_commit(self):
+        # A step no changed file reaches keeps its log only when that log is of HEAD's commit (2026-10-31: after a
+        # change of branch, or a commit made without a close, the logs are of another tree).
+        with mock.patch.object(close, "changed_files", return_value=[]):
+            self.assertEqual(self.run_check()[0], 0)
+            (self.root / close.head_record("slice")).write_text("h0\n")
+            (self.root / close.head_record("tier1")).unlink()
+            code, text = self.run_check()
+            self.assertEqual(code, 1)
+            self.assertIn("STALE    slice: run at commit h0, not HEAD's h1", text)
+            self.assertIn("STALE    tier1: no record of the commit it ran at (target/close/tier1.head)", text)
+            code, text = self.run_check(not_repeated={"slice": "x", "tier1": "x"})
+            self.assertEqual(code, 0, text)
+
 
 class CheckMerge(unittest.TestCase):
     """`check --merge` over a temporary repo: every step's merge log, after the build and after HEAD's commit."""
@@ -1007,7 +1130,7 @@ class CheckMerge(unittest.TestCase):
         "build": "    Finished\n",
         "cargo": CARGO_OK,
         "empty": "",
-        "clippy": "",
+        "clippy": "    Finished `dev` profile\n",
         "runner": '{"corpus": {"PASS": 1, "FAIL": 0, "KFAIL": 2}}\n',
         "list": '{"corpus": {"PASS": 1, "FAIL": 0, "KFAIL": 0}}\n',
         "checklist": "slice.list: 1 of 1 passed in results-corpus.json\n",
