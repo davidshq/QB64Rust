@@ -160,7 +160,8 @@ Speed (corpus and compile suites; the C++ build is most of each program's time):
     earlier one (QB64RUST_BUILD_CACHE, crates/driver/src/build.rs: the fragments, qbx.cpp, the
     Makefile, the options and every file of the clone's internal/c that no build writes, by size
     and time); the program is still compiled by qb64rust, run and compared. For local runs (e.g.
-    target/build-cache, about 2.4 MB per program); CI builds every program
+    target/build-cache, about 2.4 MB per program); CI builds every program. At the run's end the
+    entries used longest ago are removed down to --build-cache-limit GB (default 20)
   * a run of qb64rust compiles with a copy of it, made at its start under target/test-bin/<hash>
     (compiler_copy.py), so that a build during the run changes nothing the run reads; the line
     "[compiler] <path> sha256 <hash> started <time>" names it, and the results file names the
@@ -2574,6 +2575,69 @@ def file_sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+BUILD_CACHE_LIMIT_GB = 20.0
+# A `.part` file older than this is left by a build that was stopped (crates/driver/src/build.rs).
+STALE_PART_SECONDS = 86_400
+
+
+def prune_build_cache(folder: Path, limit_bytes: int) -> tuple[int, int, int]:
+    """Keeps a --build-cache folder under limit_bytes: removes the entries used longest ago (an entry's
+    modification time is set when a build reuses it, crates/driver/src/build.rs `touch`), each with
+    its licence file, and `.part` files left by stopped builds. Nothing in the cache was ever pruned
+    before, and it reached 154 GB (2026-10-31). An entry another run is copying cannot be removed and
+    is skipped; a removed entry is only a slower build later. Returns (removed, bytes removed, bytes
+    kept)."""
+    now = time.time()
+    entries: list[tuple[float, int, Path]] = []
+    removed = removed_bytes = 0
+    try:
+        files = list(folder.iterdir())
+    except OSError:
+        return 0, 0, 0
+    for f in files:
+        try:
+            st = f.stat()
+        except OSError:
+            continue
+        if f.name.endswith(".part"):
+            if now - st.st_mtime > STALE_PART_SECONDS:
+                try:
+                    f.unlink()
+                    removed_bytes += st.st_size
+                except OSError:
+                    pass
+            continue
+        if f.name.endswith(".exe"):  # also on Linux
+            size = st.st_size
+            lic = license_of_entry(f)
+            if lic.is_file():
+                size += lic.stat().st_size
+            entries.append((st.st_mtime, size, f))
+    entries.sort(key=lambda e: e[0], reverse=True)
+    kept = 0
+    for _, size, f in entries:
+        if kept + size <= limit_bytes:
+            kept += size
+            continue
+        try:
+            f.unlink()
+        except OSError:
+            kept += size
+            continue
+        try:
+            license_of_entry(f).unlink()
+        except OSError:
+            pass
+        removed += 1
+        removed_bytes += size
+    return removed, removed_bytes, kept
+
+
+def license_of_entry(entry: Path) -> Path:
+    """The licence file kept beside a cache entry (crates/driver/src/build.rs `license_path`)."""
+    return entry.with_name(entry.name + ".license.txt")
+
+
 def fold_is_off() -> bool:
     """QB64RUST_NO_FOLD=1 turns the compiler's constant folding off (crates/driver/src/lib.rs)."""
     return os.environ.get("QB64RUST_NO_FOLD") == "1"
@@ -3006,6 +3070,14 @@ def main() -> int:
         "C++ build is the same as an earlier one's (QB64RUST_BUILD_CACHE; the "
         "program is still compiled, run and compared). Not for CI, which builds "
         "every program",
+    )
+    ap.add_argument(
+        "--build-cache-limit",
+        type=float,
+        default=BUILD_CACHE_LIMIT_GB,
+        metavar="GB",
+        help="with --build-cache: at the end of the run, remove the entries used longest ago until "
+        "the folder holds at most this many GB (default: %(default)s; 0 keeps nothing)",
     )
     ap.add_argument(
         "--full-states",
@@ -3448,6 +3520,15 @@ def main() -> int:
         )
     )
     print(json.dumps(summary))
+    if args.build_cache:
+        removed, gone, kept = prune_build_cache(
+            args.build_cache.resolve(), int(args.build_cache_limit * 2**30)
+        )
+        if removed or gone:
+            print(
+                f"--build-cache: removed {removed} entries used longest ago ({gone / 2**30:.1f} GB), "
+                f"{kept / 2**30:.1f} GB kept (--build-cache-limit {args.build_cache_limit:g})"
+            )
     for key in known_passed:
         if key.startswith("verification:"):
             print(f"note: {key} passed but is listed in known.list; move it to pass.list")

@@ -10,7 +10,14 @@ python tools/close/close.py --check                 # each step: ran on the curr
 python tools/close/close.py --check --known <test>  # a failing test that is known and not the change's
 python tools/close/close.py --check --not-repeated slice,upstream=<why>   # older than an edit that cannot affect them
 python tools/close/close.py --check --cache-miss verification=<why>       # ran most of its list, and rightly
+python tools/close/close.py --plan --merge          # the full set at a merge into main ("The test cadence")
+python tools/close/close.py --check --merge         # its logs, target/close/merge-<step>.log
 ```
+
+**Not before the change is done** (2026-10-31, `study\41`): `--plan` and `--check` (not `--merge`) print "not at the
+close" and exit 1 while a change worked on today has unchecked tasks (`tools\hooks\common.py`, the closing task
+itself left out), and the hook `tools\hooks\guard_tool.py` refuses the list runs for the same reason. The plan's
+first command is `python tools/clean/clean.py` (`tools\clean\`), which keeps `target\` a build folder.
 
 **The plan** (`--plan`) prints, for the working tree as it stands, Bash commands (Git Bash or the Bash tool, not
 PowerShell): the shrink-only lists and the release build first ("Order" below: what changes the compiler or what
@@ -38,7 +45,12 @@ a comment, not run: its last log stands. Then `--check`.
 **What a changed file reaches** (`REACH`, `LIBQB_FILES` in `close.py`; user, 2026-10-30, after a close ran every
 list for an edit of `tests\sandbox\` and a libqb edit of `_SCREENCLICK`, which no list runs): a file under
 `tests\sandbox\` or `tools\sandbox\` reaches the sandbox family alone; `tests\never_run.list` tier 1, the lists
-step and the sandbox family; `tests\verification\` tier 1, the lists step and the verification run;
+step and the sandbox family; `rust-toolchain.toml`, the Rust toolchain's pin, the Rust steps alone: the lists
+step, the build, tier 1, fmt, clippy, the command-line tests that build, and Linux's sync and tier 1 (the panel,
+2026-10-31: the compiler is built again, but what a program does rests on the C++ it emits, libqb and g++, which
+tier 1's snapshots and the command-line tests cover; the program lists wait for the merge's full set, which runs
+every suite with no pass cache; a close of 1.99.0 to 1.99.1 had run them all, and every one passed);
+`tests\verification\` tier 1, the lists step and the verification run;
 `tests\format\` tier 1 (`format_oracle.rs`) and the two format runs; `tests\callsite\` tier 1, the lists step and
 the call-site check; a snapshot under `crates\<crate>\tests\snapshots\` tier 1 and the command-line tests, not the
 build. A libqb edit
@@ -57,7 +69,8 @@ file makes stale only the steps it reaches; the plan leaves the others out.
 - `STALE`: the log is older than the release build or than a changed input that reaches the step (a file under
   `crates\`, `tests\`, `libqb\`, its edits or the test tools, changed against `HEAD`, staged or not; documents and
   the test-time record do not count; "What a changed file reaches" above says which steps a file reaches, and a
-  step no changed file reaches keeps its last passing log whatever its age); for the
+  step no changed file reaches keeps its last passing log whatever its age, also a run of a copy of an earlier
+  build); for the
   build, also when the executable itself is older than a changed input (a build that stopped, another profile);
   for the wording table and the shrink-only lists, when the log is newer than the build or older than a changed
   input other than the files those two write (a log left by an earlier change), unless the build's log, newer
@@ -72,7 +85,9 @@ file makes stale only the steps it reaches; the plan leaves the others out.
   is printed once, with the steps it covers (rule 6: "say which runs were not repeated and why"); a failing step
   never is;
 - `FAIL`: the log shows no pass (a failed test not given with `--known`, a failure the log does not name, a test
-  binary that stopped without a result (a crash), a runner result with a `FAIL`, a
+  binary that stopped without a result (a crash), a runner result with a `FAIL`, a run of a pass list (`--list`)
+  with a known failure on it (the runner counts a program of `known_failures.txt` as `KFAIL`, which does not fail
+  its run; a pass list holds programs that pass, D-052, as `--check-list` says too), a
   call-site program that differs or was not compared, a clippy warning, a fmt difference, a note that is not the
   recorded message, a run refused for the clone's lock); a run stopped before its result (no result line at all)
   is `FAIL` too, and is accepted with `--not-repeated STEP=REASON` as a stale run is, shown as `stopped, not
@@ -89,8 +104,7 @@ Each `ok` line shows when its log was written. The exit code is 0 when every ste
 **Not in it:** the change's new programs before they are on a list (`--glob` while working), and its
 `verification` family: the runner's `--suite verification` records the old compiler only, so the new compiler's
 side of a family is seen through the slice programs and front-end tests made from it. The full set at a merge
-into `main` is not a change's close; a `--plan --merge` for it is not built yet (left for a next small step by
-the panel, `study\archive\33`).
+into `main` is not a change's close: `--plan --merge` and `--check --merge` hold it ("The test cadence" below).
 
 ## The test cadence
 
@@ -142,7 +156,7 @@ cache: the three full suites (corpus, upstream, verification), run with `--cover
 (`--suite addprefix`) and the qbasic programs (`--suite qbasic`); the slice list, the upstream pass list and
 `tests\verification\pass.list` judged from them (`--check-list`, `tools\legacy_tests\README.md`); the check of the
 built-ins they reach (`tools\coverage\builtin_runs.py --check` on their counts, `tests\never_run.list`; user,
-2026-10-24); the run without folding; the differential pass list; the call-site check; the coverage check of Civil
+2026-10-24); the run without folding; the differential pass list; the format runs; the call-site check; the coverage check of Civil
 War Strategy's scripts; the Linux family always, with the three full suites on Linux too (`m7-linux` design D11);
 the sandbox family always, last (`desktop-sandbox` design D7; on a machine without Windows Sandbox it refuses, and
 the merge's record says it was not run, not that it passed); and the reports left out of a change's close (the wording table first, since it changes the
@@ -150,6 +164,28 @@ compiler, then the demand reports and the counts). A failure there is found amon
 build cache. The pass cache is left out because it cannot see a result that depends on time or load. The runs may
 go in a worktree of the merge commit beside this repo while the next change goes on here
 (`tools\legacy_tests\README.md`, "The runs at a merge into `main` in a worktree").
+
+`close.py --plan --merge` prints that set as commands, in order (`study\archive\33`; built 2026-10-30, the panel's
+recommendation before the next merge), and `--check --merge` judges it. What differs from a change's close:
+
+- Every step runs, whatever changed: there is no `REACH` at a merge, and no `--nofold`, `--coverage`, `--format`,
+  `--linux` or `--sandbox` (each is in the set already).
+- Each step writes `target\close\merge-<step>.log`, so a merge's logs and a change's close never stand for each
+  other. Each must be written (a run of a copy: started) after `HEAD`'s commit, as well as after the build: a log of
+  an earlier merge on the same build is stale.
+- The counts of the three full suites go to `target\coverage\merge\`, emptied first (the runner appends to them),
+  and `builtin_runs.py --check` reads them. The run without folding and the differential list keep results folders
+  of their own (`target\legacy-tests-nofold`, `-differential`), so that the full corpus run's results, which
+  `--check-list` and `counts.py` read, stay.
+- The wording table compiles with the release build and is built into it: the plan builds once, writes the table,
+  then the build step builds it in. Its `--check` comes after the build.
+- A full suite's known failures (`KFAIL`) are not failures there; a pass list judged by `--check-list` takes none.
+- A step whose output has no result to judge (the wording table, the two reports, the Linux sync, which a change's
+  close runs too) adds its exit code to its log (`exit: N`) and fails on any but 0 (the pragmatic engineer,
+  2026-10-31: a failed step of these was `ok`). `counts.py` must write every block: at a merge each full suite's
+  results are of the release build and plain, so a block "left as it is" means a suite did not run as it should.
+- Each Linux suite builds first (`cargo build --release --locked`, nothing when the build is current), so the three
+  may run side by side as the Windows ones do.
 
 **Before the close, no run of the closing set's own** (2026-10-30). Read `close.py --plan` before the work's
 last tier 1, fmt and clippy, and send them to the plan's logs in `target\close\`: a run made to another log is

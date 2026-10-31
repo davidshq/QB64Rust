@@ -24,6 +24,16 @@ and the format oracle, tests/format): only when the formatter, its recordings, t
 built-in table, sema's symbols or the driver's -y changed; --format asks for them anyway. And the sandbox family
 (tools/sandbox, in Windows Sandbox): only when the family, its runner or tests/never_run.list changed; --sandbox asks
 for it anyway (a change to one of its built-ins' emission or libqb's code for them).
+
+A run of a pass list (--list) that shows a known failure fails: a list holds programs that pass, and the runner counts
+one named in known_failures.txt as KFAIL, which does not fail its run (D-052; --check-list refuses them too).
+
+    python tools/close/close.py --plan --merge    # the full set at a merge into main (README.md, "The test cadence")
+    python tools/close/close.py --check --merge
+
+--merge is the full set at a merge into main: every step whatever changed, the three full suites with the built-ins'
+counts, the pass lists judged from them, no pass cache, the Linux and sandbox families, and the reports. Its logs are
+target/close/merge-<step>.log, and each must be written after HEAD's commit as well as after the build.
 """
 
 from __future__ import annotations
@@ -48,12 +58,14 @@ NEW = f"--qb64 {EXE} --jobs 8 --build-cache target/build-cache"
 CACHE = "--pass-cache target/pass-cache"
 
 # Files whose change asks for the run without folding (rule 6: sema's constant evaluation, a numeric conversion).
-NOFOLD_FILES = re.compile(r"^crates/sema/src/(consteval\.rs|literal\.rs|check/constants\.rs|check/auto\.rs|check/ops\.rs)$")
+NOFOLD_FILES = re.compile(
+    r"^crates/sema/src/(consteval\.rs|literal\.rs|check/constants\.rs|check/auto\.rs|check/ops\.rs)$"
+)
 # Changed files that make a run stale: what the compiler, the tests and the programs are built from. Documents and
 # the test-time record do not.
 INPUTS = re.compile(
     r"^(crates/|tests/|tools/(legacy_tests|callsite|diagnostics|builtins|screen|coverage|format|sandbox)/|"
-    r"libqb/|tools/libqb/edits/|Cargo\.(toml|lock)$)"
+    r"libqb/|tools/libqb/edits/|Cargo\.(toml|lock)$|rust-toolchain\.toml$)"
 )
 # Which steps a changed input reaches (2026-10-30, after a close ran every list for an edit of tests/sandbox and a
 # libqb edit of _SCREENCLICK, which no list runs): a file matching an entry makes stale only the steps it names; one
@@ -72,6 +84,14 @@ REACH: list[tuple[re.Pattern[str], frozenset[str]]] = [
     (re.compile(r"^tests/format/"), TIER1_STEPS | {"format", "format-corpus"}),
     # tests/callsite by crates/sema/src/opengl.rs's test too.
     (re.compile(r"^tests/callsite/"), TIER1_STEPS | {"callsite"}),
+    # The Rust toolchain's pin: the compiler is built again, but what a program does rests on the C++ it emits, libqb
+    # and g++, none of which it changes; tier 1's snapshots see the emitted C++, the command-line tests the driver
+    # end to end. The program lists wait for the merge's full set (the panel, 2026-10-31, after a close ran them all
+    # for 1.99.0 to 1.99.1).
+    (
+        re.compile(r"^rust-toolchain\.toml$"),
+        TIER1_STEPS | {"build", "fmt", "clippy", "cli", "linux-sync"},
+    ),
 ]
 # A libqb edit (tools/libqb/edits/*.edit) or the copy it is applied to: the steps that build programs (not the
 # sandbox family, which a merge runs anyway: design D7 of desktop-sandbox), unless every changed edit names the
@@ -80,7 +100,17 @@ REACH: list[tuple[re.Pattern[str], frozenset[str]]] = [
 # least compiled).
 LIBQB_FILES = re.compile(r"^(libqb/|tools/libqb/edits/)")
 PROGRAM_STEPS = frozenset(
-    {"slice", "upstream", "verification", "addprefix", "qbasic", "nofold", "coverage", "cli", "linux-slice"}
+    {
+        "slice",
+        "upstream",
+        "verification",
+        "addprefix",
+        "qbasic",
+        "nofold",
+        "coverage",
+        "cli",
+        "linux-slice",
+    }
 )
 EDIT_BUILTINS = re.compile(r"^builtins:[ \t]*(.+?)[ \t]*$", re.M)
 NEVER_RUN = "tests/never_run.list"
@@ -99,14 +129,16 @@ FORMAT_FILES = re.compile(
     r"^(crates/format/|tests/format/|tools/format/|crates/(syntax|builtins)/|crates/base/src/layout\.rs$|"
     r"crates/sema/src/(symbols\.rs|check/(places|decl)\.rs)$|crates/driver/src/(main|lib)\.rs$)"
 )
-# Changed inputs that reach a run only through the release build: a run of a copy is judged by the build's hash.
-BUILT_FROM = r"^(crates/|Cargo\.(toml|lock)$)"
+# Changed inputs that reach a run only through the release build: a run of a copy is judged by the build's hash. The
+# Rust toolchain's pin is one (2026-10-30, when a move of the pin reached no step).
+BUILT_FROM = r"^(crates/|Cargo\.(toml|lock)$|rust-toolchain\.toml$)"
 # Files whose change asks for the Linux runs, in WSL after tools/linux/sync.sh (design D11 of m7-linux): whatever the
 # release build is made from (BUILT_FROM: any crate can emit C++ that g++ takes otherwise, as SWAP's order and the end
 # of a procedure in a debug build did; a list of the platform's files fell behind within one change), the runner, the
 # copy of libqb, the Linux tools, and the Linux recordings and lists.
 LINUX_FILES = re.compile(
-    BUILT_FROM + r"|^(tools/legacy_tests/run_legacy_tests\.py$|libqb/|tools/libqb/edits/|tools/linux/|"
+    BUILT_FROM
+    + r"|^(tools/legacy_tests/run_legacy_tests\.py$|libqb/|tools/libqb/edits/|tools/linux/|"
     r".*\.linux\.(output|err|out\.txt)$|.*known\.linux\.list$)"
 )
 # Files whose change asks for the sandbox family (design D7 of desktop-sandbox): the family, its runner, and the list
@@ -138,10 +170,16 @@ class Step:
     # Compiles with a copy of the release build and names its hash and start in the log
     # (tools/legacy_tests/compiler_copy.py): judged by that hash, not by the log's time.
     copy: bool = False
+    # A step of the full set at a merge into main (`merge_steps`): its log is merge-<name>.log.
+    merge: bool = False
+
+    @property
+    def log(self) -> str:
+        return log(self.name, self.merge)
 
 
-def log(name: str) -> str:
-    return f"{LOGS}/{name}.log"
+def log(name: str, merge: bool = False) -> str:
+    return f"{LOGS}/{'merge-' if merge else ''}{name}.log"
 
 
 def linux_steps() -> list[Step]:
@@ -149,7 +187,13 @@ def linux_steps() -> list[Step]:
     return [
         # The folder in Windows' form (Git Bash's `pwd -W`): `--cd .` failed with Wsl/E_INVALIDARG from the Bash tool
         # on 2026-10-30, hours after it had worked from the same shell; the Windows form worked then.
-        Step("linux-sync", f'wsl --cd "$(pwd -W)" -e bash tools/linux/sync.sh > {log("linux-sync")} 2>&1', None),
+        # The sync prints no result: judged by the exit code the command adds to its log (2026-10-31).
+        Step(
+            "linux-sync",
+            f'wsl --cd "$(pwd -W)" -e bash tools/linux/sync.sh > {log("linux-sync")} 2>&1; '
+            f'echo "exit: $?" >> {log("linux-sync")}',
+            "exit",
+        ),
         Step(
             "linux-tier1",
             f"{WSL} 'cd ~/qb64rust && cargo test --workspace --locked --no-fail-fast' > {log('linux-tier1')} 2>&1",
@@ -160,13 +204,19 @@ def linux_steps() -> list[Step]:
             f"{WSL} 'cd ~/qb64rust && cargo build --release --locked && python3 tools/legacy_tests/run_legacy_tests.py "
             "--suite corpus --qb64 target/release/qb64rust --jobs 8 --build-cache target/build-cache "
             f"--pass-cache target/pass-cache --list tests/corpus/slice.list' > {log('linux-slice')} 2>&1",
+            # Not "list": slice.list is Windows' pass list, and tests/corpus/known.linux.list names the programs on
+            # it that fail on Linux by design (a folder's order, ALSA's null device).
             "runner",
         ),
     ]
 
 
 def steps(
-    nofold: bool, coverage: bool = False, layout: bool = False, linux: bool = False, sandbox: bool = False
+    nofold: bool,
+    coverage: bool = False,
+    layout: bool = False,
+    linux: bool = False,
+    sandbox: bool = False,
 ) -> list[Step]:
     # A thin close (DECISIONS.md 2026-10-28): what can show the change's fault. The wording table and its check, the
     # demand reports and the counts are regenerated at a merge into main, not here (README, "The test cadence").
@@ -181,19 +231,23 @@ def steps(
         ),
         Step("build", f"cargo build --release > {log('build')} 2>&1", "build", before_build=True),
         # As CI runs it (`--locked`: a `Cargo.lock` that drifted fails), and past a failing test binary.
-        Step("tier1", f"cargo test --workspace --locked --no-fail-fast > {log('tier1')} 2>&1", "cargo"),
+        Step(
+            "tier1",
+            f"cargo test --workspace --locked --no-fail-fast > {log('tier1')} 2>&1",
+            "cargo",
+        ),
         Step("fmt", f"cargo fmt --all --check > {log('fmt')} 2>&1", "empty"),
         Step("clippy", f"cargo clippy --all-targets > {log('clippy')} 2>&1", "clippy"),
         Step(
             "slice",
             f"{RUNNER} --suite corpus {NEW} {CACHE} --list tests/corpus/slice.list > {log('slice')} 2>&1",
-            "runner",
+            "list",
             copy=True,
         ),
         Step(
             "upstream",
             f"{RUNNER} --suite compile {NEW} {CACHE} --list tests/upstream/pass.list > {log('upstream')} 2>&1",
-            "runner",
+            "list",
             copy=True,
         ),
         # The verification programs the new compiler passes (tests/verification), in place of the hand runs of a
@@ -201,13 +255,16 @@ def steps(
         Step(
             "verification",
             f"{RUNNER} --suite verification {NEW} {CACHE} --list tests/verification/pass.list > {log('verification')} 2>&1",
-            "runner",
+            "list",
             copy=True,
         ),
         # QB64pe's add_prefix_test.sh: its $NOPREFIX converter built and run on its case (a few seconds). The
         # converter is in the clone, so the run takes its shared lock: --wait, beside a recording with qb64pe.
         Step(
-            "addprefix", f"{RUNNER} --suite addprefix --qb64 {EXE} --wait > {log('addprefix')} 2>&1", "runner", copy=True
+            "addprefix",
+            f"{RUNNER} --suite addprefix --qb64 {EXE} --wait > {log('addprefix')} 2>&1",
+            "runner",
+            copy=True,
         ),
         # QB64pe's qbasic_tests.sh: every program of tests/qbasic_testcases compiled, all of them to build
         # (qbasic-testcases). They are read from the clone: its shared lock, --wait as above.
@@ -226,19 +283,29 @@ def steps(
                 "nofold",
                 f"QB64RUST_NO_FOLD=1 {RUNNER} --suite corpus {NEW} {CACHE} --wait --list tests/corpus/slice.list "
                 f"> {log('nofold')} 2>&1",
-                "runner",
+                "list",
                 copy=True,
             )
         )
     if coverage:
         # Every script of g12_game built with --coverage and run, then the check against the list of unreached lines.
         out.append(
-            Step("coverage", f"python tools/coverage/coverage.py --check > {log('coverage')} 2>&1", "coverage", copy=True)
+            Step(
+                "coverage",
+                f"python tools/coverage/coverage.py --check > {log('coverage')} 2>&1",
+                "coverage",
+                copy=True,
+            )
         )
     if layout:
         # QB64pe's own format tests, and every recording of the format oracle (tests/format) compared.
         out += [
-            Step("format", f"{RUNNER} --suite format --qb64 {EXE} > {log('format')} 2>&1", "runner", copy=True),
+            Step(
+                "format",
+                f"{RUNNER} --suite format --qb64 {EXE} > {log('format')} 2>&1",
+                "runner",
+                copy=True,
+            ),
             Step(
                 "format-corpus",
                 f"{RUNNER} --suite format-corpus --qb64 {EXE} --jobs 8 > {log('format-corpus')} 2>&1",
@@ -247,23 +314,179 @@ def steps(
             ),
         ]
     out += [
-        Step("callsite", f"python tools/callsite/callsite.py --wait > {log('callsite')} 2>&1", "callsite", copy=True),
-        Step("cli", f"cargo test -p qb64rust-driver --test cli -- --ignored > {log('cli')} 2>&1", "cargo", alone=True),
+        Step(
+            "callsite",
+            f"python tools/callsite/callsite.py --wait > {log('callsite')} 2>&1",
+            "callsite",
+            copy=True,
+        ),
+        Step(
+            "cli",
+            f"cargo test -p qb64rust-driver --test cli -- --ignored > {log('cli')} 2>&1",
+            "cargo",
+            alone=True,
+        ),
     ]
     if linux:
         out += linux_steps()
     if sandbox:
         # Last and alone: the sandbox's window takes the screen (design D7 of desktop-sandbox).
         out.append(
-            Step("sandbox", f"python tools/sandbox/run.py > {log('sandbox')} 2>&1", "sandbox", alone=True, copy=True)
+            Step(
+                "sandbox",
+                f"python tools/sandbox/run.py > {log('sandbox')} 2>&1",
+                "sandbox",
+                alone=True,
+                copy=True,
+            )
         )
+    return out
+
+
+# The counts of the three full suites at a merge, one file each (tools/legacy_tests/README.md, `--coverage`).
+MERGE_COUNTS = "target/coverage/merge"
+MERGE_SUITES = (("corpus", "corpus"), ("upstream", "compile"), ("verification", "verification"))
+# The pass lists the full suites stand for (--check-list).
+MERGE_LISTS = (
+    ("corpus", "corpus", "tests/corpus/slice.list"),
+    ("upstream", "compile", "tests/upstream/pass.list"),
+    ("verification", "verification", "tests/verification/pass.list"),
+)
+
+
+def merge_steps() -> list[Step]:
+    """The full set at a merge into main (README, "The test cadence"; study/archive/33): no pass cache, every family,
+    and the reports a change's close leaves out. Each step writes merge-<name>.log."""
+
+    def m(name: str, command: str, judge: str | None, **kw) -> Step:
+        # A step whose output has no result to judge (the wording table, a report, the sync) is judged by its exit
+        # code, which the command adds to its log.
+        path = log(name, True)
+        if judge is None:
+            return Step(
+                name,
+                f'{command} > {path} 2>&1; echo "exit: $?" >> {path}',
+                "exit",
+                merge=True,
+                **kw,
+            )
+        return Step(name, f"{command} > {path} 2>&1", judge, merge=True, **kw)
+
+    out = [
+        m(
+            "lists",
+            "QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs",
+            "cargo",
+            before_build=True,
+            writes=r"^tests/known_\w+\.list$",
+        ),
+        # The wording table compiles every recorded rejection with the release build, and the compiler holds the
+        # table: it comes before the build, which builds it in (README, "Order"). The plan builds once before it.
+        m(
+            "wording",
+            "python tools/diagnostics/old_wording.py",
+            None,
+            before_build=True,
+            writes=r"^crates/base/src/old_wording(\.tsv|_words\.txt)$",
+        ),
+        m("build", "cargo build --release", "build", before_build=True),
+        m("tier1", "cargo test --workspace --locked --no-fail-fast", "cargo"),
+        m("fmt", "cargo fmt --all --check", "empty"),
+        m("clippy", "cargo clippy --all-targets", "clippy"),
+        m("wording-check", "python tools/diagnostics/old_wording.py --check", "wording"),
+    ]
+    # The three full suites with the built-ins' counts, side by side; the pass lists judged from them.
+    for name, suite in MERGE_SUITES:
+        out.append(
+            m(
+                name,
+                f"{RUNNER} --suite {suite} {NEW} --coverage {MERGE_COUNTS}/{name}.txt",
+                "runner",
+                copy=True,
+            )
+        )
+    for name, suite, path in MERGE_LISTS:
+        out.append(
+            m(
+                f"{name}-list",
+                f"{RUNNER} --suite {suite} --qb64 {EXE} --check-list {path}",
+                "checklist",
+            )
+        )
+    counts = " ".join(f"{MERGE_COUNTS}/{name}.txt" for name, _ in MERGE_SUITES)
+    out += [
+        m("builtins", f"python tools/coverage/builtin_runs.py --check {counts}", "coverage"),
+        m("addprefix", f"{RUNNER} --suite addprefix --qb64 {EXE} --wait", "runner", copy=True),
+        m("qbasic", f"{RUNNER} --suite qbasic --qb64 {EXE} --jobs 8 --wait", "runner", copy=True),
+        # Lists of the corpus suite with results of their own, so that the full corpus run's results, which the
+        # pass lists and counts.py read, stay.
+        m(
+            "nofold",
+            f"QB64RUST_NO_FOLD=1 {RUNNER} --suite corpus {NEW} --results target/legacy-tests-nofold --wait "
+            "--list tests/corpus/slice.list",
+            "list",
+            copy=True,
+        ),
+        m(
+            "differential",
+            f"{RUNNER} --suite corpus --corpus-root tests/differential {NEW} --results target/legacy-tests-differential "
+            "--list tests/differential/pass.list",
+            "list",
+            copy=True,
+        ),
+        m("format", f"{RUNNER} --suite format --qb64 {EXE}", "runner", copy=True),
+        m(
+            "format-corpus",
+            f"{RUNNER} --suite format-corpus --qb64 {EXE} --jobs 8",
+            "runner",
+            copy=True,
+        ),
+        m("callsite", "python tools/callsite/callsite.py --wait", "callsite", copy=True),
+        m("coverage", "python tools/coverage/coverage.py --check", "coverage", copy=True),
+        m("cli", "cargo test -p qb64rust-driver --test cli -- --ignored", "cargo", alone=True),
+        # The reports, after the full suites (counts.py reads their results).
+        m("demand-corpus", f"{EXE} --report unsupported tests/corpus tests/programs", None),
+        m(
+            "demand-upstream",
+            f"{EXE} --report unsupported --include-root tests/upstream/root tests/upstream/compile_tests",
+            None,
+        ),
+        # Every block written: at a merge each full suite's results are of the release build and plain, so a block
+        # "left as it is" (no results, another build) means a full suite did not run as it should.
+        m("counts", "python tools/legacy_tests/counts.py", "counts"),
+        # The Linux family with the three full suites there (design D11 of m7-linux).
+        m("linux-sync", 'wsl --cd "$(pwd -W)" -e bash tools/linux/sync.sh', None),
+        m(
+            "linux-tier1",
+            f"{WSL} 'cd ~/qb64rust && cargo test --workspace --locked --no-fail-fast'",
+            "cargo",
+        ),
+    ]
+    # Each builds first, so that none runs an older build beside another's build: cargo holds its lock while one
+    # builds, and builds nothing when the build is current.
+    for name, suite in MERGE_SUITES:
+        out.append(
+            m(
+                f"linux-{name}",
+                f"{WSL} 'cd ~/qb64rust && cargo build --release --locked && python3 "
+                f"tools/legacy_tests/run_legacy_tests.py --suite {suite} --qb64 target/release/qb64rust --jobs 8 "
+                "--build-cache target/build-cache'",
+                "runner",
+            )
+        )
+    # Last and alone: the sandbox's window takes the screen (design D7 of desktop-sandbox).
+    out.append(m("sandbox", "python tools/sandbox/run.py", "sandbox", alone=True, copy=True))
     return out
 
 
 def changed_files() -> list[str]:
     """Files changed against HEAD, staged or not, and untracked ones, repo-relative with forward slashes."""
     out = subprocess.run(
-        ["git", "status", "--porcelain", "--untracked-files=all"], cwd=REPO, capture_output=True, text=True, check=True
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout
     files = []
     for line in out.splitlines():
@@ -358,6 +581,19 @@ def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
     """Whether a log shows a pass, and a short summary."""
     if kind is None:
         return True, "ran"
+    if kind == "exit":
+        codes = re.findall(r"^exit: (\d+)$", text, re.M)
+        if not codes:
+            return False, "no exit line"
+        return (codes[-1] == "0", f"exit {codes[-1]}")
+    if kind == "counts":
+        m = re.search(r"^(\d+) blocks, (\d+) rewritten$", text, re.M)
+        if not m:
+            return False, "no summary line"
+        left = re.findall(r"^(\S+): left as it is: ", text, re.M)
+        if left:
+            return False, f"{m.group(0)}; left as it is: {', '.join(left)}"
+        return True, m.group(0)
     if kind == "empty":
         return (text.strip() == "", "clean" if text.strip() == "" else "differences")
     if kind == "build":
@@ -382,19 +618,46 @@ def judge(kind: str | None, text: str, known: set[str]) -> tuple[bool, str]:
         passed = sum(int(p) for p, _ in results)
         count = sum(int(f) for _, f in results)
         if count > len(failed):
-            return False, f"{passed} passed, {count} failed, {count - len(failed)} of them not named in the log"
+            return (
+                False,
+                f"{passed} passed, {count} failed, {count - len(failed)} of them not named in the log",
+            )
         unknown = failed - known
         summary = f"{passed} passed, {len(failed)} failed"
         if failed & known:
             summary += f" (known: {', '.join(sorted(failed & known))})"
-        return (not unknown, summary + (f"; not known: {', '.join(sorted(unknown))}" if unknown else ""))
-    if kind == "runner":
+        return (
+            not unknown,
+            summary + (f"; not known: {', '.join(sorted(unknown))}" if unknown else ""),
+        )
+    if kind in ("runner", "list"):
         lines = [l for l in text.splitlines() if l.startswith("{")]
         if not lines:
             return False, "no result line"
         counts = next(iter(json.loads(lines[-1]).values()))
         ok = counts.get("FAIL", 1) == 0
-        return ok, f"{counts.get('PASS', 0)} pass, {counts.get('FAIL', 0)} fail, {counts.get('KFAIL', 0)} known"
+        summary = f"{counts.get('PASS', 0)} pass, {counts.get('FAIL', 0)} fail, {counts.get('KFAIL', 0)} known"
+        # A pass list holds programs that pass: a known failure on it fails the run (D-052).
+        if kind == "list" and counts.get("KFAIL", 0):
+            names = re.findall(r"^\[\d+/\d+\] KFAIL (\S+)", text, re.M)
+            return (
+                False,
+                summary
+                + f"; a pass list holds no known failure: {', '.join(names) or '(not named)'}",
+            )
+        return ok, summary
+    if kind == "checklist":
+        m = re.search(r"^(\S+): (\d+) of (\d+) passed", text, re.M)
+        if not m:
+            return False, "no check line"
+        return (m.group(2) == m.group(3), m.group(0))
+    if kind == "wording":
+        m = re.search(
+            r"^(\d+) notes on recorded rejections, (\d+) not the recorded message", text, re.M
+        )
+        if not m:
+            return False, "no check line"
+        return (m.group(2) == "0", m.group(0))
     if kind == "callsite":
         m = re.search(r"^(\d+) programs: (\d+) equal, (\d+) differ, (\d+) not compared", text, re.M)
         if not m:
@@ -459,14 +722,17 @@ def stamp(files: list[str], exe_too: bool = True, written: str | None = None) ->
     return best
 
 
-def built_after(t: float) -> bool:
+def built_after(t: float, merge: bool = False) -> bool:
     """Whether the build step's log, written after `t`, shows a build that compiled nothing: the executable, though
     older than `t`, was then already built from the sources (cargo leaves it untouched; 2026-10-30)."""
-    path = REPO / log("build")
+    path = REPO / log("build", merge)
     if not path.is_file() or path.stat().st_mtime <= t:
         return False
     text = path.read_text(encoding="utf-8", errors="replace")
-    return re.search(r"^\s*Finished ", text, re.M) is not None and re.search(r"^\s*Compiling ", text, re.M) is None
+    return (
+        re.search(r"^\s*Finished ", text, re.M) is not None
+        and re.search(r"^\s*Compiling ", text, re.M) is None
+    )
 
 
 def unlisted(files: list[str]) -> list[str]:
@@ -476,14 +742,20 @@ def unlisted(files: list[str]) -> list[str]:
     for name in ("slice.list",):
         path = corpus / name
         if path.is_file():
-            listed |= {l.split("#")[0].strip() for l in path.read_text(encoding="utf-8").splitlines()}
+            listed |= {
+                l.split("#")[0].strip() for l in path.read_text(encoding="utf-8").splitlines()
+            }
     out = []
     for f in files:
         if not (f.startswith("tests/corpus/") and f.endswith(".bas")) or ".files/" in f:
             continue
         rel = f[len("tests/corpus/") : -len(".bas")]
         base = corpus / rel
-        if rel in listed or base.with_suffix(".err").is_file() or base.with_suffix(".norun").is_file():
+        if (
+            rel in listed
+            or base.with_suffix(".err").is_file()
+            or base.with_suffix(".norun").is_file()
+        ):
             continue
         if (REPO / f).is_file():
             out.append(f)
@@ -492,6 +764,14 @@ def unlisted(files: list[str]) -> list[str]:
 
 def when(t: float) -> str:
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(t))
+
+
+def head_time() -> float:
+    """When HEAD was committed: a merge's runs come after it."""
+    out = subprocess.run(
+        ["git", "log", "-1", "--format=%ct"], cwd=REPO, capture_output=True, text=True, check=True
+    )
+    return float(out.stdout.strip() or 0)
 
 
 def check(
@@ -503,6 +783,7 @@ def check(
     linux: bool = False,
     sandbox: bool = False,
     cache_miss: dict[str, str] | None = None,
+    merge: bool = False,
 ) -> int:
     not_repeated = not_repeated or {}
     cache_miss = cache_miss or {}
@@ -517,18 +798,21 @@ def check(
     problems = 0
     # Each reason given with --not-repeated, numbered, and the steps it was used for.
     reasons: dict[str, tuple[int, list[str]]] = {}
-    # What the steps before the build write (`lists`: the shrink-only lists).
-    written = "|".join(f"(?:{s.writes})" for s in steps(need, cov, lay, lin, sbx) if s.writes)
-    for s in steps(need, cov, lay, lin, sbx):
-        path = REPO / log(s.name)
+    todo = merge_steps() if merge else steps(need, cov, lay, lin, sbx)
+    # A merge's runs are of the merge: after HEAD's commit, whatever changed since (often nothing).
+    floor = head_time() if merge else 0.0
+    # What the steps before the build write (`lists`: the shrink-only lists; at a merge the wording table too).
+    written = "|".join(f"(?:{s.writes})" for s in todo if s.writes)
+    for s in todo:
+        path = REPO / s.log
         if not path.is_file():
-            print(f"MISSING  {s.name}: {log(s.name)} not written")
+            print(f"MISSING  {s.name}: {s.log} not written")
             problems += 1
             continue
         # Only the changed inputs that can reach this step make it stale (REACH); a step none reaches keeps its
-        # last log, whatever its age, as long as it passed.
-        mine = reaching(files, s.name, libqb)
-        reached = any(is_input(f) for f in mine)
+        # last log, whatever its age, as long as it passed. At a merge every input reaches every step.
+        mine = files if merge else reaching(files, s.name, libqb)
+        reached = merge or any(is_input(f) for f in mine)
         after, why = stamp(mine)
         t = path.stat().st_mtime
         summary_at = f" [{when(t)}]"
@@ -536,21 +820,30 @@ def check(
         tested = read_header(text) if s.copy else None
         # A step before the build must come before it, and after every changed input but those it writes (a log
         # left by an earlier change is not this one's); every other one after the build and every changed input.
-        # A run of a copy of the compiler: of the current build by its hash, and started after every changed input
-        # that does not reach it through the build (a log written before the copies, without the line, by time).
-        if tested:
+        # A run of a copy of the compiler that a changed input reaches: of the current build by its hash, and started
+        # after every changed input that does not reach it through the build (a log written before the copies,
+        # without the line, by time). One no changed input reaches keeps its log, also of an earlier build (a move of
+        # the toolchain's pin builds again, reaching no program list).
+        if tested and reached:
             digest, started = tested
             current = sha256_of(exe) if exe.is_file() else ""
             source, source_why = stamp(mine, exe_too=False, written=BUILT_FROM)
             if digest != current:
-                stale, reason = True, f"of build {digest[:12]}, not the current {current[:12] or '(none)'}"
+                stale, reason = (
+                    True,
+                    f"of build {digest[:12]}, not the current {current[:12] or '(none)'}",
+                )
+            elif started < floor:
+                stale, reason = True, f"started before HEAD's commit ({when(floor)})"
             else:
                 stale, reason = reached and started < source, f"started before {source_why}"
         elif not reached:
             stale, reason = False, ""
+        elif t < floor:
+            stale, reason = True, f"written before HEAD's commit ({when(floor)})"
         elif s.before_build and s.name != "build":
             source, source_why = stamp(mine, exe_too=False, written=written)
-            if exe.is_file() and t > exe.stat().st_mtime and not built_after(t):
+            if exe.is_file() and t > exe.stat().st_mtime and not built_after(t, merge):
                 stale, reason = True, "after the build: build again, then run what follows"
             else:
                 stale, reason = t < source, f"older than {source_why}: run it again, then build"
@@ -564,7 +857,12 @@ def check(
         ok, summary = judge(s.judge, text, known)
         # A run stopped before its result (no result line at all): accepted with --not-repeated like a stale one,
         # never a run whose log shows a failure.
-        stopped = not ok and summary in ("no result line", "no test result", "no summary", "no check line")
+        stopped = not ok and summary in (
+            "no result line",
+            "no test result",
+            "no summary",
+            "no check line",
+        )
         summary += summary_at
         # A passing run with the pass cache that ran most of its list, whether current or not repeated.
         missed = cache_missed(text) if ok and CACHE in s.command else None
@@ -587,8 +885,8 @@ def check(
             continue
         if missed:
             print(
-                f"CACHE    {s.name}: {missed}; find out why (tools/close/README.md, \"What empties the pass "
-                f"cache\"), or give --cache-miss {s.name}=REASON when a run of most of them is right"
+                f'CACHE    {s.name}: {missed}; find out why (tools/close/README.md, "What empties the pass '
+                f'cache"), or give --cache-miss {s.name}=REASON when a run of most of them is right'
             )
             problems += 1
         else:
@@ -601,7 +899,77 @@ def check(
     return 1 if problems else 0
 
 
-def plan(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool = False, sandbox: bool = False) -> int:
+def plan_merge() -> int:
+    """The full set at a merge into main, every step, in order."""
+    print(
+        "# Bash (Git Bash, the Bash tool), not PowerShell: `VAR=1 command` and `mkdir -p` are Bash. One command each."
+    )
+    print(
+        '# The full set at a merge into main: no pass cache, every family (tools/close/README.md, "The test cadence").'
+    )
+    print(f"mkdir -p {LOGS}")
+    # The counts are appended to: a file left by an earlier merge would count its built-ins as run.
+    print(f"rm -rf {MERGE_COUNTS} && mkdir -p {MERGE_COUNTS}")
+    print(
+        "cargo build --release    # for the wording table, which compiles with it; the build step builds the table in"
+    )
+    for s in merge_steps():
+        note = []
+        if s.before_build:
+            note.append("before the build")
+        if s.alone:
+            note.append("alone")
+        if s.name == "corpus":
+            note.append("beside upstream and verification")
+        if s.name.endswith("-list") or s.name == "builtins":
+            note.append("after the three full suites")
+        if s.name == "counts":
+            note.append("after the full suites; rewrites the count blocks of the test READMEs")
+        if s.name == "linux-sync":
+            note.append("the Linux family, in WSL, after the Windows runs")
+        if s.name == "linux-corpus":
+            note.append(
+                "after linux-tier1, beside linux-upstream and linux-verification (each builds first)"
+            )
+        if s.name == "sandbox":
+            note.append(
+                "last: its window takes the screen for about a minute; refused on a machine without it"
+            )
+        print(f"{s.command}" + (f"    # {', '.join(note)}" if note else ""))
+    print("python tools/close/close.py --check --merge")
+    return 0
+
+
+def open_tasks() -> list[tuple[str, str]]:
+    """The unchecked tasks of the changes worked on today (tools/hooks/common.py), the closing task left out."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "hooks"))
+    try:
+        from common import open_tasks as hooks_open_tasks  # noqa: PLC0415
+    except ImportError:
+        return []
+    return hooks_open_tasks()
+
+
+def not_yet(tasks: list[tuple[str, str]]) -> int:
+    """A close before the change's tasks are done is refused: it runs once, when the change is done (rule 6)."""
+    name, text = tasks[0]
+    print(
+        f"# not at the close: change {name} has {len(tasks)} open task(s), the first: {text!r}. The close runs once,"
+        " when the change's tasks are done. While working: cargo test -p <crate>, and the change's programs with --glob."
+    )
+    return 1
+
+
+def plan(
+    nofold: bool,
+    coverage: bool = False,
+    layout: bool = False,
+    linux: bool = False,
+    sandbox: bool = False,
+) -> int:
+    tasks = open_tasks()
+    if tasks:
+        return not_yet(tasks)
     files = changed_files()
     need = nofold or needs_nofold(files)
     cov = coverage or needs_coverage(files)
@@ -620,12 +988,19 @@ def plan(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool
     ):
         if flag:
             asked |= names
-    print("# Bash (Git Bash, the Bash tool), not PowerShell: `VAR=1 command` and `mkdir -p` are Bash. One command each.")
+    print(
+        "# Bash (Git Bash, the Bash tool), not PowerShell: `VAR=1 command` and `mkdir -p` are Bash. One command each."
+    )
     print(f"mkdir -p {LOGS}")
+    print(
+        "python tools/clean/clean.py    # keeps target/ a build folder: old compiler copies, results, scratch, caches"
+    )
     for s in steps(need, cov, lay, lin, sbx):
         if s.name not in asked and not any(is_input(f) for f in reaching(files, s.name, libqb)):
             # Not run: its last log stands, and --check names it only when that log is missing or failing.
-            print(f"# {s.name}: no changed file reaches it; not run, its last log stands ({log(s.name)})")
+            print(
+                f"# {s.name}: no changed file reaches it; not run, its last log stands ({log(s.name)})"
+            )
             continue
         note = []
         if s.before_build:
@@ -645,9 +1020,13 @@ def plan(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool
             " pass --nofold when the change touched a numeric conversion elsewhere"
         )
     if not cov:
-        print("# no coverage check: no file of Civil War Strategy's copy, its scripts or the tools they need changed")
+        print(
+            "# no coverage check: no file of Civil War Strategy's copy, its scripts or the tools they need changed"
+        )
     if not lay:
-        print("# no format runs: no file of the formatter, its recordings, the symbols or -y changed")
+        print(
+            "# no format runs: no file of the formatter, its recordings, the symbols or -y changed"
+        )
     if not lin:
         print(
             "# no Linux runs: nothing the release build is made from (crates/, Cargo.toml, Cargo.lock), the runner,"
@@ -663,16 +1042,38 @@ def plan(nofold: bool, coverage: bool = False, layout: bool = False, linux: bool
 
 
 def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--plan", action="store_true", help="print the closing commands in order")
     mode.add_argument("--check", action="store_true", help="judge the logs of the closing commands")
-    ap.add_argument("--nofold", action="store_true", help="ask for the run without folding whatever changed")
-    ap.add_argument("--coverage", action="store_true", help="ask for the coverage check whatever changed")
-    ap.add_argument("--format", action="store_true", help="ask for the format runs whatever changed")
-    ap.add_argument("--linux", action="store_true", help="ask for the Linux runs (in WSL) whatever changed")
-    ap.add_argument("--sandbox", action="store_true", help="ask for the sandbox family whatever changed")
-    ap.add_argument("--known", action="append", default=[], help="a failing test that is known and not the change's")
+    ap.add_argument(
+        "--nofold", action="store_true", help="ask for the run without folding whatever changed"
+    )
+    ap.add_argument(
+        "--coverage", action="store_true", help="ask for the coverage check whatever changed"
+    )
+    ap.add_argument(
+        "--format", action="store_true", help="ask for the format runs whatever changed"
+    )
+    ap.add_argument(
+        "--linux", action="store_true", help="ask for the Linux runs (in WSL) whatever changed"
+    )
+    ap.add_argument(
+        "--sandbox", action="store_true", help="ask for the sandbox family whatever changed"
+    )
+    ap.add_argument(
+        "--merge",
+        action="store_true",
+        help="the full set at a merge into main, not a change's close",
+    )
+    ap.add_argument(
+        "--known",
+        action="append",
+        default=[],
+        help="a failing test that is known and not the change's",
+    )
     ap.add_argument(
         "--not-repeated",
         action="append",
@@ -688,9 +1089,19 @@ def main(argv: list[str]) -> int:
         help="runs with the pass cache that rightly ran most of their list (a cold cache, most programs' C++ changed)",
     )
     a = ap.parse_args(argv)
+    if a.merge and (a.nofold or a.coverage or a.format or a.linux or a.sandbox):
+        ap.error(
+            "--merge runs every step already: leave out --nofold, --coverage, --format, --linux and --sandbox"
+        )
     if a.plan:
-        return plan(a.nofold, a.coverage, a.format, a.linux, a.sandbox)
-    known_steps = {s.name for s in steps(True, True, True, True, True)}
+        return plan_merge() if a.merge else plan(a.nofold, a.coverage, a.format, a.linux, a.sandbox)
+    if not a.merge:
+        tasks = open_tasks()
+        if tasks:
+            return not_yet(tasks)
+    known_steps = {
+        s.name for s in (merge_steps() if a.merge else steps(True, True, True, True, True))
+    }
 
     def reasons(option: str, items: list[str]) -> dict[str, str]:
         out = {}
@@ -700,13 +1111,25 @@ def main(argv: list[str]) -> int:
                 ap.error(f"{option} {item!r}: give STEP[,STEP...]=REASON")
             for step in names.split(","):
                 if step not in known_steps:
-                    ap.error(f"{option}: no step {step!r} (the steps: {', '.join(sorted(known_steps))})")
+                    ap.error(
+                        f"{option}: no step {step!r} (the steps: {', '.join(sorted(known_steps))})"
+                    )
                 out[step] = reason.strip()
         return out
 
     not_repeated = reasons("--not-repeated", a.not_repeated)
     cache_miss = reasons("--cache-miss", a.cache_miss)
-    return check(a.nofold, set(a.known), not_repeated, a.coverage, a.format, a.linux, a.sandbox, cache_miss)
+    return check(
+        a.nofold,
+        set(a.known),
+        not_repeated,
+        a.coverage,
+        a.format,
+        a.linux,
+        a.sandbox,
+        cache_miss,
+        a.merge,
+    )
 
 
 if __name__ == "__main__":

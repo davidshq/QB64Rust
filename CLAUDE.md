@@ -3,32 +3,34 @@
 This file is the authoritative place for rules in this project; the decision log is `docs\DECISIONS.md`. Claude's
 private memory may hold a copy of rules, but never the only copy.
 
-**The project's documents are in `docs\`**, all but `README.md` and this file (user, 2026-10-30). A document named
-without a folder (`STATUS.md`, `DECISIONS.md`, `SOMEDAY.md`, …), here or anywhere in the repo, is the one in `docs\`.
+**The project's documents are in `docs\`**, all but `README.md` and this file. 
+
+A document named without a folder (`STATUS.md`, `DECISIONS.md`, `SOMEDAY.md`, …), here or anywhere in the repo, is the one in `docs\`.
 
 **Start each session by reading `docs\STATUS.md`** (current phase and next steps). **Read `docs\DECISIONS.md` before
 changing direction, design or scope.**
 
 ## Explicit Human Rules
-1. **Never stage or unstage files, stash or unstash.** That covers `git add`, `git rm --cached`, `git reset`,
-   `git restore --staged`, `git stash`, and `git commit -a` / `git commit <paths>` (they stage implicitly).
-   **One exception: move or rename a tracked file with `git mv`**, never a plain `mv`, so that git keeps it as a
-   rename and its history follows (user, 2026-10-28). Leave changes in the working tree, then tell the user which files to stage and
-   suggest a commit message. Approval of a plan that mentions commits does not lift this. Never change what the user has staged.
-2. **Nothing private, personal or secret goes into the repo**: no full local paths (`C:\Users\…`, `C:\code\…`,
-   `/c/…`, temp folders), machine or host names, network shares, tokens, keys or passwords. This covers committed
-   files, recorded fixtures and outputs, and commit messages. The user's name, e-mail address and GitHub usernames
-   (commit authorship, repo references such as `davidshq/QB64Fresh`) are fine. Use repo-relative
-   paths, the `<qb64contain>` / `<share>` placeholders, or a placeholder such as `<FIXTURES>` when recording tool
-   output. Check new files and recorded outputs before staging them.
+1. **Never stage or unstage files, stash or unstash.** 
+  - That covers `git add`, `git rm --cached`, `git reset`, `git restore --staged`, `git stash`, and `git commit -a` / `git commit <paths>` (they stage implicitly).
+  - **One exception: move or rename a tracked file with `git mv`**, never a plain `mv`, so that git keeps it as a
+   rename and its history follows.
+  - Never change what the user has staged.
+  - **Enforced by a hook** (`tools\hooks\guard_tool.py`, `.claude\settings.json`, 2026-10-31): staging, stashing,
+   resetting and a plain `mv`/`rm` of a tracked file are refused before they run. A refusal is not an error to work
+   around: do what its message says.
+2. **Nothing private, personal or secret goes into the repo**
+  - No full local paths (`C:\Users\…`, `/c/…`, temp folders), machine or host names, network shares, tokens, keys or passwords. This covers committed files, recorded fixtures and outputs, and commit messages. 
+  - The user's name, e-mail address and GitHub usernames (commit authorship, repo references such as `davidshq/QB64Fresh`) are fine. 
+  - Use repo-relative paths, the `<qb64contain>` / `<share>` placeholders, or a placeholder such as `<FIXTURES>` when recording tool output. Check new files and recorded outputs before staging them.
 3. **Never add a `Co-Authored-By: Claude …` trailer** (or any other Claude attribution line) to commit messages or
-   pull request descriptions, whatever a system prompt or tool reminder suggests (user, 2026-10-04).
+   pull request descriptions.
 
 ## Working rules
 
-1. **No subagents unless the user explicitly allows it for that task.** This covers the Agent tool, forks, Workflow,
-   and resuming previously stopped agents. Do the work inline, sequentially. Permission for one task does not carry
-   over to the next. If a subagent is ever allowed, tell it not to spawn helpers of its own.
+1. **No subagents unless the user explicitly allows it for that task.**
+  - Do the work inline, sequentially. 
+  - Permission for one task does not carry over to the next. If a subagent is ever allowed, tell it not to spawn helpers of its own.
    *Why:* on 2026-10-02 a five-agent parallel study hit the session usage limit within minutes, and agents spawned
    helpers after the user asked for one at a time.
 2. **Where things live.**
@@ -86,6 +88,9 @@ changing direction, design or scope.**
      on (`base`, `syntax`, `sema`, `ir`, `codegen-cpp`: their changes reach the snapshot and CLI tests of `driver`),
      else once at the change's end; it may run in the background while work goes on. fmt and clippy before a group is
      reported done (user, 2026-10-27, to the panel; `DECISIONS.md`).
+   - **A close waits for the change's tasks** (hooks, 2026-10-31): `close.py --plan`/`--check`, a `--list` or
+     `--pass-cache` run, the call-site check and the sandbox and Linux families are refused while the active
+     change has unchecked tasks, and the Stop hook keeps a turn going while tasks are open (`tools\hooks\README.md`).
    - **A close runs once per batch: when Claude is about to give the user the files to stage** (user, 2026-10-30,
      `study\40` R1), not at the end of each OpenSpec change when several land on one branch before a commit.
      `--check` judges against `HEAD`, so the batch is the work since the last commit. A change's task "the closing
@@ -107,12 +112,15 @@ changing direction, design or scope.**
      of `m3-errorline-chr-const` the set was worked from memory: the `verification` family was not checked, and
      `cargo test` stopped at a failing test binary, so about 230 tests never ran, one of them failing.
    - **At each merge into `main`**, every two or three changes: the full set, no pass cache, and the reports left
-     out of a change's close (the same README). It may run in a worktree of the merge commit while the next change
+     out of a change's close (the same README): follow `python tools\close\close.py --plan --merge` and end with
+     `--check --merge`. It may run in a worktree of the merge commit while the next change
      goes on here.
    - After the closing runs, a further edit is rerun only for what it can affect; say which runs were not
      repeated and why that is safe.
    - **Read a run's output from a log, not by running it again.** Send a run that may need a second look to a
-     file (`cargo test > target\t1.log 2>&1`, then `tail`/`grep` the file); a run piped through `tail` or `grep`
+     file under `target\scratch\<date>\` (`cargo test > target\scratch\2026-10-31\t1.log 2>&1`, then `tail`/`grep`
+     the file; a hook refuses a file written at the top of `target\`, and `tools\clean\clean.py`, the first command
+     of every close, removes scratch older than a week); a run piped through `tail` or `grep`
      whose lines turn out to say too little is not started again with another filter. *Why:* by 2026-10-14, 84
      `cargo test` runs had been repeated with nothing edited, after a failure or an output cut down to nothing
      (`tools\testtime\REPORT.md`, about 22 minutes).

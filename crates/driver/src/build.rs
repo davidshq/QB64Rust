@@ -510,6 +510,7 @@ pub fn build(roots: &Roots, build: &Path, exe: &Path, quiet: bool, settings: &Se
             && std::fs::copy(&hit, exe).is_ok()
             && (!settings.license || std::fs::copy(&hit_license, &license).is_ok())
         {
+            touch(&hit);
             if !quiet {
                 println!("building {} (the same build is in {CACHE_ENV})", exe.display());
             }
@@ -537,9 +538,19 @@ pub fn build(roots: &Roots, build: &Path, exe: &Path, quiet: bool, settings: &Se
     Ok(())
 }
 
+/// Sets a cache entry's modification time to now, so that it shows when the entry was last used: the test runner
+/// removes the entries used longest ago when the folder grows past its limit (`--build-cache-limit`,
+/// `tools\legacy_tests`). A failure (another run copying the entry) only makes the entry look older.
+fn touch(entry: &Path) {
+    if let Ok(f) = std::fs::File::options().write(true).open(entry) {
+        let _ = f.set_modified(std::time::SystemTime::now());
+    }
+}
+
 /// The environment variable naming a folder of built executables to reuse (tier 2 runs, `tools\legacy_tests`): a
 /// build whose inputs ([`build_key`]) equal an earlier one's copies that executable instead of running `make`.
-/// Unset (the default, and in CI) every build runs `make`.
+/// Unset (the default, and in CI) every build runs `make`. Nothing here removes an entry: the test runner keeps the
+/// folder under a limit.
 pub const CACHE_ENV: &str = "QB64RUST_BUILD_CACHE";
 
 /// The key of a build: a 128-bit FNV-1a hash of everything `make` reads that can change between builds — the
@@ -1388,6 +1399,25 @@ mod tests {
             assert!(mk.contains("private CXXFLAGS += -g -fwrapv "), "{mk}");
             assert!(!mk.contains("-O2"), "{mk}");
         }
+    }
+
+    /// A cache entry that is used again gets a new modification time, so the runner's limit keeps it.
+    #[test]
+    fn touch_marks_an_entry_as_used() {
+        let d = tempfile::tempdir().unwrap();
+        let entry = d.path().join("k.exe");
+        std::fs::write(&entry, b"x").unwrap();
+        let old = std::time::SystemTime::now() - std::time::Duration::from_secs(86_400);
+        std::fs::File::options()
+            .write(true)
+            .open(&entry)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+        touch(&entry);
+        let now = std::fs::metadata(&entry).unwrap().modified().unwrap();
+        assert!(now > old + std::time::Duration::from_secs(3_600));
+        assert_eq!(std::fs::read(&entry).unwrap(), b"x");
     }
 
     /// A debug build and an unstripped one each have keys of their own.

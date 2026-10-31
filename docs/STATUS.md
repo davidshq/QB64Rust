@@ -54,25 +54,22 @@ Nothing is waiting: `study\38`'s last questions were answered on 2026-10-28 (`DE
 
 ## Next
 
-1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs the full set
-   (`tools\close\README.md`, "The test cadence"); its numbers replace the block below.
-2. **A pass list run with `--list` fails on a known failure.** `run_legacy_tests.py` marks a failure named in
-   `tools\legacy_tests\known_failures.txt` KFAIL, which does not fail the run, so a close's run of `slice.list`
-   passed with three programs on it failing (D-052; `DECISIONS-SMALL.md` 2026-10-28); `--check-list` already
-   refuses them. Make the list runs of `tools\close\close.py` refuse them too, before `m7-linux`'s closing runs.
-3. **`basic-unit-tests`** is built (2026-10-29); its closing runs pass but for `verification\v49_d_clipboard`
+1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs the full set,
+   `python tools\close\close.py --plan --merge`, ending with `--check --merge` (`tools\close\README.md`, "The test
+   cadence"); its numbers replace the block below.
+2. **`basic-unit-tests`** is built (2026-10-29); its closing runs pass but for `verification\v49_d_clipboard`
    (the clipboard race of "Known bugs"), then the user's review and `/opsx:archive`:
    D-012 (a program ended by a runtime error exits with 1, traced; the runner's rule without sidecars),
    `qb64rust test` and the Test Explorer (`openspec\changes\archive\2026-10-30-basic-unit-tests\`). Its CLI tests that build
    (`cargo test -p qb64rust-driver --test unit_tests -- --ignored`) are not in `tools\close\close.py`'s set yet.
-4. **`desktop-sandbox`** is built, reviewed and archived (2026-10-30): the seven desktop built-ins of
+3. **`desktop-sandbox`** is built, reviewed and archived (2026-10-30): the seven desktop built-ins of
    `tests\never_run.list` (now reason `sandbox`) run in Windows Sandbox, `tests\sandbox\` judged by QB64pe's builds
    run there, all seven passing with the coverage check (`tools\sandbox\README.md`;
    `openspec\changes\archive\2026-10-30-desktop-sandbox\`). Only the session's first window gets `_SCREENPRINT`'s
    keys, so its program clicks itself first (design, "Context"). Its close found and fixed `_SCREENCLICK` under a
    display scale (D-056, a libqb edit) and taught `close.py` which steps a changed file reaches
    (`DECISIONS.md` 2026-10-30). Nothing is left of it: commit it with the `v65` work.
-5. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
+4. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
    built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
    results are read when they come. M8 next.
 

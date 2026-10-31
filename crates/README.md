@@ -283,7 +283,9 @@ parallel; `--build-cache` (environment variable `QB64RUST_BUILD_CACHE`, `driver\
 program whose C++ build has the same inputs as an earlier one's (the fragments, the copy's `qbx.cpp`, `Makefile`
 and every file of its `internal\c` that no build writes, by size and time, the clone's toolchain, the options), so
 after an edit only the programs whose C++ changed are rebuilt, and a compile with `qb64pe.exe` in the clone throws
-nothing away; every program is still compiled by `qb64rust`, run and compared. CI uses neither.
+nothing away; every program is still compiled by `qb64rust`, run and compared. CI uses neither. At a run's end the
+runner removes the cache entries used longest ago until the folder holds at most `--build-cache-limit` GB (default
+20; a reused entry gets a new modification time), and any `.part` file a stopped build left a day ago or more.
 A run of the runner or of `callsite.py` compiles with a copy of `qb64rust.exe` made at its start
 (`target\test-bin\<hash>`), so the compiler may be built again, and tier 1 run, while a tier 2 run goes on
 (`tools\legacy_tests\README.md`, "The compiler a run tests").

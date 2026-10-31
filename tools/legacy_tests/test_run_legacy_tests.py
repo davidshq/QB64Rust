@@ -2442,6 +2442,44 @@ class FormatCorpus(unittest.TestCase):
         self.assertIn("not a layout setting", r.detail)
 
 
+class BuildCacheLimit(unittest.TestCase):
+    """--build-cache-limit: the entries used longest ago go first, each with its licence file."""
+
+    def entry(self, d: Path, name: str, size: int, age: float) -> Path:
+        p = d / name
+        p.write_bytes(b"x" * size)
+        t = time.time() - age
+        os.utime(p, (t, t))
+        return p
+
+    def test_removes_the_entries_used_longest_ago_down_to_the_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            new = self.entry(d, "new.exe", 400, 10)
+            mid = self.entry(d, "mid.exe", 400, 100)
+            old = self.entry(d, "old.exe", 400, 1000)
+            lic = self.entry(d, "old.exe.license.txt", 50, 1000)
+            removed, gone, kept = rlt.prune_build_cache(d, 900)
+            self.assertEqual((removed, gone, kept), (1, 450, 800))
+            self.assertTrue(new.exists() and mid.exists())
+            self.assertFalse(old.exists() or lic.exists())
+
+    def test_removes_only_stale_part_files_and_leaves_others_alone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            fresh = self.entry(d, "k.123.part", 10, 60)
+            stale = self.entry(d, "k.456.part", 10, rlt.STALE_PART_SECONDS + 60)
+            other = self.entry(d, "notes.txt", 10, 10_000_000)
+            removed, gone, kept = rlt.prune_build_cache(d, 10**9)
+            self.assertEqual((removed, gone, kept), (0, 10, 0))
+            self.assertTrue(fresh.exists() and other.exists())
+            self.assertFalse(stale.exists())
+
+    def test_a_missing_folder_is_no_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(rlt.prune_build_cache(Path(tmp) / "none", 0), (0, 0, 0))
+
+
 class AddPrefix(unittest.TestCase):
     """--suite addprefix (add_prefix_test.sh): the converter built from a scratch clone, run on a copy of the
     case, which it rewrites in place, and the copy compared with addprefix.output."""
