@@ -1,6 +1,6 @@
 //! `qb64rust`: the command line (design D9, spec `compiler/cli`).
 //!
-//! `qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>]
+//! `qb64rust [-x] [-q] [-m] [-w] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>]
 //! [--dump tokens|tree|typed|ir|cpp|debug-info]
 //! [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build]
 //! [--coverage] [--debug] [--fixes on|off] [--fix <name>=on|off]...`
@@ -30,7 +30,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Mutex;
 
-const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
+const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp|debug-info] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] \
 [--include-root <dir>] [--keep-build] [--coverage] [--debug] [--fixes on|off] [--fix <name>=on|off]...\n\
        qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]\n\
@@ -61,6 +61,8 @@ struct Options {
     output: Option<PathBuf>,
     quiet: bool,
     cpp_only: bool,
+    /// `--print-build-inputs`: `-z`, then the program's half of the build's key (design D1 of `testing-reset`).
+    print_build_inputs: bool,
     dump: Option<String>,
     /// `--qb64pe-root`.
     root: Option<PathBuf>,
@@ -113,6 +115,10 @@ fn parse_args() -> Result<Options, String> {
             "-w" => o.warnings = true,
             "-q" => o.quiet = true,
             "-z" => o.cpp_only = true,
+            "--print-build-inputs" => {
+                o.cpp_only = true;
+                o.print_build_inputs = true;
+            }
             "-y" => o.format = true,
             "-o" => o.output = Some(PathBuf::from(value("-o")?)),
             "--dump" => {
@@ -642,6 +648,7 @@ fn run() -> Result<ExitCode, String> {
         exe,
         quiet: o.quiet,
         cpp_only: o.cpp_only,
+        print_build_inputs: o.print_build_inputs,
         dump: o.dump.clone(),
         root: o.root.clone(),
         toolchain_root: o.toolchain_root.clone(),

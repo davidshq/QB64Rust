@@ -135,7 +135,7 @@ impl Checker<'_> {
     }
 
     /// Reserved names (design D3), measured for every keyword and built-in (`verification\v15_builtin_names.txt`,
-    /// checked against this function by `crates\driver\tests\names.rs`):
+    /// checked against this function by `crates\driver\tests\it\names.rs`):
     /// - a name starting with `_` is never a variable, parameter or procedure name (the old compiler: "Invalid
     ///   variable name", "Invalid name"), built-in or not;
     /// - a keyword, or a built-in written without a required suffix, is taken whatever suffix the name carries
@@ -182,7 +182,7 @@ impl Checker<'_> {
     }
 
     /// Reserved names for a procedure, measured for every keyword and built-in (`verification\v19_proc_names.txt`,
-    /// checked against this function by `crates\driver\tests\names.rs`): as for variables, a name starting with
+    /// checked against this function by `crates\driver\tests\it\names.rs`): as for variables, a name starting with
     /// `_` and a keyword are taken; otherwise only a built-in **of the same kind** without a required suffix takes
     /// the name. A SUB may be named like a built-in function (`SUB loc`, `SUB abs`), a FUNCTION like a built-in
     /// statement (`FUNCTION beep`, `FUNCTION width`), and both like a built-in that needs `$` (`SUB left`).

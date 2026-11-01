@@ -24,7 +24,7 @@ and for a folder of results, where the runner builds and runs each program; thos
 The lock is on a file under the main checkout's target/ (git-ignored), not in the clone. It belongs
 to the process: the system drops it when the process ends, however it ends. On Windows it is
 LockFileEx over the whole file range, which is what Rust's File::lock and File::lock_shared take, so
-the CLI tests (crates/driver/tests/support) and these tools see each other's locks.
+the CLI tests (crates/driver/tests/it/support) and these tools see each other's locks.
 
 A git worktree of this repo (the runs at a merge into main, study/archive/34 section 3 item 3) takes the
 locks of the main checkout (main_checkout), so its runs and the main checkout's see each other. Not
@@ -43,7 +43,7 @@ from pathlib import Path
 def main_checkout(repo: Path) -> Path:
     """The checkout whose target/ holds the locks: repo itself, or for a git worktree (its .git a
     file "gitdir: <main>/.git/worktrees/<name>", which names the main .git in its commondir file) the
-    main checkout. The same rule as clone_lock_dir in crates/driver/tests/support/mod.rs."""
+    main checkout. The same rule as clone_lock_dir in crates/driver/tests/it/support/mod.rs."""
     dot = repo / ".git"
     if dot.is_file():
         text = dot.read_text(encoding="utf-8").strip()

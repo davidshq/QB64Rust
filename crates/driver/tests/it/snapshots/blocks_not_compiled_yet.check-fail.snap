@@ -1,0 +1,5 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+blocks_not_compiled_yet.bas:12:18: error: not supported yet: `VARSEG` of a `_BIT` array

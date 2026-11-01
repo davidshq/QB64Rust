@@ -1,0 +1,288 @@
+"""The steps of `check` (tools/check/README.md): each one's command, the files it reads and the steps it needs first.
+
+This list is the specification of what a result rests on (design D3 of the OpenSpec change testing-reset): a step's
+fingerprint is taken over the files its `inputs` globs match, and a passing result stands while that fingerprint is
+unchanged. A glob left out here makes a stale pass stand, so test_check.py holds every glob to at least one file,
+and each runner suite's step to every file a `--list-only` run of it names.
+
+Globs are repo-relative with `/`: `*` stays within a folder, `**` crosses folders, and a glob starting with `!`
+takes back files an earlier glob matched. `external` names inputs outside the repository (check.py,
+`EXTERNALS`): the C++ toolchain and the reference clone.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+QUICK = "quick"
+FULL = "full"
+
+RUNNER = "tools/legacy_tests/run_legacy_tests.py"
+EXE = "target/release/qb64rust.exe"
+# Every runner suite builds with the build cache and remembers passes; the pass cache's key is the program's build
+# inputs (design D1), so a hit neither builds nor runs.
+CACHES = ("--jobs", "8", "--build-cache", "target/build-cache", "--pass-cache", "target/pass-cache-2")
+
+# What `cargo` builds the compiler and its tests from.
+RUST = (
+    "crates/**",
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    "clippy.toml",
+    "rustfmt.toml",
+    "!crates/**/*.md",
+)
+# What the release build is made from: not the crates' integration tests, which only cargo's tests build.
+BUILT = RUST + ("!crates/*/tests/**",)
+# What the `lists` step (crates/driver/tests/it/inputs.rs) is built from: the release build's files and the parts of
+# the driver's test binary that inputs.rs is compiled with.
+LISTS_RUST = BUILT + (
+    "crates/driver/tests/it/main.rs",
+    "crates/driver/tests/it/inputs.rs",
+    "crates/driver/tests/it/support/**",
+)
+# libqb's copy and its edits: what every built program links.
+LIBQB = ("libqb/**", "tools/libqb/edits/**")
+# The runner and what it runs programs with.
+RUNNER_FILES = ("tools/legacy_tests/*.py", "tools/legacy_tests/*.txt", "tools/screen/**")
+# The files the Rust tests read outside crates/ (the integration tests' reads, crates/*/tests), but not the
+# recordings of the program suites, which only `lists` (crates/driver/tests/it/inputs.rs) reads: a new recording
+# plans `lists` and its suite's programs, not the workspace's tests (spec testing/check-workflow).
+RUST_TEST_READS = (
+    "tests/frontend/**",
+    "tests/format/**",
+    "tests/differential/**",
+    "tests/snippets/**",
+    "tests/unit_tests/**",
+    "tests/programs/**",
+    "tests/callsite/**",
+    "tests/upstream/root/**",
+    "tests/upstream/compile_tests/**/*.bas",
+    "tests/corpus/**/*.bas",
+    "tests/corpus/*.list",
+    "tests/*.list",
+    "verification/v15_builtin_names.txt",
+    "verification/v19_proc_names.txt",
+    "verification/v52_builtin_name_suffixes.txt",
+)
+
+
+@dataclass(frozen=True)
+class Step:
+    name: str
+    layer: str
+    # The command as arguments; a str is run by bash (the WSL steps).
+    command: tuple[str, ...] | str
+    inputs: tuple[str, ...]
+    needs: tuple[str, ...] = ()
+    external: tuple[str, ...] = ()
+    # A runner suite whose programs a change can be narrowed to (check.py, `narrow`): the runner's suite and the
+    # list it runs.
+    suite: str | None = None
+    program_list: str | None = None
+    # Lists whose rows each name one program first (`<name><TAB><reason>`): a changed row narrows to its program.
+    side_lists: tuple[str, ...] = ()
+    # Run with nothing beside it (its window takes the screen).
+    alone: bool = False
+    env: dict[str, str] = field(default_factory=dict)
+
+
+def runner(suite: str, *extra: str) -> tuple[str, ...]:
+    return ("python", RUNNER, "--suite", suite, "--qb64", EXE, *extra)
+
+
+# `nextest` and `lists` split the workspace's tests by whether a test is inputs.rs's (the folded driver binary's
+# module `inputs`); without cargo-nextest, `nextest` falls back to `cargo test` (FALLBACK), inputs.rs's tests too.
+NOT_INPUTS = "not (package(qb64rust-driver) & test(/^inputs::/))"
+
+STEPS: tuple[Step, ...] = (
+    Step("fmt", QUICK, ("cargo", "fmt", "--all", "--check"), RUST),
+    Step("build", QUICK, ("cargo", "build", "--release"), BUILT),
+    Step("clippy", QUICK, ("cargo", "clippy", "--all-targets"), RUST),
+    Step(
+        "nextest",
+        QUICK,
+        ("cargo", "nextest", "run", "--workspace", "--locked", "--no-fail-fast", "-E", NOT_INPUTS),
+        RUST + RUST_TEST_READS + LIBQB + (".config/nextest.toml",),
+    ),
+    Step(
+        "lists",
+        QUICK,
+        # Under `cargo test`, not nextest: inputs.rs computes the outcome of every input once per process and its
+        # tests share it, so nextest's process per test took 85 s against 33 s (2026-10-31).
+        ("cargo", "test", "-p", "qb64rust-driver", "--locked", "--test", "it", "inputs::"),
+        # The crates' sources, not their tests: a test file other than inputs.rs (and the binary's `main.rs` and
+        # `support`, which it is built with) changes nothing inputs.rs computes. It reads the reference clone's
+        # qbasic test cases and sources too.
+        LISTS_RUST + ("tests/**", "verification/**", "!verification/*.exe"),
+        external=("clone",),
+    ),
+    Step("doc", QUICK, ("cargo", "test", "--workspace", "--locked", "--doc"), RUST),
+    Step(
+        "tools",
+        QUICK,
+        ("python", "tools/check/tool_tests.py"),
+        ("tools/**/*.py", "tools/**/*.txt", "tools/**/*.json"),
+    ),
+    Step(
+        "libqb-copy",
+        QUICK,
+        ("python", "tools/libqb/copy_libqb.py", "--check"),
+        LIBQB + ("tools/libqb/*.py",),
+        external=("clone",),
+    ),
+    Step(
+        "slice",
+        QUICK,
+        runner("corpus", *CACHES, "--list", "tests/corpus/slice.list"),
+        BUILT + LIBQB + RUNNER_FILES + ("tests/corpus/**", "tests/upstream/root/**"),
+        needs=("build",),
+        external=("toolchain",),
+        suite="corpus",
+        program_list="tests/corpus/slice.list",
+    ),
+    Step(
+        "upstream",
+        FULL,
+        runner("compile", *CACHES, "--list", "tests/upstream/pass.list"),
+        BUILT + LIBQB + RUNNER_FILES + ("tests/upstream/**",),
+        needs=("build",),
+        external=("toolchain", "clone"),
+        suite="compile",
+        program_list="tests/upstream/pass.list",
+    ),
+    Step(
+        "verification",
+        FULL,
+        runner("verification", *CACHES, "--list", "tests/verification/pass.list"),
+        BUILT + LIBQB + RUNNER_FILES + ("verification/**", "!verification/*.exe", "tests/verification/**"),
+        needs=("build",),
+        external=("toolchain",),
+        suite="verification",
+        program_list="tests/verification/pass.list",
+        side_lists=("tests/verification/known.list", "tests/verification/known.linux.list"),
+    ),
+    Step(
+        "callsite",
+        FULL,
+        ("python", "tools/callsite/callsite.py", "--jobs", "8", "--wait"),
+        BUILT + ("tools/callsite/**", "tests/callsite/**", "tests/upstream/root/**"),
+        needs=("build",),
+        external=("clone",),
+    ),
+    Step(
+        "cli",
+        FULL,
+        ("cargo", "test", "-p", "qb64rust-driver", "--locked", "--test", "it", "--", "--ignored"),
+        RUST + LIBQB + ("verification/**", "!verification/*.exe", "tests/corpus/slice/**", "tests/upstream/root/**"),
+        external=("toolchain", "clone"),
+        alone=True,
+    ),
+    Step(
+        "qbasic",
+        FULL,
+        runner("qbasic", "--jobs", "8", "--wait"),
+        BUILT + LIBQB + RUNNER_FILES,
+        needs=("build",),
+        external=("toolchain", "clone"),
+    ),
+    Step(
+        "addprefix",
+        FULL,
+        runner("addprefix", "--wait"),
+        BUILT + LIBQB + RUNNER_FILES,
+        needs=("build",),
+        external=("toolchain", "clone"),
+    ),
+    Step("format", FULL, runner("format"), BUILT + RUNNER_FILES, needs=("build",), external=("clone",)),
+    Step(
+        "format-corpus",
+        FULL,
+        runner("format-corpus", "--jobs", "8"),
+        BUILT + RUNNER_FILES + ("tests/format/**", "tools/format/**"),
+        needs=("build",),
+    ),
+    Step(
+        "differential",
+        FULL,
+        runner(
+            "corpus",
+            "--corpus-root",
+            "tests/differential",
+            *CACHES,
+            "--results",
+            "target/legacy-tests-differential",
+            "--list",
+            "tests/differential/pass.list",
+        ),
+        BUILT + LIBQB + RUNNER_FILES + ("tests/differential/**", "tests/upstream/root/**"),
+        needs=("build",),
+        external=("toolchain",),
+    ),
+    Step(
+        "nofold",
+        FULL,
+        runner(
+            "corpus",
+            *CACHES[:4],
+            "--pass-cache",
+            "target/pass-cache-nofold",
+            "--results",
+            "target/legacy-tests-nofold",
+            "--wait",
+            "--list",
+            "tests/corpus/slice.list",
+        ),
+        BUILT + LIBQB + RUNNER_FILES + ("tests/corpus/**", "tests/upstream/root/**"),
+        needs=("build",),
+        external=("toolchain",),
+        env={"QB64RUST_NO_FOLD": "1"},
+    ),
+    Step(
+        "coverage",
+        FULL,
+        ("python", "tools/coverage/coverage.py", "--check"),
+        BUILT + LIBQB + RUNNER_FILES + ("tools/coverage/**", "tests/corpus/screen/**", "tests/programs/**"),
+        needs=("build",),
+        external=("toolchain",),
+    ),
+    Step(
+        "linux-sync",
+        FULL,
+        'wsl --cd "$(pwd -W)" -e bash tools/linux/sync.sh',
+        RUST + LIBQB + RUNNER_FILES + ("tools/linux/**", "tests/**", "verification/**", "!verification/*.exe"),
+    ),
+    Step(
+        "linux-tier1",
+        FULL,
+        "wsl -e bash -lc 'cd ~/qb64rust && cargo test --workspace --locked --no-fail-fast'",
+        RUST + RUST_TEST_READS + LIBQB,
+        needs=("linux-sync",),
+    ),
+    Step(
+        "linux-slice",
+        FULL,
+        "wsl -e bash -lc 'cd ~/qb64rust && cargo build --release --locked && python3 "
+        "tools/legacy_tests/run_legacy_tests.py --suite corpus --qb64 target/release/qb64rust --jobs 8 "
+        "--build-cache target/build-cache --pass-cache target/pass-cache-2 --list tests/corpus/slice.list'",
+        BUILT + LIBQB + RUNNER_FILES + ("tools/linux/**", "tests/corpus/**", "tests/upstream/root/**"),
+        needs=("linux-sync",),
+    ),
+    Step(
+        "sandbox",
+        FULL,
+        ("python", "tools/sandbox/run.py"),
+        BUILT + LIBQB + ("tools/sandbox/**", "tests/sandbox/**", "tests/never_run.list"),
+        needs=("build",),
+        external=("toolchain",),
+        alone=True,
+    ),
+)
+
+BY_NAME = {s.name: s for s in STEPS}
+
+# Without cargo-nextest: the same tests under `cargo test` (check.py says so when it uses one).
+FALLBACK: dict[str, tuple[str, ...]] = {
+    "nextest": ("cargo", "test", "--workspace", "--locked", "--no-fail-fast"),
+}

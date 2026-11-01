@@ -8,7 +8,7 @@
 #   sandbox   run only in the sandbox family, tests\sandbox (the desktop, the clipboard or the console; OpenSpec
 #             change desktop-sandbox, design D6): tools\sandbox\run.py fails when one did not run there
 # Each must be a built-in sema compiles, held in a slice program as code that is not reached, and have a
-# call-site program in tests\callsite (tier 1, crates\driver\tests\inputs.rs). The check of
+# call-site program in tests\callsite (tier 1, crates\driver\tests\it\inputs.rs). The check of
 # tools\coverage\builtin_runs.py fails when one of them runs, or when a built-in no run reaches is not here.
 # The list is by name: a name of which one form runs (the function _SCREENICON, the statement not) is not here.
 LPRINT	printer (design D8 of m3-console-files; DECISIONS.md 2026-10-13)

@@ -13,12 +13,12 @@ programs) and the old compiler's own source (`qb64pe.bas`, the M4 exit criterion
 A real program waits for keys, seeds from the clock and plays sound, so it is not a recorded-output test as it
 stands. Four stages (`study\archive\28` §4; the fourth `cws-whole-game`):
 
-1. **Tier 1** (`cargo test`, `crates\driver\tests\inputs.rs`): the front end reads every `.bas` here without a
+1. **Tier 1** (`cargo test`, `crates\driver\tests\it\inputs.rs`): the front end reads every `.bas` here without a
    panic and prints its tree back byte for byte (set `programs/`), and since `m3-sound` with **no diagnostic at
    all**, the icon its `$EXEICON` names found, its IR valid and its C++ emitted
    (`real_programs_have_no_diagnostics`).
 2. **Done for the build:** "compiles, and the C++ builds" (`civil_war_strategy_builds` in
-   `crates\driver\tests\cli.rs`, `#[ignore]`d: it needs the clone), and small non-interactive programs cut from
+   `crates\driver\tests\it\cli.rs`, `#[ignore]`d: it needs the clone), and small non-interactive programs cut from
    the game, one per kind of drawing, each ending by itself and checked by the screen-state dump (`study\archive\28`
    §3.1). The cut programs are new files with their own recordings; the copies here stay untouched.
 3. **Done:** a scripted game with a fixed seed (`m3-scripted-game`): `tests\corpus\screen\g12_game` is a copy

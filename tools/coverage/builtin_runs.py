@@ -35,7 +35,7 @@ from coverage import CoverageError, read_records
 REPO = Path(__file__).resolve().parents[2]
 LIST = REPO / "tests" / "never_run.list"
 TABLE = REPO / "crates" / "sema" / "src" / "builtins.rs"
-# A row of SUPPORTED or STATEMENTS, and the line of OWN_NODE (crates/driver/tests/inputs.rs holds the source to
+# A row of SUPPORTED or STATEMENTS, and the line of OWN_NODE (crates/driver/tests/it/inputs.rs holds the source to
 # these forms).
 ROW = re.compile(r'^\s*\("([A-Z_$0-9]+)", (?:Rule|StmtRule)::', re.M)
 OWN_NODE = re.compile(r"^pub const OWN_NODE: &\[&str\] = &\[(.*)\];$", re.M)
@@ -94,7 +94,7 @@ def read_list(path: Path) -> tuple[dict[str, str], list[str]]:
     listed: dict[str, str] = {}
     problems: list[str] = []
     for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        # Only an empty line is skipped, as tier 1 reads the list (crates/driver/tests/inputs.rs).
+        # Only an empty line is skipped, as tier 1 reads the list (crates/driver/tests/it/inputs.rs).
         if not line or line.startswith("#"):
             continue
         name, tab, rest = line.partition("\t")

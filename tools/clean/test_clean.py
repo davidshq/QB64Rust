@@ -52,6 +52,10 @@ class Clean(unittest.TestCase):
         touch(self.target / "scratch" / "hooks" / "stop-x.count", mtime=OLD)
         os.utime(self.target / "scratch" / "hooks", (OLD, OLD))
         (self.target / "qb64pe-copies" / "w1").mkdir(parents=True)
+        # The old pass cache goes; the new one and the check tool's results stay, however old.
+        touch(self.target / "pass-cache" / "abc", "")
+        touch(self.target / "pass-cache-2" / "def", "", mtime=OLD)
+        touch(self.target / "check" / "slice.json", mtime=OLD)
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -79,6 +83,9 @@ class Clean(unittest.TestCase):
         self.assertFalse((self.target / "scratch" / "old-day").exists())
         self.assertTrue((self.target / "scratch" / "hooks" / "stop-x.count").is_file())
         self.assertTrue(any("qb64pe-copies: 1 copies" in l for l in lines))
+        self.assertFalse((self.target / "pass-cache").exists())
+        self.assertTrue((self.target / "pass-cache-2" / "def").is_file())
+        self.assertTrue((self.target / "check" / "slice.json").is_file())
 
     def test_no_target(self):
         _, lines = clean.run(self.target / "none", dry=False)

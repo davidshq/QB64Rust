@@ -21,6 +21,9 @@ pub struct CompileOptions {
     pub quiet: bool,
     /// `-z`.
     pub cpp_only: bool,
+    /// `--print-build-inputs` (with `cpp_only`): everything a build writes before `make`, then the program's half
+    /// of the build's key printed in place of the build (design D1 of `testing-reset`).
+    pub print_build_inputs: bool,
     /// `--dump <stage>`, other than `tokens`.
     pub dump: Option<String>,
     /// `--qb64pe-root`.
@@ -198,13 +201,15 @@ pub fn compile_exe(
         )
     };
     let build_dir = build::build_dir(exe);
-    if o.cpp_only {
+    if o.cpp_only && !o.print_build_inputs {
         let temp = build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
         out(&format!("{}\n", temp.display()));
         return Ok(true);
     }
     // Before any step that can fail, so a failed build never leaves an older executable or symbol file behind.
-    remove_old();
+    if !o.print_build_inputs {
+        remove_old();
+    }
     if !Platform::host_is_supported() {
         return Err(
             "building an executable needs Windows x64 or Linux x64; checking (-z, --dump, -y, lsp) works here".into(),
@@ -233,6 +238,16 @@ pub fn compile_exe(
         )?;
     }
     build::write_embedded(&build_dir, &used_embedded_files(&fe, input, include_root)?)?;
+    if o.print_build_inputs {
+        // A program whose executable holds its build time is built each time: it has no key to print.
+        let key = if settings.uncached {
+            "uncached".to_string()
+        } else {
+            build::program_inputs_key(&roots, &build_dir, &settings)
+        };
+        out(&format!("{key}\n"));
+        return Ok(true);
+    }
     if let Err(e) = build::build(&roots, &build_dir, exe, o.quiet, &settings) {
         // A failure that names only library functions is the program's (design D4 of `cpp-failure-errors`): its
         // errors as the front end's, with the summary; the build folder goes as after a build that worked.

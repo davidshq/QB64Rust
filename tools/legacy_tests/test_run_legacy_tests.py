@@ -17,6 +17,7 @@ cover them), and the compile, qbasic, format and verification suites' own functi
 
 from __future__ import annotations
 
+import hashlib
 import os
 import shutil
 import subprocess
@@ -562,8 +563,11 @@ class Tools:
         trace=None,
         counts=None,
         log=None,
+        inputs=None,
     ):
         self.exe_bytes = exe_bytes
+        self.inputs = inputs
+        self.printed = 0
         # What each run appends to the runtime's log (the file QB64PE_LOG_FILE_PATH names).
         self.log = log
         # What each run writes to the coverage counts (the file QB64RUST_COVERAGE names).
@@ -582,6 +586,13 @@ class Tools:
         self.run_envs: list[dict] = []
 
     def __call__(self, args, cwd, stdout_path, timeout, env=None, stdin_path=None, **_):
+        if "--print-build-inputs" in args:
+            # The program's build inputs (design D1 of testing-reset): `inputs`, else as many as there are
+            # executables, so a test of "another executable" is one of another build.
+            self.printed += 1
+            key = self.inputs if self.inputs is not None else hashlib.sha256(self.exe_bytes).hexdigest().encode()
+            stdout_path.write_bytes(key + b"\n" if self.rc == 0 else self.compile_out)
+            return self.rc, False
         if "-x" in args:
             self.compiles += 1
             self.compile_cmd = list(args)
@@ -905,6 +916,63 @@ class CorpusProgram(CorpusFixture):
 STATE = b"screen-state 1\npages 1 display 0 write 0 read 0\nend\n"
 
 
+class StartOrder(unittest.TestCase):
+    """Failures first, then new programs, then the longest by their last time (design D8 of testing-reset)."""
+
+    def test_failures_then_new_then_longest(self):
+        times = {"c:a": [1.0, "PASS"], "c:b": [9.0, "PASS"], "c:c": [0.5, "FAIL"], "c:e": [2.0, "KFAIL"]}
+        keys = ["c:a", "c:b", "c:c", "c:d", "c:e", None]
+        self.assertEqual(rlt.start_order(keys, times), [2, 3, 5, 1, 4, 0])
+
+    def test_run_all_starts_in_the_order_and_the_times_are_kept(self):
+        started = []
+        out = list(rlt.run_all([Path("a"), Path("b"), Path("c")], lambda p: started.append(p.name) or p.name, 1, [2, 0, 1]))
+        self.assertEqual((started, out), (["c", "a", "b"], [(2, "c"), (0, "a"), (1, "b")]))
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(rlt, "TIMES", Path(d)):
+            rlt.write_times("corpus", [rlt.Result("corpus", "g/p", "output", status="FAIL", seconds=3.0)])
+            rlt.write_times("corpus", [rlt.Result("corpus", "g/q", "output", seconds=1.0)])
+            self.assertEqual(rlt.read_times("corpus"), {"corpus:g/p": [3.0, "FAIL"], "corpus:g/q": [1.0, "PASS"]})
+            # Served by the pass cache: a pass, with the time of the run that ran it.
+            rlt.write_times("corpus", [rlt.Result("corpus", "g/p", "output", seconds=0.1, detail=rlt.PASSED_BEFORE)])
+            self.assertEqual(rlt.read_times("corpus")["corpus:g/p"], [3.0, "PASS"])
+
+
+class RunInputs(unittest.TestCase):
+    """What every pass key takes once per run (design D1 of testing-reset): libqb's copy by content, without the
+    files builds write, and the toolchain's executables."""
+
+    def test_libqb_by_content_without_what_builds_write(self):
+        with tempfile.TemporaryDirectory() as d:
+            libqb = Path(d)
+            (libqb / "internal" / "c" / "parts").mkdir(parents=True)
+            (libqb / "Makefile").write_bytes(b"all:\n")
+            (libqb / "internal" / "c" / "qbx.cpp").write_bytes(b"one")
+            first = rlt.libqb_digest(libqb)
+            # An object or a qbx<N>.cpp a build writes changes nothing; nor does a new modification time.
+            (libqb / "internal" / "c" / "parts" / "a.o").write_bytes(b"obj")
+            (libqb / "internal" / "c" / "qbx2.cpp").write_bytes(b"x")
+            os.utime(libqb / "Makefile", (1, 1))
+            self.assertEqual(rlt.libqb_digest(libqb), first)
+            (libqb / "internal" / "c" / "qbx.cpp").write_bytes(b"two")
+            self.assertNotEqual(rlt.libqb_digest(libqb), first)
+
+    def test_a_changed_toolchain_executable_is_another_stamp(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "bin").mkdir()
+            clang = Path(d) / "bin" / "clang.exe"
+            clang.write_bytes(b"1")
+            done = subprocess.CompletedProcess([], 0, stdout=f"{d}\nclone: x\n", stderr="")
+            with mock.patch.object(rlt.subprocess, "run", return_value=done):
+                first = rlt.toolchain_stamp(Path("qb64rust.exe"))
+                clang.write_bytes(b"22")
+                self.assertNotEqual(rlt.toolchain_stamp(Path("qb64rust.exe")), first)
+
+    def test_the_key_takes_the_build_inputs_and_the_parts(self):
+        self.assertEqual(rlt.pass_key(b"a", [b"x"]), rlt.pass_key(b"a", [b"x"]))
+        self.assertNotEqual(rlt.pass_key(b"a", [b"x"]), rlt.pass_key(b"b", [b"x"]))
+        self.assertNotEqual(rlt.pass_key(b"a", [b"x"]), rlt.pass_key(b"a", [None]))
+
+
 class CompilePassCache(unittest.TestCase):
     """--pass-cache with the compile suite (test-parallel-runs): the same rule as a corpus program's,
     with every file of the program's category folder counted."""
@@ -993,14 +1061,34 @@ class PassCache(CorpusFixture):
         tools = Tools(runs=list(runs), exe_bytes=exe_bytes)
         return self.go(tools), len(tools.run_cmds)
 
-    def test_a_program_that_passed_is_compiled_and_not_run(self):
+    def test_a_program_that_passed_is_neither_built_nor_run(self):
         self.passes_once()
         tools = Tools(runs=[b"wrong\n"], exe_bytes=b"exe one")
         r = self.go(tools)
         self.assertEqual((r.status, r.detail), ("PASS", rlt.PASSED_BEFORE))
-        self.assertEqual(len(tools.run_cmds), 0)
-        self.assertTrue(tools.compile_cmd)
+        self.assertEqual((len(tools.run_cmds), tools.compiles, tools.printed), (0, 0, 1))
         self.assertFalse((self.results / "g-p").exists())
+
+    def test_the_same_build_inputs_from_another_executable_is_one_key(self):
+        # Design D1 of testing-reset: the key is what the build reads, not the executable's bytes.
+        tools = Tools(runs=[b"1\n"], exe_bytes=b"exe one", inputs=b"same")
+        self.assertEqual(self.go(tools).detail, "")
+        tools = Tools(runs=[b"1\n"], exe_bytes=b"exe two", inputs=b"same")
+        self.assertEqual((self.go(tools).detail, tools.compiles), (rlt.PASSED_BEFORE, 0))
+        tools = Tools(runs=[b"1\n"], exe_bytes=b"exe two", inputs=b"other")
+        self.assertEqual((self.go(tools).detail, tools.compiles), ("", 1))
+
+    def test_a_program_with_no_build_inputs_is_built_and_run(self):
+        # `uncached` (_COMPILEDATE$): never served.
+        for _ in range(2):
+            tools = Tools(runs=[b"1\n"], inputs=b"uncached")
+            self.assertEqual((self.go(tools).detail, len(tools.run_cmds)), ("", 1))
+
+    def test_an_external_program_is_never_served(self):
+        self.sidecar("external", b"sound: plays through the default device\n")
+        for _ in range(2):
+            tools = Tools(runs=[b"1\n"], exe_bytes=b"exe one")
+            self.assertEqual((self.go(tools).detail, len(tools.run_cmds), tools.printed), ("", 1, 0))
 
     def test_another_executable_runs(self):
         self.passes_once()

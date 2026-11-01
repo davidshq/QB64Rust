@@ -202,7 +202,7 @@ The runner starts a screen program on a desktop of its own that is never shown
 user's desktop and the user's keys and mouse cannot reach it. Keys, mouse steps and the state need no shown
 window: this file calls libqb directly. All 67 screen programs of the slice list wrote the states they write on
 the user's desktop (2026-10-17). To watch the windows, set `QB64RUST_SHOW_WINDOWS=1` for the run. The CLI tests
-of `crates\driver\tests\cli.rs` that run a screen program still open their window on the user's desktop.
+of `crates\driver\tests\it\cli.rs` that run a screen program still open their window on the user's desktop.
 - `SLEEP` and the keys file: a key ends `SLEEP` only when it comes while `SLEEP` waits, and the next key of the
   file is given only when the key buffer is empty. Empty the buffer right before (`DO: LOOP UNTIL INKEY$ = ""`),
   end the keys file with `repeat <name>`, and give `SLEEP` a time, which is then the longest it can take

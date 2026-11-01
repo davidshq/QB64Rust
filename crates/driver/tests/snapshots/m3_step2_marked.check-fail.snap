@@ -1,6 +1,0 @@
----
-source: crates/driver/tests/frontend.rs
-expression: snap
----
-m3_step2_marked.bas:16:20: error: not supported yet: a call of a FUNCTION in the index of the array of `GET`
-m3_step2_marked.bas:17:13: error: not supported yet: a `_BIT` as the array of `PUT`

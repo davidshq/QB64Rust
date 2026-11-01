@@ -16,7 +16,9 @@ What it does, in order:
 4. target/scratch/<entry> older than KEEP_DAYS days: removed (target/scratch/hooks stays).
 5. The build caches (target/build-cache, target/build-cache-nofold) are pruned to CACHE_LIMIT_GB by the runner's
    own prune_build_cache (least recently used first). The runner's default limit, 20 GB, let one reach 154 GB.
-6. target/qb64pe-copies/: reported, not touched (the close uses all eight at --jobs 8).
+6. target/pass-cache/, the pass cache keyed on the executable: removed (superseded by target/pass-cache-2;
+   OpenSpec change testing-reset). target/pass-cache-2/ and target/check/ stay.
+7. target/qb64pe-copies/: reported, not touched (a qb64pe run uses all eight at --jobs 8).
 
 Why: study\\41 §1; the user, 2026-10-31: "You used up tons of disk space".
 """
@@ -37,6 +39,7 @@ TARGET = ROOT / "target"
 KEEP_DAYS = 7
 CACHE_LIMIT_GB = 4.0
 RESULT_PREFIXES = ("legacy-tests", "full-", "t2-", "t-results", "fs-results")
+SUPERSEDED = ("pass-cache",)
 ROOT_KEEP = {"CACHEDIR.TAG", ".rustc_info.json", ".cargo-lock"}
 EXE = "qb64rust.exe" if os.name == "nt" else "qb64rust"
 
@@ -198,6 +201,19 @@ def prune_caches(target: Path, dry: bool, out: list[str]) -> int:
     return freed
 
 
+def remove_superseded(target: Path, dry: bool, out: list[str]) -> int:
+    """The caches no tool reads any more: target/pass-cache, keyed on the executable (its successor,
+    target/pass-cache-2, keys on the build's inputs: design D1 of the OpenSpec change testing-reset). The pass
+    caches in use and target/check/ (tools/check's results) stay."""
+    freed = 0
+    for name in SUPERSEDED:
+        folder = target / name
+        if folder.is_dir():
+            freed += remove(folder, dry)
+            out.append(f"{name}: superseded, removed")
+    return freed
+
+
 def report_copies(target: Path, out: list[str]) -> None:
     folder = target / "qb64pe-copies"
     if folder.is_dir():
@@ -219,6 +235,7 @@ def run(target: Path, dry: bool, now: float | None = None) -> tuple[int, list[st
     freed += sweep_root(target, dry, out)
     freed += clean_scratch(target, dry, out, now)
     freed += prune_caches(target, dry, out)
+    freed += remove_superseded(target, dry, out)
     report_copies(target, out)
     out.append(("would free " if dry else "freed ") + human(freed))
     return freed, out

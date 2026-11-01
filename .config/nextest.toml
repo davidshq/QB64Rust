@@ -1,0 +1,16 @@
+# cargo-nextest's settings for the workspace's tests (spec testing/compiler-tests, "The Rust tests run under
+# nextest"; design D7 of the OpenSpec change testing-reset). `tools/check` runs them as its `nextest` and `lists`
+# steps.
+
+[profile.default]
+# A test still running after two minutes is reported slow; after four it is ended and fails as timed out, and the
+# others go on.
+slow-timeout = { period = "120s", terminate-after = 2 }
+# A failure runs once more; a test that passes only then is flaky, and a flaky test fails the run.
+retries = 1
+flaky-result = "fail"
+fail-fast = false
+
+[profile.default.junit]
+# target/nextest/default/junit.xml
+path = "junit.xml"

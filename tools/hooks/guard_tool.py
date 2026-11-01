@@ -6,12 +6,11 @@ Refused (exit 2, the reason sent to Claude):
 - Bash / PowerShell: staging and stashing (`git add`, `git rm --cached`, `git reset`, `git restore --staged`,
   `git stash`, `git commit -a`/`-am`/`--all`) (CLAUDE.md human rule 1); a plain `mv`/`Move-Item`/`rm`/`Remove-Item`
   of a tracked file (use `git mv`; a deletion is the user's call); a redirect that writes a file at the top of
-  `target\\` (scratch goes under `target\\scratch\\`); a program list run, the call-site check or `close.py`
-  while the active change still has open tasks (the close runs once, when the change is done).
-- Write / Edit: a file at the top of `target\\` or under it outside `target\\scratch\\` and `target\\close\\`; any
-  file under the read-only reference clone `..\\QB64pe\\`.
+  `target\\` (scratch goes under `target\\scratch\\`).
+- Write / Edit: a file at the top of `target\\` or under it outside `target\\scratch\\` and `target\\check\\`;
+  any file under the read-only reference clone `..\\QB64pe\\`.
 
-Allowed through untouched: everything else, including `--glob` runs and `cargo test -p` while working.
+Allowed through untouched: everything else. No test run is refused (change `testing-reset`).
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from common import ROOT, open_tasks, read_input, refuse
+from common import ROOT, read_input, refuse
 
 STAGING = re.compile(
     r"\bgit\s+(?:-C\s+\S+\s+)?(?:add|stash|reset|rm\s+(?:-r\s+)?--cached|restore\s+(?:\S+\s+)*--staged"
@@ -38,16 +37,7 @@ MOVE_OR_DELETE = re.compile(
 TARGET_ROOT_WRITE = re.compile(
     r">{1,2}\s*\"?(?:\./)?target[\\/](?![\\/])([^\\/\s\"]+)\"?(?=\s|$)", re.MULTILINE
 )
-# The runs that belong to a close and must wait for it.
-CLOSE_RUNS = re.compile(
-    r"close\.py\s+--(?:plan|check)(?!.*--merge)|run_legacy_tests\.py[^\n]*--(?:list|pass-cache)\b"
-    r"|tools[\\/]callsite[\\/]|tools[\\/]sandbox[\\/]run\.py|tools[\\/]linux[\\/]sync"
-)
-# Working runs the gate lets through even when they mention a list.
-WORKING_RUN = re.compile(
-    r"--glob\b|--check-list\b|--list-only\b|unittest|test_close|test_run_legacy_tests"
-)
-TARGET_ALLOWED = ("scratch", "close")
+TARGET_ALLOWED = ("scratch", "check")
 
 
 def tracked(path: str) -> bool:
@@ -83,19 +73,8 @@ def check_command(cmd: str) -> str | None:
     if m:
         return (
             f"Refused by tools/hooks/guard_tool.py: target/{m.group(1)} would be written at the top of target/. "
-            "Scratch output goes under target/scratch/<date>/ (mkdir -p it first); the close's logs under "
-            "target/close/."
+            "Scratch output goes under target/scratch/<date>/ (mkdir -p it first)."
         )
-    if CLOSE_RUNS.search(cmd) and not WORKING_RUN.search(cmd):
-        tasks = open_tasks()
-        if tasks:
-            name, text = tasks[0]
-            return (
-                f"Refused by tools/hooks/guard_tool.py: this is a closing run, and change {name} still has "
-                f"{len(tasks)} open task(s), the first: {text!r}. The close runs once, when the change's tasks are "
-                "done (CLAUDE.md working rule 6). While working, run `cargo test -p <crate>` and the change's own "
-                "programs with --glob."
-            )
     return None
 
 
@@ -117,7 +96,7 @@ def check_path(file_path: str) -> str | None:
         if len(rel) == 1 or rel[0] not in TARGET_ALLOWED:
             return (
                 f"Refused by tools/hooks/guard_tool.py: {p.relative_to(ROOT).as_posix()} is under target/ but not "
-                "under target/scratch/ or target/close/. Scratch files go under target/scratch/<date>/."
+                "under target/scratch/ or target/check/. Scratch files go under target/scratch/<date>/."
             )
     return None
 

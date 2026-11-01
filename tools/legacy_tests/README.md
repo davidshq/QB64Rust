@@ -19,7 +19,7 @@ The qbasic suite (`--suite qbasic`) compiles each program of the clone's `tests\
 root and never runs it; it passes when the compile succeeds, as `qbasic_tests.sh` judges it. With `qb64rust` it
 takes `--jobs` (each program builds in a folder of its own beside its executable in the results folder; qb64pe
 builds in the clone's `internal\temp`, one at a time). Every program must pass, so the suite has no pass list; it is
-in the closing set and the set at a merge (`tools\close\close.py`, step `qbasic`; `qbasic-testcases`).
+a step of `just full` (`tools\check\steps.py`, step `qbasic`; `qbasic-testcases`).
 
 ### Golden corpus (`--suite corpus`)
 
@@ -110,16 +110,31 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
 - `--list <file>` runs only the programs named in the file: one `<group>/<name>` per line (no `.bas`), `#`
   starts a comment. A name with no program is an error. Combines with `--category` and `--glob` (both must match).
   `tests\corpus\slice.list` names the programs the new compiler's first slice must pass.
-- `--pass-cache <folder>` (corpus suite, not with `--record`): a program that passed is remembered by a hash of
-  its executable, its source and every file its run and comparison read (`.output`, `.screen`, `.keys`, `.stdin`,
-  `.normalize`, `.exitcode`, `.noprompt`, `.divergences`, and each file of `.files` by its path and bytes). The next run with the option still compiles and builds it, and when the hash is
-  the same reports `PASS` with "not run: passed before …" without running it; a last line says how many were
-  not run. With `--build-cache`, which gives an unchanged program a byte-identical executable, an edit to the
-  compiler then runs only the programs whose C++ it changed: the 342 of `slice.list` take 24 s when nothing
-  changed, against 92 s (`--jobs 8`, 2026-10-12). A failure is never remembered. A change's close runs the slice
-  and upstream pass lists with it; **the runs at a merge into `main` go without it** (`CLAUDE.md` working rule
-  9): it cannot see a result that depends on time or load, which is how `m10_screen_10` was found. With
-  `qb64pe` it does no harm and saves nothing (its builds differ byte for byte). The folder is safe to delete.
+- `--pass-cache <folder>` (corpus suite, not with `--record`; `target\pass-cache-2` by `tools\check`): a program
+  that passed is remembered by a hash of what its build reads and every file its run and comparison read (design
+  D1 of the OpenSpec change `testing-reset`). What the build reads: the compile command run with
+  `--print-build-inputs` (the driver's own key of the program's part of the build: its C++ fragments, its make
+  flags, its resource, embedded and library files), libqb's copy by content, the C++ toolchain's executables, and
+  this runner's bytes, the last three read once per run (`run_inputs`). What the run reads: the source,
+  `.output`, `.screen`, `.keys`, `.stdin`, `.normalize`, `.exitcode`, `.noprompt`, `.divergences`, and each
+  file of `.files` by its path and bytes. The key is looked up before the build: when it is the same the program
+  is neither built nor run, and is reported `PASS` with "not run: passed before …"; a last line says how many.
+  The executable is not in the key: it holds the path of its build folder, so the same build in another folder
+  is other bytes (measured 2026-10-31). A failure is never remembered; nor is a program that the compiler
+  rejects, one whose executable holds its build time (`_COMPILEDATE$`, the driver prints `uncached`), or one
+  with an `.external` sidecar. **The runs at a merge into `main` go without it** (`check full --force`): it
+  cannot see a result that depends on time or load, which is how `m10_screen_10` was found. With `qb64pe` it is
+  not used. The folder is safe to delete.
+- `<name>.external` (every suite with `--pass-cache`): one line, why the program's result depends on something
+  outside its inputs: `desktop:` (a window, its screen state, the clipboard), `sound:`, `clock:` (timer events in
+  real time), `network:`, `varies:`. The pass cache never serves it, so it runs on every run that reaches it
+  (spec `testing/golden-corpus`, "Programs the pass cache never serves"). Beside the `.bas` in the corpus and
+  `verification\` (one per program: a script's test takes its program's); for an upstream program, which is
+  read from the clone, in `tests\upstream\external\<category>\<name>.external`. Every screen program has one
+  (`crates\driver\tests\it\inputs.rs` holds it); the others were found by what their source calls.
+- `--list-only` (corpus, compile, verification): runs nothing and prints every file inside the repository that
+  the selected programs' runs read, one per line. `tools\check\test_check.py` holds the globs of each suite's
+  step (`tools\check\steps.py`) to cover them.
 - `--cpp-opt` adds `-f:OptimizeCppProgram=true`; its failures list the programs whose behaviour depends on the
   C++ optimiser (`tests\corpus\README.md`). It cannot be combined with `--record`.
 - On Windows, `END` in a console program waits for a key from the console ("Press any key to continue"), which
@@ -149,9 +164,11 @@ python -m unittest discover -s tools/legacy_tests -p "test_*.py"
   old and the new compiler, `.norun`, `.stdin`, `.normalize`, a known failure without an expected file, a failed
   or timed-out run, `--record` with equal runs, with differing runs and with a rejection, and the data files of
   `<name>.files` copied for a run and for a recording, and refused beside `.err` or `.norun`;
-- `--pass-cache`: a program that passed is compiled and not run; another executable, source, expected file,
-  input file, screen state or data file (changed, added, renamed, gone) runs it; a failure and a `--record` run
-  are not remembered;
+- `--pass-cache`: a program that passed is neither built nor run; the same build inputs from another executable
+  are one key; other build inputs, source, expected file, input file, screen state or data file (changed, added,
+  renamed, gone) run it; a failure, a `--record` run, an `uncached` program and an `.external` one are not
+  remembered; libqb's copy is taken by content without what builds write, the toolchain by its executables; the
+  start order (failures, new programs, then the longest first) and the times file;
 - every outcome of one screen program, the stand-in writing the state file the environment names: equal and
   different state, no state, a state left by an earlier run, the keys file passed on, `.screen` beside `.err` or
   `.norun`, `.keys` without `.screen`, and `--record` with equal states, differing states and a run without one;
@@ -173,8 +190,8 @@ the compile, qbasic and format suites that are not shared with the corpus suite.
 QB64pe's `tests/add_prefix_test.sh`: its `$NOPREFIX` converter, `internal\support\converter\AddPREFIX.bas`, is built
 from the clone and run on a copy of `tests\converter_tests\addprefix.bas` in the results folder, which it rewrites
 in place (after moving the original to `addprefix-noprefix.bas`); the copy must equal `addprefix.output`, trailing
-newlines ignored. One program, a few seconds; nothing is copied into this repo. It is in the closing set
-(`tools\close\close.py`) and in `--suite all`. It found the first bug it ran on: `PUT` of a `STRING` member did not
+newlines ignored. One program, a few seconds; nothing is copied into this repo. It is a step of `just full`
+(`tools\check\steps.py`) and in `--suite all`. It found the first bug it ran on: `PUT` of a `STRING` member did not
 build with `qb64rust` (`tests\corpus\slice\s161_put_string_member`).
 
 ### The format oracle (`--suite format-corpus`)
@@ -395,9 +412,9 @@ Notes:
   - The one exception is `--jobs` with `qb64pe` (next point): it builds in its copies and can run beside
     another run that uses another results folder; it takes the clone's lock alone only to run a failed program
     again.
-  - The CLI tests that build (`cargo test -p qb64rust-driver --test cli -- --ignored`) take no lock of the
+  - The CLI tests that build (`cargo test -p qb64rust-driver --test it cli:: -- --ignored`) take no lock of the
     clone (they run no program there) and give every compiler they start `QB64RUST_OBJECTS_LOCK`
-    (`crates\driver\tests\support`). Python's lock is `LockFileEx` over the whole file, the range Rust's
+    (`crates\driver\tests\it\support`). Python's lock is `LockFileEx` over the whole file, the range Rust's
     `File::lock` takes, so the driver and these tools see each other's locks on the objects.
   - **A failure beside other builds runs again alone** (corpus and compile suites, `--jobs` above 1 with
     `qb64rust`): after the others, once, and both outcomes are printed (`[again]`). A failure that cannot
@@ -424,9 +441,7 @@ Notes:
   copy, so `cargo build --release` during the run replaces nothing the run reads: build, run tier 1 or a
   narrowed run of the new build while a long run goes on. The first line of the output names it:
   `[compiler] target/release/qb64rust.exe sha256 <hash> started <seconds since 1970>`; the results file still
-  names the compiler as given, with the same `compiler_sha256`. `tools\close\close.py --check` judges a run by
-  that hash against the current build and by its start against the test inputs changed since
-  (`tools\close\README.md`). The copy behaves as the original: the driver finds the reference clone and the copy of libqb from
+  names the compiler as given, with the same `compiler_sha256`. The copy behaves as the original: the driver finds the reference clone and the copy of libqb from
   the folder it was built in, a path fixed at build time. A copy not used for a day is removed at the next
   run's start (about 10 MB each).
 - <a id="merge-runs-in-a-worktree"></a>**The runs at a merge into `main` in a worktree** (`study\archive\34` §3 item 3,

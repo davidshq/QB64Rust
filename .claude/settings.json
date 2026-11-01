@@ -12,17 +12,6 @@
           }
         ]
       }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"${CLAUDE_PROJECT_DIR}/tools/hooks/stop_continue.py\"",
-            "timeout": 20
-          }
-        ]
-      }
     ]
   }
 }

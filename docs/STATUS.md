@@ -54,14 +54,22 @@ Nothing is waiting: `study\38`'s last questions were answered on 2026-10-28 (`DE
 
 ## Next
 
-1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs the full set,
-   `python tools\close\close.py --plan --merge`, ending with `--check --merge` (`tools\close\README.md`, "The test
-   cadence"); its numbers replace the block below.
+0. **`testing-reset`** is built (2026-10-31): one entry point, `just quick` / `just full` / `just check <target>`
+   (`tools\check\README.md`), results valid by their inputs, the pass cache keyed on what the build reads,
+   `.external` programs never served, one test binary per crate under nextest; `tools\close\` and the close hooks
+   out. Baseline against now, warm: tier 1 85 s against 53 s (`cargo test`; nextest 16 s and the lists 34 s), the
+   verification list 168 s and 18 min after a pruned build cache against 98 s with no build of a served
+   program (its 107 `.external` programs and 2,478 rejections run each time), the call-site check 170 s against
+   32–42 s, `just quick` after a one-line edit of `sema` 3 min 25 s; the numbers in its `design.md`, "Context". The main checkout's close of 2026-10-31
+   was the last of its kind. Left: the user deletes `tools\close\` and `tools\hooks\stop_continue.py`, commits,
+   and runs `just full` in a worktree of the commit (tasks 3.5, 6.1, 7.1).
+1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs `just force
+   full` in a worktree of the merge commit (`tools\check\README.md`); its numbers replace the block below.
 2. **`basic-unit-tests`** is built (2026-10-29); its closing runs pass but for `verification\v49_d_clipboard`
    (the clipboard race of "Known bugs"), then the user's review and `/opsx:archive`:
    D-012 (a program ended by a runtime error exits with 1, traced; the runner's rule without sidecars),
    `qb64rust test` and the Test Explorer (`openspec\changes\archive\2026-10-30-basic-unit-tests\`). Its CLI tests that build
-   (`cargo test -p qb64rust-driver --test unit_tests -- --ignored`) are not in `tools\close\close.py`'s set yet.
+   (`cargo test -p qb64rust-driver --test it unit_tests:: -- --ignored`) run in the `cli` step of `just full`.
 3. **`desktop-sandbox`** is built, reviewed and archived (2026-10-30): the seven desktop built-ins of
    `tests\never_run.list` (now reason `sandbox`) run in Windows Sandbox, `tests\sandbox\` judged by QB64pe's builds
    run there, all seven passing with the coverage check (`tools\sandbox\README.md`;

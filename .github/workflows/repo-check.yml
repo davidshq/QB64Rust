@@ -2,9 +2,9 @@
 # in tracked files, no stray control bytes. Runs on every change, documents included.
 name: Repo check
 
+# Started by hand only ("Run workflow"; OpenSpec change testing-reset, task 6.0): `just full` in a worktree is the
+# check before a merge into main.
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 permissions:

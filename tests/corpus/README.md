@@ -28,6 +28,9 @@ and `<name>.noprompt`: the value of `QB64PE_NOPROMPT` for the run instead of `y`
 after an untrapped runtime error; `slice\s12_error_in_print`),
 and `<name>.exitcode`: the exit code the program must end with (`END n`, `SYSTEM n`; without it, 0; written by
 `--record`),
+and `<name>.external`: one line, why the program's result depends on the desktop, sound, the clock or the network;
+the pass cache never serves it (`tools\legacy_tests\README.md`, `--pass-cache`). Every screen program has one,
+with its scripts,
 and `<name>.stdin`: the program's standard input, byte for byte, for a program that reads the console with `INPUT`
 or `LINE INPUT` (without it the program gets no input). **A program with a `.stdin` file must end with `SYSTEM`**:
 `END` waits for a key that never arrives while standard input is a file (measured, 2026-10-10).
@@ -289,12 +292,12 @@ cargo build --release
 python tools\legacy_tests\run_legacy_tests.py --suite corpus --qb64 target\release\qb64rust.exe --list tests\corpus\slice.list
 ```
 
-`cargo test` (tier 1, `crates\driver\tests\inputs.rs` since `m2-upstream-tests`, together with the upstream
+`cargo test` (tier 1, `crates\driver\tests\it\inputs.rs` since `m2-upstream-tests`, together with the upstream
 copy and the other input sets of `tests\upstream\README.md`) runs the front end over every corpus program and
 requires no panic, an exact round trip, no diagnostics for the listed ones, at least one error for every program
 with an `.err` file, and the two shrink-only lists `tests\known_false_errors.list` and
 `tests\known_unsupported_rejections.list`. Add a program to the list when the compiler supports everything it
-uses. The seeded mutation test (`crates\driver\tests\mutate.rs`) also starts from the corpus programs.
+uses. The seeded mutation test (`crates\driver\tests\it\mutate.rs`) also starts from the corpus programs.
 
 ### Full corpus with `qb64rust` (2026-10-14, after `m3-images-fonts-mouse`; not a pass criterion)
 

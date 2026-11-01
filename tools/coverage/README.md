@@ -113,5 +113,5 @@ that no record names (the counts are of a part of the suites, or no program hold
 the list that is not of that form (only an empty line is skipped); and on a built-in of `sema`'s tables that no
 record names, listed or not, as one held only where no statement is counted (a `CONST`). The tables are read from
 the text of `crates\sema\src\builtins.rs` (`--table`), one row per line, a form tier 1 holds. Tier 1 holds the same list to the built-ins `sema` compiles and wants a
-call-site program for each (`crates\driver\tests\inputs.rs`). It runs at a merge into `main`, on the counts of the
+call-site program for each (`crates\driver\tests\it\inputs.rs`). It runs at a merge into `main`, on the counts of the
 three full suites (`CLAUDE.md` working rule 6).

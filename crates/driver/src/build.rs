@@ -563,6 +563,30 @@ pub const CACHE_ENV: &str = "QB64RUST_BUILD_CACHE";
 /// `libqb-copy`: it never builds the copy's objects, so its compiler settings are not in the key either). The
 /// toolchain's executables are those of its `bin` ([`toolchain_stamps`]).
 fn build_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
+    let mut h = program_inputs(roots, build, settings);
+    h.file(&roots.libqb.join("internal/c/qbx.cpp"), "qbx.cpp");
+    h.file(&roots.libqb.join("Makefile"), "Makefile");
+    let c = roots.libqb.join("internal/c");
+    let mut stamps = Vec::new();
+    stamp_tree(&c, &c, &mut stamps);
+    stamps.extend(toolchain_stamps(&roots.toolchain));
+    stamps.sort();
+    for s in &stamps {
+        h.write(s.as_bytes());
+        h.write(b"\0");
+    }
+    format!("{:032x}", h.0)
+}
+
+/// The program's half of [`build_key`]: what `make` reads that the program decides (the fragments, the settings,
+/// the resource, embedded and library files), without the copy of libqb and the toolchain. The test runner keys
+/// its pass cache on it, adding libqb's copy by content and the toolchain once per run (`--print-build-inputs`,
+/// design D1 of `testing-reset`).
+pub fn program_inputs_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
+    format!("{:032x}", program_inputs(roots, build, settings).0)
+}
+
+fn program_inputs(roots: &Roots, build: &Path, settings: &Settings) -> Fnv128 {
     let mut h = Fnv128::new();
     // The version stands for `build_with_make`'s fixed arguments: change it when they change.
     // 8: the deterministic build (`program_makefile`).
@@ -644,18 +668,7 @@ fn build_key(roots: &Roots, build: &Path, settings: &Settings) -> String {
             h.file(&p, EMBEDDED_CPP);
         }
     }
-    h.file(&roots.libqb.join("internal/c/qbx.cpp"), "qbx.cpp");
-    h.file(&roots.libqb.join("Makefile"), "Makefile");
-    let c = roots.libqb.join("internal/c");
-    let mut stamps = Vec::new();
-    stamp_tree(&c, &c, &mut stamps);
-    stamps.extend(toolchain_stamps(&roots.toolchain));
-    stamps.sort();
-    for s in &stamps {
-        h.write(s.as_bytes());
-        h.write(b"\0");
-    }
-    format!("{:032x}", h.0)
+    h
 }
 
 /// The stamps of the files under `dir`, without the toolchain (`c_compiler`, stamped by its executables), the
@@ -1695,6 +1708,61 @@ mod tests {
         assert_ne!(first, second);
         std::fs::write(&lib, "b").unwrap();
         assert_ne!(second, key());
+    }
+
+    /// The program's half of the key (`--print-build-inputs`, design D1 of `testing-reset`): the same for the same
+    /// build, another for a changed fragment, make flag, resource or library, and untouched by libqb's copy, which
+    /// the test runner hashes by content itself.
+    #[test]
+    fn program_inputs_key_follows_the_program_not_libqb() {
+        let d = tempfile::tempdir().unwrap();
+        let build = d.path().join("build");
+        let libqb = d.path().join("libqb");
+        std::fs::create_dir_all(build.join("temp")).unwrap();
+        std::fs::create_dir_all(libqb.join("internal/c")).unwrap();
+        std::fs::write(build.join("temp/main.txt"), "int main;").unwrap();
+        std::fs::write(libqb.join("internal/c/qbx.cpp"), "one").unwrap();
+        let roots = Roots {
+            libqb: libqb.clone(),
+            ..one_root(d.path())
+        };
+        let key = |s: &Settings| program_inputs_key(&roots, &build, s);
+        let plain = Settings::default();
+        let first = key(&plain);
+        assert_eq!(first, key(&plain));
+        let whole = build_key(&roots, &build, &plain);
+        std::fs::write(libqb.join("internal/c/qbx.cpp"), "two").unwrap();
+        assert_eq!(first, key(&plain));
+        assert_ne!(whole, build_key(&roots, &build, &plain));
+        std::fs::write(build.join("temp/main.txt"), "int main2;").unwrap();
+        let fragment = key(&plain);
+        assert_ne!(first, fragment);
+        let console = Settings {
+            flags: vec!["DEP_CONSOLE_ONLY=y"],
+            ..Settings::default()
+        };
+        assert_ne!(fragment, key(&console));
+        let icon = d.path().join("game.ico");
+        std::fs::write(&icon, [0, 0, 1, 0, 1]).unwrap();
+        write_resources(&build, Some(&icon), None, "game.exe").unwrap();
+        let with_icon = Settings {
+            flags: vec![ICON_RC_FLAG],
+            ..Settings::default()
+        };
+        let icon_key = key(&with_icon);
+        std::fs::write(&icon, [0, 0, 1, 0, 2]).unwrap();
+        write_resources(&build, Some(&icon), None, "game.exe").unwrap();
+        assert_ne!(icon_key, key(&with_icon));
+        let lib = d.path().join("v.a");
+        std::fs::write(&lib, "a").unwrap();
+        let with_lib = Settings {
+            libraries: vec![lib.clone()],
+            ..Settings::default()
+        };
+        let lib_key = key(&with_lib);
+        assert_ne!(fragment, lib_key);
+        std::fs::write(&lib, "b").unwrap();
+        assert_ne!(lib_key, key(&with_lib));
     }
 
     /// The libraries come after the extra link flags, as `qb64pe` adds them; a path with a space is quoted.

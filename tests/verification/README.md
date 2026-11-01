@@ -14,7 +14,7 @@ what the new compiler is held to against them, so that `verification\` keeps the
 | `normalize\<name>.normalize` | rules applied to both the recorded and the actual output before they are compared, as for the corpus (`<regex><TAB><replacement>`); the first is `v58_s02_files`'s, which masks the free space `FILES` prints; `v59_g_readback`'s masks the OpenGL viewport, the window's size as the desktop sets it |
 
 Every program of `verification\` is named exactly once across the two lists; tier 1 checks it
-(`verification_lists_are_exact` in `crates\driver\tests\inputs.rs`). A change that adds a family adds its programs
+(`verification_lists_are_exact` in `crates\driver\tests\it\inputs.rs`). A change that adds a family adds its programs
 to one of the lists.
 
 ## The reasons of `known.list`
@@ -61,8 +61,8 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target
     --list tests\verification\pass.list --jobs 8 --build-cache target\build-cache --pass-cache target\pass-cache
 ```
 
-At a change's close the pass list runs with `--pass-cache` (`tools\close\close.py`); at a merge into `main` the whole
-suite runs without it and the list is judged from that run with `--check-list tests\verification\pass.list`.
+`just full` runs the pass list with `--pass-cache` (`tools\check\README.md`), and `just quick` runs the programs a
+change adds or changes alone; at a merge into `main` `just force full` runs it without the cache.
 
 ## Counts
 

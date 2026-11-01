@@ -15,8 +15,8 @@ python -m unittest tools/sandbox/test_run.py               # its own tests, no s
 
 **It takes the screen for about a minute.** The sandbox's window opens on the host's desktop and the programs move
 its mouse and type into it; nothing reaches the host's own desktop, clipboard or console, but run it alone, after
-any other test run, and leave the mouse and keyboard alone while it runs. In `tools\close\close.py`'s plan it is the
-last step.
+any other test run, and leave the mouse and keyboard alone while it runs. In `just full` it is the
+last step, alone (`tools\check\steps.py`).
 
 ## What the host needs
 
@@ -42,7 +42,7 @@ are needed inside: the executables need only system DLLs, and the script inside 
 ## What a run does
 
 1. Builds each program into `target\sandbox\run\bin\<name>.exe`: with a copy of `target\release\qb64rust.exe`
-   (`tools\legacy_tests\compiler_copy.py`; the log's first line names its hash, which `close.py --check` reads) and
+   (`tools\legacy_tests\compiler_copy.py`; the log's first line names its hash) and
    `--coverage --fixes off`, or under `--record` with the clone's `qb64pe.exe`, holding the clone's lock
    (`tools\legacy_tests\clone_lock.py`). A program that does not build fails.
 2. Writes `target\sandbox\run\sandbox.wsb`: that folder mapped read-write to `C:\run`, and networking, the
@@ -96,7 +96,7 @@ yourself how to do it in future"), so nobody has to open Settings:
 
 ## When it runs
 
-On request; at a change's close when `close.py` finds the change touched `tests\sandbox\`, `tools\sandbox\` or
-`tests\never_run.list`, or with `close.py --sandbox` (a change to one of the seven built-ins' emission or to libqb's
-code for them); always at a merge into `main` (`tools\close\README.md`, "The test cadence"). Never in CI: the hosted
+On request (`just check sandbox`); in `just full` when its inputs changed since its last pass (`tests\sandbox\`,
+`tools\sandbox\`, `tests\never_run.list`, the compiler, libqb: `tools\check\steps.py`); always at a merge into
+`main` (`just force full`). Never in CI: the hosted
 runners have no Windows Sandbox and no desktop.

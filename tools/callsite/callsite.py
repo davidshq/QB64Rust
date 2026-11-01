@@ -13,7 +13,7 @@ git-ignored target/test-bin (tools/legacy_tests/compiler_copy.py), so that a bui
 changes nothing it reads; the first line, "[compiler] <path> sha256 <hash> started <time>", names it.
 
 Usage:
-    python tools/callsite/callsite.py [--qb-root DIR] [--qb64rust EXE] [--glob PATTERN] [--verbose]
+    python tools/callsite/callsite.py [--qb-root DIR] [--qb64rust EXE] [--glob PATTERN] [--jobs N] [--verbose]
                                       [--wait]
     python tools/callsite/callsite.py --self-test
 
@@ -25,6 +25,7 @@ instead).
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import hashlib
 import os
 import re
@@ -32,6 +33,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -99,7 +101,8 @@ WRAPPERS = {"qbr_coth": "func_coth"}
 
 # Rule 8: the scratch folder the programs are compiled in, where a string literal starts with it (a log statement
 # names its file by its full path). The old compiler's answer may come from the cache, written in another folder.
-WORK = re.compile(r'"[^"\n]*?qb64rust-callsite-[A-Za-z0-9_]+(?:\\\\|/)')
+# The run's scratch folder and, with --jobs, the program's folder in it (a number).
+WORK = re.compile(r'"[^"\n]*?qb64rust-callsite-[A-Za-z0-9_]+(?:\\\\|/)(?:\d+(?:\\\\|/))?')
 
 
 def tokenize(text: str) -> list[str]:
@@ -400,23 +403,29 @@ def old_cpp_cached(
     return text, why
 
 
+# The old compiler writes its C++ in the clone's internal/temp, one program at a time: with --jobs the programs'
+# old sides take this lock in turn (the new sides, each in a folder of its own, go on beside them).
+OLD_SIDE = threading.Lock()
+
+
 def old_cpp(qb_root: Path, work: Path, name: str) -> tuple[str | None, str]:
-    clear_temp(qb_root)
-    r = subprocess.run(
-        [str(qb_root / "qb64pe.exe"), "-z", "-q", "-m", name],
-        cwd=work,
-        capture_output=True,
-        text=True,
-        errors="replace",
-        timeout=300,
-        check=False,
-    )
-    main0 = qb_root / "internal" / "temp" / "main0.txt"
-    if r.returncode != 0 or not main0.is_file():
-        return None, "the old compiler rejects it: " + " / ".join(
-            ln.strip() for ln in r.stdout.splitlines() if ln.strip()
+    with OLD_SIDE:
+        clear_temp(qb_root)
+        r = subprocess.run(
+            [str(qb_root / "qb64pe.exe"), "-z", "-q", "-m", name],
+            cwd=work,
+            capture_output=True,
+            text=True,
+            errors="replace",
+            timeout=300,
+            check=False,
         )
-    return main0.read_text(encoding="latin-1"), ""
+        main0 = qb_root / "internal" / "temp" / "main0.txt"
+        if r.returncode != 0 or not main0.is_file():
+            return None, "the old compiler rejects it: " + " / ".join(
+                ln.strip() for ln in r.stdout.splitlines() if ln.strip()
+            )
+        return main0.read_text(encoding="latin-1"), ""
 
 
 def new_cpp(qb64rust: Path, work: Path, name: str) -> tuple[str | None, str]:
@@ -823,6 +832,13 @@ def main() -> int:
     ap.add_argument(
         "--no-cache", action="store_true", help="run the old compiler for every program"
     )
+    ap.add_argument(
+        "--jobs",
+        type=int,
+        default=1,
+        help="compare this many programs at a time, as the test runner's --jobs; the old compiler's side, when "
+        "its cache has no answer, is written one program at a time",
+    )
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
@@ -856,20 +872,29 @@ def main() -> int:
     print(header(shown, digest, started), flush=True)
     counts = {"equal": 0, "differ": 0, "not compared": 0}
     work = Path(tempfile.mkdtemp(prefix="qb64rust-callsite-"))
+    qb_root = args.qb_root.resolve()
+    cache = None if args.no_cache else args.cache
+
+    def one(item: tuple[int, Path]) -> tuple[str, str]:
+        # A folder per program: the files of one never meet another's.
+        i, p = item
+        folder = work / str(i)
+        folder.mkdir()
+        try:
+            return compare(p, qb_root, qb64rust, folder, cache)
+        finally:
+            shutil.rmtree(folder, ignore_errors=True)
+
     try:
-        for p in programs:
-            verdict, detail = compare(
-                p,
-                args.qb_root.resolve(),
-                qb64rust,
-                work,
-                None if args.no_cache else args.cache,
-            )
-            counts[verdict] += 1
-            if verdict == "equal" and not args.verbose:
-                print(f"equal         {p.stem}")
-            else:
-                print(f"{verdict:<13} {p.stem}\n    {detail}")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
+            # In the programs' order, whatever the number of jobs.
+            verdicts = pool.map(one, enumerate(programs))
+            for p, (verdict, detail) in zip(programs, verdicts):
+                counts[verdict] += 1
+                if verdict == "equal" and not args.verbose:
+                    print(f"equal         {p.stem}", flush=True)
+                else:
+                    print(f"{verdict:<13} {p.stem}\n    {detail}", flush=True)
     finally:
         shutil.rmtree(work, ignore_errors=True)
     print(

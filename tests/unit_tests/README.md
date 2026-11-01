@@ -1,6 +1,6 @@
 # Fixtures of `qb64rust test`
 
-Test files for the CLI tests of `qb64rust test` (`crates\driver\tests\unit_tests.rs`, one test per scenario of the
+Test files for the CLI tests of `qb64rust test` (`crates\driver\tests\it\unit_tests.rs`, one test per scenario of the
 spec `compiler/unit-tests`; OpenSpec change `basic-unit-tests`). Several fail, error or time out on purpose. Run
 them by hand from this folder: `qb64rust test <folder>`.
 

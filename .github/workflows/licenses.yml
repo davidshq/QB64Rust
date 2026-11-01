@@ -1,6 +1,9 @@
 name: License inventory
 
-on: [push, pull_request, workflow_dispatch]
+# Started by hand only ("Run workflow"; OpenSpec change testing-reset, task 6.0): `just full` in a worktree is the
+# check before a merge into main.
+on:
+  workflow_dispatch:
 
 permissions:
   contents: read

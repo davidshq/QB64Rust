@@ -76,8 +76,8 @@ refuses).
 
 ## Tiers
 
-- Tier 1 (`cargo test`): `crates\difftest\tests\fresh.rs` regenerates in memory and compares with these files, and
-  requires a recording for each; `crates\driver\tests\inputs.rs` runs the front end over them (no panic, exact
+- Tier 1 (`cargo test`): `crates\difftest\tests\it\fresh.rs` regenerates in memory and compares with these files, and
+  requires a recording for each; `crates\driver\tests\it\inputs.rs` runs the front end over them (no panic, exact
   round trip, no false error) and requires every program that compiles cleanly to be in `pass.list`.
 - Tier 2 and CI (`rust.yml`, job `tier2`, started by hand): the programs of `pass.list` built and run with `qb64rust`.
 

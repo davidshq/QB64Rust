@@ -82,58 +82,10 @@ changing direction, design or scope.**
    moving on.
    *Why:* on 2026-10-03 this corrupted files four times (`study\02` became `study` + 0x02, `verification\v13`
    became a vertical tab) and each needed a scan and a redo (user, 2026-10-03).
-6. **Test cadence: run what a change can affect, once.**
-   - While working: `cargo test -p <crate>` for the crates the work touched. The whole workspace (`cargo test
-     --workspace --no-fail-fast`, tier 1) runs at a task group's end only when the group changed a crate others depend
-     on (`base`, `syntax`, `sema`, `ir`, `codegen-cpp`: their changes reach the snapshot and CLI tests of `driver`),
-     else once at the change's end; it may run in the background while work goes on. fmt and clippy before a group is
-     reported done (user, 2026-10-27, to the panel; `DECISIONS.md`).
-   - **A close waits for the change's tasks** (hooks, 2026-10-31): `close.py --plan`/`--check`, a `--list` or
-     `--pass-cache` run, the call-site check and the sandbox and Linux families are refused while the active
-     change has unchecked tasks, and the Stop hook keeps a turn going while tasks are open (`tools\hooks\README.md`).
-   - **A close runs once per batch: when Claude is about to give the user the files to stage** (user, 2026-10-30,
-     `study\40` R1), not at the end of each OpenSpec change when several land on one branch before a commit.
-     `--check` judges against `HEAD`, so the batch is the work since the last commit. A change's task "the closing
-     runs: `tools\close\close.py --check` passes" is met by its batch's close; a change archived before that waits
-     for it or says so. *Why:* on 2026-10-30 four closes ran on one branch in one day, for work committed once.
-   - Tier 2 runs **once per batch, at its close**, not per task group. Before that, run only the programs the
-     work touches (`--glob`, `--category`, a short `--list`), or a list with `--pass-cache target\pass-cache`,
-     which runs only the programs whose executable changed.
-   - **At a change's close, follow `python tools\close\close.py --plan` and end with `--check`** (user,
-     2026-10-17): it prints the closing set as commands, in order, each started by its own command, and the check
-     names any step that is missing, stale or failing. Its task in `tasks.md` reads "the closing runs:
-     `tools\close\close.py --check` passes". The closing set is thin (user, 2026-10-28, `study\38` §5.3 item 2):
-     what can show a change's fault, no reports. **A step the plan prints as a comment is not run** (user,
-     2026-10-30): no changed file reaches it (`tools\close\README.md`, "What a changed file reaches"), its last log
-     stands, and `--check` judges that log. A libqb edit names the built-ins it changes (`builtins:` in the edit
-     file); one whose built-ins are all on `tests\never_run.list` reaches their family alone. *Why:* on 2026-10-30
-     a close ran every list, 25 minutes, for a libqb edit of `_SCREENCLICK`, which only `tests\sandbox\` runs. What is in it, what waits for a merge into `main`, the order of
-     the runs and how work goes on beside them: `tools\close\README.md`, "The test cadence". *Why:* at the close
-     of `m3-errorline-chr-const` the set was worked from memory: the `verification` family was not checked, and
-     `cargo test` stopped at a failing test binary, so about 230 tests never ran, one of them failing.
-   - **At each merge into `main`**, every two or three changes: the full set, no pass cache, and the reports left
-     out of a change's close (the same README): follow `python tools\close\close.py --plan --merge` and end with
-     `--check --merge`. It may run in a worktree of the merge commit while the next change
-     goes on here.
-   - After the closing runs, a further edit is rerun only for what it can affect; say which runs were not
-     repeated and why that is safe.
-   - **Read a run's output from a log, not by running it again.** Send a run that may need a second look to a
-     file under `target\scratch\<date>\` (`cargo test > target\scratch\2026-10-31\t1.log 2>&1`, then `tail`/`grep`
-     the file; a hook refuses a file written at the top of `target\`, and `tools\clean\clean.py`, the first command
-     of every close, removes scratch older than a week); a run piped through `tail` or `grep`
-     whose lines turn out to say too little is not started again with another filter. *Why:* by 2026-10-14, 84
-     `cargo test` runs had been repeated with nothing edited, after a failure or an output cut down to nothing
-     (`tools\testtime\REPORT.md`, about 22 minutes).
-   - Do not write "tier 2 after every group" or "check CI after the push" into a change's `tasks.md`.
-   - **CI is not a gate.** Look at it when the user asks. The `tier2` job runs only when started by hand (its
-     weekly run was stopped, user, 2026-10-28). Claude may start a CI run (`gh workflow run`), but never waits on
-     one: the next piece of work goes ahead, and the result is read when it comes (user, 2026-10-16).
-   - **The record of test runs** (`tools\testtime\`) is written when the user asks, not at each close (user,
-     2026-10-28). Start a test run by its own command, not through a script file, or the record does not see it.
-
-   *Why:* in the session that built `m3-window-output` the slice list ran five times, the call-site check
-   three times at almost six minutes each, and two tasks waited on CI; the user: "it feels like we run the tests
-   over and over", "not sure why you are so insistent on making ci be green" (user, 2026-10-12).
+6. **Testing.** Run `cargo test -p <crate>` on what you touched while working. Run `just quick` in the background
+   before handing over files to stage, and say what ran, what stood and why. `just full` runs in a worktree of the
+   commit, started by the user, before a merge into `main`. Read a run's output from its log; never start a run
+   again to read it. (`tools/check/README.md`; the OpenSpec change `testing-reset`, `DECISIONS.md` 2026-10-31.)
 
 7. **Documents: what is read when, and when the paperwork is done.**
    - **`study\archive\` is read only when needed**: when a live document points there for a fact or a reason the
@@ -147,7 +99,7 @@ changing direction, design or scope.**
      answered it. *Why:* by 2026-10-18 `study\` held 32 documents, two thirds of them reviews whose outcomes were
      already recorded elsewhere (user, 2026-10-18).
    - **The paperwork around a change goes at the merge cadence, not per change** (`study\35` §3 item 3, user,
-     2026-10-18). A change's close asks the user nothing about the behaviours it kept QB64pe's way: each is a row
+     2026-10-18). The end of a change asks the user nothing about the behaviours it kept QB64pe's way: each is a row
      in `SOMEDAY.md`'s "QB64pe behaviours to review" and stays silent until the user asks for them. Reviews, and
      the edits of `ROADMAP.md` and of `STATUS.md` beyond its "Next" and known bugs, come once per merge into
      `main`. `study\00` §5 takes no new facts: a fact measured from now on lives in its family's recorded output,
