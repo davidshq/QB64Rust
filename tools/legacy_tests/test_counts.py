@@ -182,5 +182,21 @@ class Results(unittest.TestCase):
                 self.assertIn(f"{kfail} known failure{'' if kfail == 1 else 's'} (", lines[0])
 
 
+class Strict(unittest.TestCase):
+    """`--strict` (the merge's `counts` step, tools/check/steps.py): a block left as it is fails the run."""
+
+    def run_main(self, *argv: str) -> int:
+        with tempfile.TemporaryDirectory() as d:
+            readme = Path(d) / "README.md"
+            readme.write_text("<!-- counts:x -->\n<!-- /counts:x -->\n", encoding="utf-8")
+            left = [(readme, "x", "results", lambda: (None, "no full run"))]
+            with mock.patch.object(counts, "BLOCKS", left), mock.patch("sys.argv", ["counts.py", *argv]):
+                return counts.main()
+
+    def test_a_block_left_as_it_is_fails_only_with_strict(self):
+        self.assertEqual(self.run_main(), 0)
+        self.assertEqual(self.run_main("--strict"), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -62,7 +62,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target
 ```
 
 `just full` runs the pass list with `--pass-cache` (`tools\check\README.md`), and `just quick` runs the programs a
-change adds or changes alone; at a merge into `main` `just force full` runs it without the cache.
+change adds or changes alone; at a merge into `main` `just merge` runs the whole suite without the cache and holds the pass list to it.
 
 ## Counts
 

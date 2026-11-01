@@ -16,6 +16,10 @@ from dataclasses import dataclass, field
 
 QUICK = "quick"
 FULL = "full"
+# The merge into main: every step but those its whole suites stand for (MERGE_REPLACES), always run again, and the
+# steps of its own, which regenerate files (the lists, the wording table, the coverage records, the count blocks)
+# and hold the pass lists and the built-ins' list to the whole suites' results.
+MERGE = "merge"
 
 RUNNER = "tools/legacy_tests/run_legacy_tests.py"
 EXE = "target/release/qb64rust.exe"
@@ -85,11 +89,48 @@ class Step:
     side_lists: tuple[str, ...] = ()
     # Run with nothing beside it (its window takes the screen).
     alone: bool = False
+    # A writer of the merge: it writes files the others read or build in, so `check merge` runs the writers as a
+    # plan of their own and plans the rest after them (check.py, `main`).
+    first: bool = False
+    # Run after its needs whatever their result (not when one was skipped): it reads what they wrote, not their
+    # verdict (a whole suite with one failure still has results to hold the pass lists to).
+    after_failure: bool = False
     env: dict[str, str] = field(default_factory=dict)
 
 
 def runner(suite: str, *extra: str) -> tuple[str, ...]:
     return ("python", RUNNER, "--suite", suite, "--qb64", EXE, *extra)
+
+
+# The coverage records of the merge's whole suites, one file each, which check.py's libqb narrowing reads.
+COUNTS = "target/coverage/merge"
+# (step, runner suite, pass list): the merge's whole suites, and the list each stands for.
+WHOLE = (
+    ("corpus", "corpus", "tests/corpus/slice.list"),
+    ("upstream", "compile", "tests/upstream/pass.list"),
+    ("verification", "verification", "tests/verification/pass.list"),
+)
+# The steps the merge leaves out: its whole suites run every program of their lists, and write the results that
+# `--check-list` reads, which a run of a list would replace.
+MERGE_REPLACES = frozenset({"slice", "upstream", "verification", "linux-slice"})
+
+
+def whole(name: str, suite: str) -> str:
+    # The programs add to the counts file: it is removed first, so it holds this run's alone.
+    counts = f"{COUNTS}/{name}.txt"
+    return (
+        f"rm -f {counts} && mkdir -p {COUNTS} && python {RUNNER} --suite {suite} --qb64 {EXE} --jobs 8 "
+        f"--build-cache target/build-cache --coverage {counts}"
+    )
+
+
+def linux_whole(suite: str) -> str:
+    # Each builds first, so that none runs an older build beside another's: cargo builds nothing when it is current.
+    return (
+        "wsl -e bash -lc 'cd ~/qb64rust && cargo build --release --locked && python3 "
+        f"tools/legacy_tests/run_legacy_tests.py --suite {suite} --qb64 target/release/qb64rust --jobs 8 "
+        "--build-cache target/build-cache'"
+    )
 
 
 # `nextest` and `lists` split the workspace's tests by whether a test is inputs.rs's (the folded driver binary's
@@ -135,7 +176,7 @@ STEPS: tuple[Step, ...] = (
     Step(
         "slice",
         QUICK,
-        runner("corpus", *CACHES, "--list", "tests/corpus/slice.list"),
+        runner("corpus", *CACHES, "--pass-list", "--list", "tests/corpus/slice.list"),
         BUILT + LIBQB + RUNNER_FILES + ("tests/corpus/**", "tests/upstream/root/**"),
         needs=("build",),
         external=("toolchain",),
@@ -145,7 +186,7 @@ STEPS: tuple[Step, ...] = (
     Step(
         "upstream",
         FULL,
-        runner("compile", *CACHES, "--list", "tests/upstream/pass.list"),
+        runner("compile", *CACHES, "--pass-list", "--list", "tests/upstream/pass.list"),
         BUILT + LIBQB + RUNNER_FILES + ("tests/upstream/**",),
         needs=("build",),
         external=("toolchain", "clone"),
@@ -155,7 +196,7 @@ STEPS: tuple[Step, ...] = (
     Step(
         "verification",
         FULL,
-        runner("verification", *CACHES, "--list", "tests/verification/pass.list"),
+        runner("verification", *CACHES, "--pass-list", "--list", "tests/verification/pass.list"),
         BUILT + LIBQB + RUNNER_FILES + ("verification/**", "!verification/*.exe", "tests/verification/**"),
         needs=("build",),
         external=("toolchain",),
@@ -213,6 +254,7 @@ STEPS: tuple[Step, ...] = (
             *CACHES,
             "--results",
             "target/legacy-tests-differential",
+            "--pass-list",
             "--list",
             "tests/differential/pass.list",
         ),
@@ -231,6 +273,7 @@ STEPS: tuple[Step, ...] = (
             "--results",
             "target/legacy-tests-nofold",
             "--wait",
+            "--pass-list",
             "--list",
             "tests/corpus/slice.list",
         ),
@@ -277,6 +320,99 @@ STEPS: tuple[Step, ...] = (
         needs=("build",),
         external=("toolchain",),
         alone=True,
+    ),
+)
+
+_BY_NAME = {s.name: s for s in STEPS}
+_WORDING = BUILT + ("tools/diagnostics/**", "tests/**", "verification/**", "!verification/*.exe")
+
+# The merge's own steps (the merge set of the old tools/close/close.py, git history). In `check merge` none stands:
+# it runs every step again. A step named alone (`check counts`) follows the rule of a named step, and the steps it
+# needs may stand.
+STEPS += (
+    Step(
+        "update-lists",
+        MERGE,
+        ("cargo", "test", "-p", "qb64rust-driver", "--locked", "--test", "it", "inputs::"),
+        _BY_NAME["lists"].inputs,
+        external=("clone",),
+        first=True,
+        env={"QB64RUST_UPDATE_LISTS": "1"},
+    ),
+    # The table is written from the rejections compiled by the release build, and the compiler holds the table:
+    # it is built first here, and `build` builds the new table in.
+    Step(
+        "wording",
+        MERGE,
+        "cargo build --release && python tools/diagnostics/old_wording.py",
+        _WORDING,
+        first=True,
+    ),
+    Step("wording-check", MERGE, ("python", "tools/diagnostics/old_wording.py", "--check"), _WORDING, needs=("build",)),
+    *(
+        Step(
+            f"{name}-whole",
+            MERGE,
+            whole(name, suite),
+            _BY_NAME["slice" if name == "corpus" else name].inputs,
+            needs=("build",),
+            external=("toolchain", "clone"),
+        )
+        for name, suite, _ in WHOLE
+    ),
+    *(
+        Step(
+            f"{name}-list",
+            MERGE,
+            runner(suite, "--check-list", path),
+            _BY_NAME["slice" if name == "corpus" else name].inputs,
+            needs=(f"{name}-whole",),
+            after_failure=True,
+        )
+        for name, suite, path in WHOLE
+    ),
+    Step(
+        "builtins",
+        MERGE,
+        ("python", "tools/coverage/builtin_runs.py", "--check", *(f"{COUNTS}/{name}.txt" for name, _, _ in WHOLE)),
+        BUILT + ("tools/coverage/**",),
+        needs=tuple(f"{name}-whole" for name, _, _ in WHOLE),
+        after_failure=True,
+    ),
+    # A str: bash runs the release build by its path from the repository's top.
+    Step(
+        "demand-corpus",
+        MERGE,
+        f"{EXE} --report unsupported tests/corpus tests/programs",
+        BUILT + ("tests/corpus/**", "tests/programs/**"),
+        needs=("build",),
+    ),
+    Step(
+        "demand-upstream",
+        MERGE,
+        f"{EXE} --report unsupported --include-root tests/upstream/root tests/upstream/compile_tests",
+        BUILT + ("tests/upstream/**",),
+        needs=("build",),
+    ),
+    # After the whole suites, whose results it reads; `--strict` fails a block left as it is (no results, or of
+    # another build), which at a merge means a whole suite did not run as it should.
+    Step(
+        "counts",
+        MERGE,
+        ("python", "tools/legacy_tests/counts.py", "--strict"),
+        ("tools/legacy_tests/counts.py", "tests/**"),
+        needs=tuple(f"{name}-whole" for name, _, _ in WHOLE),
+        after_failure=True,
+    ),
+    *(
+        Step(
+            f"linux-{name}",
+            MERGE,
+            linux_whole(suite),
+            _BY_NAME["linux-slice"].inputs + _BY_NAME["slice" if name == "corpus" else name].inputs,
+            needs=("linux-sync",),
+        )
+        for name, suite, _ in WHOLE
     ),
 )
 

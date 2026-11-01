@@ -121,7 +121,7 @@ class CopyTest(unittest.TestCase):
         self.assertEqual(self.problems(), ["differs: internal/c/libqb.cpp"])
 
     def test_an_edit_may_name_the_builtins_it_changes(self):
-        # `builtins:` is read by tools/close/close.py; the tool takes it and applies the edit as without it.
+        # `builtins:` is read by tools/check/check.py; the tool takes it and applies the edit as without it.
         edits = self.edits_dir(
             a=b"# why\nfile: internal/c/libqb.cpp\nbuiltins: _SCREENCLICK\n--- old\nint x;\n--- new\nint y;\n--- end\n"
         )

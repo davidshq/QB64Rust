@@ -104,7 +104,7 @@ jobs:
       - run: cargo test --workspace --locked
       - run: python3 -m unittest discover -s tools/legacy_tests -p "test_*.py"
       # The CLI tests that build an executable (and the debugger's), with a display for the window programs.
-      - run: xvfb-run -a cargo test -p qb64rust-driver --test it --locked cli:: -- --ignored
+      - run: 'xvfb-run -a cargo test -p qb64rust-driver --test it --locked cli:: -- --ignored'
       - run: cargo build --release --locked
       - name: The slice list
         run: xvfb-run -a python3 tools/legacy_tests/run_legacy_tests.py --suite corpus --qb64 target/release/qb64rust --jobs 4 --list tests/corpus/slice.list

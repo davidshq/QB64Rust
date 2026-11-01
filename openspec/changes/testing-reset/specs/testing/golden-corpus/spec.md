@@ -39,3 +39,18 @@ be part of the key.
 #### Scenario: A file of its folder changed
 - **WHEN** a file is added to the program's category folder
 - **THEN** the next run with `--pass-cache` runs it again
+
+### Requirement: A run tests a copy of the compiler
+A run of the runner with the new compiler, and `callsite.py`, SHALL compile with a copy of the executable made at
+the run's start under `target\test-bin`, named by the executable's SHA-256, and SHALL print a line naming that
+hash and the time the run started. A `check` step's result SHALL rest on the fingerprint of its inputs as the
+plan read them, not on the commit or on when its log was written (spec `testing/check-workflow`).
+
+#### Scenario: A build during a run
+- **WHEN** the release build is replaced while a run of the slice list goes on
+- **THEN** the run's later programs are compiled by the same compiler as its first, and the next `check` plans the
+  step again when the build's inputs differ
+
+#### Scenario: The same bytes built again
+- **WHEN** the release build is built again from the same inputs after a run ended
+- **THEN** the step's result stands

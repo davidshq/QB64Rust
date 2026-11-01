@@ -61,10 +61,10 @@ Nothing is waiting: `study\38`'s last questions were answered on 2026-10-28 (`DE
    verification list 168 s and 18 min after a pruned build cache against 98 s with no build of a served
    program (its 107 `.external` programs and 2,478 rejections run each time), the call-site check 170 s against
    32–42 s, `just quick` after a one-line edit of `sema` 3 min 25 s; the numbers in its `design.md`, "Context". The main checkout's close of 2026-10-31
-   was the last of its kind. Left: the user deletes `tools\close\` and `tools\hooks\stop_continue.py`, commits,
-   and runs `just full` in a worktree of the commit (tasks 3.5, 6.1, 7.1).
-1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs `just force
-   full` in a worktree of the merge commit (`tools\check\README.md`); its numbers replace the block below.
+   was the last of its kind. `just merge` (design D11) holds the old merge set. Left: the user commits and runs `just full` in a
+   worktree of the commit (tasks 3.5, 7.1).
+1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs `just
+   merge` in a worktree of the merge commit (`tools\check\README.md`); its numbers replace the block below.
 2. **`basic-unit-tests`** is built (2026-10-29); its closing runs pass but for `verification\v49_d_clipboard`
    (the clipboard race of "Known bugs"), then the user's review and `/opsx:archive`:
    D-012 (a program ended by a runtime error exits with 1, traced; the runner's rule without sidecars),

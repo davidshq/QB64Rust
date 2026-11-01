@@ -916,6 +916,19 @@ class CorpusProgram(CorpusFixture):
 STATE = b"screen-state 1\npages 1 display 0 write 0 read 0\nend\n"
 
 
+class PassList(unittest.TestCase):
+    """--pass-list: a pass list holds programs that pass, so a known failure on it fails the run (D-052)."""
+
+    def test_the_known_failures_are_named(self):
+        results = [
+            rlt.Result("corpus", "g/a", "output"),
+            rlt.Result("corpus", "g/b", "output", "KFAIL"),
+            rlt.Result("corpus", "g/c", "output", "FAIL"),
+        ]
+        self.assertEqual(rlt.known_on_pass_list(results), ["corpus:g/b"])
+        self.assertEqual(rlt.known_on_pass_list(results[:1]), [])
+
+
 class StartOrder(unittest.TestCase):
     """Failures first, then new programs, then the longest by their last time (design D8 of testing-reset)."""
 

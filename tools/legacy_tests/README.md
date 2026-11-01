@@ -122,7 +122,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   The executable is not in the key: it holds the path of its build folder, so the same build in another folder
   is other bytes (measured 2026-10-31). A failure is never remembered; nor is a program that the compiler
   rejects, one whose executable holds its build time (`_COMPILEDATE$`, the driver prints `uncached`), or one
-  with an `.external` sidecar. **The runs at a merge into `main` go without it** (`check full --force`): it
+  with an `.external` sidecar. **The runs at a merge into `main` go without it** (`just merge`): it
   cannot see a result that depends on time or load, which is how `m10_screen_10` was found. With `qb64pe` it is
   not used. The folder is safe to delete.
 - `<name>.external` (every suite with `--pass-cache`): one line, why the program's result depends on something
@@ -135,6 +135,8 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
 - `--list-only` (corpus, compile, verification): runs nothing and prints every file inside the repository that
   the selected programs' runs read, one per line. `tools\check\test_check.py` holds the globs of each suite's
   step (`tools\check\steps.py`) to cover them.
+- `--pass-list` (with `--list`): the list is a pass list, which holds programs that pass (D-052), so a known
+  failure on it (`KFAIL`) fails the run and is named. The `check` steps of the pass lists pass it.
 - `--cpp-opt` adds `-f:OptimizeCppProgram=true`; its failures list the programs whose behaviour depends on the
   C++ optimiser (`tests\corpus\README.md`). It cannot be combined with `--record`.
 - On Windows, `END` in a console program waits for a key from the console ("Press any key to continue"), which

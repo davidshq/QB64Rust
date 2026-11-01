@@ -84,7 +84,7 @@ changing direction, design or scope.**
    became a vertical tab) and each needed a scan and a redo (user, 2026-10-03).
 6. **Testing.** Run `cargo test -p <crate>` on what you touched while working. Run `just quick` in the background
    before handing over files to stage, and say what ran, what stood and why. `just full` runs in a worktree of the
-   commit, started by the user, before a merge into `main`. Read a run's output from its log; never start a run
+   commit, started by the user; `just merge` there before a merge into `main`. Read a run's output from its log; never start a run
    again to read it. (`tools/check/README.md`; the OpenSpec change `testing-reset`, `DECISIONS.md` 2026-10-31.)
 
 7. **Documents: what is read when, and when the paperwork is done.**

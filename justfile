@@ -14,6 +14,10 @@ quick *flags:
 full *flags:
     python tools/check/check.py full {{flags}}
 
+# the merge into main: every step again, the whole suites, the lists, tables and records regenerated; in a worktree
+merge *flags:
+    python tools/check/check.py merge {{flags}}
+
 # one step, crate folder, suite folder or list, or one program by name
 check target *flags:
     python tools/check/check.py {{target}} {{flags}}

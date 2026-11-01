@@ -11,18 +11,20 @@ input), so they assert the plan of the real steps (steps.py) without running any
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 import check  # noqa: E402
 import steps  # noqa: E402
-from steps import FULL, QUICK  # noqa: E402
+from steps import FULL, MERGE, QUICK  # noqa: E402
 
 REPO = HERE.parents[1]
 
@@ -214,7 +216,9 @@ class Standing(unittest.TestCase):
 
     def test_force_runs_everything(self):
         self.repo.pass_all()
-        self.assertEqual(set(self.repo.planned(FULL, force=True)), {s.name for s in steps.STEPS})
+        self.assertEqual(
+            set(self.repo.planned(FULL, force=True)), {s.name for s in steps.STEPS if s.layer != MERGE}
+        )
 
     def test_a_run_records_its_result(self):
         plan = check.make_plan(self.repo.root, QUICK)
@@ -334,6 +338,76 @@ class Full(unittest.TestCase):
             repo.close()
 
 
+class Merge(unittest.TestCase):
+    """The merge into main: every step again but those its whole suites stand for, and its own."""
+
+    def setUp(self):
+        self.repo = FakeRepo()
+        self.repo.pass_all()
+
+    def tearDown(self):
+        self.repo.close()
+
+    def test_merge_runs_everything_again_but_the_lists_its_whole_suites_stand_for(self):
+        # The writers are a plan of their own, run before this one is made (check.main).
+        writers = {s.name for s in steps.STEPS if s.first}
+        self.assertEqual(writers, {"update-lists", "wording"})
+        got = self.repo.planned(MERGE)
+        self.assertEqual(set(got), {s.name for s in steps.STEPS} - steps.MERGE_REPLACES - writers)
+        self.assertTrue(all(only is None for only in got.values()))
+        self.assertFalse({s.name for s in steps.STEPS if s.layer == MERGE} & set(self.repo.planned(FULL, force=True)))
+
+    def test_merge_refuses_uncommitted_changes(self):
+        self.assertEqual(check.main(["merge"], root=self.repo.root), 2)
+
+    def test_merge_plans_after_the_writers_wrote(self):
+        # Every fingerprint of the merge's plan is of the files the writers wrote, not of those before them.
+        ran = []
+
+        def execute(root, plan, force, what=""):
+            ran.append((what, [p.step.name for p in plan.run]))
+            if what == "merge: the writers":
+                self.repo.write("crates/sema/src/lib.rs", "fn written() {}\n")
+            return 0
+
+        planned = []
+        real = check.make_plan
+
+        def make_plan(root, layer, *a, **kw):
+            plan = real(root, layer, *a, **kw)
+            if layer == MERGE:
+                planned.append(next(p for p in plan.run if p.step.name == "fmt").inputs.files["crates/sema/src/lib.rs"])
+            return plan
+
+        with mock.patch.object(check, "dirty", lambda root: []), mock.patch.object(
+            check, "execute", execute
+        ), mock.patch.object(check, "make_plan", make_plan):
+            self.assertEqual(check.main(["merge", "--wait"], root=self.repo.root), 0)
+        self.assertEqual([w for w, _ in ran], ["merge: the writers", "merge"])
+        self.assertEqual(sorted(ran[0][1]), ["update-lists", "wording"])
+        self.assertNotEqual(planned[0], planned[-1])
+        self.assertEqual(planned[-1], check.Hashes(self.repo.root).of("crates/sema/src/lib.rs"))
+
+    def test_the_pass_lists_hold_no_known_failure(self):
+        for name in ("slice", "upstream", "verification", "differential", "nofold"):
+            self.assertIn("--pass-list", steps.BY_NAME[name].command, name)
+
+    def test_merge_order_readers_after_the_whole_suites(self):
+        names = [p.step.name for p in check.order(check.make_plan(self.repo.root, MERGE).run, self.repo.root)]
+        self.assertEqual(names[-1], "sandbox")
+        for name, _, _ in steps.WHOLE:
+            self.assertLess(names.index("build"), names.index(f"{name}-whole"))
+            for reader in (f"{name}-list", "builtins", "counts"):
+                self.assertLess(names.index(f"{name}-whole"), names.index(reader))
+
+    def test_a_str_step_runs_in_gits_bash(self):
+        # `pwd -W` is Git's bash's alone: WSL's bash.exe, which Windows finds first in System32, has no -W.
+        if os.name != "nt":
+            self.skipTest("Windows only")
+        out = subprocess.run([check.bash(), "-c", "pwd -W"], capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+
+
 class Named(unittest.TestCase):
     """A step asked for by name (`check slice`): its needs first, its fingerprint the same as in its layer."""
 
@@ -374,6 +448,40 @@ class Execute(unittest.TestCase):
             self.assertEqual(check.execute(repo.root, plan, False), 1)
             self.assertEqual(check.read_record(repo.root, "build")["result"], "fail")
             self.assertIsNone(check.read_record(repo.root, "slice"))
+        finally:
+            repo.close()
+
+    def test_a_reader_of_a_failed_need_runs_and_of_a_skipped_one_does_not(self):
+        # corpus-list reads the whole suite's results: it runs after a whole suite with a failure, not after a
+        # whole suite that did not run (its build failed).
+        repo = FakeRepo()
+        try:
+            for failing, want in (("corpus-whole", "pass"), ("build", None)):
+                shutil.rmtree(repo.root / "target", ignore_errors=True)
+                plan = check.make_plan(repo.root, FULL, True, check.with_needs(["corpus-list"]))
+                for p in plan.run:
+                    code = "raise SystemExit(1)" if p.step.name == failing else "pass"
+                    p.step = steps.Step(
+                        p.step.name,
+                        p.step.layer,
+                        (sys.executable, "-c", code),
+                        p.step.inputs,
+                        needs=p.step.needs,
+                        after_failure=p.step.after_failure,
+                    )
+                self.assertEqual(check.execute(repo.root, plan, True), 1)
+                got = check.read_record(repo.root, "corpus-list")
+                self.assertEqual(got and got["result"], want, failing)
+        finally:
+            repo.close()
+
+    def test_a_bash_line_without_gits_bash_fails_and_says_so(self):
+        repo = FakeRepo()
+        try:
+            plan = check.make_plan(repo.root, FULL, True, ["linux-sync"])
+            with mock.patch.object(check, "bash", lambda: None):
+                r = check.run_step(plan.run[0], repo.root, True, True)
+            self.assertEqual((r["result"], r["note"]), ("fail", "Git's bash not found"))
         finally:
             repo.close()
 

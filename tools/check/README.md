@@ -7,12 +7,15 @@ through `just` (the `justfile` at the top of the repository) or as `python tools
 |---|---|
 | `just quick` | the quick layer: `fmt`, `build` (release), `clippy`, `nextest` (the workspace's Rust tests), `lists` (`inputs.rs`: the lists and recordings), `doc`, `tools` (the Python tools' tests, `tool_tests.py`), `libqb-copy` (the copy against its edits), `slice` (the slice list); and the upstream and verification lists narrowed to the programs a change reaches, when it reaches only programs |
 | `just full` | every step: the quick layer and the upstream and verification lists, the call-site check, the CLI tests that build (`--ignored`), qbasic, addprefix, the format runs, the differential list, the slice without folding, the coverage check, the Linux family in WSL, the sandbox family last |
+| `just merge` | the merge into `main`, in a worktree of the merge commit: every step again without the pass cache, but the slice, upstream and verification lists and the Linux slice, which its whole suites stand for; and its own steps (`steps.py`, layer `merge`, from the old `close.py`'s merge set): the known lists and the old wording table regenerated first (`update-lists`, `wording`, a plan of their own, so that the rest is planned on the files they wrote), then the wording check, the three whole suites with `--coverage` (`target\coverage\merge\*.txt`, the records narrowing reads), the pass lists held to their results (`--check-list`), the built-ins' list (`builtins`), the two demand reports, the count blocks (`counts.py --strict`; these three and the `--check-list` runs run after a whole suite with a failure too, `after_failure`, since they read its results, not its verdict) and the Linux whole suites. Files it rewrites are for the user to stage |
 | `just check <target>` | a step by name, after the steps it needs unless they stand (`build` before a list); a crate folder (`crates/sema`: that crate's tests); a suite folder or list (`verification`, `tests/corpus/slice.list`); one program by name (`v66_a01_varptr_dynamic_owner`, a corpus or upstream program's name), after `build` unless it stands |
 | `just status` | each step: standing, to run, or failed, with its last run and log |
 | `just history [days]` | per day (the last 14 with runs by default): the runs, the steps run and standing, the failures and the wall time; then the steps that took the most time. Every `check` run, one with nothing to run too, adds a line to `target\check\history.jsonl` |
-| `just force [quick\|full]` | the layer again, what stands too, without the pass cache (the merge into `main` runs `just force full`) |
+| `just force [quick\|full]` | the layer again, what stands too, without the pass cache |
 
-`--plan` prints what would run; `--wait` stays in the foreground. A plan longer than a minute (by the steps' last
+A step given as a string (the WSL steps, the merge's shell lines) runs in Git's bash, found from `git
+--exec-path`: on Windows `System32\bash.exe`, WSL's, comes first otherwise. `--plan` prints what would run;
+`--wait` stays in the foreground. A plan longer than a minute (by the steps' last
 times) goes to the background, its report in `target\check\run.log` and each step's output in
 `target\check\logs\<step>.log`. Nothing in the project refuses a command or holds a session because a run has not
 happened.
@@ -43,6 +46,9 @@ program steps to the programs whose coverage records hold them (`target\coverage
 merge's full suites with `--coverage`); without those records the steps run whole. That narrowing is a guess (the
 records are the last merge's, without the programs added since): its pass is marked `"narrowed": "coverage"`,
 stands for `quick` and never for `full`, and the mark stays through later narrowed runs until the step runs whole.
+
+The steps that run a pass list (slice, upstream, verification, differential, nofold) pass `--pass-list`: a pass
+list holds programs that pass (D-052), so a known failure on one fails the run.
 
 Inside a step the runner's pass cache (`target\pass-cache-2`) serves what passed with the same build inputs
 (design D1; `tools\legacy_tests\README.md`, `--pass-cache`), and starts the programs that failed last time first,

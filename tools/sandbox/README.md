@@ -98,5 +98,5 @@ yourself how to do it in future"), so nobody has to open Settings:
 
 On request (`just check sandbox`); in `just full` when its inputs changed since its last pass (`tests\sandbox\`,
 `tools\sandbox\`, `tests\never_run.list`, the compiler, libqb: `tools\check\steps.py`); always at a merge into
-`main` (`just force full`). Never in CI: the hosted
+`main` (`just merge`). Never in CI: the hosted
 runners have no Windows Sandbox and no desktop.

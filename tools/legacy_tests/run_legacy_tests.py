@@ -3148,10 +3148,15 @@ def run_again_alone(
     return failing, timing
 
 
+def known_on_pass_list(results: list[Result]) -> list[str]:
+    """The known failures of a run of a pass list (--pass-list), which holds programs that pass (D-052)."""
+    return sorted(f"{r.suite}:{r.test}" for r in results if r.status == "KFAIL")
+
+
 def main() -> int:
     """Runs the selected suites and writes the results file.
 
-    Returns 0 if no test failed (KFAIL does not count), 1 if one did, one passed only alone after
+    Returns 0 if no test failed (KFAIL does not count but with --pass-list), 1 if one did, one passed only alone after
     failing with --jobs, or the copies for --jobs could not be made, 2 for a usage error, 3 when another run holds the results folder, the
     clone or the copies (BUSY_EXIT)."""
     here = Path(__file__).resolve()
@@ -3241,6 +3246,11 @@ def main() -> int:
         type=Path,
         help="corpus, compile and a verification compare: run only the programs named in this "
         "file (<group>/<name> per line; <name> for verification)",
+    )
+    ap.add_argument(
+        "--pass-list",
+        action="store_true",
+        help="with --list: the list is a pass list, which holds no known failure (D-052): a KFAIL fails the run",
     )
     ap.add_argument(
         "--list-only",
@@ -3362,6 +3372,9 @@ def main() -> int:
         print(
             "--record uses the default build; it cannot be combined with --cpp-opt", file=sys.stderr
         )
+        return 2
+    if args.pass_list and not args.list:
+        print("--pass-list takes --list", file=sys.stderr)
         return 2
     if args.check_list and (
         args.suite not in ("corpus", "compile", "verification")
@@ -3760,6 +3773,9 @@ def main() -> int:
             print(
                 f"note: {key} passed but is listed in {args.known_failures.name}; remove the entry"
             )
+    known_on_list = known_on_pass_list(all_results) if args.pass_list else []
+    for key in known_on_list:
+        print(f"[pass list] KFAIL {key}: a pass list holds no known failure (D-052)")
     for key in retried_passed:
         print(f"note: {key} failed with --jobs and passed alone; find out why")
     for key in timing_passed:
@@ -3769,7 +3785,7 @@ def main() -> int:
     # copies gave another answer than the clone, or a program whose result should not depend on load
     # did, which nobody reading only the exit code may miss. A timing-sensitive one does not
     # (test-parallel-runs, design D3).
-    return 0 if all(s["FAIL"] == 0 for s in summary.values()) and not retried_passed else 1
+    return 0 if all(s["FAIL"] == 0 for s in summary.values()) and not retried_passed and not known_on_list else 1
 
 
 if __name__ == "__main__":

@@ -154,7 +154,7 @@ qbasic, addprefix, the format runs, the differential list, the run without foldi
 Linux family in WSL, the sandbox family last and alone. It is meant for a worktree of the commit
 (`git worktree add`); `check full` refuses to start in a checkout with uncommitted changes under `crates\`,
 `libqb\` or `tests\`, naming the worktree command, so its results describe one commit. The merge into `main`
-runs it with `--force` (no cache, as today's merge set). Code: `tools\check\check.py`, `full`.
+runs `check merge` (D11). Code: `tools\check\check.py`, `full`.
 
 **D6. The call-site check takes `--jobs`.** The new compiler's side runs in a thread pool, each program in its
 own scratch folder (today one `work` folder); the old side keeps the per-program cache and, on a miss, the
@@ -180,12 +180,32 @@ part of `guard_tool.py` (`CLOSE_RUNS`, `WORKING_RUN`, `open_tasks`) are deleted;
 (staging, stashing, a plain `rm`/`mv` of a tracked file, writes at the top of `target\`) stays, since it
 enforces a human rule, not a test rule. `tools\testtime\` moves to `study\archive\testtime\` as the
 measurement it was. CLAUDE.md working rule 6 becomes four lines (D10). `.claude\settings.json` loses the Stop
-hook. *Why not keep `close.py` for merges:* `check full --force` is that set.
+hook. *Why not keep `close.py` for merges:* `check merge` (D11) is its merge set.
 
 **D10. The rule.** Working rule 6, whole: "Run `cargo test -p <crate>` on what you touched while working. Run
 `just quick` in the background before handing over files to stage, and say what ran, what stood and why. `just
-full` runs in a worktree of the commit, started by the user, before a merge into `main`. Read a run's output
-from its log; never start a run again to read it." Recorded in `DECISIONS.md` in task 6.2.
+full` runs in a worktree of the commit, started by the user; `just merge` there before a merge into `main`. Read
+a run's output from its log; never start a run again to read it." Recorded in `DECISIONS.md` in task 6.2.
+
+**D11. `check merge`, the merge set** (found at task 6.1, user, 2026-11-01). D9 had `check full --force` stand
+for `close.py`'s merge set; it did not: that set also regenerated the known lists (`QB64RUST_UPDATE_LISTS=1`) and
+the old wording table, held the wording to its recordings, ran the corpus, compile and verification suites whole
+with `--coverage` (the records `check`'s libqb narrowing reads, `target\coverage\merge\`), held the three pass
+lists to those results (`--check-list`), checked the built-ins' list against the records, wrote the two demand
+reports and the count blocks, and ran the three suites whole on Linux. Without them the records go stale (the
+narrowing falls back to whole runs without saying so) and so do the wording notes. A third layer, `merge`, in
+`steps.py` holds these steps; `check merge` runs every step but the four lists its whole suites stand for (the
+slice, upstream and verification lists, the Linux slice, whose results files a list run would replace), always
+with `--force`, and refuses uncommitted changes as `full` does. Its steps write files, so none of their results
+stands: the two that write what others read or build in (`update-lists`, `wording`) carry `first` and run before
+the others, in a plan of their own: the rest is planned after them, so that its fingerprints are of what they
+wrote. The `--check-list` runs, `builtins` and `counts` carry `after_failure`: they run after a whole suite with
+a failure (they read its results, not its verdict), not after one that did not run. `counts.py --strict` fails a
+block left as it is, and the runner's `--pass-list` fails a pass list's run with a known failure (D-052), both of
+which `close.py` judged from its logs while `check` judges by exit code. The review of 2026-11-01 found these,
+and Git's bash for the bash lines (Windows finds WSL's `System32\bash.exe` first; none found is a failure that
+says so). *Alternative:*
+keep `close.py` for merges alone. Rejected: two tools for one job, and D9's reasons.
 
 ## Risks / Trade-offs
 

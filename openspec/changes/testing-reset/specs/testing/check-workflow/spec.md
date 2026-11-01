@@ -24,6 +24,20 @@ tests of the named crate, folder, suite, list or program, with one syntax for ev
 - **WHEN** `check crates/sema` runs
 - **THEN** only that crate's tests run
 
+### Requirement: The merge into main
+`check merge` SHALL run, without any result standing and without the pass cache, every step of `check full` but
+the pass lists that its whole suites stand for, and the steps of the merge: the known lists and the old wording
+table regenerated before the build, the wording held to its recordings, the corpus, compile and verification
+suites run whole with their coverage records written, each pass list held to its whole suite's results, the
+built-ins' list held to the records, the demand reports, the count blocks (failing when one is left as it is) and
+the three suites whole on Linux. Like `check full`, it SHALL refuse a checkout with uncommitted changes under
+`crates/`, `libqb/` or `tests/`.
+
+#### Scenario: The coverage records are of the merge
+- **WHEN** `check merge` passes
+- **THEN** `target/coverage/merge` holds the records of the three whole suites of that commit, which `check
+  quick`'s libqb narrowing reads
+
 ### Requirement: A result is valid by its inputs
 Each step SHALL record, with its result, a fingerprint of every input the step reads: the compiler binary, libqb's
 sources and edits, the toolchain, the runner, the lists and the files of the suite. The result SHALL stand while

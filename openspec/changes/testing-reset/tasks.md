@@ -68,6 +68,15 @@ change's own `just quick`, and the old close is not run.
       `check.py`; `crates\README.md` "Building and testing" names `just` and `cargo-nextest` with their install
       lines, and `check` prints the install line for a missing tool; verified by `just --list` and by running
       `just quick` without `nextest` on the path (falls back to `cargo test`, says so).
+- [x] 3.7 `check merge` (design D11): the layer `merge` in `steps.py` with the steps of `close.py`'s merge set
+      that `full` lacked (`update-lists`, `wording`, `wording-check`, the three whole suites with `--coverage`,
+      their `--check-list` runs, `builtins`, the two demand reports, `counts` with `counts.py --strict`, the three
+      Linux whole suites); every step but the lists the whole suites stand for, always forced, the writers first,
+      the uncommitted-changes refusal of `full`; `just merge`; the steps given as a string run in Git's bash;
+      after the review of 2026-11-01: the writers planned and run before the rest is planned, `after_failure`
+      for the readers of a whole suite, the runner's `--pass-list` on the five pass-list steps (D-052);
+      verified by `test_check.py` (`Merge`) and `test_counts.py` (`Strict`), and by one real `just merge` in a
+      worktree at the next merge into `main`.
 
 ## 4. The call-site check in parallel
 
@@ -95,11 +104,14 @@ change's own `just quick`, and the old close is not run.
 - [x] 6.0 The four CI workflows (`rust.yml`, `vscode-extension.yml`, `licenses.yml`, `repo-check.yml`) set to
       `on: workflow_dispatch` only, `release-vsix.yml` unchanged; verified by `grep -n "push:\|pull_request:"
       .github/workflows/*.yml` naming only `release-vsix.yml`.
-- [ ] 6.1 `tools\close\`, `tools\hooks\stop_continue.py`, and the close part of `guard_tool.py`
+- [x] 6.1 `tools\close\`, `tools\hooks\stop_continue.py`, and the close part of `guard_tool.py`
       (`CLOSE_RUNS`, `WORKING_RUN`, `open_tasks` and their tests) removed; `tools\testtime\` moved with `git mv`
       to `study\archive\testtime\`; `.claude\settings.json` loses the Stop hook (the user applies this edit);
       verified by `test_hooks.py` passing on the guard that stays and `python -m unittest discover -s
-      tools/hooks` finding no reference to the close.
+      tools/hooks` finding no reference to the close. *Done (2026-11-01):* nothing imports or runs the deleted
+      files; the comments that named `close.py` (`copy_libqb.py`, `compiler_copy.py`, `clean.py`) and the
+      merged `golden-corpus` requirement "A run tests a copy of the compiler" (a MODIFIED one in this change's
+      delta) now name `check`; the merge set it held became `check merge` (3.7).
 - [x] 6.2 CLAUDE.md working rule 6 replaced by the four lines of design D10; `tools\close\README.md` gone, its
       cadence section replaced by `tools\check\README.md` (the three layers, the fingerprints, the sidecar, the
       cost tests); `docs\LAYOUT.md` rows for `tools\check\`, `justfile`, `.config\nextest.toml`, the moved

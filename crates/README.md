@@ -268,7 +268,7 @@ panics on purpose, for the CLI test only.
 | 2, at a merge into `main` | `python tools\diagnostics\old_wording.py`, then after a release build `--check` | The table of the old compiler's wording from recorded rejections, and every note on them equal to the recorded message (`tools\diagnostics\README.md`) |
 
 **When to run what** (`CLAUDE.md` working rule 6): `cargo test -p <crate>` while working; `just quick` before
-handing over files to stage; `just full` in a worktree of the commit before a merge into `main`; `just check
+handing over files to stage; `just full` in a worktree of the commit, and `just merge` there before a merge into `main`; `just check
 <target>` for one crate, suite, list or program (`tools\check\README.md`: the layers, what stands, the narrowing).
 A step's result stands while its inputs are unchanged, so a run repeats nothing a change did not reach; inside a
 suite the pass cache (`--pass-cache target\pass-cache-2`) serves the programs whose build inputs and recordings

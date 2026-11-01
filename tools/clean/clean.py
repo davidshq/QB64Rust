@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keeps target/ a build folder, not a dump. Run by close.py --plan as its first command, or by hand.
+"""Keeps target/ a build folder, not a dump. Run by hand.
 
     python tools/clean/clean.py            # do it, print what was removed and what is left
     python tools/clean/clean.py --dry-run  # print only

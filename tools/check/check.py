@@ -3,6 +3,8 @@
 
     python tools/check/check.py quick          # fmt, lints, the Rust tests, the tool tests, the slice list
     python tools/check/check.py full           # every suite; in a worktree of a commit (`git worktree add`)
+    python tools/check/check.py merge          # the merge into main: every step again, the whole suites, the
+                                               # lists, tables and records regenerated; in a worktree too
     python tools/check/check.py status         # each step: standing, to run, or failed, with its last run
     python tools/check/check.py history        # per day: runs, steps run and standing, wall time (--days N)
     python tools/check/check.py <target>       # a step, a crate folder, a suite folder or list, or one program
@@ -30,7 +32,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import stat
 import subprocess
 import sys
@@ -41,7 +42,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from steps import BY_NAME, FALLBACK, FULL, QUICK, RUNNER, STEPS, Step  # noqa: E402
+from steps import BY_NAME, COUNTS, FALLBACK, FULL, MERGE, MERGE_REPLACES, QUICK, RUNNER, STEPS, Step  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 # A plan expected to take longer than this many seconds goes to the background.
@@ -50,9 +51,11 @@ BACKGROUND_SECONDS = 60
 UNKNOWN_SECONDS = 120
 # How many changed inputs a report names before "and N more".
 SHOWN = 3
-# The folders whose uncommitted changes make `full` refuse to start: its results are to describe one commit.
+# The folders whose uncommitted changes make `full` and `merge` refuse to start: their results are to describe one
+# commit.
 FULL_CLEAN = ("crates", "libqb", "tests")
-COUNTS = "target/coverage/merge"
+# Windows finds System32's bash.exe (WSL's) before Git's: the steps given as a str are Git's bash's (`pwd -W`).
+GIT_BASH = ("usr/bin/bash.exe", "bin/bash.exe")
 EDIT_BUILTINS = re.compile(r"^builtins:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
 
 
@@ -411,11 +414,20 @@ def make_plan(
     hashes = Hashes(root)
     done: dict[str, Inputs] = {}
     plan = Plan([], [], [])
-    wanted = (
-        [BY_NAME[n] for n in names]
-        if names
-        else [s for s in STEPS if s.layer == QUICK or layer == FULL or s.suite in ("compile", "verification")]
-    )
+    if names:
+        wanted = [BY_NAME[n] for n in names]
+    elif layer == MERGE:
+        # Every step again: a result of the merge describes the merge's commit alone. The writers (`first`) are
+        # a plan of their own, run before this one is made (`main`), so that every fingerprint here is of the
+        # files they wrote.
+        wanted = [s for s in STEPS if s.name not in MERGE_REPLACES and not s.first]
+        force = True
+    else:
+        wanted = [
+            s
+            for s in STEPS
+            if s.layer == QUICK or (s.layer == FULL and (layer == FULL or s.suite in ("compile", "verification")))
+        ]
     for step in wanted:
         inputs = inputs_of(step, root, files, hashes, done)
         done[step.name] = inputs
@@ -491,7 +503,7 @@ def narrowed(
 
 def order(planned: list[Planned], root: Path) -> list[Planned]:
     """Failures first, then the longest by their last time, each after the steps it needs; a step that runs
-    alone after the others, the sandbox family last of all."""
+    alone after the others, the sandbox family last of all. (The merge's writers are a plan of their own, `main`.)"""
 
     def last(p: Planned) -> tuple[int, float]:
         r = read_record(root, p.step.name) or {}
@@ -550,6 +562,25 @@ def command_of(p: Planned, root: Path, force: bool, nextest: bool) -> tuple[list
     return args, note
 
 
+@lru_cache(maxsize=None)
+def bash() -> str | None:
+    """Git's bash on Windows (found from `git --exec-path`, <git>/mingw64/libexec/git-core), else None: the PATH's
+    `bash` there may be WSL's. `bash` elsewhere."""
+    if os.name != "nt":
+        return "bash"
+    try:
+        exec_path = subprocess.run(["git", "--exec-path"], capture_output=True, text=True).stdout.strip()
+    except OSError:
+        exec_path = ""
+    parents = Path(exec_path).parents if exec_path else []
+    if len(parents) > 2:
+        top = parents[2]
+        for rel in GIT_BASH:
+            if (top / rel).is_file():
+                return str(top / rel)
+    return None
+
+
 def run_step(p: Planned, root: Path, force: bool, nextest: bool) -> dict:
     logs = state(root) / "logs"
     logs.mkdir(parents=True, exist_ok=True)
@@ -561,11 +592,16 @@ def run_step(p: Planned, root: Path, force: bool, nextest: bool) -> dict:
     else:
         cmd, note = command_of(p, root, force, nextest)
         env = {**os.environ, **p.step.env}
+        shell = bash() if isinstance(cmd, str) else ""
         with log.open("wb") as out:
-            argv = ["bash", "-c", cmd] if isinstance(cmd, str) else cmd
             out.write(f"$ {cmd if isinstance(cmd, str) else ' '.join(cmd)}\n".encode())
             out.flush()
-            rc = subprocess.run(argv, cwd=root, stdout=out, stderr=subprocess.STDOUT, env=env).returncode
+            if shell is None:
+                out.write(b"Git's bash not found (from `git --exec-path`): the step is a bash line\n")
+                rc, note = 1, "Git's bash not found"
+            else:
+                argv = [shell, "-c", cmd] if isinstance(cmd, str) else cmd
+                rc = subprocess.run(argv, cwd=root, stdout=out, stderr=subprocess.STDOUT, env=env).returncode
     record = {
         "fingerprint": p.inputs.fingerprint,
         "result": "pass" if rc == 0 else "fail",
@@ -588,12 +624,12 @@ def when(t: float) -> str:
 
 def print_plan(plan: Plan) -> None:
     for step, record in plan.standing:
-        print(f"  standing  {step.name:<14} passed {when(record['started'])}, {record['seconds']:g}s")
+        print(f"  standing  {step.name:<18} passed {when(record['started'])}, {record['seconds']:g}s")
     for step, why in plan.left:
-        print(f"  left      {step.name:<14} for `check full` ({why})")
+        print(f"  left      {step.name:<18} for `check full` ({why})")
     for p in plan.run:
         extra = f" [{len(p.only)} program(s)]" if p.only else ""
-        print(f"  to run    {p.step.name:<14} {p.reason}{extra}")
+        print(f"  to run    {p.step.name:<18} {p.reason}{extra}")
     if not plan.run:
         print("nothing to run")
 
@@ -602,15 +638,19 @@ def execute(root: Path, plan: Plan, force: bool, what: str = "") -> int:
     nextest = have_nextest()
     failed = 0
     failed_names: set[str] = set()
+    skipped: set[str] = set()
     ran: dict[str, list] = {}
     started = time.time()
     for p in order(plan.run, root):
-        broken = [n for n in p.step.needs if n in failed_names]
+        # A step that reads what its needs wrote runs after a failed one, not after one that did not run.
+        broken = [n for n in p.step.needs if n in (skipped if p.step.after_failure else failed_names)]
         if broken:
             # Run on an older build, its result would say nothing of this one: not run, not recorded.
-            print(f"  SKIP    {p.step.name:<14} not run: {', '.join(broken)} failed", flush=True)
+            why = ", ".join(f"{n} {'did not run' if n in skipped else 'failed'}" for n in broken)
+            print(f"  SKIP    {p.step.name:<18} not run: {why}", flush=True)
             failed += 1
             failed_names.add(p.step.name)
+            skipped.add(p.step.name)
             ran[p.step.name] = ["skip", 0]
             continue
         print(f"run       {p.step.name} ...", flush=True)
@@ -618,7 +658,7 @@ def execute(root: Path, plan: Plan, force: bool, what: str = "") -> int:
         ran[p.step.name] = [r["result"], r["seconds"]]
         tag = "PASS" if r["result"] == "pass" else "FAIL"
         note = f"  ({r['note']})" if r["note"] else ""
-        print(f"  {tag}    {p.step.name:<14} {r['seconds']:g}s  {r['log']}{note}", flush=True)
+        print(f"  {tag}    {p.step.name:<18} {r['seconds']:g}s  {r['log']}{note}", flush=True)
         if r["result"] != "pass":
             failed += 1
             failed_names.add(p.step.name)
@@ -820,7 +860,7 @@ def status(root: Path) -> int:
             print(f"  never run {step.name}")
             continue
         state_word = "standing" if standing else ("FAILED" if r.get("result") != "pass" else "to run")
-        print(f"  {state_word:<9} {step.name:<14} {r['result']} {when(r['started'])}, {r['seconds']:g}s  {r['log']}")
+        print(f"  {state_word:<9} {step.name:<18} {r['result']} {when(r['started'])}, {r['seconds']:g}s  {r['log']}")
     lock = state(root) / "run.log"
     if lock.is_file():
         print(f"last background report: {lock.relative_to(root).as_posix()}, {when(lock.stat().st_mtime)}")
@@ -831,27 +871,33 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument(
-        "what", help="quick, full, status, history, or a step, crate folder, suite folder, list or program"
+        "what", help="quick, full, merge, status, history, or a step, crate folder, suite folder, list or program"
     )
     ap.add_argument("--force", action="store_true", help="run again what stands, without the pass cache")
     ap.add_argument("--plan", action="store_true", help="print the plan, run nothing")
     ap.add_argument("--wait", action="store_true", help="run in the foreground however long it takes")
     ap.add_argument("--days", type=int, default=14, help="history: how many of the last days with runs to show")
     a = ap.parse_args(argv)
+    if a.what == MERGE:
+        # Without the pass cache too, as the plan runs every step.
+        a.force = True
     if a.what == "status":
         return status(root)
     if a.what == "history":
         return history(root, a.days)
-    if a.what in (QUICK, FULL):
-        if a.what == FULL and not a.plan:
+    if a.what in (QUICK, FULL, MERGE):
+        if a.what != QUICK and not a.plan:
             changes = dirty(root)
             if changes:
                 print(
-                    f"check full refused: uncommitted changes under {', '.join(FULL_CLEAN)} "
+                    f"check {a.what} refused: uncommitted changes under {', '.join(FULL_CLEAN)} "
                     f"({describe(changes)}). Its results are to describe one commit: commit, then run it in a "
-                    "worktree of the commit (`git worktree add ../qb64rust-full HEAD`, then `just full` there)."
+                    f"worktree of the commit (`git worktree add ../qb64rust-full HEAD`, then `just {a.what}` there)."
                 )
                 return 2
+        if a.what == MERGE:
+            writers = make_plan(root, FULL, True, [s.name for s in STEPS if s.first])
+            print_plan(writers)
         plan = make_plan(root, a.what, a.force)
     else:
         name = step_of_target(a.what)
@@ -884,6 +930,11 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         return 0
     if not a.wait and estimate(root, plan) > BACKGROUND_SECONDS:
         return to_background(root, [x for x in argv if x != "--wait"])
+    if a.what == MERGE:
+        # The writers first, then the rest planned again: its fingerprints are of the files they wrote.
+        bad = execute(root, writers, True, "merge: the writers")
+        plan = make_plan(root, MERGE)
+        return execute(root, plan, True, a.what) or bad
     return execute(root, plan, a.force, a.what)
 
 
