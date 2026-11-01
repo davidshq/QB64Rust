@@ -126,8 +126,10 @@ def whole(name: str, suite: str) -> str:
 
 def linux_whole(suite: str) -> str:
     # Each builds first, so that none runs an older build beside another's: cargo builds nothing when it is current.
+    # The sync copies no git-ignored file, so the v37 programs' libraries are built in the copy.
+    libs = "python3 verification/v37_lib/build_libs.py && " if suite == "verification" else ""
     return (
-        "wsl -e bash -lc 'cd ~/qb64rust && cargo build --release --locked && python3 "
+        f"wsl -e bash -lc 'cd ~/qb64rust && cargo build --release --locked && {libs}python3 "
         f"tools/legacy_tests/run_legacy_tests.py --suite {suite} --qb64 target/release/qb64rust --jobs 8 "
         "--build-cache target/build-cache'"
     )
@@ -193,12 +195,24 @@ STEPS: tuple[Step, ...] = (
         suite="compile",
         program_list="tests/upstream/pass.list",
     ),
+    # The libraries the v37 programs link, built into verification/ with the reference clone's C compiler. A source
+    # edit builds them again, and `verification` after it, which takes this step's fingerprint: the libraries are
+    # git-ignored, so no fingerprint holds them, and libraries deleted by hand are built again by
+    # `just check v37-libs`. `clone` sees the clone's commit, not its compiler (ignored there); `toolchain` the
+    # programs link with. In the quick layer, which runs the verification programs a change reaches.
+    Step(
+        "v37-libs",
+        QUICK,
+        ("python", "verification/v37_lib/build_libs.py"),
+        ("verification/v37_lib/**",),
+        external=("clone", "toolchain"),
+    ),
     Step(
         "verification",
         FULL,
         runner("verification", *CACHES, "--pass-list", "--list", "tests/verification/pass.list"),
         BUILT + LIBQB + RUNNER_FILES + ("verification/**", "!verification/*.exe", "tests/verification/**"),
-        needs=("build",),
+        needs=("build", "v37-libs"),
         external=("toolchain",),
         suite="verification",
         program_list="tests/verification/pass.list",
@@ -355,7 +369,7 @@ STEPS += (
             MERGE,
             whole(name, suite),
             _BY_NAME["slice" if name == "corpus" else name].inputs,
-            needs=("build",),
+            needs=_BY_NAME["slice" if name == "corpus" else name].needs,
             external=("toolchain", "clone"),
         )
         for name, suite, _ in WHOLE

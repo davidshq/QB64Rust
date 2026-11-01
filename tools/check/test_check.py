@@ -158,6 +158,12 @@ class RealSteps(unittest.TestCase):
                 with self.subTest(step=step.name, glob=g):
                     self.assertTrue(check.matching((g,), self.files), f"{step.name}: {g} matches no file")
 
+    def test_the_v37_libraries_are_built_before_the_verification_programs(self):
+        # The quick layer runs the verification programs a change reaches, so it builds them too.
+        self.assertIn("v37-libs", steps.BY_NAME["verification"].needs)
+        self.assertIn("v37-libs", steps.BY_NAME["verification-whole"].needs)
+        self.assertEqual(steps.BY_NAME["v37-libs"].layer, QUICK)
+
     def test_names_are_unique_and_needs_exist(self):
         self.assertEqual(len(steps.BY_NAME), len(steps.STEPS))
         for step in steps.STEPS:
@@ -322,6 +328,17 @@ class Full(unittest.TestCase):
         finally:
             repo.close()
 
+    def test_full_refuses_a_tree_without_the_reference_clone_beside_it(self):
+        repo = FakeRepo()
+        try:
+            self.assertIn("worktree goes beside the checkout", check.no_clone(repo.root))
+            with mock.patch.object(check, "dirty", lambda root: []), mock.patch.object(check, "execute") as run:
+                self.assertEqual(check.main(["full", "--wait"], root=repo.root), 2)
+            run.assert_not_called()
+            self.assertIsNone(check.no_clone(REPO))
+        finally:
+            repo.close()
+
     def test_order_failures_first_then_longest_with_needs(self):
         repo = FakeRepo()
         try:
@@ -380,8 +397,8 @@ class Merge(unittest.TestCase):
             return plan
 
         with mock.patch.object(check, "dirty", lambda root: []), mock.patch.object(
-            check, "execute", execute
-        ), mock.patch.object(check, "make_plan", make_plan):
+            check, "no_clone", lambda root: None
+        ), mock.patch.object(check, "execute", execute), mock.patch.object(check, "make_plan", make_plan):
             self.assertEqual(check.main(["merge", "--wait"], root=self.repo.root), 0)
         self.assertEqual([w for w, _ in ran], ["merge: the writers", "merge"])
         self.assertEqual(sorted(ran[0][1]), ["update-lists", "wording"])
@@ -513,6 +530,11 @@ class Targets(unittest.TestCase):
             self.assertIsNone(check.find_program(repo.root, "nothing"))
         finally:
             repo.close()
+
+    def test_a_program_runs_after_what_its_suites_step_needs(self):
+        # A verification program links the v37 libraries, which a fresh worktree does not have.
+        self.assertEqual(check.program_needs(list(steps.runner("verification", "v1"))), ["build", "v37-libs"])
+        self.assertEqual(check.program_needs(list(steps.runner("corpus", "--list", "g/p1"))), ["build"])
 
     def test_without_nextest_the_tests_run_under_cargo_test_and_it_says_so(self):
         repo = FakeRepo()

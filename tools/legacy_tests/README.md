@@ -308,7 +308,8 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target
   (`cp437_all_bytes.bin`), leaving out programs, `.txt` files, executables and their build folders, scripts,
   documents, other programs' `.stdin` and `.noprompt`, and `v40_rc\` (`verification_support`). Nothing is
   written into `verification\`, and programs run side by side cannot see each other's files. A `v37` program
-  whose libraries are missing fails with "run verification/v37_lib/build_libs.py first".
+  whose libraries are missing fails with "run verification/v37_lib/build_libs.py first" (`check` builds them,
+  step `v37-libs`, before it runs the runner).
 - The run is the recording's: stdin from the null device or the `.stdin`, `QB64PE_NOPROMPT` from `.noprompt` or
   `y`, a 60 s timeout with Ctrl+Break and 5 s before the kill, and no key presses, so a program waiting at `END`
   times out as it did. It starts through `press_any_key.py --no-keys --hidden-desktop`: the window goes on a

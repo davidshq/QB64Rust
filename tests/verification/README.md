@@ -54,7 +54,8 @@ A program with a `<name>.root` sidecar (`tools\legacy_tests\README.md`, "Verific
 test libraries of `$USELIBRARY`). The recording was made with `qb64pe.exe` in a copy of the release whose own
 folder held the same, so both compilers see one compiler root.
 
-The `v37` programs need the libraries `verification\v37_lib\build_libs.py` builds (git-ignored).
+The `v37` programs need the libraries `verification\v37_lib\build_libs.py` builds (git-ignored); `check`'s step
+`v37-libs` builds them before the verification programs run (`tools\check\README.md`).
 
 ```
 python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target\release\qb64rust.exe ^

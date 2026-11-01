@@ -836,6 +836,26 @@ def target_command(root: Path, target: str, force: bool) -> tuple[list[str], Pat
     return list(runner(suite, *caches, *selection)), tmp
 
 
+def no_clone(root: Path) -> str | None:
+    """Why `full` and `merge` cannot run here, or None: their steps read the reference clone beside the checkout,
+    and a worktree made elsewhere has none (it would fail step by step, an hour into the run)."""
+    clone = root.parent / "QB64pe"
+    if (clone / "internal" / "c").is_dir():
+        return None
+    return (
+        f"no reference clone at {clone.as_posix()}: a worktree goes beside the checkout, so that ../QB64pe and "
+        "../../qb64contain are the same folders (CLAUDE.md, \"Where things live\")."
+    )
+
+
+def program_needs(cmd: list[str]) -> list[str]:
+    """The steps a runner command of `check <program>` needs first: those of its suite's step (the release build,
+    and for a verification program the v37 libraries)."""
+    suite = cmd[cmd.index("--suite") + 1]
+    own = next((s for s in STEPS if s.suite == suite), None)
+    return list(own.needs) if own else ["build"]
+
+
 def step_of_target(target: str) -> str | None:
     t = target.replace("\\", "/").rstrip("/")
     if t in BY_NAME:
@@ -892,8 +912,13 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
                 print(
                     f"check {a.what} refused: uncommitted changes under {', '.join(FULL_CLEAN)} "
                     f"({describe(changes)}). Its results are to describe one commit: commit, then run it in a "
-                    f"worktree of the commit (`git worktree add ../qb64rust-full HEAD`, then `just {a.what}` there)."
+                    f"worktree of the commit (`git worktree add ../qb64rust-full HEAD`, then `just {a.what}` there; "
+                    f"or `git checkout <commit>` in the worktree you have: what stands is not run again)."
                 )
+                return 2
+            missing = no_clone(root)
+            if missing:
+                print(f"check {a.what} refused: {missing}")
                 return 2
         if a.what == MERGE:
             writers = make_plan(root, FULL, True, [s.name for s in STEPS if s.first])
@@ -908,8 +933,8 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
                 return 2
             cmd, _ = got
             if RUNNER in cmd:
-                # A program runs on the release build: `build` first, unless it stands.
-                first = make_plan(root, FULL, a.force, with_needs(["build"]))
+                # A program runs on what its suite's step needs, unless they stand.
+                first = make_plan(root, FULL, a.force, with_needs(program_needs(cmd)))
                 print_plan(first)
                 if first.run and execute(root, first, a.force, f"build for {a.what}") != 0:
                     return 1
