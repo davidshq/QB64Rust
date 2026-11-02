@@ -68,6 +68,7 @@ v45_x27	D-026
 v45_x32	D-031
 v45_x38	D-029
 v45_x40	D-028
+v45_x48	bug: "name already in use" of a SUB named as a $COLOR constant is reported in the included color0.bi, not on the SUB (STATUS.md, known bugs)
 v49_x18_cast_out_of_range	D-047
 v54_x26_negative_beyond	D-034
 v54_x38_const_unsigned	D-027
@@ -195,13 +196,6 @@ v66_d03_const_rgb32_string	not supported yet
 v66_d06_const_sin_infinite_const	D-029
 v66_d09_library_sub_handler_no_argument	not supported yet
 v66_d10_library_sub_handler_argument	not supported yet: QB64pe rejects it too, with another error
-v66_e01_name41_variable	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
-v66_e02_name41_array	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
-v66_e03_name41_const	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
-v66_e04_name41_type	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
-v66_e05_name41_member	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
-v66_e06_name41_sub	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
-v66_e07_name41_function	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
 v66_g01_left_out_screen	not supported yet: QB64pe rejects it too, with another error
 v66_g07_left_out_lbound	not supported yet: QB64pe rejects it too, with another error
 v66_g08_left_out_ubound	not supported yet: QB64pe rejects it too, with another error

@@ -2,6 +2,8 @@
 # known.list. A reason that starts with "windows" skips the program there; any other makes its failure known. Read
 # by tools/legacy_tests/run_legacy_tests.py --platform linux. Each line was measured with QB64pe's Linux build too.
 v22_d_shell	windows: SHELLs cmd; on Linux the shell's "not found" comes between the program's lines in another order each run
+v24_x93_large_bytes	varies: an array of 8 TB is allocated or "Out of memory" as the kernel's overcommit allows (allocated when recorded on 2026-10-28; "Out of memory" in WSL on 2026-11-02, QB64pe's Linux build too)
+v24_x96_large_redim	varies: an array of 8 TB is allocated or "Out of memory" as the kernel's overcommit allows (allocated when recorded on 2026-10-28; "Out of memory" in WSL on 2026-11-02, QB64pe's Linux build too)
 v29_a_sound_queue	varies: ALSA's null device plays nothing, so the queue's length changes from run to run; crashes now and then (munmap_chunk)
 v29_d_volume_zero	varies: ALSA's null device plays nothing, so the queue's length changes from run to run
 v29_f_queue_slice	varies: ALSA's null device plays nothing, so the queue's length changes from run to run; QB64pe's build crashed recording it

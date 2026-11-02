@@ -7,7 +7,7 @@ through `just` (the `justfile` at the top of the repository) or as `python tools
 |---|---|
 | `just quick` | the quick layer: `fmt`, `build` (release), `clippy`, `nextest` (the workspace's Rust tests), `lists` (`inputs.rs`: the lists and recordings), `doc`, `tools` (the Python tools' tests, `tool_tests.py`), `libqb-copy` (the copy against its edits), `v37-libs` (the libraries of the `v37` verification programs, `verification\v37_lib\build_libs.py`, git-ignored; `verification` needs it, so a fresh worktree builds them), `slice` (the slice list); and the upstream and verification lists narrowed to the programs a change reaches, when it reaches only programs |
 | `just full` | every step: the quick layer and the upstream and verification lists, the call-site check, the CLI tests that build (`--ignored`), qbasic, addprefix, the format runs, the differential list, the slice without folding, the coverage check, the Linux family in WSL, the sandbox family last |
-| `just merge` | the merge into `main`, in a worktree of the merge commit: every step again without the pass cache, but the slice, upstream and verification lists and the Linux slice, which its whole suites stand for; and its own steps (`steps.py`, layer `merge`, from the old `close.py`'s merge set): the known lists and the old wording table regenerated first (`update-lists`, `wording`, a plan of their own, so that the rest is planned on the files they wrote), then the wording check, the three whole suites with `--coverage` (`target\coverage\merge\*.txt`, the records narrowing reads), the pass lists held to their results (`--check-list`), the built-ins' list (`builtins`), the two demand reports, the count blocks (`counts.py --strict`; these three and the `--check-list` runs run after a whole suite with a failure too, `after_failure`, since they read its results, not its verdict) and the Linux whole suites. Files it rewrites are for the user to stage |
+| `just merge` | the merge into `main`, in a worktree of the merge commit: every step again without the pass cache (but what passed in an earlier merge with the same fingerprint, below), but the slice, upstream and verification lists and the Linux slice, which its whole suites stand for; and its own steps (`steps.py`, layer `merge`, from the old `close.py`'s merge set): the known lists and the old wording table regenerated first (`update-lists`, `wording`, a plan of their own, so that the rest is planned on the files they wrote), then the wording check, the three whole suites with `--coverage` (`target\coverage\merge\*.txt`, the records narrowing reads), the pass lists held to their results (`--check-list`), the built-ins' list (`builtins`), the two demand reports, the count blocks (`counts.py --strict`; these three and the `--check-list` runs run after a whole suite with a failure too, `after_failure`, since they read its results, not its verdict) and the Linux whole suites, after a `linux-sync --checksum` (the exact copy; a step's `forced` form, used by `--force` too) at the tree's first merge, and the usual sync from git's list once an earlier merge's sync passed (`check-rejudge` design D6). Files it rewrites are for the user to stage |
 | `just check <target>` | a step by name, after the steps it needs unless they stand (`build` before a list); a crate folder (`crates/sema`: that crate's tests); a suite folder or list (`verification`, `tests/corpus/slice.list`); one program by name (`v66_a01_varptr_dynamic_owner`, a corpus or upstream program's name), after the steps its suite's step needs (`build`; for a verification program `v37-libs` too) unless they stand |
 | `just status` | each step: standing, to run, or failed, with its last run and log |
 | `just history [days]` | per day (the last 14 with runs by default): the runs, the steps run and standing, the failures and the wall time; then the steps that took the most time. Every `check` run, one with nothing to run too, adds a line to `target\check\history.jsonl` |
@@ -24,8 +24,24 @@ happened.
 (`git worktree add ../qb64rust-full HEAD`), where `..\QB64pe` and `..\..\qb64contain` are the same folders
 (`CLAUDE.md`, "Where things live"); elsewhere `check` refuses. For the next commit, `git checkout <commit>` in that
 worktree: what stands is not run again, where a new worktree builds from cold and runs every step. Its first plan
-hashes every file (some minutes); later plans read only what changed. Claude runs it as `just full --wait` in the
+hashes every file (some minutes); later plans read only what changed. The Linux steps run in the tree's own WSL
+copy (`~/qb64rust` for the checkout, `~/qb64rust-full` for the worktree; `tools\linux\copy.sh`), so each copy
+follows one tree and `linux-sync` copies only the files git reports changed since the last sync, not every file
+by content, except under `--force`. Claude runs it as `just full --wait` in the
 background, the report kept in `target\scratch\<date>\full.log`.
+
+**After a fix to a failed `just merge`**, check out the fix's commit in the worktree and run `just merge` again: a
+step that passed in an earlier merge with the same fingerprint stands (only a merge's pass does: a pass of `full`
+or of one step may have used the pass cache), so only what the fix reaches runs. `just merge --force` runs every
+step (OpenSpec change `check-rejudge`, design D3; user, 2026-11-02).
+
+**A re-judge instead of a run.** A whole suite (`corpus-whole`, `upstream-whole`, `verification-whole` and their
+`linux-` steps) whose inputs changed since its last run, passed or failed, only in the lists that mark failures
+known (`steps.py`'s `JUDGE_LISTS`: `known_failures.txt`, `tests\*\known.list`, `tests\*\known.linux.list`) is
+planned as "re-judge: only the known lists changed": the runner's `--rejudge` applies today's lists to the stored
+results in under a second, with no program built or run, and the steps that read the results run after it. Each
+record keeps a `run_fingerprint`, the fingerprint without those lists, to tell. A failure with nothing changed runs
+again, as before; `--force` runs.
 
 ## What stands
 

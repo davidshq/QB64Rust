@@ -1,5 +1,8 @@
 # Proposal
 
+Superseded in part by `design.md`: D2 (the files to copy named by git; `--checksum` kept as the exact form for
+`--force` and the merge) and D3 (the worktree's copy seeded, so no Linux build from cold).
+
 ## Why
 
 `linux-sync` takes about 3 minutes on every `just full` and `just merge` (175.5 s measured 2026-11-01, in the

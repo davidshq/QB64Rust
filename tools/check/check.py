@@ -42,7 +42,19 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from steps import BY_NAME, COUNTS, FALLBACK, FULL, MERGE, MERGE_REPLACES, QUICK, RUNNER, STEPS, Step  # noqa: E402
+from steps import (  # noqa: E402
+    BY_NAME,
+    COUNTS,
+    FALLBACK,
+    FULL,
+    JUDGE_LISTS,
+    MERGE,
+    MERGE_REPLACES,
+    QUICK,
+    RUNNER,
+    STEPS,
+    Step,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 # A plan expected to take longer than this many seconds goes to the background.
@@ -212,6 +224,9 @@ class Inputs:
     fingerprint: str
     files: dict[str, str]
     lists: dict[str, list[str]] = field(default_factory=dict)
+    # The fingerprint without the lists that only judge a run (JUDGE_LISTS) and with the needs' run fingerprints:
+    # equal to a record's while only those lists changed, so that the step's stored results can be judged again.
+    run: str = ""
 
 
 def list_entries(root: Path, rel: str) -> list[str]:
@@ -229,17 +244,26 @@ def inputs_of(step: Step, root: Path, files: list[str], hashes: Hashes, done: di
     """A step's fingerprint: its command, every input file by path and hash, its external inputs and the
     fingerprints of the steps it needs."""
     h = hashlib.sha256()
-    h.update(repr((step.name, step.command, sorted(step.env.items()))).encode())
+    run = hashlib.sha256()
+    for x in (h, run):
+        x.update(repr((step.name, step.command, sorted(step.env.items()))).encode())
     taken = {f: d for f in matching(step.inputs, files) if (d := hashes.of(f)) is not None}
+    judge = set(matching(JUDGE_LISTS, list(taken)))
     for f, digest in taken.items():
-        h.update(f"{f}\0{digest}\n".encode("utf-8", "surrogateescape"))
+        line = f"{f}\0{digest}\n".encode("utf-8", "surrogateescape")
+        h.update(line)
+        if f not in judge:
+            run.update(line)
     for name in step.external:
-        h.update(external(name, root).encode("utf-8", "surrogateescape"))
+        ext = external(name, root).encode("utf-8", "surrogateescape")
+        h.update(ext)
+        run.update(ext)
     for need in step.needs:
         if need in done:
             h.update(done[need].fingerprint.encode())
+            run.update(done[need].run.encode())
     lists = {p: list_entries(root, p) for p in (step.program_list, *step.side_lists) if p}
-    return Inputs(h.hexdigest(), taken, lists)
+    return Inputs(h.hexdigest(), taken, lists, run.hexdigest())
 
 
 def record_path(root: Path, name: str) -> Path:
@@ -376,6 +400,13 @@ class Planned:
     # "coverage" when this run, or one since the step last ran whole, was narrowed by the coverage records: a guess
     # (records of the last merge, without the programs added since), which stands for `quick`, never for `full`.
     narrowed: str | None = None
+    # The step's stored results judged again (its `rejudge` command), not a run: only the known lists changed.
+    rejudge: bool = False
+    # Planned by `check merge`: its record says so, and only such a pass stands for a later merge.
+    merge: bool = False
+    # Run in its usual form under the merge, not its `forced` one: the Linux sync after an earlier merge's passed in
+    # this tree, whose copy was then checked by content and has followed git since (check-rejudge, design D6).
+    usual: bool = False
 
 
 @dataclass
@@ -402,13 +433,42 @@ def with_needs(names: list[str]) -> list[str]:
     return [s.name for s in STEPS if s.name in wanted]
 
 
+REJUDGE_REASON = "re-judge: only the known lists changed"
+
+
+def can_rejudge(step: Step, record: dict | None, inputs: Inputs) -> bool:
+    """The step's stored results can be judged again instead of run (OpenSpec change check-rejudge, design D2): it
+    has a re-judge, and since its last run, passed or failed, only the lists that judge it changed. With nothing
+    changed it runs: a failure may have been the machine's, and a refused re-judge needs a run."""
+    return (
+        step.rejudge is not None
+        and bool(record)
+        and record.get("run_fingerprint") == inputs.run
+        and record.get("fingerprint") != inputs.fingerprint
+    )
+
+
+def merge_reason(record: dict | None, inputs: Inputs) -> str:
+    if not record or not record.get("merge"):
+        return "no pass of an earlier merge"
+    if record.get("result") != "pass":
+        return "failed last time"
+    return f"changed: {describe(changed_files(record.get('files', {}), inputs.files)) or 'its command or a step it needs'}"
+
+
 def make_plan(
-    root: Path, layer: str, force: bool = False, names: list[str] | None = None, asked: tuple[str, ...] = ()
+    root: Path,
+    layer: str,
+    force: bool = False,
+    names: list[str] | None = None,
+    asked: tuple[str, ...] = (),
+    merge: bool = False,
 ) -> Plan:
     """Which steps of the layer (or the named ones) run, which stand, and which the quick layer leaves to the full
     one, with why. `names` must hold the steps the named ones need (with_needs): a step's fingerprint takes theirs,
     so that it is the same whether the step was named or run in its layer. A step in `asked` runs even when it
-    stands; the others by the usual rule."""
+    stands; the others by the usual rule. `merge` (and the merge layer): a step stands only on a pass of an earlier
+    merge with the same fingerprint (design D3 of check-rejudge)."""
     external.cache_clear()
     files = repo_files(root)
     hashes = Hashes(root)
@@ -417,11 +477,11 @@ def make_plan(
     if names:
         wanted = [BY_NAME[n] for n in names]
     elif layer == MERGE:
-        # Every step again: a result of the merge describes the merge's commit alone. The writers (`first`) are
-        # a plan of their own, run before this one is made (`main`), so that every fingerprint here is of the
-        # files they wrote.
+        # A result of the merge describes the merge's commit alone: only an earlier merge's pass stands. The writers
+        # (`first`) are a plan of their own, run before this one is made (`main`), so that every fingerprint here
+        # is of the files they wrote.
         wanted = [s for s in STEPS if s.name not in MERGE_REPLACES and not s.first]
-        force = True
+        merge = True
     else:
         wanted = [
             s
@@ -433,7 +493,27 @@ def make_plan(
         done[step.name] = inputs
         record = read_record(root, step.name)
         if force:
-            plan.run.append(Planned(step, inputs, "--force"))
+            plan.run.append(Planned(step, inputs, "--force", merge=merge))
+            continue
+        if merge:
+            if (
+                record
+                and record.get("merge")
+                and record.get("result") == "pass"
+                and record.get("fingerprint") == inputs.fingerprint
+            ):
+                plan.standing.append((step, record))
+            elif record and record.get("merge") and can_rejudge(step, record, inputs):
+                plan.run.append(Planned(step, inputs, REJUDGE_REASON, rejudge=True, merge=True))
+            else:
+                usual = bool(
+                    step.forced is not None and record and record.get("merge") and record.get("result") == "pass"
+                )
+                reason = merge_reason(record, inputs) + ("; its usual form: an earlier merge's passed" if usual else "")
+                plan.run.append(Planned(step, inputs, reason, merge=True, usual=usual))
+            continue
+        if can_rejudge(step, record, inputs):
+            plan.run.append(Planned(step, inputs, REJUDGE_REASON, rejudge=True))
             continue
         if step.name in asked:
             plan.run.append(Planned(step, inputs, "asked for"))
@@ -544,6 +624,10 @@ def command_of(p: Planned, root: Path, force: bool, nextest: bool) -> tuple[list
     """The command of a planned step and a note on how it differs from the step's own."""
     step, note = p.step, ""
     cmd = step.command
+    if p.rejudge and step.rejudge is not None:
+        return step.rejudge, "re-judged: no program ran"
+    if force and step.forced is not None and not p.usual:
+        cmd, note = step.forced, "forced: the exact form"
     if step.name in FALLBACK and not nextest:
         cmd = FALLBACK[step.name]
         note = f"cargo-nextest not found, ran `cargo test` (install: {INSTALL['nextest']})"
@@ -604,6 +688,9 @@ def run_step(p: Planned, root: Path, force: bool, nextest: bool) -> dict:
                 rc = subprocess.run(argv, cwd=root, stdout=out, stderr=subprocess.STDOUT, env=env).returncode
     record = {
         "fingerprint": p.inputs.fingerprint,
+        "run_fingerprint": p.inputs.run,
+        "merge": p.merge,
+        "rejudged": p.rejudge,
         "result": "pass" if rc == 0 else "fail",
         "started": started,
         "seconds": round(time.time() - started, 1),
@@ -921,7 +1008,7 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
                 print(f"check {a.what} refused: {missing}")
                 return 2
         if a.what == MERGE:
-            writers = make_plan(root, FULL, True, [s.name for s in STEPS if s.first])
+            writers = make_plan(root, FULL, a.force, [s.name for s in STEPS if s.first], merge=True)
             print_plan(writers)
         plan = make_plan(root, a.what, a.force)
     else:
@@ -957,8 +1044,8 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         return to_background(root, [x for x in argv if x != "--wait"])
     if a.what == MERGE:
         # The writers first, then the rest planned again: its fingerprints are of the files they wrote.
-        bad = execute(root, writers, True, "merge: the writers")
-        plan = make_plan(root, MERGE)
+        bad = execute(root, writers, True, "merge: the writers") if writers.run else 0
+        plan = make_plan(root, MERGE, a.force)
         return execute(root, plan, True, a.what) or bad
     return execute(root, plan, a.force, a.what)
 

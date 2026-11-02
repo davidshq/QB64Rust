@@ -856,3 +856,30 @@ message as its note. The same form in a place no recording covers SHALL stay mar
 #### Scenario: NOT after `^`
 - **WHEN** a program prints `2 ^ NOT x` with `x = 1`
 - **THEN** it compiles and prints ` .25 `, as the old compiler's program (`verification\v57_e09`)
+
+### Requirement: The 40-character limit on names
+A word of code of more than 40 characters SHALL be a compile error at each place it stands, whatever it names
+(variable, array, `CONST`, `TYPE`, member, SUB, FUNCTION, parameter, label, `DECLARE LIBRARY` name), as the old
+compiler's line formatter refuses it ("Identifier longer than 40 character limit"). A word is a run of letters,
+digits and `_`, counted without its type suffix and its trailing `_`; each part of a dotted name is one word.
+Comments, strings, `DATA`, metacommand lines and a `$IF` branch not taken SHALL not be checked. A dotted variable,
+`CONST` or procedure name whose parts fit but which has more than 40 characters with its dots SHALL be an error too
+("Invalid variable name", "Invalid name"). There is no switch to allow longer names (`DECISIONS.md` 2026-11-02).
+
+#### Scenario: A name of 41 characters
+- **WHEN** a program declares or uses a variable, array, `CONST`, `TYPE`, member, SUB, FUNCTION, parameter, label
+  or `DECLARE LIBRARY` function of 41 characters
+- **THEN** the compile fails with an error at the name (`verification\v66_e01`–`e07`, `e10`, `e11`, `e15`, `e16`)
+
+#### Scenario: 40 characters and a suffix
+- **WHEN** a program uses a name of 40 letters with a `$` suffix, or names of 40 characters of every kind
+- **THEN** it compiles and runs as the old compiler's program (`verification\v66_e08`, `e09`)
+
+#### Scenario: A long word that is not code
+- **WHEN** a word of 41 characters stands in a comment, a string, `DATA` or a `$IF` branch not taken
+- **THEN** it compiles (`verification\v66_e12`, `e14`)
+
+#### Scenario: A dotted name of 61 characters
+- **WHEN** a program assigns `a.b`, declares a `CONST a.b` or a `SUB a.b`, where `a` and `b` have 30 characters
+  each
+- **THEN** the compile fails with an error at the name (`verification\v66_e13`, `e17`, `e18`)

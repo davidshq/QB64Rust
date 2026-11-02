@@ -115,6 +115,27 @@ class FakeRepo:
                 },
             )
 
+    def pass_merge(self, failed: tuple[str, ...] = ()) -> None:
+        """Every step of a merge recorded as that merge records it, passed but for `failed`."""
+        writers = check.make_plan(self.root, FULL, True, [s.name for s in steps.STEPS if s.first], merge=True)
+        for p in writers.run + check.make_plan(self.root, MERGE).run:
+            check.write_record(
+                self.root,
+                p.step.name,
+                {
+                    "fingerprint": p.inputs.fingerprint,
+                    "run_fingerprint": p.inputs.run,
+                    "merge": True,
+                    "rejudged": False,
+                    "result": "fail" if p.step.name in failed else "pass",
+                    "files": p.inputs.files,
+                    "lists": p.inputs.lists,
+                },
+            )
+
+    def plan_reasons(self, layer: str, force: bool = False) -> dict[str, str]:
+        return {p.step.name: p.reason for p in check.make_plan(self.root, layer, force).run}
+
     def planned(self, layer: str = QUICK, force: bool = False) -> dict[str, list[str] | None]:
         return {p.step.name: p.only for p in check.make_plan(self.root, layer, force).run}
 
@@ -417,12 +438,116 @@ class Merge(unittest.TestCase):
             for reader in (f"{name}-list", "builtins", "counts"):
                 self.assertLess(names.index(f"{name}-whole"), names.index(reader))
 
+    def test_a_merge_again_lets_the_earlier_merges_passes_stand(self):
+        # OpenSpec change check-rejudge, design D3: a pass of an earlier merge with the same fingerprint stands.
+        self.repo.pass_merge(failed=("upstream-whole",))
+        # Nothing changed: the failed suite runs again (a failure may be the machine's); its readers stand.
+        self.assertEqual(self.repo.plan_reasons(MERGE), {"upstream-whole": "failed last time"})
+
+    def test_a_merge_again_after_a_known_list_fix_re_judges(self):
+        self.repo.pass_merge(failed=("upstream-whole", "linux-verification"))
+        self.repo.write("tools/legacy_tests/known_failures.txt", "compile_tests:c/u1  D-052\n")
+        self.repo.write("tests/verification/known.linux.list", "v3\tvaries\n")
+        got = self.repo.plan_reasons(MERGE)
+        self.assertEqual(got["upstream-whole"], check.REJUDGE_REASON)
+        self.assertEqual(got["linux-verification"], check.REJUDGE_REASON)
+        # Every whole suite that reads a changed list is judged again, none run; what needs them runs (it reads their
+        # results), and the sync that copies the lists.
+        for name, step in ((n, steps.BY_NAME[n]) for n in got):
+            if step.rejudge is not None:
+                self.assertEqual(got[name], check.REJUDGE_REASON, name)
+        for name in ("upstream-list", "counts", "linux-sync"):
+            self.assertIn(name, got)
+        for name in ("build", "nextest", "callsite", "fmt"):
+            self.assertNotIn(name, got, f"{name} does not read the lists that changed")
+
+    def test_the_sync_checks_by_content_at_the_first_merge_and_under_force_only(self):
+        # design D6: after an earlier merge's sync passed, the copy follows git; the first merge and --force check
+        # every file by content.
+        def sync(force: bool = False) -> str:
+            p = next(p for p in check.make_plan(self.repo.root, MERGE, force).run if p.step.name == "linux-sync")
+            return check.command_of(p, self.repo.root, True, True)[0]
+
+        self.repo.write("tests/verification/known.linux.list", "v3\tvaries\n")
+        self.assertIn("--checksum", sync(), "pass_all: no earlier merge")
+        self.repo.pass_merge()
+        self.repo.write("tests/verification/known.linux.list", "v3\tvaries: now\n")
+        self.assertNotIn("--checksum", sync())
+        self.assertIn("--checksum", sync(force=True))
+
+    def test_a_pass_outside_a_merge_does_not_stand_for_one(self):
+        # pass_all records `check full`'s passes: none stands for a merge.
+        self.assertEqual(self.repo.plan_reasons(MERGE)["build"], "no pass of an earlier merge")
+
+    def test_force_still_runs_every_step_of_the_merge(self):
+        self.repo.pass_merge()
+        self.repo.write("tools/legacy_tests/known_failures.txt", "compile_tests:c/u1  D-052\n")
+        got = self.repo.plan_reasons(MERGE, force=True)
+        self.assertEqual(set(got), {s.name for s in steps.STEPS} - steps.MERGE_REPLACES - {"update-lists", "wording"})
+        self.assertNotIn(check.REJUDGE_REASON, got.values())
+
     def test_a_str_step_runs_in_gits_bash(self):
         # `pwd -W` is Git's bash's alone: WSL's bash.exe, which Windows finds first in System32, has no -W.
         if os.name != "nt":
             self.skipTest("Windows only")
         out = subprocess.run([check.bash(), "-c", "pwd -W"], capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stderr)
+
+
+class Rejudge(unittest.TestCase):
+    """A whole suite whose inputs changed only in the known lists is judged again, not run (OpenSpec change
+    check-rejudge, design D2)."""
+
+    def setUp(self):
+        self.repo = FakeRepo()
+        self.repo.pass_merge(failed=("upstream-whole",))
+
+    def tearDown(self):
+        self.repo.close()
+
+    def named(self, name: str) -> dict[str, check.Planned]:
+        plan = check.make_plan(self.repo.root, FULL, False, check.with_needs([name]), asked=(name,))
+        return {p.step.name: p for p in plan.run}
+
+    def test_a_known_list_row_after_a_failure_plans_a_re_judge(self):
+        self.repo.write("tools/legacy_tests/known_failures.txt", "compile_tests:c/u1  D-052\n")
+        got = self.named("upstream-whole")
+        self.assertEqual(list(got), ["upstream-whole"])
+        p = got["upstream-whole"]
+        self.assertTrue(p.rejudge)
+        cmd, note = check.command_of(p, self.repo.root, False, True)
+        self.assertIn("--rejudge", cmd)
+        self.assertNotIn("--coverage", cmd)
+        self.assertEqual(note, "re-judged: no program ran")
+
+    def test_a_list_row_and_a_crate_change_plan_a_run(self):
+        self.repo.write("tools/legacy_tests/known_failures.txt", "compile_tests:c/u1  D-052\n")
+        self.repo.write("crates/sema/src/lib.rs", "fn b() {}\n")
+        got = self.named("upstream-whole")
+        self.assertFalse(got["upstream-whole"].rejudge)
+
+    def test_a_re_judge_is_recorded_as_one(self):
+        self.repo.write("tools/legacy_tests/known_failures.txt", "compile_tests:c/u1  D-052\n")
+        p = self.named("upstream-whole")["upstream-whole"]
+        p.step = steps.Step(p.step.name, p.step.layer, p.step.command, p.step.inputs, rejudge=(sys.executable, "-c", "pass"))
+        r = check.run_step(p, self.repo.root, False, True)
+        self.assertEqual((r["result"], r["rejudged"], r["run_fingerprint"]), ("pass", True, p.inputs.run))
+        # It now stands: nothing changed since.
+        self.assertFalse(check.can_rejudge(p.step, check.read_record(self.repo.root, "upstream-whole"), p.inputs))
+
+    def test_the_judge_lists_name_every_list_the_runner_reads(self):
+        sys.path.insert(0, str(REPO / "tools" / "legacy_tests"))
+        import run_legacy_tests as rlt
+
+        args = mock.Mock(
+            known_failures=REPO / "tools" / "legacy_tests" / "known_failures.txt",
+            corpus_root=REPO / "tests" / "corpus",
+            platform="linux",
+        )
+        _, files = rlt.known_lists(args, verification=True)
+        rels = sorted(Path(os.path.relpath(f, REPO)).as_posix() for f in files)
+        self.assertEqual(len(rels), 5)
+        self.assertEqual(check.matching(steps.JUDGE_LISTS, rels), rels)
 
 
 class Named(unittest.TestCase):
@@ -501,6 +626,42 @@ class Execute(unittest.TestCase):
             self.assertEqual((r["result"], r["note"]), ("fail", "Git's bash not found"))
         finally:
             repo.close()
+
+    def test_the_sync_checks_by_content_only_when_forced(self):
+        # linux-sync's usual form lets rsync compare sizes and times (one copy per tree, design D2 of
+        # linux-sync-per-tree); --force and the merge, which forces every step, ask for the exact copy.
+        repo = FakeRepo()
+        try:
+            plan = check.make_plan(repo.root, FULL, True, ["linux-sync"])
+            usual, note = check.command_of(plan.run[0], repo.root, False, True)
+            forced, forced_note = check.command_of(plan.run[0], repo.root, True, True)
+            self.assertNotIn("--checksum", usual)
+            self.assertEqual(note, "")
+            self.assertEqual(forced, usual + " --checksum")
+            self.assertEqual(forced_note, "forced: the exact form")
+        finally:
+            repo.close()
+
+    def test_the_linux_steps_run_in_the_trees_own_copy(self):
+        # No step names a copy itself: each runs through tools/linux/run.sh, which takes the copy from the tree it is
+        # run from (copy.sh), so a worktree's steps never run in the checkout's copy.
+        for s in steps.STEPS:
+            if s.name.startswith("linux-") and s.name != "linux-sync":
+                self.assertTrue(s.command.startswith(steps.IN_COPY), s.name)
+                self.assertNotIn("~/qb64rust", s.command, s.name)
+                for script in steps.LINUX_SCRIPTS:
+                    self.assertTrue(check.matching(s.inputs, [script]) == [script], (s.name, script))
+
+    def test_the_copy_is_named_from_the_trees_folder(self):
+        sh = check.bash()
+        if sh is None:
+            self.skipTest("Git's bash not found")
+        rule = REPO / "tools/linux/copy.sh"
+        for tree, want in (("/x/QB64Rust", "qb64rust"), ("/x/QB64Rust-full", "qb64rust-full"), ("/x/Q/", "q")):
+            out = subprocess.run(
+                [sh, "-c", f"HOME=/h; source '{rule.as_posix()}' && linux_copy '{tree}'"], capture_output=True, text=True
+            )
+            self.assertEqual(out.stdout.strip(), f"/h/{want}", (tree, out.stderr))
 
     def test_each_run_adds_a_line_to_the_history(self):
         repo = FakeRepo()

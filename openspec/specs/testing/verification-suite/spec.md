@@ -26,8 +26,10 @@ executables, scripts and documents, and those that begin with no family number (
 device (or the `.stdin` copy), `QB64PE_NOPROMPT` as recorded, a 60 s timeout and no key presses. The outcome
 SHALL be judged by what was recorded:
 
-- recorded `(not compiled)`: passes when the compile fails, writes no executable and reports at least one error
-  not marked "not supported yet". The message text is not compared.
+- recorded `(not compiled)`: passes when the compile fails, writes no executable, reports at least one error
+  not marked "not supported yet", and the earliest such error of the program's own file stands on the line the
+  recording names (requirement
+  "The line of a rejection"). The message text is not compared.
 - recorded output: passes when the compile succeeds and the run's output equals the recorded output, with the
   run folder masked as `<verification>`, the `exit=` line written as the recording writes it, CRLF taken as LF,
   and trailing newlines ignored. The compiler's output is not compared.
@@ -36,7 +38,8 @@ SHALL be judged by what was recorded:
 - no `<name>.out.txt` (an executable that did not start): fails with "nothing recorded to compare".
 
 #### Scenario: Rejected by both
-- **WHEN** the old compiler recorded `(not compiled)` and the new one reports `1 error`
+- **WHEN** the old compiler recorded `(not compiled)` with `LINE 4:`, and the new one reports `1 error` on line 4
+  of the program
 - **THEN** the program passes
 
 #### Scenario: Rejected only with marked errors
@@ -105,11 +108,80 @@ in neither. A program of `known.list` that passes in a full compare SHALL be rep
 `test_run_legacy_tests.py` SHALL test each compare rule with a stand-in compiler and program, without the clone:
 a rejection that passes and one with only marked errors, equal and different output, a different exit code, a
 timeout on both sides, a missing `.out.txt`, the folder mask, the support files copied, the verification folder
-left unwritten, a normalisation sidecar, and a divergence that is not listed.
+left unwritten, a normalisation sidecar, a divergence that is not listed, a rejection on the wrong line, a
+rejection whose line is not compared, and an exception of `lines.list`, kept and unneeded.
 
 #### Scenario: Runner tests
 - **WHEN** `python -m unittest discover -s tools/legacy_tests -p "test_*.py"` runs
 - **THEN** the tests of every rule above pass
+
+### Requirement: The line of a rejection
+For a program recorded `(not compiled)`, the compare SHALL take the first `LINE n:` of `<name>.compile.txt`, and
+the lowest line of the program's own file holding an error of the new compiler not marked "not supported yet",
+whatever order the errors are printed in. It SHALL fail the program at the stage "error line", naming both, unless
+that line is n; with no such error in that file it SHALL fail too.
+
+#### Scenario: Rejected on another line
+- **WHEN** the recording is `(not compiled)` with `LINE 6:`, and the new compiler's only error is on line 7
+- **THEN** the program fails at the stage "error line", naming lines 6 and 7
+
+#### Scenario: An earlier error printed later
+- **WHEN** the recording names `LINE 7:`, and the new compiler prints an error on line 7 and then one on line 3
+- **THEN** the program fails at the stage "error line", naming lines 7 and 3
+
+#### Scenario: Rejected only for an error in another file
+- **WHEN** the recording names `LINE 3:` of a program and gives no included file, and the new compiler's only
+  unmarked errors are in a file the program includes
+- **THEN** the program fails at the stage "error line"
+
+#### Scenario: A marked error first
+- **WHEN** the recording names `LINE 5:`, and the new compiler reports a marked error on line 2 and an unmarked
+  one on line 5
+- **THEN** the program passes
+
+### Requirement: Rejections whose line is not compared
+The compare SHALL compare no line for a program recorded `(not compiled)` when `<name>.compile.txt` has no
+`LINE n:` or has `LINE 0:` (QB64pe's "[INFORMATION UNAVAILABLE]"), or when its message places the error in an
+included file ("in line … of … included"); such a program passes on any rejection, as before.
+
+#### Scenario: No line recorded
+- **WHEN** the recording is `(not compiled)` after a failed C++ build, with no `LINE n:`
+- **THEN** the program passes on any rejection, as before
+
+#### Scenario: Line 0 recorded
+- **WHEN** the recording is "$IF without $END IF", "Caused by (or after):[INFORMATION UNAVAILABLE]", `LINE 0:`
+- **THEN** no line is compared
+
+#### Scenario: QB64pe's error in an included file
+- **WHEN** the recording's message is "File v16_only_main.bi not found in line 2 of <verification>\v16_inc/x2.bi
+  included" with `LINE 5:`
+- **THEN** no line is compared
+
+### Requirement: Exceptions to the line of a rejection
+`tests\verification\lines.list` SHALL hold one row per program whose rejection the new compiler places on another
+line than QB64pe: the program, the line the new compiler's rejection is pinned to instead, and a reason. That line
+SHALL stand for the recorded one, so the program still fails on any third line. A row SHALL name a program recorded
+`(not compiled)` whose recording names a line that is compared (requirement "Rejections whose line is not
+compared"). A row that a full compare finds unneeded (the program rejected on the recorded line, or no line
+compared) SHALL be reported so that it can be removed.
+
+#### Scenario: A block error
+- **WHEN** `lines.list` has the row `v16_m4_sub_missing_end 3 the line the block opens` and the recording names
+  `LINE 9:`, and the new compiler's earliest unmarked error is on line 3
+- **THEN** the program passes
+
+#### Scenario: The exception's line moves
+- **WHEN** the same row stands and the new compiler's earliest unmarked error is on line 5
+- **THEN** the program fails at the stage "error line"
+
+#### Scenario: An exception no longer needed
+- **WHEN** a full compare finds a program of `lines.list` whose earliest unmarked error is on the recorded line
+- **THEN** the program passes and the run reports its row as unneeded
+
+#### Scenario: The list checked
+- **WHEN** the tier-1 check of the lists runs and a row of `lines.list` names a program not recorded
+  `(not compiled)` or whose recording names no line that is compared, or the row gives no line or no reason
+- **THEN** the check fails, naming the row
 
 ### Requirement: The program's log
 Recording with `qb64pe` SHALL write `<name>.log.txt` beside a program whose first run logged an entry of the
@@ -179,3 +251,25 @@ SHALL be reported as `<name> [fixes on]`. Each switched fix SHALL have at least 
 - **WHEN** `v50_c_checking` has a sidecar `fixed\v50_c_checking.out.txt` and the suite runs
 - **THEN** the program is compared once with its `qb64pe.exe` recording (fixes off) and once with the sidecar
   (fixes on), and each result is counted on its own
+
+### Requirement: Stored results judged again
+`run_legacy_tests.py --rejudge --suite <suite>` SHALL read the suite's last results, apply the known lists as they
+are now (with `--platform linux`, the Linux lists too), rewrite each program's status (a failure on a list is a
+known failure, a known failure off every list is a failure), the summary and the results file, and print the
+summary and exit code a run would. It SHALL build and run no program. It SHALL refuse, with a message and exit
+code 2, results with no run record of this runner, of another compiler build, or of a program whose files changed
+after the run started. A program the lists now skip SHALL be reported as skipped. The results file SHALL record
+that it was judged again and when, and `--check-list` and the count blocks SHALL read it as the run it came from.
+
+#### Scenario: A failure made known
+- **WHEN** a full run of the verification suite on Linux failed only on `v24_x93_large_bytes`, which is then added
+  to `known.linux.list`, and `--rejudge --suite verification --platform linux` runs
+- **THEN** that program is a known failure, the summary has no failure, the exit code is 0, and no program ran
+
+#### Scenario: A known failure taken off the lists
+- **WHEN** a program's row is removed from `known.list` and its stored result is a known failure
+- **THEN** the re-judge reports it as a failure and exits 1
+
+#### Scenario: A changed program
+- **WHEN** a program's `.out.txt` changed after the run started
+- **THEN** the re-judge refuses and names the program

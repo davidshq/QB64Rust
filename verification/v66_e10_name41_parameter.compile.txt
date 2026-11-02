@@ -1,0 +1,5 @@
+
+Identifier longer than 40 character limit
+Caused by (or after):
+LINE 6:
+exit=1

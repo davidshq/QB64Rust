@@ -163,6 +163,9 @@ fn check_once(
     };
     c.first_color = c.first_color_line(program);
     let skips = Skips::new(program);
+    for t in &program.trees {
+        c.long_words(t.root());
+    }
     // Measured: an `OPTION _EXPLICIT` in an included file applies to the whole program, also before the include
     // (`verification\v19_explicit_*`).
     let has = |word: &[u8]| program.trees.iter().any(|t| has_option(map, t.root(), &skips, word));

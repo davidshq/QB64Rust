@@ -196,6 +196,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -423,6 +424,87 @@ def new_compiler_rejection(rc: int, out: bytes) -> str:
     if total <= marked:
         return f"only errors marked not supported yet ({lines[-1]})"
     return ""
+
+
+# QB64pe's line of an error in its .compile.txt ("LINE 6:PRINT a"), and the wording of a message about an error in
+# an included file, whose LINE is then the $INCLUDE's ("… in line 3 of <file> included", "… auto-included").
+RECORDED_LINE_RE = re.compile(r"^LINE (\d+):")
+INCLUDED_RE = re.compile(r"\bin line \d+ of .+ (?:auto-)?included\b")
+# One error of the new compiler: "<file>:<line>:<column>: error: <message>" (qb64rust_base::Diagnostic::render).
+ERROR_LINE_RE = re.compile(r"^(.+):(\d+):\d+: error: (.*)$")
+MARKED = "not supported yet: "
+
+
+def recorded_line(compile_txt: bytes) -> int | None:
+    """The line of the main file QB64pe's .compile.txt names for its error (its first `LINE n:`), or None when it
+    names none (no `LINE`, or `LINE 0:` after "[INFORMATION UNAVAILABLE]") or its message places the error in an
+    included file (OpenSpec change pin-rejection-line, D1, D4)."""
+    before = []
+    for line in compile_txt.decode("latin-1").splitlines():
+        m = RECORDED_LINE_RE.match(line)
+        if m:
+            return None if INCLUDED_RE.search("\n".join(before)) else int(m.group(1)) or None
+        before.append(line)
+    return None
+
+
+def earliest_error_line(output: bytes, main: str) -> int | None:
+    """The lowest line of the file `main` that holds an error of the new compiler not marked "not supported yet",
+    whatever order they are printed in, or None when there is none (OpenSpec change pin-rejection-line, D2, D3)."""
+
+    def same_file(name: str) -> bool:
+        name = name.replace("\\", "/").lower()
+        return name.removeprefix("./") == main.replace("\\", "/").lower()
+
+    lines = []
+    for line in output.decode("latin-1").splitlines():
+        m = ERROR_LINE_RE.match(line.rstrip("\r"))
+        if m and same_file(m.group(1)) and not m.group(3).startswith(MARKED):
+            lines.append(int(m.group(2)))
+    return min(lines, default=None)
+
+
+# The exceptions to the line of a rejection, beside known.list (tests/verification/README.md).
+LINES_LIST = "lines.list"
+# The detail of a program of lines.list that passed on QB64pe's own line: the run's end names it.
+LINES_NOT_NEEDED = "lines.list row not needed"
+
+
+def load_lines_list(path: Path) -> dict[str, tuple[int, str]]:
+    """Reads tests/verification/lines.list into {name: (line, reason)} (empty if it does not exist). Lines:
+    <name><TAB><line><TAB><reason>; '#' lines and blank lines are skipped (inputs.rs checks the rows). A row
+    whose line is not a number raises ValueError, naming it."""
+    rows: dict[str, tuple[int, str]] = {}
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip() or line.startswith("#"):
+                continue
+            name, _, rest = line.partition("\t")
+            number, _, reason = rest.partition("\t")
+            try:
+                rows[name.strip()] = (int(number), reason.strip())
+            except ValueError:
+                raise ValueError(f"{path}: not <name><TAB><line><TAB><reason>: {line}") from None
+    return rows
+
+
+def rejection_line(compile_txt: Path, output: bytes, main: str, exception: int | None) -> tuple[str, str]:
+    """Whether a rejection stands on the line QB64pe names (spec testing/verification-suite, "The line of a
+    rejection"): ("", detail) when it passes, (why, "") when it fails. `exception` is the program's line of
+    lines.list, which stands for QB64pe's."""
+    want = recorded_line(compile_txt.read_bytes()) if compile_txt.is_file() else None
+    if want is None:
+        # No line compared: a row of lines.list for the program is never used.
+        return "", ("" if exception is None else LINES_NOT_NEEDED)
+    got = earliest_error_line(output, main)
+    if exception is not None and got == want:
+        return "", LINES_NOT_NEEDED
+    pinned = want if exception is None else exception
+    if got == pinned:
+        return "", ""
+    named = f"QB64pe names line {want}" if exception is None else f"lines.list gives line {exception}"
+    found = f"no unmarked error in {main}" if got is None else f"the earliest error is on line {got}"
+    return f"{named}, {found}", ""
 
 
 # qb64pe several at a time (--jobs with qb64pe, corpus suite). qb64pe builds inside its own folder:
@@ -2551,8 +2633,20 @@ def verification_compare(
             return fail("compile", "compiled successfully; the old compiler rejected it")
         if exe.exists():
             return fail("exe exists", "exe produced although the compile failed")
-        why = new_compiler_rejection(rc, compile_out.read_bytes())
-        return fail("error result", why) if why else passed()
+        output = compile_out.read_bytes()
+        why = new_compiler_rejection(rc, output)
+        if why:
+            return fail("error result", why)
+        if fixed:  # a sidecar of output by hand records no line
+            return passed()
+        rows = getattr(args, "lines_list", None)  # read once by main; a lone compare reads it here
+        if rows is None:
+            rows = load_lines_list(VERIFICATION_LISTS / LINES_LIST)
+        exception = rows.get(name)
+        why, note = rejection_line(
+            root / f"{name}.compile.txt", output, bas.name, exception[0] if exception else None
+        )
+        return fail("error line", why) if why else passed(note)
     if rc != 0:
         return fail("compile", f"exit code {rc}; the old compiler built it")
     if not exe.exists():
@@ -2789,6 +2883,19 @@ def program_inputs(suite: str, bas: Path, names: list[str] | None = None) -> lis
     return found
 
 
+def folder_names() -> Callable[[Path], list[str]]:
+    """The sorted file names of a folder, each folder listed once: `program_inputs`' `names` for a caller that
+    takes many programs of one folder (a glob per program lists `verification\\` thousands of times)."""
+    listings: dict[Path, list[str]] = {}
+
+    def names_of(folder: Path) -> list[str]:
+        if folder not in listings:
+            listings[folder] = sorted(e.name for e in os.scandir(folder) if e.is_file())
+        return listings[folder]
+
+    return names_of
+
+
 def read_by_runs(selected: list[tuple[str, Path, list[Path]]], args) -> list[str]:
     """--list-only: the files inside the repository that the selected programs' runs read, repo-relative and
     sorted: the runner and its modules, the lists, each program's inputs (program_inputs), a verification
@@ -2801,7 +2908,7 @@ def read_by_runs(selected: list[tuple[str, Path, list[Path]]], args) -> list[str
         found.add(args.list.resolve())
 
     walked: set[Path] = set()
-    listings: dict[Path, list[str]] = {}
+    names_of = folder_names()
 
     def tree(p: Path) -> None:
         if p in walked:
@@ -2812,11 +2919,6 @@ def read_by_runs(selected: list[tuple[str, Path, list[Path]]], args) -> list[str
         elif p.is_dir():
             found.update(q.resolve() for q in p.rglob("*") if q.is_file() and "__pycache__" not in q.parts)
 
-    def names_of(folder: Path) -> list[str]:
-        if folder not in listings:
-            listings[folder] = sorted(e.name for e in os.scandir(folder) if e.is_file())
-        return listings[folder]
-
     for suite, _, tests in selected:
         if suite in ("corpus", "compile"):
             # Their builds take --include-root (include_root_args); a verification compare does not.
@@ -2825,7 +2927,7 @@ def read_by_runs(selected: list[tuple[str, Path, list[Path]]], args) -> list[str
             tree(SCREEN_STATE_SOURCE)
             tree(args.corpus_root / LINUX_KNOWN)
         if suite == "verification":
-            for kind in ("known.list", LINUX_KNOWN):
+            for kind in ("known.list", LINUX_KNOWN, LINES_LIST):
                 tree(VERIFICATION_LISTS / kind)
         if suite == "compile":
             tree(UPSTREAM_ROOT / LINUX_KNOWN)
@@ -2884,11 +2986,12 @@ def check_list(
     started = float(run.get("started", 0))
     failures: list[tuple[str, str]] = []
     passed = 0
+    names_of = folder_names()
     for bas in sorted(wanted):
         key = result_key(suite, bas, root)
         name = f"{key[0]}:{key[1]}"
         r = results.get(key)
-        changed = [p.name for p in program_inputs(suite, bas) if p.stat().st_mtime > started]
+        changed = [p.name for p in program_inputs(suite, bas, names_of(bas.parent)) if p.stat().st_mtime > started]
         if r is None:
             failures.append((name, "no result in the full run"))
         elif changed:
@@ -2933,6 +3036,102 @@ def load_known_failures(path: Path) -> dict[str, str]:
                 key, _, reason = line.partition(" ")
                 known[key] = reason.strip()
     return known
+
+
+# The verification suite's list of known differences (a run of the suite with a compiler other than qb64pe reads it).
+VERIFICATION_KNOWN = VERIFICATION_LISTS / "known.list"
+
+
+def known_lists(args, verification: bool) -> tuple[dict[str, str], list[Path]]:
+    """The failures that are known, {"<suite>:<test>": reason}, and the list files they were read from: the
+    `--known-failures` file, with `--platform linux` each suite's known.linux.list, and with `verification`
+    tests/verification/known.list. A run and --rejudge read them here alone (OpenSpec change check-rejudge,
+    design D1), so that tools/check/steps.py's JUDGE_LISTS can name every one."""
+    files = [args.known_failures]
+    known = load_known_failures(args.known_failures)
+    if platform_of(args) == "linux":
+        # What cannot pass on Linux, beside each suite (LINUX_KNOWN): it adds to the shared lists.
+        for root, suite in (
+            (args.corpus_root, "corpus"),
+            (UPSTREAM_ROOT, "compile_tests"),
+            (VERIFICATION_LISTS, "verification"),
+        ):
+            files.append(root / LINUX_KNOWN)
+            known.update(load_linux_list(root / LINUX_KNOWN, suite))
+    if verification:
+        files.append(VERIFICATION_KNOWN)
+        known.update(load_known_list(VERIFICATION_KNOWN))
+    return known, files
+
+
+# A pass after a retry alone that still fails the run (run_again_alone), as its detail records it.
+RETRIED_PASS = re.compile(r"^passed alone( in the clone)?; failed with --jobs \(")
+
+
+def rejudge(
+    suite: str, root: Path, data: dict, compiler: Path, known: dict[str, str], platform: str
+) -> list[str]:
+    """--rejudge (OpenSpec change check-rejudge, design D1): the suite's last full results judged again under the
+    known lists as they are now, without building or running a program. A known failure goes back to a failure
+    and the lists then make it known again or not; a program the lists now skip is skipped. Returns the problems
+    that refuse it, with `data` left as it was, or [] with `data`'s results, summary and run record rewritten. A
+    program added since the run is not seen: tools/check/steps.py plans a run when any file of a suite changes."""
+    run = data.get("run")
+    if not isinstance(run, dict) or run.get("version") != RUN_RECORD_VERSION:
+        return ["the results hold no run record of this runner: run the suite again"]
+    problems = []
+    if run.get("suite") != suite or run.get("selection"):
+        problems.append(f"not a full run of suite {suite}: {run.get('suite')} {run.get('selection')}")
+    if run.get("roots", {}).get(suite) != repo_relative(root):
+        problems.append(f"another root: {run.get('roots', {}).get(suite)}, not {repo_relative(root)}")
+    if run.get("compiler_sha256") != file_sha256(compiler):
+        problems.append("the results are from another build of the compiler")
+    if run.get("runner_sha256") != file_sha256(Path(__file__).resolve()):
+        problems.append("the runner has changed since the run")
+    if run.get("platform", "windows") != platform:
+        problems.append(f"the run was judged for {run.get('platform', 'windows')}, not {platform}")
+    if run.get("record"):
+        problems.append("a recording is not judged again")
+    if problems:
+        return problems
+    started = float(run.get("started", 0))
+    names_of = folder_names()
+    results = [dict(r) for r in data.get("results", [])]
+    for r in results:
+        key = f"{r['suite']}:{r['test']}"
+        # The program's path as the run took it: a script's test is <name>.<script>.bas, which is no file.
+        bas = root / f"{r['test'].removesuffix(' [fixes on]')}.bas"
+        if not bas.is_file() and not (suite == "corpus" and script_of(bas)):
+            problems.append(f"{key}: no longer a program")
+            continue
+        changed = [p.name for p in program_inputs(suite, bas, names_of(bas.parent)) if p.stat().st_mtime > started]
+        if changed:
+            problems.append(f"{key}: changed after the run started: {', '.join(sorted(changed))}")
+            continue
+        reason = known.get(key, "")
+        if skipped_on(platform, reason):
+            r.update(kind="skipped", status="SKIP", stage="skipped", detail=reason)
+            continue
+        if r["status"] == "SKIP":
+            problems.append(f"{key}: no longer skipped, and never run")
+            continue
+        if r["status"] == "KFAIL":
+            r["status"] = "FAIL"
+            cut = r["detail"].rfind(" (known: ")
+            if cut >= 0:
+                r["detail"] = r["detail"][:cut]
+        if r["status"] == "FAIL" and key in known:
+            r["status"] = "KFAIL"
+            r["detail"] += f" (known: {known[key]})"
+    if problems:
+        return problems
+    summary: dict = {}
+    for r in results:
+        s = summary.setdefault(r["suite"], {"PASS": 0, "FAIL": 0, "KFAIL": 0})
+        s[r["status"]] = s.get(r["status"], 0) + 1
+    data["results"] = results
+    data["summary"] = summary
+    return []
 
 
 def qbasic_sources(qb_root: Path) -> list[Path]:
@@ -3104,8 +3303,9 @@ def timing_sensitive(bas: Path) -> bool:
 # (new_compiler_rejection). The latter can come from a failed C++ build, when the compiler wrongly
 # accepted the program; alone it then fails with "compiled successfully, expected an error", so only
 # the kept detail differs: it may name the build, not the accepted program. A "compile" failure
-# stays out: its exit code is also the C++ build's, and alone it may pass.
-SETTLED_STAGES = frozenset({"expected", "error result"})
+# stays out: its exit code is also the C++ build's, and alone it may pass. An "error line" failure is the
+# front end's line of a rejection (rejection_line), the same alone.
+SETTLED_STAGES = frozenset({"expected", "error result", "error line"})
 
 
 def run_again_alone(
@@ -3151,6 +3351,44 @@ def run_again_alone(
 def known_on_pass_list(results: list[Result]) -> list[str]:
     """The known failures of a run of a pass list (--pass-list), which holds programs that pass (D-052)."""
     return sorted(f"{r.suite}:{r.test}" for r in results if r.status == "KFAIL")
+
+
+def rejudge_main(args, qb_root: Path) -> int:
+    """--rejudge: rejudge() on the suite's results file, rewritten with the time and the lists it was judged by."""
+    if args.suite == "corpus":
+        root = args.corpus_root.resolve()
+    elif args.suite == "verification":
+        root = args.verification_root.resolve()
+    else:
+        root = (args.compile_tests or qb_root / "tests" / "compile_tests").resolve()
+    source = args.results.resolve() / f"results-{args.suite}.json"
+    if not source.is_file():
+        print(f"no full run of suite {args.suite} to judge again: {source}", file=sys.stderr)
+        return 2
+    data = json.loads(source.read_text(encoding="utf-8"))
+    known, files = known_lists(args, verification=args.suite == "verification")
+    problems = rejudge(args.suite, root, data, args.qb64, known, platform_of(args))
+    if problems:
+        for p in problems:
+            print(f"{source.name}: {p}", file=sys.stderr)
+        print("--rejudge refused: run the suite", file=sys.stderr)
+        return 2
+    data["run"]["rejudged"] = {
+        "at": round(time.time(), 3),
+        "lists": {repo_relative(f.resolve()): file_sha256(f) if f.is_file() else None for f in files},
+    }
+    source.write_text(json.dumps(data, indent=1))
+    retried = []
+    for r in data["results"]:
+        key = f"{r['suite']}:{r['test']}"
+        if r["status"] != "PASS":
+            print(f"[rejudge] {r['status']} {key}  {r['stage'] + ': ' if r['stage'] else ''}{r['detail']}")
+        elif RETRIED_PASS.match(r["detail"]) and not r["detail"].endswith("(timing-sensitive)"):
+            retried.append(key)
+            print(f"note: {key} failed with --jobs and passed alone; find out why")
+    print(json.dumps(data["summary"]))
+    print(f"results: {source}")
+    return 0 if all(s["FAIL"] == 0 for s in data["summary"].values()) and not retried else 1
 
 
 def main() -> int:
@@ -3257,6 +3495,14 @@ def main() -> int:
         action="store_true",
         help="corpus, compile and verification: run nothing; print every file the selected programs' runs read "
         "(repo-relative, one per line), for the check of tools/check/steps.py's globs",
+    )
+    ap.add_argument(
+        "--rejudge",
+        action="store_true",
+        help="corpus, compile and verification: run nothing; judge the suite's last full run "
+        "(results-<suite>.json under --results) again under the known lists as they are now, rewrite it and "
+        "exit as the run would; refused when the run is of another compiler build or runner, or a program "
+        "changed after it started",
     )
     ap.add_argument(
         "--check-list",
@@ -3376,6 +3622,21 @@ def main() -> int:
     if args.pass_list and not args.list:
         print("--pass-list takes --list", file=sys.stderr)
         return 2
+    if args.rejudge and (
+        args.suite not in ("corpus", "compile", "verification")
+        or args.check_list
+        or args.list
+        or args.names
+        or args.category
+        or args.glob != "*.bas"
+        or args.record
+    ):
+        print(
+            "--rejudge takes --suite corpus, compile or verification, and no --check-list, --list, program "
+            "names, --category, --glob or --record",
+            file=sys.stderr,
+        )
+        return 2
     if args.check_list and (
         args.suite not in ("corpus", "compile", "verification")
         or args.list
@@ -3397,12 +3658,7 @@ def main() -> int:
     if args.record and args.platform != HOST_PLATFORM:
         print("--record runs the programs: its --platform must be the host's", file=sys.stderr)
         return 2
-    known = load_known_failures(args.known_failures)
-    if args.platform == "linux":
-        # What cannot pass on Linux, beside each suite (LINUX_KNOWN): it adds to the shared lists.
-        known.update(load_linux_list(args.corpus_root / LINUX_KNOWN, "corpus"))
-        known.update(load_linux_list(UPSTREAM_ROOT / LINUX_KNOWN, "compile_tests"))
-        known.update(load_linux_list(VERIFICATION_LISTS / LINUX_KNOWN, "verification"))
+    known, _ = known_lists(args, verification=False)
     # The check of the recordings: a Linux sidecar equal to its shared recording is one to delete.
     for sidecar in equal_sidecars([args.corpus_root, UPSTREAM_ROOT, args.verification_root]):
         print(f"{repo_relative(sidecar.resolve())} equals its shared recording: delete it", file=sys.stderr)
@@ -3413,6 +3669,8 @@ def main() -> int:
     if not args.qb64.is_file():
         print(f"compiler not found: {args.qb64}", file=sys.stderr)
         return 2
+    if args.rejudge:
+        return rejudge_main(args, qb_root)
     if args.check_list:
         if args.suite == "corpus":
             root = args.corpus_root.resolve()
@@ -3552,7 +3810,13 @@ def main() -> int:
                 tests = [p for p in tests if p.resolve() in wanted]
             if not recording_verification:
                 # A failure of a program that tests/verification/known.list names is a known one.
-                known.update(load_known_list(VERIFICATION_LISTS / "known.list"))
+                known.update(load_known_list(VERIFICATION_KNOWN))
+                # The exceptions to the line of a rejection, read once for every compare.
+                try:
+                    args.lines_list = load_lines_list(VERIFICATION_LISTS / LINES_LIST)
+                except (ValueError, OSError) as e:
+                    print(e, file=sys.stderr)
+                    return 2
         elif suite == "addprefix":
             tests = addprefix_sources(qb_root)
         else:
@@ -3772,6 +4036,12 @@ def main() -> int:
         else:
             print(
                 f"note: {key} passed but is listed in {args.known_failures.name}; remove the entry"
+            )
+    for r in all_results:
+        if r.suite == "verification" and r.detail == LINES_NOT_NEEDED:
+            print(
+                f"note: verification:{r.test}'s {LINES_LIST} row is not needed (rejected on QB64pe's line, "
+                f"or QB64pe names no line); remove it"
             )
     known_on_list = known_on_pass_list(all_results) if args.pass_list else []
     for key in known_on_list:

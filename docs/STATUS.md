@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-28 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-11-02 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -39,8 +39,11 @@ changes (`m5-debug-build-symbols`, `m5-dap-proxy`, `m5-debug-launch`) and `m5b-f
 (`fa91454`, 2026-10-26) merged branch `mb5`: `m5b-format-settings` and `m5b-language-features`. Pull request 19
 (`fa6de03`, 2026-10-28) merged branch `more-stuff`: `qbasic-testcases`, `m6-toolchain`, `m6-compiler-download`,
 `fixes-switch`, `libqb-fixes`, the QB 4.5 oracle (`tools\qb45`) and the purpose, on `libqb-fixes`' closing runs
-and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026-10-28). Branch `docs-and-cuts`,
-after it, holds the answers to `study\38`'s last questions (`DECISIONS.md` 2026-10-28). The extension's last
+and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026-10-28). Pull request 21
+(`012ed21`, 2026-10-29) merged branch `docs-and-cuts`, the answers to `study\38`'s last questions (`DECISIONS.md`
+2026-10-28); pull request 22 (`bfd2aba`, 2026-11-01) merged branch `misc-updates`: `m7-linux`,
+`basic-unit-tests`, `desktop-sandbox` and `testing-reset`. Branch `linux-sync-per-tree` (`7334117`) holds
+`linux-sync-per-tree`, archived 2026-11-02, and `TODO.md`. No OpenSpec change is open. The extension's last
 release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
@@ -50,35 +53,28 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 7).
 
-Nothing is waiting: `study\38`'s last questions were answered on 2026-10-28 (`DECISIONS.md`).
+Nothing is waiting: names of more than 40 characters were answered on 2026-11-02 (`DECISIONS.md`).
 
 ## Next
 
-0. **`testing-reset`** is built (2026-10-31): one entry point, `just quick` / `just full` / `just check <target>`
-   (`tools\check\README.md`), results valid by their inputs, the pass cache keyed on what the build reads,
-   `.external` programs never served, one test binary per crate under nextest; `tools\close\` and the close hooks
-   out. Baseline against now, warm: tier 1 85 s against 53 s (`cargo test`; nextest 16 s and the lists 34 s), the
-   verification list 168 s and 18 min after a pruned build cache against 98 s with no build of a served
-   program (its 107 `.external` programs and 2,478 rejections run each time), the call-site check 170 s against
-   32–42 s, `just quick` after a one-line edit of `sema` 2 min 57 s (177 s), with nothing changed 0.8 s; the numbers in its `design.md`, "Context". The main checkout's close of 2026-10-31
-   was the last of its kind. `just merge` (design D11) holds the old merge set. **Archived 2026-11-01** after `just full`
-   passed every step in a worktree of `aa9ce2df` (`DECISIONS-SMALL.md`); the worktree `..\QB64Rust-full` stays for the
-   next `just full` and the `just merge` of the merge commit. Proposed next: `linux-sync-per-tree` (`linux-sync` is 175 s a run).
-1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs `just
-   merge` in a worktree of the merge commit (`tools\check\README.md`); its numbers replace the block below.
-2. **`basic-unit-tests`** is built (2026-10-29); its closing runs pass but for `verification\v49_d_clipboard`
-   (the clipboard race of "Known bugs"), then the user's review and `/opsx:archive`:
-   D-012 (a program ended by a runtime error exits with 1, traced; the runner's rule without sidecars),
-   `qb64rust test` and the Test Explorer (`openspec\changes\archive\2026-10-30-basic-unit-tests\`). Its CLI tests that build
-   (`cargo test -p qb64rust-driver --test it unit_tests:: -- --ignored`) run in the `cli` step of `just full`.
-3. **`desktop-sandbox`** is built, reviewed and archived (2026-10-30): the seven desktop built-ins of
-   `tests\never_run.list` (now reason `sandbox`) run in Windows Sandbox, `tests\sandbox\` judged by QB64pe's builds
-   run there, all seven passing with the coverage check (`tools\sandbox\README.md`;
-   `openspec\changes\archive\2026-10-30-desktop-sandbox\`). Only the session's first window gets `_SCREENPRINT`'s
-   keys, so its program clicks itself first (design, "Context"). Its close found and fixed `_SCREENCLICK` under a
-   display scale (D-056, a libqb edit) and taught `close.py` which steps a changed file reaches
-   (`DECISIONS.md` 2026-10-30). Nothing is left of it: commit it with the `v65` work.
-4. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
+1. **`linux-sync-per-tree` into `main`**: its merge run passes (numbers below); the merge is the user's.
+   **`check-rejudge`** is built (2026-11-02): `--rejudge` judges a whole suite's stored results under today's known
+   lists in under a second, `check` plans it when only those lists changed, a merge's passes stand for the next
+   merge (whose Linux sync then follows git), and `counts.py` judges the pass lists in seconds (200 s before);
+   **archived 2026-11-02** (`openspec\changes\archive\2026-11-02-check-rejudge\`). The runner changed, so the next
+   `just full` runs everything once.
+2. **The 40-character limit on names** is built (2026-11-02, directly, without an OpenSpec change, `TODO.md`): a
+   word of code of more than 40 characters is an error wherever it stands, and a dotted variable, `CONST` or
+   procedure name of more than 40 with its dots (spec `compiler/pipeline`, "The 40-character limit on names";
+   `verification\v66_e01`–`e18` on
+   `pass.list`).
+   **`pin-rejection-line`** is built (2026-11-02): a verification program QB64pe rejected passes
+   only when the earliest line of its own file with an unmarked error is QB64pe's `LINE n:`, or the line
+   `tests\verification\lines.list` gives (18 rows); `v45_x48` went to `known.list` as a bug; **archived
+   2026-11-02** (`openspec\changes\archive\2026-11-02-pin-rejection-line\`). The runner changed again, so the next
+   `just full` runs the verification step whole. Next: `TODO.md` row 1 (what the new compiler prints for a
+   `known.list` program).
+3. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
    built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
    results are read when they come. M8 next.
 
@@ -116,22 +112,22 @@ long run, it is this, and it passes alone.
 
 ## Numbers at the last full runs
 
-The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Branch `mb5`** (pull
-request 18, 2026-10-26): the full set on the merged tree `de49cfb`, no pass cache, `--jobs 8 --build-cache`, the
-three full suites with `--coverage`.
+The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Branch
+`linux-sync-per-tree`** (2026-11-02): `just merge` in the worktree at `7334117`, then at `df67128` the steps its
+fix touched (`upstream-whole`, `upstream-list`, `linux-upstream`) and `counts.py`; `linux-verification`'s two
+failures re-judged against the new `known.linux.list`, not run again.
 
 | Run | Result |
 |---|---|
-| Tier 1, fmt, clippy | 624 pass (79 ignored), clean |
-| CLI tests that build | 77 pass |
-| Full corpus | 516 pass, 5 known failures, none failing |
-| `slice.list` judged from it / without folding | 496 of 496 / 496 of 496 |
-| Full upstream | 402 pass; 1 failure out of scope (`const/math_funcs`, D-031); 1 known failure; `pass.list` 402 of 402 |
-| Full verification | 3892 pass, 63 known failures, 1 failure (`v59_g_readback`, the machine's OpenGL viewport, now masked by a `.normalize` sidecar); `pass.list` 3889 of 3890 (`v29_a_sound_queue`, timing-sensitive, passed alone) |
-| Built-ins no run reaches | those of `tests\never_run.list` (`builtin_runs.py --check`) |
-| Differential pass list | 59 of 59 |
-| Call-site check | 2649 of 2649 equal |
-| Coverage of Civil War Strategy's scripts | pass |
+| Tests (nextest), fmt, clippy, doc | 686 pass (140 skipped), clean |
+| CLI tests that build | 120 pass |
+| Full corpus | 514 pass, 7 known failures, none failing |
+| `slice.list` judged from it / without folding | 494 of 494 / 494 of 494 |
+| Full upstream | 401 pass, 3 known failures (`const/math_funcs` D-031, `noprompt-continue-fatal` D-052, `http/read_example`); `pass.list` 401 of 401 |
+| Full verification | 4149 pass, 203 known failures, none failing; `pass.list` 4139 of 4139 |
+| qbasic / differential / call-site check | 143 of 143 / 59 of 59 / 2650 of 2650 equal |
+| Built-ins, coverage of Civil War Strategy's scripts, sandbox | pass; sandbox 7 of 7 |
+| Linux: tier 1 / corpus / upstream / verification | 694 pass (116 ignored) / 492 pass, 9 known, 20 skipped / 399 pass, 5 known / 4128 pass, 207 known, 17 skipped |
 
 ## Known bugs
 
@@ -155,12 +151,11 @@ three full suites with `--coverage`.
   (all 3 bytes) whenever `OpenClipboard` fails, so any program of the machine that opens the clipboard after a
   change (a clipboard history) is enough. Not the compiler's.
 
-- A name of more than 40 characters compiles: QB64pe rejects a variable, array, `CONST`, `TYPE`, member, SUB and
-  FUNCTION name of 41 characters ("Identifier longer than 40 character limit", `verification\v66_e01`–`e07`, on
-  `tests\verification\known.list`); a suffix after 40 letters is accepted (`e08`). The limit is checked only for
-  labels and `$LET` names. `SOMEDAY.md` "Other ideas" has the row (the panel: build it next).
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).
+- `$COLOR:0` and then `SUB Red`: the error "name already in use" is reported at the constant in the auto-included
+  `internal\support\color\color0.bi`, not on the program's `SUB Red` (line 4), where QB64pe reports it
+  (`verification\v45_x48`, on `known.list` since the change `pin-rejection-line`).
 
 ## Queued for later milestones
 

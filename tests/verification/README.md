@@ -9,6 +9,7 @@ what the new compiler is held to against them, so that `verification\` keeps the
 |---|---|
 | `pass.list` | the programs the new compiler passes, one name per line (no `.bas`; `#` starts a comment) |
 | `known.list` | every other program: its name, a tab, the reason (below) |
+| `lines.list` | the programs QB64pe rejected that the new compiler rejects on another line than QB64pe's `LINE n:`: the name, a tab, the line the rejection is pinned to instead, a tab, the reason (mostly a block error, named where the block opens). That line stands for QB64pe's (below, "How the compare works"); a row that a run finds unneeded is named at the end of the run, to remove (OpenSpec change `pin-rejection-line`) |
 | `divergences\<name>.divergences` | the rows of `QB64PE-DIVERGENCES.md` a passing program may take, one `D-0nn` per line, as for the corpus |
 | `fixed\<name>.out.txt` | the program's output with every fix on (spec `compiler/fixes`), written by hand from the fixes' specified behaviour, never recorded by `qb64pe.exe`: the runner builds such a program a second time with `--fixes on` and compares that run with it, as the result `<name> [fixes on]`; the program's line on `pass.list` passes only when both halves pass (OpenSpec change `fixes-switch`, design D4). Each fix behind the switch has at least one |
 | `normalize\<name>.normalize` | rules applied to both the recorded and the actual output before they are compared, as for the corpus (`<regex><TAB><replacement>`); the first is `v58_s02_files`'s, which masks the free space `FILES` prints; `v59_g_readback`'s masks the OpenGL viewport, the window's size as the desktop sets it |
@@ -42,8 +43,11 @@ of its family (the files and folders of `verification\` whose name begins with i
 `v16_inc\`, `v37c.a` or `v37_lib\`, and those with no family number). It runs as it was recorded: stdin from the null
 device or the `.stdin`, a 60 s timeout, no key presses, its window on a desktop that is never shown. Then:
 
-- recorded `(not compiled)`: passes when the compile fails with at least one error not marked "not supported yet"
-  (the message text is not compared);
+- recorded `(not compiled)`: passes when the compile fails with at least one error not marked "not supported yet",
+  and the earliest line of the program's own file with such an error, in whatever order the errors are printed, is
+  the first `LINE n:` of `<name>.compile.txt` (or the line `lines.list` gives instead); else it fails at the stage
+  `error line`. No line is compared when the recording names none (or `LINE 0:`), or when QB64pe's message places
+  the error in an included file ("in line … of … included"). The message text is not compared;
 - recorded output: passes when the build runs and its output, with the folder masked as `<verification>` and the
   `exit=` line as the recording writes it, equals the recording (CRLF as LF, trailing newlines ignored);
 - a recorded timeout passes when the run times out too with the same output before it.
@@ -121,7 +125,6 @@ Of the 4345 programs of `verification\`, `pass.list` names **4139** and `known.l
 <!-- /counts:verification-membership -->
 
 <!-- counts:verification-results -->
-Last full run: 2026-10-26, compiler build `c261b24c2847`, folding on, `--jobs 8`, build cache, 6 min. Of 3956 programs: **3892 pass**, 1 does not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 63 known failures (`target\legacy-tests\results-verification.json`).
-`pass.list` judged in it (`--check-list`): **3889 of 3890** pass.
-- verification:v59_g_readback: changed after the run started: v59_g_readback.normalize
+Last full run: 2026-11-02, compiler build `6ead449f15e2`, folding on, `--jobs 8`, build cache, 21 min. Of 4352 programs: **4149 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 203 known failures (`target\legacy-tests\results-verification.json`).
+`pass.list` judged in it (`--check-list`): **4139 of 4139** pass.
 <!-- /counts:verification-results -->

@@ -28,6 +28,8 @@ Linux recordings, and what each shows of Linux:
 - `v22_f`, `v30_g`: a NaN prints as `nan` and `-nan`, not `-nan(ind)`. `v58_f01`, `v58_f04`: glibc's hyperbolic
   functions differ from the C runtime's in the last digit.
 - `v24_x9*`: an array of 1 TB or more is allocated (Linux overcommits), where Windows raises "Out of memory".
+  Whether the kernel allows it varies: `x93` and `x96` (8 TB) were "Out of memory" in WSL on 2026-11-02, in
+  QB64pe's build too, so they are `varies` on `known.linux.list`.
 - `v26_x05`, `v26_x16`, `v33_a09`: `_DEST _CONSOLE` without `$CONSOLE` is "Invalid handle", and an error in a
   window program prints its message on the console.
 - `v27_x58`: `CLS` on the console writes ANSI codes. `v55_x56`, `v58_e23`: the console's output is flushed in
@@ -483,8 +485,11 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `v66_d_lib.h`) and fails the C++ build with one (`d01` srand, `d10`); `_EMBEDDED$(("h"))` is an error;
   `_RGB32("a")` in a `CONST` is `&HFF000000`; an infinite value inside a `CONST`'s function or power is
   "Unexpected argument: INF" or "Unexpected element 'INF'", while `SIN` of an infinite `CONST` is 0 (D-029).
-  `e01`–`e09`: a name of 41 characters of any kind is "Identifier longer than 40 character limit"; 40 letters and a
-  suffix, and 40 characters of each kind, compile. `f01`: `ON TIMER` events during `TIMER STOP` run once at `TIMER
+  `e01`–`e18`: a name of 41 characters of any kind (a parameter, a label, a `DECLARE LIBRARY` name, `_` and 40
+  letters among them) is "Identifier longer than 40 character limit"; 40 letters and a suffix, 40 characters of each
+  kind, and a word of 41 in a comment, a string, `DATA` or a `$IF` branch not taken compile; a dotted name of two
+  parts of 30 is "Invalid variable name" for a variable, "Invalid name" for a `CONST` or a SUB (`e17`, `e18`; a
+  short dotted `CONST` and SUB compile, `v66_c02`, `v55_x61`). `f01`: `ON TIMER` events during `TIMER STOP` run once at `TIMER
   ON`, and one during a slow handler does not run at the statements after it (no doubled event seen). `g01`–`g11`
   arguments left out: `SCREEN(1, , 1)` is "Incorrect number of arguments", `LBOUND(a, )` and `UBOUND(a, )` "Syntax
   error"; the middle or first argument of `_LOADIMAGE`, `_LOADFONT`, `_UPRINTWIDTH`, `_UCHARPOS`, `_SNDNEW`,
