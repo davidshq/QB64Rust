@@ -502,6 +502,42 @@ class Execute(unittest.TestCase):
         finally:
             repo.close()
 
+    def test_the_sync_checks_by_content_only_when_forced(self):
+        # linux-sync's usual form lets rsync compare sizes and times (one copy per tree, design D2 of
+        # linux-sync-per-tree); --force and the merge, which forces every step, ask for the exact copy.
+        repo = FakeRepo()
+        try:
+            plan = check.make_plan(repo.root, FULL, True, ["linux-sync"])
+            usual, note = check.command_of(plan.run[0], repo.root, False, True)
+            forced, forced_note = check.command_of(plan.run[0], repo.root, True, True)
+            self.assertNotIn("--checksum", usual)
+            self.assertEqual(note, "")
+            self.assertEqual(forced, usual + " --checksum")
+            self.assertEqual(forced_note, "forced: the exact form")
+        finally:
+            repo.close()
+
+    def test_the_linux_steps_run_in_the_trees_own_copy(self):
+        # No step names a copy itself: each runs through tools/linux/run.sh, which takes the copy from the tree it is
+        # run from (copy.sh), so a worktree's steps never run in the checkout's copy.
+        for s in steps.STEPS:
+            if s.name.startswith("linux-") and s.name != "linux-sync":
+                self.assertTrue(s.command.startswith(steps.IN_COPY), s.name)
+                self.assertNotIn("~/qb64rust", s.command, s.name)
+                for script in steps.LINUX_SCRIPTS:
+                    self.assertTrue(check.matching(s.inputs, [script]) == [script], (s.name, script))
+
+    def test_the_copy_is_named_from_the_trees_folder(self):
+        sh = check.bash()
+        if sh is None:
+            self.skipTest("Git's bash not found")
+        rule = REPO / "tools/linux/copy.sh"
+        for tree, want in (("/x/QB64Rust", "qb64rust"), ("/x/QB64Rust-full", "qb64rust-full"), ("/x/Q/", "q")):
+            out = subprocess.run(
+                [sh, "-c", f"HOME=/h; source '{rule.as_posix()}' && linux_copy '{tree}'"], capture_output=True, text=True
+            )
+            self.assertEqual(out.stdout.strip(), f"/h/{want}", (tree, out.stderr))
+
     def test_each_run_adds_a_line_to_the_history(self):
         repo = FakeRepo()
         try:

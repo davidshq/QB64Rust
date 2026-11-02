@@ -169,10 +169,15 @@ the folder.
 **From this Windows machine, in WSL.** Development stays on Windows; the Linux runs happen in WSL's Ubuntu 24.04,
 in a copy of the working tree, never in `/mnt/c` (a Linux build would overwrite libqb's Windows objects, which are
 built inside `libqb\`, and `/mnt/c` is slow for twenty thousand files; design D7 of `m7-linux`).
-`tools/linux/sync.sh [dest]`, run from WSL in the Windows tree, copies the files of `git ls-files -co
---exclude-standard` into `~/qb64rust` (uncommitted edits included, nothing staged) and deletes there the files that
-are gone on Windows; what a Linux build writes there is ignored by git and kept. A sync takes about two minutes
-(`rsync --checksum` reads every file through `/mnt/c`). Set-up, once:
+`tools/linux/sync.sh [--checksum] [dest]`, run from WSL in the Windows tree, copies the files of `git ls-files -co
+--exclude-standard` into the tree's own Linux copy (uncommitted edits included, nothing staged) and deletes there
+the files that are gone on Windows; what a Linux build writes there is ignored by git and kept. **One copy per
+source tree**, named from the tree's folder in lower case (`tools/linux/copy.sh`): `~/qb64rust` for the checkout
+`QB64Rust`, `~/qb64rust-full` for the worktree `QB64Rust-full`. Each copy follows one tree, and rsync is given only the
+files git reports changed since the last sync (the commits since, `git status` now and at the last sync), so an
+unchanged tree is synced in seconds; `--checksum` gives it every file, compared by content (about three minutes
+through `/mnt/c`), the exact form `just merge` and `--force` use. `tools/linux/run.sh <command>` runs a command in
+the copy of the tree it is run from. Set-up, once:
 
 ```
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
@@ -183,7 +188,7 @@ then each time:
 
 ```
 cd /mnt/c/<the repository> && bash tools/linux/sync.sh
-cd ~/qb64rust && cargo build --release
+cd ~/qb64rust && cargo build --release           # ~/qb64rust-full from the worktree QB64Rust-full
 ```
 
 ## What the compiler supports

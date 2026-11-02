@@ -63,7 +63,10 @@ Nothing is waiting: `study\38`'s last questions were answered on 2026-10-28 (`DE
    32–42 s, `just quick` after a one-line edit of `sema` 2 min 57 s (177 s), with nothing changed 0.8 s; the numbers in its `design.md`, "Context". The main checkout's close of 2026-10-31
    was the last of its kind. `just merge` (design D11) holds the old merge set. **Archived 2026-11-01** after `just full`
    passed every step in a worktree of `aa9ce2df` (`DECISIONS-SMALL.md`); the worktree `..\QB64Rust-full` stays for the
-   next `just full` and the `just merge` of the merge commit. Proposed next: `linux-sync-per-tree` (`linux-sync` is 175 s a run).
+   next `just full` and the `just merge` of the merge commit. **`linux-sync-per-tree`** is built (2026-11-01)
+   and **archived 2026-11-02**: one WSL copy per source tree (`~/qb64rust`, `~/qb64rust-full`), the sync given
+   only the files git reports changed, about 2 s with nothing changed against 169 s; the exact form (`--checksum`)
+   at the merge and under `--force`. Its `design.md` has the numbers.
 1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs `just
    merge` in a worktree of the merge commit (`tools\check\README.md`); its numbers replace the block below.
 2. **`basic-unit-tests`** is built (2026-10-29); its closing runs pass but for `verification\v49_d_clipboard`

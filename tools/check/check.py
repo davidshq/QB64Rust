@@ -544,6 +544,8 @@ def command_of(p: Planned, root: Path, force: bool, nextest: bool) -> tuple[list
     """The command of a planned step and a note on how it differs from the step's own."""
     step, note = p.step, ""
     cmd = step.command
+    if force and step.forced is not None:
+        cmd, note = step.forced, "forced: the exact form"
     if step.name in FALLBACK and not nextest:
         cmd = FALLBACK[step.name]
         note = f"cargo-nextest not found, ran `cargo test` (install: {INSTALL['nextest']})"
