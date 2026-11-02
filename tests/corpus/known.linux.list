@@ -18,6 +18,7 @@ screen/g12_game.rebel	windows: as g12_game
 screen/g12_game.two_player	windows: as g12_game
 screen/g12_game.union_events	windows: as g12_game
 screen/g12_game.union_time	windows: as g12_game
+screen/u01_mouse_queue	varies: under WSLg the mouse steps' events reach the queue in varying numbers (passed 1 run in 2 alone, the screens of the failures differing; 2026-11-01, the new compiler only, QB64pe's build not yet measured; SOMEDAY)
 slice/s123_library_alias	windows: g++ on Linux finds a 0 passed to its header's overloaded function ambiguous, in QB64pe's build too (as verification/v37_x60)
 slice/s125_library_runtime_dll	windows: DECLARE DYNAMIC LIBRARY "kernel32"
 slice/s156_system_builtins	windows: SHELLs cmd
