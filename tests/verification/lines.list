@@ -1,0 +1,21 @@
+# The programs QB64pe rejected whose rejection the new compiler places on another line than QB64pe's `LINE n:`
+# (tests/verification/README.md, spec testing/verification-suite): <name><TAB><line><TAB><reason>. The line stands
+# for QB64pe's, so the program still fails on any third line. Sorted by name.
+v14_err_missing_end_sub	4	the line the block opens
+v16_m3_label_then_number	3	an earlier follow-on error: the GOTO to the line number refused on line 4
+v16_m4_end_sub_open_for	6	the END SUB that closes the SUB while the FOR is open (QB64pe names the FOR)
+v16_m4_loop_closing_while	4	the line the block opens
+v16_m4_next_in_single_if	3	the line the block opens
+v16_m4_wend_closing_do	4	the line the block opens
+v16_m6_one_header	6	the $END IF the block crosses
+v16_m6_split_block	6	the $ELSE the block crosses
+v24_x107_implicit_sub_name	3	an earlier error: the SUB's name used as an array (QB64pe names its next use)
+v24_x215_type_function_result	7	an earlier follow-on error of the FUNCTION header refused on line 10
+v24_x305_param_parens_as	4	an earlier follow-on error of the SUB header refused on line 6
+v26_x40_tab_before_if	3	the cause: a tab before $IF, which QB64pe ignores (it names the $END IF)
+v42_x23_sub_byval	3	an earlier follow-on error of the SUB header refused on line 8
+v42_x56_sub_suffix_name	3	an earlier follow-on error of the SUB header refused on line 8
+v55_x52_underscore_sub_array	4	an earlier follow-on error of the SUB name refused on line 7
+v57_j05_block_crosses_endif	6	the $ELSEIF the block crosses
+v57_j06_block_crosses_endif_agree	6	the $ELSE the block crosses
+v59_x41_gl_label	13	the label's definition, not the GOTO

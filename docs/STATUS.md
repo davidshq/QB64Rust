@@ -67,7 +67,13 @@ Nothing is waiting: names of more than 40 characters were answered on 2026-11-02
    word of code of more than 40 characters is an error wherever it stands, and a dotted variable, `CONST` or
    procedure name of more than 40 with its dots (spec `compiler/pipeline`, "The 40-character limit on names";
    `verification\v66_e01`–`e18` on
-   `pass.list`). Next in `TODO.md`: row 1, pinning a verification rejection to its line.
+   `pass.list`).
+   **`pin-rejection-line`** is built (2026-11-02): a verification program QB64pe rejected passes
+   only when the earliest line of its own file with an unmarked error is QB64pe's `LINE n:`, or the line
+   `tests\verification\lines.list` gives (18 rows); `v45_x48` went to `known.list` as a bug; **archived
+   2026-11-02** (`openspec\changes\archive\2026-11-02-pin-rejection-line\`). The runner changed again, so the next
+   `just full` runs the verification step whole. Next: `TODO.md` row 1 (what the new compiler prints for a
+   `known.list` program).
 3. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
    built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
    results are read when they come. M8 next.
@@ -147,6 +153,9 @@ failures re-judged against the new `known.linux.list`, not run again.
 
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).
+- `$COLOR:0` and then `SUB Red`: the error "name already in use" is reported at the constant in the auto-included
+  `internal\support\color\color0.bi`, not on the program's `SUB Red` (line 4), where QB64pe reports it
+  (`verification\v45_x48`, on `known.list` since the change `pin-rejection-line`).
 
 ## Queued for later milestones
 

@@ -426,6 +426,87 @@ def new_compiler_rejection(rc: int, out: bytes) -> str:
     return ""
 
 
+# QB64pe's line of an error in its .compile.txt ("LINE 6:PRINT a"), and the wording of a message about an error in
+# an included file, whose LINE is then the $INCLUDE's ("… in line 3 of <file> included", "… auto-included").
+RECORDED_LINE_RE = re.compile(r"^LINE (\d+):")
+INCLUDED_RE = re.compile(r"\bin line \d+ of .+ (?:auto-)?included\b")
+# One error of the new compiler: "<file>:<line>:<column>: error: <message>" (qb64rust_base::Diagnostic::render).
+ERROR_LINE_RE = re.compile(r"^(.+):(\d+):\d+: error: (.*)$")
+MARKED = "not supported yet: "
+
+
+def recorded_line(compile_txt: bytes) -> int | None:
+    """The line of the main file QB64pe's .compile.txt names for its error (its first `LINE n:`), or None when it
+    names none (no `LINE`, or `LINE 0:` after "[INFORMATION UNAVAILABLE]") or its message places the error in an
+    included file (OpenSpec change pin-rejection-line, D1, D4)."""
+    before = []
+    for line in compile_txt.decode("latin-1").splitlines():
+        m = RECORDED_LINE_RE.match(line)
+        if m:
+            return None if INCLUDED_RE.search("\n".join(before)) else int(m.group(1)) or None
+        before.append(line)
+    return None
+
+
+def earliest_error_line(output: bytes, main: str) -> int | None:
+    """The lowest line of the file `main` that holds an error of the new compiler not marked "not supported yet",
+    whatever order they are printed in, or None when there is none (OpenSpec change pin-rejection-line, D2, D3)."""
+
+    def same_file(name: str) -> bool:
+        name = name.replace("\\", "/").lower()
+        return name.removeprefix("./") == main.replace("\\", "/").lower()
+
+    lines = []
+    for line in output.decode("latin-1").splitlines():
+        m = ERROR_LINE_RE.match(line.rstrip("\r"))
+        if m and same_file(m.group(1)) and not m.group(3).startswith(MARKED):
+            lines.append(int(m.group(2)))
+    return min(lines, default=None)
+
+
+# The exceptions to the line of a rejection, beside known.list (tests/verification/README.md).
+LINES_LIST = "lines.list"
+# The detail of a program of lines.list that passed on QB64pe's own line: the run's end names it.
+LINES_NOT_NEEDED = "lines.list row not needed"
+
+
+def load_lines_list(path: Path) -> dict[str, tuple[int, str]]:
+    """Reads tests/verification/lines.list into {name: (line, reason)} (empty if it does not exist). Lines:
+    <name><TAB><line><TAB><reason>; '#' lines and blank lines are skipped (inputs.rs checks the rows). A row
+    whose line is not a number raises ValueError, naming it."""
+    rows: dict[str, tuple[int, str]] = {}
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip() or line.startswith("#"):
+                continue
+            name, _, rest = line.partition("\t")
+            number, _, reason = rest.partition("\t")
+            try:
+                rows[name.strip()] = (int(number), reason.strip())
+            except ValueError:
+                raise ValueError(f"{path}: not <name><TAB><line><TAB><reason>: {line}") from None
+    return rows
+
+
+def rejection_line(compile_txt: Path, output: bytes, main: str, exception: int | None) -> tuple[str, str]:
+    """Whether a rejection stands on the line QB64pe names (spec testing/verification-suite, "The line of a
+    rejection"): ("", detail) when it passes, (why, "") when it fails. `exception` is the program's line of
+    lines.list, which stands for QB64pe's."""
+    want = recorded_line(compile_txt.read_bytes()) if compile_txt.is_file() else None
+    if want is None:
+        # No line compared: a row of lines.list for the program is never used.
+        return "", ("" if exception is None else LINES_NOT_NEEDED)
+    got = earliest_error_line(output, main)
+    if exception is not None and got == want:
+        return "", LINES_NOT_NEEDED
+    pinned = want if exception is None else exception
+    if got == pinned:
+        return "", ""
+    named = f"QB64pe names line {want}" if exception is None else f"lines.list gives line {exception}"
+    found = f"no unmarked error in {main}" if got is None else f"the earliest error is on line {got}"
+    return f"{named}, {found}", ""
+
+
 # qb64pe several at a time (--jobs with qb64pe, corpus suite). qb64pe builds inside its own folder:
 # the generated C++ in internal/temp, the libqb objects in internal/c. Instances started from one
 # folder would share the objects, and the old compiler's answer is what gets recorded as truth, so
@@ -2552,8 +2633,20 @@ def verification_compare(
             return fail("compile", "compiled successfully; the old compiler rejected it")
         if exe.exists():
             return fail("exe exists", "exe produced although the compile failed")
-        why = new_compiler_rejection(rc, compile_out.read_bytes())
-        return fail("error result", why) if why else passed()
+        output = compile_out.read_bytes()
+        why = new_compiler_rejection(rc, output)
+        if why:
+            return fail("error result", why)
+        if fixed:  # a sidecar of output by hand records no line
+            return passed()
+        rows = getattr(args, "lines_list", None)  # read once by main; a lone compare reads it here
+        if rows is None:
+            rows = load_lines_list(VERIFICATION_LISTS / LINES_LIST)
+        exception = rows.get(name)
+        why, note = rejection_line(
+            root / f"{name}.compile.txt", output, bas.name, exception[0] if exception else None
+        )
+        return fail("error line", why) if why else passed(note)
     if rc != 0:
         return fail("compile", f"exit code {rc}; the old compiler built it")
     if not exe.exists():
@@ -2834,7 +2927,7 @@ def read_by_runs(selected: list[tuple[str, Path, list[Path]]], args) -> list[str
             tree(SCREEN_STATE_SOURCE)
             tree(args.corpus_root / LINUX_KNOWN)
         if suite == "verification":
-            for kind in ("known.list", LINUX_KNOWN):
+            for kind in ("known.list", LINUX_KNOWN, LINES_LIST):
                 tree(VERIFICATION_LISTS / kind)
         if suite == "compile":
             tree(UPSTREAM_ROOT / LINUX_KNOWN)
@@ -3210,8 +3303,9 @@ def timing_sensitive(bas: Path) -> bool:
 # (new_compiler_rejection). The latter can come from a failed C++ build, when the compiler wrongly
 # accepted the program; alone it then fails with "compiled successfully, expected an error", so only
 # the kept detail differs: it may name the build, not the accepted program. A "compile" failure
-# stays out: its exit code is also the C++ build's, and alone it may pass.
-SETTLED_STAGES = frozenset({"expected", "error result"})
+# stays out: its exit code is also the C++ build's, and alone it may pass. An "error line" failure is the
+# front end's line of a rejection (rejection_line), the same alone.
+SETTLED_STAGES = frozenset({"expected", "error result", "error line"})
 
 
 def run_again_alone(
@@ -3717,6 +3811,12 @@ def main() -> int:
             if not recording_verification:
                 # A failure of a program that tests/verification/known.list names is a known one.
                 known.update(load_known_list(VERIFICATION_KNOWN))
+                # The exceptions to the line of a rejection, read once for every compare.
+                try:
+                    args.lines_list = load_lines_list(VERIFICATION_LISTS / LINES_LIST)
+                except (ValueError, OSError) as e:
+                    print(e, file=sys.stderr)
+                    return 2
         elif suite == "addprefix":
             tests = addprefix_sources(qb_root)
         else:
@@ -3936,6 +4036,12 @@ def main() -> int:
         else:
             print(
                 f"note: {key} passed but is listed in {args.known_failures.name}; remove the entry"
+            )
+    for r in all_results:
+        if r.suite == "verification" and r.detail == LINES_NOT_NEEDED:
+            print(
+                f"note: verification:{r.test}'s {LINES_LIST} row is not needed (rejected on QB64pe's line, "
+                f"or QB64pe names no line); remove it"
             )
     known_on_list = known_on_pass_list(all_results) if args.pass_list else []
     for key in known_on_list:

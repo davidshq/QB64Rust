@@ -316,12 +316,24 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target
   desktop that is never shown (`QB64RUST_SHOW_WINDOWS=1` shows it), and the helper shares this runner's console,
   as the recorded program did, so the Ctrl+Break reaches the program.
 - Judged by the recorded `<name>.out.txt`: `(not compiled)` passes when the compile fails, writes no executable
-  and reports at least one error not marked "not supported yet" (the corpus rule; the text is not compared);
-  any other recording passes when the build runs and `verification_text` of the run (the folder masked as
-  `<verification>`, the `exit=` line as Git Bash reports it, the timeout lines) equals it, CRLF as LF and
-  trailing newlines ignored, after the rules of `tests\verification\normalize\<name>.normalize` on both sides.
+  and reports at least one error not marked "not supported yet" (the corpus rule; the text is not compared), on
+  the line QB64pe names (below); any other recording passes when the build runs and `verification_text` of the
+  run (the folder masked as `<verification>`, the `exit=` line as Git Bash reports it, the timeout lines) equals
+  it, CRLF as LF and trailing newlines ignored, after the rules of `tests\verification\normalize\<name>.normalize`
+  on both sides.
   A recorded timeout passes only on a timeout. No `<name>.out.txt` fails ("nothing recorded to compare").
-  `<name>.compile.txt` is not read. A failure at the stage `result` names the first line that differs.
+  A failure at the stage `result` names the first line that differs.
+- **The line of a rejection** (OpenSpec change `pin-rejection-line`): for `(not compiled)`, `recorded_line` takes
+  the first `LINE n:` of `<name>.compile.txt`, and `earliest_error_line` the lowest line of `<name>.bas` holding an
+  unmarked error of the new compiler, whatever order they are printed in (errors of included files left out). They
+  must be equal, or the program fails at the stage `error line` ("QB64pe names line 6, the earliest error is on
+  line 7"). A row of `tests\verification\lines.list` gives the line that stands for QB64pe's instead; a program of
+  it rejected on QB64pe's own line, or whose recording names no line to compare, passes with the detail
+  `lines.list row not needed`, and the run's end names it (tier 1 refuses such a row too). The list is read once
+  per run; a row whose line is not a number stops the run. No line is compared when the recording names none (or
+  `LINE 0:`, after "[INFORMATION UNAVAILABLE]"), or when its message places the error in an included file (its
+  `LINE n:` is then the `$INCLUDE`'s), nor for the run with the fixes on. A failure at `error line` is not run
+  again alone (`SETTLED_STAGES`).
 - The run's `program_log` must equal `<name>.log.txt`, or be empty when there is none; else the stage `log`,
   naming the first line that differs. Entries of the runtime's own scopes are never compared.
 - The trace of divergences as in the corpus, with the sidecar in `tests\verification\divergences\`.

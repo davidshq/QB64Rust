@@ -97,6 +97,45 @@ class Rejection(unittest.TestCase):
         self.assertEqual(rlt.new_compiler_rejection(1, b"1 error\n\n  \n"), "")
 
 
+class RejectionLine(unittest.TestCase):
+    """recorded_line and earliest_error_line: the two lines a rejection is pinned by (OpenSpec change
+    pin-rejection-line)."""
+
+    def test_the_recorded_line_is_the_first(self):
+        txt = b"\r\nToo many variables\r\nCaused by (or after):LINE INPUT # 1 , A\r\nLINE 4:LINE INPUT #1, a\r\nexit=1\r\n"
+        self.assertEqual(rlt.recorded_line(txt), 4)
+        self.assertEqual(rlt.recorded_line(b"x\nLINE 6:\nLINE 9:\nexit=1\n"), 6)
+
+    def test_no_recorded_line(self):
+        self.assertIsNone(rlt.recorded_line(b"\nC++ compilation failed\nexit=1\n"))
+        self.assertIsNone(rlt.recorded_line(b""))
+        # QB64pe's line 0, when it knows no line (v37_x13, v16_m6_missing_end).
+        self.assertIsNone(rlt.recorded_line(b"\n$IF without $END IF\nCaused by (or after):[INFORMATION UNAVAILABLE]\nLINE 0:\nexit=1\n"))
+
+    def test_an_error_in_an_included_file_gives_no_line(self):
+        inc = b"File a.bi not found in line 2 of <verification>\\v16_inc/x2.bi included\nCaused by (or after):\nLINE 5:\n"
+        self.assertIsNone(rlt.recorded_line(inc))
+        auto = b"IF without END IF in line 3 of internal\\support\\vwatch\\vwatch_stub.bm auto-included\nLINE 3:SUB\n"
+        self.assertIsNone(rlt.recorded_line(auto))
+
+    def test_the_earliest_error_whatever_the_order(self):
+        out = b"p.bas:7:1: error: x\r\np.bas:3:5: error: y\r\n2 errors\r\n"
+        self.assertEqual(rlt.earliest_error_line(out, "p.bas"), 3)
+
+    def test_a_marked_error_is_skipped(self):
+        out = b"p.bas:2:1: error: not supported yet: statement `FOR`\np.bas:5:1: error: x\n2 errors (1 not supported yet)\n"
+        self.assertEqual(rlt.earliest_error_line(out, "p.bas"), 5)
+
+    def test_an_error_of_another_file_is_left_out(self):
+        out = b"v16_inc/x.bi:1:1: error: x\nv16_inc\\y.bi:1:1: error: y\n2 errors\n"
+        self.assertIsNone(rlt.earliest_error_line(out, "v16_p.bas"))
+        self.assertEqual(rlt.earliest_error_line(out + b"./v16_p.bas:9:1: error: z\n", "v16_p.bas"), 9)
+
+    def test_no_error_line(self):
+        self.assertIsNone(rlt.earliest_error_line(b"1 error\n", "p.bas"))
+        self.assertIsNone(rlt.earliest_error_line(b"", "p.bas"))
+
+
 class NormalizeFiles(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -375,11 +414,14 @@ class RunAgainAlone(unittest.TestCase):
             "corpus", "g/p", "error", "FAIL", "error result", "differs from .err"
         )
         layout = rlt.Result("corpus", "g/q", "output", "FAIL", "expected", "no .output")
-        by_test, ran, result = self.outcomes(tests, [wrong_err, layout], [])
+        line = rlt.Result("verification", "r", "error", "FAIL", "error line", "QB64pe names line 6")
+        tests.append(self.program("r", "PRINT 3\n"))
+        by_test, ran, result = self.outcomes(tests, [wrong_err, layout, line], [])
         self.assertEqual(ran, [])
         self.assertEqual(result, ([], []))
         self.assertIs(by_test[0][0], wrong_err)
         self.assertIs(by_test[1][0], layout)
+        self.assertIs(by_test[2][0], line)
 
     def test_with_qb64pe_a_settled_failure_runs_again(self):
         tests = [self.program("p", "PRINT 1\n")]
@@ -1700,6 +1742,51 @@ class VerificationCompare(VerificationFixture):
         tools = Tools(rc=1, compile_out=b"1 error\n", exe=True)
         self.assert_fail(self.run_test(tools), "exe exists")
 
+    def rejected_on(self, line: bytes, out: bytes, lines_list: str | None = None):
+        """The compare of a program QB64pe rejected with `line` in its .compile.txt, the new compiler printing `out`."""
+        self.recorded(b"(not compiled)\n")
+        (self.root / "v99_p.compile.txt").write_bytes(b"\nmessage\nCaused by (or after):\n" + line + b"\nexit=1\n")
+        if lines_list is not None:
+            (self.lists / "lines.list").write_text(lines_list, encoding="utf-8")
+        return self.run_test(Tools(rc=1, compile_out=out, exe=False))
+
+    def test_a_rejection_on_qb64pe_s_line_passes(self):
+        r = self.rejected_on(b"LINE 6:PRINT a", b"v99_p.bas:6:8: error: x\n1 error\n")
+        self.assertEqual((r.status, r.detail), ("PASS", ""))
+
+    def test_a_rejection_on_another_line_fails(self):
+        r = self.rejected_on(b"LINE 6:PRINT a", b"v99_p.bas:7:1: error: x\n1 error\n")
+        self.assert_fail(r, "error line", "QB64pe names line 6, the earliest error is on line 7")
+
+    def test_an_earlier_error_printed_later_fails(self):
+        out = b"v99_p.bas:7:1: error: x\nv99_p.bas:3:1: error: y\n2 errors\n"
+        self.assert_fail(self.rejected_on(b"LINE 7:", out), "error line", "the earliest error is on line 3")
+
+    def test_a_rejection_only_in_an_included_file_fails(self):
+        r = self.rejected_on(b"LINE 3:", b"v99_inc/a.bi:3:1: error: x\n1 error\n")
+        self.assert_fail(r, "error line", "QB64pe names line 3, no unmarked error in v99_p.bas")
+
+    def test_no_line_recorded_passes_on_any_rejection(self):
+        r = self.rejected_on(b"C++ compilation failed", b"v99_p.bas:9:1: error: x\n1 error\n")
+        self.assertEqual(r.status, "PASS", r.detail)
+
+    def test_qb64pe_s_error_in_an_included_file_is_not_compared(self):
+        msg = b"File a.bi not found in line 2 of <verification>\\v99_inc/x.bi included\nLINE 5:"
+        r = self.rejected_on(msg, b"v99_inc/x.bi:2:1: error: x\n1 error\n")
+        self.assertEqual(r.status, "PASS", r.detail)
+
+    def test_an_exception_of_lines_list(self):
+        listed = "# exceptions\nv99_p\t3\tthe line the block opens\n"
+        kept = self.rejected_on(b"LINE 9:", b"v99_p.bas:3:1: error: x\n1 error\n", listed)
+        self.assertEqual((kept.status, kept.detail), ("PASS", ""))
+        moved = self.rejected_on(b"LINE 9:", b"v99_p.bas:5:1: error: x\n1 error\n", listed)
+        self.assert_fail(moved, "error line", "lines.list gives line 3, the earliest error is on line 5")
+        unneeded = self.rejected_on(b"LINE 9:", b"v99_p.bas:9:1: error: x\n1 error\n", listed)
+        self.assertEqual((unneeded.status, unneeded.detail), ("PASS", rlt.LINES_NOT_NEEDED))
+        # A recording that names no line compares none, so the row is never used.
+        unused = self.rejected_on(b"LINE 0:", b"v99_p.bas:3:1: error: x\n1 error\n", listed)
+        self.assertEqual((unused.status, unused.detail), ("PASS", rlt.LINES_NOT_NEEDED))
+
     def test_equal_output_passes_and_the_work_folder_goes(self):
         self.recorded(b"1\n\nexit=0\n")
         tools = Tools(runs=[b"1\r\n\r\n"])
@@ -2231,6 +2318,15 @@ class VerificationLists(VerificationFixture):
             {"verification:v01_a": "D-026", "verification:v02_b": "bug: PRINT USING ;"},
         )
         self.assertEqual(rlt.load_known_list(self.lists / "none.list"), {})
+
+    def test_lines_list(self):
+        path = self.lists / "lines.list"
+        path.write_text("# comment\n\nv01_a\t3\tthe line the block opens\n", encoding="utf-8")
+        self.assertEqual(rlt.load_lines_list(path), {"v01_a": (3, "the line the block opens")})
+        self.assertEqual(rlt.load_lines_list(self.lists / "none.list"), {})
+        path.write_text("v01_a\tthree\tthe line the block opens\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "not <name><TAB><line><TAB><reason>: v01_a"):
+            rlt.load_lines_list(path)
 
     def test_a_pass_of_a_program_that_varies_is_no_news(self):
         self.assertTrue(rlt.pass_is_news("verification:v01_a", "D-026"))

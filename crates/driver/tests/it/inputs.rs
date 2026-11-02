@@ -798,6 +798,76 @@ fn verification_lists_are_exact() {
     assert!(problems.is_empty(), "{}", problems.join("\n"));
 }
 
+/// Whether QB64pe's `.compile.txt` names a line of the program, as the runner's `recorded_line` reads it: a first
+/// `LINE n:` with n of 1 or more, with no message before it that places the error in an included file.
+fn names_a_line(compile_txt: &str) -> bool {
+    let mut before = Vec::new();
+    for line in compile_txt.lines() {
+        if let Some(rest) = line.strip_prefix("LINE ") {
+            if let Some((n, _)) = rest.split_once(':') {
+                if let Ok(n) = n.parse::<u32>() {
+                    // "… in line 2 of <file> included", "… auto-included": the runner's INCLUDED_RE.
+                    let included = before.iter().any(|l: &&str| {
+                        l.contains("in line ") && (l.contains(" included") || l.contains(" auto-included"))
+                    });
+                    return !included && n >= 1;
+                }
+            }
+        }
+        before.push(line);
+    }
+    false
+}
+
+/// "Exceptions to the line of a rejection" (spec `testing/verification-suite`): each row of
+/// `tests\verification\lines.list` is `<name><TAB><line><TAB><reason>`, with a line of 1 or more and a reason, and
+/// names, once, a program of `verification\` that QB64pe rejected (`(not compiled)`) on a line of its own file
+/// (`names_a_line`), since a row of any other program is never used.
+#[test]
+fn verification_lines_list_is_valid() {
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "a list of file names and a recording, not BASIC source"
+    )]
+    let read = |path: &Path| std::fs::read_to_string(path).unwrap_or_default();
+    // QB64pe's recording echoes the source after `LINE n:`, in the program's own code page (`v44_x29`): read as the
+    // runner does, not as UTF-8, so that such a file still names its line.
+    let read_lossy = |path: &Path| String::from_utf8_lossy(&std::fs::read(path).unwrap_or_default()).into_owned();
+    let text = read(&repo().join("tests/verification/lines.list"));
+    let mut seen = Vec::new();
+    let mut problems = Vec::new();
+    for row in text.lines().filter(|l| !l.trim().is_empty() && !l.starts_with('#')) {
+        let fields: Vec<&str> = row.split('\t').collect();
+        let [name, line, reason] = fields[..] else {
+            problems.push(format!("lines.list: not <name><TAB><line><TAB><reason>: {row}"));
+            continue;
+        };
+        if !line.parse::<u32>().is_ok_and(|n| n >= 1) {
+            problems.push(format!("lines.list: {name}: not a line number: {line}"));
+        }
+        if reason.trim().is_empty() {
+            problems.push(format!("lines.list: {name}: no reason"));
+        }
+        let out = read(&repo().join("verification").join(format!("{name}.out.txt")));
+        if !repo().join("verification").join(format!("{name}.bas")).is_file() {
+            problems.push(format!("lines.list: no program verification/{name}.bas"));
+        } else if out.trim_end() != "(not compiled)" {
+            problems.push(format!("lines.list: {name}: not recorded (not compiled)"));
+        } else if !names_a_line(&read_lossy(
+            &repo().join("verification").join(format!("{name}.compile.txt")),
+        )) {
+            problems.push(format!(
+                "lines.list: {name}: QB64pe's recording names no line of the program, so none is compared"
+            ));
+        }
+        if seen.contains(&name) {
+            problems.push(format!("lines.list: {name} named twice"));
+        }
+        seen.push(name);
+    }
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
+}
+
 #[test]
 fn verification_reasons() {
     for ok in [
