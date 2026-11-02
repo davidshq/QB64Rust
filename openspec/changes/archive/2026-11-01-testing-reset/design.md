@@ -70,6 +70,19 @@ See `proposal.md`, "Why". What is there today, and what the close of 2026-10-31 
   second started it first, as the only program that had failed) and failed again there (its queue held 4 where 3
   is recorded), passing when the runner ran it again alone; under the old key it had been
   served from one old pass for weeks. Running what depends on a device shows what the cache hid.
+- **The numbers (task 7.1, 2026-11-01, commit `aa9ce2df`)**, against the baseline of task 1.2. `just quick` on a
+  warm build with nothing changed: nothing to run, 0.8 s wall (the plan reads the hashes of the files changed
+  since the last). After a one-line edit of `crates\sema\src\lib.rs`: `fmt`, `build`, `clippy`, `nextest`, `lists`,
+  `doc` and `slice`, nothing else, 177 s wall (`slice` 54 s, `lists` 47 s, `nextest` 35 s, `build` 34 s, `clippy`
+  3 s), against a baseline tier 1 of 85 s plus a slice list of 25 s that ran no lints and had to be started by hand,
+  one after the other. `just full` in a worktree (`..\QB64Rust-full`) passes every step: the first run, from no
+  records, ran all 24 steps in 3,888 s (65 min) and found three gaps a fresh worktree shows (the `v37` libraries
+  not built, `sync.sh` unable to follow a worktree's `.git`, a corrupt incremental cache in the Linux copy) and one
+  Linux-only flake (`screen/u01_mouse_queue`, now `varies` in `known.linux.list`); the second run, on the fixes,
+  ran 8 steps in 1,002 s with 17 standing; the third ran 7 in 454 s with 18 standing and passed. The step times of
+  the full layer, warm: `verification` 119 s from the pass cache (1,249 s cold), `callsite` 661 s, `slice` 577 s
+  cold and 54 s warm, `upstream` 343 s, `nofold` 323 s, `linux-sync` 175 s (`linux-sync-per-tree`, proposed),
+  `cli` 107 s, `qbasic` 101 s, `sandbox` 96 s. Reports: `target\scratch\2026-11-01\full*.log` in the worktree.
 - No crate has a compiled doc example: every crate's doc tests run 0 tests, the fenced blocks being `text`
   (the earlier line here said one had; it was wrong). The `doc` step stays for the day one is written;
   `insta` is the snapshot library; `difftest` and the recordings

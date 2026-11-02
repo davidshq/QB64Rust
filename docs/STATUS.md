@@ -60,9 +60,10 @@ Nothing is waiting: `study\38`'s last questions were answered on 2026-10-28 (`DE
    out. Baseline against now, warm: tier 1 85 s against 53 s (`cargo test`; nextest 16 s and the lists 34 s), the
    verification list 168 s and 18 min after a pruned build cache against 98 s with no build of a served
    program (its 107 `.external` programs and 2,478 rejections run each time), the call-site check 170 s against
-   32–42 s, `just quick` after a one-line edit of `sema` 3 min 25 s; the numbers in its `design.md`, "Context". The main checkout's close of 2026-10-31
-   was the last of its kind. `just merge` (design D11) holds the old merge set. Left: the user commits and runs `just full` in a
-   worktree of the commit (tasks 3.5, 7.1).
+   32–42 s, `just quick` after a one-line edit of `sema` 2 min 57 s (177 s), with nothing changed 0.8 s; the numbers in its `design.md`, "Context". The main checkout's close of 2026-10-31
+   was the last of its kind. `just merge` (design D11) holds the old merge set. **Archived 2026-11-01** after `just full`
+   passed every step in a worktree of `aa9ce2df` (`DECISIONS-SMALL.md`); the worktree `..\QB64Rust-full` stays for the
+   next `just full` and the `just merge` of the merge commit. Proposed next: `linux-sync-per-tree` (`linux-sync` is 175 s a run).
 1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs `just
    merge` in a worktree of the merge commit (`tools\check\README.md`); its numbers replace the block below.
 2. **`basic-unit-tests`** is built (2026-10-29); its closing runs pass but for `verification\v49_d_clipboard`

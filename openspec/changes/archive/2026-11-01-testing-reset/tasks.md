@@ -60,7 +60,7 @@ change's own `just quick`, and the old close is not run.
       `crates\sema` (the quick layer), a libqb edit naming built-ins (the programs that run them, from the
       coverage counts, plus lints and Rust tests); verified by the tests passing and by one deliberate
       widening of a glob failing them.
-- [ ] 3.5 `check full` refuses a checkout with uncommitted changes under `crates\`, `libqb\` or `tests\`, naming
+- [x] 3.5 `check full` refuses a checkout with uncommitted changes under `crates\`, `libqb\` or `tests\`, naming
       `git worktree add`; runs the steps longest-first by the times file; the sandbox family last and alone;
       verified by `test_check.py` and one real `just full` in a worktree with its report kept in
       `target\scratch\<date>\full.log`.
@@ -122,7 +122,7 @@ change's own `just quick`, and the old close is not run.
 
 ## 7. Integration
 
-- [ ] 7.1 The numbers: `just quick` on a warm build with nothing changed plans nothing; after a one-line edit
+- [x] 7.1 The numbers: `just quick` on a warm build with nothing changed plans nothing; after a one-line edit
       in `crates\sema` it runs fmt, clippy, nextest and the slice list in under 5 minutes; `just full` in a
       worktree passes every step; all three times written in `design.md` ("Context") against the baseline of
       1.2.
