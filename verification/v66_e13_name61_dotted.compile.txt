@@ -1,0 +1,5 @@
+
+Invalid variable name
+Caused by (or after):ABCDEFGHIJABCDEFGHIJABCDEFGHIJ . ABCDEFGHIJABCDEFGHIJABCDEFGHIJ = 1
+LINE 3:abcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghij = 1
+exit=1

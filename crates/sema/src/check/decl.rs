@@ -13,7 +13,7 @@ use qb64rust_builtins::{Kind, auto_constant, find_any, is_auto_include_name};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
 use qb64rust_syntax::is_keyword;
-use qb64rust_syntax::tree::{Node, Tok};
+use qb64rust_syntax::tree::{Element, Node, Tok};
 
 /// The statement a declaration stands in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -162,6 +162,7 @@ impl Checker<'_> {
             let msg = format!("`{shown}` is a name of QB64pe's auto-included file, reserved");
             return Err(self.error(t.span, msg));
         }
+        self.long_dotted_name(t, name)?;
         // `validname` (`qb64pe.bas` 28271–28274) refuses a single leading `_` only: `__name$` is a parameter of
         // `qb64pe.bas` itself.
         if name.starts_with('_') && !name.starts_with("__") {
@@ -178,6 +179,57 @@ impl Checker<'_> {
             Err(self.in_use(t))
         } else {
             Ok(())
+        }
+    }
+
+    /// `validname` (`qb64pe.bas` 28256–28265) refuses a name of more than 40 characters, its dots counted: a dotted
+    /// name whose parts each pass the line formatter's limit can still be too long (measured, `verification\v66_e13`
+    /// a variable, "Invalid variable name"; `e17` a `CONST` and `e18` a SUB, "Invalid name", where `c.k` and `a.b`
+    /// are accepted, `v66_c02`, `v55_x61`). A name without a dot, or with a part that is too long, is refused
+    /// before, as a word ([`Self::long_words`]).
+    fn long_dotted_name(&mut self, t: Tok, name: &str) -> R<()> {
+        let words_fit = name.split('.').all(|w| w.trim_end_matches('_').len() <= 40);
+        if name.len() > 40 && name.contains('.') && words_fit {
+            let shown = show_bytes(self.text(t.span));
+            let msg = format!(
+                "`{shown}` is a name of {} characters; a name may have at most 40",
+                name.len()
+            );
+            return Err(self.error(t.span, msg));
+        }
+        Ok(())
+    }
+
+    /// The old compiler's limit on a word of code, below `node`: its line formatter refuses a word of more than 40
+    /// characters, whatever it names ("Identifier longer than 40 character limit", `qb64pe.bas` 25318; measured,
+    /// `verification\v66_e01`–`e18`). A word is a run of letters, digits and `_` (each part of a dotted name is
+    /// one), counted without its suffix and its trailing `_`. Comments, strings, `DATA` and metacommand lines are
+    /// not code, and neither is a `$IF` branch not taken (`e12`, `e14`). Checked on every tree before the passes,
+    /// and not by the parser, so that the statement is still checked: the name is no malformed statement.
+    pub(super) fn long_words(&mut self, node: Node) {
+        for child in node.children() {
+            match child {
+                Element::Node(n) if matches!(n.kind(), SyntaxKind::MetaStmt | SyntaxKind::InactiveCode) => {}
+                Element::Node(n) => self.long_words(n),
+                Element::Token(t) if t.kind == SyntaxKind::Ident => {
+                    let word = self.text(t.span);
+                    let mut start = t.span.start;
+                    let mut long = Vec::new();
+                    for part in word[..name_end(word)].split(|&b| b == b'.') {
+                        let len = part.len() - part.iter().rev().take_while(|&&b| b == b'_').count();
+                        let end = start + to_u32(part.len());
+                        if len > 40 {
+                            long.push((Span::new(t.span.file, start, end), show_bytes(part), len));
+                        }
+                        start = end + 1;
+                    }
+                    for (span, shown, len) in long {
+                        let msg = format!("`{shown}` is a name of {len} characters; a name may have at most 40");
+                        self.diags.error(span, msg);
+                    }
+                }
+                Element::Token(_) => {}
+            }
         }
     }
 
@@ -206,6 +258,7 @@ impl Checker<'_> {
         if name.starts_with('_') || is_keyword(name.as_bytes()) {
             return self.reserved(t, name, suffix);
         }
+        self.long_dotted_name(t, name)?;
         let kind = if function { Kind::Function } else { Kind::Sub };
         let clash = |b: &qb64rust_builtins::Builtin| b.musthave != Some("$") || suffix == Some(Ty::Str);
         if find_any(name.as_bytes()).filter(|b| b.kind == kind).any(clash) {

@@ -485,8 +485,11 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `v66_d_lib.h`) and fails the C++ build with one (`d01` srand, `d10`); `_EMBEDDED$(("h"))` is an error;
   `_RGB32("a")` in a `CONST` is `&HFF000000`; an infinite value inside a `CONST`'s function or power is
   "Unexpected argument: INF" or "Unexpected element 'INF'", while `SIN` of an infinite `CONST` is 0 (D-029).
-  `e01`–`e09`: a name of 41 characters of any kind is "Identifier longer than 40 character limit"; 40 letters and a
-  suffix, and 40 characters of each kind, compile. `f01`: `ON TIMER` events during `TIMER STOP` run once at `TIMER
+  `e01`–`e18`: a name of 41 characters of any kind (a parameter, a label, a `DECLARE LIBRARY` name, `_` and 40
+  letters among them) is "Identifier longer than 40 character limit"; 40 letters and a suffix, 40 characters of each
+  kind, and a word of 41 in a comment, a string, `DATA` or a `$IF` branch not taken compile; a dotted name of two
+  parts of 30 is "Invalid variable name" for a variable, "Invalid name" for a `CONST` or a SUB (`e17`, `e18`; a
+  short dotted `CONST` and SUB compile, `v66_c02`, `v55_x61`). `f01`: `ON TIMER` events during `TIMER STOP` run once at `TIMER
   ON`, and one during a slow handler does not run at the statements after it (no doubled event seen). `g01`–`g11`
   arguments left out: `SCREEN(1, , 1)` is "Incorrect number of arguments", `LBOUND(a, )` and `UBOUND(a, )` "Syntax
   error"; the middle or first argument of `_LOADIMAGE`, `_LOADFONT`, `_UPRINTWIDTH`, `_UCHARPOS`, `_SNDNEW`,

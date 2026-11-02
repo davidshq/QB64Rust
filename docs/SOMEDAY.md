@@ -194,6 +194,13 @@ members named like keywords, `CALL ABSOLUTE`). Compiled, not measured:
 |---|---|---|
 | A `_BIT` scalar of the main module in a program whose only use of `dblock` is a slot `passN` (a value to `CALL ABSOLUTE`, or to a parameter whose address is taken): compiled, the `_BIT` scalar left out of `dblock` | Not measured; the old compiler probably puts it there (`qb64pe.bas` 18215), which would move the slot 4 bytes down. The emitter's test counts variables only, and slots are made while bodies are written, so a fix needs the slots known from `sema` or `ir`. Found in the review of the change; no program known needs it | `crates\codegen-cpp\src\cmem.rs` (`uses_dblock`) |
 
+**Left open by the 40-character limit on names** (2026-11-02, built without an OpenSpec change, `TODO.md`). Not
+checked, not measured:
+
+| Form | Why it waits | Details |
+|---|---|---|
+| A word of more than 40 characters in a metacommand line other than a `$LET` name (a `$IF` condition: `$IF abcdefghijabcdefghijabcdefghijabcdefghijk = 1 THEN`) | Metacommand lines are skipped by the check, and `$LET` names have their own; what QB64pe does with the word in a condition is not measured. No program is known to write one (the pragmatic engineer, review of the change) | `crates\sema\src\check\decl.rs` `long_words`; `crates\syntax\src\pp.rs` |
+
 ## Strict QuickBASIC 4.5 mode
 
 Not planned (QB64pe has no such mode). What it would take: `study\archive\08-qb45-strict-mode.md`.

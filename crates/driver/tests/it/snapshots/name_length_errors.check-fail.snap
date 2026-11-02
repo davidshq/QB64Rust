@@ -1,0 +1,15 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+name_length_errors.bas:7:1: error: `abcdefghijabcdefghijabcdefghijabcdefghijk` is a name of 41 characters; a name may have at most 40
+name_length_errors.bas:8:5: error: `abcdefghijabcdefghijabcdefghijabcdefghijl` is a name of 41 characters; a name may have at most 40
+name_length_errors.bas:9:7: error: `abcdefghijabcdefghijabcdefghijabcdefghijm` is a name of 41 characters; a name may have at most 40
+name_length_errors.bas:11:5: error: `abcdefghijabcdefghijabcdefghijabcdefghijn` is a name of 41 characters; a name may have at most 40
+name_length_errors.bas:15:32: error: `abcdefghijabcdefghijabcdefghijabcdefghijo` is a name of 41 characters; a name may have at most 40
+name_length_errors.bas:16:1: error: `abcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghij` is a name of 61 characters; a name may have at most 40
+name_length_errors.bas:17:7: error: `abcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghik` is a name of 61 characters; a name may have at most 40
+name_length_errors.bas:18:6: error: `abcdefghijabcdefghijabcdefghijabcdefghijp` is a name of 41 characters; a name may have at most 40
+name_length_errors.bas:19:1: error: `abcdefghijabcdefghijabcdefghijabcdefghijp` is a name of 41 characters; a name may have at most 40
+name_length_errors.bas:23:8: error: `abcdefghijabcdefghijabcdefghijabcdefghijq` is a name of 41 characters; a name may have at most 40
+name_length_errors.bas:26:5: error: `abcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghil` is a name of 61 characters; a name may have at most 40

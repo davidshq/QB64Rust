@@ -63,8 +63,11 @@ Nothing is waiting: names of more than 40 characters were answered on 2026-11-02
    merge (whose Linux sync then follows git), and `counts.py` judges the pass lists in seconds (200 s before);
    **archived 2026-11-02** (`openspec\changes\archive\2026-11-02-check-rejudge\`). The runner changed, so the next
    `just full` runs everything once.
-2. **`TODO.md` row 1, the 40-character limit on names**, next as an OpenSpec change: always QB64pe's error, no
-   switch (`DECISIONS.md` 2026-11-02).
+2. **The 40-character limit on names** is built (2026-11-02, directly, without an OpenSpec change, `TODO.md`): a
+   word of code of more than 40 characters is an error wherever it stands, and a dotted variable, `CONST` or
+   procedure name of more than 40 with its dots (spec `compiler/pipeline`, "The 40-character limit on names";
+   `verification\v66_e01`–`e18` on
+   `pass.list`). Next in `TODO.md`: row 1, pinning a verification rejection to its line.
 3. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
    built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
    results are read when they come. M8 next.
@@ -142,10 +145,6 @@ failures re-judged against the new `known.linux.list`, not run again.
   (all 3 bytes) whenever `OpenClipboard` fails, so any program of the machine that opens the clipboard after a
   change (a clipboard history) is enough. Not the compiler's.
 
-- A name of more than 40 characters compiles: QB64pe rejects a variable, array, `CONST`, `TYPE`, member, SUB and
-  FUNCTION name of 41 characters ("Identifier longer than 40 character limit", `verification\v66_e01`–`e07`, on
-  `tests\verification\known.list`); a suffix after 40 letters is accepted (`e08`). The limit is checked only for
-  labels and `$LET` names. `SOMEDAY.md` "Other ideas" has the row (the panel: build it next).
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).
 
