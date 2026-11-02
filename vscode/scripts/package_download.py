@@ -9,7 +9,7 @@ version taken from vscode/package.json:
     qb64rust-<version>/libqb/...                bundle/libqb/ (libqb's tracked files)
     qb64rust-<version>/THIRD-PARTY-NOTICES.txt  bundle/THIRD-PARTY-NOTICES.txt
     qb64rust-<version>/LICENSE.txt              LICENSE
-    qb64rust-<version>/MANUAL.md                MANUAL.md
+    qb64rust-<version>/MANUAL.md                docs/MANUAL.md
 
 The tar is the same bytes for the same bundle: its entries in order, the binary at mode 0755 and every other file at
 0644, owner and group 0 with no names, each file's time its staged file's, and gzip's own time 0.
@@ -89,7 +89,7 @@ def entries(bundle, repo, platform="win-x64"):
         (libqb / "internal" / "c" / "qbx.cpp", "the staged copy of libqb"),
         (notices, "the staged notices"),
         (repo / "LICENSE", "the repository's LICENSE"),
-        (repo / "MANUAL.md", "MANUAL.md"),
+        (repo / "docs" / "MANUAL.md", "MANUAL.md"),
     ]:
         if not path.is_file():
             raise PackageError(f"{what} is missing: {path} (run {stage} first)")
@@ -97,7 +97,7 @@ def entries(bundle, repo, platform="win-x64"):
         (binary_name(platform), binary),
         ("THIRD-PARTY-NOTICES.txt", notices),
         ("LICENSE.txt", repo / "LICENSE"),
-        ("MANUAL.md", repo / "MANUAL.md"),
+        ("MANUAL.md", repo / "docs" / "MANUAL.md"),
     ]
     files += [
         ("libqb/" + p.relative_to(libqb).as_posix(), p) for p in libqb.rglob("*") if p.is_file()
@@ -208,7 +208,7 @@ def check(path, licences=True):
         option = "--zip"
     problems = check_names(path.name, names, modes)
     problems += manual_problems(
-        (REPO / "MANUAL.md").read_text(encoding="utf-8"),
+        (REPO / "docs" / "MANUAL.md").read_text(encoding="utf-8"),
         (REPO / "crates" / "driver" / "src" / "toolchain.rs").read_text(encoding="utf-8"),
     )
     if licences:

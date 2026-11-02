@@ -20,8 +20,17 @@ now="$(mktemp)"
 both="$(mktemp)"
 trap 'rm -f "$now" "$both"' EXIT
 
+# In a worktree (`just full`), .git is a file naming the repository's folder by its Windows path, which WSL's git
+# cannot follow: it is given the folder by its WSL path.
+where=()
+if [[ -f "$src/.git" ]]; then
+    gitdir="$(sed -n 's/^gitdir: //p' "$src/.git" | tr -d '\r')"
+    [[ "$gitdir" == [A-Za-z]:* ]] && gitdir="$(wslpath -u "$gitdir")"
+    where=(--git-dir="$gitdir" --work-tree="$src")
+fi
+
 # safe.directory: the tree is owned by the Windows user, which WSL's git does not take for the caller.
-git -c safe.directory='*' -C "$src" ls-files -co --exclude-standard -z >"$now"
+git -c safe.directory='*' -C "$src" "${where[@]}" ls-files -co --exclude-standard -z >"$now"
 
 # The names to give rsync: this sync's and the last one's (those no longer in the tree are deleted).
 if [[ -f "$dest/.sync-files" ]]; then
@@ -30,7 +39,13 @@ else
     sort -zu "$now" >"$both"
 fi
 
-rsync -a --checksum --from0 --files-from="$both" --delete-missing-args "$src/" "$dest/"
+# Exit 24, "some files vanished": the folders of a name of the last list that is gone (a change folder archived)
+# are named as vanished though their files were deleted as asked. Not a failure; any other code is.
+rc=0
+rsync -a --checksum --from0 --files-from="$both" --delete-missing-args "$src/" "$dest/" || rc=$?
+if [[ $rc -ne 0 && $rc -ne 24 ]]; then
+    exit "$rc"
+fi
 cp "$now" "$dest/.sync-files"
 
 count="$(tr -cd '\0' <"$now" | wc -c)"

@@ -1,0 +1,2 @@
+left button down:-1 and up:-1 
+down at 100, 80 within 2 pixels:-1 

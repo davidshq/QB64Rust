@@ -1,0 +1,154 @@
+# qb64rust: the compiler on its own
+
+This download is the QB64Rust compiler without the VS Code extension. It compiles programs written for
+QB64 Phoenix Edition 4.7.0 into executables from a command prompt, a build script or another editor:
+`qb64rust-win-x64-<version>.zip` for Windows, `qb64rust-linux-x64-<version>.tar.gz` for Linux (see "On Linux"
+below). QB64pe does not need to be installed. If you use VS Code, the extension (`qb64rust-win32-x64-<version>.vsix`
+or `qb64rust-linux-x64-<version>.vsix` on the same release page) has this compiler inside it, so you don't need this
+download as well.
+
+## What you need
+
+- Windows 10 version 1803 or later, 64-bit (x64); or Linux x64 with glibc (see "On Linux").
+- About 500 MB of disk space: 460 MB for the C++ toolchain, the rest for the compiler, its copy of libqb and the
+  objects it builds there.
+- A network connection once, to fetch the toolchain.
+
+## Setting it up
+
+1. Unpack the zip into a folder **you can write to**, such as a folder in your Documents or `C:\qb64rust`. The
+   compiler builds libqb's objects inside its own `libqb` folder the first time you compile, so a folder under
+   `Program Files` does not work. In such a folder the first build stops with a message that says so.
+2. Open a command prompt in the unpacked folder and run:
+
+   ```
+   qb64rust toolchain install
+   ```
+
+   This downloads the C++ toolchain the compiler uses (llvm-mingw, a 190 MB download from
+   `github.com/mstorsjo/llvm-mingw`, checked against a fixed checksum) and unpacks it into
+   `%LOCALAPPDATA%\qb64rust\toolchain`. It is the only thing the compiler downloads, and it downloads it only when
+   you run this command. Run it again at any time: when the toolchain is already there, it does nothing.
+   `qb64rust toolchain path` shows the toolchain a build would use.
+
+If you already have a toolchain folder you want to use instead, give it to each build with
+`--toolchain-root <dir>`, or set the environment variable `QB64RUST_TOOLCHAIN_ROOT`.
+
+## Compiling and running a program
+
+```
+qb64rust -x hello.bas -o hello.exe
+hello.exe
+```
+
+Without `-o`, the executable is named after the program and put beside it. The first build takes longer, up to a
+minute, while libqb's objects are built. Later builds reuse them.
+
+Errors and warnings are printed as `file:line:column: error: message`. The exit status is:
+
+| Status | Meaning |
+|---|---|
+| 0 | The program compiled (and the executable was built) |
+| 1 | The program has errors, or something the build needs is missing; no executable is left behind |
+| 3 | An internal error of the compiler; please report it (see the end of this page) |
+
+## On Linux
+
+The Linux download works the same way, with three differences. The C++ toolchain is your system's: `g++`, `make`
+and `objcopy` on `PATH`, and the development packages libqb is built with (OpenGL, GLU, X11, ALSA). Nothing is
+downloaded: `qb64rust toolchain install` checks that they are there and, when they are not, prints the command that
+installs them for your distribution. An executable has no extension, as with QB64pe on Linux. And the debugger needs
+`lldb-dap` 20 or later, from the package `lldb` (on Debian and Ubuntu a versioned one, `sudo apt-get install
+lldb-20`: Ubuntu 24.04's plain `lldb` is 18, which has no data breakpoints, and 19's `lldb-dap` cannot show
+values).
+
+Install the packages with the line for your distribution (Ubuntu is the one tested):
+
+```
+sudo apt-get install build-essential libglu1-mesa-dev libasound2-dev libpng-dev libcurl4-openssl-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev
+sudo dnf install gcc-c++ make mesa-libGLU-devel alsa-lib-devel libpng-devel libcurl-devel libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel
+sudo pacman -S gcc make zlib curl glu alsa-lib libx11 libxcursor libxrandr libxinerama libxi
+```
+
+The first is for Debian and Ubuntu (and Linux Mint), the second for Fedora, the third for Arch. Then unpack the
+download into your home folder and compile:
+
+```
+tar -xzf qb64rust-linux-x64-<version>.tar.gz
+cd qb64rust-<version>
+./qb64rust -x hello.bas
+./hello
+```
+
+`./qb64rust toolchain path` shows the folder of the `g++` a build would use and `system`. A toolchain folder of your
+own (one with `bin/g++` and `bin/make`) can be given with `--toolchain-root <dir>` or `QB64RUST_TOOLCHAIN_ROOT`, as
+on Windows. A program behaves as QB64pe's Linux build of it does: the console prints a comma's spacing as Linux's
+QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
+
+## Options
+
+`qb64rust --help` prints them all. The ones you are most likely to need:
+
+| Option | What it does |
+|---|---|
+| `-o <file>` | The executable to write |
+| `-x` | Accepted for QB64pe's command line; a build is always to an executable |
+| `-w` | Print warnings too |
+| `-q` | Print less while building |
+| `-z` | Check the program and write its C++ without building an executable |
+| `-y` | Lay the file out as QB64pe's IDE does; give the result with `-o <out.bas>` |
+| `-f:<setting>=<value>` | A QB64pe compiler setting, such as `-f:OptimizeCppProgram=true`, `-f:StripDebugSymbols=false`, `-f:ExtraLinkerFlags=<flags>` or `-f:GenerateLicenseFile=true`; with `-y`, a layout setting such as `-f:AutoIndentSize=2` |
+| `--debug` | A build for a debugger: with debug information, never optimised |
+| `--include-root <dir>` | Where `$INCLUDE` files and `DECLARE LIBRARY` headers are looked for after the program's own folder (by default the folder of `qb64rust.exe`, as QB64pe looks in its own folder) |
+| `--toolchain-root <dir>` | The C++ toolchain to use instead of the installed one |
+| `--libqb-root <dir>` | Another copy of libqb, for example one in a folder you can write to |
+| `--version` | Print the compiler's version |
+
+A program that uses `$INCLUDE` libraries meant to sit beside `qb64pe.exe` finds them beside `qb64rust.exe`.
+
+## Testing your code
+
+`qb64rust test` runs unit tests written in BASIC. A test file is a file whose name ends in `_test.bas`; it
+includes the code it tests (`'$INCLUDE:'math.bm'`), and each `SUB` in it whose name starts with `Test` and that
+takes no parameters is a test:
+
+```
+'$INCLUDE:'math.bm'
+
+SUB TestAdd
+    AssertEqualInt 5, AddUp&(2, 3), "sum"
+END SUB
+```
+
+```
+qb64rust test
+qb64rust test lib\math_test.bas --filter TestAdd
+```
+
+With no file or folder named, it runs every test file in the current folder and below it. Each test runs in a
+program of its own, and passes only when its SUB returns: a failed assertion is a failure, and a runtime error,
+`END` or `SYSTEM`, or more than 30 seconds (`--timeout <seconds>`) is an error, whatever the test printed. The
+assertions are `AssertTrue`, `AssertFalse`, `AssertEqualInt`, `AssertEqualSingle`, `AssertEqualDouble`,
+`AssertNear`, `AssertEqualStr` and `Fail`; `_ASSERT` works too, and `TestTempDir$` gives each test an empty folder of
+its own. Tests are built as `$CONSOLE:ONLY` programs, so they are for code that does not draw on the screen
+(images made with `_NEWIMAGE` work). `--list` lists the tests without running them, and `--format json` gives one
+JSON object per line for other tools. The exit status is 0 when every test passed, and 1 otherwise.
+
+## Where it differs from QB64pe
+
+The compiler takes the QB64pe 4.7.0 dialect and its programs behave as QB64pe's do, with a short list of
+deliberate exceptions (most of them cases where QB64pe's own result is undefined, or where a program would crash).
+They are listed in
+[`QB64PE-DIVERGENCES.md`](https://github.com/davidshq/QB64Rust/blob/main/docs/QB64PE-DIVERGENCES.md). A few of QB64pe's features
+are not supported yet. A program that uses one gets the error "not supported yet", which names the feature.
+
+The one a script is most likely to notice: **a program that ends because of a runtime error exits with code 1**,
+where QB64pe's exits with 0. That is an error no `ON ERROR` handler takes, when the program ends at it (with
+`QB64PE_NOPROMPT=y`, or "no" at the "Continue?" dialog), or a critical error such as a failed `_ASSERT`. A program
+that goes on after the error, and a program's own `END n` or `SYSTEM n`, keep their code.
+
+## Reporting a problem
+
+Open an issue at [github.com/davidshq/QB64Rust/issues](https://github.com/davidshq/QB64Rust/issues). Include
+what `qb64rust --version` prints, the command you ran, its output, and the program (or the smallest part of it
+that shows the problem).

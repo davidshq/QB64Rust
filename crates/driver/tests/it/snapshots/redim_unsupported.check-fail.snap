@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+redim_unsupported.bas:11:7: error: not supported yet: a member of `it`, which is no array here
+redim_unsupported.bas:12:10: error: not supported yet: a string as an array bound
+redim_unsupported.bas:14:1: error: not supported yet: `z(...)` (an array used without `DIM`, or no FUNCTION of this name)
+redim_unsupported.bas:15:7: error: not supported yet: `ERASE` of `z`, an array used without `DIM`
+redim_unsupported.bas:16:14: error: not supported yet: `q(...)` (an array used without `DIM`, or no FUNCTION of this name)
+redim_unsupported.bas:17:7: error: not supported yet: `ERASE` of `q`, an array used without `DIM`
+redim_unsupported.bas:18:7: error: not supported yet: `it(...)` (an array used without `DIM`, or no FUNCTION of this name)
+redim_unsupported.bas:20:9: error: not supported yet: an array of more than 2^31 elements

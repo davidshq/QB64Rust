@@ -1,0 +1,5 @@
+
+UDT must have fixed size
+Caused by (or after):_MEMFILL M , M . OFFSET , SZ * 2 , W
+LINE 13:_MEMFILL m, m.OFFSET, sz * 2, w
+exit=1

@@ -1,0 +1,5 @@
+
+Unexpected element 'INF'
+Caused by (or after):
+LINE 3:CONST C = 2 ^ ( 1.0F+4000,1F+4000 * 1.0F+4000,1F+4000 )
+exit=1

@@ -7,7 +7,7 @@ program may take, for the run-time trace (`tools/legacy_tests/README.md`).
 
 ## Tier 1
 
-`crates/driver/tests/inputs.rs` puts every file of the copy through the new compiler's front end on every
+`crates/driver/tests/it/inputs.rs` puts every file of the copy through the new compiler's front end on every
 `cargo test`, together with the corpus, the snippets and (when the reference clone is present) QB64pe's
 `qbasic_testcases` and its compiler sources: no panic, exact round trip, and the two shrink-only lists
 `tests/known_false_errors.list` and `tests/known_unsupported_rejections.list`, and the third list below (spec
@@ -74,7 +74,7 @@ sources by a relative path, count as a clone-dependent set. `known_unsupported_r
 (`snippets/qb64fresh/constants__builtin_chr_str_constants_registered`: its real error, `_STR_CR`, follows a name of
 the auto-included files on the same line, which is now marked; named in task 8.2).
 
-After a change, regenerate the three lists with `QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs`
+After a change, regenerate the three lists with `QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test it inputs::`
 and review the diff: entries may only go away (a new entry is a regression to fix, unless it is a program new to
 the inputs).
 
@@ -135,7 +135,7 @@ none: what joined `pass.list` is in its `tasks.md`, and the numbers are the bloc
   group 2, each passing on its first run).
 
 Progress is the pass list out of the programs not deferred; `cargo test` checks that no program is in both lists
-and prints the line (`cargo test -p qb64rust-driver --test inputs upstream_progress -- --nocapture`).
+and prints the line (`cargo test -p qb64rust-driver --test it inputs::upstream_progress -- --nocapture`).
 
 **Upstream progress, 2026-10-04: 10 of 279.** The first full run of the suite with `qb64rust` (404 programs, not a
 pass criterion, 29 s of test time, since most programs stop in the front end; the clone unchanged): 10 pass; 4 build but print the wrong output

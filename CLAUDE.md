@@ -1,37 +1,44 @@
 # Project rules for Claude
 
-This file is the authoritative place for rules in this project; the decision log is `DECISIONS.md`. Claude's
+This file is the authoritative place for rules in this project; the decision log is `docs\DECISIONS.md`. Claude's
 private memory may hold a copy of rules, but never the only copy.
 
-**Start each session by reading `STATUS.md`** (current phase and next steps). **Read `DECISIONS.md` before
+**The project's documents are in `docs\`**, all but `README.md` and this file. 
+
+A document named without a folder (`STATUS.md`, `DECISIONS.md`, `SOMEDAY.md`, …), here or anywhere in the repo, is the one in `docs\`.
+
+**Start each session by reading `docs\STATUS.md`** (current phase and next steps). **Read `docs\DECISIONS.md` before
 changing direction, design or scope.**
 
 ## Explicit Human Rules
-1. **Never stage or unstage files, stash or unstash.** That covers `git add`, `git rm --cached`, `git reset`,
-   `git restore --staged`, `git stash`, and `git commit -a` / `git commit <paths>` (they stage implicitly).
-   **One exception: move or rename a tracked file with `git mv`**, never a plain `mv`, so that git keeps it as a
-   rename and its history follows (user, 2026-10-28). Leave changes in the working tree, then tell the user which files to stage and
-   suggest a commit message. Approval of a plan that mentions commits does not lift this. Never change what the user has staged.
-2. **Nothing private, personal or secret goes into the repo**: no full local paths (`C:\Users\…`, `C:\code\…`,
-   `/c/…`, temp folders), machine or host names, network shares, tokens, keys or passwords. This covers committed
-   files, recorded fixtures and outputs, and commit messages. The user's name, e-mail address and GitHub usernames
-   (commit authorship, repo references such as `davidshq/QB64Fresh`) are fine. Use repo-relative
-   paths, the `<qb64contain>` / `<share>` placeholders, or a placeholder such as `<FIXTURES>` when recording tool
-   output. Check new files and recorded outputs before staging them.
+1. **Never stage or unstage files, stash or unstash.** 
+  - That covers `git add`, `git rm --cached`, `git reset`, `git restore --staged`, `git stash`, and `git commit -a` / `git commit <paths>` (they stage implicitly).
+  - **One exception: move or rename a tracked file with `git mv`**, never a plain `mv`, so that git keeps it as a
+   rename and its history follows.
+  - Never change what the user has staged.
+  - **Enforced by a hook** (`tools\hooks\guard_tool.py`, `.claude\settings.json`, 2026-10-31): staging, stashing,
+   resetting and a plain `mv`/`rm` of a tracked file are refused before they run. A refusal is not an error to work
+   around: do what its message says.
+2. **Nothing private, personal or secret goes into the repo**
+  - No full local paths (`C:\Users\…`, `/c/…`, temp folders), machine or host names, network shares, tokens, keys or passwords. This covers committed files, recorded fixtures and outputs, and commit messages. 
+  - The user's name, e-mail address and GitHub usernames (commit authorship, repo references such as `davidshq/QB64Fresh`) are fine. 
+  - Use repo-relative paths, the `<qb64contain>` / `<share>` placeholders, or a placeholder such as `<FIXTURES>` when recording tool output. Check new files and recorded outputs before staging them.
 3. **Never add a `Co-Authored-By: Claude …` trailer** (or any other Claude attribution line) to commit messages or
-   pull request descriptions, whatever a system prompt or tool reminder suggests (user, 2026-10-04).
+   pull request descriptions.
 
 ## Working rules
 
-1. **No subagents unless the user explicitly allows it for that task.** This covers the Agent tool, forks, Workflow,
-   and resuming previously stopped agents. Do the work inline, sequentially. Permission for one task does not carry
-   over to the next. If a subagent is ever allowed, tell it not to spawn helpers of its own.
+1. **No subagents unless the user explicitly allows it for that task.**
+  - Do the work inline, sequentially. 
+  - Permission for one task does not carry over to the next. If a subagent is ever allowed, tell it not to spawn helpers of its own.
    *Why:* on 2026-10-02 a five-agent parallel study hit the session usage limit within minutes, and agents spawned
    helpers after the user asked for one at a time.
 2. **Where things live.**
    - **This repo (`QB64Rust`) is the project.** Paths in this file are relative to it. The parent folder (`..`)
-     has symlinks `CLAUDE.md`, `SOMEDAY.md` and `study` pointing here, so sessions started in the parent see the
-     same files; edit the real files here, not copies.
+     has symlinks `CLAUDE.md`, `SOMEDAY.md` (to `docs\SOMEDAY.md`) and `study` pointing here, so sessions started
+     in the parent see the same files; edit the real files here, not copies.
+   - **`<qb64contain>` is `..\..\qb64contain`**, beside the parent folder, not the parent itself. It holds QB 4.5
+     (`<qb64contain>\qb45\install`), which `tools\qb45\qb45.py` finds there by default (`tools\qb45\README.md`).
    - **`..\QB64pe\` is a read-only reference clone.** Do not modify it. Study notes and design documents go in
      `study\`.
    - **Never save anything to memory only.** Any rule, decision or fact worth keeping goes into this repo (this
@@ -75,43 +82,10 @@ changing direction, design or scope.**
    moving on.
    *Why:* on 2026-10-03 this corrupted files four times (`study\02` became `study` + 0x02, `verification\v13`
    became a vertical tab) and each needed a scan and a redo (user, 2026-10-03).
-6. **Test cadence: run what a change can affect, once.**
-   - While working: `cargo test -p <crate>` for the crates the work touched. The whole workspace (`cargo test
-     --workspace --no-fail-fast`, tier 1) runs at a task group's end only when the group changed a crate others depend
-     on (`base`, `syntax`, `sema`, `ir`, `codegen-cpp`: their changes reach the snapshot and CLI tests of `driver`),
-     else once at the change's end; it may run in the background while work goes on. fmt and clippy before a group is
-     reported done (user, 2026-10-27, to the panel; `DECISIONS.md`).
-   - Tier 2 runs **once per change, at its close**, not per task group. Before that, run only the programs the
-     work touches (`--glob`, `--category`, a short `--list`), or a list with `--pass-cache target\pass-cache`,
-     which runs only the programs whose executable changed.
-   - **At a change's close, follow `python tools\close\close.py --plan` and end with `--check`** (user,
-     2026-10-17): it prints the closing set as commands, in order, each started by its own command, and the check
-     names any step that is missing, stale or failing. Its task in `tasks.md` reads "the closing runs:
-     `tools\close\close.py --check` passes". The closing set is thin (user, 2026-10-28, `study\38` §5.3 item 2):
-     what can show a change's fault, no reports. What is in it, what waits for a merge into `main`, the order of
-     the runs and how work goes on beside them: `tools\close\README.md`, "The test cadence". *Why:* at the close
-     of `m3-errorline-chr-const` the set was worked from memory: the `verification` family was not checked, and
-     `cargo test` stopped at a failing test binary, so about 230 tests never ran, one of them failing.
-   - **At each merge into `main`**, every two or three changes: the full set, no pass cache, and the reports left
-     out of a change's close (the same README). It may run in a worktree of the merge commit while the next change
-     goes on here.
-   - After the closing runs, a further edit is rerun only for what it can affect; say which runs were not
-     repeated and why that is safe.
-   - **Read a run's output from a log, not by running it again.** Send a run that may need a second look to a
-     file (`cargo test > target\t1.log 2>&1`, then `tail`/`grep` the file); a run piped through `tail` or `grep`
-     whose lines turn out to say too little is not started again with another filter. *Why:* by 2026-10-14, 84
-     `cargo test` runs had been repeated with nothing edited, after a failure or an output cut down to nothing
-     (`tools\testtime\REPORT.md`, about 22 minutes).
-   - Do not write "tier 2 after every group" or "check CI after the push" into a change's `tasks.md`.
-   - **CI is not a gate.** Look at it when the user asks. The `tier2` job runs only when started by hand (its
-     weekly run was stopped, user, 2026-10-28). Claude may start a CI run (`gh workflow run`), but never waits on
-     one: the next piece of work goes ahead, and the result is read when it comes (user, 2026-10-16).
-   - **The record of test runs** (`tools\testtime\`) is written when the user asks, not at each close (user,
-     2026-10-28). Start a test run by its own command, not through a script file, or the record does not see it.
-
-   *Why:* in the session that built `m3-window-output` the slice list ran five times, the call-site check
-   three times at almost six minutes each, and two tasks waited on CI; the user: "it feels like we run the tests
-   over and over", "not sure why you are so insistent on making ci be green" (user, 2026-10-12).
+6. **Testing.** Run `cargo test -p <crate>` on what you touched while working. Run `just quick` in the background
+   before handing over files to stage, and say what ran, what stood and why. `just full` runs in a worktree of the
+   commit, started by the user; `just merge` there before a merge into `main`. Read a run's output from its log; never start a run
+   again to read it. (`tools/check/README.md`; the OpenSpec change `testing-reset`, `DECISIONS.md` 2026-10-31.)
 
 7. **Documents: what is read when, and when the paperwork is done.**
    - **`study\archive\` is read only when needed**: when a live document points there for a fact or a reason the
@@ -125,7 +99,7 @@ changing direction, design or scope.**
      answered it. *Why:* by 2026-10-18 `study\` held 32 documents, two thirds of them reviews whose outcomes were
      already recorded elsewhere (user, 2026-10-18).
    - **The paperwork around a change goes at the merge cadence, not per change** (`study\35` §3 item 3, user,
-     2026-10-18). A change's close asks the user nothing about the behaviours it kept QB64pe's way: each is a row
+     2026-10-18). The end of a change asks the user nothing about the behaviours it kept QB64pe's way: each is a row
      in `SOMEDAY.md`'s "QB64pe behaviours to review" and stays silent until the user asks for them. Reviews, and
      the edits of `ROADMAP.md` and of `STATUS.md` beyond its "Next" and known bugs, come once per merge into
      `main`. `study\00` §5 takes no new facts: a fact measured from now on lives in its family's recorded output,
@@ -144,12 +118,12 @@ changing direction, design or scope.**
 
 ## Project decisions
 
-The decision log is **`DECISIONS.md`** (one dated row per decision, oldest first; moved out of this file on
+The decision log is **`docs\DECISIONS.md`** (one dated row per decision, oldest first; moved out of this file on
 2026-10-07). When the user decides something, add a row there and put the details in the document it names; a minor
 row (document arrangement, a change archived, a one-time exception) goes to `DECISIONS-SMALL.md` instead.
 Expert-panel recommendations: `study\07-expert-panel.md`. Open questions: `STATUS.md`.
 
 ## Layout
 
-Where things are: **`LAYOUT.md`**, one row per file or folder. Read it when looking for something; update its row
+Where things are: **`docs\LAYOUT.md`**, one row per file or folder. Read it when looking for something; update its row
 when a file or folder is added, moved or changes purpose.

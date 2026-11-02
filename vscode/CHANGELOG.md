@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Unit tests of BASIC code in the Test Explorer.** The `SUB Test…` of each `*_test.bas` file are listed, run one,
+  a file or all at a time through the new `qb64rust test`, and their results shown at the SUB (a failed `_ASSERT` at
+  its line), with assertions such as `AssertEqualInt` and `AssertEqualStr`. Each test runs in a process of its own
+  and passes only when its SUB returned. Tests are for console-only code (README, "Tests").
+- **A program that ends on a runtime error exits with code 1.** An error no handler takes (with
+  `QB64PE_NOPROMPT=y`, or "no" at "Continue?") or a critical error such as a failed `_ASSERT` now gives exit code 1,
+  so scripts and CI can see the failure; QB64pe's program exits 0 (`QB64PE-DIVERGENCES.md` D-012). A program that
+  goes on after the error is unchanged.
 - **Linux x64.** The extension, the compiler and the debugger run on Linux (glibc): a `.vsix` for `linux-x64` and a
   `qb64rust-linux-x64-<version>.tar.gz` download. Programs build with the system's `g++` and the packages libqb
   needs; when they are missing, the first build says which and offers to copy the install command for your

@@ -1,0 +1,4 @@
+1. ERASE a(one(1)).d: 1  1 : a(0).d 3  a(1).d [error 9 ] a(2).d 3  a(3).d 3 
+2. ERASE a(9).d: [error 9 ]: a(0).d [error 9 ] a(1).d [error 9 ] a(2).d 3  a(3).d 3 
+3. ERASE a(one(9)).d: 9  [error 9 ]: a(0).d [error 9 ] a(1).d [error 9 ] a(2).d 3  a(3).d 3 
+exit=0

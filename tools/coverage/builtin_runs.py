@@ -13,7 +13,9 @@ it ran at least once) or not run, with the programs that hold it. A record of ve
 
     <name><TAB><reason>[ <note>]
 
-'#' starting a comment, the reason one of REASONS. It fails on a built-in that is not run and not listed, on a
+'#' starting a comment, the reason one of REASONS. A `sandbox` row is run only in the sandbox family
+(tools/sandbox/run.py, which holds it to have run there); for the suites this tool reads it is like any other
+row. It fails on a built-in that is not run and not listed, on a
 listed one that ran, on a listed one that no record names (the counts are of a part of the suites, or no slice
 program holds it), on a line of the list that is not of that form, and on a built-in of sema's tables
 (crates/sema/src/builtins.rs, read as text: one row per line, which tier 1 holds) that no record names, as
@@ -33,11 +35,11 @@ from coverage import CoverageError, read_records
 REPO = Path(__file__).resolve().parents[2]
 LIST = REPO / "tests" / "never_run.list"
 TABLE = REPO / "crates" / "sema" / "src" / "builtins.rs"
-# A row of SUPPORTED or STATEMENTS, and the line of OWN_NODE (crates/driver/tests/inputs.rs holds the source to
+# A row of SUPPORTED or STATEMENTS, and the line of OWN_NODE (crates/driver/tests/it/inputs.rs holds the source to
 # these forms).
 ROW = re.compile(r'^\s*\("([A-Z_$0-9]+)", (?:Rule|StmtRule)::', re.M)
 OWN_NODE = re.compile(r"^pub const OWN_NODE: &\[&str\] = &\[(.*)\];$", re.M)
-REASONS = ("desktop", "printer", "keyboard", "person", "compiler")
+REASONS = ("desktop", "printer", "keyboard", "person", "compiler", "sandbox")
 # How many programs a line of the report names before "and N more".
 SHOWN = 5
 
@@ -92,7 +94,7 @@ def read_list(path: Path) -> tuple[dict[str, str], list[str]]:
     listed: dict[str, str] = {}
     problems: list[str] = []
     for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        # Only an empty line is skipped, as tier 1 reads the list (crates/driver/tests/inputs.rs).
+        # Only an empty line is skipped, as tier 1 reads the list (crates/driver/tests/it/inputs.rs).
         if not line or line.startswith("#"):
             continue
         name, tab, rest = line.partition("\t")

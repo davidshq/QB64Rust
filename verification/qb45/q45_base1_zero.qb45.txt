@@ -1,0 +1,6 @@
+compile:
+ 0114   001A    REDIM x(0) AS INTEGER
+                         ^ Lower bound exceeds upper bound
+    0 Warning Error(s)
+    1 Severe  Error(s)
+1. REDIM x(n), n = 0: [error 9 ]: [error 9 ]2. REDIM x(0):: [error 9 ]end

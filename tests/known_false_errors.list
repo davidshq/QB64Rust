@@ -1,3 +1,3 @@
 # Programs the old compiler accepts that still get an error without the "not supported yet" marker (spec
 # testing/upstream-tests, "No false errors"). Shrink-only: parser breadth empties it. The comment is the first
-# such error. Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
+# such error. Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test it inputs::.

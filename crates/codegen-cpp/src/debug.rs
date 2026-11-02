@@ -21,6 +21,7 @@
 use crate::Emitter;
 use crate::decl::{dim_slot, lock_slot};
 use crate::names::{proc_name, var_name};
+use qb64rust_base::json_string;
 use qb64rust_ir::{ProcKind, Program, Shape, Storage, Ty, Var, numeric_value_types};
 use std::fmt::Write as _;
 
@@ -156,21 +157,6 @@ fn type_name(p: &Program, t: Ty) -> String {
         Ty::FixedStr(n) => format!("STRING * {n}"),
         numeric_value_types!() | Ty::Str => t.qb_name().to_string(),
     }
-}
-
-/// A JSON string.
-fn json_string(s: &str) -> String {
-    let mut out = String::from("\"");
-    for c in s.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            c if u32::from(c) < 0x20 => write!(out, "\\u{:04x}", u32::from(c)).unwrap(),
-            c => out.push(c),
-        }
-    }
-    out.push('"');
-    out
 }
 
 fn json_bounds(bounds: &[(i64, i64)]) -> String {

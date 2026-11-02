@@ -17,6 +17,7 @@ cover them), and the compile, qbasic, format and verification suites' own functi
 
 from __future__ import annotations
 
+import hashlib
 import os
 import shutil
 import subprocess
@@ -235,6 +236,38 @@ class DivergenceRows(unittest.TestCase):
         trace.write_bytes(b"D-022\r\nD-004\n\n")
         self.assertEqual(rlt.unexpected_rows(trace, set()), ["D-022", "D-004"])
         self.assertEqual(rlt.unexpected_rows(trace, {"D-022"}), ["D-004"])
+
+    def test_d012_is_never_asked_of_a_sidecar(self):
+        # testing/golden-corpus "The exit code of D-012" (basic-unit-tests, design D2).
+        trace = self.dir / "t.txt"
+        trace.write_bytes(b"D-004\nD-012\n")
+        self.assertEqual(rlt.unexpected_rows(trace, set()), ["D-004"])
+
+    def test_the_wanted_exit_code_with_d012(self):
+        trace = self.dir / "t.txt"
+        self.assertEqual(rlt.wanted_exit_code(0, trace), 0)
+        trace.write_bytes(b"D-004\n")
+        self.assertEqual(rlt.wanted_exit_code(0, trace), 0)
+        trace.write_bytes(b"D-004\r\nD-012\r\n")
+        self.assertEqual(rlt.wanted_exit_code(0, trace), 1)
+        # Only a wanted 0 changes: an .exitcode's own code stands.
+        self.assertEqual(rlt.wanted_exit_code(3, trace), 3)
+
+    def test_the_wanted_verification_text_with_d012(self):
+        trace = self.dir / "t.txt"
+        recorded = b"Runtime error: Line: 3 (in main module)\nIllegal function call\nexit=0\n"
+        self.assertEqual(rlt.wanted_verification_text(recorded, trace), recorded)
+        trace.write_bytes(b"D-012\n")
+        self.assertEqual(
+            rlt.wanted_verification_text(recorded, trace),
+            b"Runtime error: Line: 3 (in main module)\nIllegal function call\nexit=1\n",
+        )
+        self.assertEqual(rlt.wanted_verification_text(b"exit=0\r\n", trace), b"exit=1\r\n")
+        # After output with no line end, the code is on the output's last line.
+        self.assertEqual(rlt.wanted_verification_text(b"DIM a(big):exit=0\n", trace), b"DIM a(big):exit=1\n")
+        # Only the end, and only an exit=0.
+        for other in (b"exit=0\nexit=139\n", b"(timed out after 60 s)\nexit=124\n", b"no exit line\n"):
+            self.assertEqual(rlt.wanted_verification_text(other, trace), other)
 
     def test_a_compile_suite_sidecar_is_outside_the_copied_folder(self):
         path = rlt.compile_sidecar("arrays", "p")
@@ -530,8 +563,11 @@ class Tools:
         trace=None,
         counts=None,
         log=None,
+        inputs=None,
     ):
         self.exe_bytes = exe_bytes
+        self.inputs = inputs
+        self.printed = 0
         # What each run appends to the runtime's log (the file QB64PE_LOG_FILE_PATH names).
         self.log = log
         # What each run writes to the coverage counts (the file QB64RUST_COVERAGE names).
@@ -550,6 +586,13 @@ class Tools:
         self.run_envs: list[dict] = []
 
     def __call__(self, args, cwd, stdout_path, timeout, env=None, stdin_path=None, **_):
+        if "--print-build-inputs" in args:
+            # The program's build inputs (design D1 of testing-reset): `inputs`, else as many as there are
+            # executables, so a test of "another executable" is one of another build.
+            self.printed += 1
+            key = self.inputs if self.inputs is not None else hashlib.sha256(self.exe_bytes).hexdigest().encode()
+            stdout_path.write_bytes(key + b"\n" if self.rc == 0 else self.compile_out)
+            return self.rc, False
         if "-x" in args:
             self.compiles += 1
             self.compile_cmd = list(args)
@@ -713,6 +756,22 @@ class CorpusProgram(CorpusFixture):
         self.sidecar("divergences", b"D-004\nD-022  # and this\n")
         self.assertEqual(self.run_test(Tools(runs=[b"1\n"], trace=b"D-004\n")).status, "PASS")
 
+    def test_d012_in_the_trace_wants_exit_code_1_and_no_sidecar(self):
+        # testing/golden-corpus "The exit code of D-012" (basic-unit-tests, design D2).
+        self.sidecar("output", b"1\n")
+        r = self.run_test(Tools(runs=[b"1\n"], run_rc=1, trace=b"D-012\n"))
+        self.assertEqual(r.status, "PASS", r.detail)
+        # Exit code 1 without the trace, and the trace with exit code 0, fail at the exit code.
+        self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_rc=1)), "run", "exit code 1")
+        self.assert_fail(
+            self.run_test(Tools(runs=[b"1\n"], run_rc=0, trace=b"D-012\n")), "run", "exit code 0, expected 1"
+        )
+        # An .exitcode that is not 0 stands.
+        self.sidecar("exitcode", b"3\n")
+        self.assert_fail(
+            self.run_test(Tools(runs=[b"1\n"], run_rc=1, trace=b"D-012\n")), "run", "exit code 1, expected 3"
+        )
+
     def test_a_trace_of_an_earlier_run_is_not_read(self):
         self.sidecar("output", b"1\n")
         self.run_test(Tools(runs=[b"1\n"], trace=b"D-004\n"))
@@ -857,6 +916,76 @@ class CorpusProgram(CorpusFixture):
 STATE = b"screen-state 1\npages 1 display 0 write 0 read 0\nend\n"
 
 
+class PassList(unittest.TestCase):
+    """--pass-list: a pass list holds programs that pass, so a known failure on it fails the run (D-052)."""
+
+    def test_the_known_failures_are_named(self):
+        results = [
+            rlt.Result("corpus", "g/a", "output"),
+            rlt.Result("corpus", "g/b", "output", "KFAIL"),
+            rlt.Result("corpus", "g/c", "output", "FAIL"),
+        ]
+        self.assertEqual(rlt.known_on_pass_list(results), ["corpus:g/b"])
+        self.assertEqual(rlt.known_on_pass_list(results[:1]), [])
+
+
+class StartOrder(unittest.TestCase):
+    """Failures first, then new programs, then the longest by their last time (design D8 of testing-reset)."""
+
+    def test_failures_then_new_then_longest(self):
+        times = {"c:a": [1.0, "PASS"], "c:b": [9.0, "PASS"], "c:c": [0.5, "FAIL"], "c:e": [2.0, "KFAIL"]}
+        keys = ["c:a", "c:b", "c:c", "c:d", "c:e", None]
+        self.assertEqual(rlt.start_order(keys, times), [2, 3, 5, 1, 4, 0])
+
+    def test_run_all_starts_in_the_order_and_the_times_are_kept(self):
+        started = []
+        out = list(rlt.run_all([Path("a"), Path("b"), Path("c")], lambda p: started.append(p.name) or p.name, 1, [2, 0, 1]))
+        self.assertEqual((started, out), (["c", "a", "b"], [(2, "c"), (0, "a"), (1, "b")]))
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(rlt, "TIMES", Path(d)):
+            rlt.write_times("corpus", [rlt.Result("corpus", "g/p", "output", status="FAIL", seconds=3.0)])
+            rlt.write_times("corpus", [rlt.Result("corpus", "g/q", "output", seconds=1.0)])
+            self.assertEqual(rlt.read_times("corpus"), {"corpus:g/p": [3.0, "FAIL"], "corpus:g/q": [1.0, "PASS"]})
+            # Served by the pass cache: a pass, with the time of the run that ran it.
+            rlt.write_times("corpus", [rlt.Result("corpus", "g/p", "output", seconds=0.1, detail=rlt.PASSED_BEFORE)])
+            self.assertEqual(rlt.read_times("corpus")["corpus:g/p"], [3.0, "PASS"])
+
+
+class RunInputs(unittest.TestCase):
+    """What every pass key takes once per run (design D1 of testing-reset): libqb's copy by content, without the
+    files builds write, and the toolchain's executables."""
+
+    def test_libqb_by_content_without_what_builds_write(self):
+        with tempfile.TemporaryDirectory() as d:
+            libqb = Path(d)
+            (libqb / "internal" / "c" / "parts").mkdir(parents=True)
+            (libqb / "Makefile").write_bytes(b"all:\n")
+            (libqb / "internal" / "c" / "qbx.cpp").write_bytes(b"one")
+            first = rlt.libqb_digest(libqb)
+            # An object or a qbx<N>.cpp a build writes changes nothing; nor does a new modification time.
+            (libqb / "internal" / "c" / "parts" / "a.o").write_bytes(b"obj")
+            (libqb / "internal" / "c" / "qbx2.cpp").write_bytes(b"x")
+            os.utime(libqb / "Makefile", (1, 1))
+            self.assertEqual(rlt.libqb_digest(libqb), first)
+            (libqb / "internal" / "c" / "qbx.cpp").write_bytes(b"two")
+            self.assertNotEqual(rlt.libqb_digest(libqb), first)
+
+    def test_a_changed_toolchain_executable_is_another_stamp(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "bin").mkdir()
+            clang = Path(d) / "bin" / "clang.exe"
+            clang.write_bytes(b"1")
+            done = subprocess.CompletedProcess([], 0, stdout=f"{d}\nclone: x\n", stderr="")
+            with mock.patch.object(rlt.subprocess, "run", return_value=done):
+                first = rlt.toolchain_stamp(Path("qb64rust.exe"))
+                clang.write_bytes(b"22")
+                self.assertNotEqual(rlt.toolchain_stamp(Path("qb64rust.exe")), first)
+
+    def test_the_key_takes_the_build_inputs_and_the_parts(self):
+        self.assertEqual(rlt.pass_key(b"a", [b"x"]), rlt.pass_key(b"a", [b"x"]))
+        self.assertNotEqual(rlt.pass_key(b"a", [b"x"]), rlt.pass_key(b"b", [b"x"]))
+        self.assertNotEqual(rlt.pass_key(b"a", [b"x"]), rlt.pass_key(b"a", [None]))
+
+
 class CompilePassCache(unittest.TestCase):
     """--pass-cache with the compile suite (test-parallel-runs): the same rule as a corpus program's,
     with every file of the program's category folder counted."""
@@ -908,6 +1037,15 @@ class CompilePassCache(unittest.TestCase):
         r, ran = self.go(exe_bytes=b"exe two")
         self.assertEqual((r.status, ran), ("PASS", 1))
 
+    def test_d012_in_the_trace_wants_exit_code_1(self):
+        # testing/golden-corpus "The exit code of D-012" (basic-unit-tests, design D2), in the compile suite.
+        r, _ = self.go(tools=Tools(runs=[b"1\n"], run_rc=1, trace=b"D-012\n", exe_bytes=b"a"))
+        self.assertEqual(r.status, "PASS", r.detail)
+        r, _ = self.go(tools=Tools(runs=[b"1\n"], run_rc=1, exe_bytes=b"b"))
+        self.assertEqual((r.status, r.stage, r.detail), ("FAIL", "run", "exit code 1"))
+        r, _ = self.go(tools=Tools(runs=[b"1\n"], run_rc=0, trace=b"D-012\n", exe_bytes=b"c"))
+        self.assertEqual((r.status, r.stage, r.detail), ("FAIL", "run", "exit code 0, expected 1"))
+
     def test_a_failure_is_not_remembered(self):
         r, _ = self.go(runs=[b"2\n"])
         self.assertEqual(r.status, "FAIL")
@@ -936,14 +1074,34 @@ class PassCache(CorpusFixture):
         tools = Tools(runs=list(runs), exe_bytes=exe_bytes)
         return self.go(tools), len(tools.run_cmds)
 
-    def test_a_program_that_passed_is_compiled_and_not_run(self):
+    def test_a_program_that_passed_is_neither_built_nor_run(self):
         self.passes_once()
         tools = Tools(runs=[b"wrong\n"], exe_bytes=b"exe one")
         r = self.go(tools)
         self.assertEqual((r.status, r.detail), ("PASS", rlt.PASSED_BEFORE))
-        self.assertEqual(len(tools.run_cmds), 0)
-        self.assertTrue(tools.compile_cmd)
+        self.assertEqual((len(tools.run_cmds), tools.compiles, tools.printed), (0, 0, 1))
         self.assertFalse((self.results / "g-p").exists())
+
+    def test_the_same_build_inputs_from_another_executable_is_one_key(self):
+        # Design D1 of testing-reset: the key is what the build reads, not the executable's bytes.
+        tools = Tools(runs=[b"1\n"], exe_bytes=b"exe one", inputs=b"same")
+        self.assertEqual(self.go(tools).detail, "")
+        tools = Tools(runs=[b"1\n"], exe_bytes=b"exe two", inputs=b"same")
+        self.assertEqual((self.go(tools).detail, tools.compiles), (rlt.PASSED_BEFORE, 0))
+        tools = Tools(runs=[b"1\n"], exe_bytes=b"exe two", inputs=b"other")
+        self.assertEqual((self.go(tools).detail, tools.compiles), ("", 1))
+
+    def test_a_program_with_no_build_inputs_is_built_and_run(self):
+        # `uncached` (_COMPILEDATE$): never served.
+        for _ in range(2):
+            tools = Tools(runs=[b"1\n"], inputs=b"uncached")
+            self.assertEqual((self.go(tools).detail, len(tools.run_cmds)), ("", 1))
+
+    def test_an_external_program_is_never_served(self):
+        self.sidecar("external", b"sound: plays through the default device\n")
+        for _ in range(2):
+            tools = Tools(runs=[b"1\n"], exe_bytes=b"exe one")
+            self.assertEqual((self.go(tools).detail, len(tools.run_cmds), tools.printed), ("", 1, 0))
 
     def test_another_executable_runs(self):
         self.passes_once()
@@ -1312,6 +1470,8 @@ class VerificationSupport(unittest.TestCase):
                 "README.md",
                 "run.sh",
                 "__pycache__/x.pyc",
+                "qb45/q45_p.bas",
+                "qb45/q45_p.qb45.txt",
             ):
                 (root / name).parent.mkdir(parents=True, exist_ok=True)
                 (root / name).write_bytes(b"")
@@ -1484,6 +1644,25 @@ class VerificationCompare(VerificationFixture):
         self.assert_fail(self.run_test(Tools(runs=[b"1\n"], run_rc=3)), "result", "exit=3")
         self.recorded(b"exit=139\n")
         self.assertEqual(self.run_test(Tools(runs=[b""], run_rc=0xC0000005)).status, "PASS")
+
+    def test_d012_reads_a_recorded_exit_0_as_1(self):
+        # testing/golden-corpus "The exit code of D-012", "A recording of an untrapped error" (basic-unit-tests,
+        # design D2): no .divergences sidecar.
+        self.recorded(b"1\nRuntime error\nexit=0\n")
+        r = self.run_test(Tools(runs=[b"1\r\nRuntime error\r\n"], run_rc=1, trace=b"D-012\n"))
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assert_fail(self.run_test(Tools(runs=[b"1\nRuntime error\n"], run_rc=1)), "result", "exit=1")
+        self.assert_fail(
+            self.run_test(Tools(runs=[b"1\nRuntime error\n"], run_rc=0, trace=b"D-012\n")), "result", "exit=0"
+        )
+
+    def test_a_recording_with_the_old_compiler_keeps_exit_0(self):
+        # The same requirement, "Recording with the old compiler".
+        clone = self.results / "clone"
+        (clone / "internal" / "temp").mkdir(parents=True)
+        r = self.record(Tools(runs=[b"Runtime error\r\n"], run_rc=0, trace=b"D-012\n"), clone)
+        self.assertEqual((r.status, r.kind), ("PASS", "recorded"), r.detail)
+        self.assertTrue((self.root / "v99_p.out.txt").read_bytes().endswith(b"exit=0\n"))
 
     def test_a_timeout_on_both_sides_passes(self):
         self.recorded(b"Press any key(timed out after 60 s)\nexit=124\n")
@@ -2362,6 +2541,44 @@ class FormatCorpus(unittest.TestCase):
         r = self.run_test(rec, "qb64rust.exe", b"Print 1\r\n")
         self.assertEqual((r.status, r.stage), ("FAIL", "expected"))
         self.assertIn("not a layout setting", r.detail)
+
+
+class BuildCacheLimit(unittest.TestCase):
+    """--build-cache-limit: the entries used longest ago go first, each with its licence file."""
+
+    def entry(self, d: Path, name: str, size: int, age: float) -> Path:
+        p = d / name
+        p.write_bytes(b"x" * size)
+        t = time.time() - age
+        os.utime(p, (t, t))
+        return p
+
+    def test_removes_the_entries_used_longest_ago_down_to_the_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            new = self.entry(d, "new.exe", 400, 10)
+            mid = self.entry(d, "mid.exe", 400, 100)
+            old = self.entry(d, "old.exe", 400, 1000)
+            lic = self.entry(d, "old.exe.license.txt", 50, 1000)
+            removed, gone, kept = rlt.prune_build_cache(d, 900)
+            self.assertEqual((removed, gone, kept), (1, 450, 800))
+            self.assertTrue(new.exists() and mid.exists())
+            self.assertFalse(old.exists() or lic.exists())
+
+    def test_removes_only_stale_part_files_and_leaves_others_alone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            fresh = self.entry(d, "k.123.part", 10, 60)
+            stale = self.entry(d, "k.456.part", 10, rlt.STALE_PART_SECONDS + 60)
+            other = self.entry(d, "notes.txt", 10, 10_000_000)
+            removed, gone, kept = rlt.prune_build_cache(d, 10**9)
+            self.assertEqual((removed, gone, kept), (0, 10, 0))
+            self.assertTrue(fresh.exists() and other.exists())
+            self.assertFalse(stale.exists())
+
+    def test_a_missing_folder_is_no_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(rlt.prune_build_cache(Path(tmp) / "none", 0), (0, 0, 0))
 
 
 class AddPrefix(unittest.TestCase):

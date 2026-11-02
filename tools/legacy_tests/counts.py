@@ -4,6 +4,7 @@ that a change's close copies no number by hand (study/archive/31 item 2).
 
     python tools/legacy_tests/counts.py            # rewrite every block
     python tools/legacy_tests/counts.py --check    # compare, write nothing; exit code 1 when one differs
+    python tools/legacy_tests/counts.py --strict   # rewrite; exit code 1 when a block is left as it is (the merge)
 
 A block is the text between `<!-- counts:NAME -->` and `<!-- /counts:NAME -->` in a README; everything
 outside the markers is left as it is. Two kinds:
@@ -300,14 +301,17 @@ def read(path: Path) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--check", action="store_true", help="compare the blocks, write nothing")
+    ap.add_argument("--strict", action="store_true", help="fail when a block is left as it is")
     args = ap.parse_args()
     stale = []
+    left = []
     texts: dict[Path, str] = {}
     for readme, name, kind, make in BLOCKS:
         text = texts.setdefault(readme, read(readme))
         lines, why = make()
         if lines is None:
             print(f"{name}: left as it is: {why}")
+            left.append(name)
             continue
         try:
             new = replace_block(text, name, lines)
@@ -326,7 +330,7 @@ def main() -> int:
         if text != read(readme):
             readme.write_text(text, encoding="utf-8", newline="")
     print(f"{len(BLOCKS)} blocks, {len(stale)} rewritten")
-    return 0
+    return 1 if args.strict and left else 0
 
 
 if __name__ == "__main__":

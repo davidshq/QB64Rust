@@ -1453,8 +1453,8 @@ pub enum StmtKind {
     /// statement, so the stores of the statement are skipped by their rule and `RESUME NEXT` goes on after it.
     ///
     /// The array may be a dynamic member array (design D5 of `m3-typefields`): the place it is part of is found
-    /// once, before the bounds, and not guarded (an index outside its bounds on the way raises error 9 and the
-    /// member of the element at position 0 stands in); it is never static.
+    /// once, after the bounds, and not guarded (an index outside its bounds on the way raises error 9 and the
+    /// member of the element at position 0 stands in; measured, `verification\v65_a2`); it is never static.
     Allocate {
         array: ArrayRef,
         bounds: Vec<(Expr, Expr)>,

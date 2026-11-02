@@ -135,7 +135,7 @@ impl Checker<'_> {
     }
 
     /// Reserved names (design D3), measured for every keyword and built-in (`verification\v15_builtin_names.txt`,
-    /// checked against this function by `crates\driver\tests\names.rs`):
+    /// checked against this function by `crates\driver\tests\it\names.rs`):
     /// - a name starting with `_` is never a variable, parameter or procedure name (the old compiler: "Invalid
     ///   variable name", "Invalid name"), built-in or not;
     /// - a keyword, or a built-in written without a required suffix, is taken whatever suffix the name carries
@@ -182,7 +182,7 @@ impl Checker<'_> {
     }
 
     /// Reserved names for a procedure, measured for every keyword and built-in (`verification\v19_proc_names.txt`,
-    /// checked against this function by `crates\driver\tests\names.rs`): as for variables, a name starting with
+    /// checked against this function by `crates\driver\tests\it\names.rs`): as for variables, a name starting with
     /// `_` and a keyword are taken; otherwise only a built-in **of the same kind** without a required suffix takes
     /// the name. A SUB may be named like a built-in function (`SUB loc`, `SUB abs`), a FUNCTION like a built-in
     /// statement (`FUNCTION beep`, `FUNCTION width`), and both like a built-in that needs `$` (`SUB left`).
@@ -652,12 +652,10 @@ impl Checker<'_> {
         by: Declarer,
         stmt: Node,
     ) -> R<()> {
-        let items: Vec<ast::DimItem<'t>> = items.collect();
-        let alone = items.len() == 1;
         for item in items {
             // `REDIM t.v(0 TO 3)`, `REDIM a(1).m(0 TO 5)`: a member array.
             if let Declarer::Redim { mode } = by
-                && self.redim_member(item, mode, (list_ty.is_some(), alone), stmt)?
+                && self.redim_member(item, mode, list_ty.is_some(), stmt)?
             {
                 continue;
             }
@@ -949,15 +947,16 @@ impl Checker<'_> {
     }
 
     /// The targets of one `ERASE` or `REDIM`, the statements made since `before`, as parts of one statement when
-    /// a member array of one is found through an index, which may raise: each target is cleared in turn, and an
-    /// error is handled after the last, as the old compiler goes on with the other targets first (design D9 of
-    /// `m4-memory-records`; measured, `verification\v24_x312`).
+    /// a member array of one is found through an index, which may raise: each target is cleared or given its new
+    /// bounds in turn, and an error is handled after the last, as the old compiler goes on with the other targets
+    /// first (design D9 of `m4-memory-records`; measured, `verification\v24_x312`, `v64_a1`, `v65_a1`).
     fn join_targets(&mut self, before: usize) {
         let sink = self.sink();
         let made = &mut sink[before..];
-        let raises = made
-            .iter()
-            .any(|s| matches!(&s.kind, StmtKind::Clear { array, .. } if array.may_raise()));
+        let raises = made.iter().any(|s| {
+            matches!(&s.kind, StmtKind::Clear { array, .. } | StmtKind::Release { array, .. }
+                | StmtKind::Allocate { array, .. } if array.may_raise())
+        });
         let Some((_, first)) = made.split_last_mut() else {
             return;
         };
@@ -990,17 +989,14 @@ impl Checker<'_> {
 
     fn erase_targets(&mut self, stmt: ast::EraseStmt) -> R<()> {
         let node = stmt.node();
-        let targets = stmt.targets();
-        let alone = targets.len() == 1;
-        for target in targets {
+        for target in stmt.targets() {
             let expr = match target {
                 ast::EraseTarget::Name { name, .. } => ast::Expr::NameRef(name),
                 ast::EraseTarget::Other(other) => other,
             };
-            let span = expr.node().span();
             // Empty parentheses after a member array change nothing (measured, `verification\v24_x320`).
             if let Some((array, _, _)) = self.member_array(expr)? {
-                self.clear_member_array(array, alone, span, node)?;
+                self.clear_member_array(array, node)?;
                 continue;
             }
             let (t, array_name, suffix) = match target {

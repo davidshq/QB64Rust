@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Writes the drawing programs cut from Civil War Strategy into tests/corpus/screen/.
 
-    python tools/screen/cut_game.py
+    python tools/screen/cut_game.py [--check]
+
+With --check it writes nothing and exits 1 when a file would change.
 
 Each program is a few lines written here (a comment, DEFINT A-Z as in the game, the shared
 variables its procedures use, the calls, SYSTEM) followed by procedures of
@@ -20,7 +22,7 @@ The recordings (.output, .screen) are made by the corpus runner's --record, not 
 
 from __future__ import annotations
 
-import shutil
+import argparse
 import sys
 from pathlib import Path
 
@@ -297,22 +299,40 @@ def config() -> bytes:
     return b",".join(fields) + b"\n"
 
 
+# With --check, nothing is written: each file that would change is listed here.
+CHECK = False
+STALE: list[str] = []
+
+
+def write(path: Path, data: bytes) -> None:
+    """Writes `data` to `path`; with --check, records `path` as stale when it does not hold `data`."""
+    if CHECK:
+        if not path.is_file() or path.read_bytes() != data:
+            STALE.append(path.relative_to(REPO).as_posix())
+        return
+    path.parent.mkdir(exist_ok=True)
+    path.write_bytes(data)
+
+
 def finish(name: str) -> None:
     """The empty .screen of a program not recorded yet, its keys, and its data files."""
     screen = OUT / f"{name}.screen"
     if not screen.exists():
-        screen.write_bytes(b"")  # marks a screen program before its first recording
+        write(screen, b"")  # marks a screen program before its first recording
     if name in KEYS:
-        (OUT / f"{name}.keys").write_bytes(KEYS[name].encode())
+        write(OUT / f"{name}.keys", KEYS[name].encode())
     if name in FILES:
         folder = OUT / f"{name}.files"
-        folder.mkdir(exist_ok=True)
         for picture in FILES[name]:
-            shutil.copyfile(GAME.parent / picture, folder / picture)
+            write(folder / picture, (GAME.parent / picture).read_bytes())
     print(f"{name}.bas")
 
 
 def main() -> int:
+    global CHECK
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--check", action="store_true", help="write nothing; exit 1 when a file would change")
+    CHECK = parser.parse_args().check
     lines = GAME.read_bytes().replace(b"\r\n", b"\n").split(b"\n")
     for name, (covers, head, procedures) in CUTS.items():
         out = [
@@ -323,7 +343,7 @@ def main() -> int:
         ]
         for p in procedures:
             out += [b"", *procedure(lines, p)]
-        (OUT / f"{name}.bas").write_bytes(b"\n".join(out) + b"\n")
+        write(OUT / f"{name}.bas", b"\n".join(out) + b"\n")
         finish(name)
     for name, (about, edits) in COPIES.items():
         body = edited(lines, edits)
@@ -331,9 +351,14 @@ def main() -> int:
             body.pop()
         notes = [b"", b"' Copied from Civil War Strategy by tools/screen/cut_game.py."]
         notes += [f"' {line}".encode() for line in about]
-        (OUT / f"{name}.bas").write_bytes(b"\n".join(body + notes) + b"\n")
+        write(OUT / f"{name}.bas", b"\n".join(body + notes) + b"\n")
         finish(name)
-        (OUT / f"{name}.files" / "CWS.CFG").write_bytes(config())
+        write(OUT / f"{name}.files" / "CWS.CFG", config())
+    if CHECK:
+        if STALE:
+            print("stale (rerun without --check):", ", ".join(STALE))
+            return 1
+        print("all programs as written")
     return 0
 
 

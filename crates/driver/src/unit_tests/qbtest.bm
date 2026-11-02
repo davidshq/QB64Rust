@@ -1,0 +1,87 @@
+' The assertion library of `qb64rust test`, its SUBs (qbtest.bi has the rest). A failed assertion writes
+' FAIL<TAB><message> to the result file and ends the test with SYSTEM 2, so the first failure is the one reported.
+' The result file is opened and closed at each write, so a crash leaves what was written.
+
+SUB AssertTrue (qbtest_cond AS DOUBLE, qbtest_msg AS STRING)
+    IF qbtest_cond = 0 THEN qbtest_fail qbtest_msg + ": expected true, got false"
+END SUB
+
+SUB AssertFalse (qbtest_cond AS DOUBLE, qbtest_msg AS STRING)
+    IF qbtest_cond <> 0 THEN qbtest_fail qbtest_msg + ": expected false, got true"
+END SUB
+
+SUB AssertEqualInt (qbtest_expected AS _INTEGER64, qbtest_actual AS _INTEGER64, qbtest_msg AS STRING)
+    IF qbtest_expected <> qbtest_actual THEN
+        qbtest_fail qbtest_msg + ": expected " + LTRIM$(STR$(qbtest_expected)) + ", got " + LTRIM$(STR$(qbtest_actual))
+    END IF
+END SUB
+
+SUB AssertEqualSingle (qbtest_expected AS SINGLE, qbtest_actual AS SINGLE, qbtest_msg AS STRING)
+    IF qbtest_expected <> qbtest_actual THEN
+        qbtest_fail qbtest_msg + ": expected " + LTRIM$(STR$(qbtest_expected)) + ", got " + LTRIM$(STR$(qbtest_actual))
+    END IF
+END SUB
+
+SUB AssertEqualDouble (qbtest_expected AS DOUBLE, qbtest_actual AS DOUBLE, qbtest_msg AS STRING)
+    IF qbtest_expected <> qbtest_actual THEN
+        qbtest_fail qbtest_msg + ": expected " + LTRIM$(STR$(qbtest_expected)) + ", got " + LTRIM$(STR$(qbtest_actual))
+    END IF
+END SUB
+
+SUB AssertNear (qbtest_expected AS DOUBLE, qbtest_actual AS DOUBLE, qbtest_tolerance AS DOUBLE, qbtest_msg AS STRING)
+    IF ABS(qbtest_expected - qbtest_actual) > qbtest_tolerance THEN
+        qbtest_fail qbtest_msg + ": expected " + LTRIM$(STR$(qbtest_expected)) + " within " + LTRIM$(STR$(qbtest_tolerance)) + ", got " + LTRIM$(STR$(qbtest_actual))
+    END IF
+END SUB
+
+SUB AssertEqualStr (qbtest_expected AS STRING, qbtest_actual AS STRING, qbtest_msg AS STRING)
+    IF qbtest_expected <> qbtest_actual THEN
+        qbtest_fail qbtest_msg + ": expected " + CHR$(34) + qbtest_expected + CHR$(34) + ", got " + CHR$(34) + qbtest_actual + CHR$(34)
+    END IF
+END SUB
+
+SUB Fail (qbtest_msg AS STRING)
+    qbtest_fail qbtest_msg
+END SUB
+
+' The folder of this test's own, made empty before it ran, with a separator at its end.
+FUNCTION TestTempDir$
+    DIM qbtest_dir AS STRING
+    qbtest_dir = ENVIRON$("QB64RUST_TEST_TEMP")
+    IF qbtest_dir <> "" AND RIGHT$(qbtest_dir, 1) <> "/" AND RIGHT$(qbtest_dir, 1) <> CHR$(92) THEN qbtest_dir = qbtest_dir + "/"
+    TestTempDir$ = qbtest_dir
+END FUNCTION
+
+' The library's own SUBs: the entry point's and the result file's.
+SUB qbtest_fail (qbtest_msg AS STRING)
+    DIM qbtest_line AS STRING
+    DIM qbtest_i AS LONG
+    qbtest_line = qbtest_msg
+    ' One line in the result file: a line end in the message becomes a blank.
+    FOR qbtest_i = 1 TO LEN(qbtest_line)
+        IF ASC(qbtest_line, qbtest_i) = 10 OR ASC(qbtest_line, qbtest_i) = 13 THEN MID$(qbtest_line, qbtest_i, 1) = " "
+    NEXT
+    qbtest_write "FAIL" + CHR$(9) + qbtest_line
+    SYSTEM 2
+END SUB
+
+SUB qbtest_begin
+    qbtest_write "BEGIN"
+END SUB
+
+SUB qbtest_done
+    qbtest_write "DONE"
+END SUB
+
+SUB qbtest_unknown
+    qbtest_write "UNKNOWN"
+END SUB
+
+SUB qbtest_write (qbtest_line AS STRING)
+    DIM qbtest_file AS LONG
+    IF qbtest_result = "" THEN EXIT SUB
+    qbtest_file = FREEFILE
+    OPEN qbtest_result FOR APPEND AS #qbtest_file
+    PRINT #qbtest_file, qbtest_line
+    CLOSE #qbtest_file
+END SUB

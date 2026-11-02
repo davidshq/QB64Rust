@@ -1,6 +1,0 @@
----
-source: crates/driver/tests/frontend.rs
-expression: snap
----
-power_negation_errors.bas:6:11: error: expected a value after `^`, not `_NEGATE`
-power_negation_errors.bas:6:11: note: QB64pe: Expected variable/value after '^'

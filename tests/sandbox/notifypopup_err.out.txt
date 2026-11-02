@@ -1,0 +1,3 @@
+ERR after _NOTIFYPOPUP: 0 
+ERR after the second: 0 
+went on

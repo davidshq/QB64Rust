@@ -5,8 +5,8 @@ qb64rust.exe. A run that called that file would compile its later programs with 
 than its first, and its log would not say so. So a run copies the executable at its start to
 target/test-bin/<first 16 hex digits of its SHA-256>/qb64rust.exe and compiles with the copy; a
 build during the run changes nothing the run reads. The run's first line (header) names the hash
-and the time the run started, and tools/close/close.py --check compares the hash with the current
-build's.
+and the time the run started, and tools/check/check.py fingerprints the inputs the build came from
+(tools/check/README.md, "What stands").
 
 The copy behaves as the original: the driver finds the reference clone from the folder it was built
 in (a path fixed at build time). The one thing it takes from its own folder is the compiler root

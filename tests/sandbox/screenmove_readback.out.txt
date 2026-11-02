@@ -1,0 +1,4 @@
+after _SCREENMOVE 100, 120: 100  120 
+after _SCREENMOVE _MIDDLE, centered across:-1 
+centered down, within 40 pixels above:-1 
+moved:-1 

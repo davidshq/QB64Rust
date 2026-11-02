@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+flags_between_errors.bas:23:7: error: `k` is a `CONST` of a `$IF` branch only the first pass of QB64pe compiles
+flags_between_errors.bas:23:7: note: QB64pe: Name already in use (k)

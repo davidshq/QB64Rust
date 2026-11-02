@@ -20,7 +20,8 @@
   ],
   "main": "./out/src/extension.js",
   "activationEvents": [
-    "onDebugResolve:qb64rust"
+    "onDebugResolve:qb64rust",
+    "workspaceContains:**/*_test.bas"
   ],
   "capabilities": {
     "untrustedWorkspaces": {

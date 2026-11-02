@@ -68,7 +68,7 @@ above from `python tools\legacy_tests\counts.py`.
 
 ## What holds the new compiler to it
 
-- **Tier 1**, `crates\driver\tests\format_oracle.rs`: each recorded program formatted in process with the
+- **Tier 1**, `crates\driver\tests\it\format_oracle.rs`: each recorded program formatted in process with the
   defaults must equal its recording; the formatted text must give the same typed tree as the source (spans
   removed, names compared without regard to case), and formatting it again must change nothing.
 - **Tier 2**, `run_legacy_tests.py --suite format-corpus --qb64 target\release\qb64rust.exe`: the same

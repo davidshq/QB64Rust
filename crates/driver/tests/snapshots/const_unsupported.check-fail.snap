@@ -1,7 +1,0 @@
----
-source: crates/driver/tests/frontend.rs
-expression: snap
----
-const_unsupported.bas:16:7: error: not supported yet: a string constant with a number suffix: `st%`
-const_unsupported.bas:22:11: error: not supported yet: a `CONST` `v` beside a variable of that name in a SUB or FUNCTION
-const_unsupported.bas:23:11: error: not supported yet: a `CONST` `p` beside a variable of that name in a SUB or FUNCTION

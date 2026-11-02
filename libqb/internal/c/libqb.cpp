@@ -22380,8 +22380,12 @@ void sub__screenclick(int32 x, int32 y, int32 button, int32 passed) {
     static RECT rect;
     GetWindowRect(hwnd, &rect);
     static double x2, y2, fx, fy;
-    x2 = rect.right - rect.left;
-    y2 = rect.bottom - rect.top;
+    x2 = func__desktopwidth();
+    y2 = func__desktopheight();
+    if (x2 <= 0 || y2 <= 0) {
+        x2 = rect.right - rect.left;
+        y2 = rect.bottom - rect.top;
+    }
     fx = x * (65535.0f / x2);
     fy = y * (65535.0f / y2);
     input.mi.dx = fx;

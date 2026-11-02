@@ -1,0 +1,23 @@
+# _SCREENCLICK clicks where it is asked at any display scale (QB64PE-DIVERGENCES.md D-056, UPSTREAM.md "_SCREENCLICK
+# misses under a display scale"; CLAUDE.md working rule 8). QB64pe's sub__screenclick scales the place to
+# SendInput's 0..65535 by the desktop window's rectangle, read on the program's thread, where under a display scale
+# other than 100% it is scaled down (1518 x 814 at 125%), while the place is in GLFW's pixels, as _SCREENX and
+# _DESKTOPWIDTH give it (1898 x 1018): at 125% the click landed at 1.25 times its place on the desktop (measured in
+# Windows Sandbox, 2026-10-30, tools/sandbox/README.md). Here the place is scaled by _DESKTOPWIDTH and
+# _DESKTOPHEIGHT, GLFW's video mode, and by the rectangle only where those are 0 (a $CONSOLE:ONLY program). At 100%
+# both are the same and nothing changes.
+file: internal/c/libqb.cpp
+builtins: _SCREENCLICK
+--- old
+    x2 = rect.right - rect.left;
+    y2 = rect.bottom - rect.top;
+    fx = x * (65535.0f / x2);
+--- new
+    x2 = func__desktopwidth();
+    y2 = func__desktopheight();
+    if (x2 <= 0 || y2 <= 0) {
+        x2 = rect.right - rect.left;
+        y2 = rect.bottom - rect.top;
+    }
+    fx = x * (65535.0f / x2);
+--- end

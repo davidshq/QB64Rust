@@ -491,10 +491,11 @@ pub enum Op {
     /// The array may be static or dynamic. Always may raise.
     ///
     /// The array may be a dynamic member array ([`ArrayRef::Member`] of a [`Member`] that is `dynamic`; design D5
-    /// of `m3-typefields`): the place it is part of is found once, its indexes evaluated before the bounds, and
-    /// not guarded: an index outside its bounds on the way raises error 9 and the member of the element at
-    /// position 0 of that dimension stands in. Step 1 does not apply (it is never static); its number of
-    /// dimensions may differ from the one it had, which gives it new elements whatever the mode.
+    /// of `m3-typefields`): step 3 comes first, with its error 5 of step 4, and the place it is part of is found
+    /// after it, once, and not guarded: an index outside its bounds on the way raises error 9 and the member of
+    /// the element at position 0 of that dimension stands in, as it does for an index not evaluated because an
+    /// error is pending (measured, `verification\v65_a2`). Step 1 does not apply (it is never static); its number
+    /// of dimensions may differ from the one it had after step 3, which gives it new elements whatever the mode.
     Allocate {
         array: ArrayRef,
         bounds: Vec<(Expr, Expr)>,

@@ -3,25 +3,9 @@
 # with the language server from this repository's qb64rust (built first, release); packages the win32-x64 .vsix.
 name: VS Code extension
 
+# Started by hand only ("Run workflow"; OpenSpec change testing-reset, task 6.0): `just full` in a worktree is the
+# check before a merge into main.
 on:
-  push:
-    paths:
-      - "vscode/**"
-      - "crates/**"
-      - "libqb/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rust-toolchain.toml"
-      - ".github/workflows/vscode-extension.yml"
-  pull_request:
-    paths:
-      - "vscode/**"
-      - "crates/**"
-      - "libqb/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rust-toolchain.toml"
-      - ".github/workflows/vscode-extension.yml"
   workflow_dispatch:
 
 permissions:

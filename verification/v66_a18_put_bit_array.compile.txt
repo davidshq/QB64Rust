@@ -1,0 +1,5 @@
+
+Variable/element cannot be _BIT aligned
+Caused by (or after):PUT ( 0 , 0 ) , B ( 0 )
+LINE 6:PUT (0, 0), b(0)
+exit=1

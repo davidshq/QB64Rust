@@ -14,7 +14,7 @@ what the new compiler is held to against them, so that `verification\` keeps the
 | `normalize\<name>.normalize` | rules applied to both the recorded and the actual output before they are compared, as for the corpus (`<regex><TAB><replacement>`); the first is `v58_s02_files`'s, which masks the free space `FILES` prints; `v59_g_readback`'s masks the OpenGL viewport, the window's size as the desktop sets it |
 
 Every program of `verification\` is named exactly once across the two lists; tier 1 checks it
-(`verification_lists_are_exact` in `crates\driver\tests\inputs.rs`). A change that adds a family adds its programs
+(`verification_lists_are_exact` in `crates\driver\tests\it\inputs.rs`). A change that adds a family adds its programs
 to one of the lists.
 
 ## The reasons of `known.list`
@@ -54,22 +54,23 @@ A program with a `<name>.root` sidecar (`tools\legacy_tests\README.md`, "Verific
 test libraries of `$USELIBRARY`). The recording was made with `qb64pe.exe` in a copy of the release whose own
 folder held the same, so both compilers see one compiler root.
 
-The `v37` programs need the libraries `verification\v37_lib\build_libs.py` builds (git-ignored).
+The `v37` programs need the libraries `verification\v37_lib\build_libs.py` builds (git-ignored); `check`'s step
+`v37-libs` builds them before the verification programs run (`tools\check\README.md`).
 
 ```
 python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target\release\qb64rust.exe ^
     --list tests\verification\pass.list --jobs 8 --build-cache target\build-cache --pass-cache target\pass-cache
 ```
 
-At a change's close the pass list runs with `--pass-cache` (`tools\close\close.py`); at a merge into `main` the whole
-suite runs without it and the list is judged from that run with `--check-list tests\verification\pass.list`.
+`just full` runs the pass list with `--pass-cache` (`tools\check\README.md`), and `just quick` runs the programs a
+change adds or changes alone; at a merge into `main` `just merge` runs the whole suite without the cache and holds the pass list to it.
 
 ## Counts
 
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:verification-membership -->
-Of the 4236 programs of `verification\`, `pass.list` names **4106** and `known.list` 130.
+Of the 4345 programs of `verification\`, `pass.list` names **4139** and `known.list` 206.
 
 | Reason in `known.list` | Programs |
 |---|---|
@@ -92,7 +93,7 @@ Of the 4236 programs of `verification\`, `pass.list` names **4106** and `known.l
 | `D-026` | 2 |
 | `D-027` | 5 |
 | `D-028` | 2 |
-| `D-029` | 2 |
+| `D-029` | 3 |
 | `D-031` | 3 |
 | `D-032` | 1 |
 | `D-034` | 1 |
@@ -111,7 +112,10 @@ Of the 4236 programs of `verification\`, `pass.list` names **4106** and `known.l
 | `D-050` | 2 |
 | `D-051` | 2 |
 | `D-052` | 7 |
+| `D-055` | 2 |
+| `bug` | 8 |
 | `not recorded` | 4 |
+| `not supported yet` | 65 |
 | `recorded elsewhere` | 1 |
 | `varies` | 4 |
 <!-- /counts:verification-membership -->

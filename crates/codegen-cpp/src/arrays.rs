@@ -79,14 +79,33 @@ impl Emitter<'_> {
                 self.allocate_with(v.ty, &n, &texts, mode, out);
             }
             ArrayRef::Member { base, member } => {
-                // The place first, once; a descriptor with another number of dimensions goes, and a new one is
-                // made when there is none (design D4 of `m3-typefields`).
+                // The bounds first, each dimension without an element raising error 5 there; then the place,
+                // once, whose indexes are not evaluated while an error is pending (measured,
+                // `verification\v65_a2`). A descriptor with another number of dimensions goes, and a new one is
+                // made when there is none (design D4 of `m3-typefields`), after a FUNCTION in a bound has run.
                 let (id, m) = self
                     .dynamic_member(base, *member)
                     .expect("an Allocate of a dynamic member array");
                 let ty = self.p.member_of(base, *member).ty;
                 let dims = bounds.len();
                 out.push("{".into());
+                let empty_error = self.p.settings.fixes.is_on(Fix::DimEmptyError);
+                if empty_error {
+                    out.push("int32 dyn_was_pending=is_error_pending();".into());
+                }
+                out.push(format!("int64 dyn_bound[{}];", 2 * dims));
+                let mut texts = Vec::with_capacity(dims);
+                for (k, (lower, upper)) in self.bound_texts(bounds).into_iter().enumerate() {
+                    let (l, u) = (format!("dyn_bound[{}]", 2 * k), format!("dyn_bound[{}]", 2 * k + 1));
+                    out.push(format!("{l}={lower};"));
+                    out.push(format!("{u}={upper};"));
+                    out.push(format!("if ({u}-{l}+1<=0) error(5);"));
+                    texts.push((l, u));
+                }
+                if empty_error {
+                    // As pending before unless the bounds raised, so an error of the place allocates as before.
+                    out.push("int32 alloc_was_pending=dyn_was_pending||!is_error_pending();".into());
+                }
                 let slot = self.dyn_slot(base, *member);
                 out.push(format!("char *dyn_slot={slot};"));
                 out.push("ptrszint *dyn_d=*(ptrszint**)dyn_slot;".into());
@@ -98,7 +117,6 @@ impl Emitter<'_> {
                     "if (!dyn_d){{dyn_d={}({dims});*(ptrszint**)dyn_slot=dyn_d;}}",
                     dyn_fn(id, m, "blank")
                 ));
-                let texts = self.bound_texts(bounds);
                 self.allocate_with(ty, DYN_DESC, &texts, mode, out);
                 out.push("}".into());
                 cleanup |= base.uses_strings(self.p);
@@ -215,17 +233,21 @@ impl Emitter<'_> {
         // A dimension with fewer than no element: nothing is allocated (`study\39` row 3, D-040).
         out.push("int32 alloc_none=0;".into());
         let empty_error = self.p.settings.fixes.is_on(Fix::DimEmptyError);
-        if empty_error {
-            // With the fix, an error raised by this array's bounds allocates nothing either.
+        if empty_error && n != DYN_DESC {
+            // With the fix, an error raised by this array's bounds allocates nothing either. A dynamic member
+            // array's bounds are evaluated before its place, where this is taken ([`Self::allocate`]).
             out.push("int32 alloc_was_pending=is_error_pending();".into());
         }
         // The bounds, lower before upper, first dimension first. A dimension without an element raises error 5 and
-        // the statement goes on, as it does after a bound that raises.
+        // the statement goes on, as it does after a bound that raises; a dynamic member array's raised it where its
+        // bounds were evaluated ([`Self::allocate`]).
         for (k, (lower, upper)) in bounds.iter().enumerate() {
             let s = dim_slot(dims, k);
             out.push(format!("alloc_new_desc[{s}]={lower};"));
             out.push(format!("alloc_new_desc[{}]=({upper})-alloc_new_desc[{s}]+1;", s + 1));
-            out.push(format!("if (alloc_new_desc[{}]<=0) error(5);", s + 1));
+            if n != DYN_DESC {
+                out.push(format!("if (alloc_new_desc[{}]<=0) error(5);", s + 1));
+            }
             // Below zero, not wrapped round from too large: the upper bound (the lower plus the count, less one, as
             // computed) is below the lower one.
             out.push(format!(

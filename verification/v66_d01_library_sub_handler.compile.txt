@@ -1,0 +1,3 @@
+ERROR: C++ compilation failed.
+Check .\internal\temp\compilelog.txt for details.
+exit=1

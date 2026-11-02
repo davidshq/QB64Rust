@@ -1,12 +1,14 @@
 //! The compiler pipeline as a library, so that tests can run each stage; `main.rs` is the command line.
 
 pub mod build;
+pub mod compile;
 pub mod cpp_errors;
 pub mod fixes;
 pub mod hover;
 pub mod library;
 pub mod report;
 pub mod toolchain;
+pub mod unit_tests;
 
 use qb64rust_base::fixes::Fixes;
 use qb64rust_base::{Diagnostics, FileId, SourceMap};

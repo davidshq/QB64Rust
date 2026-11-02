@@ -64,7 +64,7 @@ Small programs behind `study\09`, `study\10` and later measurements:
 - `v34*`: `REDIM _RETAIN`, measured before its change: `v34_a` numbers, `v34_b` the other kinds of element, `v34_c` the places of an array, `v34_d` a FUNCTION in a bound that gives the same array new bounds (`v34_d2` with plain `REDIM`, `v34_d3` with `_PRESERVE`, recorded as the change closed), `v34_x01`–`x24` one accepted or rejected form each)
 - `v35*`: `$UNSTABLE:TYPEFIELDS` and the member markers, measured before its change: `v35_a` a `_DYNAMIC` member of a variable, `v35_b` of array elements and the parent's `REDIM`, `ERASE`, `SWAP` and copy, `v35_c` every kind of element, `v35_d` procedures, `v35_e` statements and whole-array files, `v35_f` `_STATIC` and unmarked members beside the flag, `v35_g`–`g3` runtime errors, `v35_h` the metacommand, `v35_x01`–`x59` one accepted or rejected form each, `x60`: by the review of group 2, a marker before an `AS type` list; `x61`: with task 4.3, the evaluations of a copy of nested owner types and a source member that is not allocated; `x62`: with task 4.2, `READ`, `INPUT`, `LINE INPUT` and `MID$` into a place through a member, with a `.stdin`; `x63`–`x66`: with group 5, `COMMON` of an array and `LEN` of an element of an owner type, files of nested owner types, `_MEM` of a `_DYNAMIC` member; `x67`: while `s118` was recorded, `GET` into a released array; `x68`: with task 6.2, `_OFFSET` of an owner value)
 - `v36*`: whole-array assignment, measured before its change: `v36_a` numbers, `v36_b` the other kinds of element, `v36_c` the places of an array, `v36_d` member arrays, `v36_e` owner types, `v36_f` the run-time errors, `v36_x01`–`x52` one accepted or rejected form each, `x53`–`x55`: by the review of the change, the value in parentheses and a SUB as the source)
-- `v37*`: `DECLARE LIBRARY`, measured before its change: `v37_a` no library name, `v37_b` every numeric type by value and by reference, `v37_c` what each kind of argument passes, `v37_d` strings, `v37_e` a TYPE and `ALIAS` of C++ names, `v37_f` a `.a`, `STATIC`, a `.o` and a C++ `.a`, `v37_g` `DYNAMIC`, `v37_h` `CUSTOMTYPE`, `v37_i` where a block may stand, `v37_j` error 260, `v37_x01`–`x55` one accepted or rejected form each (`x56`–`x66`: by the review of the proposal, which `BYVAL` 0 is `NULL`, the default types told apart, a `STRING * n` member's missing NUL; `x67`, by task 4.4: two `DYNAMIC` blocks of one DLL; `x68`, `x69`, by the review of group 4: a header without a guard that only declares named twice, a block whose last name is a folder only; `x70`, a library beside the program in a folder whose name holds a `$`, recorded from such a folder with `--verification-root`, not from here: in `verification\` it compiles); the C sources and headers in `v37_lib\` with `build_libs.py`, which builds the libraries into `verification\` (git-ignored; run it before recording; on Linux under the names QB64pe's Linux build looks for, `libv37c.a` … `libv37dll.so`), an included file in `v37_inc\`; `v37_l1`–`l4` (task 3.5 of `m7-linux`) the Linux twins of `v37_g`, `x06`, `x67`, with the C library by `DYNAMIC LIBRARY "/usr/lib/x86_64-linux-gnu/c:6"` where those name `kernel32`, and that library named by its whole file name, which is not found; on Windows none compiles. On Linux (QB64pe's Linux build) `v37_g` does not compile (no `kernel32`), `v37_l1` runs as `v37_g` does on Windows, and `v37_i` and `x60` do not compile (`$IF WIN` is false there, and gcc finds `h_over(NULL)` ambiguous): their `.linux.out.txt`
+- `v37*`: `DECLARE LIBRARY`, measured before its change: `v37_a` no library name, `v37_b` every numeric type by value and by reference, `v37_c` what each kind of argument passes, `v37_d` strings, `v37_e` a TYPE and `ALIAS` of C++ names, `v37_f` a `.a`, `STATIC`, a `.o` and a C++ `.a`, `v37_g` `DYNAMIC`, `v37_h` `CUSTOMTYPE`, `v37_i` where a block may stand, `v37_j` error 260, `v37_x01`–`x55` one accepted or rejected form each (`x56`–`x66`: by the review of the proposal, which `BYVAL` 0 is `NULL`, the default types told apart, a `STRING * n` member's missing NUL; `x67`, by task 4.4: two `DYNAMIC` blocks of one DLL; `x68`, `x69`, by the review of group 4: a header without a guard that only declares named twice, a block whose last name is a folder only; `x70`, a library beside the program in a folder whose name holds a `$`, recorded from such a folder with `--verification-root`, not from here: in `verification\` it compiles); the C sources and headers in `v37_lib\` with `build_libs.py`, which builds the libraries into `verification\` (git-ignored: built from the sources with the toolchain at hand, per platform, not committed binaries that could go stale against another compiler; `check`'s step `v37-libs` builds them before the verification programs run; run it before recording; on Linux under the names QB64pe's Linux build looks for, `libv37c.a` … `libv37dll.so`), an included file in `v37_inc\`; `v37_l1`–`l4` (task 3.5 of `m7-linux`) the Linux twins of `v37_g`, `x06`, `x67`, with the C library by `DYNAMIC LIBRARY "/usr/lib/x86_64-linux-gnu/c:6"` where those name `kernel32`, and that library named by its whole file name, which is not found; on Windows none compiles. On Linux (QB64pe's Linux build) `v37_g` does not compile (no `kernel32`), `v37_l1` runs as `v37_g` does on Windows, and `v37_i` and `x60` do not compile (`$IF WIN` is false there, and gcc finds `h_over(NULL)` ambiguous): their `.linux.out.txt`
 - `v38*`: what types with `_DYNAMIC` member arrays copy after an error, measured before `m3-measured-copies`: `v38_a` a `GET` of a whole array whose read raised an error, `v38_b` `PUT` and `GET` with a member of other bounds or another number of dimensions, `v38_c` a whole-array copy of a member of another number of dimensions, `v38_d` a whole-array copy of arrays of such a type with other bounds
 - `v39*`: sound handles, measured before the code of `m3-sound-handles`: `v39_a` handles and their state (open, length, position, copy, play, pause, stop, loop, limit, a handle that is not open, a raw handle), `v39_b` `_SNDNEW` and `_MEMSOUND` (a new sound, one decoded from memory, the arguments refused), `v39_c` a WAV file the program writes, `_SNDPLAYFILE`, `_SNDPLAYCOPY`, raw sound, `_WAVE` and MIDI from memory (each builds its WAV and MIDI data in a string), `v39_x01` every accepted form as code that is not reached, `v39_x02`–`x72` one other form each (the arrays of `_WAVE` and `_SNDRAWBATCH` among them), `x73`–`x81` one form of `$MIDISOUNDFONT` each
 - `v40*`: `$VERSIONINFO`, measured before the proposal of `m3-versioninfo`: `v40_a`–`v40_l` accepted forms (every key, numeric keys alone and in order, letter case, quotes and blanks, a repeated key, with `$EXEICON`, the places of a line, the `$VERSIONINFOX` prefix), `v40_g*` special characters (those whose executable does not start among them), `v40_h*` numeric parts (those whose build fails among them), `v40_x01`–`x22` one rejected form each (`x20` accepted); each accepted program prints its own version resource with `v40_inc\show_version.ps1`. `v40_rc.py` records the files the old compiler writes for the resource compiler into `v40_rc\` (`icon.rc`, `manifest.h`, the manifest, and the console output of `-z -w`), which the runner does not
@@ -426,6 +426,69 @@ Small programs behind `study\09`, `study\10` and later measurements:
   (`.linux.out.txt`): `a6`, where `LINE INPUT` ends a line at a CR as at an LF, so `ab` CR LF reads as `ab` and an
   empty line, and `INPUT` then gets two empty fields; `b2` and `d1`, whose crashes exit with 127; and `c2`, whose double
   free the C library reports on standard error
+- `v64*`: the two member-array forms `SOMEDAY.md` listed as not measured (2026-10-30, at the user's request):
+  `a1` a `_DYNAMIC` member array of an array element beside other targets of one `ERASE` (the statement goes on
+  with every target after an index out of range raises, and that target releases the member of element 0, as a
+  store of the old compiler does, D-004; the index of each such target is evaluated twice, its FUNCTION called
+  twice, but once an error is pending a later target's index is not evaluated again or at all, and the target
+  releases the member of element 0: `ERASE a(9).d, a(one(1)).d` does not call `one` and leaves `a(1).d`); `a2` the
+  same target alone (the index evaluated twice there too, once when the first evaluation raises, element 0
+  released for an index outside). The new compiler evaluates each index once (`QB64PE-DIVERGENCES.md` D-055), so
+  both are on `tests\verification\known.list`; the rest of their output is the same. `b1`–`b3` `REDIM t.v(0) AS
+  LONG` under `OPTION BASE 1`, of a member declared `v(0 TO 3)`, `v(0)` under `OPTION BASE 0` and `v(1 TO 1)`:
+  "Invalid array bounds" each, so the number 0 has no rule of its own there, `1 TO 0`, as in the `TYPE` block
+  (in a `DIM` it keeps `0 TO 0`); `b4` the same `REDIM` of a `_DYNAMIC` member and of a plain dynamic array, also
+  with `_PRESERVE`, at run time: bounds `0 TO 0`, no error; `b5` a plain array under `OPTION BASE 1`: `DIM s(0)`
+  is `0 TO 0`, `REDIM x(n)` with `n` = 0 and `REDIM x(0 + 0)` raise error 5 and leave `LBOUND` 1 and `UBOUND` 0
+  (QB 4.5 beside it: `DIVERGENCES-QB45.md` Q-016)
+- `v65*`: `REDIM` of a `_DYNAMIC` member array of an array element (2026-10-30). `a1` beside other targets of one
+  `REDIM`: as `ERASE` in `v64_a1`, the statement goes on with every target after an index out of range raises,
+  that target takes the new bounds for the member of element 0, and while an error is pending a later target's
+  index is not evaluated (element 0 again); unlike `ERASE`, each index is evaluated once, and with `_PRESERVE`
+  the values stay. `a2` alone: every bound first, lower before upper, first dimension first, then the index; a
+  dimension with no element raises error 5 there and a bound may raise error 9, after which the index is not
+  evaluated and element 0 takes the bounds (only the first error is handled); a FUNCTION in a bound that erases
+  the same member, gives it two dimensions or other bounds does no harm, the `REDIM` then giving its bounds, and
+  `_PRESERVE` keeps what the FUNCTION left. With `dim-empty-error` on (`tests\verification\fixed\`, written by
+  hand), an error of the bounds leaves element 0's member not allocated, and an index out of range allocates as
+  without the fix
+- `v66*`: the forms `SOMEDAY.md` listed as not measured (2026-10-31, at the user's request), one form or one
+  question per program, most with the row's form on the last line or printed. `a01`–`a21` addresses: of a `TYPE`
+  variable that owns a `_DYNAMIC` member array and of a `_MEM` variable, `VARPTR` is "UNEXPECTED INTERNAL COMPILER
+  ERROR", `SADD` "User defined types in expressions are invalid", `VARSEG` 80 and `VARPTR$` three bytes of type 0;
+  `VARPTR` of a whole array of strings is an offset (65504), of fixed-length strings and of a `TYPE` 0, `VARSEG` of
+  it 80, `VARSEG` of a `_BIT` array or element 4176; `VARPTR` of a member whose type is a `TYPE` is an internal
+  compiler error; `VARPTR$` of a member of an element is "VARPTR$ only accepts variable-length string arrays", of
+  a member array's element the variable's offset (as for a member, `v56_t05`); a `_BIT` array in graphics `GET` or
+  `PUT` is "Variable/element cannot be _BIT aligned"; a FUNCTION in the index there runs twice in each; `X` with
+  `VARPTR$` in `DRAW` and `PLAY` runs the string (an invalid letter inside raises error 5 as outside).
+  `b01`–`b16` `_MEM`: `_MEMGET`, `_MEMPUT`, `_MEMFILL` with a `TYPE` that holds a `STRING`, and `_OFFSET` of a
+  `STRING` member, are "UDT must have fixed size"; with an element or member of variable-length strings they compile;
+  `_OFFSET` of a whole array of strings is "Cannot pass array of variable-length strings", of an element compiles;
+  through an element of a member array of `TYPE` elements `_OFFSET` is the member's place, and `_MEM` of such an
+  element runs to the end of the array; `_OFFSET` of a whole `_DYNAMIC` member array and the three statements with
+  an element or the whole of one compile and work. `c01`–`c28` names: `p . q(1)` makes the array used without `DIM`
+  `p.q`, `c . k` is the `CONST`, `f . g = 7` sets the FUNCTION's result; `DIM g(3)` beside `COMMON SHARED g() AS
+  DOUBLE` leaves the plain `g(1)` the `COMMON` array (error 9); `_MEM(x())` of no array makes it (0 to 10); `LEN`
+  of a whole array of an owner type is an error, of a whole `_DYNAMIC` member array its bytes; a name that is no type
+  after `_UNSIGNED` or in a `REDIM` of a member gives the place's own message (as `v51`); `REDIM`, `STATIC`,
+  `COMMON` of `a$()` beside a `STRING * n` array `a` are "Type mismatch", and `COMMON SHARED s$` beside such a
+  variable names it; `ASC((a$)) = 65` stores into `a$`; `x() = 1` is "Expected array index", `READ x()` makes the
+  array and reads into its first element; `s$ 1` for a SUB `s` and an unknown `_NAME` statement are "Syntax error";
+  `_ENCODEURL$(1) = "a"` is "String required for function"; in a SUB, `STATIC a()` beside a shared array names the
+  shared one, `STATIC a(5, 5)` beside one of one dimension is "Cannot change the number of elements an array has!",
+  and `STATIC v(n)` with a local bound fails the C++ build; `CALL INTERRUPT` and `INTERRUPTX` `&H33` run (mouse
+  reset: -1, 3); `LEN` and `REDIM` above its block of a `TYPE` whose member bound names a `CONST` work.
+  `d01`–`d10`: a `DECLARE LIBRARY` SUB as an `ON TIMER` handler builds with no argument (`d09`, the header
+  `v66_d_lib.h`) and fails the C++ build with one (`d01` srand, `d10`); `_EMBEDDED$(("h"))` is an error;
+  `_RGB32("a")` in a `CONST` is `&HFF000000`; an infinite value inside a `CONST`'s function or power is
+  "Unexpected argument: INF" or "Unexpected element 'INF'", while `SIN` of an infinite `CONST` is 0 (D-029).
+  `e01`–`e09`: a name of 41 characters of any kind is "Identifier longer than 40 character limit"; 40 letters and a
+  suffix, and 40 characters of each kind, compile. `f01`: `ON TIMER` events during `TIMER STOP` run once at `TIMER
+  ON`, and one during a slow handler does not run at the statements after it (no doubled event seen). `g01`–`g11`
+  arguments left out: `SCREEN(1, , 1)` is "Incorrect number of arguments", `LBOUND(a, )` and `UBOUND(a, )` "Syntax
+  error"; the middle or first argument of `_LOADIMAGE`, `_LOADFONT`, `_UPRINTWIDTH`, `_UCHARPOS`, `_SNDNEW`,
+  `_INSTRREV`, `_INPUTBOX$` and `_OPENFILEDIALOG$` may be left out
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see
@@ -434,7 +497,12 @@ them), each behind a row of the crash-class rulings (`study\39`): `q45_static_lo
 array `a()` as a value (row 6); `q45_whole_array_erased` `READ a()` and `SWAP a(), b()`, and an element of an
 erased array (row 7); `q45_div_zero` `\`, `MOD`, `ERROR 11` and a float `/` by zero under `ON ERROR` (row 12,
 `DIVERGENCES-QB45.md` Q-003); `q45_resume_in_sub` `RESUME` in a SUB (row 13); `q45_run_from_sub` `RUN` and `RUN
-100` in a SUB (row 14).
+100` in a SUB (row 14). Beside `v64` (2026-10-30), as QB 4.5 has no arrays in a `TYPE`: `q45_index_count` the index
+of an element of a `TYPE` array, stored, read, swapped (a FUNCTION in it called once each time) and out of range (error
+9, nothing stored, `a(0).m` stays 0; in item 2 the `PRINT #1` inside the FUNCTION loses the outer `PRINT`'s value);
+`q45_base1_zero_dim` `DIM x(0)` and `q45_base1_zero` `REDIM x(0)` under `OPTION BASE 1`: "Lower bound exceeds upper
+bound" at compile time, and `REDIM x(n)` with `n` = 0 error 9 at run time, the array then not allocated (QB64pe:
+`0 TO 0` for the literal, error 5 for the variable, `v64_b4`, `b5`; `DIVERGENCES-QB45.md` Q-016).
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).

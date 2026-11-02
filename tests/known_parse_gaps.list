@@ -1,4 +1,4 @@
 # Programs the old compiler accepts, and every file of its own sources, whose parse reports a diagnostic or
 # leaves an `Error` node (spec testing/upstream-tests, "Parse gaps"; design D1 of m2-parser-breadth). Shrink-only:
 # parser breadth empties it. The comment is the first parser diagnostic, else the first `Error` node.
-# Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test inputs.
+# Regenerate with QB64RUST_UPDATE_LISTS=1 cargo test -p qb64rust-driver --test it inputs::.

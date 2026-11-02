@@ -1,3 +1,3 @@
 # The programs whose formatted text differs from their recording (tests/format/README.md), one
-# <set>/<path without .bas> per line, a tab, and the reason. Shrink-only: crates/driver/tests/format_oracle.rs
+# <set>/<path without .bas> per line, a tab, and the reason. Shrink-only: crates/driver/tests/it/format_oracle.rs
 # fails when a program here comes to equal its recording.

@@ -1,0 +1,33 @@
+# The exit code of a program ended by a runtime error (QB64PE-DIVERGENCES.md D-012; OpenSpec change
+# basic-unit-tests, design D1): a critical error, an out-of-memory error and libqb's other fatal ends leave with
+# code 1, not 0, and write D-012 to the run-time trace. The trace cannot go through the program's qbr_diverged,
+# which is static in the program's C++, so libqb writes it here with the same rule: with QB64RUST_DIVERGENCES naming
+# a file, append the row; without it, nothing. d012-error-exit-code-no.edit does the same for "Continue? no".
+file: internal/c/libqb/src/error_handle.cpp
+--- old
+static void exit_after_fatal_error() {
+    close_program = 1;
+    libqb_exit(0);
+}
+--- new
+extern int64_t exit_code; // libqb.cpp; the main loop leaves with it
+
+static void trace_divergence_012() {
+    static bool traced;
+    const char *path = getenv("QB64RUST_DIVERGENCES");
+    if (traced || !path || !*path)
+        return;
+    traced = true;
+    FILE *f = fopen(path, "ab");
+    if (f) {
+        fputs("D-012\n", f);
+        fclose(f);
+    }
+}
+
+static void exit_after_fatal_error() {
+    trace_divergence_012();
+    close_program = 1;
+    libqb_exit(1);
+}
+--- end

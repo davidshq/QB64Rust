@@ -13,6 +13,7 @@ import { LanguageServer } from "./languageServer";
 import { registerNewProject } from "./newProject";
 import { CompilerStatus } from "./statusBar";
 import { Qb64TaskProvider, TASK_TYPE } from "./tasks";
+import { TestSupport } from "./testing";
 import { ToolchainSupport } from "./toolchainSupport";
 
 /** Returned from `activate` so integration tests can observe the parts. */
@@ -25,6 +26,7 @@ export interface Api {
     builder: Builder;
     debug: DebugSupport;
     toolchain: ToolchainSupport;
+    tests: TestSupport;
 }
 
 let server: LanguageServer | undefined;
@@ -54,6 +56,8 @@ export function activate(context: vscode.ExtensionContext): Api {
     status.toolchain = toolchain;
     status.update();
     const debug = new DebugSupport(builder, status, lsp);
+    // The Test Explorer (change basic-unit-tests): `qb64rust test`, with the binary and toolchain a build uses.
+    const tests = new TestSupport(status, lsp, bundle);
     context.subscriptions.push(
         { dispose: () => queue.dispose() },
         status,
@@ -61,6 +65,7 @@ export function activate(context: vscode.ExtensionContext): Api {
         builder,
         toolchain,
         debug,
+        tests,
         lsp,
         registerWhileServerOff(lsp, new Formatter(queue, status, diagnostics, lsp)),
         vscode.tasks.registerTaskProvider(TASK_TYPE, new Qb64TaskProvider(status, lsp, bundle)),
@@ -68,7 +73,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     );
     void removeStaleTempFiles();
     void removeOtherVersions(bundle.storage, bundle.version);
-    return { status, diagnostics, queue, server: lsp, bundle, builder, debug, toolchain };
+    return { status, diagnostics, queue, server: lsp, bundle, builder, debug, toolchain, tests };
 }
 
 export async function deactivate(): Promise<void> {

@@ -2096,17 +2096,11 @@ impl Checker<'_> {
     /// ("REDIM of a TYPE member array must include AS <type> or explicit lower TO upper bounds"), another type
     /// ("REDIM type does not match the declared TYPE member array").
     ///
-    /// `alone`: the item is the only one of its statement. `listed`: the type stands before the names.
+    /// `listed`: the type stands before the names.
     ///
     /// A dynamic member array (design D4 of `m3-typefields`) takes new bounds as a dynamic array does
     /// ([`Self::redim_dynamic_member`]).
-    pub(super) fn redim_member(
-        &mut self,
-        item: ast::DimItem,
-        mode: AllocMode,
-        (listed, alone): (bool, bool),
-        stmt: Node,
-    ) -> R<bool> {
+    pub(super) fn redim_member(&mut self, item: ast::DimItem, mode: AllocMode, listed: bool, stmt: Node) -> R<bool> {
         let keeps = mode.keeps_elements();
         let span = item.node().span();
         let Some((place, bounds, last_tok)) = self.member_path_array(item)? else {
@@ -2153,7 +2147,7 @@ impl Checker<'_> {
                 unreachable!("a member array is a member");
             };
             let array = ArrayRef::Member { base, member };
-            self.redim_dynamic_member(array, bounds, typed, mode, (&shown, alone, span), stmt)?;
+            self.redim_dynamic_member(array, bounds, typed, mode, (&shown, span), stmt)?;
             return Ok(true);
         }
         let bounds_span = bounds.node().span();
@@ -2169,16 +2163,16 @@ impl Checker<'_> {
                     );
                     return Err(self.error(upper.node().span(), msg));
                 }
-                // Not measured: whether the number 0 keeps its rule of a `DIM` here (0 to 0 under base 1).
-                None if self.at.option_base != 0 && self.is_plain_zero(upper) => {
-                    let msg = format!("`REDIM {shown}(0)` of a member array under `OPTION BASE 1`");
-                    return Err(self.unsupported(upper.node().span(), msg));
-                }
                 // The upper bound alone goes by `OPTION BASE` as it stands at the `REDIM` (measured,
-                // `verification\v24_x322`, `x323`).
+                // `verification\v24_x322`, `x323`). The number 0 has no rule of its own, as in the `TYPE` block:
+                // `REDIM t.v(0) AS LONG` under base 1 is 1 TO 0, "Invalid array bounds" (`v64_b1`–`b3`).
                 None => self.at.option_base,
             };
             let u = self.constant_bound(upper)?;
+            if u < l {
+                let msg = format!("invalid bounds for `{shown}`: {l} TO {u}");
+                return Err(self.error(upper.node().span(), msg));
+            }
             given.push((l, u));
         }
         if given != declared {
@@ -2196,7 +2190,7 @@ impl Checker<'_> {
             unreachable!("a member array is a member");
         };
         let array = ArrayRef::Member { base, member };
-        self.clear_member_array(array, alone, span, stmt)?;
+        self.clear_member_array(array, stmt)?;
         Ok(true)
     }
 
@@ -2204,14 +2198,16 @@ impl Checker<'_> {
     /// `x29`–`x33`): bounds as a dynamic array's, any number of dimensions, the first one with `lower TO upper`
     /// unless the type is written (`AS` or a suffix; else "REDIM of a TYPE member array must include AS <type> or
     /// explicit lower TO upper bounds"). An [`StmtKind::Allocate`] of the member, which finds the place it is part
-    /// of once; beside other targets of its statement as for a clear ([`Self::clear_member_array`]).
+    /// of once; beside other targets of its statement as for a clear ([`Self::clear_member_array`]; measured,
+    /// `verification\v65_a1`: the statement goes on after an index out of range, and that target and any later
+    /// one found through an index take the member of element 0).
     fn redim_dynamic_member(
         &mut self,
         array: ArrayRef,
         bounds: ast::ArrayBounds,
         typed: bool,
         mode: AllocMode,
-        (shown, alone, span): (&str, bool, Span),
+        (shown, span): (&str, Span),
         stmt: Node,
     ) -> R<()> {
         let ranges = bounds.ranges();
@@ -2224,10 +2220,6 @@ impl Checker<'_> {
             );
             let at = first_upper.map_or(bounds.node().span(), |u| u.node().span());
             return Err(self.error(at, msg));
-        }
-        if array.may_raise() && !alone {
-            let msg = "a member array of an array element in a list of `REDIM` targets";
-            return Err(self.unsupported(span, msg));
         }
         let dims = self.dim_bounds(bounds, shown)?;
         let kind = StmtKind::Allocate {
@@ -2257,18 +2249,13 @@ impl Checker<'_> {
         Ok(out)
     }
 
-    /// The clear of a member array, by `ERASE` or `REDIM` (`alone`: it is the only target of its statement).
-    /// Finding the array may raise when an index stands on its way, and where the old compiler's statement goes
-    /// on with its other targets before the error is handled (measured, `verification\v24_x312`), each clear
-    /// here is a statement of its own: such a target beside others is not supported yet.
-    pub(super) fn clear_member_array(&mut self, array: ArrayRef, alone: bool, span: Span, stmt: Node) -> R<()> {
-        // `ERASE` of a dynamic member array releases it (design D4 of `m3-typefields`); beside other targets it is not
-        // measured.
+    /// The clear of a member array, by `ERASE` or `REDIM`. Finding the array may raise when an index stands on its
+    /// way; the old compiler's statement then goes on with its other targets before the error is handled
+    /// (measured, `verification\v24_x312`, `v64_a1`), which [`Checker::join_targets`] makes of the targets.
+    pub(super) fn clear_member_array(&mut self, array: ArrayRef, stmt: Node) -> R<()> {
+        // `ERASE` of a dynamic member array releases it (design D4 of `m3-typefields`). The old compiler evaluates
+        // its index twice; here once (`QB64PE-DIVERGENCES.md` D-055, `verification\v64_a1`, `a2`).
         let kind = if self.is_dynamic_member(&array) {
-            if array.may_raise() && !alone {
-                let msg = "a dynamic member array of an array element in a list of `ERASE` targets";
-                return Err(self.unsupported(span, msg));
-            }
             StmtKind::Release {
                 array,
                 join: Join::None,

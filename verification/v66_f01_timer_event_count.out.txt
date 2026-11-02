@@ -1,0 +1,4 @@
+1. runs while stopped: 0 
+2. runs at TIMER ON: 1  1  1 
+3. runs after a slow handler: 1  1  1 
+exit=0

@@ -28,7 +28,7 @@ class FakeBundle(unittest.TestCase):
             self.bundle / "libqb.id": "0123\n",
             self.bundle / "THIRD-PARTY-NOTICES.txt": "notices\n",
             self.repo / "LICENSE": "MIT\n",
-            self.repo / "MANUAL.md": "# manual\n",
+            self.repo / "docs" / "MANUAL.md": "# manual\n",
         }.items():
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(text, newline="\n")
@@ -138,7 +138,7 @@ class LinuxPackagesInTheManual(unittest.TestCase):
     """Spec compiler/download, "The Linux packages in the manual": MANUAL.md's lines are toolchain.rs's table."""
 
     def setUp(self):
-        self.manual = (pz.REPO / "MANUAL.md").read_text(encoding="utf-8")
+        self.manual = (pz.REPO / "docs" / "MANUAL.md").read_text(encoding="utf-8")
         self.rust = (pz.REPO / "crates" / "driver" / "src" / "toolchain.rs").read_text(encoding="utf-8")
 
     def test_the_manual_names_the_table(self):
@@ -185,7 +185,7 @@ class Manual(unittest.TestCase):
 
     def test_manual_names_only_usage_options(self):
         usage = usage_text()
-        names = manual_names((pz.REPO / "MANUAL.md").read_text(encoding="utf-8"))
+        names = manual_names((pz.REPO / "docs" / "MANUAL.md").read_text(encoding="utf-8"))
         self.assertIn("--include-root", names)
         self.assertIn("qb64rust toolchain path", names)
         for name in sorted(names):

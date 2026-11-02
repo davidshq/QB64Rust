@@ -79,8 +79,20 @@ export async function planBuild(file: string, status: CompilerStatus, server: La
         }
         return { compiler: "qb64pe", command: current.path, args: qb64pe.buildArgs(file) };
     }
+    return planQb64rust(file, status, server, bundle, interactive, debug);
+}
+
+/**
+ * The build of `file` by `qb64rust`, whatever `qb64rust.buildWith` says (a build that chose it, and `qb64rust test`,
+ * change basic-unit-tests): its binary, the C++ toolchain (offered when there is none and `interactive`), the
+ * prepared copy of libqb and the roots; or why there is none.
+ */
+export async function planQb64rust(file: string, status: CompilerStatus, server: LanguageServer, bundle: Bundle, interactive = true, debug = false): Promise<Extract<BuildPlan, { compiler: "qb64rust" }> | NoBuild> {
+    const current = status.current;
+    const binary = server.binary;
     if (!binary.found) {
-        const reason = `qb64rust.buildWith is "qb64rust", but ${binary.reason}`;
+        // Also the Test Explorer's, whatever `qb64rust.buildWith` says.
+        const reason = `the qb64rust binary is needed, but ${binary.reason}`;
         if (interactive) {
             await refuse(reason, "qb64rust.path");
         }

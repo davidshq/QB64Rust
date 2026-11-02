@@ -129,3 +129,79 @@ v63_c2_memnew_zero_two	D-050
 v63_d1_statuscode_closed	D-051
 v63_e1_error_11_handler	D-052
 v63_e2_division_types_handler	D-052
+v64_a1_erase_dynamic_member_list	D-055
+v64_a2_erase_dynamic_member_alone	D-055
+v66_a02_varseg_dynamic_owner	not supported yet
+v66_a04_varptrs_dynamic_owner	not supported yet
+v66_a06_varseg_mem	not supported yet
+v66_a07_varptrs_mem	not supported yet
+v66_a08_varptr_whole_string_array	not supported yet
+v66_a09_varptr_whole_fixed_array	not supported yet
+v66_a10_varptr_whole_type_array	not supported yet
+v66_a11_varseg_whole_string_array	not supported yet
+v66_a12_varseg_whole_bit_array	not supported yet
+v66_a13_varseg_bit_element	not supported yet
+v66_a14_varptr_type_member	not supported yet: QB64pe rejects it too, with another error
+v66_a15_varptrs_element_member	not supported yet: QB64pe rejects it too, with another error
+v66_a16_varptrs_member_array_element	not supported yet
+v66_a17_get_bit_array	not supported yet: QB64pe rejects it too, with another error
+v66_a18_put_bit_array	not supported yet: QB64pe rejects it too, with another error
+v66_a19_get_put_index_function	not supported yet
+v66_b01_memget_type_string	not supported yet: QB64pe rejects it too, with another error
+v66_b02_memput_type_string	not supported yet: QB64pe rejects it too, with another error
+v66_b03_memfill_type_string	not supported yet: QB64pe rejects it too, with another error
+v66_b04_offset_through_member_array_element	not supported yet
+v66_b05_mem_member_array_type_element	not supported yet
+v66_b06_offset_string_element	not supported yet
+v66_b07_offset_string_member	not supported yet: QB64pe rejects it too, with another error
+v66_b08_offset_whole_string_array	not supported yet: QB64pe rejects it too, with another error
+v66_b09_memget_string_element	not supported yet
+v66_b10_memput_string_member	not supported yet
+v66_b11_memfill_string_element	not supported yet
+v66_b12_offset_whole_dynamic_member	not supported yet
+v66_b13_memget_dynamic_member_element	not supported yet
+v66_b14_memput_dynamic_member_element	not supported yet
+v66_b15_memfill_dynamic_member_element	not supported yet
+v66_b16_memget_whole_dynamic_member	not supported yet
+v66_c01_dot_blanks_implicit_array	not supported yet
+v66_c02_dot_blanks_const	not supported yet
+v66_c03_dot_blanks_function_store	not supported yet
+v66_c04_common_typed_beside_plain_dim	not supported yet
+v66_c05_mem_no_array	not supported yet
+v66_c06_len_whole_dynamic_owner_array	not supported yet: QB64pe rejects it too, with another error
+v66_c07_len_whole_dynamic_member	not supported yet
+v66_c08_redim_member_no_type	not supported yet: QB64pe rejects it too, with another error
+v66_c09_shared_unsigned_no_type	not supported yet: QB64pe rejects it too, with another error
+v66_c10_param_unsigned_no_type	not supported yet: QB64pe rejects it too, with another error
+v66_c11_define_unsigned_no_type	not supported yet: QB64pe rejects it too, with another error
+v66_c12_redim_dollar_beside_fixed_array	not supported yet: QB64pe rejects it too, with another error
+v66_c13_static_dollar_beside_fixed_array	not supported yet: QB64pe rejects it too, with another error
+v66_c14_common_dollar_beside_fixed_array	not supported yet: QB64pe rejects it too, with another error
+v66_c15_common_dollar_beside_fixed_var	not supported yet
+v66_c16_asc_statement_parens	not supported yet
+v66_c17_whole_no_array_store	not supported yet: QB64pe rejects it too, with another error
+v66_c18_whole_no_array_read	not supported yet
+v66_c19_sub_with_suffix	not supported yet: QB64pe rejects it too, with another error
+v66_c20_auto_include_function_place	not supported yet: QB64pe rejects it too, with another error
+v66_c21_static_empty_beside_shared	not supported yet
+v66_c22_static_two_dims_beside_shared	bug: STATIC a(5, 5) beside a shared array of one dimension compiles (STATUS.md, known bugs)
+v66_c24_unknown_underscore_statement	not supported yet: QB64pe rejects it too, with another error
+v66_c25_call_interrupt	not supported yet
+v66_c26_call_interruptx	not supported yet
+v66_c27_late_type_const_bound_len	not supported yet
+v66_d01_library_sub_handler	not supported yet: QB64pe rejects it too, with another error
+v66_d02_embedded_parens	not supported yet: QB64pe rejects it too, with another error
+v66_d03_const_rgb32_string	not supported yet
+v66_d06_const_sin_infinite_const	D-029
+v66_d09_library_sub_handler_no_argument	not supported yet
+v66_d10_library_sub_handler_argument	not supported yet: QB64pe rejects it too, with another error
+v66_e01_name41_variable	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
+v66_e02_name41_array	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
+v66_e03_name41_const	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
+v66_e04_name41_type	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
+v66_e05_name41_member	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
+v66_e06_name41_sub	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
+v66_e07_name41_function	bug: a name of more than 40 characters compiles (STATUS.md, known bugs)
+v66_g01_left_out_screen	not supported yet: QB64pe rejects it too, with another error
+v66_g07_left_out_lbound	not supported yet: QB64pe rejects it too, with another error
+v66_g08_left_out_ubound	not supported yet: QB64pe rejects it too, with another error

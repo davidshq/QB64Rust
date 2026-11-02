@@ -119,6 +119,43 @@ optimised; it otherwise behaves the same); the next Build makes the usual one ag
 C++ toolchain (`bin\lldb-dap.exe`): the installed one, QB64pe's, or the folder of `qb64rust.toolchainPath`; without
 one, the session offers it as a build does and starts only once it is installed.
 
+## Tests
+
+Unit tests of BASIC code show in the **Test Explorer** (the beaker icon), run there and in the gutter of each test,
+through `qb64rust test`.
+
+- A **test file** is a file whose name ends in `_test.bas` (any case). A **test** is a `SUB` of that file (not of a
+  file it includes) whose name starts with `Test` (any case) and that takes no parameters. The list of a file is
+  read again when it is saved, created or deleted.
+- The test file **includes the code under test** (`'$INCLUDE:'math.bm'`), which is found from the test file's
+  folder, as in a build of it; a `qb64rust.toml` there gives its fixes. Its module-level code runs before each test,
+  and each test runs in a process of its own, so a test starts from that code and nothing another test did.
+- The **assertions**: `AssertTrue cond, msg$`, `AssertFalse cond, msg$`, `AssertEqualInt expected, actual, msg$`
+  (whole numbers, as `_INTEGER64`), `AssertEqualSingle`, `AssertEqualDouble`, `AssertNear expected, actual,
+  tolerance, msg$`, `AssertEqualStr` and `Fail msg$`. A failed assertion ends the test and is shown at its SUB as
+  "sum: expected 4, got 5". `_ASSERT` works too, and is shown at its line. `TestTempDir$` is an empty folder of the
+  test's own.
+- A test **passes** only when its SUB returned. A runtime error, `END` or `SYSTEM` in the code under test, a crash,
+  or more than 30 seconds is an error, whatever the test printed. Each test's output is in the test run's output.
+
+```basic
+'$INCLUDE:'math.bm'
+
+SUB TestAdd
+    AssertEqualInt 5, AddUp&(2, 3), "sum"
+END SUB
+```
+
+Tests are for **console-only code**: each test file is built as a `$CONSOLE:ONLY` program. Images work in a test
+(`_NEWIMAGE`, `_DEST` and `_SOURCE` of an image, `PSET` and `_RGB32` into it, `POINT`, `_PUTIMAGE`, `PRINT` into an
+image, `_FREEIMAGE`), but drawing on the screen itself, `PSET` or `CIRCLE` with no image as the destination, is the
+runtime error "Illegal function call", reported as an error of the test, not of the framework.
+
+Tests need the `qb64rust` binary and the C++ toolchain, as a build with `qb64rust` does, whatever
+`qb64rust.buildWith` says. Without the binary no test is listed, and a message says so with a button to the setting.
+From a terminal: `qb64rust test [<file or folder>...]` (`--list`, `--filter <text>`, `--timeout <seconds>`,
+`--format json`).
+
 ## Language server (qb64rust)
 
 The extension starts `qb64rust lsp` from the binary it carries, or from `qb64rust.path` when that is set (and, in a

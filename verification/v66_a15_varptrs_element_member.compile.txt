@@ -1,0 +1,5 @@
+
+VARPTR$ only accepts variable-length string arrays
+Caused by (or after):V$ = VARPTR$ ( E ( 1 ) . B )
+LINE 8:v$ = VARPTR$(e(1).b)
+exit=1

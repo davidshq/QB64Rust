@@ -31,18 +31,28 @@ PATH_PATTERNS = [
 # made up to not exist; GitHub's runner folder (public); and the compiler-discovery unit tests, which are about
 # made-up paths (C:\qb, /home/u/proj).
 ALLOWED = [
-    ("CLAUDE.md", rb"no full local paths"),
+    ("CLAUDE.md", rb"o full local paths"),  # "No" or "no": the rule's line may start either way
     ("tools/repo_check/check_repo.py", rb""),
     ("*", rb"does\\not\\exist"),
     ("*", rb"does/not/exist"),
     ("*", rb"/home/runner/"),
     ("vscode/test/unit/discovery.test.ts", rb""),
+    # The `qb64rust test --format json` parsing tests: a made-up file path (C:\ws\lib\math_test.bas).
+    ("vscode/test/unit/testOutput.test.ts", rb""),
     # Upstream's test of its relative-path function, copied unedited (design D1 of m2-upstream-tests): made-up
     # paths (/home/user/proj, C:\proj).
     ("tests/upstream/compile_tests/qb64pe/file.bas", rb""),
     ("tests/upstream/compile_tests/qb64pe/file.output", rb""),
     # The old compiler's -y output of that test (tests/format/README.md): the same made-up paths.
     ("tests/format/upstream/qb64pe/file.bas", rb""),
+    # The folder every Windows Sandbox of the sandbox family sees its run in, inside the sandbox, not the host's
+    # (tools/sandbox/README.md), in the sandbox's files and its change's documents only (archived too: the glob's
+    # `*` takes the archive's dated folder); and the made-up host paths of the runner's tests, each by itself.
+    ("tools/sandbox/*", rb"C:\run"),
+    ("openspec/*desktop-sandbox/*", rb"C:\run"),
+    ("tools/sandbox/test_run.py", rb"X:\some & where"),
+    ("tools/sandbox/test_run.py", rb"Q:\only\this"),
+    ("tools/sandbox/test_run.py", rb"Z:\no\WindowsSandbox.exe"),
 ]
 
 # Third-party copies held byte for byte to an upstream commit by their own check, not checked here (rule 2 is about
