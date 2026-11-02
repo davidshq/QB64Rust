@@ -99,6 +99,9 @@ class Step:
     # The command under `--force` (and so at the merge, which forces every step), when it differs: the exact form
     # of a step whose usual form trusts something a forced run does not (linux-sync's modification times).
     forced: str | None = None
+    # The command that judges the step's stored results again under today's known lists, without a run (a whole
+    # suite's `--rejudge`; check.py, `can_rejudge`; OpenSpec change check-rejudge, design D2).
+    rejudge: tuple[str, ...] | str | None = None
 
 
 def runner(suite: str, *extra: str) -> tuple[str, ...]:
@@ -140,13 +143,26 @@ def linux_whole(suite: str) -> str:
     # Each builds first, so that none runs an older build beside another's: cargo builds nothing when it is current.
     # The sync copies no git-ignored file, so the v37 programs' libraries are built in the copy.
     libs = "python3 verification/v37_lib/build_libs.py && " if suite == "verification" else ""
+    return (
+        f"{IN_COPY}'cargo build --release --locked && {libs}{linux_runner(suite)} --jobs 8 "
+        "--build-cache target/build-cache'"
+    )
+
+
+def linux_runner(suite: str) -> str:
     # The compile suite reads the reference clone beside the Windows tree: there is none beside the copy.
     root = ' --qb-root "$QB64RUST_TREE/../QB64pe"' if suite == "compile" else ""
-    return (
-        f"{IN_COPY}'cargo build --release --locked && {libs}python3 "
-        f"tools/legacy_tests/run_legacy_tests.py --suite {suite} --qb64 target/release/qb64rust --jobs 8 "
-        f"--build-cache target/build-cache{root}'"
-    )
+    return f"python3 tools/legacy_tests/run_legacy_tests.py --suite {suite} --qb64 target/release/qb64rust{root}"
+
+
+# The lists that only judge a run, never change what a program does: a step whose inputs differ from its last run
+# only in these has its stored results judged again (`Step.rejudge`; OpenSpec change check-rejudge, design D2).
+# They must name every file the runner's `known_lists` reads (test_check.py holds them to it).
+JUDGE_LISTS = (
+    "tools/legacy_tests/known_failures.txt",
+    "tests/*/known.list",
+    "tests/*/known.linux.list",
+)
 
 
 # `nextest` and `lists` split the workspace's tests by whether a test is inputs.rs's (the folded driver binary's
@@ -388,6 +404,7 @@ STEPS += (
             _BY_NAME["slice" if name == "corpus" else name].inputs,
             needs=_BY_NAME["slice" if name == "corpus" else name].needs,
             external=("toolchain", "clone"),
+            rejudge=runner(suite, "--rejudge"),
         )
         for name, suite, _ in WHOLE
     ),
@@ -442,6 +459,7 @@ STEPS += (
             linux_whole(suite),
             _BY_NAME["linux-slice"].inputs + _BY_NAME["slice" if name == "corpus" else name].inputs,
             needs=("linux-sync",),
+            rejudge=f"{IN_COPY}'{linux_runner(suite)} --rejudge'",
         )
         for name, suite, _ in WHOLE
     ),

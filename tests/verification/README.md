@@ -121,7 +121,6 @@ Of the 4345 programs of `verification\`, `pass.list` names **4139** and `known.l
 <!-- /counts:verification-membership -->
 
 <!-- counts:verification-results -->
-Last full run: 2026-10-26, compiler build `c261b24c2847`, folding on, `--jobs 8`, build cache, 6 min. Of 3956 programs: **3892 pass**, 1 does not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 63 known failures (`target\legacy-tests\results-verification.json`).
-`pass.list` judged in it (`--check-list`): **3889 of 3890** pass.
-- verification:v59_g_readback: changed after the run started: v59_g_readback.normalize
+Last full run: 2026-11-02, compiler build `6ead449f15e2`, folding on, `--jobs 8`, build cache, 21 min. Of 4352 programs: **4149 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 203 known failures (`target\legacy-tests\results-verification.json`).
+`pass.list` judged in it (`--check-list`): **4139 of 4139** pass.
 <!-- /counts:verification-results -->

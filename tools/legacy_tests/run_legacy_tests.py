@@ -196,6 +196,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -2789,6 +2790,19 @@ def program_inputs(suite: str, bas: Path, names: list[str] | None = None) -> lis
     return found
 
 
+def folder_names() -> Callable[[Path], list[str]]:
+    """The sorted file names of a folder, each folder listed once: `program_inputs`' `names` for a caller that
+    takes many programs of one folder (a glob per program lists `verification\\` thousands of times)."""
+    listings: dict[Path, list[str]] = {}
+
+    def names_of(folder: Path) -> list[str]:
+        if folder not in listings:
+            listings[folder] = sorted(e.name for e in os.scandir(folder) if e.is_file())
+        return listings[folder]
+
+    return names_of
+
+
 def read_by_runs(selected: list[tuple[str, Path, list[Path]]], args) -> list[str]:
     """--list-only: the files inside the repository that the selected programs' runs read, repo-relative and
     sorted: the runner and its modules, the lists, each program's inputs (program_inputs), a verification
@@ -2801,7 +2815,7 @@ def read_by_runs(selected: list[tuple[str, Path, list[Path]]], args) -> list[str
         found.add(args.list.resolve())
 
     walked: set[Path] = set()
-    listings: dict[Path, list[str]] = {}
+    names_of = folder_names()
 
     def tree(p: Path) -> None:
         if p in walked:
@@ -2811,11 +2825,6 @@ def read_by_runs(selected: list[tuple[str, Path, list[Path]]], args) -> list[str
             found.add(p.resolve())
         elif p.is_dir():
             found.update(q.resolve() for q in p.rglob("*") if q.is_file() and "__pycache__" not in q.parts)
-
-    def names_of(folder: Path) -> list[str]:
-        if folder not in listings:
-            listings[folder] = sorted(e.name for e in os.scandir(folder) if e.is_file())
-        return listings[folder]
 
     for suite, _, tests in selected:
         if suite in ("corpus", "compile"):
@@ -2884,11 +2893,12 @@ def check_list(
     started = float(run.get("started", 0))
     failures: list[tuple[str, str]] = []
     passed = 0
+    names_of = folder_names()
     for bas in sorted(wanted):
         key = result_key(suite, bas, root)
         name = f"{key[0]}:{key[1]}"
         r = results.get(key)
-        changed = [p.name for p in program_inputs(suite, bas) if p.stat().st_mtime > started]
+        changed = [p.name for p in program_inputs(suite, bas, names_of(bas.parent)) if p.stat().st_mtime > started]
         if r is None:
             failures.append((name, "no result in the full run"))
         elif changed:
@@ -2933,6 +2943,102 @@ def load_known_failures(path: Path) -> dict[str, str]:
                 key, _, reason = line.partition(" ")
                 known[key] = reason.strip()
     return known
+
+
+# The verification suite's list of known differences (a run of the suite with a compiler other than qb64pe reads it).
+VERIFICATION_KNOWN = VERIFICATION_LISTS / "known.list"
+
+
+def known_lists(args, verification: bool) -> tuple[dict[str, str], list[Path]]:
+    """The failures that are known, {"<suite>:<test>": reason}, and the list files they were read from: the
+    `--known-failures` file, with `--platform linux` each suite's known.linux.list, and with `verification`
+    tests/verification/known.list. A run and --rejudge read them here alone (OpenSpec change check-rejudge,
+    design D1), so that tools/check/steps.py's JUDGE_LISTS can name every one."""
+    files = [args.known_failures]
+    known = load_known_failures(args.known_failures)
+    if platform_of(args) == "linux":
+        # What cannot pass on Linux, beside each suite (LINUX_KNOWN): it adds to the shared lists.
+        for root, suite in (
+            (args.corpus_root, "corpus"),
+            (UPSTREAM_ROOT, "compile_tests"),
+            (VERIFICATION_LISTS, "verification"),
+        ):
+            files.append(root / LINUX_KNOWN)
+            known.update(load_linux_list(root / LINUX_KNOWN, suite))
+    if verification:
+        files.append(VERIFICATION_KNOWN)
+        known.update(load_known_list(VERIFICATION_KNOWN))
+    return known, files
+
+
+# A pass after a retry alone that still fails the run (run_again_alone), as its detail records it.
+RETRIED_PASS = re.compile(r"^passed alone( in the clone)?; failed with --jobs \(")
+
+
+def rejudge(
+    suite: str, root: Path, data: dict, compiler: Path, known: dict[str, str], platform: str
+) -> list[str]:
+    """--rejudge (OpenSpec change check-rejudge, design D1): the suite's last full results judged again under the
+    known lists as they are now, without building or running a program. A known failure goes back to a failure
+    and the lists then make it known again or not; a program the lists now skip is skipped. Returns the problems
+    that refuse it, with `data` left as it was, or [] with `data`'s results, summary and run record rewritten. A
+    program added since the run is not seen: tools/check/steps.py plans a run when any file of a suite changes."""
+    run = data.get("run")
+    if not isinstance(run, dict) or run.get("version") != RUN_RECORD_VERSION:
+        return ["the results hold no run record of this runner: run the suite again"]
+    problems = []
+    if run.get("suite") != suite or run.get("selection"):
+        problems.append(f"not a full run of suite {suite}: {run.get('suite')} {run.get('selection')}")
+    if run.get("roots", {}).get(suite) != repo_relative(root):
+        problems.append(f"another root: {run.get('roots', {}).get(suite)}, not {repo_relative(root)}")
+    if run.get("compiler_sha256") != file_sha256(compiler):
+        problems.append("the results are from another build of the compiler")
+    if run.get("runner_sha256") != file_sha256(Path(__file__).resolve()):
+        problems.append("the runner has changed since the run")
+    if run.get("platform", "windows") != platform:
+        problems.append(f"the run was judged for {run.get('platform', 'windows')}, not {platform}")
+    if run.get("record"):
+        problems.append("a recording is not judged again")
+    if problems:
+        return problems
+    started = float(run.get("started", 0))
+    names_of = folder_names()
+    results = [dict(r) for r in data.get("results", [])]
+    for r in results:
+        key = f"{r['suite']}:{r['test']}"
+        # The program's path as the run took it: a script's test is <name>.<script>.bas, which is no file.
+        bas = root / f"{r['test'].removesuffix(' [fixes on]')}.bas"
+        if not bas.is_file() and not (suite == "corpus" and script_of(bas)):
+            problems.append(f"{key}: no longer a program")
+            continue
+        changed = [p.name for p in program_inputs(suite, bas, names_of(bas.parent)) if p.stat().st_mtime > started]
+        if changed:
+            problems.append(f"{key}: changed after the run started: {', '.join(sorted(changed))}")
+            continue
+        reason = known.get(key, "")
+        if skipped_on(platform, reason):
+            r.update(kind="skipped", status="SKIP", stage="skipped", detail=reason)
+            continue
+        if r["status"] == "SKIP":
+            problems.append(f"{key}: no longer skipped, and never run")
+            continue
+        if r["status"] == "KFAIL":
+            r["status"] = "FAIL"
+            cut = r["detail"].rfind(" (known: ")
+            if cut >= 0:
+                r["detail"] = r["detail"][:cut]
+        if r["status"] == "FAIL" and key in known:
+            r["status"] = "KFAIL"
+            r["detail"] += f" (known: {known[key]})"
+    if problems:
+        return problems
+    summary: dict = {}
+    for r in results:
+        s = summary.setdefault(r["suite"], {"PASS": 0, "FAIL": 0, "KFAIL": 0})
+        s[r["status"]] = s.get(r["status"], 0) + 1
+    data["results"] = results
+    data["summary"] = summary
+    return []
 
 
 def qbasic_sources(qb_root: Path) -> list[Path]:
@@ -3153,6 +3259,44 @@ def known_on_pass_list(results: list[Result]) -> list[str]:
     return sorted(f"{r.suite}:{r.test}" for r in results if r.status == "KFAIL")
 
 
+def rejudge_main(args, qb_root: Path) -> int:
+    """--rejudge: rejudge() on the suite's results file, rewritten with the time and the lists it was judged by."""
+    if args.suite == "corpus":
+        root = args.corpus_root.resolve()
+    elif args.suite == "verification":
+        root = args.verification_root.resolve()
+    else:
+        root = (args.compile_tests or qb_root / "tests" / "compile_tests").resolve()
+    source = args.results.resolve() / f"results-{args.suite}.json"
+    if not source.is_file():
+        print(f"no full run of suite {args.suite} to judge again: {source}", file=sys.stderr)
+        return 2
+    data = json.loads(source.read_text(encoding="utf-8"))
+    known, files = known_lists(args, verification=args.suite == "verification")
+    problems = rejudge(args.suite, root, data, args.qb64, known, platform_of(args))
+    if problems:
+        for p in problems:
+            print(f"{source.name}: {p}", file=sys.stderr)
+        print("--rejudge refused: run the suite", file=sys.stderr)
+        return 2
+    data["run"]["rejudged"] = {
+        "at": round(time.time(), 3),
+        "lists": {repo_relative(f.resolve()): file_sha256(f) if f.is_file() else None for f in files},
+    }
+    source.write_text(json.dumps(data, indent=1))
+    retried = []
+    for r in data["results"]:
+        key = f"{r['suite']}:{r['test']}"
+        if r["status"] != "PASS":
+            print(f"[rejudge] {r['status']} {key}  {r['stage'] + ': ' if r['stage'] else ''}{r['detail']}")
+        elif RETRIED_PASS.match(r["detail"]) and not r["detail"].endswith("(timing-sensitive)"):
+            retried.append(key)
+            print(f"note: {key} failed with --jobs and passed alone; find out why")
+    print(json.dumps(data["summary"]))
+    print(f"results: {source}")
+    return 0 if all(s["FAIL"] == 0 for s in data["summary"].values()) and not retried else 1
+
+
 def main() -> int:
     """Runs the selected suites and writes the results file.
 
@@ -3257,6 +3401,14 @@ def main() -> int:
         action="store_true",
         help="corpus, compile and verification: run nothing; print every file the selected programs' runs read "
         "(repo-relative, one per line), for the check of tools/check/steps.py's globs",
+    )
+    ap.add_argument(
+        "--rejudge",
+        action="store_true",
+        help="corpus, compile and verification: run nothing; judge the suite's last full run "
+        "(results-<suite>.json under --results) again under the known lists as they are now, rewrite it and "
+        "exit as the run would; refused when the run is of another compiler build or runner, or a program "
+        "changed after it started",
     )
     ap.add_argument(
         "--check-list",
@@ -3376,6 +3528,21 @@ def main() -> int:
     if args.pass_list and not args.list:
         print("--pass-list takes --list", file=sys.stderr)
         return 2
+    if args.rejudge and (
+        args.suite not in ("corpus", "compile", "verification")
+        or args.check_list
+        or args.list
+        or args.names
+        or args.category
+        or args.glob != "*.bas"
+        or args.record
+    ):
+        print(
+            "--rejudge takes --suite corpus, compile or verification, and no --check-list, --list, program "
+            "names, --category, --glob or --record",
+            file=sys.stderr,
+        )
+        return 2
     if args.check_list and (
         args.suite not in ("corpus", "compile", "verification")
         or args.list
@@ -3397,12 +3564,7 @@ def main() -> int:
     if args.record and args.platform != HOST_PLATFORM:
         print("--record runs the programs: its --platform must be the host's", file=sys.stderr)
         return 2
-    known = load_known_failures(args.known_failures)
-    if args.platform == "linux":
-        # What cannot pass on Linux, beside each suite (LINUX_KNOWN): it adds to the shared lists.
-        known.update(load_linux_list(args.corpus_root / LINUX_KNOWN, "corpus"))
-        known.update(load_linux_list(UPSTREAM_ROOT / LINUX_KNOWN, "compile_tests"))
-        known.update(load_linux_list(VERIFICATION_LISTS / LINUX_KNOWN, "verification"))
+    known, _ = known_lists(args, verification=False)
     # The check of the recordings: a Linux sidecar equal to its shared recording is one to delete.
     for sidecar in equal_sidecars([args.corpus_root, UPSTREAM_ROOT, args.verification_root]):
         print(f"{repo_relative(sidecar.resolve())} equals its shared recording: delete it", file=sys.stderr)
@@ -3413,6 +3575,8 @@ def main() -> int:
     if not args.qb64.is_file():
         print(f"compiler not found: {args.qb64}", file=sys.stderr)
         return 2
+    if args.rejudge:
+        return rejudge_main(args, qb_root)
     if args.check_list:
         if args.suite == "corpus":
             root = args.corpus_root.resolve()
@@ -3552,7 +3716,7 @@ def main() -> int:
                 tests = [p for p in tests if p.resolve() in wanted]
             if not recording_verification:
                 # A failure of a program that tests/verification/known.list names is a known one.
-                known.update(load_known_list(VERIFICATION_LISTS / "known.list"))
+                known.update(load_known_list(VERIFICATION_KNOWN))
         elif suite == "addprefix":
             tests = addprefix_sources(qb_root)
         else:

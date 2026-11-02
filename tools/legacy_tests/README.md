@@ -354,6 +354,18 @@ run those programs with the same options, so running the lists too ran 765 progr
 as the list runs of that build passed; about a second each. The run without folding, the differential pass list
 (another corpus root) and the call-site check are still run.
 
+**A full run judged again** (`--rejudge`, corpus, compile and verification suites, OpenSpec change `check-rejudge`):
+builds and runs nothing; reads the suite's last full results, `results-<suite>.json`, and judges them again under the
+known lists as they are now (`known_failures.txt`, with `--platform linux` each suite's `known.linux.list`, for the
+verification suite `tests\verification\known.list`; `known_lists`, which a run reads them through too). A known
+failure goes back to a failure, which the lists then mark known or not; a program the lists now skip is skipped. It
+rewrites the results, the summary and `run.rejudged` (the time and the lists' hashes), prints the failures and the
+summary line, and exits as the run would (0, or 1 with a failure or a pass only alone that is not timing-sensitive).
+It refuses with exit code 2, writing nothing, results of another runner or compiler build, of another root or
+platform, of a recording, and those where a program's files changed after the run started, a program is gone, or a
+program the run skipped is no longer skipped. `--check-list` and `counts.py` read a re-judged file as the run it came
+from. About 0.6 s for the compile suite (2026-11-02). `check` plans it by itself (`tools\check\README.md`).
+
 **The count blocks of the test READMEs** (`counts.py`, `study\archive\31` item 2): `python tools\legacy_tests\counts.py`
 rewrites the text between `<!-- counts:NAME -->` and `<!-- /counts:NAME -->` in `tests\corpus\README.md`,
 `tests\upstream\README.md`, `tests\differential\README.md` and `tests\verification\README.md`, and nothing outside

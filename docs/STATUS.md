@@ -57,13 +57,12 @@ Nothing is waiting: names of more than 40 characters were answered on 2026-11-02
 
 ## Next
 
-1. **`linux-sync-per-tree` into `main`**: `just merge` ran in the worktree `..\QB64Rust-full` at `7334117`
-   (the branch is one commit on `main`, so that is the merged tree; 2026-11-02). Its Linux steps found the
-   compile suite looking for the reference clone beside the WSL copy (fixed: `tools\linux\run.sh` exports
-   `QB64RUST_TREE`) and `v24_x93`, `x96` refused 8 TB in WSL (`known.linux.list`, `varies`); the whole upstream
-   suite failed on its two decided divergences, `const/math_funcs` (D-031) and `noprompt-continue-fatal` (D-052),
-   which no list marked known (now in `tools\legacy_tests\known_failures.txt`); once those are
-   committed, `just merge` again at the new commit. Its numbers replace the block below.
+1. **`linux-sync-per-tree` into `main`**: its merge run passes (numbers below); the merge is the user's.
+   **`check-rejudge`** is built (2026-11-02): `--rejudge` judges a whole suite's stored results under today's known
+   lists in under a second, `check` plans it when only those lists changed, a merge's passes stand for the next
+   merge (whose Linux sync then follows git), and `counts.py` judges the pass lists in seconds (200 s before);
+   **archived 2026-11-02** (`openspec\changes\archive\2026-11-02-check-rejudge\`). The runner changed, so the next
+   `just full` runs everything once.
 2. **`TODO.md` row 1, the 40-character limit on names**, next as an OpenSpec change: always QB64pe's error, no
    switch (`DECISIONS.md` 2026-11-02).
 3. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
@@ -104,22 +103,22 @@ long run, it is this, and it passes alone.
 
 ## Numbers at the last full runs
 
-The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Branch `mb5`** (pull
-request 18, 2026-10-26): the full set on the merged tree `de49cfb`, no pass cache, `--jobs 8 --build-cache`, the
-three full suites with `--coverage`.
+The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Branch
+`linux-sync-per-tree`** (2026-11-02): `just merge` in the worktree at `7334117`, then at `df67128` the steps its
+fix touched (`upstream-whole`, `upstream-list`, `linux-upstream`) and `counts.py`; `linux-verification`'s two
+failures re-judged against the new `known.linux.list`, not run again.
 
 | Run | Result |
 |---|---|
-| Tier 1, fmt, clippy | 624 pass (79 ignored), clean |
-| CLI tests that build | 77 pass |
-| Full corpus | 516 pass, 5 known failures, none failing |
-| `slice.list` judged from it / without folding | 496 of 496 / 496 of 496 |
-| Full upstream | 402 pass; 1 failure out of scope (`const/math_funcs`, D-031); 1 known failure; `pass.list` 402 of 402 |
-| Full verification | 3892 pass, 63 known failures, 1 failure (`v59_g_readback`, the machine's OpenGL viewport, now masked by a `.normalize` sidecar); `pass.list` 3889 of 3890 (`v29_a_sound_queue`, timing-sensitive, passed alone) |
-| Built-ins no run reaches | those of `tests\never_run.list` (`builtin_runs.py --check`) |
-| Differential pass list | 59 of 59 |
-| Call-site check | 2649 of 2649 equal |
-| Coverage of Civil War Strategy's scripts | pass |
+| Tests (nextest), fmt, clippy, doc | 686 pass (140 skipped), clean |
+| CLI tests that build | 120 pass |
+| Full corpus | 514 pass, 7 known failures, none failing |
+| `slice.list` judged from it / without folding | 494 of 494 / 494 of 494 |
+| Full upstream | 401 pass, 3 known failures (`const/math_funcs` D-031, `noprompt-continue-fatal` D-052, `http/read_example`); `pass.list` 401 of 401 |
+| Full verification | 4149 pass, 203 known failures, none failing; `pass.list` 4139 of 4139 |
+| qbasic / differential / call-site check | 143 of 143 / 59 of 59 / 2650 of 2650 equal |
+| Built-ins, coverage of Civil War Strategy's scripts, sandbox | pass; sandbox 7 of 7 |
+| Linux: tier 1 / corpus / upstream / verification | 694 pass (116 ignored) / 492 pass, 9 known, 20 skipped / 399 pass, 5 known / 4128 pass, 207 known, 17 skipped |
 
 ## Known bugs
 

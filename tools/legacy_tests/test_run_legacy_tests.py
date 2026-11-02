@@ -425,6 +425,117 @@ class RunAgainAlone(unittest.TestCase):
         self.assertEqual(by_test[0][0].detail, "timed out (alone; with --jobs: output: differs)")
 
 
+class Rejudge(unittest.TestCase):
+    """rejudge (--rejudge, OpenSpec change check-rejudge, design D1): stored results judged again under the known
+    lists as they are now, without a run."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        base = Path(self.tmp.name)
+        self.addCleanup(self.tmp.cleanup)
+        self.root = (base / "verification").resolve()
+        self.root.mkdir()
+        for name in ("a", "b", "c"):
+            (self.root / f"{name}.bas").write_bytes(b"PRINT 1\n")
+            (self.root / f"{name}.out.txt").write_bytes(b"1\n")
+            os.utime(self.root / f"{name}.bas", (time.time() - 120, time.time() - 120))
+            os.utime(self.root / f"{name}.out.txt", (time.time() - 120, time.time() - 120))
+        self.compiler = base / "qb64rust.exe"
+        self.compiler.write_bytes(b"compiler build 1")
+
+    def data(self, statuses: dict, **run) -> dict:
+        record = {
+            "version": rlt.RUN_RECORD_VERSION,
+            "suite": "verification",
+            "selection": {},
+            "roots": {"verification": rlt.repo_relative(self.root)},
+            "record": False,
+            "no_fold": False,
+            "compiler_sha256": rlt.file_sha256(self.compiler),
+            "runner_sha256": rlt.file_sha256(Path(rlt.__file__).resolve()),
+            "started": time.time() - 60,
+        }
+        record.update(run)
+        results = [
+            {"suite": "verification", "test": n, "kind": "output", "status": s, "stage": "result", "detail": d}
+            for n, (s, d) in statuses.items()
+        ]
+        return {"run": record, "results": results, "summary": {}}
+
+    def judge(self, data: dict, known: dict, platform: str = "windows") -> list[str]:
+        return rlt.rejudge("verification", self.root, data, self.compiler, known, platform)
+
+    def test_a_failure_made_known(self):
+        data = self.data({"a": ("PASS", ""), "b": ("FAIL", "differs")})
+        self.assertEqual(self.judge(data, {"verification:b": "varies: 8 TB"}), [])
+        b = data["results"][1]
+        self.assertEqual((b["status"], b["detail"]), ("KFAIL", "differs (known: varies: 8 TB)"))
+        self.assertEqual(data["summary"], {"verification": {"PASS": 1, "FAIL": 0, "KFAIL": 1}})
+
+    def test_a_known_failure_taken_off_the_lists(self):
+        data = self.data({"a": ("KFAIL", "differs (known: D-004)"), "b": ("PASS", "")})
+        self.assertEqual(self.judge(data, {}), [])
+        a = data["results"][0]
+        self.assertEqual((a["status"], a["detail"]), ("FAIL", "differs"))
+        self.assertEqual(data["summary"]["verification"]["FAIL"], 1)
+
+    def test_a_reason_changed_is_the_new_one(self):
+        data = self.data({"a": ("KFAIL", "differs (known: old)")})
+        self.judge(data, {"verification:a": "new"})
+        self.assertEqual(data["results"][0]["detail"], "differs (known: new)")
+
+    def test_a_changed_program_refuses(self):
+        data = self.data({"a": ("PASS", ""), "b": ("FAIL", "differs")})
+        os.utime(self.root / "b.out.txt")
+        problems = self.judge(data, {"verification:b": "varies"})
+        self.assertEqual(problems, ["verification:b: changed after the run started: b.out.txt"])
+        self.assertEqual(data["results"][1]["status"], "FAIL", "refused: nothing rewritten")
+
+    def test_another_build_or_runner_refuses(self):
+        self.assertIn(
+            "the results are from another build of the compiler",
+            self.judge(self.data({"a": ("PASS", "")}, compiler_sha256="0"), {}),
+        )
+        self.assertIn(
+            "the runner has changed since the run",
+            self.judge(self.data({"a": ("PASS", "")}, runner_sha256="0"), {}),
+        )
+        self.assertIn(
+            "the run was judged for windows, not linux", self.judge(self.data({"a": ("PASS", "")}), {}, "linux")
+        )
+
+    def test_skips_follow_the_lists(self):
+        data = self.data({"a": ("FAIL", "x"), "b": ("SKIP", "windows: cmd")}, platform="linux")
+        self.assertEqual(self.judge(data, {"verification:a": "windows: PowerShell", "verification:b": "windows: cmd"}, "linux"), [])
+        self.assertEqual(data["results"][0]["status"], "SKIP")
+        # A program skipped by the run and no longer on the lists was never run: a run is needed.
+        data = self.data({"b": ("SKIP", "windows: cmd")}, platform="linux")
+        self.assertEqual(self.judge(data, {}, "linux"), ["verification:b: no longer skipped, and never run"])
+
+    def test_a_removed_program_refuses(self):
+        data = self.data({"a": ("PASS", ""), "gone": ("PASS", "")})
+        self.assertEqual(self.judge(data, {}), ["verification:gone: no longer a program"])
+
+    def test_the_lists_read_are_named(self):
+        args = SimpleNamespace(
+            known_failures=Path("k.txt"), corpus_root=Path("corpus"), platform="linux"
+        )
+        _, files = rlt.known_lists(args, verification=True)
+        self.assertEqual(
+            [f.name for f in files],
+            ["k.txt", "known.linux.list", "known.linux.list", "known.linux.list", "known.list"],
+        )
+
+    def test_check_list_and_counts_read_a_rejudged_run(self):
+        data = self.data({"a": ("PASS", ""), "b": ("FAIL", "differs")}, started=time.time() - 60)
+        self.judge(data, {"verification:b": "varies"})
+        data["run"]["rejudged"] = {"at": time.time(), "lists": {}}
+        problems, failures, passed = rlt.check_list(
+            "verification", {self.root / "a.bas"}, self.root, data, self.compiler
+        )
+        self.assertEqual((problems, failures, passed), ([], [], 1))
+
+
 class CheckList(unittest.TestCase):
     """check_list (--check-list, study/archive/31 item 3): a pass list judged from a full run's results."""
 
@@ -518,6 +629,23 @@ class CheckList(unittest.TestCase):
             self.check(data, names=("b",))[1],
             [("corpus:g/b", "changed after the run started: b.output")],
         )
+
+    def test_a_folder_listed_once_finds_what_a_glob_finds(self):
+        # check_list lists each folder once (folder_names): the same inputs as a glob per program, a `.files`
+        # folder's files and not the folder itself.
+        b = self.programs["b"]
+        b.with_suffix(".stdin").write_bytes(b"")
+        data_dir = b.with_name("b.files")
+        data_dir.mkdir()
+        (data_dir / "d.dat").write_bytes(b"")
+        (self.root / "g" / "bb.output").write_bytes(b"")
+        names_of = rlt.folder_names()
+        for bas in self.programs.values():
+            self.assertEqual(
+                sorted(rlt.program_inputs("corpus", bas, names_of(bas.parent))),
+                sorted(rlt.program_inputs("corpus", bas)),
+            )
+        self.assertIn(data_dir / "d.dat", rlt.program_inputs("corpus", b, names_of(b.parent)))
 
     def test_a_run_of_another_kind_fails_every_program(self):
         ok = {"a": ("PASS", "output", ""), "b": ("PASS", "output", "")}

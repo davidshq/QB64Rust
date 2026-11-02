@@ -176,7 +176,8 @@ source tree**, named from the tree's folder in lower case (`tools/linux/copy.sh`
 `QB64Rust`, `~/qb64rust-full` for the worktree `QB64Rust-full`. Each copy follows one tree, and rsync is given only the
 files git reports changed since the last sync (the commits since, `git status` now and at the last sync), so an
 unchanged tree is synced in seconds; `--checksum` gives it every file, compared by content (about three minutes
-through `/mnt/c`), the exact form `just merge` and `--force` use. `tools/linux/run.sh <command>` runs a command in
+through `/mnt/c`), the exact form `--force` and a tree's first `just merge` use (a later merge syncs from git's
+list once an earlier merge's sync passed). `tools/linux/run.sh <command>` runs a command in
 the copy of the tree it is run from. Set-up, once:
 
 ```
