@@ -17,4 +17,7 @@ if [[ ! -d "$dest" ]]; then
     echo "no Linux copy at $dest: run tools/linux/sync.sh first" >&2
     exit 1
 fi
+# The Windows tree, for what lives beside it and not in the copy: the reference clone `$QB64RUST_TREE/../QB64pe`,
+# whose tests/compile_tests the upstream suite reads (only read, CLAUDE.md working rule 2).
+export QB64RUST_TREE="$src"
 exec bash -lc "cd '$dest' && $*"

@@ -140,10 +140,12 @@ def linux_whole(suite: str) -> str:
     # Each builds first, so that none runs an older build beside another's: cargo builds nothing when it is current.
     # The sync copies no git-ignored file, so the v37 programs' libraries are built in the copy.
     libs = "python3 verification/v37_lib/build_libs.py && " if suite == "verification" else ""
+    # The compile suite reads the reference clone beside the Windows tree: there is none beside the copy.
+    root = ' --qb-root "$QB64RUST_TREE/../QB64pe"' if suite == "compile" else ""
     return (
         f"{IN_COPY}'cargo build --release --locked && {libs}python3 "
         f"tools/legacy_tests/run_legacy_tests.py --suite {suite} --qb64 target/release/qb64rust --jobs 8 "
-        "--build-cache target/build-cache'"
+        f"--build-cache target/build-cache{root}'"
     )
 
 

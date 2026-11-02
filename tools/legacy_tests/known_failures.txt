@@ -1,6 +1,10 @@
 # Tests whose failure does not fail a run: <suite>:<test>  <reason>
 # They are reported as KFAIL. Remove an entry once the cause is fixed. Details: baselines\README.md.
 compile_tests:http/read_example  downloads www.example.com and compares it with a saved copy; the site changed
+# Off tests\upstream\pass.list for a decided divergence (tests\upstream\README.md, "Fourth list"); listed here so
+# that the whole suite of `just merge` judges them known.
+compile_tests:const/math_funcs  D-031: _COTH is the hyperbolic cotangent (recording: libqb's 2 * EXP(x) - 1)
+compile_tests:noprompt/noprompt-continue-fatal  D-052: division by zero trapped, so Continue goes on (recording: critical error)
 # Golden corpus (tests\corpus\README.md). On Windows each program runs with a console whose stdout goes to a file;
 # PRINT with a comma pads to the next zone by asking that console for the cursor column, which never moves, so
 # the program prints spaces until the timeout (old-runtime bug, study\00 section 5).

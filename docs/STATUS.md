@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-10-28 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-11-02 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -39,8 +39,11 @@ changes (`m5-debug-build-symbols`, `m5-dap-proxy`, `m5-debug-launch`) and `m5b-f
 (`fa91454`, 2026-10-26) merged branch `mb5`: `m5b-format-settings` and `m5b-language-features`. Pull request 19
 (`fa6de03`, 2026-10-28) merged branch `more-stuff`: `qbasic-testcases`, `m6-toolchain`, `m6-compiler-download`,
 `fixes-switch`, `libqb-fixes`, the QB 4.5 oracle (`tools\qb45`) and the purpose, on `libqb-fixes`' closing runs
-and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026-10-28). Branch `docs-and-cuts`,
-after it, holds the answers to `study\38`'s last questions (`DECISIONS.md` 2026-10-28). The extension's last
+and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026-10-28). Pull request 21
+(`012ed21`, 2026-10-29) merged branch `docs-and-cuts`, the answers to `study\38`'s last questions (`DECISIONS.md`
+2026-10-28); pull request 22 (`bfd2aba`, 2026-11-01) merged branch `misc-updates`: `m7-linux`,
+`basic-unit-tests`, `desktop-sandbox` and `testing-reset`. Branch `linux-sync-per-tree` (`7334117`) holds
+`linux-sync-per-tree`, archived 2026-11-02, and `TODO.md`. No OpenSpec change is open. The extension's last
 release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
@@ -50,38 +53,20 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 7).
 
-Nothing is waiting: `study\38`'s last questions were answered on 2026-10-28 (`DECISIONS.md`).
+Nothing is waiting: names of more than 40 characters were answered on 2026-11-02 (`DECISIONS.md`).
 
 ## Next
 
-0. **`testing-reset`** is built (2026-10-31): one entry point, `just quick` / `just full` / `just check <target>`
-   (`tools\check\README.md`), results valid by their inputs, the pass cache keyed on what the build reads,
-   `.external` programs never served, one test binary per crate under nextest; `tools\close\` and the close hooks
-   out. Baseline against now, warm: tier 1 85 s against 53 s (`cargo test`; nextest 16 s and the lists 34 s), the
-   verification list 168 s and 18 min after a pruned build cache against 98 s with no build of a served
-   program (its 107 `.external` programs and 2,478 rejections run each time), the call-site check 170 s against
-   32–42 s, `just quick` after a one-line edit of `sema` 2 min 57 s (177 s), with nothing changed 0.8 s; the numbers in its `design.md`, "Context". The main checkout's close of 2026-10-31
-   was the last of its kind. `just merge` (design D11) holds the old merge set. **Archived 2026-11-01** after `just full`
-   passed every step in a worktree of `aa9ce2df` (`DECISIONS-SMALL.md`); the worktree `..\QB64Rust-full` stays for the
-   next `just full` and the `just merge` of the merge commit. **`linux-sync-per-tree`** is built (2026-11-01)
-   and **archived 2026-11-02**: one WSL copy per source tree (`~/qb64rust`, `~/qb64rust-full`), the sync given
-   only the files git reports changed, about 2 s with nothing changed against 169 s; the exact form (`--checksum`)
-   at the merge and under `--force`. Its `design.md` has the numbers.
-1. **`docs-and-cuts` into `main`**, after pull request 19 (merged). The next merge into `main` runs `just
-   merge` in a worktree of the merge commit (`tools\check\README.md`); its numbers replace the block below.
-2. **`basic-unit-tests`** is built (2026-10-29); its closing runs pass but for `verification\v49_d_clipboard`
-   (the clipboard race of "Known bugs"), then the user's review and `/opsx:archive`:
-   D-012 (a program ended by a runtime error exits with 1, traced; the runner's rule without sidecars),
-   `qb64rust test` and the Test Explorer (`openspec\changes\archive\2026-10-30-basic-unit-tests\`). Its CLI tests that build
-   (`cargo test -p qb64rust-driver --test it unit_tests:: -- --ignored`) run in the `cli` step of `just full`.
-3. **`desktop-sandbox`** is built, reviewed and archived (2026-10-30): the seven desktop built-ins of
-   `tests\never_run.list` (now reason `sandbox`) run in Windows Sandbox, `tests\sandbox\` judged by QB64pe's builds
-   run there, all seven passing with the coverage check (`tools\sandbox\README.md`;
-   `openspec\changes\archive\2026-10-30-desktop-sandbox\`). Only the session's first window gets `_SCREENPRINT`'s
-   keys, so its program clicks itself first (design, "Context"). Its close found and fixed `_SCREENCLICK` under a
-   display scale (D-056, a libqb edit) and taught `close.py` which steps a changed file reaches
-   (`DECISIONS.md` 2026-10-30). Nothing is left of it: commit it with the `v65` work.
-4. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
+1. **`linux-sync-per-tree` into `main`**: `just merge` ran in the worktree `..\QB64Rust-full` at `7334117`
+   (the branch is one commit on `main`, so that is the merged tree; 2026-11-02). Its Linux steps found the
+   compile suite looking for the reference clone beside the WSL copy (fixed: `tools\linux\run.sh` exports
+   `QB64RUST_TREE`) and `v24_x93`, `x96` refused 8 TB in WSL (`known.linux.list`, `varies`); the whole upstream
+   suite failed on its two decided divergences, `const/math_funcs` (D-031) and `noprompt-continue-fatal` (D-052),
+   which no list marked known (now in `tools\legacy_tests\known_failures.txt`); once those are
+   committed, `just merge` again at the new commit. Its numbers replace the block below.
+2. **`TODO.md` row 1, the 40-character limit on names**, next as an OpenSpec change: always QB64pe's error, no
+   switch (`DECISIONS.md` 2026-11-02).
+3. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
    built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
    results are read when they come. M8 next.
 

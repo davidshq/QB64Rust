@@ -400,6 +400,7 @@ Each row is also a candidate fix behind the fixes switch (`DECISIONS.md` 2026-10
 
 | Idea | Source |
 |---|---|
+| **Names of more than 40 characters as a language extension**: QB64pe's limit is its own, not ours (the generated C++ takes any length). Decided against for now: always QB64pe's error (`DECISIONS.md` 2026-11-02). If users ask for it, a switch of its own that the fixes' `all` does not turn on, so that a new project's code still builds with QB64pe | The panel on `TODO.md` row 1, 2026-11-02 |
 | A runner option that runs only the programs whose generated C++ differs from a saved baseline (as `fixes-switch` task 6.1 compared by hand), for a cold pass cache; revisit only if the pass cache, once its miss is fixed, still reruns programs whose C++ is unchanged | `DECISIONS.md` 2026-10-27, the panel |
 | **`qb64rust test` of the SUBs of one program without running its main module**: today a test file includes code split into `.bi`/`.bm`; a large program's SUBs would need its main module left out (or replaced) and its shared variables set up | Non-goals of OpenSpec change `basic-unit-tests`, 2026-10-29 |
 | **Graphics tests in `qb64rust test`**: a test program with a window (`SCREEN`, drawing on the screen), judged by the screen-state dump of `tools\screen`. Today the entry point is `$CONSOLE:ONLY`: images work, drawing on the console is error 5 | Non-goals of `basic-unit-tests` (its design's "Graphics", measured in task 4.5) |
