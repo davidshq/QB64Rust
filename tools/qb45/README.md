@@ -26,6 +26,13 @@ python tools\qb45\qb45.py [--qb45 DIR] [--record] verification\qb45\q45_static_l
   ends at the timeout (60 s, `--timeout`) and the record says so; trap errors with `ON ERROR` and write `ERR`.
 - **The record** (`--record`) is `<name>.qb45.txt` beside the program: BC's messages when it reported an error
   (banner, memory report and bell dropped), the linker's messages when no executable was made, then `OUT.TXT`.
+- **A run in which BC did not finish** is not a result. BC finished when `P.CMP` holds its last line, "Severe
+  Error(s)". It happened once on 2026-11-02: the record held only "(no OUT.TXT)", and the same program ran in
+  full the next time. Such a run is tried once more. If BC still does not finish, nothing is recorded and
+  `qb45.py` exits with 1. The message says whether DOSBox ended early or hung until the timeout, and shows
+  on stderr what BC wrote before it stopped.
+- **A program that was built and ran in time but wrote no `OUT.TXT`** is recorded, with a warning on stderr.
+  Every `q45_` program opens `OUT.TXT` first, so the likely cause is DOSBox ending early; run it again.
 
 The programs are in `verification\qb45\` (`q45_*.bas`), outside the top level that `--suite verification`
 reads, so the QB64pe suites never see them.

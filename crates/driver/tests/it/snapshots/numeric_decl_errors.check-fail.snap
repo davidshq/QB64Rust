@@ -29,10 +29,9 @@ numeric_decl_errors.bas:31:7: error: name already in use: `fb``
 numeric_decl_errors.bas:31:7: note: QB64pe: Name already in use (fb)
 numeric_decl_errors.bas:32:7: error: name already in use: `fz``
 numeric_decl_errors.bas:32:7: note: QB64pe: Name already in use (fz)
-numeric_decl_errors.bas:41:15: error: a parameter cannot be a `_BIT`: `p`
-numeric_decl_errors.bas:44:16: error: a parameter cannot be `_UNSIGNED STRING`
-numeric_decl_errors.bas:44:16: note: QB64pe: Illegal SUB/FUNCTION parameter
-numeric_decl_errors.bas:47:15: error: a parameter cannot be `_UNSIGNED STRING`
-numeric_decl_errors.bas:47:15: note: QB64pe: Illegal SUB/FUNCTION parameter
-numeric_decl_errors.bas:50:11: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
-numeric_decl_errors.bas:53:26: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
+numeric_decl_errors.bas:41:16: error: a parameter cannot be `_UNSIGNED STRING`
+numeric_decl_errors.bas:41:16: note: QB64pe: Illegal SUB/FUNCTION parameter
+numeric_decl_errors.bas:44:15: error: a parameter cannot be `_UNSIGNED STRING`
+numeric_decl_errors.bas:44:15: note: QB64pe: Illegal SUB/FUNCTION parameter
+numeric_decl_errors.bas:47:11: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)
+numeric_decl_errors.bas:50:26: error: a fixed-length string's length must be 1 to 2147483647 (it is read in 32 bits)

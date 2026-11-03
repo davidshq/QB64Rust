@@ -1,0 +1,9 @@
+inside g= 5 
+inside x= 7 
+after 7 
+inside g= 7 
+inside x= 5 
+ 3 
+ 10 
+ 0 
+exit=0

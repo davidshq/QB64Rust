@@ -76,50 +76,20 @@ change adds or changes alone; at a merge into `main` `just merge` runs the whole
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:verification-membership -->
-Of the 4345 programs of `verification\`, `pass.list` names **4139** and `known.list` 206.
+Of the 4360 programs of `verification\`, `pass.list` names **4276** and `known.list` 84.
+
+Of `pass.list`, 127 differ from QB64pe on purpose and are judged by their `diverged\` output.
 
 | Reason in `known.list` | Programs |
 |---|---|
-| `D-003` | 1 |
-| `D-004` | 10 |
-| `D-005` | 1 |
-| `D-006` | 2 |
-| `D-007` | 2 |
-| `D-008` | 3 |
-| `D-009` | 3 |
-| `D-014` | 1 |
+| `D-004` | 1 |
 | `D-016` | 1 |
-| `D-017` | 1 |
-| `D-018` | 3 |
-| `D-019` | 3 |
+| `D-019` | 1 |
 | `D-020` | 1 |
-| `D-021` | 1 |
-| `D-022` | 2 |
-| `D-025` | 2 |
-| `D-026` | 2 |
-| `D-027` | 5 |
-| `D-028` | 2 |
-| `D-029` | 3 |
-| `D-031` | 3 |
-| `D-032` | 1 |
-| `D-034` | 1 |
-| `D-036` | 1 |
-| `D-037` | 2 |
-| `D-040` | 6 |
-| `D-041` | 3 |
-| `D-042` | 11 |
-| `D-043` | 4 |
-| `D-044` | 3 |
-| `D-045` | 1 |
-| `D-046` | 8 |
-| `D-047` | 2 |
-| `D-048` | 12 |
-| `D-049` | 4 |
+| `D-031` | 1 |
+| `D-037` | 1 |
 | `D-050` | 2 |
-| `D-051` | 2 |
-| `D-052` | 7 |
-| `D-055` | 2 |
-| `bug` | 8 |
+| `bug` | 2 |
 | `not recorded` | 4 |
 | `not supported yet` | 65 |
 | `recorded elsewhere` | 1 |

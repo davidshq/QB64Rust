@@ -216,18 +216,9 @@ impl Checker<'_> {
             };
             self.type_above(above, ty, param.node().span())?;
             // A parameter of a user type is the place passed ([`Self::type_arg`]). A library procedure's `_BIT`
-            // parameter is the error of its use (`library.rs`).
-            if let Ty::Bit { .. } = ty
-                && self.prog.proc(id).external.is_none()
-            {
-                // Decided (`DECISIONS.md` 2026-10-08, design D7): the old compiler fails its C++ build for any
-                // procedure with a `_BIT` parameter, called or not (`verification\v21_x20`–`x24`).
-                let shown = show_bytes(self.text(name_tok.span));
-                return Err(self.error(
-                    param.node().span(),
-                    format!("a parameter cannot be a `_BIT`: `{shown}`"),
-                ));
-            }
+            // parameter is the error of its use (`library.rs`). A program's `_BIT` parameter is accepted, as
+            // QB64pe does since `fae85f8e1` (`DECISIONS.md` 2026-11-02): the reference commit fails its C++ build
+            // for one (`verification\v21_x20`–`x24`).
             // A library procedure's parameter is no BASIC variable: a built-in's name is accepted there (QB64pe's
             // `declare_library_header` tests, `BYVAL val AS LONG`).
             if self.prog.proc(id).external.is_none() {
@@ -793,8 +784,18 @@ impl Checker<'_> {
         let fixed = |t: Ty| pty == Ty::Str && matches!(t, Ty::FixedStr(_));
         if let ExprKind::Load(place) = &e.kind
             && let ty = self.prog.place_ty(place)
-            && (ty == pty || fixed(ty) || same_storage(ty, pty))
+            && (ty == pty || fixed(ty) || same_storage(ty, pty) || same_bits(ty, pty))
         {
+            // An element of a `_BIT` array is packed, so it has no address: "Cannot pass _BIT array offsets"
+            // (`qb64pe.bas` 12172, before and after `fae85f8e1`; measured with both, `verification\v67_b_elements`).
+            // In parentheses it is a copy, as for any type.
+            if !parenthesized
+                && matches!(ty, Ty::Bit { .. })
+                && let Place::Element { .. } = place
+            {
+                let msg = "an element of a `_BIT` array cannot be passed to a `_BIT` parameter of its width";
+                return Err(self.error(e.span, msg));
+            }
             match (parenthesized, place) {
                 (false, _) => {
                     args.push(Arg::Ref(place.clone()));
@@ -816,7 +817,11 @@ impl Checker<'_> {
             }
         }
         let made = to_u32(self.prog.vars.len());
-        args.push(Arg::Temp(self.store(e, pty)?, made));
+        // A copy for a `_BIT` parameter is its storage type, the value not cut to the parameter's width: `s 100` to
+        // `_BIT * 5` is 100 in the procedure until it is stored there (QB64pe after `fae85f8e1` writes
+        // `pass1=100` into an `int32`; measured with it, `verification\v67_a_values`).
+        let to = if let Ty::Bit { .. } = pty { pty.storage() } else { pty };
+        args.push(Arg::Temp(self.store(e, to)?, made));
         Ok(())
     }
 
@@ -1107,6 +1112,13 @@ fn ordinal(n: usize) -> String {
 fn same_storage(place: Ty, param: Ty) -> bool {
     let bit = |t: Ty| matches!(t, Ty::Bit { .. });
     place.is_int() && param.is_int() && !bit(place) && !bit(param) && place.int_bits() == param.int_bits()
+}
+
+/// Whether a `_BIT` place is passed by reference to a `_BIT` parameter of another signedness: the same width, as
+/// QB64pe after `fae85f8e1` compares a `_BIT` argument without `_UNSIGNED` (`qb64pe.bas` 12136; measured with it,
+/// `verification\v67_c_signs`: a store of 6 through `_UNSIGNED _BIT * 3` leaves a `_BIT * 3` variable 6).
+fn same_bits(place: Ty, param: Ty) -> bool {
+    matches!((place, param), (Ty::Bit { width: a, .. }, Ty::Bit { width: b, .. }) if a == b)
 }
 
 /// What the old compiler compares between the element type of an array argument and of its parameter

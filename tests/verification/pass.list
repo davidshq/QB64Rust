@@ -4270,3 +4270,9 @@ v63_e2_division_types_handler
 v64_a1_erase_dynamic_member_list
 v64_a2_erase_dynamic_member_alone
 v66_d06_const_sin_infinite_const
+v67_a_values
+v67_b_elements
+v67_c_signs
+v67_d_alias
+v67_e_wide
+v67_f_element_paren

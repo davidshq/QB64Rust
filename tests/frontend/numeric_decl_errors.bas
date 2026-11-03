@@ -1,7 +1,7 @@
 ' TEST: check-fail
 $CONSOLE:ONLY
 ' Declarations and literals of the new numeric types that the old compiler rejects (m2-numeric-types tasks 4.1 to
-' 4.3; verification\v21_x01-x19, x20-x30, x31-x34, x35-x48): each line one error, none "not supported yet". A
+' 4.3; verification\v21_x01-x19, x25-x30, x31-x34, x35-x48): each line one error, none "not supported yet". A
 ' fixed-length string parameter's length is read in 32 bits: 4294967296 is 0. A `_BIT` FUNCTION is declared, but
 ' every call of it is "Name already in use".
 DIM s AS _UNSIGNED SINGLE
@@ -37,9 +37,6 @@ END FUNCTION
 
 FUNCTION fz`
 END FUNCTION
-
-SUB bitparam (p AS _BIT * 3)
-END SUB
 
 SUB ustring (t AS _UNSIGNED STRING)
 END SUB

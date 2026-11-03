@@ -1,0 +1,5 @@
+
+Cannot pass _BIT array offsets
+Caused by (or after):S A ( 1 )
+LINE 5:s a(1)
+exit=1

@@ -1,0 +1,6 @@
+variable: 0  0  0  0 
+member: 0  0  0 
+element: 0  0 
+local: 0  0 
+local: 0  0 
+assigned: 97  98  32  32 

@@ -494,6 +494,15 @@ Small programs behind `study\09`, `study\10` and later measurements:
   arguments left out: `SCREEN(1, , 1)` is "Incorrect number of arguments", `LBOUND(a, )` and `UBOUND(a, )` "Syntax
   error"; the middle or first argument of `_LOADIMAGE`, `_LOADFONT`, `_UPRINTWIDTH`, `_UCHARPOS`, `_SNDNEW`,
   `_INSTRREV`, `_INPUTBOX$` and `_OPENFILEDIALOG$` may be left out
+- `v67*`: `_BIT` parameters (2026-11-02, `QB64PE-DIVERGENCES.md` D-057). The reference commit fails its C++ build
+  for every program but `b`, which it rejects at line 5 ("Cannot pass _BIT array offsets"). So the recordings say
+  `(not compiled)`, and each program is judged by its `tests\verification\diverged\` sidecar. Each sidecar equals
+  the output of a build of upstream's `main` at `8070eebd2`, which has the fix `fae85f8e1`. `a_values`: a copy
+  is not cut to the width until stored (`s 100` to `_BIT * 5` prints 100, then 4). `c_signs`: a `_BIT * 3`
+  variable is passed by reference to an `_UNSIGNED _BIT * 3` parameter, and is left holding 6; another width, a
+  `LONG` and parentheses give copies. `d_alias`: the parameter is the variable itself, also a SHARED one, from a
+  SUB, a FUNCTION and a `DECLARE`d SUB. `e_wide`: 33 and 40 bits. `f_element_paren`: an element in parentheses
+  is a copy
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see
@@ -508,6 +517,20 @@ of an element of a `TYPE` array, stored, read, swapped (a FUNCTION in it called 
 `q45_base1_zero_dim` `DIM x(0)` and `q45_base1_zero` `REDIM x(0)` under `OPTION BASE 1`: "Lower bound exceeds upper
 bound" at compile time, and `REDIM x(n)` with `n` = 0 error 9 at run time, the array then not allocated (QB64pe:
 `0 TO 0` for the literal, error 5 for the variable, `v64_b4`, `b5`; `DIVERGENCES-QB45.md` Q-016).
+
+Seven programs check the `DIVERGENCES-QB45.md` rows that were believed, not measured, and one row they led to
+(2026-11-02):
+- `q45_select_recursion` (Q-002): `SELECT CASE` in a recursive FUNCTION. `rec(1) = 1`; QB64pe gives 2.
+- `q45_int_overflow` (Q-004): INTEGER and LONG arithmetic beyond their range. Error 6 each time, also for
+  `l& = i% + 1`.
+- `q45_fixed_init` (Q-005): the first bytes of a fixed-length string. NUL bytes, as in QB64pe.
+- `q45_string_empty` (Q-007): `STRING$(n, "")`. Error 5, also for `n` = 0.
+- `q45_const_pow` (Q-008): `^` in a `CONST`. "Syntax error", also for a single `^`; 64 at run time.
+- `q45_implicit_sub` (Q-009): an array used without `DIM` in a SUB, a FUNCTION and a `SUB … STATIC`. A warning,
+  "Array not dimensioned", then an array 0 to 10 kept between calls. In the plain SUB the first read gave
+  1.234183E-38, not 0.
+- `q45_implicit_main` (Q-017): the same in the main module. The same warning; the array is 0 to 10 and starts
+  at 0.
 
 Each program's recorded output lies beside it (`<name>.out.txt` and the like). `run.sh` starts the runner's
 `--suite verification`, which records them (`tools\legacy_tests\README.md`).
