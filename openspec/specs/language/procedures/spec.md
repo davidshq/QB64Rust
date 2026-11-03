@@ -10,12 +10,12 @@ inside a procedure can see. Every rule is measured with `qb64pe.exe`; the scenar
 ### Requirement: Procedure definitions
 A program SHALL be able to define procedures with `SUB name [(params)]` … `END SUB` and
 `FUNCTION name[suffix] [(params)]` … `END FUNCTION`, before or after main-module code. A parameter SHALL be
-`name[suffix] [AS type]` with a scalar type, of any numeric type other than `_BIT` or `STRING`, an array
-(`name[suffix]() [AS type]`, requirement "Array parameters") or a user type (requirement "User-type
+`name[suffix] [AS type]` with a scalar type, of any numeric type (`_BIT` and `_BIT * n` included) or `STRING`, an
+array (`name[suffix]() [AS type]`, requirement "Array parameters") or a user type (requirement "User-type
 parameters"); without a suffix or `AS` clause its type SHALL be the default type of its name
-(`language/default-types`). A `_BIT` or `_BIT *
-n` parameter (by `AS` or by suffix) SHALL be a compile error: the old compiler accepts it but its C++ build fails,
-called or not (`DECISIONS.md`, 2026-10-08). A parameter declared `STRING * n` or `name$n` SHALL be a `STRING`
+(`language/default-types`). A `_BIT` or `_BIT * n` parameter (by `AS` or by suffix) SHALL be accepted as QB64pe
+after `fae85f8e1` accepts it. The reference commit fails its own C++ build for one (`QB64PE-DIVERGENCES.md`
+D-057). A parameter declared `STRING * n` or `name$n` SHALL be a `STRING`
 parameter, its value neither cut nor padded, except that `LEN` of the parameter itself SHALL be the constant n, as
 in the old compiler (`verification\v21_c_fixed_args`, `v21_f_fixed_param`); an n that is 0 or negative once read
 in 32 bits, and `_UNSIGNED STRING` with or without a length, SHALL be compile errors on a parameter, as in the old
@@ -43,8 +43,8 @@ NOT share a name.
 - **THEN** it prints ` 4294967295 `
 
 #### Scenario: Bit parameter
-- **WHEN** a program defines `SUB s (x AS _BIT * 5)`, called or not
-- **THEN** it is a compile error
+- **WHEN** `b AS _BIT * 5` holds 3 and is passed to `SUB s (x AS _BIT * 5)`, which prints `x` and sets `x = 17`
+- **THEN** the SUB prints ` 3 ` and `b` is -15 afterwards (17 cut to 5 signed bits; `verification\v21_x20`, D-057)
 
 #### Scenario: Unsigned string parameter
 - **WHEN** a program defines `SUB q (t AS _UNSIGNED STRING)`
@@ -86,10 +86,15 @@ passed by reference: the procedure's assignments to the parameter change the var
 element or member of the parameter's width but the other signedness, written plainly, SHALL be passed by reference
 too, and so SHALL an `_INTEGER64` or `_UNSIGNED _INTEGER64` one to an `_OFFSET` parameter of either signedness and
 the reverse, as the old compiler does (the procedure sees the same bytes read with the parameter's type;
-`verification\v21_b_passing`, `v21_g_passing_places`); in parentheses it is a copy. A `_BIT` variable SHALL always be passed
-as a copy, also to a parameter of its storage width. Any other argument SHALL be converted as for an assignment to
-the parameter's type and passed as a temporary copy whose changes are lost. A string variable passed to a string
-parameter SHALL be passed by reference.
+`verification\v21_b_passing`, `v21_g_passing_places`); in parentheses it is a copy. A `_BIT` variable SHALL be
+passed by reference only to a `_BIT` parameter of its width, of either signedness, written plainly. To any other
+parameter, also one of its storage width, it SHALL be passed as a copy. An element of a `_BIT` array SHALL be a
+compile error where a variable would be passed by reference, as in the old compiler ("Cannot pass _BIT array
+offsets", `verification\v67_b_elements`). A copy for a `_BIT` parameter SHALL be converted to the parameter's
+storage type (a 32-bit integer up to 32 bits, a 64-bit one above), not cut to its width: `s 100` to a `_BIT * 5`
+parameter is 100 in the procedure until a store there cuts it (`v67_a_values`, D-057). Any other argument SHALL
+be converted as for an assignment to the parameter's type and passed as a temporary copy whose changes are lost.
+A string variable passed to a string parameter SHALL be passed by reference.
 
 #### Scenario: By reference
 - **WHEN** `n` is a LONG holding 1 and `SUB bump (x AS LONG)` does `x = x + 1`, called as `CALL bump(n)` and as
@@ -124,6 +129,14 @@ parameter SHALL be passed by reference.
 #### Scenario: Bit variable passes a copy
 - **WHEN** `b AS _BIT * 5` holds -16 and is passed to `SUB show (x AS LONG)`, which sets `x = 5`
 - **THEN** `b` is still -16 afterwards
+
+#### Scenario: Bit variable of the other signedness
+- **WHEN** `b AS _BIT * 3` holds 1 and is passed to `SUB t (x AS _UNSIGNED _BIT * 3)`, which sets `x = 6`
+- **THEN** `PRINT b` prints ` 6 ` afterwards, a value outside `_BIT * 3` (`verification\v67_c_signs`)
+
+#### Scenario: Bit array element
+- **WHEN** `a(1)` of `DIM a(3) AS _BIT * 5` is passed to `SUB s (x AS _BIT * 5)` as `s a(1)`
+- **THEN** it is a compile error; `s (a(1))` passes a copy (`verification\v67_b_elements`, `v67_f_element_paren`)
 
 ### Requirement: Procedure scopes
 Inside a procedure a name SHALL refer to, in this order: a parameter; the FUNCTION's result (when assigned); a

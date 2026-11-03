@@ -1,7 +1,8 @@
 # The sandbox family
 
-Programs of the built-ins that act on the desktop, the clipboard or the console, run in Windows Sandbox by
-`tools\sandbox\run.py` (`tools\sandbox\README.md`; spec `testing/desktop-sandbox`; OpenSpec change `desktop-sandbox`).
+Programs of the built-ins that act on the desktop, the clipboard or the console, run by `tools\sandbox\run.py` in
+the test VM, or in Windows Sandbox with `--where sandbox` (`tools\sandbox\README.md`; spec `testing/desktop-sandbox`;
+OpenSpec changes `desktop-sandbox` and `windows-vm`).
 Each is the program of a built-in that `tests\never_run.list` gives the reason `sandbox`.
 
 A program writes what it reads back to `out.txt` in its own folder, not to standard output (`_CONSOLEFONT` needs a
@@ -23,3 +24,8 @@ that depends on them is printed as a test (within 1 pixel), not as a value. `<na
 **The recordings** are QB64pe's: `python tools\sandbox\run.py --record`, `qb64pe.exe` of the reference clone at
 `16f629784e` (`main`, version 4.7.0-GLFW), its builds run in Windows Sandbox on 2026-10-30, every one exiting 0.
 Each was read against what its program means to show: values read back, none of the machine's.
+
+**Where they were made:** all seven in Windows Sandbox, on 2026-10-30. None was recorded again in the test VM.
+In the VM with its 4 processors, all seven match them on 2026-11-03: the new compiler's builds in 14 full runs in
+a row, and QB64pe's builds in 4. With 2 processors, `mousemove_readback` failed in about half the runs for both
+compilers (`openspec\changes\archive\2026-11-03-windows-vm\design.md`, "Context", task 3.2).

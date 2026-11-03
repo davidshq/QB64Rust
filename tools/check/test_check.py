@@ -179,6 +179,12 @@ class RealSteps(unittest.TestCase):
                 with self.subTest(step=step.name, glob=g):
                     self.assertTrue(check.matching((g,), self.files), f"{step.name}: {g} matches no file")
 
+    def test_the_sandbox_step_takes_the_vm_scripts(self):
+        # The family runs in the test VM: a change of its runner runs the step again.
+        inputs = steps.BY_NAME["sandbox"].inputs
+        self.assertIn("tools/winvm/**", inputs)
+        self.assertTrue(check.matching(("tools/winvm/**",), ["tools/winvm/run.ps1"]))
+
     def test_the_v37_libraries_are_built_before_the_verification_programs(self):
         # The quick layer runs the verification programs a change reaches, so it builds them too.
         self.assertIn("v37-libs", steps.BY_NAME["verification"].needs)

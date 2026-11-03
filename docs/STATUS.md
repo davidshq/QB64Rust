@@ -67,6 +67,11 @@ Nothing is waiting: names of more than 40 characters were answered on 2026-11-02
 2. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
    built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
    results are read when they come. M8 next.
+3. **`windows-vm`** (OpenSpec change, archived 2026-11-03): the sandbox family runs in a Hyper-V test VM by
+   default, with nothing on the host's screen. The VM is made and the family passes there, 7 of 7, in 14 full runs in a row.
+   It also passes under load, so its `just full` step no longer runs alone, and still passes in Windows Sandbox
+   (`--where sandbox`). All tasks are done, and its spec is merged into `testing/desktop-sandbox`. Trying
+   `create.ps1 -FromBase` is deferred to the VM's first expiry, about 2027-02-01 (`SOMEDAY.md`).
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a

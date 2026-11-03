@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
-"""The sandbox family, run in Windows Sandbox (spec testing/desktop-sandbox; OpenSpec change desktop-sandbox, design D3).
+"""The sandbox family, run in the test VM or in Windows Sandbox (spec testing/desktop-sandbox; OpenSpec changes
+desktop-sandbox, design D3, and windows-vm, design D5).
 
-    python tools/sandbox/run.py              # build with qb64rust --coverage, run, judge, check coverage
-    python tools/sandbox/run.py --record     # build with qb64pe.exe, run, write the recordings
+    python tools/sandbox/run.py                    # build with qb64rust --coverage, run, judge, check coverage
+    python tools/sandbox/run.py --record           # build with qb64pe.exe, run, write the recordings
     python tools/sandbox/run.py --glob 'screenmove_*'
+    python tools/sandbox/run.py --where sandbox    # in Windows Sandbox instead of the test VM
 
 The programs of tests/sandbox/ act on the desktop (_SCREENMOVE, _MOUSEMOVE, _SCREENCLICK, ...), so they run in a
-throwaway sandbox, never on the host's desktop. The runner builds each into target/sandbox/run/bin/, writes
+throwaway machine, never on the host's desktop. By default that is the test VM (tools/winvm/README.md):
+tools/winvm/run.ps1 restores its checkpoint, copies the run's folder in, runs inside.ps1 on its desktop, copies the
+results out and turns it off. Nothing appears on the host's screen, and the host's display scale is never read or
+changed; the VM's is 100%. The rest of this text is about Windows Sandbox, --where sandbox.
+
+In Windows Sandbox the runner builds each program into target/sandbox/run/bin/, writes
 target/sandbox/run/sandbox.wsb (that folder mapped to C:\\run; the clipboard, networking, the printer, audio and
 video input not shared) and starts it; inside.ps1 runs the executables one at a time, each in its own
 results/<name>/ with a time limit, and shuts the sandbox down. The runner waits for that, up to the run's limit,
@@ -19,6 +26,9 @@ run when the display scale cannot be set to 100% (the sandbox takes the host's, 
 under another, D-056: a recording run, or --scale N, sets the host's scale for the run and puts it back after); a
 refusal is no pass. Exit 1 when a program fails or the coverage check does; 0 when all pass. The sandbox's window takes the
 screen for about a minute: run it alone, after any other test run.
+
+In the test VM it refuses (exit 2) as run.ps1 does: Hyper-V not usable, no VM or no checkpoint, the VM running, a
+console window of it open, its license run out; and for --scale, which has no host scale to set there.
 """
 
 from __future__ import annotations
@@ -66,12 +76,18 @@ START_LIMIT = 120
 COMPILE_TIMEOUT = 600
 # Where the sandbox sees the run's folder (inside.ps1).
 INSIDE_FOLDER = r"C:\run"
+# The test VM's runner (tools/winvm/README.md), run with Windows PowerShell, which every Windows has. Its exits.
+VM_RUN = REPO / "tools" / "winvm" / "run.ps1"
+VM_DONE, VM_LIMIT, VM_REFUSED = 0, 1, 2
+# The limit of run.ps1 -Check and -Stop, in seconds: neither starts the VM.
+VM_CHECK_LIMIT = 60
+WHERE = ("vm", "sandbox")
 
 
 def wsb(host_folder: Path) -> str:
     """The sandbox's configuration: host_folder mapped read-write to C:\\run, nothing else shared, inside.ps1 run at
     logon. The one host path in it is host_folder's."""
-    command = rf"powershell -NoProfile -ExecutionPolicy Bypass -File {INSIDE_FOLDER}\inside.ps1"
+    command = rf"powershell -NoProfile -ExecutionPolicy Bypass -File {INSIDE_FOLDER}\inside.ps1 -Shutdown"
     return f"""<Configuration>
   <Networking>Disable</Networking>
   <ClipboardRedirection>Disable</ClipboardRedirection>
@@ -253,9 +269,9 @@ def compile_to(cmd: list[str], cwd: Path, out: Path, log: Path) -> bool:
         return False
 
 
-def prepare(run: Path, names: list[str], timeout: int) -> Path:
-    """Writes the run's folder but for the executables: results/ emptied, list.txt, timeout.txt, inside.ps1 and the
-    .wsb. Returns the .wsb."""
+def prepare(run: Path, names: list[str], timeout: int, sandbox: bool = True) -> Path | None:
+    """Writes the run's folder but for the executables: results/ emptied, list.txt, timeout.txt, inside.ps1 and,
+    for Windows Sandbox, the .wsb. Returns the .wsb, or None for the test VM."""
     results = run / "results"
     if results.exists():
         shutil.rmtree(results)
@@ -264,8 +280,50 @@ def prepare(run: Path, names: list[str], timeout: int) -> Path:
     (run / "timeout.txt").write_text(f"{timeout}\n", encoding="ascii")
     shutil.copy2(INSIDE, run / "inside.ps1")
     path = run / "sandbox.wsb"
+    if not sandbox:
+        path.unlink(missing_ok=True)
+        return None
     path.write_text(wsb(run), encoding="utf-8")
     return path
+
+
+def vm_command(*args: str) -> list[str]:
+    """run.ps1 with `args`, under Windows PowerShell."""
+    return ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(VM_RUN), *args]
+
+
+def vm_check(runner=subprocess.run) -> int:
+    """run.ps1 -Check: the refusals that need no VM started, which print their own message. 0 or 2. A check that
+    does not end within VM_CHECK_LIMIT (Hyper-V's cmdlets hung) is a refusal too, so that `just full` does not wait
+    for it."""
+    try:
+        code = runner(vm_command("-Check"), check=False, timeout=VM_CHECK_LIMIT).returncode
+    except subprocess.TimeoutExpired:
+        print(f"winvm: refused: run.ps1 -Check did not end within {VM_CHECK_LIMIT} s; is Hyper-V working?", flush=True)
+        return VM_REFUSED
+    return VM_DONE if code == VM_DONE else VM_REFUSED
+
+
+def vm_run(run: Path, limit: int, runner=subprocess.run) -> int:
+    """One run in the test VM, run.ps1 printing its own lines: VM_DONE, VM_LIMIT or VM_REFUSED. Any other exit
+    (run.ps1 not started, or killed past a margin over its own limits) counts as VM_LIMIT. Killing run.ps1 skips its
+    own turning off of the VM, so then run.ps1 -Stop turns it off."""
+    try:
+        code = runner(
+            vm_command("-Folder", str(run), "-Limit", str(limit)),
+            check=False,
+            timeout=limit + 2 * START_LIMIT + 60,
+        ).returncode
+    except subprocess.TimeoutExpired:
+        print("winvm: run.ps1 did not end; turning the VM off", flush=True)
+        try:
+            stopped = runner(vm_command("-Stop"), check=False, timeout=VM_CHECK_LIMIT).returncode == 0
+        except subprocess.TimeoutExpired:
+            stopped = False
+        if not stopped:
+            print("winvm: the VM could not be turned off; it may still be on", flush=True)
+        return VM_LIMIT
+    return code if code in (VM_DONE, VM_LIMIT, VM_REFUSED) else VM_LIMIT
 
 
 def end_sandbox(which: tuple[str, ...] = PROCESSES) -> None:
@@ -413,12 +471,29 @@ def main(argv: list[str] | None = None) -> int:
         help="the host's display scale to set for the run (put back after it); a recording run sets 100",
     )
     ap.add_argument(
+        "--where",
+        choices=WHERE,
+        default="vm",
+        help="the test VM (default; tools/winvm/README.md) or Windows Sandbox",
+    )
+    ap.add_argument(
         "--qb64", type=Path, default=EXE, help="the new compiler (default: %(default)s)"
     )
     ap.add_argument(
         "--qb-root", type=Path, default=QB_ROOT, help="the reference clone (default: %(default)s)"
     )
     a = ap.parse_args(argv)
+
+    if a.where == "vm":
+        # The VM's display is its own, at 100%: the host's scale is neither read nor changed (design D5).
+        if a.scale is not None:
+            print(
+                "sandbox: refused: --scale sets the host's display scale, which a run in the test VM does not "
+                "use (the VM's is 100%); use --where sandbox to run at another scale",
+                file=sys.stderr,
+            )
+            return 2
+        return run_family(a)
 
     # The scale the run asks for (a recording: 100%), set for the run and put back after it (README, "The display
     # scale"); the scale found stands when none is asked for.
@@ -438,13 +513,20 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def run_family(a: argparse.Namespace) -> int:
-    scale = display_scale()
-    why = refusal(SANDBOX.is_file(), running_processes(), scale, a.record)
-    if why:
-        print(f"sandbox: refused: {why}", file=sys.stderr)
-        return 2
-    # Measured at 100% and 125% (README): a failure at another scale may be the scale's.
-    print(f"display scale: {'not read' if scale is None else f'{scale}%'}", flush=True)
+    in_vm = a.where == "vm"
+    if in_vm:
+        # run.ps1 prints the refusal itself.
+        if vm_check() != VM_DONE:
+            return 2
+        print("where: the test VM (its display scale is 100%; the host's is not read)", flush=True)
+    else:
+        scale = display_scale()
+        why = refusal(SANDBOX.is_file(), running_processes(), scale, a.record)
+        if why:
+            print(f"sandbox: refused: {why}", file=sys.stderr)
+            return 2
+        # Measured at 100% and 125% (README): a failure at another scale may be the scale's.
+        print(f"where: Windows Sandbox; display scale: {'not read' if scale is None else f'{scale}%'}", flush=True)
     progs = programs(a.glob)
     if not progs:
         print(f"sandbox: no program of {FAMILY.relative_to(REPO)} matches", file=sys.stderr)
@@ -488,7 +570,23 @@ def run_family(a: argparse.Namespace) -> int:
 
     names = [p.stem for p in progs if p.stem not in verdicts]
     results = RUN / "results"
-    if names:
+    if names and in_vm:
+        prepare(RUN, names, a.timeout, sandbox=False)
+        # run.ps1 has its own limit for the VM's start; this one is the programs'.
+        limit = a.timeout * len(names) + 60
+        print(f"starting the test VM: {len(names)} program(s), up to {limit} s for them", flush=True)
+        started = time.monotonic()
+        code = vm_run(RUN, limit)
+        if code == VM_REFUSED:
+            return 2
+        if code == VM_LIMIT:
+            have = [n for n in names if (results / n / "exit").is_file()]
+            print("sandbox: the run in the test VM did not finish", flush=True)
+            print(f"  with results: {', '.join(have) or 'none'}")
+            print(f"  without: {', '.join(n for n in names if n not in have) or 'none'}")
+            return 1
+        print(f"the VM run ended after {time.monotonic() - started:.0f} s", flush=True)
+    elif names:
         wsb_path = prepare(RUN, names, a.timeout)
         limit = START_LIMIT + a.timeout * len(names)
         print(f"starting the sandbox: {len(names)} program(s), up to {limit} s", flush=True)

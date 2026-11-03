@@ -363,10 +363,12 @@ STEPS: tuple[Step, ...] = (
         "sandbox",
         FULL,
         ("python", "tools/sandbox/run.py"),
-        BUILT + LIBQB + ("tools/sandbox/**", "tests/sandbox/**", "tests/never_run.list"),
+        # It runs in the test VM (tools/winvm), whose scripts are inputs too. Not alone: the VM takes no screen, and
+        # the family passed there with the verification step loading the host to 88-100% (OpenSpec change
+        # windows-vm, task 4.2). `--where sandbox`, run by hand, still wants the machine to itself.
+        BUILT + LIBQB + ("tools/sandbox/**", "tools/winvm/**", "tests/sandbox/**", "tests/never_run.list"),
         needs=("build",),
         external=("toolchain",),
-        alone=True,
     ),
 )
 
