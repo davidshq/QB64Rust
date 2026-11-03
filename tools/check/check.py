@@ -45,6 +45,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from steps import (  # noqa: E402
     BY_NAME,
     COUNTS,
+    EXE,
     FALLBACK,
     FULL,
     JUDGE_LISTS,
@@ -69,6 +70,28 @@ FULL_CLEAN = ("crates", "libqb", "tests")
 # Windows finds System32's bash.exe (WSL's) before Git's: the steps given as a str are Git's bash's (`pwd -W`).
 GIT_BASH = ("usr/bin/bash.exe", "bin/bash.exe")
 EDIT_BUILTINS = re.compile(r"^builtins:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
+
+# Where a step runs (OpenSpec change vm-suites, design D9): on the host, or in the suites VM (tools/winvm/README.md,
+# "The suites VM"), which only a step marked `vm` may.
+HOST, VM = "host", "vm"
+SUITES_PS1 = "tools/winvm/suites.ps1"
+STEP_PS1 = "tools/winvm/step.ps1"
+# What a step in the VM is run through: inputs of each VM step besides its own. Only the files that take part in a
+# step, not create.ps1, run.ps1, the README or the tests: a new file that does must be added here.
+VM_INPUTS = ("tools/winvm/suites.ps1", "tools/winvm/step.ps1", "tools/winvm/outputs.py")
+# How long `suites.ps1 -Check` may take (Hyper-V's cmdlets hung), and `-Start` (a new clone copied in: about 4 min).
+VM_CHECK_SECONDS = 120
+VM_START_SECONDS = 1800
+# A VM step's limit: three times its last time, at least this (design D6).
+VM_LIMIT_FLOOR = 1800
+# How much longer than a step's limit step.ps1 may take as a whole: the copies in and out, the session, the cleanup.
+VM_STEP_SLACK = 600
+# The CLI tests' binary as check.py builds it for the VM (design D9): cargo's command and the target's name.
+CLI_BUILD = ("cargo", "test", "-p", "qb64rust-driver", "--locked", "--test", "it", "--no-run", "--message-format=json")
+CLI_TARGET = "it"
+CLI_DIR = "crates/driver"
+# The debug build that the CLI tests' binary runs (CARGO_BIN_EXE_qb64rust), copied into the VM beside it.
+CLI_COMPILER = "target/debug/qb64rust.exe"
 
 
 def state(root: Path) -> Path:
@@ -240,14 +263,25 @@ def list_entries(root: Path, rel: str) -> list[str]:
     ]
 
 
-def inputs_of(step: Step, root: Path, files: list[str], hashes: Hashes, done: dict[str, Inputs]) -> Inputs:
-    """A step's fingerprint: its command, every input file by path and hash, its external inputs and the
-    fingerprints of the steps it needs."""
+def place_of(step: Step, where: str) -> str:
+    """Where a step of a run asking for `where` runs: in the VM only when it may (design D9)."""
+    return VM if step.vm and where == VM else HOST
+
+
+def inputs_of(
+    step: Step, root: Path, files: list[str], hashes: Hashes, done: dict[str, Inputs], place: str = HOST
+) -> Inputs:
+    """A step's fingerprint: its command, every input file by path and hash, its external inputs, the fingerprints
+    of the steps it needs, and its place when that is the VM (design D10: a pass in one place never stands for the
+    other; the host adds nothing, so that the host's records from before the VM still stand)."""
     h = hashlib.sha256()
     run = hashlib.sha256()
     for x in (h, run):
         x.update(repr((step.name, step.command, sorted(step.env.items()))).encode())
-    taken = {f: d for f in matching(step.inputs, files) if (d := hashes.of(f)) is not None}
+        if place == VM:
+            x.update(b"where: vm\n")
+    globs = step.inputs + (VM_INPUTS if place == VM else ())
+    taken = {f: d for f in matching(globs, files) if (d := hashes.of(f)) is not None}
     judge = set(matching(JUDGE_LISTS, list(taken)))
     for f, digest in taken.items():
         line = f"{f}\0{digest}\n".encode("utf-8", "surrogateescape")
@@ -407,6 +441,8 @@ class Planned:
     # Run in its usual form under the merge, not its `forced` one: the Linux sync after an earlier merge's passed in
     # this tree, whose copy was then checked by content and has followed git since (check-rejudge, design D6).
     usual: bool = False
+    # HOST or VM (design D9).
+    where: str = HOST
 
 
 @dataclass
@@ -414,6 +450,9 @@ class Plan:
     run: list[Planned]
     standing: list[tuple[Step, dict]]
     left: list[tuple[Step, str]]
+    # Why the suites VM cannot be used, when the run asked for it with `--where vm`: its VM steps then fail with
+    # this, and the host's run (design D9).
+    vm_refusal: str | None = None
 
 
 def describe(changed: list[str]) -> str:
@@ -463,12 +502,14 @@ def make_plan(
     names: list[str] | None = None,
     asked: tuple[str, ...] = (),
     merge: bool = False,
+    where: str = HOST,
 ) -> Plan:
     """Which steps of the layer (or the named ones) run, which stand, and which the quick layer leaves to the full
     one, with why. `names` must hold the steps the named ones need (with_needs): a step's fingerprint takes theirs,
     so that it is the same whether the step was named or run in its layer. A step in `asked` runs even when it
     stands; the others by the usual rule. `merge` (and the merge layer): a step stands only on a pass of an earlier
-    merge with the same fingerprint (design D3 of check-rejudge)."""
+    merge with the same fingerprint (design D3 of check-rejudge). `where`: VM puts the steps that may run in the
+    suites VM there (`place_of`), which their fingerprints hold."""
     external.cache_clear()
     files = repo_files(root)
     hashes = Hashes(root)
@@ -489,7 +530,7 @@ def make_plan(
             if s.layer == QUICK or (s.layer == FULL and (layer == FULL or s.suite in ("compile", "verification")))
         ]
     for step in wanted:
-        inputs = inputs_of(step, root, files, hashes, done)
+        inputs = inputs_of(step, root, files, hashes, done, place_of(step, where))
         done[step.name] = inputs
         record = read_record(root, step.name)
         if force:
@@ -552,6 +593,8 @@ def make_plan(
             plan.run.append(Planned(step, inputs, reason + " (no program of its list reached)", [], mark))
         else:
             plan.run.append(Planned(step, inputs, reason, only, mark))
+    for p in plan.run:
+        p.where = place_of(p.step, where)
     hashes.save()
     return plan
 
@@ -665,7 +708,213 @@ def bash() -> str | None:
     return None
 
 
-def run_step(p: Planned, root: Path, force: bool, nextest: bool) -> dict:
+# --- The suites VM (OpenSpec change vm-suites, design D6, D8, D9, D11) -------------------------------------------
+
+
+def powershell(root: Path, script: str, *args: str) -> list[str]:
+    """A script of tools/winvm with `args`, under Windows PowerShell, as tools/sandbox/run.py starts run.ps1."""
+    return ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(root / script), *args]
+
+
+def last_line(text: str) -> str:
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    return lines[-1] if lines else ""
+
+
+def vm_refusal(root: Path) -> str | None:
+    """Why the suites VM cannot be used here, or None: not Windows, a CI run, or `suites.ps1 -Check`'s refusal (no
+    Hyper-V, no VM, the VM running, ...), which leaves the VM as it is."""
+    if os.name != "nt":
+        return "not Windows"
+    if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+        return "a CI run"
+    try:
+        r = subprocess.run(
+            powershell(root, SUITES_PS1, "-Check"), cwd=root, capture_output=True, text=True, timeout=VM_CHECK_SECONDS
+        )
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return f"{SUITES_PS1} -Check did not run: {e}"
+    if r.returncode == 0:
+        return None
+    why = last_line(r.stdout + r.stderr).removeprefix("suites-vm: refused: ").rstrip(".")
+    return why or f"{SUITES_PS1} -Check: exit {r.returncode}"
+
+
+class SuitesVM:
+    """The suites VM for one `check` run (design D6): restored and filled (`suites.ps1 -Start`) before the first VM
+    step, turned off (`-Stop`) after the last one and at the end of the run whatever happened. A refusal known when
+    the run was planned, or a failed start, fails every VM step with its reason."""
+
+    def __init__(self, root: Path, refusal: str | None = None):
+        self.root = root
+        self.refusal = refusal
+        self.started = False
+        self.tried = False
+
+    def start(self) -> str | None:
+        """None when the VM is ready, else why it is not."""
+        if self.refusal or self.started:
+            return self.refusal
+        self.tried = True
+        print(f"suites VM: starting ({SUITES_PS1} -Start)", flush=True)
+        try:
+            r = subprocess.run(
+                powershell(self.root, SUITES_PS1, "-Start", "-Tree", str(self.root)),
+                cwd=self.root,
+                capture_output=True,
+                text=True,
+                timeout=VM_START_SECONDS,
+            )
+            out, code = r.stdout + r.stderr, r.returncode
+        except (OSError, subprocess.TimeoutExpired) as e:
+            out, code = str(e), 1
+        for line in out.splitlines():
+            if line.strip():
+                print(f"  {line.rstrip()}", flush=True)
+        if code != 0:
+            self.refusal = (last_line(out).removeprefix("suites-vm: refused: ") or f"-Start: exit {code}")
+            self.stop()
+            return self.refusal
+        self.started = True
+        return None
+
+    def stop(self) -> None:
+        if not self.tried:
+            return
+        self.tried = self.started = False
+        try:
+            r = subprocess.run(
+                powershell(self.root, SUITES_PS1, "-Stop"), cwd=self.root, capture_output=True, text=True,
+                timeout=VM_CHECK_SECONDS,
+            )
+            said = last_line(r.stdout + r.stderr).removeprefix("suites-vm: ")
+            print(f"suites VM: {said or 'turned off'}", flush=True)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            print(f"suites VM: {SUITES_PS1} -Stop did not run ({e}); the VM may still be on", flush=True)
+
+
+def cli_binary(root: Path, out) -> str | None:
+    """The CLI tests' binary, built on the host (`cargo test --no-run`, its output to the step's log): its path
+    relative to the tree, from cargo's messages, or None when it was not built."""
+    r = subprocess.run(CLI_BUILD, cwd=root, stdout=subprocess.PIPE, stderr=out)
+    found = None
+    for line in r.stdout.decode("utf-8", "replace").splitlines():
+        try:
+            msg = json.loads(line)
+        except ValueError:
+            continue
+        if msg.get("reason") == "compiler-artifact" and msg.get("target", {}).get("name") == CLI_TARGET:
+            found = msg.get("executable") or found
+    if r.returncode != 0 or not found:
+        return None
+    return Path(os.path.relpath(found, root)).as_posix()
+
+
+# Set in every VM step (design D4): the runner then ignores --build-cache, also where a tool starts it
+# (coverage.py), and the pass cache serves what passed while the rest builds cold.
+NO_BUILD_CACHE = {"QB64RUST_NO_BUILD_CACHE": "1"}
+
+
+def passed_seconds(record: dict | None) -> float:
+    """The time of a step's last whole pass, from its record: `passed_seconds`, or for a record written before that
+    field, its `seconds` when it passed. 0 when unknown."""
+    if not record:
+        return 0.0
+    if "passed_seconds" in record:
+        return float(record["passed_seconds"] or 0)
+    return float(record.get("seconds", 0)) if record.get("result") == "pass" else 0.0
+
+
+def vm_limit(root: Path, name: str) -> int:
+    """Three times the step's last whole pass in the VM, else its last whole pass anywhere, at least VM_LIMIT_FLOOR
+    (design D6). The VM's time first: the VM keeps no build cache, so a pass on the host can be far quicker."""
+    record = read_record(root, name) or {}
+    seconds = float(record.get("vm_passed_seconds") or 0) or passed_seconds(record)
+    return max(VM_LIMIT_FLOOR, int(3 * seconds))
+
+
+def run_in_vm(p: Planned, root: Path, cmd: list[str], out, vm: SuitesVM | None) -> tuple[int, str]:
+    """A step in the suites VM through step.ps1 (design D6), which prints the guest's log as it grows: the exit code
+    and the note of the record."""
+    why = vm.start() if vm else "no VM session in this run"
+    if why:
+        out.write(f"the suites VM cannot be used: {why}\n".encode())
+        return 1, f"the suites VM cannot be used: {why}"
+    copy = [EXE] if (root / EXE).is_file() else []
+    cwd = ""
+    if p.step.name == "cli":
+        out.write(f"$ {' '.join(CLI_BUILD)}\n".encode())
+        out.flush()
+        binary = cli_binary(root, out)
+        if binary is None:
+            return 1, "the CLI tests' binary was not built"
+        cmd, cwd = [binary, "--ignored"], CLI_DIR
+        copy += [binary, CLI_COMPILER]
+    # A file under target\ that the command names, such as a narrowed run's list (target/check/lists): git ignores
+    # target\, so the tree's copy in the VM has none.
+    copy += [a for a in cmd if a.startswith("target/") and a not in copy and (root / a).is_file()]
+    job = {
+        "step": p.step.name,
+        "command": list(cmd),
+        "first": list(p.step.vm_first) if p.step.vm_first else None,
+        "cwd": cwd,
+        "env": {**p.step.env, **NO_BUILD_CACHE},
+        "copy": copy,
+        "outputs": list(p.step.outputs),
+        "clears": list(p.step.clears),
+        "limit": vm_limit(root, p.step.name),
+    }
+    path = state(root) / "vm" / f"{p.step.name}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(job, indent=1), encoding="utf-8")
+    out.write(f"$ (in the suites VM, {cwd or '.'}) {' '.join(job['command'])}\n".encode())
+    out.flush()
+    try:
+        rc = subprocess.run(
+            powershell(root, STEP_PS1, "-Tree", str(root), "-Job", str(path)),
+            cwd=root,
+            stdout=out,
+            stderr=subprocess.STDOUT,
+            timeout=job["limit"] + VM_STEP_SLACK,
+        ).returncode
+    except subprocess.TimeoutExpired:
+        # step.ps1 stops the step at its limit itself; this is for Hyper-V's cmdlets hanging around it.
+        out.write(f"\nstep.ps1 did not end within {job['limit'] + VM_STEP_SLACK} s; it was stopped\n".encode())
+        return 1, f"in the suites VM; step.ps1 hung past {job['limit'] + VM_STEP_SLACK} s"
+    return rc, "in the suites VM"
+
+
+def clear(root: Path, files: tuple[str, ...]) -> None:
+    for rel in files:
+        p = root / rel
+        p.unlink(missing_ok=True)
+        p.parent.mkdir(parents=True, exist_ok=True)
+
+
+def toolchain_path(root: Path) -> str:
+    """What `qb64rust toolchain path` prints on the host, or "" when the release build is not there."""
+    exe = root / EXE
+    if not exe.is_file():
+        return ""
+    try:
+        return subprocess.run([str(exe), "toolchain", "path"], capture_output=True, text=True, timeout=60).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def toolchain_note(root: Path) -> str | None:
+    """The report's line when the host's builds use the QB64pe clone's toolchain, qb64rust's fallback, rather than an
+    installed one (design D11): nothing noticed that until 2026-11-03."""
+    lines = toolchain_path(root).splitlines()
+    if len(lines) > 1 and lines[1].startswith("clone:"):
+        return (
+            "the programs built on the host use the QB64pe clone's C++ toolchain, qb64rust's fallback "
+            "(`qb64rust toolchain path`); install one with `qb64rust toolchain install`"
+        )
+    return None
+
+
+def run_step(p: Planned, root: Path, force: bool, nextest: bool, vm: SuitesVM | None = None) -> dict:
     logs = state(root) / "logs"
     logs.mkdir(parents=True, exist_ok=True)
     log = logs / f"{p.step.name}.log"
@@ -677,20 +926,32 @@ def run_step(p: Planned, root: Path, force: bool, nextest: bool) -> dict:
         cmd, note = command_of(p, root, force, nextest)
         env = {**os.environ, **p.step.env}
         shell = bash() if isinstance(cmd, str) else ""
+        # A re-judge reads the stored results on the host, wherever they were made.
+        in_vm = p.where == VM and not p.rejudge
         with log.open("wb") as out:
-            out.write(f"$ {cmd if isinstance(cmd, str) else ' '.join(cmd)}\n".encode())
-            out.flush()
-            if shell is None:
-                out.write(b"Git's bash not found (from `git --exec-path`): the step is a bash line\n")
-                rc, note = 1, "Git's bash not found"
+            if in_vm and isinstance(cmd, list):
+                # The host's copies go first: a VM step that brings nothing back must not leave the last run's
+                # counts or results for the steps after it (`builtins`, the `-list` steps) to read.
+                clear(root, p.step.clears + tuple(o for o in p.step.outputs if o.endswith(".json")))
+                rc, where_note = run_in_vm(p, root, cmd, out, vm)
+                note = f"{note}; {where_note}" if note else where_note
             else:
-                argv = [shell, "-c", cmd] if isinstance(cmd, str) else cmd
-                rc = subprocess.run(argv, cwd=root, stdout=out, stderr=subprocess.STDOUT, env=env).returncode
+                if not p.rejudge:
+                    clear(root, p.step.clears)
+                out.write(f"$ {cmd if isinstance(cmd, str) else ' '.join(cmd)}\n".encode())
+                out.flush()
+                if shell is None:
+                    out.write(b"Git's bash not found (from `git --exec-path`): the step is a bash line\n")
+                    rc, note = 1, "Git's bash not found"
+                else:
+                    argv = [shell, "-c", cmd] if isinstance(cmd, str) else cmd
+                    rc = subprocess.run(argv, cwd=root, stdout=out, stderr=subprocess.STDOUT, env=env).returncode
     record = {
         "fingerprint": p.inputs.fingerprint,
         "run_fingerprint": p.inputs.run,
         "merge": p.merge,
         "rejudged": p.rejudge,
+        "where": p.where,
         "result": "pass" if rc == 0 else "fail",
         "started": started,
         "seconds": round(time.time() - started, 1),
@@ -701,6 +962,15 @@ def run_step(p: Planned, root: Path, force: bool, nextest: bool) -> dict:
     }
     if p.narrowed:
         record["narrowed"] = p.narrowed
+    # The time of the step's last whole pass, anywhere and in the VM, which a VM step's limit is taken from
+    # (`vm_limit`). A failure or a narrowed run keeps the earlier ones: a step that failed in a second must not cut
+    # the next run's limit.
+    previous = read_record(root, p.step.name)
+    whole_pass = rc == 0 and p.only is None and not p.rejudge
+    record["passed_seconds"] = record["seconds"] if whole_pass else passed_seconds(previous)
+    in_vm_time = record["seconds"] if whole_pass and p.where == VM else (previous or {}).get("vm_passed_seconds")
+    if in_vm_time:
+        record["vm_passed_seconds"] = in_vm_time
     write_record(root, p.step.name, record)
     return record
 
@@ -709,16 +979,27 @@ def when(t: float) -> str:
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(t))
 
 
+def in_vm_word(where: str | None) -> str:
+    return " in the VM" if where == VM else ""
+
+
 def print_plan(plan: Plan) -> None:
     for step, record in plan.standing:
-        print(f"  standing  {step.name:<18} passed {when(record['started'])}, {record['seconds']:g}s")
+        print(
+            f"  standing  {step.name:<18} passed{in_vm_word(record.get('where'))} {when(record['started'])}, "
+            f"{record['seconds']:g}s"
+        )
     for step, why in plan.left:
         print(f"  left      {step.name:<18} for `check full` ({why})")
     for p in plan.run:
         extra = f" [{len(p.only)} program(s)]" if p.only else ""
-        print(f"  to run    {p.step.name:<18} {p.reason}{extra}")
+        print(f"  to run    {p.step.name:<18} {p.reason}{extra}{in_vm_word(p.where)}")
     if not plan.run:
         print("nothing to run")
+
+
+def uses_vm(p: Planned) -> bool:
+    return p.where == VM and not p.rejudge and p.only != []
 
 
 def execute(root: Path, plan: Plan, force: bool, what: str = "") -> int:
@@ -728,27 +1009,44 @@ def execute(root: Path, plan: Plan, force: bool, what: str = "") -> int:
     skipped: set[str] = set()
     ran: dict[str, list] = {}
     started = time.time()
-    for p in order(plan.run, root):
-        # A step that reads what its needs wrote runs after a failed one, not after one that did not run.
-        broken = [n for n in p.step.needs if n in (skipped if p.step.after_failure else failed_names)]
-        if broken:
-            # Run on an older build, its result would say nothing of this one: not run, not recorded.
-            why = ", ".join(f"{n} {'did not run' if n in skipped else 'failed'}" for n in broken)
-            print(f"  SKIP    {p.step.name:<18} not run: {why}", flush=True)
-            failed += 1
-            failed_names.add(p.step.name)
-            skipped.add(p.step.name)
-            ran[p.step.name] = ["skip", 0]
-            continue
-        print(f"run       {p.step.name} ...", flush=True)
-        r = run_step(p, root, force, nextest)
-        ran[p.step.name] = [r["result"], r["seconds"]]
-        tag = "PASS" if r["result"] == "pass" else "FAIL"
-        note = f"  ({r['note']})" if r["note"] else ""
-        print(f"  {tag}    {p.step.name:<18} {r['seconds']:g}s  {r['log']}{note}", flush=True)
-        if r["result"] != "pass":
-            failed += 1
-            failed_names.add(p.step.name)
+    steps_in_order = order(plan.run, root)
+    in_vm = [p for p in steps_in_order if uses_vm(p)]
+    vm = SuitesVM(root, plan.vm_refusal) if in_vm else None
+    told_toolchain = False
+    try:
+        for p in steps_in_order:
+            # A step that reads what its needs wrote runs after a failed one, not after one that did not run.
+            broken = [n for n in p.step.needs if n in (skipped if p.step.after_failure else failed_names)]
+            if broken:
+                # Run on an older build, its result would say nothing of this one: not run, not recorded.
+                why = ", ".join(f"{n} {'did not run' if n in skipped else 'failed'}" for n in broken)
+                print(f"  SKIP    {p.step.name:<18} not run: {why}", flush=True)
+                failed += 1
+                failed_names.add(p.step.name)
+                skipped.add(p.step.name)
+                ran[p.step.name] = ["skip", 0]
+            else:
+                builds_here = p.where == HOST and "toolchain" in p.step.external and p.only != [] and not p.rejudge
+                if builds_here and not told_toolchain:
+                    told_toolchain = True
+                    note = toolchain_note(root)
+                    if note:
+                        print(f"note: {note}", flush=True)
+                print(f"run       {p.step.name}{in_vm_word(p.where)} ...", flush=True)
+                r = run_step(p, root, force, nextest, vm)
+                ran[p.step.name] = [r["result"], r["seconds"]]
+                tag = "PASS" if r["result"] == "pass" else "FAIL"
+                note = f"  ({r['note']})" if r["note"] else ""
+                print(f"  {tag}    {p.step.name:<18} {r['seconds']:g}s  {r['log']}{note}", flush=True)
+                if r["result"] != "pass":
+                    failed += 1
+                    failed_names.add(p.step.name)
+            # The VM is off before the steps after the last VM step: the sandbox family's VM may start then.
+            if vm and p is in_vm[-1]:
+                vm.stop()
+    finally:
+        if vm:
+            vm.stop()
     print(f"{len(plan.run) - failed} passed, {failed} failed, {len(plan.standing)} standing")
     log_history(root, what, ran, plan, time.time() - started)
     return 1 if failed else 0
@@ -959,15 +1257,20 @@ def step_of_target(target: str) -> str | None:
 
 
 def status(root: Path) -> int:
-    plan = make_plan(root, FULL)
+    # Each step judged in the place its last run was in.
+    plans = {HOST: make_plan(root, FULL), VM: make_plan(root, FULL, where=VM)}
     for step in STEPS:
         r = read_record(root, step.name)
-        standing = any(s.name == step.name for s, _ in plan.standing)
         if r is None:
             print(f"  never run {step.name}")
             continue
+        where = r.get("where", HOST)
+        standing = any(s.name == step.name for s, _ in plans.get(where, plans[HOST]).standing)
         state_word = "standing" if standing else ("FAILED" if r.get("result") != "pass" else "to run")
-        print(f"  {state_word:<9} {step.name:<18} {r['result']} {when(r['started'])}, {r['seconds']:g}s  {r['log']}")
+        print(
+            f"  {state_word:<9} {step.name:<18} {r['result']}{in_vm_word(where)} {when(r['started'])}, "
+            f"{r['seconds']:g}s  {r['log']}"
+        )
     lock = state(root) / "run.log"
     if lock.is_file():
         print(f"last background report: {lock.relative_to(root).as_posix()}, {when(lock.stat().st_mtime)}")
@@ -984,7 +1287,22 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
     ap.add_argument("--plan", action="store_true", help="print the plan, run nothing")
     ap.add_argument("--wait", action="store_true", help="run in the foreground however long it takes")
     ap.add_argument("--days", type=int, default=14, help="history: how many of the last days with runs to show")
+    ap.add_argument(
+        "--where",
+        choices=(HOST, VM),
+        help="where the steps that run programs run: the host, or the suites VM (default: the VM for full and "
+        "merge, the host otherwise)",
+    )
+    ap.add_argument(
+        "--uncommitted",
+        action="store_true",
+        help="full: run on uncommitted changes rather than refuse (do not edit crates/, libqb/ or tests/ meanwhile)",
+    )
     a = ap.parse_args(argv)
+    if a.uncommitted and a.what != FULL:
+        why = ": a merge's results are to describe the merge commit" if a.what == MERGE else ""
+        print(f"--uncommitted applies to `check {FULL}` only{why}")
+        return 2
     if a.what == MERGE:
         # Without the pass cache too, as the plan runs every step.
         a.force = True
@@ -995,7 +1313,15 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
     if a.what in (QUICK, FULL, MERGE):
         if a.what != QUICK and not a.plan:
             changes = dirty(root)
-            if changes:
+            if changes and a.uncommitted:
+                # The user's choice, 2026-11-03: a commit before every full run costs a staging round. The line goes
+                # into the report; the results stand by the files' contents, as always.
+                print(
+                    f"note: running on uncommitted changes under {', '.join(FULL_CLEAN)} ({describe(changes)}), "
+                    "--uncommitted; an edit there during the run may leave a pass for files it did not test",
+                    flush=True,
+                )
+            elif changes:
                 print(
                     f"check {a.what} refused: uncommitted changes under {', '.join(FULL_CLEAN)} "
                     f"({describe(changes)}). Its results are to describe one commit: commit, then run it in a "
@@ -1007,10 +1333,11 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
             if missing:
                 print(f"check {a.what} refused: {missing}")
                 return 2
+        where, refusal = choose_place(root, a.what, a.where)
         if a.what == MERGE:
-            writers = make_plan(root, FULL, a.force, [s.name for s in STEPS if s.first], merge=True)
+            writers = make_plan(root, FULL, a.force, [s.name for s in STEPS if s.first], merge=True, where=where)
             print_plan(writers)
-        plan = make_plan(root, a.what, a.force)
+        plan = make_plan(root, a.what, a.force, where=where)
     else:
         name = step_of_target(a.what)
         if name is None:
@@ -1019,6 +1346,8 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
                 print(got)
                 return 2
             cmd, _ = got
+            if a.where == VM:
+                print(f"note: a program named alone runs on the host; for the VM name its step with --where {VM}")
             if RUNNER in cmd:
                 # A program runs on what its suite's step needs, unless they stand.
                 first = make_plan(root, FULL, a.force, with_needs(program_needs(cmd)))
@@ -1033,7 +1362,9 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
             return rc
         # Asked for by name, a step runs even when it stands (its pass cache serves what is unchanged); the steps
         # it needs run first unless they stand.
-        plan = make_plan(root, FULL, a.force, with_needs([name]), asked=(name,))
+        where, refusal = choose_place(root, a.what, a.where, BY_NAME[name].vm)
+        plan = make_plan(root, FULL, a.force, with_needs([name]), asked=(name,), where=where)
+    plan.vm_refusal = refusal
     print_plan(plan)
     if a.plan:
         return 0
@@ -1045,9 +1376,27 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
     if a.what == MERGE:
         # The writers first, then the rest planned again: its fingerprints are of the files they wrote.
         bad = execute(root, writers, True, "merge: the writers") if writers.run else 0
-        plan = make_plan(root, MERGE, a.force)
+        plan = make_plan(root, MERGE, a.force, where=where)
+        plan.vm_refusal = refusal
         return execute(root, plan, True, a.what) or bad
     return execute(root, plan, a.force, a.what)
+
+
+def choose_place(root: Path, what: str, asked: str | None, has_vm_steps: bool = True) -> tuple[str, str | None]:
+    """Where the run's steps that may run in the VM go, and why the VM cannot be used when it was asked for (design
+    D9): `--where` as given, else the VM for `full` and `merge` and the host otherwise. When the VM was not asked
+    for but is the default and cannot be used, the host, with one line saying why."""
+    where = asked or (VM if what in (FULL, MERGE) else HOST)
+    if where != VM or not has_vm_steps:
+        return where, None
+    why = vm_refusal(root)
+    if why is None:
+        return VM, None
+    if asked == VM:
+        print(f"the suites VM cannot be used: {why}; the steps that run programs fail (`--where {VM}`)", flush=True)
+        return VM, why
+    print(f"the suites VM cannot be used ({why}); the steps that run programs run on the host", flush=True)
+    return HOST, None
 
 
 if __name__ == "__main__":

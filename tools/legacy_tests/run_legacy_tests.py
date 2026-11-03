@@ -723,6 +723,41 @@ def run_proc(
             return None, True
 
 
+# QB64RUST_OPENGL_DIR names a folder holding Mesa's software OpenGL, for a machine whose own OpenGL cannot make a
+# QB64 program's window: the suites VM, whose display is Hyper-V's synthetic adapter (OpenSpec change vm-suites,
+# design D7; tools/winvm/README.md). Unset, nothing is linked.
+OPENGL_DIR_VAR = "QB64RUST_OPENGL_DIR"
+OPENGL_DLLS = ("opengl32.dll", "libgallium_wgl.dll")
+# Set, --build-cache is ignored: the suites VM keeps none (vm-suites, design D4).
+NO_BUILD_CACHE_VAR = "QB64RUST_NO_BUILD_CACHE"
+
+
+def build_cache_given(folder: Path | None) -> Path | None:
+    """--build-cache, unless QB64RUST_NO_BUILD_CACHE is set: check.py sets it in its steps in the suites VM, and it
+    reaches the runner also when a tool starts it with --build-cache (tools/coverage/coverage.py)."""
+    return None if os.environ.get(NO_BUILD_CACHE_VAR) else folder
+
+
+def link_opengl(exe: Path) -> None:
+    """With QB64RUST_OPENGL_DIR set, puts Mesa's two DLLs beside exe, where Windows looks first for a DLL a program
+    loads. Hard links, so that thousands of programs take no space and no time; a copy when the folder is on
+    another volume. A DLL already there is kept. Call it after the folder is reset and before the program starts."""
+    folder = os.environ.get(OPENGL_DIR_VAR)
+    if not folder:
+        return
+    for name in OPENGL_DLLS:
+        target = exe.parent / name
+        if target.exists():
+            continue
+        source = Path(folder) / name
+        try:
+            os.link(source, target)
+        except FileExistsError:
+            pass  # another worker's program in the same folder
+        except OSError:
+            shutil.copyfile(source, target)
+
+
 # One lock per test folder: a compile test's executable runs in its folder, as the bash runners run
 # it, and some programs there use the same file names (tests/upstream/compile_tests/arrays: three
 # OPEN "test"). With --jobs the builds run side by side, the programs of one folder one at a time.
@@ -874,6 +909,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     counts = results / f"{category}-{name}-coverage.txt"
     coverage_env(args, env, counts)
     with folder_lock(tdir):
+        link_opengl(exe)
         rc, timed_out = run_proc(
             [str(exe), str(results), f"{category}-{name}"],
             tdir,
@@ -1018,6 +1054,7 @@ def addprefix_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
     converted = results / "addprefix.bas"
     (results / "addprefix-noprefix.bas").unlink(missing_ok=True)  # the converter's backup of a run before
     shutil.copyfile(cases / "addprefix.bas", converted)
+    link_opengl(exe)
     rc, timed_out = run_proc(
         [str(exe), str(converted)], qb_root, results / "addprefix-convert_result.txt", RUN_TIMEOUT
     )
@@ -1958,6 +1995,7 @@ def corpus_test(
             env["QB64_SCREEN_STATE"] = str(state_out)
         counts = results / f"{key}-run{run}-coverage.txt"
         coverage_env(args, env, counts)
+        link_opengl(exe)
         rc, timed_out = run_proc(
             cmd,
             work,
@@ -2136,6 +2174,7 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
         log_env(env, log)
         # A hung program (e.g. screen PRINT with a comma under a redirected $CONSOLE) would block
         # forever.
+        link_opengl(exe)
         rc, timed_out = run_proc(
             [str(exe)],
             tdir,
@@ -2701,6 +2740,7 @@ def verification_compare(
     log_env(env, log)
     counts = results / f"{tag}-coverage.txt"
     coverage_env(args, env, counts)
+    link_opengl(exe)
     rc, timed_out = run_proc(
         cmd,
         work,
@@ -3748,6 +3788,7 @@ def main() -> int:
             print("--coverage applies to qb64rust only", file=sys.stderr)
             return 2
         args.coverage = args.coverage.resolve()
+    args.build_cache = build_cache_given(args.build_cache)
     if args.build_cache:
         if is_old_compiler(args.qb64):
             print("--build-cache applies to qb64rust only", file=sys.stderr)

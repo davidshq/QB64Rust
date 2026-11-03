@@ -30,6 +30,12 @@ follows one tree and `linux-sync` copies only the files git reports changed sinc
 by content, except under `--force`. Claude runs it as `just full --wait` in the
 background, the report kept in `target\scratch\<date>\full.log`.
 
+**`just full --uncommitted`** runs `full` in spite of uncommitted changes under `crates\`, `libqb\` and `tests\`,
+where it would refuse, so that a change can be tested whole before it is committed (user, 2026-11-03). The report
+says so in one line. Its results stand by the files' contents, as always, so nobody may edit those folders in that
+tree while it runs: a step could then pass on files other than those its record names. `merge` refuses the switch,
+since a merge's results are to describe the merge commit.
+
 **After a fix to a failed `just merge`**, check out the fix's commit in the worktree and run `just merge` again: a
 step that passed in an earlier merge with the same fingerprint stands (only a merge's pass does: a pass of `full`
 or of one step may have used the pass cache), so only what the fix reaches runs. `just merge --force` runs every
@@ -42,6 +48,57 @@ planned as "re-judge: only the known lists changed": the runner's `--rejudge` ap
 results in under a second, with no program built or run, and the steps that read the results run after it. Each
 record keeps a `run_fingerprint`, the fingerprint without those lists, to tell. A failure with nothing changed runs
 again, as before; `--force` runs.
+
+## Where a step runs
+
+A step that builds and runs programs can run on the host or in the suites VM, the Hyper-V VM `qb64rust-suites`
+(`tools\winvm\README.md`, "The suites VM"; OpenSpec change `vm-suites`). These steps are marked `vm` in
+`steps.py`: `slice`, `upstream`, `verification`, `callsite`, `cli`, `qbasic`, `addprefix`, `format`,
+`format-corpus`, `differential`, `nofold`, `coverage`, and the merge's `corpus-whole`, `upstream-whole` and
+`verification-whole`. Every other step runs on the host: `fmt`, `build`, `clippy`, `nextest`, `lists`, `doc`,
+`tools`, the Linux steps, the merge's own readers.
+
+| Run | Where the `vm` steps go |
+|---|---|
+| `just quick`, `just check <step>`, a program named alone | the host |
+| `just full`, `just merge` | the VM. When it cannot be used (no Hyper-V, no VM, the VM running, a CI run, Linux), the host, and the report says why in one line |
+| any of them with `--where host` | the host |
+| any of them with `--where vm` | the VM. When it cannot be used, those steps fail with the reason, and the host's steps run |
+
+```
+just full --where host
+just check slice --where vm
+```
+
+A program named alone (`just check v01_numeric`) always runs on the host; name its step to run it in the VM.
+
+**What a run in the VM does.** The host builds `target\release\qb64rust.exe` as usual. Before the first VM step,
+`tools\winvm\suites.ps1 -Start` restores the VM's checkpoint, attaches its cache disk at the parent folder of the
+tree, and copies in the tree (the files git tracks or would track) and, when it changed, the QB64pe clone without
+`.git`. The tree's copy is then at the same path in the VM as on the host. Each VM step runs through
+`tools\winvm\step.ps1`, from a job file `check.py` writes (`target\check\vm\<step>.json`): it copies the release
+build in, checks that the VM's `qb64rust` builds with the toolchain installed there, not the clone's, and runs the
+step's command in the test account's session. Its log shows the guest's output as it comes, about every 10 s.
+After the last VM step, and at the end of the run whatever happened, `suites.ps1 -Stop` turns the VM off. One
+restore per run, however many VM steps.
+
+- The runner keeps no build cache in the VM (`QB64RUST_NO_BUILD_CACHE`). Its pass caches are kept, on the cache
+  disk, apart from the host's.
+- `cli` builds the CLI tests' binary on the host (`cargo test --no-run`), and the binary runs in the VM with
+  `--ignored`, in `crates\driver`.
+- `verification` and `verification-whole` build the `v37` libraries in the VM first, since git ignores them.
+- **What comes back to the host**: each step's `outputs` in `steps.py`, its results file (`results-partial.json` or
+  `results-<suite>.json`), and the files of the programs that did not pass in it, but no executable; for the
+  whole suites, their coverage record `target\coverage\merge\<name>.txt` too. The steps after them, such as
+  `corpus-list`, `builtins` and `counts`, read those on the host. A re-judge runs on the host.
+
+**The place is part of a result.** A step's record holds `"where"`, and its fingerprint holds the VM when it ran
+there, with the files of `tools\winvm\` that take part in a step: `suites.ps1`, `step.ps1` and `outputs.py`. So a pass on the host never stands for a run in the VM, and the other way
+round. `just status` says "in the VM" for such a pass.
+
+**The toolchain on the host.** When a step on the host builds programs and `qb64rust toolchain path` names the QB64pe
+clone's toolchain, `qb64rust`'s fallback, the report has one line saying so, with `qb64rust toolchain install`.
+The run goes on: the two are the same release.
 
 ## What stands
 

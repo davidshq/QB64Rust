@@ -754,6 +754,8 @@ class Tools:
         self.run_cmds: list[list[str]] = []
         self.run_stdin: list[Path | None] = []
         self.run_envs: list[dict] = []
+        # The names in the program's folder when each run starts.
+        self.run_files: list[set[str]] = []
 
     def __call__(self, args, cwd, stdout_path, timeout, env=None, stdin_path=None, **_):
         if "--print-build-inputs" in args:
@@ -773,6 +775,7 @@ class Tools:
         self.run_stdin.append(stdin_path)
         self.run_cmds.append(list(args))
         self.run_envs.append(dict(env or {}))
+        self.run_files.append({p.name for p in Path(cwd).iterdir()})
         stdout_path.write_bytes(self.runs[min(len(self.run_cmds), len(self.runs)) - 1])
         state = self.states[min(len(self.run_cmds), len(self.states)) - 1] if self.states else None
         if state is not None and "QB64_SCREEN_STATE" in (env or {}):
@@ -1084,6 +1087,57 @@ class CorpusProgram(CorpusFixture):
 
 
 STATE = b"screen-state 1\npages 1 display 0 write 0 read 0\nend\n"
+
+
+class OpenGLLinks(CorpusFixture):
+    """QB64RUST_OPENGL_DIR: Mesa's DLLs linked beside each program before it runs (OpenSpec change vm-suites,
+    design D7), and nothing without the variable."""
+
+    def setUp(self):
+        super().setUp()
+        self.mesa = Path(self.tmp.name) / "mesa"
+        self.mesa.mkdir()
+        for name in rlt.OPENGL_DLLS:
+            (self.mesa / name).write_bytes(name.encode())
+
+    def test_linked_beside_the_program_in_every_run(self):
+        self.sidecar("output", b"1\n")
+        tools = Tools(runs=[b"1\n"])
+        with mock.patch.dict(os.environ, {rlt.OPENGL_DIR_VAR: str(self.mesa)}):
+            r = self.run_test(tools, record=True)
+        self.assertEqual(r.status, "PASS", r.detail)
+        # Two runs to record, the folder reset between them.
+        self.assertEqual(len(tools.run_files), 2)
+        for files in tools.run_files:
+            self.assertTrue(set(rlt.OPENGL_DLLS) <= files, files)
+
+    def test_nothing_without_the_variable(self):
+        self.sidecar("output", b"1\n")
+        tools = Tools(runs=[b"1\n"])
+        with mock.patch.dict(os.environ):
+            os.environ.pop(rlt.OPENGL_DIR_VAR, None)
+            self.assertEqual(self.run_test(tools).status, "PASS")
+        self.assertFalse(set(rlt.OPENGL_DLLS) & tools.run_files[0])
+
+    def test_hard_links_and_one_already_there_kept(self):
+        folder = Path(self.tmp.name) / "prog"
+        folder.mkdir()
+        exe = folder / "p.exe"
+        exe.write_bytes(b"")
+        (folder / "opengl32.dll").write_bytes(b"its own")
+        with mock.patch.dict(os.environ, {rlt.OPENGL_DIR_VAR: str(self.mesa)}):
+            rlt.link_opengl(exe)
+            rlt.link_opengl(exe)
+        self.assertEqual((folder / "opengl32.dll").read_bytes(), b"its own")
+        self.assertTrue(os.path.samefile(folder / "libgallium_wgl.dll", self.mesa / "libgallium_wgl.dll"))
+
+    def test_no_build_cache_in_the_vm(self):
+        cache = Path("target/build-cache")
+        with mock.patch.dict(os.environ):
+            os.environ.pop(rlt.NO_BUILD_CACHE_VAR, None)
+            self.assertEqual(rlt.build_cache_given(cache), cache)
+        with mock.patch.dict(os.environ, {rlt.NO_BUILD_CACHE_VAR: "1"}):
+            self.assertIsNone(rlt.build_cache_given(cache))
 
 
 class PassList(unittest.TestCase):

@@ -169,9 +169,37 @@ pub fn run(cmd: &mut Command, input: Option<&[u8]>, limit: Duration, phase: &str
 /// A generated program, to be run unattended: a runtime error is written to stderr and ends the program, with no
 /// dialog that waits for a person (`QB64PE_NOPROMPT=y`). A test of another mode sets the variable again.
 pub fn unattended(exe: &Path) -> Command {
+    link_opengl(exe);
     let mut cmd = Command::new(exe);
     cmd.env("QB64PE_NOPROMPT", "y");
     cmd
+}
+
+/// The variable naming the folder of Mesa's software OpenGL, set in the suites VM, whose display has no OpenGL that can
+/// make a program's window (`tools\winvm\step.ps1`; `link_opengl` of `tools\legacy_tests\run_legacy_tests.py`).
+const OPENGL_DIR_ENV: &str = "QB64RUST_OPENGL_DIR";
+
+/// With [`OPENGL_DIR_ENV`] set, puts Mesa's two DLLs beside `exe`, where Windows looks first for a DLL a program loads:
+/// a hard link, or a copy when the folder is on another volume. A DLL already there is kept. Unset, nothing.
+pub fn link_opengl(exe: &Path) {
+    let (Some(dir), Some(folder)) = (std::env::var_os(OPENGL_DIR_ENV), exe.parent()) else {
+        return;
+    };
+    for name in ["opengl32.dll", "libgallium_wgl.dll"] {
+        let target = folder.join(name);
+        if target.exists() {
+            continue;
+        }
+        let source = Path::new(&dir).join(name);
+        if std::fs::hard_link(&source, &target).is_err() {
+            std::fs::copy(&source, &target).unwrap_or_else(|e| panic!("{OPENGL_DIR_ENV}: {}: {e}", source.display()));
+        }
+    }
+}
+
+/// Set in the suites VM (`tools\winvm\step.ps1`), whose copy of the tree is no git checkout and which has no git.
+pub fn in_suites_vm() -> bool {
+    std::env::var_os("QB64RUST_IN_SUITES_VM").is_some()
 }
 
 /// A tool of the toolchain a build uses (`nm.exe`, `lldb.exe`), by its Windows file name (off Windows without

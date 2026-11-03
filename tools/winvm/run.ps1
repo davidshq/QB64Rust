@@ -28,7 +28,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $name = if ($env:QB64RUST_VM) { $env:QB64RUST_VM } else { 'qb64rust-desktop' }
-$credentialFile = Join-Path $env:LOCALAPPDATA 'qb64rust\winvm\credential.xml'
+# Each VM's own credential, written by create.ps1 (vm-suites design D2). The desktop VM made before that has only
+# the one file of that time, which is read when its own is missing.
+$credentialFile = Join-Path $env:LOCALAPPDATA "qb64rust\winvm\$name\credential.xml"
+$oldCredentialFile = Join-Path $env:LOCALAPPDATA 'qb64rust\winvm\credential.xml'
+if ($name -eq 'qb64rust-desktop' -and -not (Test-Path -LiteralPath $credentialFile)) {
+    $credentialFile = $oldCredentialFile
+}
 $inside = 'C:\run'
 # Mesa's software OpenGL in the guest, put there by create.ps1, which inside.ps1 puts beside each program.
 $openGL = 'C:\mesa'

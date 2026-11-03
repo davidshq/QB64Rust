@@ -10,6 +10,11 @@ input), so they assert the plan of the real steps (steps.py) without running any
 
 from __future__ import annotations
 
+import contextlib
+import dataclasses
+import io
+import itertools
+import json
 import os
 import shutil
 import subprocess
@@ -355,6 +360,31 @@ class Full(unittest.TestCase):
         finally:
             repo.close()
 
+    def test_full_runs_on_uncommitted_changes_when_asked_and_says_so(self):
+        repo = FakeRepo()
+        try:
+            planned = []
+            out = io.StringIO()
+            with mock.patch.object(check, "no_clone", lambda root: None), mock.patch.object(
+                check, "choose_place", lambda root, what, asked, *a: (check.HOST, None)
+            ), mock.patch.object(
+                check, "execute", lambda root, plan, force, what="": planned.append(plan) or 0
+            ), contextlib.redirect_stdout(out):
+                self.assertEqual(check.main(["full", "--wait"], root=repo.root), 2)
+                self.assertEqual(planned, [])
+                self.assertEqual(check.main(["full", "--uncommitted", "--wait"], root=repo.root), 0)
+                self.assertEqual(check.main(["merge", "--uncommitted", "--wait"], root=repo.root), 2)
+            self.assertEqual(len(planned), 1)
+            self.assertEqual(out.getvalue().count("running on uncommitted changes"), 1)
+            self.assertIn("--uncommitted applies to `check full` only: a merge's results", out.getvalue())
+            # Elsewhere the refusal gives no merge's reason.
+            quick = io.StringIO()
+            with contextlib.redirect_stdout(quick):
+                self.assertEqual(check.main(["quick", "--uncommitted"], root=repo.root), 2)
+            self.assertEqual(quick.getvalue().strip(), "--uncommitted applies to `check full` only")
+        finally:
+            repo.close()
+
     def test_full_refuses_a_tree_without_the_reference_clone_beside_it(self):
         repo = FakeRepo()
         try:
@@ -685,6 +715,331 @@ class Execute(unittest.TestCase):
             self.assertEqual(check.history(repo.root, 14), 0)
         finally:
             repo.close()
+
+
+class VmSteps(unittest.TestCase):
+    """steps.py's marks for the suites VM (OpenSpec change vm-suites, design D8, D9)."""
+
+    def test_each_vm_step_is_a_list_and_a_runner_step_names_its_results_file(self):
+        vm = [s for s in steps.STEPS if s.vm]
+        self.assertEqual(
+            {s.name for s in vm},
+            {
+                "slice", "upstream", "verification", "callsite", "cli", "qbasic", "addprefix", "format",
+                "format-corpus", "differential", "nofold", "coverage", "corpus-whole", "upstream-whole",
+                "verification-whole",
+            },
+        )
+        for s in vm:
+            self.assertIsInstance(s.command, tuple, s.name)
+            if steps.RUNNER not in s.command:
+                continue
+            folder = s.command[s.command.index("--results") + 1] if "--results" in s.command else steps.RESULTS
+            named = [o for o in s.outputs if o.endswith(".json")]
+            self.assertEqual(len(named), 1, s.name)
+            self.assertTrue(named[0].startswith(folder + "/results-"), (s.name, named))
+            partial = "--list" in s.command or "--glob" in s.command
+            self.assertEqual(named[0].endswith("/results-partial.json"), partial, s.name)
+        self.assertEqual(steps.BY_NAME["coverage"].outputs, ("target/coverage/runs/results-partial.json",))
+
+    def test_the_whole_suites_are_lists_that_clear_their_counts(self):
+        for name, suite, _ in steps.WHOLE:
+            s = steps.BY_NAME[f"{name}-whole"]
+            counts = f"{steps.COUNTS}/{name}.txt"
+            self.assertIsInstance(s.command, tuple)
+            self.assertEqual(s.clears, (counts,))
+            self.assertIn(counts, s.outputs)
+            self.assertIn(f"{steps.RESULTS}/results-{suite}.json", s.outputs)
+            self.assertEqual(s.command[s.command.index("--coverage") + 1], counts)
+        self.assertEqual(steps.BY_NAME["verification-whole"].vm_first, steps.V37_LIBS)
+        self.assertEqual(steps.BY_NAME["verification"].vm_first, steps.V37_LIBS)
+
+    def test_a_cleared_record_goes_before_a_run_on_the_host(self):
+        repo = FakeRepo()
+        try:
+            counts = repo.root / steps.COUNTS / "corpus.txt"
+            repo.write(f"{steps.COUNTS}/corpus.txt", "old\n")
+            plan = check.make_plan(repo.root, FULL, True, ["corpus-whole"])
+            p = plan.run[0]
+            p.step = dataclasses.replace(p.step, command=(sys.executable, "-c", "pass"))
+            check.run_step(p, repo.root, True, True)
+            self.assertFalse(counts.exists())
+            self.assertTrue(counts.parent.is_dir())
+        finally:
+            repo.close()
+
+
+# Stands in for tools/winvm/suites.ps1 and step.ps1: each call is a line of the log FAKE_VM_LOG, and a step runs the
+# job's command on the host.
+FAKE_VM = """
+import json, os, subprocess, sys, time
+from pathlib import Path
+which, args = Path(sys.argv[1]).stem, sys.argv[2:]
+with open(os.environ["FAKE_VM_LOG"], "a", encoding="utf-8") as f:
+    f.write(" ".join([which] + [a for a in args if a.startswith("-")]) + "\\n")
+if which == "step" and os.environ.get("FAKE_VM_HANG"):
+    time.sleep(float(os.environ["FAKE_VM_HANG"]))
+if which == "step":
+    job = json.loads(Path(args[args.index("-Job") + 1]).read_text(encoding="utf-8"))
+    sys.exit(subprocess.run(job["command"]).returncode)
+sys.exit(int(os.environ.get("FAKE_VM_EXIT_" + which.upper(), "0")))
+"""
+
+
+class VmPlace(unittest.TestCase):
+    """`--where`, the suites VM's session of a run, and the place in a result (spec testing/check-workflow; design
+    D6, D9, D10, D11)."""
+
+    def setUp(self):
+        self.repo = FakeRepo()
+        base = Path(self.repo.tmp.name)
+        self.fake = base / "fake_vm.py"
+        self.fake.write_text(FAKE_VM, encoding="utf-8")
+        self.calls = base / "calls.txt"
+        patches = (
+            mock.patch.dict(os.environ, {"FAKE_VM_LOG": str(self.calls)}),
+            mock.patch.object(check, "powershell", lambda root, script, *a: [sys.executable, str(self.fake), script, *a]),
+            mock.patch.object(check, "toolchain_path", lambda root: ""),
+        )
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+
+    def tearDown(self):
+        self.repo.close()
+
+    def log(self) -> list[str]:
+        return self.calls.read_text(encoding="utf-8").splitlines() if self.calls.is_file() else []
+
+    def plan_of(self, names, where=check.VM, codes=None) -> check.Plan:
+        plan = check.make_plan(self.repo.root, FULL, True, names, where=where)
+        for p in plan.run:
+            code = (codes or {}).get(p.step.name, "pass")
+            p.step = dataclasses.replace(p.step, command=(sys.executable, "-c", code))
+        return plan
+
+    def test_three_steps_restore_the_vm_once_and_it_is_off_after_a_failing_last_one(self):
+        plan = self.plan_of(
+            ["build", "slice", "verification", "differential"], codes={"verification": "raise SystemExit(1)"}
+        )
+        # verification last of the three in the order: the longest by its last time.
+        check.write_record(self.repo.root, "verification", {"result": "pass", "seconds": 999, "started": 0})
+        check.write_record(self.repo.root, "slice", {"result": "pass", "seconds": 5, "started": 0})
+        check.write_record(self.repo.root, "differential", {"result": "pass", "seconds": 6, "started": 0})
+        with mock.patch.object(check, "order", lambda run, root: sorted(run, key=lambda p: p.step.name == "verification")):
+            self.assertEqual(check.execute(self.repo.root, plan, True), 1)
+        self.assertEqual(self.log(), ["suites -Start -Tree", "step -Tree -Job", "step -Tree -Job", "step -Tree -Job", "suites -Stop"])
+        got = {n: check.read_record(self.repo.root, n) for n in ("build", "slice", "verification", "differential")}
+        self.assertEqual({n: (r["result"], r["where"]) for n, r in got.items()}, {
+            "build": ("pass", "host"),
+            "slice": ("pass", "vm"),
+            "verification": ("fail", "vm"),
+            "differential": ("pass", "vm"),
+        })
+
+    def test_a_failed_start_fails_the_vm_steps_and_turns_the_vm_off(self):
+        plan = self.plan_of(["build", "slice", "differential"])
+        with mock.patch.dict(os.environ, {"FAKE_VM_EXIT_SUITES": "1"}):
+            self.assertEqual(check.execute(self.repo.root, plan, True), 1)
+        self.assertEqual(self.log(), ["suites -Start -Tree", "suites -Stop"])
+        self.assertEqual(check.read_record(self.repo.root, "build")["result"], "pass")
+        for name in ("slice", "differential"):
+            self.assertIn("the suites VM cannot be used", check.read_record(self.repo.root, name)["note"])
+
+    def test_without_hyper_v_a_full_run_falls_back_to_the_host_saying_so_once(self):
+        why = "Hyper-V cannot be used: the module Hyper-V was not loaded"
+        out = io.StringIO()
+        with mock.patch.object(check, "dirty", lambda root: []), mock.patch.object(
+            check, "no_clone", lambda root: None
+        ), mock.patch.object(check, "vm_refusal", lambda root: why), mock.patch.object(
+            check, "execute", lambda root, plan, force, what="": self.planned.append(plan) or 0
+        ), contextlib.redirect_stdout(out):
+            self.planned = []
+            self.assertEqual(check.main(["full", "--wait"], root=self.repo.root), 0)
+        self.assertEqual(out.getvalue().count("the suites VM cannot be used"), 1)
+        self.assertIn(why, out.getvalue())
+        self.assertTrue(all(p.where == check.HOST for p in self.planned[0].run))
+        self.assertIsNone(self.planned[0].vm_refusal)
+
+    def test_the_vm_asked_for_but_missing_fails_its_steps_and_the_host_steps_run(self):
+        why = "there is no VM named qb64rust-suites: make it with tools\\winvm\\create.ps1 -Shape Suites"
+        out = io.StringIO()
+        with mock.patch.object(check, "dirty", lambda root: []), mock.patch.object(
+            check, "no_clone", lambda root: None
+        ), mock.patch.object(check, "vm_refusal", lambda root: why), contextlib.redirect_stdout(out):
+            self.assertEqual(check.main(["full", "--where", "vm", "--plan"], root=self.repo.root), 0)
+        self.assertIn("the steps that run programs fail", out.getvalue())
+        plan = self.plan_of(["build", "slice"])
+        plan.vm_refusal = why
+        self.assertEqual(check.execute(self.repo.root, plan, True), 1)
+        self.assertEqual(self.log(), [], "the VM is never started")
+        self.assertEqual(check.read_record(self.repo.root, "build")["result"], "pass")
+        slice_ = check.read_record(self.repo.root, "slice")
+        self.assertEqual((slice_["result"], slice_["where"]), ("fail", "vm"))
+        self.assertIn("create.ps1", slice_["note"])
+
+    def test_a_host_pass_does_not_stand_for_a_vm_run(self):
+        self.repo.pass_all()
+        host = check.make_plan(self.repo.root, FULL)
+        self.assertEqual(host.run, [])
+        vm = check.make_plan(self.repo.root, FULL, where=check.VM)
+        planned = {p.step.name: p.where for p in vm.run}
+        self.assertEqual(planned, {s.name: check.VM for s in steps.STEPS if s.vm and s.layer in (QUICK, FULL)})
+        self.assertIn("build", {s.name for s, _ in vm.standing})
+
+    def test_the_status_of_a_step_says_its_pass_was_in_the_vm(self):
+        plan = self.plan_of(["build", "slice"])
+        check.execute(self.repo.root, plan, True)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            check.status(self.repo.root)
+        line = next(ln for ln in out.getvalue().splitlines() if " slice " in ln)
+        self.assertIn("pass in the VM", line)
+        build = next(ln for ln in out.getvalue().splitlines() if " build " in ln)
+        self.assertNotIn("in the VM", build)
+
+    def test_quick_plans_as_before_and_asks_nothing_of_the_vm(self):
+        def no_vm(root):
+            raise AssertionError("quick must not look for the VM")
+
+        before = {p.step.name: p.inputs.fingerprint for p in check.make_plan(self.repo.root, QUICK).run}
+        with mock.patch.object(check, "vm_refusal", no_vm), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(check.main(["quick", "--plan"], root=self.repo.root), 0)
+        self.assertEqual(check.choose_place(self.repo.root, QUICK, None), (check.HOST, None))
+        hosted = check.make_plan(self.repo.root, QUICK, where=check.HOST)
+        self.assertEqual({p.step.name: p.inputs.fingerprint for p in hosted.run}, before)
+        self.assertTrue(all(p.where == check.HOST for p in hosted.run))
+
+    def test_quick_where_vm_puts_only_the_slice_in_the_vm(self):
+        plan = check.make_plan(self.repo.root, QUICK, where=check.VM)
+        got = {p.step.name: p.where for p in plan.run}
+        self.assertEqual(got.pop("slice"), check.VM)
+        self.assertTrue({"fmt", "build", "clippy", "nextest", "lists", "doc", "tools"} <= set(got))
+        self.assertEqual(set(got.values()), {check.HOST})
+
+    def test_the_clones_toolchain_on_the_host_is_one_line_of_the_report(self):
+        for second, want in (("clone: the toolchain of the QB64pe clone next to the repository", 1), ("installed: x", 0)):
+            plan = self.plan_of(["build", "slice", "upstream"], where=check.HOST)
+            out = io.StringIO()
+            with mock.patch.object(check, "toolchain_path", lambda root: f"somewhere\n{second}\n"), contextlib.redirect_stdout(out):
+                self.assertEqual(check.execute(self.repo.root, plan, True), 0)
+            self.assertEqual(out.getvalue().count("qb64rust toolchain install"), want, second)
+
+    def test_the_cli_tests_in_the_vm_run_the_binary_built_on_the_host(self):
+        plan = check.make_plan(self.repo.root, FULL, True, ["cli"], where=check.VM)
+        p = plan.run[0]
+        binary = "target/debug/deps/it-0123.exe"
+        with mock.patch.object(check, "cli_binary", lambda root, out: binary), mock.patch.object(
+            check, "vm_limit", lambda root, name: 1800
+        ):
+            vm = check.SuitesVM(self.repo.root)
+            with open(self.repo.root / "log.txt", "wb") as out:
+                check.run_in_vm(p, self.repo.root, list(p.step.command), out, vm)
+            vm.stop()
+        job = json.loads((check.state(self.repo.root) / "vm" / "cli.json").read_text(encoding="utf-8"))
+        self.assertEqual((job["command"], job["cwd"]), ([binary, "--ignored"], "crates/driver"))
+        self.assertIn(binary, job["copy"])
+        self.assertIn(check.CLI_COMPILER, job["copy"])
+
+    def test_a_vm_step_keeps_no_build_cache_and_gets_its_outputs_and_first_command(self):
+        plan = check.make_plan(self.repo.root, FULL, True, ["verification"], where=check.VM)
+        p = plan.run[0]
+        vm = check.SuitesVM(self.repo.root)
+        with open(self.repo.root / "log.txt", "wb") as out:
+            check.run_in_vm(p, self.repo.root, list(p.step.command), out, vm)
+        vm.stop()
+        job = json.loads((check.state(self.repo.root) / "vm" / "verification.json").read_text(encoding="utf-8"))
+        self.assertEqual(job["env"], {"QB64RUST_NO_BUILD_CACHE": "1"})
+        self.assertIn("--pass-cache", job["command"])
+        self.assertEqual(job["outputs"], list(p.step.outputs))
+        self.assertEqual(job["first"], list(steps.V37_LIBS))
+        self.assertGreaterEqual(job["limit"], check.VM_LIMIT_FLOOR)
+
+    def test_a_narrowed_list_goes_into_the_vm_with_the_step(self):
+        plan = check.make_plan(self.repo.root, FULL, True, ["slice"], where=check.VM)
+        p = plan.run[0]
+        p.only = ["g/p1"]
+        cmd, _ = check.command_of(p, self.repo.root, False, True)
+        vm = check.SuitesVM(self.repo.root)
+        with open(self.repo.root / "log.txt", "wb") as out:
+            check.run_in_vm(p, self.repo.root, cmd, out, vm)
+        vm.stop()
+        job = json.loads((check.state(self.repo.root) / "vm" / "slice.json").read_text(encoding="utf-8"))
+        self.assertIn("target/check/lists/slice.list", job["copy"])
+
+    def test_a_whole_suite_that_brings_nothing_back_leaves_no_old_counts_or_results(self):
+        counts = f"{steps.COUNTS}/corpus.txt"
+        results = f"{steps.RESULTS}/results-corpus.json"
+        for rel in (counts, results):
+            self.repo.write(rel, "the last merge's\n")
+        plan = self.plan_of(["corpus-whole"])
+        with mock.patch.dict(os.environ, {"FAKE_VM_EXIT_SUITES": "1"}):
+            self.assertEqual(check.execute(self.repo.root, plan, True), 1)
+        self.assertEqual(check.read_record(self.repo.root, "corpus-whole")["where"], check.VM)
+        self.assertFalse((self.repo.root / counts).exists())
+        self.assertFalse((self.repo.root / results).exists())
+
+    def test_a_quick_failure_does_not_cut_the_next_limit(self):
+        check.write_record(self.repo.root, "slice", {"result": "pass", "seconds": 1000, "started": 0})
+        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 3000)
+        plan = self.plan_of(["slice"], codes={"slice": "raise SystemExit(1)"})
+        self.assertEqual(check.execute(self.repo.root, plan, True), 1)
+        record = check.read_record(self.repo.root, "slice")
+        self.assertEqual((record["result"], record["passed_seconds"]), ("fail", 1000))
+        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 3000)
+        # A record of before the field: its time counts only when it passed.
+        check.write_record(self.repo.root, "slice", {"result": "fail", "seconds": 5000, "started": 0})
+        self.assertEqual(check.vm_limit(self.repo.root, "slice"), check.VM_LIMIT_FLOOR)
+
+    def test_the_limit_follows_the_last_whole_pass_in_the_vm(self):
+        def run(where, only=None, code="pass", seconds=None):
+            plan = self.plan_of(["slice"], where=where, codes={"slice": code})
+            plan.run[0].only = only
+            # The step's start at 0 and every later reading at `seconds`, so that its time is that.
+            clock = itertools.chain([0.0], itertools.repeat(float(seconds or 0)))
+            with mock.patch.object(check.time, "time", lambda: next(clock)):
+                check.run_step(plan.run[0], self.repo.root, True, True, check.SuitesVM(self.repo.root))
+            return check.read_record(self.repo.root, "slice")
+
+        # A whole pass records its own time, in the VM also as the VM's.
+        r = run(check.VM, seconds=1000)
+        self.assertEqual((r["passed_seconds"], r["vm_passed_seconds"]), (1000, 1000))
+        # A pass on the host, quicker with its build cache, does not set the VM's limit.
+        r = run(check.HOST, seconds=100)
+        self.assertEqual((r["passed_seconds"], r["vm_passed_seconds"]), (100, 1000))
+        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 3000)
+        # A narrowed pass and a failure keep the earlier times.
+        for r in (run(check.VM, only=["g/p1"], seconds=5), run(check.VM, code="raise SystemExit(1)", seconds=2)):
+            self.assertEqual((r["passed_seconds"], r["vm_passed_seconds"]), (100, 1000))
+        # Never passed in the VM: the last whole pass anywhere.
+        check.write_record(self.repo.root, "slice", {"result": "pass", "seconds": 700, "passed_seconds": 700})
+        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 2100)
+
+    def test_a_hung_step_ps1_is_stopped_and_fails_the_step(self):
+        plan = self.plan_of(["slice"])
+        with mock.patch.dict(os.environ, {"FAKE_VM_HANG": "30"}), mock.patch.object(
+            check, "vm_limit", lambda root, name: 0
+        ), mock.patch.object(check, "VM_STEP_SLACK", 2):
+            self.assertEqual(check.execute(self.repo.root, plan, True), 1)
+        record = check.read_record(self.repo.root, "slice")
+        self.assertIn("hung", record["note"])
+        self.assertEqual(self.log()[-1], "suites -Stop")
+
+    def test_the_vm_fingerprint_takes_only_the_winvm_files_of_a_step(self):
+        def fingerprint():
+            return {p.step.name: p.inputs.fingerprint for p in check.make_plan(
+                self.repo.root, FULL, True, ["build", "slice"], where=check.VM
+            ).run}["slice"]
+
+        others = ("README.md", "create.ps1", "run.ps1", "test_outputs.py")
+        for rel in ("step.ps1",) + others:
+            self.repo.write(f"tools/winvm/{rel}", "1\n")
+        before = fingerprint()
+        for rel in others:
+            self.repo.write(f"tools/winvm/{rel}", "2\n")
+        self.assertEqual(fingerprint(), before)
+        self.repo.write("tools/winvm/step.ps1", "2\n")
+        self.assertNotEqual(fingerprint(), before)
 
 
 class Targets(unittest.TestCase):
