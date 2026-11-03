@@ -1,0 +1,4 @@
+top
+run 1 a = 0 
+run 2 a = 0 
+exit=0

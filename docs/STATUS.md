@@ -42,8 +42,10 @@ changes (`m5-debug-build-symbols`, `m5-dap-proxy`, `m5-debug-launch`) and `m5b-f
 and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026-10-28). Pull request 21
 (`012ed21`, 2026-10-29) merged branch `docs-and-cuts`, the answers to `study\38`'s last questions (`DECISIONS.md`
 2026-10-28); pull request 22 (`bfd2aba`, 2026-11-01) merged branch `misc-updates`: `m7-linux`,
-`basic-unit-tests`, `desktop-sandbox` and `testing-reset`. Branch `linux-sync-per-tree` (`7334117`) holds
-`linux-sync-per-tree`, archived 2026-11-02, and `TODO.md`. No OpenSpec change is open. The extension's last
+`basic-unit-tests`, `desktop-sandbox` and `testing-reset`. Pull request 23 (`d6d341e`, 2026-11-02) merged
+branch `linux-sync-per-tree`. It holds four changes, all archived: `linux-sync-per-tree`, `check-rejudge`,
+`pin-rejection-line`, and the 40-character limit on names, which was built without an OpenSpec change. It also
+added `TODO.md`. The open OpenSpec change is `known-output`, which is `TODO.md` row 1. The extension's last
 release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
@@ -57,24 +59,12 @@ Nothing is waiting: names of more than 40 characters were answered on 2026-11-02
 
 ## Next
 
-1. **`linux-sync-per-tree` into `main`**: its merge run passes (numbers below); the merge is the user's.
-   **`check-rejudge`** is built (2026-11-02): `--rejudge` judges a whole suite's stored results under today's known
-   lists in under a second, `check` plans it when only those lists changed, a merge's passes stand for the next
-   merge (whose Linux sync then follows git), and `counts.py` judges the pass lists in seconds (200 s before);
-   **archived 2026-11-02** (`openspec\changes\archive\2026-11-02-check-rejudge\`). The runner changed, so the next
-   `just full` runs everything once.
-2. **The 40-character limit on names** is built (2026-11-02, directly, without an OpenSpec change, `TODO.md`): a
-   word of code of more than 40 characters is an error wherever it stands, and a dotted variable, `CONST` or
-   procedure name of more than 40 with its dots (spec `compiler/pipeline`, "The 40-character limit on names";
-   `verification\v66_e01`–`e18` on
-   `pass.list`).
-   **`pin-rejection-line`** is built (2026-11-02): a verification program QB64pe rejected passes
-   only when the earliest line of its own file with an unmarked error is QB64pe's `LINE n:`, or the line
-   `tests\verification\lines.list` gives (18 rows); `v45_x48` went to `known.list` as a bug; **archived
-   2026-11-02** (`openspec\changes\archive\2026-11-02-pin-rejection-line\`). The runner changed again, so the next
-   `just full` runs the verification step whole. Next: `TODO.md` row 1 (what the new compiler prints for a
-   `known.list` program).
-3. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
+1. **`known-output`** (`TODO.md` row 1) is built and archived (2026-11-02). 116 verification programs that differ
+   from QB64pe on purpose are now on `pass.list`, each judged by its reviewed
+   `tests\verification\diverged\<name>.out.txt`. The review is the table at the end of
+   `openspec\changes\archive\2026-11-02-known-output\design.md`. The shorter timeout of the row is not built: it
+   would save nothing now (design D7). The runner changed, so the next `just full` runs everything once.
+2. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
    built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
    results are read when they come. M8 next.
 
@@ -112,7 +102,7 @@ long run, it is this, and it passes alone.
 
 ## Numbers at the last full runs
 
-The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Branch
+The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 23, branch
 `linux-sync-per-tree`** (2026-11-02): `just merge` in the worktree at `7334117`, then at `df67128` the steps its
 fix touched (`upstream-whole`, `upstream-list`, `linux-upstream`) and `counts.py`; `linux-verification`'s two
 failures re-judged against the new `known.linux.list`, not run again.

@@ -1,0 +1,2 @@
+1. DIM d(n), n = -3: [error 5 ] then UBOUND(d): [error 9 ]2. end
+exit=0

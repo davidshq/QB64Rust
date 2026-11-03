@@ -1,0 +1,4 @@
+ pass 1  [error 9 ] pass 2  [error 9 ] pass 3  [error 9 ] pass 4  [error 9 ] pass 5 
+after: 1  7  5 
+start out of range: [error 9 ] body [error 9 ] body [error 9 ] body [error 9 ] body [error 9 ] body after 5 
+exit=0

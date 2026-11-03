@@ -1,0 +1,7 @@
+first? < 1 >
+second?   error 62 
+< 0 >
+third   error 62 
+<>
+done
+exit=0
