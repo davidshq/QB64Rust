@@ -324,13 +324,16 @@ def expected_file(path: Path, platform: str) -> Path:
 
 def load_linux_list(path: Path, suite: str) -> dict[str, str]:
     """Reads a suite's known.linux.list into {"<suite>:<name>": reason} (empty if there is none):
-    <name><TAB><reason> per line, '#' lines and blank lines skipped."""
+    <name><TAB><reason> per line, '#' lines and blank lines skipped. A row with no tab, no reason or a space in
+    its name raises ValueError, naming it: without the tab, the whole row would be read as a name."""
     known: dict[str, str] = {}
     if path.is_file():
         for line in path.read_text(encoding="utf-8").splitlines():
             if not line.strip() or line.startswith("#"):
                 continue
-            name, _, reason = line.partition("\t")
+            name, tab, reason = line.partition("\t")
+            if not tab or not reason.strip() or " " in name.strip():
+                raise ValueError(f"{path}: not <name><TAB><reason>: {line}")
             known[f"{suite}:{name.strip()}"] = reason.strip()
     return known
 
@@ -2553,12 +2556,13 @@ def verification_compare(
     `<name> [fixes on]`."""
     name = bas.stem
     root = bas.parent
-    # A diverged\ sidecar stands for QB64pe's recording, and its log for the recorded log (design D1).
+    # A diverged\ sidecar stands for QB64pe's recording, and its log for the recorded log (design D1). On Linux,
+    # diverged\<name>.linux.out.txt stands for it when our output differs there, as a recording's Linux sidecar does.
     diverged = not fixed and diverged_sidecar(name).is_file()
     if fixed:
         recorded_file = fixed_sidecar(name)
     elif diverged:
-        recorded_file = diverged_sidecar(name)
+        recorded_file = expected_file(diverged_sidecar(name), platform_of(args))
     else:
         recorded_file = expected_file(root / f"{name}.out.txt", platform_of(args))
     recorded = recorded_file.read_bytes() if recorded_file.is_file() else None
@@ -2933,7 +2937,8 @@ def program_inputs(suite: str, bas: Path, names: list[str] | None = None) -> lis
             sidecar = VERIFICATION_LISTS / kind / f"{bas.stem}.{kind}"
             if sidecar.is_file():
                 found.append(sidecar)
-        for sidecar in (fixed_sidecar(bas.stem), diverged_sidecar(bas.stem), diverged_sidecar(bas.stem, "log")):
+        diverged = diverged_sidecar(bas.stem)
+        for sidecar in (fixed_sidecar(bas.stem), diverged, linux_sidecar(diverged), diverged_sidecar(bas.stem, "log")):
             if sidecar.is_file():
                 found.append(sidecar)
     return found

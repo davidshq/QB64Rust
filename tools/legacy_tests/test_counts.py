@@ -83,6 +83,8 @@ class VerificationMembership(unittest.TestCase):
             (lists / "pass.list").write_text("v01_a\nv01_b\n", encoding="utf-8")
             (lists / "diverged" / "v01_b.out.txt").write_bytes(b"exit=0\n")
             (lists / "diverged" / "v01_b.log.txt").write_bytes(b"")
+            # The same program's Linux output, not a second program.
+            (lists / "diverged" / "v01_b.linux.out.txt").write_bytes(b"exit=0\n")
             with (
                 mock.patch.object(counts, "VERIFICATION_ROOT", root),
                 mock.patch.object(counts, "VERIFICATION", lists),

@@ -1072,6 +1072,21 @@ class VmPlace(unittest.TestCase):
         self.assertNotEqual(fingerprint(), before)
 
 
+class Background(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "the console flags are Windows'")
+    def test_the_background_run_has_a_hidden_console(self):
+        # With no console (DETACHED_PROCESS), each console program a step starts opened a window of its own.
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(check.subprocess, "Popen") as popen:
+            with contextlib.redirect_stdout(io.StringIO()):
+                check.to_background(Path(tmp), ["quick"])
+            # Close the log the call opened, so that the folder can be removed.
+            popen.call_args.kwargs["stdout"].close()
+        flags = popen.call_args.kwargs["creationflags"]
+        self.assertTrue(flags & subprocess.CREATE_NO_WINDOW)
+        self.assertFalse(flags & subprocess.DETACHED_PROCESS)
+        self.assertEqual(popen.call_args.args[0][-2:], ["quick", "--wait"])
+
+
 class Targets(unittest.TestCase):
     def test_a_program_by_name(self):
         repo = FakeRepo()

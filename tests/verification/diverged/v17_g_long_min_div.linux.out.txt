@@ -1,0 +1,5 @@
+mod: 0 
+idiv:
+Runtime error: Line: 6 (in main module)
+Overflow
+exit=1

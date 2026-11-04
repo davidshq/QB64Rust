@@ -1,0 +1,5 @@
+[abc]
+[
+Runtime error: Line: 7 (in main module)
+Subscript out of range
+exit=1

@@ -802,19 +802,23 @@ fn verification_lists_are_exact() {
         .collect();
     for entry in std::fs::read_dir(lists.join("diverged")).into_iter().flatten() {
         let file = entry.unwrap().file_name().to_string_lossy().into_owned();
+        // `<name>.linux.out.txt` is our output on Linux, where it differs from `<name>.out.txt`.
         let Some((name, kind)) = file
-            .strip_suffix(".out.txt")
-            .map(|n| (n, "out"))
+            .strip_suffix(".linux.out.txt")
+            .map(|n| (n, "linux"))
+            .or_else(|| file.strip_suffix(".out.txt").map(|n| (n, "out")))
             .or_else(|| file.strip_suffix(".log.txt").map(|n| (n, "log")))
         else {
-            problems.push(format!("diverged/{file}: not a <name>.out.txt or <name>.log.txt"));
+            problems.push(format!(
+                "diverged/{file}: not a <name>.out.txt, <name>.linux.out.txt or <name>.log.txt"
+            ));
             continue;
         };
         if !programs.iter().any(|p| p == name) {
             problems.push(format!("diverged/{file}: no program verification/{name}.bas"));
             continue;
         }
-        if kind == "log" {
+        if kind != "out" {
             if !lists.join(format!("diverged/{name}.out.txt")).is_file() {
                 problems.push(format!("diverged/{file}: no diverged/{name}.out.txt beside it"));
             }

@@ -1139,7 +1139,9 @@ def to_background(root: Path, argv: list[str]) -> int:
     out = log.open("wb")
     kw: dict = {"cwd": root, "stdout": out, "stderr": subprocess.STDOUT, "stdin": subprocess.DEVNULL}
     if os.name == "nt":
-        kw["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        # A console of its own that is never shown, which every program the run starts shares. With no console at
+        # all (DETACHED_PROCESS), Windows opened a new window for each console program a step started.
+        kw["creationflags"] = subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         kw["start_new_session"] = True
     subprocess.Popen([sys.executable, str(Path(__file__).resolve()), *argv, "--wait"], **kw)

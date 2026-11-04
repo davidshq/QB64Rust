@@ -1,6 +1,8 @@
 # The verification programs that cannot pass on Linux (OpenSpec change m7-linux, design D6): <name><TAB><reason>, as
 # known.list. A reason that starts with "windows" skips the program there; any other makes its failure known. Read
 # by tools/legacy_tests/run_legacy_tests.py --platform linux. Each line was measured with QB64pe's Linux build too.
+v16_m6_if_around_meta	line: $IF WIN is false on Linux, so the IF of line 4 has no END IF and we name line 4; lines are checked against Windows's recording, where QB64pe names line 7 (QB64pe's Linux build names line 4 of the auto-included vwatch_stub.bm)
+v16_m6_split_block	line: $IF WIN is false on Linux, so the block crosses the $END IF and we name line 8; lines.list gives Windows's line 6 (QB64pe's Linux build names line 10)
 v22_d_shell	windows: SHELLs cmd; on Linux the shell's "not found" comes between the program's lines in another order each run
 v24_x93_large_bytes	varies: an array of 8 TB is allocated or "Out of memory" as the kernel's overcommit allows (allocated when recorded on 2026-10-28; "Out of memory" in WSL on 2026-11-02, QB64pe's Linux build too)
 v24_x96_large_redim	varies: an array of 8 TB is allocated or "Out of memory" as the kernel's overcommit allows (allocated when recorded on 2026-10-28; "Out of memory" in WSL on 2026-11-02, QB64pe's Linux build too)
@@ -25,3 +27,5 @@ v40_i_places	windows: reads the executable's version information with PowerShell
 v40_j_prefix	windows: reads the executable's version information with PowerShell
 v40_k_only_product_version	windows: reads the executable's version information with PowerShell
 v40_l_only_web	windows: reads the executable's version information with PowerShell
+v45_sample	glibc: samples the C library's long double functions at run time; glibc's results differ from MinGW's in the last bits, on 772 of its lines (2026-11-04)
+v57_j06_block_crosses_endif_agree	line: $IF WIN is false on Linux, so the DO crosses the $END IF and we name line 8; lines.list gives Windows's line 6 (QB64pe's Linux build names line 10)

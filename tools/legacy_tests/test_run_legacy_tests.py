@@ -1737,9 +1737,11 @@ class VerificationFixture(unittest.TestCase):
         path.parent.mkdir(exist_ok=True)
         path.write_bytes(data)
 
-    def run_test(self, tools: Tools, pass_cache=None, coverage=None):
+    def run_test(self, tools: Tools, pass_cache=None, coverage=None, platform=None):
         rlt.support_items.cache_clear()
-        args = SimpleNamespace(qb64=Path("qb64rust.exe"), pass_cache=pass_cache, coverage=coverage)
+        args = SimpleNamespace(
+            qb64=Path("qb64rust.exe"), pass_cache=pass_cache, coverage=coverage, platform=platform
+        )
         with mock.patch.object(rlt, "run_proc", tools):
             return rlt.run_suite_test(
                 "verification",
@@ -2379,6 +2381,17 @@ class VerificationDiverged(VerificationFixture):
         # A regression beside the divergence fails too.
         self.assert_fail(self.run_test(Tools(runs=[b"2\r\n4\r\n"])), "result", "line 1: recorded b'1', got b'2'")
 
+    def test_a_linux_sidecar_stands_for_it_on_linux_only(self):
+        # Where our output on Linux differs (a partial line before libqb's error message, a $IF WIN), its
+        # diverged\<name>.linux.out.txt judges the Linux run, and Windows keeps <name>.out.txt.
+        self.recorded(b"1\n7\nexit=0\n")
+        self.diverged(b"1\n4\nexit=0\n")
+        self.diverged(b"1\n5\nexit=0\n", "linux.out")
+        self.assertEqual(self.run_test(Tools(runs=[b"1\n5\n"]), platform="linux").status, "PASS")
+        self.assertEqual(self.run_test(Tools(runs=[b"1\r\n4\r\n"]), platform="windows").status, "PASS")
+        self.assert_fail(self.run_test(Tools(runs=[b"1\n4\n"]), platform="linux"), "result", "v99_p.linux.out.txt")
+        self.assert_fail(self.run_test(Tools(runs=[b"1\r\n5\r\n"]), platform="windows"), "result")
+
     def test_a_log_sidecar_stands_for_the_recorded_log(self):
         self.recorded(b"exit=0\n")
         (self.root / "v99_p.log.txt").write_bytes(VerificationLog.KEPT)
@@ -2403,8 +2416,10 @@ class VerificationDiverged(VerificationFixture):
         self.recorded(b"1\nexit=0\n")
         self.diverged(b"2\nexit=0\n")
         self.diverged(b"", "log")
+        self.diverged(b"3\nexit=0\n", "linux.out")
         found = rlt.program_inputs("verification", self.bas, sorted(p.name for p in self.root.iterdir()))
         self.assertIn(self.lists / "diverged" / "v99_p.out.txt", found)
+        self.assertIn(self.lists / "diverged" / "v99_p.linux.out.txt", found)
         self.assertIn(self.lists / "diverged" / "v99_p.log.txt", found)
 
     def test_a_diverged_rejection_stands_on_its_lines_list_row(self):
@@ -2619,6 +2634,21 @@ class PlatformRecordings(CorpusFixture):
         r = self.run_test(Tools(runs=[b" 1  2\n"], run_rc=3), record=True, platform="linux")
         self.assert_fail(r, "record", "exit code 3 on Linux")
         self.assertFalse((self.group / "p.exitcode").exists())
+
+    def test_a_linux_list_row_needs_its_tab(self):
+        # A row whose tab was lost would be one long name with no reason, and its program would not be skipped.
+        lst = Path(self.tmp.name) / "known.linux.list"
+        for row in ("g/pwindows: kernel32", "g/p\t", "g/p x\twindows: kernel32"):
+            lst.write_text(f"# programs\n{row}\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "not <name><TAB><reason>"):
+                rlt.load_linux_list(lst, "corpus")
+
+    def test_the_linux_lists_of_the_repo_read(self):
+        # The three lists the Linux runs read, checked on every platform.
+        for suite, folder in (("corpus", "corpus"), ("compile", "upstream"), ("verification", "verification")):
+            path = rlt.REPO / "tests" / folder / "known.linux.list"
+            self.assertTrue(path.is_file(), path)
+            self.assertTrue(rlt.load_linux_list(path, suite))
 
     def test_a_windows_only_program_is_skipped_on_linux(self):
         # "A Windows-only program": listed in the suite's known.linux.list as `windows`.

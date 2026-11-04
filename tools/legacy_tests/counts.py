@@ -136,7 +136,9 @@ def verification_membership() -> list[str]:
         )
     ]
     # Programs of pass.list judged by our own reviewed output (OpenSpec change known-output, design D6).
-    diverged = len(list((VERIFICATION / "diverged").glob("*.out.txt")))
+    # A <name>.linux.out.txt is the same program's output on Linux, not another program.
+    outputs = (VERIFICATION / "diverged").glob("*.out.txt")
+    diverged = len([p for p in outputs if not p.name.endswith(".linux.out.txt")])
     if diverged:
         lines += [
             "",
