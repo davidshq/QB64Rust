@@ -1018,6 +1018,118 @@ fn version_with_other_arguments() {
     );
 }
 
+/// qb64pe's `-c` is taken as `-x`; its `-s` is an error that names `-f:` (spec `compiler/cli`, scenario "qb64pe's
+/// -c and -s"). `-z` stops after the C++, so no toolchain is needed.
+#[test]
+fn qb64pe_c_and_s() {
+    let d = scratch("c-and-s");
+    std::fs::write(d.join("p.bas"), "PRINT 1\n").unwrap();
+    let o = qb64rust(&d, &["-c", "-q", "-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    for word in ["-s", "-s:debuginfo=true"] {
+        let o = qb64rust(&d, &[word, "p.bas"]);
+        assert_eq!(o.status.code(), Some(1), "{word}");
+        let out = stdout(&o);
+        assert!(
+            out.contains(&format!("`{word}` is not supported")) && out.contains("give a setting for this build"),
+            "{word}: {out}"
+        );
+    }
+}
+
+/// `-e` forces `OPTION _EXPLICIT`, as `qb64pe -e` does (spec `compiler/cli`, scenario "qb64pe's -e"; measured with
+/// `qb64pe.exe -e`, 2026-11-04): a variable not declared is QB64pe's error, in the program and in an included file
+/// alike; a program that declares its variables, also with its own `OPTION _EXPLICIT`, compiles; `$IF _EXPLICIT_`
+/// is true from the first round; and `-y` holds to it too.
+#[test]
+fn qb64pe_e() {
+    let d = scratch("e");
+    std::fs::write(d.join("undeclared.bas"), "x = 1\nPRINT x\n").unwrap();
+    std::fs::write(d.join("inc.bi"), "z = 3\n").unwrap();
+    std::fs::write(
+        d.join("included.bas"),
+        "DIM x AS INTEGER\n'$INCLUDE:'inc.bi'\nPRINT x\n",
+    )
+    .unwrap();
+    std::fs::write(d.join("declared.bas"), "DIM x AS INTEGER\nx = 1\nPRINT x\n").unwrap();
+    std::fs::write(
+        d.join("own.bas"),
+        "OPTION _EXPLICIT\nDIM x AS INTEGER\nx = 1\nPRINT x\n",
+    )
+    .unwrap();
+    // The `$ELSE` branch is a syntax error, read only when `_EXPLICIT_` is 0.
+    std::fs::write(
+        d.join("flag.bas"),
+        "$IF _EXPLICIT_ THEN\nPRINT 1\n$ELSE\nPRINT (\n$END IF\n",
+    )
+    .unwrap();
+    for (file, at, var) in [
+        ("undeclared.bas", "undeclared.bas:1:1", "x"),
+        ("included.bas", "inc.bi:1:1", "z"),
+    ] {
+        let o = qb64rust(&d, &["-e", "-q", "-z", file]);
+        assert_eq!(o.status.code(), Some(1), "{file}");
+        let out = stdout(&o);
+        assert!(
+            out.contains(&format!("{at}: error: variable `{var}` (SINGLE) is not declared")),
+            "{file}: {out}"
+        );
+        assert!(
+            out.contains(&format!("QB64pe: Variable '{var}' (SINGLE) not defined")),
+            "{file}: {out}"
+        );
+        // Without `-e` it compiles.
+        let o = qb64rust(&d, &["-q", "-z", file]);
+        assert_eq!(o.status.code(), Some(0), "{file}: {}", stdout(&o));
+    }
+    for file in ["declared.bas", "own.bas", "flag.bas"] {
+        let o = qb64rust(&d, &["-e", "-q", "-z", file]);
+        assert_eq!(o.status.code(), Some(0), "{file}: {}", stdout(&o));
+    }
+    let o = qb64rust(&d, &["-q", "-z", "flag.bas"]);
+    assert_eq!(o.status.code(), Some(1), "flag.bas without -e: {}", stdout(&o));
+    let o = qb64rust(&d, &["-y", "-e", "undeclared.bas", "-o", "laid_out.bas"]);
+    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+    assert!(!d.join("laid_out.bas").exists());
+}
+
+/// `-p` removes the libqb objects builds wrote in the copy of libqb, then goes on with the rest of the command line;
+/// alone it does only that (spec `compiler/cli`, scenario "qb64pe's -p"). A scratch copy stands for the copy.
+#[test]
+fn qb64pe_p() {
+    let d = scratch("p");
+    let libqb = d.join("libqb");
+    let c = libqb.join("internal").join("c");
+    std::fs::create_dir_all(&c).unwrap();
+    let object = c.join("libqb_make_000.o");
+    // `qbx.cpp` is what makes a folder a copy of libqb.
+    let source = c.join("qbx.cpp");
+    let stamp = libqb.join("objects.stamp");
+    let root = libqb.to_str().unwrap();
+    std::fs::write(&object, b"x").unwrap();
+    std::fs::write(&source, b"x").unwrap();
+    std::fs::write(&stamp, b"x").unwrap();
+    let o = qb64rust(&d, &["-p", "--libqb-root", root]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(stdout(&o).contains("removed the built libqb objects"), "{}", stdout(&o));
+    assert!(!object.exists() && !stamp.exists() && source.exists());
+    // With a file: the purge, then the compile; `-q` prints nothing of the purge.
+    std::fs::write(&object, b"x").unwrap();
+    std::fs::write(d.join("p.bas"), "PRINT 1\n").unwrap();
+    let o = qb64rust(&d, &["-p", "-q", "--libqb-root", root, "-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("removed"), "{}", stdout(&o));
+    assert!(!object.exists() && source.exists());
+    // A QB64pe folder, such as the reference clone, is refused and keeps its objects.
+    std::fs::write(&object, b"x").unwrap();
+    std::fs::create_dir_all(libqb.join("source")).unwrap();
+    std::fs::write(libqb.join("source").join("qb64pe.bas"), b"x").unwrap();
+    let o = qb64rust(&d, &["-p", "--libqb-root", root]);
+    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+    assert!(stdout(&o).contains("is a QB64pe folder"), "{}", stdout(&o));
+    assert!(object.exists());
+}
+
 /// `--list-fixes` prints one line per fix (spec `compiler/fixes`, "The list"); with another argument it is a usage
 /// error (spec `compiler/cli`, "List with another argument").
 #[test]

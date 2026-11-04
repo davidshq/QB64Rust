@@ -9,7 +9,15 @@ M1 extension use, plus options for inspecting each compiler stage.
 ### Requirement: qb64pe-compatible compile
 `qb64rust [-x] [-q] [-m] [-w] [-f:<setting>=<value>]... <file.bas> [-o <exe>]` SHALL compile the file to the
 executable (default: the source name with `.exe` on Windows and with no extension on Linux, next to the source, as
-`qb64pe` names it on each). `-x`, `-q`, `-m` and `-w` SHALL be accepted;
+`qb64pe` names it on each). `-x`, `-q`, `-m` and `-w` SHALL be accepted; `-c` SHALL be accepted as another
+name for `-x`, since there is no IDE window to build in. `-s` and `-s:<setting>[=<value>]`, `qb64pe`'s stored
+settings, SHALL be an error that names `-f:<setting>=<value>`. `-e` SHALL check the program as if it began with
+`OPTION _EXPLICIT`, as `qb64pe -e` does: its included files too, `_EXPLICIT_` and `_EXPLICITARRAY_` set from the
+first round, an `OPTION _EXPLICIT` of the program's own no error, and the same with `-z` and `-y`. `-p` SHALL first
+remove the libqb objects that builds wrote in the copy of libqb, and its stamp, holding the objects' lock alone,
+as `qb64pe -p` runs libqb's `make clean`; then the rest of the command line SHALL run, and `-p` with no input file
+SHALL end there with exit status 0. `-p` SHALL refuse a QB64pe folder (one with `source/qb64pe.bas`, such as the
+reference clone), removing nothing;
 `-q` SHALL suppress progress output. `-f:OptimizeCppProgram=true|false` SHALL build the C++ with or without
 optimisation as `qb64pe` does; `-f:ExtraLinkerFlags=<value>` SHALL add the value to the end of the link command as
 `qb64pe` does; `-f:StripDebugSymbols=true|false` SHALL strip or not strip the executable's symbols as `qb64pe`
@@ -23,6 +31,28 @@ and 1 otherwise; on failure no executable SHALL be left at the output path.
 #### Scenario: Runner's compile line
 - **WHEN** the corpus runner runs `qb64rust -q -m -x <prog>.bas -o <prog>.exe` on a slice program
 - **THEN** `<prog>.exe` exists and the exit status is 0
+
+#### Scenario: qb64pe's -c and -s
+- **WHEN** `qb64rust -c p.bas` runs on a program that compiles
+- **THEN** it builds `p.exe` as `qb64rust -x p.bas` does
+- **WHEN** `qb64rust -s:debuginfo=true p.bas` runs
+- **THEN** the exit status is 1, nothing is built, and the message names `-f:<setting>=<value>`
+
+#### Scenario: qb64pe's -e
+- **WHEN** `qb64rust -e -z p.bas` runs on a program whose line 1 is `x = 1`, with no `DIM`
+- **THEN** the exit status is 1 and the error at `p.bas:1:1` is that `x` is not declared, with the note
+  "QB64pe: Variable 'x' (SINGLE) not defined"
+- **WHEN** the same program is compiled without `-e`
+- **THEN** the exit status is 0
+
+#### Scenario: qb64pe's -p
+- **WHEN** `qb64rust -p --libqb-root <copy>` runs
+- **THEN** the copy's `.o`, `.a` and `.tmp` files under `internal/c` and its `objects.stamp` are gone, its sources
+  stay, and the exit status is 0
+- **WHEN** `qb64rust -p -z p.bas` runs
+- **THEN** the objects are removed and then `p.bas` is compiled as without `-p`
+- **WHEN** `qb64rust -p --libqb-root <qb64pe>` runs on a folder with `source/qb64pe.bas`
+- **THEN** the exit status is 1, the message says it is a QB64pe folder, and nothing is removed
 
 #### Scenario: Program with an error
 - **WHEN** the source has an error

@@ -178,6 +178,7 @@ Differences from the bash runners (all deliberate):
 from __future__ import annotations
 
 import argparse
+import atexit
 import bisect
 import concurrent.futures
 import contextlib
@@ -194,6 +195,7 @@ import signal
 import stat
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from collections.abc import Callable
@@ -239,15 +241,31 @@ LINUX_KNOWN = "known.linux.list"
 ALSA_NULL = Path(__file__).resolve().parents[1] / "linux" / "asound-null.conf"
 
 
-def program_env() -> dict[str, str]:
-    """The environment a compile and a program run in: this process's, and on Linux the sound device fixed,
-    ALSA's null device (ALSA_CONFIG_PATH, unless it is set already) and no PulseAudio server, so that a
-    program meets the same device when recorded and when run, on any machine (WSLg's server, a card or
-    none) and prints none of ALSA's complaints about a missing card."""
+@functools.cache
+def empty_runtime_dir() -> str:
+    """An empty folder of this run, made once and removed when the runner exits. It is the XDG_RUNTIME_DIR of
+    every program on Linux, so that libpulse finds no server socket in it."""
+    path = tempfile.mkdtemp(prefix="qb64rust-runtime-")
+    atexit.register(shutil.rmtree, path, ignore_errors=True)
+    return path
+
+
+def program_env(linux: bool = os.name != "nt") -> dict[str, str]:
+    """The environment a compile and a program run in. It is this process's environment, with the sound
+    device fixed on Linux. ALSA_CONFIG_PATH names ALSA's null device, unless it is set already.
+
+    No PulseAudio server is reachable. PULSE_SERVER is cleared. XDG_RUNTIME_DIR names an empty folder of
+    this run, as tools/linux/run.sh does. In WSL the usual folder holds WSLg's socket
+    (/run/user/<uid>/pulse/native), and libpulse finds it there even without PULSE_SERVER; the program
+    would then play on the host's speakers at 44100 Hz, where CI has 48000.
+
+    So a program meets the same device when recorded and when run, on any machine (WSLg's server, a card
+    or none), and prints none of ALSA's complaints about a missing card."""
     env = dict(os.environ)
-    if os.name != "nt":
+    if linux:
         env.setdefault("ALSA_CONFIG_PATH", str(ALSA_NULL))
         env.pop("PULSE_SERVER", None)
+        env["XDG_RUNTIME_DIR"] = empty_runtime_dir()
     return env
 
 

@@ -80,6 +80,3 @@ v66_d02_embedded_parens	not supported yet: QB64pe rejects it too, with another e
 v66_d03_const_rgb32_string	not supported yet
 v66_d09_library_sub_handler_no_argument	not supported yet
 v66_d10_library_sub_handler_argument	not supported yet: QB64pe rejects it too, with another error
-v66_g01_left_out_screen	not supported yet: QB64pe rejects it too, with another error
-v66_g07_left_out_lbound	not supported yet: QB64pe rejects it too, with another error
-v66_g08_left_out_ubound	not supported yet: QB64pe rejects it too, with another error

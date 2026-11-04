@@ -27,13 +27,13 @@ use qb64rust_base::Platform;
 use qb64rust_base::fixes::{FIXES, Fixes};
 use qb64rust_base::layout::Settings;
 use qb64rust_driver::fixes::CliFix;
-use qb64rust_driver::{FileLoader, compile, fixes, frontend_at, report, toolchain};
+use qb64rust_driver::{FileLoader, compile, fixes, frontend_explicit, report, toolchain};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Mutex;
 
-const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
+const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-e] [-p] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp|debug-info] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] \
 [--include-root <dir>] [--keep-build] [--coverage] [--debug] [--fixes on|off] [--fix <name>=on|off]...\n\
        qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]\n\
@@ -84,6 +84,10 @@ struct Options {
     debug: bool,
     /// `-w`: print the warnings too (spec `compiler/cli`).
     warnings: bool,
+    /// `-e`: `OPTION _EXPLICIT` forced, as `qb64pe -e` does (spec `compiler/cli`).
+    explicit: bool,
+    /// `-p`: the libqb objects removed first, as `qb64pe -p` does (spec `compiler/cli`).
+    purge: bool,
     /// `-f:<setting>=<value>` as given, checked by [`compile::build_settings`].
     settings: Vec<String>,
     /// `--fixes` and `--fix`, in the order given (spec `compiler/fixes`).
@@ -113,9 +117,19 @@ fn parse_args() -> Result<Options, String> {
         let mut value = |what: &str| args.next().ok_or_else(|| format!("{what} needs a value"));
         match s.as_str() {
             // Accepted for the corpus runner and the M1 extension: -x (compile only, no IDE) and -m (plain
-            // output) change nothing here.
-            "-x" | "-m" => {}
+            // output) change nothing here. -c is qb64pe's compile in its own window; with no IDE it is -x.
+            "-x" | "-c" | "-m" => {}
+            // qb64pe's -s shows or changes a stored setting of the IDE (-s, -s:<setting>[=<value>]). There is no
+            // store here: a setting is given for each build.
+            _ if s == "-s" || s.starts_with("-s:") => {
+                return Err(format!(
+                    "`{s}` is not supported: there are no stored settings; give a setting for this build with \
+                     `-f:<setting>=<value>`"
+                ));
+            }
             "-w" => o.warnings = true,
+            "-e" => o.explicit = true,
+            "-p" => o.purge = true,
             "-q" => o.quiet = true,
             "-z" => o.cpp_only = true,
             "--print-build-inputs" => {
@@ -643,8 +657,10 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
         Ok(f) => f,
         Err(code) => return Ok(code),
     };
-    let fe = frontend_at(
+    // `-e` holds here too: `qb64pe -y -e` rejects a variable not declared (measured, 2026-11-04).
+    let fe = frontend_explicit(
         Platform::host(),
+        o.explicit,
         name,
         bytes,
         |file| Box::new(FileLoader::new(&include_root, file, input)),
@@ -668,6 +684,18 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
 
 fn run() -> Result<ExitCode, String> {
     let o = parse_args().map_err(|e| format!("{e}\n{USAGE}"))?;
+    if o.purge {
+        // As `qb64pe -p`, which runs libqb's `make clean` and then goes on with the rest of its command line; alone it
+        // opens the IDE there, and ends here.
+        let libqb = qb64rust_driver::build::find_libqb(o.libqb_root.as_deref())?;
+        qb64rust_driver::build::purge_objects(&libqb)?;
+        if !o.quiet {
+            println!("removed the built libqb objects of {}", libqb.display());
+        }
+        if o.inputs.is_empty() {
+            return Ok(ExitCode::SUCCESS);
+        }
+    }
     let input = o
         .inputs
         .first()
@@ -731,6 +759,7 @@ fn run() -> Result<ExitCode, String> {
         coverage: o.coverage,
         debug: o.debug,
         warnings: o.warnings,
+        explicit: o.explicit,
         settings: o.settings.clone(),
         fixes,
     };

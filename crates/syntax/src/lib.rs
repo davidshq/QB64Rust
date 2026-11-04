@@ -14,7 +14,8 @@ pub mod tree;
 pub use kind::SyntaxKind;
 pub use parser::keywords::{is_keyword, keywords};
 pub use program::{
-    LoadError, Loader, NoLoader, ParsedProgram, Tree, UsedLibrary, include_name, parse_settled, parse_settled_on,
+    LoadError, Loader, NoLoader, ParsedProgram, Tree, UsedLibrary, include_name, parse_settled, parse_settled_explicit,
+    parse_settled_on,
 };
 
 use qb64rust_base::{SourceMap, show_bytes};

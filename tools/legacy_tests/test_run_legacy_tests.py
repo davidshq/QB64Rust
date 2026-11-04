@@ -165,6 +165,33 @@ class NormalizeFiles(unittest.TestCase):
             self.rules("no tab here\n")
 
 
+class ProgramEnv(unittest.TestCase):
+    """What sound device a program meets on Linux (TODO.md row 8, DECISIONS.md 2026-11-04)."""
+
+    WSL = {"PULSE_SERVER": "unix:/mnt/wslg/PulseServer", "XDG_RUNTIME_DIR": "/run/user/1000"}
+
+    def test_on_linux_no_pulseaudio_server_is_reachable(self):
+        with mock.patch.dict(os.environ, self.WSL):
+            env = rlt.program_env(linux=True)
+        self.assertNotIn("PULSE_SERVER", env)
+        runtime = Path(env["XDG_RUNTIME_DIR"])
+        self.assertNotEqual(str(runtime), self.WSL["XDG_RUNTIME_DIR"])
+        self.assertTrue(runtime.is_dir())
+        self.assertEqual(list(runtime.iterdir()), [])
+        self.assertEqual(env["ALSA_CONFIG_PATH"], str(rlt.ALSA_NULL))
+
+    def test_every_program_gets_the_same_folder_of_the_run(self):
+        self.assertEqual(
+            rlt.program_env(linux=True)["XDG_RUNTIME_DIR"], rlt.program_env(linux=True)["XDG_RUNTIME_DIR"]
+        )
+
+    def test_on_windows_the_environment_is_left_as_it_is(self):
+        with mock.patch.dict(os.environ, self.WSL):
+            env = rlt.program_env(linux=False)
+        self.assertEqual(env["PULSE_SERVER"], self.WSL["PULSE_SERVER"])
+        self.assertEqual(env["XDG_RUNTIME_DIR"], self.WSL["XDG_RUNTIME_DIR"])
+
+
 class ExitCodes(unittest.TestCase):
     def test_as_git_bash_reports_them(self):
         self.assertEqual(rlt.bash_exit_code(0), 0)

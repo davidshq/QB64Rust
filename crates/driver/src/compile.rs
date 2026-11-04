@@ -5,7 +5,7 @@
 
 use crate::{
     Frontend, Resolved, build, cpp_errors, dump_cpp, dump_debug_info, dump_ir, emit_ir_debug, emit_ir_with,
-    exe_icon_path, frontend_at, library, log_folder, lower, toolchain, used_embedded_files,
+    exe_icon_path, frontend_explicit, library, log_folder, lower, toolchain, used_embedded_files,
 };
 use qb64rust_base::Platform;
 use qb64rust_base::fixes::Fixes;
@@ -39,6 +39,8 @@ pub struct CompileOptions {
     pub debug: bool,
     /// `-w`.
     pub warnings: bool,
+    /// `-e`: `OPTION _EXPLICIT` forced, as `qb64pe -e` does.
+    pub explicit: bool,
     /// `-f:<setting>=<value>` as given, checked by [`build_settings`].
     pub settings: Vec<String>,
     /// The program's fixes.
@@ -108,8 +110,9 @@ pub fn compile_exe(
     let exe = &o.exe;
     let include_root = &o.include_root;
     let remove_old = || remove_old(exe);
-    let mut fe = frontend_at(
+    let mut fe = frontend_explicit(
         Platform::host(),
+        o.explicit,
         name,
         bytes,
         loader,

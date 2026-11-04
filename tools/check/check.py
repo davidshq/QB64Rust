@@ -68,7 +68,9 @@ SHOWN = 3
 # commit.
 FULL_CLEAN = ("crates", "libqb", "tests")
 # Windows finds System32's bash.exe (WSL's) before Git's: the steps given as a str are Git's bash's (`pwd -W`).
-GIT_BASH = ("usr/bin/bash.exe", "bin/bash.exe")
+# bin/bash.exe first: it is Git's launcher, which puts Git's usr/bin on the PATH. usr/bin/bash.exe started from a
+# PATH without it, as from PowerShell, finds no `basename` or `tr` (tools/linux/copy.sh).
+GIT_BASH = ("bin/bash.exe", "usr/bin/bash.exe")
 EDIT_BUILTINS = re.compile(r"^builtins:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
 
 # Where a step runs (OpenSpec change vm-suites, design D9): on the host, or in the suites VM (tools/winvm/README.md,

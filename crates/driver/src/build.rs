@@ -822,6 +822,40 @@ fn refresh_objects(libqb: &Path, want: &str) -> Result<(), String> {
     })
 }
 
+/// `-p` (spec `compiler/cli`): removes the libqb objects every build of the copy `libqb` wrote, so that the next
+/// build makes them again, as `qb64pe -p` runs libqb's `make clean`. Holds the objects' lock alone meanwhile
+/// ([`OBJECTS_LOCK_ENV`], else the copy's [`OBJECTS_LOCK`]), so a build at the same time never links half of them.
+/// The stamp goes first: a purge cut short leaves objects that the next build sees as not current and rebuilds.
+/// A QB64pe folder (one with `source/qb64pe.bas`, such as the reference clone) is refused: it is not a copy, and
+/// the clone is read-only.
+pub fn purge_objects(libqb: &Path) -> Result<(), String> {
+    if libqb.join("source/qb64pe.bas").is_file() {
+        return Err(format!(
+            "{} is a QB64pe folder, not a copy of libqb: -p purges only a copy; give it with --libqb-root <dir>",
+            libqb.display()
+        ));
+    }
+    let path = std::env::var_os(OBJECTS_LOCK_ENV).map_or_else(|| libqb.join(OBJECTS_LOCK), PathBuf::from);
+    let err = |e: std::io::Error| format!("locking the libqb objects ({}): {e}", path.display());
+    let lock = std::fs::File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&path)
+        .map_err(err)?;
+    lock.lock().map_err(err)?;
+    let stamp = libqb.join(OBJECTS_STAMP);
+    match std::fs::remove_file(&stamp) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+            return Err(format!("removing {}: {e}", stamp.display()));
+        }
+        _ => {}
+    }
+    let c = libqb.join("internal/c");
+    remove_built(&c, &c)
+}
+
 /// Removes the files under `dir` that builds write ([`written_by_builds`]), outside `c_compiler` and `temp`.
 fn remove_built(base: &Path, dir: &Path) -> Result<(), String> {
     let Ok(d) = std::fs::read_dir(dir) else {
@@ -1538,6 +1572,59 @@ mod tests {
         assert!(!written_by_builds(true, "qbx.cpp"));
         assert!(!written_by_builds(true, "libqb.cpp"));
         assert!(!written_by_builds(false, "qbx2.cpp"));
+    }
+
+    /// `-p` removes the stamp and what builds wrote under `internal/c`, and keeps the sources, the toolchain's
+    /// folder and anything outside `internal/c`.
+    #[test]
+    fn purge_objects_removes_what_builds_wrote() {
+        let d = tempfile::tempdir().unwrap();
+        let libqb = d.path();
+        let c = libqb.join("internal/c");
+        let parts = c.join("parts/core");
+        let compiler = c.join("c_compiler/lib");
+        for dir in [&parts, &compiler] {
+            std::fs::create_dir_all(dir).unwrap();
+        }
+        let built = [c.join("libqb_make_000.o"), parts.join("core.a"), parts.join("x.o.tmp")];
+        let kept = [
+            c.join("qbx.cpp"),
+            c.join("libqb.cpp"),
+            parts.join("core.cpp"),
+            compiler.join("crt.o"),
+            libqb.join("Makefile"),
+        ];
+        for f in built.iter().chain(&kept) {
+            std::fs::write(f, b"x").unwrap();
+        }
+        std::fs::write(libqb.join(OBJECTS_STAMP), b"stamp").unwrap();
+        purge_objects(libqb).unwrap();
+        assert!(!libqb.join(OBJECTS_STAMP).exists());
+        for f in &built {
+            assert!(!f.exists(), "{}", f.display());
+        }
+        for f in &kept {
+            assert!(f.exists(), "{}", f.display());
+        }
+        // Nothing to remove the second time.
+        purge_objects(libqb).unwrap();
+    }
+
+    /// `-p` refuses a QB64pe folder, such as the reference clone, and removes nothing there.
+    #[test]
+    fn purge_objects_refuses_a_qb64pe_folder() {
+        let d = tempfile::tempdir().unwrap();
+        let root = d.path();
+        let c = root.join("internal/c");
+        std::fs::create_dir_all(&c).unwrap();
+        std::fs::create_dir_all(root.join("source")).unwrap();
+        std::fs::write(root.join("source/qb64pe.bas"), b"x").unwrap();
+        let object = c.join("libqb_make_000.o");
+        std::fs::write(&object, b"x").unwrap();
+        std::fs::write(root.join(OBJECTS_STAMP), b"stamp").unwrap();
+        let e = purge_objects(root).unwrap_err();
+        assert!(e.contains("is a QB64pe folder"), "{e}");
+        assert!(object.exists() && root.join(OBJECTS_STAMP).exists());
     }
 
     fn program_settings(console: bool, window: bool, icon: bool) -> qb64rust_ir::Settings {

@@ -13,7 +13,7 @@ pub mod unit_tests;
 use qb64rust_base::fixes::Fixes;
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;
-use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse_settled_on};
+use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse_settled_explicit};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -184,10 +184,24 @@ pub fn frontend_at(
     disk: Option<(&Path, &Path)>,
     fixes: Fixes,
 ) -> Frontend {
+    frontend_explicit(platform, false, name, bytes, loader, disk, fixes)
+}
+
+/// [`frontend_at`], with `OPTION _EXPLICIT` forced when `explicit` (`-e`, spec `compiler/cli`): the program is
+/// checked as if it began with `OPTION _EXPLICIT`, its included files too.
+pub fn frontend_explicit(
+    platform: qb64rust_base::Platform,
+    explicit: bool,
+    name: &str,
+    bytes: Vec<u8>,
+    loader: impl FnOnce(FileId) -> Box<dyn Loader>,
+    disk: Option<(&Path, &Path)>,
+    fixes: Fixes,
+) -> Frontend {
     let mut map = SourceMap::new();
     let file = map.add(name, bytes);
     let mut loader = loader(file);
-    let parsed = parse_settled_on(platform, &mut map, file, loader.as_mut());
+    let parsed = parse_settled_explicit(platform, explicit, &mut map, file, loader.as_mut());
     let (program, diagnostics) = check_program(&map, &parsed, disk, fixes);
     Frontend {
         map,

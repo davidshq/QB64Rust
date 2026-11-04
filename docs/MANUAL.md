@@ -92,7 +92,9 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | Option | What it does |
 |---|---|
 | `-o <file>` | The executable to write |
-| `-x` | Accepted for QB64pe's command line; a build is always to an executable |
+| `-x` | Accepted for QB64pe's command line; a build is always to an executable. `-c` is the same |
+| `-e` | Build as if the program began with `OPTION _EXPLICIT`, its `$INCLUDE` files too |
+| `-p` | Remove libqb's built objects first, so that the next build makes them again; alone, it does only that |
 | `-w` | Print warnings too |
 | `-q` | Print less while building |
 | `-z` | Check the program and write its C++ without building an executable |
