@@ -1038,6 +1038,33 @@ fn fixes_list() {
     assert!(err.contains("usage: qb64rust"), "{err}");
 }
 
+/// `--old-wording-keys` gives the old-wording table's script each message's key and forms, and
+/// `--old-wording-words` its word list (spec `compiler/cli`, "Old-wording table tooling").
+#[test]
+fn old_wording_tooling() {
+    let d = scratch("old-wording-tooling");
+    let message = b"variable `count` (LONG) is not declared (`OPTION _EXPLICIT`)\n";
+    let o = run(
+        compiler().current_dir(&d).arg("--old-wording-keys"),
+        Some(message),
+        COMPILER_LIMIT,
+        "compiler",
+    );
+    assert_eq!(o.status.code(), Some(0));
+    let got: serde_json::Value = serde_json::from_str(stdout(&o).trim()).unwrap();
+    assert_eq!(got["key"], "variable `{}` (LONG) is not declared (`OPTION _EXPLICIT`)");
+    assert_eq!(got["values"][0][0], serde_json::json!(["=", "count"]));
+    assert_eq!(got["values"][0][1], serde_json::json!(["U", "COUNT"]));
+    let o = qb64rust(&d, &["--old-wording-words"]);
+    assert_eq!(o.status.code(), Some(0));
+    let words = stdout(&o);
+    let words: Vec<&str> = words.split_whitespace().collect();
+    assert!(words.contains(&"LBOUND") && words.contains(&"SELECT"), "{words:?}");
+    assert!(words.is_sorted());
+    let o = qb64rust(&d, &["--old-wording-keys", "p.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+}
+
 /// The `Settings:` line of `--dump ir` for `p.bas` in `d` with the arguments `args` before it.
 fn dumped_settings(d: &Path, args: &[&str]) -> String {
     let mut all = args.to_vec();

@@ -19,6 +19,9 @@
 //!
 //! `qb64rust toolchain install` and `qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]`: the
 //! C++ toolchain (`toolchain.rs`, spec `compiler/toolchain`).
+//!
+//! `qb64rust --old-wording-words` and `qb64rust --old-wording-keys`: for `tools\diagnostics\old_wording.py` only,
+//! not in the usage (spec `compiler/cli`, "Old-wording table tooling").
 
 use qb64rust_base::Platform;
 use qb64rust_base::fixes::{FIXES, Fixes};
@@ -255,6 +258,22 @@ fn main() -> ExitCode {
         }
         return ExitCode::SUCCESS;
     }
+    // `--old-wording-words`, `--old-wording-keys`: the only argument, for the old-wording table's script.
+    if let Some(word) = args
+        .first()
+        .and_then(|a| a.to_str())
+        .filter(|a| matches!(*a, "--old-wording-words" | "--old-wording-keys"))
+    {
+        if args.len() > 1 {
+            eprintln!("qb64rust: `{word}` takes no other argument");
+            return ExitCode::FAILURE;
+        }
+        return if word == "--old-wording-words" {
+            old_wording_words()
+        } else {
+            old_wording_keys()
+        };
+    }
     install_panic_hook();
     match qb64rust_driver::with_stack(run) {
         Ok(code) => code,
@@ -263,6 +282,60 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// The words a backtick span of a message may hold and stay in its key: the parser's reserved words and the
+/// built-in table's names, in capitals, sorted. `old_wording_words.txt` is this list, written by the script.
+fn old_wording_word_set() -> std::collections::BTreeSet<String> {
+    let mut words: std::collections::BTreeSet<String> =
+        qb64rust_syntax::keywords().iter().map(|w| (*w).to_string()).collect();
+    words.extend(qb64rust_builtins::BUILTINS.iter().map(|b| b.name.to_ascii_uppercase()));
+    words
+}
+
+/// `--old-wording-words`: the word list, one word per line.
+fn old_wording_words() -> ExitCode {
+    let mut out = std::io::stdout().lock();
+    for word in old_wording_word_set() {
+        if writeln!(out, "{word}").is_err() {
+            return ExitCode::FAILURE;
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+/// `--old-wording-keys`: for each line of stdin (a message of this compiler), one JSON line on stdout:
+/// `{"key": <its key>, "values": [<per placeholder, [code, text] for each form of OLD_WORDING_CODES, in order>]}`.
+/// The key is made with the word list of [`old_wording_word_set`], the list the script writes for the compiler.
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the compiler's own messages, UTF-8, not BASIC source"
+)]
+fn old_wording_keys() -> ExitCode {
+    use std::io::BufRead as _;
+    let words = old_wording_word_set();
+    let is_word = |w: &str| words.contains(w);
+    let mut out = std::io::stdout().lock();
+    for line in std::io::stdin().lock().lines() {
+        let Ok(message) = line else {
+            return ExitCode::FAILURE;
+        };
+        let (key, values) = qb64rust_base::old_wording_key(message.trim_end_matches('\r'), &is_word);
+        let values: Vec<Vec<(&str, String)>> = values
+            .iter()
+            .map(|v| {
+                qb64rust_base::OLD_WORDING_CODES
+                    .into_iter()
+                    .zip(qb64rust_base::old_wording_forms(v))
+                    .collect()
+            })
+            .collect();
+        let json = serde_json::json!({ "key": key, "values": values });
+        if writeln!(out, "{json}").is_err() {
+            return ExitCode::FAILURE;
+        }
+    }
+    ExitCode::SUCCESS
 }
 
 /// The language server over stdin and stdout (spec `editor/language-server`). Stdout carries the protocol, so the

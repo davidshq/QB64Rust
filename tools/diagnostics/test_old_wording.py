@@ -25,14 +25,17 @@ class NamesFile(unittest.TestCase):
             self.assertTrue(old_wording.names_file(old), old)
 
 
-class PatternOf(unittest.TestCase):
-    def test_a_line_number_is_a_placeholder(self):
-        for number in ("10", "010&", "10.5", "30#", "12345678901234567890123456789012345678901"):
-            message = f"`{number}` is not a valid label"
-            self.assertEqual(old_wording.pattern_of(message), ("`{}` is not a valid label", [number]), number)
+# The pattern of a message (placeholders, numbers, keyword spans) is made by the compiler and tested there:
+# `crates\base\src\old_wording.rs`, tests `keys` and `the_word_list_is_a_parameter`.
 
-    def test_keywords_and_signs_stay(self):
-        self.assertEqual(old_wording.pattern_of("`STRING * 0` needs `<>`"), ("`STRING * 0` needs `<>`", []))
+
+class Template(unittest.TestCase):
+    def test_forms_in_the_compilers_order(self):
+        forms = [("=", "count"), ("U", "COUNT"), ("P", "count"), ("PU", "COUNT"), ("S", "count"), ("SU", "COUNT")]
+        text, marks = old_wording.template("Variable 'count' (LONG) not defined", [forms])
+        self.assertEqual(text, "Variable '\x000\x00' (LONG) not defined")
+        self.assertEqual(marks, [(1, ("=", "P", "S"))])
+        self.assertEqual(old_wording.merge([(text, marks)]), "Variable '{1:=|P|S}' (LONG) not defined")
 
 
 class OneProgram(unittest.TestCase):

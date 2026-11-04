@@ -349,3 +349,17 @@ and SHALL read `qb64rust.toml` when neither replaces it. `qb64rust --list-fixes`
 #### Scenario: List with another argument
 - **WHEN** `qb64rust --list-fixes p.bas` is run
 - **THEN** it is a usage error with exit status 1
+
+### Requirement: Old-wording table tooling
+`qb64rust --old-wording-words` and `qb64rust --old-wording-keys` SHALL each be the only argument, as `--version`
+is. They serve `tools\diagnostics\old_wording.py` and are not in the usage text. `--old-wording-words` SHALL print
+the parser's reserved words and the built-in table's names, in capitals, sorted, one per line.
+`--old-wording-keys` SHALL read one message per line from stdin and print one JSON line per message: the key that
+the note's lookup (requirement "Diagnostics output") makes from it with that word list, and for each placeholder
+its text in every form the table can name, as `[code, text]` pairs.
+
+#### Scenario: A message's key
+- **WHEN** the line `variable `count` (LONG) is not declared (`OPTION _EXPLICIT`)` is given to
+  `qb64rust --old-wording-keys`
+- **THEN** the key printed is `variable `{}` (LONG) is not declared (`OPTION _EXPLICIT`)`, with one placeholder
+  whose `=` form is `count` and whose `U` form is `COUNT`

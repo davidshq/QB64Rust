@@ -12,6 +12,8 @@ pub mod layout;
 mod old_wording;
 pub mod platform;
 pub use old_wording::old_wording;
+/// For `qb64rust --old-wording-keys`, which gives the table's script its keys and forms.
+pub use old_wording::{CODES as OLD_WORDING_CODES, forms as old_wording_forms, key_with as old_wording_key};
 pub use platform::Platform;
 
 /// The largest source file, in bytes: offsets are `u32`. A caller that reads a file checks this before handing
