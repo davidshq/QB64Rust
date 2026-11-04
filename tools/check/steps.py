@@ -72,6 +72,10 @@ RUST_TEST_READS = (
 )
 
 
+# What the Python tools' tests read in tools/.
+TOOL_FILES = ("tools/**/*.py", "tools/**/*.txt", "tools/**/*.json")
+
+
 @dataclass(frozen=True)
 class Step:
     name: str
@@ -219,11 +223,26 @@ STEPS: tuple[Step, ...] = (
         external=("clone",),
     ),
     Step("doc", QUICK, ("cargo", "test", "--workspace", "--locked", "--doc"), RUST),
+    # The Python tools' tests in two steps, so that a change to one tool does not wait for check's own tests,
+    # about 80 s of the 100 s of all of them (2026-11-04). No other folder's tests import tools/check.
     Step(
         "tools",
         QUICK,
-        ("python", "tools/check/tool_tests.py"),
-        ("tools/**/*.py", "tools/**/*.txt", "tools/**/*.json"),
+        ("python", "tools/check/tool_tests.py", "--except", "check"),
+        TOOL_FILES + ("!tools/check/**", "tools/check/tool_tests.py"),
+    ),
+    Step(
+        "tools-check",
+        QUICK,
+        ("python", "tools/check/tool_tests.py", "--only", "check"),
+        # check.py and its tests read these folders' files: the runner and its lists, the coverage records'
+        # reader, the libqb tool, and the scripts of the Linux, sandbox and VM steps.
+        # Not their documents, nor the libqb edits, whose format the tests hold with edits of their own.
+        tuple(
+            f"tools/{folder}/**"
+            for folder in ("check", "coverage", "legacy_tests", "libqb", "linux", "sandbox", "winvm")
+        )
+        + ("!tools/**/*.md", "!tools/libqb/edits/**"),
     ),
     Step(
         "libqb-copy",

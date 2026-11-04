@@ -184,6 +184,20 @@ class RealSteps(unittest.TestCase):
                 with self.subTest(step=step.name, glob=g):
                     self.assertTrue(check.matching((g,), self.files), f"{step.name}: {g} matches no file")
 
+    def test_the_two_tools_steps_run_every_tools_tests_once(self):
+        import tool_tests  # pylint: disable=import-outside-toplevel
+
+        everything = tool_tests.folders()
+        ran = []
+        for name in ("tools", "tools-check"):
+            command = steps.BY_NAME[name].command
+            only = [command[i + 1] for i, a in enumerate(command) if a == "--only"]
+            skip = [command[i + 1] for i, a in enumerate(command) if a == "--except"]
+            ran += [d.name for d in tool_tests.chosen(everything, only, skip)]
+        self.assertEqual(sorted(ran), [d.name for d in everything])
+        with self.assertRaises(SystemExit):
+            tool_tests.chosen(everything, ["no-such-folder"], [])
+
     def test_the_sandbox_step_takes_the_vm_scripts(self):
         # The family runs in the test VM: a change of its runner runs the step again.
         inputs = steps.BY_NAME["sandbox"].inputs
@@ -349,7 +363,21 @@ class Cost(unittest.TestCase):
 
     def test_the_tools_plan_their_tests_alone(self):
         self.repo.write("tools/check/check.py", "# changed\n")
+        self.assertEqual(self.repo.planned(), {"tools-check": None})
+
+    def test_another_tool_does_not_plan_checks_own_tests(self):
+        self.repo.write("tools/diagnostics/old_wording.py", "# changed\n")
         self.assertEqual(self.repo.planned(), {"tools": None})
+
+    def test_a_folder_check_reads_plans_both(self):
+        self.repo.write("tools/libqb/copy_libqb.py", "# changed\n")
+        got = self.repo.planned()
+        self.assertIn("tools", got)
+        self.assertIn("tools-check", got)
+
+    def test_the_runner_of_the_tools_tests_plans_both(self):
+        self.repo.write("tools/check/tool_tests.py", "# changed\n")
+        self.assertEqual(self.repo.planned(), {"tools": None, "tools-check": None})
 
 
 class Full(unittest.TestCase):
@@ -705,11 +733,13 @@ class Execute(unittest.TestCase):
             repo.pass_all()
             repo.write("tools/check/check.py", "# changed\n")
             plan = check.make_plan(repo.root, QUICK)
-            plan.run[0].step = steps.Step("tools", QUICK, (sys.executable, "-c", "pass"), plan.run[0].step.inputs)
+            name = plan.run[0].step.name
+            self.assertEqual(name, "tools-check")
+            plan.run[0].step = steps.Step(name, QUICK, (sys.executable, "-c", "pass"), plan.run[0].step.inputs)
             self.assertEqual(check.execute(repo.root, plan, False, "quick"), 0)
             self.assertEqual(check.main(["quick"], root=repo.root), 0)  # nothing to run: a line all the same
             first, second = check.read_history(repo.root)
-            self.assertEqual((first["what"], list(first["ran"]), first["ran"]["tools"][0]), ("quick", ["tools"], "pass"))
+            self.assertEqual((first["what"], list(first["ran"]), first["ran"][name][0]), ("quick", [name], "pass"))
             self.assertIn("fmt", first["standing"])
             self.assertEqual(second["ran"], {})
             self.assertEqual(check.history(repo.root, 14), 0)
@@ -914,7 +944,7 @@ class VmPlace(unittest.TestCase):
         plan = check.make_plan(self.repo.root, QUICK, where=check.VM)
         got = {p.step.name: p.where for p in plan.run}
         self.assertEqual(got.pop("slice"), check.VM)
-        self.assertTrue({"fmt", "build", "clippy", "nextest", "lists", "doc", "tools"} <= set(got))
+        self.assertTrue({"fmt", "build", "clippy", "nextest", "lists", "doc", "tools", "tools-check"} <= set(got))
         self.assertEqual(set(got.values()), {check.HOST})
 
     def test_the_clones_toolchain_on_the_host_is_one_line_of_the_report(self):

@@ -105,7 +105,13 @@ keep a session going because a run has not happened.
 The tests of `check` SHALL assert the set of steps it plans for standard changes: a change of documents alone plans
 no step; a change of a suite's list or recordings plans that suite's new or changed programs only; a change under
 one crate plans the quick layer and nothing else; an edit of libqb naming its built-ins plans the programs that
-run those built-ins and the lints and Rust tests. A change that makes any of these plan more SHALL fail a test.
+run those built-ins and the lints and Rust tests; a change to a Python tool outside `tools/check` and the folders
+`check`'s tests read plans the Python tools' tests without `check`'s own. A change that makes any of these plan more
+SHALL fail a test.
+
+#### Scenario: A tool changed
+- **WHEN** the working tree differs from the last passing check only in `tools/diagnostics/old_wording.py`
+- **THEN** `check quick` plans `tools` and not `tools-check`
 
 #### Scenario: Documents only
 - **WHEN** the working tree differs from the last passing check only under `docs/`
@@ -168,7 +174,7 @@ step SHALL run on the host. `--where host` or `--where vm` SHALL choose the plac
 
 #### Scenario: A host-only step
 - **WHEN** `check quick --where vm` runs
-- **THEN** `fmt`, `build`, `clippy`, `nextest`, `lists`, `doc` and `tools` run on the host, and `slice` runs in
+- **THEN** `fmt`, `build`, `clippy`, `nextest`, `lists`, `doc`, `tools` and `tools-check` run on the host, and `slice` runs in
   the VM
 
 ### Requirement: The place by default
