@@ -72,6 +72,15 @@ Nothing is waiting: names of more than 40 characters were answered on 2026-11-02
    It also passes under load, so its `just full` step no longer runs alone, and still passes in Windows Sandbox
    (`--where sandbox`). All tasks are done, and its spec is merged into `testing/desktop-sandbox`. Trying
    `create.ps1 -FromBase` is deferred to the VM's first expiry, about 2027-02-01 (`SOMEDAY.md`).
+4. **`vm-suites`** (OpenSpec change, archived 2026-11-04, its specs merged into `testing/check-workflow` and
+   the new `testing/suites-vm`): `check full` and `check merge` run the
+   steps that build and run programs in a second Hyper-V VM, `qb64rust-suites`, made on 2026-11-03 from the new
+   shared base disk `qb64rust-base`. `--where host` keeps them on the host; `check quick` stays there. In the VM
+   the slice list passed 494 of 494, the CLI tests 120 of 120 and a whole `full` run passed, at 1.7 times the
+   host's time. The VM found two dependencies on the host: a lock folder the runner never made, and
+   `v59_d_conversions` reading the GPU driver's stencil bits. Both are fixed. `check full --uncommitted` runs on
+   uncommitted changes. `qb64rust.exe` needs `VCRUNTIME140.dll`, which a clean Windows lacks (`SOMEDAY.md`). Archive
+   at the merge into `main`, after `just merge` runs its whole suites in the VM.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a

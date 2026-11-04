@@ -172,7 +172,8 @@ exits with the command's exit code, or 1 for a timeout.
 
 `check.py`'s `execute` calls `suites.ps1 -Start` before the first VM step of the plan and `-Stop` in a `finally`
 after the last. A VM step's command is then `step.ps1` wrapped around the step's own command. The step's limit is
-three times the time of its last whole pass in the VM, at least 30 minutes. A step that never passed in the VM
+three times the time of its last whole pass in the VM, at least an hour (30 minutes until task 6.3, which found a
+cold `verification` at 26.5 minutes). A step that never passed in the VM
 takes its last whole pass on the host instead. A pass on the host does not change the VM's time, since the host
 keeps a build cache and is quicker. A failure or a narrowed run changes neither time, so a step that failed in a
 second does not cut the next run's limit. `check.py` stops `step.ps1` itself 10 minutes
@@ -404,6 +405,27 @@ files by the paths built into it. Four failed for want of OpenGL ("Failed to ini
 `support::link_opengl` and the skip (D7): 120 of 120, 295 s for the step, 186 s of it the tests. The skip's line
 is printed only under `--nocapture`, as `cargo test` keeps a passing test's output; the test's comment and this
 paragraph say it. On the host the test runs whole and passes.
+
+**Task 6.3** (2026-11-03 and 04). Run by Claude in the checkout, as the user asked, with `just full --uncommitted`
+(the change's files uncommitted). The run on the host was left out (user: "why not just the vm?"): the host's times
+are those of the worktree's last whole run, the `merge` of 2026-11-02 (72 min, no pass cache).
+- In the VM, 15 of 17 steps passed at once. `verification` failed on two programs, both found by the VM:
+  `v40_g7_utf8_in_name`, through `step.ps1`'s own `chcp 65001`, which gave a program's console UTF-8 where the
+  host's has its usual code page, and "café" came out encoded twice (the line is gone, the batch file is ASCII);
+  and `v59_d_conversions`, whose stencil mask read back as 2147483647 under Mesa against 255 from the host's GPU
+  driver. The program now prints only the low 8 bits (user, 2026-11-04, per `CLAUDE.md` working rule 8), recorded
+  again with `qb64pe.exe`: its recording is unchanged. `verification` then passed in the VM, 4,283 of 4,283.
+  `sandbox` failed once (`notifypopup_err` at its time limit) and passed 7 of 7 alone right after.
+- Times, VM against host, in minutes: `verification` 26.5 / 21.1, `callsite` 12.4 / 0.6 (the host's
+  `target\callsite-cache` against none in the copy), `nofold` 7.9 / 1.5, `upstream` 5.4, `slice` 3.6, `cli` 2.8 / 1.6,
+  `qbasic` 2.1 / 1.4, `differential` 1.5 / 0.2, `coverage` 0.9 / 0.6, `format-corpus` 0.6 / 0.1; the steps on the
+  host alike in both runs. Where both have a time: 60 minutes in the VM against 36, 1.7 times, under the twice
+  that would have asked for a build cache in the VM.
+- Against the limits: every VM step took less than half of its limit but `verification`, 26.5 of 30 minutes, with
+  its limit then the 30-minute floor, since its last pass was the 7-minute run the pass cache served. The floor is
+  an hour now.
+- The host slept 75 minutes (07:34 to 08:49, Windows' power events) during the first run of `verification` again,
+  which `step.ps1` counted as wall time against the limit: the step was stopped. Nothing else came of it.
 
 **Microsoft Defender on the host** (while writing `suites.ps1`). A first `suites.ps1` called `Add-MpPreference
 -ExclusionPath` in the guest for the mount folder, so that Defender there would not scan the unpacked tree and

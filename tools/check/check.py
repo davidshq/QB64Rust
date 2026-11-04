@@ -82,8 +82,9 @@ VM_INPUTS = ("tools/winvm/suites.ps1", "tools/winvm/step.ps1", "tools/winvm/outp
 # How long `suites.ps1 -Check` may take (Hyper-V's cmdlets hung), and `-Start` (a new clone copied in: about 4 min).
 VM_CHECK_SECONDS = 120
 VM_START_SECONDS = 1800
-# A VM step's limit: three times its last time, at least this (design D6).
-VM_LIMIT_FLOOR = 1800
+# A VM step's limit: three times its last time, at least this (design D6). An hour: `verification` took 26.5 min in
+# the VM with a cold pass cache (task 6.3), and a pass served by the cache sets a far shorter last time.
+VM_LIMIT_FLOOR = 3600
 # How much longer than a step's limit step.ps1 may take as a whole: the copies in and out, the session, the cleanup.
 VM_STEP_SLACK = 600
 # The CLI tests' binary as check.py builds it for the VM (design D9): cargo's command and the target's name.

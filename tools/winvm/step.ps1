@@ -41,9 +41,10 @@ function Seconds([datetime]$since) { ((Get-Date) - $since).TotalSeconds }
 # A path of the job, relative to the tree with `/`, as a full Windows path.
 function InTree([string]$rel) { Join-Path $Tree ($rel.Replace('/', '\')) }
 
-# A batch file's quoted argument: % doubled, and no quote, which cmd cannot carry inside one.
+# A batch file's quoted argument: % doubled, and no quote, which cmd cannot carry inside one, nor anything but ASCII.
 function Quote([string]$arg) {
     if ($arg.Contains('"')) { throw "an argument holds a double quote, which the step's batch file cannot carry: $arg" }
+    if ($arg -match '[^\x20-\x7E]') { throw "an argument is not printable ASCII, which the step's batch file is: $arg" }
     '"' + $arg.Replace('%', '%%') + '"'
 }
 
@@ -138,8 +139,9 @@ function Invoke-Step {
     # The batch file the task runs: its output to the log, its exit code to code.txt when it ends.
     $cwd = if ($spec.cwd) { InTree $spec.cwd } else { $Tree }
     $lines = @(
+        # No `chcp 65001`: a program's console keeps the code page it has on the host, as its recordings expect
+        # (verification\v40_g7_utf8_in_name printed UTF-8 twice encoded under it, task 6.3). So the file is ASCII.
         '@echo off',
-        'chcp 65001 > nul',
         "cd /d $(Quote $cwd)",
         "set `"GALLIUM_DRIVER=llvmpipe`"",
         "set `"QB64RUST_OPENGL_DIR=$parent\$own\mesa`"",
@@ -164,7 +166,7 @@ function Invoke-Step {
     }
     $lines += 'exit /b 0'
     Invoke-Command -Session $session -ArgumentList "$guest\job.cmd", (($lines -join "`r`n") + "`r`n") {
-        param($path, $text) [IO.File]::WriteAllText($path, $text, (New-Object Text.UTF8Encoding($false)))
+        param($path, $text) [IO.File]::WriteAllText($path, $text, [Text.Encoding]::ASCII)
     }
     Say "running in $name, at most $($spec.limit) s"
 

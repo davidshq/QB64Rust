@@ -86,13 +86,13 @@ Standing rules: CLAUDE.md. Different here: `create.ps1 -Iso` needs an elevated s
   into its known list with the reason, or fix it, and tell the user.
 - [x] 6.2 `just check cli --where vm`. Verify: the CLI tests pass in the VM, finding their files by the paths
   built into the binary (spec: "The CLI tests in the VM").
-- [ ] 6.3 The user starts `just full` in the worktree (with the VM by default), and `just full --where host`
+- [x] 6.3 The user starts `just full` in the worktree (with the VM by default), and `just full --where host`
   after it. Verify: both pass; each step's time in both places is under "Measured". If the VM's full run takes
   more than twice the host's, ask the user about a build cache on the cache disk before the default stays on the
   VM. Also write each VM step's time beside its limit (`vm_limit` in `check.py`). Look again at any step that took
   more than half its limit: a pass helped by the pass cache sets a short time, and the 30-minute minimum is all
   that covers a cold rebuild after it.
-- [ ] 6.4 Closing: `STATUS.md`'s "Next"; the `QB64pe behaviors to review` rows of `SOMEDAY.md` for anything kept
+- [x] 6.4 Closing: `STATUS.md`'s "Next"; the `QB64pe behaviors to review` rows of `SOMEDAY.md` for anything kept
   as found; `just quick` in the background. Verify: `just quick` passes, or what failed and why is written for
   the user.
 

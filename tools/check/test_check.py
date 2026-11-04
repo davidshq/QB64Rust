@@ -980,13 +980,13 @@ class VmPlace(unittest.TestCase):
         self.assertFalse((self.repo.root / results).exists())
 
     def test_a_quick_failure_does_not_cut_the_next_limit(self):
-        check.write_record(self.repo.root, "slice", {"result": "pass", "seconds": 1000, "started": 0})
-        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 3000)
+        check.write_record(self.repo.root, "slice", {"result": "pass", "seconds": 2000, "started": 0})
+        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 6000)
         plan = self.plan_of(["slice"], codes={"slice": "raise SystemExit(1)"})
         self.assertEqual(check.execute(self.repo.root, plan, True), 1)
         record = check.read_record(self.repo.root, "slice")
-        self.assertEqual((record["result"], record["passed_seconds"]), ("fail", 1000))
-        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 3000)
+        self.assertEqual((record["result"], record["passed_seconds"]), ("fail", 2000))
+        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 6000)
         # A record of before the field: its time counts only when it passed.
         check.write_record(self.repo.root, "slice", {"result": "fail", "seconds": 5000, "started": 0})
         self.assertEqual(check.vm_limit(self.repo.root, "slice"), check.VM_LIMIT_FLOOR)
@@ -1002,18 +1002,18 @@ class VmPlace(unittest.TestCase):
             return check.read_record(self.repo.root, "slice")
 
         # A whole pass records its own time, in the VM also as the VM's.
-        r = run(check.VM, seconds=1000)
-        self.assertEqual((r["passed_seconds"], r["vm_passed_seconds"]), (1000, 1000))
+        r = run(check.VM, seconds=2000)
+        self.assertEqual((r["passed_seconds"], r["vm_passed_seconds"]), (2000, 2000))
         # A pass on the host, quicker with its build cache, does not set the VM's limit.
         r = run(check.HOST, seconds=100)
-        self.assertEqual((r["passed_seconds"], r["vm_passed_seconds"]), (100, 1000))
-        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 3000)
+        self.assertEqual((r["passed_seconds"], r["vm_passed_seconds"]), (100, 2000))
+        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 6000)
         # A narrowed pass and a failure keep the earlier times.
         for r in (run(check.VM, only=["g/p1"], seconds=5), run(check.VM, code="raise SystemExit(1)", seconds=2)):
-            self.assertEqual((r["passed_seconds"], r["vm_passed_seconds"]), (100, 1000))
+            self.assertEqual((r["passed_seconds"], r["vm_passed_seconds"]), (100, 2000))
         # Never passed in the VM: the last whole pass anywhere.
-        check.write_record(self.repo.root, "slice", {"result": "pass", "seconds": 700, "passed_seconds": 700})
-        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 2100)
+        check.write_record(self.repo.root, "slice", {"result": "pass", "seconds": 1500, "passed_seconds": 1500})
+        self.assertEqual(check.vm_limit(self.repo.root, "slice"), 4500)
 
     def test_a_hung_step_ps1_is_stopped_and_fails_the_step(self):
         plan = self.plan_of(["slice"])
