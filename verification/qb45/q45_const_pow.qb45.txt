@@ -1,0 +1,13 @@
+compile:
+ 0030   0006    CONST c = 2 ^ 3 ^ 2
+                                   ^ Syntax error
+ 0030   0006    CONST b = 2 ^ 3
+                               ^ Syntax error
+ 007D   0012    PRINT #1, "const chain:"; c
+                                          ^ Syntax error
+ 0094   0012    PRINT #1, "const single:"; b
+                                           ^ Syntax error
+    0 Warning Error(s)
+    4 Severe  Error(s)
+const chain:const single:run: 64 
+literals: 64 

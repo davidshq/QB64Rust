@@ -41,6 +41,9 @@ changing direction, design or scope.**
      (`<qb64contain>\qb45\install`), which `tools\qb45\qb45.py` finds there by default (`tools\qb45\README.md`).
    - **`..\QB64pe\` is a read-only reference clone.** Do not modify it. Study notes and design documents go in
      `study\`.
+   - **`..\QB64pe-latest\` is a second clone, of upstream's `main`** (`QB64-Phoenix-Edition/QB64pe`, cloned
+     2026-11-02 at `8070eebd2`). It shows what upstream has fixed since the reference. It is not the parity
+     target: tools and recordings use `..\QB64pe\` at `16f629784e`. Pull it to update it; change nothing else.
    - **Never save anything to memory only.** Any rule, decision or fact worth keeping goes into this repo (this
      file, `DECISIONS.md`, or `study\`). Memory may hold a pointer or copy in addition.
 3. **Code from other projects.** Two tiers:
@@ -115,6 +118,33 @@ changing direction, design or scope.**
     covers new prose, comments, identifiers, messages and file names, and any line already being edited for
     another reason. Existing text is not swept to change its spelling; that is a `SOMEDAY.md` row. Text copied
     from elsewhere (upstream files, licenses, recorded outputs) keeps its own spelling.
+10. **Write plainly and specifically** (user, 2026-11-02). The reader is technical but may not have the context.
+    - Use short sentences with one idea each. About 25 words at most is a rule of thumb, not a limit.
+    - Say what happened or what is meant first. Put references (`D7`, a `DECISIONS.md` row, a study number) after
+      it, never in place of it.
+    - Keep the specifics: file names, program names, line numbers, counts, exact messages. Plain means clear, not
+      general. "18 programs where we report the error at the SUB line" beats both "some exceptions" and
+      "18 rows (D5)".
+    - Use normal word order and common words. Avoid chains of parentheses and semicolons.
+    - Commit messages: a subject of about 50 characters that completes "If applied, this commit will …", and a
+      body wrapped at 72 characters that says what changed and why.
+
+    This covers new text: documents, comments, commit messages and replies. Existing text is rewritten when it
+    is next edited for another reason, not in a sweep.
+    *Why:* the project's documents grew dense and hard to read, and each session copied that style (user,
+    2026-11-02). The rule asks for specifics so that plain writing does not turn vague (plain-language guidance:
+    clarity and precision go together).
+11. **OpenSpec is for changes that need a design** (user, 2026-11-02). Use an OpenSpec change when a change has
+    an open design question, spans several crates or sessions, or adds a mechanism (a tool, a test kind, a
+    runtime part). Otherwise build directly: one measured behavior, small code, no open question. A direct change
+    still gets its usual records:
+    - a `DECISIONS.md` row, and a `QB64PE-DIVERGENCES.md` row if it differs from QB64pe;
+    - the merged spec under `openspec\specs\` edited in place, so that it never says the opposite of the code;
+    - its tests, including recorded programs for the behavior, not only unit tests.
+
+    *Why:* a change's proposal, design and tasks cost the user reading time, and for a small change the
+    `DECISIONS.md` row and the spec edit carry the same facts. Examples built directly: the 40-character limit on
+    names and `_BIT` parameters (2026-11-02).
 
 ## Project decisions
 

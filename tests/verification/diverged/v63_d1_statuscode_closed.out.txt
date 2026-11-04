@@ -1,0 +1,5 @@
+opened:-1 
+open host: [error 52 ]
+closed host: [error 52 ]
+done
+exit=0

@@ -1,4 +1,4 @@
-"""Tests of tools/sandbox/run.py without a sandbox: python -m pytest tools/sandbox/test_run.py"""
+"""Tests of tools/sandbox/run.py without a sandbox or the test VM: python -m unittest tools/sandbox/test_run.py"""
 
 from __future__ import annotations
 
@@ -13,6 +13,24 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run  # pylint: disable=wrong-import-position,import-error
+
+# No test starts the test VM or runs tools/winvm/run.ps1: both are replaced for the whole module, and a test that
+# reaches either fails. The tests of vm_check and vm_run call the originals with a fake runner.
+VM_CHECK, VM_RUN_ONCE = run.vm_check, run.vm_run
+PROGRAMS, JUDGE = run.programs, run.judge
+
+
+def _no_vm(*_args, **_kwargs):
+    raise AssertionError("a test reached the test VM")
+
+
+run.vm_check = _no_vm
+run.vm_run = _no_vm
+
+
+def _no_scale(*_args, **_kwargs):
+    raise AssertionError("a run in the test VM read or set the host's display scale")
+
 
 COUNTS = "coverage 2\nfile\t0\t0123456789abcdef\t{prog}.bas\n0\t3\t1\t{n}\t{names}\nend\n"
 LIST_TEXT = (
@@ -60,6 +78,11 @@ class TestWsb(unittest.TestCase):
         self.assertEqual(folders[0].findtext("SandboxFolder"), r"C:\run")
         self.assertEqual(folders[0].findtext("ReadOnly"), "false")
         self.assertIn(r"C:\run\inside.ps1", root.findtext("LogonCommand/Command"))
+
+    def test_the_sandbox_shuts_itself_down(self):
+        # inside.ps1 shuts the machine down only when asked: the sandbox asks, the test VM does not.
+        command = ET.fromstring(run.wsb(Path(r"X:\r"))).findtext("LogonCommand/Command")
+        self.assertTrue(command.endswith(r"C:\run\inside.ps1 -Shutdown"), command)
 
     def test_no_host_path_but_the_one_passed(self):
         text = run.wsb(Path(r"Q:\only\this"))
@@ -145,7 +168,7 @@ class TestRefusal(unittest.TestCase):
         try:
             out = io.StringIO()
             with redirect_stdout(out):
-                self.assertEqual(run.main(["--record"]), 0)
+                self.assertEqual(run.main(["--record", "--where", "sandbox"]), 0)
         finally:
             mock.patch.stopall()
         self.assertEqual(log, ["set 100", "ran", "set 125"])
@@ -164,13 +187,14 @@ class TestRefusal(unittest.TestCase):
             run.programs = lambda glob: built.append(glob) or []
             run.display_scale = lambda: 100
             run.set_display_scale = lambda t: set_to.append(t) or False
-            self.assertEqual(run.main([]), 2)
+            sandbox = ["--where", "sandbox"]
+            self.assertEqual(run.main(sandbox), 2)
             run.SANDBOX = Path(sys.executable)
             run.running_processes = lambda: ["WindowsSandboxRemoteSession.exe"]
-            self.assertEqual(run.main([]), 2)
+            self.assertEqual(run.main(sandbox), 2)
             run.running_processes = list
             run.display_scale = lambda: 150
-            self.assertEqual(run.main(["--record"]), 2)
+            self.assertEqual(run.main(["--record", *sandbox]), 2)
         finally:
             run.SANDBOX, run.running_processes, run.programs, run.display_scale, run.set_display_scale = old
         self.assertEqual(built, [])
@@ -198,12 +222,194 @@ class TestMain(Folder):
             p.start()
         try:
             with redirect_stdout(out):
-                self.assertEqual(run.main([]), 1)
+                self.assertEqual(run.main(["--where", "sandbox"]), 1)
         finally:
             mock.patch.stopall()
         self.assertFalse(self.results.exists(), out.getvalue())
         self.assertIn("FAIL  a: build failed", out.getvalue())
         self.assertIn("display scale: 100%", out.getvalue())
+
+
+class TestWhere(unittest.TestCase):
+    """--where vm (the default) never reads or sets the host's display scale; --scale is refused there."""
+
+    def main(self, argv: list[str]) -> tuple[int, list[str], str]:
+        ran: list[str] = []
+        patches = [
+            mock.patch.object(run, "display_scale", _no_scale),
+            mock.patch.object(run, "set_display_scale", _no_scale),
+            mock.patch.object(run, "run_family", lambda a: ran.append(a.where) or 0),
+        ]
+        for p in patches:
+            p.start()
+        err = io.StringIO()
+        try:
+            with mock.patch.object(sys, "stderr", err):
+                code = run.main(argv)
+        finally:
+            mock.patch.stopall()
+        return code, ran, err.getvalue()
+
+    def test_the_vm_by_default(self):
+        self.assertEqual(self.main([]), (0, ["vm"], ""))
+
+    def test_a_recording_in_the_vm_leaves_the_scale(self):
+        self.assertEqual(self.main(["--record"]), (0, ["vm"], ""))
+
+    def test_scale_refused_in_the_vm(self):
+        code, ran, err = self.main(["--scale", "125"])
+        self.assertEqual((code, ran), (2, []))
+        self.assertIn("--scale", err)
+        self.assertIn("--where sandbox", err)
+
+    def test_the_sandbox_when_asked(self):
+        with mock.patch.object(run, "display_scale", lambda: 100), mock.patch.object(
+            run, "run_family", lambda a: a.where == "sandbox" and 0
+        ):
+            self.assertEqual(run.main(["--where", "sandbox"]), 0)
+
+
+class TestVmRunner(unittest.TestCase):
+    """run.ps1's exits mapped to a run, a timeout and a refusal; run.ps1 itself is never started."""
+
+    def runner(self, code: int | None, calls: list):
+        def fake(cmd, **kwargs):
+            calls.append((cmd, kwargs))
+            if code is None:
+                raise run.subprocess.TimeoutExpired(cmd, kwargs.get("timeout"))
+            return run.subprocess.CompletedProcess(cmd, code)
+
+        return fake
+
+    def test_the_command(self):
+        calls: list = []
+        VM_RUN_ONCE(Path(r"X:\run"), 200, self.runner(0, calls))
+        cmd, kwargs = calls[0]
+        self.assertEqual(cmd[0], "powershell.exe")
+        self.assertEqual(cmd[cmd.index("-File") + 1], str(run.VM_RUN))
+        self.assertEqual(cmd[cmd.index("-Folder") + 1], r"X:\run")
+        self.assertEqual(cmd[cmd.index("-Limit") + 1], "200")
+        self.assertGreater(kwargs["timeout"], 200)
+
+    def test_its_exits(self):
+        for code, want in ((0, run.VM_DONE), (1, run.VM_LIMIT), (2, run.VM_REFUSED), (7, run.VM_LIMIT)):
+            self.assertEqual(VM_RUN_ONCE(Path("r"), 10, self.runner(code, [])), want, code)
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(VM_RUN_ONCE(Path("r"), 10, self.runner(None, [])), run.VM_LIMIT)
+
+    def test_a_killed_run_turns_the_vm_off(self):
+        # Killing run.ps1 skips its finally: run.ps1 -Stop turns the VM off in its place.
+        calls: list = []
+
+        def fake(cmd, **kwargs):
+            calls.append(cmd)
+            if "-Folder" in cmd:
+                raise run.subprocess.TimeoutExpired(cmd, kwargs.get("timeout"))
+            return run.subprocess.CompletedProcess(cmd, 0)
+
+        out = io.StringIO()
+        with redirect_stdout(out):
+            self.assertEqual(VM_RUN_ONCE(Path("r"), 10, fake), run.VM_LIMIT)
+        self.assertEqual(len(calls), 2)
+        self.assertIn("-Stop", calls[1])
+        self.assertNotIn("may still be on", out.getvalue())
+
+    def test_a_vm_that_will_not_turn_off_is_said(self):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            self.assertEqual(VM_RUN_ONCE(Path("r"), 10, self.runner(None, [])), run.VM_LIMIT)
+        self.assertIn("may still be on", out.getvalue())
+
+    def test_the_check(self):
+        calls: list = []
+        self.assertEqual(VM_CHECK(self.runner(0, calls)), run.VM_DONE)
+        self.assertIn("-Check", calls[0][0])
+        self.assertEqual(calls[0][1]["timeout"], run.VM_CHECK_LIMIT)
+        self.assertEqual(VM_CHECK(self.runner(2, [])), run.VM_REFUSED)
+        # Anything but 0 is no go.
+        self.assertEqual(VM_CHECK(self.runner(1, [])), run.VM_REFUSED)
+
+    def test_a_check_that_hangs_is_a_refusal(self):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            self.assertEqual(VM_CHECK(self.runner(None, [])), run.VM_REFUSED)
+        self.assertIn("did not end", out.getvalue())
+
+
+class TestMainInTheVm(Folder):
+    """run_family with --where vm, run.ps1 stood in for by vm_check and vm_run."""
+
+    def main(self, vm_code: int, check: int = 0, results: dict[str, tuple[str, str]] | None = None):
+        for n in ("a", "b"):
+            (self.family / f"{n}.bas").write_text("", encoding="ascii")
+            (self.family / f"{n}.out.txt").write_text("x\n", encoding="ascii")
+        runs: list = []
+
+        def build(_compiler, src, out, _log):
+            out.write_bytes(b"MZ")
+            return True
+
+        def vm_run(folder, limit):
+            runs.append((folder, limit))
+            for name, (code, out) in (results or {}).items():
+                self.result(name, code, out)
+            return vm_code
+
+        patches = [
+            mock.patch.object(run, "display_scale", _no_scale),
+            mock.patch.object(run, "set_display_scale", _no_scale),
+            mock.patch.object(run, "vm_check", lambda: check),
+            mock.patch.object(run, "vm_run", vm_run),
+            mock.patch.object(run, "programs", lambda glob: PROGRAMS(glob, self.family)),
+            mock.patch.object(run, "RUN", self.root),
+            mock.patch.object(run, "judge", lambda name, results: JUDGE(name, results, self.family)),
+            mock.patch.object(run, "run_copy", lambda exe: (exe, "ab")),
+            mock.patch.object(run, "name_objects_lock", lambda: None),
+            mock.patch.object(run, "build_new", build),
+            mock.patch.object(run, "coverage", lambda *a: ([], "coverage: not checked (test)")),
+            mock.patch.object(run.os, "startfile", _no_vm, create=True),
+        ]
+        out = io.StringIO()
+        for p in patches:
+            p.start()
+        try:
+            with redirect_stdout(out):
+                code = run.main(["--timeout", "5"])
+        finally:
+            mock.patch.stopall()
+        return code, runs, out.getvalue()
+
+    def test_a_run(self):
+        code, runs, out = self.main(run.VM_DONE, results={"a": ("0", "x\n"), "b": ("0", "x\n")})
+        self.assertEqual(code, 0, out)
+        self.assertEqual(runs, [(self.root, 5 * 2 + 60)])
+        self.assertFalse((self.root / "sandbox.wsb").exists())
+        self.assertIn("sandbox: 2 pass, 0 fail", out)
+
+    def test_a_timeout_names_the_programs(self):
+        code, _, out = self.main(run.VM_LIMIT, results={"a": ("0", "x\n")})
+        self.assertEqual(code, 1)
+        self.assertIn("with results: a", out)
+        self.assertIn("without: b", out)
+
+    def test_a_refusal_in_the_vm(self):
+        code, _, out = self.main(run.VM_REFUSED)
+        self.assertEqual(code, 2)
+        self.assertNotIn("PASS", out)
+
+    def test_a_refusal_before_building(self):
+        code, runs, out = self.main(run.VM_DONE, check=run.VM_REFUSED)
+        self.assertEqual((code, runs), (2, []))
+        self.assertFalse((self.root / "bin").exists(), out)
+
+
+class TestPrepare(Folder):
+    def test_no_wsb_for_the_vm(self):
+        (self.root / "sandbox.wsb").write_text("old", encoding="utf-8")
+        self.assertIsNone(run.prepare(self.root, ["a"], 5, sandbox=False))
+        self.assertFalse((self.root / "sandbox.wsb").exists())
+        self.assertEqual((self.root / "list.txt").read_text(encoding="ascii"), "a\n")
+        self.assertTrue((self.root / "inside.ps1").is_file())
 
 
 class TestWait(Folder):

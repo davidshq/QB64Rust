@@ -156,7 +156,10 @@ def clone_lock_kind(old_compiler: bool, jobs: int, programs_in_clone: bool) -> s
 
 def name_objects_lock() -> None:
     """Names OBJECTS_LOCK in the environment the compiles of a qb64rust run inherit, so that the
-    driver takes it around each make."""
+    driver takes it around each make. Its folder is made here: the driver opens the file but makes
+    no folder, and a fresh tree has none until a run takes the clone's lock (found in the suites VM's
+    copy of the tree, OpenSpec change vm-suites, task 5.1)."""
+    OBJECTS_LOCK.parent.mkdir(parents=True, exist_ok=True)
     os.environ[OBJECTS_LOCK_ENV] = str(OBJECTS_LOCK)
 
 

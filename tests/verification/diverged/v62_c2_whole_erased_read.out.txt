@@ -1,0 +1,4 @@
+ [error 9 ]1. after READ s()
+ [error 9 ]2. after READ n()
+3. end
+exit=0

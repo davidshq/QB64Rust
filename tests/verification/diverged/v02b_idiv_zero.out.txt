@@ -1,0 +1,4 @@
+trapped error 11 
+ 0 
+reached end
+exit=0

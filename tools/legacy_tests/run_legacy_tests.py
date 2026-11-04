@@ -488,10 +488,21 @@ def load_lines_list(path: Path) -> dict[str, tuple[int, str]]:
     return rows
 
 
-def rejection_line(compile_txt: Path, output: bytes, main: str, exception: int | None) -> tuple[str, str]:
+def rejection_line(
+    compile_txt: Path, output: bytes, main: str, exception: int | None, diverged: bool = False
+) -> tuple[str, str]:
     """Whether a rejection stands on the line QB64pe names (spec testing/verification-suite, "The line of a
     rejection"): ("", detail) when it passes, (why, "") when it fails. `exception` is the program's line of
-    lines.list, which stands for QB64pe's."""
+    lines.list, which stands for QB64pe's. A `diverged` rejection is one QB64pe built, so QB64pe names no line:
+    the row of lines.list is the only line, and it is required (OpenSpec change known-output, design D3)."""
+    if diverged:
+        if exception is None:
+            return "a diverged rejection needs a row of lines.list giving its line", ""
+        got = earliest_error_line(output, main)
+        if got == exception:
+            return "", ""
+        found = f"no unmarked error in {main}" if got is None else f"the earliest error is on line {got}"
+        return f"lines.list gives line {exception}, {found}", ""
     want = recorded_line(compile_txt.read_bytes()) if compile_txt.is_file() else None
     if want is None:
         # No line compared: a row of lines.list for the program is never used.
@@ -712,6 +723,41 @@ def run_proc(
             return None, True
 
 
+# QB64RUST_OPENGL_DIR names a folder holding Mesa's software OpenGL, for a machine whose own OpenGL cannot make a
+# QB64 program's window: the suites VM, whose display is Hyper-V's synthetic adapter (OpenSpec change vm-suites,
+# design D7; tools/winvm/README.md). Unset, nothing is linked.
+OPENGL_DIR_VAR = "QB64RUST_OPENGL_DIR"
+OPENGL_DLLS = ("opengl32.dll", "libgallium_wgl.dll")
+# Set, --build-cache is ignored: the suites VM keeps none (vm-suites, design D4).
+NO_BUILD_CACHE_VAR = "QB64RUST_NO_BUILD_CACHE"
+
+
+def build_cache_given(folder: Path | None) -> Path | None:
+    """--build-cache, unless QB64RUST_NO_BUILD_CACHE is set: check.py sets it in its steps in the suites VM, and it
+    reaches the runner also when a tool starts it with --build-cache (tools/coverage/coverage.py)."""
+    return None if os.environ.get(NO_BUILD_CACHE_VAR) else folder
+
+
+def link_opengl(exe: Path) -> None:
+    """With QB64RUST_OPENGL_DIR set, puts Mesa's two DLLs beside exe, where Windows looks first for a DLL a program
+    loads. Hard links, so that thousands of programs take no space and no time; a copy when the folder is on
+    another volume. A DLL already there is kept. Call it after the folder is reset and before the program starts."""
+    folder = os.environ.get(OPENGL_DIR_VAR)
+    if not folder:
+        return
+    for name in OPENGL_DLLS:
+        target = exe.parent / name
+        if target.exists():
+            continue
+        source = Path(folder) / name
+        try:
+            os.link(source, target)
+        except FileExistsError:
+            pass  # another worker's program in the same folder
+        except OSError:
+            shutil.copyfile(source, target)
+
+
 # One lock per test folder: a compile test's executable runs in its folder, as the bash runners run
 # it, and some programs there use the same file names (tests/upstream/compile_tests/arrays: three
 # OPEN "test"). With --jobs the builds run side by side, the programs of one folder one at a time.
@@ -863,6 +909,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     counts = results / f"{category}-{name}-coverage.txt"
     coverage_env(args, env, counts)
     with folder_lock(tdir):
+        link_opengl(exe)
         rc, timed_out = run_proc(
             [str(exe), str(results), f"{category}-{name}"],
             tdir,
@@ -1007,6 +1054,7 @@ def addprefix_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
     converted = results / "addprefix.bas"
     (results / "addprefix-noprefix.bas").unlink(missing_ok=True)  # the converter's backup of a run before
     shutil.copyfile(cases / "addprefix.bas", converted)
+    link_opengl(exe)
     rc, timed_out = run_proc(
         [str(exe), str(converted)], qb_root, results / "addprefix-convert_result.txt", RUN_TIMEOUT
     )
@@ -1947,6 +1995,7 @@ def corpus_test(
             env["QB64_SCREEN_STATE"] = str(state_out)
         counts = results / f"{key}-run{run}-coverage.txt"
         coverage_env(args, env, counts)
+        link_opengl(exe)
         rc, timed_out = run_proc(
             cmd,
             work,
@@ -2125,6 +2174,7 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
         log_env(env, log)
         # A hung program (e.g. screen PRINT with a comma under a redirected $CONSOLE) would block
         # forever.
+        link_opengl(exe)
         rc, timed_out = run_proc(
             [str(exe)],
             tdir,
@@ -2494,6 +2544,14 @@ def fixed_sidecar(name: str) -> Path:
     return VERIFICATION_LISTS / "fixed" / f"{name}.out.txt"
 
 
+def diverged_sidecar(name: str, kind: str = "out") -> Path:
+    """The output (kind "out") or log (kind "log") our compiler gives for a program that differs from QB64pe on
+    purpose, by a row of QB64PE-DIVERGENCES.md. Written by hand after a review, never by a run. When it exists,
+    the compare judges the program by it in place of QB64pe's recording (OpenSpec change known-output, design
+    D1)."""
+    return VERIFICATION_LISTS / "diverged" / f"{name}.{kind}.txt"
+
+
 def verification_compare(
     bas: Path, args, results: Path, qb_root: Path, fixed: bool = False
 ) -> Result:
@@ -2502,7 +2560,14 @@ def verification_compare(
     `<name> [fixes on]`."""
     name = bas.stem
     root = bas.parent
-    recorded_file = fixed_sidecar(name) if fixed else expected_file(root / f"{name}.out.txt", platform_of(args))
+    # A diverged\ sidecar stands for QB64pe's recording, and its log for the recorded log (design D1).
+    diverged = not fixed and diverged_sidecar(name).is_file()
+    if fixed:
+        recorded_file = fixed_sidecar(name)
+    elif diverged:
+        recorded_file = diverged_sidecar(name)
+    else:
+        recorded_file = expected_file(root / f"{name}.out.txt", platform_of(args))
     recorded = recorded_file.read_bytes() if recorded_file.is_file() else None
     rejected = recorded is not None and recorded.replace(b"\r\n", b"\n") == NOT_COMPILED
     test = f"{name} [fixes on]" if fixed else name
@@ -2522,6 +2587,8 @@ def verification_compare(
     if recorded is None:
         return fail("expected", f"nothing recorded to compare: no {recorded_file.name}")
     log_file = root / f"{name}.log.txt"
+    if diverged and diverged_sidecar(name, "log").is_file():
+        log_file = diverged_sidecar(name, "log")
     recorded_log = log_without_frames_on(
         platform_of(args), log_file.read_bytes().replace(b"\r\n", b"\n") if log_file.is_file() else b""
     )
@@ -2644,7 +2711,7 @@ def verification_compare(
             rows = load_lines_list(VERIFICATION_LISTS / LINES_LIST)
         exception = rows.get(name)
         why, note = rejection_line(
-            root / f"{name}.compile.txt", output, bas.name, exception[0] if exception else None
+            root / f"{name}.compile.txt", output, bas.name, exception[0] if exception else None, diverged
         )
         return fail("error line", why) if why else passed(note)
     if rc != 0:
@@ -2673,6 +2740,7 @@ def verification_compare(
     log_env(env, log)
     counts = results / f"{tag}-coverage.txt"
     coverage_env(args, env, counts)
+    link_opengl(exe)
     rc, timed_out = run_proc(
         cmd,
         work,
@@ -2878,8 +2946,9 @@ def program_inputs(suite: str, bas: Path, names: list[str] | None = None) -> lis
             sidecar = VERIFICATION_LISTS / kind / f"{bas.stem}.{kind}"
             if sidecar.is_file():
                 found.append(sidecar)
-        if fixed_sidecar(bas.stem).is_file():
-            found.append(fixed_sidecar(bas.stem))
+        for sidecar in (fixed_sidecar(bas.stem), diverged_sidecar(bas.stem), diverged_sidecar(bas.stem, "log")):
+            if sidecar.is_file():
+                found.append(sidecar)
     return found
 
 
@@ -3719,6 +3788,7 @@ def main() -> int:
             print("--coverage applies to qb64rust only", file=sys.stderr)
             return 2
         args.coverage = args.coverage.resolve()
+    args.build_cache = build_cache_given(args.build_cache)
     if args.build_cache:
         if is_old_compiler(args.qb64):
             print("--build-cache applies to qb64rust only", file=sys.stderr)

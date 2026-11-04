@@ -1,0 +1,5 @@
+ [error 9 ]1. after LSET e()
+ [error 9 ]2. after RSET e()
+ [error 9 ]3. after FIELD #1, 4 AS e()
+4. end
+exit=0

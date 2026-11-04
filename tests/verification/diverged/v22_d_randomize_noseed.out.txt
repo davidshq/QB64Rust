@@ -1,0 +1,5 @@
+before
+
+Runtime error: Line: 5 (in main module)
+Input past end of file
+Random-number seed (-32768 to 32767)? exit=1

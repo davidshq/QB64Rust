@@ -1,0 +1,2 @@
+D-021  # known-output: judged by diverged/v35_x67_get_erased_array.out.txt
+D-042  # known-output: the run traces it (a whole array with no storage in GET)

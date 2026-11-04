@@ -102,10 +102,37 @@ class Step:
     # The command that judges the step's stored results again under today's known lists, without a run (a whole
     # suite's `--rejudge`; check.py, `can_rejudge`; OpenSpec change check-rejudge, design D2).
     rejudge: tuple[str, ...] | str | None = None
+    # It builds and runs programs, so it may run in the suites VM as well as on the host (`--where`; OpenSpec change
+    # vm-suites, design D9). Its command must then be a tuple.
+    vm: bool = False
+    # The files that steps after it read, copied from the VM's tree to the host's when it ran there (design D8). A
+    # runner's results file (`*.json`) brings the files of the programs that failed in it too, for their logs.
+    # Executables are never copied.
+    outputs: tuple[str, ...] = ()
+    # Files removed (and their folder made) before the step runs, in the place it runs: a record that the step adds
+    # to and that must hold this run's alone.
+    clears: tuple[str, ...] = ()
+    # A command run in the VM before the step's own, for what the tree's copy lacks: files git ignores, which the
+    # copy does not carry (design D9).
+    vm_first: tuple[str, ...] | None = None
 
 
 def runner(suite: str, *extra: str) -> tuple[str, ...]:
     return ("python", RUNNER, "--suite", suite, "--qb64", EXE, *extra)
+
+
+# The runner's results folder unless a step gives its own (`--results`). A run of a list writes results-partial.json
+# there, a whole suite results-<suite>.json.
+RESULTS = "target/legacy-tests"
+
+
+def results(name: str, folder: str = RESULTS) -> tuple[str, ...]:
+    return (f"{folder}/{name}.json",)
+
+
+# The v37 programs' libraries: git-ignored, so the VM's copy of the tree has none, and a verification step builds
+# them there first.
+V37_LIBS = ("python", "verification/v37_lib/build_libs.py")
 
 
 # The coverage records of the merge's whole suites, one file each, which check.py's libqb narrowing reads.
@@ -121,13 +148,13 @@ WHOLE = (
 MERGE_REPLACES = frozenset({"slice", "upstream", "verification", "linux-slice"})
 
 
-def whole(name: str, suite: str) -> str:
-    # The programs add to the counts file: it is removed first, so it holds this run's alone.
-    counts = f"{COUNTS}/{name}.txt"
-    return (
-        f"rm -f {counts} && mkdir -p {COUNTS} && python {RUNNER} --suite {suite} --qb64 {EXE} --jobs 8 "
-        f"--build-cache target/build-cache --coverage {counts}"
-    )
+def counts_of(name: str) -> str:
+    return f"{COUNTS}/{name}.txt"
+
+
+def whole(name: str, suite: str) -> tuple[str, ...]:
+    # The programs add to the counts file: the step clears it first (`clears`), so it holds this run's alone.
+    return runner(suite, "--jobs", "8", "--build-cache", "target/build-cache", "--coverage", counts_of(name))
 
 
 # The Linux steps run in WSL, in this tree's Linux copy (tools/linux/run.sh; one copy per source tree, named by
@@ -214,6 +241,8 @@ STEPS: tuple[Step, ...] = (
         external=("toolchain",),
         suite="corpus",
         program_list="tests/corpus/slice.list",
+        vm=True,
+        outputs=results("results-partial"),
     ),
     Step(
         "upstream",
@@ -224,6 +253,8 @@ STEPS: tuple[Step, ...] = (
         external=("toolchain", "clone"),
         suite="compile",
         program_list="tests/upstream/pass.list",
+        vm=True,
+        outputs=results("results-partial"),
     ),
     # The libraries the v37 programs link, built into verification/ with the reference clone's C compiler. A source
     # edit builds them again, and `verification` after it, which takes this step's fingerprint: the libraries are
@@ -233,7 +264,7 @@ STEPS: tuple[Step, ...] = (
     Step(
         "v37-libs",
         QUICK,
-        ("python", "verification/v37_lib/build_libs.py"),
+        V37_LIBS,
         ("verification/v37_lib/**",),
         external=("clone", "toolchain"),
     ),
@@ -247,6 +278,9 @@ STEPS: tuple[Step, ...] = (
         suite="verification",
         program_list="tests/verification/pass.list",
         side_lists=("tests/verification/known.list", "tests/verification/known.linux.list"),
+        vm=True,
+        outputs=results("results-partial"),
+        vm_first=V37_LIBS,
     ),
     Step(
         "callsite",
@@ -255,7 +289,10 @@ STEPS: tuple[Step, ...] = (
         BUILT + ("tools/callsite/**", "tests/callsite/**", "tests/upstream/root/**"),
         needs=("build",),
         external=("clone",),
+        vm=True,
     ),
+    # In the VM, the test binary built on the host runs there (check.py, `cli_binary`; design D9): it is not
+    # `cargo test`, and outside it every path the binary holds is the host tree's, which is the copy's too (D5).
     Step(
         "cli",
         FULL,
@@ -263,6 +300,7 @@ STEPS: tuple[Step, ...] = (
         RUST + LIBQB + ("verification/**", "!verification/*.exe", "tests/corpus/slice/**", "tests/upstream/root/**"),
         external=("toolchain", "clone"),
         alone=True,
+        vm=True,
     ),
     Step(
         "qbasic",
@@ -271,6 +309,8 @@ STEPS: tuple[Step, ...] = (
         BUILT + LIBQB + RUNNER_FILES,
         needs=("build",),
         external=("toolchain", "clone"),
+        vm=True,
+        outputs=results("results-qbasic"),
     ),
     Step(
         "addprefix",
@@ -279,14 +319,27 @@ STEPS: tuple[Step, ...] = (
         BUILT + LIBQB + RUNNER_FILES,
         needs=("build",),
         external=("toolchain", "clone"),
+        vm=True,
+        outputs=results("results-addprefix"),
     ),
-    Step("format", FULL, runner("format"), BUILT + RUNNER_FILES, needs=("build",), external=("clone",)),
+    Step(
+        "format",
+        FULL,
+        runner("format"),
+        BUILT + RUNNER_FILES,
+        needs=("build",),
+        external=("clone",),
+        vm=True,
+        outputs=results("results-format"),
+    ),
     Step(
         "format-corpus",
         FULL,
         runner("format-corpus", "--jobs", "8"),
         BUILT + RUNNER_FILES + ("tests/format/**", "tools/format/**"),
         needs=("build",),
+        vm=True,
+        outputs=results("results-format-corpus"),
     ),
     Step(
         "differential",
@@ -305,6 +358,8 @@ STEPS: tuple[Step, ...] = (
         BUILT + LIBQB + RUNNER_FILES + ("tests/differential/**", "tests/upstream/root/**"),
         needs=("build",),
         external=("toolchain",),
+        vm=True,
+        outputs=results("results-partial", "target/legacy-tests-differential"),
     ),
     Step(
         "nofold",
@@ -325,6 +380,8 @@ STEPS: tuple[Step, ...] = (
         needs=("build",),
         external=("toolchain",),
         env={"QB64RUST_NO_FOLD": "1"},
+        vm=True,
+        outputs=results("results-partial", "target/legacy-tests-nofold"),
     ),
     Step(
         "coverage",
@@ -333,6 +390,8 @@ STEPS: tuple[Step, ...] = (
         BUILT + LIBQB + RUNNER_FILES + ("tools/coverage/**", "tests/corpus/screen/**", "tests/programs/**"),
         needs=("build",),
         external=("toolchain",),
+        vm=True,
+        outputs=results("results-partial", "target/coverage/runs"),
     ),
     # The copy gets the files git reports changed since the last sync; under --force (the merge) every file,
     # compared by content (design D2).
@@ -363,10 +422,12 @@ STEPS: tuple[Step, ...] = (
         "sandbox",
         FULL,
         ("python", "tools/sandbox/run.py"),
-        BUILT + LIBQB + ("tools/sandbox/**", "tests/sandbox/**", "tests/never_run.list"),
+        # It runs in the test VM (tools/winvm), whose scripts are inputs too. Not alone: the VM takes no screen, and
+        # the family passed there with the verification step loading the host to 88-100% (OpenSpec change
+        # windows-vm, task 4.2). `--where sandbox`, run by hand, still wants the machine to itself.
+        BUILT + LIBQB + ("tools/sandbox/**", "tools/winvm/**", "tests/sandbox/**", "tests/never_run.list"),
         needs=("build",),
         external=("toolchain",),
-        alone=True,
     ),
 )
 
@@ -405,6 +466,11 @@ STEPS += (
             needs=_BY_NAME["slice" if name == "corpus" else name].needs,
             external=("toolchain", "clone"),
             rejudge=runner(suite, "--rejudge"),
+            vm=True,
+            # `--check-list`, `builtins` and `counts` read these on the host after it.
+            outputs=results(f"results-{suite}") + (counts_of(name),),
+            clears=(counts_of(name),),
+            vm_first=V37_LIBS if suite == "verification" else None,
         )
         for name, suite, _ in WHOLE
     ),

@@ -1,0 +1,3 @@
+last line
+
+Press any key to continueexit=0

@@ -9,9 +9,10 @@ what the new compiler is held to against them, so that `verification\` keeps the
 |---|---|
 | `pass.list` | the programs the new compiler passes, one name per line (no `.bas`; `#` starts a comment) |
 | `known.list` | every other program: its name, a tab, the reason (below) |
-| `lines.list` | the programs QB64pe rejected that the new compiler rejects on another line than QB64pe's `LINE n:`: the name, a tab, the line the rejection is pinned to instead, a tab, the reason (mostly a block error, named where the block opens). That line stands for QB64pe's (below, "How the compare works"); a row that a run finds unneeded is named at the end of the run, to remove (OpenSpec change `pin-rejection-line`) |
+| `lines.list` | the programs QB64pe rejected that the new compiler rejects on another line than QB64pe's `LINE n:`: the name, a tab, the line the rejection is pinned to instead, a tab, the reason (mostly a block error, named where the block opens). That line stands for QB64pe's (below, "How the compare works"); a row that a run finds unneeded is named at the end of the run, to remove (OpenSpec change `pin-rejection-line`). A program whose `diverged\` sidecar holds `(not compiled)` needs a row too: QB64pe built it, so the row is the only line compared (OpenSpec change `known-output`) |
 | `divergences\<name>.divergences` | the rows of `QB64PE-DIVERGENCES.md` a passing program may take, one `D-0nn` per line, as for the corpus |
 | `fixed\<name>.out.txt` | the program's output with every fix on (spec `compiler/fixes`), written by hand from the fixes' specified behaviour, never recorded by `qb64pe.exe`: the runner builds such a program a second time with `--fixes on` and compares that run with it, as the result `<name> [fixes on]`; the program's line on `pass.list` passes only when both halves pass (OpenSpec change `fixes-switch`, design D4). Each fix behind the switch has at least one |
+| `diverged\<name>.out.txt` | the output our compiler gives for a program that differs from QB64pe on purpose, by a row `D-0nn` of `QB64PE-DIVERGENCES.md`. It is our run's output, written only after a review: each line that differs from QB64pe's recording must be one the program's D row explains. The compare judges the program by it in place of QB64pe's recording. The program is on `pass.list`, and its `divergences\<name>.divergences` names its rows. An optional `diverged\<name>.log.txt` stands for the recorded log. A sidecar of `(not compiled)` needs a `lines.list` row, because QB64pe built the program and names no line (OpenSpec change `known-output`) |
 | `normalize\<name>.normalize` | rules applied to both the recorded and the actual output before they are compared, as for the corpus (`<regex><TAB><replacement>`); the first is `v58_s02_files`'s, which masks the free space `FILES` prints; `v59_g_readback`'s masks the OpenGL viewport, the window's size as the desktop sets it |
 
 Every program of `verification\` is named exactly once across the two lists; tier 1 checks it
@@ -41,7 +42,8 @@ passes is named at the end of the run, to move to `pass.list`, unless its reason
 `target\legacy-tests\verification\<name>\` that holds the program, its `.stdin` and `.noprompt`, and the support files
 of its family (the files and folders of `verification\` whose name begins with its family number, such as
 `v16_inc\`, `v37c.a` or `v37_lib\`, and those with no family number). It runs as it was recorded: stdin from the null
-device or the `.stdin`, a 60 s timeout, no key presses, its window on a desktop that is never shown. Then:
+device or the `.stdin`, a 60 s timeout, no key presses, its window on a desktop that is never shown. It is
+judged by `diverged\<name>.out.txt` when that exists, else by QB64pe's recording. Then:
 
 - recorded `(not compiled)`: passes when the compile fails with at least one error not marked "not supported yet",
   and the earliest line of the program's own file with such an error, in whatever order the errors are printed, is
@@ -74,50 +76,20 @@ change adds or changes alone; at a merge into `main` `just merge` runs the whole
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:verification-membership -->
-Of the 4345 programs of `verification\`, `pass.list` names **4139** and `known.list` 206.
+Of the 4360 programs of `verification\`, `pass.list` names **4276** and `known.list` 84.
+
+Of `pass.list`, 127 differ from QB64pe on purpose and are judged by their `diverged\` output.
 
 | Reason in `known.list` | Programs |
 |---|---|
-| `D-003` | 1 |
-| `D-004` | 10 |
-| `D-005` | 1 |
-| `D-006` | 2 |
-| `D-007` | 2 |
-| `D-008` | 3 |
-| `D-009` | 3 |
-| `D-014` | 1 |
+| `D-004` | 1 |
 | `D-016` | 1 |
-| `D-017` | 1 |
-| `D-018` | 3 |
-| `D-019` | 3 |
+| `D-019` | 1 |
 | `D-020` | 1 |
-| `D-021` | 1 |
-| `D-022` | 2 |
-| `D-025` | 2 |
-| `D-026` | 2 |
-| `D-027` | 5 |
-| `D-028` | 2 |
-| `D-029` | 3 |
-| `D-031` | 3 |
-| `D-032` | 1 |
-| `D-034` | 1 |
-| `D-036` | 1 |
-| `D-037` | 2 |
-| `D-040` | 6 |
-| `D-041` | 3 |
-| `D-042` | 11 |
-| `D-043` | 4 |
-| `D-044` | 3 |
-| `D-045` | 1 |
-| `D-046` | 8 |
-| `D-047` | 2 |
-| `D-048` | 12 |
-| `D-049` | 4 |
+| `D-031` | 1 |
+| `D-037` | 1 |
 | `D-050` | 2 |
-| `D-051` | 2 |
-| `D-052` | 7 |
-| `D-055` | 2 |
-| `bug` | 8 |
+| `bug` | 2 |
 | `not recorded` | 4 |
 | `not supported yet` | 65 |
 | `recorded elsewhere` | 1 |

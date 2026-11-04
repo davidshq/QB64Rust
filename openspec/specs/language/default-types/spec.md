@@ -121,7 +121,7 @@ statements, to any type a variable may have by a suffix: a numeric type with or 
 `_FLOAT`, `_BIT` and `_BIT * n`, `STRING`, and `STRING * n` with n above 0. Any other type SHALL be a compile
 error (the old compiler: "Cannot convert type (…) to symbol"): a user type, `_MEM`, an unknown name, `_UNSIGNED`
 alone or before `STRING`, SINGLE, DOUBLE or `_FLOAT`, and `STRING * 0`. A name typed this way SHALL follow the
-rules of that type where it stands (a `_BIT` parameter is a compile error, `language/procedures`).
+rules of that type where it stands (a `_BIT` parameter is passed as `language/procedures` says).
 
 #### Scenario: Unsigned default
 - **WHEN** `_DEFINE u AS _UNSIGNED _BYTE: u = -1: PRINT u` runs

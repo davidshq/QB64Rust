@@ -1,1 +1,2 @@
 D-020  # verification-compare: takes the row and prints the recording
+D-040  # known-output: judged by diverged/v35_g2_dyn_bounds_reversed.out.txt

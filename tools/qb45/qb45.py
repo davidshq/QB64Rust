@@ -21,16 +21,20 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_DOSBOX = Path(r"C:\Program Files (x86)\DOSBox-0.74-3\DOSBox.exe")
 # Where QB 4.5 lies on the development machine (README.md): <qb64contain>\qb45\install, with <qb64contain> two
 # folders above the repo's root, beside the folder that holds the repo (not that folder itself).
-DEFAULT_QB45 = Path(__file__).resolve().parents[2] / ".." / ".." / "qb64contain" / "qb45" / "install"
+DEFAULT_QB45 = (
+    Path(__file__).resolve().parents[2] / ".." / ".." / "qb64contain" / "qb45" / "install"
+)
 TIMEOUT = 60
 
 # The banner BC prints before its messages, and its memory report: neither depends on the program.
@@ -41,6 +45,26 @@ BANNER = (
     "Simultaneously published",
 )
 LINK_BANNER = ("Microsoft (R) Overlay Linker", "Copyright (C) Microsoft")
+# BC's last line, after any messages: "    0 Severe  Error(s)". Without it BC did not finish.
+BC_SUMMARY = re.compile(r"Severe\s+Error\(s\)")
+
+
+@dataclass
+class Run:
+    """One build and run under DOSBox."""
+
+    text: str  # the result text; empty when BC did not finish
+    built: bool  # BC finished: its summary line is in P.CMP
+    timed_out: bool
+    silent: bool  # an executable was made and the run ended in time, but there is no OUT.TXT
+    compile_log: str = ""  # P.CMP as BC wrote it ("" when there is none)
+
+
+def bc_finished(compile_log: str) -> bool:
+    """Whether BC ran to its end. Seen once on 2026-11-02: a run gave neither BC's messages nor
+    OUT.TXT, and the same program ran in full the next time. P.CMP was missing, empty or only BC's
+    banner."""
+    return BC_SUMMARY.search(compile_log) is not None
 
 
 def dos_text(text: str) -> bytes:
@@ -120,8 +144,8 @@ def result_text(
     return "".join(parts)
 
 
-def run(bas: Path, qb45: Path, dosbox: Path, timeout: int) -> str:
-    """Builds and runs bas with QB 4.5 in a fresh folder; returns its result text."""
+def run(bas: Path, qb45: Path, dosbox: Path, timeout: int) -> Run:
+    """Builds and runs bas with QB 4.5 in a fresh folder."""
     with tempfile.TemporaryDirectory(prefix="qb45-") as tmp:
         work = Path(tmp)
         (work / "P.BAS").write_bytes(dos_text(bas.read_text(encoding="utf-8")))
@@ -144,15 +168,38 @@ def run(bas: Path, qb45: Path, dosbox: Path, timeout: int) -> str:
         log = work / "P.CMP"
         link = work / "P.LNK"
         out = work / "OUT.TXT"
-        return result_text(
-            log.read_text(encoding="cp437") if log.is_file() else "",
-            out.read_text(encoding="cp437") if out.is_file() else None,
+        compile_log = log.read_text(encoding="cp437") if log.is_file() else ""
+        out_text = out.read_text(encoding="cp437") if out.is_file() else None
+        exe = (work / "P.EXE").is_file()
+        if not bc_finished(compile_log):
+            return Run("", False, timed_out, False, compile_log)
+        text = result_text(
+            compile_log,
+            out_text,
             timed_out,
             timeout,
-            link.read_text(encoding="cp437")
-            if link.is_file() and not (work / "P.EXE").is_file()
-            else None,
+            link.read_text(encoding="cp437") if link.is_file() and not exe else None,
         )
+        silent = exe and out_text is None and not timed_out
+        return Run(text, True, timed_out, silent, compile_log)
+
+
+def no_build_message(result: Run, timeout: int) -> str:
+    """Why a run gave no result: BC did not finish, and whether DOSBox ended or hung."""
+    if result.timed_out:
+        return f"BC did not finish: DOSBox hung, timed out after {timeout} s"
+    return "BC did not finish: DOSBox ended first"
+
+
+def unfinished_log(compile_log: str) -> str:
+    """What BC wrote before it stopped, for stderr: its messages without the banner, or a line
+    saying there were none."""
+    messages = compile_messages(compile_log)
+    if messages:
+        return "".join(f"  {line}\n" for line in messages)
+    if compile_log.strip():
+        return "  (no messages from BC)\n"
+    return "  (no P.CMP, or an empty one)\n"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -178,14 +225,30 @@ def main(argv: list[str] | None = None) -> int:
     if dosbox is None or not Path(dosbox).is_file():
         print("no DOSBox: give --dosbox", file=sys.stderr)
         return 2
+    status = 0
     for bas in args.programs:
-        text = run(bas, Path(args.qb45).resolve(), Path(dosbox), args.timeout)
+        result = run(bas, Path(args.qb45).resolve(), Path(dosbox), args.timeout)
+        if not result.built:
+            why = no_build_message(result, args.timeout)
+            print(f"{bas.name}: {why}; running it once more", file=sys.stderr)
+            result = run(bas, Path(args.qb45).resolve(), Path(dosbox), args.timeout)
+        if not result.built:
+            why = no_build_message(result, args.timeout)
+            print(f"{bas.name}: {why}, twice; nothing recorded. P.CMP:", file=sys.stderr)
+            print(unfinished_log(result.compile_log), end="", file=sys.stderr)
+            status = 1
+            continue
+        if result.silent:
+            # Every q45_ program opens OUT.TXT first: likely DOSBox ending early, not the program.
+            warning = "warning: the program was built and ran, but wrote no OUT.TXT"
+            print(f"{bas.name}: {warning}", file=sys.stderr)
+        text = result.text
         if args.record:
             bas.with_name(bas.stem + ".qb45.txt").write_text(text, encoding="utf-8", newline="\n")
             print(f"{bas.name}: recorded")
         else:
             print(f"== {bas.name}\n{text}", end="")
-    return 0
+    return status
 
 
 if __name__ == "__main__":

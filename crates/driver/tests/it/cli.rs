@@ -90,6 +90,12 @@ fn runners_compile_line() {
 #[ignore = "needs the QB64pe reference clone"]
 #[cfg(windows)]
 fn a_build_changes_nothing_git_sees() {
+    if support::in_suites_vm() {
+        // Said, not passed silently: the VM's copies of the tree and the clone are not git checkouts (OpenSpec change
+        // vm-suites, task 6.2). The host's runs hold the scenarios.
+        eprintln!("skipped in the suites VM: the test needs git checkouts of the tree and the clone");
+        return;
+    }
     let status = |dir: &Path, path: &str| {
         let o = Command::new("git")
             .arg("-C")

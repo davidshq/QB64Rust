@@ -301,6 +301,10 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target
   in `target\legacy-tests\verification\<name>.fixed\`, run as the first run is run and compared with that file by
   the same rules (`.normalize`, `.divergences`, the log); it is reported as `<name> [fixes on]`, a result of its
   own, which `--check-list` requires to pass as well. The pass cache keeps the two halves apart.
+- **Diverged output** (OpenSpec change `known-output`): when `tests\verification\diverged\<name>.out.txt` exists,
+  the compare judges the program by it in place of QB64pe's recording, by the same rules. A
+  `diverged\<name>.log.txt` stands for the recorded log in the same way. If the sidecar holds `(not compiled)`,
+  the rejection must stand on the line of the program's `lines.list` row, and a row is required.
 - Each program is compiled with `-x -q -m` in a fresh folder `target\legacy-tests\verification\<name>\`, removed
   on a pass, which holds the program, its `.stdin` and `.noprompt`, and the support items of its family: the files
   and folders of `verification\` whose name begins with its family number (`v16_inc\` and `v16_y.bi` for

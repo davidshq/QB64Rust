@@ -1,0 +1,10 @@
+ [error 11 ]
+byte: 0 
+ [error 11 ]
+integer mod: 0 
+ [error 11 ]
+long: 0 
+integer64: [error 11 ]
+unsigned long mod: [error 11 ]
+done
+exit=0

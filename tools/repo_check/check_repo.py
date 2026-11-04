@@ -50,6 +50,9 @@ ALLOWED = [
     # `*` takes the archive's dated folder); and the made-up host paths of the runner's tests, each by itself.
     ("tools/sandbox/*", rb"C:\run"),
     ("openspec/*desktop-sandbox/*", rb"C:\run"),
+    # The same folder inside the test VM, the guest's, not the host's (tools/winvm/README.md).
+    ("tools/winvm/*", rb"C:\run"),
+    ("openspec/*windows-vm/*", rb"C:\run"),
     ("tools/sandbox/test_run.py", rb"X:\some & where"),
     ("tools/sandbox/test_run.py", rb"Q:\only\this"),
     ("tools/sandbox/test_run.py", rb"Z:\no\WindowsSandbox.exe"),
@@ -67,6 +70,8 @@ BINARY_SUFFIXES = (".bin", ".exe", ".png", ".ico", ".7z", ".zip", ".vsix")
 # `INF` in v02, a 0x01 in a qb64pe include message, the `-x` progress bar's CRs).
 RECORDED = [
     "verification/*.out.txt",
+    # The new compiler's own reviewed output for a program that differs from QB64pe on purpose: measured too.
+    "tests/verification/diverged/*.out.txt",
     "verification/*.compile.txt",
     "vscode/test-fixtures/compiler/*.out.txt",
 ]

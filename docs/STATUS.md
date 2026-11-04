@@ -42,8 +42,10 @@ changes (`m5-debug-build-symbols`, `m5-dap-proxy`, `m5-debug-launch`) and `m5b-f
 and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026-10-28). Pull request 21
 (`012ed21`, 2026-10-29) merged branch `docs-and-cuts`, the answers to `study\38`'s last questions (`DECISIONS.md`
 2026-10-28); pull request 22 (`bfd2aba`, 2026-11-01) merged branch `misc-updates`: `m7-linux`,
-`basic-unit-tests`, `desktop-sandbox` and `testing-reset`. Branch `linux-sync-per-tree` (`7334117`) holds
-`linux-sync-per-tree`, archived 2026-11-02, and `TODO.md`. No OpenSpec change is open. The extension's last
+`basic-unit-tests`, `desktop-sandbox` and `testing-reset`. Pull request 23 (`d6d341e`, 2026-11-02) merged
+branch `linux-sync-per-tree`. It holds four changes, all archived: `linux-sync-per-tree`, `check-rejudge`,
+`pin-rejection-line`, and the 40-character limit on names, which was built without an OpenSpec change. It also
+added `TODO.md`. The open OpenSpec change is `known-output`, which is `TODO.md` row 1. The extension's last
 release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
@@ -57,26 +59,28 @@ Nothing is waiting: names of more than 40 characters were answered on 2026-11-02
 
 ## Next
 
-1. **`linux-sync-per-tree` into `main`**: its merge run passes (numbers below); the merge is the user's.
-   **`check-rejudge`** is built (2026-11-02): `--rejudge` judges a whole suite's stored results under today's known
-   lists in under a second, `check` plans it when only those lists changed, a merge's passes stand for the next
-   merge (whose Linux sync then follows git), and `counts.py` judges the pass lists in seconds (200 s before);
-   **archived 2026-11-02** (`openspec\changes\archive\2026-11-02-check-rejudge\`). The runner changed, so the next
-   `just full` runs everything once.
-2. **The 40-character limit on names** is built (2026-11-02, directly, without an OpenSpec change, `TODO.md`): a
-   word of code of more than 40 characters is an error wherever it stands, and a dotted variable, `CONST` or
-   procedure name of more than 40 with its dots (spec `compiler/pipeline`, "The 40-character limit on names";
-   `verification\v66_e01`–`e18` on
-   `pass.list`).
-   **`pin-rejection-line`** is built (2026-11-02): a verification program QB64pe rejected passes
-   only when the earliest line of its own file with an unmarked error is QB64pe's `LINE n:`, or the line
-   `tests\verification\lines.list` gives (18 rows); `v45_x48` went to `known.list` as a bug; **archived
-   2026-11-02** (`openspec\changes\archive\2026-11-02-pin-rejection-line\`). The runner changed again, so the next
-   `just full` runs the verification step whole. Next: `TODO.md` row 1 (what the new compiler prints for a
-   `known.list` program).
-3. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
+1. **`known-output`** (`TODO.md` row 1) is built and archived (2026-11-02). 116 verification programs that differ
+   from QB64pe on purpose are now on `pass.list`, each judged by its reviewed
+   `tests\verification\diverged\<name>.out.txt`. The review is the table at the end of
+   `openspec\changes\archive\2026-11-02-known-output\design.md`. The shorter timeout of the row is not built: it
+   would save nothing now (design D7). The runner changed, so the next `just full` runs everything once.
+2. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
    built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
    results are read when they come. M8 next.
+3. **`windows-vm`** (OpenSpec change, archived 2026-11-03): the sandbox family runs in a Hyper-V test VM by
+   default, with nothing on the host's screen. The VM is made and the family passes there, 7 of 7, in 14 full runs in a row.
+   It also passes under load, so its `just full` step no longer runs alone, and still passes in Windows Sandbox
+   (`--where sandbox`). All tasks are done, and its spec is merged into `testing/desktop-sandbox`. Trying
+   `create.ps1 -FromBase` is deferred to the VM's first expiry, about 2027-02-01 (`SOMEDAY.md`).
+4. **`vm-suites`** (OpenSpec change, archived 2026-11-04, its specs merged into `testing/check-workflow` and
+   the new `testing/suites-vm`): `check full` and `check merge` run the
+   steps that build and run programs in a second Hyper-V VM, `qb64rust-suites`, made on 2026-11-03 from the new
+   shared base disk `qb64rust-base`. `--where host` keeps them on the host; `check quick` stays there. In the VM
+   the slice list passed 494 of 494, the CLI tests 120 of 120 and a whole `full` run passed, at 1.7 times the
+   host's time. The VM found two dependencies on the host: a lock folder the runner never made, and
+   `v59_d_conversions` reading the GPU driver's stencil bits. Both are fixed. `check full --uncommitted` runs on
+   uncommitted changes. `qb64rust.exe` needs `VCRUNTIME140.dll`, which a clean Windows lacks (`SOMEDAY.md`). Archive
+   at the merge into `main`, after `just merge` runs its whole suites in the VM.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
@@ -112,7 +116,7 @@ long run, it is this, and it passes alone.
 
 ## Numbers at the last full runs
 
-The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Branch
+The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 23, branch
 `linux-sync-per-tree`** (2026-11-02): `just merge` in the worktree at `7334117`, then at `df67128` the steps its
 fix touched (`upstream-whole`, `upstream-list`, `linux-upstream`) and `counts.py`; `linux-verification`'s two
 failures re-judged against the new `known.linux.list`, not run again.

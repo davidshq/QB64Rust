@@ -1,0 +1,9 @@
+compile:
+ 0059   0006    PRINT #1, "first read:"; z(2)
+                                            ^ Array not dimensioned
+    1 Warning Error(s)
+    0 Severe  Error(s)
+first read: 0 
+z(2), LBOUND, UBOUND: 5  0  10 
+z(11) = 1:[error 9 ]
+end

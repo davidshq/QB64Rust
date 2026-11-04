@@ -73,6 +73,30 @@ class VerificationMembership(unittest.TestCase):
             ],
         )
 
+    def test_the_programs_judged_by_a_diverged_sidecar(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, lists = Path(tmp, "verification"), Path(tmp, "lists")
+            (lists / "diverged").mkdir(parents=True)
+            root.mkdir()
+            for name in ("v01_a", "v01_b"):
+                (root / f"{name}.bas").write_bytes(b"")
+            (lists / "pass.list").write_text("v01_a\nv01_b\n", encoding="utf-8")
+            (lists / "diverged" / "v01_b.out.txt").write_bytes(b"exit=0\n")
+            (lists / "diverged" / "v01_b.log.txt").write_bytes(b"")
+            with (
+                mock.patch.object(counts, "VERIFICATION_ROOT", root),
+                mock.patch.object(counts, "VERIFICATION", lists),
+            ):
+                lines = counts.verification_membership()
+        self.assertEqual(
+            lines,
+            [
+                "Of the 2 programs of `verification\\`, `pass.list` names **2** and `known.list` 0.",
+                "",
+                "Of `pass.list`, 1 differ from QB64pe on purpose and are judged by their `diverged\\` output.",
+            ],
+        )
+
 
 class FormatMembership(unittest.TestCase):
     def test_recordings_by_set_and_the_known_differences(self):

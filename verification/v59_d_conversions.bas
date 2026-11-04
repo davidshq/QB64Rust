@@ -13,7 +13,9 @@ _DEST _CONSOLE
 PRINT "frames >= 3:"; frames& >= 3
 PRINT "viewport 1:"; v1&(0); v1&(1); v1&(2); v1&(3)
 PRINT "viewport 2:"; v2&(0); v2&(1); v2&(2); v2&(3)
-PRINT "stencil mask:"; sm&
+' The low 8 bits only: what a driver gives for the bits above the stencil buffer's differs (255 from a GPU's driver,
+' 2147483647 from Mesa's llvmpipe, the OpenGL specification's clamp to the largest GLint), not the conversion of -1.
+PRINT "stencil mask:"; sm& AND 255
 PRINT "colour mask:"; cm~%%(0); cm~%%(1); cm~%%(2); cm~%%(3)
 PRINT "line width:"; lw!
 PRINT "pixel:"; p~%%(0); p~%%(1); p~%%(2); p~%%(3)

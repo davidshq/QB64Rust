@@ -1,0 +1,4 @@
+mod: 0 
+idiv:handler 6 
+after
+exit=0

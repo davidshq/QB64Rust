@@ -1,0 +1,2 @@
+D-048  # END at the null device ends; QB64pe waits for a key
+D-057  # _BIT parameter: judged by diverged/v21_x23_bit1_param.out.txt

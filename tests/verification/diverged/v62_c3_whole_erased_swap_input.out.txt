@@ -1,0 +1,6 @@
+ [error 9 ]1. after SWAP a(), b()
+ [error 9 ]2. after SWAP a(), c(): 3 
+ [error 9 ]3. after INPUT #1, a()
+ [error 9 ]4. after LINE INPUT #1, l()
+5. end
+exit=0

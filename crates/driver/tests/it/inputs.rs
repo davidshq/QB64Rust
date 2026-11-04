@@ -790,6 +790,56 @@ fn verification_lists_are_exact() {
             None => problems.push(format!("fixed/{file}: not a <name>.out.txt")),
         }
     }
+    // Our output for a program that differs from QB64pe on purpose (`diverged\<name>.out.txt`, OpenSpec change
+    // `known-output`, design D2): the program is on pass.list, and its `.divergences` names rows of
+    // QB64PE-DIVERGENCES.md, which keep the reason its known.list row gave.
+    #[expect(clippy::disallowed_methods, reason = "a Markdown table, not BASIC source")]
+    let doc = std::fs::read_to_string(repo().join("docs/QB64PE-DIVERGENCES.md")).unwrap();
+    let rows: Vec<String> = doc
+        .lines()
+        .filter_map(|l| l.strip_prefix("| D-"))
+        .filter_map(|l| l.split_once(' ').map(|(n, _)| format!("D-{n}")))
+        .collect();
+    for entry in std::fs::read_dir(lists.join("diverged")).into_iter().flatten() {
+        let file = entry.unwrap().file_name().to_string_lossy().into_owned();
+        let Some((name, kind)) = file
+            .strip_suffix(".out.txt")
+            .map(|n| (n, "out"))
+            .or_else(|| file.strip_suffix(".log.txt").map(|n| (n, "log")))
+        else {
+            problems.push(format!("diverged/{file}: not a <name>.out.txt or <name>.log.txt"));
+            continue;
+        };
+        if !programs.iter().any(|p| p == name) {
+            problems.push(format!("diverged/{file}: no program verification/{name}.bas"));
+            continue;
+        }
+        if kind == "log" {
+            if !lists.join(format!("diverged/{name}.out.txt")).is_file() {
+                problems.push(format!("diverged/{file}: no diverged/{name}.out.txt beside it"));
+            }
+            continue;
+        }
+        if !named.iter().any(|(n, l)| n == name && *l == "pass.list") {
+            problems.push(format!("diverged/{file}: {name} is not on pass.list"));
+        }
+        let listed = read(&format!("divergences/{name}.divergences"));
+        let taken: Vec<&str> = listed
+            .lines()
+            .map(|l| l.split('#').next().unwrap().trim())
+            .filter(|l| !l.is_empty())
+            .collect();
+        if taken.is_empty() {
+            problems.push(format!("diverged/{file}: divergences/{name}.divergences names no row"));
+        }
+        for row in taken {
+            if !rows.iter().any(|r| r == row) {
+                problems.push(format!(
+                    "divergences/{name}.divergences: {row} is not a row of QB64PE-DIVERGENCES.md"
+                ));
+            }
+        }
+    }
     assert!(
         programs.len() >= 2842,
         "found only {} verification programs",
@@ -822,7 +872,8 @@ fn names_a_line(compile_txt: &str) -> bool {
 /// "Exceptions to the line of a rejection" (spec `testing/verification-suite`): each row of
 /// `tests\verification\lines.list` is `<name><TAB><line><TAB><reason>`, with a line of 1 or more and a reason, and
 /// names, once, a program of `verification\` that QB64pe rejected (`(not compiled)`) on a line of its own file
-/// (`names_a_line`), since a row of any other program is never used.
+/// (`names_a_line`), or a diverged rejection (`diverged\<name>.out.txt` holds `(not compiled)`), since a row of any
+/// other program is never used.
 #[test]
 fn verification_lines_list_is_valid() {
     #[expect(
@@ -849,8 +900,15 @@ fn verification_lines_list_is_valid() {
             problems.push(format!("lines.list: {name}: no reason"));
         }
         let out = read(&repo().join("verification").join(format!("{name}.out.txt")));
+        // A diverged rejection (OpenSpec change `known-output`, design D3): QB64pe built the program, and its
+        // `diverged\` sidecar holds `(not compiled)`, so the row is the only line compared.
+        let diverged = read(&repo().join(format!("tests/verification/diverged/{name}.out.txt")));
         if !repo().join("verification").join(format!("{name}.bas")).is_file() {
             problems.push(format!("lines.list: no program verification/{name}.bas"));
+        } else if diverged.trim_end() == "(not compiled)" {
+            if out.trim_end() == "(not compiled)" {
+                problems.push(format!("lines.list: {name}: a diverged rejection QB64pe rejected too"));
+            }
         } else if out.trim_end() != "(not compiled)" {
             problems.push(format!("lines.list: {name}: not recorded (not compiled)"));
         } else if !names_a_line(&read_lossy(

@@ -1,0 +1,4 @@
+before
+ [error 11 ]
+after
+exit=0

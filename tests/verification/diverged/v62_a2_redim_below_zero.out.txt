@@ -1,0 +1,2 @@
+1. REDIM r(2 TO m, 3), m = 0: [error 5 ] then UBOUND(r): [error 9 ]2. end
+exit=0

@@ -1,0 +1,16 @@
+compile:
+ 0164   000E    y(3) = y(3) + 2
+                   ^ Array not dimensioned
+ 01EB   000E    PRINT #1, "s:"; x(2);
+                                   ^ Array not dimensioned
+ 0300   000E    PRINT #1, "st:"; w(2);
+                                    ^ Array not dimensioned
+    3 Warning Error(s)
+    0 Severe  Error(s)
+s: 1.234183E-38  5  0  10 [error 9 ]
+s: 5  10  0  10 [error 9 ]
+f: 12 
+f: 14 
+st: 0  5  0  10 [error 9 ]
+st: 5  10  0  10 [error 9 ]
+end

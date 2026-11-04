@@ -135,6 +135,13 @@ def verification_membership() -> list[str]:
             f"`known.list` {len(known)}."
         )
     ]
+    # Programs of pass.list judged by our own reviewed output (OpenSpec change known-output, design D6).
+    diverged = len(list((VERIFICATION / "diverged").glob("*.out.txt")))
+    if diverged:
+        lines += [
+            "",
+            f"Of `pass.list`, {diverged} differ from QB64pe on purpose and are judged by their `diverged\\` output.",
+        ]
     if reasons:
         rows = [[f"`{word}`", n] for word, n in sorted(reasons.items())]
         lines += ["", *table(["Reason in `known.list`", "Programs"], rows)]

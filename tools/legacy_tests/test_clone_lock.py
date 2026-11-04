@@ -96,6 +96,14 @@ class CloneLock(unittest.TestCase):
         clone_lock.name_objects_lock()
         self.assertEqual(os.environ[clone_lock.OBJECTS_LOCK_ENV], str(clone_lock.OBJECTS_LOCK))
 
+    def test_name_objects_lock_makes_its_folder(self):
+        # A fresh tree has no target/qb64pe-clone until a run takes the clone's lock, and the driver makes no folder.
+        lock = clone_lock.CLONE_LOCK_DIR / "fresh" / "objects.lock"
+        with mock.patch.object(clone_lock, "OBJECTS_LOCK", lock):
+            clone_lock.name_objects_lock()
+        self.assertTrue(lock.parent.is_dir())
+        self.assertEqual(os.environ[clone_lock.OBJECTS_LOCK_ENV], str(lock))
+
     def test_lock_clone_names_nothing(self):
         for shared in (True, False):
             fh = clone_lock.lock_clone(shared=shared)
