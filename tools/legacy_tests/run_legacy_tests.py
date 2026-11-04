@@ -210,6 +210,7 @@ from clone_lock import (
     name_objects_lock,
 )
 from compiler_copy import header, run_copy
+from digest import framed
 
 COMPILE_TIMEOUT = 900  # seconds; first compiles build libqb for each feature set
 RUN_TIMEOUT = 120
@@ -248,6 +249,32 @@ def program_env() -> dict[str, str]:
         env.setdefault("ALSA_CONFIG_PATH", str(ALSA_NULL))
         env.pop("PULSE_SERVER", None)
     return env
+
+
+def noprompt_of(folder: Path, name: str) -> str:
+    """The QB64PE_NOPROMPT a program runs with: the text of <name>.noprompt in folder, else "y"."""
+    np_file = folder / f"{name}.noprompt"
+    return np_file.read_text(encoding="latin-1").strip() if np_file.is_file() else "y"
+
+
+def run_env(noprompt: str, log: Path) -> dict[str, str]:
+    """The environment a program of the compile suite or the corpus runs in: program_env, with
+    QB64PE_NOPROMPT set to noprompt and the runtime's log of the program's and libqb's scopes sent to log."""
+    env = program_env()
+    env.update(
+        {
+            "QB64PE_NOPROMPT": noprompt,
+            "QB64PE_LOG_HANDLERS": "file",
+            "QB64PE_LOG_SCOPES": "qb64,libqb,libqb-image,libqb-audio",
+            "QB64PE_LOG_FILE_PATH": str(log),
+        }
+    )
+    return env
+
+
+def read_if_file(path: Path) -> bytes | None:
+    """The bytes of path, or None when there is no such file (a part of a pass key, pass_key)."""
+    return path.read_bytes() if path.is_file() else None
 
 
 # libqb's own words that differ by platform, Linux's then Windows': END with the window hidden and the console
@@ -565,12 +592,32 @@ def clone_stamp(qb_root: Path, settings: dict[str, bytes]) -> str:
         parts = folder.relative_to(internal_c).parts
         files += [folder / f for f in sorted(filenames) if not written_by_builds(parts, f)]
     h = hashlib.sha256()
+    stamp_by_time(h, qb_root, files)
+    stamp_settings(h, settings)
+    return h.hexdigest()
+
+
+def stamp_by_time(h, qb_root: Path, files: list[Path]) -> None:
+    """Feeds the hash h one line per file of the clone: its path in qb_root, its size and its time."""
     for p in files:
         st = p.stat()
         h.update(f"{p.relative_to(qb_root).as_posix()}\t{st.st_size}\t{st.st_mtime_ns}\n".encode())
+
+
+def stamp_settings(h, settings: dict[str, bytes]) -> None:
+    """Feeds the hash h one line per settings file (clone_settings): its path and its SHA-256."""
     for name, data in settings.items():
         h.update(f"settings/{name}\t{hashlib.sha256(data).hexdigest()}\n".encode())
-    return h.hexdigest()
+
+
+def copy_release(qb_root: Path, root: Path, settings: dict[str, bytes]) -> None:
+    """Copies the clone's qb64pe.exe and Makefile into root, and writes settings into root/settings."""
+    for name in (QB64PE, "Makefile"):
+        shutil.copy2(qb_root / name, root / name)
+    for name, data in settings.items():
+        target = root / "settings" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
 
 
 def make_copy(qb_root: Path, root: Path, stamp: str, settings: dict[str, bytes]) -> None:
@@ -580,8 +627,7 @@ def make_copy(qb_root: Path, root: Path, stamp: str, settings: dict[str, bytes])
     if root.exists():
         shutil.rmtree(root)
     root.mkdir(parents=True)
-    for name in (QB64PE, "Makefile"):
-        shutil.copy2(qb_root / name, root / name)
+    copy_release(qb_root, root, settings)
     internal = qb_root / "internal"
 
     def skip(folder: str, names: list[str]) -> list[str]:
@@ -594,10 +640,6 @@ def make_copy(qb_root: Path, root: Path, stamp: str, settings: dict[str, bytes])
         return [n for n in names if written_by_builds(parts, n) and not (Path(folder) / n).is_dir()]
 
     shutil.copytree(internal, root / "internal", ignore=skip)
-    for name, data in settings.items():
-        target = root / "settings" / name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
     (root / "internal" / "temp").mkdir()
     (root / COPY_STAMP).write_text(stamp, encoding="ascii")
 
@@ -804,10 +846,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     check_license = license_file.is_file()
     if check_license:
         flags.append("-f:GenerateLicenseFile=true")
-    noprompt = "y"
-    np_file = tdir / f"{name}.noprompt"
-    if np_file.is_file():
-        noprompt = np_file.read_text(encoding="latin-1").strip()
+    noprompt = noprompt_of(tdir, name)
 
     base = [
         "-f:OptimizeCppProgram=true",
@@ -840,7 +879,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
                 b"compile suite",
                 bas.read_bytes(),
                 out_file.read_bytes(),
-                sidecar.read_bytes() if sidecar.is_file() else None,
+                read_if_file(sidecar),
                 noprompt.encode(),
                 data_files(tdir),
                 license_file.read_bytes() if check_license else None,
@@ -895,15 +934,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         return r
 
     run_out = results / f"{category}-{name}-run-output.txt"
-    env = program_env()
-    env.update(
-        {
-            "QB64PE_NOPROMPT": noprompt,
-            "QB64PE_LOG_HANDLERS": "file",
-            "QB64PE_LOG_SCOPES": "qb64,libqb,libqb-image,libqb-audio",
-            "QB64PE_LOG_FILE_PATH": str(results / f"{category}-{name}-log.txt"),
-        }
-    )
+    env = run_env(noprompt, results / f"{category}-{name}-log.txt")
     trace = results / f"{category}-{name}-divergences.txt"
     set_trace(env, trace)
     counts = results / f"{category}-{name}-coverage.txt"
@@ -1554,10 +1585,7 @@ def pass_key(build: bytes, parts: list[bytes | None]) -> str:
     for a file that is not there). A program whose key equals one that passed gives the same output again, so it
     is neither built nor run."""
     h = hashlib.sha256()
-    for part in (b"pass cache 2", build, *parts):
-        data = b"\0" if part is None else b"\1" + part
-        h.update(len(data).to_bytes(8, "little"))
-        h.update(data)
+    framed(h, *(b"\0" if part is None else b"\1" + part for part in (b"pass cache 2", build, *parts)))
     return h.hexdigest()
 
 
@@ -1574,11 +1602,7 @@ def libqb_digest(libqb: Path) -> bytes:
         for f in sorted(filenames):
             if inside and written_by_builds(parts, f):
                 continue
-            rel = (folder / f).relative_to(libqb).as_posix().encode()
-            data = (folder / f).read_bytes()
-            for part in (rel, data):
-                h.update(len(part).to_bytes(8, "little"))
-                h.update(part)
+            framed(h, (folder / f).relative_to(libqb).as_posix().encode(), (folder / f).read_bytes())
     return h.digest()
 
 
@@ -1607,9 +1631,7 @@ def run_inputs(qb64: Path) -> bytes:
     none beside it), the toolchain, and the runner's own bytes."""
     libqb = Path(os.environ.get("QB64RUST_LIBQB_ROOT") or Path(__file__).resolve().parents[2] / "libqb")
     h = hashlib.sha256()
-    for part in (libqb_digest(libqb), toolchain_stamp(qb64), Path(__file__).resolve().read_bytes()):
-        h.update(len(part).to_bytes(8, "little"))
-        h.update(part)
+    framed(h, libqb_digest(libqb), toolchain_stamp(qb64), Path(__file__).resolve().read_bytes())
     return h.digest()
 
 
@@ -1636,9 +1658,7 @@ def data_files(folder: Path) -> bytes | None:
         return None
     h = hashlib.sha256()
     for p in sorted(q for q in folder.rglob("*") if q.is_file()):
-        for part in (p.relative_to(folder).as_posix().encode(), p.read_bytes()):
-            h.update(len(part).to_bytes(8, "little"))
-            h.update(part)
+        framed(h, p.relative_to(folder).as_posix().encode(), p.read_bytes())
     return h.digest()
 
 
@@ -1833,10 +1853,7 @@ def corpus_test(
         shutil.rmtree(work, ignore_errors=True)
         return finish(detail=detail)
 
-    noprompt = "y"
-    np_file = tdir / f"{name}.noprompt"
-    if np_file.is_file():
-        noprompt = np_file.read_text(encoding="latin-1").strip()
+    noprompt = noprompt_of(tdir, name)
     stdin_file = tdir / f"{name}.stdin"
     # <name>.exitcode: the exit code the program must end with (END n, SYSTEM n), as the process
     # reports it (Python's returncode: on Windows the unsigned 32-bit value, on Linux its low 8 bits,
@@ -1860,19 +1877,15 @@ def corpus_test(
     ):
         build_in = build_inputs(args.qb64, compile_cmd(args.qb64, exe), work, results / f"{key}-inputs.txt")
         if build_in is not None:
-
-            def read(p: Path) -> bytes | None:
-                return p.read_bytes() if p.is_file() else None
-
             parts = [
                 src.read_bytes(),
-                read(out_file),
-                read(screen_file),
-                read(keys_file),
-                read(stdin_file),
-                read(tdir / f"{name}.normalize"),
-                read(exitcode_file),
-                read(tdir / f"{name}.divergences"),
+                read_if_file(out_file),
+                read_if_file(screen_file),
+                read_if_file(keys_file),
+                read_if_file(stdin_file),
+                read_if_file(tdir / f"{name}.normalize"),
+                read_if_file(exitcode_file),
+                read_if_file(tdir / f"{name}.divergences"),
                 data_files(files_dir),
                 noprompt.encode(),
                 Path(__file__).with_name("press_any_key.py").read_bytes() if os.name == "nt" else None,
@@ -1942,15 +1955,7 @@ def corpus_test(
         return fail("run", "not run: known failure with no expected file")
 
     r.kind = "output"
-    env = program_env()
-    env.update(
-        {
-            "QB64PE_NOPROMPT": noprompt,
-            "QB64PE_LOG_HANDLERS": "file",
-            "QB64PE_LOG_SCOPES": "qb64,libqb,libqb-image,libqb-audio",
-            "QB64PE_LOG_FILE_PATH": str(results / f"{key}-log.txt"),
-        }
-    )
+    env = run_env(noprompt, results / f"{key}-log.txt")
     # <name>.stdin: the program's standard input is a copy of that file, kept beside the results so
     # that the program's own folder holds only what the program finds without the sidecar.
     stdin_copy = None
@@ -2165,9 +2170,7 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
         ]
     )
     if exe.is_file():
-        np_file = tdir / f"{name}.noprompt"
-        if np_file.is_file():
-            env["QB64PE_NOPROMPT"] = np_file.read_text(encoding="latin-1").strip()
+        env["QB64PE_NOPROMPT"] = noprompt_of(tdir, name)
         stdin_file = tdir / f"{name}.stdin"
         run_out = results / f"{name}-out.txt"
         log = results / f"{name}-log.txt"
@@ -2259,11 +2262,8 @@ def root_copy(qb_root: Path, folder: Path, root: Path) -> Path:
     Raises OSError when the junction cannot be made (no fallback copies the toolchain)."""
     settings = clone_settings(qb_root)
     h = hashlib.sha256()
-    for fname in (QB64PE, "Makefile"):
-        st = (qb_root / fname).stat()
-        h.update(f"{fname}\t{st.st_size}\t{st.st_mtime_ns}\n".encode())
-    for sname, data in settings.items():
-        h.update(f"settings/{sname}\t{hashlib.sha256(data).hexdigest()}\n".encode())
+    stamp_by_time(h, qb_root, [qb_root / QB64PE, qb_root / "Makefile"])
+    stamp_settings(h, settings)
     h.update(tree_digest([folder]))
     stamp = h.hexdigest()
     stamp_file = root / ROOT_STAMP
@@ -2271,12 +2271,7 @@ def root_copy(qb_root: Path, folder: Path, root: Path) -> Path:
         return root
     remove_root_copy(root)
     root.mkdir(parents=True)
-    for fname in (QB64PE, "Makefile"):
-        shutil.copy2(qb_root / fname, root / fname)
-    for sname, data in settings.items():
-        target = root / "settings" / sname
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
+    copy_release(qb_root, root, settings)
     make_junction(qb_root / "internal", root / "internal")
     shutil.copytree(folder, root, dirs_exist_ok=True)
     # Written last: a copy that was interrupted has no stamp and is made again.
@@ -2522,9 +2517,7 @@ def tree_digest(paths: list[Path]) -> bytes:
     for top in paths:
         files = [top] if top.is_file() else sorted(q for q in top.rglob("*") if q.is_file())
         for p in files:
-            for part in (p.relative_to(top.parent).as_posix().encode(), p.read_bytes()):
-                h.update(len(part).to_bytes(8, "little"))
-                h.update(part)
+            framed(h, p.relative_to(top.parent).as_posix().encode(), p.read_bytes())
     return h.digest()
 
 
@@ -2620,7 +2613,6 @@ def verification_compare(
     exe = work / f"{name}{EXE}"
     compile_out = results / f"{tag}-compile.txt"
     env = program_env()
-    env["QB64PE_NOPROMPT"] = "y"
     # The folder and the files the old compiler found in its own folder, under a root of their own, in
     # the recording's order: a listed file the folder holds already is the same error as there.
     root_args = []
@@ -2649,8 +2641,7 @@ def verification_compare(
         shutil.rmtree(work, ignore_errors=True)
         return finish(detail=detail)
 
-    if np_file.is_file():
-        env["QB64PE_NOPROMPT"] = np_file.read_text(encoding="latin-1").strip()
+    env["QB64PE_NOPROMPT"] = noprompt_of(root, name)
     normalize = VERIFICATION_LISTS / "normalize" / f"{name}.normalize"
     divergences = VERIFICATION_LISTS / "divergences" / f"{name}.divergences"
     helper = Path(__file__).with_name("press_any_key.py")
@@ -2661,19 +2652,15 @@ def verification_compare(
     if pass_cache and not rejected and not (root / f"{name}{EXTERNAL}").is_file():
         build = build_inputs(args.qb64, compile_cmd, work, results / f"{tag}-inputs.txt")
         if build is not None:
-
-            def read(p: Path) -> bytes | None:
-                return p.read_bytes() if p.is_file() else None
-
             parts = [
                 bas.read_bytes(),
                 recorded,
-                read(log_file),
-                read(stdin_file),
+                read_if_file(log_file),
+                read_if_file(stdin_file),
                 env["QB64PE_NOPROMPT"].encode(),
-                read(normalize),
-                read(divergences),
-                read(root / f"{name}.root"),
+                read_if_file(normalize),
+                read_if_file(divergences),
+                read_if_file(root / f"{name}.root"),
                 tree_digest(support),
                 tree_digest([root / f for f in [root_folder(root, name)] if f]),
                 helper.read_bytes() if os.name == "nt" else None,

@@ -17,28 +17,10 @@ Writes verification/v19_proc_names.txt: one line per name and form,
 `<name> <form> proc|builtin|rejected <detail>`.
 """
 
-import json
-import os
-import re
-import subprocess
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-REPO = HERE.parent
-QB = REPO.parent / "QB64pe" / "qb64pe.exe"
-
-
-def names():
-    kw_src = (REPO / "crates" / "syntax" / "src" / "parser" / "keywords.rs").read_text()
-    block = kw_src.split("const KEYWORDS")[1].split("];")[0]
-    keywords = re.findall(r'"([^"]+)"', block)
-    doc = json.loads((REPO / "tools" / "builtins" / "builtins.json").read_text())
-    seen = {k.upper() for k in keywords}
-    for e in doc["entries"]:
-        seen.add(e["name"].upper())
-    return sorted(seen)
-
+from names_common import HERE, compile_only, reserved_names, run
 
 FORMS = ["sub", "call", "func", "func&"]
 
@@ -53,53 +35,12 @@ def program(name: str, form: str) -> tuple[str, str]:
     return f"$CONSOLE:ONLY\nPRINT {n}\nSYSTEM\nFUNCTION {n}\n{n} = 5\nEND FUNCTION\n", "5"
 
 
-def compile_only(src: Path) -> str:
-    r = subprocess.run(
-        [str(QB), "-z", "-q", src.name],
-        check=False,
-        cwd=src.parent,
-        capture_output=True,
-        text=True,
-        errors="replace",
-    )
-    lines = [l.strip() for l in (r.stdout + r.stderr).splitlines() if l.strip()]
-    return lines[0] if lines else ""
-
-
-def run(src: Path) -> str:
-    exe = src.with_suffix(".exe")
-    subprocess.run(
-        [str(QB), "-x", "-q", "-m", src.name, "-o", exe.name],
-        check=False,
-        cwd=src.parent,
-        capture_output=True,
-    )
-    if not exe.exists():
-        return "(not built)"
-    env = dict(os.environ, QB64PE_NOPROMPT="y")
-    try:
-        r = subprocess.run(
-            [str(exe)],
-            check=False,
-            cwd=src.parent,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            stdin=subprocess.DEVNULL,
-            env=env,
-            timeout=30,
-        )
-    except subprocess.TimeoutExpired:
-        return "(timeout)"
-    return " ".join(r.stdout.split())
-
-
 def main():
     scratch = Path(sys.argv[1])
     scratch.mkdir(parents=True, exist_ok=True)
     results = []
     i = 0
-    for name in names():
+    for name in sorted(reserved_names()):
         low = name.lower()
         for form in FORMS:
             text, expected = program(low, form)
@@ -110,7 +51,7 @@ def main():
             if msg:
                 line = f"{low} {form} rejected {msg}"
             else:
-                printed = run(src)
+                printed = run(src, timeout=30)
                 verdict = "proc" if printed == expected else "builtin"
                 line = f"{low} {form} {verdict} prints: {printed}"
             results.append(line)

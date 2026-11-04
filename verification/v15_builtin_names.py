@@ -18,31 +18,10 @@ Usage (from the repo root):
 Writes verification/v15_builtin_names.txt: one line per form, `<form> variable|statement|rejected <detail>`.
 """
 
-import json
-import os
-import re
-import subprocess
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-REPO = HERE.parent
-QB = REPO.parent / "QB64pe" / "qb64pe.exe"
-
-
-def names():
-    kw_src = (REPO / "crates" / "syntax" / "src" / "parser" / "keywords.rs").read_text()
-    block = kw_src.split("const KEYWORDS")[1].split("];")[0]
-    keywords = re.findall(r'"([^"]+)"', block)
-    doc = json.loads((REPO / "tools" / "builtins" / "builtins.json").read_text())
-    seen = {}
-    for k in keywords:
-        seen.setdefault(k.upper(), None)
-    for e in doc["entries"]:
-        key = e["name"].upper()
-        if seen.get(key) is None:
-            seen[key] = e.get("musthave")
-    return seen
+from names_common import HERE, compile_only, from_log, reserved_names, run
 
 
 def forms(seen):
@@ -54,44 +33,6 @@ def forms(seen):
         if musthave == "$":
             out.append(low + "$")
     return out
-
-
-def compile_only(src: Path) -> str:
-    r = subprocess.run(
-        [str(QB), "-z", "-q", src.name],
-        check=False,
-        cwd=src.parent,
-        capture_output=True,
-        text=True,
-        errors="replace",
-    )
-    lines = [l.strip() for l in (r.stdout + r.stderr).splitlines() if l.strip()]
-    return lines[0] if lines else ""
-
-
-def run(src: Path) -> str:
-    exe = src.with_suffix(".exe")
-    subprocess.run(
-        [str(QB), "-x", "-q", "-m", src.name, "-o", exe.name],
-        check=False,
-        cwd=src.parent,
-        capture_output=True,
-    )
-    if not exe.exists():
-        return "(not built)"
-    env = dict(os.environ, QB64PE_NOPROMPT="y")
-    r = subprocess.run(
-        [str(exe)],
-        check=False,
-        cwd=src.parent,
-        capture_output=True,
-        text=True,
-        errors="replace",
-        stdin=subprocess.DEVNULL,
-        env=env,
-        timeout=60,
-    )
-    return " ".join(r.stdout.split())
 
 
 # Statements that read back what they set, so they print the assigned value like a variable would:
@@ -107,27 +48,14 @@ def classify(form: str, printed: str) -> str:
     return f"{form} statement prints: {printed}"
 
 
-def from_log(log: Path) -> list[str]:
-    """Rebuilds the result lines from the lines a run printed (`<form> rejected <msg>` or `<form> accepted
-    prints: <output>`)."""
-    out = []
-    for line in log.read_text().splitlines():
-        form, verdict, rest = line.split(" ", 2)
-        if verdict == "rejected":
-            out.append(line)
-        else:
-            out.append(classify(form, rest.removeprefix("prints:").strip()))
-    return out
-
-
 def main():
     if sys.argv[1] == "--from-log":
-        results = from_log(Path(sys.argv[2]))
+        results = list(from_log(Path(sys.argv[2]), classify).values())
     else:
         scratch = Path(sys.argv[1])
         scratch.mkdir(parents=True, exist_ok=True)
         results = []
-        for i, form in enumerate(forms(names())):
+        for i, form in enumerate(forms(reserved_names())):
             value = '"a"' if form.endswith("$") else "5"
             src = scratch / f"n{i}.bas"
             src.write_text(f"$CONSOLE:ONLY\n{form} = {value}\nPRINT {form}\nSYSTEM\n")

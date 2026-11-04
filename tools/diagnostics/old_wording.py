@@ -128,7 +128,7 @@ def names_file(old: str) -> bool:
     return re.search(r"<[a-z]+>|\.bas\b|\.bi\b|\.bm\b|\\", old) is not None
 
 
-def one_program(old: str, pattern: str, keywords: frozenset[str] = frozenset()) -> bool:
+def one_program(old: str, pattern: str, keywords: frozenset[str]) -> bool:
     """Whether an old template holds text of one program that the pattern does not carry: a number ("line 4"), a
     word with a digit ("1st") or a name in capitals that is no keyword ("Cannot convert type (FOO)"); its note
     would be wrong for another program. A word with a digit that the pattern holds as a word is the same in every

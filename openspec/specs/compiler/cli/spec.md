@@ -359,7 +359,7 @@ the note's lookup (requirement "Diagnostics output") makes from it with that wor
 its text in every form the table can name, as `[code, text]` pairs.
 
 #### Scenario: A message's key
-- **WHEN** the line `variable `count` (LONG) is not declared (`OPTION _EXPLICIT`)` is given to
+- **WHEN** the line ``variable `count` (LONG) is not declared (`OPTION _EXPLICIT`)`` is given to
   `qb64rust --old-wording-keys`
-- **THEN** the key printed is `variable `{}` (LONG) is not declared (`OPTION _EXPLICIT`)`, with one placeholder
+- **THEN** the key printed is ``variable `{}` (LONG) is not declared (`OPTION _EXPLICIT`)``, with one placeholder
   whose `=` form is `count` and whose `U` form is `COUNT`

@@ -38,21 +38,28 @@ class Template(unittest.TestCase):
         self.assertEqual(old_wording.merge([(text, marks)]), "Variable '{1:=|P|S}' (LONG) not defined")
 
 
+NO_KEYWORDS: frozenset[str] = frozenset()
+
+
 class OneProgram(unittest.TestCase):
     def test_a_number_the_pattern_does_not_carry(self):
         for old in ("Syntax error in line 4", "1st sub argument requires a number", "Value 1.5 out of range"):
-            self.assertTrue(old_wording.one_program(old, "a number is required here"), old)
+            self.assertTrue(old_wording.one_program(old, "a number is required here", NO_KEYWORDS), old)
 
     def test_a_name_the_pattern_does_not_carry(self):
-        self.assertTrue(old_wording.one_program("Cannot convert type (FOO)", "a value of `{}`"))
+        self.assertTrue(old_wording.one_program("Cannot convert type (FOO)", "a value of `{}`", NO_KEYWORDS))
+
+    def test_a_keyword_is_no_name_of_one_program(self):
+        self.assertFalse(old_wording.one_program("Cannot convert type (FOO)", "a value of `{}`", frozenset({"FOO"})))
 
     def test_an_ordinal_the_pattern_holds(self):
         old = "2nd sub argument requires a number"
-        self.assertFalse(old_wording.one_program(old, "a number is required for the 2nd argument"))
-        self.assertTrue(old_wording.one_program(old, "a number is required for the 3rd argument"))
+        self.assertFalse(old_wording.one_program(old, "a number is required for the 2nd argument", NO_KEYWORDS))
+        self.assertTrue(old_wording.one_program(old, "a number is required for the 3rd argument", NO_KEYWORDS))
 
     def test_placeholders_and_plain_text(self):
-        self.assertFalse(old_wording.one_program("Variable '{1}' ({2:U}) not defined", "variable `{}` is `{}`"))
+        old = "Variable '{1}' ({2:U}) not defined"
+        self.assertFalse(old_wording.one_program(old, "variable `{}` is `{}`", NO_KEYWORDS))
 
 
 if __name__ == "__main__":

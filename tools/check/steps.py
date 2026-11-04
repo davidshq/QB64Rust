@@ -286,7 +286,7 @@ STEPS: tuple[Step, ...] = (
         "callsite",
         FULL,
         ("python", "tools/callsite/callsite.py", "--jobs", "8", "--wait"),
-        BUILT + ("tools/callsite/**", "tests/callsite/**", "tests/upstream/root/**"),
+        BUILT + ("tools/callsite/**", "tools/legacy_tests/digest.py", "tests/callsite/**", "tests/upstream/root/**"),
         needs=("build",),
         external=("clone",),
         vm=True,

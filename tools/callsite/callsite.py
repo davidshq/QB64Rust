@@ -48,6 +48,7 @@ from clone_lock import (  # pylint: disable=wrong-import-position,import-error
     lock_clone,
 )
 from compiler_copy import header, run_copy  # pylint: disable=wrong-import-position,import-error
+from digest import framed  # pylint: disable=wrong-import-position,import-error
 
 # ---- normalisation -------------------------------------------------------------------------------
 
@@ -371,14 +372,7 @@ def cache_key(qb_root: Path, source: bytes, name: str) -> str:
     changes only when one of these does."""
     exe = (qb_root / "qb64pe.exe").stat()
     h = hashlib.sha256()
-    for part in (
-        b"callsite cache 1",
-        name.encode(),
-        source,
-        f"{exe.st_size} {exe.st_mtime_ns}".encode(),
-    ):
-        h.update(len(part).to_bytes(8, "little"))
-        h.update(part)
+    framed(h, b"callsite cache 1", name.encode(), source, f"{exe.st_size} {exe.st_mtime_ns}".encode())
     return h.hexdigest()
 
 
