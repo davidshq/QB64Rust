@@ -121,6 +121,14 @@ that the checkout and a worktree each have their own. The copy SHALL be brought 
 reports changed since the last sync, without a scan of the tree, and from every file compared by content when the
 run is forced.
 
+The Linux steps SHALL show nothing on the host's desktop and play nothing on its speakers. Each SHALL run on a
+virtual display of its own (Xvfb), with WSLg's Wayland and PulseAudio servers out of reach.
+
+#### Scenario: A window program in a Linux step
+- **WHEN** a Linux step runs a program that opens a window or plays a sound
+- **THEN** the window opens on the step's virtual display, the host's desktop shows nothing, and the host's
+  speakers play nothing
+
 #### Scenario: A worktree's run
 - **WHEN** `check full` runs in the worktree `QB64Rust-full`
 - **THEN** its Linux steps sync to and run in `~/qb64rust-full`, and the checkout's `~/qb64rust` is untouched

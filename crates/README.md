@@ -178,11 +178,17 @@ files git reports changed since the last sync (the commits since, `git status` n
 unchanged tree is synced in seconds; `--checksum` gives it every file, compared by content (about three minutes
 through `/mnt/c`), the exact form `--force` and a tree's first `just merge` use (a later merge syncs from git's
 list once an earlier merge's sync passed). `tools/linux/run.sh <command>` runs a command in
-the copy of the tree it is run from. Set-up, once:
+the copy of the tree it is run from.
+
+`run.sh` keeps every window and sound off the host's desktop and speakers. Without it, WSLg would show them there.
+The command runs on a display of its own from `xvfb-run` (1280 × 1024, as in CI), with `WAYLAND_DISPLAY` cleared.
+`XDG_RUNTIME_DIR` points to an empty folder of the run, so that libpulse cannot find WSLg's PulseAudio socket. A
+program then plays its sound through ALSA, which the runner points at its null device. A command typed in WSL
+without `run.sh` still uses WSLg. Set-up, once:
 
 ```
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
-sudo apt-get install ...                       # the packages above (by the user: sudo)
+sudo apt-get install ... xvfb                  # the packages above and Xvfb (by the user: sudo)
 ```
 
 then each time:
