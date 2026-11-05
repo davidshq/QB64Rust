@@ -178,7 +178,7 @@ found for each):
 | Form | Why it waits | Details |
 |---|---|---|
 | The whole array `x()` of a name that is no array as a place (`x() = 1`, `READ x()`; its `_MEM(x())`: the row of `m4-names-arrays` above), a SUB written with a type suffix (`s$ 1` beside a `SUB s`), a function of the auto-included files as a place (`_ENCODEURL$(1) = "a"`), `STATIC a()` beside a shared array | Measured (`verification\v66_c17`–`c21`), not built: `READ x()` makes the array and reads into its first element, and `STATIC a()` in a SUB names the shared array; `x() = 1` is "Expected array index after x", `s$ 1` "Syntax error" and `_ENCODEURL$(1) = "a"` "String required for function" (the argument's error comes first), all three still marked here. (`STATIC a(5, 5)` beside a shared array of one dimension: a known bug in `STATUS.md`; `STATIC v(n)` with a local bound fails QB64pe's C++ build and is our error, `c23`) | `check\places.rs`, `check\proc.rs` |
-| A statement named with one leading underscore that the table does not hold (not one starting `_GL`: the OpenGL table holds every such name since `m4-sub-gl`), and `CALL INTERRUPT[X]` (`CALL ABSOLUTE` compiles since `qbasic-testcases`) | Measured (`verification\v66_c24`–`c26`), not built: the unknown statement is "Syntax error"; `CALL INTERRUPT` and `CALL INTERRUPTX` of `&H33` run (the mouse reset gives -1 and 3). No program of the corpus or the qbasic tests needs them (`qb64pe.bas` 10606–10687) | `check\proc.rs`, the call statement |
+| A statement named with one leading underscore that the table does not hold (not one starting `_GL`: the OpenGL table holds every such name since `m4-sub-gl`), and `CALL INTERRUPT[X]` (`CALL ABSOLUTE` compiles since `qbasic-testcases`) | Measured (`verification\v66_c24`–`c26`), not built: the unknown statement is "Syntax error"; `CALL INTERRUPT` and `CALL INTERRUPTX` of `&H33` run (the mouse reset gives -1 and 3). No program of the corpus or the qbasic tests needs them (`qb64pe.bas` 10606–10687). **A real program ran into this on 2026-11-04:** the World War 2 port has `Interrupt 51, regs, regs` in `MouseDriver`, from the Microsoft BASIC 7.1 toolbox file `MOUSE.BAS`, which many old programs with a mouse share. The port works around it with QB64's mouse statements. Left for later (user, 2026-11-04). The runtime already has `call_interrupt` and `call_interruptx`, so only the compiler side is missing. To decide when it is built: a warning for a constant interrupt number other than `&H33`, which QB64pe compiles and silently ignores | `check\proc.rs`, the call statement |
 
 **Left marked by `m4-memory-records`** (2026-10-23: memory and record forms; what `verification\v56` found for
 each):
@@ -204,6 +204,35 @@ checked, not measured:
 ## Strict QuickBASIC 4.5 mode
 
 Not planned (QB64pe has no such mode). What it would take: `study\archive\08-qb45-strict-mode.md`.
+
+## Popular BASIC PDS 7.1 features
+
+Not planned yet (user, 2026-11-04). Microsoft BASIC PDS 7.1 added features that QuickBASIC 4.5 does not have, and
+QB64pe never took most of them. Old programs written for PDS use them, so each one is an edit a port has to make.
+The World War 2 port (2026-11-04) hit `DIR$` 16 times and `ON LOCAL ERROR` once.
+
+This would be a language extension: QB64pe rejects these forms. A program that uses them would no longer build
+with QB64pe. So it needs a decision first, and probably a switch of its own, as for names of more than 40
+characters ("Other ideas raised during the study").
+
+The list is from memory of PDS 7.1, most popular first. Only the `DIR$` and `ON LOCAL ERROR` rows are measured.
+Before one is built, measure what QB64pe does with the form, and measure what PDS does: since 2026-11-05,
+`qb45.py --compiler pds71` builds and runs a program with PDS 7.1 (`tools\qb45\README.md`, "PDS 7.1").
+
+| Feature | What a port does today | Notes |
+|---|---|---|
+| `DIR$(spec$)` and `DIR$` with no argument for the next match | Writes its own FUNCTION with `_FILES$`; a call with no argument becomes `DIR$("")` | The most common one: almost every PDS program with a file menu has it. QB64pe has no `DIR$` (measured by the port) |
+| `REDIM PRESERVE` | Renames it to `REDIM _PRESERVE` | The same behavior under QB64's name, so it is only a second spelling |
+| `CURDIR$` and `CHDRIVE` | Uses `_CWD$` and `CHDIR` | `CURDIR$` can take a drive letter |
+| The `CURRENCY` type: the `@` suffix, `DEFCUR`, `CCUR`, `CVC`, `MKC$` | Changes the variables to `DOUBLE` or `_INTEGER64` and rewrites the rounding | Common in business programs. A 64-bit integer scaled by 10,000. The largest row here: a new type through the whole compiler, and a record format in `GET` and `PUT` |
+| `ON LOCAL ERROR GOTO` in a SUB or FUNCTION | Moves the handler to the main module or removes it | QB64pe rejects it with "Name already in use (ERROR)", in a SUB and in the main module (`verification\v17_d_err_on_local_error_sub`, `_main`). Since 2026-11-05 our error says to use `ON ERROR GOTO` with the handler in the main module, and `ON ERROR GOTO 0` before the SUB ends: a handler set in a SUB stays active after it returns (`verification\v17_d_on_error_sub_stays`) |
+| A fixed array as a member of a `TYPE` | Splits the member into separate arrays or uses `_MEM` | Often asked for by QB64 users too |
+| `BYVAL` parameters of a BASIC SUB or FUNCTION | Removes `BYVAL` and copies the parameter by hand | QB64pe allows `BYVAL` only in `DECLARE LIBRARY` |
+| The add-on libraries: `FORMAT$`, the date serial functions (`DateSerial`, `Now` and the others), the financial functions | Writes its own | These are libraries, not statements; they could ship as `.bi`/`.bm` files instead of built-ins |
+
+Left off on purpose: ISAM (large and rare), far strings (`SSEG`, `SSEGADD`, `StringAddress`; they only mean
+something in DOS memory) and the toolbox sources (`MOUSE.BAS`, `MENU.BAS`, `WINDOW.BAS`), which are BASIC code
+that compiles once `CALL INTERRUPT` does ("Deferred QB64pe features").
 
 ## VS Code parity left
 
@@ -245,7 +274,7 @@ Each row is also a candidate fix behind the fixes switch (`DECISIONS.md` 2026-10
 
 | Behaviour (as implemented, as QB64pe) | Possible change | Source |
 |---|---|---|
-| The result-changing oddities kept on 2026-10-08: INTEGER arithmetic in 32 bits, the `ELSEIF` placeholder, one `GOSUB` stack, a SUB with a raising argument doing nothing, a raising `CASE` item running its body, a bad index reading element 0, `HEX$` of a non-place 64-bit -1 giving `""`, `STRING$(n, "")`, `CSNG`/`VAL` not narrowed, a DOUBLE `ON n` narrowed to SINGLE, `_ROUND`/`VAL` beyond `_INTEGER64`, the static `SELECT CASE` copy, `CONST` `^` right-associative (with a warning) | Each could follow its definition or QB 4.5 | `study\00` §6 "Kept", `DIVERGENCES-QB45.md` |
+| The result-changing oddities kept on 2026-10-08: INTEGER arithmetic in 32 bits, the `ELSEIF` placeholder, one `GOSUB` stack (QB 4.5 and PDS 7.1 measured otherwise, Q-018: a PDS program, the World War 2 game's editor, stopped on it), a SUB with a raising argument doing nothing, a raising `CASE` item running its body, a bad index reading element 0, `HEX$` of a non-place 64-bit -1 giving `""`, `STRING$(n, "")`, `CSNG`/`VAL` not narrowed, a DOUBLE `ON n` narrowed to SINGLE, `_ROUND`/`VAL` beyond `_INTEGER64`, the static `SELECT CASE` copy, `CONST` `^` right-associative (with a warning) | Each could follow its definition or QB 4.5 | `study\00` §6 "Kept", `DIVERGENCES-QB45.md` |
 | Comma zones on the console: 10 columns on Windows, one space on Linux and macOS | 14 columns everywhere, as on the window, in files and in QB 4.5. To evaluate: how many console programs print with commas, and whether a program that switches `_DEST` between window and console should lay out the same | Bug-compatibility decisions, 2026-10-08 (`study\00` §6, `QB64PE-DIVERGENCES.md` D-011) |
 | A `_BIT` parameter holds a value outside its width until it is stored. `s 2` to `x AS _BIT` prints 2, and `s 100` to `_BIT * 5` prints 100. A `_BIT * 3` variable passed to an `_UNSIGNED _BIT * 3` parameter that stores 6 then holds 6 (as QB64pe after `fae85f8e1`, D-057) | Cut the copy to the width on entry, and keep the variable of the other signedness in its own range | `_BIT` parameters, 2026-11-02 (`verification\v67_a_values`, `v67_c_signs`; `DECISIONS.md`) |
 | `STRING * n` reads n as 32 bits: 4294967297 is length 1 | An error for n beyond 2147483647 | Same |

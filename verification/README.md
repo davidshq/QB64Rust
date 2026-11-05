@@ -46,7 +46,13 @@ Small programs behind `study\09`, `study\10` and later measurements:
 - `v13*`: type suffixes on DIMmed names
 - `v14*`, `v15*`: procedures, scopes, reserved names, errors
 - `v16*`: comment metacommands, `DATA`, line numbers, blocks, templates, `$IF`, `$INCLUDE`, member access, with include files in `v16_inc\`
-- `v17*`: control flow, constants, operators
+- `v17*`: control flow, constants, operators. Added on 2026-11-05, after the World War 2 port:
+  `v17_d_gosub_left_in_sub` is a SUB that leaves its own `GOSUB` by `GOTO` and ends while the main module's
+  `GOSUB` is pending. The main module's `RETURN` then raises error 3 (`DIVERGENCES-QB45.md` Q-018).
+  `v17_d_err_on_local_error_sub` and `_main` are BASIC PDS 7.1's `ON LOCAL ERROR GOTO`, which QB64pe rejects
+  as "Name already in use (ERROR)" in a SUB and in the main module. `v17_d_on_error_sub_stays` shows why a port
+  of it needs `ON ERROR GOTO 0`: a handler set by `ON ERROR GOTO` in a SUB stays active after the SUB returns,
+  until a SUB turns it off.
 - `v18*`: arrays, `TYPE`, store rules per place
 - `v19*`: procedure names (`v19_proc_names.py` and its list), blanks around a dot, `OPTION _EXPLICIT` and runtime errors in included files, with include files in `v19_inc\`
 - `v20*`: core built-ins, `SELECT CASE`, `ON … GOTO/GOSUB`, `v20_x*` one rejection each

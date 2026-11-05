@@ -29,6 +29,17 @@ raised by `\`, `MOD` or `ERROR 11` (`study\39` row 12; a `QB64PE-DIVERGENCES.md`
 - **WHEN** `ON ERROR GOTO handler` precedes `ERROR 5`, and the handler prints `ERR`
 - **THEN** it prints ` 5 `
 
+#### Scenario: BASIC PDS's ON LOCAL ERROR is an error
+- **WHEN** a SUB or the main module holds `ON LOCAL ERROR GOTO h`, a form of BASIC PDS 7.1 that QB64pe rejects
+  (`verification\v17_d_err_on_local_error_sub`, `_main`)
+- **THEN** compiling fails with an error at `ON` that is not marked "not supported yet" and says to use
+  `ON ERROR GOTO` with the handler in the main module, and `ON ERROR GOTO 0` before the SUB ends
+
+#### Scenario: A handler set in a SUB stays active after it returns
+- **WHEN** a SUB runs `ON ERROR GOTO h` and returns, and the main module then runs `ERROR 5`
+  (`verification\v17_d_on_error_sub_stays`)
+- **THEN** the handler `h` runs with `ERR` 5, until a later `ON ERROR GOTO 0` turns it off
+
 #### Scenario: Fatal error is not trapped
 - **WHEN** `ON ERROR GOTO handler` precedes `ERROR 256`
 - **THEN** the handler does not run, and the program stops with "Out of stack space"

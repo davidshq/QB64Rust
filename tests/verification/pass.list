@@ -209,10 +209,13 @@ v17_c_next_suffix_single
 v17_d_err_dup_label_sub
 v17_d_err_gosub_main_from_sub
 v17_d_err_goto_main_from_sub
+v17_d_err_on_local_error_main
+v17_d_err_on_local_error_sub
 v17_d_err_return_label_sub
 v17_d_gosub_exit_sub
 v17_d_gosub_handler
 v17_d_gosub_in_function
+v17_d_gosub_left_in_sub
 v17_d_gosub_nested
 v17_d_gosub_same_label
 v17_d_gosub_sub_from_main_gosub
@@ -220,6 +223,7 @@ v17_d_goto_sub_label_from_main
 v17_d_label_in_block_sub
 v17_d_label_two_subs
 v17_d_on_error_main_to_sub_label
+v17_d_on_error_sub_stays
 v17_d_on_error_sub_label_both
 v17_d_resume_main_label_from_sub_both
 v17_d_resume_sub_label

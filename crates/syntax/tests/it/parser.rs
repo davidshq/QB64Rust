@@ -613,6 +613,29 @@ fn recorded_rejections_are_errors() {
     assert_eq!(at("DEFLNG a-c AS LONG\n"), (1, 12));
 }
 
+/// BASIC PDS 7.1's `ON LOCAL ERROR GOTO` is a plain error at `ON` that tells what to use instead, in a SUB and in
+/// the main module. QB64pe rejects it too, as "Name already in use (ERROR)" (measured,
+/// `verification\v17_d_err_on_local_error_sub`, `_main`). `ON local GOTO` with a variable `local` stays `ON n GOTO`.
+#[test]
+fn on_local_error_is_a_plain_error() {
+    let (line, col, message) = one_error("ON LOCAL ERROR GOTO h\nh: RESUME NEXT\n");
+    assert_eq!((line, col), (1, 1));
+    assert!(
+        message.contains("BASIC PDS 7.1")
+            && message.contains("`ON ERROR GOTO`")
+            && message.contains("`ON ERROR GOTO 0` before the SUB ends"),
+        "{message}"
+    );
+    let (line, col, _) = one_error("SUB s\n    on local error goto h\n    h: RESUME NEXT\nEND SUB\n");
+    assert_eq!((line, col), (2, 5));
+    assert!(
+        parse_one(b"ON local GOTO 10, 20\n10 PRINT 1\n20 PRINT 2\n")
+            .diagnostics()
+            .list()
+            .is_empty()
+    );
+}
+
 /// The neighbours no recording covers stay marked: another operator word where a value is expected, `NOT` after
 /// `^` is a value.
 #[test]
