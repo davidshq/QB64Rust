@@ -456,6 +456,56 @@ fn a_fix_on_the_command_line() {
     assert!(d.contains("a whole array is not a value"), "{d}");
 }
 
+/// "Counting the statements the tests run": with `--coverage` and `QB64RUST_COVERAGE`, each of `math_test.bas`'s two
+/// tests appends one whole record, and `AddUp&`'s line in `math.bm` ran twice. Without `--coverage`, nothing is
+/// written.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn counting_the_statements_the_tests_run() {
+    let dir = tempfile::Builder::new().prefix("qb64rust-cov-").tempdir().unwrap();
+    let counts = dir.path().join("counts.txt");
+    let run_with = |extra: &[&str]| {
+        let temp = tempfile::Builder::new().prefix("qb64rust-unit-").tempdir().unwrap();
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_qb64rust"));
+        cmd.env(qb64rust_driver::build::OBJECTS_LOCK_ENV, support::objects_lock())
+            .env("QB64RUST_COVERAGE", &counts);
+        for var in ["TEMP", "TMP", "TMPDIR"] {
+            cmd.env(var, temp.path());
+        }
+        run(
+            cmd.current_dir(fixtures())
+                .arg("test")
+                .args(extra)
+                .arg("lib/math_test.bas"),
+            None,
+            COMPILER_LIMIT,
+            "qb64rust test",
+        )
+    };
+    let o = run_with(&[]);
+    assert_eq!(o.status.code(), Some(0), "{}", text(&o));
+    assert!(!counts.exists(), "a build without --coverage wrote counts");
+    let o = run_with(&["--coverage"]);
+    assert_eq!(o.status.code(), Some(0), "{}", text(&o));
+    let body = std::fs::read_to_string(&counts).unwrap().replace("\r\n", "\n");
+    assert_eq!(body.matches("coverage 2\n").count(), 2, "{body}");
+    assert_eq!(body.matches("\nend\n").count(), 2, "{body}");
+    let math = body
+        .lines()
+        .find_map(|l| {
+            let p: Vec<_> = l.split('\t').collect();
+            (p.len() == 4 && p[0] == "file" && p[3] == "math.bm").then(|| p[1].to_string())
+        })
+        .unwrap_or_else(|| panic!("no math.bm in the record:\n{body}"));
+    // `AddUp& = a + b`, line 3 of math.bm: once in each record.
+    let runs: Vec<_> = body
+        .lines()
+        .filter(|l| l.starts_with(&format!("{math}\t3\t")))
+        .map(|l| l.split('\t').nth(3).unwrap().to_string())
+        .collect();
+    assert_eq!(runs, ["1", "1"], "{body}");
+}
+
 // Graphics (the design's non-goal, measured by task 4.5).
 
 /// Images work under the entry point's `$CONSOLE:ONLY`: `_NEWIMAGE`, `_DEST` and `_SOURCE` of an image, `PSET` and
