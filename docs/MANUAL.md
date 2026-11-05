@@ -31,6 +31,10 @@ download as well.
    you run this command. Run it again at any time: when the toolchain is already there, it does nothing.
    `qb64rust toolchain path` shows the toolchain a build would use.
 
+   If the download fails on this machine, download the same zip on another one and copy it over. Then run
+   `qb64rust toolchain install --from-zip <zip>`, which checks it against the same checksum and unpacks it in the
+   same way. The error message of a failed download names the zip's address.
+
 If you already have a toolchain folder you want to use instead, give it to each build with
 `--toolchain-root <dir>`, or set the environment variable `QB64RUST_TOOLCHAIN_ROOT`.
 
@@ -101,6 +105,7 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `-y` | Lay the file out as QB64pe's IDE does; give the result with `-o <out.bas>` |
 | `-f:<setting>=<value>` | A QB64pe compiler setting, such as `-f:OptimizeCppProgram=true`, `-f:StripDebugSymbols=false`, `-f:ExtraLinkerFlags=<flags>` or `-f:GenerateLicenseFile=true`; with `-y`, a layout setting such as `-f:AutoIndentSize=2` |
 | `--debug` | A build for a debugger: with debug information, never optimised |
+| `--coverage` | A build that counts how often each statement runs; see [Measuring which lines run](#measuring-which-lines-run) |
 | `--include-root <dir>` | Where `$INCLUDE` files and `DECLARE LIBRARY` headers are looked for after the program's own folder (by default the folder of `qb64rust.exe`, as QB64pe looks in its own folder) |
 | `--toolchain-root <dir>` | The C++ toolchain to use instead of the installed one |
 | `--libqb-root <dir>` | Another copy of libqb, for example one in a folder you can write to |
@@ -134,7 +139,40 @@ assertions are `AssertTrue`, `AssertFalse`, `AssertEqualInt`, `AssertEqualSingle
 `AssertNear`, `AssertEqualStr` and `Fail`; `_ASSERT` works too, and `TestTempDir$` gives each test an empty folder of
 its own. Tests are built as `$CONSOLE:ONLY` programs, so they are for code that does not draw on the screen
 (images made with `_NEWIMAGE` work). `--list` lists the tests without running them, and `--format json` gives one
-JSON object per line for other tools. The exit status is 0 when every test passed, and 1 otherwise.
+JSON object per line for other tools. `--coverage` counts the statements the tests run (see
+[Measuring which lines run](#measuring-which-lines-run)). The exit status is 0 when every test passed, and 1 otherwise.
+
+## Measuring which lines run
+
+`qb64rust --coverage` builds a program that counts how many times each statement runs. Set the environment
+variable `QB64RUST_COVERAGE` to a file name before running it:
+
+```
+qb64rust game.bas --coverage
+set QB64RUST_COVERAGE=counts.txt
+game.exe
+```
+
+When the program ends, it adds one record to that file. The program can end by `END` or `SYSTEM`, by running off
+its end, by a runtime error, or by its window being closed. The record lists every statement with its file, line,
+column and count, so statements that never ran are listed with 0. It also names the built-ins each statement
+calls. Several runs can write to the same file; each adds its own record. Without `QB64RUST_COVERAGE`, the
+program writes nothing and behaves as a normal build.
+
+Unit tests can be counted too. `qb64rust test --coverage` builds each test program this way, and adds one record
+per test to the file `QB64RUST_COVERAGE` names:
+
+```
+set QB64RUST_COVERAGE=counts.txt
+qb64rust test tests --coverage
+```
+
+A test's record also names the test's entry point (`<name>_test.bas.test-entry.bas`) and the test library
+(`qb64rust-test/qbtest.bi` and `qbtest.bm`). The runner makes these files in memory, so they are not on disk.
+Files included from another folder are named by their path from the test file's folder, such as `../game.bm`.
+
+`tools\coverage\coverage.py` in the repository merges the records and lists the lines that did not run. The
+record format is described in [tools/coverage/README.md](../tools/coverage/README.md).
 
 ## Where it differs from QB64pe
 

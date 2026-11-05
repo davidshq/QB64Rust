@@ -34,6 +34,37 @@ pub struct RunOptions {
     pub libqb_root: Option<PathBuf>,
     /// `--fixes` and `--fix`, over each test file's settings file.
     pub fixes: Vec<CliFix>,
+    /// `--coverage`: each test program counts the statements it runs.
+    pub coverage: bool,
+    /// With `coverage`, the file that `QB64RUST_COVERAGE` named when the run started. Each test's record is
+    /// appended to it after the test ends, one test at a time, so that records of tests run at once never mix.
+    pub coverage_file: Option<PathBuf>,
+}
+
+/// The variable a coverage build reads for the file it appends its record to (`crates\codegen-cpp\src\coverage.rs`).
+pub const COVERAGE_ENV: &str = "QB64RUST_COVERAGE";
+
+/// Held while one test's record is appended to the run's coverage file.
+static COVERAGE_LOCK: Mutex<()> = Mutex::new(());
+
+/// Appends the record a test wrote to `own` to the run's file `to`. A test that wrote none (it timed out, or
+/// crashed before its exit) adds nothing. A record without its closing `end` line (the test ended while writing
+/// it) is not added, and is an error: `tools\coverage\coverage.py` refuses a file that holds one.
+fn append_coverage(own: &Path, to: &Path) -> Result<(), String> {
+    let Ok(bytes) = std::fs::read(own) else {
+        return Ok(());
+    };
+    if !bytes.ends_with(b"\nend\n") {
+        return Err("its coverage record was cut short, so it was not added".to_string());
+    }
+    let _held = COVERAGE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    use std::io::Write as _;
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(to)
+        .and_then(|mut f| f.write_all(&bytes))
+        .map_err(|e| format!("appending the coverage record to {}: {e}", to.display()))
 }
 
 /// The result of one test.
@@ -164,6 +195,7 @@ fn build(file: &TestFile, o: &RunOptions) -> Result<PathBuf, String> {
         libqb_root: o.libqb_root.clone(),
         include_root: o.include_root.clone(),
         fixes,
+        coverage: o.coverage,
         ..CompileOptions::default()
     };
     let mut text = String::new();
@@ -252,6 +284,12 @@ fn run_one(file: &TestFile, test: &TestSub, exe: &Path, o: &RunOptions) -> TestR
         .env(NAME_ENV, &test.name)
         .env(RESULT_ENV, &result_file)
         .env(TEMP_ENV, temp_env);
+    // A coverage build writes its record to a file of the test's own; never to the run's file at once.
+    let own_coverage = folder.join("coverage.txt");
+    match &o.coverage_file {
+        Some(_) if o.coverage => cmd.env(COVERAGE_ENV, &own_coverage),
+        _ => cmd.env_remove(COVERAGE_ENV),
+    };
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt as _;
@@ -304,6 +342,12 @@ fn run_one(file: &TestFile, test: &TestSub, exe: &Path, o: &RunOptions) -> TestR
         .location
         .and_then(|(f, line)| located(&f, &path, &file.path).map(|f| (f, line)));
     result.output = stdout + &stderr;
+    if let Some(to) = o.coverage_file.as_deref().filter(|_| o.coverage)
+        && let Err(e) = append_coverage(&own_coverage, to)
+    {
+        result.outcome = Outcome::Error;
+        result.message = e;
+    }
     if result.outcome == Outcome::Pass {
         let _ = std::fs::remove_dir_all(&folder);
     } else {
@@ -416,6 +460,23 @@ mod tests {
             build_folder(Path::new("a/x_test.bas")),
             build_folder(Path::new("b/x_test.bas"))
         );
+    }
+
+    #[test]
+    fn a_whole_record_is_appended_and_one_cut_short_is_not() {
+        let dir = tempfile::tempdir().unwrap();
+        let (own, to) = (dir.path().join("own.txt"), dir.path().join("all.txt"));
+        // No record: nothing added, no error.
+        assert_eq!(append_coverage(&own, &to), Ok(()));
+        assert!(!to.exists());
+        std::fs::write(&own, "coverage 2\nfile\t0\t0\tx.bas\n0\t1\t1\t1\t\nend\n").unwrap();
+        assert_eq!(append_coverage(&own, &to), Ok(()));
+        assert_eq!(append_coverage(&own, &to), Ok(()));
+        let whole = std::fs::read(&to).unwrap();
+        assert_eq!(whole, std::fs::read(&own).unwrap().repeat(2));
+        std::fs::write(&own, "coverage 2\nfile\t0\t0\tx.bas\n0\t1\t1\t1\t\n").unwrap();
+        assert!(append_coverage(&own, &to).unwrap_err().contains("cut short"));
+        assert_eq!(std::fs::read(&to).unwrap(), whole);
     }
 
     #[test]

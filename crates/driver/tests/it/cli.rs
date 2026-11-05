@@ -1167,6 +1167,21 @@ fn old_wording_tooling() {
     assert_eq!(got["key"], "variable `{}` (LONG) is not declared (`OPTION _EXPLICIT`)");
     assert_eq!(got["values"][0][0], serde_json::json!(["=", "count"]));
     assert_eq!(got["values"][0][1], serde_json::json!(["U", "COUNT"]));
+    // One JSON line per message, in order. A CR before the LF (input piped from PowerShell) is not part of the
+    // key: a key ending in CR would match no row of the table. A message with no placeholder has no values.
+    let o = run(
+        compiler().current_dir(&d).arg("--old-wording-keys"),
+        Some(b"`SELECT` needs `x`\r\nno placeholder here\r\n"),
+        COMPILER_LIMIT,
+        "compiler",
+    );
+    assert_eq!(o.status.code(), Some(0));
+    let lines: Vec<serde_json::Value> = stdout(&o).lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+    assert_eq!(lines.len(), 2, "{lines:?}");
+    assert_eq!(lines[0]["key"], "`SELECT` needs `{}`");
+    assert_eq!(lines[0]["values"][0][0], serde_json::json!(["=", "x"]));
+    assert_eq!(lines[1]["key"], "no placeholder here");
+    assert_eq!(lines[1]["values"], serde_json::json!([]));
     let o = qb64rust(&d, &["--old-wording-words"]);
     assert_eq!(o.status.code(), Some(0));
     let words = stdout(&o);
@@ -1647,6 +1662,8 @@ fn toolchain_subcommand_words() {
         &["toolchain", "remove"][..],
         &["toolchain"],
         &["toolchain", "install", "now"],
+        &["toolchain", "install", "--from-zip"],
+        &["toolchain", "install", "--from", "a.zip"],
         &["toolchain", "path", "-x"],
         &["toolchain", "path", "--toolchain-root"],
     ] {
@@ -1662,6 +1679,21 @@ fn toolchain_subcommand_words() {
     let o = qb64rust(&d, &["toolchain.bas", "--dump", "typed"]);
     assert!(o.status.success(), "{}", stdout(&o));
     assert!(stdout(&o).contains("INSTR"), "{}", stdout(&o));
+}
+
+/// Spec `compiler/toolchain`, "Toolchain install", scenario "Install from a zip": a zip that is not there is refused
+/// with exit status 1, naming the path; on Linux the option is refused as nothing is installed there.
+#[test]
+fn toolchain_install_from_a_missing_zip() {
+    let d = scratch("toolchain-from-zip");
+    let o = qb64rust(&d, &["toolchain", "install", "--from-zip", "no-such.zip"]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    if cfg!(windows) {
+        assert!(out.contains("no zip file at") && out.contains("no-such.zip"), "{out}");
+    } else {
+        assert!(out.contains("--from-zip is for Windows"), "{out}");
+    }
 }
 
 /// Spec `compiler/cli`, "Locating the reference runtime", scenario "No clone found": with no QB64pe folder anywhere

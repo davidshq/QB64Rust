@@ -17,8 +17,8 @@
 //!
 //! `qb64rust dap [--toolchain-root <dir>] [--qb64pe-root <dir>]`: the debug adapter (crate `qb64rust-dap`).
 //!
-//! `qb64rust toolchain install` and `qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]`: the
-//! C++ toolchain (`toolchain.rs`, spec `compiler/toolchain`).
+//! `qb64rust toolchain install [--from-zip <zip>]` and `qb64rust toolchain path [--toolchain-root <dir>]
+//! [--qb64pe-root <dir>]`: the C++ toolchain (`toolchain.rs`, spec `compiler/toolchain`).
 //!
 //! `qb64rust --old-wording-words` and `qb64rust --old-wording-keys`: for `tools\diagnostics\old_wording.py` only,
 //! not in the usage (spec `compiler/cli`, "Old-wording table tooling").
@@ -41,16 +41,17 @@ const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-e] [-p] [-z|--print-b
        qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)\n\
        qb64rust dap [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the debug adapter, over stdin and stdout)\n\
-       qb64rust toolchain install    (downloads and installs the C++ toolchain; on Linux names the packages)\n\
+       qb64rust toolchain install [--from-zip <zip>]    (downloads and installs the C++ toolchain, or installs \
+it from the release's zip; on Linux names the packages)\n\
        qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)\n\
        qb64rust test [<file or folder>...] [--list] [--filter <text>]... [--jobs <n>] [--timeout <seconds>] \
 [--format text|json] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
-[--fixes on|off] [--fix <name>=on|off]...    (runs the test SUBs of *_test.bas files)\n\
+[--fixes on|off] [--fix <name>=on|off]... [--coverage]    (runs the test SUBs of *_test.bas files)\n\
        qb64rust --version | --help";
 
 /// The usage of `qb64rust toolchain` (spec `compiler/cli`, "Toolchain subcommand").
-const TOOLCHAIN_USAGE: &str = "usage: qb64rust toolchain install    (downloads and installs the C++ toolchain; on \
-Linux names the packages)\n\
+const TOOLCHAIN_USAGE: &str = "usage: qb64rust toolchain install [--from-zip <zip>]    (downloads and installs the \
+C++ toolchain, or installs it from the release's zip; on Linux names the packages)\n\
        qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)";
 
 #[derive(Default)]
@@ -415,6 +416,15 @@ fn toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
             Ok(_) => ExitCode::SUCCESS,
             Err(msg) => fail(&msg),
         },
+        Some("install") if args.len() == 3 && args[1] == "--from-zip" => {
+            if Platform::host() == Platform::Linux {
+                return fail("--from-zip is for Windows: on Linux the system toolchain is used, nothing is installed");
+            }
+            match toolchain::install_zip(Path::new(&args[2])) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(msg) => fail(&msg),
+            }
+        }
         Some("path") => {
             let Some((root, qb64pe)) = toolchain_options(&args[1..]) else {
                 return fail(TOOLCHAIN_USAGE);
@@ -499,6 +509,7 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
             "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--fixes" => o.fixes.push(fixes::parse_fixes_option(&value("--fixes")?)?),
             "--fix" => o.fixes.push(fixes::parse_fix_option(&value("--fix")?)?),
+            "--coverage" => o.coverage = true,
             _ if s.starts_with('-') => return Err(format!("`test` does not take `{s}`")),
             _ => paths.push(PathBuf::from(a)),
         }
@@ -574,6 +585,10 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
         toolchain_root: o.toolchain_root.clone(),
         libqb_root: o.libqb_root.clone(),
         fixes: o.fixes.clone(),
+        coverage: o.coverage,
+        coverage_file: std::env::var_os(run::COVERAGE_ENV)
+            .filter(|v| !v.is_empty())
+            .map(|v| std::path::absolute(PathBuf::from(&v)).unwrap_or_else(|_| PathBuf::from(v))),
     };
     let mut counts = out::Counts::default();
     let mut failures = Vec::new();

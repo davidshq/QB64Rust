@@ -21,9 +21,9 @@
 # the VM off.
 #
 # -Shape Suites also puts in, before the checkpoint: Microsoft's Visual C++ runtime and Python, both pinned by
-# SHA-256; the C++ toolchain, by running the host's target\release\qb64rust.exe "toolchain install" as tester while
-# the VM is online; and a cache disk, cache.vhdx in the VM's disk folder, formatted and holding a copy of Mesa, which
-# is detached again before the checkpoint (tools\winvm\suites.ps1 attaches it at each run).
+# SHA-256; the C++ toolchain, whose zip the host downloads and the host's target\release\qb64rust.exe installs in
+# the guest as tester ("toolchain install --from-zip"); and a cache disk, cache.vhdx in the VM's disk folder,
+# formatted and holding a copy of Mesa, which is detached again before the checkpoint (tools\winvm\suites.ps1 attaches it at each run).
 #
 # Do not click in this console window while the script runs: a click starts a text selection, which stops the
 # script at its next line of output until a key is pressed.
@@ -75,6 +75,13 @@ $installers = @(
        Url = 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe'
        Sha256 = '67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb' }
 )
+# The suites VM's C++ toolchain: the release qb64rust pins, read from the pin itself so that the two cannot differ.
+# The host downloads it and the guest installs it with "qb64rust toolchain install --from-zip". The guest does not
+# download it: on 2026-11-05 every TLS download in the VM through the Default Switch broke partway through
+# (SEC_E_DECRYPT_FAILURE), with curl and with Invoke-WebRequest, while the host's own download worked.
+$toolchainPin = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..\..\crates\driver\src\toolchain.rs')
+$toolchainUrl = [regex]::Match($toolchainPin, 'pub const URL: &str =\s*"([^"]+)"').Groups[1].Value
+$toolchainSha256 = [regex]::Match($toolchainPin, 'pub const SHA256: &str = "([0-9a-f]{64})"').Groups[1].Value
 # The folder of the suites VM's own things on its cache disk, beside the trees' copies (vm-suites, design D4, D5).
 $cacheOwn = 'qb64rust-vm'
 
@@ -90,6 +97,8 @@ function Get-Pinned([string]$folder, [string]$file, [string]$url, [string]$sha25
     New-Item -ItemType Directory -Force $folder | Out-Null
     if (-not (Test-Path -LiteralPath $path)) {
         Write-Host "Downloading $what..."
+        # Without the progress bar: drawing it slows a large download down many times over.
+        $ProgressPreference = 'SilentlyContinue'
         Invoke-WebRequest -Uri $url -OutFile $path -UseBasicParsing
     }
     $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLower()
@@ -224,6 +233,12 @@ $newBase = [IO.Path]::ChangeExtension($base, '.new.vhdx')
 try {
     if ($suites) {
         $setup = @($installers | ForEach-Object { Get-Pinned 'installers' $_.File $_.Url $_.Sha256 $_.What })
+        if (-not $toolchainUrl -or -not $toolchainSha256) {
+            throw 'could not read the toolchain pin (URL and SHA256) from crates\driver\src\toolchain.rs'
+        }
+        $toolchainZip = Get-Pinned 'installers' ($toolchainUrl -split '/')[-1] $toolchainUrl $toolchainSha256 `
+            'the C++ toolchain, llvm-mingw (about 190 MB)'
+        $setup += $toolchainZip
     }
     if ($fromIso) {
         $mesa = Get-Mesa
@@ -320,8 +335,8 @@ try {
     $vmMade = $true
     Get-VMNetworkAdapter -VMName $name | Remove-VMNetworkAdapter
     if ($suites) {
-        # 12 of the host's 16 processors. Dynamic memory, so that the checkpoint saves only the memory in use.
-        Set-VM -Name $name -ProcessorCount 12 -DynamicMemory -MemoryMinimumBytes 2GB -MemoryStartupBytes 4GB `
+        # 8 of the host's 16 processors. Dynamic memory, so that the checkpoint saves only the memory in use.
+        Set-VM -Name $name -ProcessorCount 8 -DynamicMemory -MemoryMinimumBytes 2GB -MemoryStartupBytes 4GB `
             -MemoryMaximumBytes 24GB
     } else {
         # 4 processors, not 2: with Mesa drawing on the CPU, 2 let mousemove_readback read 0, 0 in about half the
@@ -354,6 +369,7 @@ try {
             "console in Hyper-V Manager (basic session) to see where setup stopped.")
     }
 
+    Write-Host 'The first logon has finished.'
     $session = New-PSSession -VMName $name -Credential $credential
     try {
         Invoke-Command -Session $session { Stop-Service wuauserv -Force; Set-Service wuauserv -StartupType Disabled }
@@ -376,13 +392,20 @@ try {
                     'Include_tcltk=0 Shortcuts=0')
                 $p.ExitCode
             }
+            # The toolchain as a user installs it (vm-suites design D11), but from the zip the host downloaded: the
+            # SHA-256 check and the unpack, as tester, into tester's %LOCALAPPDATA%\qb64rust\toolchain.
+            Write-Host 'Installing the C++ toolchain in the guest (qb64rust toolchain install --from-zip)...'
+            Invoke-Guest $session 'qb64rust toolchain install --from-zip' -arguments (Split-Path -Leaf $toolchainZip) {
+                param($zip)
+                & "$env:SystemDrive\setup\qb64rust.exe" toolchain install --from-zip "$env:SystemDrive\setup\$zip" | Out-Host
+                $LASTEXITCODE
+            }
         }
 
         # The evaluation is activated online, which starts its 90 days; unactivated, it reports no grace time left
-        # from its first boot. The VM is online only for this (and for the suites VM's toolchain), through
-        # Hyper-V's NAT "Default Switch", with Windows Update stopped, and the adapter is removed before the
-        # checkpoint.
-        Write-Host 'The first logon has finished. Activating Windows (the VM is online for a minute or two)...'
+        # from its first boot. The VM is online only for this, through Hyper-V's NAT "Default Switch", with Windows
+        # Update stopped, and the adapter is removed before the checkpoint.
+        Write-Host 'Activating Windows (the VM is online for a minute or two)...'
         Add-VMNetworkAdapter -VMName $name -SwitchName 'Default Switch'
         try {
             $activated = Invoke-Command -Session $session {
@@ -394,15 +417,6 @@ try {
                         "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f'")
                 } until ($license.LicenseStatus -eq 1 -or (Get-Date) -gt $deadline)
                 $license.LicenseStatus -eq 1
-            }
-            if ($activated -and $suites) {
-                # The toolchain as a user gets it (vm-suites design D11): the download, its SHA-256 check and the
-                # unpack, as tester, into tester's %LOCALAPPDATA%\qb64rust\toolchain.
-                Write-Host 'Installing the C++ toolchain in the guest (qb64rust toolchain install)...'
-                Invoke-Guest $session 'qb64rust toolchain install' {
-                    & "$env:SystemDrive\setup\qb64rust.exe" toolchain install | Out-Host
-                    $LASTEXITCODE
-                }
             }
         } finally {
             Get-VMNetworkAdapter -VMName $name | Remove-VMNetworkAdapter

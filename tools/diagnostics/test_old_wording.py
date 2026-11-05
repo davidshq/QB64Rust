@@ -38,6 +38,18 @@ class Template(unittest.TestCase):
         self.assertEqual(old_wording.merge([(text, marks)]), "Variable '{1:=|P|S}' (LONG) not defined")
 
 
+class Patterns(unittest.TestCase):
+    def test_a_message_that_spans_lines_is_refused(self):
+        # The compiler reads one message per line, so a message holding a line break would become two keys.
+        # The check comes before the compiler is started, so no compiler is needed here.
+        for message in ("first\nsecond", "first\rsecond"):
+            with self.assertRaisesRegex(ValueError, "spans lines"):
+                old_wording.patterns(["one line", message])
+
+    def test_no_messages_need_no_compiler(self):
+        self.assertEqual(old_wording.patterns([]), [])
+
+
 NO_KEYWORDS: frozenset[str] = frozenset()
 
 

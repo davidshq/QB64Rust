@@ -76,9 +76,10 @@ list of what is needed when the distribution is not one of them. It SHALL NOT do
 On Windows, `qb64rust toolchain install` SHALL download the pinned release, check its checksum, unpack it into
 `%LOCALAPPDATA%\qb64rust\toolchain\llvm-mingw-20260922-ucrt-x86_64` without the folders of the other three target
 architectures, and print the folder. It SHALL report progress on standard output. Running the command is the
-user's consent; nothing else installs. On Linux it SHALL download nothing: with the system toolchain and packages
-present it SHALL say so and exit with status 0; otherwise it SHALL print the message of "No toolchain found" and
-exit with status 1.
+user's consent; nothing else installs. With `--from-zip <zip>` it SHALL take the release from that file instead of
+downloading it, and check and unpack it in the same way. On Linux it SHALL download nothing: with the system
+toolchain and packages present it SHALL say so and exit with status 0; otherwise it SHALL print the message of "No
+toolchain found" and exit with status 1. `--from-zip` on Linux SHALL exit with status 1.
 
 #### Scenario: Install
 - **WHEN** `qb64rust toolchain install` runs on Windows with network access and no toolchain installed
@@ -100,6 +101,11 @@ exit with status 1.
 - **WHEN** the download fails (no network, proxy refused, HTTP error)
 - **THEN** the command exits with status 1 with the reason, the release URL to fetch by hand, and
   `--toolchain-root`, and leaves nothing behind
+
+#### Scenario: Install from a zip
+- **WHEN** `qb64rust toolchain install --from-zip <zip>` runs on Windows with the release's zip
+- **THEN** it installs as a download would, without the network; a zip with another SHA-256 fails with both sums
+  and leaves nothing behind, and a path with no file fails naming it
 
 #### Scenario: Install on Linux
 - **WHEN** `qb64rust toolchain install` runs on Linux without `g++`

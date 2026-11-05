@@ -1072,6 +1072,36 @@ class VmPlace(unittest.TestCase):
         self.assertNotEqual(fingerprint(), before)
 
 
+class GitBash(unittest.TestCase):
+    def setUp(self):
+        check.bash.cache_clear()
+        self.addCleanup(check.bash.cache_clear)
+
+    def found(self, files: list[str]) -> str | None:
+        """What bash() finds in a fake Git folder that holds `files`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            top = Path(tmp)
+            for rel in files:
+                (top / rel).parent.mkdir(parents=True, exist_ok=True)
+                (top / rel).write_bytes(b"")
+            exec_path = top / "mingw64" / "libexec" / "git-core"
+            git = subprocess.CompletedProcess([], 0, stdout=f"{exec_path}\n")
+            with mock.patch.object(check.os, "name", "nt"), mock.patch.object(check.subprocess, "run", return_value=git):
+                got = check.bash()
+            return None if got is None else Path(got).relative_to(top).as_posix()
+
+    def test_the_launcher_comes_first(self):
+        # bin/bash.exe puts Git's usr/bin on the PATH. usr/bin/bash.exe started from PowerShell finds no
+        # `basename` or `tr`, and tools/linux/copy.sh fails.
+        self.assertEqual(self.found(["bin/bash.exe", "usr/bin/bash.exe"]), "bin/bash.exe")
+
+    def test_usr_bin_when_there_is_no_launcher(self):
+        self.assertEqual(self.found(["usr/bin/bash.exe"]), "usr/bin/bash.exe")
+
+    def test_none_when_git_has_no_bash(self):
+        self.assertIsNone(self.found([]))
+
+
 class Background(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "the console flags are Windows'")
     def test_the_background_run_has_a_hidden_console(self):
