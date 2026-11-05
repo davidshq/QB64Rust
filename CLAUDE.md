@@ -89,6 +89,22 @@ changing direction, design or scope.**
    before handing over files to stage, and say what ran, what stood and why. `just full` runs in a worktree of the
    commit, started by the user; `just merge` there before a merge into `main`. Read a run's output from its log; never start a run
    again to read it. (`tools/check/README.md`; the OpenSpec change `testing-reset`, `DECISIONS.md` 2026-10-31.)
+   - **Large runs go in the suites VM, not on the host** (user, 2026-11-05). A large run is a whole suite, a
+     whole verification family, or more than about 20 programs, by `check` or by calling
+     `tools\legacy_tests\run_legacy_tests.py` directly. Run it with `check full` or `check <step> --where vm`, so
+     that `suites.ps1` takes it to `qb64rust-suites`. A step named alone without `--where vm` runs on the host.
+     If the run cannot be done there (an option `check` does not pass, such as `--trace-values`), ask the user
+     first. On the host stay `cargo test -p`, `just quick` and a few programs named one by one.
+   - **Never run a program on the host that can make Windows ask the user something.** This covers network
+     programs: one that opens a port makes Windows Defender Firewall ask for permission, and every new build is a
+     new executable, so it asks again. These are the programs whose `.external` sidecar starts with `network:`
+     (for example `s141_tcp_loopback` and `v63_d1_statuscode_closed`). The runner skips them on a Windows host
+     and runs them in the suites VM (`QB64RUST_ALLOW_NETWORK=1`, set by `check`). Claude never sets that
+     variable on the host; the user may, for example to record network programs with `qb64pe`. A new program
+     that calls `_OPENHOST` or `_OPENCLIENT` needs the sidecar; `inputs::network_programs_are_marked` checks it.
+   *Why:* on 2026-11-05 a session ran the whole corpus and two verification families on the host with
+   `--trace-values`, eight jobs at once, while the user was working; network programs ask the user to allow them
+   through the firewall (user: "that seems stupid").
 
 7. **Documents: what is read when, and when the paperwork is done.**
    - **`study\archive\` is read only when needed**: when a live document points there for a fact or a reason the

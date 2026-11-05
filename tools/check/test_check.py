@@ -979,7 +979,7 @@ class VmPlace(unittest.TestCase):
             check.run_in_vm(p, self.repo.root, list(p.step.command), out, vm)
         vm.stop()
         job = json.loads((check.state(self.repo.root) / "vm" / "verification.json").read_text(encoding="utf-8"))
-        self.assertEqual(job["env"], {"QB64RUST_NO_BUILD_CACHE": "1"})
+        self.assertEqual(job["env"], {"QB64RUST_NO_BUILD_CACHE": "1", "QB64RUST_ALLOW_NETWORK": "1"})
         self.assertIn("--pass-cache", job["command"])
         self.assertEqual(job["outputs"], list(p.step.outputs))
         self.assertEqual(job["first"], list(steps.V37_LIBS))

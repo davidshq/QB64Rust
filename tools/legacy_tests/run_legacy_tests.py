@@ -63,6 +63,11 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     (QB64RUST_COVERAGE, a file in the results folder) are appended to <file> once it has passed
     or failed, one record per run (tools/coverage); not with --record or --pass-cache. The
     verification and compile suites take it too (OpenSpec change m4-coverage-review)
+  * --trace-values <file> (qb64rust): every program is built with --trace-values and each run's
+    record of its variables' values (QB64RUST_TRACE, a file in the results folder) is appended
+    to <file>, as --coverage appends the counts; the two combine. A program must give the
+    output recorded for the build without the option (OpenSpec change value-trace). Such a
+    run does not stand for a run of a pass list
   * <name>.files: a folder of data files the program reads (the pictures a game loads with
     BLOAD). Everything in it is copied into the program's folder before it is compiled, with
     either compiler, when checking and when recording; beside an .err or a .norun it is an
@@ -359,6 +364,38 @@ def load_linux_list(path: Path, suite: str) -> dict[str, str]:
 def skipped_on(platform: str, reason: str) -> bool:
     """A program of a Linux list whose reason starts with "windows" needs Windows: skipped, not run."""
     return platform == "linux" and reason.split(" ", 1)[0].rstrip(":,") == "windows"
+
+
+# Set by check's steps in the suites VM (tools/check/check.py): network programs run there.
+ALLOW_NETWORK = "QB64RUST_ALLOW_NETWORK"
+NETWORK_SKIP = (
+    "not run on a Windows host: it uses the network, and a program that opens a port makes Windows Defender "
+    f"Firewall ask the user (CLAUDE.md working rule 6). It runs in the suites VM; the user may set "
+    f"{ALLOW_NETWORK}=1 to run it here"
+)
+
+
+def external_sidecar(suite: str, bas: Path) -> Path | None:
+    """The .external sidecar of a program of the corpus, compile or verification suite (a script's test takes its
+    program's); None for another suite."""
+    if suite == "compile":
+        return compile_external(bas.parent.name, bas.stem)
+    if suite == "verification":
+        return bas.with_suffix(EXTERNAL)
+    if suite == "corpus":
+        script = script_of(bas)
+        return (script[0] if script else bas).with_suffix(EXTERNAL)
+    return None
+
+
+def network_skipped(suite: str, bas: Path, env=os.environ, windows: bool = os.name == "nt") -> bool:
+    """A program marked `network:` is skipped on a Windows host unless ALLOW_NETWORK is 1 (CLAUDE.md working rule
+    6, 2026-11-05). Linux, WSL and GitHub's CI run it: no firewall asks there."""
+    # GitHub's runners set CI=true; no one is there for the firewall to ask.
+    if not windows or env.get(ALLOW_NETWORK) == "1" or env.get("CI") == "true":
+        return False
+    sidecar = external_sidecar(suite, bas)
+    return bool(sidecar and sidecar.is_file() and sidecar.read_bytes().startswith(b"network:"))
 
 
 def equal_sidecars(roots: list[Path]) -> list[Path]:
@@ -878,7 +915,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         "-x",
         *include_root_args(args.qb64),
         *fixes_args(args.qb64),
-        *(["--coverage"] if getattr(args, "coverage", None) else []),
+        *instrument_flags(args),
     ]
     if (tdir / f"{name}.compile-from-base").is_file():
         # relpath, not relative_to: with --compile-tests the program is outside qb_root.
@@ -1732,24 +1769,48 @@ class SharedBuilds:
             return self.done[folder]
 
 
-# One append at a time to the --coverage file: each run's record goes in whole.
+# One append at a time to the --coverage file and to the --trace-values file: each run's record
+# goes in whole.
 COVERAGE_LOCK = threading.Lock()
 
 
+def instrument_flags(args) -> list[str]:
+    """The compiler's options of --coverage and --trace-values, for a compile line."""
+    flags = []
+    if getattr(args, "coverage", None):
+        flags.append("--coverage")
+    if getattr(args, "trace_values", None):
+        flags.append("--trace-values")
+    return flags
+
+
+def values_file(counts: Path) -> Path:
+    """The file of a run's value-trace record, beside the file of its counts."""
+    return counts.with_name(counts.name.removesuffix("-coverage.txt") + "-values.txt")
+
+
 def coverage_env(args, env: dict, counts: Path) -> None:
-    """With --coverage, the run writes its counts to `counts` (removed first)."""
+    """With --coverage, the run writes its counts to `counts` (removed first). With --trace-values,
+    it writes its record of values to the file beside it (values_file)."""
     if getattr(args, "coverage", None):
         counts.unlink(missing_ok=True)
         env["QB64RUST_COVERAGE"] = str(counts)
+    if getattr(args, "trace_values", None):
+        values_file(counts).unlink(missing_ok=True)
+        env["QB64RUST_TRACE"] = str(values_file(counts))
 
 
 def append_counts(args, counts: Path, timed_out: bool) -> None:
     """With --coverage, a run's counts go to the --coverage file in one append. A run cut short may
-    have left half a record: its counts are left out, and the timeout fails the test."""
-    coverage = getattr(args, "coverage", None)
-    if coverage and counts.is_file() and not timed_out:
-        with COVERAGE_LOCK, open(coverage, "ab") as f:
-            f.write(counts.read_bytes())
+    have left half a record: its counts are left out, and the timeout fails the test. The same
+    for the record of values and the --trace-values file."""
+    for to, record in (
+        (getattr(args, "coverage", None), counts),
+        (getattr(args, "trace_values", None), values_file(counts)),
+    ):
+        if to and record.is_file() and not timed_out:
+            with COVERAGE_LOCK, open(to, "ab") as f:
+                f.write(record.read_bytes())
 
 
 def corpus_test(
@@ -1832,9 +1893,7 @@ def corpus_test(
     flags = ["-f:OptimizeCppProgram=true"] if args.cpp_opt else []
     if screen:
         flags.append(f"-f:ExtraLinkerFlags={SCREEN_STATE_SOURCE.as_posix()}")
-    coverage = getattr(args, "coverage", None)
-    if coverage:
-        flags.append("--coverage")
+    flags.extend(instrument_flags(args))
 
     def compile_cmd(qb64: Path, out: Path) -> list[str]:
         return [
@@ -2645,7 +2704,7 @@ def verification_compare(
         return fail("expected", str(e))
     if has_folder or placed_files:
         root_args = ["--include-root", str(work / "root")]
-    coverage_flag = ["--coverage"] if getattr(args, "coverage", None) else []
+    coverage_flag = instrument_flags(args)
     compile_cmd = [
         str(args.qb64),
         "-x",
@@ -2687,7 +2746,7 @@ def verification_compare(
                 tree_digest([root / f for f in [root_folder(root, name)] if f]),
                 helper.read_bytes() if os.name == "nt" else None,
                 b"fixes on" if fixed else None,
-                b"coverage" if coverage_flag else None,
+                " ".join(coverage_flag).encode() if coverage_flag else None,
             ]
             remembered = pass_cache / pass_key(build, parts)
             if remembered.is_file():
@@ -3059,6 +3118,10 @@ def check_list(
             "a run with --pass-cache, --record, --cpp-opt or --full-states cannot stand for a run "
             "of the list"
         )
+    # A run with --trace-values is a check of that build (OpenSpec change value-trace, task 2.6), not
+    # of the build the lists are about.
+    if run.get("trace_values"):
+        problems.append("a run with --trace-values cannot stand for a run of the list")
     if problems:
         return problems, [], 0
     results = {(r["suite"], r["test"]): r for r in data.get("results", [])}
@@ -3079,6 +3142,10 @@ def check_list(
             failures.append(
                 (name, f"a known failure in the full run; a pass list needs a pass ({r['detail']})")
             )
+        elif r["status"] == "SKIP" and r["detail"] == NETWORK_SKIP:
+            # Neither passed nor failed: a network program a Windows host's run skips (network_skipped). The
+            # caller reports it as skipped.
+            pass
         elif r["status"] != "PASS":
             failures.append((name, f"{r['stage']}: {r['detail']}"))
         elif r["detail"] == PASSED_BEFORE:
@@ -3191,6 +3258,9 @@ def rejudge(
         if skipped_on(platform, reason):
             r.update(kind="skipped", status="SKIP", stage="skipped", detail=reason)
             continue
+        if r["status"] == "SKIP" and r["detail"] == NETWORK_SKIP and network_skipped(suite, bas):
+            # A network program the host's run skipped (network_skipped): the known lists do not change that.
+            continue
         if r["status"] == "SKIP":
             problems.append(f"{key}: no longer skipped, and never run")
             continue
@@ -3238,13 +3308,16 @@ def run_suite_test(
     known: dict[str, str],
 ) -> list[Result]:
     """Runs one program of a suite; an exception in the runner becomes a FAIL result. A program that a
-    Linux list names with the reason "windows" is skipped on Linux (SKIP), not run."""
+    Linux list names with the reason "windows" is skipped on Linux (SKIP), not run; so is a network program on a
+    Windows host (network_skipped)."""
     if suite in ("corpus", "compile", "verification"):
         root = corpus_root if suite == "corpus" else bas.parent if suite == "verification" else bas.parent.parent
         key = ":".join(result_key(suite, bas, root))
         reason = known.get(key, "")
         if skipped_on(platform_of(args), reason):
             return [Result(key.split(":", 1)[0], key.split(":", 1)[1], "skipped", "SKIP", "skipped", reason)]
+        if network_skipped(suite, bas):
+            return [Result(key.split(":", 1)[0], key.split(":", 1)[1], "skipped", "SKIP", "skipped", NETWORK_SKIP)]
     try:
         if suite == "compile":
             return [compile_test(bas, args, results, qb_root, args.os_tag)]
@@ -3643,6 +3716,14 @@ def main() -> int:
         "--coverage and append the counts of each run to FILE (tools/coverage)",
     )
     ap.add_argument(
+        "--trace-values",
+        type=Path,
+        metavar="FILE",
+        help="corpus, verification or compile with qb64rust, not with --record or --pass-cache: "
+        "build each program with --trace-values and append each run's record of its variables' "
+        "values to FILE (tools/trace)",
+    )
+    ap.add_argument(
         "--pass-cache",
         type=Path,
         help="corpus, compile and a verification compare: a folder that remembers which programs passed, by "
@@ -3668,6 +3749,15 @@ def main() -> int:
     ):
         print(
             "--coverage applies to --suite corpus, verification or compile without --record or "
+            "--pass-cache",
+            file=sys.stderr,
+        )
+        return 2
+    if args.trace_values and (
+        args.suite not in ("corpus", "verification", "compile") or args.record or args.pass_cache
+    ):
+        print(
+            "--trace-values applies to --suite corpus, verification or compile without --record or "
             "--pass-cache",
             file=sys.stderr,
         )
@@ -3773,9 +3863,16 @@ def main() -> int:
         for key, why in failures:
             print(f"[check] FAIL {key}  {why}", flush=True)
         name = "compile_tests" if args.suite == "compile" else args.suite
-        failed = len(wanted) - passed
-        print(json.dumps({name: {"PASS": passed, "FAIL": failed, "KFAIL": 0}}))
-        print(f"{args.check_list.name}: {passed} of {len(wanted)} passed in {source.name}")
+        failed = len(wanted) if problems else len(failures)
+        skipped = len(wanted) - passed - failed
+        counted = {"PASS": passed, "FAIL": failed, "KFAIL": 0}
+        if skipped:
+            counted["SKIP"] = skipped
+        print(json.dumps({name: counted}))
+        print(
+            f"{args.check_list.name}: {passed} of {len(wanted)} passed in {source.name}"
+            + (f"; {skipped} network programs skipped on this Windows host" if skipped else "")
+        )
         return 0 if failed == 0 else 1
     # --suite verification records with qb64pe and compares with any other compiler (verification_compare).
     recording_verification = args.suite == "verification" and is_old_compiler(args.qb64)
@@ -3798,6 +3895,11 @@ def main() -> int:
             print("--coverage applies to qb64rust only", file=sys.stderr)
             return 2
         args.coverage = args.coverage.resolve()
+    if args.trace_values:
+        if is_old_compiler(args.qb64):
+            print("--trace-values applies to qb64rust only", file=sys.stderr)
+            return 2
+        args.trace_values = args.trace_values.resolve()
     args.build_cache = build_cache_given(args.build_cache)
     if args.build_cache:
         if is_old_compiler(args.qb64):
@@ -4039,7 +4141,8 @@ def main() -> int:
     summary: dict = {}
     for r in all_results:
         s = summary.setdefault(r.suite, {"PASS": 0, "FAIL": 0, "KFAIL": 0})
-        # SKIP only where a program was skipped (a Linux run), so that Windows summaries stay as they were.
+        # SKIP only where a program was skipped (a Linux run, or a network program on a Windows host), so that
+        # other summaries stay as they were.
         s[r.status] = s.get(r.status, 0) + 1
     if args.pass_cache:
         kept = sum(1 for r in all_results if r.detail == PASSED_BEFORE)
@@ -4083,6 +4186,8 @@ def main() -> int:
         "build_cache": bool(args.build_cache),
         "pass_cache": bool(args.pass_cache),
         "coverage": bool(args.coverage),
+        # Only when given, so that the record of any other run is as before.
+        **({"trace_values": True} if args.trace_values else {}),
         "full_states": args.full_states,
         "compiler_sha256": file_sha256(args.qb64),
         "runner_sha256": file_sha256(Path(__file__).resolve()),

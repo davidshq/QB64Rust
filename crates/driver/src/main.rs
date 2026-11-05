@@ -3,7 +3,7 @@
 //! `qb64rust [-x] [-q] [-m] [-w] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>]
 //! [--dump tokens|tree|typed|ir|cpp|debug-info]
 //! [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build]
-//! [--coverage] [--debug] [--fixes on|off] [--fix <name>=on|off]...`
+//! [--coverage] [--trace-values] [--debug] [--fixes on|off] [--fix <name>=on|off]...`
 //!
 //! `qb64rust --list-fixes`: the fixes, one per line (spec `compiler/fixes`, `fixes.rs`).
 //!
@@ -35,7 +35,8 @@ use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-e] [-p] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp|debug-info] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] \
-[--include-root <dir>] [--keep-build] [--coverage] [--debug] [--fixes on|off] [--fix <name>=on|off]...\n\
+[--include-root <dir>] [--keep-build] [--coverage] [--trace-values] [--debug] [--fixes on|off] \
+[--fix <name>=on|off]...\n\
        qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]\n\
        qb64rust --list-fixes    (the fixes --fix and qb64rust.toml name)\n\
        qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
@@ -80,6 +81,10 @@ struct Options {
     /// `--coverage`: a counter at each statement, written at exit to the file `QB64RUST_COVERAGE` names (design D1
     /// of `cws-whole-game`). The fragments differ, so the build cache's key does too.
     coverage: bool,
+    /// `--trace-values`: a record call at each store into a variable; at exit the values are written to the file
+    /// `QB64RUST_TRACE` names (OpenSpec change `value-trace`). The fragments differ, so the build cache's key does
+    /// too.
+    trace: bool,
     /// `--debug`: a build for a debugger (design D1 of `m5-debug-build-symbols`): `-g`, unstripped, never optimised,
     /// and the debug symbol file beside the executable.
     debug: bool,
@@ -152,6 +157,7 @@ fn parse_args() -> Result<Options, String> {
             "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--keep-build" => o.keep_build = true,
             "--coverage" => o.coverage = true,
+            "--trace-values" => o.trace = true,
             "--debug" => o.debug = true,
             "--fixes" => {
                 let v = value("--fixes")?.to_string_lossy().to_string();
@@ -772,6 +778,7 @@ fn run() -> Result<ExitCode, String> {
         include_root: include_root.clone(),
         keep_build: o.keep_build,
         coverage: o.coverage,
+        trace: o.trace,
         debug: o.debug,
         warnings: o.warnings,
         explicit: o.explicit,

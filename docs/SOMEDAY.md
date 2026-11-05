@@ -209,13 +209,15 @@ Not planned (QB64pe has no such mode). What it would take: `study\archive\08-qb4
 
 Not planned yet (user, 2026-11-04). Microsoft BASIC PDS 7.1 added features that QuickBASIC 4.5 does not have, and
 QB64pe never took most of them. Old programs written for PDS use them, so each one is an edit a port has to make.
-The World War 2 port (2026-11-04) hit `DIR$` 16 times and `ON LOCAL ERROR` once.
+The World War 2 port (2026-11-04) hit `DIR$` 16 times, `ON LOCAL ERROR` once and `CURDIR$` twice. The port
+missed the `CURDIR$` calls at first, because both compilers build them without a message.
 
 This would be a language extension: QB64pe rejects these forms. A program that uses them would no longer build
 with QB64pe. So it needs a decision first, and probably a switch of its own, as for names of more than 40
 characters ("Other ideas raised during the study").
 
-The list is from memory of PDS 7.1, most popular first. Only the `DIR$` and `ON LOCAL ERROR` rows are measured.
+The list is from memory of PDS 7.1, most popular first. Only the `DIR$`, `ON LOCAL ERROR` and `CURDIR$` rows are
+measured.
 Before one is built, measure what QB64pe does with the form, and measure what PDS does: since 2026-11-05,
 `qb45.py --compiler pds71` builds and runs a program with PDS 7.1 (`tools\qb45\README.md`, "PDS 7.1").
 
@@ -223,7 +225,7 @@ Before one is built, measure what QB64pe does with the form, and measure what PD
 |---|---|---|
 | `DIR$(spec$)` and `DIR$` with no argument for the next match | Writes its own FUNCTION with `_FILES$`; a call with no argument becomes `DIR$("")` | The most common one: almost every PDS program with a file menu has it. QB64pe has no `DIR$` (measured by the port) |
 | `REDIM PRESERVE` | Renames it to `REDIM _PRESERVE` | The same behavior under QB64's name, so it is only a second spelling |
-| `CURDIR$` and `CHDRIVE` | Uses `_CWD$` and `CHDIR` | `CURDIR$` can take a drive letter |
+| `CURDIR$` and `CHDRIVE` | Writes a `FUNCTION CURDIR$` that returns `_CWD$` without its last separator; uses `CHDIR` for `CHDRIVE` | `CURDIR$` can take a drive letter. PDS gives `C:\GAMES`, with no separator at its end unless it is a root. `_CWD$` ends with one. **The danger is silence:** QB64pe and QB64Rust both build a bare `CURDIR$` as a string variable that is always `""`, with no message (measured 2026-11-05, World War 2 port). Even before `CURDIR$` itself is built, a warning could name it: "`CURDIR$` is a BASIC PDS 7.1 function; QB64 reads it as a variable". The same check fits any PDS-only function that a program can call with no arguments |
 | The `CURRENCY` type: the `@` suffix, `DEFCUR`, `CCUR`, `CVC`, `MKC$` | Changes the variables to `DOUBLE` or `_INTEGER64` and rewrites the rounding | Common in business programs. A 64-bit integer scaled by 10,000. The largest row here: a new type through the whole compiler, and a record format in `GET` and `PUT` |
 | `ON LOCAL ERROR GOTO` in a SUB or FUNCTION | Moves the handler to the main module or removes it | QB64pe rejects it with "Name already in use (ERROR)", in a SUB and in the main module (`verification\v17_d_err_on_local_error_sub`, `_main`). Since 2026-11-05 our error says to use `ON ERROR GOTO` with the handler in the main module, and `ON ERROR GOTO 0` before the SUB ends: a handler set in a SUB stays active after it returns (`verification\v17_d_on_error_sub_stays`) |
 | A fixed array as a member of a `TYPE` | Splits the member into separate arrays or uses `_MEM` | Often asked for by QB64 users too |
@@ -432,6 +434,7 @@ Each row is also a candidate fix behind the fixes switch (`DECISIONS.md` 2026-10
 | `DECLARE LIBRARY` on Linux looks by the written path, under `/usr/lib64/` and `/usr/lib/`, and by the bare name, never in the multiarch folders (`/usr/lib/x86_64-linux-gnu`) where Debian and Ubuntu put most libraries: `"z"` is "LIBRARY not found" on Ubuntu unless a header `z.h` is found | Search the multiarch folder too (`gcc -print-multiarch`), or leave the name to the linker's own search | `m7-linux` design D4 (spec `language/external-libraries`, "Only in a multiarch folder") |
 | The order in which calls with side effects run, where QB64pe's C++ leaves it to the C++ compiler (the arguments of one call): left to right on Windows, right to left with `g++` on Linux. Measured by the Linux corpus run: `_ASSERT`'s message, an error raised inside `PRINT`, the arguments of `CHOOSE` and `_MIN`, `FIELD` and `LSET`, an error inside arithmetic (`tests\corpus\slice\s106`, `s108`, `s12`, `s22`, `s78`, `s86`, `s136`, each with a `.linux.output` of QB64pe's Linux build) | **Decided, to build after M7** (user, 2026-10-28, `DECISIONS.md`): left to right on every platform, in a change of its own that sequences every such call in the codegen, not place by place; its Linux sidecars of these programs are then deleted. `SWAP` is done already (`QB64PE-DIVERGENCES.md` D-054) | `m7-linux` task 5.4 |
 | `ON TIMER` and `ON KEY` add 1 to `*_event_occurred` twice per event, and `QBMAIN` takes 1 away once (copied as in `ontimer.txt` and `onkey.txt`). Measured for `ON TIMER` (`verification\v66_f01`): no doubled event is seen; events during `TIMER STOP` run once at `TIMER ON`, and one that comes during a slow handler does not run at the statements after it | `ON KEY` not measured (it needs keys pressed); if it changes what a program does, a candidate for the fixes switch | `study\archive\02` §9.2 (`qb64pe.bas` 7822-7824, 7983-7985) |
+| `_ARRAYCOPY` between a `_FLOAT` array variable and a `_FLOAT` member array moves every other value: `_ARRAYCOPY a() TO r.v()` with `a()` holding 10.5, 11.5, 12.5, 13.5 leaves 10.5, 12.5, 0, 0 in `r.v()`, and `_ARRAYCOPY r2.v() TO c()` leaves 1.5, 0, 2.5, 0 in an empty `c()`. The elements lie 16 bytes apart in the variable and 32 in the member array, and libqb's copy takes one size for both sides | Copy element by element when the two sides differ | `_ARRAYCOPY` of `_FLOAT` member arrays, 2026-11-05 (`verification\v41_m_float_members`) |
 
 ## Other ideas raised during the study
 

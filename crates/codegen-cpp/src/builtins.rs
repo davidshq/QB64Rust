@@ -5,6 +5,7 @@
 use crate::Emitter;
 use crate::decl::dim_count;
 use crate::names::c_type;
+use crate::trace::{Held, Read, guarded};
 use qb64rust_base::fixes::Fix;
 use qb64rust_builtins::BuiltinId;
 use qb64rust_builtins::passing::plan;
@@ -258,6 +259,16 @@ impl Emitter<'_> {
                     ),
                     Ty::Bit { .. } => unreachable!("`SWAP` of a `_BIT` (`validate`)"),
                 };
+                // A value-trace build holds what the call is given for each place, and reads both places through
+                // it after the call (design D1 of `value-trace`). A whole `TYPE` gives the second place first.
+                let (held, first, second) = match ty {
+                    Ty::Str | Ty::FixedStr(_) => (Held::Qbs, a, b),
+                    Ty::User(_) => (Held::Bytes, b, a),
+                    numeric_value_types!() | Ty::Bit { .. } => (Held::Ptr, a, b),
+                };
+                let (x, mut records) = self.trace_held(first, held, x, "SWAP");
+                let (y, more) = self.trace_held(second, held, y, "SWAP");
+                records.extend(more);
                 out.push(if a.calls_procedure() || b.calls_procedure() {
                     format!("{{auto swap_x={x};auto swap_y={y};{name}(swap_x,swap_y{tail});}}")
                 } else {
@@ -283,13 +294,15 @@ impl Emitter<'_> {
                         missing.join("||")
                     ));
                 }
+                out.extend(Some(guarded(&records)).filter(|g| !g.is_empty()));
             }
             // `sub_mid(target, start, length, value, passed)`: 0 for a length left out.
             StmtRule::MidAssign => {
                 let [StmtArg::Place(target), StmtArg::Value(start), length, StmtArg::Value(v)] = args else {
                     unreachable!("the slots of the `MID$` statement (`validate`)");
                 };
-                let target = self.place_ref(target);
+                let given = self.place_ref(target);
+                let (target, records) = self.trace_held(target, Held::Qbs, given, "MID$");
                 let start = self.value(start);
                 let (length, passed) = match length {
                     StmtArg::Value(l) => (self.value(l), 1),
@@ -302,6 +315,7 @@ impl Emitter<'_> {
                 };
                 let v = self.value(v);
                 out.push(format!("sub_mid({target},{start},{length},{v},{passed});"));
+                out.extend(Some(guarded(&records)).filter(|g| !g.is_empty()));
             }
             // Inline, as the old compiler writes it (`qb64pe.bas` 8410–8436): the place, the position and the
             // value in that order, each skipped once an error is pending; error 5 for an empty string or a
@@ -311,14 +325,15 @@ impl Emitter<'_> {
                     unreachable!("the slots of the `ASC` statement (`validate`)");
                 };
                 out.push(format!("tqbs={}; if (!is_error_pending()){{", self.place_ref(target)));
+                // A value-trace build records the string where the character is stored, through `tqbs`.
+                let record = self.trace_store(target, Read::Value("tqbs")).unwrap_or_default();
                 match position {
                     StmtArg::Value(p) => {
                         out.push(format!("tmp_fileno={}; if (!is_error_pending()){{", self.value(p)));
                         out.push(format!("tmp_long={}; if (!is_error_pending()){{", self.value(v)));
-                        out.push(
-                            "if ((tmp_fileno>0)&&(tmp_fileno<=tqbs->len)){tqbs->chr[tmp_fileno-1]=tmp_long;}else{error(5);}"
-                                .into(),
-                        );
+                        out.push(format!(
+                            "if ((tmp_fileno>0)&&(tmp_fileno<=tqbs->len)){{tqbs->chr[tmp_fileno-1]=tmp_long;{record}}}else{{error(5);}}"
+                        ));
                         out.push("}}}".into());
                     }
                     StmtArg::Absent
@@ -328,7 +343,9 @@ impl Emitter<'_> {
                     | StmtArg::Rest(_)
                     | StmtArg::Word(_) => {
                         out.push(format!("tmp_long={}; if (!is_error_pending()){{", self.value(v)));
-                        out.push("if (tqbs->len){tqbs->chr[0]=tmp_long;}else{error(5);}".into());
+                        out.push(format!(
+                            "if (tqbs->len){{tqbs->chr[0]=tmp_long;{record}}}else{{error(5);}}"
+                        ));
                         out.push("}}".into());
                     }
                 }
@@ -465,7 +482,9 @@ impl Emitter<'_> {
             StmtArg::Bytes(place) if self.p.place_ty(place) == Ty::Str => {
                 let s = self.place_ref(place);
                 if get {
-                    return format!("sub_get2({file},{position},{s},{mask});");
+                    // A value-trace build reads the string through what the call was given.
+                    let (s, records) = self.trace_held(place, Held::Qbs, s, "GET #");
+                    return format!("sub_get2({file},{position},{s},{mask});{}", guarded(&records));
                 }
                 // A member's string, or an element's of a member array, is `*(qbs**)(…)`, which needs parentheses
                 // before `->`; a variable's name and an element's text keep the old compiler's text.
@@ -477,7 +496,16 @@ impl Emitter<'_> {
             StmtArg::Bytes(place) => {
                 let (address, size) = self.place_bytes(place);
                 let t = self.byte_element_temp();
-                format!("sub_{word}({file},{position},byte_element((uint64){address},{size},{t}),{mask});")
+                // A value-trace build reads what `GET` stored through the address the call was given.
+                let (address, records) = if get {
+                    self.trace_held(place, Held::Bytes, address, "GET #")
+                } else {
+                    (address, Vec::new())
+                };
+                format!(
+                    "sub_{word}({file},{position},byte_element((uint64){address},{size},{t}),{mask});{}",
+                    guarded(&records)
+                )
             }
             // A whole array with no storage: error 9 and nothing read or written (`study\39` row 7, D-042), where the
             // old compiler reads or writes no byte and raises nothing (`verification\v62_c4`). Below `$CHECKING:OFF`
@@ -489,6 +517,14 @@ impl Emitter<'_> {
                     let bytes = self.block(*array, index);
                     format!("sub_{word}({file},{position},{bytes},{mask});")
                 };
+                // A value-trace build records every element `GET` read into the array (OpenSpec change
+                // `value-trace`).
+                let records = if get {
+                    self.trace_whole_array(&ArrayRef::Var(*array), "GET #")
+                } else {
+                    String::new()
+                };
+                let call = format!("{call}{records}");
                 if !self.checking {
                     return call;
                 }
@@ -497,10 +533,20 @@ impl Emitter<'_> {
             }
             StmtArg::Block { array, index } => {
                 let bytes = self.block(*array, index);
-                format!("sub_{word}({file},{position},{bytes},{mask});")
+                // From an element to the array's end: counted as a bulk store. Reading the elements would need
+                // the index a third time.
+                let counted = if get {
+                    self.trace_untraced("GET #", Some((*array, &[]))).unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                format!("{counted}sub_{word}({file},{position},{bytes},{mask});")
             }
             StmtArg::Absent | StmtArg::Value(_) | StmtArg::Place(_) | StmtArg::Rest(_) | StmtArg::Word(_) => {
-                format!("field_{word}({file},{position},{mask});")
+                // `GET` into the record buffer changes the file's `FIELD` strings: a value-trace build reads
+                // them again.
+                let fields = if get { self.trace_fields("GET #") } else { String::new() };
+                format!("field_{word}({file},{position},{mask});{fields}")
             }
         }
     }

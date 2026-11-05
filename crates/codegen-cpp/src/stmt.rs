@@ -4,6 +4,7 @@ use crate::Emitter;
 use crate::decl::{Part, dim_count, dim_slot, is_qbs};
 use crate::names::{c_type, escape_string, int_const, proc_name};
 use crate::place::fixed_at;
+use crate::trace::Read;
 use qb64rust_ir::{
     ArrayRef, Event, EventHandler, Expr, ExprKind, Facts, LabelId, LogLevel, MemberId, OnError, Op, Place, PrintTo,
     Resume, RunTarget, Ty, When,
@@ -229,7 +230,20 @@ impl Emitter<'_> {
                     OnError::Skip => format!("({test})&&(!is_error_pending())"),
                     OnError::UseValue => test,
                 };
-                out.push(format!("if ({test}) goto {};", self.local_label(*to)));
+                // A value-trace build reads the variables the condition's calls were given by reference before the
+                // jump, which would skip the lines after the operation (design D1 of `value-trace`).
+                let after = self
+                    .trace
+                    .as_mut()
+                    .map(|t| std::mem::take(&mut t.after))
+                    .unwrap_or_default();
+                if after.is_empty() {
+                    out.push(format!("if ({test}) goto {};", self.local_label(*to)));
+                } else {
+                    out.push(format!("{{bool qbr_trc_taken={test};"));
+                    out.extend(after);
+                    out.push(format!("if (qbr_trc_taken) goto {};}}", self.local_label(*to)));
+                }
             }
             Op::Gosub(l) => {
                 self.gosubs += 1;
@@ -280,6 +294,7 @@ impl Emitter<'_> {
                 } else {
                     let a = self.args(*proc, args);
                     out.push(format!("{}({a});", proc_name(q)));
+                    self.trace_call(*proc, args);
                 }
                 let string_param = |v: &qb64rust_ir::Var| !v.is_array() && is_qbs(v.ty);
                 let strings = args.iter().any(|a| a.uses_strings(self.p))
@@ -429,24 +444,51 @@ impl Emitter<'_> {
     fn copy_whole(&mut self, from: &Place, to: &Place, out: &mut Vec<String>) {
         let ty = self.p.place_ty(to);
         let (to_at, from_at) = (self.bytes_of(to), self.bytes_of(from));
+        let (root, members) = crate::trace::path(to);
+        // A value-trace build records each number and string of the target (design D1 of `value-trace`). A whole
+        // `_MEM` is counted as a bulk store.
+        let whole = self.p.is_mem(ty);
+        if whole {
+            out.extend(self.trace_untraced("TYPE copy", Some((root, &members))));
+        }
+        let traced = self.trace.is_some() && !whole;
+        let inside = crate::trace::Inside::Stored("TYPE copy");
         if self.owns_desc(ty) {
-            self.copy_owner(ty, &to_at, &from_at, out);
+            // The copy of an owner value finds the target anew for each part. Its last part leaves the address in a
+            // variable, and the target is read through it, so an index in `to` is evaluated no more often.
+            let hold = traced.then(|| self.trace_temp("char *"));
+            let records = match &hold {
+                Some(hold) => self.trace_members((root, members), ty, hold, false, inside),
+                None => Vec::new(),
+            };
+            out.extend(hold.iter().map(|hold| format!("{hold}=NULL;")));
+            self.copy_owner(ty, &to_at, &from_at, hold.as_deref(), out);
+            if let Some(hold) = &hold {
+                out.push(format!("if ({hold}){{{}}}", records.concat()));
+            }
         } else {
-            self.copy_parts(ty, &to_at, &from_at, out);
+            let records = if traced {
+                self.trace_members((root, members), ty, "copy_to", false, inside)
+            } else {
+                Vec::new()
+            };
+            self.copy_parts(ty, &to_at, &from_at, records, out);
         }
         if from.uses_strings(self.p) || to.uses_strings(self.p) {
             out.push("qbs_cleanup(qbs_tmp_base,0);".into());
         }
     }
 
-    /// [`Self::copy_whole`] of a type that owns no dynamic member array.
-    fn copy_parts(&mut self, ty: Ty, to_at: &str, from_at: &str, out: &mut Vec<String>) {
+    /// [`Self::copy_whole`] of a type that owns no dynamic member array. `records` are the record calls of a
+    /// value-trace build: they read the target through `copy_to` and go into the block of the last part.
+    fn copy_parts(&mut self, ty: Ty, to_at: &str, from_at: &str, mut records: Vec<String>, out: &mut Vec<String>) {
         let parts = if self.has_life(ty) {
             self.parts(ty)
         } else {
             vec![(0, Part::Bytes(self.ty_size(ty)))]
         };
-        for (offset, part) in parts {
+        let last = parts.len().saturating_sub(1);
+        for (k, (offset, part)) in parts.into_iter().enumerate() {
             out.push("{".into());
             out.push(format!("char *copy_to={to_at};"));
             out.push(format!("char *copy_from={from_at};"));
@@ -456,6 +498,9 @@ impl Emitter<'_> {
                 Part::Bytes(n) => format!("memmove(copy_to+{offset},copy_from+{offset},{n});"),
                 Part::Dyn { .. } => unreachable!("a type that owns no dynamic member array"),
             });
+            if k == last {
+                out.append(&mut records);
+            }
             out.push("}".into());
         }
     }
@@ -505,6 +550,9 @@ impl Emitter<'_> {
                 } else {
                     out.push(format!("{}={v};", self.scalar(*id)));
                 }
+                // A value-trace build records the value the variable holds now (design D1 of `value-trace`).
+                let stored = self.scalar(*id);
+                out.extend(self.trace_store(place, Read::Value(&stored)));
             }
             // The index first; with an error pending after it, neither the value nor the store.
             Place::Element {
@@ -515,16 +563,19 @@ impl Emitter<'_> {
                 out.push(format!("tmp_long={flat};"));
                 let element = self.element_at(*array, "tmp_long");
                 let v = value(self);
-                if let Ty::Bit { width, .. } = self.p.var(*array).ty {
+                let store = if let Ty::Bit { width, .. } = self.p.var(*array).ty {
                     // A packed element: `setbits` keeps the low bits of the value, as a `_BIT` variable does.
                     let name = self.name(*array);
-                    out.push(format!(
-                        "if (!is_error_pending()) setbits({width},(uint8*)({name}[0]),tmp_long,{v});"
-                    ));
+                    format!("setbits({width},(uint8*)({name}[0]),tmp_long,{v});")
                 } else if string {
-                    out.push(format!("if (!is_error_pending()) qbs_set({element},{v});"));
+                    format!("qbs_set({element},{v});")
                 } else {
-                    out.push(format!("if (!is_error_pending()) {element}={v};"));
+                    format!("{element}={v};")
+                };
+                // A value-trace build records the element under the store's own guard, read at `tmp_long`.
+                match self.trace_element(*array, "tmp_long") {
+                    Some(record) => out.push(format!("if (!is_error_pending()) {{{store}{record}}}")),
+                    None => out.push(format!("if (!is_error_pending()) {store}")),
                 }
             }
             Place::Element {
@@ -539,6 +590,11 @@ impl Emitter<'_> {
                     out.push(format!("qbs_set({member},{v});"));
                 } else {
                     out.push(format!("{member}={v};"));
+                }
+                // No index is on the way: the address evaluates nothing.
+                if self.trace.is_some() {
+                    let at = self.bytes_of(place);
+                    out.extend(self.trace_store(place, Read::Addr(&at)));
                 }
             }
         }
@@ -589,7 +645,11 @@ impl Emitter<'_> {
             let v = value(self);
             out.push(format!("qbs *mbr_value={v};"));
         }
-        out.push(format!("if (mbr_ok) {store}"));
+        // A value-trace build records the place under `mbr_ok`, through the address computed here.
+        match self.trace_store(place, Read::Addr(&format!("({at})"))) {
+            Some(record) => out.push(format!("if (mbr_ok) {{{store}{record}}}")),
+            None => out.push(format!("if (mbr_ok) {store}")),
+        }
         out.push("}".into());
     }
 

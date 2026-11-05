@@ -106,6 +106,7 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `-f:<setting>=<value>` | A QB64pe compiler setting, such as `-f:OptimizeCppProgram=true`, `-f:StripDebugSymbols=false`, `-f:ExtraLinkerFlags=<flags>` or `-f:GenerateLicenseFile=true`; with `-y`, a layout setting such as `-f:AutoIndentSize=2` |
 | `--debug` | A build for a debugger: with debug information, never optimised |
 | `--coverage` | A build that counts how often each statement runs; see [Measuring which lines run](#measuring-which-lines-run) |
+| `--trace-values` | A build that records the values each variable takes; see [Recording the values of variables](#recording-the-values-of-variables) |
 | `--include-root <dir>` | Where `$INCLUDE` files and `DECLARE LIBRARY` headers are looked for after the program's own folder (by default the folder of `qb64rust.exe`, as QB64pe looks in its own folder) |
 | `--toolchain-root <dir>` | The C++ toolchain to use instead of the installed one |
 | `--libqb-root <dir>` | Another copy of libqb, for example one in a folder you can write to |
@@ -173,6 +174,54 @@ Files included from another folder are named by their path from the test file's 
 
 `tools\coverage\coverage.py` in the repository merges the records and lists the lines that did not run. The
 record format is described in [tools/coverage/README.md](../tools/coverage/README.md).
+
+## Recording the values of variables
+
+`qb64rust --trace-values` builds a program that records the value each store leaves in a variable. Use it to
+see which values a variable really takes over a whole run: its range, or that it never leaves a few values. Set
+the environment variable `QB64RUST_TRACE` to a file name before running the program:
+
+```
+qb64rust game.bas --trace-values
+set QB64RUST_TRACE=values.txt
+game.exe
+python tools\trace\value_trace.py values.txt
+```
+
+When the program ends, it adds one record to that file. The program can end by `END` or `SYSTEM`, by running off
+its end, by a runtime error, or by its window being closed. Several runs can write to the same file; each adds
+its own record. Without `QB64RUST_TRACE`, the program writes nothing.
+
+`tools\trace\value_trace.py` in the repository merges the records and prints one block per variable:
+
+```
+HP  INTEGER  in MOVESHIP
+  412 store(s), 0 after-call record(s), range 0 to 100, 23 distinct value(s)
+       120 x  100    first at game.bas:88
+        61 x  95    first at game.bas:140
+```
+
+What is recorded:
+
+- A scalar variable, an array (all its elements together) and a member of a user type (`ship.hp`) each have an
+  entry. A variable of the same name in another `SUB` or `FUNCTION` has its own.
+- Each entry gives the number of stores, the distinct values with their counts and the line that first stored
+  each, and the smallest and largest value. For a string it gives the shortest and longest length.
+- An entry keeps at most 256 distinct values. After that it still counts stores and widens the range, and the
+  report marks it as cut. Set `QB64RUST_TRACE_LIMIT` to a number for another limit.
+- The value a variable starts with (0 or an empty string) is not a store and is not listed.
+- A variable passed to a `SUB` or `FUNCTION` is read again after the call, and its value is recorded when it
+  changed. An array passed to one is not read again: the report names the parameter whose entry holds the values
+  stored through it.
+- A statement that fills an array with new values (`b() = a()`, `_ARRAYCOPY`, `GET #1, , a()`) is recorded
+  element by element. The strings of a `FIELD` are read again after each `GET #` into the record buffer.
+- `REDIM` and `ERASE` write zeros, and statements such as `POKE`, `_MEMPUT` and `BLOAD` write at an address.
+  They are counted and listed, without values.
+
+A traced program behaves as the normal build does, with the same output, errors and exit code. It runs slower
+and uses more memory, so build without the option for everyday use. The option combines with `--coverage` and
+`--debug`. `--json` and `--var <name>` of the tool, the full list of what is not recorded, and the record format
+are described in [tools/trace/README.md](../tools/trace/README.md).
 
 ## Where it differs from QB64pe
 

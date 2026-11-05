@@ -539,7 +539,9 @@ impl Emitter<'_> {
         let dims = self.copy_dims(to).or_else(|| self.copy_dims(from)).unwrap_or(1);
         let (dst, src) = (self.whole_desc(to), self.whole_desc(from));
         if self.owns_desc(t) && matches!((to, from), (ArrayRef::Var(_), ArrayRef::Var(_))) {
-            self.copy_owner_array(t, dims, (&dst, &src), out);
+            // This copy is made also after the error 9 of other bounds, so its records take no test for one.
+            let records = self.trace_copied(to, from, false);
+            self.copy_owner_array(t, dims, (&dst, &src), records, out);
             return;
         }
         let guarded = to.may_raise() || from.may_raise();
@@ -590,7 +592,7 @@ impl Emitter<'_> {
             out.push("}".into());
         } else if self.owns_desc(t) {
             out.push(each.into());
-            self.copy_owner(t, &at("dst"), &at("src"), out);
+            self.copy_owner(t, &at("dst"), &at("src"), None, out);
             out.push("}".into());
         } else if self.holds_strings(t) {
             out.push(each.into());
@@ -609,6 +611,7 @@ impl Emitter<'_> {
             ));
             out.push(format!("if (!is_error_pending()) memmove((void*)whole_arr_dst[0],(void*)whole_arr_src[0],(size_t)(whole_arr_total*(uint64){element}));"));
         }
+        out.extend(self.trace_copied(to, from, true));
         out.push("}".into());
         out.push("}".into());
         let strings = |a: &ArrayRef| matches!(a, ArrayRef::Member { base, .. } if base.uses_strings(self.p));
@@ -622,7 +625,14 @@ impl Emitter<'_> {
     /// raise error 9 and the copy goes on, element `i` of the target from element `i` of the source for every
     /// element of the target, deep, the target keeping its bounds. Only when the source has fewer elements, which
     /// the old program reads past, is nothing copied (`QB64PE-DIVERGENCES.md` D-022; design D3 of `m3-measured-copies`).
-    fn copy_owner_array(&mut self, t: Ty, dims: usize, (dst, src): (&str, &str), out: &mut Vec<String>) {
+    fn copy_owner_array(
+        &mut self,
+        t: Ty,
+        dims: usize,
+        (dst, src): (&str, &str),
+        records: Option<String>,
+        out: &mut Vec<String>,
+    ) {
         out.push("{".into());
         out.push(format!("ptrszint *whole_arr_dst={dst};"));
         out.push(format!("ptrszint *whole_arr_src={src};"));
@@ -649,10 +659,32 @@ impl Emitter<'_> {
         let size = self.ty_size(t);
         let at = |side: &str| format!("((char*)whole_arr_{side}[0]+whole_arr_i*{size})");
         out.push("for(ptrszint whole_arr_i=0; whole_arr_i<(ptrszint)whole_arr_total; whole_arr_i++){".into());
-        self.copy_owner(t, &at("dst"), &at("src"), out);
+        self.copy_owner(t, &at("dst"), &at("src"), None, out);
+        out.push("}".into());
+        out.extend(records);
         out.push("}".into());
         out.push("}".into());
-        out.push("}".into());
+    }
+
+    /// In a value-trace build, the line that records the elements a `CopyArray` copied into `to`, read through the
+    /// target's descriptor `whole_arr_dst` where the copy was made (OpenSpec change `value-trace`). A target that
+    /// has no entries is counted as a bulk store. `guarded`: the copy is not made while an error is pending, so
+    /// the records are under that test.
+    fn trace_copied(&mut self, to: &ArrayRef, from: &ArrayRef, guarded: bool) -> Option<String> {
+        self.trace.as_ref()?;
+        let what = crate::trace::copy_what(self.p, to, from);
+        let path = crate::trace::array_path(to);
+        let ty = self.p.array_ty(to);
+        let block = ("whole_arr_dst[0]", "0", "whole_arr_total");
+        let records = if guarded {
+            self.trace_elements(path.clone(), ty, block, &what)
+        } else {
+            self.trace_element_loop(path.clone(), ty, block, &what)
+        };
+        match records {
+            Some(records) => Some(records),
+            None => self.trace_untraced(&what, Some((path.0, &path.1))),
+        }
     }
 
     /// `ArrayCopy` (design D5 of `m3-arraycopy`): the old compiler's block (`source\utilities\arrcpy.bm`
@@ -749,7 +781,10 @@ impl Emitter<'_> {
         out.extend(sides);
         let (kind, size) = if t == Ty::Str {
             ("string", None)
-        } else if t == Ty::F80 {
+        } else if t == Ty::F80 && matches!((from, to), (ArrayRef::Var(_), ArrayRef::Var(_))) {
+            // The elements of a `_FLOAT` array variable lie `sizeof(long double)` bytes apart (D-025). Those of a
+            // member array lie 32 bytes apart, the size the old compiler passes, so a copy with a member array on
+            // either side takes that size, as the old compiler's does (measured, `verification\v41_m`).
             ("fixed", Some("(uint64)sizeof(long double)".to_string()))
         } else {
             ("fixed", Some(format!("(uint64){}", self.ty_size(t))))
@@ -782,6 +817,32 @@ impl Emitter<'_> {
             .chain(size)
             .collect();
         let call = format!("qb64_array_copy_{entry}_{kind}({});", args.join(","));
+        // A value-trace build records the elements a copy of one dimension wrote, by the range libqb copied
+        // (OpenSpec change `value-trace`). A copy of several dimensions is counted as a bulk store.
+        let call = if self.trace.is_some() {
+            let path = crate::trace::array_path(to);
+            let (first, count) = match (ranges.len(), starts.is_empty()) {
+                (1, false) => ("array_copy_dst_start", "array_copy_src_high-array_copy_src_low+1"),
+                (1, true) => ("array_copy_src_low", "array_copy_src_high-array_copy_src_low+1"),
+                (_, true) => ("array_copy_src[4]", "array_copy_src[5]"),
+                (_, false) => ("array_copy_dst_start", "array_copy_src[5]"),
+            };
+            let first = format!("({first})-array_copy_dst[4]");
+            let records = if entry.starts_with("1d_") {
+                self.trace_elements(path.clone(), t, ("array_copy_dst[0]", &first, count), "_ARRAYCOPY")
+            } else {
+                None
+            };
+            match records {
+                Some(records) => format!("{{{call}{records}}}"),
+                None => {
+                    let counted = self.trace_untraced("_ARRAYCOPY", Some((path.0, &path.1)));
+                    format!("{{{}{call}}}", counted.unwrap_or_default())
+                }
+            }
+        } else {
+            call
+        };
         out.push(match (guarded, dims_checked) {
             // With a reshaped dynamic side the old compiler copies nothing either (read from its C++: the stand-in
             // descriptor is not allocated, so libqb raises error 9): no D-004 trace then.

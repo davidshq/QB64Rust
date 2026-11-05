@@ -3322,6 +3322,8 @@ as a reading of the code, not a measurement.
 | `17` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do); how M1 compares |
 | `18` | Other VS Code extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
 | `41` | The panel's process-reset proposal after `docs\SESSION-HISTORY-REVIEW.md`: disk, cache invalidation, process growth, review loop; proposals P1–P7, open until the user decides |
+| `42` | Prior art for the change `value-trace`: how other languages and tools record the values of variables (Daikon, value profiling, time-travel debuggers, tracing libraries, static range analysis, BASIC's own debuggers) |
+| `43` | The features and tools of modern languages that we lack: lints, doc comments, editor features, quick fixes, a library manager, a profiler; language extensions such as modules and `TRY`; the panel's view and a recommendation. Open until the user picks from it |
 | `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 7); what each holds: `archive\README.md`. Since 2026-10-28 also the old compiler's front end (`01`), code generation (`02`), the rest of the IDE and debugger (`04`), its build (`05`), and the reviews and studies `35`–`40`; since 2026-10-29 the closed study gaps (`10`: DIM family, PRINT/INPUT/WRITE, built-in table), FreeBASIC (`16`) and VS Code parity (`06`: the IDE's features mapped to LSP, DAP, tasks and settings; what is left is in `SOMEDAY.md`) |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

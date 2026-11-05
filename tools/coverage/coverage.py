@@ -75,6 +75,15 @@ class Record:
     entries: list[tuple[int, int, int, int, tuple[str, ...]]]
 
 
+def file_line(parts: list[str]) -> tuple[int, tuple[str, str]] | None:
+    """A record's `file` line, split at its tabs: the file's index, and (path, digest). None for any
+    other line. A value-trace record's `file` lines are the same (tools/trace/value_trace.py reads them
+    here)."""
+    if parts[0] == "file" and len(parts) == 4 and parts[1].isdigit():
+        return int(parts[1]), (parts[3], parts[2])
+    return None
+
+
 def read_records(path: Path) -> list[Record]:
     """Every record of a counts file, of either version."""
     lines = path.read_bytes().decode("utf-8", "replace").splitlines()
@@ -93,8 +102,9 @@ def read_records(path: Path) -> list[Record]:
         entries = []
         while i < len(lines) and lines[i] != "end":
             parts = lines[i].split("\t")
-            if parts[0] == "file" and len(parts) == 4:
-                files[int(parts[1])] = (parts[3], parts[2])
+            named = file_line(parts)
+            if named:
+                files[named[0]] = named[1]
             elif len(parts) == width and all(p.isdigit() for p in parts[:4]):
                 f, line, col, n = (int(p) for p in parts[:4])
                 names = tuple(parts[4].split()) if width == 5 else ()

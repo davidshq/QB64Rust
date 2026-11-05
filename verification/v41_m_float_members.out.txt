@@ -1,0 +1,8 @@
+variable to variable: 10.5  11.5  12.5  13.5 
+variable to member: 10.5  12.5  0  0 
+member to variable: 10.5  11.5  12.5  13.5 
+member to member: 1.5  2.5  3.5  4.5 
+member range to member: 1.5  2.5  2.5  3.5 
+member to an empty variable: 1.5  0  2.5  0 
+LEN: 32  128 
+exit=0

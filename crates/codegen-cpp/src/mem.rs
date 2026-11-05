@@ -223,11 +223,22 @@ impl Emitter<'_> {
         let blk = self.checked_block(block);
         let off = self.value(offset);
         let (address, size) = (self.address(target), self.bytes_count(target));
+        // A value-trace build reads a variable, element or member through the address the copy writes to (design
+        // D1 of `value-trace`), and every element of a whole array by the array's name.
+        let (address, records) = match target {
+            Reference::Place(place) => {
+                let (address, records) = self.trace_held(place, crate::trace::Held::Bytes, address, "_MEMGET");
+                (address, crate::trace::guarded(&records))
+            }
+            Reference::Array(array) => (address, self.trace_whole_array(array, "_MEMGET")),
+        };
+        let records = Some(records).filter(|g| !g.is_empty());
         if !self.checking {
             out.push(match copy_width(&size) {
                 Some(t) => format!("*({t}*){address}=*({t}*)({off});"),
                 None => format!("memmove({address},(uint8_t*){off},{size});"),
             });
+            out.extend(records);
             return;
         }
         let copy = match copy_width(&size) {
@@ -236,6 +247,7 @@ impl Emitter<'_> {
         };
         out.push(format!("tmp_long={off};"));
         mem_checked(&blk, &size, &copy, out);
+        out.extend(records);
     }
 
     /// `_MEMPUT block, offset, value`, written inline (`qb64pe.bas` 10266–10398): a string that is no variable held

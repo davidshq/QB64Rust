@@ -833,6 +833,140 @@ impl Op {
             }
         }
     }
+
+    /// What this operation stores into the program's variables (design D5 of `value-trace`), in the order it
+    /// stores; empty for an operation that stores nothing. Every operation is placed here: the `match` has no `_`
+    /// arm, so a new operation does not compile until it says what it stores.
+    ///
+    /// A call of a FUNCTION of the program inside one of the operation's values ([`ExprKind::CallProc`]) is not
+    /// listed. It is a call wherever it stands, with the arguments of [`Store::Call`].
+    pub fn stores(&self, p: &Program) -> Vec<Store<'_>> {
+        fn bulk(allocs: &[(usize, Allocation)]) -> Vec<Store<'_>> {
+            allocs
+                .iter()
+                .map(|(_, a)| Store::Bulk(Target::Array(&a.array)))
+                .collect()
+        }
+        match self {
+            Op::SelectConsole
+            | Op::End(_)
+            | Op::System(_)
+            | Op::Stop
+            | Op::Exit
+            | Op::SetHandler(_)
+            | Op::NewHandler(_)
+            | Op::LastHandler
+            | Op::Raise(_)
+            | Op::Log { .. }
+            | Op::Resume(_)
+            | Op::Jump(_)
+            | Op::Branch { .. }
+            | Op::Gosub(_)
+            | Op::Return(_)
+            | Op::OnEvent { .. }
+            | Op::Key(_)
+            | Op::Restore { .. }
+            // It reads the array.
+            | Op::PaletteUsing { .. }
+            // It frees the elements and stores none.
+            | Op::Release { .. } => Vec::new(),
+            Op::Assign { place, value } => match value.ty {
+                // The bytes of a whole value: a block a built-in gives, or a user type read by `_MEMGET`.
+                Ty::User(_) => vec![Store::Bulk(Target::Place(place))],
+                numeric_types!() | Ty::Str | Ty::FixedStr(_) => vec![Store::ByName(Target::Place(place))],
+            },
+            Op::AssignAll(stores) => stores.iter().map(|(v, _)| Store::ByName(Target::Var(*v))).collect(),
+            Op::Lset { target, .. } => vec![Store::ByName(Target::Place(target))],
+            Op::Input { targets, allocs, .. } | Op::Read { targets, allocs } => {
+                let mut out = bulk(allocs);
+                out.extend(targets.iter().map(|t| Store::ByName(Target::Place(t))));
+                out
+            }
+            Op::MemGet { target, .. } => match target {
+                Reference::Place(place) => vec![Store::ByName(Target::Place(place))],
+                Reference::Array(array) => vec![Store::Bulk(Target::Array(array))],
+            },
+            Op::CopyWhole { to, .. } => vec![Store::Whole(to)],
+            Op::Call { proc, args } => {
+                if p.proc(*proc).external.is_some() {
+                    vec![Store::Address]
+                } else {
+                    vec![Store::Call { proc: *proc, args }]
+                }
+            }
+            Op::Clear { array } | Op::Allocate { array, .. } => vec![Store::Bulk(Target::Array(array))],
+            Op::EraseParam { array } => vec![Store::Bulk(Target::Var(*array))],
+            Op::CopyArray { to, .. } | Op::ArrayCopy { to, .. } => vec![Store::Bulk(Target::Array(to))],
+            Op::Print { allocs, .. } | Op::PrintUsing { allocs, .. } | Op::Write { allocs, .. } => bulk(allocs),
+            // `RUN` clears every variable. `FIELD` makes each string a part of the file's record buffer.
+            Op::MemPut { .. } | Op::MemFill { .. } | Op::CallAbsolute { .. } | Op::Run(_) | Op::Field { .. } => {
+                vec![Store::Address]
+            }
+            Op::Builtin { id, args } => builtin_stores(*id, args),
+        }
+    }
+}
+
+/// One store of an operation ([`Op::stores`]), by its group (design D5 of `value-trace`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum Store<'a> {
+    /// A store into one variable, element or member, by its name.
+    ByName(Target<'a>),
+    /// A store into every member of the value at a place: a copy of a whole user type.
+    Whole(&'a Place),
+    /// A call of a SUB of the program: it may store into each [`Arg::Ref`] and [`Arg::Array`] argument.
+    Call { proc: ProcId, args: &'a [Arg] },
+    /// A store into many elements at once, or into the bytes of a whole value.
+    Bulk(Target<'a>),
+    /// A store at an address, which no name of the operation stands for.
+    Address,
+}
+
+/// What a [`Store`] stores into.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Target<'a> {
+    Var(VarId),
+    Place(&'a Place),
+    Array(&'a ArrayRef),
+}
+
+/// [`Op::stores`] of a built-in statement, by the runtime's entry it calls.
+fn builtin_stores(id: BuiltinId, args: &[StmtArg]) -> Vec<Store<'_>> {
+    use builtins::StmtRule;
+    let places = || {
+        args.iter()
+            .filter_map(|a| match a {
+                StmtArg::Place(place) => Some(Store::ByName(Target::Place(place))),
+                StmtArg::Value(_)
+                | StmtArg::Block { .. }
+                | StmtArg::Bytes(_)
+                | StmtArg::Rest(_)
+                | StmtArg::Word(_)
+                | StmtArg::Absent => None,
+            })
+            .collect()
+    };
+    let callname = id.get().callname;
+    match builtins::stmt_find(id).map(|form| form.rule) {
+        // `SWAP a, b`, `MID$(a$, …) = …`, `ASC(a$, …) = …`: each place given is stored into.
+        Some(StmtRule::Swap | StmtRule::MidAssign | StmtRule::AscAssign) => places(),
+        // `GET #` reads into its variable: one place, a whole array, or the file's `FIELD` buffer. `PUT #` stores
+        // nothing.
+        Some(StmtRule::File) if callname == "sub_get" => match args.get(2) {
+            Some(StmtArg::Bytes(place)) => vec![Store::ByName(Target::Place(place))],
+            Some(StmtArg::Block { array, .. }) => vec![Store::Bulk(Target::Var(*array))],
+            Some(StmtArg::Value(_) | StmtArg::Place(_) | StmtArg::Rest(_) | StmtArg::Word(_) | StmtArg::Absent)
+            | None => vec![Store::Address],
+        },
+        // A graphics `GET` writes the screen's bytes from an element to the array's end.
+        Some(StmtRule::Graphics) if callname == "sub_graphics_get" => vec![Store::Address],
+        Some(StmtRule::Plain) if matches!(callname, "sub_poke" | "sub_bload" | "sub__memcopy" | "sub_clear") => {
+            vec![Store::Address]
+        }
+        Some(StmtRule::Plain | StmtRule::Close | StmtRule::File | StmtRule::Graphics | StmtRule::Log(_)) | None => {
+            Vec::new()
+        }
+    }
 }
 
 /// When an [`Op::Branch`] is taken.
@@ -989,5 +1123,148 @@ impl Program {
 
     pub fn library(&self, id: LibraryId) -> &Library {
         &self.libraries[id.0 as usize]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn expr(ty: Ty, kind: ExprKind) -> Expr {
+        Expr {
+            span: Span::new(FileId(0), 0, 0),
+            ty,
+            qb: ty,
+            kind,
+        }
+    }
+
+    fn var(name: &str, storage: Storage, shape: Shape) -> Var {
+        Var {
+            name: name.into(),
+            ty: Ty::I32,
+            storage,
+            shape,
+            conventional: false,
+        }
+    }
+
+    /// A program with a variable `G`, an array `A` and a SUB `S (P)`.
+    fn program() -> Program {
+        Program {
+            vars: vec![
+                var("G", Storage::Global, Shape::Scalar),
+                var("A", Storage::Global, Shape::Static { bounds: vec![(0, 3)] }),
+                var("P", Storage::Param(ProcId(0)), Shape::Scalar),
+            ],
+            procs: vec![Proc {
+                name: "S".into(),
+                kind: ProcKind::Sub,
+                params: vec![VarId(2)],
+                result: None,
+                body: Body::default(),
+                file: FileId(0),
+                line: 1,
+                end_file: FileId(0),
+                end_line: 2,
+                external: None,
+            }],
+            ..Program::default()
+        }
+    }
+
+    /// One operation of each group of design D5 of `value-trace`, and `Release` in none.
+    #[test]
+    fn stores_places_each_operation_in_its_group() {
+        let p = program();
+        let g = Place::Var(VarId(0));
+        let a = ArrayRef::Var(VarId(1));
+        let one = || expr(Ty::I32, ExprKind::Int(1));
+        // By name.
+        let assign = Op::Assign {
+            place: g.clone(),
+            value: one(),
+        };
+        assert_eq!(assign.stores(&p), [Store::ByName(Target::Place(&g))]);
+        let limits = Op::AssignAll(vec![(VarId(0), one())]);
+        assert_eq!(limits.stores(&p), [Store::ByName(Target::Var(VarId(0)))]);
+        // Every member of a value.
+        let copy = Op::CopyWhole {
+            from: g.clone(),
+            to: g.clone(),
+        };
+        assert_eq!(copy.stores(&p), [Store::Whole(&g)]);
+        // A call.
+        let args = vec![Arg::Ref(g.clone())];
+        let call = Op::Call {
+            proc: ProcId(0),
+            args: args.clone(),
+        };
+        assert_eq!(
+            call.stores(&p),
+            [Store::Call {
+                proc: ProcId(0),
+                args: &args
+            }]
+        );
+        // Bulk stores.
+        let clear = Op::Clear { array: a.clone() };
+        assert_eq!(clear.stores(&p), [Store::Bulk(Target::Array(&a))]);
+        assert_eq!(
+            Op::EraseParam { array: VarId(1) }.stores(&p),
+            [Store::Bulk(Target::Var(VarId(1)))]
+        );
+        // Stores at an address.
+        assert_eq!(Op::Run(RunTarget::Restart).stores(&p), [Store::Address]);
+        let absolute = Op::CallAbsolute {
+            args: Vec::new(),
+            offset: one(),
+        };
+        assert_eq!(absolute.stores(&p), [Store::Address]);
+        // None.
+        assert_eq!(Op::Release { array: a.clone() }.stores(&p), []);
+        assert_eq!(Op::Stop.stores(&p), []);
+    }
+
+    /// A built-in statement is placed by the runtime's entry it calls.
+    #[test]
+    fn stores_of_built_in_statements() {
+        let p = program();
+        let g = Place::Var(VarId(0));
+        let one = || StmtArg::Value(expr(Ty::I32, ExprKind::Int(1)));
+        let form = |name: &str, callname: &str| {
+            builtins::stmt_lookup(name, false)
+                .into_iter()
+                .map(|f| f.id)
+                .find(|id| id.get().callname == callname)
+                .unwrap_or_else(|| panic!("no statement {name} that calls {callname}"))
+        };
+        let swap = Op::Builtin {
+            id: form("SWAP", "sub_stub"),
+            args: vec![StmtArg::Place(g.clone()), StmtArg::Place(g.clone())],
+        };
+        let by_name = Store::ByName(Target::Place(&g));
+        assert_eq!(swap.stores(&p), [by_name.clone(), by_name.clone()]);
+        let poke = Op::Builtin {
+            id: form("POKE", "sub_poke"),
+            args: vec![one(), one()],
+        };
+        assert_eq!(poke.stores(&p), [Store::Address]);
+        // `GET #1, , g` stores into `g`; `GET #1` into the file's `FIELD` buffer; `PUT #1, , g` stores nothing.
+        let file = |name: &str, callname: &str, variable: StmtArg| Op::Builtin {
+            id: form(name, callname),
+            args: vec![one(), StmtArg::Absent, variable],
+        };
+        assert_eq!(file("GET", "sub_get", StmtArg::Bytes(g.clone())).stores(&p), [by_name]);
+        assert_eq!(file("GET", "sub_get", StmtArg::Absent).stores(&p), [Store::Address]);
+        assert_eq!(file("PUT", "sub_put", StmtArg::Bytes(g.clone())).stores(&p), []);
+        let block = StmtArg::Block {
+            array: VarId(1),
+            index: Vec::new(),
+        };
+        assert_eq!(
+            file("GET", "sub_get", block).stores(&p),
+            [Store::Bulk(Target::Var(VarId(1)))]
+        );
     }
 }

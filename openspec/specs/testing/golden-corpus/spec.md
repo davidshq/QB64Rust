@@ -261,6 +261,26 @@ be remembered as passed.
 - **WHEN** a screen program with an `.external` sidecar passed and the list runs again with nothing changed
 - **THEN** it is built and run again
 
+### Requirement: Network programs stay off a Windows host
+A program whose `.external` sidecar starts with `network:` SHALL NOT be built or run on a Windows host. A program
+that opens a port makes Windows Defender Firewall ask the user, and each new build asks again. The runner SHALL
+report such a program as SKIP, naming why. It SHALL run it when `QB64RUST_ALLOW_NETWORK=1` (set by `check` in the
+suites VM), when `CI=true`, and on Linux. `--check-list` and `--rejudge` SHALL count such a SKIP as neither a pass
+nor a failure. Every program of the corpus, `verification\` and the upstream copy that calls `_OPENHOST` or
+`_OPENCLIENT` SHALL have such a sidecar (`CLAUDE.md` working rule 6, 2026-11-05).
+
+#### Scenario: The slice list on the host
+- **WHEN** `just quick` runs the slice list on Windows
+- **THEN** `s139_net_errors`, `s140_url` and `s141_tcp_loopback` are reported SKIP, and the run does not fail
+
+#### Scenario: The same list in the suites VM
+- **WHEN** `check full` runs the slice list in the suites VM
+- **THEN** the three programs are built, run and judged
+
+#### Scenario: A network program without its sidecar
+- **WHEN** a corpus program calls `_OPENHOST` and has no `network:` sidecar
+- **THEN** `inputs::network_programs_are_marked` fails, naming it
+
 ### Requirement: The pass cache in the compile suite
 `--pass-cache` SHALL work with the compile suite as with the corpus suite: a program that passed with the same
 C++ written by the compiler, libqb's sources and edits, the C++ toolchain, the runner, source, expected output,

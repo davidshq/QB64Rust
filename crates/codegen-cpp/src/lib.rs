@@ -44,12 +44,14 @@ mod owner;
 mod place;
 mod procs;
 mod stmt;
+mod trace;
 mod value;
 
 pub use coverage::Coverage;
 pub use debug::{DebugFile, DebugInfo, Reach, reach};
 pub use library::{Linkage, Resolved, ResolvedLibrary, dll_handle, split_version, strip_version};
 pub use names::{c_type, proc_name, var_name};
+pub use trace::Trace;
 
 use decl::is_qbs;
 use names::{c_string, line_name};
@@ -102,23 +104,25 @@ impl Fragments {
 /// v19_include_runtime_error`: "Line: 3 (in raise.bi)"). `resolved` is what the driver found for the program's
 /// `DECLARE LIBRARY` blocks.
 pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>, resolved: &Resolved) -> Fragments {
-    emit_with(p, source_name, included, resolved, None, None)
+    emit_with(p, source_name, included, resolved, None, None, None)
 }
 
 /// [`emit`], with a counter at each source statement when `coverage` is given (design D1 of `cws-whole-game`,
 /// `coverage.rs`). Without it the fragments are [`emit`]'s. `log_folder` (the working folder with its separator) is
 /// put before each name of `source_name` and `included` that is relative, for the file a log statement names, as
 /// the old compiler names it from its start folder (design D2 of `m4-handlers-logging-checking`); without it the
-/// names are as given.
+/// names are as given. With `trace`, a record call at each store into a variable (OpenSpec change `value-trace`,
+/// `trace.rs`).
 pub fn emit_with(
     p: &Program,
     source_name: &str,
     included: &HashMap<FileId, String>,
     resolved: &Resolved,
     coverage: Option<&Coverage>,
+    trace: Option<&Trace>,
     log_folder: Option<&str>,
 ) -> Fragments {
-    emit_all(p, source_name, included, resolved, coverage, log_folder, None).0
+    emit_all(p, source_name, included, resolved, (coverage, trace), log_folder, None).0
 }
 
 /// [`emit_with`], and the debug symbol file of the program as these fragments build it (design D2 of
@@ -129,11 +133,19 @@ pub fn emit_debug(
     source_name: &str,
     included: &HashMap<FileId, String>,
     resolved: &Resolved,
-    coverage: Option<&Coverage>,
+    (coverage, trace): (Option<&Coverage>, Option<&Trace>),
     log_folder: Option<&str>,
     files: &[DebugFile],
 ) -> (Fragments, DebugInfo) {
-    let (fragments, info) = emit_all(p, source_name, included, resolved, coverage, log_folder, Some(files));
+    let (fragments, info) = emit_all(
+        p,
+        source_name,
+        included,
+        resolved,
+        (coverage, trace),
+        log_folder,
+        Some(files),
+    );
     (fragments, info.expect("asked for"))
 }
 
@@ -142,7 +154,7 @@ fn emit_all(
     source_name: &str,
     included: &HashMap<FileId, String>,
     resolved: &Resolved,
-    coverage: Option<&Coverage>,
+    (coverage, trace): (Option<&Coverage>, Option<&Trace>),
     log_folder: Option<&str>,
     debug_files: Option<&[DebugFile]>,
 ) -> (Fragments, Option<DebugInfo>) {
@@ -202,6 +214,7 @@ fn emit_all(
         on_key: events::EventCode::default(),
         on_strig: events::EventCode::default(),
         coverage: coverage.map(coverage::Counters::new),
+        trace: trace.map(|t| trace::Entries::new(t, p)),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
@@ -350,6 +363,15 @@ fn emit_all(
     if let Some(c) = &e.coverage {
         global.push_str(&c.table());
     }
+    // Also last: the entries of a value-trace build are numbered while the bodies are emitted.
+    if let Some(t) = &e.trace {
+        // A line left here came from C++ written after the last body, and would never be written.
+        debug_assert!(
+            t.after.is_empty(),
+            "a value-trace build's after-call lines were left after the bodies"
+        );
+        global.push_str(&t.table());
+    }
     let info = debug_files.map(|f| e.debug_info(f));
     (Fragments { files }, info)
 }
@@ -438,4 +460,6 @@ struct Emitter<'a> {
     on_strig: events::EventCode,
     /// The counters of a coverage build (`coverage.rs`), `None` in any other.
     coverage: Option<coverage::Counters<'a>>,
+    /// The entries of a value-trace build (`trace.rs`), `None` in any other.
+    trace: Option<trace::Entries<'a>>,
 }

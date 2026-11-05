@@ -26,17 +26,23 @@ What the World War 2 game needed, and the edit each took:
 | PDS form | Edit | Count in the game |
 |---|---|---|
 | `DIR$(spec$)`, and `DIR$` with no argument for the next match | Write a `FUNCTION DIR$ (spec$)` with QB64's `_FILES$`. A bare `t$ = DIR$` becomes `t$ = DIR$("")`, because a QB64 FUNCTION cannot leave out its argument | 16 calls, 1 changed |
+| `CURDIR$`, the current folder (PDS: `C:\GAMES`, with no separator at its end unless it is a root) | Write a `FUNCTION CURDIR$` that returns QB64's `_CWD$` without the separator `_CWD$` ends with. Both compilers build a bare `CURDIR$` with no message, as a string variable that is always `""` (section 3) | 2 calls, 0 changed; missed by the first port |
 | `COMMON SHARED /name/ x` (a named `COMMON` block) | `DIM SHARED x`. Both compilers reject named blocks | 1 (`MOUSE.BI`) |
 | `ON LOCAL ERROR GOTO label` in a SUB | Remove it, or write `ON ERROR GOTO` with the handler moved to the main module, and `ON ERROR GOTO 0` before each way out of the SUB. QB64 wants an error handler's label in the main module. Without the `ON ERROR GOTO 0` the handler stays active after the SUB returns, where `ON LOCAL ERROR` ends with its SUB (`verification\v17_d_on_error_sub_stays`). QB64pe says "Name already in use (ERROR)". QB64Rust's error says what to write instead | 1 |
 | `CALL INTERRUPT` / `Interrupt 51` for the DOS mouse driver | Rewrite the mouse routine with `_MOUSEINPUT`, `_MOUSEX`, `_MOUSEY`, `_MOUSEBUTTON`, `_MOUSESHOW` and `_MOUSEHIDE`. The game used driver functions 0, 1, 2, 3, 7 and 8. A border set by functions 7 and 8 no longer holds the real cursor, so clamp the position the program reads instead | 1 SUB |
 | `SHELL` of a DOS program with no source (title screen, sound players) | Comment it out and note what is lost. 64-bit Windows cannot run DOS executables | 4 programs |
 
 Other PDS features that a port may meet, with the usual edit, are listed in `SOMEDAY.md` under "Popular BASIC
-PDS 7.1 features": `REDIM PRESERVE` (becomes `REDIM _PRESERVE`), `CURDIR$`, the `CURRENCY` type, arrays inside a
+PDS 7.1 features": `REDIM PRESERVE` (becomes `REDIM _PRESERVE`), `CHDRIVE`, the `CURRENCY` type, arrays inside a
 `TYPE`, `BYVAL` parameters and the add-on libraries such as `FORMAT$`.
 
 ## 3. Things that are easy to miss
 
+- **A PDS function with no arguments can build without a message.** QB64 has no `CURDIR$`. QB64pe and
+  QB64Rust both take a bare `CURDIR$` for a string variable, which is always `""` (measured 2026-11-05). The
+  World War 2 port built and passed its scripts with it, and a review found it later: the PBM Drive menu
+  showed a blank entry. A clean build does not show that every PDS name was replaced. Search the source for
+  each PDS-only name in `SOMEDAY.md`'s list.
 - **Data files are found beside the executable.** Build the program into the folder that holds its data
   files, or it starts and finds nothing. Do not overwrite the original DOS `.EXE` if the folder has one.
 - **Include names and file names differ in case.** `'$INCLUDE: 'ww2.bi'` works on Windows with `WW2.BI` but

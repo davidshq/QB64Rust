@@ -1363,6 +1363,46 @@ fn external_sidecars_mark_programs() {
     assert!(problems.is_empty(), "{}", problems.join("\n"));
 }
 
+/// Every program of the corpus, `verification\` and the upstream copy that calls `_OPENHOST` or `_OPENCLIENT` has an
+/// `.external` sidecar starting `network:`. The runner skips those programs on a Windows host, because a program
+/// that opens a port makes Windows Defender Firewall ask the user (`CLAUDE.md` working rule 6, 2026-11-05). A missing
+/// sidecar would let one run there.
+#[test]
+fn network_programs_are_marked() {
+    let upstream = repo().join("tests/upstream");
+    let mut problems = Vec::new();
+    for (root, sidecars) in [
+        (repo().join("tests/corpus"), None),
+        (repo().join("verification"), None),
+        (upstream.join("compile_tests"), Some(upstream.join("external"))),
+    ] {
+        for bas in files(&root, &["bas"]) {
+            let code = code_only(&std::fs::read(&bas).unwrap());
+            // Without the underscore under `$NOPREFIX`.
+            if !["_OPENHOST", "_OPENCLIENT", "OPENHOST", "OPENCLIENT"]
+                .iter()
+                .any(|name| uses_word(&code, name))
+            {
+                continue;
+            }
+            let sidecar = match &sidecars {
+                Some(dir) => dir.join(bas.strip_prefix(&root).unwrap()).with_extension("external"),
+                None => bas.with_extension("external"),
+            };
+            #[expect(clippy::disallowed_methods, reason = "a one-line reason, not BASIC source")]
+            let text = std::fs::read_to_string(&sidecar).unwrap_or_default();
+            if !text.starts_with("network:") {
+                problems.push(format!(
+                    "{}: calls _OPENHOST or _OPENCLIENT, and {} does not start with `network:`",
+                    rel_name("", &root, &bas),
+                    sidecar.file_name().unwrap().to_string_lossy()
+                ));
+            }
+        }
+    }
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
+}
+
 #[test]
 fn coverage_words() {
     let code = code_only(b"PRINT err; Chr$(1) ' LEN(x)\nx$ = \"INSTR(\"\nREM LEFT$(a, 1)\nERROR 5: e = errx\n");

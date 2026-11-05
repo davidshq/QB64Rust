@@ -308,12 +308,20 @@ impl Emitter<'_> {
                 let (c, a, b) = (self.inner(condition), self.inner(then), self.inner(else_));
                 format!("(({c})?({a}):({b}))")
             }
-            ExprKind::Call { builtin: id, args } => self.call(*id, args, v.ty, v.qb),
+            ExprKind::Call { builtin: id, args } => {
+                let call = self.call(*id, args, v.ty, v.qb);
+                self.trace_filled(args, v.ty, call)
+            }
             ExprKind::CallProc { proc, args } if self.p.proc(*proc).external.is_some() => {
+                if self.trace.is_some() {
+                    let what = crate::trace::library_what(self.p, *proc);
+                    self.trace_untraced_after(&what, None);
+                }
                 self.library_call(*proc, args)
             }
             ExprKind::CallProc { proc, args } => {
                 let a = self.args(*proc, args);
+                self.trace_call(*proc, args);
                 format!("{}({a})", proc_name(self.p.proc(*proc)))
             }
         }

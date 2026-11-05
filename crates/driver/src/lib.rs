@@ -475,20 +475,44 @@ pub fn emit(fe: &Frontend, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragmen
 
 /// The C++ fragments of `ir`, the IR of `fe`'s program.
 pub fn emit_ir(fe: &Frontend, ir: &qb64rust_ir::Program, resolved: &Resolved) -> qb64rust_codegen_cpp::Fragments {
-    emit_ir_with(fe, ir, resolved, false, None)
+    emit_ir_with(fe, ir, resolved, Instrument::NONE, None)
 }
 
-/// [`emit_ir`], with a counter at each source statement for `--coverage` (design D1 of `cws-whole-game`), and the
-/// folder put before a relative file name in a log statement's entry (`log_folder`, the working folder with its
-/// separator for a build; design D2 of `m4-handlers-logging-checking`).
+/// What a build adds to the program's C++ to watch it run. The two combine.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Instrument {
+    /// `--coverage`: a counter at each source statement (design D1 of `cws-whole-game`).
+    pub coverage: bool,
+    /// `--trace-values`: a record call at each store into a variable (OpenSpec change `value-trace`).
+    pub trace: bool,
+}
+
+impl Instrument {
+    pub const NONE: Instrument = Instrument {
+        coverage: false,
+        trace: false,
+    };
+    pub const COVERAGE: Instrument = Instrument {
+        coverage: true,
+        trace: false,
+    };
+    pub const TRACE: Instrument = Instrument {
+        coverage: false,
+        trace: true,
+    };
+}
+
+/// [`emit_ir`], with what `instrument` adds (`--coverage`, `--trace-values`), and the folder put before a relative
+/// file name in a log statement's entry (`log_folder`, the working folder with its separator for a build; design D2
+/// of `m4-handlers-logging-checking`).
 pub fn emit_ir_with(
     fe: &Frontend,
     ir: &qb64rust_ir::Program,
     resolved: &Resolved,
-    coverage: bool,
+    instrument: Instrument,
     log_folder: Option<&str>,
 ) -> qb64rust_codegen_cpp::Fragments {
-    emit_ir_all(fe, ir, resolved, coverage, log_folder, false).0
+    emit_ir_all(fe, ir, resolved, instrument, log_folder, false).0
 }
 
 /// [`emit_ir_with`], and with `debug` the debug symbol file of the same emitter.
@@ -496,7 +520,7 @@ fn emit_ir_all(
     fe: &Frontend,
     ir: &qb64rust_ir::Program,
     resolved: &Resolved,
-    coverage: bool,
+    instrument: Instrument,
     log_folder: Option<&str>,
     debug: bool,
 ) -> (qb64rust_codegen_cpp::Fragments, Option<qb64rust_codegen_cpp::DebugInfo>) {
@@ -507,10 +531,14 @@ fn emit_ir_all(
         .map(|(id, f)| (id, f.name.clone()))
         .collect();
     let position = |span: qb64rust_base::Span| fe.map.file(span.file).line_col(span.start);
-    let coverage = coverage.then(|| qb64rust_codegen_cpp::Coverage {
+    let coverage = instrument.coverage.then(|| qb64rust_codegen_cpp::Coverage {
         files: coverage_files(fe),
         position: &position,
         builtins: coverage_builtins(fe),
+    });
+    // The same file table and hashes as a coverage record (design D7 of `value-trace`).
+    let trace = instrument.trace.then(|| qb64rust_codegen_cpp::Trace {
+        files: coverage_files(fe),
     });
     let source_name = &fe.map.file(fe.file).name;
     if debug {
@@ -519,14 +547,21 @@ fn emit_ir_all(
             source_name,
             &included,
             resolved,
-            coverage.as_ref(),
+            (coverage.as_ref(), trace.as_ref()),
             log_folder,
             &debug_files(fe),
         );
         return (fragments, Some(info));
     }
-    let fragments =
-        qb64rust_codegen_cpp::emit_with(ir, source_name, &included, resolved, coverage.as_ref(), log_folder);
+    let fragments = qb64rust_codegen_cpp::emit_with(
+        ir,
+        source_name,
+        &included,
+        resolved,
+        coverage.as_ref(),
+        trace.as_ref(),
+        log_folder,
+    );
     (fragments, None)
 }
 
@@ -598,9 +633,9 @@ pub fn fnv1a64(bytes: &[u8]) -> u64 {
     })
 }
 
-/// `--dump cpp`; with `coverage`, the C++ of a `--coverage` build.
-pub fn dump_cpp(fe: &Frontend, resolved: &Resolved, coverage: bool) -> String {
-    qb64rust_codegen_cpp::dump(&emit_ir_with(fe, &lower(fe), resolved, coverage, None))
+/// `--dump cpp`; with `instrument`, the C++ of a `--coverage` or `--trace-values` build.
+pub fn dump_cpp(fe: &Frontend, resolved: &Resolved, instrument: Instrument) -> String {
+    qb64rust_codegen_cpp::dump(&emit_ir_with(fe, &lower(fe), resolved, instrument, None))
 }
 
 /// Each file of the program by its index, for the debug symbol file: its path as the `#line` directives name it (as
@@ -621,16 +656,18 @@ pub fn emit_ir_debug(
     fe: &Frontend,
     ir: &qb64rust_ir::Program,
     resolved: &Resolved,
-    coverage: bool,
+    instrument: Instrument,
     log_folder: Option<&str>,
 ) -> (qb64rust_codegen_cpp::Fragments, qb64rust_codegen_cpp::DebugInfo) {
-    let (fragments, info) = emit_ir_all(fe, ir, resolved, coverage, log_folder, true);
+    let (fragments, info) = emit_ir_all(fe, ir, resolved, instrument, log_folder, true);
     (fragments, info.expect("asked for"))
 }
 
 /// `--dump debug-info`: the debug symbol file of a debug build, with the files' paths as given to the compiler.
 pub fn dump_debug_info(fe: &Frontend, resolved: &Resolved) -> String {
-    emit_ir_debug(fe, &lower(fe), resolved, false, None).1.to_json()
+    emit_ir_debug(fe, &lower(fe), resolved, Instrument::NONE, None)
+        .1
+        .to_json()
 }
 
 #[cfg(test)]

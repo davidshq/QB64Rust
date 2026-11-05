@@ -816,6 +816,9 @@ def cli_binary(root: Path, out) -> str | None:
 # Set in every VM step (design D4): the runner then ignores --build-cache, also where a tool starts it
 # (coverage.py), and the pass cache serves what passed while the rest builds cold.
 NO_BUILD_CACHE = {"QB64RUST_NO_BUILD_CACHE": "1"}
+# Also set in every VM step: the runner skips network programs on a Windows host, where Windows Defender Firewall
+# asks the user about a program that opens a port (CLAUDE.md working rule 6, 2026-11-05). The VM asks no one.
+ALLOW_NETWORK = {"QB64RUST_ALLOW_NETWORK": "1"}
 
 
 def passed_seconds(record: dict | None) -> float:
@@ -861,7 +864,7 @@ def run_in_vm(p: Planned, root: Path, cmd: list[str], out, vm: SuitesVM | None) 
         "command": list(cmd),
         "first": list(p.step.vm_first) if p.step.vm_first else None,
         "cwd": cwd,
-        "env": {**p.step.env, **NO_BUILD_CACHE},
+        "env": {**p.step.env, **NO_BUILD_CACHE, **ALLOW_NETWORK},
         "copy": copy,
         "outputs": list(p.step.outputs),
         "clears": list(p.step.clears),

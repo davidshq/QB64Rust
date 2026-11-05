@@ -1,0 +1,1210 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+==> global.txt <==
+static void qbr_diverged(int32 qbr_n){
+static int32 qbr_on=-1;
+static uint8 qbr_seen[100];
+static const char *qbr_path=NULL;
+if (qbr_on<0){qbr_path=getenv("QB64RUST_DIVERGENCES");qbr_on=qbr_path&&*qbr_path;}
+if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;
+qbr_seen[qbr_n]=1;
+FILE *qbr_f=fopen(qbr_path,"ab");
+if (qbr_f){fprintf(qbr_f,"D-%03d\n",(int)qbr_n);fclose(qbr_f);}
+}
+static void qbr_diverged_on(int32 qbr_n){
+if (new_error>=300&&new_error<=315) return;
+const char *qbr_np=getenv("QB64PE_NOPROMPT");
+if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);
+}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}return qb_l%qb_r;}
+void *__UDT_P=NULL;
+void *__UDT_Q=NULL;
+ptrszint *__ARRAY_UDT_SHIPS=NULL;
+ptrszint *__ARRAY_LONG_A=NULL;
+ptrszint *__ARRAY_LONG_C=NULL;
+ptrszint *__ARRAY_STRING_N=NULL;
+float *__SINGLE_K=NULL;
+qbs *__STRING_F=NULL;
+ptrszint *__ARRAY_SINGLE_D=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=4;
+uint8 inline_data[]={
+97,98,99,44,
+0};
+uint8 *data=&inline_data[0];
+#define QBR_TRC_ENTRIES 14
+#define QBR_TRC_FILES 1
+#define QBR_TRC_ALIASES 1
+#define QBR_TRC_UNTRACED 2
+static const char *const qbr_trc_names[]={"K\011SINGLE\011-","A()\011LONG\011-","P.X\011INTEGER\011-","SHIPS().X\011INTEGER\011-","P.V()\011LONG\011-","Q.X\011INTEGER\011-","Q.V()\011LONG\011-","N()\011STRING\011-","C()\011LONG\011-","F\011STRING\011-","N\011SINGLE\011BUMP","B()\011LONG\011FILL","N\011SINGLE\011TWICE","TWICE\011SINGLE\011TWICE"};
+static const uint8 qbr_trc_kinds[]={2,0,0,0,0,0,0,5,0,5,2,0,2,2};
+static const uint32 qbr_trc_sites[]={0,17,0,18,0,19,0,20,0,21,0,22,0,23,0,24,0,25,0,26,0,28,0,29,0,30,0,31,0,32,0,33,0,35,0,36,0,37,0,38,0,39,0,43,0,47,0,51,0,52};
+static const char *const qbr_trc_files[]={"63108bc43376d928\011value_trace_trace.bas"};
+static const char *const qbr_trc_alias[]={"A()\011-\011FILL\011B()"};
+static const uint32 qbr_trc_alias_at[]={0,29};
+static const char *const qbr_trc_untraced[]={"REDIM\011D()\011-","POKE\011-\011-"};
+static const uint32 qbr_trc_untraced_at[]={0,38,0,39};
+static uint64 qbr_trc_al[1];
+static uint64 qbr_trc_un[2];
+// The run-time part of a value-trace build (`trace.rs`, design D3 of `value-trace`). It follows the tables
+// `trace.rs` writes: the entries, the sites, the files, the aliases and the untraced stores.
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <algorithm>
+
+// The kinds of an entry (`qbr_trc_kinds`).
+#define QBR_TRC_INT 0
+#define QBR_TRC_UINT 1
+#define QBR_TRC_F32 2
+#define QBR_TRC_F64 3
+#define QBR_TRC_F80 4
+#define QBR_TRC_STR 5
+
+// mingw's own printf reads an 80-bit `long double`; the C runtime's does not.
+#ifdef __MINGW32__
+#define QBR_TRC_SNPRINTF __mingw_snprintf
+#else
+#define QBR_TRC_SNPRINTF snprintf
+#endif
+
+// A distinct value of an entry: how often it was recorded, the site that first recorded it, its place in the
+// order of first records, and for a string keyed by its hash, its first bytes.
+struct qbr_trc_value {
+    uint64 count;
+    uint32 site;
+    uint32 order;
+    std::string head;
+};
+
+struct qbr_trc_entry {
+    // A number's key is its stored bytes. A string's is `S` and its bytes, or above 4096 bytes `H`, its length and
+    // the FNV-1a 64 hash of its bytes, 8 bytes each.
+    std::unordered_map<std::string, qbr_trc_value> values;
+    std::string last;
+    uint64 stores = 0, after_calls = 0;
+    bool has_last = false, cut = false, ranged = false;
+    int64 imin = 0, imax = 0;
+    uint64 umin = 0, umax = 0;
+    long double fmin = 0, fmax = 0;
+};
+
+// Never freed: the writer reads them at exit.
+static qbr_trc_entry *qbr_trc_e = new qbr_trc_entry[QBR_TRC_ENTRIES + 1];
+static size_t qbr_trc_limit = 0;
+
+// The limit of distinct values per entry: 256, or the number `QB64RUST_TRACE_LIMIT` gives. Read once.
+static size_t qbr_trc_get_limit() {
+    const char *qbr_text = getenv("QB64RUST_TRACE_LIMIT");
+    long long qbr_n = qbr_text ? atoll(qbr_text) : 0;
+    return qbr_n > 0 ? (size_t)qbr_n : 256;
+}
+
+// Records `key` in entry `e`. An after-call record is dropped when the value is the entry's last recorded one, or
+// its starting value (`zero`) when nothing was recorded yet. Gives whether the value was recorded.
+static bool qbr_trc_put(int32 e, const std::string &key, int32 site, bool after, bool zero, const uint8 *head,
+                        size_t head_len) {
+    qbr_trc_entry &t = qbr_trc_e[e];
+    if (after) {
+        if (t.has_last ? t.last == key : zero)
+            return false;
+        t.after_calls++;
+    } else {
+        t.stores++;
+    }
+    t.last = key;
+    t.has_last = true;
+    auto found = t.values.find(key);
+    if (found != t.values.end()) {
+        found->second.count++;
+        return true;
+    }
+    if (!qbr_trc_limit)
+        qbr_trc_limit = qbr_trc_get_limit();
+    if (t.values.size() >= qbr_trc_limit) {
+        t.cut = true;
+        return true;
+    }
+    qbr_trc_value v;
+    v.count = 1;
+    v.site = (uint32)site;
+    v.order = (uint32)t.values.size();
+    if (head)
+        v.head.assign((const char *)head, head_len);
+    t.values.emplace(key, v);
+    return true;
+}
+
+static void qbr_trc_int(int32 e, int64 v, int32 site, bool after) {
+    if (!qbr_trc_put(e, std::string((const char *)&v, 8), site, after, v == 0, NULL, 0))
+        return;
+    qbr_trc_entry &t = qbr_trc_e[e];
+    if (!t.ranged) {
+        t.imin = t.imax = v;
+        t.ranged = true;
+    } else if (v < t.imin) {
+        t.imin = v;
+    } else if (v > t.imax) {
+        t.imax = v;
+    }
+}
+
+static void qbr_trc_uint(int32 e, uint64 v, int32 site, bool after) {
+    if (!qbr_trc_put(e, std::string((const char *)&v, 8), site, after, v == 0, NULL, 0))
+        return;
+    qbr_trc_entry &t = qbr_trc_e[e];
+    if (!t.ranged) {
+        t.umin = t.umax = v;
+        t.ranged = true;
+    } else if (v < t.umin) {
+        t.umin = v;
+    } else if (v > t.umax) {
+        t.umax = v;
+    }
+}
+
+// A float's key is its bytes, so -0 and 0 are two values and each NaN pattern is one of its own. A NaN leaves the
+// range as it is.
+static void qbr_trc_float(int32 e, const char *bytes, size_t size, long double v, int32 site, bool after) {
+    bool zero = true;
+    for (size_t i = 0; i < size; i++)
+        zero = zero && !bytes[i];
+    if (!qbr_trc_put(e, std::string(bytes, size), site, after, zero, NULL, 0) || v != v)
+        return;
+    qbr_trc_entry &t = qbr_trc_e[e];
+    if (!t.ranged) {
+        t.fmin = t.fmax = v;
+        t.ranged = true;
+    } else if (v < t.fmin) {
+        t.fmin = v;
+    } else if (v > t.fmax) {
+        t.fmax = v;
+    }
+}
+
+// The FNV-1a 64 hash of `len` bytes.
+static uint64 qbr_trc_fnv(const char *bytes, size_t len) {
+    uint64 h = 0xcbf29ce484222325ull;
+    for (size_t i = 0; i < len; i++)
+        h = (h ^ (uint8)bytes[i]) * 0x100000001b3ull;
+    return h;
+}
+
+static void qbr_trc_bytes(int32 e, const uint8 *bytes, int64 len, bool fixed, int32 site, bool after) {
+    if (len < 0)
+        len = 0;
+    std::string key;
+    const uint8 *head = NULL;
+    if (len > 4096) {
+        uint64 n = (uint64)len, h = qbr_trc_fnv((const char *)bytes, (size_t)len);
+        key.assign(1, 'H');
+        key.append((const char *)&n, 8);
+        key.append((const char *)&h, 8);
+        head = bytes;
+    } else {
+        key.assign(1, 'S');
+        key.append((const char *)bytes, (size_t)len);
+    }
+    // The starting value: an empty string, or the NUL bytes of a fixed-length one.
+    bool zero = !fixed && !len;
+    if (after && fixed) {
+        zero = true;
+        for (int64 i = 0; i < len; i++)
+            zero = zero && !bytes[i];
+    }
+    if (!qbr_trc_put(e, key, site, after, zero, head, 200))
+        return;
+    qbr_trc_entry &t = qbr_trc_e[e];
+    if (!t.ranged) {
+        t.imin = t.imax = len;
+        t.ranged = true;
+    } else if (len < t.imin) {
+        t.imin = len;
+    } else if (len > t.imax) {
+        t.imax = len;
+    }
+}
+
+// The record calls of a store: `qbr_trc_<kind>(entry, value, site)`.
+static inline void qbr_trc_i(int32 e, int64 v, int32 site) { qbr_trc_int(e, v, site, false); }
+static inline void qbr_trc_u(int32 e, uint64 v, int32 site) { qbr_trc_uint(e, v, site, false); }
+static inline void qbr_trc_f32(int32 e, float v, int32 site) { qbr_trc_float(e, (const char *)&v, 4, v, site, false); }
+static inline void qbr_trc_f64(int32 e, double v, int32 site) { qbr_trc_float(e, (const char *)&v, 8, v, site, false); }
+static inline void qbr_trc_f80(int32 e, long double v, int32 site) {
+    qbr_trc_float(e, (const char *)&v, sizeof(v) < 10 ? sizeof(v) : 10, v, site, false);
+}
+static inline void qbr_trc_s(int32 e, qbs *v, int32 site) { qbr_trc_bytes(e, v->chr, v->len, v->fixed, site, false); }
+// The `len` bytes of a fixed-length string at `v`.
+static inline void qbr_trc_b(int32 e, const void *v, int64 len, int32 site) {
+    qbr_trc_bytes(e, (const uint8 *)v, len, true, site, false);
+}
+
+// The same after a call that was given the variable by reference: recorded when the value changed.
+static inline void qbr_trc_ai(int32 e, int64 v, int32 site) { qbr_trc_int(e, v, site, true); }
+static inline void qbr_trc_au(int32 e, uint64 v, int32 site) { qbr_trc_uint(e, v, site, true); }
+static inline void qbr_trc_af32(int32 e, float v, int32 site) { qbr_trc_float(e, (const char *)&v, 4, v, site, true); }
+static inline void qbr_trc_af64(int32 e, double v, int32 site) { qbr_trc_float(e, (const char *)&v, 8, v, site, true); }
+static inline void qbr_trc_af80(int32 e, long double v, int32 site) {
+    qbr_trc_float(e, (const char *)&v, sizeof(v) < 10 ? sizeof(v) : 10, v, site, true);
+}
+static inline void qbr_trc_as(int32 e, qbs *v, int32 site) { qbr_trc_bytes(e, v->chr, v->len, v->fixed, site, true); }
+static inline void qbr_trc_ab(int32 e, const void *v, int64 len, int32 site) {
+    qbr_trc_bytes(e, (const uint8 *)v, len, true, site, true);
+}
+
+// Bytes as a JSON string of ASCII: a byte outside printable ASCII is `\u00XX`.
+static void qbr_trc_json(FILE *f, const uint8 *bytes, size_t len) {
+    fputc('"', f);
+    for (size_t i = 0; i < len; i++) {
+        uint8 c = bytes[i];
+        if (c == '"' || c == '\\')
+            fprintf(f, "\\%c", c);
+        else if (c < 0x20 || c > 0x7e)
+            fprintf(f, "\\u%04x", (unsigned)c);
+        else
+            fputc(c, f);
+    }
+    fputc('"', f);
+}
+
+// The text of a number from its key: an integer in decimal, a float so that it reads back to the same value.
+static void qbr_trc_number(FILE *f, int32 kind, const char *bytes) {
+    char text[64];
+    if (kind == QBR_TRC_INT) {
+        int64 v;
+        memcpy(&v, bytes, 8);
+        QBR_TRC_SNPRINTF(text, sizeof(text), "%lld", (long long)v);
+    } else if (kind == QBR_TRC_UINT) {
+        uint64 v;
+        memcpy(&v, bytes, 8);
+        QBR_TRC_SNPRINTF(text, sizeof(text), "%llu", (unsigned long long)v);
+    } else if (kind == QBR_TRC_F32) {
+        float v;
+        memcpy(&v, bytes, 4);
+        QBR_TRC_SNPRINTF(text, sizeof(text), "%.9g", (double)v);
+    } else if (kind == QBR_TRC_F64) {
+        double v;
+        memcpy(&v, bytes, 8);
+        QBR_TRC_SNPRINTF(text, sizeof(text), "%.17g", v);
+    } else {
+        long double v = 0;
+        memcpy(&v, bytes, sizeof(v) < 10 ? sizeof(v) : 10);
+        QBR_TRC_SNPRINTF(text, sizeof(text), "%.21Lg", v);
+    }
+    fputs(text, f);
+}
+
+// One end of an entry's range.
+static void qbr_trc_bound(FILE *f, int32 kind, const qbr_trc_entry &t, bool max) {
+    if (!t.ranged) {
+        fputc('-', f);
+    } else if (kind == QBR_TRC_INT || kind == QBR_TRC_STR) {
+        fprintf(f, "%lld", (long long)(max ? t.imax : t.imin));
+    } else if (kind == QBR_TRC_UINT) {
+        fprintf(f, "%llu", (unsigned long long)(max ? t.umax : t.umin));
+    } else {
+        long double v = max ? t.fmax : t.fmin;
+        if (kind == QBR_TRC_F32) {
+            float x = (float)v;
+            qbr_trc_number(f, kind, (const char *)&x);
+        } else if (kind == QBR_TRC_F64) {
+            double x = (double)v;
+            qbr_trc_number(f, kind, (const char *)&x);
+        } else {
+            qbr_trc_number(f, kind, (const char *)&v);
+        }
+    }
+}
+
+// The record (design D6), appended to the file `QB64RUST_TRACE` names. Registered with `atexit` and
+// `at_quick_exit`: every end of a libqb program reaches one of them.
+static void qbr_trc_write() {
+    const char *qbr_path = getenv("QB64RUST_TRACE");
+    if (!qbr_path || !*qbr_path)
+        return;
+    FILE *f = fopen(qbr_path, "ab");
+    if (!f)
+        return;
+    fprintf(f, "trace 1\n");
+    for (int32 i = 0; i < QBR_TRC_FILES; i++)
+        fprintf(f, "file\t%d\t%s\n", (int)i, qbr_trc_files[i]);
+    for (int32 e = 0; e < QBR_TRC_ENTRIES; e++) {
+        const qbr_trc_entry &t = qbr_trc_e[e];
+        if (!t.stores && !t.after_calls)
+            continue;
+        int32 kind = qbr_trc_kinds[e];
+        fprintf(f, "entry\t%d\t%s\t%llu\t%llu\t%llu\t%d\t", (int)e, qbr_trc_names[e], (unsigned long long)t.stores,
+                (unsigned long long)t.after_calls, (unsigned long long)t.values.size(), (int)t.cut);
+        qbr_trc_bound(f, kind, t, false);
+        fputc('\t', f);
+        qbr_trc_bound(f, kind, t, true);
+        fputc('\n', f);
+        // The values in the order they were first recorded.
+        std::vector<const std::pair<const std::string, qbr_trc_value> *> values;
+        for (const auto &v : t.values)
+            values.push_back(&v);
+        std::sort(values.begin(), values.end(),
+                  [](const auto *a, const auto *b) { return a->second.order < b->second.order; });
+        for (const auto *v : values) {
+            const std::string &key = v->first;
+            fprintf(f, "value\t%d\t%llu\t%u\t%u\t", (int)e, (unsigned long long)v->second.count,
+                    (unsigned)qbr_trc_sites[2 * v->second.site], (unsigned)qbr_trc_sites[2 * v->second.site + 1]);
+            if (kind != QBR_TRC_STR) {
+                qbr_trc_number(f, kind, key.data());
+            } else if (key[0] == 'H') {
+                // The first 200 bytes, then the full length and the hash of all the bytes, which tell apart two
+                // strings that share their first 200 bytes.
+                uint64 n, h;
+                memcpy(&n, key.data() + 1, 8);
+                memcpy(&h, key.data() + 9, 8);
+                qbr_trc_json(f, (const uint8 *)v->second.head.data(), v->second.head.size());
+                fprintf(f, "\t%llu\t%016llx", (unsigned long long)n, (unsigned long long)h);
+            } else if (key.size() - 1 > 200) {
+                qbr_trc_json(f, (const uint8 *)key.data() + 1, 200);
+                fprintf(f, "\t%llu\t%016llx", (unsigned long long)(key.size() - 1),
+                        (unsigned long long)qbr_trc_fnv(key.data() + 1, key.size() - 1));
+            } else {
+                qbr_trc_json(f, (const uint8 *)key.data() + 1, key.size() - 1);
+            }
+            fputc('\n', f);
+        }
+    }
+    for (int32 i = 0; i < QBR_TRC_ALIASES; i++)
+        if (qbr_trc_al[i])
+            fprintf(f, "alias\t%u\t%u\t%llu\t%s\n", (unsigned)qbr_trc_alias_at[2 * i],
+                    (unsigned)qbr_trc_alias_at[2 * i + 1], (unsigned long long)qbr_trc_al[i], qbr_trc_alias[i]);
+    for (int32 i = 0; i < QBR_TRC_UNTRACED; i++)
+        if (qbr_trc_un[i])
+            fprintf(f, "untraced\t%u\t%u\t%llu\t%s\n", (unsigned)qbr_trc_untraced_at[2 * i],
+                    (unsigned)qbr_trc_untraced_at[2 * i + 1], (unsigned long long)qbr_trc_un[i], qbr_trc_untraced[i]);
+    fprintf(f, "end\n");
+    fclose(f);
+}
+static const int32 qbr_trc_registered = atexit(qbr_trc_write) | at_quick_exit(qbr_trc_write);
+==> regsf.txt <==
+void SUB_BUMP(float*_SUB_BUMP_SINGLE_N);
+void SUB_FILL(ptrszint*_SUB_FILL_ARRAY_LONG_B);
+float FUNC_TWICE(float*_FUNC_TWICE_SINGLE_N);
+==> clear.txt <==
+memset((void*)__UDT_P,0,14);
+memset((void*)__UDT_Q,0,14);
+memset((void*)(__ARRAY_UDT_SHIPS[0]),0,__ARRAY_UDT_SHIPS[5]*14);
+memset((void*)(__ARRAY_LONG_A[0]),0,__ARRAY_LONG_A[5]*4);
+memset((void*)(__ARRAY_LONG_C[0]),0,__ARRAY_LONG_C[5]*4);
+tmp_long=__ARRAY_STRING_N[5];
+while(tmp_long--){
+(((qbs**)(__ARRAY_STRING_N[0]))[tmp_long])->len=0;
+}
+*__SINGLE_K=0;
+__STRING_F->len=0;
+if (__ARRAY_SINGLE_D[2]&1){
+((mem_lock*)((ptrszint*)__ARRAY_SINGLE_D)[8])->id=(++mem_lock_id);
+if (__ARRAY_SINGLE_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_D[0])); else free((void*)(__ARRAY_SINGLE_D[0]));
+__ARRAY_SINGLE_D[2]^=1;
+__ARRAY_SINGLE_D[4]=2147483647;
+__ARRAY_SINGLE_D[5]=0;
+__ARRAY_SINGLE_D[6]=0;
+__ARRAY_SINGLE_D[0]=(ptrszint)nothingvalue;
+}
+==> maindata.txt <==
+if(__UDT_P==NULL){
+__UDT_P=(void*)mem_static_malloc(14);
+memset(__UDT_P,0,14);
+}
+if(__UDT_Q==NULL){
+__UDT_Q=(void*)mem_static_malloc(14);
+memset(__UDT_Q,0,14);
+}
+if (!__ARRAY_UDT_SHIPS){
+__ARRAY_UDT_SHIPS=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_SHIPS)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_SHIPS[4]=0ll;
+__ARRAY_UDT_SHIPS[5]=(3ll)-__ARRAY_UDT_SHIPS[4]+1;
+if (__ARRAY_UDT_SHIPS[5]<=0) error(5);
+__ARRAY_UDT_SHIPS[6]=1;
+__ARRAY_UDT_SHIPS[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_SHIPS[5]*14);
+memset((void*)(__ARRAY_UDT_SHIPS[0]),0,__ARRAY_UDT_SHIPS[5]*14);
+__ARRAY_UDT_SHIPS[2]=1+2;
+}
+if (!__ARRAY_LONG_A){
+__ARRAY_LONG_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_A[4]=0ll;
+__ARRAY_LONG_A[5]=(5ll)-__ARRAY_LONG_A[4]+1;
+if (__ARRAY_LONG_A[5]<=0) error(5);
+__ARRAY_LONG_A[6]=1;
+__ARRAY_LONG_A[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_A[5]*4);
+memset((void*)(__ARRAY_LONG_A[0]),0,__ARRAY_LONG_A[5]*4);
+__ARRAY_LONG_A[2]=1+2;
+}
+if (!__ARRAY_LONG_C){
+__ARRAY_LONG_C=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_LONG_C)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_LONG_C[4]=0ll;
+__ARRAY_LONG_C[5]=(5ll)-__ARRAY_LONG_C[4]+1;
+if (__ARRAY_LONG_C[5]<=0) error(5);
+__ARRAY_LONG_C[6]=1;
+__ARRAY_LONG_C[0]=(ptrszint)mem_static_malloc(__ARRAY_LONG_C[5]*4);
+memset((void*)(__ARRAY_LONG_C[0]),0,__ARRAY_LONG_C[5]*4);
+__ARRAY_LONG_C[2]=1+2;
+}
+if (!__ARRAY_STRING_N){
+__ARRAY_STRING_N=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_N)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_N[4]=0ll;
+__ARRAY_STRING_N[5]=(2ll)-__ARRAY_STRING_N[4]+1;
+if (__ARRAY_STRING_N[5]<=0) error(5);
+__ARRAY_STRING_N[6]=1;
+__ARRAY_STRING_N[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING_N[5]*ptrsz);
+tmp_long=__ARRAY_STRING_N[5];
+while(tmp_long--){
+((qbs**)(__ARRAY_STRING_N[0]))[tmp_long]=qbs_new(0,0);
+}
+__ARRAY_STRING_N[2]=1+2;
+}
+if(__SINGLE_K==NULL){
+__SINGLE_K=(float*)mem_static_malloc(4);
+*__SINGLE_K=0;
+}
+if (!__STRING_F)__STRING_F=qbs_new(0,0);
+if (!__ARRAY_SINGLE_D){
+__ARRAY_SINGLE_D=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_SINGLE_D)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_SINGLE_D[2]=0;
+__ARRAY_SINGLE_D[4]=2147483647;
+__ARRAY_SINGLE_D[5]=0;
+__ARRAY_SINGLE_D[6]=0;
+__ARRAY_SINGLE_D[0]=(ptrszint)nothingvalue;
+}
+int32 *qbr_trc_p1;
+int32 *qbr_trc_p2;
+qbs *qbr_trc_p3;
+float *qbr_trc_p4;
+qbs *qbr_trc_p5;
+qbs *qbr_trc_p6;
+byte_element_struct *byte_element_1=NULL;
+if (!byte_element_1){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_1=(byte_element_struct*)(mem_static_pointer-12); else byte_element_1=(byte_element_struct*)mem_static_malloc(12);
+}
+int32 qbr_trc_p7=0;
+byte_element_struct *byte_element_2=NULL;
+if (!byte_element_2){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_2=(byte_element_struct*)(mem_static_pointer-12); else byte_element_2=(byte_element_struct*)mem_static_malloc(12);
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+#include "main2.txt"
+#include "main3.txt"
+qbs *func__compdate() {
+return qbs_new_txt("");
+}
+qbs *func__comptime() {
+return qbs_new_txt("");
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 10 "value_trace_trace.bas"
+do{
+#line 10 "value_trace_trace.bas"
+sub__dest(func__console());
+#line 10 "value_trace_trace.bas"
+sub__source(func__console());
+#line 10 "value_trace_trace.bas"
+if(!qbevent)break;evnt(10);}while(r);
+#line 17 "value_trace_trace.bas"
+do{
+#line 17 "value_trace_trace.bas"
+*__SINGLE_K=((float)(1));
+#line 17 "value_trace_trace.bas"
+qbr_trc_f32(0,*__SINGLE_K,0);
+#line 17 "value_trace_trace.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "value_trace_trace.bas"
+do{
+#line 18 "value_trace_trace.bas"
+tmp_long=array_check((qbr(*__SINGLE_K))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5]);
+#line 18 "value_trace_trace.bas"
+if (!is_error_pending()) {((int32*)(__ARRAY_LONG_A[0]))[tmp_long]=2;qbr_trc_i(1,((int32*)(__ARRAY_LONG_A[0]))[tmp_long],1);}
+#line 18 "value_trace_trace.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "value_trace_trace.bas"
+do{
+#line 19 "value_trace_trace.bas"
+*(int16*)((((char*)__UDT_P)+0))=3;
+#line 19 "value_trace_trace.bas"
+qbr_trc_i(2,*(int16*)((((char*)__UDT_P)+0)),2);
+#line 19 "value_trace_trace.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "value_trace_trace.bas"
+do{
+#line 20 "value_trace_trace.bas"
+{
+#line 20 "value_trace_trace.bas"
+int16 mbr_value=4;
+#line 20 "value_trace_trace.bas"
+int32 mbr_pending=is_error_pending();
+#line 20 "value_trace_trace.bas"
+int32 mbr_bad=0;
+#line 20 "value_trace_trace.bas"
+int64 mbr_k;
+#line 20 "value_trace_trace.bas"
+ptrszint mbr_off=0;
+#line 20 "value_trace_trace.bas"
+mbr_k=(qbr(*__SINGLE_K))-__ARRAY_UDT_SHIPS[4];
+#line 20 "value_trace_trace.bas"
+if ((uptrszint)mbr_k>=(uptrszint)__ARRAY_UDT_SHIPS[5]){qbr_diverged_on(4);error(9);mbr_bad=1;}
+#line 20 "value_trace_trace.bas"
+mbr_off=mbr_k;
+#line 20 "value_trace_trace.bas"
+mbr_off*=14;
+#line 20 "value_trace_trace.bas"
+int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 20 "value_trace_trace.bas"
+if (!mbr_bad&&!mbr_ok) qbr_diverged_on(4);
+#line 20 "value_trace_trace.bas"
+if (mbr_ok) {*(int16*)(((char*)__ARRAY_UDT_SHIPS[0])+mbr_off)=mbr_value;qbr_trc_i(3,*(int16*)((((char*)__ARRAY_UDT_SHIPS[0])+mbr_off)),3);}
+#line 20 "value_trace_trace.bas"
+}
+#line 20 "value_trace_trace.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "value_trace_trace.bas"
+do{
+#line 21 "value_trace_trace.bas"
+{
+#line 21 "value_trace_trace.bas"
+int32 mbr_value=5;
+#line 21 "value_trace_trace.bas"
+int32 mbr_pending=is_error_pending();
+#line 21 "value_trace_trace.bas"
+int32 mbr_bad=0;
+#line 21 "value_trace_trace.bas"
+int64 mbr_k;
+#line 21 "value_trace_trace.bas"
+ptrszint mbr_off=0;
+#line 21 "value_trace_trace.bas"
+mbr_off+=2;
+#line 21 "value_trace_trace.bas"
+mbr_k=(qbr(*__SINGLE_K))-0ll;
+#line 21 "value_trace_trace.bas"
+if ((uptrszint)mbr_k>=(uptrszint)3){qbr_diverged_on(4);error(9);mbr_bad=1;}
+#line 21 "value_trace_trace.bas"
+mbr_off+=mbr_k*4;
+#line 21 "value_trace_trace.bas"
+int32 mbr_ok=!mbr_bad&&(mbr_pending||!is_error_pending());
+#line 21 "value_trace_trace.bas"
+if (!mbr_bad&&!mbr_ok) qbr_diverged_on(4);
+#line 21 "value_trace_trace.bas"
+if (mbr_ok) {*(int32*)(((char*)__UDT_P)+mbr_off)=mbr_value;qbr_trc_i(4,*(int32*)((((char*)__UDT_P)+mbr_off)),4);}
+#line 21 "value_trace_trace.bas"
+}
+#line 21 "value_trace_trace.bas"
+if(!qbevent)break;evnt(21);}while(r);
+#line 22 "value_trace_trace.bas"
+do{
+#line 22 "value_trace_trace.bas"
+{
+#line 22 "value_trace_trace.bas"
+char *copy_to=((char*)__UDT_Q);
+#line 22 "value_trace_trace.bas"
+char *copy_from=((char*)__UDT_P);
+#line 22 "value_trace_trace.bas"
+memmove(copy_to+0,copy_from+0,14);
+#line 22 "value_trace_trace.bas"
+qbr_trc_i(5,*(int16*)(copy_to+0),5);
+#line 22 "value_trace_trace.bas"
+for(ptrszint qbr_trc_i0=0;qbr_trc_i0<3;qbr_trc_i0++){
+#line 22 "value_trace_trace.bas"
+qbr_trc_i(6,*(int32*)(copy_to+2+qbr_trc_i0*4),5);
+#line 22 "value_trace_trace.bas"
+}
+#line 22 "value_trace_trace.bas"
+}
+#line 22 "value_trace_trace.bas"
+if(!qbevent)break;evnt(22);}while(r);
+#line 23 "value_trace_trace.bas"
+do{
+#line 23 "value_trace_trace.bas"
+swap_32((qbr_trc_p1=&((int32*)(__ARRAY_LONG_A[0]))[array_check((1ll)-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])]),(qbr_trc_p2=&((int32*)(__ARRAY_LONG_A[0]))[array_check((2ll)-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])]));
+#line 23 "value_trace_trace.bas"
+if (!is_error_pending()){qbr_trc_i(1,*qbr_trc_p1,6);qbr_trc_i(1,*qbr_trc_p2,6);}
+#line 23 "value_trace_trace.bas"
+if(!qbevent)break;evnt(23);}while(r);
+#line 24 "value_trace_trace.bas"
+do{
+#line 24 "value_trace_trace.bas"
+sub_mid((qbr_trc_p3=(((qbs**)(__ARRAY_STRING_N[0]))[array_check((1ll)-__ARRAY_STRING_N[4],__ARRAY_STRING_N[5])])),1,1,qbs_new_txt_len("x",1),1);
+#line 24 "value_trace_trace.bas"
+if (!is_error_pending()){qbr_trc_s(7,qbr_trc_p3,7);}
+#line 24 "value_trace_trace.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 24 "value_trace_trace.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "value_trace_trace.bas"
+do{
+#line 25 "value_trace_trace.bas"
+qbs_print(qbs_new_txt("? "),0);
+#line 25 "value_trace_trace.bas"
+qbs_input_variabletypes[1]=536870944;
+#line 25 "value_trace_trace.bas"
+qbs_input_variableoffsets[1]=(qbr_trc_p4=&(*__SINGLE_K));
+#line 25 "value_trace_trace.bas"
+qbs_input_variabletypes[2]=ISSTRING;
+#line 25 "value_trace_trace.bas"
+qbs_input_variableoffsets[2]=(qbr_trc_p5=(((qbs**)(__ARRAY_STRING_N[0]))[array_check((2ll)-__ARRAY_STRING_N[4],__ARRAY_STRING_N[5])]));
+#line 25 "value_trace_trace.bas"
+qbs_input(2,1);
+#line 25 "value_trace_trace.bas"
+if (stop_program) end();
+#line 25 "value_trace_trace.bas"
+if (!is_error_pending()){qbr_trc_f32(0,*qbr_trc_p4,8);qbr_trc_s(7,qbr_trc_p5,8);}
+#line 25 "value_trace_trace.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 25 "value_trace_trace.bas"
+if(!qbevent)break;evnt(25);}while(r);
+#line 26 "value_trace_trace.bas"
+do{
+#line 26 "value_trace_trace.bas"
+sub_read_string(data,&data_offset,data_size,(qbr_trc_p6=(((qbs**)(__ARRAY_STRING_N[0]))[array_check((0ll)-__ARRAY_STRING_N[4],__ARRAY_STRING_N[5])])));if (!is_error_pending()){qbr_trc_s(7,qbr_trc_p6,9);}
+#line 26 "value_trace_trace.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 26 "value_trace_trace.bas"
+if(!qbevent)break;evnt(26);}while(r);
+#line 28 "value_trace_trace.bas"
+do{
+#line 28 "value_trace_trace.bas"
+SUB_BUMP(__SINGLE_K);
+#line 28 "value_trace_trace.bas"
+qbr_trc_af32(0,*__SINGLE_K,10);
+#line 28 "value_trace_trace.bas"
+if(!qbevent)break;evnt(28);}while(r);
+#line 29 "value_trace_trace.bas"
+do{
+#line 29 "value_trace_trace.bas"
+SUB_FILL(__ARRAY_LONG_A);
+#line 29 "value_trace_trace.bas"
+qbr_trc_al[0]++;
+#line 29 "value_trace_trace.bas"
+if(!qbevent)break;evnt(29);}while(r);
+#line 30 "value_trace_trace.bas"
+do{
+#line 30 "value_trace_trace.bas"
+{bool qbr_trc_taken=(!(FUNC_TWICE(__SINGLE_K)))&&(!is_error_pending());
+#line 30 "value_trace_trace.bas"
+qbr_trc_af32(0,*__SINGLE_K,12);
+#line 30 "value_trace_trace.bas"
+if (qbr_trc_taken) goto L_0;}
+#line 30 "value_trace_trace.bas"
+if(!qbevent)break;evnt(30);}while(r);
+#line 30 "value_trace_trace.bas"
+do{
+#line 30 "value_trace_trace.bas"
+tqbs=qbs_new(0,0);
+#line 30 "value_trace_trace.bas"
+qbs_set(tqbs,qbs_add(qbs_str((float)(*__SINGLE_K)),qbs_new_txt(" ")));
+#line 30 "value_trace_trace.bas"
+if (is_error_pending()) goto skip1;
+#line 30 "value_trace_trace.bas"
+makefit(tqbs);
+#line 30 "value_trace_trace.bas"
+qbs_print(tqbs,0);
+#line 30 "value_trace_trace.bas"
+qbs_print(nothingstring,1);
+#line 30 "value_trace_trace.bas"
+skip1:
+#line 30 "value_trace_trace.bas"
+qbs_free(tqbs);
+#line 30 "value_trace_trace.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 30 "value_trace_trace.bas"
+if(!qbevent)break;evnt(30);}while(r);
+#line 30 "value_trace_trace.bas"
+L_0:;
+#line 31 "value_trace_trace.bas"
+do{
+#line 31 "value_trace_trace.bas"
+{
+#line 31 "value_trace_trace.bas"
+ptrszint *whole_arr_dst=__ARRAY_LONG_C;
+#line 31 "value_trace_trace.bas"
+ptrszint *whole_arr_src=__ARRAY_LONG_A;
+#line 31 "value_trace_trace.bas"
+int32 whole_arr_ok=1;
+#line 31 "value_trace_trace.bas"
+uint64 whole_arr_total=1;
+#line 31 "value_trace_trace.bas"
+if (!(whole_arr_dst[2]&1)||!(whole_arr_src[2]&1)||(!whole_arr_dst[0])||(!whole_arr_src[0])||(whole_arr_dst[0]==(ptrszint)nothingvalue)||(whole_arr_src[0]==(ptrszint)nothingvalue)){error(9); whole_arr_ok=0;}
+#line 31 "value_trace_trace.bas"
+if (whole_arr_ok){
+#line 31 "value_trace_trace.bas"
+for(ptrszint whole_arr_dim=1; whole_arr_dim<=1; whole_arr_dim++){
+#line 31 "value_trace_trace.bas"
+ptrszint whole_arr_arg=(1-whole_arr_dim)*4+4;
+#line 31 "value_trace_trace.bas"
+if ((whole_arr_dst[whole_arr_arg]!=whole_arr_src[whole_arr_arg])||(whole_arr_dst[whole_arr_arg+1]!=whole_arr_src[whole_arr_arg+1])){error(9); whole_arr_ok=0; break;}
+#line 31 "value_trace_trace.bas"
+if (whole_arr_dst[whole_arr_arg+1]<0){error(9); whole_arr_ok=0; break;}
+#line 31 "value_trace_trace.bas"
+if (whole_arr_dst[whole_arr_arg+1]&&whole_arr_total>(18446744073709551615ull/(uint64)whole_arr_dst[whole_arr_arg+1])){error(257); whole_arr_ok=0; break;}
+#line 31 "value_trace_trace.bas"
+whole_arr_total*=(uint64)whole_arr_dst[whole_arr_arg+1];
+#line 31 "value_trace_trace.bas"
+}
+#line 31 "value_trace_trace.bas"
+}
+#line 31 "value_trace_trace.bas"
+if (whole_arr_ok&&(whole_arr_dst[0]!=whole_arr_src[0])){
+#line 31 "value_trace_trace.bas"
+if (whole_arr_total>(18446744073709551615ull/(uint64)(4))) error(257);
+#line 31 "value_trace_trace.bas"
+if (!is_error_pending()) memmove((void*)whole_arr_dst[0],(void*)whole_arr_src[0],(size_t)(whole_arr_total*(uint64)(4)));
+#line 31 "value_trace_trace.bas"
+if (!is_error_pending()){for(ptrszint qbr_trc_e=0;qbr_trc_e<(ptrszint)(whole_arr_total);qbr_trc_e++){qbr_trc_i(8,*(int32*)(((char*)(whole_arr_dst[0]))+((0)+qbr_trc_e)*4),13);}}
+#line 31 "value_trace_trace.bas"
+}
+#line 31 "value_trace_trace.bas"
+}
+#line 31 "value_trace_trace.bas"
+if(!qbevent)break;evnt(31);}while(r);
+#line 32 "value_trace_trace.bas"
+do{
+#line 32 "value_trace_trace.bas"
+{
+#line 32 "value_trace_trace.bas"
+int64 array_copy_src_low=(int64)(1);
+#line 32 "value_trace_trace.bas"
+int64 array_copy_src_high=(int64)(2);
+#line 32 "value_trace_trace.bas"
+int64 array_copy_dst_start=(int64)(4);
+#line 32 "value_trace_trace.bas"
+ptrszint *array_copy_src=__ARRAY_LONG_A;
+#line 32 "value_trace_trace.bas"
+ptrszint *array_copy_dst=__ARRAY_LONG_C;
+#line 32 "value_trace_trace.bas"
+{qb64_array_copy_1d_range_at_fixed(array_copy_src,array_copy_dst,array_copy_src_low,array_copy_src_high,array_copy_dst_start,(uint64)4);if (!is_error_pending()){for(ptrszint qbr_trc_e=0;qbr_trc_e<(ptrszint)(array_copy_src_high-array_copy_src_low+1);qbr_trc_e++){qbr_trc_i(8,*(int32*)(((char*)(array_copy_dst[0]))+(((array_copy_dst_start)-array_copy_dst[4])+qbr_trc_e)*4),14);}}}
+#line 32 "value_trace_trace.bas"
+}
+#line 32 "value_trace_trace.bas"
+if(!qbevent)break;evnt(32);}while(r);
+#line 33 "value_trace_trace.bas"
+do{
+#line 33 "value_trace_trace.bas"
+*__SINGLE_K=((float)((qbr_trc_p7=func__UCharPos(qbs_new_txt_len("ab",2),byte_element((uint64)(&(((int32*)(__ARRAY_LONG_C[0]))[0])),((4*(__ARRAY_LONG_C[2]&1)*__ARRAY_LONG_C[5])-(4*(0))),byte_element_1),NULL,NULL,1))));
+#line 33 "value_trace_trace.bas"
+qbr_trc_f32(0,*__SINGLE_K,15);
+#line 33 "value_trace_trace.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 33 "value_trace_trace.bas"
+if (!is_error_pending()){for(ptrszint qbr_trc_e=0;qbr_trc_e<(ptrszint)(((qbr_trc_p7)<(__ARRAY_LONG_C[5])?(qbr_trc_p7):(__ARRAY_LONG_C[5])));qbr_trc_e++){qbr_trc_i(8,*(int32*)(((char*)(__ARRAY_LONG_C[0]))+((0)+qbr_trc_e)*4),15);}}qbr_trc_p7=0;
+#line 33 "value_trace_trace.bas"
+if(!qbevent)break;evnt(33);}while(r);
+#line 34 "value_trace_trace.bas"
+do{
+#line 34 "value_trace_trace.bas"
+sub_open(qbs_new_txt_len("r.dat",5),1,NULL,NULL,1,4,1);
+#line 34 "value_trace_trace.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 34 "value_trace_trace.bas"
+if(!qbevent)break;evnt(34);}while(r);
+#line 35 "value_trace_trace.bas"
+do{
+#line 35 "value_trace_trace.bas"
+field_new(1);
+#line 35 "value_trace_trace.bas"
+field_add(__STRING_F,4);
+#line 35 "value_trace_trace.bas"
+if (!is_error_pending()){qbr_trc_as(9,__STRING_F,16);}
+#line 35 "value_trace_trace.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 35 "value_trace_trace.bas"
+if(!qbevent)break;evnt(35);}while(r);
+#line 36 "value_trace_trace.bas"
+do{
+#line 36 "value_trace_trace.bas"
+field_get(1,1ll,1);if (!is_error_pending()){qbr_trc_as(9,__STRING_F,17);}
+#line 36 "value_trace_trace.bas"
+if(!qbevent)break;evnt(36);}while(r);
+#line 37 "value_trace_trace.bas"
+do{
+#line 37 "value_trace_trace.bas"
+if (!(__ARRAY_LONG_C[2]&1)||(!__ARRAY_LONG_C[0])||(__ARRAY_LONG_C[0]==(ptrszint)nothingvalue)){qbr_diverged(42);error(9);}else{sub_get(1,1ll,byte_element((uint64)(&(((int32*)(__ARRAY_LONG_C[0]))[0])),((4*(__ARRAY_LONG_C[2]&1)*__ARRAY_LONG_C[5])-(4*(0))),byte_element_2),1);if (!is_error_pending()){for(ptrszint qbr_trc_e=0;qbr_trc_e<(ptrszint)(__ARRAY_LONG_C[5]);qbr_trc_e++){qbr_trc_i(8,*(int32*)(((char*)(__ARRAY_LONG_C[0]))+((0)+qbr_trc_e)*4),18);}}}
+#line 37 "value_trace_trace.bas"
+if(!qbevent)break;evnt(37);}while(r);
+#line 38 "value_trace_trace.bas"
+do{
+#line 38 "value_trace_trace.bas"
+qbr_trc_un[0]++;
+#line 38 "value_trace_trace.bas"
+if (__ARRAY_SINGLE_D[2]&2){
+#line 38 "value_trace_trace.bas"
+error(10);
+#line 38 "value_trace_trace.bas"
+}else{
+#line 38 "value_trace_trace.bas"
+ptrszint preserve_old_ptr=0;
+#line 38 "value_trace_trace.bas"
+uint64 preserve_old_total=0;
+#line 38 "value_trace_trace.bas"
+uint64 preserve_copy_count=0;
+#line 38 "value_trace_trace.bas"
+ptrszint preserve_new_ptr;
+#line 38 "value_trace_trace.bas"
+int64 alloc_new_desc[8];
+#line 38 "value_trace_trace.bas"
+uint64 alloc_req_elems=1;
+#line 38 "value_trace_trace.bas"
+uint64 alloc_req_bytes;
+#line 38 "value_trace_trace.bas"
+uint64 alloc_dim_value;
+#line 38 "value_trace_trace.bas"
+uint64 alloc_bytes_per_element=(uint64)(4);
+#line 38 "value_trace_trace.bas"
+ptrszint alloc_old_block=__ARRAY_SINGLE_D[0];
+#line 38 "value_trace_trace.bas"
+ptrszint alloc_old_set=__ARRAY_SINGLE_D[2]&1;
+#line 38 "value_trace_trace.bas"
+int32 alloc_none=0;
+#line 38 "value_trace_trace.bas"
+alloc_new_desc[4]=0ll;
+#line 38 "value_trace_trace.bas"
+alloc_new_desc[5]=(3ll)-alloc_new_desc[4]+1;
+#line 38 "value_trace_trace.bas"
+if (alloc_new_desc[5]<=0) error(5);
+#line 38 "value_trace_trace.bas"
+if (alloc_new_desc[5]<0&&(int64)((uint64)alloc_new_desc[4]+(uint64)alloc_new_desc[5]-1)<alloc_new_desc[4]) alloc_none=1;
+#line 38 "value_trace_trace.bas"
+alloc_new_desc[6]=1;
+#line 38 "value_trace_trace.bas"
+if (alloc_none){
+#line 38 "value_trace_trace.bas"
+qbr_diverged(40);
+#line 38 "value_trace_trace.bas"
+if (__ARRAY_SINGLE_D[2]&1){
+#line 38 "value_trace_trace.bas"
+((mem_lock*)((ptrszint*)__ARRAY_SINGLE_D)[8])->id=(++mem_lock_id);
+#line 38 "value_trace_trace.bas"
+if (__ARRAY_SINGLE_D[2]&4) cmem_dynamic_free((uint8*)(__ARRAY_SINGLE_D[0])); else free((void*)(__ARRAY_SINGLE_D[0]));
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[2]^=1;
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[4]=2147483647;__ARRAY_SINGLE_D[5]=0;__ARRAY_SINGLE_D[6]=0;
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[0]=(ptrszint)nothingvalue;
+#line 38 "value_trace_trace.bas"
+}
+#line 38 "value_trace_trace.bas"
+}else{
+#line 38 "value_trace_trace.bas"
+if (__ARRAY_SINGLE_D[0]!=alloc_old_block||(__ARRAY_SINGLE_D[2]&1)!=alloc_old_set) qbr_diverged(18);
+#line 38 "value_trace_trace.bas"
+((mem_lock*)((ptrszint*)__ARRAY_SINGLE_D)[8])->id=(++mem_lock_id);
+#line 38 "value_trace_trace.bas"
+if (__ARRAY_SINGLE_D[2]&1){
+#line 38 "value_trace_trace.bas"
+preserve_old_ptr=__ARRAY_SINGLE_D[0];
+#line 38 "value_trace_trace.bas"
+preserve_old_total=__ARRAY_SINGLE_D[5];
+#line 38 "value_trace_trace.bas"
+}
+#line 38 "value_trace_trace.bas"
+if (((int64)((ptrszint)alloc_new_desc[4]))!=alloc_new_desc[4]) error(257);
+#line 38 "value_trace_trace.bas"
+if (alloc_new_desc[5]<0) error(257);
+#line 38 "value_trace_trace.bas"
+if (((int64)((ptrszint)alloc_new_desc[5]))!=alloc_new_desc[5]) error(257);
+#line 38 "value_trace_trace.bas"
+if (alloc_new_desc[6]<0) error(257);
+#line 38 "value_trace_trace.bas"
+if (((int64)((ptrszint)alloc_new_desc[6]))!=alloc_new_desc[6]) error(257);
+#line 38 "value_trace_trace.bas"
+alloc_dim_value=(uint64)alloc_new_desc[5];
+#line 38 "value_trace_trace.bas"
+if (alloc_dim_value){
+#line 38 "value_trace_trace.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_dim_value)) error(257);
+#line 38 "value_trace_trace.bas"
+alloc_req_elems*=alloc_dim_value;
+#line 38 "value_trace_trace.bas"
+}
+#line 38 "value_trace_trace.bas"
+if (alloc_req_elems>(18446744073709551615ull/alloc_bytes_per_element)) error(257);
+#line 38 "value_trace_trace.bas"
+alloc_req_bytes=alloc_req_elems*alloc_bytes_per_element;
+#line 38 "value_trace_trace.bas"
+if (((uint64)((ptrszint)alloc_req_elems))!=alloc_req_elems) error(257);
+#line 38 "value_trace_trace.bas"
+if (((uint64)((size_t)alloc_req_bytes))!=alloc_req_bytes) error(257);
+#line 38 "value_trace_trace.bas"
+preserve_copy_count=preserve_old_total;
+#line 38 "value_trace_trace.bas"
+if (alloc_req_elems<preserve_copy_count) preserve_copy_count=alloc_req_elems;
+#line 38 "value_trace_trace.bas"
+if (preserve_old_total){
+#line 38 "value_trace_trace.bas"
+if (__ARRAY_SINGLE_D[2]&4){
+#line 38 "value_trace_trace.bas"
+preserve_new_ptr=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 38 "value_trace_trace.bas"
+if (!preserve_new_ptr) error(257);
+#line 38 "value_trace_trace.bas"
+memset((void*)(preserve_new_ptr),0,(size_t)alloc_req_bytes);
+#line 38 "value_trace_trace.bas"
+}else{
+#line 38 "value_trace_trace.bas"
+preserve_new_ptr=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 38 "value_trace_trace.bas"
+if (!preserve_new_ptr) error(257);
+#line 38 "value_trace_trace.bas"
+}
+#line 38 "value_trace_trace.bas"
+if (__ARRAY_SINGLE_D[2]&4) cmem_dynamic_free((uint8*)(preserve_old_ptr)); else free((void*)(preserve_old_ptr));
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[0]=preserve_new_ptr;
+#line 38 "value_trace_trace.bas"
+}else{
+#line 38 "value_trace_trace.bas"
+if (__ARRAY_SINGLE_D[2]&4){
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[0]=(ptrszint)cmem_dynamic_malloc((size_t)alloc_req_bytes);
+#line 38 "value_trace_trace.bas"
+if (!__ARRAY_SINGLE_D[0]) error(257);
+#line 38 "value_trace_trace.bas"
+memset((void*)(__ARRAY_SINGLE_D[0]),0,(size_t)alloc_req_bytes);
+#line 38 "value_trace_trace.bas"
+}else{
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[0]=(ptrszint)calloc((size_t)alloc_req_bytes,1);
+#line 38 "value_trace_trace.bas"
+if (!__ARRAY_SINGLE_D[0]) error(257);
+#line 38 "value_trace_trace.bas"
+}
+#line 38 "value_trace_trace.bas"
+}
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[2]|=1;
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[4]=alloc_new_desc[4];
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[5]=alloc_new_desc[5];
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[6]=alloc_new_desc[6];
+#line 38 "value_trace_trace.bas"
+__ARRAY_SINGLE_D[7]=alloc_new_desc[7];
+#line 38 "value_trace_trace.bas"
+}
+#line 38 "value_trace_trace.bas"
+}
+#line 38 "value_trace_trace.bas"
+if(!qbevent)break;evnt(38);}while(r);
+#line 39 "value_trace_trace.bas"
+do{
+#line 39 "value_trace_trace.bas"
+qbr_trc_un[1]++;
+#line 39 "value_trace_trace.bas"
+sub_poke(100,1);
+#line 39 "value_trace_trace.bas"
+if(!qbevent)break;evnt(39);}while(r);
+#line 40 "value_trace_trace.bas"
+do{
+#line 40 "value_trace_trace.bas"
+if (sub_gl_called) error(271);
+#line 40 "value_trace_trace.bas"
+close_program=1;
+#line 40 "value_trace_trace.bas"
+end();
+#line 40 "value_trace_trace.bas"
+if(!qbevent)break;evnt(40);}while(r);
+sub_end();
+return;
+}
+==> mainfree.txt <==
+qbs_free(__STRING_F);
+==> main1.txt <==
+#line 42 "value_trace_trace.bas"
+void SUB_BUMP(float*_SUB_BUMP_SINGLE_N){
+#line 42 "value_trace_trace.bas"
+qbs *tqbs;
+#line 42 "value_trace_trace.bas"
+ptrszint tmp_long;
+#line 42 "value_trace_trace.bas"
+int32 tmp_fileno;
+#line 42 "value_trace_trace.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 42 "value_trace_trace.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 42 "value_trace_trace.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 42 "value_trace_trace.bas"
+#include "data1.txt"
+#line 42 "value_trace_trace.bas"
+mem_lock *sf_mem_lock;
+#line 42 "value_trace_trace.bas"
+new_mem_lock();
+#line 42 "value_trace_trace.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 42 "value_trace_trace.bas"
+sf_mem_lock->type=3;
+#line 42 "value_trace_trace.bas"
+libqb_check_stack();
+#line 42 "value_trace_trace.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 43 "value_trace_trace.bas"
+do{
+#line 43 "value_trace_trace.bas"
+*_SUB_BUMP_SINGLE_N=(*_SUB_BUMP_SINGLE_N+((float)(1)));
+#line 43 "value_trace_trace.bas"
+qbr_trc_f32(10,*_SUB_BUMP_SINGLE_N,21);
+#line 43 "value_trace_trace.bas"
+if(!qbevent)break;evnt(43);}while(r);
+#line 44 "value_trace_trace.bas"
+exit_subfunc:;
+#line 44 "value_trace_trace.bas"
+free_mem_lock(sf_mem_lock);
+#line 44 "value_trace_trace.bas"
+#include "free1.txt"
+#line 44 "value_trace_trace.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 44 "value_trace_trace.bas"
+cmem_sp=tmp_cmem_sp;
+#line 44 "value_trace_trace.bas"
+}
+==> main2.txt <==
+#line 46 "value_trace_trace.bas"
+void SUB_FILL(ptrszint*_SUB_FILL_ARRAY_LONG_B){
+#line 46 "value_trace_trace.bas"
+qbs *tqbs;
+#line 46 "value_trace_trace.bas"
+ptrszint tmp_long;
+#line 46 "value_trace_trace.bas"
+int32 tmp_fileno;
+#line 46 "value_trace_trace.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 46 "value_trace_trace.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 46 "value_trace_trace.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 46 "value_trace_trace.bas"
+#include "data2.txt"
+#line 46 "value_trace_trace.bas"
+mem_lock *sf_mem_lock;
+#line 46 "value_trace_trace.bas"
+new_mem_lock();
+#line 46 "value_trace_trace.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 46 "value_trace_trace.bas"
+sf_mem_lock->type=3;
+#line 46 "value_trace_trace.bas"
+libqb_check_stack();
+#line 46 "value_trace_trace.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 47 "value_trace_trace.bas"
+do{
+#line 47 "value_trace_trace.bas"
+tmp_long=array_check((1ll)-_SUB_FILL_ARRAY_LONG_B[4],_SUB_FILL_ARRAY_LONG_B[5]);
+#line 47 "value_trace_trace.bas"
+if (!is_error_pending()) {((int32*)(_SUB_FILL_ARRAY_LONG_B[0]))[tmp_long]=7;qbr_trc_i(11,((int32*)(_SUB_FILL_ARRAY_LONG_B[0]))[tmp_long],22);}
+#line 47 "value_trace_trace.bas"
+if(!qbevent)break;evnt(47);}while(r);
+#line 48 "value_trace_trace.bas"
+exit_subfunc:;
+#line 48 "value_trace_trace.bas"
+free_mem_lock(sf_mem_lock);
+#line 48 "value_trace_trace.bas"
+#include "free2.txt"
+#line 48 "value_trace_trace.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 48 "value_trace_trace.bas"
+cmem_sp=tmp_cmem_sp;
+#line 48 "value_trace_trace.bas"
+}
+==> main3.txt <==
+#line 50 "value_trace_trace.bas"
+float FUNC_TWICE(float*_FUNC_TWICE_SINGLE_N){
+#line 50 "value_trace_trace.bas"
+qbs *tqbs;
+#line 50 "value_trace_trace.bas"
+ptrszint tmp_long;
+#line 50 "value_trace_trace.bas"
+int32 tmp_fileno;
+#line 50 "value_trace_trace.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 50 "value_trace_trace.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 50 "value_trace_trace.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 50 "value_trace_trace.bas"
+#include "data3.txt"
+#line 50 "value_trace_trace.bas"
+mem_lock *sf_mem_lock;
+#line 50 "value_trace_trace.bas"
+new_mem_lock();
+#line 50 "value_trace_trace.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 50 "value_trace_trace.bas"
+sf_mem_lock->type=3;
+#line 50 "value_trace_trace.bas"
+libqb_check_stack();
+#line 50 "value_trace_trace.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 51 "value_trace_trace.bas"
+do{
+#line 51 "value_trace_trace.bas"
+*_FUNC_TWICE_SINGLE_N=(*_FUNC_TWICE_SINGLE_N*((float)(2)));
+#line 51 "value_trace_trace.bas"
+qbr_trc_f32(12,*_FUNC_TWICE_SINGLE_N,23);
+#line 51 "value_trace_trace.bas"
+if(!qbevent)break;evnt(51);}while(r);
+#line 52 "value_trace_trace.bas"
+do{
+#line 52 "value_trace_trace.bas"
+*_FUNC_TWICE_SINGLE_TWICE=*_FUNC_TWICE_SINGLE_N;
+#line 52 "value_trace_trace.bas"
+qbr_trc_f32(13,*_FUNC_TWICE_SINGLE_TWICE,24);
+#line 52 "value_trace_trace.bas"
+if(!qbevent)break;evnt(52);}while(r);
+#line 53 "value_trace_trace.bas"
+exit_subfunc:;
+#line 53 "value_trace_trace.bas"
+free_mem_lock(sf_mem_lock);
+#line 53 "value_trace_trace.bas"
+#include "free3.txt"
+#line 53 "value_trace_trace.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 53 "value_trace_trace.bas"
+cmem_sp=tmp_cmem_sp;
+#line 53 "value_trace_trace.bas"
+return *_FUNC_TWICE_SINGLE_TWICE;
+#line 53 "value_trace_trace.bas"
+}
+==> data3.txt <==
+float *_FUNC_TWICE_SINGLE_TWICE=NULL;
+if(_FUNC_TWICE_SINGLE_TWICE==NULL){
+_FUNC_TWICE_SINGLE_TWICE=(float*)mem_static_malloc(4);
+*_FUNC_TWICE_SINGLE_TWICE=0;
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt data1.txt free1.txt data2.txt free2.txt free3.txt

@@ -81,6 +81,14 @@ Nothing is waiting: names of more than 40 characters were answered on 2026-11-02
    `v59_d_conversions` reading the GPU driver's stencil bits. Both are fixed. `check full --uncommitted` runs on
    uncommitted changes. `qb64rust.exe` needs `VCRUNTIME140.dll`, which a clean Windows lacks (`SOMEDAY.md`). Archive
    at the merge into `main`, after `just merge` runs its whole suites in the VM.
+5. **`value-trace`** (OpenSpec change, built 2026-11-05, not yet archived): `qb64rust --trace-values` builds a
+   program that records the values each variable takes, and `tools\trace\value_trace.py` reports them by variable
+   (`MANUAL.md`, "Recording the values of variables"). All 24 tasks are done. A statement that fills an array
+   with new values (`b() = a()`, `GET #` into an array) is recorded element by element (design D9, user,
+   2026-11-05). Built with the option, the whole corpus (514 pass, 7 known failures, none failing) and the
+   verification families `v18` (67 of 67) and `v24` (371 pass, 1 known failure) gave their recorded output.
+   The cases found while building are in the change's `design.md`, "Found while building". Next: the user's
+   review, then sync its specs into `openspec\specs\` and archive it.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a

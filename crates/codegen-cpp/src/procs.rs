@@ -223,7 +223,13 @@ impl<'a> Emitter<'a> {
         // line first (design of `m5-debug-build-symbols`, "Measured").
         self.lines_in(Some(proc.file), proc.line, &header, &mut main);
         self.subfunc = Some(names::old_proc_name(proc));
+        if let Some(t) = &mut self.trace {
+            t.proc = Some(ProcId(to_u32(i)));
+        }
         self.body(&proc.body, k, &mut main);
+        if let Some(t) = &mut self.trace {
+            t.proc = None;
+        }
         self.subfunc = None;
         // In a debug build for Linux the label and a statement with code go under the line before the procedure's end,
         // so that every way out of the body (the loop's end, `if(!qbevent)break;`, `goto exit_subfunc`) meets there and
@@ -281,7 +287,23 @@ impl<'a> Emitter<'a> {
             // Whether an earlier operation of the statement may have left an error pending.
             let mut raised = false;
             for op in &s.ops {
+                // A value-trace build counts the operation's bulk stores and stores at an address before it, and
+                // writes after it the reads and counters of the calls in its values (`trace.rs`). A line left over
+                // here came from C++ written outside this loop, and would land after the wrong operation.
+                debug_assert!(
+                    self.trace.as_ref().is_none_or(|t| t.after.is_empty()),
+                    "a value-trace build's after-call lines were left before {op:?}"
+                );
+                self.trace_untraced_op(op, &mut body);
+                let before = body.len();
                 self.op(op, raised, &mut body);
+                if let Some(t) = &mut self.trace {
+                    body.append(&mut t.after);
+                }
+                assert!(
+                    !self.trace_expected(op) || body[before..].iter().any(|l| l.contains("qbr_trc_")),
+                    "a value-trace build wrote no record call for a store by name: {op:?}"
+                );
                 raised |= op.may_raise();
             }
             let file = Some(s.span.file);
@@ -342,6 +364,10 @@ impl<'a> Emitter<'a> {
             self.lines_in(file, s.line, &lines, out);
         }
         self.labels(b.stmts.len(), out);
+        debug_assert!(
+            self.trace.as_ref().is_none_or(|t| t.after.is_empty()),
+            "a value-trace build's after-call lines were left at the end of body {k}"
+        );
         // What is written outside a body (the epilogue, the data fragment) is checked.
         self.checking = true;
     }

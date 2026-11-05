@@ -84,6 +84,9 @@ restore per run, however many VM steps.
 
 - The runner keeps no build cache in the VM (`QB64RUST_NO_BUILD_CACHE`). Its pass caches are kept, on the cache
   disk, apart from the host's.
+- Network programs run only in the VM. Their `.external` sidecar starts with `network:`. On a Windows host the
+  runner skips them (SKIP), because a program that opens a port makes Windows Defender Firewall ask the user. A
+  VM step sets `QB64RUST_ALLOW_NETWORK=1`, which runs them. So `just quick` and `--where host` do not test them.
 - `cli` builds the CLI tests' binary on the host (`cargo test --no-run`), and the binary runs in the VM with
   `--ignored`, in `crates\driver`.
 - `verification` and `verification-whole` build the `v37` libraries in the VM first, since git ignores them.
