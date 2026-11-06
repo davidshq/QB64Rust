@@ -1,6 +1,7 @@
 # Status and next steps
 
-Updated 2026-11-02 (cut to its own rule by finding 2 of the ninth review, `study\archive\30` §2).
+Updated 2026-11-06, for the merge of `we-like-changes` (cut to its own rule by finding 2 of the ninth review,
+`study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
 the last full runs, known bugs. It holds no history. When a step is done, replace its line; do not add a paragraph
@@ -45,8 +46,11 @@ and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026
 `basic-unit-tests`, `desktop-sandbox` and `testing-reset`. Pull request 23 (`d6d341e`, 2026-11-02) merged
 branch `linux-sync-per-tree`. It holds four changes, all archived: `linux-sync-per-tree`, `check-rejudge`,
 `pin-rejection-line`, and the 40-character limit on names, which was built without an OpenSpec change. It also
-added `TODO.md`. The open OpenSpec change is `known-output`, which is `TODO.md` row 1. The extension's last
-release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
+added `TODO.md`. Pull request 24 (`1038e38`, 2026-11-04) merged branch `more-updates`: `known-output`,
+`windows-vm`, `vm-suites` and `_BIT` parameters. The branch `we-like-changes` is next to merge. It holds 11
+commits: `value-trace`, `lints`, `test --coverage`, `toolchain install --from-zip`, the PDS 7.1 oracle, QB64pe's
+`-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `tools\check`. No OpenSpec change is open. The
+extension's last release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
 
@@ -55,50 +59,31 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 7).
 
-Nothing is waiting: names of more than 40 characters were answered on 2026-11-02 (`DECISIONS.md`).
+1. **D-059: how `-w` prints QB64pe's warnings** (`QB64PE-DIVERGENCES.md`, OpenSpec change `lints`, design D11).
+   We print `file:line:column: warning: header`, each warning once and in source order. QB64pe prints no
+   column, puts unused variables last, and prints a warning twice when it compiles twice. Claude chose this; it
+   is to confirm at the merge of `we-like-changes`.
 
 ## Next
 
-1. **`known-output`** (`TODO.md` row 1) is built and archived (2026-11-02). 116 verification programs that differ
-   from QB64pe on purpose are now on `pass.list`, each judged by its reviewed
-   `tests\verification\diverged\<name>.out.txt`. The review is the table at the end of
-   `openspec\changes\archive\2026-11-02-known-output\design.md`. The shorter timeout of the row is not built: it
-   would save nothing now (design D7). The runner changed, so the next `just full` runs everything once.
-2. **M7, Linux** (`ROADMAP.md`): the one change `m7-linux` (the system toolchain, `DECISIONS.md` 2026-10-28) is
-   built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are started by hand once they are pushed; their
-   results are read when they come. M8 next.
-3. **`windows-vm`** (OpenSpec change, archived 2026-11-03): the sandbox family runs in a Hyper-V test VM by
-   default, with nothing on the host's screen. The VM is made and the family passes there, 7 of 7, in 14 full runs in a row.
-   It also passes under load, so its `just full` step no longer runs alone, and still passes in Windows Sandbox
-   (`--where sandbox`). All tasks are done, and its spec is merged into `testing/desktop-sandbox`. Trying
-   `create.ps1 -FromBase` is deferred to the VM's first expiry, about 2027-02-01 (`SOMEDAY.md`).
-4. **`vm-suites`** (OpenSpec change, archived 2026-11-04, its specs merged into `testing/check-workflow` and
-   the new `testing/suites-vm`): `check full` and `check merge` run the
-   steps that build and run programs in a second Hyper-V VM, `qb64rust-suites`, made on 2026-11-03 from the new
-   shared base disk `qb64rust-base`. `--where host` keeps them on the host; `check quick` stays there. In the VM
-   the slice list passed 494 of 494, the CLI tests 120 of 120 and a whole `full` run passed, at 1.7 times the
-   host's time. The VM found two dependencies on the host: a lock folder the runner never made, and
-   `v59_d_conversions` reading the GPU driver's stencil bits. Both are fixed. `check full --uncommitted` runs on
-   uncommitted changes. `qb64rust.exe` needs `VCRUNTIME140.dll`, which a clean Windows lacks (`SOMEDAY.md`). Archive
-   at the merge into `main`, after `just merge` runs its whole suites in the VM.
-5. **`value-trace`** (OpenSpec change, built 2026-11-05, not yet archived): `qb64rust --trace-values` builds a
-   program that records the values each variable takes, and `tools\trace\value_trace.py` reports them by variable
-   (`MANUAL.md`, "Recording the values of variables"). All 24 tasks are done. A statement that fills an array
-   with new values (`b() = a()`, `GET #` into an array) is recorded element by element (design D9, user,
-   2026-11-05). Built with the option, the whole corpus (514 pass, 7 known failures, none failing) and the
-   verification families `v18` (67 of 67) and `v24` (371 pass, 1 known failure) gave their recorded output.
-   The cases found while building are in the change's `design.md`, "Found while building". Next: the user's
-   review, then sync its specs into `openspec\specs\` and archive it.
-6. **The Civil War Battleset port** (`study\44`, `DECISIONS.md` 2026-11-06): steps 1 to 3 are done. The branch
-   `qb64rust` is made from `main`. The searches and the measurements are in the game's `docs\devnotes.md`: every
-   form measured works unchanged, the same in QB64Rust and QB64pe. Nothing is committed yet. Next: step 4, one
-   program each, building.
-7. **`lints`** (OpenSpec change, built 2026-11-06, not yet archived): five lint warnings of our own and the four
-   warnings of `qb64pe -w` the compiler lacked, with `-w` and in the editor, and `qb64rust --report warnings`
-   (`MANUAL.md`, "Warnings about likely mistakes"). QB64pe's are measured by the new family `verification\v68_*`
-   (14 programs, all on `pass.list`). The corpus run and its counts are in the change's `design.md`, "Found while
-   building". D-059 (how `-w` prints QB64pe's warnings) is Claude's, to confirm at the merge. Next: the user's
-   review, then sync its specs into `openspec\specs\` and archive it.
+1. **Merge `we-like-changes` into `main`.** `just merge` runs in a worktree of the branch's last commit, with
+   its whole suites in the suites VM. Pull request 24's `just merge` (2026-11-04, at `3cc5c54e`) failed 4 of
+   35 steps: `nextest` (the `events_errors.check-fail` snapshot in `frontend::frontend_files`), `linux-tier1`,
+   `linux-upstream` (`audio_sound_test/sound_test` timed out) and `linux-verification` (11 failing, among them
+   `v43_a_errorline` and the old Linux recording of `v59_d_conversions`). This branch's commits re-record
+   `v59_d_conversions` on Linux, run the Linux steps on Xvfb and give Linux programs an empty
+   `XDG_RUNTIME_DIR`; `frontend::frontend_files` passes on the host (2026-11-06). The merge run shows what is left.
+2. **The Civil War Battleset port** (`study\44`, `DECISIONS.md` 2026-11-06): steps 1 to 4 are done on the game's
+   branch `qb64rust`, not yet committed. The game, the editor and `pbmfix` build with QB64Rust and QB64pe, and
+   their first screens are the same in both. The game stops with "RETURN without GOSUB" where step 2 expected.
+   The game's `docs\devnotes.md` has the details. Next: step 5, the `GOSUB` fixes, the yell and the title
+   screenshot.
+3. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"; `DECISIONS.md` 2026-10-28): decided,
+   not built.
+4. **M7, Linux** (`ROADMAP.md`): `m7-linux` is built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are
+   started by hand once they are pushed; their results are read when they come. M8, macOS, next.
+5. **`TODO.md` rows 4, 6 and 7**: the clipboard programs into the sandbox, a differential group for strings and
+   arrays, and the grammar's keyword lists generated from `builtins.json`.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
@@ -137,7 +122,9 @@ long run, it is this, and it passes alone.
 The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 23, branch
 `linux-sync-per-tree`** (2026-11-02): `just merge` in the worktree at `7334117`, then at `df67128` the steps its
 fix touched (`upstream-whole`, `upstream-list`, `linux-upstream`) and `counts.py`; `linux-verification`'s two
-failures re-judged against the new `known.linux.list`, not run again.
+failures re-judged against the new `known.linux.list`, not run again. Pull request 24's `just merge` did not pass
+(4 failing steps, "Next" item 1), so its numbers are not taken. The table is replaced from the `just merge` of
+`we-like-changes`.
 
 | Run | Result |
 |---|---|

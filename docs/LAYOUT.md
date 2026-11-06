@@ -12,8 +12,8 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `README.md` | The repository's front page, for a visitor: what the project is, the platforms, the two downloads, where the documents are |
 | `docs\` | The project's documents, all but `README.md` and `CLAUDE.md`, which stay at the top (user, 2026-10-30); a document named without a folder is the one here |
 | `docs\STATUS.md` | The current state only: where we are, what is waiting on the user, next steps, numbers of the last full runs, known bugs. No history: a finished step changes a line, it does not add a paragraph (its first table says where everything else lives) |
-| `docs\ROADMAP.md` | The project's purpose and the milestones still open (M6 on), with what is left |
-| `docs\ROADMAP-COMPLETED.md` | The milestones declared done (M0–M5b), each as it stood when it was declared done |
+| `docs\ROADMAP.md` | The project's purpose and the milestones still open (M7 on), with what is left |
+| `docs\ROADMAP-COMPLETED.md` | The milestones declared done (M0–M6), each as it stood when it was declared done |
 | `docs\DECISIONS.md` | Decision log: every project decision on direction, design and scope, dated, with the document that holds its details |
 | `docs\DECISIONS-SMALL.md` | The minor rows of the decision log (document arrangement, changes archived, one-time exceptions), same format |
 | `docs\QB64PE-DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |

@@ -109,6 +109,11 @@ Nothing was built or run.
 Each row says what the port does. "Measure first" means the behavior is not yet known in QB64Rust or QB64pe. It is
 then measured with a small program before the game is changed.
 
+**Step 4 (2026-11-06):** the game, the editor and `pbmfix` build with both compilers, and their first screens
+are the same in both. The `whichsave` case of row 16 is confirmed: "RETURN without GOSUB" at `CIVWAR25.BAS` line
+271, in both builds. `pbmfix` empties the repo's `SAVEGAME.PBM`, whose CR LF line ends git dropped in the first
+commit (the game's `docs\devnotes.md`, "The first builds").
+
 **Step 3 measured rows 3, 4, 9, 10, 11 and 14 (2026-11-06).** QB64Rust and QB64pe gave the same result every time,
 and each form works as it did in DOS, so none needs a change. `COMMON SHARED` works in one program. `BLOAD` into
 `&HB800` shows the text screen, with all 2,000 cells right. libqb emulates the BIOS keyboard buffer, so
