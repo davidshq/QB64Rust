@@ -59,10 +59,8 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 7).
 
-1. **D-059: how `-w` prints QB64pe's warnings** (`QB64PE-DIVERGENCES.md`, OpenSpec change `lints`, design D11).
-   We print `file:line:column: warning: header`, each warning once and in source order. QB64pe prints no
-   column, puts unused variables last, and prints a warning twice when it compiles twice. Claude chose this; it
-   is to confirm at the merge of `we-like-changes`.
+Nothing is waiting: D-059, how `-w` prints QB64pe's warnings, was confirmed on 2026-11-06
+(`QB64PE-DIVERGENCES.md`).
 
 ## Next
 

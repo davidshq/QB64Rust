@@ -132,7 +132,7 @@ recorded before are now corpus programs: `screen\d20_bload_text_memory` and `scr
 | 5 | `CURDIR$` | 8 calls: 4 in `CIVWAR25`, 4 in `CIVSET24` | Take `CURDIR$` from World War 2's `QB64.BM` |
 | 6 | `CHDRIVE` | 2 calls, in the Change Directory menus | Write a `SUB CHDRIVE (d$)` with `CHDIR`. But see decision D2: changing the folder breaks data folders |
 | 7 | `ON LOCAL ERROR` | 1, in `sndblst` | Removed together with the `SHELL "plany …"` it guards (row 12) |
-| 8 | `FRE(-1)` | 1, in `menu`: a hidden key prints the free memory | QB64pe has no `FRE`. Remove the call and note it in `devnotes.md` |
+| 8 | `FRE(-1)` | 1, in `menu`: a hidden key prints the free memory | QB64pe has no `FRE`. The line is commented out and noted in `devnotes.md` (done in step 4) |
 | 9 | `BLOAD` of the icons into an array, then `PUT` | `iconload`, in both programs | Expected to work: QB64Rust already draws Civil War Strategy's `MTN.VGA` the same way, as the old compiler does (spec `language/conventional-memory`). Check the screens against QB64pe |
 | 10 | `BLOAD` of a text screen into `&HB800` | `VICTORY.SCR`, `NEWHI.SCR`, and `scrnload` | Measure first. If it does not work, write a loader that reads the file and prints each character with its color |
 | 11 | The BIOS keyboard buffer: `POKE 1050, 30: POKE 1052, 30` empties it, and `PEEK(1052) > 30` asks whether a key waits | `BuffClear` (both programs); `CIVWAR25.BAS` line 1448 (a key stops automatic play) | Measure first. If QB64 does not keep the buffer there, `BuffClear` empties nothing and automatic play cannot be stopped. Then write `BuffClear` with `INKEY$`, and the test with a QB64 statement that does not eat the key |
@@ -259,7 +259,15 @@ mistake or is named in the commit message.
    `QB64.BM`. Build `cw.exe` and `cs.exe` with both compilers, and `pbmfix.exe` (D5). Play the first screens by
    hand and compare the two builds.
 5. **What DOS did that QB64 does not.** Rows 10, 11, 13 and 14, as the measurements found. The `GOSUB` fixes of
-   row 16. The DOSBox screenshot (D6) and the yell (D4).
+   row 16. The DOSBox screenshot (D6) and the yell (D4). From the review of step 4 (2026-11-06, the pragmatic
+   engineer's recommendation, user: "do prag recs"):
+   - **The yell comes first.** Until it replaces `SHELL "yell.exe"`, a game started with an option (`cw s`)
+     runs a DOS program that 64-bit Windows cannot run, and is expected to show a dialog box. The game's
+     `docs\devnotes.md` says not to start it that way until then.
+   - **In the same DOSBox session, measure whether `PLANY` takes the key that ends a sound.** Its document says
+     only that a key ends the playback. `playsound` now leaves the key for the game to read. If `PLANY` took it,
+     `playsound` must take it too. This is settled before steps 6 and 7 record any screens, so that no
+     recording has to be made again.
 6. **The test hooks** (`SCRIPT.BM`): the seed from an environment variable (`CWB_SEED`), an `announce` before
    each wait (row 19), `TICK` returning at once, and the fixed date, time and time played (row 17). The editor
    takes the seed too (row 18). The game plays as before when the variable is not set.
