@@ -1,4 +1,4 @@
-' Screen program (Civil War Battleset port, study\44 step 3): the BIOS keyboard buffer in segment 0. Bytes 1050
+' Screen program (Civil War Battleset port, step 3): the BIOS keyboard buffer in segment 0. Bytes 1050
 ' and 1052 (&H41A, &H41C) are the head and the tail of the buffer. The game's BuffClear sets both to 30, the start
 ' of the buffer, to throw away keys typed ahead, and its automatic play stops when PEEK(1052) > 30, a key waiting.
 ' The keys file gives one key at each announced wait. The program waits until the tail moves, without reading
