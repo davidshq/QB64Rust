@@ -60,8 +60,8 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 7).
 
-Nothing is waiting: D-059, how `-w` prints QB64pe's warnings, was confirmed on 2026-11-06
-(`QB64PE-DIVERGENCES.md`).
+Nothing is waiting: the six decisions of `study\45` (recovering the source of Wars of Napoleon's strategic game)
+were taken by the panel at the user's request on 2026-11-06 (`DECISIONS.md`).
 
 ## Next
 
@@ -81,11 +81,18 @@ Nothing is waiting: D-059, how `-w` prints QB64pe's warnings, was confirmed on 2
    (`SCRIPT.BM`), 26 unit tests, 159 generated scripts and 10 written by hand, recorded with QB64pe and QB64Rust,
    which gave the same screens. The game's `docs\devnotes.md` ("Step 6", "Step 7") and `tests\README.md` have the
    details. Next: the user rules on D10 to D16 (`study\44` section 5), reviews and stages; then step 8, the files.
-3. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"; `DECISIONS.md` 2026-10-28): decided,
+3. **The Civil War Strategy port** (`study\46`, `DECISIONS.md` 2026-11-06): built on the game's new branch
+   `qb64rust`, from `canonical-source`, and not yet committed. The game builds with both compilers. Its 25
+   scripts gave the same screens with QB64pe and QB64Rust, and with its 23 unit tests they run 93.9% of its
+   lines. D1 to D10 are answered (`study\46` section 4: every recommendation). The 14 DOS-only files are
+   removed (D9). Next: the user commits in `..\civil-war-strategy`; then the F1 help pager (D3). In this repo the port added `study\46`,
+   `verification\qb45\q45_cws_paint_leaks` with its two records, `DIVERGENCES-QB45.md` Q-019 and Q-020, and
+   text in `PORTING-PDS.md`, `DECISIONS.md` and `LAYOUT.md`.
+4. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"; `DECISIONS.md` 2026-10-28): decided,
    not built.
-4. **M7, Linux** (`ROADMAP.md`): `m7-linux` is built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are
+5. **M7, Linux** (`ROADMAP.md`): `m7-linux` is built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are
    started by hand once they are pushed; their results are read when they come. M8, macOS, next.
-5. **`TODO.md` rows 4, 6 and 7**: the clipboard programs into the sandbox, a differential group for strings and
+6. **`TODO.md` rows 4, 6 and 7**: the clipboard programs into the sandbox, a differential group for strings and
    arrays, and the grammar's keyword lists generated from `builtins.json`.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").

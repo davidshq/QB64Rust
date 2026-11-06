@@ -10,7 +10,8 @@ the aim of a port is a program that builds with both QB64Rust and QB64pe, change
 ## 0. Principles of a port
 
 These are the rules the World War 2 port followed, most of them set by the user while it was done (2026-11-04 and
-2026-11-05). They apply to the next port too: W.R. Hutsell's *Civil War Battleset*, planned in `study\44`.
+2026-11-05). The next two ports followed them: W.R. Hutsell's *Civil War Battleset* (`study\44`) and *Civil War
+Strategy* (`study\46`).
 
 **What a port is for.** A port has two goals: to try QB64Rust on a real program, and to bring the program to where
 it can be refactored safely (user, 2026-11-04). It is not a refactoring itself.
@@ -114,6 +115,19 @@ PDS 7.1 features": `REDIM PRESERVE` (becomes `REDIM _PRESERVE`), `CHDRIVE`, the 
   the routine set a flag and `RETURN`, and make the jump on the line after the `GOSUB`.
 - **Build with QB64pe as well.** If both compilers build it and show the same screens, a difference is a bug in
   one of them, not in the port. In the World War 2 port the two builds matched pixel for pixel.
+- **A shape that `PAINT` fills can leak, with no message.** QB64 draws some shapes with other pixels than
+  QB 4.5 and PDS 7.1 did: a `DRAW` string at scale 6, and `CIRCLE` with an aspect or with start
+  and end angles (`DIVERGENCES-QB45.md` Q-019 and Q-020, both measured). An outline that was closed in DOS
+  can be open by one pixel in QB64, and `PAINT` inside it then covers the screen. Civil War Strategy had three
+  such leaks: a small train, a cannon's wheel and a piece of coast each painted the whole map. Both compilers
+  build the program and show the same wrong screen, so comparing the two builds does not find it. Look at a
+  screen of every kind the program draws. The fix is in the program: one length of the `DRAW` string or one
+  radius changed, checked by looking at the screen again.
+- **A script written for another version of the program can be out of step and still pass.** Civil War
+  Strategy's port took ten scripts from QB64Rust's corpus, which plays a version of the game that never
+  loads a saved game. One script relied on that. In the port it ran to its end with the same screens in both
+  builds, while some keys went to other menus than its comments said. Read a reused script against the code,
+  and look at its screens, before recording it.
 
 ## 4. Test the port before changing anything else
 
@@ -138,6 +152,10 @@ Two lessons from writing scripts: look at every screen before recording, because
 reach the end and exit with 0; and take no screen digest while an `INPUT` waits, because its cursor blinks by
 the clock.
 
+A game with many scenarios gets one generated script for each scenario and side. A game with one scenario
+gets generated games that differ by seed, side and settings. Civil War Strategy has 14: the player only ends
+each turn, the computer plays to its victory, and the script checks the history file the game wrote.
+
 ## 5. What the port found in QB64Rust
 
 - `ON LOCAL ERROR GOTO` got "not supported yet", which suggested QB64pe has it. It does not. Since 2026-11-05
@@ -151,7 +169,12 @@ the clock.
   All of these runs return to the main module. QB64Rust keeps the single stack as QB64pe has it (`study\00` §6,
   "Kept"). `verification\v17_d_gosub_left_in_sub` holds QB64Rust to QB64pe's error 3 there.
 
+- `DRAW` at scale 6 and `CIRCLE` with an aspect and angles give other pixels than QB 4.5 and PDS 7.1
+  (`DIVERGENCES-QB45.md` Q-019 and Q-020). The Civil War Strategy port found them on 2026-11-06 and measured
+  them with `verification\qb45\q45_cws_paint_leaks`. QB64pe and QB64Rust give the same pixels as each other.
+  QB64Rust keeps them, as it follows QB64pe.
+
 A behavior of PDS itself can be measured the same way: write a `q45_` program and record it with
 `qb45.py --compiler pds71` (`tools\qb45\README.md`, "PDS 7.1").
 
-The full notes of the port are in the game's repo: `docs\devnotes.md` and `tests\README.md`.
+The full notes of each port are in the game's repo: `docs\devnotes.md` and `tests\README.md`.
