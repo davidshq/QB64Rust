@@ -109,6 +109,14 @@ Nothing was built or run.
 Each row says what the port does. "Measure first" means the behavior is not yet known in QB64Rust or QB64pe. It is
 then measured with a small program before the game is changed.
 
+**Steps 6 and 7 (2026-11-06), done and not yet committed:** the test hooks are in the game's `SCRIPT.BM`, and
+the tests in its `tests\`: 26 unit tests, 159 generated scripts and 10 written by hand. QB64pe and QB64Rust gave
+the same screens in every recording. Choices made in steps 6 and 7 wait for the user: D10 to D16 below. What
+the tests found is in the game's `docs\devnotes.md`, "Step 7", "Found": three battles stop with an illegal
+function call in the game's `cupdate` (D16), QB64's `FILES` scrolls the game's list of files by one line, the
+editor could not load a short file name (fixed, item 11), and one `SHELL` hung once under load in a QB64pe
+build.
+
 **Step 4 (2026-11-06):** the game, the editor and `pbmfix` build with both compilers, and their first screens
 are the same in both. The `whichsave` case of row 16 is confirmed: "RETURN without GOSUB" at `CIVWAR25.BAS` line
 271, in both builds. `pbmfix` empties the repo's `SAVEGAME.PBM`, whose CR LF line ends git dropped in the first
@@ -217,6 +225,9 @@ window the user sees, which are the two reasons for the rule. The QB64 engineer 
 still slow the user's machine, so the default stays at 4. **Recommended: (a), with `--jobs 4`.** If the user
 wants (b), the VM needs the game's repo and `play.py` support first, which is more work than this plan counts.
 **User (2026-11-06): (a).** `CLAUDE.md` working rule 6 now says so.
+**Found later the same day:** the game's `SHELL` commands open console windows on the user's desktop, which the
+hidden desktop does not cover. The runs of steps 6 and 7 did so for about two and a half hours. The recording
+was stopped. Rule 6 now asks that no `SHELL` can run under a port's scripts before they run on the host.
 
 **D8. Which scenarios get scripts.** World War 2 had 7 scenarios, each played by both sides in two styles. Here
 there are about 61.
@@ -237,6 +248,96 @@ The pragmatic engineer wants it as a `SOMEDAY.md` row now and built only with `l
 `SOMEDAY.md` row, and a mention in `openspec\changes\lints`, both done when the user agrees.**
 **User (2026-11-06): a `SOMEDAY.md` row** ("Other ideas raised during the study"). The change `lints` is not
 changed.
+
+### Choices made in steps 6 and 7, for the user to rule on (2026-11-06)
+
+Steps 6 and 7 were done while the user was away, so these were decided by Claude and are built that way. Each can
+still be changed. The game's `docs\devnotes.md` ("Step 6", "Step 7") and `tests\README.md` describe what was
+built. The panel is the same as above.
+
+**D10. Under a script, `TICK` of 99 seconds or more waits for a key.** World War 2's hook made every timed pause
+return at once. This game uses `TICK 99` and `TICK 999` as "hit a key": the results of a battle, the help, the Hall
+of Fame, a new high score, a campaign victory. Shorter pauses still return at once.
+- (a) As built: 99 seconds or more is a wait for a key (place 1), so scripts see and digest those screens.
+- (b) Every pause returns at once, as in World War 2. Scripts would not see those screens.
+
+*Panel:* the test engineer wants (a): the results screen is the best single check of a whole battle. The QB64
+engineer notes that no shorter `TICK` is used as "press a key", so the line at 99 is clean. The pragmatic engineer
+agrees. **Recommended: (a).**
+
+**D11. Under a script, `CURDIR$` shows the folder the program started in as `C:\CWB`.** Both main menus show the
+folder in their Directory entry. Without a hook, the full path would be in every digest of the main menu. It
+would differ for QB64pe and QB64Rust, whose runs go in different folders, and on every machine.
+- (a) As built: `CURDIR$` itself maps the start folder to `C:\CWB` when the program is scripted (`scriptfolder$`
+  in `SCRIPT.BM`, called from `QB64.BM`). No line of the game changes. Under a script, the Directory menu's field
+  starts with `C:\CWB` too, so Enter there would try that folder.
+- (b) Map only the shown text: four lines of the game and the editor call a display function, and `CURDIR$`
+  stays true. Four more changed lines.
+- (c) No hook: no script takes a digest of a main menu. Most scripts lose their first and last checks.
+
+*Panel:* the pragmatic engineer prefers (a): no game line changes, and only a script can see the difference. The
+test engineer accepts (a) and notes that the `directory` script uses a path on drive C that does not exist, so it
+gives the same error everywhere. The QB64 user would rather keep `CURDIR$` true, (b). **Recommended: (a).**
+
+**D12. The second generated style is Computer vs. Computer, not "Enter at every command".** D8 (a) named an
+`enter` style for 6 to 8 scenarios. Here Enter at a unit's command opens the Unit Command menu, whose first entry
+is Move to location. For an emplaced gun that entry is "{not available}": Enter goes back to the same command,
+so the battle never ends. So the second style is `auto-<scenario>`: Parameters, Computer vs. Computer, for eight
+scenarios. It runs the computer's play for both sides and the code of automatic play (`minsec`, the check of
+the keyboard buffer).
+- (a) As built: `auto` for eight scenarios.
+- (b) An `enter` style that rests the units Enter cannot move. It needs to know each unit's type from the screen,
+  which the rules cannot see.
+
+*Panel:* the test engineer wants (a), with the hand-written `commands-bullrun1` covering the Unit Command menu
+and the cursor. The pragmatic engineer agrees. **Recommended: (a).**
+
+**D13. The editor's list of files now trims the name it gives** (the game's `docs\devnotes.md`, item 11). The
+editor could not load a scenario whose name is shorter than 8 characters, because `FILES` pads the name with
+blanks and Windows does not ignore them. DOS did. This is one added line, copied from the game's own list, and
+it changes how the editor behaves.
+- (a) Keep it, as built.
+- (b) First measure in DOSBox that the original `CS.EXE` loads such a file, then keep it.
+- (c) Take it out, and leave short names unloadable in the editor (a `TODO.md` row).
+
+*Panel:* the QB64 engineer is confident that DOS ignored the blanks (names are stored padded to 8 characters), so
+the fix restores what DOS did. The pragmatic engineer wants (a) now and (b) only if the user wants proof. The
+test engineer notes that `edit-bullrun1` uses `BULLRUN1.CIV`, which worked before. **Recommended: (a).**
+
+**D14. QB64's `FILES` scrolls the game's list of files by one line** (`docs\devnotes.md`, "Step 7", "Found"). The
+first four files of the list, `$AVE1.CIV` to `$AVE4.CIV`, cannot be chosen there. Saved games still load
+through `$AVE5.CIV` and the slot menu after it. Both compilers do the same, as both use libqb's `FILES`.
+- (a) Leave it, as built: the scripts work with it, and `make_scripts.py` counts from the fifth file.
+- (b) Measure in DOSBox whether QB 4.5 or PDS 7.1 `FILES` also ends with a line that scrolls. If DOS did not
+  scroll, it is a QB64 divergence for QB64Rust's `QB64PE-DIVERGENCES.md` and a QB64Rust question, and the game
+  could be changed so that the list fits.
+
+*Panel:* the QB64 engineer wants (b), as it may be a libqb divergence that QB64Rust should know about. The
+pragmatic engineer agrees but not before step 8, since a fix would move every generated script's keys.
+**Recommended: (b), after step 8, with a `TODO.md` row now.**
+
+**D15. `pbmfix` is tested only on the repo's `SAVEGAME.PBM`**, which git stores with LF line ends, so its fixed
+file is empty. A test of what `pbmfix` is for needs a PBM file with CR LF line ends and extra line ends.
+- (a) Leave it until step 8, which makes `tests\data\`. Then add such a file there, marked `-text` in
+  `.gitattributes` so git keeps its CR LF, and a script that runs `pbmfix` on it.
+- (b) Do it now.
+
+*Panel:* the test engineer wants the real case tested. The pragmatic engineer prefers (a): step 8 makes the
+folder anyway, and `play.py` already copies `tests\data\` over the repo's files. **Recommended: (a).**
+
+**D16. The computer's move can stop the game with "Illegal function call"** (the game's `docs\devnotes.md`, "Step
+7", "Found"). `cupdate` reads `SCREEN(ynew + 1, xnew)` with `xnew` 0 when a unit in column 2 moves left. DOS would
+stop on it too, so it is the game's own bug. Three generated scripts reach it (`BOLD.CIV` as the Confederates,
+`ANTIETM2.CIV` as either side) and are not written.
+- (a) Leave the game as it is; the three scripts stay unwritten, with a `TODO.md` row (as built).
+- (b) Fix it: keep `xnew` at 2 or more before the `SCREEN`, one line. Then write the three scripts. The other
+  scripts do not change, as the line only ran where the game stopped.
+- (c) Leave the game, and give the three scripts another seed.
+
+*Panel:* the QB64 user wants (b): a player meets the crash too. The pragmatic engineer notes that the plan
+excludes "a fix to how the game plays", and that (b) is a fix to a crash, not to the play; it is the user's
+call. The test engineer prefers (b) over (c), as (c) hides a crash the tests found. **Recommended: (b), as a
+numbered change in `devnotes.md`, if the user agrees that a crash fix is in scope.**
 
 ## 6. The plan
 

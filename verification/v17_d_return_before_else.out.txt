@@ -1,0 +1,12 @@
+a is 0
+back from g, a = 0 
+a is not 0
+after the IF
+back from g, a = 1 
+a is not 1
+back from r, a = 2 
+back at label
+back in s, b = 0 
+b is not 0
+back in s, b = 1 
+exit=0

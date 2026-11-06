@@ -76,12 +76,11 @@ Nothing is waiting: D-059, how `-w` prints QB64pe's warnings, was confirmed on 2
    - The three `glut` rows of `tests\upstream\known.linux.list` are removed: under Xvfb those programs pass.
    - Next: commit these lists, check out the commit in the worktree and run `just merge` again. The two Linux
      steps are then judged again from their results, not run again.
-2. **The Civil War Battleset port** (`study\44`, `DECISIONS.md` 2026-11-06): steps 1 to 4 are committed on the
-   game's branch `qb64rust` (`2730175`). Step 5 is done and not yet committed. The four `GOSUB` routines that
-   left their SUB now return, so Esc at "SAVEGAME FILE TO LOAD" no longer stops the game. The yell is `YELL.WAV`,
-   which was inside `YELL.EXE`. `playsound` now reads the key that ends a sound, as `PLANY` did (measured in
-   DOSBox with PDS 7.1). The title screen is `docs\CWBSTITL.png`. The game's `docs\devnotes.md` has the details.
-   Next: step 6, the test hooks.
+2. **The Civil War Battleset port** (`study\44`, `DECISIONS.md` 2026-11-06): steps 1 to 5 are committed on the
+   game's branch `qb64rust` (`435d5f9`). Steps 6 and 7 are done and not yet committed: the test hooks
+   (`SCRIPT.BM`), 26 unit tests, 159 generated scripts and 10 written by hand, recorded with QB64pe and QB64Rust,
+   which gave the same screens. The game's `docs\devnotes.md` ("Step 6", "Step 7") and `tests\README.md` have the
+   details. Next: the user rules on D10 to D16 (`study\44` section 5), reviews and stages; then step 8, the files.
 3. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"; `DECISIONS.md` 2026-10-28): decided,
    not built.
 4. **M7, Linux** (`ROADMAP.md`): `m7-linux` is built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are
@@ -166,9 +165,6 @@ failures re-judged against the new `known.linux.list`, not run again. Pull reque
 
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).
-- `RETURN` just before `ELSE` in a one-line `IF` is rejected: `IF a = 0 THEN RETURN ELSE CALL s` gives "not
-  supported yet: word `CALL` (expected the end of the statement)". QB64pe 4.7.0 builds it. Found by the Civil
-  War Battleset port (2026-11-06, its `docs\devnotes.md`, step 5), which avoids the form.
 - `$COLOR:0` and then `SUB Red`: the error "name already in use" is reported at the constant in the auto-included
   `internal\support\color\color0.bi`, not on the program's `SUB Red` (line 4), where QB64pe reports it
   (`verification\v45_x48`, on `known.list` since the change `pin-rejection-line`).

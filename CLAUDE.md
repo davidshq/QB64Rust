@@ -105,6 +105,14 @@ changing direction, design or scope.**
    - **A game port's own `tests\play.py` is not such a run** (user, 2026-11-06, `study\44` D7). The scripts of
      World War 2 and Civil War Battleset run on the host, on a desktop of their own that the user never sees,
      with `--jobs 4`. They open no window and run no network program.
+   - **The hidden desktop does not hide `SHELL`.** A program that runs `SHELL` starts a `cmd.exe`, and its
+     console window shows on the user's desktop. So a game port's scripts may run on the host only when no
+     `SHELL` can run under them (a hook in the port's `SCRIPT.BM`, or `SHELL _HIDE`). Before a long run, check
+     it with one script on the host that reaches a `SHELL`. The same check goes for any other program run on
+     the host that may start a child process.
+     *Why:* on 2026-11-06 Civil War Battleset's `make_scripts.py` and `play.py record` ran for about two and a
+     half hours on the host. Nearly every battle ends in `SHELL "copy maxskors temp.$$$"`, and each one flashed a
+     terminal window at the user while they worked (user: "they seem to [open terminal windows]").
    *Why:* on 2026-11-05 a session ran the whole corpus and two verification families on the host with
    `--trace-values`, eight jobs at once, while the user was working; network programs ask the user to allow them
    through the firewall (user: "that seems stupid").
