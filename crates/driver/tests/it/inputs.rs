@@ -858,16 +858,15 @@ fn verification_lists_are_exact() {
 fn names_a_line(compile_txt: &str) -> bool {
     let mut before = Vec::new();
     for line in compile_txt.lines() {
-        if let Some(rest) = line.strip_prefix("LINE ") {
-            if let Some((n, _)) = rest.split_once(':') {
-                if let Ok(n) = n.parse::<u32>() {
-                    // "… in line 2 of <file> included", "… auto-included": the runner's INCLUDED_RE.
-                    let included = before.iter().any(|l: &&str| {
-                        l.contains("in line ") && (l.contains(" included") || l.contains(" auto-included"))
-                    });
-                    return !included && n >= 1;
-                }
-            }
+        if let Some(rest) = line.strip_prefix("LINE ")
+            && let Some((n, _)) = rest.split_once(':')
+            && let Ok(n) = n.parse::<u32>()
+        {
+            // "… in line 2 of <file> included", "… auto-included": the runner's INCLUDED_RE.
+            let included = before
+                .iter()
+                .any(|l: &&str| l.contains("in line ") && (l.contains(" included") || l.contains(" auto-included")));
+            return !included && n >= 1;
         }
         before.push(line);
     }
@@ -888,6 +887,10 @@ fn verification_lines_list_is_valid() {
     let read = |path: &Path| std::fs::read_to_string(path).unwrap_or_default();
     // QB64pe's recording echoes the source after `LINE n:`, in the program's own code page (`v44_x29`): read as the
     // runner does, not as UTF-8, so that such a file still names its line.
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "QB64pe's recording, read lossily as the runner reads it"
+    )]
     let read_lossy = |path: &Path| String::from_utf8_lossy(&std::fs::read(path).unwrap_or_default()).into_owned();
     let text = read(&repo().join("tests/verification/lines.list"));
     let mut seen = Vec::new();

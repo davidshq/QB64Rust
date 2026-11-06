@@ -47,9 +47,10 @@ and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026
 branch `linux-sync-per-tree`. It holds four changes, all archived: `linux-sync-per-tree`, `check-rejudge`,
 `pin-rejection-line`, and the 40-character limit on names, which was built without an OpenSpec change. It also
 added `TODO.md`. Pull request 24 (`1038e38`, 2026-11-04) merged branch `more-updates`: `known-output`,
-`windows-vm`, `vm-suites` and `_BIT` parameters. The branch `we-like-changes` is next to merge. It holds 11
-commits: `value-trace`, `lints`, `test --coverage`, `toolchain install --from-zip`, the PDS 7.1 oracle, QB64pe's
-`-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `tools\check`. No OpenSpec change is open. The
+`windows-vm`, `vm-suites` and `_BIT` parameters. Pull request 25 (`3bb0d2c`, 2026-11-06) merged branch
+`we-like-changes`: `value-trace`, `lints`, `test --coverage`, `toolchain install --from-zip`, the PDS 7.1
+oracle, QB64pe's `-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `tools\check`. M6 moved to
+`ROADMAP-COMPLETED.md` with it. No OpenSpec change is open. The
 extension's last release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
@@ -64,18 +65,23 @@ Nothing is waiting: D-059, how `-w` prints QB64pe's warnings, was confirmed on 2
 
 ## Next
 
-1. **Merge `we-like-changes` into `main`.** `just merge` runs in a worktree of the branch's last commit, with
-   its whole suites in the suites VM. Pull request 24's `just merge` (2026-11-04, at `3cc5c54e`) failed 4 of
-   35 steps: `nextest` (the `events_errors.check-fail` snapshot in `frontend::frontend_files`), `linux-tier1`,
-   `linux-upstream` (`audio_sound_test/sound_test` timed out) and `linux-verification` (11 failing, among them
-   `v43_a_errorline` and the old Linux recording of `v59_d_conversions`). This branch's commits re-record
-   `v59_d_conversions` on Linux, run the Linux steps on Xvfb and give Linux programs an empty
-   `XDG_RUNTIME_DIR`; `frontend::frontend_files` passes on the host (2026-11-06). The merge run shows what is left.
-2. **The Civil War Battleset port** (`study\44`, `DECISIONS.md` 2026-11-06): steps 1 to 4 are done on the game's
-   branch `qb64rust`, not yet committed. The game, the editor and `pbmfix` build with QB64Rust and QB64pe, and
-   their first screens are the same in both. The game stops with "RETURN without GOSUB" where step 2 expected.
-   The game's `docs\devnotes.md` has the details. Next: step 5, the `GOSUB` fixes, the yell and the title
-   screenshot.
+1. **Finish the `just merge` of pull request 25.** It runs in the worktree at `f4db4ac9`, whose tree is the
+   merge commit's, with its whole suites in the suites VM. Pull request 25 was merged before it ended.
+   - The first try, at `5465accd`, stopped at once. The runner refuses every suite while a Linux recording
+     equals the shared one, and `v59_d_conversions.linux.out.txt` did. `f4db4ac9` deletes it.
+   - In the second, `linux-verification` and `linux-upstream` each failed on one program; both are now on a
+     `known.linux.list`. `v58_f14_display_window` reads `_DESKTOPREFRESHRATE` as 0 on Xvfb, QB64pe's Linux
+     build too. `audio_sound_test/sound_test` crashes now and then in libqb's audio engine with no sound
+     device: 1 of 40 runs 8 at a time, QB64pe's Linux build 7 of 40 (`SOMEDAY.md`, upstream's `50c371e13`).
+   - The three `glut` rows of `tests\upstream\known.linux.list` are removed: under Xvfb those programs pass.
+   - Next: commit these lists, check out the commit in the worktree and run `just merge` again. The two Linux
+     steps are then judged again from their results, not run again.
+2. **The Civil War Battleset port** (`study\44`, `DECISIONS.md` 2026-11-06): steps 1 to 4 are committed on the
+   game's branch `qb64rust` (`2730175`). Step 5 is done and not yet committed. The four `GOSUB` routines that
+   left their SUB now return, so Esc at "SAVEGAME FILE TO LOAD" no longer stops the game. The yell is `YELL.WAV`,
+   which was inside `YELL.EXE`. `playsound` now reads the key that ends a sound, as `PLANY` did (measured in
+   DOSBox with PDS 7.1). The title screen is `docs\CWBSTITL.png`. The game's `docs\devnotes.md` has the details.
+   Next: step 6, the test hooks.
 3. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"; `DECISIONS.md` 2026-10-28): decided,
    not built.
 4. **M7, Linux** (`ROADMAP.md`): `m7-linux` is built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are
@@ -160,6 +166,9 @@ failures re-judged against the new `known.linux.list`, not run again. Pull reque
 
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).
+- `RETURN` just before `ELSE` in a one-line `IF` is rejected: `IF a = 0 THEN RETURN ELSE CALL s` gives "not
+  supported yet: word `CALL` (expected the end of the statement)". QB64pe 4.7.0 builds it. Found by the Civil
+  War Battleset port (2026-11-06, its `docs\devnotes.md`, step 5), which avoids the form.
 - `$COLOR:0` and then `SUB Red`: the error "name already in use" is reported at the constant in the auto-included
   `internal\support\color\color0.bi`, not on the program's `SUB Red` (line 4), where QB64pe reports it
   (`verification\v45_x48`, on `known.list` since the change `pin-rejection-line`).
