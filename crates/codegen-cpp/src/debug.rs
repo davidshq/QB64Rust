@@ -149,7 +149,7 @@ pub struct DebugInfo {
 }
 
 /// The QB name of a type as a program spells it (`sema`'s `Program::type_name`).
-fn type_name(p: &Program, t: Ty) -> String {
+pub(crate) fn type_name(p: &Program, t: Ty) -> String {
     match t {
         Ty::User(id) => p.user_type(id).name.clone(),
         Ty::Bit { width: 1, .. } => t.qb_name().to_string(),
@@ -475,7 +475,7 @@ mod tests {
             "p.bas",
             &std::collections::HashMap::new(),
             &crate::Resolved::default(),
-            None,
+            (None, None),
             None,
             &files,
         );

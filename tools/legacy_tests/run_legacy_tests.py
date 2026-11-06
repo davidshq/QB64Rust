@@ -63,6 +63,11 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     (QB64RUST_COVERAGE, a file in the results folder) are appended to <file> once it has passed
     or failed, one record per run (tools/coverage); not with --record or --pass-cache. The
     verification and compile suites take it too (OpenSpec change m4-coverage-review)
+  * --trace-values <file> (qb64rust): every program is built with --trace-values and each run's
+    record of its variables' values (QB64RUST_TRACE, a file in the results folder) is appended
+    to <file>, as --coverage appends the counts; the two combine. A program must give the
+    output recorded for the build without the option (OpenSpec change value-trace). Such a
+    run does not stand for a run of a pass list
   * <name>.files: a folder of data files the program reads (the pictures a game loads with
     BLOAD). Everything in it is copied into the program's folder before it is compiled, with
     either compiler, when checking and when recording; beside an .err or a .norun it is an
@@ -178,6 +183,7 @@ Differences from the bash runners (all deliberate):
 from __future__ import annotations
 
 import argparse
+import atexit
 import bisect
 import concurrent.futures
 import contextlib
@@ -194,6 +200,7 @@ import signal
 import stat
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from collections.abc import Callable
@@ -210,6 +217,7 @@ from clone_lock import (
     name_objects_lock,
 )
 from compiler_copy import header, run_copy
+from digest import framed
 
 COMPILE_TIMEOUT = 900  # seconds; first compiles build libqb for each feature set
 RUN_TIMEOUT = 120
@@ -238,16 +246,58 @@ LINUX_KNOWN = "known.linux.list"
 ALSA_NULL = Path(__file__).resolve().parents[1] / "linux" / "asound-null.conf"
 
 
-def program_env() -> dict[str, str]:
-    """The environment a compile and a program run in: this process's, and on Linux the sound device fixed,
-    ALSA's null device (ALSA_CONFIG_PATH, unless it is set already) and no PulseAudio server, so that a
-    program meets the same device when recorded and when run, on any machine (WSLg's server, a card or
-    none) and prints none of ALSA's complaints about a missing card."""
+@functools.cache
+def empty_runtime_dir() -> str:
+    """An empty folder of this run, made once and removed when the runner exits. It is the XDG_RUNTIME_DIR of
+    every program on Linux, so that libpulse finds no server socket in it."""
+    path = tempfile.mkdtemp(prefix="qb64rust-runtime-")
+    atexit.register(shutil.rmtree, path, ignore_errors=True)
+    return path
+
+
+def program_env(linux: bool = os.name != "nt") -> dict[str, str]:
+    """The environment a compile and a program run in. It is this process's environment, with the sound
+    device fixed on Linux. ALSA_CONFIG_PATH names ALSA's null device, unless it is set already.
+
+    No PulseAudio server is reachable. PULSE_SERVER is cleared. XDG_RUNTIME_DIR names an empty folder of
+    this run, as tools/linux/run.sh does. In WSL the usual folder holds WSLg's socket
+    (/run/user/<uid>/pulse/native), and libpulse finds it there even without PULSE_SERVER; the program
+    would then play on the host's speakers at 44100 Hz, where CI has 48000.
+
+    So a program meets the same device when recorded and when run, on any machine (WSLg's server, a card
+    or none), and prints none of ALSA's complaints about a missing card."""
     env = dict(os.environ)
-    if os.name != "nt":
+    if linux:
         env.setdefault("ALSA_CONFIG_PATH", str(ALSA_NULL))
         env.pop("PULSE_SERVER", None)
+        env["XDG_RUNTIME_DIR"] = empty_runtime_dir()
     return env
+
+
+def noprompt_of(folder: Path, name: str) -> str:
+    """The QB64PE_NOPROMPT a program runs with: the text of <name>.noprompt in folder, else "y"."""
+    np_file = folder / f"{name}.noprompt"
+    return np_file.read_text(encoding="latin-1").strip() if np_file.is_file() else "y"
+
+
+def run_env(noprompt: str, log: Path) -> dict[str, str]:
+    """The environment a program of the compile suite or the corpus runs in: program_env, with
+    QB64PE_NOPROMPT set to noprompt and the runtime's log of the program's and libqb's scopes sent to log."""
+    env = program_env()
+    env.update(
+        {
+            "QB64PE_NOPROMPT": noprompt,
+            "QB64PE_LOG_HANDLERS": "file",
+            "QB64PE_LOG_SCOPES": "qb64,libqb,libqb-image,libqb-audio",
+            "QB64PE_LOG_FILE_PATH": str(log),
+        }
+    )
+    return env
+
+
+def read_if_file(path: Path) -> bytes | None:
+    """The bytes of path, or None when there is no such file (a part of a pass key, pass_key)."""
+    return path.read_bytes() if path.is_file() else None
 
 
 # libqb's own words that differ by platform, Linux's then Windows': END with the window hidden and the console
@@ -297,13 +347,16 @@ def expected_file(path: Path, platform: str) -> Path:
 
 def load_linux_list(path: Path, suite: str) -> dict[str, str]:
     """Reads a suite's known.linux.list into {"<suite>:<name>": reason} (empty if there is none):
-    <name><TAB><reason> per line, '#' lines and blank lines skipped."""
+    <name><TAB><reason> per line, '#' lines and blank lines skipped. A row with no tab, no reason or a space in
+    its name raises ValueError, naming it: without the tab, the whole row would be read as a name."""
     known: dict[str, str] = {}
     if path.is_file():
         for line in path.read_text(encoding="utf-8").splitlines():
             if not line.strip() or line.startswith("#"):
                 continue
-            name, _, reason = line.partition("\t")
+            name, tab, reason = line.partition("\t")
+            if not tab or not reason.strip() or " " in name.strip():
+                raise ValueError(f"{path}: not <name><TAB><reason>: {line}")
             known[f"{suite}:{name.strip()}"] = reason.strip()
     return known
 
@@ -311,6 +364,38 @@ def load_linux_list(path: Path, suite: str) -> dict[str, str]:
 def skipped_on(platform: str, reason: str) -> bool:
     """A program of a Linux list whose reason starts with "windows" needs Windows: skipped, not run."""
     return platform == "linux" and reason.split(" ", 1)[0].rstrip(":,") == "windows"
+
+
+# Set by check's steps in the suites VM (tools/check/check.py): network programs run there.
+ALLOW_NETWORK = "QB64RUST_ALLOW_NETWORK"
+NETWORK_SKIP = (
+    "not run on a Windows host: it uses the network, and a program that opens a port makes Windows Defender "
+    f"Firewall ask the user (CLAUDE.md working rule 6). It runs in the suites VM; the user may set "
+    f"{ALLOW_NETWORK}=1 to run it here"
+)
+
+
+def external_sidecar(suite: str, bas: Path) -> Path | None:
+    """The .external sidecar of a program of the corpus, compile or verification suite (a script's test takes its
+    program's); None for another suite."""
+    if suite == "compile":
+        return compile_external(bas.parent.name, bas.stem)
+    if suite == "verification":
+        return bas.with_suffix(EXTERNAL)
+    if suite == "corpus":
+        script = script_of(bas)
+        return (script[0] if script else bas).with_suffix(EXTERNAL)
+    return None
+
+
+def network_skipped(suite: str, bas: Path, env=os.environ, windows: bool = os.name == "nt") -> bool:
+    """A program marked `network:` is skipped on a Windows host unless ALLOW_NETWORK is 1 (CLAUDE.md working rule
+    6, 2026-11-05). Linux, WSL and GitHub's CI run it: no firewall asks there."""
+    # GitHub's runners set CI=true; no one is there for the firewall to ask.
+    if not windows or env.get(ALLOW_NETWORK) == "1" or env.get("CI") == "true":
+        return False
+    sidecar = external_sidecar(suite, bas)
+    return bool(sidecar and sidecar.is_file() and sidecar.read_bytes().startswith(b"network:"))
 
 
 def equal_sidecars(roots: list[Path]) -> list[Path]:
@@ -565,12 +650,32 @@ def clone_stamp(qb_root: Path, settings: dict[str, bytes]) -> str:
         parts = folder.relative_to(internal_c).parts
         files += [folder / f for f in sorted(filenames) if not written_by_builds(parts, f)]
     h = hashlib.sha256()
+    stamp_by_time(h, qb_root, files)
+    stamp_settings(h, settings)
+    return h.hexdigest()
+
+
+def stamp_by_time(h, qb_root: Path, files: list[Path]) -> None:
+    """Feeds the hash h one line per file of the clone: its path in qb_root, its size and its time."""
     for p in files:
         st = p.stat()
         h.update(f"{p.relative_to(qb_root).as_posix()}\t{st.st_size}\t{st.st_mtime_ns}\n".encode())
+
+
+def stamp_settings(h, settings: dict[str, bytes]) -> None:
+    """Feeds the hash h one line per settings file (clone_settings): its path and its SHA-256."""
     for name, data in settings.items():
         h.update(f"settings/{name}\t{hashlib.sha256(data).hexdigest()}\n".encode())
-    return h.hexdigest()
+
+
+def copy_release(qb_root: Path, root: Path, settings: dict[str, bytes]) -> None:
+    """Copies the clone's qb64pe.exe and Makefile into root, and writes settings into root/settings."""
+    for name in (QB64PE, "Makefile"):
+        shutil.copy2(qb_root / name, root / name)
+    for name, data in settings.items():
+        target = root / "settings" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
 
 
 def make_copy(qb_root: Path, root: Path, stamp: str, settings: dict[str, bytes]) -> None:
@@ -580,8 +685,7 @@ def make_copy(qb_root: Path, root: Path, stamp: str, settings: dict[str, bytes])
     if root.exists():
         shutil.rmtree(root)
     root.mkdir(parents=True)
-    for name in (QB64PE, "Makefile"):
-        shutil.copy2(qb_root / name, root / name)
+    copy_release(qb_root, root, settings)
     internal = qb_root / "internal"
 
     def skip(folder: str, names: list[str]) -> list[str]:
@@ -594,10 +698,6 @@ def make_copy(qb_root: Path, root: Path, stamp: str, settings: dict[str, bytes])
         return [n for n in names if written_by_builds(parts, n) and not (Path(folder) / n).is_dir()]
 
     shutil.copytree(internal, root / "internal", ignore=skip)
-    for name, data in settings.items():
-        target = root / "settings" / name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
     (root / "internal" / "temp").mkdir()
     (root / COPY_STAMP).write_text(stamp, encoding="ascii")
 
@@ -804,10 +904,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     check_license = license_file.is_file()
     if check_license:
         flags.append("-f:GenerateLicenseFile=true")
-    noprompt = "y"
-    np_file = tdir / f"{name}.noprompt"
-    if np_file.is_file():
-        noprompt = np_file.read_text(encoding="latin-1").strip()
+    noprompt = noprompt_of(tdir, name)
 
     base = [
         "-f:OptimizeCppProgram=true",
@@ -818,7 +915,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         "-x",
         *include_root_args(args.qb64),
         *fixes_args(args.qb64),
-        *(["--coverage"] if getattr(args, "coverage", None) else []),
+        *instrument_flags(args),
     ]
     if (tdir / f"{name}.compile-from-base").is_file():
         # relpath, not relative_to: with --compile-tests the program is outside qb_root.
@@ -840,7 +937,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
                 b"compile suite",
                 bas.read_bytes(),
                 out_file.read_bytes(),
-                sidecar.read_bytes() if sidecar.is_file() else None,
+                read_if_file(sidecar),
                 noprompt.encode(),
                 data_files(tdir),
                 license_file.read_bytes() if check_license else None,
@@ -895,15 +992,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         return r
 
     run_out = results / f"{category}-{name}-run-output.txt"
-    env = program_env()
-    env.update(
-        {
-            "QB64PE_NOPROMPT": noprompt,
-            "QB64PE_LOG_HANDLERS": "file",
-            "QB64PE_LOG_SCOPES": "qb64,libqb,libqb-image,libqb-audio",
-            "QB64PE_LOG_FILE_PATH": str(results / f"{category}-{name}-log.txt"),
-        }
-    )
+    env = run_env(noprompt, results / f"{category}-{name}-log.txt")
     trace = results / f"{category}-{name}-divergences.txt"
     set_trace(env, trace)
     counts = results / f"{category}-{name}-coverage.txt"
@@ -1554,10 +1643,7 @@ def pass_key(build: bytes, parts: list[bytes | None]) -> str:
     for a file that is not there). A program whose key equals one that passed gives the same output again, so it
     is neither built nor run."""
     h = hashlib.sha256()
-    for part in (b"pass cache 2", build, *parts):
-        data = b"\0" if part is None else b"\1" + part
-        h.update(len(data).to_bytes(8, "little"))
-        h.update(data)
+    framed(h, *(b"\0" if part is None else b"\1" + part for part in (b"pass cache 2", build, *parts)))
     return h.hexdigest()
 
 
@@ -1574,11 +1660,7 @@ def libqb_digest(libqb: Path) -> bytes:
         for f in sorted(filenames):
             if inside and written_by_builds(parts, f):
                 continue
-            rel = (folder / f).relative_to(libqb).as_posix().encode()
-            data = (folder / f).read_bytes()
-            for part in (rel, data):
-                h.update(len(part).to_bytes(8, "little"))
-                h.update(part)
+            framed(h, (folder / f).relative_to(libqb).as_posix().encode(), (folder / f).read_bytes())
     return h.digest()
 
 
@@ -1607,9 +1689,7 @@ def run_inputs(qb64: Path) -> bytes:
     none beside it), the toolchain, and the runner's own bytes."""
     libqb = Path(os.environ.get("QB64RUST_LIBQB_ROOT") or Path(__file__).resolve().parents[2] / "libqb")
     h = hashlib.sha256()
-    for part in (libqb_digest(libqb), toolchain_stamp(qb64), Path(__file__).resolve().read_bytes()):
-        h.update(len(part).to_bytes(8, "little"))
-        h.update(part)
+    framed(h, libqb_digest(libqb), toolchain_stamp(qb64), Path(__file__).resolve().read_bytes())
     return h.digest()
 
 
@@ -1636,9 +1716,7 @@ def data_files(folder: Path) -> bytes | None:
         return None
     h = hashlib.sha256()
     for p in sorted(q for q in folder.rglob("*") if q.is_file()):
-        for part in (p.relative_to(folder).as_posix().encode(), p.read_bytes()):
-            h.update(len(part).to_bytes(8, "little"))
-            h.update(part)
+        framed(h, p.relative_to(folder).as_posix().encode(), p.read_bytes())
     return h.digest()
 
 
@@ -1691,24 +1769,48 @@ class SharedBuilds:
             return self.done[folder]
 
 
-# One append at a time to the --coverage file: each run's record goes in whole.
+# One append at a time to the --coverage file and to the --trace-values file: each run's record
+# goes in whole.
 COVERAGE_LOCK = threading.Lock()
 
 
+def instrument_flags(args) -> list[str]:
+    """The compiler's options of --coverage and --trace-values, for a compile line."""
+    flags = []
+    if getattr(args, "coverage", None):
+        flags.append("--coverage")
+    if getattr(args, "trace_values", None):
+        flags.append("--trace-values")
+    return flags
+
+
+def values_file(counts: Path) -> Path:
+    """The file of a run's value-trace record, beside the file of its counts."""
+    return counts.with_name(counts.name.removesuffix("-coverage.txt") + "-values.txt")
+
+
 def coverage_env(args, env: dict, counts: Path) -> None:
-    """With --coverage, the run writes its counts to `counts` (removed first)."""
+    """With --coverage, the run writes its counts to `counts` (removed first). With --trace-values,
+    it writes its record of values to the file beside it (values_file)."""
     if getattr(args, "coverage", None):
         counts.unlink(missing_ok=True)
         env["QB64RUST_COVERAGE"] = str(counts)
+    if getattr(args, "trace_values", None):
+        values_file(counts).unlink(missing_ok=True)
+        env["QB64RUST_TRACE"] = str(values_file(counts))
 
 
 def append_counts(args, counts: Path, timed_out: bool) -> None:
     """With --coverage, a run's counts go to the --coverage file in one append. A run cut short may
-    have left half a record: its counts are left out, and the timeout fails the test."""
-    coverage = getattr(args, "coverage", None)
-    if coverage and counts.is_file() and not timed_out:
-        with COVERAGE_LOCK, open(coverage, "ab") as f:
-            f.write(counts.read_bytes())
+    have left half a record: its counts are left out, and the timeout fails the test. The same
+    for the record of values and the --trace-values file."""
+    for to, record in (
+        (getattr(args, "coverage", None), counts),
+        (getattr(args, "trace_values", None), values_file(counts)),
+    ):
+        if to and record.is_file() and not timed_out:
+            with COVERAGE_LOCK, open(to, "ab") as f:
+                f.write(record.read_bytes())
 
 
 def corpus_test(
@@ -1791,9 +1893,7 @@ def corpus_test(
     flags = ["-f:OptimizeCppProgram=true"] if args.cpp_opt else []
     if screen:
         flags.append(f"-f:ExtraLinkerFlags={SCREEN_STATE_SOURCE.as_posix()}")
-    coverage = getattr(args, "coverage", None)
-    if coverage:
-        flags.append("--coverage")
+    flags.extend(instrument_flags(args))
 
     def compile_cmd(qb64: Path, out: Path) -> list[str]:
         return [
@@ -1833,10 +1933,7 @@ def corpus_test(
         shutil.rmtree(work, ignore_errors=True)
         return finish(detail=detail)
 
-    noprompt = "y"
-    np_file = tdir / f"{name}.noprompt"
-    if np_file.is_file():
-        noprompt = np_file.read_text(encoding="latin-1").strip()
+    noprompt = noprompt_of(tdir, name)
     stdin_file = tdir / f"{name}.stdin"
     # <name>.exitcode: the exit code the program must end with (END n, SYSTEM n), as the process
     # reports it (Python's returncode: on Windows the unsigned 32-bit value, on Linux its low 8 bits,
@@ -1860,19 +1957,15 @@ def corpus_test(
     ):
         build_in = build_inputs(args.qb64, compile_cmd(args.qb64, exe), work, results / f"{key}-inputs.txt")
         if build_in is not None:
-
-            def read(p: Path) -> bytes | None:
-                return p.read_bytes() if p.is_file() else None
-
             parts = [
                 src.read_bytes(),
-                read(out_file),
-                read(screen_file),
-                read(keys_file),
-                read(stdin_file),
-                read(tdir / f"{name}.normalize"),
-                read(exitcode_file),
-                read(tdir / f"{name}.divergences"),
+                read_if_file(out_file),
+                read_if_file(screen_file),
+                read_if_file(keys_file),
+                read_if_file(stdin_file),
+                read_if_file(tdir / f"{name}.normalize"),
+                read_if_file(exitcode_file),
+                read_if_file(tdir / f"{name}.divergences"),
                 data_files(files_dir),
                 noprompt.encode(),
                 Path(__file__).with_name("press_any_key.py").read_bytes() if os.name == "nt" else None,
@@ -1942,15 +2035,7 @@ def corpus_test(
         return fail("run", "not run: known failure with no expected file")
 
     r.kind = "output"
-    env = program_env()
-    env.update(
-        {
-            "QB64PE_NOPROMPT": noprompt,
-            "QB64PE_LOG_HANDLERS": "file",
-            "QB64PE_LOG_SCOPES": "qb64,libqb,libqb-image,libqb-audio",
-            "QB64PE_LOG_FILE_PATH": str(results / f"{key}-log.txt"),
-        }
-    )
+    env = run_env(noprompt, results / f"{key}-log.txt")
     # <name>.stdin: the program's standard input is a copy of that file, kept beside the results so
     # that the program's own folder holds only what the program finds without the sidecar.
     stdin_copy = None
@@ -2165,9 +2250,7 @@ def verification_test(bas: Path, args, results: Path, qb_root: Path) -> Result:
         ]
     )
     if exe.is_file():
-        np_file = tdir / f"{name}.noprompt"
-        if np_file.is_file():
-            env["QB64PE_NOPROMPT"] = np_file.read_text(encoding="latin-1").strip()
+        env["QB64PE_NOPROMPT"] = noprompt_of(tdir, name)
         stdin_file = tdir / f"{name}.stdin"
         run_out = results / f"{name}-out.txt"
         log = results / f"{name}-log.txt"
@@ -2259,11 +2342,8 @@ def root_copy(qb_root: Path, folder: Path, root: Path) -> Path:
     Raises OSError when the junction cannot be made (no fallback copies the toolchain)."""
     settings = clone_settings(qb_root)
     h = hashlib.sha256()
-    for fname in (QB64PE, "Makefile"):
-        st = (qb_root / fname).stat()
-        h.update(f"{fname}\t{st.st_size}\t{st.st_mtime_ns}\n".encode())
-    for sname, data in settings.items():
-        h.update(f"settings/{sname}\t{hashlib.sha256(data).hexdigest()}\n".encode())
+    stamp_by_time(h, qb_root, [qb_root / QB64PE, qb_root / "Makefile"])
+    stamp_settings(h, settings)
     h.update(tree_digest([folder]))
     stamp = h.hexdigest()
     stamp_file = root / ROOT_STAMP
@@ -2271,12 +2351,7 @@ def root_copy(qb_root: Path, folder: Path, root: Path) -> Path:
         return root
     remove_root_copy(root)
     root.mkdir(parents=True)
-    for fname in (QB64PE, "Makefile"):
-        shutil.copy2(qb_root / fname, root / fname)
-    for sname, data in settings.items():
-        target = root / "settings" / sname
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
+    copy_release(qb_root, root, settings)
     make_junction(qb_root / "internal", root / "internal")
     shutil.copytree(folder, root, dirs_exist_ok=True)
     # Written last: a copy that was interrupted has no stamp and is made again.
@@ -2522,9 +2597,7 @@ def tree_digest(paths: list[Path]) -> bytes:
     for top in paths:
         files = [top] if top.is_file() else sorted(q for q in top.rglob("*") if q.is_file())
         for p in files:
-            for part in (p.relative_to(top.parent).as_posix().encode(), p.read_bytes()):
-                h.update(len(part).to_bytes(8, "little"))
-                h.update(part)
+            framed(h, p.relative_to(top.parent).as_posix().encode(), p.read_bytes())
     return h.digest()
 
 
@@ -2560,12 +2633,13 @@ def verification_compare(
     `<name> [fixes on]`."""
     name = bas.stem
     root = bas.parent
-    # A diverged\ sidecar stands for QB64pe's recording, and its log for the recorded log (design D1).
+    # A diverged\ sidecar stands for QB64pe's recording, and its log for the recorded log (design D1). On Linux,
+    # diverged\<name>.linux.out.txt stands for it when our output differs there, as a recording's Linux sidecar does.
     diverged = not fixed and diverged_sidecar(name).is_file()
     if fixed:
         recorded_file = fixed_sidecar(name)
     elif diverged:
-        recorded_file = diverged_sidecar(name)
+        recorded_file = expected_file(diverged_sidecar(name), platform_of(args))
     else:
         recorded_file = expected_file(root / f"{name}.out.txt", platform_of(args))
     recorded = recorded_file.read_bytes() if recorded_file.is_file() else None
@@ -2620,7 +2694,6 @@ def verification_compare(
     exe = work / f"{name}{EXE}"
     compile_out = results / f"{tag}-compile.txt"
     env = program_env()
-    env["QB64PE_NOPROMPT"] = "y"
     # The folder and the files the old compiler found in its own folder, under a root of their own, in
     # the recording's order: a listed file the folder holds already is the same error as there.
     root_args = []
@@ -2631,7 +2704,7 @@ def verification_compare(
         return fail("expected", str(e))
     if has_folder or placed_files:
         root_args = ["--include-root", str(work / "root")]
-    coverage_flag = ["--coverage"] if getattr(args, "coverage", None) else []
+    coverage_flag = instrument_flags(args)
     compile_cmd = [
         str(args.qb64),
         "-x",
@@ -2649,8 +2722,7 @@ def verification_compare(
         shutil.rmtree(work, ignore_errors=True)
         return finish(detail=detail)
 
-    if np_file.is_file():
-        env["QB64PE_NOPROMPT"] = np_file.read_text(encoding="latin-1").strip()
+    env["QB64PE_NOPROMPT"] = noprompt_of(root, name)
     normalize = VERIFICATION_LISTS / "normalize" / f"{name}.normalize"
     divergences = VERIFICATION_LISTS / "divergences" / f"{name}.divergences"
     helper = Path(__file__).with_name("press_any_key.py")
@@ -2661,24 +2733,20 @@ def verification_compare(
     if pass_cache and not rejected and not (root / f"{name}{EXTERNAL}").is_file():
         build = build_inputs(args.qb64, compile_cmd, work, results / f"{tag}-inputs.txt")
         if build is not None:
-
-            def read(p: Path) -> bytes | None:
-                return p.read_bytes() if p.is_file() else None
-
             parts = [
                 bas.read_bytes(),
                 recorded,
-                read(log_file),
-                read(stdin_file),
+                read_if_file(log_file),
+                read_if_file(stdin_file),
                 env["QB64PE_NOPROMPT"].encode(),
-                read(normalize),
-                read(divergences),
-                read(root / f"{name}.root"),
+                read_if_file(normalize),
+                read_if_file(divergences),
+                read_if_file(root / f"{name}.root"),
                 tree_digest(support),
                 tree_digest([root / f for f in [root_folder(root, name)] if f]),
                 helper.read_bytes() if os.name == "nt" else None,
                 b"fixes on" if fixed else None,
-                b"coverage" if coverage_flag else None,
+                " ".join(coverage_flag).encode() if coverage_flag else None,
             ]
             remembered = pass_cache / pass_key(build, parts)
             if remembered.is_file():
@@ -2946,7 +3014,8 @@ def program_inputs(suite: str, bas: Path, names: list[str] | None = None) -> lis
             sidecar = VERIFICATION_LISTS / kind / f"{bas.stem}.{kind}"
             if sidecar.is_file():
                 found.append(sidecar)
-        for sidecar in (fixed_sidecar(bas.stem), diverged_sidecar(bas.stem), diverged_sidecar(bas.stem, "log")):
+        diverged = diverged_sidecar(bas.stem)
+        for sidecar in (fixed_sidecar(bas.stem), diverged, linux_sidecar(diverged), diverged_sidecar(bas.stem, "log")):
             if sidecar.is_file():
                 found.append(sidecar)
     return found
@@ -3049,6 +3118,10 @@ def check_list(
             "a run with --pass-cache, --record, --cpp-opt or --full-states cannot stand for a run "
             "of the list"
         )
+    # A run with --trace-values is a check of that build (OpenSpec change value-trace, task 2.6), not
+    # of the build the lists are about.
+    if run.get("trace_values"):
+        problems.append("a run with --trace-values cannot stand for a run of the list")
     if problems:
         return problems, [], 0
     results = {(r["suite"], r["test"]): r for r in data.get("results", [])}
@@ -3069,6 +3142,10 @@ def check_list(
             failures.append(
                 (name, f"a known failure in the full run; a pass list needs a pass ({r['detail']})")
             )
+        elif r["status"] == "SKIP" and r["detail"] == NETWORK_SKIP:
+            # Neither passed nor failed: a network program a Windows host's run skips (network_skipped). The
+            # caller reports it as skipped.
+            pass
         elif r["status"] != "PASS":
             failures.append((name, f"{r['stage']}: {r['detail']}"))
         elif r["detail"] == PASSED_BEFORE:
@@ -3181,6 +3258,9 @@ def rejudge(
         if skipped_on(platform, reason):
             r.update(kind="skipped", status="SKIP", stage="skipped", detail=reason)
             continue
+        if r["status"] == "SKIP" and r["detail"] == NETWORK_SKIP and network_skipped(suite, bas):
+            # A network program the host's run skipped (network_skipped): the known lists do not change that.
+            continue
         if r["status"] == "SKIP":
             problems.append(f"{key}: no longer skipped, and never run")
             continue
@@ -3228,13 +3308,16 @@ def run_suite_test(
     known: dict[str, str],
 ) -> list[Result]:
     """Runs one program of a suite; an exception in the runner becomes a FAIL result. A program that a
-    Linux list names with the reason "windows" is skipped on Linux (SKIP), not run."""
+    Linux list names with the reason "windows" is skipped on Linux (SKIP), not run; so is a network program on a
+    Windows host (network_skipped)."""
     if suite in ("corpus", "compile", "verification"):
         root = corpus_root if suite == "corpus" else bas.parent if suite == "verification" else bas.parent.parent
         key = ":".join(result_key(suite, bas, root))
         reason = known.get(key, "")
         if skipped_on(platform_of(args), reason):
             return [Result(key.split(":", 1)[0], key.split(":", 1)[1], "skipped", "SKIP", "skipped", reason)]
+        if network_skipped(suite, bas):
+            return [Result(key.split(":", 1)[0], key.split(":", 1)[1], "skipped", "SKIP", "skipped", NETWORK_SKIP)]
     try:
         if suite == "compile":
             return [compile_test(bas, args, results, qb_root, args.os_tag)]
@@ -3633,6 +3716,14 @@ def main() -> int:
         "--coverage and append the counts of each run to FILE (tools/coverage)",
     )
     ap.add_argument(
+        "--trace-values",
+        type=Path,
+        metavar="FILE",
+        help="corpus, verification or compile with qb64rust, not with --record or --pass-cache: "
+        "build each program with --trace-values and append each run's record of its variables' "
+        "values to FILE (tools/trace)",
+    )
+    ap.add_argument(
         "--pass-cache",
         type=Path,
         help="corpus, compile and a verification compare: a folder that remembers which programs passed, by "
@@ -3658,6 +3749,15 @@ def main() -> int:
     ):
         print(
             "--coverage applies to --suite corpus, verification or compile without --record or "
+            "--pass-cache",
+            file=sys.stderr,
+        )
+        return 2
+    if args.trace_values and (
+        args.suite not in ("corpus", "verification", "compile") or args.record or args.pass_cache
+    ):
+        print(
+            "--trace-values applies to --suite corpus, verification or compile without --record or "
             "--pass-cache",
             file=sys.stderr,
         )
@@ -3763,9 +3863,16 @@ def main() -> int:
         for key, why in failures:
             print(f"[check] FAIL {key}  {why}", flush=True)
         name = "compile_tests" if args.suite == "compile" else args.suite
-        failed = len(wanted) - passed
-        print(json.dumps({name: {"PASS": passed, "FAIL": failed, "KFAIL": 0}}))
-        print(f"{args.check_list.name}: {passed} of {len(wanted)} passed in {source.name}")
+        failed = len(wanted) if problems else len(failures)
+        skipped = len(wanted) - passed - failed
+        counted = {"PASS": passed, "FAIL": failed, "KFAIL": 0}
+        if skipped:
+            counted["SKIP"] = skipped
+        print(json.dumps({name: counted}))
+        print(
+            f"{args.check_list.name}: {passed} of {len(wanted)} passed in {source.name}"
+            + (f"; {skipped} network programs skipped on this Windows host" if skipped else "")
+        )
         return 0 if failed == 0 else 1
     # --suite verification records with qb64pe and compares with any other compiler (verification_compare).
     recording_verification = args.suite == "verification" and is_old_compiler(args.qb64)
@@ -3788,6 +3895,11 @@ def main() -> int:
             print("--coverage applies to qb64rust only", file=sys.stderr)
             return 2
         args.coverage = args.coverage.resolve()
+    if args.trace_values:
+        if is_old_compiler(args.qb64):
+            print("--trace-values applies to qb64rust only", file=sys.stderr)
+            return 2
+        args.trace_values = args.trace_values.resolve()
     args.build_cache = build_cache_given(args.build_cache)
     if args.build_cache:
         if is_old_compiler(args.qb64):
@@ -4029,7 +4141,8 @@ def main() -> int:
     summary: dict = {}
     for r in all_results:
         s = summary.setdefault(r.suite, {"PASS": 0, "FAIL": 0, "KFAIL": 0})
-        # SKIP only where a program was skipped (a Linux run), so that Windows summaries stay as they were.
+        # SKIP only where a program was skipped (a Linux run, or a network program on a Windows host), so that
+        # other summaries stay as they were.
         s[r.status] = s.get(r.status, 0) + 1
     if args.pass_cache:
         kept = sum(1 for r in all_results if r.detail == PASSED_BEFORE)
@@ -4073,6 +4186,8 @@ def main() -> int:
         "build_cache": bool(args.build_cache),
         "pass_cache": bool(args.pass_cache),
         "coverage": bool(args.coverage),
+        # Only when given, so that the record of any other run is as before.
+        **({"trace_values": True} if args.trace_values else {}),
         "full_states": args.full_states,
         "compiler_sha256": file_sha256(args.qb64),
         "runner_sha256": file_sha256(Path(__file__).resolve()),

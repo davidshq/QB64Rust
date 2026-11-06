@@ -157,7 +157,7 @@ suites, the call-site check, the coverage check and the CLI tests (`tools\check\
 the desktop VM, whose four processors the desktop family was measured with. (OpenSpec change `vm-suites`, design
 D1 to D5 and D11.)
 
-**Its shape.** Generation 2, with Secure Boot and a virtual TPM, like the desktop VM. 12 processors. Dynamic
+**Its shape.** Generation 2, with Secure Boot and a virtual TPM, like the desktop VM. 8 processors. Dynamic
 memory: 4 GB at start, at least 2 GB, at most 24 GB, so that its checkpoint saves only the memory in use. Its
 Windows disk is a differencing disk whose parent is the base: it stores only what changed after its first boot.
 No network adapter, and its console is opened only in the basic session, as for the desktop VM.
@@ -168,12 +168,18 @@ No network adapter, and its console is opened only in the basic session, as for 
 |---|---|---|
 | Microsoft's Visual C++ runtime 14.44.35211, which `qb64rust.exe` and the CLI test binary need (`VCRUNTIME140.dll`; a clean Windows 11 does not have it) | `System32` | `VC_redist.x64.exe`, SHA-256 `cc0ff0eb1dc3f5188ae6300faef32bf5beeba4bdd6e8e445a9184072096b713b`, from Microsoft's versioned link in `create.ps1`; signed by Microsoft Corporation |
 | Python 3.12.10, the last 3.12 release with a Windows installer, installed for all users and on `PATH` | `%ProgramFiles%\Python312` | `python-3.12.10-amd64.exe` from python.org, SHA-256 `67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb`; signed by the Python Software Foundation |
-| The C++ toolchain, installed by `qb64rust toolchain install` run as `tester` while the VM is online, as a user installs it | `tester`'s `%LOCALAPPDATA%\qb64rust\toolchain` | the pin inside `qb64rust` |
+| The C++ toolchain, installed by `qb64rust toolchain install --from-zip` run as `tester`, from the zip the host downloaded | `tester`'s `%LOCALAPPDATA%\qb64rust\toolchain` | the pin inside `qb64rust`, which `create.ps1` reads from `crates\driver\src\toolchain.rs` |
 | Mesa's software OpenGL, as in the desktop VM | `C:\mesa`, and on the cache disk | as in "OpenGL" below |
 
-`create.ps1` downloads both installers once into `%LOCALAPPDATA%\qb64rust\winvm\installers\`, checks their hashes,
-and refuses on a mismatch. Nothing of them is in the repo. It also needs `target\release\qb64rust.exe` built on
-the host, which it copies into the VM to install the toolchain and removes again.
+`create.ps1` downloads both installers and the toolchain's zip once into `%LOCALAPPDATA%\qb64rust\winvm\installers\`,
+checks their hashes, and refuses on a mismatch. Nothing of them is in the repo. It also needs
+`target\release\qb64rust.exe` built on the host, which it copies into the VM to install the toolchain and removes
+again.
+
+The guest does not download the toolchain itself. On 2026-11-05 every TLS download in the VM through Hyper-V's
+Default Switch broke partway through with `SEC_E_DECRYPT_FAILURE`, with curl and with `Invoke-WebRequest`. The
+host's own download of the same file worked. The Default Switch's settings cannot be changed. The VM still goes
+online, for a minute or two, to activate Windows.
 
 The VM has no Rust and no cargo. The host builds `qb64rust.exe` and the CLI test binary, and a run copies them in.
 

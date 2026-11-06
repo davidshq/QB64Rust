@@ -21,6 +21,7 @@ pub mod f80;
 // Written by `tools\opengl\gl_table.py`, which owns its layout.
 #[rustfmt::skip]
 pub mod gl_table;
+pub mod lints;
 pub mod literal;
 #[cfg(test)]
 mod mpmath_values;
@@ -680,6 +681,9 @@ pub struct Var {
     /// every argument there: the caller's variable or array, or for a value a slot of the call site
     /// ([`Arg::Temp`]). Never one of `_BIT` elements.
     pub conventional: bool,
+    /// Made by its first use, not by a declaration (`DIM`, `REDIM`, `STATIC`, `SHARED`, `COMMON`, a parameter or a
+    /// FUNCTION's result): a scalar or an array used without `DIM` (`used-once`, design D4 of `lints`).
+    pub implicit: bool,
 }
 
 /// The variable's [`Shape`], asked through the variable.
@@ -1794,6 +1798,16 @@ pub struct Program {
     pub shared: std::collections::HashSet<VarId>,
     /// The program's console and window.
     pub settings: Settings,
+    /// Each `DIM` or `REDIM` in a procedure that made a local with the name and type of a main-module `DIM SHARED`
+    /// variable: the name's span and the local (`hides-shared`, design D7 of `lints`).
+    pub(crate) hidden_shared: Vec<(Span, VarId)>,
+    /// The warnings of `qb64pe -w` that the checker finds where it meets them ("Empty SELECT CASE block",
+    /// "Duplicate constant definition", "Feature incompatible with $DEBUG mode"): where, the code, the message. Given
+    /// by the lints, so only for a program without errors (design D11 of `lints`).
+    pub(crate) qb64pe_warnings: Vec<(Span, &'static str, String)>,
+    /// The variables and arrays that "Unused variable" never names: those `COMMON` or `COMMON SHARED` declared, and
+    /// those a `SHARED` statement in a procedure made (measured, `verification\v68_b_shared`, `v68_a3_more`).
+    pub(crate) not_reported_unused: std::collections::HashSet<VarId>,
 }
 
 /// What the metacommands of a program's compiled code say of its console and window, wherever they stand (design

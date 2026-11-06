@@ -12,6 +12,8 @@ pub mod layout;
 mod old_wording;
 pub mod platform;
 pub use old_wording::old_wording;
+/// For `qb64rust --old-wording-keys`, which gives the table's script its keys and forms.
+pub use old_wording::{CODES as OLD_WORDING_CODES, forms as old_wording_forms, key_with as old_wording_key};
 pub use platform::Platform;
 
 /// The largest source file, in bytes: offsets are `u32`. A caller that reads a file checks this before handing
@@ -192,6 +194,9 @@ pub struct Diagnostic {
     /// `compiler/pipeline`). The message names the construct without saying "not supported yet"; the renderer
     /// adds that.
     pub unsupported: bool,
+    /// The lint's name for a lint warning (spec `compiler/lints`, "Codes"); `None` for every other diagnostic.
+    /// The CLI does not print it; the language server passes it to the editor.
+    pub code: Option<&'static str>,
 }
 
 impl Diagnostic {
@@ -201,6 +206,15 @@ impl Diagnostic {
             span,
             message: message.into(),
             unsupported: false,
+            code: None,
+        }
+    }
+
+    /// A lint warning with its code (spec `compiler/lints`).
+    pub fn lint(span: Span, code: &'static str, message: impl Into<String>) -> Diagnostic {
+        Diagnostic {
+            code: Some(code),
+            ..Diagnostic::warning(span, message)
         }
     }
 

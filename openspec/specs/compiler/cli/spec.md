@@ -9,7 +9,15 @@ M1 extension use, plus options for inspecting each compiler stage.
 ### Requirement: qb64pe-compatible compile
 `qb64rust [-x] [-q] [-m] [-w] [-f:<setting>=<value>]... <file.bas> [-o <exe>]` SHALL compile the file to the
 executable (default: the source name with `.exe` on Windows and with no extension on Linux, next to the source, as
-`qb64pe` names it on each). `-x`, `-q`, `-m` and `-w` SHALL be accepted;
+`qb64pe` names it on each). `-x`, `-q`, `-m` and `-w` SHALL be accepted; `-c` SHALL be accepted as another
+name for `-x`, since there is no IDE window to build in. `-s` and `-s:<setting>[=<value>]`, `qb64pe`'s stored
+settings, SHALL be an error that names `-f:<setting>=<value>`. `-e` SHALL check the program as if it began with
+`OPTION _EXPLICIT`, as `qb64pe -e` does: its included files too, `_EXPLICIT_` and `_EXPLICITARRAY_` set from the
+first round, an `OPTION _EXPLICIT` of the program's own no error, and the same with `-z` and `-y`. `-p` SHALL first
+remove the libqb objects that builds wrote in the copy of libqb, and its stamp, holding the objects' lock alone,
+as `qb64pe -p` runs libqb's `make clean`; then the rest of the command line SHALL run, and `-p` with no input file
+SHALL end there with exit status 0. `-p` SHALL refuse a QB64pe folder (one with `source/qb64pe.bas`, such as the
+reference clone), removing nothing;
 `-q` SHALL suppress progress output. `-f:OptimizeCppProgram=true|false` SHALL build the C++ with or without
 optimisation as `qb64pe` does; `-f:ExtraLinkerFlags=<value>` SHALL add the value to the end of the link command as
 `qb64pe` does; `-f:StripDebugSymbols=true|false` SHALL strip or not strip the executable's symbols as `qb64pe`
@@ -23,6 +31,28 @@ and 1 otherwise; on failure no executable SHALL be left at the output path.
 #### Scenario: Runner's compile line
 - **WHEN** the corpus runner runs `qb64rust -q -m -x <prog>.bas -o <prog>.exe` on a slice program
 - **THEN** `<prog>.exe` exists and the exit status is 0
+
+#### Scenario: qb64pe's -c and -s
+- **WHEN** `qb64rust -c p.bas` runs on a program that compiles
+- **THEN** it builds `p.exe` as `qb64rust -x p.bas` does
+- **WHEN** `qb64rust -s:debuginfo=true p.bas` runs
+- **THEN** the exit status is 1, nothing is built, and the message names `-f:<setting>=<value>`
+
+#### Scenario: qb64pe's -e
+- **WHEN** `qb64rust -e -z p.bas` runs on a program whose line 1 is `x = 1`, with no `DIM`
+- **THEN** the exit status is 1 and the error at `p.bas:1:1` is that `x` is not declared, with the note
+  "QB64pe: Variable 'x' (SINGLE) not defined"
+- **WHEN** the same program is compiled without `-e`
+- **THEN** the exit status is 0
+
+#### Scenario: qb64pe's -p
+- **WHEN** `qb64rust -p --libqb-root <copy>` runs
+- **THEN** the copy's `.o`, `.a` and `.tmp` files under `internal/c` and its `objects.stamp` are gone, its sources
+  stay, and the exit status is 0
+- **WHEN** `qb64rust -p -z p.bas` runs
+- **THEN** the objects are removed and then `p.bas` is compiled as without `-p`
+- **WHEN** `qb64rust -p --libqb-root <qb64pe>` runs on a folder with `source/qb64pe.bas`
+- **THEN** the exit status is 1, the message says it is a QB64pe folder, and nothing is removed
 
 #### Scenario: Program with an error
 - **WHEN** the source has an error
@@ -215,9 +245,9 @@ occurs, and the number of times it occurs, ordered by those three numbers, large
 compile run SHALL NOT apply. A program with an `.err` file beside it SHALL be left out and counted in a line of its
 own. A program with an error that is not marked SHALL be named after the table. Nothing SHALL be built. The exit
 status SHALL be 0 when every input was read, whatever errors the programs hold, and 1 for an input that is neither
-a file nor a folder or for any other word after `--report`. Without `--report`, more than one input file SHALL
-stay an error. A program the inputs reach more than once, under whatever spelling of its path, SHALL be counted
-once.
+a file nor a folder or for any word after `--report` other than `unsupported` and `warnings`. Without `--report`,
+more than one input file SHALL stay an error. A program the inputs reach more than once, under whatever spelling of
+its path, SHALL be counted once.
 
 #### Scenario: A folder of programs
 - **WHEN** a folder holds a program without errors, a program with one `LPRINT`, a program in a subfolder with 105
@@ -260,6 +290,35 @@ before.
 #### Scenario: Statements in an included file
 - **WHEN** a statement of a `$INCLUDE`d file runs
 - **THEN** its record names the included file and the statement's line in that file
+
+### Requirement: Value-trace build
+`qb64rust --trace-values` with a compile line SHALL build a program that records the values stored into its
+variables (spec `compiler/value-trace`). When it exits (`SYSTEM`, `END`, off the end, a runtime error, the window
+closed) with `QB64RUST_TRACE` naming a file, it SHALL append one record to that file. Without the option the C++
+written SHALL be the same as before this change. The option SHALL combine with `--coverage` and `--debug`.
+
+#### Scenario: A run's record
+- **WHEN** a program that sets `a = 1`, then `a = 2`, then `a = 2` is built with `--trace-values` and run with
+  `QB64RUST_TRACE=t.txt`
+- **THEN** `t.txt` holds one record in which `a` has 3 stores and the distinct values 1 (once) and 2 (twice)
+
+#### Scenario: No variable, no file
+- **WHEN** the same program runs without `QB64RUST_TRACE`
+- **THEN** it writes no record and behaves as the build without `--trace-values`
+
+#### Scenario: The build without the option
+- **WHEN** a program is compiled without `--trace-values`
+- **THEN** its C++ is byte for byte the C++ written before this change
+
+#### Scenario: Two runs into one file
+- **WHEN** two runs of a value-trace build name the same file
+- **THEN** the file holds two records, the second after the first
+
+#### Scenario: With coverage
+- **WHEN** a program is built with `--trace-values --coverage` and run with both `QB64RUST_TRACE` and
+  `QB64RUST_COVERAGE` set
+- **THEN** each file holds its own record, and the counts record is the one the build with `--coverage` alone
+  writes
 
 ### Requirement: Debug build
 `qb64rust --debug` with a compile line SHALL build a program for a debugger: its own objects compiled with debug
@@ -349,3 +408,33 @@ and SHALL read `qb64rust.toml` when neither replaces it. `qb64rust --list-fixes`
 #### Scenario: List with another argument
 - **WHEN** `qb64rust --list-fixes p.bas` is run
 - **THEN** it is a usage error with exit status 1
+
+### Requirement: Old-wording table tooling
+`qb64rust --old-wording-words` and `qb64rust --old-wording-keys` SHALL each be the only argument, as `--version`
+is. They serve `tools\diagnostics\old_wording.py` and are not in the usage text. `--old-wording-words` SHALL print
+the parser's reserved words and the built-in table's names, in capitals, sorted, one per line.
+`--old-wording-keys` SHALL read one message per line from stdin and print one JSON line per message: the key that
+the note's lookup (requirement "Diagnostics output") makes from it with that word list, and for each placeholder
+its text in every form the table can name, as `[code, text]` pairs.
+
+#### Scenario: A message's key
+- **WHEN** the line ``variable `count` (LONG) is not declared (`OPTION _EXPLICIT`)`` is given to
+  `qb64rust --old-wording-keys`
+- **THEN** the key printed is ``variable `{}` (LONG) is not declared (`OPTION _EXPLICIT`)``, with one placeholder
+  whose `=` form is `count` and whose `U` form is `COUNT`
+
+### Requirement: Warning report
+`qb64rust --report warnings <file or folder>... [--include-root <dir>]` SHALL take its programs as the demand
+report does and run the front end over each, building nothing. It SHALL print a summary line with the number of
+programs and of those with errors, then one line per lint code with the number of programs it occurs in and the
+number of times. After the table it SHALL print every lint warning as `-w` prints it. The exit status SHALL be as
+for the demand report.
+
+#### Scenario: Counts by code
+- **WHEN** a folder holds one program with two unused labels and another with one unused label and one unused SUB
+- **THEN** the `unused-label` line says 2 programs and 3 warnings, the `unused-procedure` line 1 and 1, and the
+  four warnings follow
+
+#### Scenario: A program with errors
+- **WHEN** one of the programs has an error
+- **THEN** it is counted among those with errors and gives no lint warnings

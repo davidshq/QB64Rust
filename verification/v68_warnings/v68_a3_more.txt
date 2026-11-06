@@ -1,0 +1,11 @@
+v68_a3_more.bas:5: warning: Unused variable
+    redimonly&()   LONG
+v68_a3_more.bas:6: warning: Unused variable
+    a1%            INTEGER
+v68_a3_more.bas:7: warning: Unused variable
+    sharedsub&     LONG
+v68_a3_more.bas:13: warning: Unused variable
+    st%            INTEGER
+v68_a3_more.bas:15: warning: Unused variable
+    sharedsub&     LONG
+exit=0

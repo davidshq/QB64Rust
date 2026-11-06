@@ -7,15 +7,18 @@
 //! - `typed`, `ir`, `cpp`: no errors; the typed tree, the IR or the emitted fragments are a snapshot;
 //! - `cpp-linux`: as `cpp`, for a build on Linux (design D3 of `m7-linux`);
 //! - `coverage`: no errors; the fragments of a `--coverage` build are a snapshot (design D1 of `cws-whole-game`);
+//! - `trace`: no errors; the fragments of a `--trace-values` build are a snapshot (OpenSpec change `value-trace`);
 //! - `debug-info`: no errors; the debug symbol file of a debug build is a snapshot (design D3 of
-//!   `m5-debug-build-symbols`), the files' paths relative to the test folder.
+//!   `m5-debug-build-symbols`), the files' paths relative to the test folder;
+//! - `warnings`: no errors; the warnings, as `-w` prints them, are a snapshot (design D10 of `lints`).
 //!
 //! Snapshots live in `tests/it/snapshots/` beside this file, named after the `.bas` file; review changes with
 //! `cargo insta review`. `QB64RUST_FRONTEND_DIR` points the harness at another folder (used once to check that
 //! the harness itself fails bad files).
 
 use qb64rust_driver::{
-    FileLoader, Linkage, Resolved, ResolvedLibrary, dump_cpp, dump_debug_info, dump_ir, frontend, frontend_with,
+    FileLoader, Instrument, Linkage, Resolved, ResolvedLibrary, dump_cpp, dump_debug_info, dump_ir, frontend,
+    frontend_with,
 };
 use qb64rust_syntax::tree::print;
 use std::path::{Path, PathBuf};
@@ -29,7 +32,9 @@ const MODES: &[&str] = &[
     "cpp",
     "cpp-linux",
     "coverage",
+    "trace",
     "debug-info",
+    "warnings",
 ];
 
 fn frontend_dir() -> PathBuf {
@@ -81,10 +86,12 @@ fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<Str
                 "check-ok" => None,
                 "typed" => Some(qb64rust_sema::dump_typed(&fe.program)),
                 "ir" => Some(dump_ir(&fe)),
-                "cpp" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), false)),
-                "cpp-linux" => Some(dump_cpp(&fe, &fixed_linux_libraries(&fe.program), false)),
-                "coverage" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), true)),
+                "cpp" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), Instrument::NONE)),
+                "cpp-linux" => Some(dump_cpp(&fe, &fixed_linux_libraries(&fe.program), Instrument::NONE)),
+                "coverage" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), Instrument::COVERAGE)),
+                "trace" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), Instrument::TRACE)),
                 "debug-info" => Some(dump_debug_info(&fe, &fixed_libraries(&fe.program))),
+                "warnings" => Some(fe.render_with_warnings()),
                 _ => unreachable!(),
             }
             .map(|text| host_neutral(&text)))

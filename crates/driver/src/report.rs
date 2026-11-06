@@ -2,8 +2,11 @@
 //!
 //! Every program goes through the front end with the error cap lifted; each message marked "not supported yet" is
 //! counted over the set. The report is for choosing what comes in next; it is no test and has no expected output.
+//!
+//! `qb64rust --report warnings`: the lint warnings of an input set, counted by code (spec `compiler/cli`, "Warning
+//! report"; design D9 of `lints`), to measure how noisy each lint is.
 
-use crate::{FileLoader, frontend_at};
+use crate::{FileLoader, Frontend, frontend_at};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
@@ -61,20 +64,25 @@ pub struct Outcome {
 
 /// One program through the front end; included files as in a compile run, with `include_root` as the compiler
 /// root.
-pub fn outcome(path: &Path, include_root: &Path) -> Result<Outcome, String> {
+fn front(path: &Path, include_root: &Path) -> Result<Frontend, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("cannot read {}: {e}", path.display()))?;
     if bytes.len() > qb64rust_base::MAX_SOURCE_LEN {
         return Err(format!("{} is too large", path.display()));
     }
     let name = path.to_string_lossy().to_string();
-    let fe = frontend_at(
+    Ok(frontend_at(
         qb64rust_base::Platform::host(),
         &name,
         bytes,
         |file| Box::new(FileLoader::new(include_root, file, path)),
         Some((path, include_root)),
         crate::fixes::for_program(path).map_or(qb64rust_base::fixes::Fixes::OFF, |(f, _)| f),
-    );
+    ))
+}
+
+/// The errors of one program ([`front`]).
+pub fn outcome(path: &Path, include_root: &Path) -> Result<Outcome, String> {
+    let fe = front(path, include_root)?;
     let unsupported = fe
         .diagnostics
         .errors()
@@ -180,6 +188,69 @@ pub fn unsupported(inputs: &[PathBuf], include_root: &Path) -> Result<String, St
         }
     }
     Ok(out)
+}
+
+/// The lint warnings of one program (spec `compiler/cli`, "Warning report"): whether it has an error (then the
+/// lints did not run), and each lint warning's code with its text as `-w` prints it, in source order.
+pub struct Linted {
+    pub errors: bool,
+    pub warnings: Vec<(&'static str, String)>,
+}
+
+/// One program's [`Linted`].
+pub fn linted(path: &Path, include_root: &Path) -> Result<Linted, String> {
+    let fe = front(path, include_root)?;
+    let mut list: Vec<_> = fe.diagnostics.list().iter().filter(|d| d.code.is_some()).collect();
+    list.sort_by_key(|d| (d.span.file.0, d.span.start));
+    Ok(Linted {
+        errors: fe.diagnostics.has_errors(),
+        warnings: list
+            .into_iter()
+            .map(|d| (d.code.expect("filtered"), d.render(&fe.map)))
+            .collect(),
+    })
+}
+
+/// The warning report as text: a summary line, one line per lint code (the programs it occurs in, the times),
+/// then every lint warning.
+pub fn render_warnings(linted: &[Linted], rejected: usize) -> String {
+    let n = linted.len();
+    let with_errors = linted.iter().filter(|l| l.errors).count();
+    let mut out = format!(
+        "{n} program{}: {with_errors} with errors, which get no lint warnings\n",
+        if n == 1 { "" } else { "s" }
+    );
+    if rejected > 0 {
+        out.push_str(&format!(
+            "{rejected} left out: an .err file beside them (the old compiler rejects them)\n"
+        ));
+    }
+    out.push_str("programs  times  code\n");
+    for &code in qb64rust_sema::lints::CODES {
+        let programs = linted.iter().filter(|l| l.warnings.iter().any(|w| w.0 == code)).count();
+        let times: usize = linted
+            .iter()
+            .map(|l| l.warnings.iter().filter(|w| w.0 == code).count())
+            .sum();
+        out.push_str(&format!("{programs:>8} {times:>6}  {code}\n"));
+    }
+    for l in linted {
+        for (_, text) in &l.warnings {
+            out.push_str(text);
+            out.push('\n');
+        }
+    }
+    out
+}
+
+/// The whole warning report for `inputs`.
+pub fn warnings(inputs: &[PathBuf], include_root: &Path) -> Result<String, String> {
+    let (programs, rejected) = programs(inputs)?;
+    let linted = programs
+        .iter()
+        .map(|p| linted(p, include_root))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(render_warnings(&linted, rejected))
 }
 
 #[cfg(test)]

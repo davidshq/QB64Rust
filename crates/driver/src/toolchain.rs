@@ -537,6 +537,37 @@ pub fn install() -> Result<PathBuf, String> {
     install_from(URL, SHA256, SIZE, &home)
 }
 
+/// `qb64rust toolchain install --from-zip <zip>`: the pinned release from a zip already downloaded, for a machine
+/// whose own download fails. The zip is copied, checked against [`SHA256`] and unpacked exactly as a download is.
+/// The suites VM uses it: in that VM, TLS downloads through Hyper-V's Default Switch broke partway through every
+/// time on 2026-11-05, while the host's own download of the same file worked.
+pub fn install_zip(zip: &Path) -> Result<PathBuf, String> {
+    let home = home().ok_or_else(|| format!("no folder to install into: set LOCALAPPDATA or {HOME_ENV}"))?;
+    let url = file_url(zip)?;
+    install_inner(&url, SHA256, SIZE, &home, Some(zip))
+}
+
+/// The `file:///` URL of an existing file, for curl. Everything but letters, digits, `-._~/:` is percent-encoded,
+/// so a space or a `#` in the path does not end the URL.
+fn file_url(p: &Path) -> Result<String, String> {
+    let abs = std::path::absolute(p).map_err(|e| format!("{}: {e}", p.display()))?;
+    if !abs.is_file() {
+        return Err(format!("no zip file at {}", abs.display()));
+    }
+    let text = abs
+        .to_str()
+        .ok_or_else(|| format!("the path {} is not Unicode", abs.display()))?;
+    let mut url = String::from("file:///");
+    for b in text.replace('\\', "/").bytes() {
+        if b.is_ascii_alphanumeric() || b"-._~/:".contains(&b) {
+            url.push(char::from(b));
+        } else {
+            url.push_str(&format!("%{b:02X}"));
+        }
+    }
+    Ok(url)
+}
+
 /// `%SystemRoot%\System32\<name>`, by its full path: Git for Windows puts a GNU `tar` that cannot read a zip first
 /// on many a `PATH` (design D2).
 fn system_tool(name: &str) -> Result<PathBuf, String> {
@@ -564,6 +595,18 @@ fn by_hand(url: &str) -> String {
 /// marker written last. Progress goes to standard output. Folders of other releases are left alone. The released
 /// binary calls it only with the pinned constants ([`install`]); the tests give a `file:///` URL.
 pub fn install_from(url: &str, sha256: &str, size: u64, home: &Path) -> Result<PathBuf, String> {
+    install_inner(url, sha256, size, home, None)
+}
+
+/// [`install_from`], or with `zip` the same steps for the user's own zip at `url` ([`install_zip`]). The zip's
+/// messages say "copying" and "the zip", not "downloading", and its user's file is never touched: only the copy in
+/// `home\download` is deleted.
+fn install_inner(url: &str, sha256: &str, size: u64, home: &Path, zip_given: Option<&Path>) -> Result<PathBuf, String> {
+    // What the messages call the fetch, and the address to fetch by hand: for a zip, the pinned release's.
+    let (fetching, source, hand) = match zip_given {
+        Some(p) => ("copying", p.display().to_string(), by_hand(URL)),
+        None => ("downloading", url.to_string(), by_hand(url)),
+    };
     let io = |what: &str, p: &Path, e: std::io::Error| format!("{what} {}: {e}", p.display());
     std::fs::create_dir_all(home).map_err(|e| io("creating", home, e))?;
     let lock_path = home.join("install.lock");
@@ -585,8 +628,8 @@ pub fn install_from(url: &str, sha256: &str, size: u64, home: &Path) -> Result<P
         println!("removing an interrupted install: {}", folder.display());
         std::fs::remove_dir_all(&folder).map_err(|e| io("removing", &folder, e))?;
     }
-    let curl = system_tool("curl.exe").map_err(|e| format!("cannot download the toolchain: {e}; {}", by_hand(url)))?;
-    let tar = system_tool("tar.exe").map_err(|e| format!("cannot unpack the toolchain: {e}; {}", by_hand(url)))?;
+    let curl = system_tool("curl.exe").map_err(|e| format!("cannot fetch the toolchain: {e}; {hand}"))?;
+    let tar = system_tool("tar.exe").map_err(|e| format!("cannot unpack the toolchain: {e}; {hand}"))?;
 
     let download = home.join("download");
     std::fs::create_dir_all(&download).map_err(|e| io("creating", &download, e))?;
@@ -599,9 +642,12 @@ pub fn install_from(url: &str, sha256: &str, size: u64, home: &Path) -> Result<P
         let _ = std::fs::remove_dir_all(&folder);
     };
 
-    println!("downloading {url}");
+    println!("{fetching} {source}");
+    // `--retry-all-errors` makes `--retry` cover a connection that breaks partway through too: on 2026-11-04 a
+    // download in the suites VM failed at 5% with curl exit 56 (schannel SEC_E_DECRYPT_FAILURE), which plain
+    // `--retry` does not retry. A bad file still fails the SHA-256 check below.
     let mut child = Command::new(&curl)
-        .args(["-fL", "--retry", "3", "-sS", "-o"])
+        .args(["-fL", "--retry", "3", "--retry-all-errors", "-sS", "-o"])
         .arg(&zip)
         .arg(url)
         .stdout(Stdio::null())
@@ -609,7 +655,7 @@ pub fn install_from(url: &str, sha256: &str, size: u64, home: &Path) -> Result<P
         .spawn()
         .map_err(|e| {
             clean();
-            format!("cannot run {}: {e}; {}", curl.display(), by_hand(url))
+            format!("cannot run {}: {e}; {hand}", curl.display())
         })?;
     let mut shown = None;
     let status = loop {
@@ -626,7 +672,7 @@ pub fn install_from(url: &str, sha256: &str, size: u64, home: &Path) -> Result<P
         if let Some(percent) = have.saturating_mul(100).checked_div(size).map(|p| p.min(100)) {
             // Every 5 %, so that the extension's progress moves without a flood of lines.
             if shown.is_none_or(|s| percent >= s + 5) {
-                println!("downloading {percent}%");
+                println!("{fetching} {percent}%");
                 shown = Some(percent - percent % 5);
             }
         }
@@ -641,20 +687,27 @@ pub fn install_from(url: &str, sha256: &str, size: u64, home: &Path) -> Result<P
         #[expect(clippy::disallowed_methods, reason = "curl's own message")]
         let why = String::from_utf8_lossy(&why).trim().to_string();
         return Err(format!(
-            "downloading the toolchain failed ({why}, curl exit status {}); {}",
+            "{fetching} the toolchain failed ({why}, curl exit status {}); {hand}",
             status.code().map_or_else(|| "none".to_string(), |c| c.to_string()),
-            by_hand(url)
         ));
     }
-    println!("downloading 100%");
+    println!("{fetching} 100%");
 
     println!("checking");
     let got = sha256_of(&zip).inspect_err(|_| clean())?;
     if !got.eq_ignore_ascii_case(sha256) {
         clean();
-        return Err(format!(
-            "the downloaded toolchain's SHA-256 is {got}, not {sha256}: the file is deleted and nothing is installed"
-        ));
+        return Err(match zip_given {
+            Some(p) => format!(
+                "the zip's SHA-256 is {got}, not {sha256}: {} is not the release qb64rust pins ({URL}), and nothing \
+                 is installed; the zip itself is left as it was",
+                p.display()
+            ),
+            None => format!(
+                "the downloaded toolchain's SHA-256 is {got}, not {sha256}: the file is deleted and nothing is \
+                 installed"
+            ),
+        });
     }
 
     println!("unpacking");
@@ -666,18 +719,17 @@ pub fn install_from(url: &str, sha256: &str, size: u64, home: &Path) -> Result<P
         .output()
         .map_err(|e| {
             clean();
-            format!("cannot run {}: {e}; {}", tar.display(), by_hand(url))
+            format!("cannot run {}: {e}; {hand}", tar.display())
         })?;
     if !out.status.success() || !is_toolchain(&folder, Platform::Windows) {
         #[expect(clippy::disallowed_methods, reason = "tar's own message")]
         let why = String::from_utf8_lossy(&out.stderr).trim().to_string();
         clean();
         return Err(format!(
-            "unpacking the toolchain failed (tar exit status {:?}{}{}); {}",
+            "unpacking the toolchain failed (tar exit status {:?}{}{}); {hand}",
             out.status.code(),
             if why.is_empty() { "" } else { ": " },
             why,
-            by_hand(url)
         ));
     }
     for part in NOT_KEPT {
@@ -1128,5 +1180,58 @@ mod tests {
         let err = install_from(&url, SHA256, 0, &home).unwrap_err();
         assert!(err.contains(&url) && err.contains("--toolchain-root"), "{err}");
         assert_eq!(left(&home), ["install.lock"]);
+    }
+
+    /// `--from-zip`'s URL: a zip in a folder whose name has a space and a `#` installs, and the zip is kept.
+    #[cfg(windows)]
+    #[test]
+    fn toolchain_install_from_a_zip_with_an_awkward_path() {
+        let d = tempfile::tempdir().unwrap();
+        let odd = d.path().join("a b#c");
+        std::fs::create_dir_all(&odd).unwrap();
+        let (_, sum, size) = release_zip(&odd);
+        let zip = odd.join(format!("{RELEASE}.zip"));
+        let url = file_url(&zip).unwrap();
+        assert!(url.starts_with("file:///") && url.contains("a%20b%23c/"), "{url}");
+        let home = d.path().join("home");
+        assert_eq!(
+            install_inner(&url, &sum, size, &home, Some(&zip)).unwrap(),
+            home.join(RELEASE)
+        );
+        assert!(zip.is_file());
+    }
+
+    /// `--from-zip` with a zip that is not the pinned release: the message speaks of the zip, names it and the
+    /// release's URL, says the zip is left as it was, and it is.
+    #[cfg(windows)]
+    #[test]
+    fn toolchain_install_from_a_wrong_zip() {
+        let d = tempfile::tempdir().unwrap();
+        let (_, sum, size) = release_zip(d.path());
+        let zip = d.path().join(format!("{RELEASE}.zip"));
+        let home = d.path().join("home");
+        let err = install_inner(&file_url(&zip).unwrap(), SHA256, size, &home, Some(&zip)).unwrap_err();
+        assert!(
+            err.starts_with(&format!("the zip's SHA-256 is {sum}, not {SHA256}: ")),
+            "{err}"
+        );
+        assert!(err.contains(&zip.display().to_string()) && err.contains(URL), "{err}");
+        assert!(
+            err.contains("the zip itself is left as it was") && !err.contains("deleted"),
+            "{err}"
+        );
+        assert!(zip.is_file());
+        assert_eq!(left(&home), ["install.lock"]);
+    }
+
+    /// `--from-zip` with no such file: refused before anything is made.
+    #[test]
+    fn toolchain_install_from_a_missing_zip() {
+        let d = tempfile::tempdir().unwrap();
+        let err = file_url(&d.path().join("no-such.zip")).unwrap_err();
+        assert!(
+            err.starts_with("no zip file at ") && err.contains("no-such.zip"),
+            "{err}"
+        );
     }
 }

@@ -621,6 +621,7 @@ an array cannot be passed to a library: `{}`	Arrays cannot be passed to a librar
 an array index must be a number	Illegal string-number conversion
 an array of {#} dimensions is passed to `{}`, which has {#}	Passing arrays with a differing number of elements to a SUB/FUNCTION is not supported
 an array parameter's parentheses cannot hold `(` or `AS`	Syntax error - too many opening brackets
+an element of a `_BIT` array cannot be passed to a `_BIT` parameter of its width	Cannot pass _BIT array offsets
 an embed handle cannot be an empty string	Embed-Handle cannot be an empty string
 an index is expected between the parentheses	Expected array index
 argument {#} of `_CLAMP` needs a number	Expected numeric argument
@@ -741,6 +742,7 @@ the FUNCTION's own name cannot be a target of `SWAP`	Expected variable
 the FUNCTION's own name cannot be a target of `{}`	{1:=|U|P|PU} expects a string variable/array-element as its first argument
 the OpenGL routine `{}` takes {#} argument, not {#}	Syntax error
 the OpenGL routine `{}` takes {#} arguments, not {#}	Syntax error
+the SUB `{}` has no parameter	SUB has no arguments
 the SUB `{}` needs its argument after its name	Expected argument after SUB
 the SUB `{}` of an event handler may have one parameter at most	SUB requires more than one argument
 the `ASC` statement needs `{}` after its arguments	Expected =

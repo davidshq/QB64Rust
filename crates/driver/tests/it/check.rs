@@ -22,8 +22,9 @@ fn repo() -> PathBuf {
         .to_path_buf()
 }
 
-/// One diagnostic as the editor gets it: the file's key, line and column from 0, message, severity.
-type Shown = (String, u64, u64, String, u64);
+/// One diagnostic as the editor gets it: the file's key, line and column from 0, message, severity, and a lint
+/// warning's code.
+type Shown = (String, u64, u64, String, u64, Option<String>);
 
 /// The result of a check through the server: its answer, and every diagnostic published before it.
 struct Checked {
@@ -80,6 +81,7 @@ fn check_in_server(path: &Path, root: &Path) -> Checked {
                         start["character"].as_u64().unwrap(),
                         d["message"].as_str().unwrap().to_string(),
                         d["severity"].as_u64().unwrap(),
+                        d["code"].as_str().map(String::from),
                     ));
                     assert_eq!(d["source"], "qb64rust");
                 }
@@ -131,7 +133,8 @@ fn cli(path: &Path, root: &Path) -> (Vec<Shown>, usize, usize) {
             };
             // A built-in file (`$COLOR`'s constants) is named relative to the compiler root.
             let key = uri_key(&from_path(&root.join(&file.name)));
-            (key, u64::from(line - 1), u64::from(col - 1), message, severity)
+            let code = d.code.map(String::from);
+            (key, u64::from(line - 1), u64::from(col - 1), message, severity, code)
         })
         .collect();
     let warnings = fe
@@ -214,6 +217,21 @@ fn warning() {
         "{:?}",
         checked.published
     );
+}
+
+/// Spec scenario "Lint code": a label nothing names gives a warning with the code `unused-label` on its line.
+#[test]
+fn lint_code() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = program(
+        dir.path(),
+        "p.bas",
+        "PRINT 1\r\nPRINT 2\r\nPRINT 3\r\nagain:\r\nPRINT 5\r\n",
+    );
+    let checked = same_as_cli(&path, dir.path());
+    assert_eq!(checked.answer, json!({ "errors": 0, "warnings": 1 }));
+    let d = &checked.published[0];
+    assert_eq!((d.1, d.4, d.5.as_deref()), (3, 2, Some("unused-label")), "{d:?}");
 }
 
 #[test]

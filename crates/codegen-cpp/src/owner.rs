@@ -143,7 +143,11 @@ impl Emitter<'_> {
     /// for one that holds none, every part but the dynamic member arrays, then each of those copied (`to`,
     /// `from`), a source that is not allocated leaving the target as it is. Every other part finds `to`, then
     /// `from`.
-    pub(crate) fn copy_owner(&self, t: Ty, to: &str, from: &str, out: &mut Vec<String>) {
+    ///
+    /// `hold` names a `char*` variable of a value-trace build: the last statement that finds `to` stores the
+    /// address there, so that the target is read through it after the copy and `to` is evaluated no more often
+    /// (OpenSpec change `value-trace`).
+    pub(crate) fn copy_owner(&self, t: Ty, to: &str, from: &str, hold: Option<&str>, out: &mut Vec<String>) {
         let mut steps = Vec::new();
         if self.holds_strings(t) {
             self.copy_owned(t, "0", 0, &mut steps);
@@ -151,13 +155,20 @@ impl Emitter<'_> {
             self.copy_plain(t, "0", 0, &mut steps);
             self.copy_descs(t, "0", 0, &mut steps);
         }
+        let last = steps
+            .iter()
+            .rposition(|s| matches!(s, Step::ToFrom(_) | Step::FromTo(_) | Step::To(_)));
         out.push(format!("if ((void*)({to})!=(void*)({from})){{"));
-        for step in steps {
+        for (k, step) in steps.into_iter().enumerate() {
+            let held = match hold {
+                Some(name) if Some(k) == last => format!("{name}=copy_to;"),
+                _ => String::new(),
+            };
             out.push(match step {
                 Step::Open(line) | Step::Close(line) => line,
-                Step::ToFrom(s) => format!("{{char *copy_to={to};char *copy_from={from};{s}}}"),
-                Step::FromTo(s) => format!("{{char *copy_from={from};char *copy_to={to};{s}}}"),
-                Step::To(s) => format!("{{char *copy_to={to};{s}}}"),
+                Step::ToFrom(s) => format!("{{char *copy_to={to};char *copy_from={from};{s}{held}}}"),
+                Step::FromTo(s) => format!("{{char *copy_from={from};char *copy_to={to};{s}{held}}}"),
+                Step::To(s) => format!("{{char *copy_to={to};{s}{held}}}"),
             });
         }
         out.push("}".into());

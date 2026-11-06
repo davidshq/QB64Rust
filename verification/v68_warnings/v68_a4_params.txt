@@ -1,0 +1,11 @@
+v68_a4_params.bas:13: warning: Unused variable
+    p1!   SINGLE
+v68_a4_params.bas:17: warning: Unused variable
+    p2!   SINGLE
+v68_a4_params.bas:21: warning: Unused variable
+    p3&   LONG
+v68_a4_params.bas:25: warning: Unused variable
+    p4!   SINGLE
+v68_a4_params.bas:29: warning: Unused variable
+    p5!   SINGLE
+exit=0

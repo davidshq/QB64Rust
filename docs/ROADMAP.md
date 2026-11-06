@@ -1,7 +1,7 @@
 # Roadmap
 
 The milestones still open and the significant work remaining. Add newly discovered work; mark items complete as
-they land, and move a milestone to `ROADMAP-COMPLETED.md` when it is declared done (M0 to M5b are there). The
+they land, and move a milestone to `ROADMAP-COMPLETED.md` when it is declared done (M0 to M6 are there). The
 remaining items are broad areas, not a fixed order or an exhaustive list of changes. Keep them current as the gaps
 become clearer.
 
@@ -20,24 +20,6 @@ stays as the record of QB64pe's bugs found here; offering them to QB64pe blocks 
 
 This file was written again on 2026-10-12 from `study\00` §2, `STATUS.md` and `DECISIONS.md`: the earlier file
 was never committed and was no longer on disk.
-
-## M6. The runtime without QB64pe
-
-Rewritten on 2026-10-28 from "runtime modernisation" (`study\37` §5.1, `DECISIONS.md` 2026-10-28): measured, none
-of the runtime's design debts shows as a failure a user meets, so the second backend and the redesign of the error
-model, string heap and threading are a `SOMEDAY.md` row, with the conditions that would bring them back. Done when
-the extension builds, runs and debugs a program with the toolchain and compiler it fetches, and the rows the user
-ruled to change are edits of libqb with their tests; the check of that on a machine with no QB64pe is postponed
-(below).
-
-- [x] A C++ toolchain and `lldb-dap` the project fetches, pinned and checked, QB64pe's install a fallback
-  (`m6-toolchain`)
-- [x] The compiler as a download of its own beside the `.vsix`, one version number for both (`m6-compiler-download`)
-- [x] The fixes switch and the crash-class rulings of `study\39`: the compiler half (`fixes-switch`) and libqb
-  repaired in place through `tools\libqb\edits` (`libqb-fixes`)
-- The check on a machine with no QB64pe (the released `.vsix` installs, fetches its toolchain, and builds, runs and
-  debugs a program) is postponed to `SOMEDAY.md` (user, `DECISIONS.md` 2026-10-28); M6 is done without it, and
-  moves to `ROADMAP-COMPLETED.md` at the next merge into `main`
 
 ## M7. Linux
 

@@ -68,7 +68,9 @@ SHOWN = 3
 # commit.
 FULL_CLEAN = ("crates", "libqb", "tests")
 # Windows finds System32's bash.exe (WSL's) before Git's: the steps given as a str are Git's bash's (`pwd -W`).
-GIT_BASH = ("usr/bin/bash.exe", "bin/bash.exe")
+# bin/bash.exe first: it is Git's launcher, which puts Git's usr/bin on the PATH. usr/bin/bash.exe started from a
+# PATH without it, as from PowerShell, finds no `basename` or `tr` (tools/linux/copy.sh).
+GIT_BASH = ("bin/bash.exe", "usr/bin/bash.exe")
 EDIT_BUILTINS = re.compile(r"^builtins:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
 
 # Where a step runs (OpenSpec change vm-suites, design D9): on the host, or in the suites VM (tools/winvm/README.md,
@@ -814,6 +816,9 @@ def cli_binary(root: Path, out) -> str | None:
 # Set in every VM step (design D4): the runner then ignores --build-cache, also where a tool starts it
 # (coverage.py), and the pass cache serves what passed while the rest builds cold.
 NO_BUILD_CACHE = {"QB64RUST_NO_BUILD_CACHE": "1"}
+# Also set in every VM step: the runner skips network programs on a Windows host, where Windows Defender Firewall
+# asks the user about a program that opens a port (CLAUDE.md working rule 6, 2026-11-05). The VM asks no one.
+ALLOW_NETWORK = {"QB64RUST_ALLOW_NETWORK": "1"}
 
 
 def passed_seconds(record: dict | None) -> float:
@@ -859,7 +864,7 @@ def run_in_vm(p: Planned, root: Path, cmd: list[str], out, vm: SuitesVM | None) 
         "command": list(cmd),
         "first": list(p.step.vm_first) if p.step.vm_first else None,
         "cwd": cwd,
-        "env": {**p.step.env, **NO_BUILD_CACHE},
+        "env": {**p.step.env, **NO_BUILD_CACHE, **ALLOW_NETWORK},
         "copy": copy,
         "outputs": list(p.step.outputs),
         "clears": list(p.step.clears),
@@ -1139,7 +1144,9 @@ def to_background(root: Path, argv: list[str]) -> int:
     out = log.open("wb")
     kw: dict = {"cwd": root, "stdout": out, "stderr": subprocess.STDOUT, "stdin": subprocess.DEVNULL}
     if os.name == "nt":
-        kw["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        # A console of its own that is never shown, which every program the run starts shares. With no console at
+        # all (DETACHED_PROCESS), Windows opened a new window for each console program a step started.
+        kw["creationflags"] = subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         kw["start_new_session"] = True
     subprocess.Popen([sys.executable, str(Path(__file__).resolve()), *argv, "--wait"], **kw)

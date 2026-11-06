@@ -1,0 +1,4 @@
+suffixed
+declared
+typed
+exit=0

@@ -1,0 +1,13 @@
+v68_a_unused.bas:3: warning: Unused variable
+    dimonly%       INTEGER
+v68_a_unused.bas:11: warning: Unused variable
+    dimarr&()      LONG
+v68_a_unused.bas:21: warning: Unused variable
+    NoResult!      SINGLE
+v68_a_unused.bas:21: warning: Unused variable
+    m!             SINGLE
+v68_a_unused.bas:25: warning: Unused variable
+    unusedparam!   SINGLE
+v68_a_unused.bas:26: warning: Unused variable
+    localonly#     DOUBLE
+exit=0

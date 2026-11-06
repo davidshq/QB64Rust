@@ -22,34 +22,13 @@ The run of 2026-10-21: 5,788 forms in 800 s with --jobs 8, then 59 spurious line
 INTERNAL COMPILER ERROR!") measured again one at a time in about a minute; each gave an ordinary verdict.
 """
 
-import json
-import os
-import re
-import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-REPO = HERE.parent
-QB = REPO.parent / "QB64pe" / "qb64pe.exe"
+from names_common import HERE, compile_only, from_log, reserved_names, run
 
 SUFFIXES = ["$", "%", "!", "#", "%%", "&&", "##", "~%", "~&", "~%%", "~&&", "`"]
-
-
-def names():
-    kw_src = (REPO / "crates" / "syntax" / "src" / "parser" / "keywords.rs").read_text()
-    block = kw_src.split("const KEYWORDS")[1].split("];")[0]
-    keywords = re.findall(r'"([^"]+)"', block)
-    doc = json.loads((REPO / "tools" / "builtins" / "builtins.json").read_text())
-    seen = {}
-    for k in keywords:
-        seen.setdefault(k.upper(), None)
-    for e in doc["entries"]:
-        key = e["name"].upper()
-        if seen.get(key) is None:
-            seen[key] = e.get("musthave")
-    return seen
 
 
 def forms(seen):
@@ -73,47 +52,6 @@ def value(form: str) -> str:
 
 def expected(form: str) -> str:
     return value(form).strip('"')
-
-
-def compile_only(src: Path) -> str:
-    r = subprocess.run(
-        [str(QB), "-z", "-q", src.name],
-        check=False,
-        cwd=src.parent,
-        capture_output=True,
-        text=True,
-        errors="replace",
-    )
-    lines = [l.strip() for l in (r.stdout + r.stderr).splitlines() if l.strip()]
-    return lines[0] if lines else ""
-
-
-def run(src: Path) -> str:
-    exe = src.with_suffix(".exe")
-    subprocess.run(
-        [str(QB), "-x", "-q", "-m", src.name, "-o", exe.name],
-        check=False,
-        cwd=src.parent,
-        capture_output=True,
-    )
-    if not exe.exists():
-        return "(not built)"
-    env = dict(os.environ, QB64PE_NOPROMPT="y")
-    try:
-        r = subprocess.run(
-            [str(exe)],
-            check=False,
-            cwd=src.parent,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            stdin=subprocess.DEVNULL,
-            env=env,
-            timeout=60,
-        )
-    except subprocess.TimeoutExpired:
-        return "(timed out)"
-    return " ".join(r.stdout.split())
 
 
 def classify(form: str, printed: str) -> str:
@@ -143,26 +81,15 @@ def spurious(line: str) -> bool:
     return line.endswith(("(not built)", "(timed out)")) or "UNEXPECTED INTERNAL COMPILER ERROR" in line
 
 
-def from_log(log: Path) -> list[str]:
-    """Rebuilds the result lines from the lines a run printed (`<form> rejected <msg>` or `<form> accepted
-    prints: <output>`), in the order of the forms."""
-    by_form = {}
-    for line in log.read_text().splitlines():
-        form, verdict, rest = line.split(" ", 2)
-        if verdict == "rejected":
-            by_form[form] = line
-        else:
-            by_form[form] = classify(form, rest.removeprefix("prints:").strip())
-    return [by_form[f] for f in forms(names()) if f in by_form]
-
-
 def main():
     if sys.argv[1] == "--from-log":
-        results = from_log(Path(sys.argv[2]))
+        # In the order of the forms: a form measured again comes later in the log, and its last line counts.
+        by_form = from_log(Path(sys.argv[2]), classify)
+        results = [by_form[f] for f in forms(reserved_names()) if f in by_form]
     else:
         scratch = Path(sys.argv[1])
         jobs = int(sys.argv[sys.argv.index("--jobs") + 1]) if "--jobs" in sys.argv else 1
-        all_forms = forms(names())
+        all_forms = forms(reserved_names())
         work = [(i, f, scratch) for i, f in enumerate(all_forms)]
         results = []
         with ThreadPoolExecutor(max_workers=jobs) as pool:

@@ -999,11 +999,15 @@ impl Checker<'_> {
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
             conventional: false,
+            implicit: false,
             name: name.clone(),
             ty,
             storage,
             shape,
         });
+        if by == Declarer::Common {
+            self.prog.not_reported_unused.insert(id);
+        }
         self.scope().arrays.insert(key, id);
         if suffix.is_none() && typed {
             self.scope().array_plain.insert(name.clone(), ty);
@@ -1397,6 +1401,7 @@ impl Checker<'_> {
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
             conventional: false,
+            implicit: true,
             name: name.to_string(),
             ty,
             storage,
@@ -2405,6 +2410,13 @@ impl Checker<'_> {
         };
         let slots = crate::builtins::slots(row);
         let required = slots.iter().filter(|(_, optional)| !optional).count();
+        // An argument left out (`LBOUND(a, )`): measured, "Syntax error" (`verification\v66_g07`, `g08`).
+        if let Some(list) = call.arg_list() {
+            let given = list.args();
+            if let Some(k) = given.iter().position(Option::is_none) {
+                return Err(self.left_out(word, k == 0, k + 1 == given.len(), list.node().span()));
+            }
+        }
         let mut args = self.present_args(call.arg_list())?;
         if !(required..=slots.len()).contains(&args.len()) {
             return Err(self.unsupported(span, format!("`{word}` with {} arguments", args.len())));

@@ -2,11 +2,14 @@
 //! compiler, the message `qb64pe.exe` gives for the same error, in the table `old_wording.tsv` that
 //! `tools\diagnostics\old_wording.py` writes from recorded output. A message the table does not hold has none.
 //!
-//! A message is looked up by its key, made as the script makes it: a backtick span whose words are all reserved
-//! words or built-in names (`old_wording_words.txt`), metacommands, strings or signs stays as written; any other
-//! span (a name or a line number as the program writes it) becomes `` `{}` ``, and a number outside the spans
-//! `{#}`. The table's wording names them `{n}` (the n-th, in order), `{n:U}` in capitals, `{n:P}` without its
-//! `()`, `{n:S}` also without its type suffix.
+//! A message is looked up by its key: a backtick span whose words are all reserved words or built-in names
+//! (`old_wording_words.txt`), metacommands, strings or signs stays as written; any other span (a name or a line
+//! number as the program writes it) becomes `` `{}` ``, and a number outside the spans `{#}`. The table's wording
+//! names them `{n}` (the n-th, in order), `{n:U}` in capitals, `{n:P}` without its `()`, `{n:S}` also without its
+//! type suffix.
+//!
+//! This module is the only place that makes keys and forms. The script asks `qb64rust --old-wording-keys` for
+//! them ([`key_with`], [`forms`]) and `qb64rust --old-wording-words` for the word list, so the two never differ.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
@@ -39,9 +42,9 @@ fn table() -> &'static HashMap<&'static str, &'static str> {
     })
 }
 
-/// Whether a span stays in a key as written. A span that is a number alone (a line number such as `010&` or
-/// `10.5`) is the program's text.
-fn literal(span: &str) -> bool {
+/// Whether a span stays in a key as written, `is_word` telling the reserved words and built-in names (in
+/// capitals). A span that is a number alone (a line number such as `010&` or `10.5`) is the program's text.
+fn literal(span: &str, is_word: &dyn Fn(&str) -> bool) -> bool {
     let number = span.trim_end_matches(['%', '&', '!', '#', '~']);
     if number.bytes().any(|b| b.is_ascii_digit()) && number.bytes().all(|b| b.is_ascii_digit() || b == b'.') {
         return false;
@@ -50,16 +53,23 @@ fn literal(span: &str) -> bool {
         let word = word.strip_suffix("()").unwrap_or(word);
         word.starts_with(['$', '"'])
             || !word.bytes().any(|b| b.is_ascii_alphabetic())
-            || (!word.bytes().any(|b| b.is_ascii_lowercase()) && words().contains(word))
+            || (!word.bytes().any(|b| b.is_ascii_lowercase()) && is_word(word))
     })
 }
 
-/// The key of a message and the texts of its placeholders, in order.
+/// The key of a message and the texts of its placeholders, with the word list built in.
 fn key(message: &str) -> (String, Vec<&str>) {
+    key_with(message, &|w| words().contains(w))
+}
+
+/// The key of a message and the texts of its placeholders, in order. `is_word` tells whether a word in capitals
+/// is a reserved word or a built-in name; the compiler uses `old_wording_words.txt`, and
+/// `qb64rust --old-wording-keys` the parser's and the built-in table's own lists, which that file is written from.
+pub fn key_with<'a>(message: &'a str, is_word: &dyn Fn(&str) -> bool) -> (String, Vec<&'a str>) {
     let (mut out, mut values) = (String::new(), Vec::new());
     for (i, piece) in message.split('`').enumerate() {
         if i % 2 == 1 {
-            if literal(piece) {
+            if literal(piece, is_word) {
                 out.push('`');
                 out.push_str(piece);
                 out.push('`');
@@ -122,6 +132,14 @@ fn fill(template: &str, values: &[&str]) -> Option<String> {
     Some(out)
 }
 
+/// The forms a placeholder can take in the table's wording, in the order the script writes them in `{n:…}`.
+pub const CODES: [&str; 6] = ["=", "U", "P", "PU", "S", "SU"];
+
+/// A value in every form of [`CODES`], in that order.
+pub fn forms(v: &str) -> [String; 6] {
+    CODES.map(|code| transform(v, code))
+}
+
 /// A value in one form: `=` as written, `U` in capitals, `P` without its `()`, `S` also without its type suffix.
 fn transform(v: &str, code: &str) -> String {
     let mut v = v;
@@ -177,7 +195,7 @@ mod tests {
             key("`A`, `TYPE T`, `$CONSOLE:ONLY`, `\"\"`").0,
             "`{}`, `{}`, `$CONSOLE:ONLY`, `\"\"`"
         );
-        // A line number is the program's text, as `old_wording.py` takes it; a sign or a keyword span is not.
+        // A line number is the program's text; a sign or a keyword span is not.
         assert_eq!(
             key("`010&` and `10.5` but `<>` and `STRING * 0`"),
             (
@@ -185,6 +203,27 @@ mod tests {
                 vec!["010&", "10.5"]
             )
         );
+        for number in ["10", "30#", "12345678901234567890123456789012345678901"] {
+            let message = format!("`{number}` is not a valid label");
+            assert_eq!(
+                key(&message),
+                ("`{}` is not a valid label".to_string(), vec![number]),
+                "{number}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_word_list_is_a_parameter() {
+        // A word in capitals stays only when the list holds it; one in lower case never does.
+        let only_foo = |w: &str| w == "FOO";
+        assert_eq!(key_with("`FOO` and `BAR`", &only_foo).0, "`FOO` and `{}`");
+        assert_eq!(key_with("`foo`", &only_foo).0, "`{}`");
+    }
+
+    #[test]
+    fn every_form_of_a_value() {
+        assert_eq!(forms("c$()"), ["c$()", "C$()", "c$", "C$", "c", "C"]);
     }
 
     #[test]

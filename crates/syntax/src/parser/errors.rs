@@ -1,5 +1,5 @@
 //! Labels and error handling (design D1 of `m2-procedures-and-errors`): `name:`, `ON ERROR GOTO`, `RESUME` and
-//! `ERROR`.
+//! `ERROR`. BASIC PDS 7.1's `ON LOCAL ERROR` is read only to be rejected with a clear error.
 //!
 //! A label is a name without suffix followed by `:` at the start of a statement, when the name is not a reserved
 //! word (the old compiler's `validlabel`). The old compiler also refuses built-in names (`CLS:` is a call of `CLS`)
@@ -41,6 +41,8 @@ pub(crate) const EVENT_WORDS: [&str; 6] = ["TIMER", "KEY", "STRIG", "PEN", "COM"
 pub(crate) fn on_stmt(p: &mut Parser) {
     if p.nth_is_word(1, "ERROR") {
         on_error(p);
+    } else if p.nth_is_word(1, "LOCAL") && p.nth_is_word(2, "ERROR") {
+        on_local_error(p);
     } else if EVENT_WORDS.iter().any(|w| p.nth_is_word(1, w)) && !p.nth_is_word(1, "KEY") || on_key_event(p) {
         on_event(p);
     } else {
@@ -173,6 +175,21 @@ fn on_error(p: &mut Parser) {
     }
     p.recover();
     p.finish_node();
+}
+
+/// `ON LOCAL ERROR …`, a form of BASIC PDS 7.1 that QB64pe does not have. QB64pe rejects it as "Name already in
+/// use (ERROR)", in a SUB and in the main module (measured, `verification\v17_d_err_on_local_error_sub`,
+/// `_main`). It is a plain error, not "not supported yet", and it says what a port does instead. The
+/// `ON ERROR GOTO 0` is part of that: a handler set in a SUB stays active after the SUB returns, where `ON LOCAL
+/// ERROR` ends with its SUB (measured, `verification\v17_d_on_error_sub_stays`).
+fn on_local_error(p: &mut Parser) {
+    let span = p.current_span().cover(p.next_span(2));
+    p.error_at(
+        span,
+        "`ON LOCAL ERROR` is BASIC PDS 7.1's, and QB64 does not have it: use `ON ERROR GOTO` with the handler in \
+         the main module, and `ON ERROR GOTO 0` before the SUB ends",
+    );
+    p.recover();
 }
 
 /// `RESUME`, `RESUME 0`, `RESUME NEXT` or `RESUME label`.

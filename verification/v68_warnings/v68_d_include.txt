@@ -1,0 +1,3 @@
+v68_d_include.bi:2: warning: Unused variable
+    inlib&   LONG
+exit=0

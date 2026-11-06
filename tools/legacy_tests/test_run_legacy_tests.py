@@ -165,6 +165,33 @@ class NormalizeFiles(unittest.TestCase):
             self.rules("no tab here\n")
 
 
+class ProgramEnv(unittest.TestCase):
+    """What sound device a program meets on Linux (TODO.md row 8, DECISIONS.md 2026-11-04)."""
+
+    WSL = {"PULSE_SERVER": "unix:/mnt/wslg/PulseServer", "XDG_RUNTIME_DIR": "/run/user/1000"}
+
+    def test_on_linux_no_pulseaudio_server_is_reachable(self):
+        with mock.patch.dict(os.environ, self.WSL):
+            env = rlt.program_env(linux=True)
+        self.assertNotIn("PULSE_SERVER", env)
+        runtime = Path(env["XDG_RUNTIME_DIR"])
+        self.assertNotEqual(str(runtime), self.WSL["XDG_RUNTIME_DIR"])
+        self.assertTrue(runtime.is_dir())
+        self.assertEqual(list(runtime.iterdir()), [])
+        self.assertEqual(env["ALSA_CONFIG_PATH"], str(rlt.ALSA_NULL))
+
+    def test_every_program_gets_the_same_folder_of_the_run(self):
+        self.assertEqual(
+            rlt.program_env(linux=True)["XDG_RUNTIME_DIR"], rlt.program_env(linux=True)["XDG_RUNTIME_DIR"]
+        )
+
+    def test_on_windows_the_environment_is_left_as_it_is(self):
+        with mock.patch.dict(os.environ, self.WSL):
+            env = rlt.program_env(linux=False)
+        self.assertEqual(env["PULSE_SERVER"], self.WSL["PULSE_SERVER"])
+        self.assertEqual(env["XDG_RUNTIME_DIR"], self.WSL["XDG_RUNTIME_DIR"])
+
+
 class ExitCodes(unittest.TestCase):
     def test_as_git_bash_reports_them(self):
         self.assertEqual(rlt.bash_exit_code(0), 0)
@@ -554,6 +581,24 @@ class Rejudge(unittest.TestCase):
         data = self.data({"b": ("SKIP", "windows: cmd")}, platform="linux")
         self.assertEqual(self.judge(data, {}, "linux"), ["verification:b: no longer skipped, and never run"])
 
+    def test_a_network_program_a_windows_host_skipped_stays_skipped(self):
+        sidecar = self.root / "a.external"
+        sidecar.write_text("network: it opens connections or names hosts\n", encoding="utf-8")
+        os.utime(sidecar, (time.time() - 120, time.time() - 120))
+        real = rlt.network_skipped
+        on_host = mock.patch.object(rlt, "network_skipped", lambda suite, bas: real(suite, bas, env={}, windows=True))
+        with on_host:
+            data = self.data({"a": ("SKIP", rlt.NETWORK_SKIP), "b": ("PASS", "")})
+            self.assertEqual(self.judge(data, {}), [])
+            self.assertEqual(data["results"][0]["status"], "SKIP")
+            self.assertEqual(data["summary"], {"verification": {"PASS": 1, "FAIL": 0, "KFAIL": 0, "SKIP": 1}})
+            # Another SKIP of the same program, or this one after its sidecar is gone, still needs a run.
+            data = self.data({"a": ("SKIP", "windows: cmd")})
+            self.assertEqual(self.judge(data, {}), ["verification:a: no longer skipped, and never run"])
+            sidecar.unlink()
+            data = self.data({"a": ("SKIP", rlt.NETWORK_SKIP)})
+            self.assertEqual(self.judge(data, {}), ["verification:a: no longer skipped, and never run"])
+
     def test_a_removed_program_refuses(self):
         data = self.data({"a": ("PASS", ""), "gone": ("PASS", "")})
         self.assertEqual(self.judge(data, {}), ["verification:gone: no longer a program"])
@@ -711,6 +756,13 @@ class CheckList(unittest.TestCase):
         problems, failures, passed = self.check(self.data(ok, coverage=True))
         self.assertEqual((problems, failures, passed), ([], [], 2))
 
+    def test_a_run_with_trace_values_does_not_stand_for_the_list(self):
+        # A value-trace build is another build than the one the lists are about (value-trace, task 2.6).
+        ok = {"a": ("PASS", "output", ""), "b": ("PASS", "output", "")}
+        problems, failures, passed = self.check(self.data(ok, trace_values=True))
+        self.assertEqual((failures, passed), ([], 0))
+        self.assertTrue(any("--trace-values" in p for p in problems), problems)
+
     def test_results_without_a_run_record_fail(self):
         problems, _, passed = self.check({"results": []})
         self.assertEqual(passed, 0)
@@ -734,6 +786,7 @@ class Tools:
         counts=None,
         log=None,
         inputs=None,
+        values=None,
     ):
         self.exe_bytes = exe_bytes
         self.inputs = inputs
@@ -742,6 +795,8 @@ class Tools:
         self.log = log
         # What each run writes to the coverage counts (the file QB64RUST_COVERAGE names).
         self.counts = counts
+        # What each run writes to its record of values (the file QB64RUST_TRACE names).
+        self.values = values
         self.compiles = 0
         # What each run writes to the trace of divergences (the file QB64RUST_DIVERGENCES names).
         self.trace = trace
@@ -784,6 +839,8 @@ class Tools:
             Path(env[rlt.TRACE_ENV]).write_bytes(self.trace)
         if self.counts is not None and "QB64RUST_COVERAGE" in (env or {}):
             Path(env["QB64RUST_COVERAGE"]).write_bytes(self.counts)
+        if self.values is not None and "QB64RUST_TRACE" in (env or {}):
+            Path(env["QB64RUST_TRACE"]).write_bytes(self.values)
         if self.log is not None and "QB64PE_LOG_FILE_PATH" in (env or {}):
             with open(env["QB64PE_LOG_FILE_PATH"], "ab") as f:
                 f.write(self.log(cwd) if callable(self.log) else self.log)
@@ -1138,6 +1195,46 @@ class OpenGLLinks(CorpusFixture):
             self.assertEqual(rlt.build_cache_given(cache), cache)
         with mock.patch.dict(os.environ, {rlt.NO_BUILD_CACHE_VAR: "1"}):
             self.assertIsNone(rlt.build_cache_given(cache))
+
+
+class NetworkSkip(unittest.TestCase):
+    """A `network:` program is skipped on a Windows host unless QB64RUST_ALLOW_NETWORK=1 (CLAUDE.md working rule 6):
+    one that opens a port makes Windows Defender Firewall ask the user."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.dir = Path(self.tmp.name)
+        for name, why in (("net", "network: it opens connections or names hosts\n"), ("snd", "sound: audio\n")):
+            (self.dir / f"{name}.bas").write_bytes(b"")
+            (self.dir / f"{name}.external").write_text(why, encoding="utf-8")
+        (self.dir / "plain.bas").write_bytes(b"")
+        (self.dir / "net.keys.keys").write_bytes(b"")
+
+    def skipped(self, name, env=None, windows=True, suite="verification"):
+        return rlt.network_skipped(suite, self.dir / name, env={} if env is None else env, windows=windows)
+
+    def test_only_network_programs_on_a_windows_host(self):
+        self.assertTrue(self.skipped("net.bas"))
+        self.assertTrue(self.skipped("net.bas", suite="corpus"))
+        self.assertFalse(self.skipped("snd.bas"))
+        self.assertFalse(self.skipped("plain.bas"))
+
+    def test_a_script_takes_its_programs_sidecar(self):
+        self.assertTrue(self.skipped("net.keys.bas", suite="corpus"))
+
+    def test_run_in_the_vm_and_on_linux(self):
+        self.assertFalse(self.skipped("net.bas", env={rlt.ALLOW_NETWORK: "1"}))
+        self.assertFalse(self.skipped("net.bas", env={"CI": "true"}))
+        self.assertFalse(self.skipped("net.bas", windows=False))
+
+    def test_an_upstream_program_reads_the_external_folder(self):
+        with mock.patch.object(rlt, "compile_external", lambda category, name: self.dir / f"{name}.external"):
+            self.assertTrue(self.skipped("cat/net.bas", suite="compile"))
+            self.assertFalse(self.skipped("cat/snd.bas", suite="compile"))
+
+    def test_other_suites_are_not_looked_at(self):
+        self.assertFalse(self.skipped("net.bas", suite="format"))
 
 
 class PassList(unittest.TestCase):
@@ -1636,6 +1733,34 @@ class Scripts(CorpusFixture):
         self.assertNotIn("--coverage", tools.compile_cmd)
         self.assertNotIn("QB64RUST_COVERAGE", tools.run_envs[0])
 
+    def test_trace_values_builds_with_the_option_and_appends_each_runs_record(self):
+        # --trace-values (OpenSpec change value-trace, task 2.6): as --coverage, and the two combine.
+        self.sidecar("s1.screen", STATE)
+        counts = Path(self.tmp.name) / "counts.txt"
+        values = Path(self.tmp.name) / "values.txt"
+        for bas, record in ((self.bas, b"one\n"), (self.script, b"two\n")):
+            tools = Tools(states=[STATE], values=record, counts=b"c\n")
+            r = self.run_test(tools, bas=bas, trace_values=values, coverage=counts)
+            self.assertEqual(r.status, "PASS")
+            self.assertIn("--trace-values", tools.compile_cmd)
+            self.assertIn("--coverage", tools.compile_cmd)
+            self.assertNotEqual(
+                tools.run_envs[0]["QB64RUST_TRACE"], tools.run_envs[0]["QB64RUST_COVERAGE"]
+            )
+        self.assertEqual(values.read_bytes(), b"one\ntwo\n")
+        self.assertEqual(counts.read_bytes(), b"c\nc\n")
+        tools = Tools(states=[STATE], values=b"x\n")
+        self.run_test(tools)
+        self.assertNotIn("--trace-values", tools.compile_cmd)
+        self.assertNotIn("QB64RUST_TRACE", tools.run_envs[0])
+
+    def test_trace_values_leaves_out_the_record_of_a_run_that_timed_out(self):
+        self.sidecar("s1.screen", STATE)
+        values = Path(self.tmp.name) / "values.txt"
+        tools = Tools(states=[STATE], values=b"trace 1\nfile", run_times_out=True)
+        self.assert_fail(self.run_test(tools, bas=self.bas, trace_values=values), "run", "timeout")
+        self.assertFalse(values.exists())
+
     def test_coverage_leaves_out_the_counts_of_a_run_that_timed_out(self):
         # A run killed by the timeout may have been writing its record: half a record would stop the merge.
         self.sidecar("s1.screen", STATE)
@@ -1737,9 +1862,15 @@ class VerificationFixture(unittest.TestCase):
         path.parent.mkdir(exist_ok=True)
         path.write_bytes(data)
 
-    def run_test(self, tools: Tools, pass_cache=None, coverage=None):
+    def run_test(self, tools: Tools, pass_cache=None, coverage=None, platform=None, trace_values=None):
         rlt.support_items.cache_clear()
-        args = SimpleNamespace(qb64=Path("qb64rust.exe"), pass_cache=pass_cache, coverage=coverage)
+        args = SimpleNamespace(
+            qb64=Path("qb64rust.exe"),
+            pass_cache=pass_cache,
+            coverage=coverage,
+            platform=platform,
+            trace_values=trace_values,
+        )
         with mock.patch.object(rlt, "run_proc", tools):
             return rlt.run_suite_test(
                 "verification",
@@ -1901,6 +2032,20 @@ class VerificationCompare(VerificationFixture):
         self.run_test(tools)
         self.assertNotIn("--coverage", tools.compile_cmd)
         self.assertNotIn("QB64RUST_COVERAGE", tools.run_envs[0])
+
+    def test_trace_values_builds_with_the_option_and_appends_the_runs_record(self):
+        # --trace-values for the verification suite (OpenSpec change value-trace, task 2.6).
+        self.recorded(b"1\n\nexit=0\n")
+        values = Path(self.tmp.name) / "values.txt"
+        for record in (b"one\n", b"two\n"):
+            tools = Tools(runs=[b"1\r\n\r\n"], values=record)
+            self.assertEqual(self.run_test(tools, trace_values=values).status, "PASS")
+            self.assertIn("--trace-values", tools.compile_cmd)
+        self.assertEqual(values.read_bytes(), b"one\ntwo\n")
+        tools = Tools(runs=[b"1\r\n\r\n"], values=b"x\n")
+        self.run_test(tools)
+        self.assertNotIn("--trace-values", tools.compile_cmd)
+        self.assertNotIn("QB64RUST_TRACE", tools.run_envs[0])
 
     def test_different_output_fails_and_the_work_folder_stays(self):
         self.recorded(b"1\nexit=0\n")
@@ -2379,6 +2524,17 @@ class VerificationDiverged(VerificationFixture):
         # A regression beside the divergence fails too.
         self.assert_fail(self.run_test(Tools(runs=[b"2\r\n4\r\n"])), "result", "line 1: recorded b'1', got b'2'")
 
+    def test_a_linux_sidecar_stands_for_it_on_linux_only(self):
+        # Where our output on Linux differs (a partial line before libqb's error message, a $IF WIN), its
+        # diverged\<name>.linux.out.txt judges the Linux run, and Windows keeps <name>.out.txt.
+        self.recorded(b"1\n7\nexit=0\n")
+        self.diverged(b"1\n4\nexit=0\n")
+        self.diverged(b"1\n5\nexit=0\n", "linux.out")
+        self.assertEqual(self.run_test(Tools(runs=[b"1\n5\n"]), platform="linux").status, "PASS")
+        self.assertEqual(self.run_test(Tools(runs=[b"1\r\n4\r\n"]), platform="windows").status, "PASS")
+        self.assert_fail(self.run_test(Tools(runs=[b"1\n4\n"]), platform="linux"), "result", "v99_p.linux.out.txt")
+        self.assert_fail(self.run_test(Tools(runs=[b"1\r\n5\r\n"]), platform="windows"), "result")
+
     def test_a_log_sidecar_stands_for_the_recorded_log(self):
         self.recorded(b"exit=0\n")
         (self.root / "v99_p.log.txt").write_bytes(VerificationLog.KEPT)
@@ -2403,8 +2559,10 @@ class VerificationDiverged(VerificationFixture):
         self.recorded(b"1\nexit=0\n")
         self.diverged(b"2\nexit=0\n")
         self.diverged(b"", "log")
+        self.diverged(b"3\nexit=0\n", "linux.out")
         found = rlt.program_inputs("verification", self.bas, sorted(p.name for p in self.root.iterdir()))
         self.assertIn(self.lists / "diverged" / "v99_p.out.txt", found)
+        self.assertIn(self.lists / "diverged" / "v99_p.linux.out.txt", found)
         self.assertIn(self.lists / "diverged" / "v99_p.log.txt", found)
 
     def test_a_diverged_rejection_stands_on_its_lines_list_row(self):
@@ -2513,6 +2671,12 @@ class VerificationLists(VerificationFixture):
         result["status"] = "KFAIL"
         _, failures, _ = rlt.check_list("verification", wanted, self.root, data, compiler)
         self.assertEqual(failures[0][0], "verification:v99_p")
+        # A network program a Windows host skipped: neither passed nor failed. Any other SKIP fails.
+        result.update(status="SKIP", stage="skipped", detail=rlt.NETWORK_SKIP)
+        self.assertEqual(rlt.check_list("verification", wanted, self.root, data, compiler), ([], [], 0))
+        result["detail"] = "windows"
+        _, failures, _ = rlt.check_list("verification", wanted, self.root, data, compiler)
+        self.assertEqual(len(failures), 1)
 
     def test_load_list_takes_plain_names(self):
         path = self.lists / "pass.list"
@@ -2619,6 +2783,21 @@ class PlatformRecordings(CorpusFixture):
         r = self.run_test(Tools(runs=[b" 1  2\n"], run_rc=3), record=True, platform="linux")
         self.assert_fail(r, "record", "exit code 3 on Linux")
         self.assertFalse((self.group / "p.exitcode").exists())
+
+    def test_a_linux_list_row_needs_its_tab(self):
+        # A row whose tab was lost would be one long name with no reason, and its program would not be skipped.
+        lst = Path(self.tmp.name) / "known.linux.list"
+        for row in ("g/pwindows: kernel32", "g/p\t", "g/p x\twindows: kernel32"):
+            lst.write_text(f"# programs\n{row}\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "not <name><TAB><reason>"):
+                rlt.load_linux_list(lst, "corpus")
+
+    def test_the_linux_lists_of_the_repo_read(self):
+        # The three lists the Linux runs read, checked on every platform.
+        for suite, folder in (("corpus", "corpus"), ("compile", "upstream"), ("verification", "verification")):
+            path = rlt.REPO / "tests" / folder / "known.linux.list"
+            self.assertTrue(path.is_file(), path)
+            self.assertTrue(rlt.load_linux_list(path, suite))
 
     def test_a_windows_only_program_is_skipped_on_linux(self):
         # "A Windows-only program": listed in the suite's known.linux.list as `windows`.

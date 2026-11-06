@@ -5,6 +5,7 @@
 
 use crate::Emitter;
 use crate::names::{c_ident, c_string, c_type};
+use crate::trace::{Held, guarded};
 use qb64rust_ir::{Conv, DataItem, Expr, ExprKind, Op, Place, PrintItem, PrintTo, Source, Ty, UsingValue};
 use std::fmt::Write as _;
 
@@ -273,6 +274,11 @@ impl Emitter<'_> {
             let string = self.place_ref(place);
             out.push(format!("field_add({string},{});", self.value(width)));
         }
+        // Each string is now a part of the record buffer: a value-trace build reads them again.
+        let fields = self.trace_fields("FIELD");
+        if !fields.is_empty() {
+            out.push(fields);
+        }
         out.push("qbs_cleanup(qbs_tmp_base,0);".into());
     }
 
@@ -281,7 +287,9 @@ impl Emitter<'_> {
     pub(crate) fn lset(&mut self, right: bool, target: &Place, value: &Expr, out: &mut Vec<String>) {
         let f = if right { "sub_rset" } else { "sub_lset" };
         let string = self.place_ref(target);
+        let (string, records) = self.trace_held(target, Held::Qbs, string, "LSET");
         out.push(format!("{f}({string},{});", self.value(value)));
+        out.extend(Some(guarded(&records)).filter(|g| !g.is_empty()));
         out.push("qbs_cleanup(qbs_tmp_base,0);".into());
     }
 
@@ -389,7 +397,8 @@ impl Emitter<'_> {
                     "sub_file_input_string"
                 };
                 let target = self.place_ref(place);
-                out.push(format!("{f}(tmp_fileno,{target});"));
+                let (target, records) = self.trace_held(place, Held::Qbs, target, "INPUT");
+                out.push(format!("{f}(tmp_fileno,{target});{}", guarded(&records)));
             } else {
                 let read = self.file_read(ty, place);
                 self.store(place, false, &mut |_| read.clone(), out);
@@ -423,23 +432,33 @@ impl Emitter<'_> {
         if question {
             out.push("qbs_print(qbs_new_txt(\"? \"),0);".into());
         }
+        // A value-trace build holds each address it hands over, and reads the targets through them once libqb has
+        // stored (design D1 of `value-trace`).
+        let mut records = Vec::new();
         for (place, k) in targets.iter().zip(1..) {
             self.allocs_before(k - 1, out);
             let ty = self.p.place_ty(place);
             let (code, address) = if ty.is_string() {
                 let code = if line { "ISSTRING+512" } else { "ISSTRING" };
-                (code.to_string(), self.place_ref(place))
+                let address = self.place_ref(place);
+                let (address, read) = self.trace_held(place, Held::Qbs, address, "INPUT");
+                records.extend(read);
+                (code.to_string(), address)
             } else {
                 // Of the place bits only `ISARRAY` is written here (an element), and `_OFFSET` carries its own bit.
                 let offset = if matches!(ty, Ty::Off | Ty::UOff) { OFFSET } else { 0 };
                 let code = input_type_code(ty, place) & !CONSOLE_DROPS | offset;
-                (code.to_string(), format!("&({})", self.load_place(place)))
+                let address = format!("&({})", self.load_place(place));
+                let (address, read) = self.trace_held(place, Held::Ptr, address, "INPUT");
+                records.extend(read);
+                (code.to_string(), address)
             };
             out.push(format!("qbs_input_variabletypes[{k}]={code};"));
             out.push(format!("qbs_input_variableoffsets[{k}]={address};"));
         }
         out.push(format!("qbs_input({},{});", targets.len(), u8::from(!stay)));
         out.push("if (stop_program) end();".into());
+        out.extend(Some(guarded(&records)).filter(|g| !g.is_empty()));
         out.push("qbs_cleanup(qbs_tmp_base,0);".into());
     }
 
@@ -453,7 +472,8 @@ impl Emitter<'_> {
             let read = match ty {
                 Ty::Str | Ty::FixedStr(_) => {
                     let target = self.place_ref(place);
-                    out.push(format!("sub_read_string({ARGS},{target});"));
+                    let (target, records) = self.trace_held(place, Held::Qbs, target, "READ");
+                    out.push(format!("sub_read_string({ARGS},{target});{}", guarded(&records)));
                     continue;
                 }
                 Ty::I64 | Ty::Off => format!("func_read_int64({ARGS})"),

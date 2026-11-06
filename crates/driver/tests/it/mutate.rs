@@ -171,8 +171,13 @@ fn check(bytes: &[u8], emitted: &AtomicUsize) -> Option<String> {
             return false;
         }
         if !fe.has_errors() && bytes.len() <= CODEGEN_MAX_LEN {
-            // One emission, the one that runs the most of the emitter: a debug build's, with coverage counters.
-            emit_ir_debug(&fe, &lower(&fe), &Resolved::default(), true, None);
+            // One emission, the one that runs the most of the emitter: a debug build's, with coverage counters and
+            // the record calls of a value-trace build.
+            let instrument = qb64rust_driver::Instrument {
+                coverage: true,
+                trace: true,
+            };
+            emit_ir_debug(&fe, &lower(&fe), &Resolved::default(), instrument, None);
             emitted.fetch_add(1, Ordering::Relaxed);
         }
         true

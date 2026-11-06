@@ -172,11 +172,24 @@ struct FeatureState {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct FeatureStates {
     states: [FeatureState; FEATURES.len()],
+    /// A value given from outside the program, which every round takes (`ForceRCStateVar`): `qb64pe -e` forces
+    /// `OPTION _EXPLICIT` (`qb64pe.bas` 1218). 0 forces nothing.
+    forced: [u8; FEATURES.len()],
 }
 
 impl FeatureStates {
+    /// The states of a compile with these features forced (`ForceRCStateVar`).
+    #[must_use]
+    pub fn forcing(features: &[(Feature, u8)]) -> Self {
+        let mut s = FeatureStates::default();
+        for &(f, value) in features {
+            s.forced[f as usize] = value;
+        }
+        s
+    }
+
     /// The start of a round (`ExecuteRCStateVar`): a feature that is not locked takes the value last asked for,
-    /// and one that is not 0 is locked from then on.
+    /// and one that is not 0 is locked from then on. A forced value then replaces it.
     pub fn start_round(&mut self) -> PpFlags {
         let mut flags = PpFlags::default();
         for f in FEATURES {
@@ -184,6 +197,10 @@ impl FeatureStates {
             if !s.locked {
                 s.actual = s.wanted;
                 s.locked = s.actual != 0;
+            }
+            let forced = self.forced[f as usize];
+            if forced != 0 {
+                s.actual = forced;
             }
             flags.values[f as usize] = s.actual;
         }
@@ -225,8 +242,16 @@ pub const MAX_ROUNDS: usize = 64;
 /// condition named a flag or a library came in; otherwise the same settings are applied until the features are
 /// settled. Gives the last parse and the settled flags, or the last parse alone when `max_rounds` parses did not
 /// settle them.
-pub fn settle<T>(max_rounds: usize, mut round: impl FnMut(PpFlags) -> Round<T>) -> Result<(T, PpFlags), T> {
-    let mut states = FeatureStates::default();
+pub fn settle<T>(max_rounds: usize, round: impl FnMut(PpFlags) -> Round<T>) -> Result<(T, PpFlags), T> {
+    settle_from(FeatureStates::default(), max_rounds, round)
+}
+
+/// [`settle`] from the states `states`: those of [`FeatureStates::forcing`] for a compile that forces a feature.
+pub fn settle_from<T>(
+    mut states: FeatureStates,
+    max_rounds: usize,
+    mut round: impl FnMut(PpFlags) -> Round<T>,
+) -> Result<(T, PpFlags), T> {
     let mut flags = states.start_round();
     let mut parses = 1;
     let mut r = round(flags);
@@ -988,6 +1013,25 @@ mod tests {
         // Nothing set: one parse, every flag 0.
         let (_, flags) = settle(MAX_ROUNDS, |flags| fake(Vec::new(), true, flags)).unwrap();
         assert_eq!(flags, PpFlags::default());
+    }
+
+    #[test]
+    fn feature_forced() {
+        // `qb64pe -e` forces `OPTION _EXPLICIT`: the first round already reads `_EXPLICIT_` and `_EXPLICITARRAY_` as
+        // set, so one parse is enough, and an `OPTION _EXPLICIT` in the program changes nothing (measured with
+        // `qb64pe.exe -e`, 2026-11-04: `$IF _EXPLICIT_` takes its first branch).
+        for settings in [Vec::new(), vec![(Feature::Explicit, 1)]] {
+            let mut parses = 0;
+            let forced = FeatureStates::forcing(&[(Feature::Explicit, 1)]);
+            let (seen, flags) = settle_from(forced, MAX_ROUNDS, |flags| {
+                parses += 1;
+                fake(settings.clone(), true, flags)
+            })
+            .unwrap();
+            assert_eq!(parses, 1, "{settings:?}");
+            assert!(seen.explicit() && seen.explicit_array(), "{settings:?}");
+            assert!(flags.explicit() && !flags.console(), "{settings:?}");
+        }
     }
 
     #[test]

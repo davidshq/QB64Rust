@@ -1,0 +1,11 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+lints_used_once_warnings.bas:6:7: warning: `totl` is used only once: is it misspelled?
+lints_used_once_warnings.bas:8:5: warning: Unused variable
+    declared%   INTEGER
+lints_used_once_warnings.bas:9:1: warning: `x` is used only once: is it misspelled?
+lints_used_once_warnings.bas:10:7: warning: `x$` is used only once: is it misspelled?
+lints_used_once_warnings.bas:16:1: warning: `grid` is used only once: is it misspelled?
+lints_used_once_warnings.bas:21:11: warning: `locl` is used only once: is it misspelled?

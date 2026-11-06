@@ -25,7 +25,8 @@ put Python, from a pinned release checked by SHA-256, in the VM. Making it SHALL
 - **THEN** it stops and says to remove the suites VM first, since a new base would break it
 
 ### Requirement: The suites VM builds with the installed toolchain
-The suites VM SHALL get its C++ toolchain through `qb64rust toolchain install`, run in the VM while it is made. A
+The suites VM SHALL get its C++ toolchain through `qb64rust toolchain install --from-zip`, run in the VM while it
+is made, with the release's zip downloaded on the host and copied in. A
 step in the VM SHALL fail without running its programs when `qb64rust` there would build with another toolchain,
 such as the QB64pe clone's.
 

@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+lints_hides_shared_warnings.bas:14:9: warning: this `score` is a new local variable, which hides the `DIM SHARED` one of the main module
+lints_hides_shared_warnings.bas:19:11: warning: this `score` is a new local variable, which hides the `DIM SHARED` one of the main module

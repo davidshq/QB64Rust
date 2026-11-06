@@ -205,3 +205,25 @@ fn bare_names_and_suffixes() {
     let (_, diags) = check_any("PRINT CHR(65)");
     assert!(!diags.has_real_errors());
 }
+
+/// A left-out argument of `SCREEN` gets QB64pe's error only where it was measured, in the middle
+/// (`verification\v66_g01`, "Incorrect number of arguments"). The first and last are not measured, so they stay
+/// "not supported yet". `LBOUND` and `UBOUND` are "Syntax error" wherever the argument is left out.
+#[test]
+fn left_out_screen_and_bounds() {
+    let (_, diags) = check_any("x = SCREEN(1, , 1)");
+    let d = &diags.list()[0];
+    assert!(!d.unsupported, "{d:?}");
+    assert_eq!(d.message, "an argument of `SCREEN` is left out");
+    for text in ["x = SCREEN(, 1)", "x = SCREEN(1, 1, )"] {
+        let (_, diags) = check_any(text);
+        let d = &diags.list()[0];
+        assert!(d.unsupported, "{text}: {d:?}");
+    }
+    for text in ["DIM a(3)\nx = LBOUND(a, )", "DIM a(3)\nx = UBOUND(, 1)"] {
+        let (_, diags) = check_any(text);
+        let d = &diags.list()[0];
+        assert!(!d.unsupported, "{text}: {d:?}");
+        assert!(d.message.ends_with("cannot leave out an argument"), "{text}: {d:?}");
+    }
+}

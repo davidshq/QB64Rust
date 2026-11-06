@@ -1,0 +1,35 @@
+v68_a2_types.bas:6: warning: Unused variable
+    MixedCase%   INTEGER
+v68_a2_types.bas:7: warning: Unused variable
+    ul~&         _UNSIGNED LONG
+v68_a2_types.bas:8: warning: Unused variable
+    fs$5         STRING * 5
+v68_a2_types.bas:9: warning: Unused variable
+    vs$          STRING
+v68_a2_types.bas:10: warning: Unused variable
+    p            pt
+v68_a2_types.bas:11: warning: Unused variable
+    bt`1         _BIT
+v68_a2_types.bas:12: warning: Unused variable
+    b3`3         _BIT * 3
+v68_a2_types.bas:13: warning: Unused variable
+    ub~%%        _UNSIGNED _BYTE
+v68_a2_types.bas:14: warning: Unused variable
+    by%%         _BYTE
+v68_a2_types.bas:15: warning: Unused variable
+    i6&&         _INTEGER64
+v68_a2_types.bas:16: warning: Unused variable
+    fl##         _FLOAT
+v68_a2_types.bas:17: warning: Unused variable
+    sg!          SINGLE
+v68_a2_types.bas:18: warning: Unused variable
+    o%&          _OFFSET
+v68_a2_types.bas:19: warning: Unused variable
+    uo~%&        _UNSIGNED _OFFSET
+v68_a2_types.bas:20: warning: Unused variable
+    mm           _MEM
+v68_a2_types.bas:21: warning: Unused variable
+    sfx&         LONG
+v68_a2_types.bas:22: warning: Unused variable
+    ar()         pt
+exit=0

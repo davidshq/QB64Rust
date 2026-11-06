@@ -299,3 +299,23 @@ Comes before M6.
       references, rename, perhaps completion of names and built-ins; handed to the server by the driver as
       `Check` is (`m5b-language-features`: hover, references, rename, completion and the definition of any name,
       through a third hook of the driver; spec `editor/language-server`)
+
+## M6. The runtime without QB64pe: done
+
+Declared done on 2026-10-28, without the check on a machine with no QB64pe (user, `DECISIONS.md` 2026-10-28).
+Moved here at the merge of branch `we-like-changes` (2026-11-06).
+
+Rewritten on 2026-10-28 from "runtime modernisation" (`study\37` §5.1, `DECISIONS.md` 2026-10-28): measured, none
+of the runtime's design debts shows as a failure a user meets, so the second backend and the redesign of the error
+model, string heap and threading are a `SOMEDAY.md` row, with the conditions that would bring them back. Done when
+the extension builds, runs and debugs a program with the toolchain and compiler it fetches, and the rows the user
+ruled to change are edits of libqb with their tests; the check of that on a machine with no QB64pe is postponed
+(below).
+
+- [x] A C++ toolchain and `lldb-dap` the project fetches, pinned and checked, QB64pe's install a fallback
+  (`m6-toolchain`)
+- [x] The compiler as a download of its own beside the `.vsix`, one version number for both (`m6-compiler-download`)
+- [x] The fixes switch and the crash-class rulings of `study\39`: the compiler half (`fixes-switch`) and libqb
+  repaired in place through `tools\libqb\edits` (`libqb-fixes`)
+- The check on a machine with no QB64pe (the released `.vsix` installs, fetches its toolchain, and builds, runs and
+  debugs a program) is postponed to `SOMEDAY.md` (user, `DECISIONS.md` 2026-10-28); M6 is done without it

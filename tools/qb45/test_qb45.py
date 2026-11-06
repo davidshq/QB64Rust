@@ -105,6 +105,33 @@ class BcFinishedTest(unittest.TestCase):
         self.assertIn("DOSBox ended first", qb45.no_build_message(ended, 60))
 
 
+PDS_CLEAN = """Microsoft (R) BASIC Compiler Version 7.10
+Copyright (C) Microsoft Corporation 1982-1990. All rights reserved.
+
+46110 Bytes Available
+45529 Bytes Free
+
+    0 Warning Error(s)
+    0 Severe  Error(s)
+"""
+
+
+class PdsTest(unittest.TestCase):
+    def test_pds_banner_is_dropped(self):
+        self.assertTrue(qb45.bc_finished(PDS_CLEAN))
+        self.assertEqual(qb45.compile_messages(PDS_CLEAN), [])
+
+    def test_pds_link_banner_is_dropped(self):
+        link = (
+            "\nMicrosoft (R) Segmented-Executable Linker  Version 5.10\n"
+            "Copyright (C) Microsoft Corp 1984-1990.  All rights reserved.\n\n"
+            "LINK : fatal error L1104: BCL71ENR.LIB : not valid library\n"
+        )
+        text = qb45.result_text(PDS_CLEAN, None, False, 60, link)
+        self.assertNotIn("Microsoft", text)
+        self.assertIn("L1104", text)
+
+
 NO_BUILD = qb45.Run("", False, False, False)
 
 
@@ -156,6 +183,70 @@ class MainTest(unittest.TestCase):
         status, record, err, runs = self.main_with([NO_BUILD, qb45.Run("1\n", True, False, False)])
         self.assertEqual((status, record, runs), (0, "1\n", 2))
         self.assertNotIn("warning", err)
+
+    def test_pds71_records_beside_the_program_as_pds71_txt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            for name in ("BC.EXE", "BCL71ENR.LIB", "DOSBox.exe"):
+                (root / name).write_bytes(b"")
+            bas = root / "p.bas"
+            bas.write_text("PRINT 1\n", encoding="utf-8")
+            with (
+                mock.patch.object(qb45, "run", return_value=qb45.Run("1\n", True, False, False)),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                status = qb45.main(
+                    ["--compiler", "pds71", "--pds71", str(root), "--dosbox",
+                     str(root / "DOSBox.exe"), "--record", str(bas)]
+                )  # fmt: skip
+            self.assertEqual(status, 0)
+            self.assertEqual((root / "p.pds71.txt").read_text(encoding="utf-8"), "1\n")
+            self.assertFalse((root / "p.qb45.txt").exists())
+
+    def test_pds71_without_its_library_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / "BC.EXE").write_bytes(b"")
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                status = qb45.main(["--compiler", "pds71", "--pds71", str(root), "p.bas"])
+            self.assertEqual(status, 2)
+            self.assertIn("BCL71ENR.LIB missing", err.getvalue())
+
+    def test_pds71_folder_alone_picks_pds71(self):
+        # --pds71 without --compiler: PDS 7.1 runs, and its record is .pds71.txt, never .qb45.txt.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            for name in ("BC.EXE", "BCL71ENR.LIB", "DOSBox.exe"):
+                (root / name).write_bytes(b"")
+            bas = root / "p.bas"
+            bas.write_text("PRINT 1\n", encoding="utf-8")
+            with (
+                mock.patch.object(qb45, "run", return_value=qb45.Run("1\n", True, False, False)),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                status = qb45.main(
+                    ["--pds71", str(root), "--dosbox", str(root / "DOSBox.exe"), "--record",
+                     str(bas)]
+                )  # fmt: skip
+            self.assertEqual(status, 0)
+            self.assertTrue((root / "p.pds71.txt").exists())
+            self.assertFalse((root / "p.qb45.txt").exists())
+
+    def test_a_folder_of_the_other_compiler_is_refused(self):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            status = qb45.main(["--compiler", "qb45", "--pds71", "x", "p.bas"])
+        self.assertEqual(status, 2)
+        self.assertIn("--pds71 does not go with --compiler qb45", err.getvalue())
+
+    def test_both_folders_without_a_compiler_are_refused(self):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            status = qb45.main(["--qb45", "x", "--pds71", "y", "p.bas"])
+        self.assertEqual(status, 2)
+        self.assertIn("give only one of --qb45 and --pds71, or --compiler", err.getvalue())
+        self.assertNotIn("does not go with", err.getvalue())
 
     def test_a_run_with_no_out_txt_is_recorded_with_a_warning(self):
         silent = qb45.Run("(no OUT.TXT)\n", True, False, True)

@@ -5,7 +5,7 @@ through `just` (the `justfile` at the top of the repository) or as `python tools
 
 | Command | Runs |
 |---|---|
-| `just quick` | the quick layer: `fmt`, `build` (release), `clippy`, `nextest` (the workspace's Rust tests), `lists` (`inputs.rs`: the lists and recordings), `doc`, `tools` (the Python tools' tests, `tool_tests.py`), `libqb-copy` (the copy against its edits), `v37-libs` (the libraries of the `v37` verification programs, `verification\v37_lib\build_libs.py`, git-ignored; `verification` needs it, so a fresh worktree builds them), `slice` (the slice list); and the upstream and verification lists narrowed to the programs a change reaches, when it reaches only programs |
+| `just quick` | the quick layer: `fmt`, `build` (release), `clippy`, `nextest` (the workspace's Rust tests), `lists` (`inputs.rs`: the lists and recordings), `doc`, `tools` (the Python tools' tests, `tool_tests.py`, all but `tools\check`'s), `tools-check` (`tools\check`'s own tests, about 80 s, run when `tools\check` or a folder its tests read changes), `libqb-copy` (the copy against its edits), `v37-libs` (the libraries of the `v37` verification programs, `verification\v37_lib\build_libs.py`, git-ignored; `verification` needs it, so a fresh worktree builds them), `slice` (the slice list); and the upstream and verification lists narrowed to the programs a change reaches, when it reaches only programs |
 | `just full` | every step: the quick layer and the upstream and verification lists, the call-site check, the CLI tests that build (`--ignored`), qbasic, addprefix, the format runs, the differential list, the slice without folding, the coverage check, the Linux family in WSL, the sandbox family last |
 | `just merge` | the merge into `main`, in a worktree of the merge commit: every step again without the pass cache (but what passed in an earlier merge with the same fingerprint, below), but the slice, upstream and verification lists and the Linux slice, which its whole suites stand for; and its own steps (`steps.py`, layer `merge`, from the old `close.py`'s merge set): the known lists and the old wording table regenerated first (`update-lists`, `wording`, a plan of their own, so that the rest is planned on the files they wrote), then the wording check, the three whole suites with `--coverage` (`target\coverage\merge\*.txt`, the records narrowing reads), the pass lists held to their results (`--check-list`), the built-ins' list (`builtins`), the two demand reports, the count blocks (`counts.py --strict`; these three and the `--check-list` runs run after a whole suite with a failure too, `after_failure`, since they read its results, not its verdict) and the Linux whole suites, after a `linux-sync --checksum` (the exact copy; a step's `forced` form, used by `--force` too) at the tree's first merge, and the usual sync from git's list once an earlier merge's sync passed (`check-rejudge` design D6). Files it rewrites are for the user to stage |
 | `just check <target>` | a step by name, after the steps it needs unless they stand (`build` before a list); a crate folder (`crates/sema`: that crate's tests); a suite folder or list (`verification`, `tests/corpus/slice.list`); one program by name (`v66_a01_varptr_dynamic_owner`, a corpus or upstream program's name), after the steps its suite's step needs (`build`; for a verification program `v37-libs` too) unless they stand |
@@ -56,7 +56,7 @@ A step that builds and runs programs can run on the host or in the suites VM, th
 `steps.py`: `slice`, `upstream`, `verification`, `callsite`, `cli`, `qbasic`, `addprefix`, `format`,
 `format-corpus`, `differential`, `nofold`, `coverage`, and the merge's `corpus-whole`, `upstream-whole` and
 `verification-whole`. Every other step runs on the host: `fmt`, `build`, `clippy`, `nextest`, `lists`, `doc`,
-`tools`, the Linux steps, the merge's own readers.
+`tools`, `tools-check`, the Linux steps, the merge's own readers.
 
 | Run | Where the `vm` steps go |
 |---|---|
@@ -84,6 +84,9 @@ restore per run, however many VM steps.
 
 - The runner keeps no build cache in the VM (`QB64RUST_NO_BUILD_CACHE`). Its pass caches are kept, on the cache
   disk, apart from the host's.
+- Network programs run only in the VM. Their `.external` sidecar starts with `network:`. On a Windows host the
+  runner skips them (SKIP), because a program that opens a port makes Windows Defender Firewall ask the user. A
+  VM step sets `QB64RUST_ALLOW_NETWORK=1`, which runs them. So `just quick` and `--where host` do not test them.
 - `cli` builds the CLI tests' binary on the host (`cargo test --no-run`), and the binary runs in the VM with
   `--ignored`, in `crates\driver`.
 - `verification` and `verification-whole` build the `v37` libraries in the VM first, since git ignores them.
@@ -142,7 +145,7 @@ desktop, sound, the clock, the network) is never served.
 recordings and list rows plan `lists` and those programs; a change under one crate plans `fmt`, `build`, `clippy`,
 `nextest`, `lists`, `doc` and `slice`, and one of its tests alone (other than `inputs.rs`) the same but `build`, `lists` and `slice`; a libqb edit naming its built-ins plans `nextest`, `libqb-copy` and the
 programs that hold them, a pass that `full` runs again; a change to a shared verification support file plans the
-whole list; a change to a tool plans `tools`. A step named alone has the fingerprint it has in its layer. A glob
+whole list; a change to a tool plans `tools`, and a change under `tools\check` plans `tools-check` (with `tools` too for `tool_tests.py`, and for a folder both read). A step named alone has the fingerprint it has in its layer. A glob
 widened so that one of them plans more fails.
 
     python -m unittest discover -s tools/check -p "test_*.py"

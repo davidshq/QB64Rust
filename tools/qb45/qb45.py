@@ -1,20 +1,28 @@
 #!/usr/bin/env python3
-"""Builds and runs a program with QuickBASIC 4.5 under DOSBox: the QB 4.5 oracle (DECISIONS.md 2026-10-26).
+"""Builds and runs a program with QuickBASIC 4.5 or BASIC PDS 7.1 under DOSBox: the QB 4.5 oracle
+(DECISIONS.md 2026-10-26), and the PDS 7.1 one (2026-11-05).
 
-Usage: qb45.py [--qb45 DIR] [--dosbox EXE] [--timeout S] [--record] PROGRAM.bas...
+Usage: qb45.py [--compiler qb45|pds71] [--qb45 DIR] [--pds71 DIR] [--dosbox EXE] [--timeout S] [--record]
+       PROGRAM.bas...
 
-DIR is the folder of QB 4.5's unpacked files (BC.EXE, LINK.EXE, BCOM45.LIB; default: the environment
-variable QB64RUST_QB45_ROOT, else ../../qb64contain/qb45/install from the repo's root). It is outside this
-repo; README.md says where it lies and how it was made. Each program is
-compiled with `BC /O /E /X /D` (stand-alone, ON ERROR and RESUME NEXT allowed, and the run-time checks
-QB 4.5's editor always makes: without /D an index out of bounds raises nothing), linked and run in a fresh
-folder mounted as D:, with DOSBox's window given SDL's dummy video driver so nothing shows.
+--compiler picks the compiler; the default is pds71 when --pds71 is given, else qb45. A folder option of
+the other compiler is refused. Each compiler has a folder of its unpacked files, outside this repo
+(README.md says where they lie and how they were made):
+- QB 4.5: BC.EXE, LINK.EXE, BCOM45.LIB. --qb45, else the environment variable QB64RUST_QB45_ROOT, else
+  ../../qb64contain/qb45/install from the repo's root.
+- PDS 7.1: BC.EXE, LINK.EXE and BCL71ENR.LIB (made by pds71_install.py). --pds71, else
+  QB64RUST_PDS71_ROOT, else ../pds71/install from the repo's root.
 
-QB 4.5's PRINT writes to the screen, which DOS cannot redirect, so a program writes what it measures to
-the file OUT.TXT (OPEN "OUT.TXT" FOR OUTPUT AS #1: PRINT #1, ...). The result is the compiler's messages
-when it reported an error, then OUT.TXT, then a line if the run timed out (an untrapped run-time error
-waits for a key, so it ends at the timeout). With --record it is written to <name>.qb45.txt beside the
-program; otherwise it is printed.
+Each program is compiled with `BC /O /E /X /D` (stand-alone, ON ERROR and RESUME NEXT allowed, and the
+run-time checks the QB 4.5 and PDS 7.1 editors always make: without /D an index out of bounds raises
+nothing), linked and run in a fresh folder mounted as D:, with DOSBox's window given SDL's dummy video
+driver so nothing shows.
+
+PRINT writes to the screen, which DOS cannot redirect, so a program writes what it measures to the file
+OUT.TXT (OPEN "OUT.TXT" FOR OUTPUT AS #1: PRINT #1, ...). The result is the compiler's messages when it
+reported an error, then OUT.TXT, then a line if the run timed out (an untrapped run-time error waits for a
+key, so it ends at the timeout). With --record it is written beside the program, to <name>.qb45.txt or
+<name>.pds71.txt; otherwise it is printed.
 """
 
 from __future__ import annotations
@@ -35,16 +43,52 @@ DEFAULT_DOSBOX = Path(r"C:\Program Files (x86)\DOSBox-0.74-3\DOSBox.exe")
 DEFAULT_QB45 = (
     Path(__file__).resolve().parents[2] / ".." / ".." / "qb64contain" / "qb45" / "install"
 )
+# Where PDS 7.1 lies (README.md): <repo's parent>\pds71\install, beside the repo.
+DEFAULT_PDS71 = Path(__file__).resolve().parents[2] / ".." / "pds71" / "install"
 TIMEOUT = 60
 
+
+@dataclass(frozen=True)
+class Compiler:
+    """One of the old compilers the oracle runs."""
+
+    name: str  # the --compiler value, and the name of its folder option
+    label: str  # for messages
+    env: str  # the environment variable that gives its folder
+    default: Path  # its folder when neither the option nor the variable gives one
+    needs: tuple[str, ...]  # files its folder must hold
+    suffix: str  # of the record written beside the program
+
+
+COMPILERS = {
+    "qb45": Compiler(
+        "qb45", "QB 4.5", "QB64RUST_QB45_ROOT", DEFAULT_QB45, ("BC.EXE",), ".qb45.txt"
+    ),
+    "pds71": Compiler(
+        "pds71",
+        "PDS 7.1",
+        "QB64RUST_PDS71_ROOT",
+        DEFAULT_PDS71,
+        ("BC.EXE", "BCL71ENR.LIB"),
+        ".pds71.txt",
+    ),
+}
+
 # The banner BC prints before its messages, and its memory report: neither depends on the program.
+# QB 4.5's lines, then PDS 7.1's.
 BANNER = (
     "Microsoft (R) QuickBASIC Compiler",
     "(C) Copyright Microsoft",
     "All rights reserved.",
     "Simultaneously published",
+    "Microsoft (R) BASIC Compiler",
+    "Copyright (C) Microsoft",
 )
-LINK_BANNER = ("Microsoft (R) Overlay Linker", "Copyright (C) Microsoft")
+LINK_BANNER = (
+    "Microsoft (R) Overlay Linker",
+    "Microsoft (R) Segmented-Executable Linker",
+    "Copyright (C) Microsoft",
+)
 # BC's last line, after any messages: "    0 Severe  Error(s)". Without it BC did not finish.
 BC_SUMMARY = re.compile(r"Severe\s+Error\(s\)")
 
@@ -76,7 +120,8 @@ def dos_text(text: str) -> bytes:
 
 
 def conf_text(qb45: Path, work: Path) -> str:
-    """The DOSBox configuration: QB 4.5 on C:, the program's folder on D:, build, link, run, exit."""
+    """The DOSBox configuration: the compiler's folder on C:, the program's folder on D:, build, link,
+    run, exit. The same for QB 4.5 and PDS 7.1: each LINK finds its default library through LIB."""
     return "\n".join(
         [
             "[sdl]",
@@ -145,7 +190,7 @@ def result_text(
 
 
 def run(bas: Path, qb45: Path, dosbox: Path, timeout: int) -> Run:
-    """Builds and runs bas with QB 4.5 in a fresh folder."""
+    """Builds and runs bas with the compiler in folder qb45 (QB 4.5 or PDS 7.1) in a fresh folder."""
     with tempfile.TemporaryDirectory(prefix="qb45-") as tmp:
         work = Path(tmp)
         (work / "P.BAS").write_bytes(dos_text(bas.read_text(encoding="utf-8")))
@@ -206,21 +251,44 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("programs", nargs="+", type=Path, help="the .bas files")
     ap.add_argument(
-        "--qb45",
-        type=Path,
-        default=os.environ.get("QB64RUST_QB45_ROOT") or DEFAULT_QB45,
-        help="QB 4.5's folder",
+        "--compiler",
+        choices=sorted(COMPILERS),
+        default=None,
+        help="the old compiler to run (default: pds71 when --pds71 is given, else qb45)",
     )
+    ap.add_argument("--qb45", type=Path, default=None, help="QB 4.5's folder")
+    ap.add_argument("--pds71", type=Path, default=None, help="PDS 7.1's folder")
     ap.add_argument("--dosbox", type=Path, default=None, help="DOSBox.exe")
     ap.add_argument("--timeout", type=int, default=TIMEOUT, help="seconds per program")
     ap.add_argument(
-        "--record", action="store_true", help="write <name>.qb45.txt beside each program"
+        "--record",
+        action="store_true",
+        help="write <name>.qb45.txt (or .pds71.txt) beside each program",
     )
     args = ap.parse_args(argv)
-    if args.qb45 is None or not (Path(args.qb45) / "BC.EXE").is_file():
-        msg = f"no QB 4.5 in {args.qb45}: give --qb45 or QB64RUST_QB45_ROOT, a folder with BC.EXE"
+    # A folder given for one compiler picks it, so that --pds71 alone never records a QB 4.5 run.
+    given = [name for name in COMPILERS if getattr(args, name) is not None]
+    if args.compiler is None:
+        if len(given) > 1:
+            options = " and ".join(f"--{name}" for name in given)
+            print(f"give only one of {options}, or --compiler", file=sys.stderr)
+            return 2
+        args.compiler = given[0] if given else "qb45"
+    if any(name != args.compiler for name in given):
+        others = ", ".join(f"--{name}" for name in given if name != args.compiler)
+        print(f"{others} does not go with --compiler {args.compiler}", file=sys.stderr)
+        return 2
+    compiler = COMPILERS[args.compiler]
+    root = Path(getattr(args, compiler.name) or os.environ.get(compiler.env) or compiler.default)
+    missing = [name for name in compiler.needs if not (root / name).is_file()]
+    if missing:
+        msg = (
+            f"no {compiler.label} in {root} ({', '.join(missing)} missing): give --{compiler.name}"
+            f" or {compiler.env}, a folder with {', '.join(compiler.needs)}"
+        )
         print(msg, file=sys.stderr)
         return 2
+    args.qb45 = root
     dosbox = args.dosbox or (DEFAULT_DOSBOX if DEFAULT_DOSBOX.is_file() else shutil.which("dosbox"))
     if dosbox is None or not Path(dosbox).is_file():
         print("no DOSBox: give --dosbox", file=sys.stderr)
@@ -244,7 +312,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{bas.name}: {warning}", file=sys.stderr)
         text = result.text
         if args.record:
-            bas.with_name(bas.stem + ".qb45.txt").write_text(text, encoding="utf-8", newline="\n")
+            record = bas.with_name(bas.stem + compiler.suffix)
+            record.write_text(text, encoding="utf-8", newline="\n")
             print(f"{bas.name}: recorded")
         else:
             print(f"== {bas.name}\n{text}", end="")

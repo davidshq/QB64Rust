@@ -184,6 +184,20 @@ class RealSteps(unittest.TestCase):
                 with self.subTest(step=step.name, glob=g):
                     self.assertTrue(check.matching((g,), self.files), f"{step.name}: {g} matches no file")
 
+    def test_the_two_tools_steps_run_every_tools_tests_once(self):
+        import tool_tests  # pylint: disable=import-outside-toplevel
+
+        everything = tool_tests.folders()
+        ran = []
+        for name in ("tools", "tools-check"):
+            command = steps.BY_NAME[name].command
+            only = [command[i + 1] for i, a in enumerate(command) if a == "--only"]
+            skip = [command[i + 1] for i, a in enumerate(command) if a == "--except"]
+            ran += [d.name for d in tool_tests.chosen(everything, only, skip)]
+        self.assertEqual(sorted(ran), [d.name for d in everything])
+        with self.assertRaises(SystemExit):
+            tool_tests.chosen(everything, ["no-such-folder"], [])
+
     def test_the_sandbox_step_takes_the_vm_scripts(self):
         # The family runs in the test VM: a change of its runner runs the step again.
         inputs = steps.BY_NAME["sandbox"].inputs
@@ -349,7 +363,21 @@ class Cost(unittest.TestCase):
 
     def test_the_tools_plan_their_tests_alone(self):
         self.repo.write("tools/check/check.py", "# changed\n")
+        self.assertEqual(self.repo.planned(), {"tools-check": None})
+
+    def test_another_tool_does_not_plan_checks_own_tests(self):
+        self.repo.write("tools/diagnostics/old_wording.py", "# changed\n")
         self.assertEqual(self.repo.planned(), {"tools": None})
+
+    def test_a_folder_check_reads_plans_both(self):
+        self.repo.write("tools/libqb/copy_libqb.py", "# changed\n")
+        got = self.repo.planned()
+        self.assertIn("tools", got)
+        self.assertIn("tools-check", got)
+
+    def test_the_runner_of_the_tools_tests_plans_both(self):
+        self.repo.write("tools/check/tool_tests.py", "# changed\n")
+        self.assertEqual(self.repo.planned(), {"tools": None, "tools-check": None})
 
 
 class Full(unittest.TestCase):
@@ -705,11 +733,13 @@ class Execute(unittest.TestCase):
             repo.pass_all()
             repo.write("tools/check/check.py", "# changed\n")
             plan = check.make_plan(repo.root, QUICK)
-            plan.run[0].step = steps.Step("tools", QUICK, (sys.executable, "-c", "pass"), plan.run[0].step.inputs)
+            name = plan.run[0].step.name
+            self.assertEqual(name, "tools-check")
+            plan.run[0].step = steps.Step(name, QUICK, (sys.executable, "-c", "pass"), plan.run[0].step.inputs)
             self.assertEqual(check.execute(repo.root, plan, False, "quick"), 0)
             self.assertEqual(check.main(["quick"], root=repo.root), 0)  # nothing to run: a line all the same
             first, second = check.read_history(repo.root)
-            self.assertEqual((first["what"], list(first["ran"]), first["ran"]["tools"][0]), ("quick", ["tools"], "pass"))
+            self.assertEqual((first["what"], list(first["ran"]), first["ran"][name][0]), ("quick", [name], "pass"))
             self.assertIn("fmt", first["standing"])
             self.assertEqual(second["ran"], {})
             self.assertEqual(check.history(repo.root, 14), 0)
@@ -914,7 +944,7 @@ class VmPlace(unittest.TestCase):
         plan = check.make_plan(self.repo.root, QUICK, where=check.VM)
         got = {p.step.name: p.where for p in plan.run}
         self.assertEqual(got.pop("slice"), check.VM)
-        self.assertTrue({"fmt", "build", "clippy", "nextest", "lists", "doc", "tools"} <= set(got))
+        self.assertTrue({"fmt", "build", "clippy", "nextest", "lists", "doc", "tools", "tools-check"} <= set(got))
         self.assertEqual(set(got.values()), {check.HOST})
 
     def test_the_clones_toolchain_on_the_host_is_one_line_of_the_report(self):
@@ -949,7 +979,7 @@ class VmPlace(unittest.TestCase):
             check.run_in_vm(p, self.repo.root, list(p.step.command), out, vm)
         vm.stop()
         job = json.loads((check.state(self.repo.root) / "vm" / "verification.json").read_text(encoding="utf-8"))
-        self.assertEqual(job["env"], {"QB64RUST_NO_BUILD_CACHE": "1"})
+        self.assertEqual(job["env"], {"QB64RUST_NO_BUILD_CACHE": "1", "QB64RUST_ALLOW_NETWORK": "1"})
         self.assertIn("--pass-cache", job["command"])
         self.assertEqual(job["outputs"], list(p.step.outputs))
         self.assertEqual(job["first"], list(steps.V37_LIBS))
@@ -1040,6 +1070,51 @@ class VmPlace(unittest.TestCase):
         self.assertEqual(fingerprint(), before)
         self.repo.write("tools/winvm/step.ps1", "2\n")
         self.assertNotEqual(fingerprint(), before)
+
+
+class GitBash(unittest.TestCase):
+    def setUp(self):
+        check.bash.cache_clear()
+        self.addCleanup(check.bash.cache_clear)
+
+    def found(self, files: list[str]) -> str | None:
+        """What bash() finds in a fake Git folder that holds `files`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            top = Path(tmp)
+            for rel in files:
+                (top / rel).parent.mkdir(parents=True, exist_ok=True)
+                (top / rel).write_bytes(b"")
+            exec_path = top / "mingw64" / "libexec" / "git-core"
+            git = subprocess.CompletedProcess([], 0, stdout=f"{exec_path}\n")
+            with mock.patch.object(check.os, "name", "nt"), mock.patch.object(check.subprocess, "run", return_value=git):
+                got = check.bash()
+            return None if got is None else Path(got).relative_to(top).as_posix()
+
+    def test_the_launcher_comes_first(self):
+        # bin/bash.exe puts Git's usr/bin on the PATH. usr/bin/bash.exe started from PowerShell finds no
+        # `basename` or `tr`, and tools/linux/copy.sh fails.
+        self.assertEqual(self.found(["bin/bash.exe", "usr/bin/bash.exe"]), "bin/bash.exe")
+
+    def test_usr_bin_when_there_is_no_launcher(self):
+        self.assertEqual(self.found(["usr/bin/bash.exe"]), "usr/bin/bash.exe")
+
+    def test_none_when_git_has_no_bash(self):
+        self.assertIsNone(self.found([]))
+
+
+class Background(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "the console flags are Windows'")
+    def test_the_background_run_has_a_hidden_console(self):
+        # With no console (DETACHED_PROCESS), each console program a step starts opened a window of its own.
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(check.subprocess, "Popen") as popen:
+            with contextlib.redirect_stdout(io.StringIO()):
+                check.to_background(Path(tmp), ["quick"])
+            # Close the log the call opened, so that the folder can be removed.
+            popen.call_args.kwargs["stdout"].close()
+        flags = popen.call_args.kwargs["creationflags"]
+        self.assertTrue(flags & subprocess.CREATE_NO_WINDOW)
+        self.assertFalse(flags & subprocess.DETACHED_PROCESS)
+        self.assertEqual(popen.call_args.args[0][-2:], ["quick", "--wait"])
 
 
 class Targets(unittest.TestCase):

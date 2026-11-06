@@ -25,31 +25,53 @@ class NamesFile(unittest.TestCase):
             self.assertTrue(old_wording.names_file(old), old)
 
 
-class PatternOf(unittest.TestCase):
-    def test_a_line_number_is_a_placeholder(self):
-        for number in ("10", "010&", "10.5", "30#", "12345678901234567890123456789012345678901"):
-            message = f"`{number}` is not a valid label"
-            self.assertEqual(old_wording.pattern_of(message), ("`{}` is not a valid label", [number]), number)
+# The pattern of a message (placeholders, numbers, keyword spans) is made by the compiler and tested there:
+# `crates\base\src\old_wording.rs`, tests `keys` and `the_word_list_is_a_parameter`.
 
-    def test_keywords_and_signs_stay(self):
-        self.assertEqual(old_wording.pattern_of("`STRING * 0` needs `<>`"), ("`STRING * 0` needs `<>`", []))
+
+class Template(unittest.TestCase):
+    def test_forms_in_the_compilers_order(self):
+        forms = [("=", "count"), ("U", "COUNT"), ("P", "count"), ("PU", "COUNT"), ("S", "count"), ("SU", "COUNT")]
+        text, marks = old_wording.template("Variable 'count' (LONG) not defined", [forms])
+        self.assertEqual(text, "Variable '\x000\x00' (LONG) not defined")
+        self.assertEqual(marks, [(1, ("=", "P", "S"))])
+        self.assertEqual(old_wording.merge([(text, marks)]), "Variable '{1:=|P|S}' (LONG) not defined")
+
+
+class Patterns(unittest.TestCase):
+    def test_a_message_that_spans_lines_is_refused(self):
+        # The compiler reads one message per line, so a message holding a line break would become two keys.
+        # The check comes before the compiler is started, so no compiler is needed here.
+        for message in ("first\nsecond", "first\rsecond"):
+            with self.assertRaisesRegex(ValueError, "spans lines"):
+                old_wording.patterns(["one line", message])
+
+    def test_no_messages_need_no_compiler(self):
+        self.assertEqual(old_wording.patterns([]), [])
+
+
+NO_KEYWORDS: frozenset[str] = frozenset()
 
 
 class OneProgram(unittest.TestCase):
     def test_a_number_the_pattern_does_not_carry(self):
         for old in ("Syntax error in line 4", "1st sub argument requires a number", "Value 1.5 out of range"):
-            self.assertTrue(old_wording.one_program(old, "a number is required here"), old)
+            self.assertTrue(old_wording.one_program(old, "a number is required here", NO_KEYWORDS), old)
 
     def test_a_name_the_pattern_does_not_carry(self):
-        self.assertTrue(old_wording.one_program("Cannot convert type (FOO)", "a value of `{}`"))
+        self.assertTrue(old_wording.one_program("Cannot convert type (FOO)", "a value of `{}`", NO_KEYWORDS))
+
+    def test_a_keyword_is_no_name_of_one_program(self):
+        self.assertFalse(old_wording.one_program("Cannot convert type (FOO)", "a value of `{}`", frozenset({"FOO"})))
 
     def test_an_ordinal_the_pattern_holds(self):
         old = "2nd sub argument requires a number"
-        self.assertFalse(old_wording.one_program(old, "a number is required for the 2nd argument"))
-        self.assertTrue(old_wording.one_program(old, "a number is required for the 3rd argument"))
+        self.assertFalse(old_wording.one_program(old, "a number is required for the 2nd argument", NO_KEYWORDS))
+        self.assertTrue(old_wording.one_program(old, "a number is required for the 3rd argument", NO_KEYWORDS))
 
     def test_placeholders_and_plain_text(self):
-        self.assertFalse(old_wording.one_program("Variable '{1}' ({2:U}) not defined", "variable `{}` is `{}`"))
+        old = "Variable '{1}' ({2:U}) not defined"
+        self.assertFalse(old_wording.one_program(old, "variable `{}` is `{}`", NO_KEYWORDS))
 
 
 if __name__ == "__main__":

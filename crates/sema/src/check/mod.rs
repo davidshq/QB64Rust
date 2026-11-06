@@ -68,6 +68,12 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool, fixes: F
         };
         let new: Vec<RedimLocal> = found.into_iter().filter(|r| !known(r)).collect();
         if new.is_empty() {
+            let mut diags = diags;
+            // The lints, once, on a program without errors (spec `compiler/lints`, design D1 of `lints`). The
+            // parser's errors are not in `diags`, so they are asked for too.
+            if !diags.has_errors() && !program.diagnostics().has_errors() {
+                crate::lints::run(&prog, program, map, program.main().file, &mut diags);
+            }
             return (prog, diags);
         }
         locals.extend(new);
@@ -1199,6 +1205,7 @@ impl<'a> Checker<'a> {
             let array = VarId(to_u32(self.prog.vars.len()));
             self.prog.vars.push(Var {
                 conventional: false,
+                implicit: false,
                 name: r.name.clone(),
                 ty: r.ty,
                 storage: Storage::Local(id),
@@ -1556,6 +1563,7 @@ impl Checker<'_> {
                 let name = show_bytes(&text[..decl::name_end(&text)].to_ascii_uppercase());
                 if let Some(p) = self.proc_as(&name, self.word(kw) == "SUB") {
                     self.stmt.names.push((SymbolKind::Proc(p), name_tok.span));
+                    self.prog.symbols.mark_declaring(name_tok.span);
                 }
             }
             Ok(())

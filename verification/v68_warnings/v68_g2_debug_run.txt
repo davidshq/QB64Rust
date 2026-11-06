@@ -1,0 +1,7 @@
+v68_g2_debug_run.bas:3: warning: $DEBUG features only work from the IDE
+v68_g2_debug_run.bas:6: warning: Feature incompatible with $DEBUG mode
+    RUN
+v68_g2_debug_run.bas:3: warning: $DEBUG features only work from the IDE
+v68_g2_debug_run.bas:6: warning: Feature incompatible with $DEBUG mode
+    RUN
+exit=0

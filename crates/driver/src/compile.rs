@@ -4,8 +4,8 @@
 //! `run()` prints as it comes.
 
 use crate::{
-    Frontend, Resolved, build, cpp_errors, dump_cpp, dump_debug_info, dump_ir, emit_ir_debug, emit_ir_with,
-    exe_icon_path, frontend_at, library, log_folder, lower, toolchain, used_embedded_files,
+    Frontend, Instrument, Resolved, build, cpp_errors, dump_cpp, dump_debug_info, dump_ir, emit_ir_debug, emit_ir_with,
+    exe_icon_path, frontend_explicit, library, log_folder, lower, toolchain, used_embedded_files,
 };
 use qb64rust_base::Platform;
 use qb64rust_base::fixes::Fixes;
@@ -36,9 +36,13 @@ pub struct CompileOptions {
     pub include_root: PathBuf,
     pub keep_build: bool,
     pub coverage: bool,
+    /// `--trace-values`: a record call at each store into a variable (OpenSpec change `value-trace`).
+    pub trace: bool,
     pub debug: bool,
     /// `-w`.
     pub warnings: bool,
+    /// `-e`: `OPTION _EXPLICIT` forced, as `qb64pe -e` does.
+    pub explicit: bool,
     /// `-f:<setting>=<value>` as given, checked by [`build_settings`].
     pub settings: Vec<String>,
     /// The program's fixes.
@@ -108,8 +112,9 @@ pub fn compile_exe(
     let exe = &o.exe;
     let include_root = &o.include_root;
     let remove_old = || remove_old(exe);
-    let mut fe = frontend_at(
+    let mut fe = frontend_explicit(
         Platform::host(),
+        o.explicit,
         name,
         bytes,
         loader,
@@ -143,6 +148,10 @@ pub fn compile_exe(
         }
     };
     let errors = fe.diagnostics.error_count();
+    let instrument = Instrument {
+        coverage: o.coverage,
+        trace: o.trace,
+    };
     // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
     let report = |fe: &Frontend, out: &mut dyn FnMut(&str)| {
         let errors = fe.diagnostics.error_count();
@@ -161,7 +170,7 @@ pub fn compile_exe(
             _ if errors > 0 => {}
             "typed" => out(&qb64rust_sema::dump_typed(&fe.program)),
             "ir" => out(&dump_ir(&fe)),
-            "cpp" => out(&dump_cpp(&fe, &resolved, o.coverage)),
+            "cpp" => out(&dump_cpp(&fe, &resolved, instrument)),
             "debug-info" => out(&dump_debug_info(&fe, &resolved)),
             _ => unreachable!(),
         }
@@ -192,11 +201,11 @@ pub fn compile_exe(
     let log_folder = std::env::current_dir().ok().map(|d| log_folder(&d));
     // A debug build's symbol file comes from the same emitter as its fragments (design D3 of `m5-debug-build-symbols`).
     let (fragments, debug_info) = if o.debug {
-        let (fragments, info) = emit_ir_debug(&fe, &ir, &resolved, o.coverage, log_folder.as_deref());
+        let (fragments, info) = emit_ir_debug(&fe, &ir, &resolved, instrument, log_folder.as_deref());
         (fragments, Some(info))
     } else {
         (
-            emit_ir_with(&fe, &ir, &resolved, o.coverage, log_folder.as_deref()),
+            emit_ir_with(&fe, &ir, &resolved, instrument, log_folder.as_deref()),
             None,
         )
     };

@@ -46,7 +46,13 @@ Small programs behind `study\09`, `study\10` and later measurements:
 - `v13*`: type suffixes on DIMmed names
 - `v14*`, `v15*`: procedures, scopes, reserved names, errors
 - `v16*`: comment metacommands, `DATA`, line numbers, blocks, templates, `$IF`, `$INCLUDE`, member access, with include files in `v16_inc\`
-- `v17*`: control flow, constants, operators
+- `v17*`: control flow, constants, operators. Added on 2026-11-05, after the World War 2 port:
+  `v17_d_gosub_left_in_sub` is a SUB that leaves its own `GOSUB` by `GOTO` and ends while the main module's
+  `GOSUB` is pending. The main module's `RETURN` then raises error 3 (`DIVERGENCES-QB45.md` Q-018).
+  `v17_d_err_on_local_error_sub` and `_main` are BASIC PDS 7.1's `ON LOCAL ERROR GOTO`, which QB64pe rejects
+  as "Name already in use (ERROR)" in a SUB and in the main module. `v17_d_on_error_sub_stays` shows why a port
+  of it needs `ON ERROR GOTO 0`: a handler set by `ON ERROR GOTO` in a SUB stays active after the SUB returns,
+  until a SUB turns it off.
 - `v18*`: arrays, `TYPE`, store rules per place
 - `v19*`: procedure names (`v19_proc_names.py` and its list), blanks around a dot, `OPTION _EXPLICIT` and runtime errors in included files, with include files in `v19_inc\`
 - `v20*`: core built-ins, `SELECT CASE`, `ON … GOTO/GOSUB`, `v20_x*` one rejection each
@@ -70,7 +76,7 @@ Small programs behind `study\09`, `study\10` and later measurements:
 - `v38*`: what types with `_DYNAMIC` member arrays copy after an error, measured before `m3-measured-copies`: `v38_a` a `GET` of a whole array whose read raised an error, `v38_b` `PUT` and `GET` with a member of other bounds or another number of dimensions, `v38_c` a whole-array copy of a member of another number of dimensions, `v38_d` a whole-array copy of arrays of such a type with other bounds
 - `v39*`: sound handles, measured before the code of `m3-sound-handles`: `v39_a` handles and their state (open, length, position, copy, play, pause, stop, loop, limit, a handle that is not open, a raw handle), `v39_b` `_SNDNEW` and `_MEMSOUND` (a new sound, one decoded from memory, the arguments refused), `v39_c` a WAV file the program writes, `_SNDPLAYFILE`, `_SNDPLAYCOPY`, raw sound, `_WAVE` and MIDI from memory (each builds its WAV and MIDI data in a string), `v39_x01` every accepted form as code that is not reached, `v39_x02`–`x72` one other form each (the arrays of `_WAVE` and `_SNDRAWBATCH` among them), `x73`–`x81` one form of `$MIDISOUNDFONT` each
 - `v40*`: `$VERSIONINFO`, measured before the proposal of `m3-versioninfo`: `v40_a`–`v40_l` accepted forms (every key, numeric keys alone and in order, letter case, quotes and blanks, a repeated key, with `$EXEICON`, the places of a line, the `$VERSIONINFOX` prefix), `v40_g*` special characters (those whose executable does not start among them), `v40_h*` numeric parts (those whose build fails among them), `v40_x01`–`x22` one rejected form each (`x20` accepted); each accepted program prints its own version resource with `v40_inc\show_version.ps1`. `v40_rc.py` records the files the old compiler writes for the resource compiler into `v40_rc\` (`icon.rc`, `manifest.h`, the manifest, and the console output of `-z -w`), which the runner does not
-- `v41*`: `_ARRAYCOPY`, measured before the proposal of `m3-arraycopy`: `v41_a` the four forms of one dimension, overlap and an array copied to itself, `v41_b` every element type, `v41_c` several dimensions, numbers and strings, `v41_d` member arrays of a plain `TYPE` and the order of their indexes, `v41_e` `_DYNAMIC` member arrays, `v41_f` the places of an array, `v41_g` the run-time errors, `v41_h` the order of evaluation and the rounding of bounds, `v41_x01`–`x76` one accepted or rejected form each; while the proposal was written: `v41_i` `_FLOAT` arrays, `v41_j` an index outside its bounds on the way to a member array, `v41_k` `STRING` member arrays of a plain `TYPE`; after the change's review: `v41_l` `_DYNAMIC` member arrays that a `REDIM` gave another number of dimensions
+- `v41*`: `_ARRAYCOPY`, measured before the proposal of `m3-arraycopy`: `v41_a` the four forms of one dimension, overlap and an array copied to itself, `v41_b` every element type, `v41_c` several dimensions, numbers and strings, `v41_d` member arrays of a plain `TYPE` and the order of their indexes, `v41_e` `_DYNAMIC` member arrays, `v41_f` the places of an array, `v41_g` the run-time errors, `v41_h` the order of evaluation and the rounding of bounds, `v41_x01`–`x76` one accepted or rejected form each; while the proposal was written: `v41_i` `_FLOAT` arrays, `v41_j` an index outside its bounds on the way to a member array, `v41_k` `STRING` member arrays of a plain `TYPE`; after the change's review: `v41_l` `_DYNAMIC` member arrays that a `REDIM` gave another number of dimensions; 2026-11-05: `v41_m` `_FLOAT` member arrays, whose elements lie 32 bytes apart (member to member is right; a copy between a member array and an array variable moves every other value)
 - `v42*`: event trapping, measured as the first task of `m3-events`: `v42_a` timer 0 (off, on, `STOP`, `OFF`, during `_DELAY` and a loop, a slow handler), `v42_b` numbered timers, `_FREETIMER`, `FREE` and the run-time errors, `v42_c` SUB handlers and their argument, a handler set up in a SUB, `v42_d` `KEY` in a console program (its own forms, the switches, the errors, a float key number), `v42_e` when an event is serviced (`SLEEP`, a SUB, a FUNCTION, an error handler), `v42_f` an event that comes during an error handler, `v42_x01`–`x60` one accepted or rejected form each
 - `v43*`: `CHR$` in a `CONST` and the error functions, measured before the proposal of `m3-errorline-chr-const`: `v43_a` `_ERRORLINE`, `_INCLERRORLINE`, `_INCLERRORFILE$` and `_ERRORMESSAGE$` in the main file, `v43_b` in included files (`v43_inc\`), `v43_c` the accepted forms of `CHR$` in a `CONST`, `v43_d` lines joined by a continuation, `v43_e` the message of an untrapped error on one, `v43_x01`–`x28` one form of `CHR$` in a `CONST` each, `x29`–`x44` one form of the error functions each, `x45`, `x46` a FUNCTION in a single-line `IF`'s condition, on one line and continued
 - `v44*`: `$EMBED`, `_EMBEDDED$`, the network functions and `afterlastline.bm`, measured before the proposal of `m3-network-embed`: `v44_a` the accepted forms of `$EMBED` and `_EMBEDDED$` (every byte value, an empty file, 300,000 bytes, blanks, `.\`, `..`), `v44_b` the network functions where nothing listens, `v44_c` `_SOCKETS_` from `_OPENCLIENT` in a SUB never called, `v44_d` `_ENCODEURL$` and `_DECODEURL$`, `v44_e` (with the change's task 1.2) a TCP/IP exchange over the loopback address on port 47391 (it listens: Windows may ask once whether it may), `v44_x01`–`x68` one accepted or rejected form each (`x66` not used; `x59` ends with an access violation; `x69`–`x71`: by the review of the change, a file as `./` and as `.\`, another separator after `./`, a string for a number parameter of a user FUNCTION); the files they embed in `v44_files\` (byte for byte, `.gitattributes`), an included file in `v44_inc\`
@@ -503,6 +509,25 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `LONG` and parentheses give copies. `d_alias`: the parameter is the variable itself, also a SHARED one, from a
   SUB, a FUNCTION and a `DECLARE`d SUB. `e_wide`: 33 and 40 bits. `f_element_paren`: an element in parentheses
   is a copy
+- `v68*`: the warnings of `qb64pe -w` (2026-11-06, OpenSpec change `lints`, task 5.1). Besides the usual
+  recordings, `v68_warnings.py` records `qb64pe -z -w -q` for each program into `v68_warnings\<name>.txt`, which
+  the CLI test `qbpe_warnings_as_recorded` compares with `qb64rust -w -z`. "Unused variable" (`a_unused`,
+  `a2_types`, `a3_more`, `a4_params`, `b_shared`, `c_input`, `d_include`): given for a variable made by `DIM`,
+  `DIM SHARED`, `REDIM`, `STATIC` or a parameter that is never named again. An assignment counts as a name
+  (`a3` `setonly`). A parameter is reported also after a `DECLARE`, with a suffix or an `AS` clause, and in a body
+  of comments only (`a4`). It is also given for a FUNCTION's result the FUNCTION never assigns, at its header; never for a variable made by its first use (read
+  once, set once, a `FOR` counter, an `INPUT` target, an array used without `DIM`), nor for `COMMON`, `COMMON
+  SHARED` or one a `SHARED` statement made. The detail is the name as declared with QB64pe's suffix for its type
+  (`~&`, `$5`, `` `3 ``, `%&`, none for a `TYPE` and `_MEM`) and `()` for an array, padded to the longest name
+  reported plus one, two blanks, then the type's name (a `TYPE` as its `TYPE` line writes it). In an included file
+  the warning names that file and its line (`d_include`). QB64pe prints these after all other warnings. "Empty
+  SELECT CASE block" (`e1`): at the `END SELECT` of a `SELECT` with no `CASE`; a statement before the first
+  `CASE` is the error "Expected CASE expression" (`e2`, `e3`). "Duplicate constant definition" (`f1`): a `CONST`
+  repeated with the same value, the detail `name = value` with the name as written without its suffix and the
+  value evaluated (`e = 6` for `2 + 4`), a string as `"x",1`; another value is "Name already in use" (`f2`).
+  "Feature incompatible with $DEBUG mode" (`g1`, `g2`): `CHAIN` and `RUN` in a program with `$DEBUG`, also
+  outside the IDE, with the detail `CHAIN` or `RUN`. In `f1`, `g1` and `g2` QB64pe compiles the program twice and
+  prints each warning of the pass twice
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

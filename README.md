@@ -8,6 +8,25 @@ be installed.
 The goal: a QB64 programmer installs one thing on Windows, Linux or macOS and gets an editor, a compiler and a
 debugger ([ROADMAP.md](docs/ROADMAP.md)).
 
+## Features
+
+- **Compiler** for the QB64pe 4.7.0 dialect, with QB64pe's command-line options
+  ([MANUAL.md](docs/MANUAL.md#options)).
+- **VS Code extension** that checks, builds and runs programs ([vscode/README.md](vscode/README.md)).
+- **Language server**: errors as you type, outline, go to definition, rename and completion
+  ([vscode/README.md](vscode/README.md#language-server-qb64rust)).
+- **Formatter** that lays code out as QB64pe's IDE does, in VS Code or with `qb64rust -y`
+  ([vscode/README.md](vscode/README.md#formatting)).
+- **Debugger** by BASIC line: breakpoints, stepping, variables and the call stack
+  ([vscode/README.md](vscode/README.md#debugging)).
+- **Unit tests written in BASIC**, run by `qb64rust test` or VS Code's Test Explorer
+  ([MANUAL.md](docs/MANUAL.md#testing-your-code), [vscode/README.md](vscode/README.md#tests)).
+- **Coverage builds** with `qb64rust --coverage`, which count how often each statement runs
+  ([MANUAL.md](docs/MANUAL.md#measuring-which-lines-run)).
+- **C++ toolchain download** on the first build, or with `qb64rust toolchain install`.
+- **Lists of every deliberate difference** from QB64pe ([QB64PE-DIVERGENCES.md](docs/QB64PE-DIVERGENCES.md)) and
+  from QuickBASIC 4.5 ([DIVERGENCES-QB45.md](docs/DIVERGENCES-QB45.md)).
+
 ## Status
 
 - **Windows x64 only for now.** Linux, then macOS, are planned (milestones M7 and M8 in [ROADMAP.md](docs/ROADMAP.md)).

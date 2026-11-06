@@ -7,7 +7,7 @@
 //! procedure's constant is visible in that procedure from its line on, and may reuse the name of a main constant
 //! or variable. A parameter with a main constant's name hides the constant.
 
-use super::{Checker, R};
+use super::{Checker, R, decl};
 use crate::consteval::{self, FloatTy, Problem, Value};
 use crate::literal::{self, NumLit};
 use crate::{BinOp, Const, ConstId, Expr, ExprKind, Storage, SymbolKind, Ty, UnOp};
@@ -70,6 +70,16 @@ impl Checker<'_> {
                 if c.ty != ty || c.value != value {
                     return Err(self.in_use(name_tok));
                 }
+                // The old compiler's warning, with the name as written without its suffix and the value as it
+                // shows it (`qb64pe.bas` 2662–2679; measured, `verification\v68_f1_const_same`).
+                let text = self.name_text(name_tok);
+                let written = show_bytes(&text[..decl::name_end(&text)]);
+                let msg = format!(
+                    "Duplicate constant definition\n    {written} = {}",
+                    crate::lints::const_value_text(c.ty, &c.value)
+                );
+                let code = crate::lints::DUPLICATE_CONST;
+                self.prog.qb64pe_warnings.push((name_tok.span, code, msg));
                 self.stmt.names.push((SymbolKind::Const(id), name_tok.span));
                 continue;
             }

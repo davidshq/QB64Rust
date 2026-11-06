@@ -15,6 +15,7 @@ events_errors.bas:14:13: note: QB64pe: Expected GOSUB/sub
 events_errors.bas:16:13: error: the SUB `needsarg` needs its argument after its name
 events_errors.bas:16:13: note: QB64pe: Expected argument after SUB
 events_errors.bas:17:22: error: the SUB `noparams` has no parameter
+events_errors.bas:17:22: note: QB64pe: SUB has no arguments
 events_errors.bas:18:13: error: the parameter of the SUB `floatparam` of an event handler must be an integer
 events_errors.bas:18:13: note: QB64pe: Only SUB arguments of integer-type allowed
 events_errors.bas:19:13: error: the parameter of the SUB `arrayparam` of an event handler must be an integer

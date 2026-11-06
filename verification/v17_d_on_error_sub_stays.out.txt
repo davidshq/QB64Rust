@@ -1,0 +1,11 @@
+in s
+back in main
+handler 5 
+after ERROR 5 in main
+handler 7 
+in t, after ERROR 7
+back in main again
+
+Runtime error: Line: 12 (in main module)
+Overflow
+exit=0

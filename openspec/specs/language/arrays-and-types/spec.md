@@ -1432,8 +1432,14 @@ written, so the two may overlap or be one array. `STRING` elements SHALL be the 
 Both sides SHALL have one element type: a number type, `_OFFSET`, `_UNSIGNED _OFFSET`, `STRING * n` of one length
 or `STRING`. Each side SHALL be an array variable of any place (SHARED, local, STATIC, a parameter, COMMON,
 `$DYNAMIC`, used without `DIM`) or a member array, through any chain of members and elements, `_DYNAMIC` members
-included. A `_FLOAT` array SHALL be copied element by element (the old compiler copies the wrong elements,
-`QB64PE-DIVERGENCES.md` D-025).
+included. A `_FLOAT` array variable SHALL be copied to a `_FLOAT` array variable element by element (the old
+compiler copies the wrong elements, `QB64PE-DIVERGENCES.md` D-025). A copy with a `_FLOAT` member array on either
+side SHALL be made as the old compiler makes it (`verification\v41_m`).
+
+#### Scenario: _FLOAT member arrays
+- **WHEN** `_ARRAYCOPY r2.v() TO r.v()` runs for two member arrays `v(3) AS _FLOAT`, `r2.v()` holding 1.5, 2.5,
+  3.5 and 4.5
+- **THEN** `r.v()` holds 1.5, 2.5, 3.5 and 4.5
 
 #### Scenario: Every type
 - **WHEN** a range of two elements is copied to a start for arrays of each number type, `_OFFSET`, `STRING * 3`

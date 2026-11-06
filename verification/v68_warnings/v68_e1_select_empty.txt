@@ -1,0 +1,2 @@
+v68_e1_select_empty.bas:5: warning: Empty SELECT CASE block
+exit=0

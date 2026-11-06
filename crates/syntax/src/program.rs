@@ -1,7 +1,7 @@
 //! A whole program as parsed: one tree per file at each place it is included (design D9). The parser does no I/O;
 //! included files come through a [`Loader`].
 
-use crate::pp::{MAX_ROUNDS, PpFlags, PpState, Round, settle};
+use crate::pp::{Feature, FeatureStates, MAX_ROUNDS, PpFlags, PpState, Round, settle_from};
 use crate::tree::{GreenNode, Node, TreeId};
 use qb64rust_base::{Diagnostic, Diagnostics, FileId, Platform, SourceMap, Span};
 use std::collections::{HashMap, HashSet};
@@ -381,11 +381,25 @@ pub fn parse_settled_on(
     main: FileId,
     loader: &mut dyn Loader,
 ) -> ParsedProgram {
+    parse_settled_explicit(platform, false, map, main, loader)
+}
+
+/// [`parse_settled_on`], with `OPTION _EXPLICIT` forced when `explicit` (`qb64pe -e`): every round reads
+/// `_EXPLICIT_` and `_EXPLICITARRAY_` as set, and the program is checked as if it began with `OPTION _EXPLICIT`
+/// (measured with `qb64pe.exe -e`, 2026-11-04, the included files too).
+pub fn parse_settled_explicit(
+    platform: Platform,
+    explicit: bool,
+    map: &mut SourceMap,
+    main: FileId,
+    loader: &mut dyn Loader,
+) -> ParsedProgram {
     let mut auto = None;
     let mut color_file = None;
     let mut after_main_file = None;
     let mut libraries = Vec::new();
-    match settle(MAX_ROUNDS, |flags| {
+    let forced: &[(Feature, u8)] = if explicit { &[(Feature::Explicit, 1)] } else { &[] };
+    match settle_from(FeatureStates::forcing(forced), MAX_ROUNDS, |flags| {
         parse_round(
             map,
             main,

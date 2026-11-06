@@ -3,59 +3,64 @@
 //! `qb64rust [-x] [-q] [-m] [-w] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>]
 //! [--dump tokens|tree|typed|ir|cpp|debug-info]
 //! [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build]
-//! [--coverage] [--debug] [--fixes on|off] [--fix <name>=on|off]...`
+//! [--coverage] [--trace-values] [--debug] [--fixes on|off] [--fix <name>=on|off]...`
 //!
 //! `qb64rust --list-fixes`: the fixes, one per line (spec `compiler/fixes`, `fixes.rs`).
 //!
 //! `qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]`: the
 //! file laid out as `qb64pe -y` lays it out (spec `compiler/format`).
 //!
-//! `qb64rust --report unsupported <file or folder>... [--include-root <dir>]`: what a set of programs still needs
-//! (`report.rs`).
+//! `qb64rust --report unsupported|warnings <file or folder>... [--include-root <dir>]`: what a set of programs still
+//! needs, or its lint warnings counted by code (`report.rs`).
 //!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 //!
 //! `qb64rust dap [--toolchain-root <dir>] [--qb64pe-root <dir>]`: the debug adapter (crate `qb64rust-dap`).
 //!
-//! `qb64rust toolchain install` and `qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]`: the
-//! C++ toolchain (`toolchain.rs`, spec `compiler/toolchain`).
+//! `qb64rust toolchain install [--from-zip <zip>]` and `qb64rust toolchain path [--toolchain-root <dir>]
+//! [--qb64pe-root <dir>]`: the C++ toolchain (`toolchain.rs`, spec `compiler/toolchain`).
+//!
+//! `qb64rust --old-wording-words` and `qb64rust --old-wording-keys`: for `tools\diagnostics\old_wording.py` only,
+//! not in the usage (spec `compiler/cli`, "Old-wording table tooling").
 
 use qb64rust_base::Platform;
 use qb64rust_base::fixes::{FIXES, Fixes};
 use qb64rust_base::layout::Settings;
 use qb64rust_driver::fixes::CliFix;
-use qb64rust_driver::{FileLoader, compile, fixes, frontend_at, report, toolchain};
+use qb64rust_driver::{FileLoader, compile, fixes, frontend_explicit, report, toolchain};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Mutex;
 
-const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
+const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-e] [-p] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp|debug-info] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] \
-[--include-root <dir>] [--keep-build] [--coverage] [--debug] [--fixes on|off] [--fix <name>=on|off]...\n\
+[--include-root <dir>] [--keep-build] [--coverage] [--trace-values] [--debug] [--fixes on|off] \
+[--fix <name>=on|off]...\n\
        qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]\n\
        qb64rust --list-fixes    (the fixes --fix and qb64rust.toml name)\n\
-       qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
+       qb64rust --report unsupported|warnings <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)\n\
        qb64rust dap [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the debug adapter, over stdin and stdout)\n\
-       qb64rust toolchain install    (downloads and installs the C++ toolchain; on Linux names the packages)\n\
+       qb64rust toolchain install [--from-zip <zip>]    (downloads and installs the C++ toolchain, or installs \
+it from the release's zip; on Linux names the packages)\n\
        qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)\n\
        qb64rust test [<file or folder>...] [--list] [--filter <text>]... [--jobs <n>] [--timeout <seconds>] \
 [--format text|json] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
-[--fixes on|off] [--fix <name>=on|off]...    (runs the test SUBs of *_test.bas files)\n\
+[--fixes on|off] [--fix <name>=on|off]... [--coverage]    (runs the test SUBs of *_test.bas files)\n\
        qb64rust --version | --help";
 
 /// The usage of `qb64rust toolchain` (spec `compiler/cli`, "Toolchain subcommand").
-const TOOLCHAIN_USAGE: &str = "usage: qb64rust toolchain install    (downloads and installs the C++ toolchain; on \
-Linux names the packages)\n\
+const TOOLCHAIN_USAGE: &str = "usage: qb64rust toolchain install [--from-zip <zip>]    (downloads and installs the \
+C++ toolchain, or installs it from the release's zip; on Linux names the packages)\n\
        qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)";
 
 #[derive(Default)]
 struct Options {
     /// One file to compile; with `--report`, any number of files and folders.
     inputs: Vec<PathBuf>,
-    /// `--report unsupported`.
-    report: bool,
+    /// `--report unsupported` or `--report warnings`: the report asked for.
+    report: Option<String>,
     /// `-y`: lay the file out instead of compiling it (spec `compiler/format`).
     format: bool,
     output: Option<PathBuf>,
@@ -76,11 +81,19 @@ struct Options {
     /// `--coverage`: a counter at each statement, written at exit to the file `QB64RUST_COVERAGE` names (design D1
     /// of `cws-whole-game`). The fragments differ, so the build cache's key does too.
     coverage: bool,
+    /// `--trace-values`: a record call at each store into a variable; at exit the values are written to the file
+    /// `QB64RUST_TRACE` names (OpenSpec change `value-trace`). The fragments differ, so the build cache's key does
+    /// too.
+    trace: bool,
     /// `--debug`: a build for a debugger (design D1 of `m5-debug-build-symbols`): `-g`, unstripped, never optimised,
     /// and the debug symbol file beside the executable.
     debug: bool,
     /// `-w`: print the warnings too (spec `compiler/cli`).
     warnings: bool,
+    /// `-e`: `OPTION _EXPLICIT` forced, as `qb64pe -e` does (spec `compiler/cli`).
+    explicit: bool,
+    /// `-p`: the libqb objects removed first, as `qb64pe -p` does (spec `compiler/cli`).
+    purge: bool,
     /// `-f:<setting>=<value>` as given, checked by [`compile::build_settings`].
     settings: Vec<String>,
     /// `--fixes` and `--fix`, in the order given (spec `compiler/fixes`).
@@ -110,9 +123,19 @@ fn parse_args() -> Result<Options, String> {
         let mut value = |what: &str| args.next().ok_or_else(|| format!("{what} needs a value"));
         match s.as_str() {
             // Accepted for the corpus runner and the M1 extension: -x (compile only, no IDE) and -m (plain
-            // output) change nothing here.
-            "-x" | "-m" => {}
+            // output) change nothing here. -c is qb64pe's compile in its own window; with no IDE it is -x.
+            "-x" | "-c" | "-m" => {}
+            // qb64pe's -s shows or changes a stored setting of the IDE (-s, -s:<setting>[=<value>]). There is no
+            // store here: a setting is given for each build.
+            _ if s == "-s" || s.starts_with("-s:") => {
+                return Err(format!(
+                    "`{s}` is not supported: there are no stored settings; give a setting for this build with \
+                     `-f:<setting>=<value>`"
+                ));
+            }
             "-w" => o.warnings = true,
+            "-e" => o.explicit = true,
+            "-p" => o.purge = true,
             "-q" => o.quiet = true,
             "-z" => o.cpp_only = true,
             "--print-build-inputs" => {
@@ -134,6 +157,7 @@ fn parse_args() -> Result<Options, String> {
             "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--keep-build" => o.keep_build = true,
             "--coverage" => o.coverage = true,
+            "--trace-values" => o.trace = true,
             "--debug" => o.debug = true,
             "--fixes" => {
                 let v = value("--fixes")?.to_string_lossy().to_string();
@@ -145,17 +169,17 @@ fn parse_args() -> Result<Options, String> {
             }
             "--report" => {
                 let r = value("--report")?.to_string_lossy().to_string();
-                if r != "unsupported" {
+                if r != "unsupported" && r != "warnings" {
                     return Err(format!("unknown --report `{r}`"));
                 }
-                o.report = true;
+                o.report = Some(r);
             }
             _ if s.starts_with("-f:") => o.settings.push(s["-f:".len()..].to_string()),
             _ if s.starts_with('-') => return Err(format!("unknown option `{s}`")),
             _ => o.inputs.push(PathBuf::from(a)),
         }
     }
-    if o.inputs.len() > 1 && !o.report {
+    if o.inputs.len() > 1 && o.report.is_none() {
         return Err("more than one input file".into());
     }
     Ok(o)
@@ -255,6 +279,22 @@ fn main() -> ExitCode {
         }
         return ExitCode::SUCCESS;
     }
+    // `--old-wording-words`, `--old-wording-keys`: the only argument, for the old-wording table's script.
+    if let Some(word) = args
+        .first()
+        .and_then(|a| a.to_str())
+        .filter(|a| matches!(*a, "--old-wording-words" | "--old-wording-keys"))
+    {
+        if args.len() > 1 {
+            eprintln!("qb64rust: `{word}` takes no other argument");
+            return ExitCode::FAILURE;
+        }
+        return if word == "--old-wording-words" {
+            old_wording_words()
+        } else {
+            old_wording_keys()
+        };
+    }
     install_panic_hook();
     match qb64rust_driver::with_stack(run) {
         Ok(code) => code,
@@ -263,6 +303,60 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// The words a backtick span of a message may hold and stay in its key: the parser's reserved words and the
+/// built-in table's names, in capitals, sorted. `old_wording_words.txt` is this list, written by the script.
+fn old_wording_word_set() -> std::collections::BTreeSet<String> {
+    let mut words: std::collections::BTreeSet<String> =
+        qb64rust_syntax::keywords().iter().map(|w| (*w).to_string()).collect();
+    words.extend(qb64rust_builtins::BUILTINS.iter().map(|b| b.name.to_ascii_uppercase()));
+    words
+}
+
+/// `--old-wording-words`: the word list, one word per line.
+fn old_wording_words() -> ExitCode {
+    let mut out = std::io::stdout().lock();
+    for word in old_wording_word_set() {
+        if writeln!(out, "{word}").is_err() {
+            return ExitCode::FAILURE;
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+/// `--old-wording-keys`: for each line of stdin (a message of this compiler), one JSON line on stdout:
+/// `{"key": <its key>, "values": [<per placeholder, [code, text] for each form of OLD_WORDING_CODES, in order>]}`.
+/// The key is made with the word list of [`old_wording_word_set`], the list the script writes for the compiler.
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the compiler's own messages, UTF-8, not BASIC source"
+)]
+fn old_wording_keys() -> ExitCode {
+    use std::io::BufRead as _;
+    let words = old_wording_word_set();
+    let is_word = |w: &str| words.contains(w);
+    let mut out = std::io::stdout().lock();
+    for line in std::io::stdin().lock().lines() {
+        let Ok(message) = line else {
+            return ExitCode::FAILURE;
+        };
+        let (key, values) = qb64rust_base::old_wording_key(message.trim_end_matches('\r'), &is_word);
+        let values: Vec<Vec<(&str, String)>> = values
+            .iter()
+            .map(|v| {
+                qb64rust_base::OLD_WORDING_CODES
+                    .into_iter()
+                    .zip(qb64rust_base::old_wording_forms(v))
+                    .collect()
+            })
+            .collect();
+        let json = serde_json::json!({ "key": key, "values": values });
+        if writeln!(out, "{json}").is_err() {
+            return ExitCode::FAILURE;
+        }
+    }
+    ExitCode::SUCCESS
 }
 
 /// The language server over stdin and stdout (spec `editor/language-server`). Stdout carries the protocol, so the
@@ -328,6 +422,15 @@ fn toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
             Ok(_) => ExitCode::SUCCESS,
             Err(msg) => fail(&msg),
         },
+        Some("install") if args.len() == 3 && args[1] == "--from-zip" => {
+            if Platform::host() == Platform::Linux {
+                return fail("--from-zip is for Windows: on Linux the system toolchain is used, nothing is installed");
+            }
+            match toolchain::install_zip(Path::new(&args[2])) {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(msg) => fail(&msg),
+            }
+        }
         Some("path") => {
             let Some((root, qb64pe)) = toolchain_options(&args[1..]) else {
                 return fail(TOOLCHAIN_USAGE);
@@ -412,6 +515,7 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
             "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--fixes" => o.fixes.push(fixes::parse_fixes_option(&value("--fixes")?)?),
             "--fix" => o.fixes.push(fixes::parse_fix_option(&value("--fix")?)?),
+            "--coverage" => o.coverage = true,
             _ if s.starts_with('-') => return Err(format!("`test` does not take `{s}`")),
             _ => paths.push(PathBuf::from(a)),
         }
@@ -487,6 +591,10 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
         toolchain_root: o.toolchain_root.clone(),
         libqb_root: o.libqb_root.clone(),
         fixes: o.fixes.clone(),
+        coverage: o.coverage,
+        coverage_file: std::env::var_os(run::COVERAGE_ENV)
+            .filter(|v| !v.is_empty())
+            .map(|v| std::path::absolute(PathBuf::from(&v)).unwrap_or_else(|_| PathBuf::from(v))),
     };
     let mut counts = out::Counts::default();
     let mut failures = Vec::new();
@@ -532,11 +640,17 @@ fn include_root(o: &Options) -> Result<PathBuf, String> {
     }
 }
 
-/// `--report unsupported`: the table of `report.rs` for the files and folders given, with the error cap lifted so
-/// that a large program counts in full. The exit status is 0 whatever the programs hold: the report is no verdict.
-fn report_unsupported(o: &Options) -> Result<ExitCode, String> {
+/// `--report unsupported` or `--report warnings`: the table of `report.rs` for the files and folders given, with the
+/// error cap lifted so that a large program counts in full. The exit status is 0 whatever the programs hold: the
+/// report is no verdict.
+fn run_report(o: &Options) -> Result<ExitCode, String> {
     qb64rust_base::lift_error_cap();
-    print!("{}", report::unsupported(&o.inputs, &include_root(o)?)?);
+    let root = include_root(o)?;
+    let text = match o.report.as_deref() {
+        Some("warnings") => report::warnings(&o.inputs, &root)?,
+        _ => report::unsupported(&o.inputs, &root)?,
+    };
+    print!("{text}");
     Ok(ExitCode::SUCCESS)
 }
 
@@ -570,8 +684,10 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
         Ok(f) => f,
         Err(code) => return Ok(code),
     };
-    let fe = frontend_at(
+    // `-e` holds here too: `qb64pe -y -e` rejects a variable not declared (measured, 2026-11-04).
+    let fe = frontend_explicit(
         Platform::host(),
+        o.explicit,
         name,
         bytes,
         |file| Box::new(FileLoader::new(&include_root, file, input)),
@@ -595,13 +711,25 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
 
 fn run() -> Result<ExitCode, String> {
     let o = parse_args().map_err(|e| format!("{e}\n{USAGE}"))?;
+    if o.purge {
+        // As `qb64pe -p`, which runs libqb's `make clean` and then goes on with the rest of its command line; alone it
+        // opens the IDE there, and ends here.
+        let libqb = qb64rust_driver::build::find_libqb(o.libqb_root.as_deref())?;
+        qb64rust_driver::build::purge_objects(&libqb)?;
+        if !o.quiet {
+            println!("removed the built libqb objects of {}", libqb.display());
+        }
+        if o.inputs.is_empty() {
+            return Ok(ExitCode::SUCCESS);
+        }
+    }
     let input = o
         .inputs
         .first()
         .cloned()
         .ok_or_else(|| format!("no input file\n{USAGE}"))?;
-    if o.report {
-        return report_unsupported(&o);
+    if o.report.is_some() {
+        return run_report(&o);
     }
     let bytes = std::fs::read(&input).map_err(|e| format!("cannot read {}: {e}", input.display()))?;
     if bytes.len() > qb64rust_base::MAX_SOURCE_LEN {
@@ -656,8 +784,10 @@ fn run() -> Result<ExitCode, String> {
         include_root: include_root.clone(),
         keep_build: o.keep_build,
         coverage: o.coverage,
+        trace: o.trace,
         debug: o.debug,
         warnings: o.warnings,
+        explicit: o.explicit,
         settings: o.settings.clone(),
         fixes,
     };

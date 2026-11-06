@@ -632,6 +632,15 @@ impl<'a> Checker<'a> {
                        `RUN` from the main module";
             return Err(self.error(super::first_token_span(node), msg));
         }
+        // The old compiler's warning for `RUN` in a program with `$DEBUG`, also outside the IDE (`qb64pe.bas` 9764;
+        // measured, `verification\v68_g2_debug_run`). `$DEBUG` anywhere counts: the parser settles the flag.
+        if self.program.flags.get(qb64rust_syntax::pp::Feature::Debug) != 0 {
+            let msg = "Feature incompatible with $DEBUG mode\n    RUN".to_string();
+            let code = crate::lints::DEBUG_INCOMPATIBLE;
+            self.prog
+                .qb64pe_warnings
+                .push((super::first_token_span(node), code, msg));
+        }
         // A name that means a string is a file name, as the old compiler types the element before it takes it for a
         // label: by its suffix, a string `CONST` of the name, or the type a variable of the name has here (a
         // `DIM … AS STRING`, or `DEFSTR` for its first letter, assigned or not) (`v57_r16`, `r20`–`r24`).

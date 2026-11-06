@@ -31,6 +31,10 @@ download as well.
    you run this command. Run it again at any time: when the toolchain is already there, it does nothing.
    `qb64rust toolchain path` shows the toolchain a build would use.
 
+   If the download fails on this machine, download the same zip on another one and copy it over. Then run
+   `qb64rust toolchain install --from-zip <zip>`, which checks it against the same checksum and unpacks it in the
+   same way. The error message of a failed download names the zip's address.
+
 If you already have a toolchain folder you want to use instead, give it to each build with
 `--toolchain-root <dir>`, or set the environment variable `QB64RUST_TOOLCHAIN_ROOT`.
 
@@ -92,19 +96,69 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | Option | What it does |
 |---|---|
 | `-o <file>` | The executable to write |
-| `-x` | Accepted for QB64pe's command line; a build is always to an executable |
-| `-w` | Print warnings too |
+| `-x` | Accepted for QB64pe's command line; a build is always to an executable. `-c` is the same |
+| `-e` | Build as if the program began with `OPTION _EXPLICIT`, its `$INCLUDE` files too |
+| `-p` | Remove libqb's built objects first, so that the next build makes them again; alone, it does only that |
+| `-w` | Print warnings too, the warnings about likely mistakes among them; see [Warnings about likely mistakes](#warnings-about-likely-mistakes) |
 | `-q` | Print less while building |
 | `-z` | Check the program and write its C++ without building an executable |
 | `-y` | Lay the file out as QB64pe's IDE does; give the result with `-o <out.bas>` |
 | `-f:<setting>=<value>` | A QB64pe compiler setting, such as `-f:OptimizeCppProgram=true`, `-f:StripDebugSymbols=false`, `-f:ExtraLinkerFlags=<flags>` or `-f:GenerateLicenseFile=true`; with `-y`, a layout setting such as `-f:AutoIndentSize=2` |
 | `--debug` | A build for a debugger: with debug information, never optimised |
+| `--coverage` | A build that counts how often each statement runs; see [Measuring which lines run](#measuring-which-lines-run) |
+| `--trace-values` | A build that records the values each variable takes; see [Recording the values of variables](#recording-the-values-of-variables) |
 | `--include-root <dir>` | Where `$INCLUDE` files and `DECLARE LIBRARY` headers are looked for after the program's own folder (by default the folder of `qb64rust.exe`, as QB64pe looks in its own folder) |
 | `--toolchain-root <dir>` | The C++ toolchain to use instead of the installed one |
 | `--libqb-root <dir>` | Another copy of libqb, for example one in a folder you can write to |
 | `--version` | Print the compiler's version |
 
 A program that uses `$INCLUDE` libraries meant to sit beside `qb64pe.exe` finds them beside `qb64rust.exe`.
+
+## Warnings about likely mistakes
+
+Some code compiles but is probably a mistake. The compiler warns about it. With `-w` the warnings are printed
+with the others, and in the editor they show as warnings, with the warning's name beside the message. They never
+stop a build and never change the program.
+
+| Name | What it warns about | Example |
+|---|---|---|
+| `used-once` | A variable that no `DIM` or other declaration made, and whose name occurs only once in the whole program. It is often a misspelling | `total = 5` then `PRINT totl`: `` `totl` is used only once: is it misspelled? `` |
+| `unused-procedure` | A SUB or FUNCTION that nothing calls. A `DECLARE` line is not a call | ``SUB `Spare` is never called`` |
+| `unused-label` | A named label that no `GOTO`, `GOSUB`, `RESTORE`, `RESUME`, `ON ERROR` or event names. Line numbers are never reported | ``label `again` is never used`` |
+| `hides-shared` | A `DIM` or `REDIM` in a SUB or FUNCTION that makes a new local variable with the name and type of a `DIM SHARED` one | ``this `score` is a new local variable, which hides the `DIM SHARED` one of the main module`` |
+| `unreachable` | Statements after `GOTO`, `END`, `SYSTEM`, `STOP`, `EXIT`, `RETURN`, `RESUME` or `RUN`, with no label or line number before them. One warning for each such stretch | `this code is never run: no label follows the GOTO on line 8` |
+
+Some cases are left out on purpose:
+- `used-once`: a `FOR` counter, and a variable that `INPUT`, `LINE INPUT` or `READ` reads into, such as
+  `INPUT "Press Enter", dummy$`. With `OPTION _EXPLICIT` (or `-e`) every variable is declared, so there is none.
+- `unused-procedure`: `SUB _GL`, a routine of a `DECLARE LIBRARY` block, and a test SUB of a `_test.bas` file. A
+  SUB named by `ON TIMER(1) Tick` counts as used. A procedure that only calls itself counts as used too.
+- `unreachable`: `ERROR n`, `GOSUB`, `ON … GOTO` and `RUN file$` can go on with the next statement, so code after
+  them is not reported. Neither is code after a single-line `IF … THEN GOTO`, nor code after a `$IF`, `$ELSE` or
+  `$END IF` line, which may run on another platform.
+- `used-once`, `unused-procedure` and `unused-label`: a name used in a `$IF` branch that this compile skips. A
+  `$IF WIN THEN` branch that calls `WinSetup` counts as a call on Linux too.
+
+These warnings are given only for the file you compile, not for the files it includes with `$INCLUDE`. A
+library file usually has routines a program does not use.
+
+`-w` also gives the warnings QB64pe's `-w` gives, in its words and at its lines, included files too:
+
+| Name | What it warns about |
+|---|---|
+| `unused-variable` | "Unused variable": a variable made by `DIM`, `REDIM`, `STATIC` or a parameter that is never named again, or a FUNCTION's result the FUNCTION never sets. The next line gives the name and type, as `dimonly%   INTEGER` |
+| `empty-select` | "Empty SELECT CASE block": a `SELECT CASE` with no `CASE`, at its `END SELECT` |
+| `duplicate-const` | "Duplicate constant definition": a `CONST` repeated with the same value. The next line gives it, as `a = 5` |
+| `debug-incompatible` | "Feature incompatible with $DEBUG mode": `CHAIN` or `RUN` in a program with `$DEBUG` |
+
+A variable that no `DIM` made gets `used-once` when it is named once, never "Unused variable". Our lines have a
+column after the line number, and each warning is printed once, in source order. QB64pe prints its unused
+variables last.
+
+The warnings are given only when the program has no errors. Fix the errors first.
+
+`qb64rust --report warnings <file or folder>...` counts the warnings over many programs, by name, and then prints
+each one. It builds nothing.
 
 ## Testing your code
 
@@ -132,7 +186,88 @@ assertions are `AssertTrue`, `AssertFalse`, `AssertEqualInt`, `AssertEqualSingle
 `AssertNear`, `AssertEqualStr` and `Fail`; `_ASSERT` works too, and `TestTempDir$` gives each test an empty folder of
 its own. Tests are built as `$CONSOLE:ONLY` programs, so they are for code that does not draw on the screen
 (images made with `_NEWIMAGE` work). `--list` lists the tests without running them, and `--format json` gives one
-JSON object per line for other tools. The exit status is 0 when every test passed, and 1 otherwise.
+JSON object per line for other tools. `--coverage` counts the statements the tests run (see
+[Measuring which lines run](#measuring-which-lines-run)). The exit status is 0 when every test passed, and 1 otherwise.
+
+## Measuring which lines run
+
+`qb64rust --coverage` builds a program that counts how many times each statement runs. Set the environment
+variable `QB64RUST_COVERAGE` to a file name before running it:
+
+```
+qb64rust game.bas --coverage
+set QB64RUST_COVERAGE=counts.txt
+game.exe
+```
+
+When the program ends, it adds one record to that file. The program can end by `END` or `SYSTEM`, by running off
+its end, by a runtime error, or by its window being closed. The record lists every statement with its file, line,
+column and count, so statements that never ran are listed with 0. It also names the built-ins each statement
+calls. Several runs can write to the same file; each adds its own record. Without `QB64RUST_COVERAGE`, the
+program writes nothing and behaves as a normal build.
+
+Unit tests can be counted too. `qb64rust test --coverage` builds each test program this way, and adds one record
+per test to the file `QB64RUST_COVERAGE` names:
+
+```
+set QB64RUST_COVERAGE=counts.txt
+qb64rust test tests --coverage
+```
+
+A test's record also names the test's entry point (`<name>_test.bas.test-entry.bas`) and the test library
+(`qb64rust-test/qbtest.bi` and `qbtest.bm`). The runner makes these files in memory, so they are not on disk.
+Files included from another folder are named by their path from the test file's folder, such as `../game.bm`.
+
+`tools\coverage\coverage.py` in the repository merges the records and lists the lines that did not run. The
+record format is described in [tools/coverage/README.md](../tools/coverage/README.md).
+
+## Recording the values of variables
+
+`qb64rust --trace-values` builds a program that records the value each store leaves in a variable. Use it to
+see which values a variable really takes over a whole run: its range, or that it never leaves a few values. Set
+the environment variable `QB64RUST_TRACE` to a file name before running the program:
+
+```
+qb64rust game.bas --trace-values
+set QB64RUST_TRACE=values.txt
+game.exe
+python tools\trace\value_trace.py values.txt
+```
+
+When the program ends, it adds one record to that file. The program can end by `END` or `SYSTEM`, by running off
+its end, by a runtime error, or by its window being closed. Several runs can write to the same file; each adds
+its own record. Without `QB64RUST_TRACE`, the program writes nothing.
+
+`tools\trace\value_trace.py` in the repository merges the records and prints one block per variable:
+
+```
+HP  INTEGER  in MOVESHIP
+  412 store(s), 0 after-call record(s), range 0 to 100, 23 distinct value(s)
+       120 x  100    first at game.bas:88
+        61 x  95    first at game.bas:140
+```
+
+What is recorded:
+
+- A scalar variable, an array (all its elements together) and a member of a user type (`ship.hp`) each have an
+  entry. A variable of the same name in another `SUB` or `FUNCTION` has its own.
+- Each entry gives the number of stores, the distinct values with their counts and the line that first stored
+  each, and the smallest and largest value. For a string it gives the shortest and longest length.
+- An entry keeps at most 256 distinct values. After that it still counts stores and widens the range, and the
+  report marks it as cut. Set `QB64RUST_TRACE_LIMIT` to a number for another limit.
+- The value a variable starts with (0 or an empty string) is not a store and is not listed.
+- A variable passed to a `SUB` or `FUNCTION` is read again after the call, and its value is recorded when it
+  changed. An array passed to one is not read again: the report names the parameter whose entry holds the values
+  stored through it.
+- A statement that fills an array with new values (`b() = a()`, `_ARRAYCOPY`, `GET #1, , a()`) is recorded
+  element by element. The strings of a `FIELD` are read again after each `GET #` into the record buffer.
+- `REDIM` and `ERASE` write zeros, and statements such as `POKE`, `_MEMPUT` and `BLOAD` write at an address.
+  They are counted and listed, without values.
+
+A traced program behaves as the normal build does, with the same output, errors and exit code. It runs slower
+and uses more memory, so build without the option for everyday use. The option combines with `--coverage` and
+`--debug`. `--json` and `--var <name>` of the tool, the full list of what is not recorded, and the record format
+are described in [tools/trace/README.md](../tools/trace/README.md).
 
 ## Where it differs from QB64pe
 

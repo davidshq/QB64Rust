@@ -364,7 +364,8 @@ fn accepted_inputs_lower_and_emit() {
 
 /// "A real program taken whole compiles" (spec `testing/compiler-tests`; design D7 of `m3-sound`): every program of
 /// `tests\programs` goes through the front end with no diagnostic at all, a warning included, the icon its
-/// `$EXEICON` names is there, and its IR is valid and emitted.
+/// `$EXEICON` names is there, and its IR is valid and emitted. Lint warnings are the exception (OpenSpec change
+/// `lints`): they point at the program's own code, which is kept as it was written.
 #[test]
 fn real_programs_have_no_diagnostics() {
     let root = repo().join("tests/programs");
@@ -378,7 +379,7 @@ fn real_programs_have_no_diagnostics() {
         });
         qb64rust_driver::check_exe_icon(&fe.program, &mut fe.diagnostics, &path, &inc);
         assert!(
-            fe.diagnostics.list().is_empty(),
+            fe.diagnostics.list().iter().all(|d| d.code.is_some()),
             "{name}:\n{}",
             fe.render_with_warnings()
         );
@@ -802,19 +803,23 @@ fn verification_lists_are_exact() {
         .collect();
     for entry in std::fs::read_dir(lists.join("diverged")).into_iter().flatten() {
         let file = entry.unwrap().file_name().to_string_lossy().into_owned();
+        // `<name>.linux.out.txt` is our output on Linux, where it differs from `<name>.out.txt`.
         let Some((name, kind)) = file
-            .strip_suffix(".out.txt")
-            .map(|n| (n, "out"))
+            .strip_suffix(".linux.out.txt")
+            .map(|n| (n, "linux"))
+            .or_else(|| file.strip_suffix(".out.txt").map(|n| (n, "out")))
             .or_else(|| file.strip_suffix(".log.txt").map(|n| (n, "log")))
         else {
-            problems.push(format!("diverged/{file}: not a <name>.out.txt or <name>.log.txt"));
+            problems.push(format!(
+                "diverged/{file}: not a <name>.out.txt, <name>.linux.out.txt or <name>.log.txt"
+            ));
             continue;
         };
         if !programs.iter().any(|p| p == name) {
             problems.push(format!("diverged/{file}: no program verification/{name}.bas"));
             continue;
         }
-        if kind == "log" {
+        if kind != "out" {
             if !lists.join(format!("diverged/{name}.out.txt")).is_file() {
                 problems.push(format!("diverged/{file}: no diverged/{name}.out.txt beside it"));
             }
@@ -1353,6 +1358,46 @@ fn external_sidecars_mark_programs() {
             let text = std::fs::read_to_string(&sidecar).unwrap_or_default();
             if text.trim().is_empty() || text.trim().lines().count() != 1 {
                 problems.push(format!("{}: not one line saying why", sidecar.display()));
+            }
+        }
+    }
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
+}
+
+/// Every program of the corpus, `verification\` and the upstream copy that calls `_OPENHOST` or `_OPENCLIENT` has an
+/// `.external` sidecar starting `network:`. The runner skips those programs on a Windows host, because a program
+/// that opens a port makes Windows Defender Firewall ask the user (`CLAUDE.md` working rule 6, 2026-11-05). A missing
+/// sidecar would let one run there.
+#[test]
+fn network_programs_are_marked() {
+    let upstream = repo().join("tests/upstream");
+    let mut problems = Vec::new();
+    for (root, sidecars) in [
+        (repo().join("tests/corpus"), None),
+        (repo().join("verification"), None),
+        (upstream.join("compile_tests"), Some(upstream.join("external"))),
+    ] {
+        for bas in files(&root, &["bas"]) {
+            let code = code_only(&std::fs::read(&bas).unwrap());
+            // Without the underscore under `$NOPREFIX`.
+            if !["_OPENHOST", "_OPENCLIENT", "OPENHOST", "OPENCLIENT"]
+                .iter()
+                .any(|name| uses_word(&code, name))
+            {
+                continue;
+            }
+            let sidecar = match &sidecars {
+                Some(dir) => dir.join(bas.strip_prefix(&root).unwrap()).with_extension("external"),
+                None => bas.with_extension("external"),
+            };
+            #[expect(clippy::disallowed_methods, reason = "a one-line reason, not BASIC source")]
+            let text = std::fs::read_to_string(&sidecar).unwrap_or_default();
+            if !text.starts_with("network:") {
+                problems.push(format!(
+                    "{}: calls _OPENHOST or _OPENCLIENT, and {} does not start with `network:`",
+                    rel_name("", &root, &bas),
+                    sidecar.file_name().unwrap().to_string_lossy()
+                ));
             }
         }
     }

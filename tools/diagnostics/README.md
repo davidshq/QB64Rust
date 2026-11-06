@@ -16,6 +16,11 @@ Run both at each merge into `main` (`tools\close\README.md`, "The test cadence";
 2026-10-28): a message changed or a rejection recorded since the last merge loses its note until then, and no note
 is ever wrong. Never edit the table by hand.
 
+The script holds no copy of how a message becomes a key. It asks the release build: `qb64rust
+--old-wording-keys` gives each message's key and the forms of its placeholders, and `qb64rust
+--old-wording-words` the reserved words and built-in names it writes to `old_wording_words.txt`. Those rules are
+tested in `crates\base\src\old_wording.rs`.
+
 `test_old_wording.py` tests the rules that need no compiler (which old messages name a file: a masked folder, a
 backslash or a BASIC file's extension, not a `/` between words), run by CI:
 

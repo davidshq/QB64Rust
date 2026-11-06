@@ -188,6 +188,13 @@ Limits: a key is pressed and released at once (`_KEYDOWN` never sees it held); n
 a program that never reads `INKEY$`, `INPUT` or `LINE INPUT` gets the first key only. No mouse step for the
 horizontal wheel, a double click (two clicks, timed by the program) or the console's mouse.
 
+Do not send keys to a QB64 program with WScript's `SendKeys` instead. With NumLock on, `SendKeys` toggles
+NumLock around the keys it types. NumLock and Pause share a scan code (0x45), and libqb takes the toggle for
+Pause. Pause suspends the program (`suspend_program` in `libqb\src\keyboard.cpp`): it sleeps in `evnt()`
+until the next key and looks hung. Seen on 2026-11-05, in programs built by QB64Rust and by QB64pe alike.
+Keys posted with `PostMessage` do not do this. The keys file does not
+either, because it calls libqb directly.
+
 ## Writing a screen program
 
 - End with `SYSTEM`. `END`, and running off the end, print a prompt into the bottom row first and wait for a key.

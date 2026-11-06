@@ -989,7 +989,8 @@ fn version() {
     assert_eq!(stdout(&o), format!("qb64rust {}\n", env!("CARGO_PKG_VERSION")));
 }
 
-/// `--help` and `-h` print the usage, which names `toolchain install` (spec `compiler/cli`, scenario "Help").
+/// `--help` and `-h` print the usage, which names `toolchain install` (spec `compiler/cli`, scenario "Help") and
+/// the option `--trace-values` ("Value-trace build").
 #[test]
 fn help() {
     let d = scratch("help");
@@ -1001,6 +1002,7 @@ fn help() {
             out.starts_with("usage: qb64rust") && out.contains("toolchain install"),
             "{word}: {out}"
         );
+        assert!(out.contains("[--trace-values]"), "{word}: {out}");
     }
 }
 
@@ -1016,6 +1018,118 @@ fn version_with_other_arguments() {
         err.contains("`--version` takes no other argument") && err.contains("usage: qb64rust"),
         "{err}"
     );
+}
+
+/// qb64pe's `-c` is taken as `-x`; its `-s` is an error that names `-f:` (spec `compiler/cli`, scenario "qb64pe's
+/// -c and -s"). `-z` stops after the C++, so no toolchain is needed.
+#[test]
+fn qb64pe_c_and_s() {
+    let d = scratch("c-and-s");
+    std::fs::write(d.join("p.bas"), "PRINT 1\n").unwrap();
+    let o = qb64rust(&d, &["-c", "-q", "-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    for word in ["-s", "-s:debuginfo=true"] {
+        let o = qb64rust(&d, &[word, "p.bas"]);
+        assert_eq!(o.status.code(), Some(1), "{word}");
+        let out = stdout(&o);
+        assert!(
+            out.contains(&format!("`{word}` is not supported")) && out.contains("give a setting for this build"),
+            "{word}: {out}"
+        );
+    }
+}
+
+/// `-e` forces `OPTION _EXPLICIT`, as `qb64pe -e` does (spec `compiler/cli`, scenario "qb64pe's -e"; measured with
+/// `qb64pe.exe -e`, 2026-11-04): a variable not declared is QB64pe's error, in the program and in an included file
+/// alike; a program that declares its variables, also with its own `OPTION _EXPLICIT`, compiles; `$IF _EXPLICIT_`
+/// is true from the first round; and `-y` holds to it too.
+#[test]
+fn qb64pe_e() {
+    let d = scratch("e");
+    std::fs::write(d.join("undeclared.bas"), "x = 1\nPRINT x\n").unwrap();
+    std::fs::write(d.join("inc.bi"), "z = 3\n").unwrap();
+    std::fs::write(
+        d.join("included.bas"),
+        "DIM x AS INTEGER\n'$INCLUDE:'inc.bi'\nPRINT x\n",
+    )
+    .unwrap();
+    std::fs::write(d.join("declared.bas"), "DIM x AS INTEGER\nx = 1\nPRINT x\n").unwrap();
+    std::fs::write(
+        d.join("own.bas"),
+        "OPTION _EXPLICIT\nDIM x AS INTEGER\nx = 1\nPRINT x\n",
+    )
+    .unwrap();
+    // The `$ELSE` branch is a syntax error, read only when `_EXPLICIT_` is 0.
+    std::fs::write(
+        d.join("flag.bas"),
+        "$IF _EXPLICIT_ THEN\nPRINT 1\n$ELSE\nPRINT (\n$END IF\n",
+    )
+    .unwrap();
+    for (file, at, var) in [
+        ("undeclared.bas", "undeclared.bas:1:1", "x"),
+        ("included.bas", "inc.bi:1:1", "z"),
+    ] {
+        let o = qb64rust(&d, &["-e", "-q", "-z", file]);
+        assert_eq!(o.status.code(), Some(1), "{file}");
+        let out = stdout(&o);
+        assert!(
+            out.contains(&format!("{at}: error: variable `{var}` (SINGLE) is not declared")),
+            "{file}: {out}"
+        );
+        assert!(
+            out.contains(&format!("QB64pe: Variable '{var}' (SINGLE) not defined")),
+            "{file}: {out}"
+        );
+        // Without `-e` it compiles.
+        let o = qb64rust(&d, &["-q", "-z", file]);
+        assert_eq!(o.status.code(), Some(0), "{file}: {}", stdout(&o));
+    }
+    for file in ["declared.bas", "own.bas", "flag.bas"] {
+        let o = qb64rust(&d, &["-e", "-q", "-z", file]);
+        assert_eq!(o.status.code(), Some(0), "{file}: {}", stdout(&o));
+    }
+    let o = qb64rust(&d, &["-q", "-z", "flag.bas"]);
+    assert_eq!(o.status.code(), Some(1), "flag.bas without -e: {}", stdout(&o));
+    let o = qb64rust(&d, &["-y", "-e", "undeclared.bas", "-o", "laid_out.bas"]);
+    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+    assert!(!d.join("laid_out.bas").exists());
+}
+
+/// `-p` removes the libqb objects builds wrote in the copy of libqb, then goes on with the rest of the command line;
+/// alone it does only that (spec `compiler/cli`, scenario "qb64pe's -p"). A scratch copy stands for the copy.
+#[test]
+fn qb64pe_p() {
+    let d = scratch("p");
+    let libqb = d.join("libqb");
+    let c = libqb.join("internal").join("c");
+    std::fs::create_dir_all(&c).unwrap();
+    let object = c.join("libqb_make_000.o");
+    // `qbx.cpp` is what makes a folder a copy of libqb.
+    let source = c.join("qbx.cpp");
+    let stamp = libqb.join("objects.stamp");
+    let root = libqb.to_str().unwrap();
+    std::fs::write(&object, b"x").unwrap();
+    std::fs::write(&source, b"x").unwrap();
+    std::fs::write(&stamp, b"x").unwrap();
+    let o = qb64rust(&d, &["-p", "--libqb-root", root]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(stdout(&o).contains("removed the built libqb objects"), "{}", stdout(&o));
+    assert!(!object.exists() && !stamp.exists() && source.exists());
+    // With a file: the purge, then the compile; `-q` prints nothing of the purge.
+    std::fs::write(&object, b"x").unwrap();
+    std::fs::write(d.join("p.bas"), "PRINT 1\n").unwrap();
+    let o = qb64rust(&d, &["-p", "-q", "--libqb-root", root, "-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("removed"), "{}", stdout(&o));
+    assert!(!object.exists() && source.exists());
+    // A QB64pe folder, such as the reference clone, is refused and keeps its objects.
+    std::fs::write(&object, b"x").unwrap();
+    std::fs::create_dir_all(libqb.join("source")).unwrap();
+    std::fs::write(libqb.join("source").join("qb64pe.bas"), b"x").unwrap();
+    let o = qb64rust(&d, &["-p", "--libqb-root", root]);
+    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+    assert!(stdout(&o).contains("is a QB64pe folder"), "{}", stdout(&o));
+    assert!(object.exists());
 }
 
 /// `--list-fixes` prints one line per fix (spec `compiler/fixes`, "The list"); with another argument it is a usage
@@ -1036,6 +1150,48 @@ fn fixes_list() {
     assert_eq!(o.status.code(), Some(1));
     let err = String::from_utf8_lossy(&o.stderr);
     assert!(err.contains("usage: qb64rust"), "{err}");
+}
+
+/// `--old-wording-keys` gives the old-wording table's script each message's key and forms, and
+/// `--old-wording-words` its word list (spec `compiler/cli`, "Old-wording table tooling").
+#[test]
+fn old_wording_tooling() {
+    let d = scratch("old-wording-tooling");
+    let message = b"variable `count` (LONG) is not declared (`OPTION _EXPLICIT`)\n";
+    let o = run(
+        compiler().current_dir(&d).arg("--old-wording-keys"),
+        Some(message),
+        COMPILER_LIMIT,
+        "compiler",
+    );
+    assert_eq!(o.status.code(), Some(0));
+    let got: serde_json::Value = serde_json::from_str(stdout(&o).trim()).unwrap();
+    assert_eq!(got["key"], "variable `{}` (LONG) is not declared (`OPTION _EXPLICIT`)");
+    assert_eq!(got["values"][0][0], serde_json::json!(["=", "count"]));
+    assert_eq!(got["values"][0][1], serde_json::json!(["U", "COUNT"]));
+    // One JSON line per message, in order. A CR before the LF (input piped from PowerShell) is not part of the
+    // key: a key ending in CR would match no row of the table. A message with no placeholder has no values.
+    let o = run(
+        compiler().current_dir(&d).arg("--old-wording-keys"),
+        Some(b"`SELECT` needs `x`\r\nno placeholder here\r\n"),
+        COMPILER_LIMIT,
+        "compiler",
+    );
+    assert_eq!(o.status.code(), Some(0));
+    let lines: Vec<serde_json::Value> = stdout(&o).lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+    assert_eq!(lines.len(), 2, "{lines:?}");
+    assert_eq!(lines[0]["key"], "`SELECT` needs `{}`");
+    assert_eq!(lines[0]["values"][0][0], serde_json::json!(["=", "x"]));
+    assert_eq!(lines[1]["key"], "no placeholder here");
+    assert_eq!(lines[1]["values"], serde_json::json!([]));
+    let o = qb64rust(&d, &["--old-wording-words"]);
+    assert_eq!(o.status.code(), Some(0));
+    let words = stdout(&o);
+    let words: Vec<&str> = words.split_whitespace().collect();
+    assert!(words.contains(&"LBOUND") && words.contains(&"SELECT"), "{words:?}");
+    assert!(words.is_sorted());
+    let o = qb64rust(&d, &["--old-wording-keys", "p.bas"]);
+    assert_eq!(o.status.code(), Some(1));
 }
 
 /// The `Settings:` line of `--dump ir` for `p.bas` in `d` with the arguments `args` before it.
@@ -1508,6 +1664,8 @@ fn toolchain_subcommand_words() {
         &["toolchain", "remove"][..],
         &["toolchain"],
         &["toolchain", "install", "now"],
+        &["toolchain", "install", "--from-zip"],
+        &["toolchain", "install", "--from", "a.zip"],
         &["toolchain", "path", "-x"],
         &["toolchain", "path", "--toolchain-root"],
     ] {
@@ -1523,6 +1681,21 @@ fn toolchain_subcommand_words() {
     let o = qb64rust(&d, &["toolchain.bas", "--dump", "typed"]);
     assert!(o.status.success(), "{}", stdout(&o));
     assert!(stdout(&o).contains("INSTR"), "{}", stdout(&o));
+}
+
+/// Spec `compiler/toolchain`, "Toolchain install", scenario "Install from a zip": a zip that is not there is refused
+/// with exit status 1, naming the path; on Linux the option is refused as nothing is installed there.
+#[test]
+fn toolchain_install_from_a_missing_zip() {
+    let d = scratch("toolchain-from-zip");
+    let o = qb64rust(&d, &["toolchain", "install", "--from-zip", "no-such.zip"]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    if cfg!(windows) {
+        assert!(out.contains("no zip file at") && out.contains("no-such.zip"), "{out}");
+    } else {
+        assert!(out.contains("--from-zip is for Windows"), "{out}");
+    }
 }
 
 /// Spec `compiler/cli`, "Locating the reference runtime", scenario "No clone found": with no QB64pe folder anywhere
@@ -2253,6 +2426,767 @@ fn coverage_build_names_builtins() {
         ],
         "{record}"
     );
+}
+
+/// Without `--trace-values` the C++ holds nothing of a value-trace build (spec `compiler/cli`, "The build without
+/// the option"; the `cpp` snapshots of `tests\frontend` hold the text itself). With it, each store has its record
+/// call.
+#[test]
+fn cpp_without_trace_values_has_no_record_call() {
+    let d = scratch("trace-dump");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\na = 1\nDIM x(3)\nx(a) = 2\nSYSTEM\n").unwrap();
+    let plain = qb64rust(&d, &["--dump", "cpp", "p.bas"]);
+    assert!(plain.status.success(), "{}", stdout(&plain));
+    assert!(!stdout(&plain).contains("qbr_trc"), "{}", stdout(&plain));
+    let traced = qb64rust(&d, &["--trace-values", "--dump", "cpp", "p.bas"]);
+    assert!(traced.status.success(), "{}", stdout(&traced));
+    let cpp = stdout(&traced).replace("\r\n", "\n");
+    assert!(
+        cpp.contains("*__SINGLE_A=((float)(1));\n#line 2 \"p.bas\"\nqbr_trc_f32(0,*__SINGLE_A,0);"),
+        "{cpp}"
+    );
+    assert!(
+        cpp.contains("qbr_trc_f32(1,((float*)(__ARRAY_SINGLE_X[0]))[tmp_long],1);}"),
+        "{cpp}"
+    );
+    assert!(cpp.contains("static void qbr_trc_write()"), "{cpp}");
+}
+
+/// Builds `program` as `p.bas` in `d` with `--trace-values` and `args`; the executable.
+fn build_traced(d: &Path, program: &str, args: &[&str]) -> PathBuf {
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let mut line = vec!["-q", "-x", "--trace-values"];
+    line.extend(args);
+    line.extend(["p.bas", "-o", exe.to_str().unwrap()]);
+    let o = qb64rust_build(d, &line);
+    assert!(o.status.success(), "{}", stdout(&o));
+    exe
+}
+
+/// Runs the value-trace build `exe` in `d` with `QB64RUST_TRACE` naming `t.txt` there (removed first) and with
+/// `envs`, `input` typed into it. Its exit code must be `code`. Gives its output and its record, both with `\n`
+/// line ends.
+fn run_traced(d: &Path, exe: &Path, envs: &[(&str, &str)], input: Option<&[u8]>, code: i32) -> (String, String) {
+    let record = d.join("t.txt");
+    let _ = std::fs::remove_file(&record);
+    let mut cmd = unattended(exe);
+    cmd.current_dir(d).env("QB64RUST_TRACE", &record);
+    for (name, value) in envs {
+        cmd.env(name, value);
+    }
+    let r = run(&mut cmd, input, PROGRAM_LIMIT, "program");
+    assert_eq!(r.status.code(), Some(code), "{}", stdout(&r));
+    let record = text(&std::fs::read(&record).unwrap_or_default());
+    (stdout(&r).replace("\r\n", "\n"), record)
+}
+
+/// The entry `name` of type `ty` and of `procedure` (`-`: the main module) in a trace record: its stores,
+/// after-call records, distinct values, cut mark, smallest and largest value, then one line per value with its
+/// count, the file and line that first recorded it, and its text. Empty when the record has no such entry.
+fn trace_entry(record: &str, name: &str, ty: &str, procedure: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut number = None;
+    for line in record.lines() {
+        let f: Vec<&str> = line.split('\t').collect();
+        if f[0] == "entry" && f[2..5] == [name, ty, procedure] {
+            number = Some(f[1]);
+            out.push(f[5..].join(" "));
+        } else if f[0] == "value" && Some(f[1]) == number {
+            out.push(format!("{} {}:{} {}", f[2], f[3], f[4], f[5..].join(" ")));
+        }
+    }
+    out
+}
+
+/// The `alias` and `untraced` lines of a trace record, each from its file on, the fields separated by a space.
+fn trace_lines(record: &str, kind: &str) -> Vec<String> {
+    record
+        .lines()
+        .filter_map(|l| l.strip_prefix(kind)?.strip_prefix('\t'))
+        .map(|l| l.replace('\t', " "))
+        .collect()
+}
+
+/// A `--trace-values` build (spec `compiler/cli`, "Value-trace build"; task 1.2 of `value-trace`): `a` set to 1, 2
+/// and 2 has 3 stores and the values 1 (once) and 2 (twice). The record lists each file with the hash a coverage
+/// record gives it, and a value stored in an included file names that file and its line (spec
+/// `compiler/value-trace`, "An included file"). Without `QB64RUST_TRACE` nothing is written and the output is that
+/// of the build without the option. A second run appends a second record.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn trace_build_writes_a_record() {
+    let d = scratch("trace");
+    std::fs::write(d.join("inc.bi"), "\nb = 7\n").unwrap();
+    let program = "$CONSOLE:ONLY\na = 1\na = 2\na = 2\n'$INCLUDE: 'inc.bi'\nPRINT a; b\nSYSTEM\n";
+    assert_eq!(build_and_run(&d, program), " 2  7 \n");
+    let exe = build_traced(&d, program, &[]);
+    let record = d.join("t.txt");
+    let run_it = |with: bool| {
+        let mut cmd = unattended(&exe);
+        cmd.current_dir(&d).env_remove("QB64RUST_TRACE");
+        if with {
+            cmd.env("QB64RUST_TRACE", &record);
+        }
+        let r = run(&mut cmd, None, PROGRAM_LIMIT, "program");
+        assert_eq!(r.status.code(), Some(0), "{}", stdout(&r));
+        assert_eq!(stdout(&r).replace("\r\n", "\n"), " 2  7 \n");
+    };
+    run_it(false);
+    assert!(!record.exists(), "a run without QB64RUST_TRACE writes no record");
+    run_it(true);
+    let hash = |bytes: &[u8]| format!("{:016x}", qb64rust_driver::fnv1a64(bytes));
+    let one = format!(
+        "trace 1\nfile\t0\t{}\tp.bas\nfile\t1\t{}\tinc.bi\n\
+         entry\t0\tA\tSINGLE\t-\t3\t0\t2\t0\t1\t2\nvalue\t0\t1\t0\t2\t1\nvalue\t0\t2\t0\t3\t2\n\
+         entry\t1\tB\tSINGLE\t-\t1\t0\t1\t0\t7\t7\nvalue\t1\t1\t1\t2\t7\nend\n",
+        hash(program.as_bytes()),
+        hash(b"\nb = 7\n")
+    );
+    let read = || text(&std::fs::read(&record).unwrap());
+    assert_eq!(read(), one);
+    run_it(true);
+    assert_eq!(read(), format!("{one}{one}"), "a second run appends a second record");
+}
+
+/// `--trace-values` combines with `--coverage` and with `--debug` (spec `compiler/cli`, "With coverage"): each file
+/// holds its own record, and the counts are those of the build with `--coverage` alone.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn trace_build_with_coverage_and_debug() {
+    let d = scratch("trace-coverage");
+    let program = "$CONSOLE:ONLY\na = 1\nIF a THEN a = 2\nPRINT a\nSYSTEM\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let exe = d.join("p.exe");
+    let counts = d.join("c.txt");
+    let counts_of = |args: &[&str]| {
+        let mut line = vec!["-q", "-x"];
+        line.extend(args);
+        line.extend(["p.bas", "-o", exe.to_str().unwrap()]);
+        let o = qb64rust_build(&d, &line);
+        assert!(o.status.success(), "{}", stdout(&o));
+        let _ = std::fs::remove_file(&counts);
+        let (out, record) = run_traced(&d, &exe, &[("QB64RUST_COVERAGE", counts.to_str().unwrap())], None, 0);
+        assert_eq!(out, " 2 \n");
+        (text(&std::fs::read(&counts).unwrap()), record)
+    };
+    let (alone, none) = counts_of(&["--coverage"]);
+    assert!(alone.starts_with("coverage 2\n") && alone.ends_with("end\n"), "{alone}");
+    assert_eq!(none, "", "a build without --trace-values writes no record");
+    let (both, record) = counts_of(&["--trace-values", "--coverage"]);
+    assert_eq!(both, alone);
+    assert_eq!(
+        trace_entry(&record, "A", "SINGLE", "-"),
+        ["2 0 2 0 1 2", "1 0:2 1", "1 0:3 2"]
+    );
+    assert!(record.starts_with("trace 1\n") && record.ends_with("end\n"), "{record}");
+    // A debug build records the same.
+    let exe = build_traced(&d, program, &["--debug"]);
+    let (out, debug) = run_traced(&d, &exe, &[], None, 0);
+    assert_eq!(out, " 2 \n");
+    assert_eq!(debug, record);
+}
+
+/// The stores by name of a value-trace build (spec `compiler/value-trace`, "The traced variables", "What an entry
+/// says", "The stores that are traced" and "A FUNCTION in an index"; task 2.3 of `value-trace`). Each store is
+/// recorded once, with the value the place holds after it. A store that a pending error skips is not recorded, and
+/// one that `RESUME` runs again is recorded again. The output is that of the build without the option.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn trace_records_stores_by_name() {
+    let d = scratch("trace-stores");
+    let program = [
+        "$CONSOLE:ONLY",
+        "TYPE pt",
+        "    x AS INTEGER",
+        "    y AS INTEGER",
+        "    n AS STRING",
+        "END TYPE",
+        "DIM p AS pt, q AS pt, ships(2) AS pt",
+        "DIM x(5) AS LONG, a(3) AS LONG",
+        "DIM b AS _BIT * 3, ba(4) AS _BIT * 3",
+        "ON ERROR GOTO handler", // line 10
+        "FOR i = 1 TO 3: NEXT",
+        "c = 1: e = 2: SWAP c, e",
+        "x(1) = 5: x(2) = 7",
+        "p.x = 4",
+        "b = 5",
+        "ba(2) = 5",
+        "a(1) = 3",
+        "a(9) = 5",
+        "x(f(1)) = 6",
+        "$CHECKING:OFF", // line 20
+        "co = 11",
+        "$CHECKING:ON",
+        "w = 10 \\ dv",
+        "INPUT \"\", v1, v$",
+        "LINE INPUT l$",
+        "READ rd, rs$",
+        "DATA 3,abc",
+        "t$ = \"hello\": MID$(t$, 1, 1) = \"J\"",
+        "ls$ = \"abcd\": LSET ls$ = \"x\"",
+        "rs2$ = \"abcd\": RSET rs2$ = \"y\"", // line 30
+        "lng& = 77",
+        "OPEN \"f.bin\" FOR BINARY AS #1",
+        "PUT #1, 1, lng&",
+        "GET #1, 1, lg2&",
+        "CLOSE #1",
+        "DIM m AS _MEM",
+        "m = _MEM(lng&)",
+        "_MEMGET m, m.OFFSET, mg&",
+        "ships(1).x = 9: ships(2).n = \"two\"",
+        "q = p", // line 40
+        "a% = 1: a$ = \"s\"",
+        "SWAP x(1), x(2)",
+        "one: two",
+        "PRINT c; e; x(1); w; v1; v$; l$; t$",
+        "SYSTEM",
+        "handler:",
+        "IF ERR = 11 THEN dv = 2: RESUME",
+        "RESUME NEXT",
+        "FUNCTION f (n)",
+        "    PRINT \"f called\"", // line 50
+        "    f = n",
+        "END FUNCTION",
+        "SUB one",
+        "    i = 1",
+        "END SUB",
+        "SUB two",
+        "    i = 2",
+        "END SUB",
+        "",
+    ]
+    .join("\n");
+    let input: &[u8] = b"12,hi\nline two\n";
+    let said = "f called\n 2  1  7  5  12 hiline twoJello\n";
+    // The build without the option.
+    std::fs::write(d.join("p.bas"), &program).unwrap();
+    let plain = d.join("plain.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", plain.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let r = run(
+        unattended(&plain).current_dir(&d),
+        Some(input),
+        PROGRAM_LIMIT,
+        "program",
+    );
+    assert_eq!(stdout(&r).replace("\r\n", "\n"), said);
+
+    let exe = build_traced(&d, &program, &[]);
+    let (out, record) = run_traced(&d, &exe, &[], Some(input), 0);
+    assert_eq!(out, said, "the FUNCTION in the index is called once");
+    let entry = |name: &str, ty: &str, procedure: &str| trace_entry(&record, name, ty, procedure);
+    // A FOR loop: 1, 2, 3 and 4.
+    assert_eq!(
+        entry("I", "SINGLE", "-"),
+        ["4 0 4 0 1 4", "1 0:11 1", "1 0:11 2", "1 0:11 3", "1 0:11 4"]
+    );
+    // SWAP: both hold 1 and 2.
+    assert_eq!(entry("C", "SINGLE", "-"), ["2 0 2 0 1 2", "1 0:12 1", "1 0:12 2"]);
+    assert_eq!(entry("E", "SINGLE", "-"), ["2 0 2 0 1 2", "1 0:12 2", "1 0:12 1"]);
+    // An array is one entry: 5 and 7, the 6 stored through the FUNCTION's index, and the 7 and 6 that
+    // `SWAP x(1), x(2)` leaves in the two elements.
+    assert_eq!(
+        entry("X()", "LONG", "-"),
+        ["5 0 3 0 5 7", "1 0:13 5", "2 0:13 7", "2 0:19 6"]
+    );
+    // A member path: `P.X` is stored into, `P.Y` is not.
+    assert_eq!(entry("P.X", "INTEGER", "-"), ["1 0 1 0 4 4", "1 0:14 4"]);
+    assert_eq!(entry("P.Y", "INTEGER", "-"), [""; 0]);
+    assert_eq!(entry("SHIPS().X", "INTEGER", "-"), ["1 0 1 0 9 9", "1 0:39 9"]);
+    assert_eq!(entry("SHIPS().N", "STRING", "-"), ["1 0 1 0 3 3", "1 0:39 \"two\""]);
+    // A `_BIT * 3` holds -3 after 5 is stored, a variable and an element.
+    assert_eq!(entry("B", "_BIT * 3", "-"), ["1 0 1 0 -3 -3", "1 0:15 -3"]);
+    assert_eq!(entry("BA()", "_BIT * 3", "-"), ["1 0 1 0 -3 -3", "1 0:16 -3"]);
+    // `a(9) = 5` raised error 9: it stored nothing and is not counted.
+    assert_eq!(entry("A()", "LONG", "-"), ["1 0 1 0 3 3", "1 0:17 3"]);
+    // Below `$CHECKING:OFF`.
+    assert_eq!(entry("CO", "SINGLE", "-"), ["1 0 1 0 11 11", "1 0:21 11"]);
+    // `w = 10 \ dv` stored 0 with the error pending, and 5 when `RESUME` ran it again.
+    assert_eq!(entry("W", "SINGLE", "-"), ["2 0 2 0 0 5", "1 0:23 0", "1 0:23 5"]);
+    // INPUT, LINE INPUT and READ.
+    assert_eq!(entry("V1", "SINGLE", "-"), ["1 0 1 0 12 12", "1 0:24 12"]);
+    assert_eq!(entry("V", "STRING", "-"), ["1 0 1 0 2 2", "1 0:24 \"hi\""]);
+    assert_eq!(entry("L", "STRING", "-"), ["1 0 1 0 8 8", "1 0:25 \"line two\""]);
+    assert_eq!(entry("RD", "SINGLE", "-"), ["1 0 1 0 3 3", "1 0:26 3"]);
+    assert_eq!(entry("RS", "STRING", "-"), ["1 0 1 0 3 3", "1 0:26 \"abc\""]);
+    // MID$ as a statement, LSET and RSET.
+    assert_eq!(
+        entry("T", "STRING", "-"),
+        ["2 0 2 0 5 5", "1 0:28 \"hello\"", "1 0:28 \"Jello\""]
+    );
+    assert_eq!(
+        entry("LS", "STRING", "-"),
+        ["2 0 2 0 4 4", "1 0:29 \"abcd\"", "1 0:29 \"x   \""]
+    );
+    assert_eq!(
+        entry("RS2", "STRING", "-"),
+        ["2 0 2 0 4 4", "1 0:30 \"abcd\"", "1 0:30 \"   y\""]
+    );
+    // GET # and _MEMGET into a variable.
+    assert_eq!(entry("LG2", "LONG", "-"), ["1 0 1 0 77 77", "1 0:34 77"]);
+    assert_eq!(entry("MG", "LONG", "-"), ["1 0 1 0 77 77", "1 0:38 77"]);
+    // A copy of a whole user type: each scalar member.
+    assert_eq!(entry("Q.X", "INTEGER", "-"), ["1 0 1 0 4 4", "1 0:40 4"]);
+    assert_eq!(entry("Q.Y", "INTEGER", "-"), ["1 0 1 0 0 0", "1 0:40 0"]);
+    assert_eq!(entry("Q.N", "STRING", "-"), ["1 0 1 0 0 0", "1 0:40 \"\""]);
+    // One name, two types; two procedures, one name.
+    assert_eq!(entry("A", "INTEGER", "-"), ["1 0 1 0 1 1", "1 0:41 1"]);
+    assert_eq!(entry("A", "STRING", "-"), ["1 0 1 0 1 1", "1 0:41 \"s\""]);
+    assert_eq!(entry("I", "SINGLE", "ONE"), ["1 0 1 0 1 1", "1 0:54 1"]);
+    assert_eq!(entry("I", "SINGLE", "TWO"), ["1 0 1 0 2 2", "1 0:57 2"]);
+    // The store of the whole `_MEM` is listed, not traced.
+    assert_eq!(trace_lines(&record, "untraced"), ["0 37 1 whole value M -"]);
+}
+
+/// The arguments passed by reference (spec `compiler/value-trace`, "A variable passed by reference" and "An array
+/// passed by reference"; task 2.4 of `value-trace`): a variable is read after the statement and recorded when it
+/// changed, in a `CALL` and in an expression; an array gets an alias to the parameter.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn trace_records_arguments_by_reference() {
+    let d = scratch("trace-by-reference");
+    let program = [
+        "$CONSOLE:ONLY",
+        "TYPE pt",
+        "    x AS INTEGER",
+        "    v(2) AS INTEGER",
+        "END TYPE",
+        "DIM grid(3), p AS pt",
+        "k = 4",
+        "CALL inc(k)",
+        "m = 4",
+        "FOR j = 1 TO 1000: CALL show(m): NEXT", // line 10
+        "fill grid()",
+        "inc grid(2)",
+        "t = 3",
+        "z = twice(t) + 1",
+        "IF twice(t) > 100 THEN PRINT \"no\"",
+        "move p",
+        "PRINT k; m; grid(1); grid(2); t; z; p.x",
+        "SYSTEM",
+        "SUB inc (n)",
+        "    n = n + 1", // line 20
+        "END SUB",
+        "SUB show (n)",
+        "    IF n <> 4 THEN PRINT n",
+        "END SUB",
+        "SUB fill (a())",
+        "    a(1) = 7",
+        "END SUB",
+        "FUNCTION twice (n)",
+        "    n = n * 2",
+        "    twice = n", // line 30
+        "END FUNCTION",
+        "SUB move (q AS pt)",
+        "    q.x = 8",
+        "END SUB",
+        "",
+    ]
+    .join("\n");
+    assert_eq!(build_and_run(&d, &program), " 5  4  7  1  12  7  8 \n");
+    let exe = build_traced(&d, &program, &[]);
+    let (out, record) = run_traced(&d, &exe, &[], None, 0);
+    assert_eq!(out, " 5  4  7  1  12  7  8 \n");
+    let entry = |name: &str, ty: &str, procedure: &str| trace_entry(&record, name, ty, procedure);
+    // A SUB that changes its argument: one store, one after-call record.
+    assert_eq!(entry("K", "SINGLE", "-"), ["1 1 2 0 4 5", "1 0:7 4", "1 0:8 5"]);
+    assert_eq!(entry("N", "SINGLE", "INC"), ["2 0 2 0 1 5", "1 0:20 5", "1 0:20 1"]);
+    // A SUB that leaves its argument alone, 1000 times.
+    assert_eq!(entry("M", "SINGLE", "-"), ["1 0 1 0 4 4", "1 0:9 4"]);
+    // An array passed to a SUB, and an element passed to one: aliases, and nothing read after the call.
+    assert_eq!(entry("A()", "SINGLE", "FILL"), ["1 0 1 0 7 7", "1 0:26 7"]);
+    assert_eq!(entry("GRID()", "SINGLE", "-"), [""; 0]);
+    // A FUNCTION that changes its argument inside an expression, and inside a condition.
+    assert_eq!(
+        entry("T", "SINGLE", "-"),
+        ["1 2 3 0 3 12", "1 0:13 3", "1 0:14 6", "1 0:15 12"]
+    );
+    // A variable of a user type: its scalar members are read after the call, its member array gets an alias.
+    assert_eq!(entry("P.X", "INTEGER", "-"), ["0 1 1 0 8 8", "1 0:16 8"]);
+    assert_eq!(entry("Q.X", "INTEGER", "MOVE"), ["1 0 1 0 8 8", "1 0:33 8"]);
+    assert_eq!(
+        trace_lines(&record, "alias"),
+        [
+            "0 11 1 GRID() - FILL A()",
+            "0 12 1 GRID() - INC N",
+            "0 16 1 P.V() - MOVE Q.V()"
+        ]
+    );
+}
+
+/// The stores that are counted and not traced (spec `compiler/value-trace`, "Stores at an address" and "Bulk
+/// stores"; task 2.5 of `value-trace`): a store at an address has no name, a bulk store names its array. A copy
+/// of a whole array and a file read into one are traced by value, so they are not among them.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn trace_counts_untraced_stores() {
+    let d = scratch("trace-untraced");
+    let program = [
+        "$SCREENHIDE",
+        "SCREEN 13",
+        "DIM g%(100)",
+        "DIM m AS _MEM",
+        "v& = 1",
+        "m = _MEM(v&)",
+        "POKE 100, 7: POKE 100, 7",
+        "_MEMPUT m, m.OFFSET, 5 AS LONG",
+        "GET (0, 0)-(3, 3), g%",
+        "REDIM c(3), d(3)", // line 10
+        "d(1) = 6",
+        "OPEN \"f.bin\" FOR BINARY AS #1",
+        "PUT #1, 1, g%()",
+        "GET #1, 1, g%()",
+        "CLOSE #1",
+        "work c(), d()",
+        "SYSTEM",
+        "SUB work (b(), a())",
+        "    b() = a()",
+        "    ERASE b", // line 20
+        "    REDIM b(5)",
+        "END SUB",
+        "",
+    ]
+    .join("\n");
+    let exe = build_traced(&d, &program, &[]);
+    let (_, record) = run_traced(&d, &exe, &[], None, 0);
+    assert_eq!(
+        trace_lines(&record, "untraced"),
+        [
+            "0 6 1 whole value M -",
+            "0 7 2 POKE - -",
+            "0 8 1 _MEMPUT - -",
+            "0 9 1 GET - -",
+            "0 10 1 REDIM C() -",
+            "0 10 1 REDIM D() -",
+            "0 20 1 ERASE B() WORK",
+            "0 21 1 REDIM B() WORK",
+        ]
+    );
+    // `b() = a()` recorded the four elements it copied; `ERASE` and `REDIM` gave `B()` no value.
+    assert_eq!(
+        trace_entry(&record, "B()", "SINGLE", "WORK"),
+        ["4 0 2 0 0 6", "3 0:19 0", "1 0:19 6"]
+    );
+    // `GET #1, 1, g%()` recorded the 101 elements it read; `PUT #` stores nothing.
+    let g = trace_entry(&record, "G()", "INTEGER", "-");
+    assert!(g[0].starts_with("101 0 "), "{g:?}");
+    // The store at an address gave `V` no value.
+    assert_eq!(trace_entry(&record, "V", "LONG", "-"), ["1 0 1 0 1 1", "1 0:5 1"]);
+    assert_eq!(
+        trace_lines(&record, "alias"),
+        ["0 16 1 C() - WORK B()", "0 16 1 D() - WORK A()"]
+    );
+}
+
+/// The stores that write many elements at once and bring new values are recorded element by element (spec
+/// `compiler/value-trace`, "Bulk stores that are traced" and "The strings of a FIELD"): a copy of a whole array,
+/// `_ARRAYCOPY` of one dimension, `GET #` and `_MEMGET` into a whole array, a member array inside a copy of a
+/// whole user type, and a copy of a type that owns `_DYNAMIC` member arrays through an index. The strings of a
+/// `FIELD` are read again after `FIELD` and after `GET #` into the record buffer. The output is that of the build
+/// without the option.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn trace_records_bulk_stores() {
+    let d = scratch("trace-bulk");
+    let program = [
+        "$CONSOLE:ONLY",
+        "$UNSTABLE:TYPEFIELDS",
+        "TYPE pt",
+        "    x AS INTEGER",
+        "    v(2) AS LONG",
+        "END TYPE",
+        "TYPE own",
+        "    n AS INTEGER",
+        "    d(1) _DYNAMIC AS LONG",
+        "END TYPE", // line 10
+        "DIM a(3) AS LONG, b(3) AS LONG, c(5) AS LONG",
+        "DIM p AS pt, q AS pt",
+        "DIM f(3) AS INTEGER, g(3) AS INTEGER",
+        "DIM o(2) AS own, one AS own",
+        "DIM bits(3) AS _BIT * 3, bits2(3) AS _BIT * 3",
+        "a(0) = 10: a(1) = 11: a(2) = 12: a(3) = 13",
+        "b() = a()",
+        "_ARRAYCOPY a(1 TO 2) TO c(4)",
+        "p.x = 1: p.v(0) = 5: p.v(2) = 7",
+        "q = p", // line 20
+        "OPEN \"f.bin\" FOR BINARY AS #1",
+        "PUT #1, 1, a()",
+        "GET #1, 1, f()",
+        "CLOSE #1",
+        "DIM m AS _MEM",
+        "m = _MEM(f())",
+        "_MEMGET m, m.OFFSET, g()",
+        "one.n = 3",
+        "i = 1",
+        "o(f1(i)) = one", // line 30
+        "bits(1) = 5",
+        "bits2() = bits()",
+        "OPEN \"r.dat\" FOR RANDOM AS #2 LEN = 8",
+        "FIELD #2, 4 AS fa$, 4 AS fb$",
+        "LSET fa$ = \"abcd\": LSET fb$ = \"wxyz\"",
+        "PUT #2, 1",
+        "LSET fa$ = \"1234\": LSET fb$ = \"5678\"",
+        "PUT #2, 2",
+        "GET #2, 1",
+        "PRINT fa$; fb$", // line 40
+        "CLOSE #2",
+        "PRINT b(3); c(4); c(5); q.v(2); g(0); o(1).n",
+        "DIM fl(1) AS _FLOAT, fl2(1) AS _FLOAT",
+        "fl(0) = 1.5: fl(1) = 2.5",
+        "fl2() = fl()",
+        "ON ERROR GOTO handler",
+        "DIM oa(2) AS own, ob(1) AS own",
+        "oa(0).n = 7: oa(1).n = 8",
+        "ob() = oa()",
+        "SYSTEM", // line 50
+        "handler:",
+        "RESUME NEXT",
+        "FUNCTION f1 (n)",
+        "    PRINT \"f1 called\"",
+        "    f1 = n",
+        "END FUNCTION",
+        "",
+    ]
+    .join("\n");
+    // The copy of line 30 finds its target once for each of its three parts, in the build without the option too.
+    let said = "f1 called\nf1 called\nf1 called\nabcdwxyz\n 13  11  12  7  10  3 \n";
+    assert_eq!(build_and_run(&d, &program), said);
+    let _ = std::fs::remove_file(d.join("f.bin"));
+    let _ = std::fs::remove_file(d.join("r.dat"));
+    let exe = build_traced(&d, &program, &[]);
+    let (out, record) = run_traced(&d, &exe, &[], None, 0);
+    assert_eq!(
+        out, said,
+        "the FUNCTION in the index of the copy's target is called as often"
+    );
+    let entry = |name: &str, ty: &str| trace_entry(&record, name, ty, "-");
+    // A copy of a whole array: every element of the target.
+    assert_eq!(
+        entry("B()", "LONG"),
+        ["4 0 4 0 10 13", "1 0:17 10", "1 0:17 11", "1 0:17 12", "1 0:17 13"]
+    );
+    // A packed `_BIT` array is read element by element too.
+    assert_eq!(entry("BITS2()", "_BIT * 3"), ["4 0 2 0 -3 0", "3 0:32 0", "1 0:32 -3"]);
+    // `_ARRAYCOPY` of one dimension: the two elements it wrote, and not the rest of the target.
+    assert_eq!(entry("C()", "LONG"), ["2 0 2 0 11 12", "1 0:18 11", "1 0:18 12"]);
+    // A member array inside a copy of a whole user type.
+    assert_eq!(entry("Q.X", "INTEGER"), ["1 0 1 0 1 1", "1 0:20 1"]);
+    assert_eq!(
+        entry("Q.V()", "LONG"),
+        ["3 0 3 0 0 7", "1 0:20 5", "1 0:20 0", "1 0:20 7"]
+    );
+    // `GET #` and `_MEMGET` into a whole array: the four LONGs' bytes read as INTEGERs.
+    assert_eq!(
+        entry("F()", "INTEGER"),
+        ["4 0 3 0 0 11", "1 0:23 10", "2 0:23 0", "1 0:23 11"]
+    );
+    assert_eq!(
+        entry("G()", "INTEGER"),
+        ["4 0 3 0 0 11", "1 0:27 10", "2 0:27 0", "1 0:27 11"]
+    );
+    // A copy of a type that owns a `_DYNAMIC` member array, into an element: its number is recorded through the
+    // address the copy held, and the `_DYNAMIC` member array is counted.
+    assert_eq!(entry("O().N", "INTEGER"), ["1 0 1 0 3 3", "1 0:30 3"]);
+    // The strings of a FIELD: NUL bytes after `FIELD`, the two `LSET`s as stores, and the record `GET #` read.
+    assert_eq!(
+        entry("FA", "STRING"),
+        [
+            "2 2 3 0 4 4",
+            "1 0:34 \"\\u0000\\u0000\\u0000\\u0000\"",
+            "2 0:35 \"abcd\"",
+            "1 0:37 \"1234\""
+        ]
+    );
+    // `_FLOAT` elements of an array variable are 16 bytes apart, not the 32 of their size.
+    assert_eq!(
+        entry("FL2()", "_FLOAT"),
+        ["2 0 2 0 1.5 2.5", "1 0:45 1.5", "1 0:45 2.5"]
+    );
+    // A copy of an array of an owner type with other bounds raises error 9 and is still made: it is recorded.
+    assert_eq!(entry("OB().N", "INTEGER"), ["2 0 2 0 7 8", "1 0:49 7", "1 0:49 8"]);
+    assert_eq!(
+        trace_lines(&record, "untraced"),
+        [
+            "0 26 1 whole value M -",
+            "0 30 1 TYPE copy O().D() -",
+            "0 49 1 OB() = OA() OB().D() -"
+        ]
+    );
+}
+
+/// The values kept (spec `compiler/value-trace`, "The values kept" and "The range of an entry"; task 3.1 of
+/// `value-trace`): an entry at its limit keeps counting its stores and its range and marks itself as cut; a
+/// `SINGLE`'s text reads back as the `SINGLE`; a NaN leaves the range as it is; a tab, a line end and a quote in a
+/// string do not break its line; a string above 200 bytes is cut to them, with its length and its hash beside it.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn trace_keeps_values_to_a_limit() {
+    let d = scratch("trace-values");
+    let program = [
+        "$CONSOLE:ONLY",
+        "FOR i = 1 TO 1000: NEXT",
+        "s! = 0.1",
+        "d# = 1: d# = zero# / zero#: d# = 3",
+        "t$ = \"a\" + CHR$(9) + \"b\" + CHR$(10) + CHR$(34) + CHR$(200)",
+        "long$ = STRING$(300, \"y\")",
+        "big$ = STRING$(5000, \"x\"): big$ = STRING$(4999, \"x\") + \"z\"",
+        "u~&& = 18446744073709551615",
+        "f## = 0.1",
+        "n%% = -128", // line 10
+        "SYSTEM",
+        "",
+    ]
+    .join("\n");
+    let exe = build_traced(&d, &program, &[]);
+    let (_, record) = run_traced(&d, &exe, &[("QB64RUST_TRACE_LIMIT", "10")], None, 0);
+    let entry = |name: &str, ty: &str| trace_entry(&record, name, ty, "-");
+    // The limit, and a range past it.
+    let i = entry("I", "SINGLE");
+    assert_eq!(i[0], "1001 0 10 1 1 1001");
+    assert_eq!(i.len(), 11);
+    assert_eq!(i[10], "1 0:2 10");
+    // A SINGLE: nine digits, which read back as the SINGLE 0.1 and not as the DOUBLE 0.1.
+    let s = entry("S", "SINGLE");
+    assert_eq!(s, ["1 0 1 0 0.100000001 0.100000001", "1 0:3 0.100000001"]);
+    let read: f32 = "0.100000001".parse().unwrap();
+    assert_eq!(read, 0.1f32);
+    // A NaN is a value and leaves the range as it is.
+    let nan = entry("D", "DOUBLE");
+    assert_eq!(nan[0], "3 0 3 0 1 3");
+    assert!(nan[2].starts_with("1 0:4 ") && nan[2].contains("nan"), "{nan:?}");
+    // A string: a JSON string of ASCII.
+    assert_eq!(
+        entry("T", "STRING"),
+        ["1 0 1 0 6 6", "1 0:5 \"a\\u0009b\\u000a\\\"\\u00c8\""]
+    );
+    // Above 200 bytes: the first 200, the length and the FNV-1a 64 hash of all the bytes. Above 4096 the key is the
+    // length and the hash, which tells the two values of `big$` apart; the hash does the same in the record, where
+    // their first 200 bytes are alike.
+    let hash = |bytes: &[u8]| format!("{:016x}", qb64rust_driver::fnv1a64(bytes));
+    let y200 = format!("\"{}\"", "y".repeat(200));
+    let y300 = hash("y".repeat(300).as_bytes());
+    assert_eq!(
+        entry("LONG", "STRING"),
+        ["1 0 1 0 300 300".to_string(), format!("1 0:6 {y200} 300 {y300}")]
+    );
+    let x200 = format!("\"{}\"", "x".repeat(200));
+    let (x5000, x4999z) = (
+        hash("x".repeat(5000).as_bytes()),
+        hash(format!("{}z", "x".repeat(4999)).as_bytes()),
+    );
+    assert_eq!(
+        entry("BIG", "STRING"),
+        [
+            "2 0 2 0 5000 5000".to_string(),
+            format!("1 0:7 {x200} 5000 {x5000}"),
+            format!("1 0:7 {x200} 5000 {x4999z}")
+        ]
+    );
+    // The widest integer, a _FLOAT and the narrowest integer.
+    assert_eq!(
+        entry("U", "_UNSIGNED _INTEGER64"),
+        [
+            "1 0 1 0 18446744073709551615 18446744073709551615",
+            "1 0:8 18446744073709551615"
+        ]
+    );
+    let f = entry("F", "_FLOAT");
+    assert!(f[1].starts_with("1 0:9 0.1000000000000000"), "{f:?}");
+    assert_eq!(entry("N", "_BYTE"), ["1 0 1 0 -128 -128", "1 0:10 -128"]);
+    // Without the variable the limit is 256.
+    let (_, record) = run_traced(&d, &exe, &[], None, 0);
+    assert_eq!(trace_entry(&record, "I", "SINGLE", "-")[0], "1001 0 256 1 1 1001");
+}
+
+/// A value-trace build that stops at a runtime error reports the error as the build without the option does, and
+/// its record is still written (spec `compiler/value-trace`, "A runtime error"; task 3.2 of `value-trace`).
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn trace_record_at_a_runtime_error() {
+    let d = scratch("trace-error");
+    let program = "$CONSOLE:ONLY\na = 1\nDIM x(3)\nx(9) = 5\nPRINT \"not reached\"\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let plain = d.join("plain.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", plain.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let expected = run(unattended(&plain).current_dir(&d), None, PROGRAM_LIMIT, "program");
+    assert_eq!(expected.status.code(), Some(1));
+    let said = text(&expected.stderr);
+    assert!(said.contains("Line: 4"), "{said}");
+
+    let exe = build_traced(&d, program, &[]);
+    let record = d.join("t.txt");
+    let r = run(
+        unattended(&exe).current_dir(&d).env("QB64RUST_TRACE", &record),
+        None,
+        PROGRAM_LIMIT,
+        "program",
+    );
+    assert_eq!(r.status.code(), Some(1));
+    assert_eq!(text(&r.stderr), said);
+    assert_eq!(r.stdout, expected.stdout);
+    let record = text(&std::fs::read(&record).unwrap());
+    assert_eq!(trace_entry(&record, "A", "SINGLE", "-"), ["1 0 1 0 1 1", "1 0:2 1"]);
+    assert_eq!(trace_entry(&record, "X()", "SINGLE", "-"), [""; 0]);
+    assert!(record.ends_with("end\n"), "{record}");
+}
+
+/// The window of a value-trace build closed while the program stores in a loop: the program ends as the build
+/// without the option does, and its record is whole (spec `compiler/value-trace`, "The window closed during a
+/// loop"; design D3 of `value-trace`, "Threads"). The window is closed as a person closes it, by its close message.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+#[cfg(windows)]
+fn trace_record_when_the_window_is_closed() {
+    let d = scratch("trace-window");
+    let program = "DO\n    i = i + 1\n    IF i > 100 THEN i = 0\nLOOP\n";
+    std::fs::write(d.join("p.bas"), program).unwrap();
+    let plain = d.join("plain.exe");
+    let o = qb64rust_build(&d, &["-q", "-x", "p.bas", "-o", plain.to_str().unwrap()]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let exe = build_traced(&d, program, &[]);
+    let record = d.join("t.txt");
+    // Starts the program, closes its window once it has one, and gives its exit code.
+    let closed = |exe: &Path| {
+        let mut child = unattended(exe)
+            .current_dir(&d)
+            .env("QB64RUST_TRACE", &record)
+            .spawn()
+            .unwrap();
+        let close = format!(
+            "$p = Get-Process -Id {}; while (-not $p.MainWindowHandle) {{ Start-Sleep -Milliseconds 100; \
+             $p.Refresh() }}; Start-Sleep -Milliseconds 500; [void]$p.CloseMainWindow()",
+            child.id()
+        );
+        let o = run(
+            Command::new("powershell").args(["-NoProfile", "-Command", &close]),
+            None,
+            PROGRAM_LIMIT,
+            "closing the window",
+        );
+        assert!(o.status.success(), "{}", text(&o.stderr));
+        let deadline = std::time::Instant::now() + PROGRAM_LIMIT;
+        loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                return status.code();
+            }
+            if std::time::Instant::now() > deadline {
+                let _ = child.kill();
+                panic!("the program did not end after its window was closed");
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    };
+    let expected = closed(&plain);
+    assert!(!record.exists(), "the build without the option writes no record");
+    assert_eq!(closed(&exe), expected);
+    let record = text(&std::fs::read(&record).unwrap());
+    assert!(record.starts_with("trace 1\n") && record.ends_with("end\n"), "{record}");
+    let i = trace_entry(&record, "I", "SINGLE", "-");
+    // 0 to 101: every value of the loop, once it has gone round.
+    assert_eq!(i.len(), 103, "{}", i[0]);
+    assert!(i[0].ends_with(" 0 102 0 0 101"), "{}", i[0]);
 }
 
 /// `a IMP b IMP c` is `(a IMP b) IMP c` (`QB64PE-DIVERGENCES.md` D-005: the old compiler computes `5 OR 3 OR 0`, 7, so this
@@ -4058,6 +4992,172 @@ fn report_unsupported_names_programs_with_other_errors() {
     let o = qb64rust(&d, &["bad.bas", "bad.bas"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(stdout(&o).contains("more than one input file"), "{}", stdout(&o));
+}
+
+/// "Warning report", scenarios "Counts by code" and "A program with errors" (spec `compiler/cli`): the lines per
+/// code, then the four warnings; a program with an error is counted and gives none.
+#[test]
+fn report_warnings_counts_by_code() {
+    let d = scratch("report-warnings");
+    std::fs::create_dir(d.join("sub")).unwrap();
+    std::fs::write(d.join("one.bas"), "$CONSOLE:ONLY\na:\nb:\nPRINT 1\n").unwrap();
+    std::fs::write(d.join("sub").join("two.bas"), "$CONSOLE:ONLY\nc:\nSUB S\nEND SUB\n").unwrap();
+    let o = qb64rust(&d, &["--report", "warnings", "."]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let sep = std::path::MAIN_SEPARATOR;
+    let expected = format!(
+        "2 programs: 0 with errors, which get no lint warnings\n\
+         programs  times  code\n       \
+         0      0  used-once\n       \
+         1      1  unused-procedure\n       \
+         2      3  unused-label\n       \
+         0      0  hides-shared\n       \
+         0      0  unreachable\n       \
+         0      0  unused-variable\n       \
+         0      0  empty-select\n       \
+         0      0  duplicate-const\n       \
+         0      0  debug-incompatible\n\
+         .{sep}one.bas:2:1: warning: label `a` is never used\n\
+         .{sep}one.bas:3:1: warning: label `b` is never used\n\
+         .{sep}sub{sep}two.bas:2:1: warning: label `c` is never used\n\
+         .{sep}sub{sep}two.bas:3:5: warning: SUB `S` is never called\n"
+    );
+    assert_eq!(stdout(&o), expected);
+
+    std::fs::write(d.join("bad.bas"), "$CONSOLE:ONLY\nd:\nGOTO nowhere\n").unwrap();
+    let o = qb64rust(&d, &["--report", "warnings", "bad.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(
+        stdout(&o).starts_with("1 program: 1 with errors, which get no lint warnings\n"),
+        "{}",
+        stdout(&o)
+    );
+    assert!(!stdout(&o).contains("warning:"), "{}", stdout(&o));
+}
+
+/// A lint warning is printed with `-w` as any warning is, and not without it; a program with an error gets the error
+/// and no lint warning (spec `compiler/lints`, "When lints run"). The C++ only, so no clone is needed.
+#[test]
+fn lint_warning_with_w() {
+    let d = scratch("lint-w");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nagain:\nPRINT 1\nSYSTEM\n").unwrap();
+    let o = qb64rust(&d, &["-w", "-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(
+        stdout(&o)
+            .lines()
+            .any(|l| l == "p.bas:2:1: warning: label `again` is never used"),
+        "{}",
+        stdout(&o)
+    );
+    let o = qb64rust(&d, &["-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+
+    std::fs::write(
+        d.join("e.bas"),
+        "$CONSOLE:ONLY\nagain:\nPRINT 1\nSYSTEM\nGOTO nowhere\n",
+    )
+    .unwrap();
+    let o = qb64rust(&d, &["-w", "-z", "e.bas"]);
+    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+    assert!(stdout(&o).contains("e.bas:5:"), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+}
+
+/// The headers of the warnings `qb64pe -w` gives that the new compiler gives too, as it words them.
+const QB64PE_WARNINGS: &[&str] = &[
+    "Unused variable",
+    "Empty SELECT CASE block",
+    "Duplicate constant definition",
+    "Feature incompatible with $DEBUG mode",
+    "$DEBUG features only work from the IDE",
+];
+
+/// The warnings of `-w` output with a header of [`QB64PE_WARNINGS`], each as (file, line, header, detail), sorted
+/// and each once. QB64pe prints `file:line: warning: header`, we print `file:line:column: warning: header`; both put
+/// the detail on the next line, indented. QB64pe prints its unused variables after the other warnings, and prints
+/// a pass's warnings again when it compiles a program twice (`verification\v68_f1_const_same`).
+fn qb64pe_warnings(text: &str) -> Vec<(String, u32, String, String)> {
+    let lines: Vec<&str> = text.lines().collect();
+    let mut found = std::collections::BTreeSet::new();
+    for (i, line) in lines.iter().enumerate() {
+        let Some((at, header)) = line.split_once(": warning: ") else {
+            continue;
+        };
+        if !QB64PE_WARNINGS.contains(&header) {
+            continue;
+        }
+        let mut parts = at.split(':');
+        let (file, line_no) = (parts.next().unwrap(), parts.next().unwrap().parse().unwrap());
+        let detail = lines
+            .get(i + 1)
+            .and_then(|l| l.strip_prefix("    "))
+            .unwrap_or("")
+            .to_string();
+        found.insert((file.to_string(), line_no, header.to_string(), detail));
+    }
+    found.into_iter().collect()
+}
+
+/// QB64pe's warnings (spec `compiler/lints`, "QB64pe's warnings"): for each program of `verification\v68_*`, the
+/// warnings of `qb64rust -w -z` with QB64pe's headers are those `qb64pe -w -z` gave, recorded in
+/// `verification\v68_warnings\<name>.txt` (by `verification\v68_warnings.py`): file, line, header and detail.
+#[test]
+fn qbpe_warnings_as_recorded() {
+    let verification = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification");
+    let mut programs: Vec<PathBuf> = std::fs::read_dir(&verification)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| {
+            let name = p.file_name().unwrap().to_string_lossy();
+            name.starts_with("v68_") && name.ends_with(".bas")
+        })
+        .collect();
+    programs.sort();
+    assert!(programs.len() >= 13, "{} v68 programs", programs.len());
+    let d = scratch("v68");
+    for f in std::fs::read_dir(&verification).unwrap() {
+        let p = f.unwrap().path();
+        let name = p.file_name().unwrap().to_string_lossy().to_string();
+        if name.starts_with("v68_") && (name.ends_with(".bas") || name.ends_with(".bi")) {
+            std::fs::copy(&p, d.join(&name)).unwrap();
+        }
+    }
+    let mut compared = 0;
+    for p in programs {
+        let stem = p.file_stem().unwrap().to_string_lossy().to_string();
+        let recorded = std::fs::read_to_string(verification.join("v68_warnings").join(format!("{stem}.txt")))
+            .unwrap_or_else(|e| panic!("{stem}: no recording: {e}"));
+        let o = qb64rust(&d, &["-w", "-z", &format!("{stem}.bas")]);
+        let ours = qb64pe_warnings(&stdout(&o).replace("\r\n", "\n"));
+        assert_eq!(ours, qb64pe_warnings(&recorded), "{stem}:\n{}", stdout(&o));
+        compared += ours.len();
+    }
+    assert!(compared >= 40, "only {compared} warnings compared");
+}
+
+/// A program whose only diagnostic is a lint warning is built, with `-w` and without it (spec `compiler/lints`,
+/// "Hidden without -w").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn lint_warning_still_builds() {
+    let d = scratch("lint-build");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nagain:\nPRINT 1\nSYSTEM\n").unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-w", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(
+        stdout(&o).contains("p.bas:2:1: warning: label `again` is never used"),
+        "{}",
+        stdout(&o)
+    );
+    assert!(exe.is_file());
+    std::fs::remove_file(&exe).unwrap();
+    let o = qb64rust_build(&d, &["-q", "-m", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+    assert!(exe.is_file());
 }
 
 #[expect(clippy::disallowed_methods, reason = "a tool's messages")]

@@ -1,0 +1,5 @@
+# One letter at each wait: the first is thrown away by the POKEs, the second is read.
+prompt
+text a
+prompt
+text b

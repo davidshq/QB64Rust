@@ -62,11 +62,19 @@ impl Checker<'_> {
     /// error for the functions measured, "Invalid expression" for the last, "Incorrect number of arguments" or
     /// "Syntax error" for another by the function; "not supported yet" for any other (design D11 of
     /// `m4-statements-metacommands`; measured, `verification\v27_x50`, `v28_x49`, `v57_o01`–`o17`, `o21`).
-    pub(super) fn left_out(&mut self, name: &str, _first: bool, last: bool, span: Span) -> Failed {
+    /// `LBOUND` and `UBOUND` are "Syntax error" for any argument left out (the last one measured, `v66_g07`, `g08`).
+    /// `SCREEN` is "Incorrect number of arguments" for a middle one (`v66_g01`); its first and last were not
+    /// measured, so they stay "not supported yet".
+    pub(super) fn left_out(&mut self, name: &str, first: bool, last: bool, span: Span) -> Failed {
         let name = name.to_ascii_uppercase();
         let count = matches!(name.as_str(), "POINT" | "_RGB" | "INSTR" | "MID$");
         let other = matches!(name.as_str(), "_RGB32" | "_RGBA32" | "LEFT$");
+        let syntax = matches!(name.as_str(), "LBOUND" | "UBOUND");
         match (count || other, last) {
+            _ if syntax => self.error(span, format!("`{name}` cannot leave out an argument")),
+            _ if name == "SCREEN" && !first && !last => {
+                self.error(span, format!("an argument of `{name}` is left out"))
+            }
             (true, true) => self.error(span, format!("the last argument of `{name}` is left out")),
             (true, false) if count => self.error(span, format!("an argument of `{name}` is left out")),
             (true, false) => self.error(span, format!("`{name}` cannot leave out an argument")),
@@ -862,6 +870,15 @@ impl Checker<'_> {
         if let Some(bad) = stmt.unparsed_args() {
             let msg = format!("cannot read the arguments of `{}`", form.name);
             return Err(self.error(bad.span(), msg));
+        }
+        // The old compiler's warning for `CHAIN` in a program with `$DEBUG`, also outside the IDE (`qb64pe.bas` 9758;
+        // measured, `verification\v68_g1_debug_chain`). `$DEBUG` anywhere counts: the parser settles the flag.
+        if form.name == "CHAIN" && self.program.flags.get(qb64rust_syntax::pp::Feature::Debug) != 0 {
+            let msg = "Feature incompatible with $DEBUG mode\n    CHAIN".to_string();
+            let code = crate::lints::DEBUG_INCOMPATIBLE;
+            self.prog
+                .qb64pe_warnings
+                .push((super::first_token_span(node), code, msg));
         }
         let nodes = self.present_args(stmt.arg_list())?;
         let slots = stmt_slots(form.id).len();
