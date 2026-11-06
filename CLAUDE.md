@@ -102,6 +102,9 @@ changing direction, design or scope.**
      and runs them in the suites VM (`QB64RUST_ALLOW_NETWORK=1`, set by `check`). Claude never sets that
      variable on the host; the user may, for example to record network programs with `qb64pe`. A new program
      that calls `_OPENHOST` or `_OPENCLIENT` needs the sidecar; `inputs::network_programs_are_marked` checks it.
+   - **A game port's own `tests\play.py` is not such a run** (user, 2026-11-06, `study\44` D7). The scripts of
+     World War 2 and Civil War Battleset run on the host, on a desktop of their own that the user never sees,
+     with `--jobs 4`. They open no window and run no network program.
    *Why:* on 2026-11-05 a session ran the whole corpus and two verification families on the host with
    `--trace-values`, eight jobs at once, while the user was working; network programs ask the user to allow them
    through the firewall (user: "that seems stupid").

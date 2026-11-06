@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+lints_unused_procedure_warnings.bas:12:5: warning: SUB `Spare` is never called
+lints_unused_procedure_warnings.bas:20:10: warning: FUNCTION `Twice%` is never called

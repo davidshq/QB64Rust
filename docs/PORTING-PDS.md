@@ -7,6 +7,63 @@ game is about 1,000 lines of main module plus three linked modules, a mouse libr
 QB64Rust follows QB64pe, and QB64pe follows QuickBASIC 4.5. Most PDS-only features are missing from all three. So
 the aim of a port is a program that builds with both QB64Rust and QB64pe, changed as little as possible.
 
+## 0. Principles of a port
+
+These are the rules the World War 2 port followed, most of them set by the user while it was done (2026-11-04 and
+2026-11-05). They apply to the next port too: W.R. Hutsell's *Civil War Battleset*, planned in `study\44`.
+
+**What a port is for.** A port has two goals: to try QB64Rust on a real program, and to bring the program to where
+it can be refactored safely (user, 2026-11-04). It is not a refactoring itself.
+
+**The original stays as it came.**
+- Make a branch named `qb64rust` from `main`, which holds the original source. Do not start from an earlier
+  branch that moved files or changed the code (user: "start with main, make a branch from that").
+- Change as little as possible. Each change gets a numbered item in the port's `docs\devnotes.md`: what changed
+  and why. No reformatting, no renaming of variables, no removal of a feature of the game.
+- A change that is not needed to build, to run or to test is not made. The user asks "did you make any
+  unnecessary edits?", so every edit must have its reason ready.
+- A behavior of the game that may be a bug of the original stays as it is. It becomes a row of the port's
+  `TODO.md` for the user to decide. Fixing it changes the recorded screens.
+
+**Build with both compilers.** Build every program with QB64Rust and with QB64pe, and compare their screens. If
+both show the same, a difference from what is expected is in the port, not in a compiler.
+
+**Programs and files.**
+- Keep the names by which the programs start each other. The QB64 builds take the names of the DOS programs.
+  Remove the DOS programs of those names from the branch; they stay on `main`. Do not rename the builds to keep
+  the DOS ones (user, 2026-11-05).
+- Builds are not committed: `*.exe` goes in `.gitignore`, and so do the program's `stdout.txt` and `stderr.txt`.
+- A GitHub Actions workflow builds the programs with QB64Rust on each merge into `main`, and when started by
+  hand. Its artifact is a folder that can be unzipped and played (user, 2026-11-05).
+- Remove what the port does not use: DOS sound drivers and players, DOS launchers (`.BAT`, `.PIF`), PDS build
+  files (`.MAK`, `.LNK`, `.OBJ`, `.BTM`), demos, advertising and archives. They stay on `main`.
+- A DOS program with no source that shows a screen (a title screen, for example) cannot run on 64-bit Windows.
+  Run it in DOSBox, keep a screenshot in `docs\`, and note what is lost (user, 2026-11-05).
+- Before removing a data file, check whether the game needs it to exist. For example, a Files menu may offer
+  Load only when a saved game exists.
+- Saved games and high scores that came with the game go to `tests\data\`, where every test run starts from them.
+  The copies that playing leaves beside the program are ignored by git (user, 2026-11-05).
+- Data files go into a few folders by kind, such as `graphics\`, `sound\` and `scenarios\`. Each folder is a
+  `CONST` in one include file (`FOLDERS.BI` in World War 2). There is no `src\` or `help\` folder. `docs\` holds
+  the developer notes and the game's own documents (user, 2026-11-05).
+
+**DOS facilities.** Replace what only DOS had with QB64's own statements: the mouse driver with `_MOUSE…`, the
+sound players with `_SNDOPEN` and `_SNDPLAY`. Keep the game's own switches: if a command-line option turned sound
+on in DOS, it still does.
+
+**Tests before changes.** Unit tests cover the SUBs that draw nothing. Whole-game scripts play every scenario
+from the title menu to the end and compare the screens (section 4). Coverage shows what neither reaches. The hooks
+for the scripts do nothing unless an environment variable is set, so the game plays as before.
+
+**What the port finds goes back to QB64Rust.** A message that misleads, a form that builds silently and does the
+wrong thing, or a difference from the old compiler becomes a verification program, a `DECISIONS.md` or
+`SOMEDAY.md` row, or a line in this guide. When the old compiler's behavior is in doubt, measure it with
+`tools\qb45\qb45.py` (QB 4.5, or PDS 7.1 with `--compiler pds71`), not from memory.
+
+**A clean build proves little.** Search the source for every PDS-only name (section 3). Look for every `GOSUB`
+routine that can leave its SUB before its `RETURN` (section 3), by reading each routine: a scan of the first exit
+misses some.
+
 ## 1. Make one program out of the modules
 
 PDS links several `.BAS` modules into one executable. QB64 builds one source file.
@@ -97,4 +154,4 @@ the clock.
 A behavior of PDS itself can be measured the same way: write a `q45_` program and record it with
 `qb45.py --compiler pds71` (`tools\qb45\README.md`, "PDS 7.1").
 
-The full notes of the port are in the game's repo: `devnotes\devnotes.md` and `tests\README.md`.
+The full notes of the port are in the game's repo: `docs\devnotes.md` and `tests\README.md`.

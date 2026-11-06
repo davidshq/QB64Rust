@@ -6,7 +6,7 @@ use crate::consteval::Value;
 use crate::{ConstId, LabelId, MemberId, ProcId, ProcKind, Program, Storage, TypeId, VarId};
 use qb64rust_base::show_bytes;
 use qb64rust_base::{FileId, SourceMap, Span, to_u32};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -42,6 +42,9 @@ pub struct Symbols {
     /// Every definition and reference, sorted by (file, start).
     by_pos: Vec<(Span, SymbolId)>,
     by_kind: HashMap<SymbolKind, SymbolId>,
+    /// The spans that declare a procedure without calling it: the name in its `SUB` or `FUNCTION` header and in each
+    /// `DECLARE SUB` or `DECLARE FUNCTION` line (design D5 of `lints`).
+    declaring: HashSet<Span>,
 }
 
 impl Symbols {
@@ -72,6 +75,16 @@ impl Symbols {
             .iter()
             .take_while(move |(s, _)| s.file == span.file && s.start < span.end)
             .copied()
+    }
+
+    /// Marks `span`, a procedure's name, as one that declares it rather than calls it.
+    pub(crate) fn mark_declaring(&mut self, span: Span) {
+        self.declaring.insert(span);
+    }
+
+    /// Whether `span` declares a procedure ([`Self::mark_declaring`]).
+    pub fn is_declaring(&self, span: Span) -> bool {
+        self.declaring.contains(&span)
     }
 
     /// Records the names one statement resolved. The first name of a symbol not seen before becomes its

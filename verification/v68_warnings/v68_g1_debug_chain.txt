@@ -1,0 +1,7 @@
+v68_g1_debug_chain.bas:3: warning: $DEBUG features only work from the IDE
+v68_g1_debug_chain.bas:6: warning: Feature incompatible with $DEBUG mode
+    CHAIN
+v68_g1_debug_chain.bas:3: warning: $DEBUG features only work from the IDE
+v68_g1_debug_chain.bas:6: warning: Feature incompatible with $DEBUG mode
+    CHAIN
+exit=0

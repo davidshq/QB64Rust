@@ -509,6 +509,25 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `LONG` and parentheses give copies. `d_alias`: the parameter is the variable itself, also a SHARED one, from a
   SUB, a FUNCTION and a `DECLARE`d SUB. `e_wide`: 33 and 40 bits. `f_element_paren`: an element in parentheses
   is a copy
+- `v68*`: the warnings of `qb64pe -w` (2026-11-06, OpenSpec change `lints`, task 5.1). Besides the usual
+  recordings, `v68_warnings.py` records `qb64pe -z -w -q` for each program into `v68_warnings\<name>.txt`, which
+  the CLI test `qbpe_warnings_as_recorded` compares with `qb64rust -w -z`. "Unused variable" (`a_unused`,
+  `a2_types`, `a3_more`, `a4_params`, `b_shared`, `c_input`, `d_include`): given for a variable made by `DIM`,
+  `DIM SHARED`, `REDIM`, `STATIC` or a parameter that is never named again. An assignment counts as a name
+  (`a3` `setonly`). A parameter is reported also after a `DECLARE`, with a suffix or an `AS` clause, and in a body
+  of comments only (`a4`). It is also given for a FUNCTION's result the FUNCTION never assigns, at its header; never for a variable made by its first use (read
+  once, set once, a `FOR` counter, an `INPUT` target, an array used without `DIM`), nor for `COMMON`, `COMMON
+  SHARED` or one a `SHARED` statement made. The detail is the name as declared with QB64pe's suffix for its type
+  (`~&`, `$5`, `` `3 ``, `%&`, none for a `TYPE` and `_MEM`) and `()` for an array, padded to the longest name
+  reported plus one, two blanks, then the type's name (a `TYPE` as its `TYPE` line writes it). In an included file
+  the warning names that file and its line (`d_include`). QB64pe prints these after all other warnings. "Empty
+  SELECT CASE block" (`e1`): at the `END SELECT` of a `SELECT` with no `CASE`; a statement before the first
+  `CASE` is the error "Expected CASE expression" (`e2`, `e3`). "Duplicate constant definition" (`f1`): a `CONST`
+  repeated with the same value, the detail `name = value` with the name as written without its suffix and the
+  value evaluated (`e = 6` for `2 + 4`), a string as `"x",1`; another value is "Name already in use" (`f2`).
+  "Feature incompatible with $DEBUG mode" (`g1`, `g2`): `CHAIN` and `RUN` in a program with `$DEBUG`, also
+  outside the IDE, with the detail `CHAIN` or `RUN`. In `f1`, `g1` and `g2` QB64pe compiles the program twice and
+  prints each warning of the pass twice
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

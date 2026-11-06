@@ -4994,6 +4994,172 @@ fn report_unsupported_names_programs_with_other_errors() {
     assert!(stdout(&o).contains("more than one input file"), "{}", stdout(&o));
 }
 
+/// "Warning report", scenarios "Counts by code" and "A program with errors" (spec `compiler/cli`): the lines per
+/// code, then the four warnings; a program with an error is counted and gives none.
+#[test]
+fn report_warnings_counts_by_code() {
+    let d = scratch("report-warnings");
+    std::fs::create_dir(d.join("sub")).unwrap();
+    std::fs::write(d.join("one.bas"), "$CONSOLE:ONLY\na:\nb:\nPRINT 1\n").unwrap();
+    std::fs::write(d.join("sub").join("two.bas"), "$CONSOLE:ONLY\nc:\nSUB S\nEND SUB\n").unwrap();
+    let o = qb64rust(&d, &["--report", "warnings", "."]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let sep = std::path::MAIN_SEPARATOR;
+    let expected = format!(
+        "2 programs: 0 with errors, which get no lint warnings\n\
+         programs  times  code\n       \
+         0      0  used-once\n       \
+         1      1  unused-procedure\n       \
+         2      3  unused-label\n       \
+         0      0  hides-shared\n       \
+         0      0  unreachable\n       \
+         0      0  unused-variable\n       \
+         0      0  empty-select\n       \
+         0      0  duplicate-const\n       \
+         0      0  debug-incompatible\n\
+         .{sep}one.bas:2:1: warning: label `a` is never used\n\
+         .{sep}one.bas:3:1: warning: label `b` is never used\n\
+         .{sep}sub{sep}two.bas:2:1: warning: label `c` is never used\n\
+         .{sep}sub{sep}two.bas:3:5: warning: SUB `S` is never called\n"
+    );
+    assert_eq!(stdout(&o), expected);
+
+    std::fs::write(d.join("bad.bas"), "$CONSOLE:ONLY\nd:\nGOTO nowhere\n").unwrap();
+    let o = qb64rust(&d, &["--report", "warnings", "bad.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(
+        stdout(&o).starts_with("1 program: 1 with errors, which get no lint warnings\n"),
+        "{}",
+        stdout(&o)
+    );
+    assert!(!stdout(&o).contains("warning:"), "{}", stdout(&o));
+}
+
+/// A lint warning is printed with `-w` as any warning is, and not without it; a program with an error gets the error
+/// and no lint warning (spec `compiler/lints`, "When lints run"). The C++ only, so no clone is needed.
+#[test]
+fn lint_warning_with_w() {
+    let d = scratch("lint-w");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nagain:\nPRINT 1\nSYSTEM\n").unwrap();
+    let o = qb64rust(&d, &["-w", "-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(
+        stdout(&o)
+            .lines()
+            .any(|l| l == "p.bas:2:1: warning: label `again` is never used"),
+        "{}",
+        stdout(&o)
+    );
+    let o = qb64rust(&d, &["-z", "p.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+
+    std::fs::write(
+        d.join("e.bas"),
+        "$CONSOLE:ONLY\nagain:\nPRINT 1\nSYSTEM\nGOTO nowhere\n",
+    )
+    .unwrap();
+    let o = qb64rust(&d, &["-w", "-z", "e.bas"]);
+    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+    assert!(stdout(&o).contains("e.bas:5:"), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+}
+
+/// The headers of the warnings `qb64pe -w` gives that the new compiler gives too, as it words them.
+const QB64PE_WARNINGS: &[&str] = &[
+    "Unused variable",
+    "Empty SELECT CASE block",
+    "Duplicate constant definition",
+    "Feature incompatible with $DEBUG mode",
+    "$DEBUG features only work from the IDE",
+];
+
+/// The warnings of `-w` output with a header of [`QB64PE_WARNINGS`], each as (file, line, header, detail), sorted
+/// and each once. QB64pe prints `file:line: warning: header`, we print `file:line:column: warning: header`; both put
+/// the detail on the next line, indented. QB64pe prints its unused variables after the other warnings, and prints
+/// a pass's warnings again when it compiles a program twice (`verification\v68_f1_const_same`).
+fn qb64pe_warnings(text: &str) -> Vec<(String, u32, String, String)> {
+    let lines: Vec<&str> = text.lines().collect();
+    let mut found = std::collections::BTreeSet::new();
+    for (i, line) in lines.iter().enumerate() {
+        let Some((at, header)) = line.split_once(": warning: ") else {
+            continue;
+        };
+        if !QB64PE_WARNINGS.contains(&header) {
+            continue;
+        }
+        let mut parts = at.split(':');
+        let (file, line_no) = (parts.next().unwrap(), parts.next().unwrap().parse().unwrap());
+        let detail = lines
+            .get(i + 1)
+            .and_then(|l| l.strip_prefix("    "))
+            .unwrap_or("")
+            .to_string();
+        found.insert((file.to_string(), line_no, header.to_string(), detail));
+    }
+    found.into_iter().collect()
+}
+
+/// QB64pe's warnings (spec `compiler/lints`, "QB64pe's warnings"): for each program of `verification\v68_*`, the
+/// warnings of `qb64rust -w -z` with QB64pe's headers are those `qb64pe -w -z` gave, recorded in
+/// `verification\v68_warnings\<name>.txt` (by `verification\v68_warnings.py`): file, line, header and detail.
+#[test]
+fn qbpe_warnings_as_recorded() {
+    let verification = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification");
+    let mut programs: Vec<PathBuf> = std::fs::read_dir(&verification)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| {
+            let name = p.file_name().unwrap().to_string_lossy();
+            name.starts_with("v68_") && name.ends_with(".bas")
+        })
+        .collect();
+    programs.sort();
+    assert!(programs.len() >= 13, "{} v68 programs", programs.len());
+    let d = scratch("v68");
+    for f in std::fs::read_dir(&verification).unwrap() {
+        let p = f.unwrap().path();
+        let name = p.file_name().unwrap().to_string_lossy().to_string();
+        if name.starts_with("v68_") && (name.ends_with(".bas") || name.ends_with(".bi")) {
+            std::fs::copy(&p, d.join(&name)).unwrap();
+        }
+    }
+    let mut compared = 0;
+    for p in programs {
+        let stem = p.file_stem().unwrap().to_string_lossy().to_string();
+        let recorded = std::fs::read_to_string(verification.join("v68_warnings").join(format!("{stem}.txt")))
+            .unwrap_or_else(|e| panic!("{stem}: no recording: {e}"));
+        let o = qb64rust(&d, &["-w", "-z", &format!("{stem}.bas")]);
+        let ours = qb64pe_warnings(&stdout(&o).replace("\r\n", "\n"));
+        assert_eq!(ours, qb64pe_warnings(&recorded), "{stem}:\n{}", stdout(&o));
+        compared += ours.len();
+    }
+    assert!(compared >= 40, "only {compared} warnings compared");
+}
+
+/// A program whose only diagnostic is a lint warning is built, with `-w` and without it (spec `compiler/lints`,
+/// "Hidden without -w").
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn lint_warning_still_builds() {
+    let d = scratch("lint-build");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nagain:\nPRINT 1\nSYSTEM\n").unwrap();
+    let exe = d.join("p.exe");
+    let o = qb64rust_build(&d, &["-w", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(
+        stdout(&o).contains("p.bas:2:1: warning: label `again` is never used"),
+        "{}",
+        stdout(&o)
+    );
+    assert!(exe.is_file());
+    std::fs::remove_file(&exe).unwrap();
+    let o = qb64rust_build(&d, &["-q", "-m", "-x", "p.bas", "-o", exe.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(!stdout(&o).contains("warning"), "{}", stdout(&o));
+    assert!(exe.is_file());
+}
+
 #[expect(clippy::disallowed_methods, reason = "a tool's messages")]
 fn text(b: &[u8]) -> String {
     String::from_utf8_lossy(b).to_string()

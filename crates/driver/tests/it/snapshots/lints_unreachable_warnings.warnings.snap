@@ -1,0 +1,9 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+lints_unreachable_warnings.bas:10:1: warning: this code is never run: no label follows the GOTO on line 9
+lints_unreachable_warnings.bas:16:5: warning: this code is never run: no label follows the EXIT DO on line 15
+lints_unreachable_warnings.bas:23:1: warning: this code is never run: no label follows the RETURN on line 22
+lints_unreachable_warnings.bas:42:5: warning: this code is never run: no label follows the EXIT SUB on line 41
+lints_unreachable_warnings.bas:47:5: warning: this code is never run: no label follows the END on line 46

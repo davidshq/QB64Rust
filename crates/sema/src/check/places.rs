@@ -999,11 +999,15 @@ impl Checker<'_> {
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
             conventional: false,
+            implicit: false,
             name: name.clone(),
             ty,
             storage,
             shape,
         });
+        if by == Declarer::Common {
+            self.prog.not_reported_unused.insert(id);
+        }
         self.scope().arrays.insert(key, id);
         if suffix.is_none() && typed {
             self.scope().array_plain.insert(name.clone(), ty);
@@ -1397,6 +1401,7 @@ impl Checker<'_> {
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
             conventional: false,
+            implicit: true,
             name: name.to_string(),
             ty,
             storage,

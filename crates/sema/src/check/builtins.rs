@@ -871,6 +871,15 @@ impl Checker<'_> {
             let msg = format!("cannot read the arguments of `{}`", form.name);
             return Err(self.error(bad.span(), msg));
         }
+        // The old compiler's warning for `CHAIN` in a program with `$DEBUG`, also outside the IDE (`qb64pe.bas` 9758;
+        // measured, `verification\v68_g1_debug_chain`). `$DEBUG` anywhere counts: the parser settles the flag.
+        if form.name == "CHAIN" && self.program.flags.get(qb64rust_syntax::pp::Feature::Debug) != 0 {
+            let msg = "Feature incompatible with $DEBUG mode\n    CHAIN".to_string();
+            let code = crate::lints::DEBUG_INCOMPATIBLE;
+            self.prog
+                .qb64pe_warnings
+                .push((super::first_token_span(node), code, msg));
+        }
         let nodes = self.present_args(stmt.arg_list())?;
         let slots = stmt_slots(form.id).len();
         if nodes.len() != slots {

@@ -151,7 +151,8 @@ numbers of errors and warnings found, `{ "errors": n, "warnings": n }`.
 A check SHALL publish, under the uri of the file each is in, every error and warning the CLI reports for the same
 files with `-w`: the parser's, `sema`'s (with "not supported yet" in the message where the CLI marks it) and the
 missing files of `$EXEICON` and `$EMBED`. Each SHALL have the CLI's message, line and column, the old compiler's
-wording as the second line where the CLI gives it a note, source `qb64rust`, and severity error or warning.
+wording as the second line where the CLI gives it a note, source `qb64rust`, and severity error or warning. A lint
+warning SHALL also have its code (spec `compiler/lints`, "Codes").
 
 #### Scenario: Several errors in one run
 - **WHEN** a program has an undefined `GOTO` label on line 3 and `x$ = 1` on line 7 and is checked
@@ -164,6 +165,10 @@ wording as the second line where the CLI gives it a note, source `qb64rust`, and
 #### Scenario: Warning
 - **WHEN** a checked program has `$DEBUG` on line 1
 - **THEN** a diagnostic with severity warning is published on line 1
+
+#### Scenario: Lint code
+- **WHEN** a checked program has a label on line 4 that nothing names
+- **THEN** a warning with code `unused-label` is published on line 4
 
 #### Scenario: Missing icon
 - **WHEN** a checked program has `$EXEICON:'./game.ico'` and no `game.ico` lies beside it

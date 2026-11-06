@@ -245,9 +245,9 @@ occurs, and the number of times it occurs, ordered by those three numbers, large
 compile run SHALL NOT apply. A program with an `.err` file beside it SHALL be left out and counted in a line of its
 own. A program with an error that is not marked SHALL be named after the table. Nothing SHALL be built. The exit
 status SHALL be 0 when every input was read, whatever errors the programs hold, and 1 for an input that is neither
-a file nor a folder or for any other word after `--report`. Without `--report`, more than one input file SHALL
-stay an error. A program the inputs reach more than once, under whatever spelling of its path, SHALL be counted
-once.
+a file nor a folder or for any word after `--report` other than `unsupported` and `warnings`. Without `--report`,
+more than one input file SHALL stay an error. A program the inputs reach more than once, under whatever spelling of
+its path, SHALL be counted once.
 
 #### Scenario: A folder of programs
 - **WHEN** a folder holds a program without errors, a program with one `LPRINT`, a program in a subfolder with 105
@@ -422,3 +422,19 @@ its text in every form the table can name, as `[code, text]` pairs.
   `qb64rust --old-wording-keys`
 - **THEN** the key printed is ``variable `{}` (LONG) is not declared (`OPTION _EXPLICIT`)``, with one placeholder
   whose `=` form is `count` and whose `U` form is `COUNT`
+
+### Requirement: Warning report
+`qb64rust --report warnings <file or folder>... [--include-root <dir>]` SHALL take its programs as the demand
+report does and run the front end over each, building nothing. It SHALL print a summary line with the number of
+programs and of those with errors, then one line per lint code with the number of programs it occurs in and the
+number of times. After the table it SHALL print every lint warning as `-w` prints it. The exit status SHALL be as
+for the demand report.
+
+#### Scenario: Counts by code
+- **WHEN** a folder holds one program with two unused labels and another with one unused label and one unused SUB
+- **THEN** the `unused-label` line says 2 programs and 3 warnings, the `unused-procedure` line 1 and 1, and the
+  four warnings follow
+
+#### Scenario: A program with errors
+- **WHEN** one of the programs has an error
+- **THEN** it is counted among those with errors and gives no lint warnings

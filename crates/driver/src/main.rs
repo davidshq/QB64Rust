@@ -10,8 +10,8 @@
 //! `qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]`: the
 //! file laid out as `qb64pe -y` lays it out (spec `compiler/format`).
 //!
-//! `qb64rust --report unsupported <file or folder>... [--include-root <dir>]`: what a set of programs still needs
-//! (`report.rs`).
+//! `qb64rust --report unsupported|warnings <file or folder>... [--include-root <dir>]`: what a set of programs still
+//! needs, or its lint warnings counted by code (`report.rs`).
 //!
 //! `qb64rust lsp`: the language server (crate `qb64rust-lsp`).
 //!
@@ -39,7 +39,7 @@ const USAGE: &str = "usage: qb64rust [-x] [-q] [-m] [-w] [-e] [-p] [-z|--print-b
 [--fix <name>=on|off]...\n\
        qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]\n\
        qb64rust --list-fixes    (the fixes --fix and qb64rust.toml name)\n\
-       qb64rust --report unsupported <file or folder>... [--include-root <dir>]\n\
+       qb64rust --report unsupported|warnings <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)\n\
        qb64rust dap [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the debug adapter, over stdin and stdout)\n\
        qb64rust toolchain install [--from-zip <zip>]    (downloads and installs the C++ toolchain, or installs \
@@ -59,8 +59,8 @@ C++ toolchain, or installs it from the release's zip; on Linux names the package
 struct Options {
     /// One file to compile; with `--report`, any number of files and folders.
     inputs: Vec<PathBuf>,
-    /// `--report unsupported`.
-    report: bool,
+    /// `--report unsupported` or `--report warnings`: the report asked for.
+    report: Option<String>,
     /// `-y`: lay the file out instead of compiling it (spec `compiler/format`).
     format: bool,
     output: Option<PathBuf>,
@@ -169,17 +169,17 @@ fn parse_args() -> Result<Options, String> {
             }
             "--report" => {
                 let r = value("--report")?.to_string_lossy().to_string();
-                if r != "unsupported" {
+                if r != "unsupported" && r != "warnings" {
                     return Err(format!("unknown --report `{r}`"));
                 }
-                o.report = true;
+                o.report = Some(r);
             }
             _ if s.starts_with("-f:") => o.settings.push(s["-f:".len()..].to_string()),
             _ if s.starts_with('-') => return Err(format!("unknown option `{s}`")),
             _ => o.inputs.push(PathBuf::from(a)),
         }
     }
-    if o.inputs.len() > 1 && !o.report {
+    if o.inputs.len() > 1 && o.report.is_none() {
         return Err("more than one input file".into());
     }
     Ok(o)
@@ -640,11 +640,17 @@ fn include_root(o: &Options) -> Result<PathBuf, String> {
     }
 }
 
-/// `--report unsupported`: the table of `report.rs` for the files and folders given, with the error cap lifted so
-/// that a large program counts in full. The exit status is 0 whatever the programs hold: the report is no verdict.
-fn report_unsupported(o: &Options) -> Result<ExitCode, String> {
+/// `--report unsupported` or `--report warnings`: the table of `report.rs` for the files and folders given, with the
+/// error cap lifted so that a large program counts in full. The exit status is 0 whatever the programs hold: the
+/// report is no verdict.
+fn run_report(o: &Options) -> Result<ExitCode, String> {
     qb64rust_base::lift_error_cap();
-    print!("{}", report::unsupported(&o.inputs, &include_root(o)?)?);
+    let root = include_root(o)?;
+    let text = match o.report.as_deref() {
+        Some("warnings") => report::warnings(&o.inputs, &root)?,
+        _ => report::unsupported(&o.inputs, &root)?,
+    };
+    print!("{text}");
     Ok(ExitCode::SUCCESS)
 }
 
@@ -722,8 +728,8 @@ fn run() -> Result<ExitCode, String> {
         .first()
         .cloned()
         .ok_or_else(|| format!("no input file\n{USAGE}"))?;
-    if o.report {
-        return report_unsupported(&o);
+    if o.report.is_some() {
+        return run_report(&o);
     }
     let bytes = std::fs::read(&input).map_err(|e| format!("cannot read {}: {e}", input.display()))?;
     if bytes.len() > qb64rust_base::MAX_SOURCE_LEN {

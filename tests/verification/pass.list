@@ -4284,3 +4284,17 @@ v67_c_signs
 v67_d_alias
 v67_e_wide
 v67_f_element_paren
+v68_a2_types
+v68_a3_more
+v68_a4_params
+v68_a_unused
+v68_b_shared
+v68_c_input
+v68_d_include
+v68_e1_select_empty
+v68_e2_select_stmt
+v68_e3_select_before
+v68_f1_const_same
+v68_f2_const_other
+v68_g1_debug_chain
+v68_g2_debug_run

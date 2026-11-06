@@ -75,6 +75,7 @@ impl Checker<'_> {
             }
         }
         self.stmt.names.push((SymbolKind::Proc(id), name_tok.span));
+        self.prog.symbols.mark_declaring(name_tok.span);
         Ok(id)
     }
 
@@ -301,6 +302,7 @@ impl Checker<'_> {
         let v = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
             conventional: false,
+            implicit: false,
             name: name.clone(),
             ty,
             storage: Storage::Param(id),

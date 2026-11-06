@@ -1,0 +1,14 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+lints_qb64pe_warnings.bas:5:1: warning: $DEBUG features only work from the IDE
+lints_qb64pe_warnings.bas:6:5: warning: Unused variable
+    spare&   LONG
+lints_qb64pe_warnings.bas:8:7: warning: Duplicate constant definition
+    k = 3
+lints_qb64pe_warnings.bas:11:1: warning: Empty SELECT CASE block
+lints_qb64pe_warnings.bas:13:15: warning: Feature incompatible with $DEBUG mode
+    RUN
+lints_qb64pe_warnings.bas:14:14: warning: Unused variable
+    extra$   STRING

@@ -76,7 +76,7 @@ change adds or changes alone; at a merge into `main` `just merge` runs the whole
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:verification-membership -->
-Of the 4360 programs of `verification\`, `pass.list` names **4276** and `known.list` 84.
+Of the 4379 programs of `verification\`, `pass.list` names **4298** and `known.list` 81.
 
 Of `pass.list`, 127 differ from QB64pe on purpose and are judged by their `diverged\` output.
 
@@ -91,7 +91,7 @@ Of `pass.list`, 127 differ from QB64pe on purpose and are judged by their `diver
 | `D-050` | 2 |
 | `bug` | 2 |
 | `not recorded` | 4 |
-| `not supported yet` | 65 |
+| `not supported yet` | 62 |
 | `recorded elsewhere` | 1 |
 | `varies` | 4 |
 <!-- /counts:verification-membership -->

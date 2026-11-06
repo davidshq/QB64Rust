@@ -544,3 +544,6 @@ slice/s160_layout_text
 slice/s161_put_string_member
 # A known failure until 2026-10-26: it loops forever by design (RESUME 0), compiled only: its .norun
 runtime_comparison/147_on_error_resume_0
+# The Civil War Battleset port (study\44, step 3): a text screen loaded by BLOAD into &HB800, and the BIOS keyboard buffer's head and tail
+screen/d20_bload_text_memory
+screen/k05_bios_keyboard_buffer

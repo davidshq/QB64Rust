@@ -542,6 +542,18 @@ impl<'a> Checker<'a> {
             Some(Event::Close(Some(e), _)) => self.line(first_token_span(e)),
             _ => 0,
         };
+        // The old compiler's warning at the `END SELECT` of a `SELECT` with no `CASE` at all (`qb64pe.bas` 6923;
+        // measured, `verification\v68_e1_select_empty`). A statement before the first `CASE` is an error.
+        if let (Some(Event::Close(Some(e), _)), Some(list)) = (end, &cases)
+            && list.is_empty()
+            && else_.is_none()
+        {
+            let at = first_token_span(e);
+            let code = crate::lints::EMPTY_SELECT;
+            self.prog
+                .qb64pe_warnings
+                .push((at, code, "Empty SELECT CASE block".to_string()));
+        }
         if let (Some((selector, copied, every)), Some(cases)) = (head, cases) {
             let kind = StmtKind::Select {
                 selector,

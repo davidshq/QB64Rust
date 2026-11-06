@@ -89,6 +89,16 @@ Nothing is waiting: names of more than 40 characters were answered on 2026-11-02
    verification families `v18` (67 of 67) and `v24` (371 pass, 1 known failure) gave their recorded output.
    The cases found while building are in the change's `design.md`, "Found while building". Next: the user's
    review, then sync its specs into `openspec\specs\` and archive it.
+6. **The Civil War Battleset port** (`study\44`, `DECISIONS.md` 2026-11-06): steps 1 to 3 are done. The branch
+   `qb64rust` is made from `main`. The searches and the measurements are in the game's `docs\devnotes.md`: every
+   form measured works unchanged, the same in QB64Rust and QB64pe. Nothing is committed yet. Next: step 4, one
+   program each, building.
+7. **`lints`** (OpenSpec change, built 2026-11-06, not yet archived): five lint warnings of our own and the four
+   warnings of `qb64pe -w` the compiler lacked, with `-w` and in the editor, and `qb64rust --report warnings`
+   (`MANUAL.md`, "Warnings about likely mistakes"). QB64pe's are measured by the new family `verification\v68_*`
+   (14 programs, all on `pass.list`). The corpus run and its counts are in the change's `design.md`, "Found while
+   building". D-059 (how `-w` prints QB64pe's warnings) is Claude's, to confirm at the merge. Next: the user's
+   review, then sync its specs into `openspec\specs\` and archive it.
 
 Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a

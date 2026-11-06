@@ -194,6 +194,9 @@ pub struct Diagnostic {
     /// `compiler/pipeline`). The message names the construct without saying "not supported yet"; the renderer
     /// adds that.
     pub unsupported: bool,
+    /// The lint's name for a lint warning (spec `compiler/lints`, "Codes"); `None` for every other diagnostic.
+    /// The CLI does not print it; the language server passes it to the editor.
+    pub code: Option<&'static str>,
 }
 
 impl Diagnostic {
@@ -203,6 +206,15 @@ impl Diagnostic {
             span,
             message: message.into(),
             unsupported: false,
+            code: None,
+        }
+    }
+
+    /// A lint warning with its code (spec `compiler/lints`).
+    pub fn lint(span: Span, code: &'static str, message: impl Into<String>) -> Diagnostic {
+        Diagnostic {
+            code: Some(code),
+            ..Diagnostic::warning(span, message)
         }
     }
 

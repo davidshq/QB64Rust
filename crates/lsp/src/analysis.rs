@@ -74,6 +74,8 @@ impl Analysis {
                     Severity::Warning => DiagnosticSeverity::WARNING,
                 }),
                 source: Some("qb64rust".to_string()),
+                // A lint warning's code (spec `compiler/lints`, "Codes"), which the editor shows beside the message.
+                code: d.code.map(|c| lsp_types::NumberOrString::String(c.to_string())),
                 // The old compiler's wording on a line of its own, as the CLI's note (`m3-old-wording-notes`).
                 message: match d.old_wording() {
                     Some(old) => format!("{mark}{}\nQB64pe: {old}", d.message),

@@ -1,0 +1,3 @@
+v68_b_shared.bas:4: warning: Unused variable
+    dimshared&   LONG
+exit=0

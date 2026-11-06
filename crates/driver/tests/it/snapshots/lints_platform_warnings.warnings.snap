@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+lints_platform_warnings.bas:22:5: warning: SUB `Lonely` is never called
+lints_platform_warnings.bas:24:11: warning: `stray` is used only once: is it misspelled?

@@ -99,7 +99,7 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `-x` | Accepted for QB64pe's command line; a build is always to an executable. `-c` is the same |
 | `-e` | Build as if the program began with `OPTION _EXPLICIT`, its `$INCLUDE` files too |
 | `-p` | Remove libqb's built objects first, so that the next build makes them again; alone, it does only that |
-| `-w` | Print warnings too |
+| `-w` | Print warnings too, the warnings about likely mistakes among them; see [Warnings about likely mistakes](#warnings-about-likely-mistakes) |
 | `-q` | Print less while building |
 | `-z` | Check the program and write its C++ without building an executable |
 | `-y` | Lay the file out as QB64pe's IDE does; give the result with `-o <out.bas>` |
@@ -113,6 +113,52 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `--version` | Print the compiler's version |
 
 A program that uses `$INCLUDE` libraries meant to sit beside `qb64pe.exe` finds them beside `qb64rust.exe`.
+
+## Warnings about likely mistakes
+
+Some code compiles but is probably a mistake. The compiler warns about it. With `-w` the warnings are printed
+with the others, and in the editor they show as warnings, with the warning's name beside the message. They never
+stop a build and never change the program.
+
+| Name | What it warns about | Example |
+|---|---|---|
+| `used-once` | A variable that no `DIM` or other declaration made, and whose name occurs only once in the whole program. It is often a misspelling | `total = 5` then `PRINT totl`: `` `totl` is used only once: is it misspelled? `` |
+| `unused-procedure` | A SUB or FUNCTION that nothing calls. A `DECLARE` line is not a call | ``SUB `Spare` is never called`` |
+| `unused-label` | A named label that no `GOTO`, `GOSUB`, `RESTORE`, `RESUME`, `ON ERROR` or event names. Line numbers are never reported | ``label `again` is never used`` |
+| `hides-shared` | A `DIM` or `REDIM` in a SUB or FUNCTION that makes a new local variable with the name and type of a `DIM SHARED` one | ``this `score` is a new local variable, which hides the `DIM SHARED` one of the main module`` |
+| `unreachable` | Statements after `GOTO`, `END`, `SYSTEM`, `STOP`, `EXIT`, `RETURN`, `RESUME` or `RUN`, with no label or line number before them. One warning for each such stretch | `this code is never run: no label follows the GOTO on line 8` |
+
+Some cases are left out on purpose:
+- `used-once`: a `FOR` counter, and a variable that `INPUT`, `LINE INPUT` or `READ` reads into, such as
+  `INPUT "Press Enter", dummy$`. With `OPTION _EXPLICIT` (or `-e`) every variable is declared, so there is none.
+- `unused-procedure`: `SUB _GL`, a routine of a `DECLARE LIBRARY` block, and a test SUB of a `_test.bas` file. A
+  SUB named by `ON TIMER(1) Tick` counts as used. A procedure that only calls itself counts as used too.
+- `unreachable`: `ERROR n`, `GOSUB`, `ON … GOTO` and `RUN file$` can go on with the next statement, so code after
+  them is not reported. Neither is code after a single-line `IF … THEN GOTO`, nor code after a `$IF`, `$ELSE` or
+  `$END IF` line, which may run on another platform.
+- `used-once`, `unused-procedure` and `unused-label`: a name used in a `$IF` branch that this compile skips. A
+  `$IF WIN THEN` branch that calls `WinSetup` counts as a call on Linux too.
+
+These warnings are given only for the file you compile, not for the files it includes with `$INCLUDE`. A
+library file usually has routines a program does not use.
+
+`-w` also gives the warnings QB64pe's `-w` gives, in its words and at its lines, included files too:
+
+| Name | What it warns about |
+|---|---|
+| `unused-variable` | "Unused variable": a variable made by `DIM`, `REDIM`, `STATIC` or a parameter that is never named again, or a FUNCTION's result the FUNCTION never sets. The next line gives the name and type, as `dimonly%   INTEGER` |
+| `empty-select` | "Empty SELECT CASE block": a `SELECT CASE` with no `CASE`, at its `END SELECT` |
+| `duplicate-const` | "Duplicate constant definition": a `CONST` repeated with the same value. The next line gives it, as `a = 5` |
+| `debug-incompatible` | "Feature incompatible with $DEBUG mode": `CHAIN` or `RUN` in a program with `$DEBUG` |
+
+A variable that no `DIM` made gets `used-once` when it is named once, never "Unused variable". Our lines have a
+column after the line number, and each warning is printed once, in source order. QB64pe prints its unused
+variables last.
+
+The warnings are given only when the program has no errors. Fix the errors first.
+
+`qb64rust --report warnings <file or folder>...` counts the warnings over many programs, by name, and then prints
+each one. It builds nothing.
 
 ## Testing your code
 

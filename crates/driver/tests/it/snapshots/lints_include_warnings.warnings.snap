@@ -1,0 +1,9 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+lints_include_warnings.bas:8:5: warning: SUB `Spare` is never called
+inc/lints_toolbox.bi:6:16: warning: Unused variable
+    x%   INTEGER
+inc/lints_toolbox.bi:6:30: warning: Unused variable
+    y%   INTEGER

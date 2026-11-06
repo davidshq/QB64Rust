@@ -515,6 +515,7 @@ impl Checker<'_> {
         let id = VarId(to_u32(self.prog.vars.len()));
         self.prog.vars.push(Var {
             conventional: false,
+            implicit: false,
             name,
             ty,
             storage,
@@ -616,6 +617,7 @@ impl Checker<'_> {
                     return Err(self.undeclared(t, ty));
                 }
                 let id = self.new_var(key.0.clone(), ty, storage);
+                self.prog.vars[id.0 as usize].implicit = true;
                 self.scope().vars.insert(key, id);
                 id
             }
@@ -852,7 +854,17 @@ impl Checker<'_> {
                 return Err(self.unsupported(name_tok.span, msg));
             }
             self.reserved(name_tok, &name, suffix)?;
+            // `hides-shared` (design D7 of `lints`): a local of the name and type of the `DIM SHARED` one, by `DIM`
+            // or `REDIM`. Queued here, given by the lints only if the program has no error.
+            let same_type = self.main.vars.get(&key).is_some_and(|v| self.dim_shared.contains(v));
+            let hides = shadows_shared && same_type && matches!(by, Declarer::Dim | Declarer::Redim { .. });
             let id = self.new_var(name.clone(), ty, storage);
+            if hides {
+                self.prog.hidden_shared.push((name_tok.span, id));
+            }
+            if by == Declarer::Common {
+                self.prog.not_reported_unused.insert(id);
+            }
             self.scope().vars.insert(key, id);
             self.note_var_name(&name, storage, name_tok);
             self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
@@ -1212,6 +1224,8 @@ impl Checker<'_> {
                         return Err(self.undeclared(name_tok, ty));
                     }
                     let id = self.new_var(name.clone(), ty, Storage::Main);
+                    // Not "Unused variable" (measured, `verification\v68_a3_more`).
+                    self.prog.not_reported_unused.insert(id);
                     self.main.vars.insert(key.clone(), id);
                     id
                 }

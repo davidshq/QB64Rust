@@ -364,7 +364,8 @@ fn accepted_inputs_lower_and_emit() {
 
 /// "A real program taken whole compiles" (spec `testing/compiler-tests`; design D7 of `m3-sound`): every program of
 /// `tests\programs` goes through the front end with no diagnostic at all, a warning included, the icon its
-/// `$EXEICON` names is there, and its IR is valid and emitted.
+/// `$EXEICON` names is there, and its IR is valid and emitted. Lint warnings are the exception (OpenSpec change
+/// `lints`): they point at the program's own code, which is kept as it was written.
 #[test]
 fn real_programs_have_no_diagnostics() {
     let root = repo().join("tests/programs");
@@ -378,7 +379,7 @@ fn real_programs_have_no_diagnostics() {
         });
         qb64rust_driver::check_exe_icon(&fe.program, &mut fe.diagnostics, &path, &inc);
         assert!(
-            fe.diagnostics.list().is_empty(),
+            fe.diagnostics.list().iter().all(|d| d.code.is_some()),
             "{name}:\n{}",
             fe.render_with_warnings()
         );
