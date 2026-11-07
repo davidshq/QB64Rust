@@ -11,7 +11,7 @@ the aim of a port is a program that builds with both QB64Rust and QB64pe, change
 
 These are the rules the World War 2 port followed, most of them set by the user while it was done (2026-11-04 and
 2026-11-05). The next two ports followed them: W.R. Hutsell's *Civil War Battleset* and *Civil War Strategy*.
-Each game's `docs\port-study.md` has its plan.
+The plan of each of the two is its repo's `docs\port-study.md`.
 
 **What a port is for.** A port has two goals: to try QB64Rust on a real program, and to bring the program to where
 it can be refactored safely (user, 2026-11-04). It is not a refactoring itself.
