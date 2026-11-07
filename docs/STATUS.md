@@ -47,9 +47,10 @@ and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026
 branch `linux-sync-per-tree`. It holds four changes, all archived: `linux-sync-per-tree`, `check-rejudge`,
 `pin-rejection-line`, and the 40-character limit on names, which was built without an OpenSpec change. It also
 added `TODO.md`. Pull request 24 (`1038e38`, 2026-11-04) merged branch `more-updates`: `known-output`,
-`windows-vm`, `vm-suites` and `_BIT` parameters. The branch `we-like-changes` is next to merge. It holds 11
-commits: `value-trace`, `lints`, `test --coverage`, `toolchain install --from-zip`, the PDS 7.1 oracle, QB64pe's
-`-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `tools\check`. No OpenSpec change is open. The
+`windows-vm`, `vm-suites` and `_BIT` parameters. Pull request 25 (`3bb0d2c`, 2026-11-06) merged branch
+`we-like-changes`: `value-trace`, `lints`, `test --coverage`, `toolchain install --from-zip`, the PDS 7.1
+oracle, QB64pe's `-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `tools\check`. M6 moved to
+`ROADMAP-COMPLETED.md` with it. No OpenSpec change is open. The
 extension's last release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
@@ -59,31 +60,24 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 7).
 
-Nothing is waiting: D-059, how `-w` prints QB64pe's warnings, was confirmed on 2026-11-06
-(`QB64PE-DIVERGENCES.md`).
+Nothing is waiting. The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 
 ## Next
 
-1. **Merge `we-like-changes` into `main`.** `just merge` runs in a worktree of the branch's last commit, with
-   its whole suites in the suites VM. Pull request 24's `just merge` (2026-11-04, at `3cc5c54e`) failed 4 of
-   35 steps: `nextest` (the `events_errors.check-fail` snapshot in `frontend::frontend_files`), `linux-tier1`,
-   `linux-upstream` (`audio_sound_test/sound_test` timed out) and `linux-verification` (11 failing, among them
-   `v43_a_errorline` and the old Linux recording of `v59_d_conversions`). This branch's commits re-record
-   `v59_d_conversions` on Linux, run the Linux steps on Xvfb and give Linux programs an empty
-   `XDG_RUNTIME_DIR`; `frontend::frontend_files` passes on the host (2026-11-06). The merge run shows what is left.
-2. **The Civil War Battleset port** (`study\44`, `DECISIONS.md` 2026-11-06): steps 1 to 4 are done on the game's
-   branch `qb64rust`, not yet committed. The game, the editor and `pbmfix` build with QB64Rust and QB64pe, and
-   their first screens are the same in both. The game stops with "RETURN without GOSUB" where step 2 expected.
-   The game's `docs\devnotes.md` has the details. Next: step 5, the `GOSUB` fixes, the yell and the title
-   screenshot.
-3. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"; `DECISIONS.md` 2026-10-28): decided,
+1. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"; `DECISIONS.md` 2026-10-28): decided,
    not built.
-4. **M7, Linux** (`ROADMAP.md`): `m7-linux` is built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are
+2. **M7, Linux** (`ROADMAP.md`): `m7-linux` is built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are
    started by hand once they are pushed; their results are read when they come. M8, macOS, next.
-5. **`TODO.md` rows 4, 6 and 7**: the clipboard programs into the sandbox, a differential group for strings and
+3. **`TODO.md` rows 4, 6 and 7**: the clipboard programs into the sandbox, a differential group for strings and
    arrays, and the grammar's keyword lists generated from `builtins.json`.
 
-Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
+Still to watch: the debugger CLI tests in the suites VM. At pull request 25's merge run, `cli` failed there
+twice, the second time run alone, in 945 s against 192 s at pull request 24's: four debugger tests
+(`dap_data_breakpoint_and_goto`, `debug_next_steps_by_line`, `debug_step_into_an_included_function`,
+`debug_next_over_call_and_into_sub`) and `unit_tests::a_timeout`, whose quick test hit its 2 s limit. All five
+passed on the host at `540aacb0` in 31 s, so the run is taken as the VM's. If `cli` fails in the VM again, find
+out why the VM runs it five times slower.
+`s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
 single step ends about one session in seventy at once ("lost connection"; 3 in 222 runs of
 `debug_next_steps_by_line` under load), so a debugger CLI test can fail so now and then; run it again alone. The
@@ -117,24 +111,25 @@ long run, it is this, and it passes alone.
 
 ## Numbers at the last full runs
 
-The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 23, branch
-`linux-sync-per-tree`** (2026-11-02): `just merge` in the worktree at `7334117`, then at `df67128` the steps its
-fix touched (`upstream-whole`, `upstream-list`, `linux-upstream`) and `counts.py`; `linux-verification`'s two
-failures re-judged against the new `known.linux.list`, not run again. Pull request 24's `just merge` did not pass
-(4 failing steps, "Next" item 1), so its numbers are not taken. The table is replaced from the `just merge` of
-`we-like-changes`.
+The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 25, branch
+`we-like-changes`** (2026-11-06): `just merge` in the worktree at `f4db4ac9`, whose tree is the merge commit's,
+with the whole suites in the suites VM. Accepted by the user without a further run. Three steps failed:
+- `linux-upstream` and `linux-verification`, one program each. Both programs are now on a `known.linux.list`
+  (`c3ce5902`): `audio_sound_test/sound_test` crashes now and then in libqb's audio engine with no sound device,
+  and `v58_f14_display_window` reads `_DESKTOPREFRESHRATE` as 0 on Xvfb. QB64pe's Linux build does both too.
+- `cli`, five tests in the VM. They pass on the host ("Still to watch" under "Next").
 
 | Run | Result |
 |---|---|
-| Tests (nextest), fmt, clippy, doc | 686 pass (140 skipped), clean |
-| CLI tests that build | 120 pass |
-| Full corpus | 514 pass, 7 known failures, none failing |
-| `slice.list` judged from it / without folding | 494 of 494 / 494 of 494 |
+| Tests (nextest), fmt, clippy, doc | 711 pass (153 skipped), clean |
+| CLI tests that build | 126 pass, 5 failed in the VM; those 5 pass on the host |
+| Full corpus | 516 pass, 7 known failures, none failing |
+| `slice.list` judged from it / without folding | 496 of 496 / 496 of 496 |
 | Full upstream | 401 pass, 3 known failures (`const/math_funcs` D-031, `noprompt-continue-fatal` D-052, `http/read_example`); `pass.list` 401 of 401 |
-| Full verification | 4149 pass, 203 known failures, none failing; `pass.list` 4139 of 4139 |
+| Full verification | 4307 pass, 79 known failures, none failing; `pass.list` 4298 of 4298 |
 | qbasic / differential / call-site check | 143 of 143 / 59 of 59 / 2650 of 2650 equal |
 | Built-ins, coverage of Civil War Strategy's scripts, sandbox | pass; sandbox 7 of 7 |
-| Linux: tier 1 / corpus / upstream / verification | 694 pass (116 ignored) / 492 pass, 9 known, 20 skipped / 399 pass, 5 known / 4128 pass, 207 known, 17 skipped |
+| Linux: tier 1 / corpus / upstream / verification | 719 pass (126 ignored) / 491 pass, 12 known, 20 skipped / 400 pass, 3 known, 1 failing (now known) / 4276 pass, 92 known, 17 skipped, 1 failing (now known) |
 
 ## Known bugs
 

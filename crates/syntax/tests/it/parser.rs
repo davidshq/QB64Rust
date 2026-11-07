@@ -244,6 +244,15 @@ fn line_numbers_and_jumps() {
     ));
 }
 
+/// In a one-line `IF`, a bare `RETURN` ends at `ELSE` instead of taking it as its label; `RETURN lab ELSE` keeps
+/// its label (`verification\v17_d_return_before_else`).
+#[test]
+fn return_before_else() {
+    insta::assert_snapshot!(tree(
+        "IF a THEN RETURN ELSE PRINT 1\nIF a THEN RETURN lab ELSE PRINT 2\n"
+    ));
+}
+
 /// An array element assignment is not a call: `a(1) = 2` is an `AssignStmt` (`sema` says arrays are not
 /// supported). With a `,` outside parentheses it is a call: `s (5 / 2) = 2, 0` is a `CallStmt`.
 #[test]

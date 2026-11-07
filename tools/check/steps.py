@@ -203,7 +203,8 @@ NOT_INPUTS = "not (package(qb64rust-driver) & test(/^inputs::/))"
 STEPS: tuple[Step, ...] = (
     Step("fmt", QUICK, ("cargo", "fmt", "--all", "--check"), RUST),
     Step("build", QUICK, ("cargo", "build", "--release"), BUILT),
-    Step("clippy", QUICK, ("cargo", "clippy", "--all-targets"), RUST),
+    # Warnings fail the step, as in CI's `rust.yml`: the workspace's lints are at `warn`.
+    Step("clippy", QUICK, ("cargo", "clippy", "--workspace", "--all-targets", "--", "-D", "warnings"), RUST),
     Step(
         "nextest",
         QUICK,

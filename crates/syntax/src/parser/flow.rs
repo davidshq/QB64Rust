@@ -41,10 +41,15 @@ impl Parser<'_, '_> {
 pub(crate) fn jump_stmt(p: &mut Parser, kind: SyntaxKind) {
     p.start_node(kind);
     p.bump(); // GOTO, GOSUB or RETURN
-    if p.at(Ident) || p.at(Number) {
-        p.bump();
-    } else if kind != ReturnStmt || !p.at_stmt_end() {
-        p.syntax_error("expected a label or line number");
+    // In a one-line IF, `ELSE` ends the statement, so a bare `RETURN` must not take it as its label
+    // (`IF a THEN RETURN ELSE PRINT`, which the old compiler builds).
+    let bare_return = kind == ReturnStmt && p.at_stmt_end();
+    if !bare_return {
+        if p.at(Ident) || p.at(Number) {
+            p.bump();
+        } else {
+            p.syntax_error("expected a label or line number");
+        }
     }
     p.recover();
     p.finish_node();

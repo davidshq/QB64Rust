@@ -5104,6 +5104,7 @@ fn qb64pe_warnings(text: &str) -> Vec<(String, u32, String, String)> {
 /// warnings of `qb64rust -w -z` with QB64pe's headers are those `qb64pe -w -z` gave, recorded in
 /// `verification\v68_warnings\<name>.txt` (by `verification\v68_warnings.py`): file, line, header and detail.
 #[test]
+#[expect(clippy::disallowed_methods, reason = "QB64pe's recorded messages, not BASIC source")]
 fn qbpe_warnings_as_recorded() {
     let verification = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../verification");
     let mut programs: Vec<PathBuf> = std::fs::read_dir(&verification)

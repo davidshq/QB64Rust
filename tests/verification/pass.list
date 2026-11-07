@@ -227,6 +227,7 @@ v17_d_on_error_sub_stays
 v17_d_on_error_sub_label_both
 v17_d_resume_main_label_from_sub_both
 v17_d_resume_sub_label
+v17_d_return_before_else
 v17_d_return_label
 v17_d_return_sub_main_gosub
 v17_e_const

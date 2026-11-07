@@ -152,6 +152,12 @@ belongs to another body SHALL raise error 3 and remove that `GOSUB` from the sta
   prints `s done`
 - **THEN** the output is `lab in s`, then `s done`
 
+#### Scenario: RETURN just before ELSE in a one-line IF
+- **WHEN** a one-line `IF` has a bare `RETURN` just before `ELSE` (`IF a = 0 THEN RETURN ELSE PRINT "a is not 0"`),
+  or `RETURN label` just before `ELSE`
+- **THEN** it compiles, as with the old compiler: the bare `RETURN` ends at `ELSE`, and `RETURN label` keeps its
+  label (`verification\v17_d_return_before_else`)
+
 ### Requirement: Labels per body
 A label SHALL belong to the body it stands in: the main module or one procedure. Two labels with the same name in
 one body SHALL be a compile error; the same name in two bodies SHALL be two labels. A jump to a label of another
