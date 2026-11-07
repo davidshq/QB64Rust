@@ -205,6 +205,25 @@ STEPS: tuple[Step, ...] = (
     Step("build", QUICK, ("cargo", "build", "--release"), BUILT),
     # Warnings fail the step, as in CI's `rust.yml`: the workspace's lints are at `warn`.
     Step("clippy", QUICK, ("cargo", "clippy", "--workspace", "--all-targets", "--", "-D", "warnings"), RUST),
+    # The same lints for Linux, checked from Windows: code under `cfg(windows)` or `cfg(unix)` differs, so a
+    # helper whose callers are all Windows-only is dead code there (CI's `linux` job found one, 2026-11-07).
+    # A check only, with no linking, so no Linux C++ toolchain is needed. The target is in rust-toolchain.toml.
+    Step(
+        "clippy-linux",
+        QUICK,
+        (
+            "cargo",
+            "clippy",
+            "--workspace",
+            "--all-targets",
+            "--target",
+            "x86_64-unknown-linux-gnu",
+            "--",
+            "-D",
+            "warnings",
+        ),
+        RUST,
+    ),
     Step(
         "nextest",
         QUICK,

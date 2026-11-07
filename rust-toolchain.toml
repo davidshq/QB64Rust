@@ -1,3 +1,5 @@
 [toolchain]
 channel = "1.99.1"
 components = ["clippy", "rustfmt"]
+# Linux's standard library, so that `check`'s `clippy-linux` step can lint the Linux build from Windows.
+targets = ["x86_64-unknown-linux-gnu"]

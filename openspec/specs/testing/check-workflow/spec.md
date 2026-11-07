@@ -174,8 +174,8 @@ step SHALL run on the host. `--where host` or `--where vm` SHALL choose the plac
 
 #### Scenario: A host-only step
 - **WHEN** `check quick --where vm` runs
-- **THEN** `fmt`, `build`, `clippy`, `nextest`, `lists`, `doc`, `tools` and `tools-check` run on the host, and `slice` runs in
-  the VM
+- **THEN** `fmt`, `build`, `clippy`, `clippy-linux`, `nextest`, `lists`, `doc`, `tools` and `tools-check` run on the
+  host, and `slice` runs in the VM
 
 ### Requirement: The place by default
 Without `--where`, `check quick` and a step or program named alone SHALL run on the host, and `check full` and

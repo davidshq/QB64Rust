@@ -198,6 +198,8 @@ pub fn link_opengl(exe: &Path) {
 }
 
 /// Set in the suites VM (`tools\winvm\step.ps1`), whose copy of the tree is no git checkout and which has no git.
+/// Windows only: the suites VM is a Windows machine, and its one caller is a Windows test.
+#[cfg(windows)]
 pub fn in_suites_vm() -> bool {
     std::env::var_os("QB64RUST_IN_SUITES_VM").is_some()
 }

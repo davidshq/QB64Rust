@@ -306,18 +306,18 @@ class Cost(unittest.TestCase):
     def test_a_crate_change_plans_the_quick_layer(self):
         self.repo.write("crates/sema/src/lib.rs", "fn b() {}\n")
         self.assertEqual(
-            set(self.repo.planned()), {"fmt", "build", "clippy", "nextest", "lists", "doc", "slice"}
+            set(self.repo.planned()), {"fmt", "build", "clippy", "clippy-linux", "nextest", "lists", "doc", "slice"}
         )
         self.assertIsNone(self.repo.planned()["slice"])
 
     def test_a_change_of_a_crates_tests_plans_no_build_no_lists_and_no_programs(self):
         self.repo.write("crates/sema/tests/it/symbols.rs", "#[test]\nfn t() {}\n")
         self.repo.write("crates/driver/tests/it/cli.rs", "#[test]\nfn t() {}\n")
-        self.assertEqual(set(self.repo.planned()), {"fmt", "clippy", "nextest", "doc"})
+        self.assertEqual(set(self.repo.planned()), {"fmt", "clippy", "clippy-linux", "nextest", "doc"})
 
     def test_a_change_of_inputs_rs_plans_lists(self):
         self.repo.write("crates/driver/tests/it/inputs.rs", "#[test]\nfn t() {}\n")
-        self.assertEqual(set(self.repo.planned()), {"fmt", "clippy", "nextest", "lists", "doc"})
+        self.assertEqual(set(self.repo.planned()), {"fmt", "clippy", "clippy-linux", "nextest", "lists", "doc"})
 
     def test_a_libqb_edit_naming_built_ins_plans_their_programs(self):
         self.repo.write(check.COUNTS + "/verification.txt", COUNTS)
@@ -420,7 +420,10 @@ class Full(unittest.TestCase):
             with mock.patch.object(check, "dirty", lambda root: []), mock.patch.object(check, "execute") as run:
                 self.assertEqual(check.main(["full", "--wait"], root=repo.root), 2)
             run.assert_not_called()
-            self.assertIsNone(check.no_clone(REPO))
+            # A clone beside the tree is found. Made here, not read from the real checkout's parent: a CI runner
+            # has no clone beside its checkout.
+            (repo.root.parent / "QB64pe" / "internal" / "c").mkdir(parents=True)
+            self.assertIsNone(check.no_clone(repo.root))
         finally:
             repo.close()
 
