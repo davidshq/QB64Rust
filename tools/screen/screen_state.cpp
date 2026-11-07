@@ -434,6 +434,24 @@ void sleep_ms(uint32_t ms) {
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
 
+// The key thread calls libqb's input functions while the program runs, and it may still be calling them when the
+// program exits: a last `repeat` step presses its key until then. At exit the C runtime destroys libqb's static
+// objects, `keyhit_buffer` among them, whose storage then is a null pointer. A key pressed after that writes
+// through it and the program crashes, after its last state is written. World War 2's `endturn-1943-allied` did so
+// in about 1 run of 40 (2026-11-07). So each call into libqb's input holds `input_lock`, and `block_input`, run at
+// exit before those destructors, takes the lock and never gives it back: the key thread then waits until the
+// process ends. The mutex is never destroyed, so that it can stay locked while the process ends.
+std::mutex &input_lock = *new std::mutex;
+
+void block_input() {
+    input_lock.lock();
+}
+
+template <class F> void with_input(F call) {
+    std::lock_guard<std::mutex> hold(input_lock);
+    call();
+}
+
 // A key goes in only when the INKEY$ buffer is empty: it holds 15 keys and drops what does not fit. A modifier
 // (a code from VK up) writes nothing there and does not wait.
 void wait_for_buffer(uint32_t code) {
@@ -444,9 +462,11 @@ void wait_for_buffer(uint32_t code) {
 }
 
 void press(uint32_t code) {
-    wait_for_buffer(code);
-    keyboard_keydown(code);
-    keyboard_keyup(code);
+    wait_for_buffer(code); // outside the lock: a program that no longer reads keys must not hold up its exit
+    with_input([code] {
+        keyboard_keydown(code);
+        keyboard_keyup(code);
+    });
 }
 
 // A program announces that it waits for a key by counting in byte 0x4F0 of conventional memory, which libqb does
@@ -559,6 +579,9 @@ void feed(std::vector<Step> steps, std::string keys) {
             limit_ms = (uint32_t)atoi(ms);
     while (!cmem[0x41a]) // the runtime sets the buffer's head when it starts
         sleep_ms(1);
+    // At-exit handlers run last registered first. Registered here, once the program's main has started, after every
+    // static object of libqb was built, `block_input` runs before any of their destructors.
+    atexit(block_input);
     // Counted from 0, not from the byte as it is now: the program may announce its first wait before this thread
     // wakes, and cmem starts as zeros.
     uint8_t prompts = 0;
@@ -583,14 +606,14 @@ void feed(std::vector<Step> steps, std::string keys) {
         if (s.kind == Step::MouseMove) {
             mx = s.x;
             my = s.y;
-            Mouse_QueuePositionEvent(mx, my, GLUTEnum_MouseCursorMode::Normal);
+            with_input([&] { Mouse_QueuePositionEvent(mx, my, GLUTEnum_MouseCursorMode::Normal); });
         } else if (s.kind == Step::MouseDown) {
-            Mouse_QueueButtonDownEvent((int)s.value, mx, my);
+            with_input([&] { Mouse_QueueButtonDownEvent((int)s.value, mx, my); });
         } else if (s.kind == Step::MouseUp) {
-            Mouse_QueueButtonUpEvent((int)s.value, mx, my);
+            with_input([&] { Mouse_QueueButtonUpEvent((int)s.value, mx, my); });
         } else if (s.kind == Step::Wheel) {
             // libqb's yOffset is GLFW's (positive up); _MOUSEWHEEL is positive down.
-            Mouse_QueueScrollEvent(mx, my, 0, -(double)s.y);
+            with_input([&] { Mouse_QueueScrollEvent(mx, my, 0, -(double)s.y); });
         } else if (s.kind == Step::Wait) {
             sleep_ms(s.value);
         } else if (s.kind == Step::Prompt) {
@@ -609,9 +632,9 @@ void feed(std::vector<Step> steps, std::string keys) {
         } else if (s.kind == Step::Hold) {
             // A key still down when the program exits stays down: libqb ends with the process.
             wait_for_buffer(s.value);
-            keyboard_keydown(s.value);
+            with_input([&] { keyboard_keydown(s.value); });
         } else if (s.kind == Step::Lift) {
-            keyboard_keyup(s.value);
+            with_input([&] { keyboard_keyup(s.value); });
         } else {
             do {
                 press(s.value);

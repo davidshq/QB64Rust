@@ -66,8 +66,8 @@ and `slice.list` hold, and what the last full run of the release build gave.
 <!-- /counts:corpus-membership -->
 
 <!-- counts:corpus-results -->
-Last full run: 2026-11-02, compiler build `6ead449f15e2`, folding on, `--jobs 8`, build cache, 8 min. Of 521 programs: **514 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 7 known failures (`target\legacy-tests\results-corpus.json`).
-`slice.list` judged in it (`--check-list`): **494 of 494** pass.
+Last full run: 2026-11-07, compiler build `aff403fac245`, folding on, `--jobs 8`, 7 min. Of 523 programs: **516 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 7 known failures (`target\legacy-tests\results-corpus.json`).
+`slice.list` judged in it (`--check-list`): **496 of 496** pass.
 <!-- /counts:corpus-results -->
 
 Kept by hand (recorded 2026-10-03; `slice` as each change added its programs):

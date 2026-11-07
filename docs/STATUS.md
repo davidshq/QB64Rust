@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-11-06, for the merge of `we-like-changes` (cut to its own rule by finding 2 of the ninth review,
+Updated 2026-11-07, for the merge of `after-pr25` (cut to its own rule by finding 2 of the ninth review,
 `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
@@ -50,7 +50,10 @@ added `TODO.md`. Pull request 24 (`1038e38`, 2026-11-04) merged branch `more-upd
 `windows-vm`, `vm-suites` and `_BIT` parameters. Pull request 25 (`3bb0d2c`, 2026-11-06) merged branch
 `we-like-changes`: `value-trace`, `lints`, `test --coverage`, `toolchain install --from-zip`, the PDS 7.1
 oracle, QB64pe's `-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `tools\check`. M6 moved to
-`ROADMAP-COMPLETED.md` with it. No OpenSpec change is open. The
+`ROADMAP-COMPLETED.md` with it. Pull request 26 (2026-11-07) merges branch `after-pr25`:
+`eval-order-left-to-right`, the end of M7 (Linux), `TODO.md` rows 4, 6 and 7, a bare `RETURN` before `ELSE`,
+the fixes for CI after pull request 25, a fix to `tools\screen` for a crash when a key is pressed during exit, and
+the QB 4.5 rows Q-021 and Q-022. No OpenSpec change is open. The
 extension's last release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
@@ -64,21 +67,23 @@ Nothing is waiting. The game ports' open questions are kept in the games' own re
 
 ## Next
 
-1. **Merge branch `after-pr25` into `main`.** It holds `eval-order-left-to-right` (archived, `fb6efb0e`), the
-   end of M7, and `TODO.md` rows 4, 6 and 7 (`DECISIONS.md` 2026-11-07). Row 6 adds 6 differential programs, so
-   the merge run's differential step has 65. M7, Linux, is done (`ROADMAP.md`): its last item was CI's Linux jobs, which passed on this branch on
-   2026-11-07. At the merge, M7 and "After M7" move to `ROADMAP-COMPLETED.md`. macOS, which was M8, is postponed
+1. **Move M7 and "After M7" to `ROADMAP-COMPLETED.md`** once pull request 26 is merged. M7, Linux, is done: its
+   last item was CI's Linux jobs, which passed on `after-pr25` on 2026-11-07. macOS, which was M8, is postponed
    to `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next.
 2. **Choose the next milestone.** `ROADMAP.md` has no open milestone after M7. The candidates are in
    `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS
    Code features still missing.
 
-Still to watch: the debugger CLI tests in the suites VM. At pull request 25's merge run, `cli` failed there
-twice, the second time run alone, in 945 s against 192 s at pull request 24's: four debugger tests
-(`dap_data_breakpoint_and_goto`, `debug_next_steps_by_line`, `debug_step_into_an_included_function`,
-`debug_next_over_call_and_into_sub`) and `unit_tests::a_timeout`, whose quick test hit its 2 s limit. All five
-passed on the host at `540aacb0` in 31 s, so the run is taken as the VM's. If `cli` fails in the VM again, find
-out why the VM runs it five times slower.
+Still to watch: the CLI tests in the suites VM. They have now failed there at two merges in a row, a different
+test each run, and each failed test passed in the next run:
+- Pull request 25: four debugger tests and `unit_tests::a_timeout`, twice, in 945 s against 192 s at pull
+  request 24's. All five passed on the host at `540aacb0` in 31 s.
+- Pull request 26: `trace_record_when_the_window_is_closed` in the merge run ("the program did not end after its
+  window was closed", 417 s). Run alone, it passed and `debug_next_over_call_and_into_sub` failed instead, with 2
+  stops of the 4 it waits for (1050 s, of which 468 s copying the tree in). That one is the `lldb-server` race
+  below.
+
+The next step is to find out why the VM runs `cli` so much slower than the host.
 `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
 single step ends about one session in seventy at once ("lost connection"; 3 in 222 runs of
@@ -106,25 +111,24 @@ long run, it is this, and it passes alone.
 
 ## Numbers at the last full runs
 
-The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 25, branch
-`we-like-changes`** (2026-11-06): `just merge` in the worktree at `f4db4ac9`, whose tree is the merge commit's,
-with the whole suites in the suites VM. Accepted by the user without a further run. Three steps failed:
-- `linux-upstream` and `linux-verification`, one program each. Both programs are now on a `known.linux.list`
-  (`c3ce5902`): `audio_sound_test/sound_test` crashes now and then in libqb's audio engine with no sound device,
-  and `v58_f14_display_window` reads `_DESKTOPREFRESHRATE` as 0 on Xvfb. QB64pe's Linux build does both too.
-- `cli`, five tests in the VM. They pass on the host ("Still to watch" under "Next").
+The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 26, branch
+`after-pr25`** (2026-11-07): `just merge` in the worktree at `dc731652`, whose tree is the merge commit's but
+for the commit of its count blocks, the fix to `tools\screen\screen_state.cpp` and the QB 4.5 recordings
+(`q45_*`), with the whole suites in the suites VM. 36 steps passed and one failed: `cli`, one test in the VM
+("Still to watch" under "Next"). Linux corpus: `screen/u01_mouse_queue` passed and is still listed in
+`known_failures.txt`.
 
 | Run | Result |
 |---|---|
-| Tests (nextest), fmt, clippy, doc | 711 pass (153 skipped), clean |
-| CLI tests that build | 126 pass, 5 failed in the VM; those 5 pass on the host |
+| Tests (nextest), fmt, clippy, doc | 720 pass (153 skipped), clean |
+| CLI tests that build | 130 pass, 1 failed in the VM; it passed when run again, and another failed |
 | Full corpus | 516 pass, 7 known failures, none failing |
 | `slice.list` judged from it / without folding | 496 of 496 / 496 of 496 |
 | Full upstream | 401 pass, 3 known failures (`const/math_funcs` D-031, `noprompt-continue-fatal` D-052, `http/read_example`); `pass.list` 401 of 401 |
-| Full verification | 4307 pass, 79 known failures, none failing; `pass.list` 4298 of 4298 |
-| qbasic / differential / call-site check | 143 of 143 / 59 of 59 / 2650 of 2650 equal |
-| Built-ins, coverage of Civil War Strategy's scripts, sandbox | pass; sandbox 7 of 7 |
-| Linux: tier 1 / corpus / upstream / verification | 719 pass (126 ignored) / 491 pass, 12 known, 20 skipped / 400 pass, 3 known, 1 failing (now known) / 4276 pass, 92 known, 17 skipped, 1 failing (now known) |
+| Full verification | 4321 pass, 79 known failures, none failing; `pass.list` 4312 of 4312 |
+| qbasic / differential / call-site check | 143 of 143 / 65 of 65 / 2650 of 2650 equal |
+| Built-ins, coverage of Civil War Strategy's scripts, sandbox | pass (375 of 390 built-ins run); 10 of 10; 8 of 8 |
+| Linux: tier 1 / corpus / upstream / verification | 728 pass (126 ignored) / 491 pass, 12 known, 20 skipped / 400 pass, 4 known / 4290 pass, 93 known, 17 skipped |
 
 ## Known bugs
 

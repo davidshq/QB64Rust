@@ -46,7 +46,8 @@ typed: `text <printable ASCII>`, `key <name>` (Enter, Esc, Tab, Backspace, Space
 F1 to F12), `wait <milliseconds>`, `prompt`, `state`, and as the last line `repeat <name>`, which presses the key
 until the program exits. `hold <name>` SHALL put a key down and leave it down until `lift <name>` puts it up; its
 names are those of `key` and the modifier keys `lshift`, `rshift`, `lctrl`, `rctrl`, `lalt` and `ralt`. A key held
-at the end of the file SHALL stay down until the program exits. No key SHALL be lost, whatever the number of keys and the speed of the program: a key is
+at the end of the file SHALL stay down until the program exits. Once the program has begun to exit, no key or mouse
+event SHALL be given: a `repeat` still pressing its key SHALL NOT change how the program exits. No key SHALL be lost, whatever the number of keys and the speed of the program: a key is
 given only when the program has read the ones before. A program announces that it waits for a key by adding 1
 (modulo 256) to byte 0x4F0 of conventional memory (`DEF SEG = 0: POKE 1264, (PEEK(1264) + 1) AND 255`); the
 k-th `prompt` SHALL wait for the k-th announcement before the steps after it are taken. If it does not come
@@ -70,7 +71,7 @@ stderr.
 
 #### Scenario: END's prompt
 - **WHEN** a program ends with `END` and the keys file is `repeat space`
-- **THEN** the program exits
+- **THEN** the program exits with its own exit code, in every run
 
 #### Scenario: A mistake in the keys file
 - **WHEN** a line reads `key bogus`

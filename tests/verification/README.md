@@ -97,6 +97,6 @@ Of `pass.list`, 127 differ from QB64pe on purpose and are judged by their `diver
 <!-- /counts:verification-membership -->
 
 <!-- counts:verification-results -->
-Last full run: 2026-11-02, compiler build `6ead449f15e2`, folding on, `--jobs 8`, build cache, 21 min. Of 4352 programs: **4149 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 203 known failures (`target\legacy-tests\results-verification.json`).
-`pass.list` judged in it (`--check-list`): **4139 of 4139** pass.
+Last full run: 2026-11-07, compiler build `aff403fac245`, folding on, `--jobs 8`, 31 min. Of 4400 programs: **4321 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 79 known failures (`target\legacy-tests\results-verification.json`).
+`pass.list` judged in it (`--check-list`): **4312 of 4312** pass.
 <!-- /counts:verification-results -->
