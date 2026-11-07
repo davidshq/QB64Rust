@@ -373,6 +373,15 @@ NETWORK_SKIP = (
     f"Firewall ask the user (CLAUDE.md working rule 6). It runs in the suites VM; the user may set "
     f"{ALLOW_NETWORK}=1 to run it here"
 )
+# Set by check's steps in the suites VM too: clipboard programs run there.
+ALLOW_CLIPBOARD = "QB64RUST_ALLOW_CLIPBOARD"
+CLIPBOARD_SKIP = (
+    "not run on a Windows host: it writes the system clipboard, which the user may be using, and Windows' "
+    "clipboard history can hold the clipboard open so that the program reads its own copy back (STATUS.md, known "
+    f"bugs). It runs in the suites VM; the user may set {ALLOW_CLIPBOARD}=1 to run it here"
+)
+# The skips of a Windows host (host_skip): a result with one of these details was skipped, not run.
+HOST_SKIPS = (NETWORK_SKIP, CLIPBOARD_SKIP)
 
 
 def external_sidecar(suite: str, bas: Path) -> Path | None:
@@ -388,14 +397,24 @@ def external_sidecar(suite: str, bas: Path) -> Path | None:
     return None
 
 
-def network_skipped(suite: str, bas: Path, env=os.environ, windows: bool = os.name == "nt") -> bool:
-    """A program marked `network:` is skipped on a Windows host unless ALLOW_NETWORK is 1 (CLAUDE.md working rule
-    6, 2026-11-05). Linux, WSL and GitHub's CI run it: no firewall asks there."""
-    # GitHub's runners set CI=true; no one is there for the firewall to ask.
-    if not windows or env.get(ALLOW_NETWORK) == "1" or env.get("CI") == "true":
-        return False
+def host_skip(suite: str, bas: Path, env=os.environ, windows: bool = os.name == "nt") -> str | None:
+    """Why a program is skipped on a Windows host, or None when it runs. A program marked `network:` is skipped
+    unless ALLOW_NETWORK is 1 (CLAUDE.md working rule 6, 2026-11-05): one that opens a port makes Windows Defender
+    Firewall ask the user. A program marked `clipboard:` is skipped unless ALLOW_CLIPBOARD is 1 (DECISIONS.md
+    2026-11-07): it overwrites the user's clipboard, and the clipboard history makes it fail now and then. Linux,
+    WSL and GitHub's CI run both: no firewall asks there, and no one is using the clipboard."""
+    # GitHub's runners set CI=true.
+    if not windows or env.get("CI") == "true":
+        return None
     sidecar = external_sidecar(suite, bas)
-    return bool(sidecar and sidecar.is_file() and sidecar.read_bytes().startswith(b"network:"))
+    if not (sidecar and sidecar.is_file()):
+        return None
+    text = sidecar.read_bytes()
+    if text.startswith(b"network:") and env.get(ALLOW_NETWORK) != "1":
+        return NETWORK_SKIP
+    if text.startswith(b"clipboard:") and env.get(ALLOW_CLIPBOARD) != "1":
+        return CLIPBOARD_SKIP
+    return None
 
 
 def equal_sidecars(roots: list[Path]) -> list[Path]:
@@ -3142,9 +3161,9 @@ def check_list(
             failures.append(
                 (name, f"a known failure in the full run; a pass list needs a pass ({r['detail']})")
             )
-        elif r["status"] == "SKIP" and r["detail"] == NETWORK_SKIP:
-            # Neither passed nor failed: a network program a Windows host's run skips (network_skipped). The
-            # caller reports it as skipped.
+        elif r["status"] == "SKIP" and r["detail"] in HOST_SKIPS:
+            # Neither passed nor failed: a network or clipboard program a Windows host's run skips (host_skip).
+            # The caller reports it as skipped.
             pass
         elif r["status"] != "PASS":
             failures.append((name, f"{r['stage']}: {r['detail']}"))
@@ -3258,8 +3277,9 @@ def rejudge(
         if skipped_on(platform, reason):
             r.update(kind="skipped", status="SKIP", stage="skipped", detail=reason)
             continue
-        if r["status"] == "SKIP" and r["detail"] == NETWORK_SKIP and network_skipped(suite, bas):
-            # A network program the host's run skipped (network_skipped): the known lists do not change that.
+        if r["status"] == "SKIP" and r["detail"] in HOST_SKIPS and host_skip(suite, bas) == r["detail"]:
+            # A network or clipboard program the host's run skipped (host_skip): the known lists do not change
+            # that.
             continue
         if r["status"] == "SKIP":
             problems.append(f"{key}: no longer skipped, and never run")
@@ -3308,16 +3328,17 @@ def run_suite_test(
     known: dict[str, str],
 ) -> list[Result]:
     """Runs one program of a suite; an exception in the runner becomes a FAIL result. A program that a
-    Linux list names with the reason "windows" is skipped on Linux (SKIP), not run; so is a network program on a
-    Windows host (network_skipped)."""
+    Linux list names with the reason "windows" is skipped on Linux (SKIP), not run; so is a network or clipboard
+    program on a Windows host (host_skip)."""
     if suite in ("corpus", "compile", "verification"):
         root = corpus_root if suite == "corpus" else bas.parent if suite == "verification" else bas.parent.parent
         key = ":".join(result_key(suite, bas, root))
         reason = known.get(key, "")
         if skipped_on(platform_of(args), reason):
             return [Result(key.split(":", 1)[0], key.split(":", 1)[1], "skipped", "SKIP", "skipped", reason)]
-        if network_skipped(suite, bas):
-            return [Result(key.split(":", 1)[0], key.split(":", 1)[1], "skipped", "SKIP", "skipped", NETWORK_SKIP)]
+        why = host_skip(suite, bas)
+        if why:
+            return [Result(key.split(":", 1)[0], key.split(":", 1)[1], "skipped", "SKIP", "skipped", why)]
     try:
         if suite == "compile":
             return [compile_test(bas, args, results, qb_root, args.os_tag)]

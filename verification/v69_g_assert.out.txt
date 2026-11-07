@@ -1,0 +1,5 @@
+ f1 m2
+ f3 f2 m4
+ f5 f6 m7
+after
+exit=0

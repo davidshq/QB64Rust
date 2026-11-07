@@ -1,0 +1,51 @@
+---
+source: crates/syntax/tests/it/parser.rs
+expression: "tree(\"IF a THEN RETURN ELSE PRINT 1\\nIF a THEN RETURN lab ELSE PRINT 2\\n\")"
+---
+SourceFile 0..64
+  IfStmt 0..29
+    IfHeader 0..9
+      Ident IF
+      Whitespace  
+      NameRef 3..4
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 10..16
+      ReturnStmt 10..16
+        Ident RETURN
+    Whitespace  
+    Ident ELSE
+    Whitespace  
+    LineBranch 22..29
+      PrintStmt 22..29
+        Ident PRINT
+        Whitespace  
+        Literal 28..29
+          Number 1
+  Newline \x0A
+  IfStmt 30..63
+    IfHeader 30..39
+      Ident IF
+      Whitespace  
+      NameRef 33..34
+        Ident a
+      Whitespace  
+      Ident THEN
+    Whitespace  
+    LineBranch 40..50
+      ReturnStmt 40..50
+        Ident RETURN
+        Whitespace  
+        Ident lab
+    Whitespace  
+    Ident ELSE
+    Whitespace  
+    LineBranch 56..63
+      PrintStmt 56..63
+        Ident PRINT
+        Whitespace  
+        Literal 62..63
+          Number 2
+  Newline \x0A

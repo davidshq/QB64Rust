@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-11-06, for the merge of `we-like-changes` (cut to its own rule by finding 2 of the ninth review,
+Updated 2026-11-07, for the merge of `after-pr25` (cut to its own rule by finding 2 of the ninth review,
 `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
@@ -47,9 +47,13 @@ and the full corpus, without the rest of the full set (`DECISIONS-SMALL.md` 2026
 branch `linux-sync-per-tree`. It holds four changes, all archived: `linux-sync-per-tree`, `check-rejudge`,
 `pin-rejection-line`, and the 40-character limit on names, which was built without an OpenSpec change. It also
 added `TODO.md`. Pull request 24 (`1038e38`, 2026-11-04) merged branch `more-updates`: `known-output`,
-`windows-vm`, `vm-suites` and `_BIT` parameters. The branch `we-like-changes` is next to merge. It holds 11
-commits: `value-trace`, `lints`, `test --coverage`, `toolchain install --from-zip`, the PDS 7.1 oracle, QB64pe's
-`-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `tools\check`. No OpenSpec change is open. The
+`windows-vm`, `vm-suites` and `_BIT` parameters. Pull request 25 (`3bb0d2c`, 2026-11-06) merged branch
+`we-like-changes`: `value-trace`, `lints`, `test --coverage`, `toolchain install --from-zip`, the PDS 7.1
+oracle, QB64pe's `-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `tools\check`. M6 moved to
+`ROADMAP-COMPLETED.md` with it. Pull request 26 (2026-11-07) merges branch `after-pr25`:
+`eval-order-left-to-right`, the end of M7 (Linux), `TODO.md` rows 4, 6 and 7, a bare `RETURN` before `ELSE`,
+the fixes for CI after pull request 25, a fix to `tools\screen` for a crash when a key is pressed during exit, and
+the QB 4.5 rows Q-021 and Q-022. No OpenSpec change is open. The
 extension's last release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
@@ -59,42 +63,32 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 7).
 
-Nothing is waiting: D-059, how `-w` prints QB64pe's warnings, was confirmed on 2026-11-06
-(`QB64PE-DIVERGENCES.md`).
+Nothing is waiting. The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 
 ## Next
 
-1. **Merge `we-like-changes` into `main`.** `just merge` runs in a worktree of the branch's last commit, with
-   its whole suites in the suites VM. Pull request 24's `just merge` (2026-11-04, at `3cc5c54e`) failed 4 of
-   35 steps: `nextest` (the `events_errors.check-fail` snapshot in `frontend::frontend_files`), `linux-tier1`,
-   `linux-upstream` (`audio_sound_test/sound_test` timed out) and `linux-verification` (11 failing, among them
-   `v43_a_errorline` and the old Linux recording of `v59_d_conversions`). This branch's commits re-record
-   `v59_d_conversions` on Linux, run the Linux steps on Xvfb and give Linux programs an empty
-   `XDG_RUNTIME_DIR`; `frontend::frontend_files` passes on the host (2026-11-06). The merge run shows what is left.
-2. **The Civil War Battleset port** (`study\44`, `DECISIONS.md` 2026-11-06): steps 1 to 4 are done on the game's
-   branch `qb64rust`, not yet committed. The game, the editor and `pbmfix` build with QB64Rust and QB64pe, and
-   their first screens are the same in both. The game stops with "RETURN without GOSUB" where step 2 expected.
-   The game's `docs\devnotes.md` has the details. Next: step 5, the `GOSUB` fixes, the yell and the title
-   screenshot.
-3. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"; `DECISIONS.md` 2026-10-28): decided,
-   not built.
-4. **M7, Linux** (`ROADMAP.md`): `m7-linux` is built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are
-   started by hand once they are pushed; their results are read when they come. M8, macOS, next.
-5. **`TODO.md` rows 4, 6 and 7**: the clipboard programs into the sandbox, a differential group for strings and
-   arrays, and the grammar's keyword lists generated from `builtins.json`.
+1. **Move M7 and "After M7" to `ROADMAP-COMPLETED.md`** once pull request 26 is merged. M7, Linux, is done: its
+   last item was CI's Linux jobs, which passed on `after-pr25` on 2026-11-07. macOS, which was M8, is postponed
+   to `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next.
+2. **Choose the next milestone.** `ROADMAP.md` has no open milestone after M7. The candidates are in
+   `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS
+   Code features still missing.
 
-Still to watch: `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
+Still to watch: the CLI tests in the suites VM. They have now failed there at two merges in a row, a different
+test each run, and each failed test passed in the next run:
+- Pull request 25: four debugger tests and `unit_tests::a_timeout`, twice, in 945 s against 192 s at pull
+  request 24's. All five passed on the host at `540aacb0` in 31 s.
+- Pull request 26: `trace_record_when_the_window_is_closed` in the merge run ("the program did not end after its
+  window was closed", 417 s). Run alone, it passed and `debug_next_over_call_and_into_sub` failed instead, with 2
+  stops of the 4 it waits for (1050 s, of which 468 s copying the tree in). That one is the `lldb-server` race
+  below.
+
+The next step is to find out why the VM runs `cli` so much slower than the host.
+`s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
 single step ends about one session in seventy at once ("lost connection"; 3 in 222 runs of
 `debug_next_steps_by_line` under load), so a debugger CLI test can fail so now and then; run it again alone. The
 cause is `lldb-server`'s (`openspec\changes\archive\2026-10-25-m5-dap-proxy\design.md`, "Measured").
-`slice/s150_builtins_more` and `verification\v49_d_clipboard` read `LEN(_CLIPBOARD$)` of `"a" + CHR$(0) + "b"` as
-3 where 1 is recorded, in the closing runs of `m5-debug-build-symbols` (2026-10-25; the committed `HEAD`'s build
-too): libqb's read (`libqb\internal\c\parts\os\clipboard\clipboard.cpp`) replaces its own copy of the 3 bytes with
-the system clipboard cut at the NUL only when `OpenClipboard` succeeds, and Windows' clipboard watcher
-(`TextInputHost`, clipboard history) may hold it open just after the write. Alone, 1 of 6 runs gave 3; under the
-load of three runs side by side, every run. The recordings (1) stay; turning clipboard history off while testing
-should end the race.
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
 line 97 of its keys file) in every run of the slice list or the full corpus at `--jobs 8` since 2026-10-21: in
 the full set at the merge of pull request 12 the full corpus twice, the slice list and the slice list without
@@ -117,24 +111,24 @@ long run, it is this, and it passes alone.
 
 ## Numbers at the last full runs
 
-The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 23, branch
-`linux-sync-per-tree`** (2026-11-02): `just merge` in the worktree at `7334117`, then at `df67128` the steps its
-fix touched (`upstream-whole`, `upstream-list`, `linux-upstream`) and `counts.py`; `linux-verification`'s two
-failures re-judged against the new `known.linux.list`, not run again. Pull request 24's `just merge` did not pass
-(4 failing steps, "Next" item 1), so its numbers are not taken. The table is replaced from the `just merge` of
-`we-like-changes`.
+The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 26, branch
+`after-pr25`** (2026-11-07): `just merge` in the worktree at `dc731652`, whose tree is the merge commit's but
+for the commit of its count blocks, the fix to `tools\screen\screen_state.cpp` and the QB 4.5 recordings
+(`q45_*`), with the whole suites in the suites VM. 36 steps passed and one failed: `cli`, one test in the VM
+("Still to watch" under "Next"). Linux corpus: `screen/u01_mouse_queue` passed and is still listed in
+`known_failures.txt`.
 
 | Run | Result |
 |---|---|
-| Tests (nextest), fmt, clippy, doc | 686 pass (140 skipped), clean |
-| CLI tests that build | 120 pass |
-| Full corpus | 514 pass, 7 known failures, none failing |
-| `slice.list` judged from it / without folding | 494 of 494 / 494 of 494 |
+| Tests (nextest), fmt, clippy, doc | 720 pass (153 skipped), clean |
+| CLI tests that build | 130 pass, 1 failed in the VM; it passed when run again, and another failed |
+| Full corpus | 516 pass, 7 known failures, none failing |
+| `slice.list` judged from it / without folding | 496 of 496 / 496 of 496 |
 | Full upstream | 401 pass, 3 known failures (`const/math_funcs` D-031, `noprompt-continue-fatal` D-052, `http/read_example`); `pass.list` 401 of 401 |
-| Full verification | 4149 pass, 203 known failures, none failing; `pass.list` 4139 of 4139 |
-| qbasic / differential / call-site check | 143 of 143 / 59 of 59 / 2650 of 2650 equal |
-| Built-ins, coverage of Civil War Strategy's scripts, sandbox | pass; sandbox 7 of 7 |
-| Linux: tier 1 / corpus / upstream / verification | 694 pass (116 ignored) / 492 pass, 9 known, 20 skipped / 399 pass, 5 known / 4128 pass, 207 known, 17 skipped |
+| Full verification | 4321 pass, 79 known failures, none failing; `pass.list` 4312 of 4312 |
+| qbasic / differential / call-site check | 143 of 143 / 65 of 65 / 2650 of 2650 equal |
+| Built-ins, coverage of Civil War Strategy's scripts, sandbox | pass (375 of 390 built-ins run); 10 of 10; 8 of 8 |
+| Linux: tier 1 / corpus / upstream / verification | 728 pass (126 ignored) / 491 pass, 12 known, 20 skipped / 400 pass, 4 known / 4290 pass, 93 known, 17 skipped |
 
 ## Known bugs
 
@@ -150,13 +144,14 @@ failures re-judged against the new `known.linux.list`, not run again. Pull reque
   `tests\verification\known.list` as `varies`, beside `v39_b_new_mem`, which went the same way earlier. Not the
   compiler's. `verification\v46_a_play_v0` went the same way at the full set for the merge of `m4-sub-gl`
   (2026-10-24): `PLAY(0)` read while the background queue drains gives 40 or 41 at line 193, the old build's too.
-- `tests\corpus\slice\s150_builtins_more` stores and reads the system clipboard, so it can fail when another run
-  uses the clipboard at the same time (seen once in the no-fold run at the close of `m4-qb64pe-sources`: `LEN` of
-  `"a" + CHR$(0) + "b"` read back as 3, not 1; it passed alone). Run the no-fold list by itself, not beside
-  another slice run. At the close of `m4-line-numbers-whole-arrays` (2026-10-22) it failed on every run, also alone,
-  and so did the old compiler's own `verification\v49_d_clipboard.exe`: libqb's `_CLIPBOARD$` gives its internal copy
-  (all 3 bytes) whenever `OpenClipboard` fails, so any program of the machine that opens the clipboard after a
-  change (a clipboard history) is enough. Not the compiler's.
+- `verification\v49_d_clipboard` can read `LEN(_CLIPBOARD$)` of `"a" + CHR$(0) + "b"` as 3, not the recorded 1,
+  on the host. libqb's read (`libqb\internal\c\parts\os\clipboard\clipboard.cpp`) gives its own copy of all 3
+  bytes whenever `OpenClipboard` fails. Windows' clipboard history (`TextInputHost`) may hold the clipboard open
+  just after the write, and the old compiler's build does the same. Not the compiler's. Since 2026-11-07 its
+  sidecar starts with `clipboard:`, so the runner skips it on a Windows host and it runs in the suites VM and CI,
+  where nothing else holds the clipboard. `v31_x01_accepted` and upstream `clipboard/clipboard_test` are marked
+  the same way. Its cases also run in the sandbox family as `tests\sandbox\clipboard_text`.
+  `slice/s150_builtins_more` no longer uses the clipboard.
 
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).

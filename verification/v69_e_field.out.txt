@@ -1,0 +1,5 @@
+FIELD #fn, wd AS e(ix): fn ix wd
+ 0  5 
+two parts: fn i1 w3 i2 w4
+ 3  4 
+exit=0

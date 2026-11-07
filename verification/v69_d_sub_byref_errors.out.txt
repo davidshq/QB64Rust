@@ -1,0 +1,12 @@
+two x(9), ASC(e)
+ handler 9 
+two ASC(e), x(9)
+ handler 5 
+two x(9), y(9)
+ handler 9 
+two x(f(1)), y(f(9))
+ f1 f9 handler 9 
+two x(f(9)), y(f(1))
+ f9 handler 9 
+done
+exit=0

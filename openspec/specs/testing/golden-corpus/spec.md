@@ -281,6 +281,18 @@ nor a failure. Every program of the corpus, `verification\` and the upstream cop
 - **WHEN** a corpus program calls `_OPENHOST` and has no `network:` sidecar
 - **THEN** `inputs::network_programs_are_marked` fails, naming it
 
+### Requirement: Clipboard programs stay off a Windows host
+A program whose `.external` sidecar starts with `clipboard:` SHALL NOT be built or run on a Windows host. It would
+overwrite the user's clipboard, and Windows' clipboard history can hold the clipboard open just after a write, so
+that the program reads its own copy back and fails now and then. The runner SHALL report such a program as SKIP,
+naming why. It SHALL run it when `QB64RUST_ALLOW_CLIPBOARD=1` (set by `check` in the suites VM), when `CI=true`,
+and on Linux. `--check-list` and `--rejudge` SHALL count such a SKIP as neither a pass nor a failure, as for a
+network program (`DECISIONS.md` 2026-11-07).
+
+#### Scenario: The verification list on the host
+- **WHEN** the verification list runs on a Windows host
+- **THEN** `v49_d_clipboard` and `v31_x01_accepted` are reported SKIP, and the run does not fail
+
 ### Requirement: The pass cache in the compile suite
 `--pass-cache` SHALL work with the compile suite as with the corpus suite: a program that passed with the same
 C++ written by the compiler, libqb's sources and edits, the C++ toolchain, the runner, source, expected output,

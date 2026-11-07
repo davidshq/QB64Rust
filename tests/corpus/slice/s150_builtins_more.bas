@@ -1,17 +1,18 @@
 $CONSOLE:ONLY
-' Slice (m4-builtins-param-types tasks 2.2, 3.3): _OS$, _MD5$, _CLIPBOARD$, _FILES$ and _CAST (verification/v49_a-d):
-' the system's name by its parts, digests of strings of each kind, the clipboard set and read (up to a NUL),
+' Slice (m4-builtins-param-types tasks 2.2, 3.3): _OS$, _MD5$, _FILES$ and _CAST (verification/v49_a-c):
+' the system's name by its parts, digests of strings of each kind,
 ' a folder listed by name, pattern and bare calls, and _CAST to each numeric type, truncated toward zero.
+' _CLIPBOARD$, set and read, as code that is not reached: it runs in tests\sandbox\clipboard_text, because on the
+' host it raced with Windows' clipboard history.
 ON ERROR GOTO handler
 DIM s AS STRING, f AS STRING * 4, e AS STRING, n AS LONG
 DIM sg AS SINGLE, d AS DOUBLE, k AS LONG, u AS _UNSIGNED LONG, q AS _INTEGER64, b AS _BIT
 PRINT INSTR(_OS$, "[WINDOWS]") > 0; LEN(_OS$) > 0
 PRINT _MD5$("abc"); " "; _MD5$("")
 f = "ab": s = "QB64": PRINT _MD5$(f); " "; _MD5$(s + s); LEN(_MD5$(STRING$(5000, 0)))
-_CLIPBOARD$ = "slice": PRINT "["; _CLIPBOARD$; "]"
-_CLIPBOARD$ = "a" + CHR$(0) + "b": PRINT LEN(_CLIPBOARD$)
-_CLIPBOARD$ = f: PRINT LEN(_CLIPBOARD$)
-_CLIPBOARD$ = "": PRINT "["; _CLIPBOARD$; "]"
+IF k = 1 THEN
+    _CLIPBOARD$ = "slice": PRINT "["; _CLIPBOARD$; "]"
+END IF
 e = _FILES$
 MKDIR "s150_dir"
 CHDIR "s150_dir"

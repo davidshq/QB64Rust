@@ -461,6 +461,10 @@ fn a_fix_on_the_command_line() {
 /// written.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "the counts file the runtime writes, not BASIC source"
+)]
 fn counting_the_statements_the_tests_run() {
     let dir = tempfile::Builder::new().prefix("qb64rust-cov-").tempdir().unwrap();
     let counts = dir.path().join("counts.txt");

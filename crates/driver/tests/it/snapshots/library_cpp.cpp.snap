@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/it/frontend.rs
+assertion_line: 210
 expression: snap
 ---
 ==> global.txt <==
@@ -166,9 +167,33 @@ if(__DOUBLE_Y==NULL){
 __DOUBLE_Y=(double*)mem_static_malloc(8);
 *__DOUBLE_Y=0;
 }
-int32 pass1;
-int32 pass2;
-int32 pass3;
+int32 seq1;
+int32 seq2;
+double seq3;
+double seq4;
+long double seq5;
+uint64 seq6;
+int32 seq7;
+int32 seq8;
+int32 seq9;
+int32 seq10;
+int32 seq11;
+int32 seq12;
+int32 seq13;
+int32 seq14;
+int32 seq15;
+int32 pass16;
+int32 pass17;
+int32 pass18;
+int32 seq19;
+double seq20;
+double seq21;
+double seq22;
+int32 seq23;
+int32 seq24;
+int64 seq25;
+int64 seq26;
+int32 seq27;
 ==> mainerr.txt <==
 if (!error_handler_history) error_handler_history = qbs_new(0, 0);
 if (error_occurred){ error_occurred=0;
@@ -200,19 +225,19 @@ if(!qbevent)break;evnt(2);}while(r);
 #line 72 "library_cpp.bas"
 do{
 #line 72 "library_cpp.bas"
-*__LONG_X=((int32)((((uint64)(qbr((((long double)(((((double)(((((int32)h_l(qbr(2.6E+0)))+((int32)h_l(qbr(*__DOUBLE_Y))))+((int32)(((int8)h_b(44)))))))+((double)h_d(1)))+((double)h_d(*__LONG_X)))))+((long double)h_f(1.5E+0))))))+((uint64)(((uptrszint)h_uo(41ull)))))));
+*__LONG_X=((int32)((seq6=((uint64)(qbr((seq5=((long double)((seq4=(seq3=((double)((seq2=(seq1=((int32)h_l(qbr(2.6E+0))),(seq1+((int32)h_l(qbr(*__DOUBLE_Y))))),(seq2+((int32)(((int8)h_b(44)))))))),(seq3+((double)h_d(1)))),(seq4+((double)h_d(*__LONG_X)))))),(seq5+((long double)h_f(1.5E+0))))))),(seq6+((uint64)(((uptrszint)h_uo(41ull))))))));
 #line 72 "library_cpp.bas"
 if(!qbevent)break;evnt(72);}while(r);
 #line 73 "library_cpp.bas"
 do{
 #line 73 "library_cpp.bas"
-*__LONG_X=((((((int32)h_isnull(NULL))+((int32)h_isnull(0ll)))+((int32)h_isnull(((uptrszint)(__LONG_X)))))+((int32)h_ptsum(__UDT_P)))+((int32)h_ptsum(((void*)(((char*)__ARRAY_UDT_Q[0])+((array_check((1ll)-__ARRAY_UDT_Q[4],__ARRAY_UDT_Q[5]))*8))))));
+*__LONG_X=(seq10=(seq9=(seq8=(seq7=((int32)h_isnull(NULL)),(seq7+((int32)h_isnull(0ll)))),(seq8+((int32)h_isnull(((uptrszint)(__LONG_X)))))),(seq9+((int32)h_ptsum(__UDT_P)))),(seq10+((int32)h_ptsum(((void*)(((char*)__ARRAY_UDT_Q[0])+((array_check((1ll)-__ARRAY_UDT_Q[4],__ARRAY_UDT_Q[5]))*8)))))));
 #line 73 "library_cpp.bas"
 if(!qbevent)break;evnt(73);}while(r);
 #line 74 "library_cpp.bas"
 do{
 #line 74 "library_cpp.bas"
-*__LONG_X=(((((((int32)h_max<int32_t>(3,9))+((int32)hns::twice(21)))+((int32)h_len((char*)(__STRING_S)->chr)))+((int32)h_len((char*)(qbs_new_txt_len("abc",3))->chr)))+((int32)h_len((char*)(qbs_add(__STRING_S,qbs_new_txt_len("xy",2)))->chr)))+((int32)h_len((char*)(__STRING6_FX)->chr)));
+*__LONG_X=(seq15=(seq14=(seq13=(seq12=(seq11=((int32)h_max<int32_t>(3,9)),(seq11+((int32)hns::twice(21)))),(seq12+((int32)h_len((char*)(__STRING_S)->chr)))),(seq13+((int32)h_len((char*)(qbs_new_txt_len("abc",3))->chr)))),(seq14+((int32)h_len((char*)(qbs_add(__STRING_S,qbs_new_txt_len("xy",2)))->chr)))),(seq15+((int32)h_len((char*)(__STRING6_FX)->chr))));
 #line 74 "library_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 74 "library_cpp.bas"
@@ -256,7 +281,7 @@ if(!qbevent)break;evnt(76);}while(r);
 #line 76 "library_cpp.bas"
 do{
 #line 76 "library_cpp.bas"
-h_pl(&(pass1=*__LONG_X));
+h_pl(&(pass16=*__LONG_X));
 #line 76 "library_cpp.bas"
 if(!qbevent)break;evnt(76);}while(r);
 #line 76 "library_cpp.bas"
@@ -274,13 +299,13 @@ if(!qbevent)break;evnt(76);}while(r);
 #line 76 "library_cpp.bas"
 do{
 #line 76 "library_cpp.bas"
-h_pl(&(pass2=((int32)(*__INTEGER_K))));
+h_pl(&(pass17=((int32)(*__INTEGER_K))));
 #line 76 "library_cpp.bas"
 if(!qbevent)break;evnt(76);}while(r);
 #line 76 "library_cpp.bas"
 do{
 #line 76 "library_cpp.bas"
-h_pl(&(pass3=5));
+h_pl(&(pass18=5));
 #line 76 "library_cpp.bas"
 if(!qbevent)break;evnt(76);}while(r);
 #line 77 "library_cpp.bas"
@@ -308,7 +333,7 @@ if(!qbevent)break;evnt(77);}while(r);
 #line 78 "library_cpp.bas"
 do{
 #line 78 "library_cpp.bas"
-*__LONG_X=((int32)(qbr((((((double)((((int32)c_add(2,3))+((int32)c_len((char*)(qbs_new_txt_len("abcd",4))->chr)))))+((double)c_half(5)))+((double)(((int64)c_big(4000000000ll,7ull,__UDT_P)))))+((double)(((int32)cpp_add(20,22))))))));
+*__LONG_X=((int32)(qbr((seq22=(seq21=(seq20=((double)((seq19=((int32)c_add(2,3)),(seq19+((int32)c_len((char*)(qbs_new_txt_len("abcd",4))->chr)))))),(seq20+((double)c_half(5)))),(seq21+((double)(((int64)c_big(4000000000ll,7ull,__UDT_P)))))),(seq22+((double)(((int32)cpp_add(20,22)))))))));
 #line 78 "library_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 78 "library_cpp.bas"
@@ -350,7 +375,7 @@ if(!qbevent)break;evnt(79);}while(r);
 #line 80 "library_cpp.bas"
 do{
 #line 80 "library_cpp.bas"
-*__LONG_X=((((int32)FUNC_D_ADD(2,3))+((int32)FUNC_TICKS()))+((int32)FUNC_LSTRLENA((char*)(qbs_new_txt_len("seven!!",7))->chr)));
+*__LONG_X=(seq24=(seq23=((int32)FUNC_D_ADD(2,3)),(seq23+((int32)FUNC_TICKS()))),(seq24+((int32)FUNC_LSTRLENA((char*)(qbs_new_txt_len("seven!!",7))->chr))));
 #line 80 "library_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 80 "library_cpp.bas"
@@ -386,7 +411,7 @@ if(!qbevent)break;evnt(80);}while(r);
 #line 81 "library_cpp.bas"
 do{
 #line 81 "library_cpp.bas"
-*__LONG_X=((int32)(((((int64)FUNC_ADDLL(3,4))+((int64)(((int32)FUNC_CT_ADD(5,6)))))+((int64)(((int32)isdigit(48)))))));
+*__LONG_X=((int32)((seq26=(seq25=((int64)FUNC_ADDLL(3,4)),(seq25+((int64)(((int32)FUNC_CT_ADD(5,6)))))),(seq26+((int64)(((int32)isdigit(48))))))));
 #line 81 "library_cpp.bas"
 if(!qbevent)break;evnt(81);}while(r);
 #line 81 "library_cpp.bas"
@@ -398,7 +423,7 @@ if(!qbevent)break;evnt(81);}while(r);
 #line 82 "library_cpp.bas"
 do{
 #line 82 "library_cpp.bas"
-*__LONG_X=(((int32)FUNC_CT_CPP())+((int32)FUNC_GETTICKCOUNT()));
+*__LONG_X=(seq27=((int32)FUNC_CT_CPP()),(seq27+((int32)FUNC_GETTICKCOUNT())));
 #line 82 "library_cpp.bas"
 if(!qbevent)break;evnt(82);}while(r);
 #line 83 "library_cpp.bas"

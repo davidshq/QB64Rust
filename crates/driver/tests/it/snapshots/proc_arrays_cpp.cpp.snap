@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/it/frontend.rs
+assertion_line: 210
 expression: snap
 ---
 ==> global.txt <==
@@ -624,7 +625,7 @@ if(!qbevent)break;evnt(19);}while(r);
 #line 19 "proc_arrays_cpp.bas"
 do{
 #line 19 "proc_arrays_cpp.bas"
-*_FUNC_LEVEL_LONG_LEVEL=(FUNC_LEVEL(&(pass1=(*_FUNC_LEVEL_LONG_N-1)))+((int32*)(_FUNC_LEVEL_ARRAY_LONG_A[0]))[array_check((((int64)(*_FUNC_LEVEL_LONG_N)))-_FUNC_LEVEL_ARRAY_LONG_A[4],_FUNC_LEVEL_ARRAY_LONG_A[5])]);
+*_FUNC_LEVEL_LONG_LEVEL=(seq2=FUNC_LEVEL(&(pass1=(*_FUNC_LEVEL_LONG_N-1))),(seq2+((int32*)(_FUNC_LEVEL_ARRAY_LONG_A[0]))[array_check((((int64)(*_FUNC_LEVEL_LONG_N)))-_FUNC_LEVEL_ARRAY_LONG_A[4],_FUNC_LEVEL_ARRAY_LONG_A[5])]));
 #line 19 "proc_arrays_cpp.bas"
 if(!qbevent)break;evnt(19);}while(r);
 #line 19 "proc_arrays_cpp.bas"
@@ -676,6 +677,7 @@ _FUNC_LEVEL_ARRAY_LONG_A[6]=0;
 _FUNC_LEVEL_ARRAY_LONG_A[0]=(ptrszint)nothingvalue;
 }
 int32 pass1;
+int32 seq2;
 ==> free2.txt <==
 if (_FUNC_LEVEL_ARRAY_LONG_A[2]&1){
 if (_FUNC_LEVEL_ARRAY_LONG_A[2]&4) cmem_dynamic_free((uint8*)(_FUNC_LEVEL_ARRAY_LONG_A[0])); else free((void*)(_FUNC_LEVEL_ARRAY_LONG_A[0]));

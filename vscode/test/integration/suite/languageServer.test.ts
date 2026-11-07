@@ -135,10 +135,11 @@ describe("language server", function () {
     it("fixed on save", async () => {
         const editor = await open(writeFile("ls/fix.bas", "PRINT 1\r\n"));
         const uri = editor.document.uri;
-        await setText(editor, "PRINT 1\r\nx$ = 1\r\n");
+        // `x$` is read too: a variable named only once draws the `used-once` warning.
+        await setText(editor, "PRINT 1\r\nx$ = 1\r\nPRINT x$\r\n");
         await saveAndCheck(editor);
         await waitFor("the type error", () => qb64rustDiagnostics(uri).length === 1);
-        await setText(editor, 'PRINT 1\r\nx$ = "1"\r\n');
+        await setText(editor, 'PRINT 1\r\nx$ = "1"\r\nPRINT x$\r\n');
         await saveAndCheck(editor);
         await waitFor("no diagnostic", () => qb64rustDiagnostics(uri).length === 0);
     });

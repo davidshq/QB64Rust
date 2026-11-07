@@ -65,7 +65,13 @@ in comparisons and as a `SELECT CASE` selector. `MID$` as a statement SHALL writ
 ### Requirement: Fixed-length strings in arrays and types
 A static array (`DIM a(n) AS STRING * k`) and a `TYPE` member (`m AS STRING * k`) SHALL hold fixed-length strings
 with the same rules; each element and member SHALL start as NUL bytes. A member SHALL take `k` bytes of its type's
-layout.
+layout. `LEN` of a fixed-length string variable, element or member SHALL be its length `k`, known when compiling.
+The index of an element SHALL NOT be evaluated, so an index outside the bounds raises no error there, as in the
+old compiler (`qb64pe.bas` takes the type's size; `tests\differential\array\string`).
+
+#### Scenario: LEN of an element outside the bounds
+- **WHEN** `DIM a(2) AS STRING * 4: ix = 5: PRINT LEN(a(ix))` runs under `ON ERROR`
+- **THEN** it prints ` 4 ` and raises no error
 
 #### Scenario: Member in the layout
 - **WHEN** `TYPE rec: id AS LONG: nm AS STRING * 6: END TYPE` (as a block) is declared, `DIM r AS rec`, `r.nm =

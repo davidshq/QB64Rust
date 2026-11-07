@@ -159,14 +159,10 @@ fn unused_variables(prog: &Program, map: &SourceMap) -> Vec<Lint> {
     let mut symbol_of = HashMap::new();
     let mut type_written = HashMap::new();
     for (_, s) in prog.symbols.iter() {
-        match s.kind {
-            SymbolKind::Var(v) => {
-                symbol_of.insert(v, s);
-            }
-            SymbolKind::Type(t) => {
-                type_written.insert(t, written(map, s.def));
-            }
-            _ => {}
+        if let SymbolKind::Var(v) = s.kind {
+            symbol_of.insert(v, s);
+        } else if let SymbolKind::Type(t) = s.kind {
+            type_written.insert(t, written(map, s.def));
         }
     }
     let mut found = Vec::new();
@@ -181,15 +177,18 @@ fn unused_variables(prog: &Program, map: &SourceMap) -> Vec<Lint> {
             Storage::Result(_) => None,
             // A `DECLARE LIBRARY` routine's parameters are no variables of the program.
             Storage::Param(q) if prog.proc(q).external.is_some() => None,
-            _ => symbol_of.get(&id).filter(|s| s.refs.is_empty()).map(|s| s.def),
+            Storage::Main | Storage::Static(_) | Storage::Local(_) | Storage::Param(_) => {
+                symbol_of.get(&id).filter(|s| s.refs.is_empty()).map(|s| s.def)
+            }
         };
         let Some(at) = at else { continue };
         let shown = written(map, at);
         let shape = if v.is_array() { "()" } else { "" };
         let name = format!("{}{}{shape}", without_suffix(&shown), type_suffix(v.ty));
-        let ty = match v.ty {
-            Ty::User(t) => type_written.get(&t).cloned().unwrap_or_else(|| prog.type_name(v.ty)),
-            _ => prog.type_name(v.ty),
+        let ty = if let Ty::User(t) = v.ty {
+            type_written.get(&t).cloned().unwrap_or_else(|| prog.type_name(v.ty))
+        } else {
+            prog.type_name(v.ty)
         };
         found.push((at, name, ty));
     }
@@ -250,7 +249,50 @@ fn each_list<'p>(prog: &'p Program, f: &mut impl FnMut(&'p [Stmt])) {
                         walk(e, f);
                     }
                 }
-                _ => {}
+                // No statement list inside: a new kind that holds one must be walked above.
+                StmtKind::Builtin { .. }
+                | StmtKind::ConsoleOnly
+                | StmtKind::MemGet { .. }
+                | StmtKind::MemPut { .. }
+                | StmtKind::MemFill { .. }
+                | StmtKind::Assign { .. }
+                | StmtKind::CopyWhole { .. }
+                | StmtKind::Allocate { .. }
+                | StmtKind::Clear { .. }
+                | StmtKind::Release { .. }
+                | StmtKind::EraseParam { .. }
+                | StmtKind::CopyArray { .. }
+                | StmtKind::ArrayCopy { .. }
+                | StmtKind::Print { .. }
+                | StmtKind::PrintUsing { .. }
+                | StmtKind::Field { .. }
+                | StmtKind::Lset { .. }
+                | StmtKind::Write { .. }
+                | StmtKind::Input { .. }
+                | StmtKind::Read(_)
+                | StmtKind::Restore(_)
+                | StmtKind::End(_)
+                | StmtKind::System(_)
+                | StmtKind::Stop
+                | StmtKind::Call { .. }
+                | StmtKind::CallAbsolute { .. }
+                | StmtKind::Exit
+                | StmtKind::OnError(_)
+                | StmtKind::Log { .. }
+                | StmtKind::Resume(_)
+                | StmtKind::Error(_)
+                | StmtKind::Run(_)
+                | StmtKind::PaletteUsing { .. }
+                | StmtKind::Label(_)
+                | StmtKind::Goto(_)
+                | StmtKind::Gosub(_)
+                | StmtKind::Return(_)
+                | StmtKind::ExitLoop(_)
+                | StmtKind::Continue
+                | StmtKind::ExitSelect { .. }
+                | StmtKind::OnJump { .. }
+                | StmtKind::OnEvent { .. }
+                | StmtKind::Key(_) => {}
             }
         }
     }
@@ -267,14 +309,10 @@ fn used_once(prog: &Program, map: &SourceMap, inactive: &HashSet<String>, out: &
     let mut exempt = HashSet::new();
     each_list(prog, &mut |list| {
         for s in list {
-            match &s.kind {
-                StmtKind::For { var: Place::Var(v), .. } => {
-                    exempt.insert(*v);
-                }
-                StmtKind::Input { targets, .. } | StmtKind::Read(targets) => {
-                    exempt.extend(targets.iter().map(Place::root));
-                }
-                _ => {}
+            if let StmtKind::For { var: Place::Var(v), .. } = &s.kind {
+                exempt.insert(*v);
+            } else if let StmtKind::Input { targets, .. } | StmtKind::Read(targets) = &s.kind {
+                exempt.extend(targets.iter().map(Place::root));
             }
         }
     });
@@ -349,13 +387,53 @@ fn leaves(kind: &StmtKind) -> bool {
         | StmtKind::Return(_)
         | StmtKind::Resume(_) => true,
         StmtKind::Run(target) => !matches!(target, RunTarget::File(_)),
-        _ => false,
+        // A new kind that always leaves its list must be listed above.
+        StmtKind::Builtin { .. }
+        | StmtKind::ConsoleOnly
+        | StmtKind::MemGet { .. }
+        | StmtKind::MemPut { .. }
+        | StmtKind::MemFill { .. }
+        | StmtKind::Assign { .. }
+        | StmtKind::CopyWhole { .. }
+        | StmtKind::Allocate { .. }
+        | StmtKind::Clear { .. }
+        | StmtKind::Release { .. }
+        | StmtKind::EraseParam { .. }
+        | StmtKind::CopyArray { .. }
+        | StmtKind::ArrayCopy { .. }
+        | StmtKind::Print { .. }
+        | StmtKind::PrintUsing { .. }
+        | StmtKind::Field { .. }
+        | StmtKind::Lset { .. }
+        | StmtKind::Write { .. }
+        | StmtKind::Input { .. }
+        | StmtKind::Read(_)
+        | StmtKind::Restore(_)
+        | StmtKind::Call { .. }
+        | StmtKind::CallAbsolute { .. }
+        | StmtKind::OnError(_)
+        | StmtKind::Log { .. }
+        | StmtKind::Error(_)
+        | StmtKind::PaletteUsing { .. }
+        | StmtKind::Label(_)
+        | StmtKind::Gosub(_)
+        | StmtKind::Continue
+        | StmtKind::ExitSelect { .. }
+        | StmtKind::OnJump { .. }
+        | StmtKind::OnEvent { .. }
+        | StmtKind::Key(_)
+        | StmtKind::If { .. }
+        | StmtKind::For { .. }
+        | StmtKind::Do { .. }
+        | StmtKind::While { .. }
+        | StmtKind::Select { .. } => false,
     }
 }
 
 /// The keyword a leaving statement is named by in the warning: its first word, two for `EXIT SUB` and the like.
 fn keyword(map: &SourceMap, s: &Stmt) -> String {
-    let text = String::from_utf8_lossy(map.text(s.span)).to_ascii_uppercase();
+    // Only ASCII words are kept; `show_bytes` writes any other byte as `\xNN`, which splits words as before.
+    let text = show_bytes(map.text(s.span)).to_ascii_uppercase();
     let mut words = text.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_' || c == '$'));
     let words: Vec<&str> = words.by_ref().filter(|w| !w.is_empty()).take(2).collect();
     match words.as_slice() {
@@ -379,9 +457,10 @@ fn pp_boundary(map: &SourceMap, from: &Stmt, to: &Stmt) -> bool {
         let Some((start, end)) = file.line_content(line) else {
             return false;
         };
-        let text = String::from_utf8_lossy(&file.bytes[start as usize..end as usize]).to_ascii_uppercase();
-        let text = text.trim_start();
-        ["$IF ", "$ELSEIF ", "$ELSE", "$END IF", "$ENDIF"]
+        let text = file.bytes[start as usize..end as usize]
+            .trim_ascii_start()
+            .to_ascii_uppercase();
+        [&b"$IF "[..], b"$ELSEIF ", b"$ELSE", b"$END IF", b"$ENDIF"]
             .iter()
             .any(|p| text.starts_with(p))
     })

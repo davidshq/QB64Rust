@@ -206,8 +206,8 @@ column and count, so statements that never ran are listed with 0. It also names 
 calls. Several runs can write to the same file; each adds its own record. Without `QB64RUST_COVERAGE`, the
 program writes nothing and behaves as a normal build.
 
-Unit tests can be counted too. `qb64rust test --coverage` builds each test program this way, and adds one record
-per test to the file `QB64RUST_COVERAGE` names:
+Unit tests can be counted too. `qb64rust test` with `--coverage` builds each test program this way, and adds one
+record per test to the file `QB64RUST_COVERAGE` names:
 
 ```
 set QB64RUST_COVERAGE=counts.txt
@@ -266,8 +266,8 @@ What is recorded:
 
 A traced program behaves as the normal build does, with the same output, errors and exit code. It runs slower
 and uses more memory, so build without the option for everyday use. The option combines with `--coverage` and
-`--debug`. `--json` and `--var <name>` of the tool, the full list of what is not recorded, and the record format
-are described in [tools/trace/README.md](../tools/trace/README.md).
+`--debug`. The trace tool's own options (JSON output, one variable by name), the full list of what is not
+recorded, and the record format are described in [tools/trace/README.md](../tools/trace/README.md).
 
 ## Where it differs from QB64pe
 

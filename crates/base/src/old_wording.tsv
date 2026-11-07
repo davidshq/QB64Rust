@@ -81,6 +81,7 @@
 `KILL` needs a string	String required for sub
 `KILL` needs its arguments	Syntax error - Reference: KILL fileSpec$
 `KILL` takes {#} argument	Syntax error - Reference: KILL fileSpec$
+`LBOUND` cannot leave out an argument	Syntax error
 `LBOUND` takes a member array without its indexes	Incorrect number of arguments
 `LBOUND` takes an array's name, not one of its elements	Syntax error
 `LBOUND` takes an array, not a value	Syntax error
@@ -171,6 +172,7 @@
 `TIMER` with empty parentheses	Expected (...)
 `TROFF` is not implemented in QB64pe	Command not implemented
 `TRON` is not implemented in QB64pe	Command not implemented
+`UBOUND` cannot leave out an argument	Syntax error
 `UBOUND` takes a member array without its indexes	Incorrect number of arguments
 `UEVENT` is not an event QB64pe traps, and no statement	Syntax error
 `UEVENT` is not an event: `ON UEVENT` cannot be trapped	Name already in use (UEVENT)
@@ -458,6 +460,7 @@
 `{}` has {#} dimensions, not {#}	Cannot change the number of elements an array has!
 `{}` has {#} dimensions: `{}` needs a range for each, not {#}	_ArrayCopy source range count must match source dimensions
 `{}` has {#} dimensions: `{}` needs a start for each, not {#}	_ArrayCopy destination start coordinate count must match destination dimensions
+`{}` is BASIC PDS 7.1's, and QB64 does not have it: use `ON ERROR GOTO` with the handler in the main module, and `ON ERROR GOTO 0` before the SUB ends	Name already in use (ERROR)
 `{}` is a FUNCTION; a whole-array assignment needs an array on each side	Expected (...)
 `{}` is a SUB; a whole-array assignment needs an array on each side	Name already in use ({1:=|P|S})
 `{}` is a `$COLOR` constant, which a `CONST` above the `$COLOR` line cannot name	Unexpected element '{1:U|PU|SU}'
@@ -614,6 +617,7 @@ a value of `{}` is required here	Expected = similar user defined type
 a width of `FIELD` must be a number	Illegal string-number conversion
 an `_OFFSET` suffix cannot follow a number	Cannot use _OFFSET symbols after numbers
 an argument of `INSTR` is left out	Incorrect number of arguments - Reference: INSTR([start%,] baseString$, searchString$)
+an argument of `SCREEN` is left out	Incorrect number of arguments - Reference: SCREEN(x, y[, colorflag%])
 an argument of `_RGB` is left out	Incorrect number of arguments - Reference: _RGB(red&, green&, blue&[, imageHandle&])
 an argument of `{}` is left out	Incorrect number of arguments - Reference: {1:=|U|P|PU}(stringValue$, startPosition%[, bytes%])
 an array cannot be of a `_BIT` type of more than {#} bits (`_BIT * 64`)	Cannot create a _BIT array of size > {1:=|U|P|PU|S|SU} bits

@@ -100,11 +100,19 @@ git diff --stat test-fixtures/compiler    # no diff expected with the same compi
 
 ## Grammar
 
-`syntaxes\qb64rust.tmLanguage.json` is maintained by hand. Its keyword lists were copied once (2026-10-03) from
-`tools\builtins\builtins.json` (built-in functions and statements), from
-`..\QB64pe\internal\support\include\beforefirstline.bi` (`_TRUE`, `_FALSE` and the other built-in constants) and
-from `..\QB64pe\internal\support\color\color0.bi` and `color32.bi` (color constants). Generating them from
-`builtins.json` at build time is planned for later. Pattern order matters where two patterns match at the same
+`syntaxes\qb64rust.tmLanguage.json` is written by hand, except four of its word lists.
+`tools\builtins\grammar_lists.py` writes those from `tools\builtins\builtins.json` (2026-11-07):
+
+- the built-in functions and statements (`support.function`);
+- the built-in constants such as `_TRUE` and `_PI`, from `beforefirstline.bi` (`constant.language`);
+- the color constants of `color0.bi` and `color32.bi` (`support.constant.color`);
+- the words a label cannot be, in the label pattern.
+
+The language's own words (`keyword.control`, `storage.modifier`, `storage.type`, `keyword.operator.word`) stay
+hand-written. A built-in that is also one of those words, such as `END` or `READ`, is colored as that word. Run
+`python tools\builtins\grammar_lists.py` after `extract_builtins.py` changes the table. The test
+`tools\builtins\test_grammar_lists.py` fails when the grammar and the table disagree. It runs in the `tools` step
+of `check`. Pattern order matters where two patterns match at the same
 column: labels come before numbers (`10 PRINT` is a line number), and built-in functions come before suffixed
 identifiers (`CHR$` is a function, not a variable).
 

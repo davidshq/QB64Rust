@@ -1,0 +1,4 @@
+LSET: ix2 v1 [ab  ]
+RSET: ix3 v2 [  ab]
+MID$: ix1 ix2 ix2 v3 [.ab.]
+exit=0

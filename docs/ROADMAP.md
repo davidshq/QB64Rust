@@ -11,11 +11,12 @@ of the last full runs are in `STATUS.md` (`DECISIONS.md` 2026-10-07). The plan b
 
 ## Purpose
 
-**A QB64 for anyone**: a QB64 programmer installs one thing, on Windows,
-Linux or macOS, and has an editor, a compiler and a debugger for the QB64pe 4.7.0 dialect, with no QB64pe
-installed. The project is done when that is true on all three platforms. The order that follows from it
-(`study\38` §5.4): make it usable by someone else (§5.2), then one milestone per platform, Linux first, with more
-real programs and fuzzing beside them; the crash-class fixes and new language work as users ask. `UPSTREAM.md`
+**A QB64 for anyone**: a QB64 programmer installs one thing, on Windows or
+Linux, and has an editor, a compiler and a debugger for the QB64pe 4.7.0 dialect, with no QB64pe
+installed. The project is done when that is true on both platforms. macOS was the third platform, milestone M8.
+It was postponed to `SOMEDAY.md` on 2026-11-07 (`DECISIONS.md`). The order that follows from the purpose
+(`study\38` §5.4): make it usable by someone else (§5.2), then one milestone per platform, with more real
+programs and fuzzing beside them; the crash-class fixes and new language work as users ask. `UPSTREAM.md`
 stays as the record of QB64pe's bugs found here; offering them to QB64pe blocks nothing (user, 2026-10-27).
 
 This file was written again on 2026-10-12 from `study\00` §2, `STATUS.md` and `DECISIONS.md`: the earlier file
@@ -35,9 +36,9 @@ out of scope. Done when its CI jobs have run (below).
   runner runs there (`--platform linux`, in WSL after `tools/linux/sync.sh`)
 - [x] The extension packaged for Linux (`linux-x64` `.vsix`); the compiler's release asset for Linux
   (`qb64rust-linux-x64-<version>.tar.gz`)
-- [ ] Linux CI jobs pass: `rust.yml`, `vscode-extension.yml` and `release-vsix.yml` each have a `linux` job
-  (`m7-linux` tasks 7.1–7.3; CI is not a gate). The first two ran on `272be0d` and failed; the release job has not
-  run yet
+- [x] Linux CI jobs pass: `rust.yml`, `vscode-extension.yml` and `release-vsix.yml` each have a `linux` job
+  (`m7-linux` tasks 7.1–7.3; CI is not a gate). All three passed on branch `after-pr25` on 2026-11-07: `rust.yml`
+  at `2e03ba49`, the other two at `efbdee1d`
 - [x] Recordings judged per platform where QB64pe's output differs by platform: `<name>.linux.output` and
   `.linux.err` sidecars recorded from QB64pe built on Linux, and a `known.linux.list` per suite (spec
   `testing/golden-corpus`, "Recordings per platform")
@@ -48,17 +49,13 @@ out of scope. Done when its CI jobs have run (below).
 
 ## After M7: calls with side effects left to right
 
-Decided (user, `DECISIONS.md` 2026-10-28), not yet built. QB64pe's Windows build runs a call's arguments left to
-right and its Linux build right to left. One change makes the codegen run every such call left to right on every
-platform, then deletes the Linux sidecars that only record the other order (seven corpus programs, `SOMEDAY.md`,
-"QB64pe behaviours to review"). `SWAP` already works this way (`QB64PE-DIVERGENCES.md` D-054).
-
-## M8. macOS
-
-The same items as M7 for macOS (`.dylib`, the toolchain and `lldb-dap`, packaging, a CI job, recordings judged
-per platform), after Linux. `m7-linux`'s `Platform` value, sidecars and `known.linux.list` files are where a
-macOS target would plug in. On Apple silicon, the runtime ABI's reliance on x86 memory order is one of the
-conditions in `SOMEDAY.md` for bringing back the runtime redesign.
+- [x] The parts of one expression, call or statement are evaluated in the Windows build's order on every platform
+  (user, `DECISIONS.md` 2026-10-28 and 2026-11-07; OpenSpec change `eval-order-left-to-right`, built on branch
+  `after-pr25`). QB64pe's Windows build runs a call's arguments left to right and its Linux build often right to
+  left. The codegen now holds a part in a temporary wherever another order could change the result
+  (`codegen-cpp\src\order.rs`; `QB64PE-DIVERGENCES.md` D-060, with `SWAP`'s D-054 as its first case). The Linux
+  sidecars that only recorded the other order are cut (`s86_field_lset`, `v30_g_iif_min_max`). The nine others
+  are deleted. `verification\v69_*` shows it on both platforms.
 
 ## Not tied to a milestone yet
 

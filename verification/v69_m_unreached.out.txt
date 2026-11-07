@@ -1,0 +1,7 @@
+MID$: f2 f3bcd
+INSTR: f1 t1 t2 0 
+_RGB32: f1 f2 f3 4278256131 
+a(f(1), f(2)): f1 f2 12 
+CHR$ + CHR$: f65 f66AB
+SWAP: f1 f2 2  1 
+exit=0

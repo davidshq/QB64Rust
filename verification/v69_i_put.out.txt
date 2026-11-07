@@ -1,0 +1,4 @@
+PUT: f1 f2 f3
+GET: f1 f2 f1
+ 33  22  33 
+exit=0

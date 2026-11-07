@@ -113,7 +113,7 @@ The current numbers, written by `python tools\legacy_tests\counts.py` (not by ha
 <!-- /counts:upstream-membership -->
 
 <!-- counts:upstream-results -->
-Last full run: 2026-11-02, compiler build `6ead449f15e2`, folding on, `--jobs 8`, build cache, 1 min. Of 404 programs: **401 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 3 known failures (`target\legacy-tests\results-compile.json`).
+Last full run: 2026-11-07, compiler build `aff403fac245`, folding on, `--jobs 8`, 10 min. Of 404 programs: **401 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 3 known failures (`target\legacy-tests\results-compile.json`).
 `pass.list` judged in it (`--check-list`): **401 of 401** pass.
 <!-- /counts:upstream-results -->
 

@@ -1,0 +1,1617 @@
+LEN INSTR STR empty: 0  0  0  0  0 
+ASC STR empty: error 5 
+ASC 2 STR empty: error 5 
+UCASE$ STR empty: 0 []
+LCASE$ STR empty: 0 []
+LTRIM$ STR empty: 0 []
+RTRIM$ STR empty: 0 []
+LEFT$ -1 STR empty: 0 []
+LEFT$ 0 STR empty: 0 []
+LEFT$ 1 STR empty: 0 []
+LEFT$ 2 STR empty: 0 []
+LEFT$ 4 STR empty: 0 []
+LEFT$ 5 STR empty: 0 []
+LEFT$ 100 STR empty: 0 []
+RIGHT$ -1 STR empty: 0 []
+RIGHT$ 0 STR empty: 0 []
+RIGHT$ 1 STR empty: 0 []
+RIGHT$ 2 STR empty: 0 []
+RIGHT$ 4 STR empty: 0 []
+RIGHT$ 5 STR empty: 0 []
+RIGHT$ 100 STR empty: 0 []
+MID$ -1 STR empty: 0 []
+MID$ 0 STR empty: 0 []
+MID$ 1 STR empty: 0 []
+MID$ 1 -1 STR empty: 0 []
+MID$ 1 0 STR empty: 0 []
+MID$ 1 1 STR empty: 0 []
+MID$ 1 2 STR empty: 0 []
+MID$ 1 4 STR empty: 0 []
+MID$ 1 5 STR empty: 0 []
+MID$ 1 100 STR empty: 0 []
+MID$ 2 STR empty: 0 []
+MID$ 2 -1 STR empty: 0 []
+MID$ 2 0 STR empty: 0 []
+MID$ 2 1 STR empty: 0 []
+MID$ 2 2 STR empty: 0 []
+MID$ 2 4 STR empty: 0 []
+MID$ 2 5 STR empty: 0 []
+MID$ 2 100 STR empty: 0 []
+MID$ 4 STR empty: 0 []
+MID$ 6 STR empty: 0 []
+MID$ 6 -1 STR empty: 0 []
+MID$ 6 0 STR empty: 0 []
+MID$ 6 1 STR empty: 0 []
+MID$ 6 2 STR empty: 0 []
+MID$ 6 4 STR empty: 0 []
+MID$ 6 5 STR empty: 0 []
+MID$ 6 100 STR empty: 0 []
+MID$ 100 STR empty: 0 []
+LEN INSTR STR a: 1  1  0  1  0 
+ASC STR a: 97 
+ASC 2 STR a: error 5 
+UCASE$ STR a: 1 [A]
+LCASE$ STR a: 1 [a]
+LTRIM$ STR a: 1 [a]
+RTRIM$ STR a: 1 [a]
+LEFT$ -1 STR a: 0 []
+LEFT$ 0 STR a: 0 []
+LEFT$ 1 STR a: 1 [a]
+LEFT$ 2 STR a: 1 [a]
+LEFT$ 4 STR a: 1 [a]
+LEFT$ 5 STR a: 1 [a]
+LEFT$ 100 STR a: 1 [a]
+RIGHT$ -1 STR a: 0 []
+RIGHT$ 0 STR a: 0 []
+RIGHT$ 1 STR a: 1 [a]
+RIGHT$ 2 STR a: 1 [a]
+RIGHT$ 4 STR a: 1 [a]
+RIGHT$ 5 STR a: 1 [a]
+RIGHT$ 100 STR a: 1 [a]
+MID$ -1 STR a: 1 [a]
+MID$ 0 STR a: 1 [a]
+MID$ 1 STR a: 1 [a]
+MID$ 1 -1 STR a: 0 []
+MID$ 1 0 STR a: 0 []
+MID$ 1 1 STR a: 1 [a]
+MID$ 1 2 STR a: 1 [a]
+MID$ 1 4 STR a: 1 [a]
+MID$ 1 5 STR a: 1 [a]
+MID$ 1 100 STR a: 1 [a]
+MID$ 2 STR a: 0 []
+MID$ 2 -1 STR a: 0 []
+MID$ 2 0 STR a: 0 []
+MID$ 2 1 STR a: 0 []
+MID$ 2 2 STR a: 0 []
+MID$ 2 4 STR a: 0 []
+MID$ 2 5 STR a: 0 []
+MID$ 2 100 STR a: 0 []
+MID$ 4 STR a: 0 []
+MID$ 6 STR a: 0 []
+MID$ 6 -1 STR a: 0 []
+MID$ 6 0 STR a: 0 []
+MID$ 6 1 STR a: 0 []
+MID$ 6 2 STR a: 0 []
+MID$ 6 4 STR a: 0 []
+MID$ 6 5 STR a: 0 []
+MID$ 6 100 STR a: 0 []
+MID$ 100 STR a: 0 []
+LEN INSTR STR upa: 1  0  0  1  0 
+ASC STR upa: 65 
+ASC 2 STR upa: error 5 
+UCASE$ STR upa: 1 [A]
+LCASE$ STR upa: 1 [a]
+LTRIM$ STR upa: 1 [A]
+RTRIM$ STR upa: 1 [A]
+LEFT$ -1 STR upa: 0 []
+LEFT$ 0 STR upa: 0 []
+LEFT$ 1 STR upa: 1 [A]
+LEFT$ 2 STR upa: 1 [A]
+LEFT$ 4 STR upa: 1 [A]
+LEFT$ 5 STR upa: 1 [A]
+LEFT$ 100 STR upa: 1 [A]
+RIGHT$ -1 STR upa: 0 []
+RIGHT$ 0 STR upa: 0 []
+RIGHT$ 1 STR upa: 1 [A]
+RIGHT$ 2 STR upa: 1 [A]
+RIGHT$ 4 STR upa: 1 [A]
+RIGHT$ 5 STR upa: 1 [A]
+RIGHT$ 100 STR upa: 1 [A]
+MID$ -1 STR upa: 1 [A]
+MID$ 0 STR upa: 1 [A]
+MID$ 1 STR upa: 1 [A]
+MID$ 1 -1 STR upa: 0 []
+MID$ 1 0 STR upa: 0 []
+MID$ 1 1 STR upa: 1 [A]
+MID$ 1 2 STR upa: 1 [A]
+MID$ 1 4 STR upa: 1 [A]
+MID$ 1 5 STR upa: 1 [A]
+MID$ 1 100 STR upa: 1 [A]
+MID$ 2 STR upa: 0 []
+MID$ 2 -1 STR upa: 0 []
+MID$ 2 0 STR upa: 0 []
+MID$ 2 1 STR upa: 0 []
+MID$ 2 2 STR upa: 0 []
+MID$ 2 4 STR upa: 0 []
+MID$ 2 5 STR upa: 0 []
+MID$ 2 100 STR upa: 0 []
+MID$ 4 STR upa: 0 []
+MID$ 6 STR upa: 0 []
+MID$ 6 -1 STR upa: 0 []
+MID$ 6 0 STR upa: 0 []
+MID$ 6 1 STR upa: 0 []
+MID$ 6 2 STR upa: 0 []
+MID$ 6 4 STR upa: 0 []
+MID$ 6 5 STR upa: 0 []
+MID$ 6 100 STR upa: 0 []
+MID$ 100 STR upa: 0 []
+LEN INSTR STR ab: 2  1  2  1  0 
+ASC STR ab: 97 
+ASC 2 STR ab: 98 
+UCASE$ STR ab: 2 [AB]
+LCASE$ STR ab: 2 [ab]
+LTRIM$ STR ab: 2 [ab]
+RTRIM$ STR ab: 2 [ab]
+LEFT$ -1 STR ab: 0 []
+LEFT$ 0 STR ab: 0 []
+LEFT$ 1 STR ab: 1 [a]
+LEFT$ 2 STR ab: 2 [ab]
+LEFT$ 4 STR ab: 2 [ab]
+LEFT$ 5 STR ab: 2 [ab]
+LEFT$ 100 STR ab: 2 [ab]
+RIGHT$ -1 STR ab: 0 []
+RIGHT$ 0 STR ab: 0 []
+RIGHT$ 1 STR ab: 1 [b]
+RIGHT$ 2 STR ab: 2 [ab]
+RIGHT$ 4 STR ab: 2 [ab]
+RIGHT$ 5 STR ab: 2 [ab]
+RIGHT$ 100 STR ab: 2 [ab]
+MID$ -1 STR ab: 2 [ab]
+MID$ 0 STR ab: 2 [ab]
+MID$ 1 STR ab: 2 [ab]
+MID$ 1 -1 STR ab: 0 []
+MID$ 1 0 STR ab: 0 []
+MID$ 1 1 STR ab: 1 [a]
+MID$ 1 2 STR ab: 2 [ab]
+MID$ 1 4 STR ab: 2 [ab]
+MID$ 1 5 STR ab: 2 [ab]
+MID$ 1 100 STR ab: 2 [ab]
+MID$ 2 STR ab: 1 [b]
+MID$ 2 -1 STR ab: 0 []
+MID$ 2 0 STR ab: 0 []
+MID$ 2 1 STR ab: 1 [b]
+MID$ 2 2 STR ab: 1 [b]
+MID$ 2 4 STR ab: 1 [b]
+MID$ 2 5 STR ab: 1 [b]
+MID$ 2 100 STR ab: 1 [b]
+MID$ 4 STR ab: 0 []
+MID$ 6 STR ab: 0 []
+MID$ 6 -1 STR ab: 0 []
+MID$ 6 0 STR ab: 0 []
+MID$ 6 1 STR ab: 0 []
+MID$ 6 2 STR ab: 0 []
+MID$ 6 4 STR ab: 0 []
+MID$ 6 5 STR ab: 0 []
+MID$ 6 100 STR ab: 0 []
+MID$ 100 STR ab: 0 []
+LEN INSTR STR abc: 3  1  2  1  2 
+ASC STR abc: 97 
+ASC 2 STR abc: 98 
+UCASE$ STR abc: 3 [ABC]
+LCASE$ STR abc: 3 [abc]
+LTRIM$ STR abc: 3 [abc]
+RTRIM$ STR abc: 3 [abc]
+LEFT$ -1 STR abc: 0 []
+LEFT$ 0 STR abc: 0 []
+LEFT$ 1 STR abc: 1 [a]
+LEFT$ 2 STR abc: 2 [ab]
+LEFT$ 4 STR abc: 3 [abc]
+LEFT$ 5 STR abc: 3 [abc]
+LEFT$ 100 STR abc: 3 [abc]
+RIGHT$ -1 STR abc: 0 []
+RIGHT$ 0 STR abc: 0 []
+RIGHT$ 1 STR abc: 1 [c]
+RIGHT$ 2 STR abc: 2 [bc]
+RIGHT$ 4 STR abc: 3 [abc]
+RIGHT$ 5 STR abc: 3 [abc]
+RIGHT$ 100 STR abc: 3 [abc]
+MID$ -1 STR abc: 3 [abc]
+MID$ 0 STR abc: 3 [abc]
+MID$ 1 STR abc: 3 [abc]
+MID$ 1 -1 STR abc: 0 []
+MID$ 1 0 STR abc: 0 []
+MID$ 1 1 STR abc: 1 [a]
+MID$ 1 2 STR abc: 2 [ab]
+MID$ 1 4 STR abc: 3 [abc]
+MID$ 1 5 STR abc: 3 [abc]
+MID$ 1 100 STR abc: 3 [abc]
+MID$ 2 STR abc: 2 [bc]
+MID$ 2 -1 STR abc: 0 []
+MID$ 2 0 STR abc: 0 []
+MID$ 2 1 STR abc: 1 [b]
+MID$ 2 2 STR abc: 2 [bc]
+MID$ 2 4 STR abc: 2 [bc]
+MID$ 2 5 STR abc: 2 [bc]
+MID$ 2 100 STR abc: 2 [bc]
+MID$ 4 STR abc: 0 []
+MID$ 6 STR abc: 0 []
+MID$ 6 -1 STR abc: 0 []
+MID$ 6 0 STR abc: 0 []
+MID$ 6 1 STR abc: 0 []
+MID$ 6 2 STR abc: 0 []
+MID$ 6 4 STR abc: 0 []
+MID$ 6 5 STR abc: 0 []
+MID$ 6 100 STR abc: 0 []
+MID$ 100 STR abc: 0 []
+LEN INSTR STR abcde: 5  1  2  1  2 
+ASC STR abcde: 97 
+ASC 2 STR abcde: 98 
+UCASE$ STR abcde: 5 [ABCDE]
+LCASE$ STR abcde: 5 [abcde]
+LTRIM$ STR abcde: 5 [abcde]
+RTRIM$ STR abcde: 5 [abcde]
+LEFT$ -1 STR abcde: 0 []
+LEFT$ 0 STR abcde: 0 []
+LEFT$ 1 STR abcde: 1 [a]
+LEFT$ 2 STR abcde: 2 [ab]
+LEFT$ 4 STR abcde: 4 [abcd]
+LEFT$ 5 STR abcde: 5 [abcde]
+LEFT$ 100 STR abcde: 5 [abcde]
+RIGHT$ -1 STR abcde: 0 []
+RIGHT$ 0 STR abcde: 0 []
+RIGHT$ 1 STR abcde: 1 [e]
+RIGHT$ 2 STR abcde: 2 [de]
+RIGHT$ 4 STR abcde: 4 [bcde]
+RIGHT$ 5 STR abcde: 5 [abcde]
+RIGHT$ 100 STR abcde: 5 [abcde]
+MID$ -1 STR abcde: 5 [abcde]
+MID$ 0 STR abcde: 5 [abcde]
+MID$ 1 STR abcde: 5 [abcde]
+MID$ 1 -1 STR abcde: 0 []
+MID$ 1 0 STR abcde: 0 []
+MID$ 1 1 STR abcde: 1 [a]
+MID$ 1 2 STR abcde: 2 [ab]
+MID$ 1 4 STR abcde: 4 [abcd]
+MID$ 1 5 STR abcde: 5 [abcde]
+MID$ 1 100 STR abcde: 5 [abcde]
+MID$ 2 STR abcde: 4 [bcde]
+MID$ 2 -1 STR abcde: 0 []
+MID$ 2 0 STR abcde: 0 []
+MID$ 2 1 STR abcde: 1 [b]
+MID$ 2 2 STR abcde: 2 [bc]
+MID$ 2 4 STR abcde: 4 [bcde]
+MID$ 2 5 STR abcde: 4 [bcde]
+MID$ 2 100 STR abcde: 4 [bcde]
+MID$ 4 STR abcde: 2 [de]
+MID$ 6 STR abcde: 0 []
+MID$ 6 -1 STR abcde: 0 []
+MID$ 6 0 STR abcde: 0 []
+MID$ 6 1 STR abcde: 0 []
+MID$ 6 2 STR abcde: 0 []
+MID$ 6 4 STR abcde: 0 []
+MID$ 6 5 STR abcde: 0 []
+MID$ 6 100 STR abcde: 0 []
+MID$ 100 STR abcde: 0 []
+LEN INSTR STR spa: 2  2  0  1  0 
+ASC STR spa: 32 
+ASC 2 STR spa: 97 
+UCASE$ STR spa: 2 [ A]
+LCASE$ STR spa: 2 [ a]
+LTRIM$ STR spa: 1 [a]
+RTRIM$ STR spa: 2 [ a]
+LEFT$ -1 STR spa: 0 []
+LEFT$ 0 STR spa: 0 []
+LEFT$ 1 STR spa: 1 [ ]
+LEFT$ 2 STR spa: 2 [ a]
+LEFT$ 4 STR spa: 2 [ a]
+LEFT$ 5 STR spa: 2 [ a]
+LEFT$ 100 STR spa: 2 [ a]
+RIGHT$ -1 STR spa: 0 []
+RIGHT$ 0 STR spa: 0 []
+RIGHT$ 1 STR spa: 1 [a]
+RIGHT$ 2 STR spa: 2 [ a]
+RIGHT$ 4 STR spa: 2 [ a]
+RIGHT$ 5 STR spa: 2 [ a]
+RIGHT$ 100 STR spa: 2 [ a]
+MID$ -1 STR spa: 2 [ a]
+MID$ 0 STR spa: 2 [ a]
+MID$ 1 STR spa: 2 [ a]
+MID$ 1 -1 STR spa: 0 []
+MID$ 1 0 STR spa: 0 []
+MID$ 1 1 STR spa: 1 [ ]
+MID$ 1 2 STR spa: 2 [ a]
+MID$ 1 4 STR spa: 2 [ a]
+MID$ 1 5 STR spa: 2 [ a]
+MID$ 1 100 STR spa: 2 [ a]
+MID$ 2 STR spa: 1 [a]
+MID$ 2 -1 STR spa: 0 []
+MID$ 2 0 STR spa: 0 []
+MID$ 2 1 STR spa: 1 [a]
+MID$ 2 2 STR spa: 1 [a]
+MID$ 2 4 STR spa: 1 [a]
+MID$ 2 5 STR spa: 1 [a]
+MID$ 2 100 STR spa: 1 [a]
+MID$ 4 STR spa: 0 []
+MID$ 6 STR spa: 0 []
+MID$ 6 -1 STR spa: 0 []
+MID$ 6 0 STR spa: 0 []
+MID$ 6 1 STR spa: 0 []
+MID$ 6 2 STR spa: 0 []
+MID$ 6 4 STR spa: 0 []
+MID$ 6 5 STR spa: 0 []
+MID$ 6 100 STR spa: 0 []
+MID$ 100 STR spa: 0 []
+LEN INSTR STR asp: 2  1  0  1  0 
+ASC STR asp: 97 
+ASC 2 STR asp: 32 
+UCASE$ STR asp: 2 [A ]
+LCASE$ STR asp: 2 [a ]
+LTRIM$ STR asp: 2 [a ]
+RTRIM$ STR asp: 1 [a]
+LEFT$ -1 STR asp: 0 []
+LEFT$ 0 STR asp: 0 []
+LEFT$ 1 STR asp: 1 [a]
+LEFT$ 2 STR asp: 2 [a ]
+LEFT$ 4 STR asp: 2 [a ]
+LEFT$ 5 STR asp: 2 [a ]
+LEFT$ 100 STR asp: 2 [a ]
+RIGHT$ -1 STR asp: 0 []
+RIGHT$ 0 STR asp: 0 []
+RIGHT$ 1 STR asp: 1 [ ]
+RIGHT$ 2 STR asp: 2 [a ]
+RIGHT$ 4 STR asp: 2 [a ]
+RIGHT$ 5 STR asp: 2 [a ]
+RIGHT$ 100 STR asp: 2 [a ]
+MID$ -1 STR asp: 2 [a ]
+MID$ 0 STR asp: 2 [a ]
+MID$ 1 STR asp: 2 [a ]
+MID$ 1 -1 STR asp: 0 []
+MID$ 1 0 STR asp: 0 []
+MID$ 1 1 STR asp: 1 [a]
+MID$ 1 2 STR asp: 2 [a ]
+MID$ 1 4 STR asp: 2 [a ]
+MID$ 1 5 STR asp: 2 [a ]
+MID$ 1 100 STR asp: 2 [a ]
+MID$ 2 STR asp: 1 [ ]
+MID$ 2 -1 STR asp: 0 []
+MID$ 2 0 STR asp: 0 []
+MID$ 2 1 STR asp: 1 [ ]
+MID$ 2 2 STR asp: 1 [ ]
+MID$ 2 4 STR asp: 1 [ ]
+MID$ 2 5 STR asp: 1 [ ]
+MID$ 2 100 STR asp: 1 [ ]
+MID$ 4 STR asp: 0 []
+MID$ 6 STR asp: 0 []
+MID$ 6 -1 STR asp: 0 []
+MID$ 6 0 STR asp: 0 []
+MID$ 6 1 STR asp: 0 []
+MID$ 6 2 STR asp: 0 []
+MID$ 6 4 STR asp: 0 []
+MID$ 6 5 STR asp: 0 []
+MID$ 6 100 STR asp: 0 []
+MID$ 100 STR asp: 0 []
+LEN INSTR STR b: 1  0  0  1  0 
+ASC STR b: 98 
+ASC 2 STR b: error 5 
+UCASE$ STR b: 1 [B]
+LCASE$ STR b: 1 [b]
+LTRIM$ STR b: 1 [b]
+RTRIM$ STR b: 1 [b]
+LEFT$ -1 STR b: 0 []
+LEFT$ 0 STR b: 0 []
+LEFT$ 1 STR b: 1 [b]
+LEFT$ 2 STR b: 1 [b]
+LEFT$ 4 STR b: 1 [b]
+LEFT$ 5 STR b: 1 [b]
+LEFT$ 100 STR b: 1 [b]
+RIGHT$ -1 STR b: 0 []
+RIGHT$ 0 STR b: 0 []
+RIGHT$ 1 STR b: 1 [b]
+RIGHT$ 2 STR b: 1 [b]
+RIGHT$ 4 STR b: 1 [b]
+RIGHT$ 5 STR b: 1 [b]
+RIGHT$ 100 STR b: 1 [b]
+MID$ -1 STR b: 1 [b]
+MID$ 0 STR b: 1 [b]
+MID$ 1 STR b: 1 [b]
+MID$ 1 -1 STR b: 0 []
+MID$ 1 0 STR b: 0 []
+MID$ 1 1 STR b: 1 [b]
+MID$ 1 2 STR b: 1 [b]
+MID$ 1 4 STR b: 1 [b]
+MID$ 1 5 STR b: 1 [b]
+MID$ 1 100 STR b: 1 [b]
+MID$ 2 STR b: 0 []
+MID$ 2 -1 STR b: 0 []
+MID$ 2 0 STR b: 0 []
+MID$ 2 1 STR b: 0 []
+MID$ 2 2 STR b: 0 []
+MID$ 2 4 STR b: 0 []
+MID$ 2 5 STR b: 0 []
+MID$ 2 100 STR b: 0 []
+MID$ 4 STR b: 0 []
+MID$ 6 STR b: 0 []
+MID$ 6 -1 STR b: 0 []
+MID$ 6 0 STR b: 0 []
+MID$ 6 1 STR b: 0 []
+MID$ 6 2 STR b: 0 []
+MID$ 6 4 STR b: 0 []
+MID$ 6 5 STR b: 0 []
+MID$ 6 100 STR b: 0 []
+MID$ 100 STR b: 0 []
+LEN INSTR STR nul: 3  1  3  1  0 
+ASC STR nul: 97 
+ASC 2 STR nul: 0 
+UCASE$ STR nul: 3  2  0 
+LCASE$ STR nul: 3  2  0 
+LTRIM$ STR nul: 3  2  0 
+RTRIM$ STR nul: 3  2  0 
+LEFT$ -1 STR nul: 0  0  0 
+LEFT$ 0 STR nul: 0  0  0 
+LEFT$ 1 STR nul: 1  0  0 
+LEFT$ 2 STR nul: 2  2  0 
+LEFT$ 4 STR nul: 3  2  0 
+LEFT$ 5 STR nul: 3  2  0 
+LEFT$ 100 STR nul: 3  2  0 
+RIGHT$ -1 STR nul: 0  0  0 
+RIGHT$ 0 STR nul: 0  0  0 
+RIGHT$ 1 STR nul: 1  0  0 
+RIGHT$ 2 STR nul: 2  1  0 
+RIGHT$ 4 STR nul: 3  2  0 
+RIGHT$ 5 STR nul: 3  2  0 
+RIGHT$ 100 STR nul: 3  2  0 
+MID$ -1 STR nul: 3  2  0 
+MID$ 0 STR nul: 3  2  0 
+MID$ 1 STR nul: 3  2  0 
+MID$ 1 -1 STR nul: 0  0  0 
+MID$ 1 0 STR nul: 0  0  0 
+MID$ 1 1 STR nul: 1  0  0 
+MID$ 1 2 STR nul: 2  2  0 
+MID$ 1 4 STR nul: 3  2  0 
+MID$ 1 5 STR nul: 3  2  0 
+MID$ 1 100 STR nul: 3  2  0 
+MID$ 2 STR nul: 2  1  0 
+MID$ 2 -1 STR nul: 0  0  0 
+MID$ 2 0 STR nul: 0  0  0 
+MID$ 2 1 STR nul: 1  1  0 
+MID$ 2 2 STR nul: 2  1  0 
+MID$ 2 4 STR nul: 2  1  0 
+MID$ 2 5 STR nul: 2  1  0 
+MID$ 2 100 STR nul: 2  1  0 
+MID$ 4 STR nul: 0  0  0 
+MID$ 6 STR nul: 0  0  0 
+MID$ 6 -1 STR nul: 0  0  0 
+MID$ 6 0 STR nul: 0  0  0 
+MID$ 6 1 STR nul: 0  0  0 
+MID$ 6 2 STR nul: 0  0  0 
+MID$ 6 4 STR nul: 0  0  0 
+MID$ 6 5 STR nul: 0  0  0 
+MID$ 6 100 STR nul: 0  0  0 
+MID$ 100 STR nul: 0  0  0 
+LEN INSTR STR hi: 2  2  0  1  0 
+ASC STR hi: 255 
+ASC 2 STR hi: 97 
+UCASE$ STR hi: 2  0  1 
+LCASE$ STR hi: 2  0  1 
+LTRIM$ STR hi: 2  0  1 
+RTRIM$ STR hi: 2  0  1 
+LEFT$ -1 STR hi: 0  0  0 
+LEFT$ 0 STR hi: 0  0  0 
+LEFT$ 1 STR hi: 1  0  1 
+LEFT$ 2 STR hi: 2  0  1 
+LEFT$ 4 STR hi: 2  0  1 
+LEFT$ 5 STR hi: 2  0  1 
+LEFT$ 100 STR hi: 2  0  1 
+RIGHT$ -1 STR hi: 0  0  0 
+RIGHT$ 0 STR hi: 0  0  0 
+RIGHT$ 1 STR hi: 1  0  0 
+RIGHT$ 2 STR hi: 2  0  1 
+RIGHT$ 4 STR hi: 2  0  1 
+RIGHT$ 5 STR hi: 2  0  1 
+RIGHT$ 100 STR hi: 2  0  1 
+MID$ -1 STR hi: 2  0  1 
+MID$ 0 STR hi: 2  0  1 
+MID$ 1 STR hi: 2  0  1 
+MID$ 1 -1 STR hi: 0  0  0 
+MID$ 1 0 STR hi: 0  0  0 
+MID$ 1 1 STR hi: 1  0  1 
+MID$ 1 2 STR hi: 2  0  1 
+MID$ 1 4 STR hi: 2  0  1 
+MID$ 1 5 STR hi: 2  0  1 
+MID$ 1 100 STR hi: 2  0  1 
+MID$ 2 STR hi: 1  0  0 
+MID$ 2 -1 STR hi: 0  0  0 
+MID$ 2 0 STR hi: 0  0  0 
+MID$ 2 1 STR hi: 1  0  0 
+MID$ 2 2 STR hi: 1  0  0 
+MID$ 2 4 STR hi: 1  0  0 
+MID$ 2 5 STR hi: 1  0  0 
+MID$ 2 100 STR hi: 1  0  0 
+MID$ 4 STR hi: 0  0  0 
+MID$ 6 STR hi: 0  0  0 
+MID$ 6 -1 STR hi: 0  0  0 
+MID$ 6 0 STR hi: 0  0  0 
+MID$ 6 1 STR hi: 0  0  0 
+MID$ 6 2 STR hi: 0  0  0 
+MID$ 6 4 STR hi: 0  0  0 
+MID$ 6 5 STR hi: 0  0  0 
+MID$ 6 100 STR hi: 0  0  0 
+MID$ 100 STR hi: 0  0  0 
+LEN INSTR FIX1 empty: 1  0  0  1  0 
+ASC FIX1 empty: 32 
+ASC 2 FIX1 empty: error 5 
+UCASE$ FIX1 empty: 1 [ ]
+LCASE$ FIX1 empty: 1 [ ]
+LTRIM$ FIX1 empty: 0 []
+RTRIM$ FIX1 empty: 0 []
+LEFT$ -1 FIX1 empty: 0 []
+LEFT$ 0 FIX1 empty: 0 []
+LEFT$ 1 FIX1 empty: 1 [ ]
+LEFT$ 2 FIX1 empty: 1 [ ]
+LEFT$ 4 FIX1 empty: 1 [ ]
+LEFT$ 5 FIX1 empty: 1 [ ]
+LEFT$ 100 FIX1 empty: 1 [ ]
+RIGHT$ -1 FIX1 empty: 0 []
+RIGHT$ 0 FIX1 empty: 0 []
+RIGHT$ 1 FIX1 empty: 1 [ ]
+RIGHT$ 2 FIX1 empty: 1 [ ]
+RIGHT$ 4 FIX1 empty: 1 [ ]
+RIGHT$ 5 FIX1 empty: 1 [ ]
+RIGHT$ 100 FIX1 empty: 1 [ ]
+MID$ -1 FIX1 empty: 1 [ ]
+MID$ 0 FIX1 empty: 1 [ ]
+MID$ 1 FIX1 empty: 1 [ ]
+MID$ 1 -1 FIX1 empty: 0 []
+MID$ 1 0 FIX1 empty: 0 []
+MID$ 1 1 FIX1 empty: 1 [ ]
+MID$ 1 2 FIX1 empty: 1 [ ]
+MID$ 1 4 FIX1 empty: 1 [ ]
+MID$ 1 5 FIX1 empty: 1 [ ]
+MID$ 1 100 FIX1 empty: 1 [ ]
+MID$ 2 FIX1 empty: 0 []
+MID$ 2 -1 FIX1 empty: 0 []
+MID$ 2 0 FIX1 empty: 0 []
+MID$ 2 1 FIX1 empty: 0 []
+MID$ 2 2 FIX1 empty: 0 []
+MID$ 2 4 FIX1 empty: 0 []
+MID$ 2 5 FIX1 empty: 0 []
+MID$ 2 100 FIX1 empty: 0 []
+MID$ 4 FIX1 empty: 0 []
+MID$ 6 FIX1 empty: 0 []
+MID$ 6 -1 FIX1 empty: 0 []
+MID$ 6 0 FIX1 empty: 0 []
+MID$ 6 1 FIX1 empty: 0 []
+MID$ 6 2 FIX1 empty: 0 []
+MID$ 6 4 FIX1 empty: 0 []
+MID$ 6 5 FIX1 empty: 0 []
+MID$ 6 100 FIX1 empty: 0 []
+MID$ 100 FIX1 empty: 0 []
+LEN INSTR FIX1 a: 1  1  0  1  0 
+ASC FIX1 a: 97 
+ASC 2 FIX1 a: error 5 
+UCASE$ FIX1 a: 1 [A]
+LCASE$ FIX1 a: 1 [a]
+LTRIM$ FIX1 a: 1 [a]
+RTRIM$ FIX1 a: 1 [a]
+LEFT$ -1 FIX1 a: 0 []
+LEFT$ 0 FIX1 a: 0 []
+LEFT$ 1 FIX1 a: 1 [a]
+LEFT$ 2 FIX1 a: 1 [a]
+LEFT$ 4 FIX1 a: 1 [a]
+LEFT$ 5 FIX1 a: 1 [a]
+LEFT$ 100 FIX1 a: 1 [a]
+RIGHT$ -1 FIX1 a: 0 []
+RIGHT$ 0 FIX1 a: 0 []
+RIGHT$ 1 FIX1 a: 1 [a]
+RIGHT$ 2 FIX1 a: 1 [a]
+RIGHT$ 4 FIX1 a: 1 [a]
+RIGHT$ 5 FIX1 a: 1 [a]
+RIGHT$ 100 FIX1 a: 1 [a]
+MID$ -1 FIX1 a: 1 [a]
+MID$ 0 FIX1 a: 1 [a]
+MID$ 1 FIX1 a: 1 [a]
+MID$ 1 -1 FIX1 a: 0 []
+MID$ 1 0 FIX1 a: 0 []
+MID$ 1 1 FIX1 a: 1 [a]
+MID$ 1 2 FIX1 a: 1 [a]
+MID$ 1 4 FIX1 a: 1 [a]
+MID$ 1 5 FIX1 a: 1 [a]
+MID$ 1 100 FIX1 a: 1 [a]
+MID$ 2 FIX1 a: 0 []
+MID$ 2 -1 FIX1 a: 0 []
+MID$ 2 0 FIX1 a: 0 []
+MID$ 2 1 FIX1 a: 0 []
+MID$ 2 2 FIX1 a: 0 []
+MID$ 2 4 FIX1 a: 0 []
+MID$ 2 5 FIX1 a: 0 []
+MID$ 2 100 FIX1 a: 0 []
+MID$ 4 FIX1 a: 0 []
+MID$ 6 FIX1 a: 0 []
+MID$ 6 -1 FIX1 a: 0 []
+MID$ 6 0 FIX1 a: 0 []
+MID$ 6 1 FIX1 a: 0 []
+MID$ 6 2 FIX1 a: 0 []
+MID$ 6 4 FIX1 a: 0 []
+MID$ 6 5 FIX1 a: 0 []
+MID$ 6 100 FIX1 a: 0 []
+MID$ 100 FIX1 a: 0 []
+LEN INSTR FIX1 upa: 1  0  0  1  0 
+ASC FIX1 upa: 65 
+ASC 2 FIX1 upa: error 5 
+UCASE$ FIX1 upa: 1 [A]
+LCASE$ FIX1 upa: 1 [a]
+LTRIM$ FIX1 upa: 1 [A]
+RTRIM$ FIX1 upa: 1 [A]
+LEFT$ -1 FIX1 upa: 0 []
+LEFT$ 0 FIX1 upa: 0 []
+LEFT$ 1 FIX1 upa: 1 [A]
+LEFT$ 2 FIX1 upa: 1 [A]
+LEFT$ 4 FIX1 upa: 1 [A]
+LEFT$ 5 FIX1 upa: 1 [A]
+LEFT$ 100 FIX1 upa: 1 [A]
+RIGHT$ -1 FIX1 upa: 0 []
+RIGHT$ 0 FIX1 upa: 0 []
+RIGHT$ 1 FIX1 upa: 1 [A]
+RIGHT$ 2 FIX1 upa: 1 [A]
+RIGHT$ 4 FIX1 upa: 1 [A]
+RIGHT$ 5 FIX1 upa: 1 [A]
+RIGHT$ 100 FIX1 upa: 1 [A]
+MID$ -1 FIX1 upa: 1 [A]
+MID$ 0 FIX1 upa: 1 [A]
+MID$ 1 FIX1 upa: 1 [A]
+MID$ 1 -1 FIX1 upa: 0 []
+MID$ 1 0 FIX1 upa: 0 []
+MID$ 1 1 FIX1 upa: 1 [A]
+MID$ 1 2 FIX1 upa: 1 [A]
+MID$ 1 4 FIX1 upa: 1 [A]
+MID$ 1 5 FIX1 upa: 1 [A]
+MID$ 1 100 FIX1 upa: 1 [A]
+MID$ 2 FIX1 upa: 0 []
+MID$ 2 -1 FIX1 upa: 0 []
+MID$ 2 0 FIX1 upa: 0 []
+MID$ 2 1 FIX1 upa: 0 []
+MID$ 2 2 FIX1 upa: 0 []
+MID$ 2 4 FIX1 upa: 0 []
+MID$ 2 5 FIX1 upa: 0 []
+MID$ 2 100 FIX1 upa: 0 []
+MID$ 4 FIX1 upa: 0 []
+MID$ 6 FIX1 upa: 0 []
+MID$ 6 -1 FIX1 upa: 0 []
+MID$ 6 0 FIX1 upa: 0 []
+MID$ 6 1 FIX1 upa: 0 []
+MID$ 6 2 FIX1 upa: 0 []
+MID$ 6 4 FIX1 upa: 0 []
+MID$ 6 5 FIX1 upa: 0 []
+MID$ 6 100 FIX1 upa: 0 []
+MID$ 100 FIX1 upa: 0 []
+LEN INSTR FIX1 ab: 1  1  0  1  0 
+ASC FIX1 ab: 97 
+ASC 2 FIX1 ab: error 5 
+UCASE$ FIX1 ab: 1 [A]
+LCASE$ FIX1 ab: 1 [a]
+LTRIM$ FIX1 ab: 1 [a]
+RTRIM$ FIX1 ab: 1 [a]
+LEFT$ -1 FIX1 ab: 0 []
+LEFT$ 0 FIX1 ab: 0 []
+LEFT$ 1 FIX1 ab: 1 [a]
+LEFT$ 2 FIX1 ab: 1 [a]
+LEFT$ 4 FIX1 ab: 1 [a]
+LEFT$ 5 FIX1 ab: 1 [a]
+LEFT$ 100 FIX1 ab: 1 [a]
+RIGHT$ -1 FIX1 ab: 0 []
+RIGHT$ 0 FIX1 ab: 0 []
+RIGHT$ 1 FIX1 ab: 1 [a]
+RIGHT$ 2 FIX1 ab: 1 [a]
+RIGHT$ 4 FIX1 ab: 1 [a]
+RIGHT$ 5 FIX1 ab: 1 [a]
+RIGHT$ 100 FIX1 ab: 1 [a]
+MID$ -1 FIX1 ab: 1 [a]
+MID$ 0 FIX1 ab: 1 [a]
+MID$ 1 FIX1 ab: 1 [a]
+MID$ 1 -1 FIX1 ab: 0 []
+MID$ 1 0 FIX1 ab: 0 []
+MID$ 1 1 FIX1 ab: 1 [a]
+MID$ 1 2 FIX1 ab: 1 [a]
+MID$ 1 4 FIX1 ab: 1 [a]
+MID$ 1 5 FIX1 ab: 1 [a]
+MID$ 1 100 FIX1 ab: 1 [a]
+MID$ 2 FIX1 ab: 0 []
+MID$ 2 -1 FIX1 ab: 0 []
+MID$ 2 0 FIX1 ab: 0 []
+MID$ 2 1 FIX1 ab: 0 []
+MID$ 2 2 FIX1 ab: 0 []
+MID$ 2 4 FIX1 ab: 0 []
+MID$ 2 5 FIX1 ab: 0 []
+MID$ 2 100 FIX1 ab: 0 []
+MID$ 4 FIX1 ab: 0 []
+MID$ 6 FIX1 ab: 0 []
+MID$ 6 -1 FIX1 ab: 0 []
+MID$ 6 0 FIX1 ab: 0 []
+MID$ 6 1 FIX1 ab: 0 []
+MID$ 6 2 FIX1 ab: 0 []
+MID$ 6 4 FIX1 ab: 0 []
+MID$ 6 5 FIX1 ab: 0 []
+MID$ 6 100 FIX1 ab: 0 []
+MID$ 100 FIX1 ab: 0 []
+LEN INSTR FIX1 abc: 1  1  0  1  0 
+ASC FIX1 abc: 97 
+ASC 2 FIX1 abc: error 5 
+UCASE$ FIX1 abc: 1 [A]
+LCASE$ FIX1 abc: 1 [a]
+LTRIM$ FIX1 abc: 1 [a]
+RTRIM$ FIX1 abc: 1 [a]
+LEFT$ -1 FIX1 abc: 0 []
+LEFT$ 0 FIX1 abc: 0 []
+LEFT$ 1 FIX1 abc: 1 [a]
+LEFT$ 2 FIX1 abc: 1 [a]
+LEFT$ 4 FIX1 abc: 1 [a]
+LEFT$ 5 FIX1 abc: 1 [a]
+LEFT$ 100 FIX1 abc: 1 [a]
+RIGHT$ -1 FIX1 abc: 0 []
+RIGHT$ 0 FIX1 abc: 0 []
+RIGHT$ 1 FIX1 abc: 1 [a]
+RIGHT$ 2 FIX1 abc: 1 [a]
+RIGHT$ 4 FIX1 abc: 1 [a]
+RIGHT$ 5 FIX1 abc: 1 [a]
+RIGHT$ 100 FIX1 abc: 1 [a]
+MID$ -1 FIX1 abc: 1 [a]
+MID$ 0 FIX1 abc: 1 [a]
+MID$ 1 FIX1 abc: 1 [a]
+MID$ 1 -1 FIX1 abc: 0 []
+MID$ 1 0 FIX1 abc: 0 []
+MID$ 1 1 FIX1 abc: 1 [a]
+MID$ 1 2 FIX1 abc: 1 [a]
+MID$ 1 4 FIX1 abc: 1 [a]
+MID$ 1 5 FIX1 abc: 1 [a]
+MID$ 1 100 FIX1 abc: 1 [a]
+MID$ 2 FIX1 abc: 0 []
+MID$ 2 -1 FIX1 abc: 0 []
+MID$ 2 0 FIX1 abc: 0 []
+MID$ 2 1 FIX1 abc: 0 []
+MID$ 2 2 FIX1 abc: 0 []
+MID$ 2 4 FIX1 abc: 0 []
+MID$ 2 5 FIX1 abc: 0 []
+MID$ 2 100 FIX1 abc: 0 []
+MID$ 4 FIX1 abc: 0 []
+MID$ 6 FIX1 abc: 0 []
+MID$ 6 -1 FIX1 abc: 0 []
+MID$ 6 0 FIX1 abc: 0 []
+MID$ 6 1 FIX1 abc: 0 []
+MID$ 6 2 FIX1 abc: 0 []
+MID$ 6 4 FIX1 abc: 0 []
+MID$ 6 5 FIX1 abc: 0 []
+MID$ 6 100 FIX1 abc: 0 []
+MID$ 100 FIX1 abc: 0 []
+LEN INSTR FIX1 abcde: 1  1  0  1  0 
+ASC FIX1 abcde: 97 
+ASC 2 FIX1 abcde: error 5 
+UCASE$ FIX1 abcde: 1 [A]
+LCASE$ FIX1 abcde: 1 [a]
+LTRIM$ FIX1 abcde: 1 [a]
+RTRIM$ FIX1 abcde: 1 [a]
+LEFT$ -1 FIX1 abcde: 0 []
+LEFT$ 0 FIX1 abcde: 0 []
+LEFT$ 1 FIX1 abcde: 1 [a]
+LEFT$ 2 FIX1 abcde: 1 [a]
+LEFT$ 4 FIX1 abcde: 1 [a]
+LEFT$ 5 FIX1 abcde: 1 [a]
+LEFT$ 100 FIX1 abcde: 1 [a]
+RIGHT$ -1 FIX1 abcde: 0 []
+RIGHT$ 0 FIX1 abcde: 0 []
+RIGHT$ 1 FIX1 abcde: 1 [a]
+RIGHT$ 2 FIX1 abcde: 1 [a]
+RIGHT$ 4 FIX1 abcde: 1 [a]
+RIGHT$ 5 FIX1 abcde: 1 [a]
+RIGHT$ 100 FIX1 abcde: 1 [a]
+MID$ -1 FIX1 abcde: 1 [a]
+MID$ 0 FIX1 abcde: 1 [a]
+MID$ 1 FIX1 abcde: 1 [a]
+MID$ 1 -1 FIX1 abcde: 0 []
+MID$ 1 0 FIX1 abcde: 0 []
+MID$ 1 1 FIX1 abcde: 1 [a]
+MID$ 1 2 FIX1 abcde: 1 [a]
+MID$ 1 4 FIX1 abcde: 1 [a]
+MID$ 1 5 FIX1 abcde: 1 [a]
+MID$ 1 100 FIX1 abcde: 1 [a]
+MID$ 2 FIX1 abcde: 0 []
+MID$ 2 -1 FIX1 abcde: 0 []
+MID$ 2 0 FIX1 abcde: 0 []
+MID$ 2 1 FIX1 abcde: 0 []
+MID$ 2 2 FIX1 abcde: 0 []
+MID$ 2 4 FIX1 abcde: 0 []
+MID$ 2 5 FIX1 abcde: 0 []
+MID$ 2 100 FIX1 abcde: 0 []
+MID$ 4 FIX1 abcde: 0 []
+MID$ 6 FIX1 abcde: 0 []
+MID$ 6 -1 FIX1 abcde: 0 []
+MID$ 6 0 FIX1 abcde: 0 []
+MID$ 6 1 FIX1 abcde: 0 []
+MID$ 6 2 FIX1 abcde: 0 []
+MID$ 6 4 FIX1 abcde: 0 []
+MID$ 6 5 FIX1 abcde: 0 []
+MID$ 6 100 FIX1 abcde: 0 []
+MID$ 100 FIX1 abcde: 0 []
+LEN INSTR FIX1 spa: 1  0  0  1  0 
+ASC FIX1 spa: 32 
+ASC 2 FIX1 spa: error 5 
+UCASE$ FIX1 spa: 1 [ ]
+LCASE$ FIX1 spa: 1 [ ]
+LTRIM$ FIX1 spa: 0 []
+RTRIM$ FIX1 spa: 0 []
+LEFT$ -1 FIX1 spa: 0 []
+LEFT$ 0 FIX1 spa: 0 []
+LEFT$ 1 FIX1 spa: 1 [ ]
+LEFT$ 2 FIX1 spa: 1 [ ]
+LEFT$ 4 FIX1 spa: 1 [ ]
+LEFT$ 5 FIX1 spa: 1 [ ]
+LEFT$ 100 FIX1 spa: 1 [ ]
+RIGHT$ -1 FIX1 spa: 0 []
+RIGHT$ 0 FIX1 spa: 0 []
+RIGHT$ 1 FIX1 spa: 1 [ ]
+RIGHT$ 2 FIX1 spa: 1 [ ]
+RIGHT$ 4 FIX1 spa: 1 [ ]
+RIGHT$ 5 FIX1 spa: 1 [ ]
+RIGHT$ 100 FIX1 spa: 1 [ ]
+MID$ -1 FIX1 spa: 1 [ ]
+MID$ 0 FIX1 spa: 1 [ ]
+MID$ 1 FIX1 spa: 1 [ ]
+MID$ 1 -1 FIX1 spa: 0 []
+MID$ 1 0 FIX1 spa: 0 []
+MID$ 1 1 FIX1 spa: 1 [ ]
+MID$ 1 2 FIX1 spa: 1 [ ]
+MID$ 1 4 FIX1 spa: 1 [ ]
+MID$ 1 5 FIX1 spa: 1 [ ]
+MID$ 1 100 FIX1 spa: 1 [ ]
+MID$ 2 FIX1 spa: 0 []
+MID$ 2 -1 FIX1 spa: 0 []
+MID$ 2 0 FIX1 spa: 0 []
+MID$ 2 1 FIX1 spa: 0 []
+MID$ 2 2 FIX1 spa: 0 []
+MID$ 2 4 FIX1 spa: 0 []
+MID$ 2 5 FIX1 spa: 0 []
+MID$ 2 100 FIX1 spa: 0 []
+MID$ 4 FIX1 spa: 0 []
+MID$ 6 FIX1 spa: 0 []
+MID$ 6 -1 FIX1 spa: 0 []
+MID$ 6 0 FIX1 spa: 0 []
+MID$ 6 1 FIX1 spa: 0 []
+MID$ 6 2 FIX1 spa: 0 []
+MID$ 6 4 FIX1 spa: 0 []
+MID$ 6 5 FIX1 spa: 0 []
+MID$ 6 100 FIX1 spa: 0 []
+MID$ 100 FIX1 spa: 0 []
+LEN INSTR FIX1 asp: 1  1  0  1  0 
+ASC FIX1 asp: 97 
+ASC 2 FIX1 asp: error 5 
+UCASE$ FIX1 asp: 1 [A]
+LCASE$ FIX1 asp: 1 [a]
+LTRIM$ FIX1 asp: 1 [a]
+RTRIM$ FIX1 asp: 1 [a]
+LEFT$ -1 FIX1 asp: 0 []
+LEFT$ 0 FIX1 asp: 0 []
+LEFT$ 1 FIX1 asp: 1 [a]
+LEFT$ 2 FIX1 asp: 1 [a]
+LEFT$ 4 FIX1 asp: 1 [a]
+LEFT$ 5 FIX1 asp: 1 [a]
+LEFT$ 100 FIX1 asp: 1 [a]
+RIGHT$ -1 FIX1 asp: 0 []
+RIGHT$ 0 FIX1 asp: 0 []
+RIGHT$ 1 FIX1 asp: 1 [a]
+RIGHT$ 2 FIX1 asp: 1 [a]
+RIGHT$ 4 FIX1 asp: 1 [a]
+RIGHT$ 5 FIX1 asp: 1 [a]
+RIGHT$ 100 FIX1 asp: 1 [a]
+MID$ -1 FIX1 asp: 1 [a]
+MID$ 0 FIX1 asp: 1 [a]
+MID$ 1 FIX1 asp: 1 [a]
+MID$ 1 -1 FIX1 asp: 0 []
+MID$ 1 0 FIX1 asp: 0 []
+MID$ 1 1 FIX1 asp: 1 [a]
+MID$ 1 2 FIX1 asp: 1 [a]
+MID$ 1 4 FIX1 asp: 1 [a]
+MID$ 1 5 FIX1 asp: 1 [a]
+MID$ 1 100 FIX1 asp: 1 [a]
+MID$ 2 FIX1 asp: 0 []
+MID$ 2 -1 FIX1 asp: 0 []
+MID$ 2 0 FIX1 asp: 0 []
+MID$ 2 1 FIX1 asp: 0 []
+MID$ 2 2 FIX1 asp: 0 []
+MID$ 2 4 FIX1 asp: 0 []
+MID$ 2 5 FIX1 asp: 0 []
+MID$ 2 100 FIX1 asp: 0 []
+MID$ 4 FIX1 asp: 0 []
+MID$ 6 FIX1 asp: 0 []
+MID$ 6 -1 FIX1 asp: 0 []
+MID$ 6 0 FIX1 asp: 0 []
+MID$ 6 1 FIX1 asp: 0 []
+MID$ 6 2 FIX1 asp: 0 []
+MID$ 6 4 FIX1 asp: 0 []
+MID$ 6 5 FIX1 asp: 0 []
+MID$ 6 100 FIX1 asp: 0 []
+MID$ 100 FIX1 asp: 0 []
+LEN INSTR FIX1 b: 1  0  0  1  0 
+ASC FIX1 b: 98 
+ASC 2 FIX1 b: error 5 
+UCASE$ FIX1 b: 1 [B]
+LCASE$ FIX1 b: 1 [b]
+LTRIM$ FIX1 b: 1 [b]
+RTRIM$ FIX1 b: 1 [b]
+LEFT$ -1 FIX1 b: 0 []
+LEFT$ 0 FIX1 b: 0 []
+LEFT$ 1 FIX1 b: 1 [b]
+LEFT$ 2 FIX1 b: 1 [b]
+LEFT$ 4 FIX1 b: 1 [b]
+LEFT$ 5 FIX1 b: 1 [b]
+LEFT$ 100 FIX1 b: 1 [b]
+RIGHT$ -1 FIX1 b: 0 []
+RIGHT$ 0 FIX1 b: 0 []
+RIGHT$ 1 FIX1 b: 1 [b]
+RIGHT$ 2 FIX1 b: 1 [b]
+RIGHT$ 4 FIX1 b: 1 [b]
+RIGHT$ 5 FIX1 b: 1 [b]
+RIGHT$ 100 FIX1 b: 1 [b]
+MID$ -1 FIX1 b: 1 [b]
+MID$ 0 FIX1 b: 1 [b]
+MID$ 1 FIX1 b: 1 [b]
+MID$ 1 -1 FIX1 b: 0 []
+MID$ 1 0 FIX1 b: 0 []
+MID$ 1 1 FIX1 b: 1 [b]
+MID$ 1 2 FIX1 b: 1 [b]
+MID$ 1 4 FIX1 b: 1 [b]
+MID$ 1 5 FIX1 b: 1 [b]
+MID$ 1 100 FIX1 b: 1 [b]
+MID$ 2 FIX1 b: 0 []
+MID$ 2 -1 FIX1 b: 0 []
+MID$ 2 0 FIX1 b: 0 []
+MID$ 2 1 FIX1 b: 0 []
+MID$ 2 2 FIX1 b: 0 []
+MID$ 2 4 FIX1 b: 0 []
+MID$ 2 5 FIX1 b: 0 []
+MID$ 2 100 FIX1 b: 0 []
+MID$ 4 FIX1 b: 0 []
+MID$ 6 FIX1 b: 0 []
+MID$ 6 -1 FIX1 b: 0 []
+MID$ 6 0 FIX1 b: 0 []
+MID$ 6 1 FIX1 b: 0 []
+MID$ 6 2 FIX1 b: 0 []
+MID$ 6 4 FIX1 b: 0 []
+MID$ 6 5 FIX1 b: 0 []
+MID$ 6 100 FIX1 b: 0 []
+MID$ 100 FIX1 b: 0 []
+LEN INSTR FIX1 nul: 1  1  0  1  0 
+ASC FIX1 nul: 97 
+ASC 2 FIX1 nul: error 5 
+UCASE$ FIX1 nul: 1  0  0 
+LCASE$ FIX1 nul: 1  0  0 
+LTRIM$ FIX1 nul: 1  0  0 
+RTRIM$ FIX1 nul: 1  0  0 
+LEFT$ -1 FIX1 nul: 0  0  0 
+LEFT$ 0 FIX1 nul: 0  0  0 
+LEFT$ 1 FIX1 nul: 1  0  0 
+LEFT$ 2 FIX1 nul: 1  0  0 
+LEFT$ 4 FIX1 nul: 1  0  0 
+LEFT$ 5 FIX1 nul: 1  0  0 
+LEFT$ 100 FIX1 nul: 1  0  0 
+RIGHT$ -1 FIX1 nul: 0  0  0 
+RIGHT$ 0 FIX1 nul: 0  0  0 
+RIGHT$ 1 FIX1 nul: 1  0  0 
+RIGHT$ 2 FIX1 nul: 1  0  0 
+RIGHT$ 4 FIX1 nul: 1  0  0 
+RIGHT$ 5 FIX1 nul: 1  0  0 
+RIGHT$ 100 FIX1 nul: 1  0  0 
+MID$ -1 FIX1 nul: 1  0  0 
+MID$ 0 FIX1 nul: 1  0  0 
+MID$ 1 FIX1 nul: 1  0  0 
+MID$ 1 -1 FIX1 nul: 0  0  0 
+MID$ 1 0 FIX1 nul: 0  0  0 
+MID$ 1 1 FIX1 nul: 1  0  0 
+MID$ 1 2 FIX1 nul: 1  0  0 
+MID$ 1 4 FIX1 nul: 1  0  0 
+MID$ 1 5 FIX1 nul: 1  0  0 
+MID$ 1 100 FIX1 nul: 1  0  0 
+MID$ 2 FIX1 nul: 0  0  0 
+MID$ 2 -1 FIX1 nul: 0  0  0 
+MID$ 2 0 FIX1 nul: 0  0  0 
+MID$ 2 1 FIX1 nul: 0  0  0 
+MID$ 2 2 FIX1 nul: 0  0  0 
+MID$ 2 4 FIX1 nul: 0  0  0 
+MID$ 2 5 FIX1 nul: 0  0  0 
+MID$ 2 100 FIX1 nul: 0  0  0 
+MID$ 4 FIX1 nul: 0  0  0 
+MID$ 6 FIX1 nul: 0  0  0 
+MID$ 6 -1 FIX1 nul: 0  0  0 
+MID$ 6 0 FIX1 nul: 0  0  0 
+MID$ 6 1 FIX1 nul: 0  0  0 
+MID$ 6 2 FIX1 nul: 0  0  0 
+MID$ 6 4 FIX1 nul: 0  0  0 
+MID$ 6 5 FIX1 nul: 0  0  0 
+MID$ 6 100 FIX1 nul: 0  0  0 
+MID$ 100 FIX1 nul: 0  0  0 
+LEN INSTR FIX1 hi: 1  0  0  1  0 
+ASC FIX1 hi: 255 
+ASC 2 FIX1 hi: error 5 
+UCASE$ FIX1 hi: 1  0  1 
+LCASE$ FIX1 hi: 1  0  1 
+LTRIM$ FIX1 hi: 1  0  1 
+RTRIM$ FIX1 hi: 1  0  1 
+LEFT$ -1 FIX1 hi: 0  0  0 
+LEFT$ 0 FIX1 hi: 0  0  0 
+LEFT$ 1 FIX1 hi: 1  0  1 
+LEFT$ 2 FIX1 hi: 1  0  1 
+LEFT$ 4 FIX1 hi: 1  0  1 
+LEFT$ 5 FIX1 hi: 1  0  1 
+LEFT$ 100 FIX1 hi: 1  0  1 
+RIGHT$ -1 FIX1 hi: 0  0  0 
+RIGHT$ 0 FIX1 hi: 0  0  0 
+RIGHT$ 1 FIX1 hi: 1  0  1 
+RIGHT$ 2 FIX1 hi: 1  0  1 
+RIGHT$ 4 FIX1 hi: 1  0  1 
+RIGHT$ 5 FIX1 hi: 1  0  1 
+RIGHT$ 100 FIX1 hi: 1  0  1 
+MID$ -1 FIX1 hi: 1  0  1 
+MID$ 0 FIX1 hi: 1  0  1 
+MID$ 1 FIX1 hi: 1  0  1 
+MID$ 1 -1 FIX1 hi: 0  0  0 
+MID$ 1 0 FIX1 hi: 0  0  0 
+MID$ 1 1 FIX1 hi: 1  0  1 
+MID$ 1 2 FIX1 hi: 1  0  1 
+MID$ 1 4 FIX1 hi: 1  0  1 
+MID$ 1 5 FIX1 hi: 1  0  1 
+MID$ 1 100 FIX1 hi: 1  0  1 
+MID$ 2 FIX1 hi: 0  0  0 
+MID$ 2 -1 FIX1 hi: 0  0  0 
+MID$ 2 0 FIX1 hi: 0  0  0 
+MID$ 2 1 FIX1 hi: 0  0  0 
+MID$ 2 2 FIX1 hi: 0  0  0 
+MID$ 2 4 FIX1 hi: 0  0  0 
+MID$ 2 5 FIX1 hi: 0  0  0 
+MID$ 2 100 FIX1 hi: 0  0  0 
+MID$ 4 FIX1 hi: 0  0  0 
+MID$ 6 FIX1 hi: 0  0  0 
+MID$ 6 -1 FIX1 hi: 0  0  0 
+MID$ 6 0 FIX1 hi: 0  0  0 
+MID$ 6 1 FIX1 hi: 0  0  0 
+MID$ 6 2 FIX1 hi: 0  0  0 
+MID$ 6 4 FIX1 hi: 0  0  0 
+MID$ 6 5 FIX1 hi: 0  0  0 
+MID$ 6 100 FIX1 hi: 0  0  0 
+MID$ 100 FIX1 hi: 0  0  0 
+LEN INSTR FIX4 empty: 4  0  0  1  0 
+ASC FIX4 empty: 32 
+ASC 2 FIX4 empty: 32 
+UCASE$ FIX4 empty: 4 [    ]
+LCASE$ FIX4 empty: 4 [    ]
+LTRIM$ FIX4 empty: 0 []
+RTRIM$ FIX4 empty: 0 []
+LEFT$ -1 FIX4 empty: 0 []
+LEFT$ 0 FIX4 empty: 0 []
+LEFT$ 1 FIX4 empty: 1 [ ]
+LEFT$ 2 FIX4 empty: 2 [  ]
+LEFT$ 4 FIX4 empty: 4 [    ]
+LEFT$ 5 FIX4 empty: 4 [    ]
+LEFT$ 100 FIX4 empty: 4 [    ]
+RIGHT$ -1 FIX4 empty: 0 []
+RIGHT$ 0 FIX4 empty: 0 []
+RIGHT$ 1 FIX4 empty: 1 [ ]
+RIGHT$ 2 FIX4 empty: 2 [  ]
+RIGHT$ 4 FIX4 empty: 4 [    ]
+RIGHT$ 5 FIX4 empty: 4 [    ]
+RIGHT$ 100 FIX4 empty: 4 [    ]
+MID$ -1 FIX4 empty: 4 [    ]
+MID$ 0 FIX4 empty: 4 [    ]
+MID$ 1 FIX4 empty: 4 [    ]
+MID$ 1 -1 FIX4 empty: 0 []
+MID$ 1 0 FIX4 empty: 0 []
+MID$ 1 1 FIX4 empty: 1 [ ]
+MID$ 1 2 FIX4 empty: 2 [  ]
+MID$ 1 4 FIX4 empty: 4 [    ]
+MID$ 1 5 FIX4 empty: 4 [    ]
+MID$ 1 100 FIX4 empty: 4 [    ]
+MID$ 2 FIX4 empty: 3 [   ]
+MID$ 2 -1 FIX4 empty: 0 []
+MID$ 2 0 FIX4 empty: 0 []
+MID$ 2 1 FIX4 empty: 1 [ ]
+MID$ 2 2 FIX4 empty: 2 [  ]
+MID$ 2 4 FIX4 empty: 3 [   ]
+MID$ 2 5 FIX4 empty: 3 [   ]
+MID$ 2 100 FIX4 empty: 3 [   ]
+MID$ 4 FIX4 empty: 1 [ ]
+MID$ 6 FIX4 empty: 0 []
+MID$ 6 -1 FIX4 empty: 0 []
+MID$ 6 0 FIX4 empty: 0 []
+MID$ 6 1 FIX4 empty: 0 []
+MID$ 6 2 FIX4 empty: 0 []
+MID$ 6 4 FIX4 empty: 0 []
+MID$ 6 5 FIX4 empty: 0 []
+MID$ 6 100 FIX4 empty: 0 []
+MID$ 100 FIX4 empty: 0 []
+LEN INSTR FIX4 a: 4  1  0  1  0 
+ASC FIX4 a: 97 
+ASC 2 FIX4 a: 32 
+UCASE$ FIX4 a: 4 [A   ]
+LCASE$ FIX4 a: 4 [a   ]
+LTRIM$ FIX4 a: 4 [a   ]
+RTRIM$ FIX4 a: 1 [a]
+LEFT$ -1 FIX4 a: 0 []
+LEFT$ 0 FIX4 a: 0 []
+LEFT$ 1 FIX4 a: 1 [a]
+LEFT$ 2 FIX4 a: 2 [a ]
+LEFT$ 4 FIX4 a: 4 [a   ]
+LEFT$ 5 FIX4 a: 4 [a   ]
+LEFT$ 100 FIX4 a: 4 [a   ]
+RIGHT$ -1 FIX4 a: 0 []
+RIGHT$ 0 FIX4 a: 0 []
+RIGHT$ 1 FIX4 a: 1 [ ]
+RIGHT$ 2 FIX4 a: 2 [  ]
+RIGHT$ 4 FIX4 a: 4 [a   ]
+RIGHT$ 5 FIX4 a: 4 [a   ]
+RIGHT$ 100 FIX4 a: 4 [a   ]
+MID$ -1 FIX4 a: 4 [a   ]
+MID$ 0 FIX4 a: 4 [a   ]
+MID$ 1 FIX4 a: 4 [a   ]
+MID$ 1 -1 FIX4 a: 0 []
+MID$ 1 0 FIX4 a: 0 []
+MID$ 1 1 FIX4 a: 1 [a]
+MID$ 1 2 FIX4 a: 2 [a ]
+MID$ 1 4 FIX4 a: 4 [a   ]
+MID$ 1 5 FIX4 a: 4 [a   ]
+MID$ 1 100 FIX4 a: 4 [a   ]
+MID$ 2 FIX4 a: 3 [   ]
+MID$ 2 -1 FIX4 a: 0 []
+MID$ 2 0 FIX4 a: 0 []
+MID$ 2 1 FIX4 a: 1 [ ]
+MID$ 2 2 FIX4 a: 2 [  ]
+MID$ 2 4 FIX4 a: 3 [   ]
+MID$ 2 5 FIX4 a: 3 [   ]
+MID$ 2 100 FIX4 a: 3 [   ]
+MID$ 4 FIX4 a: 1 [ ]
+MID$ 6 FIX4 a: 0 []
+MID$ 6 -1 FIX4 a: 0 []
+MID$ 6 0 FIX4 a: 0 []
+MID$ 6 1 FIX4 a: 0 []
+MID$ 6 2 FIX4 a: 0 []
+MID$ 6 4 FIX4 a: 0 []
+MID$ 6 5 FIX4 a: 0 []
+MID$ 6 100 FIX4 a: 0 []
+MID$ 100 FIX4 a: 0 []
+LEN INSTR FIX4 upa: 4  0  0  1  0 
+ASC FIX4 upa: 65 
+ASC 2 FIX4 upa: 32 
+UCASE$ FIX4 upa: 4 [A   ]
+LCASE$ FIX4 upa: 4 [a   ]
+LTRIM$ FIX4 upa: 4 [A   ]
+RTRIM$ FIX4 upa: 1 [A]
+LEFT$ -1 FIX4 upa: 0 []
+LEFT$ 0 FIX4 upa: 0 []
+LEFT$ 1 FIX4 upa: 1 [A]
+LEFT$ 2 FIX4 upa: 2 [A ]
+LEFT$ 4 FIX4 upa: 4 [A   ]
+LEFT$ 5 FIX4 upa: 4 [A   ]
+LEFT$ 100 FIX4 upa: 4 [A   ]
+RIGHT$ -1 FIX4 upa: 0 []
+RIGHT$ 0 FIX4 upa: 0 []
+RIGHT$ 1 FIX4 upa: 1 [ ]
+RIGHT$ 2 FIX4 upa: 2 [  ]
+RIGHT$ 4 FIX4 upa: 4 [A   ]
+RIGHT$ 5 FIX4 upa: 4 [A   ]
+RIGHT$ 100 FIX4 upa: 4 [A   ]
+MID$ -1 FIX4 upa: 4 [A   ]
+MID$ 0 FIX4 upa: 4 [A   ]
+MID$ 1 FIX4 upa: 4 [A   ]
+MID$ 1 -1 FIX4 upa: 0 []
+MID$ 1 0 FIX4 upa: 0 []
+MID$ 1 1 FIX4 upa: 1 [A]
+MID$ 1 2 FIX4 upa: 2 [A ]
+MID$ 1 4 FIX4 upa: 4 [A   ]
+MID$ 1 5 FIX4 upa: 4 [A   ]
+MID$ 1 100 FIX4 upa: 4 [A   ]
+MID$ 2 FIX4 upa: 3 [   ]
+MID$ 2 -1 FIX4 upa: 0 []
+MID$ 2 0 FIX4 upa: 0 []
+MID$ 2 1 FIX4 upa: 1 [ ]
+MID$ 2 2 FIX4 upa: 2 [  ]
+MID$ 2 4 FIX4 upa: 3 [   ]
+MID$ 2 5 FIX4 upa: 3 [   ]
+MID$ 2 100 FIX4 upa: 3 [   ]
+MID$ 4 FIX4 upa: 1 [ ]
+MID$ 6 FIX4 upa: 0 []
+MID$ 6 -1 FIX4 upa: 0 []
+MID$ 6 0 FIX4 upa: 0 []
+MID$ 6 1 FIX4 upa: 0 []
+MID$ 6 2 FIX4 upa: 0 []
+MID$ 6 4 FIX4 upa: 0 []
+MID$ 6 5 FIX4 upa: 0 []
+MID$ 6 100 FIX4 upa: 0 []
+MID$ 100 FIX4 upa: 0 []
+LEN INSTR FIX4 ab: 4  1  2  1  0 
+ASC FIX4 ab: 97 
+ASC 2 FIX4 ab: 98 
+UCASE$ FIX4 ab: 4 [AB  ]
+LCASE$ FIX4 ab: 4 [ab  ]
+LTRIM$ FIX4 ab: 4 [ab  ]
+RTRIM$ FIX4 ab: 2 [ab]
+LEFT$ -1 FIX4 ab: 0 []
+LEFT$ 0 FIX4 ab: 0 []
+LEFT$ 1 FIX4 ab: 1 [a]
+LEFT$ 2 FIX4 ab: 2 [ab]
+LEFT$ 4 FIX4 ab: 4 [ab  ]
+LEFT$ 5 FIX4 ab: 4 [ab  ]
+LEFT$ 100 FIX4 ab: 4 [ab  ]
+RIGHT$ -1 FIX4 ab: 0 []
+RIGHT$ 0 FIX4 ab: 0 []
+RIGHT$ 1 FIX4 ab: 1 [ ]
+RIGHT$ 2 FIX4 ab: 2 [  ]
+RIGHT$ 4 FIX4 ab: 4 [ab  ]
+RIGHT$ 5 FIX4 ab: 4 [ab  ]
+RIGHT$ 100 FIX4 ab: 4 [ab  ]
+MID$ -1 FIX4 ab: 4 [ab  ]
+MID$ 0 FIX4 ab: 4 [ab  ]
+MID$ 1 FIX4 ab: 4 [ab  ]
+MID$ 1 -1 FIX4 ab: 0 []
+MID$ 1 0 FIX4 ab: 0 []
+MID$ 1 1 FIX4 ab: 1 [a]
+MID$ 1 2 FIX4 ab: 2 [ab]
+MID$ 1 4 FIX4 ab: 4 [ab  ]
+MID$ 1 5 FIX4 ab: 4 [ab  ]
+MID$ 1 100 FIX4 ab: 4 [ab  ]
+MID$ 2 FIX4 ab: 3 [b  ]
+MID$ 2 -1 FIX4 ab: 0 []
+MID$ 2 0 FIX4 ab: 0 []
+MID$ 2 1 FIX4 ab: 1 [b]
+MID$ 2 2 FIX4 ab: 2 [b ]
+MID$ 2 4 FIX4 ab: 3 [b  ]
+MID$ 2 5 FIX4 ab: 3 [b  ]
+MID$ 2 100 FIX4 ab: 3 [b  ]
+MID$ 4 FIX4 ab: 1 [ ]
+MID$ 6 FIX4 ab: 0 []
+MID$ 6 -1 FIX4 ab: 0 []
+MID$ 6 0 FIX4 ab: 0 []
+MID$ 6 1 FIX4 ab: 0 []
+MID$ 6 2 FIX4 ab: 0 []
+MID$ 6 4 FIX4 ab: 0 []
+MID$ 6 5 FIX4 ab: 0 []
+MID$ 6 100 FIX4 ab: 0 []
+MID$ 100 FIX4 ab: 0 []
+LEN INSTR FIX4 abc: 4  1  2  1  2 
+ASC FIX4 abc: 97 
+ASC 2 FIX4 abc: 98 
+UCASE$ FIX4 abc: 4 [ABC ]
+LCASE$ FIX4 abc: 4 [abc ]
+LTRIM$ FIX4 abc: 4 [abc ]
+RTRIM$ FIX4 abc: 3 [abc]
+LEFT$ -1 FIX4 abc: 0 []
+LEFT$ 0 FIX4 abc: 0 []
+LEFT$ 1 FIX4 abc: 1 [a]
+LEFT$ 2 FIX4 abc: 2 [ab]
+LEFT$ 4 FIX4 abc: 4 [abc ]
+LEFT$ 5 FIX4 abc: 4 [abc ]
+LEFT$ 100 FIX4 abc: 4 [abc ]
+RIGHT$ -1 FIX4 abc: 0 []
+RIGHT$ 0 FIX4 abc: 0 []
+RIGHT$ 1 FIX4 abc: 1 [ ]
+RIGHT$ 2 FIX4 abc: 2 [c ]
+RIGHT$ 4 FIX4 abc: 4 [abc ]
+RIGHT$ 5 FIX4 abc: 4 [abc ]
+RIGHT$ 100 FIX4 abc: 4 [abc ]
+MID$ -1 FIX4 abc: 4 [abc ]
+MID$ 0 FIX4 abc: 4 [abc ]
+MID$ 1 FIX4 abc: 4 [abc ]
+MID$ 1 -1 FIX4 abc: 0 []
+MID$ 1 0 FIX4 abc: 0 []
+MID$ 1 1 FIX4 abc: 1 [a]
+MID$ 1 2 FIX4 abc: 2 [ab]
+MID$ 1 4 FIX4 abc: 4 [abc ]
+MID$ 1 5 FIX4 abc: 4 [abc ]
+MID$ 1 100 FIX4 abc: 4 [abc ]
+MID$ 2 FIX4 abc: 3 [bc ]
+MID$ 2 -1 FIX4 abc: 0 []
+MID$ 2 0 FIX4 abc: 0 []
+MID$ 2 1 FIX4 abc: 1 [b]
+MID$ 2 2 FIX4 abc: 2 [bc]
+MID$ 2 4 FIX4 abc: 3 [bc ]
+MID$ 2 5 FIX4 abc: 3 [bc ]
+MID$ 2 100 FIX4 abc: 3 [bc ]
+MID$ 4 FIX4 abc: 1 [ ]
+MID$ 6 FIX4 abc: 0 []
+MID$ 6 -1 FIX4 abc: 0 []
+MID$ 6 0 FIX4 abc: 0 []
+MID$ 6 1 FIX4 abc: 0 []
+MID$ 6 2 FIX4 abc: 0 []
+MID$ 6 4 FIX4 abc: 0 []
+MID$ 6 5 FIX4 abc: 0 []
+MID$ 6 100 FIX4 abc: 0 []
+MID$ 100 FIX4 abc: 0 []
+LEN INSTR FIX4 abcde: 4  1  2  1  2 
+ASC FIX4 abcde: 97 
+ASC 2 FIX4 abcde: 98 
+UCASE$ FIX4 abcde: 4 [ABCD]
+LCASE$ FIX4 abcde: 4 [abcd]
+LTRIM$ FIX4 abcde: 4 [abcd]
+RTRIM$ FIX4 abcde: 4 [abcd]
+LEFT$ -1 FIX4 abcde: 0 []
+LEFT$ 0 FIX4 abcde: 0 []
+LEFT$ 1 FIX4 abcde: 1 [a]
+LEFT$ 2 FIX4 abcde: 2 [ab]
+LEFT$ 4 FIX4 abcde: 4 [abcd]
+LEFT$ 5 FIX4 abcde: 4 [abcd]
+LEFT$ 100 FIX4 abcde: 4 [abcd]
+RIGHT$ -1 FIX4 abcde: 0 []
+RIGHT$ 0 FIX4 abcde: 0 []
+RIGHT$ 1 FIX4 abcde: 1 [d]
+RIGHT$ 2 FIX4 abcde: 2 [cd]
+RIGHT$ 4 FIX4 abcde: 4 [abcd]
+RIGHT$ 5 FIX4 abcde: 4 [abcd]
+RIGHT$ 100 FIX4 abcde: 4 [abcd]
+MID$ -1 FIX4 abcde: 4 [abcd]
+MID$ 0 FIX4 abcde: 4 [abcd]
+MID$ 1 FIX4 abcde: 4 [abcd]
+MID$ 1 -1 FIX4 abcde: 0 []
+MID$ 1 0 FIX4 abcde: 0 []
+MID$ 1 1 FIX4 abcde: 1 [a]
+MID$ 1 2 FIX4 abcde: 2 [ab]
+MID$ 1 4 FIX4 abcde: 4 [abcd]
+MID$ 1 5 FIX4 abcde: 4 [abcd]
+MID$ 1 100 FIX4 abcde: 4 [abcd]
+MID$ 2 FIX4 abcde: 3 [bcd]
+MID$ 2 -1 FIX4 abcde: 0 []
+MID$ 2 0 FIX4 abcde: 0 []
+MID$ 2 1 FIX4 abcde: 1 [b]
+MID$ 2 2 FIX4 abcde: 2 [bc]
+MID$ 2 4 FIX4 abcde: 3 [bcd]
+MID$ 2 5 FIX4 abcde: 3 [bcd]
+MID$ 2 100 FIX4 abcde: 3 [bcd]
+MID$ 4 FIX4 abcde: 1 [d]
+MID$ 6 FIX4 abcde: 0 []
+MID$ 6 -1 FIX4 abcde: 0 []
+MID$ 6 0 FIX4 abcde: 0 []
+MID$ 6 1 FIX4 abcde: 0 []
+MID$ 6 2 FIX4 abcde: 0 []
+MID$ 6 4 FIX4 abcde: 0 []
+MID$ 6 5 FIX4 abcde: 0 []
+MID$ 6 100 FIX4 abcde: 0 []
+MID$ 100 FIX4 abcde: 0 []
+LEN INSTR FIX4 spa: 4  2  0  1  0 
+ASC FIX4 spa: 32 
+ASC 2 FIX4 spa: 97 
+UCASE$ FIX4 spa: 4 [ A  ]
+LCASE$ FIX4 spa: 4 [ a  ]
+LTRIM$ FIX4 spa: 3 [a  ]
+RTRIM$ FIX4 spa: 2 [ a]
+LEFT$ -1 FIX4 spa: 0 []
+LEFT$ 0 FIX4 spa: 0 []
+LEFT$ 1 FIX4 spa: 1 [ ]
+LEFT$ 2 FIX4 spa: 2 [ a]
+LEFT$ 4 FIX4 spa: 4 [ a  ]
+LEFT$ 5 FIX4 spa: 4 [ a  ]
+LEFT$ 100 FIX4 spa: 4 [ a  ]
+RIGHT$ -1 FIX4 spa: 0 []
+RIGHT$ 0 FIX4 spa: 0 []
+RIGHT$ 1 FIX4 spa: 1 [ ]
+RIGHT$ 2 FIX4 spa: 2 [  ]
+RIGHT$ 4 FIX4 spa: 4 [ a  ]
+RIGHT$ 5 FIX4 spa: 4 [ a  ]
+RIGHT$ 100 FIX4 spa: 4 [ a  ]
+MID$ -1 FIX4 spa: 4 [ a  ]
+MID$ 0 FIX4 spa: 4 [ a  ]
+MID$ 1 FIX4 spa: 4 [ a  ]
+MID$ 1 -1 FIX4 spa: 0 []
+MID$ 1 0 FIX4 spa: 0 []
+MID$ 1 1 FIX4 spa: 1 [ ]
+MID$ 1 2 FIX4 spa: 2 [ a]
+MID$ 1 4 FIX4 spa: 4 [ a  ]
+MID$ 1 5 FIX4 spa: 4 [ a  ]
+MID$ 1 100 FIX4 spa: 4 [ a  ]
+MID$ 2 FIX4 spa: 3 [a  ]
+MID$ 2 -1 FIX4 spa: 0 []
+MID$ 2 0 FIX4 spa: 0 []
+MID$ 2 1 FIX4 spa: 1 [a]
+MID$ 2 2 FIX4 spa: 2 [a ]
+MID$ 2 4 FIX4 spa: 3 [a  ]
+MID$ 2 5 FIX4 spa: 3 [a  ]
+MID$ 2 100 FIX4 spa: 3 [a  ]
+MID$ 4 FIX4 spa: 1 [ ]
+MID$ 6 FIX4 spa: 0 []
+MID$ 6 -1 FIX4 spa: 0 []
+MID$ 6 0 FIX4 spa: 0 []
+MID$ 6 1 FIX4 spa: 0 []
+MID$ 6 2 FIX4 spa: 0 []
+MID$ 6 4 FIX4 spa: 0 []
+MID$ 6 5 FIX4 spa: 0 []
+MID$ 6 100 FIX4 spa: 0 []
+MID$ 100 FIX4 spa: 0 []
+LEN INSTR FIX4 asp: 4  1  0  1  0 
+ASC FIX4 asp: 97 
+ASC 2 FIX4 asp: 32 
+UCASE$ FIX4 asp: 4 [A   ]
+LCASE$ FIX4 asp: 4 [a   ]
+LTRIM$ FIX4 asp: 4 [a   ]
+RTRIM$ FIX4 asp: 1 [a]
+LEFT$ -1 FIX4 asp: 0 []
+LEFT$ 0 FIX4 asp: 0 []
+LEFT$ 1 FIX4 asp: 1 [a]
+LEFT$ 2 FIX4 asp: 2 [a ]
+LEFT$ 4 FIX4 asp: 4 [a   ]
+LEFT$ 5 FIX4 asp: 4 [a   ]
+LEFT$ 100 FIX4 asp: 4 [a   ]
+RIGHT$ -1 FIX4 asp: 0 []
+RIGHT$ 0 FIX4 asp: 0 []
+RIGHT$ 1 FIX4 asp: 1 [ ]
+RIGHT$ 2 FIX4 asp: 2 [  ]
+RIGHT$ 4 FIX4 asp: 4 [a   ]
+RIGHT$ 5 FIX4 asp: 4 [a   ]
+RIGHT$ 100 FIX4 asp: 4 [a   ]
+MID$ -1 FIX4 asp: 4 [a   ]
+MID$ 0 FIX4 asp: 4 [a   ]
+MID$ 1 FIX4 asp: 4 [a   ]
+MID$ 1 -1 FIX4 asp: 0 []
+MID$ 1 0 FIX4 asp: 0 []
+MID$ 1 1 FIX4 asp: 1 [a]
+MID$ 1 2 FIX4 asp: 2 [a ]
+MID$ 1 4 FIX4 asp: 4 [a   ]
+MID$ 1 5 FIX4 asp: 4 [a   ]
+MID$ 1 100 FIX4 asp: 4 [a   ]
+MID$ 2 FIX4 asp: 3 [   ]
+MID$ 2 -1 FIX4 asp: 0 []
+MID$ 2 0 FIX4 asp: 0 []
+MID$ 2 1 FIX4 asp: 1 [ ]
+MID$ 2 2 FIX4 asp: 2 [  ]
+MID$ 2 4 FIX4 asp: 3 [   ]
+MID$ 2 5 FIX4 asp: 3 [   ]
+MID$ 2 100 FIX4 asp: 3 [   ]
+MID$ 4 FIX4 asp: 1 [ ]
+MID$ 6 FIX4 asp: 0 []
+MID$ 6 -1 FIX4 asp: 0 []
+MID$ 6 0 FIX4 asp: 0 []
+MID$ 6 1 FIX4 asp: 0 []
+MID$ 6 2 FIX4 asp: 0 []
+MID$ 6 4 FIX4 asp: 0 []
+MID$ 6 5 FIX4 asp: 0 []
+MID$ 6 100 FIX4 asp: 0 []
+MID$ 100 FIX4 asp: 0 []
+LEN INSTR FIX4 b: 4  0  0  1  0 
+ASC FIX4 b: 98 
+ASC 2 FIX4 b: 32 
+UCASE$ FIX4 b: 4 [B   ]
+LCASE$ FIX4 b: 4 [b   ]
+LTRIM$ FIX4 b: 4 [b   ]
+RTRIM$ FIX4 b: 1 [b]
+LEFT$ -1 FIX4 b: 0 []
+LEFT$ 0 FIX4 b: 0 []
+LEFT$ 1 FIX4 b: 1 [b]
+LEFT$ 2 FIX4 b: 2 [b ]
+LEFT$ 4 FIX4 b: 4 [b   ]
+LEFT$ 5 FIX4 b: 4 [b   ]
+LEFT$ 100 FIX4 b: 4 [b   ]
+RIGHT$ -1 FIX4 b: 0 []
+RIGHT$ 0 FIX4 b: 0 []
+RIGHT$ 1 FIX4 b: 1 [ ]
+RIGHT$ 2 FIX4 b: 2 [  ]
+RIGHT$ 4 FIX4 b: 4 [b   ]
+RIGHT$ 5 FIX4 b: 4 [b   ]
+RIGHT$ 100 FIX4 b: 4 [b   ]
+MID$ -1 FIX4 b: 4 [b   ]
+MID$ 0 FIX4 b: 4 [b   ]
+MID$ 1 FIX4 b: 4 [b   ]
+MID$ 1 -1 FIX4 b: 0 []
+MID$ 1 0 FIX4 b: 0 []
+MID$ 1 1 FIX4 b: 1 [b]
+MID$ 1 2 FIX4 b: 2 [b ]
+MID$ 1 4 FIX4 b: 4 [b   ]
+MID$ 1 5 FIX4 b: 4 [b   ]
+MID$ 1 100 FIX4 b: 4 [b   ]
+MID$ 2 FIX4 b: 3 [   ]
+MID$ 2 -1 FIX4 b: 0 []
+MID$ 2 0 FIX4 b: 0 []
+MID$ 2 1 FIX4 b: 1 [ ]
+MID$ 2 2 FIX4 b: 2 [  ]
+MID$ 2 4 FIX4 b: 3 [   ]
+MID$ 2 5 FIX4 b: 3 [   ]
+MID$ 2 100 FIX4 b: 3 [   ]
+MID$ 4 FIX4 b: 1 [ ]
+MID$ 6 FIX4 b: 0 []
+MID$ 6 -1 FIX4 b: 0 []
+MID$ 6 0 FIX4 b: 0 []
+MID$ 6 1 FIX4 b: 0 []
+MID$ 6 2 FIX4 b: 0 []
+MID$ 6 4 FIX4 b: 0 []
+MID$ 6 5 FIX4 b: 0 []
+MID$ 6 100 FIX4 b: 0 []
+MID$ 100 FIX4 b: 0 []
+LEN INSTR FIX4 nul: 4  1  3  1  0 
+ASC FIX4 nul: 97 
+ASC 2 FIX4 nul: 0 
+UCASE$ FIX4 nul: 4  2  0 
+LCASE$ FIX4 nul: 4  2  0 
+LTRIM$ FIX4 nul: 4  2  0 
+RTRIM$ FIX4 nul: 3  2  0 
+LEFT$ -1 FIX4 nul: 0  0  0 
+LEFT$ 0 FIX4 nul: 0  0  0 
+LEFT$ 1 FIX4 nul: 1  0  0 
+LEFT$ 2 FIX4 nul: 2  2  0 
+LEFT$ 4 FIX4 nul: 4  2  0 
+LEFT$ 5 FIX4 nul: 4  2  0 
+LEFT$ 100 FIX4 nul: 4  2  0 
+RIGHT$ -1 FIX4 nul: 0  0  0 
+RIGHT$ 0 FIX4 nul: 0  0  0 
+RIGHT$ 1 FIX4 nul: 1  0  0 
+RIGHT$ 2 FIX4 nul: 2  0  0 
+RIGHT$ 4 FIX4 nul: 4  2  0 
+RIGHT$ 5 FIX4 nul: 4  2  0 
+RIGHT$ 100 FIX4 nul: 4  2  0 
+MID$ -1 FIX4 nul: 4  2  0 
+MID$ 0 FIX4 nul: 4  2  0 
+MID$ 1 FIX4 nul: 4  2  0 
+MID$ 1 -1 FIX4 nul: 0  0  0 
+MID$ 1 0 FIX4 nul: 0  0  0 
+MID$ 1 1 FIX4 nul: 1  0  0 
+MID$ 1 2 FIX4 nul: 2  2  0 
+MID$ 1 4 FIX4 nul: 4  2  0 
+MID$ 1 5 FIX4 nul: 4  2  0 
+MID$ 1 100 FIX4 nul: 4  2  0 
+MID$ 2 FIX4 nul: 3  1  0 
+MID$ 2 -1 FIX4 nul: 0  0  0 
+MID$ 2 0 FIX4 nul: 0  0  0 
+MID$ 2 1 FIX4 nul: 1  1  0 
+MID$ 2 2 FIX4 nul: 2  1  0 
+MID$ 2 4 FIX4 nul: 3  1  0 
+MID$ 2 5 FIX4 nul: 3  1  0 
+MID$ 2 100 FIX4 nul: 3  1  0 
+MID$ 4 FIX4 nul: 1  0  0 
+MID$ 6 FIX4 nul: 0  0  0 
+MID$ 6 -1 FIX4 nul: 0  0  0 
+MID$ 6 0 FIX4 nul: 0  0  0 
+MID$ 6 1 FIX4 nul: 0  0  0 
+MID$ 6 2 FIX4 nul: 0  0  0 
+MID$ 6 4 FIX4 nul: 0  0  0 
+MID$ 6 5 FIX4 nul: 0  0  0 
+MID$ 6 100 FIX4 nul: 0  0  0 
+MID$ 100 FIX4 nul: 0  0  0 
+LEN INSTR FIX4 hi: 4  2  0  1  0 
+ASC FIX4 hi: 255 
+ASC 2 FIX4 hi: 97 
+UCASE$ FIX4 hi: 4  0  1 
+LCASE$ FIX4 hi: 4  0  1 
+LTRIM$ FIX4 hi: 4  0  1 
+RTRIM$ FIX4 hi: 2  0  1 
+LEFT$ -1 FIX4 hi: 0  0  0 
+LEFT$ 0 FIX4 hi: 0  0  0 
+LEFT$ 1 FIX4 hi: 1  0  1 
+LEFT$ 2 FIX4 hi: 2  0  1 
+LEFT$ 4 FIX4 hi: 4  0  1 
+LEFT$ 5 FIX4 hi: 4  0  1 
+LEFT$ 100 FIX4 hi: 4  0  1 
+RIGHT$ -1 FIX4 hi: 0  0  0 
+RIGHT$ 0 FIX4 hi: 0  0  0 
+RIGHT$ 1 FIX4 hi: 1  0  0 
+RIGHT$ 2 FIX4 hi: 2  0  0 
+RIGHT$ 4 FIX4 hi: 4  0  1 
+RIGHT$ 5 FIX4 hi: 4  0  1 
+RIGHT$ 100 FIX4 hi: 4  0  1 
+MID$ -1 FIX4 hi: 4  0  1 
+MID$ 0 FIX4 hi: 4  0  1 
+MID$ 1 FIX4 hi: 4  0  1 
+MID$ 1 -1 FIX4 hi: 0  0  0 
+MID$ 1 0 FIX4 hi: 0  0  0 
+MID$ 1 1 FIX4 hi: 1  0  1 
+MID$ 1 2 FIX4 hi: 2  0  1 
+MID$ 1 4 FIX4 hi: 4  0  1 
+MID$ 1 5 FIX4 hi: 4  0  1 
+MID$ 1 100 FIX4 hi: 4  0  1 
+MID$ 2 FIX4 hi: 3  0  0 
+MID$ 2 -1 FIX4 hi: 0  0  0 
+MID$ 2 0 FIX4 hi: 0  0  0 
+MID$ 2 1 FIX4 hi: 1  0  0 
+MID$ 2 2 FIX4 hi: 2  0  0 
+MID$ 2 4 FIX4 hi: 3  0  0 
+MID$ 2 5 FIX4 hi: 3  0  0 
+MID$ 2 100 FIX4 hi: 3  0  0 
+MID$ 4 FIX4 hi: 1  0  0 
+MID$ 6 FIX4 hi: 0  0  0 
+MID$ 6 -1 FIX4 hi: 0  0  0 
+MID$ 6 0 FIX4 hi: 0  0  0 
+MID$ 6 1 FIX4 hi: 0  0  0 
+MID$ 6 2 FIX4 hi: 0  0  0 
+MID$ 6 4 FIX4 hi: 0  0  0 
+MID$ 6 5 FIX4 hi: 0  0  0 
+MID$ 6 100 FIX4 hi: 0  0  0 
+MID$ 100 FIX4 hi: 0  0  0 

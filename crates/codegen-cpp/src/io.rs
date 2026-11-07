@@ -271,8 +271,13 @@ impl Emitter<'_> {
     pub(crate) fn field(&mut self, file: &Expr, parts: &[(Place, Expr)], out: &mut Vec<String>) {
         out.push(format!("field_new({});", self.value(file)));
         for (place, width) in parts {
+            // Each `field_add` is one call: the place and the width are its group (`order.rs`).
+            let group = crate::order::field_group(self.order_ctx(), place, width);
+            let holds = self.hold(&group);
+            out.extend(holds.into_iter().map(|h| format!("{h};")));
             let string = self.place_ref(place);
             out.push(format!("field_add({string},{});", self.value(width)));
+            self.release_holds(&group);
         }
         // Each string is now a part of the record buffer: a value-trace build reads them again.
         let fields = self.trace_fields("FIELD");

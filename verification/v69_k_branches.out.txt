@@ -1,0 +1,9 @@
+_IIF true: f1 1 
+_IIF false: f2 2 
+_IIF with groups: f1 f2-1 
+_ANDALSO true: f1 f2 f3-1 
+_ANDALSO false: f0 0 
+_ORELSE true: f1-1 
+_ORELSE false: f0 f2 f3-1 
+inside an operand: f1 f2 f3 4 
+exit=0

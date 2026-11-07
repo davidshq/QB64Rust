@@ -7,6 +7,7 @@
 use crate::Emitter;
 use crate::decl::{dim_slot, is_plain, is_qbs};
 use crate::names::{c_type, int_const};
+use crate::order::{Class, HeldPlace, sequenced};
 use qb64rust_ir::{ArrayRef, Expr, MemberId, Place, Ty, VarId};
 
 impl Emitter<'_> {
@@ -29,6 +30,16 @@ impl Emitter<'_> {
     pub(crate) fn flat_index(&mut self, array: VarId, index: &[Expr]) -> String {
         let name = self.name(array);
         self.flat_index_in(&name, index)
+    }
+
+    /// The flat position of an element of an array variable: the temporary its group holds it in (`order.rs`), or
+    /// [`Self::flat_index`].
+    fn flat_of(&mut self, held: Option<HeldPlace>, array: VarId, index: &[Expr]) -> String {
+        match held {
+            Some(HeldPlace::Flat(flat)) => flat,
+            Some(HeldPlace::Bytes(_)) => unreachable!("an element of an array variable is held by its position"),
+            None => self.flat_index(array, index),
+        }
     }
 
     /// The test that the array whose descriptor is `desc` has no storage: not allocated, or with libqb's
@@ -56,21 +67,31 @@ impl Emitter<'_> {
         if n == 0 {
             return self.whole_index(desc);
         }
-        let parts: Vec<String> = index
+        // The terms are operands of `+` and `*`, whose order C++ leaves open: each one that conflicts with a later
+        // one is held, its check included, so that its error 9 comes in its turn (`order.rs`). The descriptor's
+        // reads are not counted: a FUNCTION in an index that `REDIM`s the same array leaves the old compiler's
+        // program on freed storage on every platform, so there is no order to keep (`SOMEDAY.md`).
+        let cx = self.order_ctx();
+        let terms: Vec<(Class, String, &str)> = index
             .iter()
             .enumerate()
             .map(|(k, i)| {
                 let s = dim_slot(n, k);
+                let class = cx
+                    .expr(i)
+                    .join(if self.checking { Class::INDEX } else { Class::CONSTANT });
                 let i = self.value(i);
-                match (self.checking, k) {
+                let text = match (self.checking, k) {
                     (true, 0) => format!("array_check(({i})-{desc}[{s}],{desc}[{}])", s + 1),
                     (true, _) => format!("array_check(({i})-{desc}[{s}],{desc}[{}])*{desc}[{}]", s + 1, s + 2),
                     (false, 0) => format!("({i})-{desc}[{s}]"),
                     (false, _) => format!("(({i})-{desc}[{s}])*{desc}[{}]", s + 2),
-                }
+                };
+                (class, text, "int64")
             })
             .collect();
-        parts.join("+")
+        let (holds, texts) = self.hold_texts(terms);
+        sequenced(&holds, texts.join("+"))
     }
 
     /// The lower bound, the number of elements and the multiplier of each dimension of a member array, first
@@ -92,26 +113,40 @@ impl Emitter<'_> {
     /// [`Self::flat_index`] for an element of a member array, whose bounds are constants: an index outside
     /// raises error 9 and counts as 0, position 0 of its dimension (measured, `verification\v24_h_member_store`).
     pub(crate) fn member_flat_index(&mut self, base: &Place, member: MemberId, index: &[Expr]) -> String {
+        let (holds, terms) = self.member_terms(None, base, member, index);
+        sequenced(&holds, terms.join("+"))
+    }
+
+    /// The terms of [`Self::member_flat_index`], with the holds they need (`order.rs`). With `first`, the address
+    /// of the member array's first element and its class, which goes before the terms as one more operand.
+    fn member_terms(
+        &mut self,
+        first: Option<(Class, String)>,
+        base: &Place,
+        member: MemberId,
+        index: &[Expr],
+    ) -> (Vec<String>, Vec<String>) {
         let dims = self.member_dims(base, member);
-        let parts: Vec<String> = index
-            .iter()
-            .zip(dims)
-            .map(|(i, (lower, count, multiplier))| {
-                let lower = int_const(lower, Ty::I64);
-                let i = self.value(i);
-                let check = if self.checking {
-                    format!("array_check(({i})-{lower},{count})")
-                } else {
-                    format!("(({i})-{lower})")
-                };
-                if multiplier == 1 {
-                    check
-                } else {
-                    format!("{check}*{multiplier}")
-                }
-            })
-            .collect();
-        parts.join("+")
+        let cx = self.order_ctx();
+        let index_class = if self.checking { Class::INDEX } else { Class::CONSTANT };
+        let mut parts: Vec<(Class, String, &str)> = first.into_iter().map(|(c, t)| (c, t, "char*")).collect();
+        for (i, (lower, count, multiplier)) in index.iter().zip(dims) {
+            let lower = int_const(lower, Ty::I64);
+            let class = cx.expr(i).join(index_class);
+            let i = self.value(i);
+            let check = if self.checking {
+                format!("array_check(({i})-{lower},{count})")
+            } else {
+                format!("(({i})-{lower})")
+            };
+            let text = if multiplier == 1 {
+                check
+            } else {
+                format!("{check}*{multiplier}")
+            };
+            parts.push((class, text, "int64"));
+        }
+        self.hold_texts(parts)
     }
 
     /// The address of the first element of a member array, as a `char*` expression.
@@ -140,13 +175,18 @@ impl Emitter<'_> {
     /// The address of a place of a user type, of a member, or of an element of a member array, as a `char*`
     /// expression.
     pub(crate) fn bytes_of(&mut self, place: &Place) -> String {
+        // A place its group holds (`order.rs`): its address, or its flat position below.
+        let held = self.held_place(place);
+        if let Some(HeldPlace::Bytes(at)) = held {
+            return at;
+        }
         match place {
             Place::Var(v) => format!("((char*){})", self.name(*v)),
             Place::Element {
                 array: ArrayRef::Var(array),
                 index,
             } => {
-                let flat = self.flat_index(*array, index);
+                let flat = self.flat_of(held, *array, index);
                 let size = self.ty_size(self.p.var(*array).ty);
                 format!("(((char*){}[0])+(({flat})*{size}))", self.name(*array))
             }
@@ -158,10 +198,14 @@ impl Emitter<'_> {
                 array: ArrayRef::Member { base, member },
                 index,
             } => {
+                // The first element's address and the terms are operands of `+`: one group (`order.rs`).
                 let first = self.member_array_at(base, *member);
-                let flat = self.member_flat_index(base, *member, index);
+                let class = self.order_ctx().place(base);
+                let (holds, mut texts) = self.member_terms(Some((class, first)), base, *member, index);
+                let first = texts.remove(0);
+                let flat = texts.join("+");
                 let size = self.ty_size(self.p.member_of(base, *member).ty);
-                format!("({first}+(({flat})*{size}))")
+                sequenced(&holds, format!("({first}+(({flat})*{size}))"))
             }
             Place::Member { base, member } => {
                 let offset = self.member_offset(self.p.place_ty(base), *member);
@@ -217,7 +261,8 @@ impl Emitter<'_> {
                 array: ArrayRef::Var(array),
                 index,
             } => {
-                let flat = self.flat_index(*array, index);
+                let held = self.held_place(place);
+                let flat = self.flat_of(held, *array, index);
                 self.element_at(*array, &flat)
             }
             Place::Member { .. }
@@ -250,7 +295,8 @@ impl Emitter<'_> {
                 array: ArrayRef::Var(array),
                 index,
             } => {
-                let flat = self.flat_index(*array, index);
+                let held = self.held_place(place);
+                let flat = self.flat_of(held, *array, index);
                 let element = self.element_at(*array, &flat);
                 if is_qbs(self.p.var(*array).ty) {
                     element

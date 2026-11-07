@@ -1,4 +1,4 @@
-' Screen program (Civil War Battleset port, study\44 step 3): a text screen saved with BSAVE from &HB800 and
+' Screen program (Civil War Battleset port, step 3): a text screen saved with BSAVE from &HB800 and
 ' loaded back with BLOAD into &HB800 in SCREEN 0, as the game's scrnload SUB shows its victory and high-score
 ' screens. The program writes a screen of characters in several colors, saves it, clears the screen and loads it
 ' back in a SUB. Then it compares each of the 2,000 cells with the saved file, through SCREEN(r, c),

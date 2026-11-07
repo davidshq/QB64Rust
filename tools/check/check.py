@@ -819,6 +819,9 @@ NO_BUILD_CACHE = {"QB64RUST_NO_BUILD_CACHE": "1"}
 # Also set in every VM step: the runner skips network programs on a Windows host, where Windows Defender Firewall
 # asks the user about a program that opens a port (CLAUDE.md working rule 6, 2026-11-05). The VM asks no one.
 ALLOW_NETWORK = {"QB64RUST_ALLOW_NETWORK": "1"}
+# And the clipboard programs, which the runner skips on a Windows host so that they do not overwrite the user's
+# clipboard (DECISIONS.md 2026-11-07). No one uses the VM's clipboard.
+ALLOW_CLIPBOARD = {"QB64RUST_ALLOW_CLIPBOARD": "1"}
 
 
 def passed_seconds(record: dict | None) -> float:
@@ -864,7 +867,7 @@ def run_in_vm(p: Planned, root: Path, cmd: list[str], out, vm: SuitesVM | None) 
         "command": list(cmd),
         "first": list(p.step.vm_first) if p.step.vm_first else None,
         "cwd": cwd,
-        "env": {**p.step.env, **NO_BUILD_CACHE, **ALLOW_NETWORK},
+        "env": {**p.step.env, **NO_BUILD_CACHE, **ALLOW_NETWORK, **ALLOW_CLIPBOARD},
         "copy": copy,
         "outputs": list(p.step.outputs),
         "clears": list(p.step.clears),

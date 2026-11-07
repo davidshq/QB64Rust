@@ -4,6 +4,8 @@
 # The six-type group old6 (DECISIONS.md 2026-10-08), which tier 2 ran while the full programs could not compile,
 # went with task 10.1 once they all passed. Tier 1 requires a program here as soon as it compiles cleanly ("clean
 # programs are listed").
+array/numeric
+array/string
 fold/add
 fold/and
 fold/andalso
@@ -62,4 +64,8 @@ store/uint64
 store/uinteger
 store/ulong
 store/uoffset
+str/compare
+str/concat
+str/funcs
+str/mid_stmt
 unary/unary

@@ -40,6 +40,7 @@ mod io;
 mod library;
 mod mem;
 mod names;
+mod order;
 mod owner;
 mod place;
 mod procs;
@@ -184,6 +185,8 @@ fn emit_all(
         inside: Vec::new(),
         pass: 0,
         pass_decls: Vec::new(),
+        held_exprs: HashMap::new(),
+        held_places: HashMap::new(),
         slots: Vec::new(),
         byte_element: 0,
         runs: 0,
@@ -411,6 +414,11 @@ struct Emitter<'a> {
     pass: u32,
     /// Declarations of the `passN` of the body being emitted.
     pass_decls: Vec<String>,
+    /// The parts of the group being written that are held in a `seqN` temporary, by their address in the IR
+    /// (`order.rs`): an expression's temporary, which [`Emitter::value`] gives for it, and a place's position, which
+    /// `load_place`, `place_ref` and `bytes_of` start from.
+    held_exprs: HashMap<*const qb64rust_ir::Expr, order::Hold<String>>,
+    held_places: HashMap<*const qb64rust_ir::Place, order::Hold<order::HeldPlace>>,
     /// The slots in conventional memory of the body being emitted, each with the number of variables made before
     /// it ([`Emitter::cmem_slot`]).
     slots: Vec<(u32, String)>,

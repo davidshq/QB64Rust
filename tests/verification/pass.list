@@ -227,6 +227,7 @@ v17_d_on_error_sub_stays
 v17_d_on_error_sub_label_both
 v17_d_resume_main_label_from_sub_both
 v17_d_resume_sub_label
+v17_d_return_before_else
 v17_d_return_label
 v17_d_return_sub_main_gosub
 v17_e_const
@@ -4298,3 +4299,16 @@ v68_f1_const_same
 v68_f2_const_other
 v68_g1_debug_chain
 v68_g2_debug_run
+v69_a_operands
+v69_b_builtin_args
+v69_c_procedure_args
+v69_d_sub_byref_errors
+v69_e_field
+v69_f_lset
+v69_g_assert
+v69_h_graphics
+v69_i_put
+v69_j_assign
+v69_k_branches
+v69_l_two_errors
+v69_m_unreached
