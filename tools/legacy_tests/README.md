@@ -126,11 +126,13 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   cannot see a result that depends on time or load, which is how `m10_screen_10` was found. With `qb64pe` it is
   not used. The folder is safe to delete.
 - `<name>.external` (every suite with `--pass-cache`): one line, why the program's result depends on something
-  outside its inputs: `desktop:` (a window, its screen state, the clipboard), `sound:`, `clock:` (timer events in
-  real time), `network:`, `varies:`. The pass cache never serves it, so it runs on every run that reaches it
-  (spec `testing/golden-corpus`, "Programs the pass cache never serves"). A `network:` program is also skipped
-  (SKIP) on a Windows host unless `QB64RUST_ALLOW_NETWORK=1`, because one that opens a port makes Windows
-  Defender Firewall ask the user. `check` sets the variable in the suites VM. Every program that calls
+  outside its inputs: `desktop:` (a window, its screen state), `clipboard:` (it writes the system clipboard),
+  `sound:`, `clock:` (timer events in real time), `network:`, `varies:`. The pass cache never serves it, so it
+  runs on every run that reaches it (spec `testing/golden-corpus`, "Programs the pass cache never serves"). A
+  `network:` program is also skipped (SKIP) on a Windows host unless `QB64RUST_ALLOW_NETWORK=1`, because one that
+  opens a port makes Windows Defender Firewall ask the user. A `clipboard:` program is skipped there unless
+  `QB64RUST_ALLOW_CLIPBOARD=1`, because it would overwrite the user's clipboard, and Windows' clipboard history
+  makes it fail now and then (`DECISIONS.md` 2026-11-07). `check` sets both variables in the suites VM. Every program that calls
   `_OPENHOST` or `_OPENCLIENT` needs the sidecar (`inputs.rs`, `network_programs_are_marked`). Beside the `.bas` in the corpus and
   `verification\` (one per program: a script's test takes its program's); for an upstream program, which is
   read from the clone, in `tests\upstream\external\<category>\<name>.external`. Every screen program has one

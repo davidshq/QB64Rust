@@ -1,0 +1,1089 @@
++ STR STR empty empty: 0 []
++ STR STR empty a: 1 [a]
++ STR STR empty upa: 1 [A]
++ STR STR empty ab: 2 [ab]
++ STR STR empty abc: 3 [abc]
++ STR STR empty abcde: 5 [abcde]
++ STR STR empty spa: 2 [ a]
++ STR STR empty asp: 2 [a ]
++ STR STR empty b: 1 [b]
++ STR STR empty nul: 3  2  0 
++ STR STR empty hi: 2  0  1 
++ STR STR a empty: 1 [a]
++ STR STR a a: 2 [aa]
++ STR STR a upa: 2 [aA]
++ STR STR a ab: 3 [aab]
++ STR STR a abc: 4 [aabc]
++ STR STR a abcde: 6 [aabcde]
++ STR STR a spa: 3 [a a]
++ STR STR a asp: 3 [aa ]
++ STR STR a b: 2 [ab]
++ STR STR a nul: 4  3  0 
++ STR STR a hi: 3  0  2 
++ STR STR upa empty: 1 [A]
++ STR STR upa a: 2 [Aa]
++ STR STR upa upa: 2 [AA]
++ STR STR upa ab: 3 [Aab]
++ STR STR upa abc: 4 [Aabc]
++ STR STR upa abcde: 6 [Aabcde]
++ STR STR upa spa: 3 [A a]
++ STR STR upa asp: 3 [Aa ]
++ STR STR upa b: 2 [Ab]
++ STR STR upa nul: 4  3  0 
++ STR STR upa hi: 3  0  2 
++ STR STR ab empty: 2 [ab]
++ STR STR ab a: 3 [aba]
++ STR STR ab upa: 3 [abA]
++ STR STR ab ab: 4 [abab]
++ STR STR ab abc: 5 [ababc]
++ STR STR ab abcde: 7 [ababcde]
++ STR STR ab spa: 4 [ab a]
++ STR STR ab asp: 4 [aba ]
++ STR STR ab b: 3 [abb]
++ STR STR ab nul: 5  4  0 
++ STR STR ab hi: 4  0  3 
++ STR STR abc empty: 3 [abc]
++ STR STR abc a: 4 [abca]
++ STR STR abc upa: 4 [abcA]
++ STR STR abc ab: 5 [abcab]
++ STR STR abc abc: 6 [abcabc]
++ STR STR abc abcde: 8 [abcabcde]
++ STR STR abc spa: 5 [abc a]
++ STR STR abc asp: 5 [abca ]
++ STR STR abc b: 4 [abcb]
++ STR STR abc nul: 6  5  0 
++ STR STR abc hi: 5  0  4 
++ STR STR abcde empty: 5 [abcde]
++ STR STR abcde a: 6 [abcdea]
++ STR STR abcde upa: 6 [abcdeA]
++ STR STR abcde ab: 7 [abcdeab]
++ STR STR abcde abc: 8 [abcdeabc]
++ STR STR abcde abcde: 10 [abcdeabcde]
++ STR STR abcde spa: 7 [abcde a]
++ STR STR abcde asp: 7 [abcdea ]
++ STR STR abcde b: 6 [abcdeb]
++ STR STR abcde nul: 8  7  0 
++ STR STR abcde hi: 7  0  6 
++ STR STR spa empty: 2 [ a]
++ STR STR spa a: 3 [ aa]
++ STR STR spa upa: 3 [ aA]
++ STR STR spa ab: 4 [ aab]
++ STR STR spa abc: 5 [ aabc]
++ STR STR spa abcde: 7 [ aabcde]
++ STR STR spa spa: 4 [ a a]
++ STR STR spa asp: 4 [ aa ]
++ STR STR spa b: 3 [ ab]
++ STR STR spa nul: 5  4  0 
++ STR STR spa hi: 4  0  3 
++ STR STR asp empty: 2 [a ]
++ STR STR asp a: 3 [a a]
++ STR STR asp upa: 3 [a A]
++ STR STR asp ab: 4 [a ab]
++ STR STR asp abc: 5 [a abc]
++ STR STR asp abcde: 7 [a abcde]
++ STR STR asp spa: 4 [a  a]
++ STR STR asp asp: 4 [a a ]
++ STR STR asp b: 3 [a b]
++ STR STR asp nul: 5  4  0 
++ STR STR asp hi: 4  0  3 
++ STR STR b empty: 1 [b]
++ STR STR b a: 2 [ba]
++ STR STR b upa: 2 [bA]
++ STR STR b ab: 3 [bab]
++ STR STR b abc: 4 [babc]
++ STR STR b abcde: 6 [babcde]
++ STR STR b spa: 3 [b a]
++ STR STR b asp: 3 [ba ]
++ STR STR b b: 2 [bb]
++ STR STR b nul: 4  3  0 
++ STR STR b hi: 3  0  2 
++ STR STR nul empty: 3  2  0 
++ STR STR nul a: 4  2  0 
++ STR STR nul upa: 4  2  0 
++ STR STR nul ab: 5  2  0 
++ STR STR nul abc: 6  2  0 
++ STR STR nul abcde: 8  2  0 
++ STR STR nul spa: 5  2  0 
++ STR STR nul asp: 5  2  0 
++ STR STR nul b: 4  2  0 
++ STR STR nul nul: 6  2  0 
++ STR STR nul hi: 5  2  4 
++ STR STR hi empty: 2  0  1 
++ STR STR hi a: 3  0  1 
++ STR STR hi upa: 3  0  1 
++ STR STR hi ab: 4  0  1 
++ STR STR hi abc: 5  0  1 
++ STR STR hi abcde: 7  0  1 
++ STR STR hi spa: 4  0  1 
++ STR STR hi asp: 4  0  1 
++ STR STR hi b: 3  0  1 
++ STR STR hi nul: 5  4  1 
++ STR STR hi hi: 4  0  1 
++ STR FIX1 empty empty: 1 [ ]
++ STR FIX1 empty a: 1 [a]
++ STR FIX1 empty upa: 1 [A]
++ STR FIX1 empty ab: 1 [a]
++ STR FIX1 empty abc: 1 [a]
++ STR FIX1 empty abcde: 1 [a]
++ STR FIX1 empty spa: 1 [ ]
++ STR FIX1 empty asp: 1 [a]
++ STR FIX1 empty b: 1 [b]
++ STR FIX1 empty nul: 1  0  0 
++ STR FIX1 empty hi: 1  0  1 
++ STR FIX1 a empty: 2 [a ]
++ STR FIX1 a a: 2 [aa]
++ STR FIX1 a upa: 2 [aA]
++ STR FIX1 a ab: 2 [aa]
++ STR FIX1 a abc: 2 [aa]
++ STR FIX1 a abcde: 2 [aa]
++ STR FIX1 a spa: 2 [a ]
++ STR FIX1 a asp: 2 [aa]
++ STR FIX1 a b: 2 [ab]
++ STR FIX1 a nul: 2  0  0 
++ STR FIX1 a hi: 2  0  2 
++ STR FIX1 upa empty: 2 [A ]
++ STR FIX1 upa a: 2 [Aa]
++ STR FIX1 upa upa: 2 [AA]
++ STR FIX1 upa ab: 2 [Aa]
++ STR FIX1 upa abc: 2 [Aa]
++ STR FIX1 upa abcde: 2 [Aa]
++ STR FIX1 upa spa: 2 [A ]
++ STR FIX1 upa asp: 2 [Aa]
++ STR FIX1 upa b: 2 [Ab]
++ STR FIX1 upa nul: 2  0  0 
++ STR FIX1 upa hi: 2  0  2 
++ STR FIX1 ab empty: 3 [ab ]
++ STR FIX1 ab a: 3 [aba]
++ STR FIX1 ab upa: 3 [abA]
++ STR FIX1 ab ab: 3 [aba]
++ STR FIX1 ab abc: 3 [aba]
++ STR FIX1 ab abcde: 3 [aba]
++ STR FIX1 ab spa: 3 [ab ]
++ STR FIX1 ab asp: 3 [aba]
++ STR FIX1 ab b: 3 [abb]
++ STR FIX1 ab nul: 3  0  0 
++ STR FIX1 ab hi: 3  0  3 
++ STR FIX1 abc empty: 4 [abc ]
++ STR FIX1 abc a: 4 [abca]
++ STR FIX1 abc upa: 4 [abcA]
++ STR FIX1 abc ab: 4 [abca]
++ STR FIX1 abc abc: 4 [abca]
++ STR FIX1 abc abcde: 4 [abca]
++ STR FIX1 abc spa: 4 [abc ]
++ STR FIX1 abc asp: 4 [abca]
++ STR FIX1 abc b: 4 [abcb]
++ STR FIX1 abc nul: 4  0  0 
++ STR FIX1 abc hi: 4  0  4 
++ STR FIX1 abcde empty: 6 [abcde ]
++ STR FIX1 abcde a: 6 [abcdea]
++ STR FIX1 abcde upa: 6 [abcdeA]
++ STR FIX1 abcde ab: 6 [abcdea]
++ STR FIX1 abcde abc: 6 [abcdea]
++ STR FIX1 abcde abcde: 6 [abcdea]
++ STR FIX1 abcde spa: 6 [abcde ]
++ STR FIX1 abcde asp: 6 [abcdea]
++ STR FIX1 abcde b: 6 [abcdeb]
++ STR FIX1 abcde nul: 6  0  0 
++ STR FIX1 abcde hi: 6  0  6 
++ STR FIX1 spa empty: 3 [ a ]
++ STR FIX1 spa a: 3 [ aa]
++ STR FIX1 spa upa: 3 [ aA]
++ STR FIX1 spa ab: 3 [ aa]
++ STR FIX1 spa abc: 3 [ aa]
++ STR FIX1 spa abcde: 3 [ aa]
++ STR FIX1 spa spa: 3 [ a ]
++ STR FIX1 spa asp: 3 [ aa]
++ STR FIX1 spa b: 3 [ ab]
++ STR FIX1 spa nul: 3  0  0 
++ STR FIX1 spa hi: 3  0  3 
++ STR FIX1 asp empty: 3 [a  ]
++ STR FIX1 asp a: 3 [a a]
++ STR FIX1 asp upa: 3 [a A]
++ STR FIX1 asp ab: 3 [a a]
++ STR FIX1 asp abc: 3 [a a]
++ STR FIX1 asp abcde: 3 [a a]
++ STR FIX1 asp spa: 3 [a  ]
++ STR FIX1 asp asp: 3 [a a]
++ STR FIX1 asp b: 3 [a b]
++ STR FIX1 asp nul: 3  0  0 
++ STR FIX1 asp hi: 3  0  3 
++ STR FIX1 b empty: 2 [b ]
++ STR FIX1 b a: 2 [ba]
++ STR FIX1 b upa: 2 [bA]
++ STR FIX1 b ab: 2 [ba]
++ STR FIX1 b abc: 2 [ba]
++ STR FIX1 b abcde: 2 [ba]
++ STR FIX1 b spa: 2 [b ]
++ STR FIX1 b asp: 2 [ba]
++ STR FIX1 b b: 2 [bb]
++ STR FIX1 b nul: 2  0  0 
++ STR FIX1 b hi: 2  0  2 
++ STR FIX1 nul empty: 4  2  0 
++ STR FIX1 nul a: 4  2  0 
++ STR FIX1 nul upa: 4  2  0 
++ STR FIX1 nul ab: 4  2  0 
++ STR FIX1 nul abc: 4  2  0 
++ STR FIX1 nul abcde: 4  2  0 
++ STR FIX1 nul spa: 4  2  0 
++ STR FIX1 nul asp: 4  2  0 
++ STR FIX1 nul b: 4  2  0 
++ STR FIX1 nul nul: 4  2  0 
++ STR FIX1 nul hi: 4  2  4 
++ STR FIX1 hi empty: 3  0  1 
++ STR FIX1 hi a: 3  0  1 
++ STR FIX1 hi upa: 3  0  1 
++ STR FIX1 hi ab: 3  0  1 
++ STR FIX1 hi abc: 3  0  1 
++ STR FIX1 hi abcde: 3  0  1 
++ STR FIX1 hi spa: 3  0  1 
++ STR FIX1 hi asp: 3  0  1 
++ STR FIX1 hi b: 3  0  1 
++ STR FIX1 hi nul: 3  0  1 
++ STR FIX1 hi hi: 3  0  1 
++ STR FIX4 empty empty: 4 [    ]
++ STR FIX4 empty a: 4 [a   ]
++ STR FIX4 empty upa: 4 [A   ]
++ STR FIX4 empty ab: 4 [ab  ]
++ STR FIX4 empty abc: 4 [abc ]
++ STR FIX4 empty abcde: 4 [abcd]
++ STR FIX4 empty spa: 4 [ a  ]
++ STR FIX4 empty asp: 4 [a   ]
++ STR FIX4 empty b: 4 [b   ]
++ STR FIX4 empty nul: 4  2  0 
++ STR FIX4 empty hi: 4  0  1 
++ STR FIX4 a empty: 5 [a    ]
++ STR FIX4 a a: 5 [aa   ]
++ STR FIX4 a upa: 5 [aA   ]
++ STR FIX4 a ab: 5 [aab  ]
++ STR FIX4 a abc: 5 [aabc ]
++ STR FIX4 a abcde: 5 [aabcd]
++ STR FIX4 a spa: 5 [a a  ]
++ STR FIX4 a asp: 5 [aa   ]
++ STR FIX4 a b: 5 [ab   ]
++ STR FIX4 a nul: 5  3  0 
++ STR FIX4 a hi: 5  0  2 
++ STR FIX4 upa empty: 5 [A    ]
++ STR FIX4 upa a: 5 [Aa   ]
++ STR FIX4 upa upa: 5 [AA   ]
++ STR FIX4 upa ab: 5 [Aab  ]
++ STR FIX4 upa abc: 5 [Aabc ]
++ STR FIX4 upa abcde: 5 [Aabcd]
++ STR FIX4 upa spa: 5 [A a  ]
++ STR FIX4 upa asp: 5 [Aa   ]
++ STR FIX4 upa b: 5 [Ab   ]
++ STR FIX4 upa nul: 5  3  0 
++ STR FIX4 upa hi: 5  0  2 
++ STR FIX4 ab empty: 6 [ab    ]
++ STR FIX4 ab a: 6 [aba   ]
++ STR FIX4 ab upa: 6 [abA   ]
++ STR FIX4 ab ab: 6 [abab  ]
++ STR FIX4 ab abc: 6 [ababc ]
++ STR FIX4 ab abcde: 6 [ababcd]
++ STR FIX4 ab spa: 6 [ab a  ]
++ STR FIX4 ab asp: 6 [aba   ]
++ STR FIX4 ab b: 6 [abb   ]
++ STR FIX4 ab nul: 6  4  0 
++ STR FIX4 ab hi: 6  0  3 
++ STR FIX4 abc empty: 7 [abc    ]
++ STR FIX4 abc a: 7 [abca   ]
++ STR FIX4 abc upa: 7 [abcA   ]
++ STR FIX4 abc ab: 7 [abcab  ]
++ STR FIX4 abc abc: 7 [abcabc ]
++ STR FIX4 abc abcde: 7 [abcabcd]
++ STR FIX4 abc spa: 7 [abc a  ]
++ STR FIX4 abc asp: 7 [abca   ]
++ STR FIX4 abc b: 7 [abcb   ]
++ STR FIX4 abc nul: 7  5  0 
++ STR FIX4 abc hi: 7  0  4 
++ STR FIX4 abcde empty: 9 [abcde    ]
++ STR FIX4 abcde a: 9 [abcdea   ]
++ STR FIX4 abcde upa: 9 [abcdeA   ]
++ STR FIX4 abcde ab: 9 [abcdeab  ]
++ STR FIX4 abcde abc: 9 [abcdeabc ]
++ STR FIX4 abcde abcde: 9 [abcdeabcd]
++ STR FIX4 abcde spa: 9 [abcde a  ]
++ STR FIX4 abcde asp: 9 [abcdea   ]
++ STR FIX4 abcde b: 9 [abcdeb   ]
++ STR FIX4 abcde nul: 9  7  0 
++ STR FIX4 abcde hi: 9  0  6 
++ STR FIX4 spa empty: 6 [ a    ]
++ STR FIX4 spa a: 6 [ aa   ]
++ STR FIX4 spa upa: 6 [ aA   ]
++ STR FIX4 spa ab: 6 [ aab  ]
++ STR FIX4 spa abc: 6 [ aabc ]
++ STR FIX4 spa abcde: 6 [ aabcd]
++ STR FIX4 spa spa: 6 [ a a  ]
++ STR FIX4 spa asp: 6 [ aa   ]
++ STR FIX4 spa b: 6 [ ab   ]
++ STR FIX4 spa nul: 6  4  0 
++ STR FIX4 spa hi: 6  0  3 
++ STR FIX4 asp empty: 6 [a     ]
++ STR FIX4 asp a: 6 [a a   ]
++ STR FIX4 asp upa: 6 [a A   ]
++ STR FIX4 asp ab: 6 [a ab  ]
++ STR FIX4 asp abc: 6 [a abc ]
++ STR FIX4 asp abcde: 6 [a abcd]
++ STR FIX4 asp spa: 6 [a  a  ]
++ STR FIX4 asp asp: 6 [a a   ]
++ STR FIX4 asp b: 6 [a b   ]
++ STR FIX4 asp nul: 6  4  0 
++ STR FIX4 asp hi: 6  0  3 
++ STR FIX4 b empty: 5 [b    ]
++ STR FIX4 b a: 5 [ba   ]
++ STR FIX4 b upa: 5 [bA   ]
++ STR FIX4 b ab: 5 [bab  ]
++ STR FIX4 b abc: 5 [babc ]
++ STR FIX4 b abcde: 5 [babcd]
++ STR FIX4 b spa: 5 [b a  ]
++ STR FIX4 b asp: 5 [ba   ]
++ STR FIX4 b b: 5 [bb   ]
++ STR FIX4 b nul: 5  3  0 
++ STR FIX4 b hi: 5  0  2 
++ STR FIX4 nul empty: 7  2  0 
++ STR FIX4 nul a: 7  2  0 
++ STR FIX4 nul upa: 7  2  0 
++ STR FIX4 nul ab: 7  2  0 
++ STR FIX4 nul abc: 7  2  0 
++ STR FIX4 nul abcde: 7  2  0 
++ STR FIX4 nul spa: 7  2  0 
++ STR FIX4 nul asp: 7  2  0 
++ STR FIX4 nul b: 7  2  0 
++ STR FIX4 nul nul: 7  2  0 
++ STR FIX4 nul hi: 7  2  4 
++ STR FIX4 hi empty: 6  0  1 
++ STR FIX4 hi a: 6  0  1 
++ STR FIX4 hi upa: 6  0  1 
++ STR FIX4 hi ab: 6  0  1 
++ STR FIX4 hi abc: 6  0  1 
++ STR FIX4 hi abcde: 6  0  1 
++ STR FIX4 hi spa: 6  0  1 
++ STR FIX4 hi asp: 6  0  1 
++ STR FIX4 hi b: 6  0  1 
++ STR FIX4 hi nul: 6  4  1 
++ STR FIX4 hi hi: 6  0  1 
++ FIX1 STR empty empty: 1 [ ]
++ FIX1 STR empty a: 2 [ a]
++ FIX1 STR empty upa: 2 [ A]
++ FIX1 STR empty ab: 3 [ ab]
++ FIX1 STR empty abc: 4 [ abc]
++ FIX1 STR empty abcde: 6 [ abcde]
++ FIX1 STR empty spa: 3 [  a]
++ FIX1 STR empty asp: 3 [ a ]
++ FIX1 STR empty b: 2 [ b]
++ FIX1 STR empty nul: 4  3  0 
++ FIX1 STR empty hi: 3  0  2 
++ FIX1 STR a empty: 1 [a]
++ FIX1 STR a a: 2 [aa]
++ FIX1 STR a upa: 2 [aA]
++ FIX1 STR a ab: 3 [aab]
++ FIX1 STR a abc: 4 [aabc]
++ FIX1 STR a abcde: 6 [aabcde]
++ FIX1 STR a spa: 3 [a a]
++ FIX1 STR a asp: 3 [aa ]
++ FIX1 STR a b: 2 [ab]
++ FIX1 STR a nul: 4  3  0 
++ FIX1 STR a hi: 3  0  2 
++ FIX1 STR upa empty: 1 [A]
++ FIX1 STR upa a: 2 [Aa]
++ FIX1 STR upa upa: 2 [AA]
++ FIX1 STR upa ab: 3 [Aab]
++ FIX1 STR upa abc: 4 [Aabc]
++ FIX1 STR upa abcde: 6 [Aabcde]
++ FIX1 STR upa spa: 3 [A a]
++ FIX1 STR upa asp: 3 [Aa ]
++ FIX1 STR upa b: 2 [Ab]
++ FIX1 STR upa nul: 4  3  0 
++ FIX1 STR upa hi: 3  0  2 
++ FIX1 STR ab empty: 1 [a]
++ FIX1 STR ab a: 2 [aa]
++ FIX1 STR ab upa: 2 [aA]
++ FIX1 STR ab ab: 3 [aab]
++ FIX1 STR ab abc: 4 [aabc]
++ FIX1 STR ab abcde: 6 [aabcde]
++ FIX1 STR ab spa: 3 [a a]
++ FIX1 STR ab asp: 3 [aa ]
++ FIX1 STR ab b: 2 [ab]
++ FIX1 STR ab nul: 4  3  0 
++ FIX1 STR ab hi: 3  0  2 
++ FIX1 STR abc empty: 1 [a]
++ FIX1 STR abc a: 2 [aa]
++ FIX1 STR abc upa: 2 [aA]
++ FIX1 STR abc ab: 3 [aab]
++ FIX1 STR abc abc: 4 [aabc]
++ FIX1 STR abc abcde: 6 [aabcde]
++ FIX1 STR abc spa: 3 [a a]
++ FIX1 STR abc asp: 3 [aa ]
++ FIX1 STR abc b: 2 [ab]
++ FIX1 STR abc nul: 4  3  0 
++ FIX1 STR abc hi: 3  0  2 
++ FIX1 STR abcde empty: 1 [a]
++ FIX1 STR abcde a: 2 [aa]
++ FIX1 STR abcde upa: 2 [aA]
++ FIX1 STR abcde ab: 3 [aab]
++ FIX1 STR abcde abc: 4 [aabc]
++ FIX1 STR abcde abcde: 6 [aabcde]
++ FIX1 STR abcde spa: 3 [a a]
++ FIX1 STR abcde asp: 3 [aa ]
++ FIX1 STR abcde b: 2 [ab]
++ FIX1 STR abcde nul: 4  3  0 
++ FIX1 STR abcde hi: 3  0  2 
++ FIX1 STR spa empty: 1 [ ]
++ FIX1 STR spa a: 2 [ a]
++ FIX1 STR spa upa: 2 [ A]
++ FIX1 STR spa ab: 3 [ ab]
++ FIX1 STR spa abc: 4 [ abc]
++ FIX1 STR spa abcde: 6 [ abcde]
++ FIX1 STR spa spa: 3 [  a]
++ FIX1 STR spa asp: 3 [ a ]
++ FIX1 STR spa b: 2 [ b]
++ FIX1 STR spa nul: 4  3  0 
++ FIX1 STR spa hi: 3  0  2 
++ FIX1 STR asp empty: 1 [a]
++ FIX1 STR asp a: 2 [aa]
++ FIX1 STR asp upa: 2 [aA]
++ FIX1 STR asp ab: 3 [aab]
++ FIX1 STR asp abc: 4 [aabc]
++ FIX1 STR asp abcde: 6 [aabcde]
++ FIX1 STR asp spa: 3 [a a]
++ FIX1 STR asp asp: 3 [aa ]
++ FIX1 STR asp b: 2 [ab]
++ FIX1 STR asp nul: 4  3  0 
++ FIX1 STR asp hi: 3  0  2 
++ FIX1 STR b empty: 1 [b]
++ FIX1 STR b a: 2 [ba]
++ FIX1 STR b upa: 2 [bA]
++ FIX1 STR b ab: 3 [bab]
++ FIX1 STR b abc: 4 [babc]
++ FIX1 STR b abcde: 6 [babcde]
++ FIX1 STR b spa: 3 [b a]
++ FIX1 STR b asp: 3 [ba ]
++ FIX1 STR b b: 2 [bb]
++ FIX1 STR b nul: 4  3  0 
++ FIX1 STR b hi: 3  0  2 
++ FIX1 STR nul empty: 1  0  0 
++ FIX1 STR nul a: 2  0  0 
++ FIX1 STR nul upa: 2  0  0 
++ FIX1 STR nul ab: 3  0  0 
++ FIX1 STR nul abc: 4  0  0 
++ FIX1 STR nul abcde: 6  0  0 
++ FIX1 STR nul spa: 3  0  0 
++ FIX1 STR nul asp: 3  0  0 
++ FIX1 STR nul b: 2  0  0 
++ FIX1 STR nul nul: 4  3  0 
++ FIX1 STR nul hi: 3  0  2 
++ FIX1 STR hi empty: 1  0  1 
++ FIX1 STR hi a: 2  0  1 
++ FIX1 STR hi upa: 2  0  1 
++ FIX1 STR hi ab: 3  0  1 
++ FIX1 STR hi abc: 4  0  1 
++ FIX1 STR hi abcde: 6  0  1 
++ FIX1 STR hi spa: 3  0  1 
++ FIX1 STR hi asp: 3  0  1 
++ FIX1 STR hi b: 2  0  1 
++ FIX1 STR hi nul: 4  3  1 
++ FIX1 STR hi hi: 3  0  1 
++ FIX1 FIX1 empty empty: 2 [  ]
++ FIX1 FIX1 empty a: 2 [ a]
++ FIX1 FIX1 empty upa: 2 [ A]
++ FIX1 FIX1 empty ab: 2 [ a]
++ FIX1 FIX1 empty abc: 2 [ a]
++ FIX1 FIX1 empty abcde: 2 [ a]
++ FIX1 FIX1 empty spa: 2 [  ]
++ FIX1 FIX1 empty asp: 2 [ a]
++ FIX1 FIX1 empty b: 2 [ b]
++ FIX1 FIX1 empty nul: 2  0  0 
++ FIX1 FIX1 empty hi: 2  0  2 
++ FIX1 FIX1 a empty: 2 [a ]
++ FIX1 FIX1 a a: 2 [aa]
++ FIX1 FIX1 a upa: 2 [aA]
++ FIX1 FIX1 a ab: 2 [aa]
++ FIX1 FIX1 a abc: 2 [aa]
++ FIX1 FIX1 a abcde: 2 [aa]
++ FIX1 FIX1 a spa: 2 [a ]
++ FIX1 FIX1 a asp: 2 [aa]
++ FIX1 FIX1 a b: 2 [ab]
++ FIX1 FIX1 a nul: 2  0  0 
++ FIX1 FIX1 a hi: 2  0  2 
++ FIX1 FIX1 upa empty: 2 [A ]
++ FIX1 FIX1 upa a: 2 [Aa]
++ FIX1 FIX1 upa upa: 2 [AA]
++ FIX1 FIX1 upa ab: 2 [Aa]
++ FIX1 FIX1 upa abc: 2 [Aa]
++ FIX1 FIX1 upa abcde: 2 [Aa]
++ FIX1 FIX1 upa spa: 2 [A ]
++ FIX1 FIX1 upa asp: 2 [Aa]
++ FIX1 FIX1 upa b: 2 [Ab]
++ FIX1 FIX1 upa nul: 2  0  0 
++ FIX1 FIX1 upa hi: 2  0  2 
++ FIX1 FIX1 ab empty: 2 [a ]
++ FIX1 FIX1 ab a: 2 [aa]
++ FIX1 FIX1 ab upa: 2 [aA]
++ FIX1 FIX1 ab ab: 2 [aa]
++ FIX1 FIX1 ab abc: 2 [aa]
++ FIX1 FIX1 ab abcde: 2 [aa]
++ FIX1 FIX1 ab spa: 2 [a ]
++ FIX1 FIX1 ab asp: 2 [aa]
++ FIX1 FIX1 ab b: 2 [ab]
++ FIX1 FIX1 ab nul: 2  0  0 
++ FIX1 FIX1 ab hi: 2  0  2 
++ FIX1 FIX1 abc empty: 2 [a ]
++ FIX1 FIX1 abc a: 2 [aa]
++ FIX1 FIX1 abc upa: 2 [aA]
++ FIX1 FIX1 abc ab: 2 [aa]
++ FIX1 FIX1 abc abc: 2 [aa]
++ FIX1 FIX1 abc abcde: 2 [aa]
++ FIX1 FIX1 abc spa: 2 [a ]
++ FIX1 FIX1 abc asp: 2 [aa]
++ FIX1 FIX1 abc b: 2 [ab]
++ FIX1 FIX1 abc nul: 2  0  0 
++ FIX1 FIX1 abc hi: 2  0  2 
++ FIX1 FIX1 abcde empty: 2 [a ]
++ FIX1 FIX1 abcde a: 2 [aa]
++ FIX1 FIX1 abcde upa: 2 [aA]
++ FIX1 FIX1 abcde ab: 2 [aa]
++ FIX1 FIX1 abcde abc: 2 [aa]
++ FIX1 FIX1 abcde abcde: 2 [aa]
++ FIX1 FIX1 abcde spa: 2 [a ]
++ FIX1 FIX1 abcde asp: 2 [aa]
++ FIX1 FIX1 abcde b: 2 [ab]
++ FIX1 FIX1 abcde nul: 2  0  0 
++ FIX1 FIX1 abcde hi: 2  0  2 
++ FIX1 FIX1 spa empty: 2 [  ]
++ FIX1 FIX1 spa a: 2 [ a]
++ FIX1 FIX1 spa upa: 2 [ A]
++ FIX1 FIX1 spa ab: 2 [ a]
++ FIX1 FIX1 spa abc: 2 [ a]
++ FIX1 FIX1 spa abcde: 2 [ a]
++ FIX1 FIX1 spa spa: 2 [  ]
++ FIX1 FIX1 spa asp: 2 [ a]
++ FIX1 FIX1 spa b: 2 [ b]
++ FIX1 FIX1 spa nul: 2  0  0 
++ FIX1 FIX1 spa hi: 2  0  2 
++ FIX1 FIX1 asp empty: 2 [a ]
++ FIX1 FIX1 asp a: 2 [aa]
++ FIX1 FIX1 asp upa: 2 [aA]
++ FIX1 FIX1 asp ab: 2 [aa]
++ FIX1 FIX1 asp abc: 2 [aa]
++ FIX1 FIX1 asp abcde: 2 [aa]
++ FIX1 FIX1 asp spa: 2 [a ]
++ FIX1 FIX1 asp asp: 2 [aa]
++ FIX1 FIX1 asp b: 2 [ab]
++ FIX1 FIX1 asp nul: 2  0  0 
++ FIX1 FIX1 asp hi: 2  0  2 
++ FIX1 FIX1 b empty: 2 [b ]
++ FIX1 FIX1 b a: 2 [ba]
++ FIX1 FIX1 b upa: 2 [bA]
++ FIX1 FIX1 b ab: 2 [ba]
++ FIX1 FIX1 b abc: 2 [ba]
++ FIX1 FIX1 b abcde: 2 [ba]
++ FIX1 FIX1 b spa: 2 [b ]
++ FIX1 FIX1 b asp: 2 [ba]
++ FIX1 FIX1 b b: 2 [bb]
++ FIX1 FIX1 b nul: 2  0  0 
++ FIX1 FIX1 b hi: 2  0  2 
++ FIX1 FIX1 nul empty: 2  0  0 
++ FIX1 FIX1 nul a: 2  0  0 
++ FIX1 FIX1 nul upa: 2  0  0 
++ FIX1 FIX1 nul ab: 2  0  0 
++ FIX1 FIX1 nul abc: 2  0  0 
++ FIX1 FIX1 nul abcde: 2  0  0 
++ FIX1 FIX1 nul spa: 2  0  0 
++ FIX1 FIX1 nul asp: 2  0  0 
++ FIX1 FIX1 nul b: 2  0  0 
++ FIX1 FIX1 nul nul: 2  0  0 
++ FIX1 FIX1 nul hi: 2  0  2 
++ FIX1 FIX1 hi empty: 2  0  1 
++ FIX1 FIX1 hi a: 2  0  1 
++ FIX1 FIX1 hi upa: 2  0  1 
++ FIX1 FIX1 hi ab: 2  0  1 
++ FIX1 FIX1 hi abc: 2  0  1 
++ FIX1 FIX1 hi abcde: 2  0  1 
++ FIX1 FIX1 hi spa: 2  0  1 
++ FIX1 FIX1 hi asp: 2  0  1 
++ FIX1 FIX1 hi b: 2  0  1 
++ FIX1 FIX1 hi nul: 2  0  1 
++ FIX1 FIX1 hi hi: 2  0  1 
++ FIX1 FIX4 empty empty: 5 [     ]
++ FIX1 FIX4 empty a: 5 [ a   ]
++ FIX1 FIX4 empty upa: 5 [ A   ]
++ FIX1 FIX4 empty ab: 5 [ ab  ]
++ FIX1 FIX4 empty abc: 5 [ abc ]
++ FIX1 FIX4 empty abcde: 5 [ abcd]
++ FIX1 FIX4 empty spa: 5 [  a  ]
++ FIX1 FIX4 empty asp: 5 [ a   ]
++ FIX1 FIX4 empty b: 5 [ b   ]
++ FIX1 FIX4 empty nul: 5  3  0 
++ FIX1 FIX4 empty hi: 5  0  2 
++ FIX1 FIX4 a empty: 5 [a    ]
++ FIX1 FIX4 a a: 5 [aa   ]
++ FIX1 FIX4 a upa: 5 [aA   ]
++ FIX1 FIX4 a ab: 5 [aab  ]
++ FIX1 FIX4 a abc: 5 [aabc ]
++ FIX1 FIX4 a abcde: 5 [aabcd]
++ FIX1 FIX4 a spa: 5 [a a  ]
++ FIX1 FIX4 a asp: 5 [aa   ]
++ FIX1 FIX4 a b: 5 [ab   ]
++ FIX1 FIX4 a nul: 5  3  0 
++ FIX1 FIX4 a hi: 5  0  2 
++ FIX1 FIX4 upa empty: 5 [A    ]
++ FIX1 FIX4 upa a: 5 [Aa   ]
++ FIX1 FIX4 upa upa: 5 [AA   ]
++ FIX1 FIX4 upa ab: 5 [Aab  ]
++ FIX1 FIX4 upa abc: 5 [Aabc ]
++ FIX1 FIX4 upa abcde: 5 [Aabcd]
++ FIX1 FIX4 upa spa: 5 [A a  ]
++ FIX1 FIX4 upa asp: 5 [Aa   ]
++ FIX1 FIX4 upa b: 5 [Ab   ]
++ FIX1 FIX4 upa nul: 5  3  0 
++ FIX1 FIX4 upa hi: 5  0  2 
++ FIX1 FIX4 ab empty: 5 [a    ]
++ FIX1 FIX4 ab a: 5 [aa   ]
++ FIX1 FIX4 ab upa: 5 [aA   ]
++ FIX1 FIX4 ab ab: 5 [aab  ]
++ FIX1 FIX4 ab abc: 5 [aabc ]
++ FIX1 FIX4 ab abcde: 5 [aabcd]
++ FIX1 FIX4 ab spa: 5 [a a  ]
++ FIX1 FIX4 ab asp: 5 [aa   ]
++ FIX1 FIX4 ab b: 5 [ab   ]
++ FIX1 FIX4 ab nul: 5  3  0 
++ FIX1 FIX4 ab hi: 5  0  2 
++ FIX1 FIX4 abc empty: 5 [a    ]
++ FIX1 FIX4 abc a: 5 [aa   ]
++ FIX1 FIX4 abc upa: 5 [aA   ]
++ FIX1 FIX4 abc ab: 5 [aab  ]
++ FIX1 FIX4 abc abc: 5 [aabc ]
++ FIX1 FIX4 abc abcde: 5 [aabcd]
++ FIX1 FIX4 abc spa: 5 [a a  ]
++ FIX1 FIX4 abc asp: 5 [aa   ]
++ FIX1 FIX4 abc b: 5 [ab   ]
++ FIX1 FIX4 abc nul: 5  3  0 
++ FIX1 FIX4 abc hi: 5  0  2 
++ FIX1 FIX4 abcde empty: 5 [a    ]
++ FIX1 FIX4 abcde a: 5 [aa   ]
++ FIX1 FIX4 abcde upa: 5 [aA   ]
++ FIX1 FIX4 abcde ab: 5 [aab  ]
++ FIX1 FIX4 abcde abc: 5 [aabc ]
++ FIX1 FIX4 abcde abcde: 5 [aabcd]
++ FIX1 FIX4 abcde spa: 5 [a a  ]
++ FIX1 FIX4 abcde asp: 5 [aa   ]
++ FIX1 FIX4 abcde b: 5 [ab   ]
++ FIX1 FIX4 abcde nul: 5  3  0 
++ FIX1 FIX4 abcde hi: 5  0  2 
++ FIX1 FIX4 spa empty: 5 [     ]
++ FIX1 FIX4 spa a: 5 [ a   ]
++ FIX1 FIX4 spa upa: 5 [ A   ]
++ FIX1 FIX4 spa ab: 5 [ ab  ]
++ FIX1 FIX4 spa abc: 5 [ abc ]
++ FIX1 FIX4 spa abcde: 5 [ abcd]
++ FIX1 FIX4 spa spa: 5 [  a  ]
++ FIX1 FIX4 spa asp: 5 [ a   ]
++ FIX1 FIX4 spa b: 5 [ b   ]
++ FIX1 FIX4 spa nul: 5  3  0 
++ FIX1 FIX4 spa hi: 5  0  2 
++ FIX1 FIX4 asp empty: 5 [a    ]
++ FIX1 FIX4 asp a: 5 [aa   ]
++ FIX1 FIX4 asp upa: 5 [aA   ]
++ FIX1 FIX4 asp ab: 5 [aab  ]
++ FIX1 FIX4 asp abc: 5 [aabc ]
++ FIX1 FIX4 asp abcde: 5 [aabcd]
++ FIX1 FIX4 asp spa: 5 [a a  ]
++ FIX1 FIX4 asp asp: 5 [aa   ]
++ FIX1 FIX4 asp b: 5 [ab   ]
++ FIX1 FIX4 asp nul: 5  3  0 
++ FIX1 FIX4 asp hi: 5  0  2 
++ FIX1 FIX4 b empty: 5 [b    ]
++ FIX1 FIX4 b a: 5 [ba   ]
++ FIX1 FIX4 b upa: 5 [bA   ]
++ FIX1 FIX4 b ab: 5 [bab  ]
++ FIX1 FIX4 b abc: 5 [babc ]
++ FIX1 FIX4 b abcde: 5 [babcd]
++ FIX1 FIX4 b spa: 5 [b a  ]
++ FIX1 FIX4 b asp: 5 [ba   ]
++ FIX1 FIX4 b b: 5 [bb   ]
++ FIX1 FIX4 b nul: 5  3  0 
++ FIX1 FIX4 b hi: 5  0  2 
++ FIX1 FIX4 nul empty: 5  0  0 
++ FIX1 FIX4 nul a: 5  0  0 
++ FIX1 FIX4 nul upa: 5  0  0 
++ FIX1 FIX4 nul ab: 5  0  0 
++ FIX1 FIX4 nul abc: 5  0  0 
++ FIX1 FIX4 nul abcde: 5  0  0 
++ FIX1 FIX4 nul spa: 5  0  0 
++ FIX1 FIX4 nul asp: 5  0  0 
++ FIX1 FIX4 nul b: 5  0  0 
++ FIX1 FIX4 nul nul: 5  3  0 
++ FIX1 FIX4 nul hi: 5  0  2 
++ FIX1 FIX4 hi empty: 5  0  1 
++ FIX1 FIX4 hi a: 5  0  1 
++ FIX1 FIX4 hi upa: 5  0  1 
++ FIX1 FIX4 hi ab: 5  0  1 
++ FIX1 FIX4 hi abc: 5  0  1 
++ FIX1 FIX4 hi abcde: 5  0  1 
++ FIX1 FIX4 hi spa: 5  0  1 
++ FIX1 FIX4 hi asp: 5  0  1 
++ FIX1 FIX4 hi b: 5  0  1 
++ FIX1 FIX4 hi nul: 5  3  1 
++ FIX1 FIX4 hi hi: 5  0  1 
++ FIX4 STR empty empty: 4 [    ]
++ FIX4 STR empty a: 5 [    a]
++ FIX4 STR empty upa: 5 [    A]
++ FIX4 STR empty ab: 6 [    ab]
++ FIX4 STR empty abc: 7 [    abc]
++ FIX4 STR empty abcde: 9 [    abcde]
++ FIX4 STR empty spa: 6 [     a]
++ FIX4 STR empty asp: 6 [    a ]
++ FIX4 STR empty b: 5 [    b]
++ FIX4 STR empty nul: 7  6  0 
++ FIX4 STR empty hi: 6  0  5 
++ FIX4 STR a empty: 4 [a   ]
++ FIX4 STR a a: 5 [a   a]
++ FIX4 STR a upa: 5 [a   A]
++ FIX4 STR a ab: 6 [a   ab]
++ FIX4 STR a abc: 7 [a   abc]
++ FIX4 STR a abcde: 9 [a   abcde]
++ FIX4 STR a spa: 6 [a    a]
++ FIX4 STR a asp: 6 [a   a ]
++ FIX4 STR a b: 5 [a   b]
++ FIX4 STR a nul: 7  6  0 
++ FIX4 STR a hi: 6  0  5 
++ FIX4 STR upa empty: 4 [A   ]
++ FIX4 STR upa a: 5 [A   a]
++ FIX4 STR upa upa: 5 [A   A]
++ FIX4 STR upa ab: 6 [A   ab]
++ FIX4 STR upa abc: 7 [A   abc]
++ FIX4 STR upa abcde: 9 [A   abcde]
++ FIX4 STR upa spa: 6 [A    a]
++ FIX4 STR upa asp: 6 [A   a ]
++ FIX4 STR upa b: 5 [A   b]
++ FIX4 STR upa nul: 7  6  0 
++ FIX4 STR upa hi: 6  0  5 
++ FIX4 STR ab empty: 4 [ab  ]
++ FIX4 STR ab a: 5 [ab  a]
++ FIX4 STR ab upa: 5 [ab  A]
++ FIX4 STR ab ab: 6 [ab  ab]
++ FIX4 STR ab abc: 7 [ab  abc]
++ FIX4 STR ab abcde: 9 [ab  abcde]
++ FIX4 STR ab spa: 6 [ab   a]
++ FIX4 STR ab asp: 6 [ab  a ]
++ FIX4 STR ab b: 5 [ab  b]
++ FIX4 STR ab nul: 7  6  0 
++ FIX4 STR ab hi: 6  0  5 
++ FIX4 STR abc empty: 4 [abc ]
++ FIX4 STR abc a: 5 [abc a]
++ FIX4 STR abc upa: 5 [abc A]
++ FIX4 STR abc ab: 6 [abc ab]
++ FIX4 STR abc abc: 7 [abc abc]
++ FIX4 STR abc abcde: 9 [abc abcde]
++ FIX4 STR abc spa: 6 [abc  a]
++ FIX4 STR abc asp: 6 [abc a ]
++ FIX4 STR abc b: 5 [abc b]
++ FIX4 STR abc nul: 7  6  0 
++ FIX4 STR abc hi: 6  0  5 
++ FIX4 STR abcde empty: 4 [abcd]
++ FIX4 STR abcde a: 5 [abcda]
++ FIX4 STR abcde upa: 5 [abcdA]
++ FIX4 STR abcde ab: 6 [abcdab]
++ FIX4 STR abcde abc: 7 [abcdabc]
++ FIX4 STR abcde abcde: 9 [abcdabcde]
++ FIX4 STR abcde spa: 6 [abcd a]
++ FIX4 STR abcde asp: 6 [abcda ]
++ FIX4 STR abcde b: 5 [abcdb]
++ FIX4 STR abcde nul: 7  6  0 
++ FIX4 STR abcde hi: 6  0  5 
++ FIX4 STR spa empty: 4 [ a  ]
++ FIX4 STR spa a: 5 [ a  a]
++ FIX4 STR spa upa: 5 [ a  A]
++ FIX4 STR spa ab: 6 [ a  ab]
++ FIX4 STR spa abc: 7 [ a  abc]
++ FIX4 STR spa abcde: 9 [ a  abcde]
++ FIX4 STR spa spa: 6 [ a   a]
++ FIX4 STR spa asp: 6 [ a  a ]
++ FIX4 STR spa b: 5 [ a  b]
++ FIX4 STR spa nul: 7  6  0 
++ FIX4 STR spa hi: 6  0  5 
++ FIX4 STR asp empty: 4 [a   ]
++ FIX4 STR asp a: 5 [a   a]
++ FIX4 STR asp upa: 5 [a   A]
++ FIX4 STR asp ab: 6 [a   ab]
++ FIX4 STR asp abc: 7 [a   abc]
++ FIX4 STR asp abcde: 9 [a   abcde]
++ FIX4 STR asp spa: 6 [a    a]
++ FIX4 STR asp asp: 6 [a   a ]
++ FIX4 STR asp b: 5 [a   b]
++ FIX4 STR asp nul: 7  6  0 
++ FIX4 STR asp hi: 6  0  5 
++ FIX4 STR b empty: 4 [b   ]
++ FIX4 STR b a: 5 [b   a]
++ FIX4 STR b upa: 5 [b   A]
++ FIX4 STR b ab: 6 [b   ab]
++ FIX4 STR b abc: 7 [b   abc]
++ FIX4 STR b abcde: 9 [b   abcde]
++ FIX4 STR b spa: 6 [b    a]
++ FIX4 STR b asp: 6 [b   a ]
++ FIX4 STR b b: 5 [b   b]
++ FIX4 STR b nul: 7  6  0 
++ FIX4 STR b hi: 6  0  5 
++ FIX4 STR nul empty: 4  2  0 
++ FIX4 STR nul a: 5  2  0 
++ FIX4 STR nul upa: 5  2  0 
++ FIX4 STR nul ab: 6  2  0 
++ FIX4 STR nul abc: 7  2  0 
++ FIX4 STR nul abcde: 9  2  0 
++ FIX4 STR nul spa: 6  2  0 
++ FIX4 STR nul asp: 6  2  0 
++ FIX4 STR nul b: 5  2  0 
++ FIX4 STR nul nul: 7  2  0 
++ FIX4 STR nul hi: 6  2  5 
++ FIX4 STR hi empty: 4  0  1 
++ FIX4 STR hi a: 5  0  1 
++ FIX4 STR hi upa: 5  0  1 
++ FIX4 STR hi ab: 6  0  1 
++ FIX4 STR hi abc: 7  0  1 
++ FIX4 STR hi abcde: 9  0  1 
++ FIX4 STR hi spa: 6  0  1 
++ FIX4 STR hi asp: 6  0  1 
++ FIX4 STR hi b: 5  0  1 
++ FIX4 STR hi nul: 7  6  1 
++ FIX4 STR hi hi: 6  0  1 
++ FIX4 FIX1 empty empty: 5 [     ]
++ FIX4 FIX1 empty a: 5 [    a]
++ FIX4 FIX1 empty upa: 5 [    A]
++ FIX4 FIX1 empty ab: 5 [    a]
++ FIX4 FIX1 empty abc: 5 [    a]
++ FIX4 FIX1 empty abcde: 5 [    a]
++ FIX4 FIX1 empty spa: 5 [     ]
++ FIX4 FIX1 empty asp: 5 [    a]
++ FIX4 FIX1 empty b: 5 [    b]
++ FIX4 FIX1 empty nul: 5  0  0 
++ FIX4 FIX1 empty hi: 5  0  5 
++ FIX4 FIX1 a empty: 5 [a    ]
++ FIX4 FIX1 a a: 5 [a   a]
++ FIX4 FIX1 a upa: 5 [a   A]
++ FIX4 FIX1 a ab: 5 [a   a]
++ FIX4 FIX1 a abc: 5 [a   a]
++ FIX4 FIX1 a abcde: 5 [a   a]
++ FIX4 FIX1 a spa: 5 [a    ]
++ FIX4 FIX1 a asp: 5 [a   a]
++ FIX4 FIX1 a b: 5 [a   b]
++ FIX4 FIX1 a nul: 5  0  0 
++ FIX4 FIX1 a hi: 5  0  5 
++ FIX4 FIX1 upa empty: 5 [A    ]
++ FIX4 FIX1 upa a: 5 [A   a]
++ FIX4 FIX1 upa upa: 5 [A   A]
++ FIX4 FIX1 upa ab: 5 [A   a]
++ FIX4 FIX1 upa abc: 5 [A   a]
++ FIX4 FIX1 upa abcde: 5 [A   a]
++ FIX4 FIX1 upa spa: 5 [A    ]
++ FIX4 FIX1 upa asp: 5 [A   a]
++ FIX4 FIX1 upa b: 5 [A   b]
++ FIX4 FIX1 upa nul: 5  0  0 
++ FIX4 FIX1 upa hi: 5  0  5 
++ FIX4 FIX1 ab empty: 5 [ab   ]
++ FIX4 FIX1 ab a: 5 [ab  a]
++ FIX4 FIX1 ab upa: 5 [ab  A]
++ FIX4 FIX1 ab ab: 5 [ab  a]
++ FIX4 FIX1 ab abc: 5 [ab  a]
++ FIX4 FIX1 ab abcde: 5 [ab  a]
++ FIX4 FIX1 ab spa: 5 [ab   ]
++ FIX4 FIX1 ab asp: 5 [ab  a]
++ FIX4 FIX1 ab b: 5 [ab  b]
++ FIX4 FIX1 ab nul: 5  0  0 
++ FIX4 FIX1 ab hi: 5  0  5 
++ FIX4 FIX1 abc empty: 5 [abc  ]
++ FIX4 FIX1 abc a: 5 [abc a]
++ FIX4 FIX1 abc upa: 5 [abc A]
++ FIX4 FIX1 abc ab: 5 [abc a]
++ FIX4 FIX1 abc abc: 5 [abc a]
++ FIX4 FIX1 abc abcde: 5 [abc a]
++ FIX4 FIX1 abc spa: 5 [abc  ]
++ FIX4 FIX1 abc asp: 5 [abc a]
++ FIX4 FIX1 abc b: 5 [abc b]
++ FIX4 FIX1 abc nul: 5  0  0 
++ FIX4 FIX1 abc hi: 5  0  5 
++ FIX4 FIX1 abcde empty: 5 [abcd ]
++ FIX4 FIX1 abcde a: 5 [abcda]
++ FIX4 FIX1 abcde upa: 5 [abcdA]
++ FIX4 FIX1 abcde ab: 5 [abcda]
++ FIX4 FIX1 abcde abc: 5 [abcda]
++ FIX4 FIX1 abcde abcde: 5 [abcda]
++ FIX4 FIX1 abcde spa: 5 [abcd ]
++ FIX4 FIX1 abcde asp: 5 [abcda]
++ FIX4 FIX1 abcde b: 5 [abcdb]
++ FIX4 FIX1 abcde nul: 5  0  0 
++ FIX4 FIX1 abcde hi: 5  0  5 
++ FIX4 FIX1 spa empty: 5 [ a   ]
++ FIX4 FIX1 spa a: 5 [ a  a]
++ FIX4 FIX1 spa upa: 5 [ a  A]
++ FIX4 FIX1 spa ab: 5 [ a  a]
++ FIX4 FIX1 spa abc: 5 [ a  a]
++ FIX4 FIX1 spa abcde: 5 [ a  a]
++ FIX4 FIX1 spa spa: 5 [ a   ]
++ FIX4 FIX1 spa asp: 5 [ a  a]
++ FIX4 FIX1 spa b: 5 [ a  b]
++ FIX4 FIX1 spa nul: 5  0  0 
++ FIX4 FIX1 spa hi: 5  0  5 
++ FIX4 FIX1 asp empty: 5 [a    ]
++ FIX4 FIX1 asp a: 5 [a   a]
++ FIX4 FIX1 asp upa: 5 [a   A]
++ FIX4 FIX1 asp ab: 5 [a   a]
++ FIX4 FIX1 asp abc: 5 [a   a]
++ FIX4 FIX1 asp abcde: 5 [a   a]
++ FIX4 FIX1 asp spa: 5 [a    ]
++ FIX4 FIX1 asp asp: 5 [a   a]
++ FIX4 FIX1 asp b: 5 [a   b]
++ FIX4 FIX1 asp nul: 5  0  0 
++ FIX4 FIX1 asp hi: 5  0  5 
++ FIX4 FIX1 b empty: 5 [b    ]
++ FIX4 FIX1 b a: 5 [b   a]
++ FIX4 FIX1 b upa: 5 [b   A]
++ FIX4 FIX1 b ab: 5 [b   a]
++ FIX4 FIX1 b abc: 5 [b   a]
++ FIX4 FIX1 b abcde: 5 [b   a]
++ FIX4 FIX1 b spa: 5 [b    ]
++ FIX4 FIX1 b asp: 5 [b   a]
++ FIX4 FIX1 b b: 5 [b   b]
++ FIX4 FIX1 b nul: 5  0  0 
++ FIX4 FIX1 b hi: 5  0  5 
++ FIX4 FIX1 nul empty: 5  2  0 
++ FIX4 FIX1 nul a: 5  2  0 
++ FIX4 FIX1 nul upa: 5  2  0 
++ FIX4 FIX1 nul ab: 5  2  0 
++ FIX4 FIX1 nul abc: 5  2  0 
++ FIX4 FIX1 nul abcde: 5  2  0 
++ FIX4 FIX1 nul spa: 5  2  0 
++ FIX4 FIX1 nul asp: 5  2  0 
++ FIX4 FIX1 nul b: 5  2  0 
++ FIX4 FIX1 nul nul: 5  2  0 
++ FIX4 FIX1 nul hi: 5  2  5 
++ FIX4 FIX1 hi empty: 5  0  1 
++ FIX4 FIX1 hi a: 5  0  1 
++ FIX4 FIX1 hi upa: 5  0  1 
++ FIX4 FIX1 hi ab: 5  0  1 
++ FIX4 FIX1 hi abc: 5  0  1 
++ FIX4 FIX1 hi abcde: 5  0  1 
++ FIX4 FIX1 hi spa: 5  0  1 
++ FIX4 FIX1 hi asp: 5  0  1 
++ FIX4 FIX1 hi b: 5  0  1 
++ FIX4 FIX1 hi nul: 5  0  1 
++ FIX4 FIX1 hi hi: 5  0  1 
++ FIX4 FIX4 empty empty: 8 [        ]
++ FIX4 FIX4 empty a: 8 [    a   ]
++ FIX4 FIX4 empty upa: 8 [    A   ]
++ FIX4 FIX4 empty ab: 8 [    ab  ]
++ FIX4 FIX4 empty abc: 8 [    abc ]
++ FIX4 FIX4 empty abcde: 8 [    abcd]
++ FIX4 FIX4 empty spa: 8 [     a  ]
++ FIX4 FIX4 empty asp: 8 [    a   ]
++ FIX4 FIX4 empty b: 8 [    b   ]
++ FIX4 FIX4 empty nul: 8  6  0 
++ FIX4 FIX4 empty hi: 8  0  5 
++ FIX4 FIX4 a empty: 8 [a       ]
++ FIX4 FIX4 a a: 8 [a   a   ]
++ FIX4 FIX4 a upa: 8 [a   A   ]
++ FIX4 FIX4 a ab: 8 [a   ab  ]
++ FIX4 FIX4 a abc: 8 [a   abc ]
++ FIX4 FIX4 a abcde: 8 [a   abcd]
++ FIX4 FIX4 a spa: 8 [a    a  ]
++ FIX4 FIX4 a asp: 8 [a   a   ]
++ FIX4 FIX4 a b: 8 [a   b   ]
++ FIX4 FIX4 a nul: 8  6  0 
++ FIX4 FIX4 a hi: 8  0  5 
++ FIX4 FIX4 upa empty: 8 [A       ]
++ FIX4 FIX4 upa a: 8 [A   a   ]
++ FIX4 FIX4 upa upa: 8 [A   A   ]
++ FIX4 FIX4 upa ab: 8 [A   ab  ]
++ FIX4 FIX4 upa abc: 8 [A   abc ]
++ FIX4 FIX4 upa abcde: 8 [A   abcd]
++ FIX4 FIX4 upa spa: 8 [A    a  ]
++ FIX4 FIX4 upa asp: 8 [A   a   ]
++ FIX4 FIX4 upa b: 8 [A   b   ]
++ FIX4 FIX4 upa nul: 8  6  0 
++ FIX4 FIX4 upa hi: 8  0  5 
++ FIX4 FIX4 ab empty: 8 [ab      ]
++ FIX4 FIX4 ab a: 8 [ab  a   ]
++ FIX4 FIX4 ab upa: 8 [ab  A   ]
++ FIX4 FIX4 ab ab: 8 [ab  ab  ]
++ FIX4 FIX4 ab abc: 8 [ab  abc ]
++ FIX4 FIX4 ab abcde: 8 [ab  abcd]
++ FIX4 FIX4 ab spa: 8 [ab   a  ]
++ FIX4 FIX4 ab asp: 8 [ab  a   ]
++ FIX4 FIX4 ab b: 8 [ab  b   ]
++ FIX4 FIX4 ab nul: 8  6  0 
++ FIX4 FIX4 ab hi: 8  0  5 
++ FIX4 FIX4 abc empty: 8 [abc     ]
++ FIX4 FIX4 abc a: 8 [abc a   ]
++ FIX4 FIX4 abc upa: 8 [abc A   ]
++ FIX4 FIX4 abc ab: 8 [abc ab  ]
++ FIX4 FIX4 abc abc: 8 [abc abc ]
++ FIX4 FIX4 abc abcde: 8 [abc abcd]
++ FIX4 FIX4 abc spa: 8 [abc  a  ]
++ FIX4 FIX4 abc asp: 8 [abc a   ]
++ FIX4 FIX4 abc b: 8 [abc b   ]
++ FIX4 FIX4 abc nul: 8  6  0 
++ FIX4 FIX4 abc hi: 8  0  5 
++ FIX4 FIX4 abcde empty: 8 [abcd    ]
++ FIX4 FIX4 abcde a: 8 [abcda   ]
++ FIX4 FIX4 abcde upa: 8 [abcdA   ]
++ FIX4 FIX4 abcde ab: 8 [abcdab  ]
++ FIX4 FIX4 abcde abc: 8 [abcdabc ]
++ FIX4 FIX4 abcde abcde: 8 [abcdabcd]
++ FIX4 FIX4 abcde spa: 8 [abcd a  ]
++ FIX4 FIX4 abcde asp: 8 [abcda   ]
++ FIX4 FIX4 abcde b: 8 [abcdb   ]
++ FIX4 FIX4 abcde nul: 8  6  0 
++ FIX4 FIX4 abcde hi: 8  0  5 
++ FIX4 FIX4 spa empty: 8 [ a      ]
++ FIX4 FIX4 spa a: 8 [ a  a   ]
++ FIX4 FIX4 spa upa: 8 [ a  A   ]
++ FIX4 FIX4 spa ab: 8 [ a  ab  ]
++ FIX4 FIX4 spa abc: 8 [ a  abc ]
++ FIX4 FIX4 spa abcde: 8 [ a  abcd]
++ FIX4 FIX4 spa spa: 8 [ a   a  ]
++ FIX4 FIX4 spa asp: 8 [ a  a   ]
++ FIX4 FIX4 spa b: 8 [ a  b   ]
++ FIX4 FIX4 spa nul: 8  6  0 
++ FIX4 FIX4 spa hi: 8  0  5 
++ FIX4 FIX4 asp empty: 8 [a       ]
++ FIX4 FIX4 asp a: 8 [a   a   ]
++ FIX4 FIX4 asp upa: 8 [a   A   ]
++ FIX4 FIX4 asp ab: 8 [a   ab  ]
++ FIX4 FIX4 asp abc: 8 [a   abc ]
++ FIX4 FIX4 asp abcde: 8 [a   abcd]
++ FIX4 FIX4 asp spa: 8 [a    a  ]
++ FIX4 FIX4 asp asp: 8 [a   a   ]
++ FIX4 FIX4 asp b: 8 [a   b   ]
++ FIX4 FIX4 asp nul: 8  6  0 
++ FIX4 FIX4 asp hi: 8  0  5 
++ FIX4 FIX4 b empty: 8 [b       ]
++ FIX4 FIX4 b a: 8 [b   a   ]
++ FIX4 FIX4 b upa: 8 [b   A   ]
++ FIX4 FIX4 b ab: 8 [b   ab  ]
++ FIX4 FIX4 b abc: 8 [b   abc ]
++ FIX4 FIX4 b abcde: 8 [b   abcd]
++ FIX4 FIX4 b spa: 8 [b    a  ]
++ FIX4 FIX4 b asp: 8 [b   a   ]
++ FIX4 FIX4 b b: 8 [b   b   ]
++ FIX4 FIX4 b nul: 8  6  0 
++ FIX4 FIX4 b hi: 8  0  5 
++ FIX4 FIX4 nul empty: 8  2  0 
++ FIX4 FIX4 nul a: 8  2  0 
++ FIX4 FIX4 nul upa: 8  2  0 
++ FIX4 FIX4 nul ab: 8  2  0 
++ FIX4 FIX4 nul abc: 8  2  0 
++ FIX4 FIX4 nul abcde: 8  2  0 
++ FIX4 FIX4 nul spa: 8  2  0 
++ FIX4 FIX4 nul asp: 8  2  0 
++ FIX4 FIX4 nul b: 8  2  0 
++ FIX4 FIX4 nul nul: 8  2  0 
++ FIX4 FIX4 nul hi: 8  2  5 
++ FIX4 FIX4 hi empty: 8  0  1 
++ FIX4 FIX4 hi a: 8  0  1 
++ FIX4 FIX4 hi upa: 8  0  1 
++ FIX4 FIX4 hi ab: 8  0  1 
++ FIX4 FIX4 hi abc: 8  0  1 
++ FIX4 FIX4 hi abcde: 8  0  1 
++ FIX4 FIX4 hi spa: 8  0  1 
++ FIX4 FIX4 hi asp: 8  0  1 
++ FIX4 FIX4 hi b: 8  0  1 
++ FIX4 FIX4 hi nul: 8  6  1 
++ FIX4 FIX4 hi hi: 8  0  1 

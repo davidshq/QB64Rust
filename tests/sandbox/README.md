@@ -13,6 +13,7 @@ that depends on them is printed as a test (within 1 pixel), not as a value. `<na
 
 | Program | Shows |
 |---|---|
+| `clipboard_text` | `_CLIPBOARD$ =` text read back by `_CLIPBOARD$`: plain text, empty, a NUL (cut there: 1), extended characters, CR LF, and fixed-length strings of 3 and 4. It holds the cases of `verification\v49_d_clipboard` and of `tests\corpus\slice\s150_builtins_more`. On the host, Windows' clipboard history can hold the clipboard open just after the write, and libqb then reads back its own copy of all 3 bytes (`STATUS.md`, known bugs). So `v49_d_clipboard` is marked `clipboard:` and runs only in the suites VM and CI, and `s150_builtins_more` no longer uses the clipboard |
 | `clipboardimage_roundtrip` | a 4 × 4 image with known pixels set with `_CLIPBOARDIMAGE =` and read back with `_CLIPBOARDIMAGE`: its size and each pixel's red, green and blue |
 | `consolefont_err` | `_CONSOLEFONT` with a name and a size, then with the size alone, in a `$CONSOLE:ONLY` program: `ERR` 0 after each, and the program goes on |
 | `mousemove_readback` | `_MOUSEMOVE` read back by `_MOUSEX`, `_MOUSEY` after `_MOUSEINPUT`: pixels in a graphics screen, a column and a row in `SCREEN 0` |
@@ -29,3 +30,6 @@ Each was read against what its program means to show: values read back, none of 
 In the VM with its 4 processors, all seven match them on 2026-11-03: the new compiler's builds in 14 full runs in
 a row, and QB64pe's builds in 4. With 2 processors, `mousemove_readback` failed in about half the runs for both
 compilers (`openspec\changes\archive\2026-11-03-windows-vm\design.md`, "Context", task 3.2).
+`clipboard_text` was added later and recorded in the test VM on 2026-11-07, with the same `qb64pe.exe`. Its
+recording matches `verification\v49_d_clipboard.out.txt` line for line, plus the 4 of the `STRING * 4` case. The
+family of eight passed in the VM that day.

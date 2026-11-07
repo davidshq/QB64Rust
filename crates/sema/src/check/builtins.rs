@@ -456,6 +456,20 @@ impl Checker<'_> {
                 kind: ExprKind::Int(i64::from(n)),
             });
         }
+        // A fixed-length string variable, element or member: its length n, known when compiling. The index of an
+        // element is not evaluated, so one outside the bounds raises no error here (`qb64pe.bas` 22343, `id.tsize`;
+        // measured, `tests\differential\array\string`: `LEN(a(ix))` of a `STRING * 4` array with `ix` out of range
+        // is 4).
+        if let ExprKind::Load(place) = &e.kind
+            && let Ty::FixedStr(n) = self.prog.place_ty(place)
+        {
+            return Ok(Expr {
+                span,
+                ty: Ty::I32,
+                qb: Ty::I32,
+                kind: ExprKind::Int(i64::from(n)),
+            });
+        }
         if e.ty == Ty::Str {
             return Ok(Expr {
                 span,

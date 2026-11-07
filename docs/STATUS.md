@@ -64,14 +64,14 @@ Nothing is waiting. The game ports' open questions are kept in the games' own re
 
 ## Next
 
-1. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"): built as the OpenSpec change
-   `eval-order-left-to-right`, not yet archived. Its nine Linux sidecars are deleted. Left: the Linux whole runs
-   of its task 3.2. Then the change is archived, which merges its two specs.
-2. **M7, Linux, is done** (`ROADMAP.md`). Its last item was CI's Linux jobs, which passed on branch `after-pr25`
-   on 2026-11-07. M7 moves to `ROADMAP-COMPLETED.md` at the next merge into `main`. macOS, which was M8, is
-   postponed to `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next.
-3. **`TODO.md` rows 4, 6 and 7**: the clipboard programs into the sandbox, a differential group for strings and
-   arrays, and the grammar's keyword lists generated from `builtins.json`.
+1. **Merge branch `after-pr25` into `main`.** It holds `eval-order-left-to-right` (archived, `fb6efb0e`), the
+   end of M7, and `TODO.md` rows 4, 6 and 7 (`DECISIONS.md` 2026-11-07). Row 6 adds 6 differential programs, so
+   the merge run's differential step has 65. M7, Linux, is done (`ROADMAP.md`): its last item was CI's Linux jobs, which passed on this branch on
+   2026-11-07. At the merge, M7 and "After M7" move to `ROADMAP-COMPLETED.md`. macOS, which was M8, is postponed
+   to `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next.
+2. **Choose the next milestone.** `ROADMAP.md` has no open milestone after M7. The candidates are in
+   `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS
+   Code features still missing.
 
 Still to watch: the debugger CLI tests in the suites VM. At pull request 25's merge run, `cli` failed there
 twice, the second time run alone, in 945 s against 192 s at pull request 24's: four debugger tests
@@ -84,13 +84,6 @@ out why the VM runs it five times slower.
 single step ends about one session in seventy at once ("lost connection"; 3 in 222 runs of
 `debug_next_steps_by_line` under load), so a debugger CLI test can fail so now and then; run it again alone. The
 cause is `lldb-server`'s (`openspec\changes\archive\2026-10-25-m5-dap-proxy\design.md`, "Measured").
-`slice/s150_builtins_more` and `verification\v49_d_clipboard` read `LEN(_CLIPBOARD$)` of `"a" + CHR$(0) + "b"` as
-3 where 1 is recorded, in the closing runs of `m5-debug-build-symbols` (2026-10-25; the committed `HEAD`'s build
-too): libqb's read (`libqb\internal\c\parts\os\clipboard\clipboard.cpp`) replaces its own copy of the 3 bytes with
-the system clipboard cut at the NUL only when `OpenClipboard` succeeds, and Windows' clipboard watcher
-(`TextInputHost`, clipboard history) may hold it open just after the write. Alone, 1 of 6 runs gave 3; under the
-load of three runs side by side, every run. The recordings (1) stay; turning clipboard history off while testing
-should end the race.
 `screen/g12_game.files` (a script of Civil War Strategy) times out (exit 124 after 30 s, "no prompt in time" at
 line 97 of its keys file) in every run of the slice list or the full corpus at `--jobs 8` since 2026-10-21: in
 the full set at the merge of pull request 12 the full corpus twice, the slice list and the slice list without
@@ -147,13 +140,14 @@ with the whole suites in the suites VM. Accepted by the user without a further r
   `tests\verification\known.list` as `varies`, beside `v39_b_new_mem`, which went the same way earlier. Not the
   compiler's. `verification\v46_a_play_v0` went the same way at the full set for the merge of `m4-sub-gl`
   (2026-10-24): `PLAY(0)` read while the background queue drains gives 40 or 41 at line 193, the old build's too.
-- `tests\corpus\slice\s150_builtins_more` stores and reads the system clipboard, so it can fail when another run
-  uses the clipboard at the same time (seen once in the no-fold run at the close of `m4-qb64pe-sources`: `LEN` of
-  `"a" + CHR$(0) + "b"` read back as 3, not 1; it passed alone). Run the no-fold list by itself, not beside
-  another slice run. At the close of `m4-line-numbers-whole-arrays` (2026-10-22) it failed on every run, also alone,
-  and so did the old compiler's own `verification\v49_d_clipboard.exe`: libqb's `_CLIPBOARD$` gives its internal copy
-  (all 3 bytes) whenever `OpenClipboard` fails, so any program of the machine that opens the clipboard after a
-  change (a clipboard history) is enough. Not the compiler's.
+- `verification\v49_d_clipboard` can read `LEN(_CLIPBOARD$)` of `"a" + CHR$(0) + "b"` as 3, not the recorded 1,
+  on the host. libqb's read (`libqb\internal\c\parts\os\clipboard\clipboard.cpp`) gives its own copy of all 3
+  bytes whenever `OpenClipboard` fails. Windows' clipboard history (`TextInputHost`) may hold the clipboard open
+  just after the write, and the old compiler's build does the same. Not the compiler's. Since 2026-11-07 its
+  sidecar starts with `clipboard:`, so the runner skips it on a Windows host and it runs in the suites VM and CI,
+  where nothing else holds the clipboard. `v31_x01_accepted` and upstream `clipboard/clipboard_test` are marked
+  the same way. Its cases also run in the sandbox family as `tests\sandbox\clipboard_text`.
+  `slice/s150_builtins_more` no longer uses the clipboard.
 
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).

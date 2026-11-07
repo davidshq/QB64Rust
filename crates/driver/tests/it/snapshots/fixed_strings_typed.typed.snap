@@ -81,8 +81,7 @@ line 25: Print newline
   Str
     Str "]" : Str
   Num
-    Call LEN : I32
-      Var F (local) : Str
+    Int 4 : I32
   Num
     StrCompare Eq : I32
       Var F (local) : Str

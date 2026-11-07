@@ -3,7 +3,8 @@
 ## Purpose
 Generated BASIC programs that compare the new compiler's numeric results with the old compiler's, for every operator,
 pair of numeric types and conversion, so that typing and conversion rules are checked by measurement rather than
-derived by hand (`study\07` test layer 3, `study\archive\20` §3.3).
+derived by hand (`study\07` test layer 3, `study\archive\20` §3.3). Two groups do the same for strings and arrays
+(`DECISIONS.md` 2026-11-07).
 
 ## Requirements
 
@@ -22,6 +23,23 @@ operator, types and values.
 #### Scenario: Every pair covered
 - **WHEN** the programs for `+` are read
 - **THEN** they contain a line for each ordered pair of the numeric types
+
+### Requirement: String and array programs
+The generator SHALL also write a group of string programs and a group of array programs. For the variable-length
+`STRING` and the fixed-length `STRING * 1` and `STRING * 4`, the string programs SHALL apply `+` and the six
+comparisons to every ordered pair of kinds and of a fixed set of values. That set SHALL hold the empty string, a NUL
+and a byte above 127. They SHALL call `LEN`, `INSTR`, `ASC`, `UCASE$`, `LCASE$`, `LTRIM$`, `RTRIM$`, `LEFT$`, `RIGHT$`
+and `MID$` on each value. The counts and places SHALL be below, at and beyond the value's ends. The `MID$` statement
+SHALL be written into each kind. The array programs SHALL declare, for every numeric type and every string kind, a
+one-dimensional array with a negative lower bound, a two-dimensional array and a dynamic array. They SHALL print
+the bounds and elements, read and store outside the bounds, and use `REDIM _PRESERVE`, `REDIM` and `ERASE`. A
+value of the set that is not printable SHALL NOT be printed: its line SHALL show its length and the places of
+`CHR$(0)` and `CHR$(255)` in it. The array programs print every element they read. So the NUL bytes the old
+compiler gives a new `STRING * n` element after `REDIM` are printed as they are, and the recording holds them.
+
+#### Scenario: An element outside the bounds
+- **WHEN** an array program reads an element of a `LONG` array one place above its upper bound
+- **THEN** the line prints error 9 in that line's place and the program goes on
 
 ### Requirement: Safe programs
 A generated program SHALL run to its end with both compilers: it SHALL NOT divide an integer by 0 (fatal), SHALL

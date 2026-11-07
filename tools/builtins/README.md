@@ -23,6 +23,15 @@ writes what the compiler knows of QB64pe's built-ins:
 python tools\builtins\extract_builtins.py
 ```
 
+`grammar_lists.py` writes four word lists of the VS Code grammar (`vscode\syntaxes\qb64rust.tmLanguage.json`) from
+`builtins.json`: the built-in functions and statements, the constants of `beforefirstline.bi`, the color constants,
+and the words a label cannot be (`vscode\DEVELOPMENT.md`, "Grammar"). Run it after `extract_builtins.py` changes
+the table; `--check` only compares. `test_grammar_lists.py` fails when the two disagree.
+
+```
+python tools\builtins\grammar_lists.py
+```
+
 `mpmath_values.py` writes `crates\sema\src\mpmath_values.rs`: true values of the functions the `CONST` evaluator
 certifies, from Python's `mpmath` at 60 digits, which a test of `certify.rs` compares with its high-precision
 reference (design D3 of `m3-constant-evaluation`). `mpmath` (`pip install mpmath`) is needed only to write the file

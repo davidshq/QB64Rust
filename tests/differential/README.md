@@ -1,14 +1,15 @@
 # Differential programs
 
-Generated BASIC programs that compare the new compiler's numeric results with the old compiler's (spec
-`testing/differential-tests`, design D2 of the OpenSpec change `m2-numeric-types`). Each `<group>\<name>.bas` has its
+Generated BASIC programs that compare the new compiler's numeric, string and array results with the old
+compiler's (spec `testing/differential-tests`, design D2 of the OpenSpec change `m2-numeric-types`; the string and
+array groups from `DECISIONS.md` 2026-11-07). Each `<group>\<name>.bas` has its
 expected output in `<name>.output` beside it, recorded once with `qb64pe.exe`; running the programs needs no old
 compiler. **The `.bas` files are generated: never edit them by hand** (tier 1 fails when one differs from the
 generator).
 
 ## Groups
 
-59 programs, each for all numeric types. The numeric types (`crates\difftest\src\lib.rs`, `TYPES`): `_BYTE`, `INTEGER`, `LONG`, `_INTEGER64`,
+65 programs: 59 numeric ones, each for all numeric types, and 6 of strings and arrays (below the table). The numeric types (`crates\difftest\src\lib.rs`, `TYPES`): `_BYTE`, `INTEGER`, `LONG`, `_INTEGER64`,
 `_OFFSET`, each also `_UNSIGNED`; `_BIT`, `_UNSIGNED _BIT * 7`, `_BIT * 24`, `_UNSIGNED _BIT * 40` (four widths stand
 for `_BIT * n`: 1 bit, narrow, `int32` storage, `int64` storage); `SINGLE`, `DOUBLE`, `_FLOAT`. Each type has seven
 value slots: its extremes, -1 (an unsigned type's largest value, the bits of -1), 0, 1 (0 for the 1-bit `_BIT`,
@@ -24,13 +25,27 @@ compiler writes a `_FLOAT` literal as a C++ double (`1.18973149535723176F+4932` 
 | `unary` | `unary.bas` | `-`, `NOT`, `_NEGATE` on every type's slots |
 | `store` | one per target type (17) | every type's slots stored into a variable of the target type, then printed |
 | `print` | `print.bas` | `PRINT` and `STR$` of every type's slots from variables, and of every literal of the `fold` group |
+| `str` | `concat`, `compare`, `funcs`, `mid_stmt` | for the three string kinds and eleven string values (below): `+` and the six comparisons on every ordered pair of kinds and values; `LEN`, `INSTR`, `ASC`, `UCASE$`, `LCASE$`, `LTRIM$`, `RTRIM$`, `LEFT$`, `RIGHT$` and `MID$` with counts and places below, at and beyond each value's ends (-1, 0, 100: error 5 where the old compiler raises it); the `MID$` statement into each kind |
+| `array` | `numeric`, `string` | for every numeric type and every string kind: a one-dimensional array with a negative lower bound, a two-dimensional one and a dynamic one; their bounds and elements, reads and stores outside the bounds (error 9), `UBOUND` of a dimension that is not there, `REDIM _PRESERVE` that grows, shrinks and moves the lower bound, `REDIM`, and `ERASE` |
+
+**The string kinds** (`STR_KINDS`): `STRING`, `STRING * 1` (truncates nearly every value) and `STRING * 4` (pads
+the short values with spaces, truncates the long ones). **The string values** (`STR_SLOTS`): `""`, `"a"`, `"A"`,
+`"ab"`, `"abc"`, `"abcde"`, `" a"`, `"a "`, `"b"`, `"a" + CHR$(0) + "b"` and `CHR$(255) + "a"`. The last two show
+NUL and a byte above 127 in comparisons. Their text is never printed: a line shows the length and the places of
+`CHR$(0)` and `CHR$(255)` instead. `array\string` uses the nine printable values only. One exception: after
+`REDIM`, QB64pe fills a new `STRING * n` element with NUL bytes, and `array\string.output` holds those bytes as
+printed.
+
+The string groups found one difference when they were added (2026-11-07). `LEN(a(ix))` of a `STRING * n` array
+with `ix` out of range was error 9 in the new compiler. QB64pe gives n without evaluating the index, as it does
+for numeric elements. The compiler now does the same (spec `language/fixed-length-strings`).
 
 A six-type group `old6` (the same programs for `INTEGER`, `LONG`, `_INTEGER64`, `SINGLE`, `DOUBLE`, `_FLOAT`
 only, 48) let tier 2 check today's types while the full programs could not compile (`DECISIONS.md` 2026-10-08); it
 went with task 10.1 of `m2-numeric-types` (2026-10-09), once all 59 passed.
 
 <!-- counts:differential-membership -->
-`pass.list` names **59** of the 59 programs.
+`pass.list` names **65** of the 65 programs.
 <!-- /counts:differential-membership -->
 
 Each line is labelled with the operator, the types and the value pair (`^ LONG SINGLE 7:`), so a differing line

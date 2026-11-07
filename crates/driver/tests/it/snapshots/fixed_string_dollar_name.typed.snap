@@ -45,9 +45,7 @@ line 23: Assign P:Str*1
   Str "\" : Str
 line 24: Print newline
   Num
-    Call LEN : I32
-      Element H(…) : Str
-        Int 1 : I64
+    Int 8 : I32
   Str
     Var P : Str
 line 27: Assign W (static):Str*2

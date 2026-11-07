@@ -1,0 +1,799 @@
+a BYTE bounds:-2  4 
+a BYTE -2:-128 
+a BYTE -1: 127 
+a BYTE 0:-1 
+a BYTE 1: 0 
+a BYTE 2: 1 
+a BYTE 3: 103 
+a BYTE 4:-56 
+a BYTE below: error 9 
+ error 9 
+a BYTE store below
+a BYTE above: error 9 
+ error 9 
+a BYTE store above
+b BYTE bounds: 1  2  0  3 
+b BYTE bounds 3: error 9 
+b BYTE bounds 0: error 9 
+b BYTE 1 0: 1 
+b BYTE 1 1: 103 
+b BYTE 1 2:-56 
+b BYTE 1 3:-128 
+b BYTE 2 0: 127 
+b BYTE 2 1:-1 
+b BYTE 2 2: 0 
+b BYTE 2 3: 1 
+b BYTE 1 4: error 9 
+b BYTE 1 -1: error 9 
+b BYTE 3 0: error 9 
+b BYTE 0 0: error 9 
+d BYTE grow bounds: 1  5 
+d BYTE grow 1: 127 
+d BYTE grow 2:-1 
+d BYTE grow 3: 0 
+d BYTE grow 4: 0 
+d BYTE grow 5: 0 
+d BYTE shrink bounds: 1  2 
+d BYTE shrink 1: 127 
+d BYTE shrink 2:-1 
+d BYTE move bounds: 0  3 
+d BYTE move 0: 127 
+d BYTE move 1:-1 
+d BYTE move 2: 0 
+d BYTE move 3: 0 
+d BYTE redim 0: 0 
+d BYTE redim 1: 0 
+d BYTE erased: error 9 
+d BYTE erased bounds: error 9 
+a UBYTE bounds:-2  4 
+a UBYTE -2: 0 
+a UBYTE -1: 255 
+a UBYTE 0: 255 
+a UBYTE 1: 0 
+a UBYTE 2: 1 
+a UBYTE 3: 32 
+a UBYTE 4: 20 
+a UBYTE below: error 9 
+ error 9 
+a UBYTE store below
+a UBYTE above: error 9 
+ error 9 
+a UBYTE store above
+b UBYTE bounds: 1  2  0  3 
+b UBYTE bounds 3: error 9 
+b UBYTE bounds 0: error 9 
+b UBYTE 1 0: 1 
+b UBYTE 1 1: 32 
+b UBYTE 1 2: 20 
+b UBYTE 1 3: 0 
+b UBYTE 2 0: 255 
+b UBYTE 2 1: 255 
+b UBYTE 2 2: 0 
+b UBYTE 2 3: 1 
+b UBYTE 1 4: error 9 
+b UBYTE 1 -1: error 9 
+b UBYTE 3 0: error 9 
+b UBYTE 0 0: error 9 
+d UBYTE grow bounds: 1  5 
+d UBYTE grow 1: 255 
+d UBYTE grow 2: 255 
+d UBYTE grow 3: 0 
+d UBYTE grow 4: 0 
+d UBYTE grow 5: 0 
+d UBYTE shrink bounds: 1  2 
+d UBYTE shrink 1: 255 
+d UBYTE shrink 2: 255 
+d UBYTE move bounds: 0  3 
+d UBYTE move 0: 255 
+d UBYTE move 1: 255 
+d UBYTE move 2: 0 
+d UBYTE move 3: 0 
+d UBYTE redim 0: 0 
+d UBYTE redim 1: 0 
+d UBYTE erased: error 9 
+d UBYTE erased bounds: error 9 
+a INTEGER bounds:-2  4 
+a INTEGER -2:-32768 
+a INTEGER -1: 32767 
+a INTEGER 0:-1 
+a INTEGER 1: 0 
+a INTEGER 2: 1 
+a INTEGER 3:-2895 
+a INTEGER 4: 5580 
+a INTEGER below: error 9 
+ error 9 
+a INTEGER store below
+a INTEGER above: error 9 
+ error 9 
+a INTEGER store above
+b INTEGER bounds: 1  2  0  3 
+b INTEGER bounds 3: error 9 
+b INTEGER bounds 0: error 9 
+b INTEGER 1 0: 1 
+b INTEGER 1 1:-2895 
+b INTEGER 1 2: 5580 
+b INTEGER 1 3:-32768 
+b INTEGER 2 0: 32767 
+b INTEGER 2 1:-1 
+b INTEGER 2 2: 0 
+b INTEGER 2 3: 1 
+b INTEGER 1 4: error 9 
+b INTEGER 1 -1: error 9 
+b INTEGER 3 0: error 9 
+b INTEGER 0 0: error 9 
+d INTEGER grow bounds: 1  5 
+d INTEGER grow 1: 32767 
+d INTEGER grow 2:-1 
+d INTEGER grow 3: 0 
+d INTEGER grow 4: 0 
+d INTEGER grow 5: 0 
+d INTEGER shrink bounds: 1  2 
+d INTEGER shrink 1: 32767 
+d INTEGER shrink 2:-1 
+d INTEGER move bounds: 0  3 
+d INTEGER move 0: 32767 
+d INTEGER move 1:-1 
+d INTEGER move 2: 0 
+d INTEGER move 3: 0 
+d INTEGER redim 0: 0 
+d INTEGER redim 1: 0 
+d INTEGER erased: error 9 
+d INTEGER erased bounds: error 9 
+a UINTEGER bounds:-2  4 
+a UINTEGER -2: 0 
+a UINTEGER -1: 65535 
+a UINTEGER 0: 65535 
+a UINTEGER 1: 0 
+a UINTEGER 2: 1 
+a UINTEGER 3: 36936 
+a UINTEGER 4: 38734 
+a UINTEGER below: error 9 
+ error 9 
+a UINTEGER store below
+a UINTEGER above: error 9 
+ error 9 
+a UINTEGER store above
+b UINTEGER bounds: 1  2  0  3 
+b UINTEGER bounds 3: error 9 
+b UINTEGER bounds 0: error 9 
+b UINTEGER 1 0: 1 
+b UINTEGER 1 1: 36936 
+b UINTEGER 1 2: 38734 
+b UINTEGER 1 3: 0 
+b UINTEGER 2 0: 65535 
+b UINTEGER 2 1: 65535 
+b UINTEGER 2 2: 0 
+b UINTEGER 2 3: 1 
+b UINTEGER 1 4: error 9 
+b UINTEGER 1 -1: error 9 
+b UINTEGER 3 0: error 9 
+b UINTEGER 0 0: error 9 
+d UINTEGER grow bounds: 1  5 
+d UINTEGER grow 1: 65535 
+d UINTEGER grow 2: 65535 
+d UINTEGER grow 3: 0 
+d UINTEGER grow 4: 0 
+d UINTEGER grow 5: 0 
+d UINTEGER shrink bounds: 1  2 
+d UINTEGER shrink 1: 65535 
+d UINTEGER shrink 2: 65535 
+d UINTEGER move bounds: 0  3 
+d UINTEGER move 0: 65535 
+d UINTEGER move 1: 65535 
+d UINTEGER move 2: 0 
+d UINTEGER move 3: 0 
+d UINTEGER redim 0: 0 
+d UINTEGER redim 1: 0 
+d UINTEGER erased: error 9 
+d UINTEGER erased bounds: error 9 
+a LONG bounds:-2  4 
+a LONG -2:-2147483648 
+a LONG -1: 2147483647 
+a LONG 0:-1 
+a LONG 1: 0 
+a LONG 2: 1 
+a LONG 3:-559627433 
+a LONG 4:-709606431 
+a LONG below: error 9 
+ error 9 
+a LONG store below
+a LONG above: error 9 
+ error 9 
+a LONG store above
+b LONG bounds: 1  2  0  3 
+b LONG bounds 3: error 9 
+b LONG bounds 0: error 9 
+b LONG 1 0: 1 
+b LONG 1 1:-559627433 
+b LONG 1 2:-709606431 
+b LONG 1 3:-2147483648 
+b LONG 2 0: 2147483647 
+b LONG 2 1:-1 
+b LONG 2 2: 0 
+b LONG 2 3: 1 
+b LONG 1 4: error 9 
+b LONG 1 -1: error 9 
+b LONG 3 0: error 9 
+b LONG 0 0: error 9 
+d LONG grow bounds: 1  5 
+d LONG grow 1: 2147483647 
+d LONG grow 2:-1 
+d LONG grow 3: 0 
+d LONG grow 4: 0 
+d LONG grow 5: 0 
+d LONG shrink bounds: 1  2 
+d LONG shrink 1: 2147483647 
+d LONG shrink 2:-1 
+d LONG move bounds: 0  3 
+d LONG move 0: 2147483647 
+d LONG move 1:-1 
+d LONG move 2: 0 
+d LONG move 3: 0 
+d LONG redim 0: 0 
+d LONG redim 1: 0 
+d LONG erased: error 9 
+d LONG erased bounds: error 9 
+a ULONG bounds:-2  4 
+a ULONG -2: 0 
+a ULONG -1: 4294967295 
+a ULONG 0: 4294967295 
+a ULONG 1: 0 
+a ULONG 2: 1 
+a ULONG 3: 3095748532 
+a ULONG 4: 2247239029 
+a ULONG below: error 9 
+ error 9 
+a ULONG store below
+a ULONG above: error 9 
+ error 9 
+a ULONG store above
+b ULONG bounds: 1  2  0  3 
+b ULONG bounds 3: error 9 
+b ULONG bounds 0: error 9 
+b ULONG 1 0: 1 
+b ULONG 1 1: 3095748532 
+b ULONG 1 2: 2247239029 
+b ULONG 1 3: 0 
+b ULONG 2 0: 4294967295 
+b ULONG 2 1: 4294967295 
+b ULONG 2 2: 0 
+b ULONG 2 3: 1 
+b ULONG 1 4: error 9 
+b ULONG 1 -1: error 9 
+b ULONG 3 0: error 9 
+b ULONG 0 0: error 9 
+d ULONG grow bounds: 1  5 
+d ULONG grow 1: 4294967295 
+d ULONG grow 2: 4294967295 
+d ULONG grow 3: 0 
+d ULONG grow 4: 0 
+d ULONG grow 5: 0 
+d ULONG shrink bounds: 1  2 
+d ULONG shrink 1: 4294967295 
+d ULONG shrink 2: 4294967295 
+d ULONG move bounds: 0  3 
+d ULONG move 0: 4294967295 
+d ULONG move 1: 4294967295 
+d ULONG move 2: 0 
+d ULONG move 3: 0 
+d ULONG redim 0: 0 
+d ULONG redim 1: 0 
+d ULONG erased: error 9 
+d ULONG erased bounds: error 9 
+a INT64 bounds:-2  4 
+a INT64 -2:-9223372036854775808 
+a INT64 -1: 9223372036854775807 
+a INT64 0:-1 
+a INT64 1: 0 
+a INT64 2: 1 
+a INT64 3: 5819978767338316436 
+a INT64 4: 7445081360591965601 
+a INT64 below: error 9 
+ error 9 
+a INT64 store below
+a INT64 above: error 9 
+ error 9 
+a INT64 store above
+b INT64 bounds: 1  2  0  3 
+b INT64 bounds 3: error 9 
+b INT64 bounds 0: error 9 
+b INT64 1 0: 1 
+b INT64 1 1: 5819978767338316436 
+b INT64 1 2: 7445081360591965601 
+b INT64 1 3:-9223372036854775808 
+b INT64 2 0: 9223372036854775807 
+b INT64 2 1:-1 
+b INT64 2 2: 0 
+b INT64 2 3: 1 
+b INT64 1 4: error 9 
+b INT64 1 -1: error 9 
+b INT64 3 0: error 9 
+b INT64 0 0: error 9 
+d INT64 grow bounds: 1  5 
+d INT64 grow 1: 9223372036854775807 
+d INT64 grow 2:-1 
+d INT64 grow 3: 0 
+d INT64 grow 4: 0 
+d INT64 grow 5: 0 
+d INT64 shrink bounds: 1  2 
+d INT64 shrink 1: 9223372036854775807 
+d INT64 shrink 2:-1 
+d INT64 move bounds: 0  3 
+d INT64 move 0: 9223372036854775807 
+d INT64 move 1:-1 
+d INT64 move 2: 0 
+d INT64 move 3: 0 
+d INT64 redim 0: 0 
+d INT64 redim 1: 0 
+d INT64 erased: error 9 
+d INT64 erased bounds: error 9 
+a UINT64 bounds:-2  4 
+a UINT64 -2: 0 
+a UINT64 -1: 18446744073709551615 
+a UINT64 0: 18446744073709551615 
+a UINT64 1: 0 
+a UINT64 2: 1 
+a UINT64 3: 14721352250261409079 
+a UINT64 4: 1695248715451867090 
+a UINT64 below: error 9 
+ error 9 
+a UINT64 store below
+a UINT64 above: error 9 
+ error 9 
+a UINT64 store above
+b UINT64 bounds: 1  2  0  3 
+b UINT64 bounds 3: error 9 
+b UINT64 bounds 0: error 9 
+b UINT64 1 0: 1 
+b UINT64 1 1: 14721352250261409079 
+b UINT64 1 2: 1695248715451867090 
+b UINT64 1 3: 0 
+b UINT64 2 0: 18446744073709551615 
+b UINT64 2 1: 18446744073709551615 
+b UINT64 2 2: 0 
+b UINT64 2 3: 1 
+b UINT64 1 4: error 9 
+b UINT64 1 -1: error 9 
+b UINT64 3 0: error 9 
+b UINT64 0 0: error 9 
+d UINT64 grow bounds: 1  5 
+d UINT64 grow 1: 18446744073709551615 
+d UINT64 grow 2: 18446744073709551615 
+d UINT64 grow 3: 0 
+d UINT64 grow 4: 0 
+d UINT64 grow 5: 0 
+d UINT64 shrink bounds: 1  2 
+d UINT64 shrink 1: 18446744073709551615 
+d UINT64 shrink 2: 18446744073709551615 
+d UINT64 move bounds: 0  3 
+d UINT64 move 0: 18446744073709551615 
+d UINT64 move 1: 18446744073709551615 
+d UINT64 move 2: 0 
+d UINT64 move 3: 0 
+d UINT64 redim 0: 0 
+d UINT64 redim 1: 0 
+d UINT64 erased: error 9 
+d UINT64 erased bounds: error 9 
+a OFFSET bounds:-2  4 
+a OFFSET -2:-9223372036854775808 
+a OFFSET -1: 9223372036854775807 
+a OFFSET 0:-1 
+a OFFSET 1: 0 
+a OFFSET 2: 1 
+a OFFSET 3: 1887714948171717615 
+a OFFSET 4:-4592622012093347915 
+a OFFSET below: error 9 
+ error 9 
+a OFFSET store below
+a OFFSET above: error 9 
+ error 9 
+a OFFSET store above
+b OFFSET bounds: 1  2  0  3 
+b OFFSET bounds 3: error 9 
+b OFFSET bounds 0: error 9 
+b OFFSET 1 0: 1 
+b OFFSET 1 1: 1887714948171717615 
+b OFFSET 1 2:-4592622012093347915 
+b OFFSET 1 3:-9223372036854775808 
+b OFFSET 2 0: 9223372036854775807 
+b OFFSET 2 1:-1 
+b OFFSET 2 2: 0 
+b OFFSET 2 3: 1 
+b OFFSET 1 4: error 9 
+b OFFSET 1 -1: error 9 
+b OFFSET 3 0: error 9 
+b OFFSET 0 0: error 9 
+d OFFSET grow bounds: 1  5 
+d OFFSET grow 1: 9223372036854775807 
+d OFFSET grow 2:-1 
+d OFFSET grow 3: 0 
+d OFFSET grow 4: 0 
+d OFFSET grow 5: 0 
+d OFFSET shrink bounds: 1  2 
+d OFFSET shrink 1: 9223372036854775807 
+d OFFSET shrink 2:-1 
+d OFFSET move bounds: 0  3 
+d OFFSET move 0: 9223372036854775807 
+d OFFSET move 1:-1 
+d OFFSET move 2: 0 
+d OFFSET move 3: 0 
+d OFFSET redim 0: 0 
+d OFFSET redim 1: 0 
+d OFFSET erased: error 9 
+d OFFSET erased bounds: error 9 
+a UOFFSET bounds:-2  4 
+a UOFFSET -2: 0 
+a UOFFSET -1: 18446744073709551615 
+a UOFFSET 0: 18446744073709551615 
+a UOFFSET 1: 0 
+a UOFFSET 2: 1 
+a UOFFSET 3: 15919602987562150171 
+a UOFFSET 4: 16266618817563032314 
+a UOFFSET below: error 9 
+ error 9 
+a UOFFSET store below
+a UOFFSET above: error 9 
+ error 9 
+a UOFFSET store above
+b UOFFSET bounds: 1  2  0  3 
+b UOFFSET bounds 3: error 9 
+b UOFFSET bounds 0: error 9 
+b UOFFSET 1 0: 1 
+b UOFFSET 1 1: 15919602987562150171 
+b UOFFSET 1 2: 16266618817563032314 
+b UOFFSET 1 3: 0 
+b UOFFSET 2 0: 18446744073709551615 
+b UOFFSET 2 1: 18446744073709551615 
+b UOFFSET 2 2: 0 
+b UOFFSET 2 3: 1 
+b UOFFSET 1 4: error 9 
+b UOFFSET 1 -1: error 9 
+b UOFFSET 3 0: error 9 
+b UOFFSET 0 0: error 9 
+d UOFFSET grow bounds: 1  5 
+d UOFFSET grow 1: 18446744073709551615 
+d UOFFSET grow 2: 18446744073709551615 
+d UOFFSET grow 3: 0 
+d UOFFSET grow 4: 0 
+d UOFFSET grow 5: 0 
+d UOFFSET shrink bounds: 1  2 
+d UOFFSET shrink 1: 18446744073709551615 
+d UOFFSET shrink 2: 18446744073709551615 
+d UOFFSET move bounds: 0  3 
+d UOFFSET move 0: 18446744073709551615 
+d UOFFSET move 1: 18446744073709551615 
+d UOFFSET move 2: 0 
+d UOFFSET move 3: 0 
+d UOFFSET redim 0: 0 
+d UOFFSET redim 1: 0 
+d UOFFSET erased: error 9 
+d UOFFSET erased bounds: error 9 
+a BIT bounds:-2  4 
+a BIT -2:-1 
+a BIT -1: 0 
+a BIT 0:-1 
+a BIT 1: 0 
+a BIT 2: 0 
+a BIT 3: 0 
+a BIT 4:-1 
+a BIT below: error 9 
+ error 9 
+a BIT store below
+a BIT above: error 9 
+ error 9 
+a BIT store above
+b BIT bounds: 1  2  0  3 
+b BIT bounds 3: error 9 
+b BIT bounds 0: error 9 
+b BIT 1 0: 0 
+b BIT 1 1: 0 
+b BIT 1 2:-1 
+b BIT 1 3:-1 
+b BIT 2 0: 0 
+b BIT 2 1:-1 
+b BIT 2 2: 0 
+b BIT 2 3: 0 
+b BIT 1 4: error 9 
+b BIT 1 -1: error 9 
+b BIT 3 0: error 9 
+b BIT 0 0: error 9 
+d BIT grow bounds: 1  5 
+d BIT grow 1: 0 
+d BIT grow 2:-1 
+d BIT grow 3: 0 
+d BIT grow 4: 0 
+d BIT grow 5: 0 
+d BIT shrink bounds: 1  2 
+d BIT shrink 1: 0 
+d BIT shrink 2:-1 
+d BIT move bounds: 0  3 
+d BIT move 0: 0 
+d BIT move 1:-1 
+d BIT move 2: 0 
+d BIT move 3: 0 
+d BIT redim 0: 0 
+d BIT redim 1: 0 
+d BIT erased: error 9 
+d BIT erased bounds: error 9 
+a UBIT7 bounds:-2  4 
+a UBIT7 -2: 0 
+a UBIT7 -1: 127 
+a UBIT7 0: 127 
+a UBIT7 1: 0 
+a UBIT7 2: 1 
+a UBIT7 3: 25 
+a UBIT7 4: 74 
+a UBIT7 below: error 9 
+ error 9 
+a UBIT7 store below
+a UBIT7 above: error 9 
+ error 9 
+a UBIT7 store above
+b UBIT7 bounds: 1  2  0  3 
+b UBIT7 bounds 3: error 9 
+b UBIT7 bounds 0: error 9 
+b UBIT7 1 0: 1 
+b UBIT7 1 1: 25 
+b UBIT7 1 2: 74 
+b UBIT7 1 3: 0 
+b UBIT7 2 0: 127 
+b UBIT7 2 1: 127 
+b UBIT7 2 2: 0 
+b UBIT7 2 3: 1 
+b UBIT7 1 4: error 9 
+b UBIT7 1 -1: error 9 
+b UBIT7 3 0: error 9 
+b UBIT7 0 0: error 9 
+d UBIT7 grow bounds: 1  5 
+d UBIT7 grow 1: 127 
+d UBIT7 grow 2: 127 
+d UBIT7 grow 3: 0 
+d UBIT7 grow 4: 0 
+d UBIT7 grow 5: 0 
+d UBIT7 shrink bounds: 1  2 
+d UBIT7 shrink 1: 127 
+d UBIT7 shrink 2: 127 
+d UBIT7 move bounds: 0  3 
+d UBIT7 move 0: 127 
+d UBIT7 move 1: 127 
+d UBIT7 move 2: 0 
+d UBIT7 move 3: 0 
+d UBIT7 redim 0: 0 
+d UBIT7 redim 1: 0 
+d UBIT7 erased: error 9 
+d UBIT7 erased bounds: error 9 
+a BIT24 bounds:-2  4 
+a BIT24 -2:-8388608 
+a BIT24 -1: 8388607 
+a BIT24 0:-1 
+a BIT24 1: 0 
+a BIT24 2: 1 
+a BIT24 3: 3148653 
+a BIT24 4:-2716775 
+a BIT24 below: error 9 
+ error 9 
+a BIT24 store below
+a BIT24 above: error 9 
+ error 9 
+a BIT24 store above
+b BIT24 bounds: 1  2  0  3 
+b BIT24 bounds 3: error 9 
+b BIT24 bounds 0: error 9 
+b BIT24 1 0: 1 
+b BIT24 1 1: 3148653 
+b BIT24 1 2:-2716775 
+b BIT24 1 3:-8388608 
+b BIT24 2 0: 8388607 
+b BIT24 2 1:-1 
+b BIT24 2 2: 0 
+b BIT24 2 3: 1 
+b BIT24 1 4: error 9 
+b BIT24 1 -1: error 9 
+b BIT24 3 0: error 9 
+b BIT24 0 0: error 9 
+d BIT24 grow bounds: 1  5 
+d BIT24 grow 1: 8388607 
+d BIT24 grow 2:-1 
+d BIT24 grow 3: 0 
+d BIT24 grow 4: 0 
+d BIT24 grow 5: 0 
+d BIT24 shrink bounds: 1  2 
+d BIT24 shrink 1: 8388607 
+d BIT24 shrink 2:-1 
+d BIT24 move bounds: 0  3 
+d BIT24 move 0: 8388607 
+d BIT24 move 1:-1 
+d BIT24 move 2: 0 
+d BIT24 move 3: 0 
+d BIT24 redim 0: 0 
+d BIT24 redim 1: 0 
+d BIT24 erased: error 9 
+d BIT24 erased bounds: error 9 
+a UBIT40 bounds:-2  4 
+a UBIT40 -2: 0 
+a UBIT40 -1: 1099511627775 
+a UBIT40 0: 1099511627775 
+a UBIT40 1: 0 
+a UBIT40 2: 1 
+a UBIT40 3: 464297847704 
+a UBIT40 4: 488476189167 
+a UBIT40 below: error 9 
+ error 9 
+a UBIT40 store below
+a UBIT40 above: error 9 
+ error 9 
+a UBIT40 store above
+b UBIT40 bounds: 1  2  0  3 
+b UBIT40 bounds 3: error 9 
+b UBIT40 bounds 0: error 9 
+b UBIT40 1 0: 1 
+b UBIT40 1 1: 464297847704 
+b UBIT40 1 2: 488476189167 
+b UBIT40 1 3: 0 
+b UBIT40 2 0: 1099511627775 
+b UBIT40 2 1: 1099511627775 
+b UBIT40 2 2: 0 
+b UBIT40 2 3: 1 
+b UBIT40 1 4: error 9 
+b UBIT40 1 -1: error 9 
+b UBIT40 3 0: error 9 
+b UBIT40 0 0: error 9 
+d UBIT40 grow bounds: 1  5 
+d UBIT40 grow 1: 1099511627775 
+d UBIT40 grow 2: 1099511627775 
+d UBIT40 grow 3: 0 
+d UBIT40 grow 4: 0 
+d UBIT40 grow 5: 0 
+d UBIT40 shrink bounds: 1  2 
+d UBIT40 shrink 1: 1099511627775 
+d UBIT40 shrink 2: 1099511627775 
+d UBIT40 move bounds: 0  3 
+d UBIT40 move 0: 1099511627775 
+d UBIT40 move 1: 1099511627775 
+d UBIT40 move 2: 0 
+d UBIT40 move 3: 0 
+d UBIT40 redim 0: 0 
+d UBIT40 redim 1: 0 
+d UBIT40 erased: error 9 
+d UBIT40 erased bounds: error 9 
+a SINGLE bounds:-2  4 
+a SINGLE -2:-3.402823E+38 
+a SINGLE -1: 3.402823E+38 
+a SINGLE 0:-1 
+a SINGLE 1: 0 
+a SINGLE 2: 1 
+a SINGLE 3: .2 
+a SINGLE 4:-.2253 
+a SINGLE below: error 9 
+ error 9 
+a SINGLE store below
+a SINGLE above: error 9 
+ error 9 
+a SINGLE store above
+b SINGLE bounds: 1  2  0  3 
+b SINGLE bounds 3: error 9 
+b SINGLE bounds 0: error 9 
+b SINGLE 1 0: 1 
+b SINGLE 1 1: .2 
+b SINGLE 1 2:-.2253 
+b SINGLE 1 3:-3.402823E+38 
+b SINGLE 2 0: 3.402823E+38 
+b SINGLE 2 1:-1 
+b SINGLE 2 2: 0 
+b SINGLE 2 3: 1 
+b SINGLE 1 4: error 9 
+b SINGLE 1 -1: error 9 
+b SINGLE 3 0: error 9 
+b SINGLE 0 0: error 9 
+d SINGLE grow bounds: 1  5 
+d SINGLE grow 1: 3.402823E+38 
+d SINGLE grow 2:-1 
+d SINGLE grow 3: 0 
+d SINGLE grow 4: 0 
+d SINGLE grow 5: 0 
+d SINGLE shrink bounds: 1  2 
+d SINGLE shrink 1: 3.402823E+38 
+d SINGLE shrink 2:-1 
+d SINGLE move bounds: 0  3 
+d SINGLE move 0: 3.402823E+38 
+d SINGLE move 1:-1 
+d SINGLE move 2: 0 
+d SINGLE move 3: 0 
+d SINGLE redim 0: 0 
+d SINGLE redim 1: 0 
+d SINGLE erased: error 9 
+d SINGLE erased bounds: error 9 
+a DOUBLE bounds:-2  4 
+a DOUBLE -2:-1.797693134862315D+308 
+a DOUBLE -1: 1.797693134862315D+308 
+a DOUBLE 0:-1 
+a DOUBLE 1: 0 
+a DOUBLE 2: 1 
+a DOUBLE 3:-166203811.12578 
+a DOUBLE 4:-12534.17 
+a DOUBLE below: error 9 
+ error 9 
+a DOUBLE store below
+a DOUBLE above: error 9 
+ error 9 
+a DOUBLE store above
+b DOUBLE bounds: 1  2  0  3 
+b DOUBLE bounds 3: error 9 
+b DOUBLE bounds 0: error 9 
+b DOUBLE 1 0: 1 
+b DOUBLE 1 1:-166203811.12578 
+b DOUBLE 1 2:-12534.17 
+b DOUBLE 1 3:-1.797693134862315D+308 
+b DOUBLE 2 0: 1.797693134862315D+308 
+b DOUBLE 2 1:-1 
+b DOUBLE 2 2: 0 
+b DOUBLE 2 3: 1 
+b DOUBLE 1 4: error 9 
+b DOUBLE 1 -1: error 9 
+b DOUBLE 3 0: error 9 
+b DOUBLE 0 0: error 9 
+d DOUBLE grow bounds: 1  5 
+d DOUBLE grow 1: 1.797693134862315D+308 
+d DOUBLE grow 2:-1 
+d DOUBLE grow 3: 0 
+d DOUBLE grow 4: 0 
+d DOUBLE grow 5: 0 
+d DOUBLE shrink bounds: 1  2 
+d DOUBLE shrink 1: 1.797693134862315D+308 
+d DOUBLE shrink 2:-1 
+d DOUBLE move bounds: 0  3 
+d DOUBLE move 0: 1.797693134862315D+308 
+d DOUBLE move 1:-1 
+d DOUBLE move 2: 0 
+d DOUBLE move 3: 0 
+d DOUBLE redim 0: 0 
+d DOUBLE redim 1: 0 
+d DOUBLE erased: error 9 
+d DOUBLE erased bounds: error 9 
+a FLOAT bounds:-2  4 
+a FLOAT -2:-1.797693134862315D+308 
+a FLOAT -1: 1.797693134862315D+308 
+a FLOAT 0:-1 
+a FLOAT 1: 0 
+a FLOAT 2: 1 
+a FLOAT 3:-.9 
+a FLOAT 4: 478.10157 
+a FLOAT below: error 9 
+ error 9 
+a FLOAT store below
+a FLOAT above: error 9 
+ error 9 
+a FLOAT store above
+b FLOAT bounds: 1  2  0  3 
+b FLOAT bounds 3: error 9 
+b FLOAT bounds 0: error 9 
+b FLOAT 1 0: 1 
+b FLOAT 1 1:-.9 
+b FLOAT 1 2: 478.10157 
+b FLOAT 1 3:-1.797693134862315D+308 
+b FLOAT 2 0: 1.797693134862315D+308 
+b FLOAT 2 1:-1 
+b FLOAT 2 2: 0 
+b FLOAT 2 3: 1 
+b FLOAT 1 4: error 9 
+b FLOAT 1 -1: error 9 
+b FLOAT 3 0: error 9 
+b FLOAT 0 0: error 9 
+d FLOAT grow bounds: 1  5 
+d FLOAT grow 1: 1.797693134862315D+308 
+d FLOAT grow 2:-1 
+d FLOAT grow 3: 0 
+d FLOAT grow 4: 0 
+d FLOAT grow 5: 0 
+d FLOAT shrink bounds: 1  2 
+d FLOAT shrink 1: 1.797693134862315D+308 
+d FLOAT shrink 2:-1 
+d FLOAT move bounds: 0  3 
+d FLOAT move 0: 1.797693134862315D+308 
+d FLOAT move 1:-1 
+d FLOAT move 2: 0 
+d FLOAT move 3: 0 
+d FLOAT redim 0: 0 
+d FLOAT redim 1: 0 
+d FLOAT erased: error 9 
+d FLOAT erased bounds: error 9 

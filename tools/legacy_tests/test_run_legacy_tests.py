@@ -581,23 +581,28 @@ class Rejudge(unittest.TestCase):
         data = self.data({"b": ("SKIP", "windows: cmd")}, platform="linux")
         self.assertEqual(self.judge(data, {}, "linux"), ["verification:b: no longer skipped, and never run"])
 
-    def test_a_network_program_a_windows_host_skipped_stays_skipped(self):
-        sidecar = self.root / "a.external"
-        sidecar.write_text("network: it opens connections or names hosts\n", encoding="utf-8")
-        os.utime(sidecar, (time.time() - 120, time.time() - 120))
-        real = rlt.network_skipped
-        on_host = mock.patch.object(rlt, "network_skipped", lambda suite, bas: real(suite, bas, env={}, windows=True))
-        with on_host:
-            data = self.data({"a": ("SKIP", rlt.NETWORK_SKIP), "b": ("PASS", "")})
-            self.assertEqual(self.judge(data, {}), [])
-            self.assertEqual(data["results"][0]["status"], "SKIP")
-            self.assertEqual(data["summary"], {"verification": {"PASS": 1, "FAIL": 0, "KFAIL": 0, "SKIP": 1}})
-            # Another SKIP of the same program, or this one after its sidecar is gone, still needs a run.
-            data = self.data({"a": ("SKIP", "windows: cmd")})
-            self.assertEqual(self.judge(data, {}), ["verification:a: no longer skipped, and never run"])
-            sidecar.unlink()
-            data = self.data({"a": ("SKIP", rlt.NETWORK_SKIP)})
-            self.assertEqual(self.judge(data, {}), ["verification:a: no longer skipped, and never run"])
+    def test_a_program_a_windows_host_skipped_stays_skipped(self):
+        real = rlt.host_skip
+        on_host = mock.patch.object(rlt, "host_skip", lambda suite, bas: real(suite, bas, env={}, windows=True))
+        for mark, why in (("network: it opens connections\n", rlt.NETWORK_SKIP), ("clipboard: it writes it\n", rlt.CLIPBOARD_SKIP)):
+            sidecar = self.root / "a.external"
+            sidecar.write_text(mark, encoding="utf-8")
+            os.utime(sidecar, (time.time() - 120, time.time() - 120))
+            with self.subTest(mark), on_host:
+                data = self.data({"a": ("SKIP", why), "b": ("PASS", "")})
+                self.assertEqual(self.judge(data, {}), [])
+                self.assertEqual(data["results"][0]["status"], "SKIP")
+                self.assertEqual(data["summary"], {"verification": {"PASS": 1, "FAIL": 0, "KFAIL": 0, "SKIP": 1}})
+                # Another SKIP of the same program, the other host skip, or this one after its sidecar is gone,
+                # still needs a run.
+                data = self.data({"a": ("SKIP", "windows: cmd")})
+                self.assertEqual(self.judge(data, {}), ["verification:a: no longer skipped, and never run"])
+                other = rlt.CLIPBOARD_SKIP if why == rlt.NETWORK_SKIP else rlt.NETWORK_SKIP
+                data = self.data({"a": ("SKIP", other)})
+                self.assertEqual(self.judge(data, {}), ["verification:a: no longer skipped, and never run"])
+                sidecar.unlink()
+                data = self.data({"a": ("SKIP", why)})
+                self.assertEqual(self.judge(data, {}), ["verification:a: no longer skipped, and never run"])
 
     def test_a_removed_program_refuses(self):
         data = self.data({"a": ("PASS", ""), "gone": ("PASS", "")})
@@ -1205,14 +1210,34 @@ class NetworkSkip(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.dir = Path(self.tmp.name)
-        for name, why in (("net", "network: it opens connections or names hosts\n"), ("snd", "sound: audio\n")):
+        for name, why in (
+            ("net", "network: it opens connections or names hosts\n"),
+            ("snd", "sound: audio\n"),
+            ("clip", "clipboard: it reads or writes the system clipboard\n"),
+            ("desk", "desktop: it reads the desktop or acts on it\n"),
+        ):
             (self.dir / f"{name}.bas").write_bytes(b"")
             (self.dir / f"{name}.external").write_text(why, encoding="utf-8")
         (self.dir / "plain.bas").write_bytes(b"")
         (self.dir / "net.keys.keys").write_bytes(b"")
 
     def skipped(self, name, env=None, windows=True, suite="verification"):
-        return rlt.network_skipped(suite, self.dir / name, env={} if env is None else env, windows=windows)
+        """Whether the program is skipped as a network program."""
+        return self.why(name, env, windows, suite) == rlt.NETWORK_SKIP
+
+    def why(self, name, env=None, windows=True, suite="verification"):
+        return rlt.host_skip(suite, self.dir / name, env={} if env is None else env, windows=windows)
+
+    def test_a_clipboard_program_is_skipped_on_a_windows_host(self):
+        # DECISIONS.md 2026-11-07: it would overwrite the user's clipboard. A desktop: program still runs.
+        self.assertEqual(self.why("clip.bas"), rlt.CLIPBOARD_SKIP)
+        self.assertIsNone(self.why("desk.bas"))
+        self.assertIsNone(self.why("clip.bas", env={rlt.ALLOW_CLIPBOARD: "1"}))
+        self.assertIsNone(self.why("clip.bas", env={"CI": "true"}))
+        self.assertIsNone(self.why("clip.bas", windows=False))
+        # Each variable lets only its own programs run.
+        self.assertEqual(self.why("clip.bas", env={rlt.ALLOW_NETWORK: "1"}), rlt.CLIPBOARD_SKIP)
+        self.assertEqual(self.why("net.bas", env={rlt.ALLOW_CLIPBOARD: "1"}), rlt.NETWORK_SKIP)
 
     def test_only_network_programs_on_a_windows_host(self):
         self.assertTrue(self.skipped("net.bas"))

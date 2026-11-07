@@ -87,6 +87,8 @@ restore per run, however many VM steps.
 - Network programs run only in the VM. Their `.external` sidecar starts with `network:`. On a Windows host the
   runner skips them (SKIP), because a program that opens a port makes Windows Defender Firewall ask the user. A
   VM step sets `QB64RUST_ALLOW_NETWORK=1`, which runs them. So `just quick` and `--where host` do not test them.
+- Clipboard programs run only in the VM too. Their sidecar starts with `clipboard:`, and a VM step sets
+  `QB64RUST_ALLOW_CLIPBOARD=1`. On the host they would overwrite the user's clipboard (`DECISIONS.md` 2026-11-07).
 - `cli` builds the CLI tests' binary on the host (`cargo test --no-run`), and the binary runs in the VM with
   `--ignored`, in `crates\driver`.
 - `verification` and `verification-whole` build the `v37` libraries in the VM first, since git ignores them.
