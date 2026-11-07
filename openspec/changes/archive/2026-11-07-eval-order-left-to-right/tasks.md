@@ -68,8 +68,11 @@ Standing rules: CLAUDE.md.
       programs whose sidecars go give the Windows recording byte for byte; `v30_g` passes with its cut sidecar.
       `s86_field_lset` keeps a sidecar cut to its line 20 (design, "Found while building"). No `known.linux.list`
       row names any of them.
-- [ ] 3.2 Run the Linux slice and the Linux verification list with `check` (`linux-slice`,
+- [x] 3.2 Run the Linux slice and the Linux verification list with `check` (`linux-slice`,
       `linux-verification`). Verify that nothing that passed before fails.
+      Done on 2026-11-07. `linux-slice` passed (238 s). `linux-verification` passed (945 s, 4,393 programs):
+      93 KFAIL (each a known row), 17 SKIP, the rest PASS. `v42_a_timer` and `v42_e_service` failed with `--jobs 8` while
+      the slice ran beside them, and passed when the runner ran them again alone (timing-sensitive).
 
 ## 4. Records and close
 
@@ -79,8 +82,10 @@ Standing rules: CLAUDE.md.
       a guarantee on every platform. Verify with `tools\repo_check`.
 - [x] 4.2 Tick `ROADMAP.md`'s "After M7" item, and update `STATUS.md`'s "Next". The user asked for this item
       before the merge, as a step of this change.
-- [ ] 4.3 Run `just quick` in the background, and the verification list narrowed to this change's programs. Say
+- [x] 4.3 Run `just quick` in the background, and the verification list narrowed to this change's programs. Say
       what ran and what stood, and give the user the files to stage and a commit message.
+      Done on 2026-11-07. Every step of `just quick` stood from today's runs. `upstream` and `verification` were
+      left for `check full`, since the change reaches more than programs.
 
 ## Workflow follow-up
 
