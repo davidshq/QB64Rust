@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/it/frontend.rs
+assertion_line: 210
 expression: snap
 ---
 ==> global.txt <==
@@ -77,6 +78,10 @@ if(__LONG_X==NULL){
 __LONG_X=(int32*)mem_static_malloc(4);
 *__LONG_X=0;
 }
+int32 seq1;
+int32 seq2;
+uint64 seq3;
+uint64 seq4;
 ==> mainerr.txt <==
 if (!error_handler_history) error_handler_history = qbs_new(0, 0);
 if (error_occurred){ error_occurred=0;
@@ -109,7 +114,7 @@ error_track_line(28,0,NULL);
 #line 28 "library_linux_cpp.bas"
 do{
 #line 28 "library_linux_cpp.bas"
-*__LONG_X=((int32)(((((uint64)(((((int32)h_l(2))+((int32)c_add(2,3)))+((int32)FUNC_S_ADD(2,3)))))+((uint64)(((uptrszint)FUNC_STRLEN((char*)(qbs_add(qbs_new_txt_len("seven!!",7),func_chr(0)))->chr)))))+((uint64)(((int32)FUNC_CT_ADD(5,6)))))));
+*__LONG_X=((int32)((seq4=(seq3=((uint64)((seq2=(seq1=((int32)h_l(2)),(seq1+((int32)c_add(2,3)))),(seq2+((int32)FUNC_S_ADD(2,3)))))),(seq3+((uint64)(((uptrszint)FUNC_STRLEN((char*)(qbs_add(qbs_new_txt_len("seven!!",7),func_chr(0)))->chr)))))),(seq4+((uint64)(((int32)FUNC_CT_ADD(5,6))))))));
 #line 28 "library_linux_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 28 "library_linux_cpp.bas"

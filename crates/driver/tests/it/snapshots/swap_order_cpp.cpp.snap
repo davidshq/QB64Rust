@@ -1,6 +1,6 @@
 ---
 source: crates/driver/tests/it/frontend.rs
-assertion_line: 203
+assertion_line: 210
 expression: snap
 ---
 ==> global.txt <==
@@ -89,13 +89,19 @@ __LONG_K=(int32*)mem_static_malloc(4);
 *__LONG_K=0;
 }
 int32 pass1;
-int32 pass2;
+int64 seq2;
 int32 pass3;
-int32 pass4;
+int64 seq4;
 int32 pass5;
 int32 pass6;
 int32 pass7;
-int32 pass8;
+char* seq8;
+char* seq9;
+int32 pass10;
+int32 pass11;
+char* seq12;
+int64 seq13;
+int32 pass14;
 ==> mainerr.txt <==
 if (!error_handler_history) error_handler_history = qbs_new(0, 0);
 if (error_occurred){ error_occurred=0;
@@ -124,119 +130,127 @@ sub__dest(func__console());
 sub__source(func__console());
 #line 2 "swap_order_cpp.bas"
 if(!qbevent)break;evnt(2);}while(r);
-#line 11 "swap_order_cpp.bas"
-do{
-#line 11 "swap_order_cpp.bas"
-{auto swap_x=&((int32*)(__ARRAY_LONG_A[0]))[array_check((((int64)(FUNC_ONE(&(pass1=1)))))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])];auto swap_y=&((int32*)(__ARRAY_LONG_A[0]))[array_check((((int64)(FUNC_ONE(&(pass2=2)))))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])];swap_32(swap_x,swap_y);}
-#line 11 "swap_order_cpp.bas"
-if(!qbevent)break;evnt(11);}while(r);
 #line 12 "swap_order_cpp.bas"
 do{
 #line 12 "swap_order_cpp.bas"
-{auto swap_x=(((qbs**)(__ARRAY_STRING_S[0]))[array_check((((int64)(*__LONG_K)))-__ARRAY_STRING_S[4],__ARRAY_STRING_S[5])]);auto swap_y=(((qbs**)(__ARRAY_STRING_S[0]))[array_check((((int64)(FUNC_ONE(&(pass3=3)))))-__ARRAY_STRING_S[4],__ARRAY_STRING_S[5])]);swap_string(swap_x,swap_y);}
+seq2=array_check((((int64)(FUNC_ONE(&(pass1=1)))))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5]);
 #line 12 "swap_order_cpp.bas"
-qbs_cleanup(qbs_tmp_base,0);
+swap_32(&((int32*)(__ARRAY_LONG_A[0]))[seq2],&((int32*)(__ARRAY_LONG_A[0]))[array_check((((int64)(FUNC_ONE(&(pass3=2)))))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])]);
 #line 12 "swap_order_cpp.bas"
 if(!qbevent)break;evnt(12);}while(r);
 #line 13 "swap_order_cpp.bas"
 do{
 #line 13 "swap_order_cpp.bas"
-{auto swap_x=&*(int32*)((((((char*)__ARRAY_UDT_R[0])+((array_check((((int64)(FUNC_ONE(&(pass4=1)))))-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]))*20))+4)+((array_check((((int64)(FUNC_ONE(&(pass5=2)))))-0ll,4))*4)));auto swap_y=&*(int32*)((((((char*)__ARRAY_UDT_R[0])+((array_check((((int64)(FUNC_ONE(&(pass6=3)))))-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]))*20))+4)+((array_check((((int64)(FUNC_ONE(&(pass7=4)))))-0ll,4))*4)));swap_32(swap_x,swap_y);}
+seq4=array_check((((int64)(*__LONG_K)))-__ARRAY_STRING_S[4],__ARRAY_STRING_S[5]);
+#line 13 "swap_order_cpp.bas"
+swap_string((((qbs**)(__ARRAY_STRING_S[0]))[seq4]),(((qbs**)(__ARRAY_STRING_S[0]))[array_check((((int64)(FUNC_ONE(&(pass5=3)))))-__ARRAY_STRING_S[4],__ARRAY_STRING_S[5])]));
+#line 13 "swap_order_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
 #line 13 "swap_order_cpp.bas"
 if(!qbevent)break;evnt(13);}while(r);
 #line 14 "swap_order_cpp.bas"
 do{
 #line 14 "swap_order_cpp.bas"
-{auto swap_x=(((char*)__ARRAY_UDT_R[0])+((array_check((2ll)-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]))*20));auto swap_y=(((char*)__ARRAY_UDT_R[0])+((array_check((((int64)(FUNC_ONE(&(pass8=1)))))-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]))*20));swap_block(swap_x,swap_y,20);}
+seq9=(seq8=((((char*)__ARRAY_UDT_R[0])+((array_check((((int64)(FUNC_ONE(&(pass6=1)))))-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]))*20))+4),(seq8+((array_check((((int64)(FUNC_ONE(&(pass7=2)))))-0ll,4))*4)));
+#line 14 "swap_order_cpp.bas"
+swap_32(&*(int32*)(seq9),&*(int32*)((seq12=((((char*)__ARRAY_UDT_R[0])+((array_check((((int64)(FUNC_ONE(&(pass10=3)))))-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]))*20))+4),(seq12+((array_check((((int64)(FUNC_ONE(&(pass11=4)))))-0ll,4))*4)))));
 #line 14 "swap_order_cpp.bas"
 if(!qbevent)break;evnt(14);}while(r);
 #line 15 "swap_order_cpp.bas"
 do{
 #line 15 "swap_order_cpp.bas"
-swap_32(&((int32*)(__ARRAY_LONG_A[0]))[array_check((((int64)(*__LONG_K)))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])],&((int32*)(__ARRAY_LONG_A[0]))[array_check((((int64)((*__LONG_K+1))))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])]);
+seq13=array_check((2ll)-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]);
+#line 15 "swap_order_cpp.bas"
+swap_block((((char*)__ARRAY_UDT_R[0])+((seq13)*20)),(((char*)__ARRAY_UDT_R[0])+((array_check((((int64)(FUNC_ONE(&(pass14=1)))))-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]))*20)),20);
 #line 15 "swap_order_cpp.bas"
 if(!qbevent)break;evnt(15);}while(r);
 #line 16 "swap_order_cpp.bas"
 do{
 #line 16 "swap_order_cpp.bas"
-if (sub_gl_called) error(271);
-#line 16 "swap_order_cpp.bas"
-close_program=1;
-#line 16 "swap_order_cpp.bas"
-end();
+swap_32(&((int32*)(__ARRAY_LONG_A[0]))[array_check((((int64)(*__LONG_K)))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])],&((int32*)(__ARRAY_LONG_A[0]))[array_check((((int64)((*__LONG_K+1))))-__ARRAY_LONG_A[4],__ARRAY_LONG_A[5])]);
 #line 16 "swap_order_cpp.bas"
 if(!qbevent)break;evnt(16);}while(r);
+#line 17 "swap_order_cpp.bas"
+do{
+#line 17 "swap_order_cpp.bas"
+if (sub_gl_called) error(271);
+#line 17 "swap_order_cpp.bas"
+close_program=1;
+#line 17 "swap_order_cpp.bas"
+end();
+#line 17 "swap_order_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
 sub_end();
 return;
 }
 ==> main1.txt <==
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 int32 FUNC_ONE(int32*_FUNC_ONE_LONG_N){
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 qbs *tqbs;
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 ptrszint tmp_long;
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 int32 tmp_fileno;
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 uint32 qbs_tmp_base=qbs_tmp_list_nexti;
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 uint8 *tmp_mem_static_pointer=mem_static_pointer;
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 uint32 tmp_cmem_sp=cmem_sp;
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 #include "data1.txt"
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 mem_lock *sf_mem_lock;
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 new_mem_lock();
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 sf_mem_lock=mem_lock_tmp;
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 sf_mem_lock->type=3;
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 libqb_check_stack();
-#line 17 "swap_order_cpp.bas"
+#line 18 "swap_order_cpp.bas"
 if (is_error_pending()) goto exit_subfunc;
-#line 18 "swap_order_cpp.bas"
+#line 19 "swap_order_cpp.bas"
 do{
-#line 18 "swap_order_cpp.bas"
+#line 19 "swap_order_cpp.bas"
 tqbs=qbs_new(0,0);
-#line 18 "swap_order_cpp.bas"
+#line 19 "swap_order_cpp.bas"
 qbs_set(tqbs,qbs_add(qbs_str((int32)(*_FUNC_ONE_LONG_N)),qbs_new_txt(" ")));
-#line 18 "swap_order_cpp.bas"
+#line 19 "swap_order_cpp.bas"
 if (is_error_pending()) goto skip1;
-#line 18 "swap_order_cpp.bas"
+#line 19 "swap_order_cpp.bas"
 makefit(tqbs);
-#line 18 "swap_order_cpp.bas"
+#line 19 "swap_order_cpp.bas"
 qbs_print(tqbs,0);
-#line 18 "swap_order_cpp.bas"
+#line 19 "swap_order_cpp.bas"
 skip1:
-#line 18 "swap_order_cpp.bas"
+#line 19 "swap_order_cpp.bas"
 qbs_free(tqbs);
-#line 18 "swap_order_cpp.bas"
+#line 19 "swap_order_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
-#line 18 "swap_order_cpp.bas"
-if(!qbevent)break;evnt(18);}while(r);
-#line 19 "swap_order_cpp.bas"
-do{
-#line 19 "swap_order_cpp.bas"
-*_FUNC_ONE_LONG_ONE=1;
 #line 19 "swap_order_cpp.bas"
 if(!qbevent)break;evnt(19);}while(r);
 #line 20 "swap_order_cpp.bas"
+do{
+#line 20 "swap_order_cpp.bas"
+*_FUNC_ONE_LONG_ONE=1;
+#line 20 "swap_order_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "swap_order_cpp.bas"
 exit_subfunc:;
-#line 20 "swap_order_cpp.bas"
+#line 21 "swap_order_cpp.bas"
 free_mem_lock(sf_mem_lock);
-#line 20 "swap_order_cpp.bas"
+#line 21 "swap_order_cpp.bas"
 #include "free1.txt"
-#line 20 "swap_order_cpp.bas"
+#line 21 "swap_order_cpp.bas"
 if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
-#line 20 "swap_order_cpp.bas"
+#line 21 "swap_order_cpp.bas"
 cmem_sp=tmp_cmem_sp;
-#line 20 "swap_order_cpp.bas"
+#line 21 "swap_order_cpp.bas"
 return *_FUNC_ONE_LONG_ONE;
-#line 20 "swap_order_cpp.bas"
+#line 21 "swap_order_cpp.bas"
 }
 ==> data1.txt <==
 int32 *_FUNC_ONE_LONG_ONE=NULL;

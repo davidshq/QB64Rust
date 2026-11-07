@@ -14,7 +14,7 @@
 14: <error 50 > 4  <error 50 > 5  5  0  <error 5 > 0  2  4 
 15: 4  5  7  <error 52 > 7  <error 52 > 7  <error 54 > 7 
 16: 2  3  0  3 [abcdefgh][abcd][efgh] <error 9 >
-17: fn wd 3  fn wd ix 3 
+17: fn wd 3  fn ix wd 3 
 18: <error 63 > 2  <error 63 > 2  <error 52 > <error 52 >
 19: <error 54 > <error 54 > <error 54 > <error 54 > <error 75 > <error 75 >
 20: 0  0  0  0  0  0  0  0  32  32  122  32  32  32  97  98  0  0  0  0  0  0  0  0  32  32  122  32  32  32  97  98  0  0  0  0  0  0  0  0 
@@ -24,5 +24,5 @@
 24: [ab   ][   cd][   z] <error 9 >
 25: [ab    ][    ab][ab   ][    ab][   a]
 26: [cdef  ][    ab][    ab]
-27: vl ix [v  ][      ab][     ]
+27: ix vl [v  ][      ab][     ]
 28: <error 5 >[keep.][x    ]

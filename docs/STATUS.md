@@ -64,10 +64,12 @@ Nothing is waiting. The game ports' open questions are kept in the games' own re
 
 ## Next
 
-1. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"; `DECISIONS.md` 2026-10-28): decided,
-   not built.
-2. **M7, Linux** (`ROADMAP.md`): `m7-linux` is built and closed (2026-10-29). Its CI jobs (tasks 7.1–7.3) are
-   started by hand once they are pushed; their results are read when they come. M8, macOS, next.
+1. **Calls with side effects run left to right** (`ROADMAP.md`, "After M7"): built as the OpenSpec change
+   `eval-order-left-to-right`, not yet archived. Its nine Linux sidecars are deleted. Left: the Linux whole runs
+   of its task 3.2. Then the change is archived, which merges its two specs.
+2. **M7, Linux, is done** (`ROADMAP.md`). Its last item was CI's Linux jobs, which passed on branch `after-pr25`
+   on 2026-11-07. M7 moves to `ROADMAP-COMPLETED.md` at the next merge into `main`. macOS, which was M8, is
+   postponed to `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next.
 3. **`TODO.md` rows 4, 6 and 7**: the clipboard programs into the sandbox, a differential group for strings and
    arrays, and the grammar's keyword lists generated from `builtins.json`.
 

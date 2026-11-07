@@ -142,13 +142,26 @@ impl Emitter<'_> {
     /// choice keeps its own, which the old compiler writes too.
     pub(crate) fn inner(&mut self, v: &Expr) -> String {
         let text = self.value(v);
-        if matches!(v.kind, ExprKind::Choice { .. }) {
+        // A choice keeps its parentheses, and so does a node with holds, whose comma expression would otherwise
+        // become two arguments (`order.rs`).
+        if matches!(v.kind, ExprKind::Choice { .. }) || text.starts_with("(seq") {
             return text;
         }
         bare(&text).to_string()
     }
 
+    /// A value as C++: its temporary when the group it is a part of holds it, else the node with the holds of its
+    /// own group (OpenSpec change `eval-order-left-to-right`, `order.rs`).
     pub(crate) fn value(&mut self, v: &Expr) -> String {
+        if let Some(held) = self.held_expr(v) {
+            return held;
+        }
+        let parts = crate::order::expr_group(self.order_ctx(), v);
+        self.with_holds(&parts, |e| e.node(v))
+    }
+
+    /// [`Self::value`] of the node itself.
+    fn node(&mut self, v: &Expr) -> String {
         match &v.kind {
             ExprKind::Int(i) => int_const(*i, v.ty),
             ExprKind::Float(t) => {

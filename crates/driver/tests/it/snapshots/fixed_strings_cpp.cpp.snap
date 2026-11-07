@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/it/frontend.rs
+assertion_line: 210
 expression: snap
 ---
 ==> global.txt <==
@@ -92,6 +93,7 @@ if(_SUB_LOC_STRING3_T==NULL){
 _SUB_LOC_STRING3_T=qbs_new_fixed((uint8*)mem_static_malloc(3),3,0);
 memset(_SUB_LOC_STRING3_T->chr,0,3);
 }
+int32 seq1;
 ==> mainerr.txt <==
 if (!error_handler_history) error_handler_history = qbs_new(0, 0);
 if (error_occurred){ error_occurred=0;
@@ -407,7 +409,7 @@ if(!qbevent)break;evnt(20);}while(r);
 #line 21 "fixed_strings_cpp.bas"
 do{
 #line 21 "fixed_strings_cpp.bas"
-*__LONG_N=(FUNC_LENOF(qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_A[0]))[(array_check((1ll)-__ARRAY_STRING3_A[4],__ARRAY_STRING3_A[5]))*3],3,1))+FUNC_LENOF(qbs_new_fixed((uint8*)(((char*)__UDT_R)+4),6,1)));
+*__LONG_N=(seq1=FUNC_LENOF(qbs_new_fixed(&((uint8*)(__ARRAY_STRING3_A[0]))[(array_check((1ll)-__ARRAY_STRING3_A[4],__ARRAY_STRING3_A[5]))*3],3,1)),(seq1+FUNC_LENOF(qbs_new_fixed((uint8*)(((char*)__UDT_R)+4),6,1))));
 #line 21 "fixed_strings_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 21 "fixed_strings_cpp.bas"

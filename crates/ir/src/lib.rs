@@ -83,6 +83,13 @@
 //! - **A value is one expression**: nothing of it is evaluated before or apart from it. So an
 //!   [`ExprKind::Choice`] evaluates its condition and then only the part chosen, and the right operand of
 //!   `_ANDALSO` and `_ORELSE` only when the left one does not decide.
+//! - **The parts of one value or operation are evaluated in one order on every platform** (spec
+//!   `language/evaluation-order`, `QB64PE-DIVERGENCES.md` D-060): the operands of an operator, the arguments of a
+//!   call of a built-in, a FUNCTION, a SUB or a library procedure, the arguments of a built-in statement and the
+//!   indexes of an element, in the order QB64pe's Windows build evaluates them. That is mostly left to right, but
+//!   is the order of the old compiler's C++ where it differs from the BASIC text (`FIELD`'s width after its
+//!   target's index; `SWAP` of two whole `TYPE` values takes the second place first). A backend where a part's
+//!   order could otherwise change the result fixes it.
 //! - **Integer overflow wraps** in two's complement (`QB64PE-DIVERGENCES.md` D-001, D-002).
 
 // A new type or operator must be handled everywhere, not fall into a `_ =>` arm (study\archive\21).
@@ -629,9 +636,9 @@ pub enum Op {
     },
     /// Fill bytes of a memory block with a value's bytes, repeated (`_MEMFILL`): a [`MemValue::Str`] is evaluated
     /// first, then the offset and the count (both `_OFFSET`s); a typed value is an argument of the runtime's call
-    /// beside them, in the order C++ gives arguments (none fixed), as the old compiler writes it. The runtime
-    /// raises error 309 for a block never set, 308 for a freed one, 301 for a negative count or a value of no
-    /// bytes, 300 for a region not within the block. Always may raise.
+    /// beside them, evaluated after them, as the old compiler's Windows build does (the crate documentation). The
+    /// runtime raises error 309 for a block never set, 308 for a freed one, 301 for a negative count or a value of
+    /// no bytes, 300 for a region not within the block. Always may raise.
     MemFill {
         block: Place,
         offset: Expr,

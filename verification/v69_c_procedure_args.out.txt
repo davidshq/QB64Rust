@@ -1,0 +1,9 @@
+FUNCTION by value: f1 f2 h1,2 12 
+FUNCTION by reference: f1 f2 h10,20 120 
+SUB by value: f1 f2 two 1  2 
+SUB by reference: f1 f2 two 10  20 
+nested: f1 f2 h1,2 f3 f4 h3,4 h12,34 154 
+library by value: f2 f3 8 
+library calls: f1 f2-1 
+library and FUNCTION: f1 f2-1 
+exit=0

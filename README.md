@@ -5,7 +5,7 @@ A new compiler, editor support and debugger for programs written for
 check, build, run and debug QB64 programs in VS Code, or compile them from a command prompt. QB64pe does not need to
 be installed.
 
-The goal: a QB64 programmer installs one thing on Windows, Linux or macOS and gets an editor, a compiler and a
+The goal: a QB64 programmer installs one thing on Windows or Linux and gets an editor, a compiler and a
 debugger ([ROADMAP.md](docs/ROADMAP.md)).
 
 ## Features
@@ -29,7 +29,7 @@ debugger ([ROADMAP.md](docs/ROADMAP.md)).
 
 ## Status
 
-- **Windows x64 only for now.** Linux, then macOS, are planned (milestones M7 and M8 in [ROADMAP.md](docs/ROADMAP.md)).
+- **Windows x64 is released, as the VS Code extension. Linux x64 is built, and its first release is pending** (milestone M7 in [ROADMAP.md](docs/ROADMAP.md)). macOS is postponed (a row in [SOMEDAY.md](docs/SOMEDAY.md)).
 - The compiler accepts the QB64pe 4.7.0 dialect. Its output is checked against the old compiler's on thousands of
   programs: the test corpus, QB64pe's own tests and the measured behaviour of each feature. Real programs such as
   Civil War Strategy, about 5,000 lines, compile and run the same as with QB64pe.

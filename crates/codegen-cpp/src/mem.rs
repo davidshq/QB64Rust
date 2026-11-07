@@ -367,32 +367,7 @@ impl Emitter<'_> {
     /// (to a wider or narrower integer, from an integer to a float, between floats) are left to it; a float
     /// rounded to an integer keeps its `qbr`.
     fn stored(&mut self, v: &Expr) -> String {
-        match &v.kind {
-            ExprKind::Convert {
-                how: Conv::Widen | Conv::Truncate | Conv::Nearest,
-                from,
-            } => self.stored(from),
-            ExprKind::Int(_)
-            | ExprKind::Float(_)
-            | ExprKind::Str(_)
-            | ExprKind::Load(_)
-            | ExprKind::Bound { .. }
-            | ExprKind::Address { .. }
-            | ExprKind::Block { .. }
-            | ExprKind::Convert { .. }
-            | ExprKind::Binary { .. }
-            | ExprKind::Unary { .. }
-            | ExprKind::Concat(..)
-            | ExprKind::StrCompare { .. }
-            | ExprKind::Choice { .. }
-            | ExprKind::Call { .. }
-            | ExprKind::CallProc { .. }
-            | ExprKind::MemOf { .. }
-            | ExprKind::MemAt { .. }
-            | ExprKind::AddressOf(_)
-            | ExprKind::MemRead { .. }
-            | ExprKind::ArrayBytes(_) => self.value(v),
-        }
+        self.value(stored_expr(v))
     }
 
     /// `_MEM` or `_MEMELEMENT` of a whole dynamic member array or of an element of one (measured,
@@ -704,5 +679,35 @@ impl Emitter<'_> {
     fn array_lock(&self, a: VarId) -> String {
         let slot = lock_slot(dim_count(self.p.var(a)));
         format!("(mem_lock*)((ptrszint*){})[{slot}]", self.name(a))
+    }
+}
+
+/// The expression [`Emitter::stored`] writes: the value without the conversions C++ makes by itself on the store.
+pub(crate) fn stored_expr(v: &Expr) -> &Expr {
+    match &v.kind {
+        ExprKind::Convert {
+            how: Conv::Widen | Conv::Truncate | Conv::Nearest,
+            from,
+        } => stored_expr(from),
+        ExprKind::Int(_)
+        | ExprKind::Float(_)
+        | ExprKind::Str(_)
+        | ExprKind::Load(_)
+        | ExprKind::Bound { .. }
+        | ExprKind::Address { .. }
+        | ExprKind::Block { .. }
+        | ExprKind::Convert { .. }
+        | ExprKind::Binary { .. }
+        | ExprKind::Unary { .. }
+        | ExprKind::Concat(..)
+        | ExprKind::StrCompare { .. }
+        | ExprKind::Choice { .. }
+        | ExprKind::Call { .. }
+        | ExprKind::CallProc { .. }
+        | ExprKind::MemOf { .. }
+        | ExprKind::MemAt { .. }
+        | ExprKind::AddressOf(_)
+        | ExprKind::MemRead { .. }
+        | ExprKind::ArrayBytes(_) => v,
     }
 }

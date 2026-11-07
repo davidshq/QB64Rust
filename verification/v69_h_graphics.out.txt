@@ -1,0 +1,6 @@
+PSET: f1 f2 f3
+LINE: f1 f2 f3 f4 f5
+LINE BF: f1 f2 f3 f4 f5
+CIRCLE: f10 f10 f5 f7
+POINT: f1 f2
+exit=0

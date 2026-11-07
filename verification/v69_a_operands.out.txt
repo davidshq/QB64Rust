@@ -1,0 +1,23 @@
+counter: c1 c2-1 
+-: f1 f2-1 
++: f1 f2 3 
+*: f1 f2 2 
+/: f1 f2 .5 
+\: f7 f2 3 
+MOD: f7 f2 1 
+^: f2 f3 8 
+=: f1 f2 0 
+<: f1 f2-1 
+AND: f1 f3 1 
+OR: f1 f2 3 
+XOR: f1 f3 2 
+EQV: f1 f2-4 
+IMP: f1 f2-2 
+three: f1 f2 f3-4 
+nested: f1 f2 f3 5 
+string +: s1 s2AB
+string =: s1 s2 0 
+string <: s1 s2-1 
+x + g: g 1 
+g + x: g 10 
+exit=0

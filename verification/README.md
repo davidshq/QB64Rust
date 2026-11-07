@@ -21,8 +21,10 @@ Linux recordings, and what each shows of Linux:
 - `v16`, `v26_h2`, `v58_e12`: `$IF WIN`/`WINDOWS` are false and `LINUX` true, so the other branch is compiled
   (`v16_m6_error_active` and `v58_e12` compile, `v16_m6_error_inactive`, `m6_inactive_header` and `m6_sub_in_meta`
   do not).
-- `v18_c`, `v30_k`, `v30_l`, `v33_a03`, `v33_a04`, `v30_g` (the `<t>` pair): the calls of one C++ expression run
-  right to left with `g++` on Linux (`DECISIONS.md` 2026-10-28: left to right everywhere after M7).
+- None for the order of calls. QB64pe's Linux build runs the calls of one C++ expression right to left in
+  `v18_c`, `v30_k`, `v30_l`, `v33_a03`, `v33_a04` and `v30_g` (the `<t>` pair). QB64Rust runs them left to right
+  on Linux too, so these programs are judged by their Windows recordings there (`QB64PE-DIVERGENCES.md` D-060,
+  OpenSpec change `eval-order-left-to-right`; QB64pe's Linux recordings are in git history).
 - `v22`: `/` in `_CWD$`, other errors of `OPEN` and `CHDIR`, environment names in their own case. `v52_c`, `v49_b`: the file system's errors and separator, `_FILES$` with no `.\` and `..\` and in the file
   system's order. `v30_d`, `v30_i`: a write past the end, and `LOCK` that raises nothing.
 - `v22_f`, `v30_g`: a NaN prints as `nan` and `-nan`, not `-nan(ind)`. `v58_f01`, `v58_f04`: glibc's hyperbolic
@@ -528,6 +530,18 @@ Small programs behind `study\09`, `study\10` and later measurements:
   "Feature incompatible with $DEBUG mode" (`g1`, `g2`): `CHAIN` and `RUN` in a program with `$DEBUG`, also
   outside the IDE, with the detail `CHAIN` or `RUN`. In `f1`, `g1` and `g2` QB64pe compiles the program twice and
   prints each warning of the pass twice
+- `v69*`: the order in which the parts of one expression, call or statement are evaluated (2026-11-07, OpenSpec
+  change `eval-order-left-to-right`; spec `language/evaluation-order`). Each FUNCTION prints its name and argument,
+  so the output shows the order the calls ran in. QB64pe's Windows build evaluates them left to right in the order
+  of its C++: the operands of each operator (`a_operands`); the arguments of built-in functions (`b`), of
+  FUNCTIONs, SUBs and library functions (`c`); `FIELD`'s file number, then each target's index before its width
+  (`e`); `LSET`, `RSET` and the `MID$` statement, target first (`f`); `_ASSERT`'s condition before its message
+  (`g`); the coordinates and colors of `PSET`, `LINE` and `CIRCLE` (`h`); `PUT` and `GET` (`i`). A store into an
+  element evaluates the index first, and a number stored through a member is evaluated before the index (`j`).
+  Only the part of `_IIF`, `_ANDALSO` and `_ORELSE` that is needed runs (`k`). When two parts raise, the first one's
+  error is reported, and two index checks give error 9 either way (`d`, `l`). `m` holds places no other program
+  reaches: `MID$`, `INSTR`, `_RGB32`, an element with two FUNCTION indexes, `CHR$ + CHR$` and `SWAP`. None has a
+  Linux recording: QB64Rust gives the Windows order on Linux too (`QB64PE-DIVERGENCES.md` D-060).
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

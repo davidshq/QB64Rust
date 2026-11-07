@@ -1,5 +1,6 @@
 ---
 source: crates/driver/tests/it/frontend.rs
+assertion_line: 210
 expression: snap
 ---
 ==> global.txt <==
@@ -118,6 +119,12 @@ if(__UDT_P==NULL){
 __UDT_P=(void*)mem_static_malloc(7);
 memset(__UDT_P,0,7);
 }
+int64 seq1;
+int64 seq2;
+int64 seq3;
+int64 seq4;
+int64 seq5;
+int64 seq6;
 ==> mainerr.txt <==
 if (!error_handler_history) error_handler_history = qbs_new(0, 0);
 if (error_occurred){ error_occurred=0;
@@ -210,7 +217,7 @@ if(!qbevent)break;evnt(23);}while(r);
 #line 24 "files_cpp.bas"
 do{
 #line 24 "files_cpp.bas"
-*__LONG_N=((int32)(((((((((int64)(func_eof(1)))+func_lof(*__LONG_N))+func_loc(((int32)(qbr(*__DOUBLE_D)))))+func_seek(((int32)(*__INTEGER64_Q))))+((int64)(func_freefile())))+((int64)(func__fileexists(__STRING_F))))+((int64)(func__direxists(__STRING_F))))));
+*__LONG_N=((int32)((seq6=(seq5=(seq4=(seq3=(seq2=(seq1=((int64)(func_eof(1))),(seq1+func_lof(*__LONG_N))),(seq2+func_loc(((int32)(qbr(*__DOUBLE_D)))))),(seq3+func_seek(((int32)(*__INTEGER64_Q))))),(seq4+((int64)(func_freefile())))),(seq5+((int64)(func__fileexists(__STRING_F))))),(seq6+((int64)(func__direxists(__STRING_F)))))));
 #line 24 "files_cpp.bas"
 qbs_cleanup(qbs_tmp_base,0);
 #line 24 "files_cpp.bas"

@@ -18,8 +18,9 @@ impl Emitter<'_> {
     /// A built-in call. A built-in no rule covers (`ERR`, `ERL` are `Fixed`; every call `sema` makes has a rule) is
     /// written by the table.
     pub(crate) fn call(&mut self, id: BuiltinId, args: &[Option<Expr>], ty: Ty, qb: Ty) -> String {
+        let refs: Vec<Option<&Expr>> = args.iter().map(Option::as_ref).collect();
         let Some(s) = find(id) else {
-            return self.table_call(id, args, &[]);
+            return self.table_call(id, &refs, &[]);
         };
         let arg = |k: usize| args[k].as_ref().expect("a required argument");
         match s.rule {
@@ -27,12 +28,13 @@ impl Emitter<'_> {
             // literal, `func__embedded(qbs_new_txt_len("h",1))` (design D2 of `m3-network-embed`).
             Rule::Plain | Rule::ResultOfArg | Rule::FloatByArg | Rule::Fixed(_) | Rule::StrOrIndex | Rule::Embedded => {
                 let slots: Vec<Slot> = slots(s).into_iter().map(|(slot, _)| slot).collect();
-                self.table_call(id, args, &slots)
+                self.table_call(id, &refs, &slots)
             }
             // The arguments given, each converted by its slot; libqb has an entry for each number of them.
             Rule::GivenArgs(_) => {
                 let slots: Vec<Slot> = slots(s).into_iter().map(|(slot, _)| slot).collect();
-                let given: Vec<Option<Expr>> = args.iter().filter(|a| a.is_some()).cloned().collect();
+                // The arguments themselves, not copies: a held one is found by its address (`order.rs`).
+                let given: Vec<Option<&Expr>> = args.iter().filter(|a| a.is_some()).map(Option::as_ref).collect();
                 self.table_call(id, &given, &slots[..given.len()])
             }
             Rule::IntFix => {
@@ -209,11 +211,9 @@ impl Emitter<'_> {
             // An element's index is checked inside the call's arguments, with no test after it, so a bad index
             // exchanges with the array's first element, as the old compiler's program does (measured).
             //
-            // When an index of either place calls a FUNCTION, the two places are found in the order of the call's
-            // arguments, each into a variable first: as arguments of one call their order is the C++ compiler's,
-            // left to right on Windows (the old compiler's `g++`, llvm-mingw's `clang`), right to left with `g++` on
-            // Linux (measured, `tests\corpus\slice\s61_member_arrays` line 26; `QB64PE-DIVERGENCES.md` D-054).
-            // Otherwise the call is the old compiler's.
+            // The two places are a group (`order.rs`): when an index of the first one conflicts with the second,
+            // the first is held, so that they are found in the order of the call's arguments on every platform
+            // (measured, `tests\corpus\slice\s61_member_arrays` line 26; `QB64PE-DIVERGENCES.md` D-054).
             StmtRule::Swap => {
                 let [StmtArg::Place(a), StmtArg::Place(b)] = args else {
                     unreachable!("`SWAP` takes two places (`validate`)");
@@ -269,11 +269,7 @@ impl Emitter<'_> {
                 let (x, mut records) = self.trace_held(first, held, x, "SWAP");
                 let (y, more) = self.trace_held(second, held, y, "SWAP");
                 records.extend(more);
-                out.push(if a.calls_procedure() || b.calls_procedure() {
-                    format!("{{auto swap_x={x};auto swap_y={y};{name}(swap_x,swap_y{tail});}}")
-                } else {
-                    format!("{name}({x},{y}{tail});")
-                });
+                out.push(format!("{name}({x},{y}{tail});"));
                 // A whole array with no storage on either side: error 9 and no exchange (`study\39` row 7, D-042),
                 // where the old compiler exchanges with libqb's `nothingvalue` (`verification\v62_c3`).
                 let missing: Vec<String> = [a, b]
@@ -572,7 +568,7 @@ impl Emitter<'_> {
     /// old compiler writes it, and, last, the `passed` mask: bit n set when the n-th optional slot is present (`study\02` §4.3). An argument
     /// of an any-numeric slot is cast to its C type, so libqb's overload for it is chosen (`func_abs((int16)(…))`:
     /// an INTEGER literal is otherwise a C `int`).
-    fn table_call(&mut self, id: BuiltinId, args: &[Option<Expr>], slots: &[Slot]) -> String {
+    fn table_call(&mut self, id: BuiltinId, args: &[Option<&Expr>], slots: &[Slot]) -> String {
         let b = id.get();
         let optional = b.optional.unwrap_or(&[]);
         let mut parts = Vec::new();

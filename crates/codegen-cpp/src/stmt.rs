@@ -38,8 +38,22 @@ impl Emitter<'_> {
     }
 
     /// One operation. `raised`: an earlier operation of the statement may have raised, so a jump checks for a
-    /// pending error (design D9).
+    /// pending error (design D9). An operation written as one call has the holds of its group as lines before it
+    /// (`order.rs`).
     pub(crate) fn op(&mut self, op: &Op, raised: bool, out: &mut Vec<String>) {
+        match crate::order::op_group(self.order_ctx(), op) {
+            crate::order::OpGroup::Call(parts) => {
+                let holds = self.hold(&parts);
+                out.extend(holds.into_iter().map(|h| format!("{h};")));
+                self.op_of(op, raised, out);
+                self.release_holds(&parts);
+            }
+            crate::order::OpGroup::None | crate::order::OpGroup::PerCall => self.op_of(op, raised, out),
+        }
+    }
+
+    /// [`Self::op`] of the operation itself.
+    fn op_of(&mut self, op: &Op, raised: bool, out: &mut Vec<String>) {
         let unless_error = if raised { "if (!is_error_pending()) " } else { "" };
         match op {
             Op::SelectConsole => {

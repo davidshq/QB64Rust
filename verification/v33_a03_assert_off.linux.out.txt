@@ -1,5 +1,0 @@
-asserts off
-g called
-f called
-after
-exit=0

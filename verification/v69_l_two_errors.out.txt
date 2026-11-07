@@ -1,0 +1,10 @@
+ASC(e) + a(9): handler 5 
+a(9) + ASC(e): handler 9 
+CINT(d) + ASC(e): handler 6 
+ASC(e) - CINT(d): handler 5 
+CHR$(-1) + t(9): handler 5 
+t(9) + CHR$(-1): handler 9 
+SQR(-1) + a(9): handler 5 
+a(i) + b(j): handler 9 
+done
+exit=0
