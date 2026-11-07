@@ -50,11 +50,11 @@ added `TODO.md`. Pull request 24 (`1038e38`, 2026-11-04) merged branch `more-upd
 `windows-vm`, `vm-suites` and `_BIT` parameters. Pull request 25 (`3bb0d2c`, 2026-11-06) merged branch
 `we-like-changes`: `value-trace`, `lints`, `test --coverage`, `toolchain install --from-zip`, the PDS 7.1
 oracle, QB64pe's `-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `tools\check`. M6 moved to
-`ROADMAP-COMPLETED.md` with it. Pull request 26 (2026-11-07) merges branch `after-pr25`:
+`ROADMAP-COMPLETED.md` with it. Pull request 26 (`4b1066a5`, 2026-11-07) merged branch `after-pr25`:
 `eval-order-left-to-right`, the end of M7 (Linux), `TODO.md` rows 4, 6 and 7, a bare `RETURN` before `ELSE`,
 the fixes for CI after pull request 25, a fix to `tools\screen` for a crash when a key is pressed during exit, and
-the QB 4.5 rows Q-021 and Q-022. No OpenSpec change is open. The
-extension's last release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
+the QB 4.5 rows Q-021 and Q-022. M7, Linux, moved to `ROADMAP-COMPLETED.md` with it. No OpenSpec change is
+open. The extension's last release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
 
 ## Waiting on the user
 
@@ -67,10 +67,8 @@ Nothing is waiting. The game ports' open questions are kept in the games' own re
 
 ## Next
 
-1. **Move M7 and "After M7" to `ROADMAP-COMPLETED.md`** once pull request 26 is merged. M7, Linux, is done: its
-   last item was CI's Linux jobs, which passed on `after-pr25` on 2026-11-07. macOS, which was M8, is postponed
-   to `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next.
-2. **Choose the next milestone.** `ROADMAP.md` has no open milestone after M7. The candidates are in
+1. **Choose the next milestone.** `ROADMAP.md` has no open milestone. macOS, which was M8, is postponed to
+   `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next. The candidates are in
    `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS
    Code features still missing.
 
@@ -115,8 +113,8 @@ The last merge into `main` only; earlier ones are in `git log` and their pull re
 `after-pr25`** (2026-11-07): `just merge` in the worktree at `dc731652`, whose tree is the merge commit's but
 for the commit of its count blocks, the fix to `tools\screen\screen_state.cpp` and the QB 4.5 recordings
 (`q45_*`), with the whole suites in the suites VM. 36 steps passed and one failed: `cli`, one test in the VM
-("Still to watch" under "Next"). Linux corpus: `screen/u01_mouse_queue` passed and is still listed in
-`known_failures.txt`.
+("Still to watch" under "Next"). Linux corpus: `screen/u01_mouse_queue` passed. It stays on
+`tests\corpus\known.linux.list` as `varies`, since it passed 1 run in 2 under WSLg.
 
 | Run | Result |
 |---|---|
