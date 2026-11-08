@@ -33,6 +33,7 @@ RUST = (
     "Cargo.toml",
     "Cargo.lock",
     "rust-toolchain.toml",
+    ".cargo/config.toml",
     "clippy.toml",
     "rustfmt.toml",
     "!crates/**/*.md",

@@ -54,7 +54,9 @@ oracle, QB64pe's `-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `to
 `eval-order-left-to-right`, the end of M7 (Linux), `TODO.md` rows 4, 6 and 7, a bare `RETURN` before `ELSE`,
 the fixes for CI after pull request 25, a fix to `tools\screen` for a crash when a key is pressed during exit, and
 the QB 4.5 rows Q-021 and Q-022. M7, Linux, moved to `ROADMAP-COMPLETED.md` with it. No OpenSpec change is
-open. The extension's last release is tagged `vscode-v0.2.0`; the versions are raised to 0.3.0 (`9ab21d1`), not yet tagged.
+open. The extension's last release is tagged `vscode-v0.2.0`. Release 0.3.0 is ready for its tag
+`vscode-v0.3.0`, which the user pushes: the first with Linux, and the first whose `qb64rust.exe` needs no
+`VCRUNTIME140.dll` (`DECISIONS.md` 2026-11-07).
 
 ## Waiting on the user
 

@@ -39,6 +39,7 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `libqb\` | Plain copy of QB64pe's `Makefile`, `internal\c` (no toolchain), `licenses` and `COPYING.txt` at the reference commit (`SOURCE.md`), byte for byte but for the edits of `tools\libqb\edits\` that `SOURCE.md` lists, never edited by hand; the new compiler builds against it with the C++ toolchain `toolchain.rs` finds, and its objects with `objects.stamp` (git-ignored) |
 | `mise.toml` | Tool versions for this repo, read by mise: Node 24 (for `vscode\`) |
 | `justfile` | The recipes of `just` for testing, one line each calling `tools\check\check.py`: `quick`, `full`, `merge`, `check <target>`, `status`, `history`, `force` (`tools\check\README.md`) |
+| `.cargo\config.toml` | Cargo's settings for the workspace: the C runtime linked statically on Windows (`+crt-static`), so `qb64rust.exe` needs no `VCRUNTIME140.dll` (`DECISIONS.md` 2026-11-07) |
 | `.config\nextest.toml` | `cargo nextest`'s settings for the workspace's tests: slow and timed-out tests, one retry with a flaky test a failure, the JUnit report in `target\nextest\` (spec `testing/compiler-tests`) |
 | `vscode\` | M1 VS Code extension (`qb64rust`): sources, tests, fixtures, `README.md`, `DEVELOPMENT.md` |
 | `vscode\src\newProject.ts` | The command "QB64: New Project": a folder with `main.bas` and a `qb64rust.toml` that turns every fix on, writing over no file; spec `editor/new-project` |

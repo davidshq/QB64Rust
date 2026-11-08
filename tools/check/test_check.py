@@ -37,6 +37,7 @@ TREE = {
     "Cargo.toml": "[workspace]\n",
     "Cargo.lock": "",
     "rust-toolchain.toml": "",
+    ".cargo/config.toml": "",
     "clippy.toml": "",
     "rustfmt.toml": "",
     ".config/nextest.toml": "",

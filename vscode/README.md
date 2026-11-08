@@ -298,7 +298,6 @@ extensions. If another extension also claims `.bas`, choose which one wins with 
   running.
 - C++ compile errors (rare; usually a compiler bug) are not mapped to BASIC lines; see the "QB64" output channel
   (with QB64pe, also `internal\temp\compilelog.txt`).
-- The released package is for Windows x64. A Linux x64 package is built, and its first release is pending. macOS
-  is postponed.
+- Packages are released for Windows x64 and Linux x64 (glibc). macOS is postponed.
 
 Requires VS Code 1.100 or later.
