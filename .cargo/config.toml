@@ -1,0 +1,6 @@
+# Link the C runtime into qb64rust.exe on Windows. Without this it loads VCRUNTIME140.dll, which a clean
+# Windows 11 does not have, so the compiler would not start there (measured in the suites VM, 2026-11-03).
+# With it the release binary loads only Windows' own DLLs (KERNEL32, ntdll, bcryptprimitives, one
+# api-ms-win-core set) and is about 115 KB larger (measured 2026-11-07, 0.3.0). A RUSTFLAGS environment variable would replace this setting, so none of the builds sets one.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

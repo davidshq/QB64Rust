@@ -29,7 +29,7 @@ debugger ([ROADMAP.md](docs/ROADMAP.md)).
 
 ## Status
 
-- **Windows x64 is released, as the VS Code extension. Linux x64 is built, and its first release is pending** (milestone M7 in [ROADMAP.md](docs/ROADMAP.md)). macOS is postponed (a row in [SOMEDAY.md](docs/SOMEDAY.md)).
+- **Windows x64 and Linux x64 are released, as the VS Code extension and a compiler download** (from 0.3.0). macOS is postponed (a row in [SOMEDAY.md](docs/SOMEDAY.md)).
 - The compiler accepts the QB64pe 4.7.0 dialect. Its output is checked against the old compiler's on thousands of
   programs: the test corpus, QB64pe's own tests and the measured behaviour of each feature. Real programs such as
   Civil War Strategy, about 5,000 lines, compile and run the same as with QB64pe.

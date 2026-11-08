@@ -1,7 +1,21 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
+- **Linux x64.** The extension, the compiler and the debugger run on Linux (glibc): a `.vsix` for `linux-x64` and a
+  `qb64rust-linux-x64-<version>.tar.gz` download. Programs build with the system's `g++` and the packages libqb
+  needs; when they are missing, the first build says which and offers to copy the install command for your
+  distribution. The debugger needs `lldb-dap` 20 or later (on Ubuntu, `sudo apt-get install lldb-20`).
+  `DECLARE LIBRARY` finds `.so` files and `DECLARE DYNAMIC LIBRARY` loads them; `$IF LINUX` is true there.
+- **The same results on Linux as on Windows.** QB64pe leaves the order of a call's arguments and an operator's
+  operands to the C++ compiler, so a program whose parts change and read the same state printed other results on
+  Linux. Such parts now run left to right, as on Windows, on every platform. `SWAP` with FUNCTION calls in its
+  indexes is one case of this (`QB64PE-DIVERGENCES.md` D-054, D-060).
+- **The compiler starts on a clean Windows.** `qb64rust.exe` no longer needs Microsoft's Visual C++ runtime
+  (`VCRUNTIME140.dll`), which 0.2.0 needed and a fresh Windows 11 does not have.
+- **Lint warnings.** In the editor and with `qb64rust -w`: a name used only once, a SUB, FUNCTION or label never
+  used, a local variable that hides a `SHARED` one, and code that cannot be reached. Warnings never stop or change
+  a build.
 - **Unit tests of BASIC code in the Test Explorer.** The `SUB Test…` of each `*_test.bas` file are listed, run one,
   a file or all at a time through the new `qb64rust test`, and their results shown at the SUB (a failed `_ASSERT` at
   its line), with assertions such as `AssertEqualInt` and `AssertEqualStr`. Each test runs in a process of its own
@@ -10,13 +24,16 @@
   `QB64PE_NOPROMPT=y`, or "no" at "Continue?") or a critical error such as a failed `_ASSERT` now gives exit code 1,
   so scripts and CI can see the failure; QB64pe's program exits 0 (`QB64PE-DIVERGENCES.md` D-012). A program that
   goes on after the error is unchanged.
-- **Linux x64.** The extension, the compiler and the debugger run on Linux (glibc): a `.vsix` for `linux-x64` and a
-  `qb64rust-linux-x64-<version>.tar.gz` download. Programs build with the system's `g++` and the packages libqb
-  needs; when they are missing, the first build says which and offers to copy the install command for your
-  distribution. The debugger needs `lldb-dap` 20 or later (on Ubuntu, `sudo apt-get install lldb-20`).
-  `DECLARE LIBRARY` finds `.so` files and `DECLARE DYNAMIC LIBRARY` loads them; `$IF LINUX` is true there.
-- **`SWAP` with FUNCTION calls in its indexes** runs them left to right on every platform (`QB64PE-DIVERGENCES.md`
-  D-054).
+- **New command-line options.** `qb64rust test --coverage` records line coverage of a test run.
+  `qb64rust toolchain install --from-zip <file>` installs the C++ toolchain from a zip already downloaded, with the
+  same SHA-256 check. `qb64rust --trace-values` builds a program that records each value stored in a variable.
+  QB64pe's switches `-c`, `-e`, `-s` and `-p` are accepted (`-p` removes the libqb objects that builds wrote;
+  `QB64PE-DIVERGENCES.md` D-058).
+- **Forms QB64pe accepts, now accepted too:** `_BIT` and `_BIT * n` parameters of a SUB or FUNCTION (QB64pe 4.7.0
+  fails its own C++ build for them; D-057), and a bare `RETURN` before `ELSE` in a one-line `IF`
+  (`IF a = 0 THEN RETURN ELSE CALL s`).
+- **Errors QB64pe gives, now given too:** a name of more than 40 characters, and `ON LOCAL ERROR GOTO` (BASIC PDS
+  7.1). The second error says to use `ON ERROR GOTO` with the handler in the main module.
 - **Fixes of QB64pe's behaviours, behind a switch.** A `qb64rust.toml` beside a program (or in a folder above it)
   turns named fixes on: `[fixes]` with `all = true`, and `<name> = false` to leave one off. Eight fixes so far:
   `RESUME NEXT` after an error in a block's condition goes on after the block, a `DIM` with no element is error 5,
@@ -38,9 +55,6 @@
   block no longer frees memory twice; `_STATUSCODE` of a handle never opened is error 52; a division by zero is
   trappable with `ON ERROR`, as in QuickBASIC; bit numbers of 64 or more give the same value as a constant and as a
   variable (`QB64PE-DIVERGENCES.md`, D-048 to D-053).
-
-## 0.3.0
-
 - **QB64pe is no longer needed to build or debug.** The first build or debug session without a C++ toolchain asks
   to download one: llvm-mingw 23.1.2 from github.com/mstorsjo/llvm-mingw (190 MB, about 460 MB on disk, checked
   against its SHA-256), the toolchain QB64pe ships byte for byte. Nothing is downloaded unless you choose

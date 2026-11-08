@@ -180,6 +180,7 @@ changing direction, design or scope.**
     *Why:* a change's proposal, design and tasks cost the user reading time, and for a small change the
     `DECISIONS.md` row and the spec edit carry the same facts. Examples built directly: the 40-character limit on
     names and `_BIT` parameters (2026-11-02).
+12. **A new branch tracks itself, never `main`** (2026-11-07).
 
 ## Project decisions
 
