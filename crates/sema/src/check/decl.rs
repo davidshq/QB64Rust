@@ -632,7 +632,12 @@ impl Checker<'_> {
     /// is the function's result.
     pub(super) fn target(&mut self, t: Tok) -> R<VarId> {
         let (name, suffix) = self.split_var_name(t)?;
-        if let Some(&p) = self.procs_by_name.get(&name) {
+        if let Some(&first) = self.procs_by_name.get(&name) {
+            // Inside the FUNCTION of a SUB and FUNCTION pair (`v70_a2`), its name is its result.
+            let p = match self.proc_twins.get(&name) {
+                Some(&twin) if self.cur == Some(twin) => twin,
+                _ => first,
+            };
             let proc = self.prog.proc(p);
             if let (Some(cur), ProcKind::Function(ty)) = (self.cur, proc.kind)
                 && cur == p

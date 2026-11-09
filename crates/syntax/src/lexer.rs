@@ -163,7 +163,11 @@ impl Lexer<'_> {
 
     /// `_` followed only by spaces or tabs up to the line end (or the end of the file).
     fn is_continuation(&self) -> bool {
-        let mut i = self.pos + 1;
+        self.blank_to_line_end(self.pos + 1)
+    }
+
+    /// Only spaces or tabs from `i` up to the line end (or the end of the file).
+    fn blank_to_line_end(&self, mut i: usize) -> bool {
         while let Some(&c) = self.bytes.get(i) {
             match c {
                 b' ' | b'\t' => i += 1,
@@ -197,6 +201,13 @@ impl Lexer<'_> {
         loop {
             while self.peek(0).is_some_and(is_ident_char) {
                 self.pos += 1;
+            }
+            // A `_` that ends the line is a continuation also when it touches the name before it: the old compiler
+            // tests whether the laid-out line ends in `_` and removes one (`qb64pe.bas` 25505–25514), so `or_` is
+            // `OR` and `a_b_` is `a_b` (measured, `verification\v70_b1`–`b4`).
+            if self.pos > start + 1 && self.bytes[self.pos - 1] == b'_' && self.blank_to_line_end(self.pos) {
+                self.pos -= 1;
+                break;
             }
             // Dots join name parts (`a.b`); a dot must be followed by a name character.
             if !member && self.peek(0) == Some(b'.') && self.peek(1).is_some_and(is_ident_char) {
@@ -324,6 +335,24 @@ impl Lexer<'_> {
     fn punct(&mut self) -> SyntaxKind {
         let b = self.bytes[self.pos];
         let next = self.peek(1);
+        // `< =`, `> =` and `< >` with blanks between are one operator, as the old compiler drops the blanks
+        // (measured, `verification\v70_d1`–`d3`). Neither `=` nor `>` can start a value, so nothing else is meant.
+        if matches!(b, b'<' | b'>') && matches!(next, Some(b' ' | b'\t')) {
+            let mut j = self.pos + 1;
+            while matches!(self.bytes.get(j), Some(b' ' | b'\t')) {
+                j += 1;
+            }
+            let joined = match (b, self.bytes.get(j)) {
+                (b'<', Some(b'=')) => Some(Le),
+                (b'>', Some(b'=')) => Some(Ge),
+                (b'<', Some(b'>')) => Some(Ne),
+                _ => None,
+            };
+            if let Some(kind) = joined {
+                self.pos = j + 1;
+                return kind;
+            }
+        }
         let (kind, len) = match (b, next) {
             (b'<', Some(b'=')) | (b'=', Some(b'<')) => (Le, 2),
             (b'>', Some(b'=')) | (b'=', Some(b'>')) => (Ge, 2),

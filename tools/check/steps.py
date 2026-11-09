@@ -433,6 +433,20 @@ STEPS: tuple[Step, ...] = (
         vm=True,
         outputs=results("results-partial", "target/coverage/runs"),
     ),
+    # The front end over every .bas file of the community repositories' pinned clones (OpenSpec change
+    # community-programs, design D6). The clones are outside the repository: the step rests on their commits
+    # (`external("community")`, the clones' heads.txt) and the manifest. The VM has no network, so suites.ps1
+    # copies the clones in; the step builds and runs nothing.
+    Step(
+        "community",
+        FULL,
+        ("python", "tools/community/community.py", "check"),
+        BUILT + ("tests/community/**", "tools/community/**"),
+        needs=("build",),
+        external=("community",),
+        vm=True,
+        outputs=("target/community/results.json",),
+    ),
     # The copy gets the files git reports changed since the last sync; under --force (the merge) every file,
     # compared by content (design D2).
     Step(

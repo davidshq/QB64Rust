@@ -32,6 +32,16 @@ fn comments_metacommands_continuations() {
     ));
 }
 
+/// A `_` that ends a line is a continuation also against the word before it (`or_`, `a_b_`, `_ANDALSO_`), but
+/// not inside a name or before a comment; `< =`, `> =` and `< >` with blanks between are one operator, `= <` is
+/// not (measured, `verification\v70_b1`–`b4`, `v70_d1`–`d3`).
+#[test]
+fn glued_continuations_and_spaced_operators() {
+    insta::assert_snapshot!(dump_tokens(
+        b"x = 0 or_\n1: y = a_b_  \n+ 1: z = a_b ' c_\nIF 1 _ANDALSO_\n1 THEN\nIF a < = 1 OR a >\t= 2 OR a <  > 3 OR a = < 4\n"
+    ));
+}
+
 /// `DATA` items are one `DataText` token up to the line end or a `:` outside quotes; `'`, `REM` and inner `"` are
 /// data (measured M2, `verification\v16_m2_*`); an inner `"` does not protect a `:`, a leading one does. Also after
 /// `ELSE` and in lower case; `DATA:` and `DATA` alone have no `DataText`; `DATA$` and `a(1).data` are names.

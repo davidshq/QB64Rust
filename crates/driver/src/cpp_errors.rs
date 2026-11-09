@@ -54,6 +54,9 @@ pub enum Failure {
     },
     /// A symbol the linker does not find, without its parameters (`f(int)` is `f`).
     Link { name: String },
+    /// A function a `CUSTOMTYPE` block without a header takes the address of in `maindata.txt`, which nothing
+    /// declares: clang's "use of undeclared identifier" there (`verification\v37_x04`).
+    Undeclared { name: String },
 }
 
 /// The failures of `output`, the toolchain's output, given the names of the program's files; `None` at the first
@@ -134,6 +137,16 @@ pub fn read(output: &str, files: &[&str]) -> Option<Vec<Failure>> {
         if !line.to_ascii_lowercase().contains("error") {
             continue;
         }
+        if line.contains("maindata.txt:")
+            && let Some((_, rest)) = line.split_once(": error: use of undeclared identifier '")
+            && let Some((name, _)) = rest.split_once('\'')
+        {
+            failures.push(Failure::Undeclared {
+                name: symbol_name(name)?,
+            });
+            open = None;
+            continue;
+        }
         let at = files
             .iter()
             .find_map(|f| line.strip_prefix(f)?.strip_prefix(':').map(|rest| (*f, rest)));
@@ -188,7 +201,7 @@ pub fn diagnostics(fe: &Frontend, output: &str) -> Option<Vec<Diagnostic>> {
     let names: Vec<&str> = fe.map.files().map(|(_, f)| f.name.as_str()).collect();
     let mut out: Vec<Diagnostic> = Vec::new();
     for failure in read(output, &names)? {
-        let (Failure::Compile { name, .. } | Failure::Link { name }) = &failure;
+        let (Failure::Compile { name, .. } | Failure::Link { name } | Failure::Undeclared { name }) = &failure;
         let id = library_proc(fe, name)?;
         let symbol = fe
             .program
@@ -221,6 +234,13 @@ pub fn diagnostics(fe: &Frontend, output: &str) -> Option<Vec<Diagnostic>> {
                 symbol.def,
                 format!(
                     "`{basic}` is defined in no library or header the program uses (the linker finds no `{c_name}`)"
+                ),
+            ),
+            Failure::Undeclared { .. } => Diagnostic::error(
+                symbol.def,
+                format!(
+                    "`{basic}` is defined in no library or header the program uses (the C++ compiler finds no \
+                     `{c_name}`)"
                 ),
             ),
         };
@@ -335,7 +355,21 @@ mingw32-make: *** [Makefile:510: out/v37_x04.exe.qb64rust/program.exe] Error 1
             read(X04, &["v37_x04.bas"]),
             Some(vec![Failure::Link { name: "f".into() }])
         );
+        assert_eq!(
+            read(X04_NO_PROTOTYPE, &["v37_x04.bas"]),
+            Some(vec![Failure::Undeclared { name: "f".into() }])
+        );
     }
+
+    /// `verification\v37_x04` since a `CUSTOMTYPE` block without a name writes no prototype (2026-11-09, `v70_i1`):
+    /// the address of `f` is taken in `maindata.txt`, and clang finds no `f`.
+    const X04_NO_PROTOTYPE: &str = "\
+In file included from out/v37_x04.exe.qb64rust/c/qbx.cpp:1588:
+out/v37_x04.exe.qb64rust/c/../temp/maindata.txt:1:29: error: use of undeclared identifier 'f'
+    1 | FUNC_F=(CUSTOMCALL_FUNC_F*)&f;
+      |                             ^
+1 error generated.
+";
 
     #[test]
     fn reads_other_forms_of_the_linker() {

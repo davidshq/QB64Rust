@@ -61,10 +61,27 @@ impl Checker<'_> {
         } else if !auto {
             self.reserved_proc(name_tok, &name, suffix, matches!(kind, ProcKind::Function(_)))?;
         }
-        if self.procs_by_name.contains_key(&name) {
-            return Err(self.in_use(name_tok));
+        // A SUB and a FUNCTION may share a name: the old compiler checks a new FUNCTION's name only against other
+        // FUNCTIONs and a new SUB's only against other SUBs (`qb64pe.bas` 25880–25883; measured,
+        // `verification\v70_a1`–`a5`). The name as a statement is then the SUB, as a value the FUNCTION, as for a
+        // library procedure beside a program one (`proc_as`).
+        let first = self.procs_by_name.get(&name).copied();
+        if let Some(other) = first {
+            let o = self.prog.proc(other);
+            let other_kind = matches!(o.kind, ProcKind::Sub) != matches!(kind, ProcKind::Sub);
+            if !other_kind
+                || o.external.is_some()
+                || self.proc_twins.contains_key(&name)
+                || self.broken.contains(&other)
+            {
+                return Err(self.in_use(name_tok));
+            }
         }
         let id = self.new_proc(name.clone(), kind);
+        if let Some(other) = first {
+            self.procs_by_name.insert(name.clone(), other);
+            self.proc_twins.insert(name.clone(), id);
+        }
         if header.static_word().is_some() {
             self.static_procs.insert(id);
         }
@@ -1034,10 +1051,11 @@ impl Checker<'_> {
         let ProcKind::Function(ty) = self.prog.proc(p).kind else {
             return Err(self.in_use(t));
         };
-        // Measured: a one-bit FUNCTION (`` ` ``, `` ~` ``) is declared, but any call of it is "Name already in use"
-        // (`verification\v21_x16`, `x17`, `x47`; uncalled it compiles, `x48`). A `_BIT * n` FUNCTION (`` `3 ``,
+        // Measured: a call of a one-bit FUNCTION (`` ` ``, `` ~` ``) that writes the suffix is "Name already in use"
+        // (`verification\v21_x16`, `x17`, `x47`, `v70_h1`; uncalled it compiles, `x48`); one without a suffix is
+        // called as any other (`v70_h2`, the Museum's `aouwt\QB-WM\wm.bas`). A `_BIT * n` FUNCTION (`` `3 ``,
         // `` ~`3 ``) is called as any other (`v21_a_functions`).
-        if suffix.is_some_and(|s| !suffix_fits(s, ty)) || matches!(ty, Ty::Bit { width: 1, .. }) {
+        if suffix.is_some_and(|s| !suffix_fits(s, ty)) || (suffix.is_some() && matches!(ty, Ty::Bit { width: 1, .. })) {
             return Err(self.in_use(t));
         }
         let proc = self.prog.proc(p);

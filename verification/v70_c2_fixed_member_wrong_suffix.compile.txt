@@ -1,0 +1,5 @@
+
+Incorrect symbol after element name
+Caused by (or after):V . S% = 1
+LINE 7:v.s% = 1
+exit=1

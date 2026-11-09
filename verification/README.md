@@ -542,6 +542,17 @@ Small programs behind `study\09`, `study\10` and later measurements:
   error is reported, and two index checks give error 9 either way (`d`, `l`). `m` holds places no other program
   reaches: `MID$`, `INSTR`, `_RGB32`, an element with two FUNCTION indexes, `CHR$ + CHR$` and `SWAP`. None has a
   Linux recording: QB64Rust gives the Windows order on Linux too (`DIVERGENCES-QB64PE.md` D-060).
+- `v70*`: forms that community programs use, found by the GitHub survey (2026-11-09, `study\44` §2). QB64pe
+  accepts a SUB and a FUNCTION of one name, in either order and with a `DECLARE` for each: the name as a statement
+  runs the SUB, as a value the FUNCTION (`a1`–`a5`). A `_` at a line end is a continuation also against the word
+  before it: `or_`, `_ANDALSO_`, `a_` and `a_b_` (`b1`–`b4`). A `STRING * n` member takes `$` (`v.s$`) but not
+  `%`, "Incorrect symbol after element name" (`c1`, `c2`). `< =`, `> =` and `< >` with a space are operators, and
+  so are `=<` and `=>` (`d1`–`d4`). A stray comma before `AS` in a `DECLARE FUNCTION` line compiles (`e1`).
+  `ON ERROR GOTO __h` from a SUB works (`f1`). A whole `FOR … NEXT` stands in either branch of a single-line `IF`,
+  also as `NEXT ELSE` (`g1`, `g2`). A one-bit FUNCTION called with its suffix is "Name already in use", without
+  it a call as any other (`h1`, `h2`). `v70_root` holds two libraries whose files start with `$INCLUDEONCE`:
+  named twice, or pulled in by another library, each is read once (`i1`, `i2`); its `DECLARE CUSTOMTYPE LIBRARY`
+  with no name aliases `memcpy`, which the C headers declare.
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

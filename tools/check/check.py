@@ -223,7 +223,7 @@ def toolchain_dir(root: Path) -> Path | None:
 @lru_cache(maxsize=None)
 def external(name: str, root: Path) -> str:
     """The fingerprint of an input outside the repository: the toolchain by its executables' names, sizes and
-    times; the reference clone by its commit and its uncommitted changes."""
+    times; the reference clone by its commit and its uncommitted changes; the community clones by their commits."""
     if name == "toolchain":
         d = toolchain_dir(root)
         if d is None:
@@ -239,6 +239,13 @@ def external(name: str, root: Path) -> str:
         r = subprocess.run(["git", "-C", str(clone), "rev-parse", "HEAD"], capture_output=True, text=True)
         s = subprocess.run(["git", "-C", str(clone), "status", "--porcelain"], capture_output=True, text=True)
         return f"clone: {r.stdout.strip() or 'none'}\n{s.stdout}"
+    if name == "community":
+        # The commit each community clone is at, from the heads.txt that `community.py fetch` writes
+        # (tools/community/community.py): a clone fetched to another commit runs the step again.
+        env = os.environ.get("QB64RUST_COMMUNITY")
+        heads = (Path(env) if env else root.parent / "community") / "heads.txt"
+        text = heads.read_text(encoding="utf-8", errors="replace") if heads.is_file() else "none\n"
+        return f"community:\n{text}"
     raise ValueError(f"no external input {name!r}")
 
 
@@ -748,9 +755,11 @@ class SuitesVM:
     step, turned off (`-Stop`) after the last one and at the end of the run whatever happened. A refusal known when
     the run was planned, or a failed start, fails every VM step with its reason."""
 
-    def __init__(self, root: Path, refusal: str | None = None):
+    def __init__(self, root: Path, refusal: str | None = None, community: bool = False):
         self.root = root
         self.refusal = refusal
+        # The run has the step `community`: `-Start` also copies the community clones in (design D7).
+        self.community = community
         self.started = False
         self.tried = False
 
@@ -762,7 +771,7 @@ class SuitesVM:
         print(f"suites VM: starting ({SUITES_PS1} -Start)", flush=True)
         try:
             r = subprocess.run(
-                powershell(self.root, SUITES_PS1, "-Start", "-Tree", str(self.root)),
+                powershell(self.root, SUITES_PS1, "-Start", "-Tree", str(self.root), *(["-Community"] if self.community else [])),
                 cwd=self.root,
                 capture_output=True,
                 text=True,
@@ -1020,7 +1029,7 @@ def execute(root: Path, plan: Plan, force: bool, what: str = "") -> int:
     started = time.time()
     steps_in_order = order(plan.run, root)
     in_vm = [p for p in steps_in_order if uses_vm(p)]
-    vm = SuitesVM(root, plan.vm_refusal) if in_vm else None
+    vm = SuitesVM(root, plan.vm_refusal, any(p.step.name == "community" for p in in_vm)) if in_vm else None
     told_toolchain = False
     try:
         for p in steps_in_order:

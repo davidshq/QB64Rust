@@ -1,0 +1,5 @@
+[abcd] 4 
+[x   ]
+[hi  ]
+[zz  ] 4 
+exit=0

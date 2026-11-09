@@ -1,0 +1,78 @@
+---
+source: crates/syntax/tests/it/lexer.rs
+expression: "dump_tokens(b\"x = 0 or_\\n1: y = a_b_  \\n+ 1: z = a_b ' c_\\nIF 1 _ANDALSO_\\n1 THEN\\nIF a < = 1 OR a >\\t= 2 OR a <  > 3 OR a = < 4\\n\")"
+---
+Ident 0..1 x
+Whitespace 1..2  
+Eq 2..3 =
+Whitespace 3..4  
+Number 4..5 0
+Whitespace 5..6  
+Ident 6..8 or
+LineContinuation 8..10 _\x0A
+Number 10..11 1
+Colon 11..12 :
+Whitespace 12..13  
+Ident 13..14 y
+Whitespace 14..15  
+Eq 15..16 =
+Whitespace 16..17  
+Ident 17..20 a_b
+LineContinuation 20..24 _  \x0A
+Plus 24..25 +
+Whitespace 25..26  
+Number 26..27 1
+Colon 27..28 :
+Whitespace 28..29  
+Ident 29..30 z
+Whitespace 30..31  
+Eq 31..32 =
+Whitespace 32..33  
+Ident 33..36 a_b
+Whitespace 36..37  
+Comment 37..41 ' c_
+Newline 41..42 \x0A
+Ident 42..44 IF
+Whitespace 44..45  
+Number 45..46 1
+Whitespace 46..47  
+Ident 47..55 _ANDALSO
+LineContinuation 55..57 _\x0A
+Number 57..58 1
+Whitespace 58..59  
+Ident 59..63 THEN
+Newline 63..64 \x0A
+Ident 64..66 IF
+Whitespace 66..67  
+Ident 67..68 a
+Whitespace 68..69  
+Le 69..72 < =
+Whitespace 72..73  
+Number 73..74 1
+Whitespace 74..75  
+Ident 75..77 OR
+Whitespace 77..78  
+Ident 78..79 a
+Whitespace 79..80  
+Ge 80..83 >\x09=
+Whitespace 83..84  
+Number 84..85 2
+Whitespace 85..86  
+Ident 86..88 OR
+Whitespace 88..89  
+Ident 89..90 a
+Whitespace 90..91  
+Ne 91..95 <  >
+Whitespace 95..96  
+Number 96..97 3
+Whitespace 97..98  
+Ident 98..100 OR
+Whitespace 100..101  
+Ident 101..102 a
+Whitespace 102..103  
+Eq 103..104 =
+Whitespace 104..105  
+Lt 105..106 <
+Whitespace 106..107  
+Number 107..108 4
+Newline 108..109 \x0A

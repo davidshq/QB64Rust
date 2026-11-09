@@ -54,7 +54,7 @@ again, as before; `--force` runs.
 A step that builds and runs programs can run on the host or in the suites VM, the Hyper-V VM `qb64rust-suites`
 (`tools\winvm\README.md`, "The suites VM"; OpenSpec change `vm-suites`). These steps are marked `vm` in
 `steps.py`: `slice`, `upstream`, `verification`, `callsite`, `cli`, `qbasic`, `addprefix`, `format`,
-`format-corpus`, `differential`, `nofold`, `coverage`, and the merge's `corpus-whole`, `upstream-whole` and
+`format-corpus`, `differential`, `nofold`, `coverage`, `community`, and the merge's `corpus-whole`, `upstream-whole` and
 `verification-whole`. Every other step runs on the host: `fmt`, `build`, `clippy`, `clippy-linux`, `nextest`, `lists`, `doc`,
 `tools`, `tools-check`, the Linux steps, the merge's own readers.
 
@@ -89,6 +89,11 @@ restore per run, however many VM steps.
   VM step sets `QB64RUST_ALLOW_NETWORK=1`, which runs them. So `just quick` and `--where host` do not test them.
 - Clipboard programs run only in the VM too. Their sidecar starts with `clipboard:`, and a VM step sets
   `QB64RUST_ALLOW_CLIPBOARD=1`. On the host they would overwrite the user's clipboard (`DECISIONS.md` 2026-11-07).
+- `community` checks the front end over the community repositories (`tests\community\README.md`). Their pinned
+  clones are in `..\community`, fetched on the host with `tools\community\community.py fetch`. A run with the step
+  also copies them to the VM (`suites.ps1 -Community`), again only when `heads.txt` changed. It fails when a
+  program on `tests\community\pass.list` fails, and it is a large run (`CLAUDE.md` working rule 6), so it goes to
+  the VM.
 - `cli` builds the CLI tests' binary on the host (`cargo test --no-run`), and the binary runs in the VM with
   `--ignored`, in `crates\driver`.
 - `verification` and `verification-whole` build the `v37` libraries in the VM first, since git ignores them.
@@ -110,7 +115,7 @@ The run goes on: the two are the same release.
 Each step records its result in `target\check\<step>.json` with a fingerprint: SHA-256 over its command and over
 the path and bytes of every file its inputs match (`steps.py`: globs over the repository, `!` taking back), the
 inputs outside the repository (`toolchain`: the C++ toolchain's executables; `clone`: the reference clone's commit
-and uncommitted changes) and the fingerprints of the steps it needs. A passing result **stands** while its
+and uncommitted changes; `community`: the commits of the community clones, from their `heads.txt`) and the fingerprints of the steps it needs. A passing result **stands** while its
 fingerprint is unchanged, whatever the commit, branch or working tree: committing changes nothing. A failure never
 stands. `--force` runs everything again. The hashes are remembered by size and time in `target\check\hashes.json`,
 so a plan reads only the files changed since the last; a plan of the quick layer takes about 2 s.

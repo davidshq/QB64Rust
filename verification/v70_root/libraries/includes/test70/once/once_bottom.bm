@@ -1,0 +1,5 @@
+$INCLUDEONCE
+' The bottom file of test70/once.
+SUB OnceSub
+    PRINT "once"; ONCE_K
+END SUB

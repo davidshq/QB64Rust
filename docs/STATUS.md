@@ -66,10 +66,17 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 7).
 
-Nothing is waiting. The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
+1. **The review of the next big wins** (`study\47`, 2026-11-09), section 8: is "first outside users" the next
+   milestone; are language extensions allowed behind a switch, BASIC PDS 7.1 first; should upstream's commits
+   since the reference be reviewed as a routine.
+
+The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 
 ## Next
 
+0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
+   fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
+   `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
 1. **Choose the next milestone.** `ROADMAP.md` has no open milestone. macOS, which was M8, is postponed to
    `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next. The candidates are in
    `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS

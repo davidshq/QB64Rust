@@ -1817,11 +1817,10 @@ impl Checker<'_> {
             if let Ty::User(_) = m {
                 return Err(self.unsupported(t.span, format!("a type suffix on a `TYPE` member: `{shown}`")));
             }
-            if let Ty::FixedStr(_) = m {
-                // A suffix on a fixed-length string member was not measured.
-                return Err(self.unsupported(t.span, format!("a type suffix on a `STRING * n` member: `{shown}`")));
-            }
-            if m != s {
+            // `$` on a fixed-length string member is that member; any other suffix is "Incorrect symbol after element
+            // name" (measured, `verification\v70_c1`, `c2`).
+            let fixed_with_dollar = matches!(m, Ty::FixedStr(_)) && s == Ty::Str;
+            if m != s && !fixed_with_dollar {
                 let msg = format!("`{shown}`: the member is {}, not {}", m.qb_name(), s.qb_name());
                 return Err(self.error(t.span, msg));
             }

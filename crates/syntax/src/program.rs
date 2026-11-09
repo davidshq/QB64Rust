@@ -281,7 +281,13 @@ fn parse_round(
     // a library's own file, come before it).
     let tops: Vec<FileId> = inc.libraries.iter().rev().filter_map(|l| l.top).collect();
     let mut library_top = Vec::new();
+    // A library file read once already that held `$INCLUDEONCE` is not read again, as with `$INCLUDE`: a library
+    // named twice, or pulled in by two others, is then read once (measured, `verification\v70_i1`, `i2`; the
+    // Libraries Pack's `a740g/QBDS-*`). Without `$INCLUDEONCE` it is read twice (`v58_u04`).
     for file in tops {
+        if inc.once.contains(&file) {
+            continue;
+        }
         let (tid, end) = parse_auto(&mut inc, file, pp);
         pp = end;
         library_top.push(tid);
@@ -304,6 +310,9 @@ fn parse_round(
         pp = end;
         after_main = Some(tid);
         for file in after_mains {
+            if inc.once.contains(&file) {
+                continue;
+            }
             let (tid, end) = parse_auto(&mut inc, file, pp);
             pp = end;
             library_after_main.push(tid);
@@ -312,6 +321,9 @@ fn parse_round(
     let bottoms: Vec<FileId> = inc.libraries.iter().filter_map(|l| l.bottom).collect();
     let mut library_bottom = Vec::new();
     for file in bottoms {
+        if inc.once.contains(&file) {
+            continue;
+        }
         let (tid, end) = parse_auto(&mut inc, file, pp);
         pp = end;
         library_bottom.push(tid);

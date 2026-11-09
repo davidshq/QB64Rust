@@ -280,7 +280,13 @@ impl Emitter<'_> {
                 continue;
             }
             for (pid, q) in self.declarations(id) {
-                match self.resolved.linkage_of(pid) {
+                // Only a function `nm` found in the block's library file is declared: a block that names no file
+                // (`DECLARE CUSTOMTYPE LIBRARY` alone, as the Libraries Pack's `a740g/QBDS` declares `memcpy`) gets
+                // no prototype, and the C headers declare the function (measured, `verification\v70_i1`, `i2`).
+                let Some(linkage) = self.resolved.linkage.get(&pid) else {
+                    continue;
+                };
+                match linkage {
                     Linkage::C => {
                         let name = &q.external.as_ref().expect("a library procedure").c_name;
                         writeln!(out, "extern \"C\"{{\nextern void {name}(void);\n}}").unwrap();

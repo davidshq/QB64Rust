@@ -1,0 +1,417 @@
+# Community repositories checked by tools/community/community.py (openspec change community-programs).
+#
+# Each [[repo]] is pinned to the full commit of its default branch as of 2026-11-09, the day it was added.
+# A pin is added or moved only after `community.py audit` has been read (design D8, D9).
+#   name          prefix of the repository's programs on pass.list; also its folder below the clones' root
+#   url           where `community.py fetch` clones from
+#   commit        full SHA-1
+#   license       as the GitHub API reports it ("none" when it reports no license)
+#   submodules    path -> url and commit; cloned from this URL, never from the repository's .gitmodules
+#   include_root  a repository's name: that clone's folder is the compiler's --include-root for these programs
+#
+# Left out (study 44): qb40/abc-archive (packed programs), gmunaro/openstrut-v1 (provenance),
+# hsehestedt/WIM-Tools (edits Windows images), the hoard of GW-BASIC programs and Microsoft's samples
+# (a later step), QB64-Archives (1 GB).
+
+[[repo]]
+name = "lhg_baseball"
+url = "https://github.com/jleonard2099/LHG_Baseball"
+commit = "ae74a02bb684050429a39b6ef8114e98ccf39498"
+license = "AGPL-3.0"
+
+[[repo]]
+name = "lhg_football"
+url = "https://github.com/jleonard2099/LHG_Football"
+commit = "a3ec4263e7df892eb020443dbcdc5ee4b933aa29"
+license = "AGPL-3.0"
+
+[[repo]]
+name = "lhg_probb"
+url = "https://github.com/jleonard2099/LHG_ProBB"
+commit = "d858463ee07fadf5acdd7b416cfe57a34f44c355"
+license = "AGPL-3.0"
+
+[[repo]]
+name = "lhg_collegebb"
+url = "https://github.com/jleonard2099/LHG_CollegeBB"
+commit = "32375326885130410174d83284b49801d2c7afb8"
+license = "AGPL-3.0"
+
+[[repo]]
+name = "draw"
+url = "https://github.com/grymmjack/DRAW"
+commit = "05770d7f926c229d83a80c43a38f5e342fac8fea"
+license = "MIT"
+submodules = { "includes/QB64_GJ_LIB" = { url = "https://github.com/grymmjack/QB64_GJ_LIB", commit = "2651577c4ddfb24dc88e0f886fa0eb49f1df1e22" } }
+
+[[repo]]
+name = "chessbrainqb64"
+url = "https://github.com/RZulu54/ChessbrainQB64"
+commit = "e746764aab0744eb2d10c9de3fe1acbf3e0defb0"
+license = "MIT"
+
+[[repo]]
+name = "hamcalc64"
+url = "https://github.com/VB6Hobbyst7/HamCalc64"
+commit = "3d7b818db08b8f9f0485b1503a4b3968d735d793"
+license = "MIT"
+
+[[repo]]
+name = "inform-pe"
+url = "https://github.com/QB64-Phoenix-Edition/InForm-PE"
+commit = "f353022cdff8beeb4241e167424e4188ff0110d7"
+license = "MIT"
+
+[[repo]]
+name = "xref"
+url = "https://github.com/geneb/XREF"
+commit = "9155350831849c4d990af609f391fbfe2699382a"
+license = "none"
+
+[[repo]]
+name = "quickpakscientific"
+url = "https://github.com/geneb/QuickPakScientific"
+commit = "e940eb0f9ae002b0e5556bef11780b39318f2096"
+license = "none"
+
+[[repo]]
+name = "advgen"
+url = "https://github.com/RobertSundling/ADVGEN"
+commit = "8dee9b49e9beccc38ec24230632c63b559152ffe"
+license = "MIT"
+submodules = { "ADVBAS" = { url = "https://github.com/RobertSundling/ADVBAS", commit = "00d03aa5c96efe9c402bedae75f62665ff83e703" } }
+
+[[repo]]
+name = "final-quest-2"
+url = "https://github.com/bafetk/final-quest-2"
+commit = "f13407efe23e20851d275fa4574963331733dfee"
+license = "MIT"
+
+[[repo]]
+name = "qb_wild"
+url = "https://github.com/fgr101/QB_WIld"
+commit = "2fcc50eda8fec116bfa7705d402eafad289d5a6b"
+license = "GPL-3.0"
+
+[[repo]]
+name = "questforlubok"
+url = "https://github.com/Quest-Master/QuestForLubok"
+commit = "dbf9c9ca9a59e108d3281c1708d331ea734eb08b"
+license = "GPL-3.0"
+
+[[repo]]
+name = "ktank"
+url = "https://github.com/alvarogonzalezferrer/ktank"
+commit = "6c9658677c6f2be9dacf3735888a43f0046c7cf7"
+license = "NOASSERTION"
+
+[[repo]]
+name = "qb64-pe-museum"
+url = "https://github.com/a740g/QB64-PE-Museum"
+commit = "34f800f1a964d0296fbb30e76a6bc730cab6b53b"
+license = "none"
+
+[[repo]]
+name = "qb64-pe-librariespack"
+url = "https://github.com/QB64-Phoenix-Edition/QB64-PE-LibrariesPack"
+commit = "fd10ed46a4bab813ea4193bff0e29ec0e91698c8"
+license = "NOASSERTION"
+include_root = "qb64-pe-librariespack"
+
+[[repo]]
+name = "resources"
+url = "https://github.com/QB64-Phoenix-Edition/Resources"
+commit = "b82b6ea60bbb2b736c5ab65a0d76bd1a9ef78983"
+license = "MIT"
+
+[[repo]]
+name = "all"
+url = "https://github.com/qb40/all"
+commit = "e168acb64fbde09277b04515574507dcbe35161c"
+license = "none"
+
+[[repo]]
+name = "gx"
+url = "https://github.com/boxgaming/gx"
+commit = "d92e90939a2868fba33441b0da2c923f82ccdaaf"
+license = "MIT"
+
+[[repo]]
+name = "qb64-interpreter"
+url = "https://github.com/FellippeHeitor/QB64-interpreter"
+commit = "af3cdbaf9c6a916945f08ebe0e87ebf407a6ba0e"
+license = "MIT"
+
+[[repo]]
+name = "qb64-projects"
+url = "https://github.com/oonap0oo/QB64-projects"
+commit = "8b0a9875053196f8a9502df8749b02f26d8d11fb"
+license = "none"
+
+[[repo]]
+name = "srt-stats-monitor"
+url = "https://github.com/loopy750/SRT-Stats-Monitor"
+commit = "25af5c4d45991e271dc870291d6551b40f96a577"
+license = "GPL-3.0"
+
+[[repo]]
+name = "nginx-stats-monitor"
+url = "https://github.com/loopy750/NGINX-Stats-Monitor"
+commit = "bbd086179d866f9e9658f328750f9104a7a28d0e"
+license = "GPL-3.0"
+
+[[repo]]
+name = "vga-font-editor"
+url = "https://github.com/a740g/VGA-Font-Editor"
+commit = "a09b02151c54c2dda3c52935d85f2805714422d4"
+license = "MIT"
+submodules = { "include" = { url = "https://github.com/a740g/Toolbox64", commit = "7133ae5a0802afc086438d09d0f9753aef7ae45b" } }
+
+[[repo]]
+name = "qb64-mod-player"
+url = "https://github.com/a740g/QB64-MOD-Player"
+commit = "adb190cb36b8b159ab263d71b79e56f9de0d00fa"
+license = "MIT"
+
+[[repo]]
+name = "p5js.bas"
+url = "https://github.com/AshishKingdom/p5js.bas"
+commit = "35941c50eee19b4cb0df8a3629b7749b18d29dca"
+license = "MIT"
+
+[[repo]]
+name = "qb64_opengl_demos"
+url = "https://github.com/AshishKingdom/QB64_OpenGL_Demos"
+commit = "0f9c52d191f5effb1d1529dc297319dbcdd375c3"
+license = "none"
+
+[[repo]]
+name = "ini-manager"
+url = "https://github.com/FellippeHeitor/INI-Manager"
+commit = "e3a9e95ff75c0570c65481abcf9478f9e6ae74e5"
+license = "MIT"
+
+[[repo]]
+name = "tui"
+url = "https://github.com/FellippeHeitor/tui"
+commit = "1c2c7a6273509b8bbc36ba2763f0b7a12b60c091"
+license = "MIT"
+
+[[repo]]
+name = "qb-wm"
+url = "https://github.com/aouwt/qb-wm"
+commit = "ec56b2798a3aca0b3401c19f9ef7bf6ccdc4ecc2"
+license = "none"
+
+[[repo]]
+name = "gui-menu-bar"
+url = "https://github.com/AshishKingdom/GUI-Menu-Bar"
+commit = "1ced88912450dc91000d13a2e420ac00fc49a59b"
+license = "none"
+
+[[repo]]
+name = "qb64-platformer-test"
+url = "https://github.com/BPOutlaws/QB64-Platformer-Test"
+commit = "bcc845776af91333937d72b1b046ac3a6da039fb"
+license = "none"
+
+[[repo]]
+name = "alien-alley"
+url = "https://github.com/a740g/Alien-Alley"
+commit = "a6cbc26ca0b3c7760a96933670223f54f4325b54"
+license = "MIT"
+
+[[repo]]
+name = "qbasic"
+url = "https://github.com/w84death/qbasic"
+commit = "37a75b087ad511040fd4c1132d6af36a3958aa74"
+license = "MIT"
+
+[[repo]]
+name = "raster-master"
+url = "https://github.com/RetroNick2020/raster-master"
+commit = "201a0e1b5db7915870e08334aca55506102290b0"
+license = "MIT"
+
+[[repo]]
+name = "raylib-64"
+url = "https://github.com/a740g/raylib-64"
+commit = "7d3c062aff2b64ad2c5518e155c735eac95de993"
+license = "MIT"
+
+[[repo]]
+name = "toolbox64"
+url = "https://github.com/a740g/Toolbox64"
+commit = "32f2b70133c9fc02faf49b1e20b8e3678976e31b"
+license = "MIT"
+
+[[repo]]
+name = "qb64guitools"
+url = "https://github.com/RhoSigma-QB64/QB64GuiTools"
+commit = "7142b24cf378c785e6344f4d6e5173993a55b884"
+license = "MIT"
+
+[[repo]]
+name = "qb64-samples"
+url = "https://github.com/grymmjack/QB64-samples"
+commit = "d1939e4c7c8a6d7f72d2ae5c7e1dd8f25f1466ea"
+license = "none"
+
+[[repo]]
+name = "spaceshooter2k"
+url = "https://github.com/a740g/SpaceShooter2K"
+commit = "5bd4b2ea896f49f7bf0af6d933b0b15107eb173b"
+license = "MIT"
+submodules = { "include" = { url = "https://github.com/a740g/Toolbox64", commit = "04f1e36fca8a879714684ec6f0804452ca2d4a29" } }
+
+[[repo]]
+name = "pendulum"
+url = "https://github.com/FellippeHeitor/Pendulum"
+commit = "c7997e1d914be47803469b1b7746936415ec2ceb"
+license = "LGPL-3.0"
+
+[[repo]]
+name = "hunter-revenge"
+url = "https://github.com/AshishKingdom/Hunter-Revenge"
+commit = "4bcaf7ee57a833993d727bae943563f951e4d351"
+license = "GPL-3.0"
+
+[[repo]]
+name = "vedit"
+url = "https://github.com/loudar/Vedit"
+commit = "b5d9ecaf84e58b0bad5ba9c45c327b2b48801056"
+license = "none"
+
+[[repo]]
+name = "3d-grapher"
+url = "https://github.com/AshishKingdom/3D-Grapher"
+commit = "1836eb4b2404edad9c6ba7fae1314aa8bce35005"
+license = "GPL-3.0"
+
+[[repo]]
+name = "akframework"
+url = "https://github.com/AshishKingdom/aKFrameWork"
+commit = "52ecf004ef295d97b1777d67dc13c7ab95f79cee"
+license = "none"
+
+[[repo]]
+name = "qb64wrappers"
+url = "https://github.com/gAndy50/Qb64Wrappers"
+commit = "9df6502d91d0f0958e15995caaa0ad0f01e12b99"
+license = "none"
+
+[[repo]]
+name = "particle-life"
+url = "https://github.com/a740g/Particle-Life"
+commit = "66244b97ae961d8c75385c2ee131594616355748"
+license = "MIT"
+submodules = { "include" = { url = "https://github.com/a740g/Toolbox64", commit = "04eeaa9d4de5dfaad9d92a66e197e384efd8f09f" } }
+
+[[repo]]
+name = "qb64"
+url = "https://github.com/GaryLuck/QB64"
+commit = "aabf07ccc29e1e96a45e6a28d2dcae0d20235771"
+license = "none"
+
+[[repo]]
+name = "mszp"
+url = "https://github.com/TonyVallad/MSZP"
+commit = "b7dbde3d7915114bb2fd75f24980e15ddf674e35"
+license = "MIT"
+
+[[repo]]
+name = "qb64-opengl-engine"
+url = "https://github.com/AshishKingdom/QB64-OpenGL-Engine"
+commit = "696d3f8f5db6bb4d0c326f3aa79d2fa88f8e7230"
+license = "GPL-3.0"
+
+[[repo]]
+name = "opengl-obj-loader"
+url = "https://github.com/AshishKingdom/OpenGL-OBJ-Loader"
+commit = "715bdc7f124c20dacf69ea2581ea096d23c1e6e3"
+license = "none"
+
+[[repo]]
+name = "3d-library-for-qb64"
+url = "https://github.com/creamcast/3D-Library-for-QB64"
+commit = "69ab244fbf9b24a51e1af358d9adf30b5f1b36d0"
+license = "MIT"
+
+[[repo]]
+name = "qb64-3d-renderer"
+url = "https://github.com/zandgall/qb64-3d-renderer"
+commit = "cd4b652e8f20dacd3f6a32d37ad899dc745c1d18"
+license = "none"
+
+[[repo]]
+name = "basic-raytracing"
+url = "https://github.com/idleherb/basic-raytracing"
+commit = "dd9ab6160b540c640a55ed15babaf2baea386a72"
+license = "Unlicense"
+
+[[repo]]
+name = "schemat"
+url = "https://github.com/kc8rwr/Schemat"
+commit = "680533d44961859f8751ae8972ae7863e22188df"
+license = "none"
+
+[[repo]]
+name = "tcpip-experiments"
+url = "https://github.com/FellippeHeitor/tcpip-experiments"
+commit = "f211092de1452bd057a13be3f181e35f9aefe32f"
+license = "none"
+
+[[repo]]
+name = "qb64-sqlite"
+url = "https://github.com/jakebullet70/QB64-SQLite"
+commit = "d64cdc7a998d125c1329b347b3f094ea386950e3"
+license = "none"
+
+[[repo]]
+name = "mplayer64"
+url = "https://github.com/a740g/MPlayer64"
+commit = "761d345884e93f8b9d908c588895cb1488ef3a33"
+license = "MIT"
+submodules = { "inform-pe" = { url = "https://github.com/a740g/InForm-PE", commit = "58d0839621dc10579098c32fb0fe53cfb922e816" }, "toolbox64" = { url = "https://github.com/a740g/Toolbox64", commit = "21e26d0dfefeb22526292b49464522630e944548" } }
+
+[[repo]]
+name = "instantarchive"
+url = "https://github.com/caglartoklu/instantarchive"
+commit = "93799fc3fbe8d12d23cd309fdd62640b16c14138"
+license = "MIT"
+
+[[repo]]
+name = "localizer"
+url = "https://github.com/FellippeHeitor/Localizer"
+commit = "cefbdafd9d99ee360770d37391733524854a61b2"
+license = "MIT"
+
+[[repo]]
+name = "chess"
+url = "https://github.com/guillaC/chess"
+commit = "c81996f300371421b1e5eb70494118d149677952"
+license = "none"
+
+[[repo]]
+name = "qb64library"
+url = "https://github.com/RhoSigma-QB64/QB64Library"
+commit = "be9cfd765f83e7f20f4c07550bba4b5fec8cc16e"
+license = "NOASSERTION"
+
+[[repo]]
+name = "software-3d-perspective-correct-textured-triangles"
+url = "https://github.com/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles"
+commit = "0c34743527f6be2f2490e382151882080b7c46a8"
+license = "MIT"
+
+[[repo]]
+name = "fzxngn"
+url = "https://github.com/mechatronic3000/fzxNGN"
+commit = "f10ed96eaf76000c9fbb4d072d7b4e59825dd2cc"
+license = "none"
+
+[[repo]]
+name = "qbx"
+url = "https://github.com/logiclrd/QBX"
+commit = "667acffd532982354a5029cd8112d70eb65abd86"
+license = "NOASSERTION"

@@ -553,8 +553,10 @@ impl<'a> Checker<'a> {
                 _ => false,
             },
         };
-        if !new && self.text(t.span).starts_with(b"_") {
-            // A label QB64 would reject; not a label of this program.
+        let text = self.text(t.span);
+        if !new && text.starts_with(b"_") && !text.starts_with(b"__") {
+            // A label QB64 would reject; not a label of this program. A name with two leading `_` is a label as any
+            // other (`declare_label`; measured, `verification\v70_f1`: the Libraries Pack's `a740g/Catch`).
             let msg = format!(
                 "`ON ERROR GOTO {}`",
                 show_bytes(&self.text(t.span).to_ascii_uppercase())

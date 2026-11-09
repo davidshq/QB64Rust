@@ -751,6 +751,64 @@ class Execute(unittest.TestCase):
             repo.close()
 
 
+class CommunityStep(unittest.TestCase):
+    """The step `community` and its external input (OpenSpec change community-programs, design D6)."""
+
+    def test_the_step_rests_on_the_build_the_tool_the_manifest_and_the_clones(self):
+        s = steps.BY_NAME["community"]
+        self.assertEqual(s.layer, FULL)
+        self.assertTrue(s.vm)
+        self.assertEqual(s.external, ("community",))
+        self.assertIn("build", s.needs)
+        for glob in ("tests/community/**", "tools/community/**"):
+            self.assertIn(glob, s.inputs)
+        self.assertEqual(s.outputs, ("target/community/results.json",))
+        self.assertIsInstance(s.command, tuple)
+
+    def test_the_external_input_follows_the_clones_heads(self):
+        check.external.cache_clear()
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "tree"
+            root.mkdir()
+            with mock.patch.dict(os.environ, {}, clear=False):
+                os.environ.pop("QB64RUST_COMMUNITY", None)
+                none = check.external("community", root)
+                (Path(d) / "community").mkdir()
+                (Path(d) / "community" / "heads.txt").write_text("draw " + "a" * 40 + "\n")
+                check.external.cache_clear()
+                first = check.external("community", root)
+                (Path(d) / "community" / "heads.txt").write_text("draw " + "b" * 40 + "\n")
+                check.external.cache_clear()
+                second = check.external("community", root)
+        check.external.cache_clear()
+        self.assertEqual(len({none, first, second}), 3)
+        self.assertIn("a" * 40, first)
+
+    def test_only_a_run_with_the_step_asks_the_vm_to_copy_the_clones(self):
+        seen = []
+
+        def fake_run(cmd, **kw):
+            seen.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        for community in (False, True):
+            seen.clear()
+            vm = check.SuitesVM(REPO, community=community)
+            with mock.patch.object(check.subprocess, "run", fake_run), contextlib.redirect_stdout(io.StringIO()):
+                self.assertIsNone(vm.start())
+                vm.stop()
+            self.assertEqual("-Community" in seen[0], community, seen[0])
+
+    def test_the_environment_names_another_place(self):
+        check.external.cache_clear()
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "heads.txt").write_text("x " + "c" * 40 + "\n")
+            with mock.patch.dict(os.environ, {"QB64RUST_COMMUNITY": d}):
+                text = check.external("community", Path(d) / "tree")
+        check.external.cache_clear()
+        self.assertIn("c" * 40, text)
+
+
 class VmSteps(unittest.TestCase):
     """steps.py's marks for the suites VM (OpenSpec change vm-suites, design D8, D9)."""
 
@@ -760,8 +818,8 @@ class VmSteps(unittest.TestCase):
             {s.name for s in vm},
             {
                 "slice", "upstream", "verification", "callsite", "cli", "qbasic", "addprefix", "format",
-                "format-corpus", "differential", "nofold", "coverage", "corpus-whole", "upstream-whole",
-                "verification-whole",
+                "format-corpus", "differential", "nofold", "coverage", "community", "corpus-whole",
+                "upstream-whole", "verification-whole",
             },
         )
         for s in vm:
