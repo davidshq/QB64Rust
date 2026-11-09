@@ -408,16 +408,39 @@ impl Emitter<'_> {
     /// The bytes of an array from an element to its end (the whole array: from its first element), for graphics
     /// `GET` and `PUT`, as the old compiler writes them (measured, `study\00` §5): libqb's `byte_element` of the
     /// element's address, the bytes left (none while the array is not allocated) and a temporary of its own,
-    /// declared with the variables of the body. The index is written twice; `sema` allows none that calls a
-    /// procedure.
+    /// declared with the variables of the body. The position is written twice, as the old compiler writes it. An
+    /// index that calls a procedure is first held in a temporary, so that it is evaluated once, as in QB 4.5 and
+    /// PDS 7.1 (`verification\qb45\q45_get_put_index_call`). QB64pe evaluates it twice
+    /// (`verification\v66_a19`; `QB64PE-DIVERGENCES.md` D-061). Where a later part of the call must come after it,
+    /// the whole call is held (`order.rs`, [`crate::order::Bytes`]) and this is its temporary.
     pub(crate) fn block(&mut self, array: VarId, index: &[Expr]) -> String {
+        if !index.is_empty()
+            && let Some(held) = self.held_bytes_of(index.as_ptr().cast())
+        {
+            return held;
+        }
         let (v, n) = (self.p.var(array), self.name(array));
         let size = self.ty_size(v.ty);
+        let mut holds = Vec::new();
         let flat = if index.is_empty() {
             "0".to_string()
         } else {
-            self.flat_index(array, index)
+            let flat = self.flat_index(array, index);
+            if index.iter().any(Expr::calls_procedure) {
+                let t = self.seq_temp("int64");
+                holds.push(format!("{t}={flat}"));
+                t
+            } else {
+                flat
+            }
         };
+        let text = self.block_from(array, &n, size, &flat);
+        crate::order::sequenced(&holds, text)
+    }
+
+    /// [`Self::block`] at the flat position `flat`.
+    fn block_from(&mut self, array: VarId, n: &str, size: u32, flat: &str) -> String {
+        let v = self.p.var(array);
         // The number of elements, the last dimension's count first, as the old compiler writes the product.
         let counts: Vec<String> = (1..=dim_count(v)).map(|i| format!("{n}[{}]", 4 * i + 1)).collect();
         let counts = counts.join("*");
@@ -435,7 +458,7 @@ impl Emitter<'_> {
             ),
             numeric_value_types!() => format!(
                 "byte_element((uint64)(&({})),(({size}*({n}[2]&1)*{counts})-({size}*({flat}))),{t})",
-                self.element_at(array, &flat)
+                self.element_at(array, flat)
             ),
             Ty::Str | Ty::Bit { .. } => unreachable!("the bytes of an array of {:?} (`validate`)", v.ty),
         }

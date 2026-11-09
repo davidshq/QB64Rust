@@ -523,8 +523,10 @@ impl Checker<'_> {
 
     /// The variable `_MEMGET` reads into, or `_MEMPUT` and `_MEMFILL` take the bytes of: not a `_BIT` ("Variable/
     /// element cannot be _BIT aligned", `v32_x38`, `x46`), not a whole array of variable-length strings ("Cannot
-    /// pass array of variable-length strings", `x39`). An element or member of variable-length strings, a `TYPE`
-    /// that holds a `STRING` and the paths [`Self::unmeasured_path`] names are not measured.
+    /// pass array of variable-length strings", `x39`), not a value of a `TYPE` that holds a `STRING` ("UDT must have
+    /// fixed size", `v66_b01`–`b03` for a variable; an element or member of that type read in `qb64pe.bas` 22226,
+    /// which gives it for every user-type value). An element or member of variable-length strings, a whole array of
+    /// such a `TYPE`, another member of it and the paths [`Self::unmeasured_path`] names are not measured.
     pub(super) fn bytes_reference(&mut self, of: &Reference, word: &str, at: Span) -> R<()> {
         let ty = self.reference_ty(of);
         let root = self.prog.var(of.root()).ty;
@@ -541,6 +543,13 @@ impl Checker<'_> {
                 return Err(self.unsupported(at, msg));
             }
             _ => {}
+        }
+        // A whole array (here also `LEN` of a member array) is not measured and stays marked below.
+        if matches!(of, Reference::Place(_)) && crate::holds_strings(&self.prog.types, ty) {
+            // "UDT", the old compiler's word, lets its message be the note (tools\diagnostics\old_wording.py).
+            let name = self.prog.type_name(ty);
+            let msg = format!("`{word}` of a `TYPE {name}` value: a UDT with a `STRING` member has no fixed size");
+            return Err(self.error(at, msg));
         }
         if crate::holds_strings(&self.prog.types, root) {
             let msg = format!("`{word}` of a value of a `TYPE` with a `STRING` member");

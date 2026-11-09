@@ -30,12 +30,7 @@ v66_a13_varseg_bit_element	not supported yet
 v66_a14_varptr_type_member	not supported yet: QB64pe rejects it too, with another error
 v66_a15_varptrs_element_member	not supported yet: QB64pe rejects it too, with another error
 v66_a16_varptrs_member_array_element	not supported yet
-v66_a17_get_bit_array	not supported yet: QB64pe rejects it too, with another error
-v66_a18_put_bit_array	not supported yet: QB64pe rejects it too, with another error
-v66_a19_get_put_index_function	not supported yet
-v66_b01_memget_type_string	not supported yet: QB64pe rejects it too, with another error
-v66_b02_memput_type_string	not supported yet: QB64pe rejects it too, with another error
-v66_b03_memfill_type_string	not supported yet: QB64pe rejects it too, with another error
+v66_a19_get_put_index_function	D-061
 v66_b04_offset_through_member_array_element	not supported yet
 v66_b05_mem_member_array_type_element	not supported yet
 v66_b06_offset_string_element	not supported yet
@@ -52,9 +47,8 @@ v66_b16_memget_whole_dynamic_member	not supported yet
 v66_c01_dot_blanks_implicit_array	not supported yet
 v66_c02_dot_blanks_const	not supported yet
 v66_c03_dot_blanks_function_store	not supported yet
-v66_c04_common_typed_beside_plain_dim	not supported yet
+v66_c04_common_typed_beside_plain_dim	D-063
 v66_c05_mem_no_array	not supported yet
-v66_c06_len_whole_dynamic_owner_array	not supported yet: QB64pe rejects it too, with another error
 v66_c07_len_whole_dynamic_member	not supported yet
 v66_c08_redim_member_no_type	not supported yet: QB64pe rejects it too, with another error
 v66_c09_shared_unsigned_no_type	not supported yet: QB64pe rejects it too, with another error
@@ -76,7 +70,6 @@ v66_c25_call_interrupt	not supported yet
 v66_c26_call_interruptx	not supported yet
 v66_c27_late_type_const_bound_len	not supported yet
 v66_d01_library_sub_handler	not supported yet: QB64pe rejects it too, with another error
-v66_d02_embedded_parens	not supported yet: QB64pe rejects it too, with another error
 v66_d03_const_rgb32_string	not supported yet
 v66_d09_library_sub_handler_no_argument	not supported yet
 v66_d10_library_sub_handler_argument	not supported yet: QB64pe rejects it too, with another error

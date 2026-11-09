@@ -1,0 +1,12 @@
+compile:
+ 0059   0006    DIM a()
+                      ^ Syntax error
+ 0123   001C    DIM b()
+                      ^ Syntax error
+ 0128   001C    b(2) = 9
+                   ^ Array not dimensioned
+    1 Warning Error(s)
+    2 Severe  Error(s)
+1. DIM a(), then a = 4: 4 
+2. REDIM a(5), a(3) = 7: 7  5  4 
+3. DIM b(), b(2) = 9: 9  10 

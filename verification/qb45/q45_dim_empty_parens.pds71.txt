@@ -1,0 +1,10 @@
+compile:
+ 003A   0006    DIM a()
+                      ^ Syntax error
+ 00AB   001C    DIM b()
+                      ^ Syntax error
+ 00AB   001C    b(2) = 9
+                   ^ Array not dimensioned
+    1 Warning Error(s)
+    2 Severe  Error(s)
+link (no executable):

@@ -1,0 +1,8 @@
+compile:
+ 003A   001E    DIM c(3)
+                    ^ Array already dimensioned
+ 00E4   0030    REDIM d(3)
+                          ^ AS clause required
+    0 Warning Error(s)
+    2 Severe  Error(s)
+link (no executable):

@@ -875,7 +875,9 @@ array that nothing allocates, as below `$DYNAMIC` (`v60_b5`).
 not allocated, shared after `COMMON SHARED`; what is written between its parentheses SHALL be ignored. A `DIM` of
 that name and type below it SHALL allocate the array when it runs (error 10 if it is allocated), a `REDIM` SHALL
 give it new bounds, and a use before either SHALL raise error 9. Its number of dimensions SHALL be that of the
-first index, `DIM` or `REDIM` that names it; `LBOUND` and `UBOUND` of it SHALL NOT fix that number. A block name
+first index, `DIM` or `REDIM` that names it; `LBOUND` and `UBOUND` of it SHALL NOT fix that number. A `DIM`
+or `DIM SHARED` without `AS` of an array that `COMMON name() AS type` lists SHALL be a compile error ("AS clause required" in
+QuickBASIC 4.5 and PDS 7.1; `QB64PE-DIVERGENCES.md` D-063). A block name
 (`COMMON /name/ …`) SHALL be a compile error, as in the old compiler. `COMMON` inside a SUB or FUNCTION, and a second declaration of a `COMMON`
 scalar, SHALL be compile errors. `CHAIN` SHALL be reported "not supported yet".
 
@@ -886,6 +888,11 @@ scalar, SHALL be compile errors. `CHAIN` SHALL be reported "not supported yet".
 #### Scenario: COMMON SHARED array
 - **WHEN** `COMMON SHARED cs() AS LONG`, then `DIM cs(3) AS LONG: cs(2) = 6`, and a SUB prints `cs(2)`
 - **THEN** the SUB prints ` 6 `
+
+#### Scenario: DIM without AS of a typed COMMON array
+- **WHEN** `COMMON SHARED g() AS DOUBLE` is followed by `DIM g(3)`
+- **THEN** it is a compile error: the `DIM` needs its `AS` clause, as in QuickBASIC 4.5 and PDS 7.1
+  (`verification\qb45\q45_common_array_dim_no_as`). QB64pe accepts it and makes another array (`v66_c04`)
 
 #### Scenario: COMMON alone is not shared
 - **WHEN** `COMMON v AS LONG: v = 5` stands in the main module and a SUB without `SHARED` prints `v`
@@ -1656,7 +1663,9 @@ member array SHALL be reported "not supported yet".
 ### Requirement: Arrays LEN does not take
 `LEN` of a whole array of variable-length strings, of a user type with a `STRING` member, and of a `_BIT` array
 SHALL be compile errors, as in the old compiler ("Cannot pass array of variable-length strings", "UDT must have
-fixed size", "Variable/element cannot be _BIT aligned"; `verification\v48_x01`–`x03`).
+fixed size", "Variable/element cannot be _BIT aligned"; `verification\v48_x01`–`x03`). So SHALL `LEN` of a whole
+array of a user type with a `_DYNAMIC` member array ("_MEM cannot reference a TYPE value that contains explicit
+_Dynamic member arrays", `v66_c06`).
 
 #### Scenario: Strings and bits
 - **WHEN** `DIM s(3) AS STRING: PRINT LEN(s())` is compiled, or `DIM b(3) AS _BIT: PRINT LEN(b())`
@@ -1666,6 +1675,11 @@ fixed size", "Variable/element cannot be _BIT aligned"; `verification\v48_x01`�
 - **WHEN** a `TYPE ts` has the members `n AS STRING` and `v AS LONG`, and `DIM a(3) AS ts: PRINT LEN(a())` is
   compiled
 - **THEN** it is a compile error
+
+#### Scenario: A user type with a dynamic member array
+- **WHEN** `$UNSTABLE:TYPEFIELDS`, a `TYPE dy` has the members `k AS LONG` and `_DYNAMIC d(1 TO 3) AS LONG`, and
+  `DIM a(2) AS dy: PRINT LEN(a())` is compiled
+- **THEN** it is a compile error, as in the old compiler (`verification\v66_c06`)
 
 ### Requirement: Member array bounds that name no constant
 A bound of a member array in a `TYPE` block that names no `CONST` standing above the block SHALL be the compile

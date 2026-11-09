@@ -6,8 +6,8 @@ $CONSOLE:ONLY
 ' dynamic member array, marked; of a whole member array of strings (v48_x30), accepted since m4-memory-records
 ' (string_members_typed.bas); of a name that is no array, accepted since m4-names-implicit-arrays (v48_x14). An
 ' array without AS beside one
-' listed by
-' COMMON ... AS (design D2: not measured) is marked; the marked declaration stands last (the follow-on rule).
+' listed by COMMON ... AS is an error, "AS clause required" in QB 4.5 and PDS 7.1 (verification\qb45\
+' q45_common_array_dim_no_as; QB64pe accepts it, D-063); it stands last.
 $UNSTABLE:TYPEFIELDS
 TYPE ts
     n AS STRING

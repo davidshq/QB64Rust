@@ -87,7 +87,8 @@ destination when no handle is given), as libqb gives them; `_MEMSOUND(handle[, c
 value [AS type]`, `_MEMFILL block, offset, bytes, value [AS type]` and `_MEMCOPY block, offset, bytes TO block,
 offset` SHALL read, write, fill and copy bytes as the old compiler's program does, for every numeric type, a
 fixed-length string and a user type it takes. A string, `_BIT` or user type where a number is needed SHALL be a
-compile error, as in the old compiler.
+compile error, as in the old compiler. So SHALL a value of a user type that holds a variable-length `STRING`
+as the variable of the statement `_MEMGET` or the value of `_MEMPUT` or `_MEMFILL`, which has no fixed size.
 
 #### Scenario: Put and get
 - **WHEN** `DIM a AS LONG, m AS _MEM: m = _MEM(a): _MEMPUT m, m.OFFSET, 7 AS LONG: PRINT a; _MEMGET(m,
@@ -102,6 +103,12 @@ compile error, as in the old compiler.
 #### Scenario: Put a string as a number
 - **WHEN** `DIM m AS _MEM: m = _MEMNEW(4): _MEMPUT m, m.OFFSET, "ab" AS LONG` is compiled
 - **THEN** it is a compile error ("Illegal string-number conversion"), as in the old compiler
+
+#### Scenario: A user type with a STRING member
+- **WHEN** `TYPE ts: n AS LONG: s AS STRING: END TYPE`, `DIM w AS ts, v AS ts`, `m = _MEM(w)` and
+  `_MEMGET m, m.OFFSET, v` are compiled
+- **THEN** it is a compile error ("UDT must have fixed size"), as in the old compiler (`verification\v66_b01`;
+  `_MEMPUT` and `_MEMFILL`, `v66_b02` and `b03`)
 
 ### Requirement: A block that is no longer valid
 A block SHALL stop being valid when it is freed, when the SUB or FUNCTION whose variable it describes returns,

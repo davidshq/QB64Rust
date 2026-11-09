@@ -1,0 +1,13 @@
+compile:
+ 0082   0006        x(i) = i * 10
+                       ^ Array not dimensioned
+ 015A   0036    y(1) = 5
+                   ^ Array not dimensioned
+ 020A   0066    LOOP UNTIL z(n) > 2 OR n = 3
+                              ^ Array not dimensioned
+    3 Warning Error(s)
+    0 Severe  Error(s)
+1. a loop storing x(i): 10  20  30 
+2. GOTO past the first use of y(): 7 
+3. LOOP UNTIL z(n) > 2: 3 
+4. UBOUND(x): 10 

@@ -93,6 +93,7 @@
 `LEN` needs a string or a variable, element or member	String expression or variable name required in LEN statement
 `LEN` of a `_BIT` variable	Variable/element cannot be _BIT aligned
 `LEN` of a `{}` value: a `TYPE` with a dynamic member array has no fixed size	_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+`LEN` of an array of `{}`: a `TYPE` with a dynamic member array has no fixed size	_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
 `LEN` takes {#} argument	Incorrect number of arguments - Reference: LEN(literalTextOrVariable$)
 `LEN` with empty parentheses	Expected (...)
 `LINE INPUT` needs a variable here	Expected variable-name
@@ -300,6 +301,7 @@
 `_MEMFILL` needs a `_MEM` variable, element or member here	Expected _MEM type
 `_MEMFILL` needs a numeric type after `AS`	_MEMFILL requires numeric type
 `_MEMFILL` needs a variable, a string or a value with `{}`	Expected variable name/array element
+`_MEMFILL` of a `{}` value: a UDT with a `STRING` member has no fixed size	UDT must have fixed size
 `_MEMFILL` takes a block, an offset, a count of bytes, and a value	Expected _MEMFILL mem-reference, offset, bytes, variable|value[AS type]
 `_MEMFREE` needs a `_MEM` variable, element or member here	TYPE '_MEM' required for sub
 `_MEMFREE` takes {#} argument	Syntax error - Reference: _MEMFREE memoryVariable
@@ -309,6 +311,7 @@
 `_MEMGET` needs `{}`, a length	Expected STRING * ...
 `_MEMGET` needs a variable, an element or an array	Expected variable name/array element
 `_MEMGET` of a `TYPE` gives a whole value, which can only be stored into a variable of it	Number required for function
+`_MEMGET` of a `{}` value: a UDT with a `STRING` member has no fixed size	UDT must have fixed size
 `_MEMGET` takes {#} arguments	Incorrect number of arguments - Reference: _MEMGET(block, offset, type)
 `_MEMIMAGE` needs a number	Number required for function
 `_MEMIMAGE` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _MEMIMAGE[(imageHandle&)]
@@ -321,6 +324,7 @@
 `_MEMPUT` needs a `_MEM` variable, element or member here	Expected _MEM type
 `_MEMPUT` needs a numeric type after `AS`	_MEMPUT requires numeric type
 `_MEMPUT` needs a variable, a string or a value with `{}`	Expected variable name/array element
+`_MEMPUT` of a `{}` value: a UDT with a `STRING` member has no fixed size	UDT must have fixed size
 `_MEMPUT` takes a block, an offset, and a value	Expected _MEMPUT mem-reference, offset, variable|value[AS type]
 `_MEMSOUND` takes {#} or {#} arguments	Incorrect number of arguments - Reference: _MEMSOUND(soundHandle&)
 `_MEM` cannot take a `_BIT` variable or element	Variable/element cannot be _BIT aligned

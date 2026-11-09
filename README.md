@@ -2,8 +2,7 @@
 
 A new compiler, editor support and debugger for programs written for
 [QB64 Phoenix Edition](https://github.com/QB64-Phoenix-Edition/QB64pe) 4.7.0, written in Rust. You can edit,
-check, build, run and debug QB64 programs in VS Code, or compile them from a command prompt. QB64pe does not need to
-be installed.
+check, build, run and debug QB64 programs in VS Code, or compile them from a command prompt.
 
 The goal: a QB64 programmer installs one thing on Windows or Linux and gets an editor, a compiler and a
 debugger ([ROADMAP.md](docs/ROADMAP.md)).
@@ -31,7 +30,7 @@ debugger ([ROADMAP.md](docs/ROADMAP.md)).
 
 - **Windows x64 and Linux x64 are released, as the VS Code extension and a compiler download** (from 0.3.0). macOS is postponed (a row in [SOMEDAY.md](docs/SOMEDAY.md)).
 - The compiler accepts the QB64pe 4.7.0 dialect. Its output is checked against the old compiler's on thousands of
-  programs: the test corpus, QB64pe's own tests and the measured behaviour of each feature. Real programs such as
+  programs: the test corpus, QB64pe's own tests and the measured behavior of each feature. Real programs such as
   Civil War Strategy, about 5,000 lines, compile and run the same as with QB64pe.
 - Where this compiler deliberately differs from QB64pe, the difference is listed in
   [QB64PE-DIVERGENCES.md](docs/QB64PE-DIVERGENCES.md). Differences from QuickBASIC 4.5 are in
@@ -40,16 +39,22 @@ debugger ([ROADMAP.md](docs/ROADMAP.md)).
 
 ## Install
 
-Both downloads are on the [releases](https://github.com/davidshq/QB64Rust/releases) page.
+All downloads are on the [releases](https://github.com/davidshq/QB64Rust/releases) page.
 
-- **VS Code extension:** `qb64rust-win32-x64-<version>.vsix`. It includes the compiler, a language server
-  (errors as you type, outline, go to definition, rename, completion), the formatter and the debugger. See
-  [vscode/README.md](vscode/README.md).
-- **Compiler on its own:** `qb64rust-win-x64-<version>.zip`, for a command prompt, a build script or another
-  editor. See [MANUAL.md](docs/MANUAL.md).
+- **VS Code extension:** `qb64rust-win32-x64-<version>.vsix` for Windows, `qb64rust-linux-x64-<version>.vsix`
+  for Linux. It includes the compiler, a language server (errors as you type, outline, go to definition, rename,
+  completion), the formatter and the debugger. See [vscode/README.md](vscode/README.md).
+- **Compiler on its own:** `qb64rust-win-x64-<version>.zip` for Windows, `qb64rust-linux-x64-<version>.tar.gz`
+  for Linux. Use it from a command prompt, a build script or another editor. See [MANUAL.md](docs/MANUAL.md).
+  The extension already carries the compiler, so you don't need both.
 
-Building a program needs a C++ toolchain (llvm-mingw, about 190 MB). The extension asks before downloading it on
-the first build, and `qb64rust toolchain install` fetches it from a command prompt.
+Building a program needs a C++ toolchain:
+
+- **On Windows** it is llvm-mingw, a download of about 190 MB. The extension asks before downloading it on the
+  first build, and `qb64rust toolchain install` fetches it from a command prompt.
+- **On Linux** nothing is downloaded. Builds use the system's `g++` and the development packages libqb needs, and
+  the debugger needs `lldb-dap` 20 or later. `qb64rust toolchain install` says what is missing. The install
+  commands for Ubuntu, Debian, Fedora and Arch are in [MANUAL.md](docs/MANUAL.md#on-linux).
 
 ## How it works
 
@@ -69,7 +74,7 @@ the tests are run.
 | [LAYOUT.md](docs/LAYOUT.md) | Where everything is in the repository |
 | [UPSTREAM.md](docs/UPSTREAM.md) | Bugs in QB64pe found by this project, with their fixes |
 
-## Licence
+## License
 
 MIT ([LICENSE](LICENSE)). The folders `libqb/` and `tests/upstream/` hold copies of QB64 Phoenix Edition files under
-their own licences (`libqb/COPYING.txt`, `libqb/licenses/`, `tests/upstream/SOURCE.md`).
+their own licenses (`libqb/COPYING.txt`, `libqb/licenses/`, `tests/upstream/SOURCE.md`).

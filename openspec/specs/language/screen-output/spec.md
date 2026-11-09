@@ -161,8 +161,11 @@ error. In the array's place the old compiler also takes a plain variable, a stri
 of one, a name never declared, and an array of strings, of fixed-length strings or of a `TYPE`, whole or from an
 element or a member of one: each SHALL pass the bytes the old compiler's program passes (a string its characters,
 a member the bytes from it to the end of its variable or array, a name alone that is an array of strings or of
-fixed-length strings the scalar of that name). An index that calls a FUNCTION there, and a `TYPE` that holds a
-`STRING` (whose pointers the old compiler would overwrite), SHALL be reported "not supported yet".
+fixed-length strings the scalar of that name). An index that calls a FUNCTION there SHALL be evaluated once, as
+in QB 4.5 and PDS 7.1; the old compiler evaluates it twice (`QB64PE-DIVERGENCES.md` D-061). A `TYPE` that holds a
+`STRING` (whose pointers the old compiler would overwrite) SHALL be reported "not supported yet". A `_BIT`
+array or element there SHALL be a compile error, as the old compiler rejects it ("Variable/element cannot be _BIT
+aligned").
 
 #### Scenario: From an element, and an array parameter
 - **WHEN** a program has `GET (1, 2)-(3, 4), a(5)` and, in a SUB with a parameter `p() AS INTEGER`, `PUT (1, 2), p,
@@ -189,8 +192,16 @@ fixed-length strings the scalar of that name). An index that calls a FUNCTION th
 - **THEN** it prints what the old compiler's program printed
 
 #### Scenario: An index that calls a FUNCTION
-- **WHEN** a program has `GET (1, 2)-(3, 4), a(f(1))` for a FUNCTION `f`
-- **THEN** the only diagnostic is "not supported yet"
+- **WHEN** `tests\corpus\slice\s162_get_put_index_once` runs `GET` and `PUT` with `a(f(1))`, `b(f(1), f(2))`,
+  `s(f(1))` for an array of strings, `r(f(2))` and `r(f(3)).y` for an array of a `TYPE`, and `a(f(200))` outside
+  the bounds, where `f` logs each call
+- **THEN** `f` is called once per index, as in QB 4.5 (`verification\qb45\q45_get_put_index_call`), and the
+  index outside the bounds raises error 9 once
+
+#### Scenario: A `_BIT` array
+- **WHEN** a program has `GET (0, 0)-(3, 3), b(0)` or `PUT (0, 0), b` for an array `b` of `_BIT`
+  (`verification\v66_a17`, `a18`)
+- **THEN** the compiler reports an error that is not "not supported yet", with the old compiler's wording as a note
 
 ### Requirement: TAB and SPC in text output
 `TAB(n)` and `SPC(n)` SHALL be functions that give a string, as in the old compiler: as an item of `PRINT` they

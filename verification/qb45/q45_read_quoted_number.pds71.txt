@@ -1,0 +1,5 @@
+1. DATA 5 into a LONG: 5 
+ error 2 2. DATA "5" into a LONG:-1 
+ error 2 3. the same into an INTEGER:-1 
+ error 2 4. DATA "2.5" into a SINGLE:-1 
+5. the next item, as a string: [5]

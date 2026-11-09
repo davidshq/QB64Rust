@@ -573,7 +573,7 @@ impl Checker<'_> {
     /// That `LEN` of a value of `ty` (`array`: of a whole array of `ty`) has a size fixed when compiling: not of a
     /// `TYPE` that holds a `STRING` ("UDT must have fixed size"), nor of one that owns a dynamic member array (of a
     /// value measured: "_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays",
-    /// `verification\v35_x20`, `x64`; of an array not measured).
+    /// `verification\v35_x20`, `x64`; of a whole array the same, `v66_c06`).
     fn len_fixed_size(&mut self, ty: Ty, array: bool, at: Span) -> R<()> {
         let name = self.prog.type_name(ty);
         let of = if array {
@@ -586,10 +586,6 @@ impl Checker<'_> {
             return Err(self.error(at, msg));
         }
         if crate::owns_desc(&self.prog.types, ty) {
-            if array {
-                let msg = "`LEN` of a whole array of a `TYPE` with a dynamic member array";
-                return Err(self.unsupported(at, msg));
-            }
             let msg = format!("`LEN` of {of}: a `TYPE` with a dynamic member array has no fixed size");
             return Err(self.error(at, msg));
         }
@@ -910,9 +906,10 @@ impl Checker<'_> {
     /// one, an element of an array of strings, fixed-length strings or a user type (also `a()`, its first), or a
     /// member of one. A name alone is the array of numbers or of a user type of that name, else the scalar of that
     /// name (an array of strings does not stand in the way: `GET …, sa` is the `SINGLE` `sa`), declared or
-    /// implicit; `x()` of a name that is no array is the implicit array. A user type that holds a `STRING` (whose
-    /// pointers `GET` would write over) and a `_BIT` are not supported yet, as is an index with a call, which the
-    /// old compiler writes twice.
+    /// implicit; `x()` of a name that is no array is the implicit array. A `_BIT` is QB64pe's error ("Variable/
+    /// element cannot be _BIT aligned", `v66_a17`, `a18`). A user type that holds a `STRING` (whose pointers `GET`
+    /// would write over) is not supported yet. An index with a call is evaluated once, as in QB 4.5; the old
+    /// compiler writes it twice (`QB64PE-DIVERGENCES.md` D-061; the emitter holds it).
     fn graphics_arg(&mut self, node: ast::Expr, name: &str) -> R<StmtArg> {
         let span = node.node().span();
         let named = match &node {
@@ -958,28 +955,21 @@ impl Checker<'_> {
             && (root.is_int() || root.is_float())
             && !matches!(root, Ty::Bit { .. })
         {
-            if index.iter().any(Expr::calls_procedure) {
-                let msg = format!("a call of a FUNCTION in the index of the array of `{name}`");
-                return Err(self.unsupported(span, msg));
-            }
             return Ok(StmtArg::Block {
                 array: *array,
                 index: index.clone(),
             });
         }
-        let what = if matches!(self.prog.place_ty(&place), Ty::Bit { .. }) {
-            Some("a `_BIT`")
-        } else if crate::holds_strings(&self.prog.types, root)
+        if matches!(self.prog.place_ty(&place), Ty::Bit { .. }) {
+            // Measured: "Variable/element cannot be _BIT aligned" (`verification\v66_a17`, `a18`), as for the
+            // file form (`fixed_size`).
+            return Err(self.error(span, format!("`{name}` of a `_BIT` variable")));
+        }
+        if crate::holds_strings(&self.prog.types, root)
             || crate::owns_desc(&self.prog.types, root)
             || self.prog.is_mem(root)
         {
-            Some("a `TYPE` that holds a `STRING` or a dynamic member array")
-        } else if place.calls_procedure() {
-            Some("a call of a FUNCTION in an index")
-        } else {
-            None
-        };
-        if let Some(what) = what {
+            let what = "a `TYPE` that holds a `STRING` or a dynamic member array";
             return Err(self.unsupported(span, format!("{what} as the array of `{name}`")));
         }
         Ok(StmtArg::Rest(place))
@@ -1058,8 +1048,8 @@ impl Checker<'_> {
     /// of `m3-get-put-bload`; measured, `verification\v28_x01`, `x10`–`x25`, `x58`–`x64`): an array as a whole
     /// (`a`, `a()`) or from an element (`a(5)`, `b(2, 3)`), of numbers; static or dynamic, of this body or shared,
     /// or an array parameter. The old compiler writes the index twice, so a FUNCTION in it is called twice
-    /// (measured from its C++): an index with a call is not supported yet. Anything that is no variable is its
-    /// error ("Expected variable name/array element").
+    /// (`verification\v66_a19`); here it is called once, as in QB 4.5 and PDS 7.1 (`QB64PE-DIVERGENCES.md` D-061;
+    /// the emitter holds it). Anything that is no variable is its error ("Expected variable name/array element").
     fn block_arg(&mut self, node: ast::Expr, name: &str) -> R<StmtArg> {
         let span = node.node().span();
         let whole = match node {
@@ -1122,10 +1112,6 @@ impl Checker<'_> {
         let ty = self.prog.var(array).ty;
         if !(ty.is_int() || ty.is_float()) || matches!(ty, Ty::Bit { .. }) {
             let msg = format!("an array of strings, of a `TYPE` or of `_BIT` as the array of `{name}`");
-            return Err(self.unsupported(span, msg));
-        }
-        if index.iter().any(Expr::calls_procedure) {
-            let msg = format!("a call of a FUNCTION in the index of the array of `{name}`");
             return Err(self.unsupported(span, msg));
         }
         Ok(StmtArg::Block { array, index })

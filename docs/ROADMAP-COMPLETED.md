@@ -58,7 +58,7 @@ request 9; user, 2026-10-18, tenth review `study\35` §3 item 1). The areas it h
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step; moved here from `STATUS.md` on
 2026-10-28). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
-marked in `SOMEDAY.md` ("Left marked by …"):
+marked in `SOMEDAY.md` ("Deferred QB64pe features"):
 
 | Step | Change (archive folder) | What it brought |
 |---|---|---|

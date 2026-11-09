@@ -1,0 +1,8 @@
+compile:
+ 004A   0006    REDIM a()
+                        ^ Syntax error
+ 004F   0006    REDIM c AS LONG
+                      ^ Left parenthesis missing
+    0 Warning Error(s)
+    2 Severe  Error(s)
+built

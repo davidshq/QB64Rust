@@ -109,5 +109,54 @@ class TestRuns(unittest.TestCase):
                 self.assertIsNone(guard_tool.check_command(cmd), cmd)
 
 
+class Backslashes(unittest.TestCase):
+    """Working rule 5: no text with backslashes through Bash."""
+
+    def test_refused(self):
+        for cmd in (
+            # The two of 2026-11-08: a quoted heredoc with a Python escape in it.
+            "cat > x/edit.py <<'EOF'\np.write_text(t, newline=\"\\\\n\")\nEOF\npython -I x/edit.py",
+            "python -I - <<'EOF'\nt = t.replace('f\"\\\\\"{FILLER}\\\\\"\"', 'x')\nEOF",
+            "cat <<EOF > a.txt\nstudy\\02\nEOF",
+            "python -c \"print('a\\nb')\"",
+            "python -I -c \"b=open(f,'rb').read(); print(b.count(b'\\r'))\"",
+            "sed -i 's/a\\/b/c/' f.md",
+            "sed 's/\\(a\\)/\\1/' f.md > g.md",
+            "awk -F'\\t' '{print $1}' a.tsv > b.tsv",
+            "printf 'x\\n' > f",
+            "echo -e 'a\\tb'",
+            "perl -e 'print \"\\n\"'",
+            # Flags written together, and a `|` inside the quoted script.
+            "python -Ic \"print('a\\nb')\"",
+            "py -3.12 -c \"print('a|b\\n')\"",
+            "cd x && python -c \"print('\\n')\"",
+        ):
+            self.assertIsNotNone(guard_tool.check_backslashes(cmd), cmd)
+
+    def test_allowed(self):
+        for cmd in (
+            "cat > a.py <<'EOF'\nprint('no backslash here')\nEOF",
+            'grep -n "a\\|b" docs/x.md',
+            "python -I tools/play/sessions.py tests/scripts/*.keys",
+            "python -I -c \"print(1 + 1)\"",
+            "sed -n 1,40p docs/STATUS.md",
+            # Refused on 2026-11-09 before sed and awk counted only when they write: a read-only pipeline.
+            'grep -rn "a\\|b" crates | grep -v "fn \\|///" ; echo ---; sed -n 1315,1340p f.rs',
+            "sed -n 's/\\(x\\)/\\1/p' f.md 2>/dev/null",
+            "awk -F'\\t' '{print $1}' a.tsv | head",
+            # A script's own arguments are not the interpreter's -c or -e.
+            "python -I tools/x.py study\\02 -e",
+            'cd "/c/code/x" && ls',
+            "git log --oneline -5",
+        ):
+            self.assertIsNone(guard_tool.check_backslashes(cmd), cmd)
+
+    def test_powershell_not_checked(self):
+        # PowerShell takes a backslash as a plain character; only Bash collapses them.
+        with mock.patch.object(guard_tool, "read_input", return_value={
+                "tool_name": "PowerShell", "tool_input": {"command": "Get-Content study\\02.md"}}):
+            self.assertEqual(guard_tool.main(), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

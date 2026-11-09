@@ -1,0 +1,292 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+==> global.txt <==
+static void qbr_diverged(int32 qbr_n){
+static int32 qbr_on=-1;
+static uint8 qbr_seen[100];
+static const char *qbr_path=NULL;
+if (qbr_on<0){qbr_path=getenv("QB64RUST_DIVERGENCES");qbr_on=qbr_path&&*qbr_path;}
+if (!qbr_on||qbr_n<0||qbr_n>=100||qbr_seen[qbr_n]) return;
+qbr_seen[qbr_n]=1;
+FILE *qbr_f=fopen(qbr_path,"ab");
+if (qbr_f){fprintf(qbr_f,"D-%03d\n",(int)qbr_n);fclose(qbr_f);}
+}
+static void qbr_diverged_on(int32 qbr_n){
+if (new_error>=300&&new_error<=315) return;
+const char *qbr_np=getenv("QB64PE_NOPROMPT");
+if ((error_goto_line&&!error_handling)||!qbr_np||(*qbr_np!='y'&&*qbr_np!='Y')) qbr_diverged(qbr_n);
+}
+template <typename QBL, typename QBR> static inline auto qb_safe_idiv(QBL qb_l,QBR qb_r)->decltype(qb_l/qb_r){if (!qb_r){error(11);return (decltype(qb_l/qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l/qb_r)>&&std::is_integral_v<decltype(qb_l/qb_r)>){if (qb_r==-1&&qb_l==std::numeric_limits<decltype(qb_l/qb_r)>::min()){qbr_diverged(6);error(6);return qb_l;}}return qb_l/qb_r;}
+template <typename QBL, typename QBR> static inline auto qb_safe_mod(QBL qb_l,QBR qb_r)->decltype(qb_l%qb_r){if (!qb_r){error(11);return (decltype(qb_l%qb_r))0;}if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}return qb_l%qb_r;}
+ptrszint *__ARRAY_INTEGER_A=NULL;
+ptrszint *__ARRAY_INTEGER_B=NULL;
+ptrszint *__ARRAY_STRING_TS=NULL;
+ptrszint *__ARRAY_UDT_R=NULL;
+int32 console=1;
+int32 screen_hide_startup=0;
+int32 asserts=0;
+int32 vwatch=0;
+ptrszint data_size=0;
+uint8 *data=(uint8*)calloc(1,1);
+==> regsf.txt <==
+int16 FUNC_F(int16*_FUNC_F_INTEGER_N);
+==> clear.txt <==
+memset((void*)(__ARRAY_INTEGER_A[0]),0,__ARRAY_INTEGER_A[5]*2);
+memset((void*)(__ARRAY_INTEGER_B[0]),0,__ARRAY_INTEGER_B[9]*__ARRAY_INTEGER_B[5]*2);
+tmp_long=__ARRAY_STRING_TS[5];
+while(tmp_long--){
+(((qbs**)(__ARRAY_STRING_TS[0]))[tmp_long])->len=0;
+}
+memset((void*)(__ARRAY_UDT_R[0]),0,__ARRAY_UDT_R[5]*6);
+==> maindata.txt <==
+if (!__ARRAY_INTEGER_A){
+__ARRAY_INTEGER_A=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_INTEGER_A)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_INTEGER_A[4]=0ll;
+__ARRAY_INTEGER_A[5]=(100ll)-__ARRAY_INTEGER_A[4]+1;
+if (__ARRAY_INTEGER_A[5]<=0) error(5);
+__ARRAY_INTEGER_A[6]=1;
+__ARRAY_INTEGER_A[0]=(ptrszint)mem_static_malloc(__ARRAY_INTEGER_A[5]*2);
+memset((void*)(__ARRAY_INTEGER_A[0]),0,__ARRAY_INTEGER_A[5]*2);
+__ARRAY_INTEGER_A[2]=1+2;
+}
+if (!__ARRAY_INTEGER_B){
+__ARRAY_INTEGER_B=(ptrszint*)mem_static_malloc(13*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_INTEGER_B)[12]=(ptrszint)mem_lock_tmp;
+__ARRAY_INTEGER_B[8]=0ll;
+__ARRAY_INTEGER_B[9]=(3ll)-__ARRAY_INTEGER_B[8]+1;
+if (__ARRAY_INTEGER_B[9]<=0) error(5);
+__ARRAY_INTEGER_B[10]=1;
+__ARRAY_INTEGER_B[4]=0ll;
+__ARRAY_INTEGER_B[5]=(3ll)-__ARRAY_INTEGER_B[4]+1;
+if (__ARRAY_INTEGER_B[5]<=0) error(5);
+__ARRAY_INTEGER_B[6]=__ARRAY_INTEGER_B[10]*__ARRAY_INTEGER_B[9];
+__ARRAY_INTEGER_B[0]=(ptrszint)mem_static_malloc(__ARRAY_INTEGER_B[9]*__ARRAY_INTEGER_B[5]*2);
+memset((void*)(__ARRAY_INTEGER_B[0]),0,__ARRAY_INTEGER_B[9]*__ARRAY_INTEGER_B[5]*2);
+__ARRAY_INTEGER_B[2]=1+2;
+}
+if (!__ARRAY_STRING_TS){
+__ARRAY_STRING_TS=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_STRING_TS)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_STRING_TS[4]=0ll;
+__ARRAY_STRING_TS[5]=(10ll)-__ARRAY_STRING_TS[4]+1;
+if (__ARRAY_STRING_TS[5]<=0) error(5);
+__ARRAY_STRING_TS[6]=1;
+__ARRAY_STRING_TS[0]=(ptrszint)mem_static_malloc(__ARRAY_STRING_TS[5]*ptrsz);
+tmp_long=__ARRAY_STRING_TS[5];
+while(tmp_long--){
+((qbs**)(__ARRAY_STRING_TS[0]))[tmp_long]=qbs_new(0,0);
+}
+__ARRAY_STRING_TS[2]=1+2;
+}
+if (!__ARRAY_UDT_R){
+__ARRAY_UDT_R=(ptrszint*)mem_static_malloc(9*ptrsz);
+new_mem_lock();
+mem_lock_tmp->type=4;
+((ptrszint*)__ARRAY_UDT_R)[8]=(ptrszint)mem_lock_tmp;
+__ARRAY_UDT_R[4]=0ll;
+__ARRAY_UDT_R[5]=(10ll)-__ARRAY_UDT_R[4]+1;
+if (__ARRAY_UDT_R[5]<=0) error(5);
+__ARRAY_UDT_R[6]=1;
+__ARRAY_UDT_R[0]=(ptrszint)mem_static_malloc(__ARRAY_UDT_R[5]*6);
+memset((void*)(__ARRAY_UDT_R[0]),0,__ARRAY_UDT_R[5]*6);
+__ARRAY_UDT_R[2]=1+2;
+}
+int16 pass1;
+int64 seq2;
+byte_element_struct *byte_element_1=NULL;
+if (!byte_element_1){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_1=(byte_element_struct*)(mem_static_pointer-12); else byte_element_1=(byte_element_struct*)mem_static_malloc(12);
+}
+int16 pass3;
+int64 seq4;
+int64 seq5;
+byte_element_struct *byte_element_2=NULL;
+if (!byte_element_2){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_2=(byte_element_struct*)(mem_static_pointer-12); else byte_element_2=(byte_element_struct*)mem_static_malloc(12);
+}
+int16 pass6;
+qbs* seq7;
+byte_element_struct *byte_element_3=NULL;
+if (!byte_element_3){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_3=(byte_element_struct*)(mem_static_pointer-12); else byte_element_3=(byte_element_struct*)mem_static_malloc(12);
+}
+int16 pass8;
+ptrszint seq9;
+byte_element_struct *byte_element_4=NULL;
+if (!byte_element_4){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_4=(byte_element_struct*)(mem_static_pointer-12); else byte_element_4=(byte_element_struct*)mem_static_malloc(12);
+}
+int16 pass10;
+int64 seq11;
+byte_element_struct *byte_element_5=NULL;
+if (!byte_element_5){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_5=(byte_element_struct*)(mem_static_pointer-12); else byte_element_5=(byte_element_struct*)mem_static_malloc(12);
+}
+void* seq12;
+int16 pass13;
+int16 pass14;
+int64 seq15;
+byte_element_struct *byte_element_6=NULL;
+if (!byte_element_6){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_6=(byte_element_struct*)(mem_static_pointer-12); else byte_element_6=(byte_element_struct*)mem_static_malloc(12);
+}
+void* seq16;
+int16 pass17;
+byte_element_struct *byte_element_7=NULL;
+if (!byte_element_7){
+if ((mem_static_pointer+=12)<mem_static_limit) byte_element_7=(byte_element_struct*)(mem_static_pointer-12); else byte_element_7=(byte_element_struct*)mem_static_malloc(12);
+}
+==> mainerr.txt <==
+if (!error_handler_history) error_handler_history = qbs_new(0, 0);
+if (error_occurred){ error_occurred=0;
+exit(99);
+}
+==> main.txt <==
+#include "main0.txt"
+#include "main1.txt"
+qbs *func__compdate() {
+return qbs_new_txt("");
+}
+qbs *func__comptime() {
+return qbs_new_txt("");
+}
+qbs *func__compvers() {
+return qbs_new_txt("QB64-PE v4.7.0-GLFW-UNKNOWN");
+}
+==> main0.txt <==
+error_track_line(0,0,NULL);
+S_0:;
+#line 2 "get_put_index_once_cpp.bas"
+do{
+#line 2 "get_put_index_once_cpp.bas"
+sub__dest(func__console());
+#line 2 "get_put_index_once_cpp.bas"
+sub__source(func__console());
+#line 2 "get_put_index_once_cpp.bas"
+if(!qbevent)break;evnt(2);}while(r);
+#line 14 "get_put_index_once_cpp.bas"
+do{
+#line 14 "get_put_index_once_cpp.bas"
+sub_graphics_get(1,2,3,4,(seq2=array_check((((int64)(FUNC_F(&(pass1=1)))))-__ARRAY_INTEGER_A[4],__ARRAY_INTEGER_A[5]),byte_element((uint64)(&(((int16*)(__ARRAY_INTEGER_A[0]))[seq2])),((2*(__ARRAY_INTEGER_A[2]&1)*__ARRAY_INTEGER_A[5])-(2*(seq2))),byte_element_1)),NULL,0);
+#line 14 "get_put_index_once_cpp.bas"
+if(!qbevent)break;evnt(14);}while(r);
+#line 15 "get_put_index_once_cpp.bas"
+do{
+#line 15 "get_put_index_once_cpp.bas"
+sub_graphics_put(1,2,(seq5=(seq4=array_check((((int64)(FUNC_F(&(pass3=1)))))-__ARRAY_INTEGER_B[8],__ARRAY_INTEGER_B[9]),seq4+array_check((2ll)-__ARRAY_INTEGER_B[4],__ARRAY_INTEGER_B[5])*__ARRAY_INTEGER_B[6]),byte_element((uint64)(&(((int16*)(__ARRAY_INTEGER_B[0]))[seq5])),((2*(__ARRAY_INTEGER_B[2]&1)*__ARRAY_INTEGER_B[5]*__ARRAY_INTEGER_B[9])-(2*(seq5))),byte_element_2)),NULL,NULL,0);
+#line 15 "get_put_index_once_cpp.bas"
+if(!qbevent)break;evnt(15);}while(r);
+#line 16 "get_put_index_once_cpp.bas"
+do{
+#line 16 "get_put_index_once_cpp.bas"
+sub_graphics_get(1,2,3,4,(seq7=(((qbs**)(__ARRAY_STRING_TS[0]))[array_check((((int64)(FUNC_F(&(pass6=1)))))-__ARRAY_STRING_TS[4],__ARRAY_STRING_TS[5])]),byte_element((uint64)seq7->chr,seq7->len,byte_element_3)),NULL,0);
+#line 16 "get_put_index_once_cpp.bas"
+qbs_cleanup(qbs_tmp_base,0);
+#line 16 "get_put_index_once_cpp.bas"
+if(!qbevent)break;evnt(16);}while(r);
+#line 17 "get_put_index_once_cpp.bas"
+do{
+#line 17 "get_put_index_once_cpp.bas"
+sub_graphics_get(1,2,3,4,(seq9=((array_check((((int64)(FUNC_F(&(pass8=1)))))-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]))*6+2),byte_element((uint64)(((char*)__ARRAY_UDT_R[0])+(seq9)),(6*(__ARRAY_UDT_R[2]&1)*__ARRAY_UDT_R[5])-(seq9),byte_element_4)),NULL,0);
+#line 17 "get_put_index_once_cpp.bas"
+if(!qbevent)break;evnt(17);}while(r);
+#line 18 "get_put_index_once_cpp.bas"
+do{
+#line 18 "get_put_index_once_cpp.bas"
+seq12=(seq11=array_check((((int64)(FUNC_F(&(pass10=1)))))-__ARRAY_INTEGER_A[4],__ARRAY_INTEGER_A[5]),byte_element((uint64)(&(((int16*)(__ARRAY_INTEGER_A[0]))[seq11])),((2*(__ARRAY_INTEGER_A[2]&1)*__ARRAY_INTEGER_A[5])-(2*(seq11))),byte_element_5));
+#line 18 "get_put_index_once_cpp.bas"
+sub_graphics_put(1,2,seq12,1,((uint32)(FUNC_F(&(pass13=2)))),4);
+#line 18 "get_put_index_once_cpp.bas"
+if(!qbevent)break;evnt(18);}while(r);
+#line 19 "get_put_index_once_cpp.bas"
+do{
+#line 19 "get_put_index_once_cpp.bas"
+seq16=(seq15=array_check((((int64)(FUNC_F(&(pass14=1)))))-__ARRAY_UDT_R[4],__ARRAY_UDT_R[5]),byte_element((uint64)(((char*)__ARRAY_UDT_R[0])+(((seq15)*6+0))),(6*(__ARRAY_UDT_R[2]&1)*__ARRAY_UDT_R[5])-(((seq15)*6+0)),byte_element_6));
+#line 19 "get_put_index_once_cpp.bas"
+sub_graphics_put(1,2,seq16,1,((uint32)(FUNC_F(&(pass17=2)))),4);
+#line 19 "get_put_index_once_cpp.bas"
+if(!qbevent)break;evnt(19);}while(r);
+#line 20 "get_put_index_once_cpp.bas"
+do{
+#line 20 "get_put_index_once_cpp.bas"
+sub_graphics_put(1,2,byte_element((uint64)(&(((int16*)(__ARRAY_INTEGER_A[0]))[array_check((5ll)-__ARRAY_INTEGER_A[4],__ARRAY_INTEGER_A[5])])),((2*(__ARRAY_INTEGER_A[2]&1)*__ARRAY_INTEGER_A[5])-(2*(array_check((5ll)-__ARRAY_INTEGER_A[4],__ARRAY_INTEGER_A[5])))),byte_element_7),NULL,NULL,0);
+#line 20 "get_put_index_once_cpp.bas"
+if(!qbevent)break;evnt(20);}while(r);
+#line 21 "get_put_index_once_cpp.bas"
+do{
+#line 21 "get_put_index_once_cpp.bas"
+if (sub_gl_called) error(271);
+#line 21 "get_put_index_once_cpp.bas"
+close_program=1;
+#line 21 "get_put_index_once_cpp.bas"
+end();
+#line 21 "get_put_index_once_cpp.bas"
+if(!qbevent)break;evnt(21);}while(r);
+sub_end();
+return;
+}
+==> main1.txt <==
+#line 23 "get_put_index_once_cpp.bas"
+int16 FUNC_F(int16*_FUNC_F_INTEGER_N){
+#line 23 "get_put_index_once_cpp.bas"
+qbs *tqbs;
+#line 23 "get_put_index_once_cpp.bas"
+ptrszint tmp_long;
+#line 23 "get_put_index_once_cpp.bas"
+int32 tmp_fileno;
+#line 23 "get_put_index_once_cpp.bas"
+uint32 qbs_tmp_base=qbs_tmp_list_nexti;
+#line 23 "get_put_index_once_cpp.bas"
+uint8 *tmp_mem_static_pointer=mem_static_pointer;
+#line 23 "get_put_index_once_cpp.bas"
+uint32 tmp_cmem_sp=cmem_sp;
+#line 23 "get_put_index_once_cpp.bas"
+#include "data1.txt"
+#line 23 "get_put_index_once_cpp.bas"
+mem_lock *sf_mem_lock;
+#line 23 "get_put_index_once_cpp.bas"
+new_mem_lock();
+#line 23 "get_put_index_once_cpp.bas"
+sf_mem_lock=mem_lock_tmp;
+#line 23 "get_put_index_once_cpp.bas"
+sf_mem_lock->type=3;
+#line 23 "get_put_index_once_cpp.bas"
+libqb_check_stack();
+#line 23 "get_put_index_once_cpp.bas"
+if (is_error_pending()) goto exit_subfunc;
+#line 24 "get_put_index_once_cpp.bas"
+do{
+#line 24 "get_put_index_once_cpp.bas"
+*_FUNC_F_INTEGER_F=*_FUNC_F_INTEGER_N;
+#line 24 "get_put_index_once_cpp.bas"
+if(!qbevent)break;evnt(24);}while(r);
+#line 25 "get_put_index_once_cpp.bas"
+exit_subfunc:;
+#line 25 "get_put_index_once_cpp.bas"
+free_mem_lock(sf_mem_lock);
+#line 25 "get_put_index_once_cpp.bas"
+#include "free1.txt"
+#line 25 "get_put_index_once_cpp.bas"
+if ((tmp_mem_static_pointer>=mem_static)&&(tmp_mem_static_pointer<=mem_static_limit)) mem_static_pointer=tmp_mem_static_pointer; else mem_static_pointer=mem_static;
+#line 25 "get_put_index_once_cpp.bas"
+cmem_sp=tmp_cmem_sp;
+#line 25 "get_put_index_once_cpp.bas"
+return *_FUNC_F_INTEGER_F;
+#line 25 "get_put_index_once_cpp.bas"
+}
+==> data1.txt <==
+int16 *_FUNC_F_INTEGER_F=NULL;
+if(_FUNC_F_INTEGER_F==NULL){
+_FUNC_F_INTEGER_F=(int16*)mem_static_malloc(2);
+*_FUNC_F_INTEGER_F=0;
+}
+==> empty: dyninfo.txt inpchain.txt chain.txt onstrig.txt onkey.txt ontimer.txt runline.txt ontimerj.txt onkeyj.txt onstrigj.txt mainfree.txt free1.txt

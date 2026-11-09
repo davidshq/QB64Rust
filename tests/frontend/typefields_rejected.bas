@@ -34,4 +34,5 @@ PUT #1, 1, p(0)
 GET #1, 1, p(0)
 PUT #1, 1, q()
 CLOSE #1
+PRINT LEN(p()) ' LEN of the whole array (verification\v66_c06)
 SYSTEM

@@ -193,7 +193,8 @@ impl Checker<'_> {
 
     /// `_EMBEDDED$("handle")` (design D2): one string literal by itself, not empty, a valid handle named by a
     /// `$EMBED` line above the call in file order (measured, `x10`–`x15`, `x18`, `x20`, `x21`, `x25`, `x33`, `x34`,
-    /// `x36`). The call marks the file used; it is the plain call of its row.
+    /// `x36`; a literal in parentheses is no literal, `v66_d02`). The call marks the file used; it is the plain call
+    /// of its row.
     pub(super) fn embedded(
         &mut self,
         s: crate::builtins::Supported,
@@ -210,11 +211,9 @@ impl Checker<'_> {
         };
         let literal = match arg {
             ast::Expr::Literal(lit) => lit.token().filter(|t| t.kind == SyntaxKind::StringLit),
-            ast::Expr::Paren(_) => {
-                let msg = format!("the argument of `{}` in parentheses", s.name);
-                return Err(self.unsupported(arg.node().span(), msg));
-            }
-            ast::Expr::NameRef(_)
+            // Parentheses too, even around a literal (measured, `verification\v66_d02`).
+            ast::Expr::Paren(_)
+            | ast::Expr::NameRef(_)
             | ast::Expr::Call(_)
             | ast::Expr::Field(_)
             | ast::Expr::Prefix(_)

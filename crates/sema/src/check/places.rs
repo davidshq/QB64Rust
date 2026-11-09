@@ -769,8 +769,15 @@ impl Checker<'_> {
                 plain_array = None;
                 true
             }
+            // Listed by `COMMON a() AS type`, with `SHARED` or without: its `DIM` or `DIM SHARED` needs the `AS`, as
+            // QuickBASIC 4.5 and PDS 7.1 say ("AS clause required", `verification\qb45\q45_common_array_dim_no_as`,
+            // `_forms`). QB64pe makes another array of the name, and the plain name below stays the listed one, with
+            // no bounds (`v66_c04`; `QB64PE-DIVERGENCES.md` D-063). `REDIM` and the other declarers are not measured.
+            Some(Storage::Main) if by == Declarer::Dim && !redim => {
+                let msg = format!("`DIM {shown}` needs an `AS` clause: `{shown}` is listed by `COMMON … AS`");
+                return Err(self.error(name_tok.span, msg));
+            }
             Some(Storage::Main) => {
-                // Listed by `COMMON a() AS type`: not measured.
                 let msg = format!("an array `{shown}` without `AS` beside one listed by `COMMON … AS`");
                 return Err(self.unsupported(name_tok.span, msg));
             }

@@ -1,0 +1,30 @@
+RND called:     IF false AND RND
+(then) RND called:     IF true AND RND
+(then) RND called:     IF true OR RND
+(then) RND called:     IF false OR RND
+RND called:     IF RND AND false
+RND called:     IF (false) AND (RND)
+RND called:     IF false AND 30 * RND > 15
+RND called:     IF true AND false AND RND
+RND called:     IF (false OR false) AND RND
+(then) RND called:     IF false AND RND OR true
+RND called:     IF false AND (RND OR (true AND true))
+(then) RND called:     IF true AND (RND OR (true AND true))
+(then) RND called:     IF true OR false AND RND
+(then) RND called:     IF false OR true AND RND
+RND called:     IF false OR false AND RND
+RND called:     IF NOT (true) AND RND
+RND called:     IF false XOR RND
+RND called:     IF y AND RND (y = 1, not a relation)
+RND called:     IF y - 1 AND RND (0, not a relation)
+RND called:     block IF false AND RND
+RND called:     ELSEIF false AND RND
+RND called:     DO WHILE false AND RND
+RND called:     DO UNTIL true OR RND
+RND called:     WHILE false AND RND
+(body) RND called:     LOOP WHILE false AND RND
+RND called:     z = false AND RND
+ 0 RND called:     PRINT false AND RND
+calls 1  IF false AND f()
+(then) calls 1  IF true OR f()
+calls 1  IF false AND f() AND RND

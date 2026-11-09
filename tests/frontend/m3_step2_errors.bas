@@ -57,3 +57,6 @@ DEF
 PUT (1, 2), k
 GET (1), , x
 PUT (i), 2, x
+DIM bt(10) AS _BIT ' a _BIT array as the array of graphics GET and PUT (verification v66_a17, a18)
+GET (1, 2)-(3, 4), bt(0)
+PUT (1, 2), bt

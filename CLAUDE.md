@@ -91,6 +91,9 @@ changing direction, design or scope.**
    `\\` to `\`. Python then reads `\1`, `\v` or `\r` as control characters. If a shell edit with backslashes
    happened anyway, scan the touched files for bytes 0x00–0x1F (other than tab, LF and the CR of CRLF) before
    moving on.
+   **Enforced by a hook** (`tools\hooks\guard_tool.py`, 2026-11-09). It refuses a Bash command with a backslash
+   in a heredoc's body, or in a command that runs `python -c`, `perl -e`, `printf` or `echo -e`, or a `sed` or
+   `awk` that writes a file. A `sed` or `awk` that only reads may take a backslash.
    *Why:* on 2026-10-03 this corrupted files four times (`study\02` became `study` + 0x02, `verification\v13`
    became a vertical tab) and each needed a scan and a redo (user, 2026-10-03).
 6. **Testing.** Run `cargo test -p <crate>` on what you touched while working. Run `just quick` in the background

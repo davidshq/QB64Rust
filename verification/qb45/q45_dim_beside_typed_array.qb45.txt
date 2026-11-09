@@ -1,0 +1,9 @@
+compile:
+ 005E   001E    DIM c(3)
+                    ^ Array already dimensioned
+ 00E8   0030    REDIM d(3)
+                          ^ AS clause required
+    0 Warning Error(s)
+    2 Severe  Error(s)
+1. DIM c(2) AS DOUBLE, then DIM c(3): .3333333333333333  2 
+2. REDIM d(2) AS DOUBLE, then REDIM d(3): .3333333333333333  2 
