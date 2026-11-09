@@ -184,6 +184,11 @@ changing direction, design or scope.**
     `DECISIONS.md` row and the spec edit carry the same facts. Examples built directly: the 40-character limit on
     names and `_BIT` parameters (2026-11-02).
 12. **A new branch tracks itself, never `main`** (2026-11-07).
+13. **Check what is staged every time; never rely on memory of it** (user, 2026-11-09).
+    - Before a review of the staged changes, a commit message, or any statement about what is staged, run
+      `git status --short` and `git diff --cached --stat` in that turn. Read the result.
+    - The user may commit, stage or unstage between turns. An earlier listing, snapshot or summary is out of date.
+    - Base the review or message on that output.
 
 ## Project decisions
 
