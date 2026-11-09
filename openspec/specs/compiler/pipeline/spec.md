@@ -266,6 +266,16 @@ Every statement and expression form the old compiler accepts SHALL parse into a 
 parser diagnostic. A construct that the later stages do not compile yet SHALL be reported "not supported yet" by
 `sema` at that node, not by the parser.
 
+A `_` at the end of a line SHALL be a line continuation also when it touches the word before it, as the old
+compiler removes one `_` from the end of the laid-out line (`qb64pe.bas` 25505–25514): `or_` is `OR` and a
+continuation, `a_b_` the name `a_b` and a continuation (measured, `verification\v70_b1`–`b4`). `< =`, `> =` and
+`< >` with spaces or tabs between the two characters SHALL each be one operator, `<=`, `>=` and `<>` (measured,
+`v70_d1`–`d3`; DRAW's `GUI\LAYERS.BM`).
+
+#### Scenario: A continuation against a keyword
+- **WHEN** a program has `x = 0 or_` on one line and `1` on the next, then `PRINT x`
+- **THEN** it prints ` 1`, as the old compiler's program does (`verification\v70_b1`)
+
 #### Scenario: Statement not compiled yet
 - **WHEN** a program contains `DO: PRINT VARSEG(bb(1)): LOOP UNTIL a > 0`, with `bb` an array of `_BIT` (`VARSEG`
   of an element of a `_BIT` array, not measured; the example was `FOR` over an element of a member array until

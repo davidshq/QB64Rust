@@ -220,7 +220,9 @@ name the lookup found, and each name found with `dlsym`, as the old compiler's L
 
 ### Requirement: CUSTOMTYPE libraries
 A `CUSTOMTYPE` declaration SHALL call its C function through the declared parameter and result types, which may
-differ from the function's own.
+differ from the function's own. A `CUSTOMTYPE` block that names no library file SHALL write no prototype for its
+functions, so that a function the C headers declare (`memcpy`) is the one called (measured, `verification\v70_i1`,
+the Libraries Pack's `a740g/QBDS`); one that nothing declares fails as in "A function defined nowhere".
 
 #### Scenario: Another result type
 - **WHEN** `DECLARE CUSTOMTYPE LIBRARY "v37_lib/v37h"` declares `FUNCTION addll&& ALIAS h_add (BYVAL a AS LONG,
@@ -324,7 +326,9 @@ compiler root and include the files its `[LIBRARY INCLUDES]` section names (unde
 Libraries SHALL be included in the old compiler's order: the `IncAtTop` files from the last registered library to
 the first, the `IncAfterMain` and `IncAtBottom` files from the first to the last. A library SHALL be registered
 once per line that names it, so one named twice has its files included twice; a library's file may itself use
-`$USELIBRARY` (measured, `verification\v58_u03`–`u06`).
+`$USELIBRARY` (measured, `verification\v58_u03`–`u06`). A library file that held `$INCLUDEONCE` SHALL not be read
+again, as with `$INCLUDE`, so a library whose files start with it is read once however often it is named
+(measured, `verification\v70_i1`, `i2`).
 
 #### Scenario: Two libraries
 - **WHEN** a program uses `test/a` and then `test/b`, each with a top file that notes its name in a string and a
@@ -341,6 +345,12 @@ once per line that names it, so one named twice has its files included twice; a 
 #### Scenario: A library that needs another
 - **WHEN** the top file of `test/c` has `$USELIBRARY:'test/a'`
 - **THEN** it compiles and prints `main a;c;`, then the SUB of `c` calls the SUB of `a` (`verification\v58_u06`)
+
+#### Scenario: A library with $INCLUDEONCE named twice
+- **WHEN** a program has `$USELIBRARY:'test70/once'` on two lines, or names it and `test70/user`, whose top file
+  names it too, and every file of the two libraries starts with `$INCLUDEONCE`
+- **THEN** it compiles, each file is read once, and it prints what the old compiler's program prints
+  (`verification\v70_i1`, `i2`; the Libraries Pack's `a740g/QBDS-*` libraries)
 
 ### Requirement: Errors of $USELIBRARY
 A line with no quoted name, or an empty one, SHALL be the error "Expected $USELIBRARY:'author/library'"; a missing

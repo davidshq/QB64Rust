@@ -232,7 +232,9 @@ value SHALL be assignable to a place of the same type (requirement "Whole user-t
 variable named `a.b` otherwise, also before a later `DIM a AS t` (measured, `verification/v16_m8_*`,
 `v18_h_dotted_before_dim`); when an array `a` of a user type is visible and no such scalar, `a.b` SHALL be a compile
 error. A member that its type does not have, a member written with another type's suffix, and a member of an
-element of a numeric array SHALL be compile errors. `a(i).m` SHALL be the member `m` of element `a(i)`. A member SHALL
+element of a numeric array SHALL be compile errors. A `STRING * n` member written with `$` (`v.s$`) SHALL be that
+member; with any other suffix it SHALL be a compile error (measured, `verification\v70_c1`, `c2`; DRAW's
+`THEME.BI`). `a(i).m` SHALL be the member `m` of element `a(i)`. A member SHALL
 be readable, assignable, and passable by reference to a parameter of its exact type. Blanks around the dot after a
 plain name SHALL be dropped: `a . b` SHALL be `a.b` in every one of these uses (`verification/v19_dot_blanks_*`).
 

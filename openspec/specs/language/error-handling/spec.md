@@ -23,7 +23,9 @@ remove it. When a statement raises a trappable error and a handler is active and
 the statement SHALL be skipped and the handler SHALL run, with `ERR` giving the error number. Without a handler,
 the error SHALL be reported by the runtime as with the old compiler. Errors the runtime treats as fatal (for
 example out of stack space, error 256) SHALL NOT be trappable. Error 11, division by zero, SHALL be trappable,
-raised by `\`, `MOD` or `ERROR 11` (`study\39` row 12; a `DIVERGENCES-QB64PE.md` row).
+raised by `\`, `MOD` or `ERROR 11` (`study\39` row 12; a `DIVERGENCES-QB64PE.md` row). A label whose name starts
+with two `_` (`__h`) SHALL be a handler as any other, also named from a SUB (measured, `verification\v70_f1`; the
+Libraries Pack's `a740g/Catch`); one with a single leading `_` is "Invalid name" (`v50_x28`).
 
 #### Scenario: Handler runs
 - **WHEN** `ON ERROR GOTO handler` precedes `ERROR 5`, and the handler prints `ERR`

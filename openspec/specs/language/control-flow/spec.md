@@ -11,6 +11,8 @@ tests in `tests\corpus\slice\` or `tests\frontend\`.
 A condition SHALL be true when its value is not zero. Block `IF` SHALL run the first branch whose condition is
 true (`IF`, then each `ELSEIF` in order) or else the `ELSE` branch. A single-line `IF` SHALL do the same for its
 `THEN` and `ELSE` parts; `IF c GOTO label` SHALL jump when `c` is true. A string condition SHALL be a compile error.
+A whole `FOR … NEXT` MAY stand in either part of a single-line `IF`; a `NEXT` directly before `ELSE` SHALL end the
+`THEN` part, `ELSE` being no loop variable (measured, `verification\v70_g1`, `g2`; QDigger in the QB64-PE Museum).
 
 #### Scenario: ELSEIF chain
 - **WHEN** a block `IF` tests `x = 1`, `ELSEIF x = 2`, `ELSE`, with `x = 2`

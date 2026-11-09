@@ -57,8 +57,9 @@ Its clipboard SHALL NOT be shared with the host's.
 
 ### Requirement: What persists between runs
 Every run SHALL start from the suites VM's checkpoint. A cache disk, attached after the restore, SHALL keep only
-the tree's copy, the QB64pe clone without its git folder, and the pass caches of the steps run there. It SHALL keep
-no build cache. Nothing on the cache disk SHALL be copied to the host's caches, or from them.
+the tree's copy, the QB64pe clone without its git folder, the community clones without their git folders, and the
+pass caches of the steps run there. It SHALL keep no build cache. Nothing on the cache disk SHALL be copied to the
+host's caches, or from them.
 
 #### Scenario: A file left by a program
 - **WHEN** a program of one run writes a file on the VM's Windows disk
@@ -71,6 +72,10 @@ no build cache. Nothing on the cache disk SHALL be copied to the host's caches, 
 #### Scenario: The clone changed on the host
 - **WHEN** the host's `..\QB64pe` is at another commit than the clone on the cache disk
 - **THEN** the run replaces the VM's clone before any step runs
+
+#### Scenario: The community clones changed on the host
+- **WHEN** a community clone on the host is at another commit than its copy on the cache disk
+- **THEN** a run with the community step replaces the VM's copy of the community clones before that step runs
 
 ### Requirement: The tree is at the host's path in the VM
 The tree's copy SHALL be at the same absolute path in the VM as the tree on the host, with the clone at `..\QB64pe`
