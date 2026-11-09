@@ -16,7 +16,7 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `docs\ROADMAP-COMPLETED.md` | The milestones declared done (M0–M6), each as it stood when it was declared done |
 | `docs\DECISIONS.md` | Decision log: every project decision on direction, design and scope, dated, with the document that holds its details |
 | `docs\DECISIONS-SMALL.md` | The minor rows of the decision log (document arrangement, changes archived, one-time exceptions), same format |
-| `docs\QB64PE-DIVERGENCES.md` | Divergence register: decided differences from the old compiler's observed behaviour |
+| `docs\DIVERGENCES-QB64PE.md` | Divergence register: decided differences from the old compiler's observed behaviour |
 | `docs\DIVERGENCES-QB45.md` | Differences from QuickBASIC 4.5 (most inherited from QB64pe), each with the source of its QB 4.5 behaviour |
 | `docs\UPSTREAM.md` | Fixes to offer QB64pe: its bugs that this project fixes, each with where it is in QB64pe's sources, the fix and the divergence row |
 | `docs\SOMEDAY.md` | Deferred features and ideas, and "QB64pe behaviours to review": questionable behaviours implemented QB64pe's way |

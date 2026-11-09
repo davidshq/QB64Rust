@@ -7,7 +7,7 @@
 old compiler gives for `n`'s type, and SHALL give its values, also for a bit beyond `n`'s width and a negative bit
 (measured, `verification\v58`), as `_READBIT` does. A bit number outside 0 to 63 SHALL be taken modulo 64 (its low
 six bits), whether it is a constant or a variable, as the old compiler's program does for a variable
-(`study\39` rows 17, 18; a `QB64PE-DIVERGENCES.md` row for constants).
+(`study\39` rows 17, 18; a `DIVERGENCES-QB64PE.md` row for constants).
 
 #### Scenario: Values
 - **WHEN** a program prints `_SETBIT(5, 1); _RESETBIT(5, 0); _TOGGLEBIT(5, 2)`

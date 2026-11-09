@@ -17,7 +17,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Fix:** the hyperbolic cotangent, `(EXP(2x) + 1) / (EXP(2x) - 1)`, written so it does not overflow for large
   arguments (for example `1 / std::tanh(num)`), with error 5 at 0 as the neighbouring functions raise for a
   division by zero (`func_csch`), and no upper limit.
-- **Here:** `QB64PE-DIVERGENCES.md` D-031, built by `const-rulings`: the edit `tools/libqb/edits/d031-coth.edit` of this
+- **Here:** `DIVERGENCES-QB64PE.md` D-031, built by `const-rulings`: the edit `tools/libqb/edits/d031-coth.edit` of this
   repo's copy of libqb (`1 / std::tanh(num)`, error 5 at 0) is the patch to offer, and the `CONST` evaluator here
   computes the same function.
 - **Sent:** not yet.
@@ -33,7 +33,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   memory), not after the `memset` of the `cmemlist` branch.
 - **Fix:** the same two calls in the conventional-memory branch, after its `memset` (the string descriptors are
   ordinary `qbs` values, so no offset in `dblock` moves).
-- **Here:** `QB64PE-DIVERGENCES.md` D-037, built by `m4-left-marked` (`crates\codegen-cpp\src\cmem.rs`, `alloc_dblock`).
+- **Here:** `DIVERGENCES-QB64PE.md` D-037, built by `m4-left-marked` (`crates\codegen-cpp\src\cmem.rs`, `alloc_dblock`).
 - **Sent:** not yet.
 
 ## `-y` writes a number in `_ARRAYCOPY` subscripts as its internal element
@@ -48,7 +48,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   the text after its comma, as `fixoperationorder$` does for an expression's layout.
 - **Fix:** lay out each number element by the part after its comma (the spelling as written), as the expression
   layout does; or build the subscripts' layout from `fixoperationorder$`'s.
-- **Here:** `QB64PE-DIVERGENCES.md` D-038, built by `m5b-formatter`: the formatter writes the number as written.
+- **Here:** `DIVERGENCES-QB64PE.md` D-038, built by `m5b-formatter`: the formatter writes the number as written.
 - **Sent:** not yet.
 
 ## `-y` with `AutoLayout` off can change a line it lays out
@@ -66,7 +66,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Fix:** stop carrying at the first difference that is not spacing, letter case, `?` or a missing closing quote,
   and keep the rest of the user's text as it is. Or keep `layout2$` whenever the result, without spaces and with
   letters outside strings in capitals, equals neither `olay$` nor the user's text.
-- **Here:** `QB64PE-DIVERGENCES.md` D-039, built by `m5b-format-settings`: `crates\format\src\apply.rs` keeps QB64pe's
+- **Here:** `DIVERGENCES-QB64PE.md` D-039, built by `m5b-format-settings`: `crates\format\src\apply.rs` keeps QB64pe's
   result where it is the laid-out or the user's line in that sense, and otherwise does the first of these.
 - **Sent:** not yet.
 
@@ -83,7 +83,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   the clean-up of the Enter path; `INPUT$` reads standard input when it is not a console and raises 62 at its end;
   `END` waits for a key only when `GetConsoleMode` succeeds on the input (the null device is a character device,
   so `GetFileType` cannot tell). On Linux and macOS QB64pe's `END` already ends at `EOF`.
-- **Here:** `QB64PE-DIVERGENCES.md` D-048; the edits `tools/libqb/edits/d048-console-eof-input.edit`,
+- **Here:** `DIVERGENCES-QB64PE.md` D-048; the edits `tools/libqb/edits/d048-console-eof-input.edit`,
   `d048-console-eof-input-string.edit`, `d048-console-eof-end.edit`.
 - **Sent:** not yet.
 
@@ -96,7 +96,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Where:** `internal/c/libqb.cpp`, `sub_bload` (before `fh.read`) and `sub_bsave` (before the file is opened).
 - **Fix:** compare the destination's offset in `cmem` plus the length with `sizeof(cmem)` and raise error 5
   before reading or writing anything.
-- **Here:** `QB64PE-DIVERGENCES.md` D-049; the edits `tools/libqb/edits/d049-bload-past-block.edit`,
+- **Here:** `DIVERGENCES-QB64PE.md` D-049; the edits `tools/libqb/edits/d049-bload-past-block.edit`,
   `d049-bsave-past-block.edit`.
 - **Sent:** not yet.
 
@@ -107,7 +107,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   second time (exit 127). Measured in this repo: `verification\v32_d33_free_zero_size`, `v63_c2`.
 - **Where:** `internal/c/libqb/src/memblock.cpp`, `func__memnew`, the `if (!bytes)` branch.
 - **Fix:** `mem_lock_tmp->type = 0;` there, the type of a block that owns no memory.
-- **Here:** `QB64PE-DIVERGENCES.md` D-050; the edit `tools/libqb/edits/d050-memnew-zero-lock.edit`.
+- **Here:** `DIVERGENCES-QB64PE.md` D-050; the edit `tools/libqb/edits/d050-memnew-zero-lock.edit`.
 - **Sent:** not yet.
 
 ## `_STATUSCODE` of a handle never opened crashes
@@ -117,7 +117,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   `v63_d1`.
 - **Where:** `internal/c/libqb.cpp`, `func__statusCode`.
 - **Fix:** `if (!sh || sh->type != special_handle_type::Http)` raises error 52, as `func__connected` tests.
-- **Here:** `QB64PE-DIVERGENCES.md` D-051; the edit `tools/libqb/edits/d051-statuscode-missing-handle.edit`.
+- **Here:** `DIVERGENCES-QB64PE.md` D-051; the edit `tools/libqb/edits/d051-statuscode-missing-handle.edit`.
 - **Sent:** not yet.
 
 ## Division by zero cannot be trapped
@@ -130,7 +130,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   (no text for 11); `internal/c/qbx.cpp`, `division_by_zero_handler`.
 - **Fix:** drop 11 from the critical switch and give it its text; keep the SIGFPE handler fatal through a function
   of its own (returning from it would run the faulting division again).
-- **Here:** `QB64PE-DIVERGENCES.md` D-052; the edits `tools/libqb/edits/d052-*.edit`.
+- **Here:** `DIVERGENCES-QB64PE.md` D-052; the edits `tools/libqb/edits/d052-*.edit`.
 - **Sent:** not yet.
 
 ## A bit number or shift count of 64 or more is undefined
@@ -140,7 +140,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   Measured in this repo: `verification\v58_f09_bits`, `v63_f1`.
 - **Where:** `internal/c/libqb/include/bitops.h`.
 - **Fix:** `b1 & 63` in the six functions, as `func__rol` and `func__ror` already mask.
-- **Here:** `QB64PE-DIVERGENCES.md` D-053; the edit `tools/libqb/edits/d053-bit-numbers-modulo-64.edit`.
+- **Here:** `DIVERGENCES-QB64PE.md` D-053; the edit `tools/libqb/edits/d053-bit-numbers-modulo-64.edit`.
 - **Sent:** not yet.
 
 ## A program ended by a runtime error exits with code 0
@@ -154,7 +154,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Fix:** `exit_code = 1` before `end()` in `fix_error`'s "no" path, and `libqb_exit(1)` in
   `exit_after_fatal_error`. A program that goes on after the error (`QB64PE_NOPROMPT=continue`, "yes") keeps the
   code its end gives.
-- **Here:** `QB64PE-DIVERGENCES.md` D-012; the edits `tools/libqb/edits/d012-error-exit-code*.edit` (which also
+- **Here:** `DIVERGENCES-QB64PE.md` D-012; the edits `tools/libqb/edits/d012-error-exit-code*.edit` (which also
   write this project's run-time trace, a part not to offer).
 - **Sent:** not yet.
 
@@ -169,7 +169,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   for `SendInput`'s 0..65535.
 - **Fix:** scale by `func__desktopwidth()` and `func__desktopheight()` (GLFW's video mode), keeping the rectangle
   where they are 0 (a `$CONSOLE:ONLY` program).
-- **Here:** `QB64PE-DIVERGENCES.md` D-056; the edit `tools/libqb/edits/d056-screenclick-display-scale.edit`.
+- **Here:** `DIVERGENCES-QB64PE.md` D-056; the edit `tools/libqb/edits/d056-screenclick-display-scale.edit`.
 - **Sent:** not yet.
 
 ## `SOUND` can corrupt the heap
@@ -185,7 +185,7 @@ when one is, its entry says where (issue or pull request) and what came of it.
   on one `std::vector`.
 - **Fix:** `libqb_mutex_guard lock(pRawStream->m);` at the start of the callback's branch that reads the buffers.
   With it, 0 of 380 runs crashed.
-- **Here:** `QB64PE-DIVERGENCES.md` D-062; the edit `tools/libqb/edits/d062-raw-stream-lock.edit`.
+- **Here:** `DIVERGENCES-QB64PE.md` D-062; the edit `tools/libqb/edits/d062-raw-stream-lock.edit`.
 - **Sent:** not needed. Upstream added the same line in `50c371e13` ("Various fixes (#800)", 2026-10-28), after
   the reference commit.
 
@@ -195,6 +195,6 @@ Bugs this project fixes in the `CONST` evaluator (built by `const-rulings`), whi
 ruled to be sent; listed so they are not forgotten):
 
 - Values beyond `_INTEGER64` in a `CONST` clamped, and the four limits `_INTEGER64_MIN`, `_OFFSET_MIN`,
-  `_UINTEGER64_MAX`, `_UOFFSET_MAX` wrong by it (`QB64PE-DIVERGENCES.md` D-027).
+  `_UINTEGER64_MAX`, `_UOFFSET_MAX` wrong by it (`DIVERGENCES-QB64PE.md` D-027).
 - `^` of two integers in a `CONST` rounded to an integer, `2 ^ -1` being 0 (D-028).
 - A `CONST` beyond `_FLOAT` range being 0 or "Unexpected element 'INF'" (D-029).

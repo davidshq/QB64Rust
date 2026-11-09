@@ -19,7 +19,7 @@ Standing rules: CLAUDE.md. What this change does differently: the always-on fixe
 ## 2. The libqb edits
 
 Each task: its edit files under `tools\libqb\edits\` (design D1), `libqb\SOURCE.md`'s list, `copy_libqb.py` run,
-its `QB64PE-DIVERGENCES.md` row (D-048 to D-053), its `UPSTREAM.md` section, and the programs that change moved as
+its `DIVERGENCES-QB64PE.md` row (D-048 to D-053), its `UPSTREAM.md` section, and the programs that change moved as
 design D8 says. Verify for each: `python tools\libqb\copy_libqb.py --check` passes, its `v63` programs and the
 row's older programs pass or `KFAIL` with the new reason (run with `--glob`), and tier 1 passes.
 
@@ -40,7 +40,7 @@ row's older programs pass or `KFAIL` with the new reason (run with `--glob`), an
 ## 3. The switched fix
 
 - [x] 3.1 `bit-number-check` (design D7): `Fix::BitNumberCheck` in `crates\base\src\fixes.rs`, appended; the
-  wrapper in `codegen-cpp` `builtins.rs` and `qbr_bit_number` in the prelude; its row in `QB64PE-DIVERGENCES.md`'s
+  wrapper in `codegen-cpp` `builtins.rs` and `qbr_bit_number` in the prelude; its row in `DIVERGENCES-QB64PE.md`'s
   table "Fixes behind the switch"; the sidecar `tests\verification\fixed\v63_<name>.out.txt`; the CLI test of
   "The list" (eight lines). Verify: the program passes with the fixes off and with them on, `cargo test -p
   qb64rust-base` and `-p qb64rust-codegen-cpp` pass, and tier 1 passes.

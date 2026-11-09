@@ -244,7 +244,7 @@ impl<'a> Emitter<'a> {
         }
         // A FUNCTION `f$n`: a copy of its n bytes, made before the epilogue releases the static pool they lie in (the
         // old compiler returns the fixed string itself, so a second call in the same expression overwrites the first
-        // result: `QB64PE-DIVERGENCES.md` D-014).
+        // result: `DIVERGENCES-QB64PE.md` D-014).
         if let Some(r) = proc.result
             && let Ty::FixedStr(len) = self.p.var(r).ty
         {

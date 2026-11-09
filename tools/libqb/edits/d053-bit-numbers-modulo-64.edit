@@ -1,4 +1,4 @@
-# A bit number or shift count is taken modulo 64 (QB64PE-DIVERGENCES.md D-053, UPSTREAM.md "A bit number or shift
+# A bit number or shift count is taken modulo 64 (DIVERGENCES-QB64PE.md D-053, UPSTREAM.md "A bit number or shift
 # count of 64 or more is undefined"; study\39 rows 17, 18; CLAUDE.md working rule 12). QB64pe shifts by the count as
 # given, undefined in C++ outside 0 to 63: with the count in a variable x86 masks it to its low 6 bits
 # (verification\v58_f09_bits), while g++ folds a constant count to another value. Here the count is masked, so a

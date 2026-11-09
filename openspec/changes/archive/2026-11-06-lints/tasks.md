@@ -70,7 +70,7 @@ Standing rules: CLAUDE.md.
       with $DEBUG mode" only if 5.1 shows it outside the IDE. Settle the overlap with `used-once` (spec, "One
       warning per variable"). Verify with a CLI test that compares our `-w` lines with the recorded ones for each
       `v68` program, and with frontend `warnings` snapshots.
-- [x] 5.3 Add a `QB64PE-DIVERGENCES.md` row only for a difference 5.1 found that we keep. Verify the row names
+- [x] 5.3 Add a `DIVERGENCES-QB64PE.md` row only for a difference 5.1 found that we keep. Verify the row names
       its `v68` program.
 
 ## 6. Measure and close

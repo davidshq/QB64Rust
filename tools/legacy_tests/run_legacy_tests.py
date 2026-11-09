@@ -74,7 +74,7 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     error in the test
   * every run (also in the compile suite) has QB64RUST_DIVERGENCES naming a fresh file in the
     results folder, where a program built by the new compiler writes D-0nn the first time it takes
-    the path of that row of QB64PE-DIVERGENCES.md; when checking, a row that <name>.divergences (one
+    the path of that row of DIVERGENCES-QB64PE.md; when checking, a row that <name>.divergences (one
     D-0nn per line, '#' starts a comment) does not list fails the program (stage "divergences").
     A compile-suite program's sidecar is tests/upstream/divergences/<category>/<name>.divergences
   * --record compiles once, runs twice, and writes .output (or .err for a failed compile)
@@ -138,7 +138,7 @@ it records, with any other compiler it compares (format_corpus_test):
   * comparing: every recording under tests/format is formatted from its source in the same way
     (upstream with --include-root tests/upstream/root); it passes when the exit code is 0 and the
     output equals the recording with line endings taken as LF, or when it differs and the
-    recording's <name>.divergences names a row of QB64PE-DIVERGENCES.md. Nothing is written into
+    recording's <name>.divergences names a row of DIVERGENCES-QB64PE.md. Nothing is written into
     tests/format. --jobs, --category (a set) and --glob apply
   * the other layout settings (m5b-format-settings): each program tests/format/settings.list names
     (<set>/<path within the set>, '#' comments) is also recorded and compared under each variant of
@@ -1037,7 +1037,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
         return fail("result", "program output differs from .output")
     odd = unexpected_rows(trace, allowed_rows(sidecar))
     if odd:
-        return fail("divergences", "took " + ", ".join(odd) + " of QB64PE-DIVERGENCES.md")
+        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES-QB64PE.md")
     if remembered:
         remembered.parent.mkdir(parents=True, exist_ok=True)
         remembered.touch()
@@ -1372,7 +1372,7 @@ def format_corpus_test(
     differs from what is there other than by CRLF against LF. With another compiler, path is the
     recording; the source is the file at the same path in the set, and the program passes when the
     output equals the recording with line endings taken as LF, or when it differs and the
-    recording's <name>.divergences names a row of QB64PE-DIVERGENCES.md.
+    recording's <name>.divergences names a row of DIVERGENCES-QB64PE.md.
 
     Under another setting (path under format_root/settings/<variant>/, design D1 of m5b-format-settings), with
     either compiler, path is the recording, written or not: the source is formatted with that variant's flags,
@@ -1507,7 +1507,7 @@ def apply_normalize(data: bytes, rules: list[tuple[re.Pattern, str]]) -> bytes:
 
 # The run-time trace of divergences (m3-divergence-trace): a program built by the new compiler appends a line
 # D-0nn to the file this variable names the first time in a run that it takes the path of that row of
-# QB64PE-DIVERGENCES.md; the old compiler's programs know nothing of it. Every run of the corpus and compile suites sets
+# DIVERGENCES-QB64PE.md; the old compiler's programs know nothing of it. Every run of the corpus and compile suites sets
 # it, and a row that the program's <name>.divergences does not list fails the run.
 TRACE_ENV = "QB64RUST_DIVERGENCES"
 
@@ -1544,7 +1544,7 @@ def unexpected_rows(trace: Path, allowed: set[str]) -> list[str]:
     return [row for row in traced_rows(trace) if row not in allowed and row != D012]
 
 
-# QB64PE-DIVERGENCES.md D-012 (OpenSpec change basic-unit-tests, design D2): a program of the new compiler that a
+# DIVERGENCES-QB64PE.md D-012 (OpenSpec change basic-unit-tests, design D2): a program of the new compiler that a
 # runtime error ends exits with 1 and traces D-012, where the old compiler's exits 0. One rule for every suite in
 # place of a sidecar per program: with D-012 in the trace, a wanted 0 is a wanted 1; without it, the recorded
 # code stands. A recording with qb64pe.exe sets the trace but its programs never write to it.
@@ -2158,7 +2158,7 @@ def corpus_test(
         return fail("result", "program output differs from .output")
     odd = unexpected_rows(trace, allowed_rows(tdir / f"{name}.divergences"))
     if odd:
-        return fail("divergences", "took " + ", ".join(odd) + " of QB64PE-DIVERGENCES.md")
+        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES-QB64PE.md")
     if full_states:
         return fail("screen", f"--full-states: the states are in {state_out.name}, not compared")
     if screen and norm_output(screen_file.read_bytes()) != norm_output(states[0]):
@@ -2638,7 +2638,7 @@ def fixed_sidecar(name: str) -> Path:
 
 def diverged_sidecar(name: str, kind: str = "out") -> Path:
     """The output (kind "out") or log (kind "log") our compiler gives for a program that differs from QB64pe on
-    purpose, by a row of QB64PE-DIVERGENCES.md. Written by hand after a review, never by a run. When it exists,
+    purpose, by a row of DIVERGENCES-QB64PE.md. Written by hand after a review, never by a run. When it exists,
     the compare judges the program by it in place of QB64pe's recording (OpenSpec change known-output, design
     D1)."""
     return VERIFICATION_LISTS / "diverged" / f"{name}.{kind}.txt"
@@ -2850,7 +2850,7 @@ def verification_compare(
         return fail("log", f"differs from {log_file.name}, {first_difference(recorded_log, got_log)}")
     odd = unexpected_rows(trace, allowed_rows(divergences))
     if odd:
-        return fail("divergences", "took " + ", ".join(odd) + " of QB64PE-DIVERGENCES.md")
+        return fail("divergences", "took " + ", ".join(odd) + " of DIVERGENCES-QB64PE.md")
     if remembered:
         remembered.parent.mkdir(parents=True, exist_ok=True)
         remembered.touch()

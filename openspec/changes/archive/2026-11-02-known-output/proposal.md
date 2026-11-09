@@ -3,7 +3,7 @@
 ## Why
 
 124 verification programs are on `tests\verification\known.list` because the new compiler differs from QB64pe on
-purpose, by a row `D-0nn` of `QB64PE-DIVERGENCES.md`. The runner never checks what our compiler prints for them. A
+purpose, by a row `D-0nn` of `DIVERGENCES-QB64PE.md`. The runner never checks what our compiler prints for them. A
 regression in any of these 124 programs goes unseen, whether in the divergent line itself or in the lines around
 it that match QB64pe. This is `TODO.md` row 1.
 
@@ -24,7 +24,7 @@ it that match QB64pe. This is `TODO.md` row 1.
   checked against QB64pe's recording. Every line that differs must be explained by the program's D row. A
   program whose output differs in any other way stays on `known.list`, as a bug.
 - Tier 1 checks the sidecars: each names a program of the suite on `pass.list`, with a `.divergences` file that
-  names rows of `QB64PE-DIVERGENCES.md`.
+  names rows of `DIVERGENCES-QB64PE.md`.
 - Not built: judging a program recorded as a timeout after 10 s instead of 60. The row expected this to save
   about 17% of a full run's program time. That was true on 2026-10-27. Since D-048 and D-036 were built, none
   of the 13 programs recorded as timeouts runs to a timeout with our compiler. In the last full run

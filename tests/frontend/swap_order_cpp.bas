@@ -1,6 +1,6 @@
 ' TEST: cpp
 $CONSOLE:ONLY
-' SWAP of places whose indexes call a FUNCTION (QB64PE-DIVERGENCES.md D-054, spec language/evaluation-order): the
+' SWAP of places whose indexes call a FUNCTION (DIVERGENCES-QB64PE.md D-054, spec language/evaluation-order): the
 ' place the call takes first is held in a seqN temporary, so that the FUNCTIONs run left to right whatever the C++
 ' compiler's order of arguments; for a TYPE the second place first, as its call takes them. With no FUNCTION in an
 ' index the call is the old compiler's.

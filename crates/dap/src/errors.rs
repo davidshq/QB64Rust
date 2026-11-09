@@ -79,7 +79,7 @@ pub const TEXTS: &[(i64, &str)] = &[
 ];
 
 /// The critical errors, which `error` reports with a text of their own and no handler. Error 11 is not one in this
-/// copy of libqb (`QB64PE-DIVERGENCES.md` D-052): it is in [`TEXTS`].
+/// copy of libqb (`DIVERGENCES-QB64PE.md` D-052): it is in [`TEXTS`].
 pub const CRITICAL: &[(i64, &str)] = &[
     (256, "Out of stack space"),
     (259, "Cannot find dynamic library file"),

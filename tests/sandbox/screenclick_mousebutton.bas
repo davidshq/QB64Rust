@@ -1,6 +1,6 @@
 ' _SCREENCLICK on the program's own window, read back by _MOUSEINPUT and _MOUSEBUTTON (tests/sandbox/README.md).
 ' libqb scales the desktop's place to 0..65535 with the desktop's size, so the place read back may be a pixel off
-' by the sandbox's window size, and at a display scale of 125% it was 2 pixels off across (QB64PE-DIVERGENCES.md
+' by the sandbox's window size, and at a display scale of 125% it was 2 pixels off across (DIVERGENCES-QB64PE.md
 ' D-056): printed as within 2 pixels.
 SCREEN _NEWIMAGE(320, 200, 32)
 _DELAY 1

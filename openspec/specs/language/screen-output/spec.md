@@ -162,7 +162,7 @@ of one, a name never declared, and an array of strings, of fixed-length strings 
 element or a member of one: each SHALL pass the bytes the old compiler's program passes (a string its characters,
 a member the bytes from it to the end of its variable or array, a name alone that is an array of strings or of
 fixed-length strings the scalar of that name). An index that calls a FUNCTION there SHALL be evaluated once, as
-in QB 4.5 and PDS 7.1; the old compiler evaluates it twice (`QB64PE-DIVERGENCES.md` D-061). A `TYPE` that holds a
+in QB 4.5 and PDS 7.1; the old compiler evaluates it twice (`DIVERGENCES-QB64PE.md` D-061). A `TYPE` that holds a
 `STRING` (whose pointers the old compiler would overwrite) SHALL be reported "not supported yet". A `_BIT`
 array or element there SHALL be a compile error, as the old compiler rejects it ("Variable/element cannot be _BIT
 aligned").

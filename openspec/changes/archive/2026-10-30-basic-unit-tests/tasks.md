@@ -18,7 +18,7 @@ command and is closed in the same change; the recordings of `qb64pe.exe` are not
   `an_error_that_ends_the_program_traces_nothing` and every other CLI test that expects success or exit 0 after
   an untrapped error (found by `cargo test -p qb64rust-driver --test cli`). Verify: `cargo test -p
   qb64rust-driver --test cli` passes, the run logged to `target\t-cli.log`.
-- [x] 1.4 `QB64PE-DIVERGENCES.md` D-012: the new value, "Traced" in the trace paragraph, its tests in the last
+- [x] 1.4 `DIVERGENCES-QB64PE.md` D-012: the new value, "Traced" in the trace paragraph, its tests in the last
   column; `vscode\CHANGELOG.md`'s unreleased section has a line on the exit code. Verify: the row names the CLI
   tests of 1.3.
 

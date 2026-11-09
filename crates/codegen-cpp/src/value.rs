@@ -217,7 +217,7 @@ impl Emitter<'_> {
             } => {
                 let block = self.mem_of(of, *element);
                 if *lock_slot0 {
-                    // The old compiler reads the lock from slot 0 here (`QB64PE-DIVERGENCES.md` D-016).
+                    // The old compiler reads the lock from slot 0 here (`DIVERGENCES-QB64PE.md` D-016).
                     format!("(qbr_diverged(16),{block})")
                 } else {
                     block
@@ -232,7 +232,7 @@ impl Emitter<'_> {
             ExprKind::Convert { how, from } => {
                 let x = self.value(from);
                 // `_CAST` from a float to an integer type: what x86-64 gives a variable (`study\39` row 16,
-                // `QB64PE-DIVERGENCES.md` D-047), where the old compiler's C++ cast is undefined out of range and g++
+                // `DIVERGENCES-QB64PE.md` D-047), where the old compiler's C++ cast is undefined out of range and g++
                 // folds a constant to another value (`verification\v62_h2`, `v49_x18`).
                 let cast = match v.ty {
                     Ty::I8 | Ty::U8 | Ty::I16 | Ty::U16 | Ty::I32 => Some("qbr_cast_f_i32"),

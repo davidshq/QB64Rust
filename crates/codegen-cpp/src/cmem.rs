@@ -41,7 +41,7 @@ impl Emitter<'_> {
                  memset({n}->chr,0,{k});\n}}\n"
             ),
             // Its strings are made as in ordinary memory, where the old compiler leaves them out and its program
-            // crashes at the first use of one (`qb64pe.bas` 17790–17852; `QB64PE-DIVERGENCES.md` D-037).
+            // crashes at the first use of one (`qb64pe.bas` 17790–17852; `DIVERGENCES-QB64PE.md` D-037).
             Ty::User(_) => {
                 let size = self.ty_size(v.ty);
                 let mut strings = self.new_value(v.ty, &format!("(char*){n}"));
@@ -189,7 +189,7 @@ impl Emitter<'_> {
     /// string's characters, a number's bytes, a fixed-length string's characters, and from a place in a user type
     /// or in an array of fixed-length strings or of a user type the bytes to the end of its variable or array.
     /// The string or the offset is written twice, as the old compiler writes it; where an index calls a procedure
-    /// it is first held in a temporary, so that the index is evaluated once, as in QB 4.5 (`QB64PE-DIVERGENCES.md`
+    /// it is first held in a temporary, so that the index is evaluated once, as in QB 4.5 (`DIVERGENCES-QB64PE.md`
     /// D-061, as [`Self::block`]). Where a later part of the call must come after it, the whole call is held
     /// (`order.rs`, [`crate::order::Bytes`]) and this is its temporary.
     ///

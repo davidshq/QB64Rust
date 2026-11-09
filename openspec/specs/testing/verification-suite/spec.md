@@ -77,7 +77,7 @@ SHALL NOT be part of the key. A program on `known.list` as `varies` SHALL never 
 - **THEN** the next run with `--pass-cache` builds and runs every program again
 
 ### Requirement: Divergences and normalisation of a compared program
-A run of the compare SHALL name a fresh trace file in `QB64RUST_DIVERGENCES`. A row of `QB64PE-DIVERGENCES.md` that
+A run of the compare SHALL name a fresh trace file in `QB64RUST_DIVERGENCES`. A row of `DIVERGENCES-QB64PE.md` that
 `tests\verification\divergences\<name>.divergences` does not list SHALL fail the program. When
 `tests\verification\normalize\<name>.normalize` exists, its rules SHALL be applied to both the recorded and the
 actual output before they are compared.
@@ -90,7 +90,7 @@ actual output before they are compared.
 `tests\verification\pass.list` SHALL name programs that the new compiler passes, and comparing it SHALL pass
 every one. A program of `pass.list` with a `diverged\` sidecar passes by that sidecar. `tests\verification\known.list`
 SHALL name every other program of `verification\`, each with a reason:
-a row of `QB64PE-DIVERGENCES.md`, "not supported yet", "varies", "not recorded" (no `<name>.out.txt`), "recorded
+a row of `DIVERGENCES-QB64PE.md`, "not supported yet", "varies", "not recorded" (no `<name>.out.txt`), "recorded
 elsewhere" (recorded with another `--verification-root`), or "bug: <what>". No program SHALL be in both lists or
 in neither. A program of `known.list` that passes in a full compare SHALL be reported so that it can move to
 `pass.list`, unless its reason is "varies".
@@ -314,7 +314,7 @@ A `diverged\<name>.out.txt` that holds `(not compiled)` SHALL pass only when the
 ### Requirement: The diverged sidecars are checked
 Tier 1 SHALL fail when a file of `tests\verification\diverged\` is not `<name>.out.txt` or `<name>.log.txt` of a
 program of the suite, when that program is not on `pass.list`, when a `.log.txt` has no `.out.txt` beside it,
-or when the program has no `divergences\<name>.divergences` naming at least one row of `QB64PE-DIVERGENCES.md`.
+or when the program has no `divergences\<name>.divergences` naming at least one row of `DIVERGENCES-QB64PE.md`.
 
 #### Scenario: No divergences file
 - **WHEN** `diverged\v04_accidental.out.txt` exists and `divergences\v04_accidental.divergences` does not

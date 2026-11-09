@@ -38,7 +38,7 @@ Source is bytes throughout (`study\archive\15` §1): files are never converted t
 columns in diagnostics are byte columns. A real error whose wording by the old compiler is known from recorded
 output is followed by `note: QB64pe: <its wording>` (`base\src\old_wording.rs`, the table written by
 `tools\diagnostics\old_wording.py`; `m3-old-wording-notes`). A program built here writes the rows of
-`QB64PE-DIVERGENCES.md` whose paths it takes to the file `QB64RUST_DIVERGENCES` names (`m3-divergence-trace`).
+`DIVERGENCES-QB64PE.md` whose paths it takes to the file `QB64RUST_DIVERGENCES` names (`m3-divergence-trace`).
 
 ## Lints
 

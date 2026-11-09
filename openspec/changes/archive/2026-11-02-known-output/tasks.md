@@ -21,7 +21,7 @@ Standing rules: CLAUDE.md.
 ## 2. The tier-1 check
 
 - [x] 2.1 `crates\driver\tests\it\inputs.rs`, `verification_lists_are_exact`: the checks of the spec's "The diverged
-      sidecars are checked" (design D2), the D rows read from `docs\QB64PE-DIVERGENCES.md`. Verified by
+      sidecars are checked" (design D2), the D rows read from `docs\DIVERGENCES-QB64PE.md`. Verified by
       `cargo test -p qb64rust-driver --test it inputs::` passing with no sidecar, then failing (and reverted) on a
       sidecar with no `.divergences`, a sidecar of a program still on `known.list`, and a stray file in the folder.
 - [x] 2.2 `counts.py`: the membership block counts the programs of `pass.list` judged by a sidecar (design D6).

@@ -1,6 +1,6 @@
 $CONSOLE
 $SCREENHIDE
-' Slice (QB64PE-DIVERGENCES.md D-061): a FUNCTION in the index of the array of graphics GET and PUT is called
+' Slice (DIVERGENCES-QB64PE.md D-061): a FUNCTION in the index of the array of graphics GET and PUT is called
 ' once, as in QB 4.5 and PDS 7.1 (verification\qb45\q45_get_put_index_call). QB64pe calls it twice
 ' (verification\v66_a19). An array of numbers, an element of an array of strings and of a TYPE, a member of
 ' one, two dimensions, and an index outside the bounds. Lines [9] and [10] have a FUNCTION in the omit color

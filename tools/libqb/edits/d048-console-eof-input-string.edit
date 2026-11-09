@@ -1,5 +1,5 @@
 # INPUT$(n) with no file number in a console program reads a redirected input, and raises error 62 at its end
-# (QB64PE-DIVERGENCES.md D-048, UPSTREAM.md "Console input waits for ever at the end of a redirected input";
+# (DIVERGENCES-QB64PE.md D-048, UPSTREAM.md "Console input waits for ever at the end of a redirected input";
 # study\39 row 2). QB64pe's func_input reads the keyboard buffer, which only console events fill, so with standard
 # input from a file, a pipe or the null device it waits for ever (verification\v63_a3, a4). Here, when the output is
 # the console and standard input is not one, the n bytes are read from it, and at its end error 62 is raised with what

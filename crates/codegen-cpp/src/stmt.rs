@@ -71,7 +71,7 @@ impl Emitter<'_> {
                 out.push("end();".into());
             }
             // `qb64pe.bas` 9918–9919. In a program with `SUB _GL`, `STOP` inside it ends with error 271 as `END` and
-            // `SYSTEM` do there, where the old compiler's program hangs (`QB64PE-DIVERGENCES.md` D-036; measured,
+            // `SYSTEM` do there, where the old compiler's program hangs (`DIVERGENCES-QB64PE.md` D-036; measured,
             // `verification\v59_f9`); every other program's C++ is the old compiler's.
             Op::Stop => {
                 if self.p.settings.runtime_parts.contains(&qb64rust_ir::RuntimePart::Gl) {
@@ -140,7 +140,7 @@ impl Emitter<'_> {
             // `m4-statements-metacommands`): from a procedure a label is reached through a new run of the main
             // module and an entry of `runline.txt`, which `QBMAIN` includes at its start.
             Op::Run(RunTarget::File(f)) => out.push(format!("sub_run({});", self.value(f))),
-            // In a procedure (`study\39` row 14, `QB64PE-DIVERGENCES.md` D-046), where the old compiler calls `QBMAIN`
+            // In a procedure (`study\39` row 14, `DIVERGENCES-QB64PE.md` D-046), where the old compiler calls `QBMAIN`
             // again inside the procedure, so the stack grows with each `RUN` and the procedures' strings stay
             // (`verification\v62_g1`: "Out of stack space" after about 2,400 runs from a SUB): the target is kept,
             // every active procedure is left through its exit, and the main module runs the `RUN` (`procs.rs`
@@ -184,7 +184,7 @@ impl Emitter<'_> {
                 out.push(format!("sub_paletteusing({bytes},{bits});"));
             }
             // In a procedure, `RESUME` and `RESUME NEXT` leave it through its exit, as `EXIT SUB` does, so that its
-            // strings are freed and the locks of its locals released (`study\39` row 13, `QB64PE-DIVERGENCES.md`
+            // strings are freed and the locks of its locals released (`study\39` row 13, `DIVERGENCES-QB64PE.md`
             // D-045); the old compiler's bare `return;` skips that (`verification\v62_f5`). In the main module,
             // `return` leaves the handler's `evnt` call as the old compiler's does.
             Op::Resume(r) => {
@@ -279,7 +279,7 @@ impl Emitter<'_> {
                 self.returns = true;
                 out.push(format!("#include \"ret{}.txt\"", self.k));
             }
-            // The decrement is guarded, unlike the old compiler's, whose counter wrapped below zero (QB64PE-DIVERGENCES.md
+            // The decrement is guarded, unlike the old compiler's, whose counter wrapped below zero (DIVERGENCES-QB64PE.md
             // D-003).
             Op::Return(Some(l)) => {
                 out.push("if (!next_return_point){qbr_diverged_on(3);error(3);} else next_return_point--;".into());
@@ -620,7 +620,7 @@ impl Emitter<'_> {
     /// store is one call whose first argument, the place, is evaluated first). Each index is checked against
     /// its dimension, outermost first. The store is skipped when an index is out of range or the indexes
     /// raised an error while none was pending before them; the old compiler writes position 0 of that dimension
-    /// then (`QB64PE-DIVERGENCES.md` D-004). The block's own variables are in braces, so no `goto` crosses their
+    /// then (`DIVERGENCES-QB64PE.md` D-004). The block's own variables are in braces, so no `goto` crosses their
     /// initialisation.
     fn store_through_member(
         &mut self,

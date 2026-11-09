@@ -1,6 +1,6 @@
 ' TEST: cpp
 $CONSOLE:ONLY
-' A FUNCTION in the index of the array of graphics GET and PUT (QB64PE-DIVERGENCES.md D-061): the position is
+' A FUNCTION in the index of the array of graphics GET and PUT (DIVERGENCES-QB64PE.md D-061): the position is
 ' held in a temporary seqN, so the FUNCTION is called once, as in QB 4.5. An array of numbers (block), of two
 ' dimensions, an element of an array of strings and a member of an element of a TYPE array (rest_bytes). The two
 ' lines with a FUNCTION in the omit color too hold the whole byte_element call in a void* seqN first, so the

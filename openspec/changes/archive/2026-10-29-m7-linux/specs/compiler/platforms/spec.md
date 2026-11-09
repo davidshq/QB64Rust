@@ -36,7 +36,7 @@ names), a Linux build SHALL write the Linux form. Everything else SHALL be the s
 
 ### Requirement: A program behaves as QB64pe's on its platform
 A program built on Linux SHALL behave as the same program built by QB64pe 4.7.0 at the reference commit on Linux,
-apart from the rows of `QB64PE-DIVERGENCES.md`. Where QB64pe's Linux and Windows builds differ, the Linux build
+apart from the rows of `DIVERGENCES-QB64PE.md`. Where QB64pe's Linux and Windows builds differ, the Linux build
 SHALL follow QB64pe's Linux build. `_OS$` SHALL report `[LINUX][64BIT]`.
 
 #### Scenario: Comma zones on the Linux console

@@ -41,7 +41,7 @@ too. It lands on branch `after-pr25` before that branch is merged into `main`.
 
   The Linux run in task 4 confirms both.
 - **On Linux, QB64Rust no longer behaves as QB64pe's Linux build** where the order shows. A new
-  `QB64PE-DIVERGENCES.md` row records this.
+  `DIVERGENCES-QB64PE.md` row records this.
 
 ## Capabilities
 
@@ -66,6 +66,6 @@ too. It lands on branch `after-pr25` before that branch is merged into `main`.
   as before on Windows.
 - **Tests.** The new `v69` family; the sidecars and `known.linux.list` rows above deleted; unit tests in
   `codegen-cpp`.
-- **Records.** A `QB64PE-DIVERGENCES.md` row, a `DECISIONS.md` row, the `SOMEDAY.md` row removed, the `ROADMAP.md`
+- **Records.** A `DIVERGENCES-QB64PE.md` row, a `DECISIONS.md` row, the `SOMEDAY.md` row removed, the `ROADMAP.md`
   item ticked, `STATUS.md`'s "Next", the line in `verification\README.md` about these programs, and the merged
   specs.

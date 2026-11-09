@@ -11,7 +11,7 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 |---|---|
 | What a change did, task by task, and what was found on the way | the change's `tasks.md` and `design.md` under `openspec\changes\` (archived ones in `archive\`), and `git log` |
 | A measured fact about the old compiler | the family's recorded output and its line in `verification\README.md`; the families up to `v45` also in `study\00` §5 (closed to new facts, `CLAUDE.md` working rule 7) |
-| A decision | `DECISIONS.md`; a decided difference from QB64pe: `QB64PE-DIVERGENCES.md` |
+| A decision | `DECISIONS.md`; a decided difference from QB64pe: `DIVERGENCES-QB64PE.md` |
 | What the compiler supports | the merged specs under `openspec\specs\` (an index by area: `crates\README.md`, "What the compiler supports"); how a change built it: its `design.md` |
 | How to build and test it | `crates\README.md`; per test set: `tests\*\README.md` |
 | Milestones, done and not done | `ROADMAP.md` (open), `ROADMAP-COMPLETED.md` (done) |

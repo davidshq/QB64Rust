@@ -1,4 +1,4 @@
-# Declares fatal_division_by_zero() for qbx.cpp's SIGFPE handler (QB64PE-DIVERGENCES.md D-052; study\39 row 12;
+# Declares fatal_division_by_zero() for qbx.cpp's SIGFPE handler (DIVERGENCES-QB64PE.md D-052; study\39 row 12;
 # d052-division-fatal-entry.edit).
 file: internal/c/libqb/include/error_handle.h
 --- old

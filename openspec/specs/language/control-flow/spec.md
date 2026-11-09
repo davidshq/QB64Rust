@@ -36,7 +36,7 @@ SHALL be found again, its indexes evaluated, wherever the old compiler's loop na
 `NEXT` for the step and for the test), so that a change of an index in the body moves the loop to another
 element (`verification\v56_f3`). An error raised there SHALL not stop the test, which takes the value, and SHALL
 be serviced at the `FOR` line before the body, so that `RESUME NEXT` goes on into the body, as in the old
-compiler (`v60_c3`; its store out of range is `QB64PE-DIVERGENCES.md` D-004).
+compiler (`v60_c3`; its store out of range is `DIVERGENCES-QB64PE.md` D-004).
 
 #### Scenario: A member as the variable
 - **WHEN** a `TYPE t` has `v AS LONG`, and `DIM r AS t: FOR r.v = 1 TO 2: PRINT r.v: NEXT` runs
@@ -587,7 +587,7 @@ file cannot be started it SHALL raise error 53, and the program SHALL go on afte
 ### Requirement: RUN leaves the active procedures first
 A `RUN` reached inside a SUB or FUNCTION SHALL first leave every active procedure through its exit path (as `END`
 from a procedure does), so that a program which runs `RUN` from a SUB any number of times neither grows its stack
-nor keeps the procedures' strings, whatever the fixes (`study\39` row 14; a `QB64PE-DIVERGENCES.md` row).
+nor keeps the procedures' strings, whatever the fixes (`study\39` row 14; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: RUN from a SUB many times
 - **WHEN** a program keeps a counter in its process's environment (`ENVIRON`, which `RUN` does not clear) and runs
@@ -596,7 +596,7 @@ nor keeps the procedures' strings, whatever the fixes (`study\39` row 14; a `QB6
 
 ### Requirement: RUN in a console-only program
 In a `$CONSOLE:ONLY` program, the output after `RUN`, `RUN label` or `RUN line` SHALL go to the console as at the
-first start, whatever the fixes (`study\39` row 14; a `QB64PE-DIVERGENCES.md` row).
+first start, whatever the fixes (`study\39` row 14; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: Output after RUN label
 - **WHEN** a `$CONSOLE:ONLY` program prints `one`, runs `RUN again` once, and `again:` is followed by `PRINT "two"`

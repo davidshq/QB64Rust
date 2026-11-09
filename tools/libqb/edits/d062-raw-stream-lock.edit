@@ -1,4 +1,4 @@
-# The audio thread takes the raw stream's lock before it reads or swaps the stream's buffers (QB64PE-DIVERGENCES.md
+# The audio thread takes the raw stream's lock before it reads or swaps the stream's buffers (DIVERGENCES-QB64PE.md
 # D-062, UPSTREAM.md "SOUND can corrupt the heap"). SOUND, PLAY, _SNDRAW and _SNDRAWBATCH append samples to the
 # producer buffer of a RawStream while holding pRawStream->m. miniaudio's thread runs RawStream::OnRead, which
 # clears the consumer buffer and swaps the two without that lock. When the swap lands during an append, both

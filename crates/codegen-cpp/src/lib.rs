@@ -432,7 +432,7 @@ struct Emitter<'a> {
     runs: u32,
     run_lines: String,
     /// A procedure of the program holds a `RUN` that starts the program again (not `RUN file$`): the active procedures
-    /// are left first, and the main module runs it (`study\39` row 14, `QB64PE-DIVERGENCES.md` D-046; `stmt.rs`
+    /// are left first, and the main module runs it (`study\39` row 14, `DIVERGENCES-QB64PE.md` D-046; `stmt.rs`
     /// `Op::Run`). Only then is the code of that unwind written.
     unwind: bool,
     /// Handler labels; handler number N is entry N - 1.

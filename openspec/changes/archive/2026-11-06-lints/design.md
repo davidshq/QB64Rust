@@ -158,7 +158,7 @@ runs on the host.
 
 QB64pe gives none of our five warnings, so there is no recorded old-compiler output to match. The frontend
 snapshots are the recorded behavior. They are our own warnings, as the value trace is our own option, so there
-is no `QB64PE-DIVERGENCES.md` row. QB64pe's four are held to `v68`'s recorded output (D11): a CLI test compares
+is no `DIVERGENCES-QB64PE.md` row. QB64pe's four are held to `v68`'s recorded output (D11): a CLI test compares
 our `-w` lines with QB64pe's for each `v68` program, line and wording.
 
 ### D11. QB64pe's warnings: measured first, then built in its wording
@@ -191,7 +191,7 @@ too appear only for programs without errors.
 warning per variable"). If `v68` shows that QB64pe reports every implicit variable named once, `used-once` is
 left with no case of its own and is dropped. Which way it goes is written in "Found while building".
 
-These four follow QB64pe, so they need no `QB64PE-DIVERGENCES.md` row. A difference found while measuring, such
+These four follow QB64pe, so they need no `DIVERGENCES-QB64PE.md` row. A difference found while measuring, such
 as a column QB64pe does not print, is one.
 
 ## Risks / Trade-offs

@@ -339,7 +339,7 @@ SHALL NOT keep the arrays after it in the list from being allocated, a second al
 #### Scenario: Fewer than no element
 - **WHEN** `n = -3: DIM d(n) AS LONG` runs under the same handler, then `PRINT UBOUND(d)`
 - **THEN** the handler prints 5, then the handler prints 9: the array is not allocated (`study\39` row 3, always
-  on; a `QB64PE-DIVERGENCES.md` row; the old compiler ends with "Out of memory", which the handler does not receive)
+  on; a `DIVERGENCES-QB64PE.md` row; the old compiler ends with "Out of memory", which the handler does not receive)
 
 #### Scenario: Fix dim-empty-error
 - **WHEN** `n = -1: DIM d(n) AS LONG` and `DIM s(ASC("")) AS LONG` run under the same handler with the fix
@@ -726,7 +726,7 @@ module.
 procedure, `SHARED name(bounds)` with bounds, and `STATIC` in the main module SHALL be compile errors. `STATIC
 name(bounds)` beside a shared main-module **static** array of that name and type SHALL declare an array of the
 procedure's own, kept between calls, and leave the shared array untouched, as QuickBASIC 4.5 does
-(`verification\qb45\q45_static_local`; `study\39` row 4, always on; a `QB64PE-DIVERGENCES.md` row; the old compiler
+(`verification\qb45\q45_static_local`; `study\39` row 4, always on; a `DIVERGENCES-QB64PE.md` row; the old compiler
 ends the program at the start with "Duplicate definition", `verification\v24_x272`). Beside a shared **dynamic**
 array it SHALL name that array in the procedure, its allocation when the program starts being a second allocation
 of the shared array, after the array's own, as in the old compiler (`v55_d_static_shared`); with the fix
@@ -877,7 +877,7 @@ that name and type below it SHALL allocate the array when it runs (error 10 if i
 give it new bounds, and a use before either SHALL raise error 9. Its number of dimensions SHALL be that of the
 first index, `DIM` or `REDIM` that names it; `LBOUND` and `UBOUND` of it SHALL NOT fix that number. A `DIM`
 or `DIM SHARED` without `AS` of an array that `COMMON name() AS type` lists SHALL be a compile error ("AS clause required" in
-QuickBASIC 4.5 and PDS 7.1; `QB64PE-DIVERGENCES.md` D-063). A block name
+QuickBASIC 4.5 and PDS 7.1; `DIVERGENCES-QB64PE.md` D-063). A block name
 (`COMMON /name/ …`) SHALL be a compile error, as in the old compiler. `COMMON` inside a SUB or FUNCTION, and a second declaration of a `COMMON`
 scalar, SHALL be compile errors. `CHAIN` SHALL be reported "not supported yet".
 
@@ -957,7 +957,7 @@ assignment of member arrays", and as a side of `_ARRAYCOPY`, requirement "_ARRAY
 as an index after a member that is no array SHALL be. A store SHALL evaluate a numeric value before the indexes and a string value
 after them (as the old compiler's program does), the indexes from left to
 right, and SHALL store nothing when an index is outside its bounds (error 9; the old compiler writes element 0 of
-that dimension, `QB64PE-DIVERGENCES.md` D-004). The elements of a member array SHALL be part of the value of their
+that dimension, `DIVERGENCES-QB64PE.md` D-004). The elements of a member array SHALL be part of the value of their
 variable: counted by `LEN`, zero or empty when the variable is made, and each variable and each array element
 SHALL have its own. The bounds of a member array SHALL NOT change: `REDIM` of one SHALL be accepted only with
 constant bounds equal to the declared ones, written `lower TO upper` or with `AS` and the member's type (the
@@ -1159,11 +1159,11 @@ upper` in the first dimension or `AS` the member's type, and another type after 
 index with another number of dimensions than the member has now and a dimension it does not have in `LBOUND` or
 `UBOUND` SHALL raise error 9. A `REDIM` whose bounds are reversed at run time, or too large for memory, SHALL end
 the program with "Out of memory", as for an array (the old compiler gives a member too large an overflowed size
-and goes on, `QB64PE-DIVERGENCES.md`). Every use of the member, `LBOUND` and `UBOUND` included, SHALL find the place it
+and goes on, `DIVERGENCES-QB64PE.md`). Every use of the member, `LBOUND` and `UBOUND` included, SHALL find the place it
 is part of, evaluating its indexes once. An index outside its bounds on the way SHALL raise error 9, and the
 element at position 0 of that dimension SHALL then stand in, for `REDIM`, `ERASE`, a read, `LBOUND` and
 `UBOUND`, as in the old compiler; a store SHALL then store nothing (the old compiler stores into the member of
-element 0; as `QB64PE-DIVERGENCES.md` D-004).
+element 0; as `DIVERGENCES-QB64PE.md` D-004).
 
 An element SHALL be a place like an element of a dynamic array: in stores, as an argument by reference, in
 `SWAP`, `READ`, `INPUT`, `INPUT #`, `LINE INPUT #` and the `MID$` statement. The member written with empty
@@ -1350,7 +1350,7 @@ compiler takes it: an assignment of one element to one element (requirement "A w
 A member array written with empty parentheses (`x.v()`, `e(1).v()`, a `_DYNAMIC` member) SHALL be a side of a
 whole-array assignment with an array variable or another member array, with the same checks. The target's place
 SHALL be found before the source's, each once. If an index on the way raises an error, nothing SHALL be copied (the
-old compiler copies strings through the member of element 0, `QB64PE-DIVERGENCES.md` D-004).
+old compiler copies strings through the member of element 0, `DIVERGENCES-QB64PE.md` D-004).
 
 #### Scenario: Member to member, member to array and back
 - **WHEN** `y.v() = x.v(): a() = x.v(): x.v() = a()` runs for a type with `v(1 TO 3) AS LONG` and `a(1 TO 3) AS
@@ -1382,7 +1382,7 @@ source's, strings and nested owner types included, for a `DIM` and a `REDIM` tar
 variables with other bounds or shape it SHALL raise error 9 and then, as the old compiler does, copy the target's
 number of elements, element `i` of the target from element `i` of the source in order, the target keeping its
 bounds, when the source has at least that many elements; when it has fewer, or either is not allocated, nothing
-SHALL be copied (the old compiler reads past the source's block, `QB64PE-DIVERGENCES.md` D-022).
+SHALL be copied (the old compiler reads past the source's block, `DIVERGENCES-QB64PE.md` D-022).
 
 #### Scenario: Members with their own bounds
 - **WHEN** `dst() = src()` runs where `src(1).v` was given the bounds 3 to 5 and `src(1).v(4) = 44`, then
@@ -1398,7 +1398,7 @@ SHALL be copied (the old compiler reads past the source's block, `QB64PE-DIVERGE
 #### Scenario: Other bounds copy nothing
 - **WHEN** `e() = s()` runs for `s(1 TO 2)` and `e(1 TO 3)` of an owner type, under a handler that prints `ERR`
 - **THEN** the handler prints 9 and every element of `e` keeps its values (the old compiler copies three elements,
-  reading past `s`, `QB64PE-DIVERGENCES.md` D-022)
+  reading past `s`, `DIVERGENCES-QB64PE.md` D-022)
 
 ### Requirement: _ARRAYCOPY
 `_ARRAYCOPY source TO destination` SHALL copy elements of one array into another in one of six forms: `s() TO
@@ -1440,7 +1440,7 @@ Both sides SHALL have one element type: a number type, `_OFFSET`, `_UNSIGNED _OF
 or `STRING`. Each side SHALL be an array variable of any place (SHARED, local, STATIC, a parameter, COMMON,
 `$DYNAMIC`, used without `DIM`) or a member array, through any chain of members and elements, `_DYNAMIC` members
 included. A `_FLOAT` array variable SHALL be copied to a `_FLOAT` array variable element by element (the old
-compiler copies the wrong elements, `QB64PE-DIVERGENCES.md` D-025). A copy with a `_FLOAT` member array on either
+compiler copies the wrong elements, `DIVERGENCES-QB64PE.md` D-025). A copy with a `_FLOAT` member array on either
 side SHALL be made as the old compiler makes it (`verification\v41_m`).
 
 #### Scenario: _FLOAT member arrays
@@ -1472,7 +1472,7 @@ side SHALL be made as the old compiler makes it (`verification\v41_m`).
 The places on the way to member arrays SHALL be found first, the source's then the destination's, then every
 lower bound, then every upper bound, then the starts, each once and left to right. A bound or start SHALL be a
 number, rounded to an integer as an index is. If finding a place raises an error, nothing SHALL be copied (the old
-compiler copies through the member of the first element, `QB64PE-DIVERGENCES.md` D-004).
+compiler copies through the member of the first element, `DIVERGENCES-QB64PE.md` D-004).
 
 #### Scenario: Order
 - **WHEN** `_ARRAYCOPY tt(f(1)).b(f(2) TO f(3)) TO tt(f(2)).b(f(1))` and `_ARRAYCOPY m(f(1) TO f(2), f(3) TO f(3))
@@ -1833,7 +1833,7 @@ taking one item; `LEN(a())` keeps its meaning. Each place is a row of `SOMEDAY.m
 (every place but `LEN(a())` and the variables of the statements named) SHALL be a compile error at it, as in
 QuickBASIC 4.5 (`verification\qb45\q45_whole_array_value`; `study\39` row 6). Used whole while it has no storage (after
 `ERASE`, or a dynamic array never allocated), in any of these places, it SHALL raise error 9 and read or write
-nothing, whatever the fixes (`study\39` row 7; a `QB64PE-DIVERGENCES.md` row).
+nothing, whatever the fixes (`study\39` row 7; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: PRINT a whole array
 - **WHEN** `DIM a(2) AS LONG: PRINT a(): PRINT "ok"` runs

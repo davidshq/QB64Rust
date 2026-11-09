@@ -49,7 +49,7 @@ then restart. Without it the runner refuses to start (exit 2), naming the featur
 monitor's display scale at 100% and sets it itself for the run ("The display scale" below), refusing only when
 that fails: the sandbox's desktop takes the host's, and under another scale QB64pe's `_SCREENCLICK` lands at the
 scale times its place on the desktop (at 125%, a click at 100, 80 in the window read back as 166, 151); this
-project's libqb fixes that (`QB64PE-DIVERGENCES.md` D-056), so a judging run goes ahead at any scale and prints
+project's libqb fixes that (`DIVERGENCES-QB64PE.md` D-056), so a judging run goes ahead at any scale and prints
 the one it ran at. The family passes at 100% and 125% (2026-10-30; at 125% `_SCREENCLICK` lands 2 pixels off
 across, which its program allows); other scales are not measured, so a failure there may be the scale's. A refusal
 is not a pass. No toolchain and no Python

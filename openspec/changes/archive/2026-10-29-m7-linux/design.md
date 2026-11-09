@@ -123,7 +123,7 @@ Measured while building (QB64pe's Linux build from `tools/linux/build_qb64pe.sh`
 - Every program the suites hold is judged on Linux against what QB64pe's Linux build gives, with as few
   Linux-only recordings as the differences need.
 - Windows builds, recordings and runs do not change by a byte, but for the one fix the Linux runs found in the
-  C++ both platforms share: `SWAP` of places whose indexes call a FUNCTION (`QB64PE-DIVERGENCES.md` D-054; one
+  C++ both platforms share: `SWAP` of places whose indexes call a FUNCTION (`DIVERGENCES-QB64PE.md` D-054; one
   corpus program's C++ differs, task 8.1).
 
 **Non-Goals:**
@@ -302,7 +302,7 @@ behind within this change and was widened at the review of its staged files (`DE
 
 The Linux sidecars hold QB64pe's Linux results, which come from glibc where they come from the C runtime (the
 `printf` text of floats, `strtod`). glibc rounds correctly, so these are well-defined values and need no
-`QB64PE-DIVERGENCES.md` row. Where QB64pe's Linux build gives a defect the Windows build does not (a crash, a hang),
+`DIVERGENCES-QB64PE.md` row. Where QB64pe's Linux build gives a defect the Windows build does not (a crash, a hang),
 the fix already made for Windows applies on Linux as well, and its row gains "Linux too". Where it gives a defect
 of its own, the defect is kept or fixed by the rule of `DECISIONS.md` 2026-10-08 (a crash fixed, a result kept),
 with a row.

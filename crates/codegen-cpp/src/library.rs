@@ -400,7 +400,7 @@ impl Emitter<'_> {
                 let ty = self.p.var(param).ty;
                 match a {
                     // A `STRING * n` member or element: a copy of its n bytes with a NUL after them, copied back
-                    // when the statement's expression ends (`study\39` row 10, `QB64PE-DIVERGENCES.md` D-044); the
+                    // when the statement's expression ends (`study\39` row 10, `DIVERGENCES-QB64PE.md` D-044); the
                     // old compiler passes the place's own bytes, after which C reads on into the next member or
                     // element (`verification\v37_x66`, `v62_e1`, `e2`). The place is taken once. A variable of its
                     // own keeps its own bytes.

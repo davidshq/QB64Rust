@@ -52,7 +52,7 @@ generated C++ of the corpus is compared byte for byte before and after (task 2.4
 
 ## 4. Always-on fixes
 
-Each task: the fix, its `QB64PE-DIVERGENCES.md` row, its `v62` program and the row's older programs moved as
+Each task: the fix, its `DIVERGENCES-QB64PE.md` row, its `v62` program and the row's older programs moved as
 design D8 says (`known.list` with `D-0nn`, or a `.divergences` sidecar), and a CLI test with the divergence trace
 where the program ends up on a path QB64pe never takes. Verify for each: its `v62` and older programs pass or
 `KFAIL` with the new reason, run with `--glob`, and tier 1 passes.
@@ -75,7 +75,7 @@ where the program ends up on a path QB64pe never takes. Verify for each: its `v6
 ## 5. Switched fixes
 
 Each task: the fix behind `fixes.is_on` (design D6), its `fixed\<name>.out.txt` sidecar or CLI test (design D8),
-and its row in the new table "Fixes behind the switch" of `QB64PE-DIVERGENCES.md` (name, what QB64pe does, what
+and its row in the new table "Fixes behind the switch" of `DIVERGENCES-QB64PE.md` (name, what QB64pe does, what
 the fix does, the QB 4.5 program where one was measured). Verify for each: the program with the fixes off still
 passes against its `qb64pe.exe` recording, the fixed run or CLI test passes, and tier 1 passes.
 

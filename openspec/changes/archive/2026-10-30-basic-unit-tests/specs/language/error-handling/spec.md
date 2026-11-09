@@ -5,7 +5,7 @@
 ### Requirement: The exit code of a program ended by an error
 A program that ends because of a runtime error SHALL exit with code 1: an error no handler takes, with
 `QB64PE_NOPROMPT=y` or answered "no" at libqb's "Continue?", and a critical error (300 to 315, out of memory, the
-other fatal ends of libqb). The old compiler's program exits 0 (`QB64PE-DIVERGENCES.md` D-012). A program that goes on
+other fatal ends of libqb). The old compiler's program exits 0 (`DIVERGENCES-QB64PE.md` D-012). A program that goes on
 after the error SHALL keep the exit code its end gives.
 
 #### Scenario: No handler

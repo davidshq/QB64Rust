@@ -47,7 +47,7 @@ compiler (measured, `verification\v57_r01`–`r19`). Any other name SHALL be the
 ### Requirement: RUN leaves the active procedures first
 A `RUN` reached inside a SUB or FUNCTION SHALL first leave every active procedure through its exit path (as `END`
 from a procedure does), so that a program which runs `RUN` from a SUB any number of times neither grows its stack
-nor keeps the procedures' strings, whatever the fixes (`study\39` row 14; a `QB64PE-DIVERGENCES.md` row).
+nor keeps the procedures' strings, whatever the fixes (`study\39` row 14; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: RUN from a SUB many times
 - **WHEN** a program keeps a counter in its process's environment (`ENVIRON`, which `RUN` does not clear) and runs
@@ -56,7 +56,7 @@ nor keeps the procedures' strings, whatever the fixes (`study\39` row 14; a `QB6
 
 ### Requirement: RUN in a console-only program
 In a `$CONSOLE:ONLY` program, the output after `RUN`, `RUN label` or `RUN line` SHALL go to the console as at the
-first start, whatever the fixes (`study\39` row 14; a `QB64PE-DIVERGENCES.md` row).
+first start, whatever the fixes (`study\39` row 14; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: Output after RUN label
 - **WHEN** a `$CONSOLE:ONLY` program prints `one`, runs `RUN again` once, and `again:` is followed by `PRINT "two"`

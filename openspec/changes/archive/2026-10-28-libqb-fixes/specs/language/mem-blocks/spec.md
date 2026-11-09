@@ -5,7 +5,7 @@
 ### Requirement: A block of no bytes
 `_MEMNEW(0)` SHALL give a valid block of size 0 that owns no memory: `_MEMFREE` of it SHALL free nothing, whatever
 blocks were taken and freed before it, and a second `_MEMFREE` of it SHALL raise error 307 as for any freed
-block (`study\39` row 9; a `QB64PE-DIVERGENCES.md` row).
+block (`study\39` row 9; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: Freed after another block was freed
 - **WHEN** `m = _MEMNEW(16): _MEMFREE m: n = _MEMNEW(0): _MEMFREE n: PRINT "after"` runs

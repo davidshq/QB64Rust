@@ -1,4 +1,4 @@
-# _SCREENCLICK clicks where it is asked at any display scale (QB64PE-DIVERGENCES.md D-056, UPSTREAM.md "_SCREENCLICK
+# _SCREENCLICK clicks where it is asked at any display scale (DIVERGENCES-QB64PE.md D-056, UPSTREAM.md "_SCREENCLICK
 # misses under a display scale"; CLAUDE.md working rule 8). QB64pe's sub__screenclick scales the place to
 # SendInput's 0..65535 by the desktop window's rectangle, read on the program's thread, where under a display scale
 # other than 100% it is scaled down (1518 x 814 at 125%), while the place is in GLFW's pixels, as _SCREENX and

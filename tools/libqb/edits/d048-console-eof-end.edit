@@ -1,4 +1,4 @@
-# END waits for a key only when standard input is a console (QB64PE-DIVERGENCES.md D-048, UPSTREAM.md "Console input
+# END waits for a key only when standard input is a console (DIVERGENCES-QB64PE.md D-048, UPSTREAM.md "Console input
 # waits for ever at the end of a redirected input"; study\39 row 2; DECISIONS.md 2026-10-27). QB64pe's END, in a
 # console program with the window hidden, prints "Press any key to continue" and waits for a key-down event from the
 # console, which a file, a pipe or the null device never gives (verification\v26_e_end, v22_x50: timed out). Here

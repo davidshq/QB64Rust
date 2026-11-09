@@ -51,7 +51,7 @@ changing direction, design or scope.**
      plan or study, its decisions, its status, its to-do items and its someday ideas go in the game's `docs\`
      or `TODO.md`. They do not go in this repo's `study\`, `DECISIONS.md`, `STATUS.md` or `SOMEDAY.md`. What
      a port finds about the compiler still comes here: a bug, a corpus or verification program, a
-     `DIVERGENCES-QB45.md` or `QB64PE-DIVERGENCES.md` row, a lesson for `PORTING-PDS.md`. Civil War Strategy
+     `DIVERGENCES-QB45.md` or `DIVERGENCES-QB64PE.md` row, a lesson for `PORTING-PDS.md`. Civil War Strategy
      as this repo's own test target (`tests\programs\civil-war-strategy`, `screen\g01`–`g12`) stays here.
      *Why:* the ports' plans and rulings had filled this repo's documents (`DECISIONS.md` 2026-11-06).
 3. **Code from other projects.** Two tiers:
@@ -150,7 +150,7 @@ changing direction, design or scope.**
 8. **Where QB64pe's own result depends on the machine, do not build to match it bit for bit** (`study\35` §3
     item 4, user, 2026-10-18). When the old compiler's value comes from the CPU or the libraries `qb64pe.exe` was
     built with (x87 instructions, the C runtime's math), take a well-defined value (correctly rounded, as D-026)
-    with a `QB64PE-DIVERGENCES.md` row, and say so in the design in a paragraph, not a module. The fidelity already built
+    with a `DIVERGENCES-QB64PE.md` row, and say so in the design in a paragraph, not a module. The fidelity already built
     (the software `_FLOAT`, the certification of the math constants) stays; this rule does not remove it.
 9. **American English spelling in new text** (user, 2026-10-28): "license", "behavior", "color", "-ize". This
     covers new prose, comments, identifiers, messages and file names, and any line already being edited for
@@ -176,7 +176,7 @@ changing direction, design or scope.**
     an open design question, spans several crates or sessions, or adds a mechanism (a tool, a test kind, a
     runtime part). Otherwise build directly: one measured behavior, small code, no open question. A direct change
     still gets its usual records:
-    - a `DECISIONS.md` row, and a `QB64PE-DIVERGENCES.md` row if it differs from QB64pe;
+    - a `DECISIONS.md` row, and a `DIVERGENCES-QB64PE.md` row if it differs from QB64pe;
     - the merged spec under `openspec\specs\` edited in place, so that it never says the opposite of the code;
     - its tests, including recorded programs for the behavior, not only unit tests.
 

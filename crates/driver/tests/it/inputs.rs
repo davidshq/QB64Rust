@@ -709,7 +709,7 @@ fn upstream_progress() {
 }
 
 /// The reasons a line of `tests\verification\known.list` may give (spec `testing/verification-suite`): a row of
-/// `QB64PE-DIVERGENCES.md`, or one of these words, each optionally followed by `: <more>`; `bug` needs the `: <what>`.
+/// `DIVERGENCES-QB64PE.md`, or one of these words, each optionally followed by `: <more>`; `bug` needs the `: <what>`.
 const VERIFICATION_REASONS: &[&str] = &[
     "not supported yet",
     "varies",
@@ -793,9 +793,9 @@ fn verification_lists_are_exact() {
     }
     // Our output for a program that differs from QB64pe on purpose (`diverged\<name>.out.txt`, OpenSpec change
     // `known-output`, design D2): the program is on pass.list, and its `.divergences` names rows of
-    // QB64PE-DIVERGENCES.md, which keep the reason its known.list row gave.
+    // DIVERGENCES-QB64PE.md, which keep the reason its known.list row gave.
     #[expect(clippy::disallowed_methods, reason = "a Markdown table, not BASIC source")]
-    let doc = std::fs::read_to_string(repo().join("docs/QB64PE-DIVERGENCES.md")).unwrap();
+    let doc = std::fs::read_to_string(repo().join("docs/DIVERGENCES-QB64PE.md")).unwrap();
     let rows: Vec<String> = doc
         .lines()
         .filter_map(|l| l.strip_prefix("| D-"))
@@ -840,7 +840,7 @@ fn verification_lists_are_exact() {
         for row in taken {
             if !rows.iter().any(|r| r == row) {
                 problems.push(format!(
-                    "divergences/{name}.divergences: {row} is not a row of QB64PE-DIVERGENCES.md"
+                    "divergences/{name}.divergences: {row} is not a row of DIVERGENCES-QB64PE.md"
                 ));
             }
         }

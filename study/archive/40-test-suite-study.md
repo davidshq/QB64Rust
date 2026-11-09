@@ -49,7 +49,7 @@ except tier 1, fmt and clippy runs in the background while work goes on (`study\
 
 - **An oracle, not opinions.** Every end-to-end expectation is a recording of QB64pe (`verification\`,
   `tests\corpus\`, `tests\upstream\`), or of QB 4.5 under DOSBox where QB64pe's own result is in doubt. A difference
-  is a bug in one of the two until measured otherwise (`QB64PE-DIVERGENCES.md`, `UPSTREAM.md`).
+  is a bug in one of the two until measured otherwise (`DIVERGENCES-QB64PE.md`, `UPSTREAM.md`).
 - **Three kinds of check at once** (the compiler-testing literature's three: §4): golden snapshots of each stage,
   end-to-end runs against the reference, and differential runs of operators across type pairs
   (`tests\differential\`).

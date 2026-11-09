@@ -14,7 +14,7 @@ A program SHALL be able to define procedures with `SUB name [(params)]` … `END
 array (`name[suffix]() [AS type]`, requirement "Array parameters") or a user type (requirement "User-type
 parameters"); without a suffix or `AS` clause its type SHALL be the default type of its name
 (`language/default-types`). A `_BIT` or `_BIT * n` parameter (by `AS` or by suffix) SHALL be accepted as QB64pe
-after `fae85f8e1` accepts it. The reference commit fails its own C++ build for one (`QB64PE-DIVERGENCES.md`
+after `fae85f8e1` accepts it. The reference commit fails its own C++ build for one (`DIVERGENCES-QB64PE.md`
 D-057). A parameter declared `STRING * n` or `name$n` SHALL be a `STRING`
 parameter, its value neither cut nor padded, except that `LEN` of the parameter itself SHALL be the constant n, as
 in the old compiler (`verification\v21_c_fixed_args`, `v21_f_fixed_param`); an n that is 0 or negative once read
@@ -27,7 +27,7 @@ and no width SHALL be a compile error, as in the old compiler ("Name already in 
 as the old compiler does (`verification\v21_c_fixed_args`); it SHALL be called and assigned as `f$n`, `f$` or `f`,
 and another length (`f$4` for `f$5`) SHALL be a compile error ("Name already in use", `verification\v21_g_fixed_function`,
 `v21_x49`). Each call's result SHALL be its own string: two calls in one expression keep both results (the old
-compiler returns bytes it has released, so the second call overwrites the first, `QB64PE-DIVERGENCES.md` D-014). Procedures SHALL NOT be nested, and two procedures SHALL
+compiler returns bytes it has released, so the second call overwrites the first, `DIVERGENCES-QB64PE.md` D-014). Procedures SHALL NOT be nested, and two procedures SHALL
 NOT share a name.
 
 #### Scenario: SUB defined before the main code

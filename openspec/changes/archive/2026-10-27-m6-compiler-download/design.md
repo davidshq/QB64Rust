@@ -158,7 +158,7 @@ or nothing; two would leave a release with one asset when the second failed. Cod
 requirements (Windows 10 1803 or later, x64); unpack, then `qb64rust toolchain install` (size, where it goes,
 `QB64RUST_TOOLCHAIN_HOME`, `--toolchain-root` for a folder of one's own); `qb64rust -x prog.bas -o prog.exe`, then
 running it; `-w`, `-z`, `-y … -o`, `--include-root`, `--debug`, `-f:` settings, `toolchain path`, `--version`;
-the exit statuses (0, 1, 3); the folder must be writable (D3); differences from QB64pe 4.7.0 (`QB64PE-DIVERGENCES.md` on
+the exit statuses (0, 1, 3); the folder must be writable (D3); differences from QB64pe 4.7.0 (`DIVERGENCES-QB64PE.md` on
 GitHub); issues on GitHub. A Python test (`test_package_zip.py`) checks that every `--option` and subcommand the
 manual names in code spans appears in `USAGE` (read from `main.rs`), the scenario of spec `compiler/download`
 "An option in the manual". *Why at the root:* it documents the command line as a whole. `crates\README.md` stays

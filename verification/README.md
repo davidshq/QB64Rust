@@ -23,7 +23,7 @@ Linux recordings, and what each shows of Linux:
   do not).
 - None for the order of calls. QB64pe's Linux build runs the calls of one C++ expression right to left in
   `v18_c`, `v30_k`, `v30_l`, `v33_a03`, `v33_a04` and `v30_g` (the `<t>` pair). QB64Rust runs them left to right
-  on Linux too, so these programs are judged by their Windows recordings there (`QB64PE-DIVERGENCES.md` D-060,
+  on Linux too, so these programs are judged by their Windows recordings there (`DIVERGENCES-QB64PE.md` D-060,
   OpenSpec change `eval-order-left-to-right`; QB64pe's Linux recordings are in git history).
 - `v22`: `/` in `_CWD$`, other errors of `OPEN` and `CHDIR`, environment names in their own case. `v52_c`, `v49_b`: the file system's errors and separator, `_FILES$` with no `.\` and `..\` and in the file
   system's order. `v30_d`, `v30_i`: a write past the end, and `LOCK` that raises nothing.
@@ -443,7 +443,7 @@ Small programs behind `study\09`, `study\10` and later measurements:
   twice, but once an error is pending a later target's index is not evaluated again or at all, and the target
   releases the member of element 0: `ERASE a(9).d, a(one(1)).d` does not call `one` and leaves `a(1).d`); `a2` the
   same target alone (the index evaluated twice there too, once when the first evaluation raises, element 0
-  released for an index outside). The new compiler evaluates each index once (`QB64PE-DIVERGENCES.md` D-055), so
+  released for an index outside). The new compiler evaluates each index once (`DIVERGENCES-QB64PE.md` D-055), so
   both are on `tests\verification\known.list`; the rest of their output is the same. `b1`–`b3` `REDIM t.v(0) AS
   LONG` under `OPTION BASE 1`, of a member declared `v(0 TO 3)`, `v(0)` under `OPTION BASE 0` and `v(1 TO 1)`:
   "Invalid array bounds" each, so the number 0 has no rule of its own there, `1 TO 0`, as in the `TYPE` block
@@ -502,7 +502,7 @@ Small programs behind `study\09`, `study\10` and later measurements:
   arguments left out: `SCREEN(1, , 1)` is "Incorrect number of arguments", `LBOUND(a, )` and `UBOUND(a, )` "Syntax
   error"; the middle or first argument of `_LOADIMAGE`, `_LOADFONT`, `_UPRINTWIDTH`, `_UCHARPOS`, `_SNDNEW`,
   `_INSTRREV`, `_INPUTBOX$` and `_OPENFILEDIALOG$` may be left out
-- `v67*`: `_BIT` parameters (2026-11-02, `QB64PE-DIVERGENCES.md` D-057). The reference commit fails its C++ build
+- `v67*`: `_BIT` parameters (2026-11-02, `DIVERGENCES-QB64PE.md` D-057). The reference commit fails its C++ build
   for every program but `b`, which it rejects at line 5 ("Cannot pass _BIT array offsets"). So the recordings say
   `(not compiled)`, and each program is judged by its `tests\verification\diverged\` sidecar. Each sidecar equals
   the output of a build of upstream's `main` at `8070eebd2`, which has the fix `fae85f8e1`. `a_values`: a copy
@@ -541,7 +541,7 @@ Small programs behind `study\09`, `study\10` and later measurements:
   Only the part of `_IIF`, `_ANDALSO` and `_ORELSE` that is needed runs (`k`). When two parts raise, the first one's
   error is reported, and two index checks give error 9 either way (`d`, `l`). `m` holds places no other program
   reaches: `MID$`, `INSTR`, `_RGB32`, an element with two FUNCTION indexes, `CHR$ + CHR$` and `SWAP`. None has a
-  Linux recording: QB64Rust gives the Windows order on Linux too (`QB64PE-DIVERGENCES.md` D-060).
+  Linux recording: QB64Rust gives the Windows order on Linux too (`DIVERGENCES-QB64PE.md` D-060).
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

@@ -56,7 +56,7 @@ Standing rules: CLAUDE.md.
       - the whole corpus, 521 tests: 514 pass, 7 known failures, none failing. These are the counts of the
         build without the option;
       - `v18`: 67 of 67 pass;
-      - `v24`: 371 pass, 1 known failure (`v24_h_member_store`, `QB64PE-DIVERGENCES.md` D-004), none failing.
+      - `v24`: 371 pass, 1 known failure (`v24_h_member_store`, `DIVERGENCES-QB64PE.md` D-004), none failing.
 
       `slice/s75_sound_wait` ended with exit code 3221226356 once at `--jobs 8` and passed when the runner ran
       it again alone. It then passed 5 of 5 times alone with the option. `STATUS.md` already lists it as
@@ -99,7 +99,7 @@ Standing rules: CLAUDE.md.
 - [x] 5.1 Add a section "Recording the values of variables" to `MANUAL.md`, after "Measuring which lines run",
       and the option to its table of options. Verify that the commands in the section run as written.
 - [x] 5.2 Add a `DECISIONS.md` row for the value-trace build: an option of our own, no QB64pe equivalent, so no
-      `QB64PE-DIVERGENCES.md` row. Update `STATUS.md`'s "Next". Run `just quick` in the background and report what
+      `DIVERGENCES-QB64PE.md` row. Update `STATUS.md`'s "Next". Run `just quick` in the background and report what
       ran. Verify with `openspec validate value-trace --strict`.
 
 ## 6. Bulk stores that bring new values (user, 2026-11-05: "do it")

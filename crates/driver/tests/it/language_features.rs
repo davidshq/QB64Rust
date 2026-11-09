@@ -414,7 +414,7 @@ fn hover_scenarios() {
 }
 
 /// `STATIC a(5)` in a SUB beside a shared static array of the name and type is the SUB's own array (`study\39` row 4,
-/// `QB64PE-DIVERGENCES.md` D-041), and hover follows that one answer: the SUB's uses name its array, the main
+/// `DIVERGENCES-QB64PE.md` D-041), and hover follows that one answer: the SUB's uses name its array, the main
 /// module's the shared one.
 #[test]
 fn hover_static_beside_shared() {

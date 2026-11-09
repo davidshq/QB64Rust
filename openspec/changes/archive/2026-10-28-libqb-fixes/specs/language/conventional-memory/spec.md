@@ -5,7 +5,7 @@
 ### Requirement: BLOAD and BSAVE past the block
 A `BLOAD` or `BSAVE` whose start plus length runs past the end of libqb's block of conventional memory SHALL raise
 error 5 before reading or writing anything. Inside the block they SHALL work as with the old compiler, wherever
-the array their address came from ends (`study\39` row 5; a `QB64PE-DIVERGENCES.md` row).
+the array their address came from ends (`study\39` row 5; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: A BLOAD at the top of the block
 - **WHEN** a program with a handler that prints `ERR` and resumes next runs `DEF SEG = &HFFFF` and `BLOAD f$, &HFFF0`

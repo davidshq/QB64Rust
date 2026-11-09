@@ -23,7 +23,7 @@ debugger ([ROADMAP.md](docs/ROADMAP.md)).
 - **Coverage builds** with `qb64rust --coverage`, which count how often each statement runs
   ([MANUAL.md](docs/MANUAL.md#measuring-which-lines-run)).
 - **C++ toolchain download** on the first build, or with `qb64rust toolchain install`.
-- **Lists of every deliberate difference** from QB64pe ([QB64PE-DIVERGENCES.md](docs/QB64PE-DIVERGENCES.md)) and
+- **Lists of every deliberate difference** from QB64pe ([DIVERGENCES-QB64PE.md](docs/DIVERGENCES-QB64PE.md)) and
   from QuickBASIC 4.5 ([DIVERGENCES-QB45.md](docs/DIVERGENCES-QB45.md)).
 
 ## Status
@@ -33,7 +33,7 @@ debugger ([ROADMAP.md](docs/ROADMAP.md)).
   programs: the test corpus, QB64pe's own tests and the measured behavior of each feature. Real programs such as
   Civil War Strategy, about 5,000 lines, compile and run the same as with QB64pe.
 - Where this compiler deliberately differs from QB64pe, the difference is listed in
-  [QB64PE-DIVERGENCES.md](docs/QB64PE-DIVERGENCES.md). Differences from QuickBASIC 4.5 are in
+  [DIVERGENCES-QB64PE.md](docs/DIVERGENCES-QB64PE.md). Differences from QuickBASIC 4.5 are in
   [DIVERGENCES-QB45.md](docs/DIVERGENCES-QB45.md).
 - Current state and next steps: [STATUS.md](docs/STATUS.md).
 

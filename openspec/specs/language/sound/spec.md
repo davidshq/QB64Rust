@@ -259,7 +259,7 @@ an error that is not "not supported yet".
 (also named without its parentheses) or from one of its elements, as the old compiler does; any other argument
 there, a member array included, SHALL be a compile error that is not "not supported yet". An index that calls a
 FUNCTION (`_WAVE 0, w(f(1))`) SHALL be evaluated once, as for graphics `GET` and `PUT`; the old compiler
-evaluates it twice (`QB64PE-DIVERGENCES.md` D-061).
+evaluates it twice (`DIVERGENCES-QB64PE.md` D-061).
 
 #### Scenario: The arrays accepted
 - **WHEN** `DIM w(1 TO 64) AS _BYTE, f(1 TO 16) AS SINGLE` and then `_WAVE 0, w()`, `_WAVE 0, w(1), 32`,
@@ -359,7 +359,7 @@ compiler's program does.
 ### Requirement: Queued samples and the audio thread
 The audio thread SHALL read and swap a raw stream's buffers only while it holds the lock the program holds when it
 queues samples, so that the two threads of a program that plays `SOUND`, `PLAY`, `_SNDRAW` or `_SNDRAWBATCH`
-never change one buffer at once. The old compiler's program does not take the lock (`QB64PE-DIVERGENCES.md`
+never change one buffer at once. The old compiler's program does not take the lock (`DIVERGENCES-QB64PE.md`
 D-062).
 
 #### Scenario: A program that ends right after a sound

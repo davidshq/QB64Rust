@@ -58,7 +58,7 @@ unchanged. What shapes the approach:
 The rows get the divergence numbers D-048 to D-053, in row order: D-048 row 2, D-049 row 5, D-050 row 9, D-051
 row 11, D-052 row 12, D-053 rows 17 and 18. Each edit file is `d0nn-<what>.edit`, and a row that touches two
 places has two files (`d048-console-eof-input.edit`, `d048-console-eof-end.edit`, and so on). Their header gives
-the reason, the `QB64PE-DIVERGENCES.md` row and the `UPSTREAM.md` section, as `d031-coth.edit` does.
+the reason, the `DIVERGENCES-QB64PE.md` row and the `UPSTREAM.md` section, as `d031-coth.edit` does.
 `libqb\SOURCE.md` lists each file, and `copy_libqb.py` rewrites `libqb\`.
 
 *Alternative:* one edit file for all rows of `libqb.cpp`. Rejected: an edit's old lines are one block, so a
@@ -75,7 +75,7 @@ multi-place edit would span thousands of lines, and an upstream offer is made ro
   console (`GetConsoleMode` fails on the input handle), it reads with `fgetc(stdin)` instead of the keyboard
   buffer, and at `EOF` before n bytes it raises `error(62)` and gives what it read. At a console nothing changes.
   Task 1 measures first whether QB64pe's `INPUT$` reads redirected input at all. If it does not, reading it is
-  part of this fix (it is the only way the read can end), and the `QB64PE-DIVERGENCES.md` row says so.
+  part of this fix (it is the only way the read can end), and the `DIVERGENCES-QB64PE.md` row says so.
 - `sub_end`: with the console and the window hidden, "Press any key to continue" is printed as now, and the wait
   for a key runs only when `GetConsoleMode` succeeds on the input handle. Otherwise the program ends at once. The
   line stays so that the corpus programs with a `.stdin` file, which reach `END` with redirected input, keep the
@@ -163,7 +163,7 @@ every other fix decides in the compiler and leaves libqb one build for all progr
   `fixes-switch`), and the CLI test of "The list" now expects eight lines.
 - `copy_libqb.py --check` and its own tests (`test_copy_libqb.py`) pass with the new edits.
 - Each fix's trace: the paths of rows 2, 5, 9 and 11 run in libqb, where `qbr_diverged` (a function of the
-  generated program) cannot be called. Those rows are "no run-time path" in `QB64PE-DIVERGENCES.md`'s list of
+  generated program) cannot be called. Those rows are "no run-time path" in `DIVERGENCES-QB64PE.md`'s list of
   untraced rows, as D-031 already is.
 
 ## Risks / Trade-offs

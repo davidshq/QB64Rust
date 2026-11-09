@@ -134,7 +134,7 @@ module, named or not): `VARPTR` SHALL give the offset the old compiler's program
 descriptor there through every assignment. A `TYPE` variable or array element that holds a `STRING` (a member,
 or a member of a member) SHALL take the old compiler's place and size there, 8 bytes for each `STRING` member;
 its strings SHALL be made as for a `TYPE` variable anywhere else, empty, where the old compiler's program leaves
-them out and crashes at the first use of one (`QB64PE-DIVERGENCES.md` D-037).
+them out and crashes at the first use of one (`DIVERGENCES-QB64PE.md` D-037).
 
 #### Scenario: Offsets of scalars
 - **WHEN** the programs `verification\v56_a1`–`a3` print `VARPTR` and `VARSEG` of scalars of every type, strings,
@@ -355,7 +355,7 @@ program has no such SUB (the old compiler's "Syntax error" and "Expected CALL su
 ### Requirement: BLOAD and BSAVE past the block
 A `BLOAD` or `BSAVE` whose start plus length runs past the end of libqb's block of conventional memory SHALL raise
 error 5 before reading or writing anything. Inside the block they SHALL work as with the old compiler, wherever
-the array their address came from ends (`study\39` row 5; a `QB64PE-DIVERGENCES.md` row).
+the array their address came from ends (`study\39` row 5; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: A BLOAD at the top of the block
 - **WHEN** a program with a handler that prints `ERR` and resumes next runs `DEF SEG = &HFFFF` and `BLOAD f$, &HFFF0`

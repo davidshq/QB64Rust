@@ -2,7 +2,7 @@
 
 ### Requirement: A program behaves as QB64pe's on its platform
 A program built on Linux SHALL behave as the same program built by QB64pe 4.7.0 at the reference commit on Linux,
-apart from the rows of `QB64PE-DIVERGENCES.md`. Where QB64pe's Linux and Windows builds differ, the Linux build
+apart from the rows of `DIVERGENCES-QB64PE.md`. Where QB64pe's Linux and Windows builds differ, the Linux build
 SHALL follow QB64pe's Linux build, with one exception. Where they differ only in the order in which the parts of
 one expression, call or statement are evaluated, the Linux build SHALL follow the Windows build's order (spec
 `language/evaluation-order`). `_OS$` SHALL report `[LINUX][64BIT]`.

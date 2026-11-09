@@ -44,7 +44,7 @@ compiler gives a new `STRING * n` element after `REDIM` are printed as they are,
 ### Requirement: Safe programs
 A generated program SHALL run to its end with both compilers: it SHALL NOT divide an integer by 0 (fatal), SHALL
 NOT use a case that crashes the old compiler's program (the smallest integer `\ -1` and `MOD -1`) or that a
-`QB64PE-DIVERGENCES.md` row decides differently (a `_BIT * n` with n > 32 SHALL have a `_BIT * 32` pad DIMmed just
+`DIVERGENCES-QB64PE.md` row decides differently (a `_BIT * n` with n > 32 SHALL have a `_BIT * 32` pad DIMmed just
 before it, so that the old compiler's overlap, D-009, hits only the pad), SHALL NOT use a form either compiler
 rejects or reports "not supported yet" (`^` with an `_OFFSET` operand, a signed radix literal wider than its type),
 SHALL trap every other runtime error with an `ON ERROR` handler that prints `ERR` and resumes with the next
@@ -56,7 +56,7 @@ statement, and SHALL NOT use a `PRINT` comma.
 
 #### Scenario: Excluded case named
 - **WHEN** the generator leaves out a value pair because of a divergence
-- **THEN** the program's header comment names the `QB64PE-DIVERGENCES.md` row
+- **THEN** the program's header comment names the `DIVERGENCES-QB64PE.md` row
 
 ### Requirement: Recorded with the old compiler
 Each generated program SHALL have its expected output in a `.output` file beside it, recorded with `qb64pe.exe`

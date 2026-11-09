@@ -5,10 +5,10 @@
 ### Requirement: Integer division and MOD
 `\` and `MOD` SHALL round floating-point operands half to even to integers first, then divide truncating toward
 zero; `MOD` SHALL give the remainder with the sign of the dividend. A divisor of 0 SHALL raise error 11, which is
-trappable as other run-time errors are, the result being 0 (`study\39` row 12; a `QB64PE-DIVERGENCES.md` row; as
+trappable as other run-time errors are, the result being 0 (`study\39` row 12; a `DIVERGENCES-QB64PE.md` row; as
 QuickBASIC 4.5, `DIVERGENCES-QB45.md` Q-003). The smallest value of a signed type divided by -1 SHALL raise
 error 6 (Overflow, trappable) with `\` and SHALL give 0 with `MOD` (the old compiler's program crashes,
-`QB64PE-DIVERGENCES.md` D-006).
+`DIVERGENCES-QB64PE.md` D-006).
 
 #### Scenario: Signs and rounding
 - **WHEN** `PRINT 7 \ 2; -7 \ 2; 7.5 \ 2; -7 MOD 3; 7.5 MOD 2` runs

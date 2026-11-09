@@ -76,7 +76,7 @@ Standing rules: CLAUDE.md.
 
 ## 4. Records and close
 
-- [x] 4.1 Add the `QB64PE-DIVERGENCES.md` row (design D8) and point D-054 to it. Remove the `SOMEDAY.md` row on
+- [x] 4.1 Add the `DIVERGENCES-QB64PE.md` row (design D8) and point D-054 to it. Remove the `SOMEDAY.md` row on
       the order of calls with side effects. Rewrite `verification\README.md`'s line on `v18_c`, `v30_k`, `v30_l`,
       `v33_a03`, `v33_a04` and `v30_g`. Update `crates\ir\src\lib.rs`'s module documentation to state the order as
       a guarantee on every platform. Verify with `tools\repo_check`.

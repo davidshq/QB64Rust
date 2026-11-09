@@ -49,7 +49,7 @@ impl Emitter<'_> {
     }
 
     /// The position of a whole array's first element, 0, as a C expression that raises error 9 first while the array
-    /// has no storage (`study\39` row 7, `QB64PE-DIVERGENCES.md` D-042): the old compiler takes the 8 bytes of libqb's
+    /// has no storage (`study\39` row 7, `DIVERGENCES-QB64PE.md` D-042): the old compiler takes the 8 bytes of libqb's
     /// `nothingvalue`, which every array without storage shares, so a `READ` or `LINE INPUT #` into it changes
     /// what every later `PRINT` shows (`verification\v54_d_whole_erased`, `v62_c1`–`c5`). The statement then stores
     /// nothing, as after an index outside the bounds. Below `$CHECKING:OFF`, 0 as the old compiler writes it.

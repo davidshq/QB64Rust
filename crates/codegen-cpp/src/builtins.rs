@@ -213,7 +213,7 @@ impl Emitter<'_> {
             //
             // The two places are a group (`order.rs`): when an index of the first one conflicts with the second,
             // the first is held, so that they are found in the order of the call's arguments on every platform
-            // (measured, `tests\corpus\slice\s61_member_arrays` line 26; `QB64PE-DIVERGENCES.md` D-054).
+            // (measured, `tests\corpus\slice\s61_member_arrays` line 26; `DIVERGENCES-QB64PE.md` D-054).
             StmtRule::Swap => {
                 let [StmtArg::Place(a), StmtArg::Place(b)] = args else {
                     unreachable!("`SWAP` takes two places (`validate`)");
@@ -411,7 +411,7 @@ impl Emitter<'_> {
     /// declared with the variables of the body. The position is written twice, as the old compiler writes it. An
     /// index that calls a procedure is first held in a temporary, so that it is evaluated once, as in QB 4.5 and
     /// PDS 7.1 (`verification\qb45\q45_get_put_index_call`). QB64pe evaluates it twice
-    /// (`verification\v66_a19`; `QB64PE-DIVERGENCES.md` D-061). Where a later part of the call must come after it,
+    /// (`verification\v66_a19`; `DIVERGENCES-QB64PE.md` D-061). Where a later part of the call must come after it,
     /// the whole call is held (`order.rs`, [`crate::order::Bytes`]) and this is its temporary.
     pub(crate) fn block(&mut self, array: VarId, index: &[Expr]) -> String {
         if !index.is_empty()
@@ -652,7 +652,7 @@ impl Emitter<'_> {
             }
             parts[1] = format!("qbr_bit_number({})", parts[1]);
         }
-        // Every result of `_COTH` takes the path of `QB64PE-DIVERGENCES.md` D-031 (the copy of libqb's `func_coth` is the
+        // Every result of `_COTH` takes the path of `DIVERGENCES-QB64PE.md` D-031 (the copy of libqb's `func_coth` is the
         // hyperbolic cotangent): a wrapper in `global.txt`, written for a program that calls it, traces it
         // (`tools\callsite` reads it as `func_coth`).
         let callname = if b.callname == "func_coth" {
@@ -667,7 +667,7 @@ impl Emitter<'_> {
     }
 }
 
-/// `_COTH` with the run-time trace of `QB64PE-DIVERGENCES.md` D-031 (`qbr_diverged`, design D1 of `m3-divergence-trace`):
+/// `_COTH` with the run-time trace of `DIVERGENCES-QB64PE.md` D-031 (`qbr_diverged`, design D1 of `m3-divergence-trace`):
 /// every call takes the row's path.
 const COTH_WRAPPER: &str = "static inline double qbr_coth(double qbr_x){qbr_diverged(31);return func_coth(qbr_x);}\n";
 

@@ -29,7 +29,7 @@ See `proposal.md` for why. What shapes the approach:
   statement evaluates its arguments in order", the indexes of an element store before its value, and others. The
   emitter writes some of these as separate C++ statements, which are already ordered. Others are arguments of one
   call, which Linux breaks.
-- **`SWAP` is the first case** (`builtins.rs`, `StmtRule::Swap`; `QB64PE-DIVERGENCES.md` D-054). When an index of
+- **`SWAP` is the first case** (`builtins.rs`, `StmtRule::Swap`; `DIVERGENCES-QB64PE.md` D-054). When an index of
   either place calls a FUNCTION, both places go into `auto` variables in the call's order. Otherwise the C++ is the
   old compiler's.
 - **What the Linux runs found** (`proposal.md` lists the programs): `_ASSERT`'s condition against its message
@@ -230,7 +230,7 @@ with a program's names (`names.rs` mangles those).
 
 ### D8. Records
 
-- A `QB64PE-DIVERGENCES.md` row: on Linux, where QB64pe's build evaluates parts of one expression or call in
+- A `DIVERGENCES-QB64PE.md` row: on Linux, where QB64pe's build evaluates parts of one expression or call in
   another order, QB64Rust follows the Windows order. D-054 points to it as its first case.
 - A `DECISIONS.md` row with the answers to the open questions.
 - Removed: the `SOMEDAY.md` row on the order of calls with side effects.
@@ -309,7 +309,7 @@ None. Q1–Q4 were answered by the user on 2026-11-07 (`DECISIONS.md`), as writt
   store, as the old compiler does. Only a number stored through a member, `r(f(1)).n = f(2)`, runs the value
   first. The spec, D1 and D3 now say so. Nothing in the code changed.
 - **The `v69` programs were adjusted while recording.** `POINT` in `v69_h_graphics` needed `_SOURCE` set to the
-  image. `1 \ z` in `v69_l_two_errors` ended the program ("Division by zero", `QB64PE-DIVERGENCES.md` D-052:
+  image. `1 \ z` in `v69_l_two_errors` ended the program ("Division by zero", `DIVERGENCES-QB64PE.md` D-052:
   critical in QB64pe), so `CINT` overflow (error 6) stands in for a second error number.
 - **`s86_field_lset` keeps a Linux sidecar, cut to its line 20** (task 3.1). "Context" said line 20 followed from
   line 17. It does not: with line 17 now in the Windows order, line 20 still differs. It prints the file's bytes

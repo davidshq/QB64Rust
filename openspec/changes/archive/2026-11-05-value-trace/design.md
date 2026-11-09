@@ -256,7 +256,7 @@ Two details of the reads, found in review:
 - `_FLOAT` elements of an array variable are 16 bytes apart (`long double`s side by side), though the type's size
   is 32. Inside a user type they are 32 bytes apart. The loop steps by the right one.
 - A copy of an array of an owner type with other bounds raises error 9 and is still made
-  (`QB64PE-DIVERGENCES.md` D-022). Its elements are recorded without the test for a pending error.
+  (`DIVERGENCES-QB64PE.md` D-022). Its elements are recorded without the test for a pending error.
 
 These stay counted, as `untraced` lines:
 - `ERASE`, `DIM` and `REDIM` write zeros and empty strings. That is a variable's starting value, which is never
@@ -293,7 +293,7 @@ These cases were not in the decisions above. Each was settled by the rule the de
   string's characters, not the string.
 - **`SWAP` on Linux.** The two places are held in temporaries inside the call's own arguments
   (`swap_32((t1=&a),(t2=&b))`), not before the call. So the order in which `g++` evaluates the arguments is
-  the normal build's (`QB64PE-DIVERGENCES.md` D-054). The other built-ins that are given a place hold it the
+  the normal build's (`DIVERGENCES-QB64PE.md` D-054). The other built-ins that are given a place hold it the
   same way.
 - **A jump inside a statement.** The read after a call is written before the jump of an `IF` whose condition
   made the call, since the lines after the jump would be skipped.

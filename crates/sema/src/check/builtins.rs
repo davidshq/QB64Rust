@@ -909,7 +909,7 @@ impl Checker<'_> {
     /// implicit; `x()` of a name that is no array is the implicit array. A `_BIT` is QB64pe's error ("Variable/
     /// element cannot be _BIT aligned", `v66_a17`, `a18`). A user type that holds a `STRING` (whose pointers `GET`
     /// would write over) is not supported yet. An index with a call is evaluated once, as in QB 4.5; the old
-    /// compiler writes it twice (`QB64PE-DIVERGENCES.md` D-061; the emitter holds it).
+    /// compiler writes it twice (`DIVERGENCES-QB64PE.md` D-061; the emitter holds it).
     fn graphics_arg(&mut self, node: ast::Expr, name: &str) -> R<StmtArg> {
         let span = node.node().span();
         let named = match &node {
@@ -1048,7 +1048,7 @@ impl Checker<'_> {
     /// of `m3-get-put-bload`; measured, `verification\v28_x01`, `x10`–`x25`, `x58`–`x64`): an array as a whole
     /// (`a`, `a()`) or from an element (`a(5)`, `b(2, 3)`), of numbers; static or dynamic, of this body or shared,
     /// or an array parameter. The old compiler writes the index twice, so a FUNCTION in it is called twice
-    /// (`verification\v66_a19`); here it is called once, as in QB 4.5 and PDS 7.1 (`QB64PE-DIVERGENCES.md` D-061;
+    /// (`verification\v66_a19`); here it is called once, as in QB 4.5 and PDS 7.1 (`DIVERGENCES-QB64PE.md` D-061;
     /// the emitter holds it). Anything that is no variable is its error ("Expected variable name/array element").
     fn block_arg(&mut self, node: ast::Expr, name: &str) -> R<StmtArg> {
         let span = node.node().span();
