@@ -2,11 +2,11 @@
 
 The one-page entry point to this folder. It summarises every study, the decisions, the plan, what was
 measured, and what is still open. Details live in the numbered documents; each section points to them. 
-Sections or parts moved out of this file (§5 whole) are in `archive\00-synthesis.md`, under the same headings.
+Sections or parts moved out of this file (§5 and §13 whole) are in `archive\00-synthesis.md`, under the same headings.
 Closed documents live in `archive\` and are read only when needed (`CLAUDE.md` working rule 7): 
 - the reviews of other repositories (`11`–`14`, conclusions in §11 here) and, 
-- the reviews and plans whose outcomes are decided and built (`08`, `15`, `19`–`40`), and
-- the studies of the old compiler that no milestone needs now (`01`, `02`, `04`, `05`, `06`, `10`, `16`).
+- the reviews and plans whose outcomes are decided and built (`07`, `08`, `15`, `17`–`40`, `42`–`44`), and
+- the studies of the old compiler that no milestone needs now (`01`, `02`, `04`, `05`, `06`, `09`, `10`, `16`).
 
 Tree studied: `..\QB64pe`, HEAD `16f629784e`,
 `Version$ = "4.7.0-GLFW"` (upstream QB64pe `main`).
@@ -80,7 +80,8 @@ Five properties define the current design (details `01`, `02`):
 
 ## 4. Compatibility contract (what user programs depend on)
 
-Full lists: `01` §11.1, `02` §9.1, `03` §9.1. Items marked ✓ were confirmed by running the old compiler (`09`, `10`).
+Full lists: `01` §11.1, `02` §9.1, `03` §9.1. Items marked ✓ were confirmed by running the old compiler (`09`, `10`); the rest are readings of
+its source.
 
 **Language front end**
 - Lexical rules: suffix forms, `&H/&O/&B` typed by digit count with signed wrap (✓ `&HFFFF` = −1, `&HFFFF&` = 65535),
@@ -211,12 +212,12 @@ questionable, listed in `SOMEDAY.md` "QB64pe behaviours to review" (user, 2026-1
 
 ## 8. Runtime (libqb)
 
-From `03` and `07` Session 7. Leave alone: vendored libraries, `libqb\src` modules, the bit-exact units
-(`rounding.h`, `qbs_str.cpp`, `qbs_val.cpp`, PRINT USING, RND, number parsers). Fix early, low risk: `#define int32`
-macros leaking everywhere; the 892 `static` locals that make functions non-reentrant (`SUB _GL` and event handlers
-re-enter). Redesign later (planned for M6, a `SOMEDAY.md` row since `DECISIONS.md` 2026-10-28): the error model (`error()` returns, every function early-outs, a trapped error calls
-`QBMAIN` recursively and never unwinds), the moving string heap, flag-based thread synchronisation. The IR models
-"statement may raise; resume point here" explicitly so the error model can change without touching the front end.
+From `03` and `07` Session 7. 
+- Leave alone: vendored libraries, `libqb\src` modules, the bit-exact units
+(`rounding.h`, `qbs_str.cpp`, `qbs_val.cpp`, PRINT USING, RND, number parsers). 
+- Fix early, low risk: `#define int32` macros leaking everywhere; the 892 `static` locals that make functions non-reentrant (`SUB _GL` and event handlers
+re-enter). 
+- Redesign later (planned for M6, a `SOMEDAY.md` row since `DECISIONS.md` 2026-10-28): the error model (`error()` returns, every function early-outs, a trapped error calls `QBMAIN` recursively and never unwinds), the moving string heap, flag-based thread synchronisation. The IR models "statement may raise; resume point here" explicitly so the error model can change without touching the front end.
 
 ## 9. Built-in table
 
@@ -240,11 +241,10 @@ re-enter). Redesign later (planned for M6, a `SOMEDAY.md` row since `DECISIONS.m
 
 ## 10. Testing position
 
-How the new compiler is tested, tier by tier: `crates\README.md`; each test set and its counts: its
-`tests\*\README.md`; when each run happens: `CLAUDE.md` working rule 6; the old compiler's baseline:
-`baselines\README.md`; the runner and how it runs the old compiler's programs (`QB64PE_NOPROMPT=y`, fatal
-errors read from the output): `tools\legacy_tests\README.md`. The position as written on 2026-10-03, with the
-plan of R11's test layers, is in `study\archive\00-synthesis.md`.
+How the new compiler is tested, tier by tier: `crates\README.md`; each test set and its counts: its `tests\*\README.md`; 
+- when each run happens: `CLAUDE.md` working rule 6; 
+- the old compiler's baseline: `baselines\README.md`; 
+- the runner and how it runs the old compiler's programs (`QB64PE_NOPROMPT=y`, fatal errors read from the output): `tools\legacy_tests\README.md`. The position as written on 2026-10-03, with the plan of R11's test layers, is in `study\archive\00-synthesis.md`.
 
 ## 11. Other repositories and sources: conclusions (reviews archived)
 
@@ -266,38 +266,14 @@ In every case: the wiki, manuals and docs are hypotheses; `qb64pe.exe` is the an
 
 ## 12. Open questions and next steps
 
-Kept in one place, `STATUS.md`, so they don't go stale here.
-
-## 13. Remaining study gaps
-
-Closed: DIM/REDIM/STATIC/COMMON/ERASE, PRINT/INPUT/WRITE emission, the built-in table (`10`); "nothing was
-executed" (`09`, `10`); ON TIMER/KEY/STRIG, `FIELD` and the `_MEM*` statements by the M3 changes that built them
-(the row is in `study\archive\00-synthesis.md`). The member-array layer, once deferred with the array features, is
-partly built (M2, `m3-typefields`); the forms left are in `ROADMAP.md` (M3). Nothing is open: the three rows
-left, each closed with no milestone needing it, are in `study\archive\00-synthesis.md`.
-
-## How reliable this is
-
-`01`–`05` come from reading source; each states what was read fully and what was sampled (`04` was only partly
-read for this synthesis: summary, Parts A, G, H). Claims marked ✓ above were confirmed by running the old compiler
-(`09`, `10`); three study claims were corrected that way (`09`, "Corrected"). Facts about other projects
-(`archive\11`–`14`) come from reading and running them on 2026-10-02. Anything not marked as run should be treated
-as a reading of the code, not a measurement.
+Kept in one place, `STATUS.md`.
 
 ## Document map
 
 | Doc | Content |
 |---|---|
 | `03` | Runtime library: error model, strings, screen modes, graphics, files, input |
-| `07` | Expert panel: strategy, architecture, roadmap, recommendations R1–R13 |
-| `09` | Study claims checked by running the old compiler; bug-compatibility list |
-| `17` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do); how M1 compares |
-| `18` | Other VS Code extension practices (bundling, manifest, workspace capabilities, status bar, notifications, CI) compared with five large extensions; proposals A–G |
-| `41` | The panel's process-reset proposal after `docs\SESSION-HISTORY-REVIEW.md`: disk, cache invalidation, process growth, review loop; proposals P1–P7; P1 and P2 taken (`DECISIONS.md` 2026-10-31), P4–P7 open |
-| `42` | Prior art for the change `value-trace`: how other languages and tools record the values of variables (Daikon, value profiling, time-travel debuggers, tracing libraries, static range analysis, BASIC's own debuggers) |
-| `43` | The features and tools of modern languages that we lack: lints, doc comments, editor features, quick fixes, a library manager, a profiler; language extensions such as modules and `TRY`; the panel's view and a recommendation. Open until the user picks from it |
-| `44` | QB64 projects on GitHub (2026-11-09): programs to test with (the Lance Haffner games, DRAW, the QB64-PE Museum, the Libraries Pack, InForm, HamCalc64, Crescent's QuickPak releases, QBX's PDS 7.1 tests), what a front-end check of them found in QB64Rust, ideas to build (a QuickPak library, `.MAK` projects, `0xFC` sources, an MCP server), projects to watch. Its questions are answered and the OpenSpec change `community-programs` is built and archived (2026-11-09), so it can be archived |
 | `47` | The next big wins, and the gaps against QB64pe, FreeBASIC, other modern BASICs and modern languages (2026-11-09): reach first, then real programs and what the ports found, then editor rows, fuzzing and build time; the panel's view and three questions. Open until the user answers them |
-| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 7); what each holds: `archive\README.md`. Since 2026-10-28 also the old compiler's front end (`01`), code generation (`02`), the rest of the IDE and debugger (`04`), its build (`05`), and the reviews and studies `35`–`40`; since 2026-10-29 the closed study gaps (`10`: DIM family, PRINT/INPUT/WRITE, built-in table), FreeBASIC (`16`) and VS Code parity (`06`: the IDE's features mapped to LSP, DAP, tasks and settings; what is left is in `SOMEDAY.md`) |
+| `archive\` | Closed documents, read only when needed (`CLAUDE.md` working rule 7); what each holds: `archive\README.md`. Since 2026-10-28 also the old compiler's front end (`01`), code generation (`02`), the rest of the IDE and debugger (`04`), its build (`05`), and the reviews and studies `35`–`40`; since 2026-10-29 the closed study gaps (`10`: DIM family, PRINT/INPUT/WRITE, built-in table), FreeBASIC (`16`) and VS Code parity (`06`: the IDE's features mapped to LSP, DAP, tasks and settings; what is left is in `SOMEDAY.md`); since 2026-11-09 the first expert panel (`07`, its R1–R13 summed up in §2), the claims checked in M0 (`09`), the extension's testing and practices (`17`, `18`), the prior art of `value-trace` (`42`), the modern languages' tools (`43`, its open items now in `47` §6) and the QB64 projects on GitHub (`44`); since 2026-11-10 the process-reset proposal (`41`, its P5–P7 postponed) |
 
 Decisions taken on the basis of these documents are logged in `DECISIONS.md`.

@@ -211,7 +211,7 @@ changing direction, design or scope.**
 The decision log is **`docs\DECISIONS.md`** (one dated row per decision, oldest first; moved out of this file on
 2026-10-07). When the user decides something, add a row there and put the details in the document it names; a minor
 row (document arrangement, a change archived, a one-time exception) goes to `DECISIONS-SMALL.md` instead.
-Expert-panel recommendations: `study\07-expert-panel.md`. Open questions: `STATUS.md`.
+The first expert panel's recommendations R1–R13: `study\00` §2 (the panel itself archived in `study\archive\07-expert-panel.md`). Open questions: `STATUS.md`.
 
 ## Layout
 

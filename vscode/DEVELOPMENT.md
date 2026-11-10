@@ -85,7 +85,7 @@ on VS Code 1.99 (Node 20.18, `ERR_REQUIRE_ESM`) and works on 1.100 (Node 20.19.0
 `^1.100.0` (decision 2026-10-03, `DECISIONS.md`). 1.100 also gives `TextDocument.encoding`, which `config.ts` uses.
 Mocha is what VS Code's own test tooling (`@vscode/test-cli`) and most large extensions use; Jest and Vitest run
 tests in their own workers where the `vscode` module does not exist, so they only suit unit tests with a fake
-`vscode` (survey in `study\17-vscode-extension-testing.md`).
+`vscode` (survey in `study\archive\17-vscode-extension-testing.md`).
 
 ## Compiler output fixtures
 
