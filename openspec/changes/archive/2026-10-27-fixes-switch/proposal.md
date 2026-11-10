@@ -35,7 +35,7 @@ switch built here.
 - **The test runner builds with `--fixes off`**, so a `qb64rust.toml` in the tree never changes a suite's result.
   It runs a program that has a `fixed\<name>.out.txt` sidecar a second time with `--fixes on` and compares that run
   with the sidecar, so each switched fix has a program recorded both ways.
-- **Always-on fixes from the compiler** (no switch). Each gets a `QB64PE-DIVERGENCES.md` row and is measured under
+- **Always-on fixes from the compiler** (no switch). Each gets a `DIVERGENCES-QB64PE.md` row and is measured under
   `qb64pe.exe` first, where `study\39` §3 asks:
   - row 3: `DIM`/`REDIM` with a count below zero raises error 5 instead of "Out of memory", which no handler
     receives;
@@ -102,6 +102,6 @@ review".
 - `vscode\`: the New Project command; `package.json` contributes it.
 - `tools\legacy_tests\run_legacy_tests.py`: `--fixes off`, the `fixed\` sidecars.
 - New verification programs for the always-on fixes and the `qb64pe.exe` measurements of `study\39` §3, recorded
-  before the closing runs. `QB64PE-DIVERGENCES.md` gets one row per always-on fix and a table of the switched
+  before the closing runs. `DIVERGENCES-QB64PE.md` gets one row per always-on fix and a table of the switched
   fixes.
 - `Cargo.toml`: the dependency `toml`.

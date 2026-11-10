@@ -5,8 +5,8 @@ $CONSOLE:ONLY
 ' bits, which fails the old compiler's C++ build; `$0`), a string FOR variable; then what is not supported yet (a
 ' length named by a float constant compiles since m4-memory-records, rounded half to even, verification\v56_x14):
 ' an array named with `$n`, `$n` beside a constant of its name (assigned, in
-' `DIM`, in `SHARED`) or beside a `STRING * n` parameter of its name, a member whose length is a constant's name, a
-' suffix on a fixed-length member.
+' `DIM`, in `SHARED`) or beside a `STRING * n` parameter of its name, a member whose length is a constant's name.
+' `r.nm$`, a `$` on a fixed-length member, compiles since 2026-11-09 (verification\v70_c1).
 ' The marked declarations stand last: they drop the real errors after them (the follow-on rule).
 DIM z0 AS STRING * 0
 DIM z1 AS STRING * (2 + 3)

@@ -10,7 +10,7 @@ TYPE t1
     s(0 TO 1) AS STRING
 END TYPE
 ' A _DYNAMIC member array of an array element is released the same way, its index evaluated once where the old
-' compiler evaluates it twice (QB64PE-DIVERGENCES.md D-055; verification\v64_a1), and given its new bounds the
+' compiler evaluates it twice (DIVERGENCES-QB64PE.md D-055; verification\v64_a1), and given its new bounds the
 ' same way, its index evaluated once as in the old compiler (verification\v65_a1).
 TYPE dy
     _DYNAMIC d(1 TO 3) AS LONG

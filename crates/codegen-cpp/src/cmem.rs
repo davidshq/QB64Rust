@@ -41,7 +41,7 @@ impl Emitter<'_> {
                  memset({n}->chr,0,{k});\n}}\n"
             ),
             // Its strings are made as in ordinary memory, where the old compiler leaves them out and its program
-            // crashes at the first use of one (`qb64pe.bas` 17790–17852; `QB64PE-DIVERGENCES.md` D-037).
+            // crashes at the first use of one (`qb64pe.bas` 17790–17852; `DIVERGENCES-QB64PE.md` D-037).
             Ty::User(_) => {
                 let size = self.ty_size(v.ty);
                 let mut strings = self.new_value(v.ty, &format!("(char*){n}"));
@@ -188,17 +188,36 @@ impl Emitter<'_> {
     /// compiler writes it (its C++ of `verification\v56_d` and of each form, task 1.2 of `m4-memory-records`): a
     /// string's characters, a number's bytes, a fixed-length string's characters, and from a place in a user type
     /// or in an array of fixed-length strings or of a user type the bytes to the end of its variable or array.
+    /// The string or the offset is written twice, as the old compiler writes it; where an index calls a procedure
+    /// it is first held in a temporary, so that the index is evaluated once, as in QB 4.5 (`DIVERGENCES-QB64PE.md`
+    /// D-061, as [`Self::block`]). Where a later part of the call must come after it, the whole call is held
+    /// (`order.rs`, [`crate::order::Bytes`]) and this is its temporary.
     ///
     /// [`StmtArg::Rest`]: qb64rust_ir::StmtArg::Rest
     pub(crate) fn rest_bytes(&mut self, place: &Place) -> String {
+        if let Some(held) = self.held_bytes_of(std::ptr::from_ref(place).cast()) {
+            return held;
+        }
         let root = place.root();
         let v = self.p.var(root);
         let (ty, n) = (v.ty, self.name(root));
+        let once = place.calls_procedure();
+        let mut holds = Vec::new();
+        let mut held = |e: &mut Self, text: String, ty: &str| {
+            if once {
+                let t = e.seq_temp(ty);
+                holds.push(format!("{t}={text}"));
+                t
+            } else {
+                text
+            }
+        };
         let (at, size) = match (place, ty) {
             (Place::Var(_), Ty::Str) => (format!("{n}->chr"), format!("{n}->len")),
             (Place::Var(_), Ty::FixedStr(k)) => (format!("{n}->chr"), k.to_string()),
             (_, Ty::Str) => {
                 let s = self.string_of(place);
+                let s = held(self, s, "qbs*");
                 (format!("{s}->chr"), format!("{s}->len"))
             }
             (
@@ -210,6 +229,7 @@ impl Emitter<'_> {
             ) => return self.block(*a, index),
             (_, Ty::User(_)) if v.is_array() => {
                 let o = self.udt_offset(place);
+                let o = held(self, o, "ptrszint");
                 let size = self.ty_size(ty);
                 let counts: Vec<String> = (1..=v.dim_count().unwrap_or(1))
                     .map(|i| format!("{n}[{}]", 4 * i + 1))
@@ -221,12 +241,13 @@ impl Emitter<'_> {
             }
             (_, Ty::User(_)) => {
                 let o = self.udt_offset(place);
+                let o = held(self, o, "ptrszint");
                 (format!("(((char*){n})+({o}))"), format!("{}-({o})", self.ty_size(ty)))
             }
             (_, t) => (n, self.ty_size(t).to_string()),
         };
         let t = self.byte_element_temp();
-        format!("byte_element((uint64){at},{size},{t})")
+        crate::order::sequenced(&holds, format!("byte_element((uint64){at},{size},{t})"))
     }
 
     /// The offset of a place in a value of a user type, as the old compiler builds it (`o$` of `qb64pe.bas`

@@ -518,6 +518,8 @@ class AudioEngine {
                 std::fill(maBuffer, maBuffer + frameCount, SampleFrameF32{SILENCE_SAMPLE_F32, SILENCE_SAMPLE_F32});
                 sampleFramesRead = frameCount;
             } else {
+                libqb_mutex_guard lock(pRawStream->m);
+
                 sampleFramesRead = pRawStream->consumer->data.size() - pRawStream->consumer->cursor; // total amount of samples we need to send to miniaudio
 
                 // Swap buffers if we do not have anything left to play

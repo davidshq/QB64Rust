@@ -14,7 +14,7 @@ A program SHALL be able to define procedures with `SUB name [(params)]` … `END
 array (`name[suffix]() [AS type]`, requirement "Array parameters") or a user type (requirement "User-type
 parameters"); without a suffix or `AS` clause its type SHALL be the default type of its name
 (`language/default-types`). A `_BIT` or `_BIT * n` parameter (by `AS` or by suffix) SHALL be accepted as QB64pe
-after `fae85f8e1` accepts it. The reference commit fails its own C++ build for one (`QB64PE-DIVERGENCES.md`
+after `fae85f8e1` accepts it. The reference commit fails its own C++ build for one (`DIVERGENCES-QB64PE.md`
 D-057). A parameter declared `STRING * n` or `name$n` SHALL be a `STRING`
 parameter, its value neither cut nor padded, except that `LEN` of the parameter itself SHALL be the constant n, as
 in the old compiler (`verification\v21_c_fixed_args`, `v21_f_fixed_param`); an n that is 0 or negative once read
@@ -22,13 +22,24 @@ in 32 bits, and `_UNSIGNED STRING` with or without a length, SHALL be compile er
 compiler ("Illegal SUB/FUNCTION parameter", `verification\v21_x42`–`x45`). A FUNCTION's type SHALL be given
 by its suffix, of any numeric type or `$`, the default type of its name without one; a call of a FUNCTION named
 with `` ` `` or `` ~` ``
-and no width SHALL be a compile error, as in the old compiler ("Name already in use"), and a FUNCTION named with
+and no width that writes that suffix SHALL be a compile error, as in the old compiler ("Name already in use",
+`verification\v21_x16`, `x17`, `x47`, `v70_h1`), and a call without a suffix SHALL call it as any other FUNCTION
+(`v70_h2`); a FUNCTION named with
 `$n` SHALL return a string of exactly n bytes, its result cut or padded with spaces as a store into a `STRING * n`,
 as the old compiler does (`verification\v21_c_fixed_args`); it SHALL be called and assigned as `f$n`, `f$` or `f`,
 and another length (`f$4` for `f$5`) SHALL be a compile error ("Name already in use", `verification\v21_g_fixed_function`,
 `v21_x49`). Each call's result SHALL be its own string: two calls in one expression keep both results (the old
-compiler returns bytes it has released, so the second call overwrites the first, `QB64PE-DIVERGENCES.md` D-014). Procedures SHALL NOT be nested, and two procedures SHALL
-NOT share a name.
+compiler returns bytes it has released, so the second call overwrites the first, `DIVERGENCES-QB64PE.md` D-014). Procedures SHALL NOT be nested, and two procedures SHALL
+NOT share a name, except that one SUB and one FUNCTION MAY: the old compiler checks a SUB's name only against other
+SUBs and a FUNCTION's only against other FUNCTIONs (`qb64pe.bas` 25880–25883). The name as a statement SHALL then
+call the SUB and as a value the FUNCTION, in either order of definition, with `DECLARE` lines for both, and inside
+the FUNCTION its name SHALL be its result (measured, `verification\v70_a1`–`a5`; InForm's `extensions\HMap64.bi`).
+
+#### Scenario: A SUB and a FUNCTION of one name
+- **WHEN** a program defines `FUNCTION f%% (n AS INTEGER)` and then `SUB f (n AS INTEGER)`, which calls `f(n)`, and
+  runs `PRINT f(2)`, `f 3` and `CALL f(4)`
+- **THEN** the first prints the FUNCTION's result and the other two run the SUB, as in the old compiler
+  (`verification\v70_a1`)
 
 #### Scenario: SUB defined before the main code
 - **WHEN** a program defines `SUB foo (a AS LONG, b AS LONG)` first and calls `CALL foo(1, 2)` after it
@@ -173,7 +184,9 @@ variables SHALL NOT be visible in a procedure otherwise.
 ### Requirement: DECLARE lines
 `DECLARE SUB` and `DECLARE FUNCTION` lines SHALL be accepted when well formed and SHALL otherwise be ignored, as
 by the old compiler: a `DECLARE` that disagrees with the definition, or names a procedure that does not exist, is
-not an error; calls are checked against the definition.
+not an error; calls are checked against the definition. In a `DECLARE SUB` or `FUNCTION` line outside a library, an
+`AS type` after a stray comma (`idx, AS LONG`) SHALL be taken as the clause of the parameter before it (measured,
+`verification\v70_e1`; the Libraries Pack's `QB64pe-Json`).
 
 #### Scenario: DECLARE before use
 - **WHEN** a program starts with `DECLARE SUB show (v AS LONG)` and defines `SUB show (v AS LONG)` at the end

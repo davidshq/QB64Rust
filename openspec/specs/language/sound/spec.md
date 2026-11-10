@@ -257,7 +257,9 @@ an error that is not "not supported yet".
 ### Requirement: The arrays of _WAVE and _SNDRAWBATCH
 `_WAVE voice, a()` SHALL take only an array of `_BYTE` and `_SNDRAWBATCH a()` only an array of `SINGLE`, whole
 (also named without its parentheses) or from one of its elements, as the old compiler does; any other argument
-there, a member array included, SHALL be a compile error that is not "not supported yet".
+there, a member array included, SHALL be a compile error that is not "not supported yet". An index that calls a
+FUNCTION (`_WAVE 0, w(f(1))`) SHALL be evaluated once, as for graphics `GET` and `PUT`; the old compiler
+evaluates it twice (`DIVERGENCES-QB64PE.md` D-061).
 
 #### Scenario: The arrays accepted
 - **WHEN** `DIM w(1 TO 64) AS _BYTE, f(1 TO 16) AS SINGLE` and then `_WAVE 0, w()`, `_WAVE 0, w(1), 32`,
@@ -353,6 +355,18 @@ compiler's program does.
 - **WHEN** a program opens a raw stream, sets its volume to 0, queues one second of samples of 0 and reads
   `_SNDRAWLEN` right after
 - **THEN** the number is over 0 and at most 1, as with the old compiler
+
+### Requirement: Queued samples and the audio thread
+The audio thread SHALL read and swap a raw stream's buffers only while it holds the lock the program holds when it
+queues samples, so that the two threads of a program that plays `SOUND`, `PLAY`, `_SNDRAW` or `_SNDRAWBATCH`
+never change one buffer at once. The old compiler's program does not take the lock (`DIVERGENCES-QB64PE.md`
+D-062).
+
+#### Scenario: A program that ends right after a sound
+- **WHEN** a program sets `PLAY "V0"`, waits a second, plays `SOUND 700, .5` and ends with `SYSTEM`, run 150
+  times one after another
+- **THEN** every run exits with code 0, where the old compiler's program crashed in about 1 run in 40 (exit code
+  0xC0000374)
 
 ### Requirement: MIDI sound banks
 `_MIDISOUNDBANK` SHALL set the sound bank later MIDI sounds are opened with: a file, a string with `"memory"` and

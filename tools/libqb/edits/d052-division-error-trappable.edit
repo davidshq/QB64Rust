@@ -1,4 +1,4 @@
-# Error 11, division by zero, is trappable (QB64PE-DIVERGENCES.md D-052, UPSTREAM.md "Division by zero cannot be
+# Error 11, division by zero, is trappable (DIVERGENCES-QB64PE.md D-052, UPSTREAM.md "Division by zero cannot be
 # trapped"; study\39 row 12; as QuickBASIC 4.5, verification\qb45\q45_div_zero). QB64pe's error() treats 11 as a
 # critical error, so a handler never receives it (verification\v02b_idiv_zero). The generated code already tests every
 # integer \ and MOD for a divisor of 0 and raises 11 without dividing, so 11 can go the way of any other error. The

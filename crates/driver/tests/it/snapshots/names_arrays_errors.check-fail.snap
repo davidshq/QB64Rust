@@ -9,4 +9,4 @@ names_arrays_errors.bas:24:11: note: QB64pe: Variable/element cannot be _BIT ali
 names_arrays_errors.bas:25:11: error: `LEN` of an array of `TYPE TS`: a `TYPE` with a `STRING` member has no fixed size
 names_arrays_errors.bas:26:11: error: not supported yet: `LEN` of a whole dynamic member array
 names_arrays_errors.bas:32:10: error: name already in use: `twice`
-names_arrays_errors.bas:37:5: error: not supported yet: an array `g` without `AS` beside one listed by `COMMON … AS`
+names_arrays_errors.bas:37:5: error: `DIM g` needs an `AS` clause: `g` is listed by `COMMON … AS`

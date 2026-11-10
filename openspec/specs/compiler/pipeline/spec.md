@@ -75,7 +75,7 @@ or into a member of a variable SHALL NOT check for a pending error. A store into
 with an index on the way (a member of an array element, an element of a member array) SHALL evaluate a numeric
 value before the indexes and a string value after them (measured, `verification\v24_x313`, `x316`: the old
 compiler's string store evaluates its place first), and SHALL be skipped when an index is out of range or when
-the indexes raised an error while none was pending before them (`QB64PE-DIVERGENCES.md` D-004). An index out of range
+the indexes raised an error while none was pending before them (`DIVERGENCES-QB64PE.md` D-004). An index out of range
 SHALL raise error 9, and a read with it SHALL give the value at position 0 of that dimension.
 
 #### Scenario: Optional argument absent
@@ -144,7 +144,7 @@ SHALL raise error 9, and a read with it SHALL give the value at position 0 of th
 
 #### Scenario: Member of an element with a bad index
 - **WHEN** `a(9).m = 5` runs for `DIM a(3) AS t` with `a(0).m` holding 70 and the handler executes `RESUME NEXT`
-- **THEN** error 9 is serviced and `a(0).m` still holds 70 (the old compiler writes 5 there: `QB64PE-DIVERGENCES.md` D-004)
+- **THEN** error 9 is serviced and `a(0).m` still holds 70 (the old compiler writes 5 there: `DIVERGENCES-QB64PE.md` D-004)
 
 #### Scenario: Value before index in a member-of-element store
 - **WHEN** `a(9).m = ASC("")` runs for the same array under a handler that prints `ERR`
@@ -160,7 +160,7 @@ SHALL raise error 9, and a read with it SHALL give the value at position 0 of th
 - **WHEN** `t.v(9) = 5` runs for a member `v(0 TO 3) AS LONG` with `t.v(0)` holding 100, and `a(1).v(9) = 6` for
   an array `a` of the type, and the handler executes `RESUME NEXT`
 - **THEN** error 9 is serviced each time and no element changes (the old compiler writes `t.v(0)` and
-  `a(1).v(0)`: `QB64PE-DIVERGENCES.md` D-004)
+  `a(1).v(0)`: `DIVERGENCES-QB64PE.md` D-004)
 
 ### Requirement: C++ output and build
 The C++ emitter SHALL write every fragment that `qbx.cpp` includes into a build folder that is inside neither the
@@ -265,6 +265,16 @@ an error the old compiler also reports.
 Every statement and expression form the old compiler accepts SHALL parse into a node of its own kind, without a
 parser diagnostic. A construct that the later stages do not compile yet SHALL be reported "not supported yet" by
 `sema` at that node, not by the parser.
+
+A `_` at the end of a line SHALL be a line continuation also when it touches the word before it, as the old
+compiler removes one `_` from the end of the laid-out line (`qb64pe.bas` 25505–25514): `or_` is `OR` and a
+continuation, `a_b_` the name `a_b` and a continuation (measured, `verification\v70_b1`–`b4`). `< =`, `> =` and
+`< >` with spaces or tabs between the two characters SHALL each be one operator, `<=`, `>=` and `<>` (measured,
+`v70_d1`–`d3`; DRAW's `GUI\LAYERS.BM`).
+
+#### Scenario: A continuation against a keyword
+- **WHEN** a program has `x = 0 or_` on one line and `1` on the next, then `PRINT x`
+- **THEN** it prints ` 1`, as the old compiler's program does (`verification\v70_b1`)
 
 #### Scenario: Statement not compiled yet
 - **WHEN** a program contains `DO: PRINT VARSEG(bb(1)): LOOP UNTIL a > 0`, with `bb` an array of `_BIT` (`VARSEG`

@@ -1,0 +1,3018 @@
+alien-alley/AlienAlley.bas
+all/9CODE386.BAS
+all/MIRA.BAS
+all/MKBIOS8.BAS
+all/Pcx.bas
+all/Quake.bas
+all/SOURCE/BALLPSET.BAS
+all/SOURCE/BALLXOR.BAS
+all/SOURCE/BAR.BAS
+all/SOURCE/CAL.BAS
+all/SOURCE/CHECK.BAS
+all/SOURCE/COLORS.BAS
+all/SOURCE/CRLF.BAS
+all/SOURCE/CUBE.BAS
+all/SOURCE/EDPAT.BAS
+all/SOURCE/ENTAB.BAS
+all/SOURCE/FILERR.BAS
+all/SOURCE/FLPT.BAS
+all/SOURCE/INDEX.BAS
+all/SOURCE/MANDEL.BAS
+all/SOURCE/PALETTE.BAS
+all/SOURCE/PLOTTER.BAS
+all/SOURCE/QLBDUMP.BAS
+all/SOURCE/SEARCH.BAS
+all/SOURCE/SINEWAVE.BAS
+all/SOURCE/STRTONUM.BAS
+all/SOURCE/TERMINAL.BAS
+all/SOURCE/TOKEN.BAS
+all/SOURCE/WHEREIS.BAS
+all/TPAINT.BAS
+all/UtilitiesAndExamples_2of2/DEMO1.BAS
+all/UtilitiesAndExamples_2of2/DEMO2.BAS
+all/UtilitiesAndExamples_2of2/DEMO3.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/BALLPSET.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/BALLXOR.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/BAR.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/CAL.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/CHECK.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/COLORS.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/CRLF.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/CUBE.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/EDPAT.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/ENTAB.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/FILERR.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/FLPT.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/INDEX.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/MANDEL.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/PALETTE.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/PLOTTER.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/QLBDUMP.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/SEARCH.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/SINEWAVE.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/STRTONUM.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/TERMINAL.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/TOKEN.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/TORUS.BAS
+all/UtilitiesAndExamples_2of2/SOURCE/WHEREIS.BAS
+all/VFONT3.BAS
+basic-raytracing/raytraycing.bas
+chessbrainqb64/ChessbrainQB64.bas
+draw/ASSETS/PRIMITIVES/TOOLBAR.BAS
+draw/DEV/EXPERIMENTS/ALPHA_PRESERVE_TEST.BAS
+draw/DEV/EXPERIMENTS/HW_ALPHA_GHOST_TEST.BAS
+draw/DEV/EXPERIMENTS/HW_CURSOR_CROSSPLATFORM.bas
+draw/DEV/EXPERIMENTS/HW_CURSOR_PROFILE.bas
+draw/DEV/EXPERIMENTS/HW_CURSOR_ZORDER_TEST.bas
+draw/DEV/EXPERIMENTS/HW_IMAGE_TEST.BAS
+draw/DEV/EXPERIMENTS/HW_PARTIAL_BOUNDARY_TEST.BAS
+draw/DEV/EXPERIMENTS/HW_PARTIAL_MIX_TEST.BAS
+draw/DEV/EXPERIMENTS/HW_SYNC_TEST.BAS
+draw/DEV/EXPERIMENTS/HW_TOOLTIP_REBLIT_TEST.BAS
+draw/DEV/EXPERIMENTS/SETALPHA_VERIFY_TEST.BAS
+draw/DEV/EXPERIMENTS/display-probe.bas
+draw/DEV/EXPERIMENTS/fullscreen-modes.BAS
+draw/DEV/EXPERIMENTS/lock-key-a740g.bas
+draw/DEV/EXPERIMENTS/lock-key-test.bas
+draw/DEV/EXPERIMENTS/mousecursor-test.bas
+draw/DEV/_/color-bitmap-font-test.bas
+draw/DEV/_/draw-history.bas
+draw/DEV/_/font-metric-scan.bas
+draw/DEV/_/font-test.bas
+draw/DEV/_/font-test2.bas
+draw/DEV/_/font-test3.bas
+draw/DEV/_/make-test-image.bas
+draw/DEV/_/menu-metrics.bas
+draw/DEV/_/menu-metrics2.bas
+draw/DEV/_/test-alt-click.bas
+draw/DEV/_/test-alt-keys.bas
+draw/DEV/_/test-charmap-cache.bas
+draw/DEV/_/test-cmd-key.bas
+draw/DEV/_/test-font-render.bas
+draw/DEV/_/test-font-render2.bas
+draw/DEV/_/test-modifier-click.bas
+draw/DEV/_/test-mouse-buttons.bas
+draw/DEV/_/unicode-charmap-test.bas
+draw/DEV/_/unicode-fastscan-test.bas
+draw/DEV/_/unicode-mapunicode-test.bas
+draw/DEV/_/unicode-render-test.bas
+draw/DEV/_/unicode-scan-test.bas
+draw/DEV/_/unicode-smartscan-test.bas
+draw/DEV/keytest.bas
+draw/DEV/mbprobe-console.bas
+draw/DEV/mouse-axis-probe.bas
+draw/DEV/mouse-button-probe.bas
+draw/DEV/mousewheel-axis-probe.bas
+draw/DEV/tilt-alt-probe.bas
+draw/QA/unit/dock-unit.bas
+draw/QA/unit/pcyc-unit.bas
+draw/QA/unit/ws-unit.bas
+draw/SAMPLES/COLOR CYCLING/candles.bas
+draw/SAMPLES/COLOR CYCLING/christmas.bas
+draw/SAMPLES/COLOR CYCLING/fire.bas
+draw/SAMPLES/COLOR CYCLING/halloween.bas
+draw/SAMPLES/COLOR CYCLING/hanukkah.bas
+draw/SAMPLES/COLOR CYCLING/marquee.bas
+draw/SAMPLES/COLOR CYCLING/new-year.bas
+draw/SAMPLES/COLOR CYCLING/ocean-sunset.bas
+draw/SAMPLES/COLOR CYCLING/pinwheel.bas
+draw/SAMPLES/COLOR CYCLING/skull.bas
+draw/SAMPLES/COLOR CYCLING/snake.bas
+draw/SAMPLES/COLOR CYCLING/st-patricks.bas
+draw/SAMPLES/COLOR CYCLING/tunnel.bas
+draw/SAMPLES/COLOR CYCLING/valentine.bas
+draw/SAMPLES/COLOR CYCLING/waterfall.bas
+draw/UTILS/MAKE-DSET.BAS
+draw/includes/QB64_GJ_LIB/ADV_COLOR_PICKER/ACP-PROBE.BAS
+draw/includes/QB64_GJ_LIB/ADV_COLOR_PICKER/ACP-TEST.BAS
+draw/includes/QB64_GJ_LIB/ANSI/ANSI.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_BYTE.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_DBL.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_FLT.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_INT.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_INT64.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_LONG.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_SNG.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_STR.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_UBYTE.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_UINT.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_UINT64.BAS
+draw/includes/QB64_GJ_LIB/ARR/ARR_ULONG.BAS
+draw/includes/QB64_GJ_LIB/ASEPRITE/_/view_full_canvas_composite.bas
+draw/includes/QB64_GJ_LIB/ASEPRITE/_/view_transparency_test.bas
+draw/includes/QB64_GJ_LIB/BBX/BBX.BAS
+draw/includes/QB64_GJ_LIB/BBX/keywatch.bas
+draw/includes/QB64_GJ_LIB/COLOR/COLOR-3D-TEST.BAS
+draw/includes/QB64_GJ_LIB/COLOR/COLOR-PIGMENT-TEST.BAS
+draw/includes/QB64_GJ_LIB/COLOR/COLOR-SPACES-TEST.BAS
+draw/includes/QB64_GJ_LIB/CONSOLE/CONSOLE.BAS
+draw/includes/QB64_GJ_LIB/DICT/DICT.BAS
+draw/includes/QB64_GJ_LIB/DUMP/DUMP.BAS
+draw/includes/QB64_GJ_LIB/FLATTEN.BAS
+draw/includes/QB64_GJ_LIB/GLSL/GLSL-FILTER-TEST.BAS
+draw/includes/QB64_GJ_LIB/GLSL/GLSL-TEST.BAS
+draw/includes/QB64_GJ_LIB/INPUT/LIGHTBAR.BAS
+draw/includes/QB64_GJ_LIB/INPUT/LIGHTBAR32.BAS
+draw/includes/QB64_GJ_LIB/LAYOUT/LAYOUT-TEST.BAS
+draw/includes/QB64_GJ_LIB/PRESSURE_DEVICE/PRESSURE_DEVICE-EXAMPLE.BAS
+draw/includes/QB64_GJ_LIB/PRESSURE_DEVICE/PRESSURE_DEVICE-TEST.BAS
+draw/includes/QB64_GJ_LIB/PSD/PSD.BAS
+draw/includes/QB64_GJ_LIB/STEAM/STEAM-EXAMPLE.BAS
+draw/includes/QB64_GJ_LIB/STEAM/STEAM-TEST.BAS
+draw/includes/QB64_GJ_LIB/STRINGS/STRINGS.BAS
+draw/includes/QB64_GJ_LIB/SYS/SYS.BAS
+draw/includes/QB64_GJ_LIB/VECT2D/VECT2D.BAS
+final-quest-2/GLOBEDIT.BAS
+final-quest-2/LEVEL.BAS
+fzxngn/fzxDemo/GLINI.bas
+fzxngn/fzxDemo/constraintConverter.bas
+fzxngn/fzxDemo/fzxDemo.bas
+fzxngn/fzxDemo/fzxNGNBBMenu.bas
+fzxngn/fzxDemo/fzxNGNBareBones.bas
+fzxngn/fzxDemo/fzxNGNCuttingBoard.bas
+fzxngn/fzxDemo/fzxNGNCuttingBoardSquares.bas
+fzxngn/fzxDemo/fzxNGNEntropy.bas
+fzxngn/fzxDemo/fzxNGNFieldConstraint.bas
+fzxngn/fzxDemo/fzxNGNMechanical.bas
+fzxngn/fzxDemo/fzxNGNOrbitalMechanics.bas
+fzxngn/fzxDemo/fzxNGNSoftbody.bas
+fzxngn/fzxDemo/gameINI.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_AABB.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_BASE.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_BODY_MANAGEMENT.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_CAMERA.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_FPS.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_FSM.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_HASH.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_IMPULSEMATH.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_INPUT.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_JOINT_MANAGEMENT.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_LINESEG.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_MATRIXMATH.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_MEM.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_NETWORK.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_PERLIN.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_POLYGON.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_SCALARMATH.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_STRING_ARRAY.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_VECMATH.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_XML.bas
+fzxngn/fzxNGN_BASE_v2/fzxNGN_ini.bas
+gui-menu-bar/GUIMenubar_Global.bas
+gui-menu-bar/Menu_Testing_1.bas
+gx/mapmaker/MapMaker.bas
+gx/mapmaker/inform/InFormVersion.bas
+gx/samples/collision/collision_layer.bas
+gx/samples/device/detect.bas
+gx/samples/device/input.bas
+gx/samples/font/default-font.bas
+gx/samples/horse/horse.bas
+gx/samples/isometric/isotest.bas
+gx/samples/map/create_map.bas
+gx/samples/map/load_map.bas
+gx/samples/map/mapinfo.bas
+gx/samples/map/save_map.bas
+gx/samples/map/update_map.bas
+gx/samples/overworld/overworld.bas
+gx/samples/physics/gravity.bas
+gx/samples/santa/santa.bas
+gx/samples/space/escape.bas
+gx/samples/tileset/create_tileset.bas
+gx/samples/tileset/load_tileset.bas
+gx/tools/gx2web.bas
+gx/tools/map2web.bas
+gx/tools/qb2js.bas
+gx/tools/webserver.bas
+hamcalc64/Menu/CAL-X.BAS
+hamcalc64/Menu/HAMCAL-X.BAS
+hamcalc64/Menu/HCA.BAS
+hamcalc64/Menu/HCAL-1.BAS
+hamcalc64/Menu/HCAL-A.BAS
+hamcalc64/Menu/HCAL-B.BAS
+hamcalc64/Menu/HCAL-C.BAS
+hamcalc64/Menu/HCAL-D.BAS
+hamcalc64/Menu/HCAL-E.BAS
+hamcalc64/Menu/HCAL-F.BAS
+hamcalc64/Menu/HCAL-G.BAS
+hamcalc64/Menu/HCAL-H.BAS
+hamcalc64/Menu/HCAL-I.BAS
+hamcalc64/Menu/HCAL-X.BAS
+hamcalc64/Menu/HCAL-Z.BAS
+hamcalc64/Menu/HCAL.BAS
+hamcalc64/Menu/HCALC.BAS
+hamcalc64/Menu/PROG.BAS
+hamcalc64/Menu/part2.bas
+hamcalc64/PROG/3MBRIDGE.BAS
+hamcalc64/PROG/555TIMER.BAS
+hamcalc64/PROG/ACCALC.BAS
+hamcalc64/PROG/ACCELR.BAS
+hamcalc64/PROG/ACTARING.BAS
+hamcalc64/PROG/ADDONS.BAS
+hamcalc64/PROG/AIRCORE.BAS
+hamcalc64/PROG/AMDEX.BAS
+hamcalc64/PROG/ANTENNA.BAS
+hamcalc64/PROG/ANTFIELD.BAS
+hamcalc64/PROG/ANTMATCH.BAS
+hamcalc64/PROG/ANTSCALE.BAS
+hamcalc64/PROG/ANTSYN2.BAS
+hamcalc64/PROG/ARCH.BAS
+hamcalc64/PROG/ATTENPAD.BAS
+hamcalc64/PROG/ATTENU.BAS
+hamcalc64/PROG/AUDFILT.BAS
+hamcalc64/PROG/AUDOSC.BAS
+hamcalc64/PROG/AUDOSC2.BAS
+hamcalc64/PROG/AUDPASS.BAS
+hamcalc64/PROG/AWGEXACT.BAS
+hamcalc64/PROG/BANDQ.BAS
+hamcalc64/PROG/BANDSTOP.BAS
+hamcalc64/PROG/BANDWDTH.BAS
+hamcalc64/PROG/BAROMTR.BAS
+hamcalc64/PROG/BATCHG.BAS
+hamcalc64/PROG/BATTCHG.BAS
+hamcalc64/PROG/BATTERY.BAS
+hamcalc64/PROG/BEAMDEFL.BAS
+hamcalc64/PROG/BEAMSECT.BAS
+hamcalc64/PROG/BELTDRIV.BAS
+hamcalc64/PROG/BEND.BAS
+hamcalc64/PROG/BEVANT.BAS
+hamcalc64/PROG/BIGNUM.BAS
+hamcalc64/PROG/BINARY.BAS
+hamcalc64/PROG/BINVOL.BAS
+hamcalc64/PROG/BOBTAIL.BAS
+hamcalc64/PROG/BOOM.BAS
+hamcalc64/PROG/BRICK.BAS
+hamcalc64/PROG/BRIDGE-2.BAS
+hamcalc64/PROG/BRIDGE.BAS
+hamcalc64/PROG/BROADFER.BAS
+hamcalc64/PROG/BROADFWE.BAS
+hamcalc64/PROG/BUTTFILT.BAS
+hamcalc64/PROG/BUXTON.BAS
+hamcalc64/PROG/BUXTRAP.BAS
+hamcalc64/PROG/BUYSELL.BAS
+hamcalc64/PROG/CAL-X.BAS
+hamcalc64/PROG/CALORY.BAS
+hamcalc64/PROG/CALTODAY.BAS
+hamcalc64/PROG/CAPACVAL.BAS
+hamcalc64/PROG/CAPCOAX.BAS
+hamcalc64/PROG/CAPSTRAY.BAS
+hamcalc64/PROG/CAPTANCE.BAS
+hamcalc64/PROG/CAPVAL.BAS
+hamcalc64/PROG/CAPYHAT.BAS
+hamcalc64/PROG/CAPYTEL.BAS
+hamcalc64/PROG/CASCAMP.BAS
+hamcalc64/PROG/CATENARY.BAS
+hamcalc64/PROG/CCDANTEN.BAS
+hamcalc64/PROG/CENTFREQ.BAS
+hamcalc64/PROG/CENTLOAD.BAS
+hamcalc64/PROG/CENTRIF.BAS
+hamcalc64/PROG/CHAIN.BAS
+hamcalc64/PROG/CHASE.BAS
+hamcalc64/PROG/CHKLIST.BAS
+hamcalc64/PROG/CHOKBAL.BAS
+hamcalc64/PROG/CILDSGN.BAS
+hamcalc64/PROG/CIRCFEED.BAS
+hamcalc64/PROG/CLAMP.BAS
+hamcalc64/PROG/CLARKY.BAS
+hamcalc64/PROG/CLILDSGN.BAS
+hamcalc64/PROG/CMOSC3.BAS
+hamcalc64/PROG/COAXCALC.BAS
+hamcalc64/PROG/COAXCHAR.BAS
+hamcalc64/PROG/COAXLC3.BAS
+hamcalc64/PROG/COAXSPEC.BAS
+hamcalc64/PROG/COAXSTUB.BAS
+hamcalc64/PROG/COAXTRAP.BAS
+hamcalc64/PROG/COILAMP.BAS
+hamcalc64/PROG/COILCPL.BAS
+hamcalc64/PROG/COILDSGN.BAS
+hamcalc64/PROG/COILEQUA.BAS
+hamcalc64/PROG/COILIN.BAS
+hamcalc64/PROG/COILNEW.BAS
+hamcalc64/PROG/COILQ.BAS
+hamcalc64/PROG/COILQUIK.BAS
+hamcalc64/PROG/COILTAP.BAS
+hamcalc64/PROG/COILTRUE.BAS
+hamcalc64/PROG/COILX.BAS
+hamcalc64/PROG/COLCODE.BAS
+hamcalc64/PROG/COLPOSC.BAS
+hamcalc64/PROG/COMFILT.BAS
+hamcalc64/PROG/COMPINT.BAS
+hamcalc64/PROG/CONCUR.BAS
+hamcalc64/PROG/CONECALC.BAS
+hamcalc64/PROG/CONJUMAT.BAS
+hamcalc64/PROG/COOILDSG.BAS
+hamcalc64/PROG/COPWIRE.BAS
+hamcalc64/PROG/COXSTUB.BAS
+hamcalc64/PROG/CPLRES.BAS
+hamcalc64/PROG/CRYSFILT.BAS
+hamcalc64/PROG/CURVEFIT.BAS
+hamcalc64/PROG/CUSTCAP.BAS
+hamcalc64/PROG/CUSTOHM.BAS
+hamcalc64/PROG/CW.BAS
+hamcalc64/PROG/CYL.BAS
+hamcalc64/PROG/CYLLOAD.BAS
+hamcalc64/PROG/DAYDUSK.BAS
+hamcalc64/PROG/DAYS.BAS
+hamcalc64/PROG/DBLBRG4.BAS
+hamcalc64/PROG/DBLFB.BAS
+hamcalc64/PROG/DECIBEL.BAS
+hamcalc64/PROG/DECICONV.BAS
+hamcalc64/PROG/DECIFRAC.BAS
+hamcalc64/PROG/DELTAMAT.BAS
+hamcalc64/PROG/DELTLOAD.BAS
+hamcalc64/PROG/DEPREC.BAS
+hamcalc64/PROG/DIALGTH.BAS
+hamcalc64/PROG/DIAMFIND.BAS
+hamcalc64/PROG/DIELECT.BAS
+hamcalc64/PROG/DIPOL160.BAS
+hamcalc64/PROG/DISCONE.BAS
+hamcalc64/PROG/DISHANT.BAS
+hamcalc64/PROG/DPEEDTD.BAS
+hamcalc64/PROG/DSGNMENU.BAS
+hamcalc64/PROG/DSGNRC.BAS
+hamcalc64/PROG/DSGNRLC.BAS
+hamcalc64/PROG/DUOPOLE.BAS
+hamcalc64/PROG/DUOPWR.BAS
+hamcalc64/PROG/ELECLENG.BAS
+hamcalc64/PROG/ELECOST.BAS
+hamcalc64/PROG/ELFLASH.BAS
+hamcalc64/PROG/ELSPEC.BAS
+hamcalc64/PROG/EQUIV.BAS
+hamcalc64/PROG/ES2B.BAS
+hamcalc64/PROG/EXIT.BAS
+hamcalc64/PROG/EXPOSURE.BAS
+hamcalc64/PROG/FATDIPOL.BAS
+hamcalc64/PROG/FIBON.BAS
+hamcalc64/PROG/FILSTRIP.BAS
+hamcalc64/PROG/FILTER.BAS
+hamcalc64/PROG/FILTRLC.BAS
+hamcalc64/PROG/FILTUT.BAS
+hamcalc64/PROG/FINANCE.BAS
+hamcalc64/PROG/FISHBONE.BAS
+hamcalc64/PROG/FOCUS.BAS
+hamcalc64/PROG/FOLDIPOL.BAS
+hamcalc64/PROG/FORMULAE.BAS
+hamcalc64/PROG/FOROMENU.BAS
+hamcalc64/PROG/FOTOCOPY.BAS
+hamcalc64/PROG/FOTOMENU.BAS
+hamcalc64/PROG/FOTOMOVE.BAS
+hamcalc64/PROG/FOXLOG.BAS
+hamcalc64/PROG/FUSEWIRE.BAS
+hamcalc64/PROG/G5RV.BAS
+hamcalc64/PROG/GAMMATCH.BAS
+hamcalc64/PROG/GAPLOT.BAS
+hamcalc64/PROG/GEARING.BAS
+hamcalc64/PROG/GRAPHS.BAS
+hamcalc64/PROG/GRIDSQ.BAS
+hamcalc64/PROG/GUYWIRES.BAS
+hamcalc64/PROG/HAIRPIN.BAS
+hamcalc64/PROG/HALFLOOP.BAS
+hamcalc64/PROG/HAMBANDS.BAS
+hamcalc64/PROG/HAMCAL-X.BAS
+hamcalc64/PROG/HAMCALC.BAS
+hamcalc64/PROG/HAMDEX.BAS
+hamcalc64/PROG/HARMONIC.BAS
+hamcalc64/PROG/HARTOSC.BAS
+hamcalc64/PROG/HARTOSC3.BAS
+hamcalc64/PROG/HATSHAPE.BAS
+hamcalc64/PROG/HCA.BAS
+hamcalc64/PROG/HCAL-1.BAS
+hamcalc64/PROG/HCAL-A.BAS
+hamcalc64/PROG/HCAL-B.BAS
+hamcalc64/PROG/HCAL-C.BAS
+hamcalc64/PROG/HCAL-D.BAS
+hamcalc64/PROG/HCAL-E.BAS
+hamcalc64/PROG/HCAL-F.BAS
+hamcalc64/PROG/HCAL-G.BAS
+hamcalc64/PROG/HCAL-H.BAS
+hamcalc64/PROG/HCAL-I.BAS
+hamcalc64/PROG/HCAL-X.BAS
+hamcalc64/PROG/HCAL-Z.BAS
+hamcalc64/PROG/HCAL.BAS
+hamcalc64/PROG/HCALC.BAS
+hamcalc64/PROG/HELANT.BAS
+hamcalc64/PROG/HELIX.BAS
+hamcalc64/PROG/HELPHINT.BAS
+hamcalc64/PROG/HELRESON.BAS
+hamcalc64/PROG/HELVERT.BAS
+hamcalc64/PROG/HOTBOX.BAS
+hamcalc64/PROG/HUMID.BAS
+hamcalc64/PROG/HXINSTAL.BAS
+hamcalc64/PROG/IMPANT.BAS
+hamcalc64/PROG/IMPARES.BAS
+hamcalc64/PROG/IMPEDCCT.BAS
+hamcalc64/PROG/IMPEDMET.BAS
+hamcalc64/PROG/IMPEDNET.BAS
+hamcalc64/PROG/INDUCALC.BAS
+hamcalc64/PROG/INDUHOSE.BAS
+hamcalc64/PROG/INDULOOP.BAS
+hamcalc64/PROG/INLOSS.BAS
+hamcalc64/PROG/INSERLOS.BAS
+hamcalc64/PROG/INTRO.BAS
+hamcalc64/PROG/INVEE.BAS
+hamcalc64/PROG/INVOLUTE.BAS
+hamcalc64/PROG/JAYPOLE.BAS
+hamcalc64/PROG/JCALC.BAS
+hamcalc64/PROG/KFACTOR.BAS
+hamcalc64/PROG/L-PAD.BAS
+hamcalc64/PROG/LADANT.BAS
+hamcalc64/PROG/LADDER2.BAS
+hamcalc64/PROG/LADRSOLV.BAS
+hamcalc64/PROG/LAMPLIFE.BAS
+hamcalc64/PROG/LATLONG.BAS
+hamcalc64/PROG/LED.BAS
+hamcalc64/PROG/LENSES.BAS
+hamcalc64/PROG/LENSRING.BAS
+hamcalc64/PROG/LINELOSS.BAS
+hamcalc64/PROG/LINKUPL.BAS
+hamcalc64/PROG/LIST10.BAS
+hamcalc64/PROG/LM17.BAS
+hamcalc64/PROG/LM315.BAS
+hamcalc64/PROG/LM317.BAS
+hamcalc64/PROG/LM317RUN.BAS
+hamcalc64/PROG/LOANPAY.BAS
+hamcalc64/PROG/LOCALRPT.BAS
+hamcalc64/PROG/LOGOCLOK.BAS
+hamcalc64/PROG/LOGYAG.BAS
+hamcalc64/PROG/LOOPANT.BAS
+hamcalc64/PROG/LOOPSKY.BAS
+hamcalc64/PROG/LOOPXMIT.BAS
+hamcalc64/PROG/LOPASS.BAS
+hamcalc64/PROG/LOSSY.BAS
+hamcalc64/PROG/LPTSETUP.BAS
+hamcalc64/PROG/MATCHBOX.BAS
+hamcalc64/PROG/MATCHNET.BAS
+hamcalc64/PROG/MATFILT.BAS
+hamcalc64/PROG/MATRICS.BAS
+hamcalc64/PROG/MAXUF.BAS
+hamcalc64/PROG/MECHMENU.BAS
+hamcalc64/PROG/METERS.BAS
+hamcalc64/PROG/METNOM.BAS
+hamcalc64/PROG/METRICS.BAS
+hamcalc64/PROG/METSHOWR.BAS
+hamcalc64/PROG/MICLOOP.BAS
+hamcalc64/PROG/MICROVER.BAS
+hamcalc64/PROG/MINILOOP.BAS
+hamcalc64/PROG/MINIQUAD.BAS
+hamcalc64/PROG/MISMAT.BAS
+hamcalc64/PROG/MIWHIP.BAS
+hamcalc64/PROG/MOBILMAT.BAS
+hamcalc64/PROG/MOONTRAC.BAS
+hamcalc64/PROG/MORTGAG.BAS
+hamcalc64/PROG/MOWHIP.BAS
+hamcalc64/PROG/MOXON.BAS
+hamcalc64/PROG/NEWSINCE.BAS
+hamcalc64/PROG/NICAD.BAS
+hamcalc64/PROG/NMBRSIZE.BAS
+hamcalc64/PROG/NODE.BAS
+hamcalc64/PROG/NOISFIG.BAS
+hamcalc64/PROG/NOLOSS.BAS
+hamcalc64/PROG/NUMDERIV.BAS
+hamcalc64/PROG/NUMSORT.BAS
+hamcalc64/PROG/OCFDIPOL.BAS
+hamcalc64/PROG/OCTAGON.BAS
+hamcalc64/PROG/OCTALOOP.BAS
+hamcalc64/PROG/OCTARING.BAS
+hamcalc64/PROG/OHMSLAW.BAS
+hamcalc64/PROG/OPAMP.BAS
+hamcalc64/PROG/OPENWIRE.BAS
+hamcalc64/PROG/PAGE437.BAS
+hamcalc64/PROG/PAIRLT.BAS
+hamcalc64/PROG/PATHFIND.BAS
+hamcalc64/PROG/PBA.BAS
+hamcalc64/PROG/PEDOM.BAS
+hamcalc64/PROG/PHAZDIFF.BAS
+hamcalc64/PROG/PIMATCH.BAS
+hamcalc64/PROG/PIPESIZE.BAS
+hamcalc64/PROG/PITNET.BAS
+hamcalc64/PROG/PIXEL.BAS
+hamcalc64/PROG/POLYGON.BAS
+hamcalc64/PROG/POTENT.BAS
+hamcalc64/PROG/POWRXFMR.BAS
+hamcalc64/PROG/PRACOSC.BAS
+hamcalc64/PROG/PRECICAP.BAS
+hamcalc64/PROG/PRECIRES.BAS
+hamcalc64/PROG/PRIMENOS.BAS
+hamcalc64/PROG/PRINTIP.BAS
+hamcalc64/PROG/PROG.BAS
+hamcalc64/PROG/PROPCIRC.BAS
+hamcalc64/PROG/PRT.BAS
+hamcalc64/PROG/PSUP.BAS
+hamcalc64/PROG/PSUPERF.BAS
+hamcalc64/PROG/PSYCHROM.BAS
+hamcalc64/PROG/PULSEGEN.BAS
+hamcalc64/PROG/PWRCCT.BAS
+hamcalc64/PROG/PWRDIV.BAS
+hamcalc64/PROG/PWRSUPP.BAS
+hamcalc64/PROG/PWRXFMR.BAS
+hamcalc64/PROG/Q.BAS
+hamcalc64/PROG/QFACTOR.BAS
+hamcalc64/PROG/QFIND.BAS
+hamcalc64/PROG/QFIND5.BAS
+hamcalc64/PROG/QLINE2.BAS
+hamcalc64/PROG/QNTIMP.BAS
+hamcalc64/PROG/QRESON.BAS
+hamcalc64/PROG/QSK.BAS
+hamcalc64/PROG/QTRAP.BAS
+hamcalc64/PROG/QTRAPRUN.BAS
+hamcalc64/PROG/QUAD.BAS
+hamcalc64/PROG/QUADRAT.BAS
+hamcalc64/PROG/QUARTWAV.BAS
+hamcalc64/PROG/QUIKTABL.BAS
+hamcalc64/PROG/RADANGLE.BAS
+hamcalc64/PROG/RADIOLOS.BAS
+hamcalc64/PROG/RANDNUM.BAS
+hamcalc64/PROG/RCCONST.BAS
+hamcalc64/PROG/RCFILT.BAS
+hamcalc64/PROG/RCLOAD2.BAS
+hamcalc64/PROG/REACT.BAS
+hamcalc64/PROG/REMIND.BAS
+hamcalc64/PROG/REMSIG.BAS
+hamcalc64/PROG/RESICOP.BAS
+hamcalc64/PROG/RESISTIV.BAS
+hamcalc64/PROG/RESISVAL.BAS
+hamcalc64/PROG/RIPPLE.BAS
+hamcalc64/PROG/RISESET.BAS
+hamcalc64/PROG/RJD.BAS
+hamcalc64/PROG/ROTAPLOT.BAS
+hamcalc64/PROG/RUN.BAS
+hamcalc64/PROG/SATORBIT.BAS
+hamcalc64/PROG/SCALSPD.BAS
+hamcalc64/PROG/SCHMIDT.BAS
+hamcalc64/PROG/SEASONS.BAS
+hamcalc64/PROG/SEPAQ.BAS
+hamcalc64/PROG/SERISECT.BAS
+hamcalc64/PROG/SERPAR-Q.BAS
+hamcalc64/PROG/SERSECT.BAS
+hamcalc64/PROG/SHAFT.BAS
+hamcalc64/PROG/SHORTANT.BAS
+hamcalc64/PROG/SHORTDIP.BAS
+hamcalc64/PROG/SHUTTLE.BAS
+hamcalc64/PROG/SIMULEQ.BAS
+hamcalc64/PROG/SINK.BAS
+hamcalc64/PROG/SKIPDIST.BAS
+hamcalc64/PROG/SLOPER.BAS
+hamcalc64/PROG/SMETER.BAS
+hamcalc64/PROG/SMITHCHT.BAS
+hamcalc64/PROG/SNGLWIRE.BAS
+hamcalc64/PROG/SOLUTRI.BAS
+hamcalc64/PROG/SORTER.BAS
+hamcalc64/PROG/SPARK.BAS
+hamcalc64/PROG/SPEAKR.BAS
+hamcalc64/PROG/SPEEDTD.BAS
+hamcalc64/PROG/SQCOAX.BAS
+hamcalc64/PROG/SQLINE.BAS
+hamcalc64/PROG/STAIRS.BAS
+hamcalc64/PROG/STUBANT.BAS
+hamcalc64/PROG/SUNUP.BAS
+hamcalc64/PROG/SURVEY.BAS
+hamcalc64/PROG/SWR.BAS
+hamcalc64/PROG/T2FD.BAS
+hamcalc64/PROG/TANKCCT.BAS
+hamcalc64/PROG/TEEMATCH.BAS
+hamcalc64/PROG/TELETUBE.BAS
+hamcalc64/PROG/TEST.BAS
+hamcalc64/PROG/TFORM3.BAS
+hamcalc64/PROG/THERMRES.BAS
+hamcalc64/PROG/THEVININ.BAS
+hamcalc64/PROG/THRUBOOM.BAS
+hamcalc64/PROG/TIMEQ.BAS
+hamcalc64/PROG/TIMEZONE.BAS
+hamcalc64/PROG/TINYCOIL.BAS
+hamcalc64/PROG/TITLER.BAS
+hamcalc64/PROG/TJD.BAS
+hamcalc64/PROG/TMATCH.BAS
+hamcalc64/PROG/TOROID.BAS
+hamcalc64/PROG/TOROTRAP.BAS
+hamcalc64/PROG/TORQUE.BAS
+hamcalc64/PROG/TRACKER.BAS
+hamcalc64/PROG/TRANCCT.BAS
+hamcalc64/PROG/TRANLINE.BAS
+hamcalc64/PROG/TRANSMAT.BAS
+hamcalc64/PROG/TRANSTUB.BAS
+hamcalc64/PROG/TRAPCALC.BAS
+hamcalc64/PROG/TRAPDSGN.BAS
+hamcalc64/PROG/TRAPOLE.BAS
+hamcalc64/PROG/TRAPROP.BAS
+hamcalc64/PROG/TRIG.BAS
+hamcalc64/PROG/TRIMR.BAS
+hamcalc64/PROG/TRIPLAN.BAS
+hamcalc64/PROG/TRISQU.BAS
+hamcalc64/PROG/TRUNORTH.BAS
+hamcalc64/PROG/TSFD.BAS
+hamcalc64/PROG/TUNECCT.BAS
+hamcalc64/PROG/TURNRAD.BAS
+hamcalc64/PROG/TURNS.BAS
+hamcalc64/PROG/TVCHAN.BAS
+hamcalc64/PROG/TWINTEE.BAS
+hamcalc64/PROG/UNITVALU.BAS
+hamcalc64/PROG/VACAP.BAS
+hamcalc64/PROG/VACAP14.BAS
+hamcalc64/PROG/VACAP7.BAS
+hamcalc64/PROG/VACAP8.BAS
+hamcalc64/PROG/VACAP9.BAS
+hamcalc64/PROG/VARAYFED.BAS
+hamcalc64/PROG/VERTPATT.BAS
+hamcalc64/PROG/VFOFREQ.BAS
+hamcalc64/PROG/VOLTDIV.BAS
+hamcalc64/PROG/WALKER.BAS
+hamcalc64/PROG/WALWART.BAS
+hamcalc64/PROG/WARTEST.BAS
+hamcalc64/PROG/WATCH.BAS
+hamcalc64/PROG/WAVETRAP.BAS
+hamcalc64/PROG/WHEATSTO.BAS
+hamcalc64/PROG/WINCHIL.BAS
+hamcalc64/PROG/WINDCHIL.BAS
+hamcalc64/PROG/WINDING.BAS
+hamcalc64/PROG/WINDOM.BAS
+hamcalc64/PROG/WIREANT.BAS
+hamcalc64/PROG/WIRECOND.BAS
+hamcalc64/PROG/WIREMESH.BAS
+hamcalc64/PROG/WIREPEOP.BAS
+hamcalc64/PROG/WIREPROP.BAS
+hamcalc64/PROG/WIRESAG.BAS
+hamcalc64/PROG/WORKS.BAS
+hamcalc64/PROG/WX.BAS
+hamcalc64/PROG/XFMR.BAS
+hamcalc64/PROG/XFMRNARO.BAS
+hamcalc64/PROG/XMTRZMAT.BAS
+hamcalc64/PROG/XOVER.BAS
+hamcalc64/PROG/YAGI3EL.BAS
+hamcalc64/PROG/YAGILONG.BAS
+hamcalc64/PROG/YAGISPAC.BAS
+hamcalc64/PROG/YAGLONG.BAS
+hamcalc64/PROG/YAGTAPER.BAS
+hamcalc64/PROG/ZENER.BAS
+hamcalc64/PROG/ZEPP.BAS
+hamcalc64/PROG/ZEPPDBL.BAS
+hamcalc64/PROG/ZEXIT.BAS
+hamcalc64/PROG/ZOSTEPUP.BAS
+hamcalc64/PROG/antimp.bas
+hamcalc64/PROG/binhop.bas
+hamcalc64/PROG/fail.bas
+hamcalc64/PROG/zounds.bas
+inform-pe/InForm/ThemeEditor.bas
+inform-pe/InForm/UiEditor.bas
+inform-pe/InForm/UiEditorPreview.bas
+inform-pe/InForm/vbdos2inform.bas
+inform-pe/examples/21-game/21-game.bas
+inform-pe/examples/AnchorsDemo/AnchorsDemo.bas
+inform-pe/examples/Bin2Include/BIN2INCLUDE.bas
+inform-pe/examples/Bubble-Universe/Bubble-Universe.bas
+inform-pe/examples/Calculator/Calculator.bas
+inform-pe/examples/ClickTheVoid/ClickTheVoid.bas
+inform-pe/examples/ClockPatience/Clock Patience.bas
+inform-pe/examples/DataGridCSVDemo/DataGridCSVDemo.bas
+inform-pe/examples/DataGridDemo/DataGridDemo.bas
+inform-pe/examples/EncryptDecrypt/EncryptDecrypt.bas
+inform-pe/examples/Fahrenheit-Celsius/Fahrenheit-Celsius.bas
+inform-pe/examples/Fireworks2/Fireworks.bas
+inform-pe/examples/GIFPlaySample/GIFPlaySample.bas
+inform-pe/examples/GravitationSimulation/GravitationSimulation.bas
+inform-pe/examples/InFormPaint/InFormPaint.bas
+inform-pe/examples/InsideOutsideTriangle/Inside-Outside Triangle.bas
+inform-pe/examples/Lander1/Lander1.bas
+inform-pe/examples/Lander2/Lander2.bas
+inform-pe/examples/Mahjong/QB64Mahjong.bas
+inform-pe/examples/MasterMindGuessTheSequence/MasterMindGuessTheSequence.bas
+inform-pe/examples/MultilineDemo/MultilineDemo.bas
+inform-pe/examples/Pelmanism/Pelmanism.bas
+inform-pe/examples/PictureGrid/PictureGrid.bas
+inform-pe/examples/PlayFX/PlayFX.bas
+inform-pe/examples/PropertyGridDemo/PropertyGridDemo.bas
+inform-pe/examples/R2P/R2P.bas
+inform-pe/examples/RockPaperScissorsSpockLizard/RockHandScissor.bas
+inform-pe/examples/SearchableDropdownDemo/SearchableDropdownDemo.bas
+inform-pe/examples/Stopwatch/Stopwatch.bas
+inform-pe/examples/TabDemo/TabDemo.bas
+inform-pe/examples/TextFetch/TextFetch.bas
+inform-pe/examples/ThemeGallery/ThemeGallery.bas
+inform-pe/examples/ThemePreview/ThemePreview.bas
+inform-pe/examples/TicTacToe/TicTacToe.bas
+inform-pe/examples/TicTacToe2/TicTacToe2.bas
+inform-pe/examples/Trackword/Trackword.bas
+inform-pe/examples/VDrops/VDrops.bas
+inform-pe/examples/WordClock/WordClock.bas
+inform-pe/examples/ebacCalculator/ebacCalculator.bas
+inform-pe/examples/wordSearch/wordSearch.bas
+inform-pe/tests/test_main.bas
+ini-manager/ini-demo1.bas
+ini-manager/ini-demo2.bas
+ini-manager/ini-demo3.bas
+ini-manager/iniman.bas
+instantarchive/instantarchive.bas
+ktank/extra source/PlotShot.bas
+ktank/extra source/box.bas
+ktank/extra source/tiro1.bas
+ktank/extra source/tiro2.bas
+ktank/extra source/tiro3.bas
+ktank/source/ktank.bas
+lhg_baseball/misc/GETVIDEO.BAS
+lhg_baseball/misc/REVISED.BAS
+lhg_baseball/src/HELLO.BAS
+lhg_baseball/util/CNVSCHED.BAS
+lhg_baseball/util/PARKS.BAS
+lhg_baseball/util/READAPBA.BAS
+lhg_baseball/util/pbp/CreatePBP.BAS
+lhg_baseball/util/pbp/PBPBuilder.bas
+lhg_baseball/util/pbp/ReadPBP.bas
+lhg_baseball/util/pbp/RevisedPBP.BAS
+lhg_collegebb/src/HELLO.BAS
+lhg_collegebb/util/ADJFG.BAS
+lhg_collegebb/util/CACTSKED.BAS
+lhg_football/ref/indexsta/INDEXSTA.BAS
+lhg_football/util/READRAW.BAS
+lhg_probb/src/HELLO.BAS
+lhg_probb/util/CACTSKED.BAS
+lhg_probb/util/MAKESKED.BAS
+lhg_probb/util/PUTTEAM.BAS
+localizer/Localizer.bas
+mplayer64/MPlayer64.bas
+mplayer64/inform-pe/InForm/UiEditor.bas
+mplayer64/inform-pe/InForm/UiEditorPreview.bas
+mplayer64/inform-pe/InForm/extensions/Algo.bas
+mplayer64/inform-pe/InForm/extensions/Base64.bas
+mplayer64/inform-pe/InForm/extensions/Catch.bas
+mplayer64/inform-pe/InForm/extensions/FontMgr.bas
+mplayer64/inform-pe/InForm/extensions/GIFPlay.bas
+mplayer64/inform-pe/InForm/extensions/HMap.bas
+mplayer64/inform-pe/InForm/extensions/HMap64.bas
+mplayer64/inform-pe/InForm/extensions/Ini.bas
+mplayer64/inform-pe/InForm/extensions/LList.bas
+mplayer64/inform-pe/InForm/extensions/Pathname.bas
+mplayer64/inform-pe/InForm/extensions/Stack.bas
+mplayer64/inform-pe/InForm/extensions/StringFile.bas
+mplayer64/inform-pe/InForm/vbdos2inform.bas
+mplayer64/inform-pe/examples/21-game/21-game.bas
+mplayer64/inform-pe/examples/Bin2Include/BIN2INCLUDE.bas
+mplayer64/inform-pe/examples/Bubble-Universe/Bubble-Universe.bas
+mplayer64/inform-pe/examples/Calculator/Calculator.bas
+mplayer64/inform-pe/examples/ClickTheVoid/ClickTheVoid.bas
+mplayer64/inform-pe/examples/ClockPatience/Clock Patience.bas
+mplayer64/inform-pe/examples/DuckShoot/Duck Shoot.bas
+mplayer64/inform-pe/examples/EncryptDecrypt/EncryptDecrypt.bas
+mplayer64/inform-pe/examples/Fahrenheit-Celsius/Fahrenheit-Celsius.bas
+mplayer64/inform-pe/examples/Fireworks2/Fireworks.bas
+mplayer64/inform-pe/examples/GIFPlaySample/GIFPlaySample.bas
+mplayer64/inform-pe/examples/GravitationSimulation/GravitationSimulation.bas
+mplayer64/inform-pe/examples/InFormPaint/InFormPaint.bas
+mplayer64/inform-pe/examples/InsideOutsideTriangle/Inside-Outside Triangle.bas
+mplayer64/inform-pe/examples/Lander1/Lander1.bas
+mplayer64/inform-pe/examples/Lander2/Lander2.bas
+mplayer64/inform-pe/examples/Mahjong/QB64Mahjong.bas
+mplayer64/inform-pe/examples/MasterMindGuessTheSequence/MasterMindGuessTheSequence.bas
+mplayer64/inform-pe/examples/Pelmanism/Pelmanism.bas
+mplayer64/inform-pe/examples/PictureGrid/PictureGrid.bas
+mplayer64/inform-pe/examples/PlayFX/PlayFX.bas
+mplayer64/inform-pe/examples/R2P/R2P.bas
+mplayer64/inform-pe/examples/RockPaperScissorsSpockLizard/RockHandScissor.bas
+mplayer64/inform-pe/examples/Stopwatch/Stopwatch.bas
+mplayer64/inform-pe/examples/TextFetch/TextFetch.bas
+mplayer64/inform-pe/examples/ThemePreview/ThemePreview.bas
+mplayer64/inform-pe/examples/TicTacToe/TicTacToe.bas
+mplayer64/inform-pe/examples/TicTacToe2/TicTacToe2.bas
+mplayer64/inform-pe/examples/Trackword/Trackword.bas
+mplayer64/inform-pe/examples/VDrops/VDrops.bas
+mplayer64/inform-pe/examples/WordClock/WordClock.bas
+mplayer64/inform-pe/examples/ebacCalculator/ebacCalculator.bas
+mplayer64/inform-pe/examples/wordSearch/wordSearch.bas
+mplayer64/inform-pe/tests/test_main.bas
+mplayer64/toolbox64/Audio/AudioVisualizer.bas
+mplayer64/toolbox64/Audio/MIDIIO.bas
+mplayer64/toolbox64/Audio/MIDIPlayer.bas
+mplayer64/toolbox64/Audio/MODPlayer.bas
+mplayer64/toolbox64/Audio/OPL3.bas
+mplayer64/toolbox64/Audio/SoftSynth.bas
+mplayer64/toolbox64/CLI/Args.bas
+mplayer64/toolbox64/Config/Ini.bas
+mplayer64/toolbox64/DS/MemFile.bas
+mplayer64/toolbox64/DS/StringFile.bas
+mplayer64/toolbox64/Debug/Test.bas
+mplayer64/toolbox64/FS/Pathname.bas
+mplayer64/toolbox64/Graphics/ANSIPrint.bas
+mplayer64/toolbox64/Graphics/FontMgr.bas
+mplayer64/toolbox64/Graphics/Graphics2D.bas
+mplayer64/toolbox64/Graphics/ImGUI.bas
+mplayer64/toolbox64/Graphics/VGAFont.bas
+mplayer64/toolbox64/IO/File.bas
+mplayer64/toolbox64/IO/InputManager.bas
+mplayer64/toolbox64/IO/StandardIO.bas
+mplayer64/toolbox64/Resource/Base64.bas
+mplayer64/toolbox64/Resource/SAUCE.bas
+mplayer64/toolbox64/String/StringOps.bas
+mszp/functions.bas
+p5js.bas/Samples/2D Rendering/arc.bas
+p5js.bas/Samples/2D Rendering/bezier.bas
+p5js.bas/Samples/2D Rendering/circles and mouse.bas
+p5js.bas/Samples/2D Rendering/circles, mouse and complex shapes.bas
+p5js.bas/Samples/2D Rendering/circles.bas
+p5js.bas/Samples/2D Rendering/constrain_demo.bas
+p5js.bas/Samples/2D Rendering/curves.bas
+p5js.bas/Samples/2D Rendering/dist_demo.bas
+p5js.bas/Samples/2D Rendering/doLoop_example.bas
+p5js.bas/Samples/2D Rendering/polygon.bas
+p5js.bas/Samples/2D Rendering/push and pop.bas
+p5js.bas/Samples/2D Rendering/quad.bas
+p5js.bas/Samples/2D Rendering/rect.bas
+p5js.bas/Samples/2D Rendering/rect2.bas
+p5js.bas/Samples/2D Rendering/redraw.bas
+p5js.bas/Samples/2D Rendering/shape_1.bas
+p5js.bas/Samples/2D Rendering/shape_2.bas
+p5js.bas/Samples/2D Rendering/shape_3.bas
+p5js.bas/Samples/2D Rendering/translate.bas
+p5js.bas/Samples/2D Rendering/triangle.bas
+p5js.bas/Samples/2D Rendering/triangle2.bas
+p5js.bas/Samples/2D Rendering/triangle3.bas
+p5js.bas/Samples/Colors/Radial_Gradient.bas
+p5js.bas/Samples/Colors/color_names.bas
+p5js.bas/Samples/Colors/hsb_demo_1.bas
+p5js.bas/Samples/Colors/hsb_demo_2.bas
+p5js.bas/Samples/Colors/hsb_demo_3.bas
+p5js.bas/Samples/Colors/hsb_mixer.bas
+p5js.bas/Samples/Colors/rgb_mixer.bas
+p5js.bas/Samples/Demos/Blue Mountains.bas
+p5js.bas/Samples/Demos/Graphing_Orbit.bas
+p5js.bas/Samples/Demos/Shower Sponge.bas
+p5js.bas/Samples/Demos/Solar Flares.bas
+p5js.bas/Samples/Demos/loop of circles.bas
+p5js.bas/Samples/Demos/processing network.bas
+p5js.bas/Samples/Demos/starfield.bas
+p5js.bas/Samples/Inputs/keyIsPressed.bas
+p5js.bas/Samples/Inputs/keydown.bas
+p5js.bas/Samples/Math/p5random.bas
+p5js.bas/Samples/Math/polar coordinates.bas
+p5js.bas/Samples/Noise/graphing noise.bas
+p5js.bas/Samples/Noise/nested for-loops and noise.bas
+p5js.bas/Samples/Noise/noise detail.bas
+p5js.bas/Samples/Noise/perlin-noise1.bas
+p5js.bas/Samples/Noise/perlin-noise2.bas
+p5js.bas/Samples/Particles & Vectors/Glowing_Particles.bas
+p5js.bas/Samples/Particles & Vectors/Particles_2.bas
+p5js.bas/Samples/Particles & Vectors/fireworks.bas
+p5js.bas/Samples/Particles & Vectors/particles.bas
+p5js.bas/Samples/Text/join_demo.bas
+p5js.bas/Samples/Text/text.bas
+p5js.bas/p5js.bas
+particle-life/ParticleLife.bas
+particle-life/include/Audio/AudioVisualizer.bas
+particle-life/include/Audio/MIDIIO.bas
+particle-life/include/Audio/OPL3.bas
+particle-life/include/Audio/SoftSynth.bas
+particle-life/include/DS/MemFile.bas
+particle-life/include/DS/StringFile.bas
+particle-life/include/Graphics/ANSIPrint.bas
+particle-life/include/Resource/Base64.bas
+particle-life/include/Resource/SAUCE.bas
+particle-life/include/tests/test_gui.bas
+pendulum/pendulum.bas
+pendulum/pendulumLevelEditor.bas
+qb64-3d-renderer/fast operational 3d engine.bas
+qb64-3d-renderer/full3dEngine.bas
+qb64-interpreter/nestdoloop.bas
+qb64-interpreter/samples/SHOWTIME.BAS
+qb64-interpreter/samples/doloop.bas
+qb64-interpreter/samples/nestdoloop.bas
+qb64-interpreter/samples/nestdoloop2.bas
+qb64-interpreter/samples/test.bas
+qb64-interpreter/samples/testcircle.bas
+qb64-interpreter/samples/testmo2.bas
+qb64-interpreter/samples/testmouse.bas
+qb64-interpreter/samples/testtimer.bas
+qb64-mod-player/QB64MODPlayer.bas
+qb64-pe-librariespack/LibExpSource/InForm/extensions/Base64.bas
+qb64-pe-librariespack/LibExpSource/InForm/extensions/HashTable.bas
+qb64-pe-librariespack/LibExpSource/LibraryExplorer.bas
+qb64-pe-librariespack/libraries/ProductInfo.bas
+qb64-pe-librariespack/libraries/examples/FellippeHeitor/IniManager/IniDemo1.bas
+qb64-pe-librariespack/libraries/examples/FellippeHeitor/IniManager/IniDemo2.bas
+qb64-pe-librariespack/libraries/examples/MattKilgore/QB64pe-Json/Json-Parse.bas
+qb64-pe-librariespack/libraries/examples/MattKilgore/QB64pe-Json/Json-Render.bas
+qb64-pe-librariespack/libraries/examples/MattKilgore/QB64pe-Json/Serialize-Deserialize.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_01_side_by_side_file_vs_program.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_02_animated_background_with_overlays.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_03_fixed_positions_multi_size.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_04_moving_on_static_background.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_06_sinus_wave_parade.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_07_slide_in_from_edges.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_08_manual_seek_and_step.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_09_probe_preview_save_frames.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_10_stress_gallery_mixed_formats.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_11_my_fli_bouncing_windows_manager.bas
+qb64-pe-librariespack/libraries/examples/QB64-PE/SampleLib/FullSample.bas
+qb64-pe-librariespack/libraries/examples/QB64-PE/SampleLib/GetSrcFold.bas
+qb64-pe-librariespack/libraries/examples/QB64-PE/SampleLib/UseLibrary.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/Charsets/CharsetsTest.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/Imageprocess/ImgProcDemo.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/Polygons/3dFuncPlot.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/Polygons/FractalMountains.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/Polygons/Polygons-HowTo.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/Simplebuffer/BinaryData.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/Simplebuffer/ShowSeek.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/Simplebuffer/SimplyText.bas
+qb64-pe-librariespack/libraries/examples/SpriggsySpriggs/PipeCom/PipecomDemo.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example1.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example10.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example11.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example12.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example13.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example14.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example15.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example2.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example3.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example4.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example5.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example6.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example7.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example8.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example9.bas
+qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Redefine.bas
+qb64-pe-librariespack/libraries/examples/Tony3068/SPV-Handles/SpaceFlight.bas
+qb64-pe-librariespack/libraries/examples/a740g/Catch/CatchDemo.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-Array/ArrayDemo.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-Array/ArrayDemoUDT.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-HMap/HMapDemo.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-HMap/HMapDemoUDT.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-HMap64/HMap64Demo.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-HMap64/HMap64DemoUDT.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-HSet/HSetDemo.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-HSet/HSetDemoUDT.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-LList/CircularBalls.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-LList/LListDemo.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-LList/LListDemoUDT.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-LList/LListDump.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-Queue/QueueDemo.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-Queue/QueueDemoUDT.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-Stack/StackDemo.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS-Stack/StackDemoUDT.bas
+qb64-pe-librariespack/libraries/examples/a740g/QBDS/TestQBDS.bas
+qb64-pe-librariespack/libraries/includes/QB64-PE/SampleLib/samplelib.bas
+qb64-pe-librariespack/libraries/includes/Tony3068/SPV-Handles/SPV-HANDLES.BAS
+qb64-pe-museum/AKITA-SOFT/Demos/QB64_BubbleSortVisualizer.bas
+qb64-pe-museum/Adrien-Rebuzzi/Darpong/darpong.bas
+qb64-pe-museum/Andy-Sloane/Demos/asciifire.bas
+qb64-pe-museum/Andy-Sloane/Demos/donut.bas
+qb64-pe-museum/Antoni-Gual/Demos/flrmp.bas
+qb64-pe-museum/Antoni-Gual/Demos/gujero.bas
+qb64-pe-museum/Antoni-Gual/Demos/lissaj.bas
+qb64-pe-museum/Antoni-Gual/Demos/mandala.bas
+qb64-pe-museum/Antoni-Gual/Demos/mandelb.bas
+qb64-pe-museum/Antoni-Gual/Demos/raytra1b.bas
+qb64-pe-museum/Antoni-Gual/Demos/rotozoom.bas
+qb64-pe-museum/Antoni-Gual/Demos/strfld.bas
+qb64-pe-museum/Antoni-Gual/Demos/twirl2.bas
+qb64-pe-museum/Antoni-Gual/Demos/vortex.bas
+qb64-pe-museum/Antoni-Gual/RayCaster/rc-ent6.bas
+qb64-pe-museum/Antoni-Gual/Ripples/ripples.bas
+qb64-pe-museum/AshishKingdom/Demos/3DKnots.bas
+qb64-pe-museum/AshishKingdom/Demos/3ddoublependulum.bas
+qb64-pe-museum/AshishKingdom/Demos/3dmatrixrain.bas
+qb64-pe-museum/AshishKingdom/Demos/3dopenworld.bas
+qb64-pe-museum/AshishKingdom/Demos/SierpinskiCube.bas
+qb64-pe-museum/AshishKingdom/Demos/lightandmaterial.bas
+qb64-pe-museum/AshishKingdom/GUI-Menu-Bar/GUIMenubar_Global.bas
+qb64-pe-museum/AshishKingdom/GUI-Menu-Bar/Menu_Testing_1.bas
+qb64-pe-museum/AshishKingdom/Hunter-Revenge/main.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/arc.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/bezier.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/circles and mouse.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/circles, mouse and complex shapes.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/circles.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/constrain_demo.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/curves.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/dist_demo.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/doLoop_example.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/polygon.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/push and pop.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/quad.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/rect.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/rect2.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/redraw.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/shape_1.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/shape_2.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/shape_3.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/translate.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/triangle.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/triangle2.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/2D Rendering/triangle3.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Colors/Radial_Gradient.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Colors/color_names.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Colors/hsb_demo_1.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Colors/hsb_demo_2.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Colors/hsb_demo_3.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Colors/hsb_mixer.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Colors/rgb_mixer.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Demos/Blue Mountains.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Demos/Graphing_Orbit.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Demos/Shower Sponge.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Demos/Solar Flares.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Demos/loop of circles.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Demos/processing network.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Demos/starfield.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Inputs/keyIsPressed.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Inputs/keydown.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Math/p5random.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Math/polar coordinates.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Noise/graphing noise.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Noise/nested for-loops and noise.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Noise/noise detail.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Noise/perlin-noise1.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Noise/perlin-noise2.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Particles & Vectors/Glowing_Particles.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Particles & Vectors/Particles_2.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Particles & Vectors/fireworks.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Particles & Vectors/particles.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Text/join_demo.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/Samples/Text/text.bas
+qb64-pe-museum/AshishKingdom/p5js.bas/p5js.bas
+qb64-pe-museum/Bhsdfa/Vantiro/Vantiro.bas
+qb64-pe-museum/Bisqwit/Demos/colors.bas
+qb64-pe-museum/Bisqwit/Demos/sfield_qb64.bas
+qb64-pe-museum/Bisqwit/PortalRendering/portrend.bas
+qb64-pe-museum/Bisqwit/PortalRendering/vertrot-convex.bas
+qb64-pe-museum/Bisqwit/PortalRendering/vertrot-filledwall1.bas
+qb64-pe-museum/Bisqwit/PortalRendering/vertrot-non-convex.bas
+qb64-pe-museum/Bisqwit/PortalRendering/vertrot.bas
+qb64-pe-museum/Bisqwit/fmengineqb/fmengine.bas
+qb64-pe-museum/Bisqwit/fmengineqb/include/adlib.bas
+qb64-pe-museum/Bob-Seguin/Abacus/a12gfx.bas
+qb64-pe-museum/Bob-Seguin/Abacus/abacus12.bas
+qb64-pe-museum/Bob-Seguin/Animax/animax.bas
+qb64-pe-museum/Bob-Seguin/Animax/axgfx.bas
+qb64-pe-museum/Bob-Seguin/Biorythm-Chart/bcgfx.bas
+qb64-pe-museum/Bob-Seguin/Biorythm-Chart/biochart.bas
+qb64-pe-museum/Bob-Seguin/ChessSubs/chess.bas
+qb64-pe-museum/Bob-Seguin/ChessSubs/chesssubs.bas
+qb64-pe-museum/Bob-Seguin/Kong/k1.bas
+qb64-pe-museum/Bob-Seguin/Kong/k2.bas
+qb64-pe-museum/Bob-Seguin/Kong/kong.bas
+qb64-pe-museum/Bob-Seguin/Mini-Golf/mg.bas
+qb64-pe-museum/Bob-Seguin/Rattler/rattler.bas
+qb64-pe-museum/Bowlman84/Connect 5/Connect 5.bas
+qb64-pe-museum/Bplus/Air-Hockey/Air Hockey v2020-03-23 Dark Theme.bas
+qb64-pe-museum/Bplus/Demos/AIM-AI Missile Defense.bas
+qb64-pe-museum/Bplus/Demos/Another Particle Fountain.bas
+qb64-pe-museum/Bplus/Demos/Another RotoZoom Demo.bas
+qb64-pe-museum/Bplus/Demos/Basic Tree from branch.bas
+qb64-pe-museum/Bplus/Demos/Bee Face.bas
+qb64-pe-museum/Bplus/Demos/Building a Scrolling LED Screen.bas
+qb64-pe-museum/Bplus/Demos/Carbonated Circle Fractal.bas
+qb64-pe-museum/Bplus/Demos/Circle Intersect Line.bas
+qb64-pe-museum/Bplus/Demos/Connect Circles.bas
+qb64-pe-museum/Bplus/Demos/ConnectCircles.bas
+qb64-pe-museum/Bplus/Demos/Digital Plasmatic Clock.bas
+qb64-pe-museum/Bplus/Demos/Drop Menu more 2 function test.bas
+qb64-pe-museum/Bplus/Demos/Easy Lang Tree.bas
+qb64-pe-museum/Bplus/Demos/Easy Spiral.bas
+qb64-pe-museum/Bplus/Demos/Eggs o Dozens.bas
+qb64-pe-museum/Bplus/Demos/Fake 3D demo.bas
+qb64-pe-museum/Bplus/Demos/Falling Circles Game.bas
+qb64-pe-museum/Bplus/Demos/Flower Wheel.bas
+qb64-pe-museum/Bplus/Demos/Heart Code Animation by tsh73.bas
+qb64-pe-museum/Bplus/Demos/Missile Command EnRitchied.bas
+qb64-pe-museum/Bplus/Demos/Morph Curve.bas
+qb64-pe-museum/Bplus/Demos/ParticleFountain.bas
+qb64-pe-museum/Bplus/Demos/PathFinder 2.bas
+qb64-pe-museum/Bplus/Demos/Plasma Laser Cannon Pointer.bas
+qb64-pe-museum/Bplus/Demos/Psychedelic Star Swirl.bas
+qb64-pe-museum/Bplus/Demos/Rotating Star Mouse Chaser.bas
+qb64-pe-museum/Bplus/Demos/draw Spinner.bas
+qb64-pe-museum/Bplus/Demos/fake-voronoi-plasma.bas
+qb64-pe-museum/Bplus/Demos/kelp.bas
+qb64-pe-museum/Bplus/Demos/vince rot xmas tree w star mod b+.bas
+qb64-pe-museum/Bplus/GUIb/3 Digit Color Picker GUIb.bas
+qb64-pe-museum/Bplus/GUIb/4 Animated Pics GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Account Tracker GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Adding Machine GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Color Clipper GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Controls Editor GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Controls Editor Practice/First test of new GUIb set frpm demo GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Controls Editor Practice/Practice Load_GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Controls Editor Practice/Test 1 Controls Editor new GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Controls Editor Practice/Test 2 add toggle label GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Controls Editor Practice/test GUIa 2022-12-21 GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Controls Editor Practice/test sld and save as GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Edit QB64 Recent Files GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Gradebook Editor GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Interface with Tabulator GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Kens Artillery GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Line Editor GUIb.bas
+qb64-pe-museum/Bplus/GUIb/MyFilesList GUIb.bas
+qb64-pe-museum/Bplus/GUIb/TTT with AI GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Tabulator/Calling the Tabulator.bas
+qb64-pe-museum/Bplus/GUIb/Tabulator/Tabulator.bas
+qb64-pe-museum/Bplus/GUIb/Test textbox.bas
+qb64-pe-museum/Bplus/GUIb/Vince Designer Egg GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Waffle GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Word Lists/Wordle Helper v2.bas
+qb64-pe-museum/Bplus/GUIb/Wordle GUIb.bas
+qb64-pe-museum/Bplus/GUIb/Xmas Memory Game GUIb.bas
+qb64-pe-museum/Bplus/Lights-On/Lights On.bas
+qb64-pe-museum/Bplus/Sudoku/Sudoku 2023-12-30.bas
+qb64-pe-museum/Bplus/Wheel-of-Fortune-pack/Wheel of Fortune.bas
+qb64-pe-museum/Chris-Chadwick/PIXELplus-256/usersubs.bas
+qb64-pe-museum/Cyperium/SPACE64/SPACE64.BAS
+qb64-pe-museum/DANILIN/Demos/relief3d.bas
+qb64-pe-museum/Daniel-Kupfer/Mooncrap/mooncr.bas
+qb64-pe-museum/Dav/Bin2BAS/basfile.bas
+qb64-pe-museum/Dav/Bin2BAS/basimage.bas
+qb64-pe-museum/Dav/Bin2BAS/bin2bas.bas
+qb64-pe-museum/Dav/Demos/PHOENIXTEST.bas
+qb64-pe-museum/Dav/Demos/bigballdemo.bas
+qb64-pe-museum/Dav/Demos/bigballdemo2.bas
+qb64-pe-museum/Dav/DrumMachine/drummachine.bas
+qb64-pe-museum/Dav/MazeBall/mazeball.bas
+qb64-pe-museum/Dav/Pipes/pipes.bas
+qb64-pe-museum/Dav/TankDrum/tankdrum.bas
+qb64-pe-museum/Dav/XE-Hex-Editor/xe.bas
+qb64-pe-museum/David-Llewellyn/3dsviewer/3dsviewer.bas
+qb64-pe-museum/DingoLabs/D1NGOS-Maze/main.bas
+qb64-pe-museum/Dustinian-Camburides/Demos/fireworks.bas
+qb64-pe-museum/Enrique-Huerta/MADMIX/EDIMIX/edimix.bas
+qb64-pe-museum/Enrique-Huerta/MADMIX/madmix.bas
+qb64-pe-museum/Fastgraph/FishTank/FishTank.bas
+qb64-pe-museum/FellippeHeitor/Amongst/amongst.bas
+qb64-pe-museum/FellippeHeitor/Amongst/amongst_server.bas
+qb64-pe-museum/FellippeHeitor/Amongst/amongst_updater.bas
+qb64-pe-museum/FellippeHeitor/Blockout/BLOCKOUT.BAS
+qb64-pe-museum/FellippeHeitor/Cant-contain-me/ccm.bas
+qb64-pe-museum/FellippeHeitor/Cloned-Shades/shades.bas
+qb64-pe-museum/FellippeHeitor/Demos/Elementary Cellular Automaton.bas
+qb64-pe-museum/FellippeHeitor/Demos/Lissajous Curve Table.bas
+qb64-pe-museum/FellippeHeitor/Frostbite/frostbite.bas
+qb64-pe-museum/FellippeHeitor/Genius/genius.bas
+qb64-pe-museum/FellippeHeitor/LightsOn/lightson.bas
+qb64-pe-museum/FellippeHeitor/Pendulum/pendulum.bas
+qb64-pe-museum/FellippeHeitor/Pendulum/pendulumLevelEditor.bas
+qb64-pe-museum/FellippeHeitor/Platform/mrJumpS.bas
+qb64-pe-museum/FellippeHeitor/Platform/platform.bas
+qb64-pe-museum/FellippeHeitor/Set-fire-to-the-rain/setfire.bas
+qb64-pe-museum/FellippeHeitor/Spaceship/Spaceship.bas
+qb64-pe-museum/FellippeHeitor/TUI/tui.bas
+qb64-pe-museum/FellippeHeitor/TicTacToeRing/tictactoering.bas
+qb64-pe-museum/Folker-Fritz/Mini-Clock/mclock.bas
+qb64-pe-museum/Future-Software/QB-Bounce/BOUNCE.BAS
+qb64-pe-museum/Galleon/Demos/3d_model_viewer.bas
+qb64-pe-museum/Galleon/Demos/audio.bas
+qb64-pe-museum/Galleon/Demos/galleon-ui.bas
+qb64-pe-museum/Galleon/Demos/simple_example.bas
+qb64-pe-museum/Galleon/mycraft/mycraft_0_001.bas
+qb64-pe-museum/Glenn-Powell/Assault/assault.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/AliasObj/AliasObjFile.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Concepts/NearFrustumClipTriangleAttributes.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Concepts/TextureWrapOptions.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Concepts/TwoTriangles.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Cube/ColorCubeAffine.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Cube/DitherColorCube.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Cube/DitherDeditherColorCube.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Cube/TextureZFightDonut.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Cube/TexturedCubePlains.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Cube/VertexAlphaDitherColorCube.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Cube/VertexColorCube.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Skybox/IsotropicMipmapRoad.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Skybox/SkyboxLongTube.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Skybox/SkyboxTrees.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Skybox/TrilinearMipmapFences.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Skybox/TrilinearMipmapRoad.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Skybox/TrilinearVariants.bas
+qb64-pe-museum/Haggarman/Software-3D-Perspective-Correct-Textured-Triangles/Skybox/TwinTextureTriangles.bas
+qb64-pe-museum/IBM/Donkey/donkey.bas
+qb64-pe-museum/JKC/Demos/starfild.bas
+qb64-pe-museum/JP/Demos/MusicGrid.bas
+qb64-pe-museum/Karsten-Maske/Pathfinder v1.0.bas
+qb64-pe-museum/Kevin/RoboRaider/roboraid.bas
+qb64-pe-museum/Kewbie_newbie/QBasic-Beautifier/qbb.bas
+qb64-pe-museum/MasterGy/Demos/simplemaptriangle.bas
+qb64-pe-museum/Matt-Bross/Frogger/frog.bas
+qb64-pe-museum/Matthew-River-Knight/Qbasic-Tank-Commander/tcv2.bas
+qb64-pe-museum/Matthew/4Pong/4pong.bas
+qb64-pe-museum/Microsoft/Castle/CASTLE.BAS
+qb64-pe-museum/Microsoft/Demos/MANDEL.BAS
+qb64-pe-museum/Microsoft/Demos/SINEWAVE.BAS
+qb64-pe-museum/Microsoft/Demos/sound_wave_demo.bas
+qb64-pe-museum/Microsoft/Gorillas/GORILLAS.BAS
+qb64-pe-museum/Microsoft/Hunter/HUNTER.BAS
+qb64-pe-museum/Microsoft/Money/MONEY.BAS
+qb64-pe-museum/Microsoft/Nibbles/NIBBLES.BAS
+qb64-pe-museum/Microsoft/PDS-UI-Toolbox/General.bas
+qb64-pe-museum/Microsoft/PDS-UI-Toolbox/Menu.bas
+qb64-pe-museum/Microsoft/PDS-UI-Toolbox/Mouse.bas
+qb64-pe-museum/Microsoft/PDS-UI-Toolbox/UIDemo.bas
+qb64-pe-museum/Microsoft/PDS-UI-Toolbox/Window.bas
+qb64-pe-museum/Microsoft/Phone/PHONE.BAS
+qb64-pe-museum/Microsoft/QBlocks/QBLOCKS.BAS
+qb64-pe-museum/Microsoft/QBricks/QBRICKS.BAS
+qb64-pe-museum/Microsoft/QCards/QCARDS.BAS
+qb64-pe-museum/Microsoft/QMaze/QMAZE.BAS
+qb64-pe-museum/Microsoft/QShips/QSHIPS.BAS
+qb64-pe-museum/Microsoft/QSpace/QSPACE.BAS
+qb64-pe-museum/Microsoft/QSynth/QSYNTH.BAS
+qb64-pe-museum/Microsoft/RemLine/REMLINE.BAS
+qb64-pe-museum/Microsoft/Reversi/REVERSI.BAS
+qb64-pe-museum/Microsoft/Sort-Demo/SORTDEMO.BAS
+qb64-pe-museum/Microsoft/Torus/TORUS.BAS
+qb64-pe-museum/Mike-Hawk/Stunt-Chopper/DROP.BAS
+qb64-pe-museum/Ondym/a-star-QB64/astar.bas
+qb64-pe-museum/Paul-Meyer/Tic-tac-toe/tictac.bas
+qb64-pe-museum/PeterSwinkels/Midi-Player/PLAYMIDI.BAS
+qb64-pe-museum/PeterSwinkels/Midi-Player/include/adlib.bas
+qb64-pe-museum/Petr/3DMEaP/3DM.bas
+qb64-pe-museum/Petr/Demos/Next MAPTRIANGLE 3D demo.bas
+qb64-pe-museum/Petr/Petr3D/Petr3D.bas
+qb64-pe-museum/RETROQB45/QDigger/MKLEV.BAS
+qb64-pe-museum/RETROQB45/QDigger/QDIGGER.BAS
+qb64-pe-museum/RETROQB45/QDigger/QDIGGERE.BAS
+qb64-pe-museum/RhoSigma-QB64/MakeCARR/MakeCARR.bas
+qb64-pe-museum/RhoSigma-QB64/MakeCARR/MakeDATA.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/dev_storage/FSRemapTests.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/dev_storage/FindVersions.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/dev_storage/SymbolTests.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/src_CuttingCalc/CuttingCalc.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/src_GTPrefsEditor/GTPrefsEditor.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/src_GuiApp/GuiApp.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/src_GuiAppDemo/GuiAppDemo.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/src_LogicTrainer/LogicTrainer.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/src_LogicTrainerBig/LogicTrainerBig.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/src_MakeCARR/MakeCARR.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/src_MakeDATA/MakeDATA.bas
+qb64-pe-museum/RhoSigma-QB64/QB64GuiTools/QB64GuiTools/src_MultiWinDemo/MultiWinDemo.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/Bezier.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/BinClock.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/Fractal.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/Kaleidoscope.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/KaleidoscopeMill.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/Lightning.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/Lightning2.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/MultiMill.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/Mystify.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/Spinner.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/Splines.bas
+qb64-pe-museum/RhoSigma-QB64/ScreenBlankers/Worms.bas
+qb64-pe-museum/Rich-Geldreich/DeGIF/degif6.bas
+qb64-pe-museum/Sean-Weeks/Breakout2002/FINAL.BAS
+qb64-pe-museum/Steve-M/Maze/mzupd2.bas
+qb64-pe-museum/SteveMcNeill/Demos/Steve's Transitions.bas
+qb64-pe-museum/T&T/HelicopterRescue/Helicopter Rescue.bas
+qb64-pe-museum/T&T/HelicopterRescue/Modules/Main.bas
+qb64-pe-museum/T&T/HelicopterRescue/Modules/Menu.bas
+qb64-pe-museum/T&T/HelicopterRescue/Modules/Practice.bas
+qb64-pe-museum/T&T/HelicopterRescue/Modules/Replay.bas
+qb64-pe-museum/T&T/HelicopterRescue/Modules/Reset.bas
+qb64-pe-museum/Terry-Ritchie/BadBoxes/BadBox.bas
+qb64-pe-museum/Terry-Ritchie/Image_Routines/ImageRoutines.bas
+qb64-pe-museum/Terry-Ritchie/Kaboom!/kaboom.bas
+qb64-pe-museum/Terry-Ritchie/QB64-Asteroids/QB64Asteroids.bas
+qb64-pe-museum/Terry-Ritchie/QB64-ButtonLib/RQBLDEMO.bas
+qb64-pe-museum/Terry-Ritchie/QB64-GLInputLib/glidocdemo1.bas
+qb64-pe-museum/Terry-Ritchie/QB64-GLInputLib/glidocdemo2.bas
+qb64-pe-museum/Terry-Ritchie/QB64-GLInputLib/glidocdemo3.bas
+qb64-pe-museum/Terry-Ritchie/QB64-Invaders/QB64Invaders.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example1.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example10.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example11.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example12.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example13.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example14.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example15.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example2.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example3.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example4.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example5.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example6.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example7.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example8.bas
+qb64-pe-museum/Terry-Ritchie/QB64-MenuLib/example9.bas
+qb64-pe-museum/Terry-Ritchie/QB64-SpriteLib/barrels.bas
+qb64-pe-museum/Terry-Ritchie/QB64-SpriteLib/barrels2.bas
+qb64-pe-museum/Terry-Ritchie/QB64-SpriteLib/collision.bas
+qb64-pe-museum/Terry-Ritchie/QB64-SpriteLib/mario.bas
+qb64-pe-museum/Terry-Ritchie/QB64-SpriteLib/mario2.bas
+qb64-pe-museum/Terry-Ritchie/QBZerk/QBzerk.bas
+qb64-pe-museum/Terry-Ritchie/SpaceInvaders/invaders.bas
+qb64-pe-museum/Terry-Ritchie/Super-Mega-Bug/SMEGABUG.BAS
+qb64-pe-museum/Terry-Ritchie/SuperMarioJump/SuperMarioJump.bas
+qb64-pe-museum/TimTruman/QB-Invaders/include/adlib.bas
+qb64-pe-museum/Tor-Myklebust/Demos/qbdemo.bas
+qb64-pe-museum/Tsiplacov-Sergey/ArcDemo/arcdemo.bas
+qb64-pe-museum/TylerDarko/Demos/DarkoMatrix.bas
+qb64-pe-museum/UNKNOWN/Demos/Ellipses.bas
+qb64-pe-museum/UNKNOWN/Demos/PUMPKIN.BAS
+qb64-pe-museum/UNKNOWN/Demos/fire.bas
+qb64-pe-museum/UNKNOWN/Demos/frac3.bas
+qb64-pe-museum/UNKNOWN/Demos/rockets.bas
+qb64-pe-museum/UNKNOWN/Demos/water.bas
+qb64-pe-museum/UNKNOWN/Shooter/shoot.bas
+qb64-pe-museum/UNKNOWN/Stock-Watcher/qb64stocks.bas
+qb64-pe-museum/UNKNOWN/Tower/tower.bas
+qb64-pe-museum/Unique-Software/Demos/bach.bas
+qb64-pe-museum/Unique-Software/Demos/medley.bas
+qb64-pe-museum/Unique-Software/Demos/rbow.bas
+qb64-pe-museum/Unique-Software/Demos/twelve.bas
+qb64-pe-museum/Vince/Demos/Chaotic_Scattering.bas
+qb64-pe-museum/Vince/Demos/Dithering.bas
+qb64-pe-museum/Vince/Demos/Flower of Justice.bas
+qb64-pe-museum/Vince/Demos/Fractal_explorer.bas
+qb64-pe-museum/Vince/Demos/Logistic map.bas
+qb64-pe-museum/Vince/Demos/Sliding_window_FFT_example.bas
+qb64-pe-museum/Vince/Demos/Software rotozoom.bas
+qb64-pe-museum/Vince/Demos/Tessellating_fish.bas
+qb64-pe-museum/Vince/Demos/USA_Flag.bas
+qb64-pe-museum/Vince/Demos/acceleration.bas
+qb64-pe-museum/Vince/Demos/animated_plot_of_a_hyperboloid.bas
+qb64-pe-museum/Vince/Demos/b+ mods vince fine Curves code.bas
+qb64-pe-museum/Vince/Demos/car_racing.bas
+qb64-pe-museum/Vince/Demos/classic starscape.bas
+qb64-pe-museum/Vince/Demos/lorenz.bas
+qb64-pe-museum/Vince/Demos/new mod.bas
+qb64-pe-museum/Vince/Demos/simple_3d.bas
+qb64-pe-museum/Vince/Demos/xmas_tree.bas
+qb64-pe-museum/Vince/FFTLibrary/FFTLibrary.bas
+qb64-pe-museum/Vince/Pentrisx/pentrisx.bas
+qb64-pe-museum/Vince/Tetris/Tetris.bas
+qb64-pe-museum/Vince/Vince-Text-Editor/Vince-Text-Editor.bas
+qb64-pe-museum/Wayne-Pierce/PCjr-Player/pcjrplay.bas
+qb64-pe-museum/William-F-Barnes/3DCTRWGRAPH/3DCTRWGRAPH_FB64.BAS
+qb64-pe-museum/William-F-Barnes/3DCTRWGRAPH/3DPLANELAND_FB64.BAS
+qb64-pe-museum/William-F-Barnes/3DCTRWGRAPH/3DQUADLAND_QB64.BAS
+qb64-pe-museum/William-F-Barnes/3DCTRWGRAPH/3DWORLDINSCREEN0.BAS
+qb64-pe-museum/William-F-Barnes/Demos/CircleIntersectCircle.bas
+qb64-pe-museum/William-F-Barnes/Demos/Ellipse Intersect Line.bas
+qb64-pe-museum/William-F-Barnes/Epicycles/Epicycles.BAS
+qb64-pe-museum/William-F-Barnes/FluidCraft/FluidCraft.BAS
+qb64-pe-museum/William-F-Barnes/GridLife/GridLife.BAS
+qb64-pe-museum/William-F-Barnes/Sanctum/Sanctum.bas
+qb64-pe-museum/William-F-Barnes/qXed/bubblesort.bas
+qb64-pe-museum/William-F-Barnes/qXed/list.bas
+qb64-pe-museum/William-F-Barnes/qXed/qXed.BAS
+qb64-pe-museum/William-F-Barnes/qXed/quicksort.bas
+qb64-pe-museum/William-Yu/Demos/globe.bas
+qb64-pe-museum/ZXDunny/Demos/Bubble_Universe.bas
+qb64-pe-museum/Zack-Johnson/Ghost-Wizard/ghostwiz.bas
+qb64-pe-museum/Zom-B/Demos/Hearts and Butterflies.bas
+qb64-pe-museum/Zom-B/Demos/InterestingSpiral2.bas
+qb64-pe-museum/Zom-B/Demos/InverseJulia.bas
+qb64-pe-museum/Zom-B/Demos/Sierpinsky Rays+aet.bas
+qb64-pe-museum/Zom-B/Demos/The burning of Julia2.1.bas
+qb64-pe-museum/Zom-B/Ray-Tracer-Z/ray-tracer-zomb.bas
+qb64-pe-museum/a740g/Condense/condense.bas
+qb64-pe-museum/a740g/Demos/Ball.bas
+qb64-pe-museum/a740g/Demos/DoomFire.bas
+qb64-pe-museum/a740g/Demos/FlyingToasters.bas
+qb64-pe-museum/a740g/Demos/PaletteRotation.bas
+qb64-pe-museum/a740g/Demos/Plasma.bas
+qb64-pe-museum/a740g/Demos/Snow.bas
+qb64-pe-museum/a740g/Demos/UNIRIP.BAS
+qb64-pe-museum/a740g/Demos/WeirdPlasma.bas
+qb64-pe-museum/a740g/Demos/YetAnotherPlasma.bas
+qb64-pe-museum/a740g/Demos/play_demo.bas
+qb64-pe-museum/a740g/RayCaster/raycaster.bas
+qb64-pe-museum/a740g/Something-Tricky/tricky.bas
+qb64-pe-museum/a740g/VoxelSpace/voxelspace.bas
+qb64-pe-museum/aouwt/QB-WM/wm.bas
+qb64-pe-museum/bandisast/2d-robot-arm-qb64/2d_robot_arm.bas
+qb64-pe-museum/bert22306/Demos/Telephone Poles.bas
+qb64-pe-museum/creamcast/3D-Library-for-QB64/main5.bas
+qb64-pe-museum/darokin/Demos/darokin.bas
+qb64-pe-museum/davidjoffe/Sokoban/djsok.bas
+qb64-pe-museum/didi-moritz/Didris/didris.bas
+qb64-pe-museum/flukiluke/Hex/hex.bas
+qb64-pe-museum/fogleman/Future-Blocks/TETRIS.BAS
+qb64-pe-museum/jtmunn/QBASCII/QBASCII.BAS
+qb64-pe-museum/kc8rwr/Schemat/schemat.bas
+qb64-pe-museum/magicaros/FakeCPU/MYCPU.bas
+qb64-pe-museum/magicaros/FakeCPU/weirdtest.bas
+qb64-pe-museum/mechatronic3000/QBPool/fzxNGN/body/misc.bas
+qb64-pe-museum/mechatronic3000/QBPool/fzxNGN/math/impulseMath.bas
+qb64-pe-museum/mechatronic3000/QBPool/fzxNGN/rendering/textureLoad.bas
+qb64-pe-museum/mechatronic3000/QBPool/fzxNGN/typesAndConstants/fzxNGNConst.bas
+qb64-pe-museum/mechatronic3000/QBPool/fzxNGN/typesAndConstants/fzxNGNTypes.bas
+qb64-pe-museum/mechatronic3000/QBPool/fzxNGN_QBPOOL.bas
+qb64-pe-museum/mechatronic3000/Untitled-Rougelike/RougeLike_1_4.bas
+qb64-pe-museum/mennonite/Demos/sinecube.bas
+qb64-pe-museum/mkilgore/gui_library/gui_example.bas
+qb64-pe-museum/morwic/QBasic-Nventory/NVENTORY.BAS
+qb64-pe-museum/musicman3569/ASCIIMAN/ASCIIMAN.BAS
+qb64-pe-museum/musicman3569/ASCIIMAN/DATA/EDITLEV.BAS
+qb64-pe-museum/pcluddite/ball/BALL.BAS
+qb64-pe-museum/pcluddite/snake-basic/CONFIG.BAS
+qb64-pe-museum/pcluddite/snake-basic/SNAKE.BAS
+qb64-pe-museum/plasma/Digital-Reality/digireal.bas
+qb64-pe-museum/plasma/Digital-Reality/include/adlib.bas
+qb64-pe-museum/qarnos/QB45BIN/QB45BIN.bas
+qb64-pe-museum/qb40/3d-experiment/3D.BAS
+qb64-pe-museum/qbguy/Demos/qbguyMandel.bas
+qb64-pe-museum/relminator/Demos/3dcube25.bas
+qb64-pe-museum/relminator/Demos/JuliaRings.bas
+qb64-pe-museum/relminator/Demos/npplasma.bas
+qb64-pe-museum/relminator/Demos/pattern.bas
+qb64-pe-museum/rfrost/Chess/minimax.bas
+qb64-pe-museum/rfrost/Chess/tf.bas
+qb64-pe-museum/rfrost/Moon-Lander/L64.BAS
+qb64-pe-museum/rokcoder/drop-slicer/drop slicer.bas
+qb64-pe-museum/rokcoder/galaga/galaga.bas
+qb64-pe-museum/rokcoder/morph/morph.BAS
+qb64-pe-museum/rokcoder/nonograms/nonograms.bas
+qb64-pe-museum/rokcoder/poly-blaster/poly-blaster.bas
+qb64-pe-museum/rokcoder/scramble/scramble.bas
+qb64-pe-museum/strathausen/qTrek/QTREK.BAS
+qb64-pe-museum/ubi44/Demos/3dgameoflife.bas
+qb64-platformer-test/src/TESTPLAT.BAS
+qb64-projects/3dlissajou2.bas
+qb64-projects/3dsurf2.bas
+qb64-projects/3dsurfani2.bas
+qb64-projects/3dsurfpr4.bas
+qb64-projects/3dsurfpr5.bas
+qb64-projects/7segment_clock2.bas
+qb64-projects/MANDALA_QB64.BAS
+qb64-projects/MANDALA_QB64_SVG.BAS
+qb64-projects/Munchingsquaressphere.bas
+qb64-projects/Rabinovich_Fabrikant.bas
+qb64-projects/Rabinovich_Fabrikant3.bas
+qb64-projects/Thomas_attractor4.bas
+qb64-projects/aizawa_attractor_rnd.bas
+qb64-projects/aizawa_attractor_rotate.bas
+qb64-projects/arneodo3euler.bas
+qb64-projects/bubble2.bas
+qb64-projects/bubble2morph.bas
+qb64-projects/calc3.bas
+qb64-projects/clock24h2.bas
+qb64-projects/clock24h3.bas
+qb64-projects/conway3.bas
+qb64-projects/falling-squares.bas
+qb64-projects/floaty.bas
+qb64-projects/flyers5.bas
+qb64-projects/flyers6.bas
+qb64-projects/fractal3.bas
+qb64-projects/galaxyani.bas
+qb64-projects/gingerbread_man.bas
+qb64-projects/gumowski_mira.bas
+qb64-projects/hopalong.bas
+qb64-projects/interference2.bas
+qb64-projects/julia2.bas
+qb64-projects/julia4.bas
+qb64-projects/julia_16.bas
+qb64-projects/julia_16_2a.bas
+qb64-projects/kings_dream.bas
+qb64-projects/linesani.bas
+qb64-projects/lissajou2.bas
+qb64-projects/logistic.bas
+qb64-projects/logisticalter3.bas
+qb64-projects/logisticalter5b.bas
+qb64-projects/lorenz.bas
+qb64-projects/lorenz_3D3.bas
+qb64-projects/lotka.bas
+qb64-projects/mandelbrot.bas
+qb64-projects/mandelbrotviewer.bas
+qb64-projects/minskyart4.bas
+qb64-projects/minskyart5.bas
+qb64-projects/mod_circle3.bas
+qb64-projects/mystify6.bas
+qb64-projects/mystify7.bas
+qb64-projects/mystify9fs.bas
+qb64-projects/optical_illusion.bas
+qb64-projects/own_shape.bas
+qb64-projects/pascals_triangle2.bas
+qb64-projects/poincare_disk2.bas
+qb64-projects/quadruptwo.bas
+qb64-projects/quiverbloom2.bas
+qb64-projects/recursive_tree3.bas
+qb64-projects/reflections2.bas
+qb64-projects/sierpinski3.bas
+qb64-projects/sinattractor.bas
+qb64-projects/sinattractorspecial.bas
+qb64-projects/sphere5.bas
+qb64-projects/spirograph3.bas
+qb64-projects/storoidslani2.bas
+qb64-projects/zoo.bas
+qb64-samples/consolidated/2D-Robot-Arm/2d_robot_arm.bas
+qb64-samples/consolidated/3D Balls/3dballs.bas
+qb64-samples/consolidated/3D Engine Prototypes/3DCTRWGRAPH_FB64.BAS
+qb64-samples/consolidated/3D Engine Prototypes/3DPLANELAND_FB64.BAS
+qb64-samples/consolidated/3D Engine Prototypes/3DQUADLAND_QB64.BAS
+qb64-samples/consolidated/3D Engine Prototypes/3DWORLDINSCREEN0.BAS
+qb64-samples/consolidated/3D Wireframe/3dexp2.bas
+qb64-samples/consolidated/3DS-Viewer/3dsviewer.bas
+qb64-samples/consolidated/ASCIIMAN/ASCIIMAN.BAS
+qb64-samples/consolidated/ASCIIMAN/DATA/EDITLEV.BAS
+qb64-samples/consolidated/Abacus/a12gfx.bas
+qb64-samples/consolidated/Abacus/abacus12.bas
+qb64-samples/consolidated/Alekbeth/aklabeth.bas
+qb64-samples/consolidated/Alyman/alyman.bas
+qb64-samples/consolidated/American Flag/usflag2.bas
+qb64-samples/consolidated/Amongst/amongst.bas
+qb64-samples/consolidated/Amongst/amongst_server.bas
+qb64-samples/consolidated/Amongst/amongst_updater.bas
+qb64-samples/consolidated/Analog Calculator/acalc.bas
+qb64-samples/consolidated/Animax/animax.bas
+qb64-samples/consolidated/Animax/axgfx.bas
+qb64-samples/consolidated/Araqnoid/arqanoid.bas
+qb64-samples/consolidated/Araqnoid/lvldesgn.bas
+qb64-samples/consolidated/Ascii Conversion/asciiconversion.bas
+qb64-samples/consolidated/AsciiPong/ascipong.bas
+qb64-samples/consolidated/Astrowars/astrowars.bas
+qb64-samples/consolidated/Audio/audio.bas
+qb64-samples/consolidated/Averager/averager.bas
+qb64-samples/consolidated/BAGELS/BAGELS.BAS
+qb64-samples/consolidated/BadBoxes/BadBox.bas
+qb64-samples/consolidated/Bar Demo/BARDEMO.BAS
+qb64-samples/consolidated/Basket/Basket.bas
+qb64-samples/consolidated/Battleship/battleship.bas
+qb64-samples/consolidated/Beatdown/bdt.bas
+qb64-samples/consolidated/Beatdown/beatdown.bas
+qb64-samples/consolidated/Beatdown/clickme.bas
+qb64-samples/consolidated/Bezier/Bezier.bas
+qb64-samples/consolidated/Big LEDs/BIG_LEDS.BAS
+qb64-samples/consolidated/Bin2BAS/basfile.bas
+qb64-samples/consolidated/Bin2BAS/basimage.bas
+qb64-samples/consolidated/Bin2BAS/bin2bas.bas
+qb64-samples/consolidated/Bin2Include/Bin2Include.BAS
+qb64-samples/consolidated/Binary Clock/BinClock.bas
+qb64-samples/consolidated/Binary Counter/BinaryCounter.bas
+qb64-samples/consolidated/Biorythm-Chart/bcgfx.bas
+qb64-samples/consolidated/Biorythm-Chart/biochart.bas
+qb64-samples/consolidated/BlackJack/bj.bas
+qb64-samples/consolidated/Blockout/BLOCKOUT.BAS
+qb64-samples/consolidated/Bomber/BOMBER.BAS
+qb64-samples/consolidated/Booger/booger.bas
+qb64-samples/consolidated/Breakout/BreakoutKinem.bas
+qb64-samples/consolidated/Breakout2002/FINAL.BAS
+qb64-samples/consolidated/Bubbles/BUBBLES.BAS
+qb64-samples/consolidated/Bush Bomber/bush.bas
+qb64-samples/consolidated/CAbsMouse/cabsmous.bas
+qb64-samples/consolidated/CHECKERS/CHECKERS.BAS
+qb64-samples/consolidated/CHK/CHK.BAS
+qb64-samples/consolidated/Calc DW/CALC.BAS
+qb64-samples/consolidated/Calc DW/calc_2.bas
+qb64-samples/consolidated/Calc Leg/calc.bas
+qb64-samples/consolidated/Calendar/CALENDAR.BAS
+qb64-samples/consolidated/Cant-contain-me/ccm.bas
+qb64-samples/consolidated/Car Racing E/carracingenglish.bas
+qb64-samples/consolidated/Carols/carols.bas
+qb64-samples/consolidated/CaseConversion/upperlowerconversion.bas
+qb64-samples/consolidated/Cat Mouse/Cat Mouse.bas
+qb64-samples/consolidated/Cave Rider/cr.bas
+qb64-samples/consolidated/Chaotic Scattering/ChaoticScattering.BAS
+qb64-samples/consolidated/Chess Beta/chess.bas
+qb64-samples/consolidated/Chess QBasic/chess.bas
+qb64-samples/consolidated/Chess RF/minimax.bas
+qb64-samples/consolidated/Chess RF/tf.bas
+qb64-samples/consolidated/Chess/108games-qbasic-net-chess.bas
+qb64-samples/consolidated/Chess/minimax.bas
+qb64-samples/consolidated/Chess/tf.bas
+qb64-samples/consolidated/ChessSubs/chess.bas
+qb64-samples/consolidated/ChessSubs/chesssubs.bas
+qb64-samples/consolidated/Chopper/chopfile.bas
+qb64-samples/consolidated/Circle Intersecting Circle/CircleIntersectCircle.bas
+qb64-samples/consolidated/Circle Intersecting Line/Circle Intersect Line.bas
+qb64-samples/consolidated/Clean/CLEAN.BAS
+qb64-samples/consolidated/Cloned-Shades/shades.bas
+qb64-samples/consolidated/Colliding Ball Simulation/BALL.BAS
+qb64-samples/consolidated/Colors/COLORS.BAS
+qb64-samples/consolidated/Computer Race/Computer Race.bas
+qb64-samples/consolidated/Convert BMP to Dominoes/BMP2Dominoes.BAS
+qb64-samples/consolidated/Conways Game of Life/CGOL.bas
+qb64-samples/consolidated/Coolscr/coolscr.bas
+qb64-samples/consolidated/Cram/CRAM.BAS
+qb64-samples/consolidated/Cricket Manager/nlcm.bas
+qb64-samples/consolidated/Cube Rotator/cuberot.bas
+qb64-samples/consolidated/Curve Approximator/contour1.bas
+qb64-samples/consolidated/Curve Smoother/Curve Smoother.bas
+qb64-samples/consolidated/D1NGOS-Maze/main.bas
+qb64-samples/consolidated/DOSver/DOSVER.BAS
+qb64-samples/consolidated/DROIDS/DROIDS.BAS
+qb64-samples/consolidated/Darpong/darpong.bas
+qb64-samples/consolidated/Dec to Frac/DEC_FRAC.BAS
+qb64-samples/consolidated/Deedlines Sax/deedsaks.bas
+qb64-samples/consolidated/Demos/BALL.BAS
+qb64-samples/consolidated/Demos/Circle Intersect Line.bas
+qb64-samples/consolidated/Demos/CircleIntersectCircle.bas
+qb64-samples/consolidated/Demos/DarkoMatrix.bas
+qb64-samples/consolidated/Demos/Ellipse Intersect Line.bas
+qb64-samples/consolidated/Demos/Ellipses.bas
+qb64-samples/consolidated/Demos/Hearts and Butterflies.bas
+qb64-samples/consolidated/Demos/InterestingSpiral2.bas
+qb64-samples/consolidated/Demos/InverseJulia.bas
+qb64-samples/consolidated/Demos/JuliaRings.bas
+qb64-samples/consolidated/Demos/PUMPKIN.BAS
+qb64-samples/consolidated/Demos/QB64_BubbleSortVisualizer.bas
+qb64-samples/consolidated/Demos/Sierpinsky Rays+aet.bas
+qb64-samples/consolidated/Demos/The burning of Julia2.1.bas
+qb64-samples/consolidated/Demos/qbguyMandel.bas
+qb64-samples/consolidated/Dialog Demo Box/CH13_12.BAS
+qb64-samples/consolidated/Diamond Pong/DPONG.BAS
+qb64-samples/consolidated/Diceit/diceit.bas
+qb64-samples/consolidated/Didris/didris.bas
+qb64-samples/consolidated/Die Odds/DIE_ODDS.BAS
+qb64-samples/consolidated/Discrete Cosine Transform/dct1.bas
+qb64-samples/consolidated/Double Pendulum/Double Pendulum.bas
+qb64-samples/consolidated/Dropping Balls/DroppingBalls.BAS
+qb64-samples/consolidated/Drug3D/drug3d.bas
+qb64-samples/consolidated/DrumMachine/drummachine.bas
+qb64-samples/consolidated/ESP/ESP.BAS
+qb64-samples/consolidated/Eliza/Eliza.bas
+qb64-samples/consolidated/Ellipse Intersecting Line/Ellipse Intersect Line.bas
+qb64-samples/consolidated/Exist/EXIST.BAS
+qb64-samples/consolidated/FakeCPU/MYCPU.bas
+qb64-samples/consolidated/FakeCPU/weirdtest.bas
+qb64-samples/consolidated/Fall Foliage/FallFoliage.bas
+qb64-samples/consolidated/Fibonacci Variations/myofsequ.bas
+qb64-samples/consolidated/Fibonacci Variations/myofspir.bas
+qb64-samples/consolidated/Fight/fight.bas
+qb64-samples/consolidated/Filled Circles and Ellipses/Ellipses.bas
+qb64-samples/consolidated/Fire Demo/FireDemo.bas
+qb64-samples/consolidated/Fire Pit/Fire Pit.bas
+qb64-samples/consolidated/Fish Mosaic/fish2.bas
+qb64-samples/consolidated/Flip/FLIP.BAS
+qb64-samples/consolidated/Fly a Ship/Fly a Ship.bas
+qb64-samples/consolidated/Forest/forest.bas
+qb64-samples/consolidated/Fractal Fern/frac2.bas
+qb64-samples/consolidated/Fractal/Fractal.bas
+qb64-samples/consolidated/Frogger/frog.bas
+qb64-samples/consolidated/Frostbite/frostbite.bas
+qb64-samples/consolidated/FunSubs/FUNSUBS.BAS
+qb64-samples/consolidated/FunSubs/LIB.BAS
+qb64-samples/consolidated/GUI-Menu-Bar/GUIMenubar_Global.bas
+qb64-samples/consolidated/GUI-Menu-Bar/Menu_Testing_1.bas
+qb64-samples/consolidated/Game Base/Game Base.bas
+qb64-samples/consolidated/Genius/genius.bas
+qb64-samples/consolidated/GetKey/GETKEY.BAS
+qb64-samples/consolidated/GetKey/SETKEYS.BAS
+qb64-samples/consolidated/Ghost-Wizard/ghostwiz.bas
+qb64-samples/consolidated/Globs 0/GLOBS.BAS
+qb64-samples/consolidated/Globs 1/GLOBS1.BAS
+qb64-samples/consolidated/Gravity/108games-qbasic-net-gravity.bas
+qb64-samples/consolidated/Gravity/gravity.bas
+qb64-samples/consolidated/Gujero2/gujero_orig.bas
+qb64-samples/consolidated/HORDE/HORDE.BAS
+qb64-samples/consolidated/HTML About Page Generator/test.bas
+qb64-samples/consolidated/Hang Man/Hang Man.bas
+qb64-samples/consolidated/Hangman 2/Hangman 2.bas
+qb64-samples/consolidated/Hangman 3/Hangman 3.bas
+qb64-samples/consolidated/Hangman/HANGMAN.BAS
+qb64-samples/consolidated/Hegemony/hgm30e.bas
+qb64-samples/consolidated/Helicopter Rescue/Code/Helicopter Rescue.bas
+qb64-samples/consolidated/Helicopter Rescue/Code/Main.bas
+qb64-samples/consolidated/Helicopter Rescue/Code/Menu.bas
+qb64-samples/consolidated/Helicopter Rescue/Code/Replay.bas
+qb64-samples/consolidated/Helicopter Rescue/Code/Reset.bas
+qb64-samples/consolidated/Hex/hex.bas
+qb64-samples/consolidated/Hunter-Revenge/main.bas
+qb64-samples/consolidated/IRQ/IRQ.BAS
+qb64-samples/consolidated/Illinois Johnson/Illinois Johnson.bas
+qb64-samples/consolidated/InForm-Demos/Fireworks2Inform/InForm/InFormVersion.bas
+qb64-samples/consolidated/InForm-Demos/InFormTicTacToe/InForm/InFormVersion.bas
+qb64-samples/consolidated/InForm-Demos/InFormTicTacToe2/InForm/InFormVersion.bas
+qb64-samples/consolidated/InForm-Demos/Stopwatch/InForm/InFormVersion.bas
+qb64-samples/consolidated/InForm-Demos/WordClock/InForm/InFormVersion.bas
+qb64-samples/consolidated/InYrFace/INYRFACE.BAS
+qb64-samples/consolidated/Independence Day/Independence Day.bas
+qb64-samples/consolidated/Integrators/Integrators.BAS
+qb64-samples/consolidated/Intrprtr/intrprtr.bas
+qb64-samples/consolidated/Inverse Julia Fractal Explorer/InverseJulia.bas
+qb64-samples/consolidated/JEWEL/JEWEL.BAS
+qb64-samples/consolidated/Jewel Hunter/Jewel Hunter.bas
+qb64-samples/consolidated/Jigsaw Puzzle/Jigsaw Puzzle.bas
+qb64-samples/consolidated/Jpeg Maker/jpegmake.bas
+qb64-samples/consolidated/Julia Rings/JuliaRings.bas
+qb64-samples/consolidated/Jungle Raoul/Jungle Raoul.bas
+qb64-samples/consolidated/Kaboom!/kaboom.bas
+qb64-samples/consolidated/Kaleidoscope 3D/Kaleid3D.bas
+qb64-samples/consolidated/Kaleidoscope Doodler/Kaleid.bas
+qb64-samples/consolidated/Kaleidoscope Mill/KaleidoscopeMill.bas
+qb64-samples/consolidated/Kaleidoscope/Kaleidoscope.bas
+qb64-samples/consolidated/KbdParse/kbdparse.bas
+qb64-samples/consolidated/Kite/kite.bas
+qb64-samples/consolidated/Kong/k1.bas
+qb64-samples/consolidated/Kong/k2.bas
+qb64-samples/consolidated/LIFE/LIFE.BAS
+qb64-samples/consolidated/Leap Guy/Leap Guy.bas
+qb64-samples/consolidated/LeapFrog/lfgx.bas
+qb64-samples/consolidated/Lens Simulator/Lens Simulator.bas
+qb64-samples/consolidated/Letter Blast/LETBLAST.BAS
+qb64-samples/consolidated/Lightning One/Lightning.bas
+qb64-samples/consolidated/Lightning Two/Lightning2.bas
+qb64-samples/consolidated/LightsOn/lightson.bas
+qb64-samples/consolidated/Line Counter/cc2.bas
+qb64-samples/consolidated/LineSwing/lineswin.bas
+qb64-samples/consolidated/Lines Intersecting/LineSegments.bas
+qb64-samples/consolidated/Lisp Interpreter/LISPqb.bas
+qb64-samples/consolidated/Lissajous Curve Table/Lissajous Curve Table.BAS
+qb64-samples/consolidated/Lissajous Screensaver/lissa_orig.bas
+qb64-samples/consolidated/Loan Amortization/AMORT.BAS
+qb64-samples/consolidated/Lucid Drawing/Lucid Drawing.bas
+qb64-samples/consolidated/MADMIX/EDIMIX/edimix.bas
+qb64-samples/consolidated/MADMIX/madmix.bas
+qb64-samples/consolidated/MAP/MAP.BAS
+qb64-samples/consolidated/MATCHES/MATCHES.BAS
+qb64-samples/consolidated/MAZES/MAZES.BAS
+qb64-samples/consolidated/MS Phone/PHONE.BAS
+qb64-samples/consolidated/Madness/MADNESS.BAS
+qb64-samples/consolidated/Magic Maze/Magic Maze.bas
+qb64-samples/consolidated/MakeBig/makebig.bas
+qb64-samples/consolidated/MakeCARR/MakeCARR.bas
+qb64-samples/consolidated/MakeCARR/MakeDATA.bas
+qb64-samples/consolidated/Man/Man.bas
+qb64-samples/consolidated/Manadla/mandala_orig.bas
+qb64-samples/consolidated/Mandelbrot Set 2003/mandelb_orig.bas
+qb64-samples/consolidated/Mandelbrot Set 2008/qbguyMandel.bas
+qb64-samples/consolidated/Mandelbrot Spiral/MandelbrotSpiral.bas
+qb64-samples/consolidated/Maptriangle in 3D/Maptriangle3D.BAS
+qb64-samples/consolidated/Mars Chat/Mars Chat.bas
+qb64-samples/consolidated/Maryann/Maryann.bas
+qb64-samples/consolidated/Math and Tic Tac Toe/Math and Tic Tac Toe.bas
+qb64-samples/consolidated/Matrix Effect/DarkoMatrix.bas
+qb64-samples/consolidated/Matrix/matrix.bas
+qb64-samples/consolidated/Maze Generator/Maze Generator.bas
+qb64-samples/consolidated/Maze Solver/Maze Solver.bas
+qb64-samples/consolidated/Measure/MEASURE.BAS
+qb64-samples/consolidated/Mine Avoid/Mine Avoid.bas
+qb64-samples/consolidated/Mini Clock/mclock_orig.bas
+qb64-samples/consolidated/Mini-Golf/mg.bas
+qb64-samples/consolidated/Money/MONEY.BAS
+qb64-samples/consolidated/Monopoly Custom/monopoly.bas
+qb64-samples/consolidated/Monopoly/MONOPOLY.BAS
+qb64-samples/consolidated/Monopoly/mboard.bas
+qb64-samples/consolidated/Moon-Lander/L64.BAS
+qb64-samples/consolidated/Mooncrap/mooncr.bas
+qb64-samples/consolidated/Move/move.bas
+qb64-samples/consolidated/Mr Smacman/Mr Smacman.bas
+qb64-samples/consolidated/MrGuessIt/mrguessit.bas
+qb64-samples/consolidated/Multi-Mill/MultiMill.bas
+qb64-samples/consolidated/MyCraft/mycraft_0_001.bas
+qb64-samples/consolidated/Mystify/Mystify.bas
+qb64-samples/consolidated/Names/NAMES.BAS
+qb64-samples/consolidated/New Proto Chess System/New Proto Chess System.bas
+qb64-samples/consolidated/Nibbles 2/Nibbles 2.bas
+qb64-samples/consolidated/Nibbles/NIBBLES.BAS
+qb64-samples/consolidated/NightSky/pall2.bas
+qb64-samples/consolidated/Number Battle/Number Battle.bas
+qb64-samples/consolidated/Number Blaster/BLASTER.BAS
+qb64-samples/consolidated/OpenGL-Demos/3DKnots.bas
+qb64-samples/consolidated/OpenGL-Demos/3d_model_viewer.bas
+qb64-samples/consolidated/OpenGL-Demos/3ddoublependulum.bas
+qb64-samples/consolidated/OpenGL-Demos/3dmatrixrain.bas
+qb64-samples/consolidated/OpenGL-Demos/3dopenworld.bas
+qb64-samples/consolidated/OpenGL-Demos/SierpinskiCube.bas
+qb64-samples/consolidated/OpenGL-Demos/lightandmaterial.bas
+qb64-samples/consolidated/OpenGL-Demos/simple_example.bas
+qb64-samples/consolidated/Outwit/Outwit.bas
+qb64-samples/consolidated/PCheckers/PCheckers.bas
+qb64-samples/consolidated/PIXELplus-256/usersubs.bas
+qb64-samples/consolidated/PPrimer/PPRIMER.BAS
+qb64-samples/consolidated/Parabolas/Parabolas.bas
+qb64-samples/consolidated/ParseLine/ParseExample.bas
+qb64-samples/consolidated/Pattern Editor/EDPAT.BAS
+qb64-samples/consolidated/Pattern/pattern_orig.bas
+qb64-samples/consolidated/Pendulum Double/pend2.bas
+qb64-samples/consolidated/Pendulum/pendulum.bas
+qb64-samples/consolidated/Pendulum/pendulumLevelEditor.bas
+qb64-samples/consolidated/Personal/PERSONAL.BAS
+qb64-samples/consolidated/Phone/PHONE.BAS
+qb64-samples/consolidated/PicDimReader/picdimreader.bas
+qb64-samples/consolidated/Pipes Puzzle/pipes.bas
+qb64-samples/consolidated/PixelPlus/usersubs.bas
+qb64-samples/consolidated/Plasma Effect/PlasmaEffect.bas
+qb64-samples/consolidated/Plasma Waves/PlasmaWaves.bas
+qb64-samples/consolidated/PlasmaDoodle/PlasmaDoodle.bas
+qb64-samples/consolidated/Platform/mrJumpS.bas
+qb64-samples/consolidated/Platform/platform.bas
+qb64-samples/consolidated/Plumeria/plumeria.bas
+qb64-samples/consolidated/Pong BJ/pongsource.bas
+qb64-samples/consolidated/Pong Tennis/tennis.bas
+qb64-samples/consolidated/Pong/Pong.bas
+qb64-samples/consolidated/Pongg/pgfx.bas
+qb64-samples/consolidated/PrintScreen/PRINTSCR.BAS
+qb64-samples/consolidated/Pull-down Menu/CH13_6.BAS
+qb64-samples/consolidated/Q Blocks/Q Blocks.bas
+qb64-samples/consolidated/QB Clock/QBCLOCK.BAS
+qb64-samples/consolidated/QB-Bounce/BOUNCE.BAS
+qb64-samples/consolidated/QB45BIN/QB45BIN.bas
+qb64-samples/consolidated/QB64-Asteroids/QB64Asteroids.bas
+qb64-samples/consolidated/QB64-ButtonLib/RQBLDEMO.bas
+qb64-samples/consolidated/QB64-GLInputLib/glidocdemo1.bas
+qb64-samples/consolidated/QB64-GLInputLib/glidocdemo2.bas
+qb64-samples/consolidated/QB64-GLInputLib/glidocdemo3.bas
+qb64-samples/consolidated/QB64-Invaders/QB64Invaders.bas
+qb64-samples/consolidated/QB64-MenuLib/example1.bas
+qb64-samples/consolidated/QB64-MenuLib/example10.bas
+qb64-samples/consolidated/QB64-MenuLib/example11.bas
+qb64-samples/consolidated/QB64-MenuLib/example12.bas
+qb64-samples/consolidated/QB64-MenuLib/example13.bas
+qb64-samples/consolidated/QB64-MenuLib/example14.bas
+qb64-samples/consolidated/QB64-MenuLib/example15.bas
+qb64-samples/consolidated/QB64-MenuLib/example2.bas
+qb64-samples/consolidated/QB64-MenuLib/example3.bas
+qb64-samples/consolidated/QB64-MenuLib/example4.bas
+qb64-samples/consolidated/QB64-MenuLib/example5.bas
+qb64-samples/consolidated/QB64-MenuLib/example6.bas
+qb64-samples/consolidated/QB64-MenuLib/example7.bas
+qb64-samples/consolidated/QB64-MenuLib/example8.bas
+qb64-samples/consolidated/QB64-MenuLib/example9.bas
+qb64-samples/consolidated/QB64-SpriteLib/barrels.bas
+qb64-samples/consolidated/QB64-SpriteLib/barrels2.bas
+qb64-samples/consolidated/QB64-SpriteLib/collision.bas
+qb64-samples/consolidated/QB64-SpriteLib/mario.bas
+qb64-samples/consolidated/QB64-SpriteLib/mario2.bas
+qb64-samples/consolidated/QBCrypt/QBCRYPT.BAS
+qb64-samples/consolidated/QBMenu/QBMENU.BAS
+qb64-samples/consolidated/QBPool/fzxNGN/body/misc.bas
+qb64-samples/consolidated/QBPool/fzxNGN/math/impulseMath.bas
+qb64-samples/consolidated/QBPool/fzxNGN/rendering/textureLoad.bas
+qb64-samples/consolidated/QBPool/fzxNGN/typesAndConstants/fzxNGNConst.bas
+qb64-samples/consolidated/QBPool/fzxNGN/typesAndConstants/fzxNGNTypes.bas
+qb64-samples/consolidated/QBPool/fzxNGN_QBPOOL.bas
+qb64-samples/consolidated/QBRnd/QBRND.BAS
+qb64-samples/consolidated/QBZerk/QBzerk.bas
+qb64-samples/consolidated/QBasic-Beautifier/qbb.bas
+qb64-samples/consolidated/QBasic-Nventory/NVENTORY.BAS
+qb64-samples/consolidated/QBlocks/QBLOCKS.BAS
+qb64-samples/consolidated/QBricks/QBRICKS.BAS
+qb64-samples/consolidated/QCards/QCARDS.BAS
+qb64-samples/consolidated/QDigger/MKLEV.BAS
+qb64-samples/consolidated/QDigger/QDIGGER.BAS
+qb64-samples/consolidated/QDigger/QDIGGERE.BAS
+qb64-samples/consolidated/QMaze/QMAZE.BAS
+qb64-samples/consolidated/QShips/QSHIPS.BAS
+qb64-samples/consolidated/QSpace/QSPACE.BAS
+qb64-samples/consolidated/QSynth/QSYNTH.BAS
+qb64-samples/consolidated/QWipe/QWIPE.BAS
+qb64-samples/consolidated/QbChess/QbChess.bas
+qb64-samples/consolidated/QuitBox/QuitBox.bas
+qb64-samples/consolidated/RODMAN!/RODMAN!.BAS
+qb64-samples/consolidated/Rattler/rattler.bas
+qb64-samples/consolidated/Ray-Tracer-Z/ray-tracer-zomb.bas
+qb64-samples/consolidated/RayCaster/Raycaster.bas
+qb64-samples/consolidated/RayCaster/rc-ent6_orig.bas
+qb64-samples/consolidated/Raycaster 2/Raycaster 2.bas
+qb64-samples/consolidated/Raycaster 3/Raycaster 3.bas
+qb64-samples/consolidated/Rectong/rectong.bas
+qb64-samples/consolidated/Rejs/Rejs.bas
+qb64-samples/consolidated/Retro/Retro.bas
+qb64-samples/consolidated/Reversi/108games-qbasic-net-REVERSI.BAS
+qb64-samples/consolidated/RightTriangle/rats1.bas
+qb64-samples/consolidated/Ripples/ripples_orig.bas
+qb64-samples/consolidated/Rise of the Penguins/Rise of the Penguins.bas
+qb64-samples/consolidated/Robot Arm/Robot Arm.bas
+qb64-samples/consolidated/Rockwars/Rockwars.bas
+qb64-samples/consolidated/Rotate/rotate.bas
+qb64-samples/consolidated/RotoZoom3/Another RotoZoom Demo 2.bas
+qb64-samples/consolidated/RotoZoom3/Another RotoZoom Demo.bas
+qb64-samples/consolidated/Rotozoomer/rotozoom_orig.bas
+qb64-samples/consolidated/Rug/rug.bas
+qb64-samples/consolidated/SKIER/SKIER.BAS
+qb64-samples/consolidated/SSaver/ssaver.bas
+qb64-samples/consolidated/STARBALL/STARBALL.BAS
+qb64-samples/consolidated/STARRY/STARRY.bas
+qb64-samples/consolidated/Sanctum/Sanctum.bas
+qb64-samples/consolidated/Santa/Santa.bas
+qb64-samples/consolidated/Saver/SAVER.BAS
+qb64-samples/consolidated/Schemat/schemat.bas
+qb64-samples/consolidated/Scramble Util/DESCRAM.BAS
+qb64-samples/consolidated/Scramble Util/SCRAMBLE.BAS
+qb64-samples/consolidated/Scramble/SCRAMBLE.BAS
+qb64-samples/consolidated/Screen Tester/screen.bas
+qb64-samples/consolidated/Screen/SCREEN.BAS
+qb64-samples/consolidated/ScreenBlankers/Bezier.bas
+qb64-samples/consolidated/ScreenBlankers/BinClock.bas
+qb64-samples/consolidated/ScreenBlankers/Fractal.bas
+qb64-samples/consolidated/ScreenBlankers/Kaleidoscope.bas
+qb64-samples/consolidated/ScreenBlankers/KaleidoscopeMill.bas
+qb64-samples/consolidated/ScreenBlankers/Lightning.bas
+qb64-samples/consolidated/ScreenBlankers/Lightning2.bas
+qb64-samples/consolidated/ScreenBlankers/MultiMill.bas
+qb64-samples/consolidated/ScreenBlankers/Mystify.bas
+qb64-samples/consolidated/ScreenBlankers/Spinner.bas
+qb64-samples/consolidated/ScreenBlankers/Splines.bas
+qb64-samples/consolidated/ScreenBlankers/Worms.bas
+qb64-samples/consolidated/Search/SEARCH.BAS
+qb64-samples/consolidated/Set-fire-to-the-rain/setfire.bas
+qb64-samples/consolidated/SetErr/SETERR.BAS
+qb64-samples/consolidated/ShootUp/shoote.bas
+qb64-samples/consolidated/ShootUp/su2t.bas
+qb64-samples/consolidated/Shooter/shoot_orig.bas
+qb64-samples/consolidated/Sierpinski Fractal/frac1.bas
+qb64-samples/consolidated/Simpire/ssimpire.bas
+qb64-samples/consolidated/SineCube/sinecube_orig.bas
+qb64-samples/consolidated/SkyDiver/skydiver.bas
+qb64-samples/consolidated/Sliding Puzzle/Sliding Puzzle.bas
+qb64-samples/consolidated/Slot/SLOT.BAS
+qb64-samples/consolidated/Smiley Maze/Smiley Maze.bas
+qb64-samples/consolidated/Snake-BASIC/CONFIG.BAS
+qb64-samples/consolidated/Snakes and Ladders/Snakes and Ladders.bas
+qb64-samples/consolidated/Snakes/Snakes.bas
+qb64-samples/consolidated/Sol3/s3gfx.bas
+qb64-samples/consolidated/Sort/SORT.BAS
+qb64-samples/consolidated/Space Dude 2/Space Dude 2.bas
+qb64-samples/consolidated/Space Psycho/Space Psycho.bas
+qb64-samples/consolidated/SpaceInvaders/invaders.bas
+qb64-samples/consolidated/Spaceship/Spaceship.bas
+qb64-samples/consolidated/Speed Race/Speed Race.bas
+qb64-samples/consolidated/Spider Invasion/DrawSpinner.BAS
+qb64-samples/consolidated/Splines/Splines.bas
+qb64-samples/consolidated/Square Counter/rect2.bas
+qb64-samples/consolidated/Star Battles/space1.bas
+qb64-samples/consolidated/Star Fighter/Star Fighter.bas
+qb64-samples/consolidated/Starfield/strfld_orig.bas
+qb64-samples/consolidated/Stock-Watcher/qb64stocks.bas
+qb64-samples/consolidated/Stones/stones.bas
+qb64-samples/consolidated/Stunt Surfer/Stunt Surfer.bas
+qb64-samples/consolidated/Stunt-Chopper/DROP.BAS
+qb64-samples/consolidated/SubLimMsg/message.bas
+qb64-samples/consolidated/Sudoku/sudoku.bas
+qb64-samples/consolidated/Super Galactic Wars/Super Galactic Wars.bas
+qb64-samples/consolidated/Super-Mega-Bug/SMEGABUG.BAS
+qb64-samples/consolidated/SuperMarioJump/SuperMarioJump.bas
+qb64-samples/consolidated/SwapPrnt/SWAPPRNT.BAS
+qb64-samples/consolidated/TUI/tui.bas
+qb64-samples/consolidated/TankDrum/tankdrum.bas
+qb64-samples/consolidated/Tea Bag/Tea Bag.bas
+qb64-samples/consolidated/Temperature Conversion/degrees.bas
+qb64-samples/consolidated/Template DW/TEMPLATE.BAS
+qb64-samples/consolidated/Temple/temple.bas
+qb64-samples/consolidated/Texel Raytracer/RAYTRA1B.BAS
+qb64-samples/consolidated/The Woods/The Woods.bas
+qb64-samples/consolidated/Thick Lines/Thick Lines.bas
+qb64-samples/consolidated/Tic Tac Toe 2/Tic Tac Toe 2.bas
+qb64-samples/consolidated/Tic Tac Toe 3D/TicTacToe3D.bas
+qb64-samples/consolidated/Tic Tac Toe/Tic Tac Toe.bas
+qb64-samples/consolidated/TicTacToeRing/tictactoering.bas
+qb64-samples/consolidated/Tile Demo/TILEDEMO.BAS
+qb64-samples/consolidated/Tile Engine Test/tile_eng_test.bas
+qb64-samples/consolidated/Tile Experiment/TILE.BAS
+qb64-samples/consolidated/Time/time.bas
+qb64-samples/consolidated/TimeName/TIMENAME.BAS
+qb64-samples/consolidated/Torneo NDC/torndc.bas
+qb64-samples/consolidated/Tower of Hanoi/tower_orig.bas
+qb64-samples/consolidated/Trig Demo/Trig Demo.bas
+qb64-samples/consolidated/Tron/Tron.bas
+qb64-samples/consolidated/Turtle Graphics/Turtle.bas
+qb64-samples/consolidated/Twirl/twirl2_orig.bas
+qb64-samples/consolidated/Usage/USAGE.BAS
+qb64-samples/consolidated/VENTURE/VENTURE.BAS
+qb64-samples/consolidated/VSphere/vsphere.bas
+qb64-samples/consolidated/Vector Field/Vector Field.bas
+qb64-samples/consolidated/Vector Warriors/sfb2.bas
+qb64-samples/consolidated/Vektor/vektor.bas
+qb64-samples/consolidated/Vortex/vortex_orig.bas
+qb64-samples/consolidated/WATOR/WATOR.BAS
+qb64-samples/consolidated/WORMHOLE/WORMHOLE.BAS
+qb64-samples/consolidated/Wetspot/wetspot.bas
+qb64-samples/consolidated/Wheel O/WHEEL_O.BAS
+qb64-samples/consolidated/Wheel of Wealth/Wheel of Wealth.bas
+qb64-samples/consolidated/Wheels of Fortune/Wheels of Fortune.bas
+qb64-samples/consolidated/World Cup Soccer 94/World Cup Soccer 94.bas
+qb64-samples/consolidated/Worms/Worms.bas
+qb64-samples/consolidated/Wumpus/wumpus.bas
+qb64-samples/consolidated/X-Wing/xwing.bas
+qb64-samples/consolidated/XE-Hex-Editor/xe.bas
+qb64-samples/consolidated/Xplode Text/Xplode Text.bas
+qb64-samples/consolidated/Ya Tetris 2/Ya Tetris 2.bas
+qb64-samples/consolidated/Ya Tetris/Ya Tetris.bas
+qb64-samples/consolidated/Zodiac/zodiac4.bas
+qb64-samples/consolidated/bigflame/bigflame.bas
+qb64-samples/consolidated/nfl/nfl.bas
+qb64-samples/consolidated/nobreak/nobreak.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/3dballs.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/3dexp2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/acalc.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/aklabeth.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/ascipong.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/audio.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/cabsmous.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/carols.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/chess.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/cuberot.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/djsok.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/flrmp.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/forest.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/frac1.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/frac2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/frac3.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/frog.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/gor64.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/gujero.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/intrprtr.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/kite.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/lissaj.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/mandala.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/mandelb.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/matrix.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/mclock.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/message.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/mzupd2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/nib64.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/pattern.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/rc-ent6.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/replicat.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/ripples.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/rot13.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/rotozoom.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/scramble.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/shoot.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/sinecube.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/ssaver.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/strfld.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/temple.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/tower.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/twirl2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/vortex.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/wumpus.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/misc/xwing.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/n54/big/3dsviewer/3dsviewer.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/n54/big/jpegmake.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/n54/big/tictac.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/open_gl/3d_model_viewer.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/open_gl/simple_example.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/25lines/3dcube25.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/25lines/npplasma.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/25lines/starfild.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/alyman.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/asciiconversion.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/averager.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/battleship.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/beatdown/bdt.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/beatdown/beatdown.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/beatdown/clickme.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/bj.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/booger/booger.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/bush.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/calc.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/calc_2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/carracingenglish.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/cc2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/coolscr.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/cr/cr.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/darokin.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/darpong/darpong.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/degrees.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/diceit.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/drug3d.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/fight.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/gravity.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/hgm30e/hgm30e.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/html/test.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/invader1/invader.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/kbdparse.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/lineswin.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/makebig.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/monopoly/monopoly.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/mooncr/mooncr.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/move.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/mrguessit.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/nlcm2006/nlcm.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/optimus/deedsaks.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/pall2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/picdimreader.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/pongsource.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/pongtennis/tennis.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/pp256/usersubs.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/qbb.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/rats1.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/raytra1b.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/rect2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/rectong/rectong.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/roboraid/roboraid.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/rotate.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/rug.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/screen.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/simpire/ssimpire.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/skydiver.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/space1.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/stones.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/su2/shoote.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/su2/su2t.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/sudoku.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/tank/tcv2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/time.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/tor/qbdemo.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/torndc.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/upperlowerconversion.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/vektor.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/vsphere.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/wetspot/wetspot.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/pete/zodiac4.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/qb45com/action/4pong.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/qb45com/action/arcdemo/arcdemo.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/qb45com/action/arqanoid/arqanoid.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/qb45com/action/arqanoid/lvldesgn.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/qb45com/action/assault/assault.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/qb45com/action/astrowars.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/qb45com/action/sfb2/sfb2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/abacus/a12gfx.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/animax/axgfx.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/biochart/bcgfx.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/biochart/biochart.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/chess/chess.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/chopper/chopfile.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/kong/k1.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/kong/k2.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/leapfrog/lfgx.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/monopoly/mboard.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/pongg/pgfx.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/rattler/rattler.bas
+qb64-samples/consolidated/qb64-v1-sample-programs/thebob/sol/s3gfx.bas
+qb64-samples/consolidated/snoopy/SNOOPY.BAS
+qb64-samples/consolidated/square/square.bas
+qb64-samples/consolidated/test.bas
+qb64-samples/consolidated/tetris1/tetris1.bas
+qb64-samples/consolidated/tetris2/tetris2.bas
+qb64-sqlite/sqlite_helpers.bas
+qb64/LuckBasicQB64-cleanup2.bas
+qb64_opengl_demos/360_Degree_Image.bas
+qb64_opengl_demos/3D Boxes.bas
+qb64_opengl_demos/3D Particles.bas
+qb64_opengl_demos/3D Sierpinshki Triangle.bas
+qb64_opengl_demos/3D Terrain Generator with OpenGL (Textured).bas
+qb64_opengl_demos/3D Terrain Generator with OpenGL.bas
+qb64_opengl_demos/3D Texture Cube.bas
+qb64_opengl_demos/3D_Indian_Flag.bas
+qb64_opengl_demos/3D_Knot.bas
+qb64_opengl_demos/3D_Matrix_Rain.bas
+qb64_opengl_demos/3D_OpenWorld_Mountains.bas
+qb64_opengl_demos/3D_Plasma.bas
+qb64_opengl_demos/Cube Wave.bas
+qb64_opengl_demos/Cube_Plasma.bas
+qb64_opengl_demos/Double_Pendulum_3D.bas
+qb64_opengl_demos/Kuen Surface.bas
+qb64_opengl_demos/Music_Maker_By_Ashish.bas
+qb64_opengl_demos/OpenGL demos/OpenGL - gluBitmap.bas
+qb64_opengl_demos/OpenGL demos/OpenGL ScreenSaver.bas
+qb64_opengl_demos/OpenGL_3D_Shapes.bas
+qb64_opengl_demos/OpenGL_3D_Shapes_(Solid).bas
+qb64_opengl_demos/OpenGL_3D_World.bas
+qb64_opengl_demos/OpenGL_Context_Capture.bas
+qb64_opengl_demos/OpenGL_Earth.bas
+qb64_opengl_demos/OpenGL_Fire.bas
+qb64_opengl_demos/OpenGL_Lights_And_Material.bas
+qb64_opengl_demos/OpenGL_Planets.bas
+qb64_opengl_demos/Petr's_Torus_Lights.bas
+qb64_opengl_demos/Petr's_fog_and_blending.bas
+qb64_opengl_demos/Processing Network.bas
+qb64_opengl_demos/STARSWARS Opening crawl.bas
+qb64_opengl_demos/Spot_Lights.bas
+qb64_opengl_demos/The_Joyful_Programmer's_Site_Top_Animation_By_Ashish_In _QB64.bas
+qb64_opengl_demos/menger_sponge.bas
+qb64_opengl_demos/text_rendering.bas
+qb64guitools/QB64GuiTools/dev_storage/FindVersions.bas
+qb64library/QB64Library/FindVersions.bas
+qb64library/QB64Library/IMG-Support/example/AsciiArtDemo.bas
+qb64wrappers/SigilEx.bas
+qb64wrappers/SigilEx2.bas
+qb_wild/WILD.BAS
+qbasic/app_template.bas
+qbasic/desert_rally.bas
+qbasic/mouse_coursor.bas
+qbasic/radar.bas
+qbasic/spaceship.bas
+qbx/DebugCases/ABUSE.BAS
+qbx/DebugCases/ALIASING.BAS
+qbx/DebugCases/ALTINPUT.BAS
+qbx/DebugCases/ARRAY.BAS
+qbx/DebugCases/ASPECT.BAS
+qbx/DebugCases/ASPECT2.BAS
+qbx/DebugCases/BANANA.BAS
+qbx/DebugCases/BLOAD.BAS
+qbx/DebugCases/BSAVE.BAS
+qbx/DebugCases/CALLS.BAS
+qbx/DebugCases/CLWSCRL.BAS
+qbx/DebugCases/COMMONB.BAS
+qbx/DebugCases/DACMASK.BAS
+qbx/DebugCases/DRAWMREL.BAS
+qbx/DebugCases/GETPUT.BAS
+qbx/DebugCases/GOTO.BAS
+qbx/DebugCases/GPAGE.BAS
+qbx/DebugCases/GUS.BAS
+qbx/DebugCases/KEYEVENT.BAS
+qbx/DebugCases/LC.BAS
+qbx/DebugCases/LC2.BAS
+qbx/DebugCases/LC3.BAS
+qbx/DebugCases/MAXIF.BAS
+qbx/DebugCases/NESTTYPE.BAS
+qbx/DebugCases/ONERROR.BAS
+qbx/DebugCases/PAGECNT.BAS
+qbx/DebugCases/PAGESWAP.BAS
+qbx/DebugCases/PAINT.BAS
+qbx/DebugCases/PAINT2.BAS
+qbx/DebugCases/PALCGA.BAS
+qbx/DebugCases/PALTEXT.BAS
+qbx/DebugCases/PALUSING.BAS
+qbx/DebugCases/PCOPY.BAS
+qbx/DebugCases/PLAYPTR.BAS
+qbx/DebugCases/PNWRAP.BAS
+qbx/DebugCases/RAWKEY.BAS
+qbx/DebugCases/SCREEN2.BAS
+qbx/DebugCases/SELECT.BAS
+qbx/DebugCases/SHARED.BAS
+qbx/DebugCases/SHARED2.BAS
+qbx/DebugCases/SNDFREQ.BAS
+qbx/DebugCases/SPRITES.BAS
+qbx/DebugCases/STATIC.BAS
+qbx/DebugCases/SUBERROR.BAS
+qbx/DebugCases/TPAGE.BAS
+qbx/DebugCases/TYPEMAPB.BAS
+qbx/DebugCases/VIEW.BAS
+qbx/DebugCases/WINDOW.BAS
+qbx/QBX.Tests/Integration/Tests/ALIASING.BAS
+qbx/QBX.Tests/Integration/Tests/ARRAYARG.BAS
+qbx/QBX.Tests/Integration/Tests/ARRAYAS.BAS
+qbx/QBX.Tests/Integration/Tests/ASPECT1.BAS
+qbx/QBX.Tests/Integration/Tests/ASPECT10.BAS
+qbx/QBX.Tests/Integration/Tests/ASPECT11.BAS
+qbx/QBX.Tests/Integration/Tests/ASPECT12.BAS
+qbx/QBX.Tests/Integration/Tests/ASPECT13.BAS
+qbx/QBX.Tests/Integration/Tests/ASPECT2.BAS
+qbx/QBX.Tests/Integration/Tests/ASPECT7.BAS
+qbx/QBX.Tests/Integration/Tests/ASPECT8.BAS
+qbx/QBX.Tests/Integration/Tests/ASPECT9.BAS
+qbx/QBX.Tests/Integration/Tests/ASPECTP.BAS
+qbx/QBX.Tests/Integration/Tests/BYREFARG.BAS
+qbx/QBX.Tests/Integration/Tests/CHAINDEFSEG1.BAS
+qbx/QBX.Tests/Integration/Tests/CIRCLE1.BAS
+qbx/QBX.Tests/Integration/Tests/CIRCLE10.BAS
+qbx/QBX.Tests/Integration/Tests/CIRCLE11.BAS
+qbx/QBX.Tests/Integration/Tests/CIRCLE12.BAS
+qbx/QBX.Tests/Integration/Tests/CIRCLE13.BAS
+qbx/QBX.Tests/Integration/Tests/CIRCLE2.BAS
+qbx/QBX.Tests/Integration/Tests/CIRCLE7.BAS
+qbx/QBX.Tests/Integration/Tests/CIRCLE8.BAS
+qbx/QBX.Tests/Integration/Tests/CIRCLE9.BAS
+qbx/QBX.Tests/Integration/Tests/CNSTSHAD.BAS
+qbx/QBX.Tests/Integration/Tests/DATA1.BAS
+qbx/QBX.Tests/Integration/Tests/DATA10.BAS
+qbx/QBX.Tests/Integration/Tests/DATA11.BAS
+qbx/QBX.Tests/Integration/Tests/DATA2.BAS
+qbx/QBX.Tests/Integration/Tests/DATA3.BAS
+qbx/QBX.Tests/Integration/Tests/DATA4.BAS
+qbx/QBX.Tests/Integration/Tests/DATA5.BAS
+qbx/QBX.Tests/Integration/Tests/DATA6.BAS
+qbx/QBX.Tests/Integration/Tests/DATA9.BAS
+qbx/QBX.Tests/Integration/Tests/DECLFUNC.BAS
+qbx/QBX.Tests/Integration/Tests/DRAWCOLR.BAS
+qbx/QBX.Tests/Integration/Tests/DRAWMC1.BAS
+qbx/QBX.Tests/Integration/Tests/DRAWMC13.BAS
+qbx/QBX.Tests/Integration/Tests/DRAWMC7.BAS
+qbx/QBX.Tests/Integration/Tests/FAIL1.BAS
+qbx/QBX.Tests/Integration/Tests/FAIL2.BAS
+qbx/QBX.Tests/Integration/Tests/FAIL3.BAS
+qbx/QBX.Tests/Integration/Tests/FORITER.BAS
+qbx/QBX.Tests/Integration/Tests/GOTO.BAS
+qbx/QBX.Tests/Integration/Tests/GOTOFOR.BAS
+qbx/QBX.Tests/Integration/Tests/GOTOFOR2.BAS
+qbx/QBX.Tests/Integration/Tests/GOTOFOR3.BAS
+qbx/QBX.Tests/Integration/Tests/GOTOFOR4.BAS
+qbx/QBX.Tests/Integration/Tests/LEFTALIAS.BAS
+qbx/QBX.Tests/Integration/Tests/LOCSEQ.BAS
+qbx/QBX.Tests/Integration/Tests/MIDALIAS.BAS
+qbx/QBX.Tests/Integration/Tests/NESTTYPE.BAS
+qbx/QBX.Tests/Integration/Tests/NRRWCIRC.BAS
+qbx/QBX.Tests/Integration/Tests/NRRWCRC2.BAS
+qbx/QBX.Tests/Integration/Tests/NRRWCRC3.BAS
+qbx/QBX.Tests/Integration/Tests/ONERROR.BAS
+qbx/QBX.Tests/Integration/Tests/PAINT1.BAS
+qbx/QBX.Tests/Integration/Tests/PAINT2.BAS
+qbx/QBX.Tests/Integration/Tests/PASS.BAS
+qbx/QBX.Tests/Integration/Tests/POINT1.BAS
+qbx/QBX.Tests/Integration/Tests/POINT2.BAS
+qbx/QBX.Tests/Integration/Tests/POINT3.BAS
+qbx/QBX.Tests/Integration/Tests/POINT4.BAS
+qbx/QBX.Tests/Integration/Tests/POINT5.BAS
+qbx/QBX.Tests/Integration/Tests/RANDOM2.BAS
+qbx/QBX.Tests/Integration/Tests/RANDOM3.BAS
+qbx/QBX.Tests/Integration/Tests/RANDOM4.BAS
+qbx/QBX.Tests/Integration/Tests/RIGHTALIAS.BAS
+qbx/QBX.Tests/Integration/Tests/SELECT.BAS
+qbx/QBX.Tests/Integration/Tests/SHARED.BAS
+qbx/QBX.Tests/Integration/Tests/SHARED2.BAS
+qbx/QBX.Tests/Integration/Tests/SHRDPARM.BAS
+qbx/QBX.Tests/Integration/Tests/STATIC.BAS
+qbx/QBX.Tests/Integration/Tests/SUBERROR.BAS
+qbx/QBX.Tests/Integration/Tests/TYPEARRC.BAS
+qbx/QBX.Tests/Integration/Tests/TYPEARRY.BAS
+qbx/QBX.Tests/Integration/Tests/VARAS.BAS
+qbx/QBX.Tests/Integration/Tests/VIEW.BAS
+qbx/QBX.Tests/Integration/Tests/WINDOW1.BAS
+qbx/QBX.Tests/Integration/Tests/WINDOW2.BAS
+qbx/QBX.Tests/Integration/Tests/WINDOW3.BAS
+qbx/Samples/3D7.BAS
+qbx/Samples/3DMAZE/160X100.BAS
+qbx/Samples/3DMAZE/320X200.BAS
+qbx/Samples/3DMAZE/80X50.BAS
+qbx/Samples/3DT.BAS
+qbx/Samples/7LLD.BAS
+qbx/Samples/ALIENFW.BAS
+qbx/Samples/AMBUSH/1/AMBUSH.BAS
+qbx/Samples/AMBUSH/2/AMBUSH2.BAS
+qbx/Samples/BALDY2/BALDY2.BAS
+qbx/Samples/BELGIUM.BAS
+qbx/Samples/BK.BAS
+qbx/Samples/BRELLIPS.BAS
+qbx/Samples/BUBBLE.BAS
+qbx/Samples/CAVE.BAS
+qbx/Samples/CIRCINV2.BAS
+qbx/Samples/COCACOLA.BAS
+qbx/Samples/CUBE.BAS
+qbx/Samples/CURLICUE.BAS
+qbx/Samples/DHRY.BAS
+qbx/Samples/DONKEY.BAS
+qbx/Samples/DONUT.BAS
+qbx/Samples/DONUTMIN.BAS
+qbx/Samples/DOTS.BAS
+qbx/Samples/EFFECT.BAS
+qbx/Samples/EFFECT2.BAS
+qbx/Samples/ELVIS.BAS
+qbx/Samples/ESCHER.BAS
+qbx/Samples/FERN.BAS
+qbx/Samples/FERN2.BAS
+qbx/Samples/FIRE.BAS
+qbx/Samples/FIRESPRK.BAS
+qbx/Samples/FIREWRKS.BAS
+qbx/Samples/FLICKER.BAS
+qbx/Samples/FLOOR.BAS
+qbx/Samples/FLOORMAP.BAS
+qbx/Samples/FLOWER.BAS
+qbx/Samples/FM-TUNE.BAS
+qbx/Samples/FRACTREE.BAS
+qbx/Samples/FULLCIRC.BAS
+qbx/Samples/GRIDTXT.BAS
+qbx/Samples/GUS.BAS
+qbx/Samples/GWDEMO.BAS
+qbx/Samples/HEART.BAS
+qbx/Samples/HELLO.BAS
+qbx/Samples/HELLPIT/HELLPIT1.BAS
+qbx/Samples/HELLPIT/HELLPIT2.BAS
+qbx/Samples/HELLPIT/HELLPIT3.BAS
+qbx/Samples/HELLPIT/HPSTRTGY.BAS
+qbx/Samples/HELLPIT/TRILOGY.BAS
+qbx/Samples/HOLLY.BAS
+qbx/Samples/HUNTKILL.BAS
+qbx/Samples/INTERFER.BAS
+qbx/Samples/ITALY.BAS
+qbx/Samples/JULIA.BAS
+qbx/Samples/KALEID.BAS
+qbx/Samples/LISSIE.BAS
+qbx/Samples/LOSS.BAS
+qbx/Samples/LSYSTEM.BAS
+qbx/Samples/MANDEL.BAS
+qbx/Samples/MANDEL2.BAS
+qbx/Samples/MAZERUN.BAS
+qbx/Samples/MEANDER.BAS
+qbx/Samples/MFDEMO.BAS
+qbx/Samples/MODFLOW.BAS
+qbx/Samples/NASA.BAS
+qbx/Samples/NIBBLES.BAS
+qbx/Samples/NIBBLESX.BAS
+qbx/Samples/NIBTUNES.BAS
+qbx/Samples/NP-POLAR.BAS
+qbx/Samples/NP.BAS
+qbx/Samples/NUMINPUT.BAS
+qbx/Samples/ONELINER.BAS
+qbx/Samples/OVERPRNT/OVERPRNT.BAS
+qbx/Samples/OVERPRNT/SIMPRINT.BAS
+qbx/Samples/PAINT/PAINTSUB.BAS
+qbx/Samples/PATH2.BAS
+qbx/Samples/PCSIERP.BAS
+qbx/Samples/PIPELINE.BAS
+qbx/Samples/PLASMA.BAS
+qbx/Samples/PLASMA/PLASMA.BAS
+qbx/Samples/PLASMA/PLASMAH.BAS
+qbx/Samples/PLASMA2.BAS
+qbx/Samples/PLASMAT.BAS
+qbx/Samples/PRIMROSE.BAS
+qbx/Samples/ROTOBJ.BAS
+qbx/Samples/ROTOFIRE.BAS
+qbx/Samples/ROW.BAS
+qbx/Samples/RPG/GAME.BAS
+qbx/Samples/RPG/LZW.BAS
+qbx/Samples/RPG/PUTONBG.BAS
+qbx/Samples/RPG/REMBLANK.BAS
+qbx/Samples/RULE30.BAS
+qbx/Samples/SAVELOAD.BAS
+qbx/Samples/SCHHEART.BAS
+qbx/Samples/SCHRAFIC.BAS
+qbx/Samples/SCHRPLUS.BAS
+qbx/Samples/SETFONT.BAS
+qbx/Samples/SHUFFLE.BAS
+qbx/Samples/SIEVE.BAS
+qbx/Samples/SINAPPRX.BAS
+qbx/Samples/SKOLADV.BAS
+qbx/Samples/SLITHER.BAS
+qbx/Samples/SLOPED.BAS
+qbx/Samples/SMOKE.BAS
+qbx/Samples/SOMBRERO.BAS
+qbx/Samples/SPHERES.BAS
+qbx/Samples/SPHERES2.BAS
+qbx/Samples/SPHRTMP3.BAS
+qbx/Samples/STARWARS.BAS
+qbx/Samples/TEXTHEX.BAS
+qbx/Samples/THEFIELD.BAS
+qbx/Samples/TINY.BAS
+qbx/Samples/TRACE.BAS
+qbx/Samples/TRACES.BAS
+qbx/Samples/TREERPN.BAS
+qbx/Samples/TREX.BAS
+qbx/Samples/TROXLER.BAS
+qbx/Samples/TROXLER2.BAS
+qbx/Samples/TRS80IMG/TRS80IMG.BAS
+qbx/Samples/TUBE.BAS
+qbx/Samples/TXTPLSMA.BAS
+qbx/Samples/UNIVERSE.BAS
+qbx/Samples/VWGWDEMO.BAS
+qbx/Samples/WARP.BAS
+qbx/Samples/WEBRAY/WEBRAY.BAS
+qbx/Samples/WEBRAY/WEBRAYHQ.BAS
+qbx/Samples/WEBRAY/WEBRAYX.BAS
+qbx/Samples/WORLDMAP.BAS
+qbx/Samples/XMASTREE.BAS
+questforlubok/Quest For Lubok Ver. 1.89.1.BAS
+quickpakscientific/source/ACOS.BAS
+quickpakscientific/source/ACOSH.BAS
+quickpakscientific/source/APMOON.BAS
+quickpakscientific/source/ASIN.BAS
+quickpakscientific/source/ASINH.BAS
+quickpakscientific/source/ATAN3.BAS
+quickpakscientific/source/ATANH.BAS
+quickpakscientific/source/BESSEL.BAS
+quickpakscientific/source/BETA.BAS
+quickpakscientific/source/CDATE.BAS
+quickpakscientific/source/CHEBDER.BAS
+quickpakscientific/source/CHEBEVAL.BAS
+quickpakscientific/source/CHEBINT.BAS
+quickpakscientific/source/CMPXADD.BAS
+quickpakscientific/source/CMPXDIV.BAS
+quickpakscientific/source/CMPXMULT.BAS
+quickpakscientific/source/CMPXPOWR.BAS
+quickpakscientific/source/CMPXRECP.BAS
+quickpakscientific/source/CMPXROOT.BAS
+quickpakscientific/source/CMPXSQRT.BAS
+quickpakscientific/source/CMPXSUB.BAS
+quickpakscientific/source/COSH.BAS
+quickpakscientific/source/CSCOEF.BAS
+quickpakscientific/source/CSFIT1.BAS
+quickpakscientific/source/CSFIT2.BAS
+quickpakscientific/source/DEMONLP.BAS
+quickpakscientific/source/DERIV2.BAS
+quickpakscientific/source/DERIV3.BAS
+quickpakscientific/source/DERIVAT1.BAS
+quickpakscientific/source/DERIVAT2.BAS
+quickpakscientific/source/DERIVAT3.BAS
+quickpakscientific/source/DETERMIN.BAS
+quickpakscientific/source/DIVDIFF.BAS
+quickpakscientific/source/DLOG10.BAS
+quickpakscientific/source/EIGEN.BAS
+quickpakscientific/source/ERF.BAS
+quickpakscientific/source/FFIT.BAS
+quickpakscientific/source/FFT1.BAS
+quickpakscientific/source/FFT2.BAS
+quickpakscientific/source/G3BODY.BAS
+quickpakscientific/source/GAMMA.BAS
+quickpakscientific/source/GRADIENT.BAS
+quickpakscientific/source/HEAT.BAS
+quickpakscientific/source/HHELPTXT.BAS
+quickpakscientific/source/IMATRIX.BAS
+quickpakscientific/source/IMPROVE.BAS
+quickpakscientific/source/INTERP1.BAS
+quickpakscientific/source/INTERP2.BAS
+quickpakscientific/source/INVERSE.BAS
+quickpakscientific/source/IOTA.BAS
+quickpakscientific/source/JACOBIAN.BAS
+quickpakscientific/source/JULIAN.BAS
+quickpakscientific/source/KEYCHECK.BAS
+quickpakscientific/source/LINEAR1.BAS
+quickpakscientific/source/LINEAR2.BAS
+quickpakscientific/source/LINEAR3.BAS
+quickpakscientific/source/LSQFIT.BAS
+quickpakscientific/source/MATADD.BAS
+quickpakscientific/source/MATSUB.BAS
+quickpakscientific/source/MATXMAT.BAS
+quickpakscientific/source/MATXVEC.BAS
+quickpakscientific/source/NORMAL.BAS
+quickpakscientific/source/POISSON.BAS
+quickpakscientific/source/POLYROOT.BAS
+quickpakscientific/source/QUADRATC.BAS
+quickpakscientific/source/RANK.BAS
+quickpakscientific/source/ROUND.BAS
+quickpakscientific/source/SCALE.BAS
+quickpakscientific/source/SIMPSON.BAS
+quickpakscientific/source/SINH.BAS
+quickpakscientific/source/SPLINE.BAS
+quickpakscientific/source/STIFF.BAS
+quickpakscientific/source/SURFIT.BAS
+quickpakscientific/source/SURFUNC.BAS
+quickpakscientific/source/TANH.BAS
+quickpakscientific/source/TRACE.BAS
+quickpakscientific/source/TRANSPOS.BAS
+quickpakscientific/source/USERFUN0.BAS
+quickpakscientific/source/USERFUN1.BAS
+quickpakscientific/source/USERFUN2.BAS
+quickpakscientific/source/USERFUN3.BAS
+quickpakscientific/source/USERFUN4.BAS
+quickpakscientific/source/USERFUN5.BAS
+quickpakscientific/source/USERFUN6.BAS
+quickpakscientific/source/USERFUN7.BAS
+quickpakscientific/source/USERFUN8.BAS
+quickpakscientific/source/USERFUN9.BAS
+quickpakscientific/source/USERSUB1.BAS
+quickpakscientific/source/USERSUB2.BAS
+quickpakscientific/source/USRFUN1.BAS
+quickpakscientific/source/USRFUN2.BAS
+quickpakscientific/source/USRFUN3.BAS
+quickpakscientific/source/USRFUN5.BAS
+quickpakscientific/source/UVECTOR.BAS
+quickpakscientific/source/VCROSS.BAS
+quickpakscientific/source/VDOT.BAS
+quickpakscientific/source/VECADD.BAS
+quickpakscientific/source/VECMAG.BAS
+quickpakscientific/source/VECSTP.BAS
+quickpakscientific/source/VECSUB.BAS
+quickpakscientific/source/VECVTP.BAS
+quickpakscientific/source/WAVE.BAS
+raster-master/Examples/BAM Basic/demo2.bas
+raster-master/Examples/gwbasic/GWDEMO2.BAS
+raster-master/Examples/gwbasic/GWDEMO4.BAS
+raster-master/Examples/gwbasic/GWDEMO5.BAS
+raster-master/Examples/powerbasic/PBDEMO1.BAS
+raster-master/Examples/powerbasic/PBDEMO2.BAS
+raster-master/Examples/powerbasic/PBDEMO4.BAS
+raster-master/Examples/powerbasic/PBDEMO5.BAS
+raster-master/Examples/qb64/RGBA Demos/RGBADemo1.bas
+raster-master/Examples/qb64/RGBA Demos/planes.bas
+raster-master/Examples/qb64/Sokoban/sokoban.bas
+raster-master/Examples/qbasic/QBDEMO1.BAS
+raster-master/Examples/qbasic/QBDEMO2.BAS
+raster-master/Examples/qbasic/QBDEMO4.BAS
+raster-master/Examples/qbasic/QBDEMO5.BAS
+raster-master/Examples/qbasic/Sokoban/sokoban.bas
+raster-master/Examples/qbasic/old demos/Ex1/Ex1.bas
+raster-master/Examples/qbasic/old demos/Ex2/Ex2.bas
+raster-master/Examples/qbasic/old demos/Ex2/SCREEN2.BAS
+raster-master/Examples/qbasic/original dos demos/DEMO1.BAS
+raster-master/Examples/qbasic/original dos demos/DEMO2.BAS
+raster-master/Examples/turbo and power basic/TBDEMO2.BAS
+raylib-64/example_3d_camera_first_person.bas
+raylib-64/example_background_scrolling.bas
+raylib-64/example_basic_window.bas
+raylib-64/example_bunnymark.bas
+raylib-64/example_easings_box_anim.bas
+raylib-64/example_first_person_maze.bas
+raylib-64/example_font_loading.bas
+raylib-64/example_font_sdf_loading.bas
+raylib-64/example_keyboard_input.bas
+raylib-64/example_models_loading.bas
+raylib-64/example_models_loading_gltf.bas
+raylib-64/example_module_playing.bas
+raylib-64/example_particles_blending.bas
+raylib-64/example_physics.bas
+raylib-64/example_shaders_postprocessing.bas
+raylib-64/include/raylib.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/BorderWidth.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/CircleFill.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/Constants Sample.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/ConvertOffset.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/Convert_Base64.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/Convert_To_UTF8.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/Date Related Stuff.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/DisplayImage.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/Ellipses.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/Embedding Font Example.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/ExtendedTimer.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/GetFileList.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/HW.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/MemSort.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/MouseButtonStatus.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/QuadFill.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/RoundRect and RoundRectFill.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/ScreenMove and ScreenMove_Middle.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/ScrollDown and ScrollUp.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/Text To Speech Sample (Windows Only).bas
+resources/Libraries/SMcNeill/Toolbox/Samples/TextToImage.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/ThickCircle.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/TimeStamp.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/TitleBarHeight.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/TriangleFill.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/UniDate.bas
+resources/Libraries/SMcNeill/Toolbox/Samples/WindowHeight and WindowWidth.bas
+resources/Libraries/Terry Ritchie/ControllerLibV1.10/Configure_Buttons.bas
+resources/Libraries/Terry Ritchie/ControllerLibV1.10/Controller_Example_1.bas
+resources/Libraries/Terry Ritchie/ControllerLibV1.10/Controller_Example_2.bas
+resources/Libraries/Terry Ritchie/ControllerLibV1.10/Controller_Example_3.bas
+resources/Libraries/Terry Ritchie/QB64-ButtonLib/RQBLDEMO.bas
+resources/Libraries/Terry Ritchie/QB64-OGLInputLib/glidocdemo1.bas
+resources/Libraries/Terry Ritchie/QB64-OGLInputLib/glidocdemo2.bas
+resources/Libraries/Terry Ritchie/QB64-OGLInputLib/glidocdemo3.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example1.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example10.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example11.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example12.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example13.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example14.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example15.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example2.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example3.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example4.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example5.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example6.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example7.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example8.bas
+resources/Libraries/Terry Ritchie/QB64MenuLib/example9.bas
+resources/Libraries/Terry Ritchie/QB64SpriteLib/barrels.bas
+resources/Libraries/Terry Ritchie/QB64SpriteLib/barrels2.bas
+resources/Libraries/Terry Ritchie/QB64SpriteLib/collision.bas
+resources/Libraries/Terry Ritchie/QB64SpriteLib/mario.bas
+resources/Libraries/Terry Ritchie/QB64SpriteLib/mario2.bas
+resources/Libraries/a740g/raylib-64/example_3d_camera_first_person.bas
+resources/Libraries/a740g/raylib-64/example_background_scrolling.bas
+resources/Libraries/a740g/raylib-64/example_basic_window.bas
+resources/Libraries/a740g/raylib-64/example_bunnymark.bas
+resources/Libraries/a740g/raylib-64/example_easings_box_anim.bas
+resources/Libraries/a740g/raylib-64/example_first_person_maze.bas
+resources/Libraries/a740g/raylib-64/example_font_loading.bas
+resources/Libraries/a740g/raylib-64/example_font_sdf_loading.bas
+resources/Libraries/a740g/raylib-64/example_keyboard_input.bas
+resources/Libraries/a740g/raylib-64/example_models_loading.bas
+resources/Libraries/a740g/raylib-64/example_models_loading_gltf.bas
+resources/Libraries/a740g/raylib-64/example_module_playing.bas
+resources/Libraries/a740g/raylib-64/example_particles_blending.bas
+resources/Libraries/a740g/raylib-64/example_physics.bas
+resources/Libraries/a740g/raylib-64/example_shaders_postprocessing.bas
+resources/Libraries/a740g/raylib-64/include/raylib.bas
+resources/Old QB45 and QB64 Samples/misc/3dballs.bas
+resources/Old QB45 and QB64 Samples/misc/3dexp2.bas
+resources/Old QB45 and QB64 Samples/misc/acalc.bas
+resources/Old QB45 and QB64 Samples/misc/aklabeth.bas
+resources/Old QB45 and QB64 Samples/misc/ascipong.bas
+resources/Old QB45 and QB64 Samples/misc/audio.bas
+resources/Old QB45 and QB64 Samples/misc/cabsmous.bas
+resources/Old QB45 and QB64 Samples/misc/carols.bas
+resources/Old QB45 and QB64 Samples/misc/chess.bas
+resources/Old QB45 and QB64 Samples/misc/cuberot.bas
+resources/Old QB45 and QB64 Samples/misc/djsok.bas
+resources/Old QB45 and QB64 Samples/misc/flrmp.bas
+resources/Old QB45 and QB64 Samples/misc/forest.bas
+resources/Old QB45 and QB64 Samples/misc/frac1.bas
+resources/Old QB45 and QB64 Samples/misc/frac2.bas
+resources/Old QB45 and QB64 Samples/misc/frac3.bas
+resources/Old QB45 and QB64 Samples/misc/frog.bas
+resources/Old QB45 and QB64 Samples/misc/gor64.bas
+resources/Old QB45 and QB64 Samples/misc/gujero.bas
+resources/Old QB45 and QB64 Samples/misc/intrprtr.bas
+resources/Old QB45 and QB64 Samples/misc/kite.bas
+resources/Old QB45 and QB64 Samples/misc/lissaj.bas
+resources/Old QB45 and QB64 Samples/misc/mandala.bas
+resources/Old QB45 and QB64 Samples/misc/mandelb.bas
+resources/Old QB45 and QB64 Samples/misc/matrix.bas
+resources/Old QB45 and QB64 Samples/misc/mclock.bas
+resources/Old QB45 and QB64 Samples/misc/message.bas
+resources/Old QB45 and QB64 Samples/misc/mzupd2.bas
+resources/Old QB45 and QB64 Samples/misc/nib64.bas
+resources/Old QB45 and QB64 Samples/misc/pattern.bas
+resources/Old QB45 and QB64 Samples/misc/rc-ent6.bas
+resources/Old QB45 and QB64 Samples/misc/replicat.bas
+resources/Old QB45 and QB64 Samples/misc/ripples.bas
+resources/Old QB45 and QB64 Samples/misc/rot13.bas
+resources/Old QB45 and QB64 Samples/misc/rotozoom.bas
+resources/Old QB45 and QB64 Samples/misc/scramble.bas
+resources/Old QB45 and QB64 Samples/misc/shoot.bas
+resources/Old QB45 and QB64 Samples/misc/sinecube.bas
+resources/Old QB45 and QB64 Samples/misc/ssaver.bas
+resources/Old QB45 and QB64 Samples/misc/strfld.bas
+resources/Old QB45 and QB64 Samples/misc/temple.bas
+resources/Old QB45 and QB64 Samples/misc/tower.bas
+resources/Old QB45 and QB64 Samples/misc/twirl2.bas
+resources/Old QB45 and QB64 Samples/misc/vortex.bas
+resources/Old QB45 and QB64 Samples/misc/wumpus.bas
+resources/Old QB45 and QB64 Samples/misc/xwing.bas
+resources/Old QB45 and QB64 Samples/n54/big/3dsviewer/3dsviewer.bas
+resources/Old QB45 and QB64 Samples/n54/big/jpegmake.bas
+resources/Old QB45 and QB64 Samples/n54/big/tictac.bas
+resources/Old QB45 and QB64 Samples/open_gl/3d_model_viewer.bas
+resources/Old QB45 and QB64 Samples/open_gl/simple_example.bas
+resources/Old QB45 and QB64 Samples/pete/25lines/3dcube25.bas
+resources/Old QB45 and QB64 Samples/pete/25lines/npplasma.bas
+resources/Old QB45 and QB64 Samples/pete/25lines/starfild.bas
+resources/Old QB45 and QB64 Samples/pete/alyman.bas
+resources/Old QB45 and QB64 Samples/pete/asciiconversion.bas
+resources/Old QB45 and QB64 Samples/pete/averager.bas
+resources/Old QB45 and QB64 Samples/pete/battleship.bas
+resources/Old QB45 and QB64 Samples/pete/beatdown/bdt.bas
+resources/Old QB45 and QB64 Samples/pete/beatdown/beatdown.bas
+resources/Old QB45 and QB64 Samples/pete/beatdown/clickme.bas
+resources/Old QB45 and QB64 Samples/pete/bj.bas
+resources/Old QB45 and QB64 Samples/pete/booger/booger.bas
+resources/Old QB45 and QB64 Samples/pete/bush.bas
+resources/Old QB45 and QB64 Samples/pete/calc.bas
+resources/Old QB45 and QB64 Samples/pete/calc_2.bas
+resources/Old QB45 and QB64 Samples/pete/carracingenglish.bas
+resources/Old QB45 and QB64 Samples/pete/cc2.bas
+resources/Old QB45 and QB64 Samples/pete/coolscr.bas
+resources/Old QB45 and QB64 Samples/pete/cr/cr.bas
+resources/Old QB45 and QB64 Samples/pete/darokin.bas
+resources/Old QB45 and QB64 Samples/pete/darpong/darpong.bas
+resources/Old QB45 and QB64 Samples/pete/degrees.bas
+resources/Old QB45 and QB64 Samples/pete/diceit.bas
+resources/Old QB45 and QB64 Samples/pete/drug3d.bas
+resources/Old QB45 and QB64 Samples/pete/fight.bas
+resources/Old QB45 and QB64 Samples/pete/gravity.bas
+resources/Old QB45 and QB64 Samples/pete/hgm30e/hgm30e.bas
+resources/Old QB45 and QB64 Samples/pete/html/test.bas
+resources/Old QB45 and QB64 Samples/pete/invader1/invader.bas
+resources/Old QB45 and QB64 Samples/pete/kbdparse.bas
+resources/Old QB45 and QB64 Samples/pete/lineswin.bas
+resources/Old QB45 and QB64 Samples/pete/makebig.bas
+resources/Old QB45 and QB64 Samples/pete/monopoly/monopoly.bas
+resources/Old QB45 and QB64 Samples/pete/mooncr/mooncr.bas
+resources/Old QB45 and QB64 Samples/pete/move.bas
+resources/Old QB45 and QB64 Samples/pete/mrguessit.bas
+resources/Old QB45 and QB64 Samples/pete/nlcm2006/nlcm.bas
+resources/Old QB45 and QB64 Samples/pete/optimus/deedsaks.bas
+resources/Old QB45 and QB64 Samples/pete/pall2.bas
+resources/Old QB45 and QB64 Samples/pete/picdimreader.bas
+resources/Old QB45 and QB64 Samples/pete/pongsource.bas
+resources/Old QB45 and QB64 Samples/pete/pongtennis/tennis.bas
+resources/Old QB45 and QB64 Samples/pete/pp256/usersubs.bas
+resources/Old QB45 and QB64 Samples/pete/qbb.bas
+resources/Old QB45 and QB64 Samples/pete/rats1.bas
+resources/Old QB45 and QB64 Samples/pete/raytra1b.bas
+resources/Old QB45 and QB64 Samples/pete/rect2.bas
+resources/Old QB45 and QB64 Samples/pete/rectong/rectong.bas
+resources/Old QB45 and QB64 Samples/pete/roboraid/roboraid.bas
+resources/Old QB45 and QB64 Samples/pete/rotate.bas
+resources/Old QB45 and QB64 Samples/pete/rug.bas
+resources/Old QB45 and QB64 Samples/pete/screen.bas
+resources/Old QB45 and QB64 Samples/pete/simpire/ssimpire.bas
+resources/Old QB45 and QB64 Samples/pete/skydiver.bas
+resources/Old QB45 and QB64 Samples/pete/space1.bas
+resources/Old QB45 and QB64 Samples/pete/stones.bas
+resources/Old QB45 and QB64 Samples/pete/su2/shoote.bas
+resources/Old QB45 and QB64 Samples/pete/su2/su2t.bas
+resources/Old QB45 and QB64 Samples/pete/sudoku.bas
+resources/Old QB45 and QB64 Samples/pete/tank/tcv2.bas
+resources/Old QB45 and QB64 Samples/pete/time.bas
+resources/Old QB45 and QB64 Samples/pete/tor/qbdemo.bas
+resources/Old QB45 and QB64 Samples/pete/torndc.bas
+resources/Old QB45 and QB64 Samples/pete/upperlowerconversion.bas
+resources/Old QB45 and QB64 Samples/pete/vektor.bas
+resources/Old QB45 and QB64 Samples/pete/vsphere.bas
+resources/Old QB45 and QB64 Samples/pete/wetspot/wetspot.bas
+resources/Old QB45 and QB64 Samples/pete/zodiac4.bas
+resources/Old QB45 and QB64 Samples/qb45com/action/4pong.bas
+resources/Old QB45 and QB64 Samples/qb45com/action/arcdemo/arcdemo.bas
+resources/Old QB45 and QB64 Samples/qb45com/action/arqanoid/arqanoid.bas
+resources/Old QB45 and QB64 Samples/qb45com/action/arqanoid/lvldesgn.bas
+resources/Old QB45 and QB64 Samples/qb45com/action/assault/assault.bas
+resources/Old QB45 and QB64 Samples/qb45com/action/astrowars.bas
+resources/Old QB45 and QB64 Samples/qb45com/action/sfb2/sfb2.bas
+resources/Old QB45 and QB64 Samples/thebob/abacus/a12gfx.bas
+resources/Old QB45 and QB64 Samples/thebob/animax/axgfx.bas
+resources/Old QB45 and QB64 Samples/thebob/biochart/bcgfx.bas
+resources/Old QB45 and QB64 Samples/thebob/biochart/biochart.bas
+resources/Old QB45 and QB64 Samples/thebob/chess/chess.bas
+resources/Old QB45 and QB64 Samples/thebob/chopper/chopfile.bas
+resources/Old QB45 and QB64 Samples/thebob/kong/k1.bas
+resources/Old QB45 and QB64 Samples/thebob/kong/k2.bas
+resources/Old QB45 and QB64 Samples/thebob/leapfrog/lfgx.bas
+resources/Old QB45 and QB64 Samples/thebob/monopoly/mboard.bas
+resources/Old QB45 and QB64 Samples/thebob/pongg/pgfx.bas
+resources/Old QB45 and QB64 Samples/thebob/rattler/rattler.bas
+resources/Old QB45 and QB64 Samples/thebob/sol/s3gfx.bas
+resources/Samples/2D-Robot-Arm/2d_robot_arm.bas
+resources/Samples/3DS-Viewer/3dsviewer.bas
+resources/Samples/ASCIIMAN/ASCIIMAN.BAS
+resources/Samples/ASCIIMAN/DATA/EDITLEV.BAS
+resources/Samples/Abacus/a12gfx.bas
+resources/Samples/Abacus/abacus12.bas
+resources/Samples/Amongst/amongst.bas
+resources/Samples/Amongst/amongst_server.bas
+resources/Samples/Amongst/amongst_updater.bas
+resources/Samples/Animax/animax.bas
+resources/Samples/Animax/axgfx.bas
+resources/Samples/BadBoxes/BadBox.bas
+resources/Samples/Bin2BAS/basfile.bas
+resources/Samples/Bin2BAS/basimage.bas
+resources/Samples/Bin2BAS/bin2bas.bas
+resources/Samples/Bin2Include/Bin2Include.BAS
+resources/Samples/Biorythm-Chart/bcgfx.bas
+resources/Samples/Biorythm-Chart/biochart.bas
+resources/Samples/Breakout2002/FINAL.BAS
+resources/Samples/Cant-contain-me/ccm.bas
+resources/Samples/Chess/minimax.bas
+resources/Samples/Chess/tf.bas
+resources/Samples/ChessSubs/chess.bas
+resources/Samples/ChessSubs/chesssubs.bas
+resources/Samples/Cloned-Shades/shades.bas
+resources/Samples/D1NGOS-Maze/main.bas
+resources/Samples/Demos/BALL.BAS
+resources/Samples/Demos/Circle Intersect Line.bas
+resources/Samples/Demos/CircleIntersectCircle.bas
+resources/Samples/Demos/DarkoMatrix.bas
+resources/Samples/Demos/Ellipse Intersect Line.bas
+resources/Samples/Demos/Ellipses.bas
+resources/Samples/Demos/Hearts and Butterflies.bas
+resources/Samples/Demos/InterestingSpiral2.bas
+resources/Samples/Demos/InverseJulia.bas
+resources/Samples/Demos/JuliaRings.bas
+resources/Samples/Demos/PUMPKIN.BAS
+resources/Samples/Demos/QB64_BubbleSortVisualizer.bas
+resources/Samples/Demos/Sierpinsky Rays+aet.bas
+resources/Samples/Demos/The burning of Julia2.1.bas
+resources/Samples/Demos/qbguyMandel.bas
+resources/Samples/Didris/didris.bas
+resources/Samples/DrumMachine/drummachine.bas
+resources/Samples/Epicycles/Epicycles.BAS
+resources/Samples/FakeCPU/MYCPU.bas
+resources/Samples/FakeCPU/weirdtest.bas
+resources/Samples/FluidCraft/FluidCraft.BAS
+resources/Samples/Frogger/frog.bas
+resources/Samples/Frostbite/frostbite.bas
+resources/Samples/GUI-Menu-Bar/GUIMenubar_Global.bas
+resources/Samples/GUI-Menu-Bar/Menu_Testing_1.bas
+resources/Samples/Genius/genius.bas
+resources/Samples/Ghost-Wizard/ghostwiz.bas
+resources/Samples/GridLife/GridLife.BAS
+resources/Samples/Hex/hex.bas
+resources/Samples/Hunter-Revenge/main.bas
+resources/Samples/InForm-Demos/Fireworks2Inform/InForm/InFormVersion.bas
+resources/Samples/InForm-Demos/InFormTicTacToe/InForm/InFormVersion.bas
+resources/Samples/InForm-Demos/InFormTicTacToe2/InForm/InFormVersion.bas
+resources/Samples/InForm-Demos/Stopwatch/InForm/InFormVersion.bas
+resources/Samples/InForm-Demos/WordClock/InForm/InFormVersion.bas
+resources/Samples/Kaboom!/kaboom.bas
+resources/Samples/Kong/k1.bas
+resources/Samples/Kong/k2.bas
+resources/Samples/Kong/kong.bas
+resources/Samples/LightsOn/lightson.bas
+resources/Samples/MADMIX/EDIMIX/edimix.bas
+resources/Samples/MADMIX/madmix.bas
+resources/Samples/MONEY/MONEY.BAS
+resources/Samples/Mini-Golf/mg.bas
+resources/Samples/Moon-Lander/L64.BAS
+resources/Samples/Mooncrap/mooncr.bas
+resources/Samples/OpenGL-Demos/3DKnots.bas
+resources/Samples/OpenGL-Demos/3d_model_viewer.bas
+resources/Samples/OpenGL-Demos/3ddoublependulum.bas
+resources/Samples/OpenGL-Demos/3dmatrixrain.bas
+resources/Samples/OpenGL-Demos/3dopenworld.bas
+resources/Samples/OpenGL-Demos/SierpinskiCube.bas
+resources/Samples/OpenGL-Demos/lightandmaterial.bas
+resources/Samples/OpenGL-Demos/simple_example.bas
+resources/Samples/PHONE/PHONE.BAS
+resources/Samples/PIXELplus-256/usersubs.bas
+resources/Samples/Pendulum/pendulum.bas
+resources/Samples/Pendulum/pendulumLevelEditor.bas
+resources/Samples/Platform/mrJumpS.bas
+resources/Samples/Platform/platform.bas
+resources/Samples/QB-Bounce/BOUNCE.BAS
+resources/Samples/QB45BIN/QB45BIN.bas
+resources/Samples/QB64-Asteroids/QB64Asteroids.bas
+resources/Samples/QB64-ButtonLib/RQBLDEMO.bas
+resources/Samples/QB64-GLInputLib/glidocdemo1.bas
+resources/Samples/QB64-GLInputLib/glidocdemo2.bas
+resources/Samples/QB64-GLInputLib/glidocdemo3.bas
+resources/Samples/QB64-Invaders/QB64Invaders.bas
+resources/Samples/QB64-MenuLib/example1.bas
+resources/Samples/QB64-MenuLib/example10.bas
+resources/Samples/QB64-MenuLib/example11.bas
+resources/Samples/QB64-MenuLib/example12.bas
+resources/Samples/QB64-MenuLib/example13.bas
+resources/Samples/QB64-MenuLib/example14.bas
+resources/Samples/QB64-MenuLib/example15.bas
+resources/Samples/QB64-MenuLib/example2.bas
+resources/Samples/QB64-MenuLib/example3.bas
+resources/Samples/QB64-MenuLib/example4.bas
+resources/Samples/QB64-MenuLib/example5.bas
+resources/Samples/QB64-MenuLib/example6.bas
+resources/Samples/QB64-MenuLib/example7.bas
+resources/Samples/QB64-MenuLib/example8.bas
+resources/Samples/QB64-MenuLib/example9.bas
+resources/Samples/QB64-SpriteLib/barrels.bas
+resources/Samples/QB64-SpriteLib/barrels2.bas
+resources/Samples/QB64-SpriteLib/collision.bas
+resources/Samples/QB64-SpriteLib/mario.bas
+resources/Samples/QB64-SpriteLib/mario2.bas
+resources/Samples/QBLOCKS/QBLOCKS.BAS
+resources/Samples/QBPool/fzxNGN/body/misc.bas
+resources/Samples/QBPool/fzxNGN/math/impulseMath.bas
+resources/Samples/QBPool/fzxNGN/rendering/textureLoad.bas
+resources/Samples/QBPool/fzxNGN/typesAndConstants/fzxNGNConst.bas
+resources/Samples/QBPool/fzxNGN/typesAndConstants/fzxNGNTypes.bas
+resources/Samples/QBPool/fzxNGN_QBPOOL.bas
+resources/Samples/QBRICKS/QBRICKS.BAS
+resources/Samples/QBZerk/QBzerk.bas
+resources/Samples/QBasic-Beautifier/qbb.bas
+resources/Samples/QBasic-Nventory/NVENTORY.BAS
+resources/Samples/QCARDS/QCARDS.BAS
+resources/Samples/QDigger/MKLEV.BAS
+resources/Samples/QDigger/QDIGGER.BAS
+resources/Samples/QDigger/QDIGGERE.BAS
+resources/Samples/QMAZE/QMAZE.BAS
+resources/Samples/QSHIPS/QSHIPS.BAS
+resources/Samples/QSPACE/QSPACE.BAS
+resources/Samples/QSYNTH/QSYNTH.BAS
+resources/Samples/Rattler/rattler.bas
+resources/Samples/Ray-Tracer-Z/ray-tracer-zomb.bas
+resources/Samples/Sanctum/Sanctum.bas
+resources/Samples/Schemat/schemat.bas
+resources/Samples/Set-fire-to-the-rain/setfire.bas
+resources/Samples/Snake-BASIC/CONFIG.BAS
+resources/Samples/SpaceInvaders/invaders.bas
+resources/Samples/Spaceship/Spaceship.bas
+resources/Samples/Stock-Watcher/qb64stocks.bas
+resources/Samples/Stunt-Chopper/DROP.BAS
+resources/Samples/Super-Mega-Bug/SMEGABUG.BAS
+resources/Samples/SuperMarioJump/SuperMarioJump.bas
+resources/Samples/TUI/tui.bas
+resources/Samples/TankDrum/tankdrum.bas
+resources/Samples/TicTacToeRing/tictactoering.bas
+resources/Samples/Untitled-Rougelike/RougeLike_1_4.bas
+resources/Samples/XE-Hex-Editor/xe.bas
+resources/Samples/qXed/bubblesort.bas
+resources/Samples/qXed/list.bas
+resources/Samples/qXed/qXed.BAS
+resources/Samples/qXed/quicksort.bas
+schemat/schemat.bas
+software-3d-perspective-correct-textured-triangles/AliasObj/AliasObjFile.bas
+software-3d-perspective-correct-textured-triangles/Concepts/MouseTriangle.bas
+software-3d-perspective-correct-textured-triangles/Concepts/NearFrustumClipTriangleAttributes.bas
+software-3d-perspective-correct-textured-triangles/Concepts/PinWheel.bas
+software-3d-perspective-correct-textured-triangles/Concepts/Shoelace3dfxTriangle.bas
+software-3d-perspective-correct-textured-triangles/Concepts/TextureWrapOptions.bas
+software-3d-perspective-correct-textured-triangles/Concepts/Triangle_Edge_AA.bas
+software-3d-perspective-correct-textured-triangles/Concepts/TwoTriangles.bas
+software-3d-perspective-correct-textured-triangles/Cube/ColorCubeAffine.bas
+software-3d-perspective-correct-textured-triangles/Cube/DitherColorCube.bas
+software-3d-perspective-correct-textured-triangles/Cube/DitherDeditherColorCube.bas
+software-3d-perspective-correct-textured-triangles/Cube/TextureZFightDonut.bas
+software-3d-perspective-correct-textured-triangles/Cube/TexturedCubePlains.bas
+software-3d-perspective-correct-textured-triangles/Cube/VertexAlphaDitherColorCube.bas
+software-3d-perspective-correct-textured-triangles/Cube/VertexColorCube.bas
+software-3d-perspective-correct-textured-triangles/Skybox/IsotropicMipmapRoad.bas
+software-3d-perspective-correct-textured-triangles/Skybox/MultiViewport.bas
+software-3d-perspective-correct-textured-triangles/Skybox/MultiViewport3dfx.bas
+software-3d-perspective-correct-textured-triangles/Skybox/SkyboxLongTube.bas
+software-3d-perspective-correct-textured-triangles/Skybox/SkyboxTrees.bas
+software-3d-perspective-correct-textured-triangles/Skybox/TrilinearMipmapFences.bas
+software-3d-perspective-correct-textured-triangles/Skybox/TrilinearMipmapRoad.bas
+software-3d-perspective-correct-textured-triangles/Skybox/TrilinearVariants.bas
+software-3d-perspective-correct-textured-triangles/Skybox/TwinTextureTriangles.bas
+spaceshooter2k/SpaceShooter2k.bas
+spaceshooter2k/include/Audio/AudioVisualizer.bas
+spaceshooter2k/include/Audio/MIDIIO.bas
+spaceshooter2k/include/DS/MemFile.bas
+spaceshooter2k/include/Debug/Test.bas
+spaceshooter2k/include/tests/test_gui.bas
+srt-stats-monitor/modifications/resources/basimage/basimage.bas
+tcpip-experiments/inform-host-client/InForm/InFormVersion.bas
+tcpip-experiments/simple-host-client/tcpip.bas
+tcpip-experiments/windowing-host-client/windowingClient.bas
+tcpip-experiments/windowing-host-client/windowingHost.bas
+toolbox64/Audio/AudioVisualizer.bas
+toolbox64/Audio/MIDIIO.bas
+toolbox64/DS/MemFile.bas
+toolbox64/Debug/Test.bas
+toolbox64/tests/test_gui.bas
+tui/tui.bas
+vga-font-editor/VGAFontEditor.bas
+vga-font-editor/bin2psf.bas
+vga-font-editor/include/Audio/AudioVisualizer.bas
+vga-font-editor/include/Audio/MIDIIO.bas
+vga-font-editor/include/Audio/OPL3.bas
+vga-font-editor/include/DS/MemFile.bas
+vga-font-editor/include/Debug/Test.bas
+vga-font-editor/include/tests/test_gui.bas

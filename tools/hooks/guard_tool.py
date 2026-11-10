@@ -7,6 +7,9 @@ Refused (exit 2, the reason sent to Claude):
   `git stash`, `git commit -a`/`-am`/`--all`) (CLAUDE.md human rule 1); a plain `mv`/`Move-Item`/`rm`/`Remove-Item`
   of a tracked file (use `git mv`; a deletion is the user's call); a redirect that writes a file at the top of
   `target\\` (scratch goes under `target\\scratch\\`).
+- Bash only: text with a backslash in a heredoc's body, or in a command that runs an inline script or makes
+  text (`python -c`, `perl -e`, `printf`, `echo -e`) or writes with `sed` or `awk` (`-i`, or a redirect into
+  a file) (CLAUDE.md working rule 5). The backslash must be in that same command of a pipeline.
 - Write / Edit: a file at the top of `target\\` or under it outside `target\\scratch\\` and `target\\check\\`;
   any file under the read-only reference clone `..\\QB64pe\\`.
 
@@ -38,6 +41,57 @@ TARGET_ROOT_WRITE = re.compile(
     r">{1,2}\s*\"?(?:\./)?target[\\/](?![\\/])([^\\/\s\"]+)\"?(?=\s|$)", re.MULTILINE
 )
 TARGET_ALLOWED = ("scratch", "check")
+# Text with backslashes given to Bash (CLAUDE.md working rule 5): a heredoc's body, or the
+# argument of an inline script or an editing command. Bash's tool collapses "\\" to "\", and
+# Python then reads "\1", "\v" or "\r" as control characters. Each is looked for in one command
+# of a pipeline or list (`segments`), with the backslash in that same command.
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n(.*?)^\s*\2\s*$", re.S | re.M)
+# An inline script (`python -c`, `python -Ic`, `perl -e`), or a command that makes text (`printf`, `echo -e`).
+INLINE_TEXT = re.compile(
+    r"\b(?:python3?|py|perl|ruby|node)(?:\.exe)?(?:\s+-[A-Za-z0-9.]+)*?\s+-[A-Za-z]*[ce]\b"
+    r"|\bprintf\b|\becho\s+-e\b"
+)
+# `sed` and `awk` count only when they write: `sed -i`, or a redirect into a file. Reading through them
+# (`grep … | sed -n 1,40p`) changes nothing.
+EDITOR = re.compile(r"\b(?:sed|awk)\b")
+WRITES = re.compile(r"\s-i\b|\s--in-place\b|(?:^|[^0-9&>])>{1,2}\s*(?!&|/dev/null\b)\S")
+
+
+def segments(cmd: str) -> list[str]:
+    """The commands of a pipeline or list: cmd split at `|`, `;`, `&` and line ends outside quotes."""
+    out: list[str] = []
+    cur: list[str] = []
+    quote = None
+    i = 0
+    while i < len(cmd):
+        c = cmd[i]
+        if c == "\\" and quote != "'" and i + 1 < len(cmd):
+            cur.append(cmd[i : i + 2])
+            i += 2
+            continue
+        if quote:
+            quote = None if c == quote else quote
+            cur.append(c)
+        elif c in "'\"":
+            quote = c
+            cur.append(c)
+        elif c in "|;&\n":
+            out.append("".join(cur))
+            cur = []
+        else:
+            cur.append(c)
+        i += 1
+    out.append("".join(cur))
+    return out
+
+
+def passes_backslash_text(segment: str) -> bool:
+    """Whether one command gives text with a backslash to an inline script or an editing command."""
+    if "\\" not in segment:
+        return False
+    if INLINE_TEXT.search(segment):
+        return True
+    return bool(EDITOR.search(segment) and WRITES.search(segment))
 
 
 def tracked(path: str) -> bool:
@@ -78,6 +132,19 @@ def check_command(cmd: str) -> str | None:
     return None
 
 
+def check_backslashes(cmd: str) -> str | None:
+    """The reason to refuse a Bash command that passes text with backslashes through the shell, or None."""
+    heredoc = any("\\" in m.group(3) for m in HEREDOC.finditer(cmd))
+    rest = HEREDOC.sub("", cmd)
+    if heredoc or any(passes_backslash_text(s) for s in segments(rest)):
+        return (
+            "Refused by tools/hooks/guard_tool.py: text with a backslash goes through the Write or Edit tool or "
+            "a script file, never through a heredoc, python -c, sed, printf or awk in Bash (CLAUDE.md working "
+            "rule 5). Write the script or text to a file under a scratch folder, then run that file."
+        )
+    return None
+
+
 def check_path(file_path: str) -> str | None:
     """The reason to refuse a Write or Edit of file_path, or None."""
     p = Path(file_path)
@@ -107,7 +174,8 @@ def main() -> int:
     inp = data.get("tool_input") or {}
     reason = None
     if tool in ("Bash", "PowerShell"):
-        reason = check_command(str(inp.get("command", "")))
+        cmd = str(inp.get("command", ""))
+        reason = check_command(cmd) or (check_backslashes(cmd) if tool == "Bash" else None)
     elif tool in ("Write", "Edit"):
         reason = check_path(str(inp.get("file_path", "")))
     return refuse(reason) if reason else 0

@@ -1,0 +1,18 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+mem_type_string_errors.bas:15:22: error: `_MEMGET` of a `TYPE TS` value: a UDT with a `STRING` member has no fixed size
+mem_type_string_errors.bas:15:22: note: QB64pe: UDT must have fixed size
+mem_type_string_errors.bas:16:22: error: `_MEMPUT` of a `TYPE TS` value: a UDT with a `STRING` member has no fixed size
+mem_type_string_errors.bas:16:22: note: QB64pe: UDT must have fixed size
+mem_type_string_errors.bas:17:26: error: `_MEMFILL` of a `TYPE TS` value: a UDT with a `STRING` member has no fixed size
+mem_type_string_errors.bas:17:26: note: QB64pe: UDT must have fixed size
+mem_type_string_errors.bas:18:22: error: `_MEMGET` of a `TYPE TS` value: a UDT with a `STRING` member has no fixed size
+mem_type_string_errors.bas:18:22: note: QB64pe: UDT must have fixed size
+mem_type_string_errors.bas:19:22: error: `_MEMGET` of a `TYPE TS` value: a UDT with a `STRING` member has no fixed size
+mem_type_string_errors.bas:19:22: note: QB64pe: UDT must have fixed size
+mem_type_string_errors.bas:20:22: error: `_MEMPUT` of a `TYPE OUTER` value: a UDT with a `STRING` member has no fixed size
+mem_type_string_errors.bas:20:22: note: QB64pe: UDT must have fixed size
+mem_type_string_errors.bas:21:22: error: not supported yet: `_MEMGET` of a value of a `TYPE` with a `STRING` member
+mem_type_string_errors.bas:22:22: error: not supported yet: `_MEMGET` of a value of a `TYPE` with a `STRING` member

@@ -68,7 +68,7 @@ null device, `QB64PE_NOPROMPT=y`, and a timeout (`--timeout <seconds>`, default 
 #### Scenario: Input does not wait
 - **WHEN** a test runs `LINE INPUT a$`
 - **THEN** it reads the end of the input at once, which raises error 62, "Input past end of file"
-  (`QB64PE-DIVERGENCES.md` D-048), so the test is an error; it does not wait for the keyboard
+  (`DIVERGENCES-QB64PE.md` D-048), so the test is an error; it does not wait for the keyboard
 
 #### Scenario: A folder of its own
 - **WHEN** two tests run at once and each writes `TestTempDir$ + "out.txt"`

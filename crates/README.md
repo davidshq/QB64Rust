@@ -38,7 +38,7 @@ Source is bytes throughout (`study\archive\15` §1): files are never converted t
 columns in diagnostics are byte columns. A real error whose wording by the old compiler is known from recorded
 output is followed by `note: QB64pe: <its wording>` (`base\src\old_wording.rs`, the table written by
 `tools\diagnostics\old_wording.py`; `m3-old-wording-notes`). A program built here writes the rows of
-`QB64PE-DIVERGENCES.md` whose paths it takes to the file `QB64RUST_DIVERGENCES` names (`m3-divergence-trace`).
+`DIVERGENCES-QB64PE.md` whose paths it takes to the file `QB64RUST_DIVERGENCES` names (`m3-divergence-trace`).
 
 ## Lints
 
@@ -216,8 +216,8 @@ cd ~/qb64rust && cargo build --release           # ~/qb64rust-full from the work
 
 What a program may use, and how it behaves, is in the merged specs under `openspec\specs\` (one home per
 behaviour, `study\archive\31` item 2). How and where a change built it is in that change's `design.md` and `tasks.md`
-(`openspec\changes\archive\`); what it left "not supported yet" on purpose is in `SOMEDAY.md` ("Left marked by
-…"); what the corpus and upstream programs still need is the demand report (`--report unsupported`, above). The
+(`openspec\changes\archive\`); what it left "not supported yet" on purpose is in `SOMEDAY.md` ("Deferred
+QB64pe features"); what the corpus and upstream programs still need is the demand report (`--report unsupported`, above). The
 catalogue this section held until 2026-10-16, with the code each feature lives in, is
 [`study\archive\support-record.md`](../study/archive/support-record.md) (closed: a new change adds nothing to it or here).
 

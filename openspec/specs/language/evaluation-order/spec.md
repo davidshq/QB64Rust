@@ -46,6 +46,12 @@ The order SHALL be kept wherever another order could change what the program doe
 - **WHEN** a program prints `_MIN(pa, pb)` where FUNCTIONs `pa` and `pb` each print their name
 - **THEN** it prints `(a) (b)` before the result, on Windows and on Linux
 
+#### Scenario: A FUNCTION in an array's index and in a later argument
+- **WHEN** a program runs `PUT (30, 30), a(f%(1)), PSET, f%(2)`, where `f%` adds its argument to a log
+  (`tests\corpus\slice\s162_get_put_index_once`)
+- **THEN** the log is ` 1 2` on Windows and on Linux: the bytes of the array, with the call in their index, are
+  evaluated before the omit color
+
 ### Requirement: Orders the C++ already fixes stay as they are
 A part that QB64pe's Windows build evaluates only when needed SHALL still be evaluated only when needed: the
 right side of `_ANDALSO` and `_ORELSE`, and the branch of `_IIF` that is not chosen. Each item of a `PRINT`,

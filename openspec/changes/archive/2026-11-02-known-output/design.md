@@ -53,7 +53,7 @@ the file `known.list`'s reason pointed to anyway, for traced rows. For an untrac
 checked against the trace. That is harmless: `unexpected_rows` only fails rows that are traced and not listed.
 
 *Code:* the tier-1 test `verification_lists_are_exact` in `crates\driver\tests\it\inputs.rs` gets the checks of
-the spec's "The diverged sidecars are checked". It reads the D rows from `docs\QB64PE-DIVERGENCES.md`'s table.
+the spec's "The diverged sidecars are checked". It reads the D rows from `docs\DIVERGENCES-QB64PE.md`'s table.
 
 *Instead of:* keeping the program on `known.list` with a sidecar. Then a regression would still be a known
 failure, which is the problem this change fixes.

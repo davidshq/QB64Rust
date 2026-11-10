@@ -1,0 +1,6 @@
+$INCLUDEONCE
+' The bottom file of test70/user.
+SUB UserSub
+    OnceSub
+    PRINT "user"
+END SUB

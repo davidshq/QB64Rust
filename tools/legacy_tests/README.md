@@ -89,7 +89,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   for byte.
 - **The run-time trace of divergences** (`m3-divergence-trace`; corpus and compile suites): every run has
   `QB64RUST_DIVERGENCES` naming a fresh file `<results>\<key>-run<n>-divergences.txt`, where a program built by
-  the new compiler writes `D-0nn` the first time it takes the path of that row of `QB64PE-DIVERGENCES.md` (the old
+  the new compiler writes `D-0nn` the first time it takes the path of that row of `DIVERGENCES-QB64PE.md` (the old
   compiler's programs write nothing). When checking, a row that `<name>.divergences` (one `D-0nn` per line, `#`
   starts a comment) does not list fails the program at the stage `divergences`; a listed row not taken does not.
   A corpus program's sidecar lies beside it; a compile-suite program's is
@@ -99,7 +99,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   `tests\verification\divergences\<name>.divergences`; its recording does not.
 - **The exit code of D-012** (OpenSpec change `basic-unit-tests`, design D2; `testing/golden-corpus`): a program
   of the new compiler that a runtime error ends exits with 1 and traces `D-012`, where the old compiler's exits 0
-  (`QB64PE-DIVERGENCES.md` D-012). In every suite that compares exit codes (the corpus, the compile suite, the
+  (`DIVERGENCES-QB64PE.md` D-012). In every suite that compares exit codes (the corpus, the compile suite, the
   verification compare), a run whose trace names `D-012` must end with 1 where the `.exitcode`, the default or
   the recording's last line `exit=0` says 0; a run whose trace does not name it is held to the recorded code, so a
   1 without the trace, or the trace with a 0, fails. `D-012` is never asked of a `.divergences` sidecar. The
@@ -228,7 +228,7 @@ python tools\legacy_tests\run_legacy_tests.py --suite format-corpus --qb64 targe
 - Comparing formats the source of each recording in the same way (upstream with `--include-root
   tests\upstream\root`). A program passes when the compiler exits with 0 and the output equals the recording with
   line endings taken as LF; when it differs, it passes only if the recording's `<name>.divergences` names a row of
-  `QB64PE-DIVERGENCES.md`. A failure names the first line that differs. Nothing is written into `tests\format\`.
+  `DIVERGENCES-QB64PE.md`. A failure names the first line that differs. Nothing is written into `tests\format\`.
   `--jobs` applies.
 - Under the other layout settings (`m5b-format-settings`): each program `tests\format\settings.list` names is
   also recorded and compared under each of six variants (`FORMAT_VARIANTS`), the defaults with one setting

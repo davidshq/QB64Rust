@@ -57,7 +57,7 @@ for any `qb64rust` binary (spec `compiler/cli`, "Compiler root for included file
 The download's `MANUAL.md` SHALL describe: what the download is and the systems it needs (the Windows versions;
 Linux x64 with glibc and the packages per distribution); unpacking it and installing the toolchain or the packages;
 compiling, running and formatting a program; the options of the usage text; the exit statuses; where the compiler
-and its programs differ from QB64pe 4.7.0 (`QB64PE-DIVERGENCES.md`); and where to report a problem. Every option it
+and its programs differ from QB64pe 4.7.0 (`DIVERGENCES-QB64PE.md`); and where to report a problem. Every option it
 names SHALL be one the usage text names.
 
 #### Scenario: An option in the manual

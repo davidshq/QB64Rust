@@ -769,8 +769,15 @@ impl Checker<'_> {
                 plain_array = None;
                 true
             }
+            // Listed by `COMMON a() AS type`, with `SHARED` or without: its `DIM` or `DIM SHARED` needs the `AS`, as
+            // QuickBASIC 4.5 and PDS 7.1 say ("AS clause required", `verification\qb45\q45_common_array_dim_no_as`,
+            // `_forms`). QB64pe makes another array of the name, and the plain name below stays the listed one, with
+            // no bounds (`v66_c04`; `DIVERGENCES-QB64PE.md` D-063). `REDIM` and the other declarers are not measured.
+            Some(Storage::Main) if by == Declarer::Dim && !redim => {
+                let msg = format!("`DIM {shown}` needs an `AS` clause: `{shown}` is listed by `COMMON … AS`");
+                return Err(self.error(name_tok.span, msg));
+            }
             Some(Storage::Main) => {
-                // Listed by `COMMON a() AS type`: not measured.
                 let msg = format!("an array `{shown}` without `AS` beside one listed by `COMMON … AS`");
                 return Err(self.unsupported(name_tok.span, msg));
             }
@@ -805,7 +812,7 @@ impl Checker<'_> {
         let mut beside_shared = by == Declarer::Static && self.static_array_free(existing, name_tok, &shown, listed)?;
         // Beside a shared static array, `STATIC a(n)` declares an array of the procedure's own, as QuickBASIC 4.5 does
         // (`verification\qb45\q45_static_local`), where the old compiler ends the program at the start with
-        // "Duplicate definition" (`QB64PE-DIVERGENCES.md` D-041, `study\39` row 4, always); beside a dynamic one only
+        // "Duplicate definition" (`DIVERGENCES-QB64PE.md` D-041, `study\39` row 4, always); beside a dynamic one only
         // with the fix `static-local-dynamic`. Every later use of the name in the procedure finds that array.
         if beside_shared
             && let Some(id) = existing
@@ -1810,11 +1817,10 @@ impl Checker<'_> {
             if let Ty::User(_) = m {
                 return Err(self.unsupported(t.span, format!("a type suffix on a `TYPE` member: `{shown}`")));
             }
-            if let Ty::FixedStr(_) = m {
-                // A suffix on a fixed-length string member was not measured.
-                return Err(self.unsupported(t.span, format!("a type suffix on a `STRING * n` member: `{shown}`")));
-            }
-            if m != s {
+            // `$` on a fixed-length string member is that member; any other suffix is "Incorrect symbol after element
+            // name" (measured, `verification\v70_c1`, `c2`).
+            let fixed_with_dollar = matches!(m, Ty::FixedStr(_)) && s == Ty::Str;
+            if m != s && !fixed_with_dollar {
                 let msg = format!("`{shown}`: the member is {}, not {}", m.qb_name(), s.qb_name());
                 return Err(self.error(t.span, msg));
             }
@@ -2259,7 +2265,7 @@ impl Checker<'_> {
     /// (measured, `verification\v24_x312`, `v64_a1`), which [`Checker::join_targets`] makes of the targets.
     pub(super) fn clear_member_array(&mut self, array: ArrayRef, stmt: Node) -> R<()> {
         // `ERASE` of a dynamic member array releases it (design D4 of `m3-typefields`). The old compiler evaluates
-        // its index twice; here once (`QB64PE-DIVERGENCES.md` D-055, `verification\v64_a1`, `a2`).
+        // its index twice; here once (`DIVERGENCES-QB64PE.md` D-055, `verification\v64_a1`, `a2`).
         let kind = if self.is_dynamic_member(&array) {
             StmtKind::Release {
                 array,
@@ -2585,7 +2591,7 @@ impl Checker<'_> {
         let root = place.root();
         let v = self.prog.var(root);
         // A `TYPE` that holds a `STRING` is taken, its strings made where the old compiler leaves them out
-        // (`QB64PE-DIVERGENCES.md` D-037; design D3 of `m4-left-marked`); one that owns a dynamic member array, and `_MEM`,
+        // (`DIVERGENCES-QB64PE.md` D-037; design D3 of `m4-left-marked`); one that owns a dynamic member array, and `_MEM`,
         // were not measured.
         if crate::owns_desc(&self.prog.types, v.ty) || self.prog.is_mem(v.ty) {
             let msg =

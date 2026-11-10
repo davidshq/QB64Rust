@@ -197,7 +197,7 @@ fn a_timeout() {
 }
 
 /// "Input does not wait": `LINE INPUT` reads the end of the null device at once; that raises error 62
-/// (`QB64PE-DIVERGENCES.md` D-048), so the test is an error, not a wait.
+/// (`DIVERGENCES-QB64PE.md` D-048), so the test is an error, not a wait.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]
 fn input_does_not_wait() {

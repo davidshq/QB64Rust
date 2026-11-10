@@ -11,7 +11,7 @@ about it. **Nothing outside "Waiting on the user" asks the user anything.** Wher
 |---|---|
 | What a change did, task by task, and what was found on the way | the change's `tasks.md` and `design.md` under `openspec\changes\` (archived ones in `archive\`), and `git log` |
 | A measured fact about the old compiler | the family's recorded output and its line in `verification\README.md`; the families up to `v45` also in `study\00` §5 (closed to new facts, `CLAUDE.md` working rule 7) |
-| A decision | `DECISIONS.md`; a decided difference from QB64pe: `QB64PE-DIVERGENCES.md` |
+| A decision | `DECISIONS.md`; a decided difference from QB64pe: `DIVERGENCES-QB64PE.md` |
 | What the compiler supports | the merged specs under `openspec\specs\` (an index by area: `crates\README.md`, "What the compiler supports"); how a change built it: its `design.md` |
 | How to build and test it | `crates\README.md`; per test set: `tests\*\README.md` |
 | Milestones, done and not done | `ROADMAP.md` (open), `ROADMAP-COMPLETED.md` (done) |
@@ -54,9 +54,10 @@ oracle, QB64pe's `-c`, `-s`, `-e` and `-p`, and fixes to the Linux steps and `to
 `eval-order-left-to-right`, the end of M7 (Linux), `TODO.md` rows 4, 6 and 7, a bare `RETURN` before `ELSE`,
 the fixes for CI after pull request 25, a fix to `tools\screen` for a crash when a key is pressed during exit, and
 the QB 4.5 rows Q-021 and Q-022. M7, Linux, moved to `ROADMAP-COMPLETED.md` with it. No OpenSpec change is
-open. The extension's last release is tagged `vscode-v0.2.0`. Release 0.3.0 is ready for its tag
-`vscode-v0.3.0`, which the user pushes: the first with Linux, and the first whose `qb64rust.exe` needs no
-`VCRUNTIME140.dll` (`DECISIONS.md` 2026-11-07).
+open. Pull request 27 (`f1a64ac0`, 2026-11-07) merged branch `after-pr26` without a `just merge` (user's choice:
+one build flag and documents since pull request 26's run; CI's Rust, extension and release dry run passed). The
+extension's last release is `vscode-v0.3.0` (2026-11-07), on that merge commit: the first with Linux, and the
+first whose `qb64rust.exe` needs no `VCRUNTIME140.dll` (`DECISIONS.md` 2026-11-07).
 
 ## Waiting on the user
 
@@ -65,10 +66,17 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 7).
 
-Nothing is waiting. The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
+1. **The review of the next big wins** (`study\47`, 2026-11-09), section 8: is "first outside users" the next
+   milestone; are language extensions allowed behind a switch, BASIC PDS 7.1 first; should upstream's commits
+   since the reference be reviewed as a routine.
+
+The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 
 ## Next
 
+0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
+   fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
+   `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
 1. **Choose the next milestone.** `ROADMAP.md` has no open milestone. macOS, which was M8, is postponed to
    `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next. The candidates are in
    `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS

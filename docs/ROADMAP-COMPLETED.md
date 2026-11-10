@@ -58,7 +58,7 @@ request 9; user, 2026-10-18, tenth review `study\35` §3 item 1). The areas it h
 **M3's steps** (user, `DECISIONS.md` 2026-10-12, and one row per later step; moved here from `STATUS.md` on
 2026-10-28). Done, each archived under
 `openspec\changes\archive\` with its `tasks.md` and `design.md`; its measurements in `study\00` §5; what stayed
-marked in `SOMEDAY.md` ("Left marked by …"):
+marked in `SOMEDAY.md` ("Deferred QB64pe features"):
 
 | Step | Change (archive folder) | What it brought |
 |---|---|---|
@@ -110,19 +110,19 @@ marked in `SOMEDAY.md` ("Left marked by …"):
 - [x] `_MEM`: the type, the blocks of references, addresses, new memory and images, `_MEMGET`, `_MEMPUT`,
       `_MEMFILL`, `_MEMCOPY`, `_MEMFREE`, `_MEMEXISTS`, `_OFFSET`, every runtime error 300 to 313; `MKI$` …
       `_CV`; `_MEMSOUND` compiled and never run (`m3-mem`). Upstream 153 to 174 of 279
-- [x] `$ASSERTS`, `$ASSERTS:CONSOLE`, `_ASSERT`; `$DEBUG` without the IDE's debugger (`QB64PE-DIVERGENCES.md` D-017);
+- [x] `$ASSERTS`, `$ASSERTS:CONSOLE`, `_ASSERT`; `$DEBUG` without the IDE's debugger (`DIVERGENCES-QB64PE.md` D-017);
       `_ADLER32`, `_CRC32`, `_DEFLATE$`, `_INFLATE$`, `_BASE64ENCODE$`, `_BASE64DECODE$`; `END n` and `SYSTEM n`;
       `-f:GenerateLicenseFile` (`m3-asserts-debug-zlib`). Upstream 174 to 186 of 279
 - [x] `REDIM _RETAIN`, the elements kept by their indexes, for every kind of element and array; a `REDIM` with a
-      FUNCTION in a bound that redims the same array no longer crashes (`QB64PE-DIVERGENCES.md` D-018)
+      FUNCTION in a bound that redims the same array no longer crashes (`DIVERGENCES-QB64PE.md` D-018)
       (`m3-redim-retain`). Upstream 186 to 193, now of 286 (the seven left `deferred.list`)
 - [x] `$UNSTABLE:TYPEFIELDS`: the `_DYNAMIC`/`_STATIC` member markers; `_DYNAMIC` member arrays of variables,
-      elements and nested values, their copies, `_MEM`, and whole arrays of their types in files; `QB64PE-DIVERGENCES.md`
+      elements and nested values, their copies, `_MEM`, and whole arrays of their types in files; `DIVERGENCES-QB64PE.md`
       D-019 to D-021 (`m3-typefields`). Upstream 193 of 286 to 290 of 383 (the programs that needed it left
       `deferred.list`; the 21 left there need whole-array assignment or `_ARRAYCOPY`)
 - [x] Whole-array assignment `a() = b()`: arrays and member arrays (plain and `_DYNAMIC`) of every element type and
       place, arrays of owner types, with the old compiler's compile-time and run-time checks; a type suffix on both
-      names stays marked; `QB64PE-DIVERGENCES.md` D-004 widened and D-022 (`m3-whole-array-assign`). Upstream 290 of 383 to
+      names stays marked; `DIVERGENCES-QB64PE.md` D-004 widened and D-022 (`m3-whole-array-assign`). Upstream 290 of 383 to
       310 of 399 (16 programs left `deferred.list`; the 5 left need `_ARRAYCOPY` or, `t001`, a plain scalar beside
       an array typed by `DIM … AS`)
 - [x] `DECLARE LIBRARY` in its four forms on Windows (plain, `STATIC`, `DYNAMIC`, `CUSTOMTYPE`): the old
@@ -138,7 +138,7 @@ marked in `SOMEDAY.md` ("Left marked by …"):
       where the old compiler's build fails or its executable cannot start (`m3-versioninfo`). Upstream 325 to 328
       of 399
 - [x] `_ARRAYCOPY` in its six forms, for arrays and member arrays (plain and `_DYNAMIC`) of numbers, `_OFFSET` and
-      strings, with the old compiler's checks, order and libqb call; `QB64PE-DIVERGENCES.md` D-004 widened and D-025
+      strings, with the old compiler's checks, order and libqb call; `DIVERGENCES-QB64PE.md` D-004 widened and D-025
       (`m3-arraycopy`). Upstream 328 to 332 of 399 (`deferred.list` holds `t001` alone)
 - [x] The console programs of the corpus that waited: `PRINT USING`, `GET` and `PUT` on a random or binary
       file, `FIELD`, `LSET`, `RSET`, `LOCK`, `UNLOCK`, `EXIT SELECT`, `_IIF`, `_MIN`, `_MAX`, `_CLAMP`, `_SHL`,
@@ -354,6 +354,6 @@ out of scope. Done when its CI jobs have run (below).
   (user, `DECISIONS.md` 2026-10-28 and 2026-11-07; OpenSpec change `eval-order-left-to-right`, built on branch
   `after-pr25`). QB64pe's Windows build runs a call's arguments left to right and its Linux build often right to
   left. The codegen now holds a part in a temporary wherever another order could change the result
-  (`codegen-cpp\src\order.rs`; `QB64PE-DIVERGENCES.md` D-060, with `SWAP`'s D-054 as its first case). The Linux
+  (`codegen-cpp\src\order.rs`; `DIVERGENCES-QB64PE.md` D-060, with `SWAP`'s D-054 as its first case). The Linux
   sidecars that only recorded the other order are cut (`s86_field_lset`, `v30_g_iif_min_max`). The nine others
   are deleted. `verification\v69_*` shows it on both platforms.

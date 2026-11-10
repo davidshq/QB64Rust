@@ -106,7 +106,7 @@ pub(super) fn proc_header(p: &mut Parser, library: bool, declare: bool) {
         }
     }
     if p.at(LParen) {
-        param_list(p, library);
+        param_list_of(p, library, declare && !library);
     }
     if p.at_word("STATIC") && !library {
         p.bump();
@@ -121,6 +121,13 @@ pub(super) fn proc_header(p: &mut Parser, library: bool, declare: bool) {
 
 /// `(param, ...)`, at `(`.
 pub(super) fn param_list(p: &mut Parser, library: bool) {
+    param_list_of(p, library, false);
+}
+
+/// [`param_list`]; in a `DECLARE SUB` or `FUNCTION` outside a library (`declare`), which the old compiler skips,
+/// an `AS type` after a stray comma is the clause of the parameter before it (`idx, AS LONG` in the Libraries
+/// Pack's `QB64pe-Json`; measured, `verification\v70_e1`).
+fn param_list_of(p: &mut Parser, library: bool, declare: bool) {
     p.start_node(ParamList);
     p.bump(); // (
     if !p.at(RParen) {
@@ -130,6 +137,12 @@ pub(super) fn param_list(p: &mut Parser, library: bool) {
             }
             if p.at(Comma) {
                 p.bump();
+                if declare && p.at_word("AS") && !as_clause(p) {
+                    break;
+                }
+                if declare && p.at(RParen) {
+                    break;
+                }
             } else {
                 break;
             }

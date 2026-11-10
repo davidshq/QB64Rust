@@ -40,4 +40,6 @@ embed_errors.bas:39:22: error: the embed handle `below` is named by no `$EMBED` 
 embed_errors.bas:39:22: note: QB64pe: Embed-Handle 'below' is undefined (check your $EMBED lines)
 embed_errors.bas:40:11: error: `_EMBEDDED$` cannot be used in a `CONST`
 embed_errors.bas:40:11: note: QB64pe: Unexpected element '_EMBEDDED$'
-embed_errors.bas:46:1: error: the file `.\x.txt` was already embedded in line 45
+embed_errors.bas:41:22: error: the embed handle of `_EMBEDDED$` must be one string literal, not an expression
+embed_errors.bas:41:22: note: QB64pe: Embed-Handle must be a single literal string in quotes, not a variable
+embed_errors.bas:47:1: error: the file `.\x.txt` was already embedded in line 46

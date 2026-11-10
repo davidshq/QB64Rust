@@ -209,7 +209,7 @@ def refusal(
         shown = "could not be read" if scale is None else f"is {scale}%"
         return (
             f"the display scale {shown} and could not be set to 100%: the sandbox takes the host's, and qb64pe.exe's "
-            "_SCREENCLICK misses under any but 100% (QB64PE-DIVERGENCES.md D-056); set Settings > System > Display > "
+            "_SCREENCLICK misses under any but 100% (DIVERGENCES-QB64PE.md D-056); set Settings > System > Display > "
             "Scale to 100% to record"
         )
     return None

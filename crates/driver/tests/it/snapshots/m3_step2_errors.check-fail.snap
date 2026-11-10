@@ -79,3 +79,7 @@ m3_step2_errors.bas:57:13: error: `PUT` needs an array here
 m3_step2_errors.bas:57:13: note: QB64pe: Expected variable name/array element
 m3_step2_errors.bas:58:1: error: this is no form of graphics `GET`
 m3_step2_errors.bas:59:1: error: this is no form of graphics `PUT`
+m3_step2_errors.bas:61:20: error: `GET` of a `_BIT` variable
+m3_step2_errors.bas:61:20: note: QB64pe: Variable/element cannot be _BIT aligned
+m3_step2_errors.bas:62:13: error: `PUT` of a `_BIT` variable
+m3_step2_errors.bas:62:13: note: QB64pe: Variable/element cannot be _BIT aligned

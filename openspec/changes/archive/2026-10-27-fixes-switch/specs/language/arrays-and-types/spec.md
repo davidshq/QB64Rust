@@ -58,7 +58,7 @@ SHALL NOT keep the arrays after it in the list from being allocated, a second al
 #### Scenario: Fewer than no element
 - **WHEN** `n = -3: DIM d(n) AS LONG` runs under the same handler, then `PRINT UBOUND(d)`
 - **THEN** the handler prints 5, then the handler prints 9: the array is not allocated (`study\39` row 3, always
-  on; a `QB64PE-DIVERGENCES.md` row; the old compiler ends with "Out of memory", which the handler does not receive)
+  on; a `DIVERGENCES-QB64PE.md` row; the old compiler ends with "Out of memory", which the handler does not receive)
 
 #### Scenario: Fix dim-empty-error
 - **WHEN** `n = -1: DIM d(n) AS LONG` and `DIM s(ASC("")) AS LONG` run under the same handler with the fix
@@ -154,7 +154,7 @@ module.
 procedure, `SHARED name(bounds)` with bounds, and `STATIC` in the main module SHALL be compile errors. `STATIC
 name(bounds)` beside a shared main-module **static** array of that name and type SHALL declare an array of the
 procedure's own, kept between calls, and leave the shared array untouched, as QuickBASIC 4.5 does
-(`verification\qb45\q45_static_local`; `study\39` row 4, always on; a `QB64PE-DIVERGENCES.md` row; the old compiler
+(`verification\qb45\q45_static_local`; `study\39` row 4, always on; a `DIVERGENCES-QB64PE.md` row; the old compiler
 ends the program at the start with "Duplicate definition", `verification\v24_x272`). Beside a shared **dynamic**
 array it SHALL name that array in the procedure, its allocation when the program starts being a second allocation
 of the shared array, after the array's own, as in the old compiler (`v55_d_static_shared`); with the fix
@@ -307,7 +307,7 @@ taking one item; `LEN(a())` keeps its meaning. Each place is a row of `SOMEDAY.m
 (every place but `LEN(a())` and the variables of the statements named) SHALL be a compile error at it, as in
 QuickBASIC 4.5 (`verification\qb45\q45_whole_array_value`; `study\39` row 6). Used whole while it has no storage (after
 `ERASE`, or a dynamic array never allocated), in any of these places, it SHALL raise error 9 and read or write
-nothing, whatever the fixes (`study\39` row 7; a `QB64PE-DIVERGENCES.md` row).
+nothing, whatever the fixes (`study\39` row 7; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: PRINT a whole array
 - **WHEN** `DIM a(2) AS LONG: PRINT a(): PRINT "ok"` runs

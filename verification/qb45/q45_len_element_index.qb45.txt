@@ -1,0 +1,7 @@
+1. LEN(a(ix)), ix = 9: 2 
+2. LEN(a(f(1))): 2 calls 1 
+3. LEN(s(ix)), STRING * 8: 8 
+4. LEN(s(f(2))): 8 calls 1 
+   error 9 
+5. LEN(v$(ix)), variable-length:-1 
+6. LEN(v$(f(1))): 0 calls 1 

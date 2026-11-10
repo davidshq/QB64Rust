@@ -7,7 +7,7 @@ A block SHALL stop being valid when it is freed, when the SUB or FUNCTION whose 
 and when its array is redimensioned or erased. Reading, writing or freeing through it, or outside its region,
 SHALL be the old compiler's runtime error (300 to 313), which ends the program with libqb's message and is not
 trapped by `ON ERROR`, as in the old compiler. `ERASE` of a dynamic array SHALL make its blocks invalid as `REDIM`
-does, whatever the fixes (`study\39` row 8; a `QB64PE-DIVERGENCES.md` row); `ERASE` of a static array only clears
+does, whatever the fixes (`study\39` row 8; a `DIVERGENCES-QB64PE.md` row); `ERASE` of a static array only clears
 it, and its blocks stay valid.
 
 #### Scenario: Write after free

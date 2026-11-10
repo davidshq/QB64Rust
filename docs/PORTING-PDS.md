@@ -10,8 +10,8 @@ the aim of a port is a program that builds with both QB64Rust and QB64pe, change
 ## 0. Principles of a port
 
 These are the rules the World War 2 port followed, most of them set by the user while it was done (2026-11-04 and
-2026-11-05). The next two ports followed them: W.R. Hutsell's *Civil War Battleset* and *Civil War Strategy*.
-The plan of each of the two is its repo's `docs\port-study.md`.
+2026-11-05). The next three ports followed them: W.R. Hutsell's *Civil War Battleset*, *Civil War Strategy*
+and *Wars of Napoleon*. The plan of each is its repo's `docs\port-study.md`.
 
 **What a port is for.** A port has two goals: to try QB64Rust on a real program, and to bring the program to where
 it can be refactored safely (user, 2026-11-04). It is not a refactoring itself.
@@ -90,6 +90,14 @@ What the World War 2 game needed, and the edit each took:
 | `CALL INTERRUPT` / `Interrupt 51` for the DOS mouse driver | Rewrite the mouse routine with `_MOUSEINPUT`, `_MOUSEX`, `_MOUSEY`, `_MOUSEBUTTON`, `_MOUSESHOW` and `_MOUSEHIDE`. The game used driver functions 0, 1, 2, 3, 7 and 8. A border set by functions 7 and 8 no longer holds the real cursor, so clamp the position the program reads instead | 1 SUB |
 | `SHELL` of a DOS program with no source (title screen, sound players) | Comment it out and note what is lost. 64-bit Windows cannot run DOS executables | 4 programs |
 
+Civil War Battleset needed the same `DIR$` and `CURDIR$` (12 and 8 calls, none changed), and three more:
+
+| PDS form | Edit | Count in the game |
+|---|---|---|
+| `CHDRIVE drive$` | Write a `SUB CHDRIVE` that runs `CHDIR` | 2 |
+| `FRE(-1)`, the free memory | Comment it out. QB64pe has no `FRE` | 1 |
+| `SHELL "plany x.wav"` and `SHELL "yell.exe"`, a DOS sound player and a "self-playing" sound | Play the WAV with QB64's own sound (`_SNDOPEN`, `_SNDPLAY`, `_SNDPLAYING`). `YELL.EXE` was the player with a WAV file added at its end, so the WAV was cut out of it unchanged. Check in DOSBox whether the player took the key that stopped a sound, and do the same | 3 |
+
 Other PDS features that a port may meet, with the usual edit, are listed in `SOMEDAY.md` under "Popular BASIC
 PDS 7.1 features": `REDIM PRESERVE` (becomes `REDIM _PRESERVE`), `CHDRIVE`, the `CURRENCY` type, arrays inside a
 `TYPE`, `BYVAL` parameters and the add-on libraries such as `FORMAT$`.
@@ -104,7 +112,19 @@ PDS 7.1 features": `REDIM PRESERVE` (becomes `REDIM _PRESERVE`), `CHDRIVE`, the 
 - **Data files are found beside the executable.** Build the program into the folder that holds its data
   files, or it starts and finds nothing. Do not overwrite the original DOS `.EXE` if the folder has one.
 - **Include names and file names differ in case.** `'$INCLUDE: 'ww2.bi'` works on Windows with `WW2.BI` but
-  fails on Linux. Make the names match before building on a case-sensitive file system.
+  fails on Linux. Make the names match before building on a case-sensitive file system. The same goes for
+  the data files the program opens: on Linux neither QB64Rust nor QB64pe folds case, so `OPEN "abc.txt"`
+  fails with error 53 when the file is `ABC.TXT`, and `_FILES$("abc*.txt")` finds nothing (measured
+  2026-11-07 with both Linux builds). World War 2 renamed its data files to the lower-case names its code
+  opens.
+- **PDS checks no array bounds; QB64 does.** A read such as `armyloc(-1)` went unnoticed in DOS, where it
+  read the word before the array. QB64pe and QB64Rust stop with "Subscript out of range". World War 2's
+  Paratroop did this when no army could go. When a test runs the program on a hidden desktop, set
+  `QB64PE_NOPROMPT=y`, or the error's dialog waits there unseen until the run times out.
+- **`RUN "prog.exe"` needs another name on Linux.** The build has no `.exe`, and off Windows `RUN` hands
+  the name to the shell (`system()` in `sub_run`), which looks for a bare name on the PATH. Use
+  `RUN "./prog"` there. Measured in WSL 2026-11-07: `RUN "child"` printed "sh: 1: child: not found", and
+  `RUN "./child"` ran it. World War 2 chooses the name in a FUNCTION (`exename$`).
 - **Leave other main modules alone, or port them too.** The shareware main module (`WW2-S.BAS`) still expects
   the old modules and no longer builds.
 - **A SUB that leaves its own `GOSUB` by `GOTO` breaks the next `RETURN` outside it.** QB64pe and QB64Rust
@@ -128,6 +148,57 @@ PDS 7.1 features": `REDIM PRESERVE` (becomes `REDIM _PRESERVE`), `CHDRIVE`, the 
   loads a saved game. One script relied on that. In the port it ran to its end with the same screens in both
   builds, while some keys went to other menus than its comments said. Read a reused script against the code,
   and look at its screens, before recording it.
+- **QB64 checks every array index; the DOS build may not have.** PDS's `BC` checks bounds only with `/D`, and
+  release builds were often made without it. Civil War Battleset's was built with `bc/o/e`. Its scenario
+  `ANTIETM2.CIV` holds 20 where the game expects 0, 1 or 2, and the game adds to `vp&(20)` of `vp&(2)`. In DOS
+  that wrote past the array and the battle went on. In QB64 it stops with "Subscript out of range" on the first
+  turn. Both compilers stop the same way, so comparing the builds does not show it. Look at the DOS build's
+  `.MAK` or batch file for `/D`, and run every data file the program reads (every scenario), not just a few.
+  The port changed the file to 0, the value the DOS game in effect played with: 20 was neither side, so no side
+  held the objective.
+- **Windows does not ignore blanks before the dot of a file name.** DOS stored names padded to 8 characters,
+  so `OPEN "$AVE5   .CIV"` found `$AVE5.CIV`. Windows looks for the blanks too, and the open fails. Civil War
+  Battleset's editor read a name back from the screen that `FILES` had drawn, padded, and could not load any
+  scenario with a name shorter than 8 characters. Trim such names before opening them.
+- **A `SHELL` shows a console window, even from a program on a hidden desktop.** Scripts that run on the host
+  must not reach a `SHELL` (`CLAUDE.md` working rule 6). Civil War Battleset's battles end in
+  `SHELL "copy ..."`, and its first script runs flashed a window at the user for about two and a half hours.
+  Under a script, do the copy or rename in BASIC instead, in a hook that does nothing otherwise.
+- **Git may have changed a data file's line ends long before the port.** With `* text=auto`, git stores text
+  with LF. Civil War Battleset's `PBMFIX.BAS` reads its file byte by byte and writes a line only at a carriage
+  return, so on the repo's copy it wrote an empty file. Mark a file `-text` in `.gitattributes` when its bytes
+  matter, and test with a file as the DOS program saw it.
+- **Measure DOS before calling a screen difference a port bug.** Civil War Battleset's list of files scrolls by
+  one line, so its first four files cannot be chosen. PDS 7.1 and QB 4.5 scroll it the same way (measured with
+  `tools\qb45\qb45.py`), so the bug was in the game as shipped. The port then fixed it in the game: the list
+  counts its files and starts where `FILES` left the first one.
+- **PDS 7.1 skips the right side of `AND` and `OR` in a condition; QB 4.5 and QB64 do not.** When both sides
+  are relations, PDS 7.1 does not evaluate the right side of `AND` when the left is false, nor of `OR` when the
+  left is true (`DIVERGENCES-QB45.md` Q-026). So an `RND` there is drawn in QB64 and not in DOS, and every
+  later `RND` differs. In Wars of Napoleon, `IF y > x AND RND > .5` (`WON1.BM` line 874) moved the computer's
+  armies elsewhere from the first turn. Search for `RND`, `INKEY$` and FUNCTION calls on the right of `AND`
+  and `OR`, and write each such line as a nested `IF` (`IF y > x THEN IF RND > .5 THEN`). That does the same
+  in all four compilers. Wars of Napoleon rewrote 29 lines in its tactical game alone.
+- **PDS 7.1 computes some SINGLE products in more precision than QB64.** A SINGLE constant times a LONG is a
+  DOUBLE in PDS 7.1 and a SINGLE in QB64 (Q-021). `x = .7 * x` with an INTEGER `x` keeps the x87's precision
+  before rounding, so 165 gives 115 in DOS and 116 in QB64 (Q-022). Wars of Napoleon met the second in 2 of
+  120 values of its battle lines. Compare a file the game writes by the values it reads back, not by its
+  bytes, and note where a recorded session parts from DOS for this reason.
+- **A program started by another with `SHELL` must end with `SYSTEM`, not `END`.** QB64's `END` shows "Press
+  any key to continue" and waits, and the parent waits for the child. Wars of Napoleon's tactical game ends
+  this way in three places (F10, `over`, `wipeout`), and `won.exe` waits for it.
+- **`SHELL "child.exe"` opens no console; `SHELL _HIDE` hides the child.** libqb starts a program that is not
+  a `cmd.exe` command directly, with `ShellExecuteEx`. A plain `SHELL` shows the child's own window and no
+  console, and the child's window comes to the front. `SHELL _HIDE` keeps the child's window hidden for as
+  long as it runs, so a game whose battles are a second program must keep the plain `SHELL`. Only commands
+  such as `copy` go through `cmd /c` and show a console (measured 2026-11-07, Wars of Napoleon's
+  `docs\devnotes.md`, "Step 3").
+- **`ENVIRON` in DOS can stop with "Out of memory".** PDS 7.1's `ENVIRON "NAP_SEED=5"` gave error 7, because
+  the DOS environment had no room for a new variable. A test hook that also runs in a DOS build must not set
+  variables there; the harness sets them before the program starts.
+- **`WIDTH , 60` resets the palette in QB64; PDS 7.1 kept it** (Q-035). QB 4.5 resets it too. A PDS program
+  that sets a color with `PALETTE` and then changes the number of rows shows the default color in QB64. Set
+  the entry again after the `WIDTH`.
 
 ## 4. Test the port before changing anything else
 
@@ -156,6 +227,15 @@ A game with many scenarios gets one generated script for each scenario and side.
 gets generated games that differ by seed, side and settings. Civil War Strategy has 14: the player only ends
 each turn, the computer plays to its victory, and the script checks the history file the game wrote.
 
+**Recordings of the DOS game, and a bridge through PDS 7.1.** Wars of Napoleon had 15 sessions recorded in
+DOSBox-X with the shipped program, and the port was held to them. When a QB64 build parts from a recording, the
+cause may be the port's edits or the compiler. To tell them apart, the port's own source was built with PDS 7.1
+(the game's `tools\pdsbuild.py`, through `tools\qb45\qb45.py`'s PDS 7.1) and played in DOSBox-X with the same
+keys. That build gave every recording, so each difference left was the compiler's. It found Q-026 (`AND` and
+`OR` above) in one session. While the bridge is kept, every edit must also build with PDS 7.1: a QB64-only
+statement goes into `QB64.BM`, with its PDS form in `PDS.BM`. The hooks announce each wait in DOS too, so one
+keys file plays the PDS build and both QB64 builds.
+
 ## 5. What the port found in QB64Rust
 
 - `ON LOCAL ERROR GOTO` got "not supported yet", which suggested QB64pe has it. It does not. Since 2026-11-05
@@ -173,6 +253,23 @@ each turn, the computer plays to its victory, and the script checks the history 
   (`DIVERGENCES-QB45.md` Q-019 and Q-020). The Civil War Strategy port found them on 2026-11-06 and measured
   them with `verification\qb45\q45_cws_paint_leaks`. QB64pe and QB64Rust give the same pixels as each other.
   QB64Rust keeps them, as it follows QB64pe.
+- `RETURN` just before `ELSE` in a one-line `IF` (`IF a = 0 THEN RETURN ELSE CALL s`) was rejected, where QB64pe
+  builds it. Civil War Battleset found it on 2026-11-06, and QB64Rust fixed it the same day
+  (`verification\v17_d_return_before_else`).
+- Two of Civil War Battleset's DOS forms were new to QB64Rust's tests and work as in QB64pe: a text screen loaded
+  with `BLOAD` into `&HB800`, and `POKE` and `PEEK` of the BIOS keyboard buffer at `&H41A` and `&H41C`. They are
+  now corpus programs: `tests\corpus\screen\d20_bload_text_memory` and `k05_bios_keyboard_buffer`.
+- The buffer's tail does not show whether a key waits. Every key typed moves it two bytes on, and reading a key
+  moves the head, not the tail. So `PEEK(1052) = 30` after a `BuffClear` asks whether any key was typed since,
+  until the tail wraps from 60 back to 30 after 16 keys. libqb wraps it as the BIOS does
+  (`tests\corpus\screen\k06_bios_buffer_wrap`, Wars of Napoleon, 2026-11-09). A script that types a key where the
+  player typed none moves the tail, and such a check then reads false. The port's test hook takes its own filler
+  key back out of the buffer for that reason.
+- Wars of Napoleon measured eight more differences from QB 4.5 or PDS 7.1, all kept as QB64pe has them
+  (`DIVERGENCES-QB45.md`, 2026-11-07 to 2026-11-09). Two are the arithmetic of SINGLE products (Q-021, Q-022).
+  One is the 8 × 14 font of `SCREEN 9` (Q-023). Two are the pixels of a styled and of a solid sloping `LINE`
+  (Q-024, Q-025). The others are `AND` and `OR` in PDS 7.1 (Q-026), the palette after `WIDTH , 60` (Q-035), and
+  the pixels of small circles (Q-036).
 
 A behavior of PDS itself can be measured the same way: write a `q45_` program and record it with
 `qb45.py --compiler pds71` (`tools\qb45\README.md`, "PDS 7.1").

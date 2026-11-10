@@ -38,6 +38,7 @@ PRINT LEN(_EMBEDDED$(CHR$(104)))
 PRINT LEN(_EMBEDDED$("insub"))
 PRINT LEN(_EMBEDDED$("below"))
 CONST k = _EMBEDDED$("h")
+PRINT LEN(_EMBEDDED$(("h"))) ' a literal in parentheses (verification v66_d02)
 SYSTEM
 SUB s
 $EMBED:'./s.txt','insub'

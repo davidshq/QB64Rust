@@ -93,7 +93,7 @@ installed by the user; Windows recordings are not touched (Linux results go into
   design's "Measured".
 - [x] 5.5 The copy's edits on Linux: `d048-console-eof-input-string`'s Linux branch, and each edit's `v63` program run
   on Linux (D-048 to D-053 hold there, or their row says where they differ). Verify: `copy_libqb.py --check`
-  passes, the `v63` programs pass in WSL, and the rows of `QB64PE-DIVERGENCES.md` say "Linux too" or name the
+  passes, the `v63` programs pass in WSL, and the rows of `DIVERGENCES-QB64PE.md` say "Linux too" or name the
   difference.
 
 ## 6. Packaging for Linux
@@ -138,7 +138,7 @@ installed by the user; Windows recordings are not touched (Linux results go into
 - [x] 8.1 On Windows, the corpus's C++ from `-z` equals that of the commit before this change. Verify: a script
   under `target\` compares the two, and no program differs. Note: 592 compared; one differs on purpose,
   `slice\s61_member_arrays`, whose `SWAP` of places with FUNCTION calls now finds them left to right
-  (`QB64PE-DIVERGENCES.md` D-054, found by task 5.4); the `v37_l*` Linux twins are new (rejected on Windows).
+  (`DIVERGENCES-QB64PE.md` D-054, found by task 5.4); the `v37_l*` Linux twins are new (rejected on Windows).
 - [x] 8.2 `openspec validate m7-linux --strict` passes. `LAYOUT.md` has rows for `tools/linux/` and the
   `known.linux.list` files. `crates/README.md`'s build instructions cover Linux. `vscode/CHANGELOG.md`'s unreleased
   section has a line on Linux. Verify: all four.

@@ -542,8 +542,12 @@ slice/s160_layout_procs
 slice/s160_layout_text
 # qbasic-testcases (the addprefix suite): PUT and GET of a STRING member
 slice/s161_put_string_member
+# D-061: a FUNCTION in the index of graphics GET and PUT is called once, as in QB 4.5
+slice/s162_get_put_index_once
 # A known failure until 2026-10-26: it loops forever by design (RESUME 0), compiled only: its .norun
 runtime_comparison/147_on_error_resume_0
 # The Civil War Battleset port (step 3): a text screen loaded by BLOAD into &HB800, and the BIOS keyboard buffer's head and tail
 screen/d20_bload_text_memory
 screen/k05_bios_keyboard_buffer
+# The Wars of Napoleon port (step 7b): the BIOS keyboard buffer's wrap from slot 60 to 30, and F12 taken back out
+screen/k06_bios_buffer_wrap

@@ -1,0 +1,21 @@
+# The audio thread takes the raw stream's lock before it reads or swaps the stream's buffers (DIVERGENCES-QB64PE.md
+# D-062, UPSTREAM.md "SOUND can corrupt the heap"). SOUND, PLAY, _SNDRAW and _SNDRAWBATCH append samples to the
+# producer buffer of a RawStream while holding pRawStream->m. miniaudio's thread runs RawStream::OnRead, which
+# clears the consumer buffer and swaps the two without that lock. When the swap lands during an append, both
+# threads work on one std::vector, and the heap is damaged; the crash (0xC0000374) shows when the memory is freed,
+# most often at the program's end. Measured 2026-11-08: SCREEN 12, _DELAY 1, SOUND 700, .5, SYSTEM crashed in 3 of
+# 150 runs here and 4 of 150 with qb64pe.exe at the reference commit. With this lock, 0 of 380 runs of it and of a
+# program that waits for a key before the SOUND crashed. Every other holder of the lock only touches the vectors,
+# so the audio thread waits at most for one append. The line is upstream's own, from commit 50c371e13 ("Various
+# fixes (#800)", 2026-10-28); the rest of that commit is not taken.
+file: internal/c/parts/audio/audio.cpp
+builtins: SOUND PLAY _SNDRAW _SNDRAWBATCH
+--- old
+            } else {
+                sampleFramesRead = pRawStream->consumer->data.size() - pRawStream->consumer->cursor; // total amount of samples we need to send to miniaudio
+--- new
+            } else {
+                libqb_mutex_guard lock(pRawStream->m);
+
+                sampleFramesRead = pRawStream->consumer->data.size() - pRawStream->consumer->cursor; // total amount of samples we need to send to miniaudio
+--- end

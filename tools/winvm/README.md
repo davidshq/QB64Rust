@@ -186,8 +186,9 @@ The VM has no Rust and no cargo. The host builds `qb64rust.exe` and the CLI test
 **The cache disk.** `cache.vhdx` in the VM's disk folder: 64 GB at most, growing as used, NTFS. It is not part of
 the checkpoint. `suites.ps1` attaches it after each restore and mounts it at the parent folder of the host's tree,
 so that the tree's copy is at the same path in the VM as on the host. It keeps, between runs, the copy of each tree
-run there with its `target\` (the runner's pass caches, no build cache), the QB64pe clone without `.git`, and
-`qb64rust-vm\` with Mesa and the stamps of what was copied. Nothing on it goes back to the host's caches.
+run there with its `target\` (the runner's pass caches, no build cache), the QB64pe clone without `.git`, the
+community clones without `.git` (`<parent>\community`, copied only by a run with `-Community`, the step `community`),
+and `qb64rust-vm\` with Mesa and the stamps of what was copied. Nothing on it goes back to the host's caches.
 
 **The disk it takes** (measured when it was made, 2026-11-03). The base 14.4 GB. The differencing disk 6.7 GB,
 the checkpoint's disk 0.14 GB and the cache disk 0.32 GB, which grows with the copies and pass caches (about 3 GB

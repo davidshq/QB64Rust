@@ -5,7 +5,7 @@
 ### Requirement: RESUME leaves a SUB through its exit
 A `RESUME`, `RESUME 0` or `RESUME NEXT` that leaves a SUB (requirement "RESUME inside a procedure") SHALL leave it
 as `EXIT SUB` does, whatever the fixes: the SUB's strings SHALL be released and the `_MEM` blocks of its locals
-SHALL no longer be valid (`study\39` row 13; a `QB64PE-DIVERGENCES.md` row).
+SHALL no longer be valid (`study\39` row 13; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: A block of a local after RESUME
 - **WHEN** a SUB takes `m = _MEM(x)` of a local `x`, raises error 5, and a main-module handler's call of the SUB

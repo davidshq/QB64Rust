@@ -119,7 +119,7 @@ version 8. Two builds of a program with no cache are then the same bytes (CLI te
 ### D5: Always-on fixes in the emitter
 
 Each of the following is written once and used by every statement that needs it. Every one has a
-`QB64PE-DIVERGENCES.md` row, and where the program ends up on a path QB64pe never takes, the divergence trace
+`DIVERGENCES-QB64PE.md` row, and where the program ends up on a path QB64pe never takes, the divergence trace
 (`qbr_diverged(n)`, `m3-divergence-trace`) reports it.
 
 - **Row 3, a count below zero** (`codegen-cpp` `arrays.rs` `allocate_with`): before the allocation, when a
@@ -257,7 +257,7 @@ holding `main.bas`.
 ## Migration Plan
 
 Nothing to migrate. A program with no `qb64rust.toml` builds as today, apart from the always-on fixes, which only
-change programs that crashed, hung, or wrote memory they did not own. Each such change is a `QB64PE-DIVERGENCES.md`
+change programs that crashed, hung, or wrote memory they did not own. Each such change is a `DIVERGENCES-QB64PE.md`
 row, and `vscode\CHANGELOG.md` gets a line on the fixes and the New Project command.
 
 ## Open Questions

@@ -23,7 +23,9 @@ remove it. When a statement raises a trappable error and a handler is active and
 the statement SHALL be skipped and the handler SHALL run, with `ERR` giving the error number. Without a handler,
 the error SHALL be reported by the runtime as with the old compiler. Errors the runtime treats as fatal (for
 example out of stack space, error 256) SHALL NOT be trappable. Error 11, division by zero, SHALL be trappable,
-raised by `\`, `MOD` or `ERROR 11` (`study\39` row 12; a `QB64PE-DIVERGENCES.md` row).
+raised by `\`, `MOD` or `ERROR 11` (`study\39` row 12; a `DIVERGENCES-QB64PE.md` row). A label whose name starts
+with two `_` (`__h`) SHALL be a handler as any other, also named from a SUB (measured, `verification\v70_f1`; the
+Libraries Pack's `a740g/Catch`); one with a single leading `_` is "Invalid name" (`v50_x28`).
 
 #### Scenario: Handler runs
 - **WHEN** `ON ERROR GOTO handler` precedes `ERROR 5`, and the handler prints `ERR`
@@ -335,7 +337,7 @@ stand at the first `$ERRORLOCATION` line in file order whose setting differs fro
 ### Requirement: RESUME leaves a SUB through its exit
 A `RESUME`, `RESUME 0` or `RESUME NEXT` that leaves a SUB (requirement "RESUME inside a procedure") SHALL leave it
 as `EXIT SUB` does, whatever the fixes: the SUB's strings SHALL be released and the `_MEM` blocks of its locals
-SHALL no longer be valid (`study\39` row 13; a `QB64PE-DIVERGENCES.md` row).
+SHALL no longer be valid (`study\39` row 13; a `DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: A block of a local after RESUME
 - **WHEN** a SUB takes `m = _MEM(x)` of a local `x`, raises error 5, and a main-module handler's call of the SUB
@@ -379,7 +381,7 @@ error at it, saying that `RESUME` belongs in a handler of the main module, as in
 ### Requirement: The exit code of a program ended by an error
 A program that ends because of a runtime error SHALL exit with code 1: an error no handler takes, with
 `QB64PE_NOPROMPT=y` or answered "no" at libqb's "Continue?", and a critical error (300 to 315, out of memory, the
-other fatal ends of libqb). The old compiler's program exits 0 (`QB64PE-DIVERGENCES.md` D-012). A program that goes on
+other fatal ends of libqb). The old compiler's program exits 0 (`DIVERGENCES-QB64PE.md` D-012). A program that goes on
 after the error SHALL keep the exit code its end gives.
 
 #### Scenario: No handler

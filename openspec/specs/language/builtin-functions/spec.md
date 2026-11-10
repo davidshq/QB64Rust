@@ -342,7 +342,7 @@ error, as in the old compiler.
 ### Requirement: _COTH is the hyperbolic cotangent
 `_COTH(x)` SHALL be supported at run time as the old compiler calls it (libqb's `func_coth`, believed `_FLOAT`,
 held `double`). Its value SHALL be the hyperbolic cotangent of `x`, with no upper limit and error 5 at 0, through
-this repo's copy of libqb (`QB64PE-DIVERGENCES.md` D-031: QB64pe's `func_coth` is `2 * EXP(x) - 1`, with error 5 above
+this repo's copy of libqb (`DIVERGENCES-QB64PE.md` D-031: QB64pe's `func_coth` is `2 * EXP(x) - 1`, with error 5 above
 44.014845).
 
 #### Scenario: Values
@@ -598,7 +598,7 @@ the evaluator SHALL keep its own values of the angle conversions (measured, `ver
 old compiler gives for `n`'s type, and SHALL give its values, also for a bit beyond `n`'s width and a negative bit
 (measured, `verification\v58`), as `_READBIT` does. A bit number outside 0 to 63 SHALL be taken modulo 64 (its low
 six bits), whether it is a constant or a variable, as the old compiler's program does for a variable
-(`study\39` rows 17, 18; a `QB64PE-DIVERGENCES.md` row for constants).
+(`study\39` rows 17, 18; a `DIVERGENCES-QB64PE.md` row for constants).
 
 #### Scenario: Values
 - **WHEN** a program prints `_SETBIT(5, 1); _RESETBIT(5, 0); _TOGGLEBIT(5, 2)`
@@ -657,7 +657,7 @@ errors past the end of the file, for a negative count, a file not open or not re
 ### Requirement: _CAST from a float out of range
 `_CAST` of a float to an integer type SHALL give what the same conversion of a variable gives on x86-64, for a
 constant as for a variable and with or without constant folding, including a value outside the type's range, NaN
-and infinity (`verification\v49_a_cast`; `study\39` row 16; a `QB64PE-DIVERGENCES.md` row; the old compiler's C++
+and infinity (`verification\v49_a_cast`; `study\39` row 16; a `DIVERGENCES-QB64PE.md` row; the old compiler's C++
 cast of a constant is undefined and differs from build to build).
 
 #### Scenario: A constant out of range

@@ -8,7 +8,7 @@ with no `SYSTEM` waited at "Press any key". `'$CONSOLE:ONLY` written as a commen
 what the test compiled to without a word. The runner had no timeout and could not run tests side by side. The
 assertions skipped later checks, and the "coverage" matched file names. The new compiler removes the reasons behind
 most of these: it owns the build, it has a line-coverage build and a process runner, and the exit code is ours to
-fix (`QB64PE-DIVERGENCES.md` D-012, decided 2026-10-08, not yet built). What remains is to build D-012 and a test
+fix (`DIVERGENCES-QB64PE.md` D-012, decided 2026-10-08, not yet built). What remains is to build D-012 and a test
 command on top of it whose results cannot pass falsely.
 
 ## What Changes
@@ -64,7 +64,7 @@ command on top of it whose results cannot pass falsely.
 - **`tools\legacy_tests\run_legacy_tests.py`** and its tests: the D-012 rule. The verification recordings (133
   programs ending in "Runtime error", all `exit=0`) and about 35 corpus and upstream files are left as
   `qb64pe.exe` recorded them; the rule covers them.
-- **`QB64PE-DIVERGENCES.md`** D-012: the value, the trace, the tests.
+- **`DIVERGENCES-QB64PE.md`** D-012: the value, the trace, the tests.
 - **`vscode\`**: a test controller, its unit tests and an integration test.
 - **Behavior visible to users**: scripts and CI that run a program built by `qb64rust` now see a non-zero exit code
   when it ends on an untrapped error. That is D-012's purpose, but it differs from QB64pe.

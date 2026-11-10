@@ -11,7 +11,7 @@ that no handler receives. Row 17's switched fix, `bit-number-check`, waits on th
 ## What Changes
 
 - **Always-on fixes in libqb** (no switch), each an edit of libqb's copy through `tools\libqb\edits\`, with a
-  `QB64PE-DIVERGENCES.md` row and an `UPSTREAM.md` entry:
+  `DIVERGENCES-QB64PE.md` row and an `UPSTREAM.md` entry:
   - row 2: a console `INPUT`, `LINE INPUT` or `INPUT$` at the end of a redirected input raises error 62
     (trappable) instead of waiting for ever; `END` skips its key wait when the input is not a console (it still
     prints "Press any key to continue", as QB64pe does on Linux);
@@ -57,6 +57,6 @@ None.
   again once.
 - `crates\base` (`fixes.rs`: the eighth fix) and `crates\codegen-cpp` (`builtins.rs`: the check of
   `bit-number-check`).
-- `QB64PE-DIVERGENCES.md`, `UPSTREAM.md`, `DIVERGENCES-QB45.md` (Q-003 measured as matching now).
+- `DIVERGENCES-QB64PE.md`, `UPSTREAM.md`, `DIVERGENCES-QB45.md` (Q-003 measured as matching now).
 - Verification programs whose recording shows the old behaviour (`v22_e_eof`, `v02b_idiv_zero`,
   `v32_d33_free_zero_size`, `v44_x59`, the four that time out at `END`) move to `known.list` with their `D-0nn`.

@@ -27,3 +27,5 @@ typefields_rejected.bas:33:12: note: QB64pe: _MEM cannot reference a TYPE value 
 typefields_rejected.bas:34:12: error: `GET` of one `TYPE T` value: a `TYPE` with a dynamic member array goes to a file only as a whole array
 typefields_rejected.bas:34:12: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
 typefields_rejected.bas:35:12: error: `PUT` of a `TYPE S` value: a `TYPE` with a `STRING` member has no fixed size
+typefields_rejected.bas:37:11: error: `LEN` of an array of `TYPE T`: a `TYPE` with a dynamic member array has no fixed size
+typefields_rejected.bas:37:11: note: QB64pe: _MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays

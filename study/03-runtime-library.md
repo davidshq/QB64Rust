@@ -3,7 +3,11 @@
 Repo studied: `..\QB64pe` (HEAD `16f62978`, "Automatic update of ./internal/source", 2026-09-30). Read-only study.
 All paths below are relative to `internal\c\` unless stated. `libqb.cpp:N` means line N of `internal\c\libqb.cpp`.
 
-**Coverage honesty note.** Read in full: `qbx.cpp`, `common.h`, `os.h`, most `libqb\include\*.h`, `qbs.cpp` (1-420), `qbs_cmem.cpp`, `error_handle.cpp`, `main-thread-*.cpp`, `threading-windows.cpp`, `threading.cpp`, all `build.mk` files. `libqb.cpp` (27,119 lines): a complete function outline was extracted (all ~297 top-level definitions) and roughly 4,000 lines were read directly (startup/main loop, display pipeline head/tail, GL render request, image core, conventional memory, CPU/interrupt emulation, OUT/INP/WAIT, RND, OPEN, END/RUN, SLEEP, start of PRINT / PRINT USING / SCREEN / _PUTIMAGE). The bodies of the big drawing/printing/input routines (PAINT, CIRCLE, DRAW, GET/PUT, `qbs_input`, `print_using`, `printchr`, text-mode renderer middle, `sub__screenprint`, hardware_img_* internals) were **sampled, not read line by line**. Other `libqb\src` modules were outlined by function signature with selective reads. Vendored code in `parts\` was identified from headers and makefiles only.
+**Coverage honesty note.** 
+- Read in full: `qbx.cpp`, `common.h`, `os.h`, most `libqb\include\*.h`, `qbs.cpp` (1-420), `qbs_cmem.cpp`, `error_handle.cpp`, `main-thread-*.cpp`, `threading-windows.cpp`, `threading.cpp`, all `build.mk` files. 
+- `libqb.cpp` (27,119 lines): a complete function outline was extracted (all ~297 top-level definitions) and roughly 4,000 lines were read directly (startup/main loop, display pipeline head/tail, GL render request, image core, conventional memory, CPU/interrupt emulation, OUT/INP/WAIT, RND, OPEN, END/RUN, SLEEP, start of PRINT / PRINT USING / SCREEN / _PUTIMAGE). The bodies of the big drawing/printing/input routines (PAINT, CIRCLE, DRAW, GET/PUT, `qbs_input`, `print_using`, `printchr`, text-mode renderer middle, `sub__screenprint`, hardware_img_* internals) were **sampled, not read line by line**. 
+- Other `libqb\src` modules were outlined by function signature with selective reads.
+- Vendored code in `parts\` was identified from headers and makefiles only.
 
 ---
 

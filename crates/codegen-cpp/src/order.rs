@@ -28,7 +28,7 @@ use qb64rust_builtins::passing::plan;
 use qb64rust_ir::builtins::{Rule, Slot, StmtRule, find, slots, stmt_find};
 use qb64rust_ir::{
     AddressWord, Arg, ArrayRef, BinOp, Event, EventHandler, Expr, ExprKind, KeyForm, MemValue, Op, Place, Program,
-    Reference, StmtArg, Ty,
+    Reference, StmtArg, Ty, VarId,
 };
 
 /// Whether a part can raise an error, and which.
@@ -441,14 +441,36 @@ impl Ctx<'_> {
 }
 
 /// One part of a group: what the writer passes to `value` (an expression), or to `load_place`, `place_ref` or
-/// `bytes_of` (a place), so that the writer finds it held. `Unheld` is a part the emitter cannot hold, whose class
-/// still counts for the parts before it: the bytes of an array (`ExprKind::Block`, `StmtArg::Block`,
-/// `StmtArg::Rest`), whose index reads only (`sema`), and which is written as a `byte_element` call.
+/// `bytes_of` (a place), so that the writer finds it held. `Bytes` is the bytes of an array from an element or of a
+/// place to its end, which `block` and `rest_bytes` write as a `byte_element` call: when held, the whole call is
+/// evaluated into a `void*` temporary. `Unheld` is a part the emitter cannot hold, whose class still counts for the
+/// parts before it: a whole array's bytes (`ExprKind::Block` and `StmtArg::Block` with no index, which reads no
+/// index), a whole value of a user type, and the bytes of a `_MEMPUT` or `_MEMFILL` value.
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Part<'a> {
     Expr(&'a Expr),
     Place(&'a Place),
+    Bytes(Class, Bytes<'a>),
     Unheld(Class),
+}
+
+/// The bytes a [`Part::Bytes`] stands for.
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum Bytes<'a> {
+    /// An array from an element (`ExprKind::Block`, `StmtArg::Block`), its index not empty.
+    Block { array: VarId, index: &'a [Expr] },
+    /// A place to the end of its variable or array (`StmtArg::Rest`).
+    Rest(&'a Place),
+}
+
+impl Bytes<'_> {
+    /// The key of its hold in [`Emitter::held_bytes`]: the address of the index's first expression, or of the place.
+    pub(crate) fn key(self) -> *const () {
+        match self {
+            Bytes::Block { index, .. } => index.as_ptr().cast(),
+            Bytes::Rest(place) => std::ptr::from_ref(place).cast(),
+        }
+    }
 }
 
 impl Part<'_> {
@@ -456,7 +478,7 @@ impl Part<'_> {
         match self {
             Part::Expr(e) => cx.expr(e),
             Part::Place(place) => cx.place(place),
-            Part::Unheld(c) => c,
+            Part::Bytes(c, _) | Part::Unheld(c) => c,
         }
     }
 }
@@ -464,6 +486,9 @@ impl Part<'_> {
 /// An expression as a part: one the emitter cannot hold is [`Part::Unheld`].
 fn expr_part<'a>(cx: Ctx<'_>, e: &'a Expr) -> Part<'a> {
     match (&e.kind, e.ty) {
+        (ExprKind::Block { array, index }, _) if !index.is_empty() => {
+            Part::Bytes(cx.expr(e), Bytes::Block { array: *array, index })
+        }
         (ExprKind::Block { .. }, _) | (_, Ty::User(_)) => Part::Unheld(cx.expr(e)),
         _ => Part::Expr(e),
     }
@@ -719,7 +744,11 @@ fn builtin_stmt_parts<'a>(cx: Ctx<'_>, id: BuiltinId, args: &'a [StmtArg], parts
     let stmt_part = |a: &'a StmtArg| match a {
         StmtArg::Value(v) => Some(expr_part(cx, v)),
         StmtArg::Place(place) | StmtArg::Bytes(place) => Some(Part::Place(place)),
-        StmtArg::Block { .. } | StmtArg::Rest(_) => Some(Part::Unheld(cx.stmt_arg(a))),
+        StmtArg::Block { array, index } if !index.is_empty() => {
+            Some(Part::Bytes(cx.stmt_arg(a), Bytes::Block { array: *array, index }))
+        }
+        StmtArg::Rest(place) => Some(Part::Bytes(cx.stmt_arg(a), Bytes::Rest(place))),
+        StmtArg::Block { .. } => Some(Part::Unheld(cx.stmt_arg(a))),
         StmtArg::Word(_) | StmtArg::Absent => None,
     };
     let Some(form) = stmt_find(id) else { return };
@@ -781,7 +810,7 @@ impl<'a> Emitter<'a> {
     }
 
     /// A new `seqN` temporary of C type `ty`, declared with the body's other temporaries.
-    fn seq_temp(&mut self, ty: &str) -> String {
+    pub(crate) fn seq_temp(&mut self, ty: &str) -> String {
         self.pass += 1;
         let name = format!("seq{}", self.pass);
         self.pass_decls.push(format!("{ty} {name};\n"));
@@ -843,6 +872,23 @@ impl<'a> Emitter<'a> {
                         },
                     );
                 }
+                // The whole `byte_element` call: its index, any FUNCTION in it, and the check of its bounds come
+                // before the later parts.
+                Part::Bytes(_, bytes) => {
+                    let text = match bytes {
+                        Bytes::Block { array, index } => self.block(array, index),
+                        Bytes::Rest(place) => self.rest_bytes(place),
+                    };
+                    let name = self.seq_temp("void*");
+                    out.push(format!("{name}={text}"));
+                    self.held_bytes.insert(
+                        bytes.key(),
+                        Hold {
+                            what: name,
+                            used: false,
+                        },
+                    );
+                }
                 // Not held (see `Part`): it keeps the C++ compiler's order.
                 Part::Unheld(_) => {}
             }
@@ -857,6 +903,7 @@ impl<'a> Emitter<'a> {
             let used = match *part {
                 Part::Expr(e) => self.held_exprs.remove(&std::ptr::from_ref(e)).map(|h| h.used),
                 Part::Place(place) => self.held_places.remove(&std::ptr::from_ref(place)).map(|h| h.used),
+                Part::Bytes(_, bytes) => self.held_bytes.remove(&bytes.key()).map(|h| h.used),
                 Part::Unheld(_) => None,
             };
             assert!(used != Some(false), "a held part was not found by its writer: {part:?}");
@@ -866,6 +913,13 @@ impl<'a> Emitter<'a> {
     /// The temporary that holds `e`, when it is held.
     pub(crate) fn held_expr(&mut self, e: &Expr) -> Option<String> {
         let h = self.held_exprs.get_mut(&std::ptr::from_ref(e))?;
+        h.used = true;
+        Some(h.what.clone())
+    }
+
+    /// The temporary that holds the bytes of key `key` ([`Bytes::key`]), when they are held.
+    pub(crate) fn held_bytes_of(&mut self, key: *const ()) -> Option<String> {
+        let h = self.held_bytes.get_mut(&key)?;
         h.used = true;
         Some(h.what.clone())
     }

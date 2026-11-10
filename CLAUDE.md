@@ -51,7 +51,7 @@ changing direction, design or scope.**
      plan or study, its decisions, its status, its to-do items and its someday ideas go in the game's `docs\`
      or `TODO.md`. They do not go in this repo's `study\`, `DECISIONS.md`, `STATUS.md` or `SOMEDAY.md`. What
      a port finds about the compiler still comes here: a bug, a corpus or verification program, a
-     `DIVERGENCES-QB45.md` or `QB64PE-DIVERGENCES.md` row, a lesson for `PORTING-PDS.md`. Civil War Strategy
+     `DIVERGENCES-QB45.md` or `DIVERGENCES-QB64PE.md` row, a lesson for `PORTING-PDS.md`. Civil War Strategy
      as this repo's own test target (`tests\programs\civil-war-strategy`, `screen\g01`–`g12`) stays here.
      *Why:* the ports' plans and rulings had filled this repo's documents (`DECISIONS.md` 2026-11-06).
 3. **Code from other projects.** Two tiers:
@@ -91,6 +91,9 @@ changing direction, design or scope.**
    `\\` to `\`. Python then reads `\1`, `\v` or `\r` as control characters. If a shell edit with backslashes
    happened anyway, scan the touched files for bytes 0x00–0x1F (other than tab, LF and the CR of CRLF) before
    moving on.
+   **Enforced by a hook** (`tools\hooks\guard_tool.py`, 2026-11-09). It refuses a Bash command with a backslash
+   in a heredoc's body, or in a command that runs `python -c`, `perl -e`, `printf` or `echo -e`, or a `sed` or
+   `awk` that writes a file. A `sed` or `awk` that only reads may take a backslash.
    *Why:* on 2026-10-03 this corrupted files four times (`study\02` became `study` + 0x02, `verification\v13`
    became a vertical tab) and each needed a scan and a redo (user, 2026-10-03).
 6. **Testing.** Run `cargo test -p <crate>` on what you touched while working. Run `just quick` in the background
@@ -147,7 +150,7 @@ changing direction, design or scope.**
 8. **Where QB64pe's own result depends on the machine, do not build to match it bit for bit** (`study\35` §3
     item 4, user, 2026-10-18). When the old compiler's value comes from the CPU or the libraries `qb64pe.exe` was
     built with (x87 instructions, the C runtime's math), take a well-defined value (correctly rounded, as D-026)
-    with a `QB64PE-DIVERGENCES.md` row, and say so in the design in a paragraph, not a module. The fidelity already built
+    with a `DIVERGENCES-QB64PE.md` row, and say so in the design in a paragraph, not a module. The fidelity already built
     (the software `_FLOAT`, the certification of the math constants) stays; this rule does not remove it.
 9. **American English spelling in new text** (user, 2026-10-28): "license", "behavior", "color", "-ize". This
     covers new prose, comments, identifiers, messages and file names, and any line already being edited for
@@ -165,7 +168,7 @@ changing direction, design or scope.**
       body wrapped at 72 characters that says what changed and why.
 
     This covers new text: documents, comments, commit messages and replies. Existing text is rewritten when it
-    is next edited for another reason, not in a sweep.
+    is next edited for another reason, not in a sweep (only the sentence being fixed, rule 14).
     *Why:* the project's documents grew dense and hard to read, and each session copied that style (user,
     2026-11-02). The rule asks for specifics so that plain writing does not turn vague (plain-language guidance:
     clarity and precision go together).
@@ -173,7 +176,7 @@ changing direction, design or scope.**
     an open design question, spans several crates or sessions, or adds a mechanism (a tool, a test kind, a
     runtime part). Otherwise build directly: one measured behavior, small code, no open question. A direct change
     still gets its usual records:
-    - a `DECISIONS.md` row, and a `QB64PE-DIVERGENCES.md` row if it differs from QB64pe;
+    - a `DECISIONS.md` row, and a `DIVERGENCES-QB64PE.md` row if it differs from QB64pe;
     - the merged spec under `openspec\specs\` edited in place, so that it never says the opposite of the code;
     - its tests, including recorded programs for the behavior, not only unit tests.
 
@@ -181,13 +184,34 @@ changing direction, design or scope.**
     `DECISIONS.md` row and the spec edit carry the same facts. Examples built directly: the 40-character limit on
     names and `_BIT` parameters (2026-11-02).
 12. **A new branch tracks itself, never `main`** (2026-11-07).
+13. **Check what is staged every time; never rely on memory of it** (user, 2026-11-09).
+    - Before a review of the staged changes, a commit message, or any statement about what is staged, run
+      `git status --short` and `git diff --cached --stat` in that turn. Read the result.
+    - The user may commit, stage or unstage between turns. An earlier listing, snapshot or summary is out of date.
+    - Base the review or message on that output.
+    - **`--stat` is not the change.** It lists files and line counts only. Before writing a commit message or
+      reviewing staged changes, also read the content: run `git diff --cached` (in pieces if it is long) and
+      read it. Never write a message from file names, a diffstat or recent commit titles. If the diff is too
+      long to read in full, say which parts were read and which were not.
+    - A commit message body names the specific behaviors, files or fixes that changed (rule 10), not "match
+      the code" or "update specs".
+      *Why:* on 2026-11-09 a message for 8 staged spec files was written from the diffstat alone and came out
+      vague; the diff held a list of specific measured behaviors (user, 2026-11-09).
+14. **Keep diffs small; do not churn** (user, 2026-11-09). Updating a document means fixing what is wrong or
+    missing. Correct text stays as it is, even if it could be worded better. The goal is the smallest diff that
+    makes the document right.
+    - This limits rules 9 and 10: "rewritten when next edited" covers only the sentence being fixed, not its
+      paragraph or section.
+    - The same goes for code: change what the task needs, not the code around it.
+    *Why:* small diffs cost the user less time to read and stage (user: "don't change prose for the fun of it.
+    smaller diffs are desired", 2026-11-09).
 
 ## Project decisions
 
 The decision log is **`docs\DECISIONS.md`** (one dated row per decision, oldest first; moved out of this file on
 2026-10-07). When the user decides something, add a row there and put the details in the document it names; a minor
 row (document arrangement, a change archived, a one-time exception) goes to `DECISIONS-SMALL.md` instead.
-Expert-panel recommendations: `study\07-expert-panel.md`. Open questions: `STATUS.md`.
+The first expert panel's recommendations R1–R13: `study\00` §2 (the panel itself archived in `study\archive\07-expert-panel.md`). Open questions: `STATUS.md`.
 
 ## Layout
 

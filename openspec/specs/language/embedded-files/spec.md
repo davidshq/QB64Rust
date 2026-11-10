@@ -82,7 +82,8 @@ branch not taken checks nothing.
 - **THEN** the second call returns the file unchanged
 
 #### Scenario: Not a literal
-- **WHEN** the argument is a variable, `"a" + "b"` or `CHR$(104)`
+- **WHEN** the argument is a variable, `"a" + "b"`, `CHR$(104)` or a literal in parentheses, `("h")`
+  (`verification\v66_d02`)
 - **THEN** it is a compile error, "Embed-Handle must be a single literal string in quotes, not a variable"
 
 #### Scenario: Above the call

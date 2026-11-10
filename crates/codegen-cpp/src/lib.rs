@@ -187,6 +187,7 @@ fn emit_all(
         pass_decls: Vec::new(),
         held_exprs: HashMap::new(),
         held_places: HashMap::new(),
+        held_bytes: HashMap::new(),
         slots: Vec::new(),
         byte_element: 0,
         runs: 0,
@@ -419,6 +420,9 @@ struct Emitter<'a> {
     /// `load_place`, `place_ref` and `bytes_of` start from.
     held_exprs: HashMap<*const qb64rust_ir::Expr, order::Hold<String>>,
     held_places: HashMap<*const qb64rust_ir::Place, order::Hold<order::HeldPlace>>,
+    /// The bytes of an array or a place held as a whole `byte_element` call, by [`order::Bytes::key`], which `block`
+    /// and `rest_bytes` give.
+    held_bytes: HashMap<*const (), order::Hold<String>>,
     /// The slots in conventional memory of the body being emitted, each with the number of variables made before
     /// it ([`Emitter::cmem_slot`]).
     slots: Vec<(u32, String)>,
@@ -428,7 +432,7 @@ struct Emitter<'a> {
     runs: u32,
     run_lines: String,
     /// A procedure of the program holds a `RUN` that starts the program again (not `RUN file$`): the active procedures
-    /// are left first, and the main module runs it (`study\39` row 14, `QB64PE-DIVERGENCES.md` D-046; `stmt.rs`
+    /// are left first, and the main module runs it (`study\39` row 14, `DIVERGENCES-QB64PE.md` D-046; `stmt.rs`
     /// `Op::Run`). Only then is the code of that unwind written.
     unwind: bool,
     /// Handler labels; handler number N is entry N - 1.

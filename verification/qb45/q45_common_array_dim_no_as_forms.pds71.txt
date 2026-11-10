@@ -1,0 +1,8 @@
+compile:
+ 0030   0006    DIM SHARED g(3)
+                               ^ AS clause required
+ 0030   0006    DIM h(2)
+                        ^ AS clause required
+    0 Warning Error(s)
+    2 Severe  Error(s)
+link (no executable):

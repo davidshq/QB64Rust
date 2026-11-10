@@ -1,0 +1,10 @@
+compile:
+ 005E   0006    DIM g(3)
+                        ^ AS clause required
+    0 Warning Error(s)
+    1 Severe  Error(s)
+1. g(1) = 1.5: error 9 
+ error 9 
+2. g(2) = 1# / 3: error 9 
+ error 9 
+3. UBOUND(g): error 9 

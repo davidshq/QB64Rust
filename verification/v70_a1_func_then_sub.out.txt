@@ -1,0 +1,4 @@
+function 2  4 
+function 3 sub 3 
+function 4 sub 4 
+exit=0

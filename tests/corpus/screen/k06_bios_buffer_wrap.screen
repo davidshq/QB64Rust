@@ -1,0 +1,83 @@
+screen-state 1
+pages 8 display 0 write 0 read 0
+page 0 mode 0 text 80x25 bits 16 font 16 cursor 1,21 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "clear: head 30  tail 30                                                         "
+a 07*80
+t "key 1 : 1  97  head 32  tail 32                                                 "
+a 07*80
+t "key 2 : 1  97  head 34  tail 34                                                 "
+a 07*80
+t "key 3 : 1  97  head 36  tail 36                                                 "
+a 07*80
+t "key 4 : 1  97  head 38  tail 38                                                 "
+a 07*80
+t "key 5 : 1  97  head 40  tail 40                                                 "
+a 07*80
+t "key 6 : 1  97  head 42  tail 42                                                 "
+a 07*80
+t "key 7 : 1  97  head 44  tail 44                                                 "
+a 07*80
+t "key 8 : 1  97  head 46  tail 46                                                 "
+a 07*80
+t "key 9 : 1  97  head 48  tail 48                                                 "
+a 07*80
+t "key 10 : 1  97  head 50  tail 50                                                "
+a 07*80
+t "key 11 : 1  97  head 52  tail 52                                                "
+a 07*80
+t "key 12 : 1  97  head 54  tail 54                                                "
+a 07*80
+t "key 13 : 1  97  head 56  tail 56                                                "
+a 07*80
+t "key 14 : 1  97  head 58  tail 58                                                "
+a 07*80
+t "key 15 : 1  97  head 60  tail 60                                                "
+a 07*80
+t "key 16 : 2  134  head 30  tail 30  -> head 60  tail 60                          "
+a 07*80
+t "key 17 : 1  98  head 30  tail 30                                                "
+a 07*80
+t "key 18 : 1  99  head 32  tail 32                                                "
+a 07*80
+t "key 19 : 2  134  head 34  tail 34  -> head 32  tail 32                          "
+a 07*80
+t "                                                                                "
+a 07*80
+= 4
+page 1 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 2 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 3 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 4 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 5 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 6 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+page 7 mode 0 text 80x25 bits 16 font 16 cursor 1,1 off color 7 background 0
+palette FF000000 FF0000AA FF00AA00 FF00AAAA FFAA0000 FFAA00AA FFAA5500 FFAAAAAA FF555555 FF5555FF FF55FF55 FF55FFFF FFFF5555 FFFF55FF FFFFFF55 FFFFFFFF 00000000*240
+t "                                                                                "
+a 07*80
+= 24
+end

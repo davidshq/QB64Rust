@@ -1,4 +1,4 @@
-# INPUT and LINE INPUT at the end of a redirected input raise error 62 (QB64PE-DIVERGENCES.md D-048, UPSTREAM.md
+# INPUT and LINE INPUT at the end of a redirected input raise error 62 (DIVERGENCES-QB64PE.md D-048, UPSTREAM.md
 # "Console input waits for ever at the end of a redirected input"; study\39 row 2). QB64pe's qbs_input, in a console
 # program, reads standard input with fgetc and at EOF sleeps 10 ms and reads again, for ever
 # (verification\v22_e_eof, v63_a1, a5). Here, at EOF, a line read in part is taken as ended (a last line with no

@@ -6,7 +6,7 @@
 A program with `$CONSOLE` SHALL end and report errors as the old compiler's program does: `SYSTEM` leaves at once;
 `END`, and running off the last line, print the old compiler's "Press any key to continue" on the console and
 wait for a key when the program's standard input is a console; when it is not (a file, a pipe, the null device)
-they print the line and end at once (`study\39` row 2; a `QB64PE-DIVERGENCES.md` row); a trapped error is serviced
+they print the line and end at once (`study\39` row 2; a `DIVERGENCES-QB64PE.md` row); a trapped error is serviced
 as under `$CONSOLE:ONLY`; an untrapped error prints the old compiler's message.
 
 #### Scenario: A trapped error
@@ -31,7 +31,7 @@ as under `$CONSOLE:ONLY`; an untrapped error prints the old compiler's message.
 In a console program, `INPUT`, `LINE INPUT` and `INPUT$(n)` with no file number SHALL raise error 62 (Input past
 end of file), trappable, when standard input has ended and nothing of the line was read, and SHALL never wait for
 input that cannot come; a last line without a newline SHALL be read as a line (`study\39` row 2; a
-`QB64PE-DIVERGENCES.md` row).
+`DIVERGENCES-QB64PE.md` row).
 
 #### Scenario: INPUT after the last line
 - **WHEN** a `$CONSOLE:ONLY` program with `ON ERROR GOTO h` (printing `ERR`, then `RESUME NEXT`) reads two

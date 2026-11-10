@@ -927,7 +927,9 @@ fn next_stmt(p: &mut Parser) -> (u32, Span) {
     let span = p.current_span();
     p.bump(); // NEXT
     let mut count = 1;
-    if p.at(Ident) {
+    // Inside a single-line `IF`, `NEXT ELSE` ends the branch: `ELSE` is no loop variable (measured,
+    // `verification\v70_g2`: `IF c THEN FOR …: NEXT ELSE FOR …: NEXT`).
+    if p.at(Ident) && !(p.line_if > 0 && p.at_word("ELSE")) {
         name_ref(p);
         while p.at(Comma) {
             p.bump();

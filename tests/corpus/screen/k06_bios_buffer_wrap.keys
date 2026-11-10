@@ -1,0 +1,14 @@
+# 15 letters fill the slots 30 to 58, so the tail reaches 60. F12 wraps it to 30 and is set back to 60. Two
+# more letters wrap the tail to 30 and 32, and a last F12 is set back from 34 to 32.
+repeat 15
+prompt
+text a
+end
+prompt
+key f12
+prompt
+text b
+prompt
+text c
+prompt
+key f12

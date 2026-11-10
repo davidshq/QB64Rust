@@ -5,7 +5,7 @@
 ### Requirement: Fixed-length strings to a char pointer
 A `STRING * n` member of a value, or element of an array, passed to a library parameter `AS STRING` SHALL reach C
 as a copy of its n bytes followed by a NUL, and the n bytes SHALL be copied back into the place after the call, its
-indexes evaluated once, whatever the fixes (`study\39` row 10; a `QB64PE-DIVERGENCES.md` row). A `STRING * n`
+indexes evaluated once, whatever the fixes (`study\39` row 10; a `DIVERGENCES-QB64PE.md` row). A `STRING * n`
 variable of its own SHALL still pass its own bytes.
 
 #### Scenario: A member read by strlen

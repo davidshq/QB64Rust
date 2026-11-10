@@ -876,7 +876,7 @@ fn remove_built(base: &Path, dir: &Path) -> Result<(), String> {
 }
 
 /// The makefile read after the copy's `Makefile` that gives the driver's flags to the program's own objects only
-/// (design D1 of `libqb-object-flags`): `-fwrapv` (LONG and `_INTEGER64` overflow wraps, `QB64PE-DIVERGENCES.md` D-001,
+/// (design D1 of `libqb-object-flags`): `-fwrapv` (LONG and `_INTEGER64` overflow wraps, `DIVERGENCES-QB64PE.md` D-001,
 /// D-002), `-O2` for `OptimizeCppProgram`, `-g` instead for a debug build (design D1 of `m5-debug-build-symbols`),
 /// and the copy's `internal/c` for the headers `qbx.cpp` and `embedded.cpp` include from the build folder. `private`
 /// keeps the variable from the prerequisites `make` builds for these two targets, so libqb's objects take none of

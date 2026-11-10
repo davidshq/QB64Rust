@@ -5,7 +5,7 @@
 ### Requirement: _CAST from a float out of range
 `_CAST` of a float to an integer type SHALL give what the same conversion of a variable gives on x86-64, for a
 constant as for a variable and with or without constant folding, including a value outside the type's range, NaN
-and infinity (`verification\v49_a_cast`; `study\39` row 16; a `QB64PE-DIVERGENCES.md` row; the old compiler's C++
+and infinity (`verification\v49_a_cast`; `study\39` row 16; a `DIVERGENCES-QB64PE.md` row; the old compiler's C++
 cast of a constant is undefined and differs from build to build).
 
 #### Scenario: A constant out of range

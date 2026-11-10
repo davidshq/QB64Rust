@@ -86,6 +86,6 @@ on Linux (it stays a Windows comparison).
 - `.github/workflows/`: `rust.yml` (a Linux job), `vscode-extension.yml` (a Linux job), `release-vsix.yml` (Linux
   packages).
 - Recorded outputs: new `*.linux.output` sidecars, and `known.linux.list` per suite.
-- Documents: `DECISIONS.md` (the system toolchain, 2026-10-28), `QB64PE-DIVERGENCES.md` (any Linux-only row),
+- Documents: `DECISIONS.md` (the system toolchain, 2026-10-28), `DIVERGENCES-QB64PE.md` (any Linux-only row),
   `SOMEDAY.md` (pinned Linux compiler, multiarch folders), `LAYOUT.md`, `crates/README.md` (Linux build
   instructions), `vscode/README.md`, `MANUAL.md`.

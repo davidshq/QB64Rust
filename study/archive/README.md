@@ -12,7 +12,7 @@ not found in the active file is here.
 
 | File | What was moved | Why |
 |---|---|---|
-| `00-synthesis.md` | §1 (the decisions table of 2026-10-02), §2's milestone table, §6's "Fixed" list, §10 (the testing position as of 2026-10-03 to 2026-10-10), the closed row of §13's table | Their current homes are `DECISIONS.md`, `ROADMAP.md`, `DIVERGENCES.md`, `crates\README.md`, the `tests\*\README.md` files and `CLAUDE.md` working rule 6; their figures had gone out of date |
+| `00-synthesis.md` | §1 (the decisions table of 2026-10-02), §2's milestone table, §5 whole (the measured facts of families `v09`–`v45`, moved 2026-11-09; code comments cite it as `study\00` §5), §6's "Fixed" list, §10 (the testing position as of 2026-10-03 to 2026-10-10), the closed rows of §13's table | Their current homes are `DECISIONS.md`, `ROADMAP.md`, `DIVERGENCES.md`, `crates\README.md`, the `tests\*\README.md` files and `CLAUDE.md` working rule 6; their figures had gone out of date. §5 was closed to new facts on 2026-10-18 and took up 91% of the active file |
 | `04-ide-debugger.md` | Parts A–D and Part E §1–§4: the text-mode IDE's internals (the compiler side of the IDE, `ide2`, text buffer, dialog toolkit, every dialog and menu, help, configuration, export, converters) | The IDE is not ported (`DECISIONS.md` 2026-10-02); the debugger (Part F) and the assessment (Part G) stay active for M5 |
 
 ## Reviews of other repositories
@@ -74,6 +74,27 @@ and `06` (editor features) stayed active; `06` followed on 2026-10-29.
 | `38-direction-review.md`, `38-direction-review-edited.md` | Where the project stands and where it could go (2026-10-26); the edited copy is a shorter reading of the same review | `ROADMAP.md` "Purpose"; `DECISIONS.md` 2026-10-26 to 2026-10-28 |
 | `39-crash-class-rulings.md` | The crash-class rows of "QB64pe behaviours to review", ruled one at a time (2026-10-26) | `fixes-switch`, `libqb-fixes`; D-040 to D-053; spec `compiler/fixes` |
 | `40-test-suite-study.md` | The test suite as it is, as it has been, as it should be (2026-10-30): its layers and measured cost, the history of the cadence rules, practice elsewhere; the suite stays, a close runs once per batch | `DECISIONS.md` 2026-10-30; `CLAUDE.md` rule 6; `tools\close\README.md`, "When a close runs" |
+
+## Archived 2026-11-09
+
+Studies whose questions are all answered and whose outcomes are built or are `SOMEDAY.md` rows (user, 2026-11-09).
+`03` (libqb, while we ship it), `41` (P5 to P7 not answered) and `47` (open) stayed active.
+
+| File | Content | Where its outcome lives |
+|---|---|---|
+| `07-expert-panel.md` | The first expert panel (2026-10-02): rewrite or refactor, the compatibility target, the architecture, the implementation language, the test layers, the runtime, the first roadmap; recommendations R1–R13 | `study\00` §2 (R1–R13 one line each); `DECISIONS.md` 2026-10-02; `ROADMAP.md`; R6 and R10 in `SOMEDAY.md` |
+| `09-verification.md` | The study's claims checked by running the old compiler in M0 (2026-10-02): numerics, errors, storage, accidental behaviors, probable defects, the CP437 round trip in VS Code | `DIVERGENCES-QB64PE.md`, `DIVERGENCES-QB45.md`; `verification\v01`–`v04` and `verification\README.md`; `study\00` §2 (the round trip) |
+| `17-vscode-extension-testing.md` | How VS Code extensions are tested (runners, Node in the extension host, what popular extensions do); how M1 compared | `DECISIONS.md` 2026-10-03 (VS Code 1.100, mocha with `@vscode/test-electron`); `vscode\DEVELOPMENT.md` |
+| `18-vscode-extension-practices.md` | VS Code extension practices compared with five large extensions; proposals A–G | A–D built 2026-10-03; F's repository, license and changelog built; G's Windows and Linux CI built, macOS in `SOMEDAY.md`'s `platforms` row; E (bundling) and F's icon in a `SOMEDAY.md` row |
+| `42-value-trace-prior-art.md` | Prior art for the change `value-trace`: how other languages and tools record the values of variables | The change `value-trace`, archived 2026-11-05 |
+| `43-modern-language-gaps.md` | The features and tools of modern languages that we lack, with the panel's view (2026-11-04) | Lints built (`DECISIONS.md` 2026-11-06); the rest are open questions of `study\47` §6 |
+| `44-github-qb64-projects.md` | QB64 projects on GitHub (2026-11-09): programs to test with, what a front-end check found in QB64Rust, ideas to build, projects to watch | `DECISIONS.md` 2026-11-09 (three rows); `verification\v70_*`; the change `community-programs`, `tests\community\README.md`; its ideas as `SOMEDAY.md` rows |
+
+## Archived 2026-11-10
+
+| File | Content | Where its outcome lives |
+|---|---|---|
+| `41-process-reset-panel.md` | The panel's process-reset proposal after `docs\SESSION-HISTORY-REVIEW.md` (2026-10-31): disk, cache invalidation, process growth, the review loop; proposals P1–P7 | P1 (hooks) and P2 (`tools\clean\clean.py`): `DECISIONS.md` 2026-10-31. P3 (pass cache) and P4 (rule 6): replaced by the change `testing-reset`. P5–P7 postponed by the user (2026-11-10), one `SOMEDAY.md` row |
 
 ## Closed records
 

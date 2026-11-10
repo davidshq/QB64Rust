@@ -1,0 +1,6 @@
+compile:
+ 003A   0006    DIM g(3)
+                        ^ AS clause required
+    0 Warning Error(s)
+    1 Severe  Error(s)
+link (no executable):

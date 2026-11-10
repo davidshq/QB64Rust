@@ -57,4 +57,4 @@ only; the 5 known failures hang and are compiled but not run, see `known_failure
 ### What these baselines do not cover
 
 Graphics output beyond 12 image tests, audio, interactive input, the IDE, and the 143 qbasic programs' run-time
-behaviour (they are only compiled). See `study\07-expert-panel.md` Session 5 for the planned additional layers.
+behaviour (they are only compiled). See `study\archive\07-expert-panel.md` Session 5 for the planned additional layers.

@@ -2,9 +2,13 @@
 # design D3 to D6). tools\check\check.py calls it:
 #
 #   tools\winvm\suites.ps1 -Check               the refusals that need no VM started; the VM is not touched
-#   tools\winvm\suites.ps1 -Start -Tree <path>  restore the checkpoint "ready", start the VM, check its clock and
+#   tools\winvm\suites.ps1 -Start -Tree <path> [-Community]
+#                                               restore the checkpoint "ready", start the VM, check its clock and
 #                                               license, attach the cache disk at the tree's parent folder, and
-#                                               bring the copies of the QB64pe clone and of the tree up to date
+#                                               bring the copies of the QB64pe clone and of the tree up to date;
+#                                               with -Community also the copy of <parent>\community, the pinned
+#                                               clones of the community programs (OpenSpec change
+#                                               community-programs, design D7)
 #   tools\winvm\suites.ps1 -Stop                take the cache disk offline in the guest, turn the VM off, and
 #                                               detach the cache disk
 #
@@ -21,6 +25,7 @@ param(
     [Parameter(ParameterSetName = 'Check', Mandatory = $true)][switch]$Check,
     [Parameter(ParameterSetName = 'Start', Mandatory = $true)][switch]$Start,
     [Parameter(ParameterSetName = 'Start', Mandatory = $true)][string]$Tree,
+    [Parameter(ParameterSetName = 'Start')][switch]$Community,
     [Parameter(ParameterSetName = 'Stop', Mandatory = $true)][switch]$Stop
 )
 
@@ -122,6 +127,12 @@ if (-not $parent -or $parent.Length -le 3) {
 }
 if (-not (Test-Path -LiteralPath (Join-Path $clone 'internal\c'))) {
     Refuse "there is no QB64pe clone beside the tree ($clone), which the steps read."
+}
+# The community clones, which the step `community` reads: where `community.py fetch` puts them (heads.txt says which
+# commits they hold).
+$communityHost = if ($env:QB64RUST_COMMUNITY) { $env:QB64RUST_COMMUNITY } else { Join-Path $parent 'community' }
+if ($Community -and -not (Test-Path -LiteralPath (Join-Path $communityHost 'heads.txt'))) {
+    Refuse "there are no community clones ($communityHost): run python tools\community\community.py fetch."
 }
 $credential = Import-Clixml -Path $credentialFile
 # Scratch files of the copies, on the host: in the tree's target\, which git ignores.
@@ -231,6 +242,51 @@ function Invoke-Start {
         }
         if ($code -ne 0) { throw "tar could not unpack the clone in the guest (exit $code)" }
         Write-Host ("suites-vm: the clone copied in ({0:N0} s)" -f (Seconds $t))
+    }
+
+    # The community clones, without any .git folder, when the commits in heads.txt differ from the copy's. Only a run
+    # with the step `community` copies them: they are several hundred MB (design D7). The guest keeps them at
+    # <parent>\community whatever the host's folder is called.
+    if ($Community) {
+        $communityStamp = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $communityHost 'heads.txt')).Hash
+        $guestCommunity = Invoke-Command -Session $session -ArgumentList "$parent\$own\community.stamp" {
+            param($p) if (Test-Path -LiteralPath $p) { (Get-Content -Raw -LiteralPath $p).Trim() } else { '' }
+        }
+        if ($guestCommunity -ne $communityStamp) {
+            $t = Get-Date
+            $archive = Join-Path $scratch 'community.tar'
+            # An explicit list: no .git, and no file whose name is not plain ASCII. Windows' tar.exe crashes on
+            # emoji in names (DRAW's PLANS\TUTORIAL, 2026-11-09); none of those is a source file.
+            $names = New-Object 'System.Collections.Generic.List[string]'
+            $skipped = 0
+            $prefix = $communityHost.TrimEnd('\').Length + 1
+            foreach ($f in [IO.Directory]::EnumerateFiles($communityHost, '*', 'AllDirectories')) {
+                $rel = $f.Substring($prefix)
+                if ($rel -match '(^|\\)\.git(\\|$)') { continue }
+                if ($rel -cmatch '[^\x20-\x7E]') { $skipped++; continue }
+                $names.Add($rel.Replace('\', '/'))
+            }
+            $communityList = Join-Path $scratch 'community.list'
+            [IO.File]::WriteAllText($communityList, (($names -join "`n") + "`n"), (New-Object Text.UTF8Encoding($false)))
+            if ($skipped) { Write-Host "suites-vm: $skipped community files with non-ASCII names left out" }
+            & "$env:SystemRoot\System32\tar.exe" -cf $archive -C $communityHost -T $communityList
+            if ($LASTEXITCODE -ne 0) { throw "tar could not archive the community clones (exit $LASTEXITCODE)" }
+            Copy-Item -ToSession $session -LiteralPath $archive -Destination "$parent\$own\community.tar"
+            Remove-Item -LiteralPath $archive
+            $code = Invoke-Command -Session $session -ArgumentList $parent, $own, $communityStamp {
+                param($parent, $own, $stamp)
+                $dest = "$parent\community"
+                if (Test-Path -LiteralPath $dest) { Remove-Item -Recurse -Force -LiteralPath $dest }
+                New-Item -ItemType Directory -Force $dest | Out-Null
+                & "$env:SystemRoot\System32\tar.exe" -xf "$parent\$own\community.tar" -C $dest
+                $code = $LASTEXITCODE
+                Remove-Item -LiteralPath "$parent\$own\community.tar"
+                if ($code -eq 0) { Set-Content -LiteralPath "$parent\$own\community.stamp" -Value $stamp }
+                $code
+            }
+            if ($code -ne 0) { throw "tar could not unpack the community clones in the guest (exit $code)" }
+            Write-Host ("suites-vm: the community clones copied in ({0:N0} s)" -f (Seconds $t))
+        }
     }
 
     # The tree: the files git tracks or would track, as the Linux sync takes them. The guest removes the files of
