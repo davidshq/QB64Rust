@@ -168,7 +168,7 @@ changing direction, design or scope.**
       body wrapped at 72 characters that says what changed and why.
 
     This covers new text: documents, comments, commit messages and replies. Existing text is rewritten when it
-    is next edited for another reason, not in a sweep.
+    is next edited for another reason, not in a sweep (only the sentence being fixed, rule 14).
     *Why:* the project's documents grew dense and hard to read, and each session copied that style (user,
     2026-11-02). The rule asks for specifics so that plain writing does not turn vague (plain-language guidance:
     clarity and precision go together).
@@ -189,6 +189,22 @@ changing direction, design or scope.**
       `git status --short` and `git diff --cached --stat` in that turn. Read the result.
     - The user may commit, stage or unstage between turns. An earlier listing, snapshot or summary is out of date.
     - Base the review or message on that output.
+    - **`--stat` is not the change.** It lists files and line counts only. Before writing a commit message or
+      reviewing staged changes, also read the content: run `git diff --cached` (in pieces if it is long) and
+      read it. Never write a message from file names, a diffstat or recent commit titles. If the diff is too
+      long to read in full, say which parts were read and which were not.
+    - A commit message body names the specific behaviors, files or fixes that changed (rule 10), not "match
+      the code" or "update specs".
+      *Why:* on 2026-11-09 a message for 8 staged spec files was written from the diffstat alone and came out
+      vague; the diff held a list of specific measured behaviors (user, 2026-11-09).
+14. **Keep diffs small; do not churn** (user, 2026-11-09). Updating a document means fixing what is wrong or
+    missing. Correct text stays as it is, even if it could be worded better. The goal is the smallest diff that
+    makes the document right.
+    - This limits rules 9 and 10: "rewritten when next edited" covers only the sentence being fixed, not its
+      paragraph or section.
+    - The same goes for code: change what the task needs, not the code around it.
+    *Why:* small diffs cost the user less time to read and stage (user: "don't change prose for the fun of it.
+    smaller diffs are desired", 2026-11-09).
 
 ## Project decisions
 
