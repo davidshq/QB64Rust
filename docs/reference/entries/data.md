@@ -60,4 +60,4 @@ Press any key to continue
 
 ## See also
 
-`READ`, `RESTORE`.
+[`READ`](read.md), [`RESTORE`](restore.md).

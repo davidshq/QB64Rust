@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`_LOGMINLEVEL`, `_ECHO`.
+[`_LOGMINLEVEL`](_logminlevel.md), [`_ECHO`](_echo.md).

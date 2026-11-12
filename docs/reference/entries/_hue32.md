@@ -50,4 +50,4 @@ Press any key to continue
 
 ## See also
 
-`_HSB32`, `_RED32`.
+[`_HSB32`](_hsb32.md), [`_RED32`](_red32.md).

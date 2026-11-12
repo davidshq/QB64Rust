@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`_CWD$`, `_FILEEXISTS`.
+[`_CWD$`](_cwd-str.md), [`_FILEEXISTS`](_fileexists.md).

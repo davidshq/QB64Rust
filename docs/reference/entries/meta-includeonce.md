@@ -74,4 +74,4 @@ Press any key to continue
 
 ## See also
 
-`$INCLUDE`, `$IF`, `$USELIBRARY`.
+[`$INCLUDE`](meta-include.md), [`$IF`](meta-if.md), [`$USELIBRARY`](meta-uselibrary.md).

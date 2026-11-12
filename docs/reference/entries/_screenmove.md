@@ -15,11 +15,16 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Behavior
 
-No test opens a dialog, shows a notification, moves the window, or clicks or types on the desktop.
-<!-- src: language/console-and-window "Dialogs and the window's place are compiled" -->
+`_SCREENMOVE x, y` moves the window to that place of the desktop, in pixels, as `_SCREENX` and `_SCREENY` give
+it: after `_SCREENMOVE 100, 120` they are 100 and 120.
+<!-- src: language/console-and-window "Dialogs and the window's place are compiled"; tests\sandbox\screenmove_readback -->
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Dialogs and the window's place are compiled"; tests\corpus\slice\s155_console_on_off -->
+`_SCREENMOVE _MIDDLE` centers the window on the desktop: across within a pixel, and down up to 40 pixels above the
+middle, as the taskbar takes part of the desktop's height.
+<!-- src: tests\sandbox\screenmove_readback -->
+
+It moves a real window, so it runs only in the sandbox family, in the test VM, not on the host.
+<!-- src: language/console-and-window "Dialogs and the window's place are compiled" -->
 
 ## Errors
 
@@ -39,4 +44,4 @@ Supported. All 5 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_SCREENX`.
+[`_SCREENX`](_screenx.md).

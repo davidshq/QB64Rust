@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`SUB`, `FUNCTION`, `DECLARE`.
+[`SUB`](sub.md), [`FUNCTION`](function.md), [`DECLARE`](declare.md).

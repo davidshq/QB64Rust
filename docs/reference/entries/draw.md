@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`LINE`, `PSET`.
+[`LINE`](line.md), [`PSET`](pset.md).

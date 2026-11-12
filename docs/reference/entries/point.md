@@ -52,4 +52,4 @@ Press any key to continue
 
 ## See also
 
-`PSET`, `_SOURCE`, `_RED32`.
+[`PSET`](pset.md), [`_SOURCE`](_source.md), [`_RED32`](_red32.md).

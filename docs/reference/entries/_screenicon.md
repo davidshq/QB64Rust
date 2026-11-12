@@ -11,8 +11,13 @@ minimized = _SCREENICON
 
 ## Behavior
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Window built-ins are compiled"; tests\corpus\slice\s66_window_builtins; tests\corpus\screen\w01_window_builtins -->
+`_SCREENICON` minimizes the window: Windows' `IsIconic` of it is then true, and the function `_SCREENICON` gives
+-1 (0 before). `_SCREENSHOW` does not restore a minimized window: it stays minimized.
+<!-- src: language/console-and-window "Window built-ins are compiled"; tests\sandbox\window_hide_icon; tests\corpus\screen\w01_window_builtins -->
+
+This runs only in the sandbox family, in the test VM. In about one run in three, a program that has minimized its
+window did not end within 20 seconds, in QB64pe's build as in QB64Rust's; its output was complete.
+<!-- src: tests\sandbox\README.md -->
 
 ## Errors
 
@@ -30,4 +35,4 @@ Supported. All 4 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_SCREENHIDE`, `_SCREENMOVE`.
+[`_SCREENHIDE`](_screenhide.md), [`_SCREENMOVE`](_screenmove.md).

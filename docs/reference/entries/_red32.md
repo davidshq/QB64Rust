@@ -50,4 +50,4 @@ Press any key to continue
 
 ## See also
 
-`_RGB32`, `_RED`, `POINT`.
+[`_RGB32`](_rgb32.md), [`_RED`](_red.md), [`POINT`](point.md).

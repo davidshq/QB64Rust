@@ -70,4 +70,4 @@ Motto:
 
 ## See also
 
-`INPUT`, `INPUT$`.
+[`INPUT`](input.md), [`INPUT$`](input-str.md).

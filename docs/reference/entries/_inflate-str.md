@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`_DEFLATE$`.
+[`_DEFLATE$`](_deflate-str.md).

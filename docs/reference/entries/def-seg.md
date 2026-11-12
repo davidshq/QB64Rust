@@ -52,4 +52,4 @@ Press any key to continue
 
 ## See also
 
-`PEEK`, `POKE`, `VARSEG`, `BLOAD`.
+[`PEEK`](peek.md), [`POKE`](poke.md), [`VARSEG`](varseg.md), [`BLOAD`](bload.md).

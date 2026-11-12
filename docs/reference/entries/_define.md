@@ -79,4 +79,4 @@ Press any key to continue
 
 ## See also
 
-`DEFINT`, `_UNSIGNED`, `STRING`.
+[`DEFINT`](defint.md), [`_UNSIGNED`](_unsigned.md), [`STRING`](string.md).

@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`SIN`, `COS`, `TAN`, `_ARCSEC`, `_SECH`.
+[`SIN`](sin.md), [`COS`](cos.md), [`TAN`](tan.md), [`_ARCSEC`](_arcsec.md), [`_SECH`](_sech.md).

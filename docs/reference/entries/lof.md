@@ -55,4 +55,4 @@ Press any key to continue
 
 ## See also
 
-`EOF`, `LOC`, `SEEK`.
+[`EOF`](eof.md), [`LOC`](loc.md), [`SEEK`](seek.md).

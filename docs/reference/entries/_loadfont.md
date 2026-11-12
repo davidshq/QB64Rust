@@ -36,4 +36,4 @@ Supported. All 12 programs that use it compile (call-site programs, examples and
 
 ## See also
 
-`_FONT`, `_UPRINTSTRING`.
+[`_FONT`](_font.md), [`_UPRINTSTRING`](_uprintstring.md).

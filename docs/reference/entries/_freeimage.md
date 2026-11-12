@@ -50,4 +50,4 @@ Press any key to continue
 
 ## See also
 
-`_NEWIMAGE`, `_COPYIMAGE`.
+[`_NEWIMAGE`](_newimage.md), [`_COPYIMAGE`](_copyimage.md).

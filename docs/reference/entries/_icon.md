@@ -14,8 +14,14 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Behavior
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Window built-ins are compiled"; tests\corpus\slice\s66_window_builtins -->
+`_ICON image&` sets both of the window's icons, the big one and the small one, from the image: after `_ICON` of a
+40 × 40 image, both are 40 × 40. `_ICON big&, small&` sets each from its own image: 40 × 40 and 20 × 20. `_ICON`
+with no argument gives the window the standard icons, 32 × 32 and 16 × 16. Before any `_ICON`, the window has
+no icon of its own: Windows shows its default.
+<!-- src: language/console-and-window "Window built-ins are compiled"; tests\sandbox\window_icon; tests\corpus\slice\s66_window_builtins -->
+
+This runs only in the sandbox family, in the test VM, which reads the icons' sizes from Windows.
+<!-- src: tests\sandbox\window_icon -->
 
 ## Errors
 
@@ -34,4 +40,4 @@ Supported. All 14 programs that use it compile (call-site programs, examples and
 
 ## See also
 
-`$EXEICON`, `_TITLE`.
+[`$EXEICON`](meta-exeicon.md), [`_TITLE`](_title.md).

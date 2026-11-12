@@ -69,4 +69,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDPLAYCOPY`, `_SNDOPEN`.
+[`_SNDPLAYCOPY`](_sndplaycopy.md), [`_SNDOPEN`](_sndopen.md).

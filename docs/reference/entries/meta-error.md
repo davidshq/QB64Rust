@@ -37,4 +37,4 @@ Supported. The one program that uses it compiles (a call-site program, an exampl
 
 ## See also
 
-`$IF`, `$LET`.
+[`$IF`](meta-if.md), [`$LET`](meta-let.md).

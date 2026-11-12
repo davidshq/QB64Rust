@@ -113,4 +113,4 @@ Press any key to continue
 
 ## See also
 
-`DIM`, `ERASE`, `$DYNAMIC`, `LBOUND`, `UBOUND`.
+[`DIM`](dim.md), [`ERASE`](erase.md), [`$DYNAMIC`](meta-dynamic.md), [`LBOUND`](lbound.md), [`UBOUND`](ubound.md).

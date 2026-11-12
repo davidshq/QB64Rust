@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`VARPTR`, `VARSEG`, `PEEK`.
+[`VARPTR`](varptr.md), [`VARSEG`](varseg.md), [`PEEK`](peek.md).

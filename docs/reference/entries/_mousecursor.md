@@ -39,4 +39,4 @@ Supported. All 11 programs that use it compile (call-site programs, examples and
 
 ## See also
 
-`_MOUSESHOW`, `_NEWIMAGE`.
+[`_MOUSESHOW`](_mouseshow.md), [`_NEWIMAGE`](_newimage.md).

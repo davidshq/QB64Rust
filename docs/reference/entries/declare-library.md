@@ -124,4 +124,4 @@ Press any key to continue
 
 ## See also
 
-`DECLARE`, `$USELIBRARY`, `_OFFSET`.
+[`DECLARE`](declare.md), [`$USELIBRARY`](meta-uselibrary.md), [`_OFFSET`](_offset.md).

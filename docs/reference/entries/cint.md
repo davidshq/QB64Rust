@@ -74,4 +74,4 @@ Press any key to continue
 
 ## See also
 
-`CLNG`, `_ROUND`, `INT`, `FIX`, `_CAST`.
+[`CLNG`](clng.md), [`_ROUND`](_round.md), [`INT`](int.md), [`FIX`](fix.md), [`_CAST`](_cast.md).

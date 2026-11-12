@@ -72,4 +72,4 @@ Press any key to continue
 
 ## See also
 
-`_NEGATE`, `AND`, `OR`, `XOR`.
+[`_NEGATE`](_negate.md), [`AND`](and.md), [`OR`](or.md), [`XOR`](xor.md).

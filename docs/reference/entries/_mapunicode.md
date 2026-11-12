@@ -48,4 +48,4 @@ Press any key to continue
 
 ## See also
 
-`_UPRINTSTRING`, `CHR$`.
+[`_UPRINTSTRING`](_uprintstring.md), [`CHR$`](chr-str.md).

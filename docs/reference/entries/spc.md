@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`TAB`, `SPACE$`, `PRINT`.
+[`TAB`](tab.md), [`SPACE$`](space-str.md), [`PRINT`](print.md).

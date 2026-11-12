@@ -32,4 +32,4 @@ Supported. The one program that uses it compiles (a call-site program, an exampl
 
 ## See also
 
-`_RESIZE`, `_FULLSCREEN`.
+[`_RESIZE`](_resize.md), [`_FULLSCREEN`](_fullscreen.md).

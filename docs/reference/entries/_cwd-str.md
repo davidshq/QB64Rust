@@ -53,4 +53,4 @@ Press any key to continue
 
 ## See also
 
-`CHDIR`, `_DIR$`, `_FULLPATH$`.
+[`CHDIR`](chdir.md), [`_DIR$`](_dir-str.md), [`_FULLPATH$`](_fullpath-str.md).

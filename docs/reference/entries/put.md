@@ -136,4 +136,4 @@ Press any key to continue
 
 ## See also
 
-`GET`, `OPEN`, `SEEK`, `FIELD`, `_PUTIMAGE`.
+[`GET`](get.md), [`OPEN`](open.md), [`SEEK`](seek.md), [`FIELD`](field.md), [`_PUTIMAGE`](_putimage.md).

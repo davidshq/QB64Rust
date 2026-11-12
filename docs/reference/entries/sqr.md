@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`_HYPOT`, `^`, `EXP`.
+[`_HYPOT`](_hypot.md), `^`, [`EXP`](exp.md).

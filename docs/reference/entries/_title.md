@@ -17,8 +17,14 @@ In a `$CONSOLE:ONLY` program, `_TITLE$` gives "".
 The title is any string expression, a fixed-length string included; `CALL _TITLE(s$)` is accepted.
 <!-- src: language/console-and-window "Window built-ins are compiled"; tests\corpus\slice\s66_window_builtins -->
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Window built-ins are compiled"; tests\corpus\screen\w01_window_builtins -->
+`_TITLE text$` sets the title of the program's window: after `_TITLE "QB64Rust sandbox title"`, Windows reads that
+text from the window.
+<!-- src: language/console-and-window "Window built-ins are compiled"; tests\sandbox\window_title_handle; tests\corpus\screen\w01_window_builtins -->
+
+In a program with a window, `_TITLE$` cannot be trusted: after `_TITLE "Probe title"` it gave a string of the
+title's length, 11, whose bytes were not the title and changed from run to run. QB64pe's build does the same, as
+both use libqb's call.
+<!-- src: tests\sandbox\README.md -->
 
 ## Errors
 
@@ -50,4 +56,4 @@ Press any key to continue
 
 ## See also
 
-`_CONSOLETITLE`, `_ICON`.
+[`_CONSOLETITLE`](_consoletitle.md), [`_ICON`](_icon.md).

@@ -81,4 +81,4 @@ Press any key to continue
 
 ## See also
 
-`AND`, `XOR`, `NOT`, `_ORELSE`. `PUT` (graphics) takes `OR` as an action word, not as this operator.
+[`AND`](and.md), [`XOR`](xor.md), [`NOT`](not.md), [`_ORELSE`](_orelse.md). [`PUT`](put.md) (graphics) takes `OR` as an action word, not as this operator.

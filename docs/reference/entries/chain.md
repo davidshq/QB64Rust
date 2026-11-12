@@ -35,4 +35,4 @@ Supported. All 7 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`RUN`, `COMMON`, `SHELL`.
+[`RUN`](run.md), [`COMMON`](common.md), [`SHELL`](shell.md).

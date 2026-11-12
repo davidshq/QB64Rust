@@ -26,4 +26,4 @@ Supported. All 5 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_DISPLAY`.
+[`_DISPLAY`](_display.md).

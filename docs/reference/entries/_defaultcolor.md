@@ -56,4 +56,4 @@ Press any key to continue
 
 ## See also
 
-`COLOR`, `_DEST`.
+[`COLOR`](color.md), [`_DEST`](_dest.md).

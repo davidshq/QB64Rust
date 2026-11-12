@@ -65,4 +65,4 @@ Press any key to continue
 
 ## See also
 
-`SIN`, `COS`, `ATN`, `_ATAN2`, `_ARCSEC`.
+[`SIN`](sin.md), [`COS`](cos.md), [`ATN`](atn.md), [`_ATAN2`](_atan2.md), [`_ARCSEC`](_arcsec.md).

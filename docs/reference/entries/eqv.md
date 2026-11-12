@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`IMP`, `XOR`, `NOT`.
+[`IMP`](imp.md), [`XOR`](xor.md), [`NOT`](not.md).

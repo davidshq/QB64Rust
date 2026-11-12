@@ -78,7 +78,7 @@ A page's file name is the word in lower case, a leading `$` written `meta-` and 
    | `## The OpenGL routines` | | On `_gl.md` only: the block `opengl`, generated from `crates\sema\src\gl_table.rs` |
    | `## Availability` | yes | Generated |
    | `## Example` | | Generated from the example programs |
-   | `## See also` | yes | Related words |
+   | `## See also` | yes | Related words, each as code: `render` makes each one that has a page a link to it |
 
 4. Write the example as `tests\reference\examples\<page>_<n>.bas`: `$CONSOLE:ONLY` on its first line (the page
    leaves it out), the common use, a few lines, ending with `END`. A file it includes goes in
@@ -128,7 +128,7 @@ repeating them. It may embed an existing example with `<!-- begin generated: exa
 (from `builtins.json`), `appendix-errors.md` (from libqb's `error_handle.cpp`), `appendix-reserved.md` (from
 `keywords.rs`), `appendix-metacommands.md` (from the inventory), `appendix-unsupported.md` (from `SOMEDAY.md`,
 "Deferred QB64pe features") and `coming-from-qb64pe.md` and `coming-from-qb45.md` (from the two divergence
-registers). An edit of one of those sources needs a `render`, or `--check` fails. With `--compiler` it
+registers; the second also has a section on BASIC PDS 7.1's words, `PDS_SECTION` in `reference.py`). An edit of one of those sources needs a `render`, or `--check` fails. With `--compiler` it
 also writes `tests\reference\availability.json`: for each page, how many of the programs that use its words
 compile, and the messages of the others. Never edit a generated block by hand: `--check` fails on it.
 
@@ -136,8 +136,8 @@ compile, and the messages of the others. Never edit a generated block by hand: `
 source or a source does not exist; when a required heading is missing, the headings are out of order or a page
 holds `TODO`; when a hand-written "Syntax" of a built-in leaves out a word of the built-in table's form (a word
 that starts with `_`, such as `_SMOOTH`, or `STEP`); when a link leads nowhere; when a page has no word or an
-example has no page; and when a page of a `done` batch or a pilot page is missing. It checks a chapter in the same way: its sources, its links, its
-embedded examples, a `TODO`, and that a spec of its name exists. With `--compiler` it computes the availability
+example has no page; and when a page of a `done` batch or a pilot page is missing. It checks a chapter in the
+same way: its sources, its links, its embedded examples, a `TODO`, and that a spec of its name exists. With `--compiler` it computes the availability
 again and fails when it changed.
 
 ## The overlap check

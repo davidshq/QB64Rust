@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`_MK$`, `CVI`, `_MEMGET`.
+[`_MK$`](_mk-str.md), [`CVI`](cvi.md), [`_MEMGET`](_memget.md).

@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`DEF SEG`, `VARPTR`, `POKE`, `SADD`.
+[`DEF SEG`](def-seg.md), [`VARPTR`](varptr.md), [`POKE`](poke.md), [`SADD`](sadd.md).

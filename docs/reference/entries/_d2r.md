@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`SIN`, `COS`, `_PI`, `_ATAN2`.
+[`SIN`](sin.md), [`COS`](cos.md), [`_PI`](_pi.md), [`_ATAN2`](_atan2.md).

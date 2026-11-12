@@ -44,4 +44,4 @@ Press any key to continue
 
 ## See also
 
-`_UPRINTSTRING`, `_FONTHEIGHT`.
+[`_UPRINTSTRING`](_uprintstring.md), [`_FONTHEIGHT`](_fontwidth.md).

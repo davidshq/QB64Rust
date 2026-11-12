@@ -42,4 +42,4 @@ Press any key to continue
 
 ## See also
 
-`_PALETTECOLOR`, `PALETTE`.
+[`_PALETTECOLOR`](_palettecolor.md), [`PALETTE`](palette.md).

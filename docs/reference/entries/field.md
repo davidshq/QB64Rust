@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`LSET`, `GET`, `PUT`, `MKL$`, `CVL`.
+[`LSET`](lset.md), [`GET`](get.md), [`PUT`](put.md), [`MKL$`](mki-str.md), [`CVL`](cvi.md).

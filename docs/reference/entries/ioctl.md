@@ -26,4 +26,4 @@ Rejected, as in QB64pe. The compiler gives:
 
 ## See also
 
-`OPEN`.
+[`OPEN`](open.md).

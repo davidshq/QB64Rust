@@ -29,4 +29,4 @@ Supported. All 4 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_AUTODISPLAY`, `_LIMIT`, `PCOPY`.
+[`_AUTODISPLAY`](_autodisplay.md), [`_LIMIT`](_limit.md), [`PCOPY`](pcopy.md).

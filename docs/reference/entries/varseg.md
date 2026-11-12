@@ -77,4 +77,4 @@ Press any key to continue
 
 ## See also
 
-`VARPTR`, `DEF SEG`.
+[`VARPTR`](varptr.md), [`DEF SEG`](def-seg.md).

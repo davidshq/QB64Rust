@@ -28,4 +28,4 @@ Rejected, as in QB64pe. The compiler gives:
 
 ## See also
 
-`$DEBUG`.
+[`$DEBUG`](meta-debug.md).

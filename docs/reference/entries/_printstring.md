@@ -65,4 +65,4 @@ Press any key to continue
 
 ## See also
 
-`_UPRINTSTRING`, `_FONT`, `_PRINTMODE`.
+[`_UPRINTSTRING`](_uprintstring.md), [`_FONT`](_font.md), [`_PRINTMODE`](_printmode.md).

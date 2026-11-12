@@ -65,4 +65,4 @@ Press any key to continue
 
 ## See also
 
-`TYPE`, `REDIM`.
+[`TYPE`](type.md), [`REDIM`](redim.md).

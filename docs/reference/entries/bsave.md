@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`BLOAD`, `DEF SEG`, `VARPTR`.
+[`BLOAD`](bload.md), [`DEF SEG`](def-seg.md), [`VARPTR`](varptr.md).

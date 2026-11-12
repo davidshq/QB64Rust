@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`_ASINH`, `_SECH`, `EXP`.
+[`_ASINH`](_asinh.md), [`_SECH`](_sech.md), [`EXP`](exp.md).

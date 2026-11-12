@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`POINT`, `LINE`, `COLOR`, `_DEST`.
+[`POINT`](point.md), [`LINE`](line.md), [`COLOR`](color.md), [`_DEST`](_dest.md).

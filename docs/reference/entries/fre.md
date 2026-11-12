@@ -44,4 +44,4 @@ Rejected, as in QB64pe. The compiler gives:
 
 ## See also
 
-`SETMEM`, `_MEMNEW`.
+[`SETMEM`](setmem.md), [`_MEMNEW`](_memnew.md).

@@ -58,4 +58,4 @@ Press any key to continue
 
 ## See also
 
-`_MAPTRIANGLE`, `_NEWIMAGE`, `_COPYIMAGE`.
+[`_MAPTRIANGLE`](_maptriangle.md), [`_NEWIMAGE`](_newimage.md), [`_COPYIMAGE`](_copyimage.md).

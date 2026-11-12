@@ -81,4 +81,4 @@ Press any key to continue
 
 ## See also
 
-`STR$`, `HEX$`, `INPUT`.
+[`STR$`](str-str.md), [`HEX$`](hex-str.md), [`INPUT`](input.md).

@@ -74,4 +74,4 @@ Press any key to continue
 
 ## See also
 
-`_DEVICEINPUT`, `_LASTBUTTON`, `_AXIS`.
+[`_DEVICEINPUT`](_deviceinput.md), [`_LASTBUTTON`](_lastbutton.md), [`_AXIS`](_axis.md).

@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`MKSMBF$`, `CVS`, `CVD`.
+[`MKSMBF$`](mksmbf-str.md), [`CVS`](cvi.md), [`CVD`](cvi.md).

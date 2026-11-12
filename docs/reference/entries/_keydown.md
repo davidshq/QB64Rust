@@ -41,4 +41,4 @@ Supported. All 4 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_KEYHIT`, `INKEY$`.
+[`_KEYHIT`](_keyhit.md), [`INKEY$`](inkey-str.md).

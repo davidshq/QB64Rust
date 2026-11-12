@@ -54,4 +54,4 @@ Press any key to continue
 
 ## See also
 
-`NAME`, `RMDIR`, `_FILEEXISTS`.
+[`NAME`](name.md), [`RMDIR`](chdir.md), [`_FILEEXISTS`](_fileexists.md).

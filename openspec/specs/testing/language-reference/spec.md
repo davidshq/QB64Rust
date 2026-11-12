@@ -1,9 +1,11 @@
+# testing/language-reference Specification
+
 ## Purpose
 A reference of the language QB64Rust compiles, one page per word, whose every rule names a source in this
 repository and whose every example is a recorded program, checked by a tool so that no person needs to read every
 page to trust it.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: The inventory of words
 `tools\reference\reference.py inventory` SHALL write `docs\reference\inventory.json`: every word of the built-in
@@ -24,7 +26,7 @@ table names, and that no `[page]` row covers, SHALL be listed in `one_source`.
 `reference.py evidence <WORD>` SHALL print the word's entries in the built-in table; every requirement of the
 `language/*` specs and of `compiler/pipeline`, `compiler/fixes` and `compiler/lints` that names it in capitals in
 a code span, the most specific first; the recorded programs under `verification\`, `tests\corpus\`,
-`tests\differential\` and `tests\upstream\` that use it, with their first comment and their family's line of
+`tests\differential\`, `tests\upstream\` and `tests\sandbox\` that use it, with their first comment and their family's line of
 `verification\README.md`; its call-site programs with their statement under test; and the rows of
 `DIVERGENCES-QB64PE.md`, `DIVERGENCES-QB45.md` and `SOMEDAY.md` that name it.
 
@@ -37,9 +39,14 @@ a code span, the most specific first; the recorded programs under `verification\
 a generated file differs from what `render` writes; a paragraph or list item under "Behavior" or "Errors" that
 does not end with a colon has no `src:` comment; a source names a spec requirement, a file or a divergence row
 that does not exist; a required heading is missing, a heading is unknown, or the headings are out of order or
-repeated; a page holds `TODO`; a relative link leads nowhere; a page belongs to no word of the inventory; an
-example has no page or is not shown on it; or a page of a batch named in `words.toml`'s `done`, or a pilot page,
-is missing.
+repeated; a page holds `TODO`; a hand-written "Syntax" of a page with a built-in leaves out a word of the
+built-in table's forms that starts with `_`, or `STEP`; a relative link leads nowhere; a page belongs to no word
+of the inventory; an example has no page or is not shown on it; or a page of a batch named in `words.toml`'s
+`done`, or a pilot page, is missing.
+
+#### Scenario: A hand-written syntax that leaves out an option
+- **WHEN** the page `_putimage` writes its syntax by hand without `_SMOOTH`, which the built-in table's form has
+- **THEN** the check fails, naming the page and `_SMOOTH`
 
 #### Scenario: A rule without a source
 - **WHEN** a paragraph under "Behavior" has no `src:` comment
@@ -48,6 +55,20 @@ is missing.
 #### Scenario: A source that was renamed
 - **WHEN** a `src:` names `verification\v20_c_nothing`, which does not exist
 - **THEN** the check fails with "no file"
+
+### Requirement: What render writes on a page
+`reference.py render` SHALL write the generated syntax of a page's built-ins from the built-in table, with the
+table's keywords in capitals and one form per line where the table joins two with " or ". It SHALL make each word
+written as code under "See also" a link to its page, when the word, or a page's title, names a page other than
+this one; other code stays as it is.
+
+#### Scenario: A form joined with "or"
+- **WHEN** the table's form of `STICK` is `STICK(direction%) or STICK(direction%, axis_number%)`
+- **THEN** the page `stick` shows `STICK(direction%)` and `STICK(direction%, axis_number%)` on two lines
+
+#### Scenario: A word under See also
+- **WHEN** the page `put` lists `` `GET` `` under "See also"
+- **THEN** `render` writes it as a link to `get.md`, and a word on the page's own page stays code
 
 ### Requirement: The availability of a page
 `reference.py render --compiler <qb64rust>` SHALL compile, with `-z --no-settings`, every call-site program whose

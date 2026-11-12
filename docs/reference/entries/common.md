@@ -77,4 +77,4 @@ Press any key to continue
 
 ## See also
 
-`DIM`, `SHARED`, `CHAIN`.
+[`DIM`](dim.md), [`SHARED`](shared.md), [`CHAIN`](chain.md).

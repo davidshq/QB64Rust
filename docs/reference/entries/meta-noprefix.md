@@ -41,4 +41,4 @@ Rejected, as in QB64pe. The compiler gives:
 
 ## See also
 
-`_BYTE`, `_UNSIGNED`, `_ERRORLINE`: names that `$NOPREFIX` programs write without the underscore.
+[`_BYTE`](_byte.md), [`_UNSIGNED`](_unsigned.md), [`_ERRORLINE`](_errorline.md): names that `$NOPREFIX` programs write without the underscore.

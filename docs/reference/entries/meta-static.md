@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`$DYNAMIC`, `DIM`, `STATIC`.
+[`$DYNAMIC`](meta-dynamic.md), [`DIM`](dim.md), [`STATIC`](static.md).

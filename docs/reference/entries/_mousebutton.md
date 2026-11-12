@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`_MOUSEINPUT`, `_MOUSEX`, `_BUTTON`.
+[`_MOUSEINPUT`](_mouseinput.md), [`_MOUSEX`](_mousex.md), [`_BUTTON`](_button.md).

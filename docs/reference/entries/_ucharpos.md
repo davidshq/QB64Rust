@@ -52,4 +52,4 @@ Press any key to continue
 
 ## See also
 
-`_UPRINTSTRING`, `_UPRINTWIDTH`.
+[`_UPRINTSTRING`](_uprintstring.md), [`_UPRINTWIDTH`](_uprintstring.md).

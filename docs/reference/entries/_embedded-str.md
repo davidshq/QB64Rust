@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`$EMBED`.
+[`$EMBED`](meta-embed.md).

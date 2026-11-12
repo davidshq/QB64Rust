@@ -83,4 +83,4 @@ Press any key to continue
 
 ## See also
 
-`DIM`, `REDIM`, `CLEAR`.
+[`DIM`](dim.md), [`REDIM`](redim.md), [`CLEAR`](clear.md).

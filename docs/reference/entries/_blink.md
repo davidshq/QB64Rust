@@ -55,4 +55,4 @@ Press any key to continue
 
 ## See also
 
-`COLOR`.
+[`COLOR`](color.md).

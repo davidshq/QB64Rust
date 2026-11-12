@@ -56,4 +56,4 @@ Before STOP.
 
 ## See also
 
-`SYSTEM`, `END`.
+[`SYSTEM`](system.md), [`END`](end.md).

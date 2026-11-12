@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`_SAVEIMAGE`, `_PUTIMAGE`, `_FREEIMAGE`.
+[`_SAVEIMAGE`](_saveimage.md), [`_PUTIMAGE`](_putimage.md), [`_FREEIMAGE`](_freeimage.md).

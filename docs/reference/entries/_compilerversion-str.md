@@ -52,4 +52,4 @@ Press any key to continue
 
 ## See also
 
-`_COMPILEDATE$`, `_OS$`.
+[`_COMPILEDATE$`](_compiledate-str.md), [`_OS$`](_os-str.md).

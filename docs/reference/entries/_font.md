@@ -57,4 +57,4 @@ Press any key to continue
 
 ## See also
 
-`_LOADFONT`, `_FONTWIDTH`, `_PRINTSTRING`.
+[`_LOADFONT`](_loadfont.md), [`_FONTWIDTH`](_fontwidth.md), [`_PRINTSTRING`](_printstring.md).

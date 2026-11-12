@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`_NEWIMAGE`, `_PIXELSIZE`.
+[`_NEWIMAGE`](_newimage.md), [`_PIXELSIZE`](_pixelsize.md).

@@ -51,4 +51,4 @@ Press any key to continue
 
 ## See also
 
-`_COMPILERVERSION$`, `DATE$`.
+[`_COMPILERVERSION$`](_compilerversion-str.md), [`DATE$`](date-str.md).

@@ -68,4 +68,4 @@ Supported. All 6 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`CLEAR`, `CHAIN`, `END`, `SHELL`.
+[`CLEAR`](clear.md), [`CHAIN`](chain.md), [`END`](end.md), [`SHELL`](shell.md).

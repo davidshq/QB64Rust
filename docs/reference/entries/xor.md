@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`AND`, `OR`, `EQV`, `NOT`. `PUT` (graphics) takes `XOR` as an action word, not as this operator.
+[`AND`](and.md), [`OR`](or.md), [`EQV`](eqv.md), [`NOT`](not.md). [`PUT`](put.md) (graphics) takes `XOR` as an action word, not as this operator.

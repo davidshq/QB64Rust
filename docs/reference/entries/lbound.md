@@ -78,4 +78,4 @@ Press any key to continue
 
 ## See also
 
-`UBOUND`, `DIM`, `OPTION`.
+[`UBOUND`](ubound.md), [`DIM`](dim.md), [`OPTION`](option.md).

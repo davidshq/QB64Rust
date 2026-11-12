@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`_MEMFREE`, `_MEMEXISTS`, `_MEM`.
+[`_MEMFREE`](_memfree.md), [`_MEMEXISTS`](_memexists.md), [`_MEM`](_mem.md).

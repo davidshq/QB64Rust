@@ -42,4 +42,4 @@ Press any key to continue
 
 ## See also
 
-`PALETTE`, `_COPYPALETTE`, `_RGB32`.
+[`PALETTE`](palette.md), [`_COPYPALETTE`](_copypalette.md), [`_RGB32`](_rgb32.md).

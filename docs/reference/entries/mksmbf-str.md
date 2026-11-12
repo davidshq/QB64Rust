@@ -69,4 +69,4 @@ Press any key to continue
 
 ## See also
 
-`CVSMBF`, `MKS$`, `MKD$`.
+[`CVSMBF`](cvsmbf.md), [`MKS$`](mki-str.md), [`MKD$`](mki-str.md).

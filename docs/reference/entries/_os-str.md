@@ -54,4 +54,4 @@ Press any key to continue
 
 ## See also
 
-`_COMPILERVERSION$`, `ENVIRON$`.
+[`_COMPILERVERSION$`](_compilerversion-str.md), [`ENVIRON$`](environ.md).

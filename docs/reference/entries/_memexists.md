@@ -68,4 +68,4 @@ Press any key to continue
 
 ## See also
 
-`_MEMFREE`, `_MEMNEW`.
+[`_MEMFREE`](_memfree.md), [`_MEMNEW`](_memnew.md).

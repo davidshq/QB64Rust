@@ -36,4 +36,4 @@ Supported. All 5 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`SUB _GL`, `_DISPLAYORDER`.
+[`SUB _GL`](_gl.md), [`_DISPLAYORDER`](_displayorder.md).

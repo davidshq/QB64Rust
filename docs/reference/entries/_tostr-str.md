@@ -69,4 +69,4 @@ Press any key to continue
 
 ## See also
 
-`STR$`, `PRINT USING`.
+[`STR$`](str-str.md), [`PRINT USING`](print-using.md).

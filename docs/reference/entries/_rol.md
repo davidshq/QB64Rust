@@ -69,4 +69,4 @@ Press any key to continue
 
 ## See also
 
-`_SHL`, `_SETBIT`.
+[`_SHL`](_shl.md), [`_SETBIT`](_setbit.md).

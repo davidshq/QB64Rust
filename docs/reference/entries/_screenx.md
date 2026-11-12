@@ -11,8 +11,9 @@ y = _SCREENY
 
 ## Behavior
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Window built-ins are compiled"; tests\corpus\screen\w01_window_builtins -->
+`_SCREENX` and `_SCREENY` give the place of the program's window on the desktop, in pixels, as `_SCREENMOVE` sets
+it: after `_SCREENMOVE 100, 120` they are 100 and 120.
+<!-- src: language/console-and-window "Window built-ins are compiled"; tests\sandbox\screenmove_readback; tests\corpus\screen\w01_window_builtins -->
 
 ## Errors
 
@@ -32,4 +33,4 @@ Supported. All 3 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_SCREENMOVE`, `_DESKTOPWIDTH`.
+[`_SCREENMOVE`](_screenmove.md), [`_DESKTOPWIDTH`](_desktopwidth.md).

@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`LCASE$`, `_STRICMP`.
+[`LCASE$`](lcase-str.md), [`_STRICMP`](_strcmp.md).

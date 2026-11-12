@@ -60,4 +60,4 @@ Press any key to continue
 
 ## See also
 
-`_SCREENHIDE`, `_WINDOWHANDLE`.
+[`_SCREENHIDE`](_screenhide.md), [`_WINDOWHANDLE`](_windowhandle.md).

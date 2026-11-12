@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`SLEEP`, `_LIMIT`, `TIMER`.
+[`SLEEP`](sleep.md), [`_LIMIT`](_limit.md), [`TIMER`](timer.md).

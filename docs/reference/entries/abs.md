@@ -65,4 +65,4 @@ Press any key to continue
 
 ## See also
 
-`SGN`, `INT`, `FIX`.
+[`SGN`](sgn.md), [`INT`](int.md), [`FIX`](fix.md).

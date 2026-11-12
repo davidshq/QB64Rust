@@ -12,7 +12,12 @@ _CLIPBOARDIMAGE = handle&
 
 ## Behavior
 
-No test runs it, since what it reads and writes is the clipboard's; it compiles to QB64pe's call.
+`_CLIPBOARDIMAGE = img&` puts a copy of the image on the clipboard, and the function `_CLIPBOARDIMAGE` gives a new
+image of what the clipboard holds, a handle below -1. A 4 by 4 32-bit image put there comes back with its size
+and the red, green and blue of every pixel unchanged.
+<!-- src: language/images "Image built-ins that no test runs"; tests\sandbox\clipboardimage_roundtrip -->
+
+It uses the real clipboard, so it runs only in the sandbox family, in the test VM, not on the host.
 <!-- src: language/images "Image built-ins that no test runs" -->
 
 ## Errors
@@ -30,4 +35,4 @@ Supported. All 5 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_CLIPBOARD$`, `_SCREENIMAGE`.
+[`_CLIPBOARD$`](_clipboard-str.md), [`_SCREENIMAGE`](_screenimage.md).

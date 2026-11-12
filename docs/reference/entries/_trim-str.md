@@ -60,4 +60,4 @@ Press any key to continue
 
 ## See also
 
-`LTRIM$`, `RTRIM$`.
+[`LTRIM$`](ltrim-str.md), [`RTRIM$`](rtrim-str.md).

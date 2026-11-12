@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`_MIN`, `_MAX`.
+[`_MIN`](_min.md), [`_MAX`](_min.md).

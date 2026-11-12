@@ -40,4 +40,4 @@ Supported. All 21 programs that use it compile (call-site programs, examples and
 
 ## See also
 
-`_SHELLHIDE`, `ENVIRON`, `CHAIN`.
+[`_SHELLHIDE`](_shellhide.md), [`ENVIRON`](environ.md), [`CHAIN`](chain.md).

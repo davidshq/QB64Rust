@@ -60,4 +60,4 @@ Press any key to continue
 
 ## See also
 
-`SEEK`, `LOF`, `GET`.
+[`SEEK`](seek.md), [`LOF`](lof.md), [`GET`](get.md).

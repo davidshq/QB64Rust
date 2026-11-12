@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`ASC`, `STRING$`.
+[`ASC`](asc.md), [`STRING$`](string-str.md).

@@ -98,4 +98,4 @@ Press any key to continue
 
 ## See also
 
-`SHARED`, `DIM`, `SUB`, `FUNCTION`, `$STATIC`.
+[`SHARED`](shared.md), [`DIM`](dim.md), [`SUB`](sub.md), [`FUNCTION`](function.md), [`$STATIC`](meta-static.md).

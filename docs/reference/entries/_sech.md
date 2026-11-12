@@ -72,4 +72,4 @@ Press any key to continue
 
 ## See also
 
-`_SINH`, `_SEC`.
+[`_SINH`](_sinh.md), [`_SEC`](_sec.md).

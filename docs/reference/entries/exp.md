@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`LOG`, `^`.
+[`LOG`](log.md), `^`.

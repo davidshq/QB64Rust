@@ -56,4 +56,4 @@ Press any key to continue
 
 ## See also
 
-`SYSTEM`, `END`.
+[`SYSTEM`](system.md), [`END`](end.md).

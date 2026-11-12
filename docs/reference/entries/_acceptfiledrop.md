@@ -56,4 +56,4 @@ Press any key to continue
 
 ## See also
 
-`_FILEEXISTS`.
+[`_FILEEXISTS`](_fileexists.md).

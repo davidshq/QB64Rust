@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`_ORELSE`, `AND`, `_NEGATE`, `IF`.
+[`_ORELSE`](_orelse.md), [`AND`](and.md), [`_NEGATE`](_negate.md), [`IF`](if.md).

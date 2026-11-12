@@ -102,4 +102,4 @@ Press any key to continue
 
 ## See also
 
-`_FREETIMER`, `ON`, `KEY`, `SLEEP`, `_DELAY`.
+[`_FREETIMER`](_freetimer.md), [`ON`](on.md), [`KEY`](key.md), [`SLEEP`](sleep.md), [`_DELAY`](_delay.md).

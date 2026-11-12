@@ -97,4 +97,4 @@ Press any key to continue
 
 ## See also
 
-`CINT`, `CLNG`, `CSNG`, `CDBL`, `_MK$`.
+[`CINT`](cint.md), [`CLNG`](clng.md), [`CSNG`](csng.md), [`CDBL`](cdbl.md), [`_MK$`](_mk-str.md).

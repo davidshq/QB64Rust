@@ -14,8 +14,12 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Behavior
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Dialogs and the window's place are compiled"; tests\corpus\slice\s159_builtins_last -->
+`_SCREENPRINT text$` types the text as keys into the window in front. A program that has clicked its own window
+and runs `_SCREENPRINT "abc" + CHR$(13)` reads the four codes 97, 98, 99 and 13 back with `INKEY$`.
+<!-- src: language/console-and-window "Dialogs and the window's place are compiled"; tests\sandbox\screenprint_inkey -->
+
+It types with the real keyboard, so it runs only in the sandbox family, in the test VM, not on the host.
+<!-- src: language/console-and-window "Dialogs and the window's place are compiled" -->
 
 ## Errors
 
@@ -35,4 +39,4 @@ Supported. All 3 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_SCREENCLICK`.
+[`_SCREENCLICK`](_screenclick.md).

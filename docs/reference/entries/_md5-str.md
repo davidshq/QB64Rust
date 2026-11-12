@@ -58,4 +58,4 @@ Press any key to continue
 
 ## See also
 
-`_CRC32`, `_ADLER32`.
+[`_CRC32`](_crc32.md), [`_ADLER32`](_adler32.md).

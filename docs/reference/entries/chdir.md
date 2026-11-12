@@ -52,4 +52,4 @@ Press any key to continue
 
 ## See also
 
-`_CWD$`, `_DIREXISTS`, `FILES`.
+[`_CWD$`](_cwd-str.md), [`_DIREXISTS`](_fileexists.md), [`FILES`](files.md).

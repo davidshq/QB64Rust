@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`_FREEIMAGE`, `_DEST`, `SCREEN`, `_COPYIMAGE`, `_WIDTH`.
+[`_FREEIMAGE`](_freeimage.md), [`_DEST`](_dest.md), [`SCREEN`](screen.md), [`_COPYIMAGE`](_copyimage.md), [`_WIDTH`](_width.md).

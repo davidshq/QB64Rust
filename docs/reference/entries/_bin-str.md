@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`HEX$`, `OCT$`, `VAL`, `_READBIT`.
+[`HEX$`](hex-str.md), [`OCT$`](oct-str.md), [`VAL`](val.md), [`_READBIT`](_setbit.md).

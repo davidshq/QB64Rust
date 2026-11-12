@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`READ`, `DATA`.
+[`READ`](read.md), [`DATA`](data.md).

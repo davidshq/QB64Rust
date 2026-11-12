@@ -29,6 +29,7 @@ In a `$CONSOLE:ONLY` program they read the console's mouse, which gives 0 where 
 
 ## The cursor
 
-`_MOUSEHIDE`, `_MOUSESHOW` and `_MOUSECURSOR` change the cursor and `_MOUSEMOVE` moves it. Their effect is outside the
-screen's state, so the tests run them but compare nothing of it.
-<!-- src: language/mouse "Mouse built-ins that no test runs" -->
+`_MOUSEHIDE`, `_MOUSESHOW` and `_MOUSECURSOR` change the cursor and `_MOUSEMOVE` moves it. The first three are run,
+but their effect is outside the screen's state, so the tests compare nothing of it.
+[`_MOUSEMOVE`](../entries/_mousemove.md) runs only in the test VM, where `_MOUSEX` and `_MOUSEY` read the move back.
+<!-- src: language/mouse "Mouse built-ins that no test runs"; tests\sandbox\mousemove_readback -->

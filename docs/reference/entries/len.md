@@ -76,4 +76,4 @@ Press any key to continue
 
 ## See also
 
-`STRING`, `TYPE`, `LEFT$`.
+[`STRING`](string.md), [`TYPE`](type.md), [`LEFT$`](left-str.md).

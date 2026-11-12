@@ -72,4 +72,4 @@ Press any key to continue
 
 ## See also
 
-`CVI`, `_MK$`, `MKSMBF$`, `FIELD`.
+[`CVI`](cvi.md), [`_MK$`](_mk-str.md), [`MKSMBF$`](mksmbf-str.md), [`FIELD`](field.md).

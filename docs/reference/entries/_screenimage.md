@@ -28,4 +28,4 @@ Supported. All 6 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_CLIPBOARDIMAGE`, `_NEWIMAGE`.
+[`_CLIPBOARDIMAGE`](_clipboardimage.md), [`_NEWIMAGE`](_newimage.md).

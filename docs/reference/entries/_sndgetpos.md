@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDLEN`, `_SNDSTOP`, `_SNDLIMIT`.
+[`_SNDLEN`](_sndlen.md), [`_SNDSTOP`](_sndstop.md), [`_SNDLIMIT`](_sndlimit.md).

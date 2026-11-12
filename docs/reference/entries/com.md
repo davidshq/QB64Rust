@@ -29,4 +29,4 @@ Rejected, as in QB64pe. The compiler gives:
 
 ## See also
 
-`ON`, `OPEN`.
+[`ON`](on.md), [`OPEN`](open.md).

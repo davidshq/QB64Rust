@@ -51,4 +51,4 @@ Press any key to continue
 
 ## See also
 
-`TIMER`.
+[`TIMER`](timer.md).

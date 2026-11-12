@@ -68,4 +68,4 @@ Press any key to continue
 
 ## See also
 
-`_SINH`, `LOG`.
+[`_SINH`](_sinh.md), [`LOG`](log.md).

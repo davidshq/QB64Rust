@@ -59,4 +59,4 @@ Press any key to continue
 
 ## See also
 
-`ON ERROR`, `ERR`.
+[`ON ERROR`](on-error.md), [`ERR`](err.md).

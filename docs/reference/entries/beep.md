@@ -36,4 +36,4 @@ Supported. All 6 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`SOUND`, `PLAY`.
+[`SOUND`](sound.md), [`PLAY`](play.md).

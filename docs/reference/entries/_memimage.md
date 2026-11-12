@@ -71,4 +71,4 @@ Press any key to continue
 
 ## See also
 
-`_MEM`, `_NEWIMAGE`, `_MEMGET`.
+[`_MEM`](_mem.md), [`_NEWIMAGE`](_newimage.md), [`_MEMGET`](_memget.md).

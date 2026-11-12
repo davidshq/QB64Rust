@@ -52,4 +52,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDRAW`, `_SNDRAWLEN`.
+[`_SNDRAW`](_sndraw.md), [`_SNDRAWLEN`](_sndrawlen.md).

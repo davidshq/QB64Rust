@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`DIM`, `_MEMCOPY`, `SWAP`.
+[`DIM`](dim.md), [`_MEMCOPY`](_memcopy.md), [`SWAP`](swap.md).

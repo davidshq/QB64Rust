@@ -93,4 +93,4 @@ Press any key to continue
 
 ## See also
 
-`LEFT$`, `RIGHT$`, `INSTR`, `ASC`.
+[`LEFT$`](left-str.md), [`RIGHT$`](right-str.md), [`INSTR`](instr.md), [`ASC`](asc.md).

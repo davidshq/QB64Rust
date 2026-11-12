@@ -21,13 +21,15 @@ From the built-in table (`tools\builtins\builtins.json`).
 In a `$CONSOLE:ONLY` program it is 0.
 <!-- src: language/console-and-window "Window built-ins are compiled"; tests\reference\examples\_windowhasfocus_1 -->
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Window built-ins are compiled"; tests\corpus\screen\w01_window_builtins -->
+In a program with a window, it is -1 while the window has the keyboard's focus: after the program clicks its own
+window with `_SCREENCLICK`, it is -1.
+<!-- src: language/console-and-window "Window built-ins are compiled"; tests\sandbox\window_title_handle; tests\corpus\screen\w01_window_builtins -->
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/console-and-window "Window built-ins are compiled" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `x = _WINDOWHASFOCUS(1)`: "`_WINDOWHASFOCUS` takes no arguments".
+  <!-- src: language/console-and-window "Window built-ins are compiled"; verification\v71_x07_windowhasfocus_arg -->
 
 ## Availability
 
@@ -54,4 +56,4 @@ Press any key to continue
 
 ## See also
 
-`_WINDOWHANDLE`, `_SCREENICON`.
+[`_WINDOWHANDLE`](_windowhandle.md), [`_SCREENICON`](_screenicon.md).

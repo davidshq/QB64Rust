@@ -72,4 +72,4 @@ Press any key to continue
 
 ## See also
 
-`DO`, `FOR`, `EXIT`.
+[`DO`](do.md), [`FOR`](for.md), [`EXIT`](exit.md).

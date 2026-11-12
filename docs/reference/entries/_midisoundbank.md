@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDOPEN`, `$MIDISOUNDFONT`.
+[`_SNDOPEN`](_sndopen.md), [`$MIDISOUNDFONT`](meta-midisoundfont.md).

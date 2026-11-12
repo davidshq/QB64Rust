@@ -40,4 +40,4 @@ Supported. All 13 programs that use it compile (call-site programs, examples and
 
 ## See also
 
-`_DELAY`, `_LIMIT`, `TIMER`, `INKEY$`.
+[`_DELAY`](_delay.md), [`_LIMIT`](_limit.md), [`TIMER`](timer.md), [`INKEY$`](inkey-str.md).

@@ -48,4 +48,4 @@ Supported. All 3 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_OPENHOST`, `_CONNECTED`, `_STATUSCODE`, `GET`, `PUT`.
+[`_OPENHOST`](_openhost.md), [`_CONNECTED`](_connected.md), [`_STATUSCODE`](_statuscode.md), [`GET`](get.md), [`PUT`](put.md).

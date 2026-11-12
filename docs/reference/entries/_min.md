@@ -73,4 +73,4 @@ Press any key to continue
 
 ## See also
 
-`_CLAMP`, `_IIF`, `ABS`.
+[`_CLAMP`](_clamp.md), [`_IIF`](_iif.md), [`ABS`](abs.md).

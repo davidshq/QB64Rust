@@ -45,3 +45,20 @@ QB64Rust keeps; the QuickBASIC column says whether it was measured, documented o
 | Q-035 | Whether `WIDTH , 60` in `SCREEN 12` keeps a color set by `PALETTE`: `PALETTE 2, 256 * 34`, then `WIDTH , 60`, then the VGA's color registers read back (`OUT &H3C7`, `INP(&H3C9)`) | **QB 4.5 resets the palette**: entry 2 is 0, 42, 0 again after `WIDTH , 60` and after `WIDTH , 30`. **PDS 7.1 keeps it**: entry 2 stays 0, 34, 0. Both keep it across `CLS` and a second `SCREEN 12`, and both reset it at `SCREEN 0` then `SCREEN 12` | Resets it, as QB 4.5 does, in QB64pe and QB64Rust alike. So a PDS program loses its colors here. Wars of Napoleon's City Report starts with `WIDTH , 60` after the map set entry 2 to 008A00, and shows its "(peace)" rows in 00AA00 where DOSBox-X showed 008A00 |
 | Q-036 | Which pixels a small `CIRCLE` lights with the screen's own aspect: `CIRCLE (50, 50), r, 15` for each radius from 1 to 10, in `SCREEN 12` and in `SCREEN 9`, then `PAINT` inside it | QB 4.5 and PDS 7.1 light the same pixels. Radius 4 in `SCREEN 12`, the size of Wars of Napoleon's city markers, has two pixels side by side at each of the four diagonals: rows 2 and 8 of the box are `..##...##..` | Other pixels for 3 of the 10 radii in `SCREEN 12` (radii 4, 6 and 9, by 4 to 16 pixels) and for 8 of the 10 in `SCREEN 9` (all but 1 and 6, by 4 to 20 pixels). Radius 4 in `SCREEN 12` has one pixel at each diagonal (`...#...#...`), so `PAINT` fills 57 pixels where QB 4.5 fills 61. Radius 3, the inner circle of a city marker, is the same. The game's three ellipses in `SCREEN 12` differ too: radius 18 with aspect .4 (its ships) by 12 pixels, six at each end that QB 4.5 lights and QB64 does not; radius 8 with aspect .4 (its tombstone) by 16; radius 70 with aspect .25 (its "RAID COMMERCE" mark) by 128, the flat top and bottom one row apart. The port leaves these pixels out of its comparison with DOSBox-X (its `tests\known-differences.txt`) |
 | Q-037 | `LEFT$` and `RIGHT$` with a negative length: `LEFT$("ABC", -1)`, `RIGHT$("ABC", -1)` | QB 4.5 and PDS 7.1 raise error 5, "Illegal function call". A length of 0 gives `""` with no error | `""` with no error, as for a length of 0 (`verification\v20_c_string_edges`) |
+
+## Words of BASIC PDS 7.1
+
+BASIC PDS 7.1 added words that QuickBASIC 4.5 and QB64 do not have. These are the ones the ports of World War 2
+and Civil War Battleset met, each with what QB64Rust does with it and the edit the ports made
+([Porting a BASIC PDS 7.1 program](../PORTING-PDS.md)). Two of them build with no error, which makes them the
+easiest to miss.
+
+| PDS form | What QB64Rust does | The usual edit |
+|---|---|---|
+| `CURDIR$` | Builds with no error: it is a string variable, always `""`. With `-w`, a name used only once gets "`CURDIR$` is used only once: is it misspelled?" | A `FUNCTION CURDIR$` that returns `_CWD$` without the separator at its end |
+| `DIR$` with no argument | The same: a string variable, always `""` | `DIR$("")`, with a `FUNCTION DIR$` written with `_FILES$` |
+| `DIR$(spec$)` | The compile error "an array index must be a number" | A `FUNCTION DIR$ (spec$)` written with `_FILES$` |
+| `CHDRIVE drive$` | The compile error "`CHDRIVE` is no statement and no SUB" | A `SUB CHDRIVE` that runs `CHDIR` |
+| `ON LOCAL ERROR GOTO label` | The compile error "`ON LOCAL ERROR` is BASIC PDS 7.1's, and QB64 does not have it" | `ON ERROR GOTO` with the handler in the main module, and `ON ERROR GOTO 0` before the SUB ends |
+| `COMMON SHARED /name/ x` | The compile error "a `COMMON` block name (`/name/`) is not accepted" | `DIM SHARED x` |
+| `FRE(-1)` | The compile error "`FRE` is not implemented in QB64pe" | Remove it |

@@ -144,4 +144,4 @@ Press any key to continue
 
 ## See also
 
-`$COLOR`, `DIM`, `DEFINT`.
+[`$COLOR`](meta-color.md), [`DIM`](dim.md), [`DEFINT`](defint.md).

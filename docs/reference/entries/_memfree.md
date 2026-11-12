@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`_MEMNEW`, `_MEMEXISTS`.
+[`_MEMNEW`](_memnew.md), [`_MEMEXISTS`](_memexists.md).

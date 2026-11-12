@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDOPEN`, `_SNDGETPOS`.
+[`_SNDOPEN`](_sndopen.md), [`_SNDGETPOS`](_sndgetpos.md).

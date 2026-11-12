@@ -23,4 +23,4 @@ Supported. All 4 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`LPRINT`.
+[`LPRINT`](lprint.md).

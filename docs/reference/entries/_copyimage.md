@@ -59,4 +59,4 @@ Press any key to continue
 
 ## See also
 
-`_NEWIMAGE`, `_PUTIMAGE`, `_FREEIMAGE`.
+[`_NEWIMAGE`](_newimage.md), [`_PUTIMAGE`](_putimage.md), [`_FREEIMAGE`](_freeimage.md).

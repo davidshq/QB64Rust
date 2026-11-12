@@ -80,4 +80,4 @@ Press any key to continue
 
 ## See also
 
-`CHR$`, `MID$`, `LEN`.
+[`CHR$`](chr-str.md), [`MID$`](mid-str.md), [`LEN`](len.md).

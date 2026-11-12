@@ -36,4 +36,4 @@ Supported. All 8 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_MAPTRIANGLE`, `SUB _GL`.
+[`_MAPTRIANGLE`](_maptriangle.md), [`SUB _GL`](_gl.md).

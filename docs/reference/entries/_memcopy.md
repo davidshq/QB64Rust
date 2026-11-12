@@ -98,4 +98,4 @@ Press any key to continue
 
 ## See also
 
-`_MEM`, `_MEMNEW`, `_MEMGET`, `_MEMPUT`, `_MEMFILL`, `_MEMFREE`.
+[`_MEM`](_mem.md), [`_MEMNEW`](_memnew.md), [`_MEMGET`](_memget.md), [`_MEMPUT`](_memput.md), [`_MEMFILL`](_memfill.md), [`_MEMFREE`](_memfree.md).

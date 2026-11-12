@@ -14,8 +14,15 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Behavior
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Window built-ins are compiled"; tests\corpus\slice\s66_window_builtins -->
+The sizes are those of the window's inside, without its frame, in pixels. In `SCREEN 0` they are in characters:
+`(40, 10)-(80, 25)` limits the window to 320 × 160 up to 640 × 400 pixels with the 8 × 16 font.
+`_WINDOWSIZELIMIT (w, h)` sets only the smallest size and `_WINDOWSIZELIMIT -(w, h)` only the largest; the other
+stays as it was. `_WINDOWSIZELIMIT` with no arguments removes both.
+<!-- src: language/console-and-window "Window built-ins are compiled"; tests\sandbox\window_size_limit; tests\corpus\slice\s66_window_builtins -->
+
+This runs only in the sandbox family, in the test VM. It reads the limits the window gives Windows for a resize
+(`WM_GETMINMAXINFO`); no test drags the window's edge.
+<!-- src: tests\sandbox\window_size_limit -->
 
 ## Errors
 
@@ -35,4 +42,4 @@ Supported. All 12 programs that use it compile (call-site programs, examples and
 
 ## See also
 
-`$RESIZE`, `_RESIZE`.
+[`$RESIZE`](meta-resize.md), [`_RESIZE`](_resize.md).

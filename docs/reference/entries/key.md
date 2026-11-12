@@ -105,4 +105,4 @@ Press any key to continue
 
 ## See also
 
-`TIMER`, `ON`, `INKEY$`, `_KEYHIT`.
+[`TIMER`](timer.md), [`ON`](on.md), [`INKEY$`](inkey-str.md), [`_KEYHIT`](_keyhit.md).

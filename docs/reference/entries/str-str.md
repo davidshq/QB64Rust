@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`VAL`, `_TOSTR$`, `PRINT USING`, `HEX$`.
+[`VAL`](val.md), [`_TOSTR$`](_tostr-str.md), [`PRINT USING`](print-using.md), [`HEX$`](hex-str.md).

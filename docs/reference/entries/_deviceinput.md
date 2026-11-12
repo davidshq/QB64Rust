@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`_DEVICES`, `_BUTTON`, `_AXIS`, `_LASTBUTTON`.
+[`_DEVICES`](_devices.md), [`_BUTTON`](_button.md), [`_AXIS`](_axis.md), [`_LASTBUTTON`](_lastbutton.md).

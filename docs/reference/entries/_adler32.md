@@ -60,4 +60,4 @@ Press any key to continue
 
 ## See also
 
-`_CRC32`, `_DEFLATE$`.
+[`_CRC32`](_crc32.md), [`_DEFLATE$`](_deflate-str.md).

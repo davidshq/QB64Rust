@@ -56,4 +56,4 @@ Press any key to continue
 
 ## See also
 
-`SINGLE`, `_FLOAT`, `CDBL`, `DEFDBL`.
+[`SINGLE`](single.md), [`_FLOAT`](_float.md), [`CDBL`](cdbl.md), [`DEFDBL`](defint.md).

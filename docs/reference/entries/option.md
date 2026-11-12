@@ -99,4 +99,4 @@ Press any key to continue
 
 ## See also
 
-`DIM`, `LBOUND`, `UBOUND`, `$IF`.
+[`DIM`](dim.md), [`LBOUND`](lbound.md), [`UBOUND`](ubound.md), [`$IF`](meta-if.md).

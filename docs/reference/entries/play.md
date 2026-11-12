@@ -102,4 +102,4 @@ Press any key to continue
 
 ## See also
 
-`SOUND`, `BEEP`, `ON`.
+[`SOUND`](sound.md), [`BEEP`](beep.md), [`ON`](on.md).

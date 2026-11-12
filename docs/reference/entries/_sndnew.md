@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`_MEMSOUND`, `_SNDOPEN`.
+[`_MEMSOUND`](_memsound.md), [`_SNDOPEN`](_sndopen.md).

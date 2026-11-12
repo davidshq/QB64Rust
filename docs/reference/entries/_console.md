@@ -57,4 +57,4 @@ Press any key to continue
 
 ## See also
 
-`$CONSOLE`, `_DEST`, `_ECHO`.
+[`$CONSOLE`](meta-console.md), [`_DEST`](_dest.md), [`_ECHO`](_echo.md).

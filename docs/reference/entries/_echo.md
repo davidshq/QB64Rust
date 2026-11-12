@@ -46,4 +46,4 @@ Press any key to continue
 
 ## See also
 
-`$CONSOLE`, `PRINT`, `_LOGINFO`.
+[`$CONSOLE`](meta-console.md), [`PRINT`](print.md), [`_LOGINFO`](_loginfo.md).

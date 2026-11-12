@@ -78,4 +78,4 @@ Press any key to continue
 
 ## See also
 
-`DIM`, `STATIC`, `COMMON`, `SUB`.
+[`DIM`](dim.md), [`STATIC`](static.md), [`COMMON`](common.md), [`SUB`](sub.md).

@@ -69,4 +69,4 @@ Press any key to continue
 
 ## See also
 
-`LINE`, `PAINT`, `DRAW`.
+[`LINE`](line.md), [`PAINT`](paint.md), [`DRAW`](draw.md).

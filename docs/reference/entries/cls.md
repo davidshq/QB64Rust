@@ -65,4 +65,4 @@ Press any key to continue
 
 ## See also
 
-`LOCATE`, `COLOR`, `VIEW PRINT`.
+[`LOCATE`](locate.md), [`COLOR`](color.md), [`VIEW PRINT`](view-print.md).

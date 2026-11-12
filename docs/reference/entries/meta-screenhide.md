@@ -37,4 +37,4 @@ Supported. The one program that uses it compiles (a call-site program, an exampl
 
 ## See also
 
-`_SCREENHIDE`, `$CONSOLE`.
+[`_SCREENHIDE`](_screenhide.md), [`$CONSOLE`](meta-console.md).

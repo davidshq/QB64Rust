@@ -68,4 +68,4 @@ Press any key to continue
 
 ## See also
 
-`CDBL`, `CINT`, `CLNG`, `_CAST`.
+[`CDBL`](cdbl.md), [`CINT`](cint.md), [`CLNG`](clng.md), [`_CAST`](_cast.md).

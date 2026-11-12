@@ -75,4 +75,4 @@ Press any key to continue
 
 ## See also
 
-`PRINT`, `INPUT`, `OPEN`.
+[`PRINT`](print.md), [`INPUT`](input.md), [`OPEN`](open.md).

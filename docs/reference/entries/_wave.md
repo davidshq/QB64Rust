@@ -69,4 +69,4 @@ Press any key to continue
 
 ## See also
 
-`SOUND`.
+[`SOUND`](sound.md).

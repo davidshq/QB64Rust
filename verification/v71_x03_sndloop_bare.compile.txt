@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDLOOP handle&
+Caused by (or after):_SNDLOOP
+LINE 6:_SNDLOOP
+exit=1

@@ -70,4 +70,4 @@ Press any key to continue
 
 ## See also
 
-`MKI$`, `_CV`, `CVSMBF`, `GET`.
+[`MKI$`](mki-str.md), [`_CV`](_cv.md), [`CVSMBF`](cvsmbf.md), [`GET`](get.md).

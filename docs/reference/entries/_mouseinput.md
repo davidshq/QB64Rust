@@ -60,4 +60,4 @@ Press any key to continue
 
 ## See also
 
-`_MOUSEX`, `_MOUSEBUTTON`, `_MOUSEWHEEL`, `_MOUSEMOVEMENTX`.
+[`_MOUSEX`](_mousex.md), [`_MOUSEBUTTON`](_mousebutton.md), [`_MOUSEWHEEL`](_mousewheel.md), [`_MOUSEMOVEMENTX`](_mousemovementx.md).

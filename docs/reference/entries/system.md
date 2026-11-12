@@ -50,4 +50,4 @@ SYSTEM ends the program at once.
 
 ## See also
 
-`END`, `STOP`, `_EXIT`.
+[`END`](end.md), [`STOP`](stop.md), [`_EXIT`](_exit.md).

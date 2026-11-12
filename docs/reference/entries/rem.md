@@ -73,4 +73,4 @@ Press any key to continue
 
 ## See also
 
-`$INCLUDE`, `$DYNAMIC`, `DATA`.
+[`$INCLUDE`](meta-include.md), [`$DYNAMIC`](meta-dynamic.md), [`DATA`](data.md).

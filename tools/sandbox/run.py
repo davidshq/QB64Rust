@@ -327,6 +327,25 @@ def vm_run(run: Path, limit: int, runner=subprocess.run) -> int:
     return code if code in (VM_DONE, VM_LIMIT, VM_REFUSED) else VM_LIMIT
 
 
+def start_vm(names: list[str], timeout: int) -> int:
+    """One run of `names` in the test VM, into RUN/results/ (emptied first): vm_run's exit."""
+    prepare(RUN, names, timeout, sandbox=False)
+    # run.ps1 has its own limit for the VM's start; this one is the programs'.
+    limit = timeout * len(names) + 60
+    print(f"starting the test VM: {len(names)} program(s), up to {limit} s for them", flush=True)
+    started = time.monotonic()
+    code = vm_run(RUN, limit)
+    if code == VM_DONE:
+        print(f"the VM run ended after {time.monotonic() - started:.0f} s", flush=True)
+    return code
+
+
+def timed_out(results: Path, name: str) -> bool:
+    """Whether the program ended at its limit: inside.ps1 writes `timeout` as its exit."""
+    done = results / name / "exit"
+    return done.is_file() and done.read_text(encoding="ascii", errors="replace").strip() == "timeout"
+
+
 def end_sandbox(which: tuple[str, ...] = PROCESSES) -> None:
     """Ends the sandbox's processes of `which`: the run's own, since a run refuses to start beside a sandbox."""
     for p in which:
@@ -571,13 +590,9 @@ def run_family(a: argparse.Namespace) -> int:
 
     names = [p.stem for p in progs if p.stem not in verdicts]
     results = RUN / "results"
+    retried: list[str] = []
     if names and in_vm:
-        prepare(RUN, names, a.timeout, sandbox=False)
-        # run.ps1 has its own limit for the VM's start; this one is the programs'.
-        limit = a.timeout * len(names) + 60
-        print(f"starting the test VM: {len(names)} program(s), up to {limit} s for them", flush=True)
-        started = time.monotonic()
-        code = vm_run(RUN, limit)
+        code = start_vm(names, a.timeout)
         if code == VM_REFUSED:
             return 2
         if code == VM_LIMIT:
@@ -586,7 +601,25 @@ def run_family(a: argparse.Namespace) -> int:
             print(f"  with results: {', '.join(have) or 'none'}")
             print(f"  without: {', '.join(n for n in names if n not in have) or 'none'}")
             return 1
-        print(f"the VM run ended after {time.monotonic() - started:.0f} s", flush=True)
+        # A program that ended at its limit runs once more, in a fresh start of the VM: a loaded host slows the VM
+        # enough that a program may miss its limit (tests/sandbox/README.md). A wrong output is not run again.
+        retried = [n for n in names if timed_out(results, n)]
+        if retried:
+            print(f"timed out, run once more: {', '.join(retried)}", flush=True)
+            first = RUN / "results.first"
+            if first.exists():
+                shutil.rmtree(first)
+            results.rename(first)
+            code = start_vm(retried, a.timeout)
+            if code == VM_REFUSED:
+                return 2
+            if code == VM_LIMIT:
+                print("sandbox: the second run in the test VM did not finish", flush=True)
+            # The other programs' results, and the first run's done, come back beside the second run's.
+            for d in first.iterdir():
+                if d.name not in retried and not (results / d.name).exists():
+                    shutil.move(str(d), str(results / d.name))
+            shutil.rmtree(first)
     elif names:
         wsb_path = prepare(RUN, names, a.timeout)
         limit = START_LIMIT + a.timeout * len(names)
@@ -609,9 +642,13 @@ def run_family(a: argparse.Namespace) -> int:
     failed = 0
     for p in progs:
         v = verdicts[p.stem]
-        print(f"{'PASS' if v.ok else 'FAIL'}  {v.name}: {v.why}")
+        again = " (on its second run: the first timed out)" if v.name in retried else ""
+        print(f"{'PASS' if v.ok else 'FAIL'}  {v.name}: {v.why}{again}")
         if v.diff:
-            print(v.diff, end="" if v.diff.endswith("\n") else "\n")
+            # A program's output may hold bytes the console's code page cannot print (garbage from a bug): they are
+            # shown escaped rather than ending the run before its verdicts.
+            diff = v.diff.encode(sys.stdout.encoding or "utf-8", "backslashreplace").decode(sys.stdout.encoding or "utf-8")
+            print(diff, end="" if diff.endswith("\n") else "\n")
         failed += not v.ok
 
     problems, summary = coverage(a.record, a.glob, results)

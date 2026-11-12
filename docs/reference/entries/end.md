@@ -67,4 +67,4 @@ Press any key to continue
 
 ## See also
 
-`SYSTEM`, `STOP`, `_EXIT`.
+[`SYSTEM`](system.md), [`STOP`](stop.md), [`_EXIT`](_exit.md).

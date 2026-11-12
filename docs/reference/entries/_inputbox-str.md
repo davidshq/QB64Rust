@@ -14,7 +14,8 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Behavior
 
-No test opens a dialog, shows a notification, moves the window, or clicks or types on the desktop.
+No test opens a dialog yet: a dialog waits for someone to answer it, and the sandbox family, which runs the
+built-ins that act on the desktop in the test VM, has no program that answers one.
 <!-- src: language/console-and-window "Dialogs and the window's place are compiled" -->
 
 A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
@@ -38,4 +39,4 @@ Supported. All 7 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_MESSAGEBOX`, `INPUT`.
+[`_MESSAGEBOX`](_messagebox.md), [`INPUT`](input.md).

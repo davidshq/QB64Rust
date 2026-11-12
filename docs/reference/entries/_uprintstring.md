@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`_PRINTSTRING`, `_UFONTHEIGHT`, `_UCHARPOS`.
+[`_PRINTSTRING`](_printstring.md), [`_UFONTHEIGHT`](_ufontheight.md), [`_UCHARPOS`](_ucharpos.md).

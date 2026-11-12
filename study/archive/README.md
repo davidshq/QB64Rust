@@ -96,6 +96,12 @@ Studies whose questions are all answered and whose outcomes are built or are `SO
 |---|---|---|
 | `41-process-reset-panel.md` | The panel's process-reset proposal after `docs\SESSION-HISTORY-REVIEW.md` (2026-10-31): disk, cache invalidation, process growth, the review loop; proposals P1–P7 | P1 (hooks) and P2 (`tools\clean\clean.py`): `DECISIONS.md` 2026-10-31. P3 (pass cache) and P4 (rule 6): replaced by the change `testing-reset`. P5–P7 postponed by the user (2026-11-10), one `SOMEDAY.md` row |
 
+## Archived 2026-11-12
+
+| File | Content | Where its outcome lives |
+|---|---|---|
+| `49-language-reference-plan.md` | The plan for a language reference (2026-11-11): what it holds, the sources a page may be written from, the layout of a page, the tool that checks it, the batches, and five questions | `docs\reference\`; `tools\reference\README.md`; the spec `testing/language-reference`; the change `language-reference`, archived 2026-11-12; `DECISIONS.md` 2026-11-11 |
+
 ## Closed records
 
 | File | Content (`study\00`'s document map until 2026-10-18) |

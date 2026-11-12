@@ -69,4 +69,4 @@ Press any key to continue
 
 ## See also
 
-`NOT`, `_ANDALSO`, `_ORELSE`.
+[`NOT`](not.md), [`_ANDALSO`](_andalso.md), [`_ORELSE`](_orelse.md).

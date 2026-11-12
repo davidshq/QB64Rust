@@ -54,4 +54,4 @@ Press any key to continue
 
 ## See also
 
-`_MOUSEHIDE`, `_MOUSESHOW`, `_MOUSEDISABLED`.
+[`_MOUSEHIDE`](_mouseshow.md), [`_MOUSESHOW`](_mouseshow.md), [`_MOUSEDISABLED`](_mousedisabled.md).

@@ -48,4 +48,4 @@ Press any key to continue
 
 ## See also
 
-`_SETALPHA`, `_PUTIMAGE`.
+[`_SETALPHA`](_setalpha.md), [`_PUTIMAGE`](_putimage.md).

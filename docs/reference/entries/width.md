@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`SCREEN`, `LOCATE`.
+[`SCREEN`](screen.md), [`LOCATE`](locate.md).

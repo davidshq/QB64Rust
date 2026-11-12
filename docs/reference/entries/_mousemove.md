@@ -15,7 +15,12 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Behavior
 
-It moves the machine's cursor, so no test runs it; it compiles to QB64pe's call.
+`_MOUSEMOVE x, y` moves the mouse cursor to that place of the program's screen: a pixel in a graphics screen, a
+column and a row in a text screen. After `_MOUSEMOVE 50, 60` in a graphics screen, and once `_MOUSEINPUT` has read
+the move, `_MOUSEX` and `_MOUSEY` are 50 and 60. In `SCREEN 0`, `_MOUSEMOVE 10, 5` gives 10 and 5.
+<!-- src: language/mouse "Mouse built-ins that no test runs"; tests\sandbox\mousemove_readback -->
+
+It moves the machine's real cursor, so it runs only in the sandbox family, in the test VM, not on the host.
 <!-- src: language/mouse "Mouse built-ins that no test runs"; tests\corpus\screen\u01_mouse_queue -->
 
 The place is checked against the screen: a column and row from 1 to the screen's width and height, or a pixel inside
@@ -39,4 +44,4 @@ Supported. All 4 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_MOUSEX`, `_MOUSEY`.
+[`_MOUSEX`](_mousex.md), [`_MOUSEY`](_mousex.md).

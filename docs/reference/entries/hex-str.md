@@ -68,4 +68,4 @@ Press any key to continue
 
 ## See also
 
-`OCT$`, `_BIN$`, `VAL`, `STR$`.
+[`OCT$`](oct-str.md), [`_BIN$`](_bin-str.md), [`VAL`](val.md), [`STR$`](str-str.md).

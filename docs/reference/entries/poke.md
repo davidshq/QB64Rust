@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`PEEK`, `DEF SEG`, `VARPTR`, `_MEMPUT`.
+[`PEEK`](peek.md), [`DEF SEG`](def-seg.md), [`VARPTR`](varptr.md), [`_MEMPUT`](_memput.md).

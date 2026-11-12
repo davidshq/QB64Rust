@@ -59,4 +59,4 @@ Press any key to continue
 
 ## See also
 
-`_LOGINFO`.
+[`_LOGINFO`](_loginfo.md).

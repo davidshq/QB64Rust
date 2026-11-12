@@ -59,4 +59,4 @@ Press any key to continue
 
 ## See also
 
-`_CONSOLE`, `_ECHO`, `_DEST`, `$SCREENHIDE`.
+[`_CONSOLE`](_console.md), [`_ECHO`](_echo.md), [`_DEST`](_dest.md), [`$SCREENHIDE`](meta-screenhide.md).

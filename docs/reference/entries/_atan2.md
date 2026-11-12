@@ -67,4 +67,4 @@ Press any key to continue
 
 ## See also
 
-`ATN`, `_HYPOT`, `_R2D`.
+[`ATN`](atn.md), [`_HYPOT`](_hypot.md), [`_R2D`](_d2r.md).

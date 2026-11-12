@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDRAW`, `_SNDOPENRAW`.
+[`_SNDRAW`](_sndraw.md), [`_SNDOPENRAW`](_sndopenraw.md).

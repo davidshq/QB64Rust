@@ -30,4 +30,4 @@ Supported. All 4 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_LIMIT`, `_DISPLAY`.
+[`_LIMIT`](_limit.md), [`_DISPLAY`](_display.md).

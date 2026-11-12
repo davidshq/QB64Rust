@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`INP`, `OUT`.
+[`INP`](inp.md), [`OUT`](out.md).

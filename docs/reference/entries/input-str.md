@@ -77,4 +77,4 @@ Press any key to continue
 
 ## See also
 
-`INKEY$`, `INPUT`, `OPEN`.
+[`INKEY$`](inkey-str.md), [`INPUT`](input.md), [`OPEN`](open.md).

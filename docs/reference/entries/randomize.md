@@ -71,4 +71,4 @@ Press any key to continue
 
 ## See also
 
-`RND`, `TIMER`.
+[`RND`](rnd.md), [`TIMER`](timer.md).

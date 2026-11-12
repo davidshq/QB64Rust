@@ -59,4 +59,4 @@ Press any key to continue
 
 ## See also
 
-`STRING$`, `SPC`, `LTRIM$`.
+[`STRING$`](string-str.md), [`SPC`](spc.md), [`LTRIM$`](ltrim-str.md).

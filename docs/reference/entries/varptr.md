@@ -87,4 +87,4 @@ Press any key to continue
 
 ## See also
 
-`VARSEG`, `VARPTR$`, `SADD`, `PEEK`, `_OFFSET`.
+[`VARSEG`](varseg.md), [`VARPTR$`](varptr-str.md), [`SADD`](sadd.md), [`PEEK`](peek.md), [`_OFFSET`](_offset.md).

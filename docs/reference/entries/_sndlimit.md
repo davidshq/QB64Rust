@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDPLAY`, `_SNDGETPOS`.
+[`_SNDPLAY`](_sndplay.md), [`_SNDGETPOS`](_sndgetpos.md).

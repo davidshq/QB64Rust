@@ -67,4 +67,4 @@ Press any key to continue
 
 ## See also
 
-`$STATIC`, `REDIM`, `DIM`.
+[`$STATIC`](meta-static.md), [`REDIM`](redim.md), [`DIM`](dim.md).

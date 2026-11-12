@@ -212,6 +212,8 @@ class Pages(unittest.TestCase):
         base = self.tmp.relative_to(r.REPO)
         self.entries = self.tmp / "entries"
         self.entries.mkdir()
+        # The page that GOOD_PAGE's "See also" links to.
+        (self.entries / "right-str.md").write_text("", encoding="utf-8")
         (self.tmp / "examples").mkdir()
         self.patch = mock.patch.multiple(r, ENTRIES=base / "entries", EXAMPLES=base / "examples")
         self.patch.start()
@@ -230,6 +232,11 @@ class Pages(unittest.TestCase):
 
     def test_a_good_page(self):
         self.assertEqual(self.problems(GOOD_PAGE), [])
+
+    def test_see_also_links_each_word_with_a_page_of_its_own(self):
+        text = r.refresh(GOOD_PAGE.replace("`RIGHT$`.", "`RIGHT$`, `LEFT$`, `NOSUCHWORD`."), "LEFT$", self.words, {})
+        self.assertIn("[`RIGHT$`](right-str.md), `LEFT$`, `NOSUCHWORD`.", text)
+        self.assertEqual(r.refresh(text, "LEFT$", self.words, {}), text)
 
     def test_a_rule_without_a_source(self):
         text = GOOD_PAGE.replace("<!-- src: verification\\v20_c_string_edges -->", "")
@@ -256,7 +263,7 @@ class Pages(unittest.TestCase):
         self.assertTrue(any("out of date" in p for p in found))
 
     def test_a_link_that_leads_nowhere(self):
-        text = GOOD_PAGE.replace("`RIGHT$`.", "[RIGHT$](right-str.md).")
+        text = GOOD_PAGE.replace("`RIGHT$`.", "[RIGHT$](no-such-page.md).")
         self.assertTrue(any("leads nowhere" in p for p in self.problems(text)))
 
     def test_a_page_no_word_has(self):

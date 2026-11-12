@@ -36,4 +36,4 @@ Supported. All 6 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_GLRENDER`, `_DISPLAY`.
+[`_GLRENDER`](_glrender.md), [`_DISPLAY`](_display.md).

@@ -88,4 +88,4 @@ Press any key to continue
 
 ## See also
 
-`\` (integer division), `INT`, `FIX`.
+`\` (integer division), [`INT`](int.md), [`FIX`](fix.md).

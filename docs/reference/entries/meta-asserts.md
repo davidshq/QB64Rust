@@ -50,4 +50,4 @@ Press any key to continue
 
 ## See also
 
-`_ASSERT`, `$CONSOLE`, `$DEBUG`.
+[`_ASSERT`](_assert.md), [`$CONSOLE`](meta-console.md), [`$DEBUG`](meta-debug.md).

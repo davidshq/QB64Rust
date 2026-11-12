@@ -98,4 +98,4 @@ Press any key to continue
 
 ## See also
 
-`_DEFINE`, `DIM`, `INTEGER`, `STRING`.
+[`_DEFINE`](_define.md), [`DIM`](dim.md), [`INTEGER`](integer.md), [`STRING`](string.md).

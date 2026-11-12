@@ -25,4 +25,4 @@ Supported. All 5 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_CINP`, `INKEY$`, `$CONSOLE`.
+`_CINP`, [`INKEY$`](inkey-str.md), [`$CONSOLE`](meta-console.md).

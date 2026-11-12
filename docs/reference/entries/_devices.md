@@ -55,4 +55,4 @@ Press any key to continue
 
 ## See also
 
-`_DEVICE$`, `_DEVICEINPUT`, `_LASTBUTTON`.
+[`_DEVICE$`](_device-str.md), [`_DEVICEINPUT`](_deviceinput.md), [`_LASTBUTTON`](_lastbutton.md).

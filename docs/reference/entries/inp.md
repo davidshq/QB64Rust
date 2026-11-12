@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`OUT`, `WAIT`, `PALETTE`.
+[`OUT`](out.md), [`WAIT`](wait.md), [`PALETTE`](palette.md).

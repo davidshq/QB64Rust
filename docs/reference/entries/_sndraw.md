@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDRAWBATCH`, `_SNDRAWLEN`, `_SNDRATE`, `_SNDOPENRAW`.
+[`_SNDRAWBATCH`](_sndrawbatch.md), [`_SNDRAWLEN`](_sndrawlen.md), [`_SNDRATE`](_sndrate.md), [`_SNDOPENRAW`](_sndopenraw.md).

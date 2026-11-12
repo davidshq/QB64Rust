@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDOPEN`, `_SNDSTOP`.
+[`_SNDOPEN`](_sndopen.md), [`_SNDSTOP`](_sndstop.md).

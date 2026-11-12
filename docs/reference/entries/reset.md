@@ -42,4 +42,4 @@ Press any key to continue
 
 ## See also
 
-`CLOSE`.
+[`CLOSE`](close.md).

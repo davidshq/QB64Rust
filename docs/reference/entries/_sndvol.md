@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDBAL`, `_SNDPLAY`.
+[`_SNDBAL`](_sndbal.md), [`_SNDPLAY`](_sndplay.md).

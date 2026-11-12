@@ -51,4 +51,4 @@ Press any key to continue
 
 ## See also
 
-`_KEYDOWN`, `INKEY$`, `_KEYCLEAR`.
+[`_KEYDOWN`](_keydown.md), [`INKEY$`](inkey-str.md), [`_KEYCLEAR`](_keyclear.md).

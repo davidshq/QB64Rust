@@ -56,4 +56,4 @@ Press any key to continue
 
 ## See also
 
-`KILL`, `OPEN`, `_FILES$`.
+[`KILL`](kill.md), [`OPEN`](open.md), [`_FILES$`](_files-str.md).

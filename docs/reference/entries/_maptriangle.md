@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`_PUTIMAGE`.
+[`_PUTIMAGE`](_putimage.md).

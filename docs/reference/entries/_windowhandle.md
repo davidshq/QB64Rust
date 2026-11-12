@@ -14,8 +14,9 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Behavior
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Window built-ins are compiled"; tests\corpus\screen\w01_window_builtins -->
+It gives the Windows handle of the program's window, for the calls of a `DECLARE LIBRARY` block: Windows' own
+`IsWindow` of it is true, and `GetWindowTextA` of it reads the window's title.
+<!-- src: language/console-and-window "Window built-ins are compiled"; tests\sandbox\window_title_handle; tests\corpus\screen\w01_window_builtins -->
 
 ## Errors
 
@@ -35,4 +36,4 @@ Supported. All 9 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_WINDOWHASFOCUS`, `DECLARE LIBRARY`.
+[`_WINDOWHASFOCUS`](_windowhasfocus.md), [`DECLARE LIBRARY`](declare-library.md).

@@ -120,4 +120,4 @@ Press any key to continue
 
 ## See also
 
-`PSET`, `CIRCLE`, `PAINT`, `DRAW`, `COLOR`, `SCREEN`, `_NEWIMAGE`.
+[`PSET`](pset.md), [`CIRCLE`](circle.md), [`PAINT`](paint.md), [`DRAW`](draw.md), [`COLOR`](color.md), [`SCREEN`](screen.md), [`_NEWIMAGE`](_newimage.md).

@@ -82,4 +82,4 @@ Press any key to continue
 
 ## See also
 
-`GOTO`, `ON`, `SUB`.
+[`GOTO`](goto.md), [`ON`](on.md), [`SUB`](sub.md).

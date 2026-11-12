@@ -55,4 +55,4 @@ Press any key to continue
 
 ## See also
 
-`ERASE`, `RUN`, `RESTORE`.
+[`ERASE`](erase.md), [`RUN`](run.md), [`RESTORE`](restore.md).

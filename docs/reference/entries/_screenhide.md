@@ -16,8 +16,12 @@ hidden = _SCREENHIDE
 The function gives -1 when the window is hidden and 0 when it is not, and 0 in a `$CONSOLE:ONLY` program.
 <!-- src: language/console-and-window "The function _SCREENHIDE"; verification\v57_h01_screenhide_value; tests\reference\examples\_screenhide_1 -->
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Window built-ins are compiled"; tests\corpus\slice\s66_window_builtins -->
+`_SCREENHIDE` hides the window and `_SCREENSHOW` shows it again: Windows' `IsWindowVisible` of it is false, then
+true. While it is hidden, `_SCREENEXISTS` still gives -1.
+<!-- src: language/console-and-window "Window built-ins are compiled"; tests\sandbox\window_hide_icon; tests\corpus\slice\s66_window_builtins -->
+
+This runs only in the sandbox family, in the test VM.
+<!-- src: tests\sandbox\window_hide_icon -->
 
 ## Errors
 
@@ -49,4 +53,4 @@ Press any key to continue
 
 ## See also
 
-`$SCREENHIDE`, `_SCREENICON`, `_CONSOLE`.
+[`$SCREENHIDE`](meta-screenhide.md), [`_SCREENICON`](_screenicon.md), [`_CONSOLE`](_console.md).

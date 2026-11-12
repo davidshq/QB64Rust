@@ -54,4 +54,4 @@ Press any key to continue
 
 ## See also
 
-`_PRINTSTRING`, `COLOR`.
+[`_PRINTSTRING`](_printstring.md), [`COLOR`](color.md).

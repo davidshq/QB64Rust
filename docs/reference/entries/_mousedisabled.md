@@ -55,4 +55,4 @@ Press any key to continue
 
 ## See also
 
-`_MOUSEHIDE`, `_MOUSEMOVEMENTX`, `_MOUSEHIDDEN`.
+[`_MOUSEHIDE`](_mouseshow.md), [`_MOUSEMOVEMENTX`](_mousemovementx.md), [`_MOUSEHIDDEN`](_mousehidden.md).

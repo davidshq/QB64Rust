@@ -85,4 +85,4 @@ Press any key to continue
 
 ## See also
 
-`_MEM`, `_MEMGET`, `_INTEGER64`.
+[`_MEM`](_mem.md), [`_MEMGET`](_memget.md), [`_INTEGER64`](_integer64.md).

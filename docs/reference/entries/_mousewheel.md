@@ -56,4 +56,4 @@ Press any key to continue
 
 ## See also
 
-`_MOUSEINPUT`, `_WHEEL`.
+[`_MOUSEINPUT`](_mouseinput.md), [`_WHEEL`](_axis.md).

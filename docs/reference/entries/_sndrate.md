@@ -57,4 +57,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDRAW`, `_SNDNEW`.
+[`_SNDRAW`](_sndraw.md), [`_SNDNEW`](_sndnew.md).

@@ -55,4 +55,4 @@ Press any key to continue
 
 ## See also
 
-`$ASSERTS`, `$CHECKING`.
+[`$ASSERTS`](meta-asserts.md), [`$CHECKING`](meta-checking.md).

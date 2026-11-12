@@ -80,4 +80,4 @@ Press any key to continue
 
 ## See also
 
-`PRINT`, `STR$`, `_TOSTR$`, `LPRINT`.
+[`PRINT`](print.md), [`STR$`](str-str.md), [`_TOSTR$`](_tostr-str.md), [`LPRINT`](lprint.md).

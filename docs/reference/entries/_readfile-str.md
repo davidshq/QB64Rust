@@ -52,4 +52,4 @@ Press any key to continue
 
 ## See also
 
-`OPEN`, `GET`, `PUT`.
+[`OPEN`](open.md), [`GET`](get.md), [`PUT`](put.md).

@@ -52,4 +52,4 @@ Press any key to continue
 
 ## See also
 
-`LINE`, `CIRCLE`, `DRAW`.
+[`LINE`](line.md), [`CIRCLE`](circle.md), [`DRAW`](draw.md).

@@ -35,4 +35,4 @@ Supported. All 10 programs that use it compile (call-site programs, examples and
 
 ## See also
 
-`$RESIZE`, `_WINDOWSIZELIMIT`.
+[`$RESIZE`](meta-resize.md), [`_WINDOWSIZELIMIT`](_windowsizelimit.md).

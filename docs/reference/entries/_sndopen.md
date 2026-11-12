@@ -69,4 +69,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDCLOSE`, `_SNDPLAY`, `_SNDLEN`, `_SNDCOPY`.
+[`_SNDCLOSE`](_sndclose.md), [`_SNDPLAY`](_sndplay.md), [`_SNDLEN`](_sndlen.md), [`_SNDCOPY`](_sndcopy.md).

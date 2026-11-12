@@ -88,4 +88,4 @@ Press any key to continue
 
 ## See also
 
-`_SHL`, `AND`, `OR`, `_BIN$`.
+[`_SHL`](_shl.md), [`AND`](and.md), [`OR`](or.md), [`_BIN$`](_bin-str.md).

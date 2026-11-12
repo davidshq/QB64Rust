@@ -56,4 +56,4 @@ Press any key to continue
 
 ## See also
 
-`_PALETTECOLOR`, `COLOR`, `SCREEN`.
+[`_PALETTECOLOR`](_palettecolor.md), [`COLOR`](color.md), [`SCREEN`](screen.md).

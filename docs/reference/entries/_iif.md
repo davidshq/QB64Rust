@@ -76,4 +76,4 @@ Press any key to continue
 
 ## See also
 
-`IF`, `_MIN`, `SELECT CASE`.
+[`IF`](if.md), [`_MIN`](_min.md), [`SELECT CASE`](select-case.md).

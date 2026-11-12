@@ -51,4 +51,4 @@ Press any key to continue
 
 ## See also
 
-`_RED32`, `_RGB`, `_HSB32`, `POINT`.
+[`_RED32`](_red32.md), [`_RGB`](_rgb.md), [`_HSB32`](_hsb32.md), [`POINT`](point.md).

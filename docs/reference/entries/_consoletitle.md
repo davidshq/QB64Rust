@@ -16,9 +16,10 @@ _CONSOLEFONT fontname$, size
 The three statements act on the console of a program with `$CONSOLE` or `$CONSOLE:ONLY`, as QB64pe's do.
 <!-- src: language/console-and-window "The console's own statements and functions"; tests\reference\examples\_consoletitle_1 -->
 
-`_CONSOLEFONT` changes the font of the console window the program shares with others, so no test runs it; it compiles
-to QB64pe's call.
-<!-- src: language/console-and-window "The console's own statements and functions" -->
+`_CONSOLEFONT` changes the font of the console window the program shares with others, so it runs only in the
+sandbox family, in the test VM. There `_CONSOLEFONT "Consolas", 20` and `_CONSOLEFONT "", 12`, the size alone,
+raise no error and the program goes on. Nothing in BASIC reads the font back.
+<!-- src: language/console-and-window "The console's own statements and functions"; tests\sandbox\consolefont_err -->
 
 ## Availability
 
@@ -48,4 +49,4 @@ Press any key to continue
 
 ## See also
 
-`$CONSOLE`, `_TITLE`.
+[`$CONSOLE`](meta-console.md), [`_TITLE`](_title.md).

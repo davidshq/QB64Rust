@@ -108,4 +108,4 @@ Press any key to continue
 
 ## See also
 
-`PUT`, `OPEN`, `SEEK`, `FIELD`, `EOF`.
+[`PUT`](put.md), [`OPEN`](open.md), [`SEEK`](seek.md), [`FIELD`](field.md), [`EOF`](eof.md).

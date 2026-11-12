@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`INTEGER`, `_UNSIGNED`, `_BIT`, `ASC`, `CHR$`.
+[`INTEGER`](integer.md), [`_UNSIGNED`](_unsigned.md), [`_BIT`](_bit.md), [`ASC`](asc.md), [`CHR$`](chr-str.md).

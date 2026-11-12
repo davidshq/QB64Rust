@@ -43,4 +43,4 @@ Press any key to continue
 
 ## See also
 
-`_DEST`, `POINT`.
+[`_DEST`](_dest.md), [`POINT`](point.md).

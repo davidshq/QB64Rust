@@ -53,4 +53,4 @@ Press any key to continue
 
 ## See also
 
-`PALETTE`, `_DEFAULTCOLOR`, `$COLOR`, `CLS`.
+[`PALETTE`](palette.md), [`_DEFAULTCOLOR`](_defaultcolor.md), [`$COLOR`](meta-color.md), [`CLS`](cls.md).

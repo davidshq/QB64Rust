@@ -54,4 +54,4 @@ Press any key to continue
 
 ## See also
 
-`_SCREENX`, `_NEWIMAGE`, `_DESKTOPREFRESHRATE`.
+[`_SCREENX`](_screenx.md), [`_NEWIMAGE`](_newimage.md), [`_DESKTOPREFRESHRATE`](_desktoprefreshrate.md).

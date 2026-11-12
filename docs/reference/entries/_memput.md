@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`_MEMGET`, `_MEMFILL`, `_MEMCOPY`, `_MEM`.
+[`_MEMGET`](_memget.md), [`_MEMFILL`](_memfill.md), [`_MEMCOPY`](_memcopy.md), [`_MEM`](_mem.md).

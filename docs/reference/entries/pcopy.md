@@ -52,4 +52,4 @@ Press any key to continue
 
 ## See also
 
-`SCREEN`, `_DISPLAY`.
+[`SCREEN`](screen.md), [`_DISPLAY`](_display.md).

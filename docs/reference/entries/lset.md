@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`FIELD`, `MID$`.
+[`FIELD`](field.md), [`MID$`](mid-str.md).

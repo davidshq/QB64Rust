@@ -69,4 +69,4 @@ Press any key to continue
 
 ## See also
 
-`SUB`, `FUNCTION`, `DECLARE LIBRARY`.
+[`SUB`](sub.md), [`FUNCTION`](function.md), [`DECLARE LIBRARY`](declare-library.md).

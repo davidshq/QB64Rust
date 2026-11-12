@@ -25,8 +25,9 @@ A handle that is not open, 0 and negative numbers included, does nothing, with n
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_SNDSTOP`: "`_SNDSTOP` takes 1 argument".
+  <!-- src: language/sound "Forms of the sound handle statements"; verification\v71_x06_sndstop_bare -->
 
 ## Availability
 
@@ -64,4 +65,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDPAUSE`, `_SNDPLAY`, `_SNDCLOSE`.
+[`_SNDPAUSE`](_sndpause.md), [`_SNDPLAY`](_sndplay.md), [`_SNDCLOSE`](_sndclose.md).

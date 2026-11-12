@@ -68,4 +68,4 @@ Press any key to continue
 
 ## See also
 
-`VARPTR`, `PLAY`, `DRAW`.
+[`VARPTR`](varptr.md), [`PLAY`](play.md), [`DRAW`](draw.md).

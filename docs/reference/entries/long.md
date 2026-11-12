@@ -68,4 +68,4 @@ Press any key to continue
 
 ## See also
 
-`INTEGER`, `_INTEGER64`, `_UNSIGNED`, `CLNG`, `DEFLNG`.
+[`INTEGER`](integer.md), [`_INTEGER64`](_integer64.md), [`_UNSIGNED`](_unsigned.md), [`CLNG`](clng.md), [`DEFLNG`](defint.md).

@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`UCASE$`, `LCASE$`, `INSTR`.
+[`UCASE$`](ucase-str.md), [`LCASE$`](lcase-str.md), [`INSTR`](instr.md).

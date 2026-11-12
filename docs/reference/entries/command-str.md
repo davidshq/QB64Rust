@@ -54,4 +54,4 @@ Press any key to continue
 
 ## See also
 
-`_COMMANDCOUNT`, `ENVIRON$`.
+[`_COMMANDCOUNT`](_commandcount.md), [`ENVIRON$`](environ.md).

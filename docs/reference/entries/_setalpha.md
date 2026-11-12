@@ -52,4 +52,4 @@ Press any key to continue
 
 ## See also
 
-`_CLEARCOLOR`, `_BLEND`, `_RGBA32`.
+[`_CLEARCOLOR`](_clearcolor.md), [`_BLEND`](_blend.md), [`_RGBA32`](_rgb32.md).

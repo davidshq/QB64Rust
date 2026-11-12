@@ -73,4 +73,4 @@ Press any key to continue
 
 ## See also
 
-`SWAP`, `DIM`, `CONST`.
+[`SWAP`](swap.md), [`DIM`](dim.md), [`CONST`](const.md).

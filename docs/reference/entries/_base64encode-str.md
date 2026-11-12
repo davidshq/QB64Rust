@@ -58,4 +58,4 @@ Press any key to continue
 
 ## See also
 
-`_BASE64DECODE$`.
+[`_BASE64DECODE$`](_base64decode-str.md).

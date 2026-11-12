@@ -78,4 +78,4 @@ Press any key to continue
 
 ## See also
 
-`_NEWIMAGE`, `PCOPY`, `WIDTH`, `_SOURCE`.
+[`_NEWIMAGE`](_newimage.md), [`PCOPY`](pcopy.md), [`WIDTH`](width.md), [`_SOURCE`](_source.md).

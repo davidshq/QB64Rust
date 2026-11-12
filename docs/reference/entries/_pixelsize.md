@@ -47,4 +47,4 @@ Press any key to continue
 
 ## See also
 
-`_NEWIMAGE`, `_WIDTH`.
+[`_NEWIMAGE`](_newimage.md), [`_WIDTH`](_width.md).

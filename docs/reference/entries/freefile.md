@@ -53,4 +53,4 @@ Press any key to continue
 
 ## See also
 
-`OPEN`, `CLOSE`.
+[`OPEN`](open.md), [`CLOSE`](close.md).

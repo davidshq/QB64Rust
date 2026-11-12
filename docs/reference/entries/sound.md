@@ -93,4 +93,4 @@ Press any key to continue
 
 ## See also
 
-`PLAY`, `BEEP`, `_WAVE`, `_SNDRAW`.
+[`PLAY`](play.md), [`BEEP`](beep.md), [`_WAVE`](_wave.md), [`_SNDRAW`](_sndraw.md).

@@ -14,11 +14,12 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Behavior
 
-No test opens a dialog, shows a notification, moves the window, or clicks or types on the desktop.
-<!-- src: language/console-and-window "Dialogs and the window's place are compiled" -->
+The notification is shown and the program goes on at once: two `_NOTIFYPOPUP`s, one `"info"` and one
+`"warning"`, raise no error. Nothing in BASIC reads the notification back.
+<!-- src: language/console-and-window "Dialogs and the window's place are compiled"; tests\sandbox\notifypopup_err -->
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Dialogs and the window's place are compiled"; tests\corpus\slice\s159_builtins_last -->
+It shows a real notification, so it runs only in the sandbox family, in the test VM, not on the host.
+<!-- src: language/console-and-window "Dialogs and the window's place are compiled" -->
 
 ## Errors
 
@@ -38,4 +39,4 @@ Supported. All 7 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_MESSAGEBOX`.
+[`_MESSAGEBOX`](_messagebox.md).

@@ -13,8 +13,13 @@ smoothed = _SMOOTH
 
 ## Behavior
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/builtin-statements "Supported built-in statements"; language/console-and-window "The window's display settings"; tests\corpus\screen\w01_window_builtins -->
+The function `_FULLSCREEN` gives the mode in use: 0 in a window, 1 after `_FULLSCREEN _STRETCH`, 2 after
+`_FULLSCREEN _SQUAREPIXELS`, and 0 again after `_FULLSCREEN _OFF`. `_SMOOTH` is -1 while the `, _SMOOTH` of the
+last `_FULLSCREEN` is in effect, and 0 otherwise.
+<!-- src: language/builtin-statements "Supported built-in statements"; language/console-and-window "The window's display settings"; tests\sandbox\window_fullscreen -->
+
+It changes the real display, so it runs with its effect read back only in the sandbox family, in the test VM.
+<!-- src: tests\sandbox\window_fullscreen; tests\corpus\screen\w01_window_builtins -->
 
 ## Errors
 
@@ -34,4 +39,4 @@ Supported. All 22 programs that use it compile (call-site programs, examples and
 
 ## See also
 
-`_ALLOWFULLSCREEN`, `_SCALEDWIDTH`.
+[`_ALLOWFULLSCREEN`](_allowfullscreen.md), [`_SCALEDWIDTH`](_scaledwidth.md).

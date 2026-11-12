@@ -72,4 +72,4 @@ Press any key to continue
 
 ## See also
 
-`CINT`, `_ROUND`, `INT`, `FIX`, `_CAST`.
+[`CINT`](cint.md), [`_ROUND`](_round.md), [`INT`](int.md), [`FIX`](fix.md), [`_CAST`](_cast.md).

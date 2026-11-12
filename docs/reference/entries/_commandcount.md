@@ -53,4 +53,4 @@ Press any key to continue
 
 ## See also
 
-`COMMAND$`.
+[`COMMAND$`](command-str.md).

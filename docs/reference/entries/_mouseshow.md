@@ -45,4 +45,4 @@ Supported. All 11 programs that use it compile (call-site programs, examples and
 
 ## See also
 
-`_MOUSEHIDDEN`, `_MOUSEDISABLED`, `_MOUSECURSOR`.
+[`_MOUSEHIDDEN`](_mousehidden.md), [`_MOUSEDISABLED`](_mousedisabled.md), [`_MOUSECURSOR`](_mousecursor.md).

@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`SIN`, `COS`, `ATN`, `_COT`.
+[`SIN`](sin.md), [`COS`](cos.md), [`ATN`](atn.md), [`_COT`](_sec.md).

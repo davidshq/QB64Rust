@@ -95,4 +95,4 @@ Press any key to continue
 
 ## See also
 
-`STICK`, `ON`, `_BUTTON`.
+[`STICK`](stick.md), [`ON`](on.md), [`_BUTTON`](_button.md).

@@ -41,4 +41,4 @@ Supported. All 4 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_CLIPBOARDIMAGE`.
+[`_CLIPBOARDIMAGE`](_clipboardimage.md).

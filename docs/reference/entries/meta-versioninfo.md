@@ -27,4 +27,4 @@ Supported. The one program that uses it compiles (a call-site program, an exampl
 
 ## See also
 
-`$EXEICON`.
+[`$EXEICON`](meta-exeicon.md).

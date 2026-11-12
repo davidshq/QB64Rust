@@ -54,4 +54,4 @@ Press any key to continue
 
 ## See also
 
-`_MEMPUT`, `_MEMCOPY`.
+[`_MEMPUT`](_memput.md), [`_MEMCOPY`](_memcopy.md).

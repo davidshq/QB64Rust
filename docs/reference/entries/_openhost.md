@@ -47,4 +47,4 @@ Supported. All 3 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_OPENCONNECTION`, `_OPENCLIENT`, `CLOSE`.
+[`_OPENCONNECTION`](_openconnection.md), [`_OPENCLIENT`](_openclient.md), [`CLOSE`](close.md).

@@ -49,4 +49,4 @@ Press any key to continue
 
 ## See also
 
-`INKEY$`, `_KEYHIT`.
+[`INKEY$`](inkey-str.md), [`_KEYHIT`](_keyhit.md).

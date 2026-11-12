@@ -113,4 +113,4 @@ Press any key to continue
 
 ## See also
 
-`DIM`, `$UNSTABLE`, `LEN`, `_MEM`.
+[`DIM`](dim.md), [`$UNSTABLE`](meta-unstable.md), [`LEN`](len.md), [`_MEM`](_mem.md).

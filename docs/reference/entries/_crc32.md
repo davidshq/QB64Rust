@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`_ADLER32`, `_MD5$`.
+[`_ADLER32`](_adler32.md), [`_MD5$`](_md5-str.md).

@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`EXIT`, `FOR`, `DO`, `WHILE`.
+[`EXIT`](exit.md), [`FOR`](for.md), [`DO`](do.md), [`WHILE`](while.md).

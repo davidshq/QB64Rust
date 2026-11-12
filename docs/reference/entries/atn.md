@@ -65,4 +65,4 @@ Press any key to continue
 
 ## See also
 
-`_ATAN2`, `TAN`, `_PI`.
+[`_ATAN2`](_atan2.md), [`TAN`](tan.md), [`_PI`](_pi.md).

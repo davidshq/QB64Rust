@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`POKE`, `DEF SEG`, `VARPTR`, `_MEMGET`.
+[`POKE`](poke.md), [`DEF SEG`](def-seg.md), [`VARPTR`](varptr.md), [`_MEMGET`](_memget.md).

@@ -60,4 +60,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDRAW`, `_SNDRAWLEN`, `_SNDRAWDONE`, `_SNDCLOSE`.
+[`_SNDRAW`](_sndraw.md), [`_SNDRAWLEN`](_sndrawlen.md), [`_SNDRAWDONE`](_sndrawdone.md), [`_SNDCLOSE`](_sndclose.md).

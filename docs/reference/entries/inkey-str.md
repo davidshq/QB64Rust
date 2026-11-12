@@ -59,4 +59,4 @@ Press any key to continue
 
 ## See also
 
-`_KEYHIT`, `INPUT`, `_KEYCLEAR`.
+[`_KEYHIT`](_keyhit.md), [`INPUT`](input.md), [`_KEYCLEAR`](_keyclear.md).

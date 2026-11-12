@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`WINDOW`, `VIEW`.
+[`WINDOW`](window.md), [`VIEW`](view.md).

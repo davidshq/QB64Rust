@@ -65,4 +65,4 @@ Press any key to continue
 
 ## See also
 
-`_DELAY`, `_DISPLAY`, `SLEEP`.
+[`_DELAY`](_delay.md), [`_DISPLAY`](_display.md), [`SLEEP`](sleep.md).

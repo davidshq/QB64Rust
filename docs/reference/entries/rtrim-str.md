@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`LTRIM$`, `_TRIM$`, `STRING`.
+[`LTRIM$`](ltrim-str.md), [`_TRIM$`](_trim-str.md), [`STRING`](string.md).

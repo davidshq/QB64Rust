@@ -43,4 +43,4 @@ Supported. The one program that uses it compiles (a call-site program, an exampl
 
 ## See also
 
-`_ICON`, `$VERSIONINFO`.
+[`_ICON`](_icon.md), [`$VERSIONINFO`](meta-versioninfo.md).

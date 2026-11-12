@@ -53,4 +53,4 @@ Press any key to continue
 
 ## See also
 
-`LOC`, `GET`, `PUT`.
+[`LOC`](loc.md), [`GET`](get.md), [`PUT`](put.md).

@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`EXP`.
+[`EXP`](exp.md).

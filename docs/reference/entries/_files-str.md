@@ -71,4 +71,4 @@ Press any key to continue
 
 ## See also
 
-`FILES`, `_FILEEXISTS`, `_DIREXISTS`.
+[`FILES`](files.md), [`_FILEEXISTS`](_fileexists.md), [`_DIREXISTS`](_fileexists.md).

@@ -47,4 +47,4 @@ Press any key to continue
 
 ## See also
 
-`_FONT`, `_PRINTWIDTH`.
+[`_FONT`](_font.md), [`_PRINTWIDTH`](_printstring.md).

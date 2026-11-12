@@ -75,4 +75,4 @@ Press any key to continue
 
 ## See also
 
-`LONG`, `_BYTE`, `_UNSIGNED`, `CINT`, `DEFINT`.
+[`LONG`](long.md), [`_BYTE`](_byte.md), [`_UNSIGNED`](_unsigned.md), [`CINT`](cint.md), [`DEFINT`](defint.md).

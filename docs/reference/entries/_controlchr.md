@@ -50,4 +50,4 @@ Press any key to continue
 
 ## See also
 
-`PRINT`, `CHR$`.
+[`PRINT`](print.md), [`CHR$`](chr-str.md).

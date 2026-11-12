@@ -36,7 +36,7 @@ A file opened `FOR INPUT` that does not exist raises error 53.
 - It raises error 76 for a folder that is not there and for an empty name, 52 for a file number of 0, 55 for a file
   number already open, 54 for a mode letter that is no mode, as `OPEN "Q", #1, name$`, and 70 for a folder opened
   as a file.
-  <!-- src: tests\reference\examples\open_2 -->
+  <!-- src: language/file-io "OPEN and CLOSE"; tests\reference\examples\open_2 -->
 
 ## Availability
 
@@ -114,4 +114,4 @@ Press any key to continue
 
 ## See also
 
-`CLOSE`, `PRINT`, `INPUT`, `LINE INPUT`, `GET`, `PUT`, `FREEFILE`.
+[`CLOSE`](close.md), [`PRINT`](print.md), [`INPUT`](input.md), [`LINE INPUT`](line-input.md), [`GET`](get.md), [`PUT`](put.md), [`FREEFILE`](freefile.md).

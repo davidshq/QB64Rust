@@ -71,4 +71,4 @@ Press any key to continue
 
 ## See also
 
-`$ASSERTS`, `_MEMGET`.
+[`$ASSERTS`](meta-asserts.md), [`_MEMGET`](_memget.md).

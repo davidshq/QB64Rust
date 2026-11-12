@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`CSNG`, `CINT`, `CLNG`, `_CAST`.
+[`CSNG`](csng.md), [`CINT`](cint.md), [`CLNG`](clng.md), [`_CAST`](_cast.md).

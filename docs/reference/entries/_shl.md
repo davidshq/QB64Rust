@@ -72,4 +72,4 @@ Press any key to continue
 
 ## See also
 
-`_ROL`, `_SETBIT`, `AND`.
+[`_ROL`](_rol.md), [`_SETBIT`](_setbit.md), [`AND`](and.md).

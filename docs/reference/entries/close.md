@@ -49,4 +49,4 @@ Press any key to continue
 
 ## See also
 
-`OPEN`, `RESET`.
+[`OPEN`](open.md), [`RESET`](reset.md).

@@ -44,4 +44,4 @@ Not checked: no call-site program, example or probe uses it.
 
 ## See also
 
-`$INCLUDE`, `$INCLUDEONCE`, `DECLARE LIBRARY`.
+[`$INCLUDE`](meta-include.md), [`$INCLUDEONCE`](meta-includeonce.md), [`DECLARE LIBRARY`](declare-library.md).

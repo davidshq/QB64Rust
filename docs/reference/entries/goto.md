@@ -74,4 +74,4 @@ Press any key to continue
 
 ## See also
 
-`GOSUB`, `ON`, `IF`.
+[`GOSUB`](gosub.md), [`ON`](on.md), [`IF`](if.md).

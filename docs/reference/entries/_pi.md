@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`SIN`, `COS`, `_D2R`, `ATN`.
+[`SIN`](sin.md), [`COS`](cos.md), [`_D2R`](_d2r.md), [`ATN`](atn.md).

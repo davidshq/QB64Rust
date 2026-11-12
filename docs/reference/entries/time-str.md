@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`DATE$`, `TIMER`.
+[`DATE$`](date-str.md), [`TIMER`](timer.md).

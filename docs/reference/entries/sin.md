@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`COS`, `TAN`, `_ASIN`, `_D2R`, `_PI`.
+[`COS`](cos.md), [`TAN`](tan.md), [`_ASIN`](_asin.md), [`_D2R`](_d2r.md), [`_PI`](_pi.md).

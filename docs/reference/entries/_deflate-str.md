@@ -67,4 +67,4 @@ Press any key to continue
 
 ## See also
 
-`_INFLATE$`, `_BASE64ENCODE$`.
+[`_INFLATE$`](_inflate-str.md), [`_BASE64ENCODE$`](_base64encode-str.md).

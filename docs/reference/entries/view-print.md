@@ -16,8 +16,9 @@ After `VIEW PRINT 5 TO 10`, `PRINT` starts at row 5.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Text-screen statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `VIEW PRINT 2`: "this `VIEW` statement matches none of its forms".
+  <!-- src: language/screen-output "Text-screen statements"; verification\v27_x05_view_print_one -->
 
 ## Availability
 
@@ -50,4 +51,4 @@ Press any key to continue
 
 ## See also
 
-`VIEW`, `LOCATE`, `CLS`.
+[`VIEW`](view.md), [`LOCATE`](locate.md), [`CLS`](cls.md).

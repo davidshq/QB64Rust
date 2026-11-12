@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`HEX$`, `_BIN$`, `VAL`.
+[`HEX$`](hex-str.md), [`_BIN$`](_bin-str.md), [`VAL`](val.md).

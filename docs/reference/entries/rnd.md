@@ -77,4 +77,4 @@ Press any key to continue
 
 ## See also
 
-`RANDOMIZE`, `INT`, `TIMER`.
+[`RANDOMIZE`](randomize.md), [`INT`](int.md), [`TIMER`](timer.md).

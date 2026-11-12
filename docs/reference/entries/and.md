@@ -82,4 +82,4 @@ Press any key to continue
 
 ## See also
 
-`OR`, `NOT`, `XOR`, `_ANDALSO`. `PUT` (graphics) takes `AND` as an action word, not as this operator.
+[`OR`](or.md), [`NOT`](not.md), [`XOR`](xor.md), [`_ANDALSO`](_andalso.md). [`PUT`](put.md) (graphics) takes `AND` as an action word, not as this operator.

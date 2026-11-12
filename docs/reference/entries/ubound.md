@@ -74,4 +74,4 @@ Press any key to continue
 
 ## See also
 
-`LBOUND`, `DIM`, `REDIM`.
+[`LBOUND`](lbound.md), [`DIM`](dim.md), [`REDIM`](redim.md).

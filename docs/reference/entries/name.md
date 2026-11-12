@@ -44,4 +44,4 @@ Press any key to continue
 
 ## See also
 
-`KILL`, `_FILEEXISTS`.
+[`KILL`](kill.md), [`_FILEEXISTS`](_fileexists.md).

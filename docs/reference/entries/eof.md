@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`OPEN`, `LINE INPUT`, `LOF`.
+[`OPEN`](open.md), [`LINE INPUT`](line-input.md), [`LOF`](lof.md).

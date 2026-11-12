@@ -73,4 +73,4 @@ Press any key to continue
 
 ## See also
 
-`_INSTRREV`, `MID$`, `LEFT$`.
+[`_INSTRREV`](_instrrev.md), [`MID$`](mid-str.md), [`LEFT$`](left-str.md).

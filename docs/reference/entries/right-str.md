@@ -74,4 +74,4 @@ Press any key to continue
 
 ## See also
 
-`LEFT$`, `MID$`, `LEN`.
+[`LEFT$`](left-str.md), [`MID$`](mid-str.md), [`LEN`](len.md).

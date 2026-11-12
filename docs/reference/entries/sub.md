@@ -117,4 +117,4 @@ Press any key to continue
 
 ## See also
 
-`FUNCTION`, `CALL`, `DECLARE`, `SHARED`, `STATIC`, `EXIT`.
+[`FUNCTION`](function.md), [`CALL`](call.md), [`DECLARE`](declare.md), [`SHARED`](shared.md), [`STATIC`](static.md), [`EXIT`](exit.md).

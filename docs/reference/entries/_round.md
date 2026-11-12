@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`CINT`, `CLNG`, `INT`, `_CEIL`.
+[`CINT`](cint.md), [`CLNG`](clng.md), [`INT`](int.md), [`_CEIL`](_ceil.md).

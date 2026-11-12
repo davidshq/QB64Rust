@@ -53,4 +53,4 @@ Press any key to continue
 
 ## See also
 
-`WINDOW`, `VIEW PRINT`, `CLS`.
+[`WINDOW`](window.md), [`VIEW PRINT`](view-print.md), [`CLS`](cls.md).

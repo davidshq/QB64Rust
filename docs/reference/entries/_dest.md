@@ -51,4 +51,4 @@ Press any key to continue
 
 ## See also
 
-`_SOURCE`, `_NEWIMAGE`, `_CONSOLE`.
+[`_SOURCE`](_source.md), [`_NEWIMAGE`](_newimage.md), [`_CONSOLE`](_console.md).

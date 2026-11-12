@@ -142,4 +142,4 @@ Press any key to continue
 
 ## See also
 
-`IF`, `ON … GOTO`, `EXIT`.
+[`IF`](if.md), `ON … GOTO`, [`EXIT`](exit.md).

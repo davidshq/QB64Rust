@@ -58,4 +58,4 @@ Press any key to continue
 
 ## See also
 
-`DOUBLE`, `SINGLE`, `CDBL`.
+[`DOUBLE`](double.md), [`SINGLE`](single.md), [`CDBL`](cdbl.md).

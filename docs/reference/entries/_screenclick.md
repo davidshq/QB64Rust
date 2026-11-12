@@ -14,15 +14,17 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Behavior
 
-No test opens a dialog, shows a notification, moves the window, or clicks or types on the desktop.
-<!-- src: language/console-and-window "Dialogs and the window's place are compiled" -->
+`_SCREENCLICK x, y` clicks the left mouse button at that place of the desktop, in pixels. A program that clicks
+its own window at `_SCREENX + 100, _SCREENY + 80` sees `_MOUSEBUTTON(1)` go down and then up through `_MOUSEINPUT`,
+at 100, 80 within 2 pixels.
+<!-- src: language/console-and-window "Dialogs and the window's place are compiled"; tests\sandbox\screenclick_mousebutton -->
 
 Under a display scale other than 100%, QB64pe's click lands at the scale times its place; qb64rust's lands at the
 place.
 <!-- src: D-056 -->
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "Dialogs and the window's place are compiled"; tests\corpus\slice\s159_builtins_last -->
+It clicks with the real mouse, so it runs only in the sandbox family, in the test VM, not on the host.
+<!-- src: language/console-and-window "Dialogs and the window's place are compiled" -->
 
 ## Errors
 
@@ -42,4 +44,4 @@ Supported. All 3 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_SCREENPRINT`, `_MOUSEMOVE`.
+[`_SCREENPRINT`](_screenprint.md), [`_MOUSEMOVE`](_mousemove.md).

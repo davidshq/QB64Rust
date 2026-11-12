@@ -94,4 +94,4 @@ Press any key to continue
 
 ## See also
 
-`LET`, `DIM`.
+[`LET`](let.md), [`DIM`](dim.md).

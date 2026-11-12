@@ -56,4 +56,4 @@ Press any key to continue
 
 ## See also
 
-`_SETALPHA`, `_RGBA32`.
+[`_SETALPHA`](_setalpha.md), [`_RGBA32`](_rgb32.md).

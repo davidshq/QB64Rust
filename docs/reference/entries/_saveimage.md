@@ -53,4 +53,4 @@ Press any key to continue
 
 ## See also
 
-`_LOADIMAGE`.
+[`_LOADIMAGE`](_loadimage.md).

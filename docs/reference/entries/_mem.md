@@ -94,4 +94,4 @@ Press any key to continue
 
 ## See also
 
-`_MEMELEMENT`, `_MEMGET`, `_MEMPUT`, `_MEMCOPY`, `_MEMNEW`, `_OFFSET`.
+[`_MEMELEMENT`](_memelement.md), [`_MEMGET`](_memget.md), [`_MEMPUT`](_memput.md), [`_MEMCOPY`](_memcopy.md), [`_MEMNEW`](_memnew.md), [`_OFFSET`](_offset.md).

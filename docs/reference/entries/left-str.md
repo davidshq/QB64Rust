@@ -92,4 +92,4 @@ Press any key to continue
 
 ## See also
 
-`RIGHT$`, `MID$`, `LEN`, `INSTR`.
+[`RIGHT$`](right-str.md), [`MID$`](mid-str.md), [`LEN`](len.md), [`INSTR`](instr.md).

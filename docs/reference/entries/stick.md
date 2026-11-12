@@ -77,4 +77,4 @@ Press any key to continue
 
 ## See also
 
-`STRIG`, `_AXIS`, `_DEVICES`.
+[`STRIG`](strig.md), [`_AXIS`](_axis.md), [`_DEVICES`](_devices.md).

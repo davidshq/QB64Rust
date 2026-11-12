@@ -66,4 +66,4 @@ Press any key to continue
 
 ## See also
 
-`CSRLIN`, `POS`, `PRINT`, `CLS`.
+[`CSRLIN`](csrlin.md), [`POS`](pos.md), [`PRINT`](print.md), [`CLS`](cls.md).

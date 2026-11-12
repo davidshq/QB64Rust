@@ -14,8 +14,9 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Behavior
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "The window's display settings"; verification\v58_f14_display_window -->
+It gives the refresh rate of the desktop's display, in hertz: a number above 0 in the test VM. The value is the
+machine's, so no test compares it.
+<!-- src: language/console-and-window "The window's display settings"; verification\v58_f14_display_window; tests\sandbox\window_fullscreen -->
 
 ## Errors
 
@@ -34,4 +35,4 @@ Supported. All 2 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_DESKTOPWIDTH`.
+[`_DESKTOPWIDTH`](_desktopwidth.md).

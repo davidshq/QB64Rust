@@ -40,4 +40,4 @@ Supported. All 8 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_KEYDOWN`, `INKEY$`.
+[`_KEYDOWN`](_keydown.md), [`INKEY$`](inkey-str.md).

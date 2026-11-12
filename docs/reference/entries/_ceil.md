@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`INT`, `FIX`, `_ROUND`.
+[`INT`](int.md), [`FIX`](fix.md), [`_ROUND`](_round.md).

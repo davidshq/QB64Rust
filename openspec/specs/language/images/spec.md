@@ -124,9 +124,10 @@ compiler's program does.
 ### Requirement: Image built-ins that no test runs
 `_SCREENIMAGE`, `_CLIPBOARDIMAGE` (function and statement), `_PRINTIMAGE`, `_DEPTHBUFFER` and the 3-D form of
 `_MAPTRIANGLE` SHALL compile to the call the old compiler writes, and SHALL link the part of libqb each needs.
-`_CLIPBOARDIMAGE`, `_PRINTIMAGE` and the 3-D form of `_MAPTRIANGLE` are run by no test, since what they read or
-draw is the clipboard's, a printer's or OpenGL's; `_SCREENIMAGE` (the upstream tests) and `_DEPTHBUFFER` (a screen
-program) are run, what they read or draw not compared.
+`_PRINTIMAGE` and the 3-D form of `_MAPTRIANGLE` are run by no test, since what they draw is a printer's or
+OpenGL's. `_CLIPBOARDIMAGE` runs only in the sandbox family, in the test VM, which puts an image on the clipboard
+and reads it back (`tests\sandbox\clipboardimage_roundtrip`; spec `testing/desktop-sandbox`). `_SCREENIMAGE` (the
+upstream tests) and `_DEPTHBUFFER` (a screen program) are run, what they read or draw not compared.
 
 #### Scenario: A desktop image
 - **WHEN** `i = _SCREENIMAGE` is compiled

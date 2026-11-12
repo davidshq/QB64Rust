@@ -53,4 +53,4 @@ Press any key to continue
 
 ## See also
 
-`_RED32`, `_RGB`, `_PALETTECOLOR`.
+[`_RED32`](_red32.md), [`_RGB`](_rgb.md), [`_PALETTECOLOR`](_palettecolor.md).

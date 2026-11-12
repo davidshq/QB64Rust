@@ -68,4 +68,4 @@ Press any key to continue
 
 ## See also
 
-`_DEVICES`, `_DEVICEINPUT`.
+[`_DEVICES`](_devices.md), [`_DEVICEINPUT`](_deviceinput.md).

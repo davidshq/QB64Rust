@@ -79,4 +79,4 @@ Press any key to continue
 
 ## See also
 
-`EQV`, `NOT`, `OR`.
+[`EQV`](eqv.md), [`NOT`](not.md), [`OR`](or.md).

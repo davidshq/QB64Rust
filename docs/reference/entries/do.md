@@ -87,4 +87,4 @@ Press any key to continue
 
 ## See also
 
-`WHILE`, `FOR`, `EXIT`, `_CONTINUE`.
+[`WHILE`](while.md), [`FOR`](for.md), [`EXIT`](exit.md), [`_CONTINUE`](_continue.md).

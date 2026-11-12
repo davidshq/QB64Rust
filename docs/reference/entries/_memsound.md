@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDNEW`, `_MEM`, `_MEMGET`.
+[`_SNDNEW`](_sndnew.md), [`_MEM`](_mem.md), [`_MEMGET`](_memget.md).

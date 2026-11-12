@@ -89,4 +89,4 @@ Davout leads 26000 men.
 
 ## See also
 
-`LINE INPUT`, `INKEY$`, `INPUT$`, `VAL`.
+[`LINE INPUT`](line-input.md), [`INKEY$`](inkey-str.md), [`INPUT$`](input-str.md), [`VAL`](val.md).

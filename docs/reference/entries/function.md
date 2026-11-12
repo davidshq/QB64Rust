@@ -95,4 +95,4 @@ Press any key to continue
 
 ## See also
 
-`SUB`, `DECLARE`, `EXIT`, `STATIC`.
+[`SUB`](sub.md), [`DECLARE`](declare.md), [`EXIT`](exit.md), [`STATIC`](static.md).

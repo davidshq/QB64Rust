@@ -29,4 +29,4 @@ Rejected, as in QB64pe. The compiler gives:
 
 ## See also
 
-`ON`, `TIMER`.
+[`ON`](on.md), [`TIMER`](timer.md).

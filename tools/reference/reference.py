@@ -53,6 +53,8 @@ PROGRAM_DIRS = (
     Path("tests/corpus"),
     Path("tests/differential"),
     Path("tests/upstream"),
+    # The built-ins that act on the desktop, the clipboard or the console, run in the test VM (tests/sandbox/README.md).
+    Path("tests/sandbox"),
 )
 WIKI = Path("tools/wiki/cache/pages")
 
@@ -651,7 +653,11 @@ def refresh(text: str, page_word: str, words: dict[str, Word], avail: dict) -> s
         return f"<!-- begin generated: {name} -->\n{body.rstrip()}\n{END_MARK}"
 
     pattern = re.compile(BEGIN.pattern + r".*?" + re.escape(END_MARK), re.S)
-    return pattern.sub(one, text)
+    text = pattern.sub(one, text)
+    # "See also" is written by hand; render makes each word that has a page of its own a link to it.
+    page = words[page_word].page
+    return re.sub(r"(^## See also\n)(.*?)(?=^## |\Z)", lambda m: m.group(1) + link_see_also(m.group(2), page, words),
+                  text, flags=re.S | re.M)
 
 
 def page_word_of(text: str) -> str:
@@ -1003,7 +1009,29 @@ def register_rows(path: Path, prefix: str) -> list[list[str]]:
     return rows
 
 
-def coming_from_md(path: Path, prefix: str, title: str, other: str, intro: str) -> str:
+# The section of "Coming from QuickBASIC 4.5" on BASIC PDS 7.1's words: the ones the game ports met
+# (docs/PORTING-PDS.md, sections 2 and 3), each with QB64Rust's message, measured 2026-11-12.
+PDS_SECTION = """
+## Words of BASIC PDS 7.1
+
+BASIC PDS 7.1 added words that QuickBASIC 4.5 and QB64 do not have. These are the ones the ports of World War 2
+and Civil War Battleset met, each with what QB64Rust does with it and the edit the ports made
+([Porting a BASIC PDS 7.1 program](../PORTING-PDS.md)). Two of them build with no error, which makes them the
+easiest to miss.
+
+| PDS form | What QB64Rust does | The usual edit |
+|---|---|---|
+| `CURDIR$` | Builds with no error: it is a string variable, always `""`. With `-w`, a name used only once gets "`CURDIR$` is used only once: is it misspelled?" | A `FUNCTION CURDIR$` that returns `_CWD$` without the separator at its end |
+| `DIR$` with no argument | The same: a string variable, always `""` | `DIR$("")`, with a `FUNCTION DIR$` written with `_FILES$` |
+| `DIR$(spec$)` | The compile error "an array index must be a number" | A `FUNCTION DIR$ (spec$)` written with `_FILES$` |
+| `CHDRIVE drive$` | The compile error "`CHDRIVE` is no statement and no SUB" | A `SUB CHDRIVE` that runs `CHDIR` |
+| `ON LOCAL ERROR GOTO label` | The compile error "`ON LOCAL ERROR` is BASIC PDS 7.1's, and QB64 does not have it" | `ON ERROR GOTO` with the handler in the main module, and `ON ERROR GOTO 0` before the SUB ends |
+| `COMMON SHARED /name/ x` | The compile error "a `COMMON` block name (`/name/`) is not accepted" | `DIM SHARED x` |
+| `FRE(-1)` | The compile error "`FRE` is not implemented in QB64pe" | Remove it |
+"""
+
+
+def coming_from_md(path: Path, prefix: str, title: str, other: str, intro: str, tail: str = "") -> str:
     rows = register_rows(path, prefix)
     out = [
         f"# {title}",
@@ -1017,7 +1045,7 @@ def coming_from_md(path: Path, prefix: str, title: str, other: str, intro: str) 
         "|---|---|---|---|",
     ]
     out += [f"| {i} | {case} | {theirs} | {ours} |" for i, case, theirs, ours in rows]
-    out.append("")
+    out.append(tail)
     return "\n".join(out)
 
 
@@ -1056,6 +1084,7 @@ def generated_files(words: dict[str, Word]) -> dict[Path, str]:
             "QuickBASIC 4.5",
             "Where QB64Rust does something other than QuickBASIC 4.5. Most rows are QB64pe's behavior, which\n"
             "QB64Rust keeps; the QuickBASIC column says whether it was measured, documented or believed.",
+            PDS_SECTION,
         ),
     }
 
@@ -1117,6 +1146,31 @@ def syntax_words_left_out(syntax: str, forms: list[str]) -> list[str]:
     """The words of the table's forms that a hand-written "Syntax" section does not show."""
     have = set(SYNTAX_WORD.findall(syntax))
     return sorted({w for f in forms for w in SYNTAX_WORD.findall(f)} - have)
+
+
+# Under "See also", a link to a page ([`GET`](get.md)), kept as it is, or a word written as code (`GET`, group 1).
+SEE_ALSO_TOKEN = re.compile(r"\[`[^`\n]+`\]\([^)\s]+\)|`([^`\n]+)`")
+
+
+def link_see_also(body: str, page: str, words: dict[str, Word]) -> str:
+    """The "See also" section with each word that has a page of its own written as a link to that page."""
+
+    titles = page_titles(str(REPO / ENTRIES))
+
+    def link(m: re.Match) -> str:
+        w = (m.group(1) or "").upper()
+        target = words[w].page if w in words else titles.get(w)
+        if target and target != page:
+            return f"[`{m.group(1)}`]({target}.md)"
+        return m.group(0)
+
+    return SEE_ALSO_TOKEN.sub(link, body)
+
+
+@functools.cache
+def page_titles(folder: str) -> dict[str, str]:
+    """Each page's title in capitals (`SELECT CASE`, `SUB _GL`) -> the page, for the titles that are no word."""
+    return {title_of(p).upper(): p.stem for p in sorted(Path(folder).glob("*.md"))}
 
 
 def check_page(path: Path, words: dict[str, Word], avail: dict, requirements, rows) -> list[str]:

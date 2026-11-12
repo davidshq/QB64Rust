@@ -151,4 +151,4 @@ Press any key to continue
 
 ## See also
 
-`$LET`, `$ERROR`, `$INCLUDE`, `$CONSOLE`.
+[`$LET`](meta-let.md), [`$ERROR`](meta-error.md), [`$INCLUDE`](meta-include.md), [`$CONSOLE`](meta-console.md).

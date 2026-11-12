@@ -79,4 +79,4 @@ Press any key to continue
 
 ## See also
 
-`COLOR`, `CONST`, `_RGB32`.
+[`COLOR`](color.md), [`CONST`](const.md), [`_RGB32`](_rgb32.md).

@@ -60,4 +60,4 @@ Press any key to continue
 
 ## See also
 
-`_MEMPUT`, `_MEM`, `PEEK`.
+[`_MEMPUT`](_memput.md), [`_MEM`](_mem.md), [`PEEK`](peek.md).

@@ -59,4 +59,4 @@ Press any key to continue
 
 ## See also
 
-`RTRIM$`, `_TRIM$`, `STR$`.
+[`RTRIM$`](rtrim-str.md), [`_TRIM$`](_trim-str.md), [`STR$`](str-str.md).

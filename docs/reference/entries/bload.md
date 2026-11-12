@@ -72,4 +72,4 @@ Press any key to continue
 
 ## See also
 
-`BSAVE`, `DEF SEG`.
+[`BSAVE`](bsave.md), [`DEF SEG`](def-seg.md).

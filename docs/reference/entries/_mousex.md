@@ -58,4 +58,4 @@ Press any key to continue
 
 ## See also
 
-`_MOUSEINPUT`, `_MOUSEMOVE`, `_MOUSEMOVEMENTX`.
+[`_MOUSEINPUT`](_mouseinput.md), [`_MOUSEMOVE`](_mousemove.md), [`_MOUSEMOVEMENTX`](_mousemovementx.md).

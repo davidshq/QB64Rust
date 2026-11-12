@@ -47,4 +47,4 @@ Press any key to continue
 
 ## See also
 
-`_HUE32`, `_RGB32`.
+[`_HUE32`](_hue32.md), [`_RGB32`](_rgb32.md).

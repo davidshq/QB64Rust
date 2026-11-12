@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`_ENVIRONCOUNT`, `SHELL`, `COMMAND$`.
+[`_ENVIRONCOUNT`](_environcount.md), [`SHELL`](shell.md), [`COMMAND$`](command-str.md).

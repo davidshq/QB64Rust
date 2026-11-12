@@ -64,4 +64,4 @@ Press any key to continue
 
 ## See also
 
-`_SNDLOOP`, `_SNDPAUSE`, `_SNDSTOP`, `_SNDPLAYING`.
+[`_SNDLOOP`](_sndloop.md), [`_SNDPAUSE`](_sndpause.md), [`_SNDSTOP`](_sndstop.md), [`_SNDPLAYING`](_sndplaying.md).

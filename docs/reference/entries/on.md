@@ -76,4 +76,4 @@ Press any key to continue
 
 ## See also
 
-`GOTO`, `GOSUB`, `SELECT CASE`, `ON ERROR`.
+[`GOTO`](goto.md), [`GOSUB`](gosub.md), [`SELECT CASE`](select-case.md), [`ON ERROR`](on-error.md).

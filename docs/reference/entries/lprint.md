@@ -32,4 +32,4 @@ Supported. All 19 programs that use it compile (call-site programs, examples and
 
 ## See also
 
-`PRINT`, `PRINT USING`.
+[`PRINT`](print.md), [`PRINT USING`](print-using.md).

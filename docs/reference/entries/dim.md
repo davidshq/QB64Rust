@@ -123,4 +123,4 @@ Press any key to continue
 
 ## See also
 
-`REDIM`, `SHARED`, `STATIC`, `COMMON`, `OPTION`, `TYPE`, `ERASE`.
+[`REDIM`](redim.md), [`SHARED`](shared.md), [`STATIC`](static.md), [`COMMON`](common.md), [`OPTION`](option.md), [`TYPE`](type.md), [`ERASE`](erase.md).

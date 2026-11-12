@@ -75,4 +75,4 @@ Press any key to continue
 
 ## See also
 
-`_DEVICEINPUT`, `_LASTAXIS`, `STICK`, `_MOUSEX`.
+[`_DEVICEINPUT`](_deviceinput.md), [`_LASTAXIS`](_lastbutton.md), [`STICK`](stick.md), [`_MOUSEX`](_mousex.md).

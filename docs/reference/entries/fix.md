@@ -61,4 +61,4 @@ Press any key to continue
 
 ## See also
 
-`INT`, `CINT`, `_ROUND`.
+[`INT`](int.md), [`CINT`](cint.md), [`_ROUND`](_round.md).

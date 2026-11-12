@@ -94,4 +94,4 @@ Press any key to continue
 
 ## See also
 
-`$IF`, `$INCLUDE`, `CONST`.
+[`$IF`](meta-if.md), [`$INCLUDE`](meta-include.md), [`CONST`](const.md).

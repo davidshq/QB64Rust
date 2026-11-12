@@ -73,4 +73,4 @@ Press any key to continue
 
 ## See also
 
-`DOUBLE`, `_FLOAT`, `CSNG`, `DEFSNG`.
+[`DOUBLE`](double.md), [`_FLOAT`](_float.md), [`CSNG`](csng.md), [`DEFSNG`](defint.md).

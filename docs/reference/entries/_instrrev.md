@@ -68,4 +68,4 @@ Press any key to continue
 
 ## See also
 
-`INSTR`, `MID$`, `RIGHT$`.
+[`INSTR`](instr.md), [`MID$`](mid-str.md), [`RIGHT$`](right-str.md).

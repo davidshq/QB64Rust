@@ -60,4 +60,4 @@ Press any key to continue
 
 ## See also
 
-`SQR`, `_ATAN2`.
+[`SQR`](sqr.md), [`_ATAN2`](_atan2.md).

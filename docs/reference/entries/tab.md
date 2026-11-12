@@ -77,4 +77,4 @@ Press any key to continue
 
 ## See also
 
-`SPC`, `PRINT`, `LOCATE`.
+[`SPC`](spc.md), [`PRINT`](print.md), [`LOCATE`](locate.md).

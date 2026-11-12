@@ -104,4 +104,4 @@ Press any key to continue
 
 ## See also
 
-`SELECT CASE`, `_ANDALSO`, `_IIF`, `$IF`.
+[`SELECT CASE`](select-case.md), [`_ANDALSO`](_andalso.md), [`_IIF`](_iif.md), [`$IF`](meta-if.md).

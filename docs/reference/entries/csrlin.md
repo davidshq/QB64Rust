@@ -60,4 +60,4 @@ Press any key to continue
 
 ## See also
 
-`POS`, `LOCATE`.
+[`POS`](pos.md), [`LOCATE`](locate.md).

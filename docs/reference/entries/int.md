@@ -62,4 +62,4 @@ Press any key to continue
 
 ## See also
 
-`FIX`, `CINT`, `_ROUND`, `_CEIL`.
+[`FIX`](fix.md), [`CINT`](cint.md), [`_ROUND`](_round.md), [`_CEIL`](_ceil.md).

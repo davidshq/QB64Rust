@@ -74,4 +74,4 @@ Press any key to continue
 
 ## See also
 
-`_BYTE`, `INTEGER`, `LONG`, `_INTEGER64`, `_BIT`.
+[`_BYTE`](_byte.md), [`INTEGER`](integer.md), [`LONG`](long.md), [`_INTEGER64`](_integer64.md), [`_BIT`](_bit.md).

@@ -67,4 +67,4 @@ Press any key to continue
 
 ## See also
 
-`_CV`, `MKI$`, `_MEMGET`.
+[`_CV`](_cv.md), [`MKI$`](mki-str.md), [`_MEMGET`](_memget.md).

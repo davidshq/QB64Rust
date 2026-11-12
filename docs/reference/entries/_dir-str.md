@@ -35,4 +35,4 @@ Supported. All 3 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_CWD$`, `_STARTDIR$`.
+[`_CWD$`](_cwd-str.md), [`_STARTDIR$`](_cwd-str.md).

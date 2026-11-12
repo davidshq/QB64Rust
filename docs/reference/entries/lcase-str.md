@@ -59,4 +59,4 @@ Press any key to continue
 
 ## See also
 
-`UCASE$`, `_STRICMP`.
+[`UCASE$`](ucase-str.md), [`_STRICMP`](_strcmp.md).

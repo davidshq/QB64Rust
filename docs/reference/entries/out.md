@@ -59,4 +59,4 @@ Press any key to continue
 
 ## See also
 
-`INP`, `PALETTE`, `_BLINK`.
+[`INP`](inp.md), [`PALETTE`](palette.md), [`_BLINK`](_blink.md).

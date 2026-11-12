@@ -57,4 +57,4 @@ Press any key to continue
 
 ## See also
 
-`PMAP`, `VIEW`.
+[`PMAP`](pmap.md), [`VIEW`](view.md).

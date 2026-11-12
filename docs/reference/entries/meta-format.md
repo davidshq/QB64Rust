@@ -27,4 +27,4 @@ Not checked: no call-site program, example or probe uses it.
 
 ## See also
 
-`REM`, `$INCLUDE`.
+[`REM`](rem.md), [`$INCLUDE`](meta-include.md).

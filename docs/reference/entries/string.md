@@ -93,4 +93,4 @@ Press any key to continue
 
 ## See also
 
-`LEN`, `DEFSTR`, `_DEFINE`, `LEFT$`.
+[`LEN`](len.md), [`DEFSTR`](defint.md), [`_DEFINE`](_define.md), [`LEFT$`](left-str.md).

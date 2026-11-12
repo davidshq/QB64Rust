@@ -63,4 +63,4 @@ Press any key to continue
 
 ## See also
 
-`SIN`, `TAN`, `_ACOS`, `_PI`.
+[`SIN`](sin.md), [`TAN`](tan.md), [`_ACOS`](_asin.md), [`_PI`](_pi.md).

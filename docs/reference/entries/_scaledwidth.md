@@ -11,8 +11,9 @@ h = _SCALEDHEIGHT
 
 ## Behavior
 
-A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
-<!-- src: language/console-and-window "The window's display settings"; verification\v58_f14_display_window; tests\corpus\screen\d19_blink_display -->
+They give the size in pixels at which the screen is shown. In a window at a display scale of 100%, that is the
+screen's own size: 320 and 200 for `SCREEN _NEWIMAGE(320, 200, 32)`, also after a return from full screen.
+<!-- src: language/console-and-window "The window's display settings"; verification\v58_f14_display_window; tests\sandbox\window_fullscreen; tests\corpus\screen\d19_blink_display -->
 
 ## Errors
 
@@ -31,4 +32,4 @@ Supported. All 3 programs that use it compile (call-site programs, examples and 
 
 ## See also
 
-`_RESIZE`, `_FULLSCREEN`.
+[`_RESIZE`](_resize.md), [`_FULLSCREEN`](_fullscreen.md).

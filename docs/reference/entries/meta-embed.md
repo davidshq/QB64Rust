@@ -69,4 +69,4 @@ Press any key to continue
 
 ## See also
 
-`_EMBEDDED$`, `$INCLUDE`.
+[`_EMBEDDED$`](_embedded-str.md), [`$INCLUDE`](meta-include.md).

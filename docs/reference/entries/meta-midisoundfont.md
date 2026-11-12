@@ -27,4 +27,4 @@ Rejected, as in QB64pe. The compiler gives:
 
 ## See also
 
-`_MIDISOUNDBANK`.
+[`_MIDISOUNDBANK`](_midisoundbank.md).

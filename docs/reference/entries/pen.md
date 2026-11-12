@@ -31,4 +31,4 @@ Rejected, as in QB64pe. The compiler gives:
 
 ## See also
 
-`ON`, `_MOUSEINPUT`.
+[`ON`](on.md), [`_MOUSEINPUT`](_mouseinput.md).

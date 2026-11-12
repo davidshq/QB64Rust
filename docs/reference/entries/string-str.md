@@ -73,4 +73,4 @@ Press any key to continue
 
 ## See also
 
-`SPACE$`, `CHR$`.
+[`SPACE$`](space-str.md), [`CHR$`](chr-str.md).

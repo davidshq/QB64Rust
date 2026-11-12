@@ -55,4 +55,4 @@ Press any key to continue
 
 ## See also
 
-`CSRLIN`, `LOCATE`, `TAB`.
+[`CSRLIN`](csrlin.md), [`LOCATE`](locate.md), [`TAB`](tab.md).
