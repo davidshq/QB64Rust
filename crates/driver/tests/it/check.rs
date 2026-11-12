@@ -86,6 +86,8 @@ fn check_in_server(path: &Path, root: &Path) -> Checked {
                     assert_eq!(d["source"], "qb64rust");
                 }
             }
+            // `qb64rust/program`, the document's program (OpenSpec change `include-file-program`).
+            Message::Notification(n) if n.method == "qb64rust/program" => {}
             m => panic!("unexpected message {m:?}"),
         }
     };

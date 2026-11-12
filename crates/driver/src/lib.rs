@@ -269,31 +269,38 @@ pub fn check_for_server(map: &SourceMap, parsed: &ParsedProgram, main_path: Opti
     check_with_settings(map, parsed, main_path, root).1
 }
 
-/// The main file of a checked program (one without errors) laid out as `qb64pe -y` lays it out, with `settings`
-/// (spec `compiler/format`): every line followed by CRLF.
-pub fn format_program(fe: &Frontend, settings: &qb64rust_base::layout::Settings) -> Vec<u8> {
-    qb64rust_format::format_file(&fe.map, &fe.parsed, &fe.program, fe.file, settings)
+/// The main file of a checked program (one the parser reports no error in) laid out as `qb64pe -y` lays it out,
+/// with `settings` (spec `compiler/format`): every line followed by CRLF. `complete`: [`format_complete`].
+pub fn format_program(fe: &Frontend, settings: &qb64rust_base::layout::Settings, complete: bool) -> Vec<u8> {
+    qb64rust_format::format_file(&fe.map, &fe.parsed, &fe.program, fe.file, settings, complete)
+}
+
+/// Whether the formatter may take the spelling of every symbol (design D3 of `include-file-program`): the front
+/// end reported no error, and the main file at `main_path` is a `.bas` file (any letter case) or no file at all
+/// (`None`, a document that is not a file). An include file checked alone may pass the check, but a variable made
+/// by its first use there may be a declared one of its program.
+pub fn format_complete(diagnostics: &Diagnostics, main_path: Option<&Path>) -> bool {
+    !diagnostics.has_errors() && main_path.is_none_or(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("bas")))
 }
 
 /// [`check_program`] then [`format_program`]'s layout for the language server (`qb64rust_lsp::Format`, design D5 of
-/// `m5b-formatter`): the main file formatted, or the diagnostics when the front end reports an error.
+/// `m5b-formatter`): the file `file` of the program formatted, or the diagnostics when the parser reports an error.
+/// An error of a later stage does not stop it (design D1 and D4 of `include-file-program`).
 pub fn format_for_server(
     map: &SourceMap,
     parsed: &ParsedProgram,
     main_path: Option<&Path>,
     root: &Path,
     settings: &qb64rust_base::layout::Settings,
+    file: FileId,
 ) -> Result<Vec<u8>, Diagnostics> {
     let (program, diagnostics) = check_with_settings(map, parsed, main_path, root);
-    if diagnostics.has_errors() {
+    if parsed.diagnostics().has_errors() {
         return Err(diagnostics);
     }
+    let complete = format_complete(&diagnostics, main_path);
     Ok(qb64rust_format::format_file(
-        map,
-        parsed,
-        &program,
-        parsed.main().file,
-        settings,
+        map, parsed, &program, file, settings, complete,
     ))
 }
 
@@ -310,13 +317,14 @@ pub fn index_for_server(
     hover::symbol_index(map, &program, &diagnostics)
 }
 
-/// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check, the formatter and
-/// the semantic index.
+/// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check, the formatter,
+/// the semantic index and the settings file's main program.
 pub fn server_hooks() -> qb64rust_lsp::Hooks {
     qb64rust_lsp::Hooks {
         check: check_for_server,
         format: format_for_server,
         index: index_for_server,
+        main_of: fixes::main_of,
     }
 }
 

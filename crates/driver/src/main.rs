@@ -673,7 +673,8 @@ fn program_fixes(o: &Options, input: &Path) -> Result<Fixes, ExitCode> {
 }
 
 /// `-y`: the main file laid out into `-o` (spec `compiler/format`). Nothing is built, and nothing is written when
-/// the front end reports an error.
+/// the parser reports an error. An error of a later stage is printed, and the file is still written (design D1 of
+/// `include-file-program`).
 fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitCode, String> {
     let Some(out) = &o.output else {
         return Err("formatting requires an output file: give -o <file>".into());
@@ -684,7 +685,8 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
         Ok(f) => f,
         Err(code) => return Ok(code),
     };
-    // `-e` holds here too: `qb64pe -y -e` rejects a variable not declared (measured, 2026-11-04).
+    // `-e` holds here too: `qb64pe -y -e` rejects a variable not declared (measured, 2026-11-04). Here the error is
+    // printed and the file still written (D-064).
     let fe = frontend_explicit(
         Platform::host(),
         o.explicit,
@@ -702,9 +704,12 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
     }
     if errors > 0 {
         println!("{}", fe.diagnostics.summary());
+    }
+    if fe.parsed.diagnostics().has_errors() {
         return Ok(ExitCode::FAILURE);
     }
-    let text = qb64rust_driver::format_program(&fe, &settings);
+    let complete = qb64rust_driver::format_complete(&fe.diagnostics, Some(input));
+    let text = qb64rust_driver::format_program(&fe, &settings, complete);
     std::fs::write(out, text).map_err(|e| format!("writing {}: {e}", out.display()))?;
     Ok(ExitCode::SUCCESS)
 }

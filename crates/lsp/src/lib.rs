@@ -15,6 +15,7 @@ mod encoding_tables;
 pub mod folding;
 mod hover;
 pub mod index;
+pub mod owner;
 pub mod rename;
 mod server;
 pub mod symbols;
@@ -25,7 +26,7 @@ pub use server::{CHECK, DEBOUNCE, DOCUMENT_ENCODING, capabilities, format_settin
 
 use lsp_server::Connection;
 use qb64rust_base::layout::Settings;
-use qb64rust_base::{Diagnostics, SourceMap};
+use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_syntax::ParsedProgram;
 use std::path::{Path, PathBuf};
 
@@ -35,24 +36,32 @@ use std::path::{Path, PathBuf};
 /// those checks look for a relative `$EXEICON` or `$EMBED` name too.
 pub type Check = fn(&SourceMap, &ParsedProgram, Option<&Path>, &Path) -> Diagnostics;
 
-/// The formatter, for a formatting request (OpenSpec change `m5b-formatter`, design D5): the main file of the program
-/// parsed into the map laid out as `qb64rust -y` lays it out with the settings, every line followed by CR LF, or the
-/// diagnostics of the front end when it reports an error (`qb64rust_driver::format_for_server`). The paths as for
-/// [`Check`].
-pub type Format = fn(&SourceMap, &ParsedProgram, Option<&Path>, &Path, &Settings) -> Result<Vec<u8>, Diagnostics>;
+/// The formatter, for a formatting request (OpenSpec change `m5b-formatter`, design D5): the file named by the
+/// [`FileId`] (the document's, which may be an included file of the program: design D4 of `include-file-program`)
+/// of the program parsed into the map laid out as `qb64rust -y` lays it out with the settings, every line followed
+/// by CR LF, or the diagnostics of the front end when the parser reports an error
+/// (`qb64rust_driver::format_for_server`). The paths as for [`Check`].
+pub type Format =
+    fn(&SourceMap, &ParsedProgram, Option<&Path>, &Path, &Settings, FileId) -> Result<Vec<u8>, Diagnostics>;
 
 /// The semantic index, for hover, references, rename, completion and the wider definition (OpenSpec change
 /// `m5b-language-features`, design D1): every symbol the front end resolved in the program parsed into the map, with
 /// its hover text and scope, and the first error (`qb64rust_driver::index_for_server`). The paths as for [`Check`].
 pub type Index = fn(&SourceMap, &ParsedProgram, Option<&Path>, &Path) -> index::SymbolIndex;
 
-/// The front end the driver hands the server: the check, the formatter and the index, so that this crate needs no
-/// `sema`.
+/// The main program the settings file names for a document on disk (OpenSpec change `include-file-program`, design
+/// D7): the `[project]` table's `main` of the nearest `qb64rust.toml`, when that file exists
+/// (`qb64rust_driver::fixes::main_of`).
+pub type MainOf = fn(&Path) -> Option<PathBuf>;
+
+/// The front end the driver hands the server: the check, the formatter, the index and the settings file's main
+/// program, so that this crate needs no `sema`.
 #[derive(Clone, Copy)]
 pub struct Hooks {
     pub check: Check,
     pub format: Format,
     pub index: Index,
+    pub main_of: MainOf,
 }
 
 /// Runs the server over stdin and stdout until `exit`. Call it on a thread with [`qb64rust_base::STACK_SIZE`] of

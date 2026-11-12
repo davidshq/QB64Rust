@@ -1090,9 +1090,12 @@ fn qb64pe_e() {
     }
     let o = qb64rust(&d, &["-q", "-z", "flag.bas"]);
     assert_eq!(o.status.code(), Some(1), "flag.bas without -e: {}", stdout(&o));
+    // `qb64pe -y -e` writes nothing for it; `-y` here prints the error and writes the file, as for any error of a
+    // later stage (D-064, OpenSpec change `include-file-program`).
     let o = qb64rust(&d, &["-y", "-e", "undeclared.bas", "-o", "laid_out.bas"]);
-    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
-    assert!(!d.join("laid_out.bas").exists());
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(stdout(&o).contains("is not declared"), "{}", stdout(&o));
+    assert!(d.join("laid_out.bas").exists());
 }
 
 /// `-p` removes the libqb objects builds wrote in the copy of libqb, then goes on with the rest of the command line;
@@ -1248,7 +1251,12 @@ fn fixes_errors() {
     let d = scratch("fixes-bad");
     std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\n").unwrap();
     std::fs::write(d.join("qb64rust.toml"), "[fixes]\nresume-after-blok = true\n").unwrap();
-    for args in [&["--dump", "ir", "p.bas"][..], &["-z", "p.bas"], &["p.bas"]] {
+    for args in [
+        &["--dump", "ir", "p.bas"][..],
+        &["-z", "p.bas"],
+        &["p.bas"],
+        &["-y", "p.bas", "-o", "out.bas"],
+    ] {
         let o = qb64rust(&d, args);
         let out = stdout(&o);
         assert_eq!(o.status.code(), Some(1), "{args:?}: {out}");
@@ -1257,7 +1265,7 @@ fn fixes_errors() {
             "{args:?}: {out}"
         );
     }
-    assert!(!d.join("p.exe").exists());
+    assert!(!d.join("p.exe").exists() && !d.join("out.bas").exists());
     let all = dumped_settings(&d, &["--fixes", "on"]);
     assert!(
         all.contains("fixes resume-after-block ") && all.ends_with(" checking-on-service bit-number-check"),
@@ -5569,6 +5577,35 @@ fn format_of_a_program_with_an_error() {
     let out = stdout(&o);
     assert!(out.contains("prog.bas:2:") && out.contains("1 error"), "{out}");
     assert!(!d.join("out.bas").exists(), "no output file");
+}
+
+/// An error of a later stage does not stop `-y` (spec `compiler/format`, "A SUB that is not defined"; design D1 of
+/// `include-file-program`): the error is printed, the file is written, and the exit status is 0.
+#[test]
+fn format_of_a_program_with_a_missing_sub() {
+    let d = scratch("format-missing-sub");
+    std::fs::write(d.join("prog.bas"), "call   missing\r\n").unwrap();
+    let o = qb64rust(&d, &["-y", "-q", "prog.bas", "-o", "out.bas"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let out = stdout(&o);
+    assert!(
+        out.contains("`CALL missing`: no SUB of this name") && out.contains("1 error"),
+        "{out}"
+    );
+    assert_eq!(std::fs::read(d.join("out.bas")).unwrap(), b"Call missing\r\n");
+}
+
+/// An include file formatted alone (spec `compiler/format`, "Names in an incomplete program"): a variable its
+/// statements do not declare is written as read, a declared name takes its declaration's spelling.
+#[test]
+fn format_of_an_include_file_alone() {
+    let d = scratch("format-include-alone");
+    let text = "SUB Bump\r\nDIM Total AS LONG\r\nTOTAL = 1\r\natkfac = 1\r\nATKFAC = 2\r\nEND SUB\r\n";
+    std::fs::write(d.join("lib.bm"), text).unwrap();
+    let o = qb64rust(&d, &["-y", "-q", "lib.bm", "-o", "out.bm"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let want = "Sub Bump\r\n    Dim Total As Long\r\n    Total = 1\r\n    atkfac = 1\r\n    ATKFAC = 2\r\nEnd Sub\r\n";
+    assert_eq!(std::fs::read(d.join("out.bm")).unwrap(), want.as_bytes());
 }
 
 /// A warning does not stop `-y` (spec `compiler/format`, "Program with an error").

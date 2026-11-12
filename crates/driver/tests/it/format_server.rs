@@ -67,6 +67,39 @@ impl Client {
         }
     }
 
+    /// Waits for the `qb64rust/program` notification of the document at `path`, and gives its program's uri.
+    fn program(&mut self, path: &Path) -> Option<String> {
+        let uri = from_path(path);
+        let is_for = |n: &Notification| n.method == "qb64rust/program" && n.params["uri"] == uri.as_str();
+        if let Some(n) = self.notes.iter().find(|n| is_for(n)) {
+            return n.params["program"].as_str().map(str::to_string);
+        }
+        let deadline = Instant::now() + WAIT;
+        loop {
+            let msg = self
+                .conn
+                .receiver
+                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+                .expect("no program notification in time");
+            if let Message::Notification(n) = msg {
+                let found = is_for(&n).then(|| n.params["program"].as_str().map(str::to_string));
+                self.notes.push(n);
+                if let Some(program) = found {
+                    return program;
+                }
+            }
+        }
+    }
+
+    /// Whether a message was shown, or an error published, so far.
+    fn complained(&self) -> bool {
+        self.notes.iter().any(|n| {
+            n.method == "window/showMessage"
+                || (n.method == "textDocument/publishDiagnostics"
+                    && n.params["diagnostics"].as_array().is_some_and(|d| !d.is_empty()))
+        })
+    }
+
     fn open(&self, path: &Path, text: &str) {
         let doc = json!({ "uri": from_path(path), "languageId": "qb64rust", "version": 1, "text": text });
         self.notify("textDocument/didOpen", json!({ "textDocument": doc }));
@@ -168,6 +201,71 @@ fn syntax_error() {
         .map(|n| n.params["message"].as_str().unwrap().to_string())
         .expect("a message");
     assert!(message.contains("line 2"), "{message}");
+    c.shutdown();
+}
+
+/// "A SUB that is not defined" ("Format failure"): an error of a later stage does not stop formatting, and no
+/// message is shown.
+#[test]
+fn sub_not_defined() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut c = Client::start(dir.path(), Value::Null);
+    let p = dir.path().join("p.bas");
+    c.open(&p, "call   missing\n");
+    assert_eq!(c.format(&p).as_deref(), Some("Call missing\n"));
+    assert!(!c.complained(), "{:?}", c.notes);
+    c.shutdown();
+}
+
+/// A lone `lib.bm` that calls a SUB no file defines ("Include file with no program" of spec `editor/formatting`):
+/// indented and spaced, keywords in the keyword case, a variable as typed, and no message.
+#[test]
+fn lone_include_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut c = Client::start(dir.path(), Value::Null);
+    let lib = dir.path().join("lib.bm");
+    c.open(&lib, "sub a\ncall   missing\nATKFAC=1\nend sub\n");
+    assert_eq!(c.program(&lib), None);
+    assert_eq!(
+        c.format(&lib).as_deref(),
+        Some("Sub a\n    Call missing\n    ATKFAC = 1\nEnd Sub\n")
+    );
+    assert!(!c.complained(), "{:?}", c.notes);
+    c.shutdown();
+}
+
+/// "Case from the program" ("Formatting an included file"; "Include file of a program on disk" of spec
+/// `editor/formatting`): the document's names are spelled as its program on disk declares them, and the answer is
+/// an edit of the document alone. A range is laid out the same way.
+#[test]
+fn include_file_case_from_its_program() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("main.bas"),
+        "DIM SHARED Total AS LONG\n'$INCLUDE: 'lib.bm'\n",
+    )
+    .unwrap();
+    let mut c = Client::start(dir.path(), Value::Null);
+    let lib = dir.path().join("lib.bm");
+    c.open(&lib, "total=1\nprint   total\n");
+    assert_eq!(
+        c.program(&lib),
+        Some(from_path(&dir.path().join("main.bas")).as_str().to_string())
+    );
+    assert_eq!(c.format(&lib).as_deref(), Some("Total = 1\nPrint Total\n"));
+    let params = json!({
+        "textDocument": { "uri": from_path(&lib) },
+        "range": { "start": { "line": 1, "character": 0 }, "end": { "line": 1, "character": 3 } },
+        "options": { "tabSize": 4, "insertSpaces": true },
+    });
+    let r = c
+        .request("textDocument/rangeFormatting", params)
+        .response_result
+        .unwrap();
+    let edits = r.as_array().unwrap();
+    assert_eq!(edits.len(), 1, "{edits:?}");
+    assert_eq!(edits[0]["newText"], "Print Total");
+    assert!(!c.complained(), "{:?}", c.notes);
     c.shutdown();
 }
 

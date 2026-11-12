@@ -102,7 +102,7 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `-w` | Print warnings too, the warnings about likely mistakes among them; see [Warnings about likely mistakes](#warnings-about-likely-mistakes) |
 | `-q` | Print less while building |
 | `-z` | Check the program and write its C++ without building an executable |
-| `-y` | Lay the file out as QB64pe's IDE does; give the result with `-o <out.bas>` |
+| `-y` | Lay the file out as QB64pe's IDE does; give the result with `-o <out.bas>`. Only a syntax error stops it: a program with another error, such as a SUB that is not defined, is still laid out and the errors are printed. An include file can be laid out alone (`qb64rust -y lib.bm -o out.bm`); a variable it does not declare keeps the letter case it has |
 | `-f:<setting>=<value>` | A QB64pe compiler setting, such as `-f:OptimizeCppProgram=true`, `-f:StripDebugSymbols=false`, `-f:ExtraLinkerFlags=<flags>` or `-f:GenerateLicenseFile=true`; with `-y`, a layout setting such as `-f:AutoIndentSize=2` |
 | `--debug` | A build for a debugger: with debug information, never optimised |
 | `--coverage` | A build that counts how often each statement runs; see [Measuring which lines run](#measuring-which-lines-run) |
@@ -113,6 +113,25 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `--version` | Print the compiler's version |
 
 A program that uses `$INCLUDE` libraries meant to sit beside `qb64pe.exe` finds them beside `qb64rust.exe`.
+
+## The settings file
+
+A file named `qb64rust.toml` in the program's folder, or in a folder above it, holds settings for the program.
+Two tables are read:
+
+- `[fixes]` turns on fixes of behaviors kept from QB64pe. `qb64rust --list-fixes` lists them.
+- `[project]` names the program's main file, for the editor:
+
+```toml
+[project]
+main = "game.bas"
+```
+
+The path is relative to the folder of `qb64rust.toml`. When you open an include file such as `turn.bm` in VS Code,
+the editor checks and formats it as a part of the program `main` names, if that program includes it. Without
+`main`, it looks for an open `.bas` file that includes it, then for one on disk in the file's folder and the
+folders above it. Set `main` when two programs include the same files, such as a game and its tests. The
+compiler does not read `main`: name the file to build on the command line.
 
 ## Warnings about likely mistakes
 

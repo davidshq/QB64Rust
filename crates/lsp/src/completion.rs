@@ -5,20 +5,20 @@
 use crate::hover::{builtin_text, form, name_end};
 use crate::index::{EntryKind, Indexed};
 use lsp_types::{CompletionItem, CompletionItemKind, Documentation, MarkupContent, MarkupKind};
+use qb64rust_base::FileId;
 use qb64rust_builtins::{BUILTINS, Kind};
 use std::collections::HashSet;
 
-/// The items at `offset` of the program's main file (in the index's text), where `before` is the current text of
-/// the cursor's line up to the cursor.
-pub fn items(ix: Option<&Indexed>, offset: Option<u32>, before: &str) -> Vec<CompletionItem> {
+/// The items at `offset` (a file of the program and an offset in it, in the index's text), where `before` is the
+/// current text of the cursor's line up to the cursor.
+pub fn items(ix: Option<&Indexed>, offset: Option<(FileId, u32)>, before: &str) -> Vec<CompletionItem> {
     if let Some(base) = dotted_base(before) {
         return ix.map_or_else(Vec::new, |ix| members(ix, offset, base));
     }
     let mut seen = HashSet::new();
     let mut out = Vec::new();
     if let Some(ix) = ix {
-        let main = ix.analysis.parsed.main().file;
-        let body = offset.and_then(|o| ix.index.body_at(main, o));
+        let body = offset.and_then(|(file, o)| ix.index.body_at(file, o));
         for (i, e) in ix.index.entries.iter().enumerate() {
             // A member only after its variable's dot; a label only in its own body.
             let shown = match e.kind {
@@ -80,9 +80,8 @@ fn dotted_base(before: &str) -> Option<&str> {
 
 /// The members of the user type of the variable `base` seen at `offset` (design D7); none when `base` is no such
 /// variable.
-fn members(ix: &Indexed, offset: Option<u32>, base: &str) -> Vec<CompletionItem> {
-    let main = ix.analysis.parsed.main().file;
-    let body = offset.and_then(|o| ix.index.body_at(main, o));
+fn members(ix: &Indexed, offset: Option<(FileId, u32)>, base: &str) -> Vec<CompletionItem> {
+    let body = offset.and_then(|(file, o)| ix.index.body_at(file, o));
     let bare = |name: &str| name[..name_end(name.as_bytes())].to_ascii_uppercase();
     let base = base.to_ascii_uppercase();
     let found = ix.index.entries.iter().enumerate().find(|&(i, e)| {

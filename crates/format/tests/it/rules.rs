@@ -32,9 +32,125 @@ fn format_with(src: &str, settings: &Settings, files: Vec<(&'static str, &'stati
         "{:?}",
         diags.list()
     );
-    let out = qb64rust_format::format_file(&map, &parsed, &program, file, settings);
+    let out = qb64rust_format::format_file(&map, &parsed, &program, file, settings, true);
     let text: String = out.iter().map(|&b| char::from(b)).collect();
     text.replace("\r\n", "\n")
+}
+
+/// The file `name` holding `src` (LF line ends) formatted as an incomplete program (spec `compiler/format`, "Names
+/// in an incomplete program"): the check may report errors; the parse may not.
+fn format_incomplete(name: &str, src: &str) -> String {
+    let mut map = SourceMap::new();
+    let file = map.add(name, src.replace('\n', "\r\n").into_bytes());
+    let parsed = parse_settled(&mut map, file, &mut Files(Vec::new()));
+    assert!(!parsed.diagnostics().has_errors(), "{:?}", parsed.diagnostics().list());
+    let (program, _) = qb64rust_sema::check(&map, &parsed);
+    let out = qb64rust_format::format_file(&map, &parsed, &program, file, &Settings::default(), false);
+    let text: String = out.iter().map(|&b| char::from(b)).collect();
+    text.replace("\r\n", "\n")
+}
+
+/// Scenario "A variable declared elsewhere": a variable no statement of the file declares is written as read at
+/// each use.
+#[test]
+fn incomplete_variable_declared_elsewhere() {
+    let got = format_incomplete("lib.bm", "SUB a\natkfac = 1\nATKFAC = 2\nEND SUB\n");
+    assert_eq!(got, "Sub a\n    atkfac = 1\n    ATKFAC = 2\nEnd Sub\n");
+}
+
+/// Scenario "A name the file declares": `DIM` and a SUB header give their spelling; the name of a SUB that no file
+/// defines stays as read.
+#[test]
+fn incomplete_name_the_file_declares() {
+    let src = "SUB Bump\nDIM Total AS LONG\nTOTAL = 1\nEND SUB\nSUB b\nBUMP\nCALL other\nEND SUB\n";
+    let got = format_incomplete("lib.bm", src);
+    let want = "Sub Bump\n    Dim Total As Long\n    Total = 1\nEnd Sub\nSub b\n    Bump\n    Call other\nEnd Sub\n";
+    assert_eq!(got, want);
+}
+
+/// Scenario "A complete program is not affected": a `.bas` program without errors spells an implicit variable as
+/// its first use, as `qb64pe -y` does.
+#[test]
+fn complete_program_spells_implicit_variables() {
+    assert_eq!(format("total = 1\nTOTAL = 2\n"), "total = 1\ntotal = 2\n");
+}
+
+/// The program of three files for the agreement test (task 2.5 of `include-file-program`): `defs.bi` declares the
+/// shared names in capitals, `lib.bm` uses them in lower case and calls a SUB of `main.bas`.
+const AGREE_MAIN: &str =
+    "'$INCLUDE: 'defs.bi'\nATKFAC = 2\nDrawMap\nReport\n'$INCLUDE: 'lib.bm'\nSUB DrawMap\nEND SUB\n";
+const AGREE_DEFS: &str = "COMMON SHARED ATKFAC AS INTEGER, TOTAL AS LONG\n";
+const AGREE_LIB: &str = "sub Report\natkfac = atkfac + 1\ntotal = 3\ndrawmap\nprint atkfac; total\nend sub\n";
+
+/// `lib.bm` of [`AGREE_MAIN`]'s program formatted inside it: a complete program, every name in its declaration's
+/// spelling.
+fn format_inside_program() -> String {
+    let mut map = SourceMap::new();
+    let main = map.add("main.bas", AGREE_MAIN.replace('\n', "\r\n").into_bytes());
+    let files = vec![("defs.bi", AGREE_DEFS), ("lib.bm", AGREE_LIB)];
+    let parsed = parse_settled(&mut map, main, &mut Files(files));
+    let (program, diags) = qb64rust_sema::check(&map, &parsed);
+    assert!(
+        !diags.has_errors() && !parsed.diagnostics().has_errors(),
+        "{:?}",
+        diags.list()
+    );
+    let lib = map.files().find(|(_, f)| f.name == "lib.bm").map(|(id, _)| id).unwrap();
+    let out = qb64rust_format::format_file(&map, &parsed, &program, lib, &Settings::default(), true);
+    let text: String = out.iter().map(|&b| char::from(b)).collect();
+    text.replace("\r\n", "\n")
+}
+
+/// Scenario "Alone and inside its program": the include file formatted alone and inside its program are equal but
+/// for the letter case of names, and every name whose case the first changed has the same case in the second.
+#[test]
+fn include_file_alone_and_inside_its_program_agree() {
+    let alone = format_incomplete("lib.bm", AGREE_LIB);
+    let inside = format_inside_program();
+    assert_eq!(
+        alone,
+        "Sub Report\n    atkfac = atkfac + 1\n    total = 3\n    drawmap\n    Print atkfac; total\nEnd Sub\n"
+    );
+    assert_eq!(
+        inside,
+        "Sub Report\n    ATKFAC = ATKFAC + 1\n    TOTAL = 3\n    DrawMap\n    Print ATKFAC; TOTAL\nEnd Sub\n"
+    );
+    assert_eq!(alone.to_ascii_lowercase(), inside.to_ascii_lowercase());
+    let words = |s: &str| -> Vec<String> {
+        s.split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+            .filter(|w| !w.is_empty())
+            .map(str::to_string)
+            .collect()
+    };
+    let typed = words(AGREE_LIB);
+    for (a, b) in words(&alone).iter().zip(words(&inside).iter()) {
+        // A word the two spell differently is one that formatting alone left as typed.
+        if a != b {
+            assert!(typed.contains(a), "`{a}` alone, `{b}` inside: alone changed its case");
+        }
+    }
+}
+
+/// Scenario "A statement the check rejects is not changed": the layout of `KILL` with two values in parentheses
+/// would read as another statement, so the line keeps its text but for letter case.
+#[test]
+fn incomplete_rejected_statement_is_not_changed() {
+    assert_eq!(
+        format_incomplete("prog.bas", "kill (\"a\", \"b\")\n"),
+        "Kill (\"a\", \"b\")\n"
+    );
+}
+
+/// A program with an error in a later stage is incomplete even when its file is a `.bas` file: the implicit
+/// variable is written as read, the declared one takes its spelling, keywords and built-ins as always.
+#[test]
+fn incomplete_program_with_an_error() {
+    let src = "DIM Total AS LONG\ntotal = len(\"a\")\nzz = 1\nZZ = 2\ncall   missing\n";
+    let got = format_incomplete("prog.bas", src);
+    assert_eq!(
+        got,
+        "Dim Total As Long\nTotal = Len(\"a\")\nzz = 1\nZZ = 2\nCall missing\n"
+    );
 }
 
 fn format(src: &str) -> String {

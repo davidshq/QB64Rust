@@ -191,6 +191,25 @@ impl Client {
         (!v.is_null()).then(|| v["contents"]["value"].as_str().unwrap().to_string())
     }
 
+    /// Waits for the `qb64rust/program` notification of the document at `path`, and gives its program's uri.
+    fn program(&mut self, path: &Path) -> Option<String> {
+        let uri = from_path(path);
+        let is_for = |n: &Notification| n.method == "qb64rust/program" && n.params["uri"] == uri.as_str();
+        let deadline = Instant::now() + WAIT;
+        while !self.notes.iter().any(is_for) {
+            let msg = self
+                .conn
+                .receiver
+                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+                .expect("no program notification in time");
+            if let Message::Notification(n) = msg {
+                self.notes.push(n);
+            }
+        }
+        let n = self.notes.iter().find(|n| is_for(n)).unwrap();
+        n.params["program"].as_str().map(str::to_string)
+    }
+
     fn shutdown(mut self) {
         self.request("shutdown", Value::Null);
         self.notify("exit", Value::Null);
@@ -410,6 +429,36 @@ fn hover_scenarios() {
     assert!(left.contains("Left$(STRING, LONG) AS STRING"), "{left}");
     assert_eq!(c.hover(&p, text, "FOR", 0), None);
     assert_eq!(c.hover(&p, text, "1 TO", 0), None);
+    c.shutdown();
+}
+
+/// "Answers from the document's program" (OpenSpec change `include-file-program`, task 5.3): an include file open
+/// alone, whose program `main.bas` is on disk, gets the hover of a shared variable ("Shared variable"), its
+/// definition in the main file, references in both files, and a rename that edits `main.bas` too.
+#[test]
+fn answers_from_the_program_of_an_include_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let main_text = "DIM SHARED total AS LONG\n'$INCLUDE: 'lib.bm'\ntotal = 1\nbump\n";
+    std::fs::write(dir.path().join("main.bas"), main_text).unwrap();
+    let mut c = Client::start(dir.path());
+    let lib = dir.path().join("lib.bm");
+    let lib_text = "SUB bump\ntotal = total + 1\nEND SUB\n";
+    c.open(&lib, lib_text);
+    let main_uri = from_path(&dir.path().join("main.bas"));
+    assert_eq!(c.program(&lib).as_deref(), Some(main_uri.as_str()));
+    let h = c.hover(&lib, lib_text, "total", 0).expect("a hover");
+    assert_eq!(h, "```qb64\ntotal AS LONG\n```\nShared by the main module.");
+    assert_eq!(c.definition(&lib, lib_text, "total", 0), Some(p("main.bas", 0, 11)));
+    let refs = c.references(&lib, lib_text, "total", 1, false);
+    assert_eq!(refs, [p("main.bas", 2, 0), p("lib.bm", 1, 0), p("lib.bm", 1, 8)]);
+    let edits = c.rename(&lib, lib_text, "total", 0, "score").unwrap();
+    let files: Vec<&str> = edits.iter().map(|(f, _)| f.as_str()).collect();
+    assert_eq!(files, ["lib.bm", "main.bas"]);
+    assert_eq!(
+        apply(main_text, &edits[1].1),
+        "DIM SHARED score AS LONG\n'$INCLUDE: 'lib.bm'\nscore = 1\nbump\n"
+    );
+    assert_eq!(apply(lib_text, &edits[0].1), "SUB bump\nscore = score + 1\nEND SUB\n");
     c.shutdown();
 }
 

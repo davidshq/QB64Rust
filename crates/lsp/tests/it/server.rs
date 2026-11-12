@@ -61,22 +61,43 @@ fn stand_in_index(_: &SourceMap, _: &ParsedProgram, _: Option<&Path>, _: &Path) 
     qb64rust_lsp::index::SymbolIndex::default()
 }
 
+/// The settings file's main program in these tests (the real one is the driver's `fixes::main_of`): a line
+/// `main = "<name>"` of the nearest `qb64rust.toml` at or above the document's folder, when that file exists.
+fn stand_in_main_of(doc: &Path) -> Option<std::path::PathBuf> {
+    let settings = doc
+        .ancestors()
+        .skip(1)
+        .map(|d| d.join("qb64rust.toml"))
+        .find(|f| f.is_file())?;
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "a settings file is TOML, which is UTF-8 by its specification; not BASIC source"
+    )]
+    let text = std::fs::read_to_string(&settings).ok()?;
+    let name = text
+        .lines()
+        .find_map(|l| l.strip_prefix("main = \"")?.strip_suffix('"'))?;
+    let path = settings.parent()?.join(name);
+    path.is_file().then_some(path)
+}
+
 /// The formatter in these tests (the real one is the driver's, tested in `crates\driver\tests\it\format_server.rs`):
-/// the main file with each run of blanks made one, and the settings shown: the words in capitals or lower case by
-/// the keyword style, and a line that starts with a blank indented by the indent size. A program with `BAD` in it
-/// has an error there; one with `SLOW` takes half a second.
+/// the file asked for with each run of blanks made one, and the settings shown: the words in capitals or lower case
+/// by the keyword style, and a line that starts with a blank indented by the indent size. A program with `BAD` in it
+/// has an error there, which stands for a syntax error; one with `SLOW` takes half a second.
 fn stand_in_format(
     map: &SourceMap,
     parsed: &ParsedProgram,
     path: Option<&Path>,
     root: &Path,
     settings: &Settings,
+    file: FileId,
 ) -> Result<Vec<u8>, Diagnostics> {
     let check = stand_in(map, parsed, path, root);
     if check.has_errors() {
         return Err(check);
     }
-    let text = &map.file(FileId(0)).bytes;
+    let text = &map.file(file).bytes;
     let mut lines: Vec<&[u8]> = text.split(|&c| c == b'\n').collect();
     if lines.last().is_some_and(|l| l.is_empty()) {
         lines.pop();
@@ -110,12 +131,23 @@ impl Client {
     }
 
     fn start_with(root: &Path, options: Value, check: Check) -> (Client, Value) {
+        Client::start_full(root, options, check, Value::Null)
+    }
+
+    /// A server whose client names the workspace folder `folder`.
+    fn start_in(root: &Path, folder: &Path) -> Client {
+        let folders = json!([{ "uri": from_path(folder), "name": "ws" }]);
+        Client::start_full(root, Value::Null, stand_in, folders).0
+    }
+
+    fn start_full(root: &Path, options: Value, check: Check, folders: Value) -> (Client, Value) {
         let (server_side, conn) = Connection::memory();
         let root = root.to_path_buf();
         let hooks = qb64rust_lsp::Hooks {
             check,
             format: stand_in_format,
             index: stand_in_index,
+            main_of: stand_in_main_of,
         };
         let server = std::thread::Builder::new()
             .stack_size(qb64rust_base::STACK_SIZE)
@@ -127,8 +159,13 @@ impl Client {
             next_id: 0,
             inbox: VecDeque::new(),
         };
-        let params =
-            json!({ "processId": null, "rootUri": null, "capabilities": {}, "initializationOptions": options });
+        let params = json!({
+            "processId": null,
+            "rootUri": null,
+            "capabilities": {},
+            "initializationOptions": options,
+            "workspaceFolders": folders,
+        });
         let result = c.request("initialize", params).response_result.unwrap();
         c.notify("initialized", json!({}));
         (c, result)
@@ -191,6 +228,40 @@ impl Client {
                 m => panic!("unexpected message {m:?}"),
             }
         }
+    }
+
+    /// The next `qb64rust/program` for `uri`, as (program, source); `None` when none comes within [`WAIT`].
+    fn program(&mut self, uri: &Uri) -> Option<(Option<String>, String)> {
+        let is_for =
+            |n: &Notification| n.method == "qb64rust/program" && n.params["uri"].as_str() == Some(uri.as_str());
+        let take = |n: Notification| {
+            let program = n.params["program"].as_str().map(str::to_string);
+            (program, n.params["source"].as_str().unwrap().to_string())
+        };
+        if let Some(i) = self.inbox.iter().position(is_for) {
+            return Some(take(self.inbox.remove(i).unwrap()));
+        }
+        let deadline = Instant::now() + WAIT;
+        loop {
+            match self.recv(deadline)? {
+                Message::Notification(n) if is_for(&n) => return Some(take(n)),
+                Message::Notification(n) => self.inbox.push_back(n),
+                m => panic!("unexpected message {m:?}"),
+            }
+        }
+    }
+
+    /// The last diagnostics published for `uri` until none come within [`WAIT`].
+    fn last_diagnostics(&mut self, uri: &Uri) -> Option<Vec<Value>> {
+        let mut last = None;
+        while let Some(d) = self.diagnostics(uri) {
+            last = Some(d);
+        }
+        last
+    }
+
+    fn close(&self, uri: &Uri) {
+        self.notify("textDocument/didClose", json!({ "textDocument": { "uri": uri } }));
     }
 
     fn open(&self, uri: &Uri, text: &str) {
@@ -886,5 +957,370 @@ fn closing_clears_the_diagnostics() {
     assert_eq!(c.diagnostics(&u).unwrap().len(), 1);
     c.notify("textDocument/didClose", json!({ "textDocument": { "uri": u } }));
     assert_eq!(c.diagnostics(&u).unwrap(), Vec::<Value>::new());
+    c.shutdown().unwrap();
+}
+
+// The program of an included file (OpenSpec change `include-file-program`; spec `editor/language-server`,
+// "Program of an included file" and the requirements after it).
+
+/// `(program, source)` of a `qb64rust/program` notification naming the program `u`.
+fn owned_by(u: &Uri, source: &str) -> Option<(Option<String>, String)> {
+    Some((Some(u.as_str().to_string()), source.to_string()))
+}
+
+/// `(program, source)` of a notification that the document is its own program.
+fn own() -> Option<(Option<String>, String)> {
+    Some((None, "none".to_string()))
+}
+
+fn write(dir: &Path, rel: &str, text: &str) {
+    let path = dir.join(rel);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, text).unwrap();
+}
+
+/// "An open includer", "A .bas file that nothing includes" (its notification: "A .bas file that is its own
+/// program").
+#[test]
+fn program_of_an_open_includer() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (main, lib) = (uri(dir.path(), "main.bas"), uri(dir.path(), "lib.bm"));
+    c.open(&main, "'$INCLUDE: 'lib.bm'\n");
+    assert_eq!(c.program(&main), own());
+    c.open(&lib, "SUB s\nEND SUB\n");
+    assert_eq!(c.program(&lib), owned_by(&main, "open"));
+    c.shutdown().unwrap();
+}
+
+/// "Through another include": the include of an include on disk.
+#[test]
+fn program_through_another_include() {
+    let dir = temp();
+    write(dir.path(), "all.bi", "'$INCLUDE: 'lib.bm'\n");
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (main, lib) = (uri(dir.path(), "main.bas"), uri(dir.path(), "lib.bm"));
+    c.open(&main, "'$INCLUDE: 'all.bi'\n");
+    c.open(&lib, "SUB s\nEND SUB\n");
+    assert_eq!(c.program(&lib), owned_by(&main, "open"));
+    c.shutdown().unwrap();
+}
+
+/// "A .bas file that another program includes" ("A .bas file inside another program"), and "A chain of .bas
+/// files": every document of the chain belongs to its top file.
+#[test]
+fn program_of_a_chain_of_bas_files() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (main, mid, lib) = (
+        uri(dir.path(), "main.bas"),
+        uri(dir.path(), "mid.bas"),
+        uri(dir.path(), "lib.bm"),
+    );
+    c.open(&main, "'$INCLUDE: 'mid.bas'\n");
+    c.open(&mid, "'$INCLUDE: 'lib.bm'\n");
+    c.open(&lib, "SUB s\nEND SUB\n");
+    assert_eq!(c.program(&main), own());
+    assert_eq!(c.program(&mid), owned_by(&main, "open"));
+    let mut last = None;
+    while let Some(p) = c.program(&lib) {
+        last = Some(p);
+    }
+    assert_eq!(last, owned_by(&main, "open"));
+    c.shutdown().unwrap();
+}
+
+/// "The includer opens later" and "The includer no longer includes it"; the owner changes and is told again.
+#[test]
+fn program_changes_with_its_includer() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (main, lib) = (uri(dir.path(), "main.bas"), uri(dir.path(), "lib.bm"));
+    c.open(&lib, "SUB s\nEND SUB\n");
+    assert_eq!(c.program(&lib), own());
+    c.open(&main, "'$INCLUDE: 'lib.bm'\nPRINT 1\n");
+    assert_eq!(c.program(&lib), owned_by(&main, "open"));
+    // The `$INCLUDE` line removed: after the next parse `lib.bm` is its own program.
+    c.change(&main, 2, "PRINT 1\n");
+    assert_eq!(c.program(&lib), own());
+    c.shutdown().unwrap();
+}
+
+/// The includer closes: its document goes, so the include file is its own program again (it is not on disk).
+#[test]
+fn program_after_the_includer_closes() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (main, lib) = (uri(dir.path(), "main.bas"), uri(dir.path(), "lib.bm"));
+    c.open(&main, "'$INCLUDE: 'lib.bm'\n");
+    c.open(&lib, "SUB s\nEND SUB\n");
+    assert_eq!(c.program(&lib), owned_by(&main, "open"));
+    c.close(&main);
+    assert_eq!(c.program(&lib), own());
+    c.shutdown().unwrap();
+}
+
+/// "Two programs include the file": `main` of the settings file before the one opened first.
+#[test]
+fn settings_main_before_the_first_opened() {
+    let dir = temp();
+    write(dir.path(), "qb64rust.toml", "[project]\nmain = \"game.bas\"\n");
+    write(dir.path(), "game.bas", "'$INCLUDE: 'lib.bm'\n");
+    write(dir.path(), "tests/rules_test.bas", "'$INCLUDE: '../lib.bm'\n");
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (game, rules, lib) = (
+        uri(dir.path(), "game.bas"),
+        uri(dir.path(), "tests/rules_test.bas"),
+        uri(dir.path(), "lib.bm"),
+    );
+    c.open(&rules, "'$INCLUDE: '../lib.bm'\n");
+    c.open(&game, "'$INCLUDE: 'lib.bm'\n");
+    c.open(&lib, "SUB s\nEND SUB\n");
+    let mut last = None;
+    while let Some(p) = c.program(&lib) {
+        last = Some(p);
+    }
+    assert_eq!(last, owned_by(&game, "settings"));
+    c.shutdown().unwrap();
+}
+
+/// "Main does not include the document": the lookup goes on to the open documents.
+#[test]
+fn settings_main_that_does_not_include_the_document() {
+    let dir = temp();
+    write(dir.path(), "qb64rust.toml", "[project]\nmain = \"game.bas\"\n");
+    write(dir.path(), "game.bas", "PRINT 1\n");
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (tool, tools) = (uri(dir.path(), "tool.bas"), uri(dir.path(), "tools.bm"));
+    c.open(&tool, "'$INCLUDE: 'tools.bm'\n");
+    c.open(&tools, "SUB s\nEND SUB\n");
+    let mut last = None;
+    while let Some(p) = c.program(&tools) {
+        last = Some(p);
+    }
+    assert_eq!(last, owned_by(&tool, "open"));
+    c.shutdown().unwrap();
+}
+
+/// "The settings file changes": `main` changed on disk, with no edit of the include file.
+#[test]
+fn settings_file_changes_the_program() {
+    let dir = temp();
+    write(dir.path(), "qb64rust.toml", "[project]\nmain = \"game.bas\"\n");
+    write(dir.path(), "game.bas", "'$INCLUDE: 'lib.bm'\n");
+    write(dir.path(), "editor.bas", "'$INCLUDE: 'lib.bm'\n");
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let lib = uri(dir.path(), "lib.bm");
+    c.open(&lib, "SUB s\nEND SUB\n");
+    assert_eq!(c.program(&lib), owned_by(&uri(dir.path(), "game.bas"), "settings"));
+    write(dir.path(), "qb64rust.toml", "[project]\nmain = \"editor.bas\"\n");
+    let change = json!({ "changes": [{ "uri": uri(dir.path(), "qb64rust.toml"), "type": 2 }] });
+    c.notify("workspace/didChangeWatchedFiles", change);
+    assert_eq!(c.program(&lib), owned_by(&uri(dir.path(), "editor.bas"), "settings"));
+    c.shutdown().unwrap();
+}
+
+/// "Main is included by another program": the file `main` names is its own program.
+#[test]
+fn settings_main_is_its_own_program() {
+    let dir = temp();
+    write(dir.path(), "qb64rust.toml", "[project]\nmain = \"game.bas\"\n");
+    write(dir.path(), "game.bas", "PRINT 1\n");
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (game, test) = (uri(dir.path(), "game.bas"), uri(dir.path(), "game_test.bas"));
+    c.open(&test, "'$INCLUDE: 'game.bas'\n");
+    c.open(&game, "PRINT 1\n");
+    let mut last = None;
+    while let Some(p) = c.program(&game) {
+        last = Some(p);
+    }
+    assert_eq!(last, own());
+    c.shutdown().unwrap();
+}
+
+/// "The program is not open" ("Found on disk") and "A test file beside the program".
+#[test]
+fn program_found_on_disk_before_its_test() {
+    let dir = temp();
+    write(dir.path(), "game_test.bas", "'$INCLUDE: 'lib.bm'\n");
+    write(dir.path(), "game.bas", "'$INCLUDE: 'lib.bm'\n");
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let lib = uri(dir.path(), "lib.bm");
+    c.open(&lib, "SUB s\nEND SUB\n");
+    assert_eq!(c.program(&lib), owned_by(&uri(dir.path(), "game.bas"), "disk"));
+    c.shutdown().unwrap();
+}
+
+/// "The top of a chain on disk".
+#[test]
+fn program_at_the_top_of_a_chain_on_disk() {
+    let dir = temp();
+    write(dir.path(), "main.bas", "'$INCLUDE: 'mid.bas'\n");
+    write(dir.path(), "mid.bas", "'$INCLUDE: 'lib.bm'\n");
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let lib = uri(dir.path(), "lib.bm");
+    c.open(&lib, "SUB s\nEND SUB\n");
+    assert_eq!(c.program(&lib), owned_by(&uri(dir.path(), "main.bas"), "disk"));
+    c.shutdown().unwrap();
+}
+
+/// The program found on disk opens: the include file's program is the same, now found as an open document, and the
+/// client is told so.
+#[test]
+fn program_on_disk_that_opens() {
+    let dir = temp();
+    write(dir.path(), "main.bas", "'$INCLUDE: 'lib.bm'\n");
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (main, lib) = (uri(dir.path(), "main.bas"), uri(dir.path(), "lib.bm"));
+    c.open(&lib, "SUB s\nEND SUB\n");
+    assert_eq!(c.program(&lib), owned_by(&main, "disk"));
+    c.open(&main, "'$INCLUDE: 'lib.bm'\n");
+    assert_eq!(c.program(&main), own());
+    assert_eq!(c.program(&lib), owned_by(&main, "open"));
+    c.shutdown().unwrap();
+}
+
+/// "A .bas file whose includer is not open".
+#[test]
+fn bas_file_whose_includer_is_on_disk() {
+    let dir = temp();
+    write(dir.path(), "main.bas", "'$INCLUDE: 'other.bas'\n");
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let other = uri(dir.path(), "other.bas");
+    c.open(&other, "PRINT 1\n");
+    assert_eq!(c.program(&other), owned_by(&uri(dir.path(), "main.bas"), "disk"));
+    c.shutdown().unwrap();
+}
+
+/// "The program is one folder up", within the workspace folder the client names (task 4.3); without it the
+/// search stays in the document's folder ("No program").
+#[test]
+fn program_one_folder_up_in_the_workspace() {
+    let dir = temp();
+    write(dir.path(), "src/game.bas", "'$INCLUDE: 'lib/draw.bm'\n");
+    let draw = uri(dir.path(), "src/lib/draw.bm");
+    let mut c = Client::start_in(dir.path(), dir.path());
+    c.open(&draw, "SUB d\nEND SUB\n");
+    assert_eq!(c.program(&draw), owned_by(&uri(dir.path(), "src/game.bas"), "disk"));
+    c.shutdown().unwrap();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    c.open(&draw, "SUB d\nEND SUB\n");
+    assert_eq!(c.program(&draw), own());
+    c.shutdown().unwrap();
+}
+
+/// "Check of an include file", "Error elsewhere in a program that is not open": the check counts the program's
+/// errors and publishes for the open document only; the parse publishes nothing under the main file's uri.
+#[test]
+fn check_of_an_include_file_of_a_program_on_disk() {
+    let dir = temp();
+    write(
+        dir.path(),
+        "main.bas",
+        "'$INCLUDE: 'lib.bm'\nSUB draw\nx = BAD\ny = (\nEND SUB\n",
+    );
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (main, lib) = (uri(dir.path(), "main.bas"), uri(dir.path(), "lib.bm"));
+    c.open(&lib, "SUB s\ndraw\nEND SUB\n");
+    assert_eq!(c.program(&lib), owned_by(&main, "disk"));
+    let r = c.request(qb64rust_lsp::CHECK, check_params(&lib));
+    // The stand-in check's `BAD` in `main.bas` (the stand-in does not count the parser's error on line 4).
+    assert_eq!(r.response_result.unwrap()["errors"], 1);
+    assert_eq!(c.last_diagnostics(&lib).unwrap(), Vec::<Value>::new());
+    assert!(
+        !c.inbox
+            .iter()
+            .any(|n| n.method == "textDocument/publishDiagnostics" && n.params["uri"] == main.as_str()),
+        "published for main.bas: {:?}",
+        c.inbox
+    );
+    c.shutdown().unwrap();
+}
+
+/// An include file of a program on disk closes while another of its files stays open: its diagnostics are cleared,
+/// since that program publishes for open documents only.
+#[test]
+fn closing_one_include_file_of_a_program_on_disk() {
+    let dir = temp();
+    write(dir.path(), "main.bas", "'$INCLUDE: 'a.bm'\n'$INCLUDE: 'b.bm'\n");
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (main, a, b) = (
+        uri(dir.path(), "main.bas"),
+        uri(dir.path(), "a.bm"),
+        uri(dir.path(), "b.bm"),
+    );
+    c.open(&a, "x = (\n");
+    c.open(&b, "SUB s\nEND SUB\n");
+    assert_eq!(c.program(&a), owned_by(&main, "disk"));
+    assert_eq!(c.program(&b), owned_by(&main, "disk"));
+    assert_eq!(c.last_diagnostics(&a).map(|d| d.len()), Some(1));
+    c.close(&a);
+    assert_eq!(c.last_diagnostics(&a), Some(Vec::new()));
+    c.shutdown().unwrap();
+}
+
+/// "Definition in the main file": the parser's definition of a SUB the program's main file defines, not open.
+#[test]
+fn definition_in_the_main_file_on_disk() {
+    let dir = temp();
+    let mut text = String::from("'$INCLUDE: 'lib.bm'\n");
+    for _ in 0..38 {
+        text.push_str("PRINT 1\n");
+    }
+    text.push_str("SUB draw\nEND SUB\n");
+    write(dir.path(), "main.bas", &text);
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (main, lib) = (uri(dir.path(), "main.bas"), uri(dir.path(), "lib.bm"));
+    c.open(&lib, "SUB s\ndraw\nEND SUB\n");
+    assert_eq!(c.program(&lib), owned_by(&main, "disk"));
+    let params = json!({ "textDocument": { "uri": lib }, "position": { "line": 1, "character": 1 } });
+    let d = c.request("textDocument/definition", params).response_result.unwrap();
+    assert_eq!(d["uri"].as_str(), Some(main.as_str()));
+    assert_eq!(d["range"]["start"]["line"], 39);
+    // The outline is the document's own.
+    let symbols = c
+        .request("textDocument/documentSymbol", json!({ "textDocument": { "uri": lib } }))
+        .response_result
+        .unwrap();
+    let names: Vec<_> = symbols.as_array().unwrap().iter().map(|s| s["name"].clone()).collect();
+    assert_eq!(names, [json!("s")]);
+    c.shutdown().unwrap();
+}
+
+/// "Check of a lone include file" and "Syntax error in a lone include file", and the notification of "No
+/// program": the check counts the parser's errors only, and never runs the rest of the front end.
+#[test]
+fn lone_include_file_checks_its_syntax_only() {
+    let dir = temp();
+    let (mut c, _) = Client::start_with(dir.path(), Value::Null, never);
+    let lib = uri(dir.path(), "lib.bm");
+    c.open(&lib, "SUB s\nCALL missing\nEND SUB\n");
+    assert_eq!(c.program(&lib), own());
+    let r = c.request(qb64rust_lsp::CHECK, check_params(&lib));
+    assert_eq!(r.response_result.unwrap(), json!({ "errors": 0, "warnings": 0 }));
+    assert_eq!(c.last_diagnostics(&lib).unwrap(), Vec::<Value>::new());
+    c.change(&lib, 2, "SUB s\nx = 1 +\nEND SUB\n");
+    let r = c.request(qb64rust_lsp::CHECK, check_params(&lib));
+    assert_eq!(r.response_result.unwrap()["errors"], 1);
+    let d = c.last_diagnostics(&lib).unwrap();
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert_eq!(at(&d[0]).0, 1);
+    c.shutdown().unwrap();
+}
+
+/// "Formatting an included file" with the stand-in formatter: the document's own text is laid out, not the
+/// program's main file, and the answer edits the document only (range formatting too).
+#[test]
+fn formatting_an_include_file_of_an_open_program() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (main, lib) = (uri(dir.path(), "main.bas"), uri(dir.path(), "lib.bm"));
+    c.open(&main, "'$INCLUDE: 'lib.bm'\n");
+    c.open(&lib, "a   b\nc   d\n");
+    assert_eq!(c.program(&lib), owned_by(&main, "open"));
+    let got = edits(c.request("textDocument/formatting", format_params(&lib)));
+    assert_eq!(got, [(0, 0, 2, 0, "a b\nc d\n".to_string())]);
+    let got = edits(c.request("textDocument/rangeFormatting", range_params(&lib, (1, 0), (1, 3))));
+    assert_eq!(got, [(1, 0, 1, 5, "c d".to_string())]);
     c.shutdown().unwrap();
 }

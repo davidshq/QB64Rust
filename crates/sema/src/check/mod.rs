@@ -68,7 +68,17 @@ pub fn check_with(map: &SourceMap, program: &ParsedProgram, fold: bool, fixes: F
         };
         let new: Vec<RedimLocal> = found.into_iter().filter(|r| !known(r)).collect();
         if new.is_empty() {
-            let mut diags = diags;
+            let (mut prog, mut diags) = (prog, diags);
+            // A variable not made by its first use was made by a declaration (`Var::implicit`).
+            let declared: Vec<SymbolKind> = prog
+                .symbols
+                .iter()
+                .map(|(_, s)| s.kind)
+                .filter(|k| matches!(k, SymbolKind::Var(v) if !prog.var(*v).implicit))
+                .collect();
+            for kind in declared {
+                prog.symbols.mark_declared(kind);
+            }
             // The lints, once, on a program without errors (spec `compiler/lints`, design D1 of `lints`). The
             // parser's errors are not in `diags`, so they are asked for too.
             if !diags.has_errors() && !program.diagnostics().has_errors() {

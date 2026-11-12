@@ -307,7 +307,7 @@ fn run(p: &Program) -> Outcome {
     }
     collect_forms(fe.parsed.trees[0].root(), &fe.map.file(fe.file).bytes, &mut o.forms);
     let settings = p.settings;
-    let out = format_program(&fe, &settings);
+    let out = format_program(&fe, &settings, true);
     let recorded = std::fs::read(&p.recording).unwrap();
     if lf(&out) != lf(&recorded) && divergence_rows(&p.recording.with_extension("divergences")).is_empty() {
         o.differs = Some(first_difference(&recorded, &out));
@@ -330,7 +330,7 @@ fn run(p: &Program) -> Outcome {
         o.broken = Some(format!("the formatted text is another program: {line}"));
         return o;
     }
-    let twice = format_program(&again, &settings);
+    let twice = format_program(&again, &settings, true);
     if twice != out {
         o.broken = Some(format!(
             "formatting again changes it: {}",
@@ -585,4 +585,113 @@ fn formatter_equals_the_old_compilers_layout() {
         );
     }
     assert!(message.is_empty(), "{message}");
+}
+
+/// The tokens of a parse's main file other than blanks and line ends, each without its blanks and in lower case.
+fn plain_tokens(fe: &Frontend) -> Vec<Vec<u8>> {
+    let bytes = &fe.map.file(fe.file).bytes;
+    fe.parsed.trees[0]
+        .root()
+        .tokens()
+        .into_iter()
+        .filter(|t| {
+            !matches!(
+                t.kind,
+                SyntaxKind::Whitespace | SyntaxKind::Newline | SyntaxKind::LineContinuation
+            )
+        })
+        .map(|t| {
+            bytes[t.span.start as usize..t.span.end as usize]
+                .iter()
+                .filter(|b| !b.is_ascii_whitespace())
+                .map(u8::to_ascii_lowercase)
+                .collect()
+        })
+        .collect()
+}
+
+/// Formatting a program with an error of a later stage (task 2.6 of `include-file-program`; design "Risks"): every
+/// program of `verification\` that QB64pe rejected (recorded `(not compiled)`) and whose parse has no error is
+/// formatted without a panic, and the output's tokens are the input's, letter case and blanks aside.
+///
+/// Measured 2026-11-11: see the count in `openspec\changes\archive\2026-11-11-include-file-program\design.md`.
+#[test]
+fn programs_with_errors_format_without_a_panic() {
+    let dir = repo().join("verification");
+    let root = repo().join("tests/upstream/root");
+    let mut names: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap()
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .filter_map(|n| n.strip_suffix(".out.txt").map(str::to_string))
+        .filter(|n| {
+            std::fs::read(dir.join(format!("{n}.out.txt"))).is_ok_and(|b| b.trim_ascii_end() == b"(not compiled)")
+        })
+        .filter(|n| dir.join(format!("{n}.bas")).is_file())
+        .collect();
+    names.sort();
+    let settings = Settings::default();
+    // As `-y` loads them: with the checks that read the disk, whose errors make a program incomplete too.
+    let load = |name: &str, bytes: Vec<u8>| {
+        let main = dir.join(format!("{name}.bas"));
+        let display = main.to_string_lossy().into_owned();
+        qb64rust_driver::frontend_explicit(
+            qb64rust_base::Platform::host(),
+            false,
+            &display,
+            bytes,
+            |file| Box::new(FileLoader::new(&root, file, &main)),
+            Some((&main, &root)),
+            qb64rust_base::fixes::Fixes::OFF,
+        )
+    };
+    let (mut formatted, mut parse_errors) = (0, 0);
+    let mut problems = Vec::new();
+    for name in &names {
+        let bytes = std::fs::read(dir.join(format!("{name}.bas"))).unwrap();
+        let fe = load(name, bytes);
+        if fe.parsed.diagnostics().has_errors() {
+            parse_errors += 1;
+            continue;
+        }
+        let main = dir.join(format!("{name}.bas"));
+        let complete = qb64rust_driver::format_complete(&fe.diagnostics, Some(&main));
+        let out = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            format_program(&fe, &settings, complete)
+        })) {
+            Ok(out) => out,
+            Err(_) => {
+                problems.push(format!("{name}: the formatter panicked"));
+                continue;
+            }
+        };
+        formatted += 1;
+        let again = load(name, out);
+        let (before, after) = (plain_tokens(&fe), plain_tokens(&again));
+        if before != after {
+            let at = before
+                .iter()
+                .zip(&after)
+                .position(|(a, b)| a != b)
+                .unwrap_or(before.len().min(after.len()));
+            let show = |t: &[Vec<u8>]| {
+                t.iter()
+                    .skip(at.saturating_sub(2))
+                    .take(5)
+                    .map(|w| show_bytes(w))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            };
+            problems.push(format!(
+                "{name}: the tokens changed: `{}` became `{}`",
+                show(&before),
+                show(&after)
+            ));
+        }
+    }
+    eprintln!(
+        "{} programs recorded (not compiled): {formatted} formatted, {parse_errors} with a parse error",
+        names.len()
+    );
+    assert!(formatted > 0, "no program found in {}", dir.display());
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
 }

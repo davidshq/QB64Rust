@@ -5,7 +5,7 @@ use crate::analysis::Analysis;
 use crate::index::{EntryKind, Indexed};
 use crate::walk::is_expr;
 use lsp_types::Location;
-use qb64rust_base::Span;
+use qb64rust_base::{FileId, Span};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast::{
     GosubStmt, GotoStmt, ImplicitGoto, LabelDef, LineNumber, OnErrorStmt, OnJumpStmt, ProcDef, ProcHeader, RestoreStmt,
@@ -16,7 +16,12 @@ use qb64rust_syntax::tree::{Element, Node, Tok};
 /// The definition of the name at `offset` in the program's main file: the name token of a procedure's header or of
 /// a label (or line number). `None` for anything else, and for a name with no definition.
 pub fn definition(a: &Analysis, offset: u32) -> Option<Span> {
-    let root = a.parsed.main().root();
+    definition_in(a, a.parsed.main().file, offset)
+}
+
+/// [`definition`] of the name at `offset` in the program's file `file`.
+pub fn definition_in(a: &Analysis, file: FileId, offset: u32) -> Option<Span> {
+    let root = a.tree(file)?.root();
     let is_name = |(_, t): &(Vec<Node>, Tok)| matches!(t.kind, SyntaxKind::Ident | SyntaxKind::Number);
     // The cursor in a name, or just after one.
     let (chain, tok) = token_at(root, offset)
@@ -51,12 +56,11 @@ pub fn definition(a: &Analysis, offset: u32) -> Option<Span> {
 }
 
 /// `textDocument/references` (design D4 of `m5b-language-features`): every use of the symbol at `offset` of the
-/// program's main file, with its definition when `with_def`, by file and offset. A FUNCTION and its result variable
-/// are one name, as for a rename: each lists the other's uses too, and the result variable's definition is a use.
-/// Empty on a name with no symbol.
-pub(crate) fn references(ix: &Indexed, offset: u32, with_def: bool) -> Vec<Location> {
-    let main = ix.analysis.parsed.main().file;
-    let Some((id, _)) = ix.index.entry_near(main, offset) else {
+/// program's file `file`, with its definition when `with_def`, by file and offset. A FUNCTION and its result
+/// variable are one name, as for a rename: each lists the other's uses too, and the result variable's definition
+/// is a use. Empty on a name with no symbol.
+pub(crate) fn references(ix: &Indexed, file: FileId, offset: u32, with_def: bool) -> Vec<Location> {
+    let Some((id, _)) = ix.index.entry_near(file, offset) else {
         return Vec::new();
     };
     let e = &ix.index.entries[id];

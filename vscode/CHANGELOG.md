@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Include files belong to their program.** An open `.bi` or `.bm` file (or a `.bas` file that another includes)
+  is checked, formatted and answered as a part of the program that includes it, even when that program is not
+  open. The server takes the program from the `main` entry of the `[project]` table in `qb64rust.toml`, else an
+  open `.bas` file that includes it, else one on disk. The language status shows the program chosen. A file with no
+  program is checked for syntax errors only (README, "Include files").
+- **Formatting a program with an error.** Only a syntax error stops Format Document and `qb64rust -y`; a SUB that
+  is not defined or a type error no longer does. `qb64pe -y` writes nothing for such a program
+  (`DIVERGENCES-QB64PE.md` D-064).
+
 ## 0.3.0
 
 - **Linux x64.** The extension, the compiler and the debugger run on Linux (glibc): a `.vsix` for `linux-x64` and a

@@ -12,6 +12,8 @@ pub(crate) struct Fmt<'a> {
     pub program: &'a Program,
     pub file: FileId,
     pub settings: &'a Settings,
+    /// See [`crate::format_file`]: when false, only the names of declared symbols are spelled as their definition.
+    pub complete: bool,
 }
 
 /// The bytes of a type suffix: what follows a name (`$`, `%`, `&&`, `~%`, `` `8 ``, `$16` of a fixed string).
@@ -105,6 +107,11 @@ impl<'a> Fmt<'a> {
             {
                 syms.push((span, id));
             }
+        }
+        // In an incomplete program a variable made by its first use is written as read: its first use here may not
+        // be its first use in the whole program (design D3 of `include-file-program`).
+        if !self.complete {
+            syms.retain(|&(_, id)| self.program.symbols.is_declared(id));
         }
         // An OpenGL routine is a procedure to `sema` with its first call as the definition; the old compiler spells it
         // as it registers it.

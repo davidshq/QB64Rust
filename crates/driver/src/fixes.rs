@@ -35,6 +35,30 @@ pub fn find_settings(main: &Path) -> Option<PathBuf> {
         .find(|f| f.is_file())
 }
 
+/// The main program the nearest settings file names for the document at `doc` (design D7 of
+/// `include-file-program`): the `main` entry of its `[project]` table, joined to the settings file's folder. `None`
+/// for no settings file, no such table or entry, a value that is not a string, a file that is not valid TOML, and
+/// a main file that does not exist. The language server's hook `qb64rust_lsp::MainOf`.
+pub fn main_of(doc: &Path) -> Option<PathBuf> {
+    let settings = find_settings(doc)?;
+    let main = project_main(&std::fs::read(&settings).ok()?)?;
+    let path = settings.parent()?.join(main);
+    path.is_file().then_some(path)
+}
+
+/// The string of `[project]` `main` in a settings file's bytes.
+fn project_main(bytes: &[u8]) -> Option<String> {
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "a settings file is TOML, which is UTF-8 by its specification; not BASIC source"
+    )]
+    let text = std::str::from_utf8(bytes).ok()?;
+    let doc = toml::de::DeTable::parse(text).ok()?;
+    let project = doc.get_ref().get("project")?;
+    let main = project.get_ref().as_table()?.get("main")?;
+    main.get_ref().as_str().map(str::to_string)
+}
+
 /// The fixes a settings file turns on: every fix off when it has no `[fixes]` table.
 pub fn read_settings(path: &Path) -> Result<Fixes, SettingsError> {
     let bytes = std::fs::read(path).map_err(|e| SettingsError {
@@ -202,6 +226,36 @@ mod tests {
         let near = write(dir.path(), "proj/src/qb64rust.toml", "[fixes]\nall = false\n");
         assert_eq!(find_settings(&main), Some(near.clone()), "the nearest file wins");
         assert_eq!(for_program(&main).unwrap(), (Fixes::OFF, Some(near)));
+    }
+
+    /// `[project]` `main` (design D7 of `include-file-program`): a `main`, no table, a value that is not a string,
+    /// a missing file, and a settings file one folder up, whose `main` is relative to its own folder.
+    #[test]
+    fn main_of_the_settings_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let doc = write(dir.path(), "proj/src/lib.bm", "SUB a\nEND SUB\n");
+        assert_eq!(main_of(&doc), None, "no settings file");
+        let game = write(dir.path(), "proj/src/game.bas", "PRINT 1\n");
+        write(dir.path(), "proj/src/qb64rust.toml", "[project]\nmain = \"game.bas\"\n");
+        assert_eq!(main_of(&doc), Some(dir.path().join("proj/src").join("game.bas")));
+        assert!(main_of(&doc).unwrap().is_file());
+        write(dir.path(), "proj/src/qb64rust.toml", "[fixes]\nall = true\n");
+        assert_eq!(main_of(&doc), None, "no [project] table");
+        write(dir.path(), "proj/src/qb64rust.toml", "[project]\nmain = 1\n");
+        assert_eq!(main_of(&doc), None, "not a string");
+        write(dir.path(), "proj/src/qb64rust.toml", "[project]\nmain = \"none.bas\"\n");
+        assert_eq!(main_of(&doc), None, "a missing file");
+        std::fs::remove_file(dir.path().join("proj/src/qb64rust.toml")).unwrap();
+        write(dir.path(), "proj/qb64rust.toml", "[project]\nmain = \"src/game.bas\"\n");
+        assert_eq!(
+            main_of(&doc),
+            Some(dir.path().join("proj").join("src/game.bas")),
+            "one folder up"
+        );
+        assert_eq!(
+            std::fs::read(main_of(&doc).unwrap()).unwrap(),
+            std::fs::read(game).unwrap()
+        );
     }
 
     #[test]

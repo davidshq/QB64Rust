@@ -52,9 +52,11 @@ QB64pe is installed.
 
 **Format Document** lays the program out as `qb64pe -y` (and the QB64pe IDE) does: the indent of each block,
 spaces around operators and after commas, keyword case, and names spelled as they are declared (also in an
-`$INCLUDE` file). Unsaved changes are formatted; the file on disk is not touched. If the program has an error, the
-document is left unchanged, the error is shown as a message and in Problems. Format on save is off unless you turn
-on `editor.formatOnSave`.
+`$INCLUDE` file). Unsaved changes are formatted; the file on disk is not touched. If the program has a syntax error,
+the document is left unchanged, the error is shown as a message and in Problems. Another error, such as a SUB that
+is not defined, does not stop it. An include file (`.bi`, `.bm`) can be formatted too, with the names spelled as
+its program declares them (see [Include files](#include-files)). Format on save is off unless you turn on
+`editor.formatOnSave`.
 
 Which formatter runs:
 
@@ -182,6 +184,28 @@ server runs, and `qb64rust: not found` (with a link to the setting) when there i
 works as it did with QB64pe alone. Included files are looked up as a build looks them up: the including file's
 folder, then `qb64rust.includeRoot`; when that is empty, the QB64pe folder, as QB64pe looks in its own folder (a
 relative path is taken from the workspace folder). The server runs only in a trusted workspace.
+
+### Include files
+
+An include file such as `turn.bm` is a part of the program that includes it. The server finds that program and
+answers from it: errors, hover, Go to Definition, references, rename, completion and formatting. So a call of a
+SUB that the main file defines is no error in the include file. The server looks, in this order:
+
+1. the `main` entry of the `[project]` table in the nearest `qb64rust.toml`, when that program includes the file:
+
+   ```toml
+   [project]
+   main = "game.bas"
+   ```
+
+2. an open `.bas` file whose program includes it, the one opened first;
+3. a `.bas` file on disk that includes it, in the file's folder or a folder above it, up to the folder of
+   `qb64rust.toml` or the workspace folder.
+
+A `.bas` file that another program includes is a part of that program too, unless `main` names it. The language
+status shows the program chosen for the active file. An include file with no program shows "no program found": it
+is checked for syntax errors only, and formatted alone. Set `main` when two programs include the same files, such
+as a game and its tests. Build and Run still act on the active file.
 
 ## Language features
 

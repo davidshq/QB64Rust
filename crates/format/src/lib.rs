@@ -50,14 +50,24 @@ pub fn source_lines(bytes: &[u8]) -> Vec<&[u8]> {
         .collect()
 }
 
-/// Lays out the file `file` of a program that parsed and checked without errors, with `settings`. The result
-/// holds every line of the file, each followed by CRLF, as `qb64pe -y` writes its buffer (design D4).
+/// Lays out the file `file` of a program that parsed without errors, with `settings`. The result holds every line
+/// of the file, each followed by CRLF, as `qb64pe -y` writes its buffer (design D4).
+///
+/// `complete`: the program checked without errors and its main file is a `.bas` file. When it is not, a name takes
+/// the spelling of its definition only when a statement declares it (spec `compiler/format`, "Names in an
+/// incomplete program"; design D3 of `include-file-program`).
+///
+/// In an incomplete program, a line whose layout would read otherwise than the line (other than by blanks and
+/// letter case outside strings) is laid out as with `AutoLayout` off: indented, its text as typed but for letter
+/// case. The layout of a statement the check rejected, or one beside it, may misread it (`KILL ("a", "b")` laid out
+/// `KILL ("a"), "b"`; task 2.6 of `include-file-program`).
 pub fn format_file(
     map: &SourceMap,
     parsed: &ParsedProgram,
     program: &Program,
     file: FileId,
     settings: &Settings,
+    complete: bool,
 ) -> Vec<u8> {
     let bytes = &map.file(file).bytes;
     let ranges = line_ranges(bytes);
@@ -66,6 +76,7 @@ pub fn format_file(
         program,
         file,
         settings,
+        complete,
     };
     let plans = match parsed.trees.iter().find(|t| t.file == file) {
         Some(tree) => f.plan(tree.root(), &ranges),
@@ -75,10 +86,24 @@ pub fn format_file(
     for (i, &(a, b)) in ranges.iter().enumerate() {
         let line = &bytes[a as usize..b as usize];
         match plans.get(i) {
-            Some(walk::Plan::Layout(layout, apply)) => match apply::apply_layout_indent(layout, line, *apply) {
-                Some(text) => out.extend_from_slice(&text),
-                None => out.extend_from_slice(line),
-            },
+            Some(walk::Plan::Layout(layout, apply)) => {
+                let mut text = apply::apply_layout_indent(layout, line, *apply);
+                let misreads = |t: &Option<Vec<u8>>| t.as_ref().is_some_and(|t| reading(t) != reading(line));
+                if !complete && misreads(&text) {
+                    let off = apply::Apply {
+                        auto_layout: false,
+                        ..*apply
+                    };
+                    text = apply::apply_layout_indent(layout, line, off);
+                    if misreads(&text) {
+                        text = None;
+                    }
+                }
+                match text {
+                    Some(text) => out.extend_from_slice(&text),
+                    None => out.extend_from_slice(line),
+                }
+            }
             Some(walk::Plan::AsRead) | None => out.extend_from_slice(line),
         }
         out.extend_from_slice(b"\r\n");
@@ -86,9 +111,42 @@ pub fn format_file(
     out
 }
 
+/// A line as the lexer reads it, for the check of an incomplete program's layout: letters outside strings in
+/// capitals, and blanks outside strings left out except one between two characters of a name or number (`k AS`
+/// is not `kAS`, `a . b` is not `a.b`); a string's text as it is.
+fn reading(text: &[u8]) -> Vec<u8> {
+    let word = |c: u8| c.is_ascii_alphanumeric() || b"_.$%&!#~`".contains(&c);
+    let mut key = Vec::with_capacity(text.len());
+    let (mut in_string, mut blank) = (false, false);
+    for &c in text {
+        if c == b'"' {
+            in_string = !in_string;
+        }
+        if !in_string && (c == b' ' || c == b'\t') {
+            blank = true;
+            continue;
+        }
+        if blank && !in_string && key.last().is_some_and(|&p| word(p)) && word(c) {
+            key.push(b' ');
+        }
+        blank = false;
+        key.push(if in_string { c } else { c.to_ascii_uppercase() });
+    }
+    key
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reading_keeps_the_blanks_that_part_names() {
+        assert_eq!(reading(b"  call   missing"), reading(b"Call missing"));
+        assert_eq!(reading(b"x=1+ 2"), reading(b"x = 1 + 2"));
+        assert_ne!(reading(b"k AS LONG"), reading(b"kAS LONG"));
+        assert_ne!(reading(b"a . b"), reading(b"a.b"));
+        assert_ne!(reading(b"PRINT \"a  b\""), reading(b"PRINT \"a b\""));
+    }
 
     #[test]
     fn lines_end_as_qb64pe_reads_them() {

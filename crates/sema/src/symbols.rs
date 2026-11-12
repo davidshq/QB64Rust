@@ -45,6 +45,11 @@ pub struct Symbols {
     /// The spans that declare a procedure without calling it: the name in its `SUB` or `FUNCTION` header and in each
     /// `DECLARE SUB` or `DECLARE FUNCTION` line (design D5 of `lints`).
     declaring: HashSet<Span>,
+    /// The symbols that a statement declares (design D2 of `include-file-program`): a procedure by its header or
+    /// `DECLARE LIBRARY`, a label, a constant, a type and its members, and a variable that `DIM`, `REDIM`,
+    /// `COMMON`, `SHARED`, `STATIC` or a parameter list made or named. Not a variable made by its first use, nor
+    /// an OpenGL routine, which its first call makes.
+    declared: HashSet<SymbolKind>,
 }
 
 impl Symbols {
@@ -85,6 +90,18 @@ impl Symbols {
     /// Whether `span` declares a procedure ([`Self::mark_declaring`]).
     pub fn is_declaring(&self, span: Span) -> bool {
         self.declaring.contains(&span)
+    }
+
+    /// Marks the symbol of `kind` as one a statement declares.
+    pub(crate) fn mark_declared(&mut self, kind: SymbolKind) {
+        self.declared.insert(kind);
+    }
+
+    /// Whether a statement declares the symbol (see the field `declared`). The formatter takes the spelling of such
+    /// a symbol only, in a program with an error or an include file formatted alone (spec `compiler/format`,
+    /// "Names in an incomplete program").
+    pub fn is_declared(&self, id: SymbolId) -> bool {
+        self.declared.contains(&self.get(id).kind)
     }
 
     /// Records the names one statement resolved. The first name of a symbol not seen before becomes its

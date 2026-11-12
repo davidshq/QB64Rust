@@ -20,10 +20,10 @@ pub struct Plan {
     pub inactive: bool,
 }
 
-/// The symbol at `offset` of the main file that can be renamed, and the span of its name there without its suffix.
-pub fn prepare(ix: &Indexed, offset: u32) -> Result<(usize, Span), String> {
-    let main = ix.analysis.parsed.main().file;
-    let Some((id, span)) = ix.index.entry_near(main, offset) else {
+/// The symbol at `offset` of the file `file` that can be renamed, and the span of its name there without its
+/// suffix.
+pub fn prepare(ix: &Indexed, file: FileId, offset: u32) -> Result<(usize, Span), String> {
+    let Some((id, span)) = ix.index.entry_near(file, offset) else {
         return Err("there is no name to rename here".into());
     };
     let e = &ix.index.entries[id];
@@ -76,10 +76,10 @@ fn bare(ix: &Indexed, span: Span, written: &str) -> Span {
     Span::new(span.file, span.start, span.start + qb64rust_base::to_u32(end))
 }
 
-/// The checks of the index (design D5, cases 1 to 5) for renaming the symbol at `offset` to `new_name`; `root` is
-/// the compiler root.
-pub fn plan(ix: &Indexed, offset: u32, new_name: &str, root: &Path) -> Result<Plan, String> {
-    let (target, _) = prepare(ix, offset)?;
+/// The checks of the index (design D5, cases 1 to 5) for renaming the symbol at `offset` of the file `file` to
+/// `new_name`; `root` is the compiler root.
+pub fn plan(ix: &Indexed, file: FileId, offset: u32, new_name: &str, root: &Path) -> Result<Plan, String> {
+    let (target, _) = prepare(ix, file, offset)?;
     plan_entry(ix, target, new_name, root)
 }
 
