@@ -44,7 +44,10 @@ record and compare the examples, run `render --compiler`, `--check --compiler` a
       `_BYTE`, `_INTEGER64`, `_FLOAT`, `_OFFSET`, `_UNSIGNED`, one page `defint` for `DEFINT` to `DEFSTR`
       (`[page]` rows), and `_DEFINE`. Found: `language/numeric-semantics` "_BIT stores" still says a `_BIT` array
       is "not supported yet", where `language/arrays-and-types` "Static arrays" and the compiler accept one.
-- [ ] 3.3 Batch 3: variables, scope, constants (`procedures`, `constants`)
+- [x] 3.3 Batch 3: variables, scope, constants (`procedures`, `constants`). Nine pages and nine examples:
+      `$COLOR`, `COMMON`, `CONST`, `DIM` (with `AS`), `LET`, `OPTION` (with `BASE`, `_EXPLICIT`,
+      `_EXPLICITARRAY`), `SHARED`, `STATIC`, `SWAP`. Found: `SWAP` is a statement of the built-in table with no
+      syntax there, so its page gives the form by hand.
 - [ ] 3.4 Batch 4: control flow (`control-flow`; Sonnet may take it)
 - [ ] 3.5 Batch 5: procedures (`procedures`)
 - [ ] 3.6 Batch 6: arrays and `TYPE` (`arrays-and-types`, `unstable-features`)

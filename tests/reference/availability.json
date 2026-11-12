@@ -95,6 +95,18 @@
   "unsupported": [],
   "rejected": []
  },
+ "common": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "const": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
  "csng": {
   "programs": 1,
   "ok": 1,
@@ -104,6 +116,12 @@
  "defint": {
   "programs": 1,
   "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "dim": {
+  "programs": 75,
+  "ok": 75,
   "unsupported": [],
   "rejected": []
  },
@@ -145,6 +163,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "let": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
  "line": {
   "programs": 36,
   "ok": 36,
@@ -154,6 +178,12 @@
  "long": {
   "programs": 19,
   "ok": 19,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-color": {
+  "programs": 1,
+  "ok": 1,
   "unsupported": [],
   "rejected": []
  },
@@ -213,6 +243,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "option": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
  "or": {
   "programs": 3,
   "ok": 3,
@@ -231,15 +267,33 @@
   "unsupported": [],
   "rejected": []
  },
+ "shared": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
  "single": {
   "programs": 7,
   "ok": 7,
   "unsupported": [],
   "rejected": []
  },
+ "static": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
  "string": {
   "programs": 3,
   "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "swap": {
+  "programs": 15,
+  "ok": 15,
   "unsupported": [],
   "rejected": []
  },

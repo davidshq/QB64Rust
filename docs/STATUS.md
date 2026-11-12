@@ -76,7 +76,7 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 ## Next
 
 0. **The language reference** (OpenSpec change `language-reference`, `study\49`): the tool, the six pilot
-   pages and batches 1 and 2 are built (tasks 1.1 to 3.2). Next is batch 3, then one batch per session, by the
+   pages and batches 1 to 3 are built (tasks 1.1 to 3.3). Next is batch 4, then one batch per session, by the
    procedure of `tools\reference\README.md`.
 0. **Tick task 4.2 of `project-settings`** (archived 2026-11-11, `[format]` and `[lints]` in `qb64rust.toml`) when
    CI has run its two integration tests in `vscode\test\integration\suite\format.test.ts`.
