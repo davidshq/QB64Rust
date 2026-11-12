@@ -2,6 +2,7 @@
 # One <group>/<name> per line; run with: run_legacy_tests.py --suite corpus --corpus-root tests/reference
 # --list tests/reference/pass.list --qb64 target/release/qb64rust.exe
 examples/_andalso_1
+examples/_arraycopy_1
 examples/_bit_1
 examples/_byte_1
 examples/_cast_1
@@ -29,6 +30,7 @@ examples/do_1
 examples/double_1
 examples/end_1
 examples/eqv_1
+examples/erase_1
 examples/exit_1
 examples/for_1
 examples/function_1
@@ -37,20 +39,25 @@ examples/goto_1
 examples/if_1
 examples/imp_1
 examples/integer_1
+examples/lbound_1
 examples/left-str_1
 examples/let_1
 examples/line_1
 examples/long_1
 examples/meta-color_1
+examples/meta-dynamic_1
 examples/meta-if_1
 examples/meta-include_1
 examples/meta-includeonce_1
 examples/meta-let_1
+examples/meta-static_1
+examples/meta-unstable_1
 examples/mod_1
 examples/not_1
 examples/on_1
 examples/option_1
 examples/or_1
+examples/redim_1
 examples/rem_1
 examples/select-case_1
 examples/shared_1
@@ -61,5 +68,7 @@ examples/string_1
 examples/sub_1
 examples/swap_1
 examples/system_1
+examples/type_1
+examples/ubound_1
 examples/while_1
 examples/xor_1

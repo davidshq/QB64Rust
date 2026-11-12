@@ -5,6 +5,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "_arraycopy": {
+  "programs": 31,
+  "ok": 31,
+  "unsupported": [],
+  "rejected": []
+ },
  "_bit": {
   "programs": 6,
   "ok": 6,
@@ -167,6 +173,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "erase": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
  "exit": {
   "programs": 1,
   "ok": 1,
@@ -223,6 +235,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "lbound": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
  "left-str": {
   "programs": 7,
   "ok": 7,
@@ -248,6 +266,12 @@
   "rejected": []
  },
  "meta-color": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-dynamic": {
   "programs": 1,
   "ok": 1,
   "unsupported": [],
@@ -297,6 +321,18 @@
    "`$NOPREFIX` is deprecated: QB64pe's own names must have their underscore (the IDE can convert the program)"
   ]
  },
+ "meta-static": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-unstable": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
  "mod": {
   "programs": 1,
   "ok": 1,
@@ -324,6 +360,12 @@
  "or": {
   "programs": 3,
   "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "redim": {
+  "programs": 1,
+  "ok": 1,
   "unsupported": [],
   "rejected": []
  },
@@ -388,6 +430,18 @@
   "rejected": []
  },
  "system": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "type": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "ubound": {
   "programs": 1,
   "ok": 1,
   "unsupported": [],

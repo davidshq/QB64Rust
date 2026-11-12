@@ -53,7 +53,11 @@ record and compare the examples, run `render --compiler`, `--check --compiler` a
       probe). Found: `FOR 5 = 1 TO 2` is an internal error (a `SOMEDAY.md` row).
 - [x] 3.5 Batch 5: procedures (`procedures`). Four pages and four examples: `SUB`, `FUNCTION`, `CALL`, `DECLARE`
       (with `ANY`).
-- [ ] 3.6 Batch 6: arrays and `TYPE` (`arrays-and-types`, `unstable-features`)
+- [x] 3.6 Batch 6: arrays and `TYPE` (`arrays-and-types`, `unstable-features`). Nine pages and nine examples:
+      `REDIM` (with `_PRESERVE`, `_RETAIN`), `ERASE`, `LBOUND`, `UBOUND`, `TYPE` (with the `_STATIC` and
+      `_DYNAMIC` markers), `_ARRAYCOPY`, `$DYNAMIC`, `$STATIC`, `$UNSTABLE`. Found: `language/arrays-and-types`
+      "User types" still says a member array marked `_STATIC` or `_DYNAMIC` is "not supported yet", where
+      "Member arrays", "Dynamic member arrays" and the compiler build it.
 
 ## 4. Batches 7 to 17 (Sonnet, but 11 by Opus)
 

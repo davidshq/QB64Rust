@@ -9,7 +9,7 @@ its source, and every example is a test program whose output was recorded (`tool
 The examples start with `$CONSOLE:ONLY` so that their output can be recorded; the pages leave that line
 out. Run in a window, an example prints the same text there.
 
-67 pages written; the inventory names 499.
+76 pages written; the inventory names 496.
 
 ## By area
 
@@ -18,6 +18,7 @@ out. Run in a window, an example prints the same text there.
 - **Variables, scope, constants**: [COMMON](entries/common.md), [CONST](entries/const.md), [DIM](entries/dim.md), [LET](entries/let.md), [$COLOR](entries/meta-color.md), [OPTION](entries/option.md), [SHARED](entries/shared.md), [STATIC](entries/static.md), [SWAP](entries/swap.md)
 - **Control flow**: [_CONTINUE](entries/_continue.md), [DO](entries/do.md), [END](entries/end.md), [EXIT](entries/exit.md), [FOR](entries/for.md), [GOSUB](entries/gosub.md), [GOTO](entries/goto.md), [IF](entries/if.md), [ON](entries/on.md), [RUN](entries/run.md), [SELECT CASE](entries/select-case.md), [STOP](entries/stop.md), [SYSTEM](entries/system.md), [WHILE](entries/while.md)
 - **Procedures**: [CALL](entries/call.md), [DECLARE](entries/declare.md), [FUNCTION](entries/function.md), [SUB](entries/sub.md)
+- **Arrays and TYPE**: [_ARRAYCOPY](entries/_arraycopy.md), [ERASE](entries/erase.md), [LBOUND](entries/lbound.md), [$DYNAMIC](entries/meta-dynamic.md), [$STATIC](entries/meta-static.md), [$UNSTABLE](entries/meta-unstable.md), [REDIM](entries/redim.md), [TYPE](entries/type.md), [UBOUND](entries/ubound.md)
 - **Strings**: [LEFT$](entries/left-str.md)
 - **Screen modes and drawing**: [LINE](entries/line.md)
 - **Memory**: [_MEMCOPY](entries/_memcopy.md)

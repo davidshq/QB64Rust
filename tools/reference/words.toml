@@ -3,7 +3,7 @@
 # spellings and the VS Code grammar; this file says only what those sources cannot.
 
 # The batches whose pages must all exist. Every page of a batch named here is required by --check.
-done = [1, 2, 3, 4, 5]
+done = [1, 2, 3, 4, 5, 6]
 
 # The pilot pages (study/49 §5), required whatever `done` says.
 pilot = ["left-str", "line", "select-case", "meta-include", "_memcopy", "fre"]
@@ -337,6 +337,9 @@ BASE = "option"
 _EXPLICIT = "option"
 _EXPLICITARRAY = "option"
 _PRESERVE = "redim"
+_RETAIN = "redim"
+_DYNAMIC = "type"
+_STATIC = "type"
 ACCESS = "open"
 BINARY = "open"
 RANDOM = "open"

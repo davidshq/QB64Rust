@@ -4289,7 +4289,7 @@
     "keywords.rs",
     "words.rs"
    ],
-   "page": "_dynamic",
+   "page": "type",
    "batch": 6,
    "area": "Arrays and TYPE"
   },
@@ -5730,7 +5730,7 @@
    "sources": [
     "words.rs"
    ],
-   "page": "_retain",
+   "page": "redim",
    "batch": 6,
    "area": "Arrays and TYPE"
   },
@@ -6455,7 +6455,7 @@
     "keywords.rs",
     "words.rs"
    ],
-   "page": "_static",
+   "page": "type",
    "batch": 6,
    "area": "Arrays and TYPE"
   },
@@ -6775,7 +6775,6 @@
   "_ARRAYCOPY",
   "_LASTHANDLER",
   "_NEGATE",
-  "_NEWHANDLER",
-  "_RETAIN"
+  "_NEWHANDLER"
  ]
 }
