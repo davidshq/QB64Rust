@@ -51,7 +51,8 @@ record and compare the examples, run `render --compiler`, `--check --compiler` a
 - [x] 3.4 Batch 4: control flow (`control-flow`; Sonnet may take it). Thirteen pages: `IF`, `FOR`, `DO`, `WHILE`,
       `GOTO`, `GOSUB`, `ON`, `EXIT`, `_CONTINUE`, `END`, `STOP`, `SYSTEM`, `RUN`; twelve examples (`RUN` has a
       probe). Found: `FOR 5 = 1 TO 2` is an internal error (a `SOMEDAY.md` row).
-- [ ] 3.5 Batch 5: procedures (`procedures`)
+- [x] 3.5 Batch 5: procedures (`procedures`). Four pages and four examples: `SUB`, `FUNCTION`, `CALL`, `DECLARE`
+      (with `ANY`).
 - [ ] 3.6 Batch 6: arrays and `TYPE` (`arrays-and-types`, `unstable-features`)
 
 ## 4. Batches 7 to 17 (Sonnet, but 11 by Opus)

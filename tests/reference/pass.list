@@ -15,12 +15,14 @@ examples/_offset_1
 examples/_orelse_1
 examples/_unsigned_1
 examples/and_1
+examples/call_1
 examples/cdbl_1
 examples/cint_1
 examples/clng_1
 examples/common_1
 examples/const_1
 examples/csng_1
+examples/declare_1
 examples/defint_1
 examples/dim_1
 examples/do_1
@@ -29,6 +31,7 @@ examples/end_1
 examples/eqv_1
 examples/exit_1
 examples/for_1
+examples/function_1
 examples/gosub_1
 examples/goto_1
 examples/if_1
@@ -55,6 +58,7 @@ examples/single_1
 examples/static_1
 examples/stop_1
 examples/string_1
+examples/sub_1
 examples/swap_1
 examples/system_1
 examples/while_1

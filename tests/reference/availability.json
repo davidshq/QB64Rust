@@ -83,6 +83,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "call": {
+  "programs": 114,
+  "ok": 114,
+  "unsupported": [],
+  "rejected": []
+ },
  "cdbl": {
   "programs": 1,
   "ok": 1,
@@ -114,6 +120,12 @@
   "rejected": []
  },
  "csng": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "declare": {
   "programs": 1,
   "ok": 1,
   "unsupported": [],
@@ -174,6 +186,12 @@
   "rejected": [
    "`FRE` is not implemented in QB64pe"
   ]
+ },
+ "function": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
  },
  "gosub": {
   "programs": 9,
@@ -354,6 +372,12 @@
  "string": {
   "programs": 3,
   "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "sub": {
+  "programs": 348,
+  "ok": 348,
   "unsupported": [],
   "rejected": []
  },
