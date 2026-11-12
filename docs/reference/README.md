@@ -9,11 +9,12 @@ its source, and every example is a test program whose output was recorded (`tool
 The examples start with `$CONSOLE:ONLY` so that their output can be recorded; the pages leave that line
 out. Run in a window, an example prints the same text there.
 
-13 pages written; the inventory names 503.
+28 pages written; the inventory names 503.
 
 ## By area
 
 - **Lines, names, comments, labels, $INCLUDE, the preprocessor**: [$ERROR](entries/meta-error.md), [$ERRORLOCATION](entries/meta-errorlocation.md), [$IF](entries/meta-if.md), [$INCLUDE](entries/meta-include.md), [$INCLUDEONCE](entries/meta-includeonce.md), [$LET](entries/meta-let.md), [$NOPREFIX](entries/meta-noprefix.md), [REM](entries/rem.md)
+- **Types, literals, operators, conversions**: [_ANDALSO](entries/_andalso.md), [_CAST](entries/_cast.md), [_NEGATE](entries/_negate.md), [_ORELSE](entries/_orelse.md), [AND](entries/and.md), [CDBL](entries/cdbl.md), [CINT](entries/cint.md), [CLNG](entries/clng.md), [CSNG](entries/csng.md), [EQV](entries/eqv.md), [IMP](entries/imp.md), [MOD](entries/mod.md), [NOT](entries/not.md), [OR](entries/or.md), [XOR](entries/xor.md)
 - **Control flow**: [SELECT CASE](entries/select-case.md)
 - **Strings**: [LEFT$](entries/left-str.md)
 - **Screen modes and drawing**: [LINE](entries/line.md)

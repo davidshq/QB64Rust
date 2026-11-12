@@ -1,7 +1,67 @@
 {
+ "_andalso": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_cast": {
+  "programs": 14,
+  "ok": 14,
+  "unsupported": [],
+  "rejected": []
+ },
  "_memcopy": {
   "programs": 7,
   "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_negate": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_orelse": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "and": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "cdbl": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "cint": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "clng": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "csng": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "eqv": {
+  "programs": 1,
+  "ok": 1,
   "unsupported": [],
   "rejected": []
  },
@@ -12,6 +72,12 @@
   "rejected": [
    "`FRE` is not implemented in QB64pe"
   ]
+ },
+ "imp": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
  },
  "left-str": {
   "programs": 7,
@@ -69,6 +135,24 @@
    "`$NOPREFIX` is deprecated: QB64pe's own names must have their underscore (the IDE can convert the program)"
   ]
  },
+ "mod": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "not": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "or": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
  "rem": {
   "programs": 1,
   "ok": 1,
@@ -78,6 +162,12 @@
  "select-case": {
   "programs": 1,
   "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "xor": {
+  "programs": 4,
+  "ok": 4,
   "unsupported": [],
   "rejected": []
  }

@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+PRINT "17 MOD 5 is"; 17 MOD 5
+PRINT "-17 MOD 5 is"; -17 MOD 5
+PRINT "7.5 MOD 2 is"; 7.5 MOD 2
+FOR n = 1 TO 6
+    IF n MOD 2 = 0 THEN PRINT n; "is even"
+NEXT n
+END
