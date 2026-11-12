@@ -1,0 +1,6781 @@
+{
+ "comment": "Written by tools/reference/reference.py inventory; do not edit. A word is covered on its page.",
+ "words": [
+  {
+   "word": "$ASSERTS",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-asserts",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "$CHECKING",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-checking",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "$COLOR",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-color",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "$CONSOLE",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-console",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "$DEBUG",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-debug",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "$DYNAMIC",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-dynamic",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "$ELSE",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-if",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "$ELSEIF",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-if",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "$EMBED",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-embed",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "$END",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-if",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "$ERROR",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "meta-error",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "$ERRORLOCATION",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-errorlocation",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "$EXEICON",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-exeicon",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "$FORMAT",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-format",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "$IF",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-if",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "$INCLUDE",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-include",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "$INCLUDEONCE",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-includeonce",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "$LET",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-let",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "$MIDISOUNDFONT",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "meta-midisoundfont",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "$NOPREFIX",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "meta-noprefix",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "$RESIZE",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-resize",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "$SCREENHIDE",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-screenhide",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "$SCREENSHOW",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-screenshow",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "$STATIC",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-static",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "$UNSTABLE",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-unstable",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "$USELIBRARY",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-uselibrary",
+   "batch": 19,
+   "area": "Libraries"
+  },
+  {
+   "word": "$VERSIONINFO",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-versioninfo",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "ABS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "abs",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "ABSOLUTE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "absolute",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "ACCESS",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "open",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "ALIAS",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs",
+    "grammar"
+   ],
+   "page": "declare-library",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "AND",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "and",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "ANY",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "declare",
+   "batch": 5,
+   "area": "Procedures"
+  },
+  {
+   "word": "APPEND",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "open",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "AS",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "dim",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "ASC",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "asc",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "ATN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "atn",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "BASE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "option",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "BEEP",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "beep",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "BINARY",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "open",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "BLOAD",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "bload",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "BSAVE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "bsave",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "BYVAL",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs",
+    "grammar"
+   ],
+   "page": "declare-library",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "CALL",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "call",
+   "batch": 5,
+   "area": "Procedures"
+  },
+  {
+   "word": "CASE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "select-case",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "CDBL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "cdbl",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "CHAIN",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "chain",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "CHDIR",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "chdir",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "CHR$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "chr-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "CINT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "cint",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "CIRCLE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "circle",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "CLEAR",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "clear",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "CLNG",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "clng",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "CLOSE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "close",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "CLS",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "cls",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "COLOR",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "color",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "COM",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs"
+   ],
+   "page": "com",
+   "batch": 17,
+   "area": "Events and timers"
+  },
+  {
+   "word": "COMMAND$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "command-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "COMMON",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "common",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "CONST",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "const",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "COS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "cos",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "CSNG",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "csng",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "CSRLIN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "csrlin",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "CUSTOMTYPE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs",
+    "grammar"
+   ],
+   "page": "declare-library",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "CVD",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "cvd",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "CVDMBF",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "cvdmbf",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "CVI",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "cvi",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "CVL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "cvl",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "CVS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "cvs",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "CVSMBF",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "cvsmbf",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "DATA",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "data",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "DATE$",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "date-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "DECLARE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "declare",
+   "batch": 5,
+   "area": "Procedures"
+  },
+  {
+   "word": "DECLARE LIBRARY",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "declare-library",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "DEF",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs"
+   ],
+   "page": "def-seg",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "DEF SEG",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "def-seg",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "DEFDBL",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "defdbl",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "DEFINT",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "defint",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "DEFLNG",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "deflng",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "DEFSNG",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "defsng",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "DEFSTR",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "defstr",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "DIM",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "dim",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "DO",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "do",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "DOUBLE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "double",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "DRAW",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "draw",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "DYNAMIC",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs",
+    "grammar"
+   ],
+   "page": "declare-library",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "ELSE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "if",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "ELSEIF",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "if",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "END",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "end",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "ENDIF",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs"
+   ],
+   "page": "if",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "ENVIRON",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "environ",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "ENVIRON$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "environ-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "EOF",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "eof",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "EQV",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "eqv",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "ERASE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs",
+    "grammar"
+   ],
+   "page": "erase",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "ERL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "erl",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "ERR",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "err",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "ERROR",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "error",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "EVERYCASE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs",
+    "grammar"
+   ],
+   "page": "select-case",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "EXIT",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "exit",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "EXP",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "exp",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "FIELD",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "field",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "FILEATTR",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "fileattr",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "FILES",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "files",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "FIX",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "fix",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "FOR",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "for",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "FRE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "fre",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "FREEFILE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "freefile",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "FUNCTION",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "function",
+   "batch": 5,
+   "area": "Procedures"
+  },
+  {
+   "word": "GET",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "get",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "GOSUB",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "gosub",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "GOTO",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "goto",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "HEX$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "hex-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "HTTP",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-unstable",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "IF",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "if",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "IMP",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "imp",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "INKEY$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "inkey-str",
+   "batch": 10,
+   "area": "Keyboard and console input"
+  },
+  {
+   "word": "INP",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "inp",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "INPUT",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "input",
+   "batch": 10,
+   "area": "Keyboard and console input"
+  },
+  {
+   "word": "INPUT$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "input-str",
+   "batch": 10,
+   "area": "Keyboard and console input"
+  },
+  {
+   "word": "INSTR",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "instr",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "INT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "int",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "INTEGER",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "integer",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "IOCTL",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "ioctl",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "IOCTL$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "ioctl-str",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "IS",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "select-case",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "KEY",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "key",
+   "batch": 17,
+   "area": "Events and timers"
+  },
+  {
+   "word": "KILL",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "kill",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "LBOUND",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "lbound",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "LCASE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "lcase-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "LEFT$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "left-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "LEN",
+   "kinds": [
+    "function",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs"
+   ],
+   "page": "len",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "LET",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "let",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "LIBRARY",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs",
+    "grammar"
+   ],
+   "page": "declare-library",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "LINE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "line",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "LINE INPUT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "line-input",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "LIST",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "key",
+   "batch": 17,
+   "area": "Events and timers"
+  },
+  {
+   "word": "LOC",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "loc",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "LOCATE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "locate",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "LOCK",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs"
+   ],
+   "page": "lock",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "LOF",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "lof",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "LOG",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "log",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "LONG",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "long",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "LOOP",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "do",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "LPOS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "lpos",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "LPRINT",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "lprint",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "LSET",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "lset",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "LTRIM$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "ltrim-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "MID$",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "mid-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "MIDI",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-unstable",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "MKD$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "mkd-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "MKDIR",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "mkdir",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "MKDMBF$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "mkdmbf-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "MKI$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "mki-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "MKL$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "mkl-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "MKS$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "mks-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "MKSMBF$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "mksmbf-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "MOD",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "mod",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "NAME",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "name",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "NEXT",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "for",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "NOT",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "not",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "OCT$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "oct-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "ON",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "on",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "ON ERROR",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "on-error",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "OPEN",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "open",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "OPTION",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "option",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "OR",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "or",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "OUT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "out",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "OUTPUT",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "open",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "PAINT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "paint",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "PALETTE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "palette",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "PCOPY",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "pcopy",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "PEEK",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "peek",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "PEN",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs"
+   ],
+   "page": "pen",
+   "batch": 17,
+   "area": "Events and timers"
+  },
+  {
+   "word": "PLAY",
+   "kinds": [
+    "statement",
+    "function",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs"
+   ],
+   "page": "play",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "PMAP",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "pmap",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "POINT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "point",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "POKE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "poke",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "POS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "pos",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "PRESET",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs"
+   ],
+   "page": "preset",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "PRINT",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "print",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "PRINT USING",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "print-using",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "PSET",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs"
+   ],
+   "page": "pset",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "PUT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "put",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "RANDOM",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "open",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "RANDOMIZE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "randomize",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "READ",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "read",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "REDIM",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "redim",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "REM",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "rem",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
+   "word": "RESET",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "reset",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "RESTORE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "restore",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "RESUME",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "resume",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "RETURN",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "gosub",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "RIGHT$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "right-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "RMDIR",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "rmdir",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "RND",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "rnd",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "RSET",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "rset",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "RTRIM$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "rtrim-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "RUN",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "run",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "SADD",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "sadd",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "SCREEN",
+   "kinds": [
+    "function",
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs"
+   ],
+   "page": "screen",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "SEEK",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "seek",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "SEG",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "def-seg",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "SELECT",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "select-case",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "SETMEM",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "setmem",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "SGN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "sgn",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "SHARED",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "shared",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "SHELL",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "shell",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "SIN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "sin",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "SINGLE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "single",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "SLEEP",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "sleep",
+   "batch": 17,
+   "area": "Events and timers"
+  },
+  {
+   "word": "SOUND",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "sound",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "SPACE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "space-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "SPC",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "spc",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "SQR",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "sqr",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "STATIC",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "static",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "STEP",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "for",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "STICK",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "stick",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "STOP",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "stop",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "STR$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "str-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "STRIG",
+   "kinds": [
+    "function",
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "strig",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "STRING",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "string",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "STRING$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "string-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "SUB",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "sub",
+   "batch": 5,
+   "area": "Procedures"
+  },
+  {
+   "word": "SWAP",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "swap",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "SYSTEM",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "system",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "TAB",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "tab",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "TAN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "tan",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "THEN",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "if",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "TIME$",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "time-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "TIMER",
+   "kinds": [
+    "statement",
+    "function",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "timer",
+   "batch": 17,
+   "area": "Events and timers"
+  },
+  {
+   "word": "TO",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "for",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "TROFF",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "troff",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "TRON",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "tron",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "TYPE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "type",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "TYPEFIELDS",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "meta-unstable",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "UBOUND",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "ubound",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "UCASE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "ucase-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "UEVENT",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs"
+   ],
+   "page": "uevent",
+   "batch": 17,
+   "area": "Events and timers"
+  },
+  {
+   "word": "UNLOCK",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "unlock",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "UNTIL",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "do",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "USING",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "print-using",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "VAL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "val",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "VARPTR",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "varptr",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "VARPTR$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "varptr-str",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "VARSEG",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "varseg",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "VIEW",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "view",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "VIEW PRINT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "view-print",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "WAIT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "wait",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "WEND",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "while",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "WHILE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "while",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "WIDTH",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "width",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "WINDOW",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "window",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "WRITE",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "write",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "XOR",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "xor",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_ACCEPTFILEDROP",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_acceptfiledrop",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_ACOS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_acos",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ACOSH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_acosh",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ADLER32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_adler32",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_ALLOWFULLSCREEN",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_allowfullscreen",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_ALPHA",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_alpha",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_ALPHA32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_alpha32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_ANDALSO",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "_andalso",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_ARCCOT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_arccot",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ARCCSC",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_arccsc",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ARCSEC",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_arcsec",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ARRAYCOPY",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "_arraycopy",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "_ASIN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_asin",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ASINH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_asinh",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ASSERT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_assert",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "_ATAN2",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_atan2",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ATANH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_atanh",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_AUTODISPLAY",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_autodisplay",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_AXIS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_axis",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_BACKGROUNDCOLOR",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_backgroundcolor",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_BASE64DECODE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_base64decode-str",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_BASE64ENCODE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_base64encode-str",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_BIN$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_bin-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "_BIT",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "_bit",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_BLEND",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_blend",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_BLINK",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_blink",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_BLUE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_blue",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_BLUE32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_blue32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_BRIGHTNESS32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_brightness32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_BUTTON",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_button",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_BUTTONCHANGE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_buttonchange",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_BYTE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "_byte",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_CAPSLOCK",
+   "kinds": [
+    "function",
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_capslock",
+   "batch": 10,
+   "area": "Keyboard and console input"
+  },
+  {
+   "word": "_CAST",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_cast",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_CEIL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_ceil",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_CINP",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_cinp",
+   "batch": 10,
+   "area": "Keyboard and console input"
+  },
+  {
+   "word": "_CLAMP",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_clamp",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_CLEARCOLOR",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_clearcolor",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_CLIPBOARD$",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_clipboard-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_CLIPBOARDIMAGE",
+   "kinds": [
+    "function",
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_clipboardimage",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_COLORCHOOSERDIALOG",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_colorchooserdialog",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_COMMANDCOUNT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_commandcount",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_COMPILEDATE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_compiledate-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_COMPILERVERSION$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_compilerversion-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_COMPILETIME$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_compiletime-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_CONNECTED",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_connected",
+   "batch": 22,
+   "area": "Network"
+  },
+  {
+   "word": "_CONNECTIONADDRESS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_connectionaddress",
+   "batch": 22,
+   "area": "Network"
+  },
+  {
+   "word": "_CONSOLE",
+   "kinds": [
+    "function",
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_console",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "_CONSOLECURSOR",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_consolecursor",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "_CONSOLEFONT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_consolefont",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "_CONSOLEINPUT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_consoleinput",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "_CONSOLETITLE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_consoletitle",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "_CONTINUE",
+   "kinds": [
+    "statement",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "_continue",
+   "batch": 4,
+   "area": "Control flow"
+  },
+  {
+   "word": "_CONTROLCHR",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_controlchr",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "_COPYIMAGE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_copyimage",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_COPYPALETTE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_copypalette",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_COSH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_cosh",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_COT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_cot",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_COTH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_coth",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_CRC32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_crc32",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_CSC",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_csc",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_CSCH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_csch",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_CV",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_cv",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_CWD$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_cwd-str",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "_D2G",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_d2g",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_D2R",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_d2r",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_DEFAULTCOLOR",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_defaultcolor",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_DEFINE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs",
+    "grammar"
+   ],
+   "page": "_define",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_DEFLATE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_deflate-str",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_DELAY",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_delay",
+   "batch": 17,
+   "area": "Events and timers"
+  },
+  {
+   "word": "_DEPTHBUFFER",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_depthbuffer",
+   "batch": 23,
+   "area": "OpenGL"
+  },
+  {
+   "word": "_DESKTOPHEIGHT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_desktopheight",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_DESKTOPREFRESHRATE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_desktoprefreshrate",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_DESKTOPWIDTH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_desktopwidth",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_DEST",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_dest",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_DEVICE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_device-str",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_DEVICEINPUT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_deviceinput",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_DEVICES",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_devices",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_DIR$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_dir-str",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "_DIREXISTS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_direxists",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "_DISPLAY",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_display",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_DISPLAYORDER",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_displayorder",
+   "batch": 23,
+   "area": "OpenGL"
+  },
+  {
+   "word": "_DONTBLEND",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_dontblend",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_DROPPEDFILE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_droppedfile",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_DYNAMIC",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "_dynamic",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "_ECHO",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_echo",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
+  },
+  {
+   "word": "_EMBEDDED$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_embedded-str",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_ENVIRONCOUNT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_environcount",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_ERRORLINE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_errorline",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "_ERRORMESSAGE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_errormessage-str",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "_EXIT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_exit",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_EXPLICIT",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "option",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "_EXPLICITARRAY",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs",
+    "grammar"
+   ],
+   "page": "option",
+   "batch": 3,
+   "area": "Variables, scope, constants"
+  },
+  {
+   "word": "_FILEEXISTS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_fileexists",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "_FILES$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_files-str",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "_FINISHDROP",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_finishdrop",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_FLOAT",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "_float",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_FONT",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_font",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_FONTHEIGHT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_fontheight",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_FONTWIDTH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_fontwidth",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_FPS",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_fps",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_FREEFONT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_freefont",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_FREEIMAGE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_freeimage",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_FREETIMER",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_freetimer",
+   "batch": 17,
+   "area": "Events and timers"
+  },
+  {
+   "word": "_FULLPATH$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_fullpath-str",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "_FULLSCREEN",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_fullscreen",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_G2D",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_g2d",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_G2R",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_g2r",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_GLRENDER",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_glrender",
+   "batch": 23,
+   "area": "OpenGL"
+  },
+  {
+   "word": "_GREEN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_green",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_GREEN32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_green32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_HEIGHT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_height",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_HSB32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_hsb32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_HSBA32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_hsba32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_HUE32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_hue32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_HYPOT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_hypot",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ICON",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_icon",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_IIF",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_iif",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_INCLERRORFILE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_inclerrorfile-str",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "_INCLERRORLINE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_inclerrorline",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "_INFLATE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_inflate-str",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_INPUTBOX$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_inputbox-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_INSTRREV",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_instrrev",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_INTEGER64",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "_integer64",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_KEYCLEAR",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_keyclear",
+   "batch": 10,
+   "area": "Keyboard and console input"
+  },
+  {
+   "word": "_KEYDOWN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_keydown",
+   "batch": 10,
+   "area": "Keyboard and console input"
+  },
+  {
+   "word": "_KEYHIT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_keyhit",
+   "batch": 10,
+   "area": "Keyboard and console input"
+  },
+  {
+   "word": "_LASTAXIS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_lastaxis",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_LASTBUTTON",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_lastbutton",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_LASTHANDLER",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "_lasthandler",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "_LASTWHEEL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_lastwheel",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_LIMIT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_limit",
+   "batch": 17,
+   "area": "Events and timers"
+  },
+  {
+   "word": "_LOADFONT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_loadfont",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_LOADIMAGE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_loadimage",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_LOGERROR",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_logerror",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_LOGINFO",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_loginfo",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_LOGMINLEVEL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_logminlevel",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_LOGTRACE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_logtrace",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_LOGWARN",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_logwarn",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_MAPTRIANGLE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_maptriangle",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_MAPUNICODE",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mapunicode",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_MAX",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_max",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_MD5$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_md5-str",
+   "batch": 21,
+   "area": "Data processing, embedded files, logging"
+  },
+  {
+   "word": "_MEM",
+   "kinds": [
+    "function",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "grammar"
+   ],
+   "page": "_mem",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MEMCOPY",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_memcopy",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MEMELEMENT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_memelement",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MEMEXISTS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_memexists",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MEMFILL",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "_memfill",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MEMFREE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_memfree",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MEMGET",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "_memget",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MEMIMAGE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_memimage",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MEMNEW",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_memnew",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MEMPUT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins",
+    "words.rs"
+   ],
+   "page": "_memput",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MEMSOUND",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_memsound",
+   "batch": 18,
+   "area": "Memory"
+  },
+  {
+   "word": "_MESSAGEBOX",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_messagebox",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_MIDISOUNDBANK",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_midisoundbank",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_MIN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_min",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_MK$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mk-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "_MOUSEBUTTON",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousebutton",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSECURSOR",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousecursor",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSEDISABLED",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousedisabled",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSEHIDDEN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousehidden",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSEHIDE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousehide",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSEINPUT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mouseinput",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSEMOVE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousemove",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSEMOVEMENTX",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousemovementx",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSEMOVEMENTY",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousemovementy",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSESHOW",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mouseshow",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSEWHEEL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousewheel",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSEX",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousex",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_MOUSEY",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_mousey",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_NEGATE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs"
+   ],
+   "page": "_negate",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_NEWHANDLER",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "_newhandler",
+   "batch": 11,
+   "area": "Errors"
+  },
+  {
+   "word": "_NEWIMAGE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_newimage",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_NOTIFYPOPUP",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_notifypopup",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_NUMLOCK",
+   "kinds": [
+    "function",
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_numlock",
+   "batch": 10,
+   "area": "Keyboard and console input"
+  },
+  {
+   "word": "_OFFSET",
+   "kinds": [
+    "function",
+    "keyword"
+   ],
+   "sources": [
+    "builtins",
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "_offset",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_OPENCLIENT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_openclient",
+   "batch": 22,
+   "area": "Network"
+  },
+  {
+   "word": "_OPENCONNECTION",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_openconnection",
+   "batch": 22,
+   "area": "Network"
+  },
+  {
+   "word": "_OPENFILEDIALOG$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_openfiledialog-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_OPENHOST",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_openhost",
+   "batch": 22,
+   "area": "Network"
+  },
+  {
+   "word": "_ORELSE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "_orelse",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_OS$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_os-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_PALETTECOLOR",
+   "kinds": [
+    "function",
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_palettecolor",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_PI",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_pi",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_PIXELSIZE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_pixelsize",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_PRESERVE",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs",
+    "grammar"
+   ],
+   "page": "redim",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "_PRINTIMAGE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_printimage",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_PRINTMODE",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_printmode",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_PRINTSTRING",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_printstring",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_PRINTWIDTH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_printwidth",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_PUTIMAGE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_putimage",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_R2D",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_r2d",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_R2G",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_r2g",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_READBIT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_readbit",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_READFILE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_readfile-str",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "_RED",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_red",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_RED32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_red32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_RESETBIT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_resetbit",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_RESIZE",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_resize",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_RESIZEHEIGHT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_resizeheight",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_RESIZEWIDTH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_resizewidth",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_RETAIN",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.rs"
+   ],
+   "page": "_retain",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "_RGB",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_rgb",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_RGB32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_rgb32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_RGBA",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_rgba",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_RGBA32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_rgba32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_ROL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_rol",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ROR",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_ror",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_ROUND",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_round",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_SATURATION32",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_saturation32",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_SAVEFILEDIALOG$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_savefiledialog-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SAVEIMAGE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_saveimage",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_SCALEDHEIGHT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_scaledheight",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCALEDWIDTH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_scaledwidth",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCREENCLICK",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_screenclick",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCREENEXISTS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_screenexists",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCREENHIDE",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_screenhide",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCREENICON",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_screenicon",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCREENIMAGE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_screenimage",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCREENMOVE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_screenmove",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCREENPRINT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_screenprint",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCREENSHOW",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_screenshow",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCREENX",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_screenx",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCREENY",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_screeny",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SCROLLLOCK",
+   "kinds": [
+    "function",
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_scrolllock",
+   "batch": 10,
+   "area": "Keyboard and console input"
+  },
+  {
+   "word": "_SEC",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sec",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_SECH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sech",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_SELECTFOLDERDIALOG$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_selectfolderdialog-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SETALPHA",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_setalpha",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_SETBIT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_setbit",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_SHELLHIDE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_shellhide",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SHL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_shl",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_SHR",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_shr",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_SINH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sinh",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_SMOOTH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_smooth",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_SNDBAL",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndbal",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDCLOSE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndclose",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDCOPY",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndcopy",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDGETPOS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndgetpos",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDLEN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndlen",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDLIMIT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndlimit",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDLOOP",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndloop",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDNEW",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndnew",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDOPEN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndopen",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDOPENRAW",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndopenraw",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDPAUSE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndpause",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDPAUSED",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndpaused",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDPLAY",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndplay",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDPLAYCOPY",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndplaycopy",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDPLAYFILE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndplayfile",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDPLAYING",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndplaying",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDRATE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndrate",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDRAW",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndraw",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDRAWBATCH",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndrawbatch",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDRAWDONE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndrawdone",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDRAWLEN",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndrawlen",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDSETPOS",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndsetpos",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDSTOP",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndstop",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SNDVOL",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_sndvol",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_SOURCE",
+   "kinds": [
+    "statement",
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_source",
+   "batch": 13,
+   "area": "Screen modes and drawing"
+  },
+  {
+   "word": "_STARTDIR$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_startdir-str",
+   "batch": 12,
+   "area": "Files"
+  },
+  {
+   "word": "_STATIC",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "words.rs"
+   ],
+   "page": "_static",
+   "batch": 6,
+   "area": "Arrays and TYPE"
+  },
+  {
+   "word": "_STATUSCODE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_statuscode",
+   "batch": 22,
+   "area": "Network"
+  },
+  {
+   "word": "_STRCMP",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_strcmp",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "_STRICMP",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_stricmp",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "_TANH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_tanh",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_TITLE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_title",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_TITLE$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_title-str",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_TOGGLEBIT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_togglebit",
+   "batch": 8,
+   "area": "Math and number functions"
+  },
+  {
+   "word": "_TOSTR$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_tostr-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "_TOTALDROPPEDFILES",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_totaldroppedfiles",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_TRIM$",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_trim-str",
+   "batch": 7,
+   "area": "Strings"
+  },
+  {
+   "word": "_UCHARPOS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_ucharpos",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_UFONTHEIGHT",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_ufontheight",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_ULINESPACING",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_ulinespacing",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_UNSIGNED",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "keywords.rs",
+    "grammar"
+   ],
+   "page": "_unsigned",
+   "batch": 2,
+   "area": "Types, literals, operators, conversions"
+  },
+  {
+   "word": "_UPRINTSTRING",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_uprintstring",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_UPRINTWIDTH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_uprintwidth",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_UPTIME",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_uptime",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_WAVE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_wave",
+   "batch": 16,
+   "area": "Sound"
+  },
+  {
+   "word": "_WHATISMYIP",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_whatismyip",
+   "batch": 22,
+   "area": "Network"
+  },
+  {
+   "word": "_WHEEL",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_wheel",
+   "batch": 15,
+   "area": "Mouse and devices"
+  },
+  {
+   "word": "_WIDTH",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_width",
+   "batch": 14,
+   "area": "Images and fonts"
+  },
+  {
+   "word": "_WINDOWHANDLE",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_windowhandle",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_WINDOWHASFOCUS",
+   "kinds": [
+    "function"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_windowhasfocus",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_WINDOWSIZELIMIT",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_windowsizelimit",
+   "batch": 20,
+   "area": "Window, clipboard, system, date and time"
+  },
+  {
+   "word": "_WRITEFILE",
+   "kinds": [
+    "statement"
+   ],
+   "sources": [
+    "builtins"
+   ],
+   "page": "_writefile",
+   "batch": 12,
+   "area": "Files"
+  }
+ ],
+ "one_source": [
+  "ABSOLUTE",
+  "COM",
+  "DECLARE LIBRARY",
+  "DEF SEG",
+  "LINE INPUT",
+  "ON ERROR",
+  "PEN",
+  "PRINT USING",
+  "UEVENT",
+  "VIEW PRINT",
+  "_ARRAYCOPY",
+  "_LASTHANDLER",
+  "_NEGATE",
+  "_NEWHANDLER",
+  "_RETAIN"
+ ]
+}

@@ -272,6 +272,28 @@ STEPS: tuple[Step, ...] = (
         LIBQB + ("tools/libqb/*.py",),
         external=("clone",),
     ),
+    # The language reference's pages against their sources, and which forms of each page's words compile
+    # (tools/reference/README.md; OpenSpec change language-reference). Not every file a page's `src:` names is an
+    # input: a recording that is removed or renamed is found at the step's next run, so that a new recording does
+    # not plan this step.
+    Step(
+        "reference",
+        QUICK,
+        ("python", "tools/reference/reference.py", "--check", "--compiler", EXE),
+        BUILT
+        + (
+            "docs/reference/**",
+            "docs/DIVERGENCES-QB64PE.md",
+            "docs/DIVERGENCES-QB45.md",
+            "tests/reference/**",
+            "tests/callsite/**",
+            "openspec/specs/**",
+            "tools/reference/**",
+            "tools/builtins/builtins.json",
+            "vscode/syntaxes/qb64rust.tmLanguage.json",
+        ),
+        needs=("build",),
+    ),
     Step(
         "slice",
         QUICK,
@@ -400,6 +422,27 @@ STEPS: tuple[Step, ...] = (
         external=("toolchain",),
         vm=True,
         outputs=results("results-partial", "target/legacy-tests-differential"),
+    ),
+    # The language reference's examples, each a program recorded with qb64pe.exe (tools/reference/README.md).
+    Step(
+        "reference-examples",
+        FULL,
+        runner(
+            "corpus",
+            "--corpus-root",
+            "tests/reference",
+            *CACHES,
+            "--results",
+            "target/legacy-tests-reference",
+            "--pass-list",
+            "--list",
+            "tests/reference/pass.list",
+        ),
+        BUILT + LIBQB + RUNNER_FILES + ("tests/reference/**", "tests/upstream/root/**"),
+        needs=("build",),
+        external=("toolchain",),
+        vm=True,
+        outputs=results("results-partial", "target/legacy-tests-reference"),
     ),
     Step(
         "nofold",

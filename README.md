@@ -39,7 +39,8 @@ debugger ([ROADMAP.md](docs/ROADMAP.md)).
 
 ## Install
 
-All downloads are on the [releases](https://github.com/davidshq/QB64Rust/releases) page.
+All downloads are on the [releases](https://github.com/davidshq/QB64Rust/releases) page. For a walk through
+installing and a first program, see [QUICKSTART.md](docs/QUICKSTART.md).
 
 - **VS Code extension:** `qb64rust-win32-x64-<version>.vsix` for Windows, `qb64rust-linux-x64-<version>.vsix`
   for Linux. It includes the compiler, a language server (errors as you type, outline, go to definition, rename,

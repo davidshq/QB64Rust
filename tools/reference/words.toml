@@ -1,0 +1,375 @@
+# The hand-kept part of the language reference's inventory (tools/reference/README.md, study/49 §7).
+# reference.py reads the words themselves from the built-in table, the parser's reserved words, the formatter's
+# spellings and the VS Code grammar; this file says only what those sources cannot.
+
+# The batches whose pages must all exist. Every page of a batch named here is required by --check.
+done = []
+
+# The pilot pages (study/49 §5), required whatever `done` says.
+pilot = ["left-str", "line", "select-case", "meta-include", "_memcopy", "fre"]
+
+# A word found by no batch's spec goes to this batch ("the rest").
+default_batch = 20
+# A built-in that the math batch would take but that works on strings goes to the strings batch.
+math_batch = 8
+string_batch = 7
+
+# Two words that are one statement of their own: the first word alone does not match them (`LINE` is not found in
+# `LINE INPUT`). Each is a word of the inventory ([extra]), with its page.
+compounds = ["LINE INPUT", "VIEW PRINT", "PRINT USING", "ON ERROR", "DEF SEG", "DECLARE LIBRARY"]
+
+[batches]
+1 = "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+2 = "Types, literals, operators, conversions"
+3 = "Variables, scope, constants"
+4 = "Control flow"
+5 = "Procedures"
+6 = "Arrays and TYPE"
+7 = "Strings"
+8 = "Math and number functions"
+9 = "PRINT, PRINT USING, console and text output"
+10 = "Keyboard and console input"
+11 = "Errors"
+12 = "Files"
+13 = "Screen modes and drawing"
+14 = "Images and fonts"
+15 = "Mouse and devices"
+16 = "Sound"
+17 = "Events and timers"
+18 = "Memory"
+19 = "Libraries"
+20 = "Window, clipboard, system, date and time"
+21 = "Data processing, embedded files, logging"
+22 = "Network"
+23 = "OpenGL"
+24 = "Appendices"
+
+# The batch of a word, by the spec that names it most (a mention in a requirement's text counts twice one in a
+# scenario).
+[spec_batch]
+"compiler/pipeline" = 1
+"language/numeric-semantics" = 2
+"language/evaluation-order" = 2
+"language/default-types" = 2
+"language/constants" = 3
+"language/control-flow" = 4
+"language/procedures" = 5
+"language/arrays-and-types" = 6
+"language/unstable-features" = 6
+"language/fixed-length-strings" = 7
+"language/builtin-functions" = 8
+"language/print-using" = 9
+"language/console-and-window" = 9
+"language/keyboard" = 10
+"language/builtin-statements" = 10
+"language/error-handling" = 11
+"language/run-time-checks" = 11
+"language/asserts-and-debug" = 11
+"language/file-io" = 12
+"language/record-files" = 12
+"language/data-read" = 12
+"language/screen-output" = 13
+"language/images" = 14
+"language/fonts" = 14
+"language/mouse" = 15
+"language/device-input" = 15
+"language/sound" = 16
+"language/events" = 17
+"language/mem-blocks" = 18
+"language/conventional-memory" = 18
+"language/external-libraries" = 19
+"language/data-processing" = 21
+"language/embedded-files" = 21
+"language/logging" = 21
+"language/network" = 22
+"language/opengl" = 23
+
+# The batch of every word that starts so, before the specs are asked (the longest prefix wins). A first sort: a
+# batch's session moves a word with [area] when its page belongs elsewhere.
+[prefix]
+"_SND" = 16
+"_MOUSE" = 15
+"_MEM" = 18
+"_LOG" = 21
+"_SCREEN" = 20
+"_DESKTOP" = 20
+"_WINDOW" = 20
+"_RESIZE" = 20
+"_SCALED" = 20
+"_CONSOLE" = 9
+"_FONT" = 14
+"_UFONT" = 14
+"_UPRINT" = 14
+"_PRINT" = 14
+"_KEY" = 10
+"_DROPPED" = 20
+"_COMPILE" = 20
+"_OPEN" = 22
+"$IF" = 1
+"$ELSE" = 1
+"$END" = 1
+"$ERROR" = 1
+"$NOPREFIX" = 1
+"$MIDISOUNDFONT" = 16
+
+# A word whose batch neither a prefix nor the specs give rightly: word = batch.
+[area]
+# 2: types and operators
+AND = 2
+OR = 2
+XOR = 2
+INTEGER = 2
+LONG = 2
+SINGLE = 2
+DOUBLE = 2
+_FLOAT = 2
+STRING = 2
+_UNSIGNED = 2
+CINT = 2
+CLNG = 2
+CSNG = 2
+CDBL = 2
+_CAST = 2
+# 3: variables and scope
+DIM = 3
+SHARED = 3
+STATIC = 3
+COMMON = 3
+LET = 3
+SWAP = 3
+OPTION = 3
+# 4: control flow
+EXIT = 4
+ELSE = 4
+ELSEIF = 4
+ENDIF = 4
+WEND = 4
+TO = 4
+STEP = 4
+ON = 4
+# 5: procedures
+SUB = 5
+CALL = 5
+ANY = 5
+# 6: arrays and TYPE
+"$STATIC" = 6
+# 7: strings
+ASC = 7
+LEN = 7
+MID = 7
+"MID$" = 7
+"HEX$" = 7
+"OCT$" = 7
+"_BIN$" = 7
+# 8: math
+_CLAMP = 8
+_MAX = 8
+_MIN = 8
+_IIF = 8
+RANDOMIZE = 8
+# 9: text output
+CLS = 9
+LOCATE = 9
+LPRINT = 9
+CSRLIN = 9
+POS = 9
+LPOS = 9
+WIDTH = 9
+_CONTROLCHR = 9
+# 10: input
+"INKEY$" = 10
+"INPUT$" = 10
+_CINP = 10
+# 11: errors
+TRON = 11
+TROFF = 11
+# 12: files
+CHDIR = 12
+MKDIR = 12
+RMDIR = 12
+KILL = 12
+NAME = 12
+FILES = 12
+"_DIR$" = 12
+_DIREXISTS = 12
+"_CWD$" = 12
+"_STARTDIR$" = 12
+DATA = 12
+SEEK = 12
+OUTPUT = 12
+APPEND = 12
+FILEATTR = 12
+FREEFILE = 12
+LOC = 12
+LOF = 12
+IOCTL = 12
+"IOCTL$" = 12
+RESET = 12
+# 13: screen and drawing
+LINE = 13
+POINT = 13
+WINDOW = 13
+PMAP = 13
+_DEST = 13
+_SOURCE = 13
+_DISPLAY = 13
+_AUTODISPLAY = 13
+_FPS = 13
+_COPYPALETTE = 13
+_RGB = 13
+_RGBA = 13
+_RGB32 = 13
+_RGBA32 = 13
+_RED = 13
+_GREEN = 13
+_BLUE = 13
+_ALPHA = 13
+_RED32 = 13
+_GREEN32 = 13
+_BLUE32 = 13
+_ALPHA32 = 13
+_HSB32 = 13
+_HSBA32 = 13
+_HUE32 = 13
+_SATURATION32 = 13
+_BRIGHTNESS32 = 13
+_BACKGROUNDCOLOR = 13
+_DEFAULTCOLOR = 13
+_PALETTECOLOR = 13
+# 14: images
+_NEWIMAGE = 14
+_FREEIMAGE = 14
+_SAVEIMAGE = 14
+_SETALPHA = 14
+_CLEARCOLOR = 14
+_BLEND = 14
+_DONTBLEND = 14
+_PIXELSIZE = 14
+_HEIGHT = 14
+# 16: sound
+MIDI = 16
+# 17: events and timers
+SLEEP = 17
+_DELAY = 17
+_LIMIT = 17
+OFF = 17
+LIST = 17
+# 18: memory
+_MEMCOPY = 18
+# 19: libraries
+LIBRARY = 19
+# 20: window, system, date and time
+_TITLE = 20
+"_TITLE$" = 20
+_ICON = 20
+_FULLSCREEN = 20
+_ALLOWFULLSCREEN = 20
+_SMOOTH = 20
+_EXIT = 20
+_ACCEPTFILEDROP = 20
+_TOTALDROPPEDFILES = 20
+_FINISHDROP = 20
+_NOTIFYPOPUP = 20
+_MESSAGEBOX = 20
+"_INPUTBOX$" = 20
+"_OPENFILEDIALOG$" = 20
+"_SAVEFILEDIALOG$" = 20
+"_SELECTFOLDERDIALOG$" = 20
+_COLORCHOOSERDIALOG = 20
+"_CLIPBOARD$" = 20
+_CLIPBOARDIMAGE = 20
+"$EXEICON" = 20
+"$VERSIONINFO" = 20
+"$RESIZE" = 20
+"$SCREENHIDE" = 20
+"$SCREENSHOW" = 20
+"DATE$" = 20
+"TIME$" = 20
+_UPTIME = 20
+"COMMAND$" = 20
+_COMMANDCOUNT = 20
+ENVIRON = 20
+"ENVIRON$" = 20
+_ENVIRONCOUNT = 20
+SHELL = 20
+_SHELLHIDE = 20
+"_OS$" = 20
+CHAIN = 20
+CLEAR = 20
+FRE = 20
+SETMEM = 20
+# 21: data processing
+_ADLER32 = 21
+"_BASE64DECODE$" = 21
+"_BASE64ENCODE$" = 21
+"_DEFLATE$" = 21
+# 22: network
+HTTP = 22
+_CONNECTIONADDRESS = 22
+_WHATISMYIP = 22
+# 23: OpenGL
+_GLRENDER = 23
+_DISPLAYORDER = 23
+_DEPTHBUFFER = 23
+
+# A word covered on another word's page: word = page.
+[page]
+SELECT = "select-case"
+CASE = "select-case"
+EVERYCASE = "select-case"
+IS = "select-case"
+THEN = "if"
+ELSE = "if"
+ELSEIF = "if"
+ENDIF = "if"
+FOR = "for"
+NEXT = "for"
+TO = "for"
+STEP = "for"
+DO = "do"
+LOOP = "do"
+UNTIL = "do"
+WEND = "while"
+RETURN = "gosub"
+AS = "dim"
+BASE = "option"
+_EXPLICIT = "option"
+_EXPLICITARRAY = "option"
+_PRESERVE = "redim"
+ACCESS = "open"
+BINARY = "open"
+RANDOM = "open"
+OUTPUT = "open"
+APPEND = "open"
+USING = "print-using"
+LIBRARY = "declare-library"
+ALIAS = "declare-library"
+BYVAL = "declare-library"
+CUSTOMTYPE = "declare-library"
+DYNAMIC = "declare-library"
+ANY = "declare"
+SEG = "def-seg"
+DEF = "def-seg"
+LIST = "key"
+"$ELSE" = "meta-if"
+"$ELSEIF" = "meta-if"
+"$END" = "meta-if"
+HTTP = "meta-unstable"
+MIDI = "meta-unstable"
+TYPEFIELDS = "meta-unstable"
+
+# Words that none of the four sources lists: word = kind.
+[extra]
+"LINE INPUT" = "statement"
+"VIEW PRINT" = "statement"
+"PRINT USING" = "statement"
+"ON ERROR" = "statement"
+"DEF SEG" = "statement"
+"DECLARE LIBRARY" = "statement"
+"$NOPREFIX" = "metacommand"
+"$MIDISOUNDFONT" = "metacommand"
+"$ERROR" = "metacommand"
+
+# Words that get no page: word = why.
+[skip]
+OFF = "a word of other statements (KEY OFF, TIMER OFF, PEN OFF, STRIG OFF, COM OFF, $CHECKING:OFF): each says it"

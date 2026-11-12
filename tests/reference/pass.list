@@ -1,0 +1,8 @@
+# The examples of the language reference that the new compiler passes (tools/reference/README.md). Only grows.
+# One <group>/<name> per line; run with: run_legacy_tests.py --suite corpus --corpus-root tests/reference
+# --list tests/reference/pass.list --qb64 target/release/qb64rust.exe
+examples/_memcopy_1
+examples/left-str_1
+examples/line_1
+examples/meta-include_1
+examples/select-case_1

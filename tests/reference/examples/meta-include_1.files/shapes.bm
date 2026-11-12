@@ -1,0 +1,4 @@
+' shapes.bm: the procedures, included at the end of the program.
+FUNCTION Perimeter (side)
+    Perimeter = side * SIDES
+END FUNCTION

@@ -307,9 +307,14 @@ class Cost(unittest.TestCase):
     def test_a_crate_change_plans_the_quick_layer(self):
         self.repo.write("crates/sema/src/lib.rs", "fn b() {}\n")
         self.assertEqual(
-            set(self.repo.planned()), {"fmt", "build", "clippy", "clippy-linux", "nextest", "lists", "doc", "slice"}
+            set(self.repo.planned()),
+            {"fmt", "build", "clippy", "clippy-linux", "nextest", "lists", "doc", "slice", "reference"},
         )
         self.assertIsNone(self.repo.planned()["slice"])
+
+    def test_a_reference_page_plans_only_the_reference_check(self):
+        self.repo.write("docs/reference/entries/left-str.md", "# LEFT$\n")
+        self.assertEqual(self.repo.planned(), {"reference": None})
 
     def test_a_change_of_a_crates_tests_plans_no_build_no_lists_and_no_programs(self):
         self.repo.write("crates/sema/tests/it/symbols.rs", "#[test]\nfn t() {}\n")
@@ -818,7 +823,7 @@ class VmSteps(unittest.TestCase):
             {s.name for s in vm},
             {
                 "slice", "upstream", "verification", "callsite", "cli", "qbasic", "addprefix", "format",
-                "format-corpus", "differential", "nofold", "coverage", "community", "corpus-whole",
+                "format-corpus", "differential", "reference-examples", "nofold", "coverage", "community", "corpus-whole",
                 "upstream-whole", "verification-whole",
             },
         )

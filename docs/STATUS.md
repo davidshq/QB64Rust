@@ -70,11 +70,19 @@ working rule 7).
    milestone; should upstream's commits since the reference be reviewed as a routine. Language extensions
    are allowed behind a switch (`DECISIONS.md` 2026-11-11); which extension comes first is still open
    (`study\48` §5 recommends an order).
+2. **The six pilot pages of the language reference** (OpenSpec change `language-reference`, task 2.3): `LEFT$`,
+   `LINE`, `SELECT CASE`, `$INCLUDE`, `_MEMCOPY` and `FRE` in `docs\reference\entries\`. What you change goes into
+   the page layout before batch 1 starts.
 
 The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 
 ## Next
 
+0. **The language reference** (OpenSpec change `language-reference`, `study\49`): the tool and the six pilot
+   pages are built (task groups 1 and 2). After the pilot is read, one batch per session from task group 3 on,
+   by the procedure of `tools\reference\README.md`.
+0. **Tick task 4.2 of `project-settings`** (archived 2026-11-11, `[format]` and `[lints]` in `qb64rust.toml`) when
+   CI has run its two integration tests in `vscode\test\integration\suite\format.test.ts`.
 0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
    fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
    `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
