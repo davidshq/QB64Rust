@@ -5,9 +5,39 @@
   "unsupported": [],
   "rejected": []
  },
+ "_bit": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_byte": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
  "_cast": {
   "programs": 14,
   "ok": 14,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_define": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_float": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_integer64": {
+  "programs": 12,
+  "ok": 12,
   "unsupported": [],
   "rejected": []
  },
@@ -23,9 +53,21 @@
   "unsupported": [],
   "rejected": []
  },
+ "_offset": {
+  "programs": 24,
+  "ok": 24,
+  "unsupported": [],
+  "rejected": []
+ },
  "_orelse": {
   "programs": 1,
   "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_unsigned": {
+  "programs": 27,
+  "ok": 27,
   "unsupported": [],
   "rejected": []
  },
@@ -59,6 +101,18 @@
   "unsupported": [],
   "rejected": []
  },
+ "defint": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "double": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
  "eqv": {
   "programs": 1,
   "ok": 1,
@@ -79,6 +133,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "integer": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
  "left-str": {
   "programs": 7,
   "ok": 7,
@@ -88,6 +148,12 @@
  "line": {
   "programs": 36,
   "ok": 36,
+  "unsupported": [],
+  "rejected": []
+ },
+ "long": {
+  "programs": 19,
+  "ok": 19,
   "unsupported": [],
   "rejected": []
  },
@@ -162,6 +228,18 @@
  "select-case": {
   "programs": 1,
   "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "single": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "string": {
+  "programs": 3,
+  "ok": 3,
   "unsupported": [],
   "rejected": []
  },

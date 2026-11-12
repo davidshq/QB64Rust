@@ -37,11 +37,13 @@ record and compare the examples, run `render --compiler`, `--check --compiler` a
       pages: `$IF`, `$LET`, `$ERROR`, `$ERRORLOCATION`, `$INCLUDEONCE`, `$NOPREFIX`, `REM`; four examples. The
       library words (`DECLARE LIBRARY`, `ALIAS`, `BYVAL`, `CUSTOMTYPE`, `DYNAMIC`) moved to batch 19. Lines,
       names and labels have no word of their own: they go in the chapter (6.1).
-- [ ] 3.2 Batch 2: types, literals, operators, conversions (`numeric-semantics`, `evaluation-order`,
+- [x] 3.2 Batch 2: types, literals, operators, conversions (`numeric-semantics`, `evaluation-order`,
       `default-types`). First session (15 pages, 15 examples): the operators `AND`, `OR`, `XOR`, `NOT`, `EQV`,
       `IMP`, `MOD`, `_ANDALSO`, `_ORELSE`, `_NEGATE` and the conversions `CINT`, `CLNG`, `CSNG`, `CDBL`, `_CAST`.
-      Left: the types (`INTEGER`, `LONG`, `SINGLE`, `DOUBLE`, `STRING`, `_BIT`, `_BYTE`, `_INTEGER64`, `_FLOAT`,
-      `_OFFSET`, `_UNSIGNED`), `DEFINT` to `DEFSTR`, and `_DEFINE`.
+      Second session (13 pages, 13 examples): the types `INTEGER`, `LONG`, `SINGLE`, `DOUBLE`, `STRING`, `_BIT`,
+      `_BYTE`, `_INTEGER64`, `_FLOAT`, `_OFFSET`, `_UNSIGNED`, one page `defint` for `DEFINT` to `DEFSTR`
+      (`[page]` rows), and `_DEFINE`. Found: `language/numeric-semantics` "_BIT stores" still says a `_BIT` array
+      is "not supported yet", where `language/arrays-and-types` "Static arrays" and the compiler accept one.
 - [ ] 3.3 Batch 3: variables, scope, constants (`procedures`, `constants`)
 - [ ] 3.4 Batch 4: control flow (`control-flow`; Sonnet may take it)
 - [ ] 3.5 Batch 5: procedures (`procedures`)

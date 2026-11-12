@@ -3,7 +3,7 @@
 # spellings and the VS Code grammar; this file says only what those sources cannot.
 
 # The batches whose pages must all exist. Every page of a batch named here is required by --check.
-done = [1]
+done = [1, 2]
 
 # The pilot pages (study/49 §5), required whatever `done` says.
 pilot = ["left-str", "line", "select-case", "meta-include", "_memcopy", "fre"]
@@ -349,6 +349,10 @@ BYVAL = "declare-library"
 CUSTOMTYPE = "declare-library"
 DYNAMIC = "declare-library"
 ANY = "declare"
+DEFLNG = "defint"
+DEFSNG = "defint"
+DEFDBL = "defint"
+DEFSTR = "defint"
 SEG = "def-seg"
 DEF = "def-seg"
 LIST = "key"
