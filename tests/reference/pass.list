@@ -5,6 +5,7 @@ examples/_andalso_1
 examples/_bit_1
 examples/_byte_1
 examples/_cast_1
+examples/_continue_1
 examples/_define_1
 examples/_float_1
 examples/_integer64_1
@@ -22,8 +23,15 @@ examples/const_1
 examples/csng_1
 examples/defint_1
 examples/dim_1
+examples/do_1
 examples/double_1
+examples/end_1
 examples/eqv_1
+examples/exit_1
+examples/for_1
+examples/gosub_1
+examples/goto_1
+examples/if_1
 examples/imp_1
 examples/integer_1
 examples/left-str_1
@@ -37,6 +45,7 @@ examples/meta-includeonce_1
 examples/meta-let_1
 examples/mod_1
 examples/not_1
+examples/on_1
 examples/option_1
 examples/or_1
 examples/rem_1
@@ -44,6 +53,9 @@ examples/select-case_1
 examples/shared_1
 examples/single_1
 examples/static_1
+examples/stop_1
 examples/string_1
 examples/swap_1
+examples/system_1
+examples/while_1
 examples/xor_1

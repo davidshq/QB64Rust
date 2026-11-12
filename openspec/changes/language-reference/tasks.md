@@ -48,7 +48,9 @@ record and compare the examples, run `render --compiler`, `--check --compiler` a
       `$COLOR`, `COMMON`, `CONST`, `DIM` (with `AS`), `LET`, `OPTION` (with `BASE`, `_EXPLICIT`,
       `_EXPLICITARRAY`), `SHARED`, `STATIC`, `SWAP`. Found: `SWAP` is a statement of the built-in table with no
       syntax there, so its page gives the form by hand.
-- [ ] 3.4 Batch 4: control flow (`control-flow`; Sonnet may take it)
+- [x] 3.4 Batch 4: control flow (`control-flow`; Sonnet may take it). Thirteen pages: `IF`, `FOR`, `DO`, `WHILE`,
+      `GOTO`, `GOSUB`, `ON`, `EXIT`, `_CONTINUE`, `END`, `STOP`, `SYSTEM`, `RUN`; twelve examples (`RUN` has a
+      probe). Found: `FOR 5 = 1 TO 2` is an internal error (a `SOMEDAY.md` row).
 - [ ] 3.5 Batch 5: procedures (`procedures`)
 - [ ] 3.6 Batch 6: arrays and `TYPE` (`arrays-and-types`, `unstable-features`)
 

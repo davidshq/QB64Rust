@@ -23,6 +23,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "_continue": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
  "_define": {
   "programs": 1,
   "ok": 1,
@@ -125,15 +131,39 @@
   "unsupported": [],
   "rejected": []
  },
+ "do": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
  "double": {
   "programs": 9,
   "ok": 9,
   "unsupported": [],
   "rejected": []
  },
+ "end": {
+  "programs": 348,
+  "ok": 348,
+  "unsupported": [],
+  "rejected": []
+ },
  "eqv": {
   "programs": 1,
   "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "exit": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "for": {
+  "programs": 131,
+  "ok": 131,
   "unsupported": [],
   "rejected": []
  },
@@ -144,6 +174,24 @@
   "rejected": [
    "`FRE` is not implemented in QB64pe"
   ]
+ },
+ "gosub": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "goto": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "if": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
  },
  "imp": {
   "programs": 1,
@@ -243,6 +291,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "on": {
+  "programs": 18,
+  "ok": 18,
+  "unsupported": [],
+  "rejected": []
+ },
  "option": {
   "programs": 1,
   "ok": 1,
@@ -258,6 +312,12 @@
  "rem": {
   "programs": 1,
   "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "run": {
+  "programs": 6,
+  "ok": 6,
   "unsupported": [],
   "rejected": []
  },
@@ -285,6 +345,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "stop": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
  "string": {
   "programs": 3,
   "ok": 3,
@@ -294,6 +360,18 @@
  "swap": {
   "programs": 15,
   "ok": 15,
+  "unsupported": [],
+  "rejected": []
+ },
+ "system": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "while": {
+  "programs": 1,
+  "ok": 1,
   "unsupported": [],
   "rejected": []
  },
