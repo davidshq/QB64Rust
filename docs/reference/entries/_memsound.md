@@ -28,8 +28,11 @@ sound not decoded, has a block of size 0.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/mem-blocks "New memory, images and sounds" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `m = _MEMSOUND`: "`_MEMSOUND` takes 1 or 2 arguments".
+  - `m = _MEMSOUND(1, 2, 3)`: "`_MEMSOUND` takes 1 or 2 arguments".
+  - `m = _MEMSOUND`: "`_MEMSOUND` takes 1 or 2 arguments".
+  <!-- src: language/mem-blocks "New memory, images and sounds"; verification\v32_x87_memsound_bare; verification\v32_x88_memsound_three; verification\v39_x62_memsound_none -->
 
 ## Availability
 

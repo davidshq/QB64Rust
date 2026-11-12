@@ -22,8 +22,11 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: a number, four arguments, or the name as a statement.
-  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x62_inputbox_number; verification\v58_x83_inputbox_statement -->
+- A form QB64pe rejects is a compile error: a number, four arguments, or the name as a statement. For example:
+  - `x$ = _INPUTBOX$(1)`: "argument 1 of `_INPUTBOX$` needs a string".
+  - `x$ = _INPUTBOX$("a", "b", "c", "d")`: "`_INPUTBOX$` takes 0 to 3 arguments".
+  - `_INPUTBOX$ "t"`: "`_INPUTBOX$` is a function, not a statement".
+  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x62_inputbox_number; verification\v58_x83_inputbox_statement; verification\v58_x63_inputbox_four_args -->
 
 ## Availability
 

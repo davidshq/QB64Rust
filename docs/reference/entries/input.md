@@ -35,6 +35,13 @@ When the input has ended, as when it comes from a file or a pipe, `INPUT` raises
 variables are then 0 or empty.
 <!-- src: language/console-and-window "Console input at the end of the input" -->
 
+In a program with `$CONSOLE` and a window, `INPUT` reads the console's input while the console is the destination,
+with the same prompts and echo as under `$CONSOLE:ONLY`. It needs no `_SOURCE _CONSOLE`.
+<!-- src: language/console-and-window "Console input in a $CONSOLE program" -->
+
+`INPUT (a)`, with the variable in parentheses, reads into `a`.
+<!-- src: language/console-and-window "INPUT into a place in parentheses"; verification\v57_p06_input -->
+
 `INPUT #n` reads the fields from file `n`.
 <!-- src: language/file-io "INPUT and LINE INPUT from a file" -->
 
@@ -49,6 +56,11 @@ variables are then 0 or empty.
 From QB64pe: `INPUT` at the end of redirected input waits there for ever. QB64Rust raises error 62
 (`DIVERGENCES-QB64PE.md` D-048).
 <!-- src: D-048 -->
+
+From QuickBASIC 4.5: `INPUT #` of the line `"say "hi" now",7` ends the first field at the second quote and skips
+to the comma there, so it reads two fields, `say ` and 7. QB64Rust, as QB64pe, starts a new field at once and reads
+three: `say `, `hi" now"` and 7 (`DIVERGENCES-QB45.md` Q-027).
+<!-- src: Q-027 -->
 
 ## Availability
 

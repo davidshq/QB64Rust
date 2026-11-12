@@ -26,8 +26,9 @@ A `_MEM`.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/mem-blocks "New memory, images and sounds" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `m = _MEMNEW`: "`_MEMNEW` takes 1 argument".
+  <!-- src: language/mem-blocks "New memory, images and sounds"; verification\v32_x77_memnew_bare -->
 
 ## Differences
 

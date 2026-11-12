@@ -29,6 +29,12 @@ A line in a `$IF` branch not taken does not count.
 - A name with a drive and no slash after it (`C:icon.ico`) is reported "not supported yet".
   <!-- src: language/console-and-window "Errors of $EXEICON" -->
 
+## Differences
+
+From QB64pe: for a file that is not there, its message names the folder it looked in. QB64Rust's gives the name as
+the program writes it: "the file `./nothere.ico` of `$EXEICON` is not found" (`DIVERGENCES-QB64PE.md` D-015).
+<!-- src: D-015 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

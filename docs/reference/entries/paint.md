@@ -16,8 +16,11 @@ outside alone.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Drawing statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `PAINT (1, 2), 3, t`: "argument 4 of `PAINT` needs a number".
+  - `PAINT (1, 2), 3, 4, 5`: "argument 5 of `PAINT` needs a string".
+  - `PAINT (1, 2), 3, 4, t, 5`: "this `PAINT` statement matches none of its forms".
+  <!-- src: language/screen-output "Drawing statements"; verification\v27_x12_paint_border_string; verification\v27_x13_paint_tile_number; verification\v27_x46_paint_five -->
 
 ## Availability
 

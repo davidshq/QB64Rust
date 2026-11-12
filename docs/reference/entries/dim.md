@@ -35,6 +35,12 @@ line does nothing when it runs, even when it runs twice. A bound with an operato
 variable, or `$DYNAMIC` in effect, makes a dynamic array, which `REDIM` can change.
 <!-- src: language/arrays-and-types "Static arrays" -->
 
+A dynamic array with a dimension of no element, its upper bound one below its lower bound, raises error 5 and is
+left allocated with those bounds and no element. With an upper bound lower still, it raises error 5 and is left not
+allocated. With the fix `dim-empty-error` on ([Fixes](../chapters/fixes.md)), a dimension of no element also leaves
+it not allocated, and a `DIM` whose bound raises an error allocates nothing.
+<!-- src: language/arrays-and-types "Dynamic arrays" -->
+
 An array is a name plus a type, in a name space of its own: `DIM a(3)` and a variable `a` are two things.
 `DIM a()` with nothing in the parentheses declares the variable `a`, not an array.
 <!-- src: language/arrays-and-types "Static arrays"; language/arrays-and-types "A scalar and an array of one name" -->
@@ -71,6 +77,15 @@ From QuickBASIC 4.5: an array used without `DIM` in a SUB is an array 0 to 10 th
 QB64Rust, as in QB64pe, every use raises error 9 until a `DIM` or `REDIM` of it in the SUB runs
 (`DIVERGENCES-QB45.md` Q-009).
 <!-- src: Q-009; language/arrays-and-types "Implicit arrays" -->
+
+From QB64pe: a dynamic array with a dimension of fewer than no element, as `DIM d(n)` with `n = -3`, raises error 5
+there and then ends the program with "Out of memory", past any `ON ERROR` handler. QB64Rust raises error 5 and
+allocates nothing, so a handler can go on (`DIVERGENCES-QB64PE.md` D-040).
+<!-- src: D-040 -->
+
+From QuickBASIC 4.5: an array used without `DIM` gets the warning "Array not dimensioned" there at its first
+use. QB64Rust, as QB64pe, gives no message (`DIVERGENCES-QB45.md` Q-017).
+<!-- src: Q-017 -->
 
 ## Availability
 

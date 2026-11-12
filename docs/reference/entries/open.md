@@ -33,11 +33,15 @@ A file opened `FOR INPUT` that does not exist raises error 53.
 
 - Opening a file that cannot be found, for input, raises run-time error 53.
   <!-- src: language/file-io "OPEN and CLOSE" -->
+- It raises error 76 for a folder that is not there and for an empty name, 52 for a file number of 0, 55 for a file
+  number already open, 54 for a mode letter that is no mode, as `OPEN "Q", #1, name$`, and 70 for a folder opened
+  as a file.
+  <!-- src: tests\reference\examples\open_2 -->
 
 ## Availability
 
 <!-- begin generated: availability -->
-Supported. All 38 programs that use it compile (call-site programs, examples and probes).
+Supported. All 39 programs that use it compile (call-site programs, examples and probes).
 <!-- end generated -->
 
 ## Example
@@ -65,6 +69,44 @@ Output:
 ```text
 first line
 added line
+
+Press any key to continue
+```
+<!-- end generated -->
+
+The run-time errors:
+
+<!-- begin generated: example:open_2 -->
+```qb64
+' The run-time errors of OPEN, each caught by the handler, which prints its number.
+ON ERROR GOTO failed
+step$ = "a file that is not there, for input": OPEN "open_2.none" FOR INPUT AS #1
+step$ = "a folder that is not there": OPEN "open_2_nodir/x.txt" FOR OUTPUT AS #1
+step$ = "an empty name": OPEN "" FOR OUTPUT AS #1
+step$ = "a file number of 0": OPEN "open_2.tmp" FOR OUTPUT AS #0
+step$ = "a file number already open": OPEN "open_2.tmp" FOR OUTPUT AS #1: OPEN "open_2.tmp" FOR OUTPUT AS #1
+CLOSE #1
+step$ = "a mode letter that is no mode": OPEN "Q", #1, "open_2.tmp"
+step$ = "a folder as the file": OPEN "." FOR INPUT AS #1
+CLOSE
+KILL "open_2.tmp"
+END
+
+failed:
+PRINT step$; ": error"; ERR
+RESUME NEXT
+```
+
+Output:
+
+```text
+a file that is not there, for input: error 53 
+a folder that is not there: error 76 
+an empty name: error 76 
+a file number of 0: error 52 
+a file number already open: error 55 
+a mode letter that is no mode: error 54 
+a folder as the file: error 70 
 
 Press any key to continue
 ```

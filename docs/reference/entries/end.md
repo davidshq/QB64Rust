@@ -20,6 +20,10 @@ waits for a key when its input is a console. When its input is a file, a pipe or
 line and ends at once. Running off the program's last line does the same.
 <!-- src: language/console-and-window "The end of a program and errors with a hidden window"; tests\reference\examples\end_1 -->
 
+In a program with a window, `END` and running off the last line print the prompt in the window's bottom row and
+wait for a key.
+<!-- src: language/screen-output "The end of a program with a window" -->
+
 `END n` ends the program with the exit code `n`. A pending error is handled first.
 <!-- src: language/control-flow "END and SYSTEM with an exit code" -->
 

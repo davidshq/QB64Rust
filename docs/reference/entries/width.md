@@ -24,8 +24,10 @@ From the built-in table (`tools\builtins\builtins.json`).
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Text-screen statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `WIDTH 80, 50, 1, 2, 3`: "this `WIDTH` statement matches none of its forms".
+  - `WIDTH t`: "argument 1 of `WIDTH` needs a number".
+  <!-- src: language/screen-output "Text-screen statements"; verification\v27_x25_width_five; verification\v27_x38_width_string -->
 
 ## Differences
 

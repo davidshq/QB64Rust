@@ -19,8 +19,11 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: a number, or a comma alone.
-  <!-- src: language/console-and-window "The window's display settings"; verification\v58_x42_allowfullscreen_number; verification\v58_x89_allowfullscreen_comma_only -->
+- A form QB64pe rejects is a compile error: a number, or a comma alone. For example:
+  - `_ALLOWFULLSCREEN 1`: "this `_ALLOWFULLSCREEN` statement matches none of its forms".
+  - `_ALLOWFULLSCREEN _STRETCH, _STRETCH`: "this `_ALLOWFULLSCREEN` statement matches none of its forms".
+  - `_ALLOWFULLSCREEN ,`: "this `_ALLOWFULLSCREEN` statement matches none of its forms".
+  <!-- src: language/console-and-window "The window's display settings"; verification\v58_x42_allowfullscreen_number; verification\v58_x89_allowfullscreen_comma_only; verification\v58_x43_allowfullscreen_stretch_twice -->
 
 ## Availability
 

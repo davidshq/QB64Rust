@@ -15,8 +15,10 @@ _FPS {rate|_AUTO}
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/console-and-window "The window's display settings" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_FPS "a"`: "`_FPS` needs a number".
+  - `_FPS 30, 1`: "this `_FPS` statement matches none of its forms".
+  <!-- src: language/console-and-window "The window's display settings"; verification\v58_x45_fps_string; verification\v58_x46_fps_two_args -->
 
 ## Availability
 

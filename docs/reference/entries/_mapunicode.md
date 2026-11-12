@@ -16,8 +16,11 @@ After `_MAPUNICODE 9731 TO 65`, `_MAPUNICODE(65)` is 9731.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/fonts "Forms of the font built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_MAPUNICODE 1, 2`: "this `_MAPUNICODE` statement matches none of its forms".
+  - `_MAPUNICODE 1`: "this `_MAPUNICODE` statement matches none of its forms".
+  - `PRINT _MAPUNICODE`: "`_MAPUNICODE` takes 1 argument".
+  <!-- src: language/fonts "Forms of the font built-ins"; verification\v31_x45_mapunicode_comma; verification\v31_x46_mapunicode_one; verification\v31_x47_mapunicode_fn_bare -->
 
 ## Availability
 

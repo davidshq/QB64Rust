@@ -26,8 +26,10 @@ A handle that is not open, 0 and negative numbers included, gives 0, with no err
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle functions" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_SNDSETPOS h`: "`_SNDSETPOS` takes 2 arguments".
+  - `d = _SNDGETPOS()`: "`_SNDGETPOS` with empty parentheses".
+  <!-- src: language/sound "Forms of the sound handle functions"; verification\v39_x31_sndsetpos_one; verification\v39_x41_sndgetpos_empty -->
 
 ## Availability
 

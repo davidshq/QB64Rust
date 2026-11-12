@@ -19,8 +19,11 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: a size without parentheses, or one number in a pair.
-  <!-- src: language/console-and-window "Window built-ins are compiled"; verification\v26_x87_sizelimit_no_parens; verification\v26_x88_sizelimit_one_in_pair -->
+- A form QB64pe rejects is a compile error: a size without parentheses, or one number in a pair. For example:
+  - `_WINDOWSIZELIMIT 320, 240`: "this `_WINDOWSIZELIMIT` statement matches none of its forms".
+  - `_WINDOWSIZELIMIT (320)`: "this `_WINDOWSIZELIMIT` statement matches none of its forms".
+  - `_WINDOWSIZELIMIT (1, 2)-(3)`: "this `_WINDOWSIZELIMIT` statement matches none of its forms".
+  <!-- src: language/console-and-window "Window built-ins are compiled"; verification\v26_x87_sizelimit_no_parens; verification\v26_x88_sizelimit_one_in_pair; verification\v26_x89_sizelimit_max_one -->
 
 ## Availability
 

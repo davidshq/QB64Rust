@@ -24,8 +24,11 @@ For `DIM b(10) AS INTEGER`, `_MEM(b())` is 22 bytes, `_MEM(b(4))` 14 and `_MEMEL
 
 ## Errors
 
-- A reference QB64pe rejects is a compile error with its message.
-  <!-- src: language/mem-blocks "A block of a reference" -->
+- A reference QB64pe rejects is a compile error with its message. For example:
+  - `m = _MEMELEMENT(u.v())`: "`_MEMELEMENT` takes an element, not a whole member array".
+  - `m = _MEMELEMENT(s)`: "`_MEMELEMENT` cannot take a variable-length string".
+  - `m = _MEMELEMENT(5)`: "`_MEMELEMENT` needs a variable, an element or an array".
+  <!-- src: language/mem-blocks "A block of a reference"; verification\v32_x04_memelement_whole_member_array; verification\v32_x08_memelement_string; verification\v32_x13_memelement_literal -->
 
 ## Availability
 

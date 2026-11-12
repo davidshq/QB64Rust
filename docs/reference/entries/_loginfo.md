@@ -28,6 +28,13 @@ An entry names the file, the procedure and the line of the statement, as QB64pe 
   parentheses is accepted.
   <!-- src: language/logging "The log statements' errors" -->
 
+## Differences
+
+From QB64pe: when the folder the compiler runs from has a name that is not ASCII, the file name in an entry is in the
+system's code page there, so the bytes differ from machine to machine. QB64Rust writes it in UTF-8
+(`DIVERGENCES-QB64PE.md` D-033).
+<!-- src: D-033 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

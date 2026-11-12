@@ -24,6 +24,11 @@ An error raised by an unchecked statement waits until a checked statement runs, 
 the same way.
 <!-- src: language/run-time-checks "Statements without checks" -->
 
+With the fix `checking-on-service` on ([Fixes](../chapters/fixes.md)), such an error is handled before the first
+checked statement that runs after the unchecked ones, so `RESUME NEXT` goes on at that statement and `RESUME` runs
+it.
+<!-- src: language/run-time-checks "Fix checking-on-service" -->
+
 `_MEMGET`, `_MEMPUT` and `_MEMFILL` there do not check their block.
 <!-- src: language/run-time-checks "Memory statements without checks" -->
 

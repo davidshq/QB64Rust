@@ -16,8 +16,11 @@ It draws and measures text as libqb does: `"Hi"` in the default font is 16 pixel
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/fonts "Forms of the font built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_UPRINTSTRING (1, 2)`: "this `_UPRINTSTRING` statement matches none of its forms".
+  - `_UPRINTSTRING STEP(1, 2), "a"`: "this `_UPRINTSTRING` statement matches none of its forms".
+  - `_UPRINTSTRING (1, 2), "a", 1, 2, 3, 4, 5`: "this `_UPRINTSTRING` statement matches none of its forms".
+  <!-- src: language/fonts "Forms of the font built-ins"; verification\v31_x63_uprintstring_no_text; verification\v31_x64_uprintstring_step; verification\v31_x65_uprintstring_eight -->
 
 ## Availability
 

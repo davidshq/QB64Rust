@@ -30,6 +30,19 @@ was set from: with `a! = 2.1`, `a! = 2.1` is true.
 `_UNSIGNED SINGLE` is a compile error: "`SINGLE` cannot be `_UNSIGNED`".
 <!-- src: language/numeric-semantics "Numeric types"; verification\v21_x07_unsigned_single -->
 
+## Differences
+
+From QuickBASIC 4.5:
+
+- A SINGLE constant times a LONG, as `.01 * s&`, is a DOUBLE there, the SINGLE widened first. In QB64Rust, as in
+  QB64pe, it is a SINGLE: with `s& = 69`, `WRITE #` gives `.6899999845772982` there and `.69` here. Read back by
+  `INPUT #` into an INTEGER, `s& = 150` gives 1 there and 2 here (`DIVERGENCES-QB45.md` Q-021).
+  <!-- src: Q-021 -->
+- A SINGLE constant times an INTEGER, stored into an INTEGER, is rounded from its exact value there. QB64Rust, as
+  QB64pe, rounds it to a SINGLE first: `x = .7 * x` with `x = 165` gives 115 there and 116 here. A comparison
+  differs the same way: `c >= .2 * a` with `c = 15` and `a = 75` is false there and true here (Q-022).
+  <!-- src: Q-022 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

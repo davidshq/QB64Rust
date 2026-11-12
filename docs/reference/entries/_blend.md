@@ -18,8 +18,11 @@ A new 32-bit image blends: `_BLEND(img&)` is -1, 0 after `_DONTBLEND img&`, and 
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/images "Forms of the image built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_BLEND 1, 2`: "this `_BLEND` statement matches none of its forms".
+  - `PRINT _BLEND(1, 2)`: "`_BLEND` takes 0 or 1 arguments".
+  - `_DONTBLEND 1, 2`: "this `_DONTBLEND` statement matches none of its forms".
+  <!-- src: language/images "Forms of the image built-ins"; verification\v31_x93_blend_two; verification\v31_x94_blend_fn_two; verification\v31_x95_dontblend_two -->
 
 ## Availability
 

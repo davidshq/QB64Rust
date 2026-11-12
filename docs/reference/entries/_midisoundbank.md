@@ -26,8 +26,11 @@ A MIDI file of one second, opened from memory with `_SNDOPEN`, has a `_SNDLEN` o
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_MIDISOUNDBANK`: "this `_MIDISOUNDBANK` statement matches none of its forms".
+  - `_MIDISOUNDBANK 1`: "argument 1 of `_MIDISOUNDBANK` needs a string".
+  - `_MIDISOUNDBANK t, t, t`: "this `_MIDISOUNDBANK` statement matches none of its forms".
+  <!-- src: language/sound "Forms of the sound handle statements"; verification\v39_x19_midisoundbank_none; verification\v39_x20_midisoundbank_number; verification\v39_x64_midisoundbank_three -->
 
 ## Availability
 

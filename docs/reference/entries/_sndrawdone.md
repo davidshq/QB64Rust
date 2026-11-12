@@ -19,8 +19,9 @@ It compiles with or without a handle, and does nothing: libqb's routine is empty
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_SNDRAWDONE r, 1`: "this `_SNDRAWDONE` statement matches none of its forms".
+  <!-- src: language/sound "Forms of the sound handle statements"; verification\v39_x16_sndrawdone_two -->
 
 ## Availability
 

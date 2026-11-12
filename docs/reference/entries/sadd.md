@@ -33,6 +33,14 @@ emulated conventional memory, in QB64pe's order and sizes, so that `PEEK` and `P
 - `SADD` of anything but a variable-length string variable or element is a compile error.
   <!-- src: language/conventional-memory "SADD" -->
 
+## Differences
+
+From QB64pe: a `TYPE` variable of the main module that holds a `STRING` member, and that `VARPTR`, `VARSEG`, `SADD`
+or `VARPTR$` names, lives in conventional memory there with its strings never made, so its first use crashes the
+program. QB64Rust makes its strings, empty, and keeps QB64pe's place and member offsets
+(`DIVERGENCES-QB64PE.md` D-037).
+<!-- src: D-037 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

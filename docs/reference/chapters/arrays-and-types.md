@@ -36,6 +36,12 @@ A whole user-type value copies all its members, and `target() = source()` copies
 dynamic member arrays are copied, not shared.
 <!-- src: language/arrays-and-types "Whole user-type values"; language/arrays-and-types "Whole-array assignment" -->
 
+A whole array `a()` written where a value or a variable goes, as in `PRINT a()` or `READ a()`, stands for its first
+element, with no bounds check. That is why `b%() = a%()`, with a suffix on both names, copies only the first element
+([LET](../entries/let.md)). With the fix `whole-array-value` on ([Fixes](fixes.md)), a whole array in an expression
+is a compile error, as in QuickBASIC 4.5.
+<!-- src: language/arrays-and-types "A whole array as a value"; language/arrays-and-types "Whole-array assignment checks" -->
+
 ## Copying elements
 
 `_ARRAYCOPY` copies a range of elements from one array into another, as if every element were read before any is

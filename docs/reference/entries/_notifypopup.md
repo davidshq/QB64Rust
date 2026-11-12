@@ -22,8 +22,11 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: a number, four arguments, or the name as a function.
-  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x58_notifypopup_number; verification\v58_x104_notifypopup_fn -->
+- A form QB64pe rejects is a compile error: a number, four arguments, or the name as a function. For example:
+  - `x = _NOTIFYPOPUP("a")`: "`_NOTIFYPOPUP(...)`: `_NOTIFYPOPUP` is a built-in statement".
+  - `_NOTIFYPOPUP 1`: "argument 1 of `_NOTIFYPOPUP` needs a string".
+  - `_NOTIFYPOPUP "a", "b", "c", "d"`: "this `_NOTIFYPOPUP` statement matches none of its forms".
+  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x58_notifypopup_number; verification\v58_x104_notifypopup_fn; verification\v58_x59_notifypopup_four_args -->
 
 ## Availability
 

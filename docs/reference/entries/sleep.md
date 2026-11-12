@@ -26,8 +26,9 @@ How long it waits depends on the clock and the keyboard, so no test checks the t
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/builtin-statements "Supported built-in statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `SLEEP 1, 2`: "this `SLEEP` statement matches none of its forms".
+  <!-- src: language/builtin-statements "Supported built-in statements"; verification\v27_x28_sleep_two -->
 
 ## Availability
 

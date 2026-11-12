@@ -26,8 +26,10 @@ A program that names it links the part of libqb QB64pe links for it.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/data-processing "_MD5$" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `PRINT _MD5$(5)`: "`_MD5$` needs a string".
+  - `PRINT _MD5$`: "`_MD5$` takes 1 argument".
+  <!-- src: language/data-processing "_MD5$"; verification\v49_x43_md5_number; verification\v49_x44_md5_bare -->
 
 ## Availability
 

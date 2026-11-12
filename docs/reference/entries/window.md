@@ -20,8 +20,10 @@ alone goes back to pixels.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Drawing statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `WINDOW SCREEN`: "this `WINDOW` statement matches none of its forms".
+  - `WINDOW (1, 2)-(3, 4), 5`: "this `WINDOW` statement matches none of its forms".
+  <!-- src: language/screen-output "Drawing statements"; verification\v27_x23_window_screen_alone; verification\v27_x47_window_color -->
 
 ## Availability
 

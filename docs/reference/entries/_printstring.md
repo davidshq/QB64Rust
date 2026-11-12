@@ -18,8 +18,11 @@ font 16.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/fonts "Forms of the font built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_PRINTSTRING "a"`: "this `_PRINTSTRING` statement matches none of its forms".
+  - `_PRINTSTRING (1, 2), 5`: "argument 3 of `_PRINTSTRING` needs a string".
+  - `_PRINTSTRING (1, 2)`: "this `_PRINTSTRING` statement matches none of its forms".
+  <!-- src: language/fonts "Forms of the font built-ins"; verification\v31_x57_printstring_no_coords; verification\v31_x58_printstring_number_text; verification\v31_x59_printstring_no_text -->
 
 ## Availability
 

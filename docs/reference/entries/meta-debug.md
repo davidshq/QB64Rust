@@ -18,6 +18,13 @@ No code for QB64pe's IDE debugger is written: the program behaves as QB64pe's do
 `-w`, the compiler warns "$DEBUG features only work from the IDE".
 <!-- src: language/asserts-and-debug "$DEBUG" -->
 
+## Differences
+
+From QB64pe: its program includes the IDE's debugger, vWatch, so it can be debugged from QB64pe's IDE, and vWatch's
+names are taken: a SUB named `vwatch_stoptimers` is "Name already in use". A program built by QB64Rust cannot be
+debugged from QB64pe's IDE, and those names are free (`DIVERGENCES-QB64PE.md` D-017).
+<!-- src: D-017 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

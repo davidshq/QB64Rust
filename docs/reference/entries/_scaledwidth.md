@@ -16,7 +16,9 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: an argument, or the name as a statement.
+- A form QB64pe rejects is a compile error: an argument, or the name as a statement. For example:
+  - `x = _SCALEDWIDTH(1)`: "`_SCALEDWIDTH` takes no arguments".
+  - `_SCALEDWIDTH`: "`_SCALEDWIDTH` is a function, not a statement".
   <!-- src: language/console-and-window "The window's display settings"; verification\v58_x37_scaledwidth_arg; verification\v58_x85_scaledwidth_statement -->
 
 ## Availability

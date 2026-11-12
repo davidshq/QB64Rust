@@ -20,8 +20,11 @@ PALETTE USING array[(index)]
 
 ## Errors
 
-- The forms QB64pe rejects are compile errors; `PALETTE USING` raises its run-time errors.
-  <!-- src: language/screen-output "PALETTE USING" -->
+- The forms QB64pe rejects are compile errors; `PALETTE USING` raises its run-time errors. For example:
+  - `PALETTE 1`: "this `PALETTE` statement matches none of its forms".
+  - `PALETTE 1, 2, 3`: "this `PALETTE` statement matches none of its forms".
+  - `PALETTE USING`: "`PALETTE USING` needs an array after `USING`".
+  <!-- src: language/screen-output "PALETTE USING"; verification\v27_x06_palette_one; verification\v27_x43_palette_three; verification\v57_u01_palette_using_nothing -->
 
 ## Availability
 

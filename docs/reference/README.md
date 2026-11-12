@@ -7,7 +7,8 @@ errors it gives, and where it differs from QB64pe 4.7.0 and QuickBASIC 4.5. Ever
 its source, and every example is a test program whose output was recorded (`tools\reference\README.md`).
 
 The examples start with `$CONSOLE:ONLY` so that their output can be recorded; the pages leave that line
-out. Run in a window, an example prints the same text there.
+out. Run in a window, an example prints the same text there. Each recorded output ends with an empty line
+and "Press any key to continue": the example's [`END`](entries/end.md) prints them in a console program.
 
 400 pages written; the inventory names 400.
 
@@ -34,9 +35,11 @@ How each area of the language works as a whole.
 - [Libraries](chapters/external-libraries.md)
 - [Files](chapters/file-io.md)
 - [Fixed-length strings](chapters/fixed-length-strings.md)
+- [Fixes](chapters/fixes.md)
 - [Fonts](chapters/fonts.md)
 - [Images](chapters/images.md)
 - [The keyboard](chapters/keyboard.md)
+- [Lints](chapters/lints.md)
 - [Logging](chapters/logging.md)
 - [Memory blocks](chapters/mem-blocks.md)
 - [The mouse](chapters/mouse.md)

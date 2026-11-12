@@ -35,7 +35,8 @@ A bit number outside 0 to 63 is taken modulo 64, its low six bits: `_SETBIT(0, 6
 bit beyond `n`'s width gives QB64pe's value.
 <!-- src: language/builtin-functions "Bit functions" -->
 
-With the fix `bit-number-check` on, a bit number outside 0 to 63 raises error 5 instead.
+With the fix `bit-number-check` on ([Fixes](../chapters/fixes.md)), a bit number outside 0 to 63 raises error 5
+instead.
 <!-- src: language/builtin-functions "Fix bit-number-check" -->
 
 `_SETBIT` may not stand in a `CONST`.

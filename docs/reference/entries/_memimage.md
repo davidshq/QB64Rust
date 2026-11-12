@@ -30,8 +30,11 @@ The block stops being valid when the image is freed.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/mem-blocks "New memory, images and sounds" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `m = _MEMIMAGE()`: "`_MEMIMAGE` with empty parentheses".
+  - `m = _MEMIMAGE(1, 2)`: "`_MEMIMAGE` takes 0 or 1 arguments".
+  - `m = _MEMIMAGE("a")`: "`_MEMIMAGE` needs a number".
+  <!-- src: language/mem-blocks "New memory, images and sounds"; verification\v32_x74_memimage_empty; verification\v32_x75_memimage_two; verification\v32_x76_memimage_string -->
 
 ## Availability
 

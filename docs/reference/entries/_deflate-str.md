@@ -30,8 +30,11 @@ A program that names it is linked with libqb's data-processing part, as QB64pe's
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/data-processing "Checksums, compression and base64" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `PRINT _DEFLATE$("a", "b")`: "argument 2 of `_DEFLATE$` needs a number".
+  - `PRINT _DEFLATE$("a", 1, 2)`: "`_DEFLATE$` takes 1 or 2 arguments".
+  - `PRINT _DEFLATE$()`: "`_DEFLATE$` with empty parentheses".
+  <!-- src: language/data-processing "Checksums, compression and base64"; verification\v33_x31_deflate_string_level; verification\v33_x32_deflate_three; verification\v33_x34_deflate_empty -->
 
 ## Availability
 

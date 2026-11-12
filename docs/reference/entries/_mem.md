@@ -57,6 +57,10 @@ The block of a dynamic array that `ERASE` releases stops being valid, as after `
 writes into freed memory.
 <!-- src: language/mem-blocks "A block that is no longer valid"; D-043 -->
 
+`_MEM(x.v())` of a `_DYNAMIC` member array that is not allocated, as after `ERASE x.v`, raises error 9 and gives a
+block for which `_MEMEXISTS` is 0. QB64pe's program crashes there (`DIVERGENCES-QB64PE.md` D-021).
+<!-- src: D-021 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

@@ -25,6 +25,11 @@ Inside the procedure, a `STATIC` variable comes before a `SHARED` variable of th
 `STATIC a(5)` declares an array of the procedure's own, from 0 to 5, that keeps its elements between calls.
 <!-- src: Q-015; tests\corpus\slice\s56_proc_arrays -->
 
+Beside a shared main-module dynamic array of the same name and type, `STATIC a(n)` names that shared array in the
+procedure instead, as in QB64pe. With the fix `static-local-dynamic` on ([Fixes](../chapters/fixes.md)), it
+declares an array of the procedure's own there too.
+<!-- src: language/arrays-and-types "Arrays in procedures" -->
+
 `STATIC` after a SUB's or FUNCTION's header makes every variable of the procedure keep its value. If such a
 procedure also holds a `STATIC` statement, only the variables first named above that statement are kept; below it,
 new variables are made on each call.

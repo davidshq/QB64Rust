@@ -27,8 +27,10 @@ Without a handle it reads the default stream.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle functions" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `d = _SNDRAWLEN()`: "`_SNDRAWLEN` with empty parentheses".
+  - `d = _SNDRAWLEN(1, 2)`: "`_SNDRAWLEN` takes 0 or 1 arguments".
+  <!-- src: language/sound "Forms of the sound handle functions"; verification\v39_x43_sndrawlen_empty; verification\v39_x63_sndrawlen_two -->
 
 ## Availability
 

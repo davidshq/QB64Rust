@@ -16,8 +16,11 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: `_SCREENX()` or an assignment to it.
-  <!-- src: language/console-and-window "Window built-ins are compiled"; verification\v26_x98_screenx_empty; verification\v26_x111_screenx_assign -->
+- A form QB64pe rejects is a compile error: `_SCREENX()` or an assignment to it. For example:
+  - `_SCREENX = 1`: "names starting with `_` are reserved: `_SCREENX`".
+  - `n = _SCREENX()`: "`_SCREENX` with empty parentheses".
+  - `n = _SCREENX(1)`: "`_SCREENX` takes no arguments".
+  <!-- src: language/console-and-window "Window built-ins are compiled"; verification\v26_x98_screenx_empty; verification\v26_x111_screenx_assign; verification\v26_x99_screenx_arg -->
 
 ## Availability
 

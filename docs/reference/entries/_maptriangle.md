@@ -26,8 +26,11 @@ The 3-D form compiles to QB64pe's call; no test runs it, since it draws with Ope
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/images "Forms of the image built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - Two points before `TO`, as in `_MAPTRIANGLE (0, 0)-(9, 0), img TO (10, 10)-(50, 10)-(10, 50)`: "this
+    `_MAPTRIANGLE` statement matches none of its forms".
+  - `_MAPTRIANGLE (0, 0)-(9, 0)-(0, 9), img`: "this `_MAPTRIANGLE` statement matches none of its forms".
+  <!-- src: language/images "Forms of the image built-ins"; verification\v31_x72_maptriangle_two_points; verification\v31_x73_maptriangle_no_to -->
 
 ## Availability
 

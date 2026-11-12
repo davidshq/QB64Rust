@@ -31,6 +31,18 @@ A static array of a user type has every numeric member set to 0 and every string
   (`ERASE`)".
   <!-- src: language/arrays-and-types "ERASE" -->
 
+## Differences
+
+From QB64pe:
+
+- A whole array with no storage, such as one that `ERASE` released, used whole (`PRINT a()`, `READ a()`, `SWAP`,
+  `GET`) takes 8 bytes that every such array shares there, with no error, so a value read into one shows up in the
+  others. QB64Rust raises error 9 and reads and writes nothing (`DIVERGENCES-QB64PE.md` D-042).
+  <!-- src: D-042 -->
+- `ERASE a(f(1)).d` of a `_DYNAMIC` member array calls `f` twice there. QB64Rust calls it once, as QuickBASIC 4.5
+  evaluates an index once (D-055).
+  <!-- src: D-055 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

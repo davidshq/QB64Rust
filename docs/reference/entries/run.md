@@ -42,7 +42,9 @@ These are compile errors:
   <!-- src: language/control-flow "RUN"; verification\v57_r12_no_label; verification\v57_r13_label_in_sub -->
 - A numeric variable or an expression, as in `RUN n` or `RUN 1 + 2`.
   <!-- src: language/control-flow "RUN"; verification\v57_r14_numeric_variable; verification\v57_r15_expression -->
-- With the fix `run-in-procedure` on, `RUN` in a SUB or FUNCTION, as in QuickBASIC 4.5.
+- With the fix `run-in-procedure` on ([Fixes](../chapters/fixes.md)), `RUN` in a SUB or FUNCTION, as in QuickBASIC
+  4.5: "`RUN` cannot stand in a SUB or FUNCTION (the fix `run-in-procedure`): set a flag there and run `RUN` from the
+  main module".
   <!-- src: language/control-flow "Fix run-in-procedure" -->
 
 ## Differences

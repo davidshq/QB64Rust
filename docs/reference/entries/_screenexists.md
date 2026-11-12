@@ -29,6 +29,12 @@ It may be written without parentheses, and `HEX$(_SCREENEXISTS)` gives QB64pe's 
 - `_SCREENEXISTS()` and an argument are compile errors.
   <!-- src: language/console-and-window "Window built-ins are compiled"; verification\v26_x100_screenexists_empty; verification\v26_x75_screenexists_args -->
 
+## Differences
+
+From QB64pe: it is registered there with no type for its result. QB64Rust gives a LONG (`DIVERGENCES-QB64PE.md`
+D-013).
+<!-- src: D-013 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

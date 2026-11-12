@@ -33,8 +33,11 @@ The image starts with every pixel 0. In a 32-bit image that is `&H00000000`, a t
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/images "Forms of the image built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `n = _NEWIMAGE(1)`: "`_NEWIMAGE` takes 2 or 3 arguments".
+  - `n = _NEWIMAGE(1, 2, 3, 4)`: "`_NEWIMAGE` takes 2 or 3 arguments".
+  - `n = _NEWIMAGE("a", 2)`: "argument 1 of `_NEWIMAGE` needs a number".
+  <!-- src: language/images "Forms of the image built-ins"; verification\v26_x104_newimage_one; verification\v26_x105_newimage_four; verification\v26_x106_newimage_string -->
 
 ## Availability
 

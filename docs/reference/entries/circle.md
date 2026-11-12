@@ -21,8 +21,22 @@ program draws.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Drawing statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `CIRCLE (1, 2),`: "this `CIRCLE` statement matches none of its forms".
+  - `CIRCLE (1, 2), 3, 4, 5, 6, 7, 8`: "this `CIRCLE` statement matches none of its forms".
+  <!-- src: language/screen-output "Drawing statements"; verification\v27_x21_circle_no_radius; verification\v27_x45_circle_seven -->
+
+## Differences
+
+From QuickBASIC 4.5:
+
+- A small circle with the screen's own aspect lights other pixels for some radii: radius 4 in `SCREEN 12` has two
+  pixels side by side at each diagonal there and one in QB64Rust, as in QB64pe, so a `PAINT` inside it fills 57
+  pixels where QuickBASIC 4.5 fills 61. In `SCREEN 9`, 8 of the radii 1 to 10 differ (`DIVERGENCES-QB45.md` Q-036).
+  <!-- src: Q-036 -->
+- An arc with an aspect and start and end angles lights other pixels, so a `PAINT` that stays inside a shape there can
+  leak out of it: Civil War Strategy's cannon wheel, `CIRCLE (x + 5, y), 29, 1, 4, 1.5, 1.4`, is one (Q-020).
+  <!-- src: Q-020 -->
 
 ## Availability
 

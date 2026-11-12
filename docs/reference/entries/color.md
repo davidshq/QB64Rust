@@ -18,8 +18,9 @@ Either color may be left out. The colors are compiled in every form QB64pe accep
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Text-screen statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `COLOR t`: "argument 1 of `COLOR` needs a number".
+  <!-- src: language/screen-output "Text-screen statements"; verification\v27_x10_color_string -->
 
 ## Availability
 

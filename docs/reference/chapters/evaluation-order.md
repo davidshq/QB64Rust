@@ -16,6 +16,11 @@ The order matters where a part calls a FUNCTION or a built-in that changes the p
 each raise an error.
 <!-- src: language/evaluation-order "Which parts the order applies to" -->
 
+QB64pe's Linux build often computes them right to left instead, so one program can print other results there:
+`_ASSERT f(1), g$("never")` calls `g$` before `f` on Linux. QB64Rust's Linux build keeps the Windows order
+(`DIVERGENCES-QB64PE.md` D-060).
+<!-- src: D-060 -->
+
 ## Parts computed only when needed
 
 The right side of `_ANDALSO` and `_ORELSE`, and the branch of `_IIF` not chosen, are computed only when needed. Each

@@ -15,8 +15,11 @@ An image saved with `_SAVEIMAGE` and loaded again with `_LOADIMAGE` holds the sa
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/images "Forms of the image built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_SAVEIMAGE`: "this `_SAVEIMAGE` statement matches none of its forms".
+  - `_SAVEIMAGE 5`: "argument 1 of `_SAVEIMAGE` needs a string".
+  - `_SAVEIMAGE "a", 1, "b", 2`: "this `_SAVEIMAGE` statement matches none of its forms".
+  <!-- src: language/images "Forms of the image built-ins"; verification\v31_x85_saveimage_bare; verification\v31_x86_saveimage_number; verification\v31_x87_saveimage_four -->
 
 ## Availability
 

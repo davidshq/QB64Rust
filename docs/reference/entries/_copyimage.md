@@ -23,8 +23,10 @@ The copy is an image of its own: drawing on the original afterwards does not cha
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/images "Forms of the image built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `l = _COPYIMAGE`: "`_COPYIMAGE` takes 1 or 2 arguments".
+  - `l = _COPYIMAGE(1, 2, 3)`: "`_COPYIMAGE` takes 1 or 2 arguments".
+  <!-- src: language/images "Forms of the image built-ins"; verification\v31_x02_copyimage_bare; verification\v31_x92_copyimage_three -->
 
 ## Availability
 

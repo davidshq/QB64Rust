@@ -22,8 +22,11 @@ Samples of 0 are silence.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_SNDRAW`: "this `_SNDRAW` statement matches none of its forms".
+  - `_SNDRAW t`: "argument 1 of `_SNDRAW` needs a number".
+  - `_SNDRAW 0, 0, r, 1`: "this `_SNDRAW` statement matches none of its forms".
+  <!-- src: language/sound "Forms of the sound handle statements"; verification\v39_x36_sndraw_none; verification\v39_x37_sndraw_string; verification\v39_x67_sndraw_four -->
 
 ## Differences
 

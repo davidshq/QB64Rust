@@ -19,7 +19,9 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: an argument, or the name as a statement.
+- A form QB64pe rejects is a compile error: an argument, or the name as a statement. For example:
+  - `x = _DESKTOPREFRESHRATE(1)`: "`_DESKTOPREFRESHRATE` takes no arguments".
+  - `_DESKTOPREFRESHRATE`: "`_DESKTOPREFRESHRATE` is a function, not a statement".
   <!-- src: language/console-and-window "The window's display settings"; verification\v58_x48_desktoprefreshrate_arg; verification\v58_x94_desktoprefreshrate_statement -->
 
 ## Availability

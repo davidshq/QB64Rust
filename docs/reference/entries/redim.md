@@ -36,8 +36,8 @@ An array that is not allocated, after `ERASE` or before its first `REDIM`, is gi
 nothing.
 <!-- src: language/arrays-and-types "REDIM" -->
 
-A dimension with no element raises error 5, as `DIM` does. `REDIM a()` with empty parentheses declares the
-variable `a`, not an array.
+A dimension with no element raises error 5, as `DIM` does, also with the fix `dim-empty-error`
+([Fixes](../chapters/fixes.md)). `REDIM a()` with empty parentheses declares the variable `a`, not an array.
 <!-- src: language/arrays-and-types "REDIM"; language/arrays-and-types "Dynamic arrays" -->
 
 ## Errors
@@ -64,6 +64,20 @@ From QuickBASIC 4.5:
 - `REDIM d(3)` without `AS` after `REDIM d(2) AS DOUBLE` is "AS clause required" there. QB64Rust keeps the type, as
   QB64pe does (Q-034).
   <!-- src: Q-034 -->
+
+From QB64pe:
+
+- A FUNCTION in a bound that itself redims or erases the same array, as `REDIM z(2 TO shrinkz)`, makes QB64pe's
+  program end with no output, as memory is freed twice. QB64Rust evaluates the bounds first and then replaces the
+  array as the FUNCTION left it (`DIVERGENCES-QB64PE.md` D-018).
+  <!-- src: D-018 -->
+- A dimension of fewer than no element, as `REDIM r(2 TO 0, 3)`, raises error 5 there and then ends the program with
+  "Out of memory", past any `ON ERROR` handler. QB64Rust raises error 5 and allocates nothing, so a handler can go on
+  (D-040).
+  <!-- src: D-040 -->
+- A `_DYNAMIC` member array given more elements than memory holds succeeds there with a block too small. QB64Rust
+  ends the program with "Out of memory", as for any array that is too large (D-020).
+  <!-- src: D-020 -->
 
 ## Availability
 

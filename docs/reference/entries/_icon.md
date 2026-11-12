@@ -19,7 +19,9 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: three arguments or a string.
+- A form QB64pe rejects is a compile error: three arguments or a string. For example:
+  - `_ICON 1, 2, 3`: "this `_ICON` statement matches none of its forms".
+  - `_ICON "a"`: "argument 1 of `_ICON` needs a number".
   <!-- src: language/console-and-window "Window built-ins are compiled"; verification\v26_x78_icon_three; verification\v26_x79_icon_string -->
 
 ## Availability

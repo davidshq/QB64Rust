@@ -52,8 +52,11 @@ reaches `INKEY$` instead.
   <!-- src: language/events "The KEY statements of their own"; language/events "Rejected handler forms" -->
 - A handler QB64pe rejects is a compile error: a label that is not in the main module, a name that is no SUB, a SUB
   with more than one parameter or one not of an integer type, or an argument given to a SUB without a parameter or
-  left out for one with it.
-  <!-- src: language/events "Rejected handler forms" -->
+  left out for one with it. For example:
+  - `KEY(1) FREE`: "this `KEY` statement matches none of its forms".
+  - `KEY ON 1`: "expected the end of the statement after `KEY ON`".
+  - `KEY 1, 5`: "the text of `KEY n, text$` must be a string".
+  <!-- src: language/events "Rejected handler forms"; verification\v42_x15_key_free; verification\v42_x25_key_on_extra; verification\v42_x26_key_number_text -->
 - A missing `)` before `GOSUB` is a compile error with the note "Expected )".
   <!-- src: language/events "An event handler without its closing parenthesis" -->
 

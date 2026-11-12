@@ -34,6 +34,10 @@ From QuickBASIC 4.5: it raises error 6, "Overflow", when LONG arithmetic leaves 
 QB64pe does (`DIVERGENCES-QB45.md` Q-004).
 <!-- src: Q-004 -->
 
+From QB64pe: built with `-O2`, its LONG arithmetic need not wrap: with `x` the largest LONG, `x + 1 > x` is true.
+QB64Rust always wraps, with or without `-O2` (`DIVERGENCES-QB64PE.md` D-001).
+<!-- src: D-001 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

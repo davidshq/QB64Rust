@@ -187,12 +187,15 @@ record and compare the examples, run `render --compiler`, `--check --compiler` a
       out words of the table's form on `_MAPTRIANGLE` (`_CLOCKWISE`, `_ANTICLOCKWISE`, `_SEAMLESS`, the `_SMOOTH`
       words, the z of the 3-D form), `_PUTIMAGE` (`STEP`, `_SMOOTH`), `_RED`, `_CAPSLOCK` and `_CONSOLEINPUT`, and
       `--check` now fails on such a page; the generated syntax wrote the table's mixed case (`_Middle`,
-      `{On|Off|Stop}`) and joined two forms with "or" on one line; `MID$` with a start of 0 was unclear. Left to
-      decide: (d) about 85 pages give "A form QB64pe rejects is a compile error" as their only error, with no
-      message; (e) about 54 pages say "as QB64pe does", testable ones included (`SCREEN` has no table of its modes,
-      `OPEN` gives only error 53, and its spec measures no other); (f) 80 of 444 requirements are cited nowhere,
-      among them whole-array assignment's error 9 and the fixes (no page says what a fix is; `RESUME` and
-      `$CHECKING` leave theirs out; `compiler/fixes` and `compiler/lints` have no chapter); (g) 38 divergence rows
-      are on no word's page (Q-021, Q-022, D-026, D-027, D-029, D-035, Q-020, Q-036 among them); (h) 329 outputs end
-      in "Press any key to continue", which nothing explains.
+      `{On|Off|Stop}`) and joined two forms with "or" on one line; `MID$` with a start of 0 was unclear. Then
+      fixed: (d) 80 pages whose only error was "A form QB64pe rejects is a compile error" now give up to three
+      rejected forms from `verification` with QB64Rust's message; 6 have no recorded rejection and keep the
+      sentence. (e) `SCREEN` has a table of its modes, from `tests\corpus\screen\m*`, and error 5; `OPEN` has
+      errors 52, 54, 55, 70 and 76 from the new example `open_2`. (f) The chapters `fixes` and `lints`; the fixes
+      on `RESUME`, `$CHECKING`, `DIM`, `REDIM` and `STATIC`; whole-array assignment's errors on `LET`, whose page
+      said `LET b%() = a%()` copies the array, where `v36_a_numbers` shows it copies one element. 47 requirements
+      stay uncited: 20 of `compiler/pipeline` about the compiler's insides, and 27 rejections of odd forms.
+      (g) Every divergence row about the language is on its word's page or chapter, but D-010 (not built) and the
+      rows of command-line switches. (h) The index says why outputs end in "Press any key to continue". Left: the
+      pages of windows, dialogs and `_LOADIMAGE` still say "as QB64pe does" (item (c) of 7.1).
 - [ ] 7.4 Archive the change and `study\49`.

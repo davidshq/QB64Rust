@@ -19,8 +19,11 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: `_WINDOWHANDLE()` or two arguments.
-  <!-- src: language/console-and-window "Window built-ins are compiled"; verification\v26_x108_windowhandle_empty; verification\v26_x109_windowhandle_two -->
+- A form QB64pe rejects is a compile error: `_WINDOWHANDLE()` or two arguments. For example:
+  - `n = _WINDOWHANDLE()`: "`_WINDOWHANDLE` with empty parentheses".
+  - `n = _WINDOWHANDLE(1, 2)`: "`_WINDOWHANDLE` takes 0 or 1 arguments".
+  - `n = _WINDOWHANDLE("a")`: "`_WINDOWHANDLE` needs a number".
+  <!-- src: language/console-and-window "Window built-ins are compiled"; verification\v26_x108_windowhandle_empty; verification\v26_x109_windowhandle_two; verification\v26_x110_windowhandle_string -->
 
 ## Availability
 

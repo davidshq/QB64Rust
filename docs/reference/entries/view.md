@@ -16,8 +16,11 @@ After `VIEW (10, 10)-(29, 19)`, `PSET (0, 0)` lights the pixel at (10, 10) of th
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Drawing statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `VIEW (1, 2)-(3, 4), 5,`: "this `VIEW` statement matches none of its forms".
+  - `VIEW SCREEN`: "this `VIEW` statement matches none of its forms".
+  - `VIEW STEP(1, 2)-(3, 4)`: "this `VIEW` statement matches none of its forms".
+  <!-- src: language/screen-output "Drawing statements"; verification\v27_x22_view_comma_after_color; verification\v27_x24_view_screen_alone; verification\v27_x35_view_step -->
 
 ## Availability
 

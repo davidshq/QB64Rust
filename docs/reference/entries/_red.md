@@ -20,6 +20,13 @@ A number from 0 to 255.
 Entry 4 of a 256-color image's default palette is dark red: its parts are 170, 0, 0 and 255.
 <!-- src: language/images "The colour functions"; tests\reference\examples\_red_1 -->
 
+## Differences
+
+From QB64pe: in a `CONST`, `_RED`, `_GREEN` or `_BLUE` of a color above 255 in screen mode 0, as `CONST c = _RED(2222,
+0)`, reads past the palette, so its value changes from build to build. QB64Rust gives 0 (`DIVERGENCES-QB64PE.md`
+D-035).
+<!-- src: D-035 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

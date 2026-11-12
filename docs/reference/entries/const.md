@@ -80,9 +80,29 @@ From QB64pe:
   <!-- src: D-007 -->
 - `lbl1: CONST k = 4` does not compile there (D-008).
   <!-- src: D-008 -->
+- A `CONST` computed with `SIN`, `COS`, `TAN`, `ATN`, `EXP`, `LOG`, `ROOT` or `^` with a fraction takes its value
+  there from the machine's math library, so its last digits can differ between machines. QB64Rust gives QB64pe's
+  value when every value that library could give leads to one constant. Otherwise it takes the correctly rounded
+  value, and `-w` warns: "this `CONST` is computed with correctly rounded math functions; QB64pe's value depends on
+  the CPU and the system's library and may differ" (D-026).
+  <!-- src: D-026 -->
+- A value beyond `_INTEGER64` is clamped there: `CONST big~&& = 18446744073709551615` is 9223372036854775807, and so
+  is `_UINTEGER64_MAX`. QB64Rust keeps the value as a statement reads it, and the limits hold their types' limits
+  (D-027).
+  <!-- src: D-027 -->
+- A value beyond `_FLOAT`'s range, as `CONST a = 1F+4000 * 1F+4000`, is 0 there. QB64Rust gives the compile error
+  "this `CONST` overflows: its value is beyond `_FLOAT`'s range" (D-029).
+  <!-- src: D-029 -->
+- `_RED`, `_GREEN` or `_BLUE` of a color above 255 in screen mode 0, as `CONST c = _RED(2222, 0)`, reads past the
+  palette there, so its value changes from build to build. QB64Rust gives 0 (D-035).
+  <!-- src: D-035 -->
 
 From QuickBASIC 4.5: any `^` in a `CONST` is a syntax error there (`DIVERGENCES-QB45.md` Q-008).
 <!-- src: Q-008 -->
+
+Doubled signs in a `CONST`, as `CONST c = 2 * - -3`, are a compile error there too. QB64Rust, as QB64pe, gives 6
+(`DIVERGENCES-QB45.md` Q-033).
+<!-- src: Q-033 -->
 
 ## Availability
 

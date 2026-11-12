@@ -55,8 +55,11 @@ still running. A timer event ends a `SLEEP`.
   <!-- src: language/events "Numbered timers"; verification\v42_b_numbered; tests\corpus\slice\s134_events_timer; tests\reference\examples\_freetimer_1 -->
 - A handler QB64pe rejects is a compile error: a label that is not in the main module, a name that is no SUB, a SUB
   with more than one parameter or one not of an integer type, or an argument given to a SUB without a parameter or
-  left out for one with it.
-  <!-- src: language/events "Rejected handler forms" -->
+  left out for one with it. For example:
+  - `PRINT TIMER(1, 2) >= 0`: "`TIMER` takes 0 or 1 arguments".
+  - `PRINT TIMER("a") >= 0`: "`TIMER` needs a number".
+  - `PRINT TIMER() >= 0`: "`TIMER` with empty parentheses".
+  <!-- src: language/events "Rejected handler forms"; verification\v22_x124_timer_two_arguments; verification\v22_x125_timer_string; verification\v22_x126_timer_empty_parens -->
 - A missing `)` before `GOSUB` is a compile error with the note "Expected )".
   <!-- src: language/events "An event handler without its closing parenthesis" -->
 - `TIMER(1, 2)`, `TIMER("a")`, `TIMER()`, `TIMER = 1` and `TIMER` as a variable's name are compile errors.

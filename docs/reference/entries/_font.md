@@ -20,8 +20,11 @@ The built-in fonts 8, 14 and 16 need no font file.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/fonts "Forms of the font built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_FONT`: "this `_FONT` statement matches none of its forms".
+  - `_FONT 1, 2, 3`: "this `_FONT` statement matches none of its forms".
+  - `PRINT _FONT(1, 2)`: "`_FONT` takes 0 or 1 arguments".
+  <!-- src: language/fonts "Forms of the font built-ins"; verification\v31_x52_font_bare; verification\v31_x53_font_three; verification\v31_x54_font_fn_two -->
 
 ## Availability
 

@@ -16,7 +16,8 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: an argument.
+- A form QB64pe rejects is a compile error: an argument. For example:
+  - `_SCREENICON 1`: "`_SCREENICON` takes 0 arguments".
   <!-- src: language/console-and-window "Window built-ins are compiled"; verification\v26_x97_screenicon_arg -->
 
 ## Availability

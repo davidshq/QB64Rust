@@ -25,6 +25,11 @@ The prompt is printed as it is, never with `? `.
 When the input has ended it raises error 62 and does not wait. A last line with no line end is read as a line.
 <!-- src: language/console-and-window "Console input at the end of the input" -->
 
+In a program with `$CONSOLE` and a window, `LINE INPUT` reads the console's input while the console is the
+destination, as under `$CONSOLE:ONLY`, with no `_SOURCE _CONSOLE`. `LINE INPUT (a$)`, with the variable in
+parentheses, reads into `a$`.
+<!-- src: language/console-and-window "Console input in a $CONSOLE program"; language/console-and-window "INPUT into a place in parentheses"; verification\v57_p07_line_input -->
+
 `LINE INPUT #n` reads a line of file `n`.
 <!-- src: language/file-io "INPUT and LINE INPUT from a file" -->
 

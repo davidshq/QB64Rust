@@ -23,8 +23,10 @@ An argument may be left out where QB64pe allows: `LOCATE , 20` changes only the 
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Text-screen statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `LOCATE 1, 2, 3, 4, 5, 6`: "this `LOCATE` statement matches none of its forms".
+  - `LOCATE , , , ,`: "this `LOCATE` statement matches none of its forms".
+  <!-- src: language/screen-output "Text-screen statements"; verification\v27_x04_locate_six; verification\v27_x18_locate_four_commas -->
 
 ## Availability
 

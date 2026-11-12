@@ -39,6 +39,14 @@ Unlike `VARPTR`, `VARSEG` does not compute or check the index of an element.
 - A static array larger than 65,536 bytes, or one for which the memory is used up, raises error 257.
   <!-- src: language/conventional-memory "Arrays in conventional memory" -->
 
+## Differences
+
+From QB64pe: a `TYPE` variable of the main module that holds a `STRING` member, and that `VARPTR`, `VARSEG`, `SADD`
+or `VARPTR$` names, lives in conventional memory there with its strings never made, so its first use crashes the
+program. QB64Rust makes its strings, empty, and keeps QB64pe's place and member offsets
+(`DIVERGENCES-QB64PE.md` D-037).
+<!-- src: D-037 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

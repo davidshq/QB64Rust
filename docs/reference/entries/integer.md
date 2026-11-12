@@ -36,6 +36,10 @@ From QuickBASIC 4.5: it raises error 6, "Overflow", when INTEGER arithmetic leav
 expression. QB64Rust computes in 32 bits, as QB64pe does (`DIVERGENCES-QB45.md` Q-004).
 <!-- src: Q-004 -->
 
+From QB64pe: built with `-O2`, its 32-bit arithmetic need not wrap where it leaves the LONG range. QB64Rust always
+wraps, with or without `-O2` (`DIVERGENCES-QB64PE.md` D-001).
+<!-- src: D-001 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

@@ -23,8 +23,9 @@ Timer events that come during the wait run their handlers: a timer of 0.6 second
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Pacing statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_DELAY t`: "`_DELAY` needs a number".
+  <!-- src: language/screen-output "Pacing statements"; verification\v27_x49_delay_string -->
 
 ## Availability
 

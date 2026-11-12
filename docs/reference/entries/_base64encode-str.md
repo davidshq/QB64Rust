@@ -27,8 +27,9 @@ A program that names it is linked with libqb's data-processing part, as QB64pe's
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/data-processing "Checksums, compression and base64" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `PRINT _BASE64ENCODE$("a", 1)`: "`_BASE64ENCODE$` takes 1 argument".
+  <!-- src: language/data-processing "Checksums, compression and base64"; verification\v33_x45_base64_two -->
 
 ## Availability
 

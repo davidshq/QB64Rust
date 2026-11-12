@@ -28,6 +28,12 @@ After an error in a block header, `RESUME NEXT` goes on inside the `THEN` branch
 `WHILE` or `DO WHILE`, after the loop for a `LOOP UNTIL`, and at the start of the body for a `FOR`.
 <!-- src: language/error-handling "Errors in block headers" -->
 
+With the fix `resume-after-block` on ([Fixes](../chapters/fixes.md)), `RESUME NEXT` after an error in the condition
+of a `WHILE`, `DO WHILE`, `DO UNTIL`, `LOOP WHILE`, `LOOP UNTIL`, `IF` or `ELSEIF` goes on after the whole block:
+after its `WEND`, `LOOP` or `END IF`, or after the line of a one-line `IF`. `RESUME` still evaluates the condition
+again.
+<!-- src: language/error-handling "Fix resume-after-block" -->
+
 In a SUB, `RESUME label` takes a label of the SUB, and the other forms leave the SUB as `EXIT SUB` does.
 <!-- src: language/error-handling "RESUME inside a procedure"; language/error-handling "RESUME leaves a SUB through its exit" -->
 
@@ -38,6 +44,10 @@ In a SUB, `RESUME label` takes a label of the SUB, and the other forms leave the
 - `RESUME` in a FUNCTION is a compile error: "`RESUME` cannot stand in a FUNCTION: QB64pe's C++ for it does not
   build".
   <!-- src: language/error-handling "RESUME inside a procedure" -->
+- With the fix `resume-in-procedure` on, any `RESUME` in a SUB or FUNCTION is a compile error, as in QuickBASIC 4.5:
+  "`RESUME` belongs in an error handler of the main module, not in a SUB or FUNCTION (the fix
+  `resume-in-procedure`)".
+  <!-- src: language/error-handling "Fix resume-in-procedure" -->
 
 ## Differences
 

@@ -22,8 +22,10 @@ A handle that is not open, 0 and negative numbers included, does nothing, with n
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_SNDBAL h`: "this `_SNDBAL` statement matches none of its forms".
+  - `_SNDBAL h, 1, 2, 3, 4, 5`: "this `_SNDBAL` statement matches none of its forms".
+  <!-- src: language/sound "Forms of the sound handle statements"; verification\v39_x29_sndbal_handle_only; verification\v39_x66_sndbal_six -->
 
 ## Availability
 

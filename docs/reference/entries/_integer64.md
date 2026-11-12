@@ -29,6 +29,17 @@ A literal above 9223372036854775807, up to 18446744073709551615, is an `_UNSIGNE
 compile error.
 <!-- src: language/numeric-semantics "Integer literal typing" -->
 
+## Differences
+
+From QB64pe:
+
+- Built with `-O2`, its `_INTEGER64` arithmetic need not wrap: with `x` the largest value, `x + 1 > x` is true.
+  QB64Rust always wraps (`DIVERGENCES-QB64PE.md` D-002).
+  <!-- src: D-002 -->
+- A negative literal without a suffix below the `_INTEGER64` range, as `-18446744073709551615`, compiles there and
+  its value is the C++ compiler's: it prints 1. QB64Rust gives the compile error "overflow" (D-034).
+  <!-- src: D-034 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

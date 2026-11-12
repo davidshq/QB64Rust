@@ -35,6 +35,13 @@ In a comment it is a comment, and in a `$IF` branch not taken it names nothing.
 - A name with a drive and no slash after it is reported "not supported yet".
   <!-- src: language/embedded-files "Where the file is" -->
 
+## Differences
+
+From QB64pe: for a file that is not there or is a folder, its message names the folder it looked in. QB64Rust's
+gives the name as the program writes it: "the file `./name` of `$EMBED` is not found" (`DIVERGENCES-QB64PE.md`
+D-015).
+<!-- src: D-015 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

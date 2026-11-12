@@ -19,8 +19,11 @@ The pixels are those QB64pe's program draws.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Drawing statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `DRAW 1`: "`DRAW` needs a string".
+  - `DRAW t, k`: "`DRAW` takes 1 argument".
+  - `DRAW: l = 1`: "`DRAW` needs its arguments".
+  <!-- src: language/screen-output "Drawing statements"; verification\v27_x11_draw_number; verification\v27_x48_draw_two; verification\v27_x60_draw_colon -->
 
 ## Differences
 

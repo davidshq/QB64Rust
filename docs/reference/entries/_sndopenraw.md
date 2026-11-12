@@ -29,8 +29,9 @@ Without a handle, `_SNDRAW` and the others use a default stream, which needs no 
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle functions" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `r = _SNDOPENRAW(1)`: "`_SNDOPENRAW` takes no arguments".
+  <!-- src: language/sound "Forms of the sound handle functions"; verification\v39_x15_sndopenraw_arg -->
 
 ## Availability
 

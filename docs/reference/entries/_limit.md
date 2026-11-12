@@ -23,8 +23,11 @@ A screen program paced by `_LIMIT` leaves the screen QB64pe's program leaves.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Pacing statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_LIMIT`: "`_LIMIT` takes 1 argument".
+  - `_LIMIT (60) = 60`: "`_LIMIT(...)`: `_LIMIT` is a built-in statement".
+  - `_LIMIT: l = 1`: "`_LIMIT` needs its arguments".
+  <!-- src: language/screen-output "Pacing statements"; verification\v27_x27_limit_none; verification\v27_x57_limit_parens_equals; verification\v27_x62_limit_colon -->
 
 ## Availability
 

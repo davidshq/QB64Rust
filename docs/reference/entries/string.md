@@ -25,6 +25,11 @@ A `STRING` variable holds any number of bytes, and starts empty. `LEN` gives its
 variable other than `name$`.
 <!-- src: language/fixed-length-strings "Fixed-length string declarations" -->
 
+After `DIM name AS STRING * n`, `name$` is that same fixed-length variable, as a value and as a place, also in a
+procedure that shares it: after `DIM SHARED pathsep AS STRING * 1`, `pathsep$ = "\"` in a SUB stores into
+`pathsep`. A `DIM name$` beside it declares nothing new.
+<!-- src: language/fixed-length-strings "A suffixed name of a fixed-length string variable"; language/fixed-length-strings "Declaring the $ name of a fixed-length string variable"; verification\v52_x39_fixed_scalar_dollar_shared_sub -->
+
 A fixed-length string starts as `n` NUL bytes (0), in QB 4.5 too. A shorter value stored in it is padded with spaces, and a
 longer one is cut: with `DIM f AS STRING * 4`, `f = "ab"` holds `"ab  "` and `f = "abcdef"` holds `"abcd"`.
 <!-- src: language/fixed-length-strings "Fixed-length string declarations"; language/fixed-length-strings "Assignment to a fixed-length string"; Q-005; tests\reference\examples\string_1 -->

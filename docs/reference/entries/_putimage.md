@@ -20,8 +20,11 @@ as libqb does.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/images "Forms of the image built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_PUTIMAGE (1, 2)-`: "this `_PUTIMAGE` statement matches none of its forms".
+  - `_PUTIMAGE , , , , , 1`: "this `_PUTIMAGE` statement matches none of its forms".
+  - `_PUTIMAGE (0, 0)-(9, 9), img _SMOOTH`: "this `_PUTIMAGE` statement matches none of its forms".
+  <!-- src: language/images "Forms of the image built-ins"; verification\v31_x08_putimage_dash; verification\v31_x09_putimage_too_many; verification\v31_x10_putimage_smooth_no_comma -->
 
 ## Availability
 

@@ -18,8 +18,11 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: a number, `_SMOOTH` first, or two modes.
-  <!-- src: language/builtin-statements "Supported built-in statements"; verification\v28_x50_fullscreen_number; verification\v28_x52_fullscreen_two_modes -->
+- A form QB64pe rejects is a compile error: a number, `_SMOOTH` first, or two modes. For example:
+  - `_FULLSCREEN 5`: "this `_FULLSCREEN` statement matches none of its forms".
+  - `_FULLSCREEN _SMOOTH`: "this `_FULLSCREEN` statement matches none of its forms".
+  - `_FULLSCREEN _OFF _STRETCH`: "this `_FULLSCREEN` statement matches none of its forms".
+  <!-- src: language/builtin-statements "Supported built-in statements"; verification\v28_x50_fullscreen_number; verification\v28_x52_fullscreen_two_modes; verification\v28_x51_fullscreen_smooth_first -->
 
 ## Availability
 

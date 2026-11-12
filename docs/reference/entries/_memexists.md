@@ -30,8 +30,11 @@ when its array is redimensioned or erased.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/mem-blocks "New memory, images and sounds" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `PRINT _MEMEXISTS(_MEMNEW(4))`: "`_MEMEXISTS` needs a `_MEM` variable, element or member here".
+  - `PRINT _MEMEXISTS(k)`: "`_MEMEXISTS` needs a `_MEM` variable, element or member here".
+  - `PRINT _MEMEXISTS`: "`_MEMEXISTS` takes 1 argument".
+  <!-- src: language/mem-blocks "New memory, images and sounds"; verification\v32_x03_memexists_of_result; verification\v32_x72_memexists_long; verification\v32_x73_memexists_bare -->
 
 ## Availability
 

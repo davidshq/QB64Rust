@@ -19,8 +19,11 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: no text or a number.
-  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x56_screenprint_bare; verification\v58_x57_screenprint_number -->
+- A form QB64pe rejects is a compile error: no text or a number. For example:
+  - `x = _SCREENPRINT("a")`: "`_SCREENPRINT(...)`: `_SCREENPRINT` is a built-in statement".
+  - `_SCREENPRINT`: "`_SCREENPRINT` takes 1 argument".
+  - `_SCREENPRINT 1`: "`_SCREENPRINT` needs a string".
+  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x56_screenprint_bare; verification\v58_x57_screenprint_number; verification\v58_x103_screenprint_fn -->
 
 ## Availability
 

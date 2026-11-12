@@ -26,8 +26,11 @@ A sound opened from a file is decoded at this rate, so the size of its `_MEMSOUN
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle functions" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `l = _SNDRATE(1)`: "`_SNDRATE` takes no arguments".
+  - `l = _SNDRATE()`: "`_SNDRATE` with empty parentheses".
+  - `CALL _SNDRATE`: "`_SNDRATE` is a function, not a statement".
+  <!-- src: language/sound "Forms of the sound handle functions"; verification\v39_x13_sndrate_arg; verification\v39_x14_sndrate_empty; verification\v39_x45_call_function -->
 
 ## Availability
 

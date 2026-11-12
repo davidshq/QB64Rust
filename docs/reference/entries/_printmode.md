@@ -17,8 +17,11 @@ A new 32-bit image has mode 3; after `_PRINTMODE _KEEPBACKGROUND` it is 1.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/fonts "Forms of the font built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_PRINTMODE`: "this `_PRINTMODE` statement matches none of its forms".
+  - `_PRINTMODE 1`: "this `_PRINTMODE` statement matches none of its forms".
+  - `PRINT _PRINTMODE(1, 2)`: "`_PRINTMODE` takes 0 or 1 arguments".
+  <!-- src: language/fonts "Forms of the font built-ins"; verification\v31_x40_printmode_bare; verification\v31_x41_printmode_number; verification\v31_x42_printmode_fn_two -->
 
 ## Availability
 

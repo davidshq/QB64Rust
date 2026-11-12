@@ -23,8 +23,16 @@ The level comes from the `QB64PE_LOG_*` environment variables. The test runner s
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/logging "The minimum level" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `PRINT _LOGMINLEVEL()`: "`_LOGMINLEVEL` with empty parentheses".
+  - `_LOGMINLEVEL = 3`: "names starting with `_` are reserved: `_LOGMINLEVEL`".
+  <!-- src: language/logging "The minimum level"; verification\v50_x17_logminlevel_parens; verification\v50_x18_logminlevel_assign -->
+
+## Differences
+
+From QB64pe: it is registered there with no type for its result. QB64Rust gives a LONG (`DIVERGENCES-QB64PE.md`
+D-013).
+<!-- src: D-013 -->
 
 ## Availability
 

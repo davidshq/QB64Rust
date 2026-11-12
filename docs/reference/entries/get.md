@@ -61,6 +61,13 @@ The array of the graphics form is numeric, static or dynamic, or an array parame
 - An index that calls a FUNCTION, as `GET (1, 2)-(3, 4), a(f(1))`, calls it once, as in QuickBASIC 4.5. QB64pe calls
   it twice (`DIVERGENCES-QB64PE.md` D-061).
   <!-- src: D-061; tests\corpus\slice\s162_get_put_index_once -->
+- `GET #f, , q()` of an array of a type with a `_DYNAMIC` member array, where one element's member has fewer elements
+  than declared, raises error 9 there and still writes the declared bytes, past the end of the member's block.
+  QB64Rust raises error 9 and leaves that member as it was (D-019).
+  <!-- src: D-019 -->
+- `GET #f, , p()` into such an array that `ERASE` released raises error 9 there and then ends the program with "Out
+  of memory". QB64Rust raises error 9 and reads nothing (D-021).
+  <!-- src: D-021 -->
 
 ## Availability
 

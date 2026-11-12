@@ -24,8 +24,11 @@ The statements change the machine's keyboard state, so no test runs them; they c
 
 ## Errors
 
-- A form QB64pe rejects, such as `_CAPSLOCK 1`, is a compile error.
-  <!-- src: language/keyboard "The lock keys" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_CAPSLOCK (ON)`: "this `_CAPSLOCK` statement matches none of its forms".
+  - `x = _CAPSLOCK(1)`: "`_CAPSLOCK` takes no arguments".
+  - `_CAPSLOCK 1`: "this `_CAPSLOCK` statement matches none of its forms".
+  <!-- src: language/keyboard "The lock keys"; verification\v58_x105_capslock_stmt_paren; verification\v58_x23_capslock_fn_arg; verification\v58_x24_capslock_number -->
 
 ## Availability
 

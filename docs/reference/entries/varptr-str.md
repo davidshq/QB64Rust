@@ -30,6 +30,14 @@ For a fixed-length string the offset is its descriptor's, and for a member its v
   member a compile error.
   <!-- src: language/conventional-memory "VARPTR$"; language/conventional-memory "What VARPTR and VARSEG accept" -->
 
+## Differences
+
+From QB64pe: a `TYPE` variable of the main module that holds a `STRING` member, and that `VARPTR`, `VARSEG`, `SADD`
+or `VARPTR$` names, lives in conventional memory there with its strings never made, so its first use crashes the
+program. QB64Rust makes its strings, empty, and keeps QB64pe's place and member offsets
+(`DIVERGENCES-QB64PE.md` D-037).
+<!-- src: D-037 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

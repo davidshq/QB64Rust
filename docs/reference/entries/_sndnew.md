@@ -33,8 +33,10 @@ A copy of it holds the samples written into its block.
 
 - No frames, a channel count other than 1 or 2, or a bit depth other than 8, 16 or 32 gives 0 and no error.
   <!-- src: language/sound "New sounds and their memory"; tests\corpus\slice\s128_sound_new_memory; tests\reference\examples\_sndnew_1 -->
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle functions" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `h = _SNDNEW()`: "`_SNDNEW` with empty parentheses".
+  - `h = _SNDNEW(1, 2, 3, 4, 5)`: "`_SNDNEW` takes 1 to 4 arguments".
+  <!-- src: language/sound "Forms of the sound handle functions"; verification\v39_x17_sndnew_empty; verification\v39_x18_sndnew_five -->
 
 ## Availability
 

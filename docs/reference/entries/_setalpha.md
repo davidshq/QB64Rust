@@ -16,8 +16,11 @@ _SETALPHA alpha[, [color][ TO color2]][, handle]
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/images "Forms of the image built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_SETALPHA "a"`: "argument 1 of `_SETALPHA` needs a number".
+  - `_SETALPHA`: "this `_SETALPHA` statement matches none of its forms".
+  - `_SETALPHA 128, TO 9`: "this `_SETALPHA` statement matches none of its forms".
+  <!-- src: language/images "Forms of the image built-ins"; verification\v31_x106_setalpha_string; verification\v31_x49_setalpha_bare; verification\v31_x50_setalpha_to_only -->
 
 ## Availability
 

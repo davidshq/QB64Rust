@@ -17,8 +17,11 @@ After `_BLINK OFF` the function gives 0, and after `_BLINK ON` -1.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "_BLINK and the function _DISPLAY" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_BLINK ON, OFF`: "this `_BLINK` statement matches none of its forms".
+  - `_BLINK`: "this `_BLINK` statement matches none of its forms".
+  - `_BLINK 1`: "this `_BLINK` statement matches none of its forms".
+  <!-- src: language/screen-output "_BLINK and the function _DISPLAY"; verification\v58_x106_blink_on_off; verification\v58_x50_blink_bare_stmt; verification\v58_x51_blink_number -->
 
 ## Availability
 

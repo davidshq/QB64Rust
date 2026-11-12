@@ -31,8 +31,11 @@ A file that cannot be loaded gives -1, with no error.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/images "Forms of the image built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `l = _LOADIMAGE()`: "`_LOADIMAGE` with empty parentheses".
+  - `l = _LOADIMAGE`: "`_LOADIMAGE` takes 1 to 3 arguments".
+  - `l = _LOADIMAGE(5)`: "argument 1 of `_LOADIMAGE` needs a string".
+  <!-- src: language/images "Forms of the image built-ins"; verification\v31_x03_loadimage_empty; verification\v31_x04_loadimage_bare; verification\v31_x05_loadimage_number -->
 
 ## Availability
 

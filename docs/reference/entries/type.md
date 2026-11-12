@@ -70,6 +70,11 @@ From QB64pe: a store into a member of an element whose index is out of range rai
 element 0. QB64Rust stores nothing (`DIVERGENCES-QB64PE.md` D-004).
 <!-- src: D-004 -->
 
+From QuickBASIC 4.5: in `a(setn(1)).k = n`, where the FUNCTION `setn` changes `n`, the index is evaluated first
+there, so the new `n` is stored. QB64Rust, as QB64pe, takes the value first for a number member and stores the old
+`n`. A string member and a plain array take the index first in all of them (`DIVERGENCES-QB45.md` Q-028).
+<!-- src: Q-028 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

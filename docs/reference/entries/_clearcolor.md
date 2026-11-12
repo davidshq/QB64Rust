@@ -17,8 +17,9 @@ After `_CLEARCOLOR 0, img&`, `_CLEARCOLOR(img&)` is 0.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/images "Forms of the image built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `PRINT _CLEARCOLOR(1, 2)`: "`_CLEARCOLOR` takes 0 or 1 arguments".
+  <!-- src: language/images "Forms of the image built-ins"; verification\v31_x78_clearcolor_fn_two -->
 
 ## Availability
 

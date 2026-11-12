@@ -22,8 +22,9 @@ After `CLS`, the screen is empty and the cursor is at row 1.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Text-screen statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `CLS 1, 2, 3, 4`: "this `CLS` statement matches none of its forms".
+  <!-- src: language/screen-output "Text-screen statements"; verification\v27_x37_cls_four -->
 
 ## Availability
 

@@ -26,8 +26,11 @@ A window's state is outside what the tests compare, so no test checks what it do
 
 ## Errors
 
-- A form QB64pe rejects is a compile error: one number, a string or four arguments.
-  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x53_screenclick_one_arg; verification\v58_x55_screenclick_four_args -->
+- A form QB64pe rejects is a compile error: one number, a string or four arguments. For example:
+  - `_SCREENCLICK 10`: "this `_SCREENCLICK` statement matches none of its forms".
+  - `_SCREENCLICK "a", 1`: "argument 1 of `_SCREENCLICK` needs a number".
+  - `_SCREENCLICK 1, 2, 3, 4`: "this `_SCREENCLICK` statement matches none of its forms".
+  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x53_screenclick_one_arg; verification\v58_x55_screenclick_four_args; verification\v58_x54_screenclick_string -->
 
 ## Availability
 

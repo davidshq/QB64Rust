@@ -27,8 +27,10 @@ emulated conventional memory, in QB64pe's order and sizes, so that `PEEK` and `P
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/conventional-memory "DEF SEG, PEEK and POKE" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `l = PEEK("a")`: "`PEEK` needs a number".
+  - `l = PEEK(1, 2)`: "`PEEK` takes 1 argument".
+  <!-- src: language/conventional-memory "DEF SEG, PEEK and POKE"; verification\v28_x42_peek_string; verification\v28_x44_peek_two_arguments -->
 
 ## Availability
 

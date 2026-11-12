@@ -20,8 +20,11 @@ the index are taken as libqb takes them, and text drawn in the font is what QB64
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/fonts "Forms of the font built-ins" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_FREEFONT`: "this `_FREEFONT` statement matches none of its forms".
+  - `_FREEFONT 1, 2`: "this `_FREEFONT` statement matches none of its forms".
+  - `l = _LOADFONT("cour.ttf")`: "`_LOADFONT` takes 2 to 4 arguments".
+  <!-- src: language/fonts "Forms of the font built-ins"; verification\v31_x55_freefont_bare; verification\v31_x56_freefont_two; verification\v31_x68_loadfont_one -->
 
 ## Availability
 

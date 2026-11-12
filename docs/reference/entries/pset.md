@@ -25,8 +25,11 @@ text.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Drawing statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `CALL PSET(1, 2)`: "this `PSET` statement matches none of its forms".
+  - `PSET (1, 2),`: "this `PSET` statement matches none of its forms".
+  - `PSET 1, 2`: "this `PSET` statement matches none of its forms".
+  <!-- src: language/screen-output "Drawing statements"; verification\v27_x14_call_pset_plain; verification\v27_x20_pset_comma; verification\v27_x36_pset_no_parens -->
 
 ## Availability
 

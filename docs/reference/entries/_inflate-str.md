@@ -31,8 +31,10 @@ A program that names it is linked with libqb's data-processing part, as QB64pe's
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/data-processing "Checksums, compression and base64" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `PRINT _INFLATE$(5)`: "argument 1 of `_INFLATE$` needs a string".
+  - `PRINT _INFLATE$("a", "b")`: "argument 2 of `_INFLATE$` needs a number".
+  <!-- src: language/data-processing "Checksums, compression and base64"; verification\v33_x33_inflate_number; verification\v33_x46_inflate_string_size -->
 
 ## Availability
 

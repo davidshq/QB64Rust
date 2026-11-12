@@ -22,8 +22,11 @@ The second argument is accepted and has no effect in libqb.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/sound "Forms of the sound handle statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `_SNDPLAYFILE`: "this `_SNDPLAYFILE` statement matches none of its forms".
+  - `_SNDPLAYFILE 1`: "argument 1 of `_SNDPLAYFILE` needs a string".
+  - `_SNDPLAYFILE t, 1, 1, 1`: "this `_SNDPLAYFILE` statement matches none of its forms".
+  <!-- src: language/sound "Forms of the sound handle statements"; verification\v39_x34_sndplayfile_none; verification\v39_x35_sndplayfile_number; verification\v39_x65_sndplayfile_four -->
 
 ## Availability
 

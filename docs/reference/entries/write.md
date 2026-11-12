@@ -27,6 +27,17 @@ end: `WRITE #1, "Davout", 26000, 0.9` writes `"Davout",26000,.9`.
 - A `;` between the items or after the last one, or after the file number, is a compile error.
   <!-- src: language/file-io "WRITE with a semicolon" -->
 
+## Differences
+
+From QuickBASIC 4.5:
+
+- A string holding quotes, as `say "hi" now`, is written with its quotes as they are, there and in QB64Rust, but
+  `INPUT #` reads the line back into other fields (`DIVERGENCES-QB45.md` Q-027).
+  <!-- src: Q-027 -->
+- `WRITE #` of `.01 * s&` with `s& = 69` gives `.6899999845772982` there and `.69` in QB64Rust, as the product is a
+  DOUBLE there and a SINGLE here (Q-021).
+  <!-- src: Q-021 -->
+
 ## Availability
 
 <!-- begin generated: availability -->

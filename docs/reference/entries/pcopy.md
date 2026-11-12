@@ -15,8 +15,9 @@ After text is printed on page 1, `PCOPY 1, 0` puts it on page 0 too.
 
 ## Errors
 
-- A form QB64pe rejects is a compile error.
-  <!-- src: language/screen-output "Drawing statements" -->
+- A form QB64pe rejects is a compile error, for example:
+  - `PCOPY 1`: "`PCOPY` takes 2 arguments".
+  <!-- src: language/screen-output "Drawing statements"; verification\v27_x34_pcopy_one -->
 
 ## Availability
 

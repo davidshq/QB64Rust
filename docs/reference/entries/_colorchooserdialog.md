@@ -23,7 +23,11 @@ A window's state is outside what the tests compare, so no test checks what it do
 ## Errors
 
 - A form QB64pe rejects is a compile error: a string for the color, three arguments, or the name as a statement.
-  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x60_colorchooser_string_colour; verification\v58_x84_colorchooser_statement -->
+  For example:
+  - `x = _COLORCHOOSERDIALOG("t", "u")`: "argument 2 of `_COLORCHOOSERDIALOG` needs a number".
+  - `x = _COLORCHOOSERDIALOG(1, 2, 3)`: "`_COLORCHOOSERDIALOG` takes 0 to 2 arguments".
+  - `_COLORCHOOSERDIALOG "t"`: "`_COLORCHOOSERDIALOG` is a function, not a statement".
+  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x60_colorchooser_string_colour; verification\v58_x84_colorchooser_statement; verification\v58_x61_colorchooser_three_args -->
 
 ## Availability
 
