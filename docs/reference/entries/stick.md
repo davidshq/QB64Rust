@@ -7,7 +7,8 @@ controller attached it gives 128.
 
 <!-- begin generated: syntax -->
 ```text
-STICK(direction%) or STICK(direction%, axis_number%)
+STICK(direction%)
+STICK(direction%, axis_number%)
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

@@ -69,7 +69,7 @@ A page's file name is the word in lower case, a leading `$` written `meta-` and 
    | Heading | Required | What goes there |
    |---|---|---|
    | `# WORD` and a summary | yes | One or two sentences: what it does. A hover will show this |
-   | `## Syntax` | yes | Generated for a built-in; written by hand for a keyword |
+   | `## Syntax` | yes | Generated for a built-in, or written by hand where the table's form reads badly; written by hand for a keyword |
    | `## Arguments` | | Each argument: what it is, its type |
    | `## Result` | | A function's result |
    | `## Behavior` | yes | One rule per paragraph or list item, each with its `src:` |
@@ -134,7 +134,8 @@ compile, and the messages of the others. Never edit a generated block by hand: `
 
 `--check` fails when a generated block, an embedded example or a generated file is out of date; when a rule has no
 source or a source does not exist; when a required heading is missing, the headings are out of order or a page
-holds `TODO`; when a link leads nowhere; when a page has no word or an example has no page; and when a page of a
+holds `TODO`; when a hand-written "Syntax" of a built-in leaves out a word of the built-in table's form (a word
+that starts with `_`, such as `_SMOOTH`, or `STEP`); when a link leads nowhere; when a page has no word or an example has no page; and when a page of a
 `done` batch or a pilot page is missing. It checks a chapter in the same way: its sources, its links, its
 embedded examples, a `TODO`, and that a spec of its name exists. With `--compiler` it computes the availability
 again and fails when it changed.

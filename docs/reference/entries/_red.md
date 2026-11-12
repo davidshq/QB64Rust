@@ -6,6 +6,9 @@
 
 ```text
 value = _RED(color[, image])
+value = _GREEN(color[, image])
+value = _BLUE(color[, image])
+value = _ALPHA(color[, image])
 ```
 
 ## Result

@@ -8,7 +8,8 @@ gives the nth entry, as `name=value`.
 <!-- begin generated: syntax -->
 ```text
 ENVIRON stringExpression$
-ENVIRON$(listIndex%) or ENVIRON$(systemID$)
+ENVIRON$(listIndex%)
+ENVIRON$(systemID$)
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

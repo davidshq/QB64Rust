@@ -7,7 +7,7 @@ it.
 
 <!-- begin generated: syntax -->
 ```text
-_DEPTHBUFFER {On|Off|Lock|_Clear}[,handle&]
+_DEPTHBUFFER {ON|OFF|LOCK|_CLEAR}[,handle&]
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

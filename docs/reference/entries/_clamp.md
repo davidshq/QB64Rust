@@ -7,7 +7,7 @@
 
 <!-- begin generated: syntax -->
 ```text
-_Clamp(value, minimum, maximum)
+_CLAMP(value, minimum, maximum)
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

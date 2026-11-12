@@ -6,7 +6,7 @@
 
 <!-- begin generated: syntax -->
 ```text
-_ALLOWFULLSCREEN [{_Stretch|_SquarePixels|_Off|_All|Off}][,{_Smooth|_Off|_All|Off}]
+_ALLOWFULLSCREEN [{_STRETCH|_SQUAREPIXELS|_OFF|_ALL|OFF}][,{_SMOOTH|_OFF|_ALL|OFF}]
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

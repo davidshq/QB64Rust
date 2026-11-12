@@ -497,8 +497,21 @@ def form(entry: dict) -> str:
     return f"{name} {args}".rstrip()
 
 
-def syntax_block(word: str, words: dict[str, Word]) -> str | None:
-    """The forms of the page's built-ins, statements first; None when no word of the page is a built-in."""
+# A word of the table's `hr_syntax` written in mixed case (`_Middle`, `{On|Off|Stop}`): a keyword, which the page
+# writes in capitals. Argument names start in lower case, except `Array` in the forms of graphics PUT.
+MIXED_KEYWORD = re.compile(r"(?<![A-Za-z0-9_])(_[A-Z][A-Za-z0-9]*|On|Off|Stop|Free|Lock|Wait|Resume)(?![A-Za-z0-9_])")
+
+
+def syntax_forms(entry: dict) -> list[str]:
+    """A built-in's forms as a page shows them: keywords in capitals, and one form per line where the table joins
+    two with " or " (`STICK(direction%) or STICK(direction%, axis_number%)`)."""
+    line = entry.get("hr_syntax") or form(entry)
+    line = MIXED_KEYWORD.sub(lambda m: m.group(1).upper(), line)
+    return [part.strip() for part in line.split(" or ")]
+
+
+def table_forms(word: str, words: dict[str, Word]) -> list[str]:
+    """The forms of the page's built-ins, statements first; empty when no word of the page is a built-in."""
     data = load_builtins()
     page = words[word].page
     covered = [w for w in words.values() if w.page == page]
@@ -507,9 +520,15 @@ def syntax_block(word: str, words: dict[str, Word]) -> str | None:
         for kind in ("sub", "function"):
             for e in data["entries"]:
                 if builtin_word(e) == w.word and e["kind"] == kind and e.get("category") != "stub":
-                    line = e.get("hr_syntax") or form(e)
-                    if line not in lines:
-                        lines.append(line)
+                    for line in syntax_forms(e):
+                        if line not in lines:
+                            lines.append(line)
+    return lines
+
+
+def syntax_block(word: str, words: dict[str, Word]) -> str | None:
+    """The generated "Syntax" block of the page's built-ins; None when no word of the page is a built-in."""
+    lines = table_forms(word, words)
     if not lines:
         return None
     return "```text\n" + "\n".join(lines) + "\n```\n\nFrom the built-in table (`tools\\builtins\\builtins.json`)."
@@ -1087,6 +1106,18 @@ def check_src(item: str, requirements: set[tuple[str, str]], rows: set[str]) -> 
     return f"cannot read the source `{item}`"
 
 
+# The words of a built-in's form that a hand-written syntax must keep: QB64's own (`_SMOOTH`, `_CLIP`) and `STEP`.
+# Other capitals in the table's forms are expressions (`TIMER`, `VARSEG`) or the text of a string argument
+# (`MONOSPACE` of `_LOADFONT`), which a page may write as an argument instead.
+SYNTAX_WORD = re.compile(r"(?<![A-Za-z0-9_$])(_[A-Z][A-Z0-9_]*\$?|STEP)(?![A-Za-z0-9_])")
+
+
+def syntax_words_left_out(syntax: str, forms: list[str]) -> list[str]:
+    """The words of the table's forms that a hand-written "Syntax" section does not show."""
+    have = set(SYNTAX_WORD.findall(syntax))
+    return sorted({w for f in forms for w in SYNTAX_WORD.findall(f)} - have)
+
+
 def check_page(path: Path, words: dict[str, Word], avail: dict, requirements, rows) -> list[str]:
     name = rel(path.relative_to(REPO))
     text = path.read_text(encoding="utf-8")
@@ -1113,6 +1144,10 @@ def check_page(path: Path, words: dict[str, Word], avail: dict, requirements, ro
     for h, required in HEADINGS:
         if required and h not in seen:
             problems.append(f"{name}: missing `## {h}`")
+    syntax = dict(secs[1:]).get("Syntax", "")
+    if "begin generated: syntax" not in syntax:
+        for missing in syntax_words_left_out(syntax, table_forms(word, words)):
+            problems.append(f"{name}: the syntax leaves out `{missing}`, which the built-in table's form has")
     for h, body in secs[1:]:
         if h in SOURCED:
             for b in blocks(body):

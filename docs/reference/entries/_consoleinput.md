@@ -6,6 +6,7 @@
 
 ```text
 value = _CONSOLEINPUT
+code = _CINP[(n)]
 ```
 
 ## Behavior

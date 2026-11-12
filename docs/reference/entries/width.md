@@ -7,7 +7,8 @@ sets the line width of a file.
 
 <!-- begin generated: syntax -->
 ```text
-WIDTH [columns%][, rows%] or WIDTH {file_number|device}, columnwidth%
+WIDTH [columns%][, rows%]
+WIDTH {file_number|device}, columnwidth%
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

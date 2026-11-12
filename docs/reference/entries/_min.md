@@ -6,8 +6,8 @@
 
 <!-- begin generated: syntax -->
 ```text
-_Max(value1, value2)
-_Min(value1, value2)
+_MAX(value1, value2)
+_MIN(value1, value2)
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

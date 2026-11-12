@@ -5,8 +5,15 @@
 ## Syntax
 
 ```text
-_MAPTRIANGLE (sx1, sy1)-(sx2, sy2)-(sx3, sy3), source TO (dx1, dy1)-(dx2, dy2)-(dx3, dy3)[, destination]
+_MAPTRIANGLE [{_CLOCKWISE|_ANTICLOCKWISE}] [_SEAMLESS] (sx1, sy1)-(sx2, sy2)-(sx3, sy3)[, source]
+    TO (dx1, dy1[, dz1])-(dx2, dy2[, dz2])-(dx3, dy3[, dz3])[, [destination][, {_SMOOTH|_SMOOTHSHRUNK|_SMOOTHSTRETCHED}]]
 ```
+
+## Arguments
+
+- `(sx1, sy1)` to `(sx3, sy3)`: the corners of the triangle in the source image.
+- `(dx1, dy1)` to `(dx3, dy3)`: the corners of the triangle in the destination. With a third coordinate `dz` on each
+  corner, it is the 3-D form.
 
 ## Behavior
 

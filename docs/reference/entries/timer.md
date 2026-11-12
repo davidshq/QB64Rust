@@ -7,7 +7,7 @@
 
 <!-- begin generated: syntax -->
 ```text
-TIMER[(number%)] {On|Off|Stop|Free}
+TIMER[(number%)] {ON|OFF|STOP|FREE}
 TIMER[(accuracy!)]
 ```
 

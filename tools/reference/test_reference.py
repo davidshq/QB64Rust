@@ -73,6 +73,22 @@ class Words(unittest.TestCase):
         entry = {"name": "Bar", "kind": "function", "arg_types": ["LONG"], "ret": "STRING", "musthave": "$"}
         self.assertEqual(r.form(entry), "BAR$(LONG) AS STRING")
 
+    def test_the_syntax_writes_keywords_in_capitals_and_one_form_per_line(self):
+        entry = {"name": "_ScreenMove", "kind": "sub", "hr_syntax": "_SCREENMOVE x, y or _SCREENMOVE _Middle"}
+        self.assertEqual(r.syntax_forms(entry), ["_SCREENMOVE x, y", "_SCREENMOVE _MIDDLE"])
+        entry = {"name": "Key", "kind": "sub", "hr_syntax": "KEY(number) {On|Off|Stop}"}
+        self.assertEqual(r.syntax_forms(entry), ["KEY(number) {ON|OFF|STOP}"])
+        # An argument name keeps its spelling, `Array` of graphics PUT included.
+        entry = {"name": "Put", "kind": "sub", "hr_syntax": "PUT (column, row), Array([index]), omitColor"}
+        self.assertEqual(r.syntax_forms(entry), ["PUT (column, row), Array([index]), omitColor"])
+
+    def test_a_hand_written_syntax_keeps_the_words_of_the_table(self):
+        forms = ["_PUTIMAGE [STEP](dx1, dy1)[, source][_SMOOTH]"]
+        self.assertEqual(r.syntax_words_left_out("_PUTIMAGE (dx1, dy1)[, source]", forms), ["STEP", "_SMOOTH"])
+        self.assertEqual(r.syntax_words_left_out("_PUTIMAGE [STEP](x, y)[, s][, _SMOOTH]", forms), [])
+        # Capitals that are expressions or a string's text are not required.
+        self.assertEqual(r.syntax_words_left_out("RANDOMIZE [seed]", ["RANDOMIZE [USING] {seednumber|TIMER}"]), [])
+
 
 class Inventory(unittest.TestCase):
     @classmethod

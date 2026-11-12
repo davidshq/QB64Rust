@@ -7,7 +7,7 @@
 
 <!-- begin generated: syntax -->
 ```text
-_DISPLAYORDER {_Software|_Hardware|_Hardware1|_GLRender} (any combination/order)
+_DISPLAYORDER {_SOFTWARE|_HARDWARE|_HARDWARE1|_GLRENDER} (any combination/order)
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

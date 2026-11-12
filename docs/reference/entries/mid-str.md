@@ -33,7 +33,8 @@ A STRING.
 `"bc"`. A start past the end, or a length of 0 or less, gives `""`.
 <!-- src: language/builtin-functions "String results"; verification\v20_c_string_edges; tests\reference\examples\mid-str_1 -->
 
-A start of 0 or less counts from the first byte: `MID$("abc", 0)` is `"abc"` and `MID$("abc", 0, 2)` is `"a"`.
+A start of 0 or less still takes from the first byte, but the length counts from the start given:
+`MID$("abc", 0)` is `"abc"`, and `MID$("abc", 0, 2)` is `"a"`, the bytes at 0 and 1.
 <!-- src: verification\v20_c_string_edges -->
 
 The statement `MID$(s$, start[, n]) = t$` writes the bytes of `t$` over those of `s$` from `start`, never changing

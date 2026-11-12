@@ -7,7 +7,7 @@ text$` sets a soft key, and `KEY ON`, `KEY OFF` and `KEY LIST` show, hide and li
 
 <!-- begin generated: syntax -->
 ```text
-KEY(number) {On|Off|Stop}
+KEY(number) {ON|OFF|STOP}
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

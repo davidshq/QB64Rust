@@ -8,6 +8,10 @@ they set the state: `_CAPSLOCK ON`, `_NUMLOCK OFF`, `_SCROLLLOCK _TOGGLE`.
 ```text
 value = _CAPSLOCK
 _CAPSLOCK {ON|OFF|_TOGGLE}
+value = _NUMLOCK
+_NUMLOCK {ON|OFF|_TOGGLE}
+value = _SCROLLLOCK
+_SCROLLLOCK {ON|OFF|_TOGGLE}
 ```
 
 ## Behavior

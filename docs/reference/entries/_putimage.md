@@ -5,7 +5,7 @@
 ## Syntax
 
 ```text
-_PUTIMAGE [(dx1, dy1)[-(dx2, dy2)]][, source][, destination][, (sx1, sy1)-(sx2, sy2)]
+_PUTIMAGE [[STEP](dx1, dy1)[-[STEP](dx2, dy2)]][, source][, destination][, [STEP](sx1, sy1)[-[STEP](sx2, sy2)]][, _SMOOTH]
 ```
 
 ## Behavior

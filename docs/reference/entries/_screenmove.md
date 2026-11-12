@@ -6,7 +6,8 @@
 
 <!-- begin generated: syntax -->
 ```text
-_SCREENMOVE x, y or _SCREENMOVE _Middle
+_SCREENMOVE x, y
+_SCREENMOVE _MIDDLE
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

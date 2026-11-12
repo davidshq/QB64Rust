@@ -7,7 +7,7 @@ adds a volume, a pan position, a waveform and a voice.
 
 <!-- begin generated: syntax -->
 ```text
-SOUND [frequency!, duration![, volume!][, panPosition!][, waveform&][, waveformParameters!][, voice&]] [{Wait|Resume}]
+SOUND [frequency!, duration![, volume!][, panPosition!][, waveform&][, waveformParameters!][, voice&]] [{WAIT|RESUME}]
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

@@ -7,7 +7,7 @@ no screen.
 
 <!-- begin generated: syntax -->
 ```text
-_GLRENDER {_Behind|_OnTop|_Only}
+_GLRENDER {_BEHIND|_ONTOP|_ONLY}
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).

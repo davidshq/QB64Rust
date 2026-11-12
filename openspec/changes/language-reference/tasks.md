@@ -182,4 +182,17 @@ record and compare the examples, run `render --compiler`, `--check --compiler` a
 - [x] 7.2 Link the reference from `README.md`, `docs\MANUAL.md` and `docs\QUICKSTART.md`; add to `CLAUDE.md`
       working rule 11 that a change of behavior edits its page with its spec. `MANUAL.md` links it by its GitHub
       address, as it does `DIVERGENCES-QB64PE.md`, since the manual ships in the download.
-- [ ] 7.3 Archive the change and `study\49`.
+- [x] 7.3 A second review (2026-11-12), by scripts over every page. Fixed: graphics `GET` and `PUT` were not on
+      their pages (now their syntax, behavior, errors and D-061, and the example `put_2`); hand-written syntax left
+      out words of the table's form on `_MAPTRIANGLE` (`_CLOCKWISE`, `_ANTICLOCKWISE`, `_SEAMLESS`, the `_SMOOTH`
+      words, the z of the 3-D form), `_PUTIMAGE` (`STEP`, `_SMOOTH`), `_RED`, `_CAPSLOCK` and `_CONSOLEINPUT`, and
+      `--check` now fails on such a page; the generated syntax wrote the table's mixed case (`_Middle`,
+      `{On|Off|Stop}`) and joined two forms with "or" on one line; `MID$` with a start of 0 was unclear. Left to
+      decide: (d) about 85 pages give "A form QB64pe rejects is a compile error" as their only error, with no
+      message; (e) about 54 pages say "as QB64pe does", testable ones included (`SCREEN` has no table of its modes,
+      `OPEN` gives only error 53, and its spec measures no other); (f) 80 of 444 requirements are cited nowhere,
+      among them whole-array assignment's error 9 and the fixes (no page says what a fix is; `RESUME` and
+      `$CHECKING` leave theirs out; `compiler/fixes` and `compiler/lints` have no chapter); (g) 38 divergence rows
+      are on no word's page (Q-021, Q-022, D-026, D-027, D-029, D-035, Q-020, Q-036 among them); (h) 329 outputs end
+      in "Press any key to continue", which nothing explains.
+- [ ] 7.4 Archive the change and `study\49`.

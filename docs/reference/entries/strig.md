@@ -7,8 +7,9 @@
 
 <!-- begin generated: syntax -->
 ```text
-STRIG(button%) {On|Off|Stop}
-STRIG(button_function%) or STRIG(button_function%, device_number%)
+STRIG(button%) {ON|OFF|STOP}
+STRIG(button_function%)
+STRIG(button_function%, device_number%)
 ```
 
 From the built-in table (`tools\builtins\builtins.json`).
