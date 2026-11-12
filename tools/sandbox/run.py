@@ -235,6 +235,7 @@ def build_new(compiler: Path, src: Path, out: Path, log: Path) -> bool:
         str(INCLUDE_ROOT),
         "--fixes",
         "off",
+        "--no-settings",
     ]
     return compile_to(cmd + [src.name, "-o", str(out)], src.parent, out, log)
 

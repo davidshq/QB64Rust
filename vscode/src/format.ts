@@ -1,7 +1,9 @@
 // Format Document and Format Selection while the language server is off (change m5b-formatter, design D7; the
-// server's own formatting needs none of this): `qb64rust -y`, or `qb64pe -y` when the build is QB64pe's or the binary
-// is not found, with the layout settings as `-f:` settings. The editor text is written to a sibling temp file (so
-// relative includes resolve), formatted into the session temp folder, and read back (design D5 of M1).
+// server's own formatting needs none of this): `qb64rust -y`, with the layout settings as `--format-default` settings
+// below the project's `qb64rust.toml` (change project-settings, design D6), or `qb64pe -y` when the build is QB64pe's
+// or the binary is not found, with them as `-f:` settings. The editor text is written to a sibling temp file (so
+// relative includes resolve, and the settings file is found), formatted into the session temp folder, and read back
+// (design D5 of M1).
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";

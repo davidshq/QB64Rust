@@ -76,7 +76,8 @@ fn front(path: &Path, include_root: &Path) -> Result<Frontend, String> {
         bytes,
         |file| Box::new(FileLoader::new(include_root, file, path)),
         Some((path, include_root)),
-        crate::fixes::for_program(path).map_or(qb64rust_base::fixes::Fixes::OFF, |(f, _)| f),
+        // The fixes only: the report counts every lint, whatever `[lints]` says (spec `compiler/lints`).
+        crate::settings::load(path, false).map_or(qb64rust_base::fixes::Fixes::OFF, |(p, _)| p.fixes),
     ))
 }
 

@@ -103,7 +103,11 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `-q` | Print less while building |
 | `-z` | Check the program and write its C++ without building an executable |
 | `-y` | Lay the file out as QB64pe's IDE does; give the result with `-o <out.bas>`. Only a syntax error stops it: a program with another error, such as a SUB that is not defined, is still laid out and the errors are printed. An include file can be laid out alone (`qb64rust -y lib.bm -o out.bm`); a variable it does not declare keeps the letter case it has |
-| `-f:<setting>=<value>` | A QB64pe compiler setting, such as `-f:OptimizeCppProgram=true`, `-f:StripDebugSymbols=false`, `-f:ExtraLinkerFlags=<flags>` or `-f:GenerateLicenseFile=true`; with `-y`, a layout setting such as `-f:AutoIndentSize=2` |
+| `-f:<setting>=<value>` | A QB64pe compiler setting, such as `-f:OptimizeCppProgram=true`, `-f:StripDebugSymbols=false`, `-f:ExtraLinkerFlags=<flags>` or `-f:GenerateLicenseFile=true`; with `-y`, a layout setting such as `-f:AutoIndentSize=2`, which wins over the settings file |
+| `--format-default <setting>=<value>` | With `-y` only: a layout setting that the settings file's `[format]` table wins over, such as `--format-default KeywordCapitals=true` |
+| `--fixes on\|off`, `--fix <name>=on\|off` | Every fix, or one fix, over the settings file's `[fixes]` |
+| `--lints on\|off`, `--lint <code>=on\|off` | Every warning about a likely mistake, or one of them, over the settings file's `[lints]` |
+| `--no-settings` | Read no `qb64rust.toml`; take every setting from the command line and the defaults |
 | `--debug` | A build for a debugger: with debug information, never optimised |
 | `--coverage` | A build that counts how often each statement runs; see [Measuring which lines run](#measuring-which-lines-run) |
 | `--trace-values` | A build that records the values each variable takes; see [Recording the values of variables](#recording-the-values-of-variables) |
@@ -117,9 +121,33 @@ A program that uses `$INCLUDE` libraries meant to sit beside `qb64pe.exe` finds 
 ## The settings file
 
 A file named `qb64rust.toml` in the program's folder, or in a folder above it, holds settings for the program.
-Two tables are read:
+Only the nearest one is read. Four tables are read; any other is ignored:
 
 - `[fixes]` turns on fixes of behaviors kept from QB64pe. `qb64rust --list-fixes` lists them.
+- `[format]` sets the layout of `-y` and of Format Document in VS Code:
+
+```toml
+[format]
+keyword-case = "upper"   # "camel" (Print, the default), "upper" (PRINT) or "lower" (print)
+indent-size = 2          # spaces a level, 1 to 64; the default is 4
+auto-indent = true       # indent each block
+indent-subs = true       # indent the body of a SUB or FUNCTION
+auto-layout = true       # space each statement and spell its keywords; false changes only the indent
+```
+
+  A key that is not there keeps its default, or the VS Code setting. A `-f:` layout setting on the command line wins
+  over the file, and the file wins over `--format-default` and over the VS Code settings. So
+  `qb64rust -y -f:AutoIndentSize=8 p.bas -o out.bas` indents eight spaces a level whatever the file says.
+- `[lints]` turns warnings about likely mistakes off, by the names of
+  [Warnings about likely mistakes](#warnings-about-likely-mistakes). `all = false` turns them all off, and a name
+  set to `true` after it turns that one back on:
+
+```toml
+[lints]
+unused-label = false
+```
+
+  `--lints` and `--lint` on the command line win over the table, as `--fixes` and `--fix` win over `[fixes]`.
 - `[project]` names the program's main file, for the editor:
 
 ```toml
@@ -132,6 +160,11 @@ the editor checks and formats it as a part of the program `main` names, if that 
 `main`, it looks for an open `.bas` file that includes it, then for one on disk in the file's folder and the
 folders above it. Set `main` when two programs include the same files, such as a game and its tests. The
 compiler does not read `main`: name the file to build on the command line.
+
+A mistake in the file, such as an unknown key or a value of the wrong kind, stops a build and `-y` with a message
+that names the file, the line and the keys it knows, for instance
+``qb64rust.toml:2: unknown format setting `indent`; the settings are auto-indent, indent-size, indent-subs,
+auto-layout, keyword-case``. `--no-settings` builds or lays out the program without reading the file.
 
 ## Warnings about likely mistakes
 
@@ -175,6 +208,9 @@ column after the line number, and each warning is printed once, in source order.
 variables last.
 
 The warnings are given only when the program has no errors. Fix the errors first.
+
+To turn a warning off for a project, name it in the `[lints]` table of `qb64rust.toml` (see
+[The settings file](#the-settings-file)); for one run, give `--lint <name>=off`.
 
 `qb64rust --report warnings <file or folder>...` counts the warnings over many programs, by name, and then prints
 each one. It builds nothing.

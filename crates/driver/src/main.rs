@@ -25,9 +25,10 @@
 
 use qb64rust_base::Platform;
 use qb64rust_base::fixes::{FIXES, Fixes};
-use qb64rust_base::layout::Settings;
+use qb64rust_base::layout::{Overrides, Settings};
 use qb64rust_driver::fixes::CliFix;
-use qb64rust_driver::{FileLoader, compile, fixes, frontend_explicit, report, toolchain};
+use qb64rust_driver::lints::{CliLint, Lints};
+use qb64rust_driver::{FileLoader, compile, fixes, frontend_explicit, lints, report, settings, toolchain};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -36,8 +37,10 @@ use std::sync::Mutex;
 const USAGE: &str = "usage: qb64rust [-x|-c] [-q] [-m] [-w] [-e] [-p] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp|debug-info] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] \
 [--include-root <dir>] [--keep-build] [--coverage] [--trace-values] [--debug] [--fixes on|off] \
-[--fix <name>=on|off]...\n\
-       qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]\n\
+[--fix <name>=on|off]... [--lints on|off] [--lint <code>=on|off]... [--no-settings]\n\
+       qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... [--format-default <layout setting>=<value>]... \
+<file.bas> -o <out.bas> [--include-root <dir>] [--fixes on|off] [--fix <name>=on|off]... [--lints on|off] \
+[--lint <code>=on|off]... [--no-settings]\n\
        qb64rust --list-fixes    (the fixes --fix and qb64rust.toml name)\n\
        qb64rust --report unsupported|warnings <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)\n\
@@ -47,7 +50,7 @@ it from the release's zip; on Linux names the packages)\n\
        qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)\n\
        qb64rust test [<file or folder>...] [--list] [--filter <text>]... [--jobs <n>] [--timeout <seconds>] \
 [--format text|json] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
-[--fixes on|off] [--fix <name>=on|off]... [--coverage]    (runs the test SUBs of *_test.bas files)\n\
+[--fixes on|off] [--fix <name>=on|off]... [--no-settings] [--coverage]    (runs the test SUBs of *_test.bas files)\n\
        qb64rust --version | --help";
 
 /// The usage of `qb64rust toolchain` (spec `compiler/cli`, "Toolchain subcommand").
@@ -98,12 +101,30 @@ struct Options {
     settings: Vec<String>,
     /// `--fixes` and `--fix`, in the order given (spec `compiler/fixes`).
     fixes: Vec<CliFix>,
+    /// `--lints` and `--lint`, in the order given (spec `compiler/lints`).
+    lints: Vec<CliLint>,
+    /// `--no-settings`: no `qb64rust.toml` is read (spec `compiler/cli`).
+    no_settings: bool,
+    /// `--format-default <setting>=<value>` as given: layout settings below the settings file's (spec
+    /// `compiler/format`).
+    format_defaults: Vec<String>,
 }
 
-/// The layout settings of `-y` (spec `compiler/format`); a build setting is checked as a build checks it and
-/// changes nothing, as with `qb64pe`.
-fn layout_settings(settings: &[String]) -> Result<Settings, String> {
+/// The layout settings of `-y` (spec `compiler/format`, "Order of layout settings"; design D2 of
+/// `project-settings`): QB64pe's defaults, each `--format-default`, the settings file's `[format]` table `file`,
+/// then each `-f:` layout setting. A build setting given with `-f:` is checked as a build checks it and changes
+/// nothing, as with `qb64pe`.
+fn layout_settings(settings: &[String], defaults: &[String], file: &Overrides) -> Result<Settings, String> {
     let mut layout = Settings::default();
+    for s in defaults {
+        let (name, value) = s.split_once('=').unwrap_or((s, ""));
+        if !layout.set(name, value)? {
+            return Err(format!(
+                "--format-default takes a layout setting, and `{name}` is not one"
+            ));
+        }
+    }
+    layout.apply(file);
     let mut rest = Vec::new();
     for s in settings {
         let (name, value) = s.split_once('=').unwrap_or((s, ""));
@@ -167,6 +188,19 @@ fn parse_args() -> Result<Options, String> {
                 let v = value("--fix")?.to_string_lossy().to_string();
                 o.fixes.push(fixes::parse_fix_option(&v)?);
             }
+            "--lints" => {
+                let v = value("--lints")?.to_string_lossy().to_string();
+                o.lints.push(lints::parse_lints_option(&v)?);
+            }
+            "--lint" => {
+                let v = value("--lint")?.to_string_lossy().to_string();
+                o.lints.push(lints::parse_lint_option(&v)?);
+            }
+            "--no-settings" => o.no_settings = true,
+            "--format-default" => {
+                let v = value("--format-default")?.to_string_lossy().to_string();
+                o.format_defaults.push(v);
+            }
             "--report" => {
                 let r = value("--report")?.to_string_lossy().to_string();
                 if r != "unsupported" && r != "warnings" {
@@ -181,6 +215,9 @@ fn parse_args() -> Result<Options, String> {
     }
     if o.inputs.len() > 1 && o.report.is_none() {
         return Err("more than one input file".into());
+    }
+    if !o.format_defaults.is_empty() && !o.format {
+        return Err("--format-default is for -y only".into());
     }
     Ok(o)
 }
@@ -515,6 +552,7 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
             "--include-root" => o.include_root = Some(PathBuf::from(value("--include-root")?)),
             "--fixes" => o.fixes.push(fixes::parse_fixes_option(&value("--fixes")?)?),
             "--fix" => o.fixes.push(fixes::parse_fix_option(&value("--fix")?)?),
+            "--no-settings" => o.no_settings = true,
             "--coverage" => o.coverage = true,
             _ if s.starts_with('-') => return Err(format!("`test` does not take `{s}`")),
             _ => paths.push(PathBuf::from(a)),
@@ -591,6 +629,7 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
         toolchain_root: o.toolchain_root.clone(),
         libqb_root: o.libqb_root.clone(),
         fixes: o.fixes.clone(),
+        no_settings: o.no_settings,
         coverage: o.coverage,
         coverage_file: std::env::var_os(run::COVERAGE_ENV)
             .filter(|v| !v.is_empty())
@@ -654,16 +693,21 @@ fn run_report(o: &Options) -> Result<ExitCode, String> {
     Ok(ExitCode::SUCCESS)
 }
 
-/// The fixes of the program `input` (spec `compiler/fixes`): `--fixes` replaces the settings file's, so the file is
-/// read only without it; then each `--fix`. With `-w`, the file used is named. A settings file that cannot be used is
+/// The fixes, the lints and the `[format]` table of the program `input`: its settings file's, unless
+/// `--no-settings`; then `--fixes` and `--fix` over the fixes (spec `compiler/fixes`), `--lints` and `--lint` over
+/// the lints (spec `compiler/lints`). With `-w`, the file used is named. A settings file that cannot be used is
 /// printed as `<file>:<line>: <message>`, and the caller exits with status 1.
-fn program_fixes(o: &Options, input: &Path) -> Result<Fixes, ExitCode> {
-    match fixes::with_cli(input, &o.fixes) {
-        Ok((set, file)) => {
+fn program_settings(o: &Options, input: &Path) -> Result<(Fixes, Lints, Overrides), ExitCode> {
+    match settings::load(input, o.no_settings) {
+        Ok((project, file)) => {
             if let Some(file) = file.filter(|_| o.warnings) {
-                println!("fixes from {}", file.display());
+                println!("settings from {}", file.display());
             }
-            Ok(set)
+            Ok((
+                fixes::apply_cli(project.fixes, &o.fixes),
+                lints::apply_cli(project.lints, &o.lints),
+                project.format,
+            ))
         }
         Err(e) => {
             println!("{e}");
@@ -679,15 +723,16 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
     let Some(out) = &o.output else {
         return Err("formatting requires an output file: give -o <file>".into());
     };
-    let settings = layout_settings(&o.settings)?;
     let include_root = include_root(o)?;
-    let fixes = match program_fixes(o, input) {
-        Ok(f) => f,
+    // A settings file that cannot be used stops `-y` before anything is written (design D5 of `project-settings`).
+    let (fixes, lints, file_format) = match program_settings(o, input) {
+        Ok(s) => s,
         Err(code) => return Ok(code),
     };
+    let settings = layout_settings(&o.settings, &o.format_defaults, &file_format)?;
     // `-e` holds here too: `qb64pe -y -e` rejects a variable not declared (measured, 2026-11-04). Here the error is
     // printed and the file still written (D-064).
-    let fe = frontend_explicit(
+    let mut fe = frontend_explicit(
         Platform::host(),
         o.explicit,
         name,
@@ -696,6 +741,7 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
         Some((input, &include_root)),
         fixes,
     );
+    lints.drop_from(&mut fe.diagnostics);
     let errors = fe.diagnostics.error_count();
     if o.warnings {
         print!("{}", fe.render_with_warnings());
@@ -768,8 +814,8 @@ fn run() -> Result<ExitCode, String> {
         return Ok(ExitCode::SUCCESS);
     }
     let include_root = include_root(&o)?;
-    let fixes = match program_fixes(&o, &input) {
-        Ok(f) => f,
+    let (fixes, lints, _) = match program_settings(&o, &input) {
+        Ok(s) => s,
         Err(code) => {
             if o.dump.is_none() && !o.cpp_only {
                 compile::remove_old(&exe);
@@ -795,6 +841,7 @@ fn run() -> Result<ExitCode, String> {
         explicit: o.explicit,
         settings: o.settings.clone(),
         fixes,
+        lints,
     };
     let built = compile::compile_exe(
         &input,

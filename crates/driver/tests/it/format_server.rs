@@ -179,6 +179,59 @@ fn client_settings() {
     c.shutdown();
 }
 
+/// "The project's file over the client": the `[format]` table of `qb64rust.toml` goes over the client's settings,
+/// key by key (OpenSpec change `project-settings`, design D2).
+#[test]
+fn settings_file_over_the_client() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("qb64rust.toml"), "[format]\nkeyword-case = \"upper\"\n").unwrap();
+    let options = json!({ "format": { "keywordCase": "camel", "indentSize": 2 } });
+    let mut c = Client::start(dir.path(), options);
+    let p = dir.path().join("p.bas");
+    c.open(&p, "if 1 then\nprint 2\nend if\n");
+    assert_eq!(c.format(&p).as_deref(), Some("IF 1 THEN\n  PRINT 2\nEND IF\n"));
+    assert!(!c.complained(), "{:?}", c.notes);
+    c.shutdown();
+}
+
+/// "An include file takes its program's file": the settings file is the one found from the program's main file.
+#[test]
+fn include_file_takes_its_programs_settings() {
+    let dir = tempfile::tempdir().unwrap();
+    let proj = dir.path().join("proj");
+    std::fs::create_dir_all(proj.join("lib")).unwrap();
+    std::fs::write(proj.join("qb64rust.toml"), "[format]\nkeyword-case = \"upper\"\n").unwrap();
+    std::fs::write(proj.join("game.bas"), "'$INCLUDE: 'lib/turn.bm'\n").unwrap();
+    let mut c = Client::start(dir.path(), Value::Null);
+    let turn = proj.join("lib").join("turn.bm");
+    c.open(&turn, "print 1\n");
+    assert_eq!(
+        c.program(&turn),
+        Some(from_path(&proj.join("game.bas")).as_str().to_string())
+    );
+    assert_eq!(c.format(&turn).as_deref(), Some("PRINT 1\n"));
+    c.shutdown();
+}
+
+/// "A bad settings file" ("Format failure"): no edit, and a message that names `qb64rust.toml` and its line.
+#[test]
+fn bad_settings_file() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("qb64rust.toml"), "[format]\nkeyword-case = \"uper\"\n").unwrap();
+    let mut c = Client::start(dir.path(), Value::Null);
+    let p = dir.path().join("p.bas");
+    c.open(&p, "print 1\n");
+    assert_eq!(c.format(&p), None);
+    let message = c
+        .notes
+        .iter()
+        .find(|n| n.method == "window/showMessage")
+        .map(|n| n.params["message"].as_str().unwrap().to_string())
+        .expect("a message");
+    assert!(message.contains("qb64rust.toml:2: `keyword-case` must be"), "{message}");
+    c.shutdown();
+}
+
 /// "Syntax error": no edit, an error on line 2 published, and a message that names line 2.
 #[test]
 fn syntax_error() {

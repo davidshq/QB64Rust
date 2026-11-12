@@ -123,24 +123,24 @@
         "qb64rust.format.autoIndent": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Format Document indents each block (QB64pe's IDE setting *Auto indent*, `-f:autoindent`)."
+          "markdownDescription": "Format Document indents each block (QB64pe's IDE setting *Auto indent*, `-f:autoindent`). `auto-indent` in the `[format]` table of a project's `qb64rust.toml` overrides it."
         },
         "qb64rust.format.indentSize": {
           "type": "integer",
           "default": 4,
           "minimum": 1,
           "maximum": 64,
-          "markdownDescription": "Spaces a level of indent (`-f:autoindentsize`)."
+          "markdownDescription": "Spaces a level of indent (`-f:autoindentsize`). `indent-size` in the `[format]` table of a project's `qb64rust.toml` overrides it."
         },
         "qb64rust.format.indentSubs": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Indent the body of a `SUB` or `FUNCTION` (`-f:indentsubs`)."
+          "markdownDescription": "Indent the body of a `SUB` or `FUNCTION` (`-f:indentsubs`). `indent-subs` in the `[format]` table of a project's `qb64rust.toml` overrides it."
         },
         "qb64rust.format.autoLayout": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Space each statement and spell its keywords and names (`-f:autolayout`). When off, only the indent changes."
+          "markdownDescription": "Space each statement and spell its keywords and names (`-f:autolayout`). When off, only the indent changes. `auto-layout` in the `[format]` table of a project's `qb64rust.toml` overrides it."
         },
         "qb64rust.format.keywordCase": {
           "type": "string",
@@ -155,7 +155,7 @@
             "`print`, `end if`"
           ],
           "default": "camel",
-          "markdownDescription": "The case of keywords in Format Document. These settings take the place of QB64pe's `config.ini`, which plays no part in formatting."
+          "markdownDescription": "The case of keywords in Format Document. These settings take the place of QB64pe's `config.ini`, which plays no part in formatting. `keyword-case` (`\"camel\"`, `\"upper\"` or `\"lower\"`) in the `[format]` table of a project's `qb64rust.toml` overrides it, except when the build is QB64pe's."
         },
         "qb64rust.runArguments": {
           "type": "string",

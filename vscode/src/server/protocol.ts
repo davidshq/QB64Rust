@@ -124,6 +124,13 @@ export function formatFlags(s: FormatSettings): string[] {
     ];
 }
 
+/** The same six settings as `qb64rust -y`'s `--format-default <setting>=<value>` pairs, which rank below the
+ * `[format]` table of the project's `qb64rust.toml` (spec editor/formatting, "Layout settings"; change
+ * project-settings, design D6). */
+export function formatDefaultFlags(s: FormatSettings): string[] {
+    return formatFlags(s).flatMap((f) => ["--format-default", f.slice("-f:".length)]);
+}
+
 /** The parameters of `workspace/didChangeConfiguration` that give the server new layout settings. */
 export function configurationParams(format: FormatSettings): { settings: { format: FormatSettings } } {
     return { settings: { format } };

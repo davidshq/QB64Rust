@@ -34,6 +34,18 @@ pub struct Settings {
     keywords_before: Option<KeywordStyle>,
 }
 
+/// The layout settings a project's `qb64rust.toml` gives in its `[format]` table (spec `compiler/format`, "Format
+/// table of the settings file"): `None` for a key that is absent, which leaves the setting as it was.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Overrides {
+    pub auto_indent: Option<bool>,
+    /// 1 to 64.
+    pub indent_size: Option<u32>,
+    pub indent_subs: Option<bool>,
+    pub auto_layout: Option<bool>,
+    pub keywords: Option<KeywordStyle>,
+}
+
 impl Default for Settings {
     fn default() -> Self {
         Settings {
@@ -78,6 +90,20 @@ impl Settings {
             _ => return Ok(false),
         }
         Ok(true)
+    }
+
+    /// Sets each setting that `o` gives (the `[format]` table of `qb64rust.toml`; design D2 of `project-settings`).
+    /// The two keyword settings given before it are forgotten: a `-f:` keyword setting after it starts from the
+    /// style it leaves, so `-f:KeywordCapitals=0` alone keeps the file's style.
+    pub fn apply(&mut self, o: &Overrides) {
+        self.auto_indent = o.auto_indent.unwrap_or(self.auto_indent);
+        self.indent_size = o.indent_size.unwrap_or(self.indent_size);
+        self.indent_subs = o.indent_subs.unwrap_or(self.indent_subs);
+        self.auto_layout = o.auto_layout.unwrap_or(self.auto_layout);
+        self.keywords = o.keywords.unwrap_or(self.keywords);
+        self.capitals = None;
+        self.lowercase = None;
+        self.keywords_before = None;
     }
 
     /// The style from the two keyword settings, as `qb64pe` decides it after reading all its options (worked out
@@ -210,6 +236,80 @@ mod tests {
             ("KeywordCapitals", "0"),
         ];
         assert_eq!(with(&three).unwrap().keywords, KeywordStyle::Camel);
+    }
+
+    #[test]
+    fn overrides_apply_each_setting_alone() {
+        let one = |o: Overrides| {
+            let mut s = Settings::default();
+            s.apply(&o);
+            s
+        };
+        assert_eq!(one(Overrides::default()), Settings::default(), "nothing given");
+        let s = one(Overrides {
+            auto_indent: Some(false),
+            ..Overrides::default()
+        });
+        assert!(!s.auto_indent && s.indent_subs && s.auto_layout && s.indent_size == 4);
+        let s = one(Overrides {
+            indent_size: Some(2),
+            ..Overrides::default()
+        });
+        assert_eq!((s.indent_size, s.keywords), (2, KeywordStyle::Camel));
+        let s = one(Overrides {
+            indent_subs: Some(false),
+            ..Overrides::default()
+        });
+        assert!(!s.indent_subs && s.auto_indent);
+        let s = one(Overrides {
+            auto_layout: Some(false),
+            ..Overrides::default()
+        });
+        assert!(!s.auto_layout && s.auto_indent);
+        let s = one(Overrides {
+            keywords: Some(KeywordStyle::Lower),
+            ..Overrides::default()
+        });
+        assert_eq!(s.keywords, KeywordStyle::Lower);
+    }
+
+    /// The layers of `-y` (design D2 of `project-settings`): a `--format-default`, then the file, then `-f:`.
+    #[test]
+    fn keyword_settings_over_the_file() {
+        let upper = Overrides {
+            keywords: Some(KeywordStyle::Upper),
+            ..Overrides::default()
+        };
+        let layered = |defaults: &[(&str, &str)], file: &Overrides, command_line: &[(&str, &str)]| {
+            let mut s = with(defaults).unwrap();
+            s.apply(file);
+            for (n, v) in command_line {
+                assert!(s.set(n, v).unwrap());
+            }
+            s.keywords
+        };
+        let neither = [("KeywordCapitals", "0"), ("KeywordLowercase", "0")];
+        assert_eq!(
+            layered(&[], &upper, &neither),
+            KeywordStyle::Camel,
+            "CamelCase asked for"
+        );
+        assert_eq!(layered(&[], &upper, &[]), KeywordStyle::Upper, "no keyword setting");
+        let off = [("KeywordCapitals", "0")];
+        assert_eq!(
+            layered(&[], &upper, &off),
+            KeywordStyle::Upper,
+            "one false changes nothing"
+        );
+        let lower = [("KeywordLowercase", "true")];
+        assert_eq!(
+            layered(&lower, &upper, &[]),
+            KeywordStyle::Upper,
+            "the file over a default"
+        );
+        let none = Overrides::default();
+        assert_eq!(layered(&lower, &none, &off), KeywordStyle::Lower, "the default kept");
+        assert_eq!(layered(&lower, &none, &neither), KeywordStyle::Camel);
     }
 
     #[test]

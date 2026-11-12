@@ -5,7 +5,7 @@ import * as path from "path";
 import { executableFor } from "./qb64pe";
 import { Qb64rustOutput, parseQb64rustOutput } from "./parseQb64rustOutput";
 import { RunQueue, RunResult } from "./runQueue";
-import { FormatSettings, formatFlags } from "../server/protocol";
+import { FormatSettings, formatDefaultFlags } from "../server/protocol";
 
 /** What a build is given besides the source (spec compiler/cli, "Locating the reference runtime"; spec
  * compiler/toolchain). */
@@ -47,10 +47,11 @@ export function rootArgs(roots: Roots): string[] {
     return args;
 }
 
-/** `-y -q`, the layout settings, `<source> -o <output>` and the include root (spec compiler/format, "Format
- * command"; change m5b-formatter, design D7). */
+/** `-y -q`, the layout settings as `--format-default` pairs (below the project's `qb64rust.toml`), `<source> -o
+ * <output>` and the include root (spec compiler/format, "Format command"; change m5b-formatter, design D7; change
+ * project-settings, design D6). */
 export function formatArgs(source: string, output: string, settings: FormatSettings, includeRoot: string): string[] {
-    const args = ["-y", "-q", ...formatFlags(settings), source, "-o", output];
+    const args = ["-y", "-q", ...formatDefaultFlags(settings), source, "-o", output];
     if (includeRoot) {
         args.push("--include-root", includeRoot);
     }

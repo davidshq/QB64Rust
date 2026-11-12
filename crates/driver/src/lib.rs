@@ -6,7 +6,9 @@ pub mod cpp_errors;
 pub mod fixes;
 pub mod hover;
 pub mod library;
+pub mod lints;
 pub mod report;
+pub mod settings;
 pub mod toolchain;
 pub mod unit_tests;
 
@@ -234,37 +236,40 @@ pub fn check_program(
     (program, diagnostics)
 }
 
-/// [`check_program`] for the language server, with the fixes the compiler would build the program with: those of the
-/// settings file found from the main file `main_path` on disk, none for a document that is not a file (design D3 of
-/// `fixes-switch`). A settings file that cannot be used is an error on the main file's first line, `qb64rust.toml:<line>:
-/// <message>`, and the program is checked with the fixes off, so that its other diagnostics still show.
+/// [`check_program`] for the language server, with the settings the compiler would build the program with: those of
+/// the settings file found from the main file `main_path` on disk, none for a document that is not a file (design D3
+/// of `fixes-switch`; design D3 and D5 of `project-settings`). The warnings of the lints that are off are dropped. A
+/// settings file that cannot be used is an error on the main file's first line, `qb64rust.toml:<line>: <message>`,
+/// and the program is checked with no settings, so that its other diagnostics still show; the settings returned are
+/// then `None`.
 fn check_with_settings(
     map: &SourceMap,
     parsed: &ParsedProgram,
     main_path: Option<&Path>,
     root: &Path,
-) -> (Program, Diagnostics) {
-    let (fixes, error) = match main_path.map(fixes::for_program) {
-        Some(Ok((set, _))) => (set, None),
-        Some(Err(e)) => (Fixes::OFF, Some(e)),
-        None => (Fixes::OFF, None),
+) -> (Program, Diagnostics, Option<settings::Project>) {
+    let (project, error) = match main_path.map(|m| settings::load(m, false)) {
+        Some(Ok((project, _))) => (project, None),
+        Some(Err(e)) => (settings::Project::default(), Some(e)),
+        None => (settings::Project::default(), None),
     };
-    let (program, mut diagnostics) = check_program(map, parsed, main_path.map(|m| (m, root)), fixes);
-    if let Some(e) = error {
+    let (program, mut diagnostics) = check_program(map, parsed, main_path.map(|m| (m, root)), project.fixes);
+    project.lints.drop_from(&mut diagnostics);
+    if let Some(e) = &error {
         let name = e.file.file_name().map_or_else(
-            || fixes::SETTINGS_FILE.to_string(),
+            || settings::SETTINGS_FILE.to_string(),
             |n| n.to_string_lossy().into_owned(),
         );
         let at = e.line.map_or_else(String::new, |l| format!(":{l}"));
         let main = qb64rust_base::Span::new(parsed.main().file, 0, 0);
         diagnostics.error(main, format!("{name}{at}: {}", e.message));
     }
-    (program, diagnostics)
+    (program, diagnostics, error.is_none().then_some(project))
 }
 
 /// [`check_program`] for the language server (`qb64rust_lsp::Check`): the diagnostics alone, for the main file at
 /// `main_path` on disk (none for a document that is not a file) and the compiler root `root`, with the program's
-/// fixes ([`check_with_settings`]).
+/// settings ([`check_with_settings`]).
 pub fn check_for_server(map: &SourceMap, parsed: &ParsedProgram, main_path: Option<&Path>, root: &Path) -> Diagnostics {
     check_with_settings(map, parsed, main_path, root).1
 }
@@ -284,8 +289,10 @@ pub fn format_complete(diagnostics: &Diagnostics, main_path: Option<&Path>) -> b
 }
 
 /// [`check_program`] then [`format_program`]'s layout for the language server (`qb64rust_lsp::Format`, design D5 of
-/// `m5b-formatter`): the file `file` of the program formatted, or the diagnostics when the parser reports an error.
-/// An error of a later stage does not stop it (design D1 and D4 of `include-file-program`).
+/// `m5b-formatter`): the file `file` of the program formatted, or the diagnostics when the parser reports an error
+/// or the settings file cannot be used (design D5 of `project-settings`). An error of a later stage does not stop
+/// it (design D1 and D4 of `include-file-program`). The `[format]` table of the program's settings file goes over
+/// the client's `settings` (design D2 of `project-settings`).
 pub fn format_for_server(
     map: &SourceMap,
     parsed: &ParsedProgram,
@@ -294,13 +301,15 @@ pub fn format_for_server(
     settings: &qb64rust_base::layout::Settings,
     file: FileId,
 ) -> Result<Vec<u8>, Diagnostics> {
-    let (program, diagnostics) = check_with_settings(map, parsed, main_path, root);
-    if parsed.diagnostics().has_errors() {
+    let (program, diagnostics, project) = check_with_settings(map, parsed, main_path, root);
+    let Some(project) = project.filter(|_| !parsed.diagnostics().has_errors()) else {
         return Err(diagnostics);
-    }
+    };
+    let mut settings = *settings;
+    settings.apply(&project.format);
     let complete = format_complete(&diagnostics, main_path);
     Ok(qb64rust_format::format_file(
-        map, parsed, &program, file, settings, complete,
+        map, parsed, &program, file, &settings, complete,
     ))
 }
 
@@ -313,7 +322,7 @@ pub fn index_for_server(
     main_path: Option<&Path>,
     root: &Path,
 ) -> qb64rust_lsp::index::SymbolIndex {
-    let (program, diagnostics) = check_with_settings(map, parsed, main_path, root);
+    let (program, diagnostics, _) = check_with_settings(map, parsed, main_path, root);
     hover::symbol_index(map, &program, &diagnostics)
 }
 
@@ -324,7 +333,7 @@ pub fn server_hooks() -> qb64rust_lsp::Hooks {
         check: check_for_server,
         format: format_for_server,
         index: index_for_server,
-        main_of: fixes::main_of,
+        main_of: settings::main_of,
     }
 }
 

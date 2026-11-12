@@ -22,7 +22,8 @@ QB64pe is installed.
   compiler's wording as a second line (`QB64pe: …`) where it is known. A check of a large program (Civil War
   Strategy, about 5,000 lines) takes under a tenth of a second. The result stands until your next edit, after
   which only syntax errors are shown again until the next save. The command checks the editor's text as it is,
-  saved or not.
+  saved or not. The `[lints]` table of `qb64rust.toml` turns lint warnings off (see
+  [Project settings](#project-settings)).
 - Without the language server, each save runs `qb64pe -z` (source `qb64pe`; C++ generation only, no build, well
   under two seconds) and shows the compiler's error or warnings at the right file and line, including errors
   inside `$INCLUDE` files. The old compiler reports one error at a time and no column; the whole line is marked.
@@ -75,6 +76,29 @@ document, so a line inside a `FOR` gets the loop's indent.
 The layout comes from the settings `qb64rust.format.*` (below), given to whichever formatter runs; the defaults are
 QB64pe's own. QB64pe's `config.ini` (the IDE's layout options) is no longer read: set the same options here. In a
 workspace of several folders the language server uses the window's settings, not a folder's own.
+
+### Project settings
+
+A project can keep its layout and its lints in `qb64rust.toml`, committed with the program. The nearest one in the
+program's folder or a folder above it is used, as for the fixes:
+
+```toml
+[format]
+keyword-case = "upper"   # "camel", "upper" or "lower"
+indent-size = 2          # 1 to 64
+# auto-indent, indent-subs and auto-layout take true or false
+
+[lints]
+unused-label = false     # or all = false, then turn single lints on
+```
+
+A key in `[format]` overrides the matching `qb64rust.format.*` setting, so everyone who opens the project gets the
+same layout; a key that is not there leaves the setting as it is. This holds for the language server and for
+`qb64rust -y`, not for `qb64pe -y`, which does not read the file. An include file takes the file of its program.
+The lint codes are `used-once`, `unused-procedure`, `unused-label`, `hides-shared`, `unreachable`,
+`unused-variable`, `empty-select`, `duplicate-const` and `debug-incompatible`; a lint that is off gives no warning
+in Problems. A mistake in the file (a misspelled key, a value of the wrong kind) stops Format Document with a message
+that names the file and the line, and shows in Problems on line 1 of the program at the next check.
 
 If the language server stops by itself, formatting goes on with `qb64rust -y` (or `qb64pe -y`) until it is
 started again.

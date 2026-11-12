@@ -1240,12 +1240,13 @@ fn fixes_from_the_file_and_the_command_line() {
     );
     let o = qb64rust(&d, &["-w", "--dump", "ir", "p.bas"]);
     let out = stdout(&o);
-    assert!(out.contains("fixes from ") && out.contains("qb64rust.toml"), "{out}");
+    assert!(out.contains("settings from ") && out.contains("qb64rust.toml"), "{out}");
 }
 
 /// A bad settings file fails the compile with its name, line and the known fixes, and exit status 1 (spec
-/// `compiler/fixes`, "A misspelt name"); `--fixes` replaces the file, which is then not read; a bad option value is
-/// an error too.
+/// `compiler/fixes`, "A misspelt name"). The file is read with `--fixes` too, and only `--no-settings` leaves it
+/// unread ("A bad file with --fixes", "No settings file wanted"; OpenSpec change `project-settings`); a bad option
+/// value is an error too.
 #[test]
 fn fixes_errors() {
     let d = scratch("fixes-bad");
@@ -1266,10 +1267,25 @@ fn fixes_errors() {
         );
     }
     assert!(!d.join("p.exe").exists() && !d.join("out.bas").exists());
-    let all = dumped_settings(&d, &["--fixes", "on"]);
+    let o = qb64rust(&d, &["--fixes", "off", "--dump", "ir", "p.bas"]);
+    let out = stdout(&o);
+    assert_eq!(o.status.code(), Some(1), "read with --fixes: {out}");
+    assert!(out.contains("qb64rust.toml:2: unknown fix"), "{out}");
+    assert_eq!(
+        dumped_settings(&d, &["--no-settings"]),
+        "Settings: console, no window",
+        "not read with --no-settings"
+    );
+    let all = dumped_settings(&d, &["--no-settings", "--fixes", "on"]);
     assert!(
         all.contains("fixes resume-after-block ") && all.ends_with(" checking-on-service bit-number-check"),
-        "not read: {all}"
+        "{all}"
+    );
+    std::fs::write(d.join("qb64rust.toml"), "[fixes\n").unwrap();
+    assert_eq!(
+        dumped_settings(&d, &["--no-settings"]),
+        "Settings: console, no window",
+        "not valid TOML, not read"
     );
     for bad in [
         &["--fixes", "maybe"][..],
@@ -5617,6 +5633,230 @@ fn format_with_a_warning() {
     assert!(o.status.success(), "{}", stdout(&o));
     assert!(stdout(&o).contains("warning"), "{}", stdout(&o));
     assert!(d.join("out.bas").is_file());
+}
+
+/// `-y` of `prog.bas` in `d` with `args` before it: its output file, or the exit status 1 and the compiler's text.
+fn formatted(d: &Path, args: &[&str]) -> Result<String, String> {
+    let _ = std::fs::remove_file(d.join("out.bas"));
+    let mut all = vec!["-y", "-q"];
+    all.extend(args);
+    all.extend(["prog.bas", "-o", "out.bas"]);
+    let o = qb64rust(d, &all);
+    if o.status.success() {
+        #[expect(clippy::disallowed_methods, reason = "the formatter's output of an ASCII program")]
+        Ok(String::from_utf8(std::fs::read(d.join("out.bas")).unwrap()).unwrap())
+    } else {
+        assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+        assert!(!d.join("out.bas").exists(), "no output file: {}", stdout(&o));
+        Err(stdout(&o))
+    }
+}
+
+/// The `[format]` table of `qb64rust.toml` (spec `compiler/format`, "Format table of the settings file": "Capitals
+/// for the project", "Only one key", "No table").
+#[test]
+fn format_table_of_the_settings_file() {
+    let d = scratch("format-table");
+    std::fs::write(d.join("prog.bas"), "if x then\r\nprint 1\r\nend if\r\n").unwrap();
+    let toml = |text: &str| std::fs::write(d.join("qb64rust.toml"), text).unwrap();
+    toml("[format]\nkeyword-case = \"upper\"\n");
+    assert_eq!(formatted(&d, &[]).unwrap(), "IF x THEN\r\n    PRINT 1\r\nEND IF\r\n");
+    toml("[format]\nindent-size = 2\n");
+    assert_eq!(
+        formatted(&d, &[]).unwrap(),
+        "If x Then\r\n  Print 1\r\nEnd If\r\n",
+        "only one key"
+    );
+    toml("[fixes]\nall = false\n");
+    assert_eq!(
+        formatted(&d, &[]).unwrap(),
+        "If x Then\r\n    Print 1\r\nEnd If\r\n",
+        "no table"
+    );
+}
+
+/// The order of the layers (spec `compiler/format`, "Order of layout settings", "Format default option"): `-f:` over
+/// the file, the file over `--format-default`; `--format-default` alone, and one that is not a layout setting.
+#[test]
+fn format_settings_in_their_order() {
+    let d = scratch("format-order");
+    std::fs::write(d.join("prog.bas"), "if x then\r\nprint 1\r\nend if\r\n").unwrap();
+    let default = formatted(&d, &["--format-default", "KeywordCapitals=true"]).unwrap();
+    assert_eq!(default, "IF x THEN\r\n    PRINT 1\r\nEND IF\r\n", "no settings file");
+    std::fs::write(
+        d.join("qb64rust.toml"),
+        "[format]\nindent-size = 2\nkeyword-case = \"upper\"\n",
+    )
+    .unwrap();
+    assert_eq!(
+        formatted(&d, &["-f:AutoIndentSize=8"]).unwrap(),
+        "IF x THEN\r\n        PRINT 1\r\nEND IF\r\n",
+        "the command line over the file"
+    );
+    assert_eq!(
+        formatted(&d, &["-f:KeywordCapitals=0", "-f:KeywordLowercase=0"]).unwrap(),
+        "If x Then\r\n  Print 1\r\nEnd If\r\n",
+        "CamelCase asked for on the command line"
+    );
+    assert_eq!(
+        formatted(&d, &["--format-default", "KeywordLowercase=true"]).unwrap(),
+        "IF x THEN\r\n  PRINT 1\r\nEND IF\r\n",
+        "the file over a format default"
+    );
+    assert_eq!(
+        formatted(&d, &["--no-settings"]).unwrap(),
+        "If x Then\r\n    Print 1\r\nEnd If\r\n",
+        "--no-settings"
+    );
+    let e = formatted(&d, &["--format-default", "OptimizeCppProgram=true"]).unwrap_err();
+    assert!(e.contains("`OptimizeCppProgram`"), "{e}");
+    let e = formatted(&d, &["--format-default", "AutoIndentSize=65"]).unwrap_err();
+    assert!(e.contains("range 1 to 64"), "{e}");
+    let o = qb64rust(
+        &d,
+        &[
+            "--format-default",
+            "KeywordCapitals=true",
+            "--dump",
+            "typed",
+            "prog.bas",
+        ],
+    );
+    assert_eq!(o.status.code(), Some(1), "a format default in a build");
+    assert!(stdout(&o).contains("--format-default is for -y only"), "{}", stdout(&o));
+}
+
+/// A `[format]` table that cannot be used stops `-y` (spec `compiler/format`, "Program with an error", "A bad
+/// format table"): the error names the file and the line, and no output file is written.
+#[test]
+fn format_table_errors() {
+    let d = scratch("format-table-bad");
+    std::fs::write(d.join("prog.bas"), "print 1\r\n").unwrap();
+    for (text, words) in [
+        (
+            "[format]\nkeyword-case = \"uper\"\n",
+            "qb64rust.toml:2: `keyword-case` must be",
+        ),
+        (
+            "[format]\nindent = 2\n",
+            "qb64rust.toml:2: unknown format setting `indent`; the settings are auto-indent,",
+        ),
+        ("[format]\nindent-size = 65\n", "must be in the range 1 to 64"),
+    ] {
+        std::fs::write(d.join("qb64rust.toml"), text).unwrap();
+        let e = formatted(&d, &[]).unwrap_err();
+        assert!(e.contains(words), "{text}: {e}");
+    }
+    assert_eq!(formatted(&d, &["--no-settings"]).unwrap(), "Print 1\r\n");
+}
+
+/// A program with an unused label (line 3) and an unused SUB (line 4).
+const LINTED: &str = "x = 1\r\nPRINT x\r\nagain:\r\nSUB Spare\r\nEND SUB\r\n";
+
+/// The lint warnings of `p.bas` in `d` (one of [`LINTED`]'s two, both or none), as `-w --dump typed` prints them
+/// with `args` before it, by code.
+fn lint_codes(d: &Path, args: &[&str]) -> Vec<&'static str> {
+    let mut all = args.to_vec();
+    all.extend(["-w", "--dump", "typed", "p.bas"]);
+    let o = qb64rust(d, &all);
+    let out = stdout(&o);
+    assert_eq!(o.status.code(), Some(0), "{out}");
+    let mut codes = Vec::new();
+    if out.contains("label `again` is never used") {
+        codes.push("unused-label");
+    }
+    if out.contains("SUB `Spare` is never called") {
+        codes.push("unused-procedure");
+    }
+    codes
+}
+
+/// The `[lints]` table and the command line over it (spec `compiler/lints`, "Lints table of the settings file",
+/// "Command-line lints").
+#[test]
+fn lints_from_the_file_and_the_command_line() {
+    let d = scratch("lints-set");
+    std::fs::write(d.join("p.bas"), LINTED).unwrap();
+    let both = ["unused-label", "unused-procedure"];
+    assert_eq!(lint_codes(&d, &[]), both, "no file");
+    let toml = |text: &str| std::fs::write(d.join("qb64rust.toml"), text).unwrap();
+    toml("[lints]\nunused-label = false\n");
+    assert_eq!(lint_codes(&d, &[]), ["unused-procedure"], "one lint off");
+    toml("[lints]\nall = false\nunused-label = true\n");
+    assert_eq!(lint_codes(&d, &[]), ["unused-label"], "all off but one");
+    toml("[fixes]\nall = false\n");
+    assert_eq!(lint_codes(&d, &[]), both, "no table");
+    toml("[lints]\nall = false\n");
+    assert_eq!(lint_codes(&d, &[]), Vec::<&str>::new());
+    assert_eq!(lint_codes(&d, &["--lints", "on"]), both, "on again for one run");
+    assert_eq!(lint_codes(&d, &["--lint", "unused-procedure=on"]), ["unused-procedure"]);
+    assert_eq!(lint_codes(&d, &["--no-settings"]), both);
+    std::fs::remove_file(d.join("qb64rust.toml")).unwrap();
+    assert_eq!(lint_codes(&d, &["--lint", "unused-label=off"]), ["unused-procedure"]);
+
+    // A warning without a code stays.
+    std::fs::write(d.join("p.bas"), "PRINT 1\r\nCONST c = 2 ^ 3 ^ 2\r\nPRINT c\r\n").unwrap();
+    let o = qb64rust(&d, &["--lints", "off", "-w", "--dump", "typed", "p.bas"]);
+    assert!(
+        stdout(&o).contains("p.bas:2:") && stdout(&o).contains("warning"),
+        "{}",
+        stdout(&o)
+    );
+
+    // `-y` takes them too (spec `compiler/cli`, "A lint off in a format run").
+    std::fs::write(d.join("p.bas"), LINTED).unwrap();
+    let o = qb64rust(
+        &d,
+        &["-y", "-w", "--lint", "unused-label=off", "p.bas", "-o", "out.bas"],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(
+        !stdout(&o).contains("label `again`") && stdout(&o).contains("SUB `Spare`"),
+        "{}",
+        stdout(&o)
+    );
+    assert!(d.join("out.bas").is_file());
+}
+
+/// `--lint unreachable=off` drops the warning for code after a `GOTO` (spec `compiler/lints`, "One lint off").
+#[test]
+fn lint_unreachable_off() {
+    let d = scratch("lints-unreachable");
+    std::fs::write(d.join("p.bas"), "GOTO done\r\nPRINT 1\r\ndone:\r\nPRINT 2\r\n").unwrap();
+    let o = qb64rust(&d, &["-w", "--dump", "typed", "p.bas"]);
+    assert!(stdout(&o).contains("this code is never run"), "{}", stdout(&o));
+    let o = qb64rust(&d, &["-w", "--lint", "unreachable=off", "--dump", "typed", "p.bas"]);
+    assert!(!stdout(&o).contains("this code is never run"), "{}", stdout(&o));
+}
+
+/// A `[lints]` table or option that cannot be used (spec `compiler/lints`, "A bad lints table", "An unknown code").
+#[test]
+fn lints_errors() {
+    let d = scratch("lints-bad");
+    std::fs::write(d.join("p.bas"), LINTED).unwrap();
+    std::fs::write(d.join("qb64rust.toml"), "[lints]\nunused-labl = false\n").unwrap();
+    let o = qb64rust(&d, &["--dump", "typed", "p.bas"]);
+    let out = stdout(&o);
+    assert_eq!(o.status.code(), Some(1), "{out}");
+    assert!(
+        out.contains("qb64rust.toml:2: unknown lint `unused-labl`; the lints are `all`, used-once,")
+            && out.contains("debug-incompatible"),
+        "{out}"
+    );
+    std::fs::remove_file(d.join("qb64rust.toml")).unwrap();
+    for bad in [
+        &["--lints", "maybe"][..],
+        &["--lint", "unused-labl=off"],
+        &["--lint", "unused-label"],
+    ] {
+        let mut args = bad.to_vec();
+        args.push("p.bas");
+        let o = qb64rust(&d, &args);
+        assert_eq!(o.status.code(), Some(1), "{bad:?}");
+        assert!(stdout(&o).contains("usage: qb64rust"), "{bad:?}");
+    }
+    let o = qb64rust(&d, &["--lint", "unused-labl=off", "p.bas"]);
+    assert!(stdout(&o).contains("the lints are used-once,"), "{}", stdout(&o));
 }
 
 /// A layout setting given to a run that is not `-y` is checked and changes nothing (spec `compiler/cli`, "A layout

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Layout and lints in `qb64rust.toml`.** A `[format]` table sets the keyword case, the indent and the layout for
+  everyone who opens the project, over the `qb64rust.format.*` settings. A `[lints]` table turns lint warnings off,
+  one by one or all at once. A mistake in the file now stops Format Document with a message naming the file and
+  line (README, "Project settings"). With the language server off, formatting now needs a `qb64rust` of this
+  release: a `qb64rust.path` that names an older one fails with "unknown option `--format-default`".
 - **Include files belong to their program.** An open `.bi` or `.bm` file (or a `.bas` file that another includes)
   is checked, formatted and answered as a part of the program that includes it, even when that program is not
   open. The server takes the program from the `main` entry of the `[project]` table in `qb64rust.toml`, else an
