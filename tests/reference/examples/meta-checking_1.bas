@@ -1,0 +1,9 @@
+$CONSOLE:ONLY
+DIM a(1 TO 3) AS LONG
+$CHECKING:OFF
+FOR i = 1 TO 3
+    a(i) = i * 10
+NEXT i
+$CHECKING:ON
+PRINT a(1); a(2); a(3)
+END

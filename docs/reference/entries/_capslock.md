@@ -1,0 +1,36 @@
+# _CAPSLOCK
+
+`_CAPSLOCK`, `_NUMLOCK` and `_SCROLLLOCK` give the state of the lock keys, -1 when on and 0 when off. As statements
+they set the state: `_CAPSLOCK ON`, `_NUMLOCK OFF`, `_SCROLLLOCK _TOGGLE`.
+
+## Syntax
+
+```text
+value = _CAPSLOCK
+_CAPSLOCK {ON|OFF|_TOGGLE}
+```
+
+## Behavior
+
+The functions give the key's state, 0 or -1, as libqb reads it.
+<!-- src: language/keyboard "The lock keys" -->
+
+The statements change the machine's keyboard state, so no test runs them; they compile to QB64pe's calls.
+<!-- src: language/keyboard "The lock keys" -->
+
+## Errors
+
+- A form QB64pe rejects, such as `_CAPSLOCK 1`, is a compile error.
+  <!-- src: language/keyboard "The lock keys" -->
+
+## Availability
+
+<!-- begin generated: availability -->
+Supported. All 8 programs that use it compile (call-site programs, examples and probes).
+<!-- end generated -->
+
+<!-- probe: c = _CAPSLOCK : n = _NUMLOCK : s = _SCROLLLOCK -->
+
+## See also
+
+`_KEYDOWN`, `INKEY$`.

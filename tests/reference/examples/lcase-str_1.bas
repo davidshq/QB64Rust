@@ -1,0 +1,5 @@
+$CONSOLE:ONLY
+PRINT LCASE$("WATERLOO 1815")
+cmd$ = "QUIT"
+IF LCASE$(cmd$) = "quit" THEN PRINT "Leaving."
+END

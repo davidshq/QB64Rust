@@ -1,0 +1,58 @@
+# _PUTIMAGE
+
+`_PUTIMAGE` copies a rectangle of one image onto another, scaled to fit the rectangle given.
+
+## Syntax
+
+```text
+_PUTIMAGE [(dx1, dy1)[-(dx2, dy2)]][, source][, destination][, (sx1, sy1)-(sx2, sy2)]
+```
+
+## Behavior
+
+`_PUTIMAGE (10, 10), src&, dst&` copies `src&` with its top left at (10, 10). `_PUTIMAGE (0, 0)-(7, 7), src&, dst&`
+stretches it to fill that rectangle.
+<!-- src: language/images "Drawing between images"; tests\reference\examples\_putimage_1 -->
+
+Where the source or destination is left out, `_SOURCE` and `_DEST` are used. The result is scaled, mirrored or clipped
+as libqb does.
+<!-- src: language/images "Drawing between images" -->
+
+## Errors
+
+- A form QB64pe rejects is a compile error.
+  <!-- src: language/images "Forms of the image built-ins" -->
+
+## Availability
+
+<!-- begin generated: availability -->
+Supported. All 23 programs that use it compile (call-site programs, examples and probes).
+<!-- end generated -->
+
+## Example
+
+<!-- begin generated: example:_putimage_1 -->
+```qb64
+src& = _NEWIMAGE(4, 4, 32)
+_DEST src&: LINE (0, 0)-(3, 3), _RGB32(255, 0, 0), BF
+dst& = _NEWIMAGE(20, 20, 32)
+_PUTIMAGE (10, 10), src&, dst&
+_PUTIMAGE (0, 0)-(7, 7), src&, dst&
+_SOURCE dst&
+_DEST _CONSOLE
+PRINT HEX$(POINT(11, 11)); " "; HEX$(POINT(7, 7)); " "; HEX$(POINT(15, 15))
+END
+```
+
+Output:
+
+```text
+FFFF0000 FFFF0000 0
+
+Press any key to continue
+```
+<!-- end generated -->
+
+## See also
+
+`_MAPTRIANGLE`, `_NEWIMAGE`, `_COPYIMAGE`.

@@ -61,14 +61,39 @@ record and compare the examples, run `render --compiler`, `--check --compiler` a
 
 ## 4. Batches 7 to 17 (Sonnet, but 11 by Opus)
 
-- [ ] 4.1 Batch 7: strings (`fixed-length-strings`, the string functions of `builtin-functions`)
-- [ ] 4.2 Batch 8: math and number functions (`builtin-functions`)
-- [ ] 4.3 Batch 9: `PRINT`, `PRINT USING`, console and text output (`print-using`, `console-and-window`)
-- [ ] 4.4 Batch 10: keyboard and console input (`keyboard`, `builtin-statements`)
-- [ ] 4.5 Batch 11: errors (`error-handling`, `run-time-checks`, `asserts-and-debug`; Opus)
-- [ ] 4.6 Batch 12: files (`file-io`, `record-files`, `data-read`)
-- [ ] 4.7 Batch 13: screen modes and drawing (`screen-output`)
-- [ ] 4.8 Batch 14: images and fonts (`images`, `fonts`)
+- [x] 4.1 Batch 7: strings (`fixed-length-strings`, the string functions of `builtin-functions`). 25 pages and 25
+      examples, in two sittings. Grouped pages (`[page]` rows): `cvi` (`CVI`, `CVL`, `CVS`, `CVD`), `mki-str`,
+      `cvsmbf`, `mksmbf-str`, `_strcmp` (with `_STRICMP`); `_CV` moved here from batch 8, beside `_MK$`.
+- [x] 4.2 Batch 8: math and number functions (`builtin-functions`). 33 pages and 33 examples, the families
+      grouped by `[page]` rows (`_asin` with `_ACOS`, `_sinh`, `_asinh`, `_sec`, `_sech`, `_arcsec`, `_d2r` with
+      the four gradian conversions, `_setbit` with `_RESETBIT`, `_TOGGLEBIT`, `_READBIT`, `_shl`, `_rol`, `_min`).
+      The examples print rounded values where the digits come from the math library (`CLAUDE.md` working rule 8).
+      `_COTH` stands in no example: QB64pe's is another function (D-031).
+- [x] 4.3 Batch 9: `PRINT`, `PRINT USING`, console and text output (`print-using`, `console-and-window`). 16
+      pages, 14 examples (`LPRINT` and `_CONSOLEINPUT` have probes: no printer, no console input in the tests).
+      `CSRLIN`, `POS`, `CLS`, `LOCATE` and `TAB` print on a text image and read it back with `SCREEN`, since a
+      console whose output is a pipe has no cursor. `LINE INPUT` moved to batch 10.
+- [x] 4.4 Batch 10: keyboard and console input (`keyboard`, `builtin-statements`). 8 pages, 6 examples
+      (`INPUT` and `LINE INPUT` with `.stdin` files); `_KEYDOWN` and the lock keys have probes, since a test cannot
+      hold a key or read the machine's lock state. `_NUMLOCK` and `_SCROLLLOCK` on the `_capslock` page, `_CINP` on
+      `_consoleinput`.
+- [x] 4.5 Batch 11: errors (`error-handling`, `run-time-checks`, `asserts-and-debug`; Opus). 13 pages, 12
+      examples (`TRON` and `TROFF`, rejected as in QB64pe, have a probe). The examples raise errors both compilers
+      trap: an integer division by zero is critical in QB64pe (D-052). Found: `language/error-handling` "Errors
+      raised inside procedures" still says `RESUME` inside a procedure is "not supported yet", where "RESUME inside
+      a procedure" builds it.
+- [x] 4.6 Batch 12: files (`file-io`, `record-files`, `data-read`). 29 pages, 26 examples; `FILES` and `_DIR$`
+      (their output holds the machine's paths) and the stubs `FILEATTR` and `IOCTL` have probes. The `OPEN` page
+      covers the mode and access words; `chdir` covers `MKDIR` and `RMDIR`, `lset` `RSET`, `lock` `UNLOCK`,
+      `_fileexists` `_DIREXISTS`, `_readfile-str` `_WRITEFILE`, `_cwd-str` `_STARTDIR$`.
+- [x] 4.7 Batch 13: screen modes and drawing (`screen-output`). 28 pages, 25 examples, each drawing on an image
+      made with `_NEWIMAGE` and printing `POINT` or `SCREEN` values; `_DISPLAY`, `_AUTODISPLAY` and `_FPS` (a
+      window's) have probes. Color families on one page each: `_red`, `_red32`, `_rgb`, `_rgb32`, `_hsb32`,
+      `_hue32`, `_defaultcolor`; `PRESET` on `pset`.
+- [x] 4.8 Batch 14: images and fonts (`images`, `fonts`). 22 pages, 20 examples; `_LOADFONT` (the machine's
+      fonts) and `_PRINTIMAGE` (a printer) have probes. Found: `language/images` "Image handles" says `_WIDTH` and
+      `_HEIGHT` with no handle give the destination's size, but in a `$CONSOLE:ONLY` program both compilers give the
+      console's while `_DEST` is an image (`tests\reference\examples\_width_1`).
 - [ ] 4.9 Batch 15: mouse and devices (`mouse`, `device-input`)
 - [ ] 4.10 Batch 16: sound (`sound`)
 - [ ] 4.11 Batch 17: events and timers (`events`)

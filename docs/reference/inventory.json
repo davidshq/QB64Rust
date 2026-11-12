@@ -800,7 +800,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "cvd",
+   "page": "cvi",
    "batch": 7,
    "area": "Strings"
   },
@@ -812,7 +812,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "cvdmbf",
+   "page": "cvsmbf",
    "batch": 7,
    "area": "Strings"
   },
@@ -836,7 +836,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "cvl",
+   "page": "cvi",
    "batch": 7,
    "area": "Strings"
   },
@@ -848,7 +848,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "cvs",
+   "page": "cvi",
    "batch": 7,
    "area": "Strings"
   },
@@ -1574,7 +1574,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "ioctl-str",
+   "page": "ioctl",
    "batch": 12,
    "area": "Files"
   },
@@ -1718,8 +1718,8 @@
     "words.toml"
    ],
    "page": "line-input",
-   "batch": 9,
-   "area": "PRINT, PRINT USING, console and text output"
+   "batch": 10,
+   "area": "Keyboard and console input"
   },
   {
    "word": "LIST",
@@ -1833,7 +1833,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "lpos",
+   "page": "lprint",
    "batch": 9,
    "area": "PRINT, PRINT USING, console and text output"
   },
@@ -1911,7 +1911,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "mkd-str",
+   "page": "mki-str",
    "batch": 7,
    "area": "Strings"
   },
@@ -1923,7 +1923,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "mkdir",
+   "page": "chdir",
    "batch": 12,
    "area": "Files"
   },
@@ -1935,7 +1935,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "mkdmbf-str",
+   "page": "mksmbf-str",
    "batch": 7,
    "area": "Strings"
   },
@@ -1959,7 +1959,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "mkl-str",
+   "page": "mki-str",
    "batch": 7,
    "area": "Strings"
   },
@@ -1971,7 +1971,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "mks-str",
+   "page": "mki-str",
    "batch": 7,
    "area": "Strings"
   },
@@ -2276,7 +2276,7 @@
     "builtins",
     "keywords.rs"
    ],
-   "page": "preset",
+   "page": "pset",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -2476,7 +2476,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "rmdir",
+   "page": "chdir",
    "batch": 12,
    "area": "Files"
   },
@@ -2501,7 +2501,7 @@
     "builtins",
     "words.rs"
    ],
-   "page": "rset",
+   "page": "lset",
    "batch": 12,
    "area": "Files"
   },
@@ -2970,7 +2970,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "troff",
+   "page": "tron",
    "batch": 11,
    "area": "Errors"
   },
@@ -3056,7 +3056,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "unlock",
+   "page": "lock",
    "batch": 12,
    "area": "Files"
   },
@@ -3274,7 +3274,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_acos",
+   "page": "_asin",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -3286,7 +3286,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_acosh",
+   "page": "_asinh",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -3322,7 +3322,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_alpha",
+   "page": "_red",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -3334,7 +3334,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_alpha32",
+   "page": "_red32",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -3359,7 +3359,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_arccot",
+   "page": "_arcsec",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -3371,7 +3371,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_arccsc",
+   "page": "_arcsec",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -3455,7 +3455,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_atanh",
+   "page": "_asinh",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -3492,7 +3492,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_backgroundcolor",
+   "page": "_defaultcolor",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -3579,7 +3579,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_blue",
+   "page": "_red",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -3591,7 +3591,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_blue32",
+   "page": "_red32",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -3603,7 +3603,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_brightness32",
+   "page": "_hue32",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -3689,9 +3689,9 @@
    "sources": [
     "builtins"
    ],
-   "page": "_cinp",
-   "batch": 10,
-   "area": "Keyboard and console input"
+   "page": "_consoleinput",
+   "batch": 9,
+   "area": "PRINT, PRINT USING, console and text output"
   },
   {
    "word": "_CLAMP",
@@ -3849,7 +3849,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_consolecursor",
+   "page": "_consoletitle",
    "batch": 9,
    "area": "PRINT, PRINT USING, console and text output"
   },
@@ -3861,7 +3861,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_consolefont",
+   "page": "_consoletitle",
    "batch": 9,
    "area": "PRINT, PRINT USING, console and text output"
   },
@@ -3949,7 +3949,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_cosh",
+   "page": "_sinh",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -3961,7 +3961,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_cot",
+   "page": "_sec",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -3973,7 +3973,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_coth",
+   "page": "_sech",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -3997,7 +3997,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_csc",
+   "page": "_sec",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -4009,7 +4009,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_csch",
+   "page": "_sech",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -4022,8 +4022,8 @@
     "builtins"
    ],
    "page": "_cv",
-   "batch": 8,
-   "area": "Math and number functions"
+   "batch": 7,
+   "area": "Strings"
   },
   {
    "word": "_CWD$",
@@ -4045,7 +4045,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_d2g",
+   "page": "_d2r",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -4227,7 +4227,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_direxists",
+   "page": "_fileexists",
    "batch": 12,
    "area": "Files"
   },
@@ -4264,7 +4264,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_dontblend",
+   "page": "_blend",
    "batch": 14,
    "area": "Images and fonts"
   },
@@ -4463,7 +4463,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_fontheight",
+   "page": "_fontwidth",
    "batch": 14,
    "area": "Images and fonts"
   },
@@ -4499,7 +4499,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_freefont",
+   "page": "_loadfont",
    "batch": 14,
    "area": "Images and fonts"
   },
@@ -4560,7 +4560,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_g2d",
+   "page": "_d2r",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -4572,7 +4572,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_g2r",
+   "page": "_d2r",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -4596,7 +4596,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_green",
+   "page": "_red",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -4608,7 +4608,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_green32",
+   "page": "_red32",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -4620,7 +4620,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_height",
+   "page": "_width",
    "batch": 14,
    "area": "Images and fonts"
   },
@@ -4644,7 +4644,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_hsba32",
+   "page": "_hsb32",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -4704,7 +4704,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_inclerrorfile-str",
+   "page": "_inclerrorline",
    "batch": 11,
    "area": "Errors"
   },
@@ -4837,7 +4837,7 @@
    "sources": [
     "words.rs"
    ],
-   "page": "_lasthandler",
+   "page": "on-error",
    "batch": 11,
    "area": "Errors"
   },
@@ -4982,7 +4982,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_max",
+   "page": "_min",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -5361,7 +5361,7 @@
    "sources": [
     "words.rs"
    ],
-   "page": "_newhandler",
+   "page": "on-error",
    "batch": 11,
    "area": "Errors"
   },
@@ -5398,7 +5398,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_numlock",
+   "page": "_capslock",
    "batch": 10,
    "area": "Keyboard and console input"
   },
@@ -5585,7 +5585,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_printwidth",
+   "page": "_printstring",
    "batch": 14,
    "area": "Images and fonts"
   },
@@ -5609,7 +5609,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_r2d",
+   "page": "_d2r",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -5621,7 +5621,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_r2g",
+   "page": "_d2r",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -5633,7 +5633,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_readbit",
+   "page": "_setbit",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -5681,7 +5681,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_resetbit",
+   "page": "_setbit",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -5766,7 +5766,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_rgba",
+   "page": "_rgb",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -5778,7 +5778,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_rgba32",
+   "page": "_rgb32",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -5802,7 +5802,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_ror",
+   "page": "_rol",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -5826,7 +5826,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_saturation32",
+   "page": "_hue32",
    "batch": 13,
    "area": "Screen modes and drawing"
   },
@@ -6009,7 +6009,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_scrolllock",
+   "page": "_capslock",
    "batch": 10,
    "area": "Keyboard and console input"
   },
@@ -6105,7 +6105,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_shr",
+   "page": "_shl",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -6442,7 +6442,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_startdir-str",
+   "page": "_cwd-str",
    "batch": 12,
    "area": "Files"
   },
@@ -6491,7 +6491,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_stricmp",
+   "page": "_strcmp",
    "batch": 7,
    "area": "Strings"
   },
@@ -6503,7 +6503,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_tanh",
+   "page": "_sinh",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -6539,7 +6539,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_togglebit",
+   "page": "_setbit",
    "batch": 8,
    "area": "Math and number functions"
   },
@@ -6611,7 +6611,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_ulinespacing",
+   "page": "_ufontheight",
    "batch": 14,
    "area": "Images and fonts"
   },
@@ -6648,7 +6648,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_uprintwidth",
+   "page": "_uprintstring",
    "batch": 14,
    "area": "Images and fonts"
   },
@@ -6756,7 +6756,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_writefile",
+   "page": "_readfile-str",
    "batch": 12,
    "area": "Files"
   }
@@ -6773,8 +6773,6 @@
   "UEVENT",
   "VIEW PRINT",
   "_ARRAYCOPY",
-  "_LASTHANDLER",
-  "_NEGATE",
-  "_NEWHANDLER"
+  "_NEGATE"
  ]
 }

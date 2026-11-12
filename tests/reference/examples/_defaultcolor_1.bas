@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+img& = _NEWIMAGE(20, 20, 256)
+_DEST img&
+COLOR 14, 2
+d = _DEFAULTCOLOR: b = _BACKGROUNDCOLOR
+_DEST _CONSOLE
+PRINT "The colors are"; d; "on"; b
+END

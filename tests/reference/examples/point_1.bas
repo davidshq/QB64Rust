@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+img& = _NEWIMAGE(40, 30, 32)
+_DEST img&: _SOURCE img&
+PSET (3, 4), _RGB32(255, 128, 0)
+c~& = POINT(3, 4)
+_DEST _CONSOLE
+PRINT HEX$(c~&); _RED32(c~&); _GREEN32(c~&); _BLUE32(c~&)
+END

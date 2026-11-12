@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+PRINT EXP(0)
+PRINT "e to 7 digits:"; EXP(1)
+END

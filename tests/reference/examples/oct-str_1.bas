@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+PRINT OCT$(8); " "; OCT$(255); " "; OCT$(0)
+PRINT OCT$(-1%)
+END
