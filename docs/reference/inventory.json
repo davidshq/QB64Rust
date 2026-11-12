@@ -372,8 +372,8 @@
     "grammar"
    ],
    "page": "declare-library",
-   "batch": 1,
-   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+   "batch": 19,
+   "area": "Libraries"
   },
   {
    "word": "AND",
@@ -527,8 +527,8 @@
     "grammar"
    ],
    "page": "declare-library",
-   "batch": 1,
-   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+   "batch": 19,
+   "area": "Libraries"
   },
   {
    "word": "CALL",
@@ -789,8 +789,8 @@
     "grammar"
    ],
    "page": "declare-library",
-   "batch": 1,
-   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+   "batch": 19,
+   "area": "Libraries"
   },
   {
    "word": "CVD",
@@ -914,8 +914,8 @@
     "words.toml"
    ],
    "page": "declare-library",
-   "batch": 1,
-   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+   "batch": 19,
+   "area": "Libraries"
   },
   {
    "word": "DEF",
@@ -1076,8 +1076,8 @@
     "grammar"
    ],
    "page": "declare-library",
-   "batch": 1,
-   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+   "batch": 19,
+   "area": "Libraries"
   },
   {
    "word": "ELSE",
@@ -1693,8 +1693,8 @@
     "grammar"
    ],
    "page": "declare-library",
-   "batch": 1,
-   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+   "batch": 19,
+   "area": "Libraries"
   },
   {
    "word": "LINE",

@@ -4,5 +4,9 @@
 examples/_memcopy_1
 examples/left-str_1
 examples/line_1
+examples/meta-if_1
 examples/meta-include_1
+examples/meta-includeonce_1
+examples/meta-let_1
+examples/rem_1
 examples/select-case_1

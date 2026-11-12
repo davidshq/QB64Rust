@@ -25,7 +25,51 @@
   "unsupported": [],
   "rejected": []
  },
+ "meta-error": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-errorlocation": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-if": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
  "meta-include": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-includeonce": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-let": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-noprefix": {
+  "programs": 1,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`$NOPREFIX` is deprecated: QB64pe's own names must have their underscore (the IDE can convert the program)"
+  ]
+ },
+ "rem": {
   "programs": 1,
   "ok": 1,
   "unsupported": [],

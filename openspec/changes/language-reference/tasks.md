@@ -24,8 +24,8 @@ session goes on with it. Each batch ends by adding its number to `done` in `tool
 - [x] 2.2 What the pilot found: `DIVERGENCES-QB45.md` had no row for `LEFT$` and `RIGHT$` with a negative length,
       which QB 4.5 and PDS 7.1 reject with error 5 (`verification\qb45\q45_left_negative`, measured for the
       Civil War Battleset port). Added as Q-037.
-- [ ] 2.3 The user reads the six pages. What they change goes into the layout (`tools\reference\README.md`, the
-      pages, `reference.py`'s `HEADINGS`) before batch 1 starts.
+- [x] 2.3 The user reads the six pages. What they change goes into the layout (`tools\reference\README.md`, the
+      pages, `reference.py`'s `HEADINGS`) before batch 1 starts. Read with no changes (user, 2026-11-11).
 
 ## 3. Batches 1 to 6 (Opus)
 
@@ -33,7 +33,10 @@ Each: run `inventory`, list the batch's words (`docs\reference\inventory.json`, 
 that belongs elsewhere with `[area]` and cover helper words with `[page]`, then write the pages and examples,
 record and compare the examples, run `render --compiler`, `--check --compiler` and `overlap`, and report.
 
-- [ ] 3.1 Batch 1: lines, names, comments, labels, `$INCLUDE`, the preprocessor (`compiler/pipeline`)
+- [x] 3.1 Batch 1: lines, names, comments, labels, `$INCLUDE`, the preprocessor (`compiler/pipeline`). Seven
+      pages: `$IF`, `$LET`, `$ERROR`, `$ERRORLOCATION`, `$INCLUDEONCE`, `$NOPREFIX`, `REM`; four examples. The
+      library words (`DECLARE LIBRARY`, `ALIAS`, `BYVAL`, `CUSTOMTYPE`, `DYNAMIC`) moved to batch 19. Lines,
+      names and labels have no word of their own: they go in the chapter (6.1).
 - [ ] 3.2 Batch 2: types, literals, operators, conversions (`numeric-semantics`, `evaluation-order`,
       `default-types`)
 - [ ] 3.3 Batch 3: variables, scope, constants (`procedures`, `constants`)
