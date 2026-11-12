@@ -117,6 +117,23 @@ export class LanguageServer implements vscode.Disposable {
         return this.programItem?.text;
     }
 
+    /**
+     * The main file of the program that the document at `uri` belongs to, when the server named another file
+     * (spec editor/build-run, "Included file"). Undefined when the document is its own program, is not open, or the
+     * server does not run: Build, Run and Debug then act on the file itself.
+     */
+    programOf(uri: vscode.Uri): vscode.Uri | undefined {
+        const client = this.running;
+        const main = client && this.programs.mainOf(client.code2ProtocolConverter.asUri(uri));
+        return main ? client.protocol2CodeConverter.asUri(main) : undefined;
+    }
+
+    /** `programOf` for a path: the main file's path, else `file` itself. */
+    programFile(file: string): string {
+        const main = this.programOf(vscode.Uri.file(file));
+        return main?.scheme === "file" ? main.fsPath : file;
+    }
+
     /** Shows the active editor's program in its status item (spec editor/language-server, "Program status item"),
      * or hides the item when there is none to show. */
     private renderProgram(): void {

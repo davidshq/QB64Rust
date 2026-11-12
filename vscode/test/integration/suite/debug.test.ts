@@ -103,6 +103,32 @@ describe("debugging with qb64rust", function () {
         await ended;
     });
 
+    it("F5 with an included file active debugs its program, in the program's folder", async () => {
+        const a = await api();
+        const main = writeFile("debug_inc/main.bas", "'$INCLUDE:'rules/part.bm'\r\nSUB greet\r\nPRINT \"hi\"\r\nEND SUB\r\n");
+        const part = writeFile("debug_inc/rules/part.bm", "CALL greet\r\n");
+        await open(part);
+        await waitFor("the program of part.bm", () => a.server.programText === "main.bas");
+        breakAt(main, 3);
+        const from = sent.length;
+        const started = new Promise<vscode.DebugSession>((resolve) => {
+            const d = vscode.debug.onDidStartDebugSession((s) => {
+                d.dispose();
+                resolve(s);
+            });
+        });
+        const ended = nextEnd();
+        await vscode.commands.executeCommand("workbench.action.debug.start");
+        const session = await started;
+        const exe = main.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
+        assert.deepStrictEqual([session.configuration.program, session.configuration.cwd], [exe, path.dirname(main.fsPath)]);
+        const stopped = await stoppedAfter(from);
+        const st = await session.customRequest("stackTrace", { threadId: stopped.body!.threadId, levels: 1 });
+        assert.deepStrictEqual([st.stackFrames[0].name, st.stackFrames[0].line], ["SUB greet", 3]);
+        await vscode.debug.stopDebugging(session);
+        await ended;
+    });
+
     it("a build that fails starts no session, and its error is in Problems", async () => {
         const a = await api();
         const uri = writeFile("debug_error.bas", "x = 1\ny = \n");

@@ -47,6 +47,12 @@ export class DebugSupport implements vscode.Disposable, vscode.DebugConfiguratio
         folder: vscode.WorkspaceFolder | undefined,
         debugConfig: vscode.DebugConfiguration,
     ): Promise<vscode.DebugConfiguration | undefined> {
+        // An included file is debugged as its program (spec editor/build-run, "Included file"), with the program's
+        // folder as the default `cwd`.
+        const program: unknown = debugConfig.program;
+        if (typeof program === "string" && !program.toLowerCase().endsWith(".exe")) {
+            debugConfig = { ...debugConfig, program: this.server.programFile(program) };
+        }
         const launch = resolveLaunch(debugConfig as LaunchConfig, this.facts(folder));
         switch (launch.kind) {
             case "refuse":
@@ -93,9 +99,10 @@ export class DebugSupport implements vscode.Disposable, vscode.DebugConfiguratio
 
     private facts(folder: vscode.WorkspaceFolder | undefined): Facts {
         const resource = folder?.uri;
+        const active = activeQb64File();
         return {
             trusted: vscode.workspace.isTrusted,
-            activeFile: activeQb64File(),
+            activeFile: active && this.server.programFile(active),
             folder: folder?.uri.scheme === "file" ? folder.uri.fsPath : undefined,
             runArguments: config.runArguments(resource),
             noPrompt: config.noPrompt(resource),

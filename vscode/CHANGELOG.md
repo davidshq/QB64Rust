@@ -7,6 +7,11 @@
   open. The server takes the program from the `main` entry of the `[project]` table in `qb64rust.toml`, else an
   open `.bas` file that includes it, else one on disk. The language status shows the program chosen. A file with no
   program is checked for syntax errors only (README, "Include files").
+- **Build, Run and Debug from an include file act on its program.** With `turn.bm` active, Build, Build and Run,
+  Run, Debug (F5) and the build task use `CWSTRAT.BAS`, the program the language status shows. Before, they built
+  `turn.bm` alone, and every SUB it called from another file was an error in Problems.
+- **The debugger's stack names a SUB of a CRLF file without `\x0D`.** The Call Stack showed `SUB greet\x0D` for a
+  source with Windows line endings.
 - **Formatting a program with an error.** Only a syntax error stops Format Document and `qb64rust -y`; a SUB that
   is not defined or a type error no longer does. `qb64pe -y` writes nothing for such a program
   (`DIVERGENCES-QB64PE.md` D-064).

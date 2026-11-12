@@ -81,6 +81,22 @@ describe("build with qb64rust", function () {
         await editor.document.save();
     });
 
+    it("an included file: Build and the build task build its program, which defines the SUB it calls", async () => {
+        const a = await api();
+        const uri = writeFile("rbuild/owner/main.bas", "$CONSOLE:ONLY\r\n'$INCLUDE:'part.bm'\r\nSYSTEM\r\nSUB greet\r\nPRINT \"hi\"\r\nEND SUB\r\n");
+        const part = writeFile("rbuild/owner/part.bm", "CALL greet\r\n");
+        await open(part);
+        await waitFor("the program of part.bm", () => a.server.programText === "main.bas");
+        const exe = await vscode.commands.executeCommand<string | undefined>("qb64rust.build");
+        assert.strictEqual(exe, exeOf(uri), `the last command: ${a.builder.lastCommand ?? "none"}`);
+        assert.ok(a.builder.lastCommand?.startsWith(`${server} -x -w ${uri.fsPath}`), a.builder.lastCommand);
+        assert.deepStrictEqual(await buildDiagnostics(part), []);
+        // The main file is not opened as a document, which would tell the language server it is open.
+        assert.ok(!vscode.workspace.textDocuments.some((d) => d.uri.fsPath === uri.fsPath), "main.bas was opened");
+        const task = (await vscode.tasks.fetchTasks({ type: "qb64rust" })).find((t) => t.name === "build")!;
+        assert.strictEqual((task.execution as vscode.ProcessExecution).args[2], uri.fsPath);
+    });
+
     it("only unsupported forms: 'Build with QB64pe' builds that program once with QB64pe", async () => {
         const a = await api();
         // The program is in `tests\frontend\extension_marked_errors.bas`; before it, `_DEVICES` was the form until M4

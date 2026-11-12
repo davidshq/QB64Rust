@@ -109,6 +109,17 @@ describe("language server protocol", () => {
         assert.strictEqual(t.get(lib), undefined);
     });
 
+    it("names the main file of an included document's program, and none for a program of its own", () => {
+        const t = new ProgramTracker();
+        const lib = "file:///c%3A/p/lib.bm";
+        const main = "file:///c%3A/p/main.bas";
+        assert.strictEqual(t.mainOf(lib), undefined);
+        t.update({ uri: lib, program: main, source: "disk" });
+        t.update({ uri: main, program: null, source: "none" });
+        assert.strictEqual(t.mainOf(lib), main);
+        assert.strictEqual(t.mainOf(main), undefined);
+    });
+
     it("tells each document's encoding once, and again after a change or a close", () => {
         const t = new EncodingTracker();
         assert.deepStrictEqual(t.update("file:///a.bas", "cp437"), { uri: "file:///a.bas", encoding: "cp437" });

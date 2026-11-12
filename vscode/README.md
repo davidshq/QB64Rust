@@ -205,7 +205,8 @@ SUB that the main file defines is no error in the include file. The server looks
 A `.bas` file that another program includes is a part of that program too, unless `main` names it. The language
 status shows the program chosen for the active file. An include file with no program shows "no program found": it
 is checked for syntax errors only, and formatted alone. Set `main` when two programs include the same files, such
-as a game and its tests. Build and Run still act on the active file.
+as a game and its tests. Build, Run, Debug and the build task act on that program too: with `turn.bm` active they
+build and run `CWSTRAT.BAS`. An include file with no program is built alone.
 
 ## Language features
 

@@ -67,8 +67,9 @@ questionable behaviours each change kept QB64pe's way, which stay silent until t
 working rule 7).
 
 1. **The review of the next big wins** (`study\47`, 2026-11-09), section 8: is "first outside users" the next
-   milestone; are language extensions allowed behind a switch, BASIC PDS 7.1 first; should upstream's commits
-   since the reference be reviewed as a routine.
+   milestone; should upstream's commits since the reference be reviewed as a routine. Language extensions
+   are allowed behind a switch (`DECISIONS.md` 2026-11-11); which extension comes first is still open
+   (`study\48` §5 recommends an order).
 
 The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 

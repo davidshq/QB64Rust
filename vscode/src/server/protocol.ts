@@ -81,6 +81,12 @@ export class ProgramTracker {
         return this.programs.get(uri);
     }
 
+    /** The uri of the main file of the document's program, when the server named another file; undefined when the
+     * document is its own program or the server has not said. */
+    mainOf(uri: string): string | undefined {
+        return this.programs.get(uri)?.program ?? undefined;
+    }
+
     forget(uri: string): void {
         this.programs.delete(uri);
     }
