@@ -15,8 +15,8 @@ After `_FREEIMAGE img&`, the handle names no image: `_WIDTH(img&)` raises error 
 
 ## Errors
 
-- A handle that is no image raises QB64pe's run-time error.
-  <!-- src: language/images "Image handles" -->
+- A handle that is no image raises error 258, "Invalid handle".
+  <!-- src: language/images "Image handles"; tests\reference\examples\_freeimage_1 -->
 
 ## Availability
 

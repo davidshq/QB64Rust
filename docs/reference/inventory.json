@@ -273,7 +273,7 @@
    "sources": [
     "words.rs"
    ],
-   "page": "meta-screenshow",
+   "page": "meta-screenhide",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -1154,7 +1154,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "environ-str",
+   "page": "environ",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -3627,7 +3627,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_buttonchange",
+   "page": "_button",
    "batch": 15,
    "area": "Mouse and devices"
   },
@@ -3800,7 +3800,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_compiletime-str",
+   "page": "_compiledate-str",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -4130,7 +4130,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_desktopheight",
+   "page": "_desktopwidth",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -4276,7 +4276,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_droppedfile",
+   "page": "_acceptfiledrop",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -4425,7 +4425,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_finishdrop",
+   "page": "_acceptfiledrop",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -4575,6 +4575,18 @@
    "page": "_d2r",
    "batch": 8,
    "area": "Math and number functions"
+  },
+  {
+   "word": "_GL",
+   "kinds": [
+    "keyword"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "_gl",
+   "batch": 23,
+   "area": "OpenGL"
   },
   {
    "word": "_GLRENDER",
@@ -4813,7 +4825,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_lastaxis",
+   "page": "_lastbutton",
    "batch": 15,
    "area": "Mouse and devices"
   },
@@ -4849,7 +4861,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_lastwheel",
+   "page": "_lastbutton",
    "batch": 15,
    "area": "Mouse and devices"
   },
@@ -4897,7 +4909,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_logerror",
+   "page": "_loginfo",
    "batch": 21,
    "area": "Data processing, embedded files, logging"
   },
@@ -4933,7 +4945,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_logtrace",
+   "page": "_loginfo",
    "batch": 21,
    "area": "Data processing, embedded files, logging"
   },
@@ -4945,7 +4957,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_logwarn",
+   "page": "_loginfo",
    "batch": 21,
    "area": "Data processing, embedded files, logging"
   },
@@ -5241,7 +5253,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_mousehide",
+   "page": "_mouseshow",
    "batch": 15,
    "area": "Mouse and devices"
   },
@@ -5289,7 +5301,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_mousemovementy",
+   "page": "_mousemovementx",
    "batch": 15,
    "area": "Mouse and devices"
   },
@@ -5337,7 +5349,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_mousey",
+   "page": "_mousex",
    "batch": 15,
    "area": "Mouse and devices"
   },
@@ -5706,7 +5718,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_resizeheight",
+   "page": "_resize",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -5718,7 +5730,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_resizewidth",
+   "page": "_resize",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -5838,7 +5850,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_savefiledialog-str",
+   "page": "_openfiledialog-str",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -5862,7 +5874,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_scaledheight",
+   "page": "_scaledwidth",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -5972,7 +5984,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_screenshow",
+   "page": "_screenhide",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -5996,7 +6008,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_screeny",
+   "page": "_screenx",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -6045,7 +6057,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_selectfolderdialog-str",
+   "page": "_openfiledialog-str",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -6129,7 +6141,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_smooth",
+   "page": "_fullscreen",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -6273,7 +6285,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_sndpaused",
+   "page": "_sndplaying",
    "batch": 16,
    "area": "Sound"
   },
@@ -6393,7 +6405,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_sndsetpos",
+   "page": "_sndgetpos",
    "batch": 16,
    "area": "Sound"
   },
@@ -6527,7 +6539,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_title-str",
+   "page": "_title",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -6563,7 +6575,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_totaldroppedfiles",
+   "page": "_acceptfiledrop",
    "batch": 20,
    "area": "Window, clipboard, system, date and time"
   },
@@ -6696,7 +6708,7 @@
    "sources": [
     "builtins"
    ],
-   "page": "_wheel",
+   "page": "_axis",
    "batch": 15,
    "area": "Mouse and devices"
   },
@@ -6773,6 +6785,7 @@
   "UEVENT",
   "VIEW PRINT",
   "_ARRAYCOPY",
+  "_GL",
   "_NEGATE"
  ]
 }

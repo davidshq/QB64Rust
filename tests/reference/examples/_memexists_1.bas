@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+DIM n AS _MEM, never AS _MEM
+n = _MEMNEW(8)
+PRINT "New:"; _MEMEXISTS(n)
+_MEMFREE n
+PRINT "Freed:"; _MEMEXISTS(n)
+PRINT "Never set:"; _MEMEXISTS(never)
+END

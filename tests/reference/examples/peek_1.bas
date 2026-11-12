@@ -1,0 +1,7 @@
+$CONSOLE:ONLY
+DIM a(1 TO 4) AS INTEGER
+a(2) = &H1234
+DEF SEG = VARSEG(a(1))
+PRINT "Low byte, high byte:"; PEEK(VARPTR(a(2))); PEEK(VARPTR(a(2)) + 1)
+DEF SEG
+END

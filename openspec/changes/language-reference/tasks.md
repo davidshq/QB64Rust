@@ -94,34 +94,92 @@ record and compare the examples, run `render --compiler`, `--check --compiler` a
       fonts) and `_PRINTIMAGE` (a printer) have probes. Found: `language/images` "Image handles" says `_WIDTH` and
       `_HEIGHT` with no handle give the destination's size, but in a `$CONSOLE:ONLY` program both compilers give the
       console's while `_DEST` is an image (`tests\reference\examples\_width_1`).
-- [ ] 4.9 Batch 15: mouse and devices (`mouse`, `device-input`)
-- [ ] 4.10 Batch 16: sound (`sound`)
-- [ ] 4.11 Batch 17: events and timers (`events`)
+- [x] 4.9 Batch 15: mouse and devices (`mouse`, `device-input`). 18 pages, 15 examples, all in `$CONSOLE:ONLY`
+      programs: the device functions with no game controller (the keyboard and the mouse as devices 1 and 2), and
+      the mouse functions, which there read the console's mouse and give 0. `_MOUSESHOW`, `_MOUSECURSOR` and
+      `_MOUSEMOVE` have probes: their effect is the machine's cursor. Grouped: `_mousex` (`_MOUSEY`),
+      `_mousemovementx`, `_mouseshow` (`_MOUSEHIDE`), `_lastbutton` (`_LASTAXIS`, `_LASTWHEEL`), `_button`
+      (`_BUTTONCHANGE`), `_axis` (`_WHEEL`).
+- [x] 4.10 Batch 16: sound (`sound`). 28 pages, 26 examples, each with a `.external` sidecar (`sound:`) like the
+      slice programs they follow (`s74`–`s76`, `s127`–`s129`). Every sound is silence or at volume 0. `BEEP` (the
+      bell would be heard) and `$MIDISOUNDFONT` (rejected, as in QB64pe) have probes. `_sndplaying` covers
+      `_SNDPAUSED`, `_sndgetpos` `_SNDSETPOS`. Found: `_SNDRAWDONE` does nothing in this libqb (an empty inline
+      function in `libqb\include\audio.h`), and `_SNDPLAYFILE`'s second argument is ignored.
+- [x] 4.11 Batch 17: events and timers (`events`). 9 pages, 5 examples (`timer`, `_freetimer`, `key`, `_delay`,
+      `_limit`); the three that wait have a `.external` sidecar (`clock:`). `COM`, `PEN` and `UEVENT` (rejected, as
+      in QB64pe) and `SLEEP` have probes: under the test runner, whose input is no console, `SLEEP 10` returns
+      after about 0.1 second in QB64pe's build, so a test cannot time it. `ON TIMER` is on the `timer`
+      page, `ON KEY` and `KEY LIST` on `key`.
 
 ## 5. Batches 18 to 23
 
-- [ ] 5.1 Batch 18: memory (`mem-blocks`, `conventional-memory`; Opus)
-- [ ] 5.2 Batch 19: libraries (`external-libraries`; Opus)
-- [ ] 5.3 Batch 20: window, clipboard, system, date and time (`console-and-window`, `builtin-statements`)
-- [ ] 5.4 Batch 21: data processing, embedded files, logging (`data-processing`, `embedded-files`, `logging`)
-- [ ] 5.5 Batch 22: network (`network`). Its examples cannot run on the host (`CLAUDE.md` working rule 6): they
-      get `.external` sidecars starting `network:` and run in the suites VM, or are `.norun`.
-- [ ] 5.6 Batch 23: OpenGL (`opengl`): one page for `SUB _GL` and a generated table of the routines from
-      `crates\sema\src\gl_table.rs`, written by `render`.
+- [x] 5.1 Batch 18: memory (`mem-blocks`, `conventional-memory`; Opus). 23 pages (with the pilot's `_MEMCOPY`,
+      the 24 of the batch), 23 examples. Found: `language/conventional-memory` "INP, OUT and WAIT" says a port out
+      of range raises error 6, but `OUT` checks no range (`OUT 70000, 1` raises nothing,
+      `tests\reference\examples\out_1`; libqb's `sub_out`); `INP` and `WAIT` raise it (`inp_1`, `wait_1`). The
+      `v58_s01` programs do not show it: their handler prints to the hidden window.
+- [x] 5.2 Batch 19: libraries (`external-libraries`; Opus). Two pages: `declare-library` (with `ALIAS`, `BYVAL`,
+      `CUSTOMTYPE`, `DYNAMIC`, `LIBRARY`), whose example calls the C runtime through a block with no name, and
+      `$USELIBRARY`, which has no example or probe: it reads the libraries installed under the compiler's folder
+      (`verification\v58_u*` give one with `.root`, which the examples' runner does not take). Its availability is
+      "not checked".
+- [x] 5.3 Batch 20: window, clipboard, system, date and time (`console-and-window`, `builtin-statements`). 48
+      pages for 65 words (with the pilot's `FRE`), 18 examples, all `$CONSOLE:ONLY`, printing only what is the same
+      on any machine (forms of `DATE$` and `TIME$`, comparisons of `_UPTIME` and `_OS$`). The window, dialog,
+      clipboard and `SHELL` words have probes: no test may open a window or dialog, or start a shell on the host.
+      `$EXEICON` and `$FORMAT` are "not checked". Found: QB64pe rejects `PRINT "x:"; LEFT$(t$, 1) <> "b" OR …`,
+      which qb64rust compiles (a `SOMEDAY.md` row); `_SCREENEXISTS` is -1 in a `$CONSOLE:ONLY` program.
+- [x] 5.4 Batch 21: data processing, embedded files, logging (`data-processing`, `embedded-files`, `logging`).
+      11 pages, 11 examples; `$EMBED` and `_EMBEDDED$` have `.files` folders with the file built in. `_loginfo`
+      covers `_LOGTRACE`, `_LOGWARN` and `_LOGERROR`; the log goes to the runner's log file, not the output.
+- [x] 5.5 Batch 22: network (`network`). Its examples cannot run on the host (`CLAUDE.md` working rule 6): they
+      get `.external` sidecars starting `network:` and run in the suites VM, or are `.norun`. Built with 7 pages
+      and a probe each, no example: recording one with `qb64pe.exe` would run it on the host, which needs
+      `QB64RUST_ALLOW_NETWORK`, and only the user sets it. The pages cite `s139_net_errors` and `s141_tcp_loopback`,
+      which run in the VM. Examples with `network:` sidecars can follow once the user records them.
+- [x] 5.6 Batch 23: OpenGL (`opengl`): one page for `SUB _GL` and a generated table of the routines from
+      `crates\sema\src\gl_table.rs`, written by `render`. Built: `_gl` (the word `_GL` added in `[extra]`), whose
+      block `opengl` lists the 337 routines with their types and whether they raise error 270 outside the SUB
+      (`reference.py` `gl_block`, its heading "The OpenGL routines" in `HEADINGS`, two tests), and `_GLRENDER`,
+      `_DISPLAYORDER`, `_DEPTHBUFFER` with probes. One example, `_gl_1`. Found: in a `$CONSOLE:ONLY` program a SUB
+      `_GL` that calls a routine (`_glClear`) fails the C++ build with both compilers ("use of undeclared
+      identifier 'call_glClear'"), where `language/opengl` "SUB _GL without a shown window" says such a program
+      SHALL build; `v59_a5` uses only a constant. qb64rust's message calls the routine "of `DECLARE LIBRARY`" (a
+      `SOMEDAY.md` row).
 
 ## 6. Chapters and appendices (Opus)
 
-- [ ] 6.1 One chapter per area in `docs\reference\chapters\`, from its spec and its pages, with the same `src:`
-      rule (`reference.py` to check chapters as it checks pages).
-- [ ] 6.2 The generated appendices still missing: the error numbers and messages, the reserved words, the
-      metacommands, what is not supported yet (from `SOMEDAY.md`, "Deferred QB64pe features").
-- [ ] 6.3 "Coming from QB64pe" and "Coming from QuickBASIC 4.5", from the two divergence registers.
+- [x] 6.1 One chapter per area in `docs\reference\chapters\`, from its spec and its pages, with the same `src:`
+      rule (`reference.py` to check chapters as it checks pages). 36 chapters: one per spec under
+      `openspec\specs\language\`, and `pipeline` (the program's text: lines, names, comments, the preprocessor,
+      included files, from `compiler/pipeline`). Each is a summary, the links to its pages (every page is linked
+      from one), and sections whose every paragraph names its source. `reference.py`: `check_chapter` (the sources, the links, embedded examples, a `TODO`, a spec of
+      the chapter's name), `refresh_chapter` (embedded examples only), the index's list of chapters; two tests;
+      "Writing a chapter" in `tools\reference\README.md`. Lines, names and labels, which have no word of their own
+      (3.1), are in `pipeline` and `control-flow`.
+- [x] 6.2 The generated appendices still missing: the error numbers and messages, the reserved words, the
+      metacommands, what is not supported yet (from `SOMEDAY.md`, "Deferred QB64pe features"). Written by
+      `render`: `appendix-errors.md` (libqb's `error_code_to_text`), `appendix-reserved.md` (the 102 keywords of
+      `keywords.rs`, linked to their pages), `appendix-metacommands.md` (27), `appendix-unsupported.md` (41 rows,
+      the "Form" column); three tests. An edit of those rows of `SOMEDAY.md` now needs a `render`.
+- [x] 6.3 "Coming from QB64pe" and "Coming from QuickBASIC 4.5", from the two divergence registers. Generated by
+      `render` (`coming-from-qb64pe.md`, 62 rows; `coming-from-qb45.md`, 37), each row's case and the two
+      compilers' columns, so they follow the registers; the reasons and tests stay in the registers.
 
 ## 7. The review (Opus or Fable)
 
-- [ ] 7.1 Read the index, every chapter and 60 pages picked with a fixed seed: pages of one area agree, "See
+- [x] 7.1 Read the index, every chapter and 60 pages picked with a fixed seed: pages of one area agree, "See
       also" leads somewhere useful, and 30 real questions find their answer (from `docs\PORTING-PDS.md` and the
-      game ports' lessons). Report what to fix.
-- [ ] 7.2 Link the reference from `README.md`, `docs\MANUAL.md` and `docs\QUICKSTART.md`; add to `CLAUDE.md`
-      working rule 11 that a change of behavior edits its page with its spec.
+      game ports' lessons). Report what to fix. Done (2026-11-12): 60 pages by seed 49, 30 questions of
+      `PORTING-PDS.md` (29 answered). Fixed in the review: the pages of `ATN`, `COS`, `EXP`, `LOG`, `SIN` and `TAN`
+      gave `SQR`'s example of the result type; 103 pages no chapter linked (now every page is linked, and the
+      chapter `pipeline` holds the metacommands and the program's text); `_CONSOLEINPUT` named a recording instead
+      of its values; `_FREEIMAGE`'s error had no number. Left to decide: (a) "See also" names words as code, not
+      as links, on every page, so a reader cannot follow it; `render` could make them links. (b) Nothing answers
+      "is `CURDIR$` available?", which `PORTING-PDS.md` section 3 warns builds silently as a variable; a section
+      on PDS-only names in "Coming from QuickBASIC 4.5" or pages for them would. (c) The window and dialog pages
+      say little more than "compiles to QB64pe's call", as the test rules allow.
+- [x] 7.2 Link the reference from `README.md`, `docs\MANUAL.md` and `docs\QUICKSTART.md`; add to `CLAUDE.md`
+      working rule 11 that a change of behavior edits its page with its spec. `MANUAL.md` links it by its GitHub
+      address, as it does `DIVERGENCES-QB64PE.md`, since the manual ships in the download.
 - [ ] 7.3 Archive the change and `study\49`.

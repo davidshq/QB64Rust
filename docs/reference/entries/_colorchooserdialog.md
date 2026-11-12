@@ -1,0 +1,38 @@
+# _COLORCHOOSERDIALOG
+
+`_COLORCHOOSERDIALOG(title$, default&)` lets the user pick a color in a dialog and gives it as a 32-bit color.
+
+## Syntax
+
+<!-- begin generated: syntax -->
+```text
+_COLORCHOOSERDIALOG&([title$][, defaultRGB&])
+```
+
+From the built-in table (`tools\builtins\builtins.json`).
+<!-- end generated -->
+
+## Behavior
+
+No test opens a dialog, shows a notification, moves the window, or clicks or types on the desktop.
+<!-- src: language/console-and-window "Dialogs and the window's place are compiled" -->
+
+A window's state is outside what the tests compare, so no test checks what it does; it compiles to QB64pe's call.
+<!-- src: language/console-and-window "Dialogs and the window's place are compiled"; tests\corpus\slice\s159_builtins_last -->
+
+## Errors
+
+- A form QB64pe rejects is a compile error: a string for the color, three arguments, or the name as a statement.
+  <!-- src: language/console-and-window "Dialogs and the window's place are compiled"; verification\v58_x60_colorchooser_string_colour; verification\v58_x84_colorchooser_statement -->
+
+## Availability
+
+<!-- begin generated: availability -->
+Supported. All 6 programs that use it compile (call-site programs, examples and probes).
+<!-- end generated -->
+
+<!-- probe: IF 0 THEN c~& = _COLORCHOOSERDIALOG -->
+
+## See also
+
+`_RGB32`, `_MESSAGEBOX`.

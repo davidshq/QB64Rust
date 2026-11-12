@@ -3,7 +3,7 @@
 # spellings and the VS Code grammar; this file says only what those sources cannot.
 
 # The batches whose pages must all exist. Every page of a batch named here is required by --check.
-done = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+done = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 
 # The pilot pages (study/49 §5), required whatever `done` says.
 pilot = ["left-str", "line", "select-case", "meta-include", "_memcopy", "fre"]
@@ -423,6 +423,34 @@ _ULINESPACING = "_ufontheight"
 _UPRINTWIDTH = "_uprintstring"
 _PRINTWIDTH = "_printstring"
 _FREEFONT = "_loadfont"
+_MOUSEY = "_mousex"
+_MOUSEMOVEMENTY = "_mousemovementx"
+_MOUSEHIDE = "_mouseshow"
+_LASTAXIS = "_lastbutton"
+_LASTWHEEL = "_lastbutton"
+_BUTTONCHANGE = "_button"
+_WHEEL = "_axis"
+_SNDPAUSED = "_sndplaying"
+_SNDSETPOS = "_sndgetpos"
+"$SCREENSHOW" = "meta-screenhide"
+_SCREENSHOW = "_screenhide"
+"_TITLE$" = "_title"
+_DESKTOPHEIGHT = "_desktopwidth"
+_SCREENY = "_screenx"
+_RESIZEWIDTH = "_resize"
+_RESIZEHEIGHT = "_resize"
+_SCALEDHEIGHT = "_scaledwidth"
+_TOTALDROPPEDFILES = "_acceptfiledrop"
+_DROPPEDFILE = "_acceptfiledrop"
+_FINISHDROP = "_acceptfiledrop"
+"_COMPILETIME$" = "_compiledate-str"
+"_SAVEFILEDIALOG$" = "_openfiledialog-str"
+"_SELECTFOLDERDIALOG$" = "_openfiledialog-str"
+"ENVIRON$" = "environ"
+_SMOOTH = "_fullscreen"
+_LOGTRACE = "_loginfo"
+_LOGWARN = "_loginfo"
+_LOGERROR = "_loginfo"
 DEFLNG = "defint"
 DEFSNG = "defint"
 DEFDBL = "defint"
@@ -447,6 +475,7 @@ TYPEFIELDS = "meta-unstable"
 "DECLARE LIBRARY" = "statement"
 "$NOPREFIX" = "metacommand"
 "$MIDISOUNDFONT" = "metacommand"
+_GL = "keyword"
 "$ERROR" = "metacommand"
 
 # Words that get no page: word = why.

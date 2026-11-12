@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+r = _SNDOPENRAW
+_SNDVOL r, 0
+DIM b(1 TO 1024) AS SINGLE
+_SNDRAWBATCH b(), 1, r
+d# = _SNDRAWLEN(r)
+PRINT "1024 samples queued:"; d# > 0
+END

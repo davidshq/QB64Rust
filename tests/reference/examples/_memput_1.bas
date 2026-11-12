@@ -1,0 +1,11 @@
+$CONSOLE:ONLY
+DIM a AS LONG, m AS _MEM
+m = _MEM(a)
+_MEMPUT m, m.OFFSET, 7 AS LONG
+PRINT "a is"; a
+DIM n AS _MEM
+n = _MEMNEW(8)
+_MEMPUT n, n.OFFSET, "abcdefgh"
+PRINT _MEMGET(n, n.OFFSET + 2, STRING * 3)
+_MEMFREE n
+END

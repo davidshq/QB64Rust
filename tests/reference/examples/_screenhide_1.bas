@@ -1,0 +1,3 @@
+$CONSOLE:ONLY
+PRINT "_SCREENHIDE in a console program:"; _SCREENHIDE
+END

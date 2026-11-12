@@ -75,6 +75,7 @@ A page's file name is the word in lower case, a leading `$` written `meta-` and 
    | `## Behavior` | yes | One rule per paragraph or list item, each with its `src:` |
    | `## Errors` | | Compile errors with QB64Rust's message, run-time errors with their numbers, each with its `src:` |
    | `## Differences` | | From QB64pe (a `D-0nn` row), QB 4.5 (a `Q-0nn` row), with a fix on, on Linux |
+   | `## The OpenGL routines` | | On `_gl.md` only: the block `opengl`, generated from `crates\sema\src\gl_table.rs` |
    | `## Availability` | yes | Generated |
    | `## Example` | | Generated from the example programs |
    | `## See also` | yes | Related words |
@@ -109,18 +110,34 @@ that is only code read (`read:`) says so: the page should not present it as meas
 availability (`" : "` separates statements). It may be rejected: the availability then says so. A call-site
 program or an example must compile; one that does not is a problem.
 
+## Writing a chapter
+
+A chapter, `docs\reference\chapters\<spec>.md`, tells how one area of the language works as a whole. It is
+named after its spec under `openspec\specs\language\`, or `pipeline`, `fixes` or `lints` for the compiler specs
+`evidence` reads, and written from that spec and the area's pages. It has a
+title and a summary, then headings of its own choosing. Every paragraph, list item and table under a heading
+ends with its `src:` comment, as on a page. It links to the pages (`../entries/<page>.md`) rather than
+repeating them. It may embed an existing example with `<!-- begin generated: example:<id> -->` and
+`<!-- end generated -->`; it has no other generated block. The index lists the chapters.
+
 ## What is generated
 
-`render` writes the blocks between `<!-- begin generated: … -->` and `<!-- end generated -->`, the index
-`docs\reference\README.md`, `docs\reference\appendix-constants.md` and `inventory.json`. With `--compiler` it
+`render` writes the blocks between `<!-- begin generated: … -->` and `<!-- end generated -->` (`syntax`,
+`availability`, `example:<id>`, and `opengl`, the table of the OpenGL routines), the index
+`docs\reference\README.md`, `inventory.json` and the appendices of `docs\reference\`: `appendix-constants.md`
+(from `builtins.json`), `appendix-errors.md` (from libqb's `error_handle.cpp`), `appendix-reserved.md` (from
+`keywords.rs`), `appendix-metacommands.md` (from the inventory), `appendix-unsupported.md` (from `SOMEDAY.md`,
+"Deferred QB64pe features") and `coming-from-qb64pe.md` and `coming-from-qb45.md` (from the two divergence
+registers). An edit of one of those sources needs a `render`, or `--check` fails. With `--compiler` it
 also writes `tests\reference\availability.json`: for each page, how many of the programs that use its words
 compile, and the messages of the others. Never edit a generated block by hand: `--check` fails on it.
 
 `--check` fails when a generated block, an embedded example or a generated file is out of date; when a rule has no
 source or a source does not exist; when a required heading is missing, the headings are out of order or a page
 holds `TODO`; when a link leads nowhere; when a page has no word or an example has no page; and when a page of a
-`done` batch or a pilot page is missing. With `--compiler` it computes the availability again and fails when it
-changed.
+`done` batch or a pilot page is missing. It checks a chapter in the same way: its sources, its links, its
+embedded examples, a `TODO`, and that a spec of its name exists. With `--compiler` it computes the availability
+again and fails when it changed.
 
 ## The overlap check
 

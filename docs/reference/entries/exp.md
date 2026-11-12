@@ -26,7 +26,7 @@ A floating-point number.
 <!-- src: tests\reference\examples\exp_1; tests\reference\examples\log_1 -->
 
 The result's type follows the argument's: SINGLE for a SINGLE or an INTEGER, DOUBLE for a DOUBLE, a LONG or an
-`_INTEGER64`. So `SQR(2%)` prints 7 digits and `SQR(2#)` 16.
+`_INTEGER64`. So `EXP(2%)` prints 7 digits and `EXP(2#)` 16.
 <!-- src: language/builtin-functions "Result types"; verification\v20_b_result_types -->
 
 ## Errors

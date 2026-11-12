@@ -29,7 +29,7 @@ Near a right angle the value is very large, with no error: `TAN(_PI / 2)` is abo
 <!-- src: verification\v20_f_math_edges -->
 
 The result's type follows the argument's: SINGLE for a SINGLE or an INTEGER, DOUBLE for a DOUBLE, a LONG or an
-`_INTEGER64`. So `SQR(2%)` prints 7 digits and `SQR(2#)` 16.
+`_INTEGER64`. So `TAN(2%)` prints 7 digits and `TAN(2#)` 16.
 <!-- src: language/builtin-functions "Result types"; verification\v20_b_result_types -->
 
 ## Errors

@@ -1,0 +1,13 @@
+$CONSOLE:ONLY
+ON TIMER(0.6) GOSUB tick
+_DELAY 0.9
+PRINT "Before TIMER ON:"; n
+TIMER ON
+_DELAY 1.5
+TIMER OFF
+PRINT "After 1.5 s at 0.6 s:"; n
+PRINT "TIMER is within a day:"; TIMER >= 0 AND TIMER < 86400
+END
+tick:
+n = n + 1
+RETURN

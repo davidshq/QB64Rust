@@ -7,6 +7,10 @@ below). QB64pe does not need to be installed. If you use VS Code, the extension 
 or `qb64rust-linux-x64-<version>.vsix` on the same release page) has this compiler inside it, so you don't need this
 download as well.
 
+What each statement, function and metacommand does is in the
+[language reference](https://github.com/davidshq/QB64Rust/blob/main/docs/reference/README.md): a page per word,
+a chapter per area of the language, and tables of the run-time errors and the reserved words.
+
 ## What you need
 
 - Windows 10 version 1803 or later, 64-bit (x64); or Linux x64 with glibc (see "On Linux").

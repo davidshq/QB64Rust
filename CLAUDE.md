@@ -178,6 +178,8 @@ changing direction, design or scope.**
     still gets its usual records:
     - a `DECISIONS.md` row, and a `DIVERGENCES-QB64PE.md` row if it differs from QB64pe;
     - the merged spec under `openspec\specs\` edited in place, so that it never says the opposite of the code;
+    - the word's page of the language reference (`docs\reference\entries\`) edited with the spec, then
+      `tools\reference\reference.py render` (`tools\reference\README.md`);
     - its tests, including recorded programs for the behavior, not only unit tests.
 
     *Why:* a change's proposal, design and tasks cost the user reading time, and for a small change the

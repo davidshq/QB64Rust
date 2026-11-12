@@ -30,6 +30,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 REF = Path("docs/reference")
 ENTRIES = REF / "entries"
+CHAPTERS = REF / "chapters"
 EXAMPLES = Path("tests/reference/examples")
 AVAILABILITY = Path("tests/reference/availability.json")
 INVENTORY = REF / "inventory.json"
@@ -63,6 +64,8 @@ HEADINGS = (
     ("Behavior", True),
     ("Errors", False),
     ("Differences", False),
+    # The page of SUB _GL only: the table render writes from crates/sema/src/gl_table.rs.
+    ("The OpenGL routines", False),
     ("Availability", True),
     ("Example", False),
     ("See also", True),
@@ -557,9 +560,60 @@ def example_block(ex_id: str) -> str:
     return out
 
 
+GL_TABLE = Path("crates/sema/src/gl_table.rs")
+GL_TYPES = {
+    "I8": "_BYTE",
+    "I16": "INTEGER",
+    "I32": "LONG",
+    "I64": "_INTEGER64",
+    "U8": "_UNSIGNED _BYTE",
+    "U16": "_UNSIGNED INTEGER",
+    "U32": "_UNSIGNED LONG",
+    "U64": "_UNSIGNED _INTEGER64",
+    "F32": "SINGLE",
+    "F64": "DOUBLE",
+    "Off": "_OFFSET",
+    "Str": "STRING",
+}
+GL_ROUTINE = re.compile(
+    r'GlRoutine \{\s*name: "([^"]+)",\s*c_name: "([^"]+)",\s*ret: (None|Some\(Ty::(\w+)\)),\s*args: &\[([^\]]*)\]'
+)
+
+
+def gl_routines(text: str) -> list[tuple[str, bool, str | None, list[str]]]:
+    """The OpenGL routines of `gl_table.rs`: each name, whether a call goes through a helper (and so raises error
+    270 outside `SUB _GL`), the result's BASIC type (None for a SUB) and the arguments' types."""
+    out = []
+    for name, c_name, _, ret, args in GL_ROUTINE.findall(text):
+        types = [GL_TYPES[t.strip().removeprefix("Ty::")] for t in args.split(",") if t.strip()]
+        out.append((name, c_name.startswith("call_"), GL_TYPES[ret] if ret else None, types))
+    return out
+
+
+def gl_block() -> str:
+    """The table of the OpenGL routines and the count of the constants, for the page of `SUB _GL`."""
+    text = read(REPO / GL_TABLE)
+    routines = gl_routines(text)
+    consts = len(re.findall(r'GlConst \{ name: "', text))
+    out = [
+        f"{len(routines)} routines and {consts} constants, from `{GL_TABLE.as_posix()}` (QB64pe's copy of `gl.h`). "
+        "Each constant `_GL_…` is an `_INTEGER64`. Every argument is passed by value; a pointer is an `_OFFSET`.",
+        "",
+        "| Routine | Result | Arguments | Outside `SUB _GL` |",
+        "|---|---|---|---|",
+    ]
+    for name, helper, ret, args in routines:
+        out.append(
+            f"| `{name}` | {ret or 'SUB'} | {', '.join(args) or 'none'} | {'error 270' if helper else 'no error'} |"
+        )
+    return "\n".join(out)
+
+
 def block_text(name: str, page_word: str, words: dict[str, Word], avail: dict) -> str | None:
     if name == "syntax":
         return syntax_block(page_word, words)
+    if name == "opengl":
+        return gl_block()
     if name == "availability":
         return availability_text(words[page_word].page, avail)
     if name.startswith("example:"):
@@ -731,9 +785,13 @@ def index_md(words: dict[str, Word]) -> str:
         "",
         f"{len(pages)} pages written; the inventory names {len({w.page for w in words.values()})}.",
         "",
-        "## By area",
-        "",
     ]
+    chapters = chapter_files()
+    if chapters:
+        lines += ["## Chapters", "", "How each area of the language works as a whole.", ""]
+        lines += [f"- [{title_of(c)}](chapters/{c.name})" for c in chapters]
+        lines.append("")
+    lines += ["## By area", ""]
     by_batch: dict[int, list[str]] = {}
     for w in words.values():
         if w.page in pages:
@@ -744,7 +802,9 @@ def index_md(words: dict[str, Word]) -> str:
     for batch in sorted(by_batch):
         links = ", ".join(f"[{title_of(pages[p])}](entries/{p}.md)" for p in sorted(by_batch[batch]))
         lines.append(f"- **{names.get(batch, batch)}**: {links}")
-    lines += ["", "## Appendices", "", "- [The auto-included constants](appendix-constants.md)", ""]
+    lines += ["", "## Appendices", ""]
+    lines += [f"- [{title}]({file})" for file, title in APPENDICES]
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -806,11 +866,177 @@ def constants_md() -> str:
     return "\n".join(out)
 
 
+ERROR_TEXTS = Path("libqb/internal/c/libqb/src/error_handle.cpp")
+GENERATED_NOTE = "<!-- Written by tools/reference/reference.py render; do not edit. -->"
+
+
+def page_link(word: str, words: dict[str, Word], prefix: str = "entries/") -> str:
+    """`WORD` as a link to its page when the page is written, else as code."""
+    w = words.get(word)
+    if w and (REPO / ENTRIES / f"{w.page}.md").is_file():
+        return f"[`{word}`]({prefix}{w.page}.md)"
+    return f"`{word}`"
+
+
+def error_texts() -> list[tuple[int, str]]:
+    """The run-time errors libqb names, from `error_code_to_text` in its `error_handle.cpp`."""
+    text = read(REPO / ERROR_TEXTS)
+    body = text[text.index("error_code_to_text") :]
+    body = body[: body.index("default:")]
+    return [(int(n), msg) for n, msg in re.findall(r'case (\d+): return "([^"]*)";', body) if n != "0"]
+
+
+def errors_md() -> str:
+    out = [
+        "# Run-time errors",
+        "",
+        GENERATED_NOTE,
+        "",
+        "The run-time errors and their messages, as libqb gives them (`ERR` and `_ERRORMESSAGE$`), from",
+        f"`{ERROR_TEXTS.as_posix()}`. Any other number prints \"Unprintable error\". Errors 300 to 315 end the",
+        "program even under `ON ERROR` ([Memory blocks](chapters/mem-blocks.md),",
+        "[Assertions and $DEBUG](chapters/asserts-and-debug.md)).",
+        "",
+        "| Number | Message |",
+        "|---|---|",
+    ]
+    out += [f"| {n} | {msg} |" for n, msg in error_texts()]
+    out.append("")
+    return "\n".join(out)
+
+
+def reserved_md(words: dict[str, Word]) -> str:
+    keywords = sorted(set(keywords_rs()), key=lambda k: (k.lstrip("_$"), k))
+    out = [
+        "# Reserved words",
+        "",
+        GENERATED_NOTE,
+        "",
+        f"The {len(keywords)} keywords of the language (`{KEYWORDS_RS.as_posix()}`). A variable, a parameter or",
+        "a procedure may not take one of them, without a suffix, as its name; nor the name of a built-in written",
+        "without a required suffix ([Procedures](chapters/procedures.md)).",
+        "",
+    ]
+    out.append(", ".join(page_link(k, words) for k in keywords))
+    out.append("")
+    return "\n".join(out)
+
+
+def metacommands_md(words: dict[str, Word]) -> str:
+    metas = sorted({w.word for w in words.values() if w.word.startswith("$")})
+    out = [
+        "# Metacommands",
+        "",
+        GENERATED_NOTE,
+        "",
+        f"The {len(metas)} metacommands and preprocessor words. Each stands on a line of its own, also in a",
+        "comment where its page says so.",
+        "",
+    ]
+    out += [f"- {page_link(m, words)}" for m in metas]
+    out.append("")
+    return "\n".join(out)
+
+
+def deferred_rows() -> list[tuple[str, str]]:
+    """(group, form) of each row of `SOMEDAY.md`'s "Deferred QB64pe features"."""
+    text = read(REPO / SOMEDAY)
+    body = text[text.index("## Deferred QB64pe features") :]
+    body = body[len("## Deferred QB64pe features") :]
+    body = body[: body.index("\n## ")]
+    rows = []
+    for line in body.splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) >= 3 and cells[2] and cells[0] != "Priority" and not set(cells[0]) <= set("-"):
+            rows.append((cells[1], cells[2]))
+    return rows
+
+
+def unsupported_md() -> str:
+    rows = deferred_rows()
+    out = [
+        "# What is not supported yet",
+        "",
+        GENERATED_NOTE,
+        "",
+        "The forms QB64pe accepts that QB64Rust still rejects with \"not supported yet\", and the forms it builds",
+        "that no test runs, from `docs/SOMEDAY.md` (\"Deferred QB64pe features\", where each row says why it",
+        f"waits). {len(rows)} rows.",
+        "",
+        "| Group | Form |",
+        "|---|---|",
+    ]
+    out += [f"| {g} | {f} |" for g, f in rows]
+    out.append("")
+    return "\n".join(out)
+
+
+def register_rows(path: Path, prefix: str) -> list[list[str]]:
+    """The rows of a divergence register whose id starts with `prefix` (`D-`, `Q-`): id, behavior, the other
+    compiler's column and QB64Rust's."""
+    rows = []
+    for line in read(REPO / path).splitlines():
+        if line.startswith(f"| {prefix}"):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) >= 4:
+                rows.append(cells[:4])
+    return rows
+
+
+def coming_from_md(path: Path, prefix: str, title: str, other: str, intro: str) -> str:
+    rows = register_rows(path, prefix)
+    out = [
+        f"# {title}",
+        "",
+        GENERATED_NOTE,
+        "",
+        intro,
+        f"{len(rows)} rows, from `{path.as_posix()}`, which also says why each was decided and what pins it.",
+        "",
+        f"| Id | Case | {other} | QB64Rust |",
+        "|---|---|---|---|",
+    ]
+    out += [f"| {i} | {case} | {theirs} | {ours} |" for i, case, theirs, ours in rows]
+    out.append("")
+    return "\n".join(out)
+
+
+APPENDICES = (
+    ("coming-from-qb64pe.md", "Coming from QB64pe"),
+    ("coming-from-qb45.md", "Coming from QuickBASIC 4.5"),
+    ("appendix-constants.md", "The auto-included constants"),
+    ("appendix-errors.md", "Run-time errors"),
+    ("appendix-reserved.md", "Reserved words"),
+    ("appendix-metacommands.md", "Metacommands"),
+    ("appendix-unsupported.md", "What is not supported yet"),
+)
+
+
 def generated_files(words: dict[str, Word]) -> dict[Path, str]:
     return {
         INVENTORY: inventory_json(words),
         REF / "README.md": index_md(words),
         REF / "appendix-constants.md": constants_md(),
+        REF / "appendix-errors.md": errors_md(),
+        REF / "appendix-reserved.md": reserved_md(words),
+        REF / "appendix-metacommands.md": metacommands_md(words),
+        REF / "appendix-unsupported.md": unsupported_md(),
+        REF / "coming-from-qb64pe.md": coming_from_md(
+            DIVERGENCES[0],
+            "D-",
+            "Coming from QB64pe",
+            "QB64pe 4.7.0",
+            "Where QB64Rust does something other than QB64pe 4.7.0, the compiler it follows. Everywhere else a\n"
+            "program behaves as it does with QB64pe.",
+        ),
+        REF / "coming-from-qb45.md": coming_from_md(
+            DIVERGENCES[1],
+            "Q-",
+            "Coming from QuickBASIC 4.5",
+            "QuickBASIC 4.5",
+            "Where QB64Rust does something other than QuickBASIC 4.5. Most rows are QB64pe's behavior, which\n"
+            "QB64Rust keeps; the QuickBASIC column says whether it was measured, documented or believed.",
+        ),
     }
 
 
@@ -912,6 +1138,63 @@ def check_page(path: Path, words: dict[str, Word], avail: dict, requirements, ro
     return problems
 
 
+def chapter_files() -> list[Path]:
+    return sorted((REPO / CHAPTERS).glob("*.md"))
+
+
+def refresh_chapter(text: str) -> str:
+    """A chapter with each embedded example written again; a chapter has no other generated block."""
+
+    def one(m: re.Match) -> str:
+        name = m.group(1)
+        if name.startswith("example:"):
+            body = example_block(name.split(":", 1)[1])
+        else:
+            body = f"(no generated text for `{name}` in a chapter)"
+        return f"<!-- begin generated: {name} -->\n{body.rstrip()}\n{END_MARK}"
+
+    pattern = re.compile(BEGIN.pattern + r".*?" + re.escape(END_MARK), re.S)
+    return pattern.sub(one, text)
+
+
+def check_chapter(path: Path, requirements, rows) -> list[str]:
+    """A chapter (study/49 §4): named after a language spec, with a title and a summary, and every paragraph and
+    list item under its headings naming its source, as on a page."""
+    name = rel(path.relative_to(REPO))
+    text = path.read_text(encoding="utf-8")
+    problems = []
+    specs = {p.parent.name for p in (REPO / SPECS / "language").glob("*/spec.md")}
+    specs |= {s.split("/")[1] for s in LANGUAGE_SPECS}
+    if path.stem not in specs:
+        problems.append(f"{name}: no spec language/{path.stem}")
+    if refresh_chapter(text) != text:
+        problems.append(f"{name}: an example is out of date (run render)")
+    if "TODO" in text:
+        problems.append(f"{name}: has a TODO")
+    secs = sections(text)
+    if not re.match(r"# .+\n\n\S", secs[0][1]):
+        problems.append(f"{name}: no title and summary before the first heading")
+    for h, body in secs[1:]:
+        for b in blocks(body):
+            srcs = SRC.findall(b)
+            if not srcs and not b.endswith(":"):
+                problems.append(f"{name}: a block under {h} names no source: {b[:70]!r}")
+            for s in srcs:
+                for item in s.split(";"):
+                    why = check_src(item, requirements, rows)
+                    if why:
+                        problems.append(f"{name}: {why}")
+    for target in re.findall(r"\]\(([^)\s]+)\)", text):
+        if re.match(r"[a-z]+:", target) or target.startswith("#"):
+            continue
+        if not (path.parent / target.split("#")[0]).exists():
+            problems.append(f"{name}: link to {target} leads nowhere")
+    for ex in re.findall(r"<!-- begin generated: example:([^ ]+) -->", text):
+        if not (REPO / EXAMPLES / f"{ex}.bas").is_file():
+            problems.append(f"{name}: example {ex} has no program")
+    return problems
+
+
 def check(compiler: Path | None) -> list[str]:
     words = inventory()
     table = load_words_toml()
@@ -933,6 +1216,8 @@ def check(compiler: Path | None) -> list[str]:
     rows = {m for path in DIVERGENCES for m in re.findall(r"^\| ([DQ]-\d{3}) \|", read(path), re.M)}
     for page in page_files():
         problems += check_page(page, words, avail, requirements, rows)
+    for chapter in chapter_files():
+        problems += check_chapter(chapter, requirements, rows)
     done = set(table.get("done", []))
     required = {w.page for w in words.values() if w.batch in done} | set(table.get("pilot", []))
     for page in sorted(required - stems):
@@ -965,6 +1250,11 @@ def render(compiler: Path | None) -> list[str]:
             new = refresh(text, word, words, avail)
             if new != text:
                 page.write_text(new, encoding="utf-8", newline="\n")
+    for chapter in chapter_files():
+        text = chapter.read_text(encoding="utf-8")
+        new = refresh_chapter(text)
+        if new != text:
+            chapter.write_text(new, encoding="utf-8", newline="\n")
     return problems
 
 

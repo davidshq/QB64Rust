@@ -1,0 +1,9 @@
+$CONSOLE:ONLY
+ON ERROR GOTO trap
+PRINT _DEVICE$(1)
+PRINT _DEVICE$(2)
+d$ = _DEVICE$(0)
+END
+trap:
+PRINT "_DEVICE$(0) raised error"; ERR
+RESUME NEXT

@@ -177,6 +177,8 @@ when it has errors.
   with `Test` is a test. See [MANUAL.md](MANUAL.md#testing-your-code).
 - **Read the manual.** [MANUAL.md](MANUAL.md) covers every option, the settings file, warnings, coverage builds
   and value traces.
+- **Look a word up.** The [language reference](reference/README.md) has a page for every statement, function and
+  metacommand, with what it does, its errors and an example.
 - **Check the differences.** The few places where a program behaves differently than with QB64pe are listed in
   [DIVERGENCES-QB64PE.md](DIVERGENCES-QB64PE.md).
 - **Report a problem.** Open an issue at

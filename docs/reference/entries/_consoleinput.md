@@ -10,8 +10,8 @@ value = _CONSOLEINPUT
 
 ## Behavior
 
-`_CONSOLEINPUT` and `_CINP` compile to QB64pe's calls and give what its program gives. With no input waiting they give
-what `verification\v58_f13_console_input` records.
+`_CONSOLEINPUT` and `_CINP` compile to QB64pe's calls and give what its program gives. With no input waiting, as in a
+program whose input is no console, both give 0, and so do `_CINP(0)` and `_CINP(1)`.
 <!-- src: language/console-and-window "The console's own statements and functions"; verification\v58_f13_console_input -->
 
 ## Availability

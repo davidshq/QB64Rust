@@ -108,6 +108,61 @@ class Availability(unittest.TestCase):
         self.assertTrue(r.availability_text("p", rejected).startswith("Rejected, as in QB64pe"))
 
 
+class OpenGl(unittest.TestCase):
+    def test_a_routine_with_and_without_a_helper(self):
+        text = """
+    GlRoutine {
+        name: "_glAccum",
+        c_name: "call_glAccum",
+        ret: None,
+        args: &[Ty::U32, Ty::F32],
+    },
+    GlRoutine {
+        name: "_glFlush",
+        c_name: "glFlush",
+        ret: None,
+        args: &[],
+    },
+    GlRoutine {
+        name: "_glGetString",
+        c_name: "call_glGetString",
+        ret: Some(Ty::Str),
+        args: &[Ty::U32],
+    },
+"""
+        self.assertEqual(
+            r.gl_routines(text),
+            [
+                ("_glAccum", True, None, ["_UNSIGNED LONG", "SINGLE"]),
+                ("_glFlush", False, None, []),
+                ("_glGetString", True, "STRING", ["_UNSIGNED LONG"]),
+            ],
+        )
+
+    def test_the_table_reads_the_repository_s_list(self):
+        block = r.gl_block()
+        self.assertIn("| `_glViewport` | SUB | LONG, LONG, LONG, LONG | error 270 |", block)
+        self.assertIn("337 routines", block)
+
+
+class Appendices(unittest.TestCase):
+    def test_the_error_messages(self):
+        texts = dict(r.error_texts())
+        self.assertEqual(texts[5], "Illegal function call")
+        self.assertEqual(texts[315], "_ASSERT failed (check console for description)")
+        self.assertNotIn(0, texts)
+
+    def test_the_deferred_rows(self):
+        rows = r.deferred_rows()
+        self.assertTrue(rows)
+        self.assertTrue(all(form and form != "Form" for _, form in rows))
+
+    def test_the_index_lists_every_appendix(self):
+        index = r.index_md(r.inventory())
+        for file, title in r.APPENDICES:
+            self.assertIn(f"[{title}]({file})", index)
+
+
 class Sources(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -191,6 +246,23 @@ class Pages(unittest.TestCase):
     def test_a_page_no_word_has(self):
         found = self.problems(GOOD_PAGE, name="no-such-word")
         self.assertTrue(any("no word of the inventory" in p for p in found))
+
+    def chapter_problems(self, text, name="control-flow"):
+        path = self.tmp / f"{name}.md"
+        path.write_text(text, encoding="utf-8")
+        return r.check_chapter(path, self.reqs, set())
+
+    def test_a_good_chapter(self):
+        text = (
+            "# Control flow\n\nHow a program chooses and repeats.\n\n## Loops\n\n"
+            "A `FOR` loop counts.\n<!-- src: language/control-flow \"FOR loops\" -->\n"
+        )
+        self.assertEqual(self.chapter_problems(text), [])
+
+    def test_a_chapter_rule_without_a_source_and_a_chapter_of_no_spec(self):
+        text = "# Odd\n\nA summary.\n\n## Part\n\nA rule with no source.\n"
+        self.assertTrue(any("names no source" in p for p in self.chapter_problems(text)))
+        self.assertTrue(any("no spec language/no-such-area" in p for p in self.chapter_problems(text, "no-such-area")))
 
     def test_an_example_is_embedded_with_its_output(self):
         (self.tmp / "examples" / "left-str_1.bas").write_text('$CONSOLE:ONLY\nPRINT LEFT$("ab", 1)\nEND\n')
