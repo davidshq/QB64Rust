@@ -87,12 +87,14 @@ fn fuzz_dictionary_has_keywords_builtins_and_metacommands() {
     }
 }
 
-/// Writes the fuzz dictionary to the file `QB64RUST_FUZZ_DICT` names. Run by `tools/fuzz/fuzz.py`, never by
-/// `cargo test` alone.
+/// Writes the fuzz dictionary to the file `QB64RUST_FUZZ_DICT` names. Run by `tools/fuzz/fuzz.py`. Without the
+/// variable it does nothing, so that `cargo test -- --ignored` (the `cli` step) passes it.
 #[test]
 #[ignore = "run by tools/fuzz/fuzz.py"]
 fn write_fuzz_dictionary() {
-    let path = std::env::var_os("QB64RUST_FUZZ_DICT").expect("QB64RUST_FUZZ_DICT names no file");
+    let Some(path) = std::env::var_os("QB64RUST_FUZZ_DICT") else {
+        return;
+    };
     std::fs::write(&path, fuzz_dictionary()).unwrap();
 }
 
