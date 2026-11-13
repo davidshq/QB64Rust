@@ -61,17 +61,21 @@ Standing rules: `CLAUDE.md`. Different here: the fuzz runs go in WSL on the host
       or write the `SOMEDAY.md` row, or stop and ask (a nesting limit; more than about 20 findings). Verify:
       `cargo test -p` of each touched crate and the regression test pass, and each fixed input run alone
       through its fuzz target no longer fails.
-- [ ] 4.3 Run each target again for 10 minutes on the fixed tree. Verify: no finding, or the new ones are
+- [x] 4.3 Run each target again for 10 minutes on the fixed tree. Verify: no finding, or the new ones are
       handled as in 4.2. Note the result of the user's first `Fuzz` workflow run here when there is one.
+      Done (2026-11-13, `--jobs 2`): `parse` 117,715 inputs, `compile` 81,249, `server` 43,216, no failure.
+      The first `Fuzz` workflow run: not yet started.
 
 ## 5. Records and closing
 
-- [ ] 5.1 Add the `DECISIONS.md` row (fuzzing is by `cargo-fuzz` in WSL and a hand-started workflow, findings
+- [x] 5.1 Add the `DECISIONS.md` row (fuzzing is by `cargo-fuzz` in WSL and a hand-started workflow, findings
       are files under `tests\fuzz\regressions\`). Remove the `SOMEDAY.md` row "Fuzz the lexer and parser" and
       add the row "formatting twice gives the same text, as a fuzz property". Update `STATUS.md`'s "Next".
       Verify: `python tools\repo_check\check_repo.py` passes.
-- [ ] 5.2 Run `just quick` in the background and read its log. Verify: it passes, and the report says what
+- [x] 5.2 Run `just quick` in the background and read its log. Verify: it passes, and the report says what
       ran, what stood and why.
+      Done (2026-11-13): 11 passed, 0 failed; `libqb-copy` and `v37-libs` stood (inputs unchanged);
+      `upstream` and `verification` left for `check full`.
 
 ## Workflow follow-up
 

@@ -17,6 +17,7 @@ mod walk;
 /// Public for the fuzz dictionary (`driver`'s `fuzz_regressions` test).
 pub mod words;
 
+pub use qb64rust_base::layout::Rewritable;
 use qb64rust_base::layout::Settings;
 use qb64rust_base::{FileId, SourceMap};
 use qb64rust_sema::Program;
@@ -70,6 +71,26 @@ pub fn format_file(
     settings: &Settings,
     complete: bool,
 ) -> Vec<u8> {
+    let lines = format_lines(map, parsed, program, file, settings, complete);
+    let mut out = Vec::with_capacity(map.file(file).bytes.len() * 9 / 8);
+    for line in lines.iter().flatten() {
+        out.extend_from_slice(line);
+        out.extend_from_slice(b"\r\n");
+    }
+    out
+}
+
+/// [`format_file`] line by line: for each line of the file, its output lines without their line ends. A line has
+/// one output line unless `OneStatementPerLine` or `BlockIf` rewrites it (OpenSpec change `format-statement-lines`,
+/// design D2).
+pub fn format_lines(
+    map: &SourceMap,
+    parsed: &ParsedProgram,
+    program: &Program,
+    file: FileId,
+    settings: &Settings,
+    complete: bool,
+) -> Vec<Vec<Vec<u8>>> {
     let bytes = &map.file(file).bytes;
     let ranges = line_ranges(bytes);
     let f = fmt::Fmt {
@@ -83,33 +104,44 @@ pub fn format_file(
         Some(tree) => f.plan(tree.root(), &ranges),
         None => Vec::new(),
     };
-    let mut out = Vec::with_capacity(bytes.len() + bytes.len() / 8);
+    let mut out = Vec::with_capacity(ranges.len());
     for (i, &(a, b)) in ranges.iter().enumerate() {
         let line = &bytes[a as usize..b as usize];
-        match plans.get(i) {
-            Some(walk::Plan::Layout(layout, apply)) => {
-                let mut text = apply::apply_layout_indent(layout, line, *apply);
-                let misreads = |t: &Option<Vec<u8>>| t.as_ref().is_some_and(|t| reading(t) != reading(line));
-                if !complete && misreads(&text) {
-                    let off = apply::Apply {
-                        auto_layout: false,
-                        ..*apply
-                    };
-                    text = apply::apply_layout_indent(layout, line, off);
-                    if misreads(&text) {
-                        text = None;
-                    }
-                }
-                match text {
-                    Some(text) => out.extend_from_slice(&text),
-                    None => out.extend_from_slice(line),
+        let Some(walk::Plan::Layout(layouts)) = plans.get(i) else {
+            out.push(vec![line.to_vec()]);
+            continue;
+        };
+        let mut lines = Vec::with_capacity(layouts.len());
+        for (layout, apply) in layouts {
+            let mut text = apply::apply_layout_indent(layout, line, *apply);
+            // A rewritten line has no line of its own to compare with, but it is only made in a complete program.
+            let misreads = |t: &Option<Vec<u8>>| t.as_ref().is_some_and(|t| reading(t) != reading(line));
+            if !complete && misreads(&text) {
+                let off = apply::Apply {
+                    auto_layout: false,
+                    ..*apply
+                };
+                text = apply::apply_layout_indent(layout, line, off);
+                if misreads(&text) {
+                    text = None;
                 }
             }
-            Some(walk::Plan::AsRead) | None => out.extend_from_slice(line),
+            lines.push(text.unwrap_or_else(|| line.to_vec()));
         }
-        out.extend_from_slice(b"\r\n");
+        out.push(lines);
     }
     out
+}
+
+/// What `OneStatementPerLine` and `BlockIf` can do to each line of `file` (design D8 of `format-statement-lines`),
+/// from its parse alone: for the language server's code actions, and the format oracle's check that nothing is
+/// left to rewrite. The settings and the check are not read; see [`Rewritable`].
+pub fn rewritable(map: &SourceMap, parsed: &ParsedProgram, file: FileId) -> Vec<Rewritable> {
+    let ranges = line_ranges(&map.file(file).bytes);
+    match parsed.trees.iter().find(|t| t.file == file) {
+        Some(tree) => walk::rewritable(map, tree.root(), &ranges),
+        None => vec![Rewritable::default(); ranges.len()],
+    }
 }
 
 /// A line as the lexer reads it, for the check of an incomplete program's layout: letters outside strings in

@@ -19,8 +19,20 @@ async function stoppedAfter(from: number, timeout = 600000, note: () => string =
     try {
         return await waitFor("a stopped event", () => sent.slice(from).find((m) => m.type === "event" && m.event === "stopped"), timeout);
     } catch (e) {
+        // The threads as the adapter names them, read in a pause: one named "Program" once its own breakpoint on the
+        // main module was hit.
+        let threads: string;
+        try {
+            const session = vscode.debug.activeDebugSession!;
+            const paused = sent.length;
+            await session.customRequest("pause", { threadId: 0 });
+            await waitFor("the pause", () => sent.slice(paused).find((m) => m.type === "event" && m.event === "stopped"), 30000);
+            threads = JSON.stringify((await session.customRequest("threads")).threads);
+        } catch (t) {
+            threads = `not read (${(t as Error).message})`;
+        }
         const seen = sent.slice(from).map((m) => JSON.stringify(m).slice(0, 600));
-        throw new Error(`${(e as Error).message}; ${note()}; the adapter sent ${seen.length} messages:\n${seen.join("\n")}`, { cause: e });
+        throw new Error(`${(e as Error).message}; ${note()}; threads ${threads}; the adapter sent ${seen.length} messages:\n${seen.join("\n")}`, { cause: e });
     }
 }
 

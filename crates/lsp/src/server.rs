@@ -15,8 +15,8 @@ use lsp_types::notification::{
     DidOpenTextDocument, Notification as _, PublishDiagnostics, ShowMessage,
 };
 use lsp_types::request::{
-    Completion, DocumentSymbolRequest, FoldingRangeRequest, Formatting, GotoDefinition, HoverRequest,
-    PrepareRenameRequest, RangeFormatting, References, Rename, Request as _, Shutdown,
+    CodeActionRequest, CodeActionResolveRequest, Completion, DocumentSymbolRequest, FoldingRangeRequest, Formatting,
+    GotoDefinition, HoverRequest, PrepareRenameRequest, RangeFormatting, References, Rename, Request as _, Shutdown,
 };
 use lsp_types::{
     CancelParams, CompletionList, CompletionOptions, CompletionParams, DidChangeTextDocumentParams,
@@ -27,7 +27,7 @@ use lsp_types::{
     ServerCapabilities, ShowMessageParams, TextDocumentPositionParams, TextDocumentSyncKind, TextEdit, Uri,
     WorkspaceEdit,
 };
-use qb64rust_base::layout::{KeywordStyle, Settings};
+use qb64rust_base::layout::{KeywordStyle, Rewritable, Settings};
 use qb64rust_base::{Diagnostics, FileId, Severity};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -80,13 +80,22 @@ pub fn capabilities() -> ServerCapabilities {
         })),
         document_formatting_provider: Some(lsp_types::OneOf::Left(true)),
         document_range_formatting_provider: Some(lsp_types::OneOf::Left(true)),
+        // The two rewrites of the formatter (OpenSpec change `format-statement-lines`, design D8): listed from the
+        // last parse, their edit made on resolve.
+        code_action_provider: Some(lsp_types::CodeActionProviderCapability::Options(
+            lsp_types::CodeActionOptions {
+                code_action_kinds: Some(vec![lsp_types::CodeActionKind::REFACTOR_REWRITE]),
+                resolve_provider: Some(true),
+                work_done_progress_options: lsp_types::WorkDoneProgressOptions::default(),
+            },
+        )),
         ..ServerCapabilities::default()
     }
 }
 
 /// The layout settings of a client's `format` object (spec `editor/language-server`, "Format settings from the
 /// client"): `autoIndent`, `indentSize` (1 to 64), `indentSubs`, `autoLayout`, `keywordCase` (`camel`, `upper`,
-/// `lower`); a setting missing or of another kind takes `-y`'s default.
+/// `lower`), `oneStatementPerLine`, `blockIf`; a setting missing or of another kind takes `-y`'s default.
 pub fn format_settings(v: Option<&Value>) -> Settings {
     let mut s = Settings::default();
     let Some(v) = v else {
@@ -95,6 +104,12 @@ pub fn format_settings(v: Option<&Value>) -> Settings {
     let flag = |name: &str| v.get(name).and_then(Value::as_bool);
     if let Some(b) = flag("autoIndent") {
         s.auto_indent = b;
+    }
+    if let Some(b) = flag("oneStatementPerLine") {
+        s.one_statement_per_line = b;
+    }
+    if let Some(b) = flag("blockIf") {
+        s.block_if = b;
     }
     if let Some(b) = flag("indentSubs") {
         s.indent_subs = b;
@@ -159,10 +174,12 @@ pub fn serve(conn: Connection, default_root: PathBuf, hooks: Hooks) -> Result<()
         .iter()
         .filter_map(|f| to_path(&f.uri))
         .collect();
+    let rewritable = hooks.rewritable;
     let jobs = start_worker(events, hooks);
     let mut server = Server::new(conn, jobs, root, default);
     server.format = format;
     server.folders = folders;
+    server.rewritable = rewritable;
     server.run(&inbox)
 }
 
@@ -209,7 +226,7 @@ enum Event {
 
 /// What a formatting job gives back: its parse and the formatted file or the diagnostics that stop it, `None` when
 /// the program no longer includes the document; or the message of a panic.
-type FormatResult = Result<(Analysis, Option<Result<Vec<u8>, Diagnostics>>), String>;
+type FormatResult = Result<(Analysis, Option<Result<crate::Formatted, Diagnostics>>), String>;
 
 /// A formatting request on its way: the document, whole or a range, the settings it is formatted with, and the
 /// document's version when it was asked, so that an answer for an older text is refused.
@@ -221,6 +238,47 @@ struct FormatRequest {
     range: Option<Range>,
     settings: Settings,
     version: u64,
+    /// For `codeAction/resolve`: the rewrite and the action to answer with its edit (design D8 of
+    /// `format-statement-lines`).
+    action: Option<(Rewrite, Value)>,
+}
+
+/// One of the two rewrites a code action makes (OpenSpec change `format-statement-lines`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Rewrite {
+    Split,
+    BlockIf,
+}
+
+impl Rewrite {
+    fn title(self) -> &'static str {
+        match self {
+            Rewrite::Split => "Put each statement on its own line",
+            Rewrite::BlockIf => "Convert to block IF",
+        }
+    }
+
+    /// Its name in the action's `data`.
+    fn name(self) -> &'static str {
+        match self {
+            Rewrite::Split => "oneStatementPerLine",
+            Rewrite::BlockIf => "blockIf",
+        }
+    }
+
+    /// `settings` with this rewrite on and the other off.
+    fn forced(self, settings: Settings) -> Settings {
+        let mut s = settings;
+        s.one_statement_per_line = self == Rewrite::Split;
+        s.block_if = self == Rewrite::BlockIf;
+        s
+    }
+}
+
+/// What the rewrites do nothing without: no rewrite at all (`qb64rust_format::rewritable`'s stand-in when the
+/// server is built without hooks, as in its unit tests).
+fn no_rewrites(_: &qb64rust_base::SourceMap, _: &qb64rust_syntax::ParsedProgram, _: FileId) -> Vec<Rewritable> {
+    Vec::new()
 }
 
 /// What the lookup of a document's program needs from the server (design D7 of `include-file-program`).
@@ -340,9 +398,18 @@ fn start_worker(events: mpsc::Sender<Event>, hooks: Hooks) -> mpsc::Sender<Job> 
                         // `include-file-program`). `None` when the program no longer includes it: its lookup is
                         // still to come.
                         let format = hooks.format;
-                        let text = a
-                            .file_of(&request.doc)
-                            .map(|file| format(&a.map, &a.parsed, path.as_deref(), &job.root, &request.settings, file));
+                        let forced = request.action.is_some();
+                        let text = a.file_of(&request.doc).map(|file| {
+                            format(
+                                &a.map,
+                                &a.parsed,
+                                path.as_deref(),
+                                &job.root,
+                                &request.settings,
+                                forced,
+                                file,
+                            )
+                        });
                         (a, text)
                     }))
                     .map_err(|e| panic_message(&*e, "formatting"));
@@ -500,6 +567,11 @@ struct Server {
     folders: Vec<PathBuf>,
     /// Counts the opens of documents (`Doc::opened`).
     opens: u64,
+    /// What the rewrites can do to a parse's lines, for the code actions (`Hooks::rewritable`).
+    rewritable: crate::Rewritables,
+    /// The warning for a rewrite setting without effect was sent; cleared when the client's settings or the
+    /// settings file change (design D6 of `format-statement-lines`).
+    warned: bool,
 }
 
 impl Server {
@@ -531,6 +603,8 @@ impl Server {
             named: HashSet::new(),
             folders: Vec::new(),
             opens: 0,
+            rewritable: no_rewrites,
+            warned: false,
         }
     }
 
@@ -649,6 +723,7 @@ impl Server {
                             .any(|c| field(c, "uri").is_some_and(|u| u.rsplit('/').next() == Some(SETTINGS_FILE)))
                     });
                 if settings {
+                    self.warned = false;
                     let keys: Vec<String> = self.docs.keys().cloned().collect();
                     for key in keys {
                         self.changed(&key);
@@ -661,6 +736,7 @@ impl Server {
                 // `{ settings: { format: {...} } }`: the layout settings replace the last ones.
                 if let Some(format) = n.params.get("settings").and_then(|s| s.get("format")) {
                     self.format = format_settings(Some(format));
+                    self.warned = false;
                 }
             }
             Cancel::METHOD => {
@@ -1248,6 +1324,10 @@ impl Server {
                 self.format_request(req);
                 return;
             }
+            CodeActionResolveRequest::METHOD => {
+                self.resolve_code_action(req);
+                return;
+            }
             Completion::METHOD => {
                 self.completion(req);
                 return;
@@ -1275,6 +1355,9 @@ impl Server {
             }
             GotoDefinition::METHOD => serde_json::from_value::<GotoDefinitionParams>(req.params.clone())
                 .map(|p| p.text_document_position_params.text_document.uri),
+            CodeActionRequest::METHOD => {
+                serde_json::from_value::<lsp_types::CodeActionParams>(req.params.clone()).map(|p| p.text_document.uri)
+            }
             _ => {
                 let msg = format!("unknown method {}", req.method);
                 self.send(Response::new_err(req.id, ErrorCode::MethodNotFound as i32, msg));
@@ -1376,10 +1459,23 @@ impl Server {
                 return;
             }
         };
-        let doc_key = uri_key(&uri);
+        self.format_job(req.id, &uri, range, self.format, None);
+    }
+
+    /// A formatting job for request `id` (a formatting request, or a code action's resolve with its `action`): the
+    /// document `uri`, whole or a range, laid out inside its program with `settings`.
+    fn format_job(
+        &mut self,
+        id: RequestId,
+        uri: &Uri,
+        range: Option<Range>,
+        settings: Settings,
+        action: Option<(Rewrite, Value)>,
+    ) {
+        let doc_key = uri_key(uri);
         let Some(doc) = self.docs.get(&doc_key) else {
             let msg = "formatting needs an open document".to_string();
-            self.send(Response::new_err(req.id, ErrorCode::InvalidParams as i32, msg));
+            self.send(Response::new_err(id, ErrorCode::InvalidParams as i32, msg));
             return;
         };
         // The document is laid out inside its program, which may be another file (design D4 of
@@ -1388,7 +1484,7 @@ impl Server {
         let version = doc.version;
         let Some(main) = self.program_main(&key) else {
             let msg = "the main file of the document's program cannot be read".to_string();
-            self.send(Response::new_err(req.id, ErrorCode::InternalError as i32, msg));
+            self.send(Response::new_err(id, ErrorCode::InternalError as i32, msg));
             return;
         };
         let open: Arc<HashMap<String, OpenFile>> =
@@ -1404,11 +1500,12 @@ impl Server {
             default: self.default,
             check: None,
             format: Some(FormatRequest {
-                id: req.id,
+                id,
                 doc: doc_key,
                 range,
-                settings: self.format,
+                settings,
                 version,
+                action,
             }),
             index: false,
             rename: None,
@@ -1421,21 +1518,24 @@ impl Server {
 
     /// The result of a formatting request of program `key`. An answer for a text that changed since the request is
     /// `ContentModified`. On success: one edit of the whole document, or one per changed line of the range, each
-    /// line keeping its own line end; none when nothing changes. When the parser reports an error in the program:
-    /// its diagnostics published as a check's, a message naming the first, and no edits. An answer from a program
-    /// that is no longer the document's, or that no longer includes it, is `ContentModified` too.
+    /// line keeping its own line end; none when nothing changes. A line that a rewrite setting cuts is replaced by
+    /// all its lines (design D8 of `format-statement-lines`). When the parser reports an error in the program: its
+    /// diagnostics published as a check's, a message naming the first, and no edits. An answer from a program that
+    /// is no longer the document's, or that no longer includes it, is `ContentModified` too. The result of a code
+    /// action's resolve is that action, with its edit when the rewrite can be made ([`Server::rewrite_resolved`]).
     fn formatted(&mut self, key: &str, request: FormatRequest, result: FormatResult) {
         let Some(doc) = self.docs.get(&request.doc).filter(|d| d.version == request.version) else {
             let code = ErrorCode::ContentModified as i32;
             self.send(Response::new_err(request.id, code, "the document changed".into()));
             return;
         };
+        let (text, encoding, uri) = (doc.text.clone(), doc.encoding, doc.uri.clone());
         let modified = |s: &Self, id: RequestId| {
             let code = ErrorCode::ContentModified as i32;
             s.send(Response::new_err(id, code, "the document's program changed".into()));
         };
-        let (analysis, text) = match result {
-            Ok((a, Some(text))) if self.program_of(&request.doc) == key => (a, text),
+        let (analysis, output) = match result {
+            Ok((a, Some(output))) if self.program_of(&request.doc) == key => (a, output),
             Ok(_) => {
                 modified(self, request.id);
                 return;
@@ -1447,23 +1547,38 @@ impl Server {
                 return;
             }
         };
-        match text {
-            Ok(bytes) => {
-                let lines = formatted_lines(&bytes, doc.encoding);
-                let edits = line_edits(&doc.text, &lines, request.range);
+        match output {
+            Ok(f) => {
+                let lines = formatted_lines(&f.lines, encoding);
+                if let Some((rewrite, action)) = request.action {
+                    self.rewrite_resolved(
+                        request.id,
+                        (rewrite, action),
+                        &analysis,
+                        &f,
+                        &text,
+                        &lines,
+                        request.range,
+                        uri,
+                    );
+                    return;
+                }
+                let edits = line_edits(&text, &lines, request.range, false);
+                // Once until the settings change, so that format on save does not repeat it (design D6).
+                if let Some(warning) = f.settings.rewrite_warning().filter(|_| !self.warned) {
+                    self.warned = true;
+                    let params = ShowMessageParams {
+                        typ: MessageType::WARNING,
+                        message: warning,
+                    };
+                    self.send(Notification::new(ShowMessage::METHOD.into(), params));
+                }
                 self.send(Response::new_ok(request.id, edits));
             }
             Err(diagnostics) => {
                 let mut list = diagnostics.list().to_vec();
                 list.sort_by_key(|d| (d.span.file.0, d.span.start));
-                let first = list.iter().find(|d| d.severity == Severity::Error).map(|d| {
-                    let file = analysis.map.file(d.span.file);
-                    let (line, _) = file.line_col(d.span.start);
-                    let name = to_path(&analysis.info(d.span.file).uri)
-                        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
-                        .unwrap_or_else(|| file.name.clone());
-                    format!("{name}, line {line}: {}", d.message)
-                });
+                let first = first_error(&analysis, &list);
                 let per_file = analysis.lsp_diagnostics(&list);
                 self.publish_program(key.to_string(), analysis, per_file);
                 if let Some(first) = first {
@@ -1473,9 +1588,119 @@ impl Server {
                     };
                     self.send(Notification::new(ShowMessage::METHOD.into(), params));
                 }
-                self.send(Response::new_ok(request.id, Vec::<TextEdit>::new()));
+                match request.action {
+                    Some((_, action)) => self.send(Response::new_ok(request.id, action)),
+                    None => self.send(Response::new_ok(request.id, Vec::<TextEdit>::new())),
+                }
             }
         }
+    }
+
+    /// Answers a code action's resolve from its format job (design D8 of `format-statement-lines`): the action with
+    /// the edits of the lines of its range that the rewrite makes more than one line. In a program with an error, or
+    /// with `AutoIndent` or `AutoLayout` off, there is no edit and a message says why.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the parts of a format job's result one answer is made of"
+    )]
+    #[expect(
+        clippy::mutable_key_type,
+        reason = "lsp_types' WorkspaceEdit keys its changes by Uri"
+    )]
+    fn rewrite_resolved(
+        &self,
+        id: RequestId,
+        (rewrite, mut action): (Rewrite, Value),
+        analysis: &Analysis,
+        f: &crate::Formatted,
+        text: &str,
+        lines: &[Vec<String>],
+        range: Option<Range>,
+        uri: Uri,
+    ) {
+        let message = |typ: MessageType, message: String| {
+            self.send(Notification::new(
+                ShowMessage::METHOD.into(),
+                ShowMessageParams { typ, message },
+            ));
+        };
+        let mut list = f.diagnostics.list().to_vec();
+        list.sort_by_key(|d| (d.span.file.0, d.span.start));
+        if let Some(first) = first_error(analysis, &list) {
+            message(
+                MessageType::ERROR,
+                format!("{} needs a program without errors: {first}", rewrite.title()),
+            );
+        } else if !(f.settings.auto_indent && f.settings.auto_layout) {
+            message(
+                MessageType::WARNING,
+                format!(
+                    "{} needs `AutoIndent` and `AutoLayout`, which the settings turn off",
+                    rewrite.title()
+                ),
+            );
+        } else {
+            let edits = line_edits(text, lines, range, true);
+            let mut changes = HashMap::new();
+            changes.insert(uri, edits);
+            let edit = WorkspaceEdit::new(changes);
+            if let Some(o) = action.as_object_mut() {
+                o.insert("edit".into(), serde_json::to_value(edit).unwrap_or_default());
+            }
+        }
+        self.send(Response::new_ok(id, action));
+    }
+
+    /// `textDocument/codeAction` (design D8 of `format-statement-lines`): the two rewrites that would change a line
+    /// of the range of file `file`, from the parse `a` of the document's program, with no check and no formatting.
+    /// None for a program whose parse has an error. The edit is made on resolve.
+    fn code_actions_in(&self, a: &Analysis, file: FileId, req: &Request) -> Vec<Value> {
+        let mut actions = Vec::new();
+        let Ok(p) = serde_json::from_value::<lsp_types::CodeActionParams>(req.params.clone()) else {
+            return actions;
+        };
+        if a.parsed.diagnostics().has_errors() {
+            return actions;
+        }
+        let lines = (self.rewritable)(&a.map, &a.parsed, file);
+        let first = (p.range.start.line as usize).min(lines.len());
+        let touched = &lines[first..(last_line(p.range) as usize + 1).clamp(first, lines.len())];
+        for rewrite in [Rewrite::Split, Rewrite::BlockIf] {
+            let offered = touched.iter().any(|r| match rewrite {
+                Rewrite::Split => r.split,
+                Rewrite::BlockIf => r.block_if,
+            });
+            if offered {
+                actions.push(serde_json::json!({
+                    "title": rewrite.title(),
+                    "kind": lsp_types::CodeActionKind::REFACTOR_REWRITE,
+                    "data": { "uri": p.text_document.uri, "range": p.range, "rewrite": rewrite.name() },
+                }));
+            }
+        }
+        actions
+    }
+
+    /// `codeAction/resolve` of one of [`Server::code_actions_in`]' actions: a format job of its range with its rewrite
+    /// on and the other off, whatever the settings say, the settings file's too; the job reads that file for the others.
+    fn resolve_code_action(&mut self, req: Request) {
+        let data = req.params.get("data");
+        let uri = data.and_then(|d| field(d, "uri")).and_then(|u| Uri::from_str(u).ok());
+        let range = data
+            .and_then(|d| d.get("range"))
+            .and_then(|r| serde_json::from_value::<Range>(r.clone()).ok());
+        let rewrite = match data.and_then(|d| field(d, "rewrite")) {
+            Some("oneStatementPerLine") => Some(Rewrite::Split),
+            Some("blockIf") => Some(Rewrite::BlockIf),
+            _ => None,
+        };
+        let (Some(uri), Some(range), Some(rewrite)) = (uri, range, rewrite) else {
+            let msg = "not a code action of this server".to_string();
+            self.send(Response::new_err(req.id, ErrorCode::InvalidParams as i32, msg));
+            return;
+        };
+        let settings = rewrite.forced(self.format);
+        self.format_job(req.id, &uri, Some(range), settings, Some((rewrite, req.params)));
     }
 
     /// Answers a request about document `doc` from the last parse of its program `key`. A definition the parser does
@@ -1824,6 +2049,9 @@ impl Server {
                 let found = a.and_then(|a| parser_definition(a, &req, doc));
                 serde_json::to_value(found.map(GotoDefinitionResponse::Scalar))
             }
+            CodeActionRequest::METHOD => Ok(Value::Array(
+                file.map(|(a, f)| self.code_actions_in(a, f, &req)).unwrap_or_default(),
+            )),
             _ => unreachable!("only requests about a document are answered here"),
         };
         match result {
@@ -1864,18 +2092,33 @@ fn parser_definition(a: &Analysis, req: &Request, doc: &str) -> Option<Location>
     Some(Location::new(uri, a.range(span)))
 }
 
-/// The lines of the formatter's output (every line followed by CR LF) as text in the document's encoding.
-fn formatted_lines(bytes: &[u8], encoding: Encoding) -> Vec<String> {
-    let mut lines: Vec<&[u8]> = Vec::new();
-    let mut rest = bytes;
-    while let Some(i) = rest.windows(2).position(|w| w == b"\r\n") {
-        lines.push(&rest[..i]);
-        rest = &rest[i + 2..];
+/// The output lines of each line of the formatter's output as text in the document's encoding.
+fn formatted_lines(lines: &[Vec<Vec<u8>>], encoding: Encoding) -> Vec<Vec<String>> {
+    lines
+        .iter()
+        .map(|group| group.iter().map(|l| decode(l, encoding)).collect())
+        .collect()
+}
+
+/// The first error of a sorted list as a message names it: `<file name>, line <n>: <message>`.
+fn first_error(analysis: &Analysis, list: &[qb64rust_base::Diagnostic]) -> Option<String> {
+    list.iter().find(|d| d.severity == Severity::Error).map(|d| {
+        let file = analysis.map.file(d.span.file);
+        let (line, _) = file.line_col(d.span.start);
+        let name = to_path(&analysis.info(d.span.file).uri)
+            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+            .unwrap_or_else(|| file.name.clone());
+        format!("{name}, line {line}: {}", d.message)
+    })
+}
+
+/// The last line a range touches: a range that ends at the start of a line does not touch that line.
+fn last_line(range: Range) -> u32 {
+    if range.end.character == 0 && range.end.line > range.start.line {
+        range.end.line - 1
+    } else {
+        range.end.line
     }
-    if !rest.is_empty() {
-        lines.push(rest);
-    }
-    lines.into_iter().map(|l| decode(l, encoding)).collect()
 }
 
 /// Bytes in the document's encoding as text: a table's characters, or UTF-8 as it is (the formatter changes the case
@@ -1916,14 +2159,24 @@ fn text_lines(text: &str) -> Vec<(&str, &str)> {
 
 /// The edits that turn the document's text into the formatted lines: the whole document in one, or for a range each
 /// line it touches that changed (spec `editor/language-server`, "Range formatting"). A range that ends at the start
-/// of a line does not touch that line.
-fn line_edits(text: &str, formatted: &[String], range: Option<Range>) -> Vec<TextEdit> {
+/// of a line does not touch that line. A line the formatter made several lines of is replaced by all of them,
+/// joined by its own line end, or by the document's first one when it has none. With `grown_only` (a code action's
+/// edit), only the lines that became several lines are replaced.
+fn line_edits(text: &str, formatted: &[Vec<String>], range: Option<Range>, grown_only: bool) -> Vec<TextEdit> {
     let lines = text_lines(text);
     let utf16 = |s: &str| u32::try_from(s.encode_utf16().count()).unwrap_or(u32::MAX);
+    let doc_end = lines.iter().map(|(_, e)| *e).find(|e| !e.is_empty()).unwrap_or("\r\n");
+    let output = |i: usize, old: &str, end: &str| -> Option<String> {
+        let group = formatted.get(i)?;
+        if group.len() == 1 && group[0] == old {
+            return None;
+        }
+        Some(group.join(if end.is_empty() { doc_end } else { end }))
+    };
     let Some(range) = range else {
         let mut new = String::with_capacity(text.len());
         for (i, (old, end)) in lines.iter().enumerate() {
-            new.push_str(formatted.get(i).map_or(*old, String::as_str));
+            new.push_str(&output(i, old, end).unwrap_or_else(|| (*old).to_string()));
             new.push_str(end);
         }
         if new == text {
@@ -1936,20 +2189,18 @@ fn line_edits(text: &str, formatted: &[String], range: Option<Range>) -> Vec<Tex
         };
         return vec![TextEdit::new(Range::new(Position::new(0, 0), end), new)];
     };
-    let last = if range.end.character == 0 && range.end.line > range.start.line {
-        range.end.line - 1
-    } else {
-        range.end.line
-    };
     let mut edits = Vec::new();
-    for line in range.start.line..=last {
+    for line in range.start.line..=last_line(range) {
         let i = line as usize;
-        let (Some((old, _)), Some(new)) = (lines.get(i), formatted.get(i)) else {
+        let Some((old, end)) = lines.get(i) else {
             continue;
         };
-        if old != new {
+        if grown_only && formatted.get(i).is_none_or(|g| g.len() < 2) {
+            continue;
+        }
+        if let Some(new) = output(i, old, end) {
             let at = Range::new(Position::new(line, 0), Position::new(line, utf16(old)));
-            edits.push(TextEdit::new(at, new.clone()));
+            edits.push(TextEdit::new(at, new));
         }
     }
     edits
@@ -2002,9 +2253,10 @@ mod tests {
         _: Option<&std::path::Path>,
         _: &std::path::Path,
         _: &Settings,
+        _: bool,
         _: FileId,
-    ) -> Result<Vec<u8>, Diagnostics> {
-        Ok(Vec::new())
+    ) -> Result<crate::Formatted, Diagnostics> {
+        Ok(crate::Formatted::default())
     }
 
     fn no_index(
@@ -2053,6 +2305,7 @@ mod tests {
             format: no_format,
             index: no_index,
             main_of: no_main,
+            rewritable: no_rewrites,
         };
         let jobs = start_worker(events, hooks);
         let mut s = Server::new(server_side, jobs, PathBuf::new(), Encoding::DEFAULT);
@@ -2106,6 +2359,7 @@ mod tests {
             format: no_format,
             index: no_index,
             main_of: main_is_game,
+            rewritable: no_rewrites,
         };
         let jobs = start_worker(events, hooks);
         let mut s = Server::new(server_side, jobs, PathBuf::new(), Encoding::DEFAULT);
@@ -2151,6 +2405,7 @@ mod tests {
             format: no_format,
             index: no_index,
             main_of: no_main,
+            rewritable: no_rewrites,
         };
         let jobs = start_worker(events, hooks);
         let mut s = Server::new(server_side, jobs, PathBuf::new(), Encoding::DEFAULT);
@@ -2224,5 +2479,71 @@ mod tests {
         // ... and a later one an empty answer at once, not a wait for a parse that does not come.
         s.request(symbols(2));
         assert_eq!(response(&client).response_result.unwrap(), json!([]));
+    }
+
+    fn every_line_splits(
+        map: &qb64rust_base::SourceMap,
+        _: &qb64rust_syntax::ParsedProgram,
+        file: FileId,
+    ) -> Vec<Rewritable> {
+        let lines = map.file(file).bytes.split(|&c| c == b'\n').count();
+        vec![
+            Rewritable {
+                split: true,
+                block_if: false
+            };
+            lines
+        ]
+    }
+
+    /// A code action request is answered from the last parse and starts no job, whether there is something to
+    /// rewrite or not (design D8 of `format-statement-lines`); its resolve starts a format job with that rewrite on
+    /// and the other off.
+    #[test]
+    fn code_actions_start_no_job() {
+        let (mut s, client, queue) = server();
+        let uri = "untitled:Untitled-1";
+        let doc = json!({ "uri": uri, "languageId": "qb64rust", "version": 1, "text": "x = 0\n" });
+        s.notification(Notification::new(
+            DidOpenTextDocument::METHOD.into(),
+            json!({ "textDocument": doc }),
+        ));
+        for at in s.pending.values_mut() {
+            *at = Instant::now();
+        }
+        s.dispatch_due();
+        let job = queue.try_recv().unwrap();
+        let a = analyze(&job.key, &job.main, &job.open, &job.root, job.default);
+        s.parsed(job.key, job.seq, Ok(a));
+        let _ = client.receiver.try_iter().count();
+        let ask = |id: i32| {
+            let params = json!({
+                "textDocument": { "uri": uri },
+                "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } },
+                "context": { "diagnostics": [] },
+            });
+            Request::new(id.into(), CodeActionRequest::METHOD.into(), params)
+        };
+        s.request(ask(1));
+        assert_eq!(
+            response(&client).response_result.unwrap(),
+            json!([]),
+            "nothing to rewrite"
+        );
+        assert!(queue.try_recv().is_err(), "no job for nothing to rewrite");
+        s.rewritable = every_line_splits;
+        s.request(ask(2));
+        let actions = response(&client).response_result.unwrap();
+        assert_eq!(actions[0]["title"], "Put each statement on its own line");
+        assert!(queue.try_recv().is_err(), "no job for the list");
+        s.request(Request::new(
+            3.into(),
+            CodeActionResolveRequest::METHOD.into(),
+            actions[0].clone(),
+        ));
+        let job = queue.try_recv().expect("a format job for the resolve");
+        let f = job.format.unwrap();
+        assert!(f.settings.one_statement_per_line && !f.settings.block_if);
+        assert_eq!(f.action.map(|(r, _)| r), Some(Rewrite::Split));
     }
 }

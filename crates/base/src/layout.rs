@@ -27,6 +27,11 @@ pub struct Settings {
     /// `AutoLayout`: one space between elements; off keeps each line's own spacing.
     pub auto_layout: bool,
     pub keywords: KeywordStyle,
+    /// `OneStatementPerLine`, not QB64pe's: each statement of a packed line on a line of its own (OpenSpec change
+    /// `format-statement-lines`).
+    pub one_statement_per_line: bool,
+    /// `BlockIf`, not QB64pe's: a single-line `IF` written as a block.
+    pub block_if: bool,
     // `KeywordCapitals` and `KeywordLowercase` as given (`tmpKwCap`, `tmpKwLow`): the style follows from both.
     capitals: Option<bool>,
     lowercase: Option<bool>,
@@ -44,6 +49,20 @@ pub struct Overrides {
     pub indent_subs: Option<bool>,
     pub auto_layout: Option<bool>,
     pub keywords: Option<KeywordStyle>,
+    pub one_statement_per_line: Option<bool>,
+    pub block_if: Option<bool>,
+}
+
+/// What the rewrites `OneStatementPerLine` and `BlockIf` can do to one source line, from its tree alone (OpenSpec
+/// change `format-statement-lines`, design D8): what the language server offers as code actions, and what the format
+/// oracle requires to be gone after the rewrites. Here in `base` so that the server can hold it without the
+/// formatter.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Rewritable {
+    /// `OneStatementPerLine` would write the line as two or more lines.
+    pub split: bool,
+    /// The line holds a single-line `IF` that `BlockIf` would write as a block.
+    pub block_if: bool,
 }
 
 impl Default for Settings {
@@ -54,6 +73,8 @@ impl Default for Settings {
             indent_subs: true,
             auto_layout: true,
             keywords: KeywordStyle::Camel,
+            one_statement_per_line: false,
+            block_if: false,
             capitals: None,
             lowercase: None,
             keywords_before: None,
@@ -79,6 +100,8 @@ impl Settings {
             }
             "indentsubs" => self.indent_subs = boolean(name, value)?,
             "autolayout" => self.auto_layout = boolean(name, value)?,
+            "onestatementperline" => self.one_statement_per_line = boolean(name, value)?,
+            "blockif" => self.block_if = boolean(name, value)?,
             "keywordcapitals" => {
                 self.capitals = Some(boolean(name, value)?);
                 self.keyword_style();
@@ -101,9 +124,38 @@ impl Settings {
         self.indent_subs = o.indent_subs.unwrap_or(self.indent_subs);
         self.auto_layout = o.auto_layout.unwrap_or(self.auto_layout);
         self.keywords = o.keywords.unwrap_or(self.keywords);
+        self.one_statement_per_line = o.one_statement_per_line.unwrap_or(self.one_statement_per_line);
+        self.block_if = o.block_if.unwrap_or(self.block_if);
         self.capitals = None;
         self.lowercase = None;
         self.keywords_before = None;
+    }
+
+    /// The warning for a rewrite setting that is on while `AutoIndent` or `AutoLayout` is off, which then rewrites
+    /// nothing (spec `compiler/format`, "A rewrite setting without effect"): it names the rewrites and the settings
+    /// that are off. `None` when there is nothing to warn about.
+    pub fn rewrite_warning(&self) -> Option<String> {
+        let on: Vec<&str> = [
+            (self.one_statement_per_line, "`OneStatementPerLine`"),
+            (self.block_if, "`BlockIf`"),
+        ]
+        .into_iter()
+        .filter_map(|(b, n)| b.then_some(n))
+        .collect();
+        let off: Vec<&str> = [(self.auto_indent, "`AutoIndent`"), (self.auto_layout, "`AutoLayout`")]
+            .into_iter()
+            .filter_map(|(b, n)| (!b).then_some(n))
+            .collect();
+        if on.is_empty() || off.is_empty() {
+            return None;
+        }
+        let has = if on.len() == 1 { "has" } else { "have" };
+        let are = if off.len() == 1 { "is" } else { "are" };
+        Some(format!(
+            "{} {has} no effect while {} {are} off",
+            on.join(" and "),
+            off.join(" and ")
+        ))
     }
 
     /// The style from the two keyword settings, as `qb64pe` decides it after reading all its options (worked out
@@ -191,6 +243,70 @@ mod tests {
         assert!(!s.auto_indent && !s.indent_subs && !s.auto_layout);
         let s = with(&[("autoindent", "yes"), ("indentsubs", "-1"), ("autolayout", "On")]).unwrap();
         assert!(s.auto_indent && s.indent_subs && s.auto_layout);
+    }
+
+    #[test]
+    fn the_rewrite_settings() {
+        let s = Settings::default();
+        assert!(!s.one_statement_per_line && !s.block_if, "both off by default");
+        let s = with(&[("OneStatementPerLine", "true"), ("BLOCKIF", "1")]).unwrap();
+        assert!(s.one_statement_per_line && s.block_if);
+        let s = with(&[
+            ("onestatementperline", "on"),
+            ("onestatementperline", "off"),
+            ("blockIf", "no"),
+        ])
+        .unwrap();
+        assert!(!s.one_statement_per_line && !s.block_if);
+        let e = with(&[("BlockIf", "maybe")]).unwrap_err();
+        assert!(e.contains("BlockIf") && e.contains("`true` or `false`"), "{e}");
+        let e = with(&[("OneStatementPerLine", "2")]).unwrap_err();
+        assert!(e.contains("OneStatementPerLine"), "{e}");
+    }
+
+    #[test]
+    fn warning_for_a_rewrite_without_effect() {
+        assert_eq!(Settings::default().rewrite_warning(), None);
+        assert_eq!(with(&[("OneStatementPerLine", "1")]).unwrap().rewrite_warning(), None);
+        assert_eq!(
+            with(&[("AutoLayout", "0")]).unwrap().rewrite_warning(),
+            None,
+            "no rewrite on"
+        );
+        assert_eq!(
+            with(&[("OneStatementPerLine", "1"), ("AutoLayout", "0")])
+                .unwrap()
+                .rewrite_warning()
+                .unwrap(),
+            "`OneStatementPerLine` has no effect while `AutoLayout` is off"
+        );
+        let all = [("OneStatementPerLine", "1"), ("BlockIf", "1"), ("AutoIndent", "0")];
+        assert_eq!(
+            with(&all).unwrap().rewrite_warning().unwrap(),
+            "`OneStatementPerLine` and `BlockIf` have no effect while `AutoIndent` is off"
+        );
+        let both_off = [("BlockIf", "1"), ("AutoIndent", "0"), ("AutoLayout", "0")];
+        assert_eq!(
+            with(&both_off).unwrap().rewrite_warning().unwrap(),
+            "`BlockIf` has no effect while `AutoIndent` and `AutoLayout` are off"
+        );
+    }
+
+    #[test]
+    fn overrides_of_the_rewrite_settings() {
+        let mut s = with(&[("OneStatementPerLine", "true")]).unwrap();
+        s.apply(&Overrides::default());
+        assert!(
+            s.one_statement_per_line && !s.block_if,
+            "an absent key leaves its setting"
+        );
+        s.apply(&Overrides {
+            one_statement_per_line: Some(false),
+            block_if: Some(true),
+            ..Overrides::default()
+        });
+        assert!(!s.one_statement_per_line && s.block_if);
+        assert!(s.auto_indent && s.auto_layout, "the others untouched");
     }
 
     #[test]

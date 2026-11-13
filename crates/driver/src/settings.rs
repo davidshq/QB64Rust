@@ -190,7 +190,8 @@ fn switches<T>(
 }
 
 /// The keys of `[format]`, in the order an error lists them.
-const FORMAT_KEYS: &str = "auto-indent, indent-size, indent-subs, auto-layout, keyword-case";
+const FORMAT_KEYS: &str =
+    "auto-indent, indent-size, indent-subs, auto-layout, keyword-case, one-statement-per-line, block-if";
 
 /// The `[format]` table (spec `compiler/format`, "Format table of the settings file" and "A bad format table").
 fn format_table(table: &DeTable<'_>, line: &dyn Fn(usize) -> u32) -> Result<Overrides, (u32, String)> {
@@ -207,6 +208,8 @@ fn format_table(table: &DeTable<'_>, line: &dyn Fn(usize) -> u32) -> Result<Over
             "auto-indent" => o.auto_indent = Some(boolean()?),
             "indent-subs" => o.indent_subs = Some(boolean()?),
             "auto-layout" => o.auto_layout = Some(boolean()?),
+            "one-statement-per-line" => o.one_statement_per_line = Some(boolean()?),
+            "block-if" => o.block_if = Some(boolean()?),
             "indent-size" => {
                 let size = v
                     .as_integer()
@@ -393,7 +396,7 @@ mod tests {
         assert_eq!(
             format(
                 "[format]\nauto-indent = false\nindent-size = 2\nindent-subs = false\nauto-layout = false\n\
-                 keyword-case = \"upper\"\n"
+                 keyword-case = \"upper\"\none-statement-per-line = true\nblock-if = false\n"
             ),
             Ok(Overrides {
                 auto_indent: Some(false),
@@ -401,8 +404,18 @@ mod tests {
                 indent_subs: Some(false),
                 auto_layout: Some(false),
                 keywords: Some(KeywordStyle::Upper),
+                one_statement_per_line: Some(true),
+                block_if: Some(false),
             }),
             "each key"
+        );
+        assert_eq!(
+            format("[format]\nblock-if = true\n"),
+            Ok(Overrides {
+                block_if: Some(true),
+                ..Overrides::default()
+            }),
+            "one rewrite key"
         );
         assert_eq!(
             format("format.keyword-case = \"lower\"\n"),
@@ -430,7 +443,7 @@ mod tests {
         assert_eq!(
             msg,
             "unknown format setting `indent`; the settings are auto-indent, indent-size, indent-subs, \
-             auto-layout, keyword-case"
+             auto-layout, keyword-case, one-statement-per-line, block-if"
         );
         let (line, msg) = format("[format]\n\nindent-size = 65\n").unwrap_err();
         assert_eq!(
@@ -458,6 +471,13 @@ mod tests {
         );
         let (_, msg) = format("[format]\nauto-layout = \"yes\"\n").unwrap_err();
         assert_eq!(msg, "the value of `auto-layout` must be true or false");
+        let (line, msg) = format("[format]\nblock-if = \"yes\"\n").unwrap_err();
+        assert_eq!(
+            (line, msg.as_str()),
+            (2, "the value of `block-if` must be true or false")
+        );
+        let (_, msg) = format("[format]\none-statement-per-line = 1\n").unwrap_err();
+        assert_eq!(msg, "the value of `one-statement-per-line` must be true or false");
         let (line, msg) = format("format = \"upper\"\n").unwrap_err();
         assert_eq!((line, msg.as_str()), (1, "`format` must be a table, as `[format]`"));
     }

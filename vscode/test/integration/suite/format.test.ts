@@ -6,7 +6,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import type { RunRequest } from "../../../src/compiler/runQueue";
-import { api, closeAll, compiler, open, qb64peDiagnostics, qb64rustDiagnostics, server, setSetting, setText, waitFor, writeFile } from "./helpers";
+import { api, closeAll, compiler, open, qb64peDiagnostics, qb64rustDiagnostics, server, setSetting, setText, waitFor, waitForAsync, writeFile } from "./helpers";
 
 const OPTIONS = { tabSize: 4, insertSpaces: true };
 
@@ -306,6 +306,34 @@ describe("formatting with the language server", () => {
         const editor = await open(writeFile("fmts/range.bas", "for i=1 to 3\r\nprint   i\r\nnext\r\n"));
         await formatLine(editor, 1);
         assert.strictEqual(editor.document.getText(), "for i=1 to 3\r\n    Print i\r\nnext\r\n");
+    });
+
+    // Change format-statement-lines, task 7.2: spec editor/formatting "Format Document with the server", and spec
+    // editor/language-server "Code actions for statement lines" with the setting off.
+    it("one statement per line, and the code action Convert to block IF", async () => {
+        const editor = await open(writeFile("fmts/rewrite.bas", "x = 0: y = 0\r\n"));
+        try {
+            await setSetting("qb64rust", "format.oneStatementPerLine", true);
+            await format(editor);
+            assert.strictEqual(editor.document.getText(), "x = 0\r\ny = 0\r\n");
+        } finally {
+            await setSetting("qb64rust", "format.oneStatementPerLine", undefined);
+        }
+        await setText(editor, "IF a THEN x = 1\r\n");
+        const range = editor.document.lineAt(0).range;
+        const action = await waitForAsync("the code action", async () => {
+            const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>(
+                "vscode.executeCodeActionProvider",
+                editor.document.uri,
+                range,
+                vscode.CodeActionKind.RefactorRewrite.value,
+                1,
+            );
+            return actions?.find((a) => a.title === "Convert to block IF");
+        });
+        assert.ok(action.edit, "resolved with its edit");
+        await vscode.workspace.applyEdit(action.edit);
+        assert.strictEqual(editor.document.getText(), "If a Then\r\n    x = 1\r\nEnd If\r\n");
     });
 
     // Spec "The project's file wins" and "A bad settings file" (change project-settings), with the server.

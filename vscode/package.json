@@ -157,6 +157,16 @@
           "default": "camel",
           "markdownDescription": "The case of keywords in Format Document. These settings take the place of QB64pe's `config.ini`, which plays no part in formatting. `keyword-case` (`\"camel\"`, `\"upper\"` or `\"lower\"`) in the `[format]` table of a project's `qb64rust.toml` overrides it, except when the build is QB64pe's."
         },
+        "qb64rust.format.oneStatementPerLine": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Format Document puts each statement of a line packed with colons on a line of its own: `x = 0: y = 0` becomes two lines. A single-line `IF` stays whole. A rewrite moves statements to new line numbers, which `_ERRORLINE` and error messages show. `one-statement-per-line` in the `[format]` table of a project's `qb64rust.toml` overrides it. Not a QB64pe setting: the old compiler's formatter (`qb64pe -y`) ignores it."
+        },
+        "qb64rust.format.blockIf": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Format Document writes a single-line `IF` as a block: `IF a THEN x = 1` becomes `If a Then`, `x = 1` one level in, and `End If`. `block-if` in the `[format]` table of a project's `qb64rust.toml` overrides it. Not a QB64pe setting: the old compiler's formatter (`qb64pe -y`) ignores it."
+        },
         "qb64rust.runArguments": {
           "type": "string",
           "default": "",

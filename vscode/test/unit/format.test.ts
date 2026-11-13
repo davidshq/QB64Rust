@@ -1,4 +1,6 @@
 import * as assert from "assert";
+import * as fs from "fs";
+import * as path from "path";
 import * as qb64pe from "../../src/compiler/qb64pe";
 import * as qb64rust from "../../src/compiler/qb64rust";
 import { chooseFormatter, selectionEdits, splitLines } from "../../src/formatPlan";
@@ -32,6 +34,38 @@ describe("format arguments", () => {
         const args = qb64pe.formatArgs(`${dir}\\w\\.f.bas`, `${dir}\\t\\out.bas`, settings);
         assert.deepStrictEqual(args, ["-y", "-q", ...formatFlags(settings), `${dir}\\w\\.f.bas`, "-o", `${dir}\\t\\out.bas`]);
         assert.ok(args.includes("-f:keywordlowercase=1"));
+    });
+
+    // Change format-statement-lines, design D1 and D8; spec editor/formatting, "Rewrite settings in the extension".
+    const rewrites = { ...DEFAULT_FORMAT, oneStatementPerLine: true, blockIf: true };
+
+    it("qb64rust -y, Format Document: the two rewrites as --format-default pairs too", () => {
+        const args = qb64rust.formatArgs(`${dir}\\w\\.f.bas`, `${dir}\\t\\out.bas`, rewrites, "");
+        assert.deepStrictEqual(args.slice(-6, -3), ["OneStatementPerLine=true", "--format-default", "BlockIf=true"]);
+        assert.ok(!args.some((a) => a.startsWith("-f:")), `${args}`);
+    });
+
+    it("qb64rust -y, Format Selection: both rewrites off with -f:, over the settings file", () => {
+        const args = qb64rust.formatArgs(`${dir}\\w\\.f.bas`, `${dir}\\t\\out.bas`, rewrites, "", true);
+        const flags = args.filter((a) => a.startsWith("-f:"));
+        assert.deepStrictEqual(flags, ["-f:OneStatementPerLine=false", "-f:BlockIf=false"]);
+        assert.ok(args.indexOf(flags[0]) > args.lastIndexOf("--format-default"), "after the defaults");
+    });
+
+    it("qb64pe -y: never the rewrites, which it does not have", () => {
+        const args = qb64pe.formatArgs(`${dir}\\w\\.f.bas`, `${dir}\\t\\out.bas`, rewrites);
+        assert.ok(!args.some((a) => /OneStatementPerLine|BlockIf/i.test(a)), `${args}`);
+    });
+
+    it("the two settings' descriptions name qb64rust.toml and the old compiler", () => {
+        // The test runs from out/test/unit; package.json is the extension's own.
+        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "..", "package.json"), "utf8"));
+        for (const name of ["qb64rust.format.oneStatementPerLine", "qb64rust.format.blockIf"]) {
+            const setting = pkg.contributes.configuration.properties[name];
+            assert.strictEqual(setting.default, false, name);
+            assert.ok(setting.markdownDescription.includes("qb64rust.toml"), name);
+            assert.ok(setting.markdownDescription.includes("qb64pe -y"), name);
+        }
     });
 });
 

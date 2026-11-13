@@ -84,14 +84,22 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    temp folder. Run 43369618409 (`0e60cfc8`) listed what the adapter sent: the breakpoint was verified, lldb
    attached to `main.exe`, and then nothing came, no stop and no exit, the same messages as a passing run on the
    host up to that point. The program now writes `started.txt` and `ended.txt` around its `CALL greet`, and a
-   timeout (now 2 minutes) says which were written.
+   timeout (now 2 minutes) says which were written. Run 43373521566 (`5f0bc7d6`): neither was written, so the
+   program hangs before its BASIC code runs. A timeout now also pauses the program and lists its threads. One
+   named "Program" means the adapter's own breakpoint on the main module was hit and the program was not
+   resumed after it.
 0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
    fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
    `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
-0. **Review and archive `fuzz-front-end`** (built 2026-11-13): `just fuzz <parse|compile|server|all>
-   <minutes>` fuzzes the front end with `cargo-fuzz` in WSL (`tools\fuzz\README.md`). Its first campaign found
-   one bug, now fixed: `CONST p = 4 ^ 0.5` never finished compiling. The first run of the `Fuzz` workflow is
-   still to be started.
+0. **Finish `format-statement-lines`** (the formatter's `OneStatementPerLine` and `BlockIf`, and the two code
+   actions; built 2026-11-13, tasks 1.1, 7.2 and 8.3 open). Left: the verification list with `qb64rust` in the
+   suites VM, which runs the new `v72` family (task 1.1); the extension's integration test of the setting and the
+   code action (7.2); and, before the merge, the whole corpus formatted with both settings and built with
+   `qb64pe.exe` in the suites VM (8.3, design D9 item 6).
+0. **Start the first run of the `Fuzz` workflow** (`fuzz-front-end` archived 2026-11-13): `just fuzz
+   <parse|compile|server|all> <minutes>` fuzzes the front end with `cargo-fuzz` in WSL (`tools\fuzz\README.md`),
+   and the workflow does the same on GitHub's runner. The first campaign found one bug, now fixed:
+   `CONST p = 4 ^ 0.5` never finished compiling.
 0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
    commit reviewed: `16f629784e`, the reference, so none yet. 38 commits wait in `..\QB64pe-latest`, up to
    `8070eebd2`.

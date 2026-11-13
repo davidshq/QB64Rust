@@ -292,25 +292,36 @@ pub fn format_complete(diagnostics: &Diagnostics, main_path: Option<&Path>) -> b
 /// `m5b-formatter`): the file `file` of the program formatted, or the diagnostics when the parser reports an error
 /// or the settings file cannot be used (design D5 of `project-settings`). An error of a later stage does not stop
 /// it (design D1 and D4 of `include-file-program`). The `[format]` table of the program's settings file goes over
-/// the client's `settings` (design D2 of `project-settings`).
+/// the client's `settings` (design D2 of `project-settings`). The output comes line by line, so that the server can
+/// replace one line with the several a rewrite makes of it (design D8 of `format-statement-lines`). With `forced`
+/// (a code action's edit), the two rewrite settings of `settings` win over the settings file's.
 pub fn format_for_server(
     map: &SourceMap,
     parsed: &ParsedProgram,
     main_path: Option<&Path>,
     root: &Path,
     settings: &qb64rust_base::layout::Settings,
+    forced: bool,
     file: FileId,
-) -> Result<Vec<u8>, Diagnostics> {
+) -> Result<qb64rust_lsp::Formatted, Diagnostics> {
     let (program, diagnostics, project) = check_with_settings(map, parsed, main_path, root);
     let Some(project) = project.filter(|_| !parsed.diagnostics().has_errors()) else {
         return Err(diagnostics);
     };
-    let mut settings = *settings;
+    let given = *settings;
+    let mut settings = given;
     settings.apply(&project.format);
+    if forced {
+        settings.one_statement_per_line = given.one_statement_per_line;
+        settings.block_if = given.block_if;
+    }
     let complete = format_complete(&diagnostics, main_path);
-    Ok(qb64rust_format::format_file(
-        map, parsed, &program, file, &settings, complete,
-    ))
+    let lines = qb64rust_format::format_lines(map, parsed, &program, file, &settings, complete);
+    Ok(qb64rust_lsp::Formatted {
+        lines,
+        settings,
+        diagnostics,
+    })
 }
 
 /// [`check_program`] turned into the language server's semantic index (`qb64rust_lsp::Index`, design D1 of
@@ -327,13 +338,14 @@ pub fn index_for_server(
 }
 
 /// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check, the formatter,
-/// the semantic index and the settings file's main program.
+/// the semantic index, the settings file's main program and what the rewrites can do.
 pub fn server_hooks() -> qb64rust_lsp::Hooks {
     qb64rust_lsp::Hooks {
         check: check_for_server,
         format: format_for_server,
         index: index_for_server,
         main_of: settings::main_of,
+        rewritable: qb64rust_format::rewritable,
     }
 }
 
@@ -411,6 +423,7 @@ pub fn probe(kind: Probe, bytes: &[u8]) -> Result<Reached, &'static str> {
                 None,
                 root,
                 &qb64rust_base::layout::Settings::default(),
+                false,
                 file,
             );
             (hooks.index)(&map, &parsed, None, root);

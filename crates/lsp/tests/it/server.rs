@@ -83,16 +83,19 @@ fn stand_in_main_of(doc: &Path) -> Option<std::path::PathBuf> {
 
 /// The formatter in these tests (the real one is the driver's, tested in `crates\driver\tests\it\format_server.rs`):
 /// the file asked for with each run of blanks made one, and the settings shown: the words in capitals or lower case
-/// by the keyword style, and a line that starts with a blank indented by the indent size. A program with `BAD` in it
-/// has an error there, which stands for a syntax error; one with `SLOW` takes half a second.
+/// by the keyword style, and a line that starts with a blank indented by the indent size. With
+/// `OneStatementPerLine` and `AutoLayout`, a line is cut at each `: ` (the rewrites of OpenSpec change
+/// `format-statement-lines`). A program with `BAD` in it has an error there, which stands for a syntax error; one
+/// with `SLOW` takes half a second.
 fn stand_in_format(
     map: &SourceMap,
     parsed: &ParsedProgram,
     path: Option<&Path>,
     root: &Path,
     settings: &Settings,
+    _: bool,
     file: FileId,
-) -> Result<Vec<u8>, Diagnostics> {
+) -> Result<qb64rust_lsp::Formatted, Diagnostics> {
     let check = stand_in(map, parsed, path, root);
     if check.has_errors() {
         return Err(check);
@@ -105,8 +108,9 @@ fn stand_in_format(
     let mut out = Vec::new();
     for line in lines {
         let line = line.strip_suffix(b"\r").unwrap_or(line);
+        let mut l = Vec::new();
         if line.first() == Some(&b' ') {
-            out.extend(std::iter::repeat_n(b' ', settings.indent_size as usize));
+            l.extend(std::iter::repeat_n(b' ', settings.indent_size as usize));
         }
         let mut blank = false;
         for &c in line.iter().skip_while(|c| **c == b' ') {
@@ -114,15 +118,51 @@ fn stand_in_format(
                 continue;
             }
             blank = c == b' ';
-            out.push(match settings.keywords {
+            l.push(match settings.keywords {
                 KeywordStyle::Upper => c.to_ascii_uppercase(),
                 KeywordStyle::Lower => c.to_ascii_lowercase(),
                 KeywordStyle::Camel => c,
             });
         }
-        out.extend_from_slice(b"\r\n");
+        if settings.one_statement_per_line && settings.auto_layout && settings.auto_indent {
+            out.push(cut_at_colons(&l));
+        } else {
+            out.push(vec![l]);
+        }
     }
-    Ok(out)
+    Ok(qb64rust_lsp::Formatted {
+        lines: out,
+        settings: *settings,
+        diagnostics: check,
+    })
+}
+
+/// A line cut at each `: `, the stand-in of `OneStatementPerLine`.
+fn cut_at_colons(line: &[u8]) -> Vec<Vec<u8>> {
+    let mut parts = vec![Vec::new()];
+    let mut i = 0;
+    while i < line.len() {
+        if line[i..].starts_with(b": ") {
+            parts.push(Vec::new());
+            i += 2;
+        } else {
+            parts.last_mut().unwrap().push(line[i]);
+            i += 1;
+        }
+    }
+    parts
+}
+
+/// What the rewrites can do in these tests: a line with `: ` would be cut.
+fn stand_in_rewritable(map: &SourceMap, _: &ParsedProgram, file: FileId) -> Vec<qb64rust_base::layout::Rewritable> {
+    map.file(file)
+        .bytes
+        .split(|&c| c == b'\n')
+        .map(|l| qb64rust_base::layout::Rewritable {
+            split: l.windows(2).any(|w| w == b": "),
+            block_if: false,
+        })
+        .collect()
 }
 
 impl Client {
@@ -148,6 +188,7 @@ impl Client {
             format: stand_in_format,
             index: stand_in_index,
             main_of: stand_in_main_of,
+            rewritable: stand_in_rewritable,
         };
         let server = std::thread::Builder::new()
             .stack_size(qb64rust_base::STACK_SIZE)
@@ -310,6 +351,7 @@ fn initialize_and_exit() {
     assert_eq!(
         names,
         [
+            "codeActionProvider",
             "completionProvider",
             "definitionProvider",
             "documentFormattingProvider",
@@ -916,6 +958,103 @@ fn range_formatting_edits_the_lines_of_the_range() {
     assert_eq!(got, [(1, 0, 1, 7, "    b 2".to_string())]);
     let got = edits(c.request("textDocument/rangeFormatting", range_params(&u, (0, 0), (2, 0))));
     assert_eq!(got.iter().map(|e| e.0).collect::<Vec<_>>(), [0, 1]);
+    c.shutdown().unwrap();
+}
+
+/// "One statement per line from the client": the setting comes from `initializationOptions.format`, and a line cut
+/// in two is one edit of both, joined by the line's own line end, or the document's for a last line without one.
+#[test]
+fn one_statement_per_line_from_the_client() {
+    let dir = temp();
+    let options = json!({ "format": { "oneStatementPerLine": true } });
+    let (mut c, _) = Client::start(dir.path(), options);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "x = 0: y = 0\r\nz = 1: w = 2");
+    let got = edits(c.request("textDocument/formatting", format_params(&u)));
+    assert_eq!(got[0].4, "x = 0\r\ny = 0\r\nz = 1\r\nw = 2");
+    c.shutdown().unwrap();
+}
+
+/// "One packed line of several": a range over line 2 replaces it with its two lines, and line 5, the same text, is
+/// not changed.
+#[test]
+fn range_formatting_of_one_packed_line() {
+    let dir = temp();
+    let options = json!({ "format": { "oneStatementPerLine": true } });
+    let (mut c, _) = Client::start(dir.path(), options);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "a\nx = 0: y = 0\nb\nc\nx = 0: y = 0\n");
+    let got = edits(c.request("textDocument/rangeFormatting", range_params(&u, (1, 0), (1, 3))));
+    assert_eq!(got, [(1, 0, 1, 12, "x = 0\ny = 0".to_string())]);
+    c.shutdown().unwrap();
+}
+
+/// The `window/showMessage` notifications in the client's inbox, as (type, text), taken out of it.
+fn messages(c: &mut Client) -> Vec<(u64, String)> {
+    let (shown, rest): (Vec<_>, Vec<_>) = c.inbox.drain(..).partition(|n| n.method == "window/showMessage");
+    c.inbox = rest.into();
+    shown
+        .into_iter()
+        .map(|n| {
+            (
+                n.params["type"].as_u64().unwrap(),
+                n.params["message"].as_str().unwrap().to_string(),
+            )
+        })
+        .collect()
+}
+
+/// "Format on save" and "After a settings change" (spec `editor/language-server`, "Warning for a rewrite setting
+/// without effect"): the warning comes with the first of three answers, and again after the settings change.
+#[test]
+fn warning_for_a_rewrite_without_effect() {
+    let dir = temp();
+    let options = json!({ "format": { "blockIf": true, "autoLayout": false } });
+    let (mut c, _) = Client::start(dir.path(), options);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "x  = 1\n");
+    let want = (2, "`BlockIf` has no effect while `AutoLayout` is off".to_string());
+    c.request("textDocument/formatting", format_params(&u));
+    assert_eq!(messages(&mut c), [want]);
+    for _ in 0..2 {
+        c.request("textDocument/formatting", format_params(&u));
+        assert_eq!(messages(&mut c), []);
+    }
+    let settings = json!({ "settings": { "format": { "blockIf": true, "autoIndent": false } } });
+    c.notify("workspace/didChangeConfiguration", settings);
+    c.request("textDocument/formatting", format_params(&u));
+    let want = (2, "`BlockIf` has no effect while `AutoIndent` is off".to_string());
+    assert_eq!(messages(&mut c), [want]);
+    c.shutdown().unwrap();
+}
+
+/// The code actions are listed from the last parse with the stand-in of what the rewrites can do: on a packed line,
+/// none on a line with nothing to rewrite or in a program with a syntax error.
+#[test]
+fn code_actions_from_the_parse() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "x = 0: y = 0\nx = 0\n");
+    c.diagnostics(&u);
+    let actions = |c: &mut Client, line: u32| -> Vec<String> {
+        let params = json!({
+            "textDocument": { "uri": u },
+            "range": { "start": { "line": line, "character": 0 }, "end": { "line": line, "character": 0 } },
+            "context": { "diagnostics": [] },
+        });
+        let r = c.request("textDocument/codeAction", params).response_result.unwrap();
+        r.as_array()
+            .unwrap()
+            .iter()
+            .map(|a| a["title"].as_str().unwrap().to_string())
+            .collect()
+    };
+    assert_eq!(actions(&mut c, 0), ["Put each statement on its own line"]);
+    assert_eq!(actions(&mut c, 1), Vec::<String>::new());
+    c.change(&u, 2, "x = 0: y = (\n");
+    assert_eq!(c.diagnostics(&u).map(|d| d.len()), Some(1));
+    assert_eq!(actions(&mut c, 0), Vec::<String>::new(), "a syntax error");
     c.shutdown().unwrap();
 }
 

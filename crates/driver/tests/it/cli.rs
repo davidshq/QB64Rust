@@ -5750,6 +5750,92 @@ fn format_table_errors() {
     assert_eq!(formatted(&d, &["--no-settings"]).unwrap(), "Print 1\r\n");
 }
 
+/// The rewrite settings on the command line and in the `[format]` table (spec `compiler/format`, "Rewrite
+/// settings": "On the command line", "A bad value"; "Format table of the settings file": "Rewrites for the
+/// project", "The command line turns a rewrite off"; "A bad format table": "A rewrite key that is not a boolean").
+#[test]
+fn format_rewrite_settings() {
+    let d = scratch("format-rewrites");
+    std::fs::write(d.join("prog.bas"), "x = 0: y = 0\r\n").unwrap();
+    assert_eq!(formatted(&d, &[]).unwrap(), "x = 0: y = 0\r\n", "off by default");
+    assert_eq!(
+        formatted(&d, &["-f:OneStatementPerLine=true"]).unwrap(),
+        "x = 0\r\ny = 0\r\n"
+    );
+    assert_eq!(
+        formatted(&d, &["--format-default", "OneStatementPerLine=true"]).unwrap(),
+        "x = 0\r\ny = 0\r\n"
+    );
+    let e = formatted(&d, &["-f:BlockIf=maybe"]).unwrap_err();
+    assert!(e.contains("`BlockIf` needs `true` or `false`"), "{e}");
+    let toml = |text: &str| std::fs::write(d.join("qb64rust.toml"), text).unwrap();
+    toml("[format]\none-statement-per-line = true\n");
+    assert_eq!(formatted(&d, &[]).unwrap(), "x = 0\r\ny = 0\r\n", "the file");
+    assert_eq!(
+        formatted(&d, &["-f:OneStatementPerLine=false"]).unwrap(),
+        "x = 0: y = 0\r\n",
+        "the command line turns it off"
+    );
+    toml("[format]\none-statement-per-line = true\nblock-if = true\n");
+    std::fs::write(d.join("prog.bas"), "IF a THEN x = 1: y = 2\r\n").unwrap();
+    assert_eq!(
+        formatted(&d, &[]).unwrap(),
+        "If a Then\r\n    x = 1\r\n    y = 2\r\nEnd If\r\n"
+    );
+    toml("[format]\nblock-if = \"yes\"\n");
+    let e = formatted(&d, &[]).unwrap_err();
+    assert!(
+        e.contains("qb64rust.toml:2: the value of `block-if` must be true or false"),
+        "{e}"
+    );
+}
+
+/// A rewrite setting while `AutoIndent` or `AutoLayout` is off (spec `compiler/format`, "A rewrite setting without
+/// effect"): one warning on standard error, the file written as without the rewrite, exit status 0.
+#[test]
+fn format_rewrite_without_effect() {
+    let d = scratch("format-rewrite-warning");
+    std::fs::write(d.join("prog.bas"), "x = 0: y = 0\r\n").unwrap();
+    let run = |args: &[&str]| {
+        let _ = std::fs::remove_file(d.join("out.bas"));
+        let mut all = vec!["-y", "-q"];
+        all.extend(args);
+        all.extend(["prog.bas", "-o", "out.bas"]);
+        let o = qb64rust(&d, &all);
+        assert!(o.status.success(), "{}", stdout(&o));
+        assert_eq!(std::fs::read(d.join("out.bas")).unwrap(), b"x = 0: y = 0\r\n");
+        stderr(&o)
+    };
+    std::fs::write(
+        d.join("qb64rust.toml"),
+        "[format]\none-statement-per-line = true\nauto-layout = false\n",
+    )
+    .unwrap();
+    assert_eq!(
+        run(&[]),
+        "warning: `OneStatementPerLine` has no effect while `AutoLayout` is off\n",
+        "layout off in the settings file"
+    );
+    std::fs::remove_file(d.join("qb64rust.toml")).unwrap();
+    assert_eq!(
+        run(&["-f:OneStatementPerLine=true", "-f:BlockIf=true", "-f:AutoIndent=false"]),
+        "warning: `OneStatementPerLine` and `BlockIf` have no effect while `AutoIndent` is off\n",
+        "both rewrites, one warning"
+    );
+    std::fs::write(d.join("prog.bas"), "'$FORMAT:OFF\r\nx = 0: y = 0\r\n").unwrap();
+    let _ = std::fs::remove_file(d.join("out.bas"));
+    let o = qb64rust(
+        &d,
+        &["-y", "-q", "-f:OneStatementPerLine=true", "prog.bas", "-o", "out.bas"],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(stderr(&o), "", "format off in the file");
+    assert_eq!(
+        std::fs::read(d.join("out.bas")).unwrap(),
+        b"'$Format:Off\r\nx = 0: y = 0\r\n"
+    );
+}
+
 /// A program with an unused label (line 3) and an unused SUB (line 4).
 const LINTED: &str = "x = 1\r\nPRINT x\r\nagain:\r\nSUB Spare\r\nEND SUB\r\n";
 

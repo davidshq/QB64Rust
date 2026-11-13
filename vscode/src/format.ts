@@ -53,7 +53,9 @@ export class Formatter implements vscode.DocumentFormattingEditProvider, vscode.
         _options: vscode.FormattingOptions,
         token: vscode.CancellationToken,
     ): Promise<vscode.TextEdit[]> {
-        const text = await this.formatted(document, token);
+        // Without the rewrites, so that the formatted text has the document's lines (change format-statement-lines,
+        // design D8).
+        const text = await this.formatted(document, token, true);
         if (text === undefined) {
             return [];
         }
@@ -62,8 +64,9 @@ export class Formatter implements vscode.DocumentFormattingEditProvider, vscode.
     }
 
     /** The document's text as the chosen compiler's `-y` lays it out, in the document's line ends; undefined when
-     * there is none (cancelled, refused, or a failure, which has been shown). */
-    private async formatted(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<string | undefined> {
+     * there is none (cancelled, refused, or a failure, which has been shown). For a `selection`, `qb64rust -y`
+     * makes no rewrite; `qb64pe -y` has none to make. */
+    private async formatted(document: vscode.TextDocument, token: vscode.CancellationToken, selection = false): Promise<string | undefined> {
         if (!vscode.workspace.isTrusted) {
             void vscode.window.showWarningMessage("QB64: formatting runs the compiler and requires a trusted workspace.");
             return undefined;
@@ -101,7 +104,7 @@ export class Formatter implements vscode.DocumentFormattingEditProvider, vscode.
                 const baseDir = folder?.scheme === "file" ? folder.fsPath : undefined;
                 const qb64peFolder = this.status.current.found ? path.dirname(this.status.current.path) : undefined;
                 const root = includeRootFor(config.includeRoot(), baseDir, qb64peFolder, process.platform);
-                run = await qb64rust.format(this.queue, compiler, source, output, settings, root, config.checkTimeoutMs());
+                run = await qb64rust.format(this.queue, compiler, source, output, settings, root, config.checkTimeoutMs(), selection);
             } else {
                 run = await qb64pe.format(this.queue, compiler, source, output, settings, config.checkTimeoutMs());
             }

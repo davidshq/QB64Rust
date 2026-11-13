@@ -137,7 +137,21 @@ indent-size = 2          # spaces a level, 1 to 64; the default is 4
 auto-indent = true       # indent each block
 indent-subs = true       # indent the body of a SUB or FUNCTION
 auto-layout = true       # space each statement and spell its keywords; false changes only the indent
+one-statement-per-line = false   # true: x = 0: y = 0 becomes two lines
+block-if = false                 # true: IF a THEN x = 1 becomes a block IF with END IF
 ```
+
+  The last two are not QB64pe's, and both are off by default. With `one-statement-per-line`, each statement of a
+  line packed with colons goes on a line of its own. A statement after `CASE 1:`, after a block's `ELSE` or after
+  `ELSEIF … THEN` moves to its own line too. A single-line `IF` stays whole. With `block-if`, a single-line `IF`
+  becomes a block: `IF a THEN`, its statements one level in, `ELSE` if it has one, and `END IF`. `IF a THEN 100`
+  and `IF a GOTO 100` get `GOTO 100` inside the block. A label or line number at the start of a line stays with
+  the first statement, and a comment at the end of a rewritten line goes on a line of its own above it. Lines
+  are left as they are when they are joined with `_`, lie between `'$FORMAT:OFF` and `'$FORMAT:ON`, hold a
+  metacommand, or belong to a `$IF` branch that is not taken. Nothing is rewritten while `auto-indent` or
+  `auto-layout` is off, or while the program has an error. A rewrite moves statements to new line numbers, so
+  `_ERRORLINE` and an error message that names a line give the new number. `ERL` and line-number labels do not
+  change.
 
   A key that is not there keeps its default, or the VS Code setting. A `-f:` layout setting on the command line wins
   over the file, and the file wins over `--format-default` and over the VS Code settings. So
@@ -168,7 +182,7 @@ compiler does not read `main`: name the file to build on the command line.
 A mistake in the file, such as an unknown key or a value of the wrong kind, stops a build and `-y` with a message
 that names the file, the line and the keys it knows, for instance
 ``qb64rust.toml:2: unknown format setting `indent`; the settings are auto-indent, indent-size, indent-subs,
-auto-layout, keyword-case``. `--no-settings` builds or lays out the program without reading the file.
+auto-layout, keyword-case, one-statement-per-line, block-if``. `--no-settings` builds or lays out the program without reading the file.
 
 ## Warnings about likely mistakes
 

@@ -40,12 +40,17 @@ fn format_with(src: &str, settings: &Settings, files: Vec<(&'static str, &'stati
 /// The file `name` holding `src` (LF line ends) formatted as an incomplete program (spec `compiler/format`, "Names
 /// in an incomplete program"): the check may report errors; the parse may not.
 fn format_incomplete(name: &str, src: &str) -> String {
+    format_incomplete_with(name, src, &Settings::default())
+}
+
+/// [`format_incomplete`] with `settings`.
+fn format_incomplete_with(name: &str, src: &str, settings: &Settings) -> String {
     let mut map = SourceMap::new();
     let file = map.add(name, src.replace('\n', "\r\n").into_bytes());
     let parsed = parse_settled(&mut map, file, &mut Files(Vec::new()));
     assert!(!parsed.diagnostics().has_errors(), "{:?}", parsed.diagnostics().list());
     let (program, _) = qb64rust_sema::check(&map, &parsed);
-    let out = qb64rust_format::format_file(&map, &parsed, &program, file, &Settings::default(), false);
+    let out = qb64rust_format::format_file(&map, &parsed, &program, file, settings, false);
     let text: String = out.iter().map(|&b| char::from(b)).collect();
     text.replace("\r\n", "\n")
 }
@@ -463,5 +468,356 @@ fn arraycopy_number_as_written() {
     assert_eq!(
         format("dim g(9), d(9)\n_arraycopy g(1.5 to 3.5) to d(0)\n"),
         "Dim g(9), d(9)\n_ArrayCopy g(1.5 To 3.5) To d(0)\n"
+    );
+}
+
+// The rewrites `OneStatementPerLine` and `BlockIf` (OpenSpec change `format-statement-lines`): one test for each
+// scenario of the delta of spec `compiler/format`. QB64pe has neither setting; what its compiler makes of the
+// rewritten forms is measured by `verification\v72_*`.
+
+/// The settings with the two rewrites as given.
+fn rewrites(one_statement_per_line: bool, block_if: bool) -> Settings {
+    let mut s = Settings::default();
+    s.one_statement_per_line = one_statement_per_line;
+    s.block_if = block_if;
+    s
+}
+
+/// The typed tree of a complete program, the number of each line left out.
+fn typed(src: &str) -> String {
+    let mut map = SourceMap::new();
+    let file = map.add("p.bas", src.replace('\n', "\r\n").into_bytes());
+    let parsed = parse_settled(&mut map, file, &mut Files(Vec::new()));
+    let (program, diags) = qb64rust_sema::check(&map, &parsed);
+    assert!(
+        !diags.has_errors() && !parsed.diagnostics().has_errors(),
+        "{src}: {:?}",
+        diags.list()
+    );
+    let dump = qb64rust_sema::dump_typed(&program);
+    let mut out = String::with_capacity(dump.len());
+    let mut rest = dump.as_str();
+    while let Some(at) = rest.find("line ") {
+        out.push_str(&rest[..at + 5]);
+        rest = rest[at + 5..].trim_start_matches(|c: char| c.is_ascii_digit());
+        out.push('#');
+    }
+    out.push_str(rest);
+    out
+}
+
+/// `src` formatted with the two rewrites as given, held to spec `compiler/format`, "A rewritten program is the
+/// same program": the same typed tree as `src` but for line numbers, and the same text when formatted again.
+fn rewrite(src: &str, one_statement_per_line: bool, block_if: bool) -> String {
+    let s = rewrites(one_statement_per_line, block_if);
+    let out = format_with(src, &s, Vec::new());
+    assert_eq!(typed(&out), typed(src), "the typed tree of\n{out}");
+    assert_eq!(format_with(&out, &s, Vec::new()), out, "formatted again");
+    out
+}
+
+/// `src` with `OneStatementPerLine` alone.
+fn split(src: &str) -> String {
+    rewrite(src, true, false)
+}
+
+/// `src` with `BlockIf` alone.
+fn block_if(src: &str) -> String {
+    rewrite(src, false, true)
+}
+
+/// `src` with both rewrites.
+fn both(src: &str) -> String {
+    rewrite(src, true, true)
+}
+
+/// Scenarios "Off by default" and "On the command line".
+#[test]
+fn rewrite_settings_off_by_default() {
+    assert_eq!(format("x = 0: y = 0\n"), "x = 0: y = 0\n");
+    assert_eq!(
+        format_with("x = 0: y = 0\n", &setting("OneStatementPerLine", "true"), Vec::new()),
+        "x = 0\ny = 0\n"
+    );
+}
+
+/// Scenario "Two assignments".
+#[test]
+fn split_two_assignments() {
+    assert_eq!(split("x = 0: y = 0\n"), "x = 0\ny = 0\n");
+}
+
+/// Scenario "A loop on one line".
+#[test]
+fn split_a_loop_on_one_line() {
+    assert_eq!(
+        split("for i = 1 to 3: print i: next\n"),
+        "For i = 1 To 3\n    Print i\nNext\n"
+    );
+}
+
+/// Scenario "SELECT CASE on one line".
+#[test]
+fn split_select_case_on_one_line() {
+    assert_eq!(
+        split("x = 1\nSELECT CASE x: CASE 1: b = 5: CASE ELSE: b = 6: END SELECT\n"),
+        "x = 1\nSelect Case x\n    Case 1\n        b = 5\n    Case Else\n        b = 6\nEnd Select\n"
+    );
+}
+
+/// Scenario "A statement after ELSEIF and after ELSE".
+#[test]
+fn split_after_elseif_and_else() {
+    let src = "IF a THEN\nx = 1\nELSEIF b THEN x = 2: b = 3\nELSE x = 3\nEND IF\n";
+    let want = "If a Then\n    x = 1\nElseIf b Then\n    x = 2\n    b = 3\nElse\n    x = 3\nEnd If\n";
+    assert_eq!(split(src), want);
+    assert_eq!(both(src), want);
+}
+
+/// Scenario "One statement and a colon": no cut, so the colon stays.
+#[test]
+fn split_one_statement_and_a_colon() {
+    assert_eq!(split("x = 1:\n"), "x = 1:\n");
+    assert_eq!(split(": x = 1\n"), ": x = 1\n");
+}
+
+/// Scenario "Colons inside the IF stay".
+#[test]
+fn split_keeps_a_single_line_if_whole() {
+    assert_eq!(split("IF a THEN b = 1: x = 2\n"), "If a Then b = 1: x = 2\n");
+    // A colon of a `FOR` inside a branch is inside the `IF` too.
+    assert_eq!(
+        split("IF 1 THEN FOR i = 1 TO 3: PRINT i;: NEXT: PRINT\n"),
+        "If 1 Then For i = 1 To 3: Print i;: Next: Print\n"
+    );
+}
+
+/// Scenario "A statement before the IF".
+#[test]
+fn split_a_statement_before_the_if() {
+    assert_eq!(
+        split("x = 1: IF a THEN b = 1: x = 2\n"),
+        "x = 1\nIf a Then b = 1: x = 2\n"
+    );
+}
+
+/// Scenario "A label before two statements".
+#[test]
+fn split_a_label_stays_with_the_first_statement() {
+    assert_eq!(split("top: x = 9: b = 9\nGOTO top\n"), "top: x = 9\nb = 9\nGoTo top\n");
+    assert_eq!(split("10 x = 9: b = 9\n"), "10 x = 9\nb = 9\n");
+    assert_eq!(split("10 : x = 9: b = 9\n"), "10: x = 9\nb = 9\n");
+}
+
+/// Scenario "A SUB's name and a colon".
+#[test]
+fn split_a_sub_name_and_a_colon() {
+    let src = "DrawBoard: PRINT \"Ready\": x = 1\nSUB DrawBoard\nEND SUB\n";
+    assert_eq!(
+        split(src),
+        "DrawBoard: Print \"Ready\"\nx = 1\nSub DrawBoard\nEnd Sub\n"
+    );
+}
+
+/// Scenario "A built-in statement's name and a colon".
+#[test]
+fn split_a_built_in_statement_and_a_colon() {
+    assert_eq!(
+        split("CLS: LOCATE 1, 1: PRINT \"Ready\"\n"),
+        "Cls\nLocate 1, 1\nPrint \"Ready\"\n"
+    );
+    assert_eq!(split("x = 1: CLS:\n"), "x = 1\nCls\n");
+    // Alone it is not cut, and keeps its colon.
+    assert_eq!(split("CLS:\n"), "Cls:\n");
+}
+
+/// Scenarios "A continued line", "Format off" and "A metacommand in the comment".
+#[test]
+fn rewrites_leave_lines_alone() {
+    assert_eq!(both("x = 0: y = _\n1\n"), "x = 0: y = _\n1\n");
+    assert_eq!(
+        both("'$FORMAT:OFF\nx = 0: y = 0\n'$FORMAT:ON\nx = 0: y = 0\n"),
+        "'$Format:Off\nx = 0: y = 0\n'$Format:On\nx = 0\ny = 0\n"
+    );
+    assert_eq!(split("DIM a(5): x = 1 '$DYNAMIC\n"), "Dim a(5): x = 1 '$Dynamic\n");
+    assert_eq!(
+        block_if("$IF WIN THEN\nIF a THEN x = 1\n$END IF\n"),
+        "$If WIN Then\n    If a Then\n        x = 1\n    End If\n$End If\n"
+    );
+}
+
+/// A line of a `$IF` branch that is not taken is written as read.
+#[test]
+fn rewrites_leave_an_inactive_branch_alone() {
+    assert_eq!(
+        both("$IF X THEN\nx = 0: y = 0\n$END IF\n"),
+        "$If X Then\nx = 0: y = 0\n$End If\n"
+    );
+}
+
+/// Scenario "AutoLayout off", and the same for `AutoIndent`.
+#[test]
+fn rewrites_need_layout_and_indent() {
+    let mut s = rewrites(true, true);
+    s.auto_layout = false;
+    assert_eq!(format_with("x = 0:  y = 0\n", &s, Vec::new()), "x = 0:  y = 0\n");
+    let mut s = rewrites(true, true);
+    s.auto_indent = false;
+    assert_eq!(format_with("  x = 0: y = 0\n", &s, Vec::new()), "  x = 0: y = 0\n");
+}
+
+/// Scenarios "A SUB that is not defined" and "An include file alone".
+#[test]
+fn rewrites_need_a_program_without_errors() {
+    let s = rewrites(true, true);
+    assert_eq!(
+        format_incomplete_with("p.bas", "call missing: x = 1\n", &s),
+        "Call missing: x = 1\n"
+    );
+    assert_eq!(
+        format_incomplete_with("lib.bm", "SUB a\nx = 0: y = 0\nEND SUB\n", &s),
+        "Sub a\n    x = 0: y = 0\nEnd Sub\n"
+    );
+}
+
+/// Scenarios "A comment after two statements" and "One statement keeps its comment"; a comment above a line inside a
+/// block is at the block's indent.
+#[test]
+fn comment_of_a_rewritten_line() {
+    assert_eq!(
+        split("x = 0: y = 0 ' reset the cursor\n"),
+        "' reset the cursor\nx = 0\ny = 0\n"
+    );
+    assert_eq!(both("x = 0 ' reset\n"), "x = 0 ' reset\n");
+    assert_eq!(
+        split("FOR i = 1 TO 2\nx = i: y = i ' both\nNEXT\n"),
+        "For i = 1 To 2\n    ' both\n    x = i\n    y = i\nNext\n"
+    );
+    assert_eq!(split("x = 0: y = 0 REM reset\n"), "Rem reset\nx = 0\ny = 0\n");
+}
+
+/// Scenario "A REM comment after a single-line IF".
+#[test]
+fn rem_comment_of_a_single_line_if() {
+    let want = "Rem first turn\nIf a Then\n    x = 1\nEnd If\n";
+    assert_eq!(block_if("IF a THEN x = 1: REM first turn\n"), want);
+    assert_eq!(both("IF a THEN x = 1: REM first turn\n"), want);
+}
+
+/// Scenario "Both branches".
+#[test]
+fn block_if_both_branches() {
+    let want = "If a Then\n    x = 1\nElse\n    x = 2\nEnd If\n";
+    assert_eq!(block_if("IF a THEN x = 1 ELSE x = 2\n"), want);
+    assert_eq!(both("IF a THEN x = 1 ELSE x = 2\n"), want);
+}
+
+/// Scenarios "Several statements in a branch, both settings" and "…, BlockIf alone".
+#[test]
+fn block_if_several_statements_in_a_branch() {
+    let src = "IF hp <= 0 THEN PRINT \"Dead\": lives = lives - 1\n";
+    assert_eq!(
+        both(src),
+        "If hp <= 0 Then\n    Print \"Dead\"\n    lives = lives - 1\nEnd If\n"
+    );
+    assert_eq!(
+        block_if(src),
+        "If hp <= 0 Then\n    Print \"Dead\": lives = lives - 1\nEnd If\n"
+    );
+}
+
+/// Scenario "An IF inside a branch".
+#[test]
+fn block_if_inside_a_branch() {
+    let want = "If a Then\n    If b Then\n        x = 1\n    Else\n        x = 2\n    End If\nEnd If\n";
+    assert_eq!(block_if("IF a THEN IF b THEN x = 1 ELSE x = 2\n"), want);
+    assert_eq!(both("IF a THEN IF b THEN x = 1 ELSE x = 2\n"), want);
+}
+
+/// Scenario "An empty first branch".
+#[test]
+fn block_if_an_empty_first_branch() {
+    let want = "If a Then\nElse\n    x = 4\nEnd If\n";
+    assert_eq!(block_if("IF a THEN ELSE x = 4\n"), want);
+    assert_eq!(both("IF a THEN ELSE x = 4\n"), want);
+}
+
+/// Scenario "A colon right after THEN or ELSE".
+#[test]
+fn block_if_a_colon_after_then_or_else() {
+    for f in [block_if, both] {
+        assert_eq!(f("IF x THEN: x = 4\n"), "If x Then\n    x = 4\nEnd If\n");
+        assert_eq!(f("IF x THEN ELSE: x = 3\n"), "If x Then\nElse\n    x = 3\nEnd If\n");
+    }
+}
+
+/// Scenario "A statement before the IF, BlockIf alone" (measured with `qb64pe.exe`: `v72_f_colon_then_if_b`).
+#[test]
+fn block_if_a_statement_before_the_if() {
+    assert_eq!(
+        block_if("x = 1: IF a THEN b = 1\n"),
+        "x = 1: If a Then\n    b = 1\nEnd If\n"
+    );
+    assert_eq!(
+        both("x = 1: IF a THEN b = 1\n"),
+        "x = 1\nIf a Then\n    b = 1\nEnd If\n"
+    );
+}
+
+/// Scenario "THEN and a line number".
+#[test]
+fn block_if_then_and_a_line_number() {
+    let src = "IF x THEN 100 ELSE 200\n100 PRINT 1\n200 PRINT 2\n";
+    let want = "If x Then\n    GoTo 100\nElse\n    GoTo 200\nEnd If\n100 Print 1\n200 Print 2\n";
+    assert_eq!(block_if(src), want);
+    assert_eq!(both(src), want);
+}
+
+/// Scenario "IF and GOTO without THEN".
+#[test]
+fn block_if_goto_without_then() {
+    let src = "IF y GOTO 100\n100 PRINT 1\n";
+    assert_eq!(block_if(src), "If y Then\n    GoTo 100\nEnd If\n100 Print 1\n");
+    assert_eq!(both(src), "If y Then\n    GoTo 100\nEnd If\n100 Print 1\n");
+}
+
+/// Scenario "A line number before a single-line IF".
+#[test]
+fn block_if_after_a_line_number() {
+    let src = "10 IF x THEN 20\n20 PRINT 1\n";
+    assert_eq!(block_if(src), "10 If x Then\n    GoTo 20\nEnd If\n20 Print 1\n");
+    assert_eq!(both(src), "10 If x Then\n    GoTo 20\nEnd If\n20 Print 1\n");
+}
+
+/// Scenario "Rewrites for the project", as settings: a branch of two statements with both.
+#[test]
+fn block_if_with_both_settings() {
+    assert_eq!(
+        both("IF a THEN x = 1: y = 2\n"),
+        "If a Then\n    x = 1\n    y = 2\nEnd If\n"
+    );
+}
+
+/// Task 4.2 of `format-statement-lines`: a single-line `IF` three deep, one inside a `SELECT CASE` on one line, one
+/// with a `REM` comment inside a `FOR`, and one inside `'$FORMAT:OFF`; each output's typed tree is its source's.
+#[test]
+fn block_if_deeper_forms() {
+    assert_eq!(
+        both("IF a THEN IF b THEN IF c THEN x = 1 ELSE x = 2\n"),
+        "If a Then\n    If b Then\n        If c Then\n            x = 1\n        Else\n            x = 2\n        End If\n    \
+         End If\nEnd If\n"
+    );
+    assert_eq!(
+        both("SELECT CASE a: CASE 1: IF b THEN x = 1 ELSE x = 2\nEND SELECT\n"),
+        "Select Case a\n    Case 1\n        If b Then\n            x = 1\n        Else\n            x = 2\n        End If\n\
+         End Select\n"
+    );
+    assert_eq!(
+        block_if("FOR i = 1 TO 2\nIF i = 2 THEN x = i: REM last\nNEXT\n"),
+        "For i = 1 To 2\n    Rem last\n    If i = 2 Then\n        x = i\n    End If\nNext\n"
+    );
+    assert_eq!(
+        both("'$FORMAT:OFF\nIF a THEN x = 1\n'$FORMAT:ON\n"),
+        "'$Format:Off\nIf a Then x = 1\n'$Format:On\n"
     );
 }

@@ -730,6 +730,11 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
         Err(code) => return Ok(code),
     };
     let settings = layout_settings(&o.settings, &o.format_defaults, &file_format)?;
+    // A rewrite that the other settings make do nothing is said once; the file is still written (design D6 of
+    // `format-statement-lines`).
+    if let Some(w) = settings.rewrite_warning() {
+        eprintln!("warning: {w}");
+    }
     // `-e` holds here too: `qb64pe -y -e` rejects a variable not declared (measured, 2026-11-04). Here the error is
     // printed and the file still written (D-064).
     let mut fe = frontend_explicit(

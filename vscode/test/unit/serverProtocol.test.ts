@@ -31,7 +31,15 @@ describe("language server protocol", () => {
 
     // Change m5b-formatter, design D7: the layout settings, sent at the start and on a change.
     it("initialization options: the layout settings, QB64pe's defaults unless given", () => {
-        assert.deepStrictEqual(DEFAULT_FORMAT, { autoIndent: true, indentSize: 4, indentSubs: true, autoLayout: true, keywordCase: "camel" });
+        assert.deepStrictEqual(DEFAULT_FORMAT, {
+            autoIndent: true,
+            indentSize: 4,
+            indentSubs: true,
+            autoLayout: true,
+            keywordCase: "camel",
+            oneStatementPerLine: false,
+            blockIf: false,
+        });
         const format = { ...DEFAULT_FORMAT, indentSize: 2, keywordCase: "lower" as const };
         assert.deepStrictEqual(initializationOptions("cp437", "", undefined, "linux", undefined, format).format, format);
         assert.deepStrictEqual(configurationParams(format), { settings: { format } });
@@ -46,7 +54,7 @@ describe("language server protocol", () => {
             "-f:keywordcapitals=0",
             "-f:keywordlowercase=0",
         ]);
-        const off = { autoIndent: false, indentSize: 64, indentSubs: false, autoLayout: false, keywordCase: "upper" as const };
+        const off = { ...DEFAULT_FORMAT, autoIndent: false, indentSize: 64, indentSubs: false, autoLayout: false, keywordCase: "upper" as const };
         assert.deepStrictEqual(formatFlags(off), [
             "-f:autoindent=0",
             "-f:autoindentsize=64",

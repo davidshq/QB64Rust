@@ -5,7 +5,7 @@ import * as path from "path";
 import { executableFor } from "./qb64pe";
 import { Qb64rustOutput, parseQb64rustOutput } from "./parseQb64rustOutput";
 import { RunQueue, RunResult } from "./runQueue";
-import { FormatSettings, formatDefaultFlags } from "../server/protocol";
+import { FormatSettings, formatDefaultFlags, rewriteFlags } from "../server/protocol";
 
 /** What a build is given besides the source (spec compiler/cli, "Locating the reference runtime"; spec
  * compiler/toolchain). */
@@ -49,9 +49,11 @@ export function rootArgs(roots: Roots): string[] {
 
 /** `-y -q`, the layout settings as `--format-default` pairs (below the project's `qb64rust.toml`), `<source> -o
  * <output>` and the include root (spec compiler/format, "Format command"; change m5b-formatter, design D7; change
- * project-settings, design D6). */
-export function formatArgs(source: string, output: string, settings: FormatSettings, includeRoot: string): string[] {
-    const args = ["-y", "-q", ...formatDefaultFlags(settings), source, "-o", output];
+ * project-settings, design D6). For Format Selection (`selection`) both rewrites are turned off with `-f:`, which goes
+ * over the settings file, so that each line stays one line (change format-statement-lines, design D8). */
+export function formatArgs(source: string, output: string, settings: FormatSettings, includeRoot: string, selection = false): string[] {
+    const off = selection ? rewriteFlags({ oneStatementPerLine: false, blockIf: false }) : [];
+    const args = ["-y", "-q", ...formatDefaultFlags(settings), ...off, source, "-o", output];
     if (includeRoot) {
         args.push("--include-root", includeRoot);
     }
@@ -61,7 +63,7 @@ export function formatArgs(source: string, output: string, settings: FormatSetti
 export type Qb64rustRun = RunResult & Qb64rustOutput;
 
 /** Formats `source` into `output`, includes relative to `source`'s folder and then the include root (empty for the
- * compiler's default). */
+ * compiler's default); for Format Selection without the rewrites (`formatArgs`). */
 export async function format(
     queue: RunQueue,
     binary: string,
@@ -70,8 +72,10 @@ export async function format(
     settings: FormatSettings,
     includeRoot: string,
     timeoutMs: number,
+    selection = false,
 ): Promise<Qb64rustRun> {
-    const result = await queue.run({ kind: "format", command: binary, args: formatArgs(source, output, settings, includeRoot), cwd: path.dirname(source), timeoutMs });
+    const args = formatArgs(source, output, settings, includeRoot, selection);
+    const result = await queue.run({ kind: "format", command: binary, args, cwd: path.dirname(source), timeoutMs });
     const parsed = result.cancelled ? { messages: [], allMarked: false } : parseQb64rustOutput(result.output, result.exitCode, source);
     if (result.timedOut) {
         parsed.messages.push({ severity: "error", file: undefined, line: 1, message: "The compiler did not finish in time (qb64rust.checkTimeoutSeconds) and was stopped." });

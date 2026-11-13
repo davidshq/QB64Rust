@@ -105,10 +105,22 @@ export interface FormatSettings {
     indentSubs: boolean;
     autoLayout: boolean;
     keywordCase: "camel" | "upper" | "lower";
+    /** Not QB64pe's: each statement of a packed line on a line of its own (change format-statement-lines). */
+    oneStatementPerLine: boolean;
+    /** Not QB64pe's: a single-line `IF` written as a block. */
+    blockIf: boolean;
 }
 
-/** QB64pe's built-in layout defaults, which the settings default to. */
-export const DEFAULT_FORMAT: FormatSettings = { autoIndent: true, indentSize: 4, indentSubs: true, autoLayout: true, keywordCase: "camel" };
+/** QB64pe's built-in layout defaults, which the settings default to, and the two rewrites off. */
+export const DEFAULT_FORMAT: FormatSettings = {
+    autoIndent: true,
+    indentSize: 4,
+    indentSubs: true,
+    autoLayout: true,
+    keywordCase: "camel",
+    oneStatementPerLine: false,
+    blockIf: false,
+};
 
 /** The `-f:` layout settings of `-y`, the same for `qb64rust` and `qb64pe` (spec compiler/format, "Layout settings"),
  * all six given, so that QB64pe's `config.ini` plays no part. */
@@ -124,11 +136,17 @@ export function formatFlags(s: FormatSettings): string[] {
     ];
 }
 
-/** The same six settings as `qb64rust -y`'s `--format-default <setting>=<value>` pairs, which rank below the
- * `[format]` table of the project's `qb64rust.toml` (spec editor/formatting, "Layout settings"; change
+/** The two rewrite settings as `qb64rust -y`'s `-f:` settings. `qb64pe -y` has neither, so it never gets them
+ * (change format-statement-lines, design D1). */
+export function rewriteFlags(s: Pick<FormatSettings, "oneStatementPerLine" | "blockIf">): string[] {
+    return [`-f:OneStatementPerLine=${s.oneStatementPerLine}`, `-f:BlockIf=${s.blockIf}`];
+}
+
+/** The six settings and the two rewrites as `qb64rust -y`'s `--format-default <setting>=<value>` pairs, which rank
+ * below the `[format]` table of the project's `qb64rust.toml` (spec editor/formatting, "Layout settings"; change
  * project-settings, design D6). */
 export function formatDefaultFlags(s: FormatSettings): string[] {
-    return formatFlags(s).flatMap((f) => ["--format-default", f.slice("-f:".length)]);
+    return [...formatFlags(s), ...rewriteFlags(s)].flatMap((f) => ["--format-default", f.slice("-f:".length)]);
 }
 
 /** The parameters of `workspace/didChangeConfiguration` that give the server new layout settings. */

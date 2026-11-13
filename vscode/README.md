@@ -87,10 +87,21 @@ program's folder or a folder above it is used, as for the fixes:
 keyword-case = "upper"   # "camel", "upper" or "lower"
 indent-size = 2          # 1 to 64
 # auto-indent, indent-subs and auto-layout take true or false
+one-statement-per-line = true   # x = 0: y = 0 becomes two lines
+block-if = true                 # IF a THEN x = 1 becomes a block IF
 
 [lints]
 unused-label = false     # or all = false, then turn single lints on
 ```
+
+`one-statement-per-line` and `block-if` are not QB64pe's, and both are off by default. The first puts each
+statement of a line packed with colons on a line of its own; a single-line `IF` stays whole. The second turns a
+single-line `IF` into a block with `END IF`, and `IF a THEN 100` into one holding `GOTO 100`. A label or line
+number at the start of a line stays with the first statement. The comment of a rewritten line moves to a line of
+its own above it. Lines joined with `_`, lines between `'$FORMAT:OFF` and `'$FORMAT:ON`, lines with a metacommand
+and lines of a `$IF` branch that is not taken are left as they are. Nothing is rewritten while `auto-indent` or
+`auto-layout` is off, or while the program has an error. A rewrite moves statements to new line numbers, so
+`_ERRORLINE` and an error message that names a line give the new number.
 
 A key in `[format]` overrides the matching `qb64rust.format.*` setting, so everyone who opens the project gets the
 same layout; a key that is not there leaves the setting as it is. This holds for the language server and for
