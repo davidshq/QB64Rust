@@ -191,15 +191,17 @@ describe("debugging with qb64rust", function () {
 
     it("F5 with an included file active debugs its program, in the program's folder", async () => {
         const a = await api();
-        const main = writeFile("debug_inc/main.bas", "'$INCLUDE:'rules/part.bm'\r\nSUB greet\r\nPRINT \"hi\"\r\nEND SUB\r\n");
-        // The two files show in a failure how far the program got (the CI-only hang, STATUS.md).
+        // A console program, as the fixture is: GitHub's Windows runner gives a program no window, and libqb then
+        // waits on its message box "Failed to initialize window" (run 43427624872).
+        const main = writeFile("debug_inc/main.bas", "$CONSOLE:ONLY\r\n'$INCLUDE:'rules/part.bm'\r\nSUB greet\r\nPRINT \"hi\"\r\nEND SUB\r\n");
+        // The two files show in a failure how far the program got.
         const part = writeFile(
             "debug_inc/rules/part.bm",
             'OPEN "started.txt" FOR OUTPUT AS #1: CLOSE #1\r\nCALL greet\r\nOPEN "ended.txt" FOR OUTPUT AS #1: CLOSE #1\r\n',
         );
         await open(part);
         await waitFor("the program of part.bm", () => a.server.programText === "main.bas");
-        breakAt(main, 3);
+        breakAt(main, 4);
         const from = sent.length;
         const started = new Promise<vscode.DebugSession>((resolve) => {
             const d = vscode.debug.onDidStartDebugSession((s) => {
@@ -219,7 +221,7 @@ describe("debugging with qb64rust", function () {
                 .join(", ");
         const stopped = await stoppedAfter(from, 120000, marks);
         const st = await session.customRequest("stackTrace", { threadId: stopped.body!.threadId, levels: 1 });
-        assert.deepStrictEqual([st.stackFrames[0].name, st.stackFrames[0].line], ["SUB greet", 3]);
+        assert.deepStrictEqual([st.stackFrames[0].name, st.stackFrames[0].line], ["SUB greet", 4]);
         await vscode.debug.stopDebugging(session);
         await ended;
     });

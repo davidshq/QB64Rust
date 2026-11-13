@@ -75,22 +75,12 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 
 ## Next
 
-0. **Find why the debugger test of an included file fails in CI.** "F5 with an included file active debugs its
-   program, in the program's folder" (`vscode\test\integration\suite\debug.test.ts`) timed out on Windows in
-   run 43338868555 (2026-11-13, `ddaae1a7`). The session started with the right program and folder, then no
-   stopped event came for the breakpoint at line 3 of `main.bas` in 10 minutes. It was the test's first run
-   in CI. The other 86 tests passed, and the step on the oldest VS Code did not run. The job run again failed
-   the same way, so it is not load. On the host the test passes alone, with its suite, and with a short-name
-   temp folder. Run 43369618409 (`0e60cfc8`) listed what the adapter sent: the breakpoint was verified, lldb
-   attached to `main.exe`, and then nothing came, no stop and no exit, the same messages as a passing run on the
-   host up to that point. The program now writes `started.txt` and `ended.txt` around its `CALL greet`, and a
-   timeout (now 2 minutes) says which were written. Run 43373521566 (`5f0bc7d6`): neither was written, so the
-   program hangs before its BASIC code runs. Run 43424962574 (`bb46bc33`) paused the program at the timeout: no
-   thread is named "Program", so the adapter's own breakpoint on `QBMAIN` was never hit, and the program was
-   running, with 7 threads. The hang is in libqb's `main`, before it starts `QBMAIN`, not in the adapter. lldb
-   shows the stacks only as addresses, since it loads no module but `main.exe`. A timeout now also lists lldb's
-   breakpoints, libqb's `device_last` (2 once `main` reaches `libqb_http_init` and the window), the module of
-   each address, and the stacks of the Windows SDK's `cdb` with Microsoft's symbols.
+0. **Check in CI the fix to the debugger test of an included file.** "F5 with an included file active debugs
+   its program, in the program's folder" (`vscode\test\integration\suite\debug.test.ts`) hung on Windows in
+   every CI run since 2026-11-13. Run 43427624872 (`789b92d6`) showed why, with `cdb`'s stacks: the program
+   was not `$CONSOLE:ONLY`, the runner gives it no window, and libqb waited on its message box "Failed to
+   initialize window" before `QBMAIN`. The tests before it debug `debug_me.bas`, a console program. The
+   test's program is now `$CONSOLE:ONLY` too. A timeout still lists lldb's breakpoints and `cdb`'s stacks.
 0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
    fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
    `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
