@@ -81,13 +81,17 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    stopped event came for the breakpoint at line 3 of `main.bas` in 10 minutes. It was the test's first run
    in CI. The other 86 tests passed, and the step on the oldest VS Code did not run. The job run again failed
    the same way, so it is not load. On the host the test passes alone, with its suite, and with a short-name
-   temp folder. Its timeout now lists what the adapter sent: the next CI run shows whether the breakpoint was
-   verified.
+   temp folder. Run 43369618409 (`0e60cfc8`) listed what the adapter sent: the breakpoint was verified, lldb
+   attached to `main.exe`, and then nothing came, no stop and no exit, the same messages as a passing run on the
+   host up to that point. The program now writes `started.txt` and `ended.txt` around its `CALL greet`, and a
+   timeout (now 2 minutes) says which were written.
 0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
    fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
    `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
-0. **Review and build `fuzz-front-end`** (proposed 2026-11-12, nothing built): coverage-guided fuzzing of the
-   lexer, the parser, the checker and the language server's calls, with `cargo-fuzz` in WSL.
+0. **Review and archive `fuzz-front-end`** (built 2026-11-13): `just fuzz <parse|compile|server|all>
+   <minutes>` fuzzes the front end with `cargo-fuzz` in WSL (`tools\fuzz\README.md`). Its first campaign found
+   one bug, now fixed: `CONST p = 4 ^ 0.5` never finished compiling. The first run of the `Fuzz` workflow is
+   still to be started.
 0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
    commit reviewed: `16f629784e`, the reference, so none yet. 38 commits wait in `..\QB64pe-latest`, up to
    `8070eebd2`.

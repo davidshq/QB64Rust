@@ -13,14 +13,14 @@ const fixture = () => vscode.Uri.file(path.join(workspace, "debug_me.bas"));
 /** Every message the adapter sent, of every session since the suite began. */
 const sent: { type?: string; event?: string; body?: Record<string, unknown> }[] = [];
 
-/** The next `stopped` event after `from` messages. A timeout's error lists what the adapter sent instead, so that a
- * failure in CI shows whether the breakpoint was verified and whether the program ended. */
-async function stoppedAfter(from: number) {
+/** The next `stopped` event after `from` messages. A timeout's error lists what the adapter sent instead, and what
+ * `note` says, so that a failure in CI shows whether the breakpoint was verified and how far the program got. */
+async function stoppedAfter(from: number, timeout = 600000, note: () => string = () => "") {
     try {
-        return await waitFor("a stopped event", () => sent.slice(from).find((m) => m.type === "event" && m.event === "stopped"), 600000);
+        return await waitFor("a stopped event", () => sent.slice(from).find((m) => m.type === "event" && m.event === "stopped"), timeout);
     } catch (e) {
         const seen = sent.slice(from).map((m) => JSON.stringify(m).slice(0, 600));
-        throw new Error(`${(e as Error).message}; the adapter sent ${seen.length} messages:\n${seen.join("\n")}`, { cause: e });
+        throw new Error(`${(e as Error).message}; ${note()}; the adapter sent ${seen.length} messages:\n${seen.join("\n")}`, { cause: e });
     }
 }
 
@@ -112,7 +112,11 @@ describe("debugging with qb64rust", function () {
     it("F5 with an included file active debugs its program, in the program's folder", async () => {
         const a = await api();
         const main = writeFile("debug_inc/main.bas", "'$INCLUDE:'rules/part.bm'\r\nSUB greet\r\nPRINT \"hi\"\r\nEND SUB\r\n");
-        const part = writeFile("debug_inc/rules/part.bm", "CALL greet\r\n");
+        // The two files show in a failure how far the program got (the CI-only hang, STATUS.md).
+        const part = writeFile(
+            "debug_inc/rules/part.bm",
+            'OPEN "started.txt" FOR OUTPUT AS #1: CLOSE #1\r\nCALL greet\r\nOPEN "ended.txt" FOR OUTPUT AS #1: CLOSE #1\r\n',
+        );
         await open(part);
         await waitFor("the program of part.bm", () => a.server.programText === "main.bas");
         breakAt(main, 3);
@@ -128,7 +132,12 @@ describe("debugging with qb64rust", function () {
         const session = await started;
         const exe = main.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
         assert.deepStrictEqual([session.configuration.program, session.configuration.cwd], [exe, path.dirname(main.fsPath)]);
-        const stopped = await stoppedAfter(from);
+        // The build is done once the session starts, so the stop comes in seconds (3.5 s in CI for the test above).
+        const marks = () =>
+            ["started.txt", "ended.txt"]
+                .map((f) => `${f} ${fs.existsSync(path.join(path.dirname(main.fsPath), f)) ? "written" : "not written"}`)
+                .join(", ");
+        const stopped = await stoppedAfter(from, 120000, marks);
         const st = await session.customRequest("stackTrace", { threadId: stopped.body!.threadId, levels: 1 });
         assert.deepStrictEqual([st.stackFrames[0].name, st.stackFrames[0].line], ["SUB greet", 3]);
         await vscode.debug.stopDebugging(session);
