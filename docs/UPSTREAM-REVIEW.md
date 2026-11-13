@@ -31,7 +31,7 @@ Read for the merge of branch `after-pr26`, from `..\QB64pe-latest` pulled that d
 | `8288757ca`, `56171415c` | `_SEAMLESS` in `CIRCLE` and `LINE` | Wanted: `SOMEDAY.md`, "Deferred QB64pe features" |
 | `996668229` | `_SNDCLOSE` frees the `_MEMSOUND` lock on the program's thread | Wanted: `SOMEDAY.md`, the `_SNDCLOSE` row |
 | `04993e54e` | `_FILELEN`, `_GETATTR`, `_FILEDATETIME$` | Wanted: `SOMEDAY.md`, "Deferred QB64pe features" |
-| `37641e597` | `$INCLUDEONCE` compares file names without case on Windows and macOS | Same here: our compiler keys included files by canonical path. A Windows program that includes `once.bm` and then `ONCE.bm` prints the file's line once here and twice with the reference (checked 2026-11-13). That difference from the reference has no `DIVERGENCES-QB64PE.md` row yet |
+| `37641e597` | `$INCLUDEONCE` compares file names without case on Windows and macOS | Same here: our compiler keys included files by canonical path. A Windows program that includes `once.bm` and then `ONCE.bm` prints the file's line once here and twice with the reference (checked 2026-11-13). That difference from the reference is D-065 (`verification\v70_i3_includeonce_name_case`) |
 | `55a71ac61` | `_TITLE$` copies the title instead of pointing at a string that is gone | Wanted: `SOMEDAY.md`, the `_TITLE$` row (P2) |
 
 ### QB64pe's compiler, IDE, build and tests

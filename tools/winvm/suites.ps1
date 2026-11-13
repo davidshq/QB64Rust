@@ -248,7 +248,9 @@ function Invoke-Start {
     # with the step `community` copies them: they are several hundred MB (design D7). The guest keeps them at
     # <parent>\community whatever the host's folder is called.
     if ($Community) {
-        $communityStamp = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $communityHost 'heads.txt')).Hash
+        # Not Get-FileHash: under the check run, this script's PowerShell does not find that cmdlet (2026-11-13).
+        $headsBytes = [System.IO.File]::ReadAllBytes((Join-Path $communityHost 'heads.txt'))
+        $communityStamp = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash($headsBytes)).Replace('-', '')
         $guestCommunity = Invoke-Command -Session $session -ArgumentList "$parent\$own\community.stamp" {
             param($p) if (Test-Path -LiteralPath $p) { (Get-Content -Raw -LiteralPath $p).Trim() } else { '' }
         }

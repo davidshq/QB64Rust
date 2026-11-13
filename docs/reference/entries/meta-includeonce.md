@@ -26,6 +26,9 @@ The file is the same file when it is named another way, as `v16_inc/once.bi` and
 A library named twice with `$USELIBRARY` whose files hold `$INCLUDEONCE` is read once.
 <!-- src: language/external-libraries "The order of several libraries"; verification\v70_i1_uselibrary_twice_includeonce; verification\v70_i2_uselibrary_nested_includeonce -->
 
+On Windows, a name that differs only in case (`once.bm`, then `ONCE.BM`) is the same file too.
+<!-- src: compiler/pipeline "Included files"; verification\v70_i3_includeonce_name_case; D-065 -->
+
 ## Errors
 
 These are compile errors:
@@ -37,6 +40,12 @@ These are compile errors:
   <!-- src: verification\v26_x47_includeonce_after_colon -->
 - A tab before `$INCLUDEONCE`: "a metacommand must not have a tab before it".
   <!-- src: verification\v26_x42_tab_before_includeonce -->
+
+## Differences
+
+QB64pe 4.7.0 compares the names as written, so on Windows a file named in a different case is included again. Later
+QB64pe compares them as this compiler does.
+<!-- src: compiler/pipeline "Included files"; verification\v70_i3_includeonce_name_case; D-065 -->
 
 ## Availability
 

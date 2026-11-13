@@ -356,7 +356,8 @@ branch SHALL be kept in the tree but not parsed or checked; an active `$ERROR` S
 A comment `'$INCLUDE:'file'` (or `REM $INCLUDE:'file'`) SHALL include the file after the line it is on;
 `$INCLUDE:'file'` without a comment SHALL be an error, as in the old compiler. An absolute path SHALL be used as
 written; a relative one SHALL be looked up in the including file's folder, then relative to the compiler root (see
-the CLI spec), never relative to the working directory. `$INCLUDEONCE` in a file SHALL make later inclusions of that file empty. A missing file, an empty name,
+the CLI spec), never relative to the working directory. `$INCLUDEONCE` in a file SHALL make later inclusions of that file empty. Names that open one file on disk SHALL be
+that one file, also on Windows a name that differs only in case (D-065). A missing file, an empty name,
 or an inclusion deeper than 100 levels SHALL be an error at the include; a file that includes itself SHALL NOT be
 an error by itself. Diagnostics in an included file SHALL name that file and its line and column.
 A block or a SUB or FUNCTION opened in one file and closed in a file it includes, or opened in an included file
@@ -421,6 +422,12 @@ as in the old compiler.
 #### Scenario: Included twice
 - **WHEN** a file that does not contain `$INCLUDEONCE` is included twice
 - **THEN** it is parsed twice, and the names in each inclusion are distinct symbols
+
+#### Scenario: Included once by a name that differs only in case
+- **WHEN** on Windows a file that starts with `$INCLUDEONCE` is included as `v70_inc/once_case.bm`, then as
+  `v70_inc/ONCE_CASE.BM`
+- **THEN** it is included once, where the old compiler includes it twice (D-065,
+  `verification\v70_i3_includeonce_name_case`)
 
 ### Requirement: No follow-on errors after an unsupported declaration
 After the first declaration reported "not supported yet", in file order, only "not supported yet" errors SHALL be

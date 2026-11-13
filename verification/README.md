@@ -552,7 +552,8 @@ Small programs behind `study\09`, `study\10` and later measurements:
   also as `NEXT ELSE` (`g1`, `g2`). A one-bit FUNCTION called with its suffix is "Name already in use", without
   it a call as any other (`h1`, `h2`). `v70_root` holds two libraries whose files start with `$INCLUDEONCE`:
   named twice, or pulled in by another library, each is read once (`i1`, `i2`); its `DECLARE CUSTOMTYPE LIBRARY`
-  with no name aliases `memcpy`, which the C headers declare.
+  with no name aliases `memcpy`, which the C headers declare. A file of `$INCLUDEONCE` in `v70_inc\`, included
+  again by its name in capitals, is included twice (`i3`, D-065; recorded 2026-11-13 for the upstream review).
 - `v71*`: forms QB64pe rejects, recorded for the language reference's pages of those words (2026-11-12, the
   second review of OpenSpec change `language-reference`, task 7.3): `_BASE64DECODE$` with a number or no argument
   (`x01`, `x02`), `_SNDLOOP` with no handle or two arguments (`x03`, `x04`), `_SNDPAUSE` and `_SNDSTOP` with no

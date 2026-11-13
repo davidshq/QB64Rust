@@ -84,9 +84,7 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    `CONST p = 4 ^ 0.5` never finished compiling.
 0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
    commit reviewed: `ce6e54aee` (2026-11-13, 87 commits, `docs\UPSTREAM-REVIEW.md`). Before the merge of
-   `after-pr26`, pull `..\QB64pe-latest` again and review only what came after it. The review found one
-   difference from the reference with no `DIVERGENCES-QB64PE.md` row: `$INCLUDEONCE` compares file names without
-   case on Windows here, as upstream's `37641e597` does since.
+   `after-pr26`, pull `..\QB64pe-latest` again and review only what came after it.
 1. **Choose the next milestone.** `ROADMAP.md` has no open milestone. macOS, which was M8, is postponed to
    `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next. The candidates are in
    `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS

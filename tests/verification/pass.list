@@ -4342,6 +4342,7 @@ v70_h1_bit_function
 v70_h2_bit_function_no_suffix
 v70_i1_uselibrary_twice_includeonce
 v70_i2_uselibrary_nested_includeonce
+v70_i3_includeonce_name_case
 v71_x01_base64decode_number
 v71_x02_base64decode_bare
 v71_x03_sndloop_bare
