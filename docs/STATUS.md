@@ -67,7 +67,7 @@ questionable behaviours each change kept QB64pe's way, which stay silent until t
 working rule 7).
 
 1. **The review of the next big wins** (`study\47`, 2026-11-09), section 8: is "first outside users" the next
-   milestone; should upstream's commits since the reference be reviewed as a routine. Language extensions
+   milestone. Language extensions
    are allowed behind a switch (`DECISIONS.md` 2026-11-11); which extension comes first is still open
    (`study\48` §5 recommends an order).
 
@@ -75,11 +75,22 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 
 ## Next
 
-0. **Tick task 4.2 of `project-settings`** (archived 2026-11-11, `[format]` and `[lints]` in `qb64rust.toml`) when
-   CI has run its two integration tests in `vscode\test\integration\suite\format.test.ts`.
+0. **Find why the debugger test of an included file fails in CI.** "F5 with an included file active debugs its
+   program, in the program's folder" (`vscode\test\integration\suite\debug.test.ts`) timed out on Windows in
+   run 43338868555 (2026-11-13, `ddaae1a7`). The session started with the right program and folder, then no
+   stopped event came for the breakpoint at line 3 of `main.bas` in 10 minutes. It was the test's first run
+   in CI. The other 86 tests passed, and the step on the oldest VS Code did not run. The job run again failed
+   the same way, so it is not load. On the host the test passes alone, with its suite, and with a short-name
+   temp folder. Its timeout now lists what the adapter sent: the next CI run shows whether the breakpoint was
+   verified.
 0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
    fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
    `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
+0. **Review and build `fuzz-front-end`** (proposed 2026-11-12, nothing built): coverage-guided fuzzing of the
+   lexer, the parser, the checker and the language server's calls, with `cargo-fuzz` in WSL.
+0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
+   commit reviewed: `16f629784e`, the reference, so none yet. 38 commits wait in `..\QB64pe-latest`, up to
+   `8070eebd2`.
 1. **Choose the next milestone.** `ROADMAP.md` has no open milestone. macOS, which was M8, is postponed to
    `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next. The candidates are in
    `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS

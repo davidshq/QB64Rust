@@ -337,6 +337,88 @@ pub fn server_hooks() -> qb64rust_lsp::Hooks {
     }
 }
 
+/// Which stages [`probe`] runs an input through (OpenSpec change `fuzz-front-end`, design D3): one per fuzz target.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Probe {
+    /// The lexer and the parser, and the exact round trip of the tree.
+    Parse,
+    /// [`frontend`] and the round trip, then lowering and C++ generation for an accepted program of at most
+    /// [`PROBE_EMIT_MAX_LEN`] bytes.
+    Compile,
+    /// The language server's three calls on a document that is not a file: check, format, index.
+    Server,
+}
+
+/// How far [`probe`] took an input.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Reached {
+    /// C++ was generated (`Probe::Compile` only).
+    pub emitted: bool,
+}
+
+/// An input larger than this skips C++ generation in `Probe::Compile`. Only `g12_game` (160 KB) of the corpus is
+/// larger: its mutants took about 5 s each to lower and emit, and add size rather than variety.
+pub const PROBE_EMIT_MAX_LEN: usize = 32 * 1024;
+
+/// Runs `bytes` as a program through the stages of `kind` and checks the properties the fuzz targets, the
+/// mutation test and the fuzz regression test share (spec `testing/fuzzing`). `Err` names a property that failed.
+/// A panic is not caught: the tests catch it, and libFuzzer reports it itself. Nothing is read from the disk
+/// (`$INCLUDE` finds no file), and the program is read as compiled on Windows, so that both hosts agree.
+pub fn probe(kind: Probe, bytes: &[u8]) -> Result<Reached, &'static str> {
+    const NAME: &str = "probe.bas";
+    let round_trip = |parsed: &ParsedProgram| {
+        if qb64rust_syntax::tree::print(&parsed.main().green, bytes) == bytes {
+            Ok(())
+        } else {
+            Err("round trip failed")
+        }
+    };
+    let parse = || {
+        let mut map = SourceMap::new();
+        let file = map.add(NAME, bytes.to_vec());
+        let parsed = parse_settled_explicit(qb64rust_base::Platform::Windows, false, &mut map, file, &mut NoLoader);
+        (map, file, parsed)
+    };
+    match kind {
+        Probe::Parse => {
+            let (_, _, parsed) = parse();
+            round_trip(&parsed)?;
+            Ok(Reached::default())
+        }
+        Probe::Compile => {
+            let fe = frontend(NAME, bytes.to_vec());
+            round_trip(&fe.parsed)?;
+            let emitted = !fe.has_errors() && bytes.len() <= PROBE_EMIT_MAX_LEN;
+            if emitted {
+                // The emission that runs the most of the emitter: a debug build's, with coverage counters and the
+                // record calls of a value-trace build.
+                let instrument = Instrument {
+                    coverage: true,
+                    trace: true,
+                };
+                emit_ir_debug(&fe, &lower(&fe), &Resolved::default(), instrument, None);
+            }
+            Ok(Reached { emitted })
+        }
+        Probe::Server => {
+            let (map, file, parsed) = parse();
+            let hooks = server_hooks();
+            let root = Path::new("");
+            (hooks.check)(&map, &parsed, None, root);
+            let _ = (hooks.format)(
+                &map,
+                &parsed,
+                None,
+                root,
+                &qb64rust_base::layout::Settings::default(),
+                file,
+            );
+            (hooks.index)(&map, &parsed, None, root);
+            Ok(Reached::default())
+        }
+    }
+}
+
 /// Where the icon `$EXEICON` names lies ([`named_file`]). `None` for a program without one.
 pub fn exe_icon_path(fe: &Frontend, main_path: &Path, root: &Path) -> Option<PathBuf> {
     icon_path(&fe.program, main_path, root)

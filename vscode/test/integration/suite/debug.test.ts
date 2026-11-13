@@ -13,9 +13,15 @@ const fixture = () => vscode.Uri.file(path.join(workspace, "debug_me.bas"));
 /** Every message the adapter sent, of every session since the suite began. */
 const sent: { type?: string; event?: string; body?: Record<string, unknown> }[] = [];
 
-/** The next `stopped` event after `from` messages. */
-function stoppedAfter(from: number) {
-    return waitFor("a stopped event", () => sent.slice(from).find((m) => m.type === "event" && m.event === "stopped"), 600000);
+/** The next `stopped` event after `from` messages. A timeout's error lists what the adapter sent instead, so that a
+ * failure in CI shows whether the breakpoint was verified and whether the program ended. */
+async function stoppedAfter(from: number) {
+    try {
+        return await waitFor("a stopped event", () => sent.slice(from).find((m) => m.type === "event" && m.event === "stopped"), 600000);
+    } catch (e) {
+        const seen = sent.slice(from).map((m) => JSON.stringify(m).slice(0, 600));
+        throw new Error(`${(e as Error).message}; the adapter sent ${seen.length} messages:\n${seen.join("\n")}`, { cause: e });
+    }
 }
 
 /** Resolves when the next debug session ends. */

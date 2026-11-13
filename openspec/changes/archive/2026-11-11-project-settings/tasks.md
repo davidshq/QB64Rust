@@ -58,7 +58,10 @@ Standing rules: CLAUDE.md.
 - [x] 4.1 In `vscode\src\format.ts`, pass the layout settings to `qb64rust -y` as `--format-default` pairs; keep
       `-f:` for `qb64pe -y` (design D6). Update the file's header comment. Verify with the extension's unit test
       of the argument list, for both compilers.
-- [ ] 4.2 Verify in the extension's integration tests, with a workspace `qb64rust.toml` holding `[format]` and
+- [x] 4.2 (Passed in CI on 2026-11-13, run 43338868555 at `ddaae1a7`: "the project's qb64rust.toml wins over
+      the settings" twice, on Windows and on Linux, VS Code stable. The step on the oldest VS Code did not run,
+      because a debugger test failed before it.)
+      Verify in the extension's integration tests, with a workspace `qb64rust.toml` holding `[format]` and
       `keyword-case = "upper"`: Format Document gives `PRINT 1` with the server on and with it off; with
       `keyword-case = "uper"` the document is unchanged and the message names `qb64rust.toml`. If the server's
       message does not name the settings file, change `crates\lsp\src\server.rs` to show the diagnostic's text

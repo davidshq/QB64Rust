@@ -1249,7 +1249,7 @@ def no_clone(root: Path) -> str | None:
         return None
     return (
         f"no reference clone at {clone.as_posix()}: a worktree goes beside the checkout, so that ../QB64pe and "
-        "../../qb64contain are the same folders (CLAUDE.md, \"Where things live\")."
+        "../qb45 are the same folders (CLAUDE.md, \"Where things live\")."
     )
 
 

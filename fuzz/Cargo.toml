@@ -1,0 +1,44 @@
+# The fuzz targets (OpenSpec change `fuzz-front-end`; tools/fuzz/README.md). Not a member of the workspace: it
+# needs a nightly Rust and Linux, and `fuzz_target!` expands to an exported C function, which the workspace's
+# `unsafe_code = "forbid"` refuses. Run through `just fuzz`, never by `cargo build` at the top.
+[package]
+name = "qb64rust-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "MIT"
+
+[package.metadata]
+cargo-fuzz = true
+
+# Its own workspace, with its own Cargo.lock.
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+qb64rust-driver = { path = "../crates/driver" }
+
+# As the workspace's release profile: an overflow in the compiler's arithmetic panics.
+[profile.release]
+overflow-checks = true
+
+[[bin]]
+name = "parse"
+path = "fuzz_targets/parse.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "compile"
+path = "fuzz_targets/compile.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "server"
+path = "fuzz_targets/server.rs"
+test = false
+doc = false
+bench = false

@@ -21,7 +21,7 @@ times) goes to the background, its report in `target\check\run.log` and each ste
 happened.
 
 **A run in a worktree.** `full` and `merge` run in a worktree of a commit, made beside the checkout
-(`git worktree add ../qb64rust-full HEAD`), where `..\QB64pe` and `..\..\qb64contain` are the same folders
+(`git worktree add ../qb64rust-full HEAD`), where `..\QB64pe` and `..\qb45` are the same folders
 (`CLAUDE.md`, "Where things live"); elsewhere `check` refuses. For the next commit, `git checkout <commit>` in that
 worktree: what stands is not run again, where a new worktree builds from cold and runs every step. Its first plan
 hashes every file (some minutes); later plans read only what changed. The Linux steps run in the tree's own WSL

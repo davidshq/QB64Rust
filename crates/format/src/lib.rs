@@ -14,7 +14,8 @@ mod fmt;
 mod lay;
 mod stmt;
 mod walk;
-mod words;
+/// Public for the fuzz dictionary (`driver`'s `fuzz_regressions` test).
+pub mod words;
 
 use qb64rust_base::layout::Settings;
 use qb64rust_base::{FileId, SourceMap};

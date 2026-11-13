@@ -37,8 +37,9 @@ changing direction, design or scope.**
    - **This repo (`QB64Rust`) is the project.** Paths in this file are relative to it. The parent folder (`..`)
      has symlinks `CLAUDE.md`, `SOMEDAY.md` (to `docs\SOMEDAY.md`) and `study` pointing here, so sessions started
      in the parent see the same files; edit the real files here, not copies.
-   - **`<qb64contain>` is `..\..\qb64contain`**, beside the parent folder, not the parent itself. It holds QB 4.5
-     (`<qb64contain>\qb45\install`), which `tools\qb45\qb45.py` finds there by default (`tools\qb45\README.md`).
+   - **`<qb64contain>` is `..\..\qb64contain`**, beside the parent folder, not the parent itself.
+   - **QB 4.5 is in `..\qb45\install`**, in the parent folder beside `pds71`. `tools\qb45\qb45.py` finds it
+     there by default (`tools\qb45\README.md`). It was in `<qb64contain>\qb45` until 2026-11-12.
    - **`..\QB64pe\` is a read-only reference clone.** Do not modify it. Study notes and design documents go in
      `study\`.
    - **`..\QB64pe-latest\` is a second clone, of upstream's `main`** (`QB64-Phoenix-Edition/QB64pe`, cloned
@@ -147,6 +148,10 @@ changing direction, design or scope.**
      with the family's line in `verification\README.md` saying what it shows; a change's `design.md` names the
      programs it rests on. *Why:* every change ended with rulings to ask for, and `study\00` §5 had grown to about
      3,000 lines that no session reads whole (`study\35` §2).
+   - **Upstream's new commits are reviewed at each merge into `main`** (user, 2026-11-12). Pull
+     `..\QB64pe-latest` and read every commit since the one `STATUS.md` names as last reviewed. Give each commit
+     one result: already the same here, wanted (a `SOMEDAY.md` row that names the commit), or not relevant.
+     Then update the commit named in `STATUS.md`.
 8. **Where QB64pe's own result depends on the machine, do not build to match it bit for bit** (`study\35` §3
     item 4, user, 2026-10-18). When the old compiler's value comes from the CPU or the libraries `qb64pe.exe` was
     built with (x87 instructions, the C runtime's math), take a well-defined value (correctly rounded, as D-026)

@@ -63,6 +63,8 @@ jobs:
       - run: python -m unittest discover -s tools/format -p "test_*.py"
       - run: python -m unittest discover -s tools/upstream -p "test_*.py"
       - run: python -m unittest discover -s tools/sandbox -p "test_*.py"
+      # The same for the fuzz run script (the commands it builds, the summary it reads; no fuzzer run).
+      - run: python -m unittest discover -s tools/fuzz -p "test_*.py"
 
   # Licences, advisories and sources of the dependencies (deny.toml; study\archive\21 item 7). The action runs on Linux;
   # the dependency graph is the same on every platform.
@@ -72,6 +74,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: EmbarkStudios/cargo-deny-action@v2
+      # The fuzz crate has its own lock file, outside the workspace (OpenSpec change fuzz-front-end, design D2).
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: fuzz/Cargo.toml
 
   # Linux x64 (OpenSpec change m7-linux, design D10): the system toolchain and its packages (the Debian line of
   # crates\driver\src\toolchain.rs, PACKAGES), lldb-23 from apt.llvm.org for the debugger tests and Xvfb for the

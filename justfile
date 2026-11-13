@@ -1,4 +1,5 @@
-# The one entry point for testing: tools/check/README.md. Each recipe is one line calling tools/check/check.py.
+# The one entry point for testing: tools/check/README.md. Each recipe is one line calling tools/check/check.py, but
+# `fuzz`, which calls tools/fuzz/fuzz.py.
 # Install: cargo install just --locked (and cargo-nextest: cargo install cargo-nextest --locked).
 
 set windows-shell := ["cmd.exe", "/c"]
@@ -33,3 +34,7 @@ history days="14":
 # a layer again, what stands too, without the pass cache
 force layer="quick":
     python tools/check/check.py {{layer}} --force
+
+# a fuzz target (parse, compile, server or all) for some minutes, in WSL; started by hand only (tools/fuzz/README.md)
+fuzz target minutes *flags:
+    python tools/fuzz/fuzz.py {{target}} {{minutes}} {{flags}}
