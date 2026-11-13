@@ -2,7 +2,9 @@
 // its lldb-dap) and the qb64rust binary (QB64RUST_TEST_QB64RUST); skipped without either. The sessions run
 // `qb64rust dap` over the real lldb-dap, with the default console (the integrated terminal).
 import * as assert from "assert";
+import { execFileSync } from "child_process";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
 import { api, closeAll, compiler, open, server, setSetting, waitFor, workspace, writeFile } from "./helpers";
@@ -22,18 +24,84 @@ async function stoppedAfter(from: number, timeout = 600000, note: () => string =
         // The threads as the adapter names them, read in a pause: one named "Program" once its own breakpoint on the
         // main module was hit.
         let threads: string;
+        // lldb's own view in the pause: whether the proxy's breakpoint on the main module resolved, and the thread's
+        // addresses (the proxy shows only BASIC frames). libqb's `main` sets `device_last` to 2 just before
+        // `libqb_http_init` and the window; its other globals have no debug information.
+        let lldb = "";
+        const commands = ["`breakpoint list", "`bt all", "`target variable device_last"];
         try {
             const session = vscode.debug.activeDebugSession!;
             const paused = sent.length;
             await session.customRequest("pause", { threadId: 0 });
             await waitFor("the pause", () => sent.slice(paused).find((m) => m.type === "event" && m.event === "stopped"), 30000);
             threads = JSON.stringify((await session.customRequest("threads")).threads);
+            for (const command of commands) {
+                try {
+                    lldb += `\n${command}:\n${(await session.customRequest("evaluate", { expression: command, context: "repl" })).result}`;
+                } catch (c) {
+                    lldb += `\n${command}: failed (${(c as Error).message})`;
+                }
+            }
         } catch (t) {
             threads = `not read (${(t as Error).message})`;
         }
+        const pid = sent.slice(from).find((m) => m.type === "event" && m.event === "process")?.body?.systemProcessId;
+        const windows = process.platform === "win32" && typeof pid === "number" ? windowsStacks(pid, lldb) : "";
         const seen = sent.slice(from).map((m) => JSON.stringify(m).slice(0, 600));
-        throw new Error(`${(e as Error).message}; ${note()}; threads ${threads}; the adapter sent ${seen.length} messages:\n${seen.join("\n")}`, { cause: e });
+        throw new Error(
+            `${(e as Error).message}; ${note()}; threads ${threads}; the adapter sent ${seen.length} messages:\n${seen.join("\n")}${lldb}${windows}`,
+            { cause: e },
+        );
     }
+}
+
+/** What Windows says of a program that lldb shows only by address (it loads no module but the executable): the
+ * module each of `lldb`'s addresses is in, and the stacks `cdb` reads without stopping the program, with
+ * Microsoft's symbols, where the Windows SDK's `cdb` is installed. */
+function windowsStacks(pid: number, lldb: string): string {
+    let out = "";
+    try {
+        const list = execFileSync(
+            "powershell",
+            [
+                "-NoProfile",
+                "-Command",
+                `(Get-Process -Id ${pid}).Modules | ForEach-Object { "$($_.BaseAddress.ToInt64()) $($_.ModuleMemorySize) $($_.ModuleName)" }`,
+            ],
+            { encoding: "utf8", timeout: 60000 },
+        );
+        const modules = list
+            .split(/\r?\n/)
+            .map((l) => l.trim().split(" "))
+            .filter((f) => f.length === 3)
+            .map(([base, size, name]) => ({ base: BigInt(base), size: BigInt(size), name }));
+        const addresses = [...new Set(lldb.match(/0x[0-9a-f]{16}/gi) ?? [])];
+        out += "\nmodules of lldb's addresses:";
+        for (const a of addresses) {
+            const at = BigInt(a);
+            const m = modules.find((m) => at >= m.base && at < m.base + m.size);
+            out += `\n  ${a} ${m ? `${m.name}+0x${(at - m.base).toString(16)}` : "in no module"}`;
+        }
+    } catch (m) {
+        out += `\nmodules not read (${(m as Error).message})`;
+    }
+    const cdb = path.join(process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)", "Windows Kits", "10", "Debuggers", "x64", "cdb.exe");
+    if (!fs.existsSync(cdb)) {
+        return `${out}\ncdb: not installed (${cdb})`;
+    }
+    try {
+        const symbols = path.join(os.tmpdir(), "qb64rust-it-symbols");
+        const stacks = execFileSync(cdb, ["-pv", "-p", String(pid), "-c", "~*kn 30; q"], {
+            encoding: "utf8",
+            timeout: 300000,
+            env: { ...process.env, _NT_SYMBOL_PATH: `srv*${symbols}*https://msdl.microsoft.com/download/symbols` },
+        });
+        out += `\ncdb's stacks:\n${stacks}`;
+    } catch (c) {
+        const err = c as { message: string; stdout?: string };
+        out += `\ncdb failed (${err.message}):\n${err.stdout ?? ""}`;
+    }
+    return out;
 }
 
 /** Resolves when the next debug session ends. */

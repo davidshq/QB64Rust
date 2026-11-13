@@ -85,9 +85,12 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    attached to `main.exe`, and then nothing came, no stop and no exit, the same messages as a passing run on the
    host up to that point. The program now writes `started.txt` and `ended.txt` around its `CALL greet`, and a
    timeout (now 2 minutes) says which were written. Run 43373521566 (`5f0bc7d6`): neither was written, so the
-   program hangs before its BASIC code runs. A timeout now also pauses the program and lists its threads. One
-   named "Program" means the adapter's own breakpoint on the main module was hit and the program was not
-   resumed after it.
+   program hangs before its BASIC code runs. Run 43424962574 (`bb46bc33`) paused the program at the timeout: no
+   thread is named "Program", so the adapter's own breakpoint on `QBMAIN` was never hit, and the program was
+   running, with 7 threads. The hang is in libqb's `main`, before it starts `QBMAIN`, not in the adapter. lldb
+   shows the stacks only as addresses, since it loads no module but `main.exe`. A timeout now also lists lldb's
+   breakpoints, libqb's `device_last` (2 once `main` reaches `libqb_http_init` and the window), the module of
+   each address, and the stacks of the Windows SDK's `cdb` with Microsoft's symbols.
 0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
    fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
    `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
