@@ -19,6 +19,7 @@ them (`tests\*\README.md`, `STATUS.md`'s numbers), and catalogues in their folde
 | `docs\DIVERGENCES-QB64PE.md` | Divergence register: decided differences from the old compiler's observed behaviour |
 | `docs\DIVERGENCES-QB45.md` | Differences from QuickBASIC 4.5 (most inherited from QB64pe), each with the source of its QB 4.5 behaviour |
 | `docs\UPSTREAM.md` | Fixes to offer QB64pe: its bugs that this project fixes, each with where it is in QB64pe's sources, the fix and the divergence row |
+| `docs\UPSTREAM-REVIEW.md` | The reviews of QB64pe's commits after the reference, one section per merge into `main`: each commit with one result (same here, wanted with its `SOMEDAY.md` row, or not relevant) |
 | `docs\SOMEDAY.md` | Deferred features and ideas, and "QB64pe behaviours to review": questionable behaviours implemented QB64pe's way |
 | `docs\MANUAL.md` | The manual of the compiler download (`qb64rust-win-x64-<version>.zip` and `qb64rust-linux-x64-<version>.tar.gz`, which carry it): setting up, compiling, the options, the exit statuses; for a QB64 programmer at a command prompt. Every option it names is checked against the usage text (`vscode\scripts\test_package_download.py`) |
 | `docs\QUICKSTART.md` | The quick start guide, for a QB64 programmer new to QB64Rust: which download to take, installing the extension or the compiler, a first program built, run and debugged, and where to read next |

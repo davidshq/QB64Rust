@@ -75,27 +75,18 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 
 ## Next
 
-0. **Check in CI the fix to the debugger test of an included file.** "F5 with an included file active debugs
-   its program, in the program's folder" (`vscode\test\integration\suite\debug.test.ts`) hung on Windows in
-   every CI run since 2026-11-13. Run 43427624872 (`789b92d6`) showed why, with `cdb`'s stacks: the program
-   was not `$CONSOLE:ONLY`, the runner gives it no window, and libqb waited on its message box "Failed to
-   initialize window" before `QBMAIN`. The tests before it debug `debug_me.bas`, a console program. The
-   test's program is now `$CONSOLE:ONLY` too. A timeout still lists lldb's breakpoints and `cdb`'s stacks.
 0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
    fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
    `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
-0. **Finish `format-statement-lines`** (the formatter's `OneStatementPerLine` and `BlockIf`, and the two code
-   actions; built 2026-11-13, tasks 1.1, 7.2 and 8.3 open). Left: the verification list with `qb64rust` in the
-   suites VM, which runs the new `v72` family (task 1.1); the extension's integration test of the setting and the
-   code action (7.2); and, before the merge, the whole corpus formatted with both settings and built with
-   `qb64pe.exe` in the suites VM (8.3, design D9 item 6).
 0. **Start the first run of the `Fuzz` workflow** (`fuzz-front-end` archived 2026-11-13): `just fuzz
    <parse|compile|server|all> <minutes>` fuzzes the front end with `cargo-fuzz` in WSL (`tools\fuzz\README.md`),
    and the workflow does the same on GitHub's runner. The first campaign found one bug, now fixed:
    `CONST p = 4 ^ 0.5` never finished compiling.
 0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
-   commit reviewed: `16f629784e`, the reference, so none yet. 38 commits wait in `..\QB64pe-latest`, up to
-   `8070eebd2`.
+   commit reviewed: `ce6e54aee` (2026-11-13, 87 commits, `docs\UPSTREAM-REVIEW.md`). Before the merge of
+   `after-pr26`, pull `..\QB64pe-latest` again and review only what came after it. The review found one
+   difference from the reference with no `DIVERGENCES-QB64PE.md` row: `$INCLUDEONCE` compares file names without
+   case on Windows here, as upstream's `37641e597` does since.
 1. **Choose the next milestone.** `ROADMAP.md` has no open milestone. macOS, which was M8, is postponed to
    `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next. The candidates are in
    `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS

@@ -212,6 +212,21 @@ changing direction, design or scope.**
     - The same goes for code: change what the task needs, not the code around it.
     *Why:* small diffs cost the user less time to read and stage (user: "don't change prose for the fun of it.
     smaller diffs are desired", 2026-11-09).
+15. **What Claude wrote is not the user's ruling, and a rule in the way is asked about** (user, 2026-11-13).
+    - Before giving a record as a reason, check who decided it. A line marked `(user, date)` is the user's.
+      A recommendation, a panel view, an "as built" or a README sentence that Claude wrote is not. Say
+      "I wrote this on <date>", never "it was decided".
+    - Check that the record is current. Read the repo it describes, its branch and its latest commits, not
+      a copy or a summary of it.
+    - When a rule or an earlier decision stands against what the user now asks, or against the better
+      design, follow the rule and ask. Name the rule, its date and who made it, and say why it may not
+      fit. Do not drop the option without saying so, and do not override the rule.
+    - Meanwhile do the work that is the same under either answer.
+
+    *Why:* on 2026-11-13 Claude advised building a scenario menu in `pretzel-wargames` because the Civil War
+    Strategy port "changes as little as possible" and "decided to keep `ALTMAP.BAT`". Both were Claude's own
+    words: a README sentence and a study's recommendation. Claude had read a copy of 2026-11-10, while the
+    port had been under modernization since 2026-11-11 (user: "You write shit and then assume its fact").
 
 ## Project decisions
 

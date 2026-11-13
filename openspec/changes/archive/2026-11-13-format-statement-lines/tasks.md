@@ -5,7 +5,7 @@ of the formatter changes (group 1), because design D4 rests on one of its result
 
 ## 1. Measure with the old compiler first
 
-- [ ] 1.1 Write the family `verification\v72_*` in pairs, one pair for each form of design D9 item 1:
+- [x] 1.1 Write the family `verification\v72_*` in pairs, one pair for each form of design D9 item 1:
       `v72_<form>.bas` packed, and `v72_<form>_r.bas` (or `_b`) written by hand as the spec says the
       formatter is to write it. Each prints what the form does over the same inputs. Include
       `x = 1: IF a THEN` followed by a block, `IF c GOTO n` as a block, a colon right after `THEN` and after
@@ -108,7 +108,7 @@ of the formatter changes (group 1), because design D4 rests on one of its result
       server off, pass `-f:OneStatementPerLine=false -f:BlockIf=false`. Verify: unit tests for the argument
       lists of the three formatters, and for the two descriptions naming `qb64rust.toml` and the old
       compiler.
-- [ ] 7.2 Add an integration test: with `qb64rust.format.oneStatementPerLine` on, Format Document turns
+- [x] 7.2 Add an integration test: with `qb64rust.format.oneStatementPerLine` on, Format Document turns
       `x = 0: y = 0` into two lines, and the code action "Convert to block IF" is offered on
       `IF a THEN x = 1` with the setting off. Verify: the test passes in the extension's test run.
 
@@ -123,7 +123,7 @@ of the formatter changes (group 1), because design D4 rests on one of its result
 - [x] 8.2 Run `just quick` in the background and read its log. Verify: it passes, and the report says what
       ran, what stood and why.
 
-- [ ] 8.3 Before the merge into `main`, once: format every corpus program that has a recording with both
+- [x] 8.3 Before the merge into `main`, once: format every corpus program that has a recording with both
       settings into a scratch folder, and ask the user to start the run in the suites VM that builds each
       with `qb64pe.exe` and compares its output with the source's recording (design D9 item 6). If the VM
       cannot run `qb64pe.exe` on a scratch folder, ask the user how to run it before trying another way.

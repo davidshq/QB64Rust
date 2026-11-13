@@ -273,8 +273,32 @@ colons with the comment above (`a`), both branches as a block (`b`), `GoTo` for 
 (`g`), a nested single-line `IF` (`h`), an empty `THEN` (`i`), a colon right after `THEN` and `ELSE` (`j`),
 `SELECT CASE` on one line (`k`), statements after `ELSEIF … THEN` and a block's `ELSE` (`l`), `CLS:`, a label
 and a SUB's name before a colon (`m`), a `REM` comment above an `IF` (`o`), and a comment above a numbered line
-that a `GOTO` names (`p`). With `qb64rust`, each pair's `--dump typed` and `--dump cpp` are equal once line
+that a `GOTO` names (`p`). With `qb64rust`, all 34 pass in the suites VM (`just check verification --where
+vm`, 2026-11-13: the whole list of 4,383 programs passed in 1,912 s). With `qb64rust`, each pair's `--dump typed` and `--dump cpp` are equal once line
 numbers and the file name are masked.
+
+**The whole corpus with `qb64pe.exe`** (2026-11-13, task 8.3, D9 item 6). Each of the 490 programs of
+`tests\corpus` that has an `.output` was formatted with `qb64rust -y -f:OneStatementPerLine=true
+-f:BlockIf=true --no-settings` into a scratch corpus root. A program with a `<name>.files` folder was formatted
+with that folder's files beside it, as the runner runs it. All 490 changed: besides the rewrites, the default
+layout sets keyword case and indents. The 26 programs with `.err` or `.norun` were left as written. The suites
+VM then ran `python tools\legacy_tests\run_legacy_tests.py --suite corpus --corpus-root <scratch> --qb64
+..\QB64pe\qb64pe.exe --jobs 8`, through `suites.ps1` and `step.ps1` with a one-off job that copied the
+scratch root in as a tar. Result: 505 passed, 4 known failures (`PRINT` with a comma never ends when stdout is
+redirected), and 16 differed from their recordings. Eight programs of the first batch (`114_select_multiple`
+to `120_redim_no_preserve` and `11_math_backslash`) timed out while the eight `qb64pe` copies were new, and
+passed when run again alone. The 16 that differ:
+
+- 12 differ only in line numbers, as expected: `s93_mem_error_302` to `s99_mem_error_308`,
+  `s104_mem_error_313`, `s106_asserts` and `s19_header_errors` print "Runtime error: Line: n", and
+  `s136_errorline` and `s139_net_errors` print `_ERRORLINE`. With every digit masked, each output equals the
+  recording.
+- 4 are not `qb64pe.exe`'s output even unformatted: `s114_dyn_members` and `s117_dyn_member_kinds` (D-004),
+  `s118_dyn_member_files` (D-019) and `s162_get_put_index_once` (D-061) were recorded from edited programs.
+  Their unformatted sources, built with `qb64pe.exe` on the host, fail the same way, and each formatted
+  program's output equals its source's byte for byte.
+
+So no difference is a bug of the formatter. The script that wrote the scratch root is not committed.
 
 ## Found while building
 
