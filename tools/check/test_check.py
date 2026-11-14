@@ -543,6 +543,11 @@ class Merge(unittest.TestCase):
         self.repo.write("tests/corpus/README.md", "<!-- counts:corpus-results -->\nnew\n<!-- /counts:corpus-results -->\n")
         self.assertEqual(set(self.repo.plan_reasons(MERGE)), {"counts"})
 
+    def test_the_families_notes_are_an_input_of_reference_alone(self):
+        self.repo.pass_merge()
+        self.repo.write("verification/README.md", "- `v99*`: a new family.\n")
+        self.assertEqual(set(self.repo.plan_reasons(MERGE)), {"reference"})
+
     def test_a_merge_again_after_a_known_list_fix_re_judges(self):
         self.repo.pass_merge(failed=("upstream-whole", "linux-verification"))
         self.repo.write("tools/legacy_tests/known_failures.txt", "compile_tests:c/u1  D-052\n")

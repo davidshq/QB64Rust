@@ -289,6 +289,8 @@ STEPS: tuple[Step, ...] = (
             "docs/reference/**",
             "docs/DIVERGENCES-QB64PE.md",
             "docs/DIVERGENCES-QB45.md",
+            # A family's line, which a page's source `v22` names (reference.py, VERIFICATION_README).
+            "verification/README.md",
             "tests/reference/**",
             "tests/callsite/**",
             "openspec/specs/**",
@@ -653,9 +655,19 @@ STEPS += (
 
 # The suites' READMEs hold count blocks that `counts` writes at each merge, and no other step reads them. As inputs
 # they changed the whole suites' fingerprints at every merge, so that none could stand at the next (2026-11-13).
+# verification/README.md describes the families, and only `reference` reads it; a new family's line there re-ran
+# every step that reads verification/ (2026-11-14).
 # Last in each step's globs: a `!glob` takes back only what the globs before it took.
 COUNT_BLOCKS = "!tests/*/README.md"
-STEPS = tuple(s if s.name == "counts" else replace(s, inputs=s.inputs + (COUNT_BLOCKS,)) for s in STEPS)
+FAMILY_NOTES = "!verification/README.md"
+STEPS = tuple(
+    replace(
+        s,
+        inputs=s.inputs
+        + tuple(g for g, reader in ((COUNT_BLOCKS, "counts"), (FAMILY_NOTES, "reference")) if s.name != reader),
+    )
+    for s in STEPS
+)
 
 BY_NAME = {s.name: s for s in STEPS}
 
