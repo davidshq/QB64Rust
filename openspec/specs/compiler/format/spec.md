@@ -177,6 +177,23 @@ and keywords SHALL be written as in a complete program.
 - **WHEN** `prog.bas` without errors holds `total = 1` and then `TOTAL = 2`, with no declaration of `total`
 - **THEN** both lines read `total`, as `qb64pe -y` writes them
 
+### Requirement: An include file inside its program
+`-y` SHALL take `--program <file>`. The program SHALL then be that file: it is read, parsed and checked with its
+included files, and its settings file is the one found from it. The input file SHALL be laid out as a file of
+that program, with the same result as the editor gives it there, and only the input file SHALL be written. When
+the program does not include the input file, `-y` SHALL print an error naming both files, write nothing and exit
+with status 1. Named as its own program, the main file SHALL be laid out as without `--program`.
+
+#### Scenario: A name the program declares
+- **WHEN** `main.bas` holds `DIM SHARED Total AS LONG` and includes `lib/bump.bm`, which writes `TOTAL = 1`, and
+  `qb64rust -y lib/bump.bm --program main.bas -o out.bm` is run
+- **THEN** the line reads `Total = 1`, and `main.bas` is unchanged
+
+#### Scenario: A file the program does not include
+- **WHEN** `qb64rust -y other.bm --program main.bas -o out.bm` is run and `main.bas` does not include `other.bm`
+- **THEN** the error reads `other.bm is not a file of the program main.bas`, `out.bm` is not written, and the
+  exit status is 1
+
 ### Requirement: Lines of an incomplete program keep their tokens
 In an incomplete program, a line whose layout would read as other tokens than the line, letter case and blanks
 aside, SHALL be indented and otherwise kept as typed but for letter case. When that also reads as other tokens,
@@ -462,6 +479,12 @@ formatted as a file of its program, the program without errors, SHALL be rewritt
 - **WHEN** `lib.bm` holds `SUB a`, `x = 0: y = 0`, `END SUB` and `qb64rust -y lib.bm -o out.bm` is run with
   `OneStatementPerLine`
 - **THEN** the second line is written `x = 0: y = 0`
+
+#### Scenario: An include file inside its program
+- **WHEN** `lib/bump.bm` holds `IF TOTAL < 9 THEN TOTAL = TOTAL + 1: PRINT TOTAL` inside a SUB, its program
+  `main.bas` has no error, the program's settings file sets `block-if = true`, and
+  `qb64rust -y lib/bump.bm --program main.bas -o out.bm` is run
+- **THEN** the line becomes a block `IF` with `End If`
 
 ### Requirement: A rewritten program is the same program
 A program formatted with either setting or both SHALL compile to the same typed tree and the same C++ as the

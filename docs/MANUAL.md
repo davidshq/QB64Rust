@@ -107,6 +107,7 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `-q` | Print less while building |
 | `-z` | Check the program and write its C++ without building an executable |
 | `-y` | Lay the file out as QB64pe's IDE does; give the result with `-o <out.bas>`. Only a syntax error stops it: a program with another error, such as a SUB that is not defined, is still laid out and the errors are printed. An include file can be laid out alone (`qb64rust -y lib.bm -o out.bm`); a variable it does not declare keeps the letter case it has |
+| `--program <main.bas>` | With `-y` only: lay the input file out as a file of this program, as the editor does (`qb64rust -y lib/turn.bm --program game.bas -o out.bm`). Its names take the program's spelling, the settings file is the one found from the program, and the rewrites apply when the program has no error. Only the input file is laid out. It is an error when the program does not include the file |
 | `-f:<setting>=<value>` | A QB64pe compiler setting, such as `-f:OptimizeCppProgram=true`, `-f:StripDebugSymbols=false`, `-f:ExtraLinkerFlags=<flags>` or `-f:GenerateLicenseFile=true`; with `-y`, a layout setting such as `-f:AutoIndentSize=2`, which wins over the settings file |
 | `--format-default <setting>=<value>` | With `-y` only: a layout setting that the settings file's `[format]` table wins over, such as `--format-default KeywordCapitals=true` |
 | `--fixes on\|off`, `--fix <name>=on\|off` | Every fix, or one fix, over the settings file's `[fixes]` |
@@ -149,7 +150,8 @@ block-if = false                 # true: IF a THEN x = 1 becomes a block IF with
   the first statement, and a comment at the end of a rewritten line goes on a line of its own above it. Lines
   are left as they are when they are joined with `_`, lie between `'$FORMAT:OFF` and `'$FORMAT:ON`, hold a
   metacommand, or belong to a `$IF` branch that is not taken. Nothing is rewritten while `auto-indent` or
-  `auto-layout` is off, or while the program has an error. A rewrite moves statements to new line numbers, so
+  `auto-layout` is off, or while the program has an error. An include file laid out alone counts as a program
+  with an error; give its program with `--program` to rewrite it. A rewrite moves statements to new line numbers, so
   `_ERRORLINE` and an error message that names a line give the new number. `ERL` and line-number labels do not
   change.
 

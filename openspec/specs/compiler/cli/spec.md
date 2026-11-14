@@ -441,8 +441,9 @@ for the demand report.
 
 ### Requirement: Lints and format options
 A compile, `-y`, `-z` and `--dump` SHALL take `--lints on|off` and `--lint <code>=on|off` as spec
-`compiler/lints` says. `-y` SHALL take `--format-default <setting>=<value>` as spec `compiler/format` says; in
-any other mode it SHALL be a usage error. The usage text SHALL name the three options.
+`compiler/lints` says. `-y` SHALL take `--format-default <setting>=<value>` and `--program <file>` as spec
+`compiler/format` says; in any other mode each SHALL be a usage error. The usage text SHALL name the four
+options.
 
 #### Scenario: A lint off in a format run
 - **WHEN** `qb64rust -y -w --lint unused-label=off p.bas -o out.bas` is run on a program with an unused label
@@ -450,6 +451,10 @@ any other mode it SHALL be a usage error. The usage text SHALL name the three op
 
 #### Scenario: A format default in a build
 - **WHEN** `qb64rust --format-default KeywordCapitals=true p.bas` is run
+- **THEN** it is a usage error with exit status 1
+
+#### Scenario: A program option in a build
+- **WHEN** `qb64rust --program main.bas main.bas` is run
 - **THEN** it is a usage error with exit status 1
 
 ### Requirement: No settings file

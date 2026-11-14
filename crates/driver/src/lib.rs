@@ -277,7 +277,27 @@ pub fn check_for_server(map: &SourceMap, parsed: &ParsedProgram, main_path: Opti
 /// The main file of a checked program (one the parser reports no error in) laid out as `qb64pe -y` lays it out,
 /// with `settings` (spec `compiler/format`): every line followed by CRLF. `complete`: [`format_complete`].
 pub fn format_program(fe: &Frontend, settings: &qb64rust_base::layout::Settings, complete: bool) -> Vec<u8> {
-    qb64rust_format::format_file(&fe.map, &fe.parsed, &fe.program, fe.file, settings, complete)
+    format_program_file(fe, fe.file, settings, complete)
+}
+
+/// [`format_program`] for the file `file` of the program, the main file or one it includes (`-y --program`).
+pub fn format_program_file(
+    fe: &Frontend,
+    file: FileId,
+    settings: &qb64rust_base::layout::Settings,
+    complete: bool,
+) -> Vec<u8> {
+    qb64rust_format::format_file(&fe.map, &fe.parsed, &fe.program, file, settings, complete)
+}
+
+/// The file of `fe`'s program that is `path` on disk: the main file or an included one, as [`FileLoader`] names them
+/// (each by a path to it). `None` when the program does not include it.
+pub fn program_file(fe: &Frontend, path: &Path) -> Option<FileId> {
+    let want = std::fs::canonicalize(path).ok()?;
+    fe.map
+        .files()
+        .find(|(_, f)| std::fs::canonicalize(&f.name).is_ok_and(|p| p == want))
+        .map(|(id, _)| id)
 }
 
 /// Whether the formatter may take the spelling of every symbol (design D3 of `include-file-program`): the front

@@ -7,8 +7,9 @@
 //!
 //! `qb64rust --list-fixes`: the fixes, one per line (spec `compiler/fixes`, `fixes.rs`).
 //!
-//! `qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]`: the
-//! file laid out as `qb64pe -y` lays it out (spec `compiler/format`).
+//! `qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... <file.bas> -o <out.bas> [--include-root <dir>]
+//! [--program <main.bas>]`: the file laid out as `qb64pe -y` lays it out, alone or as a file of the program
+//! `--program` names (spec `compiler/format`).
 //!
 //! `qb64rust --report unsupported|warnings <file or folder>... [--include-root <dir>]`: what a set of programs still
 //! needs, or its lint warnings counted by code (`report.rs`).
@@ -40,7 +41,7 @@ const USAGE: &str = "usage: qb64rust [-x|-c] [-q] [-m] [-w] [-e] [-p] [-z|--prin
 [--fix <name>=on|off]... [--lints on|off] [--lint <code>=on|off]... [--no-settings]\n\
        qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... [--format-default <layout setting>=<value>]... \
 <file.bas> -o <out.bas> [--include-root <dir>] [--fixes on|off] [--fix <name>=on|off]... [--lints on|off] \
-[--lint <code>=on|off]... [--no-settings]\n\
+[--lint <code>=on|off]... [--no-settings] [--program <main.bas>]\n\
        qb64rust --list-fixes    (the fixes --fix and qb64rust.toml name)\n\
        qb64rust --report unsupported|warnings <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)\n\
@@ -108,6 +109,9 @@ struct Options {
     /// `--format-default <setting>=<value>` as given: layout settings below the settings file's (spec
     /// `compiler/format`).
     format_defaults: Vec<String>,
+    /// `--program <file.bas>`: with `-y`, the program the input file is formatted as a file of (spec
+    /// `compiler/format`, "An include file inside its program").
+    program: Option<PathBuf>,
 }
 
 /// The layout settings of `-y` (spec `compiler/format`, "Order of layout settings"; design D2 of
@@ -201,6 +205,7 @@ fn parse_args() -> Result<Options, String> {
                 let v = value("--format-default")?.to_string_lossy().to_string();
                 o.format_defaults.push(v);
             }
+            "--program" => o.program = Some(PathBuf::from(value("--program")?)),
             "--report" => {
                 let r = value("--report")?.to_string_lossy().to_string();
                 if r != "unsupported" && r != "warnings" {
@@ -218,6 +223,9 @@ fn parse_args() -> Result<Options, String> {
     }
     if !o.format_defaults.is_empty() && !o.format {
         return Err("--format-default is for -y only".into());
+    }
+    if o.program.is_some() && !o.format {
+        return Err("--program is for -y only".into());
     }
     Ok(o)
 }
@@ -718,14 +726,24 @@ fn program_settings(o: &Options, input: &Path) -> Result<(Fixes, Lints, Override
 
 /// `-y`: the main file laid out into `-o` (spec `compiler/format`). Nothing is built, and nothing is written when
 /// the parser reports an error. An error of a later stage is printed, and the file is still written (design D1 of
-/// `include-file-program`).
+/// `include-file-program`). With `--program`, the program is that file, `input` is one of its files, and the
+/// settings file is the program's, as in the editor.
 fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitCode, String> {
     let Some(out) = &o.output else {
         return Err("formatting requires an output file: give -o <file>".into());
     };
     let include_root = include_root(o)?;
+    let (main, name, bytes) = match &o.program {
+        Some(p) => {
+            let bytes = std::fs::read(p).map_err(|e| format!("cannot read {}: {e}", p.display()))?;
+            (p.as_path(), p.to_string_lossy().to_string(), bytes)
+        }
+        None => (input, name.to_string(), bytes),
+    };
+    let input_name = input.display();
+    let main_name = main.display();
     // A settings file that cannot be used stops `-y` before anything is written (design D5 of `project-settings`).
-    let (fixes, lints, file_format) = match program_settings(o, input) {
+    let (fixes, lints, file_format) = match program_settings(o, main) {
         Ok(s) => s,
         Err(code) => return Ok(code),
     };
@@ -740,10 +758,10 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
     let mut fe = frontend_explicit(
         Platform::host(),
         o.explicit,
-        name,
+        &name,
         bytes,
-        |file| Box::new(FileLoader::new(&include_root, file, input)),
-        Some((input, &include_root)),
+        |file| Box::new(FileLoader::new(&include_root, file, main)),
+        Some((main, &include_root)),
         fixes,
     );
     lints.drop_from(&mut fe.diagnostics);
@@ -759,8 +777,16 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
     if fe.parsed.diagnostics().has_errors() {
         return Ok(ExitCode::FAILURE);
     }
-    let complete = qb64rust_driver::format_complete(&fe.diagnostics, Some(input));
-    let text = qb64rust_driver::format_program(&fe, &settings, complete);
+    // Looked for after the parse, which loads the included files.
+    let file = match o.program {
+        Some(_) => qb64rust_driver::program_file(&fe, input),
+        None => Some(fe.file),
+    };
+    let Some(file) = file else {
+        return Err(format!("{input_name} is not a file of the program {main_name}"));
+    };
+    let complete = qb64rust_driver::format_complete(&fe.diagnostics, Some(main));
+    let text = qb64rust_driver::format_program_file(&fe, file, &settings, complete);
     std::fs::write(out, text).map_err(|e| format!("writing {}: {e}", out.display()))?;
     Ok(ExitCode::SUCCESS)
 }

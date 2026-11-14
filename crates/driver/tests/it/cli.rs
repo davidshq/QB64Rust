@@ -3178,9 +3178,13 @@ fn trace_record_when_the_window_is_closed() {
             .env("QB64RUST_TRACE", &record)
             .spawn()
             .unwrap();
+        // Sent again until the program ends: in the suites VM a close sent soon after the window appears was lost
+        // now and then, also by the build without the option (the merges of 2026-11-07 and 2026-11-13).
         let close = format!(
             "$p = Get-Process -Id {}; while (-not $p.MainWindowHandle) {{ Start-Sleep -Milliseconds 100; \
-             $p.Refresh() }}; Start-Sleep -Milliseconds 500; [void]$p.CloseMainWindow()",
+             $p.Refresh() }}; Start-Sleep -Milliseconds 500; $n = 0; \
+             while (-not $p.HasExited -and $n -lt 60) {{ [void]$p.CloseMainWindow(); $n++; \
+             [void]$p.WaitForExit(500) }}",
             child.id()
         );
         let o = run(
@@ -5622,6 +5626,86 @@ fn format_of_an_include_file_alone() {
     assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
     let want = "Sub Bump\r\n    Dim Total As Long\r\n    Total = 1\r\n    atkfac = 1\r\n    ATKFAC = 2\r\nEnd Sub\r\n";
     assert_eq!(std::fs::read(d.join("out.bm")).unwrap(), want.as_bytes());
+}
+
+/// An include file formatted as a file of the program `--program` names (spec `compiler/format`, "An include file
+/// inside its program"): its names take the program's spelling, the program's settings file is read, the
+/// rewrites apply, and only the include file is written.
+#[test]
+fn format_of_an_include_file_inside_its_program() {
+    let d = scratch("format-include-program");
+    std::fs::create_dir_all(d.join("game").join("lib")).unwrap();
+    let main = "DIM SHARED Total AS LONG\r\nBump\r\nPRINT Total\r\n'$INCLUDE: 'lib/bump.bm'\r\n";
+    std::fs::write(d.join("game").join("main.bas"), main).unwrap();
+    let lib = "SUB Bump\r\nIF TOTAL < 9 THEN TOTAL = TOTAL + 1: PRINT TOTAL\r\nEND SUB\r\n";
+    std::fs::write(d.join("game").join("lib").join("bump.bm"), lib).unwrap();
+    std::fs::write(d.join("game").join("qb64rust.toml"), "[format]\nblock-if = true\n").unwrap();
+    let o = qb64rust(
+        &d,
+        &[
+            "-y",
+            "-q",
+            "game/lib/bump.bm",
+            "--program",
+            "game/main.bas",
+            "-o",
+            "out.bm",
+        ],
+    );
+    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
+    let want =
+        "Sub Bump\r\n    If Total < 9 Then\r\n        Total = Total + 1: Print Total\r\n    End If\r\nEnd Sub\r\n";
+    assert_eq!(std::fs::read(d.join("out.bm")).unwrap(), want.as_bytes());
+    assert_eq!(std::fs::read(d.join("game").join("main.bas")).unwrap(), main.as_bytes());
+
+    // Alone, the same file is incomplete: no rewrite, and `TOTAL` is written as read.
+    let o = qb64rust(&d.join("game"), &["-y", "-q", "lib/bump.bm", "-o", "alone.bm"]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let alone = std::fs::read(d.join("game").join("alone.bm")).unwrap();
+    let line = b"If TOTAL < 9 Then TOTAL = TOTAL + 1: Print TOTAL\r\n";
+    assert!(alone.windows(line.len()).any(|w| w == line), "{}", text(&alone));
+
+    // The program named as its own file is formatted as without `--program`.
+    let o = qb64rust(
+        &d,
+        &[
+            "-y",
+            "-q",
+            "game/main.bas",
+            "--program",
+            "game/main.bas",
+            "-o",
+            "main_out.bas",
+        ],
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    let o2 = qb64rust(&d, &["-y", "-q", "game/main.bas", "-o", "main_plain.bas"]);
+    assert_eq!(o2.status.code(), Some(0), "{}", stdout(&o2));
+    assert_eq!(
+        std::fs::read(d.join("main_out.bas")).unwrap(),
+        std::fs::read(d.join("main_plain.bas")).unwrap()
+    );
+}
+
+/// `--program` that does not include the input file, and `--program` without `-y` (spec `compiler/format`, "An
+/// include file inside its program"; spec `compiler/cli`, "Lints and format options").
+#[test]
+fn format_program_option_errors() {
+    let d = scratch("format-program-errors");
+    std::fs::write(d.join("main.bas"), "PRINT 1\r\n").unwrap();
+    std::fs::write(d.join("other.bm"), "SUB s\r\nEND SUB\r\n").unwrap();
+    let o = qb64rust(&d, &["-y", "-q", "other.bm", "--program", "main.bas", "-o", "out.bm"]);
+    assert_eq!(o.status.code(), Some(1));
+    let text = format!("{}{}", stdout(&o), stderr(&o));
+    assert!(
+        text.contains("other.bm is not a file of the program main.bas"),
+        "{text}"
+    );
+    assert!(!d.join("out.bm").exists(), "no output file");
+    let o = qb64rust(&d, &["--program", "main.bas", "main.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let text = format!("{}{}", stdout(&o), stderr(&o));
+    assert!(text.contains("--program is for -y only"), "{text}");
 }
 
 /// A warning does not stop `-y` (spec `compiler/format`, "Program with an error").
