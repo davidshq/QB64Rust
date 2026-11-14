@@ -133,13 +133,27 @@ changing direction, design or scope.**
    - **`study\archive\` is read only when needed**: when a live document points there for a fact or a reason the
      task in hand needs, or when the user asks. It is not read to get oriented, and its files are never edited
      (paths inside them may be out of date). A study keeps its number when it is archived: a `study\NN` that is
-     not in `study\` is in `study\archive\`. When only part of a study is archived, the part goes to a file of the
-     same name in `study\archive\`, under the same headings, and each half names the other at its top: a section
-     not found in the active file is in the archived one. A study is archived once its recommendations are all
+     not in `study\` is in `study\archive\`. A study is archived once its recommendations are all
      decided and built, so that what came of it lives in `DECISIONS.md`, this file or `ROADMAP.md`; a study of the
      old system stays active while a milestone still needs it, and a review stays active while the user has not
      answered it. *Why:* by 2026-10-18 `study\` held 32 documents, two thirds of them reviews whose outcomes were
      already recorded elsewhere (user, 2026-10-18).
+   - **What is completed moves to the archive when it is completed** (user, 2026-11-13). This holds for every
+     document in this repo and in the game repos. The archive is `study\archive\` for a study here, and
+     `docs\archived\` elsewhere (a game's repo, or this repo's `docs\`).
+     - A document that is all completed moves whole, with `git mv`.
+     - When only part is completed, that part moves to `<name>-completed.md` in the archive, under the same
+       headings. Example: `docs\structure-review.md` keeps its open items, and
+       `docs\archived\structure-review-completed.md` holds the done ones. Each file names the other at its top.
+     - What stays out is what is still open or still in use: a step not done, a question not answered, a rule
+       that new work still follows, a reference that describes the code as it is now.
+     - What moves: a step or phase that is done, an answered question, a finished review's findings and its
+       record of what was built, a survey or measurement that only served a step now done.
+     - A `TODO.md` item that is done is still removed, not archived, as a `TODO.md` says at its top; its
+       record is the commit.
+
+     *Why:* only what is relevant should be out and about, and everything else in the archive (user,
+     2026-11-13).
    - **The paperwork around a change goes at the merge cadence, not per change** (`study\35` §3 item 3, user,
      2026-10-18). The end of a change asks the user nothing about the behaviours it kept QB64pe's way: each is a row
      in `SOMEDAY.md`'s "QB64pe behaviours to review" and stays silent until the user asks for them. Reviews, and

@@ -714,7 +714,8 @@ fn formatter_equals_the_old_compilers_layout() {
 /// `compiler/format`, "A rewritten program is the same program", "Same C++"). The other checks of the rewrites are
 /// tier 1's, in [`formatter_equals_the_old_compilers_layout`]. This one is a test of its own because it took 375 s
 /// in a debug build on all cores, against 1.6 s for the rest of the oracle (design D9 of `format-statement-lines`),
-/// so `just full` runs it (the `cli` step, `--ignored`) and `just quick` does not.
+/// so `just full` runs it and `just quick` does not. Its step is `format-rewrites`, alone on the host: inside `cli` it
+/// starved the tests with deadlines beside it (2026-11-14).
 #[test]
 #[ignore = "minutes: the C++ of three rewrites of 1,180 programs; `just full` runs it"]
 fn rewrites_give_the_same_cpp() {

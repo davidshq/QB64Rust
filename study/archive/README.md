@@ -7,12 +7,12 @@ study keeps its number when it is archived.
 
 ## Parts of active studies
 
-Moved 2026-10-18. Each file has the same name as the active study it came from and keeps its headings; a section
-not found in the active file is here.
+Moved 2026-10-18. Each file is named after the active study it came from, with `-completed` added
+(renamed so on 2026-11-13), and keeps its headings; a section not found in the active file is here.
 
 | File | What was moved | Why |
 |---|---|---|
-| `00-synthesis.md` | §1 (the decisions table of 2026-10-02), §2's milestone table, §5 whole (the measured facts of families `v09`–`v45`, moved 2026-11-09; code comments cite it as `study\00` §5), §6's "Fixed" list, §10 (the testing position as of 2026-10-03 to 2026-10-10), the closed rows of §13's table | Their current homes are `DECISIONS.md`, `ROADMAP.md`, `DIVERGENCES.md`, `crates\README.md`, the `tests\*\README.md` files and `CLAUDE.md` working rule 6; their figures had gone out of date. §5 was closed to new facts on 2026-10-18 and took up 91% of the active file |
+| `00-synthesis-completed.md` | §1 (the decisions table of 2026-10-02), §2's milestone table, §5 whole (the measured facts of families `v09`–`v45`, moved 2026-11-09; code comments cite it as `study\00` §5), §6's "Fixed" list, §10 (the testing position as of 2026-10-03 to 2026-10-10), the closed rows of §13's table | Their current homes are `DECISIONS.md`, `ROADMAP.md`, `DIVERGENCES.md`, `crates\README.md`, the `tests\*\README.md` files and `CLAUDE.md` working rule 6; their figures had gone out of date. §5 was closed to new facts on 2026-10-18 and took up 91% of the active file |
 | `04-ide-debugger.md` | Parts A–D and Part E §1–§4: the text-mode IDE's internals (the compiler side of the IDE, `ide2`, text buffer, dialog toolkit, every dialog and menu, help, configuration, export, converters) | The IDE is not ported (`DECISIONS.md` 2026-10-02); the debugger (Part F) and the assessment (Part G) stay active for M5 |
 
 ## Reviews of other repositories

@@ -122,6 +122,10 @@ class Step:
     vm_first: tuple[str, ...] | None = None
 
 
+# The format oracle's test that compares the C++ of every rewrite, run by `format-rewrites` alone.
+REWRITES = "format_oracle::rewrites_give_the_same_cpp"
+
+
 def runner(suite: str, *extra: str) -> tuple[str, ...]:
     return ("python", RUNNER, "--suite", suite, "--qb64", EXE, *extra)
 
@@ -355,14 +359,33 @@ STEPS: tuple[Step, ...] = (
     ),
     # In the VM, the test binary built on the host runs there (check.py, `cli_binary`; design D9): it is not
     # `cargo test`, and outside it every path the binary holds is the host tree's, which is the copy's too (D5).
+    # Without the format oracle's C++ comparison, which has a step of its own (`format-rewrites`).
     Step(
         "cli",
         FULL,
-        ("cargo", "test", "-p", "qb64rust-driver", "--locked", "--test", "it", "--", "--ignored"),
+        ("cargo", "test", "-p", "qb64rust-driver", "--locked", "--test", "it", "--", "--ignored", "--skip", REWRITES),
         RUST + LIBQB + ("verification/**", "!verification/*.exe", "tests/corpus/slice/**", "tests/upstream/root/**"),
         external=("toolchain", "clone"),
         alone=True,
         vm=True,
+    ),
+    # The C++ of the formatter's rewrites (format-statement-lines, design D9): a thread on every core for 375 s on the
+    # host. Inside `cli` it starved the tests beside it, which have deadlines: in the suites VM a test of 120 s failed,
+    # a window's close was lost, and on 2026-11-13 the step stalled until it was stopped. It builds and runs nothing,
+    # so it runs on the host, alone.
+    Step(
+        "format-rewrites",
+        FULL,
+        ("cargo", "test", "-p", "qb64rust-driver", "--locked", "--test", "it", "--", "--ignored", "--exact", REWRITES),
+        RUST
+        + (
+            "tests/format/**",
+            "tests/corpus/**",
+            "tests/upstream/compile_tests/**",
+            "tests/snippets/**",
+            "tests/programs/**",
+        ),
+        alone=True,
     ),
     Step(
         "qbasic",

@@ -2,7 +2,7 @@
 
 The one-page entry point to this folder. It summarises every study, the decisions, the plan, what was
 measured, and what is still open. Details live in the numbered documents; each section points to them. 
-Sections or parts moved out of this file (§5 and §13 whole) are in `archive\00-synthesis.md`, under the same headings.
+Sections or parts moved out of this file (§5 and §13 whole) are in `archive\00-synthesis-completed.md`, under the same headings.
 Closed documents live in `archive\` and are read only when needed (`CLAUDE.md` working rule 7): 
 - the reviews of other repositories (`11`–`14`, conclusions in §11 here) and, 
 - the reviews and plans whose outcomes are decided and built (`07`, `08`, `15`, `17`–`40`, `42`–`44`), and
@@ -128,7 +128,7 @@ its source.
 
 ## 5. Statement semantics worth knowing (measured)
 
-Moved whole to `study\archive\00-synthesis.md` on 2026-11-09, under this heading. It holds the measured
+Moved whole to `study\archive\00-synthesis-completed.md` on 2026-11-09, under this heading. It holds the measured
 facts of the families up to `v45`, closed to new facts since 2026-10-18; a later family's facts are its
 recorded output and its line in `verification\README.md`. Code comments that cite `study\00` §5 mean that
 archived section (`CLAUDE.md` working rule 7).
@@ -175,7 +175,7 @@ row in `DIVERGENCES-QB64PE.md`; a kept behaviour that differs from QuickBASIC 4.
 
 **Fixed (no compatibility value):** each is a row of `DIVERGENCES-QB64PE.md` (D-003, D-005 to D-014 from these
 decisions, later ones from the changes that found them; the list that stood here until 2026-10-18 is in
-`study\archive\00-synthesis.md`). Rejected by both compilers, so no register row, only a proper message: `ELSE` while an
+`study\archive\00-synthesis-completed.md`). Rejected by both compilers, so no register row, only a proper message: `ELSE` while an
 inner `FOR` is open (the old one fails in C++), `CONST … \ 0` and `MOD 0` (the old compiler crashes) and
 `CONST (-8) ^ (1 / 3)` (an internal compiler error).
 
@@ -244,7 +244,7 @@ re-enter).
 How the new compiler is tested, tier by tier: `crates\README.md`; each test set and its counts: its `tests\*\README.md`; 
 - when each run happens: `CLAUDE.md` working rule 6; 
 - the old compiler's baseline: `baselines\README.md`; 
-- the runner and how it runs the old compiler's programs (`QB64PE_NOPROMPT=y`, fatal errors read from the output): `tools\legacy_tests\README.md`. The position as written on 2026-10-03, with the plan of R11's test layers, is in `study\archive\00-synthesis.md`.
+- the runner and how it runs the old compiler's programs (`QB64PE_NOPROMPT=y`, fatal errors read from the output): `tools\legacy_tests\README.md`. The position as written on 2026-10-03, with the plan of R11's test layers, is in `study\archive\00-synthesis-completed.md`.
 
 ## 11. Other repositories and sources: conclusions (reviews archived)
 
