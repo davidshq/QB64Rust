@@ -38,9 +38,10 @@ a code span, the most specific first; the recorded programs under `verification\
 `reference.py --check` SHALL fail, naming the page and the cause, when: a generated block, an embedded example or
 a generated file differs from what `render` writes; a paragraph or list item under "Behavior" or "Errors" that
 does not end with a colon has no `src:` comment; a source names a spec requirement, a file or a divergence row
-that does not exist; a required heading is missing, a heading is unknown, or the headings are out of order or
-repeated; a page holds `TODO`; a hand-written "Syntax" of a page with a built-in leaves out a word of the
-built-in table's forms that starts with `_`, or `STEP`; a relative link leads nowhere; a page belongs to no word
+that does not exist (a requirement of any spec under `openspec\specs\` counts, not only those `evidence`
+reads); a required heading is missing, a heading is unknown, or the headings are out of order or repeated; a
+page holds `TODO`; a hand-written "Syntax" of a page with a built-in leaves out a word of the built-in table's
+forms that starts with `_`, or `STEP`; a relative link leads nowhere; a page belongs to no word
 of the inventory; an example has no page or is not shown on it; or a page of a batch named in `words.toml`'s
 `done`, or a pilot page, is missing.
 

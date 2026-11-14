@@ -182,7 +182,7 @@ class Appendices(unittest.TestCase):
 class Sources(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.reqs = {(q.spec, q.heading) for q in r.load_requirements()}
+        cls.reqs = r.source_requirements()
         cls.rows = {"D-001", "Q-002"}
 
     def check(self, item):
@@ -191,6 +191,11 @@ class Sources(unittest.TestCase):
     def test_a_requirement(self):
         self.assertIsNone(self.check('language/builtin-functions "Names and arity"'))
         self.assertIn("no requirement", self.check('language/builtin-functions "No such thing"'))
+
+    def test_a_requirement_of_a_tool_spec(self):
+        # A source may be any spec; evidence still lists only the language specs.
+        self.assertIsNone(self.check('compiler/format "Lines the rewrites leave alone"'))
+        self.assertNotIn("compiler/format", {q.spec for q in r.load_requirements()})
 
     def test_a_file_with_or_without_bas(self):
         self.assertIsNone(self.check("verification\\v20_c_string_edges"))
@@ -218,7 +223,7 @@ class Pages(unittest.TestCase):
         self.patch = mock.patch.multiple(r, ENTRIES=base / "entries", EXAMPLES=base / "examples")
         self.patch.start()
         self.words = r.inventory()
-        self.reqs = {(q.spec, q.heading) for q in r.load_requirements()}
+        self.reqs = r.source_requirements()
 
     def tearDown(self):
         self.patch.stop()

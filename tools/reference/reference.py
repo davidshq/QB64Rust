@@ -253,6 +253,18 @@ def load_requirements() -> tuple[Requirement, ...]:
     return tuple(out)
 
 
+@functools.cache
+def source_requirements() -> frozenset[tuple[str, str]]:
+    """Every requirement of every spec, as (spec, heading): what a `src:` comment may cite. `evidence` reads
+    only the language specs (`load_requirements`); a page may also cite a tool's spec for what the tool does."""
+    out = set()
+    for path in sorted((REPO / SPECS).glob("*/*/spec.md")):
+        name = spec_name(path)
+        for heading in re.findall(r"^### Requirement: (.+)$", path.read_text(encoding="utf-8"), flags=re.M):
+            out.add((name, heading.strip()))
+    return frozenset(out)
+
+
 def inventory() -> dict[str, Word]:
     """Every word that needs a page or is covered on one (study/49 §5 item 1)."""
     table = load_words_toml()
@@ -1302,7 +1314,7 @@ def check(compiler: Path | None) -> list[str]:
     stems = {p.stem for p in page_files()}
     if set(avail) != stems:
         problems.append(f"{rel(AVAILABILITY)}: does not list exactly the pages (run render --compiler)")
-    requirements = {(r.spec, r.heading) for r in load_requirements()}
+    requirements = source_requirements()
     rows = {m for path in DIVERGENCES for m in re.findall(r"^\| ([DQ]-\d{3}) \|", read(path), re.M)}
     for page in page_files():
         problems += check_page(page, words, avail, requirements, rows)

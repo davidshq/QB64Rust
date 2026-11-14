@@ -101,8 +101,10 @@ separated by `;`:
 | A divergence row | `D-012`, `Q-037` | The row exists |
 
 Only `language/*` specs and `compiler/pipeline`, `compiler/fixes` and `compiler/lints` are about the language;
-`evidence` reads only those. A sentence that ends with a colon and introduces a list needs no source. A source
-that is only code read (`read:`) says so: the page should not present it as measured.
+`evidence` reads only those. A source may still be a requirement of any spec, such as `compiler/format`; cite a
+tool's spec only for what that tool does, as the page `$FORMAT` does for the formatter. A sentence that ends
+with a colon and introduces a list needs no source. A source that is only code read (`read:`) says so: the
+page should not present it as measured.
 
 ### A probe
 

@@ -241,6 +241,19 @@ changing direction, design or scope.**
     Strategy port "changes as little as possible" and "decided to keep `ALTMAP.BAT`". Both were Claude's own
     words: a README sentence and a study's recommendation. Claude had read a copy of 2026-11-10, while the
     port had been under modernization since 2026-11-11 (user: "You write shit and then assume its fact").
+16. **A code change updates the language reference in the same change** (user, 2026-11-14). This holds for a
+    direct change, an OpenSpec change and a bug fix alike.
+    - When the change alters what the reference says, edit the hand-written page: the word's page in
+      `docs\reference\entries\`, or a chapter in `docs\reference\chapters\`. A new word gets its page from
+      `tools\reference\reference.py skeleton <WORD>`.
+    - Then run `reference.py render` and `reference.py --check` (`tools\reference\README.md`). The files that
+      say "do not edit" are written by `render`.
+    - `--check` (the `reference` step of `just quick`) finds stale generated blocks and missing sources. It does
+      not find prose that the change made wrong. So read the page of each word the change touches;
+      `reference.py evidence <WORD>` lists what the repository knows about it.
+    - An OpenSpec change's tasks name the pages it edits.
+
+    *Why:* rule 11 asked for the page only in a direct change (user, 2026-11-14).
 
 ## Project decisions
 
