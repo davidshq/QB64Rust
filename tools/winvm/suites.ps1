@@ -68,16 +68,19 @@ if ($Stop) {
     }
     if ((Get-VM -Name $name).State -eq 'Running' -and (Test-Path -LiteralPath $credentialFile)) {
         # Writes out what the guest still holds of the cache disk: turning off is a power cut (design D4).
+        # At most 120 s, as a job: a guest that stops answering is turned off anyway (tools\winvm\step.ps1, Guest).
         try {
             $credential = Import-Clixml -Path $credentialFile
-            $session = New-PSSession -VMName $name -Credential $credential -ErrorAction Stop
+            $job = Invoke-Command -VMName $name -Credential $credential -AsJob {
+                Get-Disk | Where-Object { -not $_.IsBoot -and -not $_.IsSystem -and -not $_.IsOffline } |
+                    Set-Disk -IsOffline $true
+            }
             try {
-                Invoke-Command -Session $session {
-                    Get-Disk | Where-Object { -not $_.IsBoot -and -not $_.IsSystem -and -not $_.IsOffline } |
-                        Set-Disk -IsOffline $true
-                }
+                if (-not (Wait-Job $job -Timeout 120)) { throw 'the guest did not answer within 120 s' }
+                Receive-Job $job -ErrorAction Stop
             } finally {
-                Remove-PSSession $session
+                Stop-Job $job -ErrorAction SilentlyContinue
+                Remove-Job $job -Force -ErrorAction SilentlyContinue
             }
         } catch {
             Write-Host "suites-vm: the cache disk could not be taken offline first: $($_.Exception.Message)"
