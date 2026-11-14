@@ -371,6 +371,12 @@ impl Diagnostics {
             self.push(d);
         }
     }
+
+    /// Drops each lint warning whose code `off` names (spec `compiler/lints`, "Lints table of the settings file").
+    /// Only lint warnings carry a code, so the counts of errors stay as they are.
+    pub fn drop_lints(&mut self, off: impl Fn(&str) -> bool) {
+        self.list.retain(|d| d.code.is_none_or(|c| !off(c)));
+    }
 }
 
 /// Source bytes for a message: printable ASCII as is, anything else as `\xNN`.
@@ -405,6 +411,21 @@ pub fn json_string(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Only the lint warnings `off` names go; a warning without a code and the errors stay, with their count.
+    #[test]
+    fn drop_lints_keeps_the_rest() {
+        let at = Span::new(FileId(0), 0, 0);
+        let mut d = Diagnostics::new();
+        d.push(Diagnostic::lint(at, "unused-label", "label"));
+        d.push(Diagnostic::lint(at, "used-once", "once"));
+        d.warning(at, "no code");
+        d.error(at, "an error");
+        d.drop_lints(|code| code == "unused-label");
+        let left: Vec<_> = d.list().iter().map(|x| x.message.as_str()).collect();
+        assert_eq!(left, ["once", "no code", "an error"]);
+        assert_eq!(d.error_count(), 1);
+    }
 
     #[test]
     fn json_string_escapes() {

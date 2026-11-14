@@ -1,0 +1,9 @@
+a file that is not there, for input: error 53 
+a folder that is not there: error 76 
+an empty name: error 76 
+a file number of 0: error 52 
+a file number already open: error 55 
+a mode letter that is no mode: error 54 
+a folder as the file: error 70 
+
+Press any key to continue

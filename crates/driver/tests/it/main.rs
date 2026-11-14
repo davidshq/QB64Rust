@@ -7,6 +7,7 @@ mod consts_v45;
 mod format_oracle;
 mod format_server;
 mod frontend;
+mod fuzz_regressions;
 mod inputs;
 mod language_features;
 mod mutate;

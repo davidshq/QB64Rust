@@ -123,6 +123,25 @@ the Build command would use for that file.
 - **WHEN** Build would use `qb64rust` and the user runs the task "qb64rust: build"
 - **THEN** the task's terminal runs `qb64rust` with the same arguments as the Build command
 
+### Requirement: Included file
+When the language server names another file as the program of the document that Build, Run, Build and Run, Debug
+or a task without `file` acts on (spec `editor/language-server`, "Program notification"), the action SHALL act on
+that program's main file instead. Build SHALL save the document first, then the main file. When the server names
+no program, or does not run, the action SHALL act on the document itself.
+
+#### Scenario: Build from an include file
+- **WHEN** `turn.bm` is the active editor and the server names `CWSTRAT.BAS` as its program
+- **THEN** Build saves `turn.bm`, then builds `CWSTRAT.BAS` to `CWSTRAT.EXE`, and the build task does the same
+
+#### Scenario: Debug from an include file
+- **WHEN** `turn.bm` is the active editor, its program is `CWSTRAT.BAS`, and the user presses F5 with no
+  `launch.json`
+- **THEN** `CWSTRAT.BAS` is built with `--debug` and debugged, with its folder as `cwd`
+
+#### Scenario: No program found
+- **WHEN** `lib.bm` is the active editor and the server names no program for it
+- **THEN** Build builds `lib.bm` itself, as before
+
 ### Requirement: Workspace trust
 Build, run and their tasks SHALL be unavailable in untrusted workspaces. Checking and formatting run the
 compiler only in `-z`/`-y` modes, which generate files but do not execute the program; they SHALL also be

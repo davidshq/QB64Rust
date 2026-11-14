@@ -138,8 +138,7 @@ pub fn read(output: &str, files: &[&str]) -> Option<Vec<Failure>> {
             continue;
         }
         if line.contains("maindata.txt:")
-            && let Some((_, rest)) = line.split_once(": error: use of undeclared identifier '")
-            && let Some((name, _)) = rest.split_once('\'')
+            && let Some(name) = undeclared(line)
         {
             failures.push(Failure::Undeclared {
                 name: symbol_name(name)?,
@@ -166,6 +165,18 @@ pub fn read(output: &str, files: &[&str]) -> Option<Vec<Failure>> {
         open = Some(failures.len() - 1);
     }
     (!failures.is_empty()).then_some(failures)
+}
+
+/// The name in a compiler's error that nothing declares it: clang's `use of undeclared identifier 'f'`, gcc's
+/// `‘f’ was not declared in this scope` (in a UTF-8 locale; `'f'` in another).
+fn undeclared(line: &str) -> Option<&str> {
+    if let Some((_, rest)) = line.split_once(": error: use of undeclared identifier '") {
+        return rest.split_once('\'').map(|(name, _)| name);
+    }
+    let rest = line.split_once(": error: ")?.1;
+    let rest = rest.strip_prefix('‘').or_else(|| rest.strip_prefix('\''))?;
+    let (name, after) = rest.split_once(['’', '\''])?;
+    (after == " was not declared in this scope").then_some(name)
 }
 
 /// A linker's symbol without its parameters; `None` for an empty one.
@@ -359,6 +370,15 @@ mingw32-make: *** [Makefile:510: out/v37_x04.exe.qb64rust/program.exe] Error 1
             read(X04_NO_PROTOTYPE, &["v37_x04.bas"]),
             Some(vec![Failure::Undeclared { name: "f".into() }])
         );
+        assert_eq!(
+            read(X04_NO_PROTOTYPE_GCC, &["v37_x04.bas"]),
+            Some(vec![Failure::Undeclared { name: "f".into() }])
+        );
+        assert_eq!(
+            read(&X04_NO_PROTOTYPE_GCC.replace(['‘', '’'], "'"), &["v37_x04.bas"]),
+            Some(vec![Failure::Undeclared { name: "f".into() }]),
+            "gcc outside a UTF-8 locale"
+        );
     }
 
     /// `verification\v37_x04` since a `CUSTOMTYPE` block without a name writes no prototype (2026-11-09, `v70_i1`):
@@ -369,6 +389,17 @@ out/v37_x04.exe.qb64rust/c/../temp/maindata.txt:1:29: error: use of undeclared i
     1 | FUNC_F=(CUSTOMCALL_FUNC_F*)&f;
       |                             ^
 1 error generated.
+";
+
+    /// The same with gcc on Linux, in a UTF-8 locale (2026-11-13; the merge's `linux-verification` had read it as no
+    /// error of the program since 2026-11-09).
+    const X04_NO_PROTOTYPE_GCC: &str = "\
+In file included from out/v37_x04.qb64rust/c/qbx.cpp:1588:
+out/v37_x04.qb64rust/c/../temp/maindata.txt: In function ‘void QBMAIN(void*)’:
+out/v37_x04.qb64rust/c/../temp/maindata.txt:1:29: error: ‘f’ was not declared in this scope
+    1 | FUNC_F=(CUSTOMCALL_FUNC_F*)&f;
+      |                             ^
+make: *** [Makefile:496: out/v37_x04.qb64rust/c/qbx.o] Error 1
 ";
 
     #[test]

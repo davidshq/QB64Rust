@@ -7,12 +7,12 @@ study keeps its number when it is archived.
 
 ## Parts of active studies
 
-Moved 2026-10-18. Each file has the same name as the active study it came from and keeps its headings; a section
-not found in the active file is here.
+Moved 2026-10-18. Each file is named after the active study it came from, with `-completed` added
+(renamed so on 2026-11-13), and keeps its headings; a section not found in the active file is here.
 
 | File | What was moved | Why |
 |---|---|---|
-| `00-synthesis.md` | §1 (the decisions table of 2026-10-02), §2's milestone table, §5 whole (the measured facts of families `v09`–`v45`, moved 2026-11-09; code comments cite it as `study\00` §5), §6's "Fixed" list, §10 (the testing position as of 2026-10-03 to 2026-10-10), the closed rows of §13's table | Their current homes are `DECISIONS.md`, `ROADMAP.md`, `DIVERGENCES.md`, `crates\README.md`, the `tests\*\README.md` files and `CLAUDE.md` working rule 6; their figures had gone out of date. §5 was closed to new facts on 2026-10-18 and took up 91% of the active file |
+| `00-synthesis-completed.md` | §1 (the decisions table of 2026-10-02), §2's milestone table, §5 whole (the measured facts of families `v09`–`v45`, moved 2026-11-09; code comments cite it as `study\00` §5), §6's "Fixed" list, §10 (the testing position as of 2026-10-03 to 2026-10-10), the closed rows of §13's table | Their current homes are `DECISIONS.md`, `ROADMAP.md`, `DIVERGENCES.md`, `crates\README.md`, the `tests\*\README.md` files and `CLAUDE.md` working rule 6; their figures had gone out of date. §5 was closed to new facts on 2026-10-18 and took up 91% of the active file |
 | `04-ide-debugger.md` | Parts A–D and Part E §1–§4: the text-mode IDE's internals (the compiler side of the IDE, `ide2`, text buffer, dialog toolkit, every dialog and menu, help, configuration, export, converters) | The IDE is not ported (`DECISIONS.md` 2026-10-02); the debugger (Part F) and the assessment (Part G) stay active for M5 |
 
 ## Reviews of other repositories
@@ -95,6 +95,12 @@ Studies whose questions are all answered and whose outcomes are built or are `SO
 | File | Content | Where its outcome lives |
 |---|---|---|
 | `41-process-reset-panel.md` | The panel's process-reset proposal after `docs\SESSION-HISTORY-REVIEW.md` (2026-10-31): disk, cache invalidation, process growth, the review loop; proposals P1–P7 | P1 (hooks) and P2 (`tools\clean\clean.py`): `DECISIONS.md` 2026-10-31. P3 (pass cache) and P4 (rule 6): replaced by the change `testing-reset`. P5–P7 postponed by the user (2026-11-10), one `SOMEDAY.md` row |
+
+## Archived 2026-11-12
+
+| File | Content | Where its outcome lives |
+|---|---|---|
+| `49-language-reference-plan.md` | The plan for a language reference (2026-11-11): what it holds, the sources a page may be written from, the layout of a page, the tool that checks it, the batches, and five questions | `docs\reference\`; `tools\reference\README.md`; the spec `testing/language-reference`; the change `language-reference`, archived 2026-11-12; `DECISIONS.md` 2026-11-11 |
 
 ## Closed records
 

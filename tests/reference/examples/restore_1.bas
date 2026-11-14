@@ -1,0 +1,10 @@
+$CONSOLE:ONLY
+READ x, y: PRINT x; y
+RESTORE
+READ x: PRINT x
+RESTORE second
+READ x: PRINT x
+END
+DATA 1, 2
+second:
+DATA 10, 20

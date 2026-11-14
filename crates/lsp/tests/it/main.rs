@@ -2,5 +2,6 @@
 //! `testing/compiler-tests`, "One test binary per crate").
 
 mod features;
+mod owner;
 mod server;
 mod walk;

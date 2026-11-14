@@ -498,10 +498,11 @@ def include_root_args(qb64: Path) -> list[str]:
 
 
 def fixes_args(qb64: Path) -> list[str]:
-    """`--fixes off` for the new compiler, in every command that compiles or lays out a program, so that a
-    qb64rust.toml in the tree or above it changes no result (spec testing/verification-suite, "Suites build with
-    the fixes off"; OpenSpec change fixes-switch, design D4). qb64pe has no such option."""
-    return [] if is_old_compiler(qb64) else ["--fixes", "off"]
+    """`--fixes off --no-settings` for the new compiler, in every command that compiles or lays out a program, so
+    that a qb64rust.toml in the tree or above it changes no result (spec testing/verification-suite, "Suites build
+    with the fixes off"; OpenSpec change fixes-switch, design D4, and project-settings, design D4). qb64pe has no
+    such option."""
+    return [] if is_old_compiler(qb64) else ["--fixes", "off", "--no-settings"]
 
 
 # The new compiler's last line after errors in the program (spec compiler/cli): "1 error",
@@ -2729,7 +2730,7 @@ def verification_compare(
         "-x",
         "-q",
         "-m",
-        *(["--fixes", "on"] if fixed else fixes_args(args.qb64)),
+        *(["--fixes", "on", "--no-settings"] if fixed else fixes_args(args.qb64)),
         *coverage_flag,
         *root_args,
         bas.name,

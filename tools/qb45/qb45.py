@@ -9,7 +9,7 @@ Usage: qb45.py [--compiler qb45|pds71] [--qb45 DIR] [--pds71 DIR] [--dosbox EXE]
 the other compiler is refused. Each compiler has a folder of its unpacked files, outside this repo
 (README.md says where they lie and how they were made):
 - QB 4.5: BC.EXE, LINK.EXE, BCOM45.LIB. --qb45, else the environment variable QB64RUST_QB45_ROOT, else
-  ../../qb64contain/qb45/install from the repo's root.
+  ../qb45/install from the repo's root.
 - PDS 7.1: BC.EXE, LINK.EXE and BCL71ENR.LIB (made by pds71_install.py). --pds71, else
   QB64RUST_PDS71_ROOT, else ../pds71/install from the repo's root.
 
@@ -38,11 +38,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_DOSBOX = Path(r"C:\Program Files (x86)\DOSBox-0.74-3\DOSBox.exe")
-# Where QB 4.5 lies on the development machine (README.md): <qb64contain>\qb45\install, with <qb64contain> two
-# folders above the repo's root, beside the folder that holds the repo (not that folder itself).
-DEFAULT_QB45 = (
-    Path(__file__).resolve().parents[2] / ".." / ".." / "qb64contain" / "qb45" / "install"
-)
+# Where QB 4.5 lies on the development machine (README.md): <repo's parent>\qb45\install, beside the repo.
+DEFAULT_QB45 = Path(__file__).resolve().parents[2] / ".." / "qb45" / "install"
 # Where PDS 7.1 lies (README.md): <repo's parent>\pds71\install, beside the repo.
 DEFAULT_PDS71 = Path(__file__).resolve().parents[2] / ".." / "pds71" / "install"
 TIMEOUT = 60

@@ -118,7 +118,9 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Where:** `internal/c/libqb.cpp`, `func__statusCode`.
 - **Fix:** `if (!sh || sh->type != special_handle_type::Http)` raises error 52, as `func__connected` tests.
 - **Here:** `DIVERGENCES-QB64PE.md` D-051; the edit `tools/libqb/edits/d051-statuscode-missing-handle.edit`.
-- **Sent:** not yet.
+- **Sent:** draft pull request QB64-Phoenix-Edition/QB64pe#817 (2026-11-13), from branch
+  `fix-statuscode-unopened-handle` of `davidshq-contribute/QB64pe`. It adds a never-opened negative handle to the
+  test `tests/compile_tests/http/statuscode_invalid_handle`. Not yet reviewed.
 
 ## Division by zero cannot be trapped
 
@@ -171,23 +173,6 @@ when one is, its entry says where (issue or pull request) and what came of it.
   where they are 0 (a `$CONSOLE:ONLY` program).
 - **Here:** `DIVERGENCES-QB64PE.md` D-056; the edit `tools/libqb/edits/d056-screenclick-display-scale.edit`.
 - **Sent:** not yet.
-
-## `SOUND` can corrupt the heap
-
-- **Wrong:** a program that plays `SOUND`, `PLAY`, `_SNDRAW` or `_SNDRAWBATCH` now and then crashes with
-  exit code 0xC0000374 (heap corruption), most often when it ends soon after the sound. `SCREEN 12`, `_DELAY 1`,
-  `SOUND 700, .5`, `SYSTEM` (with `PLAY "V0"` first, so nothing is heard) crashed in 4 of 150 runs with
-  `qb64pe.exe` and 3 of 150 with QB64Rust, run one at a time on a hidden desktop (2026-11-08). Found when Wars of
-  Napoleon's menu beeped and then ended on an error.
-- **Where:** `internal/c/parts/audio/audio.cpp`, `RawStream::OnRead`, which miniaudio's thread calls. It clears
-  the consumer buffer and swaps it with the producer without `pRawStream->m`. The program thread appends to the
-  producer under that lock (`PushSampleFrame`, `PushSampleFrames`), so a swap during an append leaves both threads
-  on one `std::vector`.
-- **Fix:** `libqb_mutex_guard lock(pRawStream->m);` at the start of the callback's branch that reads the buffers.
-  With it, 0 of 380 runs crashed.
-- **Here:** `DIVERGENCES-QB64PE.md` D-062; the edit `tools/libqb/edits/d062-raw-stream-lock.edit`.
-- **Sent:** not needed. Upstream added the same line in `50c371e13` ("Various fixes (#800)", 2026-10-28), after
-  the reference commit.
 
 ## Other candidates
 

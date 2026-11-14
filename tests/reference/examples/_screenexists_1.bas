@@ -1,0 +1,3 @@
+$CONSOLE:ONLY
+PRINT "_SCREENEXISTS in a console program:"; _SCREENEXISTS
+END

@@ -1,0 +1,5 @@
+$CONSOLE:ONLY
+LINE INPUT "Motto: "; m$
+PRINT
+PRINT "["; m$; "]"
+SYSTEM

@@ -1,0 +1,10 @@
+$CONSOLE:ONLY
+a& = _NEWIMAGE(20, 20, 256)
+b& = _NEWIMAGE(20, 20, 256)
+_DEST a&: PSET (1, 1), 3
+_DEST b&: PSET (1, 1), 9
+_DEST _CONSOLE
+_SOURCE a&: PRINT "a&:"; POINT(1, 1);
+_SOURCE b&: PRINT " b&:"; POINT(1, 1)
+PRINT "_DEST is the console:"; _DEST = _CONSOLE
+END

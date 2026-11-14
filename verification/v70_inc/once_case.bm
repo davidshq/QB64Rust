@@ -1,0 +1,2 @@
+$INCLUDEONCE
+PRINT "once_case.bm"

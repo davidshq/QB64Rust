@@ -327,10 +327,11 @@ impl Checker<'_> {
             members,
         });
         self.stmt.names.push((SymbolKind::Type(id), name_tok.span));
+        self.prog.symbols.mark_declared(SymbolKind::Type(id));
         for (i, t) in member_toks.iter().enumerate() {
-            self.stmt
-                .names
-                .push((SymbolKind::Member(id, MemberId(to_u32(i))), t.span));
+            let member = SymbolKind::Member(id, MemberId(to_u32(i)));
+            self.stmt.names.push((member, t.span));
+            self.prog.symbols.mark_declared(member);
         }
         self.types_by_name.insert(name, id);
         if const_bounds {

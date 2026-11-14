@@ -1,0 +1,3 @@
+_WINDOWHANDLE is a window:-1 
+the window's text: [QB64Rust sandbox title]
+_WINDOWHASFOCUS after a click on it:-1 

@@ -36,7 +36,11 @@ pub fn file_infos(symbols: &Symbols, exe_dir: &Path) -> Vec<FileInfo> {
                 path.to_path_buf()
             };
             let lines = std::fs::read(on_disk).ok().map(|bytes| {
-                let mut lines: Vec<Vec<u8>> = bytes.split(|&b| b == b'\n').map(<[u8]>::to_vec).collect();
+                // A CRLF file's lines lose their CR, which would otherwise end the last word of a line.
+                let mut lines: Vec<Vec<u8>> = bytes
+                    .split(|&b| b == b'\n')
+                    .map(|l| l.strip_suffix(b"\r").unwrap_or(l).to_vec())
+                    .collect();
                 if lines.last().is_some_and(Vec::is_empty) {
                     lines.pop();
                 }
@@ -201,5 +205,43 @@ pub fn threads(p: &mut Proxy, m: Value) -> Result<(), String> {
     match p.state.session.as_ref().and_then(|s| s.program_thread) {
         Some(t) => p.respond(&m, Ok(json!({"threads": [{"id": t, "name": "Program"}]}))),
         None => p.forward(m),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A CRLF source: the procedure's name and each line's text come without the CR.
+    #[test]
+    fn crlf_lines_lose_their_cr() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("main.bas"),
+            b"CALL greet\r\nSUB greet\r\nPRINT 1\r\nEND SUB\r\n",
+        )
+        .unwrap();
+        let symbols = Symbols::parse(&json!({
+            "version": 1,
+            "files": [{"path": "main.bas"}],
+            "main": {"c_name": "main", "file": 0},
+            "procedures": [{
+                "name": "GREET", "kind": "sub", "c_name": "SUB_GREET", "file": 0, "line": 2,
+                "end_file": 0, "end_line": 4, "params": [], "result": null
+            }],
+            "variables": [],
+            "types": [],
+            "layouts": {
+                "pointer_size": 8, "float_element_size": 32,
+                "array": {"slot_size": 8, "data": 0, "flags": 8, "flag_bits": {"allocated": 1},
+                          "dimensions": {"first_slot": 4, "slots_each": 4, "lower_bound": 0, "count": 1, "multiplier": 2}},
+                "qbs": {"chr": 0, "len": 8, "len_size": 4}
+            }
+        }))
+        .unwrap();
+        let files = file_infos(&symbols, dir.path());
+        assert_eq!(procedure_names(&symbols, &files), ["SUB greet"]);
+        let lines = files[0].lines.as_ref().unwrap();
+        assert_eq!((lines.len(), lines[2].as_slice()), (4, &b"PRINT 1"[..]));
     }
 }

@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+PRINT "Arguments:"; _COMMANDCOUNT
+PRINT "COMMAND$(0) names the program:"; LEN(COMMAND$(0)) > 0
+END

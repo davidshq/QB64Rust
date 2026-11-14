@@ -1,0 +1,5 @@
+$CONSOLE:ONLY
+PRINT LOG(1)
+PRINT "LOG(EXP(2)) is"; CINT(LOG(EXP(2)) * 1000) / 1000
+PRINT "The base-10 logarithm of 1000 is"; CINT(LOG(1000) / LOG(10))
+END

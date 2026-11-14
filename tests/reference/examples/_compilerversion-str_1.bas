@@ -1,0 +1,3 @@
+$CONSOLE:ONLY
+PRINT "Starts with: "; LEFT$(_COMPILERVERSION$, 7)
+END

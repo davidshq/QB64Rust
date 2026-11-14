@@ -1,0 +1,5 @@
+$CONSOLE:ONLY
+PRINT LEN("Wellington"); LEN("")
+DIM n AS LONG, d AS DOUBLE, code AS STRING * 6
+PRINT LEN(n); LEN(d); LEN(code)
+END

@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+PRINT _BIN$(5); " "; _BIN$(255); " "; _BIN$(0)
+PRINT _BIN$(-1%%)
+END

@@ -1,6 +1,7 @@
 // The extension's part of the language server's protocol (design D3 and D6 of m2-language-server, D5 of
-// extension-diagnostics, D7 of m5b-formatter): the initialization options, the encoding notification, the check
-// request and the layout settings. No VS Code import, so it is unit-tested without it.
+// extension-diagnostics, D7 of m5b-formatter, D8 of include-file-program): the initialization options, the encoding
+// notification, the check request, the layout settings and the program notification. No VS Code import, so it is
+// unit-tested without it.
 import * as path from "path";
 
 /** The notification that tells the server a document's encoding (VS Code's encoding id). */
@@ -30,6 +31,71 @@ export function checkParams(uri: string): CheckParams {
     return { uri };
 }
 
+/** The notification that tells the client a document's program (spec editor/language-server, "Program
+ * notification"; design D8 of include-file-program): sent when a document opens and each time its program changes. */
+export const PROGRAM = "qb64rust/program";
+
+export interface ProgramParams {
+    /** The document, as the client named it in `didOpen`. */
+    uri: string;
+    /** The uri of the program's main file; null when the document is its own program. */
+    program: string | null;
+    /** Where the program was found: the settings file's `main`, an open document, the disk, or none. */
+    source: "settings" | "open" | "disk" | "none";
+}
+
+const SOURCES: Record<ProgramParams["source"], string> = {
+    settings: "named by main in qb64rust.toml",
+    open: "an open document that includes this file",
+    disk: "a file on disk that includes this file",
+    none: "",
+};
+
+/** What the program status item shows for a document (spec editor/language-server, "Program status item"): the
+ * program's file name; "no program found" for an included file with none; nothing (the item is hidden) for a
+ * `.bas` file that is its own program, or before the server has said. */
+export function programStatus(p: ProgramParams | undefined): { text: string; detail: string } | undefined {
+    if (!p) {
+        return undefined;
+    }
+    if (p.program === null) {
+        // A document that is not a file (`untitled:`) is a program of its own, as a `.bas` file is.
+        if (!p.uri.startsWith("file:") || /\.bas$/i.test(p.uri)) {
+            return undefined;
+        }
+        return { text: "no program found", detail: "No .bas file that includes this file was found; it is checked alone." };
+    }
+    const name = decodeURIComponent(p.program.substring(p.program.lastIndexOf("/") + 1));
+    return { text: name, detail: `The program of this file: ${SOURCES[p.source]}.` };
+}
+
+/** Remembers the last program the server named for each document. */
+export class ProgramTracker {
+    private readonly programs = new Map<string, ProgramParams>();
+
+    update(p: ProgramParams): void {
+        this.programs.set(p.uri, p);
+    }
+
+    get(uri: string): ProgramParams | undefined {
+        return this.programs.get(uri);
+    }
+
+    /** The uri of the main file of the document's program, when the server named another file; undefined when the
+     * document is its own program or the server has not said. */
+    mainOf(uri: string): string | undefined {
+        return this.programs.get(uri)?.program ?? undefined;
+    }
+
+    forget(uri: string): void {
+        this.programs.delete(uri);
+    }
+
+    clear(): void {
+        this.programs.clear();
+    }
+}
+
 /** The extension's layout settings (spec editor/formatting, "Layout settings"; change m5b-formatter, design D7): sent
  * to the server, and given to either compiler's `-y` as its `-f:` settings. */
 export interface FormatSettings {
@@ -39,10 +105,22 @@ export interface FormatSettings {
     indentSubs: boolean;
     autoLayout: boolean;
     keywordCase: "camel" | "upper" | "lower";
+    /** Not QB64pe's: each statement of a packed line on a line of its own (change format-statement-lines). */
+    oneStatementPerLine: boolean;
+    /** Not QB64pe's: a single-line `IF` written as a block. */
+    blockIf: boolean;
 }
 
-/** QB64pe's built-in layout defaults, which the settings default to. */
-export const DEFAULT_FORMAT: FormatSettings = { autoIndent: true, indentSize: 4, indentSubs: true, autoLayout: true, keywordCase: "camel" };
+/** QB64pe's built-in layout defaults, which the settings default to, and the two rewrites off. */
+export const DEFAULT_FORMAT: FormatSettings = {
+    autoIndent: true,
+    indentSize: 4,
+    indentSubs: true,
+    autoLayout: true,
+    keywordCase: "camel",
+    oneStatementPerLine: false,
+    blockIf: false,
+};
 
 /** The `-f:` layout settings of `-y`, the same for `qb64rust` and `qb64pe` (spec compiler/format, "Layout settings"),
  * all six given, so that QB64pe's `config.ini` plays no part. */
@@ -56,6 +134,19 @@ export function formatFlags(s: FormatSettings): string[] {
         `-f:keywordcapitals=${b(s.keywordCase === "upper")}`,
         `-f:keywordlowercase=${b(s.keywordCase === "lower")}`,
     ];
+}
+
+/** The two rewrite settings as `qb64rust -y`'s `-f:` settings. `qb64pe -y` has neither, so it never gets them
+ * (change format-statement-lines, design D1). */
+export function rewriteFlags(s: Pick<FormatSettings, "oneStatementPerLine" | "blockIf">): string[] {
+    return [`-f:OneStatementPerLine=${s.oneStatementPerLine}`, `-f:BlockIf=${s.blockIf}`];
+}
+
+/** The six settings and the two rewrites as `qb64rust -y`'s `--format-default <setting>=<value>` pairs, which rank
+ * below the `[format]` table of the project's `qb64rust.toml` (spec editor/formatting, "Layout settings"; change
+ * project-settings, design D6). */
+export function formatDefaultFlags(s: FormatSettings): string[] {
+    return [...formatFlags(s), ...rewriteFlags(s)].flatMap((f) => ["--format-default", f.slice("-f:".length)]);
 }
 
 /** The parameters of `workspace/didChangeConfiguration` that give the server new layout settings. */

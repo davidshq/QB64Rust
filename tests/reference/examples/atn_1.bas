@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+PRINT ATN(0)
+PRINT "4 * ATN(1) is close to pi:"; CINT(4 * ATN(1) * 1000)
+END

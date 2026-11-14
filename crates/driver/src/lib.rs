@@ -6,7 +6,9 @@ pub mod cpp_errors;
 pub mod fixes;
 pub mod hover;
 pub mod library;
+pub mod lints;
 pub mod report;
+pub mod settings;
 pub mod toolchain;
 pub mod unit_tests;
 
@@ -234,67 +236,112 @@ pub fn check_program(
     (program, diagnostics)
 }
 
-/// [`check_program`] for the language server, with the fixes the compiler would build the program with: those of the
-/// settings file found from the main file `main_path` on disk, none for a document that is not a file (design D3 of
-/// `fixes-switch`). A settings file that cannot be used is an error on the main file's first line, `qb64rust.toml:<line>:
-/// <message>`, and the program is checked with the fixes off, so that its other diagnostics still show.
+/// [`check_program`] for the language server, with the settings the compiler would build the program with: those of
+/// the settings file found from the main file `main_path` on disk, none for a document that is not a file (design D3
+/// of `fixes-switch`; design D3 and D5 of `project-settings`). The warnings of the lints that are off are dropped. A
+/// settings file that cannot be used is an error on the main file's first line, `qb64rust.toml:<line>: <message>`,
+/// and the program is checked with no settings, so that its other diagnostics still show; the settings returned are
+/// then `None`.
 fn check_with_settings(
     map: &SourceMap,
     parsed: &ParsedProgram,
     main_path: Option<&Path>,
     root: &Path,
-) -> (Program, Diagnostics) {
-    let (fixes, error) = match main_path.map(fixes::for_program) {
-        Some(Ok((set, _))) => (set, None),
-        Some(Err(e)) => (Fixes::OFF, Some(e)),
-        None => (Fixes::OFF, None),
+) -> (Program, Diagnostics, Option<settings::Project>) {
+    let (project, error) = match main_path.map(|m| settings::load(m, false)) {
+        Some(Ok((project, _))) => (project, None),
+        Some(Err(e)) => (settings::Project::default(), Some(e)),
+        None => (settings::Project::default(), None),
     };
-    let (program, mut diagnostics) = check_program(map, parsed, main_path.map(|m| (m, root)), fixes);
-    if let Some(e) = error {
+    let (program, mut diagnostics) = check_program(map, parsed, main_path.map(|m| (m, root)), project.fixes);
+    project.lints.drop_from(&mut diagnostics);
+    if let Some(e) = &error {
         let name = e.file.file_name().map_or_else(
-            || fixes::SETTINGS_FILE.to_string(),
+            || settings::SETTINGS_FILE.to_string(),
             |n| n.to_string_lossy().into_owned(),
         );
         let at = e.line.map_or_else(String::new, |l| format!(":{l}"));
         let main = qb64rust_base::Span::new(parsed.main().file, 0, 0);
         diagnostics.error(main, format!("{name}{at}: {}", e.message));
     }
-    (program, diagnostics)
+    (program, diagnostics, error.is_none().then_some(project))
 }
 
 /// [`check_program`] for the language server (`qb64rust_lsp::Check`): the diagnostics alone, for the main file at
 /// `main_path` on disk (none for a document that is not a file) and the compiler root `root`, with the program's
-/// fixes ([`check_with_settings`]).
+/// settings ([`check_with_settings`]).
 pub fn check_for_server(map: &SourceMap, parsed: &ParsedProgram, main_path: Option<&Path>, root: &Path) -> Diagnostics {
     check_with_settings(map, parsed, main_path, root).1
 }
 
-/// The main file of a checked program (one without errors) laid out as `qb64pe -y` lays it out, with `settings`
-/// (spec `compiler/format`): every line followed by CRLF.
-pub fn format_program(fe: &Frontend, settings: &qb64rust_base::layout::Settings) -> Vec<u8> {
-    qb64rust_format::format_file(&fe.map, &fe.parsed, &fe.program, fe.file, settings)
+/// The main file of a checked program (one the parser reports no error in) laid out as `qb64pe -y` lays it out,
+/// with `settings` (spec `compiler/format`): every line followed by CRLF. `complete`: [`format_complete`].
+pub fn format_program(fe: &Frontend, settings: &qb64rust_base::layout::Settings, complete: bool) -> Vec<u8> {
+    format_program_file(fe, fe.file, settings, complete)
+}
+
+/// [`format_program`] for the file `file` of the program, the main file or one it includes (`-y --program`).
+pub fn format_program_file(
+    fe: &Frontend,
+    file: FileId,
+    settings: &qb64rust_base::layout::Settings,
+    complete: bool,
+) -> Vec<u8> {
+    qb64rust_format::format_file(&fe.map, &fe.parsed, &fe.program, file, settings, complete)
+}
+
+/// The file of `fe`'s program that is `path` on disk: the main file or an included one, as [`FileLoader`] names them
+/// (each by a path to it). `None` when the program does not include it.
+pub fn program_file(fe: &Frontend, path: &Path) -> Option<FileId> {
+    let want = std::fs::canonicalize(path).ok()?;
+    fe.map
+        .files()
+        .find(|(_, f)| std::fs::canonicalize(&f.name).is_ok_and(|p| p == want))
+        .map(|(id, _)| id)
+}
+
+/// Whether the formatter may take the spelling of every symbol (design D3 of `include-file-program`): the front
+/// end reported no error, and the main file at `main_path` is a `.bas` file (any letter case) or no file at all
+/// (`None`, a document that is not a file). An include file checked alone may pass the check, but a variable made
+/// by its first use there may be a declared one of its program.
+pub fn format_complete(diagnostics: &Diagnostics, main_path: Option<&Path>) -> bool {
+    !diagnostics.has_errors() && main_path.is_none_or(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("bas")))
 }
 
 /// [`check_program`] then [`format_program`]'s layout for the language server (`qb64rust_lsp::Format`, design D5 of
-/// `m5b-formatter`): the main file formatted, or the diagnostics when the front end reports an error.
+/// `m5b-formatter`): the file `file` of the program formatted, or the diagnostics when the parser reports an error
+/// or the settings file cannot be used (design D5 of `project-settings`). An error of a later stage does not stop
+/// it (design D1 and D4 of `include-file-program`). The `[format]` table of the program's settings file goes over
+/// the client's `settings` (design D2 of `project-settings`). The output comes line by line, so that the server can
+/// replace one line with the several a rewrite makes of it (design D8 of `format-statement-lines`). With `forced`
+/// (a code action's edit), the two rewrite settings of `settings` win over the settings file's.
 pub fn format_for_server(
     map: &SourceMap,
     parsed: &ParsedProgram,
     main_path: Option<&Path>,
     root: &Path,
     settings: &qb64rust_base::layout::Settings,
-) -> Result<Vec<u8>, Diagnostics> {
-    let (program, diagnostics) = check_with_settings(map, parsed, main_path, root);
-    if diagnostics.has_errors() {
+    forced: bool,
+    file: FileId,
+) -> Result<qb64rust_lsp::Formatted, Diagnostics> {
+    let (program, diagnostics, project) = check_with_settings(map, parsed, main_path, root);
+    let Some(project) = project.filter(|_| !parsed.diagnostics().has_errors()) else {
         return Err(diagnostics);
+    };
+    let given = *settings;
+    let mut settings = given;
+    settings.apply(&project.format);
+    if forced {
+        settings.one_statement_per_line = given.one_statement_per_line;
+        settings.block_if = given.block_if;
     }
-    Ok(qb64rust_format::format_file(
-        map,
-        parsed,
-        &program,
-        parsed.main().file,
+    let complete = format_complete(&diagnostics, main_path);
+    let lines = qb64rust_format::format_lines(map, parsed, &program, file, &settings, complete);
+    Ok(qb64rust_lsp::Formatted {
+        lines,
         settings,
-    ))
+        diagnostics,
+    })
 }
 
 /// [`check_program`] turned into the language server's semantic index (`qb64rust_lsp::Index`, design D1 of
@@ -306,17 +353,102 @@ pub fn index_for_server(
     main_path: Option<&Path>,
     root: &Path,
 ) -> qb64rust_lsp::index::SymbolIndex {
-    let (program, diagnostics) = check_with_settings(map, parsed, main_path, root);
+    let (program, diagnostics, _) = check_with_settings(map, parsed, main_path, root);
     hover::symbol_index(map, &program, &diagnostics)
 }
 
-/// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check, the formatter and
-/// the semantic index.
+/// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check, the formatter,
+/// the semantic index, the settings file's main program and what the rewrites can do.
 pub fn server_hooks() -> qb64rust_lsp::Hooks {
     qb64rust_lsp::Hooks {
         check: check_for_server,
         format: format_for_server,
         index: index_for_server,
+        main_of: settings::main_of,
+        rewritable: qb64rust_format::rewritable,
+    }
+}
+
+/// Which stages [`probe`] runs an input through (OpenSpec change `fuzz-front-end`, design D3): one per fuzz target.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Probe {
+    /// The lexer and the parser, and the exact round trip of the tree.
+    Parse,
+    /// [`frontend`] and the round trip, then lowering and C++ generation for an accepted program of at most
+    /// [`PROBE_EMIT_MAX_LEN`] bytes.
+    Compile,
+    /// The language server's three calls on a document that is not a file: check, format, index.
+    Server,
+}
+
+/// How far [`probe`] took an input.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Reached {
+    /// C++ was generated (`Probe::Compile` only).
+    pub emitted: bool,
+}
+
+/// An input larger than this skips C++ generation in `Probe::Compile`. Only `g12_game` (160 KB) of the corpus is
+/// larger: its mutants took about 5 s each to lower and emit, and add size rather than variety.
+pub const PROBE_EMIT_MAX_LEN: usize = 32 * 1024;
+
+/// Runs `bytes` as a program through the stages of `kind` and checks the properties the fuzz targets, the
+/// mutation test and the fuzz regression test share (spec `testing/fuzzing`). `Err` names a property that failed.
+/// A panic is not caught: the tests catch it, and libFuzzer reports it itself. Nothing is read from the disk
+/// (`$INCLUDE` finds no file), and the program is read as compiled on Windows, so that both hosts agree.
+pub fn probe(kind: Probe, bytes: &[u8]) -> Result<Reached, &'static str> {
+    const NAME: &str = "probe.bas";
+    let round_trip = |parsed: &ParsedProgram| {
+        if qb64rust_syntax::tree::print(&parsed.main().green, bytes) == bytes {
+            Ok(())
+        } else {
+            Err("round trip failed")
+        }
+    };
+    let parse = || {
+        let mut map = SourceMap::new();
+        let file = map.add(NAME, bytes.to_vec());
+        let parsed = parse_settled_explicit(qb64rust_base::Platform::Windows, false, &mut map, file, &mut NoLoader);
+        (map, file, parsed)
+    };
+    match kind {
+        Probe::Parse => {
+            let (_, _, parsed) = parse();
+            round_trip(&parsed)?;
+            Ok(Reached::default())
+        }
+        Probe::Compile => {
+            let fe = frontend(NAME, bytes.to_vec());
+            round_trip(&fe.parsed)?;
+            let emitted = !fe.has_errors() && bytes.len() <= PROBE_EMIT_MAX_LEN;
+            if emitted {
+                // The emission that runs the most of the emitter: a debug build's, with coverage counters and the
+                // record calls of a value-trace build.
+                let instrument = Instrument {
+                    coverage: true,
+                    trace: true,
+                };
+                emit_ir_debug(&fe, &lower(&fe), &Resolved::default(), instrument, None);
+            }
+            Ok(Reached { emitted })
+        }
+        Probe::Server => {
+            let (map, file, parsed) = parse();
+            let hooks = server_hooks();
+            let root = Path::new("");
+            (hooks.check)(&map, &parsed, None, root);
+            let _ = (hooks.format)(
+                &map,
+                &parsed,
+                None,
+                root,
+                &qb64rust_base::layout::Settings::default(),
+                false,
+                file,
+            );
+            (hooks.index)(&map, &parsed, None, root);
+            Ok(Reached::default())
+        }
     }
 }
 

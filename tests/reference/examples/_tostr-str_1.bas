@@ -1,0 +1,5 @@
+$CONSOLE:ONLY
+PRINT "["; _TOSTR$(5); "] ["; STR$(5); "]"
+PRINT _TOSTR$(1 / 3)
+PRINT _TOSTR$(1 / 3, 5)
+END

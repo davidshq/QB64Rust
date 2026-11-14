@@ -30,3 +30,6 @@ v40_l_only_web	windows: reads the executable's version information with PowerShe
 v45_sample	glibc: samples the C library's long double functions at run time; glibc's results differ from MinGW's in the last bits, on 772 of its lines (2026-11-04)
 v57_j06_block_crosses_endif_agree	line: $IF WIN is false on Linux, so the DO crosses the $END IF and we name line 8; lines.list gives Windows's line 6 (QB64pe's Linux build names line 10)
 v58_f14_display_window	varies: _DESKTOPREFRESHRATE is 0 on Xvfb's virtual screen, so `v(6) > 0` prints 0 where the recording has -1 (QB64pe's Linux build too, 2026-11-06)
+v70_i3_includeonce_name_case	windows: includes v70_inc/ONCE_CASE.BM, which Linux's case-sensitive file names make a missing file, not once_case.bm (D-065 is about Windows; not measured on Linux)
+v72_m_line_start	windows: CLS in a console program runs `cls`, which writes a form feed to a pipe; libqb writes ESC[2J and then ESC[1;1H elsewhere (libqb.cpp, qbg_sub_cls), as we do on Linux (not measured with QB64pe's Linux build)
+v72_m_line_start_r	windows: CLS in a console program runs `cls`, which writes a form feed to a pipe; libqb writes ESC[2J and then ESC[1;1H elsewhere (libqb.cpp, qbg_sub_cls), as we do on Linux (not measured with QB64pe's Linux build)

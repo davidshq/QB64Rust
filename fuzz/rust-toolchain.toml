@@ -1,0 +1,5 @@
+# The nightly the fuzz targets are built with (OpenSpec change `fuzz-front-end`, design D1). `tools/fuzz/fuzz.py`
+# reads the channel from here. The workspace stays on the stable Rust of the top `rust-toolchain.toml`.
+[toolchain]
+channel = "nightly-2026-11-13"
+profile = "minimal"

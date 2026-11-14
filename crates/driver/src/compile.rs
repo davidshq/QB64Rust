@@ -3,6 +3,7 @@
 //! moved here so that `qb64rust test` builds through the same path. What it prints goes to the caller's sink, which
 //! `run()` prints as it comes.
 
+use crate::lints::Lints;
 use crate::{
     Frontend, Instrument, Resolved, build, cpp_errors, dump_cpp, dump_debug_info, dump_ir, emit_ir_debug, emit_ir_with,
     exe_icon_path, frontend_explicit, library, log_folder, lower, toolchain, used_embedded_files,
@@ -47,6 +48,8 @@ pub struct CompileOptions {
     pub settings: Vec<String>,
     /// The program's fixes.
     pub fixes: Fixes,
+    /// The lints that are on (spec `compiler/lints`); the warnings of the others are dropped.
+    pub lints: Lints,
 }
 
 /// The `-f:` settings: `OptimizeCppProgram=true` (as `qb64pe` turns it into `-O2`) and `ExtraLinkerFlags=<value>`
@@ -121,6 +124,7 @@ pub fn compile_exe(
         Some((input, include_root)),
         o.fixes,
     );
+    o.lints.drop_from(&mut fe.diagnostics);
     // The files of the program's `DECLARE LIBRARY` blocks, looked for from the QB64pe folder, else the include root,
     // as the old compiler's folder (design D5 of `m6-toolchain`), for a build, `-z` and the `cpp` and `debug-info`
     // dumps; the other dumps need none, nor does a block with no name. Only a block without a header needs the

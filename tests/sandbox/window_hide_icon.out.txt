@@ -1,0 +1,6 @@
+at the start, minimized: 0 visible:-1 _SCREENICON: 0
+after _SCREENICON, minimized:-1 _SCREENICON:-1
+after _SCREENSHOW, minimized:-1 visible:-1
+after _SCREENHIDE, visible: 0 _SCREENEXISTS:-1
+after _SCREENSHOW, visible:-1
+ending

@@ -1,0 +1,5 @@
+$CONSOLE:ONLY
+s! = 0.1
+PRINT "As SINGLE:"; s!
+PRINT "As DOUBLE:"; CDBL(s!)
+END

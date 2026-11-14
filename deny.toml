@@ -16,6 +16,9 @@ allow = [
     "Apache-2.0",
     # unicode-ident (through serde_derive), a build-time dependency of lsp-types.
     "Unicode-3.0",
+    # libfuzzer-sys (LLVM's libFuzzer), of the fuzz crate `fuzz\` only, whose binaries are never shipped (user,
+    # 2026-11-12, OpenSpec change fuzz-front-end).
+    "NCSA",
 ]
 confidence-threshold = 0.9
 # The workspace's own crates (`publish = false`, MIT since 2026-10-19) are not checked against the list.

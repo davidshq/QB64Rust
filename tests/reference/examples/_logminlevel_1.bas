@@ -1,0 +1,3 @@
+$CONSOLE:ONLY
+PRINT "The minimum level:"; _LOGMINLEVEL
+END

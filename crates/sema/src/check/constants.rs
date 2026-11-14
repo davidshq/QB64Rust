@@ -102,6 +102,7 @@ impl Checker<'_> {
                 self.fell_back.insert(id);
             }
             self.stmt.names.push((SymbolKind::Const(id), name_tok.span));
+            self.prog.symbols.mark_declared(SymbolKind::Const(id));
         }
         Ok(())
     }

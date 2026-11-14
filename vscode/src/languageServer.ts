@@ -16,7 +16,19 @@ import {
 } from "vscode-languageclient/node";
 import * as config from "./config";
 import { Discovery, QB64RUST, findCompiler } from "./compiler/discovery";
-import { CHECK, CheckResult, DOCUMENT_ENCODING, EncodingTracker, checkParams, configurationParams, initializationOptions } from "./server/protocol";
+import {
+    CHECK,
+    CheckResult,
+    DOCUMENT_ENCODING,
+    EncodingTracker,
+    PROGRAM,
+    ProgramParams,
+    ProgramTracker,
+    checkParams,
+    configurationParams,
+    initializationOptions,
+    programStatus,
+} from "./server/protocol";
 import { CompilerStatus } from "./statusBar";
 
 /** The reason shown when the server stopped by itself (`clientState`). */
@@ -28,6 +40,10 @@ export class LanguageServer implements vscode.Disposable {
     private readonly item = vscode.languages.createLanguageStatusItem("qb64rust.server", "qb64rust");
     private readonly disposables: vscode.Disposable[] = [];
     private readonly encodings = new EncodingTracker();
+    /** The program of each open document, from `qb64rust/program` (design D8 of include-file-program), and the
+     * status item that shows the active editor's; the item exists only while there is something to show. */
+    private readonly programs = new ProgramTracker();
+    private programItem: vscode.LanguageStatusItem | undefined;
     private client: LanguageClient | undefined;
     private discovery: Discovery = { found: false, reason: "not searched yet" };
     private state: State = { kind: "stopped" };
@@ -69,7 +85,14 @@ export class LanguageServer implements vscode.Disposable {
             vscode.workspace.onDidOpenTextDocument((doc) => this.tellEncoding(doc)),
             // An encoding change (Reopen with Encoding) comes as a change of the document.
             vscode.workspace.onDidChangeTextDocument((e) => this.tellEncoding(e.document)),
-            vscode.workspace.onDidCloseTextDocument((doc) => this.encodings.forget(doc.uri.toString())),
+            vscode.workspace.onDidCloseTextDocument((doc) => {
+                this.encodings.forget(doc.uri.toString());
+                if (this.client) {
+                    this.programs.forget(this.client.code2ProtocolConverter.asUri(doc.uri));
+                }
+            }),
+            vscode.window.onDidChangeActiveTextEditor(() => this.renderProgram()),
+            { dispose: () => this.programItem?.dispose() },
         );
         this.ready = this.restart();
     }
@@ -87,6 +110,47 @@ export class LanguageServer implements vscode.Disposable {
     /** The text shown in the language status item; for tests. */
     get text(): string {
         return this.item.text;
+    }
+
+    /** The text of the program status item, undefined while it is hidden; for tests. */
+    get programText(): string | undefined {
+        return this.programItem?.text;
+    }
+
+    /**
+     * The main file of the program that the document at `uri` belongs to, when the server named another file
+     * (spec editor/build-run, "Included file"). Undefined when the document is its own program, is not open, or the
+     * server does not run: Build, Run and Debug then act on the file itself.
+     */
+    programOf(uri: vscode.Uri): vscode.Uri | undefined {
+        const client = this.running;
+        const main = client && this.programs.mainOf(client.code2ProtocolConverter.asUri(uri));
+        return main ? client.protocol2CodeConverter.asUri(main) : undefined;
+    }
+
+    /** `programOf` for a path: the main file's path, else `file` itself. */
+    programFile(file: string): string {
+        const main = this.programOf(vscode.Uri.file(file));
+        return main?.scheme === "file" ? main.fsPath : file;
+    }
+
+    /** Shows the active editor's program in its status item (spec editor/language-server, "Program status item"),
+     * or hides the item when there is none to show. */
+    private renderProgram(): void {
+        const doc = vscode.window.activeTextEditor?.document;
+        const client = this.running;
+        const shown = doc && client && doc.languageId === "qb64rust" ? programStatus(this.programs.get(client.code2ProtocolConverter.asUri(doc.uri))) : undefined;
+        if (!shown) {
+            this.programItem?.dispose();
+            this.programItem = undefined;
+            return;
+        }
+        if (!this.programItem) {
+            this.programItem = vscode.languages.createLanguageStatusItem("qb64rust.program", "qb64rust");
+            this.programItem.name = "QB64 program";
+        }
+        this.programItem.text = shown.text;
+        this.programItem.detail = shown.detail;
     }
 
     /** Stops the server if it runs, looks for the binary again and starts it. */
@@ -155,6 +219,12 @@ export class LanguageServer implements vscode.Disposable {
         }
         if (failure === undefined) {
             client.onDidChangeState((e) => this.clientState(client, e.newState));
+            client.onNotification(PROGRAM, (p: ProgramParams) => {
+                if (this.client === client) {
+                    this.programs.update(p);
+                    this.renderProgram();
+                }
+            });
             this.state = { kind: "running" };
             this.encodings.clear();
             for (const doc of vscode.workspace.textDocuments) {
@@ -215,6 +285,8 @@ export class LanguageServer implements vscode.Disposable {
         this.client = undefined;
         this.state = { kind: "stopped" };
         this.tellRunning();
+        this.programs.clear();
+        this.renderProgram();
         if (client) {
             try {
                 await client.stop();

@@ -80,6 +80,8 @@ export function formatSettings(uri?: vscode.Uri): FormatSettings {
         indentSubs: s.get<boolean>("format.indentSubs", DEFAULT_FORMAT.indentSubs),
         autoLayout: s.get<boolean>("format.autoLayout", DEFAULT_FORMAT.autoLayout),
         keywordCase: keywordCase === "upper" || keywordCase === "lower" ? keywordCase : "camel",
+        oneStatementPerLine: s.get<boolean>("format.oneStatementPerLine", DEFAULT_FORMAT.oneStatementPerLine),
+        blockIf: s.get<boolean>("format.blockIf", DEFAULT_FORMAT.blockIf),
     };
 }
 

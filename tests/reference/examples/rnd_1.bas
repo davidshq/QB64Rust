@@ -1,0 +1,9 @@
+$CONSOLE:ONLY
+RANDOMIZE USING 5
+PRINT RND; RND
+PRINT "RND(0) repeats the last value:"; RND(0)
+FOR i = 1 TO 5
+    PRINT INT(RND * 6) + 1;
+NEXT i
+PRINT
+END

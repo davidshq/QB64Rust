@@ -1,0 +1,6 @@
+_BYTE 127: 127 
+_BYTE 128:-128 
+_UNSIGNED _BYTE 255: 255 in 1 byte
+_UNSIGNED _BYTE 256: 0 
+
+Press any key to continue

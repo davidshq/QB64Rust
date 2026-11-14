@@ -119,7 +119,7 @@ fn host_neutral(text: &str) -> String {
 /// that starts with `./` is a library file `<name>.a` without a header, whose functions have C++ linkage when the
 /// name holds `cpp` and C linkage otherwise; any other name is a header `<name>.h`. A C++ function's demangled
 /// text stands in for `nm`'s with an `int` per parameter (`cpp_add(int, int)`).
-fn fixed_libraries(p: &qb64rust_sema::Program) -> Resolved {
+pub(crate) fn fixed_libraries(p: &qb64rust_sema::Program) -> Resolved {
     let mut resolved = Resolved::default();
     for lib in &p.libraries {
         let mut found = ResolvedLibrary::default();

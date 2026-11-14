@@ -1,0 +1,10 @@
+$CONSOLE:ONLY
+DIM a(1 TO 4) AS INTEGER
+DEF SEG = VARSEG(a(1))
+POKE VARPTR(a(1)), 65
+POKE VARPTR(a(1)) + 1, 1
+POKE VARPTR(a(2)), 300
+DEF SEG
+PRINT "a(1) is 1 * 256 + 65:"; a(1)
+PRINT "POKE keeps the low byte of 300:"; a(2)
+END

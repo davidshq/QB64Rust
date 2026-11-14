@@ -57,7 +57,10 @@ the QB 4.5 rows Q-021 and Q-022. M7, Linux, moved to `ROADMAP-COMPLETED.md` with
 open. Pull request 27 (`f1a64ac0`, 2026-11-07) merged branch `after-pr26` without a `just merge` (user's choice:
 one build flag and documents since pull request 26's run; CI's Rust, extension and release dry run passed). The
 extension's last release is `vscode-v0.3.0` (2026-11-07), on that merge commit: the first with Linux, and the
-first whose `qb64rust.exe` needs no `VCRUNTIME140.dll` (`DECISIONS.md` 2026-11-07).
+first whose `qb64rust.exe` needs no `VCRUNTIME140.dll` (`DECISIONS.md` 2026-11-07). Pull request 28 merged on
+2026-11-10. Pull request 30 merges branch `after-pr26`: four archived changes (`project-settings`,
+`language-reference`, `fuzz-front-end`, `format-statement-lines`), include files checked, formatted and built as
+their program, and `just merge` passing at `02d38879` (below). No OpenSpec change is open but `community-programs`.
 
 ## Waiting on the user
 
@@ -67,8 +70,9 @@ questionable behaviours each change kept QB64pe's way, which stay silent until t
 working rule 7).
 
 1. **The review of the next big wins** (`study\47`, 2026-11-09), section 8: is "first outside users" the next
-   milestone; are language extensions allowed behind a switch, BASIC PDS 7.1 first; should upstream's commits
-   since the reference be reviewed as a routine.
+   milestone. Language extensions
+   are allowed behind a switch (`DECISIONS.md` 2026-11-11); which extension comes first is still open
+   (`study\48` §5 recommends an order).
 
 The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 
@@ -77,21 +81,28 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
    fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
    `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
+0. **Start the first run of the `Fuzz` workflow** (`fuzz-front-end` archived 2026-11-13): `just fuzz
+   <parse|compile|server|all> <minutes>` fuzzes the front end with `cargo-fuzz` in WSL (`tools\fuzz\README.md`),
+   and the workflow does the same on GitHub's runner. The first campaign found one bug, now fixed:
+   `CONST p = 4 ^ 0.5` never finished compiling.
+0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
+   commit reviewed: `ce6e54aee` (2026-11-13, 87 commits, `docs\UPSTREAM-REVIEW.md`). `..\QB64pe-latest` was
+   pulled again on 2026-11-14 for the merge of `after-pr26`: no commit came after it.
 1. **Choose the next milestone.** `ROADMAP.md` has no open milestone. macOS, which was M8, is postponed to
    `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next. The candidates are in
    `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS
    Code features still missing.
 
-Still to watch: the CLI tests in the suites VM. They have now failed there at two merges in a row, a different
-test each run, and each failed test passed in the next run:
-- Pull request 25: four debugger tests and `unit_tests::a_timeout`, twice, in 945 s against 192 s at pull
-  request 24's. All five passed on the host at `540aacb0` in 31 s.
-- Pull request 26: `trace_record_when_the_window_is_closed` in the merge run ("the program did not end after its
-  window was closed", 417 s). Run alone, it passed and `debug_next_over_call_and_into_sub` failed instead, with 2
-  stops of the 4 it waits for (1050 s, of which 468 s copying the tree in). That one is the `lldb-server` race
-  below.
-
-The next step is to find out why the VM runs `cli` so much slower than the host.
+The CLI tests in the suites VM failed at three merges in a row, a different test each run, and each passed in the
+next run: at pull request 25 four debugger tests and `unit_tests::a_timeout`, at pull request 26
+`trace_record_when_the_window_is_closed`, and at this branch's first merge runs the same two again, `a_timeout`
+(TestQuick timed out at 2 s) and `trace_record_when_the_window_is_closed` (a window close took 62 s), and, in one
+run, `license_file` and `only_used_embedded_files_are_built_in` hung until `step.ps1` stopped the step at 3600 s
+(the host then waited 8 hours more, on guest calls with no limit). The cause, found 2026-11-14: `cli` runs the
+ignored test `format_oracle::rewrites_give_the_same_cpp`, which starts a thread on every core for 300 to 375 s
+(`format-statement-lines`, design D9), beside the tests with deadlines. The test has a step of its own since,
+`format-rewrites`, alone on the host, and `cli` skips it. `cli` then took 650 s and passed in full at the merge
+of `02d38879`. If a CLI test fails in the VM again, run it alone before treating it as real.
 `s75_sound_wait` crashed once under load (`libqb-copy`'s design, "Risks").
 `lldb` and `lldb-dap` debug through `lldb-server` since `m5-dap-proxy` (`DECISIONS.md` 2026-10-25): its race after a
 single step ends about one session in seventy at once ("lost connection"; 3 in 222 runs of
@@ -119,24 +130,27 @@ long run, it is this, and it passes alone.
 
 ## Numbers at the last full runs
 
-The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 26, branch
-`after-pr25`** (2026-11-07): `just merge` in the worktree at `dc731652`, whose tree is the merge commit's but
-for the commit of its count blocks, the fix to `tools\screen\screen_state.cpp` and the QB 4.5 recordings
-(`q45_*`), with the whole suites in the suites VM. 36 steps passed and one failed: `cli`, one test in the VM
-("Still to watch" under "Next"). Linux corpus: `screen/u01_mouse_queue` passed. It stays on
-`tests\corpus\known.linux.list` as `varies`, since it passed 1 run in 2 under WSLg.
+The last merge into `main` only; earlier ones are in `git log` and their pull requests. **Pull request 30, branch
+`after-pr26`** (2026-11-14): `just merge` in the worktree at `02d38879`, with the whole suites in the suites VM.
+35 steps ran and passed, 6 stood from earlier merge runs on the same fingerprint, and the two writers
+(`update-lists`, `wording`) passed. It took several runs to get there; the failures on the way were fixed in the
+branch (`DECISIONS-SMALL.md` 2026-11-14): `suites.ps1`'s
+`Get-FileHash`, the Linux build's reading of gcc's "was not declared" (`v37_x04`), the C++ test inside `cli`,
+and the merge being forced.
 
 | Run | Result |
 |---|---|
-| Tests (nextest), fmt, clippy, doc | 720 pass (153 skipped), clean |
-| CLI tests that build | 130 pass, 1 failed in the VM; it passed when run again, and another failed |
-| Full corpus | 516 pass, 7 known failures, none failing |
-| `slice.list` judged from it / without folding | 496 of 496 / 496 of 496 |
+| Tests (nextest), fmt, clippy, doc | 837 pass (156 skipped), clean |
+| CLI tests that build | 134 pass, none failing (in the VM, 641 s); `format-rewrites` (1 test, on the host) 303 s |
+| Full corpus | 518 pass, 7 known failures, none failing |
+| `slice.list` judged from it / without folding | 498 of 498 / 498 of 498 |
 | Full upstream | 401 pass, 3 known failures (`const/math_funcs` D-031, `noprompt-continue-fatal` D-052, `http/read_example`); `pass.list` 401 of 401 |
-| Full verification | 4321 pass, 79 known failures, none failing; `pass.list` 4312 of 4312 |
+| Full verification | 4393 pass, 72 known failures, none failing; `pass.list` 4384 of 4384 |
 | qbasic / differential / call-site check | 143 of 143 / 65 of 65 / 2650 of 2650 equal |
-| Built-ins, coverage of Civil War Strategy's scripts, sandbox | pass (375 of 390 built-ins run); 10 of 10; 8 of 8 |
-| Linux: tier 1 / corpus / upstream / verification | 728 pass (126 ignored) / 491 pass, 12 known, 20 skipped / 400 pass, 4 known / 4290 pass, 93 known, 17 skipped |
+| Format corpus / language reference's examples | 1344 of 1344 / 333 of 333 |
+| Community programs | 3977 checked, 3019 pass (3018 on the list, 1 new pass); 0 regressions |
+| Built-ins, coverage of Civil War Strategy's scripts, sandbox | pass (375 of 390 built-ins run); 10 of 10; 14 of 14 |
+| Linux: tier 1 / corpus / upstream / verification | 845 pass (129 ignored) / 493 pass, 12 known, 20 skipped / 401 pass, 3 known / 4359 pass, 86 known, 20 skipped |
 
 ## Known bugs
 

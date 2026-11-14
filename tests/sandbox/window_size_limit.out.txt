@@ -1,0 +1,5 @@
+after (200, 150)-(400, 300): min 200, 150 max 400, 300
+after no arguments: min -7, -7 max -7, -7
+after (100, 80): min 100, 80 max -7, -7
+after -(500, 400): min 100, 80 max 500, 400
+in SCREEN 0 after (40, 10)-(80, 25): min 320, 160 max 640, 400

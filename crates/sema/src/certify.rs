@@ -531,8 +531,7 @@ pub fn pow2(x: Range, y: Range) -> R<Range> {
         return Ok(Range::exact(v));
     }
     let (xb, yb) = (x.abs().to_big(), y.to_big());
-    let rm = RoundingMode::ToEven;
-    let r = reference(|p, cc| xb.pow(&yb, p, rm, cc))?;
+    let r = reference(|p, cc| big_pow(&xb, &yb, p, cc))?;
     let r = if x.is_neg() && y.to_i128().is_some_and(|e| e % 2 != 0) {
         r.neg()
     } else {
@@ -542,6 +541,15 @@ pub fn pow2(x: Range, y: Range) -> R<Range> {
         return Ok(Range::exact(F80::Inf { neg: r.is_inf_neg() }));
     }
     Ok(fuzzy80(&r, POWL_ULPS, None))
+}
+
+/// `x ^ y` for a positive `x` at precision `p`: `exp(y × ln x)`, with 64 bits more inside. Not `BigFloat::pow`,
+/// which does not return for some exact powers (`4 ^ 0.5`, `16 ^ 0.25`, `2.25 ^ 0.5`; found by the fuzz target
+/// `compile`, 2026-11-12).
+fn big_pow(x: &BigFloat, y: &BigFloat, p: usize, cc: &mut Consts) -> BigFloat {
+    let rm = RoundingMode::ToEven;
+    let q = p + 64;
+    x.ln(q, rm, cc).mul(y, q, rm).exp(p, rm, cc)
 }
 
 /// `x^e` for a whole `e`, when `_FLOAT` holds it exactly.
@@ -582,6 +590,23 @@ mod tests {
 
     fn g19(r: Range) -> (String, String) {
         (r.lo.to_g19(), r.hi.to_g19())
+    }
+
+    /// Fractional powers whose result is exact return, and settle on it (`BigFloat::pow` did not return for the first
+    /// three; fuzz target `compile`, 2026-11-12).
+    #[test]
+    fn exact_fractional_powers_return() {
+        for (x, y, want) in [
+            (4.0, 0.5, "2"),
+            (16.0, 0.25, "2"),
+            (2.25, 0.5, "1.5"),
+            (1.0, 0.5, "1"),
+            (9.0, 0.5, "3"),
+        ] {
+            let r = pow2(Range::exact(F80::from_f64(x)), Range::exact(F80::from_f64(y))).unwrap();
+            assert_eq!(r.mid.to_g19(), want, "{x} ^ {y}");
+            assert_eq!(g19(r), (want.to_string(), want.to_string()), "{x} ^ {y}");
+        }
     }
 
     /// The recorded values of `verification\v45_b_funcs` lie in the ranges.
@@ -798,7 +823,7 @@ mod tests {
                 }
                 "^" => {
                     let yb = y.to_big();
-                    (reference(|p, cc| xb.pow(&yb, p, rm, cc)), 64)
+                    (reference(|p, cc| big_pow(&xb, &yb, p, cc)), 64)
                 }
                 _ => continue,
             };
@@ -952,7 +977,7 @@ mod tests {
                 "asin" => x.asin(p, rm, cc),
                 "acos" => x.acos(p, rm, cc),
                 "sqrt" => x.sqrt(p, rm),
-                "pow" => x.pow(y.as_ref().unwrap(), p, rm, cc),
+                "pow" => big_pow(&x, y.as_ref().unwrap(), p, cc),
                 _ => unreachable!("{name}"),
             })
             .unwrap();

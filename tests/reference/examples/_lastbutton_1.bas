@@ -1,0 +1,6 @@
+$CONSOLE:ONLY
+PRINT "Keyboard:"; _LASTBUTTON(1); _LASTAXIS(1); _LASTWHEEL(1)
+PRINT "Mouse:   "; _LASTBUTTON(2); _LASTAXIS(2); _LASTWHEEL(2)
+x = _DEVICEINPUT(2)
+PRINT "Axes of the selected device:"; _LASTAXIS
+END

@@ -21,6 +21,21 @@ that depends on them is printed as a test (within 1 pixel), not as a value. `<na
 | `screenclick_mousebutton` | `_SCREENCLICK` on the program's own window: `_MOUSEBUTTON(1)` seen down and up through `_MOUSEINPUT`, at the place clicked within 1 pixel (libqb scales the place by `65535 / width`, so it is read a pixel short) |
 | `screenmove_readback` | `_SCREENMOVE 100, 120` read back by `_SCREENX`, `_SCREENY`; `_SCREENMOVE _MIDDLE`: centered across within 1 pixel and down within 40 pixels above (the work area leaves out the taskbar) |
 | `screenprint_inkey` | `_SCREENPRINT "abc" + CHR$(13)` read back by `INKEY$`: the four codes. It clicks its own window first: only a session's first window gets the keys (design.md, "Context") |
+| `window_allowfullscreen` | Alt+Enter, pressed with Windows' `keybd_event` after the program clicks its own window, read back by the functions `_FULLSCREEN` and `_SMOOTH`: with no `_ALLOWFULLSCREEN`, `_STRETCH` and then `_STRETCH` with `_SMOOTH`; after `_ALLOWFULLSCREEN _SQUAREPIXELS`, `_SQUAREPIXELS`; after `_ALLOWFULLSCREEN _OFF`, no change |
+| `window_fullscreen` | `_FULLSCREEN _SQUAREPIXELS`, `_FULLSCREEN _STRETCH, _SMOOTH` and `_FULLSCREEN _OFF`, read back by the functions `_FULLSCREEN` and `_SMOOTH`; `_SCALEDWIDTH` and `_SCALEDHEIGHT` in a window, and `_DESKTOPREFRESHRATE` above 0 |
+| `window_hide_icon` | `_SCREENICON`, `_SCREENHIDE` and `_SCREENSHOW` read back by Windows' `IsIconic` and `IsWindowVisible`, and by the functions `_SCREENICON` and `_SCREENEXISTS`. `_SCREENSHOW` does not restore a minimized window. Each line is written as it is measured |
+| `window_icon` | `_ICON` read back by the sizes of the window's big and small icons (Windows' `WM_GETICON`, `GetIconInfo`, `GetObjectA`): none at the start; one image sets both; two set the big and the small; no argument gives 32 × 32 and 16 × 16 |
+| `window_size_limit` | `_WINDOWSIZELIMIT` read back by the window's answer to Windows' `WM_GETMINMAXINFO`, less its frame: both limits, none, the smallest alone, the largest alone, and in `SCREEN 0`, where the sizes are in characters (8 × 16 pixels) |
+| `window_title_handle` | `_WINDOWHANDLE` checked by Windows' `IsWindow`; `_TITLE` read back as the window's text by Windows' `GetWindowTextA`; `_WINDOWHASFOCUS` after the program clicks its own window |
+
+**Not read back:** `_TITLE$`. In QB64pe's build and in QB64Rust's, run in the test VM on 2026-11-12, `_TITLE$`
+after `_TITLE "Probe title"` had the title's length, 11, but bytes that are not the title, other ones on each run.
+So `window_title_handle` reads the title from Windows instead.
+
+**A program that may need its second run:** `window_hide_icon`. Its output was the same in every run of both
+compilers' builds on 2026-11-12. But in about one run in three the program did not end within the limit, after it
+had minimized its window, in QB64pe's build as in QB64Rust's. The runner runs a program that timed out once more
+(`tools\sandbox\README.md`), so it passes then, and its line says so.
 
 **The recordings** are QB64pe's: `python tools\sandbox\run.py --record`, `qb64pe.exe` of the reference clone at
 `16f629784e` (`main`, version 4.7.0-GLFW), its builds run in Windows Sandbox on 2026-10-30, every one exiting 0.
@@ -32,4 +47,5 @@ a row, and QB64pe's builds in 4. With 2 processors, `mousemove_readback` failed 
 compilers (`openspec\changes\archive\2026-11-03-windows-vm\design.md`, "Context", task 3.2).
 `clipboard_text` was added later and recorded in the test VM on 2026-11-07, with the same `qb64pe.exe`. Its
 recording matches `verification\v49_d_clipboard.out.txt` line for line, plus the 4 of the `STRING * 4` case. The
-family of eight passed in the VM that day.
+family of eight passed in the VM that day. The six `window_*` programs were added on 2026-11-12, for the
+language reference, and recorded in the test VM with the same `qb64pe.exe`.

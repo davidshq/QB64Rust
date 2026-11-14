@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+c~& = _RGBA32(10, 20, 30, 40)
+PRINT _RED32(c~&); _GREEN32(c~&); _BLUE32(c~&); _ALPHA32(c~&)
+END

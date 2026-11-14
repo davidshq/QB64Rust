@@ -231,6 +231,7 @@ impl<'a> Checker<'a> {
             self.procs_by_name.insert(name, id);
         }
         self.stmt.names.push((SymbolKind::Proc(id), name_tok.span));
+        self.prog.symbols.mark_declared(SymbolKind::Proc(id));
         Ok(id)
     }
 

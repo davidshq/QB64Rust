@@ -1,0 +1,75 @@
+# Coverage-guided fuzzing of the front end on GitHub's Linux runner (OpenSpec change fuzz-front-end, design D7;
+# tools/fuzz/README.md): the same script as `just fuzz`, for runs longer than the user's machine should give.
+name: Fuzz
+
+# Started by hand only, like every workflow here (OpenSpec change testing-reset).
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "The fuzz target"
+        type: choice
+        options: [all, parse, compile, server]
+        default: all
+      minutes:
+        description: "Minutes per target"
+        type: number
+        default: 20
+      jobs:
+        description: "Jobs (the runner has 4 cores)"
+        type: number
+        default: 4
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    # Three targets at most, each for the minutes given, with the build and the minimizing of a failure.
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+
+      # The workspace's stable Rust (the dictionary is written by one of its tests), then the fuzz crate's nightly:
+      # `rustup toolchain install` reads the rust-toolchain.toml of the folder it runs in.
+      - run: rustup toolchain install
+      - run: rustup toolchain install
+        working-directory: fuzz
+      - run: cargo install cargo-fuzz --locked
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            fuzz -> target
+
+      # The corpus the fuzzer grows, kept from run to run (spec testing/fuzzing, "Seeds"). A cache entry cannot be
+      # written twice, so each run saves a new one, also after a failure, and the next restores the newest.
+      - uses: actions/cache/restore@v6
+        with:
+          path: fuzz/corpus
+          key: fuzz-corpus-${{ inputs.target }}-${{ github.run_id }}
+          restore-keys: |
+            fuzz-corpus-${{ inputs.target }}-
+            fuzz-corpus-
+
+      - run: python3 tools/fuzz/fuzz.py "${{ inputs.target }}" "${{ inputs.minutes }}" --jobs "${{ inputs.jobs }}"
+
+      - uses: actions/cache/save@v6
+        if: always()
+        with:
+          path: fuzz/corpus
+          key: fuzz-corpus-${{ inputs.target }}-${{ github.run_id }}
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: fuzz-artifacts
+          path: |
+            fuzz/artifacts
+            fuzz/target/*.log
+          if-no-files-found: ignore

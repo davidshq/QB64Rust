@@ -339,11 +339,13 @@ class TestVmRunner(unittest.TestCase):
 class TestMainInTheVm(Folder):
     """run_family with --where vm, run.ps1 stood in for by vm_check and vm_run."""
 
-    def main(self, vm_code: int, check: int = 0, results: dict[str, tuple[str, str]] | None = None):
+    def main(self, vm_code: int, check: int = 0, results=None):
+        """`results` is one run's {name: (exit, out)}, or a list of them, one for each start of the VM."""
         for n in ("a", "b"):
             (self.family / f"{n}.bas").write_text("", encoding="ascii")
             (self.family / f"{n}.out.txt").write_text("x\n", encoding="ascii")
         runs: list = []
+        per_run = results if isinstance(results, list) else [results or {}]
 
         def build(_compiler, src, out, _log):
             out.write_bytes(b"MZ")
@@ -351,8 +353,10 @@ class TestMainInTheVm(Folder):
 
         def vm_run(folder, limit):
             runs.append((folder, limit))
-            for name, (code, out) in (results or {}).items():
-                self.result(name, code, out)
+            listed = (folder / "list.txt").read_text(encoding="ascii").split()
+            for name, (code, out) in per_run[min(len(runs), len(per_run)) - 1].items():
+                if name in listed:
+                    self.result(name, code, out)
             return vm_code
 
         patches = [
@@ -385,6 +389,29 @@ class TestMainInTheVm(Folder):
         self.assertEqual(runs, [(self.root, 5 * 2 + 60)])
         self.assertFalse((self.root / "sandbox.wsb").exists())
         self.assertIn("sandbox: 2 pass, 0 fail", out)
+
+    def test_a_program_that_timed_out_runs_once_more(self):
+        code, runs, out = self.main(
+            run.VM_DONE,
+            results=[{"a": ("0", "x\n"), "b": ("timeout", None)}, {"b": ("0", "x\n")}],
+        )
+        self.assertEqual(code, 0, out)
+        self.assertEqual(runs, [(self.root, 5 * 2 + 60), (self.root, 5 + 60)])
+        self.assertIn("timed out, run once more: b", out)
+        self.assertIn("PASS  a: pass\n", out)
+        self.assertIn("PASS  b: pass (on its second run: the first timed out)", out)
+        self.assertFalse((self.root / "results.first").exists())
+
+    def test_a_second_timeout_fails(self):
+        code, runs, out = self.main(run.VM_DONE, results={"a": ("0", "x\n"), "b": ("timeout", None)})
+        self.assertEqual((code, len(runs)), (1, 2), out)
+        self.assertIn("PASS  a: pass\n", out)
+        self.assertIn("FAIL  b: timed out", out)
+
+    def test_a_wrong_output_is_not_run_again(self):
+        code, runs, out = self.main(run.VM_DONE, results={"a": ("0", "x\n"), "b": ("0", "y\n")})
+        self.assertEqual((code, len(runs)), (1, 1), out)
+        self.assertNotIn("run once more", out)
 
     def test_a_timeout_names_the_programs(self):
         code, _, out = self.main(run.VM_LIMIT, results={"a": ("0", "x\n")})

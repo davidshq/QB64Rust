@@ -2004,7 +2004,8 @@ class VerificationCompare(VerificationFixture):
         self.assertEqual((r.status, r.kind), ("PASS", "output"), r.detail)
         self.assertFalse((self.results / "v99_p").exists())
         self.assertEqual(
-            tools.compile_cmd[:7], ["qb64rust.exe", "-x", "-q", "-m", "--fixes", "off", "v99_p.bas"]
+            tools.compile_cmd[:8],
+            ["qb64rust.exe", "-x", "-q", "-m", "--fixes", "off", "--no-settings", "v99_p.bas"],
         )
         self.assertNotIn("--include-root", tools.compile_cmd)
 

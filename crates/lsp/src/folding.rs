@@ -13,7 +13,15 @@ use qb64rust_syntax::tree::Node;
 
 /// The folding ranges of the program's main file, in no particular order.
 pub fn folding_ranges(a: &Analysis) -> Vec<FoldingRange> {
-    let root = a.parsed.main().root();
+    folding_ranges_in(a, a.parsed.main().file)
+}
+
+/// The folding ranges of the program's file `file` (an included file's at its first inclusion).
+pub fn folding_ranges_in(a: &Analysis, file: qb64rust_base::FileId) -> Vec<FoldingRange> {
+    let Some(tree) = a.tree(file) else {
+        return Vec::new();
+    };
+    let root = tree.root();
     let mut out = Vec::new();
     let mut ifs = Vec::new();
     blocks(a, root, &mut out, &mut ifs);

@@ -54,12 +54,12 @@ export class Builder implements vscode.Disposable {
      * the executable, or undefined when there is none (the reason already shown).
      */
     async debugBuild(uri?: vscode.Uri): Promise<string | undefined> {
-        const doc = await this.prepare(uri, "Debugging");
-        if (!doc) {
+        const source = await this.prepare(uri, "Debugging");
+        if (!source) {
             return undefined;
         }
-        const plan = await planBuild(doc.uri.fsPath, this.status, this.server, this.bundle, true, true);
-        return plan.compiler === "qb64rust" ? this.buildWithQb64rust(doc, plan, false) : undefined;
+        const plan = await planBuild(source.fsPath, this.status, this.server, this.bundle, true, true);
+        return plan.compiler === "qb64rust" ? this.buildWithQb64rust(source, plan, false) : undefined;
     }
 
     /**
@@ -67,15 +67,15 @@ export class Builder implements vscode.Disposable {
      * confirmation (study 18, proposal D). Failures are always shown.
      */
     private async build(uri: vscode.Uri | undefined, notify: boolean): Promise<string | undefined> {
-        const doc = await this.prepare(uri, "Building");
-        if (!doc) {
+        const source = await this.prepare(uri, "Building");
+        if (!source) {
             return undefined;
         }
-        const plan = await planBuild(doc.uri.fsPath, this.status, this.server, this.bundle);
+        const plan = await planBuild(source.fsPath, this.status, this.server, this.bundle);
         if (plan.compiler === "none") {
             return undefined;
         }
-        return plan.compiler === "qb64pe" ? this.buildWithQb64pe(doc, plan.command, notify) : this.buildWithQb64rust(doc, plan, notify);
+        return plan.compiler === "qb64pe" ? this.buildWithQb64pe(source, plan.command, notify) : this.buildWithQb64rust(source, plan, notify);
     }
 
     /**
@@ -83,8 +83,8 @@ export class Builder implements vscode.Disposable {
      * (source `qb64rust`). A failure under `auto` whose errors are all marked "not supported yet" offers to build
      * the program once with QB64pe when QB64pe is found, except for a debug build, which QB64pe cannot make.
      */
-    private async buildWithQb64rust(doc: vscode.TextDocument, plan: Extract<BuildPlan, { compiler: "qb64rust" }>, notify: boolean): Promise<string | undefined> {
-        const file = doc.uri.fsPath;
+    private async buildWithQb64rust(source: vscode.Uri, plan: Extract<BuildPlan, { compiler: "qb64rust" }>, notify: boolean): Promise<string | undefined> {
+        const file = source.fsPath;
         this.startOutput(`${plan.command} ${plan.args.join(" ")}`);
         if (plan.firstLibqbBuild) {
             this.appendLine("This first build after installing or updating the extension also builds QB64pe's runtime library (libqb) once.");
@@ -98,7 +98,7 @@ export class Builder implements vscode.Disposable {
         if (result.cancelled) {
             return undefined;
         }
-        this.diagnostics.publish(doc.uri, result.messages, "qb64rust");
+        this.diagnostics.publish(source, result.messages, "qb64rust");
         const ok = result.exitCode === 0 && fs.existsSync(result.executable) && !result.messages.some((m) => m.severity === "error");
         if (ok) {
             this.appendLine(`Built ${result.executable}`);
@@ -110,13 +110,13 @@ export class Builder implements vscode.Disposable {
         const first = result.messages.find((m) => m.severity === "error");
         const text = `QB64: build failed${first ? `: ${first.message.split("\n")[0]} (line ${first.line})` : ""}`;
         this.lastOutput += `${text}\n`;
-        if (result.allMarked && config.buildWith(doc.uri) === "auto" && !plan.debug && plan.qb64pe) {
+        if (result.allMarked && config.buildWith(source) === "auto" && !plan.debug && plan.qb64pe) {
             const fallback = "Build with QB64pe";
             const qb64peCompiler = plan.qb64pe;
             if ((await this.showError(text, fallback)) === fallback) {
                 // The marked errors say what qb64rust lacks, not what is wrong with the program: QB64pe builds it.
-                this.diagnostics.publish(doc.uri, [], "qb64rust");
-                return this.buildWithQb64pe(doc, qb64peCompiler, notify);
+                this.diagnostics.publish(source, [], "qb64rust");
+                return this.buildWithQb64pe(source, qb64peCompiler, notify);
             }
             return undefined;
         }
@@ -124,8 +124,8 @@ export class Builder implements vscode.Disposable {
         return undefined;
     }
 
-    private async buildWithQb64pe(doc: vscode.TextDocument, compiler: string, notify: boolean): Promise<string | undefined> {
-        const file = doc.uri.fsPath;
+    private async buildWithQb64pe(source: vscode.Uri, compiler: string, notify: boolean): Promise<string | undefined> {
+        const file = source.fsPath;
         this.startOutput(`${compiler} ${qb64pe.buildArgs(file).join(" ")}`);
         // Progress goes to the status item, not the output channel, which cannot redraw a line.
         const lines = new BuildOutputLines((p) => this.status.setBusy(progressText(p)));
@@ -135,7 +135,7 @@ export class Builder implements vscode.Disposable {
         if (result.cancelled) {
             return undefined;
         }
-        this.diagnostics.publish(doc.uri, result.messages);
+        this.diagnostics.publish(source, result.messages);
         const ok = result.exitCode === 0 && fs.existsSync(result.executable) && !result.messages.some((m) => m.severity === "error");
         if (ok) {
             this.appendLine(`Built ${result.executable}`);
@@ -170,17 +170,17 @@ export class Builder implements vscode.Disposable {
     }
 
     async runCommand(uri?: vscode.Uri): Promise<boolean> {
-        const doc = await this.prepare(uri, "Running", false);
-        if (!doc) {
+        const source = await this.prepare(uri, "Running", false);
+        if (!source) {
             return false;
         }
-        const exe = qb64pe.executableFor(doc.uri.fsPath);
+        const exe = qb64pe.executableFor(source.fsPath);
         if (!fs.existsSync(exe)) {
             const build = "Build and Run";
             const choice = await vscode.window.showErrorMessage(`QB64: ${path.basename(exe)} does not exist yet. Build it first?`, build);
-            return choice === build ? this.buildAndRunCommand(doc.uri) : false;
+            return choice === build ? this.buildAndRunCommand(source) : false;
         }
-        this.startInTerminal(exe, doc.uri);
+        this.startInTerminal(exe, source);
         return true;
     }
 
@@ -208,10 +208,10 @@ export class Builder implements vscode.Disposable {
     }
 
     /**
-     * The document to act on, saved. Refuses in untrusted workspaces and asks to save untitled documents
-     * (the action does not start until the document has a file path).
+     * The file to act on, saved: for an included file, its program's main file. Refuses in untrusted workspaces and
+     * asks to save untitled documents (the action does not start until the document has a file path).
      */
-    private async prepare(uri: vscode.Uri | undefined, verb: string, save = true): Promise<vscode.TextDocument | undefined> {
+    private async prepare(uri: vscode.Uri | undefined, verb: string, save = true): Promise<vscode.Uri | undefined> {
         if (!vscode.workspace.isTrusted) {
             void vscode.window.showWarningMessage(`QB64: ${verb.toLowerCase()} requires a trusted workspace. Nothing was executed.`);
             return undefined;
@@ -239,7 +239,18 @@ export class Builder implements vscode.Disposable {
         if (save && doc.isDirty && !(await doc.save())) {
             return undefined;
         }
-        return doc;
+        // An included file is built and run as its program (spec editor/build-run, "Included file"). The file was
+        // saved above, since the build reads it from disk. The main file is saved only when it is open: opening it
+        // here would send the language server a `didOpen` for a document no editor shows.
+        const main = this.server.programOf(doc.uri);
+        if (main?.scheme !== "file") {
+            return doc.uri;
+        }
+        const open = vscode.workspace.textDocuments.find((d) => d.uri.toString() === main.toString());
+        if (save && open?.isDirty && !(await open.save())) {
+            return undefined;
+        }
+        return main;
     }
 
     dispose(): void {

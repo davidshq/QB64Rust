@@ -1,0 +1,6 @@
+flags = 5 
+Bit 2 is set:-1 
+After _RESETBIT bit 0: 4 
+_TOGGLEBIT(5, 1) = 7 
+
+Press any key to continue

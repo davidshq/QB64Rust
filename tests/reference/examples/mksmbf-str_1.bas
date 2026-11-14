@@ -1,0 +1,6 @@
+$CONSOLE:ONLY
+s$ = MKSMBF$(1.5)
+PRINT LEN(s$); CVSMBF(s$)
+d$ = MKDMBF$(-2.25#)
+PRINT LEN(d$); CVDMBF(d$)
+END

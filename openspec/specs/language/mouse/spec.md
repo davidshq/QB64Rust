@@ -49,8 +49,10 @@ the screen, as libqb computes them from the position of the event.
 
 ### Requirement: Mouse built-ins that no test runs
 `_MOUSEMOVE`, which moves the machine's cursor, and `_MOUSESHOW`, `_MOUSEHIDE` and `_MOUSECURSOR`, whose effect is
-the shape of the cursor, SHALL compile to the call the old compiler writes. No test runs `_MOUSEMOVE`; the other
-three are run in a screen program, their effect (the cursor, outside the screen's state) not compared.
+the shape of the cursor, SHALL compile to the call the old compiler writes. `_MOUSEMOVE` runs only in the sandbox
+family, in the test VM, read back by `_MOUSEX` and `_MOUSEY` (`tests\sandbox\mousemove_readback`; spec
+`testing/desktop-sandbox`). The other three are run in a screen program, their effect (the cursor, outside the
+screen's state) not compared.
 
 #### Scenario: Moving the cursor
 - **WHEN** `_MOUSEMOVE 100, 50` is compiled

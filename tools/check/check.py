@@ -1249,7 +1249,7 @@ def no_clone(root: Path) -> str | None:
         return None
     return (
         f"no reference clone at {clone.as_posix()}: a worktree goes beside the checkout, so that ../QB64pe and "
-        "../../qb64contain are the same folders (CLAUDE.md, \"Where things live\")."
+        "../qb45 are the same folders (CLAUDE.md, \"Where things live\")."
     )
 
 
@@ -1323,9 +1323,6 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         why = ": a merge's results are to describe the merge commit" if a.what == MERGE else ""
         print(f"--uncommitted applies to `check {FULL}` only{why}")
         return 2
-    if a.what == MERGE:
-        # Without the pass cache too, as the plan runs every step.
-        a.force = True
     if a.what == "status":
         return status(root)
     if a.what == "history":

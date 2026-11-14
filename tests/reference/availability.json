@@ -1,0 +1,2425 @@
+{
+ "_acceptfiledrop": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_adler32": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_allowfullscreen": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_andalso": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_arcsec": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_arraycopy": {
+  "programs": 31,
+  "ok": 31,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_asin": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_asinh": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_assert": {
+  "programs": 19,
+  "ok": 19,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_atan2": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_autodisplay": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_axis": {
+  "programs": 17,
+  "ok": 17,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_base64decode-str": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_base64encode-str": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_bin-str": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_bit": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_blend": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_blink": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_button": {
+  "programs": 17,
+  "ok": 17,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_byte": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_capslock": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_cast": {
+  "programs": 14,
+  "ok": 14,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_ceil": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_clamp": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_clearcolor": {
+  "programs": 14,
+  "ok": 14,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_clipboard-str": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_clipboardimage": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_colorchooserdialog": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_commandcount": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_compiledate-str": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_compilerversion-str": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_connected": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_connectionaddress": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_console": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_consoleinput": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_consoletitle": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_continue": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_controlchr": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_copyimage": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_copypalette": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_crc32": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_cv": {
+  "programs": 17,
+  "ok": 17,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_cwd-str": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_d2r": {
+  "programs": 14,
+  "ok": 14,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_defaultcolor": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_define": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_deflate-str": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_delay": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_depthbuffer": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_desktoprefreshrate": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_desktopwidth": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_dest": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_device-str": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_deviceinput": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_devices": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_dir-str": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_display": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_displayorder": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_echo": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_embedded-str": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_environcount": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_errorline": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_errormessage-str": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_exit": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_fileexists": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_files-str": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_float": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_font": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_fontwidth": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_fps": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_freeimage": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_freetimer": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_fullpath-str": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_fullscreen": {
+  "programs": 22,
+  "ok": 22,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_gl": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_glrender": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_hsb32": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_hue32": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_hypot": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_icon": {
+  "programs": 14,
+  "ok": 14,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_iif": {
+  "programs": 17,
+  "ok": 17,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_inclerrorline": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_inflate-str": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_inputbox-str": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_instrrev": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_integer64": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_keyclear": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_keydown": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_keyhit": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_lastbutton": {
+  "programs": 25,
+  "ok": 25,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_limit": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_loadfont": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_loadimage": {
+  "programs": 11,
+  "ok": 11,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_loginfo": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_logminlevel": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_maptriangle": {
+  "programs": 16,
+  "ok": 16,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mapunicode": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_md5-str": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mem": {
+  "programs": 29,
+  "ok": 29,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_memcopy": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_memelement": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_memexists": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_memfill": {
+  "programs": 19,
+  "ok": 19,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_memfree": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_memget": {
+  "programs": 33,
+  "ok": 33,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_memimage": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_memnew": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_memput": {
+  "programs": 26,
+  "ok": 26,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_memsound": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_messagebox": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_midisoundbank": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_min": {
+  "programs": 22,
+  "ok": 22,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mk-str": {
+  "programs": 18,
+  "ok": 18,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mousebutton": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mousecursor": {
+  "programs": 11,
+  "ok": 11,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mousedisabled": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mousehidden": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mouseinput": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mousemove": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mousemovementx": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mouseshow": {
+  "programs": 11,
+  "ok": 11,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mousewheel": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_mousex": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_negate": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_newimage": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_notifypopup": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_offset": {
+  "programs": 24,
+  "ok": 24,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_openclient": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_openconnection": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_openfiledialog-str": {
+  "programs": 11,
+  "ok": 11,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_openhost": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_orelse": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_os-str": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_palettecolor": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_pi": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_pixelsize": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_printimage": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_printmode": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_printstring": {
+  "programs": 11,
+  "ok": 11,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_putimage": {
+  "programs": 23,
+  "ok": 23,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_readfile-str": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_red": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_red32": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_resize": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_rgb": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_rgb32": {
+  "programs": 15,
+  "ok": 15,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_rol": {
+  "programs": 20,
+  "ok": 20,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_round": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_saveimage": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_scaledwidth": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_screenclick": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_screenexists": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_screenhide": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_screenicon": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_screenimage": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_screenmove": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_screenprint": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_screenx": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sec": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sech": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_setalpha": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_setbit": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_shellhide": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_shl": {
+  "programs": 14,
+  "ok": 14,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sinh": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndbal": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndclose": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndcopy": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndgetpos": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndlen": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndlimit": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndloop": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndnew": {
+  "programs": 11,
+  "ok": 11,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndopen": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndopenraw": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndpause": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndplay": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndplaycopy": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndplayfile": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndplaying": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndrate": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndraw": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndrawbatch": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndrawdone": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndrawlen": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndstop": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_sndvol": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_source": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_statuscode": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_strcmp": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_title": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_tostr-str": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_trim-str": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_ucharpos": {
+  "programs": 11,
+  "ok": 11,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_ufontheight": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_unsigned": {
+  "programs": 27,
+  "ok": 27,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_uprintstring": {
+  "programs": 15,
+  "ok": 15,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_uptime": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_wave": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_whatismyip": {
+  "programs": 1,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`_WHATISMYIP$` is a name of QB64pe's auto-included file, reserved"
+  ]
+ },
+ "_width": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_windowhandle": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_windowhasfocus": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "_windowsizelimit": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "abs": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "absolute": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "and": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "asc": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "atn": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "beep": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "bload": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "bsave": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "call": {
+  "programs": 114,
+  "ok": 114,
+  "unsupported": [],
+  "rejected": []
+ },
+ "cdbl": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "chain": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "chdir": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "chr-str": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "cint": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "circle": {
+  "programs": 22,
+  "ok": 22,
+  "unsupported": [],
+  "rejected": []
+ },
+ "clear": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "clng": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "close": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "cls": {
+  "programs": 24,
+  "ok": 24,
+  "unsupported": [],
+  "rejected": []
+ },
+ "color": {
+  "programs": 19,
+  "ok": 19,
+  "unsupported": [],
+  "rejected": []
+ },
+ "com": {
+  "programs": 1,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`COM` is not an event QB64pe traps, and no statement"
+  ]
+ },
+ "command-str": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "common": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "const": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "cos": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "csng": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "csrlin": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "cvi": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "cvsmbf": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "data": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "date-str": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "declare": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "declare-library": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "def-seg": {
+  "programs": 24,
+  "ok": 24,
+  "unsupported": [],
+  "rejected": []
+ },
+ "defint": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "dim": {
+  "programs": 75,
+  "ok": 75,
+  "unsupported": [],
+  "rejected": []
+ },
+ "do": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "double": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "draw": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "end": {
+  "programs": 348,
+  "ok": 348,
+  "unsupported": [],
+  "rejected": []
+ },
+ "environ": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "eof": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "eqv": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "erase": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "erl": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "err": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "error": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "exit": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "exp": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "field": {
+  "programs": 14,
+  "ok": 14,
+  "unsupported": [],
+  "rejected": []
+ },
+ "fileattr": {
+  "programs": 1,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`FILEATTR` is not implemented in QB64pe"
+  ]
+ },
+ "files": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "fix": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "for": {
+  "programs": 131,
+  "ok": 131,
+  "unsupported": [],
+  "rejected": []
+ },
+ "fre": {
+  "programs": 2,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`FRE` is not implemented in QB64pe"
+  ]
+ },
+ "freefile": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "function": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "get": {
+  "programs": 61,
+  "ok": 61,
+  "unsupported": [],
+  "rejected": []
+ },
+ "gosub": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "goto": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "hex-str": {
+  "programs": 42,
+  "ok": 42,
+  "unsupported": [],
+  "rejected": []
+ },
+ "if": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "imp": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "inkey-str": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "inp": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "input": {
+  "programs": 29,
+  "ok": 29,
+  "unsupported": [],
+  "rejected": []
+ },
+ "input-str": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "instr": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "int": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "integer": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "ioctl": {
+  "programs": 1,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`IOCTL` is not implemented in QB64pe"
+  ]
+ },
+ "key": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "kill": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "lbound": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "lcase-str": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "left-str": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "len": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "let": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "line": {
+  "programs": 36,
+  "ok": 36,
+  "unsupported": [],
+  "rejected": []
+ },
+ "line-input": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "loc": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "locate": {
+  "programs": 24,
+  "ok": 24,
+  "unsupported": [],
+  "rejected": []
+ },
+ "lock": {
+  "programs": 21,
+  "ok": 21,
+  "unsupported": [],
+  "rejected": []
+ },
+ "lof": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "log": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "long": {
+  "programs": 19,
+  "ok": 19,
+  "unsupported": [],
+  "rejected": []
+ },
+ "lprint": {
+  "programs": 19,
+  "ok": 19,
+  "unsupported": [],
+  "rejected": []
+ },
+ "lset": {
+  "programs": 11,
+  "ok": 11,
+  "unsupported": [],
+  "rejected": []
+ },
+ "ltrim-str": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-asserts": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-checking": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-color": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-console": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-debug": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-dynamic": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-embed": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-error": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-errorlocation": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-exeicon": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-format": {
+  "programs": 0,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-if": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-include": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-includeonce": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-let": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-midisoundfont": {
+  "programs": 1,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "$MIDISOUNDFONT is a deprecated keyword, use _MIDISOUNDBANK instead"
+  ]
+ },
+ "meta-noprefix": {
+  "programs": 1,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`$NOPREFIX` is deprecated: QB64pe's own names must have their underscore (the IDE can convert the program)"
+  ]
+ },
+ "meta-resize": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-screenhide": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-static": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-unstable": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-uselibrary": {
+  "programs": 0,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": []
+ },
+ "meta-versioninfo": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "mid-str": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "mki-str": {
+  "programs": 15,
+  "ok": 15,
+  "unsupported": [],
+  "rejected": []
+ },
+ "mksmbf-str": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "mod": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "name": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "not": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "oct-str": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "on": {
+  "programs": 18,
+  "ok": 18,
+  "unsupported": [],
+  "rejected": []
+ },
+ "on-error": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "open": {
+  "programs": 39,
+  "ok": 39,
+  "unsupported": [],
+  "rejected": []
+ },
+ "option": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "or": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "out": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "paint": {
+  "programs": 28,
+  "ok": 28,
+  "unsupported": [],
+  "rejected": []
+ },
+ "palette": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "pcopy": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "peek": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "pen": {
+  "programs": 2,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`PEN` is not an event QB64pe traps, and no statement",
+   "name already in use: `PEN`"
+  ]
+ },
+ "play": {
+  "programs": 28,
+  "ok": 28,
+  "unsupported": [],
+  "rejected": []
+ },
+ "pmap": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "point": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "poke": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "pos": {
+  "programs": 9,
+  "ok": 9,
+  "unsupported": [],
+  "rejected": []
+ },
+ "print": {
+  "programs": 131,
+  "ok": 131,
+  "unsupported": [],
+  "rejected": []
+ },
+ "print-using": {
+  "programs": 53,
+  "ok": 53,
+  "unsupported": [],
+  "rejected": []
+ },
+ "pset": {
+  "programs": 29,
+  "ok": 29,
+  "unsupported": [],
+  "rejected": []
+ },
+ "put": {
+  "programs": 59,
+  "ok": 59,
+  "unsupported": [],
+  "rejected": []
+ },
+ "randomize": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "read": {
+  "programs": 25,
+  "ok": 25,
+  "unsupported": [],
+  "rejected": []
+ },
+ "redim": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "rem": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "reset": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "restore": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "resume": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "right-str": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "rnd": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "rtrim-str": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "run": {
+  "programs": 6,
+  "ok": 6,
+  "unsupported": [],
+  "rejected": []
+ },
+ "sadd": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ },
+ "screen": {
+  "programs": 35,
+  "ok": 35,
+  "unsupported": [],
+  "rejected": []
+ },
+ "seek": {
+  "programs": 14,
+  "ok": 14,
+  "unsupported": [],
+  "rejected": []
+ },
+ "select-case": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "setmem": {
+  "programs": 1,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`SETMEM` is not implemented in QB64pe"
+  ]
+ },
+ "sgn": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "shared": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "shell": {
+  "programs": 21,
+  "ok": 21,
+  "unsupported": [],
+  "rejected": []
+ },
+ "sin": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "single": {
+  "programs": 7,
+  "ok": 7,
+  "unsupported": [],
+  "rejected": []
+ },
+ "sleep": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "sound": {
+  "programs": 39,
+  "ok": 39,
+  "unsupported": [],
+  "rejected": []
+ },
+ "space-str": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "spc": {
+  "programs": 12,
+  "ok": 12,
+  "unsupported": [],
+  "rejected": []
+ },
+ "sqr": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "static": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "stick": {
+  "programs": 11,
+  "ok": 11,
+  "unsupported": [],
+  "rejected": []
+ },
+ "stop": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "str-str": {
+  "programs": 2,
+  "ok": 2,
+  "unsupported": [],
+  "rejected": []
+ },
+ "strig": {
+  "programs": 18,
+  "ok": 18,
+  "unsupported": [],
+  "rejected": []
+ },
+ "string": {
+  "programs": 3,
+  "ok": 3,
+  "unsupported": [],
+  "rejected": []
+ },
+ "string-str": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "sub": {
+  "programs": 348,
+  "ok": 348,
+  "unsupported": [],
+  "rejected": []
+ },
+ "swap": {
+  "programs": 15,
+  "ok": 15,
+  "unsupported": [],
+  "rejected": []
+ },
+ "system": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "tab": {
+  "programs": 24,
+  "ok": 24,
+  "unsupported": [],
+  "rejected": []
+ },
+ "tan": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "time-str": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "timer": {
+  "programs": 11,
+  "ok": 11,
+  "unsupported": [],
+  "rejected": []
+ },
+ "tron": {
+  "programs": 1,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`TRON` is not implemented in QB64pe"
+  ]
+ },
+ "type": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "ubound": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "ucase-str": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "uevent": {
+  "programs": 1,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": [
+   "`UEVENT` is not an event QB64pe traps, and no statement"
+  ]
+ },
+ "val": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "varptr": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "varptr-str": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "varseg": {
+  "programs": 5,
+  "ok": 5,
+  "unsupported": [],
+  "rejected": []
+ },
+ "view": {
+  "programs": 17,
+  "ok": 17,
+  "unsupported": [],
+  "rejected": []
+ },
+ "view-print": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "wait": {
+  "programs": 10,
+  "ok": 10,
+  "unsupported": [],
+  "rejected": []
+ },
+ "while": {
+  "programs": 1,
+  "ok": 1,
+  "unsupported": [],
+  "rejected": []
+ },
+ "width": {
+  "programs": 20,
+  "ok": 20,
+  "unsupported": [],
+  "rejected": []
+ },
+ "window": {
+  "programs": 13,
+  "ok": 13,
+  "unsupported": [],
+  "rejected": []
+ },
+ "write": {
+  "programs": 8,
+  "ok": 8,
+  "unsupported": [],
+  "rejected": []
+ },
+ "xor": {
+  "programs": 4,
+  "ok": 4,
+  "unsupported": [],
+  "rejected": []
+ }
+}

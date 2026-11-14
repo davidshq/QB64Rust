@@ -56,6 +56,11 @@ ALLOWED = [
     ("tools/sandbox/test_run.py", rb"X:\some & where"),
     ("tools/sandbox/test_run.py", rb"Q:\only\this"),
     ("tools/sandbox/test_run.py", rb"Z:\no\WindowsSandbox.exe"),
+    # The community check's tests of how a message is cleaned of paths outside the clone: made-up paths.
+    ("tools/community/test_community.py", rb"C:\\secret\\dir"),
+    ("tools/community/test_community.py", rb"C:/work/community/draw"),
+    # The hook's tests: a command that cds into a made-up folder.
+    ("tools/hooks/test_hooks.py", rb'cd "/c/code/x"'),
 ]
 
 # Third-party copies held byte for byte to an upstream commit by their own check, not checked here (rule 2 is about

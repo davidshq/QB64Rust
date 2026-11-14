@@ -1,0 +1,6 @@
+$CONSOLE:ONLY
+PRINT CHR$(72) + CHR$(105)
+q$ = CHR$(34)
+PRINT q$; "quoted"; q$
+PRINT LEN(CHR$(0))
+END

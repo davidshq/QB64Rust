@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **Layout and lints in `qb64rust.toml`.** A `[format]` table sets the keyword case, the indent and the layout for
+  everyone who opens the project, over the `qb64rust.format.*` settings. A `[lints]` table turns lint warnings off,
+  one by one or all at once. A mistake in the file now stops Format Document with a message naming the file and
+  line (README, "Project settings"). With the language server off, formatting now needs a `qb64rust` of this
+  release: a `qb64rust.path` that names an older one fails with "unknown option `--format-default`".
+- **Include files belong to their program.** An open `.bi` or `.bm` file (or a `.bas` file that another includes)
+  is checked, formatted and answered as a part of the program that includes it, even when that program is not
+  open. The server takes the program from the `main` entry of the `[project]` table in `qb64rust.toml`, else an
+  open `.bas` file that includes it, else one on disk. The language status shows the program chosen. A file with no
+  program is checked for syntax errors only (README, "Include files").
+- **Build, Run and Debug from an include file act on its program.** With `turn.bm` active, Build, Build and Run,
+  Run, Debug (F5) and the build task use `CWSTRAT.BAS`, the program the language status shows. Before, they built
+  `turn.bm` alone, and every SUB it called from another file was an error in Problems.
+- **The debugger's stack names a SUB of a CRLF file without `\x0D`.** The Call Stack showed `SUB greet\x0D` for a
+  source with Windows line endings.
+- **Formatting a program with an error.** Only a syntax error stops Format Document and `qb64rust -y`; a SUB that
+  is not defined or a type error no longer does. `qb64pe -y` writes nothing for such a program
+  (`DIVERGENCES-QB64PE.md` D-064).
+
 ## 0.3.0
 
 - **Linux x64.** The extension, the compiler and the debugger run on Linux (glibc): a `.vsix` for `linux-x64` and a

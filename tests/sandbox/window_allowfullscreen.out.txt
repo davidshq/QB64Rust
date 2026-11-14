@@ -1,0 +1,5 @@
+at the start: _FULLSCREEN 0 _SMOOTH 0
+after Alt+Enter: _FULLSCREEN 1 _SMOOTH 0
+after Alt+Enter again: _FULLSCREEN 1 _SMOOTH-1
+with _ALLOWFULLSCREEN _SQUAREPIXELS, after Alt+Enter: _FULLSCREEN 2 _SMOOTH 0
+with _ALLOWFULLSCREEN _OFF, after Alt+Enter: _FULLSCREEN 0 _SMOOTH 0

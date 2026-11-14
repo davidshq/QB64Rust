@@ -92,6 +92,11 @@ reported as in step 4, naming the programs with results and those without. If `r
 time, `run.py` kills it and turns the VM off with `run.ps1 -Stop`. A `run.ps1 -Check` that does not end within
 60 s counts as a refusal.
 
+In the test VM, a program that timed out runs once more, alone with the others that timed out, in a second start
+of the VM. Its verdict is the second run's, and the line says "on its second run". A wrong output or exit code is
+not run again. *Why:* on 2026-11-12, on a loaded host, one or two programs timed out in most runs, a different one
+each time, among programs that had passed 14 runs in a row (user: "if it passes on a second run, that's fine").
+
 The last lines of its output are `coverage: PASS|FAIL (...)` and `sandbox: N pass, M fail`; exit 0 only when every
 program passed and the coverage check did.
 

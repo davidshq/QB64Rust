@@ -300,8 +300,9 @@ python tools\legacy_tests\run_legacy_tests.py --suite verification --qb64 target
 ```
 
 - **The fixes** (spec `compiler/fixes`; OpenSpec change `fixes-switch`, design D4): every command that compiles or
-  lays out a program with a compiler other than `qb64pe` (every suite, not only this one) passes `--fixes off`, so
-  that a `qb64rust.toml` in the tree or above it changes no result, and the run's first line ends with `fixes off`.
+  lays out a program with a compiler other than `qb64pe` (every suite, not only this one) passes `--fixes off
+  --no-settings`, so that a `qb64rust.toml` in the tree or above it changes no result (OpenSpec change
+  `project-settings`), and the run's first line ends with `fixes off, no settings file`.
   A verification program with `tests\verification\fixed\<name>.out.txt` is built a second time with `--fixes on`,
   in `target\legacy-tests\verification\<name>.fixed\`, run as the first run is run and compared with that file by
   the same rules (`.normalize`, `.divergences`, the log); it is reported as `<name> [fixes on]`, a result of its

@@ -1,0 +1,6 @@
+$CONSOLE:ONLY
+d# = 2 / 3
+PRINT "As DOUBLE:"; d#
+PRINT "As SINGLE:"; CSNG(d#)
+PRINT CSNG(1 / 3) * 3 = 1
+END

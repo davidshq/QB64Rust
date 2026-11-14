@@ -37,8 +37,9 @@ changing direction, design or scope.**
    - **This repo (`QB64Rust`) is the project.** Paths in this file are relative to it. The parent folder (`..`)
      has symlinks `CLAUDE.md`, `SOMEDAY.md` (to `docs\SOMEDAY.md`) and `study` pointing here, so sessions started
      in the parent see the same files; edit the real files here, not copies.
-   - **`<qb64contain>` is `..\..\qb64contain`**, beside the parent folder, not the parent itself. It holds QB 4.5
-     (`<qb64contain>\qb45\install`), which `tools\qb45\qb45.py` finds there by default (`tools\qb45\README.md`).
+   - **`<qb64contain>` is `..\..\qb64contain`**, beside the parent folder, not the parent itself.
+   - **QB 4.5 is in `..\qb45\install`**, in the parent folder beside `pds71`. `tools\qb45\qb45.py` finds it
+     there by default (`tools\qb45\README.md`). It was in `<qb64contain>\qb45` until 2026-11-12.
    - **`..\QB64pe\` is a read-only reference clone.** Do not modify it. Study notes and design documents go in
      `study\`.
    - **`..\QB64pe-latest\` is a second clone, of upstream's `main`** (`QB64-Phoenix-Edition/QB64pe`, cloned
@@ -132,13 +133,27 @@ changing direction, design or scope.**
    - **`study\archive\` is read only when needed**: when a live document points there for a fact or a reason the
      task in hand needs, or when the user asks. It is not read to get oriented, and its files are never edited
      (paths inside them may be out of date). A study keeps its number when it is archived: a `study\NN` that is
-     not in `study\` is in `study\archive\`. When only part of a study is archived, the part goes to a file of the
-     same name in `study\archive\`, under the same headings, and each half names the other at its top: a section
-     not found in the active file is in the archived one. A study is archived once its recommendations are all
+     not in `study\` is in `study\archive\`. A study is archived once its recommendations are all
      decided and built, so that what came of it lives in `DECISIONS.md`, this file or `ROADMAP.md`; a study of the
      old system stays active while a milestone still needs it, and a review stays active while the user has not
      answered it. *Why:* by 2026-10-18 `study\` held 32 documents, two thirds of them reviews whose outcomes were
      already recorded elsewhere (user, 2026-10-18).
+   - **What is completed moves to the archive when it is completed** (user, 2026-11-13). This holds for every
+     document in this repo and in the game repos. The archive is `study\archive\` for a study here, and
+     `docs\archived\` elsewhere (a game's repo, or this repo's `docs\`).
+     - A document that is all completed moves whole, with `git mv`.
+     - When only part is completed, that part moves to `<name>-completed.md` in the archive, under the same
+       headings. Example: `docs\structure-review.md` keeps its open items, and
+       `docs\archived\structure-review-completed.md` holds the done ones. Each file names the other at its top.
+     - What stays out is what is still open or still in use: a step not done, a question not answered, a rule
+       that new work still follows, a reference that describes the code as it is now.
+     - What moves: a step or phase that is done, an answered question, a finished review's findings and its
+       record of what was built, a survey or measurement that only served a step now done.
+     - A `TODO.md` item that is done is still removed, not archived, as a `TODO.md` says at its top; its
+       record is the commit.
+
+     *Why:* only what is relevant should be out and about, and everything else in the archive (user,
+     2026-11-13).
    - **The paperwork around a change goes at the merge cadence, not per change** (`study\35` §3 item 3, user,
      2026-10-18). The end of a change asks the user nothing about the behaviours it kept QB64pe's way: each is a row
      in `SOMEDAY.md`'s "QB64pe behaviours to review" and stays silent until the user asks for them. Reviews, and
@@ -147,6 +162,10 @@ changing direction, design or scope.**
      with the family's line in `verification\README.md` saying what it shows; a change's `design.md` names the
      programs it rests on. *Why:* every change ended with rulings to ask for, and `study\00` §5 had grown to about
      3,000 lines that no session reads whole (`study\35` §2).
+   - **Upstream's new commits are reviewed at each merge into `main`** (user, 2026-11-12). Pull
+     `..\QB64pe-latest` and read every commit since the one `STATUS.md` names as last reviewed. Give each commit
+     one result: already the same here, wanted (a `SOMEDAY.md` row that names the commit), or not relevant.
+     Then update the commit named in `STATUS.md`.
 8. **Where QB64pe's own result depends on the machine, do not build to match it bit for bit** (`study\35` §3
     item 4, user, 2026-10-18). When the old compiler's value comes from the CPU or the libraries `qb64pe.exe` was
     built with (x87 instructions, the C runtime's math), take a well-defined value (correctly rounded, as D-026)
@@ -178,6 +197,8 @@ changing direction, design or scope.**
     still gets its usual records:
     - a `DECISIONS.md` row, and a `DIVERGENCES-QB64PE.md` row if it differs from QB64pe;
     - the merged spec under `openspec\specs\` edited in place, so that it never says the opposite of the code;
+    - the word's page of the language reference (`docs\reference\entries\`) edited with the spec, then
+      `tools\reference\reference.py render` (`tools\reference\README.md`);
     - its tests, including recorded programs for the behavior, not only unit tests.
 
     *Why:* a change's proposal, design and tasks cost the user reading time, and for a small change the
@@ -205,6 +226,21 @@ changing direction, design or scope.**
     - The same goes for code: change what the task needs, not the code around it.
     *Why:* small diffs cost the user less time to read and stage (user: "don't change prose for the fun of it.
     smaller diffs are desired", 2026-11-09).
+15. **What Claude wrote is not the user's ruling, and a rule in the way is asked about** (user, 2026-11-13).
+    - Before giving a record as a reason, check who decided it. A line marked `(user, date)` is the user's.
+      A recommendation, a panel view, an "as built" or a README sentence that Claude wrote is not. Say
+      "I wrote this on <date>", never "it was decided".
+    - Check that the record is current. Read the repo it describes, its branch and its latest commits, not
+      a copy or a summary of it.
+    - When a rule or an earlier decision stands against what the user now asks, or against the better
+      design, follow the rule and ask. Name the rule, its date and who made it, and say why it may not
+      fit. Do not drop the option without saying so, and do not override the rule.
+    - Meanwhile do the work that is the same under either answer.
+
+    *Why:* on 2026-11-13 Claude advised building a scenario menu in `pretzel-wargames` because the Civil War
+    Strategy port "changes as little as possible" and "decided to keep `ALTMAP.BAT`". Both were Claude's own
+    words: a README sentence and a study's recommendation. Claude had read a copy of 2026-11-10, while the
+    port had been under modernization since 2026-11-11 (user: "You write shit and then assume its fact").
 
 ## Project decisions
 

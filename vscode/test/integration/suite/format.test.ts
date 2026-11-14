@@ -6,7 +6,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import type { RunRequest } from "../../../src/compiler/runQueue";
-import { api, closeAll, compiler, open, qb64peDiagnostics, qb64rustDiagnostics, server, setSetting, setText, waitFor, writeFile } from "./helpers";
+import { api, closeAll, compiler, open, qb64peDiagnostics, qb64rustDiagnostics, server, setSetting, setText, waitFor, waitForAsync, writeFile } from "./helpers";
 
 const OPTIONS = { tabSize: 4, insertSpaces: true };
 
@@ -213,6 +213,26 @@ describe("formatting with qb64rust -y", () => {
         assert.strictEqual(editor.document.getText(), "for i=1 to 3\r\n    Print i\r\nnext\r\n");
     });
 
+    // Spec "The project's file wins" and "A bad settings file" (change project-settings): the `[format]` table of a
+    // `qb64rust.toml` beside the document goes over the VS Code settings, which reach `-y` as `--format-default`.
+    it("the project's qb64rust.toml wins over the settings", async () => {
+        writeFile("fmtr/proj/qb64rust.toml", '[format]\nkeyword-case = "upper"\n');
+        await setSetting("qb64rust", "format.indentSize", 2);
+        try {
+            const editor = await open(writeFile("fmtr/proj/p.bas", "if 1 then\r\nprint 1\r\nend if\r\n"));
+            await format(editor);
+            assert.strictEqual(editor.document.getText(), "IF 1 THEN\r\n  PRINT 1\r\nEND IF\r\n");
+        } finally {
+            await setSetting("qb64rust", "format.indentSize", undefined);
+        }
+        writeFile("fmtr/bad/qb64rust.toml", '[format]\nkeyword-case = "uper"\n');
+        const text = "print 1\r\n";
+        const editor = await open(writeFile("fmtr/bad/p.bas", text));
+        assert.deepStrictEqual(await format(editor), []);
+        assert.strictEqual(editor.document.getText(), text);
+        await vscode.commands.executeCommand("notifications.clearAll");
+    });
+
     // Spec "Error is not retried".
     it("syntax error: document unchanged, the error on line 2, qb64pe not run", async () => {
         const recorder = await recordRuns();
@@ -286,6 +306,53 @@ describe("formatting with the language server", () => {
         const editor = await open(writeFile("fmts/range.bas", "for i=1 to 3\r\nprint   i\r\nnext\r\n"));
         await formatLine(editor, 1);
         assert.strictEqual(editor.document.getText(), "for i=1 to 3\r\n    Print i\r\nnext\r\n");
+    });
+
+    // Change format-statement-lines, task 7.2: spec editor/formatting "Format Document with the server", and spec
+    // editor/language-server "Code actions for statement lines" with the setting off.
+    it("one statement per line, and the code action Convert to block IF", async () => {
+        const editor = await open(writeFile("fmts/rewrite.bas", "x = 0: y = 0\r\n"));
+        try {
+            await setSetting("qb64rust", "format.oneStatementPerLine", true);
+            await format(editor);
+            assert.strictEqual(editor.document.getText(), "x = 0\r\ny = 0\r\n");
+        } finally {
+            await setSetting("qb64rust", "format.oneStatementPerLine", undefined);
+        }
+        await setText(editor, "IF a THEN x = 1\r\n");
+        const range = editor.document.lineAt(0).range;
+        const action = await waitForAsync("the code action", async () => {
+            const actions = await vscode.commands.executeCommand<vscode.CodeAction[]>(
+                "vscode.executeCodeActionProvider",
+                editor.document.uri,
+                range,
+                vscode.CodeActionKind.RefactorRewrite.value,
+                1,
+            );
+            return actions?.find((a) => a.title === "Convert to block IF");
+        });
+        assert.ok(action.edit, "resolved with its edit");
+        await vscode.workspace.applyEdit(action.edit);
+        assert.strictEqual(editor.document.getText(), "If a Then\r\n    x = 1\r\nEnd If\r\n");
+    });
+
+    // Spec "The project's file wins" and "A bad settings file" (change project-settings), with the server.
+    it("the project's qb64rust.toml wins over the settings", async () => {
+        writeFile("fmts/proj/qb64rust.toml", '[format]\nkeyword-case = "upper"\n');
+        await setSetting("qb64rust", "format.indentSize", 2);
+        try {
+            const editor = await open(writeFile("fmts/proj/p.bas", "if 1 then\r\nprint 1\r\nend if\r\n"));
+            await format(editor);
+            assert.strictEqual(editor.document.getText(), "IF 1 THEN\r\n  PRINT 1\r\nEND IF\r\n");
+        } finally {
+            await setSetting("qb64rust", "format.indentSize", undefined);
+        }
+        writeFile("fmts/bad/qb64rust.toml", '[format]\nkeyword-case = "uper"\n');
+        const text = "print 1\r\n";
+        const editor = await open(writeFile("fmts/bad/p.bas", text));
+        assert.deepStrictEqual(await format(editor), []);
+        assert.strictEqual(editor.document.getText(), text);
+        await vscode.commands.executeCommand("notifications.clearAll");
     });
 
     it("syntax error: document unchanged, the server's error on line 2", async () => {

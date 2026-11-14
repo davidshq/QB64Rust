@@ -1,0 +1,7 @@
+$CONSOLE:ONLY
+DIM a(1 TO 4) AS INTEGER
+a(3) = 513
+DEF SEG = VARSEG(a(1))
+PRINT "The bytes of a(3):"; PEEK(VARPTR(a(3))); PEEK(VARPTR(a(3)) + 1)
+DEF SEG
+END

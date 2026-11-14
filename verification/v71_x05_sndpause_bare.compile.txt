@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDPAUSE handle&
+Caused by (or after):_SNDPAUSE
+LINE 6:_SNDPAUSE
+exit=1

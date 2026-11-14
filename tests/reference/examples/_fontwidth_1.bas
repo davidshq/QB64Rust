@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+img& = _NEWIMAGE(100, 40, 32)
+_DEST img&
+_FONT 16: w16 = _FONTWIDTH: h16 = _FONTHEIGHT
+_FONT 8: w8 = _FONTWIDTH: h8 = _FONTHEIGHT
+_DEST _CONSOLE
+PRINT "Font 16:"; w16; "by"; h16; " font 8:"; w8; "by"; h8
+END

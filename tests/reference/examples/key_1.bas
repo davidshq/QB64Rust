@@ -1,0 +1,11 @@
+$CONSOLE:ONLY
+ON ERROR GOTO trap
+KEY 1, "abc"
+KEY LIST
+PRINT "KEY 40:";
+KEY 40, "x"
+PRINT
+END
+trap:
+PRINT " error"; ERR;
+RESUME NEXT

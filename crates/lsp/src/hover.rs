@@ -3,17 +3,16 @@
 
 use crate::index::Indexed;
 use lsp_types::{Hover, HoverContents, MarkupContent, MarkupKind};
-use qb64rust_base::Span;
+use qb64rust_base::{FileId, Span};
 use qb64rust_builtins::{Builtin, Kind};
 use std::fmt::Write as _;
 
-/// The hover at `offset` of the program's main file.
-pub fn hover(ix: &Indexed, offset: u32) -> Option<Hover> {
-    let main = ix.analysis.parsed.main().file;
-    let (text, span) = match ix.index.entry_near(main, offset) {
+/// The hover at `offset` of the program's file `file`.
+pub fn hover(ix: &Indexed, file: FileId, offset: u32) -> Option<Hover> {
+    let (text, span) = match ix.index.entry_near(file, offset) {
         Some((id, span)) => (ix.index.entries[id].detail.clone(), span),
         None => {
-            let (span, word) = word_at(ix, offset)?;
+            let (span, word) = word_at(ix, file, offset)?;
             (builtin_text(&word)?, span)
         }
     };
@@ -26,9 +25,9 @@ pub fn hover(ix: &Indexed, offset: u32) -> Option<Hover> {
     })
 }
 
-/// The word at `offset` (or just before it) of the main file: a name with its suffix, as the lexer reads one.
-pub(crate) fn word_at(ix: &Indexed, offset: u32) -> Option<(Span, Vec<u8>)> {
-    let main = ix.analysis.parsed.main();
+/// The word at `offset` (or just before it) of the file `file`: a name with its suffix, as the lexer reads one.
+pub(crate) fn word_at(ix: &Indexed, file: FileId, offset: u32) -> Option<(Span, Vec<u8>)> {
+    let main = ix.analysis.tree(file)?;
     let bytes = &ix.analysis.map.file(main.file).bytes;
     let covers = |s: Span, at: u32| s.start <= at && at < s.end;
     let tokens = main.root().tokens();

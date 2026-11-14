@@ -1,0 +1,6 @@
+$CONSOLE:ONLY
+b$ = _MK$(_UNSIGNED _BYTE, 255)
+PRINT LEN(b$); ASC(b$)
+q$ = _MK$(_INTEGER64, -9)
+PRINT LEN(q$); _CV(_INTEGER64, q$)
+END

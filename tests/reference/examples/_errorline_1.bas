@@ -1,0 +1,10 @@
+$CONSOLE:ONLY
+ON ERROR GOTO handler
+PRINT "line 3"
+x = SQR(-1)
+PRINT "After RESUME NEXT, _ERRORLINE is still"; _ERRORLINE
+END
+
+handler:
+PRINT "Error"; ERR; "on line"; _ERRORLINE
+RESUME NEXT

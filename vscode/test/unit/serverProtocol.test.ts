@@ -4,11 +4,14 @@ import {
     DEFAULT_FORMAT,
     DOCUMENT_ENCODING,
     EncodingTracker,
+    PROGRAM,
+    ProgramTracker,
     checkParams,
     configurationParams,
     formatFlags,
     includeRootFor,
     initializationOptions,
+    programStatus,
 } from "../../src/server/protocol";
 
 describe("language server protocol", () => {
@@ -28,7 +31,15 @@ describe("language server protocol", () => {
 
     // Change m5b-formatter, design D7: the layout settings, sent at the start and on a change.
     it("initialization options: the layout settings, QB64pe's defaults unless given", () => {
-        assert.deepStrictEqual(DEFAULT_FORMAT, { autoIndent: true, indentSize: 4, indentSubs: true, autoLayout: true, keywordCase: "camel" });
+        assert.deepStrictEqual(DEFAULT_FORMAT, {
+            autoIndent: true,
+            indentSize: 4,
+            indentSubs: true,
+            autoLayout: true,
+            keywordCase: "camel",
+            oneStatementPerLine: false,
+            blockIf: false,
+        });
         const format = { ...DEFAULT_FORMAT, indentSize: 2, keywordCase: "lower" as const };
         assert.deepStrictEqual(initializationOptions("cp437", "", undefined, "linux", undefined, format).format, format);
         assert.deepStrictEqual(configurationParams(format), { settings: { format } });
@@ -43,7 +54,7 @@ describe("language server protocol", () => {
             "-f:keywordcapitals=0",
             "-f:keywordlowercase=0",
         ]);
-        const off = { autoIndent: false, indentSize: 64, indentSubs: false, autoLayout: false, keywordCase: "upper" as const };
+        const off = { ...DEFAULT_FORMAT, autoIndent: false, indentSize: 64, indentSubs: false, autoLayout: false, keywordCase: "upper" as const };
         assert.deepStrictEqual(formatFlags(off), [
             "-f:autoindent=0",
             "-f:autoindentsize=64",
@@ -73,6 +84,48 @@ describe("language server protocol", () => {
         assert.strictEqual(includeRootFor("lib", undefined, "/opt/qb64pe", "linux"), "/opt/qb64pe");
         assert.strictEqual(includeRootFor("", undefined, undefined, "linux"), "");
         assert.strictEqual(initializationOptions("cp437", "", undefined, "win32", "C:\\qb64pe").includeRoot, "C:\\qb64pe");
+    });
+
+    // Change include-file-program, design D8: spec editor/language-server, "Program status item".
+    it("names the program notification, and shows the program's file name", () => {
+        assert.strictEqual(PROGRAM, "qb64rust/program");
+        const turn = { uri: "file:///c%3A/cws/rules/turn.bm", program: "file:///c%3A/cws/CWSTRAT.BAS", source: "disk" as const };
+        assert.strictEqual(programStatus(turn)?.text, "CWSTRAT.BAS");
+        assert.match(programStatus(turn)?.detail ?? "", /on disk/);
+        const named = { uri: "file:///c%3A/p/lib.bm", program: "file:///c%3A/p/my%20game.bas", source: "settings" as const };
+        assert.strictEqual(programStatus(named)?.text, "my game.bas");
+        // "A .bas file inside another program".
+        const other = { uri: "file:///c%3A/p/other.bas", program: "file:///c%3A/p/main.bas", source: "open" as const };
+        assert.strictEqual(programStatus(other)?.text, "main.bas");
+    });
+
+    it("shows no program found for an include file alone, and nothing for a .bas file of its own or before the server said", () => {
+        assert.strictEqual(programStatus({ uri: "file:///c%3A/p/lib.bm", program: null, source: "none" })?.text, "no program found");
+        assert.strictEqual(programStatus({ uri: "file:///c%3A/p/main.bas", program: null, source: "none" }), undefined);
+        assert.strictEqual(programStatus({ uri: "file:///c%3A/p/MAIN.BAS", program: null, source: "none" }), undefined);
+        assert.strictEqual(programStatus({ uri: "untitled:Untitled-1", program: null, source: "none" }), undefined);
+        assert.strictEqual(programStatus(undefined), undefined);
+    });
+
+    it("keeps the last program of each document until it closes", () => {
+        const t = new ProgramTracker();
+        const lib = "file:///c%3A/p/lib.bm";
+        t.update({ uri: lib, program: null, source: "none" });
+        t.update({ uri: lib, program: "file:///c%3A/p/main.bas", source: "open" });
+        assert.strictEqual(t.get(lib)?.source, "open");
+        t.forget(lib);
+        assert.strictEqual(t.get(lib), undefined);
+    });
+
+    it("names the main file of an included document's program, and none for a program of its own", () => {
+        const t = new ProgramTracker();
+        const lib = "file:///c%3A/p/lib.bm";
+        const main = "file:///c%3A/p/main.bas";
+        assert.strictEqual(t.mainOf(lib), undefined);
+        t.update({ uri: lib, program: main, source: "disk" });
+        t.update({ uri: main, program: null, source: "none" });
+        assert.strictEqual(t.mainOf(lib), main);
+        assert.strictEqual(t.mainOf(main), undefined);
     });
 
     it("tells each document's encoding once, and again after a change or a close", () => {

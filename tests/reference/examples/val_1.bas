@@ -1,0 +1,5 @@
+$CONSOLE:ONLY
+PRINT VAL("12"); VAL("-3.5"); VAL("12abc"); VAL("abc")
+PRINT VAL("&HFF"); VAL("&O17"); VAL("&B101")
+PRINT VAL(" 1 2"); VAL("1e3")
+END

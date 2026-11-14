@@ -1,0 +1,5 @@
+$CONSOLE:ONLY
+PRINT "["; SPACE$(4); "]"
+PRINT "Name"; SPACE$(6); "Men"
+PRINT LEN(SPACE$(0))
+END

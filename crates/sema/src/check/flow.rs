@@ -266,6 +266,7 @@ impl<'a> Checker<'a> {
         self.labels_by_name.insert(key, id);
         self.label_of_def.insert(node.key(), id);
         self.stmt.names.push((SymbolKind::Label(id), t.span));
+        self.prog.symbols.mark_declared(SymbolKind::Label(id));
         Ok(())
     }
 

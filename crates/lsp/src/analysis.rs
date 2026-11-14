@@ -5,6 +5,7 @@ use crate::encoding::{Columns, Encoding};
 use crate::uri::{from_path, path_key, to_path};
 use lsp_types::{DiagnosticSeverity, Range, Uri};
 use qb64rust_base::{Diagnostic, FileId, MAX_SOURCE_LEN, Severity, SourceMap, Span};
+use qb64rust_syntax::program::Tree;
 use qb64rust_syntax::{LoadError, Loader, ParsedProgram, include_name, parse_settled_on};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -36,6 +37,19 @@ pub struct Analysis {
 impl Analysis {
     pub fn info(&self, file: FileId) -> &FileInfo {
         &self.files[file.0 as usize]
+    }
+
+    /// The file of the document `key` in this parse, when the parse covers it.
+    pub fn file_of(&self, key: &str) -> Option<FileId> {
+        self.files
+            .iter()
+            .position(|f| f.key == key)
+            .map(|i| FileId(qb64rust_base::to_u32(i)))
+    }
+
+    /// The first tree of `file`: for the main file its own (tree 0), for an included file its first inclusion.
+    pub fn tree(&self, file: FileId) -> Option<&Tree> {
+        self.parsed.trees.iter().find(|t| t.file == file)
     }
 
     /// The editor range of a span.

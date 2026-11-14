@@ -1,6 +1,12 @@
 # Rust build output (also the legacy test runner's results, target/legacy-tests/)
 /target/
 
+# The fuzz crate's build, the corpus a fuzz run keeps, its failing inputs and coverage (tools/fuzz/README.md)
+/fuzz/target/
+/fuzz/corpus/
+/fuzz/artifacts/
+/fuzz/coverage/
+
 # insta's pending snapshots, written by test runs (`cargo insta review` takes them)
 *.pending-snap
 *.snap.new
@@ -47,3 +53,4 @@ Thumbs.db
 desktop.ini
 .DS_Store
 *.log
+*.stackdump

@@ -1236,6 +1236,8 @@ impl Checker<'_> {
                 }
             };
             self.local.vars.insert(key, id);
+            // `SHARED` declares the name, also of a main-module variable made by its first use.
+            self.prog.symbols.mark_declared(SymbolKind::Var(id));
             self.note_var_name(&name, Storage::Main, name_tok);
             if typed {
                 self.main.plain.insert(name.clone(), ty);
@@ -1275,6 +1277,7 @@ impl Checker<'_> {
         if typed {
             self.local.array_plain.insert(name, ty);
         }
+        self.prog.symbols.mark_declared(SymbolKind::Var(id));
         self.stmt.names.push((SymbolKind::Var(id), name_tok.span));
         Ok(())
     }

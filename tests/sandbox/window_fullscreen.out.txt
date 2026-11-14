@@ -1,0 +1,7 @@
+at the start, _FULLSCREEN: 0 _SMOOTH: 0 
+scaled size in a window: 320  200 
+_DESKTOPREFRESHRATE above 0:-1 
+after _FULLSCREEN _SQUAREPIXELS: 2 _SMOOTH: 0 
+after _FULLSCREEN _STRETCH, _SMOOTH: 1 _SMOOTH:-1 
+after _FULLSCREEN _OFF: 0 _SMOOTH: 0 
+scaled size in a window again: 320  200 

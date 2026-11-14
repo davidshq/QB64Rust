@@ -1,0 +1,9 @@
+$CONSOLE:ONLY
+img& = _NEWIMAGE(60, 20, 32)
+_DEST img&
+m1 = _PRINTMODE
+_PRINTMODE _KEEPBACKGROUND
+m2 = _PRINTMODE
+_DEST _CONSOLE
+PRINT "The print mode was"; m1; "and is now"; m2
+END

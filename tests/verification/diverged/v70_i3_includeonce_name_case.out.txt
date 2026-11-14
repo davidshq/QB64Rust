@@ -1,0 +1,3 @@
+once_case.bm
+end
+exit=0

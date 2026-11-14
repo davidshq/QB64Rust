@@ -1,0 +1,4 @@
+at the start: big none, small none
+after _ICON of a 40 x 40 image: big 40 x 40, small 40 x 40
+after _ICON of 40 x 40 and 20 x 20: big 40 x 40, small 20 x 20
+after _ICON with no argument: big 32 x 32, small 16 x 16

@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+WIDTH 40
+PRINT "WIDTH 40 sets 40 columns."
+END
