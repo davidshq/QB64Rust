@@ -134,6 +134,10 @@ class FakeRepo:
                     "merge": True,
                     "rejudged": False,
                     "result": "fail" if p.step.name in failed else "pass",
+                    "started": 0,
+                    "seconds": 1,
+                    "log": "x",
+                    "note": "",
                     "files": p.inputs.files,
                     "lists": p.inputs.lists,
                 },
@@ -516,6 +520,28 @@ class Merge(unittest.TestCase):
         self.repo.pass_merge(failed=("upstream-whole",))
         # Nothing changed: the failed suite runs again (a failure may be the machine's); its readers stand.
         self.assertEqual(self.repo.plan_reasons(MERGE), {"upstream-whole": "failed last time"})
+
+    def test_just_merge_again_lets_the_earlier_merges_passes_stand(self):
+        # Through check.main, not make_plan alone: until 2026-11-13 main forced every merge, so that nothing stood
+        # and each `just merge` after a fix ran all its steps again.
+        self.repo.pass_merge(failed=("upstream-whole",))
+        ran = {}
+
+        def execute(root, plan, force, what=""):
+            ran[what] = [p.step.name for p in plan.run]
+            return 0
+
+        with mock.patch.object(check, "dirty", lambda root: []), mock.patch.object(
+            check, "no_clone", lambda root: None
+        ), mock.patch.object(check, "execute", execute):
+            self.assertEqual(check.main(["merge", "--wait"], root=self.repo.root), 0)
+        self.assertEqual(ran.get("merge"), ["upstream-whole"])
+        self.assertNotIn("merge: the writers", ran, "the writers' passes stand too")
+
+    def test_the_count_blocks_a_merge_writes_leave_its_passes_standing(self):
+        self.repo.pass_merge()
+        self.repo.write("tests/corpus/README.md", "<!-- counts:corpus-results -->\nnew\n<!-- /counts:corpus-results -->\n")
+        self.assertEqual(set(self.repo.plan_reasons(MERGE)), {"counts"})
 
     def test_a_merge_again_after_a_known_list_fix_re_judges(self):
         self.repo.pass_merge(failed=("upstream-whole", "linux-verification"))

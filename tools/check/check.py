@@ -1323,9 +1323,6 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         why = ": a merge's results are to describe the merge commit" if a.what == MERGE else ""
         print(f"--uncommitted applies to `check {FULL}` only{why}")
         return 2
-    if a.what == MERGE:
-        # Without the pass cache too, as the plan runs every step.
-        a.force = True
     if a.what == "status":
         return status(root)
     if a.what == "history":

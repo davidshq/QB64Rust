@@ -12,7 +12,7 @@ takes back files an earlier glob matched. `external` names inputs outside the re
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 QUICK = "quick"
 FULL = "full"
@@ -627,6 +627,12 @@ STEPS += (
         for name, suite, _ in WHOLE
     ),
 )
+
+# The suites' READMEs hold count blocks that `counts` writes at each merge, and no other step reads them. As inputs
+# they changed the whole suites' fingerprints at every merge, so that none could stand at the next (2026-11-13).
+# Last in each step's globs: a `!glob` takes back only what the globs before it took.
+COUNT_BLOCKS = "!tests/*/README.md"
+STEPS = tuple(s if s.name == "counts" else replace(s, inputs=s.inputs + (COUNT_BLOCKS,)) for s in STEPS)
 
 BY_NAME = {s.name: s for s in STEPS}
 

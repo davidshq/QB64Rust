@@ -122,7 +122,9 @@ so a plan reads only the files changed since the last; a plan of the quick layer
 
 `steps.py` is the specification of what each result rests on: a file a step reads and its globs miss makes a stale
 pass stand. `test_check.py` holds every glob to some file and each runner suite's step to every file its
-`--list-only` run names (`tools\legacy_tests\README.md`).
+`--list-only` run names (`tools\legacy_tests\README.md`). The suites' `tests\*\README.md` files are an input of
+`counts` alone: it writes their count blocks at each merge, and as inputs of the other steps they changed the
+whole suites' fingerprints every time, so that no pass could stand at the next merge (2026-11-13).
 
 ## Narrowing
 
