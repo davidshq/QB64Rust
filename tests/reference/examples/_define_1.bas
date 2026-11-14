@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+_DEFINE U AS _UNSIGNED _BYTE
+u = -1: PRINT "u ="; u
+_DEFINE C AS STRING * 5
+c = "abcdefgh": PRINT "["; c; "]"; LEN(c)
+_DEFINE N-P AS _INTEGER64
+n = 5000000000.5: PRINT "n ="; n
+END

@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+DIM b AS _BYTE
+b = 127: PRINT "_BYTE 127:"; b
+b = 128: PRINT "_BYTE 128:"; b
+DIM ub AS _UNSIGNED _BYTE
+ub = 255: PRINT "_UNSIGNED _BYTE 255:"; ub; "in"; LEN(ub); "byte"
+ub = 256: PRINT "_UNSIGNED _BYTE 256:"; ub
+END

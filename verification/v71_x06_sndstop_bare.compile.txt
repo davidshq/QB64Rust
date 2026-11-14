@@ -1,0 +1,5 @@
+
+Syntax error - Reference: _SNDSTOP handle&
+Caused by (or after):_SNDSTOP
+LINE 6:_SNDSTOP
+exit=1

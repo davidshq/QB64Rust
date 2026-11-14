@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+PRINT FIX(2.7); FIX(-2.7); FIX(-0.5)
+PRINT "INT and FIX of -2.5:"; INT(-2.5); FIX(-2.5)
+END

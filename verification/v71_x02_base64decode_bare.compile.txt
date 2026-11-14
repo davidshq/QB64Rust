@@ -1,0 +1,5 @@
+
+Incorrect number of arguments - Reference: _BASE64DECODE$(stringToDecode$)
+Caused by (or after):PRINT _BASE64DECODE$
+LINE 6:PRINT _BASE64DECODE$
+exit=1

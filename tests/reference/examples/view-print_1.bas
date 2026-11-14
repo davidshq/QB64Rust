@@ -1,0 +1,9 @@
+$CONSOLE:ONLY
+img& = _NEWIMAGE(80, 25, 0)
+_DEST img&
+VIEW PRINT 5 TO 10
+PRINT "inside"
+r = CSRLIN
+_DEST _CONSOLE
+PRINT "After VIEW PRINT 5 TO 10, PRINT starts at row"; r - 1
+END

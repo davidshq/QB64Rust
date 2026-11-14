@@ -1,0 +1,6 @@
+start
+ 9  9  1 
+board
+Ready
+ 1 
+exit=0

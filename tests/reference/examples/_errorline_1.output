@@ -1,0 +1,5 @@
+line 3
+Error 5 on line 4 
+After RESUME NEXT, _ERRORLINE is still 4 
+
+Press any key to continue

@@ -1,0 +1,3 @@
+$CONSOLE:ONLY
+PRINT "Title: ["; _TITLE$; "]"
+END

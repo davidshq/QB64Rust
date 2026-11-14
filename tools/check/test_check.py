@@ -134,6 +134,10 @@ class FakeRepo:
                     "merge": True,
                     "rejudged": False,
                     "result": "fail" if p.step.name in failed else "pass",
+                    "started": 0,
+                    "seconds": 1,
+                    "log": "x",
+                    "note": "",
                     "files": p.inputs.files,
                     "lists": p.inputs.lists,
                 },
@@ -307,9 +311,14 @@ class Cost(unittest.TestCase):
     def test_a_crate_change_plans_the_quick_layer(self):
         self.repo.write("crates/sema/src/lib.rs", "fn b() {}\n")
         self.assertEqual(
-            set(self.repo.planned()), {"fmt", "build", "clippy", "clippy-linux", "nextest", "lists", "doc", "slice"}
+            set(self.repo.planned()),
+            {"fmt", "build", "clippy", "clippy-linux", "nextest", "lists", "doc", "slice", "reference"},
         )
         self.assertIsNone(self.repo.planned()["slice"])
+
+    def test_a_reference_page_plans_only_the_reference_check(self):
+        self.repo.write("docs/reference/entries/left-str.md", "# LEFT$\n")
+        self.assertEqual(self.repo.planned(), {"reference": None})
 
     def test_a_change_of_a_crates_tests_plans_no_build_no_lists_and_no_programs(self):
         self.repo.write("crates/sema/tests/it/symbols.rs", "#[test]\nfn t() {}\n")
@@ -511,6 +520,33 @@ class Merge(unittest.TestCase):
         self.repo.pass_merge(failed=("upstream-whole",))
         # Nothing changed: the failed suite runs again (a failure may be the machine's); its readers stand.
         self.assertEqual(self.repo.plan_reasons(MERGE), {"upstream-whole": "failed last time"})
+
+    def test_just_merge_again_lets_the_earlier_merges_passes_stand(self):
+        # Through check.main, not make_plan alone: until 2026-11-13 main forced every merge, so that nothing stood
+        # and each `just merge` after a fix ran all its steps again.
+        self.repo.pass_merge(failed=("upstream-whole",))
+        ran = {}
+
+        def execute(root, plan, force, what=""):
+            ran[what] = [p.step.name for p in plan.run]
+            return 0
+
+        with mock.patch.object(check, "dirty", lambda root: []), mock.patch.object(
+            check, "no_clone", lambda root: None
+        ), mock.patch.object(check, "execute", execute):
+            self.assertEqual(check.main(["merge", "--wait"], root=self.repo.root), 0)
+        self.assertEqual(ran.get("merge"), ["upstream-whole"])
+        self.assertNotIn("merge: the writers", ran, "the writers' passes stand too")
+
+    def test_the_count_blocks_a_merge_writes_leave_its_passes_standing(self):
+        self.repo.pass_merge()
+        self.repo.write("tests/corpus/README.md", "<!-- counts:corpus-results -->\nnew\n<!-- /counts:corpus-results -->\n")
+        self.assertEqual(set(self.repo.plan_reasons(MERGE)), {"counts"})
+
+    def test_the_families_notes_are_an_input_of_reference_alone(self):
+        self.repo.pass_merge()
+        self.repo.write("verification/README.md", "- `v99*`: a new family.\n")
+        self.assertEqual(set(self.repo.plan_reasons(MERGE)), {"reference"})
 
     def test_a_merge_again_after_a_known_list_fix_re_judges(self):
         self.repo.pass_merge(failed=("upstream-whole", "linux-verification"))
@@ -818,7 +854,7 @@ class VmSteps(unittest.TestCase):
             {s.name for s in vm},
             {
                 "slice", "upstream", "verification", "callsite", "cli", "qbasic", "addprefix", "format",
-                "format-corpus", "differential", "nofold", "coverage", "community", "corpus-whole",
+                "format-corpus", "differential", "reference-examples", "nofold", "coverage", "community", "corpus-whole",
                 "upstream-whole", "verification-whole",
             },
         )

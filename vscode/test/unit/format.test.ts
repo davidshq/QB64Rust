@@ -1,8 +1,10 @@
 import * as assert from "assert";
+import * as fs from "fs";
+import * as path from "path";
 import * as qb64pe from "../../src/compiler/qb64pe";
 import * as qb64rust from "../../src/compiler/qb64rust";
 import { chooseFormatter, selectionEdits, splitLines } from "../../src/formatPlan";
-import { DEFAULT_FORMAT, formatFlags } from "../../src/server/protocol";
+import { DEFAULT_FORMAT, formatDefaultFlags, formatFlags } from "../../src/server/protocol";
 
 // Change m5b-formatter, design D7; spec editor/formatting. Made-up paths (tools\repo_check allows `does\not\exist`).
 const dir = "C:\\does\\not\\exist";
@@ -10,7 +12,15 @@ const dir = "C:\\does\\not\\exist";
 describe("format arguments", () => {
     it("qb64rust -y: -q, the layout settings, the source, -o and the include root", () => {
         const args = qb64rust.formatArgs(`${dir}\\w\\.f.bas`, `${dir}\\t\\out.bas`, DEFAULT_FORMAT, `${dir}\\qb64pe`);
-        assert.deepStrictEqual(args, ["-y", "-q", ...formatFlags(DEFAULT_FORMAT), `${dir}\\w\\.f.bas`, "-o", `${dir}\\t\\out.bas`, "--include-root", `${dir}\\qb64pe`]);
+        assert.deepStrictEqual(args, ["-y", "-q", ...formatDefaultFlags(DEFAULT_FORMAT), `${dir}\\w\\.f.bas`, "-o", `${dir}\\t\\out.bas`, "--include-root", `${dir}\\qb64pe`]);
+    });
+
+    it("qb64rust -y: the layout settings as --format-default pairs, below the project's qb64rust.toml", () => {
+        const settings = { ...DEFAULT_FORMAT, keywordCase: "upper" as const };
+        const args = qb64rust.formatArgs(`${dir}\\w\\.f.bas`, `${dir}\\t\\out.bas`, settings, "");
+        assert.ok(!args.some((a) => a.startsWith("-f:")), `${args}`);
+        assert.deepStrictEqual(args.slice(2, 6), ["--format-default", "autoindent=1", "--format-default", "autoindentsize=4"]);
+        assert.ok(args.includes("keywordcapitals=1"));
     });
 
     it("qb64rust -y: no --include-root when it is empty, for the compiler's default", () => {
@@ -24,6 +34,38 @@ describe("format arguments", () => {
         const args = qb64pe.formatArgs(`${dir}\\w\\.f.bas`, `${dir}\\t\\out.bas`, settings);
         assert.deepStrictEqual(args, ["-y", "-q", ...formatFlags(settings), `${dir}\\w\\.f.bas`, "-o", `${dir}\\t\\out.bas`]);
         assert.ok(args.includes("-f:keywordlowercase=1"));
+    });
+
+    // Change format-statement-lines, design D1 and D8; spec editor/formatting, "Rewrite settings in the extension".
+    const rewrites = { ...DEFAULT_FORMAT, oneStatementPerLine: true, blockIf: true };
+
+    it("qb64rust -y, Format Document: the two rewrites as --format-default pairs too", () => {
+        const args = qb64rust.formatArgs(`${dir}\\w\\.f.bas`, `${dir}\\t\\out.bas`, rewrites, "");
+        assert.deepStrictEqual(args.slice(-6, -3), ["OneStatementPerLine=true", "--format-default", "BlockIf=true"]);
+        assert.ok(!args.some((a) => a.startsWith("-f:")), `${args}`);
+    });
+
+    it("qb64rust -y, Format Selection: both rewrites off with -f:, over the settings file", () => {
+        const args = qb64rust.formatArgs(`${dir}\\w\\.f.bas`, `${dir}\\t\\out.bas`, rewrites, "", true);
+        const flags = args.filter((a) => a.startsWith("-f:"));
+        assert.deepStrictEqual(flags, ["-f:OneStatementPerLine=false", "-f:BlockIf=false"]);
+        assert.ok(args.indexOf(flags[0]) > args.lastIndexOf("--format-default"), "after the defaults");
+    });
+
+    it("qb64pe -y: never the rewrites, which it does not have", () => {
+        const args = qb64pe.formatArgs(`${dir}\\w\\.f.bas`, `${dir}\\t\\out.bas`, rewrites);
+        assert.ok(!args.some((a) => /OneStatementPerLine|BlockIf/i.test(a)), `${args}`);
+    });
+
+    it("the two settings' descriptions name qb64rust.toml and the old compiler", () => {
+        // The test runs from out/test/unit; package.json is the extension's own.
+        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "..", "package.json"), "utf8"));
+        for (const name of ["qb64rust.format.oneStatementPerLine", "qb64rust.format.blockIf"]) {
+            const setting = pkg.contributes.configuration.properties[name];
+            assert.strictEqual(setting.default, false, name);
+            assert.ok(setting.markdownDescription.includes("qb64rust.toml"), name);
+            assert.ok(setting.markdownDescription.includes("qb64pe -y"), name);
+        }
     });
 });
 

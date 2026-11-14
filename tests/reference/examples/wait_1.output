@@ -1,0 +1,5 @@
+A port libqb does not emulate: WAIT returns
+error 6 
+done
+
+Press any key to continue

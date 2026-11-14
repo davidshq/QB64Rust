@@ -93,6 +93,7 @@ impl Checker<'_> {
         }
         self.stmt.names.push((SymbolKind::Proc(id), name_tok.span));
         self.prog.symbols.mark_declaring(name_tok.span);
+        self.prog.symbols.mark_declared(SymbolKind::Proc(id));
         Ok(id)
     }
 

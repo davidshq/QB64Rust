@@ -7,7 +7,7 @@ use super::entry::{NAME_ENV, RESULT_ENV, TEMP_ENV, entry_path, entry_point};
 use super::judge::{self, Outcome};
 use super::loader::TestLoader;
 use crate::compile::{CompileOptions, compile_exe};
-use crate::fixes::{CliFix, with_cli};
+use crate::fixes::{CliFix, apply_cli};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -34,6 +34,8 @@ pub struct RunOptions {
     pub libqb_root: Option<PathBuf>,
     /// `--fixes` and `--fix`, over each test file's settings file.
     pub fixes: Vec<CliFix>,
+    /// `--no-settings`: no test file's settings file is read (spec `compiler/cli`, "No settings file").
+    pub no_settings: bool,
     /// `--coverage`: each test program counts the statements it runs.
     pub coverage: bool,
     /// With `coverage`, the file that `QB64RUST_COVERAGE` named when the run started. Each test's record is
@@ -186,7 +188,8 @@ fn build(file: &TestFile, o: &RunOptions) -> Result<PathBuf, String> {
     let exe = folder.join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));
     let main = entry_path(&path);
     let file_name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
-    let (fixes, _) = with_cli(&main, &o.fixes).map_err(|e| e.to_string())?;
+    let (project, _) = crate::settings::load(&main, o.no_settings).map_err(|e| e.to_string())?;
+    let fixes = apply_cli(project.fixes, &o.fixes);
     let options = CompileOptions {
         exe: exe.clone(),
         quiet: true,

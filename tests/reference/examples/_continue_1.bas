@@ -1,0 +1,7 @@
+$CONSOLE:ONLY
+FOR i = 1 TO 6
+    IF i MOD 2 = 0 THEN _CONTINUE
+    PRINT i;
+NEXT i
+PRINT
+END

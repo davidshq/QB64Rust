@@ -167,3 +167,67 @@ fn symbol_at_a_position() {
     assert_eq!(p.symbols.at(FileId(0), 37), None, "after the last name");
     assert_eq!(p.symbols.at(FileId(1), 18), None, "another file");
 }
+
+/// Which symbols a statement declares (design D2 of `include-file-program`): every kind that a statement makes,
+/// and a variable made by `DIM`, `REDIM`, `COMMON`, `SHARED`, `STATIC`, a parameter or a FUNCTION's header; not a
+/// scalar or an array made by its first use. `sh`, made by its first use in main, is declared by `SHARED`.
+#[test]
+fn declared_symbols() {
+    let src = b"$CONSOLE:ONLY\nCOMMON SHARED cm AS LONG\nTYPE pt\nxp AS LONG\nEND TYPE\nCONST k = 1\nDIM d AS pt\nREDIM r(3) AS LONG\nim = 1\nia(2) = 1\nsh = 2\ns 1\nPRINT f%(2)\nlbl: PRINT d.xp, r(1), cm, im, ia(2), k\nSUB s (p AS LONG)\nSHARED sh\nSTATIC st AS LONG\nlv = p + st + sh\nEND SUB\nFUNCTION f% (q AS INTEGER)\nf% = q\nEND FUNCTION\n";
+    let (_, p) = check_source(src);
+    let mut got: Vec<String> = p
+        .symbols
+        .iter()
+        .map(|(id, s)| {
+            let name = match s.kind {
+                SymbolKind::Var(v) => format!("Var {}", p.var(v).name),
+                SymbolKind::Proc(q) => format!("Proc {}", p.proc(q).name),
+                SymbolKind::Label(l) => format!("Label {}", p.label(l).name),
+                SymbolKind::Const(c) => format!("Const {}", p.constant(c).name),
+                SymbolKind::Type(t) => format!("Type {}", p.user_type(t).name),
+                SymbolKind::Member(t, m) => format!("Member {}", p.user_type(t).members[m.0 as usize].name),
+            };
+            let how = if p.symbols.is_declared(id) {
+                "declared"
+            } else {
+                "implicit"
+            };
+            format!("{name} {how}")
+        })
+        .collect();
+    got.sort();
+    let want = [
+        "Const K declared",
+        "Label LBL declared",
+        "Member XP declared",
+        "Proc F declared",
+        "Proc S declared",
+        "Type PT declared",
+        "Var CM declared",
+        "Var D declared",
+        "Var F declared",
+        "Var IA implicit",
+        "Var IM implicit",
+        "Var LV implicit",
+        "Var P declared",
+        "Var Q declared",
+        "Var R declared",
+        "Var SH declared",
+        "Var ST declared",
+    ];
+    assert_eq!(got, want);
+}
+
+/// An OpenGL routine is made by its first call, not declared (design D2 of `include-file-program`).
+#[test]
+fn opengl_routine_is_not_declared() {
+    let src = b"SUB _GL\n_glClear _GL_COLOR_BUFFER_BIT\nEND SUB\n";
+    let (_, p) = check_source(src);
+    let gl: Vec<bool> = p
+        .symbols
+        .iter()
+        .filter(|(_, s)| matches!(s.kind, SymbolKind::Proc(q) if p.proc(q).name != "_GL"))
+        .map(|(id, _)| p.symbols.is_declared(id))
+        .collect();
+    assert_eq!(gl, [false]);
+}

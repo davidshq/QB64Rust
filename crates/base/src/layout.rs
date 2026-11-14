@@ -27,11 +27,42 @@ pub struct Settings {
     /// `AutoLayout`: one space between elements; off keeps each line's own spacing.
     pub auto_layout: bool,
     pub keywords: KeywordStyle,
+    /// `OneStatementPerLine`, not QB64pe's: each statement of a packed line on a line of its own (OpenSpec change
+    /// `format-statement-lines`).
+    pub one_statement_per_line: bool,
+    /// `BlockIf`, not QB64pe's: a single-line `IF` written as a block.
+    pub block_if: bool,
     // `KeywordCapitals` and `KeywordLowercase` as given (`tmpKwCap`, `tmpKwLow`): the style follows from both.
     capitals: Option<bool>,
     lowercase: Option<bool>,
     // The style before the first keyword setting, which the two leave when neither is true.
     keywords_before: Option<KeywordStyle>,
+}
+
+/// The layout settings a project's `qb64rust.toml` gives in its `[format]` table (spec `compiler/format`, "Format
+/// table of the settings file"): `None` for a key that is absent, which leaves the setting as it was.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Overrides {
+    pub auto_indent: Option<bool>,
+    /// 1 to 64.
+    pub indent_size: Option<u32>,
+    pub indent_subs: Option<bool>,
+    pub auto_layout: Option<bool>,
+    pub keywords: Option<KeywordStyle>,
+    pub one_statement_per_line: Option<bool>,
+    pub block_if: Option<bool>,
+}
+
+/// What the rewrites `OneStatementPerLine` and `BlockIf` can do to one source line, from its tree alone (OpenSpec
+/// change `format-statement-lines`, design D8): what the language server offers as code actions, and what the format
+/// oracle requires to be gone after the rewrites. Here in `base` so that the server can hold it without the
+/// formatter.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Rewritable {
+    /// `OneStatementPerLine` would write the line as two or more lines.
+    pub split: bool,
+    /// The line holds a single-line `IF` that `BlockIf` would write as a block.
+    pub block_if: bool,
 }
 
 impl Default for Settings {
@@ -42,6 +73,8 @@ impl Default for Settings {
             indent_subs: true,
             auto_layout: true,
             keywords: KeywordStyle::Camel,
+            one_statement_per_line: false,
+            block_if: false,
             capitals: None,
             lowercase: None,
             keywords_before: None,
@@ -67,6 +100,8 @@ impl Settings {
             }
             "indentsubs" => self.indent_subs = boolean(name, value)?,
             "autolayout" => self.auto_layout = boolean(name, value)?,
+            "onestatementperline" => self.one_statement_per_line = boolean(name, value)?,
+            "blockif" => self.block_if = boolean(name, value)?,
             "keywordcapitals" => {
                 self.capitals = Some(boolean(name, value)?);
                 self.keyword_style();
@@ -78,6 +113,49 @@ impl Settings {
             _ => return Ok(false),
         }
         Ok(true)
+    }
+
+    /// Sets each setting that `o` gives (the `[format]` table of `qb64rust.toml`; design D2 of `project-settings`).
+    /// The two keyword settings given before it are forgotten: a `-f:` keyword setting after it starts from the
+    /// style it leaves, so `-f:KeywordCapitals=0` alone keeps the file's style.
+    pub fn apply(&mut self, o: &Overrides) {
+        self.auto_indent = o.auto_indent.unwrap_or(self.auto_indent);
+        self.indent_size = o.indent_size.unwrap_or(self.indent_size);
+        self.indent_subs = o.indent_subs.unwrap_or(self.indent_subs);
+        self.auto_layout = o.auto_layout.unwrap_or(self.auto_layout);
+        self.keywords = o.keywords.unwrap_or(self.keywords);
+        self.one_statement_per_line = o.one_statement_per_line.unwrap_or(self.one_statement_per_line);
+        self.block_if = o.block_if.unwrap_or(self.block_if);
+        self.capitals = None;
+        self.lowercase = None;
+        self.keywords_before = None;
+    }
+
+    /// The warning for a rewrite setting that is on while `AutoIndent` or `AutoLayout` is off, which then rewrites
+    /// nothing (spec `compiler/format`, "A rewrite setting without effect"): it names the rewrites and the settings
+    /// that are off. `None` when there is nothing to warn about.
+    pub fn rewrite_warning(&self) -> Option<String> {
+        let on: Vec<&str> = [
+            (self.one_statement_per_line, "`OneStatementPerLine`"),
+            (self.block_if, "`BlockIf`"),
+        ]
+        .into_iter()
+        .filter_map(|(b, n)| b.then_some(n))
+        .collect();
+        let off: Vec<&str> = [(self.auto_indent, "`AutoIndent`"), (self.auto_layout, "`AutoLayout`")]
+            .into_iter()
+            .filter_map(|(b, n)| (!b).then_some(n))
+            .collect();
+        if on.is_empty() || off.is_empty() {
+            return None;
+        }
+        let has = if on.len() == 1 { "has" } else { "have" };
+        let are = if off.len() == 1 { "is" } else { "are" };
+        Some(format!(
+            "{} {has} no effect while {} {are} off",
+            on.join(" and "),
+            off.join(" and ")
+        ))
     }
 
     /// The style from the two keyword settings, as `qb64pe` decides it after reading all its options (worked out
@@ -168,6 +246,70 @@ mod tests {
     }
 
     #[test]
+    fn the_rewrite_settings() {
+        let s = Settings::default();
+        assert!(!s.one_statement_per_line && !s.block_if, "both off by default");
+        let s = with(&[("OneStatementPerLine", "true"), ("BLOCKIF", "1")]).unwrap();
+        assert!(s.one_statement_per_line && s.block_if);
+        let s = with(&[
+            ("onestatementperline", "on"),
+            ("onestatementperline", "off"),
+            ("blockIf", "no"),
+        ])
+        .unwrap();
+        assert!(!s.one_statement_per_line && !s.block_if);
+        let e = with(&[("BlockIf", "maybe")]).unwrap_err();
+        assert!(e.contains("BlockIf") && e.contains("`true` or `false`"), "{e}");
+        let e = with(&[("OneStatementPerLine", "2")]).unwrap_err();
+        assert!(e.contains("OneStatementPerLine"), "{e}");
+    }
+
+    #[test]
+    fn warning_for_a_rewrite_without_effect() {
+        assert_eq!(Settings::default().rewrite_warning(), None);
+        assert_eq!(with(&[("OneStatementPerLine", "1")]).unwrap().rewrite_warning(), None);
+        assert_eq!(
+            with(&[("AutoLayout", "0")]).unwrap().rewrite_warning(),
+            None,
+            "no rewrite on"
+        );
+        assert_eq!(
+            with(&[("OneStatementPerLine", "1"), ("AutoLayout", "0")])
+                .unwrap()
+                .rewrite_warning()
+                .unwrap(),
+            "`OneStatementPerLine` has no effect while `AutoLayout` is off"
+        );
+        let all = [("OneStatementPerLine", "1"), ("BlockIf", "1"), ("AutoIndent", "0")];
+        assert_eq!(
+            with(&all).unwrap().rewrite_warning().unwrap(),
+            "`OneStatementPerLine` and `BlockIf` have no effect while `AutoIndent` is off"
+        );
+        let both_off = [("BlockIf", "1"), ("AutoIndent", "0"), ("AutoLayout", "0")];
+        assert_eq!(
+            with(&both_off).unwrap().rewrite_warning().unwrap(),
+            "`BlockIf` has no effect while `AutoIndent` and `AutoLayout` are off"
+        );
+    }
+
+    #[test]
+    fn overrides_of_the_rewrite_settings() {
+        let mut s = with(&[("OneStatementPerLine", "true")]).unwrap();
+        s.apply(&Overrides::default());
+        assert!(
+            s.one_statement_per_line && !s.block_if,
+            "an absent key leaves its setting"
+        );
+        s.apply(&Overrides {
+            one_statement_per_line: Some(false),
+            block_if: Some(true),
+            ..Overrides::default()
+        });
+        assert!(!s.one_statement_per_line && s.block_if);
+        assert!(s.auto_indent && s.auto_layout, "the others untouched");
+    }
+
+    #[test]
     fn a_bad_boolean_is_an_error() {
         let e = with(&[("AutoLayout", "maybe")]).unwrap_err();
         assert!(e.contains("AutoLayout") && e.contains("maybe"), "{e}");
@@ -210,6 +352,80 @@ mod tests {
             ("KeywordCapitals", "0"),
         ];
         assert_eq!(with(&three).unwrap().keywords, KeywordStyle::Camel);
+    }
+
+    #[test]
+    fn overrides_apply_each_setting_alone() {
+        let one = |o: Overrides| {
+            let mut s = Settings::default();
+            s.apply(&o);
+            s
+        };
+        assert_eq!(one(Overrides::default()), Settings::default(), "nothing given");
+        let s = one(Overrides {
+            auto_indent: Some(false),
+            ..Overrides::default()
+        });
+        assert!(!s.auto_indent && s.indent_subs && s.auto_layout && s.indent_size == 4);
+        let s = one(Overrides {
+            indent_size: Some(2),
+            ..Overrides::default()
+        });
+        assert_eq!((s.indent_size, s.keywords), (2, KeywordStyle::Camel));
+        let s = one(Overrides {
+            indent_subs: Some(false),
+            ..Overrides::default()
+        });
+        assert!(!s.indent_subs && s.auto_indent);
+        let s = one(Overrides {
+            auto_layout: Some(false),
+            ..Overrides::default()
+        });
+        assert!(!s.auto_layout && s.auto_indent);
+        let s = one(Overrides {
+            keywords: Some(KeywordStyle::Lower),
+            ..Overrides::default()
+        });
+        assert_eq!(s.keywords, KeywordStyle::Lower);
+    }
+
+    /// The layers of `-y` (design D2 of `project-settings`): a `--format-default`, then the file, then `-f:`.
+    #[test]
+    fn keyword_settings_over_the_file() {
+        let upper = Overrides {
+            keywords: Some(KeywordStyle::Upper),
+            ..Overrides::default()
+        };
+        let layered = |defaults: &[(&str, &str)], file: &Overrides, command_line: &[(&str, &str)]| {
+            let mut s = with(defaults).unwrap();
+            s.apply(file);
+            for (n, v) in command_line {
+                assert!(s.set(n, v).unwrap());
+            }
+            s.keywords
+        };
+        let neither = [("KeywordCapitals", "0"), ("KeywordLowercase", "0")];
+        assert_eq!(
+            layered(&[], &upper, &neither),
+            KeywordStyle::Camel,
+            "CamelCase asked for"
+        );
+        assert_eq!(layered(&[], &upper, &[]), KeywordStyle::Upper, "no keyword setting");
+        let off = [("KeywordCapitals", "0")];
+        assert_eq!(
+            layered(&[], &upper, &off),
+            KeywordStyle::Upper,
+            "one false changes nothing"
+        );
+        let lower = [("KeywordLowercase", "true")];
+        assert_eq!(
+            layered(&lower, &upper, &[]),
+            KeywordStyle::Upper,
+            "the file over a default"
+        );
+        let none = Overrides::default();
+        assert_eq!(layered(&lower, &none, &off), KeywordStyle::Lower, "the default kept");
+        assert_eq!(layered(&lower, &none, &neither), KeywordStyle::Camel);
     }
 
     #[test]

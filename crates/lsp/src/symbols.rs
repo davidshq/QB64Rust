@@ -10,8 +10,15 @@ use qb64rust_syntax::tree::{Node, Tok};
 
 /// The symbols of the program's main file.
 pub fn document_symbols(a: &Analysis) -> Vec<DocumentSymbol> {
+    document_symbols_in(a, a.parsed.main().file)
+}
+
+/// The symbols of the program's file `file` (an included file's at its first inclusion).
+pub fn document_symbols_in(a: &Analysis, file: qb64rust_base::FileId) -> Vec<DocumentSymbol> {
     let mut out = Vec::new();
-    collect(a, a.parsed.main().root(), &mut out);
+    if let Some(tree) = a.tree(file) {
+        collect(a, tree.root(), &mut out);
+    }
     out
 }
 

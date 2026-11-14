@@ -35,11 +35,14 @@ debugger ([ROADMAP.md](docs/ROADMAP.md)).
 - Where this compiler deliberately differs from QB64pe, the difference is listed in
   [DIVERGENCES-QB64PE.md](docs/DIVERGENCES-QB64PE.md). Differences from QuickBASIC 4.5 are in
   [DIVERGENCES-QB45.md](docs/DIVERGENCES-QB45.md).
+- The [language reference](docs/reference/README.md) has a page for every statement, function, keyword and
+  metacommand, each rule naming its source and each example a recorded test program.
 - Current state and next steps: [STATUS.md](docs/STATUS.md).
 
 ## Install
 
-All downloads are on the [releases](https://github.com/davidshq/QB64Rust/releases) page.
+All downloads are on the [releases](https://github.com/davidshq/QB64Rust/releases) page. For a walk through
+installing and a first program, see [QUICKSTART.md](docs/QUICKSTART.md).
 
 - **VS Code extension:** `qb64rust-win32-x64-<version>.vsix` for Windows, `qb64rust-linux-x64-<version>.vsix`
   for Linux. It includes the compiler, a language server (errors as you type, outline, go to definition, rename,

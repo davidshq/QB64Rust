@@ -158,6 +158,50 @@ fn the_fixes_of_the_test_files_folder() {
     assert_ne!(result_word(&out, "fixes/toml/resume_test.bas:TestWhile"), "ok", "{out}");
 }
 
+/// A folder holding `fixes/toml/resume_test.bas` beside a `qb64rust.toml` that has an error on its line 2.
+fn beside_a_bad_settings_file() -> tempfile::TempDir {
+    let dir = tempfile::Builder::new()
+        .prefix("qb64rust-unit-bad-toml-")
+        .tempdir()
+        .unwrap();
+    std::fs::copy(
+        fixtures().join("fixes/toml/resume_test.bas"),
+        dir.path().join("resume_test.bas"),
+    )
+    .unwrap();
+    std::fs::write(dir.path().join("qb64rust.toml"), "[fixes]\nnonsense = true\n").unwrap();
+    dir
+}
+
+/// A bad `qb64rust.toml` beside a test file is an error of its tests, with `--fixes off` too (OpenSpec change
+/// `project-settings`: the file is read unless `--no-settings`). Nothing is built, so the clone is not needed.
+#[test]
+fn a_bad_settings_file_beside_a_test() {
+    let dir = beside_a_bad_settings_file();
+    let o = qb64rust_test_in(dir.path(), &["resume_test.bas", "--fixes", "off"]);
+    let out = text(&o);
+    assert_eq!(o.status.code(), Some(1), "{out}");
+    let test = "resume_test.bas:TestWhile";
+    assert_eq!(result_word(&out, test), "ERROR", "{out}");
+    let d = details(&out, "ERROR", test);
+    assert!(
+        d.contains("qb64rust.toml:2: unknown fix `nonsense`; the fixes are"),
+        "{d}"
+    );
+}
+
+/// With `--no-settings` the same bad file is not read (spec `compiler/cli`, "No settings file"): the test builds,
+/// and passes with `--fixes on`, which turns on the fix the fixture needs.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn no_settings_beside_a_bad_settings_file() {
+    let dir = beside_a_bad_settings_file();
+    let o = qb64rust_test_in(dir.path(), &["resume_test.bas", "--no-settings", "--fixes", "on"]);
+    let out = text(&o);
+    assert_eq!(o.status.code(), Some(0), "{out}");
+    assert_eq!(result_word(&out, "resume_test.bas:TestWhile"), "ok", "{out}");
+}
+
 /// "A compile error": both tests of `bad_test.bas` are build errors naming its line 4; `good_test.bas` still runs.
 #[test]
 #[ignore = "needs the QB64pe reference clone"]

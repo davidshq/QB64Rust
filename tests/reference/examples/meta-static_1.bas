@@ -1,0 +1,15 @@
+$CONSOLE:ONLY
+'$DYNAMIC
+DIM a(5) AS LONG
+'$STATIC
+DIM b(5) AS LONG
+REDIM a(8) AS LONG
+PRINT "a is dynamic:"; UBOUND(a)
+ON ERROR GOTO handler
+REDIM b(8) AS LONG
+PRINT "b is static:"; UBOUND(b)
+END
+
+handler:
+PRINT "Error"; ERR; "for REDIM of b"
+RESUME NEXT

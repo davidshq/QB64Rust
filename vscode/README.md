@@ -22,7 +22,8 @@ QB64pe is installed.
   compiler's wording as a second line (`QB64pe: …`) where it is known. A check of a large program (Civil War
   Strategy, about 5,000 lines) takes under a tenth of a second. The result stands until your next edit, after
   which only syntax errors are shown again until the next save. The command checks the editor's text as it is,
-  saved or not.
+  saved or not. The `[lints]` table of `qb64rust.toml` turns lint warnings off (see
+  [Project settings](#project-settings)).
 - Without the language server, each save runs `qb64pe -z` (source `qb64pe`; C++ generation only, no build, well
   under two seconds) and shows the compiler's error or warnings at the right file and line, including errors
   inside `$INCLUDE` files. The old compiler reports one error at a time and no column; the whole line is marked.
@@ -52,9 +53,11 @@ QB64pe is installed.
 
 **Format Document** lays the program out as `qb64pe -y` (and the QB64pe IDE) does: the indent of each block,
 spaces around operators and after commas, keyword case, and names spelled as they are declared (also in an
-`$INCLUDE` file). Unsaved changes are formatted; the file on disk is not touched. If the program has an error, the
-document is left unchanged, the error is shown as a message and in Problems. Format on save is off unless you turn
-on `editor.formatOnSave`.
+`$INCLUDE` file). Unsaved changes are formatted; the file on disk is not touched. If the program has a syntax error,
+the document is left unchanged, the error is shown as a message and in Problems. Another error, such as a SUB that
+is not defined, does not stop it. An include file (`.bi`, `.bm`) can be formatted too, with the names spelled as
+its program declares them (see [Include files](#include-files)). Format on save is off unless you turn on
+`editor.formatOnSave`.
 
 Which formatter runs:
 
@@ -73,6 +76,40 @@ document, so a line inside a `FOR` gets the loop's indent.
 The layout comes from the settings `qb64rust.format.*` (below), given to whichever formatter runs; the defaults are
 QB64pe's own. QB64pe's `config.ini` (the IDE's layout options) is no longer read: set the same options here. In a
 workspace of several folders the language server uses the window's settings, not a folder's own.
+
+### Project settings
+
+A project can keep its layout and its lints in `qb64rust.toml`, committed with the program. The nearest one in the
+program's folder or a folder above it is used, as for the fixes:
+
+```toml
+[format]
+keyword-case = "upper"   # "camel", "upper" or "lower"
+indent-size = 2          # 1 to 64
+# auto-indent, indent-subs and auto-layout take true or false
+one-statement-per-line = true   # x = 0: y = 0 becomes two lines
+block-if = true                 # IF a THEN x = 1 becomes a block IF
+
+[lints]
+unused-label = false     # or all = false, then turn single lints on
+```
+
+`one-statement-per-line` and `block-if` are not QB64pe's, and both are off by default. The first puts each
+statement of a line packed with colons on a line of its own; a single-line `IF` stays whole. The second turns a
+single-line `IF` into a block with `END IF`, and `IF a THEN 100` into one holding `GOTO 100`. A label or line
+number at the start of a line stays with the first statement. The comment of a rewritten line moves to a line of
+its own above it. Lines joined with `_`, lines between `'$FORMAT:OFF` and `'$FORMAT:ON`, lines with a metacommand
+and lines of a `$IF` branch that is not taken are left as they are. Nothing is rewritten while `auto-indent` or
+`auto-layout` is off, or while the program has an error. A rewrite moves statements to new line numbers, so
+`_ERRORLINE` and an error message that names a line give the new number.
+
+A key in `[format]` overrides the matching `qb64rust.format.*` setting, so everyone who opens the project gets the
+same layout; a key that is not there leaves the setting as it is. This holds for the language server and for
+`qb64rust -y`, not for `qb64pe -y`, which does not read the file. An include file takes the file of its program.
+The lint codes are `used-once`, `unused-procedure`, `unused-label`, `hides-shared`, `unreachable`,
+`unused-variable`, `empty-select`, `duplicate-const` and `debug-incompatible`; a lint that is off gives no warning
+in Problems. A mistake in the file (a misspelled key, a value of the wrong kind) stops Format Document with a message
+that names the file and the line, and shows in Problems on line 1 of the program at the next check.
 
 If the language server stops by itself, formatting goes on with `qb64rust -y` (or `qb64pe -y`) until it is
 started again.
@@ -182,6 +219,29 @@ server runs, and `qb64rust: not found` (with a link to the setting) when there i
 works as it did with QB64pe alone. Included files are looked up as a build looks them up: the including file's
 folder, then `qb64rust.includeRoot`; when that is empty, the QB64pe folder, as QB64pe looks in its own folder (a
 relative path is taken from the workspace folder). The server runs only in a trusted workspace.
+
+### Include files
+
+An include file such as `turn.bm` is a part of the program that includes it. The server finds that program and
+answers from it: errors, hover, Go to Definition, references, rename, completion and formatting. So a call of a
+SUB that the main file defines is no error in the include file. The server looks, in this order:
+
+1. the `main` entry of the `[project]` table in the nearest `qb64rust.toml`, when that program includes the file:
+
+   ```toml
+   [project]
+   main = "game.bas"
+   ```
+
+2. an open `.bas` file whose program includes it, the one opened first;
+3. a `.bas` file on disk that includes it, in the file's folder or a folder above it, up to the folder of
+   `qb64rust.toml` or the workspace folder.
+
+A `.bas` file that another program includes is a part of that program too, unless `main` names it. The language
+status shows the program chosen for the active file. An include file with no program shows "no program found": it
+is checked for syntax errors only, and formatted alone. Set `main` when two programs include the same files, such
+as a game and its tests. Build, Run, Debug and the build task act on that program too: with `turn.bm` active they
+build and run `CWSTRAT.BAS`. An include file with no program is built alone.
 
 ## Language features
 

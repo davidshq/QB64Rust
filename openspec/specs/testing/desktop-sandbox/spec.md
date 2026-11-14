@@ -80,7 +80,13 @@ starts, or the VM's evaluation license has expired. The message SHALL name what 
 Each program SHALL run in the sandbox with a time limit; a program over it SHALL be ended and fail. The whole run
 SHALL have a time limit on the host; past it the runner SHALL close the sandbox and fail, reporting the programs that
 finished. The same limits SHALL hold in the test VM; past the run's limit the runner SHALL turn the VM off and fail
-in the same way.
+in the same way. In the test VM, the programs that timed out SHALL run once more, in a second start of the VM, and
+their verdicts SHALL be the second run's, marked as such; a program with a wrong output SHALL NOT run again.
+
+#### Scenario: A timeout in the test VM runs once more
+- **WHEN** a program times out in the test VM
+- **THEN** it runs once more in a second start of the VM; it passes if that run matches its recording, and its
+  verdict says it passed on its second run
 
 #### Scenario: A program that hangs
 - **WHEN** a program does not end within its limit

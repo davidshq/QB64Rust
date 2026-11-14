@@ -1,7 +1,7 @@
 # Verification programs
 
 Small programs that measure what the old compiler (`qb64pe.exe` at the reference clone's commit) does, each
-recorded with its output. The facts the families up to `v45` establish are written in `study\archive\00-synthesis.md` §5, which takes no
+recorded with its output. The facts the families up to `v45` establish are written in `study\archive\00-synthesis-completed.md` §5, which takes no
 new facts since 2026-10-18 (`CLAUDE.md` working rule 7): a later family's facts are its recorded output, and its
 line here says what it shows. This file
 is the catalogue of the families, moved here from `CLAUDE.md`'s layout table on 2026-10-16 (`study\archive\30` §2).
@@ -552,7 +552,23 @@ Small programs behind `study\09`, `study\10` and later measurements:
   also as `NEXT ELSE` (`g1`, `g2`). A one-bit FUNCTION called with its suffix is "Name already in use", without
   it a call as any other (`h1`, `h2`). `v70_root` holds two libraries whose files start with `$INCLUDEONCE`:
   named twice, or pulled in by another library, each is read once (`i1`, `i2`); its `DECLARE CUSTOMTYPE LIBRARY`
-  with no name aliases `memcpy`, which the C headers declare.
+  with no name aliases `memcpy`, which the C headers declare. A file of `$INCLUDEONCE` in `v70_inc\`, included
+  again by its name in capitals, is included twice (`i3`, D-065; recorded 2026-11-13 for the upstream review).
+- `v71*`: forms QB64pe rejects, recorded for the language reference's pages of those words (2026-11-12, the
+  second review of OpenSpec change `language-reference`, task 7.3): `_BASE64DECODE$` with a number or no argument
+  (`x01`, `x02`), `_SNDLOOP` with no handle or two arguments (`x03`, `x04`), `_SNDPAUSE` and `_SNDSTOP` with no
+  handle (`x05`, `x06`), and `_WINDOWHASFOCUS` with an argument (`x07`).
+- `v72*`: packed lines and single-line `IF`s, each beside the form the formatter writes with its two rewrite
+  settings (2026-11-13, OpenSpec change `format-statement-lines`, design D9). `v72_<form>` is the packed program,
+  `v72_<form>_r` the same with `OneStatementPerLine` and `BlockIf`, and `v72_<form>_b` with `BlockIf` alone. QB64pe
+  prints the same for each program and its forms. So it reads every rewritten form as the packed one: statements
+  split at colons (`a`), a single-line `IF` with `ELSE` as a block (`b`), `THEN 100 ELSE 200` and `IF a GOTO 100`
+  as blocks holding `GoTo` (`c`, `d`), a `FOR` and a `DO` on one line (`e`, `n`), `x = 1: If a Then` followed by
+  lines and `End If` as a block (`f`, its `_b`), the header of a block `IF` after a colon (`g`), a single-line `IF`
+  in another's branch with the `ELSE` the inner one's (`h`), an empty `THEN` branch (`i`), a colon right after
+  `THEN` and after `ELSE` (`j`), a `SELECT CASE` on one line (`k`), statements after `ELSEIF … THEN` and a block's
+  `ELSE` (`l`), `CLS:`, a label and a SUB's name before a colon (`m`), a `REM` comment moved above an `IF` (`o`),
+  and a comment moved above a numbered line that a `GOTO` names (`p`).
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

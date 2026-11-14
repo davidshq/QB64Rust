@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+PRINT _MD5$("abc")
+PRINT _MD5$("")
+END

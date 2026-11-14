@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+_MAPUNICODE 9731 TO 65
+PRINT "Character 65 now shows code point"; _MAPUNICODE(65)
+END

@@ -26,6 +26,8 @@
 //! 2026-10-25, layout built (group 4): 1.0 s for 1,180 programs, 1,179 equal to their recording.
 //! 2026-10-25, with the other settings (`m5b-format-settings` group 3): 1.5 s for 1,345 programs, 162 of them
 //! under the six variants; all but one of the 1,345 equal to their recording or covered by a divergence.
+//! 2026-11-13, with the three rewrites of each default recording (`format-statement-lines` task 5.1): 1.6 s before,
+//! 2.7 s after, and 375 s with their C++ compared too, which [`rewrites_give_the_same_cpp`] does for `just full`.
 
 use qb64rust_base::layout::Settings;
 use qb64rust_base::show_bytes;
@@ -307,7 +309,7 @@ fn run(p: &Program) -> Outcome {
     }
     collect_forms(fe.parsed.trees[0].root(), &fe.map.file(fe.file).bytes, &mut o.forms);
     let settings = p.settings;
-    let out = format_program(&fe, &settings);
+    let out = format_program(&fe, &settings, true);
     let recorded = std::fs::read(&p.recording).unwrap();
     if lf(&out) != lf(&recorded) && divergence_rows(&p.recording.with_extension("divergences")).is_empty() {
         o.differs = Some(first_difference(&recorded, &out));
@@ -330,14 +332,135 @@ fn run(p: &Program) -> Outcome {
         o.broken = Some(format!("the formatted text is another program: {line}"));
         return o;
     }
-    let twice = format_program(&again, &settings);
+    let twice = format_program(&again, &settings, true);
     if twice != out {
         o.broken = Some(format!(
             "formatting again changes it: {}",
             first_difference(&out, &twice)
         ));
+        return o;
+    }
+    if !p.name.starts_with(SETTINGS) {
+        o.broken = rewrites(p, &fe, &again, false);
     }
     o
+}
+
+/// The rewrites tier 1 checks each default recording with (spec `testing/format-oracle`, "The rewrites in tier
+/// 1"): the name a failure gives, `OneStatementPerLine`, `BlockIf`.
+const REWRITES: [(&str, bool, bool); 3] = [
+    ("OneStatementPerLine", true, false),
+    ("BlockIf", false, true),
+    ("OneStatementPerLine and BlockIf", true, true),
+];
+
+/// `text` with the number after each of `words` written `#`: the line numbers of a dump.
+fn masked(text: &str, words: &[&str]) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some((at, w)) = words.iter().filter_map(|w| rest.find(w).map(|at| (at, w))).min() {
+        out.push_str(&rest[..at + w.len()]);
+        let after = &rest[at + w.len()..];
+        let digits = after.len() - after.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+        if digits > 0 {
+            out.push('#');
+        }
+        rest = &after[digits..];
+    }
+    out.push_str(rest);
+    out
+}
+
+/// The typed dump of a program, line numbers masked.
+fn typed_dump(fe: &Frontend) -> String {
+    masked(&qb64rust_sema::dump_typed(&fe.program), &["line "])
+}
+
+/// The C++ of a program, line numbers masked.
+fn cpp_dump(fe: &Frontend) -> String {
+    let resolved = crate::frontend::fixed_libraries(&fe.program);
+    let cpp = qb64rust_driver::dump_cpp(fe, &resolved, qb64rust_driver::Instrument::NONE);
+    masked(&cpp, &["#line ", "evnt("])
+}
+
+/// The texts of the comments of the main file, in order.
+fn comments(fe: &Frontend) -> Vec<Vec<u8>> {
+    let bytes = &fe.map.file(fe.file).bytes;
+    fe.parsed.trees[0]
+        .root()
+        .tokens()
+        .into_iter()
+        .filter(|t| matches!(t.kind, SyntaxKind::Comment | SyntaxKind::MetaComment))
+        .map(|t| bytes[t.span.start as usize..t.span.end as usize].to_vec())
+        .collect()
+}
+
+/// The first line where two texts differ, as `line <n>: <a> became <b>`.
+fn first_line_changed(a: &str, b: &str) -> String {
+    a.lines()
+        .zip(b.lines())
+        .enumerate()
+        .find(|(_, (x, y))| x != y)
+        .map_or_else(
+            || "one goes on".to_string(),
+            |(n, (x, y))| format!("line {}: {x:?} became {y:?}", n + 1),
+        )
+}
+
+/// The checks of each rewrite of a default recording (spec `compiler/format`, "A rewritten program is the same
+/// program"): `fe` the source, `formatted` its layout with the defaults. The first problem found, naming the rewrite.
+/// The C++ is compared only `with_cpp` (design D9 of `format-statement-lines`: it takes minutes, so it is a test of
+/// its own, [`rewrites_give_the_same_cpp`]).
+fn rewrites(p: &Program, fe: &Frontend, formatted: &Frontend, with_cpp: bool) -> Option<String> {
+    let typed = typed_dump(fe);
+    let cpp = if with_cpp { cpp_dump(fe) } else { String::new() };
+    let want_comments = comments(formatted);
+    for (name, split, block_if) in REWRITES {
+        let mut settings = p.settings;
+        settings.one_statement_per_line = split;
+        settings.block_if = block_if;
+        let out = format_program(fe, &settings, true);
+        let again = load(p, out.clone());
+        if again.has_errors() {
+            return Some(format!(
+                "{name}: the rewritten text does not check: {}",
+                first_error(&again)
+            ));
+        }
+        let t = typed_dump(&again);
+        if t != typed {
+            return Some(format!(
+                "{name}: another typed tree, {}",
+                first_line_changed(&typed, &t)
+            ));
+        }
+        if with_cpp {
+            let c = cpp_dump(&again);
+            if c != cpp {
+                return Some(format!("{name}: other C++, {}", first_line_changed(&cpp, &c)));
+            }
+        }
+        if comments(&again) != want_comments {
+            return Some(format!("{name}: the comments are not the same texts in the same order"));
+        }
+        let twice = format_program(&again, &settings, true);
+        if twice != out {
+            return Some(format!(
+                "{name}: formatting again changes it: {}",
+                first_difference(&out, &twice)
+            ));
+        }
+        let left = qb64rust_format::rewritable(&again.map, &again.parsed, again.file);
+        if let Some(line) = left.iter().position(|r| (split && r.split) || (block_if && r.block_if)) {
+            let text = lf(&out)
+                .split(|&c| c == b'\n')
+                .nth(line)
+                .map(show_bytes)
+                .unwrap_or_default();
+            return Some(format!("{name}: line {} is left to rewrite: {text:?}", line + 1));
+        }
+    }
+    None
 }
 
 /// The statement kinds of the parser: a node kind that stands for a statement, a block or a line's label.
@@ -585,4 +708,210 @@ fn formatter_equals_the_old_compilers_layout() {
         );
     }
     assert!(message.is_empty(), "{message}");
+}
+
+/// The C++ of each rewrite of each default recording equals the source's, line numbers masked (spec
+/// `compiler/format`, "A rewritten program is the same program", "Same C++"). The other checks of the rewrites are
+/// tier 1's, in [`formatter_equals_the_old_compilers_layout`]. This one is a test of its own because it took 375 s
+/// in a debug build on all cores, against 1.6 s for the rest of the oracle (design D9 of `format-statement-lines`),
+/// so `just full` runs it and `just quick` does not. Its step is `format-rewrites`, alone on the host: inside `cli` it
+/// starved the tests with deadlines beside it (2026-11-14).
+#[test]
+#[ignore = "minutes: the C++ of three rewrites of 1,180 programs; `just full` runs it"]
+fn rewrites_give_the_same_cpp() {
+    let programs: Vec<Program> = recordings()
+        .into_iter()
+        .filter(|p| !p.name.starts_with(SETTINGS))
+        .collect();
+    let threads = std::thread::available_parallelism().map_or(4, |n| n.get());
+    let next = AtomicUsize::new(0);
+    let failures = Mutex::new(Vec::new());
+    std::thread::scope(|s| {
+        for _ in 0..threads {
+            std::thread::Builder::new()
+                .stack_size(qb64rust_driver::STACK_SIZE)
+                .spawn_scoped(s, || {
+                    while let Some(p) = programs.get(next.fetch_add(1, Ordering::Relaxed)) {
+                        let fe = load(p, std::fs::read(&p.source).unwrap());
+                        if fe.has_errors() {
+                            continue;
+                        }
+                        let formatted = load(p, format_program(&fe, &p.settings, true));
+                        if let Some(why) = rewrites(p, &fe, &formatted, true) {
+                            failures.lock().unwrap().push(format!("{}: {why}", p.name));
+                        }
+                    }
+                })
+                .unwrap();
+        }
+    });
+    let mut failures = failures.into_inner().unwrap();
+    failures.sort();
+    assert!(
+        failures.is_empty(),
+        "{} programs rewritten to another program:\n  {}",
+        failures.len(),
+        failures.join("\n  ")
+    );
+}
+
+/// The rewritten forms measured with the old compiler (spec `testing/format-oracle`, "The rewritten forms measured
+/// with the old compiler"): each packed program `verification\v72_<form>.bas` formatted with both rewrites is the
+/// text of `v72_<form>_r.bas`, and with `BlockIf` alone that of `v72_<form>_b.bas` where there is one. QB64pe prints
+/// the same for a program and its forms (their recordings), so this holds the formatter to forms it was shown.
+#[test]
+fn rewrites_write_the_measured_forms() {
+    let dir = repo().join("verification");
+    let root = repo().join("tests/upstream/root");
+    let mut packed: Vec<PathBuf> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| {
+            let name = p.file_name().unwrap().to_string_lossy();
+            name.starts_with("v72_") && name.ends_with(".bas") && !name.ends_with("_r.bas") && !name.ends_with("_b.bas")
+        })
+        .collect();
+    packed.sort();
+    assert!(packed.len() >= 16, "found only {} packed v72 programs", packed.len());
+    let mut problems = Vec::new();
+    let mut pairs = 0;
+    for source in &packed {
+        let display = source.to_string_lossy().into_owned();
+        let fe = frontend_with(&display, std::fs::read(source).unwrap(), |file| {
+            Box::new(FileLoader::new(&root, file, source))
+        });
+        assert!(!fe.has_errors(), "{display}: {}", first_error(&fe));
+        for (suffix, split) in [("_r", true), ("_b", false)] {
+            let stem = source.file_stem().unwrap().to_string_lossy();
+            let form = source.with_file_name(format!("{stem}{suffix}.bas"));
+            let Ok(want) = std::fs::read(&form) else {
+                assert_eq!(suffix, "_b", "{} has no _r form", source.display());
+                continue;
+            };
+            pairs += 1;
+            let mut settings = Settings::default();
+            settings.one_statement_per_line = split;
+            settings.block_if = true;
+            let got = format_program(&fe, &settings, true);
+            if lf(&got) != lf(&want) {
+                let name = form.file_name().unwrap().to_string_lossy().into_owned();
+                problems.push(format!("{name}: {}", first_difference(&want, &got)));
+            }
+        }
+    }
+    assert!(pairs >= 18, "found only {pairs} rewritten forms");
+    assert!(
+        problems.is_empty(),
+        "the formatter writes otherwise than the measured forms:\n  {}",
+        problems.join("\n  ")
+    );
+}
+
+/// The tokens of a parse's main file other than blanks and line ends, each without its blanks and in lower case.
+fn plain_tokens(fe: &Frontend) -> Vec<Vec<u8>> {
+    let bytes = &fe.map.file(fe.file).bytes;
+    fe.parsed.trees[0]
+        .root()
+        .tokens()
+        .into_iter()
+        .filter(|t| {
+            !matches!(
+                t.kind,
+                SyntaxKind::Whitespace | SyntaxKind::Newline | SyntaxKind::LineContinuation
+            )
+        })
+        .map(|t| {
+            bytes[t.span.start as usize..t.span.end as usize]
+                .iter()
+                .filter(|b| !b.is_ascii_whitespace())
+                .map(u8::to_ascii_lowercase)
+                .collect()
+        })
+        .collect()
+}
+
+/// Formatting a program with an error of a later stage (task 2.6 of `include-file-program`; design "Risks"): every
+/// program of `verification\` that QB64pe rejected (recorded `(not compiled)`) and whose parse has no error is
+/// formatted without a panic, and the output's tokens are the input's, letter case and blanks aside.
+///
+/// Measured 2026-11-11: see the count in `openspec\changes\archive\2026-11-11-include-file-program\design.md`.
+#[test]
+fn programs_with_errors_format_without_a_panic() {
+    let dir = repo().join("verification");
+    let root = repo().join("tests/upstream/root");
+    let mut names: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap()
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .filter_map(|n| n.strip_suffix(".out.txt").map(str::to_string))
+        .filter(|n| {
+            std::fs::read(dir.join(format!("{n}.out.txt"))).is_ok_and(|b| b.trim_ascii_end() == b"(not compiled)")
+        })
+        .filter(|n| dir.join(format!("{n}.bas")).is_file())
+        .collect();
+    names.sort();
+    let settings = Settings::default();
+    // As `-y` loads them: with the checks that read the disk, whose errors make a program incomplete too.
+    let load = |name: &str, bytes: Vec<u8>| {
+        let main = dir.join(format!("{name}.bas"));
+        let display = main.to_string_lossy().into_owned();
+        qb64rust_driver::frontend_explicit(
+            qb64rust_base::Platform::host(),
+            false,
+            &display,
+            bytes,
+            |file| Box::new(FileLoader::new(&root, file, &main)),
+            Some((&main, &root)),
+            qb64rust_base::fixes::Fixes::OFF,
+        )
+    };
+    let (mut formatted, mut parse_errors) = (0, 0);
+    let mut problems = Vec::new();
+    for name in &names {
+        let bytes = std::fs::read(dir.join(format!("{name}.bas"))).unwrap();
+        let fe = load(name, bytes);
+        if fe.parsed.diagnostics().has_errors() {
+            parse_errors += 1;
+            continue;
+        }
+        let main = dir.join(format!("{name}.bas"));
+        let complete = qb64rust_driver::format_complete(&fe.diagnostics, Some(&main));
+        let out = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            format_program(&fe, &settings, complete)
+        })) {
+            Ok(out) => out,
+            Err(_) => {
+                problems.push(format!("{name}: the formatter panicked"));
+                continue;
+            }
+        };
+        formatted += 1;
+        let again = load(name, out);
+        let (before, after) = (plain_tokens(&fe), plain_tokens(&again));
+        if before != after {
+            let at = before
+                .iter()
+                .zip(&after)
+                .position(|(a, b)| a != b)
+                .unwrap_or(before.len().min(after.len()));
+            let show = |t: &[Vec<u8>]| {
+                t.iter()
+                    .skip(at.saturating_sub(2))
+                    .take(5)
+                    .map(|w| show_bytes(w))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            };
+            problems.push(format!(
+                "{name}: the tokens changed: `{}` became `{}`",
+                show(&before),
+                show(&after)
+            ));
+        }
+    }
+    eprintln!(
+        "{} programs recorded (not compiled): {formatted} formatted, {parse_errors} with a parse error",
+        names.len()
+    );
+    assert!(formatted > 0, "no program found in {}", dir.display());
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
 }

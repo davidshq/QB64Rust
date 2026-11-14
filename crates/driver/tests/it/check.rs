@@ -86,6 +86,8 @@ fn check_in_server(path: &Path, root: &Path) -> Checked {
                     assert_eq!(d["source"], "qb64rust");
                 }
             }
+            // `qb64rust/program`, the document's program (OpenSpec change `include-file-program`).
+            Message::Notification(n) if n.method == "qb64rust/program" => {}
             m => panic!("unexpected message {m:?}"),
         }
     };
@@ -442,6 +444,25 @@ fn fix_error_in_a_check() {
     assert!(shown[0].1.contains("whole-array-value"), "{shown:?}");
     std::fs::write(&settings, "[fixes]\nall = false\n").unwrap();
     let change = json!({ "changes": [{ "uri": from_path(&settings).to_string(), "type": 2 }] });
+    s.notify("workspace/didChangeWatchedFiles", change);
+    assert_eq!(s.next_published(), [], "the parse after the change");
+    assert_eq!(s.check(), [], "the check after the change");
+}
+
+/// Spec `editor/language-server`, "Lints in a check": "The table changes on disk", the warning of `unused-label`
+/// goes once `[lints]` turns it off, with no edit of the program; "A lint turned off", it stays away.
+#[test]
+fn lints_in_a_check() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = program(dir.path(), "p.bas", "PRINT 1\r\nagain:\r\nPRINT 3\r\n");
+    let mut s = Session::open(&path);
+    let shown = s.check();
+    assert_eq!(shown.len(), 1, "{shown:?}");
+    assert_eq!((shown[0].0, shown[0].2), (1, 2), "{shown:?}");
+    assert!(shown[0].1.contains("label `again` is never used"), "{shown:?}");
+    let settings = dir.path().join("qb64rust.toml");
+    std::fs::write(&settings, "[lints]\nunused-label = false\n").unwrap();
+    let change = json!({ "changes": [{ "uri": from_path(&settings).to_string(), "type": 1 }] });
     s.notify("workspace/didChangeWatchedFiles", change);
     assert_eq!(s.next_published(), [], "the parse after the change");
     assert_eq!(s.check(), [], "the check after the change");

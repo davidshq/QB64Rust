@@ -1,0 +1,7 @@
+Before DEFINT, x = 2.5 
+After DEFINT A-Z, y = 2 in 2 bytes
+After DEFDBL D, d = .3333333333333333 
+After DEFSTR S, s = text
+A suffix wins: w! = 2.5 
+
+Press any key to continue

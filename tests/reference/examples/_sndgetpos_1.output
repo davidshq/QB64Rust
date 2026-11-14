@@ -1,0 +1,5 @@
+At the start: 0 
+After _SNDSETPOS h, .25: .25 
+After _SNDSTOP: 0 
+
+Press any key to continue

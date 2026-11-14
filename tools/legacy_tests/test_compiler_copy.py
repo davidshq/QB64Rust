@@ -107,7 +107,7 @@ class Copy(unittest.TestCase):
         line = compiler_copy.header("target/release/qb64rust.exe", "ab" * 32, 1760000000.25)
         self.assertEqual(
             line,
-            f"[compiler] target/release/qb64rust.exe sha256 {'ab' * 32} started 1760000000.250 fixes off",
+            f"[compiler] target/release/qb64rust.exe sha256 {'ab' * 32} started 1760000000.250 fixes off, no settings file",
         )
         text = f"waiting for another run to leave the reference clone\n{line}\n[1/2] PASS a\n"
         self.assertEqual(compiler_copy.read_header(text), ("ab" * 32, 1760000000.25))

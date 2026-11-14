@@ -178,7 +178,10 @@ The window built-ins SHALL be compiled in every form the old compiler accepts, e
 compiler writes for it: the statements `_SCREENHIDE`, `_SCREENSHOW`, `_SCREENICON`, `_TITLE`, `_ICON`,
 `_MOUSESHOW`, `_MOUSEHIDE`, `_MOUSECURSOR`, `_WINDOWSIZELIMIT`, `_FREEIMAGE`, and the functions `_SCREENEXISTS`,
 `_SCREENICON`, `_TITLE$`, `_DESKTOPWIDTH`, `_DESKTOPHEIGHT`, `_SCREENX`, `_SCREENY`, `_WINDOWHANDLE`,
-`_WINDOWHASFOCUS`, `_NEWIMAGE`. What they do in a window is not part of this capability yet.
+`_WINDOWHASFOCUS`, `_NEWIMAGE`. What `_SCREENHIDE`, `_SCREENSHOW`, `_SCREENICON`, `_TITLE`, `_ICON`,
+`_WINDOWSIZELIMIT`, `_WINDOWHANDLE` and `_WINDOWHASFOCUS` do in a window is read back only in the sandbox family, in
+the test VM (spec `testing/desktop-sandbox`; `tests\sandbox\window_*`); the rest of what they do in a window is not
+part of this capability yet.
 
 #### Scenario: A statement with parenthesised pairs
 - **WHEN** a program has `_WINDOWSIZELIMIT`, `_WINDOWSIZELIMIT (320, 240)`, `_WINDOWSIZELIMIT -(800, 600)` and
@@ -400,8 +403,10 @@ its window is closed or Ctrl+Break is pressed; `_EXIT` SHALL give the old compil
 The dialogs (`_MESSAGEBOX` as statement and function, `_OPENFILEDIALOG$`, `_SAVEFILEDIALOG$`,
 `_SELECTFOLDERDIALOG$`, `_COLORCHOOSERDIALOG`, `_INPUTBOX$`), `_NOTIFYPOPUP`, `_SCREENMOVE`, `_SCREENCLICK` and
 `_SCREENPRINT` SHALL compile, in every form the old compiler accepts, to its runtime calls, and the forms it
-rejects SHALL be its errors. No test opens a dialog, shows a notification, moves the window, or clicks or types
-on the desktop.
+rejects SHALL be its errors. No test opens a dialog. `_NOTIFYPOPUP`, `_SCREENMOVE`, `_SCREENCLICK` and
+`_SCREENPRINT` run only in the sandbox family, in the test VM, each program reading back what it did (spec
+`testing/desktop-sandbox`; `tests\sandbox\notifypopup_err`, `screenmove_readback`, `screenclick_mousebutton`,
+`screenprint_inkey`).
 
 #### Scenario: Optional arguments of a dialog
 - **WHEN** a program has `_MESSAGEBOX "t", "m"`, `r& = _MESSAGEBOX("t", "m", "yesno", "warning")`, `f$ =
@@ -470,7 +475,8 @@ program does (measured, `verification\v57_p06`, `p07`).
 ### Requirement: The console's own statements and functions
 `_CONSOLETITLE title$`, `_CONSOLECURSOR`, `_CONSOLEFONT`, and the functions `_CINP` and `_CONSOLEINPUT` SHALL
 compile in every form the old compiler accepts with its runtime calls, and SHALL do what its program does in a
-program with a console. `_CONSOLEFONT` changes the font of the console the program shares, so no test runs it.
+program with a console. `_CONSOLEFONT` changes the font of the console the program shares, so it runs only in the sandbox family
+(`tests\sandbox\consolefont_err`), which checks that it raises no error.
 
 #### Scenario: The console's title and cursor
 - **WHEN** a `$CONSOLE:ONLY` program runs `_CONSOLETITLE "t"`, `_CONSOLECURSOR _HIDE`, `_CONSOLECURSOR _SHOW, 50`

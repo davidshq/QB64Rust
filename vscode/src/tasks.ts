@@ -88,8 +88,9 @@ export class Qb64TaskProvider implements vscode.TaskProvider {
             const folder = typeof scope === "object" ? scope : vscode.workspace.workspaceFolders?.[0];
             return folder?.uri.scheme === "file" ? path.join(folder.uri.fsPath, def.file) : undefined;
         }
+        // The active file, or for an included file its program (spec editor/build-run, "Included file").
         const doc = vscode.window.activeTextEditor?.document;
-        return doc && doc.languageId === "qb64rust" && doc.uri.scheme === "file" && !doc.isUntitled ? doc.uri.fsPath : undefined;
+        return doc && doc.languageId === "qb64rust" && doc.uri.scheme === "file" && !doc.isUntitled ? this.server.programFile(doc.uri.fsPath) : undefined;
     }
 
     /** A build task that found no C++ toolchain when it was listed: when it runs, it plans again as the Build command

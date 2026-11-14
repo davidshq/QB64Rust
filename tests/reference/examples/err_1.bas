@@ -1,0 +1,10 @@
+$CONSOLE:ONLY
+ON ERROR GOTO handler
+x = SQR(-1)
+PRINT "ERR after RESUME NEXT is"; ERR
+ERROR 53
+END
+
+handler:
+PRINT "ERR is"; ERR
+RESUME NEXT

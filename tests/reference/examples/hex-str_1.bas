@@ -1,0 +1,5 @@
+$CONSOLE:ONLY
+PRINT HEX$(255); " "; HEX$(4096); " "; HEX$(0)
+PRINT HEX$(-1%); " "; HEX$(-1&)
+PRINT HEX$(10.6)
+END

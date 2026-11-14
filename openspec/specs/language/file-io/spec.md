@@ -10,6 +10,14 @@ file-system statements, with the runtime errors each raises, as measured with `q
 `OPEN name$ [FOR mode] [ACCESS …] [SHARED | LOCK …] AS [#]n [LEN = r]` and the old form `OPEN mode$, [#]n, name$[,
 r]` SHALL open a file as the old compiler's runtime does, for every mode, access and lock word. `CLOSE` SHALL close
 every open file, and `CLOSE [#]n, …` the files named; closing a number that is not open SHALL NOT be an error.
+`OPEN` SHALL raise the old compiler's errors: 53 for a file that is not there opened for input, 76 for a folder
+that is not there and for an empty name, 52 for a file number of 0, 55 for a file number already open, 54 for a
+mode letter that is no mode, and 70 for a folder opened as a file.
+
+#### Scenario: The run-time errors of OPEN
+- **WHEN** `tests\reference\examples\open_2` opens a file in each of those ways under a handler that prints `ERR`
+  and resumes next
+- **THEN** it prints 53, 76, 76, 52, 55, 54 and 70, as the old compiler's program does
 
 #### Scenario: Write, close, read back
 - **WHEN** a program opens `t.tmp` for output as #1, prints a line to it, closes it, opens it for input, reads the

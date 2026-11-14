@@ -56,10 +56,28 @@ $guest = "C:\run\$step"
 $session = $null
 $code = 1
 $offset = 0
+$unanswered = $false
+
+# A call into the guest that may take at most $seconds: as a job, stopped when its time is out. On 2026-11-13 the
+# `cli` step starved the guest, and the calls without a limit kept the host waiting about 7 hours past the step's
+# own limit. A guest that does not answer is an error: the step fails, and suites.ps1 -Stop turns the VM off.
+function Guest([scriptblock]$block, [object[]]$arguments = @(), [int]$seconds = 120) {
+    $job = Invoke-Command -Session $script:session -ArgumentList $arguments -ScriptBlock $block -AsJob
+    try {
+        if (-not (Wait-Job $job -Timeout $seconds)) {
+            $script:unanswered = $true
+            throw "the guest did not answer within $seconds s"
+        }
+        Receive-Job $job -ErrorAction Stop
+    } finally {
+        Stop-Job $job -ErrorAction SilentlyContinue
+        Remove-Job $job -Force -ErrorAction SilentlyContinue
+    }
+}
 
 # What the guest's log gained since the last call, printed as it is.
 function Show-Log {
-    $bytes = Invoke-Command -Session $session -ArgumentList "$guest\log.txt", $script:offset {
+    $bytes = Guest -arguments "$guest\log.txt", $script:offset {
         param($path, $from)
         if (-not (Test-Path -LiteralPath $path)) { return , ([byte[]]@()) }
         $f = [IO.File]::Open($path, 'Open', 'Read', 'ReadWrite')
@@ -186,7 +204,7 @@ function Invoke-Step {
     $done = $false
     while (-not $done -and (Seconds $begun) -lt $spec.limit) {
         Start-Sleep -Seconds 2
-        $done = Invoke-Command -Session $session -ArgumentList "$guest\code.txt" { param($p) Test-Path -LiteralPath $p }
+        $done = Guest -arguments "$guest\code.txt" { param($p) Test-Path -LiteralPath $p }
         if ((Seconds $shown) -ge 10) {
             Show-Log
             $shown = Get-Date
@@ -197,7 +215,7 @@ function Invoke-Step {
         Say "the step did not end within $($spec.limit) s; it is stopped"
         return 1
     }
-    [int](Invoke-Command -Session $session -ArgumentList "$guest\code.txt" {
+    [int](Guest -arguments "$guest\code.txt" {
         param($p) (Get-Content -Raw -LiteralPath $p).Trim()
     })
 }
@@ -209,10 +227,13 @@ try {
     Say "the step could not be run in ${name}: $($_.Exception.Message)"
     $code = 1
 } finally {
-    if ($session) {
+    if ($session -and $unanswered) {
+        # No cleanup and no outputs from a guest that stopped answering: suites.ps1 -Stop turns it off.
+        Say 'the guest stopped answering: no cleanup, no outputs'
+    } elseif ($session) {
         try {
             # Whatever the task left running (a timeout), so that the next step starts clean.
-            Invoke-Command -Session $session -ArgumentList $taskName, $parent {
+            Guest -arguments $taskName, $parent {
                 param($task, $parent)
                 Stop-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue
                 Get-CimInstance Win32_Process | Where-Object {
@@ -223,7 +244,8 @@ try {
             # The outputs, also after a failure or a timeout (design D8).
             $wanted = @($spec.outputs | Where-Object { $_ })
             if ($wanted) {
-                $count = Invoke-Command -Session $session -ArgumentList $Tree, $guest, $wanted {
+                # A whole suite's outputs take a minute or two to archive.
+                $count = Guest -seconds 900 -arguments $Tree, $guest, $wanted {
                     param($tree, $folder, $wanted)
                     $python = Join-Path $env:ProgramFiles 'Python312\python.exe'
                     $files = @(& $python (Join-Path $tree 'tools\winvm\outputs.py') $tree @wanted)

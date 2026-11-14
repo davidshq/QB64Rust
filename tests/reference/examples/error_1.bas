@@ -1,0 +1,10 @@
+$CONSOLE:ONLY
+ON ERROR GOTO handler
+ERROR 5
+ERROR 200
+PRINT "Done."
+END
+
+handler:
+PRINT "Error"; ERR; "raised by ERROR"
+RESUME NEXT

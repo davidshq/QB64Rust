@@ -1,0 +1,4 @@
+$CONSOLE:ONLY
+PRINT "["; _BASE64ENCODE$(""); "]["; _BASE64ENCODE$("a"); "]["; _BASE64ENCODE$("ab"); "]["; _BASE64ENCODE$("abc"); "]"
+PRINT _BASE64ENCODE$(CHR$(0) + CHR$(255) + CHR$(254))
+END

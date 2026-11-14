@@ -1,0 +1,8 @@
+$CONSOLE:ONLY
+img& = _NEWIMAGE(40, 30, 256)
+_DEST img&: _SOURCE img&
+CIRCLE (20, 15), 10, 2
+_DEST _CONSOLE
+PRINT "On the circle:"; POINT(30, 15); POINT(20, 5)
+PRINT "At the centre:"; POINT(20, 15)
+END

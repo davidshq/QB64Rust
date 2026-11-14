@@ -12,7 +12,7 @@ takes back files an earlier glob matched. `external` names inputs outside the re
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 QUICK = "quick"
 FULL = "full"
@@ -120,6 +120,10 @@ class Step:
     # A command run in the VM before the step's own, for what the tree's copy lacks: files git ignores, which the
     # copy does not carry (design D9).
     vm_first: tuple[str, ...] | None = None
+
+
+# The format oracle's test that compares the C++ of every rewrite, run by `format-rewrites` alone.
+REWRITES = "format_oracle::rewrites_give_the_same_cpp"
 
 
 def runner(suite: str, *extra: str) -> tuple[str, ...]:
@@ -272,6 +276,30 @@ STEPS: tuple[Step, ...] = (
         LIBQB + ("tools/libqb/*.py",),
         external=("clone",),
     ),
+    # The language reference's pages against their sources, and which forms of each page's words compile
+    # (tools/reference/README.md; OpenSpec change language-reference). Not every file a page's `src:` names is an
+    # input: a recording that is removed or renamed is found at the step's next run, so that a new recording does
+    # not plan this step.
+    Step(
+        "reference",
+        QUICK,
+        ("python", "tools/reference/reference.py", "--check", "--compiler", EXE),
+        BUILT
+        + (
+            "docs/reference/**",
+            "docs/DIVERGENCES-QB64PE.md",
+            "docs/DIVERGENCES-QB45.md",
+            # A family's line, which a page's source `v22` names (reference.py, VERIFICATION_README).
+            "verification/README.md",
+            "tests/reference/**",
+            "tests/callsite/**",
+            "openspec/specs/**",
+            "tools/reference/**",
+            "tools/builtins/builtins.json",
+            "vscode/syntaxes/qb64rust.tmLanguage.json",
+        ),
+        needs=("build",),
+    ),
     Step(
         "slice",
         QUICK,
@@ -333,14 +361,33 @@ STEPS: tuple[Step, ...] = (
     ),
     # In the VM, the test binary built on the host runs there (check.py, `cli_binary`; design D9): it is not
     # `cargo test`, and outside it every path the binary holds is the host tree's, which is the copy's too (D5).
+    # Without the format oracle's C++ comparison, which has a step of its own (`format-rewrites`).
     Step(
         "cli",
         FULL,
-        ("cargo", "test", "-p", "qb64rust-driver", "--locked", "--test", "it", "--", "--ignored"),
+        ("cargo", "test", "-p", "qb64rust-driver", "--locked", "--test", "it", "--", "--ignored", "--skip", REWRITES),
         RUST + LIBQB + ("verification/**", "!verification/*.exe", "tests/corpus/slice/**", "tests/upstream/root/**"),
         external=("toolchain", "clone"),
         alone=True,
         vm=True,
+    ),
+    # The C++ of the formatter's rewrites (format-statement-lines, design D9): a thread on every core for 375 s on the
+    # host. Inside `cli` it starved the tests beside it, which have deadlines: in the suites VM a test of 120 s failed,
+    # a window's close was lost, and on 2026-11-13 the step stalled until it was stopped. It builds and runs nothing,
+    # so it runs on the host, alone.
+    Step(
+        "format-rewrites",
+        FULL,
+        ("cargo", "test", "-p", "qb64rust-driver", "--locked", "--test", "it", "--", "--ignored", "--exact", REWRITES),
+        RUST
+        + (
+            "tests/format/**",
+            "tests/corpus/**",
+            "tests/upstream/compile_tests/**",
+            "tests/snippets/**",
+            "tests/programs/**",
+        ),
+        alone=True,
     ),
     Step(
         "qbasic",
@@ -400,6 +447,27 @@ STEPS: tuple[Step, ...] = (
         external=("toolchain",),
         vm=True,
         outputs=results("results-partial", "target/legacy-tests-differential"),
+    ),
+    # The language reference's examples, each a program recorded with qb64pe.exe (tools/reference/README.md).
+    Step(
+        "reference-examples",
+        FULL,
+        runner(
+            "corpus",
+            "--corpus-root",
+            "tests/reference",
+            *CACHES,
+            "--results",
+            "target/legacy-tests-reference",
+            "--pass-list",
+            "--list",
+            "tests/reference/pass.list",
+        ),
+        BUILT + LIBQB + RUNNER_FILES + ("tests/reference/**", "tests/upstream/root/**"),
+        needs=("build",),
+        external=("toolchain",),
+        vm=True,
+        outputs=results("results-partial", "target/legacy-tests-reference"),
     ),
     Step(
         "nofold",
@@ -583,6 +651,22 @@ STEPS += (
         )
         for name, suite, _ in WHOLE
     ),
+)
+
+# The suites' READMEs hold count blocks that `counts` writes at each merge, and no other step reads them. As inputs
+# they changed the whole suites' fingerprints at every merge, so that none could stand at the next (2026-11-13).
+# verification/README.md describes the families, and only `reference` reads it; a new family's line there re-ran
+# every step that reads verification/ (2026-11-14).
+# Last in each step's globs: a `!glob` takes back only what the globs before it took.
+COUNT_BLOCKS = "!tests/*/README.md"
+FAMILY_NOTES = "!verification/README.md"
+STEPS = tuple(
+    replace(
+        s,
+        inputs=s.inputs
+        + tuple(g for g, reader in ((COUNT_BLOCKS, "counts"), (FAMILY_NOTES, "reference")) if s.name != reader),
+    )
+    for s in STEPS
 )
 
 BY_NAME = {s.name: s for s in STEPS}

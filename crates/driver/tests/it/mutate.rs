@@ -1,7 +1,8 @@
 //! Seeded mutation test (spec `testing/compiler-tests`, design D6 of `m2-upstream-tests`): byte-level edits of
 //! the corpus programs go through lexer, parser and `sema` without a panic and round-trip exactly. A mutant that
-//! `sema` accepts also goes through lowering and C++ generation (up to [`CODEGEN_MAX_LEN`]) for a debug build with
-//! coverage counters, without a panic (`study\38` §3). Line-level edits (a line deleted, copied, swapped, or taken from
+//! `sema` accepts also goes through lowering and C++ generation (up to [`qb64rust_driver::PROBE_EMIT_MAX_LEN`]) for a debug build with
+//! coverage counters, without a panic (`study\38` §3). The checks are `qb64rust_driver::probe`'s (`Probe::Compile`),
+//! the same as the fuzz target `compile`'s (OpenSpec change `fuzz-front-end`, design D3). Line-level edits (a line deleted, copied, swapped, or taken from
 //! another corpus program) make mutants that are more often valid programs, so that more of them get that far.
 //!
 //! Deterministic: a fixed seed (`QB64RUST_MUTATE_SEED` overrides it) and a fixed number of mutants of each kind per
@@ -9,8 +10,7 @@
 //! program and the mutant number, so a failure is reproduced from what it prints; the mutant's bytes are also
 //! written to `target\mutate-failure.bas`.
 
-use qb64rust_driver::{Resolved, STACK_SIZE, emit_ir_debug, frontend, lower};
-use qb64rust_syntax::tree::print;
+use qb64rust_driver::{Probe, STACK_SIZE, probe};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -19,10 +19,6 @@ const DEFAULT_SEED: u64 = 0x5EED_0B64_2026_1004;
 /// Ten of each kind: as many mutants as the twenty byte-level ones before C++ generation was added, at about 5 s
 /// (each mutant per program of both kinds costs about 0.5 s of tier 1).
 const DEFAULT_COUNT: u64 = 10;
-/// A mutant larger than this skips C++ generation. Only `g12_game` (160 KB) is larger: its mutants took about 5 s
-/// each to lower and emit here, most of the test's time, and add size rather than variety; the corpus suite builds
-/// the program itself.
-const CODEGEN_MAX_LEN: usize = 32 * 1024;
 
 /// xorshift64*: small, fast, and the same on every platform.
 struct Rng(u64);
@@ -165,26 +161,14 @@ fn corpus_programs() -> Vec<PathBuf> {
 
 /// What went wrong with one mutant, if anything; `emitted` counts the mutants that reached C++ generation.
 fn check(bytes: &[u8], emitted: &AtomicUsize) -> Option<String> {
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        let fe = frontend("mutant.bas", bytes.to_vec());
-        if print(&fe.parsed.main().green, bytes) != bytes {
-            return false;
+    match catch_unwind(AssertUnwindSafe(|| probe(Probe::Compile, bytes))) {
+        Ok(Ok(reached)) => {
+            if reached.emitted {
+                emitted.fetch_add(1, Ordering::Relaxed);
+            }
+            None
         }
-        if !fe.has_errors() && bytes.len() <= CODEGEN_MAX_LEN {
-            // One emission, the one that runs the most of the emitter: a debug build's, with coverage counters and
-            // the record calls of a value-trace build.
-            let instrument = qb64rust_driver::Instrument {
-                coverage: true,
-                trace: true,
-            };
-            emit_ir_debug(&fe, &lower(&fe), &Resolved::default(), instrument, None);
-            emitted.fetch_add(1, Ordering::Relaxed);
-        }
-        true
-    }));
-    match result {
-        Ok(true) => None,
-        Ok(false) => Some("round trip failed".to_string()),
+        Ok(Err(problem)) => Some(problem.to_string()),
         Err(e) => Some(format!(
             "panic: {}",
             e.downcast_ref::<String>()

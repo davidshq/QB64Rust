@@ -77,7 +77,8 @@ start no session until it is installed.
 - **THEN** the program is built with `--debug` and stops on line 3
 
 ### Requirement: Launch defaults
-An attribute left out SHALL take these values: `program` the active editor's file, `cwd` the program's folder,
+An attribute left out SHALL take these values: `program` the active editor's file (for an included file, its
+program's main file: spec `editor/build-run`, "Included file"), `cwd` the program's folder,
 `console` `integratedTerminal`, `noPrompt` the setting `qb64rust.noPrompt`, `args` the setting
 `qb64rust.runArguments` split as a shell would, `stopOnEntry` false.
 
