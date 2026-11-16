@@ -73,14 +73,22 @@ working rule 7).
    milestone. Language extensions
    are allowed behind a switch (`DECISIONS.md` 2026-11-11); which extension comes first is still open
    (`study\48` §5 recommends an order).
+2. **QB64 library collections and libraries per project** (`study\50`, 2026-11-15), section 7: whether
+   dependencies per project in `qb64rust.toml` are the next change for libraries, and the syntax for naming a
+   library.
+3. **Web and mobile targets** (`study\51`, 2026-11-15), section 10: whether to build the web target from the same
+   C++ and libqb with Emscripten, when to start its first step (console programs under Node), a 4-byte
+   `_OFFSET` on the web, phones through the web build in the browser first, and where built games must run.
+4. **A standard library** (`study\52`, 2026-11-16, split out of `study\50`), section 4: whether to have one and in
+   which form, and whether others' code may be shipped or fetched.
 
 The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 
 ## Next
 
 0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
-   fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
-   `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
+   fetch`, then `just check community --where vm` checks 4143 programs of 68 pinned repositories (3077 on
+   `tests\community\pass.list`, 2026-11-16). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
 0. **Start the first run of the `Fuzz` workflow** (`fuzz-front-end` archived 2026-11-13): `just fuzz
    <parse|compile|server|all> <minutes>` fuzzes the front end with `cargo-fuzz` in WSL (`tools\fuzz\README.md`),
    and the workflow does the same on GitHub's runner. The first campaign found one bug, now fixed:
@@ -177,6 +185,10 @@ and the merge being forced.
 
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).
+- A `DECLARE LIBRARY` block that declares a SUB and a FUNCTION of the same name is rejected; QB64pe accepts it
+  (`-z`, 2026-11-15). With the SUB first the error is "name already in use"; with the FUNCTION first, a call as a
+  statement is "cannot be called as a statement". It blocks 12 community programs, all copies of Toolbox64's
+  `DS\HashTable.bi` (`HashTable_Remove`) and `Audio\OPL3X.bi` (`OPL3X_WriteChipRegister`) (`study\50` §3.1).
 - `$COLOR:0` and then `SUB Red`: the error "name already in use" is reported at the constant in the auto-included
   `internal\support\color\color0.bi`, not on the program's `SUB Red` (line 4), where QB64pe reports it
   (`verification\v45_x48`, on `known.list` since the change `pin-rejection-line`).

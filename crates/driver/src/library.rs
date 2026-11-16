@@ -72,7 +72,11 @@ fn dir_text(dir: &Path) -> String {
 
 /// The absolute folder of the file `path` (the working directory for a name without a folder).
 fn folder_of(path: &Path) -> std::io::Result<PathBuf> {
-    let dir = path.parent().unwrap_or(Path::new(""));
+    absolute_dir(path.parent().unwrap_or(Path::new("")))
+}
+
+/// The folder `dir` made absolute (the working directory for an empty one).
+fn absolute_dir(dir: &Path) -> std::io::Result<PathBuf> {
     std::path::absolute(if dir.as_os_str().is_empty() {
         Path::new(".")
     } else {
@@ -598,7 +602,13 @@ pub fn resolve(fe: &mut Frontend, places: &Places) -> Resolved {
     for (i, lib) in program.libraries.iter().enumerate() {
         let mut found = ResolvedLibrary::default();
         resolved.libraries.push(ResolvedLibrary::default());
-        let file_dir = folder_of(Path::new(&fe.map.file(lib.span.file).name)).unwrap_or_default();
+        // The folder the loader read the file from: a `$USELIBRARY` file's name is its path under the root, not
+        // from the working directory. The name is used only for a file the loader did not read.
+        let file_dir = match fe.folders.get(&lib.span.file) {
+            Some(dir) => absolute_dir(dir),
+            None => folder_of(Path::new(&fe.map.file(lib.span.file).name)),
+        }
+        .unwrap_or_default();
         // The library file of the block's last name, where its declarations are looked for, and that name.
         let mut last = None;
         let mut dll_file = None;

@@ -43,6 +43,8 @@ pub struct Frontend {
     pub parsed: ParsedProgram,
     pub program: Program,
     pub diagnostics: Diagnostics,
+    /// The folder on disk of each file the loader read ([`Loader::folders`]); empty for a program from memory.
+    pub folders: HashMap<FileId, PathBuf>,
 }
 
 impl Frontend {
@@ -138,6 +140,10 @@ impl Loader for FileLoader {
         }
         std::fs::read(&path).map_err(|e| LoadError::Unreadable(e.to_string()))
     }
+
+    fn folders(&self) -> HashMap<FileId, PathBuf> {
+        self.dirs.clone()
+    }
 }
 
 impl FileLoader {
@@ -205,12 +211,14 @@ pub fn frontend_explicit(
     let mut loader = loader(file);
     let parsed = parse_settled_explicit(platform, explicit, &mut map, file, loader.as_mut());
     let (program, diagnostics) = check_program(&map, &parsed, disk, fixes);
+    let folders = loader.folders();
     Frontend {
         map,
         file,
         parsed,
         program,
         diagnostics,
+        folders,
     }
 }
 

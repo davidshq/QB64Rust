@@ -306,14 +306,15 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `_ERRORLINE` and other errors unchanged; `$ERRORLOCATION` bare, `:MAYBE`, with a blank or a comment: "Syntax
   error"; `e27` a `DYNAMIC` library that does not exist, rejected when compiled ("DYNAMIC LIBRARY not found"),
   `e28` a function the library lacks, error 260 at the `FUNCTION` line, `e29` an error in a `$USELIBRARY` top
-  file, at its line and name, with `v58_root`'s `test/eloc`), include files in `v58_inc\`; `u00`–`u26` `$USELIBRARY` with the test libraries of `v58_root\libraries\`
+  file, at its line and name, with `v58_root`'s `test/eloc`), include files in `v58_inc\`; `u00`–`u27` `$USELIBRARY` with the test libraries of `v58_root\libraries\`
   (each program's `.root` sidecar names the folder, recorded with the runner's copy of the release,
   `tools\legacy_tests\README.md`): each kind of file, two libraries (top files last-first, bottom files in
   order), one named twice or by a library's top file too ("Name already in use": included once per line), a
   library that uses another (its files first), the descriptor's sections, quotes, `;` and `'` comments, key case
   and blanks, an empty value and no section (nothing included), `$USELIBRARY` in an included file, in lower case,
   without the colon, as `$USELIBRARYX`, with a tab after the name (all accepted), the three errors, a `$IF`
-  branch not taken, after a colon, and `u17` without the sidecar (the release's own "descriptor not found"); `n01`–`n05`
+  branch not taken, after a colon, `u17` without the sidecar (the release's own "descriptor not found"), and `u27`
+  a `DECLARE LIBRARY` header found beside the library's top file (`test/header`); `n01`–`n05`
   a built-in with its result's suffix (`_UFONTHEIGHT&`: "Invalid variable name", "Invalid array name"); `x01`–`x111`
   one accepted or rejected form each (the five accepted above and `_SETBIT(1, 1.5)`; the hyperbolics,
   `_SETBIT`, `MKSMBF$`, `_COMPILERVERSION$` and `_ENVIRONCOUNT` in a `CONST` "Unexpected element"; a function as a

@@ -161,6 +161,12 @@ pub trait Loader {
     fn library(&mut self, _name: &[u8]) -> Result<Vec<u8>, LoadError> {
         Err(LoadError::NotFound)
     }
+
+    /// The folder on disk of each file the loader read, by file. A file's name in the map is not always its path
+    /// from the working directory: a `$USELIBRARY` file is named by its path under the compiler root.
+    fn folders(&self) -> std::collections::HashMap<FileId, std::path::PathBuf> {
+        std::collections::HashMap::new()
+    }
 }
 
 /// The file name an include statement gives, as the old compiler reads it: the name as written (taken as UTF-8; the

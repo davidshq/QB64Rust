@@ -415,3 +415,18 @@ name = "qbx"
 url = "https://github.com/logiclrd/QBX"
 commit = "667acffd532982354a5029cd8112d70eb65abd86"
 license = "NOASSERTION"
+
+# Added 2026-11-16 (study 50 §3, user), pinned to the default branch of that day. DRAW's submodule pins an
+# older commit of QB64_GJ_LIB; this is its latest.
+[[repo]]
+name = "qb64_gj_lib"
+url = "https://github.com/grymmjack/QB64_GJ_LIB"
+commit = "2086607838250bacf464da86c0bab2f50f4205a1"
+license = "MIT"
+
+# GitHub reports no license; Documentation/LICENSE.md is MIT (2023, SteveMcNeill).
+[[repo]]
+name = "qb64-phoenix-edition-toolbox"
+url = "https://github.com/SteveMcNeill/QB64-Phoenix-Edition-Toolbox"
+commit = "ccf06a75db009c4ef0bcc37067d5a6cbba2c8a76"
+license = "none"

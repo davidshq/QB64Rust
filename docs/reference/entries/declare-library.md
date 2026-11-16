@@ -51,6 +51,9 @@ The library is looked for as QB64pe looks for it: by the path written from the c
 source's folder, then for a header.
 <!-- src: language/external-libraries "Finding a library"; tests\corpus\slice\s123_library_alias -->
 
+A header is also looked for in the folder of the file that holds the block, such as a `$USELIBRARY` file.
+<!-- src: language/external-libraries "Finding a library"; verification\v58_u27_header_beside -->
+
 A header is included at each block that names it, and then no prototype is written for the block's declarations.
 <!-- src: language/external-libraries "Headers and libraries in the C++" -->
 
