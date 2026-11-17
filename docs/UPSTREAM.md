@@ -2,8 +2,9 @@
 
 Bugs of QB64pe that this project fixes in its own code or its copy of libqb, kept here so they can be reported or
 sent to QB64pe later (user, 2026-10-18). Each entry says what is wrong, where in QB64pe's sources at the
-reference commit (`16f629784e`), the fix, and this project's divergence row. Nothing here has been sent yet;
-when one is, its entry says where (issue or pull request) and what came of it.
+reference commit (`16f629784e`), the fix, and this project's divergence row. When one is sent, its entry says
+where (issue or pull request) and what came of it. Fixes QB64pe has merged are in
+`docs\archived\UPSTREAM-completed.md`.
 
 ## `_COTH(x)` is not the hyperbolic cotangent
 
@@ -109,18 +110,6 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Fix:** `mem_lock_tmp->type = 0;` there, the type of a block that owns no memory.
 - **Here:** `DIVERGENCES-QB64PE.md` D-050; the edit `tools/libqb/edits/d050-memnew-zero-lock.edit`.
 - **Sent:** not yet.
-
-## `_STATUSCODE` of a handle never opened crashes
-
-- **Wrong:** `_STATUSCODE(h)` of a negative handle that was never opened, or was closed, reads the type of the
-  entry `list_get` did not find: an access violation (exit 139). Measured in this repo: `verification\v44_x59`,
-  `v63_d1`.
-- **Where:** `internal/c/libqb.cpp`, `func__statusCode`.
-- **Fix:** `if (!sh || sh->type != special_handle_type::Http)` raises error 52, as `func__connected` tests.
-- **Here:** `DIVERGENCES-QB64PE.md` D-051; the edit `tools/libqb/edits/d051-statuscode-missing-handle.edit`.
-- **Sent:** draft pull request QB64-Phoenix-Edition/QB64pe#817 (2026-11-13), from branch
-  `fix-statuscode-unopened-handle` of `davidshq-contribute/QB64pe`. It adds a never-opened negative handle to the
-  test `tests/compile_tests/http/statuscode_invalid_handle`. Not yet reviewed.
 
 ## Division by zero cannot be trapped
 
