@@ -46,7 +46,9 @@ rule 17). Those that no source confirmed are marked "unchecked", each with the r
 
 `boxgaming/qbjs` runs QB64-style BASIC in the browser
 ([README](https://github.com/boxgaming/qbjs): MIT, about 85 stars, 615 commits, no tagged release). Its
-compiler is a QB64 program, `tools\qb2js.bas` in `boxgaming/gx` (`study\archive\44`), which writes JavaScript.
+compiler is `tools\qb2js.bas`, a BASIC program that writes JavaScript. It is written in QBJS's own dialect
+(`Import`, `As Object`, `AndAlso`), so QBJS compiles it (`node qbc tools/qb2js.bas qb2js.js`) and QB64pe cannot.
+`boxgaming/gx` holds a copy that `study\archive\44` describes as written in QB64.
 A JavaScript runtime and the GX game engine come with it. QB64pe's IDE has a "QBJS Web Build" dialog that runs
 it (`study\archive\04` §2.1). Programs can be written and run in its online IDE, but they do not need it. QB64pe's
 `internal\support\converter\qbjs-build.bas` compiles ahead of time with Node (`node qbc.js prog.bas
@@ -79,6 +81,8 @@ What follows for us:
   the dangerous case, because nothing reports it.
 - Civil War Strategy uses `$RESIZE:STRETCH` (`cws.bas` line 5) and `DEF SEG` with `BLOAD` for its pictures
   (`load_picture`, `draw\pictures.bm`; the game's `TODO.md`). Both are on the unsupported list.
+  What QBJS lacks for the game, measured by compiling it on 2026-11-16, and the plan to add it in our fork
+  are in the game's repo: `..\civil-war-strategy\docs\qbjs-plan.md`.
 - A "QBJS-compatible" lint is possible, taking a few hours of Claude's time. Once we have a web target of our
   own its value is small, and the lists change with QBJS's releases. **Not recommended.**
 

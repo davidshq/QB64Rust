@@ -283,8 +283,24 @@ impl<'a> Parser<'a, '_> {
         let message = message.into();
         match self.unhandled_token() {
             Some(what) => self.unsupported_at(span, format!("{what} ({message})")),
-            None => self.error_at(span, message),
+            None => match self.missing_underscore() {
+                Some(word) => self.error_at(span, format!("{message}; did you mean `{word}`?")),
+                None => self.error_at(span, message),
+            },
         }
+    }
+
+    /// The reserved word the current token would be with a `_` before it (`AndAlso` gives `_ANDALSO`). Other
+    /// dialects, such as QBJS, write these words without the underscore.
+    fn missing_underscore(&self) -> Option<&'static str> {
+        if !self.at(Ident) {
+            return None;
+        }
+        let text = self.nth_text(0);
+        keywords::keywords()
+            .iter()
+            .copied()
+            .find(|k| k.as_bytes()[0] == b'_' && k.as_bytes()[1..].eq_ignore_ascii_case(text))
     }
 
     /// `operator `MOD``, `word `TO``, `` `#` ``... when the current token is a known BASIC word or operator.
