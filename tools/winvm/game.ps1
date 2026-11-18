@@ -21,6 +21,10 @@
 # Node on PATH, and with this repo's target\release\qb64rust.exe copied in when the host has it, so that the
 # command can build with QB64Rust. At the end suites.ps1 -Stop turns the VM off.
 #
+# The run's log is also written, as it comes in, to target\check\vm\game-<game>\log.txt: the lines of game.ps1 and
+# step.ps1, and the command's output every 10 s. Read it to follow a run that is still going. The logs of the last
+# 10 runs before it are kept beside it, in runs\log-<date>_<time>.txt.
+#
 # The VM has Microsoft Edge, which comes with Windows 11, and no Chrome.
 #
 # Exit: the command's exit code; 2 when the VM refused (its line says why), 1 when the run could not be done.
@@ -44,7 +48,13 @@ $repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path.TrimE
 $parent = Split-Path $repo
 $node = (Import-PowerShellDataFile (Join-Path $PSScriptRoot 'pins.psd1')).Node
 
-function Say([string]$text) { Write-Host "game.ps1: $text" }
+$logFile = $null
+
+# A line of the run's log: to the console, and to log.txt in the scratch folder once there is one.
+function Say([string]$text) {
+    Write-Host "game.ps1: $text"
+    if ($script:logFile) { [IO.File]::AppendAllText($script:logFile, "game.ps1: $text`n") }
+}
 function Seconds([datetime]$since) { ((Get-Date) - $since).TotalSeconds }
 
 $Game = (Resolve-Path -LiteralPath $Game).Path.TrimEnd('\')
@@ -66,6 +76,22 @@ foreach ($p in $folders) {
 # Scratch files on the host, in this repo's target\, which git ignores.
 $scratch = Join-Path $repo "target\check\vm\game-$(Split-Path $Game -Leaf)"
 New-Item -ItemType Directory -Force $scratch | Out-Null
+# The run's log, made again each run and written as the run goes, so that the results can be read before it ends.
+# The last run's log is kept first, as runs\log-<date>_<time>.txt (the time it was last written), the last
+# $keptLogs of them: on 2026-11-18 a short run replaced the log of a whole one before its failures were noted.
+$logFile = Join-Path $scratch 'log.txt'
+$keptLogs = 10
+if ((Test-Path -LiteralPath $logFile) -and (Get-Item -LiteralPath $logFile).Length -gt 0) {
+    $runs = Join-Path $scratch 'runs'
+    New-Item -ItemType Directory -Force $runs | Out-Null
+    $stamp = (Get-Item -LiteralPath $logFile).LastWriteTime.ToString('yyyy-MM-dd_HHmmss')
+    Move-Item -Force -LiteralPath $logFile -Destination (Join-Path $runs "log-$stamp.txt")
+    Get-ChildItem -LiteralPath $runs -Filter 'log-*.txt' | Sort-Object Name -Descending |
+        Select-Object -Skip $keptLogs | Remove-Item
+}
+[IO.File]::WriteAllText($logFile, '')
+Say "the run's log, written as it goes: $logFile"
+Say "the command: $($Command -join ' ')"
 
 # A file downloaded once into %LOCALAPPDATA%\qb64rust\winvm\installers\ and checked against its hash, as create.ps1
 # does.
@@ -180,6 +206,7 @@ try {
         clears   = @()
         limit    = $Limit
         scratch  = $scratch
+        log      = $logFile
     }
     $jobFile = Join-Path $scratch 'job.json'
     [IO.File]::WriteAllText($jobFile, ($job | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding($false)))

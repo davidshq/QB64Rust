@@ -21,6 +21,11 @@ name$n
 A `STRING` variable holds any number of bytes, and starts empty. `LEN` gives its length.
 <!-- src: tests\reference\examples\string_1; verification\v24_a_define -->
 
+A string holds at most 2,147,483,647 bytes. A concatenation past that raises run-time error 5, "Illegal function
+call", and gives an empty string, where QB64pe crashed. QB 4.5 raises the same error past its limit of 32,767 bytes,
+but leaves the variable as it was.
+<!-- src: D-067; Q-038; verification\v63_g3_concat_over_2gb; verification\qb45\q45_string_too_long -->
+
 `DIM name AS STRING * n`, or the suffix form `name$n`, declares a string of exactly `n` bytes. `name$n` is a
 variable other than `name$`.
 <!-- src: language/fixed-length-strings "Fixed-length string declarations" -->

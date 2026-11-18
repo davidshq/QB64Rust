@@ -101,6 +101,35 @@ keep a session going because a run has not happened.
 - **WHEN** `check full` starts
 - **THEN** the command returns at once with the log's path, and the runs go on in the background
 
+### Requirement: One run of steps at a time
+In one tree, `check` SHALL run steps for one command at a time. A run SHALL hold the lock
+`target/check/run.lock`, naming its process, what it runs and when it started. A run in the background SHALL take
+the lock over from the command that started it. A second `check` that would run steps SHALL refuse, naming the
+run that holds the lock. A lock whose process has ended SHALL be taken over. The refusal is because a run is
+going, so it does not conflict with "Nothing waits on a run".
+
+#### Scenario: A second run while one goes
+- **WHEN** `check quick` runs in the background and a second `check quick` starts
+- **THEN** the second refuses with a line naming the first run's process and start, and the first goes on
+
+#### Scenario: Reading while a run goes
+- **WHEN** a run holds the lock and `check status`, `check history` or `check quick --plan` is given
+- **THEN** it is not refused, and `status` names the run that holds the lock
+
+#### Scenario: A lock left by a run that ended
+- **WHEN** `target/check/run.lock` names a process that has ended, or a process that started after the lock was
+  written
+- **THEN** the next run takes the lock over, with a line saying so
+
+### Requirement: A failed step's log is kept
+Since each step's log is made again by its next run, when a step fails `check` SHALL also copy its log to
+`target/check/logs/failed/<step>-<date>_<time>.log`, keep the last 5 of each step, and name the copy under `kept`
+in the run's line of `history.jsonl`.
+
+#### Scenario: A step fails and runs again
+- **WHEN** a step fails and then passes on the next run
+- **THEN** the failed run's log is still in `target/check/logs/failed/`, and the run's history line names it
+
 ### Requirement: The cost of a check is held by tests
 The tests of `check` SHALL assert the set of steps it plans for standard changes: a change of documents alone plans
 no step; a change of a suite's list or recordings plans that suite's new or changed programs only; a change under

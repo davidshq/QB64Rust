@@ -151,7 +151,8 @@ Speed (corpus and compile suites; the C++ build is most of each program's time):
     clone lacks); results are printed as they finish. Compile tests of one folder run (not build)
     one at a time, since it is their working folder. --record runs one at a time. With qb64rust a
     program that fails beside other builds runs again alone after them and both outcomes are
-    reported; a pass alone fails the run unless the program is timing-sensitive (timing_sensitive)
+    reported; a pass alone fails the run unless the program is timing-sensitive (timing_sensitive).
+    A program with a <name>.alone sidecar runs after the others, one at a time
   * runs of qb64rust share the clone's lock, so two of them (the corpus and the compile suite, say)
     run side by side; a run of qb64pe in the clone has it alone (clone_lock.py)
   * --jobs N with qb64pe (corpus suite only): qb64pe builds inside its own folder (internal/temp,
@@ -1655,6 +1656,9 @@ PASSED_BEFORE = "not run: passed before with these build inputs and these expect
 # A program whose result depends on the clock, a device, the network, sound or the desktop: <name>.external beside
 # its .bas, one line saying which (tools/legacy_tests/README.md). The pass cache never serves it.
 EXTERNAL = ".external"
+# A program that must not run beside others, such as one that needs gigabytes of memory: <name>.alone beside its
+# .bas, one line saying why (tools/legacy_tests/README.md). With --jobs it runs after the others, one at a time.
+ALONE = ".alone"
 
 
 def pass_key(build: bytes, parts: list[bytes | None]) -> str:
@@ -2567,6 +2571,7 @@ SUPPORT_SKIP_SUFFIXES = (
     ".noprompt",
     ".root",
     EXTERNAL,
+    ALONE,
 )
 # qb45\ holds the QB 4.5 programs (verification\README.md): taken as a support folder of no family it was copied
 # to every program and its digest was a part of every pass-cache key, so a new QB 4.5 program ran all again.
@@ -3430,22 +3435,27 @@ def start_order(keys: list[str | None], times: dict[str, list]) -> list[int]:
 def run_all(tests: list[Path], run_one, jobs: int, order: list[int] | None = None):
     """Yields (index in tests, run_one's results): in `order` (default: the list's) with one job; with more, as
     they finish (the first program alone, so that a libqb object the clone lacks is built once, not by several
-    `make`s at a time)."""
+    `make`s at a time). A program with an ALONE sidecar runs after all the others, one at a time."""
     order = list(range(len(tests))) if order is None else order
     if jobs == 1 or len(tests) == 1:
         for i in order:
             yield i, run_one(tests[i])
         return
-    yield order[0], run_one(tests[order[0]])
-    pool = concurrent.futures.ThreadPoolExecutor(max_workers=jobs)
-    try:
-        futures = {pool.submit(run_one, tests[i]): i for i in order[1:]}
-        for f in concurrent.futures.as_completed(futures):
-            yield futures[f], f.result()
-    finally:
-        # On Ctrl+C (or the caller stopping early) drop the programs not yet started; only the
-        # running ones finish.
-        pool.shutdown(wait=True, cancel_futures=True)
+    last = [i for i in order if tests[i].with_suffix(ALONE).is_file()]
+    order = [i for i in order if i not in last]
+    if order:
+        yield order[0], run_one(tests[order[0]])
+        pool = concurrent.futures.ThreadPoolExecutor(max_workers=jobs)
+        try:
+            futures = {pool.submit(run_one, tests[i]): i for i in order[1:]}
+            for f in concurrent.futures.as_completed(futures):
+                yield futures[f], f.result()
+        finally:
+            # On Ctrl+C (or the caller stopping early) drop the programs not yet started; only the
+            # running ones finish.
+            pool.shutdown(wait=True, cancel_futures=True)
+    for i in last:
+        yield i, run_one(tests[i])
 
 
 # What a program names when its result may change with the load of the machine: it waits in real

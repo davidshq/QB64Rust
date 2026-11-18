@@ -32,6 +32,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -932,6 +933,29 @@ def toolchain_note(root: Path) -> str | None:
     return None
 
 
+KEPT_FAILED_LOGS = 5
+
+
+def keep_failed_log(root: Path, step: str, log: Path) -> str | None:
+    """A copy of a failed step's log in target/check/logs/failed/<step>-<date>_<time>.log, since the step's own log is
+    made again by its next run: it names what failed (on 2026-11-18 the names of the failures of a run were lost that
+    way). The last KEPT_FAILED_LOGS of each step are kept. Returns the copy's path, relative to the root."""
+    folder = log.parent / "failed"
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        copy = folder / f"{step}-{time.strftime('%Y-%m-%d_%H%M%S')}.log"
+        shutil.copyfile(log, copy)
+        # The names sort by time. The glob also matches a longer step's name (`clippy-linux-…` for `clippy`), so
+        # each stem is checked whole.
+        stem = re.compile(re.escape(step) + r"-\d{4}-\d\d-\d\d_\d{6}")
+        mine = sorted(f for f in folder.glob(f"{step}-*.log") if stem.fullmatch(f.stem))
+        for old in mine[:-KEPT_FAILED_LOGS]:
+            old.unlink()
+        return copy.relative_to(root).as_posix()
+    except OSError:
+        return None
+
+
 def run_step(p: Planned, root: Path, force: bool, nextest: bool, vm: SuitesVM | None = None) -> dict:
     logs = state(root) / "logs"
     logs.mkdir(parents=True, exist_ok=True)
@@ -980,6 +1004,10 @@ def run_step(p: Planned, root: Path, force: bool, nextest: bool, vm: SuitesVM | 
     }
     if p.narrowed:
         record["narrowed"] = p.narrowed
+    if rc != 0:
+        kept = keep_failed_log(root, p.step.name, log)
+        if kept:
+            record["kept"] = kept
     # The time of the step's last whole pass, anywhere and in the VM, which a VM step's limit is taken from
     # (`vm_limit`). A failure or a narrowed run keeps the earlier ones: a step that failed in a second must not cut
     # the next run's limit.
@@ -1026,6 +1054,7 @@ def execute(root: Path, plan: Plan, force: bool, what: str = "") -> int:
     failed_names: set[str] = set()
     skipped: set[str] = set()
     ran: dict[str, list] = {}
+    kept: dict[str, str] = {}
     started = time.time()
     steps_in_order = order(plan.run, root)
     in_vm = [p for p in steps_in_order if uses_vm(p)]
@@ -1059,6 +1088,9 @@ def execute(root: Path, plan: Plan, force: bool, what: str = "") -> int:
                 if r["result"] != "pass":
                     failed += 1
                     failed_names.add(p.step.name)
+                    if r.get("kept"):
+                        kept[p.step.name] = r["kept"]
+                        print(f"          its log kept: {r['kept']}", flush=True)
             # The VM is off before the steps after the last VM step: the sandbox family's VM may start then.
             if vm and p is in_vm[-1]:
                 vm.stop()
@@ -1066,7 +1098,7 @@ def execute(root: Path, plan: Plan, force: bool, what: str = "") -> int:
         if vm:
             vm.stop()
     print(f"{len(plan.run) - failed} passed, {failed} failed, {len(plan.standing)} standing")
-    log_history(root, what, ran, plan, time.time() - started)
+    log_history(root, what, ran, plan, time.time() - started, kept)
     return 1 if failed else 0
 
 
@@ -1077,9 +1109,12 @@ def history_path(root: Path) -> Path:
     return state(root) / "history.jsonl"
 
 
-def log_history(root: Path, what: str, ran: dict[str, list], plan: Plan | None, seconds: float) -> None:
+def log_history(
+    root: Path, what: str, ran: dict[str, list], plan: Plan | None, seconds: float, kept: dict[str, str] | None = None
+) -> None:
     """One line per `check` run in target/check/history.jsonl: what was asked, each step run with its result and
-    seconds, the steps that stood and those left to `full`, the wall time. `check history` sums it per day, the
+    seconds, the steps that stood and those left to `full`, the wall time, and the kept copy of each failed step's
+    log (`keep_failed_log`). `check history` sums it per day, the
     measure of the time testing takes (the change testing-reset; the record of tools\\testtime, archived, did this
     from the session logs)."""
     line = {
@@ -1090,6 +1125,8 @@ def log_history(root: Path, what: str, ran: dict[str, list], plan: Plan | None, 
         "standing": [s.name for s, _ in plan.standing] if plan else [],
         "left": [s.name for s, _ in plan.left] if plan else [],
     }
+    if kept:
+        line["kept"] = kept
     try:
         p = history_path(root)
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -1154,16 +1191,189 @@ def to_background(root: Path, argv: list[str]) -> int:
     log = state(root) / "run.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     out = log.open("wb")
-    kw: dict = {"cwd": root, "stdout": out, "stderr": subprocess.STDOUT, "stdin": subprocess.DEVNULL}
+    # The run in the background holds the lock this one took (`take_lock`).
+    env = {**os.environ, HANDED_LOCK: "1"}
+    kw: dict = {"cwd": root, "stdout": out, "stderr": subprocess.STDOUT, "stdin": subprocess.DEVNULL, "env": env}
     if os.name == "nt":
         # A console of its own that is never shown, which every program the run starts shares. With no console at
         # all (DETACHED_PROCESS), Windows opened a new window for each console program a step started.
         kw["creationflags"] = subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         kw["start_new_session"] = True
-    subprocess.Popen([sys.executable, str(Path(__file__).resolve()), *argv, "--wait"], **kw)
+    child = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), *argv, "--wait"], **kw)
+    hand_lock(root, child.pid)
     print(f"running in the background; report: {log.relative_to(root).as_posix()} (`check status` for each step)")
     return 0
+
+
+# --- One run at a time --------------------------------------------------------------------------------------------
+
+# Set by `to_background` for the run it starts, which then holds the lock without taking it.
+HANDED_LOCK = "QB64RUST_CHECK_HANDED_LOCK"
+
+
+def lock_path(root: Path) -> Path:
+    return state(root) / "run.lock"
+
+
+def process_started(pid: int) -> float | None:
+    """When the process `pid` started (seconds since the epoch), or None when no such process is running."""
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel.OpenProcess.restype = wintypes.HANDLE
+        kernel.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        kernel.GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(wintypes.FILETIME)] * 4
+        kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+        handle = kernel.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            # Access denied: a process that runs but may not be read, so counted as running (it started long ago).
+            return 0.0 if ctypes.get_last_error() == 5 else None
+        try:
+            code = wintypes.DWORD()
+            if not kernel.GetExitCodeProcess(handle, ctypes.byref(code)) or code.value != 259:  # STILL_ACTIVE
+                return None
+            times = [wintypes.FILETIME() for _ in range(4)]
+            if not kernel.GetProcessTimes(handle, *(ctypes.byref(t) for t in times)):
+                return None
+            ticks = (times[0].dwHighDateTime << 32) | times[0].dwLowDateTime
+            return ticks / 1e7 - 11644473600  # 100 ns ticks since 1601
+        finally:
+            kernel.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return None
+    except PermissionError:
+        pass
+    return 0.0  # running; its start time is not needed off Windows, where process IDs are not soon reused
+
+
+FRESH_LOCK_SECONDS = 10
+
+
+def lock_holder(root: Path) -> dict | None:
+    """The run holding the lock, or None when there is no lock or its process has ended. A process ID that
+    started after the lock was written is another program's, given the ID of a run that ended. A lock that cannot
+    be read is held while it is new: a run is writing it."""
+    lock = lock_path(root)
+    try:
+        text = lock.read_text(encoding="utf-8")
+        age = time.time() - lock.stat().st_mtime
+    except OSError:
+        return None
+    try:
+        held = json.loads(text)
+        pid, written = int(held["pid"]), float(held["written"])
+    except (ValueError, KeyError, TypeError):
+        return {"pid": "?", "what": "?", "started": time.time() - age} if age < FRESH_LOCK_SECONDS else None
+    started = process_started(pid)
+    if started is None or started > written + 1:
+        return None
+    # 0.0: running, but when it started could not be read (another account's or a protected process, or not on
+    # Windows), so it may be a process that took the ID of a run that ended.
+    return {**held, "unknown": True} if started == 0.0 else held
+
+
+def write_lock(root: Path, pid: int, what: str, exclusive: bool) -> bool:
+    lock = lock_path(root)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps({"pid": pid, "what": what, "started": time.time(), "written": time.time()})
+    try:
+        with lock.open("x" if exclusive else "w", encoding="utf-8") as f:
+            f.write(text)
+    except FileExistsError:
+        return False
+    return True
+
+
+def take_lock(root: Path, what: str) -> str | None:
+    """Takes the lock for this run: None when taken, else why not. A second `check` that would run steps refuses
+    while one runs: two runs mixed their reports in run.log, and the test runner's own lock failed the second
+    run's suite step (2026-11-18). A lock whose process has ended is taken over, with a line saying so."""
+    if os.environ.pop(HANDED_LOCK, None):
+        return None
+    lock = lock_path(root)
+    name = lock.relative_to(root).as_posix()
+    # Windows refuses to move a file another process has open for a moment (`check status` reading the lock), so
+    # each try that met another process waits a little before the next.
+    for _ in range(50):
+        if write_lock(root, os.getpid(), what, exclusive=True):
+            return None
+        try:
+            seen = lock.read_bytes()
+        except OSError:
+            time.sleep(0.02)
+            continue
+        held = lock_holder(root)
+        if held is not None:
+            report = " (its report: target/check/run.log)" if held.get("background") else ""
+            unknown = (
+                f" If process {held['pid']} is not a `check`, it only took the ID of a run that ended: delete {name}."
+                if held.get("unknown")
+                else ""
+            )
+            return (
+                f"check {what} refused: `check {held.get('what', '?')}` is running, process {held['pid']}, started "
+                f"{when(float(held['started']))}{report}. Run it again when that one has ended; `check status` "
+                f"shows each step meanwhile.{unknown}"
+            )
+        # The stale lock is moved aside, not deleted: another run may have taken it over and written its own in
+        # the meantime, and that one must not be lost. What was moved is put back unless it is what was judged.
+        aside = lock.with_name(f"run.lock.{os.getpid()}")
+        try:
+            os.replace(lock, aside)
+        except OSError:
+            time.sleep(0.02)
+            continue
+        try:
+            judged = aside.read_bytes() == seen
+        except OSError:
+            aside.unlink(missing_ok=True)
+            continue
+        if judged:
+            aside.unlink()
+            print(f"note: {name} was left by a run that ended; taken over")
+        else:
+            try:
+                os.link(aside, lock)  # fails when a third run has taken the lock meanwhile; that one holds it
+            except OSError:
+                pass
+            aside.unlink()
+    return f"check {what} refused: could not take {name}"
+
+
+def hand_lock(root: Path, pid: int) -> None:
+    """The lock passes to the run in the background, which releases it when it ends."""
+    try:
+        held = json.loads(lock_path(root).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        held = {"what": "?", "started": time.time()}
+    held.update(pid=pid, written=time.time(), background=True)
+    # Written whole and then swapped in, so that a run reading the lock never finds it empty. Windows refuses the
+    # swap while another process has the file open for a moment, so it is tried again.
+    new = lock_path(root).with_name(f"run.lock.{os.getpid()}")
+    new.write_text(json.dumps(held), encoding="utf-8")
+    for attempt in range(50):
+        try:
+            os.replace(new, lock_path(root))
+            return
+        except PermissionError:
+            if attempt == 49:
+                raise
+            time.sleep(0.02)
+
+
+def release_lock(root: Path) -> None:
+    """Removes the lock when this process holds it (not once it was handed to a run in the background)."""
+    try:
+        if int(json.loads(lock_path(root).read_text(encoding="utf-8"))["pid"]) == os.getpid():
+            lock_path(root).unlink()
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
 
 
 def dirty(root: Path) -> list[str]:
@@ -1294,6 +1504,9 @@ def status(root: Path) -> int:
     lock = state(root) / "run.log"
     if lock.is_file():
         print(f"last background report: {lock.relative_to(root).as_posix()}, {when(lock.stat().st_mtime)}")
+    held = lock_holder(root)
+    if held:
+        print(f"running now: `check {held.get('what', '?')}`, process {held['pid']}, started {when(held['started'])}")
     return 0
 
 
@@ -1327,6 +1540,20 @@ def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
         return status(root)
     if a.what == "history":
         return history(root, a.days)
+    if a.plan:
+        return run_asked(a, argv, root)
+    refused = take_lock(root, a.what)
+    if refused:
+        print(refused)
+        return 2
+    try:
+        return run_asked(a, argv, root)
+    finally:
+        release_lock(root)
+
+
+def run_asked(a: argparse.Namespace, argv: list[str], root: Path) -> int:
+    """What `main` was asked for, other than `status` and `history`: a layer, a step or a target."""
     if a.what in (QUICK, FULL, MERGE):
         if a.what != QUICK and not a.plan:
             changes = dirty(root)

@@ -17,7 +17,13 @@ A step given as a string (the WSL steps, the merge's shell lines) runs in Git's 
 --exec-path`: on Windows `System32\bash.exe`, WSL's, comes first otherwise. `--plan` prints what would run;
 `--wait` stays in the foreground. A plan longer than a minute (by the steps' last
 times) goes to the background, its report in `target\check\run.log` and each step's output in
-`target\check\logs\<step>.log`. Nothing in the project refuses a command or holds a session because a run has not
+`target\check\logs\<step>.log`. That log is made again by the step's next run, so a failed step's log is also
+copied to `target\check\logs\failed\<step>-<date>_<time>.log`, the last 5 of each step, and the run's line in
+`history.jsonl` names the copy under `kept`. One run of steps goes at a time: a run holds
+`target\check\run.lock` (its process, what it runs, when it started), a run in the background takes it over from
+the command that started it, and a second `check` that would run steps refuses with a line naming the first.
+`status`, `history` and `--plan` are not refused, and `status` names the run going. A lock whose process has
+ended is taken over. Nothing in the project refuses a command or holds a session because a run has not
 happened.
 
 **A run in a worktree.** `full` and `merge` run in a worktree of a commit, made beside the checkout

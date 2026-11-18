@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -1294,6 +1295,31 @@ class StartOrder(unittest.TestCase):
             # Served by the pass cache: a pass, with the time of the run that ran it.
             rlt.write_times("corpus", [rlt.Result("corpus", "g/p", "output", seconds=0.1, detail=rlt.PASSED_BEFORE)])
             self.assertEqual(rlt.read_times("corpus")["corpus:g/p"], [3.0, "PASS"])
+
+    def test_a_program_marked_alone_runs_after_the_others_one_at_a_time(self):
+        with tempfile.TemporaryDirectory() as d:
+            tests = [Path(d) / f"{n}.bas" for n in "abcde"]
+            for n in "bd":
+                (Path(d) / f"{n}.alone").write_text("memory: about 4.5 GB\n", encoding="utf-8")
+            lock = threading.Lock()
+            running, events = [0], []
+
+            def run_one(p):
+                with lock:
+                    running[0] += 1
+                    events.append((p.stem, running[0]))
+                time.sleep(0.05)
+                with lock:
+                    running[0] -= 1
+                return p.stem
+
+            out = list(rlt.run_all(tests, run_one, 4, [3, 0, 1, 2, 4]))
+            # The others first (a, then c and e side by side), then d and b in their order, each alone.
+            self.assertEqual([i for i, _ in out][-2:], [3, 1])
+            self.assertEqual(sorted(i for i, _ in out[:3]), [0, 2, 4])
+            self.assertEqual([e for e in events if e[0] in "bd"], [("d", 1), ("b", 1)])
+            # With one job nothing changes: the order as given.
+            self.assertEqual([i for i, _ in rlt.run_all(tests, lambda p: p.stem, 1, [3, 0, 1, 2, 4])], [3, 0, 1, 2, 4])
 
 
 class RunInputs(unittest.TestCase):

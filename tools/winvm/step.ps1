@@ -7,8 +7,9 @@
 # (a command run before it, or null), "cwd" (relative to the tree), "env", "copy" (host files of the tree put in the
 # guest's copy first), "outputs" (copied out at the end; tools\winvm\outputs.py), "clears" (removed first), and
 # "limit" (seconds). Optional, for tools\winvm\game.ps1: "compiler" (the qb64rust.exe the toolchain guard asks,
-# relative to the tree; "" for no guard), "path" (folders of the guest put first on PATH), and "scratch" (the host
-# folder for the outputs' archive; else the tree's target\check\vm).
+# relative to the tree; "" for no guard), "path" (folders of the guest put first on PATH), "scratch" (the host
+# folder for the outputs' archive; else the tree's target\check\vm), and "log" (a host file that the step's log is
+# also appended to as it comes in).
 #
 # Before the command, the guest's qb64rust.exe must say that it builds with the installed toolchain: the clone at
 # ..\QB64pe beside the tree in the guest serves only qb64pe.exe, and a build with its toolchain would hide a
@@ -31,11 +32,22 @@ $own = 'qb64rust-vm'
 $taskName = 'qb64rust-step'
 $out = [Console]::OpenStandardOutput()
 
-# A line of the step's log, as bytes, beside the guest's log bytes.
-function Say([string]$text) {
-    $bytes = [Text.Encoding]::UTF8.GetBytes("step.ps1: $text`n")
+$logFile = $null
+
+# Bytes of the step's log: to standard output, and appended to the job's "log" file when it names one, so that
+# the file can be read while the step runs.
+function Write-Out([byte[]]$bytes) {
     $out.Write($bytes, 0, $bytes.Length)
     $out.Flush()
+    if ($script:logFile) {
+        $f = [IO.File]::Open($script:logFile, 'Append', 'Write', 'ReadWrite')
+        try { $f.Write($bytes, 0, $bytes.Length) } finally { $f.Close() }
+    }
+}
+
+# A line of the step's log, as bytes, beside the guest's log bytes.
+function Say([string]$text) {
+    Write-Out ([Text.Encoding]::UTF8.GetBytes("step.ps1: $text`n"))
 }
 
 function Seconds([datetime]$since) { ((Get-Date) - $since).TotalSeconds }
@@ -54,6 +66,7 @@ $Tree = (Resolve-Path -LiteralPath $Tree).Path.TrimEnd('\')
 $parent = Split-Path $Tree
 $spec = Get-Content -Raw -LiteralPath $Job | ConvertFrom-Json
 $step = $spec.step
+if ($spec.PSObject.Properties['log'] -and $spec.log) { $logFile = $spec.log }
 $guest = "C:\run\$step"
 $session = $null
 $code = 1
@@ -97,8 +110,7 @@ function Show-Log {
     }
     if ($bytes -and $bytes.Length -gt 0) {
         $bytes = [byte[]]$bytes
-        $out.Write($bytes, 0, $bytes.Length)
-        $out.Flush()
+        Write-Out $bytes
         $script:offset += $bytes.Length
     }
 }

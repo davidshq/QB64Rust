@@ -118,7 +118,8 @@ A script SHALL run one command of a game's repo, which is beside this repo, in t
 stop the VM as `check` does, copy in this repo, the game, and the other folders beside them that the run names,
 put Node.js on the command's PATH, and copy the named outputs back to the game's folder, also after a failure.
 When the VM has no installed Node.js, the script SHALL put the pinned release on the cache disk, checked by
-SHA-256 on the host.
+SHA-256 on the host. The script SHALL also write the run's log to a file on the host as it comes in, so that the
+results can be read before the run ends.
 
 #### Scenario: Node is not installed in the VM
 - **WHEN** a game's run starts in a suites VM made without Node.js
@@ -132,7 +133,19 @@ SHA-256 on the host.
 - **WHEN** the game's command ends with a non-zero exit code
 - **THEN** the script ends with that code, the outputs are copied back, and the VM is turned off
 
+#### Scenario: Following a run that is still going
+- **WHEN** a game's run is going and its command has printed lines
+- **THEN** `target\check\vm\game-<game>\log.txt` on the host holds them, at most about 10 s late
+
 #### Scenario: A folder that is not beside this repo
 - **WHEN** the game, or a folder the run names, is not beside this repo, or is this repo, the QB64pe clone or
   the community clones
 - **THEN** the script refuses before the VM is started
+
+### Requirement: A game run's log is kept after the next run
+Before it starts a new log, the game run's script SHALL keep the last run's log beside it, the last 10 of them,
+so that a run's results stay readable after the next run.
+
+#### Scenario: A run after a run
+- **WHEN** a game's run starts and the last run's `log.txt` is there
+- **THEN** that log is moved to `runs\log-<date>_<time>.txt` beside it, and only the 10 newest of those stay

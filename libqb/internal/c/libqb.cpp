@@ -25783,8 +25783,19 @@ qbs *func__readfile(qbs *filespec) {
     file = fopen((const char *)namez->chr, "rb");
 
     if (file) {
-        fseek(file, 0, SEEK_END); // end pos
-        len = ftell(file);        //   = file length
+#ifdef QB64_WINDOWS
+        _fseeki64(file, 0, SEEK_END); // end pos
+        int64_t flen = _ftelli64(file); // = file length, past 2 GB too
+#else
+        fseeko(file, 0, SEEK_END); // end pos
+        int64_t flen = ftello(file); // = file length, past 2 GB too
+#endif
+        if (flen < 0 || flen > INT32_MAX) { // longer than a string can be
+            fclose(file);
+            error(QB_ERROR_PATH_FILE_ACCESS_ERROR);
+            return qbs_new_txt("");
+        }
+        len = (int)flen;
         rewind(file);             // rewind to start
         cont = qbs_new(len, 1);   // get new string for file contents
         fread(cont->chr, 1, len, file);

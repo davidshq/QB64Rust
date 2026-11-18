@@ -137,6 +137,10 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   `verification\` (one per program: a script's test takes its program's); for an upstream program, which is
   read from the clone, in `tests\upstream\external\<category>\<name>.external`. Every screen program has one
   (`crates\driver\tests\it\inputs.rs` holds it); the others were found by what their source calls.
+- `<name>.alone` (beside the `.bas`, any suite): one line, why the program must not run beside others, such as
+  `memory:` for one that needs gigabytes. With `--jobs` above 1 it runs after all the others, one at a time; with
+  one job nothing changes. "Alone" is alone in this run: another suite's run may still go on beside it. The
+  verification programs `v63_g2` and `v63_g3` have one: each commits about 4.5 GB (`DECISIONS.md` 2026-11-18).
 - `--list-only` (corpus, compile, verification): runs nothing and prints every file inside the repository that
   the selected programs' runs read, one per line. `tools\check\test_check.py` holds the globs of each suite's
   step (`tools\check\steps.py`) to cover them.

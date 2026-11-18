@@ -239,6 +239,17 @@ reads the clock, plays sound, or reads the keyboard or the mouse while it runs).
 - **WHEN** a program that only prints fails with `--jobs 8` and passes alone
 - **THEN** it counts as passed, a note names it, and the run fails
 
+### Requirement: A program marked to run alone
+With `--jobs` above 1, a program with an `.alone` sidecar beside its `.bas` (one line: why it must not run beside
+others, such as the gigabytes of memory it needs) SHALL run after all the other programs of the run, one at a
+time. With one job the order SHALL NOT change.
+
+#### Scenario: Two programs that need much memory
+- **WHEN** `verification\v63_g2_reassign_large_string` and `v63_g3_concat_over_2gb`, each with an `.alone`
+  sidecar, run in a verification run with `--jobs 8`
+- **THEN** they start after every other program of the run has finished, and the second starts after the first
+  has finished
+
 ### Requirement: The pass cache of the corpus suite
 With `--pass-cache`, a corpus program that passed before SHALL not be built or run again while the C++ the
 compiler writes for it, libqb's sources and edits, the C++ toolchain, the runner, its source, its expected files,

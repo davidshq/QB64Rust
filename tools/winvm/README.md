@@ -256,7 +256,10 @@ working rule 6). The game must be beside this repo. From this repo's folder, in 
   the game's `node_modules`, since the VM cannot download packages. When the host has `target\release\qb64rust.exe`,
   it is copied in too, so the command can build with QB64Rust.
 - **What comes back.** Each `-Outputs` path, a file or a folder, to the same place in the host's game folder. The
-  command's output is printed every 10 s, as for a `check` step.
+  command's output is printed every 10 s, as for a `check` step. It also goes, as it comes in, to
+  `target\check\vm\game-<game>\log.txt`, made again each run: read that file to follow a run still going. The
+  last 10 runs' logs before it are kept in `runs\log-<date>_<time>.txt` beside it, by the time each was last
+  written.
 - `-Limit` is the longest the command may take, 3600 s by default.
 
 Its exit code is the command's; 2 when the VM refused, with a line saying why. (OpenSpec change `vm-game-runs`.)

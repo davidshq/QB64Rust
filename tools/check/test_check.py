@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -786,6 +787,157 @@ class Execute(unittest.TestCase):
         finally:
             repo.close()
 
+    def test_a_failed_steps_log_is_kept_and_named_in_the_history(self):
+        repo = FakeRepo()
+        try:
+            repo.pass_all()
+            repo.write("tools/check/check.py", "# changed\n")
+            plan = check.make_plan(repo.root, QUICK)
+            name = plan.run[0].step.name
+            fail = (sys.executable, "-c", "print('broken: p1'); raise SystemExit(1)")
+            plan.run[0].step = steps.Step(name, QUICK, fail, plan.run[0].step.inputs)
+            self.assertEqual(check.execute(repo.root, plan, False, "quick"), 1)
+            kept = check.read_history(repo.root)[-1]["kept"][name]
+            self.assertIn("broken: p1", (repo.root / kept).read_text(encoding="utf-8"))
+            # The next run makes the step's own log again; the copy stays.
+            self.assertTrue((repo.root / kept).is_file())
+        finally:
+            repo.close()
+
+    def test_only_the_last_failed_logs_of_a_step_are_kept(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            logs = root / "target/check/logs"
+            (logs / "failed").mkdir(parents=True)
+            log = logs / "clippy.log"
+            log.write_text("now\n", encoding="utf-8")
+            for i in range(check.KEPT_FAILED_LOGS + 2):
+                (logs / "failed" / f"clippy-2026-01-0{i + 1}_000000.log").write_text("old\n", encoding="utf-8")
+            other = logs / "failed" / "clippy-linux-2026-01-01_000000.log"
+            other.write_text("other step\n", encoding="utf-8")
+            kept = check.keep_failed_log(root, "clippy", log)
+            left = sorted(f.name for f in (logs / "failed").glob("clippy-2*.log"))
+            self.assertEqual(len(left), check.KEPT_FAILED_LOGS)
+            self.assertEqual(left[-1], Path(kept).name)
+            self.assertTrue(other.is_file())
+
+
+class OneRunAtATime(unittest.TestCase):
+    """The lock target/check/run.lock (2026-11-18)."""
+
+    def setUp(self):
+        self.repo = FakeRepo()
+        self.repo.pass_all()
+
+    def tearDown(self):
+        self.repo.close()
+
+    def hold(self, pid: int, written: float | None = None) -> None:
+        lock = check.lock_path(self.repo.root)
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        t = time.time() if written is None else written
+        lock.write_text(json.dumps({"pid": pid, "what": "full", "started": t, "written": t}), encoding="utf-8")
+
+    def test_a_second_run_refuses_while_one_runs(self):
+        self.hold(os.getpid())
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check.main(["quick", "--wait"], root=self.repo.root), 2)
+        self.assertIn("`check full` is running", out.getvalue())
+        self.assertTrue(check.lock_path(self.repo.root).is_file())  # still the other run's
+        # Reading is not refused.
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(check.main(["status"], root=self.repo.root), 0)
+            self.assertEqual(check.main(["quick", "--plan"], root=self.repo.root), 0)
+
+    def test_a_lock_left_by_a_run_that_ended_is_taken_over_and_released(self):
+        ended = subprocess.Popen([sys.executable, "-c", "pass"])
+        ended.wait()
+        self.hold(ended.pid)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check.main(["quick", "--wait"], root=self.repo.root), 0)
+        self.assertIn("was left by a run that ended; taken over", out.getvalue())
+        self.assertFalse(check.lock_path(self.repo.root).is_file())
+
+    def test_a_lock_being_written_is_held_and_an_old_unreadable_one_is_not(self):
+        lock = check.lock_path(self.repo.root)
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        lock.write_text("", encoding="utf-8")  # created, not yet written
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check.main(["quick", "--wait"], root=self.repo.root), 2)
+        self.assertIn("refused", out.getvalue())
+        self.assertTrue(lock.is_file())
+        old = time.time() - check.FRESH_LOCK_SECONDS - 5
+        os.utime(lock, (old, old))
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(check.main(["quick", "--wait"], root=self.repo.root), 0)
+        self.assertFalse(lock.is_file())
+
+    def test_a_stale_lock_replaced_meanwhile_is_put_back(self):
+        # Between reading the stale lock and moving it aside, another run took it over: its lock stays.
+        ended = subprocess.Popen([sys.executable, "-c", "pass"])
+        ended.wait()
+        self.hold(ended.pid)
+        lock = check.lock_path(self.repo.root)
+        theirs = json.dumps({"pid": os.getpid(), "what": "full", "started": time.time(), "written": time.time()})
+        real_replace = os.replace
+
+        def replace(src, dst):
+            if Path(src) == lock:
+                lock.write_text(theirs, encoding="utf-8")
+            return real_replace(src, dst)
+
+        out = io.StringIO()
+        with mock.patch.object(check.os, "replace", replace), contextlib.redirect_stdout(out):
+            refused = check.take_lock(self.repo.root, "quick")
+        self.assertIn("is running", refused or "")
+        self.assertEqual(lock.read_text(encoding="utf-8"), theirs)
+        self.assertEqual(list(lock.parent.glob("run.lock.*")), [])
+
+    def test_a_holder_whose_start_cannot_be_read_is_held_with_a_hint(self):
+        self.hold(4242)
+        with mock.patch.object(check, "process_started", lambda pid: 0.0):
+            refused = check.take_lock(self.repo.root, "quick")
+        self.assertIn("If process 4242 is not a `check`", refused or "")
+        self.assertIn("delete target/check/run.lock", refused or "")
+
+    def test_a_stale_lock_busy_for_a_moment_is_still_taken_over(self):
+        ended = subprocess.Popen([sys.executable, "-c", "pass"])
+        ended.wait()
+        self.hold(ended.pid)
+        lock = check.lock_path(self.repo.root)
+        real_replace, busy = os.replace, [2]
+
+        def replace(src, dst):
+            if Path(src) == lock and busy[0]:
+                busy[0] -= 1
+                raise PermissionError("in use")
+            return real_replace(src, dst)
+
+        with mock.patch.object(check.os, "replace", replace), contextlib.redirect_stdout(io.StringIO()):
+            self.assertIsNone(check.take_lock(self.repo.root, "quick"))
+        self.assertEqual(json.loads(lock.read_text(encoding="utf-8"))["pid"], os.getpid())
+
+    def test_a_process_id_that_started_after_the_lock_is_not_its_run(self):
+        self.hold(os.getpid(), written=time.time() - 3600 * 24 * 365)
+        if os.name != "nt":
+            self.skipTest("the start time is read on Windows only")
+        self.assertIsNone(check.lock_holder(self.repo.root))
+
+    def test_the_run_in_the_background_holds_the_handed_lock(self):
+        self.hold(os.getpid())
+        with mock.patch.dict(os.environ, {check.HANDED_LOCK: "1"}):
+            self.assertIsNone(check.take_lock(self.repo.root, "quick"))
+            # Taken once: a program it starts sees no handed lock.
+            self.assertNotIn(check.HANDED_LOCK, os.environ)
+        check.hand_lock(self.repo.root, 4242)
+        held = json.loads(check.lock_path(self.repo.root).read_text(encoding="utf-8"))
+        self.assertEqual((held["pid"], held["background"], held["what"]), (4242, True, "full"))
+        check.release_lock(self.repo.root)  # not this process's any more
+        self.assertTrue(check.lock_path(self.repo.root).is_file())
+
 
 class CommunityStep(unittest.TestCase):
     """The step `community` and its external input (OpenSpec change community-programs, design D6)."""
@@ -1208,14 +1360,18 @@ class Background(unittest.TestCase):
     def test_the_background_run_has_a_hidden_console(self):
         # With no console (DETACHED_PROCESS), each console program a step starts opened a window of its own.
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(check.subprocess, "Popen") as popen:
+            popen.return_value.pid = 4242
             with contextlib.redirect_stdout(io.StringIO()):
                 check.to_background(Path(tmp), ["quick"])
             # Close the log the call opened, so that the folder can be removed.
             popen.call_args.kwargs["stdout"].close()
+            # The run in the background holds the lock.
+            self.assertEqual(json.loads(check.lock_path(Path(tmp)).read_text(encoding="utf-8"))["pid"], 4242)
         flags = popen.call_args.kwargs["creationflags"]
         self.assertTrue(flags & subprocess.CREATE_NO_WINDOW)
         self.assertFalse(flags & subprocess.DETACHED_PROCESS)
         self.assertEqual(popen.call_args.args[0][-2:], ["quick", "--wait"])
+        self.assertEqual(popen.call_args.kwargs["env"][check.HANDED_LOCK], "1")
 
 
 class Targets(unittest.TestCase):

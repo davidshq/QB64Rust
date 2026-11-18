@@ -1,0 +1,20 @@
+# A concatenation longer than a string can be raises error 5 and gives an empty string (DIVERGENCES-QB64PE.md
+# D-067). QB64pe adds the two int32_t lengths in 32 bits, so a sum past 2,147,483,647 wraps negative (undefined in
+# C++) and qbs_new is given it: a$ + a$ with a$ of 1.2 GB crashes (verification\v63_g3_concat_over_2gb, exit 139).
+# Here the sum is taken in 64 bits. QB 4.5 raises 5 for a concatenation past its limit too
+# (verification\qb45\q45_string_too_long).
+file: internal/c/libqb/src/qbs.cpp
+--- old
+    tqbs = qbs_new(str1->len + str2->len, 1);
+    memcpy(tqbs->chr, str1->chr, str1->len);
+    memcpy(tqbs->chr + str1->len, str2->chr, str2->len);
+--- new
+    if ((int64_t)str1->len + str2->len > INT32_MAX) { // longer than a string can be
+        error(QB_ERROR_ILLEGAL_FUNCTION_CALL);
+        tqbs = qbs_new(0, 1);
+    } else {
+        tqbs = qbs_new(str1->len + str2->len, 1);
+        memcpy(tqbs->chr, str1->chr, str1->len);
+        memcpy(tqbs->chr + str1->len, str2->chr, str2->len);
+    }
+--- end

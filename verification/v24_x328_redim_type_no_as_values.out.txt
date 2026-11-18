@@ -1,0 +1,5 @@
+a(1).foo 7 
+lbound 0 ubound 2 
+ubound a! 5 
+a!(4) 1.5 
+exit=0
