@@ -181,6 +181,22 @@ the editor checks and formats it as a part of the program `main` names, if that 
 folders above it. Set `main` when two programs include the same files, such as a game and its tests. The
 compiler does not read `main`: name the file to build on the command line.
 
+`exclude` in `[project]` tells the editor to leave some files alone: no errors, no warnings, no formatting, no code
+actions, and no rename that would change them. Hover and go to definition still work. Use it for files in another
+dialect, such as QBJS:
+
+```toml
+[project]
+exclude = ["web", "tools/qb2js.bas", "**/*_qbjs.bas"]
+```
+
+Each pattern starts at the folder of `qb64rust.toml` and uses `/` between folders, on Windows too. A pattern that
+names a folder covers everything in it. `*` matches any characters within one name, `?` one character, and `**`
+any number of folders. `exclude = ["**"]` covers the whole folder. On Windows letter case does not matter. The
+editor reads only the nearest `qb64rust.toml`, so a folder below with a file of its own is checked again unless
+that file has its own `exclude`. The compiler does not use `exclude`, but a mistake in it stops a build, as a
+mistake in any other table does.
+
 A mistake in the file, such as an unknown key or a value of the wrong kind, stops a build and `-y` with a message
 that names the file, the line and the keys it knows, for instance
 ``qb64rust.toml:2: unknown format setting `indent`; the settings are auto-indent, indent-size, indent-subs,

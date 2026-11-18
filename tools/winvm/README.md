@@ -17,6 +17,8 @@ is about the desktop VM; the suites VM differs where its section says.
 | `create.ps1` | Makes a VM: from a Windows 11 Enterprise evaluation ISO (`-Iso`, elevated), which writes the base disk too, or from that base (`-FromBase`, not elevated). `-Name` and `-Shape Desktop` or `-Shape Suites` choose which. |
 | `unattend.xml` | The answer file that sets Windows up without a screen. `create.ps1` fills in its placeholders. |
 | `run.ps1` | Does one run of the family in the VM. `run.py` calls it. |
+| `game.ps1` | Runs one command of a game port's repo in the suites VM ("A game port's run" below). |
+| `pins.psd1` | The pin of Node.js, which `create.ps1` and `game.ps1` both read. |
 
 ## What the VM is
 
@@ -170,8 +172,12 @@ No network adapter, and its console is opened only in the basic session, as for 
 | Python 3.12.10, the last 3.12 release with a Windows installer, installed for all users and on `PATH` | `%ProgramFiles%\Python312` | `python-3.12.10-amd64.exe` from python.org, SHA-256 `67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb`; signed by the Python Software Foundation |
 | The C++ toolchain, installed by `qb64rust toolchain install --from-zip` run as `tester`, from the zip the host downloaded | `tester`'s `%LOCALAPPDATA%\qb64rust\toolchain` | the pin inside `qb64rust`, which `create.ps1` reads from `crates\driver\src\toolchain.rs` |
 | Mesa's software OpenGL, as in the desktop VM | `C:\mesa`, and on the cache disk | as in "OpenGL" below |
+| Node.js 24.22.3, unpacked from its Windows zip and on the machine's `PATH`, for a game's browser tests. Only in a VM made since 2026-11-17; until then `game.ps1` puts it on the cache disk | `%ProgramFiles%\nodejs` | `pins.psd1`: `node-v24.22.3-win-x64.zip` from nodejs.org, SHA-256 `e612af99f626ab415ea225af6bce5c971feb448cb5cae250bb1c3fa50c5f7d9f` |
 
-`create.ps1` downloads both installers and the toolchain's zip once into `%LOCALAPPDATA%\qb64rust\winvm\installers\`,
+The VM also has Microsoft Edge, which comes with Windows 11 (version 152 on 2026-11-17). Nothing puts it there,
+and with no network it does not update.
+
+`create.ps1` downloads both installers, Node's zip and the toolchain's zip once into `%LOCALAPPDATA%\qb64rust\winvm\installers\`,
 checks their hashes, and refuses on a mismatch. Nothing of them is in the repo. It also needs
 `target\release\qb64rust.exe` built on the host, which it copies into the VM to install the toolchain and removes
 again.
@@ -229,6 +235,31 @@ This removes the cache disk too, so the first run after it copies the clone in a
 
 `QB64RUST_SUITES_VM` names another VM in place of `qb64rust-suites`, for `create.ps1 -Shape Suites` and
 `suites.ps1`.
+
+## A game port's run
+
+`game.ps1` runs one command of a game's repo in the suites VM, for a run too large for the host (`CLAUDE.md`,
+working rule 6). The game must be beside this repo. From this repo's folder, in PowerShell:
+
+```
+.\tools\winvm\game.ps1 -Game ..\civil-war-strategy -With qbjs -Include tests/web/node_modules `
+    -Outputs tests/out/web/scripts -Command node,tests/web/play_qbjs.js,--native,--jobs,4
+```
+
+- It starts the VM as `check` does, with this repo as the tree (`suites.ps1 -Start`), and turns it off at the end
+  (`-Stop`), also after a failure.
+- **Node.js.** A VM made since 2026-11-17 has it installed. In an older one, `game.ps1` unpacks the pinned zip on
+  the cache disk at the first run, and the next runs find it there. The host downloads the zip once into
+  `%LOCALAPPDATA%\qb64rust\winvm\installers\`.
+- **What is copied in.** The game and each `-With` folder (a folder beside the game): their files that git tracks
+  or would track, replacing the last copy. `-Include` adds folders or files of the game that git ignores, such as
+  the game's `node_modules`, since the VM cannot download packages. When the host has `target\release\qb64rust.exe`,
+  it is copied in too, so the command can build with QB64Rust.
+- **What comes back.** Each `-Outputs` path, a file or a folder, to the same place in the host's game folder. The
+  command's output is printed every 10 s, as for a `check` step.
+- `-Limit` is the longest the command may take, 3600 s by default.
+
+Its exit code is the command's; 2 when the VM refused, with a line saying why. (OpenSpec change `vm-game-runs`.)
 
 ## Its console
 

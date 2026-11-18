@@ -463,6 +463,48 @@ The file that the `main` entry names SHALL be its own program, even when another
 - **WHEN** `main = "game.bas"` is set, `game_test.bas` includes `game.bas`, and both are open
 - **THEN** `game.bas` is its own program
 
+### Requirement: Excluded files
+The `[project]` table MAY hold `exclude`, a list of patterns, for files in another dialect, such as QBJS. A pattern
+is matched against a document's path from the folder of its nearest `qb64rust.toml`, with `/` between folders on
+every system. It matches the file or a folder that holds it. `*` SHALL match any characters within one name, `?`
+one character, and `**` any number of folders, none included. On Windows letter case SHALL be ignored. A document
+on disk that a pattern matches SHALL get no diagnostics, no formatting edits and no code actions, and
+`qb64rust/check` SHALL count none of its diagnostics, also when it is an included file of a program that is
+checked. A formatting failure's message SHALL NOT name an excluded file's error; when only excluded files have
+errors, it SHALL say "an excluded file has an error". A rename that would change an excluded file SHALL be refused
+whole, with a message naming the file. Hover, completion, definitions and references SHALL work as in other files.
+A value that is not a list of strings, or a pattern with `\`, SHALL be an error of the settings file, on the command
+line too. Otherwise the compiler's command line SHALL NOT use `exclude`: a program named on the command line is
+built and laid out as before.
+
+#### Scenario: A QBJS program
+- **WHEN** `qb64rust.toml` holds `[project]` and `exclude = ["web"]`, and open `web\p.bas` holds
+  `if a AndAlso b then`
+- **THEN** no diagnostic is published for `web\p.bas`, `qb64rust/check` answers 0 errors and 0 warnings, and
+  formatting makes no edit and shows no message
+
+#### Scenario: An excluded include file
+- **WHEN** open `main.bas` beside `qb64rust.toml` includes `web\lib.bm`, which holds the same line
+- **THEN** `qb64rust/check` of `main.bas` answers 0 errors, and no diagnostic is published for `web\lib.bm`
+
+#### Scenario: A rename that reaches an excluded file
+- **WHEN** `main.bas` includes `web\lib.bi`, which declares `total`, and `total` is renamed in `main.bas`
+- **THEN** the rename is refused: "`lib.bi` is excluded by `qb64rust.toml`, and the rename would change it"
+
+#### Scenario: An excluded main file stops formatting
+- **WHEN** `exclude = ["game.bas"]` is set, `game.bas` has a syntax error and includes `turn.bm`, and `turn.bm` is
+  formatted
+- **THEN** there is no edit, and the message is "The program was not formatted: an excluded file has an error"
+
+#### Scenario: A file no pattern matches
+- **WHEN** open `q.bas` beside `qb64rust.toml` holds the same line
+- **THEN** `q.bas` is checked: its syntax error is published
+
+#### Scenario: The whole folder
+- **WHEN** `qb64rust.toml` holds `exclude = ["**"]`
+- **THEN** every document in its folder and the folders below it is excluded, unless a nearer `qb64rust.toml`
+  without that pattern is found first
+
 ### Requirement: Order of programs found in one folder
 Among several `.bas` files in one folder whose programs include the document, a file that none of the others
 includes SHALL come first, then a name that does not end in `_test.bas` before one that does, and then the first

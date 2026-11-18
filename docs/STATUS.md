@@ -81,6 +81,9 @@ working rule 7).
    `_OFFSET` on the web, phones through the web build in the browser first, and where built games must run.
 4. **A standard library** (`study\52`, 2026-11-16, split out of `study\50`), section 4: whether to have one and in
    which form, and whether others' code may be shipped or fetched.
+5. **Libraries of other languages** (`study\53`, 2026-11-17), section 8: whether a built program may need a
+   Python folder beside it, whether to build the Python probe (a library over Python's C API), whether stronger
+   C interop comes first, and whether a foreign-object type joins the extension order.
 
 The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 

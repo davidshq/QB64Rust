@@ -109,7 +109,9 @@ where (issue or pull request) and what came of it. Fixes QB64pe has merged are i
 - **Where:** `internal/c/libqb/src/memblock.cpp`, `func__memnew`, the `if (!bytes)` branch.
 - **Fix:** `mem_lock_tmp->type = 0;` there, the type of a block that owns no memory.
 - **Here:** `DIVERGENCES-QB64PE.md` D-050; the edit `tools/libqb/edits/d050-memnew-zero-lock.edit`.
-- **Sent:** not yet.
+- **Sent:** draft pull request QB64-Phoenix-Edition/QB64pe#822 (2026-11-17), from branch
+  `fix-memnew-zero-double-free` of `davidshq-contribute/QB64pe`. It adds the test
+  `tests/compile_tests/mem/memnew_zero_free`. Not yet reviewed.
 
 ## Division by zero cannot be trapped
 

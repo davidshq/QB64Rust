@@ -1,6 +1,6 @@
 //! The settings file `qb64rust.toml` of a program (OpenSpec change `project-settings`, design D1): the nearest one
 //! above the main file, read once for its `[fixes]` (spec `compiler/fixes`), `[format]` (spec `compiler/format`)
-//! and `[lints]` (spec `compiler/lints`) tables, and for `[project]` `main` (the language server's). Any other
+//! and `[lints]` (spec `compiler/lints`) tables, and for `[project]` `main` and `exclude` (the language server's). Any other
 //! table is ignored. The command line's options go over the file: `fixes.rs`, `lints.rs`, and `main.rs` for the
 //! layout settings.
 
@@ -74,6 +74,86 @@ pub fn main_of(doc: &Path) -> Option<PathBuf> {
     path.is_file().then_some(path)
 }
 
+/// Whether the editor leaves the document at `doc` on disk alone: a pattern of the `[project]` table's `exclude` in
+/// the nearest settings file matches its path from that file's folder ([`matches`]). For files in another
+/// dialect, such as QBJS. False for no settings file, no such entry, and a file that cannot be used (the check
+/// reports that file's error). The language server's hook `qb64rust_lsp::Excluded`; the compiler's command line
+/// checks the entry's form but does not use it.
+pub fn excluded(doc: &Path) -> bool {
+    let Some(settings) = find_settings(doc) else {
+        return false;
+    };
+    let Ok((_, patterns)) = std::fs::read(&settings)
+        .map_err(|_| ())
+        .and_then(|b| parse_all(&b).map_err(|_| ()))
+    else {
+        return false;
+    };
+    let (Some(folder), Ok(doc)) = (settings.parent(), std::path::absolute(doc)) else {
+        return false;
+    };
+    let Ok(rel) = doc.strip_prefix(folder) else {
+        return false;
+    };
+    let segments: Vec<String> = rel
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+    patterns.iter().any(|p| matches(p, &segments))
+}
+
+/// Whether the `exclude` pattern `pattern` matches the file whose path from the settings file's folder is
+/// `segments`, or a folder that holds it. Patterns use `/` between folders on every system and start at the settings
+/// file's folder. `*` matches any characters within one name, `?` one character, and `**` any number of folders,
+/// none included. On Windows letter case is ignored, as the file system ignores it.
+fn matches(pattern: &str, segments: &[String]) -> bool {
+    let fold = |s: &str| if cfg!(windows) { s.to_lowercase() } else { s.to_string() };
+    let pattern = fold(pattern);
+    let parts: Vec<&str> = pattern
+        .trim_start_matches("./")
+        .split('/')
+        .filter(|p| !p.is_empty())
+        .collect();
+    let segments: Vec<String> = segments.iter().map(|s| fold(s)).collect();
+    // The file itself, or one of the folders it is in.
+    (1..=segments.len()).any(|n| match_parts(&parts, &segments[..n]))
+}
+
+/// Whether the pattern's names `parts` match the path's names `path`, `**` taking any number of them.
+fn match_parts(parts: &[&str], path: &[String]) -> bool {
+    match parts.split_first() {
+        None => path.is_empty(),
+        Some((&"**", rest)) => (0..=path.len()).any(|skip| match_parts(rest, &path[skip..])),
+        Some((part, rest)) => path
+            .split_first()
+            .is_some_and(|(name, more)| match_name(part.as_bytes(), name.as_bytes()) && match_parts(rest, more)),
+    }
+}
+
+/// Whether one name of a pattern, with `*` and `?`, matches one name of a path.
+fn match_name(pattern: &[u8], name: &[u8]) -> bool {
+    match pattern.split_first() {
+        None => name.is_empty(),
+        Some((b'*', rest)) => (0..=name.len()).any(|skip| match_name(rest, &name[skip..])),
+        Some((b'?', rest)) => {
+            // One character, which may be several bytes of UTF-8.
+            let len = name.first().map_or(0, |&b| utf8_len(b));
+            len > 0 && match_name(rest, &name[len.min(name.len())..])
+        }
+        Some((c, rest)) => name.first() == Some(c) && match_name(rest, &name[1..]),
+    }
+}
+
+/// The length in bytes of the UTF-8 character that starts with `first`.
+fn utf8_len(first: u8) -> usize {
+    match first {
+        0xF0.. => 4,
+        0xE0.. => 3,
+        0xC0.. => 2,
+        _ => 1,
+    }
+}
+
 /// The string of `[project]` `main` in a settings file's bytes.
 fn project_main(bytes: &[u8]) -> Option<String> {
     #[expect(
@@ -103,6 +183,11 @@ pub fn read_settings(path: &Path) -> Result<Project, SettingsError> {
 
 /// [`read_settings`] of a file's bytes; an error is its line and message.
 fn parse_settings(bytes: &[u8]) -> Result<Project, (u32, String)> {
+    parse_all(bytes).map(|(project, _)| project)
+}
+
+/// [`parse_settings`], with the patterns of `[project]` `exclude` ([`excluded`]).
+fn parse_all(bytes: &[u8]) -> Result<(Project, Vec<String>), (u32, String)> {
     #[expect(
         clippy::disallowed_methods,
         reason = "a settings file is TOML, which is UTF-8 by its specification; not BASIC source"
@@ -149,7 +234,27 @@ fn parse_settings(bytes: &[u8]) -> Result<Project, (u32, String)> {
     if let Some(t) = table("format")? {
         project.format = format_table(t, &line)?;
     }
-    Ok(project)
+    // `[project]`'s `main` is read by `main_of`; its other keys are ignored.
+    let mut exclude = Vec::new();
+    if let Some(value) = table("project")?.and_then(|t| t.get("exclude")) {
+        let list = "the value of `exclude` must be a list of patterns, as `exclude = [\"web/**\"]`";
+        let items = value
+            .get_ref()
+            .as_array()
+            .ok_or_else(|| (line(value.span().start), list.to_string()))?;
+        for item in items {
+            let at = line(item.span().start);
+            let pattern = item.get_ref().as_str().ok_or_else(|| (at, list.to_string()))?;
+            if pattern.contains('\\') {
+                return Err((
+                    at,
+                    format!("`exclude` patterns use `/` between folders, not `\\`: \"{pattern}\""),
+                ));
+            }
+            exclude.push(pattern.to_string());
+        }
+    }
+    Ok((project, exclude))
 }
 
 /// The switches of a table: `all`'s value, if given, and each other key's in the order written.
@@ -268,6 +373,74 @@ mod tests {
 
     fn fixes(text: &str) -> Result<Fixes, (u32, String)> {
         parse(text).map(|p| p.fixes)
+    }
+
+    fn exclude(text: &str) -> Result<Vec<String>, (u32, String)> {
+        parse_all(text.as_bytes()).map(|(_, e)| e)
+    }
+
+    /// `[project]` `exclude`: a list of strings, each without `\`; anything else is an error.
+    #[test]
+    fn project_exclude_contents() {
+        assert_eq!(exclude(""), Ok(vec![]));
+        assert_eq!(exclude("[project]\nmain = \"g.bas\"\n"), Ok(vec![]));
+        assert_eq!(
+            exclude("[project]\nexclude = [\"**\", \"web/*.bas\"]\n"),
+            Ok(vec!["**".to_string(), "web/*.bas".to_string()])
+        );
+        let list = "the value of `exclude` must be a list of patterns, as `exclude = [\"web/**\"]`";
+        assert_eq!(exclude("[project]\n\nexclude = \"web\"\n"), Err((3, list.to_string())));
+        assert_eq!(
+            exclude("[project]\nexclude = [\n  \"a\",\n  1,\n]\n"),
+            Err((4, list.to_string()))
+        );
+        let (line, msg) = exclude("[project]\nexclude = ['web\\x.bas']\n").unwrap_err();
+        assert_eq!(line, 2);
+        assert!(msg.starts_with("`exclude` patterns use `/` between folders"), "{msg}");
+    }
+
+    fn path(p: &str) -> Vec<String> {
+        p.split('/').map(str::to_string).collect()
+    }
+
+    /// The patterns: a file, a folder and what it holds, `*`, `?`, `**`, and letter case on Windows only.
+    #[test]
+    fn exclude_patterns() {
+        assert!(matches("tools/qb2js.bas", &path("tools/qb2js.bas")));
+        assert!(!matches("tools/qb2js.bas", &path("tools/other.bas")));
+        assert!(matches("./tools/qb2js.bas", &path("tools/qb2js.bas")), "a leading ./");
+        assert!(matches("test", &path("test/a/b.bas")), "a folder holds the file");
+        assert!(matches("test/", &path("test/b.bas")), "a trailing /");
+        assert!(
+            !matches("test", &path("src/test/b.bas")),
+            "from the settings file's folder only"
+        );
+        assert!(matches("**/test", &path("src/test/b.bas")));
+        assert!(matches("**", &path("p.bas")), "the whole folder");
+        assert!(matches("*.bas", &path("p.bas")));
+        assert!(!matches("*.bas", &path("web/p.bas")), "`*` stays within a name");
+        assert!(matches("**/*.bas", &path("web/p.bas")));
+        assert!(matches("web/**/x.bas", &path("web/x.bas")), "`**` may be no folder");
+        assert!(matches("web/**/x.bas", &path("web/a/b/x.bas")));
+        assert!(matches("p?.bas", &path("pé.bas")), "`?` is one character");
+        assert!(!matches("p?.bas", &path("p.bas")));
+        assert_eq!(matches("Web/P.BAS", &path("web/p.bas")), cfg!(windows));
+    }
+
+    /// [`excluded`] from the nearest settings file; no file, no entry and a bad file exclude nothing.
+    #[test]
+    fn excluded_from_the_nearest_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let doc = write(dir.path(), "qbjs/test/t.bas", "PRINT 1\n");
+        let other = write(dir.path(), "qbjs/src/s.bas", "PRINT 1\n");
+        assert!(!excluded(&doc), "no settings file");
+        write(dir.path(), "qbjs/qb64rust.toml", "[project]\nexclude = [\"test\"]\n");
+        assert!(excluded(&doc), "a folder above");
+        assert!(!excluded(&other));
+        write(dir.path(), "qbjs/test/qb64rust.toml", "[project]\nexclude = 1\n");
+        assert!(!excluded(&doc), "the nearest file is bad");
+        write(dir.path(), "qbjs/test/qb64rust.toml", "[lints]\nall = false\n");
+        assert!(!excluded(&doc), "the nearest file has no entry");
     }
 
     fn with_fixes(fixes: Fixes) -> Project {

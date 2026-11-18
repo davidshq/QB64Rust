@@ -71,14 +71,20 @@ pub type Index = fn(&SourceMap, &ParsedProgram, Option<&Path>, &Path) -> index::
 /// (`qb64rust_driver::fixes::main_of`).
 pub type MainOf = fn(&Path) -> Option<PathBuf>;
 
+/// Whether the editor leaves a document on disk alone: a pattern of the settings file's `[project]` `exclude`
+/// matches it, for files in another dialect (`qb64rust_driver::settings::excluded`). Such a document gets no
+/// diagnostics, no formatting edits and no code actions, and a rename that would change it is refused.
+pub type Excluded = fn(&Path) -> bool;
+
 /// The front end the driver hands the server: the check, the formatter, the index, the settings file's main
-/// program and what the rewrites can do, so that this crate needs no `sema`.
+/// program, whether a document is excluded, and what the rewrites can do, so that this crate needs no `sema`.
 #[derive(Clone, Copy)]
 pub struct Hooks {
     pub check: Check,
     pub format: Format,
     pub index: Index,
     pub main_of: MainOf,
+    pub excluded: Excluded,
     pub rewritable: Rewritables,
 }
 

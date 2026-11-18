@@ -366,13 +366,14 @@ pub fn index_for_server(
 }
 
 /// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check, the formatter,
-/// the semantic index, the settings file's main program and what the rewrites can do.
+/// the semantic index, the settings file's main program, whether a document is excluded, and what the rewrites can do.
 pub fn server_hooks() -> qb64rust_lsp::Hooks {
     qb64rust_lsp::Hooks {
         check: check_for_server,
         format: format_for_server,
         index: index_for_server,
         main_of: settings::main_of,
+        excluded: settings::excluded,
         rewritable: qb64rust_format::rewritable,
     }
 }
