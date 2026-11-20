@@ -18,7 +18,7 @@ is about the desktop VM; the suites VM differs where its section says.
 | `unattend.xml` | The answer file that sets Windows up without a screen. `create.ps1` fills in its placeholders. |
 | `run.ps1` | Does one run of the family in the VM. `run.py` calls it. |
 | `game.ps1` | Runs one command of a game port's repo in the suites VM ("A game port's run" below). |
-| `pins.psd1` | The pin of Node.js, which `create.ps1` and `game.ps1` both read. |
+| `pins.psd1` | The pin of Node.js, which `create.ps1` and `game.ps1` both read, and the release of the Emscripten SDK that `suites.ps1 -Emsdk` copies in (installed by hand, not downloaded). |
 
 ## What the VM is
 
@@ -194,7 +194,9 @@ the checkpoint. `suites.ps1` attaches it after each restore and mounts it at the
 so that the tree's copy is at the same path in the VM as on the host. It keeps, between runs, the copy of each tree
 run there with its `target\` (the runner's pass caches, no build cache), the QB64pe clone without `.git`, the
 community clones without `.git` (`<parent>\community`, copied only by a run with `-Community`, the step `community`),
-and `qb64rust-vm\` with Mesa and the stamps of what was copied. Nothing on it goes back to the host's caches.
+the Emscripten SDK (`<parent>\emsdk`, about 2.2 GB, copied only by a run with `-Emsdk <folder>`, the step
+`wasm-verification`; the folder must be beside the tree and of the release `pins.psd1` names, OpenSpec change
+`wasm-console`), and `qb64rust-vm\` with Mesa and the stamps of what was copied. Nothing on it goes back to the host's caches.
 
 **The disk it takes** (measured when it was made, 2026-11-03). The base 14.4 GB. The differencing disk 6.7 GB,
 the checkpoint's disk 0.14 GB and the cache disk 0.32 GB, which grows with the copies and pass caches (about 3 GB

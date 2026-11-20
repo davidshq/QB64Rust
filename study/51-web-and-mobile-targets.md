@@ -4,7 +4,8 @@
 "I'd like QB64Rust to eventually be able to deploy both to the web and to mobile apps". Then they asked for
 the options besides Emscripten, what it takes to put a WebAssembly game on the web, and how Civil War Strategy
 would work on a phone: "the issue more than whether it is native or not is whether it works on a mobile
-device" (user, 2026-11-15). Open until the user answers section 10.
+device" (user, 2026-11-15). The user answered questions 1 to 3 of section 10 on 2026-11-19 (`DECISIONS.md`):
+Emscripten with the same libqb, start now, a 4-byte `_OFFSET`. Questions 4 and 5 are open.
 
 What this rests on:
 
@@ -208,6 +209,68 @@ Firefox 153 and Safari has it in the beta of Safari 27
 
 **Recommendation:** threads first. They match libqb's design and need no change to how the generated code
 waits. Keep JSPI as a later option for hosts that cannot send the headers, once Firefox and Safari ship it.
+
+#### What a one-thread build would cost
+
+Added 2026-11-19, when the user asked "how much work is it to have a one-thread fallback?". It is an estimate
+from reading `study\03` §1, not a measurement. Nothing is decided.
+
+On one thread, the BASIC program, the timer and the housekeeping loop (`MAIN_LOOP`) share the page's main
+thread. The program is suspended wherever it waits, and the browser runs the rest meanwhile. What has to
+change in libqb, as edits behind a build flag:
+
+- **Every wait becomes a suspension.** `_LIMIT`, `_DELAY` and `SLEEP` already call `evnt(0)` about every 9 ms
+  while they wait (`study\03` §1.6), so they share one place. `INKEY$`, `_KEYHIT`, `INPUT` and `_DISPLAY` need
+  one each.
+- **The spin handshakes become plain calls.** `lock_display`, `lock_mainloop`, `autodisplay` and
+  `ontimerthread_lock` have one thread set a flag and spin until another answers (`study\03` §1.5). On one
+  thread nobody answers, so each of them would hang. Each is replaced by doing the other side's work directly.
+- **The timer thread and `MAIN_LOOP` become callbacks.** `ON TIMER` is checked at each suspension. `display()`,
+  `snd_update()` and the BIOS tick run from the browser's frame callback.
+- **A loop that never waits must still let the page run.** The generated code already tests `qbevent` between
+  statements. On one thread nothing sets it, so the test would have to read a clock or a counter instead, and
+  suspend about every 10 ms. That slows every program a little. How much is not measured.
+- **`END` and shutdown.** `end()` parks the program's thread forever, and `MAIN_LOOP` waits for `exit_ok`
+  (`study\03` §1.7). Both are rewritten.
+- **Sound.** Whether miniaudio's Web Audio backend plays without threads was not checked.
+
+That is about 15 to 25 places in `libqb.cpp`, `qbx.cpp` and `libqb\src`. In Claude's time it is two to four
+sessions after W1. The larger cost stays: two forms of the runtime, so every browser test runs twice, and
+every later libqb edit near a wait is written twice.
+
+The suspension itself is JSPI or Asyncify. JSPI is in Chrome 137 and later. Mozilla posted an intent to turn
+it on by default in Firefox 153, on 2026-06-10
+([Mozilla intent to ship](https://groups.google.com/a/mozilla.org/g/dev-platform/c/8cOxM-dWaNs), read through
+a search result's summary, not the post). Whether Firefox has shipped it, and Safari's state, are unchecked.
+A browser without JSPI needs the Asyncify build, which is about 50% larger and slower (the Asyncify page
+cited above).
+
+Which hosts need it:
+
+| Host | Threaded build | One-thread build needed? |
+|---|---|---|
+| Your own server, Netlify, Cloudflare Pages | Works: the host sends the two headers | No |
+| GitHub Pages | Works with `coi-serviceworker` (§6.3), one reload on the first visit | No |
+| itch.io | Works in Chrome and Firefox; likely not in Safari or on iPhones (§6.3, not tested) | Yes, for Safari |
+| An app's web view (Capacitor, §7.1) | Reports say the headers do not take effect | Yes, or a local server inside the app |
+
+**Recommendation (Claude, 2026-11-19): do not build it now, and decide after W1.** By then a threaded game
+exists and can be tried on itch.io in Safari, which settles the one case that is uncertain. Nothing in W0 or
+W1 makes the one-thread build harder, provided W1 adds no new spin handshake.
+
+The panel, with the web platform and mobile engineers of §9:
+
+- **Pragmatic engineer:** wait. Three of the four kinds of host need nothing. The work is real and the
+  doubled testing never goes away.
+- **QB64 engineer:** the threaded build is the one that behaves like QB64pe. On one thread, timing changes:
+  `ON TIMER` fires only at suspensions, and a tight loop runs slower.
+- **Compiler/languages engineer:** the `qbevent` test between statements is the only place the generated C++
+  would change. Keep it a libqb macro, so that the fragments stay the same for both builds.
+- **Rust engineer:** for the driver it is one more build variant, with its own libqb objects. Small.
+- **Test engineer:** it doubles the browser runs. Take that on only for a host a real game needs.
+- **Web platform engineer:** itch.io is where hobby games are published, so this will likely be wanted one
+  day. Test the threaded build there before paying for it.
+- **Mobile engineer:** store wrappers need it, or a local server. That is P2, which is not planned yet.
 
 ### 5.2 Graphics
 

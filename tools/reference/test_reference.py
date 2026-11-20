@@ -292,6 +292,11 @@ class Pages(unittest.TestCase):
         self.assertTrue(any("names no source" in p for p in self.chapter_problems(text)))
         self.assertTrue(any("no spec language/no-such-area" in p for p in self.chapter_problems(text, "no-such-area")))
 
+    def test_a_chapter_of_a_compiler_spec_it_names(self):
+        # The wasm target's chapter is named after `compiler/wasm-target` (OpenSpec change wasm-console).
+        text = "# The wasm target\n\nA summary.\n\n## Part\n\nA rule.\n<!-- src: language/control-flow \"FOR loops\" -->\n"
+        self.assertEqual(self.chapter_problems(text, "wasm-target"), [])
+
     def test_an_example_is_embedded_with_its_output(self):
         (self.tmp / "examples" / "left-str_1.bas").write_text('$CONSOLE:ONLY\nPRINT LEFT$("ab", 1)\nEND\n')
         (self.tmp / "examples" / "left-str_1.output").write_bytes(b"a\r\n")

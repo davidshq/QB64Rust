@@ -21,6 +21,10 @@
 #    include <shlobj.h>
 #else
 #    include <sys/statvfs.h>
+#    ifdef QB64_EMSCRIPTEN
+// getenv, realpath and free: glibc's headers above bring them in, Emscripten's do not.
+#        include <cstdlib>
+#    endif
 #endif
 
 #ifdef QB64_BACKSLASH_FILESYSTEM

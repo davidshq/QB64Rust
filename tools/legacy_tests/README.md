@@ -156,6 +156,26 @@ python tools\legacy_tests\run_legacy_tests.py --suite corpus --cpp-opt          
   its files in `corpus-cpp-opt\`); a narrowed run writes `results-partial.json`. Known failures are listed as
   `corpus:<group>/<name>`.
 
+### The wasm target (`--platform wasm`)
+
+`--platform wasm` (OpenSpec change `wasm-console`, design D7) runs the corpus and verification suites for the
+WebAssembly target. Each program is built with `--target wasm` into `<name>.js` and `<name>.wasm` in its work
+folder, and run as `node <name>.js` with the Node of the Emscripten SDK that `QB64RUST_EMSDK_ROOT` names. The run
+is judged as a Linux run: by the Linux files where there are some (`<name>.linux.output`, `.linux.err`,
+`.linux.out.txt`), else by the shared recording, with Linux's words for libqb's messages, the exit status by its
+low 8 bits, standard input from a file and `QB64PE_NOPROMPT=y`. In a verification compare a status from
+0xFFFFFF00 up is the program's own negative code (`SYSTEM -1` gives 255), not a crash (`node_exit_code`).
+
+- Nothing is recorded for this platform: `--record --platform wasm` is a usage error, since there is no QB64pe
+  build for WebAssembly to record from. Other suites than `corpus` and `verification` are refused.
+- Beside `known.linux.list`, which holds for this platform too, each suite may have `known.wasm.list` in the same
+  format. Every reason starts with `target`, `window`, `offset`, `float`, `clib`, `width`, `node`, `varies` or `open`
+  (`WASM_REASONS`); any other is an error that names the line. A program listed as `target`, `window` or `offset`
+  is skipped without a build.
+- Example: `QB64RUST_EMSDK_ROOT=..\emsdk python tools\legacy_tests\run_legacy_tests.py --suite verification
+  --qb64 target\debug\qb64rust.exe --platform wasm v30_g_iif_min_max`.
+- A run of more than about 25 programs goes to the suites VM (`check wasm-verification --where vm`).
+
 ### Tests of the runner
 
 ```
@@ -382,7 +402,8 @@ as the list runs of that build passed; about a second each. The run without fold
 
 **A full run judged again** (`--rejudge`, corpus, compile and verification suites, OpenSpec change `check-rejudge`):
 builds and runs nothing; reads the suite's last full results, `results-<suite>.json`, and judges them again under the
-known lists as they are now (`known_failures.txt`, with `--platform linux` each suite's `known.linux.list`, for the
+known lists as they are now (`known_failures.txt`, with `--platform linux` each suite's `known.linux.list`, with
+`--platform wasm` that list and `known.wasm.list` too, for the
 verification suite `tests\verification\known.list`; `known_lists`, which a run reads them through too). A known
 failure goes back to a failure, which the lists then mark known or not; a program the lists now skip is skipped. It
 rewrites the results, the summary and `run.rejudged` (the time and the lists' hashes), prints the failures and the

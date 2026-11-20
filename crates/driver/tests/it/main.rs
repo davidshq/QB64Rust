@@ -15,3 +15,4 @@ mod names;
 mod support;
 mod unit_tests;
 mod versioninfo;
+mod wasm_target;

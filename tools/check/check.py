@@ -52,6 +52,7 @@ from steps import (  # noqa: E402
     JUDGE_LISTS,
     MERGE,
     MERGE_REPLACES,
+    NAMED,
     QUICK,
     RUNNER,
     STEPS,
@@ -240,6 +241,12 @@ def external(name: str, root: Path) -> str:
         r = subprocess.run(["git", "-C", str(clone), "rev-parse", "HEAD"], capture_output=True, text=True)
         s = subprocess.run(["git", "-C", str(clone), "status", "--porcelain"], capture_output=True, text=True)
         return f"clone: {r.stdout.strip() or 'none'}\n{s.stdout}"
+    if name == "emsdk":
+        # The Emscripten SDK of the wasm steps: its folder and its release (emscripten-version.txt).
+        sdk = emsdk_root(root)
+        version = sdk / "upstream" / "emscripten" / "emscripten-version.txt"
+        text = version.read_text(encoding="utf-8", errors="replace").strip() if version.is_file() else "none"
+        return f"emsdk: {sdk.as_posix()} {text}"
     if name == "community":
         # The commit each community clone is at, from the heads.txt that `community.py fetch` writes
         # (tools/community/community.py): a clone fetched to another commit runs the step again.
@@ -248,6 +255,27 @@ def external(name: str, root: Path) -> str:
         text = heads.read_text(encoding="utf-8", errors="replace") if heads.is_file() else "none\n"
         return f"community:\n{text}"
     raise ValueError(f"no external input {name!r}")
+
+
+EMSDK_ENV = "QB64RUST_EMSDK_ROOT"
+
+
+def emsdk_root(root: Path) -> Path:
+    """The Emscripten SDK of the wasm steps (OpenSpec change wasm-console, design D8): QB64RUST_EMSDK_ROOT, else
+    `emsdk` beside the checkout, where CLAUDE.md says it is installed. The suites VM gets a copy at the same path."""
+    env = os.environ.get(EMSDK_ENV)
+    return Path(env) if env else root.parent / "emsdk"
+
+
+def emsdk_missing(step: Step, root: Path) -> str | None:
+    """Why a step that needs the Emscripten SDK cannot run, or None (spec testing/check-workflow, "A wasm step
+    without the SDK"). In the VM the SDK is the host's, copied in, so one lookup serves both places."""
+    if "emsdk" not in step.external:
+        return None
+    sdk = emsdk_root(root)
+    if not (sdk / "upstream" / "emscripten" / "emscripten-version.txt").is_file():
+        return f"no Emscripten SDK at {sdk} (set {EMSDK_ENV}; tools/check/README.md)"
+    return None
 
 
 # --- Fingerprints, records and the plan -----------------------------------------------------------------------
@@ -532,7 +560,7 @@ def make_plan(
         # A result of the merge describes the merge's commit alone: only an earlier merge's pass stands. The writers
         # (`first`) are a plan of their own, run before this one is made (`main`), so that every fingerprint here
         # is of the files they wrote.
-        wanted = [s for s in STEPS if s.name not in MERGE_REPLACES and not s.first]
+        wanted = [s for s in STEPS if s.name not in MERGE_REPLACES and not s.first and s.layer != NAMED]
         merge = True
     else:
         wanted = [
@@ -756,11 +784,13 @@ class SuitesVM:
     step, turned off (`-Stop`) after the last one and at the end of the run whatever happened. A refusal known when
     the run was planned, or a failed start, fails every VM step with its reason."""
 
-    def __init__(self, root: Path, refusal: str | None = None, community: bool = False):
+    def __init__(self, root: Path, refusal: str | None = None, community: bool = False, emsdk: bool = False):
         self.root = root
         self.refusal = refusal
         # The run has the step `community`: `-Start` also copies the community clones in (design D7).
         self.community = community
+        # The run has a wasm step in the VM: `-Start` also copies the Emscripten SDK in (wasm-console, design D8).
+        self.emsdk = emsdk
         self.started = False
         self.tried = False
 
@@ -772,7 +802,15 @@ class SuitesVM:
         print(f"suites VM: starting ({SUITES_PS1} -Start)", flush=True)
         try:
             r = subprocess.run(
-                powershell(self.root, SUITES_PS1, "-Start", "-Tree", str(self.root), *(["-Community"] if self.community else [])),
+                powershell(
+                    self.root,
+                    SUITES_PS1,
+                    "-Start",
+                    "-Tree",
+                    str(self.root),
+                    *(["-Community"] if self.community else []),
+                    *(["-Emsdk", str(emsdk_root(self.root))] if self.emsdk else []),
+                ),
                 cwd=self.root,
                 capture_output=True,
                 text=True,
@@ -849,7 +887,8 @@ def vm_limit(root: Path, name: str) -> int:
     (design D6). The VM's time first: the VM keeps no build cache, so a pass on the host can be far quicker."""
     record = read_record(root, name) or {}
     seconds = float(record.get("vm_passed_seconds") or 0) or passed_seconds(record)
-    return max(VM_LIMIT_FLOOR, int(3 * seconds))
+    step = BY_NAME.get(name)
+    return max(VM_LIMIT_FLOOR, step.vm_limit_floor if step else 0, int(3 * seconds))
 
 
 def run_in_vm(p: Planned, root: Path, cmd: list[str], out, vm: SuitesVM | None) -> tuple[int, str]:
@@ -877,7 +916,7 @@ def run_in_vm(p: Planned, root: Path, cmd: list[str], out, vm: SuitesVM | None) 
         "command": list(cmd),
         "first": list(p.step.vm_first) if p.step.vm_first else None,
         "cwd": cwd,
-        "env": {**p.step.env, **NO_BUILD_CACHE, **ALLOW_NETWORK, **ALLOW_CLIPBOARD},
+        "env": {**p.step.env, **emsdk_env(p.step, root), **NO_BUILD_CACHE, **ALLOW_NETWORK, **ALLOW_CLIPBOARD},
         "copy": copy,
         "outputs": list(p.step.outputs),
         "clears": list(p.step.clears),
@@ -956,6 +995,11 @@ def keep_failed_log(root: Path, step: str, log: Path) -> str | None:
         return None
 
 
+def emsdk_env(step: Step, root: Path) -> dict[str, str]:
+    """QB64RUST_EMSDK_ROOT for a step that needs the SDK: the same path on the host and in the VM (emsdk_root)."""
+    return {EMSDK_ENV: str(emsdk_root(root))} if "emsdk" in step.external else {}
+
+
 def run_step(p: Planned, root: Path, force: bool, nextest: bool, vm: SuitesVM | None = None) -> dict:
     logs = state(root) / "logs"
     logs.mkdir(parents=True, exist_ok=True)
@@ -966,7 +1010,7 @@ def run_step(p: Planned, root: Path, force: bool, nextest: bool, vm: SuitesVM | 
         rc, note = 0, "no program reached"
     else:
         cmd, note = command_of(p, root, force, nextest)
-        env = {**os.environ, **p.step.env}
+        env = {**os.environ, **p.step.env, **emsdk_env(p.step, root)}
         shell = bash() if isinstance(cmd, str) else ""
         # A re-judge reads the stored results on the host, wherever they were made.
         in_vm = p.where == VM and not p.rejudge
@@ -1058,12 +1102,22 @@ def execute(root: Path, plan: Plan, force: bool, what: str = "") -> int:
     started = time.time()
     steps_in_order = order(plan.run, root)
     in_vm = [p for p in steps_in_order if uses_vm(p)]
-    vm = SuitesVM(root, plan.vm_refusal, any(p.step.name == "community" for p in in_vm)) if in_vm else None
+    vm = (
+        SuitesVM(
+            root,
+            plan.vm_refusal,
+            any(p.step.name == "community" for p in in_vm),
+            any("emsdk" in p.step.external for p in in_vm),
+        )
+        if in_vm
+        else None
+    )
     told_toolchain = False
     try:
         for p in steps_in_order:
             # A step that reads what its needs wrote runs after a failed one, not after one that did not run.
             broken = [n for n in p.step.needs if n in (skipped if p.step.after_failure else failed_names)]
+            missing = emsdk_missing(p.step, root)
             if broken:
                 # Run on an older build, its result would say nothing of this one: not run, not recorded.
                 why = ", ".join(f"{n} {'did not run' if n in skipped else 'failed'}" for n in broken)
@@ -1072,6 +1126,15 @@ def execute(root: Path, plan: Plan, force: bool, what: str = "") -> int:
                 failed_names.add(p.step.name)
                 skipped.add(p.step.name)
                 ran[p.step.name] = ["skip", 0]
+            elif missing:
+                # A wasm step without the SDK (spec testing/check-workflow): not run, not recorded, and no failure
+                # but in a merge, which must hold every step.
+                print(f"  SKIP    {p.step.name:<18} not run: {missing}", flush=True)
+                skipped.add(p.step.name)
+                ran[p.step.name] = ["skip", 0]
+                if p.merge:
+                    failed += 1
+                    failed_names.add(p.step.name)
             else:
                 builds_here = p.where == HOST and "toolchain" in p.step.external and p.only != [] and not p.rejudge
                 if builds_here and not told_toolchain:

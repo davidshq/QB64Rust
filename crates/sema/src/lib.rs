@@ -27,10 +27,12 @@ pub mod literal;
 mod mpmath_values;
 pub mod opengl;
 mod symbols;
+pub mod target;
 
 pub use check::{check, check_with};
 pub use dump::dump_typed;
 pub use symbols::{Symbol, SymbolId, SymbolKind, Symbols, dump_symbols};
+pub use target::{WASM_PARTS_NOT_YET, WASM_UNAVAILABLE, check_target};
 
 use qb64rust_base::{FileId, Span};
 use qb64rust_builtins::BuiltinId;
@@ -1823,6 +1825,8 @@ pub struct Settings {
     pub window_hidden: bool,
     /// `$ASSERTS` or `$ASSERTS:CONSOLE` stands in the program's compiled code: `_ASSERT` checks its condition.
     pub asserts: bool,
+    /// The first `$DEBUG` line of the program's compiled code, which the wasm target rejects (`target.rs`).
+    pub debug: Option<Span>,
     /// The last `$RESIZE` line in the file.
     pub resize: Resize,
     /// The optional parts of the runtime the program's built-ins need (the table's `dependency` column).

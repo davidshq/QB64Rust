@@ -23581,7 +23581,7 @@ qbs *func__os() {
 #elif defined(QB64_MACOSX)
 #    define QB64_OS_SYSTEM_STR "[MACOSX]"
 #else
-#    define QB64_OS_SYSTEM_STR ""
+#    define QB64_OS_SYSTEM_STR "[WASM]" // QB64_EMSCRIPTEN: libqb-common.h lets no other system through
 #endif
 
 #ifdef QB64_MACOSX

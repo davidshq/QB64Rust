@@ -29,7 +29,21 @@ pub struct Roots {
     /// The include root (spec `compiler/cli`), which takes the QB64pe folder's place when there is none (design D5
     /// of `m6-toolchain`).
     pub include: PathBuf,
+    /// The copy of libqb `make` runs in: `libqb\`, or for the wasm target the tree [`sync_wasm_libqb`] keeps.
     pub libqb: PathBuf,
+    /// The Emscripten SDK of a build for the wasm target; `None` for a desktop build (design D2 of `wasm-console`).
+    pub emsdk: Option<crate::toolchain::Emsdk>,
+}
+
+impl Roots {
+    /// The platform the build is for: the wasm target with an SDK, else the toolchain's.
+    pub fn platform(&self) -> Platform {
+        if self.emsdk.is_some() {
+            Platform::Wasm
+        } else {
+            self.toolchain.platform
+        }
+    }
 }
 
 impl Roots {
@@ -489,8 +503,9 @@ pub fn debug_path(exe: &Path) -> PathBuf {
 /// Builds the executable. The executable is linked inside the build folder (whose name has no spaces, see
 /// [`build_dir`]) and then moved to `exe`. On failure the build folder is kept and the make output is returned.
 pub fn build(roots: &Roots, build: &Path, exe: &Path, quiet: bool, settings: &Settings) -> Result<(), BuildError> {
+    // A wasm build writes two files, and an entry of the cache is one: it neither reuses nor fills the cache.
     let cache = std::env::var_os(CACHE_ENV)
-        .filter(|_| !settings.uncached)
+        .filter(|_| !settings.uncached && roots.emsdk.is_none())
         .map(PathBuf::from);
     if settings.debug && settings.optimize && !quiet {
         println!("--debug: OptimizeCppProgram is left out, the program is built without optimisation");
@@ -593,8 +608,8 @@ fn program_inputs(roots: &Roots, build: &Path, settings: &Settings) -> Fnv128 {
     h.write(b"qb64rust build cache 8\0");
     // A Linux build's key has its platform as a line, so a cache shared by both never gives one the other's
     // executable (design D2 of `m7-linux`); a Windows key is as before.
-    if roots.toolchain.platform != Platform::Windows {
-        h.write(roots.toolchain.platform.name().as_bytes());
+    if roots.platform() != Platform::Windows {
+        h.write(roots.platform().name().as_bytes());
         h.write(b"\0");
     }
     h.write(&settings.fixes.bits().to_le_bytes());
@@ -797,6 +812,26 @@ fn objects_stamp(toolchain: &Found) -> String {
     text
 }
 
+/// The `--pre-js` file of a wasm build (design D4 of `wasm-console`; measured, its "Measured"): the program's current
+/// folder is the folder of its `.js` file, and the `.wasm` file is the one beside the `.js` with its name, so the two
+/// may be moved and renamed together. Only Node's main thread changes the folder: Node refuses `process.chdir` in a
+/// worker, and the folder is the process's.
+const WASM_PRE_JS: &str = "// Written by qb64rust for the wasm target.\n\
+if (typeof process === 'object' && require('worker_threads').isMainThread) {\n\
+    process.chdir(__dirname);\n\
+}\n\
+Module['locateFile'] = (path, prefix) =>\n\
+    path.endsWith('.wasm') ? __filename.replace(/\\.js$/, '.wasm') : prefix + path;\n";
+
+/// What a wasm build's libqb objects are built with: the Emscripten release, which [`crate::toolchain::find_emsdk`]
+/// holds to one (design D3 of `wasm-console`).
+fn wasm_objects_stamp() -> String {
+    format!(
+        "qb64rust libqb objects 1 for wasm: Emscripten {}\n",
+        crate::toolchain::EMSDK_RELEASE
+    )
+}
+
 /// Whether the copy's objects were built as `want` says ([`objects_stamp`]).
 fn objects_current(libqb: &Path, want: &str) -> bool {
     std::fs::read(libqb.join(OBJECTS_STAMP)).is_ok_and(|s| s == want.as_bytes())
@@ -875,6 +910,113 @@ fn remove_built(base: &Path, dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// The variable naming the tree a wasm build builds libqb in (design D3 of `wasm-console`).
+pub const LIBQB_WASM_ENV: &str = "QB64RUST_LIBQB_WASM_ROOT";
+
+/// The tree a wasm build builds libqb in, never `libqb` itself (design D3 of `wasm-console`): an object has one
+/// name per source, so a wasm build there would replace the desktop objects, and each switch of target would build
+/// libqb again. [`LIBQB_WASM_ENV`] when set, else `target/wasm/libqb` of the checkout when `libqb` is a checkout's
+/// (it has `../Cargo.toml`), else `wasm/libqb` under the toolchain's home.
+pub fn wasm_libqb(libqb: &Path) -> Result<PathBuf, String> {
+    let env = std::env::var_os(LIBQB_WASM_ENV)
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from);
+    wasm_libqb_in(libqb, env.as_deref(), crate::toolchain::home().as_deref())
+}
+
+/// [`wasm_libqb`] with the variable's value `env` and the toolchain's home `home`.
+pub fn wasm_libqb_in(libqb: &Path, env: Option<&Path>, home: Option<&Path>) -> Result<PathBuf, String> {
+    let tree = match (env, libqb.parent()) {
+        (Some(dir), _) => dir.to_path_buf(),
+        (None, Some(checkout)) if checkout.join("Cargo.toml").is_file() => checkout.join("target/wasm/libqb"),
+        (None, _) => home
+            .map(|h| h.join("wasm").join("libqb"))
+            .ok_or_else(|| format!("no folder for the wasm build of libqb: set {LIBQB_WASM_ENV}"))?,
+    };
+    Ok(std::path::absolute(&tree).unwrap_or(tree))
+}
+
+/// What [`sync_wasm_libqb`] changed.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Synced {
+    pub copied: usize,
+    pub removed: usize,
+}
+
+/// Makes the sources of the wasm tree `tree` those of `libqb` (design D3 of `wasm-console`): each source file of
+/// `libqb` whose size or modification time differs from the tree's is copied, with its time; each source file of the
+/// tree that `libqb` no longer has is removed. Files that builds write ([`written_by_builds`]), the objects' stamp and
+/// the lock are left alone, and nothing of `libqb` is written. Holds the tree's own [`OBJECTS_LOCK`] alone meanwhile,
+/// so a build that reads the tree never sees half a copy. Only ever writes the tree.
+pub fn sync_wasm_libqb(libqb: &Path, tree: &Path) -> Result<Synced, String> {
+    std::fs::create_dir_all(tree).map_err(|e| format!("creating {}: {e}", tree.display()))?;
+    let path = tree.join(OBJECTS_LOCK);
+    let err = |e: std::io::Error| format!("locking the wasm libqb tree ({}): {e}", path.display());
+    let lock = std::fs::File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&path)
+        .map_err(err)?;
+    lock.lock().map_err(err)?;
+    let mut wanted = Vec::new();
+    sources(libqb, libqb, &mut wanted);
+    let mut synced = Synced::default();
+    for rel in &wanted {
+        let (from, to) = (libqb.join(rel), tree.join(rel));
+        let (Ok(a), b) = (std::fs::metadata(&from), std::fs::metadata(&to).ok()) else {
+            continue;
+        };
+        if b.is_some_and(|b| b.len() == a.len() && b.modified().ok() == a.modified().ok()) {
+            continue;
+        }
+        if let Some(dir) = to.parent() {
+            std::fs::create_dir_all(dir).map_err(|e| format!("creating {}: {e}", dir.display()))?;
+        }
+        std::fs::copy(&from, &to).map_err(|e| format!("copying {} to {}: {e}", from.display(), to.display()))?;
+        if let Ok(t) = a.modified() {
+            let f = std::fs::File::options()
+                .write(true)
+                .open(&to)
+                .map_err(|e| format!("opening {}: {e}", to.display()))?;
+            f.set_modified(t)
+                .map_err(|e| format!("setting the time of {}: {e}", to.display()))?;
+        }
+        synced.copied += 1;
+    }
+    let wanted: std::collections::HashSet<PathBuf> = wanted.into_iter().collect();
+    let mut have = Vec::new();
+    sources(tree, tree, &mut have);
+    for rel in have.iter().filter(|r| !wanted.contains(*r)) {
+        let p = tree.join(rel);
+        std::fs::remove_file(&p).map_err(|e| format!("removing {}: {e}", p.display()))?;
+        synced.removed += 1;
+    }
+    Ok(synced)
+}
+
+/// The source files under `dir` of a libqb tree `base`, relative to it: all but the objects' stamp and lock at its
+/// top and the files under `internal/c` that builds write ([`written_by_builds`]).
+fn sources(base: &Path, dir: &Path, out: &mut Vec<PathBuf>) {
+    let Ok(d) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let c = base.join("internal").join("c");
+    for e in d.flatten() {
+        let p = e.path();
+        let name = e.file_name().to_string_lossy().into_owned();
+        if p.is_dir() {
+            sources(base, &p, out);
+        } else if !(dir == base && (name == OBJECTS_LOCK || name == OBJECTS_STAMP))
+            && !written_by_builds(dir == c, &name)
+            && let Ok(rel) = p.strip_prefix(base)
+        {
+            out.push(rel.to_path_buf());
+        }
+    }
+}
+
 /// The makefile read after the copy's `Makefile` that gives the driver's flags to the program's own objects only
 /// (design D1 of `libqb-object-flags`): `-fwrapv` (LONG and `_INTEGER64` overflow wraps, `DIVERGENCES-QB64PE.md` D-001,
 /// D-002), `-O2` for `OptimizeCppProgram`, `-g` instead for a debug build (design D1 of `m5-debug-build-symbols`),
@@ -902,7 +1044,7 @@ fn program_makefile(platform: Platform, libqb: &Path, optimize: bool, debug: boo
              CXXLIBS += -Wl,--no-insert-timestamp\n",
             slash(libqb)
         ),
-        Platform::Linux => format!(
+        Platform::Linux | Platform::Wasm => format!(
             "# Written by qb64rust: the program's own flags, for the program's own objects only.\n\
              $(QB_QBX_OBJ) $(PATH_INTERNAL_TEMP)/embedded.o: private CXXFLAGS += {level}-fwrapv -I{}/internal/c\n",
             slash(libqb)
@@ -914,8 +1056,16 @@ fn program_makefile(platform: Platform, libqb: &Path, optimize: bool, debug: boo
 /// current ([`refresh_objects`], alone). Then holds it shared when `make -q` says the copy's objects for these flags
 /// are up to date, so the build only reads them, and otherwise alone, so that one build at a time writes them. The
 /// returned file holds the lock until it is dropped. `make` is `cmd` before its goal; `stamp` is [`objects_stamp`].
-fn lock_objects(make: &Command, build: &Path, libqb: &Path, stamp: &str) -> Result<Option<std::fs::File>, String> {
-    match std::env::var_os(OBJECTS_LOCK_ENV) {
+/// The wasm tree always takes its own lock, the one [`sync_wasm_libqb`] takes (`own_lock`): every wasm build uses
+/// that one tree.
+fn lock_objects(
+    make: &Command,
+    build: &Path,
+    libqb: &Path,
+    stamp: &str,
+    own_lock: bool,
+) -> Result<Option<std::fs::File>, String> {
+    match std::env::var_os(OBJECTS_LOCK_ENV).filter(|_| !own_lock) {
         Some(path) => lock_objects_at(make, build, libqb, stamp, &PathBuf::from(path), false),
         None => lock_objects_at(make, build, libqb, stamp, &libqb.join(OBJECTS_LOCK), true),
     }
@@ -1009,7 +1159,7 @@ fn build_with_make(
         .map_err(|e| format!("copying qbx.cpp: {e}"))?;
     let _ = std::fs::remove_file(c.join("qbx.o"));
     let _ = std::fs::remove_file(exe);
-    let platform = roots.toolchain.platform;
+    let platform = roots.platform();
     let linked = build.join("program").with_extension(platform.exe_extension());
     let _ = std::fs::remove_file(&linked);
     let make = roots.toolchain.tool(Tool::Make);
@@ -1045,8 +1195,34 @@ fn build_with_make(
                 cmd.arg(format!("{name}={}", slash(&roots.toolchain.tool(tool))));
             }
         }
+        // The host's `OS`, which decides how the `Makefile` writes commands and paths, and `WASM=y`, under which
+        // its edits take Emscripten's flags and a Unix system's sources (design D4 of `wasm-console`). Nothing is
+        // stripped: the `Makefile` would run `objcopy` on the `.js`.
+        Platform::Wasm => {
+            let sdk = roots.emsdk.as_ref().expect("a wasm build has its SDK");
+            let host = roots.toolchain.platform;
+            cmd.args([
+                if host == Platform::Windows { "OS=win" } else { "OS=lnx" },
+                "BITS=32",
+                "WASM=y",
+                "STRIP_SYMBOLS=n",
+            ]);
+            for (name, tool) in [("AR", &sdk.emar), ("CC", &sdk.emcc), ("CXX", &sdk.empp)] {
+                let shown = match host {
+                    Platform::Windows => tool.display().to_string().replace('/', "\\"),
+                    Platform::Linux | Platform::Wasm => slash(tool),
+                };
+                cmd.arg(format!("{name}={shown}"));
+            }
+            cmd.env("EM_CONFIG", &sdk.config);
+        }
     }
-    cmd.args(&settings.flags)
+    // The icon and version resources are Windows' executable's; on the wasm target as on Linux there are none.
+    let flags = settings
+        .flags
+        .iter()
+        .filter(|f| platform != Platform::Wasm || **f != ICON_RC_FLAG);
+    cmd.args(flags)
         .arg(format!("EXE={}", slash(&linked)))
         .arg(format!("QB_QBX_SRC={}/qbx.cpp", slash(&c)))
         .arg(format!("PATH_INTERNAL_TEMP={}", slash(&build.join("temp"))));
@@ -1062,20 +1238,33 @@ fn build_with_make(
     }
     // As `qb64pe` passes it for `StripDebugSymbols=false` (`qb64pe.bas` 13767): the `Makefile` neither strips nor
     // writes the `.sym` file.
-    if settings.debug || settings.keep_symbols {
+    if (settings.debug || settings.keep_symbols) && platform != Platform::Wasm {
         cmd.arg("STRIP_SYMBOLS=n");
     }
     if !quiet {
         println!("building {}", exe.display());
     }
     // Held until `make` has ended: shared while the copy's objects are only read, alone while they are built.
-    let _objects = lock_objects(&cmd, build, &roots.libqb, &objects_stamp(&roots.toolchain))?;
+    let stamp = match platform {
+        Platform::Wasm => wasm_objects_stamp(),
+        Platform::Windows | Platform::Linux => objects_stamp(&roots.toolchain),
+    };
+    let _objects = lock_objects(&cmd, build, &roots.libqb, &stamp, platform == Platform::Wasm)?;
     let program_mk = build.join("program.mk");
-    std::fs::write(
-        &program_mk,
-        program_makefile(platform, &roots.libqb, settings.optimize, settings.debug),
-    )
-    .map_err(|e| format!("writing {}: {e}", program_mk.display()))?;
+    let mut mk = program_makefile(platform, &roots.libqb, settings.optimize, settings.debug);
+    if platform == Platform::Wasm {
+        let pre_js = build.join("wasm-pre.js");
+        std::fs::write(&pre_js, WASM_PRE_JS).map_err(|e| format!("writing {}: {e}", pre_js.display()))?;
+        mk.push_str(&format!("CXXLIBS += --pre-js {}\n", slash(&pre_js)));
+        // `_FLOAT` is a `long double`, IEEE quad in wasm32. Emscripten's printf prints one as a 64-bit double
+        // unless the program is linked with this (the SDK's `src/settings.js`), so `_TOSTR$(1 / 3)` lost its
+        // last digits (task 5.2 of `wasm-console`, `verification\v20_c_string_edges`).
+        mk.push_str("CXXLIBS += -sPRINTF_LONG_DOUBLE\n");
+        // A growing heap stops at 2 GB unless this raises it to wasm32's 4 GB (the SDK's `src/settings.js`), so a
+        // string of 2,147,483,647 bytes could not be made (`verification\v21_c_fixed_len_2147483647`).
+        mk.push_str("CXXLIBS += -sMAXIMUM_MEMORY=4GB\n");
+    }
+    std::fs::write(&program_mk, mk).map_err(|e| format!("writing {}: {e}", program_mk.display()))?;
     cmd.args(["-f", "Makefile", "-f"]).arg(slash(&program_mk)).arg("exe");
     let out = cmd.output().map_err(|e| format!("running {}: {e}", make.display()))?;
     if out.status.success() && linked.is_file() && (!settings.license || linked_license.is_file()) {
@@ -1083,6 +1272,12 @@ fn build_with_make(
             let to = license_path(exe);
             std::fs::rename(&linked_license, &to)
                 .map_err(|e| format!("moving the licence file to {}: {e}", to.display()))?;
+        }
+        // The wasm target's `.wasm` file goes beside the `.js` with its name ([`WASM_PRE_JS`] finds it so).
+        if platform == Platform::Wasm {
+            let to = exe.with_extension("wasm");
+            std::fs::rename(linked.with_extension("wasm"), &to)
+                .map_err(|e| format!("moving the .wasm file to {}: {e}", to.display()))?;
         }
         std::fs::rename(&linked, exe).map_err(|e| {
             let _ = std::fs::remove_file(license_path(exe));
@@ -1324,6 +1519,7 @@ mod tests {
             toolchain: Found::in_folder(p.to_path_buf(), Source::Option, Platform::Windows),
             qb64pe: None,
             include: p.to_path_buf(),
+            emsdk: None,
             libqb: p.to_path_buf(),
         }
     }
@@ -1335,6 +1531,7 @@ mod tests {
             toolchain: Found::in_folder(base.join("toolchain"), Source::Option, Platform::Windows),
             qb64pe: None,
             include: base.join("include"),
+            emsdk: None,
             libqb: base.join("libqb"),
         };
         for d in [&roots.toolchain.folder, &roots.include, &roots.libqb] {
@@ -1810,6 +2007,7 @@ mod tests {
         std::fs::write(build.join("temp/main.txt"), "int main;").unwrap();
         std::fs::write(libqb.join("internal/c/qbx.cpp"), "one").unwrap();
         let roots = Roots {
+            emsdk: None,
             libqb: libqb.clone(),
             ..one_root(d.path())
         };
@@ -2111,5 +2309,80 @@ mod tests {
                 "DEP_ZLIB=y"
             ]
         );
+    }
+
+    /// The wasm tree of design D3 of `wasm-console`: the variable, else the checkout's `target`, else the home.
+    #[test]
+    fn wasm_libqb_tree() {
+        let d = tempfile::tempdir().unwrap();
+        let checkout = d.path().join("repo");
+        std::fs::create_dir_all(checkout.join("libqb")).unwrap();
+        std::fs::write(checkout.join("Cargo.toml"), "").unwrap();
+        let libqb = checkout.join("libqb");
+        let env = d.path().join("w");
+        assert_eq!(wasm_libqb_in(&libqb, Some(&env), None).unwrap(), env);
+        assert_eq!(
+            wasm_libqb_in(&libqb, None, None).unwrap(),
+            checkout.join("target/wasm/libqb")
+        );
+        let unpacked = d.path().join("download/libqb");
+        std::fs::create_dir_all(&unpacked).unwrap();
+        let home = d.path().join("home");
+        assert_eq!(
+            wasm_libqb_in(&unpacked, None, Some(&home)).unwrap(),
+            home.join("wasm/libqb")
+        );
+        assert!(wasm_libqb_in(&unpacked, None, None).is_err());
+    }
+
+    /// `sync_wasm_libqb`: a changed source is copied, a removed one removed, an object of the tree kept, and a second
+    /// sync copies nothing. `libqb` itself gets no new file.
+    #[test]
+    fn wasm_libqb_sync() {
+        let d = tempfile::tempdir().unwrap();
+        let (libqb, tree) = (d.path().join("libqb"), d.path().join("tree"));
+        let c = libqb.join("internal/c");
+        std::fs::create_dir_all(c.join("libqb/src")).unwrap();
+        std::fs::write(libqb.join("Makefile"), "all:\n").unwrap();
+        std::fs::write(c.join("qbx.cpp"), "// qbx\n").unwrap();
+        std::fs::write(c.join("libqb/src/qbs.cpp"), "// qbs\n").unwrap();
+        // Written by a desktop build: never copied.
+        std::fs::write(c.join("libqb/src/qbs.o"), "object").unwrap();
+        std::fs::write(libqb.join(OBJECTS_STAMP), "desktop").unwrap();
+        let before = {
+            let mut v = Vec::new();
+            sources(&libqb, &libqb, &mut v);
+            v.len()
+        };
+        assert_eq!(
+            sync_wasm_libqb(&libqb, &tree).unwrap(),
+            Synced { copied: 3, removed: 0 }
+        );
+        assert!(tree.join("internal/c/libqb/src/qbs.cpp").is_file());
+        assert!(!tree.join("internal/c/libqb/src/qbs.o").exists() && !tree.join(OBJECTS_STAMP).exists());
+        // A wasm object in the tree, a source changed, one removed.
+        std::fs::write(tree.join("internal/c/libqb/src/qbs.o"), "wasm object").unwrap();
+        std::fs::write(c.join("libqb/src/qbs.cpp"), "// qbs, edited\n").unwrap();
+        std::fs::remove_file(c.join("qbx.cpp")).unwrap();
+        assert_eq!(
+            sync_wasm_libqb(&libqb, &tree).unwrap(),
+            Synced { copied: 1, removed: 1 }
+        );
+        assert_eq!(
+            std::fs::read(tree.join("internal/c/libqb/src/qbs.cpp")).unwrap(),
+            b"// qbs, edited\n"
+        );
+        assert!(!tree.join("internal/c/qbx.cpp").exists());
+        assert_eq!(
+            std::fs::read(tree.join("internal/c/libqb/src/qbs.o")).unwrap(),
+            b"wasm object"
+        );
+        assert_eq!(sync_wasm_libqb(&libqb, &tree).unwrap(), Synced::default());
+        // Nothing was written into `libqb`: one source fewer, the same object and stamp.
+        let mut after = Vec::new();
+        sources(&libqb, &libqb, &mut after);
+        assert_eq!(after.len(), before - 1);
+        assert!(!libqb.join(OBJECTS_LOCK).exists());
+        assert_eq!(std::fs::read(c.join("libqb/src/qbs.o")).unwrap(), b"object");
     }
 }

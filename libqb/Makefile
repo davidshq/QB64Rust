@@ -173,6 +173,16 @@ ifeq ($(OS),osx)
 	DEBUG_PATH_FLAGS := -fdebug-compilation-dir=.
 endif
 
+# qb64rust's wasm target: Emscripten's compilers, named by the caller, with the host's OS for commands and paths. The
+# objects and libraries are those of a Unix system with no window.
+ifeq ($(WASM),y)
+	win :=
+	lnx :=
+	unix := y
+	PLATFORM := posix
+	EXTENSION := .js
+endif
+
 $(info OS: $(OS))
 $(info ARCH: $(ARCH))
 $(info BITS: $(BITS))
@@ -468,6 +478,16 @@ ifeq ($(OS),win)
 	ifneq ($(filter y,$(DEP_PRINTER)),)
 		CXXLIBS += -lwinspool
 	endif
+endif
+
+# qb64rust's wasm target: no -m32 or -m64, threads everywhere, none of the host's libraries, no icon resource, and
+# the link flags of a program run by Node.
+ifeq ($(WASM),y)
+	CXXFLAGS := $(filter-out -m32 -m64 -no-pie -D_GLFW_%,$(CXXFLAGS)) -pthread
+	EXE_LIBS := $(filter-out %/glut-emu.o %/core.a %/clipboard.a,$(EXE_LIBS))
+	CFLAGS := $(filter-out -m32 -m64 -no-pie,$(CFLAGS)) -pthread
+	CXXLIBS := $(CXXLIBS_EXTRA) -pthread -sPTHREAD_POOL_SIZE=4 -sNODERAWFS -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH -sENVIRONMENT=node
+	EXE_OBJS := $(filter-out $(ICON_OBJ),$(EXE_OBJS))
 endif
 
 ifneq ($(filter y,$(DEP_EMBED)),)

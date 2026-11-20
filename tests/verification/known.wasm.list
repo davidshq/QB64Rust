@@ -1,0 +1,768 @@
+# The verification programs the wasm target cannot run (OpenSpec change wasm-console; spec testing/golden-corpus,
+# "The wasm known list"), in the format of known.list: <name><TAB><reason>. Every reason starts with target,
+# window, offset, float, clib, width, node, varies or open. The lines target, window and offset are skipped
+# without a build. They were written by `-z --target wasm` over the suite (task 6.2): window for a program without
+# $CONSOLE:ONLY, offset for one rejected for a pointer's size (_OFFSET, _MEM, a member array of strings), target
+# for one that uses another word the target does not have, or a part of libqb it does not build yet.
+# window: 307
+v16_m5_line_b_var	window: no $CONSOLE:ONLY
+v16_m5_line_extra_arg	window: no $CONSOLE:ONLY
+v16_m5_line_no_parens	window: no $CONSOLE:ONLY
+v16_m5_line_wrong_word	window: no $CONSOLE:ONLY
+v16_m5_lowercase_words	window: no $CONSOLE:ONLY
+v16_m5_put_forms	window: no $CONSOLE:ONLY
+v16_m5_put_graphics_no_array	window: no $CONSOLE:ONLY
+v26_a_dest_console	window: no $CONSOLE:ONLY
+v26_b_dest_switch	window: no $CONSOLE:ONLY
+v26_c_dest_in_sub	window: no $CONSOLE:ONLY
+v26_d1_input_dest	window: no $CONSOLE:ONLY
+v26_d2_input_source	window: no $CONSOLE:ONLY
+v26_e2_fall_off	window: no $CONSOLE:ONLY
+v26_e_end	window: no $CONSOLE:ONLY
+v26_f1_error_handled	window: no $CONSOLE:ONLY
+v26_f2_error_untrapped	window: no $CONSOLE:ONLY
+v26_g_echo	window: no $CONSOLE:ONLY
+v26_h2_flag_both	window: no $CONSOLE:ONLY
+v26_h_flag_console	window: no $CONSOLE:ONLY
+v26_x01_console_twice	window: no $CONSOLE:ONLY
+v26_x04_console_last_line	window: no $CONSOLE:ONLY
+v26_x05_dest_console_no_meta	window: no $CONSOLE:ONLY
+v26_x06_screenhide_alone	window: no $CONSOLE:ONLY
+v26_x07_screenshow_after_hide	window: no $CONSOLE:ONLY
+v26_x08_console_in_sub	window: no $CONSOLE:ONLY
+v26_x09_console_off	window: no $CONSOLE:ONLY
+v26_x10_console_junk	window: no $CONSOLE:ONLY
+v26_x11_screenhide_junk	window: no $CONSOLE:ONLY
+v26_x12_console_comment	window: no $CONSOLE:ONLY
+v26_x13_console_after_colon	window: no $CONSOLE:ONLY
+v26_x14_console_before_colon	window: no $CONSOLE:ONLY
+v26_x15_case_and_blanks	window: no $CONSOLE:ONLY
+v26_x16_console_in_if_false	window: no $CONSOLE:ONLY
+v26_x17_echo_no_console	window: no $CONSOLE:ONLY
+v26_x18_dest_no_argument	window: no $CONSOLE:ONLY
+v26_x19_dest_string	window: no $CONSOLE:ONLY
+v26_x20_console_assigned	window: no $CONSOLE:ONLY
+v26_x21_dest_bad_handle	window: no $CONSOLE:ONLY
+v26_x22_dest_types	window: no $CONSOLE:ONLY
+v26_x23_tab_before	window: no $CONSOLE:ONLY
+v26_x26_flag_guarded_console	window: no $CONSOLE:ONLY
+v26_x29_only_comment	window: no $CONSOLE:ONLY
+v26_x30_only_junk	window: no $CONSOLE:ONLY
+v26_x31_only_blanks_inside	window: no $CONSOLE:ONLY
+v26_x32_screenshow_junk	window: no $CONSOLE:ONLY
+v26_x35_screenhide_comment	window: no $CONSOLE:ONLY
+v26_x36_screenhide_after_colon	window: no $CONSOLE:ONLY
+v26_x37_screenhide_before_colon	window: no $CONSOLE:ONLY
+v26_x38_flag_guarded_only	window: no $CONSOLE:ONLY
+v26_x39_flag_running_value	window: no $CONSOLE:ONLY
+v26_x43_tab_before_only	window: no $CONSOLE:ONLY
+v26_x44_tab_before_screenhide	window: no $CONSOLE:ONLY
+v26_x48_only_after_colon	window: no $CONSOLE:ONLY
+v26_x52_flag_asserts_console	window: no $CONSOLE:ONLY
+v26_x53_flag_three_rounds	window: no $CONSOLE:ONLY
+v26_x58_tab_after	window: no $CONSOLE:ONLY
+v26_x60_console_onlyx	window: no $CONSOLE:ONLY
+v26_x62_echo_above_console	window: no $CONSOLE:ONLY
+v26_x63_echo_number	window: no $CONSOLE:ONLY
+v26_x64_echo_no_argument	window: no $CONSOLE:ONLY
+v26_x65_echo_two	window: no $CONSOLE:ONLY
+v26_x66_source_no_argument	window: no $CONSOLE:ONLY
+v26_x67_source_string	window: no $CONSOLE:ONLY
+v26_x68_dest_function_argument	window: no $CONSOLE:ONLY
+v26_x69_call_echo	window: no $CONSOLE:ONLY
+v26_x70_call_dest	window: no $CONSOLE:ONLY
+v26_x71_dest_two	window: no $CONSOLE:ONLY
+v26_x73_dest_parens	window: no $CONSOLE:ONLY
+v31_a_colours	window: no $CONSOLE:ONLY
+v31_b_images	window: no $CONSOLE:ONLY
+v31_c_save_load	window: no $CONSOLE:ONLY
+v31_d_fonts	window: no $CONSOLE:ONLY
+v31_x01_accepted	window: no $CONSOLE:ONLY
+v31_x02_copyimage_bare	window: no $CONSOLE:ONLY
+v31_x03_loadimage_empty	window: no $CONSOLE:ONLY
+v31_x04_loadimage_bare	window: no $CONSOLE:ONLY
+v31_x05_loadimage_number	window: no $CONSOLE:ONLY
+v31_x06_loadimage_string_mode	window: no $CONSOLE:ONLY
+v31_x07_loadimage_four	window: no $CONSOLE:ONLY
+v31_x08_putimage_dash	window: no $CONSOLE:ONLY
+v31_x09_putimage_too_many	window: no $CONSOLE:ONLY
+v31_x100_pmap_three	window: no $CONSOLE:ONLY
+v31_x101_mouseinput_arg	window: no $CONSOLE:ONLY
+v31_x102_mousehidden_arg	window: no $CONSOLE:ONLY
+v31_x103_mousemovementx_arg	window: no $CONSOLE:ONLY
+v31_x104_newimage_one	window: no $CONSOLE:ONLY
+v31_x105_freeimage_two	window: no $CONSOLE:ONLY
+v31_x106_setalpha_string	window: no $CONSOLE:ONLY
+v31_x107_mouseinput_statement	window: no $CONSOLE:ONLY
+v31_x108_width_statement	window: no $CONSOLE:ONLY
+v31_x109_rgb_statement	window: no $CONSOLE:ONLY
+v31_x10_putimage_smooth_no_comma	window: no $CONSOLE:ONLY
+v31_x11_putimage_string	window: no $CONSOLE:ONLY
+v31_x12_putimage_three_coords	window: no $CONSOLE:ONLY
+v31_x13_mousebutton_bare	window: no $CONSOLE:ONLY
+v31_x14_mousebutton_two	window: no $CONSOLE:ONLY
+v31_x15_mousex_arg	window: no $CONSOLE:ONLY
+v31_x16_mousewheel_two	window: no $CONSOLE:ONLY
+v31_x17_mousemove_one	window: no $CONSOLE:ONLY
+v31_x18_mousemove_string	window: no $CONSOLE:ONLY
+v31_x19_ucharpos_integer_array	window: no $CONSOLE:ONLY
+v31_x20_ucharpos_long_scalar	window: no $CONSOLE:ONLY
+v31_x21_ucharpos_string_array	window: no $CONSOLE:ONLY
+v31_x22_ucharpos_array_name_bare	window: no $CONSOLE:ONLY
+v31_x23_ucharpos_five	window: no $CONSOLE:ONLY
+v31_x24_ucharpos_bare	window: no $CONSOLE:ONLY
+v31_x25_ucharpos_literal	window: no $CONSOLE:ONLY
+v31_x26_ucharpos_long64_array	window: no $CONSOLE:ONLY
+v31_x27_rgb_two	window: no $CONSOLE:ONLY
+v31_x28_rgb_six	window: no $CONSOLE:ONLY
+v31_x29_rgba_three	window: no $CONSOLE:ONLY
+v31_x30_red_empty	window: no $CONSOLE:ONLY
+v31_x31_red_bare	window: no $CONSOLE:ONLY
+v31_x32_red_three	window: no $CONSOLE:ONLY
+v31_x33_red32_two	window: no $CONSOLE:ONLY
+v31_x34_hsb32_two	window: no $CONSOLE:ONLY
+v31_x35_hue32_string	window: no $CONSOLE:ONLY
+v31_x36_rgb_string	window: no $CONSOLE:ONLY
+v31_x37_width_string	window: no $CONSOLE:ONLY
+v31_x38_width_two	window: no $CONSOLE:ONLY
+v31_x39_pixelsize_empty	window: no $CONSOLE:ONLY
+v31_x40_printmode_bare	window: no $CONSOLE:ONLY
+v31_x41_printmode_number	window: no $CONSOLE:ONLY
+v31_x42_printmode_fn_two	window: no $CONSOLE:ONLY
+v31_x43_depthbuffer_bare	window: no $CONSOLE:ONLY
+v31_x44_depthbuffer_number	window: no $CONSOLE:ONLY
+v31_x45_mapunicode_comma	window: no $CONSOLE:ONLY
+v31_x46_mapunicode_one	window: no $CONSOLE:ONLY
+v31_x47_mapunicode_fn_bare	window: no $CONSOLE:ONLY
+v31_x48_mapunicode_fn_two	window: no $CONSOLE:ONLY
+v31_x49_setalpha_bare	window: no $CONSOLE:ONLY
+v31_x50_setalpha_to_only	window: no $CONSOLE:ONLY
+v31_x51_setalpha_to_without_first	window: no $CONSOLE:ONLY
+v31_x52_font_bare	window: no $CONSOLE:ONLY
+v31_x53_font_three	window: no $CONSOLE:ONLY
+v31_x54_font_fn_two	window: no $CONSOLE:ONLY
+v31_x55_freefont_bare	window: no $CONSOLE:ONLY
+v31_x56_freefont_two	window: no $CONSOLE:ONLY
+v31_x57_printstring_no_coords	window: no $CONSOLE:ONLY
+v31_x58_printstring_number_text	window: no $CONSOLE:ONLY
+v31_x59_printstring_no_text	window: no $CONSOLE:ONLY
+v31_x60_printstring_dash	window: no $CONSOLE:ONLY
+v31_x61_printwidth_bare	window: no $CONSOLE:ONLY
+v31_x62_printwidth_number	window: no $CONSOLE:ONLY
+v31_x63_uprintstring_no_text	window: no $CONSOLE:ONLY
+v31_x64_uprintstring_step	window: no $CONSOLE:ONLY
+v31_x65_uprintstring_eight	window: no $CONSOLE:ONLY
+v31_x66_uprintwidth_bare	window: no $CONSOLE:ONLY
+v31_x67_ufontheight_two	window: no $CONSOLE:ONLY
+v31_x68_loadfont_one	window: no $CONSOLE:ONLY
+v31_x69_loadfont_number_name	window: no $CONSOLE:ONLY
+v31_x70_loadfont_five	window: no $CONSOLE:ONLY
+v31_x71_fontwidth_two	window: no $CONSOLE:ONLY
+v31_x72_maptriangle_two_points	window: no $CONSOLE:ONLY
+v31_x73_maptriangle_no_to	window: no $CONSOLE:ONLY
+v31_x74_maptriangle_smooth_no_dest_comma	window: no $CONSOLE:ONLY
+v31_x75_maptriangle_seamless_after	window: no $CONSOLE:ONLY
+v31_x76_maptriangle_3d_source	window: no $CONSOLE:ONLY
+v31_x77_maptriangle_step	window: no $CONSOLE:ONLY
+v31_x78_clearcolor_fn_two	window: no $CONSOLE:ONLY
+v31_x79_clipboardimage_no_equals	window: no $CONSOLE:ONLY
+v31_x80_clipboardimage_fn_arg	window: no $CONSOLE:ONLY
+v31_x81_screenimage_two	window: no $CONSOLE:ONLY
+v31_x82_screenimage_empty	window: no $CONSOLE:ONLY
+v31_x83_printimage_bare	window: no $CONSOLE:ONLY
+v31_x84_printimage_two	window: no $CONSOLE:ONLY
+v31_x85_saveimage_bare	window: no $CONSOLE:ONLY
+v31_x86_saveimage_number	window: no $CONSOLE:ONLY
+v31_x87_saveimage_four	window: no $CONSOLE:ONLY
+v31_x88_palettecolor_one	window: no $CONSOLE:ONLY
+v31_x89_palettecolor_fn_bare	window: no $CONSOLE:ONLY
+v31_x90_palettecolor_fn_three	window: no $CONSOLE:ONLY
+v31_x91_copypalette_three	window: no $CONSOLE:ONLY
+v31_x92_copyimage_three	window: no $CONSOLE:ONLY
+v31_x93_blend_two	window: no $CONSOLE:ONLY
+v31_x94_blend_fn_two	window: no $CONSOLE:ONLY
+v31_x95_dontblend_two	window: no $CONSOLE:ONLY
+v31_x96_autodisplay_arg	window: no $CONSOLE:ONLY
+v31_x97_autodisplay_fn_arg	window: no $CONSOLE:ONLY
+v31_x98_pmap_one	window: no $CONSOLE:ONLY
+v31_x99_pmap_bare	window: no $CONSOLE:ONLY
+v33_a06_asserts_console	window: no $CONSOLE:ONLY
+v33_a07_assert_console_no_message	window: no $CONSOLE:ONLY
+v33_a09_assert_window_message	window: no $CONSOLE:ONLY
+v33_c21_system_5_window	window: no $CONSOLE:ONLY
+v33_d03_debug_window	window: no $CONSOLE:ONLY
+v33_x06_asserts_console_lower	window: no $CONSOLE:ONLY
+v52_x14_stop_window	window: no $CONSOLE:ONLY
+v53_a_window	window: no $CONSOLE:ONLY
+v53_b_colours	window: no $CONSOLE:ONLY
+v53_x70_meta_resize_bare	window: no $CONSOLE:ONLY
+v53_x71_meta_resize_bogus	window: no $CONSOLE:ONLY
+v53_x72_meta_resize_lower	window: no $CONSOLE:ONLY
+v53_x73_meta_resize_blank_after	window: no $CONSOLE:ONLY
+v53_x74_meta_resize_blank_before	window: no $CONSOLE:ONLY
+v53_x75_meta_resize_word_after	window: no $CONSOLE:ONLY
+v53_x76_meta_resize_stretch	window: no $CONSOLE:ONLY
+v53_x77_meta_resize_smooth_off	window: no $CONSOLE:ONLY
+v53_x79_meta_resize_comment	window: no $CONSOLE:ONLY
+v53_x80_meta_resize_in_sub	window: no $CONSOLE:ONLY
+v53_x81_meta_resize_on_on	window: no $CONSOLE:ONLY
+v53_x82_meta_resize_tab	window: no $CONSOLE:ONLY
+v53_x83_meta_resize_equals	window: no $CONSOLE:ONLY
+v56_d_get_put_kinds	window: no $CONSOLE:ONLY
+v56_e_undeclared_arrays	window: no $CONSOLE:ONLY
+v57_h01_screenhide_value	window: no $CONSOLE:ONLY
+v57_h02_screenhide_value_shown	window: no $CONSOLE:ONLY
+v57_h03_screenhide_after_statement	window: no $CONSOLE:ONLY
+v57_o01_point_last	window: no $CONSOLE:ONLY
+v57_o21_point_first_one	window: no $CONSOLE:ONLY
+v57_r10_screen_color	window: no $CONSOLE:ONLY
+v57_u01_palette_using_nothing	window: no $CONSOLE:ONLY
+v57_u02_palette_using_single	window: no $CONSOLE:ONLY
+v57_u03_palette_using_scalar	window: no $CONSOLE:ONLY
+v57_u04_palette_using_errors	window: no $CONSOLE:ONLY
+v57_u05_palette_using_int64	window: no $CONSOLE:ONLY
+v57_u06_palette_using_whole_parens	window: no $CONSOLE:ONLY
+v58_f14_display_window	window: no $CONSOLE:ONLY
+v58_s01_ports_window	window: no $CONSOLE:ONLY
+v58_s01b_wait_window	window: no $CONSOLE:ONLY
+v58_s05_display_window	window: no $CONSOLE:ONLY
+v58_s06_blink_window	window: no $CONSOLE:ONLY
+v59_a1_plain	window: no $CONSOLE:ONLY
+v59_a2_static	window: no $CONSOLE:ONLY
+v59_a3_include	window: no $CONSOLE:ONLY
+v59_a4_lower_parens	window: no $CONSOLE:ONLY
+v59_a6_screenhide	window: no $CONSOLE:ONLY
+v59_b1_stmt_without	window: no $CONSOLE:ONLY
+v59_b2_func_without	window: no $CONSOLE:ONLY
+v59_b3_const_without	window: no $CONSOLE:ONLY
+v59_b4_const_without_explicit	window: no $CONSOLE:ONLY
+v59_c_constants	window: no $CONSOLE:ONLY
+v59_d_conversions	window: no $CONSOLE:ONLY
+v59_e2_getstring_null	window: no $CONSOLE:ONLY
+v59_e_functions	window: no $CONSOLE:ONLY
+v59_f1_viewport_handled	window: no $CONSOLE:ONLY
+v59_f2_viewport_unhandled	window: no $CONSOLE:ONLY
+v59_f3_system_unhandled	window: no $CONSOLE:ONLY
+v59_f4_system_handled	window: no $CONSOLE:ONLY
+v59_f5_end_handled	window: no $CONSOLE:ONLY
+v59_f6_no_helper	window: no $CONSOLE:ONLY
+v59_f7_getstring_main	window: no $CONSOLE:ONLY
+v59_f8_in_sub	window: no $CONSOLE:ONLY
+v59_f9_stop	window: no $CONSOLE:ONLY
+v59_g_readback	window: no $CONSOLE:ONLY
+v59_h1_behind	window: no $CONSOLE:ONLY
+v59_h2_only	window: no $CONSOLE:ONLY
+v59_h3_ontop	window: no $CONSOLE:ONLY
+v59_x01_sub_gl_param	window: no $CONSOLE:ONLY
+v59_x02_sub_gl_param_and_plain	window: no $CONSOLE:ONLY
+v59_x03_function_gl	window: no $CONSOLE:ONLY
+v59_x04_function_gl_and_sub	window: no $CONSOLE:ONLY
+v59_x05_two_sub_gl	window: no $CONSOLE:ONLY
+v59_x06_call_gl	window: no $CONSOLE:ONLY
+v59_x07_call_gl_call	window: no $CONSOLE:ONLY
+v59_x08_call_gl_inside	window: no $CONSOLE:ONLY
+v59_x09_viewport_three_args	window: no $CONSOLE:ONLY
+v59_x10_clear_string	window: no $CONSOLE:ONLY
+v59_x11_clear_string_var	window: no $CONSOLE:ONLY
+v59_x12_sub_as_function	window: no $CONSOLE:ONLY
+v59_x13_function_as_statement	window: no $CONSOLE:ONLY
+v59_x14_function_args_as_statement	window: no $CONSOLE:ONLY
+v59_x15_call_keyword	window: no $CONSOLE:ONLY
+v59_x16_statement_parens	window: no $CONSOLE:ONLY
+v59_x17_no_prefix	window: no $CONSOLE:ONLY
+v59_x18_const_long_suffix	window: no $CONSOLE:ONLY
+v59_x19_const_string_suffix	window: no $CONSOLE:ONLY
+v59_x20_assign_const	window: no $CONSOLE:ONLY
+v59_x21_own_const	window: no $CONSOLE:ONLY
+v59_x22_own_sub	window: no $CONSOLE:ONLY
+v59_x23_own_sub_without	window: no $CONSOLE:ONLY
+v59_x24_dim_same	window: no $CONSOLE:ONLY
+v59_x25_func_suffix	window: no $CONSOLE:ONLY
+v59_x26_func_wrong_suffix	window: no $CONSOLE:ONLY
+v59_x27_getstring_suffix	window: no $CONSOLE:ONLY
+v59_x28_offset_from_long	window: no $CONSOLE:ONLY
+v59_x29_offset_string	window: no $CONSOLE:ONLY
+v59_x30_offset_array	window: no $CONSOLE:ONLY
+v59_x31_perspective_three	window: no $CONSOLE:ONLY
+v59_x32_perspective_function	window: no $CONSOLE:ONLY
+v59_x33_glu_other	window: no $CONSOLE:ONLY
+v59_x34_declare_sub_gl	window: no $CONSOLE:ONLY
+v59_x35_sub_gl_suffix	window: no $CONSOLE:ONLY
+v59_x36_flush_empty_parens	window: no $CONSOLE:ONLY
+v59_x37_viewport_trailing_comma	window: no $CONSOLE:ONLY
+v59_x38_viewport_omitted	window: no $CONSOLE:ONLY
+v59_x39_byval_word	window: no $CONSOLE:ONLY
+v59_x40_func_suffix_in_sub_gl_name	window: no $CONSOLE:ONLY
+v59_x41_gl_label	window: no $CONSOLE:ONLY
+v59_x42_name_as_variable_without	window: no $CONSOLE:ONLY
+v59_x43_const_of_gl_const	window: no $CONSOLE:ONLY
+v59_x44_const_in_sub_gl	window: no $CONSOLE:ONLY
+v59_x45_const_in_gl_bound	window: no $CONSOLE:ONLY
+v59_x46_gl_const_in_select	window: no $CONSOLE:ONLY
+v59_x47_gl_names_with_declare_only	window: no $CONSOLE:ONLY
+v59_x48_statement_suffix	window: no $CONSOLE:ONLY
+v59_x49_call_suffix	window: no $CONSOLE:ONLY
+v59_x50_clear_two_args	window: no $CONSOLE:ONLY
+v59_x51_viewport_third_string	window: no $CONSOLE:ONLY
+v59_x52_member_bound_gl_const	window: no $CONSOLE:ONLY
+v59_x53_fixed_len_gl_const	window: no $CONSOLE:ONLY
+v59_x54_member_fixed_len_gl_const	window: no $CONSOLE:ONLY
+v59_x55_func_suffix_empty_parens	window: no $CONSOLE:ONLY
+v59_x56_statement_suffix_empty_parens	window: no $CONSOLE:ONLY
+v59_x57_call_suffix_no_args	window: no $CONSOLE:ONLY
+v66_a19_get_put_index_function	window: no $CONSOLE:ONLY
+v66_a20_draw_x_varptrs	window: no $CONSOLE:ONLY
+# target: 145
+v22_d_shell	target: `SHELL` (-z --target wasm)
+v22_x166_shell_call	target: `SHELL` (-z --target wasm)
+v22_x178_shell_bare_compiles	target: `SHELL` (-z --target wasm)
+v22_x179_shell_hide_bare_compiles	target: `SHELL` (-z --target wasm)
+v27_x58_name_colon_accepted	target: `SHELL` (-z --target wasm)
+v28_x89_on_strig_gosub_sub_name	target: `ON STRIG` (-z --target wasm)
+v29_a_sound_queue	target: `PLAY` (-z --target wasm)
+v29_b_sound_wait	target: `SOUND` (-z --target wasm)
+v29_c_sound_errors	target: `SOUND` (-z --target wasm)
+v29_d_volume_zero	target: `SOUND` (-z --target wasm)
+v29_f_queue_slice	target: `PLAY` (-z --target wasm)
+v29_g_voice	target: `PLAY` (-z --target wasm)
+v29_h_sound_ranges	target: `SOUND` (-z --target wasm)
+v29_x01_sound_two	target: `SOUND` (-z --target wasm)
+v29_x03_sound_none	target: `SOUND` (-z --target wasm)
+v29_x04_sound_volume	target: `SOUND` (-z --target wasm)
+v29_x05_sound_pan	target: `SOUND` (-z --target wasm)
+v29_x06_sound_waveform	target: `SOUND` (-z --target wasm)
+v29_x07_sound_waveform_parameter	target: `SOUND` (-z --target wasm)
+v29_x08_sound_voice	target: `SOUND` (-z --target wasm)
+v29_x09_sound_seven	target: `SOUND` (-z --target wasm)
+v29_x11_sound_wait	target: `SOUND` (-z --target wasm)
+v29_x12_sound_resume	target: `SOUND` (-z --target wasm)
+v29_x13_sound_two_wait	target: `SOUND` (-z --target wasm)
+v29_x15_sound_three_resume	target: `SOUND` (-z --target wasm)
+v29_x19_sound_numeric_types	target: `SOUND` (-z --target wasm)
+v29_x20_sound_parentheses	target: `SOUND` (-z --target wasm)
+v29_x21_sound_trailing_comma	target: `SOUND` (-z --target wasm)
+v29_x24_sound_colon	target: `SOUND` (-z --target wasm)
+v29_x27_sound_call	target: `SOUND` (-z --target wasm)
+v29_x29_sound_seven_wait	target: `SOUND` (-z --target wasm)
+v29_x32_sound_wait_colon	target: `SOUND` (-z --target wasm)
+v29_x40_play_literal	target: `PLAY` (-z --target wasm)
+v29_x41_play_variable	target: `PLAY` (-z --target wasm)
+v29_x42_play_two	target: `PLAY` (-z --target wasm)
+v29_x43_play_first_third	target: `PLAY` (-z --target wasm)
+v29_x44_play_first_fourth	target: `PLAY` (-z --target wasm)
+v29_x45_play_four	target: `PLAY` (-z --target wasm)
+v29_x50_play_trailing_comma	target: `PLAY` (-z --target wasm)
+v29_x51_play_expression	target: `PLAY` (-z --target wasm)
+v29_x52_play_parentheses	target: `PLAY` (-z --target wasm)
+v29_x54_play_call	target: `PLAY` (-z --target wasm)
+v29_x55_play_function	target: `PLAY` (-z --target wasm)
+v29_x56_play_function_bare	target: `PLAY` (-z --target wasm)
+v29_x60_play_function_types	target: `PLAY` (-z --target wasm)
+v29_x64_on_play_gosub	target: `PLAY` (-z --target wasm)
+v29_x67_play_fixed_string	target: `PLAY` (-z --target wasm)
+v29_x68_play_fixed_string_second	target: `PLAY` (-z --target wasm)
+v29_x77_beep_in_if	target: `SOUND` (-z --target wasm)
+v29_x79_sound_goto	target: `SOUND` (-z --target wasm)
+v29_x82_sound_colon_alone	target: `SOUND` (-z --target wasm)
+v29_x84_sound_lower_case	target: `SOUND` (-z --target wasm)
+v29_x86_sound_in_sub	target: `SOUND` (-z --target wasm)
+v29_x87_call_sound_wait_inside	target: `SOUND` (-z --target wasm)
+v29_x89_call_sound_bare	target: `SOUND` (-z --target wasm)
+v29_x96_call_sound_wait_only	target: `SOUND` (-z --target wasm)
+v29_x98_call_play_two	target: `PLAY` (-z --target wasm)
+v30_x98_chain_string	target: `CHAIN` (-z --target wasm)
+v32_x01_accepted	target: `_MEMSOUND` (-z --target wasm)
+v33_d01_debug	target: `$DEBUG` (-z --target wasm)
+v33_d04_debug_option_base	target: `$DEBUG` (-z --target wasm)
+v33_d05_debug_vwatch_name	target: `$DEBUG` (-z --target wasm)
+v33_d07_debug_explicit	target: `$DEBUG` (-z --target wasm)
+v33_d08_debug_in_sub	target: `$DEBUG` (-z --target wasm)
+v33_d10_debug_untrapped	target: `$DEBUG` (-z --target wasm)
+v33_d11_sockets_above	target: `$DEBUG` (-z --target wasm)
+v33_x13_debug_lower	target: `$DEBUG` (-z --target wasm)
+v33_x49_debug_vwatch_sub	target: `$DEBUG` (-z --target wasm)
+v33_x54_debug_checking_off	target: `$DEBUG` (-z --target wasm)
+v37_g_dynamic	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_i_places	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_j_no_function	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_l1_dynamic_libc	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_l3_two_blocks_libc	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_l4_libc_whole_name	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_x02	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_x53	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_x67	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v39_a_handles	target: `_SNDOPEN` (-z --target wasm)
+v39_b_new_mem	target: `_SNDNEW` (-z --target wasm)
+v39_c_files_raw_midi	target: `_SNDOPEN` (-z --target wasm)
+v39_x01_accepted	target: `_SNDOPEN` (-z --target wasm)
+v39_x55_sndrawdone_colon	target: `_SNDRAWDONE` (-z --target wasm)
+v39_x57_wave_suffix_array	target: `_WAVE` (-z --target wasm)
+v39_x58_sndrawbatch_suffix_array	target: `_SNDRAWBATCH` (-z --target wasm)
+v39_x59_wave_array_no_parens	target: `_WAVE` (-z --target wasm)
+v39_x60_sndrawbatch_array_no_parens	target: `_SNDRAWBATCH` (-z --target wasm)
+v39_x71_wave_array_parameter	target: `_WAVE` (-z --target wasm)
+v39_x72_sndrawbatch_array_parameter	target: `_SNDRAWBATCH` (-z --target wasm)
+v40_a_all_keys	target: `SHELL` (-z --target wasm)
+v40_b_numeric_only	target: `SHELL` (-z --target wasm)
+v40_c_order	target: `SHELL` (-z --target wasm)
+v40_d_forms	target: `SHELL` (-z --target wasm)
+v40_e_repeat	target: `SHELL` (-z --target wasm)
+v40_f_with_icon	target: `SHELL` (-z --target wasm)
+v40_g1_specials	target: `SHELL` (-z --target wasm)
+v40_g2_lt_in_name	target: `SHELL` (-z --target wasm)
+v40_g3_amp_in_company	target: `SHELL` (-z --target wasm)
+v40_g4_lt_in_description	target: `SHELL` (-z --target wasm)
+v40_g5_gt_in_name	target: `SHELL` (-z --target wasm)
+v40_g6_byte_e9_in_name	target: `SHELL` (-z --target wasm)
+v40_g7_utf8_in_name	target: `SHELL` (-z --target wasm)
+v40_g8_amp_in_comments	target: `SHELL` (-z --target wasm)
+v40_h1_empty_part	target: `SHELL` (-z --target wasm)
+v40_h2_large_parts	target: `SHELL` (-z --target wasm)
+v40_h3_leading_zeros	target: `SHELL` (-z --target wasm)
+v40_h4_leading_comma	target: `SHELL` (-z --target wasm)
+v40_h5_octal_looking	target: `SHELL` (-z --target wasm)
+v40_h6_largest	target: `SHELL` (-z --target wasm)
+v40_h7_one_over	target: `SHELL` (-z --target wasm)
+v40_i_places	target: `SHELL` (-z --target wasm)
+v40_j_prefix	target: `SHELL` (-z --target wasm)
+v40_k_only_product_version	target: `SHELL` (-z --target wasm)
+v40_l_only_web	target: `SHELL` (-z --target wasm)
+v42_x11_strig	target: `ON STRIG` (-z --target wasm)
+v44_b_net_errors	target: `_OPENCONNECTION` (-z --target wasm)
+v44_c_flags	target: `_OPENCLIENT` (-z --target wasm)
+v44_e_loopback	target: `_OPENHOST` (-z --target wasm)
+v44_x48	target: `_OPENCLIENT` (-z --target wasm)
+v44_x52	target: `_OPENHOST` (-z --target wasm)
+v44_x53	target: `_OPENCONNECTION` (-z --target wasm)
+v44_x62	target: `_OPENCONNECTION` (-z --target wasm)
+v46_a_play_v0	target: `PLAY` (-z --target wasm)
+v47_b_devices	target: `_DEVICES` (-z --target wasm)
+v47_x13	target: `ON STRIG` (-z --target wasm)
+v47_x27	target: `ON STRIG` (-z --target wasm)
+v47_x30	target: `ON STRIG` (-z --target wasm)
+v47_x31	target: `ON STRIG` (-z --target wasm)
+v49_d_clipboard	target: `_CLIPBOARD$` (-z --target wasm)
+v49_x50_clipboard_call	target: `_CLIPBOARD$` (-z --target wasm)
+v53_c_system	target: `_SHELLHIDE` (-z --target wasm)
+v57_r08_missing_file	target: `RUN` (-z --target wasm)
+v57_r09_second_program	target: `RUN` (-z --target wasm)
+v57_r16_string_variable	target: `RUN` (-z --target wasm)
+v57_r20_string_const	target: `RUN` (-z --target wasm)
+v57_r21_string_const_suffix	target: `RUN` (-z --target wasm)
+v57_r22_defstr_undeclared	target: `RUN` (-z --target wasm)
+v57_r23_defstr_assigned	target: `RUN` (-z --target wasm)
+v58_e27_on_dll_missing	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v58_e28_on_dll_function_missing	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v63_d1_statuscode_closed	target: `_OPENHOST` (-z --target wasm)
+v66_a21_play_x_varptrs	target: `PLAY` (-z --target wasm)
+v66_g06_left_out_sndnew	target: `_SNDNEW` (-z --target wasm)
+v68_g1_debug_chain	target: `$DEBUG` (-z --target wasm)
+v68_g2_debug_run	target: `$DEBUG` (-z --target wasm)
+# offset: 268
+v21_a_decls	offset: `_OFFSET` (-z --target wasm)
+v21_a_functions	offset: `_OFFSET` (-z --target wasm)
+v21_a_suffixes	offset: `_OFFSET` (-z --target wasm)
+v21_b_float_stores	offset: `_OFFSET` (-z --target wasm)
+v21_b_passing	offset: `_OFFSET` (-z --target wasm)
+v21_d_builtins	offset: `_OFFSET` (-z --target wasm)
+v21_d_for	offset: `_OFFSET` (-z --target wasm)
+v21_d_select	offset: `_OFFSET` (-z --target wasm)
+v21_e_scenarios	offset: `_UNSIGNED _OFFSET` (-z --target wasm)
+v21_g_passing_places	offset: `_OFFSET` (-z --target wasm)
+v21_x28_offset_power	offset: `_OFFSET` (-z --target wasm)
+v22_b_input	offset: `_OFFSET` (-z --target wasm)
+v22_b_print	offset: `_OFFSET` (-z --target wasm)
+v22_c_types	offset: `_OFFSET` (-z --target wasm)
+v22_d_swap	offset: `_OFFSET` (-z --target wasm)
+v22_x105_swap_offset_integer64	offset: `_OFFSET` (-z --target wasm)
+v24_a_define	offset: `_OFFSET` (-z --target wasm)
+v24_x179_param_offset_to_integer64	offset: `_OFFSET` (-z --target wasm)
+v24_x199_member_string_array	offset: `STRING` (-z --target wasm)
+v24_x224_member_redim_strings	offset: `STRING` (-z --target wasm)
+v24_x310_member_copy_parts	offset: `STRING` (-z --target wasm)
+v24_x312_member_erase_base	offset: `STRING` (-z --target wasm)
+v24_x313_member_index_order	offset: `STRING` (-z --target wasm)
+v24_x314_member_byref_more	offset: `STRING` (-z --target wasm)
+v24_x315_member_array_arg	offset: `STRING` (-z --target wasm)
+v24_x316_member_string_value_order	offset: `STRING` (-z --target wasm)
+v30_d_binary	offset: `_OFFSET` (-z --target wasm)
+v30_h_shifts	offset: `_OFFSET` (-z --target wasm)
+v32_a_blocks	offset: `_MEM` (-z --target wasm)
+v32_b_get_put	offset: `_MEM` (-z --target wasm)
+v32_c_mk_cv	offset: `_OFFSET` (-z --target wasm)
+v32_d01_put_after_free	offset: `_MEM` (-z --target wasm)
+v32_d02_put_out_of_range	offset: `_MEM` (-z --target wasm)
+v32_d03_put_before_start	offset: `_MEM` (-z --target wasm)
+v32_d04_put_uninitialised	offset: `_MEM` (-z --target wasm)
+v32_d05_get_function_freed	offset: `_MEM` (-z --target wasm)
+v32_d06_get_function_range	offset: `_MEM` (-z --target wasm)
+v32_d07_get_function_uninitialised	offset: `_MEM` (-z --target wasm)
+v32_d08_get_statement_range	offset: `_MEM` (-z --target wasm)
+v32_d09_get_statement_freed	offset: `_MEM` (-z --target wasm)
+v32_d10_mem_negative_size	offset: `_MEM` (-z --target wasm)
+v32_d11_fill_negative	offset: `_MEM` (-z --target wasm)
+v32_d12_fill_range	offset: `_MEM` (-z --target wasm)
+v32_d13_fill_freed	offset: `_MEM` (-z --target wasm)
+v32_d14_fill_uninitialised	offset: `_MEM` (-z --target wasm)
+v32_d15_copy_source_range	offset: `_MEM` (-z --target wasm)
+v32_d16_copy_dest_range	offset: `_MEM` (-z --target wasm)
+v32_d17_copy_both_range	offset: `_MEM` (-z --target wasm)
+v32_d18_copy_source_freed	offset: `_MEM` (-z --target wasm)
+v32_d19_copy_dest_freed	offset: `_MEM` (-z --target wasm)
+v32_d20_copy_both_freed	offset: `_MEM` (-z --target wasm)
+v32_d21_copy_source_uninitialised	offset: `_MEM` (-z --target wasm)
+v32_d22_copy_dest_uninitialised	offset: `_MEM` (-z --target wasm)
+v32_d23_copy_both_uninitialised	offset: `_MEM` (-z --target wasm)
+v32_d24_copy_negative	offset: `_MEM` (-z --target wasm)
+v32_d25_free_twice	offset: `_MEM` (-z --target wasm)
+v32_d26_free_uninitialised	offset: `_MEM` (-z --target wasm)
+v32_d27_returned_procedure	offset: `_MEM` (-z --target wasm)
+v32_d28_redim	offset: `_MEM` (-z --target wasm)
+v32_d29_erase_dynamic	offset: `_MEM` (-z --target wasm)
+v32_d30_memnew_negative	offset: `_MEM` (-z --target wasm)
+v32_d31_free_image_block	offset: `_MEM` (-z --target wasm)
+v32_d32_freed_image	offset: `_MEM` (-z --target wasm)
+v32_d33_free_zero_size	offset: `_MEM` (-z --target wasm)
+v32_d34_lock_of_the_body	offset: `_MEM` (-z --target wasm)
+v32_x02_mem_member_of_result	offset: `_MEM` (-z --target wasm)
+v32_x03_memexists_of_result	offset: `_MEM` (-z --target wasm)
+v32_x04_memelement_whole_member_array	offset: `_MEM` (-z --target wasm)
+v32_x05_store_size	offset: `_MEM` (-z --target wasm)
+v32_x06_store_offset	offset: `_MEM` (-z --target wasm)
+v32_x07_mem_string	offset: `_MEM` (-z --target wasm)
+v32_x08_memelement_string	offset: `_MEM` (-z --target wasm)
+v32_x09_mem_at_literal	offset: `_MEM` (-z --target wasm)
+v32_x100_cv_string	offset: `_MEM` (-z --target wasm)
+v32_x101_mk_fixed_string	offset: `_MEM` (-z --target wasm)
+v32_x102_mk_string_value	offset: `_MEM` (-z --target wasm)
+v32_x103_cvl_number	offset: `_MEM` (-z --target wasm)
+v32_x104_cvi_long	offset: `_MEM` (-z --target wasm)
+v32_x105_cv_number	offset: `_MEM` (-z --target wasm)
+v32_x106_mkl_string	offset: `_MEM` (-z --target wasm)
+v32_x107_mki_bare	offset: `_MEM` (-z --target wasm)
+v32_x108_mki_two	offset: `_MEM` (-z --target wasm)
+v32_x109_mk_one	offset: `_MEM` (-z --target wasm)
+v32_x10_mem_at_long	offset: `_MEM` (-z --target wasm)
+v32_x110_mk_unknown	offset: `_MEM` (-z --target wasm)
+v32_x111_cv_unknown	offset: `_MEM` (-z --target wasm)
+v32_x112_mk_three	offset: `_MEM` (-z --target wasm)
+v32_x113_mk_variable_type	offset: `_MEM` (-z --target wasm)
+v32_x114_memnew_member_read	offset: `_MEM` (-z --target wasm)
+v32_x115_mem_element_size	offset: `_MEM` (-z --target wasm)
+v32_x116_mem_at_string_size	offset: `_MEM` (-z --target wasm)
+v32_x117_read_member	offset: `_MEM` (-z --target wasm)
+v32_x118_input_member	offset: `_MEM` (-z --target wasm)
+v32_x119_memelement_element_member	offset: `_MEM` (-z --target wasm)
+v32_x11_mem_literal	offset: `_MEM` (-z --target wasm)
+v32_x120_memget_unsigned_string	offset: `_MEM` (-z --target wasm)
+v32_x12_mem_expression	offset: `_MEM` (-z --target wasm)
+v32_x13_memelement_literal	offset: `_MEM` (-z --target wasm)
+v32_x14_mem_bit	offset: `_MEM` (-z --target wasm)
+v32_x15_mem_bit_array	offset: `_MEM` (-z --target wasm)
+v32_x16_mem_string_array	offset: `_MEM` (-z --target wasm)
+v32_x17_mem_string_element	offset: `_MEM` (-z --target wasm)
+v32_x18_mem_empty	offset: `_MEM` (-z --target wasm)
+v32_x19_mem_three	offset: `_MEM` (-z --target wasm)
+v32_x20_offset_literal	offset: `_MEM` (-z --target wasm)
+v32_x21_offset_expression	offset: `_MEM` (-z --target wasm)
+v32_x22_offset_bit_array	offset: `_MEM` (-z --target wasm)
+v32_x23_offset_bit	offset: `_MEM` (-z --target wasm)
+v32_x24_offset_empty	offset: `_MEM` (-z --target wasm)
+v32_x25_memput_expression	offset: `_MEM` (-z --target wasm)
+v32_x26_memput_string_as_long	offset: `_MEM` (-z --target wasm)
+v32_x27_memput_as_string	offset: `_MEM` (-z --target wasm)
+v32_x28_memput_as_fixed_string	offset: `_MEM` (-z --target wasm)
+v32_x29_memput_as_type	offset: `_MEM` (-z --target wasm)
+v32_x30_memput_as_bit	offset: `_MEM` (-z --target wasm)
+v32_x31_memput_as_unknown	offset: `_MEM` (-z --target wasm)
+v32_x32_memput_not_mem	offset: `_MEM` (-z --target wasm)
+v32_x33_memput_two	offset: `_MEM` (-z --target wasm)
+v32_x34_memput_one	offset: `_MEM` (-z --target wasm)
+v32_x35_memput_four	offset: `_MEM` (-z --target wasm)
+v32_x36_memput_as_early	offset: `_MEM` (-z --target wasm)
+v32_x37_memput_string_offset	offset: `_MEM` (-z --target wasm)
+v32_x38_memput_bit	offset: `_MEM` (-z --target wasm)
+v32_x39_memput_string_array	offset: `_MEM` (-z --target wasm)
+v32_x40_memget_two	offset: `_MEM` (-z --target wasm)
+v32_x41_memget_literal	offset: `_MEM` (-z --target wasm)
+v32_x42_memget_expression	offset: `_MEM` (-z --target wasm)
+v32_x43_memget_four	offset: `_MEM` (-z --target wasm)
+v32_x44_memget_not_mem	offset: `_MEM` (-z --target wasm)
+v32_x45_memget_as	offset: `_MEM` (-z --target wasm)
+v32_x46_memget_bit	offset: `_MEM` (-z --target wasm)
+v32_x47_memgetf_string	offset: `_MEM` (-z --target wasm)
+v32_x48_memgetf_bit	offset: `_MEM` (-z --target wasm)
+v32_x49_memgetf_bit_width	offset: `_MEM` (-z --target wasm)
+v32_x50_memgetf_unknown	offset: `_MEM` (-z --target wasm)
+v32_x51_memgetf_not_mem	offset: `_MEM` (-z --target wasm)
+v32_x52_memgetf_two	offset: `_MEM` (-z --target wasm)
+v32_x53_memgetf_literal_type	offset: `_MEM` (-z --target wasm)
+v32_x54_memgetf_string_offset	offset: `_MEM` (-z --target wasm)
+v32_x55_memgetf_type_printed	offset: `_MEM` (-z --target wasm)
+v32_x56_memgetf_string_to_long	offset: `_MEM` (-z --target wasm)
+v32_x57_memfill_as_string	offset: `_MEM` (-z --target wasm)
+v32_x58_memfill_as_type	offset: `_MEM` (-z --target wasm)
+v32_x59_memfill_as_bit	offset: `_MEM` (-z --target wasm)
+v32_x60_memfill_three	offset: `_MEM` (-z --target wasm)
+v32_x61_memfill_expression	offset: `_MEM` (-z --target wasm)
+v32_x62_memfill_string_as_long	offset: `_MEM` (-z --target wasm)
+v32_x63_memfill_not_mem	offset: `_MEM` (-z --target wasm)
+v32_x64_memcopy_no_to	offset: `_MEM` (-z --target wasm)
+v32_x65_memcopy_to_short	offset: `_MEM` (-z --target wasm)
+v32_x66_memcopy_to_long	offset: `_MEM` (-z --target wasm)
+v32_x67_memcopy_from_long	offset: `_MEM` (-z --target wasm)
+v32_x68_memfree_long	offset: `_MEM` (-z --target wasm)
+v32_x69_memfree_bare	offset: `_MEM` (-z --target wasm)
+v32_x70_memfree_two	offset: `_MEM` (-z --target wasm)
+v32_x71_memfree_result	offset: `_MEM` (-z --target wasm)
+v32_x72_memexists_long	offset: `_MEM` (-z --target wasm)
+v32_x73_memexists_bare	offset: `_MEM` (-z --target wasm)
+v32_x74_memimage_empty	offset: `_MEM` (-z --target wasm)
+v32_x75_memimage_two	offset: `_MEM` (-z --target wasm)
+v32_x76_memimage_string	offset: `_MEM` (-z --target wasm)
+v32_x77_memnew_bare	offset: `_MEM` (-z --target wasm)
+v32_x78_memnew_string	offset: `_MEM` (-z --target wasm)
+v32_x79_memnew_two	offset: `_MEM` (-z --target wasm)
+v32_x80_memnew_to_long	offset: `_MEM` (-z --target wasm)
+v32_x81_store_number	offset: `_MEM` (-z --target wasm)
+v32_x82_store_long	offset: `_MEM` (-z --target wasm)
+v32_x83_print_mem	offset: `_MEM` (-z --target wasm)
+v32_x84_mem_plus	offset: `_MEM` (-z --target wasm)
+v32_x85_member_lock_id	offset: `_MEM` (-z --target wasm)
+v32_x86_member_unknown	offset: `_MEM` (-z --target wasm)
+v32_x87_memsound_bare	offset: `_MEM` (-z --target wasm)
+v32_x88_memsound_three	offset: `_MEM` (-z --target wasm)
+v32_x89_call_memput	offset: `_MEM` (-z --target wasm)
+v32_x90_call_memget	offset: `_MEM` (-z --target wasm)
+v32_x91_call_memfill	offset: `_MEM` (-z --target wasm)
+v32_x92_sub_result_arg	offset: `_MEM` (-z --target wasm)
+v32_x93_call_sub_result_arg	offset: `_MEM` (-z --target wasm)
+v32_x94_sub_mem_arg	offset: `_MEM` (-z --target wasm)
+v32_x95_function_result_arg	offset: `_MEM` (-z --target wasm)
+v32_x96_mk_bit_width	offset: `_MEM` (-z --target wasm)
+v32_x97_cv_bit_width	offset: `_MEM` (-z --target wasm)
+v32_x98_cv_unsigned_bit_width	offset: `_MEM` (-z --target wasm)
+v32_x99_mk_string	offset: `_MEM` (-z --target wasm)
+v33_x51_system_offset	offset: `_OFFSET` (-z --target wasm)
+v34_c_retain_places	offset: `_MEM` (-z --target wasm)
+v35_c_dyn_kinds	offset: `_OFFSET` (-z --target wasm)
+v35_e_dyn_statements	offset: `STRING` (-z --target wasm)
+v35_f_static_and_unmarked	offset: `STRING` (-z --target wasm)
+v35_x22_mem_of_variable	offset: `_MEM` (-z --target wasm)
+v35_x23_mem_of_member	offset: `_MEM` (-z --target wasm)
+v35_x24_mem_of_element	offset: `_MEM` (-z --target wasm)
+v35_x26_offset_of_element	offset: `_OFFSET` (-z --target wasm)
+v35_x48_put_whole_array_varstring	offset: `STRING` (-z --target wasm)
+v35_x52_layout_offsets	offset: `_MEM` (-z --target wasm)
+v35_x53_static_member_layout_unchanged	offset: `_UNSIGNED _OFFSET` (-z --target wasm)
+v35_x56_copy_index_evaluations	offset: `STRING` (-z --target wasm)
+v35_x61_copy_nested_evaluations	offset: `STRING` (-z --target wasm)
+v35_x62_targets_through_members	offset: `STRING` (-z --target wasm)
+v35_x66_mem_of_dyn_member	offset: `_MEM` (-z --target wasm)
+v36_a_numbers	offset: `_OFFSET` (-z --target wasm)
+v36_b_kinds	offset: `STRING` (-z --target wasm)
+v36_d_members	offset: `STRING` (-z --target wasm)
+v36_e_owner	offset: `STRING` (-z --target wasm)
+v36_x23_offset_long	offset: `_OFFSET` (-z --target wasm)
+v36_x31_mem_array	offset: `_MEM` (-z --target wasm)
+v36_x48_member_index_outside	offset: `STRING` (-z --target wasm)
+v36_x51_mem_of_owner_member	offset: `_MEM` (-z --target wasm)
+v37_a_noname	offset: `_UNSIGNED _OFFSET` (-z --target wasm)
+v37_b_types	offset: `_OFFSET` (-z --target wasm)
+v37_c_byref	offset: `_OFFSET` (-z --target wasm)
+v37_x17	offset: `_OFFSET` (-z --target wasm)
+v37_x56	offset: `_OFFSET` (-z --target wasm)
+v37_x57	offset: `_OFFSET` (-z --target wasm)
+v37_x58	offset: `_OFFSET` (-z --target wasm)
+v37_x59	offset: `_OFFSET` (-z --target wasm)
+v39_x62_memsound_none	offset: `_MEM` (-z --target wasm)
+v41_b_kinds	offset: `_OFFSET` (-z --target wasm)
+v41_e_dynamic_members	offset: `STRING` (-z --target wasm)
+v41_i_float	offset: `_MEM` (-z --target wasm)
+v41_k_string_members	offset: `STRING` (-z --target wasm)
+v41_x24_mem	offset: `_MEM` (-z --target wasm)
+v41_x68_offset_unsigned	offset: `_OFFSET` (-z --target wasm)
+v41_x69_integer64_offset	offset: `_OFFSET` (-z --target wasm)
+v42_x39_sub_offset	offset: `_OFFSET` (-z --target wasm)
+v48_d_len_whole	offset: `_OFFSET` (-z --target wasm)
+v48_x11_mem_type_string_member	offset: `_MEM` (-z --target wasm)
+v48_x30_len_whole_string_member_array	offset: `STRING` (-z --target wasm)
+v49_a_cast	offset: `_OFFSET` (-z --target wasm)
+v50_d_mem	offset: `_MEM` (-z --target wasm)
+v56_a1_scalar_offsets	offset: `_OFFSET` (-z --target wasm)
+v56_b1_varptr_dollar_numbers	offset: `_OFFSET` (-z --target wasm)
+v56_g1_len_string_member_arrays	offset: `STRING` (-z --target wasm)
+v56_g2_mem_string_member_types	offset: `_MEM` (-z --target wasm)
+v57_s15_call_memget	offset: `_MEM` (-z --target wasm)
+v57_s16_call_memput	offset: `_MEM` (-z --target wasm)
+v58_f09_bits	offset: `_OFFSET` (-z --target wasm)
+v60_c5_for_member_element_offset	offset: `_OFFSET` (-z --target wasm)
+v61_a2_types	offset: `_OFFSET` (-z --target wasm)
+v62_d1_mem_after_redim	offset: `_MEM` (-z --target wasm)
+v62_d2_mem_after_erase_static	offset: `_MEM` (-z --target wasm)
+v62_d3_mem_after_clear	offset: `_MEM` (-z --target wasm)
+v62_d4_mem_after_run	offset: `_MEM` (-z --target wasm)
+v62_d5_mem_local_dynamic	offset: `_MEM` (-z --target wasm)
+v62_f5_resume_sub_mem	offset: `_MEM` (-z --target wasm)
+v62_h1_cast_variables	offset: `_OFFSET` (-z --target wasm)
+v63_c1_memnew_zero_first	offset: `_MEM` (-z --target wasm)
+v63_c2_memnew_zero_two	offset: `_MEM` (-z --target wasm)
+v63_c3_memnew_zero_between	offset: `_MEM` (-z --target wasm)
+v63_c4_memnew_zero_twice	offset: `_MEM` (-z --target wasm)
+v64_a1_erase_dynamic_member_list	offset: `STRING` (-z --target wasm)
+v65_a1_redim_dynamic_member_list	offset: `STRING` (-z --target wasm)
+v66_a05_varptr_mem	offset: `_MEM` (-z --target wasm)
+v66_a06_varseg_mem	offset: `_MEM` (-z --target wasm)
+v66_a07_varptrs_mem	offset: `_MEM` (-z --target wasm)
+v66_b01_memget_type_string	offset: `_MEM` (-z --target wasm)
+v66_b02_memput_type_string	offset: `_MEM` (-z --target wasm)
+v66_b03_memfill_type_string	offset: `_MEM` (-z --target wasm)
+v66_b05_mem_member_array_type_element	offset: `_MEM` (-z --target wasm)
+v66_b09_memget_string_element	offset: `_MEM` (-z --target wasm)
+v66_b10_memput_string_member	offset: `_MEM` (-z --target wasm)
+v66_b11_memfill_string_element	offset: `_MEM` (-z --target wasm)
+v66_b13_memget_dynamic_member_element	offset: `_MEM` (-z --target wasm)
+v66_b14_memput_dynamic_member_element	offset: `_MEM` (-z --target wasm)
+v66_b15_memfill_dynamic_member_element	offset: `_MEM` (-z --target wasm)
+v66_b16_memget_whole_dynamic_member	offset: `_MEM` (-z --target wasm)
+v66_c05_mem_no_array	offset: `_MEM` (-z --target wasm)
+v68_a2_types	offset: `_OFFSET` (-z --target wasm)
+# By hand (task 6.4), from the first whole-family run in the suites VM (2026-11-20); kept when the lines above
+# are written again.
+# offset: two programs that -z without the runner's root folder rejects for another reason.
+v70_i1_uselibrary_twice_includeonce	offset: `_UNSIGNED _OFFSET` in its $USELIBRARY include (-x --target wasm)
+v70_i2_uselibrary_nested_includeonce	offset: `_UNSIGNED _OFFSET` in its $USELIBRARY include (-x --target wasm)
+# target: a DECLARE LIBRARY of a prebuilt Windows .a, which Linux's lookup does not find (libv37c.a).
+v37_f_static	target: `DECLARE LIBRARY` of a prebuilt library; Linux's lookup says LIBRARY not found
+v37_h_customtype	target: `DECLARE LIBRARY` of a prebuilt library; Linux's lookup says LIBRARY not found
+v37_x68	target: `DECLARE LIBRARY` of a prebuilt library; Linux's lookup says LIBRARY not found
+# float: _FLOAT is IEEE quad precision in wasm32 (DIVERGENCES-QB64PE.md D-069).
+v30_a_using_numbers	float: PRINT USING of a _FLOAT 1/3 shows quad precision's digits (D-069)
+v58_f01_hyperbolic	float: _ARCTANH of a _FLOAT is .5493061443340548, x87's .549306144334055 (D-069)
+v58_f04_atanh_const	float: _ATANH of a _FLOAT is .5493061443340548, x87's .549306144334055 (D-069)
+# float: a float converted to an integer outside its range saturates in WebAssembly (D-071).
+v20_d_val	float: VAL of 1e30 to an _INTEGER64 is 9223372036854775807, x86-64's -9223372036854775808 (D-071)
+v20_f_math_edges	float: _ROUND(1E30) is -1, x86-64's -9223372036854775808 (D-071)
+v33_c06_system_2_pow_40	float: SYSTEM 2 ^ 40 exits with 255, x86-64's 0 (D-071)
+# clib: musl's math (D-070).
+v22_f_functions	clib: _TANH(.5!) is .4621171355247498, glibc's .4621171653270721 (D-070)
+# width: what this target is, a 32-bit one that is not Linux (spec compiler/wasm-target, "The target's name").
+v16_m6_conditions	width: $IF 32BIT is true and $IF LINUX false, so another branch prints
+v16_m6_error_inactive	width: $IF LINUX is false, so its $ERROR is inactive and the program builds
+v16_m6_inactive_header	width: $IF LINUX is false, so its unclosed IF is inactive and the program builds
+v49_c_md5_os	width: _OS$ is [WASM][32BIT], Linux's [LINUX][64BIT]
+v18_d_index_big	width: the index 4294967296 wraps to 0 in a 32-bit ptrszint, so no error 9
+v20_i_on_goto	width: ON n GOTO with n = 4294967298 takes n in 32 bits and falls through, no error 5
+v63_g2_reassign_large_string	width: two strings of 1.1 GB do not fit in wasm32's 4 GB: Out of memory (D-066)
+v63_g3_concat_over_2gb	width: strings of 1.2 GB do not fit in wasm32's 4 GB: Out of memory before line 3
+# node: Node's file system on a Windows host (-sNODERAWFS): Windows paths, a folder listed sorted with . and ..
+# first, no error reading a folder.
+v49_b_files	node: _FILES$ lists ./ and ../ first and sorted, Linux in its own order
+v52_c_files	node: _READFILE$ of a folder gives an empty string, Linux error 75; _FULLPATH$ is a Windows path
+v58_s02_files	node: FILES prints the Windows path of the folder, with backslashes
+# open: not explained in this change.
+v58_e01_on_stack_main	open: a deep recursion ends in Node's RangeError (Maximum call stack size exceeded), not error 256
+v58_e02_off_stack_main	open: a deep recursion ends in Node's RangeError, not error 256
+v58_e03_none_stack_main	open: a deep recursion ends in Node's RangeError, not error 256
+v58_e04_on_stack_include	open: a deep recursion ends in Node's RangeError, not error 256
+v58_e19_on_in_include_only	open: a deep recursion ends in Node's RangeError, not error 256

@@ -43,6 +43,18 @@ Linux recordings, and what each shows of Linux:
 - `v57_r*`: `RUN` of a program that is not there goes to the shell, which prints "not found", instead of error 53.
 - `v37`, `v58_e28`, `v63`: the library and console programs of their own lines above.
 
+**The wasm target** (OpenSpec change `wasm-console`). Nothing is recorded for it: a program built with
+`--target wasm` and run under Node is judged by the Linux recordings above. What its first whole-family run
+(2026-11-20) showed that the Linux recordings do not is on `tests\verification\known.wasm.list`, each line with
+what was seen:
+- `v30_a`, `v58_f01`, `v58_f04`: a `_FLOAT` is IEEE quad precision (`DIVERGENCES-QB64PE.md` D-069). `v20_d`,
+  `v20_f`, `v33_c06`: a float out of an integer's range converts by saturating (D-071). `v22_f`: musl's `tanhf`
+  (D-070).
+- `v16_m6`, `v49_c`, `v18_d`, `v20_i`, `v63_g2`, `v63_g3`: a 32-bit target that is not Linux (`$IF`, `_OS$`, an
+  index past 32 bits wraps, wasm32's 4 GB).
+- `v49_b`, `v52_c`, `v58_s02`: Node's file system on a Windows host. `v58_e01`–`e04`, `e19`: a deep recursion
+  ends in Node's `RangeError`, not error 256 (not explained yet).
+
 Small programs behind `study\09`, `study\10` and later measurements:
 
 - `v13*`: type suffixes on DIMmed names

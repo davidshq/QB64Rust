@@ -237,6 +237,10 @@ pub fn check_program(
     let (program, sema_diags) = qb64rust_sema::check_with(map, parsed, fold, fixes);
     let mut diagnostics = parsed.diagnostics();
     diagnostics.extend(sema_diags);
+    // What the target does not have (design D5 of `wasm-console`); nothing for Windows and Linux.
+    if let Some(main) = parsed.trees.first() {
+        qb64rust_sema::check_target(&program, parsed.flags.platform(), map, main.file, &mut diagnostics);
+    }
     if let Some((path, root)) = disk {
         check_exe_icon_on(parsed.flags.platform(), &program, &mut diagnostics, path, root);
         check_embedded_files(&program, &mut diagnostics, path, root);
@@ -492,7 +496,7 @@ fn named_file(name: &str, main_path: &Path, root: &Path) -> PathBuf {
 pub fn host_path(name: &str) -> PathBuf {
     match qb64rust_base::Platform::host() {
         qb64rust_base::Platform::Windows => PathBuf::from(name),
-        qb64rust_base::Platform::Linux => PathBuf::from(name.replace('\\', "/")),
+        qb64rust_base::Platform::Linux | qb64rust_base::Platform::Wasm => PathBuf::from(name.replace('\\', "/")),
     }
 }
 

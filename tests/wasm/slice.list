@@ -1,0 +1,33 @@
+# The wasm slice list (OpenSpec change wasm-console; spec testing/golden-corpus, "The wasm slice list"): console
+# programs of the verification and corpus suites that run for the wasm target on the host. One per line, as
+# verification/<name> or corpus/<group>/<name>; tests/wasm/README.md says how to run it.
+# Numbers of each type
+verification/v20_h_select
+verification/v20_b_result_types
+verification/v30_g_iif_min_max
+verification/v33_c12_system_float
+corpus/slice/s01_literals
+# Strings
+verification/v20_c_string_edges
+verification/v30_b_using_strings
+verification/v22_b_funcs
+# A file read and written
+verification/v22_b_open
+verification/v38_b_file_dims
+verification/v30_j_field
+# Standard input
+verification/v22_e_input
+verification/v22_e_redo
+verification/v63_a6_line_input_crlf
+# ON ERROR
+verification/v63_e1_error_11_handler
+verification/v14_error_256
+# A run-time error's exit status, and SYSTEM's
+verification/v02c_no_handler
+verification/v17_b_untrapped
+verification/v33_c01_system_3
+# TIMER
+verification/v22_d_random
+verification/v59_a5_console_only
+# ON TIMER
+corpus/slice/s134_events_timer

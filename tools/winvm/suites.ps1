@@ -8,8 +8,10 @@
 #                                               bring the copies of the QB64pe clone and of the tree up to date;
 #                                               with -Community also the copy of <parent>\community, the pinned
 #                                               clones of the community programs (OpenSpec change
-#                                               community-programs, design D7)
-#   tools\winvm\suites.ps1 -Stop                take the cache disk offline in the guest, turn the VM off, and
+#                                               community-programs, design D7); with -Emsdk <folder> also the
+#                                               Emscripten SDK of the wasm steps, at the same path (OpenSpec change
+#                                               wasm-console, design D8)
+#   tools\winvm\suites.ps1 -Stop               take the cache disk offline in the guest, turn the VM off, and
 #                                               detach the cache disk
 #
 # Between -Start and -Stop, tools\winvm\step.ps1 runs the run's steps in the VM, each in a session of its own.
@@ -26,6 +28,7 @@ param(
     [Parameter(ParameterSetName = 'Start', Mandatory = $true)][switch]$Start,
     [Parameter(ParameterSetName = 'Start', Mandatory = $true)][string]$Tree,
     [Parameter(ParameterSetName = 'Start')][switch]$Community,
+    [Parameter(ParameterSetName = 'Start')][string]$Emsdk,
     [Parameter(ParameterSetName = 'Stop', Mandatory = $true)][switch]$Stop
 )
 
@@ -136,6 +139,26 @@ if (-not (Test-Path -LiteralPath (Join-Path $clone 'internal\c'))) {
 $communityHost = if ($env:QB64RUST_COMMUNITY) { $env:QB64RUST_COMMUNITY } else { Join-Path $parent 'community' }
 if ($Community -and -not (Test-Path -LiteralPath (Join-Path $communityHost 'heads.txt'))) {
     Refuse "there are no community clones ($communityHost): run python tools\community\community.py fetch."
+}
+# The Emscripten SDK of the wasm steps. It must be beside the tree: the guest then has it at the host's own path on
+# the cache disk, which QB64RUST_EMSDK_ROOT names in both, and the SDK's cache of system libraries, which records
+# that path, holds there too (wasm-console, design "Measured", task 1.4).
+$emsdkVersion = ''
+if ($Emsdk) {
+    $Emsdk = $Emsdk.TrimEnd('\')
+    $versionFile = Join-Path $Emsdk 'upstream\emscripten\emscripten-version.txt'
+    if (-not (Test-Path -LiteralPath $versionFile)) {
+        Refuse "there is no Emscripten SDK at $Emsdk (CLAUDE.md, 'Where things live': ..\emsdk)."
+    }
+    if ((Split-Path $Emsdk) -ne $parent) {
+        Refuse "the Emscripten SDK ($Emsdk) must be beside the tree, in $parent, for the VM to have it at that path."
+    }
+    $release = (Get-Content -Raw -LiteralPath $versionFile).Trim().Trim('"')
+    $pinned = (Import-PowerShellDataFile (Join-Path $PSScriptRoot 'pins.psd1')).Emsdk.Version
+    if ($release -ne $pinned) {
+        Refuse "the Emscripten SDK at $Emsdk is release $release; pins.psd1 pins $pinned."
+    }
+    $emsdkVersion = "$release " + (Get-Item -LiteralPath $versionFile).LastWriteTimeUtc.Ticks
 }
 $credential = Import-Clixml -Path $credentialFile
 # Scratch files of the copies, on the host: in the tree's target\, which git ignores.
@@ -291,6 +314,36 @@ function Invoke-Start {
             }
             if ($code -ne 0) { throw "tar could not unpack the community clones in the guest (exit $code)" }
             Write-Host ("suites-vm: the community clones copied in ({0:N0} s)" -f (Seconds $t))
+        }
+    }
+
+    # The Emscripten SDK, about 2.2 GB, when its release or its install differs from the copy's: only a run with a
+    # wasm step in the VM copies it (wasm-console, design D8).
+    if ($Emsdk) {
+        $sdkName = Split-Path $Emsdk -Leaf
+        $guestSdk = Invoke-Command -Session $session -ArgumentList "$parent\$own\emsdk.stamp" {
+            param($p) if (Test-Path -LiteralPath $p) { (Get-Content -Raw -LiteralPath $p).Trim() } else { '' }
+        }
+        if ($guestSdk -ne $emsdkVersion) {
+            $t = Get-Date
+            $archive = Join-Path $scratch 'emsdk.tar'
+            & "$env:SystemRoot\System32\tar.exe" -cf $archive --exclude ./.git --exclude ./downloads -C $Emsdk .
+            if ($LASTEXITCODE -ne 0) { throw "tar could not archive the Emscripten SDK (exit $LASTEXITCODE)" }
+            Copy-Item -ToSession $session -LiteralPath $archive -Destination "$parent\$own\emsdk.tar"
+            Remove-Item -LiteralPath $archive
+            $code = Invoke-Command -Session $session -ArgumentList $parent, $own, $sdkName, $emsdkVersion {
+                param($parent, $own, $sdkName, $stamp)
+                $dest = "$parent\$sdkName"
+                if (Test-Path -LiteralPath $dest) { Remove-Item -Recurse -Force -LiteralPath $dest }
+                New-Item -ItemType Directory -Force $dest | Out-Null
+                & "$env:SystemRoot\System32\tar.exe" -xf "$parent\$own\emsdk.tar" -C $dest
+                $code = $LASTEXITCODE
+                Remove-Item -LiteralPath "$parent\$own\emsdk.tar"
+                if ($code -eq 0) { Set-Content -LiteralPath "$parent\$own\emsdk.stamp" -Value $stamp }
+                $code
+            }
+            if ($code -ne 0) { throw "tar could not unpack the Emscripten SDK in the guest (exit $code)" }
+            Write-Host ("suites-vm: the Emscripten SDK copied in ({0:N0} s)" -f (Seconds $t))
         }
     }
 

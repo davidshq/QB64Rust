@@ -1,7 +1,7 @@
 # $IF
 
 `$IF` chooses at compile time which lines of a program are compiled. It is how one source holds code for
-Windows and for Linux, or a debug version beside the normal one. `$ELSEIF`, `$ELSE` and `$END IF` belong to it.
+Windows, for Linux and for the wasm target, or a debug version beside the normal one. `$ELSEIF`, `$ELSE` and `$END IF` belong to it.
 
 ## Syntax
 
@@ -37,12 +37,15 @@ A name in a condition is a name set by `$LET`, or one of these names that are al
 
 | Name | Value |
 |---|---|
-| `WIN`, `WINDOWS` | -1 on Windows, 0 on Linux |
-| `LINUX` | -1 on Linux, 0 on Windows |
-| `MAC`, `MACOSX`, `32BIT`, `_ARM_` | 0 |
-| `64BIT`, `_QB64PE_` | -1 |
+| `WIN`, `WINDOWS` | -1 on Windows, 0 on Linux and the wasm target |
+| `LINUX` | -1 on Linux, 0 on Windows and the wasm target |
+| `MAC`, `MACOSX`, `_ARM_` | 0 |
+| `32BIT` | -1 on the wasm target, 0 on Windows and Linux |
+| `64BIT` | -1 on Windows and Linux, 0 on the wasm target |
+| `_QB64PE_` | -1 |
+| `WASM` | -1 on the wasm target (`--target wasm`); not set on Windows and Linux, so false there |
 | `VERSION` | `4.7.0`, the version of QB64pe the compiler follows |
-<!-- src: compiler/pipeline "Preprocessor"; verification\v16_m6_conditions; read: crates\syntax\src\pp.rs:396-414 -->
+<!-- src: compiler/pipeline "Preprocessor"; compiler/wasm-target "The target's name in a program"; verification\v16_m6_conditions; read: crates\syntax\src\pp.rs:400-427 -->
 
 A name alone is true when it is set to a value other than 0. A name that no `$LET` sets is false, and so is a
 number 0. Names and values are compared without regard to letter case: `S = HELLO` is true after
@@ -56,7 +59,7 @@ and `name = UNDEFINED` when none has. `VERSION` is compared as a version, one nu
 
 The comparisons are worked out first. Then `AND`, `OR` and `XOR` are worked out from left to right, with no
 order among them.
-<!-- src: read: crates\syntax\src\pp.rs:630-702; verification\v16_m6_conditions -->
+<!-- src: read: crates\syntax\src\pp.rs:641-713; verification\v16_m6_conditions -->
 
 There are no parentheses: `$IF (A = 1) THEN` is false even when `A` is 1. `DEFINED(A)` is false too. Write
 `A = 1` and `A = DEFINED`.
@@ -108,6 +111,11 @@ These are compile errors:
 On Linux, `WIN` and `WINDOWS` are 0 and `LINUX` is -1, so the other branch of a platform's `$IF` is compiled, as
 QB64pe does on Linux.
 <!-- src: compiler/pipeline "Preprocessor"; verification\v16_m6_conditions -->
+
+QB64pe has no wasm target and no `WASM` name. On the wasm target `WIN`, `WINDOWS` and `LINUX` are all 0, and
+`32BIT` is -1. So a program's `$IF LINUX` branch, which may declare a `.so` library, is not compiled there. The
+name is `WASM` and not `WEB`, because QBJS sets `WEB` for code that only QBJS compiles.
+<!-- src: compiler/wasm-target "The target's name in a program"; read: crates\syntax\src\pp.rs:400-427 -->
 
 ## Availability
 

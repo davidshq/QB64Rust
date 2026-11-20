@@ -18,6 +18,7 @@ cover them), and the compile, qbasic, format and verification suites' own functi
 from __future__ import annotations
 
 import hashlib
+import io
 import os
 import shutil
 import subprocess
@@ -3301,3 +3302,186 @@ class Jobs(unittest.TestCase):
         self.assertIsNotNone(rlt.jobs_problem(8, "addprefix", False, self.new, self.root))
         self.assertIsNotNone(rlt.jobs_problem(8, "corpus", True, self.new, self.root))
         self.assertIsNone(rlt.jobs_problem(1, "format", True, self.old, self.root))
+
+
+NODE = Path("emsdk/node/24.19.0_64bit/node.exe")
+
+
+class WasmCorpus(CorpusFixture):
+    """--platform wasm on a corpus program (spec testing/golden-corpus, "The runner for the wasm target" and "What a
+    wasm run is judged by"; design D7 of wasm-console)."""
+
+    def run_wasm(self, tools: Tools, **more):
+        with mock.patch.object(rlt, "wasm_node", lambda: NODE):
+            return self.run_test(tools, platform="wasm", **more)
+
+    def test_built_with_the_target_and_run_by_node(self):
+        self.sidecar("output", b"1\n")
+        tools = Tools(runs=[b"1\n"])
+        r = self.run_wasm(tools)
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assertEqual(tools.compile_cmd[tools.compile_cmd.index("-x") + 1 : tools.compile_cmd.index("-x") + 3],
+                         ["--target", "wasm"])
+        out = Path(tools.compile_cmd[tools.compile_cmd.index("-o") + 1])
+        self.assertEqual(out.name, "p.js")
+        # The run line is the SDK's Node on the .js file, never press_any_key.py.
+        self.assertEqual(tools.run_cmds, [[str(NODE), str(out)]])
+
+    def test_the_wasm_file_stays_for_the_run(self):
+        # reset_folder keeps both files of the build.
+        self.sidecar("output", b"1\n")
+        tools = Tools(runs=[b"1\n"])
+
+        def compile_and_wasm(args, cwd, stdout_path, timeout, **kw):
+            rc = Tools.__call__(tools, args, cwd, stdout_path, timeout, **kw)
+            if "-x" in args:
+                Path(args[args.index("-o") + 1]).with_suffix(".wasm").write_bytes(b"\0asm")
+            return rc
+
+        with mock.patch.object(rlt, "wasm_node", lambda: NODE), mock.patch.object(rlt, "run_proc", compile_and_wasm):
+            args = SimpleNamespace(qb64=Path("qb64rust.exe"), record=False, cpp_opt=False, copies=None,
+                                   pass_cache=None, platform="wasm")
+            r = rlt.corpus_test(self.bas, args, self.results, self.clone, self.corpus, {})
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assertIn("p.wasm", tools.run_files[0])
+
+    def test_judged_by_the_linux_sidecar(self):
+        # A Linux file judges the wasm run; the shared recording judges Windows.
+        self.sidecar("output", b" 1  2\r\n")
+        self.sidecar("linux.output", b" 1            2\n")
+        self.assertEqual(self.run_wasm(Tools(runs=[b" 1            2\n"])).status, "PASS")
+        self.assert_fail(self.run_wasm(Tools(runs=[b" 1  2\n"])), "result")
+
+    def test_linux_words_and_exit_status(self):
+        # "Press enter to continue" is Linux's word for libqb's prompt; the exit status counts by its low 8 bits.
+        self.sidecar("output", b"1\n\nPress any key to continue")
+        self.sidecar("exitcode", b"4294967295\n")
+        r = self.run_wasm(Tools(runs=[b"1\n\nPress enter to continue"], run_rc=255))
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assertEqual(rlt.exit_code_on("wasm", 4294967295), 255)
+
+    def test_standard_input_as_on_linux(self):
+        self.sidecar("output", b"hi\n")
+        self.sidecar("stdin", b"hi\n")
+        tools = Tools(runs=[b"hi\n"])
+        self.assertEqual(self.run_wasm(tools).status, "PASS")
+        self.assertIsNotNone(tools.run_stdin[0])
+
+
+class WasmVerification(VerificationFixture):
+    """--platform wasm on a verification program: built with the target, run by Node, judged by its Linux file."""
+
+    def test_wasm_built_and_run_as_on_linux(self):
+        self.recorded(b"1\r\n7\r\nexit=0\n")
+        (self.root / "v99_p.linux.out.txt").write_bytes(b"1\n5\nexit=0\n")
+        tools = Tools(runs=[b"1\n5\n"])
+        with mock.patch.object(rlt, "wasm_node", lambda: NODE):
+            r = self.run_test(tools, platform="wasm")
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assertIn("--target", tools.compile_cmd)
+        self.assertEqual(Path(tools.run_cmds[0][1]).name, "v99_p.js")
+        self.assertEqual(tools.run_cmds[0][0], str(NODE))
+
+    def test_node_exit_codes(self):
+        # SYSTEM -1 under Node on Windows ends with 0xFFFFFFFF: 255 as on Linux, where Git Bash says 127 (v33_c03).
+        self.assertEqual(rlt.node_exit_code(0xFFFFFFFF), 255)
+        self.assertEqual(rlt.node_exit_code(-3), 253)
+        self.assertEqual(rlt.node_exit_code(3), 3)
+        # A crash of Node itself is reported as Git Bash reports it.
+        self.assertEqual(rlt.node_exit_code(0xC0000005), 139)
+        self.assertEqual(rlt.verification_text(b"x\n", 0xFFFFFFFF, False, self.root, "wasm"), b"x\nexit=255\n")
+        self.assertEqual(rlt.verification_text(b"x\n", 0xFFFFFFFF, False, self.root), b"x\nexit=127\n")
+
+
+class WasmLists(unittest.TestCase):
+    """known.wasm.list (spec testing/golden-corpus, "The wasm known list")."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.list = Path(self.tmp.name) / "known.wasm.list"
+
+    def test_the_reasons_and_what_is_skipped(self):
+        self.list.write_text(
+            "# programs\nv1\twindow: no $CONSOLE:ONLY\nv2\ttarget: SHELL\nv3\toffset: _MEM\nv4\tfloat: quad\n"
+            "v5\topen: a line differs\nv6\twidth: _OS$ is [WASM][32BIT]\n",
+            encoding="utf-8",
+        )
+        known = rlt.load_wasm_list(self.list, "verification")
+        self.assertEqual(len(known), 6)
+        skipped = [k for k, why in known.items() if rlt.skipped_on("wasm", why)]
+        self.assertEqual(skipped, ["verification:v1", "verification:v2", "verification:v3"])
+        # On the other platforms these reasons skip nothing; Linux's "windows" skips the wasm target too.
+        self.assertFalse(any(rlt.skipped_on(p, why) for p in ("windows", "linux") for why in known.values()))
+        self.assertTrue(rlt.skipped_on("wasm", "windows: kernel32"))
+
+    def test_a_reason_outside_the_set(self):
+        # Scenario "A reason outside the set": the line is named.
+        self.list.write_text("v1\tlater: someday\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "the reason of v1 starts with none of target, window"):
+            rlt.load_wasm_list(self.list, "verification")
+
+    def test_a_window_program_is_skipped_without_a_build(self):
+        # Scenario "A window program": counted as skipped with its reason, no build started.
+        tools = Tools()
+        bas = Path(self.tmp.name) / "v1.bas"
+        bas.write_bytes(b"PRINT 1\n")
+        args = SimpleNamespace(qb64=Path("qb64rust.exe"), platform="wasm")
+        with mock.patch.object(rlt, "run_proc", tools):
+            r = rlt.run_suite_test("verification", bas, args=args, results=Path(self.tmp.name),
+                                   qb_root=Path(self.tmp.name), corpus_root=Path(self.tmp.name),
+                                   known={"verification:v1": "window: no $CONSOLE:ONLY"})
+        self.assertEqual((r[0].status, r[0].detail), ("SKIP", "window: no $CONSOLE:ONLY"))
+        self.assertEqual(tools.compiles, 0)
+
+    def test_a_listed_program_that_passes_is_news(self):
+        # Scenario "A listed program that passes": a new pass, as for the other known lists.
+        self.assertTrue(rlt.pass_is_news("verification:v4", "float: quad"))
+
+    def test_the_lists_read(self):
+        args = SimpleNamespace(known_failures=Path("k.txt"), corpus_root=Path(self.tmp.name), platform="wasm")
+        with mock.patch.object(rlt, "UPSTREAM_ROOT", Path(self.tmp.name)), \
+                mock.patch.object(rlt, "VERIFICATION_LISTS", Path(self.tmp.name)):
+            _, files = rlt.known_lists(args, verification=True)
+        self.assertEqual(
+            [f.name for f in files],
+            ["k.txt"] + ["known.linux.list", "known.wasm.list"] * 3 + ["known.list"],
+        )
+
+    def test_the_wasm_lists_of_the_repo_read(self):
+        for suite, folder in (("corpus", "corpus"), ("verification", "verification")):
+            path = rlt.REPO / "tests" / folder / "known.wasm.list"
+            if path.is_file():
+                rlt.load_wasm_list(path, suite)
+
+
+class WasmOptions(unittest.TestCase):
+    def main_with(self, *argv):
+        err = io.StringIO()
+        with mock.patch.object(sys, "argv", ["run_legacy_tests.py", *argv]), mock.patch.object(sys, "stderr", err):
+            return rlt.main(), err.getvalue()
+
+    def test_record_is_refused(self):
+        # Scenario "Recording": there is no QB64pe build for the wasm target to record from.
+        rc, err = self.main_with("--suite", "corpus", "--record", "--platform", "wasm")
+        self.assertEqual(rc, 2)
+        self.assertIn("the wasm target has no recordings of its own", err)
+
+    def test_the_slice_list_splits_by_suite(self):
+        import wasm_slice
+
+        with tempfile.TemporaryDirectory() as d:
+            lst = Path(d) / "slice.list"
+            lst.write_text("# kinds\nverification/v1\ncorpus/slice/s1  # a comment\nverification/v2\n", encoding="utf-8")
+            self.assertEqual(wasm_slice.split(lst), {"verification": ["v1", "v2"], "corpus": ["slice/s1"]})
+            lst.write_text("upstream/x\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "not verification/<name> or corpus"):
+                wasm_slice.split(lst)
+        # The repository's list reads, and holds at most 25 programs.
+        names = wasm_slice.split(rlt.REPO / "tests" / "wasm" / "slice.list")
+        self.assertLessEqual(sum(len(v) for v in names.values()), 25)
+
+    def test_other_suites_are_refused(self):
+        rc, err = self.main_with("--suite", "compile", "--platform", "wasm")
+        self.assertEqual(rc, 2)
+        self.assertIn("--platform wasm takes --suite corpus or verification", err)

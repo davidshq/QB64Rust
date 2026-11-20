@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-11-07, for the merge of `after-pr25` (cut to its own rule by finding 2 of the ninth review,
+Updated 2026-11-20, on branch `after-pr-27-real` (cut to its own rule by finding 2 of the ninth review,
 `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
@@ -58,9 +58,14 @@ open. Pull request 27 (`f1a64ac0`, 2026-11-07) merged branch `after-pr26` withou
 one build flag and documents since pull request 26's run; CI's Rust, extension and release dry run passed). The
 extension's last release is `vscode-v0.3.0` (2026-11-07), on that merge commit: the first with Linux, and the
 first whose `qb64rust.exe` needs no `VCRUNTIME140.dll` (`DECISIONS.md` 2026-11-07). Pull request 28 merged on
-2026-11-10. Pull request 30 merges branch `after-pr26`: four archived changes (`project-settings`,
-`language-reference`, `fuzz-front-end`, `format-statement-lines`), include files checked, formatted and built as
-their program, and `just merge` passing at `02d38879` (below). No OpenSpec change is open but `community-programs`.
+2026-11-10. Pull request 30 (`02f74f00`, 2026-11-14) merged branch `after-pr26`: four archived changes
+(`project-settings`, `language-reference`, `fuzz-front-end`, `format-statement-lines`), include files checked,
+formatted and built as their program, and `just merge` passing at `02d38879` (below). Branch `after-pr-27-real`
+holds six commits since: a library's header found beside its `$USELIBRARY` file (78 of 79 programs of the
+Libraries Pack compile), the `_ANDALSO` hint, `[project]` `exclude`, the archived change `vm-game-runs`, strings
+past 2 GB and 4 GB (D-066, D-067), `REDIM` of a `TYPE` array without `AS` (D-068), and the `.alone` marker and
+run lock of the test tools. No `just merge` has run on it yet. One OpenSpec change is open: `wasm-console`,
+applied and waiting for review.
 
 ## Waiting on the user
 
@@ -71,14 +76,17 @@ working rule 7).
 
 1. **The review of the next big wins** (`study\47`, 2026-11-09), section 8: is "first outside users" the next
    milestone. Language extensions
-   are allowed behind a switch (`DECISIONS.md` 2026-11-11); which extension comes first is still open
-   (`study\48` §5 recommends an order).
+   are allowed behind a switch (`DECISIONS.md` 2026-11-11), and its shape is decided: one per feature, with
+   groups, declared per file with a default in `qb64rust.toml`, plain keywords (`DECISIONS.md` 2026-11-18). Which extension comes first is still
+   open (`study\48` §5 recommends an order).
 2. **QB64 library collections and libraries per project** (`study\50`, 2026-11-15), section 7: whether
    dependencies per project in `qb64rust.toml` are the next change for libraries, and the syntax for naming a
    library.
-3. **Web and mobile targets** (`study\51`, 2026-11-15), section 10: whether to build the web target from the same
-   C++ and libqb with Emscripten, when to start its first step (console programs under Node), a 4-byte
-   `_OFFSET` on the web, phones through the web build in the browser first, and where built games must run.
+3. **Web and mobile targets** (`study\51`, 2026-11-15), section 10. Answered on 2026-11-19 (`DECISIONS.md`):
+   Emscripten with the same libqb, the SDK download, a 4-byte `_OFFSET`. Still open: phones through the web
+   build in the browser first (question 4), and where built games must run (question 5), which decides
+   whether a one-thread build is needed (`study\51` §5.1). The OpenSpec change `wasm-console` is applied and
+   waits for the user's review ("Next" item 1).
 4. **A standard library** (`study\52`, 2026-11-16, split out of `study\50`), section 4: whether to have one and in
    which form, and whether others' code may be shipped or fetched.
 5. **Libraries of other languages** (`study\53`, 2026-11-17), section 8: whether a built program may need a
@@ -89,9 +97,6 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 
 ## Next
 
-0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
-   fetch`, then `just check community --where vm` checks 4143 programs of 68 pinned repositories (3077 on
-   `tests\community\pass.list`, 2026-11-16). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
 0. **Start the first run of the `Fuzz` workflow** (`fuzz-front-end` archived 2026-11-13): `just fuzz
    <parse|compile|server|all> <minutes>` fuzzes the front end with `cargo-fuzz` in WSL (`tools\fuzz\README.md`),
    and the workflow does the same on GitHub's runner. The first campaign found one bug, now fixed:
@@ -99,10 +104,12 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
    commit reviewed: `ce6e54aee` (2026-11-13, 87 commits, `docs\UPSTREAM-REVIEW.md`). `..\QB64pe-latest` was
    pulled again on 2026-11-14 for the merge of `after-pr26`: no commit came after it.
-1. **Choose the next milestone.** `ROADMAP.md` has no open milestone. macOS, which was M8, is postponed to
-   `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next. The candidates are in
-   `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS
-   Code features still missing.
+1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
+   `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a
+   `$CONSOLE:ONLY` program for Node, and 3,664 of the 3,766 verification programs it runs pass (97.3%, 0 failing,
+   2026-11-20). Next is W0.5, a 4-byte `_OFFSET` in every pass. Other candidates for later are in `SOMEDAY.md`:
+   deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS Code features
+   still missing.
 
 The CLI tests in the suites VM failed at three merges in a row, a different test each run, and each passed in the
 next run: at pull request 25 four debugger tests and `unit_tests::a_timeout`, at pull request 26

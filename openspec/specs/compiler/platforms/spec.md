@@ -10,7 +10,8 @@ behaviour a program has on each.
 
 ### Requirement: Supported platforms
 `qb64rust` SHALL build, check, format, serve the editor and debug on Windows x64 and on Linux x64 (glibc). A build
-SHALL target the platform `qb64rust` runs on. There is no cross-compilation. On any other platform, building SHALL
+SHALL target the platform `qb64rust` runs on, unless `--target wasm` names the WebAssembly target (spec
+`compiler/wasm-target`). There is no other cross-compilation. On any other platform, building SHALL
 fail with a message naming the platforms supported. Checking (`-z`, `--dump`, `lsp`, `-y`) SHALL still work there.
 
 #### Scenario: Build on Linux
@@ -20,6 +21,10 @@ fail with a message naming the platforms supported. Checking (`-z`, `--dump`, `l
 #### Scenario: Checking needs no supported platform
 - **WHEN** `qb64rust lsp` runs on a platform that is not supported
 - **THEN** the language server works as on Windows
+
+#### Scenario: A build for WebAssembly on Windows
+- **WHEN** `qb64rust -x --target wasm hello.bas` runs on Windows x64 with the Emscripten SDK found
+- **THEN** `hello.js` and `hello.wasm` are written, and no `hello.exe`
 
 ### Requirement: The C++ follows the platform
 The C++ `qb64rust` writes for a program SHALL be what the old compiler writes on the build's platform. Where

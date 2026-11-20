@@ -20,6 +20,9 @@ FULL = "full"
 # steps of its own, which regenerate files (the lists, the wording table, the coverage records, the count blocks)
 # and hold the pass lists and the built-ins' list to the whole suites' results.
 MERGE = "merge"
+# No layer: a step that runs only when named (`check <step>`), never in `quick`, `full` or `merge`. The whole wasm
+# family takes hours, and the user wants such runs on a schedule, not after each change (DECISIONS.md 2026-11-20).
+NAMED = "named"
 
 RUNNER = "tools/legacy_tests/run_legacy_tests.py"
 EXE = "target/release/qb64rust.exe"
@@ -120,7 +123,22 @@ class Step:
     # A command run in the VM before the step's own, for what the tree's copy lacks: files git ignores, which the
     # copy does not carry (design D9).
     vm_first: tuple[str, ...] | None = None
+    # The least time the step may take in the VM, above check.py's VM_LIMIT_FLOOR: for a step whose first run is
+    # known to take longer than that floor (wasm-verification).
+    vm_limit_floor: int = 0
 
+
+# What a wasm step reads: the release build, libqb's copy and its edits, the runner and wasm_slice.py, the lists,
+# and the verification programs with their recordings.
+WASM_READS = BUILT + LIBQB + RUNNER_FILES + (
+    "tests/wasm/**",
+    "tests/verification/**",
+    "verification/**",
+    "!verification/*.exe",
+)
+# The wasm family's own results folder, so that its results-verification.json never stands for the Windows
+# family's, which the merge's lists are held to.
+WASM_RESULTS = "target/legacy-tests/wasm"
 
 # The format oracle's test that compares the C++ of every rewrite, run by `format-rewrites` alone.
 REWRITES = "format_oracle::rewrites_give_the_same_cpp"
@@ -550,6 +568,30 @@ STEPS: tuple[Step, ...] = (
         BUILT + LIBQB + ("tools/sandbox/**", "tools/winvm/**", "tests/sandbox/**", "tests/never_run.list"),
         needs=("build",),
         external=("toolchain",),
+    ),
+    # The wasm target (OpenSpec change wasm-console, design D8; spec testing/check-workflow, "The wasm steps"): the
+    # slice list on the host, about 90 s; and the whole family, every console program of tests/verification, in no
+    # layer (NAMED). Both need the Emscripten SDK (`external("emsdk")`): without it they are not run, and fail only
+    # in a merge (check.py, `emsdk_missing`).
+    Step(
+        "wasm-slice",
+        FULL,
+        ("python", "tools/legacy_tests/wasm_slice.py", "--qb64", EXE, "--jobs", "4", "--results", WASM_RESULTS),
+        WASM_READS + ("tests/corpus/**", "!tests/corpus/**/*.exe"),
+        needs=("build",),
+        external=("toolchain", "emsdk"),
+    ),
+    Step(
+        "wasm-verification",
+        NAMED,
+        runner("verification", "--platform", "wasm", *CACHES, "--results", WASM_RESULTS),
+        WASM_READS,
+        needs=("build",),
+        external=("toolchain", "emsdk"),
+        vm=True,
+        outputs=results("results-verification", WASM_RESULTS),
+        # The first whole run: about 2 to 4.5 hours (wasm-console, design "Measured").
+        vm_limit_floor=6 * 3600,
     ),
 )
 

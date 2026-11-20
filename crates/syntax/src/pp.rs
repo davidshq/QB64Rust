@@ -364,6 +364,8 @@ struct Level {
 pub struct PpState {
     /// Name and value, the predefined ones first (the old compiler's `UserDefine`); index 7 is `VERSION`.
     defines: Vec<(Vec<u8>, Vec<u8>)>,
+    /// How many entries of `defines` are predefined: [`PRESETS`], and one more on the wasm target (`WASM`).
+    presets: usize,
     levels: Vec<Level>,
     /// The fewest open levels since [`Self::start_tracking`] (an included file may close a `$IF` of the
     /// including one).
@@ -380,7 +382,7 @@ pub struct PpState {
     pub(crate) url_named: bool,
 }
 
-/// How many entries of `defines` are predefined (`UserDefineCountPresets` + 1).
+/// How many entries of `defines` are predefined on Windows and Linux (`UserDefineCountPresets` + 1).
 const PRESETS: usize = 10;
 
 impl Default for PpState {
@@ -392,26 +394,35 @@ impl Default for PpState {
 impl PpState {
     /// The state at the first line of a round with these flags: the predefined names, then the six flags (the
     /// old compiler adds them at the first line of each pass, before any `$LET`). `WINDOWS`, `WIN` and `LINUX`
-    /// follow the platform, as the old compiler's follow its own `_OS$` (`qb64pe.bas` 65–66; `m7-linux`).
+    /// follow the platform, as the old compiler's follow its own `_OS$` (`qb64pe.bas` 65–66; `m7-linux`). The
+    /// wasm target is 32-bit, none of the three, and defines `WASM` as well (design D6 of `wasm-console`). On
+    /// the other targets `WASM` is not defined, as in QB64pe, so `$IF WASM` is false there.
     pub fn with_flags(flags: PpFlags) -> Self {
         let d = |n: &[u8], v: &[u8]| (n.to_vec(), v.to_vec());
-        let (win, linux): (&[u8], &[u8]) = match flags.platform {
-            Platform::Windows => (b"-1", b"0"),
-            Platform::Linux => (b"0", b"-1"),
+        let (win, linux, bits32, bits64): (&[u8], &[u8], &[u8], &[u8]) = match flags.platform {
+            Platform::Windows => (b"-1", b"0", b"0", b"-1"),
+            Platform::Linux => (b"0", b"-1", b"0", b"-1"),
+            Platform::Wasm => (b"0", b"0", b"-1", b"0"),
         };
+        let mut defines = vec![
+            d(b"WINDOWS", win),
+            d(b"WIN", win),
+            d(b"LINUX", linux),
+            d(b"MAC", b"0"),
+            d(b"MACOSX", b"0"),
+            d(b"32BIT", bits32),
+            d(b"64BIT", bits64),
+            d(b"VERSION", VERSION),
+            d(b"_QB64PE_", b"-1"),
+            d(b"_ARM_", b"0"),
+        ];
+        debug_assert_eq!(defines.len(), PRESETS);
+        if flags.platform == Platform::Wasm {
+            defines.push(d(b"WASM", b"-1"));
+        }
         let mut state = PpState {
-            defines: vec![
-                d(b"WINDOWS", win),
-                d(b"WIN", win),
-                d(b"LINUX", linux),
-                d(b"MAC", b"0"),
-                d(b"MACOSX", b"0"),
-                d(b"32BIT", b"0"),
-                d(b"64BIT", b"-1"),
-                d(b"VERSION", VERSION),
-                d(b"_QB64PE_", b"-1"),
-                d(b"_ARM_", b"0"),
-            ],
+            presets: defines.len(),
+            defines,
             levels: Vec::new(),
             lowest: 0,
             flags,
@@ -435,7 +446,7 @@ impl PpState {
         }
         self.settings.push((feature, value));
         if let Some(flag) = running_flag(feature) {
-            let entry = self.defines[PRESETS..]
+            let entry = self.defines[self.presets..]
                 .iter_mut()
                 .find(|(n, _)| n == flag.as_bytes())
                 .expect("the flags are defined at the first line");
@@ -454,7 +465,7 @@ impl PpState {
         self.flag_named |= !named.is_empty();
         self.flags.defines().iter().any(|&(name, at_start)| {
             named.contains(&name)
-                && self.defines[PRESETS..]
+                && self.defines[self.presets..]
                     .iter()
                     .any(|(n, v)| n == name.as_bytes() && *v != at_start.to_string().into_bytes())
         })
@@ -605,7 +616,7 @@ impl PpState {
                 b => value.push(b),
             }
         }
-        match self.defines[PRESETS..].iter_mut().find(|(n, _)| *n == name) {
+        match self.defines[self.presets..].iter_mut().find(|(n, _)| *n == name) {
             Some(entry) => entry.1 = value,
             None => self.defines.push((name, value)),
         }
@@ -908,6 +919,41 @@ mod tests {
         for (name, value) in [("LINUX", true), ("64BIT", true), ("WIN", false), ("WINDOWS", false)] {
             assert_eq!(s.eval(name.as_bytes()), Ok(value), "{name}");
         }
+    }
+
+    /// The names of each target (spec `compiler/wasm-target`, "The target's name in a program"; design D6 of
+    /// `wasm-console`).
+    #[test]
+    fn predefined_names_of_each_target() {
+        let names = ["WASM", "WIN", "WINDOWS", "LINUX", "MAC", "MACOSX", "32BIT", "64BIT"];
+        let cases = [
+            (Platform::Windows, [false, true, true, false, false, false, false, true]),
+            (Platform::Linux, [false, false, false, true, false, false, false, true]),
+            (Platform::Wasm, [true, false, false, false, false, false, true, false]),
+        ];
+        for (platform, values) in cases {
+            let s = PpState::with_flags(PpFlags::default().on(platform));
+            for (name, value) in names.iter().zip(values) {
+                assert_eq!(s.eval(name.as_bytes()), Ok(value), "{name} on {platform:?}");
+            }
+        }
+        // Off the wasm target `WASM` is not defined at all, as in QB64pe.
+        let host = PpState::with_flags(PpFlags::default().on(Platform::Windows));
+        assert_eq!(host.eval(b"WASM = UNDEFINED"), Ok(true));
+        let wasm = PpState::with_flags(PpFlags::default().on(Platform::Wasm));
+        assert_eq!(wasm.eval(b"WASM = UNDEFINED"), Ok(false));
+        assert_eq!(wasm.eval(b"WASM = -1"), Ok(true));
+    }
+
+    /// A `$LET` after the predefined names of the wasm target is a name of the program's, as on the others.
+    #[test]
+    fn let_names_on_wasm() {
+        let mut s = PpState::with_flags(PpFlags::default().on(Platform::Wasm));
+        s.let_(b"A = 2").unwrap();
+        assert_eq!(s.eval(b"A = 2"), Ok(true));
+        s.let_(b"A = 3").unwrap();
+        assert_eq!(s.eval(b"A = 3"), Ok(true));
+        assert_eq!(s.eval(b"_CONSOLE_"), Ok(false));
     }
 
     #[test]

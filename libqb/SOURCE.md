@@ -4,7 +4,7 @@ Commit: `16f629784e` (2026-09-30) of QB64pe (`github.com/QB64-Phoenix-Edition/QB
 (`DECISIONS.md` 2026-10-09).
 
 `libqb/` holds QB64pe's `Makefile`, `internal/c/` (without the toolchain `internal/c/c_compiler`, which no git
-tracks; the build takes it from the clone), `licenses/` and `COPYING.txt`: 1232 files, 26879898 bytes,
+tracks; the build takes it from the clone), `licenses/` and `COPYING.txt`: 1232 files, 26882290 bytes,
 each the commit's file byte for byte under its relative path, but for the edits below. The new compiler builds
 against it with `make -C libqb` (design of the OpenSpec change `libqb-copy`); the libqb objects it builds here are
 git-ignored.
@@ -35,6 +35,13 @@ row, `UPSTREAM.md` the fix as offered to QB64pe):
 - `tools/libqb/edits/d067-readfile-too-long.edit`: `internal/c/libqb.cpp`
 - `tools/libqb/edits/d067-string-add-too-long.edit`: `internal/c/libqb/src/qbs.cpp`
 - `tools/libqb/edits/d067-string-new-negative.edit`: `internal/c/libqb/src/qbs.cpp`
+- `tools/libqb/edits/wasm-console-lock-keys.edit`: `internal/c/libqb/src/window-console.cpp`
+- `tools/libqb/edits/wasm-filesystem-cstdlib.edit`: `internal/c/libqb/src/filesystem.cpp`
+- `tools/libqb/edits/wasm-libqb-common.edit`: `internal/c/libqb/include/libqb-common.h`
+- `tools/libqb/edits/wasm-makefile-flags.edit`: `Makefile`
+- `tools/libqb/edits/wasm-makefile-unix.edit`: `Makefile`
+- `tools/libqb/edits/wasm-os-name.edit`: `internal/c/libqb.cpp`
+- `tools/libqb/edits/wasm-stacktrace-none.edit`: `internal/c/libqb/src/logging/stacktrace.cpp`
 
 Licence: MIT for QB64pe (`COPYING.txt`, `licenses/license_qb64.txt`); the parts under `internal/c/parts` keep
 their own licences, listed in `licenses/`.

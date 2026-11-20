@@ -75,7 +75,12 @@ std::string libqb_log_get_stacktrace(bool qb64_only) {
         .str = "",
     };
 
+#ifdef QB64_EMSCRIPTEN
+    // WebAssembly has no unwinder to walk the stack with (_Unwind_GetIP is undefined): the trace is empty.
+    (void)handler;
+#else
     _Unwind_Backtrace(&handler, &state);
+#endif
 
     return state.str;
 }

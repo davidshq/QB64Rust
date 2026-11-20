@@ -241,6 +241,17 @@ PLATFORM_SUFFIXES = (".out.txt", ".output", ".err")
 # The known list of a suite on Linux beside its folder (same format as tests/verification/known.list):
 # <name><TAB><reason>, where a reason starting with "windows" skips the program there.
 LINUX_KNOWN = "known.linux.list"
+# The wasm target (OpenSpec change wasm-console, design D7): built with `--target wasm` into <name>.js and
+# <name>.wasm, run by the Emscripten SDK's Node, and judged as Linux, by Linux's recordings and lists.
+WASM = "wasm"
+# The known list of a suite for the wasm target, beside its known.linux.list, in the same format. Every reason
+# starts with a word of WASM_REASONS (spec testing/golden-corpus, "The wasm known list"); a program listed with one
+# of WASM_SKIPPED is skipped, not built.
+WASM_KNOWN = "known.wasm.list"
+WASM_REASONS = ("target", "window", "offset", "float", "clib", "width", "node", "varies", "open")
+WASM_SKIPPED = ("target", "window", "offset")
+# The SDK whose Node runs a wasm program (set by tools/check in the suites VM).
+EMSDK_ENV = "QB64RUST_EMSDK_ROOT"
 
 
 # ALSA's null device, for the programs run on Linux (design D6 of m7-linux).
@@ -308,9 +319,47 @@ def read_if_file(path: Path) -> bytes | None:
 LINUX_WORDS = ((b"Press enter to continue", b"Press any key to continue"),)
 
 
+def judged_as(platform: str) -> str:
+    """The platform whose recordings and rules judge a run: Linux for the wasm target, under which libqb takes its
+    Unix branches (design D7 of wasm-console); else the platform itself."""
+    return "linux" if platform == WASM else platform
+
+
+def exe_path(folder: Path, name: str, platform: str) -> Path:
+    """The file a build writes: <name>.js for the wasm target (its .wasm file beside it), else the executable."""
+    return folder / f"{name}.js" if platform == WASM else folder / f"{name}{EXE}"
+
+
+def target_args(platform: str) -> list[str]:
+    """The compile line's target: `--target wasm` for the wasm target, nothing for the host."""
+    return ["--target", WASM] if platform == WASM else []
+
+
+def built_files(exe: Path, platform: str) -> set[str]:
+    """The names of the files a build wrote, which the folder of a run keeps (reset_folder)."""
+    return {exe.name, exe.with_suffix(".wasm").name} if platform == WASM else {exe.name}
+
+
+@functools.cache
+def wasm_node() -> Path:
+    """The Node of the Emscripten SDK that QB64RUST_EMSDK_ROOT names: node/<version>/node.exe on Windows,
+    node/<version>/bin/node elsewhere. Exits the run with a message when there is none."""
+    root = os.environ.get(EMSDK_ENV)
+    rel = "node.exe" if os.name == "nt" else "bin/node"
+    found = sorted(Path(root).glob(f"node/*/{rel}")) if root else []
+    if not found:
+        raise SystemExit(f"--platform wasm runs the programs with the Node of the Emscripten SDK: set {EMSDK_ENV}")
+    return found[0]
+
+
+def run_line(exe: Path, platform: str) -> list[str]:
+    """How a built program is started: `node <name>.js` for the wasm target, else the executable."""
+    return [str(wasm_node()), str(exe)] if platform == WASM else [str(exe)]
+
+
 def platform_neutral(data: bytes, platform: str) -> bytes:
     """A program's output with LINUX_WORDS made Windows' on Linux; as it is on Windows."""
-    if platform == "linux":
+    if judged_as(platform) == "linux":
         for linux, windows in LINUX_WORDS:
             data = data.replace(linux, windows)
     return data
@@ -319,7 +368,7 @@ def platform_neutral(data: bytes, platform: str) -> bytes:
 def exit_code_on(platform: str, code: int) -> int:
     """The exit code a process ending with a recorded code reports on platform: on Linux its low 8 bits
     (END -1, recorded as Windows' 4294967295, ends with 255), so that one .exitcode holds for both."""
-    return code & 0xFF if platform == "linux" else code
+    return code & 0xFF if judged_as(platform) == "linux" else code
 
 
 def platform_of(args) -> str:
@@ -338,8 +387,8 @@ def linux_sidecar(path: Path) -> Path:
 def expected_file(path: Path, platform: str) -> Path:
     """The recording a program is judged by on platform: on Linux its Linux sidecar when there is one,
     else the recording shared by both platforms; on Windows always the shared one (the Linux files are
-    never read there)."""
-    if platform == "linux":
+    never read there). The wasm target is judged as Linux (judged_as)."""
+    if judged_as(platform) == "linux":
         sidecar = linux_sidecar(path)
         if sidecar.is_file():
             return sidecar
@@ -362,9 +411,30 @@ def load_linux_list(path: Path, suite: str) -> dict[str, str]:
     return known
 
 
+def load_wasm_list(path: Path, suite: str) -> dict[str, str]:
+    """Reads a suite's known.wasm.list as load_linux_list reads known.linux.list. A reason that does not start with a
+    word of WASM_REASONS raises ValueError, naming the line (spec testing/golden-corpus, "The wasm known list")."""
+    known = load_linux_list(path, suite)
+    for key, reason in known.items():
+        if reason_word(reason) not in WASM_REASONS:
+            raise ValueError(
+                f"{path}: the reason of {key.split(':', 1)[1]} starts with none of {', '.join(WASM_REASONS)}: {reason}"
+            )
+    return known
+
+
+def reason_word(reason: str) -> str:
+    """The first word of a known list's reason, without the colon or comma after it."""
+    return reason.split(" ", 1)[0].rstrip(":,")
+
+
 def skipped_on(platform: str, reason: str) -> bool:
-    """A program of a Linux list whose reason starts with "windows" needs Windows: skipped, not run."""
-    return platform == "linux" and reason.split(" ", 1)[0].rstrip(":,") == "windows"
+    """A program of a Linux list whose reason starts with "windows" needs Windows: skipped, not run, on Linux and on
+    the wasm target. On the wasm target so is one of known.wasm.list whose reason is in WASM_SKIPPED."""
+    word = reason_word(reason)
+    if platform == WASM and word in WASM_SKIPPED:
+        return True
+    return judged_as(platform) == "linux" and word == "windows"
 
 
 # Set by check's steps in the suites VM (tools/check/check.py): network programs run there.
@@ -1603,8 +1673,9 @@ def write_expected(path: Path, data: bytes, other: Path) -> str:
 def platform_expected(out_file: Path, err_file: Path, platform: str) -> tuple[Path, Path]:
     """The .output and .err a program is judged by on platform (spec testing/golden-corpus, "Recordings
     per platform"): on Linux a Linux sidecar of either kind stands for the program's recording, so
-    that the shared file of the other kind is not read; else the shared files."""
-    if platform == "linux":
+    that the shared file of the other kind is not read; else the shared files. The wasm target is judged as
+    Linux (judged_as)."""
+    if judged_as(platform) == "linux":
         out_side, err_side = linux_sidecar(out_file), linux_sidecar(err_file)
         if out_side.is_file() or err_side.is_file():
             return out_side, err_side
@@ -1856,6 +1927,7 @@ def corpus_test(
     shared_err, shared_out = tdir / f"{name}.err", tdir / f"{name}.output"
     out_file, err_file = platform_expected(shared_out, shared_err, platform)
     linux_record = args.record and platform == "linux"
+    wasm = platform == WASM
     norun = (tdir / f"{name}.norun").is_file()
     present = [p.suffix for p in (out_file, err_file) if p.is_file()]
     if norun:
@@ -1911,7 +1983,7 @@ def corpus_test(
     shutil.copyfile(src, work / src.name)
     if files_dir.is_dir():
         shutil.copytree(files_dir, work, dirs_exist_ok=True)
-    exe = work / f"{name}{EXE}"
+    exe = exe_path(work, name, platform)
 
     old = is_old_compiler(args.qb64)
     flags = ["-f:OptimizeCppProgram=true"] if args.cpp_opt else []
@@ -1926,6 +1998,7 @@ def corpus_test(
             "-q",
             "-m",
             "-x",
+            *target_args(platform),
             *include_root_args(args.qb64),
             *fixes_args(args.qb64),
             src.name,
@@ -2075,7 +2148,11 @@ def corpus_test(
     full_states = getattr(args, "full_states", None) == f"{group}/{name}"
     if full_states:
         env["QB64_SCREEN_DIGEST_AS_STATE"] = "1"
-    if os.name == "nt":
+    if wasm:
+        # Node reads its standard input as a Linux program does: END's prompt reads it, never a console key.
+        cmd = run_line(exe, platform)
+        flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+    elif os.name == "nt":
         # END waits for a console key event, which the null device never sends (press_any_key.py).
         cmd = [sys.executable, str(Path(__file__).with_name("press_any_key.py"))]
         # A screen program's window goes on a desktop that is never shown (press_any_key.py).
@@ -2091,7 +2168,7 @@ def corpus_test(
     states: list[bytes] = []
     codes: list[int] = []
     for run in range(1, 3 if args.record else 2):
-        reset_folder(work, {src.name, exe.name})
+        reset_folder(work, {src.name} | built_files(exe, platform))
         if files_dir.is_dir():
             # Fresh for every run: the first one may have changed or removed a data file.
             shutil.copytree(files_dir, work, dirs_exist_ok=True)
@@ -2113,7 +2190,7 @@ def corpus_test(
             env=env,
             merge_stderr=True,
             creationflags=flags,
-            stdin_path=stdin_copy if os.name != "nt" else None,
+            stdin_path=stdin_copy if os.name != "nt" or wasm else None,
         )
         append_counts(args, counts, timed_out)
         if timed_out:
@@ -2492,13 +2569,21 @@ def mask_folder(data: bytes, folder: Path) -> bytes:
     return data
 
 
-def verification_text(out: bytes, rc: int | None, timed_out: bool, folder: Path) -> bytes:
+def verification_text(out: bytes, rc: int | None, timed_out: bool, folder: Path, platform: str = "") -> bytes:
     """The text of <name>.out.txt for a run that printed out in folder and ended with rc (or timed
     out): written by the recorder, and built the same way by the compare to set against it."""
     text = mask_folder(out, folder)
     if timed_out:
         return text + f"(timed out after {VERIFICATION_RUN_TIMEOUT} s)\nexit=124\n".encode()
-    return text + f"exit={bash_exit_code(rc)}\n".encode()
+    return text + f"exit={node_exit_code(rc) if platform == WASM else bash_exit_code(rc)}\n".encode()
+
+
+def node_exit_code(rc: int) -> int:
+    """A wasm program's exit code under Node on a Windows host, as Linux reports it. Node exits with the program's
+    own code, so `SYSTEM -1` gives 0xFFFFFFFF, where Git Bash would say 127: its low byte, 255, as on Linux. A
+    code below 0xFFFFFF00 is Node's own (a crash of Node itself), as Git Bash reports it."""
+    rc &= 0xFFFFFFFF
+    return rc & 0xFF if rc >= 0xFFFFFF00 else bash_exit_code(rc)
 
 
 LOG_ENTRY = re.compile(rb"^\[[^\]]*\] (\S+ (\S+) .*)$")
@@ -2535,7 +2620,7 @@ def program_log(log: Path, folder: Path, platform: str | None = None) -> bytes:
         if frame and keep_frames:
             kept.append(frame.group(1) + frame.group(2))
     text = mask_folder(b"".join(k + b"\n" for k in kept), folder)
-    if (platform or HOST_PLATFORM) == "linux":
+    if judged_as(platform or HOST_PLATFORM) == "linux":
         text = text.replace(b"<verification>/", b"<verification>\\")
     return text
 
@@ -2543,8 +2628,8 @@ def program_log(log: Path, folder: Path, platform: str | None = None) -> bytes:
 def log_without_frames_on(platform: str, text: bytes) -> bytes:
     """A recorded <name>.log.txt as the program's log is on platform: on Linux without its stack frames, which
     libqb's Linux build does not write (QB64pe's too; m7-linux task 5.4, verification/v50_b_log), so that one
-    recording holds for both."""
-    if platform != "linux":
+    recording holds for both. The wasm target is judged as Linux (judged_as)."""
+    if judged_as(platform) != "linux":
         return text
     return b"".join(line for line in text.splitlines(keepends=True) if not LOG_KEPT_FRAME.match(line))
 
@@ -2716,7 +2801,9 @@ def verification_compare(
             shutil.copytree(item, work / item.name, ignore=shutil.ignore_patterns("__pycache__"))
         else:
             shutil.copyfile(item, work / item.name)
-    exe = work / f"{name}{EXE}"
+    platform = platform_of(args)
+    wasm = platform == WASM
+    exe = exe_path(work, name, platform)
     compile_out = results / f"{tag}-compile.txt"
     env = program_env()
     # The folder and the files the old compiler found in its own folder, under a root of their own, in
@@ -2735,6 +2822,7 @@ def verification_compare(
         "-x",
         "-q",
         "-m",
+        *target_args(platform),
         *(["--fixes", "on", "--no-settings"] if fixed else fixes_args(args.qb64)),
         *coverage_flag,
         *root_args,
@@ -2817,7 +2905,11 @@ def verification_compare(
     # --no-keys). The helper shares this runner's console, as the recorded program did, so that
     # run_proc's Ctrl+Break reaches the program and it writes out a pending prompt before the timeout.
     run_stdin = work / stdin_file.name if stdin_file.is_file() else None
-    if os.name == "nt":
+    run_flags = 0
+    if wasm:
+        cmd = run_line(exe, platform)
+        run_flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+    elif os.name == "nt":
         cmd = [sys.executable, str(helper), "--no-keys"]
         if os.environ.get("QB64RUST_SHOW_WINDOWS") != "1":
             cmd.append("--hidden-desktop")
@@ -2841,11 +2933,14 @@ def verification_compare(
         VERIFICATION_RUN_TIMEOUT,
         env=env,
         merge_stderr=True,
-        stdin_path=run_stdin if os.name != "nt" else None,
+        stdin_path=run_stdin if os.name != "nt" or wasm else None,
         ask_first=True,
+        creationflags=run_flags,
     )
     append_counts(args, counts, timed_out)
-    actual = verification_text(platform_neutral(run_out.read_bytes(), platform_of(args)), rc, timed_out, work)
+    actual = verification_text(
+        platform_neutral(run_out.read_bytes(), platform_of(args)), rc, timed_out, work, platform_of(args)
+    )
     rules = load_normalize(normalize)
     want = norm_output(apply_normalize(wanted_verification_text(recorded, trace), rules))
     got = norm_output(apply_normalize(actual, rules))
@@ -3220,8 +3315,9 @@ def known_lists(args, verification: bool) -> tuple[dict[str, str], list[Path]]:
     design D1), so that tools/check/steps.py's JUDGE_LISTS can name every one."""
     files = [args.known_failures]
     known = load_known_failures(args.known_failures)
-    if platform_of(args) == "linux":
-        # What cannot pass on Linux, beside each suite (LINUX_KNOWN): it adds to the shared lists.
+    if judged_as(platform_of(args)) == "linux":
+        # What cannot pass on Linux, beside each suite (LINUX_KNOWN): it adds to the shared lists. The wasm target
+        # is judged as Linux, and its own list (WASM_KNOWN) adds to those.
         for root, suite in (
             (args.corpus_root, "corpus"),
             (UPSTREAM_ROOT, "compile_tests"),
@@ -3229,6 +3325,9 @@ def known_lists(args, verification: bool) -> tuple[dict[str, str], list[Path]]:
         ):
             files.append(root / LINUX_KNOWN)
             known.update(load_linux_list(root / LINUX_KNOWN, suite))
+            if platform_of(args) == WASM:
+                files.append(root / WASM_KNOWN)
+                known.update(load_wasm_list(root / WASM_KNOWN, suite))
     if verification:
         files.append(VERIFICATION_KNOWN)
         known.update(load_known_list(VERIFICATION_KNOWN))
@@ -3624,11 +3723,12 @@ def main() -> int:
     )
     ap.add_argument(
         "--platform",
-        choices=["windows", "linux"],
+        choices=["windows", "linux", WASM],
         default=HOST_PLATFORM,
         help="the platform whose recordings the programs are judged by (on Linux the <name>.linux.* sidecars and "
-        "the suites' known.linux.list; with --record, the Linux sidecars only); never the compile line "
-        "(default: the host, %(default)s)",
+        "the suites' known.linux.list; with --record, the Linux sidecars only); never the compile line, but for "
+        "wasm: built with --target wasm, run by the Node of QB64RUST_EMSDK_ROOT, judged as Linux and by the "
+        "suites' known.wasm.list too (default: the host, %(default)s)",
     )
     ap.add_argument(
         "--os-tag",
@@ -3856,6 +3956,14 @@ def main() -> int:
         return 2
     if args.os_tag is None:
         args.os_tag = "win" if args.platform == "windows" else "lnx"
+    if args.record and args.platform == WASM:
+        # Spec testing/golden-corpus, "The runner for the wasm target": no QB64pe build to record from.
+        print("--record --platform wasm: the wasm target has no recordings of its own; it is judged by Linux's",
+              file=sys.stderr)
+        return 2
+    if args.platform == WASM and args.suite not in ("corpus", "verification"):
+        print("--platform wasm takes --suite corpus or verification (OpenSpec change wasm-console)", file=sys.stderr)
+        return 2
     if args.record and args.platform != HOST_PLATFORM:
         print("--record runs the programs: its --platform must be the host's", file=sys.stderr)
         return 2

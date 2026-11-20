@@ -353,6 +353,7 @@ fn check_once(
         window: !c.settings.console_only,
         window_hidden: c.settings.window_hidden,
         asserts: c.settings.asserts,
+        debug: c.settings.debug,
         resize: c.settings.resize,
         runtime_parts: std::mem::take(&mut c.settings.runtime_parts),
         compile_stamp: c.settings.compile_stamp,
@@ -796,6 +797,8 @@ struct Settings {
     window_hidden: bool,
     /// A `$ASSERTS` or `$ASSERTS:CONSOLE` was met in the compiled code.
     asserts: bool,
+    /// The first `$DEBUG` met in the compiled code.
+    debug: Option<Span>,
     /// The window's resizing and scaling, from the last `$RESIZE` met ([`resize_meta`]).
     resize: crate::Resize,
     /// A call of `_COMPILEDATE$` or `_COMPILETIME$` was met.
@@ -833,6 +836,7 @@ impl Settings {
             console_only: false,
             window_hidden: false,
             asserts: false,
+            debug: None,
             resize: crate::Resize::Off,
             compile_stamp: false,
             exe_icon: None,
@@ -1708,7 +1712,10 @@ impl Checker<'_> {
                 }
                 // No debugger code is written (user, design D2): only the flags, which the parser settles, and the
                 // old compiler's warning from the command line (`qb64pe.bas` 3556).
-                Ok(ConsoleMeta::Debug) => self.diags.warning(tok.span, "$DEBUG features only work from the IDE"),
+                Ok(ConsoleMeta::Debug) => {
+                    self.settings.debug.get_or_insert(tok.span);
+                    self.diags.warning(tok.span, "$DEBUG features only work from the IDE")
+                }
                 Err(msg) => return Err(self.error(tok.span, msg)),
             }
             Ok(())

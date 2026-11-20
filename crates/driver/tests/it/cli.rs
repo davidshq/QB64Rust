@@ -6259,3 +6259,318 @@ fn fixed_strings_to_char_pointer() {
                    SYSTEM\nFUNCTION ix&\ncalls = calls + 1\nix& = 1\nEND FUNCTION\n";
     assert_eq!(build_and_run(&d, program), " 4  3 \nABCDefghDEFghi 1 \n");
 }
+
+/// Spec `compiler/cli`, "The target option", scenario "An unknown name": status 1, nothing built, and the message
+/// lists the two names.
+#[test]
+fn target_unknown_name() {
+    let d = scratch("target-unknown");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let o = qb64rust(&d, &["-x", "--target", "dos", "p.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    assert!(
+        out.contains("unknown --target `dos`") && out.contains("`host`") && out.contains("`wasm`"),
+        "{out}"
+    );
+    assert!(
+        out.contains("[--target host|wasm]") && out.contains("experimental"),
+        "{out}"
+    );
+    assert!(!d.join(default_exe("p")).exists() && !d.join("p.js").exists());
+}
+
+/// Spec `compiler/cli`, "The target option", scenario "The default": `--target host` is the build without the
+/// option. Checked without a build: `-z` writes the same fragments, byte for byte.
+#[test]
+fn target_host_is_the_default() {
+    let d = scratch("target-host");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let fragments = |args: &[&str]| {
+        let o = qb64rust(&d, args);
+        assert!(o.status.success(), "{args:?}: {}", stdout(&o));
+        let temp = PathBuf::from(stdout(&o).trim());
+        qb64rust_codegen_cpp::FRAGMENTS
+            .iter()
+            .map(|f| std::fs::read(temp.join(f)).unwrap_or_default())
+            .collect::<Vec<_>>()
+    };
+    let plain = fragments(&["-z", "p.bas", "-o", "a.exe"]);
+    let host = fragments(&["-z", "--target", "host", "p.bas", "-o", "b.exe"]);
+    assert!(plain == host, "the fragments differ");
+}
+
+/// Spec `compiler/cli`, "The output of a wasm build", scenario "A wrong ending": `-o` of a wasm build ends in `.js`.
+#[test]
+fn target_wasm_output_ends_in_js() {
+    let d = scratch("target-js");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    for out in ["p.exe", "p", "p.wasm"] {
+        let o = qb64rust(&d, &["-x", "--target", "wasm", "p.bas", "-o", out]);
+        assert_eq!(o.status.code(), Some(1), "{out}");
+        let text = stdout(&o);
+        assert!(
+            text.contains("the output of a wasm build ends in `.js`"),
+            "{out}: {text}"
+        );
+        assert!(!d.join(out).exists(), "{out}");
+    }
+}
+
+/// Spec `compiler/cli`, "Options that a wasm build does not take": the debug, coverage and value-trace builds, the
+/// unit-test run and the debug adapter are refused with status 1, naming the option and the target.
+#[test]
+fn target_wasm_refused_options() {
+    let d = scratch("target-refused");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    for (option, said) in [
+        ("--debug", "--debug: debug builds are not available on the wasm target"),
+        (
+            "--coverage",
+            "--coverage: coverage builds are not available on the wasm target",
+        ),
+        (
+            "--trace-values",
+            "--trace-values: value-trace builds are not available on the wasm target",
+        ),
+    ] {
+        let o = qb64rust(&d, &["-x", "--target", "wasm", option, "p.bas"]);
+        assert_eq!(o.status.code(), Some(1), "{option}");
+        assert!(stdout(&o).contains(said), "{option}: {}", stdout(&o));
+        assert!(!d.join("p.js").exists() && !d.join("p.wasm").exists(), "{option}");
+    }
+    let o = qb64rust(&d, &["test", "--target", "wasm", "."]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(
+        stdout(&o).contains("--target wasm: unit-test runs are not available on the wasm target"),
+        "{}",
+        stdout(&o)
+    );
+    let o = qb64rust(&d, &["dap", "--target", "wasm"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(
+        stderr(&o).contains("--target wasm: the debugger is not available on the wasm target"),
+        "{}",
+        stderr(&o)
+    );
+}
+
+/// Spec `compiler/toolchain`, "The wasm path of the toolchain subcommand": `toolchain path --target wasm` prints the
+/// SDK folder and that it came from the variable or the option, status 0; with none it prints the message of "The
+/// Emscripten SDK", status 1. `toolchain install --target wasm` installs nothing and prints the `emsdk` commands,
+/// status 1 (scenarios "Found by variable", "Install is by hand for now").
+#[test]
+fn toolchain_wasm_forms() {
+    let d = scratch("toolchain-wasm");
+    let sdk = d.join("emsdk");
+    let em = sdk.join("upstream/emscripten");
+    std::fs::create_dir_all(&em).unwrap();
+    let exe = std::env::consts::EXE_SUFFIX;
+    std::fs::write(em.join(format!("emcc{exe}")), "").unwrap();
+    std::fs::write(em.join("emscripten-version.txt"), "\"7.0.0\"\n").unwrap();
+    std::fs::write(sdk.join(".emscripten"), "").unwrap();
+    let node = sdk.join(if cfg!(windows) {
+        "node/24.19.0_64bit/node.exe"
+    } else {
+        "node/24.19.0_64bit/bin/node"
+    });
+    std::fs::create_dir_all(node.parent().unwrap()).unwrap();
+    std::fs::write(&node, "").unwrap();
+    let run_with = |var: Option<&Path>, args: &[&str]| {
+        let mut cmd = compiler();
+        cmd.current_dir(&d).args(args).env_remove("QB64RUST_EMSDK_ROOT");
+        if let Some(v) = var {
+            cmd.env("QB64RUST_EMSDK_ROOT", v);
+        }
+        run(&mut cmd, None, COMPILER_LIMIT, "compiler")
+    };
+    let o = run_with(Some(&sdk), &["toolchain", "path", "--target", "wasm"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let out = stdout(&o);
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines.len(), 2, "{out}");
+    assert!(lines[0].ends_with("emsdk"), "{out}");
+    assert_eq!(lines[1], "variable: given by QB64RUST_EMSDK_ROOT");
+    let o = run_with(
+        None,
+        &["toolchain", "path", "--target", "wasm", "--emsdk-root", "emsdk"],
+    );
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("option: given by --emsdk-root"), "{}", stdout(&o));
+    let o = run_with(None, &["toolchain", "path", "--target", "wasm"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(stdout(&o).contains("no Emscripten SDK found"), "{}", stdout(&o));
+    let o = run_with(Some(&sdk), &["toolchain", "install", "--target", "wasm"]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    assert!(
+        out.contains("emsdk install 7.0.0") && out.contains("emsdk activate 7.0.0"),
+        "{out}"
+    );
+    let o = run_with(None, &["toolchain", "path", "--target", "dos"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(stdout(&o).contains("unknown --target `dos`"), "{}", stdout(&o));
+}
+
+/// Spec `compiler/wasm-target`, "A wasm build" (scenarios "Hello", "A file beside the program", "The exit status")
+/// and "The target's name in a program" ("A branch for the target", "_OS$"); spec `compiler/cli`, "A named output".
+/// Needs the Emscripten SDK of `QB64RUST_EMSDK_ROOT` and the host's `make`; without the SDK it says so and passes.
+#[test]
+#[ignore = "builds with the Emscripten SDK (QB64RUST_EMSDK_ROOT) and the C++ toolchain"]
+fn wasm_builds_and_runs() {
+    let sdk = match qb64rust_driver::toolchain::find_emsdk(None) {
+        Ok(sdk) => sdk,
+        Err(why) => {
+            eprintln!("skipped: no Emscripten SDK ({why})");
+            return;
+        }
+    };
+    let d = scratch("wasm-run");
+    let node = |dir: &Path, js: &Path| {
+        let mut cmd = Command::new(&sdk.node);
+        cmd.current_dir(dir).arg(js);
+        run(&mut cmd, None, PROGRAM_LIMIT, "node")
+    };
+    let build = |args: &[&str]| {
+        let o = qb64rust_build(&d, args);
+        assert!(o.status.success(), "{args:?}: {}", stdout(&o));
+    };
+    std::fs::write(
+        d.join("hello.bas"),
+        "$CONSOLE:ONLY\nPRINT \"Hello\"\n$IF WASM THEN\nPRINT \"wasm\"\n$ELSE\nPRINT \"other\"\n$END IF\nPRINT _OS$\n\
+         OPEN \"data.txt\" FOR INPUT AS #1\nLINE INPUT #1, l$\nCLOSE #1\nPRINT l$\nSYSTEM 3\n",
+    )
+    .unwrap();
+    std::fs::write(d.join("data.txt"), "a line beside the program\n").unwrap();
+    build(&["-q", "-x", "--target", "wasm", "hello.bas"]);
+    assert!(d.join("hello.js").is_file() && d.join("hello.wasm").is_file());
+    assert!(!d.join(default_exe("hello")).exists());
+    // Started from another folder: the program's folder is the one of its `.js` file.
+    let elsewhere = scratch("wasm-run-cwd");
+    let o = node(&elsewhere, &d.join("hello.js"));
+    assert_eq!(o.status.code(), Some(3), "{}", stdout(&o));
+    assert_eq!(
+        stdout(&o).replace("\r\n", "\n"),
+        "Hello\nwasm\n[WASM][32BIT]\na line beside the program\n"
+    );
+    // A named output in another folder: both files there, and they run.
+    std::fs::create_dir_all(d.join("out")).unwrap();
+    build(&["-q", "-x", "--target", "wasm", "hello.bas", "-o", "out/app.js"]);
+    assert!(d.join("out/app.js").is_file() && d.join("out/app.wasm").is_file());
+    std::fs::write(d.join("out/data.txt"), "the other folder\n").unwrap();
+    let o = node(&d, &d.join("out/app.js"));
+    assert_eq!(o.status.code(), Some(3), "{}", stdout(&o));
+    assert!(stdout(&o).ends_with("the other folder\n"), "{}", stdout(&o));
+}
+
+/// Spec `compiler/toolchain`, "The Emscripten SDK", scenario "No SDK": a wasm build with neither the option nor the
+/// variable fails with status 1, names both and the `emsdk` command, and writes nothing.
+#[test]
+fn target_wasm_without_sdk() {
+    let d = scratch("target-no-sdk");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let mut cmd = compiler();
+    cmd.current_dir(&d)
+        .args(["-x", "--target", "wasm", "p.bas"])
+        .env_remove("QB64RUST_EMSDK_ROOT");
+    let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    for part in ["--emsdk-root", "QB64RUST_EMSDK_ROOT", "emsdk install 7.0.0"] {
+        assert!(out.contains(part), "{part}: {out}");
+    }
+    assert!(!d.join("p.js").exists() && !d.join("p.wasm").exists());
+}
+
+/// Spec `compiler/toolchain`, "The Emscripten SDK", scenario "No make": with the SDK found and no host toolchain, a
+/// wasm build fails with the message of "No toolchain found", since `make` comes from the toolchain. The SDK is a
+/// folder of empty files in its layout: nothing of it is run before the toolchain is looked for.
+#[test]
+#[cfg(windows)]
+fn target_wasm_without_make() {
+    let d = scratch("target-no-make");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    let sdk = d.join("emsdk");
+    let em = sdk.join("upstream/emscripten");
+    std::fs::create_dir_all(&em).unwrap();
+    for name in ["emcc.exe", "em++.exe", "emar.exe"] {
+        std::fs::write(em.join(name), "").unwrap();
+    }
+    std::fs::write(em.join("emscripten-version.txt"), "\"7.0.0\"\n").unwrap();
+    std::fs::write(sdk.join(".emscripten"), "").unwrap();
+    std::fs::create_dir_all(sdk.join("node/24.19.0_64bit")).unwrap();
+    std::fs::write(sdk.join("node/24.19.0_64bit/node.exe"), "").unwrap();
+    let mut cmd = compiler();
+    without_qb64pe(&mut cmd, &d.join("home"))
+        .current_dir(&d)
+        .args(["-q", "-x", "--target", "wasm", "p.bas"])
+        .env("QB64RUST_EMSDK_ROOT", &sdk);
+    let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    for word in [
+        "qb64rust toolchain install",
+        "--toolchain-root",
+        "QB64RUST_TOOLCHAIN_ROOT",
+    ] {
+        assert!(out.contains(word), "{word}: {out}");
+    }
+    assert!(!d.join("p.js").exists() && !d.join("p.wasm").exists());
+}
+
+/// Spec `compiler/wasm-target`, "What the target does not have is rejected", scenario "Checking only": `-z --target
+/// wasm` reports the error and exits with status 1, and without `--target` the program is checked as before. The
+/// error of a program that is not `$CONSOLE:ONLY` comes the same way ("Console programs only").
+#[test]
+fn target_wasm_check_only() {
+    let d = scratch("target-check");
+    std::fs::write(d.join("p.bas"), "$CONSOLE:ONLY\nPRINT 1\nPRINT 2\nSHELL \"dir\"\n").unwrap();
+    let o = qb64rust(&d, &["-z", "--target", "wasm", "p.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(
+        stdout(&o).contains("p.bas:4:1: error: `SHELL` is not available on the wasm target"),
+        "{}",
+        stdout(&o)
+    );
+    let o = qb64rust(&d, &["-z", "p.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    std::fs::write(d.join("w.bas"), "PRINT 1\n").unwrap();
+    let o = qb64rust(&d, &["-z", "--target", "wasm", "w.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(
+        stdout(&o).contains("the wasm target builds only `$CONSOLE:ONLY` programs so far"),
+        "{}",
+        stdout(&o)
+    );
+}
+
+/// Spec `compiler/wasm-target`, scenario "A header-only library": a `DECLARE LIBRARY` that resolves to a header alone
+/// is taken; one whose lookup finds a prebuilt file is "`DECLARE LIBRARY` is not available on the wasm target".
+#[test]
+fn target_wasm_libraries() {
+    let d = scratch("target-libraries");
+    std::fs::write(d.join("helper.h"), "int32_t twice(int32_t x) { return 2 * x; }\n").unwrap();
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\nDECLARE LIBRARY \"./helper\"\n    FUNCTION twice& (BYVAL x AS LONG)\nEND DECLARE\nPRINT twice&(2)\n",
+    )
+    .unwrap();
+    let o = qb64rust(&d, &["-z", "--target", "wasm", "p.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    std::fs::write(d.join("libprebuilt.a"), "not a real archive").unwrap();
+    std::fs::write(
+        d.join("q.bas"),
+        "$CONSOLE:ONLY\nDECLARE LIBRARY \"./prebuilt\"\n    FUNCTION f& ()\nEND DECLARE\nPRINT f&\n",
+    )
+    .unwrap();
+    let o = qb64rust(&d, &["-z", "--target", "wasm", "q.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    assert!(
+        out.contains("q.bas:2:")
+            && out.contains(
+                "`DECLARE LIBRARY` is not available on the wasm target: `libprebuilt.a` is a prebuilt library"
+            ),
+        "{out}"
+    );
+}

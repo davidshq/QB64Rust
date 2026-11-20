@@ -73,7 +73,8 @@ it waits and where the details are.
 
 ## Strict QuickBASIC 4.5 mode
 
-Not planned (QB64pe has no such mode). What it would take: `study\archive\08-qb45-strict-mode.md`.
+Not planned (QB64pe has no such mode). What it would take: `study\archive\08-qb45-strict-mode.md`. If it is
+built, it is a group of the extensions' switch that turns on its features together (`DECISIONS.md` 2026-11-18).
 
 ## Popular BASIC PDS 7.1 features
 
@@ -83,8 +84,8 @@ The World War 2 port (2026-11-04) hit `DIR$` 16 times, `ON LOCAL ERROR` once and
 missed the `CURDIR$` calls at first, because both compilers build them without a message.
 
 This would be a language extension: QB64pe rejects these forms. A program that uses them would no longer build
-with QB64pe. So it needs a decision first, and probably a switch of its own, as for names of more than 40
-characters ("Other ideas raised during the study").
+with QB64pe. So each goes behind the extensions' switch: one per feature, and a PDS 7.1 group that turns on
+all of them (`DECISIONS.md` 2026-11-18).
 
 The list is from memory of PDS 7.1, most popular first. Only the `DIR$`, `ON LOCAL ERROR` and `CURDIR$` rows are
 measured.
@@ -431,3 +432,7 @@ Each row is also a candidate fix behind the fixes switch (`DECISIONS.md` 2026-10
 | P3 | lints | **A warning when a fraction in a SINGLE variable stands where a literal fraction was.** A fraction written in an expression is evaluated in DOUBLE, but the same value held in a SINGLE variable is not: `r% = .3 * 95` gives 28, and `s! = .3: r% = s! * 95` gives 29. Over the fractions Civil War Strategy's formulas use and the integers 0 to 3000, 112 products assigned to an INTEGER round differently; a DOUBLE variable rounds as the literal does in every case. Both compilers behave the same (measured 2026-11-16). The port's tuning knobs turned 119 numbers into variables, and every fractional knob had to be a DOUBLE for the game to stay the same (Civil War Strategy's `docs\qb64-friction.md`, section 7). A lint could name a SINGLE variable set from a fraction and then multiplied and assigned to an integer, or a refactoring could warn when a literal is replaced by a SINGLE. It changes no program | User, 2026-11-16 (the panel's review of Civil War Strategy's tuning knobs) |
 |  |  | **A record's fields by name.** BASIC cannot get from a name in a file to the variable it names. Civil War Strategy reads `TUNING.DAT` ("name = value" lines) into 135 knobs, so `tools\tuning\make_knobs.py` writes a `CASE` per knob: `tuning_set` is about 680 generated lines and `tuning_changes$` about 140. C and Rust have no such lookup either, but they generate the code inside the language (X-macros, Rust's derive); Go and C# look the field up at run time by reflection. `study\48` suggests a narrow built-in instead of macros: the knobs become one `TYPE`, and `_FIELDCOUNT`, `_FIELDNAME$` and get or set a field by name work on it. The compiler expands each into the `SELECT CASE` that the script writes today. Its companion in the study is a default value on a `TYPE` field, which would replace `tuning_defaults` (about 135 lines). Both are extensions beyond QB64pe, so they go behind the language switch (`DECISIONS.md` 2026-11-11). Not decided or designed | User, 2026-11-16; `study\48` §4.2 and §7; Civil War Strategy's `docs\qb64-friction.md`, section 7 |
 |  |  | **`DEF FN`**, QuickBASIC 4.5's function definitions, on one line (`DEF FNsq (x) = x * x`) or as a block ending in `END DEF`. Old programs use it often; the issue names `GORILLA.BAS` and `STARTREK.BAS`. QB64pe does not have it, and QB64Rust says "`DEF FN` is not available in QB64; use a FUNCTION". It may not be a FUNCTION by another name: from memory, a `DEF FN` sees the module's variables without `SHARED`, which is not measured with `tools\qb45`. An extension beyond QB64pe, so it goes behind the language switch (`DECISIONS.md` 2026-11-11). Not decided or designed | QB64pe issue 631 (open, a feature request); survey of QB64pe's open issues, 2026-11-18 |
+|  | wasm | **A CI job for the wasm slice.** `check wasm-slice` (22 programs, about 90 s) runs in `full` and `merge` on a machine with the Emscripten SDK. CI has no SDK, so a wasm fault shows only at the next `full`. A job would install the pinned release (7.0.0) and run the slice. Its cost is the SDK's download (748 MB) and its cache in CI | OpenSpec change `wasm-console`, task 7.2 |
+|  | wasm | **A wasm build on a Linux host.** The driver takes the host as a value (`Platform::toolchain`), so a Linux host should build for wasm with Linux's `make` and the SDK's Linux launchers. Not tested: the runner, `check` and the SDK lookup were run on Windows only | OpenSpec change `wasm-console`, Non-goals |
+|  | wasm | **`qb64rust toolchain install --target wasm`.** It says the SDK is installed by hand (`emsdk install 7.0.0`), and nothing is downloaded. A download of the pinned release, as for the C++ toolchain, would be the same step for a user. 2.2 GB unpacked, so it should ask first | OpenSpec change `wasm-console`, spec `compiler/toolchain`, "Install is by hand for now" |
+|  | wasm | **Error 256 for a deep recursion on wasm.** Five programs (`verification\v58_e01`–`e04`, `e19`) recurse until the stack runs out. On Windows and Linux, libqb's `libqb_check_stack` raises error 256, "Out of stack space". On wasm it has no branch for Emscripten, so it finds no bounds, and Node's engine stack overflows first: a `RangeError`. They are `open` on `known.wasm.list`. Emscripten's `emscripten_stack_get_end()` gives the C stack's bound; whether that is reached before the engine's stack is not measured | OpenSpec change `wasm-console`, task 6.4 |

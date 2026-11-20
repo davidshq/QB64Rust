@@ -21,6 +21,10 @@ A STRING.
 Each word is in brackets, and one names the bits.
 <!-- src: language/builtin-functions "The system's name and the clipboard"; tests\corpus\slice\s150_builtins_more; tests\reference\examples\_os-str_1 -->
 
+A program built with `--target wasm` gives `[WASM][32BIT]` ([The wasm target](../chapters/wasm-target.md)).
+QB64pe has no such target.
+<!-- src: compiler/wasm-target "The target's name in a program"; tools\libqb\edits\wasm-os-name.edit; crates\driver\tests\it\cli.rs -->
+
 ## Errors
 
 - `_OS$ = x$` and an argument are compile errors.

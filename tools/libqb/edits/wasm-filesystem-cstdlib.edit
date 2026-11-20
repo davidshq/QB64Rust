@@ -1,0 +1,22 @@
+# The wasm target (OpenSpec change wasm-console, design D4): getenv, realpath and free come from <cstdlib>, which
+# glibc's headers bring in on their own and Emscripten's do not.
+file: internal/c/libqb/src/filesystem.cpp
+--- old
+#    include <shlobj.h>
+#else
+#    include <sys/statvfs.h>
+#endif
+
+#ifdef QB64_BACKSLASH_FILESYSTEM
+--- new
+#    include <shlobj.h>
+#else
+#    include <sys/statvfs.h>
+#    ifdef QB64_EMSCRIPTEN
+// getenv, realpath and free: glibc's headers above bring them in, Emscripten's do not.
+#        include <cstdlib>
+#    endif
+#endif
+
+#ifdef QB64_BACKSLASH_FILESYSTEM
+--- end

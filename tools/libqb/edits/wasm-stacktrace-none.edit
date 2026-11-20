@@ -1,0 +1,25 @@
+# The wasm target (OpenSpec change wasm-console, design D4): WebAssembly has no unwinder (_Unwind_GetIP is
+# undefined at the link), so the stack trace of libqb's logging is empty there.
+file: internal/c/libqb/src/logging/stacktrace.cpp
+--- old
+        .str = "",
+    };
+
+    _Unwind_Backtrace(&handler, &state);
+
+    return state.str;
+}
+--- new
+        .str = "",
+    };
+
+#ifdef QB64_EMSCRIPTEN
+    // WebAssembly has no unwinder to walk the stack with (_Unwind_GetIP is undefined): the trace is empty.
+    (void)handler;
+#else
+    _Unwind_Backtrace(&handler, &state);
+#endif
+
+    return state.str;
+}
+--- end

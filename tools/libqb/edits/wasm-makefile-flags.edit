@@ -1,0 +1,31 @@
+# The wasm target (OpenSpec change wasm-console, design D4): with WASM=y, no -m32 or -m64 (wasm32 is the
+# target), -pthread for every object, none of the host's libraries, no icon resource, and the link flags of a
+# program run by Node (measured in the change's design, "Measured"). The window layer (glut-emu.o, GLFW's
+# core.a) and the clipboard (clipboard.a) are left out of the link: the target builds console programs only, and
+# they have Windows or X11 code only.
+file: Makefile
+--- old
+	endif
+endif
+
+ifneq ($(filter y,$(DEP_EMBED)),)
+	EXE_OBJS += $(PATH_INTERNAL_TEMP)/embedded.o
+endif
+--- new
+	endif
+endif
+
+# qb64rust's wasm target: no -m32 or -m64, threads everywhere, none of the host's libraries, no icon resource, and
+# the link flags of a program run by Node.
+ifeq ($(WASM),y)
+	CXXFLAGS := $(filter-out -m32 -m64 -no-pie -D_GLFW_%,$(CXXFLAGS)) -pthread
+	EXE_LIBS := $(filter-out %/glut-emu.o %/core.a %/clipboard.a,$(EXE_LIBS))
+	CFLAGS := $(filter-out -m32 -m64 -no-pie,$(CFLAGS)) -pthread
+	CXXLIBS := $(CXXLIBS_EXTRA) -pthread -sPTHREAD_POOL_SIZE=4 -sNODERAWFS -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH -sENVIRONMENT=node
+	EXE_OBJS := $(filter-out $(ICON_OBJ),$(EXE_OBJS))
+endif
+
+ifneq ($(filter y,$(DEP_EMBED)),)
+	EXE_OBJS += $(PATH_INTERNAL_TEMP)/embedded.o
+endif
+--- end

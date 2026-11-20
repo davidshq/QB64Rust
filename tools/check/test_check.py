@@ -23,6 +23,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 HERE = Path(__file__).resolve().parent
@@ -275,7 +276,8 @@ class Standing(unittest.TestCase):
     def test_force_runs_everything(self):
         self.repo.pass_all()
         self.assertEqual(
-            set(self.repo.planned(FULL, force=True)), {s.name for s in steps.STEPS if s.layer != MERGE}
+            set(self.repo.planned(FULL, force=True)),
+            {s.name for s in steps.STEPS if s.layer not in (MERGE, steps.NAMED)},
         )
 
     def test_a_run_records_its_result(self):
@@ -469,7 +471,7 @@ class Merge(unittest.TestCase):
         writers = {s.name for s in steps.STEPS if s.first}
         self.assertEqual(writers, {"update-lists", "wording"})
         got = self.repo.planned(MERGE)
-        self.assertEqual(set(got), {s.name for s in steps.STEPS} - steps.MERGE_REPLACES - writers)
+        self.assertEqual(set(got), {s.name for s in steps.STEPS} - steps.MERGE_REPLACES - writers - NAMED_STEPS)
         self.assertTrue(all(only is None for only in got.values()))
         self.assertFalse({s.name for s in steps.STEPS if s.layer == MERGE} & set(self.repo.planned(FULL, force=True)))
 
@@ -588,7 +590,9 @@ class Merge(unittest.TestCase):
         self.repo.pass_merge()
         self.repo.write("tools/legacy_tests/known_failures.txt", "compile_tests:c/u1  D-052\n")
         got = self.repo.plan_reasons(MERGE, force=True)
-        self.assertEqual(set(got), {s.name for s in steps.STEPS} - steps.MERGE_REPLACES - {"update-lists", "wording"})
+        self.assertEqual(
+            set(got), {s.name for s in steps.STEPS} - steps.MERGE_REPLACES - {"update-lists", "wording"} - NAMED_STEPS
+        )
         self.assertNotIn(check.REJUDGE_REASON, got.values())
 
     def test_a_str_step_runs_in_gits_bash(self):
@@ -997,6 +1001,94 @@ class CommunityStep(unittest.TestCase):
         self.assertIn("c" * 40, text)
 
 
+# The steps in no layer, which run only when named (DECISIONS.md 2026-11-20).
+NAMED_STEPS = {s.name for s in steps.STEPS if s.layer == steps.NAMED}
+
+
+class WasmSteps(unittest.TestCase):
+    """The wasm steps (OpenSpec change wasm-console, design D8; spec testing/check-workflow)."""
+
+    def test_the_slice_in_full_and_the_family_only_when_named(self):
+        self.assertEqual(NAMED_STEPS, {"wasm-verification"})
+        self.assertEqual(steps.BY_NAME["wasm-slice"].layer, FULL)
+        self.assertFalse(steps.BY_NAME["wasm-slice"].vm)
+        family = steps.BY_NAME["wasm-verification"]
+        self.assertTrue(family.vm)
+        self.assertIn("--platform", family.command)
+        # Its own results folder: never the Windows family's results-verification.json.
+        self.assertEqual(family.outputs, ("target/legacy-tests/wasm/results-verification.json",))
+        # The slice writes there too, never over a Windows run's results-partial.json.
+        slice_cmd = steps.BY_NAME["wasm-slice"].command
+        self.assertEqual(slice_cmd[slice_cmd.index("--results") + 1], steps.WASM_RESULTS)
+        for s in ("wasm-slice", "wasm-verification"):
+            self.assertIn("emsdk", steps.BY_NAME[s].external, s)
+            self.assertIn("libqb/**", steps.BY_NAME[s].inputs, s)
+
+    def test_the_vm_limit_of_the_family_is_its_floor(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(check.vm_limit(Path(d), "wasm-verification"), 6 * 3600)
+            self.assertEqual(check.vm_limit(Path(d), "wasm-slice"), check.VM_LIMIT_FLOOR)
+
+    def test_the_sdk_is_found_beside_the_checkout_or_by_the_variable(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "tree"
+            with mock.patch.dict(os.environ, {}, clear=False):
+                os.environ.pop(check.EMSDK_ENV, None)
+                self.assertEqual(check.emsdk_root(root), Path(d) / "emsdk")
+                self.assertIn("no Emscripten SDK", check.emsdk_missing(steps.BY_NAME["wasm-slice"], root))
+                self.assertIsNone(check.emsdk_missing(steps.BY_NAME["fmt"], root))
+                version = Path(d) / "emsdk" / "upstream" / "emscripten" / "emscripten-version.txt"
+                version.parent.mkdir(parents=True)
+                version.write_text('"7.0.0"\n')
+                self.assertIsNone(check.emsdk_missing(steps.BY_NAME["wasm-slice"], root))
+                check.external.cache_clear()
+                self.assertIn("7.0.0", check.external("emsdk", root))
+                check.external.cache_clear()
+                self.assertEqual(
+                    check.emsdk_env(steps.BY_NAME["wasm-slice"], root), {check.EMSDK_ENV: str(Path(d) / "emsdk")}
+                )
+                self.assertEqual(check.emsdk_env(steps.BY_NAME["fmt"], root), {})
+            with mock.patch.dict(os.environ, {check.EMSDK_ENV: str(Path(d) / "other")}):
+                self.assertEqual(check.emsdk_root(root), Path(d) / "other")
+
+    def test_the_vm_job_has_the_command_and_the_sdk(self):
+        # Scenario "The whole family goes to the VM": step.ps1's job holds the runner's line for the wasm platform
+        # and QB64RUST_EMSDK_ROOT at the path the VM has the SDK at, the host's.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "tree"
+            root.mkdir()
+            step = steps.BY_NAME["wasm-verification"]
+            p = check.Planned(step, check.Inputs("f", {}), "asked", where=check.VM)
+            vm = SimpleNamespace(start=lambda: None)
+            with mock.patch.dict(os.environ, {}, clear=False), mock.patch.object(
+                check.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0)
+            ):
+                os.environ.pop(check.EMSDK_ENV, None)
+                check.run_in_vm(p, root, list(step.command), io.BytesIO(), vm)
+            job = json.loads((check.state(root) / "vm" / "wasm-verification.json").read_text(encoding="utf-8"))
+        self.assertEqual(job["command"], list(step.command))
+        self.assertIn("wasm", job["command"])
+        self.assertEqual(job["env"][check.EMSDK_ENV], str(Path(d) / "emsdk"))
+        self.assertEqual(job["limit"], 6 * 3600)
+
+    def test_without_the_sdk_not_run_and_a_failure_only_in_a_merge(self):
+        # Scenarios "A full run on a machine without the SDK" and "A merge without the SDK".
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "tree"
+            (root / "target").mkdir(parents=True)
+            step = steps.BY_NAME["wasm-slice"]
+            inputs = check.Inputs("f", {})
+            for merge, want in ((False, 0), (True, 1)):
+                plan = check.Plan([check.Planned(step, inputs, "changed", merge=merge)], [], [])
+                out = io.StringIO()
+                with mock.patch.dict(os.environ, {check.EMSDK_ENV: str(Path(d) / "none")}), mock.patch.object(
+                    check, "run_step", lambda *a, **k: self.fail("a step without its SDK ran")
+                ), mock.patch.object(check, "log_history", lambda *a, **k: None), contextlib.redirect_stdout(out):
+                    self.assertEqual(check.execute(root, plan, False), want, merge)
+                self.assertIn("wasm-slice", out.getvalue())
+                self.assertIn("not run: no Emscripten SDK", out.getvalue())
+
+
 class VmSteps(unittest.TestCase):
     """steps.py's marks for the suites VM (OpenSpec change vm-suites, design D8, D9)."""
 
@@ -1007,7 +1099,7 @@ class VmSteps(unittest.TestCase):
             {
                 "slice", "upstream", "verification", "callsite", "cli", "qbasic", "addprefix", "format",
                 "format-corpus", "differential", "reference-examples", "nofold", "coverage", "community", "corpus-whole",
-                "upstream-whole", "verification-whole",
+                "upstream-whole", "verification-whole", "wasm-verification",
             },
         )
         for s in vm:

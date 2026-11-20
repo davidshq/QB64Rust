@@ -1,6 +1,7 @@
-//! The platforms a build targets (spec `compiler/platforms`, design D3 of `m7-linux`): Windows x64 and Linux x64.
-//! A build targets the platform the compiler runs on; [`Platform::host`] is the only place that reads it, so that
-//! everything else takes the platform as a value and the rules of both can be tested on either.
+//! The platforms a build targets (spec `compiler/platforms`, design D3 of `m7-linux`): Windows x64 and Linux x64,
+//! and WebAssembly when `--target wasm` names it (spec `compiler/wasm-target`, design D1 of `wasm-console`).
+//! [`Platform::host`] is the only place that reads the platform the compiler runs on, so that everything else
+//! takes the platform as a value and the rules of each can be tested on any.
 
 /// A platform a program is built for. The default is Windows, the platform of every value made before Linux was
 /// one (a `Resolved` of the codegen's tests).
@@ -9,6 +10,8 @@ pub enum Platform {
     #[default]
     Windows,
     Linux,
+    /// `wasm32` under Emscripten, run by Node. Never the host; chosen only by `--target wasm`.
+    Wasm,
 }
 
 impl Platform {
@@ -30,11 +33,22 @@ impl Platform {
         ))
     }
 
-    /// The extension of an executable, without the dot: `exe` on Windows, none on Linux, as `qb64pe` names them.
+    /// The extension of an executable, without the dot: `exe` on Windows, none on Linux, as `qb64pe` names them;
+    /// `js` for the wasm target, whose `.wasm` file has the same name beside it.
     pub fn exe_extension(self) -> &'static str {
         match self {
             Platform::Windows => "exe",
             Platform::Linux => "",
+            Platform::Wasm => "js",
+        }
+    }
+
+    /// The platform whose C++ toolchain a build for this one runs: its own, or the host's for the wasm target,
+    /// which takes only `make` from it (design D2 of `wasm-console`). Never [`Platform::Wasm`].
+    pub fn toolchain(self) -> Platform {
+        match self {
+            Platform::Wasm => Platform::host(),
+            other => other,
         }
     }
 
@@ -43,6 +57,7 @@ impl Platform {
         match self {
             Platform::Windows => "Windows",
             Platform::Linux => "Linux",
+            Platform::Wasm => "wasm",
         }
     }
 }
@@ -64,10 +79,29 @@ mod tests {
             src.with_extension(Platform::Linux.exe_extension()),
             Path::new("dir/game")
         );
+        assert_eq!(
+            src.with_extension(Platform::Wasm.exe_extension()),
+            Path::new("dir/game.js")
+        );
+    }
+
+    #[test]
+    fn names() {
+        assert_eq!(Platform::Windows.name(), "Windows");
+        assert_eq!(Platform::Linux.name(), "Linux");
+        assert_eq!(Platform::Wasm.name(), "wasm");
+    }
+
+    #[test]
+    fn the_toolchain() {
+        assert_eq!(Platform::Windows.toolchain(), Platform::Windows);
+        assert_eq!(Platform::Linux.toolchain(), Platform::Linux);
+        assert_eq!(Platform::Wasm.toolchain(), Platform::host());
     }
 
     #[test]
     fn the_host() {
         assert_eq!(Platform::host() == Platform::Windows, cfg!(windows));
+        assert_ne!(Platform::host(), Platform::Wasm);
     }
 }

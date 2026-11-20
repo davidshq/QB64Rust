@@ -204,7 +204,7 @@ impl Emitter<'_> {
             .and_then(|l| l.dll.clone())
             .unwrap_or_else(|| match self.resolved.platform {
                 Platform::Windows => format!("{}.dll", name.text),
-                Platform::Linux => name.text.clone(),
+                Platform::Linux | Platform::Wasm => name.text.clone(),
             });
         Some(Dll {
             handle: dll_handle(&name.text),
@@ -246,7 +246,7 @@ impl Emitter<'_> {
                     // `qb64pe.bas` 5243–5249 and 5470–5476 for each `os$`.
                     let (handle_ty, call) = match self.resolved.platform {
                         Platform::Windows => ("HINSTANCE ", "CALLBACK* "),
-                        Platform::Linux => ("void *", "*"),
+                        Platform::Linux | Platform::Wasm => ("void *", "*"),
                     };
                     if let Some(Dll { handle, .. }) = self.dll(id) {
                         writeln!(out, "{handle_ty}{handle}=NULL;").unwrap();
@@ -326,7 +326,7 @@ impl Emitter<'_> {
                     let platform = self.resolved.platform;
                     let load = match platform {
                         Platform::Windows => format!("LoadLibrary({})", c_string(dll.as_bytes())),
-                        Platform::Linux => format!("dlopen({},RTLD_LAZY)", c_string(dll.as_bytes())),
+                        Platform::Linux | Platform::Wasm => format!("dlopen({},RTLD_LAZY)", c_string(dll.as_bytes())),
                     };
                     writeln!(
                         out,
@@ -345,7 +345,7 @@ impl Emitter<'_> {
                                 out,
                                 "if (!{x}){{\n{x}=(DLLCALL_{x})GetProcAddress({handle},{name});\nif (!{x}){{{at}error(260);}}\n}}"
                             ),
-                            Platform::Linux => writeln!(
+                            Platform::Linux | Platform::Wasm => writeln!(
                                 out,
                                 "if (!{x}){{\n{x}=(DLLCALL_{x})dlsym({handle},{name});\nif (dlerror()){{{at}error(260);}}\n}}"
                             ),
