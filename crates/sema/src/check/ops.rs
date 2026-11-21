@@ -832,7 +832,7 @@ mod tests {
                     let t = rotated(a).unwrap_or_else(|| panic!("{line}: no width"));
                     (Some(cpp_arithmetic(t)), t)
                 }
-                "_SHL(a, 1)" => (None, result_types(lookup("_SHL", false).unwrap(), &[None, None]).1),
+                "_SHL(a, 1)" => (None, result_types(lookup("_SHL", false).unwrap(), &[None, None], 8).1),
                 other => panic!("a form the table does not name: {other}"),
             };
             assert_eq!(got_cpp.unwrap_or("-"), cpp, "{line}");

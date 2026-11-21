@@ -593,6 +593,23 @@ STEPS: tuple[Step, ...] = (
         # The first whole run: about 2 to 4.5 hours (wasm-console, design "Measured").
         vm_limit_floor=6 * 3600,
     ),
+    # The programs named in tests/wasm/rerun.list, for the wasm platform in the VM: what a change can touch, or the
+    # failures of an earlier run, when the whole family is too large (CLAUDE.md working rule 4, a run's size). The
+    # list is empty in the repository; a run fills it in the working tree, and an empty list runs nothing.
+    Step(
+        "wasm-rerun",
+        NAMED,
+        runner(
+            "verification", "--platform", "wasm", *CACHES, "--results", WASM_RESULTS, "--list", "tests/wasm/rerun.list"
+        ),
+        WASM_READS,
+        needs=("build",),
+        external=("toolchain", "emsdk"),
+        vm=True,
+        outputs=results("results-partial", WASM_RESULTS),
+        # 270 programs were estimated at 20 to 50 minutes (wasm-pointer-width, task 6.2).
+        vm_limit_floor=2 * 3600,
+    ),
 )
 
 _BY_NAME = {s.name: s for s in STEPS}

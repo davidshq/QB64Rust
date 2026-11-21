@@ -1009,7 +1009,7 @@ class WasmSteps(unittest.TestCase):
     """The wasm steps (OpenSpec change wasm-console, design D8; spec testing/check-workflow)."""
 
     def test_the_slice_in_full_and_the_family_only_when_named(self):
-        self.assertEqual(NAMED_STEPS, {"wasm-verification"})
+        self.assertEqual(NAMED_STEPS, {"wasm-verification", "wasm-rerun"})
         self.assertEqual(steps.BY_NAME["wasm-slice"].layer, FULL)
         self.assertFalse(steps.BY_NAME["wasm-slice"].vm)
         family = steps.BY_NAME["wasm-verification"]
@@ -1020,7 +1020,11 @@ class WasmSteps(unittest.TestCase):
         # The slice writes there too, never over a Windows run's results-partial.json.
         slice_cmd = steps.BY_NAME["wasm-slice"].command
         self.assertEqual(slice_cmd[slice_cmd.index("--results") + 1], steps.WASM_RESULTS)
-        for s in ("wasm-slice", "wasm-verification"):
+        rerun = steps.BY_NAME["wasm-rerun"]
+        self.assertTrue(rerun.vm)
+        self.assertEqual(rerun.command[rerun.command.index("--list") + 1], "tests/wasm/rerun.list")
+        self.assertEqual(rerun.outputs, ("target/legacy-tests/wasm/results-partial.json",))
+        for s in ("wasm-slice", "wasm-verification", "wasm-rerun"):
             self.assertIn("emsdk", steps.BY_NAME[s].external, s)
             self.assertIn("libqb/**", steps.BY_NAME[s].inputs, s)
 
@@ -1099,7 +1103,7 @@ class VmSteps(unittest.TestCase):
             {
                 "slice", "upstream", "verification", "callsite", "cli", "qbasic", "addprefix", "format",
                 "format-corpus", "differential", "reference-examples", "nofold", "coverage", "community", "corpus-whole",
-                "upstream-whole", "verification-whole", "wasm-verification",
+                "upstream-whole", "verification-whole", "wasm-verification", "wasm-rerun",
             },
         )
         for s in vm:

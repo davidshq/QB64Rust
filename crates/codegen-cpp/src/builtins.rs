@@ -93,7 +93,7 @@ impl Emitter<'_> {
                     1 => "func__bin",
                     _ => unreachable!("{bits} bits per digit"),
                 };
-                match radix_width(bits, a) {
+                match radix_width(bits, a, self.p.pointer_bytes()) {
                     Some(w) => format!("{f}({x},{w})"),
                     None => format!("{f}_float({x})"),
                 }
@@ -169,7 +169,7 @@ impl Emitter<'_> {
         let x = self.value(a);
         let int = a.qb.is_int();
         let f = match (to, a.qb) {
-            (Ty::I16 | Ty::I32, _) if int => int_entry(to, a.qb).unwrap_or(""),
+            (Ty::I16 | Ty::I32, _) if int => int_entry(to, a.qb, self.p.pointer_bytes()).unwrap_or(""),
             (Ty::I16, Ty::F80) => "func_cint_float",
             (Ty::I16, Ty::F32 | Ty::F64) => "func_cint_double",
             (Ty::I32, Ty::F80) => "func_clng_float",

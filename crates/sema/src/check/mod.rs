@@ -111,7 +111,10 @@ fn check_once(
         map,
         program,
         continued,
-        prog: Program::default(),
+        prog: Program {
+            platform: program.flags.platform(),
+            ..Program::default()
+        },
         main: Scope::default(),
         local: Scope::default(),
         cur: None,

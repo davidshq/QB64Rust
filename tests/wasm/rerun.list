@@ -1,0 +1,2 @@
+# The verification programs that `check wasm-rerun --where vm` runs for the wasm platform, one name per line.
+# Empty in the repository. Fill it in the working tree for one run, and do not commit the names.

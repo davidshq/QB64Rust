@@ -169,8 +169,8 @@ low 8 bits, standard input from a file and `QB64PE_NOPROMPT=y`. In a verificatio
 - Nothing is recorded for this platform: `--record --platform wasm` is a usage error, since there is no QB64pe
   build for WebAssembly to record from. Other suites than `corpus` and `verification` are refused.
 - Beside `known.linux.list`, which holds for this platform too, each suite may have `known.wasm.list` in the same
-  format. Every reason starts with `target`, `window`, `offset`, `float`, `clib`, `width`, `node`, `varies` or `open`
-  (`WASM_REASONS`); any other is an error that names the line. A program listed as `target`, `window` or `offset`
+  format. Every reason starts with `target`, `window`, `float`, `clib`, `width`, `node`, `varies` or `open`
+  (`WASM_REASONS`); any other is an error that names the line. A program listed as `target` or `window`
   is skipped without a build.
 - Example: `QB64RUST_EMSDK_ROOT=..\emsdk python tools\legacy_tests\run_legacy_tests.py --suite verification
   --qb64 target\debug\qb64rust.exe --platform wasm v30_g_iif_min_max`.

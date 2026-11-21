@@ -260,10 +260,12 @@ clone's toolchain rather than an installed one, the run's report SHALL say so in
   and the slice list runs
 
 ### Requirement: The wasm steps
-`check` SHALL have two steps for the wasm target. `wasm-slice` runs `tests\wasm\slice.list` with
+`check` SHALL have three steps for the wasm target. `wasm-slice` runs `tests\wasm\slice.list` with
 `--platform wasm` on the host, in the `full` and `merge` layers. `wasm-verification` runs the verification
 suite with `--platform wasm` in the suites VM, in no layer: it runs only when named (user, `DECISIONS.md`
-2026-11-20). Their inputs are the release build's sources, libqb's copy and edits, the runner and the lists.
+2026-11-20). `wasm-rerun` runs the verification programs named in `tests\wasm\rerun.list` the same way, also
+only when named; the list is empty in the repository. Their inputs are the release build's sources, libqb's
+copy and edits, the runner and the lists.
 
 #### Scenario: The whole family goes to the VM
 - **WHEN** `check wasm-verification --where vm` runs
@@ -271,7 +273,11 @@ suite with `--platform wasm` in the suites VM, in no layer: it runs only when na
 
 #### Scenario: Not in the quick layer
 - **WHEN** `just quick` plans its steps after a change to a crate
-- **THEN** neither wasm step is planned
+- **THEN** no wasm step is planned
+
+#### Scenario: A list of programs goes to the VM
+- **WHEN** `tests\wasm\rerun.list` names 270 programs and `check wasm-rerun --where vm` runs
+- **THEN** those 270 programs run for the wasm platform in the suites VM, and no other program runs
 
 #### Scenario: The whole family only when named
 - **WHEN** `just full` or `just merge` plans its steps after a change to libqb's copy

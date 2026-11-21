@@ -100,6 +100,27 @@ fn declare_temp(v: &Var, n: &str) -> String {
     format!("{static_}{} {n}=0;\n", c_type(v.ty))
 }
 
+/// The size the front end gives the type `_MEM` where a pointer takes `pointer_bytes`: its members' sizes in
+/// `sema`'s [`qb64rust_ir::mem_type`], as `LEN` and the layouts take them. 56 bytes, or 40 on the wasm target.
+fn mem_size(pointer_bytes: u32) -> u32 {
+    qb64rust_ir::mem_type(pointer_bytes)
+        .members
+        .iter()
+        .map(|m| size_of(&[], pointer_bytes, m.ty) * m.count())
+        .sum()
+}
+
+/// The checks that the C++ compiler builds the program with the sizes the front end laid it out with (design D4
+/// of `wasm-pointer-width`): a pointer's, which an `_OFFSET` takes, and the `_MEM` block's. A build whose libqb
+/// has other sizes stops here; it never gives a program that reads the wrong bytes.
+fn size_checks(pointer_bytes: u32) -> String {
+    let block = mem_size(pointer_bytes);
+    format!(
+        "static_assert(sizeof(ptrszint)=={pointer_bytes},\"qb64rust: _OFFSET is {pointer_bytes} bytes on this target\");\n\
+         static_assert(sizeof(mem_block)=={block},\"qb64rust: _MEM is {block} bytes on this target\");\n"
+    )
+}
+
 /// A variable that lives as long as the program: a global or `STATIC` one. maindata allocates them and clear.txt and
 /// mainfree.txt reset and free them, so all three take this test.
 pub(crate) fn lives_for_program(v: &Var) -> bool {
@@ -146,6 +167,7 @@ impl Emitter<'_> {
              if constexpr (std::is_signed_v<decltype(qb_l%qb_r)>){if (qb_r==-1){if (qb_l==std::numeric_limits<decltype(qb_l%qb_r)>::min()) qbr_diverged(6);return (decltype(qb_l%qb_r))0;}}\
              return qb_l%qb_r;}\n",
         );
+        out.push_str(&size_checks(self.p.pointer_bytes()));
         out.push_str(&self.owner_functions());
         out.push_str(&self.per_program_var(declare));
         // Globals that qbx.cpp and libqb refer to. The first three follow the program's settings, as the old
@@ -173,19 +195,24 @@ impl Emitter<'_> {
     }
 
     /// The size of a value of a type in memory: a number's or a fixed-length string's (`sema`'s `size_of`, the
-    /// sizes `LEN` gives), a string's descriptor pointer, a user type's by its layout ([`Self::layout`]).
+    /// sizes `LEN` gives), a string's descriptor pointer, a user type's by its layout ([`Self::layout`]). A
+    /// pointer is the platform's, 8 bytes or 4 (design D5 of `wasm-pointer-width`).
     pub(crate) fn ty_size(&self, t: Ty) -> u32 {
         match t {
-            Ty::Str => 8,
+            Ty::Str => self.p.pointer_bytes(),
             Ty::User(id) => self.layout(id).1,
-            numeric_types!() | Ty::FixedStr(_) => size_of(&self.p.types, t),
+            numeric_types!() | Ty::FixedStr(_) => size_of(&self.p.types, self.p.pointer_bytes(), t),
         }
     }
 
     /// The bytes a member takes in a value of its type: its type's size, of a member array times its number of
     /// elements; of a dynamic member array the pointer to its descriptor.
     pub(crate) fn member_size(&self, m: &Member) -> u32 {
-        if m.dynamic { 8 } else { self.ty_size(m.ty) * m.count() }
+        if m.dynamic {
+            self.p.pointer_bytes()
+        } else {
+            self.ty_size(m.ty) * m.count()
+        }
     }
 
     /// Whether a value of this type owns dynamic member arrays ([`owns_desc`]).
@@ -205,20 +232,22 @@ impl Emitter<'_> {
     /// dynamic member arrays has the old compiler's aligned layout (design D3 of `m3-typefields`,
     /// `BuildUDTDynLayoutM` of `utilities\type.bas`; measured, `verification\v35_x52`): a dynamic member array
     /// and a member of an owner type (also a member array of one) start at a multiple of 8 bytes, and the size is
-    /// rounded up to one.
+    /// rounded up to one. Where a pointer is 4 bytes the multiple is 4: the old compiler aligns to `ptrbits`
+    /// (design D5 of `wasm-pointer-width`).
     pub(crate) fn layout(&self, id: TypeId) -> (Vec<u32>, u32) {
         let owner = self.owns_desc(Ty::User(id));
+        let align = self.p.pointer_bytes();
         let mut offsets = Vec::new();
         let mut at = 0u32;
         for m in &self.p.user_type(id).members {
             if owner && (m.dynamic || self.owns_desc(m.ty)) {
-                at = at.next_multiple_of(8);
+                at = at.next_multiple_of(align);
             }
             offsets.push(at);
             at += self.member_size(m);
         }
         if owner {
-            at = at.next_multiple_of(8);
+            at = at.next_multiple_of(align);
         }
         (offsets, at)
     }

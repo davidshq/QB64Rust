@@ -81,6 +81,7 @@ pub fn lower(p: &sema::Program) -> Program {
             error_location: p.settings.error_location,
             fixes: p.settings.fixes,
         },
+        platform: p.platform,
     };
     if cfg!(debug_assertions)
         && let Err(problems) = crate::validate(&program)

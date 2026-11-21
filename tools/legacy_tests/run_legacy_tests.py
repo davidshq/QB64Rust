@@ -248,8 +248,8 @@ WASM = "wasm"
 # starts with a word of WASM_REASONS (spec testing/golden-corpus, "The wasm known list"); a program listed with one
 # of WASM_SKIPPED is skipped, not built.
 WASM_KNOWN = "known.wasm.list"
-WASM_REASONS = ("target", "window", "offset", "float", "clib", "width", "node", "varies", "open")
-WASM_SKIPPED = ("target", "window", "offset")
+WASM_REASONS = ("target", "window", "float", "clib", "width", "node", "varies", "open")
+WASM_SKIPPED = ("target", "window")
 # The SDK whose Node runs a wasm program (set by tools/check in the suites VM).
 EMSDK_ENV = "QB64RUST_EMSDK_ROOT"
 

@@ -5,6 +5,10 @@
 the wasm build: the compiler's crates, libqb's copy and its edits, the runner. The whole family, every
 `$CONSOLE:ONLY` program of `tests\verification`, runs in the suites VM (`check wasm-verification --where vm`).
 
+`rerun.list` is for a run between the two: `check wasm-rerun --where vm` runs the verification programs it names,
+one name per line, for the wasm platform in the VM. It is empty in the repository. Fill it in the working tree
+with what a change can touch, or with an earlier run's failures, and do not commit the names.
+
 Each line is `verification/<name>` or `corpus/<group>/<name>`. Every program on the list must pass. The kinds the
 spec names, and the programs that cover each:
 

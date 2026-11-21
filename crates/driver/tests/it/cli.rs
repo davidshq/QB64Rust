@@ -6463,6 +6463,46 @@ fn wasm_builds_and_runs() {
     assert!(stdout(&o).ends_with("the other folder\n"), "{}", stdout(&o));
 }
 
+/// Spec `compiler/wasm-target`, "A pointer is 4 bytes on this target", "Arithmetic on an _OFFSET on this target",
+/// "Layouts with pointers on this target" and "Reading and writing an _OFFSET on this target": their scenarios in
+/// one program, built for wasm and run under Node. Needs the Emscripten SDK, as [`wasm_builds_and_runs`].
+#[test]
+#[ignore = "builds with the Emscripten SDK (QB64RUST_EMSDK_ROOT) and the C++ toolchain"]
+fn wasm_pointer_types_run() {
+    let sdk = match qb64rust_driver::toolchain::find_emsdk(None) {
+        Ok(sdk) => sdk,
+        Err(why) => {
+            eprintln!("skipped: no Emscripten SDK ({why})");
+            return;
+        }
+    };
+    let d = scratch("wasm-pointers");
+    std::fs::write(
+        d.join("p.bas"),
+        "$CONSOLE:ONLY\n$UNSTABLE:TYPEFIELDS\nTYPE t\n    a AS LONG\n    p AS _OFFSET\n    s AS STRING * 2\nEND TYPE\n\
+         TYPE words\n    w(0 TO 1) AS STRING\nEND TYPE\nDIM p AS _OFFSET, v AS t, m AS _MEM, a AS LONG\n\
+         DIM u AS _UNSIGNED _OFFSET, both AS words, blocks(2) AS _MEM\n\
+         PRINT LEN(p)\nPRINT LEN(v)\nPRINT LEN(m)\n\
+         m = _MEM(a)\n_MEMPUT m, m.OFFSET, 7 AS LONG\nPRINT a; m.SIZE\n\
+         u = -1\nPRINT u; HEX$(u)\n\
+         both.w(0) = \"one\": both.w(1) = \"two\"\nPRINT both.w(0); both.w(1)\n\
+         PRINT LEN(_MK$(_OFFSET, 5)); _CV(_OFFSET, _MK$(_OFFSET, 5))\n\
+         blocks(2) = m: a = 9\nPRINT _MEMGET(blocks(2), blocks(2).OFFSET, LONG); blocks(2).ELEMENTSIZE\n\
+         p = m.OFFSET\nPRINT p = blocks(2).OFFSET\nSYSTEM\n",
+    )
+    .unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "--target", "wasm", "p.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let mut cmd = Command::new(&sdk.node);
+    cmd.current_dir(&d).arg(d.join("p.js"));
+    let o = run(&mut cmd, None, PROGRAM_LIMIT, "node");
+    assert_eq!(
+        stdout(&o).replace("\r\n", "\n"),
+        " 4 \n 10 \n 40 \n 7  4 \n 4294967295 FFFFFFFF\nonetwo\n 4  5 \n 9  4 \n-1 \n"
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+}
+
 /// Spec `compiler/toolchain`, "The Emscripten SDK", scenario "No SDK": a wasm build with neither the option nor the
 /// variable fails with status 1, names both and the `emsdk` command, and writes nothing.
 #[test]

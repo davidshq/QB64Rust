@@ -1,18 +1,17 @@
 //! What a build target does not have, rejected at compile time (spec `compiler/wasm-target`; design D5 of
-//! `wasm-console`). A pass over the checked program, after `sema`: `sema` itself takes no platform, and the rules
-//! of a target stand in one place, with one table that the language reference's chapter on the target lists.
+//! `wasm-console`). A pass over the checked program, after `sema`: `sema` itself takes only a pointer's size from
+//! the platform, and the rules of a target stand in one place, with one table that the language reference's
+//! chapter on the target lists.
 //!
 //! For the wasm target it reports, each at its place:
 //!
 //! 1. a program without `$CONSOLE:ONLY`: one error on the main file's first line;
 //! 2. each use of a word of [`WASM_UNAVAILABLE`], but `DECLARE LIBRARY` of a prebuilt library, which only the
 //!    driver's lookup of the library's files can tell (it calls [`unavailable`] for its message), and each
-//!    built-in that needs a part of libqb of [`WASM_PARTS_NOT_YET`] (and `ON STRIG`): "... yet";
-//! 3. each variable, parameter, result or member of type `_OFFSET`, `_UNSIGNED _OFFSET` or `_MEM`, at its
-//!    declaration, and each built-in that takes or gives one: "not available on the wasm target yet". The front
-//!    end still takes `_OFFSET` as 8 bytes, a `wasm32` pointer is 4, and a program built with both would be wrong
-//!    code. For the same reason a member array of variable-length strings, whose elements are pointers. W0.5 of
-//!    milestone M9 makes the width the target's and removes this rule.
+//!    built-in that needs a part of libqb of [`WASM_PARTS_NOT_YET`] (and `ON STRIG`): "... yet".
+//!
+//! `_OFFSET`, `_MEM` and a member array of `STRING` are built: a pointer's size is the platform's in every pass
+//! ([`crate::Program::pointer_bytes`], OpenSpec change `wasm-pointer-width`).
 //!
 //! Nothing is reported in QB64pe's `afterlastline.bm`, which the program did not write: it is included when the
 //! program names a network function, whose use is already reported.
@@ -21,11 +20,10 @@
 
 use crate::{
     Arg, ArrayRef, Event, Expr, ExprKind, Handler, InputSource, KeyForm, LibraryKind, MemValue, Place, PrintItem,
-    PrintTo, Program, Reference, RunTarget, Stmt, StmtArg, StmtKind, SymbolKind, Ty, UsingValue, VarId,
+    PrintTo, Program, Reference, RunTarget, Stmt, StmtArg, StmtKind, UsingValue,
 };
 use qb64rust_base::{Diagnostics, FileId, Platform, SourceMap, Span};
 use qb64rust_builtins::BuiltinId;
-use std::collections::HashSet;
 
 /// The words the wasm target does not have, each with when it is rejected (spec `compiler/wasm-target`, "What the
 /// target does not have is rejected"). The language reference's chapter on the target lists this table.
@@ -97,8 +95,7 @@ pub fn unavailable(word: &str) -> String {
     format!("`{word}` is not available on the wasm target")
 }
 
-/// The error for a pointer-sized type or a built-in that takes or gives one (spec `compiler/wasm-target`,
-/// "Pointer-sized types wait for their width").
+/// The start of the error for a word the wasm target does not build yet ([`part_not_yet`]).
 pub fn not_yet(word: &str) -> String {
     format!("`{word}` is not available on the wasm target yet")
 }
@@ -127,46 +124,10 @@ pub fn check_target(
     }
 }
 
-/// The type word of a pointer-sized type: `_OFFSET`, `_UNSIGNED _OFFSET` or `_MEM`.
-fn pointer_word(program: &Program, ty: Ty) -> Option<&'static str> {
-    match ty {
-        Ty::Off => Some("_OFFSET"),
-        Ty::UOff => Some("_UNSIGNED _OFFSET"),
-        Ty::User(_) => program.is_mem(ty).then_some("_MEM"),
-        Ty::I8
-        | Ty::U8
-        | Ty::I16
-        | Ty::U16
-        | Ty::I32
-        | Ty::U32
-        | Ty::I64
-        | Ty::U64
-        | Ty::Bit { .. }
-        | Ty::F32
-        | Ty::F64
-        | Ty::F80
-        | Ty::Str
-        | Ty::FixedStr(_) => None,
-    }
-}
-
-/// The error of a member array of variable-length strings, fixed or `_DYNAMIC`. The front end lays its elements out
-/// 8 bytes apart, a pointer each, and libqb's array code on `wasm32` steps through them 4 bytes apart
-/// (`qb64_array_copy_1d_whole_at_string`; `verification\v41_k_string_members`, `v64_a1_erase_dynamic_member_list`:
-/// a crash and wrong values in the first whole-family run). A single `STRING` member is read and written only by
-/// the generated code, at its own offset. A `_DYNAMIC` member's descriptor is read through `ptrszint` by both,
-/// in a slot larger than it needs.
-fn pointer_member(member: &crate::Member) -> Option<String> {
-    (member.is_array() && member.ty == Ty::Str)
-        .then(|| format!("{}: a member array of variable-length strings", not_yet("STRING")))
-}
-
 /// The walk of a program for the wasm target.
 struct Wasm<'p, 'd> {
     program: &'p Program,
     diagnostics: &'d mut Diagnostics,
-    /// The variables already reported for their type, at their declaration or at a first use.
-    reported: HashSet<VarId>,
     /// QB64pe's `afterlastline.bm`, when the program includes it: nothing in it is reported.
     after: Option<FileId>,
 }
@@ -176,7 +137,6 @@ impl<'p, 'd> Wasm<'p, 'd> {
         Wasm {
             program,
             diagnostics,
-            reported: HashSet::new(),
             after,
         }
     }
@@ -193,37 +153,6 @@ impl<'p, 'd> Wasm<'p, 'd> {
             if lib.kind == LibraryKind::Dynamic {
                 self.diagnostics.error(lib.span, unavailable("DECLARE DYNAMIC LIBRARY"));
             }
-        }
-        // Each variable and member of a pointer-sized type at its declaration (or first use), in source order.
-        let mut declared: Vec<(Span, String, Option<VarId>)> = Vec::new();
-        for (_, symbol) in p.symbols.iter() {
-            match symbol.kind {
-                SymbolKind::Var(v) => {
-                    if let Some(word) = pointer_word(p, p.var(v).ty) {
-                        declared.push((symbol.def, not_yet(word), Some(v)));
-                    }
-                }
-                // The members of `_MEM` itself are not the program's: a `_MEM` place is reported for its type.
-                SymbolKind::Member(t, m) if !p.is_mem(Ty::User(t)) => {
-                    let member = &p.user_type(t).members[m.0 as usize];
-                    if let Some(word) = pointer_word(p, member.ty) {
-                        declared.push((symbol.def, not_yet(word), None));
-                    } else if let Some(message) = pointer_member(member) {
-                        declared.push((symbol.def, message, None));
-                    }
-                }
-                SymbolKind::Member(..)
-                | SymbolKind::Proc(_)
-                | SymbolKind::Label(_)
-                | SymbolKind::Const(_)
-                | SymbolKind::Type(_) => {}
-            }
-        }
-        declared.retain(|(span, ..)| Some(span.file) != self.after);
-        declared.sort_by_key(|(span, ..)| (span.file, span.start));
-        for (span, message, var) in declared {
-            self.diagnostics.error(span, message);
-            self.reported.extend(var);
         }
         self.stmts(&p.stmts);
         let after = self.after;
@@ -250,20 +179,7 @@ impl<'p, 'd> Wasm<'p, 'd> {
             self.diagnostics.error(span, part_not_yet(&name, part));
             return true;
         }
-        let pointer = |t: &str| matches!(t, "_OFFSET" | "_UNSIGNED _OFFSET" | "_MEM");
-        if b.arg_types.iter().any(|t| pointer(t)) || b.ret.is_some_and(pointer) {
-            self.diagnostics.error(span, not_yet(&name));
-            return true;
-        }
         false
-    }
-
-    /// A value of a pointer-sized type that no declaration gave: `_CAST(_OFFSET, x)`, `_CV(_OFFSET, s)`, or a
-    /// call of a function whose result is one (a `DECLARE LIBRARY` function named `strlen~%&`).
-    fn result(&mut self, e: &Expr) {
-        if let Some(word) = pointer_word(self.program, e.ty).or_else(|| pointer_word(self.program, e.qb)) {
-            self.diagnostics.error(e.span, not_yet(word));
-        }
     }
 
     fn stmts(&mut self, list: &[Stmt]) {
@@ -281,13 +197,11 @@ impl<'p, 'd> Wasm<'p, 'd> {
                 }
             }
             StmtKind::MemGet { block, offset, target } => {
-                self.diagnostics.error(s.span, not_yet("_MEMGET"));
                 self.place(block);
                 self.expr(offset);
                 self.reference(target);
             }
             StmtKind::MemPut { block, offset, value } => {
-                self.diagnostics.error(s.span, not_yet("_MEMPUT"));
                 self.place(block);
                 self.expr(offset);
                 self.mem_value(value);
@@ -298,7 +212,6 @@ impl<'p, 'd> Wasm<'p, 'd> {
                 bytes,
                 value,
             } => {
-                self.diagnostics.error(s.span, not_yet("_MEMFILL"));
                 self.place(block);
                 self.expr(offset);
                 self.expr(bytes);
@@ -591,18 +504,7 @@ impl<'p, 'd> Wasm<'p, 'd> {
     fn expr(&mut self, e: &Expr) {
         match &e.kind {
             ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) | ExprKind::ArrayBytes(_) => {}
-            ExprKind::Load(place) => {
-                // A variable of a pointer-sized type that no symbol declared (a temporary the checker made): at its
-                // first use.
-                let root = place.root();
-                if !self.reported.contains(&root)
-                    && let Some(word) = pointer_word(self.program, self.program.var(root).ty)
-                {
-                    self.diagnostics.error(e.span, not_yet(word));
-                    self.reported.insert(root);
-                }
-                self.place(place);
-            }
+            ExprKind::Load(place) => self.place(place),
             ExprKind::Bound { array, dim, .. } => {
                 self.array(array);
                 if let Some(d) = dim {
@@ -611,14 +513,7 @@ impl<'p, 'd> Wasm<'p, 'd> {
             }
             ExprKind::Address { of, .. } => self.place(of),
             ExprKind::Block { index, .. } => self.exprs(index),
-            ExprKind::Convert { from, .. } => {
-                // A conversion of a value already of the type (a variable's load) adds no error of its own.
-                if pointer_word(self.program, from.ty).is_none() {
-                    self.result(e);
-                }
-                self.expr(from);
-            }
-            ExprKind::Unary { operand: from, .. } => self.expr(from),
+            ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => self.expr(from),
             ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
                 self.expr(lhs);
                 self.expr(rhs);
@@ -629,33 +524,18 @@ impl<'p, 'd> Wasm<'p, 'd> {
                 self.expr(else_);
             }
             ExprKind::Call { builtin, args } => {
-                if !self.builtin(*builtin, e.span) {
-                    self.result(e);
-                }
+                let _ = self.builtin(*builtin, e.span);
                 for a in args.iter().flatten() {
                     self.expr(a);
                 }
             }
-            ExprKind::CallProc { args, .. } => {
-                self.result(e);
-                self.args(args);
-            }
-            ExprKind::MemOf { of, element, .. } => {
-                self.diagnostics
-                    .error(e.span, not_yet(if *element { "_MEMELEMENT" } else { "_MEM" }));
-                self.reference(of);
-            }
+            ExprKind::CallProc { args, .. } => self.args(args),
+            ExprKind::MemOf { of, .. } | ExprKind::AddressOf(of) => self.reference(of),
             ExprKind::MemAt { offset, size } => {
-                self.diagnostics.error(e.span, not_yet("_MEM"));
                 self.expr(offset);
                 self.expr(size);
             }
-            ExprKind::AddressOf(of) => {
-                self.diagnostics.error(e.span, not_yet("_OFFSET"));
-                self.reference(of);
-            }
             ExprKind::MemRead { block, offset, .. } => {
-                self.diagnostics.error(e.span, not_yet("_MEMGET"));
                 self.place(block);
                 self.expr(offset);
             }
@@ -695,6 +575,9 @@ mod tests {
     #[test]
     fn messages() {
         assert_eq!(unavailable("SHELL"), "`SHELL` is not available on the wasm target");
-        assert_eq!(not_yet("_OFFSET"), "`_OFFSET` is not available on the wasm target yet");
+        assert_eq!(
+            part_not_yet("SOUND", "audio"),
+            "`SOUND` is not available on the wasm target yet: libqb's audio part is not built for it"
+        );
     }
 }

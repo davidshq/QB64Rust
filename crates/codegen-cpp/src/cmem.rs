@@ -144,7 +144,7 @@ impl Emitter<'_> {
             }
             AddressWord::Sadd => format!("((unsigned short)({}->chr-&cmem[1280]))", self.string_of(of)),
             AddressWord::VarPtrStr => {
-                let t = varptr_type(self.p.place_ty(of));
+                let t = varptr_type(self.p.place_ty(of), self.p.pointer_bytes());
                 let offset = match (of, v.ty) {
                     (Place::Var(_), Ty::Str | Ty::FixedStr(_)) | (Place::Element { .. }, _) => {
                         format!("{}->cmem_descriptor_offset", self.string_of(of))
@@ -304,8 +304,9 @@ impl Emitter<'_> {
 
 /// The type byte of `VARPTR$` (`qb64pe.bas` 21359–21385): 3 for a string of either kind, 0 for a user type; for a
 /// number 1, 2, 20 and 5 by its 8, 16, 32 and 64 bits, 4, 8 and 6 for `SINGLE`, `DOUBLE` and `_FLOAT`; `_BIT * n`
-/// 64 + n; plus 128 when unsigned (measured, `verification\v56_b1`, `b5`, `t04`).
-fn varptr_type(t: Ty) -> u8 {
+/// 64 + n; plus 128 when unsigned (measured, `verification\v56_b1`, `b5`, `t04`). An `_OFFSET` is 5 or 20 by the
+/// pointer's 64 or 32 bits (`pointer_bytes`, design D2 of `wasm-pointer-width`).
+fn varptr_type(t: Ty, pointer_bytes: u32) -> u8 {
     let unsigned = if t.is_unsigned() { 128 } else { 0 };
     let kind = match t {
         Ty::Str | Ty::FixedStr(_) => return 3,
@@ -318,7 +319,26 @@ fn varptr_type(t: Ty) -> u8 {
         Ty::I8 | Ty::U8 => 1,
         Ty::I16 | Ty::U16 => 2,
         Ty::I32 | Ty::U32 => 20,
-        Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff => 5,
+        Ty::I64 | Ty::U64 => 5,
+        Ty::Off | Ty::UOff if pointer_bytes == 4 => 20,
+        Ty::Off | Ty::UOff => 5,
     };
     unsigned + kind
+}
+
+#[cfg(test)]
+mod tests {
+    use super::varptr_type;
+    use qb64rust_ir::Ty;
+
+    /// `VARPTR$` of an `_OFFSET` names its bits: an `_INTEGER64`'s byte where a pointer is 8 bytes, a LONG's where
+    /// it is 4 (design D2 of `wasm-pointer-width`).
+    #[test]
+    fn an_offset_is_as_wide_as_a_pointer() {
+        assert_eq!(varptr_type(Ty::Off, 8), varptr_type(Ty::I64, 8));
+        assert_eq!(varptr_type(Ty::UOff, 8), varptr_type(Ty::U64, 8));
+        assert_eq!(varptr_type(Ty::Off, 4), varptr_type(Ty::I32, 4));
+        assert_eq!(varptr_type(Ty::UOff, 4), varptr_type(Ty::U32, 4));
+        assert_eq!(varptr_type(Ty::I64, 4), 5);
+    }
 }

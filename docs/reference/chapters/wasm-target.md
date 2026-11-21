@@ -66,13 +66,27 @@ table names for it, so a new built-in of a part is covered too.
 | screen-image | `_SCREENIMAGE`, `_CLIPBOARDIMAGE` |
 <!-- src: read: crates\sema\src\target.rs; crates\driver\tests\it\wasm_target.rs -->
 
-`_OFFSET`, `_UNSIGNED _OFFSET` and `_MEM` are not available yet: a variable, parameter, result or member of one
-of these types, and a built-in that takes or gives one (such as `_MEMNEW` or `_WINDOWHANDLE`), is the error
-"`<word>` is not available on the wasm target yet". A pointer has 4 bytes in WebAssembly, and the compiler still
-gives `_OFFSET` 8. So is a value of one of these types without a declaration, such as `_CAST(_OFFSET, x)` or a
-`DECLARE LIBRARY` function named `strlen~%&`. For the same reason a `TYPE` member that is an array of
-variable-length `STRING`, fixed or `_DYNAMIC`, is not available yet. A single `STRING` member is built.
-<!-- src: compiler/wasm-target "Pointer-sized types wait for their width"; read: crates\sema\src\target.rs; crates\driver\tests\it\wasm_target.rs -->
+## A pointer is 4 bytes
+
+A pointer has 4 bytes in WebAssembly and 8 on Windows and Linux. On this target `_OFFSET` and
+`_UNSIGNED _OFFSET` take 4 bytes and hold 32-bit values, and `LEN` of one is 4.
+<!-- src: compiler/wasm-target "A pointer is 4 bytes on this target"; verification\v73_a_type_layout -->
+
+In a `TYPE`, an `_OFFSET` member and a variable-length `STRING` member take 4 bytes each. A `TYPE` of a LONG, an
+`_OFFSET` and a `STRING * 2` is 10 bytes here and 14 on Windows. `_MEM` takes 40 bytes, where Windows and Linux
+have 56.
+<!-- src: compiler/wasm-target "Layouts with pointers on this target"; verification\v73_a_type_layout; verification\v73_b_mem; verification\v73_c_string_members -->
+
+`PUT`, `GET`, `_MK$` and `_CV` write and read 4 bytes for an `_OFFSET`.
+<!-- src: compiler/wasm-target "Reading and writing an _OFFSET on this target"; verification\v73_d_values; verification\v73_e_input -->
+
+An operator with an `_OFFSET` is computed in 64 bits, as on Windows, and the result is cut to 32 bits when it is
+stored in an `_OFFSET`. `HEX$` of an `_OFFSET` holding -1 is `FFFFFFFF`. An `_OFFSET` variable is passed by
+reference to a parameter of another integer type only when that type is also 32 bits wide; to an `_INTEGER64`
+parameter a copy is passed. An array parameter of `_OFFSET` takes a `LONG` array here, and an `_INTEGER64`
+array is a compile error. A program that must run on both can test `$IF 32BIT`, or use `LEN` of an `_OFFSET`
+variable in place of the number 8.
+<!-- src: compiler/wasm-target "Arithmetic on an _OFFSET on this target"; compiler/wasm-target "An array for an _OFFSET array parameter on this target"; verification\v73_d_values; read: crates\driver\tests\it\wasm_target.rs -->
 
 ## The target's name in a program
 

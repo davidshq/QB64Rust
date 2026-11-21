@@ -52,6 +52,16 @@ impl Platform {
         }
     }
 
+    /// The size of a pointer in a program built for this platform, in bytes: what an `_OFFSET` takes, and libqb's
+    /// `ptrszint` (spec `compiler/wasm-target`, "A pointer is 4 bytes on this target"; design D1 of
+    /// `wasm-pointer-width`).
+    pub fn pointer_bytes(self) -> u32 {
+        match self {
+            Platform::Windows | Platform::Linux => 8,
+            Platform::Wasm => 4,
+        }
+    }
+
     /// The name in messages.
     pub fn name(self) -> &'static str {
         match self {
@@ -90,6 +100,13 @@ mod tests {
         assert_eq!(Platform::Windows.name(), "Windows");
         assert_eq!(Platform::Linux.name(), "Linux");
         assert_eq!(Platform::Wasm.name(), "wasm");
+    }
+
+    #[test]
+    fn pointer_sizes() {
+        assert_eq!(Platform::Windows.pointer_bytes(), 8);
+        assert_eq!(Platform::Linux.pointer_bytes(), 8);
+        assert_eq!(Platform::Wasm.pointer_bytes(), 4);
     }
 
     #[test]

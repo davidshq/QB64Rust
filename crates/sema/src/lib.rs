@@ -95,8 +95,10 @@ impl Ty {
         self.is_int() || self.is_float()
     }
 
-    /// The width in bits of an integer type, 8 to 64: `_OFFSET` 64 (the targets are 64-bit), `_BIT * n` that of its
-    /// [`Ty::storage`] (32 or 64); `None` for a float, a string or a user type.
+    /// The width in bits a value of an integer type is computed in, 8 to 64: `_BIT * n` that of its
+    /// [`Ty::storage`] (32 or 64); `None` for a float, a string or a user type. An `_OFFSET` is 64 on every
+    /// platform: the C++ computes it in `int64`, also where a pointer is 4 bytes. What a place of the type holds
+    /// is [`Ty::stored_bits`] (design D2 of `wasm-pointer-width`).
     pub fn int_bits(self) -> Option<u32> {
         match self {
             Ty::I8 | Ty::U8 => Some(8),
@@ -105,6 +107,31 @@ impl Ty {
             Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff => Some(64),
             Ty::Bit { width, .. } => Some(if width <= 32 { 32 } else { 64 }),
             Ty::F32 | Ty::F64 | Ty::F80 | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => None,
+        }
+    }
+
+    /// The width in bits a place of an integer type holds: an `_OFFSET` the pointer's, `8 * pointer_bytes`
+    /// ([`Program::pointer_bytes`]), every other type its [`Ty::int_bits`]. It is the width of what is stored,
+    /// read from a file or handed to libqb by its size: `INPUT`, the `_MEM` type value, `HEX$`, a literal's range
+    /// (design D2 of `wasm-pointer-width`).
+    pub fn stored_bits(self, pointer_bytes: u32) -> Option<u32> {
+        match self {
+            Ty::Off | Ty::UOff => Some(8 * pointer_bytes),
+            Ty::I8
+            | Ty::U8
+            | Ty::I16
+            | Ty::U16
+            | Ty::I32
+            | Ty::U32
+            | Ty::I64
+            | Ty::U64
+            | Ty::Bit { .. }
+            | Ty::F32
+            | Ty::F64
+            | Ty::F80
+            | Ty::Str
+            | Ty::FixedStr(_)
+            | Ty::User(_) => self.int_bits(),
         }
     }
 
@@ -320,19 +347,21 @@ pub fn conversion(from: Ty, to: Ty) -> ConvKind {
 /// `TYPE` is made of. A `_FLOAT` takes 32 bytes as in the old compiler (`study\02` §1.7); a user type is its members'
 /// sizes added up, in order, without padding (measured, `verification\v18_h_type_members`, `v20_g_len`), a member
 /// array as all its elements (`v24_h_member_arrays`: 22 for a LONG, four LONGs and an INTEGER). A `_BIT * n` takes
-/// its [`Ty::storage`] (`LEN` of one is an error, the checker's; it is never a member).
-pub fn size_of(types: &[UserType], t: Ty) -> u32 {
+/// its [`Ty::storage`] (`LEN` of one is an error, the checker's; it is never a member). An `_OFFSET` takes
+/// `pointer_bytes`, the size of a pointer on the program's platform ([`Program::pointer_bytes`]).
+pub fn size_of(types: &[UserType], pointer_bytes: u32, t: Ty) -> u32 {
     match t {
         Ty::I8 | Ty::U8 => 1,
         Ty::I16 | Ty::U16 => 2,
         Ty::I32 | Ty::U32 | Ty::F32 => 4,
-        Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff | Ty::F64 => 8,
+        Ty::I64 | Ty::U64 | Ty::F64 => 8,
+        Ty::Off | Ty::UOff => pointer_bytes,
         Ty::F80 => 32,
-        Ty::Bit { .. } => size_of(types, t.storage()),
+        Ty::Bit { .. } => size_of(types, pointer_bytes, t.storage()),
         Ty::User(id) => types[id.0 as usize]
             .members
             .iter()
-            .map(|m| size_of(types, m.ty) * m.count())
+            .map(|m| size_of(types, pointer_bytes, m.ty) * m.count())
             .sum(),
         Ty::FixedStr(n) => n,
         Ty::Str => unreachable!("a string has no fixed size"),
@@ -376,25 +405,33 @@ pub const MEM_TYPE: &str = "_MEM";
 /// `verification\v32_a_blocks`): 56 bytes, the members in the old compiler's order and sizes. The two lock
 /// members have names a program cannot write, as the old compiler names them, so no member access finds them.
 /// The checker adds it to [`Program::types`] when a program first names the type or a built-in that gives one.
-pub fn mem_type() -> UserType {
+///
+/// Where a pointer is 4 bytes (the wasm target) it is 40 bytes: the same members land at `mem_block`'s offsets on
+/// `wasm32`, and the member `$_PAD` fills the 4 bytes C adds at its end for the alignment of the lock id (design
+/// D3 of `wasm-pointer-width`; the old compiler's 32-bit build says 36, `DIVERGENCES-QB64PE.md`).
+pub fn mem_type(pointer_bytes: u32) -> UserType {
     let member = |name: &str, ty| Member {
         name: name.to_string(),
         ty,
         bounds: Vec::new(),
         dynamic: false,
     };
+    let mut members = vec![
+        member("OFFSET", Ty::Off),
+        member("SIZE", Ty::Off),
+        member("$_LOCK_ID", Ty::I64),
+        member("$_LOCK_OFFSET", Ty::Off),
+        member("TYPE", Ty::Off),
+        member("ELEMENTSIZE", Ty::Off),
+        member("IMAGE", Ty::I32),
+        member("SOUND", Ty::I32),
+    ];
+    if pointer_bytes == 4 {
+        members.push(member("$_PAD", Ty::I32));
+    }
     UserType {
         name: MEM_TYPE.to_string(),
-        members: vec![
-            member("OFFSET", Ty::Off),
-            member("SIZE", Ty::Off),
-            member("$_LOCK_ID", Ty::I64),
-            member("$_LOCK_OFFSET", Ty::Off),
-            member("TYPE", Ty::Off),
-            member("ELEMENTSIZE", Ty::Off),
-            member("IMAGE", Ty::I32),
-            member("SOUND", Ty::I32),
-        ],
+        members,
     }
 }
 
@@ -1810,6 +1847,9 @@ pub struct Program {
     /// The variables and arrays that "Unused variable" never names: those `COMMON` or `COMMON SHARED` declared, and
     /// those a `SHARED` statement in a procedure made (measured, `verification\v68_b_shared`, `v68_a3_more`).
     pub(crate) not_reported_unused: std::collections::HashSet<VarId>,
+    /// The platform the program is checked for. `sema` reads one thing from it, the size of a pointer
+    /// ([`Program::pointer_bytes`], design D1 of `wasm-pointer-width`); what a platform lacks is `target.rs`.
+    pub platform: qb64rust_base::Platform,
 }
 
 /// What the metacommands of a program's compiled code say of its console and window, wherever they stand (design
@@ -2015,6 +2055,12 @@ impl Program {
         &self.types[id.0 as usize]
     }
 
+    /// The size of a pointer in the built program, in bytes: 8 on Windows and Linux, 4 on the wasm target. It is
+    /// what an `_OFFSET`, a `STRING` member's slot and a dynamic member array's slot take.
+    pub fn pointer_bytes(&self) -> u32 {
+        self.platform.pointer_bytes()
+    }
+
     /// Whether `t` is the predefined type `_MEM` ([`mem_type`]; no `TYPE` block may take its name).
     pub fn is_mem(&self, t: Ty) -> bool {
         matches!(t, Ty::User(id) if self.user_type(id).name == MEM_TYPE)
@@ -2117,6 +2163,67 @@ mod tests {
         ] {
             assert_eq!(t.int_bits(), None, "{t:?}");
         }
+    }
+
+    /// Design D2 and D3 of `wasm-pointer-width`: only an `_OFFSET` follows the pointer, and `_MEM` is libqb's
+    /// `mem_block` at both sizes.
+    #[test]
+    fn pointer_sizes() {
+        for bytes in [8, 4] {
+            assert_eq!(Ty::Off.stored_bits(bytes), Some(8 * bytes));
+            assert_eq!(Ty::UOff.stored_bits(bytes), Some(8 * bytes));
+            assert_eq!(Ty::I32.stored_bits(bytes), Some(32));
+            assert_eq!(Ty::U64.stored_bits(bytes), Some(64));
+            assert_eq!(bit(5, true).stored_bits(bytes), Some(32));
+            assert_eq!(Ty::F64.stored_bits(bytes), None);
+            assert_eq!(Ty::Off.int_bits(), Some(64));
+            assert_eq!(crate::size_of(&[], bytes, Ty::Off), bytes);
+            assert_eq!(crate::size_of(&[], bytes, Ty::UOff), bytes);
+            assert_eq!(crate::size_of(&[], bytes, Ty::I64), 8);
+        }
+        // The offsets of the members a program can name, as the packed layout gives them.
+        let offsets = |bytes| {
+            let mem = crate::mem_type(bytes);
+            let mut at = 0;
+            let mut out = Vec::new();
+            for m in &mem.members {
+                if !m.name.starts_with('$') {
+                    out.push((m.name.clone(), at));
+                }
+                at += crate::size_of(&[], bytes, m.ty);
+            }
+            (out, at)
+        };
+        let names =
+            |list: &[(&str, u32)]| -> Vec<(String, u32)> { list.iter().map(|(n, o)| (n.to_string(), *o)).collect() };
+        assert_eq!(
+            offsets(8),
+            (
+                names(&[
+                    ("OFFSET", 0),
+                    ("SIZE", 8),
+                    ("TYPE", 32),
+                    ("ELEMENTSIZE", 40),
+                    ("IMAGE", 48),
+                    ("SOUND", 52)
+                ]),
+                56
+            )
+        );
+        assert_eq!(
+            offsets(4),
+            (
+                names(&[
+                    ("OFFSET", 0),
+                    ("SIZE", 4),
+                    ("TYPE", 20),
+                    ("ELEMENTSIZE", 24),
+                    ("IMAGE", 28),
+                    ("SOUND", 32)
+                ]),
+                40
+            )
+        );
     }
 
     #[test]

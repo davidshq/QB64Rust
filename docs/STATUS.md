@@ -61,11 +61,12 @@ first whose `qb64rust.exe` needs no `VCRUNTIME140.dll` (`DECISIONS.md` 2026-11-0
 2026-11-10. Pull request 30 (`02f74f00`, 2026-11-14) merged branch `after-pr26`: four archived changes
 (`project-settings`, `language-reference`, `fuzz-front-end`, `format-statement-lines`), include files checked,
 formatted and built as their program, and `just merge` passing at `02d38879` (below). Branch `after-pr-27-real`
-holds six commits since: a library's header found beside its `$USELIBRARY` file (78 of 79 programs of the
+holds seven commits since: a library's header found beside its `$USELIBRARY` file (78 of 79 programs of the
 Libraries Pack compile), the `_ANDALSO` hint, `[project]` `exclude`, the archived change `vm-game-runs`, strings
-past 2 GB and 4 GB (D-066, D-067), `REDIM` of a `TYPE` array without `AS` (D-068), and the `.alone` marker and
-run lock of the test tools. No `just merge` has run on it yet. One OpenSpec change is open: `wasm-console`,
-applied and waiting for review.
+past 2 GB and 4 GB (D-066, D-067), `REDIM` of a `TYPE` array without `AS` (D-068), the `.alone` marker and
+run lock of the test tools, and the archived change `wasm-console` (`58437442`). No `just merge` has run on it
+yet. One OpenSpec change is open: `wasm-pointer-width` (W0.5), applied and not archived
+("Next" item 1).
 
 ## Waiting on the user
 
@@ -83,10 +84,10 @@ working rule 7).
    dependencies per project in `qb64rust.toml` are the next change for libraries, and the syntax for naming a
    library.
 3. **Web and mobile targets** (`study\51`, 2026-11-15), section 10. Answered on 2026-11-19 (`DECISIONS.md`):
-   Emscripten with the same libqb, the SDK download, a 4-byte `_OFFSET`. Still open: phones through the web
-   build in the browser first (question 4), and where built games must run (question 5), which decides
-   whether a one-thread build is needed (`study\51` §5.1). The OpenSpec change `wasm-console` is applied and
-   waits for the user's review ("Next" item 1).
+   Emscripten with the same libqb, the SDK download, a 4-byte `_OFFSET`. Answered on 2026-11-20: phones through the web
+   build in the browser first (question 4). Still open, to decide after W1: where built games must run
+   (question 5), which decides whether a one-thread build is needed (`study\51` §5.1). The OpenSpec change `wasm-console` is built and
+   archived, and `wasm-pointer-width` waits for the user's review ("Next" item 1).
 4. **A standard library** (`study\52`, 2026-11-16, split out of `study\50`), section 4: whether to have one and in
    which form, and whether others' code may be shipped or fetched.
 5. **Libraries of other languages** (`study\53`, 2026-11-17), section 8: whether a built program may need a
@@ -107,7 +108,14 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
    `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a
    `$CONSOLE:ONLY` program for Node, and 3,664 of the 3,766 verification programs it runs pass (97.3%, 0 failing,
-   2026-11-20). Next is W0.5, a 4-byte `_OFFSET` in every pass. Other candidates for later are in `SOMEDAY.md`:
+   2026-11-20). Its second step, W0.5, the OpenSpec change `wasm-pointer-width`, is built and not archived
+   (2026-11-20): a pointer is 4 bytes on the wasm target in every pass, so `_OFFSET`, `_MEM` and a member array of
+   `STRING` build, and libqb's handshake flags are `std::atomic`. The 270 programs that were on
+   `tests\verification\known.wasm.list` as `offset` ran for wasm in the suites VM (`check wasm-rerun`): 230 pass, 15
+   are failures known on Linux too, and 25 are listed as `width`, since their recorded output shows an 8-byte
+   pointer. The desktop suites (`just full`) have not run on the libqb edits yet. Next after it is W1, a window in
+   the browser.
+   Other candidates for later are in `SOMEDAY.md`:
    deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS Code features
    still missing.
 

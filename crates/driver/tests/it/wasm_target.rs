@@ -1,6 +1,7 @@
 //! The wasm target's rejections, one test per scenario of spec `compiler/wasm-target` ("Console programs only",
-//! "What the target does not have is rejected", "Pointer-sized types wait for their width"), each also checked
-//! for Windows and Linux, where nothing is reported (design D5 of `wasm-console`).
+//! "What the target does not have is rejected"), each also checked for Windows and Linux, where nothing is
+//! reported (design D5 of `wasm-console`); and the sizes of its 4-byte pointer in the C++ ("A pointer is 4 bytes on
+//! this target", "The C++ is the same as for Linux"; OpenSpec change `wasm-pointer-width`).
 
 use qb64rust_base::Platform;
 use qb64rust_base::fixes::Fixes;
@@ -136,62 +137,121 @@ fn parts_not_built_yet() {
     );
 }
 
-/// "Pointer-sized types wait for their width", scenarios "A variable of the type" and "A built-in that returns one".
+/// The C++ fragments of `src` for `platform`, which must check without an error.
+fn fragments(platform: Platform, src: &str) -> Vec<(String, String)> {
+    let fe = frontend_at(
+        platform,
+        "p.bas",
+        src.as_bytes().to_vec(),
+        |_| Box::new(qb64rust_syntax::NoLoader),
+        None,
+        Fixes::OFF,
+    );
+    assert_eq!(
+        fe.diagnostics.error_count(),
+        0,
+        "{platform:?}: {}",
+        fe.render_diagnostics()
+    );
+    let resolved = qb64rust_driver::Resolved {
+        platform,
+        ..qb64rust_driver::Resolved::default()
+    };
+    qb64rust_driver::emit(&fe, &resolved)
+        .files
+        .into_iter()
+        .map(|(name, text)| (name.to_string(), text))
+        .collect()
+}
+
+/// The two size checks at the start of `global.txt` (design D4 of `wasm-pointer-width`), which hold the pointer's
+/// size and so differ between the wasm target and the others.
+fn is_size_check(line: &str) -> bool {
+    line.starts_with("static_assert(sizeof(ptrszint)==") || line.starts_with("static_assert(sizeof(mem_block)==")
+}
+
+/// `text` with each run of digits written as `#`: two lines that are equal so differ only in numbers.
+fn without_numbers(text: &str) -> String {
+    let mut out = String::new();
+    let mut in_number = false;
+    for c in text.chars() {
+        if c.is_ascii_digit() {
+            if !in_number {
+                out.push('#');
+            }
+            in_number = true;
+        } else {
+            out.push(c);
+            in_number = false;
+        }
+    }
+    out
+}
+
+/// "A pointer is 4 bytes on this target" and "Layouts with pointers on this target": what the first step of the
+/// wasm target rejected for a pointer's size is built, with the sizes of a 4-byte pointer in its C++. An audio
+/// word that takes an `_OFFSET` is still rejected, for its part of libqb.
 #[test]
 fn pointer_sized_types() {
-    rejected(
-        "$CONSOLE:ONLY\nDIM p AS _OFFSET\n",
-        &["2: `_OFFSET` is not available on the wasm target yet"],
-    );
-    rejected(
-        "$CONSOLE:ONLY\nDIM u AS _UNSIGNED _OFFSET\nq%& = 1\n",
-        &[
-            "2: `_UNSIGNED _OFFSET` is not available on the wasm target yet",
-            "3: `_OFFSET` is not available on the wasm target yet",
-        ],
-    );
-    rejected(
-        "$CONSOLE:ONLY\nDIM m AS _MEM\nm = _MEMNEW(16)\n",
-        &[
-            "2: `_MEM` is not available on the wasm target yet",
-            "3: `_MEMNEW` is not available on the wasm target yet",
-        ],
-    );
-    // A member, a parameter, and a built-in that gives an `_OFFSET` with no variable of the type.
-    rejected(
-        "$CONSOLE:ONLY\nTYPE t\n    o AS _OFFSET\nEND TYPE\nPRINT _WINDOWHANDLE\nSUB s (x AS _OFFSET)\nEND SUB\n",
-        &[
-            "3: `_OFFSET` is not available on the wasm target yet",
-            "5: `_WINDOWHANDLE` is not available on the wasm target yet",
-            "6: `_OFFSET` is not available on the wasm target yet",
-        ],
-    );
-    // Values of the type that no declaration gives: `_CAST`, `_CV`, and a library function named with `~%&`.
-    // Each was built by the first whole-family run, and failed in C++ (`verification\v49_a_cast`, `v32_c_mk_cv`,
-    // `v37_a_noname`).
-    rejected(
-        "$CONSOLE:ONLY\nf! = 2\nPRINT _CAST(_OFFSET, f!)\nPRINT _CV(_OFFSET, \"12345678\")\n\
-         DECLARE LIBRARY\n    FUNCTION strlen~%& (s AS STRING)\nEND DECLARE\nPRINT strlen~%&(\"four\")\n",
-        &[
-            "3: `_OFFSET` is not available on the wasm target yet",
-            "4: `_OFFSET` is not available on the wasm target yet",
-            "8: `_UNSIGNED _OFFSET` is not available on the wasm target yet",
-        ],
-    );
-    // Member arrays of variable-length strings, fixed and `_DYNAMIC`, whose elements are pointers. A single `STRING`
-    // member, a numeric member array and a numeric `_DYNAMIC` member are built.
-    rejected(
+    for src in [
+        "$CONSOLE:ONLY\nDIM p AS _OFFSET\nDIM u AS _UNSIGNED _OFFSET\nq%& = 1\nPRINT LEN(p)\n",
+        "$CONSOLE:ONLY\nDIM m AS _MEM\nm = _MEMNEW(16)\nPRINT LEN(m)\n_MEMFREE m\n",
+        "$CONSOLE:ONLY\nTYPE t\n    o AS _OFFSET\nEND TYPE\nDIM v AS t\ns v.o\nSUB s (x AS _OFFSET)\nEND SUB\n",
+        "$CONSOLE:ONLY\nf! = 2\nPRINT _CAST(_OFFSET, f!)\nPRINT _CV(_OFFSET, _MK$(_OFFSET, 5))\n",
         "$CONSOLE:ONLY\n$UNSTABLE:TYPEFIELDS\nTYPE t\n    s AS STRING\n    n(1 TO 3) AS LONG\n    a(0 TO 1) AS STRING\n\
          _DYNAMIC d(1 TO 2) AS LONG\n    _DYNAMIC e(1 TO 2) AS STRING\nEND TYPE\nDIM v AS t\n",
-        &[
-            "6: `STRING` is not available on the wasm target yet: a member array of variable-length strings",
-            "8: `STRING` is not available on the wasm target yet: a member array of variable-length strings",
-        ],
+    ] {
+        rejected(src, &[]);
+    }
+    rejected(
+        "$CONSOLE:ONLY\nDIM m AS _MEM\nh& = 1\nm = _MEMSOUND(h&, 0)\n",
+        &["4: `_MEMSOUND` is not available on the wasm target yet"],
     );
+    // An array's storage follows the pointer's size: an `_INTEGER64` array is an `_OFFSET` array's storage at 8
+    // bytes only, and a `LONG` array at 4 bytes only (`verification\v24_x179_param_offset_to_integer64`).
+    let arrays = |ty: &str| format!("$CONSOLE:ONLY\nDIM q(3) AS {ty}\nf q()\nSUB f (a() AS _OFFSET)\nEND SUB\n");
+    let wide = check(Platform::Wasm, &arrays("_INTEGER64"));
+    assert!(
+        wide.contains("cannot be passed to an array parameter of type _OFFSET"),
+        "{wide}"
+    );
+    assert_eq!(check(Platform::Wasm, &arrays("LONG")), "");
+    assert_eq!(check(Platform::Linux, &arrays("_INTEGER64")), "");
+    let narrow = check(Platform::Linux, &arrays("LONG"));
+    assert!(
+        narrow.contains("cannot be passed to an array parameter of type _OFFSET"),
+        "{narrow}"
+    );
+    // The size checks carry the platform's sizes.
+    let src = "$CONSOLE:ONLY\nPRINT 1\n";
+    let global = |platform| {
+        let files = fragments(platform, src);
+        files.into_iter().find(|(n, _)| n == "global.txt").unwrap().1
+    };
+    let wasm = global(Platform::Wasm);
+    assert!(wasm.contains("static_assert(sizeof(ptrszint)==4,"), "{wasm}");
+    assert!(wasm.contains("static_assert(sizeof(mem_block)==40,"), "{wasm}");
+    for host in [Platform::Windows, Platform::Linux] {
+        let text = global(host);
+        assert!(text.contains("static_assert(sizeof(ptrszint)==8,"), "{text}");
+        assert!(text.contains("static_assert(sizeof(mem_block)==56,"), "{text}");
+    }
+    // `LEN` of the spec's `TYPE` of a LONG, an `_OFFSET` and a `STRING * 2`, of an `_OFFSET` and of a `_MEM`: the
+    // checker folds each to a number, which the C++ prints.
+    let sizes = "$CONSOLE:ONLY\nTYPE t\n    a AS LONG\n    p AS _OFFSET\n    s AS STRING * 2\nEND TYPE\nDIM v AS t\n\
+                 DIM p AS _OFFSET, m AS _MEM\nx& = LEN(v) * 1000000 + LEN(p) * 1000 + LEN(m)\n";
+    let all = |platform| {
+        fragments(platform, sizes)
+            .into_iter()
+            .map(|(_, t)| t)
+            .collect::<String>()
+    };
+    assert!(all(Platform::Wasm).contains("10004040"), "LEN on wasm: 10, 4 and 40");
+    assert!(all(Platform::Linux).contains("14008056"), "LEN on Linux: 14, 8 and 56");
 }
 
 /// "The C++ is the same as for Linux", scenario "Same fragments": three console programs without `DECLARE LIBRARY`
-/// give the wasm target Linux's fragments, byte for byte.
+/// give the wasm target Linux's fragments, byte for byte, apart from the size checks.
 #[test]
 fn same_fragments_as_linux() {
     let programs = [
@@ -208,33 +268,44 @@ fn same_fragments_as_linux() {
          _LIMIT 10\nERROR 5\nEND\nhandler:\nPRINT \"error\"; ERR\nRESUME NEXT\ntick:\nRETURN\n",
     ];
     for (i, src) in programs.iter().enumerate() {
-        let fragments = |platform: Platform| {
-            let fe = frontend_at(
-                platform,
-                "p.bas",
-                src.as_bytes().to_vec(),
-                |_| Box::new(qb64rust_syntax::NoLoader),
-                None,
-                Fixes::OFF,
-            );
-            assert_eq!(
-                fe.diagnostics.error_count(),
-                0,
-                "{platform:?}: {}",
-                fe.render_diagnostics()
-            );
-            let resolved = qb64rust_driver::Resolved {
-                platform,
-                ..qb64rust_driver::Resolved::default()
-            };
-            qb64rust_driver::emit(&fe, &resolved).files
-        };
-        let (linux, wasm) = (fragments(Platform::Linux), fragments(Platform::Wasm));
+        let (linux, wasm) = (fragments(Platform::Linux, src), fragments(Platform::Wasm, src));
         assert_eq!(linux.len(), wasm.len());
         for ((name, l), (_, w)) in linux.iter().zip(&wasm) {
-            assert!(l == w, "program {i}: {name} differs");
+            let rest = |text: &str| -> Vec<String> {
+                text.lines()
+                    .filter(|line| !is_size_check(line))
+                    .map(str::to_string)
+                    .collect()
+            };
+            assert!(rest(l) == rest(w), "program {i}: {name} differs");
+            let checks = |text: &str| text.lines().filter(|line| is_size_check(line)).count();
+            assert_eq!(checks(l), checks(w), "program {i}: {name}");
         }
     }
+}
+
+/// "The C++ is the same as for Linux", scenario "A program with an _OFFSET": the fragments of a program with an
+/// `_OFFSET`, a `_MEM`, a `STRING` member and an array of a `TYPE` that holds a pointer differ from Linux's only
+/// in numbers, and they do differ.
+#[test]
+fn fragments_with_pointers_differ_only_in_sizes() {
+    let src = "$CONSOLE:ONLY\nTYPE t\n    a AS LONG\n    p AS _OFFSET\n    s AS STRING\n    b AS INTEGER\nEND TYPE\n\
+               DIM v AS t, items(3) AS t, m AS _MEM, blocks(2) AS _MEM\nDIM p AS _OFFSET\n\
+               v.p = 5: v.b = 2: items(1) = v: items(2).b = 7\nm = _MEM(v.a): blocks(1) = m\n\
+               p = m.OFFSET + 4\nPRINT LEN(p); blocks(1).SIZE; items(2).b; HEX$(p)\n";
+    let (linux, wasm) = (fragments(Platform::Linux, src), fragments(Platform::Wasm, src));
+    assert_eq!(linux.len(), wasm.len());
+    let mut differing = 0;
+    for ((name, l), (_, w)) in linux.iter().zip(&wasm) {
+        assert_eq!(l.lines().count(), w.lines().count(), "{name}");
+        for (a, b) in l.lines().zip(w.lines()) {
+            if a != b {
+                differing += 1;
+                assert_eq!(without_numbers(a), without_numbers(b), "{name}");
+            }
+        }
+    }
+    assert!(differing > 2, "the sizes of a 4-byte pointer are in the C++");
 }
 
 /// "The target's name in a program", scenario "A branch for the target": the branch compiled is the target's, and

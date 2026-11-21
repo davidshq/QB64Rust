@@ -11,6 +11,7 @@
 #include "main-thread.h"
 #include "ring-buffer.h"
 #include "window.h"
+#include <atomic>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
@@ -22,8 +23,8 @@
 
 extern int32_t exit_blocked;
 extern int32_t exit_value;
-extern uint8_t close_program;
-extern uint8_t suspend_program;
+extern std::atomic<uint8_t> close_program;
+extern std::atomic<uint8_t> suspend_program;
 extern int32_t force_display_update;
 extern int32_t sleep_break;
 

@@ -60,7 +60,7 @@ again, as before; `--force` runs.
 A step that builds and runs programs can run on the host or in the suites VM, the Hyper-V VM `qb64rust-suites`
 (`tools\winvm\README.md`, "The suites VM"; OpenSpec change `vm-suites`). These steps are marked `vm` in
 `steps.py`: `slice`, `upstream`, `verification`, `callsite`, `cli`, `qbasic`, `addprefix`, `format`,
-`format-corpus`, `differential`, `reference-examples`, `nofold`, `coverage`, `community`, `wasm-verification`, and the merge's `corpus-whole`, `upstream-whole` and
+`format-corpus`, `differential`, `reference-examples`, `nofold`, `coverage`, `community`, `wasm-verification`, `wasm-rerun`, and the merge's `corpus-whole`, `upstream-whole` and
 `verification-whole`. Every other step runs on the host: `fmt`, `build`, `clippy`, `clippy-linux`, `nextest`, `lists`, `doc`,
 `tools`, `tools-check`, `format-rewrites` (alone: a thread on every core), the Linux steps, the merge's own readers.
 
@@ -107,6 +107,8 @@ restore per run, however many VM steps.
   `..\emsdk` beside the checkout. `wasm-slice` runs `tests\wasm\slice.list` on the host (about 90 s) in `full` and
   `merge`. `wasm-verification`, every console program of `tests\verification` (about 2 to 4.5 hours), is in no
   layer: it runs only when named, `just check wasm-verification --where vm` (user, `DECISIONS.md` 2026-11-20).
+  `wasm-rerun` runs only the programs named in `tests\wasm\rerun.list`, the same way (`just check wasm-rerun
+  --where vm`). It is for a change that touches part of the family; the list is empty in the repository.
   Its results go to `target\legacy-tests\wasm\`, apart from the Windows family's. A run with it in the VM copies
   the SDK there (`suites.ps1 -Emsdk`), about 2.2 GB, again only when the SDK changed; the SDK must be beside the
   tree, so that the guest has it at the same path. Without the SDK, either step is reported "not run" with the

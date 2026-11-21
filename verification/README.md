@@ -588,6 +588,15 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `THEN` and after `ELSE` (`j`), a `SELECT CASE` on one line (`k`), statements after `ELSEIF … THEN` and a block's
   `ELSE` (`l`), `CLS:`, a label and a SUB's name before a colon (`m`), a `REM` comment moved above an `IF` (`o`),
   and a comment moved above a numbered line that a `GOTO` names (`p`).
+- `v73*`: the sizes and values that follow a pointer's size (2026-11-20, OpenSpec change `wasm-pointer-width`,
+  design D8). Each program compares them with `W`, which is 4 under `$IF 32BIT` and 8 otherwise, and prints -1.
+  So the recording of QB64pe's 64-bit build also holds on the wasm target, where a pointer is 4 bytes. `a`:
+  `LEN` of an `_OFFSET` and of a `TYPE` that holds one, and an array of that type. `b`: `LEN` of a `_MEM` (56, or
+  40 on wasm), `_MEMPUT` and `_MEMGET` at a member's offset, an array of `_MEM`, the `TYPE` value of a block of an
+  `_OFFSET`. `c`: a member array of `STRING`, and a type that owns two `_DYNAMIC` member arrays (its size is
+  five pointers). `d`: `HEX$` of -1, `_MK$`, `_CV`, `PUT`, `GET` and `INPUT #` of an `_OFFSET`, and an `_OFFSET`
+  variable passed to an `_INTEGER64` parameter, which is by reference only where both are 8 bytes. `e`: console
+  `INPUT` into an `_OFFSET` between other variables.
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

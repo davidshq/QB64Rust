@@ -261,7 +261,8 @@ wins). A negative base with a non-integer exponent SHALL raise error 5.
 The numeric types SHALL be INTEGER, LONG, `_INTEGER64`, SINGLE, DOUBLE, `_FLOAT`, `_BYTE`, `_OFFSET`, `_BIT` and
 `_BIT * n` (n a number literal from 1 to 64), and the `_UNSIGNED` form of each integer type, with QB64pe's
 `AS` names and type suffixes (`%%`, `~%%`, `~%`, `~&`, `~&&`, `%&`, `~%&`, `` ` ``, `` `n ``, `` ~` ``,
-`` ~`n ``). Each SHALL hold the values of its width and signedness; `_OFFSET` is 64 bits wide. A name with each
+`` ~`n ``). Each SHALL hold the values of its width and signedness. `_OFFSET` is as wide as a pointer of the
+target: 64 bits on Windows and Linux, 32 bits on the wasm target (`compiler/wasm-target`). A name with each
 suffix SHALL be a variable of its own. As in the old compiler: `_UNSIGNED` before `STRING` SHALL be ignored in a
 declaration (on a parameter it is an error, `language/procedures`);
 `_UNSIGNED` before a floating-point type, `AS _UNSIGNED` alone, a `_BIT` width of 0, above 64 or not a number
@@ -291,7 +292,8 @@ compiler). `_MEM` is a type of its own (`language/mem-blocks`).
 
 #### Scenario: _MEM
 - **WHEN** a program has `DIM m AS _MEM`
-- **THEN** it compiles, and `LEN(m)` is 56, as with the old compiler
+- **THEN** it compiles, and `LEN(m)` is 56 on Windows and Linux, as with the old compiler, and 40 on the wasm
+  target
 
 ### Requirement: Arithmetic with unsigned, narrow and bit operands
 An operation on integer operands SHALL be computed in the type C++ gives the old compiler's generated expression

@@ -437,9 +437,9 @@ int64 display_lock_request = 0;
 int64 display_lock_confirmed = 0;
 int64 display_lock_released = 0;
 
-extern uint8 close_program;
-extern uint8 suspend_program;
-extern uint8 stop_program;
+extern std::atomic<uint8> close_program;
+extern std::atomic<uint8> suspend_program;
+extern std::atomic<uint8> stop_program;
 
 #ifdef DEPENDENCY_GL
 static std::atomic<int32> display_lock_modal_count{0};
@@ -570,13 +570,13 @@ uint16_t codepage437_to_unicode16[] = {
 
 int64 device_event_index = 0;
 
-int32 lock_mainloop = 0; // 0=unlocked, 1=lock requested, 2=locked
+std::atomic<int32> lock_mainloop = 0; // 0=unlocked, 1=lock requested, 2=locked
 
 int32 lpos = 1;
 int32 width_lprint = 80;
 
 // forward refs
-int32 autodisplay = 1;
+std::atomic<int32> autodisplay = 1;
 void key_update();
 int32 key_display_state = 0;
 int32 key_display = 0;
@@ -687,7 +687,7 @@ int32 *fontheight = (int32 *)calloc(4 * (48 + 1), 1);
 int32 *fontwidth = (int32 *)calloc(4 * (48 + 1), 1);
 int32 *fontflags = (int32 *)calloc(4 * (48 + 1), 1);
 
-int32_t exit_ok = 0;
+std::atomic<int32_t> exit_ok = 0;
 
 // substitute Windows functionality
 #ifndef QB64_WINDOWS
@@ -5825,8 +5825,8 @@ int32 screen_last_valid = 0;
 uint8 *screen_last = (uint8 *)malloc(1);
 uint32 screen_last_size = 1;
 
-int32 lock_display = 0;
-int32 lock_display_required = 0;
+std::atomic<int32> lock_display = 0;
+std::atomic<int32> lock_display_required = 0;
 
 // cost delay, made obsolete by managing thread priorities (consider removal)
 #define cost_limit 10000
@@ -5870,11 +5870,11 @@ int32 vertical_retrace_happened = 0;
 
 uint8 lock_subsystem = 0;
 
-extern uint8 close_program; //=0;
+extern std::atomic<uint8> close_program; //=0;
 uint8 program_wait = 0;
 
-extern uint8 suspend_program;
-extern uint8 stop_program;
+extern std::atomic<uint8> suspend_program;
+extern std::atomic<uint8> stop_program;
 
 int32 global_counter = 0;
 extern double last_line;

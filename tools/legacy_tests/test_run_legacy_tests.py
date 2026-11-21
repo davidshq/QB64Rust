@@ -3403,14 +3403,14 @@ class WasmLists(unittest.TestCase):
 
     def test_the_reasons_and_what_is_skipped(self):
         self.list.write_text(
-            "# programs\nv1\twindow: no $CONSOLE:ONLY\nv2\ttarget: SHELL\nv3\toffset: _MEM\nv4\tfloat: quad\n"
+            "# programs\nv1\twindow: no $CONSOLE:ONLY\nv2\ttarget: SHELL\nv4\tfloat: quad\n"
             "v5\topen: a line differs\nv6\twidth: _OS$ is [WASM][32BIT]\n",
             encoding="utf-8",
         )
         known = rlt.load_wasm_list(self.list, "verification")
-        self.assertEqual(len(known), 6)
+        self.assertEqual(len(known), 5)
         skipped = [k for k, why in known.items() if rlt.skipped_on("wasm", why)]
-        self.assertEqual(skipped, ["verification:v1", "verification:v2", "verification:v3"])
+        self.assertEqual(skipped, ["verification:v1", "verification:v2"])
         # On the other platforms these reasons skip nothing; Linux's "windows" skips the wasm target too.
         self.assertFalse(any(rlt.skipped_on(p, why) for p in ("windows", "linux") for why in known.values()))
         self.assertTrue(rlt.skipped_on("wasm", "windows: kernel32"))
@@ -3419,6 +3419,10 @@ class WasmLists(unittest.TestCase):
         # Scenario "A reason outside the set": the line is named.
         self.list.write_text("v1\tlater: someday\n", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "the reason of v1 starts with none of target, window"):
+            rlt.load_wasm_list(self.list, "verification")
+        # `offset` left the set when a pointer's size became the target's (OpenSpec change wasm-pointer-width).
+        self.list.write_text("v3\toffset: _MEM\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "the reason of v3 starts with none of target, window, float"):
             rlt.load_wasm_list(self.list, "verification")
 
     def test_a_window_program_is_skipped_without_a_build(self):
