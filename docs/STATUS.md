@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-11-20, on branch `after-pr-27-real` (cut to its own rule by finding 2 of the ninth review,
+Updated 2026-11-21, on branch `after-pr-27-real` (cut to its own rule by finding 2 of the ninth review,
 `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
@@ -65,8 +65,7 @@ holds seven commits since: a library's header found beside its `$USELIBRARY` fil
 Libraries Pack compile), the `_ANDALSO` hint, `[project]` `exclude`, the archived change `vm-game-runs`, strings
 past 2 GB and 4 GB (D-066, D-067), `REDIM` of a `TYPE` array without `AS` (D-068), the `.alone` marker and
 run lock of the test tools, and the archived change `wasm-console` (`58437442`). No `just merge` has run on it
-yet. One OpenSpec change is open: `wasm-pointer-width` (W0.5), applied and not archived
-("Next" item 1).
+yet. The OpenSpec change `wasm-pointer-width` (W0.5) is built and archived (2026-11-21, "Next" item 1).
 
 ## Waiting on the user
 
@@ -87,7 +86,7 @@ working rule 7).
    Emscripten with the same libqb, the SDK download, a 4-byte `_OFFSET`. Answered on 2026-11-20: phones through the web
    build in the browser first (question 4). Still open, to decide after W1: where built games must run
    (question 5), which decides whether a one-thread build is needed (`study\51` §5.1). The OpenSpec change `wasm-console` is built and
-   archived, and `wasm-pointer-width` waits for the user's review ("Next" item 1).
+   archived, and so is `wasm-pointer-width` ("Next" item 1).
 4. **A standard library** (`study\52`, 2026-11-16, split out of `study\50`), section 4: whether to have one and in
    which form, and whether others' code may be shipped or fetched.
 5. **Libraries of other languages** (`study\53`, 2026-11-17), section 8: whether a built program may need a
@@ -105,11 +104,15 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
    commit reviewed: `ce6e54aee` (2026-11-13, 87 commits, `docs\UPSTREAM-REVIEW.md`). `..\QB64pe-latest` was
    pulled again on 2026-11-14 for the merge of `after-pr26`: no commit came after it.
+0. **The OpenSpec change `build-output-folder`** (`DECISIONS.md` 2026-11-21): a build without `-o` writes into
+   `build`, `[build]` names the folder and the data files to copy, and the extension runs the program where
+   `qb64rust --print-paths` says. All 16 tasks are built, Civil War Strategy's `[build]` table among them; the
+   extension's integration suite has not run yet (CI). Archive after review.
 1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
    `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a
    `$CONSOLE:ONLY` program for Node, and 3,664 of the 3,766 verification programs it runs pass (97.3%, 0 failing,
-   2026-11-20). Its second step, W0.5, the OpenSpec change `wasm-pointer-width`, is built and not archived
-   (2026-11-20): a pointer is 4 bytes on the wasm target in every pass, so `_OFFSET`, `_MEM` and a member array of
+   2026-11-20). Its second step, W0.5, the OpenSpec change `wasm-pointer-width`, is built (2026-11-20) and archived
+   (2026-11-21, specs merged): a pointer is 4 bytes on the wasm target in every pass, so `_OFFSET`, `_MEM` and a member array of
    `STRING` build, and libqb's handshake flags are `std::atomic`. The 270 programs that were on
    `tests\verification\known.wasm.list` as `offset` ran for wasm in the suites VM (`check wasm-rerun`): 230 pass, 15
    are failures known on Linux too, and 25 are listed as `width`, since their recorded output shows an 8-byte

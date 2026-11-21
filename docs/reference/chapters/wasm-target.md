@@ -11,10 +11,13 @@ The pages of this area: [$CONSOLE](../entries/meta-console.md), [$IF](../entries
 
 ## Building and running
 
-`qb64rust -x --target wasm game.bas` writes `game.js` and `game.wasm` beside the source, and `node game.js` runs
-the program. `-o` names the `.js` file and must end in `.js`; the `.wasm` file gets the same name beside it. The
-two may be moved together, and renamed together.
+`qb64rust -x --target wasm game.bas` writes `game.js` and `game.wasm` into the folder `build`, beside the
+program's `qb64rust.toml` or beside the source, and `node build/game.js` runs the program. `-o` names the `.js`
+file and must end in `.js`; the `.wasm` file gets the same name beside it. The two may be moved together, and
+renamed together. The program's current folder is the folder of its `.js` file, so a data file it opens by name
+alone must be there: list it in `[build]` `copy` of `qb64rust.toml`, which copies it into `build` at each build.
 <!-- src: compiler/cli "The output of a wasm build"; compiler/wasm-target "A wasm build"; crates\driver\tests\it\cli.rs -->
+<!-- The output folder and `copy`: OpenSpec change build-output-folder; name spec compiler/cli "The output folder" here once it is archived. -->
 
 A build for the wasm target needs the Emscripten SDK, release 7.0.0 and no other, installed with Emscripten's own
 `emsdk` (`emsdk install 7.0.0` and `emsdk activate 7.0.0`). `--emsdk-root <dir>` or the environment variable

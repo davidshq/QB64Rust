@@ -71,7 +71,8 @@ is missing, the build says which one and offers a button that copies the install
 **The first build takes about 40 seconds**, because it builds the runtime library once. Later builds reuse it and
 are much faster.
 
-The executable is written next to the source: `main.bas` becomes `main.exe` (`main` on Linux). The compiler's
+The executable is written into a folder `build` next to the source: `main.bas` becomes `build\main.exe`
+(`build/main` on Linux). It runs in the source's folder, so it finds the files beside `main.bas`. The compiler's
 output is in the "QB64" output channel.
 
 ### Fix an error
@@ -141,17 +142,18 @@ Then, on Windows:
 
 ```
 qb64rust -x hello.bas
-hello.exe
+build\hello.exe
 ```
 
 On Linux:
 
 ```
 ./qb64rust -x hello.bas
-./hello
+./build/hello
 ```
 
-The executable is named after the program and put beside it. Use `-o <file>` to name it yourself. The first build
+The executable is named after the program and put in a folder `build` beside it. Use `-o <file>` to name it
+yourself. The first build
 takes up to a minute while the runtime library is built.
 
 Errors are printed as `file:line:column: error: message`. The exit status is 0 when the program compiled and 1

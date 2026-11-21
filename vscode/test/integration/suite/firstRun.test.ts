@@ -10,7 +10,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import * as tc from "../../../src/compiler/toolchain";
-import { api, open, server, waitFor, workspace, writeFile } from "./helpers";
+import { api, builtOf, open, server, waitFor, workspace, writeFile } from "./helpers";
 
 const home = process.env.QB64RUST_TOOLCHAIN_HOME ?? "";
 
@@ -55,7 +55,7 @@ describe("first run without QB64pe or a C++ toolchain", function () {
             },
         };
         uri = writeFile("first/hello.bas", '$CONSOLE:ONLY\r\nOPEN "hello.txt" FOR OUTPUT AS #1\r\nPRINT #1, "first run"\r\nCLOSE #1\r\nSYSTEM\r\n');
-        exe = uri.fsPath.replace(/\.bas$/i, ".exe");
+        exe = builtOf(uri);
     });
 
     it("starts with no QB64pe and no toolchain, and the language status says so", async () => {

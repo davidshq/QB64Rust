@@ -1,7 +1,7 @@
 //! The settings file `qb64rust.toml` of a program (OpenSpec change `project-settings`, design D1): the nearest one
 //! above the main file, read once for its `[fixes]` (spec `compiler/fixes`), `[format]` (spec `compiler/format`)
-//! and `[lints]` (spec `compiler/lints`) tables, and for `[project]` `main` and `exclude` (the language server's). Any other
-//! table is ignored. The command line's options go over the file: `fixes.rs`, `lints.rs`, and `main.rs` for the
+//! and `[lints]` (spec `compiler/lints`) tables, for `[project]` `main` and `exclude` (the language server's), and
+//! for `[build]` `output` and `copy` (spec `compiler/cli`, "The output folder"). Any other table is ignored. The command line's options go over the file: `fixes.rs`, `lints.rs`, and `main.rs` for the
 //! layout settings.
 
 use crate::lints::Lints;
@@ -42,6 +42,80 @@ pub struct Project {
     pub lints: Lints,
 }
 
+/// Where a build without `-o` puts the program, and what it copies there: the `[build]` table, its paths joined
+/// to the project's folder (design D1 and D2 of `build-output-folder`). Read beside [`Project`] so that `Project`
+/// stays `Copy`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Build {
+    /// The project's folder: the settings file's, or the main file's when there is no settings file.
+    pub root: PathBuf,
+    /// The output folder: `output` joined to `root`, `build` when the table does not set it.
+    pub output: PathBuf,
+    /// The entries of `copy`, in the order written.
+    pub copy: Vec<CopyEntry>,
+}
+
+/// One entry of `[build]` `copy`: a file or a folder that a build copies into the output folder.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CopyEntry {
+    /// The entry as written, such as `graphics`; its copy is at this path in the output folder.
+    pub name: String,
+    /// The entry joined to the project's folder.
+    pub path: PathBuf,
+    /// The 1-based line of the entry in the settings file, for an entry that is missing.
+    pub line: u32,
+}
+
+/// The output folder's name when `[build]` does not set `output`.
+pub const DEFAULT_OUTPUT: &str = "build";
+
+impl Build {
+    /// The table `table` of the project whose folder is `root`.
+    fn new(root: &Path, table: &BuildTable) -> Build {
+        // `absolute` takes out a `.`, so that `output = "."` is the settings file's folder itself.
+        let output = root.join(table.output.as_deref().unwrap_or(DEFAULT_OUTPUT));
+        Build {
+            root: root.to_path_buf(),
+            output: std::path::absolute(&output).unwrap_or(output),
+            copy: table
+                .copy
+                .iter()
+                .map(|(name, line)| CopyEntry {
+                    name: name.clone(),
+                    path: root.join(name),
+                    line: *line,
+                })
+                .collect(),
+        }
+    }
+
+    /// A program with no settings file, whose main file is `main`: `build` in the main file's folder, nothing to
+    /// copy.
+    pub fn without_settings(main: &Path) -> Build {
+        let main = std::path::absolute(main).unwrap_or_else(|_| main.to_path_buf());
+        let root = main.parent().map_or_else(PathBuf::new, Path::to_path_buf);
+        Build::new(&root, &BuildTable::default())
+    }
+}
+
+/// The `[build]` table as written: `output`, and each `copy` entry with its line.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct BuildTable {
+    output: Option<String>,
+    copy: Vec<(String, u32)>,
+    /// The line of the `copy` key, for an error about the list as a whole.
+    copy_line: u32,
+}
+
+/// What [`parse_all`] reads from a settings file.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct Parsed {
+    project: Project,
+    /// The patterns of `[project]` `exclude` ([`excluded`]).
+    exclude: Vec<String>,
+    build: BuildTable,
+}
+
 /// The first `qb64rust.toml` in the folder of the main file `main` or a folder above it.
 pub fn find_settings(main: &Path) -> Option<PathBuf> {
     let main = std::path::absolute(main).ok()?;
@@ -51,15 +125,25 @@ pub fn find_settings(main: &Path) -> Option<PathBuf> {
         .find(|f| f.is_file())
 }
 
-/// The settings of the program whose main file is `main` on disk, and the file read if one was. With
-/// `no_settings` (`--no-settings`, spec `compiler/cli`), no file is looked for.
-pub fn load(main: &Path, no_settings: bool) -> Result<(Project, Option<PathBuf>), SettingsError> {
+/// The settings of the program whose main file is `main` on disk, its `[build]` table, and the file read if one
+/// was. With `no_settings` (`--no-settings`, spec `compiler/cli`), no file is looked for.
+pub fn load(main: &Path, no_settings: bool) -> Result<(Project, Build, Option<PathBuf>), SettingsError> {
+    let none = || (Project::default(), Build::without_settings(main), None);
     if no_settings {
-        return Ok((Project::default(), None));
+        return Ok(none());
     }
     match find_settings(main) {
-        Some(file) => Ok((read_settings(&file)?, Some(file))),
-        None => Ok((Project::default(), None)),
+        Some(file) => {
+            let parsed = read_all(&file)?;
+            let root = file.parent().map_or_else(PathBuf::new, Path::to_path_buf);
+            let build = resolve_build(&root, &parsed.build).map_err(|(line, message)| SettingsError {
+                file: file.clone(),
+                line: Some(line),
+                message,
+            })?;
+            Ok((parsed.project, build, Some(file)))
+        }
+        None => Ok(none()),
     }
 }
 
@@ -83,7 +167,7 @@ pub fn excluded(doc: &Path) -> bool {
     let Some(settings) = find_settings(doc) else {
         return false;
     };
-    let Ok((_, patterns)) = std::fs::read(&settings)
+    let Ok(Parsed { exclude: patterns, .. }) = std::fs::read(&settings)
         .map_err(|_| ())
         .and_then(|b| parse_all(&b).map_err(|_| ()))
     else {
@@ -169,12 +253,17 @@ fn project_main(bytes: &[u8]) -> Option<String> {
 
 /// The settings a file gives.
 pub fn read_settings(path: &Path) -> Result<Project, SettingsError> {
+    read_all(path).map(|p| p.project)
+}
+
+/// All that a file gives ([`parse_all`]).
+fn read_all(path: &Path) -> Result<Parsed, SettingsError> {
     let bytes = std::fs::read(path).map_err(|e| SettingsError {
         file: path.to_path_buf(),
         line: None,
         message: format!("cannot be read: {e}"),
     })?;
-    parse_settings(&bytes).map_err(|(line, message)| SettingsError {
+    parse_all(&bytes).map_err(|(line, message)| SettingsError {
         file: path.to_path_buf(),
         line: Some(line),
         message,
@@ -182,12 +271,14 @@ pub fn read_settings(path: &Path) -> Result<Project, SettingsError> {
 }
 
 /// [`read_settings`] of a file's bytes; an error is its line and message.
+#[cfg(test)]
 fn parse_settings(bytes: &[u8]) -> Result<Project, (u32, String)> {
-    parse_all(bytes).map(|(project, _)| project)
+    parse_all(bytes).map(|p| p.project)
 }
 
-/// [`parse_settings`], with the patterns of `[project]` `exclude` ([`excluded`]).
-fn parse_all(bytes: &[u8]) -> Result<(Project, Vec<String>), (u32, String)> {
+/// The settings of a file's bytes, with the patterns of `[project]` `exclude` ([`excluded`]) and the `[build]`
+/// table; an error is its line and message.
+fn parse_all(bytes: &[u8]) -> Result<Parsed, (u32, String)> {
     #[expect(
         clippy::disallowed_methods,
         reason = "a settings file is TOML, which is UTF-8 by its specification; not BASIC source"
@@ -254,7 +345,161 @@ fn parse_all(bytes: &[u8]) -> Result<(Project, Vec<String>), (u32, String)> {
             exclude.push(pattern.to_string());
         }
     }
-    Ok((project, exclude))
+    let build = match table("build")? {
+        Some(t) => build_table(t, &line)?,
+        None => BuildTable::default(),
+    };
+    Ok(Parsed {
+        project,
+        exclude,
+        build,
+    })
+}
+
+/// The `[build]` table (spec `compiler/cli`, "A bad build table"). The paths are checked as written, before they
+/// are joined to the settings file's folder, so that the check is of the file alone.
+fn build_table(table: &DeTable<'_>, line: &dyn Fn(usize) -> u32) -> Result<BuildTable, (u32, String)> {
+    let mut out = BuildTable::default();
+    let mut copy_line = 0;
+    let slash = |at: u32, key: &str, path: &str| {
+        if path.contains('\\') {
+            Err((at, format!("`{key}` uses `/` between folders, not `\\`: \"{path}\"")))
+        } else {
+            Ok(())
+        }
+    };
+    for (key, value) in table {
+        let name: &str = key.get_ref();
+        let at = line(value.span().start);
+        match name {
+            "output" => {
+                let folder = "the value of `output` must be a folder, as `output = \"build\"`";
+                let path = value.get_ref().as_str().ok_or_else(|| (at, folder.to_string()))?;
+                if path.is_empty() {
+                    return Err((
+                        at,
+                        "`output` must not be empty; `output = \".\"` builds into the settings file's folder".into(),
+                    ));
+                }
+                slash(at, "output", path)?;
+                out.output = Some(path.to_string());
+            }
+            "copy" => {
+                let list = "the value of `copy` must be a list of files and folders, as `copy = [\"GAME.CFG\"]`";
+                let items = value.get_ref().as_array().ok_or_else(|| (at, list.to_string()))?;
+                copy_line = at;
+                for item in items {
+                    let at = line(item.span().start);
+                    let path = item.get_ref().as_str().ok_or_else(|| (at, list.to_string()))?;
+                    slash(at, "copy", path)?;
+                    let outside = Path::new(path).has_root() || (cfg!(windows) && path.contains(':'));
+                    if path.is_empty() || outside || parts(path).is_none() {
+                        return Err((
+                            at,
+                            format!(
+                                "a `copy` entry must be a file or folder in the settings file's folder: \"{path}\""
+                            ),
+                        ));
+                    }
+                    out.copy.push((path.to_string(), at));
+                }
+            }
+            _ => {
+                return Err((
+                    line(key.span().start),
+                    format!("unknown build setting `{name}`; the settings are output, copy"),
+                ));
+            }
+        }
+    }
+    out.copy_line = copy_line;
+    Ok(out)
+}
+
+/// The `[build]` table `table` of the settings file in the folder `root`, its paths joined to that folder, after
+/// the check that needs the folder (spec `compiler/cli`, "A bad build table"): no `copy` entry is or holds the
+/// output folder, which would copy the output into itself without end. The paths are compared once joined and
+/// made plain, so that an `output` with `..` or an absolute one is held to the same rule.
+fn resolve_build(root: &Path, table: &BuildTable) -> Result<Build, (u32, String)> {
+    let build = Build::new(root, table);
+    if build.copy.is_empty() {
+        return Ok(build);
+    }
+    let output = plain(&build.output);
+    if output == plain(root) {
+        return Err((
+            table.copy_line,
+            "`copy` needs an output folder of its own: with the settings file's folder as the output folder \
+             (`output = \".\"`), the files are already in the output folder"
+                .into(),
+        ));
+    }
+    for entry in &build.copy {
+        let path = plain(&entry.path);
+        if output.starts_with(&path) {
+            let what = if path.len() == output.len() { "is" } else { "holds" };
+            return Err((
+                entry.line,
+                format!(
+                    "`{}` {what} the output folder, which a `copy` entry cannot be or hold",
+                    entry.name
+                ),
+            ));
+        }
+    }
+    Ok(build)
+}
+
+/// The names of `path` made plain without reading the disk: `.` left out, `..` taking off the name before it (never
+/// the root), and letter case folded on Windows, as the file system ignores it.
+fn plain(path: &Path) -> Vec<String> {
+    use std::path::Component;
+    let fold = |s: &std::ffi::OsStr| {
+        let s = s.to_string_lossy();
+        if cfg!(windows) {
+            s.to_lowercase()
+        } else {
+            s.into_owned()
+        }
+    };
+    let mut out: Vec<String> = Vec::new();
+    let mut fixed = 0;
+    for c in path.components() {
+        match c {
+            Component::Prefix(p) => {
+                out.push(fold(p.as_os_str()));
+                fixed = out.len();
+            }
+            Component::RootDir => {
+                out.push("/".into());
+                fixed = out.len();
+            }
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if out.len() > fixed {
+                    out.pop();
+                }
+            }
+            Component::Normal(name) => out.push(fold(name)),
+        }
+    }
+    out
+}
+
+/// The names of a relative path written with `/`, without `.` and empty names, `..` taking off the name before it.
+/// `None` for a path that goes above its start.
+fn parts(path: &str) -> Option<Vec<String>> {
+    let mut out: Vec<String> = Vec::new();
+    for name in path.split('/') {
+        match name {
+            "" | "." => {}
+            ".." => {
+                out.pop()?;
+            }
+            _ => out.push(name.to_string()),
+        }
+    }
+    Some(out)
 }
 
 /// The switches of a table: `all`'s value, if given, and each other key's in the order written.
@@ -376,7 +621,7 @@ mod tests {
     }
 
     fn exclude(text: &str) -> Result<Vec<String>, (u32, String)> {
-        parse_all(text.as_bytes()).map(|(_, e)| e)
+        parse_all(text.as_bytes()).map(|p| p.exclude)
     }
 
     /// `[project]` `exclude`: a list of strings, each without `\`; anything else is an error.
@@ -454,14 +699,177 @@ mod tests {
     fn fixes_found_walking_up() {
         let dir = tempfile::tempdir().unwrap();
         let main = write(dir.path(), "proj/src/p.bas", "PRINT 1\n");
+        let project = |main: &Path| load(main, false).map(|(p, _, f)| (p, f));
         assert_eq!(find_settings(&main), None, "no file");
-        assert_eq!(load(&main, false).unwrap(), (Project::default(), None));
+        assert_eq!(project(&main).unwrap(), (Project::default(), None));
         let above = write(dir.path(), "proj/qb64rust.toml", "[fixes]\nall = true\n");
         assert_eq!(find_settings(&main), Some(above.clone()), "found in a folder above");
-        assert_eq!(load(&main, false).unwrap(), (with_fixes(Fixes::ALL), Some(above)));
+        assert_eq!(project(&main).unwrap(), (with_fixes(Fixes::ALL), Some(above)));
         let near = write(dir.path(), "proj/src/qb64rust.toml", "[fixes]\nall = false\n");
         assert_eq!(find_settings(&main), Some(near.clone()), "the nearest file wins");
-        assert_eq!(load(&main, false).unwrap(), (Project::default(), Some(near)));
+        assert_eq!(project(&main).unwrap(), (Project::default(), Some(near)));
+    }
+
+    fn build(text: &str) -> Result<BuildTable, (u32, String)> {
+        parse_all(text.as_bytes()).map(|p| p.build)
+    }
+
+    /// The `[build]` table of `load` (design D1 and D2 of `build-output-folder`): no settings file, no table,
+    /// `output` alone, `output = "."`, `copy`, a settings file one folder up, a dotted key, and `--no-settings`.
+    #[test]
+    fn build_table_of_a_program() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = std::path::absolute(dir.path()).unwrap();
+        let main = write(dir.path(), "g/game.bas", "PRINT 1\n");
+        let g = root.join("g");
+        let of = |main: &Path| load(main, false).unwrap().1;
+        assert_eq!(
+            of(&main),
+            Build {
+                root: g.clone(),
+                output: g.join("build"),
+                copy: vec![]
+            },
+            "no settings file"
+        );
+        write(dir.path(), "g/qb64rust.toml", "[fixes]\nall = true\n");
+        assert_eq!(of(&main).output, g.join("build"), "no table");
+        write(dir.path(), "g/qb64rust.toml", "[build]\noutput = \"out/bin\"\n");
+        assert_eq!(of(&main).output, g.join("out/bin"), "output alone");
+        write(dir.path(), "g/qb64rust.toml", "[build]\noutput = \".\"\n");
+        assert_eq!(of(&main).output, g, "output = \".\"");
+        write(
+            dir.path(),
+            "g/qb64rust.toml",
+            "[build]\n\ncopy = [\"GAME.CFG\", \"maps\"]\n",
+        );
+        let b = of(&main);
+        assert_eq!(b.output, g.join("build"));
+        assert_eq!(
+            b.copy,
+            vec![
+                CopyEntry {
+                    name: "GAME.CFG".into(),
+                    path: g.join("GAME.CFG"),
+                    line: 3
+                },
+                CopyEntry {
+                    name: "maps".into(),
+                    path: g.join("maps"),
+                    line: 3
+                },
+            ],
+            "copy"
+        );
+        assert_eq!(load(&main, true).unwrap().1.copy, vec![], "--no-settings");
+        assert_eq!(load(&main, true).unwrap().1.output, g.join("build"));
+        std::fs::remove_file(g.join("qb64rust.toml")).unwrap();
+        let src = write(dir.path(), "proj/src/game.bas", "PRINT 1\n");
+        write(dir.path(), "proj/qb64rust.toml", "build.output = \"b\"\n");
+        let b = of(&src);
+        assert_eq!(
+            (b.root, b.output),
+            (root.join("proj"), root.join("proj").join("b")),
+            "a settings file one folder up, and a dotted key"
+        );
+    }
+
+    /// Spec `compiler/cli`, "A bad build table": each error with its line.
+    #[test]
+    fn build_table_errors() {
+        let err = |text: &str| build(text).unwrap_err();
+        assert_eq!(
+            err("[build]\nout = \"build\"\n"),
+            (
+                2,
+                "unknown build setting `out`; the settings are output, copy".to_string()
+            )
+        );
+        let folder = "the value of `output` must be a folder, as `output = \"build\"`".to_string();
+        assert_eq!(err("[build]\noutput = 1\n"), (2, folder));
+        let (line, msg) = err("[build]\n\noutput = \"\"\n");
+        assert_eq!(line, 3);
+        assert!(msg.starts_with("`output` must not be empty"), "{msg}");
+        let list = "the value of `copy` must be a list of files and folders, as `copy = [\"GAME.CFG\"]`";
+        assert_eq!(err("[build]\ncopy = \"GAME.CFG\"\n"), (2, list.to_string()));
+        assert_eq!(err("[build]\ncopy = [\n  \"a\",\n  2,\n]\n"), (4, list.to_string()));
+        assert_eq!(
+            err("[build]\noutput = 'out\\bin'\n"),
+            (
+                2,
+                "`output` uses `/` between folders, not `\\`: \"out\\bin\"".to_string()
+            )
+        );
+        assert_eq!(
+            err("[build]\ncopy = ['data\\a.cfg']\n"),
+            (
+                2,
+                "`copy` uses `/` between folders, not `\\`: \"data\\a.cfg\"".to_string()
+            )
+        );
+        for outside in ["../shared", "/etc", "", "a/../.."] {
+            let (line, msg) = err(&format!("[build]\ncopy = [\"{outside}\"]\n"));
+            assert_eq!(line, 2);
+            assert!(
+                msg.starts_with("a `copy` entry must be a file or folder in the settings file's folder"),
+                "{msg}"
+            );
+        }
+        assert_eq!(
+            err("build = 1\n"),
+            (1, "`build` must be a table, as `[build]`".to_string())
+        );
+    }
+
+    /// [`resolve_build`] of a settings file in the folder `proj`: no `copy` entry is or holds the output folder,
+    /// with the paths joined and made plain, so that `..` and an absolute `output` cannot get past the check.
+    #[test]
+    fn copy_entries_never_hold_the_output_folder() {
+        let root = std::path::absolute(std::env::temp_dir().join("qb64rust-settings").join("proj")).unwrap();
+        let resolved = |text: &str| resolve_build(&root, &build(text).unwrap());
+        let err = |text: &str| resolved(text).unwrap_err();
+        assert_eq!(
+            err("[build]\noutput = \"data/build\"\ncopy = [\"x\", \"data\"]\n"),
+            (
+                3,
+                "`data` holds the output folder, which a `copy` entry cannot be or hold".to_string()
+            )
+        );
+        let (line, msg) = err("[build]\ncopy = [\"build\"]\n");
+        assert_eq!(line, 2);
+        assert!(msg.starts_with("`build` is the output folder"), "{msg}");
+        let (_, msg) = err("[build]\ncopy = [\".\"]\n");
+        assert!(msg.starts_with("`.` holds the output folder"), "{msg}");
+        let (_, msg) = err("[build]\ncopy = [\"data/..\"]\n");
+        assert!(msg.starts_with("`data/..` holds the output folder"), "{msg}");
+        // Up and back down again, and absolute: the same folder, so the same error.
+        let (line, msg) = err("[build]\noutput = \"../proj/data/out\"\ncopy = [\"data\"]\n");
+        assert_eq!(line, 3);
+        assert!(msg.starts_with("`data` holds the output folder"), "{msg}");
+        let absolute = root.join("data").join("out").to_string_lossy().replace('\\', "/");
+        let (_, msg) = err(&format!("[build]\noutput = \"{absolute}\"\ncopy = [\"data\"]\n"));
+        assert!(msg.starts_with("`data` holds the output folder"), "{msg}");
+        // The settings file's folder as the output folder, written as "." or another way.
+        let (line, msg) = err("[build]\noutput = \".\"\n\ncopy = [\"GAME.CFG\"]\n");
+        assert_eq!(line, 4);
+        assert!(msg.contains("the files are already in the output folder"), "{msg}");
+        let (_, msg) = err("[build]\noutput = \"../proj\"\ncopy = [\"GAME.CFG\"]\n");
+        assert!(msg.contains("the files are already in the output folder"), "{msg}");
+        // An output folder outside the project holds no entry, even one with a name of its path.
+        let outside = root
+            .parent()
+            .unwrap()
+            .join("srv")
+            .join("out")
+            .to_string_lossy()
+            .replace('\\', "/");
+        assert!(resolved(&format!("[build]\noutput = \"{outside}\"\ncopy = [\"srv\"]\n")).is_ok());
+        assert!(resolved("[build]\noutput = \"../out\"\ncopy = [\"data\"]\n").is_ok());
+        assert_eq!(
+            resolved("[build]\noutput = \".\"\ncopy = []\n").map(|b| b.output),
+            Ok(root.clone()),
+            "an empty list with output = \".\""
+        );
     }
 
     /// `--no-settings` (spec `compiler/cli`, "No settings file"): no file is looked for, a bad one included.
@@ -471,7 +879,8 @@ mod tests {
         let main = write(dir.path(), "p.bas", "PRINT 1\n");
         write(dir.path(), "qb64rust.toml", "[fixes\n");
         assert!(load(&main, false).is_err());
-        assert_eq!(load(&main, true).unwrap(), (Project::default(), None));
+        let (project, _, file) = load(&main, true).unwrap();
+        assert_eq!((project, file), (Project::default(), None));
     }
 
     /// `[project]` `main` (design D7 of `include-file-program`): a `main`, no table, a value that is not a string,

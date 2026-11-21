@@ -1,5 +1,6 @@
 import * as assert from "assert";
-import { buildArgs } from "../../src/compiler/qb64rust";
+import * as path from "path";
+import { buildArgs, fallbackPaths, newerProgram, parsePrintPaths, printPathsArgs, printPathsProblem, programPaths } from "../../src/compiler/qb64rust";
 import { adapterArgs } from "../../src/debugConfig";
 import { toolchainRoot } from "../../src/compiler/toolchain";
 
@@ -58,6 +59,77 @@ describe("qb64rust build arguments", () => {
         assert.strictEqual(root, undefined);
         assert.ok(!buildArgs("/w/hello.bas", { toolchain: root, include: "" }).includes("--toolchain-root"));
         assert.strictEqual(toolchainRoot({ folder: `${dir}\\t`, source: "installed" }), `${dir}\\t`);
+    });
+});
+
+// Change build-output-folder, design D5: the paths from `qb64rust --print-paths`, or next to the source without it.
+describe("program paths", () => {
+    const file = `${dir}\\w\\game.bas`;
+    const roots = { toolchain: `${dir}\\t`, include: "" };
+
+    it("asks the compiler with --print-paths and the file", () => {
+        assert.deepStrictEqual(printPathsArgs(file), ["--print-paths", file]);
+    });
+
+    it("reads exe and run_in from the compiler's line of JSON", () => {
+        const line = JSON.stringify({ exe: `${dir}\\w\\build\\game.exe`, run_in: `${dir}\\w\\build` });
+        assert.deepStrictEqual(parsePrintPaths(`${line}\r\n`), { exe: `${dir}\\w\\build\\game.exe`, runIn: `${dir}\\w\\build`, fromCompiler: true });
+    });
+
+    it("anything else is no paths: an older compiler's usage, a settings file's error, a part missing", () => {
+        assert.strictEqual(parsePrintPaths("unknown option `--print-paths`\nusage: qb64rust ..."), undefined);
+        assert.strictEqual(parsePrintPaths(`${dir}\\w\\qb64rust.toml:2: unknown build setting \`out\``), undefined);
+        assert.strictEqual(parsePrintPaths(JSON.stringify({ exe: "x.exe" })), undefined);
+        assert.strictEqual(parsePrintPaths(""), undefined);
+    });
+
+    it("the fallback: next to the source, run in its folder, built with -o", () => {
+        const exe = process.platform === "win32" ? `${dir}\\w\\game.exe` : `${dir}\\w\\game`;
+        const paths = fallbackPaths(file);
+        assert.deepStrictEqual(paths, { exe, runIn: path.dirname(file), fromCompiler: false });
+        assert.deepStrictEqual(buildArgs(file, roots, false, paths).slice(0, 5), ["-x", "-w", file, "-o", exe]);
+    });
+
+    it("no -o when the paths came from the compiler", () => {
+        const paths = { exe: `${dir}\\w\\build\\game.exe`, runIn: `${dir}\\w`, fromCompiler: true };
+        assert.deepStrictEqual(buildArgs(file, roots, false, paths), ["-x", "-w", file, "--toolchain-root", `${dir}\\t`]);
+        assert.deepStrictEqual(buildArgs(file, roots, true, paths)[0], "--debug");
+    });
+
+    it("a compiler that cannot be started gives the fallback, with the reason", async () => {
+        const paths = await programPaths(`${dir}\\no-qb64rust.exe`, file);
+        assert.deepStrictEqual([paths.exe, paths.runIn, paths.fromCompiler], [fallbackPaths(file).exe, path.dirname(file), false]);
+        assert.ok(paths.problem, "no reason given");
+    });
+
+    it("the reason for the fallback: none for an older compiler, else what it printed, or the timeout", () => {
+        const usage = "unknown option `--print-paths`\nusage: qb64rust [-x|-c] ...";
+        assert.strictEqual(printPathsProblem(usage, { message: "exit 1" }), undefined);
+        const bad = `${dir}\\w\\qb64rust.toml:2: unknown build setting \`out\`; the settings are output, copy\n`;
+        assert.strictEqual(printPathsProblem(bad, { message: "exit 1" }), bad.trim());
+        assert.strictEqual(printPathsProblem("", { message: "x", killed: true }), "qb64rust --print-paths did not answer within 10 s");
+        assert.strictEqual(printPathsProblem("", { message: "spawn ENOENT" }), "spawn ENOENT");
+        assert.strictEqual(fallbackPaths(file, "why").problem, "why");
+        assert.ok(!("problem" in fallbackPaths(file)));
+    });
+});
+
+// Spec editor/build-run, "Run commands": Run takes the newer of the compiler's program and the one next to the
+// source (the review's finding 1).
+describe("the program Run starts", () => {
+    const compiler = { exe: `${dir}\\w\\build\\game.exe`, runIn: `${dir}\\w\\build`, fromCompiler: true };
+    const beside = { exe: `${dir}\\w\\game.exe`, runIn: `${dir}\\w`, fromCompiler: false };
+    const times = (t: Record<string, number>) => (f: string) => t[f];
+
+    it("the compiler's when only it exists, or when it is newer", () => {
+        assert.strictEqual(newerProgram(compiler, beside, times({ [compiler.exe]: 5 })), compiler);
+        assert.strictEqual(newerProgram(compiler, beside, times({ [compiler.exe]: 5, [beside.exe]: 4 })), compiler);
+        assert.strictEqual(newerProgram(compiler, beside, times({})), compiler, "neither: Run offers to build");
+    });
+
+    it("the one next to the source when only it exists, or when it is newer, as after Build with QB64pe", () => {
+        assert.strictEqual(newerProgram(compiler, beside, times({ [beside.exe]: 1 })), beside);
+        assert.strictEqual(newerProgram(compiler, beside, times({ [compiler.exe]: 4, [beside.exe]: 5 })), beside);
     });
 });
 

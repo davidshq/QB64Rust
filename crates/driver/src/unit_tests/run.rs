@@ -188,7 +188,7 @@ fn build(file: &TestFile, o: &RunOptions) -> Result<PathBuf, String> {
     let exe = folder.join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));
     let main = entry_path(&path);
     let file_name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
-    let (project, _) = crate::settings::load(&main, o.no_settings).map_err(|e| e.to_string())?;
+    let (project, _, _) = crate::settings::load(&main, o.no_settings).map_err(|e| e.to_string())?;
     let fixes = apply_cli(project.fixes, &o.fixes);
     let options = CompileOptions {
         exe: exe.clone(),

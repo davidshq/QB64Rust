@@ -47,8 +47,8 @@ export class DebugSupport implements vscode.Disposable, vscode.DebugConfiguratio
         folder: vscode.WorkspaceFolder | undefined,
         debugConfig: vscode.DebugConfiguration,
     ): Promise<vscode.DebugConfiguration | undefined> {
-        // An included file is debugged as its program (spec editor/build-run, "Included file"), with the program's
-        // folder as the default `cwd`.
+        // An included file is debugged as its program (spec editor/build-run, "Included file"), with the folder the
+        // program runs in as the default `cwd`.
         const program: unknown = debugConfig.program;
         if (typeof program === "string" && !program.toLowerCase().endsWith(".exe")) {
             debugConfig = { ...debugConfig, program: this.server.programFile(program) };
@@ -64,9 +64,10 @@ export class DebugSupport implements vscode.Disposable, vscode.DebugConfiguratio
                 // No build to offer the toolchain: the session offers it, and starts only once there is one.
                 return (await this.status.toolchain?.ensure(true))?.found ? launch.config : undefined;
             case "build": {
-                const exe = await this.builder.debugBuild(vscode.Uri.file(launch.source));
-                // No executable: the reason is in Problems and the output already. `undefined` ends the launch.
-                return exe ? { ...launch.config, program: exe } : undefined;
+                const built = await this.builder.debugBuild(vscode.Uri.file(launch.source));
+                // No executable: the reason is in Problems and the output already. `undefined` ends the launch. With
+                // no `cwd` given, the program runs where Run runs it (change build-output-folder, design D6).
+                return built ? { ...launch.config, program: built.exe, cwd: launch.config.cwd ?? built.runIn } : undefined;
             }
         }
     }

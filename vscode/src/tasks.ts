@@ -3,7 +3,7 @@ import { ChildProcess, spawn } from "child_process";
 import * as path from "path";
 import * as vscode from "vscode";
 import * as config from "./config";
-import { Bundle, chosenCompiler, planBuild } from "./buildPlan";
+import { Bundle, chosenCompiler, planBuild, runPaths } from "./buildPlan";
 import * as qb64pe from "./compiler/qb64pe";
 import { killTree } from "./compiler/runQueue";
 import { LanguageServer } from "./languageServer";
@@ -75,9 +75,11 @@ export class Qb64TaskProvider implements vscode.TaskProvider {
             task.group = vscode.TaskGroup.Build;
             return task;
         }
+        // The program and the folder it runs in, as the Run command takes them (change build-output-folder, design D6).
         const uri = vscode.Uri.file(file);
         const env = config.noPrompt(uri) ? { QB64PE_NOPROMPT: "y" } : undefined;
-        return new vscode.Task(def, scope, name, TASK_TYPE, new vscode.ProcessExecution(qb64pe.executableFor(file), splitArguments(config.runArguments(uri)), { cwd, env }));
+        const paths = await runPaths(file, this.server);
+        return new vscode.Task(def, scope, name, TASK_TYPE, new vscode.ProcessExecution(paths.exe, splitArguments(config.runArguments(uri)), { cwd: paths.runIn, env }));
     }
 
     private targetFile(def: Qb64TaskDefinition, scope: vscode.TaskScope | vscode.WorkspaceFolder): string | undefined {

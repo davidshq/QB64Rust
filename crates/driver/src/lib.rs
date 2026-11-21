@@ -7,6 +7,7 @@ pub mod fixes;
 pub mod hover;
 pub mod library;
 pub mod lints;
+pub mod output;
 pub mod report;
 pub mod settings;
 pub mod toolchain;
@@ -261,7 +262,7 @@ fn check_with_settings(
     root: &Path,
 ) -> (Program, Diagnostics, Option<settings::Project>) {
     let (project, error) = match main_path.map(|m| settings::load(m, false)) {
-        Some(Ok((project, _))) => (project, None),
+        Some(Ok((project, _, _))) => (project, None),
         Some(Err(e)) => (settings::Project::default(), Some(e)),
         None => (settings::Project::default(), None),
     };

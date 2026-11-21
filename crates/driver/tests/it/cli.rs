@@ -57,10 +57,18 @@ fn qb64rust_build(dir: &Path, args: &[&str]) -> Output {
     qb64rust(dir, args)
 }
 
-/// The executable a build writes for the source `<stem>.bas` with no `-o`: `<stem>.exe` on Windows, `<stem>` on
-/// Linux (spec `compiler/cli`).
+/// The executable a build writes for the source `<stem>.bas` with no `-o` and no settings file, from the source's
+/// folder: `build/<stem>.exe` on Windows, `build/<stem>` on Linux (spec `compiler/cli`, "The output folder").
 fn default_exe(stem: &str) -> String {
-    format!("{stem}{}", std::env::consts::EXE_SUFFIX)
+    format!("build/{stem}{}", std::env::consts::EXE_SUFFIX)
+}
+
+/// An earlier build's program at [`default_exe`] in `d`, with its folder.
+fn write_stale(d: &Path, stem: &str) -> PathBuf {
+    let exe = d.join(default_exe(stem));
+    std::fs::create_dir_all(exe.parent().unwrap()).unwrap();
+    std::fs::write(&exe, b"stale").unwrap();
+    exe
 }
 
 #[expect(clippy::disallowed_methods, reason = "the compiler's own messages")]
@@ -847,7 +855,7 @@ fn generate_cpp_only() {
     for f in qb64rust_codegen_cpp::FRAGMENTS {
         assert!(temp.join(f).is_file(), "{f}");
     }
-    assert!(!d.join("p.exe").exists());
+    assert!(!d.join(default_exe("p")).exists());
 }
 
 /// `--print-build-inputs` (design D1 of `testing-reset`): the program's half of the build's key as the last line, 32
@@ -902,7 +910,7 @@ fn debug_info_dump() {
     assert_eq!(json["version"], 1);
     assert_eq!(json["files"][0]["path"], "p.bas");
     assert_eq!(json["variables"][0]["c_name"], "__LONG_TOTAL");
-    assert!(!d.join("p.exe").exists(), "nothing is built");
+    assert!(!d.join(default_exe("p")).exists(), "nothing is built");
     std::fs::write(d.join("bad.bas"), "PRINT 1 +\n").unwrap();
     let o = qb64rust(&d, &["--dump", "debug-info", "bad.bas"]);
     assert_eq!(o.status.code(), Some(1));
@@ -925,7 +933,7 @@ fn tree_dump() {
 fn a_named_folder_that_is_not_qb64pe() {
     let d = scratch("noclone");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
-    std::fs::write(d.join(default_exe("p")), b"stale").unwrap();
+    write_stale(&d, "p");
     let o = run(
         compiler()
             .current_dir(&d)
@@ -1266,7 +1274,7 @@ fn fixes_errors() {
             "{args:?}: {out}"
         );
     }
-    assert!(!d.join("p.exe").exists() && !d.join("out.bas").exists());
+    assert!(!d.join(default_exe("p")).exists() && !d.join("out.bas").exists());
     let o = qb64rust(&d, &["--fixes", "off", "--dump", "ir", "p.bas"]);
     let out = stdout(&o);
     assert_eq!(o.status.code(), Some(1), "read with --fixes: {out}");
@@ -1380,7 +1388,7 @@ fn without_qb64pe<'a>(cmd: &'a mut Command, home: &Path) -> &'a mut Command {
 fn no_toolchain_found() {
     let d = scratch("notoolchain");
     std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
-    std::fs::write(d.join("p.exe"), b"stale").unwrap();
+    write_stale(&d, "p");
     let compile = |extra: &[&str]| {
         let mut cmd = compiler();
         without_qb64pe(&mut cmd, &d.join("home"))
@@ -1402,7 +1410,7 @@ fn no_toolchain_found() {
     ] {
         assert!(out.contains(word), "{word}: {out}");
     }
-    assert!(!d.join("p.exe").exists());
+    assert!(!d.join(default_exe("p")).exists());
     assert_eq!(
         std::fs::read_dir(d.join("home")).unwrap().count(),
         0,
@@ -1533,7 +1541,7 @@ fn linux_no_toolchain_found() {
             );
         }
     }
-    assert!(!d.join("p").exists());
+    assert!(!d.join("build/p").exists());
     assert_eq!(run_with(&["-z", "p.bas"]).status.code(), Some(0));
 }
 
@@ -1556,7 +1564,195 @@ fn linux_toolchain_path_is_the_system() {
     assert!(stdout(&o).contains("the system toolchain is used"), "{}", stdout(&o));
 }
 
-/// Spec `compiler/cli`, "Default name on Linux": `qb64rust -x game.bas` writes `game` beside the source, executable.
+/// The build folder `-z` writes for the program at `exe`, relative to `d`: `<exe>.qb64rust/temp`. `-z` prints it, so
+/// where a build puts the program is seen without a build.
+fn temp_of(d: &Path, exe: &str) -> PathBuf {
+    d.join(format!("{exe}.qb64rust")).join("temp")
+}
+
+/// Spec `compiler/cli`, "The output folder" (design D2 of `build-output-folder`), seen through `-z`, which writes its
+/// C++ beside where the program would go: the default, a settings file one folder up, another folder, `output =
+/// "."`, `-o` winning, and `--no-settings`.
+#[test]
+fn the_output_folder() {
+    let d = scratch("output-folder");
+    let exe = |stem: &str| format!("{stem}{}", std::env::consts::EXE_SUFFIX);
+    let z = |args: &[&str]| {
+        let o = qb64rust(&d, args);
+        assert!(o.status.success(), "{args:?}: {}", stdout(&o));
+        PathBuf::from(stdout(&o).trim())
+    };
+    std::fs::write(d.join("game.bas"), SLICE_PROGRAM).unwrap();
+    let temp = z(&["-z", "game.bas"]);
+    assert!(
+        temp.is_dir() && temp_of(&d, &default_exe("game")).is_dir(),
+        "the default: {}",
+        temp.display()
+    );
+    assert!(!temp_of(&d, &exe("game")).exists(), "nothing beside the source");
+
+    std::fs::create_dir_all(d.join("proj/src")).unwrap();
+    std::fs::write(d.join("proj/src/game.bas"), SLICE_PROGRAM).unwrap();
+    std::fs::write(d.join("proj/qb64rust.toml"), "[lints]\nall = true\n").unwrap();
+    z(&["-z", "proj/src/game.bas"]);
+    assert!(
+        temp_of(&d, &format!("proj/build/{}", exe("game"))).is_dir(),
+        "a settings file one folder up"
+    );
+    std::fs::write(d.join("proj/qb64rust.toml"), "[build]\noutput = \"out\"\n").unwrap();
+    z(&["-z", "proj/src/game.bas"]);
+    assert!(
+        temp_of(&d, &format!("proj/out/{}", exe("game"))).is_dir(),
+        "another folder"
+    );
+    z(&["-z", "--no-settings", "proj/src/game.bas"]);
+    assert!(
+        temp_of(&d, &format!("proj/src/build/{}", exe("game"))).is_dir(),
+        "--no-settings"
+    );
+
+    std::fs::create_dir_all(d.join("dot")).unwrap();
+    std::fs::write(d.join("dot/game.bas"), SLICE_PROGRAM).unwrap();
+    std::fs::write(d.join("dot/qb64rust.toml"), "[build]\noutput = \".\"\n").unwrap();
+    z(&["-z", "dot/game.bas"]);
+    assert!(
+        temp_of(&d, &format!("dot/{}", exe("game"))).is_dir(),
+        "next to the settings file"
+    );
+    assert!(!d.join("dot/build").exists());
+
+    std::fs::create_dir_all(d.join("named")).unwrap();
+    std::fs::write(d.join("named/game.bas"), SLICE_PROGRAM).unwrap();
+    z(&["-z", "named/game.bas", "-o", "named/other/g.exe"]);
+    assert!(temp_of(&d, "named/other/g.exe").is_dir(), "-o wins");
+    assert!(!d.join("named/build").exists(), "no build folder with -o");
+}
+
+/// Spec `compiler/cli`, "Files copied into the output folder", scenario "A missing entry": status 1, the message
+/// names the settings file, its line and the entry, an older program at the output path is gone, and nothing is
+/// built. A settings file that cannot be used stops the build too, and then removes nothing: without the file the
+/// output folder is not known (design D2 of `build-output-folder`).
+#[test]
+fn a_missing_copy_entry() {
+    let d = scratch("copy-missing");
+    std::fs::write(d.join("p.bas"), SLICE_PROGRAM).unwrap();
+    std::fs::write(d.join("qb64rust.toml"), "[build]\ncopy = [\"maps\",\n  \"GAME.CFG\"]\n").unwrap();
+    std::fs::create_dir_all(d.join("maps")).unwrap();
+    let stale = write_stale(&d, "p");
+    let o = qb64rust(&d, &["-q", "-x", "p.bas"]);
+    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+    let out = stdout(&o);
+    assert!(
+        out.contains("qb64rust.toml:3: `copy` names \"GAME.CFG\", and there is no such file or folder"),
+        "{out}"
+    );
+    assert!(!stale.exists(), "the older program is gone");
+    assert!(!d.join("build/maps").exists(), "nothing copied");
+
+    let stale = write_stale(&d, "p");
+    std::fs::write(d.join("qb64rust.toml"), "[build]\nout = \"b\"\n").unwrap();
+    let o = qb64rust(&d, &["-q", "-x", "p.bas"]);
+    assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
+    assert!(
+        stdout(&o).contains("qb64rust.toml:2: unknown build setting `out`"),
+        "{}",
+        stdout(&o)
+    );
+    assert!(stale.exists(), "a bad settings file removes nothing");
+}
+
+/// Spec `compiler/cli`, "The paths of a program" and "The folder a program runs in": one line of JSON, the program in
+/// `build` and run in the source's folder, or in `build` with a `copy` list; `--target wasm` and `--no-settings` as
+/// a build takes them; nothing built or copied; a bad settings file is status 1 with its error alone.
+#[test]
+fn print_paths() {
+    let d = scratch("print-paths");
+    std::fs::write(d.join("game.bas"), SLICE_PROGRAM).unwrap();
+    std::fs::write(d.join("GAME.CFG"), "1\n").unwrap();
+    let paths = |args: &[&str]| {
+        let o = qb64rust(&d, args);
+        assert!(o.status.success(), "{args:?}: {}", stdout(&o));
+        let out = stdout(&o);
+        assert_eq!(out.lines().count(), 1, "{out}");
+        let json: serde_json::Value = serde_json::from_str(&out).expect("JSON");
+        let path = |key: &str| PathBuf::from(json[key].as_str().expect(key));
+        (path("exe"), path("run_in"))
+    };
+    let same = |a: &Path, b: &Path| std::fs::canonicalize(a).unwrap() == std::fs::canonicalize(b).unwrap();
+    let (exe, run_in) = paths(&["--print-paths", "game.bas"]);
+    assert!(exe.is_absolute() && run_in.is_absolute());
+    assert!(same(&run_in, &d), "without a settings file: {}", run_in.display());
+    assert_eq!(exe, run_in.join(default_exe("game")));
+    let (js, _) = paths(&["--print-paths", "--target", "wasm", "game.bas"]);
+    assert_eq!(js, run_in.join("build/game.js"));
+
+    std::fs::write(d.join("qb64rust.toml"), "[build]\ncopy = [\"GAME.CFG\"]\n").unwrap();
+    let (exe2, run_in2) = paths(&["--print-paths", "game.bas"]);
+    assert_eq!(exe2, exe);
+    assert_eq!(run_in2, run_in.join("build"), "with a copy list");
+    assert_eq!(paths(&["--print-paths", "--no-settings", "game.bas"]).1, run_in);
+    // `-w` names the settings file on a build; here the output stays one line of JSON (`paths` checks it).
+    assert_eq!(paths(&["--print-paths", "-w", "game.bas"]), (exe2, run_in2));
+    assert!(!d.join("build").exists(), "nothing built or copied");
+
+    std::fs::write(d.join("qb64rust.toml"), "[build]\noutput = \"\"\n").unwrap();
+    let o = qb64rust(&d, &["--print-paths", "game.bas"]);
+    assert_eq!(o.status.code(), Some(1));
+    let out = stdout(&o);
+    assert_eq!(out.lines().count(), 1, "{out}");
+    assert!(out.contains("qb64rust.toml:2: `output` must not be empty"), "{out}");
+
+    // An option that `--print-paths` would ignore is refused (the review's finding 6).
+    for other in [
+        &["-o", "g.exe"][..],
+        &["-z"],
+        &["--dump", "ir"],
+        &["--debug"],
+        &["--coverage"],
+    ] {
+        let o = qb64rust(&d, &[&["--print-paths", "game.bas"][..], other].concat());
+        assert_eq!(o.status.code(), Some(1), "{other:?}");
+        assert!(
+            stdout(&o).contains("--print-paths prints the paths of a build without -o"),
+            "{other:?}: {}",
+            stdout(&o)
+        );
+    }
+}
+
+/// Spec `compiler/cli`, "Files copied into the output folder", scenarios "The first build" and "A file the program
+/// rewrote": a build copies the `copy` entries into `build`, beside the program, and a copy that is newer than its
+/// source stays at the next build.
+#[test]
+#[ignore = "needs the QB64pe reference clone"]
+fn a_build_copies_the_data_files() {
+    let d = scratch("copy-build");
+    std::fs::write(d.join("game.bas"), SLICE_PROGRAM).unwrap();
+    std::fs::write(d.join("GAME.CFG"), "source\n").unwrap();
+    std::fs::create_dir_all(d.join("maps/deep")).unwrap();
+    std::fs::write(d.join("maps/deep/one.map"), "map\n").unwrap();
+    std::fs::write(d.join("qb64rust.toml"), "[build]\ncopy = [\"GAME.CFG\", \"maps\"]\n").unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "game.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(d.join(default_exe("game")).is_file());
+    assert!(!d.join(default_exe("game").trim_start_matches("build/")).exists());
+    assert_eq!(std::fs::read(d.join("build/GAME.CFG")).unwrap(), b"source\n");
+    assert_eq!(std::fs::read(d.join("build/maps/deep/one.map")).unwrap(), b"map\n");
+    // The program rewrote its file: newer than the source's, so the next build keeps it.
+    std::fs::write(d.join("build/GAME.CFG"), "the program's\n").unwrap();
+    let later = std::time::SystemTime::now() + Duration::from_secs(60);
+    std::fs::File::options()
+        .write(true)
+        .open(d.join("build/GAME.CFG"))
+        .unwrap()
+        .set_modified(later)
+        .unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "game.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(std::fs::read(d.join("build/GAME.CFG")).unwrap(), b"the program's\n");
+}
+
+/// Spec `compiler/cli`, "Default name on Linux": `qb64rust -x game.bas` writes `build/game`, executable.
 #[test]
 #[cfg(unix)]
 #[ignore = "builds a program"]
@@ -1566,10 +1762,10 @@ fn linux_default_name() {
     std::fs::write(d.join("game.bas"), SLICE_PROGRAM).unwrap();
     let o = qb64rust_build(&d, &["-q", "-x", "game.bas"]);
     assert!(o.status.success(), "{}", stdout(&o));
-    let exe = d.join("game");
+    let exe = d.join("build/game");
     let mode = std::fs::metadata(&exe).unwrap().permissions().mode();
     assert_eq!(mode & 0o111, 0o111, "{mode:o}");
-    assert!(!d.join("game.exe").exists());
+    assert!(!d.join("build/game.exe").exists() && !d.join("game").exists());
     let r = run(unattended(&exe).current_dir(&d), None, PROGRAM_LIMIT, "program");
     assert!(stdout(&r).starts_with("x= .25  3 \n"), "{}", stdout(&r));
 }
@@ -1600,7 +1796,7 @@ fn linux_windows_only_metacommands() {
         assert!(o.status.success(), "{name}: {}", stdout(&o));
         assert_eq!(stdout(&o), warning, "{name}");
         let r = run(
-            unattended(&d.join(name)).current_dir(&d),
+            unattended(&d.join("build").join(name)).current_dir(&d),
             None,
             PROGRAM_LIMIT,
             "program",
@@ -1660,7 +1856,7 @@ fn linux_shared_object_errors_at_the_start() {
         assert!(o.status.success(), "{name}: {}", stdout(&o));
         if *name == "gone" {
             let r = run(
-                unattended(&d.join(name)).current_dir(&d),
+                unattended(&d.join("build").join(name)).current_dir(&d),
                 None,
                 PROGRAM_LIMIT,
                 "program",
@@ -1669,7 +1865,7 @@ fn linux_shared_object_errors_at_the_start() {
             std::fs::remove_file(&so).unwrap();
         }
         let r = run(
-            unattended(&d.join(name)).current_dir(&d),
+            unattended(&d.join("build").join(name)).current_dir(&d),
             None,
             PROGRAM_LIMIT,
             "program",
@@ -2092,7 +2288,7 @@ fn embedded_file_is_missing_or_a_folder() {
         assert_eq!(o.status.code(), Some(1), "{args:?}: {}", stdout(&o));
         assert_eq!(stdout(&o), lines, "{args:?}");
     }
-    assert!(!d.join("p.exe").exists());
+    assert!(!d.join(default_exe("p")).exists());
     let o = qb64rust(&d, &["--report", "unsupported", "p.bas"]);
     assert!(stdout(&o).contains("1 with other errors"), "{}", stdout(&o));
     std::fs::write(d.join("none.txt"), "x").unwrap();
@@ -2164,7 +2360,7 @@ fn exe_icon_file_is_missing() {
         assert_eq!(o.status.code(), Some(1), "{args:?}: {}", stdout(&o));
         assert_eq!(stdout(&o), line, "{args:?}");
     }
-    assert!(!d.join("p.exe").exists());
+    assert!(!d.join(default_exe("p")).exists());
     let o = qb64rust(&d, &["--report", "unsupported", "p.bas"]);
     assert!(
         stdout(&o).contains("0 without errors, 0 with only \"not supported yet\" errors, 1 with other errors"),
@@ -3918,7 +4114,7 @@ fn internal_compiler_error() {
         )
     };
 
-    std::fs::write(d.join(default_exe("p")), b"stale").unwrap();
+    write_stale(&d, "p");
     let o = run(&["-q", "p.bas"]);
     assert_eq!(o.status.code(), Some(3));
     let out = stdout(&o);
@@ -6277,7 +6473,7 @@ fn target_unknown_name() {
         out.contains("[--target host|wasm]") && out.contains("experimental"),
         "{out}"
     );
-    assert!(!d.join(default_exe("p")).exists() && !d.join("p.js").exists());
+    assert!(!d.join(default_exe("p")).exists() && !d.join("build/p.js").exists());
 }
 
 /// Spec `compiler/cli`, "The target option", scenario "The default": `--target host` is the build without the
@@ -6337,7 +6533,10 @@ fn target_wasm_refused_options() {
         let o = qb64rust(&d, &["-x", "--target", "wasm", option, "p.bas"]);
         assert_eq!(o.status.code(), Some(1), "{option}");
         assert!(stdout(&o).contains(said), "{option}: {}", stdout(&o));
-        assert!(!d.join("p.js").exists() && !d.join("p.wasm").exists(), "{option}");
+        assert!(
+            !d.join("build/p.js").exists() && !d.join("build/p.wasm").exists(),
+            "{option}"
+        );
     }
     let o = qb64rust(&d, &["test", "--target", "wasm", "."]);
     assert_eq!(o.status.code(), Some(1));
@@ -6441,13 +6640,16 @@ fn wasm_builds_and_runs() {
          OPEN \"data.txt\" FOR INPUT AS #1\nLINE INPUT #1, l$\nCLOSE #1\nPRINT l$\nSYSTEM 3\n",
     )
     .unwrap();
+    // The data file reaches the output folder through `copy` (spec `compiler/wasm-target`, "A copied data file").
     std::fs::write(d.join("data.txt"), "a line beside the program\n").unwrap();
+    std::fs::write(d.join("qb64rust.toml"), "[build]\ncopy = [\"data.txt\"]\n").unwrap();
     build(&["-q", "-x", "--target", "wasm", "hello.bas"]);
-    assert!(d.join("hello.js").is_file() && d.join("hello.wasm").is_file());
-    assert!(!d.join(default_exe("hello")).exists());
+    assert!(d.join("build/hello.js").is_file() && d.join("build/hello.wasm").is_file());
+    assert!(d.join("build/data.txt").is_file());
+    assert!(!d.join(default_exe("hello")).exists() && !d.join("hello.js").exists());
     // Started from another folder: the program's folder is the one of its `.js` file.
     let elsewhere = scratch("wasm-run-cwd");
-    let o = node(&elsewhere, &d.join("hello.js"));
+    let o = node(&elsewhere, &d.join("build/hello.js"));
     assert_eq!(o.status.code(), Some(3), "{}", stdout(&o));
     assert_eq!(
         stdout(&o).replace("\r\n", "\n"),
@@ -6494,7 +6696,7 @@ fn wasm_pointer_types_run() {
     let o = qb64rust_build(&d, &["-q", "-x", "--target", "wasm", "p.bas"]);
     assert!(o.status.success(), "{}", stdout(&o));
     let mut cmd = Command::new(&sdk.node);
-    cmd.current_dir(&d).arg(d.join("p.js"));
+    cmd.current_dir(&d).arg(d.join("build/p.js"));
     let o = run(&mut cmd, None, PROGRAM_LIMIT, "node");
     assert_eq!(
         stdout(&o).replace("\r\n", "\n"),
@@ -6519,7 +6721,7 @@ fn target_wasm_without_sdk() {
     for part in ["--emsdk-root", "QB64RUST_EMSDK_ROOT", "emsdk install 7.0.0"] {
         assert!(out.contains(part), "{part}: {out}");
     }
-    assert!(!d.join("p.js").exists() && !d.join("p.wasm").exists());
+    assert!(!d.join("build/p.js").exists() && !d.join("build/p.wasm").exists());
 }
 
 /// Spec `compiler/toolchain`, "The Emscripten SDK", scenario "No make": with the SDK found and no host toolchain, a
@@ -6555,7 +6757,7 @@ fn target_wasm_without_make() {
     ] {
         assert!(out.contains(word), "{word}: {out}");
     }
-    assert!(!d.join("p.js").exists() && !d.join("p.wasm").exists());
+    assert!(!d.join("build/p.js").exists() && !d.join("build/p.wasm").exists());
 }
 
 /// Spec `compiler/wasm-target`, "What the target does not have is rejected", scenario "Checking only": `-z --target

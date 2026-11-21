@@ -49,8 +49,10 @@ qb64rust -x hello.bas -o hello.exe
 hello.exe
 ```
 
-Without `-o`, the executable is named after the program and put beside it. The first build takes longer, up to a
-minute, while libqb's objects are built. Later builds reuse them.
+Without `-o`, the executable is named after the program and put in a folder `build`: `qb64rust -x hello.bas`
+writes `build\hello.exe`. The `build` folder is beside the program's `qb64rust.toml`, or beside the program when
+it has none. The settings file can name another folder ([The settings file](#the-settings-file), `[build]`). The
+first build takes longer, up to a minute, while libqb's objects are built. Later builds reuse them.
 
 Errors and warnings are printed as `file:line:column: error: message`. The exit status is:
 
@@ -99,7 +101,8 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 
 | Option | What it does |
 |---|---|
-| `-o <file>` | The executable to write |
+| `-o <file>` | The executable to write, instead of `build\<name>.exe`; nothing of `[build]` `copy` is copied |
+| `--print-paths <file.bas>` | Print, as one line of JSON, the executable a build would write (`exe`) and the folder the program runs in (`run_in`); builds nothing. The editor uses it |
 | `-x` | Accepted for QB64pe's command line; a build is always to an executable. `-c` is the same |
 | `-e` | Build as if the program began with `OPTION _EXPLICIT`, its `$INCLUDE` files too |
 | `-p` | Remove libqb's built objects first, so that the next build makes them again; alone, it does only that |
@@ -126,7 +129,7 @@ A program that uses `$INCLUDE` libraries meant to sit beside `qb64pe.exe` finds 
 ## The settings file
 
 A file named `qb64rust.toml` in the program's folder, or in a folder above it, holds settings for the program.
-Only the nearest one is read. Four tables are read; any other is ignored:
+Only the nearest one is read. Five tables are read; any other is ignored:
 
 - `[fixes]` turns on fixes of behaviors kept from QB64pe. `qb64rust --list-fixes` lists them.
 - `[format]` sets the layout of `-y` and of Format Document in VS Code:
@@ -196,6 +199,40 @@ any number of folders. `exclude = ["**"]` covers the whole folder. On Windows le
 editor reads only the nearest `qb64rust.toml`, so a folder below with a file of its own is checked again unless
 that file has its own `exclude`. The compiler does not use `exclude`, but a mistake in it stops a build, as a
 mistake in any other table does.
+
+- `[build]` says where a build without `-o` puts the program, and which data files it copies there:
+
+```toml
+[build]
+output = "build"                          # the default; "." builds next to qb64rust.toml
+copy = ["GAME.CFG", "HISCORE.CWS", "graphics"]
+```
+
+`output` is relative to the folder of `qb64rust.toml`, and uses `/` between folders. With `output = "."` the program
+goes next to the settings file, which is beside the program when the file is: where it went before `[build]`
+existed.
+
+**Where the program runs.** Without a `copy` list, the editor runs the program in its source's folder, as Visual
+Studio runs a C++ program and `cargo run` runs a Rust one. So a program that opens a data file by name alone finds
+it where it is, and what it writes goes there too. With a `copy` list, the editor runs it in the output folder
+instead, as .NET runs a program in `bin`. What the program writes then stays in `build`, out of the source folder
+and out of version control. Use `copy` for a game that rewrites its settings or high scores beside itself.
+
+**What is copied.** Each entry of `copy` is a file or a folder, relative to the folder of `qb64rust.toml`. Before
+each build, a file is copied into the output folder when the copy is missing there, or when the source's file is
+newer than the copy. A folder is copied file by file by the same rule. So a data file you edit in the source folder
+reaches the next build, and a file the program rewrote in `build` is kept. Nothing in `build` is ever deleted: a
+file you delete from the source folder stays in `build` until you delete it there. Delete `build` for a clean
+start. On a disk that keeps times to 2 seconds (FAT), an edit within 2 seconds of the last copy can be missed. An
+entry that does not exist stops the build with the line of the entry. An entry cannot be or hold the output
+folder, and `copy` needs an output folder other than `"."`. A build with `-o` copies nothing.
+
+**Started outside the editor.** A program started by a double click on `build\game.exe` runs in `build`. It finds
+there only the data files that `copy` put there. Start it from the source folder, list its files in `copy`, or set
+`output = "."`.
+
+`[build]` is read from the first release after 0.3.0. An older compiler ignores the table and builds next to the
+program.
 
 A mistake in the file, such as an unknown key or a value of the wrong kind, stops a build and `-y` with a message
 that names the file, the line and the keys it knows, for instance
