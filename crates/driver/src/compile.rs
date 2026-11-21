@@ -54,6 +54,9 @@ pub struct CompileOptions {
     pub target: Option<Platform>,
     /// `--emsdk-root`: the Emscripten SDK of a wasm build.
     pub emsdk_root: Option<PathBuf>,
+    /// The files a window program's page ships, with their paths in the output folder: those of `[build]` `copy`
+    /// in a build without `-o` (`output::copied_files`), else none (design D11 of `wasm-window`).
+    pub page_files: Vec<(String, PathBuf)>,
 }
 
 impl CompileOptions {
@@ -112,6 +115,9 @@ pub fn remove_old(exe: &Path, platform: Platform) {
     let _ = std::fs::remove_file(build::debug_path(exe));
     if platform == Platform::Wasm {
         let _ = std::fs::remove_file(exe.with_extension("wasm"));
+        // A page's files go with it (OpenSpec change `wasm-window`); the page itself is written or removed by the
+        // build.
+        let _ = std::fs::remove_file(exe.with_extension("data"));
     }
 }
 
@@ -217,6 +223,11 @@ pub fn compile_exe(
 
     let ir = lower(&fe);
     settings.flags = build::make_flags(&ir.settings);
+    // The files a window program's page ships: those `[build]` `copy` copies (OpenSpec change `wasm-window`, design
+    // D11).
+    if platform == Platform::Wasm && ir.settings.window {
+        settings.wasm_files = o.page_files.clone();
+    }
     settings.uncached = ir.settings.compile_stamp;
     // A log statement names a relative source file from the working folder, as the old compiler does from its
     // start folder (design D2 of `m4-handlers-logging-checking`).

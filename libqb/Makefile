@@ -481,12 +481,17 @@ ifeq ($(OS),win)
 endif
 
 # qb64rust's wasm target: no -m32 or -m64, threads everywhere, none of the host's libraries, no icon resource, and
-# the link flags of a program run by Node.
+# the link flags of a program run by Node, or of a window program run in a browser page.
 ifeq ($(WASM),y)
-	CXXFLAGS := $(filter-out -m32 -m64 -no-pie -D_GLFW_%,$(CXXFLAGS)) -pthread
-	EXE_LIBS := $(filter-out %/glut-emu.o %/core.a %/clipboard.a,$(EXE_LIBS))
+	CXXFLAGS := $(filter-out -m32 -m64 -no-pie -D_GLFW_%,$(CXXFLAGS)) -pthread -fwasm-exceptions
 	CFLAGS := $(filter-out -m32 -m64 -no-pie,$(CFLAGS)) -pthread
-	CXXLIBS := $(CXXLIBS_EXTRA) -pthread -sPTHREAD_POOL_SIZE=4 -sNODERAWFS -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH -sENVIRONMENT=node
+	ifneq ($(filter y,$(DEP_CONSOLE_ONLY)),)
+		EXE_LIBS := $(filter-out %/glut-emu.o %/core.a %/clipboard.a,$(EXE_LIBS))
+		CXXLIBS := $(CXXLIBS_EXTRA) -pthread -sPTHREAD_POOL_SIZE=4 -sNODERAWFS -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH -sENVIRONMENT=node -fwasm-exceptions
+	else
+		EXE_LIBS := $(filter-out %/core.a %/clipboard.a,$(EXE_LIBS)) $(GLAD_OBJS)
+		CXXLIBS := $(CXXLIBS_EXTRA) -pthread -sPTHREAD_POOL_SIZE=8 -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH -sENVIRONMENT=web,worker -sUSE_GLFW=3 -sLEGACY_GL_EMULATION -sMAX_WEBGL_VERSION=2 -sEXPORTED_RUNTIME_METHODS=FS,ENV,IDBFS,addRunDependency,removeRunDependency -lidbfs.js -sASSERTIONS=0 -fwasm-exceptions
+	endif
 	EXE_OBJS := $(filter-out $(ICON_OBJ),$(EXE_OBJS))
 endif
 

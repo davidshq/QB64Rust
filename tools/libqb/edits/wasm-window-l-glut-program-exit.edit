@@ -1,0 +1,20 @@
+# The wasm target's window (OpenSpec change wasm-window): as wasm-window-k-glut-exit-message, for an exit asked on
+# the page's main thread.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+        libqb_log_trace("Program exiting with code %d", exitCode);
+        GLUTEmu::Instance().WindowSetCloseFunction(nullptr);
+        GLUTEmu::Instance().WindowSetShouldClose(true);
+        exit(exitCode);
+    } else if (!GLUTEmu::Instance().MainLoopIsRunning()) {
+--- new
+        libqb_log_trace("Program exiting with code %d", exitCode);
+        GLUTEmu::Instance().WindowSetCloseFunction(nullptr);
+        GLUTEmu::Instance().WindowSetShouldClose(true);
+#ifdef QB64_EMSCRIPTEN
+        emscripten_force_exit(exitCode);
+#else
+        exit(exitCode);
+#endif
+    } else if (!GLUTEmu::Instance().MainLoopIsRunning()) {
+--- end

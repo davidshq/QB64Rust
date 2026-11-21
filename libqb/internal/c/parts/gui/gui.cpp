@@ -16,6 +16,9 @@
 #include "gui.h"
 #include "qbs.h"
 #include "tinyfiledialogs.h"
+#ifdef QB64_EMSCRIPTEN
+#    include <emscripten.h>
+#endif
 #include <algorithm>
 #include <climits>
 #include <cstdio>
@@ -390,7 +393,20 @@ int gui_alert(const char *message, const char *title, const char *type) {
     fprintf(stderr, "\nRuntime error: %s\n", message);
     fflush(stderr);
     gui_modal_guard modalGuard;
+#ifdef QB64_EMSCRIPTEN
+    return MAIN_THREAD_EM_ASM_INT(
+        {
+            var text = UTF8ToString($1) + "\n\n" + UTF8ToString($0);
+            if (UTF8ToString($2) === "ok") {
+                alert(text);
+                return 1;
+            }
+            return confirm(text) ? 1 : 0;
+        },
+        message, title, type);
+#else
     return tinyfd_messageBox(title, message, type, "error", 1);
+#endif
 }
 
 /// @brief This is used internally by libqb to show warning and failure messages

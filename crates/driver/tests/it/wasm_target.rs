@@ -41,15 +41,46 @@ fn rejected(source: &str, expected: &[&str]) {
     }
 }
 
-/// "Console programs only", scenario "A window program".
+/// "A window program runs in a page" (OpenSpec change `wasm-window`): a program without `$CONSOLE:ONLY` is taken.
 #[test]
 fn a_window_program() {
-    rejected(
-        "PRINT \"hi\"\nSLEEP\n",
-        &["1: the wasm target builds only `$CONSOLE:ONLY` programs so far"],
-    );
-    rejected("$CONSOLE\nPRINT \"hi\"\n", &["1: builds only `$CONSOLE:ONLY` programs"]);
+    rejected("PRINT \"hi\"\nSLEEP\n", &[]);
+    rejected("$CONSOLE\nPRINT \"hi\"\n", &[]);
     rejected("$CONSOLE:ONLY\nPRINT \"hi\"\n", &[]);
+}
+
+/// "What the target does not have is rejected": the words a page has no form of, at their lines; sound only in a
+/// `$CONSOLE:ONLY` program, whose Node has no Web Audio (OpenSpec change `wasm-window`).
+#[test]
+fn window_words() {
+    rejected(
+        "SCREEN 12\nh& = _WINDOWHANDLE\n_SCREENCLICK 1, 1\n",
+        &[
+            "2: `_WINDOWHANDLE` is not available on the wasm target",
+            "3: `_SCREENCLICK` is not available on the wasm target",
+        ],
+    );
+    rejected(
+        "a$ = _INPUTBOX$(\"t\", \"m\", \"\")\n_MESSAGEBOX \"t\", \"m\"\n",
+        &[
+            "1: `_INPUTBOX$` is not available on the wasm target",
+            "2: `_MESSAGEBOX` is not available on the wasm target",
+        ],
+    );
+    rejected(
+        "SCREEN 12\nSUB _GL\nEND SUB\n",
+        &["2: `SUB _GL` is not available on the wasm target"],
+    );
+    // A `$CONSOLE:ONLY` program keeps them, as the console target always had: it never shows a window.
+    rejected(
+        "$CONSOLE:ONLY\nh& = _WINDOWHANDLE\n_MESSAGEBOX \"t\", \"m\"\nSUB _GL\nEND SUB\n",
+        &[],
+    );
+    rejected("SOUND 440, 1\nPLAY \"C\"\n", &[]);
+    rejected(
+        "$CONSOLE:ONLY\nSOUND 440, 1\n",
+        &["2: `SOUND` is not available on the wasm target yet: libqb's audio part is not built for it"],
+    );
 }
 
 /// "What the target does not have is rejected", scenarios "SHELL" and "The same program for the host": the error at

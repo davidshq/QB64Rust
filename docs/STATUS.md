@@ -66,6 +66,7 @@ Libraries Pack compile), the `_ANDALSO` hint, `[project]` `exclude`, the archive
 past 2 GB and 4 GB (D-066, D-067), `REDIM` of a `TYPE` array without `AS` (D-068), the `.alone` marker and
 run lock of the test tools, and the archived change `wasm-console` (`58437442`). No `just merge` has run on it
 yet. The OpenSpec change `wasm-pointer-width` (W0.5) is built and archived (2026-11-21, "Next" item 1).
+The OpenSpec change `wasm-window` (W1) is built and archived (2026-11-21). Its two open tasks are `SOMEDAY.md` rows.
 
 ## Waiting on the user
 
@@ -116,8 +117,13 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    `STRING` build, and libqb's handshake flags are `std::atomic`. The 270 programs that were on
    `tests\verification\known.wasm.list` as `offset` ran for wasm in the suites VM (`check wasm-rerun`): 230 pass, 15
    are failures known on Linux too, and 25 are listed as `width`, since their recorded output shows an 8-byte
-   pointer. The desktop suites (`just full`) have not run on the libqb edits yet. Next after it is W1, a window in
-   the browser.
+   pointer. The desktop suites (`just full`) have not run on the libqb edits yet. W1, the OpenSpec change
+   `wasm-window`, was built overnight on 2026-11-21 and archived the same day: a window program builds to
+   a page and runs in a browser (Emscripten's GLFW, its GL emulation on WebGL 2, Web Audio), and
+   `tools\wasm\browser.mjs` runs it in headless Chrome for the tests. In a browser, on the host (user,
+   2026-11-21): the `screen\` corpus passes, except its listed programs, and of the verification family's 307 window
+   programs 261 pass and the rest are listed. A page ships the files of `[build]` `copy` in `qb64rust.toml`, and
+   the page keeps what it writes in IndexedDB. Civil War Strategy's port reaches its first turn.
    Other candidates for later are in `SOMEDAY.md`:
    deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS Code features
    still missing.

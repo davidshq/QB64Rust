@@ -8,7 +8,7 @@ FOO_MIDI_SRCS := \
 	PSPlayer.cpp \
 	TSFPlayer.cpp
 
-ifeq ($(OS),win)
+ifeq ($(OS)$(WASM),win)
 	FOO_MIDI_SRCS += VSTiPlayer.cpp
 endif
 

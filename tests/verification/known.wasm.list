@@ -1,319 +1,12 @@
 # The verification programs the wasm target cannot run (OpenSpec change wasm-console; spec testing/golden-corpus,
 # "The wasm known list"), in the format of known.list: <name><TAB><reason>. Every reason starts with target,
-# window, float, clib, width, node, varies or open. The lines target and window are skipped without a build.
-# They were written by `-z --target wasm` over the suite (task 6.2 of wasm-console): window for a program without
-# $CONSOLE:ONLY, target for one that uses a word the target does not have, or a part of libqb it does not build
-# yet. The reason offset, for a program rejected for a pointer's size, went with the OpenSpec change
-# wasm-pointer-width (2026-11-20): _OFFSET, _MEM and a member array of strings are built with 4-byte pointers.
-# window: 307
-v16_m5_line_b_var	window: no $CONSOLE:ONLY
-v16_m5_line_extra_arg	window: no $CONSOLE:ONLY
-v16_m5_line_no_parens	window: no $CONSOLE:ONLY
-v16_m5_line_wrong_word	window: no $CONSOLE:ONLY
-v16_m5_lowercase_words	window: no $CONSOLE:ONLY
-v16_m5_put_forms	window: no $CONSOLE:ONLY
-v16_m5_put_graphics_no_array	window: no $CONSOLE:ONLY
-v26_a_dest_console	window: no $CONSOLE:ONLY
-v26_b_dest_switch	window: no $CONSOLE:ONLY
-v26_c_dest_in_sub	window: no $CONSOLE:ONLY
-v26_d1_input_dest	window: no $CONSOLE:ONLY
-v26_d2_input_source	window: no $CONSOLE:ONLY
-v26_e2_fall_off	window: no $CONSOLE:ONLY
-v26_e_end	window: no $CONSOLE:ONLY
-v26_f1_error_handled	window: no $CONSOLE:ONLY
-v26_f2_error_untrapped	window: no $CONSOLE:ONLY
-v26_g_echo	window: no $CONSOLE:ONLY
-v26_h2_flag_both	window: no $CONSOLE:ONLY
-v26_h_flag_console	window: no $CONSOLE:ONLY
-v26_x01_console_twice	window: no $CONSOLE:ONLY
-v26_x04_console_last_line	window: no $CONSOLE:ONLY
-v26_x05_dest_console_no_meta	window: no $CONSOLE:ONLY
-v26_x06_screenhide_alone	window: no $CONSOLE:ONLY
-v26_x07_screenshow_after_hide	window: no $CONSOLE:ONLY
-v26_x08_console_in_sub	window: no $CONSOLE:ONLY
-v26_x09_console_off	window: no $CONSOLE:ONLY
-v26_x10_console_junk	window: no $CONSOLE:ONLY
-v26_x11_screenhide_junk	window: no $CONSOLE:ONLY
-v26_x12_console_comment	window: no $CONSOLE:ONLY
-v26_x13_console_after_colon	window: no $CONSOLE:ONLY
-v26_x14_console_before_colon	window: no $CONSOLE:ONLY
-v26_x15_case_and_blanks	window: no $CONSOLE:ONLY
-v26_x16_console_in_if_false	window: no $CONSOLE:ONLY
-v26_x17_echo_no_console	window: no $CONSOLE:ONLY
-v26_x18_dest_no_argument	window: no $CONSOLE:ONLY
-v26_x19_dest_string	window: no $CONSOLE:ONLY
-v26_x20_console_assigned	window: no $CONSOLE:ONLY
-v26_x21_dest_bad_handle	window: no $CONSOLE:ONLY
-v26_x22_dest_types	window: no $CONSOLE:ONLY
-v26_x23_tab_before	window: no $CONSOLE:ONLY
-v26_x26_flag_guarded_console	window: no $CONSOLE:ONLY
-v26_x29_only_comment	window: no $CONSOLE:ONLY
-v26_x30_only_junk	window: no $CONSOLE:ONLY
-v26_x31_only_blanks_inside	window: no $CONSOLE:ONLY
-v26_x32_screenshow_junk	window: no $CONSOLE:ONLY
-v26_x35_screenhide_comment	window: no $CONSOLE:ONLY
-v26_x36_screenhide_after_colon	window: no $CONSOLE:ONLY
-v26_x37_screenhide_before_colon	window: no $CONSOLE:ONLY
-v26_x38_flag_guarded_only	window: no $CONSOLE:ONLY
-v26_x39_flag_running_value	window: no $CONSOLE:ONLY
-v26_x43_tab_before_only	window: no $CONSOLE:ONLY
-v26_x44_tab_before_screenhide	window: no $CONSOLE:ONLY
-v26_x48_only_after_colon	window: no $CONSOLE:ONLY
-v26_x52_flag_asserts_console	window: no $CONSOLE:ONLY
-v26_x53_flag_three_rounds	window: no $CONSOLE:ONLY
-v26_x58_tab_after	window: no $CONSOLE:ONLY
-v26_x60_console_onlyx	window: no $CONSOLE:ONLY
-v26_x62_echo_above_console	window: no $CONSOLE:ONLY
-v26_x63_echo_number	window: no $CONSOLE:ONLY
-v26_x64_echo_no_argument	window: no $CONSOLE:ONLY
-v26_x65_echo_two	window: no $CONSOLE:ONLY
-v26_x66_source_no_argument	window: no $CONSOLE:ONLY
-v26_x67_source_string	window: no $CONSOLE:ONLY
-v26_x68_dest_function_argument	window: no $CONSOLE:ONLY
-v26_x69_call_echo	window: no $CONSOLE:ONLY
-v26_x70_call_dest	window: no $CONSOLE:ONLY
-v26_x71_dest_two	window: no $CONSOLE:ONLY
-v26_x73_dest_parens	window: no $CONSOLE:ONLY
-v31_a_colours	window: no $CONSOLE:ONLY
-v31_b_images	window: no $CONSOLE:ONLY
-v31_c_save_load	window: no $CONSOLE:ONLY
-v31_d_fonts	window: no $CONSOLE:ONLY
-v31_x01_accepted	window: no $CONSOLE:ONLY
-v31_x02_copyimage_bare	window: no $CONSOLE:ONLY
-v31_x03_loadimage_empty	window: no $CONSOLE:ONLY
-v31_x04_loadimage_bare	window: no $CONSOLE:ONLY
-v31_x05_loadimage_number	window: no $CONSOLE:ONLY
-v31_x06_loadimage_string_mode	window: no $CONSOLE:ONLY
-v31_x07_loadimage_four	window: no $CONSOLE:ONLY
-v31_x08_putimage_dash	window: no $CONSOLE:ONLY
-v31_x09_putimage_too_many	window: no $CONSOLE:ONLY
-v31_x100_pmap_three	window: no $CONSOLE:ONLY
-v31_x101_mouseinput_arg	window: no $CONSOLE:ONLY
-v31_x102_mousehidden_arg	window: no $CONSOLE:ONLY
-v31_x103_mousemovementx_arg	window: no $CONSOLE:ONLY
-v31_x104_newimage_one	window: no $CONSOLE:ONLY
-v31_x105_freeimage_two	window: no $CONSOLE:ONLY
-v31_x106_setalpha_string	window: no $CONSOLE:ONLY
-v31_x107_mouseinput_statement	window: no $CONSOLE:ONLY
-v31_x108_width_statement	window: no $CONSOLE:ONLY
-v31_x109_rgb_statement	window: no $CONSOLE:ONLY
-v31_x10_putimage_smooth_no_comma	window: no $CONSOLE:ONLY
-v31_x11_putimage_string	window: no $CONSOLE:ONLY
-v31_x12_putimage_three_coords	window: no $CONSOLE:ONLY
-v31_x13_mousebutton_bare	window: no $CONSOLE:ONLY
-v31_x14_mousebutton_two	window: no $CONSOLE:ONLY
-v31_x15_mousex_arg	window: no $CONSOLE:ONLY
-v31_x16_mousewheel_two	window: no $CONSOLE:ONLY
-v31_x17_mousemove_one	window: no $CONSOLE:ONLY
-v31_x18_mousemove_string	window: no $CONSOLE:ONLY
-v31_x19_ucharpos_integer_array	window: no $CONSOLE:ONLY
-v31_x20_ucharpos_long_scalar	window: no $CONSOLE:ONLY
-v31_x21_ucharpos_string_array	window: no $CONSOLE:ONLY
-v31_x22_ucharpos_array_name_bare	window: no $CONSOLE:ONLY
-v31_x23_ucharpos_five	window: no $CONSOLE:ONLY
-v31_x24_ucharpos_bare	window: no $CONSOLE:ONLY
-v31_x25_ucharpos_literal	window: no $CONSOLE:ONLY
-v31_x26_ucharpos_long64_array	window: no $CONSOLE:ONLY
-v31_x27_rgb_two	window: no $CONSOLE:ONLY
-v31_x28_rgb_six	window: no $CONSOLE:ONLY
-v31_x29_rgba_three	window: no $CONSOLE:ONLY
-v31_x30_red_empty	window: no $CONSOLE:ONLY
-v31_x31_red_bare	window: no $CONSOLE:ONLY
-v31_x32_red_three	window: no $CONSOLE:ONLY
-v31_x33_red32_two	window: no $CONSOLE:ONLY
-v31_x34_hsb32_two	window: no $CONSOLE:ONLY
-v31_x35_hue32_string	window: no $CONSOLE:ONLY
-v31_x36_rgb_string	window: no $CONSOLE:ONLY
-v31_x37_width_string	window: no $CONSOLE:ONLY
-v31_x38_width_two	window: no $CONSOLE:ONLY
-v31_x39_pixelsize_empty	window: no $CONSOLE:ONLY
-v31_x40_printmode_bare	window: no $CONSOLE:ONLY
-v31_x41_printmode_number	window: no $CONSOLE:ONLY
-v31_x42_printmode_fn_two	window: no $CONSOLE:ONLY
-v31_x43_depthbuffer_bare	window: no $CONSOLE:ONLY
-v31_x44_depthbuffer_number	window: no $CONSOLE:ONLY
-v31_x45_mapunicode_comma	window: no $CONSOLE:ONLY
-v31_x46_mapunicode_one	window: no $CONSOLE:ONLY
-v31_x47_mapunicode_fn_bare	window: no $CONSOLE:ONLY
-v31_x48_mapunicode_fn_two	window: no $CONSOLE:ONLY
-v31_x49_setalpha_bare	window: no $CONSOLE:ONLY
-v31_x50_setalpha_to_only	window: no $CONSOLE:ONLY
-v31_x51_setalpha_to_without_first	window: no $CONSOLE:ONLY
-v31_x52_font_bare	window: no $CONSOLE:ONLY
-v31_x53_font_three	window: no $CONSOLE:ONLY
-v31_x54_font_fn_two	window: no $CONSOLE:ONLY
-v31_x55_freefont_bare	window: no $CONSOLE:ONLY
-v31_x56_freefont_two	window: no $CONSOLE:ONLY
-v31_x57_printstring_no_coords	window: no $CONSOLE:ONLY
-v31_x58_printstring_number_text	window: no $CONSOLE:ONLY
-v31_x59_printstring_no_text	window: no $CONSOLE:ONLY
-v31_x60_printstring_dash	window: no $CONSOLE:ONLY
-v31_x61_printwidth_bare	window: no $CONSOLE:ONLY
-v31_x62_printwidth_number	window: no $CONSOLE:ONLY
-v31_x63_uprintstring_no_text	window: no $CONSOLE:ONLY
-v31_x64_uprintstring_step	window: no $CONSOLE:ONLY
-v31_x65_uprintstring_eight	window: no $CONSOLE:ONLY
-v31_x66_uprintwidth_bare	window: no $CONSOLE:ONLY
-v31_x67_ufontheight_two	window: no $CONSOLE:ONLY
-v31_x68_loadfont_one	window: no $CONSOLE:ONLY
-v31_x69_loadfont_number_name	window: no $CONSOLE:ONLY
-v31_x70_loadfont_five	window: no $CONSOLE:ONLY
-v31_x71_fontwidth_two	window: no $CONSOLE:ONLY
-v31_x72_maptriangle_two_points	window: no $CONSOLE:ONLY
-v31_x73_maptriangle_no_to	window: no $CONSOLE:ONLY
-v31_x74_maptriangle_smooth_no_dest_comma	window: no $CONSOLE:ONLY
-v31_x75_maptriangle_seamless_after	window: no $CONSOLE:ONLY
-v31_x76_maptriangle_3d_source	window: no $CONSOLE:ONLY
-v31_x77_maptriangle_step	window: no $CONSOLE:ONLY
-v31_x78_clearcolor_fn_two	window: no $CONSOLE:ONLY
-v31_x79_clipboardimage_no_equals	window: no $CONSOLE:ONLY
-v31_x80_clipboardimage_fn_arg	window: no $CONSOLE:ONLY
-v31_x81_screenimage_two	window: no $CONSOLE:ONLY
-v31_x82_screenimage_empty	window: no $CONSOLE:ONLY
-v31_x83_printimage_bare	window: no $CONSOLE:ONLY
-v31_x84_printimage_two	window: no $CONSOLE:ONLY
-v31_x85_saveimage_bare	window: no $CONSOLE:ONLY
-v31_x86_saveimage_number	window: no $CONSOLE:ONLY
-v31_x87_saveimage_four	window: no $CONSOLE:ONLY
-v31_x88_palettecolor_one	window: no $CONSOLE:ONLY
-v31_x89_palettecolor_fn_bare	window: no $CONSOLE:ONLY
-v31_x90_palettecolor_fn_three	window: no $CONSOLE:ONLY
-v31_x91_copypalette_three	window: no $CONSOLE:ONLY
-v31_x92_copyimage_three	window: no $CONSOLE:ONLY
-v31_x93_blend_two	window: no $CONSOLE:ONLY
-v31_x94_blend_fn_two	window: no $CONSOLE:ONLY
-v31_x95_dontblend_two	window: no $CONSOLE:ONLY
-v31_x96_autodisplay_arg	window: no $CONSOLE:ONLY
-v31_x97_autodisplay_fn_arg	window: no $CONSOLE:ONLY
-v31_x98_pmap_one	window: no $CONSOLE:ONLY
-v31_x99_pmap_bare	window: no $CONSOLE:ONLY
-v33_a06_asserts_console	window: no $CONSOLE:ONLY
-v33_a07_assert_console_no_message	window: no $CONSOLE:ONLY
-v33_a09_assert_window_message	window: no $CONSOLE:ONLY
-v33_c21_system_5_window	window: no $CONSOLE:ONLY
-v33_d03_debug_window	window: no $CONSOLE:ONLY
-v33_x06_asserts_console_lower	window: no $CONSOLE:ONLY
-v52_x14_stop_window	window: no $CONSOLE:ONLY
-v53_a_window	window: no $CONSOLE:ONLY
-v53_b_colours	window: no $CONSOLE:ONLY
-v53_x70_meta_resize_bare	window: no $CONSOLE:ONLY
-v53_x71_meta_resize_bogus	window: no $CONSOLE:ONLY
-v53_x72_meta_resize_lower	window: no $CONSOLE:ONLY
-v53_x73_meta_resize_blank_after	window: no $CONSOLE:ONLY
-v53_x74_meta_resize_blank_before	window: no $CONSOLE:ONLY
-v53_x75_meta_resize_word_after	window: no $CONSOLE:ONLY
-v53_x76_meta_resize_stretch	window: no $CONSOLE:ONLY
-v53_x77_meta_resize_smooth_off	window: no $CONSOLE:ONLY
-v53_x79_meta_resize_comment	window: no $CONSOLE:ONLY
-v53_x80_meta_resize_in_sub	window: no $CONSOLE:ONLY
-v53_x81_meta_resize_on_on	window: no $CONSOLE:ONLY
-v53_x82_meta_resize_tab	window: no $CONSOLE:ONLY
-v53_x83_meta_resize_equals	window: no $CONSOLE:ONLY
-v56_d_get_put_kinds	window: no $CONSOLE:ONLY
-v56_e_undeclared_arrays	window: no $CONSOLE:ONLY
-v57_h01_screenhide_value	window: no $CONSOLE:ONLY
-v57_h02_screenhide_value_shown	window: no $CONSOLE:ONLY
-v57_h03_screenhide_after_statement	window: no $CONSOLE:ONLY
-v57_o01_point_last	window: no $CONSOLE:ONLY
-v57_o21_point_first_one	window: no $CONSOLE:ONLY
-v57_r10_screen_color	window: no $CONSOLE:ONLY
-v57_u01_palette_using_nothing	window: no $CONSOLE:ONLY
-v57_u02_palette_using_single	window: no $CONSOLE:ONLY
-v57_u03_palette_using_scalar	window: no $CONSOLE:ONLY
-v57_u04_palette_using_errors	window: no $CONSOLE:ONLY
-v57_u05_palette_using_int64	window: no $CONSOLE:ONLY
-v57_u06_palette_using_whole_parens	window: no $CONSOLE:ONLY
-v58_f14_display_window	window: no $CONSOLE:ONLY
-v58_s01_ports_window	window: no $CONSOLE:ONLY
-v58_s01b_wait_window	window: no $CONSOLE:ONLY
-v58_s05_display_window	window: no $CONSOLE:ONLY
-v58_s06_blink_window	window: no $CONSOLE:ONLY
-v59_a1_plain	window: no $CONSOLE:ONLY
-v59_a2_static	window: no $CONSOLE:ONLY
-v59_a3_include	window: no $CONSOLE:ONLY
-v59_a4_lower_parens	window: no $CONSOLE:ONLY
-v59_a6_screenhide	window: no $CONSOLE:ONLY
-v59_b1_stmt_without	window: no $CONSOLE:ONLY
-v59_b2_func_without	window: no $CONSOLE:ONLY
-v59_b3_const_without	window: no $CONSOLE:ONLY
-v59_b4_const_without_explicit	window: no $CONSOLE:ONLY
-v59_c_constants	window: no $CONSOLE:ONLY
-v59_d_conversions	window: no $CONSOLE:ONLY
-v59_e2_getstring_null	window: no $CONSOLE:ONLY
-v59_e_functions	window: no $CONSOLE:ONLY
-v59_f1_viewport_handled	window: no $CONSOLE:ONLY
-v59_f2_viewport_unhandled	window: no $CONSOLE:ONLY
-v59_f3_system_unhandled	window: no $CONSOLE:ONLY
-v59_f4_system_handled	window: no $CONSOLE:ONLY
-v59_f5_end_handled	window: no $CONSOLE:ONLY
-v59_f6_no_helper	window: no $CONSOLE:ONLY
-v59_f7_getstring_main	window: no $CONSOLE:ONLY
-v59_f8_in_sub	window: no $CONSOLE:ONLY
-v59_f9_stop	window: no $CONSOLE:ONLY
-v59_g_readback	window: no $CONSOLE:ONLY
-v59_h1_behind	window: no $CONSOLE:ONLY
-v59_h2_only	window: no $CONSOLE:ONLY
-v59_h3_ontop	window: no $CONSOLE:ONLY
-v59_x01_sub_gl_param	window: no $CONSOLE:ONLY
-v59_x02_sub_gl_param_and_plain	window: no $CONSOLE:ONLY
-v59_x03_function_gl	window: no $CONSOLE:ONLY
-v59_x04_function_gl_and_sub	window: no $CONSOLE:ONLY
-v59_x05_two_sub_gl	window: no $CONSOLE:ONLY
-v59_x06_call_gl	window: no $CONSOLE:ONLY
-v59_x07_call_gl_call	window: no $CONSOLE:ONLY
-v59_x08_call_gl_inside	window: no $CONSOLE:ONLY
-v59_x09_viewport_three_args	window: no $CONSOLE:ONLY
-v59_x10_clear_string	window: no $CONSOLE:ONLY
-v59_x11_clear_string_var	window: no $CONSOLE:ONLY
-v59_x12_sub_as_function	window: no $CONSOLE:ONLY
-v59_x13_function_as_statement	window: no $CONSOLE:ONLY
-v59_x14_function_args_as_statement	window: no $CONSOLE:ONLY
-v59_x15_call_keyword	window: no $CONSOLE:ONLY
-v59_x16_statement_parens	window: no $CONSOLE:ONLY
-v59_x17_no_prefix	window: no $CONSOLE:ONLY
-v59_x18_const_long_suffix	window: no $CONSOLE:ONLY
-v59_x19_const_string_suffix	window: no $CONSOLE:ONLY
-v59_x20_assign_const	window: no $CONSOLE:ONLY
-v59_x21_own_const	window: no $CONSOLE:ONLY
-v59_x22_own_sub	window: no $CONSOLE:ONLY
-v59_x23_own_sub_without	window: no $CONSOLE:ONLY
-v59_x24_dim_same	window: no $CONSOLE:ONLY
-v59_x25_func_suffix	window: no $CONSOLE:ONLY
-v59_x26_func_wrong_suffix	window: no $CONSOLE:ONLY
-v59_x27_getstring_suffix	window: no $CONSOLE:ONLY
-v59_x28_offset_from_long	window: no $CONSOLE:ONLY
-v59_x29_offset_string	window: no $CONSOLE:ONLY
-v59_x30_offset_array	window: no $CONSOLE:ONLY
-v59_x31_perspective_three	window: no $CONSOLE:ONLY
-v59_x32_perspective_function	window: no $CONSOLE:ONLY
-v59_x33_glu_other	window: no $CONSOLE:ONLY
-v59_x34_declare_sub_gl	window: no $CONSOLE:ONLY
-v59_x35_sub_gl_suffix	window: no $CONSOLE:ONLY
-v59_x36_flush_empty_parens	window: no $CONSOLE:ONLY
-v59_x37_viewport_trailing_comma	window: no $CONSOLE:ONLY
-v59_x38_viewport_omitted	window: no $CONSOLE:ONLY
-v59_x39_byval_word	window: no $CONSOLE:ONLY
-v59_x40_func_suffix_in_sub_gl_name	window: no $CONSOLE:ONLY
-v59_x41_gl_label	window: no $CONSOLE:ONLY
-v59_x42_name_as_variable_without	window: no $CONSOLE:ONLY
-v59_x43_const_of_gl_const	window: no $CONSOLE:ONLY
-v59_x44_const_in_sub_gl	window: no $CONSOLE:ONLY
-v59_x45_const_in_gl_bound	window: no $CONSOLE:ONLY
-v59_x46_gl_const_in_select	window: no $CONSOLE:ONLY
-v59_x47_gl_names_with_declare_only	window: no $CONSOLE:ONLY
-v59_x48_statement_suffix	window: no $CONSOLE:ONLY
-v59_x49_call_suffix	window: no $CONSOLE:ONLY
-v59_x50_clear_two_args	window: no $CONSOLE:ONLY
-v59_x51_viewport_third_string	window: no $CONSOLE:ONLY
-v59_x52_member_bound_gl_const	window: no $CONSOLE:ONLY
-v59_x53_fixed_len_gl_const	window: no $CONSOLE:ONLY
-v59_x54_member_fixed_len_gl_const	window: no $CONSOLE:ONLY
-v59_x55_func_suffix_empty_parens	window: no $CONSOLE:ONLY
-v59_x56_statement_suffix_empty_parens	window: no $CONSOLE:ONLY
-v59_x57_call_suffix_no_args	window: no $CONSOLE:ONLY
-v66_a19_get_put_index_function	window: no $CONSOLE:ONLY
-v66_a20_draw_x_varptrs	window: no $CONSOLE:ONLY
-# target: 145
+# float, clib, width, node, varies or open. The lines target are skipped without a build.
+# They were written by `-z --target wasm` over the suite (task 6.2 of wasm-console): target for one that uses a word
+# the target does not have, or a part of libqb it does not build yet. The reason offset, for a program rejected for
+# a pointer's size, went with the OpenSpec change wasm-pointer-width (2026-11-20): _OFFSET, _MEM and a member array
+# of strings are built with 4-byte pointers. The reason window, for a program without $CONSOLE:ONLY, went with the
+# OpenSpec change wasm-window (2026-11-21): such a program runs in a page, in headless Chrome.
+# target: 185
 v22_d_shell	target: `SHELL` (-z --target wasm)
 v22_x166_shell_call	target: `SHELL` (-z --target wasm)
 v22_x178_shell_bare_compiles	target: `SHELL` (-z --target wasm)
@@ -461,6 +154,48 @@ v68_g1_debug_chain	target: `$DEBUG` (-z --target wasm)
 v68_g2_debug_run	target: `$DEBUG` (-z --target wasm)
 # By hand (task 6.4), from the first whole-family run in the suites VM (2026-11-20); kept when the lines above
 # are written again.
+# target: words a page has no form of, in a window program (OpenSpec change wasm-window, design D8), found by
+# the run of the window programs in a browser (2026-11-21).
+v33_d03_debug_window	target: `$DEBUG` in a window program (wasm-window, design D8)
+v58_s05_display_window	target: `_GLRENDER` in a window program (wasm-window, design D8)
+v59_a1_plain	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_a2_static	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_a3_include	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_a4_lower_parens	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_a6_screenhide	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_c_constants	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_d_conversions	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_e2_getstring_null	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_e_functions	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f1_viewport_handled	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f2_viewport_unhandled	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f3_system_unhandled	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f4_system_handled	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f5_end_handled	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f6_no_helper	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f7_getstring_main	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f8_in_sub	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f9_stop	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_g_readback	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_h1_behind	target: `_GLRENDER` in a window program (wasm-window, design D8)
+v59_h2_only	target: `_GLRENDER` in a window program (wasm-window, design D8)
+v59_h3_ontop	target: `_GLRENDER` in a window program (wasm-window, design D8)
+v59_x01_sub_gl_param	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x02_sub_gl_param_and_plain	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x03_function_gl	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x04_function_gl_and_sub	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x05_two_sub_gl	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x08_call_gl_inside	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x15_call_keyword	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x18_const_long_suffix	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x28_offset_from_long	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x30_offset_array	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x34_declare_sub_gl	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x35_sub_gl_suffix	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x44_const_in_sub_gl	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x45_const_in_gl_bound	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x46_gl_const_in_select	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x53_fixed_len_gl_const	target: `SUB _GL` in a window program (wasm-window, design D8)
 # target: a DECLARE LIBRARY of a prebuilt Windows .a, which Linux's lookup does not find (libv37c.a).
 v37_f_static	target: `DECLARE LIBRARY` of a prebuilt library; Linux's lookup says LIBRARY not found
 v37_h_customtype	target: `DECLARE LIBRARY` of a prebuilt library; Linux's lookup says LIBRARY not found

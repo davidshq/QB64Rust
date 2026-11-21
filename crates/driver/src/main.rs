@@ -1073,6 +1073,13 @@ fn run() -> Result<ExitCode, String> {
         lints,
         target: o.target,
         emsdk_root: o.emsdk_root.clone(),
+        // What `[build]` `copy` copied, which a page packs (design D11 of `wasm-window`); a build with `-o` copies
+        // nothing.
+        page_files: if o.output.is_none() {
+            output::copied_files(&build)
+        } else {
+            Vec::new()
+        },
     };
     let built = compile::compile_exe(
         &input,

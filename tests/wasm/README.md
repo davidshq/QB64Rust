@@ -2,8 +2,9 @@
 
 `slice.list` names 22 console programs that run for the wasm target (OpenSpec change `wasm-console`; spec
 `testing/golden-corpus`, "The wasm slice list"). They are the short run on the host after a change that can touch
-the wasm build: the compiler's crates, libqb's copy and its edits, the runner. The whole family, every
-`$CONSOLE:ONLY` program of `tests\verification`, runs in the suites VM (`check wasm-verification --where vm`).
+the wasm build: the compiler's crates, libqb's copy and its edits, the runner. The whole family runs in the suites VM
+(`check wasm-verification --where vm`). The VM has no Chrome, so there a window program is built and skipped; its
+browser run goes on the host (`tools\wasm\README.md`).
 
 `rerun.list` is for a run between the two: `check wasm-rerun --where vm` runs the verification programs it names,
 one name per line, for the wasm platform in the VM. It is empty in the repository. Fill it in the working tree

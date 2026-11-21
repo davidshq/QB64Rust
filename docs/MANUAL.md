@@ -218,6 +218,10 @@ it where it is, and what it writes goes there too. With a `copy` list, the edito
 instead, as .NET runs a program in `bin`. What the program writes then stays in `build`, out of the source folder
 and out of version control. Use `copy` for a game that rewrites its settings or high scores beside itself.
 
+**In a browser.** A window program built with `--target wasm` packs the files of `copy` into `<name>.data` beside
+its page, since a page cannot read the files beside it. The page keeps what the program writes there in the
+browser's storage ([the wasm target](reference/chapters/wasm-target.md)).
+
 **What is copied.** Each entry of `copy` is a file or a folder, relative to the folder of `qb64rust.toml`. Before
 each build, a file is copied into the output folder when the copy is missing there, or when the source's file is
 newer than the copy. A folder is copied file by file by the same rule. So a data file you edit in the source folder

@@ -236,7 +236,7 @@ END IF
 IF choose = 3 THEN CLS : END
 IF history = 1 THEN
 	CLS
-	IF _FILEEXISTS("cws.his") THEN SHELL "copy cws.his oldhist.ory"
+	IF _FILEEXISTS("cws.his") THEN OPEN "cws.his" FOR BINARY AS #9: oldhist$ = SPACE$(LOF(9)): GET #9, , oldhist$: CLOSE #9: OPEN "oldhist.ory" FOR OUTPUT AS #9: PRINT #9, oldhist$;: CLOSE #9
 	OPEN "O", 2, "cws.his"
 	PRINT #2, TAB(20); "[ HISTORY OF GAME BEGUN "; "10-19-2026"; " ]"
 	CLOSE #2

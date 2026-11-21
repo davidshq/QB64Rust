@@ -105,8 +105,11 @@ restore per run, however many VM steps.
 - `verification` and `verification-whole` build the `v37` libraries in the VM first, since git ignores them.
 - The wasm target's two steps (OpenSpec change `wasm-console`) need the Emscripten SDK, `QB64RUST_EMSDK_ROOT` or
   `..\emsdk` beside the checkout. `wasm-slice` runs `tests\wasm\slice.list` on the host (about 90 s) in `full` and
-  `merge`. `wasm-verification`, every console program of `tests\verification` (about 2 to 4.5 hours), is in no
+  `merge`. `wasm-verification`, every program of `tests\verification` (about 2 to 4.5 hours), is in no
   layer: it runs only when named, `just check wasm-verification --where vm` (user, `DECISIONS.md` 2026-11-20).
+  The VM has no Chrome, so there a window program is built and then skipped, not run (OpenSpec change
+  `wasm-window`); its browser run goes on the host (`tools\wasm\README.md`). The time above is from before
+  `wasm-window`: a run now also builds about 265 window programs, which adds time not yet measured.
   `wasm-rerun` runs only the programs named in `tests\wasm\rerun.list`, the same way (`just check wasm-rerun
   --where vm`). It is for a change that touches part of the family; the list is empty in the repository.
   Its results go to `target\legacy-tests\wasm\`, apart from the Windows family's. A run with it in the VM copies

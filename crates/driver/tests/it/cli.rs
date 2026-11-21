@@ -6665,6 +6665,34 @@ fn wasm_builds_and_runs() {
     assert!(stdout(&o).ends_with("the other folder\n"), "{}", stdout(&o));
 }
 
+/// OpenSpec change `wasm-window`, "A window program runs in a page": a window program builds to a page, its script
+/// and its module, and the same name built as `$CONSOLE:ONLY` afterwards leaves no page. Running the page needs a
+/// browser, which `tools\wasm\browser.mjs` drives for the screen corpus. Needs the Emscripten SDK, as
+/// [`wasm_builds_and_runs`].
+#[test]
+#[ignore = "builds with the Emscripten SDK (QB64RUST_EMSDK_ROOT) and the C++ toolchain"]
+fn wasm_window_page() {
+    if let Err(why) = qb64rust_driver::toolchain::find_emsdk(None) {
+        eprintln!("skipped: no Emscripten SDK ({why})");
+        return;
+    }
+    let d = scratch("wasm-window");
+    std::fs::write(d.join("game.bas"), "SCREEN 12\nLINE (1, 1)-(9, 9), 4, BF\nSYSTEM\n").unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "--target", "wasm", "game.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    // Without `-o` the build writes into `build` (OpenSpec change `build-output-folder`).
+    for f in ["game.html", "game.js", "game.wasm"] {
+        assert!(d.join("build").join(f).is_file(), "{f}");
+    }
+    let page = std::fs::read(d.join("build/game.html")).unwrap();
+    let script: &[u8] = b"<script src=\"game.js\"></script>";
+    assert!(page.windows(script.len()).any(|w| w == script));
+    std::fs::write(d.join("game.bas"), "$CONSOLE:ONLY\nPRINT 1\nSYSTEM\n").unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "--target", "wasm", "game.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(!d.join("build/game.html").exists());
+}
+
 /// Spec `compiler/wasm-target`, "A pointer is 4 bytes on this target", "Arithmetic on an _OFFSET on this target",
 /// "Layouts with pointers on this target" and "Reading and writing an _OFFSET on this target": their scenarios in
 /// one program, built for wasm and run under Node. Needs the Emscripten SDK, as [`wasm_builds_and_runs`].
@@ -6776,14 +6804,10 @@ fn target_wasm_check_only() {
     );
     let o = qb64rust(&d, &["-z", "p.bas"]);
     assert!(o.status.success(), "{}", stdout(&o));
+    // A window program is taken (OpenSpec change `wasm-window`).
     std::fs::write(d.join("w.bas"), "PRINT 1\n").unwrap();
     let o = qb64rust(&d, &["-z", "--target", "wasm", "w.bas"]);
-    assert_eq!(o.status.code(), Some(1));
-    assert!(
-        stdout(&o).contains("the wasm target builds only `$CONSOLE:ONLY` programs so far"),
-        "{}",
-        stdout(&o)
-    );
+    assert!(o.status.success(), "{}", stdout(&o));
 }
 
 /// Spec `compiler/wasm-target`, scenario "A header-only library": a `DECLARE LIBRARY` that resolves to a header alone

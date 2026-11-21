@@ -1,13 +1,17 @@
 # The wasm target
 
-`--target wasm` builds a program for WebAssembly instead of the machine `qb64rust` runs on, and Node runs it. The
-target is experimental: it builds console programs only, and it rejects at compile time what it does not have.
+`--target wasm` builds a program for WebAssembly instead of the machine `qb64rust` runs on. Node runs a console
+program, and a browser runs a window program in a page. The target is experimental, and it rejects at compile time
+what it does not have.
 
 The pages of this area: [$CONSOLE](../entries/meta-console.md), [$IF](../entries/meta-if.md),
 [_OS$](../entries/_os-str.md), [SHELL](../entries/shell.md), [_SHELLHIDE](../entries/_shellhide.md),
 [RUN](../entries/run.md), [CHAIN](../entries/chain.md), [_OPENHOST](../entries/_openhost.md),
 [_OPENCLIENT](../entries/_openclient.md), [_OPENCONNECTION](../entries/_openconnection.md),
-[DECLARE LIBRARY](../entries/declare-library.md), [_OFFSET](../entries/_offset.md), [_MEM](../entries/_mem.md).
+[DECLARE LIBRARY](../entries/declare-library.md), [_OFFSET](../entries/_offset.md), [_MEM](../entries/_mem.md),
+[_WINDOWHANDLE](../entries/_windowhandle.md), [_FULLSCREEN](../entries/_fullscreen.md),
+[_MESSAGEBOX](../entries/_messagebox.md), [_GL](../entries/_gl.md), [SOUND](../entries/sound.md),
+[PLAY](../entries/play.md).
 
 ## Building and running
 
@@ -30,11 +34,32 @@ The debug build, the coverage build (`--coverage`), the value-trace build (`--tr
 build.
 <!-- src: compiler/cli "Options that a wasm build does not take"; crates\driver\tests\it\cli.rs -->
 
-## Console programs only
+## Window programs in a page
 
-A program must have `$CONSOLE:ONLY`. Any other program is an error on its first line: "the wasm target builds only
-`$CONSOLE:ONLY` programs so far". A window, graphics and sound are later steps of the target.
-<!-- src: compiler/wasm-target "Console programs only"; read: crates\sema\src\target.rs -->
+A program without `$CONSOLE:ONLY` is built for a browser: the build writes `game.html` beside `game.js` and
+`game.wasm`. The page runs the program in a canvas, with the keyboard and the mouse over it. The host that serves
+the three files must send two headers, `Cross-Origin-Opener-Policy: same-origin` and
+`Cross-Origin-Embedder-Policy: require-corp`, which a page needs to run the program's threads.
+<!-- src: compiler/wasm-target "A window program runs in a page"; read: crates\driver\src\build.rs -->
+
+A `$CONSOLE` program's console output goes to the browser's console. libqb's own messages, such as an unhandled
+error's "Continue?", are the page's dialogs. `_FULLSCREEN` asks for the browser's full screen; asked outside a key
+press or a click, the browser grants it at the next one.
+<!-- src: compiler/wasm-target "The page's script"; compiler/wasm-target "libqb's messages in a page"; compiler/wasm-target "Full screen in a page" -->
+
+A browser starts sound only after the page is clicked or touched. Keys the browser keeps for itself, such as
+Ctrl+W and F5, never reach the program.
+<!-- src: compiler/wasm-target "Parts of libqb the target does not build yet"; read: libqb\internal\c\parts\audio\miniaudio\miniaudio.h -->
+
+A page has only the files it ships: those that `[build]` `copy` of the settings file `qb64rust.toml` copies into
+the output folder, as `copy = ["CWS.CFG", "graphics"]` (a folder with all its files). A build without `-o` packs
+them into `game.data` beside the page, which puts them in the program's folder before it starts. What the program writes
+there is kept in the browser's storage, so a saved game is there at the next visit. A shipped file the program
+changed, such as a file of high scores, stays changed until the game ships another version of it.
+<!-- src: compiler/wasm-target "A page's files"; read: crates\driver\src\output.rs; crates\driver\src\build.rs -->
+
+A `$CONSOLE:ONLY` program runs under Node, as below.
+<!-- src: compiler/wasm-target "A wasm build" -->
 
 ## What the target does not have
 
@@ -55,6 +80,13 @@ It is never built with a routine that does nothing. The words:
 | `DECLARE LIBRARY` | a block whose library is a prebuilt file (`.a`, `.o`, `.so`, `.lib`); a header alone is compiled with the program |
 | `$DEBUG` | the metacommand, whose code talks to the IDE through libqb's network part |
 | `_CLIPBOARD$` | the statement and the function: Node has no clipboard |
+| `_WINDOWHANDLE` | in a window program, the function: a page has no window of the system |
+| `_SCREENCLICK` | in a window program, the statement: a page cannot click outside itself |
+| `_SCREENPRINT` | in a window program, the statement: a page cannot type into other programs |
+| `_MESSAGEBOX` | in a window program, as a statement and as a function: libqb's dialogs have no browser form yet |
+| `_INPUTBOX$`, `_OPENFILEDIALOG$`, `_SAVEFILEDIALOG$`, `_SELECTFOLDERDIALOG$`, `_COLORCHOOSERDIALOG`, `_NOTIFYPOPUP` | as `_MESSAGEBOX` |
+| `SUB _GL` | in a window program, the procedure: a page draws through WebGL, which has no OpenGL 1 for a program |
+| `_GLRENDER` | in a window program, as `SUB _GL` |
 <!-- src: read: crates\sema\src\target.rs; crates\driver\tests\it\wasm_target.rs -->
 
 Three parts of libqb are not built for this target yet. A built-in that needs one is the error "`<word>` is not
@@ -64,7 +96,7 @@ table names for it, so a new built-in of a part is covered too.
 
 | Part | Its words |
 |---|---|
-| audio | `SOUND`, `PLAY`, `_WAVE`, `_MEMSOUND`, `_MIDISOUNDBANK` and the `_SND` words |
+| audio | `SOUND`, `PLAY`, `_WAVE`, `_MEMSOUND`, `_MIDISOUNDBANK` and the `_SND` words, in a `$CONSOLE:ONLY` program: Node has no Web Audio (a window program plays them in its page) |
 | device-input | `STICK`, `STRIG`, `ON STRIG`, `_DEVICES` and the other words of game controllers and devices |
 | screen-image | `_SCREENIMAGE`, `_CLIPBOARDIMAGE` |
 <!-- src: read: crates\sema\src\target.rs; crates\driver\tests\it\wasm_target.rs -->
@@ -100,7 +132,8 @@ On this target `$IF WASM` and `$IF 32BIT` are true, and `$IF WIN`, `WINDOWS`, `L
 
 ## How a program behaves
 
-A program's standard input, standard output, command line, exit status and files are those of the Node process.
+A console program's standard input, standard output, command line, exit status and files are those of the Node
+process.
 Its current folder is the folder of its `.js` file, wherever `node` was started.
 <!-- src: compiler/wasm-target "A wasm build"; crates\driver\tests\it\cli.rs -->
 

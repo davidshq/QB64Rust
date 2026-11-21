@@ -1,0 +1,21 @@
+# The wasm target's window (OpenSpec change wasm-window): the page's main loop keeps Emscripten's runtime alive,
+# so exit() would halt the program without ending the runtime: no atexit handler would run and the page would not
+# learn the exit status. emscripten_force_exit ends it, as exit() ends a desktop program.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+            GLUTEmu::Instance().WindowSetCloseFunction(nullptr);
+            GLUTEmu::Instance().WindowSetShouldClose(true);
+            exit(exitCode);
+        }
+    };
+--- new
+            GLUTEmu::Instance().WindowSetCloseFunction(nullptr);
+            GLUTEmu::Instance().WindowSetShouldClose(true);
+#ifdef QB64_EMSCRIPTEN
+            emscripten_force_exit(exitCode);
+#else
+            exit(exitCode);
+#endif
+        }
+    };
+--- end

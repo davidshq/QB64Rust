@@ -3345,6 +3345,45 @@ class WasmCorpus(CorpusFixture):
         self.assertEqual(r.status, "PASS", r.detail)
         self.assertIn("p.wasm", tools.run_files[0])
 
+    def test_a_window_program_runs_in_the_browser_launcher(self):
+        # A build that wrote a page (OpenSpec change wasm-window) is run by tools/wasm/browser.mjs on the page, which
+        # stays in the folder of the run with the .js and .wasm files.
+        self.sidecar("output", b"1\n")
+        tools = Tools(runs=[b"1\n"])
+
+        def compile_with_page(args, cwd, stdout_path, timeout, **kw):
+            rc = Tools.__call__(tools, args, cwd, stdout_path, timeout, **kw)
+            if "-x" in args:
+                out = Path(args[args.index("-o") + 1])
+                out.with_suffix(".wasm").write_bytes(b"\0asm")
+                out.with_suffix(".html").write_bytes(b"<!doctype html>")
+            return rc
+
+        with (
+            mock.patch.object(rlt, "wasm_node", lambda: NODE),
+            mock.patch.object(rlt, "run_proc", compile_with_page),
+            mock.patch.object(rlt, "browser_found", lambda: True),
+        ):
+            args = SimpleNamespace(qb64=Path("qb64rust.exe"), record=False, cpp_opt=False, copies=None,
+                                   pass_cache=None, platform="wasm")
+            r = rlt.corpus_test(self.bas, args, self.results, self.clone, self.corpus, {})
+        self.assertEqual(r.status, "PASS", r.detail)
+        run = tools.run_cmds[0]
+        self.assertEqual(run[:2], [str(NODE), str(rlt.BROWSER_LAUNCHER)])
+        self.assertEqual(Path(run[2]).name, "p.html")
+        self.assertIn("p.html", tools.run_files[0])
+
+        # Where browser.mjs finds no Chrome (the suites VM), the page is built and skipped, not run and failed.
+        tools.run_cmds.clear()
+        with (
+            mock.patch.object(rlt, "wasm_node", lambda: NODE),
+            mock.patch.object(rlt, "run_proc", compile_with_page),
+            mock.patch.object(rlt, "browser_found", lambda: False),
+        ):
+            r = rlt.corpus_test(self.bas, args, self.results, self.clone, self.corpus, {})
+        self.assertEqual((r.status, r.detail), ("SKIP", rlt.BROWSER_SKIP))
+        self.assertEqual(tools.run_cmds, [])
+
     def test_judged_by_the_linux_sidecar(self):
         # A Linux file judges the wasm run; the shared recording judges Windows.
         self.sidecar("output", b" 1  2\r\n")
@@ -3403,7 +3442,7 @@ class WasmLists(unittest.TestCase):
 
     def test_the_reasons_and_what_is_skipped(self):
         self.list.write_text(
-            "# programs\nv1\twindow: no $CONSOLE:ONLY\nv2\ttarget: SHELL\nv4\tfloat: quad\n"
+            "# programs\nv1\ttarget: SUB _GL\nv2\ttarget: SHELL\nv4\tfloat: quad\n"
             "v5\topen: a line differs\nv6\twidth: _OS$ is [WASM][32BIT]\n",
             encoding="utf-8",
         )
@@ -3418,15 +3457,17 @@ class WasmLists(unittest.TestCase):
     def test_a_reason_outside_the_set(self):
         # Scenario "A reason outside the set": the line is named.
         self.list.write_text("v1\tlater: someday\n", encoding="utf-8")
-        with self.assertRaisesRegex(ValueError, "the reason of v1 starts with none of target, window"):
+        with self.assertRaisesRegex(ValueError, "the reason of v1 starts with none of target, float"):
             rlt.load_wasm_list(self.list, "verification")
-        # `offset` left the set when a pointer's size became the target's (OpenSpec change wasm-pointer-width).
-        self.list.write_text("v3\toffset: _MEM\n", encoding="utf-8")
-        with self.assertRaisesRegex(ValueError, "the reason of v3 starts with none of target, window, float"):
-            rlt.load_wasm_list(self.list, "verification")
+        # `offset` left the set when a pointer's size became the target's (OpenSpec change wasm-pointer-width),
+        # and `window` when a window program came to run in a page (OpenSpec change wasm-window).
+        for line in ("v3\toffset: _MEM\n", "v3\twindow: no $CONSOLE:ONLY\n"):
+            self.list.write_text(line, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "the reason of v3 starts with none of target, float"):
+                rlt.load_wasm_list(self.list, "verification")
 
-    def test_a_window_program_is_skipped_without_a_build(self):
-        # Scenario "A window program": counted as skipped with its reason, no build started.
+    def test_a_target_line_is_skipped_without_a_build(self):
+        # Scenario "What the reasons mean": a `target` line is counted as skipped with its reason, no build started.
         tools = Tools()
         bas = Path(self.tmp.name) / "v1.bas"
         bas.write_bytes(b"PRINT 1\n")
@@ -3434,8 +3475,8 @@ class WasmLists(unittest.TestCase):
         with mock.patch.object(rlt, "run_proc", tools):
             r = rlt.run_suite_test("verification", bas, args=args, results=Path(self.tmp.name),
                                    qb_root=Path(self.tmp.name), corpus_root=Path(self.tmp.name),
-                                   known={"verification:v1": "window: no $CONSOLE:ONLY"})
-        self.assertEqual((r[0].status, r[0].detail), ("SKIP", "window: no $CONSOLE:ONLY"))
+                                   known={"verification:v1": "target: `SUB _GL`"})
+        self.assertEqual((r[0].status, r[0].detail), ("SKIP", "target: `SUB _GL`"))
         self.assertEqual(tools.compiles, 0)
 
     def test_a_listed_program_that_passes_is_news(self):

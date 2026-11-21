@@ -1,0 +1,13 @@
+# The wasm target (OpenSpec change wasm-window): the build keeps the host's OS for its commands (wasm-makefile-unix),
+# and on a Windows host the audio part then took the VST instrument player, which is Windows code (windows.h). It
+# is left out when WASM=y, as on Linux.
+file: internal/c/parts/audio/extras/build.mk
+--- old
+ifeq ($(OS),win)
+	FOO_MIDI_SRCS += VSTiPlayer.cpp
+endif
+--- new
+ifeq ($(OS)$(WASM),win)
+	FOO_MIDI_SRCS += VSTiPlayer.cpp
+endif
+--- end

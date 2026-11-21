@@ -472,6 +472,35 @@ pub struct Settings {
     /// The program's fixes (spec `compiler/fixes`): in the build's key, also where no fragment differs (design D4 of
     /// `fixes-switch`).
     pub fixes: qb64rust_base::fixes::Fixes,
+    /// A window program of the wasm target: the files its page ships ([`wasm_data`]), each with its path from the
+    /// program's folder (OpenSpec change `wasm-window`, design D11). Written after the link, so not in the key.
+    pub wasm_files: Vec<(String, PathBuf)>,
+}
+
+/// The first line of a page's data file ([`wasm_data`]).
+const WASM_DATA_MAGIC: &[u8] = b"QB64RUST-DATA 1\n";
+
+/// The data file `<name>.data` of a window program's page (OpenSpec change `wasm-window`, design D11): the line
+/// [`WASM_DATA_MAGIC`], a line of JSON listing each file's `path` (from the program's folder, `/` between folders),
+/// `size` and `hash` (FNV-1a of 64 bits, as 16 hex digits), then the files' bytes one after the other in that
+/// order. The page writes them into the program's folder; the hash tells it whether a file the program kept in the
+/// browser's storage came from this same file.
+pub fn wasm_data(files: &[(String, PathBuf)]) -> Result<Vec<u8>, String> {
+    let mut list = Vec::new();
+    let mut bytes = Vec::new();
+    for (path, file) in files {
+        let data = std::fs::read(file).map_err(|e| format!("reading {} for the page: {e}", file.display()))?;
+        let hash = data.iter().fold(0xcbf2_9ce4_8422_2325_u64, |h, &b| {
+            (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+        });
+        list.push(serde_json::json!({ "path": path, "size": data.len(), "hash": format!("{hash:016x}") }));
+        bytes.extend_from_slice(&data);
+    }
+    let mut out = WASM_DATA_MAGIC.to_vec();
+    out.extend_from_slice(serde_json::Value::Array(list).to_string().as_bytes());
+    out.push(b'\n');
+    out.extend_from_slice(&bytes);
+    Ok(out)
 }
 
 /// The link command's extra part: the extra link flags, then each library file, in quotes if its path has a space.
@@ -815,19 +844,169 @@ fn objects_stamp(toolchain: &Found) -> String {
 /// The `--pre-js` file of a wasm build (design D4 of `wasm-console`; measured, its "Measured"): the program's current
 /// folder is the folder of its `.js` file, and the `.wasm` file is the one beside the `.js` with its name, so the two
 /// may be moved and renamed together. Only Node's main thread changes the folder: Node refuses `process.chdir` in a
-/// worker, and the folder is the process's.
+/// worker, and the folder is the process's. In a browser the `.js` file is the page's script, or a thread's worker
+/// script, which is the same file (OpenSpec change `wasm-window`).
 const WASM_PRE_JS: &str = "// Written by qb64rust for the wasm target.\n\
 if (typeof process === 'object' && require('worker_threads').isMainThread) {\n\
     process.chdir(__dirname);\n\
 }\n\
+var qb64rustScript = typeof __filename === 'string' ? __filename\n\
+    : typeof document === 'object' && document.currentScript ? document.currentScript.src : self.location.href;\n\
 Module['locateFile'] = (path, prefix) =>\n\
-    path.endsWith('.wasm') ? __filename.replace(/\\.js$/, '.wasm') : prefix + path;\n";
+    path.endsWith('.wasm') ? qb64rustScript.replace(/\\.js$/, '.wasm') : prefix + path;\n";
+
+/// The page of a window program on the wasm target (OpenSpec change `wasm-window`): a canvas the program draws in,
+/// with the id `canvas` that libqb's full screen names, and a status line while the page loads. A `Module` set
+/// before the page's own script, as the browser test launcher sets one, is kept: the page only adds what it lacks.
+const WASM_PAGE: &str = r#"<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<style>
+html, body { margin: 0; height: 100%; background: #000; }
+body { display: flex; align-items: center; justify-content: center; }
+canvas { display: block; outline: none; }
+#qb64rust-status { position: fixed; left: 0; right: 0; bottom: 0; padding: 4px; color: #ccc; font: 14px sans-serif; text-align: center; }
+</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+<div id="qb64rust-status">Loading...</div>
+<script>
+var Module = window.Module || {};
+Module.canvas = Module.canvas || document.getElementById("canvas");
+Module.print = Module.print || ((text) => console.log(text));
+Module.printErr = Module.printErr || ((text) => console.error(text));
+Module.setStatus = Module.setStatus || ((text) => {
+    const status = document.getElementById("qb64rust-status");
+    status.textContent = text;
+    status.style.display = text ? "" : "none";
+});
+Module.monitorRunDependencies = Module.monitorRunDependencies || ((left) => Module.setStatus(left ? "Loading..." : ""));
+Module.canvas.addEventListener("click", () => Module.canvas.focus());
+window.addEventListener("load", () => Module.canvas.focus());
+
+// The program's folder, before the program starts: what it kept in the browser's storage (IndexedDB) on an
+// earlier visit, then the files the page ships ({data}). A file it kept stays, unless the page now ships another
+// version of it than when it was kept. What it writes is saved every second and when the page is hidden. A test
+// sets Module.qb64rustKeep to false: nothing is kept.
+Module.preRun = [() => {
+    const FS = Module.FS;
+    const folder = "/" + {folder};
+    const keep = Module.qb64rustKeep !== false && typeof indexedDB === "object";
+    FS.mkdirTree(folder);
+    if (keep) FS.mount(Module.IDBFS, {}, folder);
+    FS.chdir(folder);
+    Module.addRunDependency("qb64rust-files");
+    const restored = keep ? new Promise((done) => FS.syncfs(true, () => done())) : Promise.resolve();
+    restored
+        .then(() => fetch({data}).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null))
+        .then((buffer) => buffer && qb64rustUnpack(new Uint8Array(buffer), keep))
+        .finally(() => {
+            if (keep) qb64rustSave();
+            Module.removeRunDependency("qb64rust-files");
+        });
+}].concat(Module.preRun || []);
+
+// The page's data file: a first line, a line of JSON (path, size, hash of each file), then the files' bytes.
+function qb64rustUnpack(bytes, keep) {
+    const FS = Module.FS;
+    const magic = "QB64RUST-DATA 1\n";
+    if (new TextDecoder().decode(bytes.subarray(0, magic.length)) !== magic) return;
+    const end = bytes.indexOf(10, magic.length);
+    const list = JSON.parse(new TextDecoder().decode(bytes.subarray(magic.length, end)));
+    const key = "qb64rust-files:" + location.pathname;
+    let shipped = {};
+    try {
+        shipped = JSON.parse(localStorage.getItem(key) || "{}");
+    } catch (e) {}
+    const now = {};
+    let at = end + 1;
+    for (const file of list) {
+        const data = bytes.subarray(at, at + file.size);
+        at += file.size;
+        now[file.path] = file.hash;
+        if (keep && shipped[file.path] === file.hash && FS.analyzePath(file.path).exists) continue;
+        const slash = file.path.lastIndexOf("/");
+        if (slash > 0) FS.mkdirTree(file.path.slice(0, slash));
+        FS.writeFile(file.path, data);
+    }
+    try {
+        localStorage.setItem(key, JSON.stringify(now));
+    } catch (e) {}
+}
+
+// Saves the program's folder to the browser's storage, one save at a time.
+function qb64rustSave() {
+    let busy = false;
+    let again = false;
+    const save = () => {
+        if (busy) {
+            again = true;
+            return;
+        }
+        busy = true;
+        Module.FS.syncfs(false, () => {
+            busy = false;
+            if (again) {
+                again = false;
+                save();
+            }
+        });
+    };
+    setInterval(save, 1000);
+    document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && save());
+    window.addEventListener("pagehide", save);
+    const exited = Module.onExit;
+    Module.onExit = (code) => {
+        save();
+        if (exited) exited(code);
+    };
+    save();
+}
+</script>
+<script src="{script}"></script>
+</body>
+</html>
+"#;
+
+/// [`WASM_PAGE`] for the program whose script is `script` (`<name>.js`), with its name as the title. The program's
+/// folder in the page is `/<name>`, with each character other than a letter, a digit, `-` and `_` as `_`; its data
+/// file is `<name>.data` (design D11 of `wasm-window`).
+pub fn wasm_page(script: &str) -> String {
+    let escape = |s: &str| {
+        s.replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;")
+            .replace('"', "&quot;")
+    };
+    // A string of the page's script: JSON's quoting, and no `<` that could end the script.
+    let js = |s: &str| serde_json::Value::from(s).to_string().replace('<', "\\u003c");
+    let name = script.strip_suffix(".js").unwrap_or(script);
+    let folder: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    WASM_PAGE
+        .replace("{title}", &escape(name))
+        .replace("{script}", &escape(script))
+        .replace("{folder}", &js(&folder))
+        .replace("{data}", &js(&format!("{name}.data")))
+}
 
 /// What a wasm build's libqb objects are built with: the Emscripten release, which [`crate::toolchain::find_emsdk`]
 /// holds to one (design D3 of `wasm-console`).
 fn wasm_objects_stamp() -> String {
     format!(
-        "qb64rust libqb objects 1 for wasm: Emscripten {}\n",
+        "qb64rust libqb objects 2 for wasm: Emscripten {}, C++ exceptions\n",
         crate::toolchain::EMSDK_RELEASE
     )
 }
@@ -1278,6 +1457,28 @@ fn build_with_make(
             let to = exe.with_extension("wasm");
             std::fs::rename(linked.with_extension("wasm"), &to)
                 .map_err(|e| format!("moving the .wasm file to {}: {e}", to.display()))?;
+            // A window program runs in a page, a `$CONSOLE:ONLY` one under Node (OpenSpec change `wasm-window`);
+            // a page left from an earlier build as a window program goes.
+            let page = exe.with_extension("html");
+            let data = exe.with_extension("data");
+            if settings.flags.contains(&"DEP_CONSOLE_ONLY=y") {
+                let _ = std::fs::remove_file(&page);
+                let _ = std::fs::remove_file(&data);
+            } else {
+                // The files the page ships, or none: a data file of an earlier build goes.
+                if settings.wasm_files.is_empty() {
+                    let _ = std::fs::remove_file(&data);
+                } else {
+                    std::fs::write(&data, wasm_data(&settings.wasm_files)?)
+                        .map_err(|e| format!("writing the page's files {}: {e}", data.display()))?;
+                }
+                let script = exe
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default();
+                std::fs::write(&page, wasm_page(&script))
+                    .map_err(|e| format!("writing the page {}: {e}", page.display()))?;
+            }
         }
         std::fs::rename(&linked, exe).map_err(|e| {
             let _ = std::fs::remove_file(license_path(exe));
@@ -2309,6 +2510,50 @@ mod tests {
                 "DEP_ZLIB=y"
             ]
         );
+    }
+
+    /// The page of a window program (OpenSpec change `wasm-window`): its script, its name as the title, both
+    /// escaped, and the canvas libqb's full screen names.
+    #[test]
+    fn wasm_page_names_its_script() {
+        let page = wasm_page("game.js");
+        assert!(page.contains("<title>game</title>"), "{page}");
+        assert!(page.contains("<script src=\"game.js\"></script>"), "{page}");
+        assert!(page.contains("<canvas id=\"canvas\""), "{page}");
+        assert!(page.contains("var Module = window.Module || {};"), "{page}");
+        let odd = wasm_page("a&b<c>.js");
+        assert!(odd.contains("<title>a&amp;b&lt;c&gt;</title>"), "{odd}");
+        assert!(odd.contains("src=\"a&amp;b&lt;c&gt;.js\""), "{odd}");
+        // The program's folder and its data file (design D11), as strings of the script with no `<`.
+        assert!(page.contains("const folder = \"/\" + \"game\";"), "{page}");
+        assert!(page.contains("fetch(\"game.data\")"), "{page}");
+        assert!(odd.contains("\"/\" + \"a_b_c_\""), "{odd}");
+        assert!(odd.contains("fetch(\"a&b\\u003cc>.data\")"), "{odd}");
+    }
+
+    /// The page's data file (design D11 of `wasm-window`): the first line, the JSON line, then the bytes in order.
+    #[test]
+    fn wasm_data_lists_then_holds_the_files() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), b"abc").unwrap();
+        std::fs::write(dir.path().join("b.bin"), b"").unwrap();
+        let files = vec![
+            ("a.txt".to_string(), dir.path().join("a.txt")),
+            ("data/b.bin".to_string(), dir.path().join("b.bin")),
+        ];
+        let data = wasm_data(&files).unwrap();
+        assert!(data.starts_with(WASM_DATA_MAGIC));
+        let rest = &data[WASM_DATA_MAGIC.len()..];
+        let end = rest.iter().position(|&b| b == b'\n').unwrap();
+        let list: serde_json::Value = serde_json::from_slice(&rest[..end]).unwrap();
+        assert_eq!(list[0]["path"], "a.txt");
+        assert_eq!(list[0]["size"], 3);
+        // FNV-1a of 64 bits of "abc".
+        assert_eq!(list[0]["hash"], "e71fa2190541574b");
+        assert_eq!(list[1]["path"], "data/b.bin");
+        assert_eq!(list[1]["hash"], "cbf29ce484222325");
+        assert_eq!(&rest[end + 1..], b"abc");
+        assert!(wasm_data(&[("x".to_string(), dir.path().join("missing"))]).is_err());
     }
 
     /// The wasm tree of design D3 of `wasm-console`: the variable, else the checkout's `target`, else the home.

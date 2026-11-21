@@ -1,0 +1,47 @@
+# The wasm target's window (OpenSpec change wasm-window): the page's main thread may not block, so the main loop is
+# the browser's: emscripten_set_main_loop_arg calls one pass at each frame the browser draws, and returns to the
+# browser at once (it throws to leave main). A pass does what one turn of the desktop loop does. It refreshes the
+# window directly instead of calling GLUT_IDLE_FUNC, whose Sleep paces the frames: the browser paces them here.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+    void MainLoop() {
+        libqb_log_trace("Entering main loop");
+
+        if (std::this_thread::get_id() == mainThreadId) {
+            if (window != nullptr) {
+                if (!isMainLoopRunning) {
+                    isMainLoopRunning = true;
+
+--- new
+#ifdef QB64_EMSCRIPTEN
+    // One turn of the main loop, at each frame the browser draws.
+    void MainLoopPass() {
+        if (glfwWindowShouldClose(window) != GLFW_FALSE) {
+            emscripten_cancel_main_loop();
+            isMainLoopRunning = false;
+            return;
+        }
+
+        if (systemPollFunction != nullptr)
+            systemPollFunction();
+
+        MessageProcess();
+
+        if (windowIdleFunction != nullptr) {
+            WindowRefresh();
+        }
+    }
+#endif
+
+    void MainLoop() {
+        libqb_log_trace("Entering main loop");
+
+        if (std::this_thread::get_id() == mainThreadId) {
+            if (window != nullptr) {
+                if (!isMainLoopRunning) {
+                    isMainLoopRunning = true;
+
+#ifdef QB64_EMSCRIPTEN
+                    emscripten_set_main_loop_arg([](void *self) { reinterpret_cast<GLUTEmu *>(self)->MainLoopPass(); }, this, 0, true);
+#endif
+--- end

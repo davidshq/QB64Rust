@@ -3,12 +3,11 @@
 //! the platform, and the rules of a target stand in one place, with one table that the language reference's
 //! chapter on the target lists.
 //!
-//! For the wasm target it reports, each at its place:
-//!
-//! 1. a program without `$CONSOLE:ONLY`: one error on the main file's first line;
-//! 2. each use of a word of [`WASM_UNAVAILABLE`], but `DECLARE LIBRARY` of a prebuilt library, which only the
-//!    driver's lookup of the library's files can tell (it calls [`unavailable`] for its message), and each
-//!    built-in that needs a part of libqb of [`WASM_PARTS_NOT_YET`] (and `ON STRIG`): "... yet".
+//! For the wasm target it reports, each at its place, each use of a word of [`WASM_UNAVAILABLE`], but `DECLARE
+//! LIBRARY` of a prebuilt library, which only the driver's lookup of the library's files can tell (it calls
+//! [`unavailable`] for its message), and each built-in that needs a part of libqb of [`WASM_PARTS_NOT_YET`] (and
+//! `ON STRIG`): "... yet". A window program is built for a browser page and a `$CONSOLE:ONLY` program for Node
+//! (OpenSpec change `wasm-window`).
 //!
 //! `_OFFSET`, `_MEM` and a member array of `STRING` are built: a pointer's size is the platform's in every pass
 //! ([`crate::Program::pointer_bytes`], OpenSpec change `wasm-pointer-width`).
@@ -51,6 +50,33 @@ pub const WASM_UNAVAILABLE: &[(&str, &str)] = &[
         "the metacommand, whose code talks to the IDE through libqb's network part",
     ),
     ("_CLIPBOARD$", "the statement and the function: Node has no clipboard"),
+    (
+        "_WINDOWHANDLE",
+        "in a window program, the function: a page has no window of the system (OpenSpec change `wasm-window`)",
+    ),
+    (
+        "_SCREENCLICK",
+        "in a window program, the statement: a page cannot click outside itself",
+    ),
+    (
+        "_SCREENPRINT",
+        "in a window program, the statement: a page cannot type into other programs",
+    ),
+    (
+        "_MESSAGEBOX",
+        "in a window program, as a statement and as a function: libqb's dialogs have no browser form yet",
+    ),
+    ("_INPUTBOX$", "in a window program, as `_MESSAGEBOX`"),
+    ("_OPENFILEDIALOG$", "in a window program, as `_MESSAGEBOX`"),
+    ("_SAVEFILEDIALOG$", "in a window program, as `_MESSAGEBOX`"),
+    ("_SELECTFOLDERDIALOG$", "in a window program, as `_MESSAGEBOX`"),
+    ("_COLORCHOOSERDIALOG", "in a window program, as `_MESSAGEBOX`"),
+    ("_NOTIFYPOPUP", "in a window program, as `_MESSAGEBOX`"),
+    (
+        "SUB _GL",
+        "in a window program, the procedure: a page draws through WebGL, which has no OpenGL 1 for a program",
+    ),
+    ("_GLRENDER", "in a window program, as `SUB _GL`"),
 ];
 
 /// The parts of libqb the wasm target does not build yet, by the `dependency` of the built-in table, with what
@@ -61,7 +87,8 @@ pub const WASM_PARTS_NOT_YET: &[(&str, &str, &str)] = &[
     (
         "DEPENDENCY_MINIAUDIO",
         "audio",
-        "`SOUND`, `PLAY`, `_WAVE`, `_MEMSOUND`, `_MIDISOUNDBANK` and the `_SND` words",
+        "`SOUND`, `PLAY`, `_WAVE`, `_MEMSOUND`, `_MIDISOUNDBANK` and the `_SND` words, in a `$CONSOLE:ONLY` program: \
+         Node has no Web Audio (a window program plays them in its page)",
     ),
     (
         "DEPENDENCY_DEVICEINPUT",
@@ -80,14 +107,33 @@ fn part_not_yet(word: &str, part: &str) -> String {
     format!("{}: libqb's {part} part is not built for it", not_yet(word))
 }
 
-/// The built-ins of [`WASM_UNAVAILABLE`], which are found by the built-in a statement or call resolved to.
-const UNAVAILABLE_BUILTINS: [&str; 6] = [
+/// The built-ins of [`WASM_UNAVAILABLE`], which are found by the built-in a statement or call resolved to. The
+/// table names a built-in without its `$`.
+const UNAVAILABLE_BUILTINS: [&str; 7] = [
     "SHELL",
     "_SHELLHIDE",
     "CHAIN",
     "_OPENHOST",
     "_OPENCLIENT",
     "_OPENCONNECTION",
+    "_CLIPBOARD$",
+];
+
+/// The built-ins of [`WASM_UNAVAILABLE`] that a window program cannot have, since a page has no form of them
+/// (OpenSpec change `wasm-window`). A `$CONSOLE:ONLY` program keeps them, as the console target always had: it
+/// never shows a window, so `SUB _GL` never runs, and the dialogs fall back to the console.
+const PAGE_UNAVAILABLE_BUILTINS: [&str; 11] = [
+    "_WINDOWHANDLE",
+    "_SCREENCLICK",
+    "_SCREENPRINT",
+    "_MESSAGEBOX",
+    "_INPUTBOX$",
+    "_OPENFILEDIALOG$",
+    "_SAVEFILEDIALOG$",
+    "_SELECTFOLDERDIALOG$",
+    "_COLORCHOOSERDIALOG",
+    "_NOTIFYPOPUP",
+    "_GLRENDER",
 ];
 
 /// The error for a word of [`WASM_UNAVAILABLE`].
@@ -100,18 +146,8 @@ pub fn not_yet(word: &str) -> String {
     format!("`{word}` is not available on the wasm target yet")
 }
 
-/// The error for a program that is not `$CONSOLE:ONLY` (spec `compiler/wasm-target`, "Console programs only").
-pub const CONSOLE_ONLY: &str = "the wasm target builds only `$CONSOLE:ONLY` programs so far";
-
-/// Reports what the program uses that `platform` does not have. `main` is the main file, whose first line takes the
-/// error of a program that is not `$CONSOLE:ONLY`.
-pub fn check_target(
-    program: &Program,
-    platform: Platform,
-    map: &SourceMap,
-    main: FileId,
-    diagnostics: &mut Diagnostics,
-) {
+/// Reports what the program uses that `platform` does not have.
+pub fn check_target(program: &Program, platform: Platform, map: &SourceMap, diagnostics: &mut Diagnostics) {
     match platform {
         Platform::Windows | Platform::Linux => {}
         Platform::Wasm => {
@@ -119,7 +155,14 @@ pub fn check_target(
                 .files()
                 .find(|(_, f)| f.name == qb64rust_builtins::AFTER_LAST_LINE_NAME)
                 .map(|(id, _)| id);
-            Wasm::new(program, diagnostics, after).program(main);
+            // `SUB _GL` of a window program, at its header's line.
+            let gl = program.procs.iter().filter(|p| p.name == "_GL" && p.external.is_none());
+            for proc in gl.filter(|_| program.settings.window) {
+                if let Some((start, end)) = map.file(proc.file).line_content(proc.line.saturating_sub(1)) {
+                    diagnostics.error(Span::new(proc.file, start, end), unavailable("SUB _GL"));
+                }
+            }
+            Wasm::new(program, diagnostics, after).program();
         }
     }
 }
@@ -141,11 +184,8 @@ impl<'p, 'd> Wasm<'p, 'd> {
         }
     }
 
-    fn program(&mut self, main: FileId) {
+    fn program(&mut self) {
         let p = self.program;
-        if p.settings.window {
-            self.diagnostics.error(Span::new(main, 0, 0), CONSOLE_ONLY);
-        }
         if let Some(span) = p.settings.debug {
             self.diagnostics.error(span, unavailable("$DEBUG"));
         }
@@ -165,15 +205,23 @@ impl<'p, 'd> Wasm<'p, 'd> {
     fn builtin(&mut self, id: BuiltinId, span: Span) -> bool {
         let b = id.get();
         let name = b.name.to_ascii_uppercase();
-        if UNAVAILABLE_BUILTINS.contains(&name.as_str()) {
-            self.diagnostics.error(span, unavailable(&name));
+        let page = if self.program.settings.window {
+            &PAGE_UNAVAILABLE_BUILTINS[..]
+        } else {
+            &[]
+        };
+        if let Some(word) = UNAVAILABLE_BUILTINS
+            .iter()
+            .chain(page)
+            .find(|w| w.trim_end_matches('$') == name)
+        {
+            self.diagnostics.error(span, unavailable(word));
             return true;
         }
-        if name == "_CLIPBOARD" {
-            self.diagnostics.error(span, unavailable("_CLIPBOARD$"));
-            return true;
-        }
+        // A window program's page plays sound through Web Audio (OpenSpec change `wasm-window`).
+        let in_page = |d: &str| d == "DEPENDENCY_MINIAUDIO" && self.program.settings.window;
         if let Some(dependency) = b.dependency
+            && !in_page(dependency)
             && let Some((_, part, _)) = WASM_PARTS_NOT_YET.iter().find(|(d, ..)| *d == dependency)
         {
             self.diagnostics.error(span, part_not_yet(&name, part));
@@ -549,12 +597,12 @@ mod tests {
 
     #[test]
     fn the_table_holds_the_builtins_found_by_name() {
-        for name in UNAVAILABLE_BUILTINS {
-            assert!(WASM_UNAVAILABLE.iter().any(|(w, _)| *w == name), "{name}");
+        for name in UNAVAILABLE_BUILTINS.iter().chain(&PAGE_UNAVAILABLE_BUILTINS) {
+            assert!(WASM_UNAVAILABLE.iter().any(|(w, _)| w == name), "{name}");
             assert!(
                 qb64rust_builtins::BUILTINS
                     .iter()
-                    .any(|b| b.name.eq_ignore_ascii_case(name)),
+                    .any(|b| b.name.eq_ignore_ascii_case(name.trim_end_matches('$'))),
                 "{name} is a built-in"
             );
         }

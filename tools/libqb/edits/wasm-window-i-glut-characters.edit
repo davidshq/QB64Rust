@@ -1,0 +1,27 @@
+# The wasm target's window (OpenSpec change wasm-window): Emscripten's GLFW aborts in glfwSetCharModsCallback, so
+# a typed character comes through glfwSetCharCallback, with the modifier keys the key callback last saw.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+            glfwSetCharModsCallback(window, [](GLFWwindow *win, unsigned int codepoint, int mods) {
+                auto *instance = reinterpret_cast<GLUTEmu *>(glfwGetWindowUserPointer(win));
+                if (instance->keyboardCharacterFunction) {
+                    instance->keyboardCharacterFunction(static_cast<char32_t>(codepoint), mods);
+                }
+            });
+--- new
+#ifdef QB64_EMSCRIPTEN
+            glfwSetCharCallback(window, [](GLFWwindow *win, unsigned int codepoint) {
+                auto *instance = reinterpret_cast<GLUTEmu *>(glfwGetWindowUserPointer(win));
+                if (instance->keyboardCharacterFunction) {
+                    instance->keyboardCharacterFunction(static_cast<char32_t>(codepoint), instance->keyboardModifiers);
+                }
+            });
+#else
+            glfwSetCharModsCallback(window, [](GLFWwindow *win, unsigned int codepoint, int mods) {
+                auto *instance = reinterpret_cast<GLUTEmu *>(glfwGetWindowUserPointer(win));
+                if (instance->keyboardCharacterFunction) {
+                    instance->keyboardCharacterFunction(static_cast<char32_t>(codepoint), mods);
+                }
+            });
+#endif
+--- end

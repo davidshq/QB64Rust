@@ -66,6 +66,31 @@ fn copy_newer(from: &Path, to: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// The files of `build`'s `copy` entries, each with its path in the output folder (`/` between folders): a file
+/// entry as itself, a folder entry with every file below it. Sorted by that path. A window program of the wasm
+/// target packs them into its page's data file (design D11 of `wasm-window`), since a page cannot read the files
+/// beside it. An entry that does not exist gives nothing; [`prepare`] has reported it before the compile.
+pub fn copied_files(build: &Build) -> Vec<(String, std::path::PathBuf)> {
+    fn walk(path: &Path, name: String, out: &mut Vec<(String, std::path::PathBuf)>) {
+        if path.is_dir() {
+            for entry in std::fs::read_dir(path).into_iter().flatten().flatten() {
+                let child = format!("{name}/{}", entry.file_name().to_string_lossy());
+                walk(&entry.path(), child, out);
+            }
+        } else if path.is_file() {
+            out.push((name, path.to_path_buf()));
+        }
+    }
+    let mut out = Vec::new();
+    for entry in &build.copy {
+        let name = entry.name.replace('\\', "/").trim_end_matches('/').to_string();
+        walk(&entry.path, name, &mut out);
+    }
+    out.sort();
+    out.dedup();
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,6 +133,21 @@ mod tests {
     fn read(path: &Path) -> String {
         #[expect(clippy::disallowed_methods, reason = "the test's own text")]
         String::from_utf8(std::fs::read(path).unwrap()).unwrap()
+    }
+
+    /// The files a page packs (design D11 of `wasm-window`): a file entry, every file below a folder entry, by their
+    /// paths in the output folder and sorted; a missing entry gives nothing.
+    #[test]
+    fn copied_files_of_files_and_folders() {
+        let d = tempfile::tempdir().unwrap();
+        let t = SystemTime::now();
+        write_at(&d.path().join("GAME.CFG"), "cfg", t);
+        write_at(&d.path().join("graphics/a.vga"), "a", t);
+        write_at(&d.path().join("graphics/sub/b.vga"), "b", t);
+        let build = project(d.path(), &["graphics", "GAME.CFG", "missing.dat"]);
+        let names: Vec<String> = copied_files(&build).into_iter().map(|(n, _)| n).collect();
+        assert_eq!(names, ["GAME.CFG", "graphics/a.vga", "graphics/sub/b.vga"]);
+        assert!(copied_files(&project(d.path(), &[])).is_empty());
     }
 
     /// The time rule: a missing file is copied with the source's time, a newer source goes over the copy, a newer

@@ -1,8 +1,17 @@
 # The wasm target (OpenSpec change wasm-console, design D4): with WASM=y, no -m32 or -m64 (wasm32 is the
-# target), -pthread for every object, none of the host's libraries, no icon resource, and the link flags of a
-# program run by Node (measured in the change's design, "Measured"). The window layer (glut-emu.o, GLFW's
-# core.a) and the clipboard (clipboard.a) are left out of the link: the target builds console programs only, and
-# they have Windows or X11 code only.
+# target), -pthread for every object, none of the host's libraries and no icon resource.
+# A $CONSOLE:ONLY program gets the link flags of a program run by Node (measured in wasm-console's design,
+# "Measured"); the window layer (glut-emu.o, GLFW's core.a) and the clipboard (clipboard.a) are left out of its
+# link, since they have Windows or X11 code only.
+# A window program gets the link flags of a browser page (OpenSpec change wasm-window): Emscripten's own GLFW
+# instead of GLFW's sources (core.a, but GLAD, which libqb loads its GL functions through), the GL emulation on
+# WebGL 2, EXIT_RUNTIME so that atexit handlers run when the program ends, FS, ENV, IndexedDB's file system and the
+# run dependencies for the page's script (its files and what the program keeps), and no assertions, whose messages
+# the page would show among the program's own.
+# Eight threads are made before main starts: libqb's three, and the ones a part or a test adds.
+# C++ exceptions are WebAssembly's own (-fwasm-exceptions, compiled and linked), as the desktop builds have
+# them: Emscripten leaves them out by default, and then a throw aborts. _LOADIMAGE tries its decoders in turn,
+# and the PCX decoder throws on a file that is not one (OpenSpec change wasm-window, i03_save_load).
 file: Makefile
 --- old
 	endif
@@ -16,12 +25,17 @@ endif
 endif
 
 # qb64rust's wasm target: no -m32 or -m64, threads everywhere, none of the host's libraries, no icon resource, and
-# the link flags of a program run by Node.
+# the link flags of a program run by Node, or of a window program run in a browser page.
 ifeq ($(WASM),y)
-	CXXFLAGS := $(filter-out -m32 -m64 -no-pie -D_GLFW_%,$(CXXFLAGS)) -pthread
-	EXE_LIBS := $(filter-out %/glut-emu.o %/core.a %/clipboard.a,$(EXE_LIBS))
+	CXXFLAGS := $(filter-out -m32 -m64 -no-pie -D_GLFW_%,$(CXXFLAGS)) -pthread -fwasm-exceptions
 	CFLAGS := $(filter-out -m32 -m64 -no-pie,$(CFLAGS)) -pthread
-	CXXLIBS := $(CXXLIBS_EXTRA) -pthread -sPTHREAD_POOL_SIZE=4 -sNODERAWFS -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH -sENVIRONMENT=node
+	ifneq ($(filter y,$(DEP_CONSOLE_ONLY)),)
+		EXE_LIBS := $(filter-out %/glut-emu.o %/core.a %/clipboard.a,$(EXE_LIBS))
+		CXXLIBS := $(CXXLIBS_EXTRA) -pthread -sPTHREAD_POOL_SIZE=4 -sNODERAWFS -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH -sENVIRONMENT=node -fwasm-exceptions
+	else
+		EXE_LIBS := $(filter-out %/core.a %/clipboard.a,$(EXE_LIBS)) $(GLAD_OBJS)
+		CXXLIBS := $(CXXLIBS_EXTRA) -pthread -sPTHREAD_POOL_SIZE=8 -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH -sENVIRONMENT=web,worker -sUSE_GLFW=3 -sLEGACY_GL_EMULATION -sMAX_WEBGL_VERSION=2 -sEXPORTED_RUNTIME_METHODS=FS,ENV,IDBFS,addRunDependency,removeRunDependency -lidbfs.js -sASSERTIONS=0 -fwasm-exceptions
+	endif
 	EXE_OBJS := $(filter-out $(ICON_OBJ),$(EXE_OBJS))
 endif
 

@@ -126,6 +126,8 @@ changing direction, design or scope.**
      that `suites.ps1` takes it to `qb64rust-suites`. A step named alone without `--where vm` runs on the host.
      If the run cannot be done there (an option `check` does not pass, such as `--trace-values`), ask the user
      first. On the host stay `cargo test -p`, `just quick` and a few programs named one by one.
+     One exception: runs in a browser of the wasm target (`tools\wasm\browser.mjs`) may be large on the host,
+     since the VM has no Chrome and the launcher opens no window and no port (user, 2026-11-21).
    - **Never run a program on the host that can make Windows ask the user something.** This covers network
      programs: one that opens a port makes Windows Defender Firewall ask for permission, and every new build is a
      new executable, so it asks again. These are the programs whose `.external` sidecar starts with `network:`

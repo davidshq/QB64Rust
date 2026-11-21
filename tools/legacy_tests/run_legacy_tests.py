@@ -225,6 +225,8 @@ RUN_TIMEOUT = 120
 CORPUS_RUN_TIMEOUT = 60
 # Linked into every screen program of the corpus (tools/screen/README.md).
 SCREEN_STATE_SOURCE = Path(__file__).resolve().parent.parent / "screen" / "screen_state.cpp"
+# Runs a window program of the wasm target in headless Chrome (tools/wasm/README.md).
+BROWSER_LAUNCHER = Path(__file__).resolve().parent.parent / "wasm" / "browser.mjs"
 VERIFICATION_RUN_TIMEOUT = 60
 # What holds the new compiler to the verification programs (tests/verification/README.md): pass.list, known.list
 # and the sidecars divergences/<name>.divergences and normalize/<name>.normalize.
@@ -248,8 +250,9 @@ WASM = "wasm"
 # starts with a word of WASM_REASONS (spec testing/golden-corpus, "The wasm known list"); a program listed with one
 # of WASM_SKIPPED is skipped, not built.
 WASM_KNOWN = "known.wasm.list"
-WASM_REASONS = ("target", "window", "float", "clib", "width", "node", "varies", "open")
-WASM_SKIPPED = ("target", "window")
+# The reason window went with the OpenSpec change wasm-window: a program without $CONSOLE:ONLY runs in a page.
+WASM_REASONS = ("target", "float", "clib", "width", "node", "varies", "open")
+WASM_SKIPPED = ("target",)
 # The SDK whose Node runs a wasm program (set by tools/check in the suites VM).
 EMSDK_ENV = "QB64RUST_EMSDK_ROOT"
 
@@ -337,7 +340,9 @@ def target_args(platform: str) -> list[str]:
 
 def built_files(exe: Path, platform: str) -> set[str]:
     """The names of the files a build wrote, which the folder of a run keeps (reset_folder)."""
-    return {exe.name, exe.with_suffix(".wasm").name} if platform == WASM else {exe.name}
+    if platform == WASM:
+        return {exe.name} | {exe.with_suffix(s).name for s in (".wasm", ".html", ".data")}
+    return {exe.name}
 
 
 @functools.cache
@@ -352,9 +357,40 @@ def wasm_node() -> Path:
     return found[0]
 
 
+# The detail of a window program of the wasm target that was built but not run, where browser.mjs finds no Chrome.
+BROWSER_SKIP = (
+    "not run: a window program of the wasm target runs in Chrome (tools/wasm/browser.mjs), and none is found here. "
+    "The suites VM has no Chrome; browser runs go on the host (CLAUDE.md working rule 6)"
+)
+
+
+@functools.cache
+def browser_found() -> bool:
+    """Whether tools/wasm/browser.mjs finds a Chrome to run a page in (its --find-chrome), asked once a run."""
+    try:
+        found = subprocess.run(
+            [str(wasm_node()), str(BROWSER_LAUNCHER), "--find-chrome"], capture_output=True, timeout=60
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return found.returncode == 0
+
+
+def browser_skipped(exe: Path, platform: str) -> bool:
+    """Whether a built program is a page (a window program of the wasm target) with no Chrome to run it in."""
+    return platform == WASM and exe.with_suffix(".html").is_file() and not browser_found()
+
+
 def run_line(exe: Path, platform: str) -> list[str]:
-    """How a built program is started: `node <name>.js` for the wasm target, else the executable."""
-    return [str(wasm_node()), str(exe)] if platform == WASM else [str(exe)]
+    """How a built program is started: for the wasm target `node <name>.js`, or for a window program, which the
+    build gave a page, `node tools/wasm/browser.mjs <name>.html` (OpenSpec change wasm-window); else the
+    executable."""
+    if platform != WASM:
+        return [str(exe)]
+    page = exe.with_suffix(".html")
+    if page.is_file():
+        return [str(wasm_node()), str(BROWSER_LAUNCHER), str(page)]
+    return [str(wasm_node()), str(exe)]
 
 
 def platform_neutral(data: bytes, platform: str) -> bytes:
@@ -2148,6 +2184,10 @@ def corpus_test(
     full_states = getattr(args, "full_states", None) == f"{group}/{name}"
     if full_states:
         env["QB64_SCREEN_DIGEST_AS_STATE"] = "1"
+    if browser_skipped(exe, platform):
+        shutil.rmtree(work, ignore_errors=True)
+        r.kind = "skipped"
+        return finish("SKIP", "skipped", BROWSER_SKIP)
     if wasm:
         # Node reads its standard input as a Linux program does: END's prompt reads it, never a console key.
         cmd = run_line(exe, platform)
@@ -2906,6 +2946,10 @@ def verification_compare(
     # run_proc's Ctrl+Break reaches the program and it writes out a pending prompt before the timeout.
     run_stdin = work / stdin_file.name if stdin_file.is_file() else None
     run_flags = 0
+    if browser_skipped(exe, platform):
+        shutil.rmtree(work, ignore_errors=True)
+        r.kind = "skipped"
+        return finish("SKIP", "skipped", BROWSER_SKIP)
     if wasm:
         cmd = run_line(exe, platform)
         run_flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
@@ -3385,6 +3429,9 @@ def rejudge(
         if r["status"] == "SKIP" and r["detail"] in HOST_SKIPS and host_skip(suite, bas) == r["detail"]:
             # A network or clipboard program the host's run skipped (host_skip): the known lists do not change
             # that.
+            continue
+        if r["status"] == "SKIP" and r["detail"] == BROWSER_SKIP:
+            # A window program of the wasm target built where no Chrome was found: the lists do not change that.
             continue
         if r["status"] == "SKIP":
             problems.append(f"{key}: no longer skipped, and never run")

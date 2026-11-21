@@ -128,9 +128,10 @@ class Step:
     vm_limit_floor: int = 0
 
 
-# What a wasm step reads: the release build, libqb's copy and its edits, the runner and wasm_slice.py, the lists,
-# and the verification programs with their recordings.
+# What a wasm step reads: the release build, libqb's copy and its edits, the runner and wasm_slice.py, the browser
+# launcher, the lists, and the verification programs with their recordings.
 WASM_READS = BUILT + LIBQB + RUNNER_FILES + (
+    "tools/wasm/**",
     "tests/wasm/**",
     "tests/verification/**",
     "verification/**",

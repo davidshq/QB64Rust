@@ -1,0 +1,14 @@
+# The wasm target's window (OpenSpec change wasm-window): Emscripten's GLFW aborts in glfwGetKeyName, so a key has
+# no name from the browser, as when GLFW knows none on the desktop.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+            return glfwGetKeyName(static_cast<int>(key), scancode);
+--- new
+#ifdef QB64_EMSCRIPTEN
+            (void)key;
+            (void)scancode;
+            return nullptr;
+#else
+            return glfwGetKeyName(static_cast<int>(key), scancode);
+#endif
+--- end

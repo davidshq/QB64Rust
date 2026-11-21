@@ -239,9 +239,7 @@ pub fn check_program(
     let mut diagnostics = parsed.diagnostics();
     diagnostics.extend(sema_diags);
     // What the target does not have (design D5 of `wasm-console`); nothing for Windows and Linux.
-    if let Some(main) = parsed.trees.first() {
-        qb64rust_sema::check_target(&program, parsed.flags.platform(), map, main.file, &mut diagnostics);
-    }
+    qb64rust_sema::check_target(&program, parsed.flags.platform(), map, &mut diagnostics);
     if let Some((path, root)) = disk {
         check_exe_icon_on(parsed.flags.platform(), &program, &mut diagnostics, path, root);
         check_embedded_files(&program, &mut diagnostics, path, root);
