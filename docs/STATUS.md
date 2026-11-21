@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-11-07, for the merge of `after-pr25` (cut to its own rule by finding 2 of the ninth review,
+Updated 2026-11-21, on branch `after-pr-27-real` (cut to its own rule by finding 2 of the ninth review,
 `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
@@ -58,9 +58,15 @@ open. Pull request 27 (`f1a64ac0`, 2026-11-07) merged branch `after-pr26` withou
 one build flag and documents since pull request 26's run; CI's Rust, extension and release dry run passed). The
 extension's last release is `vscode-v0.3.0` (2026-11-07), on that merge commit: the first with Linux, and the
 first whose `qb64rust.exe` needs no `VCRUNTIME140.dll` (`DECISIONS.md` 2026-11-07). Pull request 28 merged on
-2026-11-10. Pull request 30 merges branch `after-pr26`: four archived changes (`project-settings`,
-`language-reference`, `fuzz-front-end`, `format-statement-lines`), include files checked, formatted and built as
-their program, and `just merge` passing at `02d38879` (below). No OpenSpec change is open but `community-programs`.
+2026-11-10. Pull request 30 (`02f74f00`, 2026-11-14) merged branch `after-pr26`: four archived changes
+(`project-settings`, `language-reference`, `fuzz-front-end`, `format-statement-lines`), include files checked,
+formatted and built as their program, and `just merge` passing at `02d38879` (below). Branch `after-pr-27-real`
+holds seven commits since: a library's header found beside its `$USELIBRARY` file (78 of 79 programs of the
+Libraries Pack compile), the `_ANDALSO` hint, `[project]` `exclude`, the archived change `vm-game-runs`, strings
+past 2 GB and 4 GB (D-066, D-067), `REDIM` of a `TYPE` array without `AS` (D-068), the `.alone` marker and
+run lock of the test tools, and the archived change `wasm-console` (`58437442`). No `just merge` has run on it
+yet. The OpenSpec change `wasm-pointer-width` (W0.5) is built and archived (2026-11-21, "Next" item 1).
+The OpenSpec change `wasm-window` (W1) is built and archived (2026-11-21). Its two open tasks are `SOMEDAY.md` rows.
 
 ## Waiting on the user
 
@@ -71,16 +77,27 @@ working rule 7).
 
 1. **The review of the next big wins** (`study\47`, 2026-11-09), section 8: is "first outside users" the next
    milestone. Language extensions
-   are allowed behind a switch (`DECISIONS.md` 2026-11-11); which extension comes first is still open
-   (`study\48` §5 recommends an order).
+   are allowed behind a switch (`DECISIONS.md` 2026-11-11), and its shape is decided: one per feature, with
+   groups, declared per file with a default in `qb64rust.toml`, plain keywords (`DECISIONS.md` 2026-11-18). Which extension comes first is still
+   open (`study\48` §5 recommends an order).
+2. **QB64 library collections and libraries per project** (`study\50`, 2026-11-15), section 7: whether
+   dependencies per project in `qb64rust.toml` are the next change for libraries, and the syntax for naming a
+   library.
+3. **Web and mobile targets** (`study\51`, 2026-11-15), section 10. Answered on 2026-11-19 (`DECISIONS.md`):
+   Emscripten with the same libqb, the SDK download, a 4-byte `_OFFSET`. Answered on 2026-11-20: phones through the web
+   build in the browser first (question 4). Still open, to decide after W1: where built games must run
+   (question 5), which decides whether a one-thread build is needed (`study\51` §5.1). The OpenSpec change `wasm-console` is built and
+   archived, and so is `wasm-pointer-width` ("Next" item 1).
+4. **A standard library** (`study\52`, 2026-11-16, split out of `study\50`), section 4: whether to have one and in
+   which form, and whether others' code may be shipped or fetched.
+5. **Libraries of other languages** (`study\53`, 2026-11-17), section 8: whether a built program may need a
+   Python folder beside it, whether to build the Python probe (a library over Python's C API), whether stronger
+   C interop comes first, and whether a foreign-object type joins the extension order.
 
 The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 
 ## Next
 
-0. **Review and archive `community-programs`** (all tasks but 2.4 done, 2026-11-09): `python tools\community\community.py
-   fetch`, then `just check community --where vm` checks 3977 programs of 66 pinned repositories (3018 on
-   `tests\community\pass.list`). The four `SOMEDAY.md` rows with the source `community` are the gaps it found.
 0. **Start the first run of the `Fuzz` workflow** (`fuzz-front-end` archived 2026-11-13): `just fuzz
    <parse|compile|server|all> <minutes>` fuzzes the front end with `cargo-fuzz` in WSL (`tools\fuzz\README.md`),
    and the workflow does the same on GitHub's runner. The first campaign found one bug, now fixed:
@@ -88,10 +105,28 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
    commit reviewed: `ce6e54aee` (2026-11-13, 87 commits, `docs\UPSTREAM-REVIEW.md`). `..\QB64pe-latest` was
    pulled again on 2026-11-14 for the merge of `after-pr26`: no commit came after it.
-1. **Choose the next milestone.** `ROADMAP.md` has no open milestone. macOS, which was M8, is postponed to
-   `SOMEDAY.md` (`DECISIONS.md` 2026-11-07), so no platform milestone is next. The candidates are in
-   `SOMEDAY.md`: deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS
-   Code features still missing.
+0. **The OpenSpec change `build-output-folder`** (`DECISIONS.md` 2026-11-21): a build without `-o` writes into
+   `build`, `[build]` names the folder and the data files to copy, and the extension runs the program where
+   `qb64rust --print-paths` says. All 16 tasks are built, Civil War Strategy's `[build]` table among them; the
+   extension's integration suite has not run yet (CI). Archived 2026-11-21, its specs synced.
+1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
+   `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a
+   `$CONSOLE:ONLY` program for Node, and 3,664 of the 3,766 verification programs it runs pass (97.3%, 0 failing,
+   2026-11-20). Its second step, W0.5, the OpenSpec change `wasm-pointer-width`, is built (2026-11-20) and archived
+   (2026-11-21, specs merged): a pointer is 4 bytes on the wasm target in every pass, so `_OFFSET`, `_MEM` and a member array of
+   `STRING` build, and libqb's handshake flags are `std::atomic`. The 270 programs that were on
+   `tests\verification\known.wasm.list` as `offset` ran for wasm in the suites VM (`check wasm-rerun`): 230 pass, 15
+   are failures known on Linux too, and 25 are listed as `width`, since their recorded output shows an 8-byte
+   pointer. The desktop suites (`just full`) have not run on the libqb edits yet. W1, the OpenSpec change
+   `wasm-window`, was built overnight on 2026-11-21 and archived the same day: a window program builds to
+   a page and runs in a browser (Emscripten's GLFW, its GL emulation on WebGL 2, Web Audio), and
+   `tools\wasm\browser.mjs` runs it in headless Chrome for the tests. In a browser, on the host (user,
+   2026-11-21): the `screen\` corpus passes, except its listed programs, and of the verification family's 307 window
+   programs 261 pass and the rest are listed. A page ships the files of `[build]` `copy` in `qb64rust.toml`, and
+   the page keeps what it writes in IndexedDB. Civil War Strategy's port reaches its first turn.
+   Other candidates for later are in `SOMEDAY.md`:
+   deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS Code features
+   still missing.
 
 The CLI tests in the suites VM failed at three merges in a row, a different test each run, and each passed in the
 next run: at pull request 25 four debugger tests and `unit_tests::a_timeout`, at pull request 26
@@ -177,6 +212,10 @@ and the merge being forced.
 
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).
+- A `DECLARE LIBRARY` block that declares a SUB and a FUNCTION of the same name is rejected; QB64pe accepts it
+  (`-z`, 2026-11-15). With the SUB first the error is "name already in use"; with the FUNCTION first, a call as a
+  statement is "cannot be called as a statement". It blocks 12 community programs, all copies of Toolbox64's
+  `DS\HashTable.bi` (`HashTable_Remove`) and `Audio\OPL3X.bi` (`OPL3X_WriteChipRegister`) (`study\50` §3.1).
 - `$COLOR:0` and then `SUB Red`: the error "name already in use" is reported at the constant in the auto-included
   `internal\support\color\color0.bi`, not on the program's `SUB Red` (line 4), where QB64pe reports it
   (`verification\v45_x48`, on `known.list` since the change `pin-rejection-line`).

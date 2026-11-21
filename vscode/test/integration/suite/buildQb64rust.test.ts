@@ -5,7 +5,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { api, closeAll, compiler, dismissingNotifications, open, server, setSetting, setText, waitFor, writeFile } from "./helpers";
+import { api, builtOf, closeAll, compiler, dismissingNotifications, open, server, setSetting, setText, waitFor, writeFile } from "./helpers";
 
 const exeOf = (uri: vscode.Uri) => uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
 
@@ -51,8 +51,13 @@ describe("build with qb64rust", function () {
         assert.strictEqual(ran, true, `Build and Run failed; the last command: ${a.builder.lastCommand ?? "none (no build started)"}`);
         assert.ok(a.builder.lastCommand?.startsWith(`${server} -x -w ${uri.fsPath}`), a.builder.lastCommand);
         assert.ok(a.builder.lastCommand?.includes(`--qb64pe-root ${path.dirname(compiler)}`), a.builder.lastCommand);
+        // No settings file: the program is in `build` and runs in the source's folder, where it writes hello.txt
+        // (change build-output-folder, design D4).
         const text = await waitFor("hello.txt", () => fs.existsSync(out) && fs.readFileSync(out, "latin1").trim(), 60000);
         assert.strictEqual(text, "from qb64rust");
+        assert.ok(fs.existsSync(builtOf(uri)), "the program in build");
+        assert.ok(!fs.existsSync(exeOf(uri)), "a program next to the source");
+        assert.ok(!a.builder.lastCommand?.includes(" -o "), a.builder.lastCommand);
         if (fs.existsSync(path.join(a.bundle.libqb, "internal", "c", "qbx.cpp"))) {
             const copy = path.join(a.bundle.storage, `libqb-${a.bundle.version}`); // version and libqb.id
             assert.ok(a.builder.lastCommand?.includes(`--libqb-root ${copy}`), a.builder.lastCommand);
@@ -60,6 +65,25 @@ describe("build with qb64rust", function () {
             assert.ok(objects(copy).length > 0, "no libqb object in the prepared copy");
             assert.deepStrictEqual(objects(a.bundle.libqb), [], "the bundle was written to");
         }
+    });
+
+    it("a copy list: the data file is copied into build, and the program runs there and writes there", async () => {
+        const dir = "rbuild/copied";
+        writeFile(`${dir}/qb64rust.toml`, '[build]\r\ncopy = ["x.txt"]\r\n');
+        writeFile(`${dir}/x.txt`, "data\r\n");
+        const uri = writeFile(`${dir}/game.bas`, '$CONSOLE:ONLY\r\nOPEN "w.txt" FOR OUTPUT AS #1\r\nPRINT #1, "written"\r\nCLOSE #1\r\nSYSTEM\r\n');
+        const folder = path.dirname(uri.fsPath);
+        const out = path.join(folder, "build", "w.txt");
+        await open(uri);
+        assert.strictEqual(await vscode.commands.executeCommand<boolean>("qb64rust.buildAndRun"), true);
+        assert.ok(fs.existsSync(path.join(folder, "build", "x.txt")), "x.txt copied into build");
+        const text = await waitFor("build/w.txt", () => fs.existsSync(out) && fs.readFileSync(out, "latin1").trim(), 60000);
+        assert.strictEqual(text, "written");
+        assert.ok(!fs.existsSync(path.join(folder, "w.txt")), "written next to the source");
+        // The run task takes the same program and folder.
+        const run = (await vscode.tasks.fetchTasks({ type: "qb64rust" })).find((t) => t.name === "run")!;
+        const execution = run.execution as vscode.ProcessExecution;
+        assert.deepStrictEqual([execution.process, execution.options?.cwd], [builtOf(uri), path.join(folder, "build")]);
     });
 
     it("failed build: the error in an included file at its column, source qb64rust, removed on edit", async () => {
@@ -88,7 +112,7 @@ describe("build with qb64rust", function () {
         await open(part);
         await waitFor("the program of part.bm", () => a.server.programText === "main.bas");
         const exe = await vscode.commands.executeCommand<string | undefined>("qb64rust.build");
-        assert.strictEqual(exe, exeOf(uri), `the last command: ${a.builder.lastCommand ?? "none"}`);
+        assert.strictEqual(exe, builtOf(uri), `the last command: ${a.builder.lastCommand ?? "none"}`);
         assert.ok(a.builder.lastCommand?.startsWith(`${server} -x -w ${uri.fsPath}`), a.builder.lastCommand);
         assert.deepStrictEqual(await buildDiagnostics(part), []);
         // The main file is not opened as a document, which would tell the language server it is open.
@@ -121,6 +145,10 @@ describe("build with qb64rust", function () {
             assert.strictEqual(exe, exeOf(uri));
             assert.ok(a.builder.lastCommand?.startsWith(compiler), a.builder.lastCommand);
             assert.deepStrictEqual(await buildDiagnostics(uri), []);
+            // Run and the run task take QB64pe's program next to the source, the newer one (the review's finding 1).
+            const run = (await vscode.tasks.fetchTasks({ type: "qb64rust" })).find((t) => t.name === "run")!;
+            const execution = run.execution as vscode.ProcessExecution;
+            assert.deepStrictEqual([execution.process, execution.options?.cwd], [exeOf(uri), path.dirname(uri.fsPath)]);
             assert.strictEqual(vscode.workspace.getConfiguration("qb64rust").get("buildWith"), "auto");
         } finally {
             a.builder.showError = show;
@@ -205,7 +233,8 @@ describe("build with qb64rust", function () {
         const build = tasks.find((t) => t.name === "build")!;
         const execution = build.execution as vscode.ProcessExecution;
         assert.strictEqual(execution.process, server);
-        assert.deepStrictEqual(execution.args.slice(0, 5), ["-x", "-w", uri.fsPath, "-o", exeOf(uri)]);
+        assert.deepStrictEqual(execution.args.slice(0, 3), ["-x", "-w", uri.fsPath]);
+        assert.ok(!execution.args.includes("-o"), "the compiler's own output folder");
         assert.ok(execution.args.includes("--qb64pe-root"));
         const ended = new Promise<number | undefined>((resolve) => {
             const sub = vscode.tasks.onDidEndTaskProcess((e) => {
@@ -217,6 +246,6 @@ describe("build with qb64rust", function () {
         });
         await vscode.tasks.executeTask(build);
         assert.strictEqual(await ended, 0);
-        assert.ok(fs.existsSync(exeOf(uri)));
+        assert.ok(fs.existsSync(builtOf(uri)));
     });
 });

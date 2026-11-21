@@ -530,7 +530,11 @@ impl Emitter<'_> {
         out.push(format!("char *clear_at={first};"));
         if ty == Ty::Str {
             out.push(format!("tmp_long={count};"));
-            out.push("while(tmp_long--) (*(qbs**)(clear_at+tmp_long*8))->len=0;".into());
+            // Each element is the pointer to its string: 8 bytes apart, 4 where a pointer is 4 bytes.
+            let step = self.ty_size(Ty::Str);
+            out.push(format!(
+                "while(tmp_long--) (*(qbs**)(clear_at+tmp_long*{step}))->len=0;"
+            ));
         } else if self.has_life(ty) {
             let text = self.each_element(ty, "clear_at", &count.to_string(), |at| self.zero_value(ty, at));
             out.extend(text.lines().map(str::to_string));

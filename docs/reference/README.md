@@ -54,6 +54,7 @@ How each area of the language works as a whole.
 - [The screen](chapters/screen-output.md)
 - [Sound](chapters/sound.md)
 - [Unstable features](chapters/unstable-features.md)
+- [The wasm target](chapters/wasm-target.md)
 
 ## By area
 

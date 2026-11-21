@@ -1,0 +1,26 @@
+# The wasm target's window (OpenSpec change wasm-window): Emscripten's GLFW knows only the normal cursor and the
+# disabled one (the browser's pointer lock); it prints an error for a hidden one. So _MOUSEHIDE hides the cursor
+# over the page's canvas by its CSS, and _MOUSESHOW shows it again. A captured cursor (GLFW 3.4) is a normal one.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+            glfwSetInputMode(window, GLFW_CURSOR, static_cast<int>(mode));
+            cursorMode = GLUTEnum_MouseCursorMode(glfwGetInputMode(window, GLFW_CURSOR));
+
+            libqb_log_trace("Mouse cursor mode set to %d", int(mode));
+--- new
+#ifdef QB64_EMSCRIPTEN
+            MAIN_THREAD_EM_ASM(
+                {
+                    if (Module.canvas)
+                        Module.canvas.style.cursor = $0 ? "none" : "";
+                },
+                mode == GLUTEnum_MouseCursorMode::Hidden);
+            glfwSetInputMode(window, GLFW_CURSOR, mode == GLUTEnum_MouseCursorMode::Disabled ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+            cursorMode = mode;
+#else
+            glfwSetInputMode(window, GLFW_CURSOR, static_cast<int>(mode));
+            cursorMode = GLUTEnum_MouseCursorMode(glfwGetInputMode(window, GLFW_CURSOR));
+#endif
+
+            libqb_log_trace("Mouse cursor mode set to %d", int(mode));
+--- end

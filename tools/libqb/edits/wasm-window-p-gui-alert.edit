@@ -1,0 +1,27 @@
+# The wasm target's window (OpenSpec change wasm-window): libqb's own messages (an unhandled error's "Continue?",
+# an alert) are the page's dialogs: alert for "ok", confirm for a question, answered 1 for OK or Yes. tinyfiledialogs
+# has no browser backend (it falls back to a console prompt, which crashed). They run on the page's thread, which
+# the browser's dialogs need; the program's thread waits for the answer, as it waits for a desktop dialog.
+file: internal/c/parts/gui/gui.cpp
+--- old
+    gui_modal_guard modalGuard;
+    return tinyfd_messageBox(title, message, type, "error", 1);
+}
+--- new
+    gui_modal_guard modalGuard;
+#ifdef QB64_EMSCRIPTEN
+    return MAIN_THREAD_EM_ASM_INT(
+        {
+            var text = UTF8ToString($1) + "\n\n" + UTF8ToString($0);
+            if (UTF8ToString($2) === "ok") {
+                alert(text);
+                return 1;
+            }
+            return confirm(text) ? 1 : 0;
+        },
+        message, title, type);
+#else
+    return tinyfd_messageBox(title, message, type, "error", 1);
+#endif
+}
+--- end

@@ -1,0 +1,14 @@
+# The wasm target (OpenSpec change wasm-console, design D4; spec compiler/wasm-target, "The target's name in a
+# program"): _OS$ is [WASM][32BIT] there; it was [32BIT] alone. libqb-common.h refuses every system but Windows,
+# Apple, Linux and Emscripten, so only Emscripten reaches this #else. The edit adds no line: a line more would shift
+# the __LINE__ of libqb.cpp's later log calls, and the Windows and Linux builds' preprocessed text would differ.
+file: internal/c/libqb.cpp
+--- old
+#else
+#    define QB64_OS_SYSTEM_STR ""
+#endif
+--- new
+#else
+#    define QB64_OS_SYSTEM_STR "[WASM]" // QB64_EMSCRIPTEN: libqb-common.h lets no other system through
+#endif
+--- end

@@ -76,8 +76,8 @@ uint32_t qbs_tmp_list_nexti;
 // entended string memory
 
 static uint8_t *qbs_data = (uint8_t *)malloc(1048576);
-static uint32_t qbs_data_size = 1048576;
-static uint32_t qbs_sp = 0;
+static size_t qbs_data_size = 1048576;
+static size_t qbs_sp = 0;
 
 void qbs_free(qbs *str) {
 
@@ -175,6 +175,8 @@ static void qbs_concat(uint32_t bytesrequired) {
     if (((qbs_sp * 2) + (bytesrequired + 32)) >= qbs_data_size) {
         static uint8_t *oldbase;
         oldbase = qbs_data;
+        if (qbs_data_size > (SIZE_MAX - bytesrequired) / 2)
+            error(512); // the new size would not fit in a size_t
         qbs_data_size = qbs_data_size * 2 + bytesrequired;
         qbs_data = (uint8_t *)realloc(qbs_data, qbs_data_size);
         if (qbs_data == NULL)
@@ -244,12 +246,16 @@ qbs *qbs_new_fixed(uint8_t *offset, uint32_t size, uint8_t tmp) {
 
 qbs *qbs_new(int32_t size, uint8_t tmp) {
     static qbs *newstr;
+    if (size < 0) { // a length past 2,147,483,647 that wrapped
+        error(QB_ERROR_ILLEGAL_FUNCTION_CALL);
+        size = 0;
+    }
     if ((qbs_sp + size + 32) > qbs_data_size)
-        qbs_concat(size + 32);
+        qbs_concat((uint32_t)size + 32); // unsigned: size + 32 overflows an int32_t near the limit
     newstr = qbs_new_descriptor();
     newstr->len = size;
     newstr->chr = qbs_data + qbs_sp;
-    qbs_sp += size + 32;
+    qbs_sp += (uint32_t)size + 32;
     if (qbs_list_nexti > qbs_list_lasti)
         qbs_concat_list();
     newstr->listi = qbs_list_nexti;
@@ -414,9 +420,14 @@ qbs *qbs_add(qbs *str1, qbs *str2) {
     // 3. give up
     // nb. they would also have to be a tmp, var. len str in ext memory!
     // brute force method...
-    tqbs = qbs_new(str1->len + str2->len, 1);
-    memcpy(tqbs->chr, str1->chr, str1->len);
-    memcpy(tqbs->chr + str1->len, str2->chr, str2->len);
+    if ((int64_t)str1->len + str2->len > INT32_MAX) { // longer than a string can be
+        error(QB_ERROR_ILLEGAL_FUNCTION_CALL);
+        tqbs = qbs_new(0, 1);
+    } else {
+        tqbs = qbs_new(str1->len + str2->len, 1);
+        memcpy(tqbs->chr, str1->chr, str1->len);
+        memcpy(tqbs->chr + str1->len, str2->chr, str2->len);
+    }
 
     // exit(qbs_sp);
     if (str1->tmp)

@@ -6,6 +6,25 @@
 #    include <windows.h>
 #endif
 
+#ifdef QB64_EMSCRIPTEN
+#    include "glut-emu.h"
+#    include <chrono>
+// qb64rust's wasm target links no glut-emu.cpp: a console program has no window keyboard, so no lock key is set, as
+// OPTIONAL_GLUT answers for _CAPSLOCK, _NUMLOCK and _SCROLLLOCK in a desktop console program.
+bool GLUTEmu_KeyboardIsKeyModifierSet(GLUTEmu_KeyboardKeyModifier) {
+    return false;
+}
+// Nothing is toggled, as glut-emu.cpp does on Linux.
+bool GLUTEmu_KeyboardToggleLockKeyState(GLUTEmu_KeyboardKeyModifier) {
+    return false;
+}
+// _UPTIME: glfwGetTime counts from GLFW's start, near the program's; this counts from the program's load.
+static const auto qb64rust_wasm_start = std::chrono::steady_clock::now();
+double GLUTEmu_TimeGet() {
+    return std::chrono::duration<double>(std::chrono::steady_clock::now() - qb64rust_wasm_start).count();
+}
+#endif
+
 // Most of these are stubs, but we could wire these up to to a library to do something useful in the future
 
 extern void sub__consoletitle(qbs *);

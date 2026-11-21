@@ -21,6 +21,10 @@ last `_FULLSCREEN` is in effect, and 0 otherwise.
 It changes the real display, so it runs with its effect read back only in the sandbox family, in the test VM.
 <!-- src: tests\sandbox\window_fullscreen; tests\corpus\screen\w01_window_builtins -->
 
+In a page of the [wasm target](../chapters/wasm-target.md) it asks the browser for the full screen of the page's
+canvas. Asked outside a key press or a click, the browser grants it at the next one.
+<!-- src: compiler/wasm-target "Full screen in a page"; tools\libqb\edits\wasm-window-h-glut-fullscreen.edit -->
+
 ## Errors
 
 - A form QB64pe rejects is a compile error: a number, `_SMOOTH` first, or two modes. For example:

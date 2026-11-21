@@ -50,6 +50,20 @@ pub struct CompileOptions {
     pub fixes: Fixes,
     /// The lints that are on (spec `compiler/lints`); the warnings of the others are dropped.
     pub lints: Lints,
+    /// `--target wasm`; `None` for the host (spec `compiler/cli`, "The target option").
+    pub target: Option<Platform>,
+    /// `--emsdk-root`: the Emscripten SDK of a wasm build.
+    pub emsdk_root: Option<PathBuf>,
+    /// The files a window program's page ships, with their paths in the output folder: those of `[build]` `copy`
+    /// in a build without `-o` (`output::copied_files`), else none (design D11 of `wasm-window`).
+    pub page_files: Vec<(String, PathBuf)>,
+}
+
+impl CompileOptions {
+    /// The platform the program is compiled for: the target named, else the host.
+    pub fn platform(&self) -> Platform {
+        self.target.unwrap_or_else(Platform::host)
+    }
 }
 
 /// The `-f:` settings: `OptimizeCppProgram=true` (as `qb64pe` turns it into `-O2`) and `ExtraLinkerFlags=<value>`
@@ -94,10 +108,17 @@ pub fn build_settings(settings: &[String]) -> Result<build::Settings, String> {
 }
 
 /// The executable an earlier build left, and its debug symbol file with it, so that a file beside the executable is
-/// never an older build's (spec `compiler/debug-info`).
-pub fn remove_old(exe: &Path) {
+/// never an older build's (spec `compiler/debug-info`). For the wasm target the `.wasm` file beside the `.js` goes
+/// too (spec `compiler/cli`, "The output of a wasm build").
+pub fn remove_old(exe: &Path, platform: Platform) {
     let _ = std::fs::remove_file(exe);
     let _ = std::fs::remove_file(build::debug_path(exe));
+    if platform == Platform::Wasm {
+        let _ = std::fs::remove_file(exe.with_extension("wasm"));
+        // A page's files go with it (OpenSpec change `wasm-window`); the page itself is written or removed by the
+        // build.
+        let _ = std::fs::remove_file(exe.with_extension("data"));
+    }
 }
 
 /// Compiles the main file `input` (shown as `name`, its text `bytes`, its includes read by `loader`) as `o` says:
@@ -114,9 +135,10 @@ pub fn compile_exe(
 ) -> Result<bool, String> {
     let exe = &o.exe;
     let include_root = &o.include_root;
-    let remove_old = || remove_old(exe);
+    let platform = o.platform();
+    let remove_old = || remove_old(exe, platform);
     let mut fe = frontend_explicit(
-        Platform::host(),
+        platform,
         o.explicit,
         name,
         bytes,
@@ -134,9 +156,11 @@ pub fn compile_exe(
         && fe.program.libraries.iter().any(|l| !l.names.is_empty())
     {
         let places = build::find_root(o.root.as_deref()).and_then(|root| {
-            let nm = toolchain::find(Platform::host(), o.toolchain_root.as_deref(), o.root.as_deref())
+            let nm = toolchain::find(platform, o.toolchain_root.as_deref(), o.root.as_deref())
                 .map(|t| t.tool(toolchain::Tool::Nm));
-            library::Places::new(root.as_deref().unwrap_or(include_root), input, nm).map_err(|e| e.to_string())
+            library::Places::new(root.as_deref().unwrap_or(include_root), input, nm)
+                .map(|places| library::Places { platform, ..places })
+                .map_err(|e| e.to_string())
         });
         let places = places.inspect_err(|_| {
             if o.dump.is_none() && !o.cpp_only {
@@ -147,7 +171,7 @@ pub fn compile_exe(
     } else {
         // No library to look for; the platform still shapes the C++ (a debug build's end of a procedure, `procs.rs`).
         Resolved {
-            platform: Platform::host(),
+            platform,
             ..Resolved::default()
         }
     };
@@ -199,6 +223,11 @@ pub fn compile_exe(
 
     let ir = lower(&fe);
     settings.flags = build::make_flags(&ir.settings);
+    // The files a window program's page ships: those `[build]` `copy` copies (OpenSpec change `wasm-window`, design
+    // D11).
+    if platform == Platform::Wasm && ir.settings.window {
+        settings.wasm_files = o.page_files.clone();
+    }
     settings.uncached = ir.settings.compile_stamp;
     // A log statement names a relative source file from the working folder, as the old compiler does from its
     // start folder (design D2 of `m4-handlers-logging-checking`).
@@ -228,12 +257,28 @@ pub fn compile_exe(
             "building an executable needs Windows x64 or Linux x64; checking (-z, --dump, -y, lsp) works here".into(),
         );
     }
+    // The SDK of a wasm build first: without it nothing else of the build is looked for (spec `compiler/toolchain`,
+    // "The Emscripten SDK").
+    let emsdk = match platform {
+        Platform::Wasm => Some(toolchain::find_emsdk(o.emsdk_root.as_deref())?),
+        Platform::Windows | Platform::Linux => None,
+    };
     // A named folder that is not QB64pe's is reported before the toolchain is looked for.
+    let qb64pe = build::find_root(o.root.as_deref())?;
+    let toolchain = toolchain::find(platform, o.toolchain_root.as_deref(), o.root.as_deref())?;
+    let mut libqb = build::find_libqb(o.libqb_root.as_deref())?;
+    // A wasm build builds in a tree of its own, made current from the copy first (design D3 of `wasm-console`).
+    if emsdk.is_some() && !o.print_build_inputs {
+        let tree = build::wasm_libqb(&libqb)?;
+        build::sync_wasm_libqb(&libqb, &tree)?;
+        libqb = tree;
+    }
     let roots = build::Roots {
-        qb64pe: build::find_root(o.root.as_deref())?,
-        toolchain: toolchain::find(Platform::host(), o.toolchain_root.as_deref(), o.root.as_deref())?,
+        qb64pe,
+        toolchain,
         include: include_root.clone(),
-        libqb: build::find_libqb(o.libqb_root.as_deref())?,
+        libqb,
+        emsdk,
     };
     build::write_fragments(&build_dir, &fragments).map_err(|e| e.to_string())?;
     let icon = exe_icon_path(&fe, input, include_root);
@@ -242,7 +287,7 @@ pub fn compile_exe(
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
     // The icon and version resources are Windows' (`windres`); on Linux the old compiler writes none.
-    if Platform::host() == Platform::Windows {
+    if platform == Platform::Windows {
         build::write_resources(
             &build_dir,
             icon.as_deref(),
@@ -302,4 +347,26 @@ pub fn compile_exe(
         out(&format!("{}\n", Path::new(exe).display()));
     }
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Spec `compiler/cli`, "The output of a wasm build", scenario "A failed build": the `.js` and the `.wasm` of an
+    /// earlier build are both gone. On the host a `.wasm` beside the executable is not the build's, and stays.
+    #[test]
+    fn a_failed_wasm_build_removes_both_files() {
+        let d = tempfile::tempdir().unwrap();
+        let (js, wasm) = (d.path().join("p.js"), d.path().join("p.wasm"));
+        std::fs::write(&js, "old").unwrap();
+        std::fs::write(&wasm, "old").unwrap();
+        remove_old(&js, Platform::Wasm);
+        assert!(!js.exists() && !wasm.exists());
+        let exe = d.path().join("p.exe");
+        std::fs::write(&exe, "old").unwrap();
+        std::fs::write(&wasm, "other").unwrap();
+        remove_old(&exe, Platform::Windows);
+        assert!(!exe.exists() && wasm.exists());
+    }
 }

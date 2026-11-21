@@ -1,0 +1,12 @@
+# The wasm target's window (OpenSpec change wasm-window): Emscripten's GLFW has no glfwGetWindowTitle (GLFW 3.4),
+# so the title is the one just set; on the desktop it is read back from GLFW.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+            glfwSetWindowTitle(window, windowTitle.c_str());
+            windowTitle = glfwGetWindowTitle(window);
+--- new
+            glfwSetWindowTitle(window, windowTitle.c_str());
+#ifndef QB64_EMSCRIPTEN
+            windowTitle = glfwGetWindowTitle(window);
+#endif
+--- end

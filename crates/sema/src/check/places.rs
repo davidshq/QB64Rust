@@ -316,7 +316,7 @@ impl Checker<'_> {
         // 2^62 bytes (a type and a count of at most 2^31 each); their sum may pass 64 bits.
         let bytes: u64 = members
             .iter()
-            .map(|m| layout_bytes(&self.prog.types, m.ty) * u64::from(m.count()))
+            .map(|m| layout_bytes(&self.prog.types, self.prog.pointer_bytes(), m.ty) * u64::from(m.count()))
             .fold(0, u64::saturating_add);
         if bytes > MAX_ELEMENTS as u64 {
             return Err(self.unsupported(header.node().span(), "a `TYPE` of more than 2^31 bytes"));
@@ -371,7 +371,7 @@ impl Checker<'_> {
         let bytes: u64 = self.prog.types[id.0 as usize]
             .members
             .iter()
-            .map(|m| layout_bytes(&self.prog.types, m.ty) * u64::from(m.count()))
+            .map(|m| layout_bytes(&self.prog.types, self.prog.pointer_bytes(), m.ty) * u64::from(m.count()))
             .fold(0, u64::saturating_add);
         if bytes > MAX_ELEMENTS as u64 {
             let at = b.header().map_or(b.node().span(), |h| h.node().span());
@@ -677,7 +677,7 @@ impl Checker<'_> {
             return Ty::User(id);
         }
         let id = TypeId(to_u32(self.prog.types.len()));
-        self.prog.types.push(mem_type());
+        self.prog.types.push(mem_type(self.prog.pointer_bytes()));
         self.types_by_name.insert(MEM_TYPE.to_string(), id);
         Ty::User(id)
     }
@@ -2668,23 +2668,23 @@ fn names_constants(bounds: ast::ArrayBounds) -> bool {
 }
 
 /// The bytes a value of a type takes in the emitter's layout, where a `STRING` is the pointer to its string:
-/// what limits the size of a `TYPE`.
-fn layout_bytes(types: &[UserType], t: Ty) -> u64 {
+/// what limits the size of a `TYPE`. `pointer_bytes` is the size of a pointer ([`Program::pointer_bytes`]).
+fn layout_bytes(types: &[UserType], pointer_bytes: u32, t: Ty) -> u64 {
     match t {
-        Ty::Str => 8,
+        Ty::Str => u64::from(pointer_bytes),
         // A dynamic member array is the pointer to its descriptor, before alignment.
         Ty::User(id) => types[id.0 as usize]
             .members
             .iter()
             .map(|m| {
                 if m.dynamic {
-                    8
+                    u64::from(pointer_bytes)
                 } else {
-                    layout_bytes(types, m.ty) * u64::from(m.count())
+                    layout_bytes(types, pointer_bytes, m.ty) * u64::from(m.count())
                 }
             })
             .sum(),
-        crate::numeric_types!() | Ty::FixedStr(_) => u64::from(crate::size_of(types, t)),
+        crate::numeric_types!() | Ty::FixedStr(_) => u64::from(crate::size_of(types, pointer_bytes, t)),
     }
 }
 

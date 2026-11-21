@@ -182,7 +182,7 @@ impl Checker<'_> {
             let t = self.mem_ty();
             (t, t)
         } else {
-            result_types(s, &args)
+            result_types(s, &args, self.prog.pointer_bytes())
         };
         Ok(Expr {
             span,
@@ -496,7 +496,7 @@ impl Checker<'_> {
             return Err(self.unsupported(e.span, msg));
         }
         // The index of an element is not evaluated (the old compiler takes the element type's size).
-        let size = crate::size_of(&self.prog.types, ty);
+        let size = crate::size_of(&self.prog.types, self.prog.pointer_bytes(), ty);
         Ok(Expr {
             span,
             ty: Ty::I32,
@@ -532,7 +532,9 @@ impl Checker<'_> {
                     let msg = "`LEN` of a whole dynamic member array of variable-length strings";
                     return Err(self.unsupported(at, msg));
                 }
-                return Ok(Some(lng(ExprKind::Int(8 * i64::from(m.count())))));
+                // The pointer's bytes: 8, or 4 on the wasm target.
+                let pointer = i64::from(self.prog.pointer_bytes());
+                return Ok(Some(lng(ExprKind::Int(pointer * i64::from(m.count())))));
             }
             // Before the size: an array of a `TYPE` with a `STRING` member has none (`size_of`).
             self.bytes_reference(&crate::Reference::Array(array.clone()), "LEN", at)?;
@@ -541,7 +543,7 @@ impl Checker<'_> {
                 return Err(self.unsupported(at, msg));
             }
             let m = self.prog.member(self.prog.place_ty(base), *member);
-            let size = crate::size_of(&self.prog.types, m.ty) * m.count();
+            let size = crate::size_of(&self.prog.types, self.prog.pointer_bytes(), m.ty) * m.count();
             return Ok(Some(lng(ExprKind::Int(i64::from(size)))));
         }
         let ast::Expr::Call(c) = node else {

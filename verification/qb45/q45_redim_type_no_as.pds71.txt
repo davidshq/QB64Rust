@@ -1,0 +1,6 @@
+compile:
+ 006E   0018    REDIM a(5)
+                          ^ AS clause required
+    0 Warning Error(s)
+    1 Severe  Error(s)
+link (no executable):

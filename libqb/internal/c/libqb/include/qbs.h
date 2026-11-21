@@ -54,6 +54,10 @@ qbs *qbs_str(uint8_t value);
 qbs *qbs_str(float value);
 qbs *qbs_str(double value);
 qbs *qbs_str(long double value);
+#ifdef __EMSCRIPTEN__ // not QB64_EMSCRIPTEN: this header does not include libqb-common.h
+static inline qbs *qbs_str(long value) { return qbs_str((int32_t)value); }
+static inline qbs *qbs_str(unsigned long value) { return qbs_str((uint32_t)value); }
+#endif
 
 // modern _TOSTR$ function prototypes
 qbs *qbs__tostr(int64_t value, int32_t digits, int32_t passed);

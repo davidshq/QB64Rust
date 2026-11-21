@@ -1,0 +1,4 @@
+ubound 2 
+error 9 at line 11 
+a(4).fooerror 9 at line 12 
+exit=0

@@ -40,16 +40,27 @@ toolchain; for QB64pe, QB64pe. QB64pe is needed only for a build by QB64pe and f
 - **THEN** the language status says that `qb64rust` builds
 
 ### Requirement: Build command
-The command `qb64rust.build` SHALL save the active document and compile it to an executable next to the source
-file (same base name), showing compiler output in an output channel named "QB64". It SHALL build with `qb64rust`
+The command `qb64rust.build` SHALL save the active document and compile it to an executable (same base name),
+showing compiler output in an output channel named "QB64". A build with `qb64rust` SHALL pass no `-o`, so the
+program goes into the output folder (spec `compiler/cli`, "The output folder"); a build with QB64pe SHALL write
+it next to the source. It SHALL build with `qb64rust`
 when `qb64rust.buildWith` is `qb64rust`, or `auto` and the binary is found, with the toolchain found (or offered,
 when there is none), QB64pe's folder as the include root when QB64pe is found, and SHALL build with QB64pe
 otherwise.
 
 #### Scenario: Successful build
-- **WHEN** the user runs Build on a saved `hello.bas` without errors
-- **THEN** `hello.exe` (Windows) or `hello` (other platforms) exists next to `hello.bas` and a success message is
-  shown
+- **WHEN** the user runs Build with `qb64rust` on a saved `hello.bas` without errors
+- **THEN** `build/hello.exe` (Windows) or `build/hello` (other platforms) exists in `hello.bas`'s folder and a
+  success message is shown
+
+#### Scenario: Build with a copy list
+- **WHEN** `qb64rust.toml` beside `game.bas` has `[build]` and `copy = ["GAME.CFG"]`, and the user runs Build
+  on `game.bas` with `qb64rust`
+- **THEN** `build/game.exe` and `build/GAME.CFG` exist
+
+#### Scenario: Built by QB64pe
+- **WHEN** the user builds `game.bas` with QB64pe
+- **THEN** `game.exe` is written next to `game.bas`, since QB64pe does not read the settings file
 
 #### Scenario: Built by qb64rust
 - **WHEN** `qb64rust.buildWith` is `auto`, the `qb64rust` binary and a toolchain are found, and the user runs
@@ -94,13 +105,31 @@ otherwise.
 - **THEN** the user is asked to save it first and the build does not start until it has a file path
 
 ### Requirement: Run commands
-The command `qb64rust.run` SHALL run the existing executable for the active document in an integrated terminal
-with the source folder as working directory. `qb64rust.buildAndRun` SHALL build and, only if the build succeeds,
-run.
+The command `qb64rust.run` SHALL run the existing executable for the active document in an integrated terminal.
+With `qb64rust` the executable and the working directory SHALL be `exe` and `run_in` of `qb64rust --print-paths`
+(spec `compiler/cli`, "The paths of a program"), unless the executable next to the source is newer, as after
+"Build with QB64pe"; then it SHALL run that one in the source folder. With QB64pe they SHALL be the executable next
+to the source and the source folder. `qb64rust.buildAndRun` SHALL build and, only if the build succeeds, run.
 
 #### Scenario: Build and run
 - **WHEN** the user runs Build and Run on a correct program
 - **THEN** the program starts in a terminal named "QB64" after the build finishes
+
+#### Scenario: Run in the source folder
+- **WHEN** `game.bas` has no settings file, `build/game.exe` exists, and the user runs Run on `game.bas`
+- **THEN** `build/game.exe` starts with `game.bas`'s folder as its working folder, so it finds the data files
+  beside `game.bas`
+
+#### Scenario: Run in the output folder
+- **WHEN** the settings file has `copy = ["GAME.CFG"]`, `build/game.exe` exists, and the user runs Run on
+  `game.bas`
+- **THEN** `build/game.exe` starts with `build` as its working folder, so a file it writes by name alone stays in
+  `build`
+
+#### Scenario: Run after a build with QB64pe
+- **WHEN** `build/game.exe` exists from a build with `qb64rust`, the user then accepts "Build with QB64pe", and
+  runs Run on `game.bas`
+- **THEN** the newer `game.exe` next to the source starts, in the source folder
 
 #### Scenario: Run without executable
 - **WHEN** the user runs Run and no executable exists for the document
@@ -131,12 +160,13 @@ no program, or does not run, the action SHALL act on the document itself.
 
 #### Scenario: Build from an include file
 - **WHEN** `turn.bm` is the active editor and the server names `CWSTRAT.BAS` as its program
-- **THEN** Build saves `turn.bm`, then builds `CWSTRAT.BAS` to `CWSTRAT.EXE`, and the build task does the same
+- **THEN** Build saves `turn.bm`, then builds `CWSTRAT.BAS` to `build/CWSTRAT.exe` with `qb64rust` (to
+  `CWSTRAT.exe` beside it with QB64pe), and the build task does the same
 
 #### Scenario: Debug from an include file
 - **WHEN** `turn.bm` is the active editor, its program is `CWSTRAT.BAS`, and the user presses F5 with no
   `launch.json`
-- **THEN** `CWSTRAT.BAS` is built with `--debug` and debugged, with its folder as `cwd`
+- **THEN** `CWSTRAT.BAS` is built with `--debug` and debugged, with `CWSTRAT.BAS`'s folder as `cwd` (its program has no `copy` list)
 
 #### Scenario: No program found
 - **WHEN** `lib.bm` is the active editor and the server names no program for it

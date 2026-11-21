@@ -34,6 +34,39 @@
 #            include <GL/glext.h>
 #            include <GL/glu.h>
 #        endif
+#        ifdef QB64_EMSCRIPTEN
+#            include <cstdint>
+#            include <cstdlib>
+static inline void qb64rust_glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border,
+                                         GLenum format, GLenum type, const void *pixels) {
+    while (glad_glGetError() != GL_NO_ERROR) {
+    }
+    if (format == GL_BGRA && type == GL_UNSIGNED_BYTE && pixels != nullptr) {
+        size_t count = (size_t)width * (size_t)height;
+        uint8_t *rgba = (uint8_t *)malloc(count * 4);
+        const uint8_t *bgra = (const uint8_t *)pixels;
+        for (size_t i = 0; i < count; i++) {
+            rgba[i * 4] = bgra[i * 4 + 2];
+            rgba[i * 4 + 1] = bgra[i * 4 + 1];
+            rgba[i * 4 + 2] = bgra[i * 4];
+            rgba[i * 4 + 3] = bgra[i * 4 + 3];
+        }
+        glad_glTexImage2D(target, level, GL_RGBA, width, height, border, GL_RGBA, type, rgba);
+        free(rgba);
+    } else {
+        glad_glTexImage2D(target, level, internalformat == GL_BGRA ? GL_RGBA : internalformat, width, height, border,
+                          format == GL_BGRA ? GL_RGBA : format, type, pixels);
+    }
+}
+static inline GLint qb64rust_gluBuild2DMipmaps(GLenum target, GLint internalformat, GLsizei width, GLsizei height, GLenum format,
+                                               GLenum type, const void *pixels) {
+    qb64rust_glTexImage2D(target, 0, internalformat, width, height, 0, format, type, pixels);
+    return 0;
+}
+#            undef glTexImage2D
+#            define glTexImage2D qb64rust_glTexImage2D
+#            define gluBuild2DMipmaps qb64rust_gluBuild2DMipmaps
+#        endif
 #    endif
 
 #    ifdef QB64_WINDOWS

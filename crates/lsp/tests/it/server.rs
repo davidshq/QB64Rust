@@ -61,6 +61,12 @@ fn stand_in_index(_: &SourceMap, _: &ParsedProgram, _: Option<&Path>, _: &Path) 
     qb64rust_lsp::index::SymbolIndex::default()
 }
 
+/// No document is excluded in these tests. Excluded files are tested with the driver's real `settings::excluded`, in
+/// `crates\driver\tests\it\format_server.rs`.
+fn stand_in_excluded(_: &Path) -> bool {
+    false
+}
+
 /// The settings file's main program in these tests (the real one is the driver's `fixes::main_of`): a line
 /// `main = "<name>"` of the nearest `qb64rust.toml` at or above the document's folder, when that file exists.
 fn stand_in_main_of(doc: &Path) -> Option<std::path::PathBuf> {
@@ -188,6 +194,7 @@ impl Client {
             format: stand_in_format,
             index: stand_in_index,
             main_of: stand_in_main_of,
+            excluded: stand_in_excluded,
             rewritable: stand_in_rewritable,
         };
         let server = std::thread::Builder::new()

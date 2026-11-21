@@ -41,7 +41,9 @@ WORDS_RS = Path("crates/format/src/words.rs")
 GRAMMAR = Path("vscode/syntaxes/qb64rust.tmLanguage.json")
 SPECS = Path("openspec/specs")
 # The specs a page may cite besides `language/*`: the others are about tools and tests, not the language.
-LANGUAGE_SPECS = ("compiler/pipeline", "compiler/fixes", "compiler/lints")
+# `compiler/wasm-target` (OpenSpec change wasm-console): the chapter on the wasm target, which says what a program
+# may use there.
+LANGUAGE_SPECS = ("compiler/pipeline", "compiler/fixes", "compiler/lints", "compiler/wasm-target")
 CALLSITE = Path("tests/callsite")
 DIVERGENCES = (Path("docs/DIVERGENCES-QB64PE.md"), Path("docs/DIVERGENCES-QB45.md"))
 SOMEDAY = Path("docs/SOMEDAY.md")
@@ -251,6 +253,18 @@ def load_requirements() -> tuple[Requirement, ...]:
                 )
             )
     return tuple(out)
+
+
+@functools.cache
+def source_requirements() -> frozenset[tuple[str, str]]:
+    """Every requirement of every spec, as (spec, heading): what a `src:` comment may cite. `evidence` reads
+    only the language specs (`load_requirements`); a page may also cite a tool's spec for what the tool does."""
+    out = set()
+    for path in sorted((REPO / SPECS).glob("*/*/spec.md")):
+        name = spec_name(path)
+        for heading in re.findall(r"^### Requirement: (.+)$", path.read_text(encoding="utf-8"), flags=re.M):
+            out.add((name, heading.strip()))
+    return frozenset(out)
 
 
 def inventory() -> dict[str, Word]:
@@ -997,58 +1011,6 @@ def unsupported_md() -> str:
     return "\n".join(out)
 
 
-def register_rows(path: Path, prefix: str) -> list[list[str]]:
-    """The rows of a divergence register whose id starts with `prefix` (`D-`, `Q-`): id, behavior, the other
-    compiler's column and QB64Rust's."""
-    rows = []
-    for line in read(REPO / path).splitlines():
-        if line.startswith(f"| {prefix}"):
-            cells = [c.strip() for c in line.strip().strip("|").split("|")]
-            if len(cells) >= 4:
-                rows.append(cells[:4])
-    return rows
-
-
-# The section of "Coming from QuickBASIC 4.5" on BASIC PDS 7.1's words: the ones the game ports met
-# (docs/PORTING-PDS.md, sections 2 and 3), each with QB64Rust's message, measured 2026-11-12.
-PDS_SECTION = """
-## Words of BASIC PDS 7.1
-
-BASIC PDS 7.1 added words that QuickBASIC 4.5 and QB64 do not have. These are the ones the ports of World War 2
-and Civil War Battleset met, each with what QB64Rust does with it and the edit the ports made
-([Porting a BASIC PDS 7.1 program](../PORTING-PDS.md)). Two of them build with no error, which makes them the
-easiest to miss.
-
-| PDS form | What QB64Rust does | The usual edit |
-|---|---|---|
-| `CURDIR$` | Builds with no error: it is a string variable, always `""`. With `-w`, a name used only once gets "`CURDIR$` is used only once: is it misspelled?" | A `FUNCTION CURDIR$` that returns `_CWD$` without the separator at its end |
-| `DIR$` with no argument | The same: a string variable, always `""` | `DIR$("")`, with a `FUNCTION DIR$` written with `_FILES$` |
-| `DIR$(spec$)` | The compile error "an array index must be a number" | A `FUNCTION DIR$ (spec$)` written with `_FILES$` |
-| `CHDRIVE drive$` | The compile error "`CHDRIVE` is no statement and no SUB" | A `SUB CHDRIVE` that runs `CHDIR` |
-| `ON LOCAL ERROR GOTO label` | The compile error "`ON LOCAL ERROR` is BASIC PDS 7.1's, and QB64 does not have it" | `ON ERROR GOTO` with the handler in the main module, and `ON ERROR GOTO 0` before the SUB ends |
-| `COMMON SHARED /name/ x` | The compile error "a `COMMON` block name (`/name/`) is not accepted" | `DIM SHARED x` |
-| `FRE(-1)` | The compile error "`FRE` is not implemented in QB64pe" | Remove it |
-"""
-
-
-def coming_from_md(path: Path, prefix: str, title: str, other: str, intro: str, tail: str = "") -> str:
-    rows = register_rows(path, prefix)
-    out = [
-        f"# {title}",
-        "",
-        GENERATED_NOTE,
-        "",
-        intro,
-        f"{len(rows)} rows, from `{path.as_posix()}`, which also says why each was decided and what pins it.",
-        "",
-        f"| Id | Case | {other} | QB64Rust |",
-        "|---|---|---|---|",
-    ]
-    out += [f"| {i} | {case} | {theirs} | {ours} |" for i, case, theirs, ours in rows]
-    out.append(tail)
-    return "\n".join(out)
-
-
 APPENDICES = (
     ("coming-from-qb64pe.md", "Coming from QB64pe"),
     ("coming-from-qb45.md", "Coming from QuickBASIC 4.5"),
@@ -1069,23 +1031,6 @@ def generated_files(words: dict[str, Word]) -> dict[Path, str]:
         REF / "appendix-reserved.md": reserved_md(words),
         REF / "appendix-metacommands.md": metacommands_md(words),
         REF / "appendix-unsupported.md": unsupported_md(),
-        REF / "coming-from-qb64pe.md": coming_from_md(
-            DIVERGENCES[0],
-            "D-",
-            "Coming from QB64pe",
-            "QB64pe 4.7.0",
-            "Where QB64Rust does something other than QB64pe 4.7.0, the compiler it follows. Everywhere else a\n"
-            "program behaves as it does with QB64pe.",
-        ),
-        REF / "coming-from-qb45.md": coming_from_md(
-            DIVERGENCES[1],
-            "Q-",
-            "Coming from QuickBASIC 4.5",
-            "QuickBASIC 4.5",
-            "Where QB64Rust does something other than QuickBASIC 4.5. Most rows are QB64pe's behavior, which\n"
-            "QB64Rust keeps; the QuickBASIC column says whether it was measured, documented or believed.",
-            PDS_SECTION,
-        ),
     }
 
 
@@ -1302,7 +1247,7 @@ def check(compiler: Path | None) -> list[str]:
     stems = {p.stem for p in page_files()}
     if set(avail) != stems:
         problems.append(f"{rel(AVAILABILITY)}: does not list exactly the pages (run render --compiler)")
-    requirements = {(r.spec, r.heading) for r in load_requirements()}
+    requirements = source_requirements()
     rows = {m for path in DIVERGENCES for m in re.findall(r"^\| ([DQ]-\d{3}) \|", read(path), re.M)}
     for page in page_files():
         problems += check_page(page, words, avail, requirements, rows)

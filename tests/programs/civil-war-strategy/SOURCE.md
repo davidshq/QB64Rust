@@ -7,6 +7,10 @@ The files are the repository's, byte for byte, under the same names (each checke
 copied, 2026-10-09). Do not edit them by hand. Programs cut from the game for tests are new files elsewhere, not
 edits here.
 
+One edit, made at the user's word (2026-11-21, `DECISIONS.md`): line 239 of `CWSTRAT.BAS` copied `cws.his` to
+`oldhist.ory` with `SHELL "copy …"`, and now copies it in BASIC on the same line, so that the game builds for the
+wasm target, which has no `SHELL`. The line runs only when the game's history option is on.
+
 | Files | What |
 |---|---|
 | `CWSTRAT.BAS` | The whole game: 5,075 lines, one file, no included files |

@@ -804,7 +804,7 @@ impl Checker<'_> {
         let fixed = |t: Ty| pty == Ty::Str && matches!(t, Ty::FixedStr(_));
         if let ExprKind::Load(place) = &e.kind
             && let ty = self.prog.place_ty(place)
-            && (ty == pty || fixed(ty) || same_storage(ty, pty) || same_bits(ty, pty))
+            && (ty == pty || fixed(ty) || same_storage(ty, pty, self.prog.pointer_bytes()) || same_bits(ty, pty))
         {
             // An element of a `_BIT` array is packed, so it has no address: "Cannot pass _BIT array offsets"
             // (`qb64pe.bas` 12172, before and after `fae85f8e1`; measured with both, `verification\v67_b_elements`).
@@ -959,7 +959,7 @@ impl Checker<'_> {
                 return Err(self.error(span, msg));
             }
             let (aty, pty) = (self.prog.array_ty(&array), self.prog.var(param).ty);
-            if array_kind(aty) != array_kind(pty) {
+            if array_kind(aty, self.prog.pointer_bytes()) != array_kind(pty, self.prog.pointer_bytes()) {
                 let msg = format!(
                     "the array `{shown}` ({}) cannot be passed to an array parameter of type {}",
                     self.prog.type_name(aty),
@@ -1004,7 +1004,7 @@ impl Checker<'_> {
             None => self.implicit_array(t, &name, suffix, 1, call.node())?,
         };
         let (aty, pty) = (self.prog.var(array).ty, self.prog.var(param).ty);
-        if array_kind(aty) != array_kind(pty) {
+        if array_kind(aty, self.prog.pointer_bytes()) != array_kind(pty, self.prog.pointer_bytes()) {
             let msg = format!(
                 "the array `{shown}` ({}) cannot be passed to an array parameter of type {}",
                 self.prog.type_name(aty),
@@ -1130,9 +1130,13 @@ fn ordinal(n: usize) -> String {
 /// another type: the same width (the 64-bit integer and `_OFFSET` types are one width), as the old compiler passes
 /// the same bytes with a pointer cast (measured, `verification\v21_b_passing`, `v21_g_passing_places`: variables,
 /// elements and members). A `_BIT` place is always a copy: its value is not of its own width.
-fn same_storage(place: Ty, param: Ty) -> bool {
+fn same_storage(place: Ty, param: Ty, pointer_bytes: u32) -> bool {
     let bit = |t: Ty| matches!(t, Ty::Bit { .. });
-    place.is_int() && param.is_int() && !bit(place) && !bit(param) && place.int_bits() == param.int_bits()
+    place.is_int()
+        && param.is_int()
+        && !bit(place)
+        && !bit(param)
+        && place.stored_bits(pointer_bytes) == param.stored_bits(pointer_bytes)
 }
 
 /// Whether a `_BIT` place is passed by reference to a `_BIT` parameter of another signedness: the same width, as
@@ -1156,7 +1160,7 @@ enum ArrayKind {
     User(crate::TypeId),
 }
 
-fn array_kind(t: Ty) -> ArrayKind {
+fn array_kind(t: Ty, pointer_bytes: u32) -> ArrayKind {
     match t {
         Ty::Bit { width, .. } => ArrayKind::Bit(width),
         Ty::F32 => ArrayKind::Float(32),
@@ -1168,7 +1172,9 @@ fn array_kind(t: Ty) -> ArrayKind {
         Ty::I8 | Ty::U8 => ArrayKind::Int(8),
         Ty::I16 | Ty::U16 => ArrayKind::Int(16),
         Ty::I32 | Ty::U32 => ArrayKind::Int(32),
-        Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff => ArrayKind::Int(64),
+        Ty::I64 | Ty::U64 => ArrayKind::Int(64),
+        // The stored width: 4 bytes on wasm, where an `_INTEGER64` array is not the same storage.
+        Ty::Off | Ty::UOff => ArrayKind::Int(pointer_bytes * 8),
     }
 }
 

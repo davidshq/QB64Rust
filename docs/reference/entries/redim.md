@@ -16,8 +16,8 @@ new bounds and new elements, 0 or empty.
 <!-- src: language/arrays-and-types "REDIM"; tests\reference\examples\redim_1 -->
 
 Without `AS`, `REDIM` of an array declared with `AS` keeps that type: after `REDIM x(5) AS LONG`, `REDIM x(10)` is
-still a LONG array.
-<!-- src: language/arrays-and-types "REDIM" -->
+still a LONG array. The same holds for an array of a `TYPE`.
+<!-- src: language/arrays-and-types "REDIM"; D-068 -->
 
 `REDIM _PRESERVE` keeps as many element values as the smaller of the old and new sizes, by their position in
 memory, the first dimension fastest. With two dimensions, values keep their positions, not their indexes.
@@ -61,8 +61,8 @@ From QuickBASIC 4.5:
 
 - `REDIM a()` with empty parentheses is a syntax error there (`DIVERGENCES-QB45.md` Q-032).
   <!-- src: Q-032 -->
-- `REDIM d(3)` without `AS` after `REDIM d(2) AS DOUBLE` is "AS clause required" there. QB64Rust keeps the type, as
-  QB64pe does (Q-034).
+- `REDIM d(3)` without `AS` after `REDIM d(2) AS DOUBLE` is "AS clause required" there, and so is the same `REDIM`
+  of an array of a `TYPE`. QB64Rust keeps the type, as QB64pe does for `DOUBLE` (Q-034).
   <!-- src: Q-034 -->
 
 From QB64pe:
@@ -78,6 +78,10 @@ From QB64pe:
 - A `_DYNAMIC` member array given more elements than memory holds succeeds there with a block too small. QB64Rust
   ends the program with "Out of memory", as for any array that is too large (D-020).
   <!-- src: D-020 -->
+- `REDIM a(5)` without `AS` after `REDIM a(2) AS f`, with `f` a `TYPE`, leaves the `TYPE` array alone in QB64pe,
+  with its old bounds and values, and makes a second array `a!()`. QB64Rust gives the `TYPE` array the new bounds
+  and clears it, as it does for any other type (D-068).
+  <!-- src: D-068 -->
 
 ## Availability
 

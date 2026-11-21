@@ -6,7 +6,10 @@
 # The job is the JSON file check.py writes (target\check\vm\<step>.json): "step", "command" (arguments), "first"
 # (a command run before it, or null), "cwd" (relative to the tree), "env", "copy" (host files of the tree put in the
 # guest's copy first), "outputs" (copied out at the end; tools\winvm\outputs.py), "clears" (removed first), and
-# "limit" (seconds).
+# "limit" (seconds). Optional, for tools\winvm\game.ps1: "compiler" (the qb64rust.exe the toolchain guard asks,
+# relative to the tree; "" for no guard), "path" (folders of the guest put first on PATH), "scratch" (the host
+# folder for the outputs' archive; else the tree's target\check\vm), and "log" (a host file that the step's log is
+# also appended to as it comes in).
 #
 # Before the command, the guest's qb64rust.exe must say that it builds with the installed toolchain: the clone at
 # ..\QB64pe beside the tree in the guest serves only qb64pe.exe, and a build with its toolchain would hide a
@@ -29,11 +32,22 @@ $own = 'qb64rust-vm'
 $taskName = 'qb64rust-step'
 $out = [Console]::OpenStandardOutput()
 
-# A line of the step's log, as bytes, beside the guest's log bytes.
-function Say([string]$text) {
-    $bytes = [Text.Encoding]::UTF8.GetBytes("step.ps1: $text`n")
+$logFile = $null
+
+# Bytes of the step's log: to standard output, and appended to the job's "log" file when it names one, so that
+# the file can be read while the step runs.
+function Write-Out([byte[]]$bytes) {
     $out.Write($bytes, 0, $bytes.Length)
     $out.Flush()
+    if ($script:logFile) {
+        $f = [IO.File]::Open($script:logFile, 'Append', 'Write', 'ReadWrite')
+        try { $f.Write($bytes, 0, $bytes.Length) } finally { $f.Close() }
+    }
+}
+
+# A line of the step's log, as bytes, beside the guest's log bytes.
+function Say([string]$text) {
+    Write-Out ([Text.Encoding]::UTF8.GetBytes("step.ps1: $text`n"))
 }
 
 function Seconds([datetime]$since) { ((Get-Date) - $since).TotalSeconds }
@@ -52,6 +66,7 @@ $Tree = (Resolve-Path -LiteralPath $Tree).Path.TrimEnd('\')
 $parent = Split-Path $Tree
 $spec = Get-Content -Raw -LiteralPath $Job | ConvertFrom-Json
 $step = $spec.step
+if ($spec.PSObject.Properties['log'] -and $spec.log) { $logFile = $spec.log }
 $guest = "C:\run\$step"
 $session = $null
 $code = 1
@@ -95,8 +110,7 @@ function Show-Log {
     }
     if ($bytes -and $bytes.Length -gt 0) {
         $bytes = [byte[]]$bytes
-        $out.Write($bytes, 0, $bytes.Length)
-        $out.Flush()
+        Write-Out $bytes
         $script:offset += $bytes.Length
     }
 }
@@ -142,11 +156,12 @@ function Invoke-Step {
     # The toolchain guard (design D11).
     $compiler = Join-Path $Tree 'target\release\qb64rust.exe'
     if (-not (Test-Path -LiteralPath $compiler)) { $compiler = Join-Path $Tree 'target\debug\qb64rust.exe' }
-    $found = Invoke-Command -Session $session -ArgumentList $compiler {
+    if ($spec.PSObject.Properties['compiler']) { $compiler = if ($spec.compiler) { InTree $spec.compiler } else { '' } }
+    $found = if (-not $compiler) { @('', 'installed: no guard') } else { Invoke-Command -Session $session -ArgumentList $compiler {
         param($exe)
         if (-not (Test-Path -LiteralPath $exe)) { return @('', "no $exe in the guest") }
         @(& $exe toolchain path 2>&1 | ForEach-Object { "$_" })
-    }
+    } }
     if (@($found).Count -lt 2 -or -not "$($found[1])".StartsWith('installed:')) {
         Say ("the VM's qb64rust would not build with the installed toolchain: '$(@($found) -join ' / ')'. Make the " +
             "VM again (tools\winvm\README.md, 'The suites VM'), so that create.ps1 installs the toolchain qb64rust " +
@@ -168,6 +183,11 @@ function Invoke-Step {
         'set "QB64RUST_IN_SUITES_VM=1"'
     )
     foreach ($p in $spec.env.PSObject.Properties) { $lines += "set $(Quote "$($p.Name)=$($p.Value)")" }
+    foreach ($p in @($spec.path)) {
+        if (-not $p) { continue }
+        if ($p -match '[^\x20-\x7E]|["%;]') { throw "a folder of path cannot go into the step's batch file: $p" }
+        $lines += "set `"PATH=$p;%PATH%`""
+    }
     $lines += "call :steps > $(Quote "$guest\log.txt") 2>&1"
     $lines += ">$(Quote "$guest\code.tmp") echo %ERRORLEVEL%"
     $lines += "move /y $(Quote "$guest\code.tmp") $(Quote "$guest\code.txt") > nul"
@@ -245,10 +265,12 @@ try {
             $wanted = @($spec.outputs | Where-Object { $_ })
             if ($wanted) {
                 # A whole suite's outputs take a minute or two to archive.
-                $count = Guest -seconds 900 -arguments $Tree, $guest, $wanted {
-                    param($tree, $folder, $wanted)
+                # outputs.py from this script's folder: the guest has this repo at the host's path, also when the
+                # tree is a game's (game.ps1).
+                $count = Guest -seconds 900 -arguments $Tree, $guest, $wanted, (Join-Path $PSScriptRoot 'outputs.py') {
+                    param($tree, $folder, $wanted, $lister)
                     $python = Join-Path $env:ProgramFiles 'Python312\python.exe'
-                    $files = @(& $python (Join-Path $tree 'tools\winvm\outputs.py') $tree @wanted)
+                    $files = @(& $python $lister $tree @wanted)
                     if (-not $files) { return 0 }
                     [IO.File]::WriteAllText("$folder\outputs.list", (($files -join "`n") + "`n"))
                     & "$env:SystemRoot\System32\tar.exe" -cf "$folder\outputs.tar" -C $tree -T "$folder\outputs.list"
@@ -256,7 +278,8 @@ try {
                     $files.Count
                 }
                 if ($count -gt 0) {
-                    $archive = Join-Path $Tree "target\check\vm\$step.outputs.tar"
+                    $archiveFolder = if ($spec.scratch) { $spec.scratch } else { Join-Path $Tree 'target\check\vm' }
+                    $archive = Join-Path $archiveFolder "$step.outputs.tar"
                     Copy-Item -FromSession $session -Path "$guest\outputs.tar" -Destination $archive -Force
                     & "$env:SystemRoot\System32\tar.exe" -xf $archive -C $Tree
                     if ($LASTEXITCODE -ne 0) { throw "tar could not unpack the outputs (exit $LASTEXITCODE)" }

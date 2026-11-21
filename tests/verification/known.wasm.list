@@ -1,0 +1,259 @@
+# The verification programs the wasm target cannot run (OpenSpec change wasm-console; spec testing/golden-corpus,
+# "The wasm known list"), in the format of known.list: <name><TAB><reason>. Every reason starts with target,
+# float, clib, width, node, varies or open. The lines target are skipped without a build.
+# They were written by `-z --target wasm` over the suite (task 6.2 of wasm-console): target for one that uses a word
+# the target does not have, or a part of libqb it does not build yet. The reason offset, for a program rejected for
+# a pointer's size, went with the OpenSpec change wasm-pointer-width (2026-11-20): _OFFSET, _MEM and a member array
+# of strings are built with 4-byte pointers. The reason window, for a program without $CONSOLE:ONLY, went with the
+# OpenSpec change wasm-window (2026-11-21): such a program runs in a page, in headless Chrome.
+# target: 185
+v22_d_shell	target: `SHELL` (-z --target wasm)
+v22_x166_shell_call	target: `SHELL` (-z --target wasm)
+v22_x178_shell_bare_compiles	target: `SHELL` (-z --target wasm)
+v22_x179_shell_hide_bare_compiles	target: `SHELL` (-z --target wasm)
+v27_x58_name_colon_accepted	target: `SHELL` (-z --target wasm)
+v28_x89_on_strig_gosub_sub_name	target: `ON STRIG` (-z --target wasm)
+v29_a_sound_queue	target: `PLAY` (-z --target wasm)
+v29_b_sound_wait	target: `SOUND` (-z --target wasm)
+v29_c_sound_errors	target: `SOUND` (-z --target wasm)
+v29_d_volume_zero	target: `SOUND` (-z --target wasm)
+v29_f_queue_slice	target: `PLAY` (-z --target wasm)
+v29_g_voice	target: `PLAY` (-z --target wasm)
+v29_h_sound_ranges	target: `SOUND` (-z --target wasm)
+v29_x01_sound_two	target: `SOUND` (-z --target wasm)
+v29_x03_sound_none	target: `SOUND` (-z --target wasm)
+v29_x04_sound_volume	target: `SOUND` (-z --target wasm)
+v29_x05_sound_pan	target: `SOUND` (-z --target wasm)
+v29_x06_sound_waveform	target: `SOUND` (-z --target wasm)
+v29_x07_sound_waveform_parameter	target: `SOUND` (-z --target wasm)
+v29_x08_sound_voice	target: `SOUND` (-z --target wasm)
+v29_x09_sound_seven	target: `SOUND` (-z --target wasm)
+v29_x11_sound_wait	target: `SOUND` (-z --target wasm)
+v29_x12_sound_resume	target: `SOUND` (-z --target wasm)
+v29_x13_sound_two_wait	target: `SOUND` (-z --target wasm)
+v29_x15_sound_three_resume	target: `SOUND` (-z --target wasm)
+v29_x19_sound_numeric_types	target: `SOUND` (-z --target wasm)
+v29_x20_sound_parentheses	target: `SOUND` (-z --target wasm)
+v29_x21_sound_trailing_comma	target: `SOUND` (-z --target wasm)
+v29_x24_sound_colon	target: `SOUND` (-z --target wasm)
+v29_x27_sound_call	target: `SOUND` (-z --target wasm)
+v29_x29_sound_seven_wait	target: `SOUND` (-z --target wasm)
+v29_x32_sound_wait_colon	target: `SOUND` (-z --target wasm)
+v29_x40_play_literal	target: `PLAY` (-z --target wasm)
+v29_x41_play_variable	target: `PLAY` (-z --target wasm)
+v29_x42_play_two	target: `PLAY` (-z --target wasm)
+v29_x43_play_first_third	target: `PLAY` (-z --target wasm)
+v29_x44_play_first_fourth	target: `PLAY` (-z --target wasm)
+v29_x45_play_four	target: `PLAY` (-z --target wasm)
+v29_x50_play_trailing_comma	target: `PLAY` (-z --target wasm)
+v29_x51_play_expression	target: `PLAY` (-z --target wasm)
+v29_x52_play_parentheses	target: `PLAY` (-z --target wasm)
+v29_x54_play_call	target: `PLAY` (-z --target wasm)
+v29_x55_play_function	target: `PLAY` (-z --target wasm)
+v29_x56_play_function_bare	target: `PLAY` (-z --target wasm)
+v29_x60_play_function_types	target: `PLAY` (-z --target wasm)
+v29_x64_on_play_gosub	target: `PLAY` (-z --target wasm)
+v29_x67_play_fixed_string	target: `PLAY` (-z --target wasm)
+v29_x68_play_fixed_string_second	target: `PLAY` (-z --target wasm)
+v29_x77_beep_in_if	target: `SOUND` (-z --target wasm)
+v29_x79_sound_goto	target: `SOUND` (-z --target wasm)
+v29_x82_sound_colon_alone	target: `SOUND` (-z --target wasm)
+v29_x84_sound_lower_case	target: `SOUND` (-z --target wasm)
+v29_x86_sound_in_sub	target: `SOUND` (-z --target wasm)
+v29_x87_call_sound_wait_inside	target: `SOUND` (-z --target wasm)
+v29_x89_call_sound_bare	target: `SOUND` (-z --target wasm)
+v29_x96_call_sound_wait_only	target: `SOUND` (-z --target wasm)
+v29_x98_call_play_two	target: `PLAY` (-z --target wasm)
+v30_x98_chain_string	target: `CHAIN` (-z --target wasm)
+v32_x01_accepted	target: `_MEMSOUND` (-z --target wasm)
+v33_d01_debug	target: `$DEBUG` (-z --target wasm)
+v33_d04_debug_option_base	target: `$DEBUG` (-z --target wasm)
+v33_d05_debug_vwatch_name	target: `$DEBUG` (-z --target wasm)
+v33_d07_debug_explicit	target: `$DEBUG` (-z --target wasm)
+v33_d08_debug_in_sub	target: `$DEBUG` (-z --target wasm)
+v33_d10_debug_untrapped	target: `$DEBUG` (-z --target wasm)
+v33_d11_sockets_above	target: `$DEBUG` (-z --target wasm)
+v33_x13_debug_lower	target: `$DEBUG` (-z --target wasm)
+v33_x49_debug_vwatch_sub	target: `$DEBUG` (-z --target wasm)
+v33_x54_debug_checking_off	target: `$DEBUG` (-z --target wasm)
+v37_g_dynamic	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_i_places	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_j_no_function	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_l1_dynamic_libc	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_l3_two_blocks_libc	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_l4_libc_whole_name	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_x02	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_x53	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v37_x67	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v39_a_handles	target: `_SNDOPEN` (-z --target wasm)
+v39_b_new_mem	target: `_SNDNEW` (-z --target wasm)
+v39_c_files_raw_midi	target: `_SNDOPEN` (-z --target wasm)
+v39_x01_accepted	target: `_SNDOPEN` (-z --target wasm)
+v39_x55_sndrawdone_colon	target: `_SNDRAWDONE` (-z --target wasm)
+v39_x57_wave_suffix_array	target: `_WAVE` (-z --target wasm)
+v39_x58_sndrawbatch_suffix_array	target: `_SNDRAWBATCH` (-z --target wasm)
+v39_x59_wave_array_no_parens	target: `_WAVE` (-z --target wasm)
+v39_x60_sndrawbatch_array_no_parens	target: `_SNDRAWBATCH` (-z --target wasm)
+v39_x71_wave_array_parameter	target: `_WAVE` (-z --target wasm)
+v39_x72_sndrawbatch_array_parameter	target: `_SNDRAWBATCH` (-z --target wasm)
+v40_a_all_keys	target: `SHELL` (-z --target wasm)
+v40_b_numeric_only	target: `SHELL` (-z --target wasm)
+v40_c_order	target: `SHELL` (-z --target wasm)
+v40_d_forms	target: `SHELL` (-z --target wasm)
+v40_e_repeat	target: `SHELL` (-z --target wasm)
+v40_f_with_icon	target: `SHELL` (-z --target wasm)
+v40_g1_specials	target: `SHELL` (-z --target wasm)
+v40_g2_lt_in_name	target: `SHELL` (-z --target wasm)
+v40_g3_amp_in_company	target: `SHELL` (-z --target wasm)
+v40_g4_lt_in_description	target: `SHELL` (-z --target wasm)
+v40_g5_gt_in_name	target: `SHELL` (-z --target wasm)
+v40_g6_byte_e9_in_name	target: `SHELL` (-z --target wasm)
+v40_g7_utf8_in_name	target: `SHELL` (-z --target wasm)
+v40_g8_amp_in_comments	target: `SHELL` (-z --target wasm)
+v40_h1_empty_part	target: `SHELL` (-z --target wasm)
+v40_h2_large_parts	target: `SHELL` (-z --target wasm)
+v40_h3_leading_zeros	target: `SHELL` (-z --target wasm)
+v40_h4_leading_comma	target: `SHELL` (-z --target wasm)
+v40_h5_octal_looking	target: `SHELL` (-z --target wasm)
+v40_h6_largest	target: `SHELL` (-z --target wasm)
+v40_h7_one_over	target: `SHELL` (-z --target wasm)
+v40_i_places	target: `SHELL` (-z --target wasm)
+v40_j_prefix	target: `SHELL` (-z --target wasm)
+v40_k_only_product_version	target: `SHELL` (-z --target wasm)
+v40_l_only_web	target: `SHELL` (-z --target wasm)
+v42_x11_strig	target: `ON STRIG` (-z --target wasm)
+v44_b_net_errors	target: `_OPENCONNECTION` (-z --target wasm)
+v44_c_flags	target: `_OPENCLIENT` (-z --target wasm)
+v44_e_loopback	target: `_OPENHOST` (-z --target wasm)
+v44_x48	target: `_OPENCLIENT` (-z --target wasm)
+v44_x52	target: `_OPENHOST` (-z --target wasm)
+v44_x53	target: `_OPENCONNECTION` (-z --target wasm)
+v44_x62	target: `_OPENCONNECTION` (-z --target wasm)
+v46_a_play_v0	target: `PLAY` (-z --target wasm)
+v47_b_devices	target: `_DEVICES` (-z --target wasm)
+v47_x13	target: `ON STRIG` (-z --target wasm)
+v47_x27	target: `ON STRIG` (-z --target wasm)
+v47_x30	target: `ON STRIG` (-z --target wasm)
+v47_x31	target: `ON STRIG` (-z --target wasm)
+v49_d_clipboard	target: `_CLIPBOARD$` (-z --target wasm)
+v49_x50_clipboard_call	target: `_CLIPBOARD$` (-z --target wasm)
+v53_c_system	target: `_SHELLHIDE` (-z --target wasm)
+v57_r08_missing_file	target: `RUN` (-z --target wasm)
+v57_r09_second_program	target: `RUN` (-z --target wasm)
+v57_r16_string_variable	target: `RUN` (-z --target wasm)
+v57_r20_string_const	target: `RUN` (-z --target wasm)
+v57_r21_string_const_suffix	target: `RUN` (-z --target wasm)
+v57_r22_defstr_undeclared	target: `RUN` (-z --target wasm)
+v57_r23_defstr_assigned	target: `RUN` (-z --target wasm)
+v58_e27_on_dll_missing	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v58_e28_on_dll_function_missing	target: `DECLARE DYNAMIC LIBRARY` (-z --target wasm)
+v63_d1_statuscode_closed	target: `_OPENHOST` (-z --target wasm)
+v66_a21_play_x_varptrs	target: `PLAY` (-z --target wasm)
+v66_g06_left_out_sndnew	target: `_SNDNEW` (-z --target wasm)
+v68_g1_debug_chain	target: `$DEBUG` (-z --target wasm)
+v68_g2_debug_run	target: `$DEBUG` (-z --target wasm)
+# By hand (task 6.4), from the first whole-family run in the suites VM (2026-11-20); kept when the lines above
+# are written again.
+# target: words a page has no form of, in a window program (OpenSpec change wasm-window, design D8), found by
+# the run of the window programs in a browser (2026-11-21).
+v33_d03_debug_window	target: `$DEBUG` in a window program (wasm-window, design D8)
+v58_s05_display_window	target: `_GLRENDER` in a window program (wasm-window, design D8)
+v59_a1_plain	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_a2_static	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_a3_include	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_a4_lower_parens	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_a6_screenhide	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_c_constants	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_d_conversions	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_e2_getstring_null	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_e_functions	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f1_viewport_handled	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f2_viewport_unhandled	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f3_system_unhandled	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f4_system_handled	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f5_end_handled	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f6_no_helper	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f7_getstring_main	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f8_in_sub	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_f9_stop	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_g_readback	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_h1_behind	target: `_GLRENDER` in a window program (wasm-window, design D8)
+v59_h2_only	target: `_GLRENDER` in a window program (wasm-window, design D8)
+v59_h3_ontop	target: `_GLRENDER` in a window program (wasm-window, design D8)
+v59_x01_sub_gl_param	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x02_sub_gl_param_and_plain	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x03_function_gl	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x04_function_gl_and_sub	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x05_two_sub_gl	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x08_call_gl_inside	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x15_call_keyword	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x18_const_long_suffix	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x28_offset_from_long	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x30_offset_array	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x34_declare_sub_gl	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x35_sub_gl_suffix	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x44_const_in_sub_gl	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x45_const_in_gl_bound	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x46_gl_const_in_select	target: `SUB _GL` in a window program (wasm-window, design D8)
+v59_x53_fixed_len_gl_const	target: `SUB _GL` in a window program (wasm-window, design D8)
+# target: a DECLARE LIBRARY of a prebuilt Windows .a, which Linux's lookup does not find (libv37c.a).
+v37_f_static	target: `DECLARE LIBRARY` of a prebuilt library; Linux's lookup says LIBRARY not found
+v37_h_customtype	target: `DECLARE LIBRARY` of a prebuilt library; Linux's lookup says LIBRARY not found
+v37_x68	target: `DECLARE LIBRARY` of a prebuilt library; Linux's lookup says LIBRARY not found
+# float: _FLOAT is IEEE quad precision in wasm32 (DIVERGENCES-QB64PE.md D-069).
+v30_a_using_numbers	float: PRINT USING of a _FLOAT 1/3 shows quad precision's digits (D-069)
+v58_f01_hyperbolic	float: _ARCTANH of a _FLOAT is .5493061443340548, x87's .549306144334055 (D-069)
+v58_f04_atanh_const	float: _ATANH of a _FLOAT is .5493061443340548, x87's .549306144334055 (D-069)
+# float: a float converted to an integer outside its range saturates in WebAssembly (D-071).
+v20_d_val	float: VAL of 1e30 to an _INTEGER64 is 9223372036854775807, x86-64's -9223372036854775808 (D-071)
+v20_f_math_edges	float: _ROUND(1E30) is -1, x86-64's -9223372036854775808 (D-071)
+v33_c06_system_2_pow_40	float: SYSTEM 2 ^ 40 exits with 255, x86-64's 0 (D-071)
+# clib: musl's math (D-070).
+v22_f_functions	clib: _TANH(.5!) is .4621171355247498, glibc's .4621171653270721 (D-070)
+# width: what this target is, a 32-bit one that is not Linux (spec compiler/wasm-target, "The target's name").
+v16_m6_conditions	width: $IF 32BIT is true and $IF LINUX false, so another branch prints
+v16_m6_error_inactive	width: $IF LINUX is false, so its $ERROR is inactive and the program builds
+v16_m6_inactive_header	width: $IF LINUX is false, so its unclosed IF is inactive and the program builds
+v49_c_md5_os	width: _OS$ is [WASM][32BIT], Linux's [LINUX][64BIT]
+v18_d_index_big	width: the index 4294967296 wraps to 0 in a 32-bit ptrszint, so no error 9
+v20_i_on_goto	width: ON n GOTO with n = 4294967298 takes n in 32 bits and falls through, no error 5
+v63_g2_reassign_large_string	width: two strings of 1.1 GB do not fit in wasm32's 4 GB: Out of memory (D-066)
+v63_g3_concat_over_2gb	width: strings of 1.2 GB do not fit in wasm32's 4 GB: Out of memory before line 3
+# width: a pointer is 4 bytes (OpenSpec change wasm-pointer-width; spec compiler/wasm-target, "A pointer is 4
+# bytes on this target"). The recordings are QB64pe's 64-bit build.
+v21_a_decls	width: an _UNSIGNED _OFFSET of -1 is 4294967295, LEN of an _OFFSET is 4, and a 64-bit literal is cut to 32 bits
+v21_a_functions	width: a FUNCTION AS _UNSIGNED _OFFSET returns -1 as 4294967295
+v21_a_suffixes	width: a ~%& variable of -1 is 4294967295 and its LEN is 4
+v21_b_float_stores	width: 1.8D+19 stored in an _OFFSET keeps its low 32 bits, 3305635840
+v21_b_passing	width: an _INTEGER64 passed to an _OFFSET parameter is copied, not passed by reference, so the caller keeps its value
+v21_d_builtins	width: STR$, HEX$, OCT$, _BIN$ and ABS of an _UNSIGNED _OFFSET of -1 show 32 bits
+v21_d_for	width: a FOR over a ~%& ends at 4294967295
+v21_e_scenarios	width: an _OFFSET member makes the TYPE 20 bytes, and an _INTEGER64 passed to an _OFFSET parameter is copied
+v21_g_passing_places	width: an _INTEGER64 member or element passed to an _OFFSET parameter is copied, so it is unchanged after
+v24_a_define	width: LEN of a variable made _OFFSET by _DEFINE is 4
+v24_x179_param_offset_to_integer64	width: an _INTEGER64 array is not the storage of an _OFFSET array parameter: a compile error
+v30_d_binary	width: a record with an _OFFSET is 4 bytes shorter, so LOF is 64
+v32_c_mk_cv	width: _MK$ of an _OFFSET is 4 bytes and _CV of one reads 4; also _MK$ of a _FLOAT is quad precision's bytes (D-069)
+v35_x22_mem_of_variable	width: ELEMENTSIZE of the _MEM of an _OFFSET is 4
+v35_x52_layout_offsets	width: a dynamic member array's slot is 4 bytes, so the TYPE is 12 bytes and its members' offsets halve
+v48_d_len_whole	width: LEN of a whole _OFFSET array of 2 elements is 8
+v48_x11_mem_type_string_member	width: SIZE of the _MEM of a TYPE with STRING members is 32
+v48_x30_len_whole_string_member_array	width: LEN of a whole member array of 4 strings is 16
+v49_a_cast	width: _CAST to _OFFSET keeps 32 bits: 4294967295 becomes -1
+v56_a1_scalar_offsets	width: the _OFFSET variables take 4 bytes of the conventional memory, so VARPTR of each is 4 or 8 higher
+v56_b1_varptr_dollar_numbers	width: VARPTR$ of an _OFFSET has the type byte 20, and the addresses are 4 higher
+v56_g1_len_string_member_arrays	width: LEN of a member array of strings counts 4 bytes for each
+v56_g2_mem_string_member_types	width: SIZE and ELEMENTSIZE of a _MEM over STRING members count 4 bytes for each
+v61_a2_types	width: the _OFFSET variables take 4 bytes of the conventional memory, so VARPTR of each is 4 or 8 higher
+v62_h1_cast_variables	width: _CAST to _OFFSET and _UNSIGNED _OFFSET keeps 32 bits: 3000000000 becomes -1294967296
+# node: Node's file system on a Windows host (-sNODERAWFS): Windows paths, a folder listed sorted with . and ..
+# first, no error reading a folder.
+v49_b_files	node: _FILES$ lists ./ and ../ first and sorted, Linux in its own order
+v52_c_files	node: _READFILE$ of a folder gives an empty string, Linux error 75; _FULLPATH$ is a Windows path
+v58_s02_files	node: FILES prints the Windows path of the folder, with backslashes
+# open: not explained in this change.
+v58_e01_on_stack_main	open: a deep recursion ends in Node's RangeError (Maximum call stack size exceeded), not error 256
+v58_e02_off_stack_main	open: a deep recursion ends in Node's RangeError, not error 256
+v58_e03_none_stack_main	open: a deep recursion ends in Node's RangeError, not error 256
+v58_e04_on_stack_include	open: a deep recursion ends in Node's RangeError, not error 256
+v58_e19_on_in_include_only	open: a deep recursion ends in Node's RangeError, not error 256

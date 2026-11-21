@@ -117,6 +117,7 @@ impl Tool {
                 Tool::Nm => "nm",
                 Tool::LldbDap => "lldb-dap",
             },
+            Platform::Wasm => unreachable!("a toolchain is the host's (`Platform::toolchain`)"),
         }
     }
 }
@@ -363,6 +364,7 @@ pub fn find(
     toolchain_option: Option<&Path>,
     qb64pe_option: Option<&Path>,
 ) -> Result<Found, String> {
+    let platform = platform.toolchain();
     let qb64pe_var = std::env::var_os(build::ROOT_ENV);
     let qb64pe_given = qb64pe_option.is_some() || qb64pe_var.as_ref().is_some_and(|v| !v.is_empty());
     let qb64pe = if qb64pe_given {
@@ -386,6 +388,7 @@ pub fn find(
             os_release: os_release(),
             ..Lookup::default()
         },
+        Platform::Wasm => unreachable!("a toolchain is the host's (`Platform::toolchain`)"),
     };
     find_in(platform, &places)
 }
@@ -408,6 +411,7 @@ fn find_in(platform: Platform, p: &Lookup) -> Result<Found, String> {
             let (cxx, make) = match platform {
                 Platform::Windows => ("bin\\c++.exe", "bin\\mingw32-make.exe"),
                 Platform::Linux => ("bin/g++", "bin/make"),
+                Platform::Wasm => unreachable!("a toolchain is the host's (`Platform::toolchain`)"),
             };
             return Err(format!(
                 "{} (given by {how}) is not a C++ toolchain folder: it has no {cxx} or {make}",
@@ -768,6 +772,137 @@ fn sha256_of(p: &Path) -> Result<String, String> {
         hasher.update(&buf[..n]);
     }
     Ok(hasher.finalize().iter().map(|b| format!("{b:02x}")).collect())
+}
+
+/// The Emscripten release a build for the wasm target takes, and no other (spec `compiler/toolchain`, "The pinned
+/// Emscripten release"; design D2 of `wasm-console`). Changing it is a change of its own, judged by the whole wasm
+/// family.
+pub const EMSDK_RELEASE: &str = "7.0.0";
+
+/// The variable that names the Emscripten SDK's folder (spec `compiler/toolchain`, "The Emscripten SDK").
+pub const EMSDK_ENV: &str = "QB64RUST_EMSDK_ROOT";
+
+/// Where the Emscripten SDK came from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EmsdkSource {
+    /// `--emsdk-root`.
+    Option,
+    /// `QB64RUST_EMSDK_ROOT`.
+    Variable,
+}
+
+impl EmsdkSource {
+    /// The line `qb64rust toolchain path --target wasm` prints after the folder, as [`Source::describe`].
+    pub fn describe(self) -> &'static str {
+        match self {
+            EmsdkSource::Option => "option: given by --emsdk-root",
+            EmsdkSource::Variable => "variable: given by QB64RUST_EMSDK_ROOT",
+        }
+    }
+}
+
+/// An `emsdk` folder with [`EMSDK_RELEASE`] installed and activated, and the programs of it a wasm build runs.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Emsdk {
+    pub root: PathBuf,
+    pub source: EmsdkSource,
+    /// `upstream/emscripten/emcc`, `em++` and `emar` (on Windows with `.exe`, measured in `wasm-console`).
+    pub emcc: PathBuf,
+    pub empp: PathBuf,
+    pub emar: PathBuf,
+    /// The Node `emsdk` installed under `node/`, which runs a built program.
+    pub node: PathBuf,
+    /// The `.emscripten` file `emsdk activate` writes, given to the compiler as `EM_CONFIG`, so that no shell
+    /// activation is needed.
+    pub config: PathBuf,
+}
+
+/// The message of spec `compiler/toolchain`, "The Emscripten SDK", when none is found. It downloads nothing: the
+/// SDK is installed by hand with Emscripten's own `emsdk` until the SDK download (W2 of milestone M9).
+pub fn emsdk_missing_message() -> String {
+    format!(
+        "no Emscripten SDK found: a build for the wasm target needs Emscripten {EMSDK_RELEASE}. Install it with \
+         Emscripten's emsdk (github.com/emscripten-core/emsdk): `emsdk install {EMSDK_RELEASE}` and \
+         `emsdk activate {EMSDK_RELEASE}`. Then give its folder with --emsdk-root <dir> or the environment variable \
+         {EMSDK_ENV}"
+    )
+}
+
+/// The Emscripten SDK of a wasm build: `--emsdk-root` (`option`), else `QB64RUST_EMSDK_ROOT`.
+pub fn find_emsdk(option: Option<&Path>) -> Result<Emsdk, String> {
+    find_emsdk_in(Platform::host(), option, var(EMSDK_ENV).as_deref())
+}
+
+/// [`find_emsdk`] on `host`, with the variable's value `variable`. The folder must hold `upstream/emscripten/emcc`
+/// and its `emscripten-version.txt` naming [`EMSDK_RELEASE`], a Node under `node/`, and the `.emscripten` of
+/// `emsdk activate`.
+pub fn find_emsdk_in(host: Platform, option: Option<&Path>, variable: Option<&Path>) -> Result<Emsdk, String> {
+    let (dir, source, how) = match (option, variable) {
+        (Some(dir), _) => (dir, EmsdkSource::Option, "--emsdk-root"),
+        (None, Some(dir)) => (dir, EmsdkSource::Variable, EMSDK_ENV),
+        (None, None) => return Err(emsdk_missing_message()),
+    };
+    let root = std::path::absolute(dir).unwrap_or_else(|_| dir.to_path_buf());
+    let shown = root.display();
+    let em = root.join("upstream").join("emscripten");
+    let program = |name: &str| match host {
+        Platform::Windows => em.join(format!("{name}.exe")),
+        Platform::Linux | Platform::Wasm => em.join(name),
+    };
+    let emcc = program("emcc");
+    let version_file = em.join("emscripten-version.txt");
+    if !emcc.is_file() || !version_file.is_file() {
+        let name = emcc.file_name().unwrap_or_default().to_string_lossy();
+        return Err(format!(
+            "{shown} (given by {how}) is not an Emscripten SDK folder: it has no upstream/emscripten/{name} or \
+             upstream/emscripten/emscripten-version.txt. {}",
+            emsdk_missing_message()
+        ));
+    }
+    let text = std::fs::read(&version_file).map_err(|e| format!("reading {}: {e}", version_file.display()))?;
+    // The file holds the release in quotes, `"7.0.0"` (measured in `wasm-console`).
+    // A release is ASCII: each byte is shown as its character.
+    let text: String = text.trim_ascii().iter().map(|&b| char::from(b)).collect();
+    let version = text.trim_matches('"').to_string();
+    if version != EMSDK_RELEASE {
+        return Err(format!(
+            "the Emscripten SDK in {shown} (given by {how}) is release {version}; a build for the wasm target needs \
+             release {EMSDK_RELEASE}: run `emsdk install {EMSDK_RELEASE}` and `emsdk activate {EMSDK_RELEASE}` in \
+             that folder"
+        ));
+    }
+    let config = root.join(".emscripten");
+    if !config.is_file() {
+        return Err(format!(
+            "the Emscripten SDK in {shown} (given by {how}) is not activated: run `emsdk activate {EMSDK_RELEASE}` \
+             in that folder"
+        ));
+    }
+    // `node/<version>_64bit/node.exe` on Windows, `node/<version>_64bit/bin/node` elsewhere; the first in name
+    // order when there are several.
+    let node_name = match host {
+        Platform::Windows => "node.exe",
+        Platform::Linux | Platform::Wasm => "bin/node",
+    };
+    let mut versions: Vec<PathBuf> = std::fs::read_dir(root.join("node"))
+        .map(|d| d.flatten().map(|e| e.path()).collect())
+        .unwrap_or_default();
+    versions.sort();
+    let Some(node) = versions.iter().map(|v| v.join(node_name)).find(|p| p.is_file()) else {
+        return Err(format!(
+            "the Emscripten SDK in {shown} (given by {how}) has no Node under node/: run `emsdk activate \
+             {EMSDK_RELEASE}` in that folder"
+        ));
+    };
+    Ok(Emsdk {
+        emcc,
+        empp: program("em++"),
+        emar: program("emar"),
+        node,
+        config,
+        root,
+        source,
+    })
 }
 
 #[cfg(test)]
@@ -1233,5 +1368,74 @@ mod tests {
             err.starts_with("no zip file at ") && err.contains("no-such.zip"),
             "{err}"
         );
+    }
+
+    /// A fake `emsdk` folder for `host` with release `release`, activated, with a Node.
+    fn fake_emsdk(dir: &Path, host: Platform, release: &str) -> PathBuf {
+        let em = dir.join("upstream/emscripten");
+        std::fs::create_dir_all(&em).unwrap();
+        let (exe, node) = match host {
+            Platform::Windows => (".exe", "node/24.19.0_64bit/node.exe"),
+            _ => ("", "node/24.19.0_64bit/bin/node"),
+        };
+        for name in ["emcc", "em++", "emar"] {
+            std::fs::write(em.join(format!("{name}{exe}")), "").unwrap();
+        }
+        std::fs::write(em.join("emscripten-version.txt"), format!("\"{release}\"\n")).unwrap();
+        std::fs::write(dir.join(".emscripten"), "").unwrap();
+        let node = dir.join(node);
+        std::fs::create_dir_all(node.parent().unwrap()).unwrap();
+        std::fs::write(&node, "").unwrap();
+        dir.to_path_buf()
+    }
+
+    /// Spec `compiler/toolchain`, "The Emscripten SDK": the option wins over the variable, the variable is used
+    /// alone, and with neither the message names both, the release and the two `emsdk` commands.
+    #[test]
+    fn emsdk_lookup() {
+        let d = tempfile::tempdir().unwrap();
+        for host in [Platform::Windows, Platform::Linux] {
+            let o = fake_emsdk(&d.path().join(format!("o{host:?}")), host, EMSDK_RELEASE);
+            let v = fake_emsdk(&d.path().join(format!("v{host:?}")), host, EMSDK_RELEASE);
+            let found = find_emsdk_in(host, Some(&o), Some(&v)).unwrap();
+            assert_eq!((found.root.clone(), found.source), (abs(&o), EmsdkSource::Option));
+            assert!(
+                found.emcc.is_file() && found.node.is_file() && found.config.is_file(),
+                "{found:?}"
+            );
+            let found = find_emsdk_in(host, None, Some(&v)).unwrap();
+            assert_eq!((found.root, found.source), (abs(&v), EmsdkSource::Variable));
+        }
+        let err = find_emsdk_in(Platform::Windows, None, None).unwrap_err();
+        for part in ["--emsdk-root", EMSDK_ENV, "emsdk install 7.0.0", "emsdk activate 7.0.0"] {
+            assert!(err.contains(part), "{part}: {err}");
+        }
+        // A folder that is no SDK names what it lacks.
+        let err = find_emsdk_in(Platform::Windows, Some(d.path()), None).unwrap_err();
+        assert!(
+            err.contains("is not an Emscripten SDK folder") && err.contains("emcc.exe"),
+            "{err}"
+        );
+    }
+
+    /// Spec `compiler/toolchain`, "The pinned Emscripten release", scenario "Another release"; and an SDK that is not
+    /// activated or has no Node.
+    #[test]
+    fn emsdk_another_release() {
+        let d = tempfile::tempdir().unwrap();
+        let old = fake_emsdk(&d.path().join("old"), Platform::Windows, "6.0.13");
+        let err = find_emsdk_in(Platform::Windows, Some(&old), None).unwrap_err();
+        assert!(
+            err.contains("release 6.0.13") && err.contains("needs release 7.0.0"),
+            "{err}"
+        );
+        let sdk = fake_emsdk(&d.path().join("sdk"), Platform::Windows, EMSDK_RELEASE);
+        std::fs::remove_file(sdk.join(".emscripten")).unwrap();
+        let err = find_emsdk_in(Platform::Windows, Some(&sdk), None).unwrap_err();
+        assert!(err.contains("is not activated"), "{err}");
+        std::fs::write(sdk.join(".emscripten"), "").unwrap();
+        std::fs::remove_dir_all(sdk.join("node")).unwrap();
+        let err = find_emsdk_in(Platform::Windows, Some(&sdk), None).unwrap_err();
+        assert!(err.contains("has no Node"), "{err}");
     }
 }

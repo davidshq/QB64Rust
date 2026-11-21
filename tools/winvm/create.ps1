@@ -20,7 +20,7 @@
 # remove the network adapter again. They save the checkpoint "ready" with the account logged on and idle, and turn
 # the VM off.
 #
-# -Shape Suites also puts in, before the checkpoint: Microsoft's Visual C++ runtime and Python, both pinned by
+# -Shape Suites also puts in, before the checkpoint: Microsoft's Visual C++ runtime, Python and Node.js, pinned by
 # SHA-256; the C++ toolchain, whose zip the host downloads and the host's target\release\qb64rust.exe installs in
 # the guest as tester ("toolchain install --from-zip"); and a cache disk, cache.vhdx in the VM's disk folder,
 # formatted and holding a copy of Mesa, which is detached again before the checkpoint (tools\winvm\suites.ps1 attaches it at each run).
@@ -75,6 +75,8 @@ $installers = @(
        Url = 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe'
        Sha256 = '67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb' }
 )
+# Node.js for a game port's browser tests (tools\winvm\game.ps1), pinned in pins.psd1, which game.ps1 reads too.
+$node = (Import-PowerShellDataFile (Join-Path $PSScriptRoot 'pins.psd1')).Node
 # The suites VM's C++ toolchain: the release qb64rust pins, read from the pin itself so that the two cannot differ.
 # The host downloads it and the guest installs it with "qb64rust toolchain install --from-zip". The guest does not
 # download it: on 2026-11-05 every TLS download in the VM through the Default Switch broke partway through
@@ -239,6 +241,7 @@ try {
         $toolchainZip = Get-Pinned 'installers' ($toolchainUrl -split '/')[-1] $toolchainUrl $toolchainSha256 `
             'the C++ toolchain, llvm-mingw (about 190 MB)'
         $setup += $toolchainZip
+        $setup += Get-Pinned 'installers' $node.File $node.Url $node.Sha256 "Node.js $($node.Version)"
     }
     if ($fromIso) {
         $mesa = Get-Mesa
@@ -392,6 +395,19 @@ try {
                     'Include_tcltk=0 Shortcuts=0')
                 $p.ExitCode
             }
+            # Node.js from its zip, where its installer would put it, and on the machine's PATH.
+            Invoke-Guest $session 'unpacking Node.js' -arguments $node.File {
+                param($zip)
+                $temp = "$env:SystemDrive\setup\node"
+                New-Item -ItemType Directory -Force $temp | Out-Null
+                & "$env:SystemRoot\System32\tar.exe" -xf "$env:SystemDrive\setup\$zip" -C $temp
+                if ($LASTEXITCODE -ne 0) { return $LASTEXITCODE }
+                Move-Item -LiteralPath (Get-ChildItem $temp -Directory | Select-Object -First 1).FullName `
+                    -Destination "$env:ProgramFiles\nodejs"
+                $path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+                [Environment]::SetEnvironmentVariable('Path', "$path;$env:ProgramFiles\nodejs", 'Machine')
+                0
+            }
             # The toolchain as a user installs it (vm-suites design D11), but from the zip the host downloaded: the
             # SHA-256 check and the unpack, as tester, into tester's %LOCALAPPDATA%\qb64rust\toolchain.
             Write-Host 'Installing the C++ toolchain in the guest (qb64rust toolchain install --from-zip)...'
@@ -429,14 +445,16 @@ try {
             $found = Invoke-Command -Session $session {
                 $python = & "$env:ProgramFiles\Python312\python.exe" --version 2>&1
                 $toolchain = @(& "$env:SystemDrive\setup\qb64rust.exe" toolchain path 2>&1)
+                $nodeVersion = & "$env:ProgramFiles\nodejs\node.exe" --version 2>&1
                 Remove-Item -Recurse -Force C:\setup
-                "$python", "$($toolchain[1])"
+                "$python", "$($toolchain[1])", "$nodeVersion"
             }
             if ($found[0] -ne 'Python 3.12.10') { throw "the guest's Python reports '$($found[0])', not Python 3.12.10" }
+            if ($found[2] -ne "v$($node.Version)") { throw "the guest's Node.js reports '$($found[2])', not v$($node.Version)" }
             if ($found[1] -notmatch '^installed:') {
                 throw "qb64rust toolchain path in the guest says '$($found[1])', not that the toolchain is installed"
             }
-            Write-Host "The guest has $($found[0]) and the installed toolchain."
+            Write-Host "The guest has $($found[0]), Node.js $($found[2]) and the installed toolchain."
 
             # The cache disk (vm-suites design D4): made, formatted in the guest with Mesa copied to it, and
             # detached before the checkpoint. A hot-added disk is online at once on this Windows (task 1.2).

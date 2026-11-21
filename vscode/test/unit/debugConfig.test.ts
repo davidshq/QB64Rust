@@ -59,12 +59,13 @@ describe("debug launch resolution", () => {
         }
     });
 
-    it("the defaults: the active file, its folder, the integrated terminal, the settings, no stop on entry", () => {
+    it("the defaults: the active file, the integrated terminal, the settings, no stop on entry", () => {
         const r = resolveLaunch(config(), facts({ runArguments: 'a "b c"', noPrompt: true }));
         assert.strictEqual(r.kind, "build");
         const c = r.kind === "build" ? r.config : config();
         assert.strictEqual(c.program, at("hello.bas"));
-        assert.strictEqual(c.cwd, dir);
+        // Set after the build to the folder the program runs in (change build-output-folder, design D6).
+        assert.strictEqual(c.cwd, undefined);
         assert.strictEqual(c.console, "integratedTerminal");
         assert.deepStrictEqual(c.args, ["a", "b c"]);
         assert.strictEqual(c.noPrompt, true);
@@ -76,6 +77,15 @@ describe("debug launch resolution", () => {
         const r = resolveLaunch(given, facts({ runArguments: "a b", noPrompt: true }));
         assert.strictEqual(r.kind, "build");
         assert.deepStrictEqual(r.kind === "build" && r.config, given);
+    });
+
+    it("the working folder: none yet for a source, the executable's folder for an executable, a given one kept", () => {
+        const source = resolveLaunch(config({ program: at("w", "game.bas") }), facts());
+        assert.strictEqual(source.kind === "build" && source.config.cwd, undefined);
+        const exe = resolveLaunch(config({ program: at("w", "build", "game.exe") }), facts());
+        assert.strictEqual(exe.kind === "launch" && exe.config.cwd, at("w", "build"));
+        const given = resolveLaunch(config({ program: at("w", "game.bas"), cwd: at("run") }), facts());
+        assert.strictEqual(given.kind === "build" && given.config.cwd, at("run"));
     });
 
     it("a relative program is resolved against the workspace folder", () => {

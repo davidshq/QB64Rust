@@ -143,8 +143,9 @@ pub use qb64rust_sema::{LogLevel, ProcKind, Resize, RuntimePart};
 /// Where a `PRINT` goes and the values of a `PRINT USING` are `sema`'s too.
 pub use qb64rust_sema::{PrintTo, UsingValue};
 /// The size of a numeric or user type in memory (the layout of a `TYPE`, `LEN` of a place), and whether a type
-/// holds a `STRING` of its own, which has no such size, or owns dynamic member arrays.
-pub use qb64rust_sema::{holds_strings, owns_desc, size_of};
+/// holds a `STRING` of its own, which has no such size, or owns dynamic member arrays. `mem_type` is the type
+/// `_MEM` at a pointer's size, whose size the generated C++ checks against libqb's block.
+pub use qb64rust_sema::{holds_strings, mem_type, owns_desc, size_of};
 
 /// The table entry of a built-in: its identity in the IR (never a libqb name).
 pub use qb64rust_builtins::BuiltinId;
@@ -1045,6 +1046,9 @@ pub struct Program {
     /// 259, a function it does not hold error 260, before the first statement (measured, `verification\v37_j`).
     pub libraries: Vec<Library>,
     pub settings: Settings,
+    /// The platform the program is built for, as `sema` was given it. A backend takes the size of a pointer
+    /// from it ([`Program::pointer_bytes`], design D1 of `wasm-pointer-width`).
+    pub platform: qb64rust_base::Platform,
 }
 
 /// What a program needs around its statements (design D3 of `m2-console-screenhide`): where its text goes at the
@@ -1084,8 +1088,14 @@ impl Program {
         &self.types[id.0 as usize]
     }
 
+    /// The size of a pointer in the built program, in bytes: 8 on Windows and Linux, 4 on the wasm target.
+    pub fn pointer_bytes(&self) -> u32 {
+        self.platform.pointer_bytes()
+    }
+
     /// Whether `t` is the predefined type `_MEM`, a memory block (design D1 of `m3-mem`): the runtime's block,
-    /// 56 bytes, whose members are its address, size, lock, type value, element size, image and sound.
+    /// 56 bytes (40 where a pointer is 4 bytes), whose members are its address, size, lock, type value, element
+    /// size, image and sound.
     pub fn is_mem(&self, t: Ty) -> bool {
         matches!(t, Ty::User(id) if self.types.get(id.0 as usize).is_some_and(|u| u.name == qb64rust_sema::MEM_TYPE))
     }

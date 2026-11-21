@@ -101,8 +101,10 @@ separated by `;`:
 | A divergence row | `D-012`, `Q-037` | The row exists |
 
 Only `language/*` specs and `compiler/pipeline`, `compiler/fixes` and `compiler/lints` are about the language;
-`evidence` reads only those. A sentence that ends with a colon and introduces a list needs no source. A source
-that is only code read (`read:`) says so: the page should not present it as measured.
+`evidence` reads only those. A source may still be a requirement of any spec, such as `compiler/format`; cite a
+tool's spec only for what that tool does, as the page `$FORMAT` does for the formatter. A sentence that ends
+with a colon and introduces a list needs no source. A source that is only code read (`read:`) says so: the
+page should not present it as measured.
 
 ### A probe
 
@@ -127,8 +129,9 @@ repeating them. It may embed an existing example with `<!-- begin generated: exa
 `docs\reference\README.md`, `inventory.json` and the appendices of `docs\reference\`: `appendix-constants.md`
 (from `builtins.json`), `appendix-errors.md` (from libqb's `error_handle.cpp`), `appendix-reserved.md` (from
 `keywords.rs`), `appendix-metacommands.md` (from the inventory), `appendix-unsupported.md` (from `SOMEDAY.md`,
-"Deferred QB64pe features") and `coming-from-qb64pe.md` and `coming-from-qb45.md` (from the two divergence
-registers; the second also has a section on BASIC PDS 7.1's words, `PDS_SECTION` in `reference.py`). An edit of one of those sources needs a `render`, or `--check` fails. With `--compiler` it
+"Deferred QB64pe features").
+`coming-from-qb64pe.md` and `coming-from-qb45.md` are hand-written, brief overviews; update them when a new
+divergence changes what a user moving from either compiler needs to know. An edit of a generated file's source needs a `render`, or `--check` fails. With `--compiler` it
 also writes `tests\reference\availability.json`: for each page, how many of the programs that use its words
 compile, and the messages of the others. Never edit a generated block by hand: `--check` fails on it.
 

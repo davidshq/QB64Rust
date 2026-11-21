@@ -1,0 +1,15 @@
+# The wasm target (OpenSpec change wasm-pointer-width, design D2; spec compiler/wasm-target, "A pointer is 4 bytes
+# on this target"): STR$ and PRINT of an _OFFSET. On wasm32 intptr_t is `long`, a type of its own beside int32_t
+# (`int`) and int64_t (`long long`), so qbs_str of a ptrszint matched no overload best and the call was
+# ambiguous. The two overloads give an _OFFSET as its 32 bits. On Windows and Linux intptr_t is int64_t, and the
+# lines are not compiled.
+file: internal/c/libqb/include/qbs.h
+--- old
+qbs *qbs_str(long double value);
+--- new
+qbs *qbs_str(long double value);
+#ifdef __EMSCRIPTEN__ // not QB64_EMSCRIPTEN: this header does not include libqb-common.h
+static inline qbs *qbs_str(long value) { return qbs_str((int32_t)value); }
+static inline qbs *qbs_str(unsigned long value) { return qbs_str((uint32_t)value); }
+#endif
+--- end

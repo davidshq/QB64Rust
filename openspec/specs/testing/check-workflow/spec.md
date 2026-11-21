@@ -101,6 +101,35 @@ keep a session going because a run has not happened.
 - **WHEN** `check full` starts
 - **THEN** the command returns at once with the log's path, and the runs go on in the background
 
+### Requirement: One run of steps at a time
+In one tree, `check` SHALL run steps for one command at a time. A run SHALL hold the lock
+`target/check/run.lock`, naming its process, what it runs and when it started. A run in the background SHALL take
+the lock over from the command that started it. A second `check` that would run steps SHALL refuse, naming the
+run that holds the lock. A lock whose process has ended SHALL be taken over. The refusal is because a run is
+going, so it does not conflict with "Nothing waits on a run".
+
+#### Scenario: A second run while one goes
+- **WHEN** `check quick` runs in the background and a second `check quick` starts
+- **THEN** the second refuses with a line naming the first run's process and start, and the first goes on
+
+#### Scenario: Reading while a run goes
+- **WHEN** a run holds the lock and `check status`, `check history` or `check quick --plan` is given
+- **THEN** it is not refused, and `status` names the run that holds the lock
+
+#### Scenario: A lock left by a run that ended
+- **WHEN** `target/check/run.lock` names a process that has ended, or a process that started after the lock was
+  written
+- **THEN** the next run takes the lock over, with a line saying so
+
+### Requirement: A failed step's log is kept
+Since each step's log is made again by its next run, when a step fails `check` SHALL also copy its log to
+`target/check/logs/failed/<step>-<date>_<time>.log`, keep the last 5 of each step, and name the copy under `kept`
+in the run's line of `history.jsonl`.
+
+#### Scenario: A step fails and runs again
+- **WHEN** a step fails and then passes on the next run
+- **THEN** the failed run's log is still in `target/check/logs/failed/`, and the run's history line names it
+
 ### Requirement: The cost of a check is held by tests
 The tests of `check` SHALL assert the set of steps it plans for standard changes: a change of documents alone plans
 no step; a change of a suite's list or recordings plans that suite's new or changed programs only; a change under
@@ -229,3 +258,40 @@ clone's toolchain rather than an installed one, the run's report SHALL say so in
 - **WHEN** `check quick` runs the slice list on a host where `qb64rust toolchain path` names the clone's toolchain
 - **THEN** the report has one line saying the builds use the clone's toolchain and how to install the toolchain,
   and the slice list runs
+
+### Requirement: The wasm steps
+`check` SHALL have three steps for the wasm target. `wasm-slice` runs `tests\wasm\slice.list` with
+`--platform wasm` on the host, in the `full` and `merge` layers. `wasm-verification` runs the verification
+suite with `--platform wasm` in the suites VM, in no layer: it runs only when named (user, `DECISIONS.md`
+2026-11-20). `wasm-rerun` runs the verification programs named in `tests\wasm\rerun.list` the same way, also
+only when named; the list is empty in the repository. Their inputs are the release build's sources, libqb's
+copy and edits, the runner and the lists.
+
+#### Scenario: The whole family goes to the VM
+- **WHEN** `check wasm-verification --where vm` runs
+- **THEN** the suite runs in the suites VM with the SDK found there, and the step's record says `vm`
+
+#### Scenario: Not in the quick layer
+- **WHEN** `just quick` plans its steps after a change to a crate
+- **THEN** no wasm step is planned
+
+#### Scenario: A list of programs goes to the VM
+- **WHEN** `tests\wasm\rerun.list` names 270 programs and `check wasm-rerun --where vm` runs
+- **THEN** those 270 programs run for the wasm platform in the suites VM, and no other program runs
+
+#### Scenario: The whole family only when named
+- **WHEN** `just full` or `just merge` plans its steps after a change to libqb's copy
+- **THEN** `wasm-slice` is planned and `wasm-verification` is not
+
+### Requirement: A wasm step without the SDK
+When the Emscripten SDK is not found where a wasm step would run, the step SHALL be reported as not run, with
+the reason in one line, and SHALL NOT fail the run. In a `merge` run it SHALL fail.
+
+#### Scenario: A full run on a machine without the SDK
+- **WHEN** `just full` runs and `QB64RUST_EMSDK_ROOT` is not set
+- **THEN** the report lists `wasm-slice` as not run, with the reason, and the run's result does not depend
+  on it
+
+#### Scenario: A merge without the SDK
+- **WHEN** `just merge` runs and the SDK is not found
+- **THEN** `wasm-slice` fails with the reason

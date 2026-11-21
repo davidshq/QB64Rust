@@ -29,8 +29,8 @@ executable SHALL be launched as it is, without a build.
 
 #### Scenario: Launch a source file
 - **WHEN** the user starts debugging `hello.bas`, which has a breakpoint on line 3
-- **THEN** the "QB64" output shows a `qb64rust` command line with `--debug`, `hello.exe` and
-  `hello.exe.debug.json` exist next to `hello.bas`, and the program stops on line 3
+- **THEN** the "QB64" output shows a `qb64rust` command line with `--debug`, `build/hello.exe` and
+  `build/hello.exe.debug.json` exist in `hello.bas`'s folder, and the program stops on line 3
 
 #### Scenario: Build fails
 - **WHEN** the user starts debugging a program with an error on line 2
@@ -78,7 +78,8 @@ start no session until it is installed.
 
 ### Requirement: Launch defaults
 An attribute left out SHALL take these values: `program` the active editor's file (for an included file, its
-program's main file: spec `editor/build-run`, "Included file"), `cwd` the program's folder,
+program's main file: spec `editor/build-run`, "Included file"), `cwd` the folder the program runs in (`run_in` of
+`qb64rust --print-paths`, spec `compiler/cli`) for a `.bas` program and the executable's folder for an executable,
 `console` `integratedTerminal`, `noPrompt` the setting `qb64rust.noPrompt`, `args` the setting
 `qb64rust.runArguments` split as a shell would, `stopOnEntry` false.
 
@@ -89,6 +90,14 @@ program's main file: spec `editor/build-run`, "Included file"), `cwd` the progra
 #### Scenario: Console input
 - **WHEN** a `$CONSOLE:ONLY` program that runs `INPUT x` is debugged with the defaults
 - **THEN** its prompt is in an integrated terminal, and what the user types there is read by the program
+
+#### Scenario: The working folder without a copy list
+- **WHEN** `game.bas` has no settings file and a configuration for it has no `cwd`
+- **THEN** `build/game.exe` is debugged with `game.bas`'s folder as its working folder
+
+#### Scenario: The working folder with a copy list
+- **WHEN** the settings file has `copy = ["GAME.CFG"]` and a configuration for `game.bas` has no `cwd`
+- **THEN** the program runs with `build` as its working folder
 
 ### Requirement: Debugging without a configuration
 Starting debugging (F5) with no `launch.json`, or with one that has no configuration, while a `qb64rust` file is

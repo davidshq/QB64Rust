@@ -31,7 +31,7 @@ use qb64rust_base::layout::{KeywordStyle, Rewritable, Settings};
 use qb64rust_base::{Diagnostics, FileId, Severity};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr as _;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -175,11 +175,13 @@ pub fn serve(conn: Connection, default_root: PathBuf, hooks: Hooks) -> Result<()
         .filter_map(|f| to_path(&f.uri))
         .collect();
     let rewritable = hooks.rewritable;
+    let excluded = hooks.excluded;
     let jobs = start_worker(events, hooks);
     let mut server = Server::new(conn, jobs, root, default);
     server.format = format;
     server.folders = folders;
     server.rewritable = rewritable;
+    server.excluded = excluded;
     server.run(&inbox)
 }
 
@@ -279,6 +281,11 @@ impl Rewrite {
 /// server is built without hooks, as in its unit tests).
 fn no_rewrites(_: &qb64rust_base::SourceMap, _: &qb64rust_syntax::ParsedProgram, _: FileId) -> Vec<Rewritable> {
     Vec::new()
+}
+
+/// No document is excluded (`Hooks::excluded`'s stand-in when the server is built without hooks).
+fn no_file_excluded(_: &Path) -> bool {
+    false
 }
 
 /// What the lookup of a document's program needs from the server (design D7 of `include-file-program`).
@@ -569,6 +576,8 @@ struct Server {
     opens: u64,
     /// What the rewrites can do to a parse's lines, for the code actions (`Hooks::rewritable`).
     rewritable: crate::Rewritables,
+    /// Whether the editor leaves a document on disk alone (`Hooks::excluded`).
+    excluded: crate::Excluded,
     /// The warning for a rewrite setting without effect was sent; cleared when the client's settings or the
     /// settings file change (design D6 of `format-statement-lines`).
     warned: bool,
@@ -604,6 +613,7 @@ impl Server {
             folders: Vec::new(),
             opens: 0,
             rewritable: no_rewrites,
+            excluded: no_file_excluded,
             warned: false,
         }
     }
@@ -1216,15 +1226,34 @@ impl Server {
         // In the CLI's order (`Frontend::render`): by file, then by offset.
         let mut list = diagnostics.list().to_vec();
         list.sort_by_key(|d| (d.span.file.0, d.span.start));
+        // The excluded files count nothing either.
+        let excluded = self.excluded_files(&analysis);
+        let errors = if excluded.iter().any(|e| *e) {
+            list.retain(|d| !excluded[d.span.file.0 as usize]);
+            list.iter().filter(|d| d.severity == Severity::Error).count()
+        } else {
+            diagnostics.error_count()
+        };
         let warnings = list.iter().filter(|d| d.severity == Severity::Warning).count();
         let per_file = analysis.lsp_diagnostics(&list);
         self.publish_program(key, analysis, per_file);
-        let answer = serde_json::json!({ "errors": diagnostics.error_count(), "warnings": warnings });
+        let answer = serde_json::json!({ "errors": errors, "warnings": warnings });
         self.send(Response::new_ok(id, answer));
     }
 
+    /// Whether the document `uri` is on disk and a pattern of its settings file's `[project]` `exclude` matches
+    /// it (`Hooks::excluded`): it gets no diagnostics, no formatting edits and no code actions.
+    fn is_excluded(&self, uri: &Uri) -> bool {
+        to_path(uri).is_some_and(|p| (self.excluded)(&p))
+    }
+
+    /// The files of `analysis` that are [`Self::is_excluded`], by [`FileId`].
+    fn excluded_files(&self, analysis: &Analysis) -> Vec<bool> {
+        analysis.files.iter().map(|f| self.is_excluded(&f.uri)).collect()
+    }
+
     /// Publishes `diagnostics` for each file of program `key`'s new `analysis`, which replaces its last one, and
-    /// answers the requests waiting for it.
+    /// answers the requests waiting for it. An excluded file publishes none.
     fn publish_program(
         &mut self,
         key: String,
@@ -1247,8 +1276,12 @@ impl Server {
             }
         }
         let main_open = self.docs.contains_key(&key);
-        for (file, diags) in diagnostics {
+        let excluded = self.excluded_files(&analysis);
+        for (file, mut diags) in diagnostics {
             let info = analysis.info(file);
+            if excluded[file.0 as usize] {
+                diags.clear();
+            }
             // A program whose main file is not open publishes for open documents only (design D6 of
             // `include-file-program`); a document that belongs to another program gets that program's only.
             if !main_open && !self.docs.contains_key(&info.key) {
@@ -1478,6 +1511,14 @@ impl Server {
             self.send(Response::new_err(id, ErrorCode::InvalidParams as i32, msg));
             return;
         };
+        // An excluded document is not formatted: no edits, or the action without its edit.
+        if self.is_excluded(uri) {
+            match action {
+                Some((_, action)) => self.send(Response::new_ok(id, action)),
+                None => self.send(Response::new_ok(id, Vec::<TextEdit>::new())),
+            }
+            return;
+        }
         // The document is laid out inside its program, which may be another file (design D4 of
         // `include-file-program`).
         let key = self.program_of(&doc_key);
@@ -1578,7 +1619,12 @@ impl Server {
             Err(diagnostics) => {
                 let mut list = diagnostics.list().to_vec();
                 list.sort_by_key(|d| (d.span.file.0, d.span.start));
-                let first = first_error(&analysis, &list);
+                // An excluded file's error is not named; when only such files have errors, the message says so.
+                let excluded = self.excluded_files(&analysis);
+                let in_excluded = diagnostics.has_errors();
+                list.retain(|d| !excluded[d.span.file.0 as usize]);
+                let first = first_error(&analysis, &list)
+                    .or_else(|| in_excluded.then(|| "an excluded file has an error".to_string()));
                 let per_file = analysis.lsp_diagnostics(&list);
                 self.publish_program(key.to_string(), analysis, per_file);
                 if let Some(first) = first {
@@ -1659,7 +1705,7 @@ impl Server {
         let Ok(p) = serde_json::from_value::<lsp_types::CodeActionParams>(req.params.clone()) else {
             return actions;
         };
-        if a.parsed.diagnostics().has_errors() {
+        if a.parsed.diagnostics().has_errors() || self.is_excluded(&a.info(file).uri) {
             return actions;
         }
         let lines = (self.rewritable)(&a.map, &a.parsed, file);
@@ -1880,6 +1926,14 @@ impl Server {
                 Ok(p) => match position(p.text_document_position.position) {
                     None => Ok(Value::Null),
                     Some((ix, (file, at))) => match rename::plan(ix, file, at, &p.new_name, &self.root) {
+                        // A rename that would change an excluded file is refused whole: renaming the others alone
+                        // would break the program.
+                        Ok(plan) if let Some(name) = self.excluded_in(ix, &plan) => {
+                            return refuse(
+                                req.id,
+                                format!("`{name}` is excluded by `qb64rust.toml`, and the rename would change it"),
+                            );
+                        }
                         Ok(plan) => return Some(self.pending_rename(req.id, ix, plan)),
                         Err(msg) => return refuse(req.id, msg),
                     },
@@ -1924,6 +1978,22 @@ impl Server {
             )),
         }
         None
+    }
+
+    /// The name of the first file a rename's `plan` changes that is [`Self::is_excluded`].
+    fn excluded_in(&self, ix: &Indexed, plan: &rename::Plan) -> Option<String> {
+        let mut files: Vec<FileId> = plan.edits.iter().map(|s| s.file).collect();
+        files.sort_unstable_by_key(|f| f.0);
+        files.dedup();
+        let excluded = files
+            .into_iter()
+            .map(|f| ix.analysis.info(f))
+            .find(|info| self.is_excluded(&info.uri));
+        excluded.map(|info| {
+            to_path(&info.uri)
+                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+                .unwrap_or_else(|| info.key.clone())
+        })
     }
 
     /// A rename's edit, and the program's files with it applied: each file it changes, in the encoding the file was
@@ -2305,6 +2375,7 @@ mod tests {
             format: no_format,
             index: no_index,
             main_of: no_main,
+            excluded: no_file_excluded,
             rewritable: no_rewrites,
         };
         let jobs = start_worker(events, hooks);
@@ -2359,6 +2430,7 @@ mod tests {
             format: no_format,
             index: no_index,
             main_of: main_is_game,
+            excluded: no_file_excluded,
             rewritable: no_rewrites,
         };
         let jobs = start_worker(events, hooks);
@@ -2405,6 +2477,7 @@ mod tests {
             format: no_format,
             index: no_index,
             main_of: no_main,
+            excluded: no_file_excluded,
             rewritable: no_rewrites,
         };
         let jobs = start_worker(events, hooks);

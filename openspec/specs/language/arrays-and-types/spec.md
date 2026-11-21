@@ -1605,6 +1605,13 @@ array declared there without `AS` SHALL take the plain name from a typed main-mo
   LEN(c(1)); UBOUND(c); UBOUND(c!)` is called
 - **THEN** it prints ` 1.333333333333333  8  2  3 ` (`verification\v48_x17`; the same in the main module, `v48_a`)
 
+#### Scenario: REDIM without AS of an array of a TYPE
+- **WHEN** `REDIM a(2) AS f` with `f` a `TYPE`, then `a(1).foo = 7: REDIM a(5): PRINT a(1).foo; UBOUND(a);
+  UBOUND(a!)` runs
+- **THEN** it prints ` 0  5  10 `: the `TYPE` array has the new bounds, cleared, and `a!()` is an array of its own,
+  made by its first use (`verification\v24_x328`; `DIVERGENCES-QB64PE.md` D-068: QB64pe leaves the `TYPE` array
+  alone)
+
 #### Scenario: A local array without AS beside a shared typed one
 - **WHEN** the main module has `DIM SHARED c(2) AS DOUBLE` and a SUB with `DIM c(3): c(1) = c(1) + 1: PRINT c(1);
   LEN(c(1)); UBOUND(c)` is called

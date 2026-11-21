@@ -296,9 +296,9 @@ extern int32 print_using_float(qbs *format, long double value, int32 start, qbs 
 // shared global variables
 extern int32 sleep_break;
 extern int64 exit_code;
-extern int32 lock_mainloop; // 0=unlocked, 1=lock requested, 2=locked
+extern std::atomic<int32> lock_mainloop; // 0=unlocked, 1=lock requested, 2=locked
 extern int64 device_event_index;
-extern int32_t exit_ok;
+extern std::atomic<int32_t> exit_ok;
 int32 timer_event_occurred = 0; // inc/dec as each GOSUB to QBMAIN ()
                                 // begins/ends
 int32 timer_event_id = 0;
@@ -312,7 +312,7 @@ uint32 dbgline;
 uint32 qbs_cmem_sp = 256;
 uint32 cmem_sp = 65536;
 intptr_t dblock; // 32bit offset of dblock
-uint8 close_program = 0;
+std::atomic<uint8> close_program = 0;
 int32 tab_spc_cr_size = 1; // 1=PRINT(default), 2=FILE
 int32 tab_fileno = 0;      // only valid if tab_spc_cr_size=2
 int32 tab_LPRINT = 0;      // 1=dest is LPRINT image
@@ -321,8 +321,8 @@ uint64 *nothingvalue; // a pointer to 8 empty bytes in dblock
 uint32 bkp_new_error = 0;
 qbs *nothingstring;
 uint32 qbevent = 0;
-uint8 suspend_program = 0;
-uint8 stop_program = 0;
+std::atomic<uint8> suspend_program = 0;
+std::atomic<uint8> stop_program = 0;
 uint8_t cmem[1114099]; // 16*65535+65535+3 (enough for highest referenceable dword in conv memory)
 uint8 *cmem_static_pointer = &cmem[0] + 1280 + 65536;
 uint8 *cmem_dynamic_base = &cmem[0] + 655360;
@@ -1239,7 +1239,7 @@ uint32 ontimer_freelist_available = 0; // element (if any) which is available)
 ontimer_struct *ontimer = (ontimer_struct *)malloc(sizeof(ontimer_struct));
 // note: index 0 of the above cannot be allocated/freed
 
-int32 ontimerthread_lock = 0;
+std::atomic<int32> ontimerthread_lock = 0;
 
 void stop_timers() {
     ontimerthread_lock = 1;

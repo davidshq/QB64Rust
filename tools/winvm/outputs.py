@@ -4,7 +4,8 @@ design D8). Run in the guest, with the standard library only:
 
     python tools/winvm/outputs.py <tree> <output> ...     prints the files, relative to <tree>, one per line
 
-An output is a file relative to the tree, as a step's `outputs` in tools/check/steps.py names it. A runner's results
+An output is a file relative to the tree, as a step's `outputs` in tools/check/steps.py names it, or a folder,
+which brings every file below it (tools/winvm/game.ps1's -Outputs). A runner's results
 file (`*.json`) brings the files that belong to the tests that did not pass, from the folder of each one's suite
 beside it (`<results>/<suite>/`): those whose names are the test's key (`<group>-<name>`, the runner's own naming)
 or start with it and a `-`, and every file in such a folder.
@@ -41,6 +42,9 @@ def listed(tree: Path, outputs: list[str]) -> list[str]:
     found: set[Path] = set()
     for rel in outputs:
         path = tree / rel
+        if path.is_dir():
+            found.update(p for p in path.rglob("*") if p.is_file())
+            continue
         if not path.is_file():
             continue
         found.add(path)

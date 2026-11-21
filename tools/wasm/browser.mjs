@@ -1,0 +1,341 @@
+// Runs a window program built for the wasm target in headless Chrome, as a test runs a desktop program
+// (OpenSpec change wasm-window). See README.md beside this file.
+//
+//   node browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--chrome <chrome>]
+//   node browser.mjs --find-chrome
+//
+// The page's folder is the program's: Chrome is driven over --remote-debugging-pipe, so no port is opened. The
+// folder is served at http://localhost/ through DevTools' request interception, with the two headers that a
+// page with threads needs (Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy), so nothing listens.
+//
+// Before the program starts, the folder's other files are written into the page's file system, in its current
+// folder. The variables a test sets for a program (QB64_*, QB64PE_*, QB64RUST_*: the screen state's, the prompt
+// setting, the trace) are given to it. One that names a file of the host names a file of the page instead: the
+// host's file is written there first when it exists (QB64_SCREEN_KEYS), and when the program ends what the page's
+// file holds is written to the host's (QB64_SCREEN_STATE, the trace). The program's standard output and error are
+// printed, and this process exits with its exit code.
+import { spawn } from "node:child_process";
+import { appendFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, dirname, extname, isAbsolute, join, resolve } from "node:path";
+import { findInstalledChrome } from "./find_chrome.mjs";
+
+const args = process.argv.slice(2);
+let page = null;
+let screenshot = null;
+let seconds = null;
+let profileArg = null;
+let chromeArg = process.env.QB64RUST_CHROME || null;
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--screenshot") screenshot = args[++i];
+  else if (args[i] === "--chrome") chromeArg = args[++i];
+  else if (args[i] === "--for") seconds = Number(args[++i]);
+  else if (args[i] === "--profile") profileArg = args[++i];
+  else if (args[i] === "--find-chrome") page = false;
+  else page = args[i];
+}
+// --find-chrome: prints the Chrome a run would use and exits 0, or exits 2 when there is none. The test runner
+// asks this once, so that where there is no Chrome (the suites VM) it skips a window program instead of failing it.
+if (page === false) {
+  const found = findChrome();
+  if (found) console.log(found);
+  process.exit(found ? 0 : 2);
+}
+if (!page) {
+  console.error(
+    "usage: node browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--profile <folder>] [--chrome <chrome>]",
+  );
+  process.exit(2);
+}
+const folder = dirname(resolve(page));
+const pageName = basename(page);
+const script = pageName.replace(/\.html$/, ".js");
+const served = new Set([pageName, script, pageName.replace(/\.html$/, ".wasm"), pageName.replace(/\.html$/, ".data")]);
+
+// The launcher's own messages go to standard error, and with QB64RUST_BROWSER_LOG to that file too, one line each
+// with the time and the page, with each run's exit status: a test runner may overwrite the output of a run.
+const logFile = process.env.QB64RUST_BROWSER_LOG || null;
+function note(text) {
+  process.stderr.write(`browser.mjs: ${text}\n`);
+  if (logFile) appendFileSync(logFile, `${new Date().toISOString()} ${pageName}: ${text}\n`);
+}
+process.on("unhandledRejection", (e) => {
+  note(`unhandled: ${(e && e.stack) || e}`);
+  process.exit(1);
+});
+process.on("uncaughtException", (e) => {
+  note(`uncaught: ${(e && e.stack) || e}`);
+  process.exit(1);
+});
+
+// Chrome: --chrome, QB64RUST_CHROME, or where an install puts it (find_chrome.mjs).
+function findChrome() {
+  return chromeArg || findInstalledChrome();
+}
+const chrome = findChrome();
+if (!chrome) {
+  console.error("browser.mjs: no Chrome found; name one with --chrome or QB64RUST_CHROME");
+  process.exit(2);
+}
+
+// What the page's file system gets: every file of the folder but the page's own, and the files the variables name.
+const files = [];
+function collect(dir, prefix) {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    const rel = prefix + name;
+    if (statSync(path).isDirectory()) collect(path, rel + "/");
+    else if (!served.has(rel)) files.push([rel, readFileSync(path).toString("base64")]);
+  }
+}
+collect(folder, "");
+// The tools' own settings are not the program's.
+const TOOL_VARIABLES = new Set([
+  "QB64RUST_CHROME",
+  "QB64RUST_EMSDK_ROOT",
+  "QB64RUST_LIBQB_WASM_ROOT",
+  "QB64RUST_ALLOW_NETWORK",
+  "QB64RUST_BROWSER_LOG",
+]);
+const env = {};
+const mapped = []; // [page's file, host's file, what it held when written, or null]
+for (const [name, value] of Object.entries(process.env)) {
+  if (!/^QB64(PE|RUST)?_/.test(name) || TOOL_VARIABLES.has(name)) continue;
+  if (isAbsolute(value)) {
+    const inPage = `qb64rust-env/${name}`;
+    let held = null;
+    if (existsSync(value) && statSync(value).isFile()) {
+      held = readFileSync(value).toString("base64");
+      files.push([inPage, held]);
+    }
+    mapped.push([inPage, value, held]);
+    env[name] = inPage;
+  } else {
+    env[name] = value;
+  }
+}
+
+// The program's standard input: this process's, when it is not a terminal (a test's .stdin), read to its end.
+let stdin = "";
+if (!process.stdin.isTTY) {
+  try {
+    stdin = readFileSync(0).toString("base64");
+  } catch {}
+}
+
+// Runs in the page before its own script: the Module the page's script keeps (see the driver's page).
+const setup = `
+(() => {
+  const files = ${JSON.stringify(files)};
+  const env = ${JSON.stringify(env)};
+  const input = Uint8Array.from(atob(${JSON.stringify(stdin)}), (c) => c.charCodeAt(0));
+  let read = 0;
+  const send = (kind, value) => self.qb64rustReport && self.qb64rustReport(JSON.stringify([kind, value]));
+  // Output byte by byte, sent at each line end, when 50 bytes wait, and before the end.
+  const waiting = { out: [], err: [] };
+  const flush = (kind) => {
+    if (waiting[kind].length) {
+      send(kind, btoa(String.fromCharCode.apply(null, waiting[kind])));
+      waiting[kind] = [];
+    }
+  };
+  const put = (kind) => (byte) => {
+    if (byte === null || byte === undefined) return;
+    waiting[kind].push(byte & 255);
+    if (byte === 10 || waiting[kind].length >= 50) flush(kind);
+  };
+  setInterval(() => {
+    flush("out");
+    flush("err");
+  }, 50);
+  self.Module = {
+    qb64rustKeep: ${JSON.stringify(profileArg !== null)},
+    preRun: [() => {
+      Module.FS.init(() => (read < input.length ? input[read++] : null), put("out"), put("err"));
+      for (const [name, data] of files) {
+        const slash = name.lastIndexOf("/");
+        if (slash > 0) Module.FS.mkdirTree(name.slice(0, slash));
+        Module.FS.writeFile(name, Uint8Array.from(atob(data), (c) => c.charCodeAt(0)));
+      }
+      Object.assign(Module.ENV, env);
+    }],
+    print: (text) => send("line", text),
+    printErr: (text) => send("errline", text),
+    onExit: (code) => {
+      flush("out");
+      flush("err");
+      send("exit", code);
+    },
+    onAbort: (what) => send("abort", String(what)),
+  };
+  self.qb64rustFile = (name) => {
+    try {
+      const data = Module.FS.readFile(name);
+      let text = "";
+      for (let i = 0; i < data.length; i += 0x8000) text += String.fromCharCode.apply(null, data.subarray(i, i + 0x8000));
+      return btoa(text);
+    } catch (e) {
+      return null;
+    }
+  };
+})();
+`;
+
+// A profile of this run's own, removed at the end; or --profile's, kept, with what the page keeps in it.
+const profile = profileArg !== null ? resolve(profileArg) : mkdtempSync(join(tmpdir(), "qb64rust-chrome-"));
+const proc = spawn(
+  chrome,
+  [
+    "--headless=new",
+    "--remote-debugging-pipe",
+    `--user-data-dir=${profile}`,
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-extensions",
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-sync",
+    "--mute-audio",
+    "--autoplay-policy=no-user-gesture-required",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader",
+    "--window-size=1280,1024",
+    "about:blank",
+  ],
+  { stdio: ["ignore", "ignore", "ignore", "pipe", "pipe"] },
+);
+const toChrome = proc.stdio[3];
+const fromChrome = proc.stdio[4];
+
+let nextId = 1;
+const pending = new Map();
+function send(method, params = {}, sessionId) {
+  const id = nextId++;
+  const message = { id, method, params };
+  if (sessionId) message.sessionId = sessionId;
+  toChrome.write(JSON.stringify(message) + "\0");
+  return new Promise((ok, fail) => pending.set(id, { ok, fail, method }));
+}
+
+let finished = false;
+async function finish(code) {
+  if (finished) return;
+  finished = true;
+  try {
+    if (screenshot) {
+      const shot = await send("Page.captureScreenshot", { format: "png" }, session);
+      writeFileSync(screenshot, Buffer.from(shot.data, "base64"));
+    }
+    for (const [inPage, host, held] of mapped) {
+      const expression = `self.qb64rustFile(${JSON.stringify(inPage)})`;
+      const got = await send("Runtime.evaluate", { expression, returnByValue: true }, session);
+      if (got.result.value !== null && got.result.value !== undefined && got.result.value !== held) {
+        writeFileSync(host, Buffer.from(got.result.value, "base64"));
+      }
+    }
+  } catch (e) {
+    note(e.message);
+  }
+  if (logFile) appendFileSync(logFile, `${new Date().toISOString()} ${pageName}: exit ${code}\n`);
+  // With --profile the page keeps what the program wrote, and saves it when the program ends: give that a second.
+  if (profileArg !== null) await new Promise((done) => setTimeout(done, 1000));
+  await send("Browser.close").catch(() => {});
+  setTimeout(() => {
+    try {
+      if (profileArg === null) rmSync(profile, { recursive: true, force: true });
+    } catch {}
+    process.exit(code);
+  }, 300);
+}
+
+const types = { ".html": "text/html", ".js": "text/javascript", ".wasm": "application/wasm" };
+const headers = [
+  { name: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { name: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+  { name: "Cross-Origin-Resource-Policy", value: "same-origin" },
+  { name: "Cache-Control", value: "no-store" },
+];
+async function serve(params, sessionId) {
+  const name = decodeURIComponent(new URL(params.request.url).pathname).replace(/^\/+/, "");
+  const path = join(folder, name);
+  if (served.has(name) && existsSync(path)) {
+    await send(
+      "Fetch.fulfillRequest",
+      {
+        requestId: params.requestId,
+        responseCode: 200,
+        responseHeaders: [...headers, { name: "Content-Type", value: types[extname(name)] || "application/octet-stream" }],
+        body: readFileSync(path).toString("base64"),
+      },
+      sessionId,
+    );
+  } else {
+    await send("Fetch.fulfillRequest", { requestId: params.requestId, responseCode: 404, responseHeaders: headers, body: "" }, sessionId);
+  }
+}
+
+function event(message) {
+  const { method, params, sessionId } = message;
+  if (method === "Fetch.requestPaused") {
+    serve(params, sessionId).catch((e) => note(e.message));
+  } else if (method === "Runtime.bindingCalled" && params.name === "qb64rustReport") {
+    const [kind, value] = JSON.parse(params.payload);
+    if (kind === "out") process.stdout.write(Buffer.from(value, "base64"));
+    else if (kind === "err") process.stderr.write(Buffer.from(value, "base64"));
+    // What the runtime itself prints, a line at a time (the program's own output comes as bytes, above); Emscripten's
+    // GL emulation says on every start that it is one, which is the SDK's, not the program's.
+    else if (kind === "line") process.stdout.write(value + "\n");
+    else if (kind === "errline" && !value.startsWith("WARNING: using emscripten GL ")) process.stderr.write(value + "\n");
+    else if (kind === "exit") finish(value);
+    else if (kind === "abort") {
+      note(`the program aborted: ${value}`);
+      finish(134);
+    }
+  } else if (method === "Page.javascriptDialogOpening") {
+    // libqb's messages are the page's dialogs (an unhandled error's "Continue?"). Nobody answers them, as nobody
+    // answers the dialog of a desktop program under test: a question is answered No, an alert closed.
+    send("Page.handleJavaScriptDialog", { accept: params.type === "alert" }, sessionId).catch(() => {});
+  } else if (method === "Runtime.exceptionThrown") {
+    const d = params.exceptionDetails;
+    note(d.exception ? d.exception.description : d.text);
+  } else if (method === "Target.attachedToTarget") {
+    // A thread's worker: its exceptions are reported with their stack, as the page's are.
+    send("Runtime.enable", {}, params.sessionId).catch(() => {});
+    send("Runtime.runIfWaitingForDebugger", {}, params.sessionId).catch(() => {});
+  }
+}
+
+let buffer = "";
+fromChrome.on("data", (chunk) => {
+  buffer += chunk.toString("utf8");
+  for (let end; (end = buffer.indexOf("\0")) >= 0; ) {
+    const message = JSON.parse(buffer.slice(0, end));
+    buffer = buffer.slice(end + 1);
+    if (message.id && pending.has(message.id)) {
+      const p = pending.get(message.id);
+      pending.delete(message.id);
+      if (message.error) p.fail(new Error(`${p.method}: ${message.error.message}`));
+      else p.ok(message.result);
+    } else if (message.method) {
+      event(message);
+    }
+  }
+});
+proc.on("exit", () => {
+  if (!finished) {
+    note("Chrome ended before the program");
+    process.exit(1);
+  }
+});
+
+const { targetId } = await send("Target.createTarget", { url: "about:blank" });
+const { sessionId: session } = await send("Target.attachToTarget", { targetId, flatten: true });
+await send("Fetch.enable", { patterns: [{ urlPattern: "http://localhost/*" }] }, session);
+await send("Runtime.enable", {}, session);
+await send("Runtime.addBinding", { name: "qb64rustReport" }, session);
+await send("Page.enable", {}, session);
+await send("Page.addScriptToEvaluateOnNewDocument", { source: setup }, session);
+await send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: true }, session);
+await send("Page.navigate", { url: `http://localhost/${encodeURIComponent(pageName)}` }, session);
+// --for: a program that has not ended by then is stopped, with the exit status of `timeout`, after the screenshot.
+if (seconds !== null) setTimeout(() => finish(124), seconds * 1000);

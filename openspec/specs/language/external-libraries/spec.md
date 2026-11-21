@@ -79,6 +79,11 @@ written path, then under `/usr/lib64/`, then `/usr/lib/`, then by the bare name,
 - **WHEN** an included file in `v37_inc\` names `"../v37_lib/v37h"`
 - **THEN** the header `v37_lib\v37h.h` is found and its function is called
 
+#### Scenario: A header beside a $USELIBRARY file
+- **WHEN** the top file of the library `test/header` names `"hd_beside"`, and `hd_beside.h` lies beside that file
+  under `libraries\includes\test\header\`, whatever the working directory (`verification\v58_u27_header_beside`)
+- **THEN** the header is found and its function is called
+
 #### Scenario: A DLL of the system
 - **WHEN** a block names `DECLARE DYNAMIC LIBRARY "kernel32"` and declares `FUNCTION lstrlenA& (s AS STRING)`
 - **THEN** `lstrlenA&("seven!!")` is 7

@@ -1095,7 +1095,7 @@ impl Slot {
 }
 
 /// The held and believed types of a call's result, from its (converted) arguments; `None` slots are absent.
-pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
+pub(crate) fn result_types(s: Supported, args: &[Option<Expr>], pointer_bytes: u32) -> (Ty, Ty) {
     let b = s.id.get();
     let first = || {
         args[0]
@@ -1118,7 +1118,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
             let a = first();
             // A float keeps its rank; an integer of 16 bits or fewer is SINGLE, of 32 DOUBLE, wider `_FLOAT`; a
             // `_BIT * n` counts n bits (measured, `v21_d_builtins`: `SQR` of a `_BIT * 3` is SINGLE).
-            let qb = match (a.qb.float_rank(), qb_bits(a.qb)) {
+            let qb = match (a.qb.float_rank(), qb_bits(a.qb, pointer_bytes)) {
                 (Some(1), _) => Ty::F32,
                 (Some(2), _) => Ty::F64,
                 (Some(_), _) => Ty::F80,
@@ -1144,7 +1144,7 @@ pub(crate) fn result_types(s: Supported, args: &[Option<Expr>]) -> (Ty, Ty) {
         }
         // `_ROUND` of an `_OFFSET` keeps its type (`qb64pe.bas` 21129; measured, `v21_d_builtins`).
         Rule::Convert(Ty::I64) if matches!(first().qb, Ty::Off | Ty::UOff) => (first().ty, first().qb),
-        Rule::Convert(to) => (convert_held(to, first()), to),
+        Rule::Convert(to) => (convert_held(to, first(), pointer_bytes), to),
         Rule::Fixed(t) => (t, t),
         Rule::Len | Rule::Asc => (Ty::I32, Ty::I32),
         Rule::Radix(_) | Rule::StringFill | Rule::StrOrIndex => (Ty::Str, Ty::Str),
@@ -1218,7 +1218,7 @@ fn overload(args: impl IntoIterator<Item = Ty>) -> Ty {
 /// The held type of `CINT`, `CLNG`, `CSNG`, `CDBL`, `_ROUND` of an argument, by the libqb entry the old compiler
 /// picks for the argument's believed type (`rounding.h`; measured from the C++): the argument itself where no entry
 /// is called.
-fn convert_held(to: Ty, a: &Expr) -> Ty {
+fn convert_held(to: Ty, a: &Expr, pointer_bytes: u32) -> Ty {
     let wide_float = a.qb == Ty::F80;
     match (to, a.qb.is_float()) {
         // `func_cint_float` returns `int64`, `func_cint_double` `int32`; `func_cint_long`/`_ulong`/`_int64`/`_uint64`
@@ -1239,7 +1239,7 @@ fn convert_held(to: Ty, a: &Expr) -> Ty {
             }
         }
         (Ty::I16 | Ty::I32, false) => {
-            if int_entry(to, a.qb).is_some() {
+            if int_entry(to, a.qb, pointer_bytes).is_some() {
                 to
             } else {
                 a.ty
@@ -1272,11 +1272,12 @@ fn convert_held(to: Ty, a: &Expr) -> Ty {
 }
 
 /// The width in bits the old compiler sees in a value believed `t`: a `_BIT * n`'s n (its type's bits, not its
-/// storage's), any other integer's [`Ty::int_bits`]; `None` for a float.
-pub fn qb_bits(t: Ty) -> Option<u32> {
+/// storage's), any other integer's [`Ty::stored_bits`], so an `_OFFSET`'s is the pointer's (`pointer_bytes`,
+/// design D2 of `wasm-pointer-width`); `None` for a float.
+pub fn qb_bits(t: Ty, pointer_bytes: u32) -> Option<u32> {
     match t {
         Ty::Bit { width, .. } => Some(u32::from(width)),
-        crate::numeric_value_types!() | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => t.int_bits(),
+        crate::numeric_value_types!() | Ty::Str | Ty::FixedStr(_) | Ty::User(_) => t.stored_bits(pointer_bytes),
     }
 }
 
@@ -1298,8 +1299,8 @@ pub fn exp_single(t: Ty) -> bool {
 /// old compiler writes the value itself (`qb64pe.bas` 21172–21215): `CINT` checks the range of an unsigned value of
 /// 16 bits or more and of a signed one wider than 16, `CLNG` of an unsigned one of 32 bits or more and of a signed
 /// one wider than 32 (measured, `v21_d_builtins`: `CINT` of a 65535 `_UNSIGNED INTEGER` raises error 6).
-pub fn int_entry(to: Ty, qb: Ty) -> Option<&'static str> {
-    let bits = qb_bits(qb).unwrap_or_else(|| unreachable!("an integer argument, not {qb:?}"));
+pub fn int_entry(to: Ty, qb: Ty, pointer_bytes: u32) -> Option<&'static str> {
+    let bits = qb_bits(qb, pointer_bytes).unwrap_or_else(|| unreachable!("an integer argument, not {qb:?}"));
     let unsigned = qb.is_unsigned();
     match (to, unsigned) {
         (Ty::I16, true) if bits > 32 => Some("func_cint_uint64"),
@@ -1348,7 +1349,7 @@ fn table_ty(b: &Builtin) -> Ty {
 /// `VARPTR`, `VARSEG` and `SADD` are 64 bits and no place: 0. So is a built-in with no return type in the table,
 /// `_SCREENEXISTS` (design D4 of `m4-memory-records`; the old compiler's C++, `func_hex(func_windowexists(),0)`,
 /// `verification\v56_c_radix_width`).
-pub fn radix_width(bits_per_digit: u32, arg: &Expr) -> Option<u32> {
+pub fn radix_width(bits_per_digit: u32, arg: &Expr, pointer_bytes: u32) -> Option<u32> {
     if let ExprKind::Call { builtin, .. } = &arg.kind
         && builtin.get().ret.is_none()
     {
@@ -1358,7 +1359,7 @@ pub fn radix_width(bits_per_digit: u32, arg: &Expr) -> Option<u32> {
         let bits = u32::from(width);
         return Some(if bits_per_digit == 4 { bits.div_ceil(4) } else { bits });
     }
-    let bits = match qb_bits(arg.qb) {
+    let bits = match qb_bits(arg.qb, pointer_bytes) {
         None => return None,
         Some(64) if matches!(arg.kind, ExprKind::Load(_)) => 64,
         Some(64) => 0,
@@ -1476,15 +1477,18 @@ mod tests {
         // The functions: `POINT` takes its two arguments as they are, the second optional; `SCREEN` is unsigned.
         let point = lookup("POINT", false).unwrap();
         assert_eq!(slots(point), [(Slot::Float, false), (Slot::Float, true)]);
-        assert_eq!(result_types(point, &[None, None]), (Ty::F64, Ty::F64));
+        assert_eq!(result_types(point, &[None, None], 8), (Ty::F64, Ty::F64));
         let screen = lookup("SCREEN", false).unwrap();
         assert_eq!(
             slots(screen),
             [(Slot::Long, false), (Slot::Long, false), (Slot::Long, true)]
         );
-        assert_eq!(result_types(screen, &[None, None, None]), (Ty::U32, Ty::U32));
-        assert_eq!(result_types(lookup("CSRLIN", false).unwrap(), &[]), (Ty::I32, Ty::I32));
-        assert_eq!(result_types(lookup("INKEY", true).unwrap(), &[]), (Ty::Str, Ty::Str));
+        assert_eq!(result_types(screen, &[None, None, None], 8), (Ty::U32, Ty::U32));
+        assert_eq!(
+            result_types(lookup("CSRLIN", false).unwrap(), &[], 8),
+            (Ty::I32, Ty::I32)
+        );
+        assert_eq!(result_types(lookup("INKEY", true).unwrap(), &[], 8), (Ty::Str, Ty::Str));
     }
 
     #[test]
@@ -1517,69 +1521,78 @@ mod tests {
     fn radix_widths() {
         let var = |t| e(t, t, ExprKind::Load(crate::Place::Var(crate::VarId(0))));
         let op = |t| e(Ty::I32, t, ExprKind::Int(0));
-        assert_eq!(radix_width(4, &var(Ty::I16)), Some(4));
-        assert_eq!(radix_width(4, &var(Ty::I32)), Some(8));
-        assert_eq!(radix_width(4, &var(Ty::I64)), Some(16));
-        assert_eq!(radix_width(3, &var(Ty::I64)), Some(64));
-        assert_eq!(radix_width(4, &op(Ty::I64)), Some(0));
-        assert_eq!(radix_width(1, &op(Ty::I16)), Some(16));
-        assert_eq!(radix_width(4, &op(Ty::F32)), None);
+        assert_eq!(radix_width(4, &var(Ty::I16), 8), Some(4));
+        assert_eq!(radix_width(4, &var(Ty::I32), 8), Some(8));
+        assert_eq!(radix_width(4, &var(Ty::I64), 8), Some(16));
+        assert_eq!(radix_width(3, &var(Ty::I64), 8), Some(64));
+        assert_eq!(radix_width(4, &op(Ty::I64), 8), Some(0));
+        assert_eq!(radix_width(1, &op(Ty::I16), 8), Some(16));
+        assert_eq!(radix_width(4, &op(Ty::F32), 8), None);
     }
 
     #[test]
     fn new_types_special_cases() {
         let bit = |width, signed| Ty::Bit { width, signed };
         // `_BIT * n` counts its n bits, not its storage's.
-        assert_eq!(qb_bits(bit(3, true)), Some(3));
-        assert_eq!(qb_bits(Ty::U8), Some(8));
-        assert_eq!(qb_bits(Ty::UOff), Some(64));
-        assert_eq!(qb_bits(Ty::F32), None);
+        assert_eq!(qb_bits(bit(3, true), 8), Some(3));
+        assert_eq!(qb_bits(Ty::U8, 8), Some(8));
+        assert_eq!(qb_bits(Ty::UOff, 8), Some(64));
+        assert_eq!(qb_bits(Ty::F32, 8), None);
         // `HEX$`: (n + 3) \ 4 digits for a `_BIT * n`, place or not; 2 for a byte; 16 for a 64-bit place, else 0.
         let var = |t| e(Ty::I64, t, ExprKind::Load(crate::Place::Var(crate::VarId(0))));
         let op = |t| e(Ty::I64, t, ExprKind::Int(0));
-        assert_eq!(radix_width(4, &var(bit(3, true))), Some(1));
-        assert_eq!(radix_width(4, &op(bit(5, true))), Some(2));
-        assert_eq!(radix_width(3, &var(bit(3, false))), Some(3));
-        assert_eq!(radix_width(4, &var(Ty::U8)), Some(2));
-        assert_eq!(radix_width(1, &var(Ty::I8)), Some(8));
-        assert_eq!(radix_width(4, &var(Ty::Off)), Some(16));
-        assert_eq!(radix_width(4, &op(Ty::U64)), Some(0));
+        assert_eq!(radix_width(4, &var(bit(3, true)), 8), Some(1));
+        assert_eq!(radix_width(4, &op(bit(5, true)), 8), Some(2));
+        assert_eq!(radix_width(3, &var(bit(3, false)), 8), Some(3));
+        assert_eq!(radix_width(4, &var(Ty::U8), 8), Some(2));
+        assert_eq!(radix_width(1, &var(Ty::I8), 8), Some(8));
+        assert_eq!(radix_width(4, &var(Ty::Off), 8), Some(16));
+        assert_eq!(radix_width(4, &op(Ty::U64), 8), Some(0));
+        // Where a pointer is 4 bytes an `_OFFSET` counts 32 bits: 8 hex digits, place or not, and the entries of a
+        // LONG (design D2 of `wasm-pointer-width`).
+        assert_eq!(qb_bits(Ty::UOff, 4), Some(32));
+        assert_eq!(qb_bits(Ty::U64, 4), Some(64));
+        assert_eq!(radix_width(4, &var(Ty::UOff), 4), Some(8));
+        assert_eq!(radix_width(4, &op(Ty::Off), 4), Some(8));
+        assert_eq!(radix_width(1, &var(Ty::Off), 4), Some(32));
+        assert_eq!(int_entry(Ty::I16, Ty::UOff, 4), Some("func_cint_ulong"));
+        assert_eq!(int_entry(Ty::I32, Ty::Off, 4), None);
         // `EXP`: SINGLE up to 16 bits, never for a `_BIT`.
         assert!(exp_single(Ty::U16) && exp_single(Ty::I8) && exp_single(Ty::F32));
         assert!(!exp_single(Ty::U32) && !exp_single(bit(3, true)) && !exp_single(Ty::F64));
         // `CINT`: unsigned from 16 bits, signed above 16; `CLNG`: unsigned at 32 or more, signed above 32.
-        assert_eq!(int_entry(Ty::I16, Ty::U8), None);
-        assert_eq!(int_entry(Ty::I16, Ty::U16), Some("func_cint_ulong"));
-        assert_eq!(int_entry(Ty::I16, Ty::I16), None);
-        assert_eq!(int_entry(Ty::I16, Ty::U32), Some("func_cint_ulong"));
-        assert_eq!(int_entry(Ty::I16, Ty::UOff), Some("func_cint_uint64"));
-        assert_eq!(int_entry(Ty::I16, bit(20, true)), Some("func_cint_long"));
-        assert_eq!(int_entry(Ty::I16, bit(10, true)), None);
-        assert_eq!(int_entry(Ty::I32, Ty::U16), None);
-        assert_eq!(int_entry(Ty::I32, Ty::U32), Some("func_clng_ulong"));
-        assert_eq!(int_entry(Ty::I32, bit(20, false)), None);
-        assert_eq!(int_entry(Ty::I32, Ty::U64), Some("func_clng_uint64"));
-        assert_eq!(int_entry(Ty::I32, Ty::Off), Some("func_clng_int64"));
+        assert_eq!(int_entry(Ty::I16, Ty::U8, 8), None);
+        assert_eq!(int_entry(Ty::I16, Ty::U16, 8), Some("func_cint_ulong"));
+        assert_eq!(int_entry(Ty::I16, Ty::I16, 8), None);
+        assert_eq!(int_entry(Ty::I16, Ty::U32, 8), Some("func_cint_ulong"));
+        assert_eq!(int_entry(Ty::I16, Ty::UOff, 8), Some("func_cint_uint64"));
+        assert_eq!(int_entry(Ty::I16, bit(20, true), 8), Some("func_cint_long"));
+        assert_eq!(int_entry(Ty::I16, bit(10, true), 8), None);
+        assert_eq!(int_entry(Ty::I32, Ty::U16, 8), None);
+        assert_eq!(int_entry(Ty::I32, Ty::U32, 8), Some("func_clng_ulong"));
+        assert_eq!(int_entry(Ty::I32, bit(20, false), 8), None);
+        assert_eq!(int_entry(Ty::I32, Ty::U64, 8), Some("func_clng_uint64"));
+        assert_eq!(int_entry(Ty::I32, Ty::Off, 8), Some("func_clng_int64"));
         // The held type is the entry's (`int16`, `int32`) or the argument's own where none is called.
-        assert_eq!(convert_held(Ty::I16, &var(Ty::U16)), Ty::I16);
-        assert_eq!(convert_held(Ty::I16, &e(Ty::U8, Ty::U8, ExprKind::Int(0))), Ty::U8);
+        assert_eq!(convert_held(Ty::I16, &var(Ty::U16), 8), Ty::I16);
+        assert_eq!(convert_held(Ty::I16, &e(Ty::U8, Ty::U8, ExprKind::Int(0)), 8), Ty::U8);
     }
 
     #[test]
     fn conversion_held_types() {
         let lit = |ty, qb| e(ty, qb, ExprKind::Int(0));
         // CINT of a DOUBLE: func_cint_double, int32; of a _FLOAT: int64; of a LONG: int16; of an INTEGER: itself.
-        assert_eq!(convert_held(Ty::I16, &lit(Ty::F64, Ty::F64)), Ty::I32);
-        assert_eq!(convert_held(Ty::I16, &lit(Ty::F80, Ty::F80)), Ty::I64);
-        assert_eq!(convert_held(Ty::I16, &lit(Ty::I32, Ty::I32)), Ty::I16);
-        assert_eq!(convert_held(Ty::I16, &lit(Ty::I16, Ty::I16)), Ty::I16);
+        assert_eq!(convert_held(Ty::I16, &lit(Ty::F64, Ty::F64), 8), Ty::I32);
+        assert_eq!(convert_held(Ty::I16, &lit(Ty::F80, Ty::F80), 8), Ty::I64);
+        assert_eq!(convert_held(Ty::I16, &lit(Ty::I32, Ty::I32), 8), Ty::I16);
+        assert_eq!(convert_held(Ty::I16, &lit(Ty::I16, Ty::I16), 8), Ty::I16);
         // CSNG of an integer is (double), not narrowed; of a SINGLE literal (held DOUBLE) the literal itself.
-        assert_eq!(convert_held(Ty::F32, &lit(Ty::I32, Ty::I32)), Ty::F64);
-        assert_eq!(convert_held(Ty::F32, &lit(Ty::F64, Ty::F32)), Ty::F64);
-        assert_eq!(convert_held(Ty::F64, &lit(Ty::F32, Ty::F32)), Ty::F32);
+        assert_eq!(convert_held(Ty::F32, &lit(Ty::I32, Ty::I32), 8), Ty::F64);
+        assert_eq!(convert_held(Ty::F32, &lit(Ty::F64, Ty::F32), 8), Ty::F64);
+        assert_eq!(convert_held(Ty::F64, &lit(Ty::F32, Ty::F32), 8), Ty::F32);
         // CLNG of an _INTEGER64: func_clng_int64, int32; of an INTEGER: itself.
-        assert_eq!(convert_held(Ty::I32, &lit(Ty::I64, Ty::I64)), Ty::I32);
-        assert_eq!(convert_held(Ty::I32, &lit(Ty::I16, Ty::I16)), Ty::I16);
-        assert_eq!(convert_held(Ty::I64, &lit(Ty::F32, Ty::F32)), Ty::I64);
+        assert_eq!(convert_held(Ty::I32, &lit(Ty::I64, Ty::I64), 8), Ty::I32);
+        assert_eq!(convert_held(Ty::I32, &lit(Ty::I16, Ty::I16), 8), Ty::I16);
+        assert_eq!(convert_held(Ty::I64, &lit(Ty::F32, Ty::F32), 8), Ty::I64);
     }
 }

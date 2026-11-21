@@ -1,0 +1,13 @@
+# The wasm target's window (OpenSpec change wasm-window): a browser has no native window handle.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+#else
+                return reinterpret_cast<const void *>(glfwGetX11Window(window));
+#endif
+--- new
+#elif defined(QB64_EMSCRIPTEN)
+                return nullptr;
+#else
+                return reinterpret_cast<const void *>(glfwGetX11Window(window));
+#endif
+--- end
