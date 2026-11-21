@@ -215,9 +215,9 @@ SHALL take `--target` and `--no-settings` as a build does, build and copy nothin
 settings file that cannot be used SHALL be reported as a build reports it, with status 1.
 
 #### Scenario: Without a settings file
-- **WHEN** `C:/g/game.bas` has no settings file and `qb64rust --print-paths C:/g/game.bas` runs on Windows
-- **THEN** it prints `{"exe":"C:\\g\\build\\game.exe","run_in":"C:\\g"}` and nothing is built
+- **WHEN** `<dir>/game.bas` has no settings file and `qb64rust --print-paths <dir>/game.bas` runs on Windows
+- **THEN** it prints `{"exe":"<dir>\\build\\game.exe","run_in":"<dir>"}` and nothing is built
 
 #### Scenario: With a copy list
-- **WHEN** the settings file beside `C:/g/game.bas` has `copy = ["GAME.CFG"]`
-- **THEN** it prints `{"exe":"C:\\g\\build\\game.exe","run_in":"C:\\g\\build"}`
+- **WHEN** the settings file beside `<dir>/game.bas` has `copy = ["GAME.CFG"]`
+- **THEN** it prints `{"exe":"<dir>\\build\\game.exe","run_in":"<dir>\\build"}`

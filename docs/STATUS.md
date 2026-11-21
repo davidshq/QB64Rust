@@ -108,7 +108,7 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
 0. **The OpenSpec change `build-output-folder`** (`DECISIONS.md` 2026-11-21): a build without `-o` writes into
    `build`, `[build]` names the folder and the data files to copy, and the extension runs the program where
    `qb64rust --print-paths` says. All 16 tasks are built, Civil War Strategy's `[build]` table among them; the
-   extension's integration suite has not run yet (CI). Archive after review.
+   extension's integration suite has not run yet (CI). Archived 2026-11-21, its specs synced.
 1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
    `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a
    `$CONSOLE:ONLY` program for Node, and 3,664 of the 3,766 verification programs it runs pass (97.3%, 0 failing,
