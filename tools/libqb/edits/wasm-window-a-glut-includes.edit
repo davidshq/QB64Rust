@@ -1,0 +1,21 @@
+# The wasm target's window (OpenSpec change wasm-window): glut-emu.cpp is built against Emscripten's GLFW, which
+# exposes no native window. exit() needs <cstdlib>, which the desktop headers bring in on their own; the main loop
+# and full screen need <emscripten.h> and <emscripten/html5.h>.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+#elif defined(QB64_LINUX)
+#    include <X11/XKBlib.h>
+#    define GLFW_EXPOSE_NATIVE_X11
+#    define GLFW_EXPOSE_NATIVE_GLX
+#endif
+--- new
+#elif defined(QB64_LINUX)
+#    include <X11/XKBlib.h>
+#    define GLFW_EXPOSE_NATIVE_X11
+#    define GLFW_EXPOSE_NATIVE_GLX
+#elif defined(QB64_EMSCRIPTEN)
+#    include <cstdlib>
+#    include <emscripten.h>
+#    include <emscripten/html5.h>
+#endif
+--- end

@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import * as config from "./config";
-import { BuildPlan, Bundle, planBuild } from "./buildPlan";
+import { BuildPlan, Bundle, planBuild, runPaths } from "./buildPlan";
 import { BuildOutputLines, progressText } from "./compiler/buildOutput";
 import * as qb64pe from "./compiler/qb64pe";
 import * as qb64rust from "./compiler/qb64rust";
@@ -13,6 +13,12 @@ import { LanguageServer } from "./languageServer";
 import { CompilerStatus } from "./statusBar";
 
 const TERMINAL_NAME = "QB64";
+
+/** A program that was built, and the folder it runs in (change build-output-folder, design D6). */
+export interface Built {
+    exe: string;
+    runIn: string;
+}
 
 export class Builder implements vscode.Disposable {
     readonly output = vscode.window.createOutputChannel("QB64");
@@ -45,15 +51,15 @@ export class Builder implements vscode.Disposable {
     }
 
     /** Returns the path of the executable, or undefined if the build did not succeed. */
-    buildCommand(uri?: vscode.Uri): Promise<string | undefined> {
-        return this.build(uri, true);
+    async buildCommand(uri?: vscode.Uri): Promise<string | undefined> {
+        return (await this.build(uri, true))?.exe;
     }
 
     /**
      * The debug build of the program of `uri` or the active editor (`--debug`, change m5-debug-launch, design D4):
-     * the executable, or undefined when there is none (the reason already shown).
+     * the executable and the folder it runs in, or undefined when there is none (the reason already shown).
      */
-    async debugBuild(uri?: vscode.Uri): Promise<string | undefined> {
+    async debugBuild(uri?: vscode.Uri): Promise<Built | undefined> {
         const source = await this.prepare(uri, "Debugging");
         if (!source) {
             return undefined;
@@ -66,7 +72,7 @@ export class Builder implements vscode.Disposable {
      * Builds; `notify` shows "built X" when it succeeds. Build and Run passes false: the program starting is the
      * confirmation (study 18, proposal D). Failures are always shown.
      */
-    private async build(uri: vscode.Uri | undefined, notify: boolean): Promise<string | undefined> {
+    private async build(uri: vscode.Uri | undefined, notify: boolean): Promise<Built | undefined> {
         const source = await this.prepare(uri, "Building");
         if (!source) {
             return undefined;
@@ -83,13 +89,17 @@ export class Builder implements vscode.Disposable {
      * (source `qb64rust`). A failure under `auto` whose errors are all marked "not supported yet" offers to build
      * the program once with QB64pe when QB64pe is found, except for a debug build, which QB64pe cannot make.
      */
-    private async buildWithQb64rust(source: vscode.Uri, plan: Extract<BuildPlan, { compiler: "qb64rust" }>, notify: boolean): Promise<string | undefined> {
+    private async buildWithQb64rust(source: vscode.Uri, plan: Extract<BuildPlan, { compiler: "qb64rust" }>, notify: boolean): Promise<Built | undefined> {
         const file = source.fsPath;
         this.startOutput(`${plan.command} ${plan.args.join(" ")}`);
+        if (plan.paths.problem) {
+            // The build goes on next to the source, with `-o` (change build-output-folder, design D5).
+            this.appendLine(`Could not ask qb64rust where the program goes (${plan.paths.problem}); building it next to the source.`);
+        }
         if (plan.firstLibqbBuild) {
             this.appendLine("This first build after installing or updating the extension also builds QB64pe's runtime library (libqb) once.");
         }
-        const result = await qb64rust.build(this.queue, plan.command, file, plan.roots, plan.env, plan.debug, (text) => {
+        const result = await qb64rust.build(this.queue, plan.command, file, plan.roots, plan.env, plan.debug, plan.paths, (text) => {
             this.append(text);
             if (plan.firstLibqbBuild && /^building /m.test(text)) {
                 this.status.setBusy("building libqb (first build)…");
@@ -105,7 +115,7 @@ export class Builder implements vscode.Disposable {
             if (notify) {
                 void vscode.window.showInformationMessage(`QB64: built ${path.basename(result.executable)}`);
             }
-            return result.executable;
+            return { exe: result.executable, runIn: plan.paths.runIn };
         }
         const first = result.messages.find((m) => m.severity === "error");
         const text = `QB64: build failed${first ? `: ${first.message.split("\n")[0]} (line ${first.line})` : ""}`;
@@ -124,7 +134,7 @@ export class Builder implements vscode.Disposable {
         return undefined;
     }
 
-    private async buildWithQb64pe(source: vscode.Uri, compiler: string, notify: boolean): Promise<string | undefined> {
+    private async buildWithQb64pe(source: vscode.Uri, compiler: string, notify: boolean): Promise<Built | undefined> {
         const file = source.fsPath;
         this.startOutput(`${compiler} ${qb64pe.buildArgs(file).join(" ")}`);
         // Progress goes to the status item, not the output channel, which cannot redraw a line.
@@ -142,7 +152,8 @@ export class Builder implements vscode.Disposable {
             if (notify) {
                 void vscode.window.showInformationMessage(`QB64: built ${path.basename(result.executable)}`);
             }
-            return result.executable;
+            // QB64pe does not read the settings file: the program is next to the source and runs there.
+            return { exe: result.executable, runIn: path.dirname(file) };
         }
         const first = result.messages.find((m) => m.severity === "error");
         const text = `QB64: build failed${first ? `: ${first.message} (line ${first.line})` : ""}`;
@@ -174,37 +185,39 @@ export class Builder implements vscode.Disposable {
         if (!source) {
             return false;
         }
-        const exe = qb64pe.executableFor(source.fsPath);
+        // With qb64rust, the program and its folder are the compiler's (spec editor/build-run, "Run commands").
+        const paths = await runPaths(source.fsPath, this.server);
+        const exe = paths.exe;
         if (!fs.existsSync(exe)) {
             const build = "Build and Run";
             const choice = await vscode.window.showErrorMessage(`QB64: ${path.basename(exe)} does not exist yet. Build it first?`, build);
             return choice === build ? this.buildAndRunCommand(source) : false;
         }
-        this.startInTerminal(exe, source);
+        this.startInTerminal(exe, paths.runIn, source);
         return true;
     }
 
     async buildAndRunCommand(uri?: vscode.Uri): Promise<boolean> {
-        const exe = await this.build(uri, false);
-        if (!exe) {
+        const built = await this.build(uri, false);
+        if (!built) {
             return false;
         }
-        this.startInTerminal(exe, vscode.Uri.file(exe));
+        this.startInTerminal(built.exe, built.runIn, vscode.Uri.file(built.exe));
         return true;
     }
 
     /**
-     * Starts the program in a new "QB64" terminal, in the source folder, with `qb64rust.runArguments`. The previous
+     * Starts the program in a new "QB64" terminal, in the folder `runIn`, with `qb64rust.runArguments`. The previous
      * one is closed first: a program still running in it (or waiting for a key) would receive the command line as
      * input. Only terminals this extension created are closed.
      */
-    private startInTerminal(exe: string, resource: vscode.Uri): void {
+    private startInTerminal(exe: string, runIn: string, resource: vscode.Uri): void {
         this.terminal?.dispose();
         const env = config.noPrompt(resource) ? { QB64PE_NOPROMPT: "y" } : undefined;
-        const terminal = vscode.window.createTerminal({ name: TERMINAL_NAME, cwd: path.dirname(exe), env });
+        const terminal = vscode.window.createTerminal({ name: TERMINAL_NAME, cwd: runIn, env });
         this.terminal = terminal;
         terminal.show(true);
-        terminal.sendText(shellCommand(vscode.env.shell, path.dirname(exe), exe, config.runArguments(resource)));
+        terminal.sendText(shellCommand(vscode.env.shell, runIn, exe, config.runArguments(resource)));
     }
 
     /**

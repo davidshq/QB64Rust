@@ -1,0 +1,6 @@
+# What cannot pass on the wasm target, beside known.linux.list (OpenSpec change wasm-window; spec
+# testing/golden-corpus, "The wasm known list"): <group>/<name><TAB><reason>, the reasons of
+# tests/verification/known.wasm.list. A line with target is skipped without a build. Read by
+# tools/legacy_tests/run_legacy_tests.py --platform wasm, with known.linux.list: the target is judged as Linux.
+screen/w01_window_builtins	target: _WINDOWHANDLE, which a page does not have (no window of the system)
+screen/i04_maptriangle	target: _SCREENIMAGE, whose screen-image part the target does not build yet

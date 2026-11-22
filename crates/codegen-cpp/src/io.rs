@@ -36,8 +36,10 @@ const OFFSET: u32 = 0x0010_0000;
 
 /// The type code libqb's `func_file_input_float` takes for a numeric target of type `ty` (the old compiler's type
 /// value: the width in bits, the float and unsigned bits, the kind of place). libqb reads the width, the float bit
-/// and the unsigned bit: they give the range a value is checked against (error 6 outside it).
-pub(crate) fn input_type_code(ty: Ty, place: &Place) -> u32 {
+/// and the unsigned bit: they give the range a value is checked against (error 6 outside it). Console `INPUT`
+/// stores that many bits at the place, so an `_OFFSET`'s width is the pointer's (`pointer_bytes`, design D2 of
+/// `wasm-pointer-width`).
+pub(crate) fn input_type_code(ty: Ty, place: &Place, pointer_bytes: u32) -> u32 {
     let kind = match place {
         Place::Var(_) => VARIABLE,
         Place::Element { .. } => ELEMENT,
@@ -49,7 +51,7 @@ pub(crate) fn input_type_code(ty: Ty, place: &Place) -> u32 {
         Ty::F64 => (64, FLOAT),
         Ty::F80 => (256, FLOAT),
         Ty::I8 | Ty::U8 | Ty::I16 | Ty::U16 | Ty::I32 | Ty::U32 | Ty::I64 | Ty::U64 | Ty::Off | Ty::UOff => {
-            (ty.int_bits().expect("an integer type"), 0)
+            (ty.stored_bits(pointer_bytes).expect("an integer type"), 0)
         }
         Ty::Str | Ty::FixedStr(_) | Ty::User(_) => unreachable!("a numeric target, not {ty:?}"),
     };
@@ -452,7 +454,7 @@ impl Emitter<'_> {
             } else {
                 // Of the place bits only `ISARRAY` is written here (an element), and `_OFFSET` carries its own bit.
                 let offset = if matches!(ty, Ty::Off | Ty::UOff) { OFFSET } else { 0 };
-                let code = input_type_code(ty, place) & !CONSOLE_DROPS | offset;
+                let code = input_type_code(ty, place, self.p.pointer_bytes()) & !CONSOLE_DROPS | offset;
                 let address = format!("&({})", self.load_place(place));
                 let (address, read) = self.trace_held(place, Held::Ptr, address, "INPUT");
                 records.extend(read);
@@ -483,9 +485,15 @@ impl Emitter<'_> {
                 }
                 Ty::I64 | Ty::Off => format!("func_read_int64({ARGS})"),
                 Ty::U64 | Ty::UOff => format!("func_read_uint64({ARGS})"),
-                Ty::Bit { .. } => format!("((int64)func_read_float({ARGS},{}))", input_type_code(ty, place)),
+                Ty::Bit { .. } => format!(
+                    "((int64)func_read_float({ARGS},{}))",
+                    input_type_code(ty, place, self.p.pointer_bytes())
+                ),
                 Ty::I8 | Ty::U8 | Ty::I16 | Ty::U16 | Ty::I32 | Ty::U32 | Ty::F32 | Ty::F64 | Ty::F80 => {
-                    format!("func_read_float({ARGS},{})", input_type_code(ty, place))
+                    format!(
+                        "func_read_float({ARGS},{})",
+                        input_type_code(ty, place, self.p.pointer_bytes())
+                    )
                 }
                 Ty::User(_) => unreachable!("a `READ` target of a user type (`validate`)"),
             };
@@ -545,10 +553,13 @@ impl Emitter<'_> {
             Ty::U64 | Ty::UOff => "func_file_input_uint64(tmp_fileno)".to_string(),
             Ty::Bit { .. } => format!(
                 "((int64)func_file_input_float(tmp_fileno,{}))",
-                input_type_code(ty, place)
+                input_type_code(ty, place, self.p.pointer_bytes())
             ),
             Ty::I8 | Ty::U8 | Ty::I16 | Ty::U16 | Ty::I32 | Ty::U32 | Ty::F32 | Ty::F64 | Ty::F80 => {
-                format!("func_file_input_float(tmp_fileno,{})", input_type_code(ty, place))
+                format!(
+                    "func_file_input_float(tmp_fileno,{})",
+                    input_type_code(ty, place, self.p.pointer_bytes())
+                )
             }
             Ty::Str | Ty::FixedStr(_) | Ty::User(_) => unreachable!("a numeric target, not {ty:?}"),
         }
@@ -578,17 +589,28 @@ mod tests {
             (bit(5, true), 188_743_685),
             (bit(40, false), 457_179_176),
         ] {
-            assert_eq!(input_type_code(ty, &var), code, "{ty:?}");
+            assert_eq!(input_type_code(ty, &var, 8), code, "{ty:?}");
         }
         let element = Place::Element {
             array: ArrayRef::Var(VarId(0)),
             index: Vec::new(),
         };
-        assert_eq!(input_type_code(Ty::I32, &element), 146_800_672);
+        assert_eq!(input_type_code(Ty::I32, &element, 8), 146_800_672);
         let member = Place::Member {
             base: Box::new(var),
             member: MemberId(0),
         };
-        assert_eq!(input_type_code(Ty::I32, &member), 140_509_216);
+        assert_eq!(input_type_code(Ty::I32, &member, 8), 140_509_216);
+    }
+
+    /// An `_OFFSET` target carries the pointer's width, so that console `INPUT` stores no more than the variable
+    /// holds (design D2 of `wasm-pointer-width`): the code of an `_INTEGER64` or of a LONG.
+    #[test]
+    fn an_offset_is_as_wide_as_a_pointer() {
+        let var = Place::Var(VarId(0));
+        assert_eq!(input_type_code(Ty::Off, &var, 8), input_type_code(Ty::I64, &var, 8));
+        assert_eq!(input_type_code(Ty::UOff, &var, 8), input_type_code(Ty::U64, &var, 8));
+        assert_eq!(input_type_code(Ty::Off, &var, 4), input_type_code(Ty::I32, &var, 4));
+        assert_eq!(input_type_code(Ty::UOff, &var, 4), input_type_code(Ty::U32, &var, 4));
     }
 }

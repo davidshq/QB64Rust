@@ -61,6 +61,8 @@ ALLOWED = [
     ("tools/community/test_community.py", rb"C:/work/community/draw"),
     # The hook's tests: a command that cds into a made-up folder.
     ("tools/hooks/test_hooks.py", rb'cd "/c/code/x"'),
+    # The browser launcher's tests of where it looks for Chrome: made-up folders on a drive X:.
+    ("tools/wasm/test_find_chrome.py", rb'"X:\\'),
 ]
 
 # Third-party copies held byte for byte to an upstream commit by their own check, not checked here (rule 2 is about

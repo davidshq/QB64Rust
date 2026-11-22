@@ -3,7 +3,15 @@
 //! `qb64rust [-x] [-q] [-m] [-w] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>]
 //! [--dump tokens|tree|typed|ir|cpp|debug-info]
 //! [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build]
-//! [--coverage] [--trace-values] [--debug] [--fixes on|off] [--fix <name>=on|off]...`
+//! [--coverage] [--trace-values] [--debug] [--fixes on|off] [--fix <name>=on|off]... [--target host|wasm]`
+//!
+//! `--target wasm` (experimental) builds a `$CONSOLE:ONLY` program to `<name>.js` and `<name>.wasm` for Node (spec
+//! `compiler/cli`, "The target option"; OpenSpec change `wasm-console`), with the Emscripten SDK of `--emsdk-root
+//! <dir>` or `QB64RUST_EMSDK_ROOT`. `qb64rust toolchain path --target wasm [--emsdk-root <dir>]` names that SDK.
+//!
+//! Without `-o` the program goes into the output folder, `build` unless `qb64rust.toml`'s `[build]` names another
+//! (spec `compiler/cli`, "The output folder"). `qb64rust --print-paths <file.bas> [--target host|wasm]
+//! [--no-settings]` prints that path and the folder the program runs in, for the editor.
 //!
 //! `qb64rust --list-fixes`: the fixes, one per line (spec `compiler/fixes`, `fixes.rs`).
 //!
@@ -29,7 +37,7 @@ use qb64rust_base::fixes::{FIXES, Fixes};
 use qb64rust_base::layout::{Overrides, Settings};
 use qb64rust_driver::fixes::CliFix;
 use qb64rust_driver::lints::{CliLint, Lints};
-use qb64rust_driver::{FileLoader, compile, fixes, frontend_explicit, lints, report, settings, toolchain};
+use qb64rust_driver::{FileLoader, compile, fixes, frontend_explicit, lints, output, report, settings, toolchain};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -38,10 +46,14 @@ use std::sync::Mutex;
 const USAGE: &str = "usage: qb64rust [-x|-c] [-q] [-m] [-w] [-e] [-p] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp|debug-info] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] \
 [--include-root <dir>] [--keep-build] [--coverage] [--trace-values] [--debug] [--fixes on|off] \
-[--fix <name>=on|off]... [--lints on|off] [--lint <code>=on|off]... [--no-settings]\n\
+[--fix <name>=on|off]... [--lints on|off] [--lint <code>=on|off]... [--no-settings] [--target host|wasm] \
+[--emsdk-root <dir>]\n\
+       (--target wasm is experimental: a $CONSOLE:ONLY program built to <name>.js and <name>.wasm, run by node)\n\
        qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... [--format-default <layout setting>=<value>]... \
 <file.bas> -o <out.bas> [--include-root <dir>] [--fixes on|off] [--fix <name>=on|off]... [--lints on|off] \
 [--lint <code>=on|off]... [--no-settings] [--program <main.bas>]\n\
+       qb64rust --print-paths <file.bas> [--target host|wasm] [--no-settings]    (the program's path and the folder \
+it runs in, as JSON)\n\
        qb64rust --list-fixes    (the fixes --fix and qb64rust.toml name)\n\
        qb64rust --report unsupported|warnings <file or folder>... [--include-root <dir>]\n\
        qb64rust lsp    (the language server, over stdin and stdout)\n\
@@ -49,6 +61,8 @@ const USAGE: &str = "usage: qb64rust [-x|-c] [-q] [-m] [-w] [-e] [-p] [-z|--prin
        qb64rust toolchain install [--from-zip <zip>]    (downloads and installs the C++ toolchain, or installs \
 it from the release's zip; on Linux names the packages)\n\
        qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)\n\
+       qb64rust toolchain path --target wasm [--emsdk-root <dir>]    (the Emscripten SDK a wasm build would use)\n\
+       qb64rust toolchain install --target wasm    (how to install the Emscripten SDK; installs nothing)\n\
        qb64rust test [<file or folder>...] [--list] [--filter <text>]... [--jobs <n>] [--timeout <seconds>] \
 [--format text|json] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
 [--fixes on|off] [--fix <name>=on|off]... [--no-settings] [--coverage]    (runs the test SUBs of *_test.bas files)\n\
@@ -57,7 +71,9 @@ it from the release's zip; on Linux names the packages)\n\
 /// The usage of `qb64rust toolchain` (spec `compiler/cli`, "Toolchain subcommand").
 const TOOLCHAIN_USAGE: &str = "usage: qb64rust toolchain install [--from-zip <zip>]    (downloads and installs the \
 C++ toolchain, or installs it from the release's zip; on Linux names the packages)\n\
-       qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)";
+       qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)\n\
+       qb64rust toolchain path --target wasm [--emsdk-root <dir>]    (the Emscripten SDK a wasm build would use)\n\
+       qb64rust toolchain install --target wasm    (how to install the Emscripten SDK; installs nothing)";
 
 #[derive(Default)]
 struct Options {
@@ -112,6 +128,70 @@ struct Options {
     /// `--program <file.bas>`: with `-y`, the program the input file is formatted as a file of (spec
     /// `compiler/format`, "An include file inside its program").
     program: Option<PathBuf>,
+    /// `--target wasm`: the platform a build, `-z` and a dump are made for; `None` (also `--target host`) for the
+    /// host (spec `compiler/cli`, "The target option").
+    target: Option<Platform>,
+    /// `--emsdk-root`: the Emscripten SDK of a wasm build (spec `compiler/toolchain`, "The Emscripten SDK").
+    emsdk_root: Option<PathBuf>,
+    /// `--print-paths`: the program's path and the folder it runs in, as JSON, and nothing built (spec
+    /// `compiler/cli`, "The paths of a program").
+    print_paths: bool,
+}
+
+/// The value of `--target` (spec `compiler/cli`, "The target option"): `host`, the default, or `wasm`.
+fn parse_target(name: &str) -> Result<Option<Platform>, String> {
+    match name {
+        "host" => Ok(None),
+        "wasm" => Ok(Some(Platform::Wasm)),
+        _ => Err(format!(
+            "unknown --target `{name}`: the targets are `host` (the default) and `wasm` (experimental)"
+        )),
+    }
+}
+
+/// The arguments without a `--target <name>` pair, and the target it named, for `dap` and `test`, which build for
+/// the host only: `--target wasm` is refused with `refused`, the message that names what the target does not have
+/// (spec `compiler/cli`, "Options that a wasm build does not take").
+fn without_target(args: &[std::ffi::OsString], refused: &str) -> Result<Vec<std::ffi::OsString>, String> {
+    let mut rest = Vec::new();
+    let mut args = args.iter();
+    while let Some(a) = args.next() {
+        if a == "--target" {
+            let name = args.next().ok_or("--target needs a value")?;
+            if parse_target(&name.to_string_lossy())?.is_some() {
+                return Err(format!("--target wasm: {refused} not available on the wasm target"));
+            }
+        } else {
+            rest.push(a.clone());
+        }
+    }
+    Ok(rest)
+}
+
+/// The options a wasm build does not take, each named with what it builds (spec `compiler/cli`, "Options that a
+/// wasm build does not take").
+fn check_wasm_options(o: &Options) -> Result<(), String> {
+    if o.target != Some(Platform::Wasm) {
+        return Ok(());
+    }
+    for (given, option, what) in [
+        (o.debug, "--debug", "debug builds are"),
+        (o.coverage, "--coverage", "coverage builds are"),
+        (o.trace, "--trace-values", "value-trace builds are"),
+    ] {
+        if given {
+            return Err(format!("{option}: {what} not available on the wasm target"));
+        }
+    }
+    if let Some(out) = o.output.as_ref().filter(|_| !o.format)
+        && !out.extension().is_some_and(|e| e.eq_ignore_ascii_case("js"))
+    {
+        return Err(format!(
+            "-o {}: the output of a wasm build ends in `.js` (its `.wasm` file is written beside it)",
+            out.display()
+        ));
+    }
+    Ok(())
 }
 
 /// The layout settings of `-y` (spec `compiler/format`, "Order of layout settings"; design D2 of
@@ -206,6 +286,9 @@ fn parse_args() -> Result<Options, String> {
                 o.format_defaults.push(v);
             }
             "--program" => o.program = Some(PathBuf::from(value("--program")?)),
+            "--target" => o.target = parse_target(&value("--target")?.to_string_lossy())?,
+            "--emsdk-root" => o.emsdk_root = Some(PathBuf::from(value("--emsdk-root")?)),
+            "--print-paths" => o.print_paths = true,
             "--report" => {
                 let r = value("--report")?.to_string_lossy().to_string();
                 if r != "unsupported" && r != "warnings" {
@@ -227,6 +310,25 @@ fn parse_args() -> Result<Options, String> {
     if o.program.is_some() && !o.format {
         return Err("--program is for -y only".into());
     }
+    // Only the options that change the paths go with `--print-paths`; any other would be ignored without a word.
+    if o.print_paths
+        && (o.output.is_some()
+            || o.format
+            || o.report.is_some()
+            || o.cpp_only
+            || o.dump.is_some()
+            || o.debug
+            || o.coverage
+            || o.trace
+            || o.purge)
+    {
+        return Err(
+            "--print-paths prints the paths of a build without -o; it takes only --target and \
+                    --no-settings, not -o, -y, -z, -p, --dump, --report, --debug, --coverage or --trace-values"
+                .into(),
+        );
+    }
+    check_wasm_options(&o)?;
     Ok(o)
 }
 
@@ -455,6 +557,23 @@ fn toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
         println!("qb64rust: {msg}");
         ExitCode::FAILURE
     };
+    // `--target wasm` (spec `compiler/toolchain`, "The wasm path of the toolchain subcommand"); `--target host` is
+    // the subcommand without it.
+    let mut args = args.to_vec();
+    if let Some(at) = args.iter().position(|a| a == "--target") {
+        let Some(name) = args.get(at + 1) else {
+            return fail(TOOLCHAIN_USAGE);
+        };
+        let target = match parse_target(&name.to_string_lossy()) {
+            Ok(target) => target,
+            Err(msg) => return fail(&msg),
+        };
+        args.drain(at..at + 2);
+        if target == Some(Platform::Wasm) {
+            return wasm_toolchain_command(&args);
+        }
+    }
+    let args = &args[..];
     match args.first().and_then(|a| a.to_str()) {
         Some("install") if args.len() == 1 && Platform::host() == Platform::Linux => match toolchain::check_system() {
             Ok(line) => {
@@ -493,12 +612,43 @@ fn toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
     }
 }
 
+/// `qb64rust toolchain path --target wasm [--emsdk-root <dir>]`: the Emscripten SDK folder and where it came from;
+/// `qb64rust toolchain install --target wasm`: how to install it, nothing installed, status 1.
+fn wasm_toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
+    let fail = |msg: &str| {
+        println!("qb64rust: {msg}");
+        ExitCode::FAILURE
+    };
+    let words: Vec<&str> = args.iter().map(|a| a.to_str().unwrap_or("")).collect();
+    let option = match words.as_slice() {
+        ["install"] => return fail(&toolchain::emsdk_missing_message()),
+        ["path"] => None,
+        ["path", "--emsdk-root", dir] => Some(PathBuf::from(dir)),
+        _ => return fail(TOOLCHAIN_USAGE),
+    };
+    match toolchain::find_emsdk(option.as_deref()) {
+        Ok(sdk) => {
+            println!("{}", sdk.root.display());
+            println!("{}", sdk.source.describe());
+            ExitCode::SUCCESS
+        }
+        Err(msg) => fail(&msg),
+    }
+}
+
 /// The debug adapter over stdin and stdout (spec `editor/debug-adapter`, design D12 of `m5-dap-proxy`), with the
 /// toolchain's `lldb-dap` as its backend. Its options are `--toolchain-root` and `--qb64pe-root`; the toolchain is
 /// found as a build finds it (design D4 of `m6-toolchain`). When none is found the adapter still starts and answers
 /// `initialize` with the error, so that the editor shows it. Stdout carries the protocol, as for `lsp`.
 fn dap(args: &[std::ffi::OsString]) -> ExitCode {
-    let Some((root, qb64pe)) = toolchain_options(args) else {
+    let args = match without_target(args, "the debugger is") {
+        Ok(args) => args,
+        Err(msg) => {
+            eprintln!("qb64rust: {msg}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let Some((root, qb64pe)) = toolchain_options(&args) else {
         eprintln!("qb64rust: `dap` takes only --toolchain-root <dir> and --qb64pe-root <dir>\n{USAGE}");
         return ExitCode::FAILURE;
     };
@@ -522,7 +672,7 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
     let mut jobs = std::thread::available_parallelism().map_or(1, usize::from);
     let mut timeout = 30u64;
     let mut paths = Vec::new();
-    let mut args = args.into_iter();
+    let mut args = without_target(&args, "unit-test runs are")?.into_iter();
     while let Some(a) = args.next() {
         let s = a.to_string_lossy().to_string();
         let mut value = |what: &str| {
@@ -704,17 +854,19 @@ fn run_report(o: &Options) -> Result<ExitCode, String> {
 /// The fixes, the lints and the `[format]` table of the program `input`: its settings file's, unless
 /// `--no-settings`; then `--fixes` and `--fix` over the fixes (spec `compiler/fixes`), `--lints` and `--lint` over
 /// the lints (spec `compiler/lints`). With `-w`, the file used is named. A settings file that cannot be used is
-/// printed as `<file>:<line>: <message>`, and the caller exits with status 1.
-fn program_settings(o: &Options, input: &Path) -> Result<(Fixes, Lints, Overrides), ExitCode> {
+/// printed as `<file>:<line>: <message>`, and the caller exits with status 1. The `[build]` table comes with them.
+fn program_settings(o: &Options, input: &Path) -> Result<(Fixes, Lints, Overrides, settings::Build), ExitCode> {
     match settings::load(input, o.no_settings) {
-        Ok((project, file)) => {
-            if let Some(file) = file.filter(|_| o.warnings) {
+        Ok((project, build, file)) => {
+            // Not with `--print-paths`, whose output is one line of JSON.
+            if let Some(file) = file.filter(|_| o.warnings && !o.print_paths) {
                 println!("settings from {}", file.display());
             }
             Ok((
                 fixes::apply_cli(project.fixes, &o.fixes),
                 lints::apply_cli(project.lints, &o.lints),
                 project.format,
+                build,
             ))
         }
         Err(e) => {
@@ -743,7 +895,7 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
     let input_name = input.display();
     let main_name = main.display();
     // A settings file that cannot be used stops `-y` before anything is written (design D5 of `project-settings`).
-    let (fixes, lints, file_format) = match program_settings(o, main) {
+    let (fixes, lints, file_format, _) = match program_settings(o, main) {
         Ok(s) => s,
         Err(code) => return Ok(code),
     };
@@ -791,6 +943,40 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
     Ok(ExitCode::SUCCESS)
 }
 
+/// The program a build of `input` with no `-o` writes, and the folder it runs in (design D2 and D4 of
+/// `build-output-folder`): the source's name with the platform's ending in the output folder, run in the output
+/// folder when the project has a `copy` list and in the source's folder otherwise. Both absolute. `-x` and
+/// `--print-paths` both take them from here, so that they cannot disagree.
+fn default_paths(input: &Path, platform: Platform, build: &settings::Build) -> Result<(PathBuf, PathBuf), String> {
+    let input = std::path::absolute(input).map_err(|e| e.to_string())?;
+    let name = input
+        .file_name()
+        .ok_or_else(|| format!("{} is not a file", input.display()))?;
+    let exe = build.output.join(name).with_extension(platform.exe_extension());
+    let run_in = if build.copy.is_empty() {
+        input.parent().map_or_else(PathBuf::new, Path::to_path_buf)
+    } else {
+        build.output.clone()
+    };
+    Ok((exe, run_in))
+}
+
+/// `--print-paths` (spec `compiler/cli`, "The paths of a program"): [`default_paths`] as one line of JSON. Nothing
+/// is built or copied. A settings file that cannot be used is printed as a build prints it, with status 1.
+fn print_paths(o: &Options, input: &Path) -> Result<ExitCode, String> {
+    let build = match program_settings(o, input) {
+        Ok((.., build)) => build,
+        Err(code) => return Ok(code),
+    };
+    let (exe, run_in) = default_paths(input, o.target.unwrap_or_else(Platform::host), &build)?;
+    let json = serde_json::json!({
+        "exe": exe.to_string_lossy(),
+        "run_in": run_in.to_string_lossy(),
+    });
+    println!("{json}");
+    Ok(ExitCode::SUCCESS)
+}
+
 fn run() -> Result<ExitCode, String> {
     let o = parse_args().map_err(|e| format!("{e}\n{USAGE}"))?;
     if o.purge {
@@ -813,6 +999,9 @@ fn run() -> Result<ExitCode, String> {
     if o.report.is_some() {
         return run_report(&o);
     }
+    if o.print_paths {
+        return print_paths(&o, &input);
+    }
     let bytes = std::fs::read(&input).map_err(|e| format!("cannot read {}: {e}", input.display()))?;
     if bytes.len() > qb64rust_base::MAX_SOURCE_LEN {
         let max = qb64rust_base::MAX_SOURCE_LEN;
@@ -825,35 +1014,44 @@ fn run() -> Result<ExitCode, String> {
     if o.format {
         return format(&o, &input, &name, bytes);
     }
-    let exe = match &o.output {
-        Some(p) => p.clone(),
-        None => input.with_extension(Platform::host().exe_extension()),
-    };
-    let exe = std::path::absolute(&exe).map_err(|e| e.to_string())?;
-    {
-        let mut ctx = PANIC_CONTEXT.lock().unwrap_or_else(|e| e.into_inner());
-        ctx.input = Some(name.clone());
-        ctx.exe = (o.dump.is_none() && !o.cpp_only).then(|| exe.clone());
-    }
-    // For the CLI test of the panic hook only.
-    if std::env::var_os("QB64RUST_TEST_PANIC").is_some_and(|v| v == "1") {
-        panic!("QB64RUST_TEST_PANIC=1 is set");
-    }
-
+    let platform = o.target.unwrap_or_else(Platform::host);
+    PANIC_CONTEXT.lock().unwrap_or_else(|e| e.into_inner()).input = Some(name.clone());
     if o.dump.as_deref() == Some("tokens") {
         print!("{}", qb64rust_syntax::dump_tokens(&bytes));
         return Ok(ExitCode::SUCCESS);
     }
     let include_root = include_root(&o)?;
-    let (fixes, lints, _) = match program_settings(&o, &input) {
+    let builds = o.dump.is_none() && !o.cpp_only;
+    // The settings first, since they say where the program goes. A settings file that cannot be used removes only
+    // a program named by `-o`: without it the output folder is not known (design D2 of `build-output-folder`).
+    let (fixes, lints, _, build) = match program_settings(&o, &input) {
         Ok(s) => s,
         Err(code) => {
-            if o.dump.is_none() && !o.cpp_only {
-                compile::remove_old(&exe);
+            if let Some(out) = o.output.as_ref().filter(|_| builds) {
+                compile::remove_old(&std::path::absolute(out).map_err(|e| e.to_string())?, platform);
             }
             return Ok(code);
         }
     };
+    let exe = match &o.output {
+        Some(p) => std::path::absolute(p).map_err(|e| e.to_string())?,
+        None => default_paths(&input, platform, &build)?.0,
+    };
+    PANIC_CONTEXT.lock().unwrap_or_else(|e| e.into_inner()).exe = builds.then(|| exe.clone());
+    // For the CLI test of the panic hook only.
+    if std::env::var_os("QB64RUST_TEST_PANIC").is_some_and(|v| v == "1") {
+        panic!("QB64RUST_TEST_PANIC=1 is set");
+    }
+    // The data files of `[build]` `copy`, before the compile (design D3 of `build-output-folder`); a build with `-o`
+    // copies nothing. A failure stops the command before anything is compiled.
+    if o.output.is_none()
+        && builds
+        && let Err(e) = output::prepare(&build)
+    {
+        compile::remove_old(&exe, platform);
+        println!("{e}");
+        return Ok(ExitCode::FAILURE);
+    }
     let options = compile::CompileOptions {
         exe,
         quiet: o.quiet,
@@ -873,6 +1071,15 @@ fn run() -> Result<ExitCode, String> {
         settings: o.settings.clone(),
         fixes,
         lints,
+        target: o.target,
+        emsdk_root: o.emsdk_root.clone(),
+        // What `[build]` `copy` copied, which a page packs (design D11 of `wasm-window`); a build with `-o` copies
+        // nothing.
+        page_files: if o.output.is_none() {
+            output::copied_files(&build)
+        } else {
+            Vec::new()
+        },
     };
     let built = compile::compile_exe(
         &input,

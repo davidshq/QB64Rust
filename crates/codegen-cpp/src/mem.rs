@@ -17,8 +17,8 @@ use qb64rust_ir::{
 };
 
 /// The type value of a block (`qb64pe.bas` 14731, `Type2MemTypeValue`): a number's bytes plus 128 for an integer
-/// (and 1024 when unsigned, 8192 for an `_OFFSET`) or 256 for a float; 512 for a fixed-length string, its length
-/// not added; 4096 for a `_MEM`, 32768 for any other user type. [`ARRAY`] is added for an array.
+/// (and 1024 when unsigned, 8192 for an `_OFFSET`, whose bytes are the pointer's) or 256 for a float; 512 for a
+/// fixed-length string, its length not added; 4096 for a `_MEM`, 32768 for any other user type. [`ARRAY`] is added for an array.
 fn type_value(p: &Program, t: Ty) -> u32 {
     let int = |bytes: u32, unsigned: bool| bytes + 128 + if unsigned { 1024 } else { 0 };
     match t {
@@ -30,8 +30,8 @@ fn type_value(p: &Program, t: Ty) -> u32 {
         Ty::U32 => int(4, true),
         Ty::I64 => int(8, false),
         Ty::U64 => int(8, true),
-        Ty::Off => int(8, false) + 8192,
-        Ty::UOff => int(8, true) + 8192,
+        Ty::Off => int(p.pointer_bytes(), false) + 8192,
+        Ty::UOff => int(p.pointer_bytes(), true) + 8192,
         Ty::F32 => 4 + 256,
         Ty::F64 => 8 + 256,
         Ty::F80 => 32 + 256,
@@ -709,5 +709,29 @@ pub(crate) fn stored_expr(v: &Expr) -> &Expr {
         | ExprKind::AddressOf(_)
         | ExprKind::MemRead { .. }
         | ExprKind::ArrayBytes(_) => v,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::type_value;
+    use qb64rust_base::Platform;
+    use qb64rust_ir::{Program, Ty};
+
+    /// The type value of an `_OFFSET` carries the pointer's bytes (design D2 of `wasm-pointer-width`): 8 on the
+    /// desktop, as the old compiler writes it, 4 on the wasm target.
+    #[test]
+    fn an_offset_is_as_wide_as_a_pointer() {
+        let on = |platform| Program {
+            platform,
+            ..Program::default()
+        };
+        for platform in [Platform::Windows, Platform::Linux] {
+            assert_eq!(type_value(&on(platform), Ty::Off), 8 + 128 + 8192);
+            assert_eq!(type_value(&on(platform), Ty::UOff), 8 + 128 + 1024 + 8192);
+        }
+        assert_eq!(type_value(&on(Platform::Wasm), Ty::Off), 4 + 128 + 8192);
+        assert_eq!(type_value(&on(Platform::Wasm), Ty::UOff), 4 + 128 + 1024 + 8192);
+        assert_eq!(type_value(&on(Platform::Wasm), Ty::I64), 8 + 128);
     }
 }

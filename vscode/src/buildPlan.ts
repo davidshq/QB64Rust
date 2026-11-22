@@ -37,6 +37,8 @@ export type BuildPlan =
           qb64pe?: string;
           /** A debug build (`--debug`, change m5-debug-launch): no fallback to QB64pe. */
           debug: boolean;
+          /** Where the program goes and the folder it runs in (change build-output-folder, design D5). */
+          paths: qb64rust.ProgramPaths;
       };
 
 /** No build: why, already shown to the user when the plan was interactive. `toolchain`: a build by qb64rust found no
@@ -79,7 +81,13 @@ export async function planBuild(file: string, status: CompilerStatus, server: La
         }
         return { compiler: "qb64pe", command: current.path, args: qb64pe.buildArgs(file) };
     }
-    return planQb64rust(file, status, server, bundle, interactive, debug);
+    const plan = await planQb64rust(file, status, server, bundle, interactive, debug);
+    if (plan.compiler === "none") {
+        return plan;
+    }
+    // Asked only for a build: `qb64rust test` builds into folders of its own (change build-output-folder, design D5).
+    const paths = await qb64rust.programPaths(plan.command, file);
+    return { ...plan, paths, args: qb64rust.buildArgs(file, plan.roots, debug, paths) };
 }
 
 /**
@@ -127,16 +135,44 @@ export async function planQb64rust(file: string, status: CompilerStatus, server:
         libqb,
         include: includeRootFor(config.includeRoot(), baseDir, qb64peFolder, process.platform),
     };
+    // Next to the source until `planBuild` asks the compiler; `qb64rust test` needs no paths.
+    const paths = qb64rust.fallbackPaths(file);
     return {
         compiler: "qb64rust",
         command: binary.path,
-        args: qb64rust.buildArgs(file, roots, debug),
+        args: qb64rust.buildArgs(file, roots, debug, paths),
         roots,
         env,
         firstLibqbBuild: libqb !== undefined && !hasObjects(libqb),
         qb64pe: current.found ? current.path : undefined,
         debug,
+        paths,
     };
+}
+
+/**
+ * Where the program of `file` is and the folder it runs in, for Run and the run task, which build nothing (change
+ * build-output-folder, design D5 and D6). When qb64rust is the compiler `qb64rust.buildWith` picks and its binary is
+ * found: the newer of the program `qb64rust --print-paths` names and the one next to the source, which "Build with
+ * QB64pe" and an older compiler write. Else next to the source, where QB64pe builds it.
+ */
+export async function runPaths(file: string, server: LanguageServer): Promise<qb64rust.ProgramPaths> {
+    const binary = server.binary;
+    const beside = qb64rust.fallbackPaths(file);
+    if (chosenCompiler(server, vscode.Uri.file(file)) === "qb64rust" && binary.found) {
+        const compiler = await qb64rust.programPaths(binary.path, file);
+        return qb64rust.newerProgram(compiler, beside, modifiedTime);
+    }
+    return beside;
+}
+
+/** The modification time of `file` in milliseconds, or undefined when there is no such file. */
+function modifiedTime(file: string): number | undefined {
+    try {
+        return fs.statSync(file).mtimeMs;
+    } catch {
+        return undefined;
+    }
 }
 
 /** Shows why there is no build or session, with a button that opens `setting` when there is one. */

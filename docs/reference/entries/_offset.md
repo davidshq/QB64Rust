@@ -1,6 +1,7 @@
 # _OFFSET
 
-`_OFFSET` is the type of a memory address, 64 bits wide. `_OFFSET(variable)` is the function that gives a
+`_OFFSET` is the type of a memory address, as wide as a pointer: 64 bits, or 32 on the
+[wasm target](../chapters/wasm-target.md). `_OFFSET(variable)` is the function that gives a
 variable's address. The suffix of the type is `%&`.
 
 ## Syntax
@@ -31,8 +32,8 @@ The function gives an `_UNSIGNED _OFFSET`.
 ## Behavior
 
 An `_OFFSET` takes 8 bytes and holds the values of a signed 64-bit integer. `_UNSIGNED _OFFSET`, suffix `~%&`,
-holds those of an unsigned one.
-<!-- src: language/numeric-semantics "Numeric types"; verification\v21_a_decls; verification\v24_a_define -->
+holds those of an unsigned one. On the wasm target it takes 4 bytes and holds the values of a 32-bit integer.
+<!-- src: language/numeric-semantics "Numeric types"; compiler/wasm-target "A pointer is 4 bytes on this target"; verification\v21_a_decls; verification\v24_a_define; verification\v73_a_type_layout -->
 
 `_OFFSET(variable)` gives the address of the variable, the element or the array. It is the same address as the
 `OFFSET` of a `_MEM` block of the variable.

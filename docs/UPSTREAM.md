@@ -2,8 +2,9 @@
 
 Bugs of QB64pe that this project fixes in its own code or its copy of libqb, kept here so they can be reported or
 sent to QB64pe later (user, 2026-10-18). Each entry says what is wrong, where in QB64pe's sources at the
-reference commit (`16f629784e`), the fix, and this project's divergence row. Nothing here has been sent yet;
-when one is, its entry says where (issue or pull request) and what came of it.
+reference commit (`16f629784e`), the fix, and this project's divergence row. When one is sent, its entry says
+where (issue or pull request) and what came of it. Fixes QB64pe has merged are in
+`docs\archived\UPSTREAM-completed.md`.
 
 ## `_COTH(x)` is not the hyperbolic cotangent
 
@@ -20,7 +21,9 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Here:** `DIVERGENCES-QB64PE.md` D-031, built by `const-rulings`: the edit `tools/libqb/edits/d031-coth.edit` of this
   repo's copy of libqb (`1 / std::tanh(num)`, error 5 at 0) is the patch to offer, and the `CONST` evaluator here
   computes the same function.
-- **Sent:** not yet.
+- **Sent:** draft pull request QB64-Phoenix-Edition/QB64pe#823 (2026-11-18), from branch
+  `fix-coth-hyperbolic-cotangent` of `davidshq-contribute/QB64pe`. It adds the test `tests/compile_tests/math/coth`
+  and corrects `const/math_funcs`, which expected the old `_COTH(.2)` of 1.4428. Not yet reviewed.
 
 ## A `TYPE` with a `STRING` in conventional memory has no strings
 
@@ -100,28 +103,6 @@ when one is, its entry says where (issue or pull request) and what came of it.
   `d049-bsave-past-block.edit`.
 - **Sent:** not yet.
 
-## `_MEMFREE` of a `_MEMNEW(0)` block frees memory twice
-
-- **Wrong:** the 0-byte branch of `_MEMNEW` sets no type on its lock, so a lock taken again from the freed list
-  keeps type 1 and the pointer of the block freed before, and `_MEMFREE` of the 0-byte block frees that pointer a
-  second time (exit 127). Measured in this repo: `verification\v32_d33_free_zero_size`, `v63_c2`.
-- **Where:** `internal/c/libqb/src/memblock.cpp`, `func__memnew`, the `if (!bytes)` branch.
-- **Fix:** `mem_lock_tmp->type = 0;` there, the type of a block that owns no memory.
-- **Here:** `DIVERGENCES-QB64PE.md` D-050; the edit `tools/libqb/edits/d050-memnew-zero-lock.edit`.
-- **Sent:** not yet.
-
-## `_STATUSCODE` of a handle never opened crashes
-
-- **Wrong:** `_STATUSCODE(h)` of a negative handle that was never opened, or was closed, reads the type of the
-  entry `list_get` did not find: an access violation (exit 139). Measured in this repo: `verification\v44_x59`,
-  `v63_d1`.
-- **Where:** `internal/c/libqb.cpp`, `func__statusCode`.
-- **Fix:** `if (!sh || sh->type != special_handle_type::Http)` raises error 52, as `func__connected` tests.
-- **Here:** `DIVERGENCES-QB64PE.md` D-051; the edit `tools/libqb/edits/d051-statuscode-missing-handle.edit`.
-- **Sent:** draft pull request QB64-Phoenix-Edition/QB64pe#817 (2026-11-13), from branch
-  `fix-statuscode-unopened-handle` of `davidshq-contribute/QB64pe`. It adds a never-opened negative handle to the
-  test `tests/compile_tests/http/statuscode_invalid_handle`. Not yet reviewed.
-
 ## Division by zero cannot be trapped
 
 - **Wrong:** error 11 is in `error()`'s list of critical errors, so `ON ERROR` never receives a division by zero,
@@ -172,6 +153,53 @@ when one is, its entry says where (issue or pull request) and what came of it.
 - **Fix:** scale by `func__desktopwidth()` and `func__desktopheight()` (GLFW's video mode), keeping the rectangle
   where they are 0 (a `$CONSOLE:ONLY` program).
 - **Here:** `DIVERGENCES-QB64PE.md` D-056; the edit `tools/libqb/edits/d056-screenclick-display-scale.edit`.
+- **Sent:** not yet.
+
+## Strings of more than 4 GB together crash
+
+- **Wrong:** a program crashes (exit 139) once its variable-length strings make libqb's string pool grow past
+  4 GB. Two strings of 1.5 GB at once crash before anything is printed. One string of 1,123,123,123 bytes
+  assigned seven times crashes at the fourth assignment. Measured in this repo: `verification\v63_g2` (the
+  second program; the first was measured once, 2026-11-18, and not kept, as it needs 6 GB).
+  These are QB64pe issues 278 (open) and 559 (open, the second program).
+- **Where:** `internal/c/libqb/src/qbs.cpp`, lines 79 and 80: `qbs_data_size` and `qbs_sp` are `uint32_t`. In
+  `qbs_concat`, `qbs_data_size * 2 + bytesrequired` wraps to a small value, and `realloc` shrinks the pool under the
+  strings. `qbs_sp * 2` in the same function wraps once the strings end past 2 GB.
+- **Fix:** `size_t` for both, as issue 278 proposes, and error 512 ("Out of memory") in `qbs_concat` when the new
+  size would not fit in a `size_t`, which can happen in a 32-bit build.
+- **Here:** `DIVERGENCES-QB64PE.md` D-066; the edits `tools/libqb/edits/d066-string-pool-size.edit` and
+  `d066-string-pool-growth.edit`.
+- **Sent:** not yet.
+
+## A concatenation past 2 GB crashes
+
+- **Wrong:** `b$ = a$ + a$` with `a$` of 1.2 GB crashes (exit 139). A string's length is an `int32_t`, and the
+  sum of the two lengths wraps negative. libqb then makes a string of that negative length. Measured in this repo:
+  `verification\v63_g3_concat_over_2gb`. No QB64pe issue reports it: a search of its issues on 2026-11-18 found
+  only 559, which is about the pool's size (the entry above).
+- **Where:** `internal/c/libqb/src/qbs.cpp`, `qbs_add`: `qbs_new(str1->len + str2->len, 1)`. `qbs_new` takes any
+  negative size. `internal/c/libqb.cpp`, `func__readfile`, reads a file's length with `ftell` into an `int`, which
+  gives -1 for a file of 2 GB or more on Windows. It ends in error 75 there only because `fread` of that length
+  fails.
+- **Fix:** add the lengths in 64 bits and raise error 5 when the sum is past `INT32_MAX`, as QB 4.5 raises 5 for a
+  string past its own limit. Raise error 5 in `qbs_new` for a negative size, for any other caller. In
+  `func__readfile`, read the length with `_ftelli64` (Windows) or `ftello`, and raise error 75 for a file too long.
+- **Here:** `DIVERGENCES-QB64PE.md` D-067; the edits `tools/libqb/edits/d067-string-add-too-long.edit`,
+  `d067-string-new-negative.edit` and `d067-readfile-too-long.edit`.
+- **Sent:** not yet.
+
+## `REDIM` without `AS` of a `TYPE` array makes a second array
+
+- **Wrong:** after `REDIM a(2) AS f`, with `f` a `TYPE`, `REDIM a(5)` leaves the `TYPE` array as it was. It makes
+  a second array `a!()` of the default type with the new bounds, so `a(4).foo = 2` raises error 9. The same
+  `REDIM` of a `LONG` or `DOUBLE` array resizes it. This is QB64pe issue 95 (open since 2022-06-04). Measured in
+  this repo: `verification\v24_x327_redim_type_no_as`, `v24_x328_redim_type_no_as_values`.
+- **Where:** `source/qb64pe.bas`, `dimgottyp` (line 9111 at the reference commit): a `REDIM` with no type adopts
+  the existing array's type only when `id.mayhave` is set. That field holds a type's suffix, and a `TYPE` has
+  none.
+- **Fix:** adopt the type of a `TYPE` array too: `IF LEN(RTRIM$(id.mayhave)) OR (id.arraytype AND ISUDT) THEN`.
+  `id2fulltypename$` already gives a `TYPE`'s name. Not tried in QB64pe's source.
+- **Here:** `DIVERGENCES-QB64PE.md` D-068. QB64Rust takes the existing array's type for every type.
 - **Sent:** not yet.
 
 ## Other candidates

@@ -1,0 +1,8 @@
+compile:
+ 0078   0018    REDIM a(5)
+                          ^ AS clause required
+    0 Warning Error(s)
+    1 Severe  Error(s)
+ubound 2 
+error 9 
+a(4).fooerror 9 

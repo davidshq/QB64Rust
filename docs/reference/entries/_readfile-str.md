@@ -20,6 +20,8 @@ _WRITEFILE name$, data$
 - A file that cannot be found raises run-time error 53, a folder that cannot be found error 76; `_READFILE$` then
   gives `""`.
   <!-- src: language/file-io "Whole files and full paths" -->
+- A file of 2,147,483,648 bytes or more, longer than a string can be, raises error 75; `_READFILE$` then gives `""`.
+  <!-- src: language/file-io "Whole files and full paths"; D-067 -->
 
 ## Availability
 

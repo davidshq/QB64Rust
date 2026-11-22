@@ -39,6 +39,9 @@ A floating-point operand is first rounded half to even, so a value below 0.5 cou
 
 - A string operand is a compile error: "this operator cannot be used on strings".
   <!-- src: language/numeric-semantics "Logical operators" -->
+- `AndAlso` without the underscore is an ordinary name, not this operator. Between two operands it is a syntax
+  error, and the message ends with "did you mean `_ANDALSO`?".
+  <!-- src: read: crates\syntax\tests\it\parser.rs:388-412 -->
 
 ## Availability
 

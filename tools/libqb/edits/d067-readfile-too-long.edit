@@ -1,0 +1,32 @@
+# _READFILE$ of a file longer than a string can be raises error 75 and gives an empty string, by a check (the
+# libqb edits of DIVERGENCES-QB64PE.md D-067). QB64pe reads the file's length with ftell into an int. On Windows
+# ftell returns a 32-bit long, so a file of 2 GB or more gives -1 or a wrong length, which reaches qbs_new and
+# fread. With -1 (a file of 2.3 GB, 2026-11-18), qbs_new makes a string of length -1 and fread of that many bytes
+# fails, so QB64pe raises 75, "Path/File access error", by luck. Here the length is read in 64 bits, and the same
+# error 75 comes from the check. A program sees what it saw with QB64pe.
+file: internal/c/libqb.cpp
+builtins: _READFILE$
+--- old
+        fseek(file, 0, SEEK_END); // end pos
+        len = ftell(file);        //   = file length
+        rewind(file);             // rewind to start
+        cont = qbs_new(len, 1);   // get new string for file contents
+        fread(cont->chr, 1, len, file);
+--- new
+#ifdef QB64_WINDOWS
+        _fseeki64(file, 0, SEEK_END); // end pos
+        int64_t flen = _ftelli64(file); // = file length, past 2 GB too
+#else
+        fseeko(file, 0, SEEK_END); // end pos
+        int64_t flen = ftello(file); // = file length, past 2 GB too
+#endif
+        if (flen < 0 || flen > INT32_MAX) { // longer than a string can be
+            fclose(file);
+            error(QB_ERROR_PATH_FILE_ACCESS_ERROR);
+            return qbs_new_txt("");
+        }
+        len = (int)flen;
+        rewind(file);             // rewind to start
+        cont = qbs_new(len, 1);   // get new string for file contents
+        fread(cont->chr, 1, len, file);
+--- end

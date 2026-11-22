@@ -1,0 +1,29 @@
+# The wasm target (OpenSpec change wasm-console, design D4): with WASM=y the build keeps the host's OS for its
+# commands and paths, and takes a Unix system's objects (unix, PLATFORM posix: the thread code of
+# threading-posix.cpp, the symbol code of logging/unix) and none of the Windows or Linux ones.
+file: Makefile
+--- old
+	DEBUG_PATH_FLAGS := -fdebug-compilation-dir=.
+endif
+
+$(info OS: $(OS))
+$(info ARCH: $(ARCH))
+$(info BITS: $(BITS))
+--- new
+	DEBUG_PATH_FLAGS := -fdebug-compilation-dir=.
+endif
+
+# qb64rust's wasm target: Emscripten's compilers, named by the caller, with the host's OS for commands and paths. The
+# objects and libraries are those of a Unix system with no window.
+ifeq ($(WASM),y)
+	win :=
+	lnx :=
+	unix := y
+	PLATFORM := posix
+	EXTENSION := .js
+endif
+
+$(info OS: $(OS))
+$(info ARCH: $(ARCH))
+$(info BITS: $(BITS))
+--- end

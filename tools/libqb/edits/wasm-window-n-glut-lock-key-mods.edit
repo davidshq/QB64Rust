@@ -1,0 +1,10 @@
+# The wasm target's window (OpenSpec change wasm-window): Emscripten's GLFW has no GLFW_LOCK_KEY_MODS input mode
+# (it prints an error); it reports Caps Lock and Num Lock in a key's modifiers from the browser's event as it is.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+                    glfwSetInputMode(window, GLFW_LOCK_KEY_MODS, GLFW_TRUE);
+--- new
+#ifndef QB64_EMSCRIPTEN
+                    glfwSetInputMode(window, GLFW_LOCK_KEY_MODS, GLFW_TRUE);
+#endif
+--- end

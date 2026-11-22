@@ -1,0 +1,13 @@
+# The wasm target's window (OpenSpec change wasm-window): EM_ASM for the page's dialogs
+# (wasm-window-p-gui-alert).
+file: internal/c/parts/gui/gui.cpp
+--- old
+#include "tinyfiledialogs.h"
+#include <algorithm>
+--- new
+#include "tinyfiledialogs.h"
+#ifdef QB64_EMSCRIPTEN
+#    include <emscripten.h>
+#endif
+#include <algorithm>
+--- end

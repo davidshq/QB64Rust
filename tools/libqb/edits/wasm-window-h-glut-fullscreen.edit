@@ -1,0 +1,23 @@
+# The wasm target's window (OpenSpec change wasm-window): Emscripten's GLFW aborts in glfwSetWindowMonitor, so
+# _FULLSCREEN asks for the browser's full screen of the page's canvas instead. A browser grants it only during a
+# key press or a click; asked outside one, it is granted at the next one (the deferred request of
+# emscripten_request_fullscreen).
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+    void WindowFullscreen(bool fullscreen) {
+        if (window != nullptr) {
+--- new
+    void WindowFullscreen(bool fullscreen) {
+#ifdef QB64_EMSCRIPTEN
+        if (window != nullptr && fullscreen != isWindowFullscreen) {
+            if (fullscreen) {
+                emscripten_request_fullscreen("#canvas", 1);
+            } else {
+                emscripten_exit_fullscreen();
+            }
+            isWindowFullscreen = fullscreen;
+        }
+        return;
+#endif
+        if (window != nullptr) {
+--- end

@@ -1,8 +1,9 @@
 # Community programs
 
-Programs that people wrote and published for QB64pe, checked with QB64Rust's front end. The set is 66 GitHub
-repositories chosen in `study\44` (the QB64-PE Museum, the Libraries Pack, DRAW, InForm-PE, the Lance Haffner
-games, HamCalc64 and others). The spec is `openspec\specs\testing\community-programs`.
+Programs that people wrote and published for QB64pe, checked with QB64Rust's front end. The set is 68 GitHub
+repositories: 66 chosen in `study\44` (the QB64-PE Museum, the Libraries Pack, DRAW, InForm-PE, the Lance Haffner
+games, HamCalc64 and others), and QB64_GJ_LIB and Steve McNeill's Toolbox, added from `study\50` on 2026-11-16.
+The spec is `openspec\specs\testing\community-programs`.
 
 **No file of any of these repositories is kept here.** This folder holds only names and commits:
 
@@ -91,7 +92,7 @@ that look like compiler gaps are rows of `SOMEDAY.md` with the source `community
 | `questforlubok` | 1 | 1 |
 | `ktank` | 6 | 6 |
 | `qb64-pe-museum` | 519 | 468 |
-| `qb64-pe-librariespack` | 79 | 68 |
+| `qb64-pe-librariespack` | 79 | 78 |
 | `resources` | 484 | 364 |
 | `all` | 79 | 57 |
 | `gx` | 24 | 23 |
@@ -141,4 +142,6 @@ that look like compiler gaps are rows of `SOMEDAY.md` with the source `community
 | `software-3d-perspective-correct-textured-triangles` | 24 | 24 |
 | `fzxngn` | 35 | 34 |
 | `qbx` | 327 | 259 |
-| **all 66** | **3977** | **3018** |
+| `qb64_gj_lib` | 129 | 40 |
+| `qb64-phoenix-edition-toolbox` | 37 | 9 |
+| **all 68** | **4143** | **3077** |

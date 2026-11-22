@@ -7,6 +7,7 @@ pub mod fixes;
 pub mod hover;
 pub mod library;
 pub mod lints;
+pub mod output;
 pub mod report;
 pub mod settings;
 pub mod toolchain;
@@ -43,6 +44,8 @@ pub struct Frontend {
     pub parsed: ParsedProgram,
     pub program: Program,
     pub diagnostics: Diagnostics,
+    /// The folder on disk of each file the loader read ([`Loader::folders`]); empty for a program from memory.
+    pub folders: HashMap<FileId, PathBuf>,
 }
 
 impl Frontend {
@@ -138,6 +141,10 @@ impl Loader for FileLoader {
         }
         std::fs::read(&path).map_err(|e| LoadError::Unreadable(e.to_string()))
     }
+
+    fn folders(&self) -> HashMap<FileId, PathBuf> {
+        self.dirs.clone()
+    }
 }
 
 impl FileLoader {
@@ -205,12 +212,14 @@ pub fn frontend_explicit(
     let mut loader = loader(file);
     let parsed = parse_settled_explicit(platform, explicit, &mut map, file, loader.as_mut());
     let (program, diagnostics) = check_program(&map, &parsed, disk, fixes);
+    let folders = loader.folders();
     Frontend {
         map,
         file,
         parsed,
         program,
         diagnostics,
+        folders,
     }
 }
 
@@ -229,6 +238,8 @@ pub fn check_program(
     let (program, sema_diags) = qb64rust_sema::check_with(map, parsed, fold, fixes);
     let mut diagnostics = parsed.diagnostics();
     diagnostics.extend(sema_diags);
+    // What the target does not have (design D5 of `wasm-console`); nothing for Windows and Linux.
+    qb64rust_sema::check_target(&program, parsed.flags.platform(), map, &mut diagnostics);
     if let Some((path, root)) = disk {
         check_exe_icon_on(parsed.flags.platform(), &program, &mut diagnostics, path, root);
         check_embedded_files(&program, &mut diagnostics, path, root);
@@ -249,7 +260,7 @@ fn check_with_settings(
     root: &Path,
 ) -> (Program, Diagnostics, Option<settings::Project>) {
     let (project, error) = match main_path.map(|m| settings::load(m, false)) {
-        Some(Ok((project, _))) => (project, None),
+        Some(Ok((project, _, _))) => (project, None),
         Some(Err(e)) => (settings::Project::default(), Some(e)),
         None => (settings::Project::default(), None),
     };
@@ -358,13 +369,14 @@ pub fn index_for_server(
 }
 
 /// The hooks the language server runs the front end through (`qb64rust_lsp::Hooks`): the check, the formatter,
-/// the semantic index, the settings file's main program and what the rewrites can do.
+/// the semantic index, the settings file's main program, whether a document is excluded, and what the rewrites can do.
 pub fn server_hooks() -> qb64rust_lsp::Hooks {
     qb64rust_lsp::Hooks {
         check: check_for_server,
         format: format_for_server,
         index: index_for_server,
         main_of: settings::main_of,
+        excluded: settings::excluded,
         rewritable: qb64rust_format::rewritable,
     }
 }
@@ -483,7 +495,7 @@ fn named_file(name: &str, main_path: &Path, root: &Path) -> PathBuf {
 pub fn host_path(name: &str) -> PathBuf {
     match qb64rust_base::Platform::host() {
         qb64rust_base::Platform::Windows => PathBuf::from(name),
-        qb64rust_base::Platform::Linux => PathBuf::from(name.replace('\\', "/")),
+        qb64rust_base::Platform::Linux | qb64rust_base::Platform::Wasm => PathBuf::from(name.replace('\\', "/")),
     }
 }
 

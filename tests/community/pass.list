@@ -921,6 +921,7 @@ qb64-mod-player/QB64MODPlayer.bas
 qb64-pe-librariespack/LibExpSource/InForm/extensions/Base64.bas
 qb64-pe-librariespack/LibExpSource/InForm/extensions/HashTable.bas
 qb64-pe-librariespack/LibExpSource/LibraryExplorer.bas
+qb64-pe-librariespack/libraries/CheckAll.bas
 qb64-pe-librariespack/libraries/ProductInfo.bas
 qb64-pe-librariespack/libraries/examples/FellippeHeitor/IniManager/IniDemo1.bas
 qb64-pe-librariespack/libraries/examples/FellippeHeitor/IniManager/IniDemo2.bas
@@ -931,6 +932,7 @@ qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_01_side_by_side_f
 qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_02_animated_background_with_overlays.bas
 qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_03_fixed_positions_multi_size.bas
 qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_04_moving_on_static_background.bas
+qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_05_moving_over_fullscreen_animated_background.bas
 qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_06_sinus_wave_parade.bas
 qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_07_slide_in_from_edges.bas
 qb64-pe-librariespack/libraries/examples/Petr/AnimManager/Demo_08_manual_seek_and_step.bas
@@ -945,6 +947,11 @@ qb64-pe-librariespack/libraries/examples/RhoSigma/Imageprocess/ImgProcDemo.bas
 qb64-pe-librariespack/libraries/examples/RhoSigma/Polygons/3dFuncPlot.bas
 qb64-pe-librariespack/libraries/examples/RhoSigma/Polygons/FractalMountains.bas
 qb64-pe-librariespack/libraries/examples/RhoSigma/Polygons/Polygons-HowTo.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/QB-StdArg/StdLibs-HowTo.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/QB-StdArg/StdLibs-Test.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/QB-StdIo/StdLibs-HowTo.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/QB-Time/StdLibs-HowTo.bas
+qb64-pe-librariespack/libraries/examples/RhoSigma/Sha2-Hash/Sha2-HowTo.bas
 qb64-pe-librariespack/libraries/examples/RhoSigma/Simplebuffer/BinaryData.bas
 qb64-pe-librariespack/libraries/examples/RhoSigma/Simplebuffer/ShowSeek.bas
 qb64-pe-librariespack/libraries/examples/RhoSigma/Simplebuffer/SimplyText.bas
@@ -966,6 +973,9 @@ qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example8.bas
 qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Example9.bas
 qb64-pe-librariespack/libraries/examples/TerryRitchie/MenuLib/Redefine.bas
 qb64-pe-librariespack/libraries/examples/Tony3068/SPV-Handles/SpaceFlight.bas
+qb64-pe-librariespack/libraries/examples/Tony3068/VID-Handles/VideoPlay.bas
+qb64-pe-librariespack/libraries/examples/Tony3068/VLC-Handles/SimplePlay.bas
+qb64-pe-librariespack/libraries/examples/Tony3068/VLC-Handles/VLCpromo.bas
 qb64-pe-librariespack/libraries/examples/a740g/Catch/CatchDemo.bas
 qb64-pe-librariespack/libraries/examples/a740g/QBDS-Array/ArrayDemo.bas
 qb64-pe-librariespack/libraries/examples/a740g/QBDS-Array/ArrayDemoUDT.bas
@@ -1454,6 +1464,15 @@ qb64-pe-museum/rokcoder/poly-blaster/poly-blaster.bas
 qb64-pe-museum/rokcoder/scramble/scramble.bas
 qb64-pe-museum/strathausen/qTrek/QTREK.BAS
 qb64-pe-museum/ubi44/Demos/3dgameoflife.bas
+qb64-phoenix-edition-toolbox/Archives/BAS code/All Hallows Game.bas
+qb64-phoenix-edition-toolbox/Archives/BAS code/QB64 Phoenix Wiki to Markdown.bas
+qb64-phoenix-edition-toolbox/Archives/BAS code/QB64PE Quick Const Reference Tool.bas
+qb64-phoenix-edition-toolbox/Archives/BAS code/Steves Color Match Tool.bas
+qb64-phoenix-edition-toolbox/Documentation/Date Library/Demo/Date Library Demo.bas
+qb64-phoenix-edition-toolbox/Documentation/Draw Library/Draw Library Demo.bas
+qb64-phoenix-edition-toolbox/Documentation/Input Devices Library/Demos/Mouse Demo.bas
+qb64-phoenix-edition-toolbox/Documentation/Input Devices Library/Demos/ReadJoystick Demo.bas
+qb64-phoenix-edition-toolbox/Documentation/Samples (Old)/HW.bas
 qb64-platformer-test/src/TESTPLAT.BAS
 qb64-projects/3dlissajou2.bas
 qb64-projects/3dsurf2.bas
@@ -2156,6 +2175,46 @@ qb64-samples/consolidated/tetris1/tetris1.bas
 qb64-samples/consolidated/tetris2/tetris2.bas
 qb64-sqlite/sqlite_helpers.bas
 qb64/LuckBasicQB64-cleanup2.bas
+qb64_gj_lib/ADV_COLOR_PICKER/ACP-PROBE.BAS
+qb64_gj_lib/ADV_COLOR_PICKER/ACP-TEST.BAS
+qb64_gj_lib/ANSI/ANSI.BAS
+qb64_gj_lib/ARR/ARR_BYTE.BAS
+qb64_gj_lib/ARR/ARR_DBL.BAS
+qb64_gj_lib/ARR/ARR_FLT.BAS
+qb64_gj_lib/ARR/ARR_INT.BAS
+qb64_gj_lib/ARR/ARR_INT64.BAS
+qb64_gj_lib/ARR/ARR_LONG.BAS
+qb64_gj_lib/ARR/ARR_SNG.BAS
+qb64_gj_lib/ARR/ARR_STR.BAS
+qb64_gj_lib/ARR/ARR_UBYTE.BAS
+qb64_gj_lib/ARR/ARR_UINT.BAS
+qb64_gj_lib/ARR/ARR_UINT64.BAS
+qb64_gj_lib/ARR/ARR_ULONG.BAS
+qb64_gj_lib/ASEPRITE/_/view_full_canvas_composite.bas
+qb64_gj_lib/ASEPRITE/_/view_transparency_test.bas
+qb64_gj_lib/BBX/BBX.BAS
+qb64_gj_lib/BBX/keywatch.bas
+qb64_gj_lib/COLOR/COLOR-3D-TEST.BAS
+qb64_gj_lib/COLOR/COLOR-PIGMENT-TEST.BAS
+qb64_gj_lib/COLOR/COLOR-SPACES-TEST.BAS
+qb64_gj_lib/CONSOLE/CONSOLE.BAS
+qb64_gj_lib/DICT/DICT.BAS
+qb64_gj_lib/DUMP/DUMP.BAS
+qb64_gj_lib/FLATTEN.BAS
+qb64_gj_lib/GLSL/GLSL-FILTER-TEST.BAS
+qb64_gj_lib/GLSL/GLSL-TEST.BAS
+qb64_gj_lib/INPUT/LIGHTBAR.BAS
+qb64_gj_lib/INPUT/LIGHTBAR32.BAS
+qb64_gj_lib/LAYOUT/LAYOUT-TEST.BAS
+qb64_gj_lib/PRESSURE_DEVICE/PRESSURE_DEVICE-EXAMPLE.BAS
+qb64_gj_lib/PRESSURE_DEVICE/PRESSURE_DEVICE-TEST.BAS
+qb64_gj_lib/PSD/PSD.BAS
+qb64_gj_lib/STEAM/STEAM-EXAMPLE.BAS
+qb64_gj_lib/STEAM/STEAM-TEST.BAS
+qb64_gj_lib/STRINGS/STRINGS.BAS
+qb64_gj_lib/SWATCH/SWATCH-TEST.BAS
+qb64_gj_lib/SYS/SYS.BAS
+qb64_gj_lib/VECT2D/VECT2D.BAS
 qb64_opengl_demos/360_Degree_Image.bas
 qb64_opengl_demos/3D Boxes.bas
 qb64_opengl_demos/3D Particles.bas

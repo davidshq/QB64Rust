@@ -35,6 +35,9 @@ rules:
       Do not add a feature description to crates\README.md: what a program may use is the change's delta spec,
       how and where it is built is design.md and tasks.md. crates\README.md changes only for the crate map,
       the build and run instructions, and the test commands.
+    - >-
+      Name the language reference's pages (docs\reference\entries\, docs\reference\chapters\) that the change
+      makes wrong or that its new words need, in the task that changes the code (CLAUDE.md working rule 16).
   design:
     - >-
       Say where the code of each decision lives (crate, module, function); since 2026-10-16 this is the only

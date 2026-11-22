@@ -142,4 +142,7 @@ PDS 7.1 table as the first case.
 
 1. Is "first outside users" the next milestone, in the order above?
 2. Are language extensions allowed behind a switch, PDS 7.1 first? Or is the dialect fixed at QB64pe's?
+   **Answered** but for the order: allowed, behind a switch (user, `DECISIONS.md` 2026-11-11), whose shape is
+   one per feature with groups, declared per file (user, `DECISIONS.md` 2026-11-18). Which comes first is open.
 3. Should upstream's commits since `16f629784e` be reviewed as a routine, for example at each merge into `main`?
+   **Answered:** yes, at each merge into `main` (user, `DECISIONS.md` 2026-11-12).

@@ -1,0 +1,12 @@
+# Atomic thread flags (OpenSpec change wasm-pointer-width, design D7). libqb's threads (QBMAIN, MAIN_LOOP, the timer
+# thread) hand work to each other through plain flags that one sets and another spins on or polls (study 03,
+# section 1.5). That holds on x86, which orders memory strongly; WebAssembly's threads and ARM do not. Each flag
+# becomes a std::atomic of its type, with its name: every read and store in libqb and in the generated C++
+# compiles as before. On every platform, so that one form of libqb is tested.
+# This file: exit_ok.
+file: internal/c/libqb.cpp
+--- old
+int32_t exit_ok = 0;
+--- new
+std::atomic<int32_t> exit_ok = 0;
+--- end

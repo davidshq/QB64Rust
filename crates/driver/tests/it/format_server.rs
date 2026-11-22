@@ -213,6 +213,72 @@ fn include_file_takes_its_programs_settings() {
     c.shutdown();
 }
 
+/// "Excluded files" (`[project]` `exclude`): a program under an excluded folder with a syntax error (QBJS's
+/// `AndAlso`) gets no diagnostics, no count of them, no edit and no message. An excluded include file's error is not
+/// counted for its checked main file. A file that no pattern matches is checked.
+#[test]
+fn excluded_files() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("qb64rust.toml"), "[project]\nexclude = [\"web\"]\n").unwrap();
+    let web = dir.path().join("web");
+    std::fs::create_dir_all(&web).unwrap();
+    let qbjs = "if a AndAlso b then\nprint 1\nend if\n";
+    std::fs::write(web.join("lib.bm"), qbjs).unwrap();
+    let mut c = Client::start(dir.path(), Value::Null);
+    let p = web.join("p.bas");
+    c.open(&p, qbjs);
+    let r = c.request("qb64rust/check", json!({ "uri": from_path(&p) }));
+    assert_eq!(r.response_result.unwrap(), json!({ "errors": 0, "warnings": 0 }));
+    assert_eq!(c.format(&p), None);
+    assert!(!c.complained(), "{:?}", c.notes);
+
+    let main = dir.path().join("main.bas");
+    c.open(&main, "'$INCLUDE: 'web/lib.bm'\nPRINT 1\n");
+    let r = c.request("qb64rust/check", json!({ "uri": from_path(&main) }));
+    assert_eq!(r.response_result.unwrap(), json!({ "errors": 0, "warnings": 0 }));
+    assert!(!c.complained(), "{:?}", c.notes);
+
+    let q = dir.path().join("q.bas");
+    c.open(&q, qbjs);
+    let r = c.request("qb64rust/check", json!({ "uri": from_path(&q) }));
+    assert_eq!(r.response_result.unwrap()["errors"], json!(1));
+    assert!(c.complained(), "{:?}", c.notes);
+    c.shutdown();
+}
+
+/// A checked include file of an excluded main file with an error is not formatted, and the message does not name
+/// the excluded file's error.
+#[test]
+fn excluded_main_file_stops_formatting() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("qb64rust.toml"),
+        "[project]\nexclude = [\"game.bas\"]\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.path().join("game.bas"),
+        "'$INCLUDE: 'turn.bm'\nif a AndAlso b then\nend if\n",
+    )
+    .unwrap();
+    let mut c = Client::start(dir.path(), Value::Null);
+    let turn = dir.path().join("turn.bm");
+    c.open(&turn, "print 1\n");
+    assert_eq!(
+        c.program(&turn),
+        Some(from_path(&dir.path().join("game.bas")).as_str().to_string())
+    );
+    assert_eq!(c.format(&turn), None);
+    let message = c
+        .notes
+        .iter()
+        .find(|n| n.method == "window/showMessage")
+        .map(|n| n.params["message"].as_str().unwrap().to_string())
+        .expect("a message");
+    assert_eq!(message, "The program was not formatted: an excluded file has an error");
+    c.shutdown();
+}
+
 /// "A bad settings file" ("Format failure"): no edit, and a message that names `qb64rust.toml` and its line.
 #[test]
 fn bad_settings_file() {

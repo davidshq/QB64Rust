@@ -1,0 +1,25 @@
+# The wasm target's window (OpenSpec change wasm-window): a page has no resource icons, so the default icon is
+# used, as on Linux.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+#elif defined(QB64_MACOSX)
+    bool WindowLoadResourceIconNative(int resourceId = 0) {
+        (void)resourceId;
+        libqb_log_warn("WindowLoadResourceIconNative is not implemented on macOS, using default icon");
+        return false;
+    }
+#endif
+--- new
+#elif defined(QB64_MACOSX)
+    bool WindowLoadResourceIconNative(int resourceId = 0) {
+        (void)resourceId;
+        libqb_log_warn("WindowLoadResourceIconNative is not implemented on macOS, using default icon");
+        return false;
+    }
+#elif defined(QB64_EMSCRIPTEN)
+    bool WindowLoadResourceIconNative(int resourceId = 0) {
+        (void)resourceId;
+        return false;
+    }
+#endif
+--- end

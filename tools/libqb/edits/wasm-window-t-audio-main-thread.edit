@@ -1,0 +1,20 @@
+# The wasm target (OpenSpec change wasm-window): miniaudio's Web Audio backend keeps its devices in the page's
+# window object and makes an AudioContext, which exist only on the page's main thread. libqb starts its sound from
+# the program's own thread, a worker. So under Emscripten with threads, each of the backend's EM_ASM blocks runs on
+# the main thread (MAIN_THREAD_EM_ASM), the calling thread waiting for it as for a call. The sound itself is mixed
+# on the main thread, where the browser calls the backend for more samples.
+file: internal/c/parts/audio/miniaudio/miniaudio.c
+--- old
+#define MINIAUDIO_IMPLEMENTATION
+#include "miniaudio.h"
+--- new
+#if defined(__EMSCRIPTEN__) && defined(__EMSCRIPTEN_PTHREADS__)
+#    include <emscripten/emscripten.h>
+#    undef EM_ASM
+#    define EM_ASM MAIN_THREAD_EM_ASM
+#    undef EM_ASM_INT
+#    define EM_ASM_INT MAIN_THREAD_EM_ASM_INT
+#endif
+#define MINIAUDIO_IMPLEMENTATION
+#include "miniaudio.h"
+--- end

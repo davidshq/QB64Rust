@@ -1,6 +1,7 @@
 
 #include "libqb-common.h"
 
+#include <atomic>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -280,7 +281,7 @@ qbs *func__errormessage(int32_t errorcode, int32_t passed) {
     return qbs_new_txt(error_code_to_text(errorcode));
 }
 
-extern uint8_t close_program;
+extern std::atomic<uint8_t> close_program;
 extern double last_line;
 void end();
 

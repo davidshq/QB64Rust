@@ -16,7 +16,13 @@
  * QB64_32: A 32bit system (the default)
  * QB64_64: A 64bit system (assumes all Macs are 64 bit)
  */
-#if defined(WIN32) || defined(_WIN32)
+#if defined(__EMSCRIPTEN__)
+// qb64rust's wasm target: a Unix system with no window, sound or shell. Not QB64_LINUX, so that no code for X11,
+// ALSA or /proc is taken by accident; a place that needs Linux's branch says so with QB64_EMSCRIPTEN.
+#    define QB64_EMSCRIPTEN
+#    define QB64_UNIX
+#    define QB64_GCC
+#elif defined(WIN32) || defined(_WIN32)
 #    define QB64_WINDOWS
 #    ifndef _WIN32_WINNT
 // This supports Windows Vista and up

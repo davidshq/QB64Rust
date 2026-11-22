@@ -705,6 +705,35 @@ fn rename_refused() {
     c.shutdown();
 }
 
+/// A use in a file that `[project]` `exclude` matches refuses the whole rename, with a message naming the file; a
+/// rename that changes no excluded file is made.
+#[test]
+fn rename_refused_in_an_excluded_file() {
+    let root = tempfile::tempdir().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("qb64rust.toml"), "[project]\nexclude = [\"web\"]\n").unwrap();
+    std::fs::create_dir(dir.path().join("web")).unwrap();
+    std::fs::write(dir.path().join("web").join("lib.bi"), "DIM SHARED total AS LONG\n").unwrap();
+    let mut c = Client::start(root.path());
+    let f = dir.path().join("main.bas");
+    let text = "'$INCLUDE:'web/lib.bi'\ntotal = 1\nx = 2\n";
+    c.open(&f, text);
+    let mut params = Client::at(&f, text, "total", 0, 0);
+    params["newName"] = json!("sum");
+    let msg = c
+        .request("textDocument/rename", params)
+        .response_result
+        .unwrap_err()
+        .message;
+    assert_eq!(
+        msg,
+        "`lib.bi` is excluded by `qb64rust.toml`, and the rename would change it"
+    );
+    let edits = c.rename(&f, text, "x", 0, "y").unwrap();
+    assert_eq!(edits.len(), 1, "{edits:?}");
+    c.shutdown();
+}
+
 /// A use in a file under the compiler root refuses the rename; on Windows also when the root is spelled in another
 /// letter case than the files' paths.
 #[test]

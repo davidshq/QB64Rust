@@ -385,6 +385,32 @@ fn event_form_errors() {
     }
 }
 
+/// A word in the way that is a reserved word without its underscore gets a hint (QBJS writes `AndAlso` for
+/// `_ANDALSO`). Any other name in the way gets none.
+#[test]
+fn missing_underscore_hint() {
+    for (src, message) in [
+        (
+            "IF a AndAlso b THEN PRINT 1\n",
+            "expected `THEN` or `GOTO`; did you mean `_ANDALSO`?",
+        ),
+        (
+            "IF a OrElse b THEN\nEND IF\n",
+            "expected `THEN` or `GOTO`; did you mean `_ORELSE`?",
+        ),
+        (
+            "c = a ANDALSO b\n",
+            "expected the end of the statement; did you mean `_ANDALSO`?",
+        ),
+        ("IF a foo b THEN PRINT 1\n", "expected `THEN` or `GOTO`"),
+    ] {
+        let p = parse_one(src.as_bytes());
+        let diags = p.diagnostics();
+        assert_eq!(diags.list().len(), 1, "{src}");
+        assert_eq!(diags.list()[0].message, message, "{src}");
+    }
+}
+
 /// The expression depth limit counts tree levels the same way for every kind of node: an expression exactly 1,000
 /// levels deep parses, one a level deeper is one "not supported yet" error. Runs on a large stack, as the compiler
 /// does (`driver::with_stack`); a test thread's 2 MiB would not hold the parser at this depth in a debug build.

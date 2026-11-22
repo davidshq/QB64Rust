@@ -93,16 +93,19 @@ export function resolveLaunch(config: LaunchConfig, facts: Facts): Launch {
     if (!path.isAbsolute(program) && facts.folder) {
         program = path.resolve(facts.folder, program);
     }
+    const executable = program.toLowerCase().endsWith(".exe");
+    // A source's default `cwd` is the folder its program runs in, known only once it is built: `debug.ts` sets it
+    // then (change build-output-folder, design D6). An executable's is its own folder.
     const full: LaunchConfig = {
         ...config,
         program,
         args: config.args ?? splitArgs(facts.runArguments),
-        cwd: config.cwd ?? path.dirname(program),
+        cwd: config.cwd ?? (executable ? path.dirname(program) : undefined),
         stopOnEntry: config.stopOnEntry ?? false,
         console: config.console ?? "integratedTerminal",
         noPrompt: config.noPrompt ?? facts.noPrompt,
     };
-    if (program.toLowerCase().endsWith(".exe")) {
+    if (executable) {
         return { kind: "launch", config: full };
     }
     return debugBuildRefusal(facts.buildWith, facts.binary) ?? { kind: "build", source: program, config: full };

@@ -25,6 +25,10 @@
 #    include <X11/XKBlib.h>
 #    define GLFW_EXPOSE_NATIVE_X11
 #    define GLFW_EXPOSE_NATIVE_GLX
+#elif defined(QB64_EMSCRIPTEN)
+#    include <cstdlib>
+#    include <emscripten.h>
+#    include <emscripten/html5.h>
 #endif
 #include <GLFW/glfw3native.h>
 
@@ -451,7 +455,11 @@ class GLUTEmu {
             libqb_log_trace("Program exiting with code %d", exitCode);
             GLUTEmu::Instance().WindowSetCloseFunction(nullptr);
             GLUTEmu::Instance().WindowSetShouldClose(true);
+#ifdef QB64_EMSCRIPTEN
+            emscripten_force_exit(exitCode);
+#else
             exit(exitCode);
+#endif
         }
     };
 
@@ -508,7 +516,9 @@ class GLUTEmu {
                     libqb_log_trace("OpenGL version: %s", glGetString(GL_VERSION));
                     libqb_log_trace("OpenGL shading language version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
+#ifndef QB64_EMSCRIPTEN
                     glfwSwapInterval(1);
+#endif
 
                     // Get the current window content scale and set a callback to track changes
                     glfwGetWindowContentScale(window, &windowScaleX, &windowScaleY);
@@ -629,7 +639,9 @@ class GLUTEmu {
                     });
 
                     // Set a hook into the keyboard button callback to enable some backward compatibility
+#ifndef QB64_EMSCRIPTEN
                     glfwSetInputMode(window, GLFW_LOCK_KEY_MODS, GLFW_TRUE);
+#endif
                     keyboardModifiers = KeyboardUpdateLockKeyModifier(GLUTEmu_KeyboardKey::CapsLock, keyboardModifiers);
                     keyboardModifiers = KeyboardUpdateLockKeyModifier(GLUTEmu_KeyboardKey::NumLock, keyboardModifiers);
                     keyboardModifiers = KeyboardUpdateLockKeyModifier(GLUTEmu_KeyboardKey::ScrollLock, keyboardModifiers);
@@ -703,7 +715,9 @@ class GLUTEmu {
         windowTitle = title;
         if (window != nullptr) {
             glfwSetWindowTitle(window, windowTitle.c_str());
+#ifndef QB64_EMSCRIPTEN
             windowTitle = glfwGetWindowTitle(window);
+#endif
         } else {
             libqb_log_warn("Window not created, cannot set title");
         }
@@ -778,6 +792,17 @@ class GLUTEmu {
     }
 
     void WindowFullscreen(bool fullscreen) {
+#ifdef QB64_EMSCRIPTEN
+        if (window != nullptr && fullscreen != isWindowFullscreen) {
+            if (fullscreen) {
+                emscripten_request_fullscreen("#canvas", 1);
+            } else {
+                emscripten_exit_fullscreen();
+            }
+            isWindowFullscreen = fullscreen;
+        }
+        return;
+#endif
         if (window != nullptr) {
             monitor = WindowGetCurrentMonitorInfo();
             if (monitor != nullptr) {
@@ -1103,6 +1128,8 @@ class GLUTEmu {
                 return reinterpret_cast<const void *>(GetDC(glfwGetWin32Window(window)));
 #elif defined(QB64_MACOSX)
                 return reinterpret_cast<const void *>(glfwGetCocoaView(window));
+#elif defined(QB64_EMSCRIPTEN)
+                return nullptr;
 #else
                 return reinterpret_cast<const void *>(glfwGetX11Display());
 #endif
@@ -1112,6 +1139,8 @@ class GLUTEmu {
                 return reinterpret_cast<const void *>(glfwGetWGLContext(window));
 #elif defined(QB64_MACOSX)
                 return reinterpret_cast<const void *>(glfwGetNSGLContext(window));
+#elif defined(QB64_EMSCRIPTEN)
+                return nullptr;
 #else
                 return reinterpret_cast<const void *>(glfwGetGLXContext(window));
 #endif
@@ -1128,6 +1157,8 @@ class GLUTEmu {
                 return reinterpret_cast<const void *>(glfwGetWin32Window(window));
 #elif defined(QB64_MACOSX)
                 return reinterpret_cast<const void *>(glfwGetCocoaWindow(window));
+#elif defined(QB64_EMSCRIPTEN)
+                return nullptr;
 #else
                 return reinterpret_cast<const void *>(glfwGetX11Window(window));
 #endif
@@ -1273,12 +1304,21 @@ class GLUTEmu {
         if (window != nullptr) {
             keyboardCharacterFunction = function;
 
+#ifdef QB64_EMSCRIPTEN
+            glfwSetCharCallback(window, [](GLFWwindow *win, unsigned int codepoint) {
+                auto *instance = reinterpret_cast<GLUTEmu *>(glfwGetWindowUserPointer(win));
+                if (instance->keyboardCharacterFunction) {
+                    instance->keyboardCharacterFunction(static_cast<char32_t>(codepoint), instance->keyboardModifiers);
+                }
+            });
+#else
             glfwSetCharModsCallback(window, [](GLFWwindow *win, unsigned int codepoint, int mods) {
                 auto *instance = reinterpret_cast<GLUTEmu *>(glfwGetWindowUserPointer(win));
                 if (instance->keyboardCharacterFunction) {
                     instance->keyboardCharacterFunction(static_cast<char32_t>(codepoint), mods);
                 }
             });
+#endif
 
             libqb_log_trace("Keyboard char function set: %p", function);
         } else {
@@ -1331,7 +1371,13 @@ class GLUTEmu {
 
     const char *KeyboardGetKeyName(GLUTEmu_KeyboardKey key, int scancode) const {
         if (window != nullptr) {
+#ifdef QB64_EMSCRIPTEN
+            (void)key;
+            (void)scancode;
+            return nullptr;
+#else
             return glfwGetKeyName(static_cast<int>(key), scancode);
+#endif
         } else {
             libqb_log_error("Window not created, cannot get key name");
         }
@@ -1417,8 +1463,19 @@ class GLUTEmu {
 
     void MouseSetCursorMode(GLUTEnum_MouseCursorMode mode) {
         if (window != nullptr) {
+#ifdef QB64_EMSCRIPTEN
+            MAIN_THREAD_EM_ASM(
+                {
+                    if (Module.canvas)
+                        Module.canvas.style.cursor = $0 ? "none" : "";
+                },
+                mode == GLUTEnum_MouseCursorMode::Hidden);
+            glfwSetInputMode(window, GLFW_CURSOR, mode == GLUTEnum_MouseCursorMode::Disabled ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+            cursorMode = mode;
+#else
             glfwSetInputMode(window, GLFW_CURSOR, static_cast<int>(mode));
             cursorMode = GLUTEnum_MouseCursorMode(glfwGetInputMode(window, GLFW_CURSOR));
+#endif
 
             libqb_log_trace("Mouse cursor mode set to %d", int(mode));
         } else {
@@ -1558,6 +1615,26 @@ class GLUTEmu {
         }
     }
 
+#ifdef QB64_EMSCRIPTEN
+    // One turn of the main loop, at each frame the browser draws.
+    void MainLoopPass() {
+        if (glfwWindowShouldClose(window) != GLFW_FALSE) {
+            emscripten_cancel_main_loop();
+            isMainLoopRunning = false;
+            return;
+        }
+
+        if (systemPollFunction != nullptr)
+            systemPollFunction();
+
+        MessageProcess();
+
+        if (windowIdleFunction != nullptr) {
+            WindowRefresh();
+        }
+    }
+#endif
+
     void MainLoop() {
         libqb_log_trace("Entering main loop");
 
@@ -1566,6 +1643,9 @@ class GLUTEmu {
                 if (!isMainLoopRunning) {
                     isMainLoopRunning = true;
 
+#ifdef QB64_EMSCRIPTEN
+                    emscripten_set_main_loop_arg([](void *self) { reinterpret_cast<GLUTEmu *>(self)->MainLoopPass(); }, this, 0, true);
+#endif
                     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
                         if (windowIdleFunction != nullptr) {
                             glfwPollEvents();
@@ -1985,6 +2065,11 @@ class GLUTEmu {
     bool WindowLoadResourceIconNative(int resourceId = 0) {
         (void)resourceId;
         libqb_log_warn("WindowLoadResourceIconNative is not implemented on macOS, using default icon");
+        return false;
+    }
+#elif defined(QB64_EMSCRIPTEN)
+    bool WindowLoadResourceIconNative(int resourceId = 0) {
+        (void)resourceId;
         return false;
     }
 #endif
@@ -2655,7 +2740,11 @@ void GLUTEmu_ProgramExit(int exitCode) {
         libqb_log_trace("Program exiting with code %d", exitCode);
         GLUTEmu::Instance().WindowSetCloseFunction(nullptr);
         GLUTEmu::Instance().WindowSetShouldClose(true);
+#ifdef QB64_EMSCRIPTEN
+        emscripten_force_exit(exitCode);
+#else
         exit(exitCode);
+#endif
     } else if (!GLUTEmu::Instance().MainLoopIsRunning()) {
         libqb_log_trace("Program exiting with code %d before main loop start", exitCode);
         exit(exitCode);

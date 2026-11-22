@@ -45,6 +45,14 @@ changing direction, design or scope.**
    - **`..\QB64pe-latest\` is a second clone, of upstream's `main`** (`QB64-Phoenix-Edition/QB64pe`, cloned
      2026-11-02 at `8070eebd2`). It shows what upstream has fixed since the reference. It is not the parity
      target: tools and recordings use `..\QB64pe\` at `16f629784e`. Pull it to update it; change nothing else.
+   - **`..\qbjs\` is our fork of QBJS** (`davidshq-contribute/qbjs`, forked from `boxgaming/qbjs` on
+     2026-11-16 at `1589a46`). It is for changes we offer upstream, such as an option for parameters by
+     reference (`study\51`). Its remote `origin` is the fork and `upstream` is `boxgaming/qbjs`. Work goes on a
+     branch of the fork, never on `main`; push and open pull requests only when the user asks.
+   - **`..\emsdk\` is the Emscripten SDK** for the wasm target (OpenSpec change `wasm-console`). Release
+     7.0.0 was installed there with `emsdk install` and `emsdk activate` on 2026-11-19 (2.2 GB; the download
+     was allowed, `DECISIONS.md` 2026-11-19). Builds find it through `QB64RUST_EMSDK_ROOT` or `--emsdk-root`.
+     Change its release only in a change of its own.
    - **Never save anything to memory only.** Any rule, decision or fact worth keeping goes into this repo (this
      file, `DECISIONS.md`, or `study\`). Memory may hold a pointer or copy in addition.
    - **A game port's records go in the game's repo, not here** (user, 2026-11-06). The games are
@@ -55,7 +63,7 @@ changing direction, design or scope.**
      `DIVERGENCES-QB45.md` or `DIVERGENCES-QB64PE.md` row, a lesson for `PORTING-PDS.md`. Civil War Strategy
      as this repo's own test target (`tests\programs\civil-war-strategy`, `screen\g01`–`g12`) stays here.
      *Why:* the ports' plans and rulings had filled this repo's documents (`DECISIONS.md` 2026-11-06).
-3. **Code from other projects.** Two tiers:
+3. **Code from other projects.** Three tiers:
    - **`qb64pe-vscode` (community extension): reference only, nothing copied.** No code, grammar, snippets,
      language configuration, help text or fixtures. Reading it to see how a problem was approached is fine.
      *Why:* not ours; licence of parts of its pipeline unchecked; its regex-based checks follow a different design
@@ -70,6 +78,10 @@ changing direction, design or scope.**
      checked against `qb64pe.exe`. QB64Fresh's `runtime_comparison` BASIC programs are taken as test inputs.
      *Why:* the reviews (`study\archive`) found their architecture unreliable, not their provenance; a blanket
      ban would be a handicap (user, 2026-10-03).
+   - **QBJS (`..\qbjs`, MIT): a fork we change and contribute back.** Changes are made in the fork, in QBJS's
+     own style, and offered upstream. No QBJS code is copied into this repo. Whether a QBJS target may fetch or
+     ship QBJS is not decided (`study\51`); `study\52` §4 question 2 asks the same about libraries. *Why:* the
+     user forked it to extend QBJS rather than change Civil War Strategy for it (user, 2026-11-16).
 4. **The panel, and how effort is counted.**
    - **"The panel"** means a review by these roles: a pragmatic engineer, a QB64 engineer, a compiler/languages
      engineer, a Rust engineer, a test engineer, and any other role Claude thinks fits the topic (name the extra
@@ -86,6 +98,13 @@ changing direction, design or scope.**
      *Why:* on 2026-10-10 the panel advised leaving `verification\run.sh` outside the test runner because full
      runs are rare; the user: "it isn't going to take time", and about 80% of the pragmatic engineer's timing
      objections would go away (user, 2026-10-10).
+   - **A run's machine time is the user's time** (user, 2026-11-18). The user waits for its result, and
+     the suites VM can do nothing else meanwhile. So never call a run cheap because only a machine runs it.
+     Size each run to what the change can touch: the smallest set that would show what could break,
+     never the size of the last run by habit. Before a run of more than a few minutes, say how long it
+     will take and why that size. *Why:* on 2026-11-18 three autoplay runs of 100 seeds each were chained
+     after QBJS drawing fixes that could not change the game's numbers, and Claude called the cost
+     "machine time, not yours" (user: "it is my time, not just machine time, bc I have to wait").
 5. **Text with backslashes goes through the Edit/Write tools or a script file, never through the shell.** That
    covers Windows paths (`study\archive\19`), C or Python escapes (`\\`, `\n`) and anything else containing `\`. Do not
    pass it in a heredoc, inline `python -c`/`python - <<EOF`, `sed` or `printf` in the Bash tool, which collapses
@@ -107,6 +126,8 @@ changing direction, design or scope.**
      that `suites.ps1` takes it to `qb64rust-suites`. A step named alone without `--where vm` runs on the host.
      If the run cannot be done there (an option `check` does not pass, such as `--trace-values`), ask the user
      first. On the host stay `cargo test -p`, `just quick` and a few programs named one by one.
+     One exception: runs in a browser of the wasm target (`tools\wasm\browser.mjs`) may be large on the host,
+     since the VM has no Chrome and the launcher opens no window and no port (user, 2026-11-21).
    - **Never run a program on the host that can make Windows ask the user something.** This covers network
      programs: one that opens a port makes Windows Defender Firewall ask for permission, and every new build is a
      new executable, so it asks again. These are the programs whose `.external` sidecar starts with `network:`
@@ -241,6 +262,47 @@ changing direction, design or scope.**
     Strategy port "changes as little as possible" and "decided to keep `ALTMAP.BAT`". Both were Claude's own
     words: a README sentence and a study's recommendation. Claude had read a copy of 2026-11-10, while the
     port had been under modernization since 2026-11-11 (user: "You write shit and then assume its fact").
+16. **A code change updates the language reference in the same change** (user, 2026-11-14). This holds for a
+    direct change, an OpenSpec change and a bug fix alike.
+    - When the change alters what the reference says, edit the hand-written page: the word's page in
+      `docs\reference\entries\`, or a chapter in `docs\reference\chapters\`. A new word gets its page from
+      `tools\reference\reference.py skeleton <WORD>`.
+    - Then run `reference.py render` and `reference.py --check` (`tools\reference\README.md`). The files that
+      say "do not edit" are written by `render`.
+    - `--check` (the `reference` step of `just quick`) finds stale generated blocks and missing sources. It does
+      not find prose that the change made wrong. So read the page of each word the change touches;
+      `reference.py evidence <WORD>` lists what the repository knows about it.
+    - An OpenSpec change's tasks name the pages it edits.
+
+    *Why:* rule 11 asked for the page only in a direct change (user, 2026-11-14).
+17. **Check outside facts that a recommendation rests on; do not rely on memory alone** (user, 2026-11-16).
+    - This covers claims about other languages, libraries, tools, standards and their history, when they
+      are given as reasons or comparisons. Examples: what a Rust crate's attribute is called, when C++ adopted
+      a feature, what Go's standard library does.
+    - Check them in the official documentation, the source, or a proposal or release note, with a web search
+      or fetch. Name the source beside the claim.
+    - Facts about this project's code are checked in the code (rule 15), not here.
+    - Not every passing remark needs a source. A well-known basic fact that no recommendation depends on
+      may stand. When in doubt, check.
+    - A claim that could not be checked is marked as unchecked, and the reply says why.
+
+    *Why:* on 2026-11-16 a comparison of Rust's and Go's reflection and macros named crates, attributes and
+    a C++26 vote from memory, with only a note that they were unchecked (user: "I don't like when you rely
+    only on your own knowledge").
+18. **Work is handed over in the repo's own checkout, one branch at a time** (user, 2026-11-18). This
+    holds for every repo: this one, the game repos and `..\qbjs`.
+    - The user stages and commits in the repo's main folder, never in a worktree.
+    - Work Claude did in a worktree (such as `..\qbjs-wt\<name>`, made while another branch waited) is
+      brought into the main folder only after the branch before it is committed. Check out its branch
+      there, move the changes over with a plain `git apply` (never `-3` or `--index`, which stage), and
+      remove the worktree. Then say it is ready, and bring in the next one only after it is committed.
+    - Before switching the main folder to another branch, check that no run is about to copy it.
+      `tools\winvm\game.ps1` copies the game and each `-With` folder at the start of each run.
+    - This is about handing work over. A worktree the user makes to test a commit (`just full`) is not
+      affected.
+
+    *Why:* on 2026-11-18 three QBJS fixes waited in three worktrees, where the user could not stage
+    and commit them one by one.
 
 ## Project decisions
 

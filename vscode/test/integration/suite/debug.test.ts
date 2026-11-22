@@ -7,7 +7,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
-import { api, closeAll, compiler, open, server, setSetting, waitFor, workspace, writeFile } from "./helpers";
+import { api, builtOf, closeAll, compiler, open, server, setSetting, waitFor, workspace, writeFile } from "./helpers";
 
 /** The fixture: `SUB show (n AS LONG)` on line 8, its statement `total = total + n` on line 9. */
 const fixture = () => vscode.Uri.file(path.join(workspace, "debug_me.bas"));
@@ -151,7 +151,7 @@ describe("debugging with qb64rust", function () {
         const ended = nextEnd();
         assert.strictEqual(await vscode.commands.executeCommand("qb64rust.debug", uri), true);
         assert.match(a.builder.lastCommand ?? "", /--debug/);
-        const exe = uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
+        const exe = builtOf(uri);
         assert.ok(fs.existsSync(exe) && fs.existsSync(`${exe}.debug.json`), "the debug build and its symbol file");
         const stopped = await stoppedAfter(from);
         const session = vscode.debug.activeDebugSession!;
@@ -212,7 +212,8 @@ describe("debugging with qb64rust", function () {
         const ended = nextEnd();
         await vscode.commands.executeCommand("workbench.action.debug.start");
         const session = await started;
-        const exe = main.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
+        // No settings file: the program is in `build` and runs in its source's folder (change build-output-folder).
+        const exe = builtOf(main);
         assert.deepStrictEqual([session.configuration.program, session.configuration.cwd], [exe, path.dirname(main.fsPath)]);
         // The build is done once the session starts, so the stop comes in seconds (3.5 s in CI for the test above).
         const marks = () =>
@@ -245,7 +246,7 @@ describe("debugging with qb64rust", function () {
         await setSetting("qb64rust", "buildWith", "qb64pe");
         try {
             const uri = fixture();
-            const exe = uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
+            const exe = builtOf(uri);
             // Run alone, or after the first test failed, there may be no executable yet: none must appear.
             const built = fs.existsSync(exe) ? fs.statSync(exe).mtimeMs : undefined;
             a.debug.lastRefusal = undefined;

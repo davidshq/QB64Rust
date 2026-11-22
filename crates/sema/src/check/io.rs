@@ -15,7 +15,7 @@ use qb64rust_syntax::tree::Node;
 
 /// A value of `PRINT USING` by its type (`qb64pe.bas` 27340–27378): a string; `TAB(n)` or `SPC(n)` written as the
 /// whole value (measured: `TAB(3) + "x"` is a string); a number for the runtime's entry of what it is believed.
-fn using_value(e: Expr, node: ast::Expr) -> UsingValue {
+fn using_value(e: Expr, node: ast::Expr, pointer_bytes: u32) -> UsingValue {
     if e.ty == Ty::Str {
         let blanks = match (&e.kind, node) {
             (ExprKind::Call { builtin, .. }, ast::Expr::Call(_)) => {
@@ -31,7 +31,7 @@ fn using_value(e: Expr, node: ast::Expr) -> UsingValue {
     }
     let as_ = match e.qb.float_rank() {
         Some(_) => e.qb,
-        None if e.qb.is_unsigned() && qb_bits(e.qb) == Some(64) => Ty::U64,
+        None if e.qb.is_unsigned() && qb_bits(e.qb, pointer_bytes) == Some(64) => Ty::U64,
         None => Ty::I64,
     };
     UsingValue::Num { value: e, as_ }
@@ -187,7 +187,7 @@ impl Checker<'_> {
                         return Err(self.error(at, "the values of `USING` need `;` or `,` between them"));
                     }
                     let e = self.unjoined(NoJoin::Item(before + 1 + values.len()), |c| c.expr(*n))?;
-                    values.push(using_value(e, *n));
+                    values.push(using_value(e, *n, self.prog.pointer_bytes()));
                     after_value = true;
                 }
             }

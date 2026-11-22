@@ -1,0 +1,13 @@
+# The string pool grows to twice its size plus what is asked for. A size that would not fit in a size_t is "Out of
+# memory" (error 512, critical, as a failed realloc already is) instead of wrapping (DIVERGENCES-QB64PE.md D-066).
+# On a 64-bit build realloc fails long before; the test is for a 32-bit build, as QB64pe issue 278 asks.
+file: internal/c/libqb/src/qbs.cpp
+--- old
+        oldbase = qbs_data;
+        qbs_data_size = qbs_data_size * 2 + bytesrequired;
+--- new
+        oldbase = qbs_data;
+        if (qbs_data_size > (SIZE_MAX - bytesrequired) / 2)
+            error(512); // the new size would not fit in a size_t
+        qbs_data_size = qbs_data_size * 2 + bytesrequired;
+--- end

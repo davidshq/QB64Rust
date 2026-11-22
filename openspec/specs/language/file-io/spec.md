@@ -192,6 +192,12 @@ or written SHALL raise the old compiler's error (`verification\v52_c_files`), an
 - **WHEN** `d$ = _READFILE$(".")` and `_WRITEFILE "no_dir\x.tmp", "a"` run under a handler that prints `ERR`
 - **THEN** the handler prints 53, then 76
 
+#### Scenario: A file too long for a string
+- **WHEN** `d$ = _READFILE$("big.bin")` runs under a handler that prints `ERR`, and `big.bin` holds 2,147,483,648
+  bytes or more
+- **THEN** the handler prints 75, as QB64pe's does, and `d$` is empty after `RESUME NEXT` (measured once with a file
+  of 2.3 GB, 2026-11-18; `DIVERGENCES-QB64PE.md` D-067)
+
 #### Scenario: An empty path
 - **WHEN** `p$ = _FULLPATH$("")` runs
 - **THEN** `p$` is empty and no error is raised

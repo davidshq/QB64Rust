@@ -51,6 +51,10 @@ impl Loader for TestLoader {
     fn library(&mut self, name: &[u8]) -> Result<Vec<u8>, LoadError> {
         self.files.library(name)
     }
+
+    fn folders(&self) -> HashMap<FileId, std::path::PathBuf> {
+        self.files.folders()
+    }
 }
 
 #[cfg(test)]

@@ -69,6 +69,20 @@ class Outputs(unittest.TestCase):
             ["target/coverage/merge/corpus.txt"],
         )
 
+    def test_a_folder_brings_every_file_below_it_but_executables(self):
+        for rel in ("tests/out/web/scripts/navy/qbjs-1.png", "tests/out/web/scripts/navy/report.html",
+                    "tests/out/web/scripts/files/qbjs-1.png", "tests/out/web/scripts/files/cws.exe",
+                    "tests/out/other.txt"):
+            self.write(rel)
+        self.assertEqual(
+            outputs.listed(self.tree, ["tests/out/web/scripts"]),
+            [
+                "tests/out/web/scripts/files/qbjs-1.png",
+                "tests/out/web/scripts/navy/qbjs-1.png",
+                "tests/out/web/scripts/navy/report.html",
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

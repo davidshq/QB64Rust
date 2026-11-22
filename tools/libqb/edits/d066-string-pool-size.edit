@@ -1,0 +1,17 @@
+# The size of the string pool and the place of its next free byte are size_t, not uint32_t (DIVERGENCES-QB64PE.md
+# D-066, UPSTREAM.md "Strings of more than 4 GB together crash"). Every variable-length string outside conventional
+# memory lives in one block, qbs_data. When the block grows past 4 GB, QB64pe's uint32_t qbs_data_size wraps to a
+# small value, and realloc then shrinks the block under the strings: the next write lands outside it and the program
+# crashes. Its qbs_sp wraps the same way once the strings end past 4 GB, and qbs_concat's test qbs_sp * 2 already
+# past 2 GB (verification\v63_g2_reassign_large_string, the program of QB64pe issue 559, hits both).
+# The edit d066-string-pool-growth.edit stops a size that would not fit in a size_t. QB64pe issue 278 asks for both.
+file: internal/c/libqb/src/qbs.cpp
+--- old
+static uint8_t *qbs_data = (uint8_t *)malloc(1048576);
+static uint32_t qbs_data_size = 1048576;
+static uint32_t qbs_sp = 0;
+--- new
+static uint8_t *qbs_data = (uint8_t *)malloc(1048576);
+static size_t qbs_data_size = 1048576;
+static size_t qbs_sp = 0;
+--- end

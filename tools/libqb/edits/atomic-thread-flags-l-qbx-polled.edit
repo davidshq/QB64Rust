@@ -1,0 +1,18 @@
+# Atomic thread flags (OpenSpec change wasm-pointer-width, design D7). libqb's threads (QBMAIN, MAIN_LOOP, the timer
+# thread) hand work to each other through plain flags that one sets and another spins on or polls (study 03,
+# section 1.5). That holds on x86, which orders memory strongly; WebAssembly's threads and ARM do not. Each flag
+# becomes a std::atomic of its type, with its name: every read and store in libqb and in the generated C++
+# compiles as before. On every platform, so that one form of libqb is tested.
+# This file: suspend_program and stop_program. qbevent stays a plain uint32: the generated C++ tests it between
+# all statements, and as a std::atomic a loop of 400 million statements took 4.6 s where it took 1.4 s (measured
+# 2026-11-20, the program's C++ is built without optimization, so each test was a call).
+file: internal/c/qbx.cpp
+--- old
+uint32 qbevent = 0;
+uint8 suspend_program = 0;
+uint8 stop_program = 0;
+--- new
+uint32 qbevent = 0;
+std::atomic<uint8> suspend_program = 0;
+std::atomic<uint8> stop_program = 0;
+--- end

@@ -72,7 +72,11 @@ fn dir_text(dir: &Path) -> String {
 
 /// The absolute folder of the file `path` (the working directory for a name without a folder).
 fn folder_of(path: &Path) -> std::io::Result<PathBuf> {
-    let dir = path.parent().unwrap_or(Path::new(""));
+    absolute_dir(path.parent().unwrap_or(Path::new("")))
+}
+
+/// The folder `dir` made absolute (the working directory for an empty one).
+fn absolute_dir(dir: &Path) -> std::io::Result<PathBuf> {
     std::path::absolute(if dir.as_os_str().is_empty() {
         Path::new(".")
     } else {
@@ -122,9 +126,10 @@ fn first_file(candidates: impl IntoIterator<Item = PathBuf>) -> Option<PathBuf> 
 /// - `DYNAMIC`: `<folder>name.dll`, the same in System32, `name.dll` from the clone or the source's folder, then
 ///   System32; no header. Nothing: "DYNAMIC LIBRARY not found" (`x02`, `x53`).
 ///
-/// A name that is only a folder finds nothing and is no error, as for the old compiler. On Linux, [`find_linux`].
+/// A name that is only a folder finds nothing and is no error, as for the old compiler. On Linux, and for the wasm
+/// target, which takes only a header of it (design D1 of `wasm-console`), [`find_linux`].
 pub fn find(kind: LibraryKind, written: &str, file_dir: &Path, places: &Places) -> Result<Found, &'static str> {
-    if places.platform == Platform::Linux {
+    if matches!(places.platform, Platform::Linux | Platform::Wasm) {
         return find_linux(kind, written, file_dir, places);
     }
     let (folder, x) = split(written);
@@ -598,7 +603,17 @@ pub fn resolve(fe: &mut Frontend, places: &Places) -> Resolved {
     for (i, lib) in program.libraries.iter().enumerate() {
         let mut found = ResolvedLibrary::default();
         resolved.libraries.push(ResolvedLibrary::default());
-        let file_dir = folder_of(Path::new(&fe.map.file(lib.span.file).name)).unwrap_or_default();
+        // The wasm target has no DLL: `check_target` reports the block, and nothing is looked for.
+        if places.platform == Platform::Wasm && lib.kind == LibraryKind::Dynamic {
+            continue;
+        }
+        // The folder the loader read the file from: a `$USELIBRARY` file's name is its path under the root, not
+        // from the working directory. The name is used only for a file the loader did not read.
+        let file_dir = match fe.folders.get(&lib.span.file) {
+            Some(dir) => absolute_dir(dir),
+            None => folder_of(Path::new(&fe.map.file(lib.span.file).name)),
+        }
+        .unwrap_or_default();
         // The library file of the block's last name, where its declarations are looked for, and that name.
         let mut last = None;
         let mut dll_file = None;
@@ -616,6 +631,15 @@ pub fn resolve(fe: &mut Frontend, places: &Places) -> Resolved {
                         found.headers.push(h);
                     }
                     if let Some(file) = &f.file {
+                        // A prebuilt library is the host's machine code, which a wasm build cannot link (spec
+                        // `compiler/wasm-target`, "What the target does not have is rejected").
+                        if places.platform == Platform::Wasm {
+                            let shown = file.file_name().unwrap_or_default().to_string_lossy();
+                            let msg = qb64rust_sema::target::unavailable("DECLARE LIBRARY");
+                            diags.error(name.span, format!("{msg}: `{shown}` is a prebuilt library"));
+                            failed = true;
+                            break;
+                        }
                         if file.to_string_lossy().contains('$') {
                             diags.error(
                                 name.span,

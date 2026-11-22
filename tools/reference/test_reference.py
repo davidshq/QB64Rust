@@ -182,7 +182,7 @@ class Appendices(unittest.TestCase):
 class Sources(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.reqs = {(q.spec, q.heading) for q in r.load_requirements()}
+        cls.reqs = r.source_requirements()
         cls.rows = {"D-001", "Q-002"}
 
     def check(self, item):
@@ -191,6 +191,11 @@ class Sources(unittest.TestCase):
     def test_a_requirement(self):
         self.assertIsNone(self.check('language/builtin-functions "Names and arity"'))
         self.assertIn("no requirement", self.check('language/builtin-functions "No such thing"'))
+
+    def test_a_requirement_of_a_tool_spec(self):
+        # A source may be any spec; evidence still lists only the language specs.
+        self.assertIsNone(self.check('compiler/format "Lines the rewrites leave alone"'))
+        self.assertNotIn("compiler/format", {q.spec for q in r.load_requirements()})
 
     def test_a_file_with_or_without_bas(self):
         self.assertIsNone(self.check("verification\\v20_c_string_edges"))
@@ -218,7 +223,7 @@ class Pages(unittest.TestCase):
         self.patch = mock.patch.multiple(r, ENTRIES=base / "entries", EXAMPLES=base / "examples")
         self.patch.start()
         self.words = r.inventory()
-        self.reqs = {(q.spec, q.heading) for q in r.load_requirements()}
+        self.reqs = r.source_requirements()
 
     def tearDown(self):
         self.patch.stop()
@@ -286,6 +291,11 @@ class Pages(unittest.TestCase):
         text = "# Odd\n\nA summary.\n\n## Part\n\nA rule with no source.\n"
         self.assertTrue(any("names no source" in p for p in self.chapter_problems(text)))
         self.assertTrue(any("no spec language/no-such-area" in p for p in self.chapter_problems(text, "no-such-area")))
+
+    def test_a_chapter_of_a_compiler_spec_it_names(self):
+        # The wasm target's chapter is named after `compiler/wasm-target` (OpenSpec change wasm-console).
+        text = "# The wasm target\n\nA summary.\n\n## Part\n\nA rule.\n<!-- src: language/control-flow \"FOR loops\" -->\n"
+        self.assertEqual(self.chapter_problems(text, "wasm-target"), [])
 
     def test_an_example_is_embedded_with_its_output(self):
         (self.tmp / "examples" / "left-str_1.bas").write_text('$CONSOLE:ONLY\nPRINT LEFT$("ab", 1)\nEND\n')

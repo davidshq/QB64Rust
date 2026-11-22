@@ -43,6 +43,18 @@ Linux recordings, and what each shows of Linux:
 - `v57_r*`: `RUN` of a program that is not there goes to the shell, which prints "not found", instead of error 53.
 - `v37`, `v58_e28`, `v63`: the library and console programs of their own lines above.
 
+**The wasm target** (OpenSpec change `wasm-console`). Nothing is recorded for it: a program built with
+`--target wasm` and run under Node is judged by the Linux recordings above. What its first whole-family run
+(2026-11-20) showed that the Linux recordings do not is on `tests\verification\known.wasm.list`, each line with
+what was seen:
+- `v30_a`, `v58_f01`, `v58_f04`: a `_FLOAT` is IEEE quad precision (`DIVERGENCES-QB64PE.md` D-069). `v20_d`,
+  `v20_f`, `v33_c06`: a float out of an integer's range converts by saturating (D-071). `v22_f`: musl's `tanhf`
+  (D-070).
+- `v16_m6`, `v49_c`, `v18_d`, `v20_i`, `v63_g2`, `v63_g3`: a 32-bit target that is not Linux (`$IF`, `_OS$`, an
+  index past 32 bits wraps, wasm32's 4 GB).
+- `v49_b`, `v52_c`, `v58_s02`: Node's file system on a Windows host. `v58_e01`–`e04`, `e19`: a deep recursion
+  ends in Node's `RangeError`, not error 256 (not explained yet).
+
 Small programs behind `study\09`, `study\10` and later measurements:
 
 - `v13*`: type suffixes on DIMmed names
@@ -61,7 +73,7 @@ Small programs behind `study\09`, `study\10` and later measurements:
 - `v21*`: the new numeric types, `_BIT`, fixed-length strings, the numeric-types spec scenarios, `v21_x*` one rejection each
 - `v22*`: built-in statements (`v22_a` statement calls, `v22_b` files, `v22_c` data, `v22_d` `SWAP`, `MID$`, `RANDOMIZE`, `SHELL`, `ENVIRON$`, `v22_e` console input with `.stdin` files, `v22_f` functions added by demand, `v22_x*` one rejection or accepted form each, include files in `v22_inc\`)
 - `v23_post_keys.py`: posts keys to a program's window, the method measured and not taken for the screen-state check; its programs are in `tests\corpus\screen\`
-- `v24*`: step 10, measured before its design: `v24_a` default types, `v24_b` dynamic arrays and `$DYNAMIC`, `v24_c` `REDIM` and `_PRESERVE`, `v24_d` `ERASE`, `v24_e` `OPTION BASE`, `v24_f` arrays used without `DIM`, `v24_g` arrays in procedures, array parameters and `COMMON`, `v24_h` `TYPE` member arrays, `STRING` members, whole values and `TYPE` parameters, `v24_i` the type before the names, `v24_j` a minus right of `^`, `v24_x*` one accepted or rejected form each (`x244`–`x255`: measured while group 4 was built and reviewed; `x256`–`x263`: before group 5, arrays used without `DIM`; `x264`–`x268`: by the review of group 5, where their allocation runs inside a statement; `x269`–`x282`: while group 6 was built, arrays in procedures, `STATIC` arrays and procedures, `SHARED a()`; `x283`–`x285`: by the review of group 6, `DIM` in a procedure with `STATIC` after its header and after `STATIC c(3)`; `x286`–`x296`: before group 7, array parameters; `x297`–`x302`: while group 7 was built, what gives an array listed by `COMMON a()` or `STATIC a()` its number of dimensions; `x303`–`x305`: by the review of group 7, what may stand between an array parameter's parentheses; `x306`–`x308`: before group 8, the order of a whole-value copy and more forms of a user-type parameter; `x309`: by the review of group 8, `STRING` members in arrays, parameters and procedures; `x310`–`x326`: before and while group 9 was built, member arrays: what finds the place of one, the order of a store through a member, whole values, arguments, and ten forms settled one program each)
+- `v24*`: step 10, measured before its design: `v24_a` default types, `v24_b` dynamic arrays and `$DYNAMIC`, `v24_c` `REDIM` and `_PRESERVE`, `v24_d` `ERASE`, `v24_e` `OPTION BASE`, `v24_f` arrays used without `DIM`, `v24_g` arrays in procedures, array parameters and `COMMON`, `v24_h` `TYPE` member arrays, `STRING` members, whole values and `TYPE` parameters, `v24_i` the type before the names, `v24_j` a minus right of `^`, `v24_x*` one accepted or rejected form each (`x244`–`x255`: measured while group 4 was built and reviewed; `x256`–`x263`: before group 5, arrays used without `DIM`; `x264`–`x268`: by the review of group 5, where their allocation runs inside a statement; `x269`–`x282`: while group 6 was built, arrays in procedures, `STATIC` arrays and procedures, `SHARED a()`; `x283`–`x285`: by the review of group 6, `DIM` in a procedure with `STATIC` after its header and after `STATIC c(3)`; `x286`–`x296`: before group 7, array parameters; `x297`–`x302`: while group 7 was built, what gives an array listed by `COMMON a()` or `STATIC a()` its number of dimensions; `x303`–`x305`: by the review of group 7, what may stand between an array parameter's parentheses; `x306`–`x308`: before group 8, the order of a whole-value copy and more forms of a user-type parameter; `x309`: by the review of group 8, `STRING` members in arrays, parameters and procedures; `x310`–`x326`: before and while group 9 was built, member arrays: what finds the place of one, the order of a store through a member, whole values, arguments, and ten forms settled one program each; `x327`–`x328`: QB64pe issue 95, `REDIM` without `AS` of a `TYPE` array, which QB64pe leaves alone beside a second `SINGLE` array, D-068)
 - `v25*`: the signs the old compiler drops from an expression (`v25_signs`, `v25_signs_const`, `v25_x*` one rejection each)
 - `v26*`: step 11, measured before its design: `$CONSOLE`, `$SCREENHIDE`, `_DEST _CONSOLE`, `_ECHO`, the flag `_CONSOLE_` (`v26_a`–`v26_h2`, `v26_x*` one accepted or rejected form each; `x40`–`x56`: measured as the step's first task group, the line rules of every metacommand and more on the flags, include files in `v26_inc\`; `x57`, `x58`: while its group 2 was built, a colon in a branch that is not taken, a tab after a metacommand; `x59`–`x61`: by the review of group 2, a tab or a word after `$INCLUDEONCE`, a letter after `$CONSOLE:ONLY`; `x62`–`x73`: while its group 3 was built, more forms of `_DEST`, `_SOURCE`, `_CONSOLE` and `_ECHO`, accepted and rejected; `x74`–`x113`: while its group 4 was built, the window built-ins, one accepted program and one rejected form each; `x114`–`x126`: while its group 5 was built, the constants of the auto-included file; `x127`: while its group 6 was built, precompiler flags across an included file; `x128`: by the review of groups 4 to 6, `SWAP` after `CALL`)
 - `v27*`: the first step of M3, a program with a window and the screen statements: `v27_a` `INKEY$`, `CSRLIN` and `POS` in a console program, `v27_x*` one accepted or rejected form each (`x01`–`x50`: measured before its design, the forms of every screen statement and function, and after `CALL`; `x51`–`x57`: while its group 3 was built, a statement's name, parentheses and `=`; `x58`–`x63`: while its group 5 was built, a statement's name and a colon at the start of a line; `x64`: by the review of group 4, `PALETTE USING`)
@@ -306,14 +318,15 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `_ERRORLINE` and other errors unchanged; `$ERRORLOCATION` bare, `:MAYBE`, with a blank or a comment: "Syntax
   error"; `e27` a `DYNAMIC` library that does not exist, rejected when compiled ("DYNAMIC LIBRARY not found"),
   `e28` a function the library lacks, error 260 at the `FUNCTION` line, `e29` an error in a `$USELIBRARY` top
-  file, at its line and name, with `v58_root`'s `test/eloc`), include files in `v58_inc\`; `u00`–`u26` `$USELIBRARY` with the test libraries of `v58_root\libraries\`
+  file, at its line and name, with `v58_root`'s `test/eloc`), include files in `v58_inc\`; `u00`–`u27` `$USELIBRARY` with the test libraries of `v58_root\libraries\`
   (each program's `.root` sidecar names the folder, recorded with the runner's copy of the release,
   `tools\legacy_tests\README.md`): each kind of file, two libraries (top files last-first, bottom files in
   order), one named twice or by a library's top file too ("Name already in use": included once per line), a
   library that uses another (its files first), the descriptor's sections, quotes, `;` and `'` comments, key case
   and blanks, an empty value and no section (nothing included), `$USELIBRARY` in an included file, in lower case,
   without the colon, as `$USELIBRARYX`, with a tab after the name (all accepted), the three errors, a `$IF`
-  branch not taken, after a colon, and `u17` without the sidecar (the release's own "descriptor not found"); `n01`–`n05`
+  branch not taken, after a colon, `u17` without the sidecar (the release's own "descriptor not found"), and `u27`
+  a `DECLARE LIBRARY` header found beside the library's top file (`test/header`); `n01`–`n05`
   a built-in with its result's suffix (`_UFONTHEIGHT&`: "Invalid variable name", "Invalid array name"); `x01`–`x111`
   one accepted or rejected form each (the five accepted above and `_SETBIT(1, 1.5)`; the hyperbolics,
   `_SETBIT`, `MKSMBF$`, `_COMPILERVERSION$` and `_ENVIRONCOUNT` in a `CONST` "Unexpected element"; a function as a
@@ -431,7 +444,13 @@ Small programs behind `study\09`, `study\10` and later measurements:
   handler: "Division by zero", which the handler does not receive, ending the program at the first (row 12); `f1`
   bit numbers and shift counts of 64 or more and negative ones as constants and in a LONG variable: the same values,
   each masked to its low 6 bits (rows 17, 18); `f2` the program of the fix `bit-number-check`, bit numbers in a
-  variable under a handler, with its fixes-on output in `tests\verification\fixed\`. On Linux (task 5.5 of
+  variable under a handler, with its fixes-on output in `tests\verification\fixed\`; `g2` (2026-11-18, QB64pe
+  issues 278 and 559, `DIVERGENCES-QB64PE.md` D-066) a string that makes the string pool grow past 4 GB: one of
+  1,123,123,123 bytes assigned seven times crashes at the fourth (exit 139). With the fix it commits up to about
+  4.5 GB of memory. A `g1`, two strings of 1.5 GB at once, crashed the same way before printing anything; it was
+  not kept, as it needs 6 GB and covers the same edit; `g3` (2026-11-18, D-067) a concatenation past the longest
+  string, 2,147,483,647 bytes, under a handler: `a$ + a$` with `a$` of 1.2 GB crashes before anything is printed
+  (exit 139). With the fix it commits up to about 4.5 GB. On Linux (task 5.5 of
   `m7-linux`, QB64pe's Linux build) `a1`–`a5` wait for ever the same way; four have Linux recordings
   (`.linux.out.txt`): `a6`, where `LINE INPUT` ends a line at a CR as at an LF, so `ab` CR LF reads as `ab` and an
   empty line, and `INPUT` then gets two empty fields; `b2` and `d1`, whose crashes exit with 127; and `c2`, whose double
@@ -569,6 +588,15 @@ Small programs behind `study\09`, `study\10` and later measurements:
   `THEN` and after `ELSE` (`j`), a `SELECT CASE` on one line (`k`), statements after `ELSEIF … THEN` and a block's
   `ELSE` (`l`), `CLS:`, a label and a SUB's name before a colon (`m`), a `REM` comment moved above an `IF` (`o`),
   and a comment moved above a numbered line that a `GOTO` names (`p`).
+- `v73*`: the sizes and values that follow a pointer's size (2026-11-20, OpenSpec change `wasm-pointer-width`,
+  design D8). Each program compares them with `W`, which is 4 under `$IF 32BIT` and 8 otherwise, and prints -1.
+  So the recording of QB64pe's 64-bit build also holds on the wasm target, where a pointer is 4 bytes. `a`:
+  `LEN` of an `_OFFSET` and of a `TYPE` that holds one, and an array of that type. `b`: `LEN` of a `_MEM` (56, or
+  40 on wasm), `_MEMPUT` and `_MEMGET` at a member's offset, an array of `_MEM`, the `TYPE` value of a block of an
+  `_OFFSET`. `c`: a member array of `STRING`, and a type that owns two `_DYNAMIC` member arrays (its size is
+  five pointers). `d`: `HEX$` of -1, `_MK$`, `_CV`, `PUT`, `GET` and `INPUT #` of an `_OFFSET`, and an `_OFFSET`
+  variable passed to an `_INTEGER64` parameter, which is by reference only where both are 8 bytes. `e`: console
+  `INPUT` into an `_OFFSET` between other variables.
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

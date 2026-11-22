@@ -25,8 +25,9 @@ The block of an element reaches from it to the array's end; `_MEMELEMENT` gives 
 array and a whole array `a()` each have a block.
 <!-- src: language/mem-blocks "A block of a reference"; tests\corpus\slice\s89_mem_references -->
 
-In a value of a `TYPE` with a `STRING` member, the member counts 8 bytes.
-<!-- src: language/mem-blocks "A block of a reference" -->
+In a value of a `TYPE` with a `STRING` member, the member counts 8 bytes, the size of a pointer. On the
+[wasm target](../chapters/wasm-target.md) it counts 4, and `LEN` of a `_MEM` variable is 40, not 56.
+<!-- src: language/mem-blocks "A block of a reference"; compiler/wasm-target "Layouts with pointers on this target"; verification\v73_b_mem -->
 
 `_MEM(_OFFSET(a), 4)` is a block of 4 bytes at that address, of `TYPE` 16384.
 <!-- src: language/mem-blocks "A block of an address" -->

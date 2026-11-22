@@ -1,0 +1,7 @@
+ 3 zeroonetwo 99 
+-1 
+zerounotwo 99 one<> 0 
+ 1  10  20  40  30 xyy 4 
+ 1  11  20  40  31 xchanged 4 
+-1 
+exit=0

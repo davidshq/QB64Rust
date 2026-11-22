@@ -30,9 +30,12 @@ QB64pe is installed.
   These diagnostics are cleared when you edit the file.
 - **Format Document** and **Format Selection** lay code out the way the QB64pe IDE does: indentation, spacing and
   keyword case (`PRINT` → `Print`); see [Formatting](#formatting).
-- **Build, Run, Build and Run** (Command Palette, category "QB64", or the run button in the editor title). Build
-  writes the executable next to the source (`hello.bas` → `hello.exe`) and shows the compiler output in the
-  "QB64" output channel. Run starts the program in a terminal named "QB64" in the source folder.
+- **Build, Run, Build and Run** (Command Palette, category "QB64", or the run button in the editor title). A build
+  with `qb64rust` writes the executable into a folder `build` (`hello.bas` → `build\hello.exe`), beside the
+  project's `qb64rust.toml` or beside the source; a build with QB64pe writes it next to the source. The compiler
+  output is in the "QB64" output channel. Run starts the program in a terminal named "QB64", in the source folder.
+  When `qb64rust.toml` lists data files in `[build]` `copy`, they are copied into `build` and the program runs
+  there instead, so what it writes stays out of the source folder (the compiler's manual, "The settings file").
 - **Builds with `qb64rust`** when it is found (`qb64rust.buildWith`, default `auto`). Its errors appear in Problems
   at their file, line and column (source `qb64rust`) and go when you edit the file. When a build fails only on
   forms marked "not supported yet" (parts of QB64 the new compiler does not have yet), the message offers **Build
@@ -145,7 +148,7 @@ A `launch.json` configuration (**Run: Add Configuration… → QB64**):
 |---|---|---|
 | `program` | the active file | The main `.bas` file (built with `--debug` first), or the executable of an earlier debug build (launched as it is). |
 | `args` | `qb64rust.runArguments`, split into words | The program's arguments (`COMMAND$`). |
-| `cwd` | the program's folder | The working folder. |
+| `cwd` | the folder Run uses | The working folder: for a `.bas` file the source's folder, or `build` when `qb64rust.toml` has a `[build]` `copy` list; for an executable its own folder. |
 | `stopOnEntry` | `false` | Stop at the first BASIC line. |
 | `console` | `integratedTerminal` | Where a `$CONSOLE` program reads and writes: `integratedTerminal` (its `INPUT` works there), `internalConsole` (the Debug Console: output only), `externalTerminal`. |
 | `noPrompt` | `qb64rust.noPrompt` | Set `QB64PE_NOPROMPT=y`. |

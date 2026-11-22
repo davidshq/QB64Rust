@@ -236,7 +236,7 @@ End If
 If choose = 3 Then Cls: End
 If history = 1 Then
     Cls
-    If _FileExists("cws.his") Then Shell "copy cws.his oldhist.ory"
+    If _FileExists("cws.his") Then Open "cws.his" For Binary As #9: oldhist$ = Space$(LOF(9)): Get #9, , oldhist$: Close #9: Open "oldhist.ory" For Output As #9: Print #9, oldhist$;: Close #9
     Open "O", 2, "cws.his"
     Print #2, Tab(20); "[ HISTORY OF GAME BEGUN "; "10-19-2026"; " ]"
     Close #2

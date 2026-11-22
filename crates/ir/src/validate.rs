@@ -823,7 +823,10 @@ impl Validator<'_> {
                         (Ty::User(x), Ty::User(y)) => x == y,
                         (Ty::User(_), _) | (_, Ty::User(_)) => false,
                         (x, y) if x.is_string() || y.is_string() => x.is_string() && y.is_string(),
-                        (x, y) => crate::size_of(&self.p.types, x) == crate::size_of(&self.p.types, y),
+                        (x, y) => {
+                            let size = |t| crate::size_of(&self.p.types, self.p.pointer_bytes(), t);
+                            size(x) == size(y)
+                        }
                     };
                     if !fits {
                         self.problem(format!("{at}: {name} of a {ta:?} and a {tb:?}"));
@@ -1563,6 +1566,7 @@ mod tests {
                 console: true,
                 ..Settings::default()
             },
+            platform: qb64rust_base::Platform::default(),
         }
     }
 

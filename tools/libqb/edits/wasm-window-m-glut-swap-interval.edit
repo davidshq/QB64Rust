@@ -1,0 +1,10 @@
+# The wasm target's window (OpenSpec change wasm-window): the browser draws a frame when it paints, so there is no
+# swap interval to set, and Emscripten's GLFW cannot set one before the main loop exists (it prints an error).
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+                    glfwSwapInterval(1);
+--- new
+#ifndef QB64_EMSCRIPTEN
+                    glfwSwapInterval(1);
+#endif
+--- end

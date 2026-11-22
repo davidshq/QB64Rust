@@ -18,6 +18,9 @@ It gives the Windows handle of the program's window, for the calls of a `DECLARE
 `IsWindow` of it is true, and `GetWindowTextA` of it reads the window's title.
 <!-- src: language/console-and-window "Window built-ins are compiled"; tests\sandbox\window_title_handle; tests\corpus\screen\w01_window_builtins -->
 
+On the [wasm target](../chapters/wasm-target.md) it is a compile error: a page has no window of the system.
+<!-- src: compiler/wasm-target "What the target does not have is rejected"; crates\driver\tests\it\wasm_target.rs -->
+
 ## Errors
 
 - A form QB64pe rejects is a compile error: `_WINDOWHANDLE()` or two arguments. For example:
