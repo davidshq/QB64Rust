@@ -68,6 +68,11 @@ The corpus suite (tests/corpus of this repo, recorded with the old compiler; no 
     to <file>, as --coverage appends the counts; the two combine. A program must give the
     output recorded for the build without the option (OpenSpec change value-trace). Such a
     run does not stand for a run of a pass list
+  * --call-trace (qb64rust): every program is built with --call-trace, and the `Call stack:`
+    block of each runtime error is cut from its output before the compare, so a program must
+    give the output recorded for the build without the option (OpenSpec change call-trace).
+    Corpus, verification and compile; not with --record or --pass-cache. Such a run does not
+    stand for a run of a pass list
   * <name>.files: a folder of data files the program reads (the pictures a game loads with
     BLOAD). Everything in it is copied into the program's folder before it is compiled, with
     either compiler, when checking and when recording; beside an .err or a .norun it is an
@@ -1140,7 +1145,7 @@ def compile_test(bas: Path, args, results: Path, qb_root: Path, os_tag: str) -> 
     want = wanted_exit_code(0, trace)
     if rc != want:
         return fail("run", f"exit code {rc}" + (f", expected {want}" if want else ""))
-    got = platform_neutral(run_out.read_bytes(), platform_of(args))
+    got = platform_neutral(without_call_stacks(args, run_out.read_bytes()), platform_of(args))
     if norm_output(out_file.read_bytes()) != norm_output(got):
         return fail("result", "program output differs from .output")
     odd = unexpected_rows(trace, allowed_rows(sidecar))
@@ -1906,13 +1911,39 @@ COVERAGE_LOCK = threading.Lock()
 
 
 def instrument_flags(args) -> list[str]:
-    """The compiler's options of --coverage and --trace-values, for a compile line."""
+    """The compiler's options of --coverage, --trace-values and --call-trace, for a compile line."""
     flags = []
     if getattr(args, "coverage", None):
         flags.append("--coverage")
     if getattr(args, "trace_values", None):
         flags.append("--trace-values")
+    if getattr(args, "call_trace", False):
+        flags.append("--call-trace")
     return flags
+
+
+CALL_STACK_LINE = b"Call stack:"
+# A row of the block: two spaces, then a procedure's kind or one of the block's own names (spec
+# compiler/call-trace). A line the program prints with two spaces of its own (`  then`) is not one.
+CALL_STACK_ROW = re.compile(rb"  (SUB |FUNCTION |Main module|Error handler|\.\.\. )")
+
+
+def without_call_stacks(args, data: bytes) -> bytes:
+    """With --call-trace, `data` without the `Call stack:` block of each runtime error: that line and
+    the rows after it (CALL_STACK_ROW). Otherwise `data`."""
+    if not getattr(args, "call_trace", False):
+        return data
+    out, in_block = [], False
+    for line in data.splitlines(keepends=True):
+        bare = line.rstrip(b"\r\n")
+        if bare == CALL_STACK_LINE:
+            in_block = True
+            continue
+        if in_block and CALL_STACK_ROW.match(bare):
+            continue
+        in_block = False
+        out.append(line)
+    return b"".join(out)
 
 
 def values_file(counts: Path) -> Path:
@@ -2241,7 +2272,8 @@ def corpus_test(
         if rc != want and not args.record:
             return fail("run", f"exit code {rc}" + (f", expected {want}" if want else ""))
         codes.append(rc)
-        outputs.append(apply_normalize(platform_neutral(run_out.read_bytes(), platform), rules))
+        run_bytes = without_call_stacks(args, run_out.read_bytes())
+        outputs.append(apply_normalize(platform_neutral(run_bytes, platform), rules))
         if screen:
             # A build that lost the state file, or a program killed before exit(), must not pass.
             if not state_out.is_file():
@@ -2983,7 +3015,11 @@ def verification_compare(
     )
     append_counts(args, counts, timed_out)
     actual = verification_text(
-        platform_neutral(run_out.read_bytes(), platform_of(args)), rc, timed_out, work, platform_of(args)
+        platform_neutral(without_call_stacks(args, run_out.read_bytes()), platform_of(args)),
+        rc,
+        timed_out,
+        work,
+        platform_of(args),
     )
     rules = load_normalize(normalize)
     want = norm_output(apply_normalize(wanted_verification_text(recorded, trace), rules))
@@ -3286,6 +3322,10 @@ def check_list(
     # of the build the lists are about.
     if run.get("trace_values"):
         problems.append("a run with --trace-values cannot stand for a run of the list")
+    # The same for a call-trace build (OpenSpec change call-trace): its output is compared with a
+    # block cut out.
+    if run.get("call_trace"):
+        problems.append("a run with --call-trace cannot stand for a run of the list")
     if problems:
         return problems, [], 0
     results = {(r["suite"], r["test"]): r for r in data.get("results", [])}
@@ -3903,6 +3943,13 @@ def main() -> int:
         "values to FILE (tools/trace)",
     )
     ap.add_argument(
+        "--call-trace",
+        action="store_true",
+        help="corpus, verification or compile with qb64rust, not with --record or --pass-cache: "
+        "build each program with --call-trace and compare its output with the block of each "
+        "runtime error's call stack cut out",
+    )
+    ap.add_argument(
         "--pass-cache",
         type=Path,
         help="corpus, compile and a verification compare: a folder that remembers which programs passed, by "
@@ -3937,6 +3984,15 @@ def main() -> int:
     ):
         print(
             "--trace-values applies to --suite corpus, verification or compile without --record or "
+            "--pass-cache",
+            file=sys.stderr,
+        )
+        return 2
+    if args.call_trace and (
+        args.suite not in ("corpus", "verification", "compile") or args.record or args.pass_cache
+    ):
+        print(
+            "--call-trace applies to --suite corpus, verification or compile without --record or "
             "--pass-cache",
             file=sys.stderr,
         )
@@ -4087,6 +4143,9 @@ def main() -> int:
             print("--trace-values applies to qb64rust only", file=sys.stderr)
             return 2
         args.trace_values = args.trace_values.resolve()
+    if args.call_trace and is_old_compiler(args.qb64):
+        print("--call-trace applies to qb64rust only", file=sys.stderr)
+        return 2
     args.build_cache = build_cache_given(args.build_cache)
     if args.build_cache:
         if is_old_compiler(args.qb64):
@@ -4375,6 +4434,7 @@ def main() -> int:
         "coverage": bool(args.coverage),
         # Only when given, so that the record of any other run is as before.
         **({"trace_values": True} if args.trace_values else {}),
+        **({"call_trace": True} if args.call_trace else {}),
         "full_states": args.full_states,
         "compiler_sha256": file_sha256(args.qb64),
         "runner_sha256": file_sha256(Path(__file__).resolve()),

@@ -3,7 +3,8 @@
 //! `qb64rust [-x] [-q] [-m] [-w] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>]
 //! [--dump tokens|tree|typed|ir|cpp|debug-info]
 //! [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build]
-//! [--coverage] [--trace-values] [--debug] [--fixes on|off] [--fix <name>=on|off]... [--target host|wasm]`
+//! [--coverage] [--trace-values] [--debug] [--call-trace|--no-call-trace] [--fixes on|off] [--fix <name>=on|off]...
+//! [--target host|wasm]`
 //!
 //! `--target wasm` (experimental) builds a `$CONSOLE:ONLY` program to `<name>.js` and `<name>.wasm` for Node (spec
 //! `compiler/cli`, "The target option"; OpenSpec change `wasm-console`), with the Emscripten SDK of `--emsdk-root
@@ -45,8 +46,8 @@ use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x|-c] [-q] [-m] [-w] [-e] [-p] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp|debug-info] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] \
-[--include-root <dir>] [--keep-build] [--coverage] [--trace-values] [--debug] [--fixes on|off] \
-[--fix <name>=on|off]... [--lints on|off] [--lint <code>=on|off]... [--no-settings] [--target host|wasm] \
+[--include-root <dir>] [--keep-build] [--coverage] [--trace-values] [--debug] [--call-trace|--no-call-trace] \
+[--fixes on|off] [--fix <name>=on|off]... [--lints on|off] [--lint <code>=on|off]... [--no-settings] [--target host|wasm] \
 [--emsdk-root <dir>]\n\
        (--target wasm is experimental: a $CONSOLE:ONLY program built to <name>.js and <name>.wasm, run by node)\n\
        qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... [--format-default <layout setting>=<value>]... \
@@ -65,7 +66,8 @@ it from the release's zip; on Linux names the packages)\n\
        qb64rust toolchain install --target wasm    (how to install the Emscripten SDK; installs nothing)\n\
        qb64rust test [<file or folder>...] [--list] [--filter <text>]... [--jobs <n>] [--timeout <seconds>] \
 [--format text|json] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
-[--fixes on|off] [--fix <name>=on|off]... [--no-settings] [--coverage]    (runs the test SUBs of *_test.bas files)\n\
+[--fixes on|off] [--fix <name>=on|off]... [--no-settings] [--coverage] [--call-trace|--no-call-trace]    (runs the \
+test SUBs of *_test.bas files)\n\
        qb64rust --version | --help";
 
 /// The usage of `qb64rust toolchain` (spec `compiler/cli`, "Toolchain subcommand").
@@ -108,6 +110,9 @@ struct Options {
     /// `--debug`: a build for a debugger (design D1 of `m5-debug-build-symbols`): `-g`, unstripped, never optimised,
     /// and the debug symbol file beside the executable.
     debug: bool,
+    /// `--call-trace` (`Some(true)`) or `--no-call-trace` (`Some(false)`), the last one given: a call stack in a
+    /// runtime error's message (OpenSpec change `call-trace`). Over `[build]` `call_trace` and `--debug`.
+    call_trace: Option<bool>,
     /// `-w`: print the warnings too (spec `compiler/cli`).
     warnings: bool,
     /// `-e`: `OPTION _EXPLICIT` forced, as `qb64pe -e` does (spec `compiler/cli`).
@@ -264,6 +269,8 @@ fn parse_args() -> Result<Options, String> {
             "--coverage" => o.coverage = true,
             "--trace-values" => o.trace = true,
             "--debug" => o.debug = true,
+            "--call-trace" => o.call_trace = Some(true),
+            "--no-call-trace" => o.call_trace = Some(false),
             "--fixes" => {
                 let v = value("--fixes")?.to_string_lossy().to_string();
                 o.fixes.push(fixes::parse_fixes_option(&v)?);
@@ -320,11 +327,13 @@ fn parse_args() -> Result<Options, String> {
             || o.debug
             || o.coverage
             || o.trace
+            || o.call_trace.is_some()
             || o.purge)
     {
         return Err(
             "--print-paths prints the paths of a build without -o; it takes only --target and \
-                    --no-settings, not -o, -y, -z, -p, --dump, --report, --debug, --coverage or --trace-values"
+                    --no-settings, not -o, -y, -z, -p, --dump, --report, --debug, --coverage, --trace-values or \
+                    --call-trace"
                 .into(),
         );
     }
@@ -712,6 +721,8 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
             "--fix" => o.fixes.push(fixes::parse_fix_option(&value("--fix")?)?),
             "--no-settings" => o.no_settings = true,
             "--coverage" => o.coverage = true,
+            "--call-trace" => o.call_trace = Some(true),
+            "--no-call-trace" => o.call_trace = Some(false),
             _ if s.starts_with('-') => return Err(format!("`test` does not take `{s}`")),
             _ => paths.push(PathBuf::from(a)),
         }
@@ -789,6 +800,7 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
         fixes: o.fixes.clone(),
         no_settings: o.no_settings,
         coverage: o.coverage,
+        call_trace: o.call_trace,
         coverage_file: std::env::var_os(run::COVERAGE_ENV)
             .filter(|v| !v.is_empty())
             .map(|v| std::path::absolute(PathBuf::from(&v)).unwrap_or_else(|_| PathBuf::from(v))),
@@ -1065,6 +1077,7 @@ fn run() -> Result<ExitCode, String> {
         keep_build: o.keep_build,
         coverage: o.coverage,
         trace: o.trace,
+        call_trace: build.call_trace(o.call_trace, o.debug),
         debug: o.debug,
         warnings: o.warnings,
         explicit: o.explicit,

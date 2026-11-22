@@ -102,13 +102,18 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    <parse|compile|server|all> <minutes>` fuzzes the front end with `cargo-fuzz` in WSL (`tools\fuzz\README.md`),
    and the workflow does the same on GitHub's runner. The first campaign found one bug, now fixed:
    `CONST p = 4 ^ 0.5` never finished compiling.
-0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
-   commit reviewed: `ce6e54aee` (2026-11-13, 87 commits, `docs\UPSTREAM-REVIEW.md`). `..\QB64pe-latest` was
-   pulled again on 2026-11-14 for the merge of `after-pr26`: no commit came after it.
+0. **Review QB64pe's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
+   commit reviewed: `35f943174` (2026-11-21, 32 commits, `docs\UPSTREAM-REVIEW.md`), for the merge of
+   `after-pr-27-real`.
 0. **The OpenSpec change `build-output-folder`** (`DECISIONS.md` 2026-11-21): a build without `-o` writes into
    `build`, `[build]` names the folder and the data files to copy, and the extension runs the program where
    `qb64rust --print-paths` says. All 16 tasks are built, Civil War Strategy's `[build]` table among them; the
    extension's integration suite has not run yet (CI). Archived 2026-11-21, its specs synced.
+0. **The OpenSpec change `call-trace`** (`DECISIONS.md` 2026-11-21): a runtime error's message lists the
+   procedures that were running, with the line of each call, in a build with `--call-trace`, with `call_trace =
+   true` in `[build]`, or with `--debug` (D-076). Built, open: task 3.4's measure of `g12_game`'s scripts, which
+   run `SHELL` and so need the suites VM. A call costs about 7 ns more in the default build on Windows and Linux,
+   2 to 5 ns with `-O2` (`docs\MANUAL.md`).
 1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
    `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a
    `$CONSOLE:ONLY` program for Node, and 3,664 of the 3,766 verification programs it runs pass (97.3%, 0 failing,

@@ -1,0 +1,27 @@
+# A call-trace build's call stack in the report of an untrapped error, after the error's text and before
+# "Continue?" (OpenSpec change call-trace, design D6; call-trace-a-error-hook-header.edit). The dialog and the stderr
+# text of QB64PE_NOPROMPT both get it. Without the hook the text is QB64pe's, byte for byte.
+file: internal/c/libqb/src/error_handle.cpp
+--- old
+        len = snprintf(errmess, 0, FIXERRMSG_BODY, (inclercl ? inclercl : ercl), (inclercl ? includedfilename : FIXERRMSG_MAINFILE), cp,
+                       ((!prevent_handling && !noprompt_on_fatal_error()) ? FIXERRMSG_CONT : ""));
+        errmess = (char *)malloc(len + 1);
+        if (!errmess) {
+            exit_after_fatal_error(); // At this point we just give up
+            return;
+        }
+        snprintf(errmess, len + 1, FIXERRMSG_BODY, (inclercl ? inclercl : ercl), (inclercl ? includedfilename : FIXERRMSG_MAINFILE), cp,
+                 ((!prevent_handling && !noprompt_on_fatal_error()) ? FIXERRMSG_CONT : ""));
+--- new
+#define FIXERRMSG_BODY_STACK "Line: %u (in %s)\n%s%s%s"
+        const char *call_stack = libqb_error_call_stack ? libqb_error_call_stack(ercl, inclercl, inclercl ? includedfilename : NULL) : "";
+        len = snprintf(errmess, 0, FIXERRMSG_BODY_STACK, (inclercl ? inclercl : ercl), (inclercl ? includedfilename : FIXERRMSG_MAINFILE), cp,
+                       call_stack, ((!prevent_handling && !noprompt_on_fatal_error()) ? FIXERRMSG_CONT : ""));
+        errmess = (char *)malloc(len + 1);
+        if (!errmess) {
+            exit_after_fatal_error(); // At this point we just give up
+            return;
+        }
+        snprintf(errmess, len + 1, FIXERRMSG_BODY_STACK, (inclercl ? inclercl : ercl), (inclercl ? includedfilename : FIXERRMSG_MAINFILE), cp,
+                 call_stack, ((!prevent_handling && !noprompt_on_fatal_error()) ? FIXERRMSG_CONT : ""));
+--- end

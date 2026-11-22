@@ -8,6 +8,7 @@
 //! - `cpp-linux`: as `cpp`, for a build on Linux (design D3 of `m7-linux`);
 //! - `coverage`: no errors; the fragments of a `--coverage` build are a snapshot (design D1 of `cws-whole-game`);
 //! - `trace`: no errors; the fragments of a `--trace-values` build are a snapshot (OpenSpec change `value-trace`);
+//! - `call-trace`: no errors; the fragments of a `--call-trace` build are a snapshot (OpenSpec change `call-trace`);
 //! - `debug-info`: no errors; the debug symbol file of a debug build is a snapshot (design D3 of
 //!   `m5-debug-build-symbols`), the files' paths relative to the test folder;
 //! - `warnings`: no errors; the warnings, as `-w` prints them, are a snapshot (design D10 of `lints`).
@@ -33,6 +34,7 @@ const MODES: &[&str] = &[
     "cpp-linux",
     "coverage",
     "trace",
+    "call-trace",
     "debug-info",
     "warnings",
 ];
@@ -90,6 +92,7 @@ fn run(name: &str, path: &Path, bytes: Vec<u8>, mode: &str) -> Result<Option<Str
                 "cpp-linux" => Some(dump_cpp(&fe, &fixed_linux_libraries(&fe.program), Instrument::NONE)),
                 "coverage" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), Instrument::COVERAGE)),
                 "trace" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), Instrument::TRACE)),
+                "call-trace" => Some(dump_cpp(&fe, &fixed_libraries(&fe.program), Instrument::CALL_TRACE)),
                 "debug-info" => Some(dump_debug_info(&fe, &fixed_libraries(&fe.program))),
                 "warnings" => Some(fe.render_with_warnings()),
                 _ => unreachable!(),

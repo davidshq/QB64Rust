@@ -53,6 +53,8 @@ pub struct Build {
     pub output: PathBuf,
     /// The entries of `copy`, in the order written.
     pub copy: Vec<CopyEntry>,
+    /// `call_trace`, when the table sets it (OpenSpec change `call-trace`, design D7).
+    pub call_trace: Option<bool>,
 }
 
 /// One entry of `[build]` `copy`: a file or a folder that a build copies into the output folder.
@@ -86,7 +88,14 @@ impl Build {
                     line: *line,
                 })
                 .collect(),
+            call_trace: table.call_trace,
         }
+    }
+
+    /// Whether a build has the call trace (spec `compiler/cli`, "When a build has the call trace"): `cli`, the
+    /// command line's `--call-trace` or `--no-call-trace`, over the table's `call_trace`, over `debug`.
+    pub fn call_trace(&self, cli: Option<bool>, debug: bool) -> bool {
+        cli.or(self.call_trace).unwrap_or(debug)
     }
 
     /// A program with no settings file, whose main file is `main`: `build` in the main file's folder, nothing to
@@ -105,6 +114,7 @@ struct BuildTable {
     copy: Vec<(String, u32)>,
     /// The line of the `copy` key, for an error about the list as a whole.
     copy_line: u32,
+    call_trace: Option<bool>,
 }
 
 /// What [`parse_all`] reads from a settings file.
@@ -404,10 +414,14 @@ fn build_table(table: &DeTable<'_>, line: &dyn Fn(usize) -> u32) -> Result<Build
                     out.copy.push((path.to_string(), at));
                 }
             }
+            "call_trace" => {
+                let switch = "the value of `call_trace` must be `true` or `false`";
+                out.call_trace = Some(value.get_ref().as_bool().ok_or_else(|| (at, switch.to_string()))?);
+            }
             _ => {
                 return Err((
                     line(key.span().start),
-                    format!("unknown build setting `{name}`; the settings are output, copy"),
+                    format!("unknown build setting `{name}`; the settings are output, copy, call_trace"),
                 ));
             }
         }
@@ -728,7 +742,8 @@ mod tests {
             Build {
                 root: g.clone(),
                 output: g.join("build"),
-                copy: vec![]
+                copy: vec![],
+                call_trace: None,
             },
             "no settings file"
         );
@@ -782,9 +797,12 @@ mod tests {
             err("[build]\nout = \"build\"\n"),
             (
                 2,
-                "unknown build setting `out`; the settings are output, copy".to_string()
+                "unknown build setting `out`; the settings are output, copy, call_trace".to_string()
             )
         );
+        let switch = "the value of `call_trace` must be `true` or `false`".to_string();
+        assert_eq!(err("[build]\ncall_trace = \"yes\"\n"), (2, switch.clone()));
+        assert_eq!(err("[build]\n\ncall_trace = 1\n"), (3, switch));
         let folder = "the value of `output` must be a folder, as `output = \"build\"`".to_string();
         assert_eq!(err("[build]\noutput = 1\n"), (2, folder));
         let (line, msg) = err("[build]\n\noutput = \"\"\n");
@@ -819,6 +837,29 @@ mod tests {
             err("build = 1\n"),
             (1, "`build` must be a table, as `[build]`".to_string())
         );
+    }
+
+    /// `call_trace` as written, and [`Build::call_trace`]'s order (spec `compiler/cli`, "When a build has the call
+    /// trace"): the command line, then the settings file, then `--debug`.
+    #[test]
+    fn call_trace_setting() {
+        assert_eq!(build("[build]\ncall_trace = true\n").unwrap().call_trace, Some(true));
+        assert_eq!(build("[build]\ncall_trace = false\n").unwrap().call_trace, Some(false));
+        assert_eq!(build("[build]\noutput = \"b\"\n").unwrap().call_trace, None);
+        let with = |file| Build {
+            call_trace: file,
+            ..Build::without_settings(Path::new("g.bas"))
+        };
+        // No option and no setting: the call trace only in a debug build.
+        assert!(!with(None).call_trace(None, false));
+        assert!(with(None).call_trace(None, true));
+        // The settings file over `--debug`.
+        assert!(with(Some(true)).call_trace(None, false));
+        assert!(!with(Some(false)).call_trace(None, true));
+        // The command line over the settings file.
+        assert!(!with(Some(true)).call_trace(Some(false), false));
+        assert!(!with(None).call_trace(Some(false), true));
+        assert!(with(Some(false)).call_trace(Some(true), false));
     }
 
     /// [`resolve_build`] of a settings file in the folder `proj`: no `copy` entry is or holds the output folder,

@@ -335,6 +335,9 @@ impl Emitter<'_> {
             ExprKind::CallProc { proc, args } => {
                 let a = self.args(*proc, args);
                 self.trace_call(*proc, args);
+                if let Some(c) = &mut self.call_trace {
+                    c.called = true;
+                }
                 format!("{}({a})", proc_name(self.p.proc(*proc)))
             }
         }

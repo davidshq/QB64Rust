@@ -116,7 +116,8 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `--fixes on\|off`, `--fix <name>=on\|off` | Every fix, or one fix, over the settings file's `[fixes]` |
 | `--lints on\|off`, `--lint <code>=on\|off` | Every warning about a likely mistake, or one of them, over the settings file's `[lints]` |
 | `--no-settings` | Read no `qb64rust.toml`; take every setting from the command line and the defaults |
-| `--debug` | A build for a debugger: with debug information, never optimised |
+| `--debug` | A build for a debugger: with debug information, never optimised, and with the call stack of `--call-trace` |
+| `--call-trace`, `--no-call-trace` | A runtime error's message also lists the procedures that were running, with the line of each call; see [The call stack of a runtime error](#the-call-stack-of-a-runtime-error) |
 | `--coverage` | A build that counts how often each statement runs; see [Measuring which lines run](#measuring-which-lines-run) |
 | `--trace-values` | A build that records the values each variable takes; see [Recording the values of variables](#recording-the-values-of-variables) |
 | `--include-root <dir>` | Where `$INCLUDE` files and `DECLARE LIBRARY` headers are looked for after the program's own folder (by default the folder of `qb64rust.exe`, as QB64pe looks in its own folder) |
@@ -234,6 +235,10 @@ folder, and `copy` needs an output folder other than `"."`. A build with `-o` co
 **Started outside the editor.** A program started by a double click on `build\game.exe` runs in `build`. It finds
 there only the data files that `copy` put there. Start it from the source folder, list its files in `copy`, or set
 `output = "."`.
+
+**The call stack.** `call_trace = true` in `[build]` gives every build of the project, its unit tests among them,
+the call stack in a runtime error's message ([The call stack of a runtime error](#the-call-stack-of-a-runtime-error)).
+`call_trace = false` turns it off in a debug build too.
 
 `[build]` is read from the first release after 0.3.0. An older compiler ignores the table and builds next to the
 program.
@@ -400,6 +405,48 @@ A traced program behaves as the normal build does, with the same output, errors 
 and uses more memory, so build without the option for everyday use. The option combines with `--coverage` and
 `--debug`. The trace tool's own options (JSON output, one variable by name), the full list of what is not
 recorded, and the record format are described in [tools/trace/README.md](../tools/trace/README.md).
+
+## The call stack of a runtime error
+
+QB64pe's message for a runtime error names only the line. When that line is in a `SUB` that many places call, it
+does not say which call led there. A program built with `--call-trace` adds the procedures that were running, the
+innermost first, each with the line of the call it made:
+
+```
+qb64rust game.bas --call-trace
+```
+
+```
+Line: 212 (in army.bm)
+Illegal function call
+Call stack:
+  SUB flag_x (rules/army.bm:212)
+  SUB resolve (rules/events.bm:88)
+  Main module (game.bas:60)
+  Main module, GOSUB (game.bas:41)
+Continue?
+```
+
+- The first row is where the error happened. Each row below it is the procedure that made the call above it, at
+  the line of that call. Files are named by their path from the main file's folder.
+- A `GOSUB` that has not returned yet has a row of its own, under the row of its procedure or the main module.
+  Above, the main module called `resolve` on line 60, inside a subroutine that the `GOSUB` on line 41 jumped to.
+- A `SUB` or label that `ON TIMER`, `ON KEY` or `ON STRIG` ran shows `(event)` on the row below it: the line the
+  event interrupted is not known.
+- An error inside an `ON ERROR` handler shows `Error handler` first. The procedure whose error it was handling has
+  no line on its row.
+- A long call stack shows its 16 innermost rows, a row of how many were left out, and its 7 outermost rows.
+- The same block is in the dialog, in the text on stderr under `QB64PE_NOPROMPT`, and in the message of a
+  critical error such as out of stack space.
+
+A `--debug` build has the call stack unless `--no-call-trace` is given. `call_trace = true` in the settings file's
+`[build]` table turns it on for every build of the project, and `call_trace = false` off; the command line wins
+over the file, and the file over `--debug`. A build without it prints QB64pe's message.
+
+The program otherwise behaves as without the option. Each call of a `SUB` or `FUNCTION` costs a little more: on
+the development machine (Windows, 2026-11-22), a loop of 10 million calls of an empty `SUB` took 0.20 s in place of
+0.13 s in the default build (about 7 ns a call), and 0.13 s in place of 0.08 s with `-f:OptimizeCppProgram=true`
+(about 5 ns a call). On Linux the same loop took 0.17 s in place of 0.10 s, and 0.10 s in place of 0.08 s.
 
 ## Where it differs from QB64pe
 

@@ -434,11 +434,12 @@ pub fn probe(kind: Probe, bytes: &[u8]) -> Result<Reached, &'static str> {
             round_trip(&fe.parsed)?;
             let emitted = !fe.has_errors() && bytes.len() <= PROBE_EMIT_MAX_LEN;
             if emitted {
-                // The emission that runs the most of the emitter: a debug build's, with coverage counters and the
-                // record calls of a value-trace build.
+                // The emission that runs the most of the emitter: a debug build's, with coverage counters, the
+                // record calls of a value-trace build and the frames of a call-trace build.
                 let instrument = Instrument {
                     coverage: true,
                     trace: true,
+                    call_trace: true,
                 };
                 emit_ir_debug(&fe, &lower(&fe), &Resolved::default(), instrument, None);
             }
@@ -629,20 +630,27 @@ pub struct Instrument {
     pub coverage: bool,
     /// `--trace-values`: a record call at each store into a variable (OpenSpec change `value-trace`).
     pub trace: bool,
+    /// `--call-trace`: a call stack in a runtime error's message (OpenSpec change `call-trace`).
+    pub call_trace: bool,
 }
 
 impl Instrument {
     pub const NONE: Instrument = Instrument {
         coverage: false,
         trace: false,
+        call_trace: false,
     };
     pub const COVERAGE: Instrument = Instrument {
         coverage: true,
-        trace: false,
+        ..Instrument::NONE
     };
     pub const TRACE: Instrument = Instrument {
-        coverage: false,
         trace: true,
+        ..Instrument::NONE
+    };
+    pub const CALL_TRACE: Instrument = Instrument {
+        call_trace: true,
+        ..Instrument::NONE
     };
 }
 
@@ -684,28 +692,39 @@ fn emit_ir_all(
     let trace = instrument.trace.then(|| qb64rust_codegen_cpp::Trace {
         files: coverage_files(fe),
     });
+    // The paths of a coverage record, and each procedure's header line for its name as declared (OpenSpec change
+    // `call-trace`, design D6).
+    let line = |file: qb64rust_base::FileId, line: u32| {
+        let bytes = &fe.map.file(file).bytes;
+        let text = bytes
+            .split(|&b| b == b'\n')
+            .nth(usize::try_from(line).ok()?.checked_sub(1)?)?;
+        Some(qb64rust_base::show_bytes(text))
+    };
+    let call_trace = instrument.call_trace.then(|| qb64rust_codegen_cpp::CallTrace {
+        files: coverage_files(fe).into_iter().map(|(path, _)| path).collect(),
+        main: fe.file,
+        line: &line,
+    });
     let source_name = &fe.map.file(fe.file).name;
+    let watch = qb64rust_codegen_cpp::Watch {
+        coverage: coverage.as_ref(),
+        trace: trace.as_ref(),
+        call_trace: call_trace.as_ref(),
+    };
     if debug {
         let (fragments, info) = qb64rust_codegen_cpp::emit_debug(
             ir,
             source_name,
             &included,
             resolved,
-            (coverage.as_ref(), trace.as_ref()),
+            watch,
             log_folder,
             &debug_files(fe),
         );
         return (fragments, Some(info));
     }
-    let fragments = qb64rust_codegen_cpp::emit_with(
-        ir,
-        source_name,
-        &included,
-        resolved,
-        coverage.as_ref(),
-        trace.as_ref(),
-        log_folder,
-    );
+    let fragments = qb64rust_codegen_cpp::emit_with(ir, source_name, &included, resolved, watch, log_folder);
     (fragments, None)
 }
 

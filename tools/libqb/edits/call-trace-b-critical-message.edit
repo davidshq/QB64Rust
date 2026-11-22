@@ -1,0 +1,40 @@
+# A call-trace build's call stack after the text of a critical error, error 256 (out of stack space) among them
+# (OpenSpec change call-trace, design D6; call-trace-a-error-hook-header.edit). The buffer stays static and the
+# hook allocates nothing, since the stack can be nearly full. The position is the one $ERRORLOCATION:ON tracks, or
+# none.
+file: internal/c/libqb/src/error_handle.cpp
+--- old
+static const char *critical_error_message(const char *message) {
+    static char errmess[1024];
+    uint32_t srcLine;
+    const char *srcFile;
+
+    if (get_current_error_location(srcLine, srcFile))
+        snprintf(errmess, sizeof(errmess), "Line: %u (in %s)\n%s", srcLine, srcFile, message);
+    else
+        snprintf(errmess, sizeof(errmess), "%s\nEnable $ErrorLocation:ON for source location details.", message);
+
+    return errmess;
+}
+--- new
+const char *(*libqb_error_call_stack)(uint32_t line, uint32_t include_line, const char *include_file) = NULL;
+
+static const char *critical_error_message(const char *message) {
+    static char errmess[1024 + 4096];
+    uint32_t srcLine;
+    const char *srcFile;
+
+    if (get_current_error_location(srcLine, srcFile))
+        snprintf(errmess, sizeof(errmess), "Line: %u (in %s)\n%s", srcLine, srcFile, message);
+    else
+        snprintf(errmess, sizeof(errmess), "%s\nEnable $ErrorLocation:ON for source location details.", message);
+
+    if (libqb_error_call_stack) {
+        size_t used = strlen(errmess);
+        snprintf(errmess + used, sizeof(errmess) - used, "%s",
+                 libqb_error_call_stack(current_ercl, current_inclercl, current_inclercl ? current_includedfilename : NULL));
+    }
+
+    return errmess;
+}
+--- end

@@ -167,6 +167,9 @@ impl Emitter<'_> {
                 out.push("goto exit_subfunc;".into());
             }
             Op::Run(t) => {
+                if self.call_trace.is_some() {
+                    out.push("qbr_ct_reset();".into());
+                }
                 out.push("sub_run_init();".into());
                 out.push("sub_clear(NULL,NULL,NULL,NULL);".into());
                 match t {
@@ -193,11 +196,20 @@ impl Emitter<'_> {
                 } else {
                     "qbr_diverged(45); goto exit_subfunc;"
                 };
+                // A call-trace build takes the handler's frame off. `RESUME label` in the main module leaves the
+                // code that raised the error, so its frames go too (design D5 of `call-trace`).
+                let frames = match (self.call_trace.is_some(), r, self.k) {
+                    (false, ..) => "",
+                    (true, Resume::To(_), 0) => "qbr_ct_reset(); ",
+                    (true, ..) => "qbr_ct_resume(); ",
+                };
                 let then = match r {
-                    Resume::Retry => format!("error_retry=1; qbevent=1; error_handling=0; error_err=0; {leave}"),
-                    Resume::Next => format!("error_handling=0; error_err=0; {leave}"),
+                    Resume::Retry => {
+                        format!("{frames}error_retry=1; qbevent=1; error_handling=0; error_err=0; {leave}")
+                    }
+                    Resume::Next => format!("{frames}error_handling=0; error_err=0; {leave}"),
                     // A label of the body it stands in, as `RESUME label` in a SUB names the SUB's own.
-                    Resume::To(l) => format!("error_handling=0; error_err=0; goto {};", self.local_label(*l)),
+                    Resume::To(l) => format!("{frames}error_handling=0; error_err=0; goto {};", self.local_label(*l)),
                 };
                 out.push(format!("if (!error_handling){{error(20);}}else{{{then}}}"));
             }
@@ -262,6 +274,11 @@ impl Emitter<'_> {
             Op::Gosub(l) => {
                 self.gosubs += 1;
                 let g = self.gosubs;
+                // A call-trace build reads a pending GOSUB's line from this id (design D4 of `call-trace`).
+                if let Some(c) = &mut self.call_trace {
+                    let file = self.stmt_at.0.unwrap_or(c.main());
+                    c.gosub(g, file, self.stmt_at.1);
+                }
                 // With an error pending the jump is not taken and nothing is pushed.
                 if raised {
                     out.push("if (!is_error_pending()){".into());
@@ -309,6 +326,9 @@ impl Emitter<'_> {
                     let a = self.args(*proc, args);
                     out.push(format!("{}({a});", proc_name(q)));
                     self.trace_call(*proc, args);
+                    if let Some(c) = &mut self.call_trace {
+                        c.called = true;
+                    }
                 }
                 let string_param = |v: &qb64rust_ir::Var| !v.is_array() && is_qbs(v.ty);
                 let strings = args.iter().any(|a| a.uses_strings(self.p))

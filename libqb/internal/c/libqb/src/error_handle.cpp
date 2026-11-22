@@ -72,8 +72,10 @@ static bool get_current_error_location(uint32_t &srcLine, const char *&srcFile) 
 // Formats fatal runtime errors without dynamic allocation. Static storage
 // keeps the out-of-stack path from allocating another object while reporting
 // the original failure.
+const char *(*libqb_error_call_stack)(uint32_t line, uint32_t include_line, const char *include_file) = NULL;
+
 static const char *critical_error_message(const char *message) {
-    static char errmess[1024];
+    static char errmess[1024 + 4096];
     uint32_t srcLine;
     const char *srcFile;
 
@@ -81,6 +83,12 @@ static const char *critical_error_message(const char *message) {
         snprintf(errmess, sizeof(errmess), "Line: %u (in %s)\n%s", srcLine, srcFile, message);
     else
         snprintf(errmess, sizeof(errmess), "%s\nEnable $ErrorLocation:ON for source location details.", message);
+
+    if (libqb_error_call_stack) {
+        size_t used = strlen(errmess);
+        snprintf(errmess + used, sizeof(errmess) - used, "%s",
+                 libqb_error_call_stack(current_ercl, current_inclercl, current_inclercl ? current_includedfilename : NULL));
+    }
 
     return errmess;
 }
@@ -407,15 +415,17 @@ void fix_error() {
 #define FIXERRMSG_UNHAND "Unhandled Error #"
 #define FIXERRMSG_CRIT "Critical Error #"
 
-        len = snprintf(errmess, 0, FIXERRMSG_BODY, (inclercl ? inclercl : ercl), (inclercl ? includedfilename : FIXERRMSG_MAINFILE), cp,
-                       ((!prevent_handling && !noprompt_on_fatal_error()) ? FIXERRMSG_CONT : ""));
+#define FIXERRMSG_BODY_STACK "Line: %u (in %s)\n%s%s%s"
+        const char *call_stack = libqb_error_call_stack ? libqb_error_call_stack(ercl, inclercl, inclercl ? includedfilename : NULL) : "";
+        len = snprintf(errmess, 0, FIXERRMSG_BODY_STACK, (inclercl ? inclercl : ercl), (inclercl ? includedfilename : FIXERRMSG_MAINFILE), cp,
+                       call_stack, ((!prevent_handling && !noprompt_on_fatal_error()) ? FIXERRMSG_CONT : ""));
         errmess = (char *)malloc(len + 1);
         if (!errmess) {
             exit_after_fatal_error(); // At this point we just give up
             return;
         }
-        snprintf(errmess, len + 1, FIXERRMSG_BODY, (inclercl ? inclercl : ercl), (inclercl ? includedfilename : FIXERRMSG_MAINFILE), cp,
-                 ((!prevent_handling && !noprompt_on_fatal_error()) ? FIXERRMSG_CONT : ""));
+        snprintf(errmess, len + 1, FIXERRMSG_BODY_STACK, (inclercl ? inclercl : ercl), (inclercl ? includedfilename : FIXERRMSG_MAINFILE), cp,
+                 call_stack, ((!prevent_handling && !noprompt_on_fatal_error()) ? FIXERRMSG_CONT : ""));
 
         len = snprintf(errtitle, 0, FIXERRMSG_TITLE, (!prevent_handling ? FIXERRMSG_UNHAND : FIXERRMSG_CRIT), new_error, binary_name->chr);
         errtitle = (char *)malloc(len + 1);

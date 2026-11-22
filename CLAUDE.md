@@ -204,6 +204,8 @@ changing direction, design or scope.**
       general. "18 programs where we report the error at the SUB line" beats both "some exceptions" and
       "18 rows (D5)".
     - Use normal word order and common words. Avoid chains of parentheses and semicolons.
+    - Never write "upstream" alone: name the project, such as "QB64pe's new commits" or "upstream QBJS"
+      (user, 2026-11-21). Several projects here have an upstream.
     - Commit messages: a subject of about 50 characters that completes "If applied, this commit will …", and a
       body wrapped at 72 characters that says what changed and why.
 

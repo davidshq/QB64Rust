@@ -39,6 +39,9 @@ pub struct CompileOptions {
     pub coverage: bool,
     /// `--trace-values`: a record call at each store into a variable (OpenSpec change `value-trace`).
     pub trace: bool,
+    /// A call stack in a runtime error's message (OpenSpec change `call-trace`): `--call-trace`, `[build]`
+    /// `call_trace`, or `--debug`, as `settings::Build::call_trace` decides.
+    pub call_trace: bool,
     pub debug: bool,
     /// `-w`.
     pub warnings: bool,
@@ -179,6 +182,7 @@ pub fn compile_exe(
     let instrument = Instrument {
         coverage: o.coverage,
         trace: o.trace,
+        call_trace: o.call_trace,
     };
     // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
     let report = |fe: &Frontend, out: &mut dyn FnMut(&str)| {

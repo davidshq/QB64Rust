@@ -73,9 +73,15 @@ impl<'a> Emitter<'a> {
     pub(crate) fn main0(&mut self) -> String {
         // Tells the runtime that this program tracks error locations itself (it does not: no `$ERRORLOCATION`),
         // so a critical error says "Enable $ErrorLocation:ON" as with the old compiler, instead of a line number
-        // from the runtime's fallback for old executables (measured with `s11_on_error`, error 11). Runs again
-        // each time a handler re-enters `QBMAIN`, as in the old compiler.
+        // from the runtime's fallback for old executables (measured with `s11_on_error`, error 11). Runs once: a
+        // handler's or an event's new entry into `QBMAIN` jumps past it (`mainerr.txt` and the event jumpers come
+        // first in `qbx.cpp`, and each ends in a `goto`).
         let mut out = String::from("error_track_line(0,0,NULL);\nS_0:;\n");
+        // A call-trace build: the thread that runs the main module has its row (`call_trace_rt.h`). It runs once,
+        // as the line above does.
+        if self.call_trace.is_some() {
+            out.insert_str(0, "qbr_ct.main=1;\n");
+        }
         let p = self.p;
         self.body(&p.main, 0, &mut out);
         out.push_str("sub_end();\nreturn;\n");
@@ -85,9 +91,11 @@ impl<'a> Emitter<'a> {
             // `runline.txt`, or at the top for 0.
             self.func_decls
                 .push("static int32 qbr_unwinding=0;\nstatic int32 qbr_run_target=0;\n".into());
-            out.push_str(
-                "qbr_run:;\nqbr_diverged(46);\nqbr_unwinding=0;\nsub_run_init();\nsub_clear(NULL,NULL,NULL,NULL);\n",
-            );
+            out.push_str("qbr_run:;\n");
+            if self.call_trace.is_some() {
+                out.push_str("qbr_ct_reset();\n");
+            }
+            out.push_str("qbr_diverged(46);\nqbr_unwinding=0;\nsub_run_init();\nsub_clear(NULL,NULL,NULL,NULL);\n");
             out.push_str(&self.console_again());
             out.push_str("run_from_line=qbr_run_target;\n#include \"runline.txt\"\ngoto S_0;\n");
         }
@@ -211,6 +219,16 @@ impl<'a> Emitter<'a> {
 
         let mut main = String::new();
         let mut header = vec![format!("{}{{", self.signature(proc))];
+        // A call-trace build's frame, first, so that every way to `exit_subfunc`, which pops it, comes after it
+        // (design D1 of `call-trace`). Procedure K is frame procedure K + 1: 0 is the main module, 1 a handler.
+        // The thread's state is taken once, as a variable of the function, so that the push and the pop declare
+        // none and make no block of their own for a debugger (`call_trace_rt.h`).
+        if self.call_trace.is_some() {
+            header.push(format!(
+                "qbr_ct_state &qbr_ct_s=qbr_ct;qbr_ct_push_to(qbr_ct_s,{},qbr_ct_s.site);",
+                k + 1
+            ));
+        }
         header.extend(PROLOGUE.iter().map(|s| s.to_string()));
         header.push(format!("#include \"data{k}.txt\""));
         header.extend(PROLOGUE_AFTER_DATA.iter().map(|s| s.to_string()));
@@ -241,6 +259,9 @@ impl<'a> Emitter<'a> {
             main.push_str("exit_subfunc:;{volatile char qbr_join=0;(void)qbr_join;}\n");
         } else {
             footer.push("exit_subfunc:;".to_string());
+        }
+        if self.call_trace.is_some() {
+            footer.push("qbr_ct_pop_from(qbr_ct_s);".to_string());
         }
         // A FUNCTION `f$n`: a copy of its n bytes, made before the epilogue releases the static pool they lie in (the
         // old compiler returns the fixed string itself, so a second call in the same expression overwrites the first
@@ -286,6 +307,9 @@ impl<'a> Emitter<'a> {
             self.checking = s.checked;
             // Whether an earlier operation of the statement may have left an error pending.
             let mut raised = false;
+            if let Some(c) = &mut self.call_trace {
+                c.called = false;
+            }
             for op in &s.ops {
                 // A value-trace build counts the operation's bulk stores and stores at an address before it, and
                 // writes after it the reads and counters of the calls in its values (`trace.rs`). A line left over
@@ -310,6 +334,11 @@ impl<'a> Emitter<'a> {
             // A coverage build counts the statement before it runs, outside its `do{…}while(r);`, so a retry by the
             // runtime is not counted again.
             let mut count: Vec<String> = self.coverage.as_mut().and_then(|c| c.count(s)).into_iter().collect();
+            // A call-trace build's statement that calls a procedure of the program stores its site first, for the
+            // frame the call pushes (design D2 of `call-trace`).
+            if let Some(c) = self.call_trace.as_mut().filter(|c| c.called) {
+                count.push(c.store(s.span.file, s.line));
+            }
             // Under `$ERRORLOCATION:ON` the old compiler records the statement's line before its code, after any
             // label's, for every source statement, block headers, branches and closers included, and not for a
             // label or the `$CONSOLE:ONLY` switch (design D6 of `m4-builtins-remaining`; its C++ of
