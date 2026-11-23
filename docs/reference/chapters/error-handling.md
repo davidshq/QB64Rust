@@ -40,4 +40,4 @@ The message of an error that no handler takes names its line and the error. A pr
 or a debug build, adds a `Call stack:` block after them: the procedures that were running, the innermost first, each
 with the line of its call, and each `GOSUB` that has not returned. `call_trace = true` in `[build]` of
 `qb64rust.toml` turns it on for a project.
-<!-- src: D-076 -->
+<!-- src: compiler/call-trace "The call stack of a runtime error"; compiler/cli "When a build has the call trace"; D-076 -->

@@ -447,6 +447,9 @@ The program otherwise behaves as without the option. Each call of a `SUB` or `FU
 the development machine (Windows, 2026-11-22), a loop of 10 million calls of an empty `SUB` took 0.20 s in place of
 0.13 s in the default build (about 7 ns a call), and 0.13 s in place of 0.08 s with `-f:OptimizeCppProgram=true`
 (about 5 ns a call). On Linux the same loop took 0.17 s in place of 0.10 s, and 0.10 s in place of 0.08 s.
+A whole game shows no difference: Civil War Strategy's ten test scripts (`g12_game`) all passed with the option
+in a Windows VM (2026-11-22). Its `endings` script, timed three times with each build, took about 5 s to run
+either way, and its build about 6 s either way.
 
 ## Where it differs from QB64pe
 

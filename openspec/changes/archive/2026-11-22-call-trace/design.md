@@ -229,8 +229,12 @@ compares stderr would fail on the 45 programs that end in a runtime error. Those
   The machine's own speed moved between the two sessions (the default build without the option took 0.211 s,
   then 0.155 s). Each pair was run in turn in one loop, so each difference holds. On Linux (this tree's copy in
   WSL on the same machine, `g++`), with the macros: 0.112 s and 0.166 s in the default build (about 5 ns a call),
-  0.078 s and 0.094 s with `-O2` (about 2 ns). `g12_game`'s scripts are not measured: they run `SHELL`, which
-  shows a window on the host (`CLAUDE.md` working rule 6), and the screen runner takes no `--call-trace`.
+  0.078 s and 0.094 s with `-O2` (about 2 ns). `g12_game`'s scripts run `SHELL`, which shows a window on the
+  host (`CLAUDE.md` working rule 6), so they ran in the suites VM with the runner's `--call-trace` (2026-11-22).
+  All ten passed in three rounds of each build. A test's time there is the build and the run together, and it
+  varied from 3.5 s to 146 s in both builds, so it shows no cost. `endings` alone, the build and the run timed
+  apart in three rounds: the build 5.5 to 6.1 s without and 5.7 to 7.4 s with, the run 5.0 to 6.0 s without and
+  4.8 to 5.4 s with (the first build of a fresh VM, 25.9 s, left out).
 
 ## Risks / Trade-offs
 

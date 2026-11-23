@@ -111,8 +111,8 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    extension's integration suite has not run yet (CI). Archived 2026-11-21, its specs synced.
 0. **The OpenSpec change `call-trace`** (`DECISIONS.md` 2026-11-21): a runtime error's message lists the
    procedures that were running, with the line of each call, in a build with `--call-trace`, with `call_trace =
-   true` in `[build]`, or with `--debug` (D-076). Built, open: task 3.4's measure of `g12_game`'s scripts, which
-   run `SHELL` and so need the suites VM. A call costs about 7 ns more in the default build on Windows and Linux,
+   true` in `[build]`, or with `--debug` (D-076). All tasks built; `g12_game`'s ten scripts pass with it in the suites
+   VM, at no measurable cost. Archived 2026-11-22, its specs synced. A call costs about 7 ns more in the default build on Windows and Linux,
    2 to 5 ns with `-O2` (`docs\MANUAL.md`).
 1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
    `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a

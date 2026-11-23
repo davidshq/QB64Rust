@@ -31,27 +31,23 @@ changing direction, design or scope.**
 1. **No subagents unless the user explicitly allows it for that task.**
   - Do the work inline, sequentially. 
   - Permission for one task does not carry over to the next. If a subagent is ever allowed, tell it not to spawn helpers of its own.
-   *Why:* on 2026-10-02 a five-agent parallel study hit the session usage limit within minutes, and agents spawned
-   helpers after the user asked for one at a time.
 2. **Where things live.**
    - **This repo (`QB64Rust`) is the project.** Paths in this file are relative to it. The parent folder (`..`)
      has symlinks `CLAUDE.md`, `SOMEDAY.md` (to `docs\SOMEDAY.md`) and `study` pointing here, so sessions started
      in the parent see the same files; edit the real files here, not copies.
    - **`<qb64contain>` is `..\..\qb64contain`**, beside the parent folder, not the parent itself.
    - **QB 4.5 is in `..\qb45\install`**, in the parent folder beside `pds71`. `tools\qb45\qb45.py` finds it
-     there by default (`tools\qb45\README.md`). It was in `<qb64contain>\qb45` until 2026-11-12.
+     there by default (`tools\qb45\README.md`).
    - **`..\QB64pe\` is a read-only reference clone.** Do not modify it. Study notes and design documents go in
      `study\`.
    - **`..\QB64pe-latest\` is a second clone, of upstream's `main`** (`QB64-Phoenix-Edition/QB64pe`, cloned
      2026-11-02 at `8070eebd2`). It shows what upstream has fixed since the reference. It is not the parity
      target: tools and recordings use `..\QB64pe\` at `16f629784e`. Pull it to update it; change nothing else.
    - **`..\qbjs\` is our fork of QBJS** (`davidshq-contribute/qbjs`, forked from `boxgaming/qbjs` on
-     2026-11-16 at `1589a46`). It is for changes we offer upstream, such as an option for parameters by
-     reference (`study\51`). Its remote `origin` is the fork and `upstream` is `boxgaming/qbjs`. Work goes on a
+     2026-11-16 at `1589a46`). Its remote `origin` is the fork and `upstream` is `boxgaming/qbjs`. Work goes on a
      branch of the fork, never on `main`; push and open pull requests only when the user asks.
-   - **`..\emsdk\` is the Emscripten SDK** for the wasm target (OpenSpec change `wasm-console`). Release
-     7.0.0 was installed there with `emsdk install` and `emsdk activate` on 2026-11-19 (2.2 GB; the download
-     was allowed, `DECISIONS.md` 2026-11-19). Builds find it through `QB64RUST_EMSDK_ROOT` or `--emsdk-root`.
+   - **`..\emsdk\` is the Emscripten SDK** for the wasm target. Release
+     7.0.0 was installed there with `emsdk install` and `emsdk activate`. Builds find it through `QB64RUST_EMSDK_ROOT` or `--emsdk-root`.
      Change its release only in a change of its own.
    - **Never save anything to memory only.** Any rule, decision or fact worth keeping goes into this repo (this
      file, `DECISIONS.md`, or `study\`). Memory may hold a pointer or copy in addition.
@@ -62,7 +58,6 @@ changing direction, design or scope.**
      a port finds about the compiler still comes here: a bug, a corpus or verification program, a
      `DIVERGENCES-QB45.md` or `DIVERGENCES-QB64PE.md` row, a lesson for `PORTING-PDS.md`. Civil War Strategy
      as this repo's own test target (`tests\programs\civil-war-strategy`, `screen\g01`–`g12`) stays here.
-     *Why:* the ports' plans and rulings had filled this repo's documents (`DECISIONS.md` 2026-11-06).
 3. **Code from other projects.** Three tiers:
    - **`qb64pe-vscode` (community extension): reference only, nothing copied.** No code, grammar, snippets,
      language configuration, help text or fixtures. Reading it to see how a problem was approached is fine.
@@ -76,12 +71,9 @@ changing direction, design or scope.**
      front end and IR are unsound). A self-contained helper, test, grammar fragment or fixture may be copied when
      it saves time, provided it is read in full, fits the design here, and anything it asserts about QB64pe is
      checked against `qb64pe.exe`. QB64Fresh's `runtime_comparison` BASIC programs are taken as test inputs.
-     *Why:* the reviews (`study\archive`) found their architecture unreliable, not their provenance; a blanket
-     ban would be a handicap (user, 2026-10-03).
    - **QBJS (`..\qbjs`, MIT): a fork we change and contribute back.** Changes are made in the fork, in QBJS's
      own style, and offered upstream. No QBJS code is copied into this repo. Whether a QBJS target may fetch or
-     ship QBJS is not decided (`study\51`); `study\52` §4 question 2 asks the same about libraries. *Why:* the
-     user forked it to extend QBJS rather than change Civil War Strategy for it (user, 2026-11-16).
+     ship QBJS is not decided (`study\51`); `study\52` §4 question 2 asks the same about libraries.
 4. **The panel, and how effort is counted.**
    - **"The panel"** means a review by these roles: a pragmatic engineer, a QB64 engineer, a compiler/languages
      engineer, a Rust engineer, a test engineer, and any other role Claude thinks fits the topic (name the extra
@@ -95,16 +87,11 @@ changing direction, design or scope.**
      change" are not reasons by themselves. What still counts: a risk to correctness, a cost that stays (more code
      to maintain, disk, CI time), machine time of a run, the user's time (reading, deciding, staging), and scope
      the user has not asked for. Say which of these applies, or recommend doing it.
-     *Why:* on 2026-10-10 the panel advised leaving `verification\run.sh` outside the test runner because full
-     runs are rare; the user: "it isn't going to take time", and about 80% of the pragmatic engineer's timing
-     objections would go away (user, 2026-10-10).
    - **A run's machine time is the user's time** (user, 2026-11-18). The user waits for its result, and
      the suites VM can do nothing else meanwhile. So never call a run cheap because only a machine runs it.
      Size each run to what the change can touch: the smallest set that would show what could break,
      never the size of the last run by habit. Before a run of more than a few minutes, say how long it
-     will take and why that size. *Why:* on 2026-11-18 three autoplay runs of 100 seeds each were chained
-     after QBJS drawing fixes that could not change the game's numbers, and Claude called the cost
-     "machine time, not yours" (user: "it is my time, not just machine time, bc I have to wait").
+     will take and why that size.
 5. **Text with backslashes goes through the Edit/Write tools or a script file, never through the shell.** That
    covers Windows paths (`study\archive\19`), C or Python escapes (`\\`, `\n`) and anything else containing `\`. Do not
    pass it in a heredoc, inline `python -c`/`python - <<EOF`, `sed` or `printf` in the Bash tool, which collapses
@@ -114,12 +101,9 @@ changing direction, design or scope.**
    **Enforced by a hook** (`tools\hooks\guard_tool.py`, 2026-11-09). It refuses a Bash command with a backslash
    in a heredoc's body, or in a command that runs `python -c`, `perl -e`, `printf` or `echo -e`, or a `sed` or
    `awk` that writes a file. A `sed` or `awk` that only reads may take a backslash.
-   *Why:* on 2026-10-03 this corrupted files four times (`study\02` became `study` + 0x02, `verification\v13`
-   became a vertical tab) and each needed a scan and a redo (user, 2026-10-03).
 6. **Testing.** Run `cargo test -p <crate>` on what you touched while working. Run `just quick` in the background
    before handing over files to stage, and say what ran, what stood and why. `just full` runs in a worktree of the
-   commit, started by the user; `just merge` there before a merge into `main`. Read a run's output from its log; never start a run
-   again to read it. (`tools/check/README.md`; the OpenSpec change `testing-reset`, `DECISIONS.md` 2026-10-31.)
+   commit, started by the user; `just merge` there before a merge into `main`. Read a run's output from its log; never start a run again to read it.
    - **Large runs go in the suites VM, not on the host** (user, 2026-11-05). A large run is a whole suite, a
      whole verification family, or more than about 20 programs, by `check` or by calling
      `tools\legacy_tests\run_legacy_tests.py` directly. Run it with `check full` or `check <step> --where vm`, so
