@@ -217,10 +217,6 @@ and the merge being forced.
 
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).
-- A `DECLARE LIBRARY` block that declares a SUB and a FUNCTION of the same name is rejected; QB64pe accepts it
-  (`-z`, 2026-11-15). With the SUB first the error is "name already in use"; with the FUNCTION first, a call as a
-  statement is "cannot be called as a statement". It blocks 12 community programs, all copies of Toolbox64's
-  `DS\HashTable.bi` (`HashTable_Remove`) and `Audio\OPL3X.bi` (`OPL3X_WriteChipRegister`) (`study\50` §3.1).
 - `$COLOR:0` and then `SUB Red`: the error "name already in use" is reported at the constant in the auto-included
   `internal\support\color\color0.bi`, not on the program's `SUB Red` (line 4), where QB64pe reports it
   (`verification\v45_x48`, on `known.list` since the change `pin-rejection-line`).

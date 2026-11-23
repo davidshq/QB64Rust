@@ -58,7 +58,9 @@ A header is included at each block that names it, and then no prototype is writt
 <!-- src: language/external-libraries "Headers and libraries in the C++" -->
 
 A library FUNCTION and a program SUB of the same name may both exist: the name as a statement calls the SUB, as a
-value the FUNCTION.
+value the FUNCTION. So may a library SUB and a library FUNCTION of one name, in one block or two. A third procedure of
+the name is "name already in use". In a plain or `STATIC` block that names a library without a header, the pair is
+a compile error, since each would get a C prototype of its own. A header or a `CUSTOMTYPE` block avoids that.
 <!-- src: language/external-libraries "A library procedure and a program procedure of one name" -->
 
 ## Errors

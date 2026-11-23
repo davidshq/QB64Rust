@@ -195,10 +195,13 @@ impl<'a> Checker<'a> {
         let mut twin = false;
         if let Some(&other) = self.procs_by_name.get(&name) {
             let other = self.prog.proc(other);
-            if other.external.is_none() && matches!(other.kind, ProcKind::Sub) != matches!(kind, ProcKind::Sub) {
-                // A library FUNCTION beside a program SUB of the name, or a library SUB beside a program FUNCTION:
-                // the name as a statement is the SUB, as a value the FUNCTION (design D11 of
-                // `m4-statements-metacommands`; measured, `x22`, `v57_l01`–`l04`).
+            if matches!(other.kind, ProcKind::Sub) != matches!(kind, ProcKind::Sub)
+                && !self.proc_twins.contains_key(&name)
+            {
+                // A library FUNCTION beside a SUB of the name, or a library SUB beside a FUNCTION, of the program or
+                // of a library: the name as a statement is the SUB, as a value the FUNCTION (design D11 of
+                // `m4-statements-metacommands`; measured, `x22`, `x71`–`x73`, `v57_l01`–`l04`). A third
+                // procedure of the name is "Name already in use" (`x74`).
                 twin = true;
             } else {
                 // Measured: a declaration in a second block (`x40`).
