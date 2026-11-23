@@ -16,7 +16,7 @@ pub mod unit_tests;
 use qb64rust_base::fixes::Fixes;
 use qb64rust_base::{Diagnostics, FileId, SourceMap};
 use qb64rust_sema::Program;
-use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse_settled_explicit};
+use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_candidates, parse_settled_explicit};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -106,19 +106,11 @@ impl FileLoader {
 
 impl Loader for FileLoader {
     fn load(&mut self, map: &mut SourceMap, from: FileId, path: &[u8]) -> Result<FileId, LoadError> {
-        let rel = &host_path(&include_name(path).to_string_lossy());
         let from_dir = self.dirs.get(&from).cloned().unwrap_or_default();
         let shown_dir = Path::new(&map.file(from).name)
             .parent()
             .map_or_else(PathBuf::new, Path::to_path_buf);
-        let candidates = if rel.is_absolute() {
-            vec![(rel.to_path_buf(), rel.to_path_buf())]
-        } else {
-            vec![
-                (from_dir.join(rel), shown_dir.join(rel)),
-                (self.root.join(rel), self.root.join(rel)),
-            ]
-        };
+        let candidates = include_candidates(path, Some((&from_dir, &shown_dir)), &self.root);
         let Some((real, shown)) = candidates.into_iter().find(|(p, _)| p.is_file()) else {
             return Err(LoadError::NotFound);
         };
@@ -490,15 +482,7 @@ fn named_file(name: &str, main_path: &Path, root: &Path) -> PathBuf {
     }
 }
 
-/// A file name a program writes, as the host's file calls take it: on Linux every `\` is a `/`, as libqb's
-/// `filepath_fix_directory` makes it in the old compiler's own `_FILEEXISTS` and `OPEN` (design D2 of `m7-linux`);
-/// on Windows as written.
-pub fn host_path(name: &str) -> PathBuf {
-    match qb64rust_base::Platform::host() {
-        qb64rust_base::Platform::Windows => PathBuf::from(name),
-        qb64rust_base::Platform::Linux | qb64rust_base::Platform::Wasm => PathBuf::from(name.replace('\\', "/")),
-    }
-}
+pub use qb64rust_base::host_path;
 
 /// `rest` added as text to the folder of the file `main_path`.
 fn beside(main_path: &Path, rest: &str) -> PathBuf {

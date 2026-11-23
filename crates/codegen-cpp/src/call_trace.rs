@@ -90,7 +90,9 @@ impl<'a> Sites<'a> {
     pub(crate) fn table(&self, p: &Program) -> String {
         let mut names = vec![c_string(b"Main module"), c_string(b"Error handler")];
         for q in p.procs.iter().filter(|q| q.external.is_none()) {
-            let declared = declared_name(q.kind, &q.name, (self.call_trace.line)(q.file, q.line).as_deref());
+            let line = (self.call_trace.line)(q.file, q.line);
+            let function = matches!(q.kind, ProcKind::Function(_));
+            let declared = qb64rust_base::declared_procedure_name(function, &q.name, line.as_deref());
             names.push(c_string(declared.as_bytes()));
         }
         let files = &self.call_trace.files;
@@ -130,30 +132,6 @@ impl<'a> Sites<'a> {
         out.push_str(RUNTIME);
         out
     }
-}
-
-/// A procedure's name as the debugger's call stack shows it (`crates\dap\src\stack.rs`, `procedure_names`):
-/// `SUB show` or `FUNCTION twice&`, the name as its header line `line` declares it; the IR's name `name` (upper
-/// case, no suffix) when the line does not start with the keyword.
-pub(crate) fn declared_name(kind: ProcKind, name: &str, line: Option<&str>) -> String {
-    let keyword = match kind {
-        ProcKind::Sub => "SUB",
-        ProcKind::Function(_) => "FUNCTION",
-    };
-    let declared = line.and_then(|text| {
-        let rest = text.trim_start();
-        let word = rest.get(..keyword.len())?;
-        if !word.eq_ignore_ascii_case(keyword) {
-            return None;
-        }
-        let name: String = rest[keyword.len()..]
-            .trim_start()
-            .chars()
-            .take_while(|c| !c.is_whitespace() && *c != '(' && *c != '\'')
-            .collect();
-        (!name.is_empty()).then_some(name)
-    });
-    format!("{keyword} {}", declared.unwrap_or_else(|| name.to_string()))
 }
 
 #[cfg(test)]
@@ -207,23 +185,6 @@ mod tests {
         assert!(
             text.contains("static const int32 qbr_ct_registered"),
             "the run-time part follows"
-        );
-    }
-
-    #[test]
-    fn names_as_declared() {
-        let sub = ProcKind::Sub;
-        assert_eq!(
-            declared_name(sub, "TWICE", Some("  sub Twice (n AS LONG)")),
-            "SUB Twice"
-        );
-        assert_eq!(declared_name(sub, "FLAG_X", Some("SUB flag_x 'the flag")), "SUB flag_x");
-        assert_eq!(declared_name(sub, "TWICE", None), "SUB TWICE");
-        assert_eq!(declared_name(sub, "TWICE", Some("DECLARE SUB twice")), "SUB TWICE");
-        let function = ProcKind::Function(qb64rust_ir::Ty::I32);
-        assert_eq!(
-            declared_name(function, "TWICE", Some("FUNCTION twice& (n&)")),
-            "FUNCTION twice&"
         );
     }
 }

@@ -192,3 +192,18 @@ fn definition_across_included_files() {
     let a = parse_with(&main, b"hello\n'$INCLUDE: 'lib.bm'\n", &[], dir.path());
     assert_eq!(def_at(&a, 0, "hello"), Some(("lib.bm".into(), 0, 4)));
 }
+
+/// An include named with `\` is found on every host, as the compiler finds it: on Linux the `\` is a `/`.
+#[test]
+fn definition_across_an_include_named_with_a_backslash() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::create_dir(dir.path().join("inc")).unwrap();
+    std::fs::write(
+        dir.path().join("inc").join("lib.bm"),
+        "SUB hello\nPRINT \"hi\"\nEND SUB\n",
+    )
+    .unwrap();
+    let main = dir.path().join("main.bas");
+    let a = parse_with(&main, b"hello\n'$INCLUDE: 'inc\\lib.bm'\n", &[], dir.path());
+    assert_eq!(def_at(&a, 0, "hello"), Some(("lib.bm".into(), 0, 4)));
+}

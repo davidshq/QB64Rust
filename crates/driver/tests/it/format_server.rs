@@ -3,94 +3,12 @@
 //! and "Range formatting" (design D5 of `m5b-formatter`). The protocol's own rules are tested with a stand-in
 //! formatter in `crates\lsp\tests\it\server.rs`.
 
-use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
+use crate::support::lsp::Client;
 use qb64rust_lsp::uri::from_path;
-use serde_json::{Value, json};
+use serde_json::json;
 use std::path::Path;
-use std::thread::JoinHandle;
-use std::time::{Duration, Instant};
-
-/// Long enough for a format of a test program on a loaded machine.
-const WAIT: Duration = Duration::from_secs(20);
-
-struct Client {
-    conn: Connection,
-    server: JoinHandle<Result<(), String>>,
-    next: i32,
-    notes: Vec<Notification>,
-}
 
 impl Client {
-    fn start(root: &Path, options: Value) -> Client {
-        let (server_side, conn) = Connection::memory();
-        let root = root.to_path_buf();
-        let server = std::thread::Builder::new()
-            .stack_size(qb64rust_base::STACK_SIZE)
-            .spawn(move || qb64rust_lsp::serve(server_side, root, qb64rust_driver::server_hooks()))
-            .unwrap();
-        let mut c = Client {
-            conn,
-            server,
-            next: 0,
-            notes: Vec::new(),
-        };
-        let init = json!({ "processId": null, "rootUri": null, "capabilities": {}, "initializationOptions": options });
-        c.request("initialize", init);
-        c.notify("initialized", json!({}));
-        c
-    }
-
-    fn notify(&self, method: &str, params: Value) {
-        let n = Notification::new(method.into(), params);
-        self.conn.sender.send(n.into()).unwrap();
-    }
-
-    fn request(&mut self, method: &str, params: Value) -> Response {
-        self.next += 1;
-        let id = RequestId::from(self.next);
-        self.conn
-            .sender
-            .send(Request::new(id.clone(), method.into(), params).into())
-            .unwrap();
-        let deadline = Instant::now() + WAIT;
-        loop {
-            let msg = self
-                .conn
-                .receiver
-                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
-                .expect("no answer in time");
-            match msg {
-                Message::Response(r) if r.id == id => return r,
-                Message::Notification(n) => self.notes.push(n),
-                _ => {}
-            }
-        }
-    }
-
-    /// Waits for the `qb64rust/program` notification of the document at `path`, and gives its program's uri.
-    fn program(&mut self, path: &Path) -> Option<String> {
-        let uri = from_path(path);
-        let is_for = |n: &Notification| n.method == "qb64rust/program" && n.params["uri"] == uri.as_str();
-        if let Some(n) = self.notes.iter().find(|n| is_for(n)) {
-            return n.params["program"].as_str().map(str::to_string);
-        }
-        let deadline = Instant::now() + WAIT;
-        loop {
-            let msg = self
-                .conn
-                .receiver
-                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
-                .expect("no program notification in time");
-            if let Message::Notification(n) = msg {
-                let found = is_for(&n).then(|| n.params["program"].as_str().map(str::to_string));
-                self.notes.push(n);
-                if let Some(program) = found {
-                    return program;
-                }
-            }
-        }
-    }
-
     /// Whether a message was shown, or an error published, so far.
     fn complained(&self) -> bool {
         self.notes.iter().any(|n| {
@@ -98,11 +16,6 @@ impl Client {
                 || (n.method == "textDocument/publishDiagnostics"
                     && n.params["diagnostics"].as_array().is_some_and(|d| !d.is_empty()))
         })
-    }
-
-    fn open(&self, path: &Path, text: &str) {
-        let doc = json!({ "uri": from_path(path), "languageId": "qb64rust", "version": 1, "text": text });
-        self.notify("textDocument/didOpen", json!({ "textDocument": doc }));
     }
 
     /// The text of the whole-document edit of a formatting answer; `None` for no edit.
@@ -115,19 +28,13 @@ impl Client {
         assert!(edits.len() <= 1, "{edits:?}");
         edits.first().map(|e| e["newText"].as_str().unwrap().to_string())
     }
-
-    fn shutdown(mut self) {
-        self.request("shutdown", Value::Null);
-        self.notify("exit", Value::Null);
-        self.server.join().unwrap().unwrap();
-    }
 }
 
 /// "Unsaved text": the open document's text is formatted, and nothing is written to disk.
 #[test]
 fn unsaved_text() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "for i=1 to 3:next\n");
     assert_eq!(c.format(&p).as_deref(), Some("For i = 1 To 3: Next\n"));
@@ -142,7 +49,7 @@ fn unsaved_text() {
 #[test]
 fn unsaved_include() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let main = dir.path().join("main.bas");
     let inc = dir.path().join("inc.bi");
     c.open(&inc, "DIM SHARED total AS LONG\n");
@@ -155,7 +62,7 @@ fn unsaved_include() {
 #[test]
 fn already_formatted() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "For i = 1 To 3\r\n    Print i\r\nNext\r\n");
     assert_eq!(c.format(&p), None);
@@ -166,7 +73,7 @@ fn already_formatted() {
 #[test]
 fn client_settings() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), json!({ "format": { "keywordCase": "upper" } }));
+    let mut c = Client::with_options(dir.path(), json!({ "format": { "keywordCase": "upper" } }));
     let p = dir.path().join("p.bas");
     c.open(&p, "print 1\nif 1 then\nprint 2\nend if\n");
     assert_eq!(
@@ -186,7 +93,7 @@ fn settings_file_over_the_client() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("qb64rust.toml"), "[format]\nkeyword-case = \"upper\"\n").unwrap();
     let options = json!({ "format": { "keywordCase": "camel", "indentSize": 2 } });
-    let mut c = Client::start(dir.path(), options);
+    let mut c = Client::with_options(dir.path(), options);
     let p = dir.path().join("p.bas");
     c.open(&p, "if 1 then\nprint 2\nend if\n");
     assert_eq!(c.format(&p).as_deref(), Some("IF 1 THEN\n  PRINT 2\nEND IF\n"));
@@ -202,7 +109,7 @@ fn include_file_takes_its_programs_settings() {
     std::fs::create_dir_all(proj.join("lib")).unwrap();
     std::fs::write(proj.join("qb64rust.toml"), "[format]\nkeyword-case = \"upper\"\n").unwrap();
     std::fs::write(proj.join("game.bas"), "'$INCLUDE: 'lib/turn.bm'\n").unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let turn = proj.join("lib").join("turn.bm");
     c.open(&turn, "print 1\n");
     assert_eq!(
@@ -224,7 +131,7 @@ fn excluded_files() {
     std::fs::create_dir_all(&web).unwrap();
     let qbjs = "if a AndAlso b then\nprint 1\nend if\n";
     std::fs::write(web.join("lib.bm"), qbjs).unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = web.join("p.bas");
     c.open(&p, qbjs);
     let r = c.request("qb64rust/check", json!({ "uri": from_path(&p) }));
@@ -261,7 +168,7 @@ fn excluded_main_file_stops_formatting() {
         "'$INCLUDE: 'turn.bm'\nif a AndAlso b then\nend if\n",
     )
     .unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let turn = dir.path().join("turn.bm");
     c.open(&turn, "print 1\n");
     assert_eq!(
@@ -284,7 +191,7 @@ fn excluded_main_file_stops_formatting() {
 fn bad_settings_file() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("qb64rust.toml"), "[format]\nkeyword-case = \"uper\"\n").unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "print 1\n");
     assert_eq!(c.format(&p), None);
@@ -302,7 +209,7 @@ fn bad_settings_file() {
 #[test]
 fn syntax_error() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "print 1\nx = 1 +\n");
     assert_eq!(c.format(&p), None);
@@ -328,7 +235,7 @@ fn syntax_error() {
 #[test]
 fn sub_not_defined() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "call   missing\n");
     assert_eq!(c.format(&p).as_deref(), Some("Call missing\n"));
@@ -341,7 +248,7 @@ fn sub_not_defined() {
 #[test]
 fn lone_include_file() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let lib = dir.path().join("lib.bm");
     c.open(&lib, "sub a\ncall   missing\nATKFAC=1\nend sub\n");
     assert_eq!(c.program(&lib), None);
@@ -364,7 +271,7 @@ fn include_file_case_from_its_program() {
         "DIM SHARED Total AS LONG\n'$INCLUDE: 'lib.bm'\n",
     )
     .unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let lib = dir.path().join("lib.bm");
     c.open(&lib, "total=1\nprint   total\n");
     assert_eq!(
@@ -393,7 +300,7 @@ fn include_file_case_from_its_program() {
 #[test]
 fn one_line_of_a_block() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "for i=1 to 3\nprint   i\nnext\n");
     let params = json!({
@@ -419,7 +326,7 @@ fn one_line_of_a_block() {
 fn rewrite_settings_of_the_client_and_the_file() {
     let dir = tempfile::tempdir().unwrap();
     let options = json!({ "format": { "blockIf": true, "oneStatementPerLine": true } });
-    let mut c = Client::start(dir.path(), options);
+    let mut c = Client::with_options(dir.path(), options);
     let p = dir.path().join("p.bas");
     c.open(&p, "x = 0: y = 0\nIF a THEN x = 1\n");
     assert_eq!(
@@ -484,7 +391,7 @@ fn shown(c: &Client) -> Vec<String> {
 #[test]
 fn code_actions_for_statement_lines() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "x = 0: y = 0\nIF a THEN b = 1: x = 2\nx = 0\n");
     c.program(&p);
@@ -511,7 +418,7 @@ fn code_actions_for_statement_lines() {
 #[test]
 fn code_action_over_a_selection() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "x = 0: y = 0\nz = 1\nx = 2: y = 2\nx = 3: y = 3\n");
     c.program(&p);
@@ -530,7 +437,7 @@ fn code_action_over_a_selection() {
 #[test]
 fn code_actions_in_a_program_with_an_error() {
     let dir = tempfile::tempdir().unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "x = 0: y = (\n");
     c.program(&p);
@@ -553,7 +460,7 @@ fn code_actions_in_a_program_with_an_error() {
 fn code_action_with_layout_off_for_the_project() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("qb64rust.toml"), "[format]\nauto-layout = false\n").unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "IF a THEN x = 1\n");
     c.program(&p);
@@ -577,7 +484,7 @@ fn code_action_over_the_files_rewrite_keys() {
         "[format]\nblock-if = false\none-statement-per-line = true\n",
     )
     .unwrap();
-    let mut c = Client::start(dir.path(), Value::Null);
+    let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
     c.open(&p, "x = 0: y = 0\nIF a THEN x = 1\n");
     c.program(&p);

@@ -62,29 +62,12 @@ pub fn procedure_names(symbols: &Symbols, files: &[FileInfo]) -> Vec<String> {
         .procedures
         .iter()
         .map(|pr| {
-            let keyword = match pr.kind {
-                Kind::Sub => "SUB",
-                Kind::Function => "FUNCTION",
-            };
-            let declared = files
+            let line = files
                 .get(pr.file)
                 .and_then(|f| f.lines.as_ref())
                 .and_then(|lines| lines.get(usize::try_from(pr.line).ok()?.checked_sub(1)?))
-                .and_then(|line| {
-                    let text = qb64rust_base::show_bytes(line);
-                    let rest = text.trim_start();
-                    let word = rest.get(..keyword.len())?;
-                    if !word.eq_ignore_ascii_case(keyword) {
-                        return None;
-                    }
-                    let name: String = rest[keyword.len()..]
-                        .trim_start()
-                        .chars()
-                        .take_while(|c| !c.is_whitespace() && *c != '(' && *c != '\'')
-                        .collect();
-                    (!name.is_empty()).then_some(name)
-                });
-            format!("{keyword} {}", declared.unwrap_or_else(|| pr.name.clone()))
+                .map(|line| qb64rust_base::show_bytes(line));
+            qb64rust_base::declared_procedure_name(matches!(pr.kind, Kind::Function), &pr.name, line.as_deref())
         })
         .collect()
 }

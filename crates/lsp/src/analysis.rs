@@ -6,7 +6,7 @@ use crate::uri::{from_path, path_key, to_path};
 use lsp_types::{DiagnosticSeverity, Range, Uri};
 use qb64rust_base::{Diagnostic, FileId, MAX_SOURCE_LEN, Severity, SourceMap, Span};
 use qb64rust_syntax::program::Tree;
-use qb64rust_syntax::{LoadError, Loader, ParsedProgram, include_name, parse_settled_on};
+use qb64rust_syntax::{LoadError, Loader, ParsedProgram, include_candidates, parse_settled_on};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -185,14 +185,8 @@ impl DocLoader<'_> {
 
 impl Loader for DocLoader<'_> {
     fn load(&mut self, map: &mut SourceMap, from: FileId, path: &[u8]) -> Result<FileId, LoadError> {
-        let rel = include_name(path);
-        let candidates = if rel.is_absolute() {
-            vec![rel]
-        } else {
-            let from_dir = self.dirs[from.0 as usize].as_ref().map(|d| d.join(&rel));
-            from_dir.into_iter().chain([self.root.join(&rel)]).collect()
-        };
-        for candidate in candidates {
+        let dir = self.dirs[from.0 as usize].as_deref();
+        for (candidate, _) in include_candidates(path, dir.map(|d| (d, d)), self.root) {
             if let Some(id) = self.take(map, &candidate, None)? {
                 return Ok(id);
             }

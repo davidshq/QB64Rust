@@ -29,6 +29,7 @@
 //! 2026-11-13, with the three rewrites of each default recording (`format-statement-lines` task 5.1): 1.6 s before,
 //! 2.7 s after, and 375 s with their C++ compared too, which [`rewrites_give_the_same_cpp`] does for `just full`.
 
+use crate::support::repo;
 use qb64rust_base::layout::Settings;
 use qb64rust_base::show_bytes;
 use qb64rust_driver::{FileLoader, Frontend, build, format_program, frontend_with};
@@ -38,10 +39,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
-
-fn repo() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
-}
 
 /// The set of the oracle and the folder of its sources.
 const SETS: [(&str, &str); 4] = [

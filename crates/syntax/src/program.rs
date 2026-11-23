@@ -5,7 +5,7 @@ use crate::pp::{Feature, FeatureStates, MAX_ROUNDS, PpFlags, PpState, Round, set
 use crate::tree::{GreenNode, Node, TreeId};
 use qb64rust_base::{Diagnostic, Diagnostics, FileId, Platform, SourceMap, Span};
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// The lossless tree of one file at one inclusion, with the parse errors found in it.
 pub struct Tree {
@@ -181,6 +181,19 @@ pub fn include_name(written: &[u8]) -> PathBuf {
         .or_else(|| written.strip_prefix("./"))
         .unwrap_or(&written);
     PathBuf::from(name)
+}
+
+/// Where a loader looks for the file an include statement names (`written`), in order, as pairs of the path on
+/// disk and the name the file is shown by: an absolute name as written; a relative one in the including file's
+/// folder (`from`: on disk, and as shown; `None` for a document that is no file), then under the compiler root
+/// `root` ([`include_name`]). On Linux every `\` of the name is a `/` ([`qb64rust_base::host_path`]).
+pub fn include_candidates(written: &[u8], from: Option<(&Path, &Path)>, root: &Path) -> Vec<(PathBuf, PathBuf)> {
+    let rel = qb64rust_base::host_path(&include_name(written).to_string_lossy());
+    if rel.is_absolute() {
+        return vec![(rel.clone(), rel)];
+    }
+    let beside = from.map(|(real, shown)| (real.join(&rel), shown.join(&rel)));
+    beside.into_iter().chain([(root.join(&rel), root.join(&rel))]).collect()
 }
 
 /// A loader that finds no file, for tests of single files.
@@ -444,5 +457,47 @@ pub fn parse_settled_explicit(
             program.trees[0].diagnostics.push(Diagnostic::error(at, msg));
             program
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn include_candidates_are_the_folder_then_the_root() {
+        let (real, shown, root) = (Path::new("disk/src"), Path::new("src"), Path::new("root"));
+        let found = include_candidates(b".\\lib.bi", Some((real, shown)), root);
+        assert_eq!(
+            found,
+            [
+                (real.join("lib.bi"), shown.join("lib.bi")),
+                (root.join("lib.bi"), root.join("lib.bi"))
+            ]
+        );
+        // A document that is no file has no folder: only the root.
+        assert_eq!(
+            include_candidates(b"lib.bi", None, root),
+            [(root.join("lib.bi"), root.join("lib.bi"))]
+        );
+    }
+
+    #[test]
+    fn include_candidates_take_a_backslash_as_the_host_does() {
+        let root = Path::new("root");
+        let found = include_candidates(b"inc\\lib.bi", None, root);
+        let rel = if cfg!(windows) { "inc\\lib.bi" } else { "inc/lib.bi" };
+        assert_eq!(found, [(root.join(rel), root.join(rel))]);
+    }
+
+    #[test]
+    fn an_absolute_include_is_the_one_candidate() {
+        let abs = std::env::temp_dir().join("lib.bi");
+        let found = include_candidates(
+            abs.to_string_lossy().as_bytes(),
+            Some((Path::new("a"), Path::new("b"))),
+            Path::new("r"),
+        );
+        assert_eq!(found, [(abs.clone(), abs)]);
     }
 }

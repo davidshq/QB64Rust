@@ -2,7 +2,8 @@
 //! `editor/language-server`): the index itself, then the index job, hover, references, rename and completion driven
 //! in-process.
 
-use lsp_server::{Connection, Message, Notification, Request, RequestId, Response};
+use crate::support::lsp::{Client, WAIT};
+use crate::support::repo;
 use qb64rust_base::{SourceMap, Span};
 use qb64rust_driver::{check_program, frontend, hover, index_for_server};
 use qb64rust_lsp::Hooks;
@@ -17,110 +18,12 @@ use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
-
-/// Long enough for the front end of a test program on a loaded machine.
-const WAIT: Duration = Duration::from_secs(20);
 
 /// The error code of an answer for a text that changed (LSP `ContentModified`).
 const CONTENT_MODIFIED: i32 = -32801;
 
-fn repo() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .unwrap()
-        .to_path_buf()
-}
-
-struct Client {
-    conn: Connection,
-    server: JoinHandle<Result<(), String>>,
-    next: i32,
-    /// The notifications received while waiting for answers.
-    notes: Vec<Notification>,
-}
-
 impl Client {
-    fn start(root: &Path) -> Client {
-        Client::start_with(root, qb64rust_driver::server_hooks())
-    }
-
-    fn start_with(root: &Path, hooks: Hooks) -> Client {
-        let (server_side, conn) = Connection::memory();
-        let root = root.to_path_buf();
-        let server = std::thread::Builder::new()
-            .stack_size(qb64rust_base::STACK_SIZE)
-            .spawn(move || qb64rust_lsp::serve(server_side, root, hooks))
-            .unwrap();
-        let mut c = Client {
-            conn,
-            server,
-            next: 0,
-            notes: Vec::new(),
-        };
-        let init = json!({ "processId": null, "rootUri": null, "capabilities": {} });
-        c.request("initialize", init);
-        c.notify("initialized", json!({}));
-        c
-    }
-
-    fn notify(&self, method: &str, params: Value) {
-        let n = Notification::new(method.into(), params);
-        self.conn.sender.send(n.into()).unwrap();
-    }
-
-    fn send(&mut self, method: &str, params: Value) -> RequestId {
-        self.next += 1;
-        let id = RequestId::from(self.next);
-        self.conn
-            .sender
-            .send(Request::new(id.clone(), method.into(), params).into())
-            .unwrap();
-        id
-    }
-
-    fn answer(&mut self, id: &RequestId) -> Response {
-        let deadline = Instant::now() + WAIT;
-        loop {
-            let msg = self
-                .conn
-                .receiver
-                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
-                .expect("no answer in time");
-            match msg {
-                Message::Response(r) if r.id == *id => return r,
-                Message::Notification(n) => self.notes.push(n),
-                _ => {}
-            }
-        }
-    }
-
-    /// The params of the first notification of `method` received so far.
-    fn note(&self, method: &str) -> Value {
-        let n = self.notes.iter().find(|n| n.method == method);
-        n.unwrap_or_else(|| panic!("no {method}")).params.clone()
-    }
-
-    fn request(&mut self, method: &str, params: Value) -> Response {
-        let id = self.send(method, params);
-        self.answer(&id)
-    }
-
-    fn open(&self, path: &Path, text: &str) {
-        let doc = json!({ "uri": from_path(path), "languageId": "qb64rust", "version": 1, "text": text });
-        self.notify("textDocument/didOpen", json!({ "textDocument": doc }));
-    }
-
-    fn change(&self, path: &Path, text: &str) {
-        let doc = json!({ "uri": from_path(path), "version": 2 });
-        self.notify(
-            "textDocument/didChange",
-            json!({ "textDocument": doc, "contentChanges": [{ "text": text }] }),
-        );
-    }
-
     /// The params of a request at the `nth` (from 0) occurrence of `needle` in `text`, `offset` bytes into it.
     fn at(path: &Path, text: &str, needle: &str, nth: usize, offset: usize) -> Value {
         let (line, character) = position(text, needle, nth, offset);
@@ -189,31 +92,6 @@ impl Client {
         let r = self.request("textDocument/hover", Client::at(path, text, needle, nth, 0));
         let v = r.response_result.unwrap();
         (!v.is_null()).then(|| v["contents"]["value"].as_str().unwrap().to_string())
-    }
-
-    /// Waits for the `qb64rust/program` notification of the document at `path`, and gives its program's uri.
-    fn program(&mut self, path: &Path) -> Option<String> {
-        let uri = from_path(path);
-        let is_for = |n: &Notification| n.method == "qb64rust/program" && n.params["uri"] == uri.as_str();
-        let deadline = Instant::now() + WAIT;
-        while !self.notes.iter().any(is_for) {
-            let msg = self
-                .conn
-                .receiver
-                .recv_timeout(deadline.saturating_duration_since(Instant::now()))
-                .expect("no program notification in time");
-            if let Message::Notification(n) = msg {
-                self.notes.push(n);
-            }
-        }
-        let n = self.notes.iter().find(|n| is_for(n)).unwrap();
-        n.params["program"].as_str().map(str::to_string)
-    }
-
-    fn shutdown(mut self) {
-        self.request("shutdown", Value::Null);
-        self.notify("exit", Value::Null);
-        self.server.join().unwrap().unwrap();
     }
 }
 
