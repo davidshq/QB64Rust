@@ -7,6 +7,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+pub mod cp437;
 pub mod fixes;
 pub mod layout;
 mod old_wording;
@@ -71,6 +72,17 @@ pub struct SourceFile {
     pub name: String,
     pub bytes: Arc<[u8]>,
     line_starts: Vec<u32>,
+    /// The encoding the program's settings file gives this file, when the file is in its folder or below it
+    /// (OpenSpec change `utf8-source`, design D2). The file's own `'$ENCODING` line goes over it.
+    pub project_encoding: Option<SourceEncoding>,
+}
+
+/// How the text of a source file's strings is read (OpenSpec change `utf8-source`): as code page 437 bytes, as
+/// they are, or as UTF-8 characters, each stored as its code page 437 byte ([`cp437::text_of`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SourceEncoding {
+    Cp437,
+    Utf8,
 }
 
 impl SourceFile {
@@ -82,6 +94,7 @@ impl SourceFile {
             name: name.into(),
             bytes: bytes.into(),
             line_starts,
+            project_encoding: None,
         }
     }
 
@@ -155,6 +168,16 @@ impl SourceMap {
 
     pub fn file(&self, id: FileId) -> &SourceFile {
         &self.files[id.0 as usize]
+    }
+
+    /// [`SourceFile::project_encoding`] of `id`; `None` too for a file the map does not hold.
+    pub fn project_encoding(&self, id: FileId) -> Option<SourceEncoding> {
+        self.files.get(id.0 as usize)?.project_encoding
+    }
+
+    /// Sets [`SourceFile::project_encoding`].
+    pub fn set_project_encoding(&mut self, id: FileId, encoding: Option<SourceEncoding>) {
+        self.files[id.0 as usize].project_encoding = encoding;
     }
 
     /// Every file, with its id, in the order they were added.

@@ -124,6 +124,7 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `--toolchain-root <dir>` | The C++ toolchain to use instead of the installed one |
 | `--libqb-root <dir>` | Another copy of libqb, for example one in a folder you can write to |
 | `--version` | Print the compiler's version |
+| `convert --to utf8\|cp437 <file>...` | Rewrite source files from code page 437 to UTF-8, or back; builds nothing. See [UTF-8 source files](#utf-8-source-files) |
 
 A program that uses `$INCLUDE` libraries meant to sit beside `qb64pe.exe` finds them beside `qb64rust.exe`.
 
@@ -201,6 +202,14 @@ editor reads only the nearest `qb64rust.toml`, so a folder below with a file of 
 that file has its own `exclude`. The compiler does not use `exclude`, but a mistake in it stops a build, as a
 mistake in any other table does.
 
+`encoding` in `[project]` says how the source files in the folder of `qb64rust.toml`, and in the folders below
+it, are saved: `"utf-8"` or `"cp437"`. See [UTF-8 source files](#utf-8-source-files).
+
+```toml
+[project]
+encoding = "utf-8"
+```
+
 - `[build]` says where a build without `-o` puts the program, and which data files it copies there:
 
 ```toml
@@ -248,6 +257,57 @@ that names the file, the line and the keys it knows, for instance
 ``qb64rust.toml:2: unknown format setting `indent`; the settings are auto-indent, indent-size, indent-subs,
 auto-layout, keyword-case, one-statement-per-line, block-if``. `--no-settings` builds or lays out the program without reading the file.
 
+## UTF-8 source files
+
+A program's screen shows each byte of a string as one character of code page 437, the character set of DOS. So a
+file that holds `─` or `é` in a string must be saved as code page 437, as QB64pe's IDE saves it. Most editors
+save UTF-8 instead, where `─` is three bytes, and the program then shows three wrong characters.
+
+A file saved as UTF-8 can say so, in either of two ways:
+
+- a line `'$ENCODING:UTF8` anywhere in the file, alone on its line. QB64pe reads it as a comment;
+- `encoding = "utf-8"` under `[project]` in `qb64rust.toml`, for every file in its folder and below it. A file's
+  own line wins: `'$ENCODING:CP437` keeps one file as code page 437. A file outside that folder, such as a
+  library's, is code page 437 unless it has its own line.
+
+In such a file each character of a string or a `DATA` item becomes its code page 437 byte. The program is the one
+the same text saved as code page 437 gives: `LEN("─")` is 1, and the screen shows `─`. A string may also hold the
+symbols the screen shows for the bytes 1 to 31 and 127, such as `♥` for byte 3. A comment may hold any
+character. The text of `$VERSIONINFO` stays UTF-8, as the program's manifest needs, and file names are read as
+before. A file may start with a byte order mark.
+
+Two mistakes stop the build:
+
+- a character that code page 437 does not have, in a string or a `DATA` item: ``p.bas:3:8: error: `日` (U+65E5)
+  has no code page 437 byte: a string of a UTF-8 file holds code page 437 characters``;
+- a file declared UTF-8 that is not, such as an old file saved as code page 437 in a UTF-8 project:
+  ``map.bm:12:8: error: the byte 0xC4 is not UTF-8, and the file is declared UTF-8 by `encoding = "utf-8"` in
+  `qb64rust.toml` ``.
+
+A file that declares nothing is read as QB64pe reads it, byte for byte. When such a file looks like UTF-8 and has
+a string with a character above 127, `-w` prints the warning `undeclared-utf8`, and the editor always shows it.
+The column of an error counts bytes, so after an accent on the line it is one higher than the character you see;
+the editor shows the right place.
+
+`qb64rust convert --to utf8 <file>...` rewrites code page 437 files as UTF-8, in place, and `--to cp437` does the
+reverse. Comments are converted too. It checks every file first and changes none when one cannot be converted:
+with `--to utf8`, a file that is UTF-8 already, and with `--to cp437`, a character code page 437 does not have. A
+file with no byte above 127 is left as it is. A small code page 437 file can happen to be valid UTF-8, when its
+only bytes above 127 are pairs such as `┌┐` or `╔╗`; `--to utf8` then refuses it as UTF-8 already. It does not add the `'$ENCODING` line; set `encoding` in
+`qb64rust.toml`, or add the line yourself.
+
+```text
+qb64rust convert --to utf8 game.bas lib\menu.bm
+```
+
+"QB64: New Project" in VS Code makes a UTF-8 project: its `qb64rust.toml` sets `encoding = "utf-8"`, and its
+`.vscode\settings.json` makes VS Code save its files as UTF-8. VS Code opens other QB64 files as code page 437.
+When a file declared UTF-8 is open as code page 437, the editor warns on its first line; use Reopen with Encoding,
+then UTF-8.
+
+A UTF-8 project builds correctly only with QB64Rust. QB64pe builds it, but its strings hold the UTF-8 bytes, and
+it rejects a file that starts with a byte order mark.
+
 ## Warnings about likely mistakes
 
 Some code compiles but is probably a mistake. The compiler warns about it. With `-w` the warnings are printed
@@ -261,6 +321,7 @@ stop a build and never change the program.
 | `unused-label` | A named label that no `GOTO`, `GOSUB`, `RESTORE`, `RESUME`, `ON ERROR` or event names. Line numbers are never reported | ``label `again` is never used`` |
 | `hides-shared` | A `DIM` or `REDIM` in a SUB or FUNCTION that makes a new local variable with the name and type of a `DIM SHARED` one | ``this `score` is a new local variable, which hides the `DIM SHARED` one of the main module`` |
 | `unreachable` | Statements after `GOTO`, `END`, `SYSTEM`, `STOP`, `EXIT`, `RETURN`, `RESUME` or `RUN`, with no label or line number before them. One warning for each such stretch | `this code is never run: no label follows the GOTO on line 8` |
+| `undeclared-utf8` | A file saved as UTF-8 that does not say so, with a character above 127 in a string. Its strings then hold the UTF-8 bytes, so `"─"` is three characters (see "UTF-8 source files"). Given for an included file too. One warning per file | ``this file looks like UTF-8 but is read as code page 437, so `─` is 3 characters in the program: …`` |
 
 Some cases are left out on purpose:
 - `used-once`: a `FOR` counter, and a variable that `INPUT`, `LINE INPUT` or `READ` reads into, such as

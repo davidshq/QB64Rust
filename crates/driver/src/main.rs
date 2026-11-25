@@ -68,6 +68,7 @@ it from the release's zip; on Linux names the packages)\n\
 [--format text|json] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
 [--fixes on|off] [--fix <name>=on|off]... [--no-settings] [--coverage] [--call-trace|--no-call-trace]    (runs the \
 test SUBs of *_test.bas files)\n\
+       qb64rust convert --to utf8|cp437 <file>...    (rewrites source files from code page 437 to UTF-8, or back)\n\
        qb64rust --version | --help";
 
 /// The usage of `qb64rust toolchain` (spec `compiler/cli`, "Toolchain subcommand").
@@ -395,6 +396,10 @@ fn main() -> ExitCode {
     if args.first().is_some_and(|a| a == "toolchain") {
         return toolchain_command(&args[1..]);
     }
+    // `qb64rust convert`: the same rule; `convert.bas` is a file to compile.
+    if args.first().is_some_and(|a| a == "convert") {
+        return convert_command(&args[1..]);
+    }
     // `qb64rust test`: the same rule; `test.bas` is a file to compile.
     if args.first().is_some_and(|a| a == "test") {
         return match qb64rust_driver::with_stack(|| test_command(std::env::args_os().skip(2).collect())) {
@@ -557,6 +562,73 @@ fn toolchain_options(args: &[std::ffi::OsString]) -> Option<(Option<PathBuf>, Op
         *slot = Some(PathBuf::from(args.next()?));
     }
     Some((toolchain, qb64pe))
+}
+
+/// The usage of `qb64rust convert` (OpenSpec change `utf8-source`, design D9).
+const CONVERT_USAGE: &str = "usage: qb64rust convert --to utf8|cp437 <file>...    (rewrites source files from code \
+page 437 to UTF-8, or back, in place; changes no file when one cannot be converted)";
+
+/// `qb64rust convert --to utf8|cp437 <file>...` (spec `compiler/source-encoding`, "The convert command").
+fn convert_command(args: &[std::ffi::OsString]) -> ExitCode {
+    use qb64rust_driver::convert::{To, run};
+    let fail = |msg: &str| {
+        println!("qb64rust: {msg}\n{CONVERT_USAGE}");
+        ExitCode::FAILURE
+    };
+    let mut to = None;
+    let mut files = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == "--to" {
+            let Some(name) = args.get(i + 1) else {
+                return fail("--to needs utf8 or cp437");
+            };
+            let Some(t) = To::from_name(&name.to_string_lossy()) else {
+                return fail(&format!("--to takes utf8 or cp437, not `{}`", name.to_string_lossy()));
+            };
+            to = Some(t);
+            i += 2;
+        } else if args[i].to_string_lossy().starts_with('-') {
+            // An option it does not know, as `qb64rust toolchain` refuses one (`toolchain_options`).
+            return fail(&format!(
+                "convert does not know the option `{}`",
+                args[i].to_string_lossy()
+            ));
+        } else {
+            files.push(PathBuf::from(&args[i]));
+            i += 1;
+        }
+    }
+    let Some(to) = to else {
+        return fail("convert needs --to utf8 or --to cp437");
+    };
+    if files.is_empty() {
+        return fail("convert needs at least one file");
+    }
+    match run(&files, to) {
+        Ok(done) => {
+            for f in &done.written {
+                println!("converted {}", f.display());
+            }
+            for f in &done.left {
+                println!("left {} as it is: it holds no byte above 127", f.display());
+            }
+            ExitCode::SUCCESS
+        }
+        Err(failed) => {
+            for p in failed.problems {
+                println!("{p}");
+            }
+            if failed.written.is_empty() {
+                println!("no file was changed");
+            } else {
+                for f in &failed.written {
+                    println!("converted {} before the failure", f.display());
+                }
+            }
+            ExitCode::FAILURE
+        }
+    }
 }
 
 /// `qb64rust toolchain install` and `qb64rust toolchain path` (spec `compiler/toolchain`). `path` prints the folder,
@@ -907,7 +979,7 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
     let input_name = input.display();
     let main_name = main.display();
     // A settings file that cannot be used stops `-y` before anything is written (design D5 of `project-settings`).
-    let (fixes, lints, file_format, _) = match program_settings(o, main) {
+    let (fixes, lints, file_format, build) = match program_settings(o, main) {
         Ok(s) => s,
         Err(code) => return Ok(code),
     };
@@ -924,7 +996,7 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
         o.explicit,
         &name,
         bytes,
-        |file| Box::new(FileLoader::new(&include_root, file, main)),
+        |file| Box::new(FileLoader::new(&include_root, file, main).with_encoding(&build.root, build.encoding)),
         Some((main, &include_root)),
         fixes,
     );
@@ -1098,7 +1170,7 @@ fn run() -> Result<ExitCode, String> {
         &input,
         &name,
         bytes,
-        |file| Box::new(FileLoader::new(&include_root, file, &input)),
+        |file| Box::new(FileLoader::new(&include_root, file, &input).with_encoding(&build.root, build.encoding)),
         &options,
         &mut |text| print!("{text}"),
     )?;

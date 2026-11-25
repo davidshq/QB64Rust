@@ -110,6 +110,18 @@
    "area": "Data processing, embedded files, logging"
   },
   {
+   "word": "$ENCODING",
+   "kinds": [
+    "metacommand"
+   ],
+   "sources": [
+    "words.toml"
+   ],
+   "page": "meta-encoding",
+   "batch": 1,
+   "area": "Lines, names, comments, labels, $INCLUDE, the preprocessor"
+  },
+  {
    "word": "$END",
    "kinds": [
     "metacommand"

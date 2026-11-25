@@ -2,6 +2,7 @@
 
 pub mod build;
 pub mod compile;
+pub mod convert;
 pub mod cpp_errors;
 pub mod fixes;
 pub mod hover;
@@ -14,7 +15,7 @@ pub mod toolchain;
 pub mod unit_tests;
 
 use qb64rust_base::fixes::Fixes;
-use qb64rust_base::{Diagnostics, FileId, SourceMap};
+use qb64rust_base::{Diagnostics, FileId, SourceEncoding, SourceMap};
 use qb64rust_sema::Program;
 use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_candidates, parse_settled_explicit};
 use std::collections::HashMap;
@@ -90,6 +91,8 @@ pub struct FileLoader {
     dirs: HashMap<FileId, PathBuf>,
     /// Canonical path -> file, for files loaded already.
     seen: HashMap<PathBuf, FileId>,
+    /// The settings file's canonical folder and its `[project]` `encoding` ([`FileLoader::with_encoding`]).
+    project: Option<(PathBuf, SourceEncoding)>,
 }
 
 impl FileLoader {
@@ -100,7 +103,32 @@ impl FileLoader {
             root: root.to_path_buf(),
             dirs: HashMap::from([(main, dir)]),
             seen: HashMap::new(),
+            project: None,
         }
+    }
+
+    /// The loader for a program whose settings file in the folder `folder` gives `encoding`: each file in that
+    /// folder or below it gets it as its [`SourceFile::project_encoding`] (OpenSpec change `utf8-source`, design
+    /// D2). A file elsewhere, such as a library's under the compiler root, gets none.
+    ///
+    /// [`SourceFile::project_encoding`]: qb64rust_base::SourceFile::project_encoding
+    #[must_use]
+    pub fn with_encoding(mut self, folder: &Path, encoding: Option<SourceEncoding>) -> FileLoader {
+        self.project = encoding.and_then(|e| Some((std::fs::canonicalize(folder).ok()?, e)));
+        self
+    }
+
+    /// The project's encoding for a file in the folder `dir`.
+    fn encoding_in(&self, dir: &Path) -> Option<SourceEncoding> {
+        let (folder, encoding) = self.project.as_ref()?;
+        // A main file named without a folder (`p.bas`) is in the working directory.
+        let dir = if dir.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            dir
+        };
+        let dir = std::fs::canonicalize(dir).ok()?;
+        dir.starts_with(folder).then_some(*encoding)
     }
 }
 
@@ -137,6 +165,10 @@ impl Loader for FileLoader {
     fn folders(&self) -> HashMap<FileId, PathBuf> {
         self.dirs.clone()
     }
+
+    fn main_encoding(&self, main: FileId) -> Option<SourceEncoding> {
+        self.encoding_in(self.dirs.get(&main)?)
+    }
 }
 
 impl FileLoader {
@@ -154,9 +186,10 @@ impl FileLoader {
             )));
         }
         let id = map.add(shown.to_string_lossy().into_owned(), bytes);
+        let dir = real.parent().map_or_else(PathBuf::new, Path::to_path_buf);
+        map.set_project_encoding(id, self.encoding_in(&dir));
         self.seen.insert(canonical, id);
-        self.dirs
-            .insert(id, real.parent().map_or_else(PathBuf::new, Path::to_path_buf));
+        self.dirs.insert(id, dir);
         Ok(id)
     }
 }
@@ -370,6 +403,7 @@ pub fn server_hooks() -> qb64rust_lsp::Hooks {
         main_of: settings::main_of,
         excluded: settings::excluded,
         rewritable: qb64rust_format::rewritable,
+        project_encoding: settings::project_encoding,
     }
 }
 

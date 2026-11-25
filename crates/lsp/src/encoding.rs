@@ -200,6 +200,17 @@ mod tests {
         assert_eq!(expected, b"A\x82???B");
     }
 
+    /// The compiler's table (`qb64rust_base::cp437`, design D4 of `utf8-source`) and this generated one give each
+    /// byte the same character, so a file saved as `cp437` and as UTF-8 compile to the same bytes.
+    #[test]
+    fn cp437_agrees_with_the_compilers_table() {
+        let (_, table) = TABLES.iter().find(|(n, _)| *n == "cp437").unwrap();
+        for (b, &u) in table.iter().enumerate() {
+            let b = u8::try_from(b).unwrap();
+            assert_eq!(u32::from(qb64rust_base::cp437::char_of(b)), u32::from(u), "byte {b}");
+        }
+    }
+
     #[test]
     fn every_table_is_one_to_one_where_defined() {
         for (name, table) in TABLES {

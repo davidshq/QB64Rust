@@ -67,6 +67,27 @@ fn stand_in_excluded(_: &Path) -> bool {
     false
 }
 
+/// The settings file's encoding in these tests (the real one is the driver's `settings::project_encoding`): a line
+/// `encoding = "utf-8"` of the nearest `qb64rust.toml` at or above the main file's folder.
+fn stand_in_project_encoding(main: &Path) -> Option<(std::path::PathBuf, qb64rust_base::SourceEncoding)> {
+    let settings = main
+        .ancestors()
+        .skip(1)
+        .map(|d| d.join("qb64rust.toml"))
+        .find(|f| f.is_file())?;
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "a settings file is TOML, which is UTF-8 by its specification; not BASIC source"
+    )]
+    let text = std::fs::read_to_string(&settings).ok()?;
+    text.lines().any(|l| l.trim() == "encoding = \"utf-8\"").then(|| {
+        (
+            settings.parent().unwrap().to_path_buf(),
+            qb64rust_base::SourceEncoding::Utf8,
+        )
+    })
+}
+
 /// The settings file's main program in these tests (the real one is the driver's `fixes::main_of`): a line
 /// `main = "<name>"` of the nearest `qb64rust.toml` at or above the document's folder, when that file exists.
 fn stand_in_main_of(doc: &Path) -> Option<std::path::PathBuf> {
@@ -196,6 +217,7 @@ impl Client {
             main_of: stand_in_main_of,
             excluded: stand_in_excluded,
             rewritable: stand_in_rewritable,
+            project_encoding: stand_in_project_encoding,
         };
         let server = std::thread::Builder::new()
             .stack_size(qb64rust_base::STACK_SIZE)
@@ -726,6 +748,52 @@ fn encoding_change_reparses() {
     c.notify("qb64rust/documentEncoding", json!({ "uri": u, "encoding": "cp437" }));
     let cp437 = at(&c.diagnostics(&u).unwrap()[0]);
     assert_eq!(utf8, cp437);
+    c.shutdown().unwrap();
+}
+
+/// Spec `editor/language-server`, "A UTF-8 file open in another encoding" (OpenSpec change `utf8-source`, task
+/// 5.1): a project's file open as `cp437` gets one warning at line 1 that names `qb64rust.toml` and `cp437`, with
+/// no code; reopened as UTF-8 it goes. The document's other diagnostics are the same with it and without it.
+#[test]
+fn a_utf8_file_open_as_cp437() {
+    let dir = temp();
+    std::fs::write(dir.path().join("qb64rust.toml"), "[project]\nencoding = \"utf-8\"\n").unwrap();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "main.bas");
+    c.open(&u, "PRINT 1\nPRINT 2 +\n");
+    let cp437 = c.diagnostics(&u).unwrap();
+    assert_eq!(cp437.len(), 2, "{cp437:?}");
+    let warning = &cp437[0];
+    let message = warning["message"].as_str().unwrap();
+    assert!(
+        message.contains("qb64rust.toml") && message.contains("`cp437`"),
+        "{message}"
+    );
+    assert_eq!(at(warning).0, 0);
+    assert!(warning.get("code").is_none_or(Value::is_null), "{warning}");
+    c.notify("qb64rust/documentEncoding", json!({ "uri": u, "encoding": "utf8" }));
+    let utf8 = c.diagnostics(&u).unwrap();
+    assert_eq!(utf8.len(), 1, "{utf8:?}");
+    assert_eq!(utf8[0], cp437[1], "the other diagnostics are the same");
+    c.shutdown().unwrap();
+}
+
+/// The same warning for a file declared by its own line, and none for a file that declares nothing.
+#[test]
+fn the_line_declares_and_nothing_declared() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "'$ENCODING:UTF8\nPRINT 1\n");
+    let d = c.diagnostics(&u).unwrap();
+    assert_eq!(d.len(), 1, "{d:?}");
+    assert!(
+        d[0]["message"].as_str().unwrap().contains("`'$ENCODING:UTF8` line"),
+        "{d:?}"
+    );
+    let plain = uri(dir.path(), "q.bas");
+    c.open(&plain, "PRINT 1\n");
+    assert_eq!(c.diagnostics(&plain).unwrap(), Vec::<Value>::new());
     c.shutdown().unwrap();
 }
 

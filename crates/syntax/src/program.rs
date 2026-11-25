@@ -13,6 +13,8 @@ pub struct Tree {
     pub file: FileId,
     pub green: GreenNode,
     pub diagnostics: Diagnostics,
+    /// The file's `'$ENCODING` line, if it has one (OpenSpec change `utf8-source`; [`crate::encoding`]).
+    pub encoding: Option<crate::encoding::EncodingLine>,
 }
 
 impl Tree {
@@ -166,6 +168,13 @@ pub trait Loader {
     /// from the working directory: a `$USELIBRARY` file is named by its path under the compiler root.
     fn folders(&self) -> std::collections::HashMap<FileId, std::path::PathBuf> {
         std::collections::HashMap::new()
+    }
+
+    /// The encoding a settings file gives the main file `main` (OpenSpec change `utf8-source`, design D2), which
+    /// the parse sets on the file before it starts. A loader sets it on each file it adds itself. A loader that
+    /// knows no settings file gives none.
+    fn main_encoding(&self, _main: FileId) -> Option<qb64rust_base::SourceEncoding> {
+        None
     }
 }
 
@@ -425,6 +434,9 @@ pub fn parse_settled_explicit(
     main: FileId,
     loader: &mut dyn Loader,
 ) -> ParsedProgram {
+    if let Some(encoding) = loader.main_encoding(main) {
+        map.set_project_encoding(main, Some(encoding));
+    }
     let mut auto = None;
     let mut color_file = None;
     let mut after_main_file = None;

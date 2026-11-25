@@ -5,6 +5,7 @@ mod call_trace;
 mod check;
 mod cli;
 mod consts_v45;
+mod encoding;
 mod format_oracle;
 mod format_server;
 mod frontend;

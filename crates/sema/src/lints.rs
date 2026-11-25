@@ -21,6 +21,9 @@ pub const UNUSED_LABEL: &str = "unused-label";
 pub const HIDES_SHARED: &str = "hides-shared";
 /// Statements after one that always leaves its statement list.
 pub const UNREACHABLE: &str = "unreachable";
+/// A file that declares no encoding, is UTF-8, and holds a byte above 127 in a string (OpenSpec change
+/// `utf8-source`, design D7).
+pub const UNDECLARED_UTF8: &str = "undeclared-utf8";
 
 /// QB64pe's "Unused variable" (design D11).
 pub const UNUSED_VARIABLE: &str = "unused-variable";
@@ -38,6 +41,7 @@ pub const CODES: &[&str] = &[
     UNUSED_LABEL,
     HIDES_SHARED,
     UNREACHABLE,
+    UNDECLARED_UTF8,
     UNUSED_VARIABLE,
     EMPTY_SELECT,
     DUPLICATE_CONST,
@@ -60,12 +64,58 @@ pub(crate) fn run(prog: &Program, parsed: &ParsedProgram, map: &SourceMap, main:
             diags.push(Diagnostic::lint(span, code, msg));
         }
     }
+    // For every file of the program (spec `compiler/lints`, "Only the file being compiled").
+    for (span, code, msg) in undeclared_utf8(parsed, map) {
+        diags.push(Diagnostic::lint(span, code, msg));
+    }
     // QB64pe's warnings, wherever QB64pe gives them, included files too.
     let mut theirs = unused_variables(prog, map);
     theirs.extend(prog.qb64pe_warnings.iter().cloned());
     for (span, code, msg) in theirs {
         diags.push(Diagnostic::lint(span, code, msg));
     }
+}
+
+/// `undeclared-utf8` (spec `compiler/lints`, "UTF-8 text in a file that declares nothing"; design D7 of
+/// `utf8-source`): one warning for each file that has no `'$ENCODING` line and no settings file's `encoding`,
+/// whose bytes are all UTF-8, at its first string literal or `DATA` text that holds a byte above 127. It names
+/// how many characters the first such character is in the program, which reads it as code page 437.
+fn undeclared_utf8(parsed: &ParsedProgram, map: &SourceMap) -> Vec<Lint> {
+    let mut out = Vec::new();
+    let mut seen = HashSet::new();
+    for tree in &parsed.trees {
+        let file = tree.file;
+        let declared = qb64rust_syntax::encoding::file_encoding(map, file, tree.encoding).by;
+        if !seen.insert(file) || declared != qb64rust_syntax::encoding::DeclaredBy::Nothing {
+            continue;
+        }
+        let bytes = &map.file(file).bytes;
+        if bytes.is_ascii() || qb64rust_base::cp437::first_bad_utf8(bytes).is_some() {
+            continue;
+        }
+        let first = tree.root().tokens().into_iter().find_map(|t| {
+            if !matches!(t.kind, SyntaxKind::StringLit | SyntaxKind::DataText) {
+                return None;
+            }
+            let text = map.text(t.span);
+            let i = text.iter().position(|&b| b > 127)?;
+            let (ch, len) = qb64rust_base::cp437::next_char(&text[i..])?;
+            Some((t.span, ch, len))
+        });
+        let Some((span, ch, len)) = first else {
+            continue;
+        };
+        out.push((
+            span,
+            UNDECLARED_UTF8,
+            format!(
+                "this file looks like UTF-8 but is read as code page 437, so `{ch}` is {len} characters in the \
+                 program: declare it with a line `'$ENCODING:UTF8` or with `encoding = \"utf-8\"` under \
+                 `[project]` in `qb64rust.toml`"
+            ),
+        ));
+    }
+    out
 }
 
 /// A constant's value as QB64pe's "Duplicate constant definition" shows it (`qb64pe.bas` 2662–2679): an integer

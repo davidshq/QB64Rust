@@ -477,6 +477,7 @@ TYPEFIELDS = "meta-unstable"
 "$MIDISOUNDFONT" = "metacommand"
 _GL = "keyword"
 "$ERROR" = "metacommand"
+"$ENCODING" = "metacommand"
 
 # Words that get no page: word = why.
 [skip]

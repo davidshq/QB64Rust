@@ -4401,3 +4401,14 @@ v73_b_mem
 v73_c_string_members
 v73_d_values
 v73_e_input
+v74_a1_line_utf8
+v74_a2_line_cp437
+v74_a3_line_case_blanks
+v74_a4_line_unknown_value
+v74_b_declared_text
+v74_c_metacommand
+v74_d1_bom
+v74_d2_bom_declared
+v74_e_undeclared_text
+v74_f1_twin_cp437
+v74_f2_twin_utf8

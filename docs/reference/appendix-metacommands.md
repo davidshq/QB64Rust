@@ -2,7 +2,7 @@
 
 <!-- Written by tools/reference/reference.py render; do not edit. -->
 
-The 27 metacommands and preprocessor words. Each stands on a line of its own, also in a
+The 28 metacommands and preprocessor words. Each stands on a line of its own, also in a
 comment where its page says so.
 
 - [`$ASSERTS`](entries/meta-asserts.md)
@@ -14,6 +14,7 @@ comment where its page says so.
 - [`$ELSE`](entries/meta-if.md)
 - [`$ELSEIF`](entries/meta-if.md)
 - [`$EMBED`](entries/meta-embed.md)
+- [`$ENCODING`](entries/meta-encoding.md)
 - [`$END`](entries/meta-if.md)
 - [`$ERROR`](entries/meta-error.md)
 - [`$ERRORLOCATION`](entries/meta-errorlocation.md)

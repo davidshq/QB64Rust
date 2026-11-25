@@ -114,6 +114,12 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    true` in `[build]`, or with `--debug` (D-076). All tasks built; `g12_game`'s ten scripts pass with it in the suites
    VM, at no measurable cost. Archived 2026-11-22, its specs synced. A call costs about 7 ns more in the default build on Windows and Linux,
    2 to 5 ns with `-O2` (`docs\MANUAL.md`).
+0. **The OpenSpec change `utf8-source`** (`DECISIONS.md` 2026-11-24): a source file declared UTF-8, by
+   `'$ENCODING:UTF8` or by `encoding = "utf-8"` under `[project]`, stores each character of its strings as its
+   code page 437 byte (D-077). With it: the lint `undeclared-utf8`, `qb64rust convert --to utf8|cp437`, the
+   editor's warning for a UTF-8 file open as `cp437`, and a UTF-8 "QB64: New Project". All 18 tasks are built;
+   the extension's integration tests for New Project have not run yet (CI). Archived 2026-11-25, its specs
+   synced. Converting each game's files is a step in that game's repo.
 1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
    `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a
    `$CONSOLE:ONLY` program for Node, and 3,664 of the 3,766 verification programs it runs pass (97.3%, 0 failing,

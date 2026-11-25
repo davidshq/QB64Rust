@@ -1,0 +1,17 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+Settings: window
+Stmt line 2
+  Print console newline
+    Num Const 1:I16
+Stmt line 3
+  Print console newline
+    Str Const "\xE2\x94\x80"
+Stmt line 4
+  Print console newline
+    Num Const 2:I16
+Stmt line 5
+  Print console newline
+    Str Const "\xE2\x94\x80"

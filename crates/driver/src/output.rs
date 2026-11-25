@@ -112,6 +112,7 @@ mod tests {
                 })
                 .collect(),
             call_trace: None,
+            encoding: None,
         }
     }
 

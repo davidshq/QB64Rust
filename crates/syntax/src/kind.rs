@@ -9,6 +9,9 @@ pub enum SyntaxKind {
     LineContinuation,
     /// `'` or `REM` and the rest of the line, without the line end.
     Comment,
+    /// The bytes 0xEF 0xBB 0xBF at the start of a file (OpenSpec change `utf8-source`, design D6). Only a UTF-8
+    /// file may hold them; the parser reports them in any other (`crate::encoding`).
+    ByteOrderMark,
 
     // ---- tokens ----
     /// A comment whose text after `'` or `REM` starts with `$` (`'$INCLUDE:'x.bi'`), without the line end. Not
@@ -280,7 +283,7 @@ impl SyntaxKind {
     pub fn is_trivia(self) -> bool {
         matches!(
             self,
-            SyntaxKind::Whitespace | SyntaxKind::LineContinuation | SyntaxKind::Comment
+            SyntaxKind::Whitespace | SyntaxKind::LineContinuation | SyntaxKind::Comment | SyntaxKind::ByteOrderMark
         )
     }
 

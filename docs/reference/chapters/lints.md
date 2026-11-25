@@ -13,8 +13,9 @@ warning: the compiler prints it only with `-w`, and the editor shows it. It neve
 the exit status, and never changes the program that is built.
 <!-- src: compiler/lints "When lints run" -->
 
-Each lint has a code. QB64Rust's own five warn only about the file being compiled, not about a file it includes with
-`$INCLUDE`. QB64pe's four are given wherever QB64pe gives them, included files too.
+Each lint has a code. Five of QB64Rust's own six warn only about the file being compiled, not about a file it
+includes with `$INCLUDE`; `undeclared-utf8` is given for any file. QB64pe's four are given wherever QB64pe gives
+them, included files too.
 <!-- src: compiler/lints "Codes"; compiler/lints "Only the file being compiled" -->
 
 ## The lints
@@ -26,6 +27,7 @@ Each lint has a code. QB64Rust's own five warn only about the file being compile
 | `unused-label` | "label `done` is never used", for a named label nothing names. Not for a line number |
 | `hides-shared` | "this `n` is a new local variable, which hides the `DIM SHARED` one of the main module", for a `DIM` or `REDIM` in a procedure |
 | `unreachable` | "this code is never run: no label follows the GOTO on line 1", once, at the first statement after `GOTO`, `END`, `SYSTEM`, `STOP`, an `EXIT`, `RETURN`, `RESUME` or `RUN`, with no label between |
+| `undeclared-utf8` | "this file looks like UTF-8 but is read as code page 437, so `─` is 3 characters in the program", once per file, at the first string or `DATA` item with a byte above 127, for a file that declares no encoding ([$ENCODING](../entries/meta-encoding.md)) |
 | `unused-variable`, `empty-select`, `duplicate-const`, `debug-incompatible` | QB64pe's own warnings: "Unused variable", "Empty SELECT CASE block", "Duplicate constant definition" and "Feature incompatible with $DEBUG mode", where `qb64pe -w` gives them |
 <!-- src: compiler/lints "Codes"; compiler/lints "Name used once"; compiler/lints "Unused procedure"; compiler/lints "Unused label"; compiler/lints "Local hiding a shared variable"; compiler/lints "Unreachable code"; compiler/lints "QB64pe's warnings" -->
 

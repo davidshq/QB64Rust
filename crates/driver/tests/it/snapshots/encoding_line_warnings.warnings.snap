@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+encoding_line_warnings.bas:2:1: warning: `'$ENCODING:` takes `UTF8` or `CP437`, not `LATIN1`; this line declares nothing
+encoding_line_warnings.bas:5:1: warning: this `'$ENCODING` line names another encoding than the one on line 3, which decides; this line declares nothing

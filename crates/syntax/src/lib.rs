@@ -2,6 +2,7 @@
 
 pub mod ast;
 mod data;
+pub mod encoding;
 mod kind;
 pub mod lexer;
 pub mod library;

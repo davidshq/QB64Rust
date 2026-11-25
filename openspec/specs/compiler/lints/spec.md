@@ -20,9 +20,10 @@ the error summary, and never changing the exit status or the executable. A lint 
 - **THEN** no warning is printed and the executable is built
 
 ### Requirement: Only the file being compiled
-A warning of the five lints with a code SHALL be given only when the place it points to is in the file being
-compiled, not in a file that file includes with `$INCLUDE`. The place of each lint is named in its own
-requirement. QB64pe's warnings SHALL be given wherever QB64pe gives them, included files too.
+A warning of `used-once`, `unused-procedure`, `unused-label`, `hides-shared` or `unreachable` SHALL be given
+only when the place it points to is in the file being compiled, not in a file that file includes with
+`$INCLUDE`. The place of each lint is named in its own requirement. QB64pe's warnings SHALL be given wherever
+QB64pe gives them, included files too. `undeclared-utf8` SHALL be given for any file of the program.
 
 #### Scenario: A toolbox include
 - **WHEN** `main.bas` includes `mouse.bi`, which defines five SUBs, and calls one of them
@@ -33,9 +34,9 @@ requirement. QB64pe's warnings SHALL be given wherever QB64pe gives them, includ
 - **THEN** one `unused-procedure` warning is given, at that SUB's name
 
 ### Requirement: Codes
-Each lint warning SHALL carry a code: `used-once`, `unused-procedure`, `unused-label`, `hides-shared` or
-`unreachable` for ours, and `unused-variable`, `empty-select`, `duplicate-const` or `debug-incompatible` for
-QB64pe's. No other warning SHALL carry a code.
+Each lint warning SHALL carry a code: `used-once`, `unused-procedure`, `unused-label`, `hides-shared`,
+`unreachable` or `undeclared-utf8` for ours, and `unused-variable`, `empty-select`, `duplicate-const` or
+`debug-incompatible` for QB64pe's. No other warning SHALL carry a code.
 
 #### Scenario: The code of a lint
 - **WHEN** a program's only lint warning is for an unused label
@@ -201,7 +202,7 @@ QB64pe's rule does not report.
 
 ### Requirement: Lints table of the settings file
 The `[lints]` table of the program's `qb64rust.toml` (the file of spec `compiler/fixes`) SHALL hold `all =
-true|false` and `<code> = true|false` for each of the nine codes of "Codes". A single code's setting SHALL
+true|false` and `<code> = true|false` for each of the ten codes of "Codes". A single code's setting SHALL
 override `all`. A lint that is off SHALL give no warning: not with `-w`, and not in the language server. With no
 table, every lint SHALL be on. A warning without a code SHALL NOT be affected.
 
@@ -237,7 +238,7 @@ its lint. An unknown code or value SHALL be an error with exit status 1 that nam
 
 #### Scenario: An unknown code
 - **WHEN** `qb64rust --lint unused-labl=off p.bas` is run
-- **THEN** the exit status is 1 and the message names the nine codes
+- **THEN** the exit status is 1 and the message names the ten codes
 
 ### Requirement: A bad lints table
 An unknown code in `[lints]` or a value that is not `true` or `false` SHALL be an error that names the file, the
@@ -245,7 +246,7 @@ line and, for a code, the known codes. The program SHALL NOT be built.
 
 #### Scenario: A misspelled code
 - **WHEN** `qb64rust.toml` holds `[lints]` and `unused-labl = false`
-- **THEN** the compile fails with an error naming `qb64rust.toml`, its line 2 and the nine codes, and exit status 1
+- **THEN** the compile fails with an error naming `qb64rust.toml`, its line 2 and the ten codes, and exit status 1
 
 ### Requirement: The warning report counts every lint
 `qb64rust --report warnings` SHALL count the warnings of every lint, whatever `[lints]` says: it measures how
@@ -254,3 +255,32 @@ often each lint fires.
 #### Scenario: A lint turned off
 - **WHEN** `qb64rust.toml` beside `p.bas` turns `unused-label` off and `p.bas` has an unused label
 - **THEN** `qb64rust --report warnings p.bas` counts one `unused-label` warning
+
+### Requirement: UTF-8 text in a file that declares nothing
+A file SHALL get one `undeclared-utf8` warning when all of these hold:
+
+- the file has no `'$ENCODING` line, and no `encoding` key of a settings file covers it (spec
+  `compiler/source-encoding`, "A file's encoding");
+- the file's bytes are valid UTF-8;
+- a string literal or a `DATA` item of the file holds a byte above 127.
+
+The warning SHALL be at the first such string or item. It SHALL say that the file looks like UTF-8 and is read
+as code page 437, give the number of bytes the first such character becomes in the program, and name both ways
+to declare the file. It SHALL be given for an included file too.
+
+#### Scenario: A new file from an editor
+- **WHEN** `p.bas` is saved as UTF-8, declares nothing, and line 2 is `PRINT "─"`
+- **THEN** `qb64rust -w p.bas` gives one `undeclared-utf8` warning at line 2, column 7, which says that `─` is
+  3 characters in the program and names `'$ENCODING:UTF8` and `encoding` in `qb64rust.toml`
+
+#### Scenario: Only in a comment
+- **WHEN** a file that declares nothing holds `' café` in UTF-8 and no byte above 127 in any string
+- **THEN** no `undeclared-utf8` warning is given
+
+#### Scenario: A code page 437 file
+- **WHEN** a file that declares nothing holds the single byte 0xC4 in a string
+- **THEN** no `undeclared-utf8` warning is given, since the file is not valid UTF-8
+
+#### Scenario: Declared code page 437
+- **WHEN** a file holds `'$ENCODING:CP437` and UTF-8 bytes in a string, for `_UPRINTSTRING` with encoding 8
+- **THEN** no `undeclared-utf8` warning is given

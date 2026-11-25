@@ -16,10 +16,16 @@ pub struct TestLoader {
 }
 
 impl TestLoader {
-    /// As [`FileLoader::new`]: `main` the virtual main file, `main_path` its path beside the test file.
-    pub fn new(root: &Path, main: FileId, main_path: &Path) -> TestLoader {
+    /// As [`FileLoader::new`]: `main` the virtual main file, `main_path` its path beside the test file. `project`:
+    /// the settings file's folder and its encoding, as [`FileLoader::with_encoding`] takes them.
+    pub fn new(
+        root: &Path,
+        main: FileId,
+        main_path: &Path,
+        project: (&Path, Option<qb64rust_base::SourceEncoding>),
+    ) -> TestLoader {
         TestLoader {
-            files: FileLoader::new(root, main, main_path),
+            files: FileLoader::new(root, main, main_path).with_encoding(project.0, project.1),
             library: HashMap::new(),
         }
     }
@@ -55,6 +61,10 @@ impl Loader for TestLoader {
     fn folders(&self) -> HashMap<FileId, std::path::PathBuf> {
         self.files.folders()
     }
+
+    fn main_encoding(&self, main: FileId) -> Option<qb64rust_base::SourceEncoding> {
+        self.files.main_encoding(main)
+    }
 }
 
 #[cfg(test)]
@@ -68,7 +78,7 @@ mod tests {
         let main_path = d.path().join("math_test.bas.test-entry.bas");
         let mut map = SourceMap::new();
         let main = map.add(main_path.to_string_lossy(), Vec::new());
-        let mut loader = TestLoader::new(d.path(), main, &main_path);
+        let mut loader = TestLoader::new(d.path(), main, &main_path, (d.path(), None));
         let bi = loader.load(&mut map, main, b"qb64rust-test/qbtest.bi").unwrap();
         assert_eq!(&*map.file(bi).bytes, LIBRARY_BI_TEXT.as_bytes());
         // The same file again, whatever the separator or case.

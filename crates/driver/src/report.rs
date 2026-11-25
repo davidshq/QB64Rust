@@ -70,14 +70,25 @@ fn front(path: &Path, include_root: &Path) -> Result<Frontend, String> {
         return Err(format!("{} is too large", path.display()));
     }
     let name = path.to_string_lossy().to_string();
+    let settings = crate::settings::load(path, false).ok();
+    let build = settings.as_ref().map(|(_, b, _)| b.clone());
+    let fixes = settings
+        .as_ref()
+        .map_or(qb64rust_base::fixes::Fixes::OFF, |(p, _, _)| p.fixes);
     Ok(frontend_at(
         qb64rust_base::Platform::host(),
         &name,
         bytes,
-        |file| Box::new(FileLoader::new(include_root, file, path)),
+        |file| {
+            let loader = FileLoader::new(include_root, file, path);
+            Box::new(match &build {
+                Some(b) => loader.with_encoding(&b.root, b.encoding),
+                None => loader,
+            })
+        },
         Some((path, include_root)),
         // The fixes only: the report counts every lint, whatever `[lints]` says (spec `compiler/lints`).
-        crate::settings::load(path, false).map_or(qb64rust_base::fixes::Fixes::OFF, |(p, _, _)| p.fixes),
+        fixes,
     ))
 }
 

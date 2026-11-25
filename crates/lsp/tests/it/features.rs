@@ -35,6 +35,7 @@ fn parse_with(main: &Path, text: &[u8], others: &[(&Path, &[u8])], root: &Path) 
         &open_files,
         root,
         Encoding::DEFAULT,
+        qb64rust_lsp::no_project_encoding,
     )
 }
 

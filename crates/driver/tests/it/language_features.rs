@@ -6,13 +6,13 @@ use crate::support::lsp::{Client, WAIT};
 use crate::support::repo;
 use qb64rust_base::{SourceMap, Span};
 use qb64rust_driver::{check_program, frontend, hover, index_for_server};
-use qb64rust_lsp::Hooks;
 use qb64rust_lsp::analysis::{Analysis, OpenFile, analyze};
 use qb64rust_lsp::definition;
 use qb64rust_lsp::encoding::Encoding;
 use qb64rust_lsp::index::{EntryKind, Indexed, SymbolIndex};
 use qb64rust_lsp::rename;
 use qb64rust_lsp::uri::from_path;
+use qb64rust_lsp::{Hooks, no_project_encoding};
 use qb64rust_syntax::ParsedProgram;
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -463,7 +463,14 @@ fn slice_indexed(program: &str) -> (Analysis, SymbolIndex) {
         bytes: std::fs::read(&path).unwrap().into(),
         encoding: Encoding::DEFAULT,
     };
-    let a = analyze("main", &main, &HashMap::new(), &root, Encoding::DEFAULT);
+    let a = analyze(
+        "main",
+        &main,
+        &HashMap::new(),
+        &root,
+        Encoding::DEFAULT,
+        no_project_encoding,
+    );
     let index = index_for_server(&a.map, &a.parsed, Some(&base), &root);
     (a, index)
 }
@@ -858,7 +865,14 @@ fn rename_every_symbol_of_the_slice_programs() {
             bytes: a.map.file(a.parsed.main().file).bytes.clone(),
             encoding: Encoding::DEFAULT,
         });
-        let new = analyze(&main_info.key, &main, &open, &root, Encoding::DEFAULT);
+        let new = analyze(
+            &main_info.key,
+            &main,
+            &open,
+            &root,
+            Encoding::DEFAULT,
+            no_project_encoding,
+        );
         let path = qb64rust_lsp::uri::to_path(&main_info.uri).unwrap();
         let disk = Some((path.as_path(), root.as_path()));
         let off = qb64rust_base::fixes::Fixes::OFF;

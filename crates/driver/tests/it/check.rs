@@ -112,8 +112,13 @@ fn cli(path: &Path, root: &Path) -> (Vec<Shown>, usize, usize) {
 
 /// The check of `path` through the server equals the CLI's report, diagnostics and counts alike.
 fn same_as_cli(path: &Path, root: &Path) -> Checked {
-    let checked = check_in_server(path, root);
+    let mut checked = check_in_server(path, root);
     let (expected, errors, warnings) = cli(path, root);
+    // The editor's own warning for a UTF-8 file open as `cp437`, which these tests open every file as, has no
+    // counterpart on the command line (spec `editor/language-server`, "A UTF-8 file open in another encoding").
+    checked
+        .published
+        .retain(|(_, _, _, message, _, _)| !message.starts_with("this file is declared UTF-8 "));
     assert_eq!(checked.published, expected, "{}", path.display());
     assert_eq!(
         checked.answer,

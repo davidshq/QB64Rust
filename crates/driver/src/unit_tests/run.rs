@@ -210,7 +210,14 @@ fn build(file: &TestFile, o: &RunOptions) -> Result<PathBuf, String> {
         &main,
         &main.to_string_lossy(),
         entry_point(&file_name, &file.tests).into_bytes(),
-        |id| Box::new(TestLoader::new(&o.include_root, id, &main)),
+        |id| {
+            Box::new(TestLoader::new(
+                &o.include_root,
+                id,
+                &main,
+                (&settings.root, settings.encoding),
+            ))
+        },
         &options,
         &mut |t| text.push_str(t),
     );

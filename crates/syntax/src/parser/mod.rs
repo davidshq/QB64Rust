@@ -51,6 +51,8 @@ pub(crate) fn parse_tree_with(
     outside: Vec<blocks::Open>,
 ) -> (Tree, PpState, Vec<blocks::Open>) {
     let tokens = tokenize(bytes);
+    let project = inc.map.project_encoding(file);
+    let (encoding, encoding_diags) = crate::encoding::scan(file, bytes, &tokens, project);
     let mut offsets = Vec::with_capacity(tokens.len() + 1);
     let mut o = 0u32;
     for t in &tokens {
@@ -91,6 +93,9 @@ pub(crate) fn parse_tree_with(
         tree: id,
         included,
     };
+    for d in encoding_diags {
+        p.diags.push(d);
+    }
     p.source_file();
     // The blocks still open at the end: those the including file handed in and this file did not close, then
     // those opened here or in a file included here, which the including file may close (design D8 of
@@ -101,6 +106,7 @@ pub(crate) fn parse_tree_with(
         file,
         green: p.builder.finish(),
         diagnostics: p.diags,
+        encoding,
     };
     (tree, p.pp, open)
 }

@@ -1809,6 +1809,12 @@
   "unsupported": [],
   "rejected": []
  },
+ "meta-encoding": {
+  "programs": 0,
+  "ok": 0,
+  "unsupported": [],
+  "rejected": []
+ },
  "meta-error": {
   "programs": 1,
   "ok": 1,

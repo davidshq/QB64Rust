@@ -24,6 +24,8 @@ pub struct FileInfo {
     pub uri: Uri,
     pub key: String,
     pub columns: Columns,
+    /// The encoding the client names for the file when it is an open document; `None` for a file read from disk.
+    pub open: Option<Encoding>,
 }
 
 /// The parse of one program.
@@ -98,11 +100,46 @@ impl Analysis {
                 ..lsp_types::Diagnostic::default()
             });
         }
+        for (i, diags) in per_file.iter_mut().enumerate() {
+            if let Some(d) = self.open_as_another_encoding(FileId(qb64rust_base::to_u32(i))) {
+                diags.insert(0, d);
+            }
+        }
         per_file
             .into_iter()
             .enumerate()
             .map(|(i, d)| (FileId(qb64rust_base::to_u32(i)), d))
             .collect()
+    }
+
+    /// The warning for a UTF-8 file that the client has open in a single-byte encoding, at its first line (spec
+    /// `editor/language-server`, "A UTF-8 file open in another encoding"; design D10 of `utf8-source`). The parse
+    /// still reads the bytes that encoding gives, which for `cp437` are the file's own.
+    fn open_as_another_encoding(&self, file: FileId) -> Option<lsp_types::Diagnostic> {
+        let Some(open @ Encoding::Table(..)) = self.info(file).open else {
+            return None;
+        };
+        let tree = self.tree(file)?;
+        let found = qb64rust_syntax::encoding::file_encoding(&self.map, file, tree.encoding);
+        if !found.is_utf8() {
+            return None;
+        }
+        let how = match found.by {
+            qb64rust_syntax::encoding::DeclaredBy::Line(_) => "by its `'$ENCODING:UTF8` line",
+            _ => "by `encoding = \"utf-8\"` in `qb64rust.toml`",
+        };
+        let (start, end) = self.map.file(file).line_content(0).unwrap_or((0, 0));
+        Some(lsp_types::Diagnostic {
+            range: self.range(Span::new(file, start, end)),
+            severity: Some(DiagnosticSeverity::WARNING),
+            source: Some("qb64rust".to_string()),
+            message: format!(
+                "this file is declared UTF-8 {how}, but it is open as `{}`: reopen it with the encoding UTF-8 \
+                 (Reopen with Encoding)",
+                open.name()
+            ),
+            ..lsp_types::Diagnostic::default()
+        })
     }
 }
 
@@ -115,6 +152,7 @@ pub fn analyze(
     open: &HashMap<String, OpenFile>,
     root: &Path,
     default: Encoding,
+    project: crate::ProjectEncoding,
 ) -> Analysis {
     let mut map = SourceMap::new();
     let path = to_path(&main.uri);
@@ -122,6 +160,12 @@ pub fn analyze(
         .as_ref()
         .map_or_else(|| main.uri.as_str().to_string(), |p| p.to_string_lossy().into_owned());
     let id = map.add(name, main.bytes.to_vec());
+    // The settings file's encoding, for the files in its folder and below it, as the compiler gives it (design D2
+    // of `utf8-source`).
+    let project = path
+        .as_deref()
+        .and_then(project)
+        .and_then(|(folder, e)| Some((std::fs::canonicalize(folder).ok()?, e)));
     let mut loader = DocLoader {
         open,
         root,
@@ -129,7 +173,9 @@ pub fn analyze(
         files: Vec::new(),
         dirs: Vec::new(),
         seen: HashMap::new(),
+        project,
     };
+    loader.set_encoding(&mut map, id, path.as_deref());
     loader.record(
         &map,
         id,
@@ -157,6 +203,8 @@ struct DocLoader<'a> {
     dirs: Vec<Option<PathBuf>>,
     /// Key -> file, for files loaded already (the main file is not among them, as in the driver's loader).
     seen: HashMap<String, FileId>,
+    /// The settings file's canonical folder and the encoding it gives ([`DocLoader::set_encoding`]).
+    project: Option<(PathBuf, qb64rust_base::SourceEncoding)>,
 }
 
 impl DocLoader<'_> {
@@ -167,7 +215,13 @@ impl DocLoader<'_> {
             "files are recorded in the order they are added"
         );
         let columns = enc.columns(map.file(id));
-        self.files.push(FileInfo { uri, key, columns });
+        let open = self.open.get(&key).map(|f| f.encoding);
+        self.files.push(FileInfo {
+            uri,
+            key,
+            columns,
+            open,
+        });
         self.dirs.push(path.and_then(Path::parent).map(Path::to_path_buf));
     }
 
@@ -179,6 +233,19 @@ impl DocLoader<'_> {
             let id = FileId(qb64rust_base::to_u32(self.files.len()));
             let path = self.root.join(&map.file(id).name);
             self.record(map, id, from_path(&path), path_key(&path), None, Encoding::DEFAULT);
+        }
+    }
+}
+
+impl DocLoader<'_> {
+    /// Gives the file `id` at `path` the settings file's encoding when it is in that file's folder or below it.
+    fn set_encoding(&self, map: &mut SourceMap, id: FileId, path: Option<&Path>) {
+        let Some((folder, encoding)) = &self.project else {
+            return;
+        };
+        let dir = path.and_then(Path::parent).and_then(|d| std::fs::canonicalize(d).ok());
+        if dir.is_some_and(|d| d.starts_with(folder)) {
+            map.set_project_encoding(id, Some(*encoding));
         }
     }
 }
@@ -239,6 +306,7 @@ impl DocLoader<'_> {
         }
         self.record_builtins(map, map.files().count());
         let id = map.add(shown.unwrap_or_else(|| candidate.to_string_lossy().into_owned()), bytes);
+        self.set_encoding(map, id, Some(candidate));
         self.seen.insert(key.clone(), id);
         self.record(map, id, uri, key, Some(candidate), enc);
         Ok(Some(id))

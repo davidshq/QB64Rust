@@ -8,6 +8,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import * as config from "./config";
 import * as qb64pe from "./compiler/qb64pe";
+import { characterColumn, isUtf8 } from "./compiler/columns";
 import { CompilerMessage } from "./compiler/parseQb64peOutput";
 import { RunQueue } from "./compiler/runQueue";
 import { LanguageServer } from "./languageServer";
@@ -163,28 +164,36 @@ function isShownInTab(uri: vscode.Uri): boolean {
 
 /**
  * The reported line from its first to its last non-blank character; with a column (the new compiler's, a byte
- * column, which is the character column in CP437 and other single-byte encodings), from that column instead.
+ * column, which is the character column in CP437 and other single-byte encodings), from that column instead. In a
+ * UTF-8 file the column counts UTF-8 bytes (design D5 of utf8-source).
  */
 function lineRange(uri: vscode.Uri, line: number, column?: number): vscode.Range {
     const index = Math.max(0, line - 1);
-    const text = lineText(uri, index);
+    const utf8 = isUtf8(encodingOf(uri));
+    const text = lineText(uri, index, utf8);
     if (text === undefined) {
         const at = column ? column - 1 : 0;
         return new vscode.Range(index, at, index, at);
     }
-    const start = column ? Math.min(column - 1, text.length) : text.length - text.trimStart().length;
+    const start = column ? Math.min(characterColumn(text, column, utf8), text.length) : text.length - text.trimStart().length;
     const end = text.trimEnd().length;
     return end > start ? new vscode.Range(index, start, index, end) : new vscode.Range(index, 0, index, text.length);
 }
 
-function lineText(uri: vscode.Uri, index: number): string | undefined {
+/** The encoding of an open document, or the `[qb64rust]` default for a file that is not open. */
+function encodingOf(uri: vscode.Uri): string | undefined {
+    const open = vscode.workspace.textDocuments.find((d) => d.uri.toString() === uri.toString());
+    return open ? config.documentEncoding(open) : config.defaultEncoding();
+}
+
+function lineText(uri: vscode.Uri, index: number, utf8: boolean): string | undefined {
     const open = vscode.workspace.textDocuments.find((d) => d.uri.toString() === uri.toString());
     if (open) {
         return index < open.lineCount ? open.lineAt(index).text : undefined;
     }
     try {
         // Single-byte encodings keep one character per byte, so Latin-1 gives the right positions for CP437 too.
-        const lines = fs.readFileSync(path.normalize(uri.fsPath), "latin1").split(/\r?\n/);
+        const lines = fs.readFileSync(path.normalize(uri.fsPath), utf8 ? "utf8" : "latin1").split(/\r?\n/);
         return lines[index];
     } catch {
         return undefined;

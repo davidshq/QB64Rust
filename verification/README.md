@@ -597,6 +597,16 @@ Small programs behind `study\09`, `study\10` and later measurements:
   five pointers). `d`: `HEX$` of -1, `_MK$`, `_CV`, `PUT`, `GET` and `INPUT #` of an `_OFFSET`, and an `_OFFSET`
   variable passed to an `_INTEGER64` parameter, which is by reference only where both are 8 bytes. `e`: console
   `INPUT` into an `_OFFSET` between other variables.
+- `v74*`: the encoding of a source file (2026-11-24, OpenSpec change `utf8-source`, task 1.1). QB64pe reads
+  `'$ENCODING:UTF8`, `'$ENCODING:CP437`, the line in lower case after blanks, and `'$ENCODING:LATIN1` as comments
+  and builds each program (`a1`–`a4`). It copies a UTF-8 string's bytes as they are, declared or not:
+  `LEN("─"); ASC("─")` prints ` 3  226`, and `PRINT "─"` writes the three bytes (`b`, `e`). `$ENCODING:UTF8`
+  outside a comment is "Syntax error" (`c`). A file that starts with the byte order mark 0xEF 0xBB 0xBF is
+  "Unexpected character on line" at line 1, also when its first line is `'$ENCODING:UTF8` (`d1`, `d2`).
+  QB64Rust gave the same for all nine before the change. `f1` and `f2` (task 2.6) are one program with box
+  characters, accents, `√` and the heart of byte 3 in strings, `DATA`, a `CONST` and a `SELECT CASE`, saved as code page 437 and as
+  UTF-8, each with its `'$ENCODING` line. `f2` is judged by a copy of `f1`'s recording
+  (`tests\verification\diverged\`).
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

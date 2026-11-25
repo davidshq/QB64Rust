@@ -12,6 +12,7 @@ The pages of this area: [REM](../entries/rem.md), [$INCLUDE](../entries/meta-inc
 [$DYNAMIC](../entries/meta-dynamic.md), [$CHECKING](../entries/meta-checking.md),
 [$ASSERTS](../entries/meta-asserts.md), [$DEBUG](../entries/meta-debug.md), [$UNSTABLE](../entries/meta-unstable.md),
 [$EMBED](../entries/meta-embed.md), [$USELIBRARY](../entries/meta-uselibrary.md),
+[$ENCODING](../entries/meta-encoding.md),
 [$RESIZE](../entries/meta-resize.md), [$SCREENHIDE](../entries/meta-screenhide.md),
 [$MIDISOUNDFONT](../entries/meta-midisoundfont.md).
 
@@ -29,8 +30,8 @@ Labels and line numbers belong to the body they stand in ([Control flow](control
 
 ## Comments that are metacommands
 
-A comment whose text starts with `$` is read for `$INCLUDE`, `$STATIC` and `$DYNAMIC`, as QB64pe reads it; any other
-comment is only a comment.
+A comment whose text starts with `$` is read for `$INCLUDE`, `$STATIC` and `$DYNAMIC`, as QB64pe reads it, and
+for `'$ENCODING`; any other comment is only a comment.
 <!-- src: compiler/pipeline "Comment metacommands are never ignored"; tests\reference\examples\rem_1 -->
 
 `'$INCLUDE:'file'` includes a file after its line. A relative name is looked for in the including file's folder, then
@@ -39,6 +40,14 @@ from the compiler's folder; `$INCLUDEONCE` makes later inclusions of a file empt
 
 A `$` line that is no metacommand QB64pe knows is a compile error.
 <!-- src: compiler/pipeline "Metacommands the old compiler does not know" -->
+
+## The characters of a file
+
+A file is read as bytes, and each byte of a string is one code page 437 character: a file that holds `─` must be
+saved as code page 437. A file saved as UTF-8 says so with the line `'$ENCODING:UTF8`, or with
+`encoding = "utf-8"` under `[project]` in `qb64rust.toml`. Its strings then hold the code page 437 byte of each
+character ([$ENCODING](../entries/meta-encoding.md)).
+<!-- src: compiler/pipeline "Source is bytes"; verification\v74_e_undeclared_text; D-077 -->
 
 ## The preprocessor
 
