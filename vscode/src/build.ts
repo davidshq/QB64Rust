@@ -11,6 +11,7 @@ import { RunQueue } from "./compiler/runQueue";
 import { Diagnostics } from "./diagnostics";
 import { LanguageServer } from "./languageServer";
 import { CompilerStatus } from "./statusBar";
+import { tickWalkthrough } from "./walkthrough";
 
 const TERMINAL_NAME = "QB64";
 
@@ -22,7 +23,11 @@ export interface Built {
 
 export class Builder implements vscode.Disposable {
     readonly output = vscode.window.createOutputChannel("QB64");
-    private readonly disposables: vscode.Disposable[] = [this.output];
+    private readonly firstBuildChange = new vscode.EventEmitter<boolean>();
+    /** Fires with true when a build starts building libqb, its first after an install, and with false when that
+     * build ends (the Program view's status line, change editor-side-panel). */
+    readonly onDidChangeFirstBuild = this.firstBuildChange.event;
+    private readonly disposables: vscode.Disposable[] = [this.output, this.firstBuildChange];
     private terminal: vscode.Terminal | undefined;
     /** The last build's command line as shown in the output channel; for tests. */
     lastCommand: string | undefined;
@@ -99,12 +104,23 @@ export class Builder implements vscode.Disposable {
         if (plan.firstLibqbBuild) {
             this.appendLine("This first build after installing or updating the extension also builds QB64pe's runtime library (libqb) once.");
         }
-        const result = await qb64rust.build(this.queue, plan.command, file, plan.roots, plan.env, plan.debug, plan.paths, (text) => {
-            this.append(text);
-            if (plan.firstLibqbBuild && /^building /m.test(text)) {
-                this.status.setBusy("building libqb (first build)…");
-            }
-        });
+        let libqb = false;
+        const result = await qb64rust
+            .build(this.queue, plan.command, file, plan.roots, plan.env, plan.debug, plan.paths, (text) => {
+                this.append(text);
+                if (plan.firstLibqbBuild && /^building /m.test(text)) {
+                    this.status.setBusy("building libqb (first build)…");
+                    if (!libqb) {
+                        libqb = true;
+                        this.firstBuildChange.fire(true);
+                    }
+                }
+            })
+            .finally(() => {
+                if (libqb) {
+                    this.firstBuildChange.fire(false);
+                }
+            });
         if (result.cancelled) {
             return undefined;
         }
@@ -212,6 +228,7 @@ export class Builder implements vscode.Disposable {
      * input. Only terminals this extension created are closed.
      */
     private startInTerminal(exe: string, runIn: string, resource: vscode.Uri): void {
+        tickWalkthrough("ran");
         this.terminal?.dispose();
         const env = config.noPrompt(resource) ? { QB64PE_NOPROMPT: "y" } : undefined;
         const terminal = vscode.window.createTerminal({ name: TERMINAL_NAME, cwd: runIn, env });

@@ -44,6 +44,9 @@ __pycache__/
 /vscode/*.vsix
 # What the platform .vsix carries, written by vscode/scripts/stage_bundle.py
 /vscode/bundle/
+# The help pages and examples the .vsix carries, written by tools/reference/reference.py help (stage_bundle.py,
+# npm run help)
+/vscode/help/
 /vscode/LICENSE
 /vscode/*.tsbuildinfo
 /vscode/test-fixtures/**/*.exe

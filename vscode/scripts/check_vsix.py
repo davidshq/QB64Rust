@@ -42,6 +42,12 @@ REQUIRED = [
     "extension/LICENSE.txt",
     "extension/package.json",
     "extension/out/src/extension.js",
+    # The help and the examples (spec editor/packaging, "Help pages and examples in the package"; OpenSpec change
+    # editor-side-panel), written by tools/reference/reference.py help.
+    "extension/help/index.json",
+    "extension/help/pages/entries/_clamp.md",
+    "extension/help/examples/_clamp_1.bas",
+    "extension/help/examples/first-steps/hello.bas",
 ]
 FORBIDDEN_SUFFIXES = (".ts", ".o", ".a", ".map")
 TAG = re.compile(r"^vscode-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$")

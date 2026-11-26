@@ -6,6 +6,7 @@ mod check;
 mod cli;
 mod consts_v45;
 mod encoding;
+mod examples;
 mod format_oracle;
 mod format_server;
 mod frontend;

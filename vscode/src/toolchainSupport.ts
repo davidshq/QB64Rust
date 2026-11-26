@@ -30,6 +30,10 @@ export class ToolchainSupport implements vscode.Disposable {
     private readonly disposables: vscode.Disposable[];
     /** Replaces the window in the offer; for tests. */
     ui: tc.OfferUi;
+    private readonly downloadChange = new vscode.EventEmitter<string | undefined>();
+    /** Fires with what is downloaded ("C++ toolchain", "Emscripten SDK") when an install starts, and with undefined
+     * when it ends (the Program view's status line, change editor-side-panel). */
+    readonly onDidChangeDownload = this.downloadChange.event;
 
     constructor(
         private readonly status: CompilerStatus,
@@ -38,6 +42,7 @@ export class ToolchainSupport implements vscode.Disposable {
     ) {
         this.ui = this.windowUi();
         this.disposables = [
+            this.downloadChange,
             vscode.commands.registerCommand(tc.INSTALL_COMMAND, () => tc.installCommand(vscode.workspace.isTrusted, () => this.lookup(false), this.ui)),
             vscode.workspace.onDidChangeConfiguration((e) => {
                 if (config.affectsToolchainPath(e)) {
@@ -120,6 +125,11 @@ export class ToolchainSupport implements vscode.Disposable {
         }
         this.output.show(true);
         this.output.appendLine(`> ${binary.path} ${args.join(" ")}`);
+        this.downloadChange.fire(title.replace(/^QB64: /, ""));
+        const ended = (run: tc.InstallRun): tc.InstallRun => {
+            this.downloadChange.fire(undefined);
+            return run;
+        };
         return Promise.resolve(
             vscode.window.withProgress(
                 { location: vscode.ProgressLocation.Notification, title, cancellable: true },
@@ -165,7 +175,10 @@ export class ToolchainSupport implements vscode.Disposable {
                         child.on("close", (code) => finish(code));
                     }),
             ),
-        );
+        ).then(ended, (e: unknown) => {
+            ended({ exitCode: null, output: "", cancelled: false });
+            throw e;
+        });
     }
 
     dispose(): void {

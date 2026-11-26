@@ -5,7 +5,54 @@ import * as vscode from "vscode";
 import * as config from "./config";
 import { Discovery, findCompiler } from "./compiler/discovery";
 import { INSTALL_COMMAND } from "./compiler/toolchain";
+import { ProgramState, statusBarText, statusBarTooltip } from "./panel/programModel";
 import type { ToolchainSupport } from "./toolchainSupport";
+
+/** The command that shows the QB64 view container (VS Code's own, from the container's id `qb64`). */
+export const SHOW_PANEL = "workbench.view.extension.qb64";
+
+/**
+ * The two items at the left of the status bar while a QB64 file is active (spec editor/side-panel, "The status bar
+ * item"; change editor-side-panel, design D2): "Run", and the Program view's status in short, which opens the QB64
+ * side panel. Both are drawn from the Program view's state, so the two never disagree.
+ */
+export class ProgramStatusBar implements vscode.Disposable {
+    private readonly run = vscode.window.createStatusBarItem("qb64rust.run", vscode.StatusBarAlignment.Left, 100);
+    private readonly status = vscode.window.createStatusBarItem("qb64rust.programStatus", vscode.StatusBarAlignment.Left, 99);
+
+    constructor() {
+        this.run.name = "QB64 Run";
+        this.run.text = "$(play) Run";
+        this.run.tooltip = "QB64: Build and Run";
+        this.run.command = "qb64rust.buildAndRun";
+        this.status.name = "QB64 program status";
+        this.status.command = SHOW_PANEL;
+    }
+
+    /** Shows `state` while `active` (a QB64 file is the active editor), else hides both. */
+    render(state: ProgramState, active: boolean): void {
+        const text = statusBarText(state);
+        if (!active || !text) {
+            this.run.hide();
+            this.status.hide();
+            this.shown = undefined;
+            return;
+        }
+        this.status.text = text;
+        this.status.tooltip = statusBarTooltip(state);
+        this.run.show();
+        this.status.show();
+        this.shown = { run: this.run.text, status: text };
+    }
+
+    /** The text of the two items, undefined while hidden; for tests. */
+    shown: { run: string; status: string } | undefined;
+
+    dispose(): void {
+        this.run.dispose();
+        this.status.dispose();
+    }
+}
 
 export class CompilerStatus implements vscode.Disposable {
     private readonly item = vscode.languages.createLanguageStatusItem("qb64rust.compiler", "qb64rust");

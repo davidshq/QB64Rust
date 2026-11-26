@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **The QB64 side panel.** A QB64 icon in the activity bar opens its views. **Program** names the program Run
+  builds, with Run, Debug, Run in Browser and Build, and one line that says "OK" or shows the first error in any
+  file of the program, include files that are not open too, with a link to its line. **SUBs & FUNCTIONs** lists
+  every procedure of a program with include files, from every file. **Examples** and **Help** are below. Two items at the left of
+  the status bar give Run and the same status (README, "The QB64 side panel").
+- **Help, offline.** The language reference comes with the extension: a page per statement, function and keyword,
+  a chapter per area, and "First steps". A page opens in a tab beside the code, and its examples have **Run this
+  example**. **QB64: Search Help** and **QB64: Help for This Word** (in the editor's right-click menu) find a page.
+  A hover on a built-in or keyword now gives the first sentence of its page, with a link to the page. No key is
+  bound: F1 stays VS Code's (README, "Help").
+- **Examples.** Twelve programs to try (first steps, graphics, sound, small games), and the reference's examples,
+  each opened as a copy of your own that you can change, run and reset (README, "Examples").
+- **QB64 Home.** A starter page in the editor area: New Program, Open a Program, Examples, Help, your recent
+  programs and whether the setup is complete. It opens when a window starts with no file open and has no folder
+  or a folder with QB64 files. Its checkbox stops that, and **QB64: Home** opens it at any time (README, "QB64
+  Home").
+- **QB64: New Program** makes one `.bas` file, ready to run, through a save dialog, and writes nothing else.
+- **A walkthrough, "Get Started with QB64",** in VS Code's Welcome page: write a program, run it, look a word up,
+  try an example, fix a mistake. **QB64: Get Started** opens it.
 - **Layout and lints in `qb64rust.toml`.** A `[format]` table sets the keyword case, the indent and the layout for
   everyone who opens the project, over the `qb64rust.format.*` settings. A `[lints]` table turns lint warnings off,
   one by one or all at once. A mistake in the file now stops Format Document with a message naming the file and

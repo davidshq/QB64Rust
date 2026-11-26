@@ -20,6 +20,13 @@ class CheckVsix(unittest.TestCase):
             cv.check_vsix(names, MANIFEST), ["missing: extension/bundle/bin/qb64rust.exe"]
         )
 
+    def test_missing_help(self):
+        # A package made without `reference.py help` (OpenSpec change editor-side-panel).
+        names = {n for n in cv.REQUIRED if not n.startswith("extension/help/")}
+        problems = cv.check_vsix(names, MANIFEST)
+        self.assertTrue(any("extension/help/index.json" in p for p in problems), problems)
+        self.assertTrue(any("first-steps/hello.bas" in p for p in problems), problems)
+
     def test_forbidden_files(self):
         names = set(cv.REQUIRED) | {
             "extension/src/build.ts",

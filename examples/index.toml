@@ -1,0 +1,67 @@
+# The example programs of the editor's Examples view, in their groups and in the order shown (OpenSpec change
+# editor-side-panel, design D10). Each example is `<id>/<name>.bas` beside this file. `tools\reference\reference.py
+# help` reads this file; the test `examples_check_with_no_diagnostic` checks that each program is listed here.
+
+[[group]]
+id = "first-steps"
+title = "First steps"
+
+[[group.example]]
+name = "hello"
+title = "Hello"
+
+[[group.example]]
+name = "guess"
+title = "Guess the number"
+
+[[group.example]]
+name = "draw"
+title = "Draw with the mouse"
+
+[[group]]
+id = "graphics"
+title = "Graphics"
+
+[[group.example]]
+name = "bounce"
+title = "Bouncing ball"
+
+[[group.example]]
+name = "stars"
+title = "Flying through stars"
+
+[[group.example]]
+name = "spiral"
+title = "Spirals"
+
+[[group]]
+id = "sound"
+title = "Sound and music"
+
+[[group.example]]
+name = "tune"
+title = "A tune"
+
+[[group.example]]
+name = "piano"
+title = "Piano"
+
+[[group]]
+id = "games"
+title = "Small games"
+
+[[group.example]]
+name = "catch"
+title = "Catch"
+
+[[group.example]]
+name = "dodge"
+title = "Dodge"
+
+[[group.example]]
+name = "targets"
+title = "Targets"
+
+[[group.example]]
+name = "higher"
+title = "Higher or lower"

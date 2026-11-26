@@ -21,7 +21,8 @@
   "main": "./out/src/extension.js",
   "activationEvents": [
     "onDebugResolve:qb64rust",
-    "workspaceContains:**/*_test.bas"
+    "workspaceContains:**/*_test.bas",
+    "onStartupFinished"
   ],
   "capabilities": {
     "untrustedWorkspaces": {
@@ -182,6 +183,12 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "Set `QB64PE_NOPROMPT=y` when running a program, so untrapped runtime errors are printed instead of shown in a dialog."
+        },
+        "qb64rust.showHomeOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Show the page **QB64 Home** when a window starts with no file open, and the window has no folder or a folder with QB64 files. The page's own checkbox changes this setting. **QB64: Home** opens the page at any time."
         }
       }
     },
@@ -243,8 +250,184 @@
         "command": "qb64rust.newProject",
         "title": "New Project",
         "category": "QB64"
+      },
+      {
+        "command": "qb64rust.newProgram",
+        "title": "New Program",
+        "category": "QB64",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "qb64rust.openProgram",
+        "title": "Open a Program",
+        "category": "QB64"
+      },
+      {
+        "command": "qb64rust.home",
+        "title": "Home",
+        "category": "QB64"
+      },
+      {
+        "command": "qb64rust.getStarted",
+        "title": "Get Started",
+        "category": "QB64"
+      },
+      {
+        "command": "qb64rust.searchHelp",
+        "title": "Search Help",
+        "category": "QB64",
+        "icon": "$(search)"
+      },
+      {
+        "command": "qb64rust.helpForWord",
+        "title": "Help for This Word",
+        "category": "QB64"
+      },
+      {
+        "command": "qb64rust.openHelpPage",
+        "title": "Open Help Page",
+        "category": "QB64"
+      },
+      {
+        "command": "qb64rust.procedures.sortByName",
+        "title": "Sort A to Z",
+        "category": "QB64",
+        "icon": "$(sort-precedence)"
+      },
+      {
+        "command": "qb64rust.procedures.sortByPosition",
+        "title": "Sort in Program Order",
+        "category": "QB64",
+        "icon": "$(list-ordered)"
+      },
+      {
+        "command": "qb64rust.procedures.reveal",
+        "title": "Go to Procedure",
+        "category": "QB64"
+      },
+      {
+        "command": "qb64rust.examples.open",
+        "title": "Open Example",
+        "category": "QB64"
+      },
+      {
+        "command": "qb64rust.examples.run",
+        "title": "Run",
+        "category": "QB64",
+        "icon": "$(play)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "qb64rust.examples.openAsNewProgram",
+        "title": "Open as a New Program",
+        "category": "QB64"
+      },
+      {
+        "command": "qb64rust.examples.reset",
+        "title": "Reset This Example",
+        "category": "QB64"
+      },
+      {
+        "command": "qb64rust.walkthrough.openMistake",
+        "title": "Open a Program with a Mistake",
+        "category": "QB64"
       }
     ],
+    "walkthroughs": [
+      {
+        "id": "getStarted",
+        "title": "Get Started with QB64",
+        "description": "Write a program, run it, look a word up, try an example, fix a mistake, and put it on the web.",
+        "steps": [
+          {
+            "id": "write",
+            "title": "Write your first program",
+            "description": "Make one .bas file, ready to run.\n[New Program](command:qb64rust.newProgram)",
+            "media": { "markdown": "walkthrough/write.md" },
+            "completionEvents": ["onContext:qb64rust.walkthrough.madeProgram"]
+          },
+          {
+            "id": "runWindows",
+            "title": "Run it",
+            "description": "Build the program and start it. The first run asks before it downloads a C++ compiler (190 MB).\n[Run](command:qb64rust.buildAndRun)",
+            "media": { "markdown": "walkthrough/run-windows.md" },
+            "completionEvents": ["onContext:qb64rust.walkthrough.ran", "onCommand:qb64rust.buildAndRun"],
+            "when": "!isLinux"
+          },
+          {
+            "id": "runLinux",
+            "title": "Run it",
+            "description": "Build the program with your system's g++ and start it.\n[Run](command:qb64rust.buildAndRun)",
+            "media": { "markdown": "walkthrough/run-linux.md" },
+            "completionEvents": ["onContext:qb64rust.walkthrough.ran", "onCommand:qb64rust.buildAndRun"],
+            "when": "isLinux"
+          },
+          {
+            "id": "lookUp",
+            "title": "Look a word up",
+            "description": "Every statement and function has a page in the help, offline.\n[Search Help](command:qb64rust.searchHelp)",
+            "media": { "markdown": "walkthrough/help.md" },
+            "completionEvents": ["onContext:qb64rust.walkthrough.lookedUp", "onCommand:qb64rust.searchHelp"]
+          },
+          {
+            "id": "example",
+            "title": "Try an example",
+            "description": "Open a program from the Examples view, run it and change it.\n[Open an Example](command:qb64rust.examples.open?%5B%22first-steps%2Fguess%22%5D)",
+            "media": { "markdown": "walkthrough/example.md" },
+            "completionEvents": ["onContext:qb64rust.walkthrough.triedExample", "onCommand:qb64rust.examples.open"]
+          },
+          {
+            "id": "mistake",
+            "title": "Find and fix a mistake",
+            "description": "See where the Program view shows an error, and fix it.\n[Open a Program with a Mistake](command:qb64rust.walkthrough.openMistake)",
+            "media": { "markdown": "walkthrough/mistake.md" },
+            "completionEvents": ["onContext:qb64rust.walkthrough.openedMistake", "onCommand:qb64rust.walkthrough.openMistake"]
+          },
+          {
+            "id": "web",
+            "title": "Put your program on the web (optional)",
+            "description": "Run a program with a window in your browser.\n[Run in Browser](command:qb64rust.runInBrowser)",
+            "media": { "markdown": "walkthrough/web.md" },
+            "completionEvents": ["onContext:qb64rust.walkthrough.ranInBrowser", "onCommand:qb64rust.runInBrowser"]
+          }
+        ]
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "qb64",
+          "title": "QB64",
+          "icon": "media/qb64.svg"
+        }
+      ]
+    },
+    "views": {
+      "qb64": [
+        {
+          "type": "webview",
+          "id": "qb64rust.program",
+          "name": "Program",
+          "initialSize": 3
+        },
+        {
+          "id": "qb64rust.procedures",
+          "name": "SUBs & FUNCTIONs",
+          "initialSize": 2,
+          "when": "qb64rust.procedures.multiFile"
+        },
+        {
+          "id": "qb64rust.examples",
+          "name": "Examples",
+          "initialSize": 2
+        },
+        {
+          "id": "qb64rust.help",
+          "name": "Help",
+          "initialSize": 2
+        }
+      ]
+    },
     "menus": {
       "commandPalette": [
         {
@@ -278,6 +461,101 @@
         {
           "command": "qb64rust.installEmsdk",
           "when": "!virtualWorkspace"
+        },
+        {
+          "command": "qb64rust.helpForWord",
+          "when": "editorLangId == qb64rust"
+        },
+        {
+          "command": "qb64rust.openProgram",
+          "when": "false"
+        },
+        {
+          "command": "qb64rust.openHelpPage",
+          "when": "false"
+        },
+        {
+          "command": "qb64rust.procedures.sortByName",
+          "when": "false"
+        },
+        {
+          "command": "qb64rust.procedures.sortByPosition",
+          "when": "false"
+        },
+        {
+          "command": "qb64rust.procedures.reveal",
+          "when": "false"
+        },
+        {
+          "command": "qb64rust.examples.open",
+          "when": "false"
+        },
+        {
+          "command": "qb64rust.examples.run",
+          "when": "false"
+        },
+        {
+          "command": "qb64rust.examples.openAsNewProgram",
+          "when": "false"
+        },
+        {
+          "command": "qb64rust.examples.reset",
+          "when": "false"
+        },
+        {
+          "command": "qb64rust.walkthrough.openMistake",
+          "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "qb64rust.helpForWord",
+          "when": "editorLangId == qb64rust",
+          "group": "qb64@1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "qb64rust.searchHelp",
+          "when": "view == qb64rust.help",
+          "group": "navigation"
+        },
+        {
+          "command": "qb64rust.procedures.sortByName",
+          "when": "view == qb64rust.procedures && !qb64rust.procedures.byName",
+          "group": "navigation"
+        },
+        {
+          "command": "qb64rust.procedures.sortByPosition",
+          "when": "view == qb64rust.procedures && qb64rust.procedures.byName",
+          "group": "navigation"
+        },
+        {
+          "command": "qb64rust.newProgram",
+          "when": "view == qb64rust.program",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "qb64rust.examples.run",
+          "when": "view == qb64rust.examples && viewItem == example.runnable",
+          "group": "inline"
+        },
+        {
+          "command": "qb64rust.examples.run",
+          "when": "view == qb64rust.examples && viewItem == example.runnable",
+          "group": "1_example@1"
+        },
+        {
+          "command": "qb64rust.examples.openAsNewProgram",
+          "when": "view == qb64rust.examples && viewItem =~ /^example/",
+          "group": "1_example@2"
+        },
+        {
+          "command": "qb64rust.examples.reset",
+          "when": "view == qb64rust.examples && viewItem =~ /^example/",
+          "group": "2_example@1"
         }
       ],
       "editor/title/run": [
@@ -415,10 +693,13 @@
     "package": "npm run stage && vsce package --target win32-x64",
     "package:linux": "npm run stage:linux && vsce package --target linux-x64",
     "stage": "python scripts/stage_bundle.py",
-    "stage:linux": "python3 scripts/stage_bundle.py --target linux-x64"
+    "stage:linux": "python3 scripts/stage_bundle.py --target linux-x64",
+    "help": "python ../tools/reference/reference.py help --out help",
+    "help:linux": "python3 ../tools/reference/reference.py help --out help"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/markdown-it": "^14.2.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.19.43",
     "@types/vscode": "~1.100.0",
@@ -432,6 +713,7 @@
   },
   "dependencies": {
     "iconv-lite": "^0.7.3",
+    "markdown-it": "^14.3.3",
     "vscode-languageclient": "^10.1.2"
   }
 }

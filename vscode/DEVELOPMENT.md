@@ -11,7 +11,11 @@ Node 24 (`mise install` at the repo root gives it).
 npm ci
 npm run compile      # tsc → out\
 npm run lint
+npm run help         # help\: the help pages and examples, from ..\docs\reference (npm run help:linux on Linux)
 ```
+
+Without `help\` the Help and Examples views are empty and the help tab says that the help is not installed. Run
+`npm run help` again after editing a page of `docs\reference` or a program of `examples\`.
 
 To try it, open `vscode\` as a folder in VS Code and press F5 ("Run Extension" in `.vscode\launch.json`), or
 package it (below).
@@ -141,6 +145,7 @@ code --install-extension qb64rust-win32-x64-0.2.0.vsix
 ships), `libqb.id` (a hash of those files, which names the extension's prepared copy so that a package with other
 libqb files never reuses an older copy), and `THIRD-PARTY-NOTICES.txt`, the licence texts of the crates linked
 into the binary as `cargo tree` resolves them for the Windows target. It also copies the repository's `LICENSE` here, where `vsce` looks for it.
+Last, it writes the git-ignored `help\` with `tools\reference\reference.py help`, as `npm run help` does.
 A crate without a licence file of its own takes `scripts\licenses\<name>.txt` (now `astro-float-num`, its text
 taken from its repository); a crate with neither stops the staging, naming it. `scripts\check_vsix.py` holds a
 package to the spec's list: the target, the required files, no `.ts`, `.o`, `.a` or `.map` file and no

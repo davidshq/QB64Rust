@@ -42,6 +42,20 @@ export function noPrompt(uri?: vscode.Uri): boolean {
     return settings(uri).get<boolean>("noPrompt", false);
 }
 
+/** Whether the page "QB64 Home" opens by itself when a QB64 window starts (its checkbox). */
+export function showHomeOnStartup(): boolean {
+    return settings().get<boolean>("showHomeOnStartup", true);
+}
+
+/** The Home page's checkbox: kept for the user, in every window. */
+export function setShowHomeOnStartup(on: boolean): Thenable<void> {
+    return settings().update("showHomeOnStartup", on, vscode.ConfigurationTarget.Global);
+}
+
+export function affectsShowHomeOnStartup(e: vscode.ConfigurationChangeEvent): boolean {
+    return e.affectsConfiguration(`${SECTION}.showHomeOnStartup`);
+}
+
 export function affectsCompilerPath(e: vscode.ConfigurationChangeEvent): boolean {
     return e.affectsConfiguration(`${SECTION}.compilerPath`);
 }

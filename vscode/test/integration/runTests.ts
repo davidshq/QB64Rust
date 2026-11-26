@@ -1,5 +1,6 @@
 // Starts a VS Code instance with the extension loaded and runs the integration suite in it.
 // The workspace is a fresh copy of test-fixtures/workspace, because the tests save and build files.
+import { execFileSync } from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -32,6 +33,10 @@ async function main(): Promise<void> {
     if (firstRun && (!server || !process.env.QB64RUST_TEST_TOOLCHAIN_HOME)) {
         throw new Error("--first-run needs QB64RUST_TEST_QB64RUST and QB64RUST_TEST_TOOLCHAIN_HOME");
     }
+    // The help the package carries, made from the repository's reference (change editor-side-panel, design D4),
+    // as `npm run help` makes it.
+    const python = process.platform === "win32" ? "python" : "python3";
+    execFileSync(python, [path.resolve(root, "..", "tools", "reference", "reference.py"), "help", "--out", path.join(root, "help")], { stdio: "inherit" });
     const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "qb64rust-it-"));
     fs.cpSync(path.join(root, "test-fixtures", "workspace"), workspace, { recursive: true });
 
@@ -39,6 +44,8 @@ async function main(): Promise<void> {
     fs.mkdirSync(settingsDir, { recursive: true });
     // Builds with QB64pe unless a test chooses qb64rust (buildQb64rust.test.ts), so the M1 build tests keep testing it.
     const settings: Record<string, unknown> = { "qb64rust.noPrompt": true, "qb64rust.buildWith": firstRun ? "auto" : "qb64pe" };
+    // The page "QB64 Home" does not open by itself in the test window; its test opens it.
+    settings["qb64rust.showHomeOnStartup"] = false;
     if (fs.existsSync(compiler) && !firstRun) {
         settings["qb64rust.compilerPath"] = compiler;
     }

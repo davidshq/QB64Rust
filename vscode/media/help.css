@@ -1,0 +1,113 @@
+/* The help tab (OpenSpec change editor-side-panel, design D5): VS Code's theme colors only, so that a light, a dark
+   and a high-contrast theme each look as their own. */
+body {
+    color: var(--vscode-foreground);
+    background: var(--vscode-editor-background);
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    line-height: 1.5;
+    padding: 0 20px 24px;
+    max-width: 52em;
+}
+.toolbar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    gap: 6px;
+    padding: 8px 0;
+    background: var(--vscode-editor-background);
+    border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-contrastBorder, transparent));
+}
+button {
+    font: inherit;
+    color: var(--vscode-button-secondaryForeground);
+    background: var(--vscode-button-secondaryBackground);
+    border: 1px solid var(--vscode-button-border, var(--vscode-contrastBorder, transparent));
+    border-radius: 2px;
+    padding: 3px 10px;
+    cursor: pointer;
+}
+button:hover:not(:disabled) {
+    background: var(--vscode-button-secondaryHoverBackground);
+}
+button.primary {
+    color: var(--vscode-button-foreground);
+    background: var(--vscode-button-background);
+}
+button.primary:hover:not(:disabled) {
+    background: var(--vscode-button-hoverBackground);
+}
+button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+button:focus-visible,
+a:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+}
+a {
+    color: var(--vscode-textLink-foreground);
+    text-decoration: none;
+}
+a:hover {
+    color: var(--vscode-textLink-activeForeground);
+    text-decoration: underline;
+}
+h1,
+h2,
+h3 {
+    font-weight: 600;
+    line-height: 1.25;
+}
+h2 {
+    margin-top: 1.6em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-contrastBorder, transparent));
+}
+code {
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    color: var(--vscode-textPreformat-foreground);
+}
+pre.code {
+    padding: 8px 12px;
+    overflow-x: auto;
+    background: var(--vscode-textCodeBlock-background);
+    border: 1px solid var(--vscode-contrastBorder, transparent);
+    border-radius: 2px;
+}
+pre.code code {
+    color: var(--vscode-editor-foreground);
+}
+pre.qb64 .keyword {
+    color: var(--vscode-symbolIcon-keywordForeground, var(--vscode-textLink-foreground));
+    font-weight: 600;
+}
+pre.qb64 .string {
+    color: var(--vscode-debugTokenExpression-string, var(--vscode-foreground));
+}
+pre.qb64 .number {
+    color: var(--vscode-debugTokenExpression-number, var(--vscode-foreground));
+}
+pre.qb64 .comment {
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+}
+table {
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+th,
+td {
+    border: 1px solid var(--vscode-panel-border, var(--vscode-contrastBorder, #8884));
+    padding: 4px 8px;
+    text-align: left;
+    vertical-align: top;
+}
+.example-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px 0 16px;
+}

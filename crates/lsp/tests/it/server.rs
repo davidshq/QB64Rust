@@ -1538,3 +1538,157 @@ fn formatting_an_include_file_of_an_open_program() {
     assert_eq!(got, [(1, 0, 1, 5, "c d".to_string())]);
     c.shutdown().unwrap();
 }
+
+/// A procedure of a `qb64rust/procedures` answer: (name, kind, params, file name, line).
+type Proc = (String, String, String, String, u64);
+
+/// The main file's name and the procedures of a `qb64rust/procedures` answer.
+fn procedures(c: &mut Client, u: &Uri) -> (Option<String>, Vec<Proc>) {
+    let v = c
+        .request("qb64rust/procedures", json!({ "uri": u }))
+        .response_result
+        .unwrap();
+    let name = |s: &str| s.rsplit('/').next().unwrap().to_string();
+    let main = v["main"].as_str().map(name);
+    let list = v["procedures"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| {
+            let s = |k: &str| p[k].as_str().unwrap().to_string();
+            let line = p["range"]["start"]["line"].as_u64().unwrap();
+            (s("name"), s("kind"), s("params"), name(&s("uri")), line)
+        })
+        .collect();
+    (main, list)
+}
+
+/// "Procedures of a program", scenarios "An include file's procedure" and "Asked from the include file"
+/// (OpenSpec change `editor-side-panel`): the program's order, the include file's procedure with its own file, and
+/// from the include file the same program with the include file's unsaved text.
+#[test]
+fn procedures_of_a_program_and_its_include_file() {
+    let dir = temp();
+    std::fs::write(
+        dir.path().join("rules.bm"),
+        "FUNCTION Speed! (level)\n    Speed! = level * 2\nEND FUNCTION\n",
+    )
+    .unwrap();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let main = uri(dir.path(), "bounce.bas");
+    c.open(
+        &main,
+        "PRINT Speed!(1)\nDrawBall 1, 2\nSUB DrawBall (x, y)\nEND SUB\n'$INCLUDE: 'rules.bm'\n",
+    );
+    let (m, list) = procedures(&mut c, &main);
+    assert_eq!(m.as_deref(), Some("bounce.bas"));
+    let row = |n: &str, k: &str, p: &str, f: &str, l: u64| -> Proc { (n.into(), k.into(), p.into(), f.into(), l) };
+    assert_eq!(
+        list,
+        [
+            row("DrawBall", "SUB", "(x, y)", "bounce.bas", 2),
+            row("Speed!", "FUNCTION", "(level)", "rules.bm", 0),
+        ]
+    );
+    // Opened in the editor and changed there, unsaved: its program is still `bounce.bas`.
+    let rules = uri(dir.path(), "rules.bm");
+    c.open(
+        &rules,
+        "FUNCTION Speed! (level)\n    Speed! = level * 2\nEND FUNCTION\nSUB Extra STATIC\nEND SUB\n",
+    );
+    assert_eq!(c.program(&rules).unwrap().0.as_deref(), Some(main.as_str()));
+    let (m, list) = procedures(&mut c, &rules);
+    assert_eq!(m.as_deref(), Some("bounce.bas"));
+    let names: Vec<_> = list.iter().map(|p| (p.0.as_str(), p.2.as_str(), p.4)).collect();
+    assert_eq!(
+        names,
+        [
+            ("DrawBall", "(x, y)", 2),
+            ("Speed!", "(level)", 0),
+            ("Extra", "STATIC", 3)
+        ]
+    );
+    c.shutdown().unwrap();
+}
+
+/// "Procedures of a program", scenario "A syntax error elsewhere": the procedures that parsed are still listed.
+#[test]
+fn procedures_beside_a_syntax_error() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(
+        &u,
+        "a\nSUB a\n    x = (\nEND SUB\nFUNCTION b% (n AS INTEGER)\nEND FUNCTION\n",
+    );
+    let (m, list) = procedures(&mut c, &u);
+    assert_eq!(m.as_deref(), Some("p.bas"));
+    let names: Vec<_> = list
+        .iter()
+        .map(|p| (p.0.as_str(), p.1.as_str(), p.2.as_str()))
+        .collect();
+    assert_eq!(names, [("a", "SUB", ""), ("b%", "FUNCTION", "(n AS INTEGER)")]);
+    c.shutdown().unwrap();
+}
+
+/// A document that is not open gets no main file and no procedures.
+#[test]
+fn procedures_of_a_document_not_open() {
+    let dir = temp();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let (m, list) = procedures(&mut c, &uri(dir.path(), "gone.bas"));
+    assert_eq!((m, list.len()), (None, 0));
+    c.shutdown().unwrap();
+}
+
+/// A program of several files in folders, as Civil War Strategy's `cws.bas` and its 47 include files: the answer
+/// lists every file of the program, the closed ones too, once each, so that the client counts the errors of each.
+#[test]
+fn procedures_list_every_file_of_the_program() {
+    let dir = temp();
+    std::fs::create_dir_all(dir.path().join("rules")).unwrap();
+    std::fs::create_dir_all(dir.path().join("ui")).unwrap();
+    std::fs::write(dir.path().join("game.bi"), "DIM SHARED turn AS INTEGER\n").unwrap();
+    std::fs::write(dir.path().join("rules/army.bm"), "SUB Move\nEND SUB\n").unwrap();
+    std::fs::write(dir.path().join("ui/menu.bm"), "SUB Menu\n    x = (\nEND SUB\n").unwrap();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let main = uri(dir.path(), "game.bas");
+    c.open(
+        &main,
+        "'$INCLUDE: 'game.bi'\nMenu\n'$INCLUDE: 'rules/army.bm'\n'$INCLUDE: 'ui/menu.bm'\n",
+    );
+    let v = c
+        .request("qb64rust/procedures", json!({ "uri": main }))
+        .response_result
+        .unwrap();
+    let files: Vec<String> = v["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| {
+            let parts: Vec<&str> = f.as_str().unwrap().rsplit('/').take(2).collect();
+            format!("{}/{}", parts[1], parts[0])
+        })
+        .collect();
+    let top = dir.path().file_name().unwrap().to_string_lossy().into_owned();
+    let at_top = |name: &str| format!("{top}/{name}");
+    assert_eq!(
+        files,
+        [
+            at_top("game.bas"),
+            at_top("game.bi"),
+            "rules/army.bm".into(),
+            "ui/menu.bm".into()
+        ]
+    );
+    let names: Vec<&str> = v["procedures"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| p["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["Move", "Menu"]);
+    // The closed include file's error is published, under its own uri, by the parse of the whole program.
+    assert_eq!(c.last_diagnostics(&uri(dir.path(), "ui/menu.bm")).unwrap().len(), 1);
+    c.shutdown().unwrap();
+}

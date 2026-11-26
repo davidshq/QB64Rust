@@ -57,6 +57,97 @@ QB64pe is installed.
   `action` is `build` or `run`; without `file`, the active editor's file is used.
 - **Debugging** by BASIC line, with the program built by `qb64rust` (below).
 
+## The QB64 side panel
+
+**Your first program:** the walkthrough **Get Started with QB64** in VS Code's Welcome page (**QB64: Get Started**
+opens it again) makes one and runs it. Or run **QB64: New Program**: a save dialog asks where to keep one `.bas`
+file, which then opens, ready to run, and nothing else is written. A program saved in a folder without a
+`qb64rust.toml` builds with the fixes off, as an existing program does; **QB64: New Project** makes a folder with
+them on.
+
+The QB64 icon in the activity bar opens a panel of views. It is there in every window, with or without a
+QB64 file open.
+
+- **Program** names the program that **Run** builds: the active editor's program, which for an include file is
+  the `.bas` file that includes it. When you move to a file of another language, it keeps the last program. Its
+  buttons are **Run** (the same as **QB64: Build and Run**), **Debug**, **Run in Browser** and **Build**. Below them
+  one line says how the program stands: "OK" (with the number of warnings, if any), or the first error in any
+  file of the program, include files that are not open too (the main file's first), with its line, a **Go to
+  line** link and, when its statement has a page in the help, a link to it such as **Help on IF**. While a check
+  or a build runs, the line says so; the first build after an install says that it builds the QB64 runtime,
+  which can take about a minute and happens only once, and a download of the C++ toolchain or the Emscripten SDK
+  says so too. Before any QB64 file has been open, the view offers **New Program** and **Open a Program**. In a
+  workspace that is not trusted the four buttons are disabled, and the view says why. A **Search Help** link is
+  at the bottom of the view.
+- **SUBs & FUNCTIONs** is shown when the program has include files. It lists every procedure of the Program
+  view's program, from every file of it, each with its arguments and its file's name. The first row is the main
+  program. A click opens the file at that line. The button in the view's title sorts the list A to Z, or back
+  in the program's order. The list follows your typing without a save. It needs the language server (see
+  [Language server](#language-server-qb64rust)). For a program of one file the view is hidden: VS Code's own
+  Outline, in the Explorer, lists that file's SUBs and FUNCTIONs.
+- **Examples** and **Help** are described under [Help](#help) and [Examples](#examples).
+
+While a QB64 file is active, two items at the left of the status bar show **Run** and the Program view's status in
+short, such as "OK" or "1 error: line 10". A click on the second opens the side panel.
+
+## QB64 Home
+
+**QB64 Home** is a starter page in the editor area. It has four buttons, **New Program**, **Open a Program**,
+**Examples** and **Help**, and three lists:
+
+- **Recent programs**: the last 8 programs you had open, each with its folder. A click opens one. For an include
+  file, the program that includes it is listed.
+- **Setup**: whether the QB64 compiler was found, whether the C++ compiler a build needs is installed, and
+  whether the Emscripten SDK for **Run in Browser** is installed (optional). What is missing and can be
+  downloaded has an **Install** link with the size of the download.
+- **New here?**: the walkthrough, "First steps", and the pages for those coming from QuickBASIC 4.5 or QB64pe.
+
+The page opens by itself when a window starts with no file open, and the window has no folder or a folder with
+`.bas`, `.bi` or `.bm` files. It does not open in a folder of another project. Clear the checkbox **Show this
+page when a QB64 window starts** at the bottom of the page to stop it (the setting
+`qb64rust.showHomeOnStartup`). **QB64: Home** opens the page at any time.
+
+## Help
+
+The extension carries the QB64Rust language reference: a page for each statement, function, keyword and
+metacommand, a chapter for each area of the language, "First steps" for someone new to programming, and pages for
+those coming from QuickBASIC 4.5 or QB64pe. It works offline, in a workspace that is not trusted, and without the
+`qb64rust` binary. It holds no text of the QB64pe wiki.
+
+- The **Help** view shows the reference as a tree: "First steps", "Topics", "Every keyword, A to Z", "Error
+  messages and codes", "Coming from QuickBASIC 4.5" and "Coming from QB64pe". A click opens the page.
+- A page opens in one tab, **QB64 Help**, to the right of your code, never in its place. The next page replaces it
+  in the same tab, and **Back** and **Forward** go between them. A link to another page opens it there; a link to a
+  web address opens in your browser.
+- Each example on a page shows its recorded output and three buttons: **Run this example** builds and runs your
+  copy of it, kept in the extension's own storage, never in your folders (it is disabled in a workspace that is
+  not trusted);
+  **Open as a new program** gives its text to **QB64: New Program**; **Copy** puts it on the clipboard. An example
+  that opens a network port has no Run button.
+- **QB64: Search Help**, also the search button in the Help view's title, lists every page by its title and first
+  sentence, narrowed as you type: `bounds` finds `_CLAMP`.
+- **QB64: Help for This Word**, also in the editor's right-click menu, opens the page of the built-in or keyword at
+  the cursor, goes to the definition of a name the program defines, and otherwise opens the search with the word
+  typed in. Without the language server it finds the page by the word's spelling.
+
+No key is bound to help: F1 stays VS Code's Command Palette. You can bind a key to **QB64: Help for This Word** in
+Keyboard Shortcuts.
+
+## Examples
+
+The **Examples** view lists programs to try: "First steps" (Hello, Guess the number, Draw with the mouse),
+"Graphics", "Sound and music", "Small games", and "One for every keyword" with the reference's examples.
+
+"First steps" starts open.
+
+- A click opens your copy of the example, a file kept in the extension's own storage. It opens as any file does:
+  close it and nothing is asked, or change it and click **Run**. What you change is saved in your copy, and the
+  example the extension ships is never changed.
+- The row's **Run** builds and runs your copy, as **Run this example** does.
+- **Open as a New Program** saves the example's text as a program of your own, in a folder you choose, through
+  **QB64: New Program**.
+- **Reset This Example**, in the row's right-click menu, makes your copy as it was shipped again.
+
 ## Formatting
 
 **Format Document** lays the program out as `qb64pe -y` (and the QB64pe IDE) does: the indent of each block,
@@ -259,7 +350,9 @@ such request after an edit (about a twentieth of a second on a program of 5,000 
 
 - **Hover** on a name: a variable's type and where it lives (main module, shared, local to or a parameter of a
   procedure), a constant's type and value, a procedure's header, a type's members, a member's type, a label's body.
-  On a built-in, its arguments and result from the built-in table. No help text is shown.
+  On a built-in, its arguments and result from the built-in table, then the first sentence of its page in the help.
+  On a keyword such as `FOR` or `CASE`, that sentence alone. Both end with a **Help for this word** link, which
+  opens the whole page (see [Help](#help)).
 - **Find All References** of a variable, constant, procedure, type, member or label, in every file of the program;
   a FUNCTION's include the assignments to its result.
   Two variables that differ by suffix (`a$`, `a%`), or that are local to different procedures, are kept apart.
@@ -338,6 +431,7 @@ workspaces (folders opened from a remote repository without a local copy, e.g. o
 | `qb64rust.checkTimeoutSeconds` | `30` | Stop a check or format that takes longer (a check by the language server: stop waiting for it). |
 | `qb64rust.runArguments` | `""` | Arguments for Run (the program sees them as `COMMAND$`). |
 | `qb64rust.noPrompt` | `false` | Run with `QB64PE_NOPROMPT=y`: untrapped runtime errors are printed instead of shown in a dialog. |
+| `qb64rust.showHomeOnStartup` | `true` | Show **QB64 Home** when a window starts with no file open, and has no folder or a folder with QB64 files. The page's checkbox changes it. |
 | `qb64rust.path` | `""` | Path to the `qb64rust` binary, which runs the language server and builds. Empty: the bundled binary, else `qb64rust` on `PATH`. |
 | `qb64rust.includeRoot` | `""` | Where the language server and a build with `qb64rust` look up `$INCLUDE` files after the including file's folder. Empty: the QB64pe folder, else the folder of the `qb64rust` binary. |
 | `qb64rust.format.autoIndent` | `true` | Indent each block. |

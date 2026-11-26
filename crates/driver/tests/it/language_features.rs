@@ -287,13 +287,14 @@ fn cancel_while_waiting() {
     c.shutdown();
 }
 
-/// "Hover": the scenarios of the spec, a variable, a constant, a built-in and a keyword.
+/// "Hover": the scenarios of the spec, a variable, a constant, a built-in, a built-in with a reference page, a
+/// keyword, and a keyword without a page (OpenSpec change `editor-side-panel`).
 #[test]
 fn hover_scenarios() {
     let dir = tempfile::tempdir().unwrap();
     let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
-    let text = "CONST LIMIT = 10\na$ = \"hello\"\nx$ = LEFT$(a$, 2)\nFOR i = 1 TO LIMIT\nNEXT\na\nSUB a\n    DIM n AS _UNSIGNED LONG\n    n = 3\nEND SUB\n";
+    let text = "CONST LIMIT = 10\na$ = \"hello\"\nx$ = LEFT$(a$, 2)\nFOR i = 1 TO LIMIT\nNEXT\nhealth = _CLAMP(health, 0, 100)\nKEY OFF\na\nSUB a\n    DIM n AS _UNSIGNED LONG\n    n = 3\nEND SUB\n";
     c.open(&p, text);
     let n = c.hover(&p, text, "n = 3", 0).unwrap();
     assert_eq!(n, "```qb64\nn AS _UNSIGNED LONG\n```\nLocal to `SUB a`.");
@@ -305,8 +306,39 @@ fn hover_scenarios() {
     );
     let left = c.hover(&p, text, "LEFT$", 0).unwrap();
     assert!(left.contains("Left$(STRING, LONG) AS STRING"), "{left}");
-    assert_eq!(c.hover(&p, text, "FOR", 0), None);
+    let clamp = c.hover(&p, text, "_CLAMP", 0).unwrap();
+    assert!(clamp.contains("_Clamp("), "{clamp}");
+    assert!(clamp.contains("holds a value between two bounds"), "{clamp}");
+    let for_ = c.hover(&p, text, "FOR", 0).unwrap();
+    assert!(for_.starts_with("`FOR` repeats statements"), "{for_}");
+    // `TO` is covered on the page of `FOR`, whose sentence is not about it; `OFF` has no page.
     assert_eq!(c.hover(&p, text, "1 TO", 0), None);
+    assert_eq!(c.hover(&p, text, "OFF", 0), None);
+    c.shutdown();
+}
+
+/// "Help topic at a position" (OpenSpec change `editor-side-panel`): a built-in's page, the page of a statement of
+/// two words from either word, the program's own SUB, and nothing in a comment or on a word without a page.
+#[test]
+fn help_topic_scenarios() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut c = Client::start(dir.path());
+    let p = dir.path().join("p.bas");
+    let text = "health = _CLAMP(health, 0, 100)\nSELECT CASE health\n    CASE 1\nEND SELECT\nLINE INPUT a$\n' a comment on PRINT\nDrawBall 1\nKEY OFF\nSUB DrawBall (x)\nEND SUB\n";
+    c.open(&p, text);
+    let mut topic = |needle: &str, nth: usize, offset: usize| {
+        let r = c.request("qb64rust/helpTopic", Client::at(&p, text, needle, nth, offset));
+        r.response_result.unwrap()
+    };
+    assert_eq!(topic("_CLAMP", 0, 1), json!({ "page": "_clamp" }));
+    assert_eq!(topic("CASE health", 0, 0), json!({ "page": "select-case" }));
+    assert_eq!(topic("SELECT", 0, 0), json!({ "page": "select-case" }));
+    assert_eq!(topic("CASE 1", 0, 0), json!({ "page": "select-case" }));
+    assert_eq!(topic("INPUT a$", 0, 0), json!({ "page": "line-input" }));
+    assert_eq!(topic("LINE", 0, 0), json!({ "page": "line-input" }));
+    assert_eq!(topic("DrawBall", 0, 2), json!({ "definition": true }));
+    assert_eq!(topic("PRINT", 0, 1), Value::Null);
+    assert_eq!(topic("OFF", 0, 0), Value::Null);
     c.shutdown();
 }
 

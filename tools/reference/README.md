@@ -14,6 +14,7 @@ python tools\reference\reference.py skeleton LEFT$     # write a new page with i
 python tools\reference\reference.py render --compiler target\release\qb64rust.exe   # refresh what is generated
 python tools\reference\reference.py --check --compiler target\release\qb64rust.exe  # what check's step runs
 python tools\reference\reference.py overlap            # compare with the wiki cache (local only)
+python tools\reference\reference.py help --out vscode\help   # the extension's help folder
 ```
 
 ## The one rule
@@ -142,6 +143,33 @@ that starts with `_`, such as `_SMOOTH`, or `STEP`); when a link leads nowhere; 
 example has no page; and when a page of a `done` batch or a pilot page is missing. It checks a chapter in the
 same way: its sources, its links, its embedded examples, a `TODO`, and that a spec of its name exists. With `--compiler` it computes the availability
 again and fails when it changed.
+
+`render` also writes `crates\lsp\src\help_table.rs`, for the language server (OpenSpec change `editor-side-panel`,
+design D6). It holds each page of `entries\` with the first sentence of its summary, and each word of the
+inventory with its page. The hover shows a word's sentence only when the sentence is about the word: the page is
+the word's own, or a code span of the sentence starts with the word (`_MAX` on the page of `_MIN`, but not `TO`
+on the page of `FOR`). So the first sentence of a summary is what a hover shows: keep it whole and plain.
+
+## "First steps"
+
+`docs\reference\first-steps.md` is a hand-written page for someone who has never programmed. Every code block on
+it is a program of `examples\`, embedded as `<!-- begin generated: example:<group>/<name> -->`. `render` writes
+these blocks again, and `--check` fails on a code block that is not one of them, on an example out of date, on a
+link that leads nowhere, and on a `TODO`. The page names no sources: its rules are on the pages it links to.
+
+## The help of the editor
+
+`help --out <folder>` writes the help the VS Code extension ships (OpenSpec change `editor-side-panel`, design
+D4). It empties the folder first, and refuses a folder that holds files but no `index.json`.
+
+| Path | What it holds |
+|---|---|
+| `pages\` | Every page as it is in `docs\reference`: `entries\`, `chapters\`, "First steps" and the appendices |
+| `index.json` | Each page's name, path, title, first sentence, kind and examples; the tree of the Help view; the groups of the Examples view (`examples\index.toml`) and the reference's examples by keyword |
+| `examples\` | The reference's examples with their `.output` and `.files`, and the programs of `examples\` |
+
+`vscode\scripts\stage_bundle.py` runs it into `vscode\help\` for a package, and `npm run help` for a
+development copy.
 
 ## The overlap check
 

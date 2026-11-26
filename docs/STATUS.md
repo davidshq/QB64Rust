@@ -120,6 +120,15 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    editor's warning for a UTF-8 file open as `cp437`, and a UTF-8 "QB64: New Project". All 18 tasks are built;
    the extension's integration tests for New Project have not run yet (CI). Archived 2026-11-25, its specs
    synced. Converting each game's files is a step in that game's repo.
+0. **The OpenSpec change `editor-side-panel`** (`DECISIONS.md` 2026-11-25, `study\55`): the QB64 side panel
+   (Program, SUBs and FUNCTIONs, Examples, Help), the status bar's Run and status, the language reference in a help
+   tab beside the code, hover with each word's first sentence, twelve example programs in `examples\`, "QB64: New
+   Program", and the walkthrough "Get Started with QB64". All 29 tasks are built: the walkthrough was tried in
+   VS Code 1.100 and 1.146, `QUICKSTART.md` followed in a development host, and each screen looked at in four
+   themes, by a script and screenshots (the user's choice, 2026-11-25). After the user tried it, tasks 9.1 to
+   9.4 changed the panel and added the page "QB64 Home" (`DECISIONS.md` 2026-11-26); the user's second look is
+   open (task 9.5). Not archived:
+   the extension's integration tests of the change have not run yet (CI).
 1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
    `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a
    `$CONSOLE:ONLY` program for Node, and 3,664 of the 3,766 verification programs it runs pass (97.3%, 0 failing,

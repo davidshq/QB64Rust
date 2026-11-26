@@ -14,6 +14,9 @@ change extension-vsix):
   licence files. A crate that ships none takes vscode/scripts/licenses/<name>.txt; a crate with neither fails
   the script, naming it, so a new dependency cannot ship without its text.
 
+It then writes vscode/help/ (not in bundle/: the extension reads it on every platform), the help pages, their
+index and the examples, with `tools/reference/reference.py help` (OpenSpec change editor-side-panel, design D4).
+
 The folder is deleted and written again on each run. Exits with status 1 and a message when something is
 missing.
 
@@ -32,6 +35,8 @@ import sys
 SCRIPTS = pathlib.Path(__file__).resolve().parent
 REPO = SCRIPTS.parents[1]
 OUT = REPO / "vscode" / "bundle"
+# The help the package carries beside bundle/ (OpenSpec change editor-side-panel).
+HELP_OUT = REPO / "vscode" / "help"
 # vsce takes the licence from the extension's root folder.
 LICENCE_OUT = REPO / "vscode" / "LICENSE"
 OVERRIDES = SCRIPTS / "licenses"
@@ -201,6 +206,15 @@ def stage(repo, out, binary, licence_out, overrides=OVERRIDES, crates=None, dirs
     return count
 
 
+def stage_help(repo, out):
+    """vscode/help/: the help pages, their index and the examples, made from the reference at this commit by
+    `tools/reference/reference.py help` (OpenSpec change editor-side-panel, design D4)."""
+    tool = repo / "tools" / "reference" / "reference.py"
+    run([sys.executable, str(tool), "help", "--out", str(out)], cwd=repo)
+    if not (out / "index.json").is_file():
+        raise StageError(f"{tool.name} help wrote no index.json in {out}")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--target", choices=sorted(TARGETS), default="win32-x64")
@@ -213,6 +227,11 @@ def main(argv=None):
         print(f"stage_bundle: {e}", file=sys.stderr)
         return 1
     print(f"stage_bundle: wrote {OUT.relative_to(REPO).as_posix()}/ (libqb: {count} files)")
+    try:
+        stage_help(REPO, HELP_OUT)
+    except StageError as e:
+        print(f"stage_bundle: {e}", file=sys.stderr)
+        return 1
     return 0
 
 

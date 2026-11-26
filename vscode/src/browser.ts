@@ -10,6 +10,7 @@ import { Bundle, planQb64rust, refuse } from "./buildPlan";
 import * as config from "./config";
 import * as em from "./compiler/emsdk";
 import { parseQb64rustOutput } from "./compiler/parseQb64rustOutput";
+import { tickWalkthrough } from "./walkthrough";
 import { RunQueue, killTree } from "./compiler/runQueue";
 import * as tc from "./compiler/toolchain";
 import { Diagnostics } from "./diagnostics";
@@ -128,6 +129,7 @@ export class BrowserSupport implements vscode.Disposable {
             return false;
         }
         await this.open(url);
+        tickWalkthrough("ranInBrowser");
         return true;
     }
 

@@ -326,5 +326,104 @@ class Pages(unittest.TestCase):
         self.assertTrue(any("shares 6 lines" in p for p in found), found)
 
 
+class Help(unittest.TestCase):
+    """The help folder of the editor and the language server's table (OpenSpec change editor-side-panel), made from
+    the repository's own pages."""
+
+    @classmethod
+    def setUpClass(cls):
+        scratch = r.REPO / "target" / "scratch"
+        scratch.mkdir(parents=True, exist_ok=True)
+        cls.tmp = pathlib.Path(tempfile.mkdtemp(prefix="reference-help-", dir=scratch))
+        cls.out = cls.tmp / "help"
+        cls.index = r.write_help(cls.out)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp)
+
+    def test_the_first_sentence(self):
+        page = "# X\n\n<!-- a note -->\n\n`A.B` is [one](a.md) thing. Two\nthings.\n\n## Syntax\n"
+        self.assertEqual(r.first_sentence(page), "`A.B` is one thing.")
+        self.assertEqual(r.first_sentence("# X\n\nNo stop at all\n"), "No stop at all")
+
+    def test_a_sentence_names_a_word_at_the_start_of_a_code_span(self):
+        self.assertTrue(r.names_word("`_MIN` gives the lesser and `_MAX` the greater.", "_MAX"))
+        self.assertTrue(r.names_word("`SELECT CASE` runs one block.", "SELECT"))
+        self.assertFalse(r.names_word("`FOR` repeats: `FOR i = 1 TO 10`.", "TO"))
+        self.assertFalse(r.names_word("`_MAXIMUM` is another word.", "_MAX"))
+        self.assertFalse(r.names_word("`LEFT$(a$, 2)` gives", "LEFT"))
+
+    def test_the_index_holds_clamp(self):
+        page = next(p for p in self.index["pages"] if p["name"] == "_clamp")
+        self.assertEqual(page["title"], "_CLAMP")
+        self.assertIn("between two bounds", page["sentence"])
+        self.assertEqual(page["path"], "entries/_clamp.md")
+        self.assertEqual(page["examples"], ["_clamp_1"])
+
+    def test_every_page_named_exists(self):
+        for p in self.index["pages"]:
+            self.assertTrue((self.out / "pages" / p["path"]).is_file(), p["path"])
+        names = {p["name"] for p in self.index["pages"]}
+
+        def rows(tree):
+            for row in tree:
+                yield row
+                yield from rows(row.get("children", []))
+
+        for row in rows(self.index["tree"]):
+            if "page" in row:
+                self.assertIn(row["page"], names)
+
+    def test_every_example_named_exists_with_its_output(self):
+        examples = [e for g in self.index["groups"] for e in g["examples"]]
+        examples += [e for k in self.index["keywords"] for e in k["examples"]]
+        self.assertGreater(len(examples), 300)
+        for e in examples:
+            bas = self.out / e["file"]
+            self.assertTrue(bas.is_file(), e["file"])
+            self.assertEqual(bas.with_suffix(".output").is_file(), e["output"], e["file"])
+        clamp = next(e for e in examples if e["name"] == "_clamp_1")
+        self.assertTrue(clamp["output"])
+        self.assertFalse(clamp["network"])
+
+    def test_a_network_example_is_marked(self):
+        marked = [e["name"] for k in self.index["keywords"] for e in k["examples"] if e["network"]]
+        sidecars = sorted(
+            p.stem
+            for p in (r.REPO / r.EXAMPLES).glob("*.external")
+            if p.read_text(encoding="utf-8").lstrip().startswith("network:")
+        )
+        self.assertEqual(sorted(marked), sidecars)
+
+    def test_a_folder_that_is_not_help_is_never_emptied(self):
+        other = self.tmp / "other"
+        other.mkdir()
+        (other / "keep.txt").write_text("keep", encoding="utf-8")
+        with self.assertRaises(SystemExit):
+            r.write_help(other)
+        self.assertTrue((other / "keep.txt").is_file())
+
+    def test_first_steps_shows_only_example_programs(self):
+        self.assertEqual(r.check_guide(r.REPO / r.FIRST_STEPS), [])
+        page = self.tmp / "first-steps.md"
+        page.write_text("# First steps\n\nA page.\n\n```qb64\nPRINT 1\n```\n\n[Gone](nowhere.md)\n", encoding="utf-8")
+        found = r.check_guide(page)
+        self.assertTrue(any("not an example program" in p for p in found), found)
+        self.assertTrue(any("nowhere.md leads nowhere" in p for p in found), found)
+
+    def test_an_example_of_examples_is_shown_with_its_output(self):
+        block = r.example_block("first-steps/hello")
+        self.assertIn('PRINT "Hello, world!"', block)
+        self.assertNotIn("$CONSOLE:ONLY", block)
+        self.assertIn("Output:", block)
+
+    def test_the_table_of_the_language_server(self):
+        text = r.help_table_rs(r.inventory())
+        self.assertIn('("_clamp", "`_CLAMP(value, low, high)` holds a value between two bounds', text)
+        self.assertRegex(text, r'\("CASE", \d+, true\)')
+        self.assertRegex(text, r'\("TO", \d+, false\)')
+
+
 if __name__ == "__main__":
     unittest.main()

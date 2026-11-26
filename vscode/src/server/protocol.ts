@@ -69,6 +69,35 @@ export function programStatus(p: ProgramParams | undefined): { text: string; det
     return { text: name, detail: `The program of this file: ${SOURCES[p.source]}.` };
 }
 
+/** The request for a document's program and its SUBs and FUNCTIONs (spec editor/language-server, "Procedures of a
+ * program"; change editor-side-panel, design D3). Its params are `{ uri }`. */
+export const PROCEDURES = "qb64rust/procedures";
+
+/** One procedure of the answer: its range is its header line, 0-based as LSP counts. */
+export interface Procedure {
+    name: string;
+    kind: "SUB" | "FUNCTION";
+    /** What the header has after the name, as written: `(x, y)`; empty for none. */
+    params: string;
+    uri: string;
+    range: { start: { line: number; character: number }; end: { line: number; character: number } };
+}
+
+export interface ProceduresResult {
+    /** The uri of the program's main file; null when the server has no parse of the document. */
+    main: string | null;
+    /** Every file of the program, the main file first, open in the editor or not. */
+    files: string[];
+    procedures: Procedure[];
+}
+
+/** The request for the help topic at a position (spec editor/language-server, "Help topic at a position"). Its
+ * params are a `TextDocumentPositionParams`. */
+export const HELP_TOPIC = "qb64rust/helpTopic";
+
+/** A page of the reference, a name the program defines, or null for nothing. */
+export type HelpTopicResult = { page: string } | { definition: true } | null;
+
 /** Remembers the last program the server named for each document. */
 export class ProgramTracker {
     private readonly programs = new Map<string, ProgramParams>();

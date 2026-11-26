@@ -49,6 +49,16 @@ pub const CHECK: &str = "qb64rust/check";
 /// `editor/language-server`, "Program notification"; design D8 of `include-file-program`).
 pub const PROGRAM: &str = "qb64rust/program";
 
+/// The request for a document's program and its procedures: `{ uri }`, answered with `{ main, files, procedures:
+/// [{ name, kind, params, uri, range }] }` from the last parse, `files` being every file of the program (spec `editor/language-server`, "Procedures of a program";
+/// OpenSpec change `editor-side-panel`, design D3). `main` is null when the document is not open.
+pub const PROCEDURES: &str = "qb64rust/procedures";
+
+/// The request for the help topic at a position: `{ textDocument, position }`, answered with `{ page }` for a
+/// built-in or keyword with a page of the language reference, `{ definition: true }` for a name the program
+/// defines, or null (spec `editor/language-server`, "Help topic at a position"; design D6 of `editor-side-panel`).
+pub const HELP_TOPIC: &str = "qb64rust/helpTopic";
+
 /// The name of the file the fixes are set in (spec `compiler/fixes`), watched by the client.
 pub const SETTINGS_FILE: &str = "qb64rust.toml";
 
@@ -1367,7 +1377,7 @@ impl Server {
                 self.completion(req);
                 return;
             }
-            HoverRequest::METHOD | References::METHOD | PrepareRenameRequest::METHOD | Rename::METHOD => {
+            HoverRequest::METHOD | References::METHOD | PrepareRenameRequest::METHOD | Rename::METHOD | HELP_TOPIC => {
                 // Each names the document as a `TextDocumentPositionParams` does.
                 match serde_json::from_value::<lsp_types::TextDocumentPositionParams>(req.params.clone()) {
                     Ok(p) => {
@@ -1384,6 +1394,9 @@ impl Server {
             }
             DocumentSymbolRequest::METHOD => {
                 serde_json::from_value::<DocumentSymbolParams>(req.params.clone()).map(|p| p.text_document.uri)
+            }
+            PROCEDURES => {
+                serde_json::from_value::<lsp_types::TextDocumentIdentifier>(req.params.clone()).map(|p| p.uri)
             }
             FoldingRangeRequest::METHOD => {
                 serde_json::from_value::<FoldingRangeParams>(req.params.clone()).map(|p| p.text_document.uri)
@@ -1412,17 +1425,19 @@ impl Server {
         };
         let doc = uri_key(&uri);
         let key = self.program_of(&doc);
+        let due =
+            self.pending.contains_key(&key) || self.latest_job.contains_key(&key) || self.checks.contains_key(&key);
+        // The procedures are answered from the text as edited (spec "Procedures of a program"): a parse that is due
+        // is waited for, as the first one is.
+        let current = req.method != PROCEDURES || !due;
         match self.analyses.get(&key) {
-            Some(_) => self.answer_parsed(req, &key, &doc),
+            Some(_) if current => self.answer_parsed(req, &key, &doc),
             // The first parse (or a check, which parses) is still to come: the request waits for it. (After a parse
             // that failed, none comes until the next change.)
-            None if self.docs.contains_key(&doc)
-                && (self.pending.contains_key(&key)
-                    || self.latest_job.contains_key(&key)
-                    || self.checks.contains_key(&key)) =>
-            {
+            _ if self.docs.contains_key(&doc) && due => {
                 self.waiting.push(Waiting { key, doc, req });
             }
+            Some(_) => self.answer_parsed(req, &key, &doc),
             None => self.answer(req, None, &doc),
         }
     }
@@ -1948,6 +1963,14 @@ impl Server {
                         .and_then(|(ix, (file, at))| hover::hover(ix, file, at))
                 })
                 .and_then(serde_json::to_value),
+            HELP_TOPIC => serde_json::from_value::<TextDocumentPositionParams>(req.params.clone()).map(|p| {
+                let topic = position(p.position).and_then(|(ix, (file, at))| hover::help_topic(ix, file, at));
+                match topic {
+                    Some(hover::Topic::Page(page)) => serde_json::json!({ "page": page }),
+                    Some(hover::Topic::Definition) => serde_json::json!({ "definition": true }),
+                    None => Value::Null,
+                }
+            }),
             GotoDefinition::METHOD => serde_json::from_value::<GotoDefinitionParams>(req.params.clone())
                 .map(|p| {
                     position(p.text_document_position_params.position).and_then(|(ix, (file, at))| {
@@ -2124,6 +2147,7 @@ impl Server {
             CodeActionRequest::METHOD => Ok(Value::Array(
                 file.map(|(a, f)| self.code_actions_in(a, f, &req)).unwrap_or_default(),
             )),
+            PROCEDURES => Ok(procedures_answer(file.map(|(a, _)| a))),
             _ => unreachable!("only requests about a document are answered here"),
         };
         match result {
@@ -2138,6 +2162,29 @@ impl Server {
             )),
         }
     }
+}
+
+/// The answer of `qb64rust/procedures` from a parse of the document's program: its main file and its procedures in
+/// the program's order; `main` null and no procedures without a parse that covers the document.
+fn procedures_answer(a: Option<&Analysis>) -> Value {
+    let Some(a) = a else {
+        return serde_json::json!({ "main": null, "files": [], "procedures": [] });
+    };
+    let (files, procedures) = symbols::program_procedures(a);
+    let files: Vec<&str> = files.into_iter().map(|f| a.info(f).uri.as_str()).collect();
+    let list: Vec<Value> = procedures
+        .into_iter()
+        .map(|p| {
+            serde_json::json!({
+                "name": p.name,
+                "kind": p.kind,
+                "params": p.params,
+                "uri": a.info(p.span.file).uri.as_str(),
+                "range": a.range(p.span),
+            })
+        })
+        .collect();
+    serde_json::json!({ "main": a.info(a.parsed.main().file).uri.as_str(), "files": files, "procedures": list })
 }
 
 /// The text of `pos`'s line before it (its column counted in UTF-16 units, as the client counts).

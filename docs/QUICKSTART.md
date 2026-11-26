@@ -49,20 +49,24 @@ The lines for Fedora and Arch are in [MANUAL.md](MANUAL.md#on-linux).
 
 ### Write your first program
 
-1. Open the Command Palette and run **QB64: New Project**.
-2. Pick an empty folder and choose **Create Project Here**.
+The walkthrough **Get Started with QB64**, in VS Code's Welcome page, takes you through these steps with a button
+for each. **QB64: Get Started** opens it at any time. Without it:
 
-The command writes two files and opens the first:
+1. Open the Command Palette and run **QB64: New Program**.
+2. A save dialog asks for the folder and the name, as for any new file. Choose **Create Program**.
 
-- `main.bas`, which holds `PRINT "Hello, world!"`.
-- `qb64rust.toml`, the program's settings file. It turns on every fix of a questionable behavior kept from QB64pe,
-  which suits a new program. `qb64rust --list-fixes` lists them.
+The command writes that one file, which holds `PRINT "Hello, world!"`, and opens it. It writes no other file.
+
+For a program of several files, or one with every fix of a questionable behavior kept from QB64pe turned on, run
+**QB64: New Project** instead and pick an empty folder. It writes `main.bas` and `qb64rust.toml`, the program's
+settings file, which turns the fixes on. `qb64rust --list-fixes` lists them.
 
 You can also open any `.bas` file you already have. An existing program needs no settings file.
 
 ### Build and run it
 
-Run **QB64: Build and Run** from the Command Palette, or use the run button at the top right of the editor.
+Click **Run** in the QB64 side panel (the QB64 icon in the activity bar) or at the left of the status bar. **QB64:
+Build and Run** in the Command Palette and the run button at the top right of the editor do the same.
 
 **On Windows, the first build asks to download the C++ toolchain.** Choose **Download**. It is llvm-mingw, a
 190 MB download that takes about 460 MB on disk. It is fetched once. On Linux nothing is downloaded. If a package
@@ -77,9 +81,10 @@ output is in the "QB64" output channel.
 
 ### Fix an error
 
-Change the line to `PRINT "Hello, world!` (no closing quote). A red underline appears as you type, and the error
-is listed in the Problems panel. Syntax errors show as you type. All other errors, such as a wrong type or a SUB
-that is not defined, show when you save.
+Add the line `PRINT (2 + 3` (no closing parenthesis). A red underline appears as you type, the error is listed in
+the Problems panel, and the QB64 side panel's Program view shows it with a link to its line. (A string with no
+closing quote is no error: QB64 ends it at the end of the line, as QBasic does.) Syntax errors show as you type.
+All other errors, such as a wrong type or a SUB that is not defined, show when you save.
 
 ### Debug it
 
@@ -97,6 +102,8 @@ The program is built for debugging and stops at your line. You can step by BASIC
 | Jump to a SUB, FUNCTION, label or variable | **Go to Definition** (`F12`) |
 | Rename a name everywhere in the program | **Rename Symbol** (`F2`) |
 | See a name's type or a SUB's header | Hover over it |
+| Read the help page of a statement or function | **QB64: Help for This Word** (right-click it), or the Help view |
+| Try a program that is already written | The Examples view of the QB64 side panel |
 | Run unit tests written in BASIC | The Test Explorer (the beaker icon) |
 
 The full description of each is in [vscode/README.md](../vscode/README.md).

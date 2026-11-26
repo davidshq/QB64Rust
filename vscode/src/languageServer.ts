@@ -21,7 +21,11 @@ import {
     CheckResult,
     DOCUMENT_ENCODING,
     EncodingTracker,
+    HELP_TOPIC,
+    HelpTopicResult,
+    PROCEDURES,
     PROGRAM,
+    ProceduresResult,
     ProgramParams,
     ProgramTracker,
     checkParams,
@@ -35,6 +39,22 @@ import { CompilerStatus } from "./statusBar";
 const STOPPED = "the server stopped";
 
 type State = { kind: "stopped" } | { kind: "untrusted" } | { kind: "starting" } | { kind: "running" } | { kind: "failed"; reason: string };
+
+/**
+ * A hover of the server with a link to "QB64: Help for This Word" at the hovered place, when it is a built-in's or a
+ * keyword's: the server writes "Built-in." after a built-in's forms, and a keyword's hover is its page's sentence,
+ * which does not open with a code block as a name's hover does.
+ */
+export function withHelpLink(hover: vscode.Hover, uri: vscode.Uri, position: vscode.Position): vscode.Hover {
+    const text = hover.contents.map((c) => (typeof c === "string" ? c : "value" in c ? c.value : "")).join("\n");
+    if (!text.includes("Built-in.") && text.trimStart().startsWith("```")) {
+        return hover;
+    }
+    const args = encodeURIComponent(JSON.stringify([uri.toString(), position.line, position.character]));
+    const link = new vscode.MarkdownString(`[Help for this word](command:qb64rust.helpForWord?${args})`);
+    link.isTrusted = { enabledCommands: ["qb64rust.helpForWord"] };
+    return new vscode.Hover([...hover.contents, link], hover.range);
+}
 
 export class LanguageServer implements vscode.Disposable {
     private readonly item = vscode.languages.createLanguageStatusItem("qb64rust.server", "qb64rust");
@@ -58,6 +78,9 @@ export class LanguageServer implements vscode.Disposable {
     /** Fires with `running` when the server starts running or stops (the extension's formatter is registered while it
      * does not run). */
     readonly onDidChangeRunning = this.runningChange.event;
+    private readonly programChange = new vscode.EventEmitter<void>();
+    /** Fires when the server names a document's program (`qb64rust/program`), and when the server stops. */
+    readonly onDidChangeProgram = this.programChange.event;
 
     /**
      * `bundled` is the binary the extension carries (design D2 of extension-vsix), which may not exist. `status`
@@ -71,6 +94,7 @@ export class LanguageServer implements vscode.Disposable {
         this.disposables.push(
             this.item,
             this.runningChange,
+            this.programChange,
             vscode.workspace.onDidChangeConfiguration((e) => {
                 if (config.affectsLanguageServer(e)) {
                     this.ready = this.restart();
@@ -182,6 +206,13 @@ export class LanguageServer implements vscode.Disposable {
                 { language: "qb64rust", scheme: "untitled" },
             ],
             diagnosticCollectionName: "qb64rust",
+            // The hover of a built-in or a keyword links to its help page (change editor-side-panel): help has no key.
+            middleware: {
+                provideHover: async (document, position, token, next) => {
+                    const hover = await next(document, position, token);
+                    return hover ? withHelpLink(hover, document.uri, position) : hover;
+                },
+            },
             // A `qb64rust.toml` created, changed or deleted: the server parses the open programs again (spec
             // editor/language-server, "Settings file changed"; design D3 of fixes-switch). The watcher is disposed with
             // the client.
@@ -223,6 +254,7 @@ export class LanguageServer implements vscode.Disposable {
                 if (this.client === client) {
                     this.programs.update(p);
                     this.renderProgram();
+                    this.programChange.fire();
                 }
             });
             this.state = { kind: "running" };
@@ -270,6 +302,35 @@ export class LanguageServer implements vscode.Disposable {
         }
     }
 
+    /** The program of the document `uri` and its procedures (`qb64rust/procedures`); undefined when the server does
+     * not run or the request failed. */
+    async procedures(uri: vscode.Uri): Promise<ProceduresResult | undefined> {
+        const client = this.running;
+        if (!client) {
+            return undefined;
+        }
+        try {
+            return await client.sendRequest<ProceduresResult>(PROCEDURES, { uri: client.code2ProtocolConverter.asUri(uri) });
+        } catch {
+            return undefined;
+        }
+    }
+
+    /** The help topic at a position of an open document (`qb64rust/helpTopic`); undefined when the server does not
+     * run or the request failed, null for nothing there. */
+    async helpTopic(uri: vscode.Uri, position: vscode.Position): Promise<HelpTopicResult | undefined> {
+        const client = this.running;
+        if (!client) {
+            return undefined;
+        }
+        try {
+            const params = { textDocument: { uri: client.code2ProtocolConverter.asUri(uri) }, position: { line: position.line, character: position.character } };
+            return await client.sendRequest<HelpTopicResult>(HELP_TOPIC, params);
+        } catch {
+            return undefined;
+        }
+    }
+
     private tellEncoding(doc: vscode.TextDocument): void {
         if (this.state.kind !== "running" || !this.client || doc.languageId !== "qb64rust") {
             return;
@@ -287,6 +348,7 @@ export class LanguageServer implements vscode.Disposable {
         this.tellRunning();
         this.programs.clear();
         this.renderProgram();
+        this.programChange.fire();
         if (client) {
             try {
                 await client.stop();

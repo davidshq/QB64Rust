@@ -6,6 +6,7 @@
     python tools/reference/reference.py render [--compiler <qb64rust>]   # refresh generated blocks and files
     python tools/reference/reference.py --check [--compiler <qb64rust>]  # fail when anything is out of date
     python tools/reference/reference.py overlap [--wiki <folder>]        # compare the pages with the wiki cache
+    python tools/reference/reference.py help --out <folder>               # the help pages, index and examples
 
 The pages are written from the repository's own sources, never from memory (study/49 §2). This tool lists the
 words, gathers a word's sources, fills the parts of a page that come from data, and checks the rest.
@@ -32,6 +33,11 @@ REF = Path("docs/reference")
 ENTRIES = REF / "entries"
 CHAPTERS = REF / "chapters"
 EXAMPLES = Path("tests/reference/examples")
+# The example programs of the editor's Examples view, by group (OpenSpec change editor-side-panel, design D10).
+PROGRAMS = Path("examples")
+PROGRAMS_INDEX = PROGRAMS / "index.toml"
+FIRST_STEPS = REF / "first-steps.md"
+HELP_TABLE = Path("crates/lsp/src/help_table.rs")
 AVAILABILITY = Path("tests/reference/availability.json")
 INVENTORY = REF / "inventory.json"
 WORDS_TOML = Path("tools/reference/words.toml")
@@ -85,7 +91,7 @@ GRAMMAR_SCOPES = (
 )
 TOKEN = re.compile(r"\$?_?[A-Za-z][A-Za-z0-9_]*\$?")
 CODE_SPAN = re.compile(r"`([^`\n]+)`")
-BEGIN = re.compile(r"<!-- begin generated: ([a-z]+(?::[A-Za-z0-9_.-]+)?) -->")
+BEGIN = re.compile(r"<!-- begin generated: ([a-z]+(?::[A-Za-z0-9_./-]+)?) -->")
 END_MARK = "<!-- end generated -->"
 SRC = re.compile(r"<!-- src: (.*?) -->", re.S)
 PROBE = re.compile(r"<!-- probe: (.*?) -->")
@@ -571,10 +577,15 @@ def availability_text(page: str, avail: dict) -> str:
     return "\n\n".join(parts)
 
 
+def example_file(ex_id: str) -> Path:
+    """The program of an example: `<page>_<n>` in the reference's examples, `<group>/<name>` in `examples\\`."""
+    return (PROGRAMS if "/" in ex_id else EXAMPLES) / f"{ex_id}.bas"
+
+
 def example_block(ex_id: str) -> str:
-    bas = REPO / EXAMPLES / f"{ex_id}.bas"
+    bas = REPO / example_file(ex_id)
     if not bas.is_file():
-        return f"Missing example program `{rel(EXAMPLES / (ex_id + '.bas'))}`."
+        return f"Missing example program `{rel(example_file(ex_id))}`."
     lines = bas.read_text(encoding="utf-8").replace("\r\n", "\n").rstrip("\n").split("\n")
     if lines and lines[0].upper().startswith("$CONSOLE:ONLY"):
         lines = lines[1:]
@@ -826,6 +837,8 @@ def index_md(words: dict[str, Word]) -> str:
         f"{len(pages)} pages written; the inventory names {len({w.page for w in words.values()})}.",
         "",
     ]
+    if (REPO / FIRST_STEPS).is_file():
+        lines += ["New to programming? Start with [First steps](first-steps.md).", ""]
     chapters = chapter_files()
     if chapters:
         lines += ["## Chapters", "", "How each area of the language works as a whole.", ""]
@@ -1022,8 +1035,230 @@ APPENDICES = (
 )
 
 
+# ---------------------------------------------------------------------------------------------------------------
+# Help for the editor (OpenSpec change editor-side-panel, design D4 and D6)
+
+MD_LINK = re.compile(r"\[([^\]]+)\]\([^)\s]+\)")
+
+
+def summary_of(text: str) -> str:
+    """The summary of a page: its first paragraph after the title, a comment such as the note of a generated file
+    passed over."""
+    m = re.match(r"# .+\n\n", text)
+    if not m:
+        return ""
+    for para in text[m.end() :].split("\n\n"):
+        para = para.strip()
+        if para and not para.startswith("<!--"):
+            return "" if para.startswith("#") else para
+    return ""
+
+
+def first_sentence(text: str) -> str:
+    """The first sentence of a page's summary, on one line and with its links as plain text: up to the first full
+    stop outside a code span that ends the text or is followed by a blank."""
+    para = MD_LINK.sub(r"\1", summary_of(text)).replace("\n", " ")
+    in_code = False
+    for i, c in enumerate(para):
+        if c == "`":
+            in_code = not in_code
+        elif c == "." and not in_code and (i + 1 == len(para) or para[i + 1] == " "):
+            return para[: i + 1]
+    return para.strip()
+
+
+def names_word(sentence: str, word: str) -> bool:
+    """Whether a page's first sentence is about `word`: a code span of it starts with the word (`_MAX` on the page
+    of `_MIN`, `CASE` on the page of `SELECT CASE`), not a word inside an example (`TO` in `FOR i = 1 TO 10`)."""
+    for span in CODE_SPAN.findall(sentence):
+        span = span.upper()
+        if span == word or (span.startswith(word) and not re.match(r"[A-Z0-9_$%&!#~`]", span[len(word)])):
+            return True
+    return False
+
+
+def help_pages() -> list[dict]:
+    """Every page the help shows: the entries, the chapters, "First steps" and the appendices, each with its name
+    (an entry's file name, `chapters/<name>` for a chapter, the file name of a page of `docs\\reference` itself), its
+    path under `pages\\`, its title, its first sentence, its kind and its examples."""
+    out = []
+    folders = (
+        (ENTRIES, "keyword", "entries/", ""),
+        (CHAPTERS, "chapter", "chapters/", "chapters/"),
+    )
+    for folder, kind, path_prefix, name_prefix in folders:
+        for p in sorted((REPO / folder).glob("*.md")):
+            out.append(help_page(p, kind, path_prefix + p.name, name_prefix + p.stem))
+    top = [FIRST_STEPS] + [REF / f for f, _ in APPENDICES]
+    for p in top:
+        if (REPO / p).is_file():
+            kind = "guide" if p == FIRST_STEPS else "appendix"
+            out.append(help_page(REPO / p, kind, p.name, p.stem))
+    return out
+
+
+def help_page(path: Path, kind: str, at: str, name: str) -> dict:
+    text = path.read_text(encoding="utf-8")
+    return {
+        "name": name,
+        "path": at,
+        "title": title_of(path),
+        "sentence": first_sentence(text),
+        "kind": kind,
+        "examples": re.findall(r"<!-- begin generated: example:([^ ]+) -->", text),
+    }
+
+
+def network_example(bas: Path) -> bool:
+    """An example whose `.external` sidecar starts with `network:`: it opens a port, so it gets no Run button
+    (design D7)."""
+    sidecar = bas.with_suffix(".external")
+    return sidecar.is_file() and sidecar.read_text(encoding="utf-8").lstrip().startswith("network:")
+
+
+def example_entry(ex_id: str, title: str) -> dict:
+    bas = REPO / example_file(ex_id)
+    return {
+        "name": ex_id,
+        "title": title,
+        "file": "examples/" + ex_id + ".bas",
+        "output": bas.with_suffix(".output").is_file(),
+        "files": bas.with_suffix(".files").is_dir(),
+        "network": network_example(bas),
+    }
+
+
+def load_programs() -> list[dict]:
+    """The groups of `examples\\index.toml`, each with its id, title and examples (name and title) in order."""
+    path = REPO / PROGRAMS_INDEX
+    if not path.is_file():
+        return []
+    return tomllib.loads(path.read_text(encoding="utf-8")).get("group", [])
+
+
+def help_tree(pages: list[dict]) -> list[dict]:
+    """The rows of the Help view (spec editor/help, "The Help view")."""
+
+    def row(p: dict) -> dict:
+        return {"label": p["title"], "page": p["name"]}
+
+    by_name = {p["name"]: p for p in pages}
+    topics = [row(p) for p in pages if p["kind"] == "chapter"]
+    special = ("appendix-errors", "coming-from-qb45", "coming-from-qb64pe")
+    topics += [row(p) for p in pages if p["kind"] == "appendix" and p["name"] not in special]
+    keywords = sorted(
+        (p for p in pages if p["kind"] == "keyword"),
+        key=lambda p: (p["title"].lstrip("_$").upper(), p["title"]),
+    )
+    tree = []
+    if "first-steps" in by_name:
+        tree.append({"label": "First steps", "page": "first-steps"})
+    tree.append({"label": "Topics", "children": topics})
+    tree.append({"label": "Every keyword, A to Z", "children": [row(p) for p in keywords]})
+    labels = ("Error messages and codes", "Coming from QuickBASIC 4.5", "Coming from QB64pe")
+    for name, label in zip(special, labels):
+        if name in by_name:
+            tree.append({"label": label, "page": name})
+    return tree
+
+
+def help_index() -> dict:
+    """`index.json` of the help folder (design D4): the pages, the Help view's tree and the Examples view's groups."""
+    pages = help_pages()
+    groups = [
+        {
+            "id": g["id"],
+            "title": g["title"],
+            "examples": [example_entry(f"{g['id']}/{e['name']}", e["title"]) for e in g.get("example", [])],
+        }
+        for g in load_programs()
+    ]
+    by_keyword = []
+    keywords = sorted((p for p in pages if p["kind"] == "keyword"), key=lambda p: p["title"].lstrip("_$").upper())
+    for p in keywords:
+        examples = [e for e in p["examples"] if "/" not in e]
+        if examples:
+            titles = [p["title"] if len(examples) == 1 else f"{p['title']} ({i})" for i in range(1, len(examples) + 1)]
+            by_keyword.append(
+                {"page": p["name"], "title": p["title"], "examples": [example_entry(e, t) for e, t in zip(examples, titles)]}
+            )
+    return {
+        "comment": "Written by tools/reference/reference.py help; do not edit.",
+        "pages": pages,
+        "tree": help_tree(pages),
+        "groups": groups,
+        "keywords": by_keyword,
+    }
+
+
+def write_help(out: Path) -> dict:
+    """The help folder for the editor (design D4): `pages\\`, `index.json` and `examples\\`. Everything in `out` is
+    written again. A folder that is neither empty nor an earlier help folder is refused, never emptied."""
+    if out.exists():
+        if any(out.iterdir()) and not (out / "index.json").is_file():
+            raise SystemExit(f"help: {out} is not empty and holds no index.json; nothing was written")
+        shutil.rmtree(out)
+    index = help_index()
+    for p in index["pages"]:
+        source = REPO / {"keyword": ENTRIES, "chapter": CHAPTERS}.get(p["kind"], REF) / Path(p["path"]).name
+        target = out / "pages" / p["path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+    examples = out / "examples"
+    examples.mkdir(parents=True)
+    names = [e["name"] for g in index["groups"] for e in g["examples"]]
+    names += [e["name"] for k in index["keywords"] for e in k["examples"]]
+    for name in names:
+        bas = REPO / example_file(name)
+        target = examples / f"{name}.bas"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(bas, target)
+        if bas.with_suffix(".output").is_file():
+            shutil.copyfile(bas.with_suffix(".output"), target.with_suffix(".output"))
+        if bas.with_suffix(".files").is_dir():
+            shutil.copytree(bas.with_suffix(".files"), target.with_suffix(".files"))
+    (out / "index.json").write_text(json.dumps(index, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    return index
+
+
+def rust_str(text: str) -> str:
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def help_table_rs(words: dict[str, Word]) -> str:
+    """`crates\\lsp\\src\\help_table.rs` (design D6): each entry page with its first sentence, and each word that
+    has a page, for the hover and `qb64rust/helpTopic`."""
+    pages = sorted(p.stem for p in page_files())
+    sentences = {p.stem: first_sentence(p.read_text(encoding="utf-8")) for p in page_files()}
+    number = {p: i for i, p in enumerate(pages)}
+    rows = sorted((w.word, w.page) for w in words.values() if w.page in number)
+    out = [
+        "//! Written by `tools\\reference\\reference.py render` from the pages of `docs\\reference\\entries`; do not",
+        "//! edit (OpenSpec change `editor-side-panel`, design D6). `reference.py --check` fails when it is stale.",
+        "",
+        "/// Each page of the language reference: its name (the file name without `.md`) and the first sentence of its",
+        "/// summary, as Markdown. In order of name.",
+        f"pub(crate) static PAGES: [(&str, &str); {len(pages)}] = [",
+    ]
+    out += [f"    ({rust_str(p)}, {rust_str(sentences[p])})," for p in pages]
+    out += [
+        "];",
+        "",
+        "/// Each word that has a page: the word in capitals, the index of its page in [`PAGES`], and whether the",
+        "/// page's first sentence is about the word (`_MAX` on the page of `_MIN`) and not only beside it (`TO` on the",
+        "/// page of `FOR`). In order of word, for [`slice::binary_search_by`].",
+        f"pub(crate) static WORDS: [(&str, u16, bool); {len(rows)}] = [",
+    ]
+    for word, page in rows:
+        about = page == page_name(word) or names_word(sentences[page], word)
+        out.append(f"    ({rust_str(word)}, {number[page]}, {'true' if about else 'false'}),")
+    out += ["];", ""]
+    return "\n".join(out)
+
+
 def generated_files(words: dict[str, Word]) -> dict[Path, str]:
     return {
+        HELP_TABLE: help_table_rs(words),
         INVENTORY: inventory_json(words),
         REF / "README.md": index_md(words),
         REF / "appendix-constants.md": constants_md(),
@@ -1230,6 +1465,33 @@ def check_chapter(path: Path, requirements, rows) -> list[str]:
     return problems
 
 
+def check_guide(path: Path) -> list[str]:
+    """"First steps" (design D10): a title and a summary, every example up to date and every code block one of
+    them, its links leading somewhere, no `TODO`. It names no sources: it teaches, and its rules are on the pages it
+    links to."""
+    name = rel(path.relative_to(REPO))
+    text = path.read_text(encoding="utf-8")
+    problems = []
+    if refresh_chapter(text) != text:
+        problems.append(f"{name}: an example is out of date (run render)")
+    if "TODO" in text:
+        problems.append(f"{name}: has a TODO")
+    if not re.match(r"# .+\n\n\S", text):
+        problems.append(f"{name}: no title and summary before the first heading")
+    outside = re.sub(BEGIN.pattern + r".*?" + re.escape(END_MARK), "", text, flags=re.S)
+    if "```qb64" in outside:
+        problems.append(f"{name}: a code block that is not an example program")
+    for ex in re.findall(r"<!-- begin generated: example:([^ ]+) -->", text):
+        if not (REPO / example_file(ex)).is_file():
+            problems.append(f"{name}: example {ex} has no program")
+    for target in re.findall(r"\]\(([^)\s]+)\)", text):
+        if re.match(r"[a-z]+:", target) or target.startswith("#"):
+            continue
+        if not (path.parent / target.split("#")[0]).exists():
+            problems.append(f"{name}: link to {target} leads nowhere")
+    return problems
+
+
 def check(compiler: Path | None) -> list[str]:
     words = inventory()
     table = load_words_toml()
@@ -1253,6 +1515,8 @@ def check(compiler: Path | None) -> list[str]:
         problems += check_page(page, words, avail, requirements, rows)
     for chapter in chapter_files():
         problems += check_chapter(chapter, requirements, rows)
+    if (REPO / FIRST_STEPS).is_file():
+        problems += check_guide(REPO / FIRST_STEPS)
     done = set(table.get("done", []))
     required = {w.page for w in words.values() if w.batch in done} | set(table.get("pilot", []))
     for page in sorted(required - stems):
@@ -1285,7 +1549,9 @@ def render(compiler: Path | None) -> list[str]:
             new = refresh(text, word, words, avail)
             if new != text:
                 page.write_text(new, encoding="utf-8", newline="\n")
-    for chapter in chapter_files():
+    for chapter in chapter_files() + [REPO / FIRST_STEPS]:
+        if not chapter.is_file():
+            continue
         text = chapter.read_text(encoding="utf-8")
         new = refresh_chapter(text)
         if new != text:
@@ -1371,8 +1637,10 @@ def overlap(wiki: Path, prose_words: int = 10, code_lines: int = 6) -> list[str]
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", nargs="?", choices=("inventory", "evidence", "skeleton", "render", "overlap"))
+    commands = ("inventory", "evidence", "skeleton", "render", "overlap", "help")
+    ap.add_argument("command", nargs="?", choices=commands)
     ap.add_argument("word", nargs="?")
+    ap.add_argument("--out", type=Path, help="help: the folder to write the help into (emptied first)")
     ap.add_argument("--check", action="store_true", help="write nothing; exit 1 when anything is out of date")
     ap.add_argument("--compiler", type=Path, help="qb64rust, to compute which forms compile")
     ap.add_argument("--wiki", type=Path, default=REPO / WIKI)
@@ -1403,6 +1671,13 @@ def main(argv: list[str] | None = None) -> int:
         for p in problems:
             print(p)
         return 1 if problems else 0
+    if args.command == "help":
+        if not args.out:
+            ap.error("help needs --out <folder>")
+        index = write_help(args.out.resolve())
+        examples = sum(len(g["examples"]) for g in index["groups"]) + sum(len(k["examples"]) for k in index["keywords"])
+        print(f"help: {len(index['pages'])} pages and {examples} examples in {args.out}")
+        return 0
     if args.command == "overlap":
         problems = overlap(args.wiki)
         for p in problems:

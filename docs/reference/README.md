@@ -12,6 +12,8 @@ and "Press any key to continue": the example's [`END`](entries/end.md) prints th
 
 401 pages written; the inventory names 401.
 
+New to programming? Start with [First steps](first-steps.md).
+
 ## Chapters
 
 How each area of the language works as a whole.
