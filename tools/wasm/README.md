@@ -6,7 +6,7 @@ wrote a page (`<name>.html`): `run_legacy_tests.py --platform wasm`.
 
 ```text
 node tools\wasm\browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--profile <folder>]
-                            [--chrome <chrome>]
+                            [--chrome <chrome>] [--no-headers]
 node tools\wasm\browser.mjs --find-chrome
 ```
 
@@ -27,6 +27,13 @@ Node's standard library only.
   A page needs both to use threads. Nothing listens on the port.
 - **The program's folder.** Every other file of the page's folder, with its subfolders, is written into the
   page's file system, in the program's current folder, before the program starts.
+- **A web folder** (OpenSpec change `wasm-publish`): when the page is `index.html`, every file of its folder is
+  served, as a host serves them, and none is written into the page's file system.
+- **`--no-headers`** serves without the two headers, as a host that cannot send them. A web folder's page then
+  registers its service worker and reloads once. The requests of the whole browser are intercepted in this mode,
+  not only the page's, so that the worker's own requests are served too.
+- **A page that never starts.** When `--for` runs out, the launcher prints the page's status line as `the page
+  says: ...`: the reason a web folder's page gives when it cannot start, or `Loading...`.
 - **Variables.** Each `QB64_*`, `QB64PE_*` and `QB64RUST_*` variable of this process is the program's (but the
   tools' own: `QB64RUST_CHROME`, `QB64RUST_EMSDK_ROOT`, `QB64RUST_LIBQB_WASM_ROOT`,
   `QB64RUST_ALLOW_NETWORK`, `QB64RUST_BROWSER_LOG`). One whose value is an absolute path names a file of the

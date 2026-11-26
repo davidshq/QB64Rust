@@ -222,9 +222,10 @@ export class Builder implements vscode.Disposable {
 
     /**
      * The file to act on, saved: for an included file, its program's main file. Refuses in untrusted workspaces and
-     * asks to save untitled documents (the action does not start until the document has a file path).
+     * asks to save untitled documents (the action does not start until the document has a file path). Also the
+     * start of "Run in Browser" (browser.ts).
      */
-    private async prepare(uri: vscode.Uri | undefined, verb: string, save = true): Promise<vscode.Uri | undefined> {
+    async prepare(uri: vscode.Uri | undefined, verb: string, save = true): Promise<vscode.Uri | undefined> {
         if (!vscode.workspace.isTrusted) {
             void vscode.window.showWarningMessage(`QB64: ${verb.toLowerCase()} requires a trusted workspace. Nothing was executed.`);
             return undefined;

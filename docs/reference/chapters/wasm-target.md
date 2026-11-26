@@ -15,19 +15,23 @@ The pages of this area: [$CONSOLE](../entries/meta-console.md), [$IF](../entries
 
 ## Building and running
 
-`qb64rust -x --target wasm game.bas` writes `game.js` and `game.wasm` into the folder `build`, beside the
-program's `qb64rust.toml` or beside the source, and `node build/game.js` runs the program. `-o` names the `.js`
+For a `$CONSOLE:ONLY` program, `qb64rust -x --target wasm game.bas` writes `game.js` and `game.wasm` into the
+folder `build`, beside the program's `qb64rust.toml` or beside the source, and `node build/game.js` runs the
+program. A window program goes into a web folder instead ("Window programs in a page"). `-o` names the `.js`
 file and must end in `.js`; the `.wasm` file gets the same name beside it. The two may be moved together, and
 renamed together. The program's current folder is the folder of its `.js` file, so a data file it opens by name
 alone must be there: list it in `[build]` `copy` of `qb64rust.toml`, which copies it into `build` at each build.
 <!-- src: compiler/cli "The output of a wasm build"; compiler/wasm-target "A wasm build"; crates\driver\tests\it\cli.rs -->
 <!-- The output folder and `copy`: OpenSpec change build-output-folder; name spec compiler/cli "The output folder" here once it is archived. -->
 
-A build for the wasm target needs the Emscripten SDK, release 7.0.0 and no other, installed with Emscripten's own
-`emsdk` (`emsdk install 7.0.0` and `emsdk activate 7.0.0`). `--emsdk-root <dir>` or the environment variable
-`QB64RUST_EMSDK_ROOT` names its folder, and `qb64rust toolchain path --target wasm` shows the one a build would
-use. `qb64rust` downloads nothing for this target yet. Of the C++ toolchain it uses `make` only.
+A build for the wasm target needs the Emscripten SDK, release 7.0.0 and no other. On Windows, `qb64rust toolchain
+install --target wasm` downloads it with its Node and Python (815 MB), checks each archive's SHA-256 and installs
+it under `%LOCALAPPDATA%\qb64rust\toolchain`. Anywhere, Emscripten's own `emsdk` installs it (`emsdk install
+7.0.0` and `emsdk activate 7.0.0`). A build takes the SDK of `--emsdk-root <dir>`, else of the environment
+variable `QB64RUST_EMSDK_ROOT`, else the installed one, and `qb64rust toolchain path --target wasm` shows which. A
+build downloads nothing. Of the C++ toolchain it uses `make` only.
 <!-- src: compiler/toolchain "The Emscripten SDK"; compiler/toolchain "The pinned Emscripten release"; read: crates\driver\src\toolchain.rs -->
+<!-- The install and the installed SDK: OpenSpec change wasm-publish; name spec compiler/toolchain "The Emscripten SDK is installed on Windows" here once it is archived. -->
 
 The debug build, the coverage build (`--coverage`), the value-trace build (`--trace-values`), `qb64rust test` and
 `qb64rust dap` are not available for this target. Checking with `-z --target wasm` reports the same errors as a
@@ -36,11 +40,14 @@ build.
 
 ## Window programs in a page
 
-A program without `$CONSOLE:ONLY` is built for a browser: the build writes `game.html` beside `game.js` and
-`game.wasm`. The page runs the program in a canvas, with the keyboard and the mouse over it. The host that serves
-the three files must send two headers, `Cross-Origin-Opener-Policy: same-origin` and
-`Cross-Origin-Embedder-Policy: require-corp`, which a page needs to run the program's threads.
-<!-- src: compiler/wasm-target "A window program runs in a page"; read: crates\driver\src\build.rs -->
+A program without `$CONSOLE:ONLY` is built for a browser. Without `-o` the build writes a web folder, `web` in
+the output folder: `build\web\index.html` with `game.js` and `game.wasm` beside it, and its last line names the
+page. With `-o out\game.js` it writes `game.html`, `game.js` and `game.wasm` into `out`, and no web folder. The
+page runs the program in a canvas, with the keyboard and the mouse over it. A page needs two headers from the host
+that serves it, `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`, to
+run the program's threads. It cannot be opened from the disk: `qb64rust serve` serves it on your own machine
+("Putting a game on the web").
+<!-- src: compiler/wasm-target "A window program runs in a page"; read: crates\driver\src\build.rs; crates\driver\src\compile.rs; crates\driver\tests\it\cli.rs -->
 
 A `$CONSOLE` program's console output goes to the browser's console. libqb's own messages, such as an unhandled
 error's "Continue?", are the page's dialogs. `_FULLSCREEN` asks for the browser's full screen; asked outside a key
@@ -60,6 +67,51 @@ changed, such as a file of high scores, stays changed until the game ships anoth
 
 A `$CONSOLE:ONLY` program runs under Node, as below.
 <!-- src: compiler/wasm-target "A wasm build" -->
+
+## Putting a game on the web
+
+The web folder is what a web host needs, and nothing else of the build. Upload it as it is.
+<!-- src: read: crates\driver\src\build.rs; crates\driver\tests\it\cli.rs -->
+
+| File | What it is |
+|---|---|
+| `index.html` | The page |
+| `game.js`, `game.wasm` | The program |
+| `game.data` | The files of `[build]` `copy`, when the project lists any |
+| `_headers` | Asks a host that reads such a file for the two headers |
+| `qb64rust-sw.js` | Adds the two headers in the browser, on a host that sends none |
+<!-- src: read: crates\driver\src\build.rs; crates\driver\tests\it\cli.rs -->
+
+The build writes these files anew each time, `game.data` only when `copy` lists files, and leaves any other file
+of the folder alone, such as an icon you put there.
+<!-- src: read: crates\driver\src\build.rs; crates\driver\tests\it\cli.rs -->
+
+**Try it first.** `qb64rust serve game.bas --open` serves the web folder at `http://127.0.0.1:8064/` with the two
+headers and opens the browser. `qb64rust serve <folder>` serves any web folder, and `qb64rust serve` alone serves
+`build\web` of the current folder. It listens on `127.0.0.1` only. When port 8064 is taken it uses the next free
+one up to 8083, and `--port <n>` names one. A browser keeps a page's saved games for its address with the port, so
+keep to one port. `--no-headers` serves the folder as a host that sends neither header, to see what such a host
+does. In VS Code, **QB64: Run in Browser** builds, serves and opens the page.
+<!-- src: read: crates\driver\src\serve.rs; crates\driver\src\main.rs; crates\driver\tests\it\cli.rs -->
+
+**A page on a host without the headers.** A page that the browser has not isolated registers `qb64rust-sw.js` as
+a service worker and reloads once. The worker then adds the two headers to what the page loads, and the program
+starts. That costs a player one reload at the first visit. It needs HTTPS, or `127.0.0.1`, and a browser that
+allows service workers; a private window of Firefox does not. When the page still cannot start, it says so in
+place of "Loading..." and names the two headers.
+<!-- src: read: crates\driver\src\build.rs; crates\driver\tests\it\cli.rs -->
+
+What each kind of host needs. Only headless Chrome was tried, with `qb64rust serve` and the test launcher. No
+upload to any of these hosts was made, and neither Firefox nor Safari was tried.
+<!-- src: read: crates\driver\tests\it\cli.rs; tools\wasm\browser.mjs -->
+
+| Host | What to do |
+|---|---|
+| Netlify, Cloudflare Pages | Upload the folder. `_headers` asks for the two headers on every path. Cloudflare Pages takes files up to 25 MiB, which a large `game.wasm` or `game.data` may pass |
+| GitHub Pages | Upload the folder. The host sends neither header, so the page uses its service worker and reloads once at a player's first visit |
+| itch.io | Compress the folder's files into a zip with `index.html` at its top, upload it as an HTML game, and turn on "SharedArrayBuffer support" in the game's embed options. itch.io shows the game inside its own page, where the service worker cannot help. Safari and iPhones are not expected to run it there |
+| A server of your own | Send the two headers for the folder, and `application/wasm` for `.wasm` files. Serve it over HTTPS |
+<!-- src: read: study\51-web-and-mobile-targets.md; crates\driver\src\build.rs -->
 
 ## What the target does not have
 

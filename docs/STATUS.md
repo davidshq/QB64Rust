@@ -134,7 +134,12 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    `tools\wasm\browser.mjs` runs it in headless Chrome for the tests. In a browser, on the host (user,
    2026-11-21): the `screen\` corpus passes, except its listed programs, and of the verification family's 307 window
    programs 261 pass and the rest are listed. A page ships the files of `[build]` `copy` in `qb64rust.toml`, and
-   the page keeps what it writes in IndexedDB. Civil War Strategy's port reaches its first turn.
+   the page keeps what it writes in IndexedDB. Civil War Strategy's port reaches its first turn. W2, the OpenSpec
+   change `wasm-publish`, is built (2026-11-25) and not archived: a window program built without `-o` goes into a
+   web folder `build\web` that is uploaded whole (`index.html`, `_headers`, a service worker for hosts that send no
+   headers), `qb64rust serve` serves it on `127.0.0.1`, `qb64rust toolchain install --target wasm` downloads
+   the SDK on Windows (815 MB), and the extension has "QB64: Run in Browser". Waiting on the user: the command in
+   VS Code, which no test ran, and an upload to each host that matters, in Chrome, Firefox and Safari.
    Other candidates for later are in `SOMEDAY.md`:
    deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS Code features
    still missing.

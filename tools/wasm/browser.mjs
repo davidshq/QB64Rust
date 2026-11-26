@@ -1,7 +1,7 @@
 // Runs a window program built for the wasm target in headless Chrome, as a test runs a desktop program
 // (OpenSpec change wasm-window). See README.md beside this file.
 //
-//   node browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--chrome <chrome>]
+//   node browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--chrome <chrome>] [--no-headers]
 //   node browser.mjs --find-chrome
 //
 // The page's folder is the program's: Chrome is driven over --remote-debugging-pipe, so no port is opened. The
@@ -25,12 +25,14 @@ let page = null;
 let screenshot = null;
 let seconds = null;
 let profileArg = null;
+let isolation = true;
 let chromeArg = process.env.QB64RUST_CHROME || null;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--screenshot") screenshot = args[++i];
   else if (args[i] === "--chrome") chromeArg = args[++i];
   else if (args[i] === "--for") seconds = Number(args[++i]);
   else if (args[i] === "--profile") profileArg = args[++i];
+  else if (args[i] === "--no-headers") isolation = false;
   else if (args[i] === "--find-chrome") page = false;
   else page = args[i];
 }
@@ -43,14 +45,19 @@ if (page === false) {
 }
 if (!page) {
   console.error(
-    "usage: node browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--profile <folder>] [--chrome <chrome>]",
+    "usage: node browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--profile <folder>] [--chrome <chrome>] [--no-headers]",
   );
   process.exit(2);
 }
 const folder = dirname(resolve(page));
 const pageName = basename(page);
 const script = pageName.replace(/\.html$/, ".js");
-const served = new Set([pageName, script, pageName.replace(/\.html$/, ".wasm"), pageName.replace(/\.html$/, ".data")]);
+// A web folder (OpenSpec change wasm-publish): its page is index.html, and every file of it is the host's to serve,
+// none the program's. Any other page is served with its script, its module and its data file.
+const webFolder = pageName === "index.html";
+const served = webFolder
+  ? new Set(readdirSync(folder).filter((name) => statSync(join(folder, name)).isFile()))
+  : new Set([pageName, script, pageName.replace(/\.html$/, ".wasm"), pageName.replace(/\.html$/, ".data")]);
 
 // The launcher's own messages go to standard error, and with QB64RUST_BROWSER_LOG to that file too, one line each
 // with the time and the page, with each run's exit status: a test runner may overwrite the output of a run.
@@ -88,7 +95,7 @@ function collect(dir, prefix) {
     else if (!served.has(rel)) files.push([rel, readFileSync(path).toString("base64")]);
   }
 }
-collect(folder, "");
+if (!webFolder) collect(folder, "");
 // The tools' own settings are not the program's.
 const TOOL_VARIABLES = new Set([
   "QB64RUST_CHROME",
@@ -152,6 +159,8 @@ const setup = `
     qb64rustKeep: ${JSON.stringify(profileArg !== null)},
     preRun: [() => {
       Module.FS.init(() => (read < input.length ? input[read++] : null), put("out"), put("err"));
+      // The folder of the files that variables name: a file the program only writes (QB64_SCREEN_STATE) needs it.
+      Module.FS.mkdirTree("qb64rust-env");
       for (const [name, data] of files) {
         const slash = name.lastIndexOf("/");
         if (slash > 0) Module.FS.mkdirTree(name.slice(0, slash));
@@ -222,6 +231,13 @@ async function finish(code) {
   if (finished) return;
   finished = true;
   try {
+    // A page that never started its program says why in its status line (a web folder's page on a host without
+    // the two headers), or still says "Loading...".
+    if (code === 124) {
+      const expression = `(document.getElementById("qb64rust-status") || {}).textContent || ""`;
+      const status = await send("Runtime.evaluate", { expression, returnByValue: true }, session);
+      if (status.result.value) note(`the page says: ${status.result.value}`);
+    }
     if (screenshot) {
       const shot = await send("Page.captureScreenshot", { format: "png" }, session);
       writeFileSync(screenshot, Buffer.from(shot.data, "base64"));
@@ -249,10 +265,16 @@ async function finish(code) {
 }
 
 const types = { ".html": "text/html", ".js": "text/javascript", ".wasm": "application/wasm" };
+// --no-headers: as a host that cannot send the two headers of threads, where a web folder's page gets them from
+// its service worker.
 const headers = [
-  { name: "Cross-Origin-Opener-Policy", value: "same-origin" },
-  { name: "Cross-Origin-Embedder-Policy", value: "require-corp" },
-  { name: "Cross-Origin-Resource-Policy", value: "same-origin" },
+  ...(isolation
+    ? [
+        { name: "Cross-Origin-Opener-Policy", value: "same-origin" },
+        { name: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+        { name: "Cross-Origin-Resource-Policy", value: "same-origin" },
+      ]
+    : []),
   { name: "Cache-Control", value: "no-store" },
 ];
 async function serve(params, sessionId) {
@@ -330,7 +352,9 @@ proc.on("exit", () => {
 
 const { targetId } = await send("Target.createTarget", { url: "about:blank" });
 const { sessionId: session } = await send("Target.attachToTarget", { targetId, flatten: true });
-await send("Fetch.enable", { patterns: [{ urlPattern: "http://localhost/*" }] }, session);
+// With --no-headers the requests of the page's service worker are served too, so the whole browser's are taken,
+// not only the page's.
+await send("Fetch.enable", { patterns: [{ urlPattern: "http://localhost/*" }] }, isolation ? session : undefined);
 await send("Runtime.enable", {}, session);
 await send("Runtime.addBinding", { name: "qb64rustReport" }, session);
 await send("Page.enable", {}, session);

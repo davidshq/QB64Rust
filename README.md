@@ -5,7 +5,7 @@ A new compiler, editor support and debugger for programs written for
 check, build, run and debug QB64 programs in VS Code, or compile them from a command prompt.
 
 The goal: a QB64 programmer installs one thing on Windows or Linux and gets an editor, a compiler and a
-debugger ([ROADMAP.md](docs/ROADMAP.md)).
+debugger.
 
 ## Features
 

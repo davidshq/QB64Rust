@@ -475,6 +475,9 @@ pub struct Settings {
     /// A window program of the wasm target: the files its page ships ([`wasm_data`]), each with its path from the
     /// program's folder (OpenSpec change `wasm-window`, design D11). Written after the link, so not in the key.
     pub wasm_files: Vec<(String, PathBuf)>,
+    /// A window program of the wasm target built without `-o`: its page is `index.html` of a web folder, with the
+    /// headers file and the service worker beside it (OpenSpec change `wasm-publish`, design D1 and D2).
+    pub web: bool,
 }
 
 /// The first line of a page's data file ([`wasm_data`]).
@@ -917,7 +920,8 @@ function qb64rustUnpack(bytes, keep) {
     if (new TextDecoder().decode(bytes.subarray(0, magic.length)) !== magic) return;
     const end = bytes.indexOf(10, magic.length);
     const list = JSON.parse(new TextDecoder().decode(bytes.subarray(magic.length, end)));
-    const key = "qb64rust-files:" + location.pathname;
+    // A web folder's page is the same page at its folder's address and at index.html.
+    const key = "qb64rust-files:" + location.pathname.replace(/index\.html$/, "");
     let shipped = {};
     try {
         shipped = JSON.parse(localStorage.getItem(key) || "{}");
@@ -967,15 +971,103 @@ function qb64rustSave() {
     save();
 }
 </script>
-<script src="{script}"></script>
+{start}
 </body>
 </html>
 "#;
 
+/// How a page built with `-o` starts its program: at once, since what runs it sends the two headers of threads.
+const WASM_START: &str = r#"<script src="{script}"></script>"#;
+
+/// How the page of a web folder starts its program (OpenSpec change `wasm-publish`, design D2). A page that is
+/// cross-origin isolated loads the program. Any other page registers [`WASM_WORKER`], which adds the two headers,
+/// and reloads once; the flag in `sessionStorage` stops a second reload. A page that still cannot start says why
+/// in place of "Loading...".
+const WASM_START_WEB: &str = r#"<script>
+(() => {
+    const flag = "qb64rust-isolating";
+    const stop = (text) => {
+        sessionStorage.removeItem(flag);
+        document.getElementById("qb64rust-status").textContent = text;
+    };
+    const needs = "This game cannot start here. Its web server must send the headers " +
+        "Cross-Origin-Opener-Policy: same-origin and Cross-Origin-Embedder-Policy: require-corp.";
+    if (window.crossOriginIsolated) {
+        sessionStorage.removeItem(flag);
+        const program = document.createElement("script");
+        program.src = {script_js};
+        document.body.appendChild(program);
+    } else if (location.protocol === "file:") {
+        stop("Open this game through a web server, not as a file. On your own machine: qb64rust serve");
+    } else if (!("serviceWorker" in navigator) || !window.isSecureContext || sessionStorage.getItem(flag)) {
+        stop(needs);
+    } else {
+        navigator.serviceWorker
+            .register("qb64rust-sw.js")
+            .then(() => navigator.serviceWorker.ready)
+            .then(() => {
+                sessionStorage.setItem(flag, "1");
+                location.reload();
+            })
+            .catch(() => stop(needs));
+    }
+})();
+</script>"#;
+
+/// The name of [`WASM_WORKER`] in a web folder.
+pub const WASM_WORKER_NAME: &str = "qb64rust-sw.js";
+
+/// The service worker of a web folder (OpenSpec change `wasm-publish`, design D2), for a host that cannot send the
+/// two headers of threads, such as GitHub Pages: it answers each request of its folder with the network's response
+/// and the headers added. Written here; the method is that of `coi-serviceworker`, none of whose code is copied.
+pub const WASM_WORKER: &str = r#"// Written by qb64rust. A web host that cannot send the two headers a threaded
+// page needs gets them from this service worker: the page registers it and reloads once.
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener("fetch", (event) => {
+    const request = event.request;
+    // A request the browser may answer only from its cache cannot be fetched again here.
+    if (request.cache === "only-if-cached" && request.mode !== "same-origin") return;
+    event.respondWith(
+        fetch(request).then((response) => {
+            // An opaque response has no headers to change.
+            if (response.status === 0) return response;
+            const headers = new Headers(response.headers);
+            headers.set("Cross-Origin-Opener-Policy", "same-origin");
+            headers.set("Cross-Origin-Embedder-Policy", "require-corp");
+            headers.set("Cross-Origin-Resource-Policy", "cross-origin");
+            return new Response(response.body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers,
+            });
+        })
+    );
+});
+"#;
+
+/// The name of [`WASM_HEADERS`] in a web folder.
+pub const WASM_HEADERS_NAME: &str = "_headers";
+
+/// The headers file of a web folder (OpenSpec change `wasm-publish`, design D2): Netlify and Cloudflare Pages read
+/// it and send the two headers of threads for every path.
+pub const WASM_HEADERS: &str =
+    "/*\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n";
+
+/// The name of the page in a web folder.
+pub const WASM_INDEX: &str = "index.html";
+
+/// The web folder of a build without `-o` whose script would be `script` (`<output>/<name>.js`): `web` beside it
+/// (OpenSpec change `wasm-publish`, design D1).
+pub fn web_folder(script: &Path) -> PathBuf {
+    script.parent().map_or_else(|| PathBuf::from("web"), |d| d.join("web"))
+}
+
 /// [`WASM_PAGE`] for the program whose script is `script` (`<name>.js`), with its name as the title. The program's
 /// folder in the page is `/<name>`, with each character other than a letter, a digit, `-` and `_` as `_`; its data
-/// file is `<name>.data` (design D11 of `wasm-window`).
-pub fn wasm_page(script: &str) -> String {
+/// file is `<name>.data` (design D11 of `wasm-window`). With `web` it is the page of a web folder
+/// ([`WASM_START_WEB`]).
+pub fn wasm_page(script: &str, web: bool) -> String {
     let escape = |s: &str| {
         s.replace('&', "&amp;")
             .replace('<', "&lt;")
@@ -996,8 +1088,10 @@ pub fn wasm_page(script: &str) -> String {
         })
         .collect();
     WASM_PAGE
+        .replace("{start}", if web { WASM_START_WEB } else { WASM_START })
         .replace("{title}", &escape(name))
         .replace("{script}", &escape(script))
+        .replace("{script_js}", &js(script))
         .replace("{folder}", &js(&folder))
         .replace("{data}", &js(&format!("{name}.data")))
 }
@@ -1394,6 +1488,10 @@ fn build_with_make(
                 cmd.arg(format!("{name}={shown}"));
             }
             cmd.env("EM_CONFIG", &sdk.config);
+            // The SDK's own Python, so that a machine without one on `PATH` builds (`Emsdk::python`).
+            if let Some(python) = &sdk.python {
+                cmd.env("EMSDK_PYTHON", python);
+            }
         }
     }
     // The icon and version resources are Windows' executable's; on the wasm target as on Linux there are none.
@@ -1459,7 +1557,11 @@ fn build_with_make(
                 .map_err(|e| format!("moving the .wasm file to {}: {e}", to.display()))?;
             // A window program runs in a page, a `$CONSOLE:ONLY` one under Node (OpenSpec change `wasm-window`);
             // a page left from an earlier build as a window program goes.
-            let page = exe.with_extension("html");
+            let page = if settings.web {
+                exe.with_file_name(WASM_INDEX)
+            } else {
+                exe.with_extension("html")
+            };
             let data = exe.with_extension("data");
             if settings.flags.contains(&"DEP_CONSOLE_ONLY=y") {
                 let _ = std::fs::remove_file(&page);
@@ -1476,8 +1578,14 @@ fn build_with_make(
                     .file_name()
                     .map(|n| n.to_string_lossy().into_owned())
                     .unwrap_or_default();
-                std::fs::write(&page, wasm_page(&script))
+                std::fs::write(&page, wasm_page(&script, settings.web))
                     .map_err(|e| format!("writing the page {}: {e}", page.display()))?;
+                if settings.web {
+                    for (name, text) in [(WASM_HEADERS_NAME, WASM_HEADERS), (WASM_WORKER_NAME, WASM_WORKER)] {
+                        let file = exe.with_file_name(name);
+                        std::fs::write(&file, text).map_err(|e| format!("writing {}: {e}", file.display()))?;
+                    }
+                }
             }
         }
         std::fs::rename(&linked, exe).map_err(|e| {
@@ -2516,12 +2624,15 @@ mod tests {
     /// escaped, and the canvas libqb's full screen names.
     #[test]
     fn wasm_page_names_its_script() {
-        let page = wasm_page("game.js");
+        let page = wasm_page("game.js", false);
         assert!(page.contains("<title>game</title>"), "{page}");
         assert!(page.contains("<script src=\"game.js\"></script>"), "{page}");
         assert!(page.contains("<canvas id=\"canvas\""), "{page}");
         assert!(page.contains("var Module = window.Module || {};"), "{page}");
-        let odd = wasm_page("a&b<c>.js");
+        // A page built with `-o` has no step for a host without the headers (spec `compiler/wasm-target`, "A page
+        // on a host without the headers").
+        assert!(!page.contains("serviceWorker"), "{page}");
+        let odd = wasm_page("a&b<c>.js", false);
         assert!(odd.contains("<title>a&amp;b&lt;c&gt;</title>"), "{odd}");
         assert!(odd.contains("src=\"a&amp;b&lt;c&gt;.js\""), "{odd}");
         // The program's folder and its data file (design D11), as strings of the script with no `<`.
@@ -2529,6 +2640,54 @@ mod tests {
         assert!(page.contains("fetch(\"game.data\")"), "{page}");
         assert!(odd.contains("\"/\" + \"a_b_c_\""), "{odd}");
         assert!(odd.contains("fetch(\"a&b\\u003cc>.data\")"), "{odd}");
+    }
+
+    /// The page of a web folder (OpenSpec change `wasm-publish`, design D2): it loads the program only when it is
+    /// cross-origin isolated, else registers the worker and reloads once, and says why when it cannot start.
+    #[test]
+    fn wasm_page_of_a_web_folder() {
+        let page = wasm_page("game.js", true);
+        assert!(!page.contains("<script src="), "{page}");
+        for part in [
+            "if (window.crossOriginIsolated) {",
+            "program.src = \"game.js\";",
+            ".register(\"qb64rust-sw.js\")",
+            "location.reload();",
+            "sessionStorage.getItem(flag)",
+            "Cross-Origin-Opener-Policy: same-origin and Cross-Origin-Embedder-Policy: require-corp",
+            "not as a file. On your own machine: qb64rust serve",
+        ] {
+            assert!(page.contains(part), "{part}: {page}");
+        }
+        // No placeholder is left, in either page.
+        for page in [&page, &wasm_page("game.js", false)] {
+            for left in ["{start}", "{script}", "{script_js}", "{title}", "{folder}", "{data}"] {
+                assert!(!page.contains(left), "{left}");
+            }
+        }
+        let odd = wasm_page("a&b<c>.js", true);
+        assert!(odd.contains("program.src = \"a&b\\u003cc>.js\";"), "{odd}");
+    }
+
+    /// The headers file and the worker of a web folder (spec `compiler/wasm-target`, "The headers file" and "A page
+    /// on a host without the headers").
+    #[test]
+    fn wasm_web_folder_files() {
+        assert_eq!(
+            WASM_HEADERS.lines().collect::<Vec<_>>(),
+            [
+                "/*",
+                "  Cross-Origin-Opener-Policy: same-origin",
+                "  Cross-Origin-Embedder-Policy: require-corp"
+            ]
+        );
+        for header in [
+            "\"Cross-Origin-Opener-Policy\", \"same-origin\"",
+            "\"Cross-Origin-Embedder-Policy\", \"require-corp\"",
+        ] {
+            assert!(WASM_WORKER.contains(header), "{header}");
+        }
+        assert_eq!(web_folder(Path::new("out/build/game.js")), Path::new("out/build/web"));
     }
 
     /// The page's data file (design D11 of `wasm-window`): the first line, the JSON line, then the bytes in order.

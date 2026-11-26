@@ -177,6 +177,10 @@ when it has errors.
   "not supported yet", which names the feature.
 - **Write unit tests.** A file whose name ends in `_test.bas` is a test file. Each `SUB` in it whose name starts
   with `Test` is a test. See [MANUAL.md](MANUAL.md#testing-your-code).
+- **Play a game in a browser.** This is experimental. In VS Code, run **QB64: Run in Browser** on a window
+  program. At a prompt, `qb64rust -x --target wasm game.bas` and then `qb64rust serve game.bas --open`. The
+  first time, the Emscripten SDK is downloaded (815 MB). See
+  [MANUAL.md](MANUAL.md#a-game-in-a-browser).
 - **Read the manual.** [MANUAL.md](MANUAL.md) covers every option, the settings file, warnings, coverage builds
   and value traces.
 - **Look a word up.** The [language reference](reference/README.md) has a page for every statement, function and

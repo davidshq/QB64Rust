@@ -230,7 +230,7 @@ and out of version control. Use `copy` for a game that rewrites its settings or 
 
 **In a browser.** A window program built with `--target wasm` packs the files of `copy` into `<name>.data` beside
 its page, since a page cannot read the files beside it. The page keeps what the program writes there in the
-browser's storage ([the wasm target](reference/chapters/wasm-target.md)).
+browser's storage ([the wasm target](reference/chapters/wasm-target.md); "A game in a browser" below).
 
 **What is copied.** Each entry of `copy` is a file or a folder, relative to the folder of `qb64rust.toml`. Before
 each build, a file is copied into the output folder when the copy is missing there, or when the source's file is
@@ -256,6 +256,51 @@ A mistake in the file, such as an unknown key or a value of the wrong kind, stop
 that names the file, the line and the keys it knows, for instance
 ``qb64rust.toml:2: unknown format setting `indent`; the settings are auto-indent, indent-size, indent-subs,
 auto-layout, keyword-case, one-statement-per-line, block-if``. `--no-settings` builds or lays out the program without reading the file.
+
+## A game in a browser
+
+A window program can be built for a web page and played in a browser. This is experimental. What the page has
+and does not have is in [the wasm target](reference/chapters/wasm-target.md).
+
+1. Install the Emscripten SDK once. On Windows:
+
+   ```text
+   qb64rust toolchain install --target wasm
+   ```
+
+   It downloads Emscripten 7.0.0 with its Node and Python from Emscripten's own storage
+   (`storage.googleapis.com/webassembly`), 815 MB, checks each archive against its SHA-256, and unpacks them
+   into `%LOCALAPPDATA%\qb64rust\toolchain\emsdk-7.0.0`. On Linux, install that release with Emscripten's
+   `emsdk` and name its folder with `--emsdk-root <dir>` or `QB64RUST_EMSDK_ROOT`.
+
+2. Build the game:
+
+   ```text
+   qb64rust -x --target wasm game.bas
+   ```
+
+   This writes the web folder `build\web`: `index.html`, `game.js`, `game.wasm`, `game.data` with the files of
+   `[build]` `copy`, `_headers` and `qb64rust-sw.js`. The last line it prints is the page's path.
+
+3. Try it on your own machine:
+
+   ```text
+   qb64rust serve game.bas --open
+   ```
+
+   `serve` serves the web folder at `http://127.0.0.1:8064/` until you press Ctrl+C, and `--open` opens the
+   browser there. A page cannot be opened from the disk. `serve <folder>` serves any web folder, and `serve`
+   alone serves `build\web` of the current folder. It listens on `127.0.0.1` only, so no other machine reaches
+   it. `--port <n>` names another port. When 8064 is taken it uses the next free port up to 8083; a browser
+   keeps saved games for each address, so games saved at one port are not found at another. `--no-headers`
+   serves the folder as a web host that cannot send the two headers below.
+
+4. Put the game on the web by uploading the web folder as it is. "Putting a game on the web" in
+   [the wasm target](reference/chapters/wasm-target.md) says what each kind of host needs.
+
+A page that runs a program needs two HTTP headers from its host, `Cross-Origin-Opener-Policy: same-origin` and
+`Cross-Origin-Embedder-Policy: require-corp`. `serve` sends them. On a host that does not, the page gets them
+from `qb64rust-sw.js` and reloads once at a player's first visit.
 
 ## UTF-8 source files
 

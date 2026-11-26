@@ -97,6 +97,12 @@
           "scope": "machine",
           "markdownDescription": "A C++ toolchain folder for building and debugging with `qb64rust` (llvm-mingw's layout: `bin\\c++.exe`, `bin\\mingw32-make.exe`, `bin\\lldb-dap.exe`). When empty, QB64pe's toolchain when QB64pe is found, else the one installed by **QB64: Install the C++ Toolchain** (asked for at the first build: a 190 MB download from github.com/mstorsjo/llvm-mingw)."
         },
+        "qb64rust.emsdkPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "An Emscripten SDK folder for **QB64: Run in Browser** (an `emsdk` folder with release 7.0.0 installed and activated). When empty, the one named by `QB64RUST_EMSDK_ROOT`, else the one installed by **QB64: Install the Emscripten SDK** (asked for at the first run in a browser: an 815 MB download from storage.googleapis.com/webassembly)."
+        },
         "qb64rust.path": {
           "type": "string",
           "default": "",
@@ -221,6 +227,19 @@
         "enablement": "isWorkspaceTrusted"
       },
       {
+        "command": "qb64rust.runInBrowser",
+        "title": "Run in Browser",
+        "category": "QB64",
+        "icon": "$(globe)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "qb64rust.installEmsdk",
+        "title": "Install the Emscripten SDK",
+        "category": "QB64",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
         "command": "qb64rust.newProject",
         "title": "New Project",
         "category": "QB64"
@@ -250,6 +269,14 @@
         },
         {
           "command": "qb64rust.installToolchain",
+          "when": "!virtualWorkspace"
+        },
+        {
+          "command": "qb64rust.runInBrowser",
+          "when": "editorLangId == qb64rust && !virtualWorkspace"
+        },
+        {
+          "command": "qb64rust.installEmsdk",
           "when": "!virtualWorkspace"
         }
       ],

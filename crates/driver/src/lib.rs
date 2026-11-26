@@ -10,6 +10,7 @@ pub mod library;
 pub mod lints;
 pub mod output;
 pub mod report;
+pub mod serve;
 pub mod settings;
 pub mod toolchain;
 pub mod unit_tests;

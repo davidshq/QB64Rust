@@ -4,6 +4,7 @@ import { copyVersion, removeOtherVersions } from "./compiler/libqbStore";
 import { binaryName } from "./compiler/toolchain";
 import * as qb64pe from "./compiler/qb64pe";
 import { RunQueue } from "./compiler/runQueue";
+import { BrowserSupport } from "./browser";
 import { Builder } from "./build";
 import { Bundle, chosenCompiler } from "./buildPlan";
 import { DebugSupport } from "./debug";
@@ -27,6 +28,7 @@ export interface Api {
     debug: DebugSupport;
     toolchain: ToolchainSupport;
     tests: TestSupport;
+    browser: BrowserSupport;
 }
 
 let server: LanguageServer | undefined;
@@ -56,6 +58,8 @@ export function activate(context: vscode.ExtensionContext): Api {
     status.toolchain = toolchain;
     status.update();
     const debug = new DebugSupport(builder, status, lsp);
+    // "Run in Browser" and the Emscripten SDK (change wasm-publish): looked for and offered only when it runs.
+    const browser = new BrowserSupport(queue, status, diagnostics, lsp, bundle, builder, toolchain);
     // The Test Explorer (change basic-unit-tests): `qb64rust test`, with the binary and toolchain a build uses.
     const tests = new TestSupport(status, lsp, bundle);
     context.subscriptions.push(
@@ -65,6 +69,7 @@ export function activate(context: vscode.ExtensionContext): Api {
         builder,
         toolchain,
         debug,
+        browser,
         tests,
         lsp,
         registerWhileServerOff(lsp, new Formatter(queue, status, diagnostics, lsp)),
@@ -73,7 +78,7 @@ export function activate(context: vscode.ExtensionContext): Api {
     );
     void removeStaleTempFiles();
     void removeOtherVersions(bundle.storage, bundle.version);
-    return { status, diagnostics, queue, server: lsp, bundle, builder, debug, toolchain, tests };
+    return { status, diagnostics, queue, server: lsp, bundle, builder, debug, toolchain, tests, browser };
 }
 
 export async function deactivate(): Promise<void> {

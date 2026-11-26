@@ -119,6 +119,9 @@ changing direction, design or scope.**
      and runs them in the suites VM (`QB64RUST_ALLOW_NETWORK=1`, set by `check`). Claude never sets that
      variable on the host; the user may, for example to record network programs with `qb64pe`. A new program
      that calls `_OPENHOST` or `_OPENCLIENT` needs the sidecar; `inputs::network_programs_are_marked` checks it.
+     One exception: a program that listens on `127.0.0.1` only, such as `qb64rust serve` and its test
+     `serve_answers_on_the_loopback_address`, may run on the host: Windows asked nothing when one did (user's
+     answer, 2026-11-25; `DECISIONS.md`).
    - **A game port's own `tests\play.py` is not such a run** (user, 2026-11-06; D7 of Civil War Battleset's `docs\port-study.md`). The scripts of
      World War 2 and Civil War Battleset run on the host, on a desktop of their own that the user never sees,
      with `--jobs 4`. They open no window and run no network program.
