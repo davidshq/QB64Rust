@@ -46,6 +46,8 @@ changing direction, design or scope.**
    - **`..\qbjs\` is our fork of QBJS** (`davidshq-contribute/qbjs`, forked from `boxgaming/qbjs` on
      2026-11-16 at `1589a46`). Its remote `origin` is the fork and `upstream` is `boxgaming/qbjs`. Work goes on a
      branch of the fork, never on `main`; push and open pull requests only when the user asks.
+   - **`..\qb64rust-website\` is the website's source**, a repo of its own (user, 2026-11-26;
+     `DECISIONS.md`). Its build reads this repo's `docs\` at a release tag.
    - **`..\emsdk\` is the Emscripten SDK** for the wasm target. Release
      7.0.0 was installed there with `emsdk install` and `emsdk activate`. Builds find it through `QB64RUST_EMSDK_ROOT` or `--emsdk-root`.
      Change its release only in a change of its own.

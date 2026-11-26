@@ -115,7 +115,7 @@ A key in `[format]` overrides the matching `qb64rust.format.*` setting, so every
 same layout; a key that is not there leaves the setting as it is. This holds for the language server and for
 `qb64rust -y`, not for `qb64pe -y`, which does not read the file. An include file takes the file of its program.
 The lint codes are `used-once`, `unused-procedure`, `unused-label`, `hides-shared`, `unreachable`,
-`undeclared-utf8`, `unused-variable`, `empty-select`, `duplicate-const` and `debug-incompatible`; a lint that is off gives no warning
+`undeclared-utf8`, `pds-function`, `unused-variable`, `empty-select`, `duplicate-const` and `debug-incompatible`; a lint that is off gives no warning
 in Problems. A mistake in the file (a misspelled key, a value of the wrong kind) stops Format Document with a message
 that names the file and the line, and shows in Problems on line 1 of the program at the next check.
 

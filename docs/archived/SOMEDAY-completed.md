@@ -19,6 +19,12 @@ yet" and is now a compile error. The programs named pass and are on `tests\verif
 | P2 | mark-to-error | `x() = 1`, the whole array of a name that is no array as a place; a SUB written with a type suffix (`s$ 1` beside a `SUB s`); a function of the auto-included files as a place (`_ENCODEURL$(1) = "a"`) | "`x() =`: a store needs an element of the array, with its index"; "`s$` is no statement: the name of a SUB is written without a type suffix"; "`_ENCODEURL$(...) =`: `_ENCODEURL$` is a function of the language, which cannot be stored to". `READ x()` and `CALL s$(1)` stay marked: not measured | `verification\v66_c17`, `c19`, `c20` |
 | P2 | mark-to-error | A statement named with one leading underscore that the table does not hold | "`_NOSUCHSTATEMENT` is no statement and no SUB" (QB64pe: "Syntax error"). After `CALL` it stays marked: not measured | `verification\v66_c24` |
 
+## Popular BASIC PDS 7.1 features
+
+| Priority | Group | Feature | What was built | Source |
+|---|---|---|---|---|
+| P2 | lints | A warning for a PDS-only function read as a variable (`CURDIR$` with no arguments) | The lint `pds-function` (2026-11-26, `DECISIONS.md`): "`CURDIR$` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always `""`", at every use, in every file. It covers `CURDIR$`, `DIR$`, `STACK` and `SAVEPOINT`, the PDS functions with no argument that were measured. A variable the program declares or sets is left out | `verification\qb45\q45_pds_bare_functions` (PDS 7.1 reads the bare names as its functions), `verification\v75_b1_pds_bare_functions` (QB64pe builds them as variables, with no message); the World War 2 port (2026-11-05) |
+
 ## VS Code parity left
 
 | Priority | Group | Feature | What was built | Source |

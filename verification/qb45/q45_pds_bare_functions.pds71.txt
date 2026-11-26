@@ -1,0 +1,6 @@
+CURDIR$ len>0:-1 
+CURDIR$ has colon:-1 
+DIR$(spec) len>0:-1 
+DIR$ len>0:-1 
+DIR$ another name:-1 
+STACK>0:-1 

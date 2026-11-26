@@ -5246,6 +5246,7 @@ fn report_warnings_counts_by_code() {
          0      0  hides-shared\n       \
          0      0  unreachable\n       \
          0      0  undeclared-utf8\n       \
+         0      0  pds-function\n       \
          0      0  unused-variable\n       \
          0      0  empty-select\n       \
          0      0  duplicate-const\n       \

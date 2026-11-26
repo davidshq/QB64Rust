@@ -367,6 +367,7 @@ stop a build and never change the program.
 | `hides-shared` | A `DIM` or `REDIM` in a SUB or FUNCTION that makes a new local variable with the name and type of a `DIM SHARED` one | ``this `score` is a new local variable, which hides the `DIM SHARED` one of the main module`` |
 | `unreachable` | Statements after `GOTO`, `END`, `SYSTEM`, `STOP`, `EXIT`, `RETURN`, `RESUME` or `RUN`, with no label or line number before them. One warning for each such stretch | `this code is never run: no label follows the GOTO on line 8` |
 | `undeclared-utf8` | A file saved as UTF-8 that does not say so, with a character above 127 in a string. Its strings then hold the UTF-8 bytes, so `"─"` is three characters (see "UTF-8 source files"). Given for an included file too. One warning per file | ``this file looks like UTF-8 but is read as code page 437, so `─` is 3 characters in the program: …`` |
+| `pds-function` | `CURDIR$`, `DIR$`, `STACK` or `SAVEPOINT` with no argument. BASIC PDS 7.1 has these functions; QB64 does not, so each is a variable that is never set. QB64pe builds it with no message. Given at every use, in included files too. A variable the program sets itself is not reported | ``` `CURDIR$` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always "" ``` |
 
 Some cases are left out on purpose:
 - `used-once`: a `FOR` counter, and a variable that `INPUT`, `LINE INPUT` or `READ` reads into, such as

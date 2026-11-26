@@ -108,7 +108,8 @@ PDS 7.1 features": `REDIM PRESERVE` (becomes `REDIM _PRESERVE`), `CHDRIVE`, the 
   QB64Rust both take a bare `CURDIR$` for a string variable, which is always `""` (measured 2026-11-05). The
   World War 2 port built and passed its scripts with it, and a review found it later: the PBM Drive menu
   showed a blank entry. A clean build does not show that every PDS name was replaced. Search the source for
-  each PDS-only name in `SOMEDAY.md`'s list.
+  each PDS-only name in `SOMEDAY.md`'s list. Since 2026-11-26 `qb64rust -w` warns at each bare `CURDIR$`,
+  `DIR$`, `STACK` and `SAVEPOINT` (the lint `pds-function`); QB64pe still says nothing.
 - **Data files are found beside the executable.** Build the program into the folder that holds its data
   files, or it starts and finds nothing. Do not overwrite the original DOS `.EXE` if the folder has one.
 - **Include names and file names differ in case.** `'$INCLUDE: 'ww2.bi'` works on Windows with `WW2.BI` but
