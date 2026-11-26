@@ -110,9 +110,20 @@ impl Checker<'_> {
             (Reference::Place(_), Ty::Bit { .. }) => {
                 return Err(self.error(at, "`_OFFSET` cannot take a `_BIT` variable"));
             }
-            // The characters of a variable-length string variable (`v32_x01_accepted`); of an element, a member or
-            // a whole array of them, not measured.
+            // The characters of a variable-length string variable (`v32_x01_accepted`); of an element, or of a
+            // member of an element, not measured.
             (Reference::Place(Place::Var(_)), Ty::Str) => {}
+            // Measured: "UDT must have fixed size" (`verification\v66_b07`).
+            (Reference::Place(p @ Place::Member { .. }), Ty::Str) if !p.has_element() => {
+                return Err(self.error(
+                    at,
+                    "`_OFFSET` of a `STRING` member: a variable-length string has no fixed place",
+                ));
+            }
+            // Measured: "Cannot pass array of variable-length strings" (`verification\v66_b08`).
+            (Reference::Array(ArrayRef::Var(_)), Ty::Str) => {
+                return Err(self.error(at, "`_OFFSET` of a whole array of variable-length strings"));
+            }
             (_, Ty::Str) => {
                 return Err(self.unsupported(
                     at,

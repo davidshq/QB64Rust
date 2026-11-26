@@ -26,8 +26,8 @@ For a fixed-length string the offset is its descriptor's, and for a member its v
 
 ## Errors
 
-- `VARPTR$` of an element of an array that is not of variable-length strings is QB64pe's error, and of a `STRING`
-  member a compile error.
+- `VARPTR$` of an element of an array that is not of variable-length strings is QB64pe's error, and so is
+  `VARPTR$` of a number member of an element (`VARPTR$(a(1).n)`). `VARPTR$` of a `STRING` member is a compile error.
   <!-- src: language/conventional-memory "VARPTR$"; language/conventional-memory "What VARPTR and VARSEG accept" -->
 
 ## Differences

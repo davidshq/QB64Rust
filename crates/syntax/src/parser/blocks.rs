@@ -893,26 +893,36 @@ pub(crate) fn for_block(p: &mut Parser) {
 /// `var = start TO end [STEP step]`, after `FOR`. The variable may have indexes (`FOR r.m(i) = …`), which `sema`
 /// reads: the old compiler takes an element of a member array there (design D8 of `m4-memory-records`).
 fn for_header_rest(p: &mut Parser) {
+    if !for_header_parts(p) {
+        // The rest of a header that stopped early stays inside it, so that the header holds its parse error and
+        // `sema` skips it (`FOR 5 = 1 TO 2` once gave "internal error: incomplete syntax tree" beside the error).
+        p.rest_into_error_node();
+    }
+}
+
+/// The parts of [`for_header_rest`]; false where one is missing and the error is reported.
+fn for_header_parts(p: &mut Parser) -> bool {
     if !p.at(Ident) {
         p.syntax_error("expected a variable after `FOR`");
-        return;
+        return false;
     }
     name_ref(p);
     if p.at(LParen) && !arg_list(p) {
-        return;
+        return false;
     }
     if !p.expect(Eq, "`=`") || !expr(p) {
-        return;
+        return false;
     }
     if !p.at_word("TO") {
         p.syntax_error("expected `TO`");
-        return;
+        return false;
     }
     p.bump();
     if expr(p) && p.at_word("STEP") {
         p.bump();
         expr(p);
     }
+    true
 }
 
 fn name_ref(p: &mut Parser) {

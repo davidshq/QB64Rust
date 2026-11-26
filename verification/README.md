@@ -607,6 +607,12 @@ Small programs behind `study\09`, `study\10` and later measurements:
   characters, accents, `√` and the heart of byte 3 in strings, `DATA`, a `CONST` and a `SELECT CASE`, saved as code page 437 and as
   UTF-8, each with its `'$ENCODING` line. `f2` is judged by a copy of `f1`'s recording
   (`tests\verification\diverged\`).
+- `v75*`: forms of `SOMEDAY.md` rows not measured before (2026-11-26). `a`: recorded when those rows were built
+  as errors. `a1`: `REDIM x.d(3) AS nosuch` of a member array that is not `_DYNAMIC` is "Undefined type", as for
+  a `_DYNAMIC` one (`v66_c08`). `a2`: `FOR 5 = 1 TO 2` is "Unsupported variable used in FOR statement".
+  `b1`: recorded for the lint `pds-function`. The bare names of the BASIC PDS 7.1 functions `CURDIR$`, `DIR$`,
+  `STACK` and `SAVEPOINT` build with no message, as variables that print `""` or 0. PDS 7.1 reads them as its
+  functions (`qb45\q45_pds_bare_functions`).
 
 `qb45\` holds programs measured with QuickBASIC 4.5, not QB64pe (`q45_*.bas`, each with `<name>.qb45.txt`,
 recorded by `tools\qb45\qb45.py`; `--suite verification` reads only this folder's top level, so it does not see

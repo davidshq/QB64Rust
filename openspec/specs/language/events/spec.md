@@ -98,7 +98,8 @@ build does. Anything else after `KEY ON`, `KEY OFF` or `KEY LIST` SHALL be a com
 A handler the old compiler rejects SHALL be a compile error that is not "not supported yet": a label that is not
 one of the main module, a name that is no SUB, a SUB with more than one parameter, an argument given to a SUB
 without one or left out for a SUB with one, a parameter that is not of an integer type (an array included), and a
-switch form outside the table's (`KEY(1) FREE`, `TIMER(1, 2) ON`).
+switch form outside the table's (`KEY(1) FREE`, `TIMER(1, 2) ON`). A SUB of a `DECLARE LIBRARY` block with an
+argument SHALL be a compile error too, where the old compiler's C++ build fails (`verification\v66_d01`, `d10`).
 
 #### Scenario: A label only in a SUB
 - **WHEN** `ON TIMER(1) GOSUB h` is compiled and `h` is a label only inside a SUB

@@ -361,7 +361,9 @@ error of the old compiler) SHALL be compile errors. A FUNCTION SHALL NOT have a 
 A name used as a statement that is no SUB, no keyword and no built-in statement SHALL be a compile error that is
 not "not supported yet", with or without arguments, also as the target of `IF c THEN name`, where only a line
 number names a line ("Syntax error" in the old compiler). `CALL` of such a name SHALL be such an error too
-("Expected CALL sub-name").
+("Expected CALL sub-name"). A name with one leading underscore that no built-in has, and the name of a SUB written
+with a type suffix (`s$ 1`), SHALL be such errors without `CALL` (`verification\v66_c24`, `c19`); after `CALL`,
+which no program measured, they SHALL stay "not supported yet".
 
 #### Scenario: A label after THEN
 - **WHEN** a program has `IF ASC("") = 7 THEN jumped` and a label `jumped:`

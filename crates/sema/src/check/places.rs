@@ -743,18 +743,14 @@ impl Checker<'_> {
         // `x42`).
         let untyped = suffix.is_none() && !typed;
         let mut plain_array = self.array_plain_ty(&name);
-        // `a$(…)` beside a `STRING * n` array `a` means that array ([`Self::array_key_ty`]); a `DIM` of it is "Type
-        // mismatch" (measured, `verification\v52_x45`), the other declarers are not measured.
+        // `a$(…)` beside a `STRING * n` array `a` means that array ([`Self::array_key_ty`]); a declaration of it is
+        // "Type mismatch" (measured: `DIM`, `verification\v52_x45`; `REDIM`, `STATIC` and `COMMON`, `v66_c12`–`c14`).
         if suffix == Some(Ty::Str)
             && let Some(Ty::FixedStr(_)) = plain_array
             && self.array_of(&(name.clone(), Ty::Str)).is_none()
         {
-            if by == Declarer::Dim {
-                let msg = format!("`{shown}`: an array of variable-length strings beside the `STRING * n` one");
-                return Err(self.error(name_tok.span, msg));
-            }
-            let msg = format!("`{shown}` declared beside a `STRING * n` array of the name");
-            return Err(self.unsupported(name_tok.span, msg));
+            let msg = format!("`{shown}`: an array of variable-length strings beside the `STRING * n` one");
+            return Err(self.error(name_tok.span, msg));
         }
         // Between two arrays of one name the plain name stays with the one typed by `AS` (measured,
         // `verification\v48_x16`–`x24`), but for an array listed by `STATIC a() AS type` that nothing has reached:
@@ -1285,8 +1281,14 @@ impl Checker<'_> {
             self.implicit_names.insert(name.to_string());
             return Err(self.error(t.span, format!("`{shown}(...)`: `{shown}` is written with `$`")));
         }
-        // The functions of the auto-included files (`_ENCODEURL$`) as a place: not measured.
+        // The functions of the auto-included files (`_ENCODEURL$`) as the place of a store: a built-in function's
+        // name (measured: "String required for function", the error of its number argument, `verification\v66_c20`).
+        // As another place not measured.
         let auto = is_auto_include_function(name.as_bytes());
+        if auto && !self.at.follow_on && self.stmt.placing == Placing::Store {
+            self.implicit_names.insert(name.to_string());
+            return Err(self.auto_function_store(t));
+        }
         if self.at.follow_on || auto {
             return Err(self.not_an_array(t, name));
         }
@@ -1326,9 +1328,14 @@ impl Checker<'_> {
         // `x()`, a whole array, where it is no argument for an array parameter ([`Self::array_arg`]): as a value the
         // implicit array of one dimension, as for `LBOUND(x)`, whose whole value is its first element (measured,
         // `verification\v48_x04`, `x14`, `v55_b_implicit_whole`; design D5 of `m4-names-implicit-arrays`). As a
-        // place (`x() = 1`, `READ x()`) not measured.
+        // place of a store "Expected array index after x" (measured, `verification\v66_c17`: `x() = 1`); as a target
+        // (`READ x()`) not measured.
         if dims == 0 && self.stmt.placing != Placing::Value {
             self.implicit_names.insert(name.to_string());
+            if self.stmt.placing == Placing::Store {
+                let msg = format!("`{shown}() =`: a store needs an element of the array, with its index");
+                return Err(self.error(at.span(), msg));
+            }
             return Err(self.unsupported(at.span(), format!("the whole array `{shown}()` as a place")));
         }
         let dims = dims.max(1);
@@ -1462,6 +1469,15 @@ impl Checker<'_> {
         self.error(t.span, msg)
     }
 
+    /// The error for a function of the auto-included files (`_ENCODEURL$(1) = "a"`) at `t` as the place of a store.
+    /// Its own words, not [`Self::not_a_variable`]'s: the old compiler's message there is its argument's error
+    /// (`verification\v66_c20`), not "Expected variable =", so the note of that message would be wrong.
+    fn auto_function_store(&mut self, t: Tok) -> Failed {
+        let shown = show_bytes(self.text(t.span));
+        let msg = format!("`{shown}(...) =`: `{shown}` is a function of the language, which cannot be stored to");
+        self.error(t.span, msg)
+    }
+
     /// The message for `name(...)` that names no visible array where none is made for it
     /// ([`Self::implicit_array`]): after a declaration that was marked, for a name with one leading underscore
     /// and for the name of a SUB or FUNCTION.
@@ -1573,7 +1589,12 @@ impl Checker<'_> {
         let (name, suffix) = self.split_name(t)?;
         if let Some(&p) = self.procs_by_name.get(&name) {
             if is_auto_include_function(name.as_bytes()) {
-                // A function of the auto-included files (`_ENCODEURL$`) as a place: not measured.
+                // A function of the auto-included files (`_ENCODEURL$`) as the place of a store is a built-in
+                // function's name (measured: "String required for function", the error of its number argument,
+                // `verification\v66_c20`); as another place not measured.
+                if what == Placing::Store {
+                    return Err(self.auto_function_store(t));
+                }
                 let shown = show_bytes(self.text(t.span));
                 return Err(self.unsupported(t.span, format!("`{shown}(...)` here (a FUNCTION of this name exists)")));
             }
@@ -2140,7 +2161,7 @@ impl Checker<'_> {
             return Err(self.error(span, msg));
         }
         let as_ty = match item.as_clause() {
-            Some(a) => Some((self.type_of_at(a, AsPlace::Other)?, a.node().span())),
+            Some(a) => Some((self.type_of_at(a, AsPlace::MemberRedim)?, a.node().span())),
             None => None,
         };
         if let Some((ty, at)) = as_ty
@@ -2553,6 +2574,12 @@ impl Checker<'_> {
                     // Measured: the old compiler's C++ build fails (`verification\v60_d8`).
                     return Err(self.error(e.span, "`VARPTR$` of a `STRING` member"));
                 }
+                if on_member && place.has_element() && (ty.is_int() || ty.is_float()) {
+                    // Measured: "VARPTR$ only accepts variable-length string arrays" (`verification\v66_a15`).
+                    let msg = "`VARPTR$` of a member of an array element: of an element it takes only an array of \
+                               strings";
+                    return Err(self.error(e.span, msg));
+                }
                 if on_member && (place.has_element() || !(ty.is_int() || ty.is_float())) {
                     let msg = "`VARPTR$` of a member of an array element or of a member that is no number";
                     return Err(self.unsupported(e.span, msg));
@@ -2580,6 +2607,12 @@ impl Checker<'_> {
                         return Err(self.error(e.span, "`VARPTR` of the `STRING` member of an array element"));
                     }
                     // The offset of the member's string pointer (measured, `verification\v56_x08`).
+                } else if (word, on_member, place.has_element()) == (AddressWord::VarPtr, true, false)
+                    && matches!(ty, Ty::User(_))
+                {
+                    // Measured: the old compiler's internal error (`verification\v66_a14`), as for a whole `TYPE`
+                    // variable (`v56_t02`).
+                    return Err(self.error(e.span, "`VARPTR` of a member whose type is a `TYPE`"));
                 } else if on_member && !(ty.is_int() || ty.is_float() || matches!(ty, Ty::FixedStr(_))) {
                     // A fixed-length string member is at its offset, as a number is (measured, `v61_a4`).
                     let msg = format!("`{name}` of a member that is no number");

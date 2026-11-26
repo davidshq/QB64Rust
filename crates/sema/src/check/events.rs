@@ -126,6 +126,14 @@ impl Checker<'_> {
         self.stmt.names.push((SymbolKind::Proc(proc), target.span));
         let p = &self.prog.procs[proc.0 as usize];
         if p.external.is_some() {
+            if s.argument().is_some() {
+                // The old compiler's C++ build fails (measured, `verification\v66_d01`, `d10`).
+                let msg = format!(
+                    "a SUB of a `DECLARE LIBRARY` block cannot be an event handler with an argument: `{shown}`"
+                );
+                return Err(self.error(target.span, msg));
+            }
+            // Without an argument the old compiler builds and runs it (`v66_d09`): not built yet.
             let msg = format!("a SUB of a `DECLARE LIBRARY` block as an event handler: `{shown}`");
             return Err(self.unsupported(target.span, msg));
         }

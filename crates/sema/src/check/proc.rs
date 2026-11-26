@@ -546,7 +546,12 @@ impl Checker<'_> {
             None if name == "ASC" && suffix.is_none() => {
                 Err(self.error(node.span(), "the `ASC` statement needs `= code` after its arguments"))
             }
-            // A SUB written with a type suffix: not measured.
+            // A SUB written with a type suffix: "Syntax error" without `CALL` (measured, `verification\v66_c19`: `s$ 1`);
+            // after `CALL` not measured.
+            Some((_, ProcKind::Sub)) if stmt.call_keyword().is_none() => {
+                let msg = format!("`{shown}` is no statement: the name of a SUB is written without a type suffix");
+                Err(self.error(name_tok.span, msg))
+            }
             Some((_, ProcKind::Sub)) => {
                 let msg = format!("`{shown}` as a statement (a SUB of this name, written with a suffix)");
                 Err(self.unsupported(name_tok.span, msg))
@@ -570,10 +575,17 @@ impl Checker<'_> {
                 };
                 Err(self.error(name_tok.span, msg))
             }
-            // The old compiler's own calls `CALL INTERRUPT[X]` (`qb64pe.bas` 10606–10687), and a name with a leading
-            // underscore, which may be a built-in the table does not hold (the `_GL…` names never come here: the arm
-            // above). `ABSOLUTE` that is no `CALL ABSOLUTE(…)` is a name like any other (measured, "Syntax error",
-            // `verification\v61_c5`, `c6`).
+            // A name with one leading underscore that the table does not hold, without `CALL`: "Syntax error"
+            // (measured, `verification\v66_c24`). The table holds every SUB the old compiler registers and the names
+            // `qb64pe.bas` special-cases (`tools\builtins\README.md`), and the `_GL…` names never come here (the arm
+            // above).
+            _ if name.starts_with('_') && !name.starts_with("__") && stmt.call_keyword().is_none() => {
+                let msg = format!("`{shown}` is no statement and no SUB");
+                Err(self.error(name_tok.span, msg))
+            }
+            // The old compiler's own calls `CALL INTERRUPT[X]` (`qb64pe.bas` 10606–10687), and a name with leading
+            // underscores not measured above. `ABSOLUTE` that is no `CALL ABSOLUTE(…)` is a name like any other
+            // (measured, "Syntax error", `verification\v61_c5`, `c6`).
             _ if name.starts_with('_') || matches!(name.as_str(), "INTERRUPT" | "INTERRUPTX") => {
                 let msg = format!("`{shown}` as a statement (no SUB of this name)");
                 Err(self.unsupported(name_tok.span, msg))

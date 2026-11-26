@@ -27,15 +27,11 @@ v66_a10_varptr_whole_type_array	not supported yet
 v66_a11_varseg_whole_string_array	not supported yet
 v66_a12_varseg_whole_bit_array	not supported yet
 v66_a13_varseg_bit_element	not supported yet
-v66_a14_varptr_type_member	not supported yet: QB64pe rejects it too, with another error
-v66_a15_varptrs_element_member	not supported yet: QB64pe rejects it too, with another error
 v66_a16_varptrs_member_array_element	not supported yet
 v66_a19_get_put_index_function	D-061
 v66_b04_offset_through_member_array_element	not supported yet
 v66_b05_mem_member_array_type_element	not supported yet
 v66_b06_offset_string_element	not supported yet
-v66_b07_offset_string_member	not supported yet: QB64pe rejects it too, with another error
-v66_b08_offset_whole_string_array	not supported yet: QB64pe rejects it too, with another error
 v66_b09_memget_string_element	not supported yet
 v66_b10_memput_string_member	not supported yet
 v66_b11_memfill_string_element	not supported yet
@@ -50,26 +46,12 @@ v66_c03_dot_blanks_function_store	not supported yet
 v66_c04_common_typed_beside_plain_dim	D-063
 v66_c05_mem_no_array	not supported yet
 v66_c07_len_whole_dynamic_member	not supported yet
-v66_c08_redim_member_no_type	not supported yet: QB64pe rejects it too, with another error
-v66_c09_shared_unsigned_no_type	not supported yet: QB64pe rejects it too, with another error
-v66_c10_param_unsigned_no_type	not supported yet: QB64pe rejects it too, with another error
-v66_c11_define_unsigned_no_type	not supported yet: QB64pe rejects it too, with another error
-v66_c12_redim_dollar_beside_fixed_array	not supported yet: QB64pe rejects it too, with another error
-v66_c13_static_dollar_beside_fixed_array	not supported yet: QB64pe rejects it too, with another error
-v66_c14_common_dollar_beside_fixed_array	not supported yet: QB64pe rejects it too, with another error
 v66_c15_common_dollar_beside_fixed_var	not supported yet
 v66_c16_asc_statement_parens	not supported yet
-v66_c17_whole_no_array_store	not supported yet: QB64pe rejects it too, with another error
 v66_c18_whole_no_array_read	not supported yet
-v66_c19_sub_with_suffix	not supported yet: QB64pe rejects it too, with another error
-v66_c20_auto_include_function_place	not supported yet: QB64pe rejects it too, with another error
 v66_c21_static_empty_beside_shared	not supported yet
 v66_c22_static_two_dims_beside_shared	bug: STATIC a(5, 5) beside a shared array of one dimension compiles (STATUS.md, known bugs)
-v66_c24_unknown_underscore_statement	not supported yet: QB64pe rejects it too, with another error
 v66_c25_call_interrupt	not supported yet
 v66_c26_call_interruptx	not supported yet
 v66_c27_late_type_const_bound_len	not supported yet
-v66_d01_library_sub_handler	not supported yet: QB64pe rejects it too, with another error
-v66_d03_const_rgb32_string	not supported yet
 v66_d09_library_sub_handler_no_argument	not supported yet
-v66_d10_library_sub_handler_argument	not supported yet: QB64pe rejects it too, with another error

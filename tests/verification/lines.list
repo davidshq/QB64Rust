@@ -26,4 +26,5 @@ v55_x52_underscore_sub_array	4	an earlier follow-on error of the SUB name refuse
 v57_j05_block_crosses_endif	6	the $ELSEIF the block crosses
 v57_j06_block_crosses_endif_agree	6	the $ELSE the block crosses
 v59_x41_gl_label	13	the label's definition, not the GOTO
+v66_d03_const_rgb32_string	3	diverged rejection: D-078
 v66_d06_const_sin_infinite_const	3	diverged rejection: D-029

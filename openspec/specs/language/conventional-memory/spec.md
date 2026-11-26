@@ -31,7 +31,9 @@ is not of numbers SHALL be reported "not supported yet". `VARPTR` of a
 `TYPE` variable a compile error (the old compiler fails there, `verification\v56_t02`). `VARPTR` and `VARSEG` of a
 fixed-length string member SHALL be those of its bytes, as of a number member (`verification\v61_a4`). `VARPTR` of the `STRING`
 member of an array element and `VARPTR$` of a `STRING` member SHALL be compile errors (the old compiler's C++
-build fails, `v60_d7`, `d8`). Every other variable,
+build fails, `v60_d7`, `d8`). `VARPTR` of a member whose type is a `TYPE` SHALL be a compile error (the old
+compiler's internal error, `verification\v66_a14`), and so SHALL `VARPTR$` of a number member of an array element
+(the old compiler: "VARPTR$ only accepts variable-length string arrays", `v66_a15`). Every other variable,
 element and member of the main module SHALL be taken (requirement "Variables in conventional memory"), `_BIT`
 scalars included. A name alone that is an array of strings, of fixed-length strings or of a `TYPE` SHALL name the
 scalar of that name, as in the old compiler.

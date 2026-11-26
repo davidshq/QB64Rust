@@ -609,7 +609,8 @@ release a dynamic one; above its first use in the file it SHALL be a compile err
 one, and a use with another number of indexes, SHALL be compile errors. A name that may not be a variable (one leading underscore, a keyword, a built-in statement)
 and a store to a spelling that is a FUNCTION or a built-in function SHALL be compile errors that are not "not
 supported yet", as the old compiler's are ("Invalid array name", "Expected variable =";
-requirement "Names that call no built-in" of `language/builtin-functions`).
+requirement "Names that call no built-in" of `language/builtin-functions`). So SHALL a store to the whole array
+`x()` of a name that is no array (`x() = 1`, "Expected array index after x", `verification\v66_c17`).
 
 #### Scenario: Zero to ten
 - **WHEN** `z(10) = 4: PRINT z(10); UBOUND(z)` runs, and then `z(11) = 1` under a handler that prints `ERR`
@@ -1824,8 +1825,10 @@ looks the user types up before the `STRING` prefix, so `TYPE StringList` is a ty
 ### Requirement: Unknown type names in SHARED, _DEFINE and parameters
 A name that is no type in `SHARED` or `_DEFINE` SHALL be the compile error "Cannot convert type (…) to symbol",
 and in a parameter of a SUB, a FUNCTION or a `DECLARE LIBRARY` procedure, an array parameter too, "Illegal
-SUB/FUNCTION parameter" (measured, `verification\v51_x61`, `x63`, `x69`, `x74`, `x82`, `x87`, `x89`). A form
-not measured in these places SHALL stay "not supported yet".
+SUB/FUNCTION parameter" (measured, `verification\v51_x61`, `x63`, `x69`, `x74`, `x82`, `x87`, `x89`), also
+after `_UNSIGNED` (`_UNSIGNED nosuch`, `v66_c09`–`c11`). In the `AS` of a `REDIM` of a member array, a name that is
+no type SHALL be "Undefined type" (`v66_c08`, `v75_a1`). A form not measured in these places SHALL stay "not
+supported yet".
 
 #### Scenario: A misspelt type in SHARED and in a parameter
 - **WHEN** a SUB has `SHARED b AS _Bytef`, or the parameter `(b AS _Bytef)` (`verification\v51_x61`, `x63`)

@@ -252,7 +252,8 @@ value depends on the CPU and system library (`SIN`, `LOG`, `ROOT` …), the cons
 result that library could give leads to, or, when they lead to different constants, the value of correctly
 rounded calls with a warning (`DIVERGENCES-QB64PE.md` D-026). `_COTH` SHALL be the hyperbolic cotangent of its argument
 as a `double`, correctly rounded to a `double`, with no upper limit, and a compile error at 0 (the old compiler's
-is `2 * EXP(x) - 1`, D-031).
+is `2 * EXP(x) - 1`, D-031). A string argument to a color function (`_RGB32("a")`) SHALL be the compile error it
+is outside a `CONST`, where the old evaluator reads the string as 0 (D-078, `verification\v66_d03`).
 
 #### Scenario: Exact functions
 - **WHEN** `CONST a = ABS(2), s = SGN(-20), i = INT(20.2), r = _ROUND(20.2), c = _CEIL(20.2), f = FIX(20.5)` and

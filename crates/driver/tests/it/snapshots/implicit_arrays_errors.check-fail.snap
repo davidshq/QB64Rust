@@ -23,5 +23,5 @@ implicit_arrays_errors.bas:31:1: error: `f(...) =`: `f` is a FUNCTION, not a var
 implicit_arrays_errors.bas:31:1: note: QB64pe: Expected variable =, look for conflict with a CONST name
 implicit_arrays_errors.bas:32:14: error: `s(...)`: `s` is a SUB, not an array
 implicit_arrays_errors.bas:32:14: note: QB64pe: Name already in use (s)
-implicit_arrays_errors.bas:33:1: error: not supported yet: the whole array `whole()` as a place
+implicit_arrays_errors.bas:33:1: error: `whole() =`: a store needs an element of the array, with its index
 implicit_arrays_errors.bas:39:1: error: `M` is not a member of `TYPE PT` (`v.m`)

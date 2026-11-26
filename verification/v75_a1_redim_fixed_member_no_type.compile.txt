@@ -1,0 +1,5 @@
+
+Undefined type
+Caused by (or after):REDIM X . D ( 3 ) AS NOSUCH
+LINE 8:REDIM x.d(3) AS nosuch
+exit=1
