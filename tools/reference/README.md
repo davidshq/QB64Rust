@@ -143,6 +143,12 @@ example has no page; and when a page of a `done` batch or a pilot page is missin
 same way: its sources, its links, its embedded examples, a `TODO`, and that a spec of its name exists. With `--compiler` it computes the availability
 again and fails when it changed.
 
+`render` also writes `crates\lsp\src\help_table.rs`, for the language server's hover. It holds each page of
+`entries\` with the first sentence of its summary, and each word of the inventory with its page. The hover shows a
+word's sentence only when the sentence is about the word: the page is the word's own, or a code span of the
+sentence starts with the word (`_MAX` on the page of `_MIN`, but not `TO` on the page of `FOR`). So the first
+sentence of a summary is what a hover shows: keep it whole and plain.
+
 ## The overlap check
 
 `overlap` reads the wiki cache (`tools\wiki\cache\pages`, fetched by `tools\wiki\fetch_wiki.py`, not in the

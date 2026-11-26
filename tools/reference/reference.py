@@ -32,6 +32,8 @@ REF = Path("docs/reference")
 ENTRIES = REF / "entries"
 CHAPTERS = REF / "chapters"
 EXAMPLES = Path("tests/reference/examples")
+# Each page's first sentence and each word's page, for the language server's hover.
+HELP_TABLE = Path("crates/lsp/src/help_table.rs")
 AVAILABILITY = Path("tests/reference/availability.json")
 INVENTORY = REF / "inventory.json"
 WORDS_TOML = Path("tools/reference/words.toml")
@@ -1022,8 +1024,86 @@ APPENDICES = (
 )
 
 
+# ---------------------------------------------------------------------------------------------------------------
+# The language server's table of first sentences, for the hover
+
+MD_LINK = re.compile(r"\[([^\]]+)\]\([^)\s]+\)")
+
+
+def summary_of(text: str) -> str:
+    """The summary of a page: its first paragraph after the title, a comment such as the note of a generated file
+    passed over."""
+    m = re.match(r"# .+\n\n", text)
+    if not m:
+        return ""
+    for para in text[m.end() :].split("\n\n"):
+        para = para.strip()
+        if para and not para.startswith("<!--"):
+            return "" if para.startswith("#") else para
+    return ""
+
+
+def first_sentence(text: str) -> str:
+    """The first sentence of a page's summary, on one line and with its links as plain text: up to the first full
+    stop outside a code span that ends the text or is followed by a blank."""
+    para = MD_LINK.sub(r"\1", summary_of(text)).replace("\n", " ")
+    in_code = False
+    for i, c in enumerate(para):
+        if c == "`":
+            in_code = not in_code
+        elif c == "." and not in_code and (i + 1 == len(para) or para[i + 1] == " "):
+            return para[: i + 1]
+    return para.strip()
+
+
+def names_word(sentence: str, word: str) -> bool:
+    """Whether a page's first sentence is about `word`: a code span of it starts with the word (`_MAX` on the page
+    of `_MIN`, `CASE` on the page of `SELECT CASE`), not a word inside an example (`TO` in `FOR i = 1 TO 10`)."""
+    for span in CODE_SPAN.findall(sentence):
+        span = span.upper()
+        if span == word or (span.startswith(word) and not re.match(r"[A-Z0-9_$%&!#~`]", span[len(word)])):
+            return True
+    return False
+
+
+def rust_str(text: str) -> str:
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def help_table_rs(words: dict[str, Word]) -> str:
+    """`crates\\lsp\\src\\help_table.rs`: each entry page with its first sentence, and each word that has a page,
+    for the hover."""
+    pages = sorted(p.stem for p in page_files())
+    sentences = {p.stem: first_sentence(p.read_text(encoding="utf-8")) for p in page_files()}
+    number = {p: i for i, p in enumerate(pages)}
+    rows = sorted((w.word, w.page) for w in words.values() if w.page in number)
+    out = [
+        "//! Written by `tools\\reference\\reference.py render` from the pages of `docs\\reference\\entries`; do not",
+        "//! edit. `reference.py --check` fails when it is stale.",
+        "",
+        "/// Each page of the language reference: its name (the file name without `.md`) and the first sentence of its",
+        "/// summary, as Markdown. In order of name.",
+        f"pub(crate) static PAGES: [(&str, &str); {len(pages)}] = [",
+    ]
+    out += [f"    ({rust_str(p)}, {rust_str(sentences[p])})," for p in pages]
+    out += [
+        "];",
+        "",
+        "/// Each word that has a page: the word in capitals, the index of its page in [`PAGES`], and whether the",
+        "/// page's first sentence is about the word (`_MAX` on the page of `_MIN`) and not only beside it (`TO` on the",
+        "/// page of `FOR`). In order of word, for [`slice::binary_search_by`].",
+        f"pub(crate) static WORDS: [(&str, u16, bool); {len(rows)}] = [",
+    ]
+    for word, page in rows:
+        about = page == page_name(word) or names_word(sentences[page], word)
+        out.append(f"    ({rust_str(word)}, {number[page]}, {'true' if about else 'false'}),")
+    out += ["];", ""]
+    return "\n".join(out)
+
+
 def generated_files(words: dict[str, Word]) -> dict[Path, str]:
     return {
+        HELP_TABLE: help_table_rs(words),
         INVENTORY: inventory_json(words),
         REF / "README.md": index_md(words),
         REF / "appendix-constants.md": constants_md(),

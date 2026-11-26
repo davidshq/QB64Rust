@@ -13,6 +13,9 @@ pub mod definition;
 pub mod encoding;
 mod encoding_tables;
 pub mod folding;
+// Written by `tools\reference\reference.py render`, which owns its layout.
+#[rustfmt::skip]
+mod help_table;
 mod hover;
 pub mod index;
 pub mod owner;

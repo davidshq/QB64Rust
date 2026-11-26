@@ -179,7 +179,8 @@ VS Code extension (`DECISIONS.md`).
 
 **Answered on 2026-11-25** (`DECISIONS.md`): question 1, one extension; question 2, yes; question 4, F5 keeps
 debugging. Question 3: a save dialog each time, as VS Code asks for any new file, and no folder of our own.
-Help gets no key, so F1 in mockup 2 is not built. The plan is the OpenSpec change `editor-side-panel`.
+Help gets no key, so F1 in mockup 2 is not built. The plan is the OpenSpec change `editor-side-panel`,
+set aside on 2026-11-26 as the commit `409312f7` on the branch `editor-side-panel` (`DECISIONS.md` 2026-11-26).
 
 1. **One extension or two?** The panel: one (§6).
 2. **Is the first step mockups 1, 2 and 3, as one OpenSpec change?** The panel: yes (§4).
@@ -207,5 +208,35 @@ Help gets no key, so F1 in mockup 2 is not built. The plan is the OpenSpec chang
 - The exact manifest form of a webview view. The search's extract of the contribution-points page did not
   include it.
 - The size the reference pages and examples add to the extension package.
-- How plainly the compiler's messages read for a beginner's common mistakes.
+- How plainly the compiler's messages read for a beginner's common mistakes. (Listed since, §9.)
 - The UX guideline pages were dated about five years old by the search. They may have changed.
+
+## 9. The compiler's messages for twenty beginner's mistakes
+
+Each program is two or three lines with one mistake, checked with `qb64rust -q -z` (the release build of
+2026-11-25). The message is as the compiler prints it, after the line and column. A message marked *poor* would
+puzzle a beginner; this list is the input of a later change of the wording (`SOMEDAY.md`, group
+`beginner-messages`). Nothing here is changed yet.
+
+| # | Mistake | The program | The message |
+|---|---|---|---|
+| 1 | A missing `THEN` | `IF x > 1 PRINT "big"` | `not supported yet: word PRINT (expected THEN or GOTO)`. *Poor*: it is a mistake, not a missing feature |
+| 2 | A string never closed | `PRINT "Hello` | None. QB64 ends the string at the end of the line, as QBasic does |
+| 3 | `NEXT` without `FOR` | `NEXT i` | `` `NEXT` without `FOR` `` |
+| 4 | `FOR` without `NEXT` | `FOR i = 1 TO 3` and no `NEXT` | `` `FOR` without `NEXT` ``, at the `FOR` |
+| 5 | `IF` without `END IF` | A block `IF` and no `END IF` | `` `IF` without `END IF` `` |
+| 6 | `END IF` without `IF` | `END IF` alone | `` `END IF` without `IF` `` |
+| 7 | `LOOP` without `DO` | `LOOP` alone | `` `LOOP` without `DO` `` |
+| 8 | `DO` without `LOOP` | `DO` and no `LOOP` | `` `DO` without `LOOP` `` |
+| 9 | A misspelled keyword | `PRNT "Hello"` | `` `PRNT` is no statement and no SUB ``, with `QB64pe: Syntax error`. Only from the whole check, on save: the editor shows nothing as you type |
+| 10 | A missing `)` | `PRINT (2 + 3` | `` expected `)` `` |
+| 11 | Text put in a number variable | `x = "five"` | `cannot store a string in a number variable` |
+| 12 | A number put in a string variable | `a$ = 5` | `cannot store a number in a string variable` |
+| 13 | A missing operator | `x = 2 3` | `expected the end of the statement`. *Poor*: it does not say that an operator is missing between `2` and `3` |
+| 14 | A SUB called with too many arguments | `Greet 1, 2` for `SUB Greet (n)` | `` `Greet` takes 1 argument, not 2 `` |
+| 15 | A FUNCTION used but never written | `PRINT Twice(3)` | None. *Poor* for a beginner: the program compiles. What it does when run was not measured here |
+| 16 | An array used past its size | `DIM a(5)` then `a(10) = 1` | None at compile time. What it does when run was not measured here |
+| 17 | A keyword as a variable name | `print = 3` | `not supported yet: operator = (expected an expression)`. *Poor*: it should say that `PRINT` is a keyword |
+| 18 | `GOTO` a label that is not there | `GOTO finish` | `` label `finish` is not defined in the main module `` |
+| 19 | `SELECT CASE` without `END SELECT` | `SELECT CASE x` … and no `END SELECT` | `` `SELECT CASE` without `END SELECT` `` |
+| 20 | `END SUB` without `SUB` | `END SUB` alone | `` `END SUB` without a `SUB` `` |

@@ -77,9 +77,10 @@ output is in the "QB64" output channel.
 
 ### Fix an error
 
-Change the line to `PRINT "Hello, world!` (no closing quote). A red underline appears as you type, and the error
-is listed in the Problems panel. Syntax errors show as you type. All other errors, such as a wrong type or a SUB
-that is not defined, show when you save.
+Add the line `PRINT (2 + 3` (no closing parenthesis). A red underline appears as you type, and the error is
+listed in the Problems panel. (A string with no closing quote is no error: QB64 ends it at the end of the line,
+as QBasic does.) Syntax errors show as you type. All other errors, such as a wrong type or a SUB that is not
+defined, show when you save.
 
 ### Debug it
 

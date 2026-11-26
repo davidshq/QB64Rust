@@ -287,13 +287,14 @@ fn cancel_while_waiting() {
     c.shutdown();
 }
 
-/// "Hover": the scenarios of the spec, a variable, a constant, a built-in and a keyword.
+/// "Hover": the scenarios of the spec, a variable, a constant, a built-in, a built-in with a reference page, a
+/// keyword, and a keyword without a page.
 #[test]
 fn hover_scenarios() {
     let dir = tempfile::tempdir().unwrap();
     let mut c = Client::start(dir.path());
     let p = dir.path().join("p.bas");
-    let text = "CONST LIMIT = 10\na$ = \"hello\"\nx$ = LEFT$(a$, 2)\nFOR i = 1 TO LIMIT\nNEXT\na\nSUB a\n    DIM n AS _UNSIGNED LONG\n    n = 3\nEND SUB\n";
+    let text = "CONST LIMIT = 10\na$ = \"hello\"\nx$ = LEFT$(a$, 2)\nFOR i = 1 TO LIMIT\nNEXT\nhealth = _CLAMP(health, 0, 100)\nKEY OFF\na\nSUB a\n    DIM n AS _UNSIGNED LONG\n    n = 3\nEND SUB\n";
     c.open(&p, text);
     let n = c.hover(&p, text, "n = 3", 0).unwrap();
     assert_eq!(n, "```qb64\nn AS _UNSIGNED LONG\n```\nLocal to `SUB a`.");
@@ -305,8 +306,14 @@ fn hover_scenarios() {
     );
     let left = c.hover(&p, text, "LEFT$", 0).unwrap();
     assert!(left.contains("Left$(STRING, LONG) AS STRING"), "{left}");
-    assert_eq!(c.hover(&p, text, "FOR", 0), None);
+    let clamp = c.hover(&p, text, "_CLAMP", 0).unwrap();
+    assert!(clamp.contains("_Clamp("), "{clamp}");
+    assert!(clamp.contains("holds a value between two bounds"), "{clamp}");
+    let for_ = c.hover(&p, text, "FOR", 0).unwrap();
+    assert!(for_.starts_with("`FOR` repeats statements"), "{for_}");
+    // `TO` is covered on the page of `FOR`, whose sentence is not about it; `OFF` has no page.
     assert_eq!(c.hover(&p, text, "1 TO", 0), None);
+    assert_eq!(c.hover(&p, text, "OFF", 0), None);
     c.shutdown();
 }
 

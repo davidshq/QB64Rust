@@ -259,7 +259,8 @@ such request after an edit (about a twentieth of a second on a program of 5,000 
 
 - **Hover** on a name: a variable's type and where it lives (main module, shared, local to or a parameter of a
   procedure), a constant's type and value, a procedure's header, a type's members, a member's type, a label's body.
-  On a built-in, its arguments and result from the built-in table. No help text is shown.
+  On a built-in, its arguments and result from the built-in table, then the first sentence of its page in the
+  language reference. On a keyword such as `FOR` or `CASE`, that sentence alone.
 - **Find All References** of a variable, constant, procedure, type, member or label, in every file of the program;
   a FUNCTION's include the assignments to its result.
   Two variables that differ by suffix (`a$`, `a%`), or that are local to different procedures, are kept apart.

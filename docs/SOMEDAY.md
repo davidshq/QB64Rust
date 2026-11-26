@@ -1,7 +1,8 @@
 # Someday
 
 Features and ideas deliberately left out of the first versions of the rewrite. Each entry says why it was deferred
-and where the details are. Nothing here is rejected; it is just not on the roadmap yet.
+and where the details are. Nothing here is rejected; it is just not on the roadmap yet. The parts that were built
+are in `docs\archived\SOMEDAY-completed.md`.
 
 The first column of each table is the row's priority from the user, P1 (highest) to P5 (lowest), given from
 2026-11-07. An empty cell means no priority has been given yet.
@@ -129,7 +130,8 @@ BASIC lines, and CP437 as the default encoding (`DECISIONS.md` 2026-10-02).
 | P4 |  | Offer to convert a `$NOPREFIX` program | A `codeAction` that detects the metacommand and rewrites the names with their prefix | The same |
 | P4 | extension-settings | Manual-check mode (Shift+F9) | The old IDE can stop checking while you type. Here diagnostics come while typing and on save (`qb64rust.checkOnSave`); a setting to turn the typing ones off is missing | The same |
 | P2 | f1-help | Contextual F1 help: a link to the online wiki | F1 on a built-in or keyword opens its page of the QB64pe wiki in the browser, and the hover gives the same link. A link ships no wiki text, so it does not wait on the wiki's license | `study\archive\06` "Help system"; the panel, 2026-10-29 and 2026-11-08 |
-| P3 | f1-help | Contextual F1 help: help text of our own | A few lines per built-in and keyword, written from the built-in table and the specs and checked against the recordings, shown in the hover (today it shows only the signature) and by F1. It works offline and describes this compiler, divergences included. Each claim to be tied to a recording, so that the text does not drift from the compiler | The same |
+| P3 | f1-help | Contextual F1 help: help text of our own | A few lines per built-in and keyword, written from the built-in table and the specs and checked against the recordings, shown in the hover and by F1. It works offline and describes this compiler, divergences included. Each claim to be tied to a recording, so that the text does not drift from the compiler. Built so far: the hover gives the first sentence of the word's reference page (2026-11-26, `docs\archived\SOMEDAY-completed.md`) | The same |
+|  | beginner-messages | Messages a beginner understands | The compiler's messages for twenty common mistakes are listed in `study\55` §9. Five read poorly for a beginner: a missing `THEN` and a keyword used as a name both say "not supported yet", a missing operator says only "expected the end of the statement", a FUNCTION never written gives no message at all, and a misspelled keyword (`PRNT`) is shown only after a save. A change of their wording, with the old compiler's line kept as the `QB64pe:` note | `study\55` §9 |
 | P5 | f1-help | Contextual F1 help: an offline copy of the wiki | Help pages in a webview from a cached copy of the wiki, as the old IDE downloads and renders its own. Waits on the wiki's license: no wiki text ships until the QB64pe maintainers are asked (`DECISIONS.md` 2026-10-02, `STATUS.md`) | The same |
 | P3 | extension-settings | Tabs on load | The old IDE turns tabs into spaces when it loads a file; VS Code keeps them, and the extension sets no `editor.insertSpaces` or `editor.detectIndentation` for the language. The panel's way (2026-11-08): default to spaces for the language (`editor.insertSpaces: true`), and do not rewrite a file when it opens; the formatter already indents with spaces | `study\archive\06` "Items to decide" |
 | P4 |  | Run without keeping the executable; purge build files | Commands | `study\archive\06` "Tasks and commands" |

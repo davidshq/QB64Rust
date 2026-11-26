@@ -1,6 +1,9 @@
 //! `textDocument/hover` (design D3 of `m5b-language-features`): a symbol's text from the semantic index, else a
-//! built-in's form from the built-in table, else nothing. No help text: the QB64pe wiki has no licence.
+//! built-in's form from the built-in table, else nothing. After a built-in's form, and alone for a keyword, the
+//! first sentence of its page of the project's own language reference (`help_table.rs`). No QB64pe wiki text: the
+//! wiki has no license.
 
+use crate::help_table::{PAGES, WORDS};
 use crate::index::Indexed;
 use lsp_types::{Hover, HoverContents, MarkupContent, MarkupKind};
 use qb64rust_base::{FileId, Span};
@@ -13,7 +16,7 @@ pub fn hover(ix: &Indexed, file: FileId, offset: u32) -> Option<Hover> {
         Some((id, span)) => (ix.index.entries[id].detail.clone(), span),
         None => {
             let (span, word) = word_at(ix, file, offset)?;
-            (builtin_text(&word)?, span)
+            (builtin_text(&word).or_else(|| keyword_text(&word))?, span)
         }
     };
     Some(Hover {
@@ -72,7 +75,36 @@ pub fn builtin_text(word: &[u8]) -> Option<String> {
         writeln!(out, "{f}").unwrap();
     }
     out.push_str("```\nBuilt-in.");
+    if let Some(page) = help_page(word).filter(|p| p.about) {
+        write!(out, "\n\n{}", page.sentence).unwrap();
+    }
     Some(out)
+}
+
+/// The hover of a keyword that is not a built-in (`FOR`, `CASE`): the first sentence of its page, when the
+/// sentence is about the word; `None` for a word covered beside another (`TO` on the page of `FOR`) or with no page.
+fn keyword_text(word: &[u8]) -> Option<String> {
+    help_page(word).filter(|p| p.about).map(|p| p.sentence.to_string())
+}
+
+/// A word's page of the language reference (`help_table.rs`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct HelpPage {
+    /// The page's name, its file name without `.md`: `_clamp`, `select-case`.
+    pub name: &'static str,
+    /// The first sentence of its summary, as Markdown.
+    pub sentence: &'static str,
+    /// Whether the sentence is about the word, not only beside it.
+    pub about: bool,
+}
+
+/// The page of `word`, in any case and with its suffix (`left$`, `_Clamp`, `CASE`).
+pub(crate) fn help_page(word: &[u8]) -> Option<HelpPage> {
+    let upper = word.to_ascii_uppercase();
+    let i = WORDS.binary_search_by(|(w, _, _)| w.as_bytes().cmp(&upper)).ok()?;
+    let (_, page, about) = WORDS[i];
+    let (name, sentence) = PAGES[usize::from(page)];
+    Some(HelpPage { name, sentence, about })
 }
 
 /// One built-in's form: `Left$(STRING, LONG) AS STRING`, `Cls [LONG][,[_UNSIGNED LONG][,LONG]]`. With a
@@ -126,9 +158,10 @@ mod tests {
     #[test]
     fn forms_of_built_ins() {
         let text = |w: &str| builtin_text(w.as_bytes());
-        assert_eq!(
-            text("left$").as_deref(),
-            Some("```qb64\nLeft$(STRING, LONG) AS STRING\n```\nBuilt-in.")
+        assert!(
+            text("left$")
+                .unwrap()
+                .starts_with("```qb64\nLeft$(STRING, LONG) AS STRING\n```\nBuilt-in.\n\n`LEFT$")
         );
         assert!(
             text("_RGB32")
@@ -139,6 +172,33 @@ mod tests {
         assert!(text("CLS").unwrap().contains("Cls [LONG][, [_UNSIGNED LONG][, LONG]]"));
         assert_eq!(text("FOR"), None);
         assert_eq!(text("notabuiltin"), None);
+    }
+
+    /// A built-in with a page gains its first sentence; a keyword gives its page's sentence; a word covered beside
+    /// another, or with no page, gives none.
+    #[test]
+    fn sentences_of_the_reference() {
+        let clamp = builtin_text(b"_CLAMP").unwrap();
+        assert!(
+            clamp.contains("_CLAMP(") && clamp.contains("holds a value between two bounds"),
+            "{clamp}"
+        );
+        let max = builtin_text(b"_max").unwrap();
+        assert!(max.contains("`_MAX` the greater"), "{max}");
+        let for_ = keyword_text(b"FOR").unwrap();
+        assert!(for_.starts_with("`FOR` repeats statements"), "{for_}");
+        assert!(keyword_text(b"case").unwrap().starts_with("`SELECT CASE`"));
+        assert_eq!(keyword_text(b"TO"), None);
+        assert_eq!(keyword_text(b"notakeyword"), None);
+        assert_eq!(help_page(b"TO").map(|p| p.name), Some("for"));
+    }
+
+    /// The table is in order of word, for the binary search, and every page index is in range.
+    #[test]
+    fn the_table_is_sorted() {
+        assert!(WORDS.windows(2).all(|w| w[0].0 < w[1].0));
+        assert!(WORDS.iter().all(|(_, p, _)| usize::from(*p) < PAGES.len()));
+        assert!(PAGES.windows(2).all(|w| w[0].0 < w[1].0));
     }
 
     #[test]

@@ -120,6 +120,10 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    editor's warning for a UTF-8 file open as `cp437`, and a UTF-8 "QB64: New Project". All 18 tasks are built;
    the extension's integration tests for New Project have not run yet (CI). Archived 2026-11-25, its specs
    synced. Converting each game's files is a step in that game's repo.
+0. **The editor's side panel is set aside** (`DECISIONS.md` 2026-11-26): the OpenSpec change `editor-side-panel`
+   is the commit `409312f7` on the branch `editor-side-panel`, not merged. The user was not happy with the
+   direction. Brought into this branch: the hover's first sentence of a word's reference page, the quick start's
+   fixed "Fix an error" step, and the list of messages for 20 beginner's mistakes (`study\55` §9).
 1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
    `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a
    `$CONSOLE:ONLY` program for Node, and 3,664 of the 3,766 verification programs it runs pass (97.3%, 0 failing,
