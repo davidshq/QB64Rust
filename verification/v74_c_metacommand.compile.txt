@@ -1,0 +1,5 @@
+
+Syntax error
+Caused by (or after):$ ENCODING
+LINE 1:$ENCODING:UTF8
+exit=1

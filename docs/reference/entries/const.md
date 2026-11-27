@@ -96,6 +96,9 @@ From QB64pe:
 - `_RED`, `_GREEN` or `_BLUE` of a color above 255 in screen mode 0, as `CONST c = _RED(2222, 0)`, reads past the
   palette there, so its value changes from build to build. QB64Rust gives 0 (D-035).
   <!-- src: D-035 -->
+- A string argument to a color function, as `CONST c = _RGB32("a")`, is read as 0 there. QB64Rust gives the compile
+  error it gives outside a `CONST`: "argument 1 of `_RGB32` needs a number" (D-078).
+  <!-- src: D-078 -->
 
 From QuickBASIC 4.5: any `^` in a `CONST` is a syntax error there (`DIVERGENCES-QB45.md` Q-008).
 <!-- src: Q-008 -->

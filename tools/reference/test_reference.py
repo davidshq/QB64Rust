@@ -326,5 +326,27 @@ class Pages(unittest.TestCase):
         self.assertTrue(any("shares 6 lines" in p for p in found), found)
 
 
+class HelpTable(unittest.TestCase):
+    """The language server's table of first sentences, made from the repository's own pages."""
+
+    def test_the_first_sentence(self):
+        page = "# X\n\n<!-- a note -->\n\n`A.B` is [one](a.md) thing. Two\nthings.\n\n## Syntax\n"
+        self.assertEqual(r.first_sentence(page), "`A.B` is one thing.")
+        self.assertEqual(r.first_sentence("# X\n\nNo stop at all\n"), "No stop at all")
+
+    def test_a_sentence_names_a_word_at_the_start_of_a_code_span(self):
+        self.assertTrue(r.names_word("`_MIN` gives the lesser and `_MAX` the greater.", "_MAX"))
+        self.assertTrue(r.names_word("`SELECT CASE` runs one block.", "SELECT"))
+        self.assertFalse(r.names_word("`FOR` repeats: `FOR i = 1 TO 10`.", "TO"))
+        self.assertFalse(r.names_word("`_MAXIMUM` is another word.", "_MAX"))
+        self.assertFalse(r.names_word("`LEFT$(a$, 2)` gives", "LEFT"))
+
+    def test_the_table_of_the_language_server(self):
+        text = r.help_table_rs(r.inventory())
+        self.assertIn('("_clamp", "`_CLAMP(value, low, high)` holds a value between two bounds', text)
+        self.assertRegex(text, r'\("CASE", \d+, true\)')
+        self.assertRegex(text, r'\("TO", \d+, false\)')
+
+
 if __name__ == "__main__":
     unittest.main()

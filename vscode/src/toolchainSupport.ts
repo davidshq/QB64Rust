@@ -15,7 +15,7 @@ import { CompilerStatus } from "./statusBar";
 export const NOT_SEARCHED = "not searched yet";
 
 /** Runs a short command (`qb64rust toolchain path`) and gives its exit code and output. */
-function runShort(command: string, args: string[]): Promise<tc.ProcessRun> {
+export function runShort(command: string, args: string[]): Promise<tc.ProcessRun> {
     return new Promise((resolve) => {
         execFile(command, args, { windowsHide: true, timeout: 30000 }, (err, stdout, stderr) => {
             const code = err ? (typeof err.code === "number" ? err.code : null) : 0;
@@ -111,23 +111,24 @@ export class ToolchainSupport implements vscode.Disposable {
         };
     }
 
-    /** `qb64rust toolchain install` under a cancellable notification, its lines in the "QB64" output. */
-    private install(): Promise<tc.InstallRun> {
+    /** `qb64rust toolchain install` under a cancellable notification, its lines in the "QB64" output. With
+     * `args` and `title`, another install of the same kind: the Emscripten SDK's (browser.ts). */
+    install(args: string[] = ["toolchain", "install"], title = "QB64: C++ toolchain"): Promise<tc.InstallRun> {
         const binary = this.server.binary;
         if (!binary.found) {
             return Promise.resolve({ exitCode: null, output: `qb64rust: ${binary.reason}`, cancelled: false });
         }
         this.output.show(true);
-        this.output.appendLine(`> ${binary.path} toolchain install`);
+        this.output.appendLine(`> ${binary.path} ${args.join(" ")}`);
         return Promise.resolve(
             vscode.window.withProgress(
-                { location: vscode.ProgressLocation.Notification, title: "QB64: C++ toolchain", cancellable: true },
+                { location: vscode.ProgressLocation.Notification, title, cancellable: true },
                 (progress, token) =>
                     new Promise<tc.InstallRun>((resolve) => {
                         const chunks: string[] = [];
                         let shown = 0;
                         let cancelled = false;
-                        const child = spawn(binary.path, ["toolchain", "install"], { windowsHide: true });
+                        const child = spawn(binary.path, args, { windowsHide: true });
                         const sub = token.onCancellationRequested(() => {
                             cancelled = true;
                             killTree(child);

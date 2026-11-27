@@ -10,7 +10,7 @@ The examples start with `$CONSOLE:ONLY` so that their output can be recorded; th
 out. Run in a window, an example prints the same text there. Each recorded output ends with an empty line
 and "Press any key to continue": the example's [`END`](entries/end.md) prints them in a console program.
 
-400 pages written; the inventory names 400.
+401 pages written; the inventory names 401.
 
 ## Chapters
 
@@ -58,7 +58,7 @@ How each area of the language works as a whole.
 
 ## By area
 
-- **Lines, names, comments, labels, $INCLUDE, the preprocessor**: [$ERROR](entries/meta-error.md), [$ERRORLOCATION](entries/meta-errorlocation.md), [$IF](entries/meta-if.md), [$INCLUDE](entries/meta-include.md), [$INCLUDEONCE](entries/meta-includeonce.md), [$LET](entries/meta-let.md), [$NOPREFIX](entries/meta-noprefix.md), [REM](entries/rem.md)
+- **Lines, names, comments, labels, $INCLUDE, the preprocessor**: [$ENCODING](entries/meta-encoding.md), [$ERROR](entries/meta-error.md), [$ERRORLOCATION](entries/meta-errorlocation.md), [$IF](entries/meta-if.md), [$INCLUDE](entries/meta-include.md), [$INCLUDEONCE](entries/meta-includeonce.md), [$LET](entries/meta-let.md), [$NOPREFIX](entries/meta-noprefix.md), [REM](entries/rem.md)
 - **Types, literals, operators, conversions**: [_ANDALSO](entries/_andalso.md), [_BIT](entries/_bit.md), [_BYTE](entries/_byte.md), [_CAST](entries/_cast.md), [_DEFINE](entries/_define.md), [_FLOAT](entries/_float.md), [_INTEGER64](entries/_integer64.md), [_NEGATE](entries/_negate.md), [_OFFSET](entries/_offset.md), [_ORELSE](entries/_orelse.md), [_UNSIGNED](entries/_unsigned.md), [AND](entries/and.md), [CDBL](entries/cdbl.md), [CINT](entries/cint.md), [CLNG](entries/clng.md), [CSNG](entries/csng.md), [DEFINT](entries/defint.md), [DOUBLE](entries/double.md), [EQV](entries/eqv.md), [IMP](entries/imp.md), [INTEGER](entries/integer.md), [LONG](entries/long.md), [MOD](entries/mod.md), [NOT](entries/not.md), [OR](entries/or.md), [SINGLE](entries/single.md), [STRING](entries/string.md), [XOR](entries/xor.md)
 - **Variables, scope, constants**: [COMMON](entries/common.md), [CONST](entries/const.md), [DIM](entries/dim.md), [LET](entries/let.md), [$COLOR](entries/meta-color.md), [OPTION](entries/option.md), [SHARED](entries/shared.md), [STATIC](entries/static.md), [SWAP](entries/swap.md)
 - **Control flow**: [_CONTINUE](entries/_continue.md), [DO](entries/do.md), [END](entries/end.md), [EXIT](entries/exit.md), [FOR](entries/for.md), [GOSUB](entries/gosub.md), [GOTO](entries/goto.md), [IF](entries/if.md), [ON](entries/on.md), [RUN](entries/run.md), [SELECT CASE](entries/select-case.md), [STOP](entries/stop.md), [SYSTEM](entries/system.md), [WHILE](entries/while.md)

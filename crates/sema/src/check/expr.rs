@@ -39,14 +39,12 @@ impl Checker<'_> {
             ast::Expr::Literal(lit) => {
                 let t = self.need(lit.token(), span)?;
                 if t.kind == SyntaxKind::StringLit {
-                    let raw = self.text(t.span);
-                    let inner = &raw[1..];
-                    let inner = inner.strip_suffix(b"\"").unwrap_or(inner);
+                    let text = self.literal_text(super::string_inside(self.text(t.span), t.span))?;
                     Ok(Expr {
                         span,
                         ty: Ty::Str,
                         qb: Ty::Str,
-                        kind: ExprKind::Str(inner.to_vec()),
+                        kind: ExprKind::Str(text),
                     })
                 } else {
                     self.number(t, false)

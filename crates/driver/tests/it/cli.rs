@@ -1685,6 +1685,14 @@ fn print_paths() {
     assert_eq!(exe, run_in.join(default_exe("game")));
     let (js, _) = paths(&["--print-paths", "--target", "wasm", "game.bas"]);
     assert_eq!(js, run_in.join("build/game.js"));
+    // `page`, the page of a window program, only for the wasm target (OpenSpec change `wasm-publish`).
+    let json = |args: &[&str]| serde_json::from_str::<serde_json::Value>(&stdout(&qb64rust(&d, args))).expect("JSON");
+    let wasm = json(&["--print-paths", "--target", "wasm", "game.bas"]);
+    assert_eq!(
+        PathBuf::from(wasm["page"].as_str().expect("page")),
+        run_in.join("build/web/index.html")
+    );
+    assert!(json(&["--print-paths", "game.bas"]).get("page").is_none());
 
     std::fs::write(d.join("qb64rust.toml"), "[build]\ncopy = [\"GAME.CFG\"]\n").unwrap();
     let (exe2, run_in2) = paths(&["--print-paths", "game.bas"]);
@@ -5237,6 +5245,8 @@ fn report_warnings_counts_by_code() {
          2      3  unused-label\n       \
          0      0  hides-shared\n       \
          0      0  unreachable\n       \
+         0      0  undeclared-utf8\n       \
+         0      0  pds-function\n       \
          0      0  unused-variable\n       \
          0      0  empty-select\n       \
          0      0  duplicate-const\n       \
@@ -6556,8 +6566,11 @@ fn target_wasm_refused_options() {
 
 /// Spec `compiler/toolchain`, "The wasm path of the toolchain subcommand": `toolchain path --target wasm` prints the
 /// SDK folder and that it came from the variable or the option, status 0; with none it prints the message of "The
-/// Emscripten SDK", status 1. `toolchain install --target wasm` installs nothing and prints the `emsdk` commands,
-/// status 1 (scenarios "Found by variable", "Install is by hand for now").
+/// Emscripten SDK", status 1; an installed SDK is found last (scenarios "Found by variable", "Found installed").
+/// `toolchain install --target wasm` with the SDK installed downloads nothing (spec "The Emscripten SDK is
+/// installed on Windows", scenario "Already installed"); on Linux without one it prints the `emsdk` commands,
+/// status 1 ("Install is by hand for now"). The install root is a folder of the test's, so that an SDK installed
+/// on this machine is not seen, and nothing is ever downloaded here.
 #[test]
 fn toolchain_wasm_forms() {
     let d = scratch("toolchain-wasm");
@@ -6577,7 +6590,10 @@ fn toolchain_wasm_forms() {
     std::fs::write(&node, "").unwrap();
     let run_with = |var: Option<&Path>, args: &[&str]| {
         let mut cmd = compiler();
-        cmd.current_dir(&d).args(args).env_remove("QB64RUST_EMSDK_ROOT");
+        cmd.current_dir(&d)
+            .args(args)
+            .env_remove("QB64RUST_EMSDK_ROOT")
+            .env("QB64RUST_TOOLCHAIN_HOME", d.join("home"));
         if let Some(v) = var {
             cmd.env("QB64RUST_EMSDK_ROOT", v);
         }
@@ -6599,13 +6615,38 @@ fn toolchain_wasm_forms() {
     let o = run_with(None, &["toolchain", "path", "--target", "wasm"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(stdout(&o).contains("no Emscripten SDK found"), "{}", stdout(&o));
-    let o = run_with(Some(&sdk), &["toolchain", "install", "--target", "wasm"]);
-    assert_eq!(o.status.code(), Some(1));
     let out = stdout(&o);
     assert!(
-        out.contains("emsdk install 7.0.0") && out.contains("emsdk activate 7.0.0"),
+        out.contains("emsdk install 7.0.0") && out.contains("qb64rust toolchain install --target wasm"),
         "{out}"
     );
+    // On Linux nothing is downloaded: without an SDK the `emsdk` commands are the error. On Windows this would
+    // download the SDK, so it is not run.
+    if !cfg!(windows) {
+        let o = run_with(None, &["toolchain", "install", "--target", "wasm"]);
+        assert_eq!(o.status.code(), Some(1));
+        let out = stdout(&o);
+        assert!(
+            out.contains("emsdk install 7.0.0") && out.contains("emsdk activate 7.0.0"),
+            "{out}"
+        );
+    }
+    // An installed SDK: the folder under the install root, with the marker an install writes last.
+    let installed = d.join("home/emsdk-7.0.0");
+    std::fs::create_dir_all(installed.parent().unwrap()).unwrap();
+    std::fs::rename(&sdk, &installed).unwrap();
+    std::fs::write(installed.join("qb64rust-toolchain.txt"), "emsdk-7.0.0\n").unwrap();
+    let o = run_with(None, &["toolchain", "path", "--target", "wasm"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let out = stdout(&o);
+    assert!(
+        out.lines().next().is_some_and(|l| l.ends_with("emsdk-7.0.0"))
+            && out.contains("installed: by qb64rust toolchain install --target wasm"),
+        "{out}"
+    );
+    let o = run_with(None, &["toolchain", "install", "--target", "wasm"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(stdout(&o).contains("emsdk-7.0.0"), "{}", stdout(&o));
     let o = run_with(None, &["toolchain", "path", "--target", "dos"]);
     assert_eq!(o.status.code(), Some(1));
     assert!(stdout(&o).contains("unknown --target `dos`"), "{}", stdout(&o));
@@ -6677,20 +6718,138 @@ fn wasm_window_page() {
         return;
     }
     let d = scratch("wasm-window");
-    std::fs::write(d.join("game.bas"), "SCREEN 12\nLINE (1, 1)-(9, 9), 4, BF\nSYSTEM\n").unwrap();
-    let o = qb64rust_build(&d, &["-q", "-x", "--target", "wasm", "game.bas"]);
+    let window = "SCREEN 12\nLINE (1, 1)-(9, 9), 4, BF\nSYSTEM\n";
+    std::fs::write(d.join("game.bas"), window).unwrap();
+    // With `-o` the page is beside its script, with the script's name, and starts the program at once.
+    std::fs::create_dir_all(d.join("out")).unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "--target", "wasm", "game.bas", "-o", "out/game.js"]);
     assert!(o.status.success(), "{}", stdout(&o));
-    // Without `-o` the build writes into `build` (OpenSpec change `build-output-folder`).
     for f in ["game.html", "game.js", "game.wasm"] {
-        assert!(d.join("build").join(f).is_file(), "{f}");
+        assert!(d.join("out").join(f).is_file(), "{f}");
     }
-    let page = std::fs::read(d.join("build/game.html")).unwrap();
-    let script: &[u8] = b"<script src=\"game.js\"></script>";
-    assert!(page.windows(script.len()).any(|w| w == script));
+    assert!(!d.join("out/web").exists() && !d.join("build").exists());
+    let page = text(&std::fs::read(d.join("out/game.html")).unwrap());
+    assert!(page.contains("<script src=\"game.js\"></script>"), "{page}");
     std::fs::write(d.join("game.bas"), "$CONSOLE:ONLY\nPRINT 1\nSYSTEM\n").unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "--target", "wasm", "game.bas", "-o", "out/game.js"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert!(!d.join("out/game.html").exists());
+    // Without `-o` a `$CONSOLE:ONLY` program goes into `build` and writes no web folder.
     let o = qb64rust_build(&d, &["-q", "-x", "--target", "wasm", "game.bas"]);
     assert!(o.status.success(), "{}", stdout(&o));
-    assert!(!d.join("build/game.html").exists());
+    assert!(d.join("build/game.js").is_file() && !d.join("build/web").exists());
+}
+
+/// OpenSpec change `wasm-publish`: spec `compiler/wasm-target`, "A window program runs in a page" (scenario "A
+/// drawing", as far as the files), "The web folder is uploaded whole" and "The headers file"; spec `compiler/cli`,
+/// "The output of a wasm build" (scenario "A window program"). Needs the Emscripten SDK, as
+/// [`wasm_builds_and_runs`].
+#[test]
+#[ignore = "builds with the Emscripten SDK (QB64RUST_EMSDK_ROOT) and the C++ toolchain"]
+fn wasm_web_folder() {
+    if let Err(why) = qb64rust_driver::toolchain::find_emsdk(None) {
+        eprintln!("skipped: no Emscripten SDK ({why})");
+        return;
+    }
+    let d = scratch("wasm-web");
+    let names = |dir: &Path| {
+        let mut names: Vec<String> = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        names
+    };
+    std::fs::write(d.join("game.bas"), "SCREEN 12\nLINE (1, 1)-(9, 9), 4, BF\nSYSTEM\n").unwrap();
+    std::fs::create_dir_all(d.join("data")).unwrap();
+    std::fs::write(d.join("data/hello.txt"), "hello\n").unwrap();
+    std::fs::write(d.join("qb64rust.toml"), "[build]\ncopy = [\"data\"]\n").unwrap();
+    // A page and a script that an earlier version left in `build` go.
+    std::fs::create_dir_all(d.join("build")).unwrap();
+    for stale in ["game.html", "game.js", "game.wasm"] {
+        std::fs::write(d.join("build").join(stale), "old").unwrap();
+    }
+    let o = qb64rust_build(&d, &["-x", "--target", "wasm", "game.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    let web = d.join("build/web");
+    assert_eq!(
+        names(&web),
+        [
+            "_headers",
+            "game.data",
+            "game.js",
+            "game.wasm",
+            "index.html",
+            "qb64rust-sw.js"
+        ]
+    );
+    // The copied folder is in `build`, for the desktop program, and packed for the page; not in the web folder.
+    assert_eq!(names(&d.join("build")), ["data", "web"]);
+    let out = stdout(&o);
+    let last = out.lines().last().unwrap_or_default();
+    assert!(
+        Path::new(last).ends_with("build/web/index.html"),
+        "the build names its page: {out}"
+    );
+    let page = text(&std::fs::read(web.join("index.html")).unwrap());
+    assert!(
+        page.contains("program.src = \"game.js\";") && !page.contains("<script src="),
+        "{page}"
+    );
+    assert_eq!(
+        std::fs::read(web.join("_headers")).unwrap(),
+        qb64rust_driver::build::WASM_HEADERS.as_bytes()
+    );
+    let data = std::fs::read(web.join("game.data")).unwrap();
+    assert!(data.windows(6).any(|w| w == b"hello\n"));
+    // A file of the user's stays; the data file goes with the copy list.
+    std::fs::write(web.join("favicon.ico"), "mine").unwrap();
+    std::fs::remove_file(d.join("qb64rust.toml")).unwrap();
+    let o = qb64rust_build(&d, &["-q", "-x", "--target", "wasm", "game.bas"]);
+    assert!(o.status.success(), "{}", stdout(&o));
+    assert_eq!(
+        names(&web),
+        [
+            "_headers",
+            "favicon.ico",
+            "game.js",
+            "game.wasm",
+            "index.html",
+            "qb64rust-sw.js"
+        ]
+    );
+
+    // The page in headless Chrome (`tools\wasm\browser.mjs`), where there is one: spec `compiler/wasm-target`, "A
+    // page on a host without the headers" and "A page that cannot start says why".
+    let sdk = qb64rust_driver::toolchain::find_emsdk(None).unwrap();
+    let launcher = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/wasm/browser.mjs");
+    let browser = |args: &[&str]| {
+        let mut cmd = Command::new(&sdk.node);
+        cmd.current_dir(&web).arg(&launcher).args(args);
+        run(&mut cmd, None, PROGRAM_LIMIT, "browser.mjs")
+    };
+    if browser(&["--find-chrome"]).status.code() != Some(0) {
+        eprintln!("the page is not run: no Chrome found");
+        return;
+    }
+    // A host that sends the two headers, then one that sends none: the worker adds them after one reload.
+    for args in [
+        &["index.html", "--for", "60"][..],
+        &["index.html", "--for", "60", "--no-headers"][..],
+    ] {
+        let o = browser(args);
+        assert_eq!(o.status.code(), Some(0), "{args:?}: {}", stderr(&o));
+    }
+    // Without its worker the page cannot start there, and says what the host must send.
+    std::fs::remove_file(web.join("qb64rust-sw.js")).unwrap();
+    let o = browser(&["index.html", "--for", "10", "--no-headers"]);
+    let said = stderr(&o);
+    assert_eq!(o.status.code(), Some(124), "{said}");
+    assert!(
+        said.contains("the page says: This game cannot start here.")
+            && said.contains("Cross-Origin-Embedder-Policy: require-corp"),
+        "{said}"
+    );
 }
 
 /// Spec `compiler/wasm-target`, "A pointer is 4 bytes on this target", "Arithmetic on an _OFFSET on this target",
@@ -6742,11 +6901,18 @@ fn target_wasm_without_sdk() {
     let mut cmd = compiler();
     cmd.current_dir(&d)
         .args(["-x", "--target", "wasm", "p.bas"])
-        .env_remove("QB64RUST_EMSDK_ROOT");
+        .env_remove("QB64RUST_EMSDK_ROOT")
+        // An install root of the test's: an SDK installed on this machine is not seen.
+        .env("QB64RUST_TOOLCHAIN_HOME", d.join("home"));
     let o = run(&mut cmd, None, COMPILER_LIMIT, "compiler");
     assert_eq!(o.status.code(), Some(1));
     let out = stdout(&o);
-    for part in ["--emsdk-root", "QB64RUST_EMSDK_ROOT", "emsdk install 7.0.0"] {
+    for part in [
+        "--emsdk-root",
+        "QB64RUST_EMSDK_ROOT",
+        "emsdk install 7.0.0",
+        "qb64rust toolchain install --target wasm",
+    ] {
         assert!(out.contains(part), "{part}: {out}");
     }
     assert!(!d.join("build/p.js").exists() && !d.join("build/p.wasm").exists());
@@ -6838,5 +7004,162 @@ fn target_wasm_libraries() {
                 "`DECLARE LIBRARY` is not available on the wasm target: `libprebuilt.a` is a prebuilt library"
             ),
         "{out}"
+    );
+}
+
+/// Spec `compiler/web-serve`, "Serving a web folder" (scenario "Not a folder") and "The folder of a program"
+/// ("Not built yet"); spec `compiler/cli`, "Serve subcommand". None of these listens.
+#[test]
+fn serve_refuses_what_it_cannot_serve() {
+    let d = scratch("serve-refuses");
+    let refused = |args: &[&str], parts: &[&str]| {
+        let o = qb64rust(&d, args);
+        let out = stdout(&o);
+        assert_eq!(o.status.code(), Some(1), "{args:?}: {out}");
+        for part in parts {
+            assert!(out.contains(part), "{args:?} without `{part}`: {out}");
+        }
+    };
+    refused(&["serve", "nowhere"], &["nowhere is not a folder"]);
+    refused(&["serve"], &["web is not a folder"]);
+    std::fs::write(d.join("game.bas"), "SCREEN 12\n").unwrap();
+    refused(
+        &["serve", "game.bas"],
+        &["web is not a folder", "qb64rust -x --target wasm game.bas"],
+    );
+    // The output folder is the settings file's, as for a build.
+    std::fs::write(d.join("qb64rust.toml"), "[build]\noutput = \"out\"\n").unwrap();
+    std::fs::create_dir_all(d.join("out/web")).unwrap();
+    refused(&["serve", "game.bas"], &["web has no index.html"]);
+    refused(&["serve", "missing.bas"], &["cannot read missing.bas"]);
+    for (args, part) in [
+        (
+            &["serve", "out/web", "--lan"][..],
+            "serve does not know the option `--lan`",
+        ),
+        (&["serve", "out/web", "--port"][..], "--port needs a port number"),
+        (&["serve", "out/web", "--port", "0"][..], "--port needs a port number"),
+        (
+            &["serve", "out/web", "--port", "70000"][..],
+            "--port needs a port number",
+        ),
+        (
+            &["serve", "out/web", "out"][..],
+            "serve takes one folder or one program",
+        ),
+    ] {
+        refused(args, &[part, "usage: qb64rust serve"]);
+    }
+    let o = qb64rust(&d, &["--help"]);
+    for part in [
+        "qb64rust serve [<folder>|<file.bas>]",
+        "qb64rust test [<file or folder>...]",
+    ] {
+        assert!(stdout(&o).contains(part), "{part}: {}", stdout(&o));
+    }
+}
+
+/// A running `qb64rust serve`, stopped when the test ends.
+struct Served(std::process::Child);
+
+impl Drop for Served {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
+
+/// Starts `qb64rust serve` with `args` in `dir` and reads the port from the address on its first line.
+fn serve(dir: &Path, args: &[&str]) -> (Served, u16, std::io::BufReader<std::process::ChildStdout>) {
+    use std::io::BufRead as _;
+    let mut child = compiler()
+        .current_dir(dir)
+        .arg("serve")
+        .args(args)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut out = std::io::BufReader::new(child.stdout.take().unwrap());
+    let served = Served(child);
+    let mut line = Vec::new();
+    out.read_until(b'\n', &mut line).unwrap();
+    let line = text(&line);
+    let port = line
+        .trim()
+        .strip_prefix("http://127.0.0.1:")
+        .and_then(|rest| rest.strip_suffix('/'))
+        .and_then(|port| port.parse().ok())
+        .unwrap_or_else(|| panic!("the first line is the address: {line}"));
+    (served, port, out)
+}
+
+/// The whole response to `request` from the server at `port` of `127.0.0.1`.
+fn http(port: u16, request: &str) -> String {
+    use std::io::{Read as _, Write as _};
+    let mut stream = std::net::TcpStream::connect((std::net::Ipv4Addr::LOCALHOST, port)).unwrap();
+    stream.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+    stream.write_all(request.as_bytes()).unwrap();
+    let mut response = Vec::new();
+    stream.read_to_end(&mut response).unwrap();
+    text(&response)
+}
+
+/// Spec `compiler/web-serve`, "Serving a web folder", "Headers and content types" and "The address": a real server
+/// on `127.0.0.1`, which is all it listens on, so Windows asks nothing (the user, 2026-11-25). The default port may
+/// be taken by another run, so only the range is checked for the first server.
+#[test]
+fn serve_answers_on_the_loopback_address() {
+    use std::io::BufRead as _;
+    let d = scratch("serve");
+    std::fs::create_dir_all(d.join("build/web")).unwrap();
+    std::fs::write(d.join("build/web/index.html"), "<!doctype html><title>game</title>").unwrap();
+    std::fs::write(d.join("build/web/game.wasm"), "wasm").unwrap();
+    std::fs::write(d.join("qb64rust.toml"), "secret").unwrap();
+    // Without an argument: `build/web` of the current folder.
+    let (_first, port, _) = serve(&d, &[]);
+    assert!((8064..=8083).contains(&port), "{port}");
+    let page = http(port, "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n");
+    assert!(page.starts_with("HTTP/1.1 200 OK\r\n"), "{page}");
+    assert!(page.contains("Cross-Origin-Opener-Policy: same-origin\r\n"), "{page}");
+    assert!(
+        page.contains("Cross-Origin-Embedder-Policy: require-corp\r\n"),
+        "{page}"
+    );
+    assert!(page.ends_with("\r\n\r\n<!doctype html><title>game</title>"), "{page}");
+    let wasm = http(port, "HEAD /game.wasm HTTP/1.1\r\n\r\n");
+    assert!(
+        wasm.contains("Content-Type: application/wasm\r\n") && wasm.ends_with("\r\n\r\n"),
+        "{wasm}"
+    );
+    let outside = http(port, "GET /../../qb64rust.toml HTTP/1.1\r\n\r\n");
+    assert!(
+        outside.starts_with("HTTP/1.1 404 ") && !outside.contains("secret"),
+        "{outside}"
+    );
+    // A second server finds the port taken and takes a later one, with a note on saved games.
+    let (_second, port2, mut out2) = serve(&d, &["build/web", "--no-headers"]);
+    assert!(port2 > port && port2 <= 8083, "{port} then {port2}");
+    let mut notes = Vec::new();
+    for _ in 0..3 {
+        out2.read_until(b'\n', &mut notes).unwrap();
+    }
+    let notes = text(&notes);
+    assert!(
+        notes.contains("port 8064 is taken") && notes.contains("saved games"),
+        "{notes}"
+    );
+    let plain = http(port2, "GET /index.html HTTP/1.1\r\n\r\n");
+    assert!(
+        plain.starts_with("HTTP/1.1 200 OK\r\n") && !plain.contains("Cross-Origin"),
+        "{plain}"
+    );
+    // A named port that is taken is an error.
+    let o = qb64rust(&d, &["serve", "build/web", "--port", &port.to_string()]);
+    assert_eq!(o.status.code(), Some(1));
+    assert!(
+        stdout(&o).contains(&format!("cannot serve on port {port} of 127.0.0.1")),
+        "{}",
+        stdout(&o)
     );
 }

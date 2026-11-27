@@ -35,3 +35,9 @@ and file inside an included file.
 
 A program that an error ends exits with code 1; QB64pe's exits with 0.
 <!-- src: language/error-handling "The exit code of a program ended by an error"; D-012 -->
+
+The message of an error that no handler takes names its line and the error. A program built with `--call-trace`,
+or a debug build, adds a `Call stack:` block after them: the procedures that were running, the innermost first, each
+with the line of its call, and each `GOSUB` that has not returned. `call_trace = true` in `[build]` of
+`qb64rust.toml` turns it on for a project.
+<!-- src: compiler/call-trace "The call stack of a runtime error"; compiler/cli "When a build has the call trace"; D-076 -->

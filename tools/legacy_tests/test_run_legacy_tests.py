@@ -770,6 +770,13 @@ class CheckList(unittest.TestCase):
         self.assertEqual((failures, passed), ([], 0))
         self.assertTrue(any("--trace-values" in p for p in problems), problems)
 
+    def test_a_run_with_call_trace_does_not_stand_for_the_list(self):
+        # A call-trace build's output is compared with its blocks cut out (OpenSpec change call-trace).
+        ok = {"a": ("PASS", "output", ""), "b": ("PASS", "output", "")}
+        problems, failures, passed = self.check(self.data(ok, call_trace=True))
+        self.assertEqual((failures, passed), ([], 0))
+        self.assertTrue(any("--call-trace" in p for p in problems), problems)
+
     def test_results_without_a_run_record_fail(self):
         problems, _, passed = self.check({"results": []})
         self.assertEqual(passed, 0)
@@ -924,6 +931,18 @@ class CorpusProgram(CorpusFixture):
         r = self.run_test(Tools(runs=[b"2\r\n"]))
         self.assert_fail(r, "result", "differs from .output")
         self.assertTrue((self.results / "g-p" / "p.bas").is_file())
+
+    def test_call_trace_builds_with_the_option_and_cuts_the_blocks(self):
+        # --call-trace (OpenSpec change call-trace): the option on the compile line, and the block of a
+        # runtime error's call stack cut from the output, so the recorded output still matches; without
+        # the option the block is a difference.
+        self.sidecar("output", b"a\nb\n")
+        run = b"a\r\nCall stack:\r\n  SUB f (p.bas:3)\r\n  Main module (p.bas:1)\r\nb\r\n"
+        tools = Tools(runs=[run])
+        r = self.run_test(tools, call_trace=True)
+        self.assertEqual(r.status, "PASS", r.detail)
+        self.assertIn("--call-trace", tools.compile_cmd)
+        self.assert_fail(self.run_test(Tools(runs=[run])), "result", "differs from .output")
 
     def test_a_bare_cr_in_the_output_counts(self):
         self.sidecar("output", b"a\nb\n")
@@ -1805,6 +1824,19 @@ class Scripts(CorpusFixture):
         self.run_test(tools)
         self.assertNotIn("--trace-values", tools.compile_cmd)
         self.assertNotIn("QB64RUST_TRACE", tools.run_envs[0])
+
+    def test_without_call_stacks(self):
+        on, off = SimpleNamespace(call_trace=True), SimpleNamespace()
+        text = (
+            b"x\nCall stack:\n  SUB a (p.bas:2)\n  FUNCTION f& (p.bas:9)\n  ... 978 more ...\n"
+            b"  Error handler (p.bas:4)\n  Main module, GOSUB (p.bas:3)\n  Main module (p.bas:1)\n"
+            b"  then\ny\n  z\n"
+        )
+        # The program's own `  then` right after the block stays (`slice\s19_header_errors`).
+        self.assertEqual(rlt.without_call_stacks(on, text), b"x\n  then\ny\n  z\n")
+        self.assertEqual(rlt.without_call_stacks(off, text), text)
+        self.assertEqual(rlt.instrument_flags(on), ["--call-trace"])
+        self.assertEqual(rlt.instrument_flags(off), [])
 
     def test_trace_values_leaves_out_the_record_of_a_run_that_timed_out(self):
         self.sidecar("s1.screen", STATE)

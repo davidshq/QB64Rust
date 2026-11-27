@@ -1,0 +1,14 @@
+# A call-trace build's call stack in a runtime error's message (OpenSpec change call-trace, design D6;
+# DIVERGENCES-QB64PE.md D-076). The program sets this pointer when it is built with the call trace; the report of an
+# untrapped error then puts the text it returns after the error's text. It is NULL in every other build, and the
+# report is QB64pe's. call-trace-b-critical-message.edit and call-trace-c-fix-error.edit call it.
+file: internal/c/libqb/include/error_handle.h
+--- old
+void error_track_line(uint32_t errorline, uint32_t incerrorline, const char *incfilename);
+--- new
+void error_track_line(uint32_t errorline, uint32_t incerrorline, const char *incfilename);
+
+// A call-trace build's call stack (OpenSpec change call-trace): given the error's line in the main file, or its
+// line in an included file and that file's name, the text that goes after the error's text. NULL in other builds.
+extern const char *(*libqb_error_call_stack)(uint32_t line, uint32_t include_line, const char *include_file);
+--- end

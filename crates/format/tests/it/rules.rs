@@ -821,3 +821,35 @@ fn block_if_deeper_forms() {
         "'$Format:Off\nIf a Then x = 1\n'$Format:On\n"
     );
 }
+
+/// The bytes `-y` writes for the UTF-8 file `src`, and whether the check found an error.
+fn format_utf8(src: &str) -> (Vec<u8>, bool) {
+    let mut map = SourceMap::new();
+    let file = map.add("p.bas", src.as_bytes().to_vec());
+    let parsed = parse_settled(&mut map, file, &mut Files(Vec::new()));
+    assert!(!parsed.diagnostics().has_errors(), "{:?}", parsed.diagnostics().list());
+    let (program, diags) = qb64rust_sema::check(&map, &parsed);
+    let errors = diags.has_errors();
+    let out = qb64rust_format::format_file(&map, &parsed, &program, file, &Settings::default(), !errors);
+    (out, errors)
+}
+
+/// Spec `compiler/source-encoding`, "Formatting a UTF-8 file" (OpenSpec change `utf8-source`, task 4.1): a
+/// keyword gets its case, and the bytes of the string and the comment stay as they were. The formatter measures
+/// no line's width, so nothing is laid out by a count of bytes.
+#[test]
+fn a_utf8_file_keeps_its_strings_and_comments() {
+    let (out, errors) = format_utf8("'$ENCODING:UTF8\nprint \"\u{2554}\u{2550}\u{2550}\u{2557}\" ' \u{e9}t\u{e9}\n");
+    assert!(!errors);
+    let want = "'$ENCODING:UTF8\r\nPrint \"\u{2554}\u{2550}\u{2550}\u{2557}\" ' \u{e9}t\u{e9}\r\n";
+    assert_eq!(out, want.as_bytes());
+}
+
+/// A string with a character outside code page 437 is an error of the check, not of the parse, so the file is
+/// still formatted, and its bytes are kept.
+#[test]
+fn a_character_outside_code_page_437_is_still_formatted() {
+    let (out, errors) = format_utf8("'$ENCODING:UTF8\nprint \"\u{65e5}\u{672c}\"\n");
+    assert!(errors);
+    assert_eq!(out, "'$ENCODING:UTF8\r\nPrint \"\u{65e5}\u{672c}\"\r\n".as_bytes());
+}

@@ -106,7 +106,8 @@ n).
 `name$(i)` SHALL be the element of the array of that name declared `AS STRING * n`, as a value and as a place,
 and `name$` SHALL be that array where a whole array is named (`UBOUND(name$)`), in the main module and in a
 procedure that shares it (`verification\v52_x40`–`x48`; QB64pe `source\utilities\hash.bas` relies on it). It
-SHALL NOT make another, implicit array. `DIM name$(n)` beside such an array SHALL be a compile error (`v52_x45`).
+SHALL NOT make another, implicit array. `DIM name$(n)` beside such an array SHALL be a compile error (`v52_x45`),
+and so SHALL `REDIM`, `STATIC` and `COMMON` of it (the old compiler's "Type mismatch", `verification\v66_c12`–`c14`).
 
 #### Scenario: The $ name reads the element
 - **WHEN** `REDIM a(1 TO 3) AS STRING * 4: a(2) = "ab": PRINT "["; a$(2); "]"; UBOUND(a$)` runs

@@ -1,0 +1,5 @@
+
+Unexpected character on line
+Caused by (or after):
+LINE 1:
+exit=1

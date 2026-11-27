@@ -116,13 +116,15 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `--fixes on\|off`, `--fix <name>=on\|off` | Every fix, or one fix, over the settings file's `[fixes]` |
 | `--lints on\|off`, `--lint <code>=on\|off` | Every warning about a likely mistake, or one of them, over the settings file's `[lints]` |
 | `--no-settings` | Read no `qb64rust.toml`; take every setting from the command line and the defaults |
-| `--debug` | A build for a debugger: with debug information, never optimised |
+| `--debug` | A build for a debugger: with debug information, never optimised, and with the call stack of `--call-trace` |
+| `--call-trace`, `--no-call-trace` | A runtime error's message also lists the procedures that were running, with the line of each call; see [The call stack of a runtime error](#the-call-stack-of-a-runtime-error) |
 | `--coverage` | A build that counts how often each statement runs; see [Measuring which lines run](#measuring-which-lines-run) |
 | `--trace-values` | A build that records the values each variable takes; see [Recording the values of variables](#recording-the-values-of-variables) |
 | `--include-root <dir>` | Where `$INCLUDE` files and `DECLARE LIBRARY` headers are looked for after the program's own folder (by default the folder of `qb64rust.exe`, as QB64pe looks in its own folder) |
 | `--toolchain-root <dir>` | The C++ toolchain to use instead of the installed one |
 | `--libqb-root <dir>` | Another copy of libqb, for example one in a folder you can write to |
 | `--version` | Print the compiler's version |
+| `convert --to utf8\|cp437 <file>...` | Rewrite source files from code page 437 to UTF-8, or back; builds nothing. See [UTF-8 source files](#utf-8-source-files) |
 
 A program that uses `$INCLUDE` libraries meant to sit beside `qb64pe.exe` finds them beside `qb64rust.exe`.
 
@@ -200,6 +202,14 @@ editor reads only the nearest `qb64rust.toml`, so a folder below with a file of 
 that file has its own `exclude`. The compiler does not use `exclude`, but a mistake in it stops a build, as a
 mistake in any other table does.
 
+`encoding` in `[project]` says how the source files in the folder of `qb64rust.toml`, and in the folders below
+it, are saved: `"utf-8"` or `"cp437"`. See [UTF-8 source files](#utf-8-source-files).
+
+```toml
+[project]
+encoding = "utf-8"
+```
+
 - `[build]` says where a build without `-o` puts the program, and which data files it copies there:
 
 ```toml
@@ -220,7 +230,7 @@ and out of version control. Use `copy` for a game that rewrites its settings or 
 
 **In a browser.** A window program built with `--target wasm` packs the files of `copy` into `<name>.data` beside
 its page, since a page cannot read the files beside it. The page keeps what the program writes there in the
-browser's storage ([the wasm target](reference/chapters/wasm-target.md)).
+browser's storage ([the wasm target](reference/chapters/wasm-target.md); "A game in a browser" below).
 
 **What is copied.** Each entry of `copy` is a file or a folder, relative to the folder of `qb64rust.toml`. Before
 each build, a file is copied into the output folder when the copy is missing there, or when the source's file is
@@ -235,6 +245,10 @@ folder, and `copy` needs an output folder other than `"."`. A build with `-o` co
 there only the data files that `copy` put there. Start it from the source folder, list its files in `copy`, or set
 `output = "."`.
 
+**The call stack.** `call_trace = true` in `[build]` gives every build of the project, its unit tests among them,
+the call stack in a runtime error's message ([The call stack of a runtime error](#the-call-stack-of-a-runtime-error)).
+`call_trace = false` turns it off in a debug build too.
+
 `[build]` is read from the first release after 0.3.0. An older compiler ignores the table and builds next to the
 program.
 
@@ -242,6 +256,102 @@ A mistake in the file, such as an unknown key or a value of the wrong kind, stop
 that names the file, the line and the keys it knows, for instance
 ``qb64rust.toml:2: unknown format setting `indent`; the settings are auto-indent, indent-size, indent-subs,
 auto-layout, keyword-case, one-statement-per-line, block-if``. `--no-settings` builds or lays out the program without reading the file.
+
+## A game in a browser
+
+A window program can be built for a web page and played in a browser. This is experimental. What the page has
+and does not have is in [the wasm target](reference/chapters/wasm-target.md).
+
+1. Install the Emscripten SDK once. On Windows:
+
+   ```text
+   qb64rust toolchain install --target wasm
+   ```
+
+   It downloads Emscripten 7.0.0 with its Node and Python from Emscripten's own storage
+   (`storage.googleapis.com/webassembly`), 815 MB, checks each archive against its SHA-256, and unpacks them
+   into `%LOCALAPPDATA%\qb64rust\toolchain\emsdk-7.0.0`. On Linux, install that release with Emscripten's
+   `emsdk` and name its folder with `--emsdk-root <dir>` or `QB64RUST_EMSDK_ROOT`.
+
+2. Build the game:
+
+   ```text
+   qb64rust -x --target wasm game.bas
+   ```
+
+   This writes the web folder `build\web`: `index.html`, `game.js`, `game.wasm`, `game.data` with the files of
+   `[build]` `copy`, `_headers` and `qb64rust-sw.js`. The last line it prints is the page's path.
+
+3. Try it on your own machine:
+
+   ```text
+   qb64rust serve game.bas --open
+   ```
+
+   `serve` serves the web folder at `http://127.0.0.1:8064/` until you press Ctrl+C, and `--open` opens the
+   browser there. A page cannot be opened from the disk. `serve <folder>` serves any web folder, and `serve`
+   alone serves `build\web` of the current folder. It listens on `127.0.0.1` only, so no other machine reaches
+   it. `--port <n>` names another port. When 8064 is taken it uses the next free port up to 8083; a browser
+   keeps saved games for each address, so games saved at one port are not found at another. `--no-headers`
+   serves the folder as a web host that cannot send the two headers below.
+
+4. Put the game on the web by uploading the web folder as it is. "Putting a game on the web" in
+   [the wasm target](reference/chapters/wasm-target.md) says what each kind of host needs.
+
+A page that runs a program needs two HTTP headers from its host, `Cross-Origin-Opener-Policy: same-origin` and
+`Cross-Origin-Embedder-Policy: require-corp`. `serve` sends them. On a host that does not, the page gets them
+from `qb64rust-sw.js` and reloads once at a player's first visit.
+
+## UTF-8 source files
+
+A program's screen shows each byte of a string as one character of code page 437, the character set of DOS. So a
+file that holds `─` or `é` in a string must be saved as code page 437, as QB64pe's IDE saves it. Most editors
+save UTF-8 instead, where `─` is three bytes, and the program then shows three wrong characters.
+
+A file saved as UTF-8 can say so, in either of two ways:
+
+- a line `'$ENCODING:UTF8` anywhere in the file, alone on its line. QB64pe reads it as a comment;
+- `encoding = "utf-8"` under `[project]` in `qb64rust.toml`, for every file in its folder and below it. A file's
+  own line wins: `'$ENCODING:CP437` keeps one file as code page 437. A file outside that folder, such as a
+  library's, is code page 437 unless it has its own line.
+
+In such a file each character of a string or a `DATA` item becomes its code page 437 byte. The program is the one
+the same text saved as code page 437 gives: `LEN("─")` is 1, and the screen shows `─`. A string may also hold the
+symbols the screen shows for the bytes 1 to 31 and 127, such as `♥` for byte 3. A comment may hold any
+character. The text of `$VERSIONINFO` stays UTF-8, as the program's manifest needs, and file names are read as
+before. A file may start with a byte order mark.
+
+Two mistakes stop the build:
+
+- a character that code page 437 does not have, in a string or a `DATA` item: ``p.bas:3:8: error: `日` (U+65E5)
+  has no code page 437 byte: a string of a UTF-8 file holds code page 437 characters``;
+- a file declared UTF-8 that is not, such as an old file saved as code page 437 in a UTF-8 project:
+  ``map.bm:12:8: error: the byte 0xC4 is not UTF-8, and the file is declared UTF-8 by `encoding = "utf-8"` in
+  `qb64rust.toml` ``.
+
+A file that declares nothing is read as QB64pe reads it, byte for byte. When such a file looks like UTF-8 and has
+a string with a character above 127, `-w` prints the warning `undeclared-utf8`, and the editor always shows it.
+The column of an error counts bytes, so after an accent on the line it is one higher than the character you see;
+the editor shows the right place.
+
+`qb64rust convert --to utf8 <file>...` rewrites code page 437 files as UTF-8, in place, and `--to cp437` does the
+reverse. Comments are converted too. It checks every file first and changes none when one cannot be converted:
+with `--to utf8`, a file that is UTF-8 already, and with `--to cp437`, a character code page 437 does not have. A
+file with no byte above 127 is left as it is. A small code page 437 file can happen to be valid UTF-8, when its
+only bytes above 127 are pairs such as `┌┐` or `╔╗`; `--to utf8` then refuses it as UTF-8 already. It does not add the `'$ENCODING` line; set `encoding` in
+`qb64rust.toml`, or add the line yourself.
+
+```text
+qb64rust convert --to utf8 game.bas lib\menu.bm
+```
+
+"QB64: New Project" in VS Code makes a UTF-8 project: its `qb64rust.toml` sets `encoding = "utf-8"`, and its
+`.vscode\settings.json` makes VS Code save its files as UTF-8. VS Code opens other QB64 files as code page 437.
+When a file declared UTF-8 is open as code page 437, the editor warns on its first line; use Reopen with Encoding,
+then UTF-8.
+
+A UTF-8 project builds correctly only with QB64Rust. QB64pe builds it, but its strings hold the UTF-8 bytes, and
+it rejects a file that starts with a byte order mark.
 
 ## Warnings about likely mistakes
 
@@ -256,6 +366,8 @@ stop a build and never change the program.
 | `unused-label` | A named label that no `GOTO`, `GOSUB`, `RESTORE`, `RESUME`, `ON ERROR` or event names. Line numbers are never reported | ``label `again` is never used`` |
 | `hides-shared` | A `DIM` or `REDIM` in a SUB or FUNCTION that makes a new local variable with the name and type of a `DIM SHARED` one | ``this `score` is a new local variable, which hides the `DIM SHARED` one of the main module`` |
 | `unreachable` | Statements after `GOTO`, `END`, `SYSTEM`, `STOP`, `EXIT`, `RETURN`, `RESUME` or `RUN`, with no label or line number before them. One warning for each such stretch | `this code is never run: no label follows the GOTO on line 8` |
+| `undeclared-utf8` | A file saved as UTF-8 that does not say so, with a character above 127 in a string. Its strings then hold the UTF-8 bytes, so `"─"` is three characters (see "UTF-8 source files"). Given for an included file too. One warning per file | ``this file looks like UTF-8 but is read as code page 437, so `─` is 3 characters in the program: …`` |
+| `pds-function` | `CURDIR$`, `DIR$`, `STACK` or `SAVEPOINT` with no argument. BASIC PDS 7.1 has these functions; QB64 does not, so each is a variable that is never set. QB64pe builds it with no message. Given at every use, in included files too. A variable the program sets itself is not reported | ``` `CURDIR$` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always "" ``` |
 
 Some cases are left out on purpose:
 - `used-once`: a `FOR` counter, and a variable that `INPUT`, `LINE INPUT` or `READ` reads into, such as
@@ -400,6 +512,51 @@ A traced program behaves as the normal build does, with the same output, errors 
 and uses more memory, so build without the option for everyday use. The option combines with `--coverage` and
 `--debug`. The trace tool's own options (JSON output, one variable by name), the full list of what is not
 recorded, and the record format are described in [tools/trace/README.md](../tools/trace/README.md).
+
+## The call stack of a runtime error
+
+QB64pe's message for a runtime error names only the line. When that line is in a `SUB` that many places call, it
+does not say which call led there. A program built with `--call-trace` adds the procedures that were running, the
+innermost first, each with the line of the call it made:
+
+```
+qb64rust game.bas --call-trace
+```
+
+```
+Line: 212 (in army.bm)
+Illegal function call
+Call stack:
+  SUB flag_x (rules/army.bm:212)
+  SUB resolve (rules/events.bm:88)
+  Main module (game.bas:60)
+  Main module, GOSUB (game.bas:41)
+Continue?
+```
+
+- The first row is where the error happened. Each row below it is the procedure that made the call above it, at
+  the line of that call. Files are named by their path from the main file's folder.
+- A `GOSUB` that has not returned yet has a row of its own, under the row of its procedure or the main module.
+  Above, the main module called `resolve` on line 60, inside a subroutine that the `GOSUB` on line 41 jumped to.
+- A `SUB` or label that `ON TIMER`, `ON KEY` or `ON STRIG` ran shows `(event)` on the row below it: the line the
+  event interrupted is not known.
+- An error inside an `ON ERROR` handler shows `Error handler` first. The procedure whose error it was handling has
+  no line on its row.
+- A long call stack shows its 16 innermost rows, a row of how many were left out, and its 7 outermost rows.
+- The same block is in the dialog, in the text on stderr under `QB64PE_NOPROMPT`, and in the message of a
+  critical error such as out of stack space.
+
+A `--debug` build has the call stack unless `--no-call-trace` is given. `call_trace = true` in the settings file's
+`[build]` table turns it on for every build of the project, and `call_trace = false` off; the command line wins
+over the file, and the file over `--debug`. A build without it prints QB64pe's message.
+
+The program otherwise behaves as without the option. Each call of a `SUB` or `FUNCTION` costs a little more: on
+the development machine (Windows, 2026-11-22), a loop of 10 million calls of an empty `SUB` took 0.20 s in place of
+0.13 s in the default build (about 7 ns a call), and 0.13 s in place of 0.08 s with `-f:OptimizeCppProgram=true`
+(about 5 ns a call). On Linux the same loop took 0.17 s in place of 0.10 s, and 0.10 s in place of 0.08 s.
+A whole game shows no difference: Civil War Strategy's ten test scripts (`g12_game`) all passed with the option
+in a Windows VM (2026-11-22). Its `endings` script, timed three times with each build, took about 5 s to run
+either way, and its build about 6 s either way.
 
 ## Where it differs from QB64pe
 

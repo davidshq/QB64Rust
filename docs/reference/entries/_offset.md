@@ -53,7 +53,8 @@ These are compile errors:
 - The suffix `%&` after a number, as in `5%&`: "an `_OFFSET` suffix cannot follow a number".
   <!-- src: language/numeric-semantics "Integer literal typing"; verification\v21_x10_offset_literal -->
 - `_OFFSET` of a value that is no variable, as in `_OFFSET(5)`: "`_OFFSET` needs a variable, an element or an
-  array". `_OFFSET` of a `_BIT` array is an error too.
+  array". `_OFFSET` of a `_BIT` array is an error too, and so is `_OFFSET` of a `STRING` member of a variable or of
+  a whole array of variable-length strings.
   <!-- src: language/mem-blocks "The address of a reference" -->
 
 ## Availability

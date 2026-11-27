@@ -52,6 +52,12 @@ export function toolchainPath(): string {
     return settings().get<string>("toolchainPath", "").trim();
 }
 
+/** `qb64rust.emsdkPath`: an Emscripten SDK folder of one's own, for the browser build (change wasm-publish, design
+ * D5); empty means the one `qb64rust toolchain path --target wasm` reports. */
+export function emsdkPath(): string {
+    return settings().get<string>("emsdkPath", "").trim();
+}
+
 /** A change after which the toolchain is looked for again: its setting, QB64pe's or the binary's. */
 export function affectsToolchainPath(e: vscode.ConfigurationChangeEvent): boolean {
     return e.affectsConfiguration(`${SECTION}.toolchainPath`) || e.affectsConfiguration(`${SECTION}.compilerPath`) || e.affectsConfiguration(`${SECTION}.path`);

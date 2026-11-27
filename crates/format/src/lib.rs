@@ -130,6 +130,15 @@ pub fn format_lines(
         }
         out.push(lines);
     }
+    // A byte order mark is trivia that no layout writes; it stays at the start of the file (OpenSpec change
+    // `utf8-source`, design D6).
+    const BOM: &[u8] = qb64rust_syntax::encoding::BOM;
+    if bytes.starts_with(BOM)
+        && let Some(first) = out.first_mut().and_then(|l| l.first_mut())
+        && !first.starts_with(BOM)
+    {
+        first.splice(0..0, BOM.iter().copied());
+    }
     out
 }
 

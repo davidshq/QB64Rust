@@ -44,7 +44,7 @@ A parameter's `VARPTR` is that of where its argument lies, so every call's argum
 ## Errors
 
 - A literal, an expression or a function call is a compile error, as is `VARPTR` of a `_BIT` array, of a whole `TYPE`
-  variable or of the `STRING` member of an element.
+  variable, of a member whose type is a `TYPE`, or of the `STRING` member of an element.
   <!-- src: language/conventional-memory "What VARPTR and VARSEG accept" -->
 - `VARPTR` of a whole array `x()` that is not of numbers is reported "not supported yet".
   <!-- src: language/conventional-memory "What VARPTR and VARSEG accept" -->

@@ -1,0 +1,5 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+lints_utf8_data_warnings.bas:3:6: warning: this file looks like UTF-8 but is read as code page 437, so `ï` is 2 characters in the program: declare it with a line `'$ENCODING:UTF8` or with `encoding = "utf-8"` under `[project]` in `qb64rust.toml`

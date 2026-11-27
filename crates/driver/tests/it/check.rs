@@ -2,25 +2,16 @@
 //! publishes is what the CLI reports with `-w` for the same files (spec `editor/language-server`, "Check
 //! diagnostics"; design D2 of `extension-diagnostics`).
 
-use lsp_server::{Connection, Message, Notification, Request, RequestId};
+use crate::support::lsp::{Client, WAIT};
+use crate::support::repo;
+use lsp_server::{Message, Notification};
 use qb64rust_base::{Diagnostic, Severity};
 use qb64rust_driver::{FileLoader, frontend_at};
 use qb64rust_lsp::encoding::Encoding;
 use qb64rust_lsp::uri::{from_path, to_path, uri_key};
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
-
-/// Long enough for a check of a test program on a loaded machine.
-const WAIT: Duration = Duration::from_secs(20);
-
-fn repo() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .unwrap()
-        .to_path_buf()
-}
+use std::time::Instant;
 
 /// One diagnostic as the editor gets it: the file's key, line and column from 0, message, severity, and a lint
 /// warning's code.
@@ -32,44 +23,18 @@ struct Checked {
     published: Vec<Shown>,
 }
 
-fn recv(conn: &Connection, deadline: Instant) -> Message {
-    conn.receiver
-        .recv_timeout(deadline.saturating_duration_since(Instant::now()))
-        .expect("no message in time")
-}
-
 /// Opens `path` (its bytes read as the editor shows them, in the default encoding) in a new server with the
 /// include root `root`, checks it at once (so that no parse publishes before the check) and shuts the server down.
 fn check_in_server(path: &Path, root: &Path) -> Checked {
-    let (server_side, conn) = Connection::memory();
-    let root = root.to_path_buf();
-    let server = std::thread::Builder::new()
-        .stack_size(qb64rust_base::STACK_SIZE)
-        .spawn(move || qb64rust_lsp::serve(server_side, root, qb64rust_driver::server_hooks()))
-        .unwrap();
-    let send = |id: i32, method: &str, params: Value| {
-        let req = Request::new(RequestId::from(id), method.into(), params);
-        conn.sender.send(req.into()).unwrap();
-    };
-    let notify = |method: &str, params: Value| {
-        conn.sender
-            .send(Notification::new(method.into(), params).into())
-            .unwrap();
-    };
-    let options = json!({ "processId": null, "rootUri": null, "capabilities": {} });
-    send(1, "initialize", options);
-    assert!(matches!(recv(&conn, Instant::now() + WAIT), Message::Response(_)));
-    notify("initialized", json!({}));
-    let uri = from_path(path);
+    let mut c = Client::start(root);
     let text = Encoding::DEFAULT.decode(&std::fs::read(path).unwrap()).unwrap();
-    let doc = json!({ "uri": uri, "languageId": "qb64rust", "version": 1, "text": text });
-    notify("textDocument/didOpen", json!({ "textDocument": doc }));
-    send(2, qb64rust_lsp::CHECK, json!({ "uri": uri }));
+    c.open(path, &text);
+    let id = c.send(qb64rust_lsp::CHECK, json!({ "uri": from_path(path) }));
     let deadline = Instant::now() + WAIT;
     let mut published = Vec::new();
     let answer = loop {
-        match recv(&conn, deadline) {
-            Message::Response(r) => break r.response_result.unwrap(),
+        match c.recv(deadline) {
+            Message::Response(r) if r.id == id => break r.response_result.unwrap(),
             Message::Notification(n) if n.method == "textDocument/publishDiagnostics" => {
                 let file = n.params["uri"].as_str().unwrap().parse().unwrap();
                 let key = uri_key(&file);
@@ -91,10 +56,7 @@ fn check_in_server(path: &Path, root: &Path) -> Checked {
             m => panic!("unexpected message {m:?}"),
         }
     };
-    send(3, "shutdown", Value::Null);
-    assert!(matches!(recv(&conn, Instant::now() + WAIT), Message::Response(_)));
-    notify("exit", Value::Null);
-    server.join().unwrap().unwrap();
+    c.shutdown();
     Checked { answer, published }
 }
 
@@ -150,8 +112,13 @@ fn cli(path: &Path, root: &Path) -> (Vec<Shown>, usize, usize) {
 
 /// The check of `path` through the server equals the CLI's report, diagnostics and counts alike.
 fn same_as_cli(path: &Path, root: &Path) -> Checked {
-    let checked = check_in_server(path, root);
+    let mut checked = check_in_server(path, root);
     let (expected, errors, warnings) = cli(path, root);
+    // The editor's own warning for a UTF-8 file open as `cp437`, which these tests open every file as, has no
+    // counterpart on the command line (spec `editor/language-server`, "A UTF-8 file open in another encoding").
+    checked
+        .published
+        .retain(|(_, _, _, message, _, _)| !message.starts_with("this file is declared UTF-8 "));
     assert_eq!(checked.published, expected, "{}", path.display());
     assert_eq!(
         checked.answer,
@@ -281,74 +248,31 @@ fn missing_icon() {
 
 /// A server with one document open, kept running between steps (spec "Settings file changed").
 struct Session {
-    conn: Connection,
-    server: Option<std::thread::JoinHandle<Result<(), String>>>,
+    c: Client,
     uri: String,
-    next_id: i32,
 }
 
 impl Session {
     fn open(path: &Path) -> Session {
-        let (server_side, conn) = Connection::memory();
-        let root = path.parent().unwrap().to_path_buf();
-        let server = std::thread::Builder::new()
-            .stack_size(qb64rust_base::STACK_SIZE)
-            .spawn(move || qb64rust_lsp::serve(server_side, root, qb64rust_driver::server_hooks()))
-            .unwrap();
-        let uri = from_path(path).to_string();
-        let mut s = Session {
-            conn,
-            server: Some(server),
-            uri,
-            next_id: 1,
-        };
-        s.request(
-            "initialize",
-            json!({ "processId": null, "rootUri": null, "capabilities": {} }),
-        );
-        s.notify("initialized", json!({}));
+        let c = Client::start(path.parent().unwrap());
         let text = Encoding::DEFAULT.decode(&std::fs::read(path).unwrap()).unwrap();
-        let doc = json!({ "uri": s.uri, "languageId": "qb64rust", "version": 1, "text": text });
-        s.notify("textDocument/didOpen", json!({ "textDocument": doc }));
-        s
+        c.open(path, &text);
+        let uri = from_path(path).to_string();
+        Session { c, uri }
     }
 
     fn notify(&self, method: &str, params: Value) {
-        self.conn
-            .sender
-            .send(Notification::new(method.into(), params).into())
-            .unwrap();
-    }
-
-    /// Sends a request; the diagnostics of the document published before its answer are dropped.
-    fn request(&mut self, method: &str, params: Value) -> Value {
-        self.next_id += 1;
-        let req = Request::new(RequestId::from(self.next_id), method.into(), params);
-        self.conn.sender.send(req.into()).unwrap();
-        let deadline = Instant::now() + WAIT;
-        loop {
-            match recv(&self.conn, deadline) {
-                Message::Response(r) => return r.response_result.unwrap_or(Value::Null),
-                Message::Notification(_) => {}
-                m => panic!("unexpected message {m:?}"),
-            }
-        }
+        self.c.notify(method, params);
     }
 
     /// A check of the document: the diagnostics it publishes for the document, as (line, message, severity).
     fn check(&mut self) -> Vec<(u64, String, u64)> {
-        self.next_id += 1;
-        let req = Request::new(
-            RequestId::from(self.next_id),
-            qb64rust_lsp::CHECK.into(),
-            json!({ "uri": self.uri }),
-        );
-        self.conn.sender.send(req.into()).unwrap();
+        let id = self.c.send(qb64rust_lsp::CHECK, json!({ "uri": self.uri }));
         let deadline = Instant::now() + WAIT;
         let mut last = Vec::new();
         loop {
-            match recv(&self.conn, deadline) {
-                Message::Response(_) => return last,
+            match self.c.recv(deadline) {
+                Message::Response(r) if r.id == id => return last,
                 Message::Notification(n) => {
                     if let Some(d) = self.diagnostics(&n) {
                         last = d;
@@ -363,7 +287,7 @@ impl Session {
     fn next_published(&self) -> Vec<(u64, String, u64)> {
         let deadline = Instant::now() + WAIT;
         loop {
-            if let Message::Notification(n) = recv(&self.conn, deadline)
+            if let Message::Notification(n) = self.c.recv(deadline)
                 && let Some(d) = self.diagnostics(&n)
             {
                 return d;
@@ -395,9 +319,7 @@ impl Drop for Session {
         if std::thread::panicking() {
             return;
         }
-        self.request("shutdown", Value::Null);
-        self.notify("exit", Value::Null);
-        self.server.take().unwrap().join().unwrap().unwrap();
+        self.c.stop();
     }
 }
 

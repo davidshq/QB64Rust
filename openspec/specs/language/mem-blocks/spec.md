@@ -137,7 +137,9 @@ it, and its blocks stay valid.
 
 ### Requirement: The address of a reference
 `_OFFSET(reference)` SHALL give the address of a variable, an element or an array as an `_UNSIGNED _OFFSET`; a
-value that is not a reference SHALL be a compile error, as SHALL a `_BIT` array, as in the old compiler.
+value that is not a reference SHALL be a compile error, as SHALL a `_BIT` array, as in the old compiler. So SHALL a
+`STRING` member of a variable ("UDT must have fixed size", `verification\v66_b07`) and a whole array of
+variable-length strings ("Cannot pass array of variable-length strings", `v66_b08`).
 
 #### Scenario: Address equals the block's offset
 - **WHEN** `DIM a AS LONG, m AS _MEM: m = _MEM(a): PRINT m.OFFSET = _OFFSET(a)` runs

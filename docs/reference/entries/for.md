@@ -52,6 +52,8 @@ These are compile errors:
 - A string variable, a string `start`, `end` or `step`, a `_BIT` variable, a constant or an array element as the
   variable: "the `FOR` variable `s$` must be a number, not a string" for a string.
   <!-- src: language/control-flow "FOR loops" -->
+- A number where the variable stands, as `FOR 5 = 1 TO 2`: "expected a variable after `FOR`".
+  <!-- src: verification\v75_a2_for_number_variable -->
 - A `FOR` with no `NEXT`: "`FOR` without `NEXT`". A `NEXT` with no `FOR`: "`NEXT` without `FOR`".
   <!-- src: compiler/pipeline "Block structure" -->
 - A `NEXT` naming another loop's variable, as `NEXT i, j` for loops of `i` and `j` in that order: "`NEXT i` does not

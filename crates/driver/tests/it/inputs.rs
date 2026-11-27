@@ -14,6 +14,7 @@
 //! The clone sets are read from the QB64pe reference clone (found as the driver finds it) and skipped, with a
 //! note, when it is missing. Every file gets the no-panic and round-trip check; include-only files nothing else.
 
+use crate::support::repo;
 use qb64rust_driver::{FileLoader, build, emit, frontend_with, lower};
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::tree::{Node, print};
@@ -57,10 +58,6 @@ fn first_error_node(n: Node<'_>) -> Option<Node<'_>> {
         return Some(n);
     }
     n.child_nodes().find_map(first_error_node)
-}
-
-fn repo() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
 fn clone_root() -> Option<PathBuf> {

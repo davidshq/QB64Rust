@@ -7,6 +7,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+pub mod cp437;
 pub mod fixes;
 pub mod layout;
 mod old_wording;
@@ -14,7 +15,7 @@ pub mod platform;
 pub use old_wording::old_wording;
 /// For `qb64rust --old-wording-keys`, which gives the table's script its keys and forms.
 pub use old_wording::{CODES as OLD_WORDING_CODES, forms as old_wording_forms, key_with as old_wording_key};
-pub use platform::Platform;
+pub use platform::{Platform, host_path};
 
 /// The largest source file, in bytes: offsets are `u32`. A caller that reads a file checks this before handing
 /// the bytes to any stage; every count derived from one file (lines, tokens, names) then fits a `u32`.
@@ -71,6 +72,17 @@ pub struct SourceFile {
     pub name: String,
     pub bytes: Arc<[u8]>,
     line_starts: Vec<u32>,
+    /// The encoding the program's settings file gives this file, when the file is in its folder or below it
+    /// (OpenSpec change `utf8-source`, design D2). The file's own `'$ENCODING` line goes over it.
+    pub project_encoding: Option<SourceEncoding>,
+}
+
+/// How the text of a source file's strings is read (OpenSpec change `utf8-source`): as code page 437 bytes, as
+/// they are, or as UTF-8 characters, each stored as its code page 437 byte ([`cp437::text_of`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SourceEncoding {
+    Cp437,
+    Utf8,
 }
 
 impl SourceFile {
@@ -82,6 +94,7 @@ impl SourceFile {
             name: name.into(),
             bytes: bytes.into(),
             line_starts,
+            project_encoding: None,
         }
     }
 
@@ -155,6 +168,16 @@ impl SourceMap {
 
     pub fn file(&self, id: FileId) -> &SourceFile {
         &self.files[id.0 as usize]
+    }
+
+    /// [`SourceFile::project_encoding`] of `id`; `None` too for a file the map does not hold.
+    pub fn project_encoding(&self, id: FileId) -> Option<SourceEncoding> {
+        self.files.get(id.0 as usize)?.project_encoding
+    }
+
+    /// Sets [`SourceFile::project_encoding`].
+    pub fn set_project_encoding(&mut self, id: FileId, encoding: Option<SourceEncoding>) {
+        self.files[id.0 as usize].project_encoding = encoding;
     }
 
     /// Every file, with its id, in the order they were added.
@@ -392,6 +415,27 @@ pub fn show_bytes(bytes: &[u8]) -> String {
     s
 }
 
+/// A procedure's name as a call stack shows it, the same in a runtime error's message and in the debugger:
+/// `SUB show` or `FUNCTION twice&`, the name as its header line `line` declares it. When the line does not start
+/// with the keyword, or is not known, the name is `name` (the compiler's: upper case, no suffix).
+pub fn declared_procedure_name(function: bool, name: &str, line: Option<&str>) -> String {
+    let keyword = if function { "FUNCTION" } else { "SUB" };
+    let declared = line.and_then(|text| {
+        let rest = text.trim_start();
+        let word = rest.get(..keyword.len())?;
+        if !word.eq_ignore_ascii_case(keyword) {
+            return None;
+        }
+        let name: String = rest[keyword.len()..]
+            .trim_start()
+            .chars()
+            .take_while(|c| !c.is_whitespace() && *c != '(' && *c != '\'')
+            .collect();
+        (!name.is_empty()).then_some(name)
+    });
+    format!("{keyword} {}", declared.unwrap_or_else(|| name.to_string()))
+}
+
 /// A JSON string: `s` quoted, with `"`, `\` and the control characters escaped (the debug symbol file, the JSON
 /// lines of `qb64rust test`).
 pub fn json_string(s: &str) -> String {
@@ -411,6 +455,16 @@ pub fn json_string(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn procedure_names_as_declared() {
+        let name = declared_procedure_name;
+        assert_eq!(name(false, "TWICE", Some("  sub Twice (n AS LONG)")), "SUB Twice");
+        assert_eq!(name(false, "FLAG_X", Some("SUB flag_x 'the flag")), "SUB flag_x");
+        assert_eq!(name(false, "TWICE", None), "SUB TWICE");
+        assert_eq!(name(false, "TWICE", Some("DECLARE SUB twice")), "SUB TWICE");
+        assert_eq!(name(true, "TWICE", Some("FUNCTION twice& (n&)")), "FUNCTION twice&");
+    }
 
     /// Only the lint warnings `off` names go; a warning without a code and the errors stay, with their count.
     #[test]

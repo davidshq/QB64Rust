@@ -111,6 +111,8 @@ mod tests {
                     line: 2,
                 })
                 .collect(),
+            call_trace: None,
+            encoding: None,
         }
     }
 

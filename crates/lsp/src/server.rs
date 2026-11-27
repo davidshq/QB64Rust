@@ -382,6 +382,7 @@ fn start_worker(events: mpsc::Sender<Event>, hooks: Hooks) -> mpsc::Sender<Job> 
                             folders: &l.folders,
                             root: &job.root,
                             default: job.default,
+                            project: hooks.project_encoding,
                         });
                         (owner, named)
                     }))
@@ -396,7 +397,8 @@ fn start_worker(events: mpsc::Sender<Event>, hooks: Hooks) -> mpsc::Sender<Job> 
                     }
                     continue;
                 }
-                let parse = || analyze(&job.key, &job.main, &job.open, &job.root, job.default);
+                let project = hooks.project_encoding;
+                let parse = || analyze(&job.key, &job.main, &job.open, &job.root, job.default, project);
                 if let Some(request) = &job.format {
                     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                         let a = parse();
@@ -2377,6 +2379,7 @@ mod tests {
             main_of: no_main,
             excluded: no_file_excluded,
             rewritable: no_rewrites,
+            project_encoding: crate::no_project_encoding,
         };
         let jobs = start_worker(events, hooks);
         let mut s = Server::new(server_side, jobs, PathBuf::new(), Encoding::DEFAULT);
@@ -2432,6 +2435,7 @@ mod tests {
             main_of: main_is_game,
             excluded: no_file_excluded,
             rewritable: no_rewrites,
+            project_encoding: crate::no_project_encoding,
         };
         let jobs = start_worker(events, hooks);
         let mut s = Server::new(server_side, jobs, PathBuf::new(), Encoding::DEFAULT);
@@ -2479,6 +2483,7 @@ mod tests {
             main_of: no_main,
             excluded: no_file_excluded,
             rewritable: no_rewrites,
+            project_encoding: crate::no_project_encoding,
         };
         let jobs = start_worker(events, hooks);
         let mut s = Server::new(server_side, jobs, PathBuf::new(), Encoding::DEFAULT);
@@ -2586,7 +2591,14 @@ mod tests {
         }
         s.dispatch_due();
         let job = queue.try_recv().unwrap();
-        let a = analyze(&job.key, &job.main, &job.open, &job.root, job.default);
+        let a = analyze(
+            &job.key,
+            &job.main,
+            &job.open,
+            &job.root,
+            job.default,
+            crate::no_project_encoding,
+        );
         s.parsed(job.key, job.seq, Ok(a));
         let _ = client.receiver.try_iter().count();
         let ask = |id: i32| {

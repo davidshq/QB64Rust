@@ -48,6 +48,9 @@ impl Emitter<'_> {
                 (Case::Call(call), pass)
             }
         };
+        // A call-trace build marks what an event runs as started by an event: a label runs in a frame of the main
+        // module's, and a SUB's frame records site 1 (design D5 of `call-trace`).
+        let traced = self.call_trace.is_some();
         let code = match word {
             "timer" => &mut self.on_timer,
             "key" => &mut self.on_key,
@@ -58,14 +61,24 @@ impl Emitter<'_> {
         match case {
             Case::Label(label) => {
                 writeln!(code.jumpers, "if({word}_event_id=={id})goto {label};").unwrap();
+                let run = if traced {
+                    "qbr_ct_push_at(0,1);\nQBMAIN(NULL);\nqbr_ct_pop();\n"
+                } else {
+                    "QBMAIN(NULL);\n"
+                };
                 write!(
                     code.cases,
                     "case {id}:\n{word}_event_occurred++;\n{word}_event_id={id};\n{word}_event_occurred++;\n\
                      return_point[next_return_point++]=0;\n\
-                     if (next_return_point>=return_points) more_return_points();\nQBMAIN(NULL);\nbreak;\n"
+                     if (next_return_point>=return_points) more_return_points();\n{run}break;\n"
                 )
                 .unwrap();
             }
+            Case::Call(call) if traced => write!(
+                code.cases,
+                "case {id}:\n{{uint32 qbr_ct_was=qbr_ct.site;qbr_ct.site=1;\n{call}\nqbr_ct.site=qbr_ct_was;}}\nbreak;\n"
+            )
+            .unwrap(),
             Case::Call(call) => write!(code.cases, "case {id}:\n{call}\nbreak;\n").unwrap(),
         }
         out.push(format!("{setup},{id},{pass});"));

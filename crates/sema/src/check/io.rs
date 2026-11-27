@@ -333,27 +333,26 @@ impl Checker<'_> {
     /// The source of a console `INPUT` or `LINE INPUT` (`qb64pe.bas` 11123–11152): the prompt's bytes when one is
     /// written, `? ` after it for an `INPUT` without a prompt or with `;` after it (never for `LINE INPUT`), and
     /// whether a `;` stands before the prompt (the cursor then stays on the line).
-    fn console_source(&mut self, prompt: ast::Prompt, line: bool) -> InputSource {
-        let text = prompt.text.map(|t| {
-            let raw = self.text(t.span);
-            let inner = raw.strip_prefix(b"\"").unwrap_or(raw);
-            inner.strip_suffix(b"\"").unwrap_or(inner).to_vec()
-        });
+    fn console_source(&mut self, prompt: ast::Prompt, line: bool) -> R<InputSource> {
+        let text = match prompt.text {
+            Some(t) => Some(self.literal_text(super::string_inside(self.text(t.span), t.span))?),
+            None => None,
+        };
         let semicolon = prompt
             .separator
             .is_some_and(|t| t.kind == qb64rust_syntax::SyntaxKind::Semicolon);
-        InputSource::Console {
+        Ok(InputSource::Console {
             question: !line && (text.is_none() || semicolon),
             prompt: text,
             stay: prompt.stay.is_some(),
-        }
+        })
     }
 
     /// `INPUT #n, target, …`, or `INPUT [;] ["prompt"{;|,}] target, …` from the console.
     pub(super) fn input(&mut self, stmt: ast::InputStmt) -> R<()> {
         let node = stmt.node();
         let Some(f) = stmt.file() else {
-            let from = self.console_source(stmt.prompt(), false);
+            let from = self.console_source(stmt.prompt(), false)?;
             // A `_BIT` variable is taken as the old compiler takes it: the answer is read and not stored
             // (`verification\v22_e_bit`; `SOMEDAY.md`).
             let targets = self.targets(stmt.parts(), node.span(), "INPUT", true)?;
@@ -385,7 +384,7 @@ impl Checker<'_> {
     pub(super) fn line_input(&mut self, stmt: ast::LineInputStmt) -> R<()> {
         let node = stmt.node();
         let Some(f) = stmt.file() else {
-            let from = self.console_source(stmt.prompt(), true);
+            let from = self.console_source(stmt.prompt(), true)?;
             let targets = self.targets(stmt.parts(), node.span(), "LINE INPUT", true)?;
             self.line_target(&targets, node.span())?;
             self.push(
@@ -527,15 +526,16 @@ impl Checker<'_> {
         let file = stmt.node().span().file;
         let items = stmt.items(&self.map.file(file).bytes);
         for item in items {
-            let text = self.text(item.span);
             // A quoted item's span holds its quotes; the closing one is missing when the line ended first (the old
             // compiler assumes it).
-            let text = match text.strip_prefix(b"\"") {
-                Some(inner) if item.quoted => inner.strip_suffix(b"\"").unwrap_or(inner),
-                Some(_) | None => text,
+            let at = if item.quoted && self.text(item.span).starts_with(b"\"") {
+                super::string_inside(self.text(item.span), item.span)
+            } else {
+                item.span
             };
+            let text = self.literal_text(at)?;
             self.prog.data.push(DataItem {
-                text: text.to_vec(),
+                text,
                 quoted: item.quoted,
             });
         }

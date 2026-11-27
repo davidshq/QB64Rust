@@ -5,6 +5,7 @@
 //! run writes a line `cli-time <test> <phase> <seconds>` to the test's captured stderr (shown with `--nocapture`).
 
 pub mod dap;
+pub mod lsp;
 
 use std::fmt;
 use std::io::{Read, Write as _};
@@ -328,6 +329,15 @@ pub fn objects_lock() -> PathBuf {
     // A fresh checkout (a copy synced into WSL) has no runner's folder yet.
     let _ = std::fs::create_dir_all(&dir);
     dir.join("objects.lock")
+}
+
+/// The repository's root folder.
+pub fn repo() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .unwrap()
+        .to_path_buf()
 }
 
 /// The variable that names [`objects_lock`] to the driver (`OBJECTS_LOCK_ENV` of `crates\driver\src\build.rs`).

@@ -1,0 +1,33 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+Settings: window
+Data 0: caf\x82
+Data 1: "na\x8Bve"
+Stmt line 5
+  Print console newline
+    Str Const "\xC9\xCD\xCD\xBB"
+    Str Const "\x82"
+    Str Const "\xFB"
+    Str Const "\x03\x7F"
+    Str Const "a\x09b"
+Stmt line 6 may_raise
+  LineInput console prompt "\xA8nombre? "
+    Target N:Str
+Stmt line 8 may_raise
+  Branch Zero -> @1 Skip: StrCompare Eq(Var N:Str, Const "\xA4")
+Stmt line 8
+  Print console newline
+    Num Const 1:I16
+Stmt line 9
+  Jump @0
+Label @0 line 9
+Label @1 line 9
+Stmt line 10 may_raise
+  Read
+    Target A:Str
+    Target B:Str
+Stmt line 13
+  Print console newline
+    Num Const 1:I16

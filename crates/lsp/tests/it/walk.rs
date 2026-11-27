@@ -82,7 +82,14 @@ fn walks_over_every_program() {
             bytes: Arc::from(bytes),
             encoding: Encoding::DEFAULT,
         };
-        let a = analyze(&path_key(path), &main, &none, &root, Encoding::DEFAULT);
+        let a = analyze(
+            &path_key(path),
+            &main,
+            &none,
+            &root,
+            Encoding::DEFAULT,
+            qb64rust_lsp::no_project_encoding,
+        );
         let lines = a.map.file(a.parsed.main().file).line_count();
 
         let s = symbols::document_symbols(&a);

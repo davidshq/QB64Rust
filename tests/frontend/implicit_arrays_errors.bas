@@ -23,7 +23,7 @@ ERASE later
 later(1) = 5
 ' Not made an array: one leading underscore (the old compiler: "Invalid array name"), a built-in's name with
 ' another suffix, a built-in function's own spelling as a place ("Expected variable ="), a FUNCTION and a SUB of
-' the name (verification\v24_x106, v55_x83: "Name already in use"); the whole array (marked).
+' the name (verification\v24_x106, v55_x83: "Name already in use"); the whole array stored to (v66_c17).
 _foo(1) = 2
 len%(3) = 1
 abs$(1) = "x"

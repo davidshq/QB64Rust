@@ -13,6 +13,9 @@ pub mod definition;
 pub mod encoding;
 mod encoding_tables;
 pub mod folding;
+// Written by `tools\reference\reference.py render`, which owns its layout.
+#[rustfmt::skip]
+mod help_table;
 mod hover;
 pub mod index;
 pub mod owner;
@@ -76,6 +79,16 @@ pub type MainOf = fn(&Path) -> Option<PathBuf>;
 /// diagnostics, no formatting edits and no code actions, and a rename that would change it is refused.
 pub type Excluded = fn(&Path) -> bool;
 
+/// The folder of the settings file nearest a main file on disk and the encoding its `[project]` `encoding` gives
+/// the files in it and below it (OpenSpec change `utf8-source`, design D2; `qb64rust_driver::settings::
+/// project_encoding`). `None` when no settings file names one.
+pub type ProjectEncoding = fn(&Path) -> Option<(PathBuf, qb64rust_base::SourceEncoding)>;
+
+/// [`ProjectEncoding`]'s stand-in for a server without a settings file.
+pub fn no_project_encoding(_: &Path) -> Option<(PathBuf, qb64rust_base::SourceEncoding)> {
+    None
+}
+
 /// The front end the driver hands the server: the check, the formatter, the index, the settings file's main
 /// program, whether a document is excluded, and what the rewrites can do, so that this crate needs no `sema`.
 #[derive(Clone, Copy)]
@@ -86,6 +99,7 @@ pub struct Hooks {
     pub main_of: MainOf,
     pub excluded: Excluded,
     pub rewritable: Rewritables,
+    pub project_encoding: ProjectEncoding,
 }
 
 /// Runs the server over stdin and stdout until `exit`. Call it on a thread with [`qb64rust_base::STACK_SIZE`] of

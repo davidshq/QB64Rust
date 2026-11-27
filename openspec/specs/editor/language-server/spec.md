@@ -301,8 +301,11 @@ request for a text that changed before its answer with the `ContentModified` err
 ### Requirement: Hover
 The server SHALL answer `textDocument/hover` on a name with what the front end knows about it, as Markdown: a
 variable's type, shape and storage; a constant's type and value; a procedure's header; a user type's members; a
-member's type; a label's body. On a built-in it SHALL give the built-in table's arguments and result. On anything
-else it SHALL give no hover.
+member's type; a label's body. On a built-in it SHALL give the built-in table's arguments and result, then the
+first sentence of the word's page of the language reference (`docs\reference\entries`), when it has one. On a
+keyword with a page it SHALL give that sentence alone. A sentence SHALL be given only when it is about the word: the
+page is the word's own, or a code span of the sentence starts with the word (`_MAX` on the page of `_MIN`, but not
+`TO` on the page of `FOR`). On anything else it SHALL give no hover.
 
 #### Scenario: Variable
 - **WHEN** `SUB a` has `DIM n AS _UNSIGNED LONG` and the cursor is on a later `n` inside `a`
@@ -314,10 +317,19 @@ else it SHALL give no hover.
 
 #### Scenario: Built-in
 - **WHEN** the cursor is on `LEFT$` in `x$ = LEFT$(a$, 2)`
-- **THEN** the hover gives `LEFT$`'s arguments and its result type `STRING` from the built-in table
+- **THEN** the hover gives `LEFT$`'s arguments and its result type `STRING` from the built-in table, then the first
+  sentence of the page of `LEFT$`
 
 #### Scenario: A keyword
 - **WHEN** the cursor is on `FOR`
+- **THEN** the hover gives the first sentence of the page of `FOR`
+
+#### Scenario: A word covered beside another
+- **WHEN** the cursor is on `TO` in `FOR i = 1 TO 10`
+- **THEN** there is no hover, since the sentence of the page of `FOR` is not about `TO`
+
+#### Scenario: A keyword without a page
+- **WHEN** the cursor is on `OFF` in `KEY OFF`
 - **THEN** there is no hover
 
 ### Requirement: Find references
@@ -686,3 +698,23 @@ client's format settings or the settings file change.
 - **WHEN** the client then sends `workspace/didChangeConfiguration` with `format.autoIndent` false and asks to
   format
 - **THEN** the warning is sent again
+
+### Requirement: A UTF-8 file open in another encoding
+When a document's file is UTF-8 (spec `compiler/source-encoding`, "A file's encoding") and the client names
+another encoding for the document, the server SHALL publish one warning at the document's first line. The
+warning SHALL say how the file was declared, name the encoding the document is open in, and say to reopen it as
+UTF-8. The warning SHALL carry no code. The server SHALL still parse the document's bytes as the client's
+encoding gives them. The warning SHALL go when the client names UTF-8 for the document.
+
+#### Scenario: A project's file open as code page 437
+- **WHEN** `qb64rust.toml` holds `encoding = "utf-8"` under `[project]`, and `main.bas` is open with the
+  client's encoding `cp437`
+- **THEN** the document has a warning at line 1 that names `qb64rust.toml` and `cp437`
+
+#### Scenario: Reopened as UTF-8
+- **WHEN** the user reopens that document with the encoding UTF-8
+- **THEN** the warning is gone
+
+#### Scenario: A file that declares nothing
+- **WHEN** a document with no `'$ENCODING` line and no settings file is open as `cp437`
+- **THEN** no such warning is published

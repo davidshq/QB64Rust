@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **A hover that says what a word does.** A hover on a built-in now gives, after its arguments, the first sentence
+  of its page in the language reference: `_CLAMP` "holds a value between two bounds". A keyword such as `FOR` or
+  `CASE`, which had no hover, now gives that sentence alone (README, "Language features").
 - **Layout and lints in `qb64rust.toml`.** A `[format]` table sets the keyword case, the indent and the layout for
   everyone who opens the project, over the `qb64rust.format.*` settings. A `[lints]` table turns lint warnings off,
   one by one or all at once. A mistake in the file now stops Format Document with a message naming the file and

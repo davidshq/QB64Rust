@@ -4,7 +4,7 @@
 //! (`restorepalette`) and its nearest-colour search (`matchcol`, `func__rgb`, `func__red`, … in `libqb.cpp`).
 //! Measured: `verification\v45_b_colors32`, `v45_b_colors_m*`, `v45_x60`–`x66`.
 
-use crate::consteval::{R, Value, as_i64, as_u64, error, unsupported};
+use crate::consteval::{R, Value, as_i64, as_u64, error};
 use qb64rust_builtins::palettes::{PALETTE_64, PALETTE_256};
 
 /// A screen mode's image: its palette (256 entries, as libqb allocates them, unused ones 0), the number of
@@ -127,8 +127,10 @@ fn inside(name: &str) -> R<Value> {
 }
 
 pub fn function(name: &str, args: &[Value]) -> R<Value> {
-    if args.iter().any(|a| matches!(a, Value::Str(_))) {
-        return unsupported(&format!("a string argument to `{name}` in a `CONST`"));
+    if let Some(i) = args.iter().position(|a| matches!(a, Value::Str(_))) {
+        // QB64pe reads the string as 0 (`verification\v66_d03`); here it is the error it is outside a `CONST`
+        // (`DIVERGENCES-QB64PE.md` D-078).
+        return error(&format!("argument {} of `{name}` needs a number", i + 1));
     }
     let n = |v: u32| Ok(Value::Int(i64::from(v)));
     match name {

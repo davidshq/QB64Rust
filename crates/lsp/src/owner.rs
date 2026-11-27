@@ -70,6 +70,8 @@ pub struct Lookup<'a> {
     pub root: &'a Path,
     /// The encoding of files read from disk.
     pub default: Encoding,
+    /// The settings file's encoding (`Hooks::project_encoding`).
+    pub project: crate::ProjectEncoding,
 }
 
 /// The program of the document, `None` when it is its own program.
@@ -291,7 +293,7 @@ fn program_file(l: &Lookup, path: &Path, key: &str) -> Option<OpenFile> {
 
 /// The keys of the files the program of `main` covers, its main file first.
 fn program_files(l: &Lookup, key: &str, main: &OpenFile) -> Vec<String> {
-    analyze(key, main, l.open, l.root, l.default)
+    analyze(key, main, l.open, l.root, l.default, l.project)
         .files
         .into_iter()
         .map(|f| f.key)

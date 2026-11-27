@@ -31,6 +31,7 @@
 // The emitter by concern (design D6 of `m2-core-builtins`): each module adds the `Emitter` methods of its part.
 mod arrays;
 mod builtins;
+mod call_trace;
 mod cmem;
 mod coverage;
 mod debug;
@@ -48,6 +49,7 @@ mod stmt;
 mod trace;
 mod value;
 
+pub use call_trace::CallTrace;
 pub use coverage::Coverage;
 pub use debug::{DebugFile, DebugInfo, Reach, reach};
 pub use library::{Linkage, Resolved, ResolvedLibrary, dll_handle, split_version, strip_version};
@@ -105,25 +107,33 @@ impl Fragments {
 /// v19_include_runtime_error`: "Line: 3 (in raise.bi)"). `resolved` is what the driver found for the program's
 /// `DECLARE LIBRARY` blocks.
 pub fn emit(p: &Program, source_name: &str, included: &HashMap<FileId, String>, resolved: &Resolved) -> Fragments {
-    emit_with(p, source_name, included, resolved, None, None, None)
+    emit_with(p, source_name, included, resolved, Watch::default(), None)
 }
 
-/// [`emit`], with a counter at each source statement when `coverage` is given (design D1 of `cws-whole-game`,
-/// `coverage.rs`). Without it the fragments are [`emit`]'s. `log_folder` (the working folder with its separator) is
-/// put before each name of `source_name` and `included` that is relative, for the file a log statement names, as
-/// the old compiler names it from its start folder (design D2 of `m4-handlers-logging-checking`); without it the
-/// names are as given. With `trace`, a record call at each store into a variable (OpenSpec change `value-trace`,
-/// `trace.rs`).
+/// What a build adds to the program to watch it run. Each is `None` in a build without it, and the build with none
+/// is [`emit`]'s.
+#[derive(Clone, Copy, Default)]
+pub struct Watch<'w> {
+    /// A counter at each source statement (design D1 of `cws-whole-game`, `coverage.rs`).
+    pub coverage: Option<&'w Coverage<'w>>,
+    /// A record call at each store into a variable (OpenSpec change `value-trace`, `trace.rs`).
+    pub trace: Option<&'w Trace>,
+    /// A call stack in a runtime error's message (OpenSpec change `call-trace`, `call_trace.rs`).
+    pub call_trace: Option<&'w CallTrace<'w>>,
+}
+
+/// [`emit`], with what `watch` adds. `log_folder` (the working folder with its separator) is put before each name
+/// of `source_name` and `included` that is relative, for the file a log statement names, as the old compiler names
+/// it from its start folder (design D2 of `m4-handlers-logging-checking`); without it the names are as given.
 pub fn emit_with(
     p: &Program,
     source_name: &str,
     included: &HashMap<FileId, String>,
     resolved: &Resolved,
-    coverage: Option<&Coverage>,
-    trace: Option<&Trace>,
+    watch: Watch,
     log_folder: Option<&str>,
 ) -> Fragments {
-    emit_all(p, source_name, included, resolved, (coverage, trace), log_folder, None).0
+    emit_all(p, source_name, included, resolved, watch, log_folder, None).0
 }
 
 /// [`emit_with`], and the debug symbol file of the program as these fragments build it (design D2 of
@@ -134,19 +144,11 @@ pub fn emit_debug(
     source_name: &str,
     included: &HashMap<FileId, String>,
     resolved: &Resolved,
-    (coverage, trace): (Option<&Coverage>, Option<&Trace>),
+    watch: Watch,
     log_folder: Option<&str>,
     files: &[DebugFile],
 ) -> (Fragments, DebugInfo) {
-    let (fragments, info) = emit_all(
-        p,
-        source_name,
-        included,
-        resolved,
-        (coverage, trace),
-        log_folder,
-        Some(files),
-    );
+    let (fragments, info) = emit_all(p, source_name, included, resolved, watch, log_folder, Some(files));
     (fragments, info.expect("asked for"))
 }
 
@@ -155,7 +157,7 @@ fn emit_all(
     source_name: &str,
     included: &HashMap<FileId, String>,
     resolved: &Resolved,
-    (coverage, trace): (Option<&Coverage>, Option<&Trace>),
+    watch: Watch,
     log_folder: Option<&str>,
     debug_files: Option<&[DebugFile]>,
 ) -> (Fragments, Option<DebugInfo>) {
@@ -217,8 +219,9 @@ fn emit_all(
         on_timer: events::EventCode::default(),
         on_key: events::EventCode::default(),
         on_strig: events::EventCode::default(),
-        coverage: coverage.map(coverage::Counters::new),
-        trace: trace.map(|t| trace::Entries::new(t, p)),
+        coverage: watch.coverage.map(coverage::Counters::new),
+        trace: watch.trace.map(|t| trace::Entries::new(t, p)),
+        call_trace: watch.call_trace.map(call_trace::Sites::new),
     };
     let mut files: Vec<(String, String)> = FRAGMENTS.iter().map(|n| (n.to_string(), String::new())).collect();
     let mut set = |name: &str, text: String| files.iter_mut().find(|(n, _)| n == name).unwrap().1 = text;
@@ -336,10 +339,16 @@ fn emit_all(
     let mut mainerr = String::from(
         "if (!error_handler_history) error_handler_history = qbs_new(0, 0);\nif (error_occurred){ error_occurred=0;\n",
     );
+    // A call-trace build's handler runs in a frame of its own, with no place below it (design D5 of `call-trace`).
+    let handler_frame = if e.call_trace.is_some() {
+        " qbr_ct_push_at(1,0);"
+    } else {
+        ""
+    };
     for (i, &l) in e.handlers.iter().enumerate() {
         writeln!(
             mainerr,
-            "if (error_goto_line=={}){{error_handling=1; goto {};}}",
+            "if (error_goto_line=={}){{error_handling=1;{handler_frame} goto {};}}",
             i + 1,
             e.label_name(l)
         )
@@ -375,6 +384,10 @@ fn emit_all(
             "a value-trace build's after-call lines were left after the bodies"
         );
         global.push_str(&t.table());
+    }
+    // Also last: the sites of a call-trace build are numbered while the bodies are emitted.
+    if let Some(c) = &e.call_trace {
+        global.push_str(&c.table(p));
     }
     let info = debug_files.map(|f| e.debug_info(f));
     (Fragments { files }, info)
@@ -474,4 +487,6 @@ struct Emitter<'a> {
     coverage: Option<coverage::Counters<'a>>,
     /// The entries of a value-trace build (`trace.rs`), `None` in any other.
     trace: Option<trace::Entries<'a>>,
+    /// The sites of a call-trace build (`call_trace.rs`), `None` in any other.
+    call_trace: Option<call_trace::Sites<'a>>,
 }

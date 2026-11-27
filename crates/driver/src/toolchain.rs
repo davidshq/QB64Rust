@@ -647,55 +647,13 @@ fn install_inner(url: &str, sha256: &str, size: u64, home: &Path, zip_given: Opt
     };
 
     println!("{fetching} {source}");
-    // `--retry-all-errors` makes `--retry` cover a connection that breaks partway through too: on 2026-11-04 a
-    // download in the suites VM failed at 5% with curl exit 56 (schannel SEC_E_DECRYPT_FAILURE), which plain
-    // `--retry` does not retry. A bad file still fails the SHA-256 check below.
-    let mut child = Command::new(&curl)
-        .args(["-fL", "--retry", "3", "--retry-all-errors", "-sS", "-o"])
-        .arg(&zip)
-        .arg(url)
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| {
-            clean();
-            format!("cannot run {}: {e}; {hand}", curl.display())
-        })?;
-    let mut shown = None;
-    let status = loop {
-        match child.try_wait() {
-            Ok(Some(status)) => break status,
-            Ok(None) => {}
-            Err(e) => {
-                let _ = child.kill();
-                clean();
-                return Err(format!("waiting for {}: {e}", curl.display()));
-            }
-        }
-        let have = std::fs::metadata(&zip).map_or(0, |m| m.len());
-        if let Some(percent) = have.saturating_mul(100).checked_div(size).map(|p| p.min(100)) {
-            // Every 5 %, so that the extension's progress moves without a flood of lines.
-            if shown.is_none_or(|s| percent >= s + 5) {
-                println!("{fetching} {percent}%");
-                shown = Some(percent - percent % 5);
-            }
-        }
-        std::thread::sleep(Duration::from_millis(250));
-    };
-    if !status.success() {
-        let mut why = Vec::new();
-        if let Some(mut err) = child.stderr.take() {
-            let _ = err.read_to_end(&mut why);
-        }
+    fetch(&curl, url, &zip, size, fetching, "the toolchain").map_err(|e| {
         clean();
-        #[expect(clippy::disallowed_methods, reason = "curl's own message")]
-        let why = String::from_utf8_lossy(&why).trim().to_string();
-        return Err(format!(
-            "{fetching} the toolchain failed ({why}, curl exit status {}); {hand}",
-            status.code().map_or_else(|| "none".to_string(), |c| c.to_string()),
-        ));
-    }
-    println!("{fetching} 100%");
+        match e {
+            FetchError::Waiting(e) => e,
+            FetchError::Failed(e) => format!("{e}; {hand}"),
+        }
+    })?;
 
     println!("checking");
     let got = sha256_of(&zip).inspect_err(|_| clean())?;
@@ -756,6 +714,64 @@ fn install_inner(url: &str, sha256: &str, size: u64, home: &Path, zip_given: Opt
     Ok(folder)
 }
 
+/// Why [`fetch`] failed: waiting for curl failed, or curl could not run or did not fetch the file. The caller adds
+/// what to do by hand to the second.
+enum FetchError {
+    Waiting(String),
+    Failed(String),
+}
+
+/// Fetches `url` into `zip` with `curl`, with a progress line on standard output every 5 % of `size` (0: unknown,
+/// no percentages). `fetching` is the verb of the lines, "downloading" or "copying", and `what` names what is
+/// fetched in an error. The file is left as it is on a failure: the caller removes it.
+fn fetch(curl: &Path, url: &str, zip: &Path, size: u64, fetching: &str, what: &str) -> Result<(), FetchError> {
+    // `--retry-all-errors` makes `--retry` cover a connection that breaks partway through too: on 2026-11-04 a
+    // download in the suites VM failed at 5% with curl exit 56 (schannel SEC_E_DECRYPT_FAILURE), which plain
+    // `--retry` does not retry. A bad file still fails the caller's SHA-256 check.
+    let mut child = Command::new(curl)
+        .args(["-fL", "--retry", "3", "--retry-all-errors", "-sS", "-o"])
+        .arg(zip)
+        .arg(url)
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| FetchError::Failed(format!("cannot run {}: {e}", curl.display())))?;
+    let mut shown = None;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) => {}
+            Err(e) => {
+                let _ = child.kill();
+                return Err(FetchError::Waiting(format!("waiting for {}: {e}", curl.display())));
+            }
+        }
+        let have = std::fs::metadata(zip).map_or(0, |m| m.len());
+        if let Some(percent) = have.saturating_mul(100).checked_div(size).map(|p| p.min(100)) {
+            // Every 5 %, so that the extension's progress moves without a flood of lines.
+            if shown.is_none_or(|s| percent >= s + 5) {
+                println!("{fetching} {percent}%");
+                shown = Some(percent - percent % 5);
+            }
+        }
+        std::thread::sleep(Duration::from_millis(250));
+    };
+    if !status.success() {
+        let mut why = Vec::new();
+        if let Some(mut err) = child.stderr.take() {
+            let _ = err.read_to_end(&mut why);
+        }
+        #[expect(clippy::disallowed_methods, reason = "curl's own message")]
+        let why = String::from_utf8_lossy(&why).trim().to_string();
+        return Err(FetchError::Failed(format!(
+            "{fetching} {what} failed ({why}, curl exit status {})",
+            status.code().map_or_else(|| "none".to_string(), |c| c.to_string()),
+        )));
+    }
+    println!("{fetching} 100%");
+    Ok(())
+}
+
 /// The SHA-256 of a file, in lower-case hex.
 fn sha256_of(p: &Path) -> Result<String, String> {
     use sha2::Digest as _;
@@ -789,6 +805,8 @@ pub enum EmsdkSource {
     Option,
     /// `QB64RUST_EMSDK_ROOT`.
     Variable,
+    /// The one `qb64rust toolchain install --target wasm` put in place.
+    Installed,
 }
 
 impl EmsdkSource {
@@ -797,6 +815,7 @@ impl EmsdkSource {
         match self {
             EmsdkSource::Option => "option: given by --emsdk-root",
             EmsdkSource::Variable => "variable: given by QB64RUST_EMSDK_ROOT",
+            EmsdkSource::Installed => "installed: by qb64rust toolchain install --target wasm",
         }
     }
 }
@@ -815,32 +834,52 @@ pub struct Emsdk {
     /// The `.emscripten` file `emsdk activate` writes, given to the compiler as `EM_CONFIG`, so that no shell
     /// activation is needed.
     pub config: PathBuf,
+    /// The Python `emsdk` installed under `python/` (on Windows; elsewhere it installs none), given to the compiler
+    /// as `EMSDK_PYTHON`. Without it `emcc.exe` starts the `python.exe` of `PATH`, and fails where there is none
+    /// (measured 2026-11-25, OpenSpec change `wasm-publish`, task 4.4).
+    pub python: Option<PathBuf>,
 }
 
-/// The message of spec `compiler/toolchain`, "The Emscripten SDK", when none is found. It downloads nothing: the
-/// SDK is installed by hand with Emscripten's own `emsdk` until the SDK download (W2 of milestone M9).
+/// The message of spec `compiler/toolchain`, "The Emscripten SDK", when none is found. A build downloads nothing:
+/// on Windows `qb64rust toolchain install --target wasm` does ([`install_emsdk`]), and anywhere the SDK may be
+/// installed by hand with Emscripten's own `emsdk`.
 pub fn emsdk_missing_message() -> String {
     format!(
-        "no Emscripten SDK found: a build for the wasm target needs Emscripten {EMSDK_RELEASE}. Install it with \
-         Emscripten's emsdk (github.com/emscripten-core/emsdk): `emsdk install {EMSDK_RELEASE}` and \
-         `emsdk activate {EMSDK_RELEASE}`. Then give its folder with --emsdk-root <dir> or the environment variable \
+        "no Emscripten SDK found: a build for the wasm target needs Emscripten {EMSDK_RELEASE}. On Windows, \
+         `qb64rust toolchain install --target wasm` downloads and installs it (about {EMSDK_DOWNLOAD_MB} MB). Or \
+         install it with Emscripten's emsdk (github.com/emscripten-core/emsdk): `emsdk install {EMSDK_RELEASE}` and \
+         `emsdk activate {EMSDK_RELEASE}`, and give its folder with --emsdk-root <dir> or the environment variable \
          {EMSDK_ENV}"
     )
 }
 
-/// The Emscripten SDK of a wasm build: `--emsdk-root` (`option`), else `QB64RUST_EMSDK_ROOT`.
+/// The Emscripten SDK of a wasm build: `--emsdk-root` (`option`), else `QB64RUST_EMSDK_ROOT`, else the installed
+/// one.
 pub fn find_emsdk(option: Option<&Path>) -> Result<Emsdk, String> {
-    find_emsdk_in(Platform::host(), option, var(EMSDK_ENV).as_deref())
+    find_emsdk_from(Platform::host(), option, var(EMSDK_ENV).as_deref(), home().as_deref())
 }
 
-/// [`find_emsdk`] on `host`, with the variable's value `variable`. The folder must hold `upstream/emscripten/emcc`
-/// and its `emscripten-version.txt` naming [`EMSDK_RELEASE`], a Node under `node/`, and the `.emscripten` of
-/// `emsdk activate`.
+/// [`find_emsdk`] on `host`, with the variable's value `variable` and no installed SDK.
 pub fn find_emsdk_in(host: Platform, option: Option<&Path>, variable: Option<&Path>) -> Result<Emsdk, String> {
-    let (dir, source, how) = match (option, variable) {
-        (Some(dir), _) => (dir, EmsdkSource::Option, "--emsdk-root"),
-        (None, Some(dir)) => (dir, EmsdkSource::Variable, EMSDK_ENV),
-        (None, None) => return Err(emsdk_missing_message()),
+    find_emsdk_from(host, option, variable, None)
+}
+
+/// [`find_emsdk`] on `host`, with the variable's value `variable` and the install root `home`. A folder named by
+/// the option or the variable is the one looked at, also when it holds no SDK: the installed one does not stand in
+/// for it. The folder must hold `upstream/emscripten/emcc` and its `emscripten-version.txt` naming
+/// [`EMSDK_RELEASE`], a Node under `node/`, and the `.emscripten` of `emsdk activate`.
+pub fn find_emsdk_from(
+    host: Platform,
+    option: Option<&Path>,
+    variable: Option<&Path>,
+    home: Option<&Path>,
+) -> Result<Emsdk, String> {
+    let installed = home.and_then(emsdk_installed);
+    let (dir, source, how) = match (option, variable, installed.as_deref()) {
+        (Some(dir), ..) => (dir, EmsdkSource::Option, "--emsdk-root"),
+        (None, Some(dir), _) => (dir, EmsdkSource::Variable, EMSDK_ENV),
+        (None, None, Some(dir)) => (dir, EmsdkSource::Installed, "qb64rust toolchain install --target wasm"),
+        (None, None, None) => return Err(emsdk_missing_message()),
     };
     let root = std::path::absolute(dir).unwrap_or_else(|_| dir.to_path_buf());
     let shown = root.display();
@@ -894,15 +933,277 @@ pub fn find_emsdk_in(host: Platform, option: Option<&Path>, variable: Option<&Pa
              {EMSDK_RELEASE}` in that folder"
         ));
     };
+    // `python/<version>_64bit/python.exe`, the first in name order; none where `emsdk` installs none.
+    let mut pythons: Vec<PathBuf> = std::fs::read_dir(root.join("python"))
+        .map(|d| d.flatten().map(|e| e.path()).collect())
+        .unwrap_or_default();
+    pythons.sort();
+    let python = pythons.iter().map(|v| v.join("python.exe")).find(|p| p.is_file());
     Ok(Emsdk {
         emcc,
         empp: program("em++"),
         emar: program("emar"),
         node,
         config,
+        python,
         root,
         source,
     })
+}
+
+/// The folder of the installed Emscripten SDK under the install root ([`home`]).
+pub const EMSDK_FOLDER: &str = "emsdk-7.0.0";
+
+/// The download of the three archives of [`emsdk_archives`], in MB, for the messages (measured 2026-11-25).
+pub const EMSDK_DOWNLOAD_MB: u64 = 815;
+/// The disk space the installed SDK takes before its first build, in MB (measured 2026-11-25).
+pub const EMSDK_DISK_MB: u64 = 2186;
+
+/// One archive of the Emscripten SDK (OpenSpec change `wasm-publish`, design D4).
+#[derive(Clone, Debug)]
+pub struct Archive {
+    pub url: String,
+    pub sha256: String,
+    /// The archive's size in bytes, for the progress lines (0: unknown).
+    pub size: u64,
+    /// The one folder at the archive's top whose contents are the part, or none when the part's files are at the
+    /// top.
+    pub top: Option<&'static str>,
+    /// Where the part goes in the SDK's folder, as `emsdk install` lays it out.
+    pub into: &'static str,
+}
+
+/// Where Emscripten keeps the builds of its releases and the Node and Python they run on (`emsdk.py`,
+/// `emscripten_releases_builds_url`).
+const EMSDK_STORE: &str = "https://storage.googleapis.com/webassembly/emscripten-releases-builds";
+
+/// The three archives that `emsdk install 7.0.0` fetches on Windows x64, by the SDK's manifest
+/// (`emsdk_manifest.json` and `emscripten-releases-tags.json` of `emsdk` at `708dcbc`): the compiler, whose build
+/// is named by the release's hash, its Node and its Python. Emscripten publishes no checksum for them: these were
+/// measured from one download on 2026-11-25.
+pub fn emsdk_archives() -> [Archive; 3] {
+    let archive = |path: &str, sha256: &str, size, top, into| Archive {
+        url: format!("{EMSDK_STORE}/{path}"),
+        sha256: sha256.to_string(),
+        size,
+        top,
+        into,
+    };
+    [
+        archive(
+            "win/6afbd83493d647051772d491124187d4e9a0cda9/wasm-binaries.zip",
+            "ada8333d584467723321ffe8928fb9dfb64f50bb22cc7c720722aad7fb3163d5",
+            748_527_107,
+            Some("install"),
+            "upstream",
+        ),
+        archive(
+            "deps/node-v24.19.0-win-x64.zip",
+            "57f71ab3652e797d84acddc79c81cc9ff1c6ddb2a1974cdb83f00fee9bff4c73",
+            37_304_352,
+            Some("node-v24.19.0-win-x64"),
+            "node/24.19.0_64bit",
+        ),
+        archive(
+            "deps/python-3.13.3-0-win-amd64.zip",
+            "6fe7a540c6b8b185780467cf7495e884ee62316ec4abb19e1c735b8a77c62465",
+            29_736_374,
+            None,
+            "python/3.13.3_64bit",
+        ),
+    ]
+}
+
+/// The `.emscripten` file of the installed SDK: the five lines `emsdk activate` writes on Windows, where `$CFGDIR`
+/// is the file's folder.
+const EMSDK_CONFIG: &str = "NODE_JS = '$CFGDIR/node/24.19.0_64bit/node.exe'\n\
+PYTHON = '$CFGDIR/python/3.13.3_64bit/python.exe'\n\
+LLVM_ROOT = '$CFGDIR/upstream/bin'\n\
+BINARYEN_ROOT = '$CFGDIR/upstream'\n\
+EMSCRIPTEN_ROOT = '$CFGDIR/upstream/emscripten'\n";
+
+/// The installed Emscripten SDK under `home`: its folder, when it holds the marker an install writes last.
+pub fn emsdk_installed(home: &Path) -> Option<PathBuf> {
+    let folder = home.join(EMSDK_FOLDER);
+    folder.join(MARKER).is_file().then_some(folder)
+}
+
+/// What to do by hand when the SDK's install cannot.
+fn emsdk_by_hand() -> String {
+    format!(
+        "install it by hand with Emscripten's emsdk (github.com/emscripten-core/emsdk): `emsdk install \
+         {EMSDK_RELEASE}` and `emsdk activate {EMSDK_RELEASE}`, and give its folder with --emsdk-root <dir> or the \
+         environment variable {EMSDK_ENV}"
+    )
+}
+
+/// `qb64rust toolchain install --target wasm` (spec `compiler/toolchain`, "The Emscripten SDK is installed on
+/// Windows"): the pinned release into [`home`]. On Linux nothing is downloaded: the SDK found is named, else the
+/// `emsdk` commands are the error.
+pub fn install_emsdk() -> Result<PathBuf, String> {
+    if Platform::host() != Platform::Windows {
+        return match find_emsdk(None) {
+            Ok(sdk) => {
+                println!("found: {}", sdk.root.display());
+                Ok(sdk.root)
+            }
+            Err(_) => Err(format!(
+                "qb64rust downloads the Emscripten SDK on Windows only; here, {}",
+                emsdk_by_hand()
+            )),
+        };
+    }
+    let home = home().ok_or_else(|| format!("no folder to install into: set LOCALAPPDATA or {HOME_ENV}"))?;
+    install_emsdk_from(&emsdk_archives(), &home)
+}
+
+/// Installs the Emscripten SDK from `archives` into `home\emsdk-7.0.0`, as [`install_from`] installs the C++
+/// toolchain: under the lock `home\install.lock`; nothing done when the folder is installed already; an unmarked
+/// folder (an interrupted install) deleted first; each archive downloaded into `home\download`, checked against
+/// its SHA-256, unpacked and moved to its place, and deleted; then [`EMSDK_CONFIG`] written, the folder checked
+/// as a build checks it, and the marker written last. Whatever fails, no folder is left that a build finds. The
+/// released binary calls it only with [`emsdk_archives`]; the tests give `file:///` URLs.
+pub fn install_emsdk_from(archives: &[Archive], home: &Path) -> Result<PathBuf, String> {
+    let hand = emsdk_by_hand();
+    let io = |what: &str, p: &Path, e: std::io::Error| format!("{what} {}: {e}", p.display());
+    std::fs::create_dir_all(home).map_err(|e| io("creating", home, e))?;
+    let lock_path = home.join("install.lock");
+    let lock = std::fs::File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&lock_path)
+        .map_err(|e| io("opening", &lock_path, e))?;
+    lock.lock().map_err(|e| io("locking", &lock_path, e))?;
+
+    let folder = home.join(EMSDK_FOLDER);
+    if emsdk_installed(home).is_some() {
+        println!("installed already: {}", folder.display());
+        return Ok(folder);
+    }
+    if folder.exists() {
+        println!("removing an interrupted install: {}", folder.display());
+        std::fs::remove_dir_all(&folder).map_err(|e| io("removing", &folder, e))?;
+    }
+    let curl = system_tool("curl.exe").map_err(|e| format!("cannot fetch the Emscripten SDK: {e}; {hand}"))?;
+    let tar = system_tool("tar.exe").map_err(|e| format!("cannot unpack the Emscripten SDK: {e}; {hand}"))?;
+    let download = home.join("download");
+    std::fs::create_dir_all(&download).map_err(|e| io("creating", &download, e))?;
+    std::fs::create_dir_all(&folder).map_err(|e| io("creating", &folder, e))?;
+    println!(
+        "Emscripten {EMSDK_RELEASE}: about {EMSDK_DOWNLOAD_MB} MB to download, {EMSDK_DISK_MB} MB in {}",
+        folder.display()
+    );
+    let result = (|| {
+        for (n, archive) in archives.iter().enumerate() {
+            let name = archive.url.rsplit('/').next().unwrap_or("archive.zip");
+            let zip = download.join(name);
+            let _ = std::fs::remove_file(&zip);
+            println!("downloading {} ({} of {})", archive.url, n + 1, archives.len());
+            let fetched = fetch(
+                &curl,
+                &archive.url,
+                &zip,
+                archive.size,
+                "downloading",
+                "the Emscripten SDK",
+            );
+            let checked = fetched
+                .map_err(|e| match e {
+                    FetchError::Waiting(e) => e,
+                    FetchError::Failed(e) => format!("{e}; {hand}"),
+                })
+                .and_then(|()| {
+                    println!("checking");
+                    let got = sha256_of(&zip)?;
+                    if got.eq_ignore_ascii_case(&archive.sha256) {
+                        Ok(())
+                    } else {
+                        Err(format!(
+                            "the SHA-256 of the downloaded {name} is {got}, not {}: the file is deleted and \
+                             nothing is installed",
+                            archive.sha256
+                        ))
+                    }
+                })
+                .and_then(|()| {
+                    println!("unpacking");
+                    unpack_part(&tar, &zip, &folder, archive).map_err(|e| format!("{e}; {hand}"))
+                });
+            let _ = std::fs::remove_file(&zip);
+            checked?;
+        }
+        // The compiler's archive names its release `7.0.0-git`; `emsdk install` writes the release's own name over
+        // it (`emsdk.py`, "Install an emscripten-version.txt file"), and that is its only step after unpacking.
+        let version = folder.join("upstream/emscripten/emscripten-version.txt");
+        if version.is_file() {
+            std::fs::write(&version, format!("\"{EMSDK_RELEASE}\"\n")).map_err(|e| io("writing", &version, e))?;
+        }
+        let config = folder.join(".emscripten");
+        std::fs::write(&config, EMSDK_CONFIG).map_err(|e| io("writing", &config, e))?;
+        // As a build looks at it: the compiler, its release, a Node.
+        find_emsdk_in(Platform::Windows, Some(&folder), None)
+            .map_err(|e| format!("the archives did not give an Emscripten SDK: {e}"))?;
+        let marker = folder.join(MARKER);
+        let sums: String = archives.iter().map(|a| format!("{}\n", a.sha256)).collect();
+        std::fs::write(&marker, format!("{EMSDK_FOLDER}\n{sums}")).map_err(|e| io("writing", &marker, e))
+    })();
+    let _ = std::fs::remove_dir(&download);
+    if let Err(e) = result {
+        let _ = std::fs::remove_dir_all(&folder);
+        return Err(e);
+    }
+    println!("installed: {}", folder.display());
+    Ok(folder)
+}
+
+/// Unpacks `zip` with `tar` and moves the part it holds to `archive.into` in `folder`: the contents of the
+/// archive's one top folder, or all of it.
+fn unpack_part(tar: &Path, zip: &Path, folder: &Path, archive: &Archive) -> Result<(), String> {
+    let io = |what: &str, p: &Path, e: std::io::Error| format!("{what} {}: {e}", p.display());
+    let unpacked = folder.join(".unpacking");
+    let _ = std::fs::remove_dir_all(&unpacked);
+    std::fs::create_dir_all(&unpacked).map_err(|e| io("creating", &unpacked, e))?;
+    let out = Command::new(tar)
+        .arg("-xf")
+        .arg(zip)
+        .arg("-C")
+        .arg(&unpacked)
+        .output()
+        .map_err(|e| format!("cannot run {}: {e}", tar.display()))?;
+    let part = match archive.top {
+        Some(top) => unpacked.join(top),
+        None => unpacked.clone(),
+    };
+    if !out.status.success() || !part.is_dir() {
+        #[expect(clippy::disallowed_methods, reason = "tar's own message")]
+        let why = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        return Err(format!(
+            "unpacking the Emscripten SDK failed (tar exit status {:?}{}{})",
+            out.status.code(),
+            if why.is_empty() { "" } else { ": " },
+            why,
+        ));
+    }
+    let to = folder.join(archive.into);
+    if let Some(parent) = to.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| io("creating", parent, e))?;
+    }
+    // Windows refuses to move a folder while a scanner still reads its new files: tried again for a few seconds.
+    let mut tries = 0;
+    loop {
+        match std::fs::rename(&part, &to) {
+            Ok(()) => break,
+            Err(_) if tries < 20 => {
+                tries += 1;
+                std::thread::sleep(Duration::from_millis(250));
+            }
+            Err(e) => return Err(io("moving the unpacked files to", &to, e)),
+        }
+    }
+    let _ = std::fs::remove_dir_all(&unpacked);
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1404,6 +1705,8 @@ mod tests {
                 "{found:?}"
             );
             let found = find_emsdk_in(host, None, Some(&v)).unwrap();
+            // An SDK without a Python of its own, as on Linux: the compiler takes the one of `PATH`.
+            assert_eq!(found.python, None);
             assert_eq!((found.root, found.source), (abs(&v), EmsdkSource::Variable));
         }
         let err = find_emsdk_in(Platform::Windows, None, None).unwrap_err();
@@ -1437,5 +1740,233 @@ mod tests {
         std::fs::remove_dir_all(sdk.join("node")).unwrap();
         let err = find_emsdk_in(Platform::Windows, Some(&sdk), None).unwrap_err();
         assert!(err.contains("has no Node"), "{err}");
+    }
+
+    /// Spec `compiler/toolchain`, "The Emscripten SDK": the installed SDK is the third place, and a folder named
+    /// by the option or the variable is not replaced by it.
+    #[test]
+    fn emsdk_lookup_finds_the_installed_one_last() {
+        let d = tempfile::tempdir().unwrap();
+        let home = d.path().join("home");
+        let installed = fake_emsdk(&home.join(EMSDK_FOLDER), Platform::Windows, EMSDK_RELEASE);
+        let find = |option: Option<&Path>, variable: Option<&Path>| {
+            find_emsdk_from(Platform::Windows, option, variable, Some(&home))
+        };
+        // No marker: an install that did not finish is not found.
+        assert!(find(None, None).unwrap_err().contains("no Emscripten SDK found"));
+        std::fs::write(installed.join(MARKER), EMSDK_FOLDER).unwrap();
+        let found = find(None, None).unwrap();
+        assert_eq!((found.root, found.source), (abs(&installed), EmsdkSource::Installed));
+        assert_eq!(
+            EmsdkSource::Installed.describe(),
+            "installed: by qb64rust toolchain install --target wasm"
+        );
+        let other = fake_emsdk(&d.path().join("other"), Platform::Windows, EMSDK_RELEASE);
+        assert_eq!(find(None, Some(&other)).unwrap().source, EmsdkSource::Variable);
+        assert_eq!(find(Some(&other), None).unwrap().source, EmsdkSource::Option);
+        // A named folder that holds no SDK is the error; the installed one does not stand in.
+        let empty = d.path().join("empty");
+        std::fs::create_dir_all(&empty).unwrap();
+        for err in [
+            find(Some(&empty), None).unwrap_err(),
+            find(None, Some(&empty)).unwrap_err(),
+        ] {
+            assert!(
+                err.contains("is not an Emscripten SDK folder") && err.contains("empty"),
+                "{err}"
+            );
+        }
+        let err = find_emsdk_from(Platform::Windows, None, None, None).unwrap_err();
+        assert!(err.contains("qb64rust toolchain install --target wasm"), "{err}");
+    }
+
+    /// Three archives as Emscripten's: the compiler under `install`, Node under its release's folder, and Python
+    /// with its files at the top. Made by Windows' `tar.exe`; each with its `file:///` URL and SHA-256.
+    /// `with_compiler` false leaves `emcc.exe` out, as an archive that is not the SDK's.
+    #[cfg(windows)]
+    fn sdk_archives(dir: &Path, with_compiler: bool) -> Vec<Archive> {
+        let src = dir.join("src");
+        let em = src.join("compiler/install/emscripten");
+        std::fs::create_dir_all(&em).unwrap();
+        std::fs::create_dir_all(src.join("compiler/install/bin")).unwrap();
+        std::fs::write(src.join("compiler/install/bin/clang.exe"), "x").unwrap();
+        for name in ["em++.exe", "emar.exe"] {
+            std::fs::write(em.join(name), "x").unwrap();
+        }
+        if with_compiler {
+            std::fs::write(em.join("emcc.exe"), "x").unwrap();
+        }
+        // As the real archive names its release (measured 2026-11-25).
+        std::fs::write(em.join("emscripten-version.txt"), format!("\"{EMSDK_RELEASE}-git\"\n")).unwrap();
+        std::fs::create_dir_all(src.join("node/node-v24.19.0-win-x64")).unwrap();
+        std::fs::write(src.join("node/node-v24.19.0-win-x64/node.exe"), "x").unwrap();
+        std::fs::create_dir_all(src.join("python/Lib")).unwrap();
+        std::fs::write(src.join("python/python.exe"), "x").unwrap();
+        std::fs::write(src.join("python/Lib/os.py"), "x").unwrap();
+        [
+            ("compiler", vec!["install"], Some("install"), "upstream"),
+            (
+                "node",
+                vec!["node-v24.19.0-win-x64"],
+                Some("node-v24.19.0-win-x64"),
+                "node/24.19.0_64bit",
+            ),
+            ("python", vec!["python.exe", "Lib"], None, "python/3.13.3_64bit"),
+        ]
+        .into_iter()
+        .map(|(name, members, top, into)| {
+            let zip = dir.join(format!("{name}.zip"));
+            let o = Command::new(system_tool("tar.exe").unwrap())
+                .arg("-a")
+                .arg("-cf")
+                .arg(&zip)
+                .arg("-C")
+                .arg(src.join(name))
+                .args(members)
+                .output()
+                .unwrap();
+            assert!(o.status.success(), "{o:?}");
+            Archive {
+                url: file_url(&zip).unwrap(),
+                sha256: sha256_of(&zip).unwrap(),
+                size: std::fs::metadata(&zip).unwrap().len(),
+                top,
+                into,
+            }
+        })
+        .collect()
+    }
+
+    /// Spec `compiler/toolchain`, "The Emscripten SDK is installed on Windows", scenarios "Install" and "Already
+    /// installed": the three parts where `emsdk` puts them, the configuration, the marker last, and a build's
+    /// lookup finds it. The second install downloads nothing (the archives are gone before it runs).
+    #[cfg(windows)]
+    #[test]
+    fn emsdk_install_then_installed_already() {
+        let d = tempfile::tempdir().unwrap();
+        let archives = sdk_archives(d.path(), true);
+        let home = d.path().join("home");
+        let folder = install_emsdk_from(&archives, &home).unwrap();
+        assert_eq!(folder, home.join(EMSDK_FOLDER));
+        for file in [
+            "upstream/emscripten/emcc.exe",
+            "upstream/emscripten/emscripten-version.txt",
+            "upstream/bin/clang.exe",
+            "node/24.19.0_64bit/node.exe",
+            "python/3.13.3_64bit/python.exe",
+            "python/3.13.3_64bit/Lib/os.py",
+        ] {
+            assert!(folder.join(file).is_file(), "{file}");
+        }
+        assert_eq!(
+            std::fs::read(folder.join(".emscripten")).unwrap(),
+            EMSDK_CONFIG.as_bytes()
+        );
+        // The release's own name, as `emsdk install` writes it over the archive's `7.0.0-git`.
+        assert_eq!(
+            std::fs::read(folder.join("upstream/emscripten/emscripten-version.txt")).unwrap(),
+            b"\"7.0.0\"\n"
+        );
+        let sums: String = archives.iter().map(|a| format!("{}\n", a.sha256)).collect();
+        assert_eq!(
+            std::fs::read(folder.join(MARKER)).unwrap(),
+            format!("{EMSDK_FOLDER}\n{sums}").into_bytes()
+        );
+        assert!(!folder.join(".unpacking").exists());
+        assert_eq!(left(&home), [EMSDK_FOLDER, "install.lock"]);
+        let found = find_emsdk_from(Platform::Windows, None, None, Some(&home)).unwrap();
+        // Its own Python is the compiler's, so that none is needed on `PATH`.
+        assert_eq!(found.python, Some(folder.join("python/3.13.3_64bit/python.exe")));
+        assert_eq!((found.root, found.source), (folder.clone(), EmsdkSource::Installed));
+        for zip in ["compiler.zip", "node.zip", "python.zip"] {
+            std::fs::remove_file(d.path().join(zip)).unwrap();
+        }
+        assert_eq!(install_emsdk_from(&archives, &home).unwrap(), folder);
+    }
+
+    /// Scenario "A wrong checksum", here of the second archive: both sums in the message, and nothing left, not
+    /// the first archive's files either.
+    #[cfg(windows)]
+    #[test]
+    fn emsdk_install_wrong_checksum() {
+        let d = tempfile::tempdir().unwrap();
+        let mut archives = sdk_archives(d.path(), true);
+        let (right, wrong) = (archives[1].sha256.clone(), "0".repeat(64));
+        archives[1].sha256.clone_from(&wrong);
+        let home = d.path().join("home");
+        let err = install_emsdk_from(&archives, &home).unwrap_err();
+        assert!(
+            err.contains(&right) && err.contains(&wrong) && err.contains("node.zip"),
+            "{err}"
+        );
+        assert_eq!(left(&home), ["install.lock"]);
+        assert_eq!(emsdk_installed(&home), None);
+    }
+
+    /// Spec `compiler/toolchain`, "An SDK install that does not finish": an unmarked folder is deleted and
+    /// installed whole; a download that fails names the `emsdk` commands and leaves nothing; and two installs at
+    /// once give one.
+    #[cfg(windows)]
+    #[test]
+    fn emsdk_install_that_does_not_finish() {
+        let d = tempfile::tempdir().unwrap();
+        let archives = sdk_archives(d.path(), true);
+        let home = d.path().join("home");
+        let mut missing = archives.clone();
+        missing[2].url = format!("file:///{}/no-such.zip", d.path().to_string_lossy().replace('\\', "/"));
+        let err = install_emsdk_from(&missing, &home).unwrap_err();
+        for part in [
+            "no-such.zip",
+            "emsdk install 7.0.0",
+            "emsdk activate 7.0.0",
+            "--emsdk-root",
+        ] {
+            assert!(err.contains(part), "{part}: {err}");
+        }
+        assert_eq!(left(&home), ["install.lock"]);
+        // An interrupted install: the compiler unpacked, no marker.
+        let partial = fake_emsdk(&home.join(EMSDK_FOLDER), Platform::Windows, EMSDK_RELEASE);
+        std::fs::write(partial.join("half.txt"), "x").unwrap();
+        assert_eq!(emsdk_installed(&home), None);
+        let runs: Vec<_> = (0..2)
+            .map(|_| {
+                let (archives, home) = (archives.clone(), home.clone());
+                std::thread::spawn(move || install_emsdk_from(&archives, &home))
+            })
+            .collect();
+        for r in runs {
+            assert_eq!(r.join().unwrap().unwrap(), home.join(EMSDK_FOLDER));
+        }
+        assert!(!partial.join("half.txt").exists());
+        assert_eq!(left(&home), [EMSDK_FOLDER, "install.lock"]);
+    }
+
+    /// Archives that do not give an SDK (no `emcc.exe`): an error, and no folder that a build would find.
+    #[cfg(windows)]
+    #[test]
+    fn emsdk_install_of_what_is_no_sdk() {
+        let d = tempfile::tempdir().unwrap();
+        let archives = sdk_archives(d.path(), false);
+        let home = d.path().join("home");
+        let err = install_emsdk_from(&archives, &home).unwrap_err();
+        assert!(err.contains("the archives did not give an Emscripten SDK"), "{err}");
+        assert_eq!(left(&home), ["install.lock"]);
+    }
+
+    /// The pinned archives: Emscripten's store, a checksum and a size each, and the folders of the configuration.
+    #[test]
+    fn emsdk_archives_are_pinned() {
+        let archives = emsdk_archives();
+        for a in &archives {
+            assert!(
+                a.url.starts_with("https://storage.googleapis.com/webassembly/"),
+                "{}",
+                a.url
+            );
+            assert!(a.sha256.len() == 64 && a.size > 0, "{a:?}");
+            assert!(EMSDK_CONFIG.contains(a.into), "{}", a.into);
+        }
+        let total: u64 = archives.iter().map(|a| a.size).sum();
+        assert_eq!(total / 1_000_000, EMSDK_DOWNLOAD_MB);
     }
 }

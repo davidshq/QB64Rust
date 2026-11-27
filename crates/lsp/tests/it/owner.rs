@@ -40,6 +40,7 @@ fn owner_of(doc: &Path, open: &[&Path], settings_main: Option<PathBuf>) -> Optio
         folders: &[],
         root: Path::new("no-root"),
         default: Encoding::DEFAULT,
+        project: qb64rust_lsp::no_project_encoding,
     })
 }
 

@@ -19,6 +19,13 @@ pub fn tokenize(bytes: &[u8]) -> Vec<Token> {
         data: false,
     };
     let mut tokens = Vec::new();
+    if bytes.starts_with(crate::encoding::BOM) {
+        tokens.push(Token {
+            kind: ByteOrderMark,
+            len: 3,
+        });
+        lexer.pos = 3;
+    }
     while lexer.pos < bytes.len() {
         let start = lexer.pos;
         let kind = lexer.next_kind();

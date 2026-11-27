@@ -76,9 +76,9 @@ change adds or changes alone; at a merge into `main` `just merge` runs the whole
 The current numbers, written by `python tools\legacy_tests\counts.py` (not by hand):
 
 <!-- counts:verification-membership -->
-Of the 4458 programs of `verification\`, `pass.list` names **4384** and `known.list` 74.
+Of the 4468 programs of `verification\`, `pass.list` names **4394** and `known.list` 74.
 
-Of `pass.list`, 128 differ from QB64pe on purpose and are judged by their `diverged\` output.
+Of `pass.list`, 132 differ from QB64pe on purpose and are judged by their `diverged\` output.
 
 | Reason in `known.list` | Programs |
 |---|---|
@@ -99,6 +99,6 @@ Of `pass.list`, 128 differ from QB64pe on purpose and are judged by their `diver
 <!-- /counts:verification-membership -->
 
 <!-- counts:verification-results -->
-Last full run: 2026-11-14, compiler build `06821b59a04d`, folding on, `--jobs 8`, 27 min. Of 4465 programs: **4393 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 72 known failures (`target\legacy-tests\results-verification.json`).
-`pass.list` judged in it (`--check-list`): **4384 of 4384** pass.
+Last full run: 2026-11-21, compiler build `28d4348528ff`, folding on, `--jobs 8`, 42 min. Of 4475 programs: **4403 pass**, 0 do not (a wrong result, or rejected or with only marked errors where the old compiler accepts the program), 72 known failures (`target\legacy-tests\results-verification.json`).
+`pass.list` judged in it (`--check-list`): **4394 of 4394** pass.
 <!-- /counts:verification-results -->

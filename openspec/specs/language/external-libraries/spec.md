@@ -276,7 +276,11 @@ failure SHALL be reported as the toolchain's output.
 A library FUNCTION and a program SUB of the same name without its suffix, or a library SUB and a program
 FUNCTION, SHALL compile as in the old compiler: the name as a statement SHALL call the SUB, and the name as a
 value, with its suffix or without, SHALL call the FUNCTION, whichever of the two is the library's (measured,
-`verification\v57_l01`–`l04`).
+`verification\v57_l01`–`l04`). The same SHALL hold for a library SUB and a library FUNCTION of one name, in one
+block in either order or in two blocks (measured, `verification\v37_x71`–`x73`). A third procedure of the name
+SHALL be "Name already in use" (`v37_x74`). Where the pair's C function gets a prototype from a plain or `STATIC`
+block without a header, the old compiler's C++ fails: that SHALL be a compile error at the second declaration
+(`v37_x75`). A `CUSTOMTYPE` block without a header builds the pair (`v37_x76`).
 
 #### Scenario: A library FUNCTION and a program SUB
 - **WHEN** a `DECLARE LIBRARY` block declares `FUNCTION h_l& (BYVAL v AS LONG)` and the program defines `SUB h_l`
@@ -291,6 +295,21 @@ value, with its suffix or without, SHALL call the FUNCTION, whichever of the two
 - **WHEN** a `DECLARE LIBRARY` block declares `SUB h_v (BYVAL v AS LONG)`, the program defines `FUNCTION h_v&`, and
   the program runs `h_v 3` and prints `h_v&(2)`
 - **THEN** the statement calls the library SUB and the value is the program FUNCTION's (`verification\v57_l03`)
+
+#### Scenario: A library SUB and a library FUNCTION
+- **WHEN** one block declares `SUB h_l (BYVAL v AS LONG)` and `FUNCTION h_l& (BYVAL v AS LONG)`, in either order,
+  and the program runs `h_l 1` and `CALL h_l(2)` and prints `h_l&(3)` and `h_l(4)`
+- **THEN** it compiles, both statements call the C function and discard its result, and the values are 4 and 5
+  (`verification\v37_x71`, `x72`; Toolbox64's `DS\HashTable.bi` and `Audio\OPL3X.bi`)
+
+#### Scenario: A third procedure of the name
+- **WHEN** a block declares that SUB and FUNCTION and the program also defines `FUNCTION h_l&`
+- **THEN** compiling it fails with "Name already in use" (`verification\v37_x74`)
+
+#### Scenario: The pair in a block without a header
+- **WHEN** a block names `"./v37c"`, a library with no header, and declares `SUB c_add` and then `FUNCTION c_add&`
+- **THEN** compiling it fails before the C++, with an error at the FUNCTION's line that names `c_add`
+  (`verification\v37_x75`; the old compiler's C++ fails)
 
 ### Requirement: $USELIBRARY
 `$USELIBRARY:'author/library'` SHALL read the descriptor `libraries\descriptors\author\library.ini` under the

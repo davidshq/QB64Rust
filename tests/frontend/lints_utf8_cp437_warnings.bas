@@ -1,0 +1,2 @@
+' TEST: warnings
+PRINT "Ä"

@@ -31,8 +31,40 @@ describe("new project", () => {
         assert.ok(fs.readFileSync(main, "utf8").startsWith("PRINT "));
         const toml = fs.readFileSync(path.join(folder, "qb64rust.toml"), "utf8");
         assert.match(toml, /^\[fixes\]\nall = true$/m);
-        const open = vscode.window.activeTextEditor?.document.uri.fsPath;
-        assert.strictEqual(open?.toLowerCase(), main.toLowerCase());
+        assert.match(toml, /^\[project\]\nencoding = "utf-8"$/m);
+        const settings = JSON.parse(fs.readFileSync(path.join(folder, ".vscode", "settings.json"), "utf8"));
+        assert.deepStrictEqual(settings, { "[qb64rust]": { "files.encoding": "utf8" } });
+        const open = vscode.window.activeTextEditor?.document;
+        assert.strictEqual(open?.uri.fsPath.toLowerCase(), main.toLowerCase());
+        assert.strictEqual(open?.encoding, "utf8");
+    });
+
+    it("writes nothing into a folder that holds .vscode/settings.json, and names it", async () => {
+        const folder = freshFolder("new-project-settings-taken");
+        fs.mkdirSync(path.join(folder, ".vscode"));
+        fs.writeFileSync(path.join(folder, ".vscode", "settings.json"), "{}\n");
+        const result = await newProject(folder);
+        assert.ok(result && "message" in result && result.message.includes("settings.json"), JSON.stringify(result));
+        assert.ok(!fs.existsSync(path.join(folder, "main.bas")));
+        assert.strictEqual(fs.readFileSync(path.join(folder, ".vscode", "settings.json"), "utf8"), "{}\n");
+    });
+
+    it("a box-drawing character typed into the new main.bas is saved as UTF-8 and built as one character", async function () {
+        const folder = freshFolder("new-project-utf8");
+        await newProject(folder);
+        const editor = vscode.window.activeTextEditor;
+        assert.ok(editor);
+        const whole = new vscode.Range(0, 0, editor.document.lineCount, 0);
+        await editor.edit((e) => e.replace(whole, 'PRINT "─"\r\n'));
+        assert.ok(await editor.document.save());
+        const main = path.join(folder, "main.bas");
+        assert.deepStrictEqual([...fs.readFileSync(main)], [...Buffer.from('PRINT "─"\r\n', "utf8")]);
+        if (!server) {
+            this.skip();
+        }
+        // The string holds the one code page 437 byte of `─`, which the program's screen draws as `─`.
+        const out = execFileSync(server, ["--dump", "ir", "main.bas"], { cwd: folder, encoding: "utf8" });
+        assert.ok(out.includes('Str Const "\\xC4"'), out);
     });
 
     it("writes nothing into a folder that holds main.bas, and names it", async () => {

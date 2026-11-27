@@ -475,7 +475,7 @@ mod tests {
             "p.bas",
             &std::collections::HashMap::new(),
             &crate::Resolved::default(),
-            (None, None),
+            crate::Watch::default(),
             None,
             &files,
         );

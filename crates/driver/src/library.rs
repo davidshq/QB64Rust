@@ -600,6 +600,8 @@ pub fn resolve(fe: &mut Frontend, places: &Places) -> Resolved {
     let mut handles: Vec<(String, Option<PathBuf>, &str)> = Vec::new();
     let program = &fe.program;
     let diags = &mut fe.diagnostics;
+    // The blocks whose names already gave an error, which the check of the prototypes leaves alone.
+    let mut failed_blocks = Vec::new();
     for (i, lib) in program.libraries.iter().enumerate() {
         let mut found = ResolvedLibrary::default();
         resolved.libraries.push(ResolvedLibrary::default());
@@ -662,6 +664,7 @@ pub fn resolve(fe: &mut Frontend, places: &Places) -> Resolved {
             }
         }
         if failed {
+            failed_blocks.push(i);
             continue;
         }
         if lib.kind == LibraryKind::Dynamic
@@ -753,7 +756,80 @@ pub fn resolve(fe: &mut Frontend, places: &Places) -> Resolved {
         }
         resolved.libraries[i] = found;
     }
+    check_prototypes(program, &resolved, &failed_blocks, diags);
     resolved
+}
+
+/// A SUB and a FUNCTION of one C function, where a plain or `STATIC` block without a header writes a prototype for
+/// one of them: the prototypes, or a prototype and the header, give the function two result types, and the C++
+/// fails, as the old compiler's does (measured, `verification\v37_x75`; a header and a prototype, `x77`). The error is at the first declaration of
+/// the second kind. With headers only there is no prototype, and both build (`x71`–`x73`); a `CUSTOMTYPE` block
+/// declares the function as `void` for each and calls it through pointers of their own (`x76`).
+fn check_prototypes(
+    program: &qb64rust_sema::Program,
+    resolved: &Resolved,
+    failed_blocks: &[usize],
+    diags: &mut qb64rust_base::Diagnostics,
+) {
+    let mut by_c_name: HashMap<&str, Vec<ProcId>> = HashMap::new();
+    for (p, q) in program.procs.iter().enumerate() {
+        let Some(e) = &q.external else { continue };
+        let i = e.library.0 as usize;
+        let kind = program.libraries[i].kind;
+        if matches!(kind, LibraryKind::Plain | LibraryKind::Static) && !failed_blocks.contains(&i) {
+            by_c_name
+                .entry(&e.c_name)
+                .or_default()
+                .push(ProcId(qb64rust_base::to_u32(p)));
+        }
+    }
+    let prototyped = |p: ProcId| {
+        let i = program
+            .proc(p)
+            .external
+            .as_ref()
+            .expect("a library procedure")
+            .library
+            .0 as usize;
+        !program.libraries[i].names.is_empty() && resolved.libraries.get(i).is_none_or(|l| l.headers.is_empty())
+    };
+    let mut found: Vec<ProcId> = Vec::new();
+    for ids in by_c_name.values() {
+        let sub = |p: ProcId| matches!(program.proc(p).kind, qb64rust_sema::ProcKind::Sub);
+        let Some(&first) = ids.first() else { continue };
+        let Some(&other) = ids.iter().find(|&&p| sub(p) != sub(first)) else {
+            continue;
+        };
+        if ids.iter().any(|&p| prototyped(p)) {
+            found.push(other);
+        }
+    }
+    // In the order of the declarations, so that the errors do not depend on the map's order.
+    found.sort_by_key(|other| other.0);
+    for other in found {
+        let Some(span) = program
+            .symbols
+            .iter()
+            .find(|(_, s)| s.kind == qb64rust_sema::SymbolKind::Proc(other))
+            .map(|(_, s)| s.def)
+        else {
+            continue;
+        };
+        let (a, b) = match program.proc(other).kind {
+            qb64rust_sema::ProcKind::Sub => ("SUB", "FUNCTION"),
+            qb64rust_sema::ProcKind::Function(_) => ("FUNCTION", "SUB"),
+        };
+        let e = program.proc(other).external.as_ref().expect("a library procedure");
+        diags.error(
+            span,
+            format!(
+                "this {a} and an earlier {b} are one C function, `{}`, and a block without a header gives each a \
+                 prototype of its own, so the C++ fails, as the old compiler's does; declare the function once, or \
+                 name a header that declares it",
+                e.c_name
+            ),
+        );
+    }
 }
 
 /// A header found again: an error if it has no guard and defines something, since it is then included twice and

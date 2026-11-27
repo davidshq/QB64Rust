@@ -39,6 +39,9 @@ pub struct CompileOptions {
     pub coverage: bool,
     /// `--trace-values`: a record call at each store into a variable (OpenSpec change `value-trace`).
     pub trace: bool,
+    /// A call stack in a runtime error's message (OpenSpec change `call-trace`): `--call-trace`, `[build]`
+    /// `call_trace`, or `--debug`, as `settings::Build::call_trace` decides.
+    pub call_trace: bool,
     pub debug: bool,
     /// `-w`.
     pub warnings: bool,
@@ -57,6 +60,9 @@ pub struct CompileOptions {
     /// The files a window program's page ships, with their paths in the output folder: those of `[build]` `copy`
     /// in a build without `-o` (`output::copied_files`), else none (design D11 of `wasm-window`).
     pub page_files: Vec<(String, PathBuf)>,
+    /// A build without `-o`: a window program of the wasm target is written into a web folder (OpenSpec change
+    /// `wasm-publish`, design D1).
+    pub web: bool,
 }
 
 impl CompileOptions {
@@ -179,6 +185,7 @@ pub fn compile_exe(
     let instrument = Instrument {
         coverage: o.coverage,
         trace: o.trace,
+        call_trace: o.call_trace,
     };
     // Warnings only with -w, never counted in the summary (spec `compiler/cli`).
     let report = |fe: &Frontend, out: &mut dyn FnMut(&str)| {
@@ -228,6 +235,14 @@ pub fn compile_exe(
     if platform == Platform::Wasm && ir.settings.window {
         settings.wasm_files = o.page_files.clone();
     }
+    // A window program built without `-o` goes into the web folder, `web` in the output folder, which is uploaded
+    // whole (OpenSpec change `wasm-publish`, design D1). Only the lowered program says whether it has a window.
+    settings.web = platform == Platform::Wasm && ir.settings.window && o.web;
+    let script = match exe.file_name() {
+        Some(name) if settings.web => build::web_folder(exe).join(name),
+        _ => exe.clone(),
+    };
+    let page = script.with_file_name(build::WASM_INDEX);
     settings.uncached = ir.settings.compile_stamp;
     // A log statement names a relative source file from the working folder, as the old compiler does from its
     // start folder (design D2 of `m4-handlers-logging-checking`).
@@ -251,6 +266,14 @@ pub fn compile_exe(
     // Before any step that can fail, so a failed build never leaves an older executable or symbol file behind.
     if !o.print_build_inputs {
         remove_old();
+        if settings.web {
+            self::remove_old(&script, platform);
+            let _ = std::fs::remove_file(&page);
+            // The page an earlier version wrote beside the script (OpenSpec change `wasm-window`).
+            let _ = std::fs::remove_file(exe.with_extension("html"));
+            let folder = build::web_folder(exe);
+            std::fs::create_dir_all(&folder).map_err(|e| format!("creating {}: {e}", folder.display()))?;
+        }
     }
     if !Platform::host_is_supported() {
         return Err(
@@ -306,7 +329,7 @@ pub fn compile_exe(
         out(&format!("{key}\n"));
         return Ok(true);
     }
-    if let Err(e) = build::build(&roots, &build_dir, exe, o.quiet, &settings) {
+    if let Err(e) = build::build(&roots, &build_dir, &script, o.quiet, &settings) {
         // A failure that names only library functions is the program's (design D4 of `cpp-failure-errors`): its
         // errors as the front end's, with the summary; the build folder goes as after a build that worked.
         if let build::BuildError::Toolchain { output, .. } = &e
@@ -344,7 +367,9 @@ pub fn compile_exe(
         let _ = std::fs::remove_dir_all(&build_dir);
     }
     if !o.quiet {
-        out(&format!("{}\n", Path::new(exe).display()));
+        // A web folder is named by its page (spec `compiler/cli`, "The output of a wasm build").
+        let written = if settings.web { &page } else { exe };
+        out(&format!("{}\n", written.display()));
     }
     Ok(true)
 }

@@ -5,7 +5,9 @@
 //! its lint's code (design D2).
 
 use crate::consteval::Value;
-use crate::{Place, ProcId, ProcKind, Program, RunTarget, Stmt, StmtKind, Storage, SymbolKind, Ty, VarId};
+use crate::{
+    Arg, Place, ProcId, ProcKind, Program, RunTarget, Stmt, StmtArg, StmtKind, Storage, SymbolKind, Ty, VarId,
+};
 use qb64rust_base::{Diagnostic, Diagnostics, FileId, SourceMap, Span, show_bytes, to_u32};
 use qb64rust_syntax::tree::Node;
 use qb64rust_syntax::{ParsedProgram, SyntaxKind};
@@ -21,6 +23,11 @@ pub const UNUSED_LABEL: &str = "unused-label";
 pub const HIDES_SHARED: &str = "hides-shared";
 /// Statements after one that always leaves its statement list.
 pub const UNREACHABLE: &str = "unreachable";
+/// A file that declares no encoding, is UTF-8, and holds a byte above 127 in a string (OpenSpec change
+/// `utf8-source`, design D7).
+pub const UNDECLARED_UTF8: &str = "undeclared-utf8";
+/// A BASIC PDS 7.1 function called with no argument, which QB64 reads as a variable that is never set.
+pub const PDS_FUNCTION: &str = "pds-function";
 
 /// QB64pe's "Unused variable" (design D11).
 pub const UNUSED_VARIABLE: &str = "unused-variable";
@@ -38,6 +45,8 @@ pub const CODES: &[&str] = &[
     UNUSED_LABEL,
     HIDES_SHARED,
     UNREACHABLE,
+    UNDECLARED_UTF8,
+    PDS_FUNCTION,
     UNUSED_VARIABLE,
     EMPTY_SELECT,
     DUPLICATE_CONST,
@@ -49,7 +58,8 @@ pub const CODES: &[&str] = &[
 pub(crate) fn run(prog: &Program, parsed: &ParsedProgram, map: &SourceMap, main: FileId, diags: &mut Diagnostics) {
     let inactive = inactive_words(parsed, map);
     let mut ours: Vec<Lint> = Vec::new();
-    used_once(prog, map, &inactive, &mut ours);
+    let (pds, pds_vars) = pds_functions(prog, map);
+    used_once(prog, map, &inactive, &pds_vars, &mut ours);
     unused_procedures(prog, map, main, &inactive, &mut ours);
     unused_labels(prog, map, &inactive, &mut ours);
     hides_shared(prog, map, &mut ours);
@@ -60,12 +70,193 @@ pub(crate) fn run(prog: &Program, parsed: &ParsedProgram, map: &SourceMap, main:
             diags.push(Diagnostic::lint(span, code, msg));
         }
     }
+    // For every file of the program (spec `compiler/lints`, "Only the file being compiled").
+    for (span, code, msg) in undeclared_utf8(parsed, map) {
+        diags.push(Diagnostic::lint(span, code, msg));
+    }
+    for (span, code, msg) in pds {
+        diags.push(Diagnostic::lint(span, code, msg));
+    }
     // QB64pe's warnings, wherever QB64pe gives them, included files too.
     let mut theirs = unused_variables(prog, map);
     theirs.extend(prog.qb64pe_warnings.iter().cloned());
     for (span, code, msg) in theirs {
         diags.push(Diagnostic::lint(span, code, msg));
     }
+}
+
+/// `undeclared-utf8` (spec `compiler/lints`, "UTF-8 text in a file that declares nothing"; design D7 of
+/// `utf8-source`): one warning for each file that has no `'$ENCODING` line and no settings file's `encoding`,
+/// whose bytes are all UTF-8, at its first string literal or `DATA` text that holds a byte above 127. It names
+/// how many characters the first such character is in the program, which reads it as code page 437.
+fn undeclared_utf8(parsed: &ParsedProgram, map: &SourceMap) -> Vec<Lint> {
+    let mut out = Vec::new();
+    let mut seen = HashSet::new();
+    for tree in &parsed.trees {
+        let file = tree.file;
+        let declared = qb64rust_syntax::encoding::file_encoding(map, file, tree.encoding).by;
+        if !seen.insert(file) || declared != qb64rust_syntax::encoding::DeclaredBy::Nothing {
+            continue;
+        }
+        let bytes = &map.file(file).bytes;
+        if bytes.is_ascii() || qb64rust_base::cp437::first_bad_utf8(bytes).is_some() {
+            continue;
+        }
+        let first = tree.root().tokens().into_iter().find_map(|t| {
+            if !matches!(t.kind, SyntaxKind::StringLit | SyntaxKind::DataText) {
+                return None;
+            }
+            let text = map.text(t.span);
+            let i = text.iter().position(|&b| b > 127)?;
+            let (ch, len) = qb64rust_base::cp437::next_char(&text[i..])?;
+            Some((t.span, ch, len))
+        });
+        let Some((span, ch, len)) = first else {
+            continue;
+        };
+        out.push((
+            span,
+            UNDECLARED_UTF8,
+            format!(
+                "this file looks like UTF-8 but is read as code page 437, so `{ch}` is {len} characters in the \
+                 program: declare it with a line `'$ENCODING:UTF8` or with `encoding = \"utf-8\"` under \
+                 `[project]` in `qb64rust.toml`"
+            ),
+        ));
+    }
+    out
+}
+
+/// The BASIC PDS 7.1 functions that a program can call with no argument, as written. PDS 7.1 reads each bare
+/// name as its function (`verification\qb45\q45_pds_bare_functions`). QB64pe has none of them, and builds each
+/// bare name as a variable with no message (`verification\v75_b1_pds_bare_functions`).
+const PDS_FUNCTIONS: &[&str] = &["CURDIR$", "DIR$", "STACK", "SAVEPOINT"];
+
+/// The [`PDS_FUNCTIONS`] name at `span`, if it is one: the name as written, in any letter case.
+fn pds_function(map: &SourceMap, span: Span) -> Option<&'static str> {
+    let name = written(map, span).to_ascii_uppercase();
+    PDS_FUNCTIONS.iter().copied().find(|n| *n == name)
+}
+
+/// The value a variable of type `ty` holds when nothing sets it, as the warning writes it: none for a fixed-length
+/// string or a user type, which an implicit variable never is.
+fn never_set_value(ty: Ty) -> Option<&'static str> {
+    match ty {
+        Ty::Str => Some("\"\""),
+        Ty::FixedStr(_) | Ty::User(_) => None,
+        Ty::I8
+        | Ty::U8
+        | Ty::I16
+        | Ty::U16
+        | Ty::I32
+        | Ty::U32
+        | Ty::I64
+        | Ty::U64
+        | Ty::Off
+        | Ty::UOff
+        | Ty::Bit { .. }
+        | Ty::F32
+        | Ty::F64
+        | Ty::F80 => Some("0"),
+    }
+}
+
+/// The variables a statement of the program may set: the place of an assignment, `FOR`, `INPUT`, `READ`, `LSET`,
+/// `FIELD` or `_MEMGET`, a place a built-in statement stores into or exchanges (`SWAP`, `MID$`), the variable of a
+/// file's `GET`, and a variable passed by reference to a SUB that sets its parameter, or to a `DECLARE LIBRARY`
+/// routine, which cannot be looked into. A parameter passed on to another SUB is followed. A FUNCTION call inside
+/// an expression is not looked into.
+fn set_vars(prog: &Program) -> HashSet<VarId> {
+    let mut set = HashSet::new();
+    // A variable passed by reference to a SUB, and the parameter it is passed as.
+    let mut passed: Vec<(VarId, VarId)> = Vec::new();
+    each_list(prog, &mut |list| {
+        for s in list {
+            if let StmtKind::Assign { place, .. }
+            | StmtKind::For { var: place, .. }
+            | StmtKind::Lset { target: place, .. } = &s.kind
+            {
+                set.insert(place.root());
+            } else if let StmtKind::Input { targets, .. } | StmtKind::Read(targets) = &s.kind {
+                set.extend(targets.iter().map(Place::root));
+            } else if let StmtKind::Field { parts, .. } = &s.kind {
+                set.extend(parts.iter().map(|(p, _)| p.root()));
+            } else if let StmtKind::MemGet { target, .. } = &s.kind {
+                set.insert(target.root());
+            } else if let StmtKind::Call { proc, args } = &s.kind {
+                let p = prog.proc(*proc);
+                if p.external.is_some() {
+                    set.extend(args.iter().filter_map(Arg::root));
+                } else {
+                    passed.extend(args.iter().zip(&p.params).filter_map(|(a, &q)| Some((a.root()?, q))));
+                }
+            } else if let StmtKind::Builtin { id, args } = &s.kind {
+                // `PUT` takes its variable's bytes as `GET` does, but only reads them.
+                let get = id.get().name.eq_ignore_ascii_case("GET");
+                for a in args {
+                    if let StmtArg::Place(p) = a {
+                        set.insert(p.root());
+                    } else if let StmtArg::Bytes(p) = a
+                        && get
+                    {
+                        set.insert(p.root());
+                    }
+                }
+            }
+        }
+    });
+    // Each round adds the variables passed as a parameter that is set; the set only grows, so this ends.
+    loop {
+        let before = set.len();
+        for &(var, param) in &passed {
+            if set.contains(&param) {
+                set.insert(var);
+            }
+        }
+        if set.len() == before {
+            return set;
+        }
+    }
+}
+
+/// `pds-function` (spec `compiler/lints`, "A BASIC PDS 7.1 function read as a variable"): each name of a scalar
+/// variable that no declaration made, that no statement sets ([`set_vars`]), and that is written as one of
+/// [`PDS_FUNCTIONS`]. A program ported from PDS that calls `CURDIR$` builds without it, so the warning goes at
+/// every use, in every file: each is a call to replace. A variable the program sets is its own. Also gives the
+/// variables reported, which get no `used-once`.
+fn pds_functions(prog: &Program, map: &SourceMap) -> (Vec<Lint>, HashSet<VarId>) {
+    let mut out = Vec::new();
+    let mut reported = HashSet::new();
+    let mut set = None;
+    for (_, s) in prog.symbols.iter() {
+        let SymbolKind::Var(v) = s.kind else { continue };
+        let var = prog.var(v);
+        if !var.implicit || var.is_array() {
+            continue;
+        }
+        let Some(name) = pds_function(map, s.def) else {
+            continue;
+        };
+        if set.get_or_insert_with(|| set_vars(prog)).contains(&v) {
+            continue;
+        }
+        let msg = match never_set_value(var.ty) {
+            Some(value) => format!(
+                "`{name}` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never \
+                 set, so it is always {value}"
+            ),
+            None => format!(
+                "`{name}` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never \
+                 set"
+            ),
+        };
+        for &at in std::iter::once(&s.def).chain(&s.refs) {
+            out.push((at, PDS_FUNCTION, msg.clone()));
+        }
+        reported.insert(v);
+    }
+    out.sort_by_key(|(at, _, _)| (at.file, at.start));
+    (out, reported)
 }
 
 /// A constant's value as QB64pe's "Duplicate constant definition" shows it (`qb64pe.bas` 2662–2679): an integer
@@ -304,8 +495,9 @@ fn each_list<'p>(prog: &'p Program, f: &mut impl FnMut(&'p [Stmt])) {
 
 /// `used-once` (design D4): a variable made by its first use whose name occurs nowhere else. A `FOR` counter and an
 /// `INPUT`, `LINE INPUT` or `READ` target are left out: a loop with a bare `NEXT`, a wait for Enter and a `DATA`
-/// item skipped name them once. So is a name of a skipped `$IF` branch.
-fn used_once(prog: &Program, map: &SourceMap, inactive: &HashSet<String>, out: &mut Vec<Lint>) {
+/// item skipped name them once. So is a name of a skipped `$IF` branch, and a variable in `pds`, which gets
+/// `pds-function` instead.
+fn used_once(prog: &Program, map: &SourceMap, inactive: &HashSet<String>, pds: &HashSet<VarId>, out: &mut Vec<Lint>) {
     let mut exempt = HashSet::new();
     each_list(prog, &mut |list| {
         for s in list {
@@ -322,6 +514,7 @@ fn used_once(prog: &Program, map: &SourceMap, inactive: &HashSet<String>, out: &
             && s.refs.is_empty()
             && !exempt.contains(&v)
             && !in_inactive(map, s.def, inactive)
+            && !pds.contains(&v)
         {
             let msg = format!("`{}` is used only once: is it misspelled?", written(map, s.def));
             out.push((s.def, USED_ONCE, msg));

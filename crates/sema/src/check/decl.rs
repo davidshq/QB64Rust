@@ -39,8 +39,8 @@ pub(super) enum AsPlace {
     Param,
     /// `_DEFINE`.
     Define,
-    /// Any other: a name that is no type stays "not supported yet".
-    Other,
+    /// A `REDIM` of a member array (`REDIM x.d(5) AS t`).
+    MemberRedim,
 }
 
 /// How an `AS` clause names no type.
@@ -54,6 +54,8 @@ enum NoType {
     Sized,
     /// `_UNSIGNED` before a name that is no type word.
     Unsigned,
+    /// `_UNSIGNED` before a name that is no type word, with `* n`.
+    UnsignedSized,
 }
 
 impl Checker<'_> {
@@ -312,7 +314,7 @@ impl Checker<'_> {
                 // Measured: `_UNSIGNED STRING * n` is a `STRING * n` (`v21_c_fixed_basics`).
                 "STRING" => Ok(Ty::FixedStr(self.fixed_len_of(size, consts)?)),
                 _ if !unsigned => Err(self.no_type(span, &words, place, NoType::Sized)),
-                _ => Err(self.no_type(span, &words, place, NoType::Unsigned)),
+                _ => Err(self.no_type(span, &words, place, NoType::UnsignedSized)),
             };
         }
         if text == "STRING" {
@@ -362,17 +364,26 @@ impl Checker<'_> {
             // "Unknown type" (`x65`, `x66`, `x76`–`x78`).
             (AsPlace::Decl, NoType::Sized) => format!("only `STRING` and `_BIT` take `* n`, not `{shown}`"),
             // "Type cannot be _UNSIGNED" (`x68`, `x71`, `x84` with `* n`), as for a float.
-            (AsPlace::Decl, NoType::Unsigned) => {
+            (AsPlace::Decl, NoType::Unsigned | NoType::UnsignedSized) => {
                 let text = split_unsigned(words).1.join(" ");
                 format!("`{text}` cannot be `_UNSIGNED`")
             }
-            // "Cannot convert type (_BYTEF) to symbol" (`x61`, and `x82` for `_DEFINE`).
-            (AsPlace::Shared, NoType::Plain) => format!("the type `{shown}` of a `SHARED` name is no type"),
-            (AsPlace::Define, NoType::Plain) => format!("the type `{shown}` of `_DEFINE` is no type"),
+            // "Cannot convert type (_BYTEF) to symbol" (`x61`, and `x82` for `_DEFINE`), also after `_UNSIGNED`
+            // ("Cannot convert type (_UNSIGNED NOSUCH) to symbol", `verification\v66_c09`, `c11`).
+            (AsPlace::Shared, NoType::Plain | NoType::Unsigned) => {
+                format!("the type `{shown}` of a `SHARED` name is no type")
+            }
+            (AsPlace::Define, NoType::Plain | NoType::Unsigned) => {
+                format!("the type `{shown}` of `_DEFINE` is no type")
+            }
             // "Illegal SUB/FUNCTION parameter", also of a library procedure and an array parameter (`x63`, `x69`,
-            // `x74`, `x87`, `x89`).
-            (AsPlace::Param, NoType::Plain | NoType::Glued) => {
+            // `x74`, `x87`, `x89`), and after `_UNSIGNED` (`verification\v66_c10`).
+            (AsPlace::Param, NoType::Plain | NoType::Glued | NoType::Unsigned) => {
                 format!("the type `{shown}` of a parameter is no type")
+            }
+            // "Undefined type", of a `_DYNAMIC` member array and of a fixed one (`verification\v66_c08`, `v75_a1`).
+            (AsPlace::MemberRedim, NoType::Plain) => {
+                format!("the type `{shown}` of a member array's `REDIM` is no type")
             }
             _ => {
                 let msg = format!("the type `{shown}`");

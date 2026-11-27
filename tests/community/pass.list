@@ -824,6 +824,7 @@ mplayer64/toolbox64/Audio/OPL3.bas
 mplayer64/toolbox64/Audio/SoftSynth.bas
 mplayer64/toolbox64/CLI/Args.bas
 mplayer64/toolbox64/Config/Ini.bas
+mplayer64/toolbox64/DS/HashTable.bas
 mplayer64/toolbox64/DS/MemFile.bas
 mplayer64/toolbox64/DS/StringFile.bas
 mplayer64/toolbox64/Debug/Test.bas
@@ -839,6 +840,8 @@ mplayer64/toolbox64/IO/StandardIO.bas
 mplayer64/toolbox64/Resource/Base64.bas
 mplayer64/toolbox64/Resource/SAUCE.bas
 mplayer64/toolbox64/String/StringOps.bas
+mplayer64/toolbox64/Video/GIFPlay.bas
+mplayer64/toolbox64/tests/test_basic.bas
 mszp/functions.bas
 p5js.bas/Samples/2D Rendering/arc.bas
 p5js.bas/Samples/2D Rendering/bezier.bas
@@ -897,6 +900,7 @@ particle-life/include/Audio/AudioVisualizer.bas
 particle-life/include/Audio/MIDIIO.bas
 particle-life/include/Audio/OPL3.bas
 particle-life/include/Audio/SoftSynth.bas
+particle-life/include/DS/HashTable.bas
 particle-life/include/DS/MemFile.bas
 particle-life/include/DS/StringFile.bas
 particle-life/include/Graphics/ANSIPrint.bas
@@ -3053,9 +3057,12 @@ software-3d-perspective-correct-textured-triangles/Skybox/TwinTextureTriangles.b
 spaceshooter2k/SpaceShooter2k.bas
 spaceshooter2k/include/Audio/AudioVisualizer.bas
 spaceshooter2k/include/Audio/MIDIIO.bas
+spaceshooter2k/include/DS/HashTable.bas
 spaceshooter2k/include/DS/MemFile.bas
 spaceshooter2k/include/Debug/Test.bas
+spaceshooter2k/include/tests/test_basic.bas
 spaceshooter2k/include/tests/test_gui.bas
+spaceshooter2k/include/tests/test_opl3x.bas
 srt-stats-monitor/modifications/resources/basimage/basimage.bas
 tcpip-experiments/inform-host-client/InForm/InFormVersion.bas
 tcpip-experiments/simple-host-client/tcpip.bas
@@ -3063,15 +3070,20 @@ tcpip-experiments/windowing-host-client/windowingClient.bas
 tcpip-experiments/windowing-host-client/windowingHost.bas
 toolbox64/Audio/AudioVisualizer.bas
 toolbox64/Audio/MIDIIO.bas
+toolbox64/DS/HashTable.bas
 toolbox64/DS/MemFile.bas
 toolbox64/Debug/Test.bas
+toolbox64/tests/test_basic.bas
 toolbox64/tests/test_gui.bas
+toolbox64/tests/test_opl3x.bas
 tui/tui.bas
 vga-font-editor/VGAFontEditor.bas
 vga-font-editor/bin2psf.bas
 vga-font-editor/include/Audio/AudioVisualizer.bas
 vga-font-editor/include/Audio/MIDIIO.bas
 vga-font-editor/include/Audio/OPL3.bas
+vga-font-editor/include/DS/HashTable.bas
 vga-font-editor/include/DS/MemFile.bas
 vga-font-editor/include/Debug/Test.bas
+vga-font-editor/include/tests/test_basic.bas
 vga-font-editor/include/tests/test_gui.bas

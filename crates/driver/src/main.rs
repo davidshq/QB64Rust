@@ -3,7 +3,8 @@
 //! `qb64rust [-x] [-q] [-m] [-w] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>]
 //! [--dump tokens|tree|typed|ir|cpp|debug-info]
 //! [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] [--keep-build]
-//! [--coverage] [--trace-values] [--debug] [--fixes on|off] [--fix <name>=on|off]... [--target host|wasm]`
+//! [--coverage] [--trace-values] [--debug] [--call-trace|--no-call-trace] [--fixes on|off] [--fix <name>=on|off]...
+//! [--target host|wasm]`
 //!
 //! `--target wasm` (experimental) builds a `$CONSOLE:ONLY` program to `<name>.js` and `<name>.wasm` for Node (spec
 //! `compiler/cli`, "The target option"; OpenSpec change `wasm-console`), with the Emscripten SDK of `--emsdk-root
@@ -45,8 +46,8 @@ use std::sync::Mutex;
 
 const USAGE: &str = "usage: qb64rust [-x|-c] [-q] [-m] [-w] [-e] [-p] [-z|--print-build-inputs] [-f:<setting>=<value>]... <file.bas> [-o <exe>] \
 [--dump tokens|tree|typed|ir|cpp|debug-info] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] \
-[--include-root <dir>] [--keep-build] [--coverage] [--trace-values] [--debug] [--fixes on|off] \
-[--fix <name>=on|off]... [--lints on|off] [--lint <code>=on|off]... [--no-settings] [--target host|wasm] \
+[--include-root <dir>] [--keep-build] [--coverage] [--trace-values] [--debug] [--call-trace|--no-call-trace] \
+[--fixes on|off] [--fix <name>=on|off]... [--lints on|off] [--lint <code>=on|off]... [--no-settings] [--target host|wasm] \
 [--emsdk-root <dir>]\n\
        (--target wasm is experimental: a $CONSOLE:ONLY program built to <name>.js and <name>.wasm, run by node)\n\
        qb64rust -y [-q] [-m] [-w] [-f:<layout setting>=<value>]... [--format-default <layout setting>=<value>]... \
@@ -62,18 +63,30 @@ it runs in, as JSON)\n\
 it from the release's zip; on Linux names the packages)\n\
        qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)\n\
        qb64rust toolchain path --target wasm [--emsdk-root <dir>]    (the Emscripten SDK a wasm build would use)\n\
-       qb64rust toolchain install --target wasm    (how to install the Emscripten SDK; installs nothing)\n\
+       qb64rust toolchain install --target wasm    (downloads and installs the Emscripten SDK; on Linux names \
+the emsdk commands)\n\
        qb64rust test [<file or folder>...] [--list] [--filter <text>]... [--jobs <n>] [--timeout <seconds>] \
 [--format text|json] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
-[--fixes on|off] [--fix <name>=on|off]... [--no-settings] [--coverage]    (runs the test SUBs of *_test.bas files)\n\
+[--fixes on|off] [--fix <name>=on|off]... [--no-settings] [--coverage] [--call-trace|--no-call-trace]    (runs the \
+test SUBs of *_test.bas files)\n\
+       qb64rust convert --to utf8|cp437 <file>...    (rewrites source files from code page 437 to UTF-8, or back)\n\
+       qb64rust serve [<folder>|<file.bas>] [--port <n>] [--open] [--no-headers]    (serves a web folder of a \
+--target wasm build on 127.0.0.1, as a web host must serve it)\n\
        qb64rust --version | --help";
+
+/// The usage of `qb64rust serve` (spec `compiler/cli`, "Serve subcommand").
+const SERVE_USAGE: &str = "usage: qb64rust serve [<folder>|<file.bas>] [--port <n>] [--open] [--no-headers]    (serves \
+the web folder of a --target wasm build on 127.0.0.1 with the two headers a page needs for threads; without an \
+argument build/web of the current folder; --open opens the browser; --no-headers serves as a host that cannot send \
+the headers)";
 
 /// The usage of `qb64rust toolchain` (spec `compiler/cli`, "Toolchain subcommand").
 const TOOLCHAIN_USAGE: &str = "usage: qb64rust toolchain install [--from-zip <zip>]    (downloads and installs the \
 C++ toolchain, or installs it from the release's zip; on Linux names the packages)\n\
        qb64rust toolchain path [--toolchain-root <dir>] [--qb64pe-root <dir>]    (the toolchain a build would use)\n\
        qb64rust toolchain path --target wasm [--emsdk-root <dir>]    (the Emscripten SDK a wasm build would use)\n\
-       qb64rust toolchain install --target wasm    (how to install the Emscripten SDK; installs nothing)";
+       qb64rust toolchain install --target wasm    (downloads and installs the Emscripten SDK; on Linux names \
+the emsdk commands)";
 
 #[derive(Default)]
 struct Options {
@@ -108,6 +121,9 @@ struct Options {
     /// `--debug`: a build for a debugger (design D1 of `m5-debug-build-symbols`): `-g`, unstripped, never optimised,
     /// and the debug symbol file beside the executable.
     debug: bool,
+    /// `--call-trace` (`Some(true)`) or `--no-call-trace` (`Some(false)`), the last one given: a call stack in a
+    /// runtime error's message (OpenSpec change `call-trace`). Over `[build]` `call_trace` and `--debug`.
+    call_trace: Option<bool>,
     /// `-w`: print the warnings too (spec `compiler/cli`).
     warnings: bool,
     /// `-e`: `OPTION _EXPLICIT` forced, as `qb64pe -e` does (spec `compiler/cli`).
@@ -264,6 +280,8 @@ fn parse_args() -> Result<Options, String> {
             "--coverage" => o.coverage = true,
             "--trace-values" => o.trace = true,
             "--debug" => o.debug = true,
+            "--call-trace" => o.call_trace = Some(true),
+            "--no-call-trace" => o.call_trace = Some(false),
             "--fixes" => {
                 let v = value("--fixes")?.to_string_lossy().to_string();
                 o.fixes.push(fixes::parse_fixes_option(&v)?);
@@ -320,11 +338,13 @@ fn parse_args() -> Result<Options, String> {
             || o.debug
             || o.coverage
             || o.trace
+            || o.call_trace.is_some()
             || o.purge)
     {
         return Err(
             "--print-paths prints the paths of a build without -o; it takes only --target and \
-                    --no-settings, not -o, -y, -z, -p, --dump, --report, --debug, --coverage or --trace-values"
+                    --no-settings, not -o, -y, -z, -p, --dump, --report, --debug, --coverage, --trace-values or \
+                    --call-trace"
                 .into(),
         );
     }
@@ -385,6 +405,14 @@ fn main() -> ExitCode {
     // `qb64rust toolchain`: the same rule; `toolchain.bas` is a file to compile.
     if args.first().is_some_and(|a| a == "toolchain") {
         return toolchain_command(&args[1..]);
+    }
+    // `qb64rust convert`: the same rule; `convert.bas` is a file to compile.
+    if args.first().is_some_and(|a| a == "convert") {
+        return convert_command(&args[1..]);
+    }
+    // `qb64rust serve`: the same rule; `serve.bas` is a file to compile.
+    if args.first().is_some_and(|a| a == "serve") {
+        return serve_command(&args[1..]);
     }
     // `qb64rust test`: the same rule; `test.bas` is a file to compile.
     if args.first().is_some_and(|a| a == "test") {
@@ -550,6 +578,167 @@ fn toolchain_options(args: &[std::ffi::OsString]) -> Option<(Option<PathBuf>, Op
     Some((toolchain, qb64pe))
 }
 
+/// The usage of `qb64rust convert` (OpenSpec change `utf8-source`, design D9).
+const CONVERT_USAGE: &str = "usage: qb64rust convert --to utf8|cp437 <file>...    (rewrites source files from code \
+page 437 to UTF-8, or back, in place; changes no file when one cannot be converted)";
+
+/// `qb64rust serve [<folder>|<file.bas>] [--port <n>] [--open] [--no-headers]` (spec `compiler/web-serve`): the web
+/// folder named, or the one a wasm build of the program writes, or `build/web` of the current folder, served on
+/// `127.0.0.1` until the process is interrupted.
+fn serve_command(args: &[std::ffi::OsString]) -> ExitCode {
+    use qb64rust_driver::{build, serve};
+    let fail = |msg: &str| {
+        println!("qb64rust: {msg}");
+        ExitCode::FAILURE
+    };
+    let usage = |msg: &str| fail(&format!("{msg}\n{SERVE_USAGE}"));
+    let (mut named, mut port, mut open, mut isolation) = (None, None, false, true);
+    let mut i = 0;
+    while i < args.len() {
+        let arg = args[i].to_string_lossy();
+        match arg.as_ref() {
+            "--port" => {
+                let Some(n) = args
+                    .get(i + 1)
+                    .and_then(|n| n.to_str())
+                    .and_then(|n| n.parse::<u16>().ok())
+                    .filter(|n| *n > 0)
+                else {
+                    return usage("--port needs a port number from 1 to 65535");
+                };
+                port = Some(n);
+                i += 1;
+            }
+            "--open" => open = true,
+            "--no-headers" => isolation = false,
+            _ if arg.starts_with('-') => return usage(&format!("serve does not know the option `{arg}`")),
+            _ if named.is_some() => return usage("serve takes one folder or one program"),
+            _ => named = Some(PathBuf::from(&args[i])),
+        }
+        i += 1;
+    }
+    // A program: the web folder its build writes, read from its settings file as a build reads it.
+    let is_source = |p: &Path| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("bas"));
+    let (folder, build_command) = match &named {
+        Some(source) if is_source(source) => {
+            if !source.is_file() {
+                return fail(&format!("cannot read {}", source.display()));
+            }
+            let output = match settings::load(source, false) {
+                Ok((_, build, _)) => build.output,
+                Err(e) => return fail(&e.to_string()),
+            };
+            (
+                build::web_folder(&output.join("x.js")),
+                format!("qb64rust -x --target wasm {}", source.display()),
+            )
+        }
+        Some(folder) => (folder.clone(), "qb64rust -x --target wasm <file.bas>".to_string()),
+        None => (
+            PathBuf::from("build").join("web"),
+            "qb64rust -x --target wasm <file.bas>".to_string(),
+        ),
+    };
+    let folder = std::path::absolute(&folder).unwrap_or(folder);
+    if !folder.join(build::WASM_INDEX).is_file() {
+        let what = if folder.is_dir() {
+            format!("{} has no index.html", folder.display())
+        } else {
+            format!("{} is not a folder", folder.display())
+        };
+        return fail(&format!(
+            "{what}: a window program built with `{build_command}` writes its web folder"
+        ));
+    }
+    let (listener, used) = match serve::bind(port) {
+        Ok(bound) => bound,
+        Err(msg) => return fail(&msg),
+    };
+    let url = serve::address(used);
+    // The address first, alone on its line: the editor reads it from there.
+    println!("{url}");
+    println!("serving {} until interrupted (Ctrl+C)", folder.display());
+    if port.is_none() && used != serve::DEFAULT_PORT {
+        println!(
+            "port {} is taken. A browser keeps a page's saved games for its address, so games saved at another \
+             port are not found at this one",
+            serve::DEFAULT_PORT
+        );
+    }
+    if !isolation {
+        println!("without the two headers of threads, as a host that cannot send them");
+    }
+    let _ = std::io::stdout().flush();
+    if open && let Err(msg) = serve::open_browser(&url) {
+        println!("qb64rust: {msg}");
+    }
+    serve::serve(&listener, &folder, isolation);
+    ExitCode::SUCCESS
+}
+
+/// `qb64rust convert --to utf8|cp437 <file>...` (spec `compiler/source-encoding`, "The convert command").
+fn convert_command(args: &[std::ffi::OsString]) -> ExitCode {
+    use qb64rust_driver::convert::{To, run};
+    let fail = |msg: &str| {
+        println!("qb64rust: {msg}\n{CONVERT_USAGE}");
+        ExitCode::FAILURE
+    };
+    let mut to = None;
+    let mut files = Vec::new();
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == "--to" {
+            let Some(name) = args.get(i + 1) else {
+                return fail("--to needs utf8 or cp437");
+            };
+            let Some(t) = To::from_name(&name.to_string_lossy()) else {
+                return fail(&format!("--to takes utf8 or cp437, not `{}`", name.to_string_lossy()));
+            };
+            to = Some(t);
+            i += 2;
+        } else if args[i].to_string_lossy().starts_with('-') {
+            // An option it does not know, as `qb64rust toolchain` refuses one (`toolchain_options`).
+            return fail(&format!(
+                "convert does not know the option `{}`",
+                args[i].to_string_lossy()
+            ));
+        } else {
+            files.push(PathBuf::from(&args[i]));
+            i += 1;
+        }
+    }
+    let Some(to) = to else {
+        return fail("convert needs --to utf8 or --to cp437");
+    };
+    if files.is_empty() {
+        return fail("convert needs at least one file");
+    }
+    match run(&files, to) {
+        Ok(done) => {
+            for f in &done.written {
+                println!("converted {}", f.display());
+            }
+            for f in &done.left {
+                println!("left {} as it is: it holds no byte above 127", f.display());
+            }
+            ExitCode::SUCCESS
+        }
+        Err(failed) => {
+            for p in failed.problems {
+                println!("{p}");
+            }
+            if failed.written.is_empty() {
+                println!("no file was changed");
+            } else {
+                for f in &failed.written {
+                    println!("converted {} before the failure", f.display());
+                }
+            }
+            ExitCode::FAILURE
+        }
+    }
+}
+
 /// `qb64rust toolchain install` and `qb64rust toolchain path` (spec `compiler/toolchain`). `path` prints the folder,
 /// then where it came from (a word, a colon, what it means); with none found, the message of "No toolchain found".
 fn toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
@@ -613,7 +802,7 @@ fn toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
 }
 
 /// `qb64rust toolchain path --target wasm [--emsdk-root <dir>]`: the Emscripten SDK folder and where it came from;
-/// `qb64rust toolchain install --target wasm`: how to install it, nothing installed, status 1.
+/// `qb64rust toolchain install --target wasm`: the SDK downloaded and installed on Windows (`toolchain::install_emsdk`).
 fn wasm_toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
     let fail = |msg: &str| {
         println!("qb64rust: {msg}");
@@ -621,7 +810,12 @@ fn wasm_toolchain_command(args: &[std::ffi::OsString]) -> ExitCode {
     };
     let words: Vec<&str> = args.iter().map(|a| a.to_str().unwrap_or("")).collect();
     let option = match words.as_slice() {
-        ["install"] => return fail(&toolchain::emsdk_missing_message()),
+        ["install"] => {
+            return match toolchain::install_emsdk() {
+                Ok(_) => ExitCode::SUCCESS,
+                Err(msg) => fail(&msg),
+            };
+        }
         ["path"] => None,
         ["path", "--emsdk-root", dir] => Some(PathBuf::from(dir)),
         _ => return fail(TOOLCHAIN_USAGE),
@@ -712,6 +906,8 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
             "--fix" => o.fixes.push(fixes::parse_fix_option(&value("--fix")?)?),
             "--no-settings" => o.no_settings = true,
             "--coverage" => o.coverage = true,
+            "--call-trace" => o.call_trace = Some(true),
+            "--no-call-trace" => o.call_trace = Some(false),
             _ if s.starts_with('-') => return Err(format!("`test` does not take `{s}`")),
             _ => paths.push(PathBuf::from(a)),
         }
@@ -789,6 +985,7 @@ fn test_command(args: Vec<std::ffi::OsString>) -> Result<ExitCode, String> {
         fixes: o.fixes.clone(),
         no_settings: o.no_settings,
         coverage: o.coverage,
+        call_trace: o.call_trace,
         coverage_file: std::env::var_os(run::COVERAGE_ENV)
             .filter(|v| !v.is_empty())
             .map(|v| std::path::absolute(PathBuf::from(&v)).unwrap_or_else(|_| PathBuf::from(v))),
@@ -895,7 +1092,7 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
     let input_name = input.display();
     let main_name = main.display();
     // A settings file that cannot be used stops `-y` before anything is written (design D5 of `project-settings`).
-    let (fixes, lints, file_format, _) = match program_settings(o, main) {
+    let (fixes, lints, file_format, build) = match program_settings(o, main) {
         Ok(s) => s,
         Err(code) => return Ok(code),
     };
@@ -912,7 +1109,7 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
         o.explicit,
         &name,
         bytes,
-        |file| Box::new(FileLoader::new(&include_root, file, main)),
+        |file| Box::new(FileLoader::new(&include_root, file, main).with_encoding(&build.root, build.encoding)),
         Some((main, &include_root)),
         fixes,
     );
@@ -968,11 +1165,17 @@ fn print_paths(o: &Options, input: &Path) -> Result<ExitCode, String> {
         Ok((.., build)) => build,
         Err(code) => return Ok(code),
     };
-    let (exe, run_in) = default_paths(input, o.target.unwrap_or_else(Platform::host), &build)?;
-    let json = serde_json::json!({
+    let platform = o.target.unwrap_or_else(Platform::host);
+    let (exe, run_in) = default_paths(input, platform, &build)?;
+    let mut json = serde_json::json!({
         "exe": exe.to_string_lossy(),
         "run_in": run_in.to_string_lossy(),
     });
+    // The page a window program's build would write; `exe` is then a `$CONSOLE:ONLY` program's script.
+    if platform == Platform::Wasm {
+        let page = qb64rust_driver::build::web_folder(&exe).join(qb64rust_driver::build::WASM_INDEX);
+        json["page"] = page.to_string_lossy().into();
+    }
     println!("{json}");
     Ok(ExitCode::SUCCESS)
 }
@@ -1065,6 +1268,7 @@ fn run() -> Result<ExitCode, String> {
         keep_build: o.keep_build,
         coverage: o.coverage,
         trace: o.trace,
+        call_trace: build.call_trace(o.call_trace, o.debug),
         debug: o.debug,
         warnings: o.warnings,
         explicit: o.explicit,
@@ -1080,12 +1284,13 @@ fn run() -> Result<ExitCode, String> {
         } else {
             Vec::new()
         },
+        web: o.output.is_none(),
     };
     let built = compile::compile_exe(
         &input,
         &name,
         bytes,
-        |file| Box::new(FileLoader::new(&include_root, file, &input)),
+        |file| Box::new(FileLoader::new(&include_root, file, &input).with_encoding(&build.root, build.encoding)),
         &options,
         &mut |text| print!("{text}"),
     )?;

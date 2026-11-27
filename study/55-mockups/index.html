@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QB64 extension: UI mockups (study 55)</title>
+<style>
+  :root {
+    --bg: #1f1f1f; --side: #181818; --line: #2b2b2b; --text: #cccccc; --dim: #8b8b8b;
+    --accent: #0078d4; --hover: #2a2d2e; --sel: #04395e; --ok: #4ec9a0; --err: #f14c4c; --warn: #cca700;
+    --kw: #569cd6; --str: #ce9178; --com: #6a9955; --num: #b5cea8; --fn: #dcdcaa;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0e0e10; color: #d6d6d6; font: 14px/1.5 "Segoe UI", system-ui, sans-serif; }
+  header { padding: 20px 28px 0; max-width: 1340px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; font-weight: 600; }
+  header p { margin: 0 0 14px; color: #a0a0a0; max-width: 900px; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid #333; }
+  nav button { background: none; border: 0; border-bottom: 2px solid transparent; color: #a0a0a0; padding: 8px 12px;
+    font: inherit; cursor: pointer; }
+  nav button.on { color: #fff; border-bottom-color: var(--accent); }
+  nav button small { display: block; font-size: 11px; color: #777; }
+  main { padding: 18px 28px 60px; max-width: 1340px; margin: 0 auto; }
+  .lead { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
+  .lead h2 { font-size: 17px; margin: 0; font-weight: 600; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #1d3b2f; color: #7fe0b8; }
+  .tag.later { background: #3d3214; color: #e6c35c; }
+  .tag.alt { background: #2c2c3f; color: #b3b3f0; }
+  .tag.api { background: #26262a; color: #9a9a9a; }
+  .what { margin: 0 0 12px; color: #b8b8b8; max-width: 980px; }
+  .states { margin: 0 0 10px; font-size: 12px; color: #999; }
+  .states button { font: inherit; font-size: 12px; background: #222; color: #ccc; border: 1px solid #3a3a3a;
+    border-radius: 3px; padding: 2px 9px; margin-left: 4px; cursor: pointer; }
+  .states button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  ol.notes { margin: 16px 0 0; padding: 0; list-style: none; columns: 2; column-gap: 36px; max-width: 1280px; }
+  ol.notes li { break-inside: avoid; margin: 0 0 9px; padding-left: 30px; position: relative; color: #bdbdbd; }
+  ol.notes li b.n { position: absolute; left: 0; top: 1px; }
+  b.n { display: inline-flex; width: 19px; height: 19px; border-radius: 50%; background: #e2b93d; color: #111;
+    font: 700 11px/19px "Segoe UI", sans-serif; justify-content: center; flex: none; vertical-align: middle; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 12.5px; color: #d7ba7d; }
+
+  /* The VS Code window */
+  .vsc { border: 1px solid #3c3c3c; border-radius: 8px; overflow: hidden; background: var(--bg); color: var(--text);
+    font-size: 13px; line-height: 1.4; box-shadow: 0 12px 40px #000a; }
+  .title { height: 34px; background: var(--side); border-bottom: 1px solid var(--line); display: flex; align-items: center;
+    padding: 0 12px; gap: 16px; font-size: 12.5px; }
+  .title .menu { color: #bbb; word-spacing: 9px; }
+  .title .cmd { flex: 1; max-width: 420px; margin: 0 auto; text-align: center; background: #2a2a2a; border: 1px solid #3a3a3a;
+    border-radius: 6px; padding: 2px 0; color: #aaa; }
+  .title .winbtn { color: #999; letter-spacing: 16px; }
+  .body { display: flex; height: 700px; }
+  .act { width: 48px; background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column;
+    align-items: center; padding-top: 6px; gap: 2px; flex: none; }
+  .act .i { width: 48px; height: 44px; display: flex; align-items: center; justify-content: center; color: #858585;
+    border-left: 2px solid transparent; position: relative; }
+  .act .i.on { color: #fff; border-left-color: var(--accent); }
+  .act svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+  .act .qb { font: 700 10.5px/1 "Segoe UI", sans-serif; border: 1.6px solid currentColor; border-radius: 4px; padding: 4px 3px; }
+  .act .i b.n { position: absolute; right: 2px; top: 2px; }
+  .side { width: 292px; background: var(--side); border-right: 1px solid var(--line); flex: none; overflow: hidden;
+    display: flex; flex-direction: column; }
+  .side .head { padding: 10px 16px 8px; font-size: 11px; letter-spacing: .4px; color: #bbb; display: flex; justify-content: space-between; }
+  .sec { border-top: 1px solid var(--line); }
+  .sec > .h { padding: 4px 8px; font-size: 11px; font-weight: 700; letter-spacing: .3px; color: #ccc; display: flex; gap: 5px; align-items: center; }
+  .sec > .h .sp { flex: 1; }
+  .sec > .h .tool { font-weight: 400; color: #999; }
+  .sec .c { padding: 4px 0 8px; }
+  .row { padding: 2px 8px 2px 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; gap: 6px; align-items: center; }
+  .row.l2 { padding-left: 38px; } .row.l3 { padding-left: 54px; }
+  .row.sel { background: var(--sel); color: #fff; }
+  .row .d { color: var(--dim); font-size: 12px; margin-left: auto; padding-left: 8px; }
+  .row .k { width: 14px; text-align: center; color: #c5a5ff; font: 700 10px Consolas, monospace; flex: none; }
+  .row .k.f { color: #75beff; } .row .k.e { color: #e2b93d; } .row .k.t { color: #999; }
+  .prog { padding: 8px 14px 12px; }
+  .prog .file { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .prog .file strong { color: #fff; font-weight: 600; }
+  .prog .file span { color: var(--dim); font-size: 12px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--accent); color: #fff;
+    border-radius: 3px; padding: 5px 12px; font-size: 13px; border: 1px solid transparent; white-space: nowrap; }
+  .btn.big { width: 100%; padding: 8px; font-size: 14px; font-weight: 600; }
+  .btn.sec2 { background: #313131; color: #ddd; border-color: #454545; }
+  .btn kbd { font: 11px "Segoe UI", sans-serif; opacity: .75; border: 1px solid #fff5; border-radius: 3px; padding: 0 4px; }
+  .btnrow { display: flex; gap: 6px; margin-top: 6px; } .btnrow .btn { flex: 1; padding: 4px 6px; font-size: 12px; }
+  .stat { margin-top: 10px; padding: 7px 9px; border-radius: 4px; background: #202020; border: 1px solid var(--line); font-size: 12.5px; }
+  .stat.ok b { color: var(--ok); } .stat.err { border-color: #5a2a2a; background: #2a1b1b; } .stat.err b { color: var(--err); }
+  .stat b.n, .stat.err b.n { color: #111; }
+  .stat a, .lnk { color: #4daafc; text-decoration: none; cursor: pointer; }
+  .stat .sub { color: #aaa; margin-top: 3px; }
+  .bar { height: 4px; background: #333; border-radius: 2px; margin-top: 7px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 45%; background: var(--accent); }
+  .search { margin: 2px 12px 6px; background: #313131; border: 1px solid #3c3c3c; border-radius: 3px; padding: 3px 8px; color: #888; }
+
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .cols { flex: 1; display: flex; min-height: 0; }
+  .ed { flex: 1; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
+  .ed:last-child { border-right: 0; }
+  .tabs { height: 35px; background: var(--side); border-bottom: 1px solid var(--line); display: flex; align-items: stretch; flex: none; }
+  .tab { padding: 0 14px; display: flex; align-items: center; gap: 7px; color: #999; border-right: 1px solid var(--line); white-space: nowrap; }
+  .tab.on { background: var(--bg); color: #fff; border-top: 1px solid var(--accent); }
+  .tabs .acts { margin-left: auto; display: flex; align-items: center; gap: 12px; padding: 0 12px; color: #bbb; }
+  .code { flex: 1; overflow: hidden; padding: 8px 0; font: 13.5px/20px Consolas, "Cascadia Mono", monospace; }
+  .ln { display: flex; white-space: pre; }
+  .ln .g { width: 46px; text-align: right; padding-right: 14px; color: #6e7681; flex: none; }
+  .ln.cur { background: #ffffff0a; } .ln.cur .g { color: #ccc; }
+  .kw { color: var(--kw); } .str { color: var(--str); } .com { color: var(--com); } .num { color: var(--num); } .fn { color: var(--fn); }
+  .sq { text-decoration: underline wavy var(--err); text-underline-offset: 3px; }
+  .word { background: #264f78; }
+  .hover { margin: 2px 0 2px 150px; width: 430px; background: #202020; border: 1px solid #454545; border-radius: 4px;
+    font: 12.5px/1.45 "Segoe UI", sans-serif; white-space: normal; }
+  .hover div { padding: 6px 10px; } .hover div + div { border-top: 1px solid #333; color: #bbb; }
+  .panel { height: 150px; border-top: 1px solid var(--line); flex: none; display: flex; flex-direction: column; }
+  .panel .ptabs { display: flex; gap: 18px; padding: 7px 16px 5px; font-size: 11px; letter-spacing: .4px; color: #999; }
+  .panel .ptabs .on { color: #fff; border-bottom: 1px solid var(--accent); padding-bottom: 3px; }
+  .panel pre { margin: 0; padding: 2px 16px; font: 13px/19px Consolas, monospace; color: #ccc; }
+  .status { height: 24px; background: var(--side); border-top: 1px solid var(--line); display: flex; align-items: center;
+    font-size: 12px; color: #bbb; }
+  .status span { padding: 0 9px; white-space: nowrap; display: flex; align-items: center; gap: 5px; height: 100%; }
+  .status .run { background: var(--accent); color: #fff; } .status .sp { flex: 1; }
+  .status .ok { color: var(--ok); } .status .err { color: var(--err); }
+
+  /* Pages in the main area */
+  .page { flex: 1; overflow: hidden; padding: 20px 28px; font: 13.5px/1.55 "Segoe UI", sans-serif; }
+  .page h3 { font-size: 24px; font-weight: 600; margin: 0 0 4px; color: #fff; font-family: Consolas, monospace; }
+  .page h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: #999; margin: 16px 0 5px; }
+  .page p { margin: 0 0 8px; }
+  .page pre { margin: 0; background: #161616; border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px;
+    font: 13px/19px Consolas, monospace; }
+  .page .crumbs { color: var(--dim); font-size: 12px; margin-bottom: 8px; }
+  .page .exbar { display: flex; gap: 8px; margin: 8px 0; }
+  .page .see { color: #4daafc; }
+  .helpbar { display: flex; gap: 8px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); color: #999; flex: none; }
+  .helpbar .search { flex: 1; margin: 0; }
+
+  .wt { flex: 1; display: flex; gap: 34px; padding: 34px 48px; overflow: hidden; }
+  .wt .l { width: 400px; flex: none; } .wt .r { flex: 1; }
+  .wt h3 { font-size: 22px; font-weight: 600; margin: 0 0 2px; color: #fff; }
+  .wt .l > p { color: #999; margin: 0 0 16px; }
+  .step { padding: 9px 12px; border-radius: 6px; display: flex; gap: 10px; }
+  .step.on { background: #252526; border: 1px solid #3c3c3c; box-shadow: inset 3px 0 var(--accent); }
+  .step .o { width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid #777; margin-top: 2px; flex: none; }
+  .step.done .o { background: var(--accent); border-color: var(--accent); }
+  .step strong { color: #e6e6e6; font-weight: 600; } .step p { margin: 4px 0 8px; color: #b0b0b0; }
+  .shot { border: 1px solid #3c3c3c; border-radius: 6px; background: #161616; height: 330px; display: flex; flex-direction: column; overflow: hidden; }
+  .shot .cap { padding: 6px 12px; border-bottom: 1px solid var(--line); color: #999; font-size: 12px; }
+
+  .home { flex: 1; padding: 30px 54px; overflow: hidden; }
+  .home h3 { font-size: 26px; font-weight: 300; color: #fff; margin: 0; } .home > p { color: #999; margin: 2px 0 22px; }
+  .tiles { display: flex; gap: 14px; margin-bottom: 26px; }
+  .tile { flex: 1; background: #252526; border: 1px solid #3c3c3c; border-radius: 8px; padding: 14px 16px; }
+  .tile.pri { border-color: var(--accent); background: #0f2b40; }
+  .tile strong { display: block; color: #fff; font-size: 15px; margin-bottom: 2px; } .tile span { color: #a8a8a8; font-size: 12.5px; }
+  .hcols { display: flex; gap: 44px; } .hcols > div { flex: 1; }
+  .hcols h4 { font-size: 13px; color: #ddd; margin: 0 0 8px; font-weight: 600; }
+  .hrow { display: flex; gap: 8px; padding: 3px 0; align-items: baseline; } .hrow .d { color: var(--dim); font-size: 12px; }
+  .chk { color: var(--ok); width: 16px; flex: none; } .chk.no { color: var(--warn); }
+
+  .runbar { display: flex; gap: 8px; align-items: center; padding: 5px 10px; border-bottom: 1px solid var(--line); flex: none; }
+  .runbar .btn { padding: 2px 9px; font-size: 12px; } .runbar .sp { flex: 1; } .runbar .t { color: var(--dim); font-size: 12px; }
+  .stage { flex: 1; background: #000; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  .stage canvas { width: 100%; max-width: 560px; aspect-ratio: 640 / 400; background: #000; image-rendering: pixelated; }
+  .warnbox { border: 1px solid #5c4a12; background: #2b2410; color: #e6cf8a; border-radius: 6px; padding: 9px 14px; margin: 0 0 12px; max-width: 980px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>QB64 extension: UI mockups</h1>
+  <p>Mockups for the panel review <code>study\55-editor-experience.md</code>. They are drawings, not the extension: nothing here
+     is built. Sizes, colors and wording are guesses in VS Code's dark theme. The numbered notes under each window say
+     what each part does and what it is built from.</p>
+  <nav id="nav"></nav>
+</header>
+<main id="main"></main>
+
+<script>
+// ---------- small helpers ----------
+const KEYWORDS = new Set(("SCREEN DO LOOP UNTIL IF THEN OR AND CLS CIRCLE PAINT PRINT END SUB FUNCTION DIM AS INTEGER SHARED FOR TO " +
+  "NEXT INPUT ELSE CONST SINGLE STRING RANDOMIZE TIMER WHILE WEND SELECT CASE EXIT LINE STEP COLOR LOCATE SLEEP").split(" "));
+const BUILTINS = new Set("INKEY$ CHR$ RND INT STR$ LEN VAL".split(" "));
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+function color(line) {
+  const re = /('.*$)|("[^"]*"?)|(\b\d+(?:\.\d+)?\b)|(_?[A-Za-z][A-Za-z0-9_]*[$%&!#]?)/g;
+  let out = "", at = 0, m;
+  while ((m = re.exec(line))) {
+    out += esc(line.slice(at, m.index));
+    const t = esc(m[0]), up = m[0].toUpperCase();
+    if (m[1]) out += `<span class="com">${t}</span>`;
+    else if (m[2]) out += `<span class="str">${t}</span>`;
+    else if (m[3]) out += `<span class="num">${t}</span>`;
+    else if (KEYWORDS.has(up)) out += `<span class="kw">${t}</span>`;
+    else if (up[0] === "_" || BUILTINS.has(up)) out += `<span class="fn">${t}</span>`;
+    else out += t;
+    at = m.index + m[0].length;
+  }
+  return out + esc(line.slice(at));
+}
+
+// o.cur: the cursor's line; o.err: a line drawn with an error; o.after: {line: html} put under a line
+function code(src, o = {}) {
+  return `<div class="code">` + src.split("\n").map((l, i) => {
+    const n = i + 1;
+    let h = color(l);
+    if (o.err === n) h = `<span class="sq">${h}</span>`;
+    if (o.mark && o.mark.line === n) h = h.replace(o.mark.text, `<span class="word">${o.mark.text}</span>`);
+    return `<div class="ln${o.cur === n ? " cur" : ""}"><span class="g">${n}</span><span>${h || " "}</span></div>` +
+      (o.after && o.after[n] ? o.after[n] : "");
+  }).join("") + `</div>`;
+}
+
+const ICONS = {
+  files: `<svg viewBox="0 0 24 24"><path d="M14 3H7v14h11V7z M14 3v4h4 M7 7H4v14h10v-4"/></svg>`,
+  search: `<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l6 6"/></svg>`,
+  git: `<svg viewBox="0 0 24 24"><circle cx="7" cy="5" r="2.2"/><circle cx="7" cy="19" r="2.2"/><circle cx="17" cy="9" r="2.2"/><path d="M7 7.2v9.6 M17 11.2c0 4-10 2-10 5.6"/></svg>`,
+  debug: `<svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg>`,
+  ext: `<svg viewBox="0 0 24 24"><path d="M4 11h7v9H4z M11 13h7v7h-7z M4 4h7v7H4z M14 3l5 5-5 5-5-5z" /></svg>`,
+};
+function act(on, badge) {
+  const item = (k) => `<div class="i${on === k ? " on" : ""}">${ICONS[k]}</div>`;
+  return item("files") + item("search") + item("git") + item("debug") + item("ext") +
+    `<div class="i${on === "qb" ? " on" : ""}"><span class="qb">QB</span>${badge ? `<b class="n">${badge}</b>` : ""}</div>`;
+}
+
+function win(o) {
+  return `<div class="vsc">
+    <div class="title"><span class="menu">File Edit Selection View Go Run Terminal Help</span>
+      <span class="cmd">${o.title || "bounce"}</span><span class="winbtn">&#8211;&#9633;&#10005;</span></div>
+    <div class="body">
+      <div class="act">${act(o.icon, o.badge)}</div>
+      ${o.side ? `<div class="side">${o.side}</div>` : ""}
+      <div class="main"><div class="cols">${o.cols}</div>${o.panel ? `<div class="panel">${o.panel}</div>` : ""}</div>
+    </div>
+    <div class="status">${o.status}</div>
+  </div>`;
+}
+
+const tabs = (names, on, acts = "") => `<div class="tabs">` +
+  names.map((t) => `<span class="tab${t === on ? " on" : ""}">${t}</span>`).join("") +
+  (acts ? `<span class="acts">${acts}</span>` : "") + `</div>`;
+
+function status(state, n) {
+  const s = state === "err" ? `<span class="err">&#10005; 1 error: line 10</span>`
+    : state === "busy" ? `<span>&#8635; Getting ready&hellip;</span>` : `<span class="ok">&#10003; OK</span>`;
+  return `<span class="run">&#9654; Run</span>${s}${n ? `<b class="n">${n}</b>` : ""}<span class="sp"></span>
+    <span>Ln 10, Col 5</span><span>Spaces: 4</span><span>cp437</span><span>{} QB64</span>`;
+}
+
+// ---------- the sample programs ----------
+const BOUNCE = `' A ball that bounces off the edges of the window
+SCREEN _NEWIMAGE(640, 400, 32)
+_TITLE "Bounce"
+x = 320: y = 200: dx = 3: dy = 2
+DO
+    CLS
+    DrawBall x, y
+    x = x + dx: y = y + dy
+    IF x < 12 OR x > 628 THEN dx = -dx
+    IF y < 12 OR y > 388 THEN dy = -dy
+    _DISPLAY
+    _LIMIT 60
+LOOP UNTIL INKEY$ = CHR$(27)
+END
+
+SUB DrawBall (x, y)
+    CIRCLE (x, y), 12, _RGB32(255, 200, 0)
+    PAINT (x, y), _RGB32(255, 200, 0)
+END SUB`;
+const BOUNCE_ERR = BOUNCE.replace("IF y < 12 OR y > 388 THEN dy = -dy", "IF y < 12 OR y > 388 dy = -dy");
+
+const HEALTH = `' Lose and gain health, never below 0 or above 100
+health = 60
+DO
+    INPUT "Change health by"; change
+    health = _CLAMP(health + change, 0, 100)
+    PRINT "Health is now"; health
+LOOP UNTIL health = 0
+PRINT "Game over"
+END`;
+
+// ---------- the QB64 side panel ----------
+function programView(state) {
+  const st = state === "err"
+    ? `<div class="stat err"><b>&#10005; Line 10:</b> THEN is missing after the condition of this IF.
+         <div class="sub"><a>Go to line 10</a> &nbsp;&middot;&nbsp; <a>Help on IF</a></div></div>`
+    : state === "busy"
+    ? `<div class="stat"><b>Getting ready to build, once</b>
+         <div class="sub">Building the QB64 runtime. About 40 seconds, only the first time.</div><div class="bar"><i></i></div></div>`
+    : `<div class="stat ok"><b>&#10003; OK</b> &nbsp;No errors. Last run ended normally.</div>`;
+  return `<div class="prog">
+    <div class="file"><strong>bounce.bas</strong><span>the program Run builds</span><b class="n">2</b></div>
+    <div class="btn big">&#9654;&nbsp; Run <kbd>F5</kbd></div>
+    <div class="btnrow"><div class="btn sec2">Debug</div><div class="btn sec2">Run in Browser</div><div class="btn sec2">Build only</div></div>
+    ${st.replace("</b>", `</b> <b class="n">3</b>`)}
+  </div>`;
+}
+
+function sidePanel(state, open = { subs: true, ex: true, help: true }) {
+  return `<div class="head"><span>QB64</span><span>&#8943;</span></div>
+    <div class="sec"><div class="h">&#9662; PROGRAM</div><div class="c" style="padding:0">${programView(state)}</div></div>
+    <div class="sec"><div class="h">&#9662; SUBS AND FUNCTIONS <b class="n">4</b><span class="sp"></span><span class="tool">A&ndash;Z</span></div><div class="c">
+      <div class="row"><span class="k t">&#9670;</span>Main program<span class="d">bounce.bas</span></div>
+      <div class="row sel"><span class="k">S</span>DrawBall (x, y)<span class="d">bounce.bas</span></div>
+      <div class="row"><span class="k f">F</span>Speed! (level)<span class="d">rules.bm</span></div>
+    </div></div>
+    <div class="sec"><div class="h">&#9662; EXAMPLES <b class="n">5</b></div><div class="c">
+      <div class="row">&#9662; First steps</div>
+      <div class="row l2"><span class="k e">&#9654;</span>Hello</div>
+      <div class="row l2"><span class="k e">&#9654;</span>Guess the number</div>
+      <div class="row l2"><span class="k e">&#9654;</span>Draw with the mouse</div>
+      <div class="row">&#9656; Graphics</div>
+      <div class="row">&#9656; Sound and music</div>
+      <div class="row">&#9656; Small games</div>
+      <div class="row">&#9656; One for every keyword<span class="d">333</span></div>
+    </div></div>
+    <div class="sec"><div class="h">&#9662; HELP <b class="n">6</b></div><div class="c">
+      <div class="search">Search the reference&hellip;</div>
+      <div class="row">&#9656; Start here: BASIC in ten minutes</div>
+      <div class="row">&#9656; Topics<span class="d">39</span></div>
+      <div class="row">&#9656; Every keyword, A&ndash;Z<span class="d">401</span></div>
+      <div class="row">&#9656; Error messages and codes</div>
+      <div class="row">&#9656; Coming from QuickBASIC 4.5</div>
+      <div class="row">&#9656; Coming from QB64pe</div>
+    </div></div>`;
+}
+
+// ---------- the screens ----------
+const SCREENS = [
+  {
+    nav: "1. The QB64 side panel", sub: "every day",
+    title: "The QB64 side panel",
+    tags: `<span class="tag">Recommended first</span><span class="tag api">one small webview view, three native tree views, a status bar item</span>`,
+    what: `One icon in the activity bar opens one panel. It holds what a BASIC programmer reaches for all day: run the
+      program, see whether it is right, jump to a SUB, open an example, look something up. Today the extension shows
+      none of this. Its seven commands are in the Command Palette, and a small run button sits at the top right of the editor.`,
+    states: [["ok", "No errors"], ["err", "An error"], ["busy", "The first build"]],
+    render: (state) => win({
+      icon: "qb", badge: 1,
+      side: sidePanel(state),
+      cols: `<div class="ed">${tabs(["bounce.bas", "rules.bm"], "bounce.bas", "&#9654; &#9662; &nbsp; &#8943;")}
+        ${code(state === "err" ? BOUNCE_ERR : BOUNCE, { cur: 10, err: state === "err" ? 10 : 0 })}</div>`,
+      status: status(state, 7),
+    }),
+    notes: [
+      `<b>The icon.</b> A view container in the activity bar (<code>viewsContainers.activitybar</code>). The extension has no icon and no view today.`,
+      `<b>Program.</b> It names the program that Run will build: the <code>main</code> of <code>qb64rust.toml</code>, the program that includes the open file, or the open file itself. The extension already works this out for Build and for the language status. One large Run button; the three less common actions are small.`,
+      `<b>The status line.</b> "OK", or the first error in plain words with a link to its line and to the help page. The old IDE shows "OK" under the editor the same way. The same text is in the status bar (7). The first build shows what is happening and how long it takes, where today there is only text in the "QB64" output channel.`,
+      `<b>SUBs and FUNCTIONs of the whole program</b>, include files too, as the old IDE's F2 list. VS Code's own Outline shows one file at a time. A native tree view, fed by the language server.`,
+      `<b>Examples.</b> A click opens a copy as a new program, so the shipped file is never edited. The 333 examples of the language reference exist already and run at every merge. The groups "First steps", "Graphics", "Sound" and "Small games" would be new programs written for this.`,
+      `<b>Help.</b> The reference's 39 chapters and 401 keyword pages as a tree with a search box. A click opens the page beside the code (mockup 2).`,
+      `<b>The status bar.</b> A Run button and the same "OK" or error, for when the side panel is closed.`,
+    ],
+  },
+  {
+    nav: "2. Help beside the code", sub: "F1 on a word",
+    title: "Help beside the code",
+    tags: `<span class="tag">Recommended first</span><span class="tag api">one webview panel, pages made by <code>reference.py</code>, a richer hover</span>`,
+    what: `F1 on a word opens its page to the right of the code and keeps the code in view. The page is the project's own
+      language reference, which ships inside the extension, so it works offline and describes this compiler. The page
+      shown is the real one for <code>_CLAMP</code>.`,
+    render: () => win({
+      title: "health", icon: "qb",
+      cols: `<div class="ed">${tabs(["health.bas"], "health.bas", "&#9654; &#9662; &nbsp; &#8943;")}
+        ${code(HEALTH, { cur: 5, mark: { line: 5, text: "_CLAMP" }, after: { 5:
+          `<div class="hover"><div><code>_CLAMP(value, minimum, maximum)</code> <b class="n">1</b></div>
+           <div>Holds a value between two bounds: below <code>low</code> it gives <code>low</code>, above <code>high</code> it gives <code>high</code>.
+           &nbsp;<span class="lnk">More: F1</span></div></div>` } })}</div>
+        <div class="ed" style="flex:1.15">${tabs(["QB64 Help: _CLAMP"], "QB64 Help: _CLAMP")}
+        <div class="helpbar"><span>&#8592; &#8594;</span><div class="search">Search the reference&hellip;</div><b class="n">2</b></div>
+        <div class="page">
+          <div class="crumbs">Help &rsaquo; Topics &rsaquo; Built-in functions &rsaquo; _CLAMP</div>
+          <h3>_CLAMP</h3>
+          <p><code>_CLAMP(value, low, high)</code> holds a value between two bounds: below <code>low</code> it gives <code>low</code>,
+             above <code>high</code> it gives <code>high</code>. <code>_CLAMP(130, 0, 100)</code> is 100.</p>
+          <h4>Syntax</h4><pre>_CLAMP(value, minimum, maximum)</pre>
+          <h4>Example <b class="n">3</b></h4>
+          <pre>${["PRINT _CLAMP(15, 0, 10); _CLAMP(-5, 0, 10); _CLAMP(5, 0, 10)", "health = 130", "health = _CLAMP(health, 0, 100)",
+            'PRINT "Health is held at"; health', "END"].map(color).join("\n")}</pre>
+          <div class="exbar"><div class="btn">&#9654; Run this example</div><div class="btn sec2">Open as a new program</div><div class="btn sec2">Copy</div></div>
+          <h4>It prints <b class="n">4</b></h4>
+          <pre> 10  0  5 \nHealth is held at 100 </pre>
+          <h4>See also</h4><p class="see">_MIN &nbsp;&middot;&nbsp; _MAX</p>
+        </div></div>`,
+      status: status("ok"),
+    }),
+    notes: [
+      `<b>The hover says what the word does.</b> Today it shows only the form <code>_CLAMP(value, minimum, maximum)</code>. The first sentence of the reference page is added, with "More: F1".`,
+      `<b>The help tab.</b> One tab that is reused, opened beside the code and never over it. Back, forward and search, as a help window has. F1 on a SUB of the program goes to its definition instead, since it has no page.`,
+      `<b>The example is a program that runs.</b> "Run this example" builds and runs it. "Open as a new program" gives a copy to change. Every example of the reference is built and run at each merge, so none is stale.`,
+      `<b>What it prints</b> is the output recorded from a real run, so the reader sees the result before running anything.`,
+      `<b>No wiki text is used.</b> The pages are this project's own (<code>docs\\reference</code>), so the open question about the QB64pe wiki's license does not block this.`,
+    ],
+  },
+  {
+    nav: "3. First run: the walkthrough", sub: "the first five minutes",
+    title: "First run: a walkthrough",
+    tags: `<span class="tag">Recommended first</span><span class="tag api">native: <code>contributes.walkthroughs</code>, no webview</span>`,
+    what: `After the extension is installed, VS Code's own "Get Started" page shows these steps. Each step has one button
+      that does the thing, and VS Code ticks the step off when it is done. It is VS Code's own page, so it follows the
+      user's theme and works with a keyboard and a screen reader without work from us. It opens once; "QB64: Get
+      Started" opens it again.`,
+    render: () => win({
+      title: "Welcome", icon: "",
+      cols: `<div class="ed">${tabs(["Get Started with QB64"], "Get Started with QB64")}
+        <div class="wt"><div class="l">
+          <div class="crumbs" style="color:#4daafc;margin-bottom:14px">&#8249; Welcome</div>
+          <h3>Get Started with QB64</h3><p>Write a program and run it. About five minutes.</p>
+          <div class="step done"><span class="o"></span><div><strong>Write your first program</strong> <b class="n">1</b></div></div>
+          <div class="step on"><span class="o"></span><div><strong>Run it</strong> <b class="n">2</b>
+            <p>Press F5, or the Run button. The first time, QB64 needs a C++ compiler to build your program. It is a
+               190 MB download from github.com/mstorsjo/llvm-mingw, and nothing is downloaded unless you agree.</p>
+            <div class="btn">Run my program</div></div></div>
+          <div class="step"><span class="o"></span><div><strong>Look a word up</strong> <b class="n">3</b></div></div>
+          <div class="step"><span class="o"></span><div><strong>Try an example</strong></div></div>
+          <div class="step"><span class="o"></span><div><strong>Find and fix a mistake</strong></div></div>
+          <div class="step"><span class="o"></span><div><strong>Put your program on the web</strong> <span style="color:#888">(optional)</span> <b class="n">4</b></div></div>
+        </div>
+        <div class="r"><div class="shot"><div class="cap">A picture for the step: the Run button and the program's window</div>
+          <div style="flex:1;display:flex">
+            <div style="flex:1;border-right:1px solid #2b2b2b">${code(BOUNCE.split("\n").slice(0, 11).join("\n"), { cur: 2 })}</div>
+            <div style="width:200px;background:#000;position:relative"><div style="position:absolute;left:90px;top:120px;width:22px;height:22px;border-radius:50%;background:#ffc800"></div>
+              <div style="background:#2b2b2b;color:#ccc;font-size:11px;padding:2px 8px">Bounce</div></div>
+          </div></div></div></div></div>`,
+      status: `<span class="sp"></span><span>{} QB64</span>`,
+    }),
+    notes: [
+      `<b>Write your first program.</b> The button makes one <code>.bas</code> file with a few lines in it and opens it. No folder to choose, no project and no settings file. Where the file goes is a question for the user (study 55, question 3).`,
+      `<b>Run it.</b> The step says before the click what the first run downloads and why. Today the same offer appears as a dialog in the middle of the first build.`,
+      `<b>Look a word up.</b> Opens the program with the cursor on a word and asks for F1 (mockup 2).`,
+      `<b>Put your program on the web.</b> "QB64: Run in Browser" of the OpenSpec change <code>wasm-publish</code>, once that is built. It is last and marked optional, since it needs a second download.`,
+      `<b>What a walkthrough cannot do.</b> It is a checklist, not a home page: it has no list of recent programs and no examples browser. Mockup 4 shows a home page of our own for comparison.`,
+    ],
+  },
+  {
+    nav: "4. A home page", sub: "the alternative to 3",
+    title: "A home page in the main area",
+    tags: `<span class="tag alt">Alternative, not recommended first</span><span class="tag api">a webview panel of our own</span>`,
+    what: `A page of our own in the editor area: start a program, open a recent one, pick an example, and see whether the
+      setup is complete. It looks more like a product's front door than the walkthrough does. It is also a second
+      welcome page beside VS Code's own, and every part of it is ours to build, theme, test and keep working.`,
+    render: () => win({
+      title: "QB64 Home", icon: "qb",
+      cols: `<div class="ed">${tabs(["QB64 Home"], "QB64 Home")}
+        <div class="home">
+          <h3>QB64</h3><p>Write BASIC. Press F5. See it run.</p>
+          <div class="tiles">
+            <div class="tile pri"><strong>&#43; New program</strong><span>An empty program, ready to run</span> <b class="n">1</b></div>
+            <div class="tile"><strong>Open a program&hellip;</strong><span>A .bas file or a folder</span></div>
+            <div class="tile"><strong>Examples</strong><span>Small programs to run and change</span></div>
+            <div class="tile"><strong>Help</strong><span>BASIC in ten minutes, and every keyword</span></div>
+          </div>
+          <div class="hcols">
+            <div><h4>Recent programs <b class="n">2</b></h4>
+              <div class="hrow"><span class="lnk">bounce.bas</span><span class="d">QB64 Programs</span></div>
+              <div class="hrow"><span class="lnk">health.bas</span><span class="d">QB64 Programs</span></div>
+              <div class="hrow"><span class="lnk">CWSTRAT.BAS</span><span class="d">civil-war-strategy</span></div>
+            </div>
+            <div><h4>Setup <b class="n">3</b></h4>
+              <div class="hrow"><span class="chk">&#10003;</span>The QB64 compiler<span class="d">comes with the extension</span></div>
+              <div class="hrow"><span class="chk">&#10003;</span>The C++ compiler<span class="d">installed</span></div>
+              <div class="hrow"><span class="chk no">&#9675;</span>Programs for the web<span class="d">optional &middot; <span class="lnk">Install (750 MB)</span></span></div>
+            </div>
+            <div><h4>Coming from&hellip; <b class="n">4</b></h4>
+              <div class="hrow"><span class="lnk">QuickBASIC 4.5 or QBasic</span></div>
+              <div class="hrow"><span class="lnk">QB64 Phoenix Edition</span></div>
+              <div class="hrow"><span class="lnk">Another language</span></div>
+            </div>
+          </div>
+          <p style="margin-top:26px;color:#777"><span style="border:1px solid #555;border-radius:2px;padding:0 4px;margin-right:6px">&#10003;</span>Show this page when a QB64 folder opens</p>
+        </div></div>`,
+      status: `<span class="run">&#9654; Run</span><span class="sp"></span><span>{} QB64</span>`,
+    }),
+    notes: [
+      `<b>New program</b> is the same action as the walkthrough's first step.`,
+      `<b>Recent programs</b> is what the walkthrough cannot show. VS Code's own Welcome page lists recent folders, not programs.`,
+      `<b>Setup</b> shows what is installed. The language status item (the <code>{}</code> in the status bar) holds the same facts today, where few people look.`,
+      `<b>Coming from</b> opens the reference's two pages <code>coming-from-qb45.md</code> and <code>coming-from-qb64pe.md</code>. "Another language" has no page yet.`,
+      `<b>Why not first.</b> VS Code's guidelines ask extensions not to repeat the Welcome page in a webview and not to open one in every window. The side panel (mockup 1) can hold the same four actions in a view that is always one click away.`,
+    ],
+  },
+  {
+    nav: "5. Run beside the code", sub: "later, needs a measurement",
+    title: "The program runs beside the code",
+    tags: `<span class="tag later">Later: not known to be possible yet</span><span class="tag api">a webview panel showing the wasm build</span>`,
+    what: `The program's screen in a tab beside its source, as QBasic showed the output screen and web IDEs such as QBJS
+      do. Change a line, press F5, watch the same tab. This is the mockup that feels most like BASIC, and the one with
+      an open technical question.`,
+    warn: `<b>Open question.</b> The web build uses threads, and a page gets threads only when it is "cross-origin
+      isolated". A VS Code webview was not isolated by default when this was last documented (2022: a start flag,
+      <code>code --enable-coi</code>, turned it on). So this needs either a one-thread web build (still open, question 5
+      of <code>study\\51</code> &sect;10) or a measurement of what today's VS Code allows. A desktop program's own window cannot
+      be put inside VS Code at all.`,
+    render: () => win({
+      icon: "qb",
+      cols: `<div class="ed">${tabs(["bounce.bas"], "bounce.bas", "&#9654; &#9662; &nbsp; &#8943;")}${code(BOUNCE, { cur: 7 })}</div>
+        <div class="ed">${tabs(["&#9654; Bounce"], "&#9654; Bounce")}
+          <div class="runbar"><div class="btn sec2">&#9632; Stop</div><div class="btn sec2">&#8635; Run again</div> <b class="n">1</b>
+            <span class="sp"></span><span class="t">640 &times; 400 &nbsp;&middot;&nbsp; 60 frames a second</span><div class="btn sec2">Open in the browser</div> <b class="n">2</b></div>
+          <div class="stage"><canvas id="ball" width="640" height="400"></canvas></div></div>`,
+      panel: `<div class="ptabs"><span>PROBLEMS</span><span class="on">PROGRAM OUTPUT <b class="n">3</b></span><span>TERMINAL</span></div>
+        <pre>Built bounce for the web.\nRunning. Click the picture to give it the keyboard. Esc ends this program.</pre>`,
+      status: status("ok"),
+    }),
+    after: () => {
+      const c = document.getElementById("ball"); if (!c) return;
+      const g = c.getContext("2d"); let x = 320, y = 200, dx = 3, dy = 2;
+      (function frame() {
+        if (!document.body.contains(c)) return;
+        g.fillStyle = "#000"; g.fillRect(0, 0, 640, 400);
+        g.fillStyle = "#ffc800"; g.beginPath(); g.arc(x, y, 12, 0, 7); g.fill();
+        x += dx; y += dy; if (x < 12 || x > 628) dx = -dx; if (y < 12 || y > 388) dy = -dy;
+        requestAnimationFrame(frame);
+      })();
+    },
+    notes: [
+      `<b>Stop and Run again</b> act on the tab. F5 in the source builds and reloads the same tab, so the window layout never changes.`,
+      `<b>Open in the browser</b> is today's planned way ("QB64: Run in Browser", OpenSpec change <code>wasm-publish</code>) and stays as the way that always works.`,
+      `<b>Program output</b> holds what a <code>$CONSOLE</code> program prints and a runtime error with its call stack, each line a link to the source.`,
+      `<b>The web build is not the desktop build.</b> It keeps its files in the browser's storage, and some programs that pass on the desktop are still listed as failing in a browser. So the tab must say that it shows the web build.`,
+      `<b>Until this is measured</b>, Run opens the program's own window (a desktop build) or the browser (a web build), as now.`,
+    ],
+  },
+];
+
+// ---------- the page ----------
+let current = 0, state = "ok";
+function show(i) {
+  current = i;
+  const s = SCREENS[i];
+  document.getElementById("nav").innerHTML = SCREENS.map((x, k) =>
+    `<button class="${k === i ? "on" : ""}" onclick="go(${k})">${x.nav}<small>${x.sub}</small></button>`).join("");
+  const states = s.states ? `<div class="states">Show the Program view with:` + s.states.map(([k, t]) =>
+    `<button class="${k === state ? "on" : ""}" onclick="setState('${k}')">${t}</button>`).join("") + `</div>` : "";
+  document.getElementById("main").innerHTML =
+    `<div class="lead"><h2>${s.title}</h2>${s.tags}</div><p class="what">${s.what}</p>` +
+    (s.warn ? `<div class="warnbox">${s.warn}</div>` : "") + states + s.render(state) +
+    `<ol class="notes">` + s.notes.map((n, k) => `<li><b class="n">${k + 1}</b>${n}</li>`).join("") + `</ol>`;
+  if (s.after) s.after();
+}
+function go(i) { location.hash = "#" + (i + 1) + (state !== "ok" ? "-" + state : ""); }
+function setState(k) { state = k; go(current); }
+function fromHash() {
+  const m = /^#(\d)(?:-(\w+))?$/.exec(location.hash);
+  state = m && m[2] ? m[2] : "ok";
+  show(m ? Math.min(SCREENS.length, Math.max(1, +m[1])) - 1 : 0);
+}
+window.addEventListener("hashchange", fromHash);
+fromHash();
+</script>
+</body>
+</html>

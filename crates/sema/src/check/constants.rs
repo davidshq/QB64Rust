@@ -253,9 +253,8 @@ impl Checker<'_> {
             ast::Expr::Literal(lit) => {
                 let t = self.need(lit.token(), span)?;
                 if t.kind == SyntaxKind::StringLit {
-                    let raw = self.text(t.span);
-                    let inner = &raw[1..];
-                    return Ok(Value::Str(inner.strip_suffix(b"\"").unwrap_or(inner).to_vec()));
+                    let inside = super::string_inside(self.text(t.span), t.span);
+                    return Ok(Value::Str(self.literal_text(inside)?));
                 }
                 let text = self.text(t.span).to_vec();
                 self.problem(consteval::literal(&text), t.span)

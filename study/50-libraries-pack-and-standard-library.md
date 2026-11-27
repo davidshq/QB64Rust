@@ -113,8 +113,9 @@ None of the three uses `$USELIBRARY`. Each is a folder of include files that a p
     `OPL3X_WriteChipRegister` in `Audio/OPL3X.bi` lines 16 and 18. QB64Rust rejects it, with an error that depends
     on the order. With the SUB first: "name already in use: `HashTable_Remove%%`". With the FUNCTION first, a call
     as a statement: "the library FUNCTION `OPL3X_WriteChipRegister` cannot be called as a statement". The bug
-    blocks 12 programs of the corpus, counting the copies of Toolbox64 in the projects below (`GIFPlay.bas` of
-    `mplayer64` among them). It is listed in `STATUS.md`'s known bugs.
+    blocked 12 programs of the corpus, counting the copies of Toolbox64 in the projects below (`GIFPlay.bas` of
+    `mplayer64` among them). Fixed on 2026-11-22 (`DECISIONS.md`): all 12 compile, and so do 8 of
+    Toolbox64's 9 programs.
 - **Four other projects of the corpus use it, each at another commit**: `vga-font-editor` at `7133ae5`,
   `spaceshooter2k` at `04f1e36`, `particle-life` at `04eeaa9` and `mplayer64` at `21e26d0`. A submodule is how a
   QB64 project pins a library today.

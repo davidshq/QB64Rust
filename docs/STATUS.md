@@ -102,13 +102,28 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    <parse|compile|server|all> <minutes>` fuzzes the front end with `cargo-fuzz` in WSL (`tools\fuzz\README.md`),
    and the workflow does the same on GitHub's runner. The first campaign found one bug, now fixed:
    `CONST p = 4 ^ 0.5` never finished compiling.
-0. **Review upstream's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
-   commit reviewed: `ce6e54aee` (2026-11-13, 87 commits, `docs\UPSTREAM-REVIEW.md`). `..\QB64pe-latest` was
-   pulled again on 2026-11-14 for the merge of `after-pr26`: no commit came after it.
+0. **Review QB64pe's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
+   commit reviewed: `35f943174` (2026-11-21, 32 commits, `docs\UPSTREAM-REVIEW.md`), for the merge of
+   `after-pr-27-real`.
 0. **The OpenSpec change `build-output-folder`** (`DECISIONS.md` 2026-11-21): a build without `-o` writes into
    `build`, `[build]` names the folder and the data files to copy, and the extension runs the program where
    `qb64rust --print-paths` says. All 16 tasks are built, Civil War Strategy's `[build]` table among them; the
    extension's integration suite has not run yet (CI). Archived 2026-11-21, its specs synced.
+0. **The OpenSpec change `call-trace`** (`DECISIONS.md` 2026-11-21): a runtime error's message lists the
+   procedures that were running, with the line of each call, in a build with `--call-trace`, with `call_trace =
+   true` in `[build]`, or with `--debug` (D-076). All tasks built; `g12_game`'s ten scripts pass with it in the suites
+   VM, at no measurable cost. Archived 2026-11-22, its specs synced. A call costs about 7 ns more in the default build on Windows and Linux,
+   2 to 5 ns with `-O2` (`docs\MANUAL.md`).
+0. **The OpenSpec change `utf8-source`** (`DECISIONS.md` 2026-11-24): a source file declared UTF-8, by
+   `'$ENCODING:UTF8` or by `encoding = "utf-8"` under `[project]`, stores each character of its strings as its
+   code page 437 byte (D-077). With it: the lint `undeclared-utf8`, `qb64rust convert --to utf8|cp437`, the
+   editor's warning for a UTF-8 file open as `cp437`, and a UTF-8 "QB64: New Project". All 18 tasks are built;
+   the extension's integration tests for New Project have not run yet (CI). Archived 2026-11-25, its specs
+   synced. Converting each game's files is a step in that game's repo.
+0. **The editor's side panel is set aside** (`DECISIONS.md` 2026-11-26): the OpenSpec change `editor-side-panel`
+   is the commit `409312f7` on the branch `editor-side-panel`, not merged. The user was not happy with the
+   direction. Brought into this branch: the hover's first sentence of a word's reference page, the quick start's
+   fixed "Fix an error" step, and the list of messages for 20 beginner's mistakes (`study\55` §9).
 1. **M9, the web target** (`ROADMAP.md`, `DECISIONS.md` 2026-11-19). Its first step, the OpenSpec change
    `wasm-console`, is built and archived (2026-11-20, specs merged): `--target wasm` builds a
    `$CONSOLE:ONLY` program for Node, and 3,664 of the 3,766 verification programs it runs pass (97.3%, 0 failing,
@@ -123,7 +138,12 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    `tools\wasm\browser.mjs` runs it in headless Chrome for the tests. In a browser, on the host (user,
    2026-11-21): the `screen\` corpus passes, except its listed programs, and of the verification family's 307 window
    programs 261 pass and the rest are listed. A page ships the files of `[build]` `copy` in `qb64rust.toml`, and
-   the page keeps what it writes in IndexedDB. Civil War Strategy's port reaches its first turn.
+   the page keeps what it writes in IndexedDB. Civil War Strategy's port reaches its first turn. W2, the OpenSpec
+   change `wasm-publish`, is built (2026-11-25) and not archived: a window program built without `-o` goes into a
+   web folder `build\web` that is uploaded whole (`index.html`, `_headers`, a service worker for hosts that send no
+   headers), `qb64rust serve` serves it on `127.0.0.1`, `qb64rust toolchain install --target wasm` downloads
+   the SDK on Windows (815 MB), and the extension has "QB64: Run in Browser". Waiting on the user: the command in
+   VS Code, which no test ran, and an upload to each host that matters, in Chrome, Firefox and Safari.
    Other candidates for later are in `SOMEDAY.md`:
    deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS Code features
    still missing.
@@ -212,10 +232,6 @@ and the merge being forced.
 
 - `STATIC a(5, 5)` in a SUB beside a shared array `a` of one dimension compiles; QB64pe rejects it ("Cannot change
   the number of elements an array has!", `verification\v66_c22`, on `known.list`).
-- A `DECLARE LIBRARY` block that declares a SUB and a FUNCTION of the same name is rejected; QB64pe accepts it
-  (`-z`, 2026-11-15). With the SUB first the error is "name already in use"; with the FUNCTION first, a call as a
-  statement is "cannot be called as a statement". It blocks 12 community programs, all copies of Toolbox64's
-  `DS\HashTable.bi` (`HashTable_Remove`) and `Audio\OPL3X.bi` (`OPL3X_WriteChipRegister`) (`study\50` §3.1).
 - `$COLOR:0` and then `SUB Red`: the error "name already in use" is reported at the constant in the auto-included
   `internal\support\color\color0.bi`, not on the program's `SUB Red` (line 4), where QB64pe reports it
   (`verification\v45_x48`, on `known.list` since the change `pin-rejection-line`).

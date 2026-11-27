@@ -1,0 +1,14 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+lints_pds_function_warnings.bas:11:9: warning: `CURDIR$` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always ""
+lints_pds_function_warnings.bas:12:7: warning: `CURDIR$` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always ""
+lints_pds_function_warnings.bas:13:7: warning: `DIR$` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always ""
+lints_pds_function_warnings.bas:16:7: warning: `DIR$` is used only once: is it misspelled?
+lints_pds_function_warnings.bas:17:7: warning: `curdir` is used only once: is it misspelled?
+lints_pds_function_warnings.bas:22:11: warning: `STACK` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always ""
+lints_pds_function_warnings.bas:38:5: warning: `DIR$` is used only once: is it misspelled?
+lints_pds_function_warnings.bas:42:14: warning: `CURDIR$` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always ""
+lints_pds_function_warnings.bas:43:15: warning: `STACK` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always ""
+lints_pds_function_warnings.bas:44:11: warning: `STACK` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always ""

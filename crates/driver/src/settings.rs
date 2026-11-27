@@ -1,10 +1,12 @@
 //! The settings file `qb64rust.toml` of a program (OpenSpec change `project-settings`, design D1): the nearest one
 //! above the main file, read once for its `[fixes]` (spec `compiler/fixes`), `[format]` (spec `compiler/format`)
-//! and `[lints]` (spec `compiler/lints`) tables, for `[project]` `main` and `exclude` (the language server's), and
+//! and `[lints]` (spec `compiler/lints`) tables, for `[project]` `main` and `exclude` (the language server's) and
+//! `encoding` (spec `compiler/source-encoding`), and
 //! for `[build]` `output` and `copy` (spec `compiler/cli`, "The output folder"). Any other table is ignored. The command line's options go over the file: `fixes.rs`, `lints.rs`, and `main.rs` for the
 //! layout settings.
 
 use crate::lints::Lints;
+use qb64rust_base::SourceEncoding;
 use qb64rust_base::fixes::{Fix, Fixes};
 use qb64rust_base::layout::{KeywordStyle, Overrides};
 use std::fmt;
@@ -53,6 +55,11 @@ pub struct Build {
     pub output: PathBuf,
     /// The entries of `copy`, in the order written.
     pub copy: Vec<CopyEntry>,
+    /// `call_trace`, when the table sets it (OpenSpec change `call-trace`, design D7).
+    pub call_trace: Option<bool>,
+    /// `[project]` `encoding`, which the files in `root` and below it get (OpenSpec change `utf8-source`, design
+    /// D2). Kept here beside `root`, which the rule needs.
+    pub encoding: Option<SourceEncoding>,
 }
 
 /// One entry of `[build]` `copy`: a file or a folder that a build copies into the output folder.
@@ -86,7 +93,15 @@ impl Build {
                     line: *line,
                 })
                 .collect(),
+            call_trace: table.call_trace,
+            encoding: None,
         }
+    }
+
+    /// Whether a build has the call trace (spec `compiler/cli`, "When a build has the call trace"): `cli`, the
+    /// command line's `--call-trace` or `--no-call-trace`, over the table's `call_trace`, over `debug`.
+    pub fn call_trace(&self, cli: Option<bool>, debug: bool) -> bool {
+        cli.or(self.call_trace).unwrap_or(debug)
     }
 
     /// A program with no settings file, whose main file is `main`: `build` in the main file's folder, nothing to
@@ -105,6 +120,7 @@ struct BuildTable {
     copy: Vec<(String, u32)>,
     /// The line of the `copy` key, for an error about the list as a whole.
     copy_line: u32,
+    call_trace: Option<bool>,
 }
 
 /// What [`parse_all`] reads from a settings file.
@@ -113,6 +129,8 @@ struct Parsed {
     project: Project,
     /// The patterns of `[project]` `exclude` ([`excluded`]).
     exclude: Vec<String>,
+    /// `[project]` `encoding` (OpenSpec change `utf8-source`, design D2).
+    encoding: Option<SourceEncoding>,
     build: BuildTable,
 }
 
@@ -136,11 +154,12 @@ pub fn load(main: &Path, no_settings: bool) -> Result<(Project, Build, Option<Pa
         Some(file) => {
             let parsed = read_all(&file)?;
             let root = file.parent().map_or_else(PathBuf::new, Path::to_path_buf);
-            let build = resolve_build(&root, &parsed.build).map_err(|(line, message)| SettingsError {
+            let mut build = resolve_build(&root, &parsed.build).map_err(|(line, message)| SettingsError {
                 file: file.clone(),
                 line: Some(line),
                 message,
             })?;
+            build.encoding = parsed.encoding;
             Ok((parsed.project, build, Some(file)))
         }
         None => Ok(none()),
@@ -156,6 +175,15 @@ pub fn main_of(doc: &Path) -> Option<PathBuf> {
     let main = project_main(&std::fs::read(&settings).ok()?)?;
     let path = settings.parent()?.join(main);
     path.is_file().then_some(path)
+}
+
+/// The folder of the settings file nearest the main file `main` and its `[project]` `encoding`, when it names one
+/// (spec `compiler/source-encoding`, "A file's encoding"). `None` too for a file that cannot be used: the check
+/// reports that file's error. The language server's hook `qb64rust_lsp::ProjectEncoding`.
+pub fn project_encoding(main: &Path) -> Option<(PathBuf, SourceEncoding)> {
+    let settings = find_settings(main)?;
+    let parsed = parse_all(&std::fs::read(&settings).ok()?).ok()?;
+    Some((settings.parent()?.to_path_buf(), parsed.encoding?))
 }
 
 /// Whether the editor leaves the document at `doc` on disk alone: a pattern of the `[project]` table's `exclude` in
@@ -326,6 +354,15 @@ fn parse_all(bytes: &[u8]) -> Result<Parsed, (u32, String)> {
         project.format = format_table(t, &line)?;
     }
     // `[project]`'s `main` is read by `main_of`; its other keys are ignored.
+    let mut encoding = None;
+    if let Some(value) = table("project")?.and_then(|t| t.get("encoding")) {
+        let at = line(value.span().start);
+        encoding = Some(match value.get_ref().as_str() {
+            Some("utf-8") => SourceEncoding::Utf8,
+            Some("cp437") => SourceEncoding::Cp437,
+            _ => return Err((at, "the value of `encoding` must be \"utf-8\" or \"cp437\"".to_string())),
+        });
+    }
     let mut exclude = Vec::new();
     if let Some(value) = table("project")?.and_then(|t| t.get("exclude")) {
         let list = "the value of `exclude` must be a list of patterns, as `exclude = [\"web/**\"]`";
@@ -352,6 +389,7 @@ fn parse_all(bytes: &[u8]) -> Result<Parsed, (u32, String)> {
     Ok(Parsed {
         project,
         exclude,
+        encoding,
         build,
     })
 }
@@ -404,10 +442,14 @@ fn build_table(table: &DeTable<'_>, line: &dyn Fn(usize) -> u32) -> Result<Build
                     out.copy.push((path.to_string(), at));
                 }
             }
+            "call_trace" => {
+                let switch = "the value of `call_trace` must be `true` or `false`";
+                out.call_trace = Some(value.get_ref().as_bool().ok_or_else(|| (at, switch.to_string()))?);
+            }
             _ => {
                 return Err((
                     line(key.span().start),
-                    format!("unknown build setting `{name}`; the settings are output, copy"),
+                    format!("unknown build setting `{name}`; the settings are output, copy, call_trace"),
                 ));
             }
         }
@@ -644,6 +686,25 @@ mod tests {
         assert!(msg.starts_with("`exclude` patterns use `/` between folders"), "{msg}");
     }
 
+    /// `[project]` `encoding`: `"utf-8"` or `"cp437"`; anything else is an error at its line that names both
+    /// (spec `compiler/source-encoding`, "The project's encoding key").
+    #[test]
+    fn project_encoding() {
+        let encoding = |text: &str| parse_all(text.as_bytes()).map(|p| p.encoding);
+        assert_eq!(encoding(""), Ok(None));
+        assert_eq!(
+            encoding("[project]\nencoding = \"utf-8\"\n"),
+            Ok(Some(SourceEncoding::Utf8))
+        );
+        assert_eq!(
+            encoding("[project]\nencoding = \"cp437\"\n"),
+            Ok(Some(SourceEncoding::Cp437))
+        );
+        let bad = "the value of `encoding` must be \"utf-8\" or \"cp437\"".to_string();
+        assert_eq!(encoding("[project]\nencoding = \"latin1\"\n"), Err((2, bad.clone())));
+        assert_eq!(encoding("[project]\nmain = \"m.bas\"\nencoding = 8\n"), Err((3, bad)));
+    }
+
     fn path(p: &str) -> Vec<String> {
         p.split('/').map(str::to_string).collect()
     }
@@ -728,7 +789,9 @@ mod tests {
             Build {
                 root: g.clone(),
                 output: g.join("build"),
-                copy: vec![]
+                copy: vec![],
+                call_trace: None,
+                encoding: None,
             },
             "no settings file"
         );
@@ -782,9 +845,12 @@ mod tests {
             err("[build]\nout = \"build\"\n"),
             (
                 2,
-                "unknown build setting `out`; the settings are output, copy".to_string()
+                "unknown build setting `out`; the settings are output, copy, call_trace".to_string()
             )
         );
+        let switch = "the value of `call_trace` must be `true` or `false`".to_string();
+        assert_eq!(err("[build]\ncall_trace = \"yes\"\n"), (2, switch.clone()));
+        assert_eq!(err("[build]\n\ncall_trace = 1\n"), (3, switch));
         let folder = "the value of `output` must be a folder, as `output = \"build\"`".to_string();
         assert_eq!(err("[build]\noutput = 1\n"), (2, folder));
         let (line, msg) = err("[build]\n\noutput = \"\"\n");
@@ -819,6 +885,29 @@ mod tests {
             err("build = 1\n"),
             (1, "`build` must be a table, as `[build]`".to_string())
         );
+    }
+
+    /// `call_trace` as written, and [`Build::call_trace`]'s order (spec `compiler/cli`, "When a build has the call
+    /// trace"): the command line, then the settings file, then `--debug`.
+    #[test]
+    fn call_trace_setting() {
+        assert_eq!(build("[build]\ncall_trace = true\n").unwrap().call_trace, Some(true));
+        assert_eq!(build("[build]\ncall_trace = false\n").unwrap().call_trace, Some(false));
+        assert_eq!(build("[build]\noutput = \"b\"\n").unwrap().call_trace, None);
+        let with = |file| Build {
+            call_trace: file,
+            ..Build::without_settings(Path::new("g.bas"))
+        };
+        // No option and no setting: the call trace only in a debug build.
+        assert!(!with(None).call_trace(None, false));
+        assert!(with(None).call_trace(None, true));
+        // The settings file over `--debug`.
+        assert!(with(Some(true)).call_trace(None, false));
+        assert!(!with(Some(false)).call_trace(None, true));
+        // The command line over the settings file.
+        assert!(!with(Some(true)).call_trace(Some(false), false));
+        assert!(!with(None).call_trace(Some(false), true));
+        assert!(with(Some(false)).call_trace(Some(true), false));
     }
 
     /// [`resolve_build`] of a settings file in the folder `proj`: no `copy` entry is or holds the output folder,

@@ -11,6 +11,33 @@ QB64pe's commits after the reference `16f629784e`, read at each merge into `main
 
 `STATUS.md` names the last commit reviewed. The newest review is first.
 
+## 2026-11-21: `ce6e54aee` to `35f943174` (32 commits)
+
+Read for the merge of branch `after-pr-27-real` (pull request 32), from `..\QB64pe-latest` pulled that day.
+
+### The runtime (libqb) and the language
+
+| Commit | What it does | Result |
+|---|---|---|
+| `e8e357fa3` | `_STATUSCODE` of a handle that is not open raises error 52 (our pull request 817) | Same here: D-051, the edit `d051-statuscode-missing-handle.edit` |
+| `57b8baa6e` | `_MEMFREE` of a `_MEMNEW(0)` block no longer frees memory twice (our pull request 822) | Same here: D-050, the edit `d050-memnew-zero-lock.edit` |
+| `2a2f3710f` | `_COTH` is the hyperbolic cotangent, `1 / std::tanh(x)`, with error 5 at 0 (our pull request 823) | Same here: D-031, the edit `d031-coth.edit`, the same code |
+| `ea33181ed`, `3f3959c21`, `8a6cafb6c`, `051344528`, `fbc9f6a3b`, `e2d9731ad`, `7d789ef1f` | A FUNCTION may return a user type or a `_MEM`, and a member may be read straight from its call (pull request 779) | Wanted: `SOMEDAY.md`, "Deferred QB64pe features", the row of a FUNCTION that returns a user type |
+| `15d005032` | A whole member array as a buffer (`GET #`, `PUT #`, graphics `GET` and `PUT`, `PALETTE USING`, `CALL INTERRUPT`) and as a list of values for `INPUT #`, `PRINT #` and `WRITE #` (QB64pe issue 818, pull request 819) | Wanted: `SOMEDAY.md`, "Deferred QB64pe features", the row of a whole member array as a buffer |
+
+### QB64pe's compiler, IDE, build and tests
+
+| Commit | What it does | Result |
+|---|---|---|
+| `88f599f6a` | The IDE's bundled INI-Manager updated to v2.0 (pull request 821) | Not relevant: QB64pe's IDE settings |
+| `81861cb5f`, `5889fc701`, `2ffbccee8` | Automatic updates of `internal/source`, QB64pe's compiler translated to C++ | Not relevant: QB64pe's own build |
+
+17 merge commits. Five of them, on the branch of pull request 779, also resolve conflicts in
+`source/qb64pe.bas`: `31efef521`, `48b0da487`, `e9a73cf73`, `ca50f2c39`, `0f7714059`. They are part of that
+pull request's row. The other 12 change nothing of their own beyond `internal/source`: `79a52626a`, `cd393a4be`,
+`32fb414c0`, `81ce67581`, `ae934c3f1`, `545cfa1f0`, `d111a8cd6`, `51ed6d645`, `32d200d33`, `660925bba`,
+`3b40a83e5`, `35f943174`.
+
 ## 2026-11-13: `16f629784e` to `ce6e54aee` (87 commits)
 
 Read for the merge of branch `after-pr26`, from `..\QB64pe-latest` pulled that day.

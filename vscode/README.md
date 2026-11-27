@@ -36,6 +36,11 @@ QB64pe is installed.
   output is in the "QB64" output channel. Run starts the program in a terminal named "QB64", in the source folder.
   When `qb64rust.toml` lists data files in `[build]` `copy`, they are copied into `build` and the program runs
   there instead, so what it writes stays out of the source folder (the compiler's manual, "The settings file").
+- **Run in Browser** (experimental) builds a window program for a web page with `qb64rust`, serves it on this
+  machine in a terminal named "QB64 Web" (`qb64rust serve`, on `127.0.0.1` only) and opens it in your browser. It
+  needs the Emscripten SDK: the first run asks to download it (815 MB from Emscripten's own storage), and **QB64:
+  Install the Emscripten SDK** does the same at any time. The folder to upload to a web host is `build\web` (the
+  compiler's manual, "A game in a browser"). A `$CONSOLE:ONLY` program has no page.
 - **Builds with `qb64rust`** when it is found (`qb64rust.buildWith`, default `auto`). Its errors appear in Problems
   at their file, line and column (source `qb64rust`) and go when you edit the file. When a build fails only on
   forms marked "not supported yet" (parts of QB64 the new compiler does not have yet), the message offers **Build
@@ -110,7 +115,7 @@ A key in `[format]` overrides the matching `qb64rust.format.*` setting, so every
 same layout; a key that is not there leaves the setting as it is. This holds for the language server and for
 `qb64rust -y`, not for `qb64pe -y`, which does not read the file. An include file takes the file of its program.
 The lint codes are `used-once`, `unused-procedure`, `unused-label`, `hides-shared`, `unreachable`,
-`unused-variable`, `empty-select`, `duplicate-const` and `debug-incompatible`; a lint that is off gives no warning
+`undeclared-utf8`, `pds-function`, `unused-variable`, `empty-select`, `duplicate-const` and `debug-incompatible`; a lint that is off gives no warning
 in Problems. A mistake in the file (a misspelled key, a value of the wrong kind) stops Format Document with a message
 that names the file and the line, and shows in Problems on line 1 of the program at the next check.
 
@@ -254,7 +259,8 @@ such request after an edit (about a twentieth of a second on a program of 5,000 
 
 - **Hover** on a name: a variable's type and where it lives (main module, shared, local to or a parameter of a
   procedure), a constant's type and value, a procedure's header, a type's members, a member's type, a label's body.
-  On a built-in, its arguments and result from the built-in table. No help text is shown.
+  On a built-in, its arguments and result from the built-in table, then the first sentence of its page in the
+  language reference. On a keyword such as `FOR` or `CASE`, that sentence alone.
 - **Find All References** of a variable, constant, procedure, type, member or label, in every file of the program;
   a FUNCTION's include the assignments to its result.
   Two variables that differ by suffix (`a$`, `a%`), or that are local to different procedures, are kept apart.
@@ -327,6 +333,7 @@ workspaces (folders opened from a remote repository without a local copy, e.g. o
 |---|---|---|
 | `qb64rust.compilerPath` | `""` | Path to `qb64pe.exe` or its folder. Empty: look up `qb64pe` on `PATH`. |
 | `qb64rust.toolchainPath` | `""` | A C++ toolchain folder for `qb64rust` (llvm-mingw's layout: `bin\c++.exe`, `bin\lldb-dap.exe`). Empty: QB64pe's when it is found, else the installed one. A machine setting: a workspace cannot set it. |
+| `qb64rust.emsdkPath` | `""` | An Emscripten SDK folder for **Run in Browser** (an `emsdk` folder with release 7.0.0 installed and activated). Empty: the one `QB64RUST_EMSDK_ROOT` names, else the installed one. A machine setting: a workspace cannot set it. |
 | `qb64rust.buildWith` | `"auto"` | The compiler of Build, Build and Run and the build task: `auto` (`qb64rust` when it is found, else QB64pe), `qb64rust`, or `qb64pe`. |
 | `qb64rust.checkOnSave` | `true` | Check the program when a file is saved: with the language server when it runs, else with `qb64pe -z`. |
 | `qb64rust.checkTimeoutSeconds` | `30` | Stop a check or format that takes longer (a check by the language server: stop waiting for it). |

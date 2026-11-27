@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn every_code_is_a_bit() {
-        assert_eq!(CODES.len(), 9);
+        assert_eq!(CODES.len(), 11);
         for c in CODES {
             assert!(Lints::ALL.is_on(c) && !Lints::OFF.is_on(c), "{c}");
             let code = Lints::code(c).unwrap();

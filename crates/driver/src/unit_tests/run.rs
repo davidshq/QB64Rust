@@ -38,6 +38,9 @@ pub struct RunOptions {
     pub no_settings: bool,
     /// `--coverage`: each test program counts the statements it runs.
     pub coverage: bool,
+    /// `--call-trace` or `--no-call-trace`, over each test file's `[build]` `call_trace` (OpenSpec change
+    /// `call-trace`).
+    pub call_trace: Option<bool>,
     /// With `coverage`, the file that `QB64RUST_COVERAGE` named when the run started. Each test's record is
     /// appended to it after the test ends, one test at a time, so that records of tests run at once never mix.
     pub coverage_file: Option<PathBuf>,
@@ -188,7 +191,7 @@ fn build(file: &TestFile, o: &RunOptions) -> Result<PathBuf, String> {
     let exe = folder.join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));
     let main = entry_path(&path);
     let file_name = path.file_name().unwrap_or_default().to_string_lossy().into_owned();
-    let (project, _, _) = crate::settings::load(&main, o.no_settings).map_err(|e| e.to_string())?;
+    let (project, settings, _) = crate::settings::load(&main, o.no_settings).map_err(|e| e.to_string())?;
     let fixes = apply_cli(project.fixes, &o.fixes);
     let options = CompileOptions {
         exe: exe.clone(),
@@ -199,6 +202,7 @@ fn build(file: &TestFile, o: &RunOptions) -> Result<PathBuf, String> {
         include_root: o.include_root.clone(),
         fixes,
         coverage: o.coverage,
+        call_trace: settings.call_trace(o.call_trace, false),
         ..CompileOptions::default()
     };
     let mut text = String::new();
@@ -206,7 +210,14 @@ fn build(file: &TestFile, o: &RunOptions) -> Result<PathBuf, String> {
         &main,
         &main.to_string_lossy(),
         entry_point(&file_name, &file.tests).into_bytes(),
-        |id| Box::new(TestLoader::new(&o.include_root, id, &main)),
+        |id| {
+            Box::new(TestLoader::new(
+                &o.include_root,
+                id,
+                &main,
+                (&settings.root, settings.encoding),
+            ))
+        },
         &options,
         &mut |t| text.push_str(t),
     );

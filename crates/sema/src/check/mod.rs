@@ -33,11 +33,13 @@ use whole::{without_parens, written_whole};
 use crate::{
     ConstId, LabelId, Place, ProcId, Program, Shape, Stmt, StmtKind, Storage, SymbolKind, Ty, TypeId, Var, VarId,
 };
+use qb64rust_base::cp437::{self, BadChar};
 use qb64rust_base::fixes::Fixes;
 use qb64rust_base::{Diagnostics, FileId, SourceMap, Span, show_bytes, to_u32};
 use qb64rust_syntax::ParsedProgram;
 use qb64rust_syntax::SyntaxKind;
 use qb64rust_syntax::ast;
+use qb64rust_syntax::encoding::{BOM, DeclaredBy, FileEncoding, file_encoding};
 use qb64rust_syntax::meta::{MemoryMode, comment_directives};
 use qb64rust_syntax::pp::meta_line;
 use qb64rust_syntax::tree::{Node, Tok, TreeId};
@@ -179,7 +181,9 @@ fn check_once(
         redim_locals,
         redim_found: Vec::new(),
         call_args: Vec::new(),
+        encodings: file_encodings(map, program),
     };
+    c.utf8_files_valid();
     c.first_color = c.first_color_line(program);
     let skips = Skips::new(program);
     for t in &program.trees {
@@ -526,6 +530,24 @@ fn version_number(key: &str, value: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// The span of a string literal's text inside its quotes: the token `raw` at `span` without its opening quote
+/// and, when it has one, its closing quote (the lexer ends an unterminated literal at the line end).
+pub(crate) fn string_inside(raw: &[u8], span: Span) -> Span {
+    let open = u32::from(raw.starts_with(b"\""));
+    let close = u32::from(raw.len() > 1 && raw.ends_with(b"\""));
+    Span::new(span.file, span.start + open, span.end - close)
+}
+
+/// The encoding of each file of the program, by its tree's `'$ENCODING` line and its settings file (OpenSpec
+/// change `utf8-source`, design D2). A file included twice has two trees with one line.
+pub(crate) fn file_encodings(map: &SourceMap, program: &ParsedProgram) -> HashMap<FileId, FileEncoding> {
+    program
+        .trees
+        .iter()
+        .map(|t| (t.file, file_encoding(map, t.file, t.encoding)))
+        .collect()
+}
+
 /// What in a value of the executable's manifest makes Windows refuse it (design D3 of `m3-versioninfo`): the
 /// first `<` or `&`, or a byte that is not UTF-8; `None` when it has neither.
 fn manifest_refusal(value: &[u8]) -> Option<String> {
@@ -608,6 +630,8 @@ struct Checker<'a> {
     redim_found: Vec<RedimLocal>,
     /// The arguments of every call that are places ([`Checker::conventional_args`]).
     call_args: Vec<CallArg>,
+    /// The encoding of each file of the program (OpenSpec change `utf8-source`, design D2).
+    encodings: HashMap<FileId, FileEncoding>,
     map: &'a SourceMap,
     /// Every tree, for the included ones ([`Checker::expand`]).
     program: &'a ParsedProgram,
@@ -993,6 +1017,53 @@ impl Checker<'_> {
 
     fn text(&self, span: Span) -> &[u8] {
         self.map.text(span)
+    }
+
+    /// The bytes the program holds for the text at `at`, a string literal's or a `DATA` item's without its
+    /// quotes (OpenSpec change `utf8-source`, design D1). In a UTF-8 file each character is its code page 437 byte,
+    /// and one that has none is an error at the character. Bytes that are not UTF-8 are kept as they are: the
+    /// file's own error names the first ([`Checker::utf8_files_valid`]).
+    fn literal_text(&mut self, at: Span) -> R<Vec<u8>> {
+        let utf8 = self.encodings.get(&at.file).is_some_and(|e| e.is_utf8());
+        match cp437::text_of(self.text(at), utf8) {
+            Ok(bytes) => Ok(bytes),
+            Err(BadChar::NotUtf8 { .. }) => Ok(self.text(at).to_vec()),
+            Err(BadChar::Outside { at: i, ch }) => {
+                let start = at.start + to_u32(i);
+                let span = Span::new(at.file, start, start + to_u32(ch.len_utf8()));
+                let msg = format!(
+                    "`{ch}` (U+{:04X}) has no code page 437 byte: a string of a UTF-8 file holds code page 437 \
+                     characters",
+                    u32::from(ch)
+                );
+                Err(self.error(span, msg))
+            }
+        }
+    }
+
+    /// An error for each UTF-8 file whose bytes are not UTF-8, at the first byte that is not, which says how the
+    /// file was declared (spec `compiler/source-encoding`, "A UTF-8 file must be valid").
+    fn utf8_files_valid(&mut self) {
+        let mut files: Vec<(FileId, FileEncoding)> = self.encodings.iter().map(|(&f, &e)| (f, e)).collect();
+        files.sort_by_key(|(f, _)| f.0);
+        for (file, e) in files {
+            if !e.is_utf8() {
+                continue;
+            }
+            let bytes = &self.map.file(file).bytes;
+            let skip = if bytes.starts_with(BOM) { BOM.len() } else { 0 };
+            let Some(bad) = cp437::first_bad_utf8(&bytes[skip..]) else {
+                continue;
+            };
+            let at = to_u32(skip + bad);
+            let byte = bytes[skip + bad];
+            let how = match e.by {
+                DeclaredBy::Line(_) => "its `'$ENCODING:UTF8` line",
+                DeclaredBy::Settings | DeclaredBy::Nothing => "`encoding = \"utf-8\"` in `qb64rust.toml`",
+            };
+            let msg = format!("the byte 0x{byte:02X} is not UTF-8, and the file is declared UTF-8 by {how}");
+            let _ = self.error(Span::new(file, at, at + 1), msg);
+        }
     }
 
     /// The 1-based line of a span in its own file, as the old compiler counts it: a line joined to the next by a

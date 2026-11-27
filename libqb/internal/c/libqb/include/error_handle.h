@@ -38,6 +38,10 @@ qbs *func__errormessage(int32_t errorcode, int32_t passed);
 void error_set_line(uint32_t errorline, uint32_t incerrorline, const char *incfilename);
 void error_track_line(uint32_t errorline, uint32_t incerrorline, const char *incfilename);
 
+// A call-trace build's call stack (OpenSpec change call-trace): given the error's line in the main file, or its
+// line in an included file and that file's name, the text that goes after the error's text. NULL in other builds.
+extern const char *(*libqb_error_call_stack)(uint32_t line, uint32_t include_line, const char *include_file);
+
 #define QB_ERROR_NEXT_WITHOUT_FOR 1
 #define QB_ERROR_SYNTAX_ERROR 2
 #define QB_ERROR_RETURN_WITHOUT_GOSUB 3

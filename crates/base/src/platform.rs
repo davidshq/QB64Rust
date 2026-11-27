@@ -14,6 +14,16 @@ pub enum Platform {
     Wasm,
 }
 
+/// A file name a program writes, as the host's file calls take it: on Linux every `\` is a `/`, as libqb's
+/// `filepath_fix_directory` makes it in the old compiler's own `_FILEEXISTS` and `OPEN` (design D2 of `m7-linux`);
+/// on Windows as written.
+pub fn host_path(name: &str) -> std::path::PathBuf {
+    match Platform::host() {
+        Platform::Windows => std::path::PathBuf::from(name),
+        Platform::Linux | Platform::Wasm => std::path::PathBuf::from(name.replace('\\', "/")),
+    }
+}
+
 impl Platform {
     /// The platform the compiler runs on. Off Windows this is Linux, the rules of which a build on another system
     /// would follow; a build there is refused first ([`Platform::host_is_supported`]).

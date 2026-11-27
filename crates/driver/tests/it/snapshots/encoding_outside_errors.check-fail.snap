@@ -1,0 +1,7 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+encoding_outside_errors.bas:3:8: error: `日` (U+65E5) has no code page 437 byte: a string of a UTF-8 file holds code page 437 characters
+encoding_outside_errors.bas:4:12: error: `€` (U+20AC) has no code page 437 byte: a string of a UTF-8 file holds code page 437 characters
+encoding_outside_errors.bas:5:6: error: `ω` (U+03C9) has no code page 437 byte: a string of a UTF-8 file holds code page 437 characters

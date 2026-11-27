@@ -6,25 +6,6 @@ reference commit (`16f629784e`), the fix, and this project's divergence row. Whe
 where (issue or pull request) and what came of it. Fixes QB64pe has merged are in
 `docs\archived\UPSTREAM-completed.md`.
 
-## `_COTH(x)` is not the hyperbolic cotangent
-
-- **Wrong:** `_COTH(x)` returns `2 * EXP(x) - 1`: `_COTH(0)` is 1, `_COTH(.2)` 1.442805516320339709 and
-  `_COTH(1)` 4.4366 (the hyperbolic cotangent: undefined, 5.0665 and 1.3130). It also raises error 5 for any
-  argument above 44.014845, where the hyperbolic cotangent is 1 to double precision. Measured in this repo:
-  `verification\v45_x32`, `v45_b_funcs`.
-- **Where:** `internal/c/libqb/include/extended_math.h`, `func_coth`. The `CONST` evaluator
-  (`source/utilities/const_eval.bas`, `CASE "_COTH"`) calls `_COTH` of the compiler itself, so the one fix
-  corrects both a statement and a `CONST`.
-- **Fix:** the hyperbolic cotangent, `(EXP(2x) + 1) / (EXP(2x) - 1)`, written so it does not overflow for large
-  arguments (for example `1 / std::tanh(num)`), with error 5 at 0 as the neighbouring functions raise for a
-  division by zero (`func_csch`), and no upper limit.
-- **Here:** `DIVERGENCES-QB64PE.md` D-031, built by `const-rulings`: the edit `tools/libqb/edits/d031-coth.edit` of this
-  repo's copy of libqb (`1 / std::tanh(num)`, error 5 at 0) is the patch to offer, and the `CONST` evaluator here
-  computes the same function.
-- **Sent:** draft pull request QB64-Phoenix-Edition/QB64pe#823 (2026-11-18), from branch
-  `fix-coth-hyperbolic-cotangent` of `davidshq-contribute/QB64pe`. It adds the test `tests/compile_tests/math/coth`
-  and corrects `const/math_funcs`, which expected the old `_COTH(.2)` of 1.4428. Not yet reviewed.
-
 ## A `TYPE` with a `STRING` in conventional memory has no strings
 
 - **Wrong:** a `TYPE` variable of the main module that holds a `STRING` member, and that `VARPTR`, `VARSEG`,

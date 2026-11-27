@@ -2,6 +2,7 @@
 
 pub mod build;
 pub mod compile;
+pub mod convert;
 pub mod cpp_errors;
 pub mod fixes;
 pub mod hover;
@@ -9,14 +10,15 @@ pub mod library;
 pub mod lints;
 pub mod output;
 pub mod report;
+pub mod serve;
 pub mod settings;
 pub mod toolchain;
 pub mod unit_tests;
 
 use qb64rust_base::fixes::Fixes;
-use qb64rust_base::{Diagnostics, FileId, SourceMap};
+use qb64rust_base::{Diagnostics, FileId, SourceEncoding, SourceMap};
 use qb64rust_sema::Program;
-use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_name, parse_settled_explicit};
+use qb64rust_syntax::{LoadError, Loader, NoLoader, ParsedProgram, include_candidates, parse_settled_explicit};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -90,6 +92,8 @@ pub struct FileLoader {
     dirs: HashMap<FileId, PathBuf>,
     /// Canonical path -> file, for files loaded already.
     seen: HashMap<PathBuf, FileId>,
+    /// The settings file's canonical folder and its `[project]` `encoding` ([`FileLoader::with_encoding`]).
+    project: Option<(PathBuf, SourceEncoding)>,
 }
 
 impl FileLoader {
@@ -100,25 +104,42 @@ impl FileLoader {
             root: root.to_path_buf(),
             dirs: HashMap::from([(main, dir)]),
             seen: HashMap::new(),
+            project: None,
         }
+    }
+
+    /// The loader for a program whose settings file in the folder `folder` gives `encoding`: each file in that
+    /// folder or below it gets it as its [`SourceFile::project_encoding`] (OpenSpec change `utf8-source`, design
+    /// D2). A file elsewhere, such as a library's under the compiler root, gets none.
+    ///
+    /// [`SourceFile::project_encoding`]: qb64rust_base::SourceFile::project_encoding
+    #[must_use]
+    pub fn with_encoding(mut self, folder: &Path, encoding: Option<SourceEncoding>) -> FileLoader {
+        self.project = encoding.and_then(|e| Some((std::fs::canonicalize(folder).ok()?, e)));
+        self
+    }
+
+    /// The project's encoding for a file in the folder `dir`.
+    fn encoding_in(&self, dir: &Path) -> Option<SourceEncoding> {
+        let (folder, encoding) = self.project.as_ref()?;
+        // A main file named without a folder (`p.bas`) is in the working directory.
+        let dir = if dir.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            dir
+        };
+        let dir = std::fs::canonicalize(dir).ok()?;
+        dir.starts_with(folder).then_some(*encoding)
     }
 }
 
 impl Loader for FileLoader {
     fn load(&mut self, map: &mut SourceMap, from: FileId, path: &[u8]) -> Result<FileId, LoadError> {
-        let rel = &host_path(&include_name(path).to_string_lossy());
         let from_dir = self.dirs.get(&from).cloned().unwrap_or_default();
         let shown_dir = Path::new(&map.file(from).name)
             .parent()
             .map_or_else(PathBuf::new, Path::to_path_buf);
-        let candidates = if rel.is_absolute() {
-            vec![(rel.to_path_buf(), rel.to_path_buf())]
-        } else {
-            vec![
-                (from_dir.join(rel), shown_dir.join(rel)),
-                (self.root.join(rel), self.root.join(rel)),
-            ]
-        };
+        let candidates = include_candidates(path, Some((&from_dir, &shown_dir)), &self.root);
         let Some((real, shown)) = candidates.into_iter().find(|(p, _)| p.is_file()) else {
             return Err(LoadError::NotFound);
         };
@@ -145,6 +166,10 @@ impl Loader for FileLoader {
     fn folders(&self) -> HashMap<FileId, PathBuf> {
         self.dirs.clone()
     }
+
+    fn main_encoding(&self, main: FileId) -> Option<SourceEncoding> {
+        self.encoding_in(self.dirs.get(&main)?)
+    }
 }
 
 impl FileLoader {
@@ -162,9 +187,10 @@ impl FileLoader {
             )));
         }
         let id = map.add(shown.to_string_lossy().into_owned(), bytes);
+        let dir = real.parent().map_or_else(PathBuf::new, Path::to_path_buf);
+        map.set_project_encoding(id, self.encoding_in(&dir));
         self.seen.insert(canonical, id);
-        self.dirs
-            .insert(id, real.parent().map_or_else(PathBuf::new, Path::to_path_buf));
+        self.dirs.insert(id, dir);
         Ok(id)
     }
 }
@@ -378,6 +404,7 @@ pub fn server_hooks() -> qb64rust_lsp::Hooks {
         main_of: settings::main_of,
         excluded: settings::excluded,
         rewritable: qb64rust_format::rewritable,
+        project_encoding: settings::project_encoding,
     }
 }
 
@@ -434,11 +461,12 @@ pub fn probe(kind: Probe, bytes: &[u8]) -> Result<Reached, &'static str> {
             round_trip(&fe.parsed)?;
             let emitted = !fe.has_errors() && bytes.len() <= PROBE_EMIT_MAX_LEN;
             if emitted {
-                // The emission that runs the most of the emitter: a debug build's, with coverage counters and the
-                // record calls of a value-trace build.
+                // The emission that runs the most of the emitter: a debug build's, with coverage counters, the
+                // record calls of a value-trace build and the frames of a call-trace build.
                 let instrument = Instrument {
                     coverage: true,
                     trace: true,
+                    call_trace: true,
                 };
                 emit_ir_debug(&fe, &lower(&fe), &Resolved::default(), instrument, None);
             }
@@ -489,15 +517,7 @@ fn named_file(name: &str, main_path: &Path, root: &Path) -> PathBuf {
     }
 }
 
-/// A file name a program writes, as the host's file calls take it: on Linux every `\` is a `/`, as libqb's
-/// `filepath_fix_directory` makes it in the old compiler's own `_FILEEXISTS` and `OPEN` (design D2 of `m7-linux`);
-/// on Windows as written.
-pub fn host_path(name: &str) -> PathBuf {
-    match qb64rust_base::Platform::host() {
-        qb64rust_base::Platform::Windows => PathBuf::from(name),
-        qb64rust_base::Platform::Linux | qb64rust_base::Platform::Wasm => PathBuf::from(name.replace('\\', "/")),
-    }
-}
+pub use qb64rust_base::host_path;
 
 /// `rest` added as text to the folder of the file `main_path`.
 fn beside(main_path: &Path, rest: &str) -> PathBuf {
@@ -629,20 +649,27 @@ pub struct Instrument {
     pub coverage: bool,
     /// `--trace-values`: a record call at each store into a variable (OpenSpec change `value-trace`).
     pub trace: bool,
+    /// `--call-trace`: a call stack in a runtime error's message (OpenSpec change `call-trace`).
+    pub call_trace: bool,
 }
 
 impl Instrument {
     pub const NONE: Instrument = Instrument {
         coverage: false,
         trace: false,
+        call_trace: false,
     };
     pub const COVERAGE: Instrument = Instrument {
         coverage: true,
-        trace: false,
+        ..Instrument::NONE
     };
     pub const TRACE: Instrument = Instrument {
-        coverage: false,
         trace: true,
+        ..Instrument::NONE
+    };
+    pub const CALL_TRACE: Instrument = Instrument {
+        call_trace: true,
+        ..Instrument::NONE
     };
 }
 
@@ -684,28 +711,39 @@ fn emit_ir_all(
     let trace = instrument.trace.then(|| qb64rust_codegen_cpp::Trace {
         files: coverage_files(fe),
     });
+    // The paths of a coverage record, and each procedure's header line for its name as declared (OpenSpec change
+    // `call-trace`, design D6).
+    let line = |file: qb64rust_base::FileId, line: u32| {
+        let bytes = &fe.map.file(file).bytes;
+        let text = bytes
+            .split(|&b| b == b'\n')
+            .nth(usize::try_from(line).ok()?.checked_sub(1)?)?;
+        Some(qb64rust_base::show_bytes(text))
+    };
+    let call_trace = instrument.call_trace.then(|| qb64rust_codegen_cpp::CallTrace {
+        files: coverage_files(fe).into_iter().map(|(path, _)| path).collect(),
+        main: fe.file,
+        line: &line,
+    });
     let source_name = &fe.map.file(fe.file).name;
+    let watch = qb64rust_codegen_cpp::Watch {
+        coverage: coverage.as_ref(),
+        trace: trace.as_ref(),
+        call_trace: call_trace.as_ref(),
+    };
     if debug {
         let (fragments, info) = qb64rust_codegen_cpp::emit_debug(
             ir,
             source_name,
             &included,
             resolved,
-            (coverage.as_ref(), trace.as_ref()),
+            watch,
             log_folder,
             &debug_files(fe),
         );
         return (fragments, Some(info));
     }
-    let fragments = qb64rust_codegen_cpp::emit_with(
-        ir,
-        source_name,
-        &included,
-        resolved,
-        coverage.as_ref(),
-        trace.as_ref(),
-        log_folder,
-    );
+    let fragments = qb64rust_codegen_cpp::emit_with(ir, source_name, &included, resolved, watch, log_folder);
     (fragments, None)
 }
 
