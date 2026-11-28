@@ -12,6 +12,9 @@
 # C++ exceptions are WebAssembly's own (-fwasm-exceptions, compiled and linked), as the desktop builds have
 # them: Emscripten leaves them out by default, and then a throw aborts. _LOADIMAGE tries its decoders in turn,
 # and the PCX decoder throws on a file that is not one (OpenSpec change wasm-window, i03_save_load).
+# C code takes WebAssembly's setjmp and longjmp to match (-sSUPPORT_LONGJMP=wasm), which -fwasm-exceptions gives
+# C++ code. Without it FreeType's C needs emscripten_longjmp, which a link with -fwasm-exceptions does not have,
+# so a program with _LOADFONT did not link (found 2026-11-28, Civil War Strategy's font).
 file: Makefile
 --- old
 	endif
@@ -28,7 +31,7 @@ endif
 # the link flags of a program run by Node, or of a window program run in a browser page.
 ifeq ($(WASM),y)
 	CXXFLAGS := $(filter-out -m32 -m64 -no-pie -D_GLFW_%,$(CXXFLAGS)) -pthread -fwasm-exceptions
-	CFLAGS := $(filter-out -m32 -m64 -no-pie,$(CFLAGS)) -pthread
+	CFLAGS := $(filter-out -m32 -m64 -no-pie,$(CFLAGS)) -pthread -sSUPPORT_LONGJMP=wasm
 	ifneq ($(filter y,$(DEP_CONSOLE_ONLY)),)
 		EXE_LIBS := $(filter-out %/glut-emu.o %/core.a %/clipboard.a,$(EXE_LIBS))
 		CXXLIBS := $(CXXLIBS_EXTRA) -pthread -sPTHREAD_POOL_SIZE=4 -sNODERAWFS -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH -sENVIRONMENT=node -fwasm-exceptions

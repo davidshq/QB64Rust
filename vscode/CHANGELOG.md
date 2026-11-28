@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **Set Up Project.** The new command "QB64: Set Up Project" asks where the program goes and which data files it
+  reads, and has `qb64rust init` write the folder's `qb64rust.toml`. The file lists every other setting as a
+  commented line (README, "Features").
+- **A program built with `qb64rust` is next to its source again**, as with QB64pe, unless `qb64rust.toml` names an
+  output folder or has a `copy` list. Builds from `main` since 2026-11-21 put it in a folder `build`. That folder
+  is no longer used and can be deleted.
+- **Signature help, include links and snippets.** Typing a call's arguments shows the built-in's form or the SUB's
+  header, with the argument under the cursor marked. Ctrl+click on an `$INCLUDE`'s file name opens the file. Nine
+  snippets write the blocks (`SUB`, `FUNCTION`, `SELECT CASE`, `TYPE`, `FOR`, `DO`, `IF`) (README, "Language
+  features").
+- **Tabs.** New indents in QB64 files are spaces, unless VS Code finds the file already indented with tabs. A file
+  shown with tabs is told of once, with a button that turns them into spaces as the QB64pe IDE does;
+  `qb64rust.tabsNotice` turns the notice off.
+- **Build and run settings.** `qb64rust.build.optimize`, `qb64rust.build.licenseFile` and
+  `qb64rust.build.extraLinkerFlags` are passed to either compiler; `qb64rust.build.outputFolder` puts the program
+  next to the source; `qb64rust.run.terminal` runs it in a window of its own; `qb64rust.run.logLevel` and the
+  other `qb64rust.run.log*` settings turn on the runtime's log, as the QB64pe IDE's logging options do (README,
+  "Settings").
 - **A hover that says what a word does.** A hover on a built-in now gives, after its arguments, the first sentence
   of its page in the language reference: `_CLAMP` "holds a value between two bounds". A keyword such as `FOR` or
   `CASE`, which had no hover, now gives that sentence alone (README, "Language features").

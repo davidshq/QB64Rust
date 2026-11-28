@@ -5,7 +5,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { api, builtOf, closeAll, compiler, dismissingNotifications, open, server, setSetting, setText, waitFor, writeFile } from "./helpers";
+import { api, builtInBuild, builtOf, closeAll, compiler, dismissingNotifications, open, server, setSetting, setText, waitFor, writeFile } from "./helpers";
 
 const exeOf = (uri: vscode.Uri) => uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
 
@@ -51,12 +51,12 @@ describe("build with qb64rust", function () {
         assert.strictEqual(ran, true, `Build and Run failed; the last command: ${a.builder.lastCommand ?? "none (no build started)"}`);
         assert.ok(a.builder.lastCommand?.startsWith(`${server} -x -w ${uri.fsPath}`), a.builder.lastCommand);
         assert.ok(a.builder.lastCommand?.includes(`--qb64pe-root ${path.dirname(compiler)}`), a.builder.lastCommand);
-        // No settings file: the program is in `build` and runs in the source's folder, where it writes hello.txt
-        // (change build-output-folder, design D4).
+        // No settings file: the program is beside its source and runs there, where it writes hello.txt (change
+        // project-init, design D1 and D2).
         const text = await waitFor("hello.txt", () => fs.existsSync(out) && fs.readFileSync(out, "latin1").trim(), 60000);
         assert.strictEqual(text, "from qb64rust");
-        assert.ok(fs.existsSync(builtOf(uri)), "the program in build");
-        assert.ok(!fs.existsSync(exeOf(uri)), "a program next to the source");
+        assert.ok(fs.existsSync(builtOf(uri)), "the program beside the source");
+        assert.ok(!fs.existsSync(builtInBuild(uri)), "a program in build");
         assert.ok(!a.builder.lastCommand?.includes(" -o "), a.builder.lastCommand);
         if (fs.existsSync(path.join(a.bundle.libqb, "internal", "c", "qbx.cpp"))) {
             const copy = path.join(a.bundle.storage, `libqb-${a.bundle.version}`); // version and libqb.id
@@ -83,7 +83,7 @@ describe("build with qb64rust", function () {
         // The run task takes the same program and folder.
         const run = (await vscode.tasks.fetchTasks({ type: "qb64rust" })).find((t) => t.name === "run")!;
         const execution = run.execution as vscode.ProcessExecution;
-        assert.deepStrictEqual([execution.process, execution.options?.cwd], [builtOf(uri), path.join(folder, "build")]);
+        assert.deepStrictEqual([execution.process, execution.options?.cwd], [builtInBuild(uri), path.join(folder, "build")]);
     });
 
     it("failed build: the error in an included file at its column, source qb64rust, removed on edit", async () => {
@@ -119,6 +119,41 @@ describe("build with qb64rust", function () {
         assert.ok(!vscode.workspace.textDocuments.some((d) => d.uri.fsPath === uri.fsPath), "main.bas was opened");
         const task = (await vscode.tasks.fetchTasks({ type: "qb64rust" })).find((t) => t.name === "build")!;
         assert.strictEqual((task.execution as vscode.ProcessExecution).args[2], uri.fsPath);
+    });
+
+    it("build settings: output next to the source over a copy list, with the license file, and the run task runs it there with the log", async () => {
+        const a = await api();
+        // The copy list would build into `build`: the setting `source` puts the program beside the source anyway.
+        writeFile("rbuild/settings/qb64rust.toml", '[build]\r\ncopy = ["x.txt"]\r\n');
+        writeFile("rbuild/settings/x.txt", "data\r\n");
+        const uri = writeFile("rbuild/settings/game.bas", "$CONSOLE:ONLY\r\nSYSTEM\r\n");
+        await setSetting("qb64rust", "build.outputFolder", "source");
+        await setSetting("qb64rust", "build.licenseFile", true);
+        await setSetting("qb64rust", "run.logLevel", "information");
+        try {
+            await open(uri);
+            const exe = await vscode.commands.executeCommand<string | undefined>("qb64rust.build");
+            assert.strictEqual(exe, exeOf(uri), `the last command: ${a.builder.lastCommand ?? "none"}`);
+            assert.ok(a.builder.lastCommand?.includes(` -o ${exeOf(uri)} -f:GenerateLicenseFile=true `), a.builder.lastCommand);
+            assert.ok(fs.existsSync(`${exeOf(uri)}.license.txt`), "no license file next to the program");
+            assert.ok(!fs.existsSync(builtInBuild(uri)), "a program in build");
+            assert.ok(!fs.existsSync(path.join(path.dirname(uri.fsPath), "build", "x.txt")), "x.txt copied into build");
+            const run = (await vscode.tasks.fetchTasks({ type: "qb64rust" })).find((t) => t.name === "run")!;
+            const execution = run.execution as vscode.ProcessExecution;
+            assert.deepStrictEqual([execution.process, execution.options?.cwd], [exeOf(uri), path.dirname(uri.fsPath)]);
+            // `qb64rust.noPrompt` is on in the test profile (runTests.ts).
+            assert.deepStrictEqual(execution.options?.env, {
+                QB64PE_NOPROMPT: "y",
+                QB64PE_LOG_LEVEL: "information",
+                QB64PE_LOG_SCOPES: "qb64",
+                QB64PE_LOG_HANDLERS: "console",
+                QB64PE_LOG_FILE_PATH: "qb64pe-log.txt",
+            });
+        } finally {
+            for (const key of ["build.outputFolder", "build.licenseFile", "run.logLevel"]) {
+                await setSetting("qb64rust", key, undefined);
+            }
+        }
     });
 
     it("only unsupported forms: 'Build with QB64pe' builds that program once with QB64pe", async () => {

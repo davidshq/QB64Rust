@@ -11,6 +11,11 @@ QB64pe's commits after the reference `16f629784e`, read at each merge into `main
 
 `STATUS.md` names the last commit reviewed. The newest review is first.
 
+## 2026-11-26: none after `35f943174`
+
+Read for the merge of branch `after-pr-28`. `..\QB64pe-latest` was fetched that day, and QB64pe's `main` has no
+commit after `35f943174`.
+
 ## 2026-11-21: `ce6e54aee` to `35f943174` (32 commits)
 
 Read for the merge of branch `after-pr-27-real` (pull request 32), from `..\QB64pe-latest` pulled that day.

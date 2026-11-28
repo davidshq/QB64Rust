@@ -1,7 +1,7 @@
 ' TEST: warnings
 ' `hides-shared` (spec `compiler/lints`, "Local hiding a shared variable"): reported for the `DIM` in `Local` and
-' the `REDIM` in `Again`. Quiet for `SHARED score`, for a local of another type (`Other`), and for a parameter of
-' the name (`Param`).
+' the `REDIM` in `Again`, whose `score` also gets `never-set`. Quiet for `SHARED score`, for a local of another
+' type (`Other`), and for a parameter of the name (`Param`).
 $CONSOLE:ONLY
 DIM SHARED score AS LONG
 score = 1

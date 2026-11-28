@@ -49,10 +49,9 @@ qb64rust -x hello.bas -o hello.exe
 hello.exe
 ```
 
-Without `-o`, the executable is named after the program and put in a folder `build`: `qb64rust -x hello.bas`
-writes `build\hello.exe`. The `build` folder is beside the program's `qb64rust.toml`, or beside the program when
-it has none. The settings file can name another folder ([The settings file](#the-settings-file), `[build]`). The
-first build takes longer, up to a minute, while libqb's objects are built. Later builds reuse them.
+Without `-o`, the executable is named after the program and put beside it, as QB64pe does: `qb64rust -x hello.bas`
+writes `hello.exe`. The settings file can name an output folder instead ([The settings file](#the-settings-file),
+`[build]`). The first build takes longer, up to a minute, while libqb's objects are built. Later builds reuse them.
 
 Errors and warnings are printed as `file:line:column: error: message`. The exit status is:
 
@@ -101,7 +100,7 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 
 | Option | What it does |
 |---|---|
-| `-o <file>` | The executable to write, instead of `build\<name>.exe`; nothing of `[build]` `copy` is copied |
+| `-o <file>` | The executable to write, instead of `<name>.exe` beside the source or in the output folder; nothing of `[build]` `copy` is copied |
 | `--print-paths <file.bas>` | Print, as one line of JSON, the executable a build would write (`exe`) and the folder the program runs in (`run_in`); builds nothing. The editor uses it |
 | `-x` | Accepted for QB64pe's command line; a build is always to an executable. `-c` is the same |
 | `-e` | Build as if the program began with `OPTION _EXPLICIT`, its `$INCLUDE` files too |
@@ -127,6 +126,37 @@ QB64pe does, for instance, and `_OS$` is `[LINUX][64BIT]`.
 | `convert --to utf8\|cp437 <file>...` | Rewrite source files from code page 437 to UTF-8, or back; builds nothing. See [UTF-8 source files](#utf-8-source-files) |
 
 A program that uses `$INCLUDE` libraries meant to sit beside `qb64pe.exe` finds them beside `qb64rust.exe`.
+
+## Setting up a project
+
+A program needs no settings file: without one it builds beside its source and runs there. `qb64rust init` writes
+a `qb64rust.toml` for a folder when you want more, so that you do not have to remember the settings' names. It
+asks up to three questions, each with a default that Enter takes:
+
+- which file is the program, when the folder has more than one `.bas` file;
+- where the program goes: beside the source, or into a folder `build`;
+- with `build`, which files the program reads. They are copied into `build` before each build. All of them is the
+  default.
+
+```
+cd game
+qb64rust init
+```
+
+The file holds what you chose, and every other setting as a line that starts with `# `, with its default and a
+few words on what it does. Remove the `# ` to set one. `init` never changes a `qb64rust.toml` that is there.
+
+`--yes` asks nothing and takes every default, and so does a run whose input or output is not a terminal. An option
+gives an answer without its question: `--main <file.bas>`, `--output <folder>` (`.` for beside the source),
+`--copy <file or folder>` once for each, `--no-copy`, `--keyword-case camel|upper|lower` and `--fixes on|off`.
+`qb64rust init game --yes --output build --copy GAME.CFG` sets up the folder `game` with no questions.
+
+In a folder with no `.bas` file, `init` starts a new project, as the editor's "QB64: New Project" does: it writes
+`main.bas`, `.vscode/settings.json` and a settings file that turns the fixes on and saves the source as UTF-8. In
+a folder with a program, the fixes stay off and the encoding is not set, so the program builds as before.
+
+In a git repository, `init` prints the line to add to `.gitignore`, such as `/build/`, so that what a build writes
+stays out of the repository. It does not change `.gitignore` itself.
 
 ## The settings file
 
@@ -214,19 +244,20 @@ encoding = "utf-8"
 
 ```toml
 [build]
-output = "build"                          # the default; "." builds next to qb64rust.toml
+output = "build"                          # the default with a copy list; "." builds next to qb64rust.toml
 copy = ["GAME.CFG", "HISCORE.CWS", "graphics"]
 ```
 
-`output` is relative to the folder of `qb64rust.toml`, and uses `/` between folders. With `output = "."` the program
-goes next to the settings file, which is beside the program when the file is: where it went before `[build]`
-existed.
+Without `output` and without `copy`, the program goes beside its source. With a `copy` list and no `output`, it goes
+into `build`. `output` is relative to the folder of `qb64rust.toml`, and uses `/` between folders. With `output =
+"."` the program goes next to the settings file.
 
-**Where the program runs.** Without a `copy` list, the editor runs the program in its source's folder, as Visual
-Studio runs a C++ program and `cargo run` runs a Rust one. So a program that opens a data file by name alone finds
-it where it is, and what it writes goes there too. With a `copy` list, the editor runs it in the output folder
-instead, as .NET runs a program in `bin`. What the program writes then stays in `build`, out of the source folder
-and out of version control. Use `copy` for a game that rewrites its settings or high scores beside itself.
+**Where the program runs.** A program always runs in its own folder, however it is started: from the editor, from
+a shell, or by a double click. As under QB64pe, it moves there when it starts. So a program beside its source finds
+the data files beside it, and what it writes goes there too. A program in an output folder finds only the data
+files that `copy` put there, and what it writes stays in that folder, out of the source folder and out of version
+control. Use `copy` for a game that rewrites its settings or high scores beside itself. A program built beside its
+source in a git repository needs a line in `.gitignore`: `*.exe` on Windows, or the program's name on Linux.
 
 **In a browser.** A window program built with `--target wasm` packs the files of `copy` into `<name>.data` beside
 its page, since a page cannot read the files beside it. The page keeps what the program writes there in the
@@ -240,10 +271,6 @@ file you delete from the source folder stays in `build` until you delete it ther
 start. On a disk that keeps times to 2 seconds (FAT), an edit within 2 seconds of the last copy can be missed. An
 entry that does not exist stops the build with the line of the entry. An entry cannot be or hold the output
 folder, and `copy` needs an output folder other than `"."`. A build with `-o` copies nothing.
-
-**Started outside the editor.** A program started by a double click on `build\game.exe` runs in `build`. It finds
-there only the data files that `copy` put there. Start it from the source folder, list its files in `copy`, or set
-`output = "."`.
 
 **The call stack.** `call_trace = true` in `[build]` gives every build of the project, its unit tests among them,
 the call stack in a runtime error's message ([The call stack of a runtime error](#the-call-stack-of-a-runtime-error)).
@@ -368,6 +395,8 @@ stop a build and never change the program.
 | `unreachable` | Statements after `GOTO`, `END`, `SYSTEM`, `STOP`, `EXIT`, `RETURN`, `RESUME` or `RUN`, with no label or line number before them. One warning for each such stretch | `this code is never run: no label follows the GOTO on line 8` |
 | `undeclared-utf8` | A file saved as UTF-8 that does not say so, with a character above 127 in a string. Its strings then hold the UTF-8 bytes, so `"─"` is three characters (see "UTF-8 source files"). Given for an included file too. One warning per file | ``this file looks like UTF-8 but is read as code page 437, so `─` is 3 characters in the program: …`` |
 | `pds-function` | `CURDIR$`, `DIR$`, `STACK` or `SAVEPOINT` with no argument. BASIC PDS 7.1 has these functions; QB64 does not, so each is a variable that is never set. QB64pe builds it with no message. Given at every use, in included files too. A variable the program sets itself is not reported | ``` `CURDIR$` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always "" ``` |
+| `never-set` | A variable of a SUB or FUNCTION that is read but never set, so it is always 0 or `""`. When a `DIM SHARED` array has its name, the warning asks whether the array was meant. Given in included files too. One warning per variable, at its first read | ``` `cash` is never set, so it is always 0: is the shared array `cash()` meant? ``` |
+| `single-fraction` | A SINGLE variable set to a fraction that a SINGLE cannot hold exactly, such as `.3`, used in a product that is stored in an integer. `r% = .3 * 95` gives 28, since a number written out is a DOUBLE, but `s! = .3: r% = s! * 95` gives 29. Make the variable a DOUBLE to get the result the number gives. Given in included files too | ``` `s!` is a SINGLE set to .3 on line 4, which a SINGLE cannot hold exactly: … ``` |
 
 Some cases are left out on purpose:
 - `used-once`: a `FOR` counter, and a variable that `INPUT`, `LINE INPUT` or `READ` reads into, such as
@@ -379,6 +408,14 @@ Some cases are left out on purpose:
   `$END IF` line, which may run on another platform.
 - `used-once`, `unused-procedure` and `unused-label`: a name used in a `$IF` branch that this compile skips. A
   `$IF WIN THEN` branch that calls `WinSetup` counts as a call on Linux too.
+- `never-set`: a parameter, a main-module variable, an array, a fixed-length string and a record, which a program
+  may keep blank on purpose, such as a record written to blank a file's record. A variable passed to a SUB or
+  FUNCTION that sets it counts as set, and so does one whose memory the program takes with `VARPTR`, `_MEM` or
+  `_OFFSET`.
+- `single-fraction`: a product inside a function's argument, such as `CINT(s! * 95)`, and a variable that an
+  assignment computes, such as `p! = p! * 2`, or that a `FOR` counts. Such a variable does not stand for a number
+  written out. A SUB that computes the variable through its parameter does not count, so that variable is still
+  reported.
 
 These warnings are given only for the file you compile, not for the files it includes with `$INCLUDE`. A
 library file usually has routines a program does not use.

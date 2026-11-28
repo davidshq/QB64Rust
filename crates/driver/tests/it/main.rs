@@ -14,6 +14,7 @@ mod inputs;
 mod language_features;
 mod mutate;
 mod names;
+mod snippets;
 mod support;
 mod unit_tests;
 mod versioninfo;

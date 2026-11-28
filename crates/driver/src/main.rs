@@ -10,9 +10,12 @@
 //! `compiler/cli`, "The target option"; OpenSpec change `wasm-console`), with the Emscripten SDK of `--emsdk-root
 //! <dir>` or `QB64RUST_EMSDK_ROOT`. `qb64rust toolchain path --target wasm [--emsdk-root <dir>]` names that SDK.
 //!
-//! Without `-o` the program goes into the output folder, `build` unless `qb64rust.toml`'s `[build]` names another
-//! (spec `compiler/cli`, "The output folder"). `qb64rust --print-paths <file.bas> [--target host|wasm]
-//! [--no-settings]` prints that path and the folder the program runs in, for the editor.
+//! Without `-o` the program goes beside its source, unless `qb64rust.toml`'s `[build]` names an output folder or
+//! has a `copy` list (spec `compiler/cli`, "The output folder"). `qb64rust --print-paths <file.bas> [--target
+//! host|wasm] [--no-settings]` prints that path and the folder the program runs in, for the editor.
+//!
+//! `qb64rust init [<folder>] [--yes] [--plan] ...`: writes a folder's `qb64rust.toml` from a few questions
+//! (`init.rs`, spec `compiler/project-init`).
 //!
 //! `qb64rust --list-fixes`: the fixes, one per line (spec `compiler/fixes`, `fixes.rs`).
 //!
@@ -69,6 +72,8 @@ the emsdk commands)\n\
 [--format text|json] [--toolchain-root <dir>] [--qb64pe-root <dir>] [--libqb-root <dir>] [--include-root <dir>] \
 [--fixes on|off] [--fix <name>=on|off]... [--no-settings] [--coverage] [--call-trace|--no-call-trace]    (runs the \
 test SUBs of *_test.bas files)\n\
+       qb64rust init [<folder>] [--yes] [--output <folder>] [--copy <path>]... [--plan] ...    (writes the folder's \
+qb64rust.toml from a few questions; qb64rust init --help lists the options)\n\
        qb64rust convert --to utf8|cp437 <file>...    (rewrites source files from code page 437 to UTF-8, or back)\n\
        qb64rust serve [<folder>|<file.bas>] [--port <n>] [--open] [--no-headers]    (serves a web folder of a \
 --target wasm build on 127.0.0.1, as a web host must serve it)\n\
@@ -414,6 +419,11 @@ fn main() -> ExitCode {
     if args.first().is_some_and(|a| a == "serve") {
         return serve_command(&args[1..]);
     }
+    // `qb64rust init`: the same rule; `init.bas` is a file to compile.
+    if args.first().is_some_and(|a| a == "init") {
+        let rest: Vec<String> = args[1..].iter().map(|a| a.to_string_lossy().into_owned()).collect();
+        return qb64rust_driver::init::command(&rest);
+    }
     // `qb64rust test`: the same rule; `test.bas` is a file to compile.
     if args.first().is_some_and(|a| a == "test") {
         return match qb64rust_driver::with_stack(|| test_command(std::env::args_os().skip(2).collect())) {
@@ -624,8 +634,10 @@ fn serve_command(args: &[std::ffi::OsString]) -> ExitCode {
             if !source.is_file() {
                 return fail(&format!("cannot read {}", source.display()));
             }
+            let source_folder = std::path::absolute(source).unwrap_or_else(|_| source.clone());
+            let source_folder = source_folder.parent().unwrap_or(Path::new(""));
             let output = match settings::load(source, false) {
-                Ok((_, build, _)) => build.output,
+                Ok((_, build, _)) => build.output_for(source_folder, Platform::Wasm),
                 Err(e) => return fail(&e.to_string()),
             };
             (
@@ -1140,22 +1152,18 @@ fn format(o: &Options, input: &Path, name: &str, bytes: Vec<u8>) -> Result<ExitC
     Ok(ExitCode::SUCCESS)
 }
 
-/// The program a build of `input` with no `-o` writes, and the folder it runs in (design D2 and D4 of
-/// `build-output-folder`): the source's name with the platform's ending in the output folder, run in the output
-/// folder when the project has a `copy` list and in the source's folder otherwise. Both absolute. `-x` and
-/// `--print-paths` both take them from here, so that they cannot disagree.
+/// The program a build of `input` with no `-o` writes, and the folder it runs in (design D1 and D2 of
+/// `project-init`): the source's name with the platform's ending in [`settings::Build::output_for`], and that
+/// folder, since a program runs in its own folder. Both absolute. `-x` and `--print-paths` both take them from
+/// here, so that they cannot disagree.
 fn default_paths(input: &Path, platform: Platform, build: &settings::Build) -> Result<(PathBuf, PathBuf), String> {
     let input = std::path::absolute(input).map_err(|e| e.to_string())?;
     let name = input
         .file_name()
         .ok_or_else(|| format!("{} is not a file", input.display()))?;
-    let exe = build.output.join(name).with_extension(platform.exe_extension());
-    let run_in = if build.copy.is_empty() {
-        input.parent().map_or_else(PathBuf::new, Path::to_path_buf)
-    } else {
-        build.output.clone()
-    };
-    Ok((exe, run_in))
+    let folder = build.output_for(input.parent().unwrap_or(Path::new("")), platform);
+    let exe = folder.join(name).with_extension(platform.exe_extension());
+    Ok((exe, folder))
 }
 
 /// `--print-paths` (spec `compiler/cli`, "The paths of a program"): [`default_paths`] as one line of JSON. Nothing
@@ -1240,6 +1248,16 @@ fn run() -> Result<ExitCode, String> {
         Some(p) => std::path::absolute(p).map_err(|e| e.to_string())?,
         None => default_paths(&input, platform, &build)?.0,
     };
+    // On Linux the program of `maps.bas` is `maps`, which may be a data folder beside it (design, "Risks", of
+    // `project-init`). Said before the compile, so that the message does not depend on the linker's.
+    if builds && exe.is_dir() {
+        println!(
+            "{} is a folder, so the program cannot be written there: name another file with -o, or an output \
+             folder with `output` in the `[build]` table of qb64rust.toml",
+            exe.display()
+        );
+        return Ok(ExitCode::FAILURE);
+    }
     PANIC_CONTEXT.lock().unwrap_or_else(|e| e.into_inner()).exe = builds.then(|| exe.clone());
     // For the CLI test of the panic hook only.
     if std::env::var_os("QB64RUST_TEST_PANIC").is_some_and(|v| v == "1") {
@@ -1249,7 +1267,7 @@ fn run() -> Result<ExitCode, String> {
     // copies nothing. A failure stops the command before anything is compiled.
     if o.output.is_none()
         && builds
-        && let Err(e) = output::prepare(&build)
+        && let Err(e) = output::prepare(&build, exe.parent().unwrap_or(Path::new("")))
     {
         compile::remove_old(&exe, platform);
         println!("{e}");

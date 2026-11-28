@@ -67,3 +67,30 @@ setting for that language SHALL take precedence.
 #### Scenario: User override
 - **WHEN** the user sets `"[qb64rust]": { "files.encoding": "utf8" }`
 - **THEN** `.bas` files open as UTF-8
+
+### Requirement: Spaces and tabs
+The extension SHALL set `editor.insertSpaces` to `true` as the default for the `qb64rust` language, and SHALL not
+change a file when it opens. When a QB64 file shown in an editor has a tab outside a string literal, the extension
+SHALL say so once per file and session, unless `qb64rust.tabsNotice` is off. The notice SHALL offer to turn the
+tabs into spaces, as the command `qb64rust.convertTabs` does: each tab outside a string literal becomes spaces up
+to the next column that is a multiple of 4, as the QB64pe IDE turns tabs when it loads a file. A tab inside a
+string literal SHALL stay, and so SHALL a tab in a `DATA` statement, from its first word to the end of the line;
+the QB64pe IDE turns them too.
+
+#### Scenario: A DATA statement keeps its tabs
+- **WHEN** a line is a tab and `DATA a<tab>b`, and the user chooses "Turn Tabs into Spaces"
+- **THEN** the line becomes four spaces and `DATA a<tab>b`
+
+#### Scenario: A file with tabs
+- **WHEN** a file whose first line is a tab and `PRINT "a<tab>b"` is shown, and the user chooses "Turn Tabs into
+  Spaces"
+- **THEN** the line becomes four spaces and `PRINT "a<tab>b"`, unsaved
+
+### Requirement: Block snippets
+The extension SHALL contribute snippets for `SUB`, `FUNCTION`, `SELECT CASE`, `TYPE`, `FOR`, `DO … LOOP UNTIL`,
+`DO WHILE … LOOP`, a block `IF` and a block `IF` with `ELSE`, written with keywords in capitals. They are this
+project's own (`CLAUDE.md` working rule 3).
+
+#### Scenario: Snippet compiles
+- **WHEN** every snippet is inserted with its placeholders as given
+- **THEN** the program compiles with `qb64rust` (`crates\driver\tests\it\snippets.rs`)

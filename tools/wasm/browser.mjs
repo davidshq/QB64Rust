@@ -2,6 +2,7 @@
 // (OpenSpec change wasm-window). See README.md beside this file.
 //
 //   node browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--chrome <chrome>] [--no-headers]
+//                    [--env NAME=VALUE]... [--press <seconds>:<key>]... [--gesture-audio] [--save <file>]...
 //   node browser.mjs --find-chrome
 //
 // The page's folder is the program's: Chrome is driven over --remote-debugging-pipe, so no port is opened. The
@@ -20,6 +21,33 @@ import { tmpdir } from "node:os";
 import { basename, dirname, extname, isAbsolute, join, resolve } from "node:path";
 import { findInstalledChrome } from "./find_chrome.mjs";
 
+// The key event of a name for --press: a name of KeyboardEvent.key (F1 to F12, Enter, Escape, Tab, Backspace,
+// Space, the arrows, PageUp, PageDown, Home, End), or one printable character. The virtual key code is what GLFW
+// reads. Null for a name it does not know.
+function keyEvent(name) {
+  const named = {
+    Enter: [13, "\r"], Escape: [27], Tab: [9], Backspace: [8], Space: [32, " "],
+    ArrowLeft: [37], ArrowUp: [38], ArrowRight: [39], ArrowDown: [40],
+    PageUp: [33], PageDown: [34], End: [35], Home: [36],
+  };
+  for (let n = 1; n <= 12; n++) named[`F${n}`] = [111 + n];
+  if (named[name]) {
+    const [code, text] = named[name];
+    const key = name === "Space" ? " " : name;
+    return { key, code: name === "Space" ? "Space" : name, windowsVirtualKeyCode: code, text };
+  }
+  if (name.length !== 1 || name < " " || name > "~") return null;
+  const upper = name.toUpperCase();
+  const letter = upper >= "A" && upper <= "Z";
+  const digit = name >= "0" && name <= "9";
+  return {
+    key: name,
+    code: letter ? `Key${upper}` : digit ? `Digit${name}` : "",
+    windowsVirtualKeyCode: letter || digit ? upper.charCodeAt(0) : 0,
+    text: name,
+  };
+}
+
 const args = process.argv.slice(2);
 let page = null;
 let screenshot = null;
@@ -27,6 +55,10 @@ let seconds = null;
 let profileArg = null;
 let isolation = true;
 let chromeArg = process.env.QB64RUST_CHROME || null;
+const extraEnv = []; // --env NAME=VALUE, in order
+const presses = []; // --press <seconds>:<key>, in order
+const saves = []; // --save <file>: files of the program's folder in the page, written beside the page at the end
+let gestureAudio = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--screenshot") screenshot = args[++i];
   else if (args[i] === "--chrome") chromeArg = args[++i];
@@ -34,7 +66,34 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === "--profile") profileArg = args[++i];
   else if (args[i] === "--no-headers") isolation = false;
   else if (args[i] === "--find-chrome") page = false;
-  else page = args[i];
+  else if (args[i] === "--gesture-audio") gestureAudio = true;
+  else if (args[i] === "--save") {
+    const name = args[++i] || "";
+    if (!name || isAbsolute(name) || name.split(/[\\/]/).includes("..")) {
+      console.error(`browser.mjs: --save needs a file of the program's folder, not ${JSON.stringify(name)}`);
+      process.exit(2);
+    }
+    saves.push(name.replace(/\\/g, "/"));
+  }
+  else if (args[i] === "--env") {
+    const given = args[++i] || "";
+    const eq = given.indexOf("=");
+    if (eq <= 0) {
+      console.error(`browser.mjs: --env needs NAME=VALUE, not ${JSON.stringify(given)}`);
+      process.exit(2);
+    }
+    extraEnv.push([given.slice(0, eq), given.slice(eq + 1)]);
+  } else if (args[i] === "--press") {
+    const given = args[++i] || "";
+    const colon = given.indexOf(":");
+    const wait = Number(given.slice(0, colon));
+    const key = given.slice(colon + 1);
+    if (colon <= 0 || !(wait >= 0) || !keyEvent(key)) {
+      console.error(`browser.mjs: --press needs <seconds>:<key>, not ${JSON.stringify(given)}`);
+      process.exit(2);
+    }
+    presses.push([wait, key]);
+  } else page = args[i];
 }
 // --find-chrome: prints the Chrome a run would use and exits 0, or exits 2 when there is none. The test runner
 // asks this once, so that where there is no Chrome (the suites VM) it skips a window program instead of failing it.
@@ -45,7 +104,8 @@ if (page === false) {
 }
 if (!page) {
   console.error(
-    "usage: node browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--profile <folder>] [--chrome <chrome>] [--no-headers]",
+    "usage: node browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--profile <folder>] [--chrome <chrome>] [--no-headers]\n" +
+      "         [--env NAME=VALUE]... [--press <seconds>:<key>]... [--gesture-audio] [--save <file>]...",
   );
   process.exit(2);
 }
@@ -106,8 +166,12 @@ const TOOL_VARIABLES = new Set([
 ]);
 const env = {};
 const mapped = []; // [page's file, host's file, what it held when written, or null]
-for (const [name, value] of Object.entries(process.env)) {
-  if (!/^QB64(PE|RUST)?_/.test(name) || TOOL_VARIABLES.has(name)) continue;
+// The program's variables of this process, then those of --env, which may have any name (a game's own, such as
+// CWS_SEED) and win over this process's.
+const programEnv = Object.entries(process.env).filter(
+  ([name]) => /^QB64(PE|RUST)?_/.test(name) && !TOOL_VARIABLES.has(name) && !extraEnv.some(([n]) => n === name),
+);
+for (const [name, value] of [...programEnv, ...extraEnv]) {
   if (isAbsolute(value)) {
     const inPage = `qb64rust-env/${name}`;
     let held = null;
@@ -177,6 +241,14 @@ const setup = `
     },
     onAbort: (what) => send("abort", String(what)),
   };
+  // Each key pressed, and whether the page blocked the browser's own action for it, once every listener has run.
+  self.qb64rustKeys = [];
+  addEventListener("keydown", (event) => setTimeout(() => self.qb64rustKeys.push([event.key, event.defaultPrevented]), 0));
+  self.qb64rustAudio = () => {
+    const audio = self.miniaudio;
+    const states = audio && audio.devices ? audio.devices.filter(Boolean).map((d) => (d.webaudio ? d.webaudio.state : "none")) : [];
+    return states.length ? states.join(",") : "none";
+  };
   self.qb64rustFile = (name) => {
     try {
       const data = Module.FS.readFile(name);
@@ -205,7 +277,8 @@ const proc = spawn(
     "--disable-component-update",
     "--disable-sync",
     "--mute-audio",
-    "--autoplay-policy=no-user-gesture-required",
+    // --gesture-audio: sound waits for the player's first action, as in a browser a player uses.
+    `--autoplay-policy=${gestureAudio ? "document-user-activation-required" : "no-user-gesture-required"}`,
     "--use-angle=swiftshader",
     "--enable-unsafe-swiftshader",
     "--window-size=1280,1024",
@@ -248,6 +321,13 @@ async function finish(code) {
       if (got.result.value !== null && got.result.value !== undefined && got.result.value !== held) {
         writeFileSync(host, Buffer.from(got.result.value, "base64"));
       }
+    }
+    // --save: a file the program wrote, such as a game's result, written into the page's folder on the host.
+    for (const name of saves) {
+      const expression = `self.qb64rustFile(${JSON.stringify(name)})`;
+      const got = await send("Runtime.evaluate", { expression, returnByValue: true }, session);
+      if (got.result.value === null || got.result.value === undefined) note(`--save ${name}: the program wrote no such file`);
+      else writeFileSync(join(folder, name), Buffer.from(got.result.value, "base64"));
     }
   } catch (e) {
     note(e.message);
@@ -363,3 +443,26 @@ await send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: f
 await send("Page.navigate", { url: `http://localhost/${encodeURIComponent(pageName)}` }, session);
 // --for: a program that has not ended by then is stopped, with the exit status of `timeout`, after the screenshot.
 if (seconds !== null) setTimeout(() => finish(124), seconds * 1000);
+
+// --press: each key after its wait, counted from the key before (the first from the page's start), as a player's
+// key press. Each is noted with whether the page blocked the browser's own action for it, and the audio's state.
+async function evaluate(expression) {
+  const got = await send("Runtime.evaluate", { expression, returnByValue: true }, session);
+  return got.result.value;
+}
+async function pressKeys() {
+  for (const [index, [wait, name]] of presses.entries()) {
+    await new Promise((done) => setTimeout(done, wait * 1000));
+    if (finished) return;
+    if (index === 0) note(`audio before the first key: ${await evaluate("self.qb64rustAudio()")}`);    const { text, ...key } = keyEvent(name);
+    await send("Input.dispatchKeyEvent", { type: text ? "keyDown" : "rawKeyDown", ...key, ...(text ? { text, unmodifiedText: text } : {}) }, session);
+    await send("Input.dispatchKeyEvent", { type: "keyUp", ...key }, session);
+    await new Promise((done) => setTimeout(done, 300));
+    if (finished) return;
+    const seen = await evaluate("JSON.stringify(self.qb64rustKeys.shift() || null)");
+    const [, blocked] = JSON.parse(seen) || [null, null];
+    const action = blocked === null ? "not seen by the page" : blocked ? "blocked" : "not blocked";
+    note(`pressed ${name}: ${action}, audio ${await evaluate("self.qb64rustAudio()")}`);
+  }
+}
+if (presses.length) pressKeys().catch((e) => note(e.message));

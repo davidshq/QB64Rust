@@ -1,5 +1,7 @@
 // Reads the extension's settings. Every `qb64rust.*` lookup goes through here.
 import * as vscode from "vscode";
+import { compilerFlags } from "./compiler/buildSettings";
+import { runEnvironment } from "./compiler/runEnv";
 import { DEFAULT_FORMAT, FormatSettings } from "./server/protocol";
 
 const SECTION = "qb64rust";
@@ -40,6 +42,48 @@ export function runArguments(uri?: vscode.Uri): string {
 
 export function noPrompt(uri?: vscode.Uri): boolean {
     return settings(uri).get<boolean>("noPrompt", false);
+}
+
+/** The variables Run adds to the program's environment: `qb64rust.noPrompt` and `qb64rust.run.log*`. */
+export function runEnv(uri?: vscode.Uri): Record<string, string> | undefined {
+    const s = settings(uri);
+    return runEnvironment(noPrompt(uri), {
+        level: s.get<string>("run.logLevel", "none"),
+        scopes: s.get<string[]>("run.logScopes", ["qb64"]),
+        handlers: s.get<string[]>("run.logHandlers", ["console"]),
+        file: s.get<string>("run.logFile", ""),
+    });
+}
+
+/** `qb64rust.build.*` as the `-f:` settings both compilers take (`-f:OptimizeCppProgram=true` and the others). */
+export function buildFlags(uri?: vscode.Uri): string[] {
+    const s = settings(uri);
+    return compilerFlags({
+        optimize: s.get<boolean>("build.optimize", false),
+        licenseFile: s.get<boolean>("build.licenseFile", false),
+        extraLinkerFlags: s.get<string>("build.extraLinkerFlags", ""),
+    });
+}
+
+/** `qb64rust.build.outputFolder`: `project` (the compiler's output folder, `build` unless `qb64rust.toml` names
+ * another) or `source` (next to the source, as QB64pe builds); anything unknown is `project`. */
+export function outputFolder(uri?: vscode.Uri): "project" | "source" {
+    return settings(uri).get<string>("build.outputFolder", "project") === "source" ? "source" : "project";
+}
+
+/** `qb64rust.run.terminal`: where Run starts the program, VS Code's terminal or a console window of its own. */
+export function runTerminal(uri?: vscode.Uri): "integrated" | "external" {
+    return settings(uri).get<string>("run.terminal", "integrated") === "external" ? "external" : "integrated";
+}
+
+/** `qb64rust.tabsNotice`: say so when a QB64 file shown has tabs. */
+export function tabsNotice(uri?: vscode.Uri): boolean {
+    return settings(uri).get<boolean>("tabsNotice", true);
+}
+
+/** "Don't Show Again" on the tabs notice: the setting off for the user. */
+export function turnOffTabsNotice(): Thenable<void> {
+    return settings().update("tabsNotice", false, vscode.ConfigurationTarget.Global);
 }
 
 export function affectsCompilerPath(e: vscode.ConfigurationChangeEvent): boolean {

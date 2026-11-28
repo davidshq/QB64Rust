@@ -1,0 +1,8 @@
+SUB Fortify (side)
+    DIM cash AS INTEGER
+    IF cash < 222 THEN PRINT cash(side)
+END SUB
+SUB Pay
+    n% = rate * 95
+    PRINT n%
+END SUB

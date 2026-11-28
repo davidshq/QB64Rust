@@ -352,6 +352,7 @@
 `_OFFSET` cannot take a `_BIT` variable	Variable/element cannot be _BIT aligned
 `_OFFSET` needs a variable, an element or an array	_OFFSET expects the name of a variable/array
 `_OFFSET` of a `{}` value: a `TYPE` with a dynamic member array has no fixed address	_MEM cannot reference a TYPE value that contains explicit _Dynamic member arrays
+`_OFFSET` of a whole array of variable-length strings	Cannot pass array of variable-length strings
 `_OFFSET` with empty parentheses	Expected (...)
 `_OPENCLIENT` needs a string	String required for function
 `_OPENHOST` is a function, not a statement	Syntax error
@@ -498,6 +499,7 @@
 `{}` is no statement: `_ASSERT` does not take this suffix	Syntax error
 `{}` is no statement: `{}` has no type suffix	Syntax error
 `{}` is no statement: an OpenGL routine takes no type suffix	Syntax error
+`{}` is no statement: the name of a SUB is written without a type suffix	Syntax error
 `{}` is no type	Invalid type
 `{}` is no type: a fixed-length string is written `{}`	Expected STRING * number/constant
 `{}` is not a member of `TYPE _MEM` (`{}`)	Element not defined
@@ -511,6 +513,7 @@
 `{}` needs a variable here	{1:=|U|P|PU} expects a string variable/array-element as its first argument
 `{}` needs letters before `AS`	{1:=|U|P|PU|S|SU}: Expected ... AS ...
 `{}` needs the name of a DLL in quotes	Expected {1:=|U|P|PU|S|SU} "..."
+`{}` of a member of an array element: of an element it takes only an array of strings	{1:=|U|P|PU} only accepts variable-length string arrays
 `{}` of an element of an array that is not of strings	{1:=|U|P|PU} only accepts variable-length string arrays
 `{}` stands twice in a `REDIM`	Invalid variable name
 `{}` takes a numeric type	{1:S|SU} only accepts numeric types
@@ -558,12 +561,14 @@
 `{}`: `{}` is a built-in function, not a label	Syntax error
 `{}`: `{}` is a built-in function, not a variable	Expected variable =, look for conflict with a CONST name
 `{}`: `{}` is a built-in function; a variable is needed here	Expected variable
+`{}`: `{}` is a function of the language, which cannot be stored to	String required for function
 `{}`: `{}` is an array; a member needs an index	Invalid expression
 `{}`: `{}` is the name of a SUB, not a label	Name already in use ({2:=|P|S})
 `{}`: a FUNCTION of this name has another type	Name already in use (f)
 `{}`: a built-in function's name, not an array	Expected (...)
 `{}`: a member array takes its bounds by `REDIM`	DIM: Expected ,
 `{}`: a procedure may not have the name of a keyword or a built-in	Name already in use ({1:S})
+`{}`: a store needs an element of the array, with its index	Expected array index after x
 `{}`: a type suffix before `.`	Invalid symbol
 `{}`: an OpenGL routine is called without a type suffix	Invalid array name
 `{}`: an OpenGL routine is named without a type suffix	Invalid variable name
@@ -690,6 +695,7 @@ expected a statement	Unexpected character on line
 expected a value after `^`, not `_NEGATE`	Expected variable/value after '^'
 expected a value before the operator `AND`	Expected variable/value before 'AND'
 expected a value before the operator `OR`	Expected variable/value before 'OR'
+expected a variable after `FOR`	Unsupported variable used in FOR statement
 expected an array name	Syntax error
 expected something between the parentheses of `{}`	Expected CALL sub-name (...)
 expected the end of the statement after `KEY LIST`	Expected KEY LIST only
@@ -789,6 +795,7 @@ the exit code of `SYSTEM` must be a number	Illegal string-number conversion
 the expression after `STOP` must be a number	Illegal string-number conversion
 the file number of `FIELD` must be a number	Illegal string-number conversion
 the file number of `PRINT #` must be a number	Illegal string-number conversion
+the file starts with a byte order mark (the bytes 0xEF 0xBB 0xBF), which only a file declared UTF-{#} may hold	Unexpected character on line
 the first argument of `{}` must be an `_OFFSET` value	Expected _MEM(_OFFSET-value,...)
 the first character of the embed handle `{}` must be a letter	First char of Embed-Handle '{1:=|P|S}' must be a letter
 the format of `USING` must be a string	Expected PRINT USING formatstring ; ...
@@ -828,6 +835,7 @@ the two parts of `_IIF` must be both strings or both numbers	falsePart and trueP
 the type `AS` of a member list is no type	Expected element-name AS type, AS type element-list, or END TYPE
 the type `{}` of `{}` is no type	Cannot convert type ({1:=|U|P|PU|S|SU}) to symbol
 the type `{}` of a `SHARED` name is no type	Cannot convert type ({1:=|U|P|PU|S|SU}) to symbol
+the type `{}` of a member array's `REDIM` is no type	Undefined type
 the type `{}` of a member list is no type	Expected element-name AS type, AS type element-list, or END TYPE
 the type `{}` of a parameter is no type	Illegal SUB/FUNCTION parameter
 the value `{}` cannot be used in a `CONST`	Unexpected element '{1:=|U|P|PU|S|SU}'
@@ -900,6 +908,7 @@ this `_WAVE` statement matches none of its forms: `_WAVE ?,?[,?]`	Syntax error -
 this `_WINDOWSIZELIMIT` statement matches none of its forms: `_WINDOWSIZELIMIT [(?,?)][-(?,?)]`	Syntax error - Reference: _WINDOWSIZELIMIT [(minWidth, minHeight)] [- (maxWidth, maxHeight)]
 unary `-` needs a number	Cannot convert string to number
 unknown metacommand `$DYNAMIC`	Syntax error
+unknown metacommand `$ENCODING`	Syntax error
 unknown metacommand `$ERRORLOCATION`	Syntax error
 unknown metacommand `$FOO`	Syntax error
 unknown metacommand `$INCLUDE`	Syntax error

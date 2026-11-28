@@ -2,7 +2,8 @@
 
 ## Purpose
 Lint warnings point out code that compiles but is probably a mistake: a misspelled name, a routine or label
-nothing uses, a local variable that hides a shared one, and code that can never run.
+nothing uses, a local variable that hides a shared one or is never set, a SINGLE that holds a fraction it cannot
+hold exactly, and code that can never run.
 
 ## Requirements
 
@@ -23,8 +24,8 @@ the error summary, and never changing the exit status or the executable. A lint 
 A warning of `used-once`, `unused-procedure`, `unused-label`, `hides-shared` or `unreachable` SHALL be given
 only when the place it points to is in the file being compiled, not in a file that file includes with
 `$INCLUDE`. The place of each lint is named in its own requirement. QB64pe's warnings SHALL be given wherever
-QB64pe gives them, included files too. `undeclared-utf8` and `pds-function` SHALL be given for any file of the
-program.
+QB64pe gives them, included files too. `undeclared-utf8`, `pds-function`, `never-set` and `single-fraction`
+SHALL be given for any file of the program.
 
 #### Scenario: A toolbox include
 - **WHEN** `main.bas` includes `mouse.bi`, which defines five SUBs, and calls one of them
@@ -36,7 +37,7 @@ program.
 
 ### Requirement: Codes
 Each lint warning SHALL carry a code: `used-once`, `unused-procedure`, `unused-label`, `hides-shared`,
-`unreachable`, `undeclared-utf8` or `pds-function` for ours, and `unused-variable`, `empty-select`, `duplicate-const` or
+`unreachable`, `undeclared-utf8`, `pds-function`, `never-set` or `single-fraction` for ours, and `unused-variable`, `empty-select`, `duplicate-const` or
 `debug-incompatible` for QB64pe's. No other warning SHALL carry a code.
 
 #### Scenario: The code of a lint
@@ -208,12 +209,13 @@ message. Each name of such a variable SHALL get the warning ``` `<name>` is a BA
 does not have: here it is a variable that is never set, so it is always <value> ```, where `<value>` is `""` when
 the variable is a string and `0` when it is a number, by its suffix or its `DEF` type. It SHALL be given when
 the name is written as one of the four, in any letter case, and the variable is a scalar that no declaration
-made and that no statement sets. A statement sets a variable when it assigns it, when it is a target of
-`INPUT`, `LINE INPUT`, `READ`, `FOR`, `LSET`, `RSET`, `FIELD` or `_MEMGET`, when a built-in statement stores
-into it or exchanges it (`SWAP`, `MID$`, `GET` of a file, not `PUT`), or when it is passed by reference to a
-SUB that sets that parameter, or to a `DECLARE LIBRARY` routine. A parameter passed on to another SUB SHALL be
-followed. A FUNCTION call inside an expression SHALL NOT count. A variable that gets this warning SHALL NOT get
-`used-once`.
+made and that no statement sets. A statement sets a variable when it assigns it, when it copies a whole record
+into it, when it is a target of `INPUT`, `LINE INPUT`, `READ`, `FOR`, `LSET`, `RSET`, `FIELD` or `_MEMGET`, when
+a built-in statement stores into it or exchanges it (`SWAP`, `MID$`, `GET` of a file, not `PUT`), or when it is
+passed by reference to a SUB or FUNCTION that sets that parameter, or to a `DECLARE LIBRARY` routine. A
+parameter passed on SHALL be followed. A variable whose memory the program takes, with `VARPTR`, `VARSEG`,
+`SADD`, `VARPTR$`, `_MEM`, `_MEMELEMENT`, `_OFFSET` or `CALL ABSOLUTE`, SHALL count as set. A variable that gets
+this warning SHALL NOT get `used-once`.
 
 #### Scenario: A port's current folder
 - **WHEN** line 1 of a program is `here$ = CURDIR$` and line 2 is `PRINT curdir$`
@@ -247,9 +249,80 @@ followed. A FUNCTION call inside an expression SHALL NOT count. A variable that 
 - **WHEN** a program prints `curdir`, with no `$`
 - **THEN** it gets no `pds-function` warning
 
+### Requirement: A local variable that is never set
+A scalar variable of a SUB or FUNCTION, made by `DIM`, `STATIC` or its first use, that is read but that no
+statement sets, by the rule of "A BASIC PDS 7.1 function read as a variable", SHALL get the warning ``` `<name>`
+is never set, so it is always <value> ```, once, at its first read. `<value>` is `""` for a string and `0` for a
+number. When the main module has a `DIM SHARED` array of the same name, the warning SHALL go on with ``` : is
+the shared array `<name>()` meant? ```. It SHALL NOT be given for a parameter, a main-module variable, an
+array, a fixed-length string, a variable of a user type, a variable that gets `pds-function`, or a name that
+stands in a skipped `$IF` branch. A variable made by its first use and named only once gets `used-once`
+instead, and a declared one never named again gets "Unused variable".
+
+#### Scenario: A local where the shared array was meant
+- **WHEN** the main module has `DIM SHARED cash(1) AS INTEGER`, and a SUB has `DIM cash AS INTEGER` and
+  `IF cash < 222 THEN …`
+- **THEN** that `cash` gets ``` `cash` is never set, so it is always 0: is the shared array `cash()` meant? ```
+
+#### Scenario: Set by a FUNCTION
+- **WHEN** a SUB has `DIM n AS INTEGER` and `PRINT Bump(n); n`, and the FUNCTION `Bump` assigns its parameter
+- **THEN** it gets no `never-set` warning
+
+#### Scenario: A blank record
+- **WHEN** a SUB has `DIM blank AS Rec` and `PRINT blank.a`
+- **THEN** it gets no `never-set` warning
+
+#### Scenario: Read twice, never declared
+- **WHEN** a SUB's only statements are `PRINT total` and `PRINT total + 1`
+- **THEN** the first `total` gets the warning, and it gets no `used-once`
+
+### Requirement: A SINGLE that holds a fraction
+A number with a fraction written in an expression is a DOUBLE, but the same number held in a SINGLE variable is
+not, so a product rounded to an integer can differ: `r% = .3 * 95` stores 28, and `s! = .3: r% = s! * 95`
+stores 29. A scalar SINGLE variable that an assignment sets to a number with a fraction that a SINGLE cannot hold
+exactly, written out or as a `CONST`, SHALL get the warning ``` `<name>` is a SINGLE set to <number> on line
+<n>, which a SINGLE cannot hold exactly: this product, rounded to an integer, can differ from the same product
+with <number> written out, which is a DOUBLE; a DOUBLE variable gives the same result as the number ``` at each
+place where it is a factor of a product whose value an assignment rounds to an integer. `<number>` is the first
+such number assigned to the variable, as written; a `CONST`'s name is followed by its value, `KNOB (0.3)`. `line
+<n>` names the file too when the assignment is in another file. A variable that an assignment computes with an
+operator (`p! = p! * 2`), or that a `FOR` counts, SHALL NOT get it: its value is no number written out that it
+stands for. A literal, a function's value such as `VAL(v$)`, and a copy of another variable are not computed.
+Only the variable's own assignments SHALL be looked at: a SUB that computes the parameter it is passed does not
+count, so `g! = .3: Scale g!: r% = g! * 95` gets the warning. Only a product under `+`, `-`, unary minus, `_IIF`
+and conversions SHALL count, not one inside a function's argument.
+
+#### Scenario: A fraction as a tuning knob
+- **WHEN** a program has `rate! = .3` and then `r% = rate! * 95`
+- **THEN** that `rate!` gets the warning, naming `.3`
+
+#### Scenario: A fraction a SINGLE holds
+- **WHEN** a program has `half! = .5` and then `r% = half! * 95`
+- **THEN** it gets no `single-fraction` warning
+
+#### Scenario: A DOUBLE variable
+- **WHEN** a program has `d# = .3` and then `r% = d# * 95`
+- **THEN** it gets no `single-fraction` warning
+
+#### Scenario: Stored in a SINGLE
+- **WHEN** a program has `rate! = .3` and then `f! = rate! * 95`
+- **THEN** it gets no `single-fraction` warning
+
+#### Scenario: A computed SINGLE
+- **WHEN** a SUB has `p! = .1`, `p! = p! * 2 + .05` and `n% = p! * 30`
+- **THEN** it gets no `single-fraction` warning
+
+#### Scenario: Set from a CONST
+- **WHEN** a SUB has `CONST KNOB = .3`, `q! = KNOB` and `n% = q! * 30`
+- **THEN** that `q!` gets the warning, naming `KNOB (0.3)`
+
+#### Scenario: In an included file
+- **WHEN** a program sets the shared SINGLE `rate` to `.3`, and a SUB in a file it includes has `n% = rate * 95`
+- **THEN** that `rate` gets the warning, at its place in the included file
+
 ### Requirement: Lints table of the settings file
 The `[lints]` table of the program's `qb64rust.toml` (the file of spec `compiler/fixes`) SHALL hold `all =
-true|false` and `<code> = true|false` for each of the eleven codes of "Codes". A single code's setting SHALL
+true|false` and `<code> = true|false` for each of the thirteen codes of "Codes". A single code's setting SHALL
 override `all`. A lint that is off SHALL give no warning: not with `-w`, and not in the language server. With no
 table, every lint SHALL be on. A warning without a code SHALL NOT be affected.
 
@@ -285,7 +358,7 @@ its lint. An unknown code or value SHALL be an error with exit status 1 that nam
 
 #### Scenario: An unknown code
 - **WHEN** `qb64rust --lint unused-labl=off p.bas` is run
-- **THEN** the exit status is 1 and the message names the eleven codes
+- **THEN** the exit status is 1 and the message names the thirteen codes
 
 ### Requirement: A bad lints table
 An unknown code in `[lints]` or a value that is not `true` or `false` SHALL be an error that names the file, the
@@ -293,7 +366,7 @@ line and, for a code, the known codes. The program SHALL NOT be built.
 
 #### Scenario: A misspelled code
 - **WHEN** `qb64rust.toml` holds `[lints]` and `unused-labl = false`
-- **THEN** the compile fails with an error naming `qb64rust.toml`, its line 2 and the eleven codes, and exit status 1
+- **THEN** the compile fails with an error naming `qb64rust.toml`, its line 2 and the thirteen codes, and exit status 1
 
 ### Requirement: The warning report counts every lint
 `qb64rust --report warnings` SHALL count the warnings of every lint, whatever `[lints]` says: it measures how

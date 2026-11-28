@@ -1,6 +1,6 @@
 # Status and next steps
 
-Updated 2026-11-21, on branch `after-pr-27-real` (cut to its own rule by finding 2 of the ninth review,
+Updated 2026-11-27, on branch `after-pr-29` (cut to its own rule by finding 2 of the ninth review,
 `study\archive\30` §2).
 
 **This file holds the current state only**: where we are, what waits on the user, what comes next, the numbers of
@@ -60,13 +60,13 @@ extension's last release is `vscode-v0.3.0` (2026-11-07), on that merge commit: 
 first whose `qb64rust.exe` needs no `VCRUNTIME140.dll` (`DECISIONS.md` 2026-11-07). Pull request 28 merged on
 2026-11-10. Pull request 30 (`02f74f00`, 2026-11-14) merged branch `after-pr26`: four archived changes
 (`project-settings`, `language-reference`, `fuzz-front-end`, `format-statement-lines`), include files checked,
-formatted and built as their program, and `just merge` passing at `02d38879` (below). Branch `after-pr-27-real`
-holds seven commits since: a library's header found beside its `$USELIBRARY` file (78 of 79 programs of the
-Libraries Pack compile), the `_ANDALSO` hint, `[project]` `exclude`, the archived change `vm-game-runs`, strings
-past 2 GB and 4 GB (D-066, D-067), `REDIM` of a `TYPE` array without `AS` (D-068), the `.alone` marker and
-run lock of the test tools, and the archived change `wasm-console` (`58437442`). No `just merge` has run on it
-yet. The OpenSpec change `wasm-pointer-width` (W0.5) is built and archived (2026-11-21, "Next" item 1).
-The OpenSpec change `wasm-window` (W1) is built and archived (2026-11-21). Its two open tasks are `SOMEDAY.md` rows.
+formatted and built as their program, and `just merge` passing at `02d38879`. Pull request 32 (`48649a84`,
+2026-11-21) merged branch `after-pr-27-real`: the changes `wasm-console`, `wasm-pointer-width`, `wasm-window`
+(W0 to W1), `vm-game-runs` and `build-output-folder`, and strings past 2 GB and 4 GB (D-066, D-067). Branch
+`after-pr-28` holds nine commits since: the archived changes `call-trace` and `utf8-source`, the change
+`wasm-publish` (W2, built, not archived), a library SUB and FUNCTION of one name, 18 forms QB64pe rejects now
+reported as errors, the lint `pds-function`, and the hover's first sentence of a reference page. Pull request 33
+(`c93c492f`) merged them; branch `after-pr-29` follows it.
 
 ## Waiting on the user
 
@@ -75,8 +75,8 @@ put again at the next merge into `main`. Not on this list: `SOMEDAY.md`'s "QB64p
 questionable behaviours each change kept QB64pe's way, which stay silent until the user asks for them (`CLAUDE.md`
 working rule 7).
 
-1. **The review of the next big wins** (`study\47`, 2026-11-09), section 8: is "first outside users" the next
-   milestone. Language extensions
+1. **The review of the next big wins** (`study\47`, 2026-11-09), section 8. "First outside users" is not a
+   milestone (`DECISIONS.md` 2026-11-26). Language extensions
    are allowed behind a switch (`DECISIONS.md` 2026-11-11), and its shape is decided: one per feature, with
    groups, declared per file with a default in `qb64rust.toml`, plain keywords (`DECISIONS.md` 2026-11-18). Which extension comes first is still
    open (`study\48` §5 recommends an order).
@@ -93,6 +93,9 @@ working rule 7).
 5. **Libraries of other languages** (`study\53`, 2026-11-17), section 8: whether a built program may need a
    Python folder beside it, whether to build the Python probe (a library over Python's C API), whether stronger
    C interop comes first, and whether a foreign-object type joins the extension order.
+6. **`.vscode/settings.json` from `qb64rust init`** (OpenSpec change `project-init`, design D7, 2026-11-27): in an
+   empty folder `init` writes it, so that VS Code saves the new project's files as UTF-8. Leaving it out gives a
+   terminal user no `.vscode` folder, but a project opened in VS Code later would be saved in code page 437.
 
 The game ports' open questions are kept in the games' own repos (`CLAUDE.md` working rule 2).
 
@@ -104,7 +107,7 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    `CONST p = 4 ^ 0.5` never finished compiling.
 0. **Review QB64pe's commits at the next merge** (`CLAUDE.md` working rule 7, `DECISIONS.md` 2026-11-12). Last
    commit reviewed: `35f943174` (2026-11-21, 32 commits, `docs\UPSTREAM-REVIEW.md`), for the merge of
-   `after-pr-27-real`.
+   `after-pr-27-real`. QB64pe had no newer commit at the merge of `after-pr-28` (2026-11-26).
 0. **The OpenSpec change `build-output-folder`** (`DECISIONS.md` 2026-11-21): a build without `-o` writes into
    `build`, `[build]` names the folder and the data files to copy, and the extension runs the program where
    `qb64rust --print-paths` says. All 16 tasks are built, Civil War Strategy's `[build]` table among them; the
@@ -120,6 +123,12 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    editor's warning for a UTF-8 file open as `cp437`, and a UTF-8 "QB64: New Project". All 18 tasks are built;
    the extension's integration tests for New Project have not run yet (CI). Archived 2026-11-25, its specs
    synced. Converting each game's files is a step in that game's repo.
+0. **The OpenSpec change `project-init`** (`DECISIONS.md` 2026-11-27): a build without a settings file writes the
+   program beside its source, a program always runs in its own folder, `qb64rust init` writes a folder's
+   `qb64rust.toml` from up to three questions, and "QB64: Set Up Project" asks them in VS Code. All tasks are built
+   on `after-pr-29`; the extension's suites "set up a project", "build with qb64rust" and the debug suite pass on
+   the host. To archive once committed, which creates the specs `compiler/project-init` and
+   `editor/project-setup`.
 0. **The editor's side panel is set aside** (`DECISIONS.md` 2026-11-26): the OpenSpec change `editor-side-panel`
    is the commit `409312f7` on the branch `editor-side-panel`, not merged. The user was not happy with the
    direction. Brought into this branch: the hover's first sentence of a word's reference page, the quick start's
@@ -139,11 +148,15 @@ The game ports' open questions are kept in the games' own repos (`CLAUDE.md` wor
    2026-11-21): the `screen\` corpus passes, except its listed programs, and of the verification family's 307 window
    programs 261 pass and the rest are listed. A page ships the files of `[build]` `copy` in `qb64rust.toml`, and
    the page keeps what it writes in IndexedDB. Civil War Strategy's port reaches its first turn. W2, the OpenSpec
-   change `wasm-publish`, is built (2026-11-25) and not archived: a window program built without `-o` goes into a
+   change `wasm-publish`, is built (2026-11-25) and archived (2026-11-28, its specs synced): a window program built without `-o` goes into a
    web folder `build\web` that is uploaded whole (`index.html`, `_headers`, a service worker for hosts that send no
    headers), `qb64rust serve` serves it on `127.0.0.1`, `qb64rust toolchain install --target wasm` downloads
    the SDK on Windows (815 MB), and the extension has "QB64: Run in Browser". Waiting on the user: the command in
    VS Code, which no test ran, and an upload to each host that matters, in Chrome, Firefox and Safari.
+   On 2026-11-28 a page took real key presses for the first time (`DECISIONS.md` 2026-11-28): no key had
+   reached a page's program before. A page now starts its sound at a key and keeps F3, F7 and the arrows
+   from the browser. Waiting on the user: whether a real Chrome window, Firefox and Safari give F3 and F7 to
+   the page.
    Other candidates for later are in `SOMEDAY.md`:
    deferred QB64pe features, a strict QuickBASIC 4.5 mode, popular PDS 7.1 features, and the VS Code features
    still missing.

@@ -20,7 +20,8 @@ A STRING, the folder's full path.
 
 ## Behavior
 
-`_CWD$` is the current folder; `CHDIR` changes it. At the start it is `_STARTDIR$`.
+`_CWD$` is the current folder; `CHDIR` changes it. At the start it is the program's own folder, as in QB64pe, whose
+runtime goes there before the first statement. `_STARTDIR$` is the folder it was started from, which can differ.
 <!-- src: language/file-io "File functions"; tests\reference\examples\_cwd-str_1 -->
 
 `_CWD$` and `_STARTDIR$` are written without parentheses.
@@ -37,7 +38,7 @@ Supported. All 3 programs that use it compile (call-site programs, examples and 
 <!-- begin generated: example:_cwd-str_1 -->
 ```qb64
 PRINT "_CWD$ is a folder:"; _DIREXISTS(_CWD$)
-PRINT "At the start, it is the start folder:"; _CWD$ = _STARTDIR$
+PRINT "Started in its own folder, it is the start folder:"; _CWD$ = _STARTDIR$
 END
 ```
 
@@ -45,7 +46,7 @@ Output:
 
 ```text
 _CWD$ is a folder:-1 
-At the start, it is the start folder:-1 
+Started in its own folder, it is the start folder:-1 
 
 Press any key to continue
 ```

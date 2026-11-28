@@ -6,6 +6,7 @@ pub mod convert;
 pub mod cpp_errors;
 pub mod fixes;
 pub mod hover;
+pub mod init;
 pub mod library;
 pub mod lints;
 pub mod output;

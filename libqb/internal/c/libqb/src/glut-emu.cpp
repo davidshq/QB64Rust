@@ -936,7 +936,11 @@ class GLUTEmu {
     }
 
     [[nodiscard]] bool WindowIsFocused() const {
+#ifdef QB64_EMSCRIPTEN
+        return true;
+#else
         return isWindowFocused;
+#endif
     }
 
     void WindowSetFloating(bool floating) {

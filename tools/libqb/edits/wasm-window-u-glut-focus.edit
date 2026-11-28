@@ -1,0 +1,18 @@
+# The wasm target's window: Emscripten's GLFW never reports focus. Its GLFW_FOCUSED attribute stays 0 and it never
+# calls the focus callback, so libqb took the page's window as unfocused and dropped every key the player pressed
+# (GLUT_KEYBOARD_BUTTON_FUNC and GLUT_KEYBOARD_CHARACTER_FUNC return early). A page's canvas gets keys only while
+# the page has them, so the page's window counts as focused. _WINDOWHASFOCUS is then always true in a page.
+file: internal/c/libqb/src/glut-emu.cpp
+--- old
+    [[nodiscard]] bool WindowIsFocused() const {
+        return isWindowFocused;
+    }
+--- new
+    [[nodiscard]] bool WindowIsFocused() const {
+#ifdef QB64_EMSCRIPTEN
+        return true;
+#else
+        return isWindowFocused;
+#endif
+    }
+--- end

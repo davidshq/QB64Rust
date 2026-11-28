@@ -6,7 +6,8 @@ wrote a page (`<name>.html`): `run_legacy_tests.py --platform wasm`.
 
 ```text
 node tools\wasm\browser.mjs <name>.html [--for <seconds>] [--screenshot <file.png>] [--profile <folder>]
-                            [--chrome <chrome>] [--no-headers]
+                            [--chrome <chrome>] [--no-headers] [--env NAME=VALUE]...
+                            [--press <seconds>:<key>]... [--gesture-audio] [--save <file>]...
 node tools\wasm\browser.mjs --find-chrome
 ```
 
@@ -39,7 +40,20 @@ Node's standard library only.
   `QB64RUST_ALLOW_NETWORK`, `QB64RUST_BROWSER_LOG`). One whose value is an absolute path names a file of the
   page instead, written from the host's file first if it exists. When the program ends, the page's file is written to the host's if it
   changed. So `tools\screen`'s keys and screen state (`QB64_SCREEN_KEYS`, `QB64_SCREEN_STATE`), the prompt
-  setting (`QB64PE_NOPROMPT`) and the trace work as on the desktop.
+  setting (`QB64PE_NOPROMPT`) and the trace work as on the desktop. `--env NAME=VALUE` gives the program a
+  variable of any name, such as a game's own `CWS_SEED`, treated the same way; it wins over this process's.
+  `--save <file>` writes a file of the program's folder in the page, such as a game's `autoplay.txt`, into the
+  page's folder on the host when the program ends; a file the program did not write is noted.
+- **Keys pressed over the page.** `--press <seconds>:<key>` presses a key as a player does, through DevTools'
+  input events, after a wait counted from the key before (the first from the page's start). A key is a name of
+  `KeyboardEvent.key` (`F1` to `F12`, `Enter`, `Escape`, `Tab`, `Backspace`, `Space`, the arrows, `PageUp`,
+  `PageDown`, `Home`, `End`) or one printable character. Each press is noted as `pressed F3: blocked, audio
+  running`: whether the page stopped the browser's own action for the key, and the state of the page's audio
+  (`none` when the program has no audio device). The first press also notes the audio's state before it.
+  libqb's own keys file (`QB64_SCREEN_KEYS`) gives keys inside libqb instead, and does not go through the page.
+- **Sound.** The launcher lets a page start its audio without a click or a key, so that a program's sound runs
+  as on the desktop. `--gesture-audio` makes the audio wait for the player's first action, as a browser a player
+  uses does.
 - **Standard input** is this process's, read to its end, when it is not a terminal.
 - **Output.** The program's standard output and error are printed. The two warnings Emscripten's GL emulation
   prints at every start are not.

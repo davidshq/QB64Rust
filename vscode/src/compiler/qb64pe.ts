@@ -77,13 +77,14 @@ export async function format(queue: RunQueue, compiler: string, source: string, 
     return withMessages(result, source);
 }
 
-/** Full build with `-c -x -w` into the executable next to the source (design D6). No timeout. */
-export async function build(queue: RunQueue, compiler: string, file: string, onOutput?: (text: string) => void): Promise<CompilerRun & { executable: string }> {
+/** Full build with `-c -x -w` into the executable next to the source (design D6), with the `-f:` settings
+ * `flags` (`config.buildFlags`). No timeout. */
+export async function build(queue: RunQueue, compiler: string, file: string, onOutput?: (text: string) => void, flags: string[] = []): Promise<CompilerRun & { executable: string }> {
     const executable = executableFor(file);
     const result = await queue.run({
         kind: "build",
         command: compiler,
-        args: ["-c", "-x", "-w", file, "-o", executable],
+        args: buildArgs(file, flags),
         cwd: path.dirname(file),
         onOutput,
     });
@@ -96,7 +97,7 @@ export async function build(queue: RunQueue, compiler: string, file: string, onO
     return { ...run, executable };
 }
 
-/** The command line `build` uses, for tasks that run it in a terminal. */
-export function buildArgs(file: string): string[] {
-    return ["-c", "-x", "-w", file, "-o", executableFor(file)];
+/** The command line `build` uses, also for tasks that run it in a terminal; the `-f:` settings `flags` last. */
+export function buildArgs(file: string, flags: string[] = []): string[] {
+    return ["-c", "-x", "-w", file, "-o", executableFor(file), ...flags];
 }

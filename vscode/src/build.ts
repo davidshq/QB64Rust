@@ -1,10 +1,12 @@
 // Build, Run, and Build and Run (design D6; with qb64rust, design D4 and D5 of extension-vsix).
+import { spawn } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import * as config from "./config";
 import { BuildPlan, Bundle, planBuild, runPaths } from "./buildPlan";
 import { BuildOutputLines, progressText } from "./compiler/buildOutput";
+import { ExternalStart, externalStart } from "./compiler/externalRun";
 import * as qb64pe from "./compiler/qb64pe";
 import * as qb64rust from "./compiler/qb64rust";
 import { RunQueue } from "./compiler/runQueue";
@@ -26,6 +28,8 @@ export class Builder implements vscode.Disposable {
     private terminal: vscode.Terminal | undefined;
     /** The last build's command line as shown in the output channel; for tests. */
     lastCommand: string | undefined;
+    /** The last program started in a window of its own; for tests. */
+    lastExternal: ExternalStart | undefined;
     /** The last build's output channel text and its failure message; for tests, to say why a build failed. */
     lastOutput = "";
     /** Shows a failed build's message with its buttons; tests replace it to choose a button. */
@@ -81,7 +85,7 @@ export class Builder implements vscode.Disposable {
         if (plan.compiler === "none") {
             return undefined;
         }
-        return plan.compiler === "qb64pe" ? this.buildWithQb64pe(source, plan.command, notify) : this.buildWithQb64rust(source, plan, notify);
+        return plan.compiler === "qb64pe" ? this.buildWithQb64pe(source, plan.command, notify, plan.flags) : this.buildWithQb64rust(source, plan, notify);
     }
 
     /**
@@ -99,12 +103,22 @@ export class Builder implements vscode.Disposable {
         if (plan.firstLibqbBuild) {
             this.appendLine("This first build after installing or updating the extension also builds QB64pe's runtime library (libqb) once.");
         }
-        const result = await qb64rust.build(this.queue, plan.command, file, plan.roots, plan.env, plan.debug, plan.paths, (text) => {
-            this.append(text);
-            if (plan.firstLibqbBuild && /^building /m.test(text)) {
-                this.status.setBusy("building libqb (first build)…");
-            }
-        });
+        const result = await qb64rust.build(
+            this.queue,
+            plan.command,
+            file,
+            plan.roots,
+            plan.env,
+            plan.debug,
+            plan.paths,
+            (text) => {
+                this.append(text);
+                if (plan.firstLibqbBuild && /^building /m.test(text)) {
+                    this.status.setBusy("building libqb (first build)…");
+                }
+            },
+            plan.flags,
+        );
         if (result.cancelled) {
             return undefined;
         }
@@ -126,7 +140,7 @@ export class Builder implements vscode.Disposable {
             if ((await this.showError(text, fallback)) === fallback) {
                 // The marked errors say what qb64rust lacks, not what is wrong with the program: QB64pe builds it.
                 this.diagnostics.publish(source, [], "qb64rust");
-                return this.buildWithQb64pe(source, qb64peCompiler, notify);
+                return this.buildWithQb64pe(source, qb64peCompiler, notify, config.buildFlags(source));
             }
             return undefined;
         }
@@ -134,13 +148,13 @@ export class Builder implements vscode.Disposable {
         return undefined;
     }
 
-    private async buildWithQb64pe(source: vscode.Uri, compiler: string, notify: boolean): Promise<Built | undefined> {
+    private async buildWithQb64pe(source: vscode.Uri, compiler: string, notify: boolean, flags: string[]): Promise<Built | undefined> {
         const file = source.fsPath;
-        this.startOutput(`${compiler} ${qb64pe.buildArgs(file).join(" ")}`);
+        this.startOutput(`${compiler} ${qb64pe.buildArgs(file, flags).join(" ")}`);
         // Progress goes to the status item, not the output channel, which cannot redraw a line.
         const lines = new BuildOutputLines((p) => this.status.setBusy(progressText(p)));
         const show = (completed: string[]) => completed.forEach((l) => this.appendLine(l));
-        const result = await qb64pe.build(this.queue, compiler, file, (text) => show(lines.push(text)));
+        const result = await qb64pe.build(this.queue, compiler, file, (text) => show(lines.push(text)), flags);
         show(lines.flush());
         if (result.cancelled) {
             return undefined;
@@ -209,15 +223,36 @@ export class Builder implements vscode.Disposable {
     /**
      * Starts the program in a new "QB64" terminal, in the folder `runIn`, with `qb64rust.runArguments`. The previous
      * one is closed first: a program still running in it (or waiting for a key) would receive the command line as
-     * input. Only terminals this extension created are closed.
+     * input. Only terminals this extension created are closed. With `qb64rust.run.terminal` set to `external`, in a
+     * console window of its own instead.
      */
     private startInTerminal(exe: string, runIn: string, resource: vscode.Uri): void {
+        const env = config.runEnv(resource);
+        if (config.runTerminal(resource) === "external") {
+            this.startExternal(exe, runIn, resource, env);
+            return;
+        }
         this.terminal?.dispose();
-        const env = config.noPrompt(resource) ? { QB64PE_NOPROMPT: "y" } : undefined;
         const terminal = vscode.window.createTerminal({ name: TERMINAL_NAME, cwd: runIn, env });
         this.terminal = terminal;
         terminal.show(true);
         terminal.sendText(shellCommand(vscode.env.shell, runIn, exe, config.runArguments(resource)));
+    }
+
+    /** Starts the program in a console window of its own (`qb64rust.run.terminal` set to `external`); a failure to
+     * start is shown. */
+    private startExternal(exe: string, runIn: string, resource: vscode.Uri, env: Record<string, string> | undefined): void {
+        const linuxExec = vscode.workspace.getConfiguration("terminal.external").get<string>("linuxExec", "");
+        const start = externalStart(process.platform, runIn, exe, config.runArguments(resource), linuxExec);
+        this.lastExternal = start;
+        try {
+            // `windowsHide` hides only the window of `cmd` itself; `start` gives the program a window of its own.
+            const child = spawn(start.command, start.args, { cwd: runIn, env: { ...process.env, ...env }, detached: true, stdio: "ignore", windowsVerbatimArguments: start.verbatim, windowsHide: true });
+            child.on("error", (e) => void vscode.window.showErrorMessage(`QB64: could not start ${path.basename(exe)}: ${e.message}`));
+            child.unref();
+        } catch (e) {
+            void vscode.window.showErrorMessage(`QB64: could not start ${path.basename(exe)}: ${e instanceof Error ? e.message : String(e)}`);
+        }
     }
 
     /**

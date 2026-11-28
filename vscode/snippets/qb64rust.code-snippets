@@ -1,0 +1,47 @@
+{
+  "SUB": {
+    "prefix": "sub",
+    "description": "A SUB procedure",
+    "body": ["SUB ${1:MySub} (${2})", "\t$0", "END SUB"]
+  },
+  "FUNCTION": {
+    "prefix": "function",
+    "description": "A FUNCTION procedure, its result set by assigning to its name",
+    "body": ["FUNCTION ${1:MyFunction} (${2})", "\t$0", "\t${1:MyFunction} = ${3:0}", "END FUNCTION"]
+  },
+  "SELECT CASE": {
+    "prefix": "select",
+    "description": "SELECT CASE with a CASE and a CASE ELSE",
+    "body": ["SELECT CASE ${1:value}", "\tCASE ${2:1}", "\t\t$0", "\tCASE ELSE", "END SELECT"]
+  },
+  "TYPE": {
+    "prefix": "type",
+    "description": "A user type",
+    "body": ["TYPE ${1:MyType}", "\t${2:field} AS ${3:INTEGER}", "END TYPE"]
+  },
+  "FOR": {
+    "prefix": "for",
+    "description": "FOR ... NEXT",
+    "body": ["FOR ${1:i} = ${2:1} TO ${3:10}", "\t$0", "NEXT"]
+  },
+  "DO LOOP": {
+    "prefix": "do",
+    "description": "DO ... LOOP UNTIL",
+    "body": ["DO", "\t$0", "LOOP UNTIL ${1:condition}"]
+  },
+  "DO WHILE": {
+    "prefix": "dowhile",
+    "description": "DO WHILE ... LOOP",
+    "body": ["DO WHILE ${1:condition}", "\t$0", "LOOP"]
+  },
+  "IF": {
+    "prefix": "if",
+    "description": "A block IF",
+    "body": ["IF ${1:condition} THEN", "\t$0", "END IF"]
+  },
+  "IF ELSE": {
+    "prefix": "ifelse",
+    "description": "A block IF with ELSE",
+    "body": ["IF ${1:condition} THEN", "\t$2", "ELSE", "\t$0", "END IF"]
+  }
+}

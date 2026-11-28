@@ -1,7 +1,8 @@
 # Lints
 
 A lint is a warning about code that compiles but is probably a mistake: a misspelled name, a routine or label
-nothing uses, a local variable that hides a shared one, and code that can never run.
+nothing uses, a local variable that hides a shared one or is never set, a SINGLE that holds a fraction it cannot
+hold exactly, and code that can never run.
 
 The pages of this area: [SHARED](../entries/shared.md), [SELECT CASE](../entries/select-case.md),
 [$IF](../entries/meta-if.md), [OPTION](../entries/option.md).
@@ -13,8 +14,8 @@ warning: the compiler prints it only with `-w`, and the editor shows it. It neve
 the exit status, and never changes the program that is built.
 <!-- src: compiler/lints "When lints run" -->
 
-Each lint has a code. Five of QB64Rust's own seven warn only about the file being compiled, not about a file it
-includes with `$INCLUDE`; `undeclared-utf8` and `pds-function` are given for any file. QB64pe's four are given wherever QB64pe gives
+Each lint has a code. Five of QB64Rust's own nine warn only about the file being compiled, not about a file it
+includes with `$INCLUDE`; `undeclared-utf8`, `pds-function`, `never-set` and `single-fraction` are given for any file. QB64pe's four are given wherever QB64pe gives
 them, included files too.
 <!-- src: compiler/lints "Codes"; compiler/lints "Only the file being compiled" -->
 
@@ -29,8 +30,10 @@ them, included files too.
 | `unreachable` | "this code is never run: no label follows the GOTO on line 1", once, at the first statement after `GOTO`, `END`, `SYSTEM`, `STOP`, an `EXIT`, `RETURN`, `RESUME` or `RUN`, with no label between |
 | `undeclared-utf8` | "this file looks like UTF-8 but is read as code page 437, so `─` is 3 characters in the program", once per file, at the first string or `DATA` item with a byte above 127, for a file that declares no encoding ([$ENCODING](../entries/meta-encoding.md)) |
 | `pds-function` | "`CURDIR$` is a BASIC PDS 7.1 function that QB64 does not have: here it is a variable that is never set, so it is always `""`", at each use of `CURDIR$`, `DIR$`, `STACK` or `SAVEPOINT` with no argument, unless the program declares or sets the variable. Such a name gets no `used-once` |
+| `never-set` | "`n` is never set, so it is always 0", once, at the first read of a variable of a SUB or FUNCTION that nothing sets. It goes on with "is the shared array `n()` meant?" when a `DIM SHARED` array has the name. Not for a parameter, an array, a fixed-length string or a record |
+| `single-fraction` | "`s!` is a SINGLE set to .3 on line 4, which a SINGLE cannot hold exactly: this product, rounded to an integer, can differ from the same product with .3 written out, which is a DOUBLE; …", where the variable is a factor of a product stored in an integer. `.5`, which a SINGLE holds exactly, is not reported, nor is a variable that an assignment computes with an operator or that a `FOR` counts |
 | `unused-variable`, `empty-select`, `duplicate-const`, `debug-incompatible` | QB64pe's own warnings: "Unused variable", "Empty SELECT CASE block", "Duplicate constant definition" and "Feature incompatible with $DEBUG mode", where `qb64pe -w` gives them |
-<!-- src: compiler/lints "Codes"; compiler/lints "Name used once"; compiler/lints "Unused procedure"; compiler/lints "Unused label"; compiler/lints "Local hiding a shared variable"; compiler/lints "Unreachable code"; compiler/lints "A BASIC PDS 7.1 function read as a variable"; compiler/lints "QB64pe's warnings" -->
+<!-- src: compiler/lints "Codes"; compiler/lints "Name used once"; compiler/lints "Unused procedure"; compiler/lints "Unused label"; compiler/lints "Local hiding a shared variable"; compiler/lints "Unreachable code"; compiler/lints "A BASIC PDS 7.1 function read as a variable"; compiler/lints "A local variable that is never set"; compiler/lints "A SINGLE that holds a fraction"; compiler/lints "QB64pe's warnings" -->
 
 A variable gets at most one of `used-once` and "Unused variable". Where QB64pe's rule reports it, the warning is
 "Unused variable".

@@ -212,7 +212,7 @@ describe("debugging with qb64rust", function () {
         const ended = nextEnd();
         await vscode.commands.executeCommand("workbench.action.debug.start");
         const session = await started;
-        // No settings file: the program is in `build` and runs in its source's folder (change build-output-folder).
+        // No settings file: the program is beside its source and runs there (change project-init).
         const exe = builtOf(main);
         assert.deepStrictEqual([session.configuration.program, session.configuration.cwd], [exe, path.dirname(main.fsPath)]);
         // The build is done once the session starts, so the stop comes in seconds (3.5 s in CI for the test above).

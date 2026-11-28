@@ -24,11 +24,13 @@ export interface Bundle {
 }
 
 export type BuildPlan =
-    | { compiler: "qb64pe"; command: string; args: string[] }
+    | { compiler: "qb64pe"; command: string; args: string[]; flags: string[] }
     | {
           compiler: "qb64rust";
           command: string;
           args: string[];
+          /** The `-f:` settings of `qb64rust.build.*` (`config.buildFlags`); none for `qb64rust test`. */
+          flags: string[];
           roots: qb64rust.Roots;
           env: NodeJS.ProcessEnv;
           /** No libqb object built yet in the prepared copy: this build makes them (about 40 s more). */
@@ -79,15 +81,18 @@ export async function planBuild(file: string, status: CompilerStatus, server: La
             }
             return { compiler: "none", reason: current.reason };
         }
-        return { compiler: "qb64pe", command: current.path, args: qb64pe.buildArgs(file) };
+        const flags = config.buildFlags(uri);
+        return { compiler: "qb64pe", command: current.path, args: qb64pe.buildArgs(file, flags), flags };
     }
     const plan = await planQb64rust(file, status, server, bundle, interactive, debug);
     if (plan.compiler === "none") {
         return plan;
     }
     // Asked only for a build: `qb64rust test` builds into folders of its own (change build-output-folder, design D5).
-    const paths = await qb64rust.programPaths(plan.command, file);
-    return { ...plan, paths, args: qb64rust.buildArgs(file, plan.roots, debug, paths) };
+    // `qb64rust.build.outputFolder` set to `source` builds next to the source with `-o`, as QB64pe does.
+    const paths = config.outputFolder(uri) === "source" ? qb64rust.fallbackPaths(file) : await qb64rust.programPaths(plan.command, file);
+    const flags = config.buildFlags(uri);
+    return { ...plan, paths, flags, args: qb64rust.buildArgs(file, plan.roots, debug, paths, flags) };
 }
 
 /**
@@ -141,6 +146,7 @@ export async function planQb64rust(file: string, status: CompilerStatus, server:
         compiler: "qb64rust",
         command: binary.path,
         args: qb64rust.buildArgs(file, roots, debug, paths),
+        flags: [],
         roots,
         env,
         firstLibqbBuild: libqb !== undefined && !hasObjects(libqb),
@@ -154,12 +160,14 @@ export async function planQb64rust(file: string, status: CompilerStatus, server:
  * Where the program of `file` is and the folder it runs in, for Run and the run task, which build nothing (change
  * build-output-folder, design D5 and D6). When qb64rust is the compiler `qb64rust.buildWith` picks and its binary is
  * found: the newer of the program `qb64rust --print-paths` names and the one next to the source, which "Build with
- * QB64pe" and an older compiler write. Else next to the source, where QB64pe builds it.
+ * QB64pe" and an older compiler write. Else next to the source, where QB64pe builds it, and where a build with
+ * `qb64rust.build.outputFolder` set to `source` puts it.
  */
 export async function runPaths(file: string, server: LanguageServer): Promise<qb64rust.ProgramPaths> {
     const binary = server.binary;
     const beside = qb64rust.fallbackPaths(file);
-    if (chosenCompiler(server, vscode.Uri.file(file)) === "qb64rust" && binary.found) {
+    const uri = vscode.Uri.file(file);
+    if (chosenCompiler(server, uri) === "qb64rust" && binary.found && config.outputFolder(uri) === "project") {
         const compiler = await qb64rust.programPaths(binary.path, file);
         return qb64rust.newerProgram(compiler, beside, modifiedTime);
     }

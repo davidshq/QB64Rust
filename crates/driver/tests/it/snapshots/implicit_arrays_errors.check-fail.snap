@@ -1,6 +1,5 @@
 ---
 source: crates/driver/tests/it/frontend.rs
-assertion_line: 151
 expression: snap
 ---
 implicit_arrays_errors.bas:9:1: error: `z` has 1 dimension, not 2
@@ -24,4 +23,5 @@ implicit_arrays_errors.bas:31:1: note: QB64pe: Expected variable =, look for con
 implicit_arrays_errors.bas:32:14: error: `s(...)`: `s` is a SUB, not an array
 implicit_arrays_errors.bas:32:14: note: QB64pe: Name already in use (s)
 implicit_arrays_errors.bas:33:1: error: `whole() =`: a store needs an element of the array, with its index
+implicit_arrays_errors.bas:33:1: note: QB64pe: Expected array index after x
 implicit_arrays_errors.bas:39:1: error: `M` is not a member of `TYPE PT` (`v.m`)

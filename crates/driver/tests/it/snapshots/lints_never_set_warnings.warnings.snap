@@ -1,0 +1,12 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+lints_never_set_warnings.bas:25:8: warning: `cash` is never set, so it is always 0: is the shared array `cash()` meant?
+lints_never_set_warnings.bas:28:11: warning: `total` is never set, so it is always 0
+lints_never_set_warnings.bas:33:11: warning: `title` is never set, so it is always ""
+lints_never_set_warnings.bas:37:11: warning: `count` is never set, so it is always 0
+lints_never_set_warnings.bas:41:12: warning: `best` is never set, so it is always 0
+lints_never_set_warnings.bas:63:11: warning: `once` is used only once: is it misspelled?
+lints_never_set_warnings.bas:64:9: warning: Unused variable
+    unused%   INTEGER

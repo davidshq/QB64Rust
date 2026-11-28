@@ -51,6 +51,23 @@ describe("language features from the server", () => {
         assert.ok(hoverText(builtin).includes("Left$(STRING, LONG) AS STRING"), hoverText(builtin));
     });
 
+    it("the include's file name is a link to the file", async () => {
+        await open(uri);
+        const links = await vscode.commands.executeCommand<vscode.DocumentLink[]>("vscode.executeLinkProvider", uri);
+        const ours = links.filter((l) => l.target?.fsPath.endsWith("lib.bi"));
+        assert.strictEqual(ours.length, 1, JSON.stringify(links));
+        assert.deepStrictEqual([ours[0].range.start.line, ours[0].range.start.character, ours[0].range.end.character], [0, 11, 17]);
+    });
+
+    it("signature help for a built-in and for the program's SUB", async () => {
+        await open(uri);
+        const left = await vscode.commands.executeCommand<vscode.SignatureHelp>("vscode.executeSignatureHelpProvider", uri, new vscode.Position(4, 17));
+        assert.strictEqual(left?.signatures[0].label, "Left$(STRING, LONG) AS STRING");
+        assert.strictEqual(left?.activeParameter, 1);
+        const show = await vscode.commands.executeCommand<vscode.SignatureHelp>("vscode.executeSignatureHelpProvider", uri, new vscode.Position(4, 6));
+        assert.strictEqual(show, undefined, "inside the name, before the `(`");
+    });
+
     it("references across an include", async () => {
         await open(uri);
         const refs = await vscode.commands.executeCommand<vscode.Location[]>("vscode.executeReferenceProvider", uri, new vscode.Position(3, 1));

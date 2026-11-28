@@ -14,9 +14,9 @@
 use crate::settings::Build;
 use std::path::Path;
 
-/// Makes the output folder of `build` and copies its `copy` entries into it. An error names the settings file and
-/// the entry's line for an entry that does not exist, and the file for one that cannot be read or written.
-pub fn prepare(build: &Build) -> Result<(), String> {
+/// Makes the output folder `folder` and copies `build`'s `copy` entries into it. An error names the settings file
+/// and the entry's line for an entry that does not exist, and the file for one that cannot be read or written.
+pub fn prepare(build: &Build, folder: &Path) -> Result<(), String> {
     for entry in &build.copy {
         if !entry.path.exists() {
             let file = build.root.join(crate::settings::SETTINGS_FILE);
@@ -28,9 +28,9 @@ pub fn prepare(build: &Build) -> Result<(), String> {
             ));
         }
     }
-    std::fs::create_dir_all(&build.output).map_err(|e| format!("creating {}: {e}", build.output.display()))?;
+    std::fs::create_dir_all(folder).map_err(|e| format!("creating {}: {e}", folder.display()))?;
     for entry in &build.copy {
-        copy_newer(&entry.path, &build.output.join(&entry.name))?;
+        copy_newer(&entry.path, &folder.join(&entry.name))?;
     }
     Ok(())
 }
@@ -103,6 +103,7 @@ mod tests {
         Build {
             root: dir.to_path_buf(),
             output: dir.join("build"),
+            output_set: false,
             copy: names
                 .iter()
                 .map(|n| CopyEntry {
@@ -161,7 +162,7 @@ mod tests {
         let src = write_at(&d.path().join("GAME.CFG"), "source", t0);
         let b = project(d.path(), &["GAME.CFG"]);
         let copy = d.path().join("build/GAME.CFG");
-        prepare(&b).unwrap();
+        prepare(&b, &b.output).unwrap();
         assert_eq!(read(&copy), "source", "missing: copied");
         assert_eq!(
             std::fs::metadata(&copy).unwrap().modified().unwrap(),
@@ -171,17 +172,17 @@ mod tests {
 
         // Equal times: nothing is copied, even when the bytes differ.
         write_at(&copy, "same time", t0);
-        prepare(&b).unwrap();
+        prepare(&b, &b.output).unwrap();
         assert_eq!(read(&copy), "same time");
 
         // The program rewrote its file: the copy is newer and stays.
         write_at(&copy, "the program's", t0 + Duration::from_secs(60));
-        prepare(&b).unwrap();
+        prepare(&b, &b.output).unwrap();
         assert_eq!(read(&copy), "the program's");
 
         // The source edited after that: it goes over the copy.
         write_at(&src, "edited", t0 + Duration::from_secs(120));
-        prepare(&b).unwrap();
+        prepare(&b, &b.output).unwrap();
         assert_eq!(read(&copy), "edited");
     }
 
@@ -193,7 +194,7 @@ mod tests {
         write_at(&d.path().join("maps/one.map"), "one", t0);
         let old = write_at(&d.path().join("maps/deep/old.map"), "old", t0);
         let b = project(d.path(), &["maps"]);
-        prepare(&b).unwrap();
+        prepare(&b, &b.output).unwrap();
         assert_eq!(read(&d.path().join("build/maps/one.map")), "one");
         assert_eq!(read(&d.path().join("build/maps/deep/old.map")), "old");
         std::fs::remove_file(old).unwrap();
@@ -202,7 +203,7 @@ mod tests {
             "one edited",
             t0 + Duration::from_secs(5),
         );
-        prepare(&b).unwrap();
+        prepare(&b, &b.output).unwrap();
         assert_eq!(read(&d.path().join("build/maps/one.map")), "one edited");
         assert_eq!(
             read(&d.path().join("build/maps/deep/old.map")),
@@ -215,7 +216,7 @@ mod tests {
     #[test]
     fn a_missing_entry_is_an_error() {
         let d = tempfile::tempdir().unwrap();
-        let e = prepare(&project(d.path(), &["GAME.CFG"])).unwrap_err();
+        let e = prepare(&project(d.path(), &["GAME.CFG"]), &d.path().join("build")).unwrap_err();
         let file = d.path().join("qb64rust.toml");
         assert_eq!(
             e,
@@ -231,7 +232,7 @@ mod tests {
     #[test]
     fn the_output_folder_is_made() {
         let d = tempfile::tempdir().unwrap();
-        prepare(&project(d.path(), &[])).unwrap();
+        prepare(&project(d.path(), &[]), &d.path().join("build")).unwrap();
         assert!(d.path().join("build").is_dir());
         assert_eq!(std::fs::read_dir(d.path().join("build")).unwrap().count(), 0);
     }

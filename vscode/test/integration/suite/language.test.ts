@@ -3,7 +3,7 @@ import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { closeAll, open, setSetting, writeFile } from "./helpers";
+import { api, closeAll, open, setSetting, waitFor, writeFile } from "./helpers";
 
 describe("language support", () => {
     afterEach(closeAll);
@@ -20,6 +20,38 @@ describe("language support", () => {
         editor.selection = new vscode.Selection(0, 0, 0, 0);
         await vscode.commands.executeCommand("editor.action.commentLine");
         assert.match(editor.document.lineAt(0).text, /^' ?PRINT 1$/);
+    });
+
+    it("a file with tabs is told of once, and its tabs turn into spaces on request", async () => {
+        const tabs = (await api()).tabs;
+        const shown: string[] = [];
+        const original = tabs.show;
+        tabs.show = (message, ...items) => {
+            shown.push(message);
+            return Promise.resolve(items[0]);
+        };
+        try {
+            const uri = writeFile("lang/tabs.bas", '\tPRINT "a\tb"\r\nPRINT 1\r\n');
+            const editor = await open(uri);
+            await waitFor("the tabs turned into spaces", () => editor.document.lineAt(0).text === '    PRINT "a\tb"');
+            assert.strictEqual(shown.length, 1);
+            assert.match(shown[0], /tabs\.bas has tab characters/);
+            await closeAll();
+            await open(uri);
+            assert.strictEqual(shown.length, 1, "once per session");
+            const plain = await open(writeFile("lang/notabs.bas", "PRINT 1\r\n"));
+            assert.strictEqual(plain.document.getText(), "PRINT 1\r\n");
+            assert.strictEqual(shown.length, 1, "no tabs, no notice");
+        } finally {
+            tabs.show = original;
+        }
+    });
+
+    it("spaces by default: an inserted snippet's tabs become spaces", async () => {
+        const editor = await open(writeFile("lang/snippet.bas", ""));
+        assert.strictEqual(vscode.workspace.getConfiguration("editor", { languageId: "qb64rust" }).get("insertSpaces"), true);
+        await editor.insertSnippet(new vscode.SnippetString("SUB x\n\tPRINT\nEND SUB"));
+        assert.ok(!editor.document.getText().includes("\t"), JSON.stringify(editor.document.getText()));
     });
 
     it("SUB, FUNCTION and TYPE blocks fold", async () => {

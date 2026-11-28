@@ -12,11 +12,15 @@ export async function api(): Promise<Api> {
 }
 
 /** Writes a file into the test workspace (bytes as given; strings as Latin-1, i.e. byte per char). */
-/** The executable qb64rust builds for `uri` with no settings file: in `build` beside it (spec compiler/cli, "The
- * output folder"). QB64pe's is next to the source. */
+/** The executable qb64rust builds for `uri` with no settings file: beside it, as QB64pe's (spec compiler/cli, "The
+ * output folder"). */
 export function builtOf(uri: vscode.Uri): string {
-    const name = path.basename(uri.fsPath).replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
-    return path.join(path.dirname(uri.fsPath), "build", name);
+    return uri.fsPath.replace(/\.bas$/i, process.platform === "win32" ? ".exe" : "");
+}
+
+/** The executable qb64rust builds for `uri` in the output folder `build`, as a `copy` list gives it. */
+export function builtInBuild(uri: vscode.Uri): string {
+    return path.join(path.dirname(uri.fsPath), "build", path.basename(builtOf(uri)));
 }
 
 export function writeFile(rel: string, content: string | Buffer): vscode.Uri {

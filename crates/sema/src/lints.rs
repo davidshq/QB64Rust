@@ -6,7 +6,9 @@
 
 use crate::consteval::Value;
 use crate::{
-    Arg, Place, ProcId, ProcKind, Program, RunTarget, Stmt, StmtArg, StmtKind, Storage, SymbolKind, Ty, VarId,
+    AbsArg, Arg, BinOp, CaseItem, ConvKind, Event, Expr, ExprKind, Handler, InputSource, KeyForm, MemValue, Place,
+    PrintItem, PrintTo, ProcId, ProcKind, Program, RunTarget, Stmt, StmtArg, StmtKind, Storage, SymbolKind, Ty, UnOp,
+    UsingValue, VarId,
 };
 use qb64rust_base::{Diagnostic, Diagnostics, FileId, SourceMap, Span, show_bytes, to_u32};
 use qb64rust_syntax::tree::Node;
@@ -28,6 +30,10 @@ pub const UNREACHABLE: &str = "unreachable";
 pub const UNDECLARED_UTF8: &str = "undeclared-utf8";
 /// A BASIC PDS 7.1 function called with no argument, which QB64 reads as a variable that is never set.
 pub const PDS_FUNCTION: &str = "pds-function";
+/// A local variable of a SUB or FUNCTION that is read but never set.
+pub const NEVER_SET: &str = "never-set";
+/// A SINGLE variable set to a fraction that a SINGLE cannot hold exactly, in a product stored into an integer.
+pub const SINGLE_FRACTION: &str = "single-fraction";
 
 /// QB64pe's "Unused variable" (design D11).
 pub const UNUSED_VARIABLE: &str = "unused-variable";
@@ -47,6 +53,8 @@ pub const CODES: &[&str] = &[
     UNREACHABLE,
     UNDECLARED_UTF8,
     PDS_FUNCTION,
+    NEVER_SET,
+    SINGLE_FRACTION,
     UNUSED_VARIABLE,
     EMPTY_SELECT,
     DUPLICATE_CONST,
@@ -58,7 +66,8 @@ pub const CODES: &[&str] = &[
 pub(crate) fn run(prog: &Program, parsed: &ParsedProgram, map: &SourceMap, main: FileId, diags: &mut Diagnostics) {
     let inactive = inactive_words(parsed, map);
     let mut ours: Vec<Lint> = Vec::new();
-    let (pds, pds_vars) = pds_functions(prog, map);
+    let set = set_vars(prog);
+    let (pds, pds_vars) = pds_functions(prog, map, &set);
     used_once(prog, map, &inactive, &pds_vars, &mut ours);
     unused_procedures(prog, map, main, &inactive, &mut ours);
     unused_labels(prog, map, &inactive, &mut ours);
@@ -75,6 +84,13 @@ pub(crate) fn run(prog: &Program, parsed: &ParsedProgram, map: &SourceMap, main:
         diags.push(Diagnostic::lint(span, code, msg));
     }
     for (span, code, msg) in pds {
+        diags.push(Diagnostic::lint(span, code, msg));
+    }
+    // Both point at a value the program likely did not mean, wherever it stands: a game's own code may be all in
+    // included files.
+    let mut likely_bugs = never_set(prog, map, &inactive, &pds_vars, &set);
+    likely_bugs.extend(single_fractions(prog, map));
+    for (span, code, msg) in likely_bugs {
         diags.push(Diagnostic::lint(span, code, msg));
     }
     // QB64pe's warnings, wherever QB64pe gives them, included files too.
@@ -161,18 +177,37 @@ fn never_set_value(ty: Ty) -> Option<&'static str> {
     }
 }
 
-/// The variables a statement of the program may set: the place of an assignment, `FOR`, `INPUT`, `READ`, `LSET`,
-/// `FIELD` or `_MEMGET`, a place a built-in statement stores into or exchanges (`SWAP`, `MID$`), the variable of a
-/// file's `GET`, and a variable passed by reference to a SUB that sets its parameter, or to a `DECLARE LIBRARY`
-/// routine, which cannot be looked into. A parameter passed on to another SUB is followed. A FUNCTION call inside
-/// an expression is not looked into.
+/// The variables a statement of the program may set: the place of an assignment, a whole-record copy, `FOR`,
+/// `INPUT`, `READ`, `LSET`, `FIELD` or `_MEMGET`, a place a built-in statement stores into or exchanges (`SWAP`,
+/// `MID$`), the variable of a file's `GET`, and a variable passed by reference to a SUB or FUNCTION that sets its
+/// parameter, or to a `DECLARE LIBRARY` routine, which cannot be looked into. A parameter passed on is followed. A
+/// variable whose memory the program takes (`VARPTR`, `_MEM`, `_OFFSET`, `CALL ABSOLUTE`) may be written through it,
+/// so it counts as set.
 fn set_vars(prog: &Program) -> HashSet<VarId> {
     let mut set = HashSet::new();
-    // A variable passed by reference to a SUB, and the parameter it is passed as.
+    // A variable passed by reference to a SUB or FUNCTION, and the parameter it is passed as.
     let mut passed: Vec<(VarId, VarId)> = Vec::new();
+    let mut by_ref = |proc: ProcId, args: &[Arg], set: &mut HashSet<VarId>| {
+        let p = prog.proc(proc);
+        if p.external.is_some() {
+            set.extend(args.iter().filter_map(Arg::root));
+        } else {
+            passed.extend(args.iter().zip(&p.params).filter_map(|(a, &q)| Some((a.root()?, q))));
+        }
+    };
+    each_expr(prog, &mut |e| {
+        if let ExprKind::CallProc { proc, args } = &e.kind {
+            by_ref(*proc, args, &mut set);
+        } else if let ExprKind::Address { of, .. } = &e.kind {
+            set.insert(of.root());
+        } else if let ExprKind::MemOf { of, .. } | ExprKind::AddressOf(of) = &e.kind {
+            set.insert(of.root());
+        }
+    });
     each_list(prog, &mut |list| {
         for s in list {
             if let StmtKind::Assign { place, .. }
+            | StmtKind::CopyWhole { to: place, .. }
             | StmtKind::For { var: place, .. }
             | StmtKind::Lset { target: place, .. } = &s.kind
             {
@@ -184,12 +219,7 @@ fn set_vars(prog: &Program) -> HashSet<VarId> {
             } else if let StmtKind::MemGet { target, .. } = &s.kind {
                 set.insert(target.root());
             } else if let StmtKind::Call { proc, args } = &s.kind {
-                let p = prog.proc(*proc);
-                if p.external.is_some() {
-                    set.extend(args.iter().filter_map(Arg::root));
-                } else {
-                    passed.extend(args.iter().zip(&p.params).filter_map(|(a, &q)| Some((a.root()?, q))));
-                }
+                by_ref(*proc, args, &mut set);
             } else if let StmtKind::Builtin { id, args } = &s.kind {
                 // `PUT` takes its variable's bytes as `GET` does, but only reads them.
                 let get = id.get().name.eq_ignore_ascii_case("GET");
@@ -224,10 +254,9 @@ fn set_vars(prog: &Program) -> HashSet<VarId> {
 /// [`PDS_FUNCTIONS`]. A program ported from PDS that calls `CURDIR$` builds without it, so the warning goes at
 /// every use, in every file: each is a call to replace. A variable the program sets is its own. Also gives the
 /// variables reported, which get no `used-once`.
-fn pds_functions(prog: &Program, map: &SourceMap) -> (Vec<Lint>, HashSet<VarId>) {
+fn pds_functions(prog: &Program, map: &SourceMap, set: &HashSet<VarId>) -> (Vec<Lint>, HashSet<VarId>) {
     let mut out = Vec::new();
     let mut reported = HashSet::new();
-    let mut set = None;
     for (_, s) in prog.symbols.iter() {
         let SymbolKind::Var(v) = s.kind else { continue };
         let var = prog.var(v);
@@ -237,7 +266,7 @@ fn pds_functions(prog: &Program, map: &SourceMap) -> (Vec<Lint>, HashSet<VarId>)
         let Some(name) = pds_function(map, s.def) else {
             continue;
         };
-        if set.get_or_insert_with(|| set_vars(prog)).contains(&v) {
+        if set.contains(&v) {
             continue;
         }
         let msg = match never_set_value(var.ty) {
@@ -257,6 +286,483 @@ fn pds_functions(prog: &Program, map: &SourceMap) -> (Vec<Lint>, HashSet<VarId>)
     }
     out.sort_by_key(|(at, _, _)| (at.file, at.start));
     (out, reported)
+}
+
+/// `never-set` (spec `compiler/lints`, "A local variable that is never set"): a scalar `DIM`, `STATIC` or implicit
+/// local of a SUB or FUNCTION that is read but that no statement sets ([`set_vars`]), so it always holds 0 or `""`.
+/// One warning per variable, at its first read. When a `DIM SHARED` array has its name, the warning names it: a read
+/// of `side_cash` where `side_cash(side)` was meant is the case Civil War Strategy's port met (`ai_fortify`). Left
+/// out: a fixed-length string and a record, which a program may keep blank on purpose to write a blank record; a
+/// variable whose memory the program takes; a name of a skipped `$IF` branch; and a variable in `pds`, which gets
+/// `pds-function`. An implicit one named once gets `used-once` instead, a declared one never named again QB64pe's
+/// "Unused variable".
+fn never_set(
+    prog: &Program,
+    map: &SourceMap,
+    inactive: &HashSet<String>,
+    pds: &HashSet<VarId>,
+    set: &HashSet<VarId>,
+) -> Vec<Lint> {
+    let shared_arrays: HashSet<&str> = prog
+        .shared
+        .iter()
+        .map(|&v| prog.var(v))
+        .filter(|v| v.is_array())
+        .map(|v| v.name.as_str())
+        .collect();
+    let mut out = Vec::new();
+    for (_, s) in prog.symbols.iter() {
+        let SymbolKind::Var(v) = s.kind else { continue };
+        let var = prog.var(v);
+        if !matches!(var.storage, Storage::Local(_) | Storage::Static(_))
+            || var.is_array()
+            || var.conventional
+            || set.contains(&v)
+            || pds.contains(&v)
+            || in_inactive(map, s.def, inactive)
+        {
+            continue;
+        }
+        let Some(value) = never_set_value(var.ty) else {
+            continue;
+        };
+        // A declared variable's first name is its declaration; an implicit one's is its first read.
+        let reads = std::iter::once(&s.def)
+            .filter(|_| var.implicit)
+            .chain(&s.refs)
+            .copied()
+            .filter(|&sp| !prog.symbols.is_declaring(sp));
+        if var.implicit && s.refs.is_empty() {
+            continue;
+        }
+        let Some(at) = reads.min_by_key(|sp| (sp.file, sp.start)) else {
+            continue;
+        };
+        let shown = written(map, at);
+        let mut msg = format!("`{shown}` is never set, so it is always {value}");
+        if shared_arrays.contains(var.name.as_str()) {
+            msg.push_str(&format!(": is the shared array `{}()` meant?", without_suffix(&shown)));
+        }
+        out.push((at, NEVER_SET, msg));
+    }
+    out.sort_by_key(|(at, _, _)| (at.file, at.start));
+    out
+}
+
+/// `single-fraction` (spec `compiler/lints`, "A SINGLE that holds a fraction"): a scalar SINGLE variable that an
+/// assignment sets to a fraction a SINGLE cannot hold exactly (`.3`, not `.5`), named as a factor of a product that
+/// is then rounded to an integer by a store. A fraction written out is a DOUBLE, so `r% = .3 * 95` gives 28, but
+/// `s! = .3: r% = s! * 95` gives 29: the SINGLE holds 0.300000012. Civil War Strategy's port met this when its
+/// numbers became tuning knobs (its `docs\qb64-friction.md`, section 7). One warning per such factor. A SINGLE that
+/// an assignment computes with an operator, or that a `FOR` counts, is left out: its value is no number written
+/// out that it stands for, as `pct! = .005 * n` in the original game is not. Only a product directly under the
+/// rounding is looked at, through `+`, `-`, unary minus, `_IIF` and conversions, not one inside a function's
+/// argument.
+fn single_fractions(prog: &Program, map: &SourceMap) -> Vec<Lint> {
+    // Each such SINGLE, with the first fraction assigned to it, and the SINGLEs that an assignment computes with
+    // arithmetic or a `FOR` counts: their value is no number given to them.
+    let mut holds: HashMap<VarId, (&Expr, bool)> = HashMap::new();
+    let mut computed = HashSet::new();
+    each_list(prog, &mut |list| {
+        for s in list {
+            if let StmtKind::Assign {
+                place: Place::Var(v),
+                value,
+            } = &s.kind
+                && prog.var(*v).ty == Ty::F32
+            {
+                if let Some(lit) = inexact_fraction(value) {
+                    holds.entry(*v).or_insert(lit);
+                } else if arithmetic(value) {
+                    computed.insert(*v);
+                }
+            } else if let StmtKind::For { var: Place::Var(v), .. } = &s.kind {
+                computed.insert(*v);
+            }
+        }
+    });
+    holds.retain(|v, _| !computed.contains(v));
+    let mut out = Vec::new();
+    if holds.is_empty() {
+        return out;
+    }
+    each_list(prog, &mut |list| {
+        for s in list {
+            if let StmtKind::Assign { value, .. } = &s.kind
+                && let Some(rounded) = rounded_to_integer(value)
+            {
+                products(rounded, &mut |factor| {
+                    let ExprKind::Load(Place::Var(v)) = &factor.kind else {
+                        return;
+                    };
+                    let Some(&(lit, negated)) = holds.get(v) else {
+                        return;
+                    };
+                    let name = written(map, factor.span);
+                    let (line, _) = map.file(lit.span.file).line_col(lit.span.start);
+                    let place = if lit.span.file == factor.span.file {
+                        format!("line {line}")
+                    } else {
+                        format!("line {line} of {}", map.file(lit.span.file).name)
+                    };
+                    let sign = if negated { "-" } else { "" };
+                    let written_text = written(map, lit.span);
+                    let text = format!("{sign}{written_text}");
+                    // A `CONST`'s name is followed by its value: `RATE (0.3)`, `-RATE (-0.3)`.
+                    let named = written_text.starts_with(|ch: char| ch.is_ascii_alphabetic() || ch == '_');
+                    let set_to = if let ExprKind::Float(c) = &lit.kind
+                        && named
+                    {
+                        let value = c
+                            .parse::<f64>()
+                            .map_or_else(|_| format!("{sign}{c}"), |x| (if negated { -x } else { x }).to_string());
+                        format!("{text} ({value})")
+                    } else {
+                        text.clone()
+                    };
+                    let msg = format!(
+                        "`{name}` is a SINGLE set to {set_to} on {place}, which a SINGLE cannot hold exactly: this \
+                         product, rounded to an integer, can differ from the same product with {text} written out, \
+                         which is a DOUBLE; a DOUBLE variable gives the same result as the number"
+                    );
+                    out.push((factor.span, SINGLE_FRACTION, msg));
+                });
+            }
+        }
+    });
+    out.sort_by_key(|(at, _, _)| (at.file, at.start));
+    out
+}
+
+/// The literal of a value that is a fraction a SINGLE cannot hold exactly, written out or through a `CONST`, after
+/// any conversion and unary minus, and whether an odd number of minus signs stood before it (`-KNOB`).
+fn inexact_fraction(e: &Expr) -> Option<(&Expr, bool)> {
+    if let ExprKind::Convert { from, .. } = &e.kind {
+        return inexact_fraction(from);
+    }
+    if let ExprKind::Unary { op: UnOp::Neg, operand } = &e.kind {
+        return inexact_fraction(operand).map(|(lit, negated)| (lit, !negated));
+    }
+    let ExprKind::Float(text) = &e.kind else {
+        return None;
+    };
+    // C form, `0.3E+0` (`literal::NumLit::Float`).
+    let x: f64 = text.parse().ok()?;
+    #[expect(clippy::cast_possible_truncation, reason = "the SINGLE the value becomes")]
+    let single = x as f32;
+    (x.fract() != 0.0 && f64::from(single) != x).then_some((e, false))
+}
+
+/// Whether a value is computed by an operator, after any conversion: `.005 * n`, not `.3`, `VAL(v$)` or `t!`.
+fn arithmetic(e: &Expr) -> bool {
+    if let ExprKind::Convert { from, .. } = &e.kind {
+        return arithmetic(from);
+    }
+    if let ExprKind::Unary { operand, .. } = &e.kind {
+        return !matches!(operand.kind, ExprKind::Float(_) | ExprKind::Int(_));
+    }
+    matches!(
+        e.kind,
+        ExprKind::Binary { .. } | ExprKind::Concat(..) | ExprKind::StrCompare { .. } | ExprKind::Choice { .. }
+    )
+}
+
+/// The float value that a store rounds to an integer, half to even, under any narrowing of the integer.
+fn rounded_to_integer(e: &Expr) -> Option<&Expr> {
+    let ExprKind::Convert { how, from } = &e.kind else {
+        return None;
+    };
+    match how {
+        ConvKind::RoundEven => Some(from),
+        ConvKind::Truncate => rounded_to_integer(from),
+        ConvKind::Widen | ConvKind::Nearest | ConvKind::Cast => None,
+    }
+}
+
+/// Calls `f` on each factor of each product in `e`, through `+`, `-`, unary minus, `_IIF`'s parts and conversions,
+/// each factor without its conversions.
+fn products<'e>(e: &'e Expr, f: &mut impl FnMut(&'e Expr)) {
+    fn bare(e: &Expr) -> &Expr {
+        if let ExprKind::Convert { from, .. } = &e.kind {
+            bare(from)
+        } else {
+            e
+        }
+    }
+    if let ExprKind::Binary {
+        op: BinOp::Mul,
+        lhs,
+        rhs,
+    } = &e.kind
+    {
+        for side in [lhs, rhs] {
+            f(bare(side));
+            products(side, f);
+        }
+    } else if let ExprKind::Binary {
+        op: BinOp::Add | BinOp::Sub,
+        lhs,
+        rhs,
+    }
+    | ExprKind::Choice {
+        then: lhs, else_: rhs, ..
+    } = &e.kind
+    {
+        products(lhs, f);
+        products(rhs, f);
+    } else if let ExprKind::Convert { from, .. }
+    | ExprKind::Unary {
+        op: UnOp::Neg,
+        operand: from,
+    } = &e.kind
+    {
+        products(from, f);
+    }
+}
+
+/// Calls `f` on every expression of the program, and on each part of one, an expression before its parts.
+fn each_expr<'p>(prog: &'p Program, f: &mut impl FnMut(&'p Expr)) {
+    each_list(prog, &mut |list| {
+        for s in list {
+            stmt_exprs(s, &mut |e| expr_tree(e, f));
+        }
+    });
+}
+
+/// Calls `f` on `e` and on each of its parts, `e` first.
+fn expr_tree<'p>(e: &'p Expr, f: &mut impl FnMut(&'p Expr)) {
+    f(e);
+    let mut each = |x: &'p Expr| expr_tree(x, &mut *f);
+    match &e.kind {
+        ExprKind::Int(_) | ExprKind::Float(_) | ExprKind::Str(_) | ExprKind::ArrayBytes(_) => {}
+        ExprKind::Load(p) | ExprKind::Address { of: p, .. } => p.indexes().into_iter().for_each(each),
+        ExprKind::Bound { array, dim, .. } => array.indexes().into_iter().chain(dim.as_deref()).for_each(each),
+        ExprKind::Block { index, .. } => index.iter().for_each(each),
+        ExprKind::Convert { from, .. } | ExprKind::Unary { operand: from, .. } => each(from),
+        ExprKind::Binary { lhs, rhs, .. } | ExprKind::Concat(lhs, rhs) | ExprKind::StrCompare { lhs, rhs, .. } => {
+            each(lhs);
+            each(rhs);
+        }
+        ExprKind::Choice { condition, then, else_ } => {
+            each(condition);
+            each(then);
+            each(else_);
+        }
+        ExprKind::Call { args, .. } => args.iter().flatten().for_each(each),
+        ExprKind::CallProc { args, .. } => arg_exprs(args).into_iter().for_each(each),
+        ExprKind::MemOf { of, .. } | ExprKind::AddressOf(of) => of.indexes().into_iter().for_each(each),
+        ExprKind::MemAt { offset, size } => {
+            each(offset);
+            each(size);
+        }
+        ExprKind::MemRead { block, offset, .. } => block.indexes().into_iter().chain([&**offset]).for_each(each),
+    }
+}
+
+/// The expressions of arguments: a value, and the indexes of a place or array passed.
+fn arg_exprs(args: &[Arg]) -> Vec<&Expr> {
+    let mut out = Vec::new();
+    for a in args {
+        match a {
+            Arg::Ref(p) => out.extend(p.indexes()),
+            Arg::Temp(e, _) | Arg::Value(e) => out.push(e),
+            Arg::Array(a) => out.extend(a.indexes()),
+            Arg::Null => {}
+        }
+    }
+    out
+}
+
+/// Calls `f` on each expression a statement holds itself, not those of the statement lists inside it, which
+/// [`each_list`] gives: its values, conditions, arguments and the indexes of its places.
+fn stmt_exprs<'p>(s: &'p Stmt, f: &mut impl FnMut(&'p Expr)) {
+    let mut out: Vec<&'p Expr> = Vec::new();
+    let print = |items: &'p [PrintItem], out: &mut Vec<&'p Expr>| {
+        for item in items {
+            match item {
+                PrintItem::Str(e) | PrintItem::Num(e) => out.push(e),
+                PrintItem::Zone => {}
+            }
+        }
+    };
+    let print_to = |to: &'p PrintTo, out: &mut Vec<&'p Expr>| match to {
+        PrintTo::File(e) => out.push(e),
+        PrintTo::Screen | PrintTo::Printer => {}
+    };
+    let mem_value = |v: &'p MemValue, out: &mut Vec<&'p Expr>| match v {
+        MemValue::Typed { value, .. } | MemValue::Str(value) => out.push(value),
+        MemValue::Bytes(r) => out.extend(r.indexes()),
+    };
+    match &s.kind {
+        StmtKind::Builtin { args, .. } => {
+            for a in args {
+                match a {
+                    StmtArg::Value(e) => out.push(e),
+                    StmtArg::Place(p) | StmtArg::Rest(p) | StmtArg::Bytes(p) => out.extend(p.indexes()),
+                    StmtArg::Block { index, .. } => out.extend(index),
+                    StmtArg::Word(_) | StmtArg::Absent => {}
+                }
+            }
+        }
+        StmtKind::MemGet { block, offset, target } => {
+            out.extend(block.indexes());
+            out.push(offset);
+            out.extend(target.indexes());
+        }
+        StmtKind::MemPut { block, offset, value } => {
+            out.extend(block.indexes());
+            out.push(offset);
+            mem_value(value, &mut out);
+        }
+        StmtKind::MemFill {
+            block,
+            offset,
+            bytes,
+            value,
+        } => {
+            out.extend(block.indexes());
+            out.extend([offset, bytes]);
+            mem_value(value, &mut out);
+        }
+        StmtKind::Run(RunTarget::File(e)) | StmtKind::Log { msg: e, .. } | StmtKind::Error(e) => out.push(e),
+        StmtKind::Assign { place, value }
+        | StmtKind::Lset {
+            target: place, value, ..
+        } => {
+            out.extend(place.indexes());
+            out.push(value);
+        }
+        StmtKind::CopyWhole { from, to } => {
+            out.extend(from.indexes());
+            out.extend(to.indexes());
+        }
+        StmtKind::Allocate { array, bounds, .. } => {
+            out.extend(array.indexes());
+            out.extend(bounds.iter().flat_map(|(a, b)| [a, b]));
+        }
+        StmtKind::Clear { array, .. } | StmtKind::Release { array, .. } => out.extend(array.indexes()),
+        StmtKind::CopyArray { from, to } => {
+            out.extend(from.indexes());
+            out.extend(to.indexes());
+        }
+        StmtKind::ArrayCopy {
+            from,
+            to,
+            ranges,
+            starts,
+        } => {
+            out.extend(from.indexes());
+            out.extend(to.indexes());
+            out.extend(ranges.iter().flat_map(|(a, b)| [a, b]));
+            out.extend(starts);
+        }
+        StmtKind::Print { to, items, .. } => {
+            print_to(to, &mut out);
+            print(items, &mut out);
+        }
+        StmtKind::PrintUsing {
+            to,
+            before,
+            format,
+            values,
+            ..
+        } => {
+            print_to(to, &mut out);
+            print(before, &mut out);
+            out.push(format);
+            for v in values {
+                match v {
+                    UsingValue::Str(e) | UsingValue::Num { value: e, .. } | UsingValue::Blanks(e) => out.push(e),
+                }
+            }
+        }
+        StmtKind::Field { file, parts } => {
+            out.push(file);
+            for (place, width) in parts {
+                out.extend(place.indexes());
+                out.push(width);
+            }
+        }
+        StmtKind::Write { to, items, .. } => {
+            out.extend(to);
+            print(items, &mut out);
+        }
+        StmtKind::Input { from, targets, .. } => {
+            if let InputSource::File(e) = from {
+                out.push(e);
+            }
+            out.extend(targets.iter().flat_map(Place::indexes));
+        }
+        StmtKind::Read(places) => out.extend(places.iter().flat_map(Place::indexes)),
+        StmtKind::End(e) | StmtKind::System(e) => out.extend(e),
+        StmtKind::Call { args, .. } => out.extend(arg_exprs(args)),
+        StmtKind::CallAbsolute { args, offset } => {
+            for a in args {
+                match a {
+                    AbsArg::Address(e) | AbsArg::Value(e, _) => out.push(e),
+                }
+            }
+            out.push(offset);
+        }
+        StmtKind::PaletteUsing { index, .. } => out.extend(index),
+        StmtKind::If { branches, .. } => out.extend(branches.iter().map(|b| &b.cond)),
+        StmtKind::For {
+            var, start, end, step, ..
+        } => {
+            out.extend(var.indexes());
+            out.extend([start, end]);
+            out.extend(step);
+        }
+        StmtKind::Do { test, .. } => out.extend(test.iter().map(|t| &t.cond)),
+        StmtKind::While { cond, .. } => out.push(cond),
+        StmtKind::OnJump { value, .. } => out.push(value),
+        StmtKind::OnEvent { event, handler } => {
+            match event {
+                Event::Timer { number, seconds } => {
+                    out.extend(number);
+                    out.push(seconds);
+                }
+                Event::Key { key } => out.push(key),
+                Event::Strig { button, controller } => {
+                    out.push(button);
+                    out.extend(controller);
+                }
+            }
+            if let Handler::Sub { arg: Some(e), .. } = handler {
+                out.push(e);
+            }
+        }
+        StmtKind::Key(KeyForm::Assign { number, text }) => out.extend([number, text]),
+        StmtKind::Select { selector, cases, .. } => {
+            out.push(selector);
+            for c in cases {
+                for item in &c.items {
+                    match item {
+                        CaseItem::Is(_, e) => out.push(e),
+                        CaseItem::Range(a, b) => out.extend([a, b]),
+                    }
+                }
+            }
+        }
+        // No expression of its own.
+        StmtKind::Run(RunTarget::Restart | RunTarget::Label(_))
+        | StmtKind::Key(KeyForm::On | KeyForm::Off | KeyForm::List)
+        | StmtKind::ConsoleOnly
+        | StmtKind::EraseParam { .. }
+        | StmtKind::Restore(_)
+        | StmtKind::Stop
+        | StmtKind::Exit
+        | StmtKind::OnError(_)
+        | StmtKind::Resume(_)
+        | StmtKind::Label(_)
+        | StmtKind::Goto(_)
+        | StmtKind::Gosub(_)
+        | StmtKind::Return(_)
+        | StmtKind::ExitLoop(_)
+        | StmtKind::Continue
+        | StmtKind::ExitSelect { .. } => {}
+    }
+    out.into_iter().for_each(f);
 }
 
 /// A constant's value as QB64pe's "Duplicate constant definition" shows it (`qb64pe.bas` 2662–2679): an integer

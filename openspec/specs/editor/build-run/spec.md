@@ -139,6 +139,34 @@ to the source and the source folder. `qb64rust.buildAndRun` SHALL build and, onl
 - **WHEN** `qb64rust.runArguments` is set to `a b`
 - **THEN** the program is started with arguments `a b` (visible to it as `COMMAND$`)
 
+#### Scenario: A console window of its own
+- **WHEN** `qb64rust.run.terminal` is `external` and the user runs Run
+- **THEN** the program starts in a window of its own: on Windows through `cmd /c start`, on Linux in the terminal
+  `terminal.external.linuxExec` names (`x-terminal-emulator` when it is empty), with `-e`
+
+#### Scenario: The runtime's log
+- **WHEN** `qb64rust.run.logLevel` is `information`, `qb64rust.run.logHandlers` is `["file"]`, and the user runs Run
+  or the run task
+- **THEN** the program starts with `QB64PE_LOG_LEVEL=information`, `QB64PE_LOG_SCOPES=qb64`,
+  `QB64PE_LOG_HANDLERS=file` and `QB64PE_LOG_FILE_PATH=qb64pe-log.txt`, as the QB64pe IDE sets them; with the level
+  `none` the extension adds none of the four
+
+### Requirement: Build settings
+The settings `qb64rust.build.optimize`, `qb64rust.build.licenseFile` and `qb64rust.build.extraLinkerFlags` SHALL be
+passed to a build by either compiler as `-f:OptimizeCppProgram=true`, `-f:GenerateLicenseFile=true` and
+`-f:ExtraLinkerFlags=<value>`; a setting at its default SHALL pass nothing. A build task SHALL pass the same.
+`qb64rust test` and Run in Browser SHALL pass none of them. With `qb64rust.build.outputFolder` set to `source`, a build with
+`qb64rust` SHALL pass `-o` with the executable next to the source, and Run SHALL run that one in the source folder.
+
+#### Scenario: License file
+- **WHEN** `qb64rust.build.licenseFile` is on and the user builds `game.bas`
+- **THEN** the build's command line has `-f:GenerateLicenseFile=true` and `game.exe.license.txt` is written beside
+  the executable
+
+#### Scenario: Next to the source
+- **WHEN** `qb64rust.build.outputFolder` is `source` and the user builds `game.bas` with `qb64rust`
+- **THEN** `game.exe` is written beside `game.bas`, not in `build`
+
 ### Requirement: Tasks
 The extension SHALL provide tasks of type `qb64rust` with actions `build` and `run` for the active or a given file,
 so that users can bind them in `tasks.json`. The `build` task SHALL use the compiler and the command line that
@@ -180,3 +208,31 @@ unavailable in untrusted workspaces because the compiler path itself comes from 
 #### Scenario: Untrusted folder
 - **WHEN** the workspace is not trusted and the user runs Build
 - **THEN** a message explains that building requires a trusted workspace and nothing is executed
+
+### Requirement: Run in browser
+The command "QB64: Run in Browser" (`qb64rust.runInBrowser`) SHALL build the active document with `qb64rust`
+for the wasm target and, only if the build succeeds and wrote a page, serve the page's folder with `qb64rust
+serve` in a terminal named "QB64 Web" and open the address it prints in the user's browser. The build's
+errors SHALL be shown as a build's are. The command SHALL be unavailable in untrusted workspaces, as builds
+are.
+
+#### Scenario: A window program
+- **WHEN** the user runs the command on a correct window program with the Emscripten SDK found
+- **THEN** the browser opens the page and the program runs in it
+
+#### Scenario: A second run
+- **WHEN** the user changes the program and runs the command again while the first server still runs
+- **THEN** the game is built again, the old server is stopped, and the browser opens the same address, so the
+  saved games of the first run are found
+
+#### Scenario: A console program
+- **WHEN** the user runs the command on a `$CONSOLE:ONLY` program
+- **THEN** nothing is served, and a message says that such a program has no page and runs under Node
+
+#### Scenario: A build error
+- **WHEN** the program uses `SHELL`, which the wasm target does not have
+- **THEN** the error is in the Problems view at its line, and nothing is served
+
+#### Scenario: Built with QB64pe
+- **WHEN** `qb64rust.compiler` is `qb64pe`
+- **THEN** the command says that the browser build needs `qb64rust`, and nothing runs

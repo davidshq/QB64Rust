@@ -891,6 +891,28 @@ Module.monitorRunDependencies = Module.monitorRunDependencies || ((left) => Modu
 Module.canvas.addEventListener("click", () => Module.canvas.focus());
 window.addEventListener("load", () => Module.canvas.focus());
 
+// A browser starts sound only after the player acts on the page. miniaudio resumes its audio at a click or a touch.
+// A key press counts too, so a game played with keys alone gets its sound at its first key. miniaudio's own
+// listeners stay, and each key tries again while the audio waits: Escape does not count as acting on the page.
+document.addEventListener("keydown", () => {
+    const audio = window.miniaudio;
+    if (!audio || !audio.devices) return;
+    for (const device of audio.devices) {
+        if (device && device.webaudio && device.webaudio.state === "suspended" && device.state === audio.device_state.started) {
+            device.webaudio.resume().catch(() => {});
+        }
+    }
+}, true);
+
+// Keys a browser may act on as well as the program (find, caret browsing, help, scrolling) go to the program only.
+// A key that types a character is left alone, since the program reads it from the key press that blocking would
+// stop. So are F5, F11 and F12, and a key with Ctrl, Alt or Meta, which the player needs for the browser.
+const qb64rustProgramKeys = new Set(["F1", "F2", "F3", "F4", "F6", "F7", "F8", "F9", "F10", "ArrowUp", "ArrowDown",
+    "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End"]);
+window.addEventListener("keydown", (event) => {
+    if (qb64rustProgramKeys.has(event.key) && !event.ctrlKey && !event.altKey && !event.metaKey) event.preventDefault();
+});
+
 // The program's folder, before the program starts: what it kept in the browser's storage (IndexedDB) on an
 // earlier visit, then the files the page ships ({data}). A file it kept stays, unless the page now ships another
 // version of it than when it was kept. What it writes is saved every second and when the page is hidden. A test
@@ -1097,10 +1119,10 @@ pub fn wasm_page(script: &str, web: bool) -> String {
 }
 
 /// What a wasm build's libqb objects are built with: the Emscripten release, which [`crate::toolchain::find_emsdk`]
-/// holds to one (design D3 of `wasm-console`).
+/// holds to one (design D3 of `wasm-console`), and WebAssembly's exceptions and `setjmp` (`libqb\Makefile`).
 fn wasm_objects_stamp() -> String {
     format!(
-        "qb64rust libqb objects 2 for wasm: Emscripten {}, C++ exceptions\n",
+        "qb64rust libqb objects 3 for wasm: Emscripten {}, C++ exceptions, wasm setjmp\n",
         crate::toolchain::EMSDK_RELEASE
     )
 }

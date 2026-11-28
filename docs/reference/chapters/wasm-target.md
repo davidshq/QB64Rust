@@ -54,9 +54,16 @@ error's "Continue?", are the page's dialogs. `_FULLSCREEN` asks for the browser'
 press or a click, the browser grants it at the next one.
 <!-- src: compiler/wasm-target "The page's script"; compiler/wasm-target "libqb's messages in a page"; compiler/wasm-target "Full screen in a page" -->
 
-A browser starts sound only after the page is clicked or touched. Keys the browser keeps for itself, such as
-Ctrl+W and F5, never reach the program.
-<!-- src: compiler/wasm-target "Parts of libqb the target does not build yet"; read: libqb\internal\c\parts\audio\miniaudio\miniaudio.h -->
+A browser starts sound only after the player acts on the page: a click, a touch, or a key other than Escape. A
+game played with keys alone gets its sound at its first such key.
+<!-- src: compiler/wasm-target "Parts of libqb the target does not build yet"; compiler/wasm-target "Sound in a page"; read: libqb\internal\c\parts\audio\miniaudio\miniaudio.h; crates\driver\src\build.rs -->
+
+The keys the player presses over the page reach the program, as on the desktop. F1 to F4, F6 to F10, the arrows,
+PgUp, PgDn, Home and End go to the program only: the page stops the browser acting on them.
+F5, F11 and F12, and any key held with Ctrl, Alt or Meta, are left to the browser, so the player can still
+reload, leave the tab and close it. A key the browser keeps for itself, such as Ctrl+W, never reaches the
+program. `_WINDOWHASFOCUS` is always true in a page.
+<!-- src: compiler/wasm-target "Keys pressed over a page"; compiler/wasm-target "Keys the browser would act on"; read: crates\driver\src\build.rs; tools\libqb\edits\wasm-window-u-glut-focus.edit -->
 
 A page has only the files it ships: those that `[build]` `copy` of the settings file `qb64rust.toml` copies into
 the output folder, as `copy = ["CWS.CFG", "graphics"]` (a folder with all its files). A build without `-o` packs

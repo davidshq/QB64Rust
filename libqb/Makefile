@@ -484,7 +484,7 @@ endif
 # the link flags of a program run by Node, or of a window program run in a browser page.
 ifeq ($(WASM),y)
 	CXXFLAGS := $(filter-out -m32 -m64 -no-pie -D_GLFW_%,$(CXXFLAGS)) -pthread -fwasm-exceptions
-	CFLAGS := $(filter-out -m32 -m64 -no-pie,$(CFLAGS)) -pthread
+	CFLAGS := $(filter-out -m32 -m64 -no-pie,$(CFLAGS)) -pthread -sSUPPORT_LONGJMP=wasm
 	ifneq ($(filter y,$(DEP_CONSOLE_ONLY)),)
 		EXE_LIBS := $(filter-out %/glut-emu.o %/core.a %/clipboard.a,$(EXE_LIBS))
 		CXXLIBS := $(CXXLIBS_EXTRA) -pthread -sPTHREAD_POOL_SIZE=4 -sNODERAWFS -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH -sENVIRONMENT=node -fwasm-exceptions

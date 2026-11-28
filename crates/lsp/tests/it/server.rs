@@ -384,12 +384,14 @@ fn initialize_and_exit() {
             "completionProvider",
             "definitionProvider",
             "documentFormattingProvider",
+            "documentLinkProvider",
             "documentRangeFormattingProvider",
             "documentSymbolProvider",
             "foldingRangeProvider",
             "hoverProvider",
             "referencesProvider",
             "renameProvider",
+            "signatureHelpProvider",
             "textDocumentSync"
         ]
     );
@@ -858,6 +860,34 @@ fn requests_on_a_program() {
     // `DO`, and a place without a name: nothing.
     assert_eq!(def(&mut c, 1, 1), Value::Null);
     assert_eq!(def(&mut c, 7, 0), Value::Null);
+    c.shutdown().unwrap();
+}
+
+/// Over the protocol: the include's link, and the signature help of a built-in and of the program's SUB.
+#[test]
+fn links_and_signature_help() {
+    let dir = temp();
+    std::fs::write(dir.path().join("lib.bm"), "SUB hello (n)\r\nEND SUB\r\n").unwrap();
+    let (mut c, _) = Client::start(dir.path(), Value::Null);
+    let u = uri(dir.path(), "p.bas");
+    c.open(&u, "'$INCLUDE: 'lib.bm'\r\nhello 1, \r\nx$ = LEFT$(\"ab\", \r\n");
+    let links = c
+        .request("textDocument/documentLink", json!({ "textDocument": { "uri": u } }))
+        .response_result
+        .unwrap();
+    assert_eq!(links[0]["range"]["start"], json!({ "line": 0, "character": 12 }));
+    assert!(links[0]["target"].as_str().unwrap().ends_with("/lib.bm"), "{links}");
+    let help = |c: &mut Client, line: u32, character: u32| {
+        let params = json!({ "textDocument": { "uri": u }, "position": { "line": line, "character": character } });
+        c.request("textDocument/signatureHelp", params).response_result.unwrap()
+    };
+    let sub = help(&mut c, 1, 9);
+    assert_eq!(sub["signatures"][0]["label"], "SUB hello (n)");
+    assert_eq!(sub["activeParameter"], 1);
+    let left = help(&mut c, 2, 17);
+    assert_eq!(left["signatures"][0]["label"], "Left$(STRING, LONG) AS STRING");
+    assert_eq!(left["activeParameter"], 1);
+    assert_eq!(help(&mut c, 0, 3), Value::Null, "in a comment");
     c.shutdown().unwrap();
 }
 

@@ -31,11 +31,14 @@ QB64pe is installed.
 - **Format Document** and **Format Selection** lay code out the way the QB64pe IDE does: indentation, spacing and
   keyword case (`PRINT` → `Print`); see [Formatting](#formatting).
 - **Build, Run, Build and Run** (Command Palette, category "QB64", or the run button in the editor title). A build
-  with `qb64rust` writes the executable into a folder `build` (`hello.bas` → `build\hello.exe`), beside the
-  project's `qb64rust.toml` or beside the source; a build with QB64pe writes it next to the source. The compiler
-  output is in the "QB64" output channel. Run starts the program in a terminal named "QB64", in the source folder.
-  When `qb64rust.toml` lists data files in `[build]` `copy`, they are copied into `build` and the program runs
-  there instead, so what it writes stays out of the source folder (the compiler's manual, "The settings file").
+  writes the executable next to the source (`hello.bas` → `hello.exe`), with either compiler. The compiler output
+  is in the "QB64" output channel. Run starts the program in a terminal named "QB64", in its own folder. When the
+  project's `qb64rust.toml` names an output folder or lists data files in `[build]` `copy`, a build with `qb64rust`
+  writes the program into that folder (`build` by default) and copies the data files there, and the program runs
+  there, so what it writes stays out of the source folder (the compiler's manual, "The settings file").
+- **Set Up Project** asks where the program goes and which data files it reads, as pick lists, and has `qb64rust
+  init` write the folder's `qb64rust.toml`, with every other setting in it as a commented line. A folder with no
+  program gets **New Project** instead. It needs `qb64rust` and a trusted workspace.
 - **Run in Browser** (experimental) builds a window program for a web page with `qb64rust`, serves it on this
   machine in a terminal named "QB64 Web" (`qb64rust serve`, on `127.0.0.1` only) and opens it in your browser. It
   needs the Emscripten SDK: the first run asks to download it (815 MB from Emscripten's own storage), and **QB64:
@@ -115,7 +118,7 @@ A key in `[format]` overrides the matching `qb64rust.format.*` setting, so every
 same layout; a key that is not there leaves the setting as it is. This holds for the language server and for
 `qb64rust -y`, not for `qb64pe -y`, which does not read the file. An include file takes the file of its program.
 The lint codes are `used-once`, `unused-procedure`, `unused-label`, `hides-shared`, `unreachable`,
-`undeclared-utf8`, `pds-function`, `unused-variable`, `empty-select`, `duplicate-const` and `debug-incompatible`; a lint that is off gives no warning
+`undeclared-utf8`, `pds-function`, `never-set`, `single-fraction`, `unused-variable`, `empty-select`, `duplicate-const` and `debug-incompatible`; a lint that is off gives no warning
 in Problems. A mistake in the file (a misspelled key, a value of the wrong kind) stops Format Document with a message
 that names the file and the line, and shows in Problems on line 1 of the program at the next check.
 
@@ -153,7 +156,7 @@ A `launch.json` configuration (**Run: Add Configuration… → QB64**):
 |---|---|---|
 | `program` | the active file | The main `.bas` file (built with `--debug` first), or the executable of an earlier debug build (launched as it is). |
 | `args` | `qb64rust.runArguments`, split into words | The program's arguments (`COMMAND$`). |
-| `cwd` | the folder Run uses | The working folder: for a `.bas` file the source's folder, or `build` when `qb64rust.toml` has a `[build]` `copy` list; for an executable its own folder. |
+| `cwd` | the folder Run uses | The working folder: the program's own folder, which is the source's unless `qb64rust.toml` names an output folder or has a `[build]` `copy` list. |
 | `stopOnEntry` | `false` | Stop at the first BASIC line. |
 | `console` | `integratedTerminal` | Where a `$CONSOLE` program reads and writes: `integratedTerminal` (its `INPUT` works there), `internalConsole` (the Debug Console: output only), `externalTerminal`. |
 | `noPrompt` | `qb64rust.noPrompt` | Set `QB64PE_NOPROMPT=y`. |
@@ -274,6 +277,11 @@ such request after an edit (about a twentieth of a second on a program of 5,000 
 - **Completion** of the names seen at the cursor (a procedure's own locals and parameters, or the main module's,
   with the shared ones), procedures, constants, types, labels, built-ins and reserved words; after `p.` for a
   variable of a user type, that type's members. Right after an edit it offers the names found at the last run of the front end.
+- **Signature help** while you type a call's arguments: after `LEFT$(` or `CLS `, the built-in's form, and for a
+  SUB or FUNCTION of the program its header, with the argument under the cursor marked.
+- **Include links**: Ctrl+click the file name of an `$INCLUDE` to open the file.
+- **Snippets** for `SUB`, `FUNCTION`, `SELECT CASE`, `TYPE`, `FOR`, `DO`, `DO WHILE`, `IF` and `IF ELSE`: type the
+  keyword and choose the snippet.
 
 **Code in a `$IF` branch that is not compiled has no names**: references miss it and a rename leaves it unchanged
 (a message says so when the program has such a branch).
@@ -339,6 +347,16 @@ workspaces (folders opened from a remote repository without a local copy, e.g. o
 | `qb64rust.checkTimeoutSeconds` | `30` | Stop a check or format that takes longer (a check by the language server: stop waiting for it). |
 | `qb64rust.runArguments` | `""` | Arguments for Run (the program sees them as `COMMAND$`). |
 | `qb64rust.noPrompt` | `false` | Run with `QB64PE_NOPROMPT=y`: untrapped runtime errors are printed instead of shown in a dialog. |
+| `qb64rust.run.terminal` | `"integrated"` | Where Run starts the program: `integrated` (a QB64 terminal in VS Code) or `external` (a console window of its own; on Linux the terminal `terminal.external.linuxExec` names). |
+| `qb64rust.run.logLevel` | `"none"` | The runtime's log when Run starts a program: `trace`, `information`, `warning` or `error` is the lowest level written. Run sets it, with the next three settings, as the `QB64PE_LOG_*` variables, as the QB64pe IDE does. |
+| `qb64rust.run.logScopes` | `["qb64"]` | What the log takes entries from: `qb64` (the program's `_LOGINFO` and the other log statements), `libqb`, `libqb-audio`, `libqb-image`. |
+| `qb64rust.run.logHandlers` | `["console"]` | Where the log goes: `console` (the program's standard error) and `file`. With `run.terminal` set to `external`, `console` shows only for a `$CONSOLE` program; use `file` for others. |
+| `qb64rust.run.logFile` | `""` | The `file` handler's file; empty is `qb64pe-log.txt` in the folder the program runs in. |
+| `qb64rust.build.outputFolder` | `"project"` | Where a build with `qb64rust` puts the program: `project` (where the compiler puts it: next to the source, unless `qb64rust.toml`'s `[build]` table names an `output` folder or has a `copy` list, which means `build`) or `source` (next to the source, as QB64pe does; the files of `[build]` `copy` are not copied). |
+| `qb64rust.build.optimize` | `false` | Build the C++ with optimization (`-f:OptimizeCppProgram=true`), with either compiler. A debug build is never optimized. |
+| `qb64rust.build.licenseFile` | `false` | Write the licenses of the libraries the program links beside it, as `game.exe.license.txt` (`-f:GenerateLicenseFile=true`). Turn it on before you share a program. |
+| `qb64rust.build.extraLinkerFlags` | `""` | Flags added to the end of the link command (`-f:ExtraLinkerFlags=...`). |
+| `qb64rust.tabsNotice` | `true` | Say so when a file shown has tabs, and offer to turn them into spaces as the QB64pe IDE does when it loads a file (also the command **QB64: Turn Tabs into Spaces**). A tab inside a string or a `DATA` statement stays. New indents are spaces: the extension sets `editor.insertSpaces` for QB64 files. In a file already indented with tabs, VS Code's `editor.detectIndentation` keeps tabs until they are turned. |
 | `qb64rust.path` | `""` | Path to the `qb64rust` binary, which runs the language server and builds. Empty: the bundled binary, else `qb64rust` on `PATH`. |
 | `qb64rust.includeRoot` | `""` | Where the language server and a build with `qb64rust` look up `$INCLUDE` files after the including file's folder. Empty: the QB64pe folder, else the folder of the `qb64rust` binary. |
 | `qb64rust.format.autoIndent` | `true` | Indent each block. |

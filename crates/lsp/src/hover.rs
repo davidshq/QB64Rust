@@ -111,14 +111,31 @@ pub(crate) fn help_page(word: &[u8]) -> Option<HelpPage> {
 /// `specialformat`, each `?` is the next argument's type and each `{word}` a word written as it is; without one,
 /// the arguments in order, an optional one in brackets.
 pub fn form(b: &Builtin) -> String {
+    form_parts(b).0
+}
+
+/// [`form`] and where each argument stands in it, as byte ranges (the form is ASCII): one per argument slot, an
+/// optional one with its brackets. For a `specialformat` that is a plain list, each slot's type; for any other, no
+/// ranges, since commas do not count its arguments (`LINE (?,?)-(?,?)`).
+pub(crate) fn form_parts(b: &Builtin) -> (String, Vec<(usize, usize)>) {
     let name = format!("{}{}", b.name, b.musthave.unwrap_or(""));
+    let mut ranges = Vec::new();
     let args = match b.specialformat {
         Some(f) => {
+            // A format of slots, commas and brackets only (`[?],?,?` of `INSTR`) is a plain list: commas count
+            // its arguments, so each slot is marked.
+            let list = f.chars().all(|c| "?,[]".contains(c));
             let mut types = b.arg_types.iter();
             let mut out = String::new();
             for c in f.chars() {
                 match c {
-                    '?' => out.push_str(types.next().copied().unwrap_or("?")),
+                    '?' => {
+                        let start = out.len();
+                        out.push_str(types.next().copied().unwrap_or("?"));
+                        if list {
+                            ranges.push((start, out.len()));
+                        }
+                    }
                     '{' | '}' => {}
                     ',' => out.push_str(", "),
                     _ => out.push(c),
@@ -128,27 +145,30 @@ pub fn form(b: &Builtin) -> String {
         }
         None => {
             let optional = b.optional.unwrap_or(&[]);
-            let list: Vec<String> = b
-                .arg_types
-                .iter()
-                .enumerate()
-                .map(|(i, t)| {
-                    if optional.get(i) == Some(&true) {
-                        format!("[{t}]")
-                    } else {
-                        (*t).to_string()
-                    }
-                })
-                .collect();
-            list.join(", ")
+            let mut out = String::new();
+            for (i, t) in b.arg_types.iter().enumerate() {
+                if i > 0 {
+                    out.push_str(", ");
+                }
+                let start = out.len();
+                if optional.get(i) == Some(&true) {
+                    write!(out, "[{t}]").unwrap();
+                } else {
+                    out.push_str(t);
+                }
+                ranges.push((start, out.len()));
+            }
+            out
         }
     };
-    match (b.kind, b.ret) {
-        (Kind::Function, Some(ret)) if args.is_empty() => format!("{name} AS {ret}"),
-        (Kind::Function, Some(ret)) => format!("{name}({args}) AS {ret}"),
-        _ if args.is_empty() => name,
-        _ => format!("{name} {args}"),
-    }
+    let (text, args_at) = match (b.kind, b.ret) {
+        (Kind::Function, Some(ret)) if args.is_empty() => (format!("{name} AS {ret}"), 0),
+        (Kind::Function, Some(ret)) => (format!("{name}({args}) AS {ret}"), name.len() + 1),
+        _ if args.is_empty() => (name, 0),
+        _ => (format!("{name} {args}"), name.len() + 1),
+    };
+    let ranges = ranges.into_iter().map(|(s, e)| (s + args_at, e + args_at)).collect();
+    (text, ranges)
 }
 
 #[cfg(test)]

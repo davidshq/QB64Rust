@@ -25,7 +25,7 @@ export interface Roots {
 export interface ProgramPaths {
     /** The executable a build writes. */
     exe: string;
-    /** The folder the program runs in: the source's, or the output folder when the project has a `copy` list. */
+    /** The folder the program runs in: the folder it is in (change project-init, design D2). */
     runIn: string;
     /** Given by `qb64rust --print-paths`: the build passes no `-o`, so the compiler puts the program there. False
      * for the paths of a compiler without `--print-paths`, or of QB64pe: next to the source, built with `-o`. */
@@ -81,6 +81,91 @@ export function parsePrintPaths(output: string): ProgramPaths | undefined {
 /** How long `--print-paths` may take before the fallback is used; it reads one small file. */
 const PRINT_PATHS_TIMEOUT_MS = 10_000;
 
+/** What `qb64rust init <folder> --plan` says of a folder (spec compiler/project-init, "The plan of a folder"). */
+export interface InitPlan {
+    folder: string;
+    /** The folder's own `qb64rust.toml`, when it has one. */
+    settings: string | null;
+    newProject: boolean;
+    /** The folder's `.bas` files, sorted. */
+    programs: string[];
+    /** The data files offered for the output folder `build`. */
+    dataFiles: string[];
+    git: boolean;
+}
+
+/** The answers "QB64: Set Up Project" passes to `qb64rust init` (change project-init, design D8). */
+export interface InitAnswers {
+    /** Set only when the folder has several programs. */
+    main?: string;
+    /** `.` for beside the source, or `build`. */
+    output: string;
+    /** The data files to copy; empty for none. Ignored with the output `.`. */
+    copy: string[];
+}
+
+/** `init <folder> --plan`: the command line that asks the compiler what to ask. */
+export function initPlanArgs(folder: string): string[] {
+    return ["init", folder, "--plan"];
+}
+
+/** The plan in the one line of JSON `init --plan` prints, or undefined when it is not that line, as from a
+ * `qb64rust` without `init`, which reads `init` as a file to build. */
+export function parseInitPlan(output: string): InitPlan | undefined {
+    try {
+        const json = JSON.parse(output.trim()) as Record<string, unknown>;
+        const strings = (v: unknown) => (Array.isArray(v) && v.every((s) => typeof s === "string") ? (v as string[]) : undefined);
+        const programs = strings(json.programs);
+        const dataFiles = strings(json.data_files);
+        if (typeof json.folder === "string" && programs && dataFiles && typeof json.new_project === "boolean") {
+            const settings = typeof json.settings === "string" ? json.settings : null;
+            return { folder: json.folder, settings, newProject: json.new_project, programs, dataFiles, git: json.git === true };
+        }
+    } catch {
+        // Not JSON: an older compiler's message.
+    }
+    return undefined;
+}
+
+/** `init <folder> --yes` with one option per answer: the command line that writes the file. */
+export function initWriteArgs(folder: string, answers: InitAnswers): string[] {
+    const args = ["init", folder, "--yes", "--output", answers.output];
+    if (answers.main) {
+        args.push("--main", answers.main);
+    }
+    if (answers.output !== ".") {
+        if (answers.copy.length === 0) {
+            args.push("--no-copy");
+        }
+        for (const entry of answers.copy) {
+            args.push("--copy", entry);
+        }
+    }
+    return args;
+}
+
+/** Runs `binary` with `args` in no particular folder and gives its standard output, or the error with what it
+ * printed. */
+function runInit(binary: string, args: string[]): Promise<{ ok: boolean; output: string }> {
+    return new Promise((resolve) => {
+        execFile(binary, args, { timeout: PRINT_PATHS_TIMEOUT_MS, windowsHide: true }, (error, stdout, stderr) => {
+            resolve({ ok: !error, output: `${String(stdout)}${String(stderr)}` });
+        });
+    });
+}
+
+/** The plan of `folder`, or undefined from a `qb64rust` without `init` or one that failed. */
+export async function initPlan(binary: string, folder: string): Promise<InitPlan | undefined> {
+    const { ok, output } = await runInit(binary, initPlanArgs(folder));
+    return ok ? parseInitPlan(output) : undefined;
+}
+
+/** Writes the folder's settings file; the error is the compiler's message. */
+export async function initWrite(binary: string, folder: string, answers: InitAnswers): Promise<{ ok: true } | { error: string }> {
+    const { ok, output } = await runInit(binary, initWriteArgs(folder, answers));
+    return ok ? { ok: true } : { error: output.trim().replace(/^qb64rust: /, "") || "qb64rust init failed" };
+}
+
 /**
  * The paths of `file` from `qb64rust --print-paths`, or [`fallbackPaths`] when the call fails (design D5): without
  * a word for an older compiler named by `qb64rust.path` that has no `--print-paths`, with `problem` for any other
@@ -112,12 +197,13 @@ export function newerProgram(compiler: ProgramPaths, beside: ProgramPaths, modif
  * `-x -w <file>` and the roots, with `--debug` first for a debug build (change m5-debug-launch, design D4):
  * `--toolchain-root` but for the system's toolchain, `--qb64pe-root` only when QB64pe is found (change m6-toolchain,
  * design D6). `-o <exe>` next to the source unless `paths` came from the compiler, which then puts the program in
- * its output folder and copies the project's data files there (change build-output-folder, design D5). `-c`
- * (QB64pe's console switch) is not one of qb64rust's options.
+ * its output folder and copies the project's data files there (change build-output-folder, design D5). The `-f:`
+ * settings `flags` (`config.buildFlags`) before the roots. `-c` (QB64pe's console switch) is not one of qb64rust's
+ * options.
  */
-export function buildArgs(file: string, roots: Roots, debug = false, paths: ProgramPaths = fallbackPaths(file)): string[] {
+export function buildArgs(file: string, roots: Roots, debug = false, paths: ProgramPaths = fallbackPaths(file), flags: string[] = []): string[] {
     const output = paths.fromCompiler ? [] : ["-o", paths.exe];
-    return [...(debug ? ["--debug"] : []), "-x", "-w", file, ...output, ...rootArgs(roots)];
+    return [...(debug ? ["--debug"] : []), "-x", "-w", file, ...output, ...flags, ...rootArgs(roots)];
 }
 
 /** The roots as options, as a build passes them (`qb64rust test` takes the same, change basic-unit-tests). */
@@ -178,7 +264,8 @@ export interface Qb64rustBuild extends RunResult, Qb64rustOutput {
     executable: string;
 }
 
-/** Full build into `paths.exe`, a debug build when `debug`. No timeout, as a build with QB64pe. */
+/** Full build into `paths.exe`, a debug build when `debug`, with the `-f:` settings `flags`. No timeout, as a build
+ * with QB64pe. */
 export async function build(
     queue: RunQueue,
     binary: string,
@@ -188,9 +275,10 @@ export async function build(
     debug: boolean,
     paths: ProgramPaths,
     onOutput?: (text: string) => void,
+    flags: string[] = [],
 ): Promise<Qb64rustBuild> {
     const executable = paths.exe;
-    const result = await queue.run({ kind: "build", command: binary, args: buildArgs(file, roots, debug, paths), cwd: path.dirname(file), env, onOutput });
+    const result = await queue.run({ kind: "build", command: binary, args: buildArgs(file, roots, debug, paths, flags), cwd: path.dirname(file), env, onOutput });
     const parsed = result.cancelled ? { messages: [], allMarked: false } : parseQb64rustOutput(result.output, result.exitCode, file);
     if (!result.cancelled && result.exitCode === 0 && !fs.existsSync(executable)) {
         parsed.messages.push({ severity: "error", file: undefined, line: 1, message: `qb64rust reported success but ${executable} does not exist; see the "QB64" output.` });

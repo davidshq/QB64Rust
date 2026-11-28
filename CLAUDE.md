@@ -151,10 +151,19 @@ changing direction, design or scope.**
    - **What is completed moves to the archive when it is completed** (user, 2026-11-13). This holds for every
      document in this repo and in the game repos. The archive is `study\archive\` for a study here, and
      `docs\archived\` elsewhere (a game's repo, or this repo's `docs\`).
-     - A document that is all completed moves whole, with `git mv`.
-     - When only part is completed, that part moves to `<name>-completed.md` in the archive, under the same
-       headings. Example: `docs\structure-review.md` keeps its open items, and
-       `docs\archived\structure-review-completed.md` holds the done ones. Each file names the other at its top.
+     - **A game's repo has one archive file, `docs\archived\devnotes-completed.md`** (user, 2026-11-27). No
+       new file is made in the archive. A finished document, or the finished part of one, becomes a section
+       of it: `## <title>`, its own headings one level down, and a line saying where it came from.
+     - **This repo's `docs\archived\` keeps its `<name>-completed.md` files** (`SOMEDAY-completed.md`,
+       `UPSTREAM-completed.md`) until the user decides whether it follows the one-file rule (`DECISIONS.md`
+       2026-11-27). A finished part of a document here goes to its own `<name>-completed.md`.
+     - A document that is all completed moves into its section whole, and its file is deleted.
+     - When only part is completed, that part moves to its section, under the same headings. Example:
+       `docs\code-smells-review.md` keeps its open items, and the section "Code smells review: completed
+       items" holds the done ones. Each names the other at its top.
+     - Only what is still valuable is kept: what was wrong, why, and what was done, with its commit or its
+       record row. Text that only repeats another record is cut.
+     - A numbered study still moves whole to `study\archive\`, with `git mv`.
      - What stays out is what is still open or still in use: a step not done, a question not answered, a rule
        that new work still follows, a reference that describes the code as it is now.
      - What moves: a step or phase that is done, an answered question, a finished review's findings and its
@@ -163,7 +172,7 @@ changing direction, design or scope.**
        record is the commit.
 
      *Why:* only what is relevant should be out and about, and everything else in the archive (user,
-     2026-11-13).
+     2026-11-13). One file, because a file per finished document multiplied the files (user, 2026-11-27).
    - **The paperwork around a change goes at the merge cadence, not per change** (`study\35` §3 item 3, user,
      2026-10-18). The end of a change asks the user nothing about the behaviours it kept QB64pe's way: each is a row
      in `SOMEDAY.md`'s "QB64pe behaviours to review" and stays silent until the user asks for them. Reviews, and

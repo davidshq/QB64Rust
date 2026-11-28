@@ -125,6 +125,37 @@ of a variable that is not declared. A name with no definition SHALL give an empt
 - **WHEN** both the main module and `SUB a` use `n`, and the cursor is on `n` inside `a`
 - **THEN** the result is the first use of `n` inside `a`
 
+### Requirement: Include links
+The server SHALL answer `textDocument/documentLink` with a link for each `$INCLUDE` of the document that the last
+parse loaded a file for. The link SHALL cover the file name between the quotes and SHALL target the file loaded.
+An `$INCLUDE` whose file was not found, or that stands in a `$IF` branch that is off, SHALL have no link.
+
+#### Scenario: Link to an included file
+- **WHEN** line 1 is `'$INCLUDE: 'lib.bm'` and `lib.bm` is beside the document
+- **THEN** columns 12 to 18 of line 1 link to `lib.bm`
+
+#### Scenario: Missing file
+- **WHEN** a document includes `missing.bi` and no such file exists
+- **THEN** that line has no link
+
+### Requirement: Signature help
+The server SHALL answer `textDocument/signatureHelp` at once, from the document's text before the cursor on its
+line and the user procedures of the program's last parse. It SHALL find the innermost name followed by an open `(`
+that names a built-in function or a user `SUB` or `FUNCTION`; failing that, a statement's first word (after `CALL`
+when written) followed by a blank, naming a built-in or user `SUB`. A user procedure's signature SHALL be its
+header's text, each parameter marked; a built-in's SHALL be its hover form, each argument marked when its form is
+a plain list. The active parameter SHALL be the count of commas at the call's own level. In a string, in a comment,
+after `REM` and in a `DATA` statement there SHALL be no signature help. The trigger characters are `(`, `,` and a
+blank.
+
+#### Scenario: Built-in function
+- **WHEN** the text before the cursor is `x$ = LEFT$(a$, `
+- **THEN** the signature is `Left$(STRING, LONG) AS STRING` with the second parameter active
+
+#### Scenario: User SUB as a statement
+- **WHEN** the program has `SUB greet (who$, times AS INTEGER)` and the text before the cursor is `greet "Ann", `
+- **THEN** the signature is the header's text with `times AS INTEGER` active
+
 ### Requirement: Reparse and cancellation
 The server SHALL parse a program again after each change, dropping a pending parse when a newer change arrives,
 and SHALL answer a cancelled request with the `RequestCancelled` error.

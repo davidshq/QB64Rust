@@ -1,0 +1,6 @@
+---
+source: crates/driver/tests/it/frontend.rs
+expression: snap
+---
+inc/lints_likely_bugs.bm:3:8: warning: `cash` is never set, so it is always 0: is the shared array `cash()` meant?
+inc/lints_likely_bugs.bm:6:10: warning: `rate` is a SINGLE set to .3 on line 7 of lints_included_likely_bugs_warnings.bas, which a SINGLE cannot hold exactly: this product, rounded to an integer, can differ from the same product with .3 written out, which is a DOUBLE; a DOUBLE variable gives the same result as the number

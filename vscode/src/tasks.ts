@@ -69,7 +69,7 @@ export class Qb64TaskProvider implements vscode.TaskProvider {
                     : plan.toolchain
                       ? this.offering(file, cwd)
                       : chosenCompiler(this.server, vscode.Uri.file(file)) === "qb64pe" && !this.status.current.found
-                        ? new vscode.ProcessExecution("qb64pe", qb64pe.buildArgs(file), { cwd })
+                        ? new vscode.ProcessExecution("qb64pe", qb64pe.buildArgs(file, config.buildFlags(vscode.Uri.file(file))), { cwd })
                         : failing(plan.reason);
             const task = new vscode.Task(def, scope, name, TASK_TYPE, execution);
             task.group = vscode.TaskGroup.Build;
@@ -77,7 +77,7 @@ export class Qb64TaskProvider implements vscode.TaskProvider {
         }
         // The program and the folder it runs in, as the Run command takes them (change build-output-folder, design D6).
         const uri = vscode.Uri.file(file);
-        const env = config.noPrompt(uri) ? { QB64PE_NOPROMPT: "y" } : undefined;
+        const env = config.runEnv(uri);
         const paths = await runPaths(file, this.server);
         return new vscode.Task(def, scope, name, TASK_TYPE, new vscode.ProcessExecution(paths.exe, splitArguments(config.runArguments(uri)), { cwd: paths.runIn, env }));
     }

@@ -26,3 +26,4 @@ sadd_varptr_str_errors.bas:29:13: error: `VARPTR$` of a `STRING` member
 sadd_varptr_str_errors.bas:30:12: error: not supported yet: `VARPTR` of a whole array of strings or of a `TYPE`
 sadd_varptr_str_errors.bas:31:12: error: not supported yet: `VARSEG` of a `_BIT` array
 sadd_varptr_str_errors.bas:32:13: error: `VARPTR$` of a member of an array element: of an element it takes only an array of strings
+sadd_varptr_str_errors.bas:32:13: note: QB64pe: VARPTR$ only accepts variable-length string arrays

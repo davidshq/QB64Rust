@@ -64,7 +64,8 @@
     "configurationDefaults": {
       "[qb64rust]": {
         "files.encoding": "cp437",
-        "files.autoGuessEncoding": false
+        "files.autoGuessEncoding": false,
+        "editor.insertSpaces": true
       }
     },
     "configuration": {
@@ -182,6 +183,101 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "Set `QB64PE_NOPROMPT=y` when running a program, so untrapped runtime errors are printed instead of shown in a dialog."
+        },
+        "qb64rust.build.outputFolder": {
+          "type": "string",
+          "enum": [
+            "project",
+            "source"
+          ],
+          "default": "project",
+          "enumDescriptions": [
+            "Where the compiler puts it: next to the main file, unless `qb64rust.toml`'s `[build]` table names an `output` folder or has a `copy` list (then `build`).",
+            "Next to the main file, as QB64pe builds it, whatever `qb64rust.toml` says. The data files of `[build]` `copy` are not copied."
+          ],
+          "markdownDescription": "Where a build with qb64rust puts the program. QB64pe always builds it next to the source."
+        },
+        "qb64rust.build.optimize": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Build the program's C++ with optimization (`-f:OptimizeCppProgram=true`). A debug build is never optimized."
+        },
+        "qb64rust.build.licenseFile": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Write the licenses of the libraries the program links beside the executable, as `game.exe.license.txt` for `game.exe` (`-f:GenerateLicenseFile=true`). Turn it on before you share a program."
+        },
+        "qb64rust.build.extraLinkerFlags": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Flags added to the end of the link command (`-f:ExtraLinkerFlags=...`)."
+        },
+        "qb64rust.run.terminal": {
+          "type": "string",
+          "enum": [
+            "integrated",
+            "external"
+          ],
+          "default": "integrated",
+          "enumDescriptions": [
+            "A QB64 terminal in VS Code.",
+            "A console window of its own. On Linux, the terminal `terminal.external.linuxExec` names, started with `-e`."
+          ],
+          "markdownDescription": "Where **Run** and **Build and Run** start the program."
+        },
+        "qb64rust.run.logLevel": {
+          "type": "string",
+          "enum": [
+            "none",
+            "trace",
+            "information",
+            "warning",
+            "error"
+          ],
+          "default": "none",
+          "markdownDescription": "The runtime's log when **Run** starts a program: the lowest level written, as in the QB64pe IDE's logging options. Any level but `none` sets `QB64PE_LOG_LEVEL` and the other three `QB64PE_LOG_*` variables from `#qb64rust.run.logScopes#`, `#qb64rust.run.logHandlers#` and `#qb64rust.run.logFile#`."
+        },
+        "qb64rust.run.logScopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "qb64",
+              "libqb",
+              "libqb-audio",
+              "libqb-image"
+            ]
+          },
+          "uniqueItems": true,
+          "default": [
+            "qb64"
+          ],
+          "markdownDescription": "What the log takes entries from: `qb64` is the program's own `_LOGINFO` and the other log statements; the others are parts of the runtime."
+        },
+        "qb64rust.run.logHandlers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "console",
+              "file"
+            ]
+          },
+          "uniqueItems": true,
+          "default": [
+            "console"
+          ],
+          "markdownDescription": "Where the log goes: `console` is the program's standard error, `file` is `#qb64rust.run.logFile#`. With `#qb64rust.run.terminal#` set to `external`, `console` shows only for a `$CONSOLE` program; use `file` for others."
+        },
+        "qb64rust.run.logFile": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The log file for the `file` handler; entries are added to its end. Empty is `qb64pe-log.txt`, and a relative path is taken from the folder the program runs in."
+        },
+        "qb64rust.tabsNotice": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Say so when a QB64 file shown in an editor has tab characters, and offer to turn them into spaces as the QB64pe IDE does when it loads a file. Tabs inside a string or a `DATA` statement stay."
         }
       }
     },
@@ -243,6 +339,16 @@
         "command": "qb64rust.newProject",
         "title": "New Project",
         "category": "QB64"
+      },
+      {
+        "command": "qb64rust.setUpProject",
+        "title": "Set Up Project",
+        "category": "QB64"
+      },
+      {
+        "command": "qb64rust.convertTabs",
+        "title": "Turn Tabs into Spaces",
+        "category": "QB64"
       }
     ],
     "menus": {
@@ -278,6 +384,14 @@
         {
           "command": "qb64rust.installEmsdk",
           "when": "!virtualWorkspace"
+        },
+        {
+          "command": "qb64rust.convertTabs",
+          "when": "editorLangId == qb64rust"
+        },
+        {
+          "command": "qb64rust.setUpProject",
+          "when": "!virtualWorkspace && isWorkspaceTrusted"
         }
       ],
       "editor/title/run": [
@@ -398,6 +512,12 @@
             }
           }
         ]
+      }
+    ],
+    "snippets": [
+      {
+        "language": "qb64rust",
+        "path": "./snippets/qb64rust.code-snippets"
       }
     ]
   },

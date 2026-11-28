@@ -25,6 +25,10 @@ In a program with a window, it is -1 while the window has the keyboard's focus: 
 window with `_SCREENCLICK`, it is -1.
 <!-- src: language/console-and-window "Window built-ins are compiled"; tests\sandbox\window_title_handle; tests\corpus\screen\w01_window_builtins -->
 
+In a page on the wasm target it is always -1: the browser does not tell the page's window when it gains or loses
+the focus ([The wasm target](../chapters/wasm-target.md)).
+<!-- src: compiler/wasm-target "Keys pressed over a page"; read: tools\libqb\edits\wasm-window-u-glut-focus.edit -->
+
 ## Errors
 
 - A form QB64pe rejects is a compile error, for example:

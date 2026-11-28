@@ -8,15 +8,16 @@ use crate::encoding::Encoding;
 use crate::index::{Indexed, SymbolIndex};
 use crate::owner::{self, Owner};
 use crate::uri::{to_path, uri_key};
-use crate::{Hooks, completion, definition, folding, hover, rename, symbols};
+use crate::{Hooks, completion, definition, folding, hover, links, rename, signature, symbols};
 use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response};
 use lsp_types::notification::{
     Cancel, DidChangeConfiguration, DidChangeTextDocument, DidChangeWatchedFiles, DidCloseTextDocument,
     DidOpenTextDocument, Notification as _, PublishDiagnostics, ShowMessage,
 };
 use lsp_types::request::{
-    CodeActionRequest, CodeActionResolveRequest, Completion, DocumentSymbolRequest, FoldingRangeRequest, Formatting,
-    GotoDefinition, HoverRequest, PrepareRenameRequest, RangeFormatting, References, Rename, Request as _, Shutdown,
+    CodeActionRequest, CodeActionResolveRequest, Completion, DocumentLinkRequest, DocumentSymbolRequest,
+    FoldingRangeRequest, Formatting, GotoDefinition, HoverRequest, PrepareRenameRequest, RangeFormatting, References,
+    Rename, Request as _, Shutdown, SignatureHelpRequest,
 };
 use lsp_types::{
     CancelParams, CompletionList, CompletionOptions, CompletionParams, DidChangeTextDocumentParams,
@@ -73,6 +74,17 @@ pub fn capabilities() -> ServerCapabilities {
         completion_provider: Some(CompletionOptions {
             trigger_characters: Some(vec![".".into()]),
             ..CompletionOptions::default()
+        }),
+        // A blank after a statement's first word shows a SUB's form (`CLS `); `(` and `,` a function's argument.
+        signature_help_provider: Some(lsp_types::SignatureHelpOptions {
+            trigger_characters: Some(vec!["(".into(), ",".into(), " ".into()]),
+            retrigger_characters: Some(vec![")".into()]),
+            work_done_progress_options: lsp_types::WorkDoneProgressOptions::default(),
+        }),
+        // Each `$INCLUDE` opens its file (`links.rs`).
+        document_link_provider: Some(lsp_types::DocumentLinkOptions {
+            resolve_provider: Some(false),
+            work_done_progress_options: lsp_types::WorkDoneProgressOptions::default(),
         }),
         rename_provider: Some(lsp_types::OneOf::Right(RenameOptions {
             prepare_provider: Some(true),
@@ -1367,6 +1379,10 @@ impl Server {
                 self.completion(req);
                 return;
             }
+            SignatureHelpRequest::METHOD => {
+                self.signature_help(req);
+                return;
+            }
             HoverRequest::METHOD | References::METHOD | PrepareRenameRequest::METHOD | Rename::METHOD => {
                 // Each names the document as a `TextDocumentPositionParams` does.
                 match serde_json::from_value::<lsp_types::TextDocumentPositionParams>(req.params.clone()) {
@@ -1387,6 +1403,9 @@ impl Server {
             }
             FoldingRangeRequest::METHOD => {
                 serde_json::from_value::<FoldingRangeParams>(req.params.clone()).map(|p| p.text_document.uri)
+            }
+            DocumentLinkRequest::METHOD => {
+                serde_json::from_value::<lsp_types::DocumentLinkParams>(req.params.clone()).map(|p| p.text_document.uri)
             }
             GotoDefinition::METHOD => serde_json::from_value::<GotoDefinitionParams>(req.params.clone())
                 .map(|p| p.text_document_position_params.text_document.uri),
@@ -1862,6 +1881,29 @@ impl Server {
         }
     }
 
+    /// `textDocument/signatureHelp`: answered at once, from the document's text before the cursor and the user
+    /// procedures of the program's last parse, which may be of an older text (`signature.rs`).
+    fn signature_help(&mut self, req: Request) {
+        let p = match serde_json::from_value::<lsp_types::SignatureHelpParams>(req.params) {
+            Ok(p) => p,
+            Err(e) => {
+                self.send(Response::new_err(
+                    req.id,
+                    ErrorCode::InvalidParams as i32,
+                    e.to_string(),
+                ));
+                return;
+            }
+        };
+        let pos = p.text_document_position_params.position;
+        let doc_key = uri_key(&p.text_document_position_params.text_document.uri);
+        let help = self.docs.get(&doc_key).and_then(|doc| {
+            let before = line_before(&doc.text, pos);
+            signature::signature_help(self.analyses.get(&self.program_of(&doc_key)), &before)
+        });
+        self.send(Response::new_ok(req.id, help));
+    }
+
     /// The result of an index job: kept as the program's index and given to the requests waiting for it. The
     /// result of a job that is no longer the program's (its text changed, or it closed) is dropped.
     fn indexed(&mut self, key: String, seq: u64, result: Result<Indexed, String>) {
@@ -2116,6 +2158,9 @@ impl Server {
             }
             FoldingRangeRequest::METHOD => {
                 serde_json::to_value(file.map(|(a, f)| folding::folding_ranges_in(a, f)).unwrap_or_default())
+            }
+            DocumentLinkRequest::METHOD => {
+                serde_json::to_value(file.map(|(a, f)| links::document_links_in(a, f)).unwrap_or_default())
             }
             GotoDefinition::METHOD => {
                 let found = a.and_then(|a| parser_definition(a, &req, doc));

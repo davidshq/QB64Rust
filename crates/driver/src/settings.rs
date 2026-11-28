@@ -6,9 +6,9 @@
 //! layout settings.
 
 use crate::lints::Lints;
-use qb64rust_base::SourceEncoding;
 use qb64rust_base::fixes::{Fix, Fixes};
 use qb64rust_base::layout::{KeywordStyle, Overrides};
+use qb64rust_base::{Platform, SourceEncoding};
 use std::fmt;
 use std::path::{Path, PathBuf};
 use toml::de::DeTable;
@@ -51,8 +51,11 @@ pub struct Project {
 pub struct Build {
     /// The project's folder: the settings file's, or the main file's when there is no settings file.
     pub root: PathBuf,
-    /// The output folder: `output` joined to `root`, `build` when the table does not set it.
+    /// The output folder when a build uses one: `output` joined to `root`, `build` when the table does not set it.
+    /// [`Build::output_for`] says whether a build uses it.
     pub output: PathBuf,
+    /// Whether the table sets `output`.
+    pub output_set: bool,
     /// The entries of `copy`, in the order written.
     pub copy: Vec<CopyEntry>,
     /// `call_trace`, when the table sets it (OpenSpec change `call-trace`, design D7).
@@ -84,6 +87,7 @@ impl Build {
         Build {
             root: root.to_path_buf(),
             output: std::path::absolute(&output).unwrap_or(output),
+            output_set: table.output.is_some(),
             copy: table
                 .copy
                 .iter()
@@ -104,8 +108,19 @@ impl Build {
         cli.or(self.call_trace).unwrap_or(debug)
     }
 
-    /// A program with no settings file, whose main file is `main`: `build` in the main file's folder, nothing to
-    /// copy.
+    /// The folder a build without `-o` writes a program of `source_folder` into (OpenSpec change `project-init`,
+    /// design D1): the table's `output` when it sets one; else `build` in the project's folder when there is a
+    /// `copy` list or the target is wasm; else the source's own folder.
+    pub fn output_for(&self, source_folder: &Path, platform: Platform) -> PathBuf {
+        if self.output_set || !self.copy.is_empty() || platform == Platform::Wasm {
+            self.output.clone()
+        } else {
+            source_folder.to_path_buf()
+        }
+    }
+
+    /// A program with no settings file, whose main file is `main`: nothing to copy, so a host build writes the
+    /// program beside the source.
     pub fn without_settings(main: &Path) -> Build {
         let main = std::path::absolute(main).unwrap_or_else(|_| main.to_path_buf());
         let root = main.parent().map_or_else(PathBuf::new, Path::to_path_buf);
@@ -298,6 +313,12 @@ fn read_all(path: &Path) -> Result<Parsed, SettingsError> {
     })
 }
 
+/// Whether the bytes of a settings file in the folder `root` can be used, with every check a build makes; an error
+/// is its line and message. `init`'s tests read its template with it (design D4 of `project-init`).
+pub fn check_text(bytes: &[u8], root: &Path) -> Result<(), (u32, String)> {
+    resolve_build(root, &parse_all(bytes)?.build).map(|_| ())
+}
+
 /// [`read_settings`] of a file's bytes; an error is its line and message.
 #[cfg(test)]
 fn parse_settings(bytes: &[u8]) -> Result<Project, (u32, String)> {
@@ -449,7 +470,10 @@ fn build_table(table: &DeTable<'_>, line: &dyn Fn(usize) -> u32) -> Result<Build
             _ => {
                 return Err((
                     line(key.span().start),
-                    format!("unknown build setting `{name}`; the settings are output, copy, call_trace"),
+                    format!(
+                        "unknown build setting `{name}`; the settings are {}",
+                        BUILD_KEYS.join(", ")
+                    ),
                 ));
             }
         }
@@ -581,9 +605,23 @@ fn switches<T>(
     Ok((all, ones))
 }
 
-/// The keys of `[format]`, in the order an error lists them.
-const FORMAT_KEYS: &str =
-    "auto-indent, indent-size, indent-subs, auto-layout, keyword-case, one-statement-per-line, block-if";
+/// The keys of `[format]`, in the order an error lists them. `init`'s template holds each (design D4 of
+/// `project-init`).
+pub const FORMAT_KEYS: &[&str] = &[
+    "auto-indent",
+    "indent-size",
+    "indent-subs",
+    "auto-layout",
+    "keyword-case",
+    "one-statement-per-line",
+    "block-if",
+];
+
+/// The keys of `[build]`, in the order an error lists them.
+pub const BUILD_KEYS: &[&str] = &["output", "copy", "call_trace"];
+
+/// The keys of `[project]` that are read; any other is ignored.
+pub const PROJECT_KEYS: &[&str] = &["main", "exclude", "encoding"];
 
 /// The `[format]` table (spec `compiler/format`, "Format table of the settings file" and "A bad format table").
 fn format_table(table: &DeTable<'_>, line: &dyn Fn(usize) -> u32) -> Result<Overrides, (u32, String)> {
@@ -629,7 +667,10 @@ fn format_table(table: &DeTable<'_>, line: &dyn Fn(usize) -> u32) -> Result<Over
             _ => {
                 return Err((
                     line(key.span().start),
-                    format!("unknown format setting `{name}`; the settings are {FORMAT_KEYS}"),
+                    format!(
+                        "unknown format setting `{name}`; the settings are {}",
+                        FORMAT_KEYS.join(", ")
+                    ),
                 ));
             }
         }
@@ -775,6 +816,41 @@ mod tests {
         parse_all(text.as_bytes()).map(|p| p.build)
     }
 
+    /// The folder a build writes into (design D1 of `project-init`), for the host and for wasm: beside the source
+    /// without a settings file, with one a folder up and no `[build]`, and with `call_trace` alone; `build` with
+    /// `copy` alone or for wasm; the named folder with `output`, with or without `copy`.
+    #[test]
+    fn the_folder_a_build_writes_into() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = std::path::absolute(dir.path()).unwrap();
+        let main = write(dir.path(), "src/game.bas", "PRINT 1\n");
+        write(dir.path(), "src/GAME.CFG", "x\n");
+        let src = root.join("src");
+        let at = |platform| load(&main, false).unwrap().1.output_for(&src, platform);
+        let both = |host: PathBuf, wasm: PathBuf, what: &str| {
+            assert_eq!(at(Platform::host()), host, "{what}, host");
+            assert_eq!(at(Platform::Wasm), wasm, "{what}, wasm");
+        };
+        both(src.clone(), src.join("build"), "no settings file");
+        write(dir.path(), "qb64rust.toml", "[fixes]\nall = true\n");
+        both(src.clone(), root.join("build"), "a file one folder up, no [build]");
+        write(dir.path(), "qb64rust.toml", "[build]\ncall_trace = true\n");
+        both(src.clone(), root.join("build"), "call_trace alone");
+        std::fs::remove_file(root.join("qb64rust.toml")).unwrap();
+        write(dir.path(), "src/qb64rust.toml", "[build]\noutput = \"out\"\n");
+        both(src.join("out"), src.join("out"), "output alone");
+        write(dir.path(), "src/qb64rust.toml", "[build]\noutput = \".\"\n");
+        both(src.clone(), src.clone(), "output = \".\"");
+        write(dir.path(), "src/qb64rust.toml", "[build]\ncopy = [\"GAME.CFG\"]\n");
+        both(src.join("build"), src.join("build"), "copy alone");
+        write(
+            dir.path(),
+            "src/qb64rust.toml",
+            "[build]\noutput = \"out\"\ncopy = [\"GAME.CFG\"]\n",
+        );
+        both(src.join("out"), src.join("out"), "copy with output");
+    }
+
     /// The `[build]` table of `load` (design D1 and D2 of `build-output-folder`): no settings file, no table,
     /// `output` alone, `output = "."`, `copy`, a settings file one folder up, a dotted key, and `--no-settings`.
     #[test]
@@ -789,6 +865,7 @@ mod tests {
             Build {
                 root: g.clone(),
                 output: g.join("build"),
+                output_set: false,
                 copy: vec![],
                 call_trace: None,
                 encoding: None,

@@ -194,6 +194,83 @@ fn definition_across_included_files() {
     assert_eq!(def_at(&a, 0, "hello"), Some(("lib.bm".into(), 0, 4)));
 }
 
+/// Each `$INCLUDE` the parse loaded links its file name to the file: one on disk, one open and not saved, and one
+/// inside a SUB and after `REM`. A missing file has no link.
+#[test]
+fn include_links() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("lib.bm"), "SUB hello\nEND SUB\n").unwrap();
+    let open_only = dir.path().join("open.bi");
+    let main = dir.path().join("main.bas");
+    let text = b"'$INCLUDE: 'lib.bm'\n'$include:'missing.bi'\nSUB s\n  REM $INCLUDE: 'open.bi'\nEND SUB\n";
+    let a = parse_with(&main, text, &[(&open_only, b"DIM x\n")], dir.path());
+    let links = qb64rust_lsp::links::document_links_in(&a, a.parsed.main().file);
+    let got: Vec<_> = links
+        .iter()
+        .map(|l| {
+            let r = l.range;
+            let target = l
+                .target
+                .as_ref()
+                .unwrap()
+                .as_str()
+                .rsplit('/')
+                .next()
+                .unwrap()
+                .to_string();
+            (r.start.line, r.start.character, r.end.character, target)
+        })
+        .collect();
+    assert_eq!(
+        got,
+        [(0, 12, 18, "lib.bm".to_string()), (3, 17, 24, "open.bi".to_string())]
+    );
+}
+
+/// A user SUB's header is its signature, each parameter marked; a FUNCTION is offered only for a call with `(`.
+#[test]
+fn signature_of_a_user_procedure() {
+    let a = parse_text("SUB greet (who$, times AS INTEGER)\nEND SUB\nFUNCTION twice% (n%)\nEND FUNCTION\n");
+    let help = qb64rust_lsp::signature::signature_help(Some(&a), "greet \"Ann\", ").unwrap();
+    let s = &help.signatures[0];
+    assert_eq!(s.label, "SUB greet (who$, times AS INTEGER)");
+    assert_eq!(help.active_parameter, Some(1));
+    let params: Vec<_> = s
+        .parameters
+        .iter()
+        .flatten()
+        .map(|p| match p.label {
+            lsp_types::ParameterLabel::LabelOffsets([x, y]) => &s.label[x as usize..y as usize],
+            lsp_types::ParameterLabel::Simple(_) => unreachable!(),
+        })
+        .collect();
+    assert_eq!(params, ["who$", "times AS INTEGER"]);
+    let twice = qb64rust_lsp::signature::signature_help(Some(&a), "PRINT TWICE(").unwrap();
+    assert_eq!(twice.signatures[0].label, "FUNCTION twice% (n%)");
+    assert_eq!(qb64rust_lsp::signature::signature_help(Some(&a), "twice "), None);
+}
+
+/// A header with a byte above 127 before a parameter (a CP437 `é` in an `ALIAS`) marks the parameter in UTF-16
+/// units, as the client counts the label.
+#[test]
+fn signature_marks_count_utf16_units() {
+    let main = fixture("virtual.bas");
+    let text = b"DECLARE LIBRARY\r\n    SUB tick ALIAS \"t\x82\" (BYVAL n AS LONG)\r\nEND DECLARE\r\n";
+    let a = parse_with(&main, text, &[], &fixture(""));
+    let help = qb64rust_lsp::signature::signature_help(Some(&a), "tick ").unwrap();
+    let s = &help.signatures[0];
+    let units: Vec<u16> = s.label.encode_utf16().collect();
+    let lsp_types::ParameterLabel::LabelOffsets([x, y]) = s.parameters.as_ref().unwrap()[0].label else {
+        unreachable!()
+    };
+    assert_eq!(
+        String::from_utf16(&units[x as usize..y as usize]).unwrap(),
+        "BYVAL n AS LONG",
+        "{:?}",
+        s.label
+    );
+}
+
 /// An include named with `\` is found on every host, as the compiler finds it: on Linux the `\` is a `/`.
 #[test]
 fn definition_across_an_include_named_with_a_backslash() {

@@ -12,7 +12,9 @@ import { Diagnostics } from "./diagnostics";
 import { Formatter, registerWhileServerOff, removeStaleTempFiles } from "./format";
 import { LanguageServer } from "./languageServer";
 import { registerNewProject } from "./newProject";
+import { registerSetUpProject } from "./setUpProject";
 import { CompilerStatus } from "./statusBar";
+import { TabsNotice } from "./tabs";
 import { Qb64TaskProvider, TASK_TYPE } from "./tasks";
 import { TestSupport } from "./testing";
 import { ToolchainSupport } from "./toolchainSupport";
@@ -29,6 +31,7 @@ export interface Api {
     toolchain: ToolchainSupport;
     tests: TestSupport;
     browser: BrowserSupport;
+    tabs: TabsNotice;
 }
 
 let server: LanguageServer | undefined;
@@ -62,6 +65,8 @@ export function activate(context: vscode.ExtensionContext): Api {
     const browser = new BrowserSupport(queue, status, diagnostics, lsp, bundle, builder, toolchain);
     // The Test Explorer (change basic-unit-tests): `qb64rust test`, with the binary and toolchain a build uses.
     const tests = new TestSupport(status, lsp, bundle);
+    // A file shown with tabs is told of once (the QB64pe IDE turns them into spaces when it loads a file).
+    const tabs = new TabsNotice();
     context.subscriptions.push(
         { dispose: () => queue.dispose() },
         status,
@@ -71,14 +76,16 @@ export function activate(context: vscode.ExtensionContext): Api {
         debug,
         browser,
         tests,
+        tabs,
         lsp,
         registerWhileServerOff(lsp, new Formatter(queue, status, diagnostics, lsp)),
         vscode.tasks.registerTaskProvider(TASK_TYPE, new Qb64TaskProvider(status, lsp, bundle)),
         registerNewProject(),
+        registerSetUpProject(lsp),
     );
     void removeStaleTempFiles();
     void removeOtherVersions(bundle.storage, bundle.version);
-    return { status, diagnostics, queue, server: lsp, bundle, builder, debug, toolchain, tests, browser };
+    return { status, diagnostics, queue, server: lsp, bundle, builder, debug, toolchain, tests, browser, tabs };
 }
 
 export async function deactivate(): Promise<void> {
